@@ -51,6 +51,13 @@ public:
         int effectiveTier = 1;          // tier after dry-run escalation
         juce::String message;           // human-readable explanation for the AI
         int secondsUntilExpiry = 0;     // for AwaitConfirmation
+
+        // Set when the AI sent a `confirm` token whose entry was already
+        // expired before this call landed. The dispatcher surfaces this as
+        // `token_expired_recovery: true` in the response payload so the
+        // operator and the AI can both notice the round-trip-too-slow case
+        // (instead of it looking identical to "first call, no token").
+        bool tokenExpiredRecovery = false;
     };
 
     /** Evaluate an inbound tool call. Caller passes the tool's declared
@@ -69,6 +76,17 @@ public:
     bool isSafetyGateOpen() const noexcept;
     int  secondsUntilGateCloses() const noexcept;  // 0 when closed
 
+    /** Tier-2 session override. While active, evaluate() short-circuits
+        Tier-2 calls to Decision::Execute without issuing a confirmation
+        token — the operator has consented to a batch of Tier-2 work for
+        the duration. Tier-3 still requires a token AND the safety gate.
+        Defaults to closed; the operator opens it from the Network tab.
+        Independent of the safety gate. */
+    void openTier2AutoConfirm();
+    void closeTier2AutoConfirm();
+    bool isTier2AutoConfirmActive() const noexcept;
+    int  secondsUntilTier2AutoConfirmCloses() const noexcept;
+
     /** Master AI toggle. When false, evaluate() returns AIDisabled for
         every tool call regardless of tier. Defaults to true (AI on). */
     void setAIEnabled (bool on);
@@ -83,15 +101,22 @@ public:
     void addListener    (Listener* l);
     void removeListener (Listener* l);
 
-    static constexpr int kConfirmationLifetimeSec    = 30;
-    static constexpr int kSafetyGateLifetimeSec      = 600;    // 10 minutes
-    static constexpr int kCountdownNotifyIntervalMs  = 10000;  // UI tick cadence while gate is open
+    static constexpr int kConfirmationLifetimeSec       = 30;
+    static constexpr int kSafetyGateLifetimeSec         = 600;    // 10 minutes
+    static constexpr int kTier2AutoConfirmLifetimeSec   = 300;    // 5 minutes
+    static constexpr int kCountdownNotifyIntervalMs     = 10000;  // UI tick cadence while gate is open
 
 private:
     void timerCallback() override;
     void notifyListeners();
     juce::String issueToken (const juce::String& toolName, const juce::var& args);
     bool consumeMatchingToken (const juce::String& toolName, const juce::var& args);
+    /** Returns true if the AI presented a `confirm` token whose pending
+        entry matches (toolName, args) but is already past its expiry.
+        Callers should treat this as the diagnostic "your previous token
+        rotated" signal. Does NOT erase or mutate the entry; the next
+        purgeExpired() call clears it normally. */
+    bool peekExpiredMatch (const juce::String& toolName, const juce::var& args) const;
     void purgeExpired();
 
     struct PendingConfirmation
@@ -110,6 +135,8 @@ private:
     std::atomic<bool> aiEnabled { false };
     juce::Time gateOpenedUntil; // zero-initialised → gate starts closed
     bool gateOpen = false;
+    juce::Time tier2AutoConfirmUntil;  // zero-initialised → off
+    bool tier2AutoConfirmOpen = false;
     // Phase 8: throttle for the countdown UI tick. The 4 Hz internal
     // timer still runs (token expiry needs 250 ms precision) but
     // listener notifications fire at most once every kCountdownNotifyIntervalMs

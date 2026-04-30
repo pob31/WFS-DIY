@@ -120,6 +120,7 @@ void MCPTierEnforcement::timerCallback()
 {
     bool changed = false;
     bool gateStillOpen = false;
+    bool tier2StillOpen = false;
     {
         const juce::ScopedLock sl (lock);
         const auto now = juce::Time::getCurrentTime();
@@ -143,16 +144,23 @@ void MCPTierEnforcement::timerCallback()
             changed = true;
         }
 
-        gateStillOpen = gateOpen;
+        // Tier-2 auto-confirm auto-close
+        if (tier2AutoConfirmOpen && tier2AutoConfirmUntil <= now)
+        {
+            tier2AutoConfirmOpen = false;
+            changed = true;
+        }
+
+        gateStillOpen  = gateOpen;
+        tier2StillOpen = tier2AutoConfirmOpen;
     }
 
-    // State transitions notify immediately. Gate-still-open ticks are
-    // throttled to kCountdownNotifyIntervalMs (10 s) — at the 10-minute
-    // gate window, 4 Hz UI repaints would advance the depleting fill by
-    // less than a tenth of a pixel per tick, and the throttle gives a
-    // visible step instead.
+    // State transitions notify immediately. Countdown ticks are throttled
+    // to kCountdownNotifyIntervalMs (10 s) — at the 10-minute gate or the
+    // 5-minute tier-2 window, 4 Hz UI repaints would advance the depleting
+    // fill by less than a pixel per tick. Throttling gives a visible step.
     bool shouldTickCountdown = false;
-    if (gateStillOpen)
+    if (gateStillOpen || tier2StillOpen)
     {
         const auto nowMs = static_cast<juce::int64> (juce::Time::getMillisecondCounter());
         if (nowMs - lastCountdownNotifyMs >= kCountdownNotifyIntervalMs)
@@ -218,6 +226,31 @@ bool MCPTierEnforcement::consumeMatchingToken (const juce::String& toolName, con
     return true;
 }
 
+bool MCPTierEnforcement::peekExpiredMatch (const juce::String& toolName,
+                                            const juce::var& args) const
+{
+    if (! args.isObject())
+        return false;
+    auto* obj = args.getDynamicObject();
+    if (obj == nullptr || ! obj->hasProperty ("confirm"))
+        return false;
+    const auto presented = obj->getProperty ("confirm").toString();
+    if (presented.isEmpty())
+        return false;
+
+    const auto canonical = canonicalArgsJson (args);
+
+    const juce::ScopedLock sl (lock);
+    auto it = pending.find (presented);
+    if (it == pending.end())
+        return false;
+    if (it->second.toolName != toolName)
+        return false;
+    if (it->second.argsJson != canonical)
+        return false;
+    return it->second.expiresAt <= juce::Time::getCurrentTime();
+}
+
 void MCPTierEnforcement::purgeExpired()
 {
     const juce::ScopedLock sl (lock);
@@ -233,6 +266,10 @@ MCPTierEnforcement::Outcome MCPTierEnforcement::evaluate (const juce::String& to
                                                           int declaredTier,
                                                           const juce::var& args)
 {
+    // Detect "your previous token rotated" BEFORE purging — purgeExpired
+    // erases the entry, after which we can no longer distinguish the
+    // expiry case from a never-issued-token case.
+    const bool sawExpiredMatch = peekExpiredMatch (toolName, args);
     purgeExpired();
 
     Outcome out;
@@ -267,6 +304,15 @@ MCPTierEnforcement::Outcome MCPTierEnforcement::evaluate (const juce::String& to
         return out;
     }
 
+    // Tier-2 session override: when the operator has consented to a batch
+    // of Tier-2 work for the next ~5 minutes, skip the per-call handshake.
+    // Tier-3 still requires the token round trip even with this open.
+    if (out.effectiveTier == 2 && isTier2AutoConfirmActive())
+    {
+        out.decision = Decision::Execute;
+        return out;
+    }
+
     // Tier 2 (and Tier 3 with open gate): two-step confirm.
     if (consumeMatchingToken (toolName, args))
     {
@@ -278,16 +324,26 @@ MCPTierEnforcement::Outcome MCPTierEnforcement::evaluate (const juce::String& to
     out.confirmationToken    = issueToken (toolName, args);
     out.secondsUntilExpiry   = kConfirmationLifetimeSec;
     out.decision             = Decision::AwaitConfirmation;
+    out.tokenExpiredRecovery = sawExpiredMatch;
+
+    juce::String prefix;
+    if (sawExpiredMatch)
+        prefix = "Previous confirmation token expired (>"
+                 + juce::String (kConfirmationLifetimeSec)
+                 + "s round-trip). New token issued. ";
+
     if (out.effectiveTier == 3)
     {
-        out.message = "Tier 3 action awaiting confirmation. Re-call with "
+        out.message = prefix
+                      + "Tier 3 action awaiting confirmation. Re-call with "
                       "`confirm: \"" + out.confirmationToken
                       + "\"` within " + juce::String (kConfirmationLifetimeSec)
                       + " seconds. Critical AI actions are currently allowed.";
     }
     else
     {
-        out.message = "Tier 2 action awaiting confirmation. Re-call with "
+        out.message = prefix
+                      + "Tier 2 action awaiting confirmation. Re-call with "
                       "`confirm: \"" + out.confirmationToken
                       + "\"` within " + juce::String (kConfirmationLifetimeSec)
                       + " seconds.";
@@ -330,6 +386,42 @@ int MCPTierEnforcement::secondsUntilGateCloses() const noexcept
     const juce::ScopedLock sl (lock);
     if (! gateOpen) return 0;
     const auto remaining = (gateOpenedUntil - juce::Time::getCurrentTime()).inSeconds();
+    return juce::jmax (0, static_cast<int> (remaining + 0.5));
+}
+
+void MCPTierEnforcement::openTier2AutoConfirm()
+{
+    {
+        const juce::ScopedLock sl (lock);
+        tier2AutoConfirmOpen  = true;
+        tier2AutoConfirmUntil = juce::Time::getCurrentTime()
+                                  + juce::RelativeTime::seconds (kTier2AutoConfirmLifetimeSec);
+        lastCountdownNotifyMs = static_cast<juce::int64> (juce::Time::getMillisecondCounter());
+    }
+    notifyListeners();
+}
+
+void MCPTierEnforcement::closeTier2AutoConfirm()
+{
+    {
+        const juce::ScopedLock sl (lock);
+        tier2AutoConfirmOpen  = false;
+        tier2AutoConfirmUntil = juce::Time();
+    }
+    notifyListeners();
+}
+
+bool MCPTierEnforcement::isTier2AutoConfirmActive() const noexcept
+{
+    const juce::ScopedLock sl (lock);
+    return tier2AutoConfirmOpen && tier2AutoConfirmUntil > juce::Time::getCurrentTime();
+}
+
+int MCPTierEnforcement::secondsUntilTier2AutoConfirmCloses() const noexcept
+{
+    const juce::ScopedLock sl (lock);
+    if (! tier2AutoConfirmOpen) return 0;
+    const auto remaining = (tier2AutoConfirmUntil - juce::Time::getCurrentTime()).inSeconds();
     return juce::jmax (0, static_cast<int> (remaining + 0.5));
 }
 

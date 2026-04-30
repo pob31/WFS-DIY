@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-04-30T00:40:19Z",
-  "input_hash": "47e9c8c2a2f9d09dcac94298a8d3a9056664dea2a599d6bd0c66f3dc5160b854",
+  "generated_at": "2026-04-30T11:29:28Z",
+  "input_hash": "367b61c6ce695d1a652fcefa404cc8101ffd9403d10129292e9e5c0b28ac70e0",
   "source_csvs": [
     "WFS-UI_config.csv",
     "WFS-UI_input.csv",
@@ -59,7 +59,8 @@
               "HideClusterInputs",
               "ShowClusterInputs"
             ],
-            "description": "Show/Hide Cluster Inputs (enum)."
+            "description": "Show/Hide Cluster Inputs (enum).",
+            "default": "ShowClusterInputs"
           }
         },
         "required": [
@@ -126,7 +127,8 @@
               "LFOOff",
               "LFOOn"
             ],
-            "description": "LFO Active (enum)."
+            "description": "LFO Active (enum).",
+            "default": "LFOOff"
           }
         },
         "required": [
@@ -143,7 +145,7 @@
     },
     {
       "name": "cluster_lfo_set_amplitude_rot",
-      "description": "Amplitude of the cluster LFO on the Rot axis. Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Cluster rotation LFO amplitude in degrees, range -360 to 360. Bipolar: positive = counter-clockwise viewed from above (matches the inputRotation / outputOrientation convention), negative = clockwise. Cluster rotates around its reference point in the selected plane. Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -157,7 +159,8 @@
             "type": "integer",
             "minimum": -360,
             "maximum": 360,
-            "description": "LFO Amplitude Rot degrees."
+            "description": "LFO Amplitude Rot degrees.",
+            "default": 0
           }
         },
         "required": [
@@ -188,7 +191,8 @@
             "type": "number",
             "minimum": 0.1,
             "maximum": 10.0,
-            "description": "LFO Amplitude Scale x."
+            "description": "LFO Amplitude Scale x.",
+            "default": 1.0
           }
         },
         "required": [
@@ -219,7 +223,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 50.0,
-            "description": "LFO Amplitude X m."
+            "description": "LFO Amplitude X m.",
+            "default": 1.0
           }
         },
         "required": [
@@ -250,7 +255,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 50.0,
-            "description": "LFO Amplitude Y m."
+            "description": "LFO Amplitude Y m.",
+            "default": 1.0
           }
         },
         "required": [
@@ -281,7 +287,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 50.0,
-            "description": "LFO Amplitude Z m."
+            "description": "LFO Amplitude Z m.",
+            "default": 1.0
           }
         },
         "required": [
@@ -312,7 +319,8 @@
             "type": "number",
             "minimum": 0.01,
             "maximum": 100.0,
-            "description": "LFO Period s."
+            "description": "LFO Period s.",
+            "default": 5.0
           }
         },
         "required": [
@@ -329,7 +337,7 @@
     },
     {
       "name": "cluster_lfo_set_phase",
-      "description": "Global phase offset for the cluster LFO. Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Cluster LFO global phase offset in degrees, range -180 to 180. 0 = start of cycle, 90 = quarter-cycle in, etc. Applied to the LFO ramp before the per-axis (X/Y/Z/Rot/Scale) phase offsets. Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -343,7 +351,8 @@
             "type": "integer",
             "minimum": -180,
             "maximum": 180,
-            "description": "LFO Phase (Global) degrees."
+            "description": "LFO Phase (Global) degrees.",
+            "default": 0
           }
         },
         "required": [
@@ -360,7 +369,7 @@
     },
     {
       "name": "cluster_lfo_set_phase_rot",
-      "description": "Phase offset for the cluster LFO on the Rot axis. Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Cluster rotation LFO phase offset in degrees, range -180 to 180. Stacks on top of the global clusterLFOphase. Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -374,7 +383,8 @@
             "type": "integer",
             "minimum": -180,
             "maximum": 180,
-            "description": "LFO Phase Rot degrees."
+            "description": "LFO Phase Rot degrees.",
+            "default": 0
           }
         },
         "required": [
@@ -391,7 +401,7 @@
     },
     {
       "name": "cluster_lfo_set_phase_scale",
-      "description": "Phase offset for the cluster LFO on the Scale axis. Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Cluster scale LFO phase offset in degrees, range -180 to 180. Stacks on top of the global clusterLFOphase. Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -405,7 +415,8 @@
             "type": "integer",
             "minimum": -180,
             "maximum": 180,
-            "description": "LFO Phase Scale degrees."
+            "description": "LFO Phase Scale degrees.",
+            "default": 0
           }
         },
         "required": [
@@ -422,7 +433,7 @@
     },
     {
       "name": "cluster_lfo_set_phase_x",
-      "description": "Phase offset for the cluster LFO on the X axis. Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Cluster LFO X-axis phase offset in degrees, range -180 to 180. Stacks on top of the global clusterLFOphase. Use to desync axes within a cluster. Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -436,7 +447,8 @@
             "type": "integer",
             "minimum": -180,
             "maximum": 180,
-            "description": "LFO Phase X degrees."
+            "description": "LFO Phase X degrees.",
+            "default": 0
           }
         },
         "required": [
@@ -453,7 +465,7 @@
     },
     {
       "name": "cluster_lfo_set_phase_y",
-      "description": "Phase offset for the cluster LFO on the Y axis. Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Cluster LFO Y-axis phase offset in degrees, range -180 to 180. Stacks on top of the global clusterLFOphase. Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -467,7 +479,8 @@
             "type": "integer",
             "minimum": -180,
             "maximum": 180,
-            "description": "LFO Phase Y degrees."
+            "description": "LFO Phase Y degrees.",
+            "default": 0
           }
         },
         "required": [
@@ -484,7 +497,7 @@
     },
     {
       "name": "cluster_lfo_set_phase_z",
-      "description": "Phase offset for the cluster LFO on the Z axis. Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Cluster LFO Z-axis phase offset in degrees, range -180 to 180. Stacks on top of the global clusterLFOphase. Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -498,7 +511,8 @@
             "type": "integer",
             "minimum": -180,
             "maximum": 180,
-            "description": "LFO Phase Z degrees."
+            "description": "LFO Phase Z degrees.",
+            "default": 0
           }
         },
         "required": [
@@ -529,7 +543,8 @@
             "type": "number",
             "minimum": 0.01,
             "maximum": 100.0,
-            "description": "LFO Rate Rot x."
+            "description": "LFO Rate Rot x.",
+            "default": 1.0
           }
         },
         "required": [
@@ -560,7 +575,8 @@
             "type": "number",
             "minimum": 0.01,
             "maximum": 100.0,
-            "description": "LFO Rate Scale x."
+            "description": "LFO Rate Scale x.",
+            "default": 1.0
           }
         },
         "required": [
@@ -591,7 +607,8 @@
             "type": "number",
             "minimum": 0.01,
             "maximum": 100.0,
-            "description": "LFO Rate X x."
+            "description": "LFO Rate X x.",
+            "default": 1.0
           }
         },
         "required": [
@@ -622,7 +639,8 @@
             "type": "number",
             "minimum": 0.01,
             "maximum": 100.0,
-            "description": "LFO Rate Y x."
+            "description": "LFO Rate Y x.",
+            "default": 1.0
           }
         },
         "required": [
@@ -653,7 +671,8 @@
             "type": "number",
             "minimum": 0.01,
             "maximum": 100.0,
-            "description": "LFO Rate Z x."
+            "description": "LFO Rate Z x.",
+            "default": 1.0
           }
         },
         "required": [
@@ -693,7 +712,8 @@
               "Exp",
               "Random"
             ],
-            "description": "LFO Shape Rot (enum)."
+            "description": "LFO Shape Rot (enum).",
+            "default": "Off"
           }
         },
         "required": [
@@ -745,7 +765,8 @@
               "Exp",
               "Random"
             ],
-            "description": "LFO Shape Scale (enum)."
+            "description": "LFO Shape Scale (enum).",
+            "default": "Off"
           }
         },
         "required": [
@@ -797,7 +818,8 @@
               "Exp",
               "Random"
             ],
-            "description": "LFO Shape X (enum)."
+            "description": "LFO Shape X (enum).",
+            "default": "Off"
           }
         },
         "required": [
@@ -849,7 +871,8 @@
               "Exp",
               "Random"
             ],
-            "description": "LFO Shape Y (enum)."
+            "description": "LFO Shape Y (enum).",
+            "default": "Off"
           }
         },
         "required": [
@@ -901,7 +924,8 @@
               "Exp",
               "Random"
             ],
-            "description": "LFO Shape Z (enum)."
+            "description": "LFO Shape Z (enum).",
+            "default": "Off"
           }
         },
         "required": [
@@ -946,7 +970,8 @@
               "FirstInput",
               "Barycenter"
             ],
-            "description": "Reference Mode (enum)."
+            "description": "Reference Mode (enum).",
+            "default": "FirstInput"
           }
         },
         "required": [
@@ -982,7 +1007,8 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 100,
-            "description": "Common Attenuation %."
+            "description": "Common Attenuation %.",
+            "default": 100
           },
           "confirm": {
             "type": "string",
@@ -1018,7 +1044,8 @@
             "type": "number",
             "minimum": -6.0,
             "maximum": 0.0,
-            "description": "Distance Attenuation dB/m."
+            "description": "Distance Attenuation dB/m.",
+            "default": -0.7
           },
           "transition_seconds": {
             "type": "number",
@@ -1057,7 +1084,8 @@
             "type": "number",
             "minimum": 0.1,
             "maximum": 10.0,
-            "description": "Distance Ratio x."
+            "description": "Distance Ratio x.",
+            "default": 1.0
           },
           "transition_seconds": {
             "type": "number",
@@ -1098,7 +1126,8 @@
               "Log",
               "1d"
             ],
-            "description": "Attenuation Law (enum)."
+            "description": "Attenuation Law (enum).",
+            "default": "Log"
           }
         },
         "required": [
@@ -1131,7 +1160,8 @@
               "Absolute",
               "Relative"
             ],
-            "description": "Absolute / Relative (enum)."
+            "description": "Absolute / Relative (enum).",
+            "default": "Absolute"
           }
         },
         "required": [
@@ -1162,7 +1192,8 @@
             "type": "integer",
             "minimum": -100,
             "maximum": 100,
-            "description": "Curve %."
+            "description": "Curve %.",
+            "default": 0
           }
         },
         "required": [
@@ -1194,7 +1225,8 @@
             "type": "number",
             "minimum": 0.1,
             "maximum": 3600.0,
-            "description": "Duration s."
+            "description": "Duration s.",
+            "default": 5.0
           }
         },
         "required": [
@@ -1226,7 +1258,8 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 1,
-            "description": "Pause / Resume."
+            "description": "Pause / Resume.",
+            "default": 1
           }
         },
         "required": [
@@ -1257,7 +1290,8 @@
             "type": "number",
             "minimum": -3600.0,
             "maximum": 3600.0,
-            "description": "Destination Elevation °."
+            "description": "Destination Elevation °.",
+            "default": 0.0
           }
         },
         "required": [
@@ -1288,7 +1322,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 50.0,
-            "description": "Destination Radius m."
+            "description": "Destination Radius m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -1319,7 +1354,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 50.0,
-            "description": "Destination Radius 3D m."
+            "description": "Destination Radius 3D m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -1350,7 +1386,8 @@
             "type": "number",
             "minimum": -92.0,
             "maximum": 0.0,
-            "description": "Trigger Reset dB."
+            "description": "Trigger Reset dB.",
+            "default": -60.0
           },
           "confirm": {
             "type": "string",
@@ -1385,7 +1422,8 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 100,
-            "description": "Speed Profile %."
+            "description": "Speed Profile %.",
+            "default": 0
           }
         },
         "required": [
@@ -1419,7 +1457,8 @@
               "Stay",
               "Return"
             ],
-            "description": "Stay / Return (enum)."
+            "description": "Stay / Return (enum).",
+            "default": "Stay"
           }
         },
         "required": [
@@ -1450,7 +1489,8 @@
             "type": "number",
             "minimum": -3600.0,
             "maximum": 3600.0,
-            "description": "Destination Azimuth °."
+            "description": "Destination Azimuth °.",
+            "default": 0.0
           }
         },
         "required": [
@@ -1481,7 +1521,8 @@
             "type": "number",
             "minimum": -92.0,
             "maximum": 0.0,
-            "description": "Trigger Threshold dB."
+            "description": "Trigger Threshold dB.",
+            "default": -20.0
           }
         },
         "required": [
@@ -1515,7 +1556,8 @@
               "Manual",
               "Trigger"
             ],
-            "description": "Trigger (enum)."
+            "description": "Trigger (enum).",
+            "default": "Manual"
           }
         },
         "required": [
@@ -1547,7 +1589,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Destination X m."
+            "description": "Destination X m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -1579,7 +1622,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Destination Y m."
+            "description": "Destination Y m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -1611,7 +1655,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Destination Z m."
+            "description": "Destination Z m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -1645,7 +1690,8 @@
               "Free",
               "Constrained"
             ],
-            "description": "Constraint X (enum)."
+            "description": "Constraint X (enum).",
+            "default": "Constrained"
           }
         },
         "required": [
@@ -1678,7 +1724,8 @@
               "Free",
               "Constrained"
             ],
-            "description": "Constraint Y (enum)."
+            "description": "Constraint Y (enum).",
+            "default": "Constrained"
           }
         },
         "required": [
@@ -1711,7 +1758,8 @@
               "Free",
               "Constrained"
             ],
-            "description": "Constraint Z (enum)."
+            "description": "Constraint Z (enum).",
+            "default": "Constrained"
           }
         },
         "required": [
@@ -1742,7 +1790,8 @@
             "type": "number",
             "minimum": -100.0,
             "maximum": 100.0,
-            "description": "Delay/Latency comp. ms."
+            "description": "Delay/Latency comp. ms.",
+            "default": 0.0
           },
           "transition_seconds": {
             "type": "number",
@@ -1787,7 +1836,8 @@
               "AcousticPrecedence",
               "MinimalLatency"
             ],
-            "description": "Minimal Latency (enum)."
+            "description": "Minimal Latency (enum).",
+            "default": "AcousticPrecedence"
           }
         },
         "required": [
@@ -1818,7 +1868,8 @@
             "type": "number",
             "minimum": -24.0,
             "maximum": 0.0,
-            "description": "HF Shelf dB."
+            "description": "HF Shelf dB.",
+            "default": -6.0
           },
           "transition_seconds": {
             "type": "number",
@@ -1843,7 +1894,7 @@
     },
     {
       "name": "input_directivity_set_rotation",
-      "description": "Where is the Object pointing to in the Horizontal Plane. Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Source horizontal facing direction in degrees (integer). 0 = facing audience (-Y), 90 = facing stage right (+X), 180 = facing upstage (+Y), -179 = facing stage left (-X). Positive = counter-clockwise viewed from above. Range -179 to 180. Drives the source's directivity / brightness cone. Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -1857,7 +1908,8 @@
             "type": "integer",
             "minimum": -179,
             "maximum": 180,
-            "description": "Rotation °."
+            "description": "Rotation °.",
+            "default": 0
           },
           "transition_seconds": {
             "type": "number",
@@ -1882,7 +1934,7 @@
     },
     {
       "name": "input_directivity_set_tilt",
-      "description": "Where is the Object pointing to in the Vertical Plane. Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Source vertical facing direction in degrees (integer). 0 = horizontal, +90 = pointing straight up (+Z), -90 = pointing straight down (-Z). Positive = upward tilt. Range -90 to 90. Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -1896,7 +1948,8 @@
             "type": "integer",
             "minimum": -90,
             "maximum": 90,
-            "description": "Tilt °."
+            "description": "Tilt °.",
+            "default": 0
           },
           "transition_seconds": {
             "type": "number",
@@ -1937,7 +1990,8 @@
               "Normal",
               "FlippedX"
             ],
-            "description": "Flip X (enum)."
+            "description": "Flip X (enum).",
+            "default": "Normal"
           }
         },
         "required": [
@@ -1970,7 +2024,8 @@
               "Normal",
               "FlippedY"
             ],
-            "description": "Flip Y (enum)."
+            "description": "Flip Y (enum).",
+            "default": "Normal"
           }
         },
         "required": [
@@ -2003,7 +2058,8 @@
               "Normal",
               "FlippedZ"
             ],
-            "description": "Flip Z (enum)."
+            "description": "Flip Z (enum).",
+            "default": "Normal"
           }
         },
         "required": [
@@ -2036,7 +2092,8 @@
               "OFF",
               "ON"
             ],
-            "description": "Floor Reflections Active (enum)."
+            "description": "Floor Reflections Active (enum).",
+            "default": "OFF"
           }
         },
         "required": [
@@ -2067,7 +2124,8 @@
             "type": "number",
             "minimum": -60.0,
             "maximum": 0.0,
-            "description": "Attenuation dB."
+            "description": "Attenuation dB.",
+            "default": -3.0
           },
           "transition_seconds": {
             "type": "number",
@@ -2110,7 +2168,8 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 100,
-            "description": "Diffusion %."
+            "description": "Diffusion %.",
+            "default": 20
           },
           "transition_seconds": {
             "type": "number",
@@ -2151,7 +2210,8 @@
               "OFF",
               "ON"
             ],
-            "description": "High Shelf Active (enum)."
+            "description": "High Shelf Active (enum).",
+            "default": "ON"
           }
         },
         "required": [
@@ -2182,7 +2242,8 @@
             "type": "integer",
             "minimum": 20,
             "maximum": 20000,
-            "description": "High Shelf Freq Hz."
+            "description": "High Shelf Freq Hz.",
+            "default": 3000
           },
           "transition_seconds": {
             "type": "number",
@@ -2221,7 +2282,8 @@
             "type": "number",
             "minimum": -24.0,
             "maximum": 0.0,
-            "description": "High Shelf Gain dB."
+            "description": "High Shelf Gain dB.",
+            "default": -2.0
           },
           "transition_seconds": {
             "type": "number",
@@ -2260,7 +2322,8 @@
             "type": "number",
             "minimum": 0.1,
             "maximum": 0.9,
-            "description": "High Shelf Slope."
+            "description": "High Shelf Slope.",
+            "default": 0.4
           },
           "transition_seconds": {
             "type": "number",
@@ -2301,7 +2364,8 @@
               "OFF",
               "ON"
             ],
-            "description": "Low Cut Active (enum)."
+            "description": "Low Cut Active (enum).",
+            "default": "ON"
           }
         },
         "required": [
@@ -2332,7 +2396,8 @@
             "type": "integer",
             "minimum": 20,
             "maximum": 20000,
-            "description": "Low Cut Freq Hz."
+            "description": "Low Cut Freq Hz.",
+            "default": 100
           },
           "transition_seconds": {
             "type": "number",
@@ -2371,7 +2436,8 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 1,
-            "description": "Layer 0 Enabled."
+            "description": "Layer 0 Enabled.",
+            "default": 1
           }
         },
         "required": [
@@ -2402,7 +2468,8 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 1,
-            "description": "Layer 1 Enabled."
+            "description": "Layer 1 Enabled.",
+            "default": 1
           }
         },
         "required": [
@@ -2433,7 +2500,8 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 1,
-            "description": "Layer 2 Enabled."
+            "description": "Layer 2 Enabled.",
+            "default": 1
           }
         },
         "required": [
@@ -2464,7 +2532,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 1.0,
-            "description": "Layer Black Value."
+            "description": "Layer Black Value.",
+            "default": 0.0
           }
         },
         "required": [
@@ -2495,7 +2564,8 @@
             "type": "number",
             "minimum": -1.0,
             "maximum": 1.0,
-            "description": "Layer Curve."
+            "description": "Layer Curve.",
+            "default": 0.0
           }
         },
         "required": [
@@ -2526,7 +2596,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 1.0,
-            "description": "Layer White Value."
+            "description": "Layer White Value.",
+            "default": 1.0
           }
         },
         "required": [
@@ -2557,7 +2628,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 5.0,
-            "description": "Shape Blur."
+            "description": "Shape Blur.",
+            "default": 0.0
           }
         },
         "required": [
@@ -2588,7 +2660,8 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 2,
-            "description": "Shape Fill Type."
+            "description": "Shape Fill Type.",
+            "default": 0
           }
         },
         "required": [
@@ -2619,7 +2692,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 1.0,
-            "description": "Shape Fill Value."
+            "description": "Shape Fill Value.",
+            "default": 1.0
           }
         },
         "required": [
@@ -2650,7 +2724,8 @@
             "type": "number",
             "minimum": -1.0,
             "maximum": 2.0,
-            "description": "Shape Position X."
+            "description": "Shape Position X.",
+            "default": 0.5
           }
         },
         "required": [
@@ -2681,7 +2756,8 @@
             "type": "number",
             "minimum": -1.0,
             "maximum": 2.0,
-            "description": "Shape Position Y."
+            "description": "Shape Position Y.",
+            "default": 0.5
           }
         },
         "required": [
@@ -2698,7 +2774,7 @@
     },
     {
       "name": "input_gradient_map_set_gm_shape_rotation",
-      "description": "Shape rotation in degrees. Enum: deg. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Gradient-map shape rotation in degrees, 0-360. Positive = counter-clockwise viewed from above (matches the inputRotation / outputOrientation convention). Range 0-360; values wrap. Enum: deg. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -2712,7 +2788,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 360.0,
-            "description": "Shape Rotation."
+            "description": "Shape Rotation.",
+            "default": 0.0
           }
         },
         "required": [
@@ -2743,7 +2820,8 @@
             "type": "number",
             "minimum": 0.01,
             "maximum": 4.0,
-            "description": "Shape Scale X."
+            "description": "Shape Scale X.",
+            "default": 1.0
           }
         },
         "required": [
@@ -2774,7 +2852,8 @@
             "type": "number",
             "minimum": 0.01,
             "maximum": 4.0,
-            "description": "Shape Scale Y."
+            "description": "Shape Scale Y.",
+            "default": 1.0
           }
         },
         "required": [
@@ -2805,7 +2884,8 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 2,
-            "description": "Shape Type."
+            "description": "Shape Type.",
+            "default": 0
           }
         },
         "required": [
@@ -2838,7 +2918,8 @@
               "Unlocked",
               "Locked"
             ],
-            "description": "Map Lock (enum)."
+            "description": "Map Lock (enum).",
+            "default": "Unlocked"
           }
         },
         "required": [
@@ -2871,7 +2952,8 @@
               "Hidden",
               "Visible"
             ],
-            "description": "Map Visibility (enum)."
+            "description": "Map Visibility (enum).",
+            "default": "Visible"
           }
         },
         "required": [
@@ -2904,7 +2986,8 @@
               "OFF",
               "ON"
             ],
-            "description": "Active (enum)."
+            "description": "Active (enum).",
+            "default": "OFF"
           }
         },
         "required": [
@@ -2935,7 +3018,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 50.0,
-            "description": "Amplitude X m."
+            "description": "Amplitude X m.",
+            "default": 1.0
           },
           "transition_seconds": {
             "type": "number",
@@ -2974,7 +3058,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 50.0,
-            "description": "Amplitude Y m."
+            "description": "Amplitude Y m.",
+            "default": 1.0
           },
           "transition_seconds": {
             "type": "number",
@@ -3013,7 +3098,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 50.0,
-            "description": "Amplitude Z m."
+            "description": "Amplitude Z m.",
+            "default": 1.0
           },
           "transition_seconds": {
             "type": "number",
@@ -3038,7 +3124,7 @@
     },
     {
       "name": "input_lfo_set_gyrophone",
-      "description": "Rotation of the Brightness Cone of the Object. Enum: Anti-Clockwise; OFF; Clockwise. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Continuous brightness-cone rotation modulator. -1 = anti-clockwise (viewed from above), 0 = off, +1 = clockwise. One full revolution per LFO period. NOTE: positive = clockwise here, the OPPOSITE of the inputRotation/outputOrientation convention where positive = counter-clockwise. Enum: Anti-Clockwise; OFF; Clockwise. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -3055,7 +3141,8 @@
               "OFF",
               "Clockwise"
             ],
-            "description": "Gyrophone (enum)."
+            "description": "Gyrophone (enum).",
+            "default": "AntiClockwise"
           }
         },
         "required": [
@@ -3086,7 +3173,8 @@
             "type": "number",
             "minimum": 0.01,
             "maximum": 100.0,
-            "description": "Period s."
+            "description": "Period s.",
+            "default": 5.0
           },
           "transition_seconds": {
             "type": "number",
@@ -3111,7 +3199,7 @@
     },
     {
       "name": "input_lfo_set_phase",
-      "description": "Phase Offset of the Movement of the Object. Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Global LFO phase offset for this source in degrees, 0-360 (one cycle). 0 = start of cycle, 180 = half cycle in. Combined additively with the per-axis phase (LFOphaseX/Y/Z). Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -3125,7 +3213,8 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 360,
-            "description": "Phase °."
+            "description": "Phase °.",
+            "default": 0
           },
           "transition_seconds": {
             "type": "number",
@@ -3150,7 +3239,7 @@
     },
     {
       "name": "input_lfo_set_phase_x",
-      "description": "Phase Offset of the Movement of the Object in Width. Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "X-axis (width) LFO phase offset for this source in degrees, 0-360 (one cycle). Stacks on top of the global LFOphase. Use to desync axes. Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -3164,7 +3253,8 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 360,
-            "description": "Phase X °."
+            "description": "Phase X °.",
+            "default": 0
           },
           "transition_seconds": {
             "type": "number",
@@ -3189,7 +3279,7 @@
     },
     {
       "name": "input_lfo_set_phase_y",
-      "description": "Phase Offset of the Movement of the Object in Depth. Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Y-axis (depth) LFO phase offset for this source in degrees, 0-360 (one cycle). Stacks on top of the global LFOphase. Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -3203,7 +3293,8 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 360,
-            "description": "Phase Y °."
+            "description": "Phase Y °.",
+            "default": 0
           },
           "transition_seconds": {
             "type": "number",
@@ -3228,7 +3319,7 @@
     },
     {
       "name": "input_lfo_set_phase_z",
-      "description": "Phase Offset of the Movement of the Object in Height. Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Z-axis (height) LFO phase offset for this source in degrees, 0-360 (one cycle). Stacks on top of the global LFOphase. Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -3242,7 +3333,8 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 360,
-            "description": "Phase Z °."
+            "description": "Phase Z °.",
+            "default": 0
           },
           "transition_seconds": {
             "type": "number",
@@ -3281,7 +3373,8 @@
             "type": "number",
             "minimum": 0.01,
             "maximum": 100.0,
-            "description": "Rate X x."
+            "description": "Rate X x.",
+            "default": 1.0
           },
           "transition_seconds": {
             "type": "number",
@@ -3320,7 +3413,8 @@
             "type": "number",
             "minimum": 0.01,
             "maximum": 100.0,
-            "description": "Rate Y x."
+            "description": "Rate Y x.",
+            "default": 1.0
           },
           "transition_seconds": {
             "type": "number",
@@ -3359,7 +3453,8 @@
             "type": "number",
             "minimum": 0.01,
             "maximum": 100.0,
-            "description": "Rate Z x."
+            "description": "Rate Z x.",
+            "default": 1.0
           },
           "transition_seconds": {
             "type": "number",
@@ -3407,7 +3502,8 @@
               "exp",
               "random"
             ],
-            "description": "Shape X (enum)."
+            "description": "Shape X (enum).",
+            "default": "OFF"
           }
         },
         "required": [
@@ -3448,7 +3544,8 @@
               "exp",
               "random"
             ],
-            "description": "Shape Y (enum)."
+            "description": "Shape Y (enum).",
+            "default": "OFF"
           }
         },
         "required": [
@@ -3489,7 +3586,8 @@
               "exp",
               "random"
             ],
-            "description": "Shape Z (enum)."
+            "description": "Shape Z (enum).",
+            "default": "OFF"
           }
         },
         "required": [
@@ -3523,7 +3621,8 @@
               "OFF",
               "ON"
             ],
-            "description": "Active (enum)."
+            "description": "Active (enum).",
+            "default": "OFF"
           }
         },
         "required": [
@@ -3554,7 +3653,8 @@
             "type": "number",
             "minimum": -24.0,
             "maximum": 0.0,
-            "description": "Attenuation dB."
+            "description": "Attenuation dB.",
+            "default": 0.0
           },
           "transition_seconds": {
             "type": "number",
@@ -3593,7 +3693,8 @@
             "type": "number",
             "minimum": 1.0,
             "maximum": 10.0,
-            "description": "Peak Ratio."
+            "description": "Peak Ratio.",
+            "default": 2.0
           },
           "transition_seconds": {
             "type": "number",
@@ -3632,7 +3733,8 @@
             "type": "number",
             "minimum": -48.0,
             "maximum": 0.0,
-            "description": "Peak Threshold dB."
+            "description": "Peak Threshold dB.",
+            "default": -20.0
           },
           "transition_seconds": {
             "type": "number",
@@ -3671,7 +3773,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 50.0,
-            "description": "Radius m."
+            "description": "Radius m.",
+            "default": 3.0
           },
           "transition_seconds": {
             "type": "number",
@@ -3714,7 +3817,8 @@
               "squared2",
               "sine"
             ],
-            "description": "Shape (enum)."
+            "description": "Shape (enum).",
+            "default": "linear"
           }
         },
         "required": [
@@ -3746,7 +3850,8 @@
             "type": "number",
             "minimum": 1.0,
             "maximum": 10.0,
-            "description": "Slow Ratio."
+            "description": "Slow Ratio.",
+            "default": 2.0
           },
           "transition_seconds": {
             "type": "number",
@@ -3785,7 +3890,8 @@
             "type": "number",
             "minimum": -48.0,
             "maximum": 0.0,
-            "description": "Slow Threshold dB."
+            "description": "Slow Threshold dB.",
+            "default": -20.0
           },
           "transition_seconds": {
             "type": "number",
@@ -3826,7 +3932,8 @@
               "OFF",
               "ON"
             ],
-            "description": "Max Speed Active (enum)."
+            "description": "Max Speed Active (enum).",
+            "default": "OFF"
           }
         },
         "required": [
@@ -3859,7 +3966,8 @@
               "OFF",
               "ON"
             ],
-            "description": "Path Mode Active (enum)."
+            "description": "Path Mode Active (enum).",
+            "default": "OFF"
           }
         },
         "required": [
@@ -3917,7 +4025,8 @@
               "MUTEARRAY10",
               "UNMUTEARRAY10"
             ],
-            "description": "Mute Macros (enum)."
+            "description": "Mute Macros (enum).",
+            "default": "MuteMacroSelect"
           }
         },
         "required": [
@@ -3950,7 +4059,8 @@
               "OFF",
               "ON"
             ],
-            "description": "Constraint Distance (enum)."
+            "description": "Constraint Distance (enum).",
+            "default": "OFF"
           }
         },
         "required": [
@@ -3981,7 +4091,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 50.0,
-            "description": "Constraint Distance Max m."
+            "description": "Constraint Distance Max m.",
+            "default": 50.0
           }
         },
         "required": [
@@ -4012,7 +4123,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 50.0,
-            "description": "Constraint Distance Min m."
+            "description": "Constraint Distance Min m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -4046,7 +4158,8 @@
               "Cylindrical",
               "Spherical"
             ],
-            "description": "Coordinate Mode (enum)."
+            "description": "Coordinate Mode (enum).",
+            "default": "Cartesian"
           }
         },
         "required": [
@@ -4078,7 +4191,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Offset X m."
+            "description": "Offset X m.",
+            "default": 0.0
           },
           "transition_seconds": {
             "type": "number",
@@ -4117,7 +4231,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Offset Y m."
+            "description": "Offset Y m.",
+            "default": 0.0
           },
           "transition_seconds": {
             "type": "number",
@@ -4156,7 +4271,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Offset Z m."
+            "description": "Offset Z m.",
+            "default": 0.0
           },
           "transition_seconds": {
             "type": "number",
@@ -4314,7 +4430,8 @@
               "OFF",
               "ON"
             ],
-            "description": "Mute Reverb Sends (enum)."
+            "description": "Mute Reverb Sends (enum).",
+            "default": "OFF"
           }
         },
         "required": [
@@ -4347,7 +4464,8 @@
               "OFF",
               "ON"
             ],
-            "description": "Sampler Active (enum)."
+            "description": "Sampler Active (enum).",
+            "default": "OFF"
           }
         },
         "required": [
@@ -4377,7 +4495,8 @@
           "value": {
             "type": "integer",
             "minimum": 0,
-            "description": "Active Set."
+            "description": "Active Set.",
+            "default": 0
           }
         },
         "required": [
@@ -4408,7 +4527,8 @@
             "type": "number",
             "minimum": -60.0,
             "maximum": 0.0,
-            "description": "Cell Attenuation dB."
+            "description": "Cell Attenuation dB.",
+            "default": 0.0
           },
           "transition_seconds": {
             "type": "number",
@@ -4480,7 +4600,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 5000.0,
-            "description": "Cell In Time ms."
+            "description": "Cell In Time ms.",
+            "default": 0.0
           },
           "transition_seconds": {
             "type": "number",
@@ -4549,7 +4670,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Cell Offset X m."
+            "description": "Cell Offset X m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -4581,7 +4703,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Cell Offset Y m."
+            "description": "Cell Offset Y m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -4613,7 +4736,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Cell Offset Z m."
+            "description": "Cell Offset Z m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -4645,7 +4769,8 @@
             "type": "number",
             "minimum": 1.0,
             "maximum": 5000.0,
-            "description": "Cell Out Time ms."
+            "description": "Cell Out Time ms.",
+            "default": 20.0
           },
           "transition_seconds": {
             "type": "number",
@@ -4689,7 +4814,8 @@
               "Q3bottomleft",
               "Q4bottomright"
             ],
-            "description": "MIDI Zone Quadrant (enum)."
+            "description": "MIDI Zone Quadrant (enum).",
+            "default": "Full"
           }
         },
         "required": [
@@ -4720,7 +4846,8 @@
             "type": "number",
             "minimum": -60.0,
             "maximum": 0.0,
-            "description": "Set Level dB."
+            "description": "Set Level dB.",
+            "default": 0.0
           },
           "transition_seconds": {
             "type": "number",
@@ -4795,7 +4922,8 @@
               "Sequential",
               "RoundRobin"
             ],
-            "description": "Set Play Mode (enum)."
+            "description": "Set Play Mode (enum).",
+            "default": "Sequential"
           }
         },
         "required": [
@@ -4827,7 +4955,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Set Position X m."
+            "description": "Set Position X m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -4859,7 +4988,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Set Position Y m."
+            "description": "Set Position Y m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -4891,7 +5021,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Set Position Z m."
+            "description": "Set Position Z m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -4923,7 +5054,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 1.0,
-            "description": "Set Press HF Curve."
+            "description": "Set Press HF Curve.",
+            "default": 0.5
           }
         },
         "required": [
@@ -4957,7 +5089,8 @@
               "Positive",
               "Negative"
             ],
-            "description": "Set Press HF Dir (enum)."
+            "description": "Set Press HF Dir (enum).",
+            "default": "Positive"
           }
         },
         "required": [
@@ -4990,7 +5123,8 @@
               "OFF",
               "ON"
             ],
-            "description": "Set Press HF Enabled (enum)."
+            "description": "Set Press HF Enabled (enum).",
+            "default": "OFF"
           }
         },
         "required": [
@@ -5021,7 +5155,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 1.0,
-            "description": "Set Press Level Curve."
+            "description": "Set Press Level Curve.",
+            "default": 0.5
           }
         },
         "required": [
@@ -5055,7 +5190,8 @@
               "Positive",
               "Negative"
             ],
-            "description": "Set Press Level Dir (enum)."
+            "description": "Set Press Level Dir (enum).",
+            "default": "Positive"
           }
         },
         "required": [
@@ -5088,7 +5224,8 @@
               "OFF",
               "ON"
             ],
-            "description": "Set Press Level Enabled (enum)."
+            "description": "Set Press Level Enabled (enum).",
+            "default": "ON"
           }
         },
         "required": [
@@ -5121,7 +5258,8 @@
               "OFF",
               "ON"
             ],
-            "description": "Set Press XY Enabled (enum)."
+            "description": "Set Press XY Enabled (enum).",
+            "default": "ON"
           }
         },
         "required": [
@@ -5152,7 +5290,8 @@
             "type": "number",
             "minimum": 0.01,
             "maximum": 0.2,
-            "description": "Set Press XY Scale m."
+            "description": "Set Press XY Scale m.",
+            "default": 0.05
           }
         },
         "required": [
@@ -5184,7 +5323,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 1.0,
-            "description": "Set Press Z Curve."
+            "description": "Set Press Z Curve.",
+            "default": 0.5
           }
         },
         "required": [
@@ -5218,7 +5358,8 @@
               "Positive",
               "Negative"
             ],
-            "description": "Set Press Z Dir (enum)."
+            "description": "Set Press Z Dir (enum).",
+            "default": "Positive"
           }
         },
         "required": [
@@ -5251,7 +5392,8 @@
               "OFF",
               "ON"
             ],
-            "description": "Set Press Z Enabled (enum)."
+            "description": "Set Press Z Enabled (enum).",
+            "default": "OFF"
           }
         },
         "required": [
@@ -5288,7 +5430,8 @@
             "type": "number",
             "minimum": -60.0,
             "maximum": 0.0,
-            "description": "Array 1 Attenuation dB."
+            "description": "Array 1 Attenuation dB.",
+            "default": 0.0
           },
           "confirm": {
             "type": "string",
@@ -5324,7 +5467,8 @@
             "type": "number",
             "minimum": -92.0,
             "maximum": 0.0,
-            "description": "Attenuation dB."
+            "description": "Attenuation dB.",
+            "default": 0.0
           },
           "confirm": {
             "type": "string",
@@ -5371,7 +5515,8 @@
               "Cluster9",
               "Cluster10"
             ],
-            "description": "Cluster (enum)."
+            "description": "Cluster (enum).",
+            "default": "Single"
           }
         },
         "required": [
@@ -5402,7 +5547,8 @@
             "type": "integer",
             "minimum": 2,
             "maximum": 360,
-            "description": "Directivity °."
+            "description": "Directivity °.",
+            "default": 360
           },
           "transition_seconds": {
             "type": "number",
@@ -5441,7 +5587,8 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 100,
-            "description": "Height Factor %."
+            "description": "Height Factor %.",
+            "default": 0
           },
           "transition_seconds": {
             "type": "number",
@@ -5480,7 +5627,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 10.0,
-            "description": "Jitter m."
+            "description": "Jitter m.",
+            "default": 0.0
           },
           "transition_seconds": {
             "type": "number",
@@ -5519,7 +5667,8 @@
             "type": "number",
             "minimum": 0.01,
             "maximum": 20.0,
-            "description": "Max Speed m/s."
+            "description": "Max Speed m/s.",
+            "default": 1.0
           },
           "transition_seconds": {
             "type": "number",
@@ -5623,7 +5772,8 @@
               "OFF",
               "ON"
             ],
-            "description": "Sidelines Active (enum)."
+            "description": "Sidelines Active (enum).",
+            "default": "OFF"
           }
         },
         "required": [
@@ -5654,7 +5804,8 @@
             "type": "number",
             "minimum": 0.1,
             "maximum": 10.0,
-            "description": "Sidelines Fringe m."
+            "description": "Sidelines Fringe m.",
+            "default": 1.0
           }
         },
         "required": [
@@ -5685,7 +5836,8 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 1,
-            "description": "Tracking Active."
+            "description": "Tracking Active.",
+            "default": 0
           }
         },
         "required": [
@@ -5747,7 +5899,8 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 100,
-            "description": "Tracking Smoothing %."
+            "description": "Tracking Smoothing %.",
+            "default": 100
           }
         },
         "required": [
@@ -5801,7 +5954,8 @@
               "OFF",
               "ON"
             ],
-            "description": "Polar 1 Invert Azimuth (enum)."
+            "description": "Polar 1 Invert Azimuth (enum).",
+            "default": "OFF"
           }
         },
         "required": [
@@ -5817,7 +5971,7 @@
     },
     {
       "name": "network_adm_osc_set_azimuth_offset",
-      "description": "Azimuth offset (deg) applied to incoming ADM-OSC azimuth. Value in degrees.",
+      "description": "ADM-OSC azimuth offset in degrees, added to the incoming `azimuth` value before mapping to WFS coordinates. Range -180 to 180. The WFS-DIY internal convention is 0 = audience, +90 = stage right (+X), positive = counter-clockwise from above; use this offset to align with senders that use a different zero. Value in degrees.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -5825,7 +5979,8 @@
             "type": "number",
             "minimum": -180.0,
             "maximum": 180.0,
-            "description": "Polar 1 Azimuth Offset degrees."
+            "description": "Polar 1 Azimuth Offset degrees.",
+            "default": 0.0
           }
         },
         "required": [
@@ -5849,7 +6004,8 @@
             "type": "number",
             "minimum": 0.01,
             "maximum": 0.99,
-            "description": "Cart 1 Axis X Breakpoint."
+            "description": "Cart 1 Axis X Breakpoint.",
+            "default": 0.5
           }
         },
         "required": [
@@ -5873,7 +6029,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Cart 1 Axis X Center m."
+            "description": "Cart 1 Axis X Center m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -5897,7 +6054,8 @@
             "type": "number",
             "minimum": 0.01,
             "maximum": 0.99,
-            "description": "Polar 1 Distance Breakpoint."
+            "description": "Polar 1 Distance Breakpoint.",
+            "default": 0.5
           }
         },
         "required": [
@@ -5921,7 +6079,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Polar 1 Distance Center m."
+            "description": "Polar 1 Distance Center m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -5945,7 +6104,8 @@
             "type": "number",
             "minimum": 0.1,
             "maximum": 50.0,
-            "description": "Polar 1 Distance Inner Width m."
+            "description": "Polar 1 Distance Inner Width m.",
+            "default": 5.0
           }
         },
         "required": [
@@ -5969,7 +6129,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 50.0,
-            "description": "Polar 1 Distance Min m."
+            "description": "Polar 1 Distance Min m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -5993,7 +6154,8 @@
             "type": "number",
             "minimum": 0.1,
             "maximum": 50.0,
-            "description": "Polar 1 Distance Outer Width m."
+            "description": "Polar 1 Distance Outer Width m.",
+            "default": 5.0
           }
         },
         "required": [
@@ -6019,7 +6181,8 @@
               "OFF",
               "ON"
             ],
-            "description": "Polar 1 Invert Elevation (enum)."
+            "description": "Polar 1 Invert Elevation (enum).",
+            "default": "OFF"
           }
         },
         "required": [
@@ -6043,7 +6206,8 @@
             "type": "number",
             "minimum": 0.1,
             "maximum": 50.0,
-            "description": "Cart 1 Axis X Neg Inner Width m."
+            "description": "Cart 1 Axis X Neg Inner Width m.",
+            "default": 5.0
           }
         },
         "required": [
@@ -6067,7 +6231,8 @@
             "type": "number",
             "minimum": 0.1,
             "maximum": 50.0,
-            "description": "Cart 1 Axis X Neg Outer Width m."
+            "description": "Cart 1 Axis X Neg Outer Width m.",
+            "default": 5.0
           }
         },
         "required": [
@@ -6091,7 +6256,8 @@
             "type": "number",
             "minimum": 0.1,
             "maximum": 50.0,
-            "description": "Cart 1 Axis X Pos Inner Width m."
+            "description": "Cart 1 Axis X Pos Inner Width m.",
+            "default": 5.0
           }
         },
         "required": [
@@ -6115,7 +6281,8 @@
             "type": "number",
             "minimum": 0.1,
             "maximum": 50.0,
-            "description": "Cart 1 Axis X Pos Outer Width m."
+            "description": "Cart 1 Axis X Pos Outer Width m.",
+            "default": 5.0
           }
         },
         "required": [
@@ -6141,7 +6308,8 @@
               "OFF",
               "ON"
             ],
-            "description": "Cart 1 Axis X Invert (enum)."
+            "description": "Cart 1 Axis X Invert (enum).",
+            "default": "OFF"
           }
         },
         "required": [
@@ -6164,7 +6332,8 @@
           "value": {
             "type": "string",
             "pattern": "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$",
-            "description": "Current IPv4."
+            "description": "Current IPv4.",
+            "default": "127.0.0.1"
           }
         },
         "required": [
@@ -6190,7 +6359,8 @@
               "Disabled",
               "Enabled"
             ],
-            "description": "OSC Query Enable (enum)."
+            "description": "OSC Query Enable (enum).",
+            "default": "Disabled"
           },
           "confirm": {
             "type": "string",
@@ -6218,7 +6388,8 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 65535,
-            "description": "OSC Query Port Port."
+            "description": "OSC Query Port Port.",
+            "default": 5005
           },
           "confirm": {
             "type": "string",
@@ -6248,7 +6419,8 @@
               "AcceptAll",
               "RegisteredOnly"
             ],
-            "description": "OSC Source Filter (enum)."
+            "description": "OSC Source Filter (enum).",
+            "default": "AcceptAll"
           }
         },
         "required": [
@@ -6272,7 +6444,8 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 65535,
-            "description": "TCP Port Port."
+            "description": "TCP Port Port.",
+            "default": 8001
           },
           "confirm": {
             "type": "string",
@@ -6300,7 +6473,8 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 65535,
-            "description": "UDP Port Port."
+            "description": "UDP Port Port.",
+            "default": 8000
           },
           "confirm": {
             "type": "string",
@@ -6330,7 +6504,8 @@
               "UDP",
               "TCP"
             ],
-            "description": "Target/Server Data Mode (enum)."
+            "description": "Target/Server Data Mode (enum).",
+            "default": "UDP"
           }
         },
         "required": [
@@ -6354,7 +6529,8 @@
           "value": {
             "type": "string",
             "pattern": "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$",
-            "description": "Target/Server IPv4."
+            "description": "Target/Server IPv4.",
+            "default": "127.0.0.1"
           }
         },
         "required": [
@@ -6376,7 +6552,8 @@
         "properties": {
           "value": {
             "type": "string",
-            "description": "Target/Server Name."
+            "description": "Target/Server Name.",
+            "default": "Target"
           }
         },
         "required": [
@@ -6400,7 +6577,8 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 65535,
-            "description": "Target/Server Tx Port Port."
+            "description": "Target/Server Tx Port Port.",
+            "default": 9000
           }
         },
         "required": [
@@ -6424,7 +6602,8 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 16,
-            "description": "Target/Server QLab Patch."
+            "description": "Target/Server QLab Patch.",
+            "default": 1
           }
         },
         "required": [
@@ -6450,7 +6629,8 @@
               "OFF",
               "ON"
             ],
-            "description": "Target/Server Rx Enable (enum)."
+            "description": "Target/Server Rx Enable (enum).",
+            "default": "OFF"
           }
         },
         "required": [
@@ -6476,7 +6656,8 @@
               "OFF",
               "ON"
             ],
-            "description": "Target/Server Tx Enable (enum)."
+            "description": "Target/Server Tx Enable (enum).",
+            "default": "OFF"
           }
         },
         "required": [
@@ -6505,7 +6686,8 @@
               "ADMOSC",
               "QLab"
             ],
-            "description": "Target/Server Protocol (enum)."
+            "description": "Target/Server Protocol (enum).",
+            "default": "DISABLED"
           }
         },
         "required": [
@@ -6532,7 +6714,8 @@
               "OFF",
               "ON"
             ],
-            "description": "Tracking Enabled (enum)."
+            "description": "Tracking Enabled (enum).",
+            "default": "OFF"
           },
           "confirm": {
             "type": "string",
@@ -6562,7 +6745,8 @@
               "OFF",
               "ON"
             ],
-            "description": "Tracking Flip X (enum)."
+            "description": "Tracking Flip X (enum).",
+            "default": "OFF"
           }
         },
         "required": [
@@ -6588,7 +6772,8 @@
               "OFF",
               "ON"
             ],
-            "description": "Tracking Flip Y (enum)."
+            "description": "Tracking Flip Y (enum).",
+            "default": "OFF"
           }
         },
         "required": [
@@ -6614,7 +6799,8 @@
               "OFF",
               "ON"
             ],
-            "description": "Tracking Flip Z (enum)."
+            "description": "Tracking Flip Z (enum).",
+            "default": "OFF"
           }
         },
         "required": [
@@ -6658,7 +6844,8 @@
         "properties": {
           "value": {
             "type": "string",
-            "description": "Tracking MQTT JSON Q Field."
+            "description": "Tracking MQTT JSON Q Field.",
+            "default": "quality"
           }
         },
         "required": [
@@ -6680,7 +6867,8 @@
         "properties": {
           "value": {
             "type": "string",
-            "description": "Tracking MQTT JSON X Field."
+            "description": "Tracking MQTT JSON X Field.",
+            "default": "x"
           }
         },
         "required": [
@@ -6702,7 +6890,8 @@
         "properties": {
           "value": {
             "type": "string",
-            "description": "Tracking MQTT JSON Y Field."
+            "description": "Tracking MQTT JSON Y Field.",
+            "default": "y"
           }
         },
         "required": [
@@ -6724,7 +6913,8 @@
         "properties": {
           "value": {
             "type": "string",
-            "description": "Tracking MQTT JSON Z Field."
+            "description": "Tracking MQTT JSON Z Field.",
+            "default": "z"
           }
         },
         "required": [
@@ -6746,7 +6936,8 @@
         "properties": {
           "value": {
             "type": "string",
-            "description": "Tracking MQTT Tag IDs."
+            "description": "Tracking MQTT Tag IDs.",
+            "default": "Tag IDs..."
           }
         },
         "required": [
@@ -6792,7 +6983,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Tracking Offset X m."
+            "description": "Tracking Offset X m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -6816,7 +7008,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Tracking Offset Y m."
+            "description": "Tracking Offset Y m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -6840,7 +7033,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Tracking Offset Z m."
+            "description": "Tracking Offset Z m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -6886,7 +7080,8 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 65535,
-            "description": "Tracking Rx Port Port."
+            "description": "Tracking Rx Port Port.",
+            "default": 7000
           },
           "confirm": {
             "type": "string",
@@ -6919,7 +7114,8 @@
               "RTTrP",
               "MQTT"
             ],
-            "description": "Tracking Protocol (enum)."
+            "description": "Tracking Protocol (enum).",
+            "default": "DISABLED"
           },
           "confirm": {
             "type": "string",
@@ -6970,7 +7166,8 @@
             "type": "number",
             "minimum": 0.01,
             "maximum": 100.0,
-            "description": "Tracking Scale X x."
+            "description": "Tracking Scale X x.",
+            "default": 1.0
           }
         },
         "required": [
@@ -6994,7 +7191,8 @@
             "type": "number",
             "minimum": 0.01,
             "maximum": 100.0,
-            "description": "Tracking Scale Y x."
+            "description": "Tracking Scale Y x.",
+            "default": 1.0
           }
         },
         "required": [
@@ -7018,7 +7216,8 @@
             "type": "number",
             "minimum": 0.01,
             "maximum": 100.0,
-            "description": "Tracking Scale Z x."
+            "description": "Tracking Scale Z x.",
+            "default": 1.0
           }
         },
         "required": [
@@ -7051,7 +7250,8 @@
               "ABSOLUTE",
               "RELATIVE"
             ],
-            "description": "Apply Changes to Array (enum)."
+            "description": "Apply Changes to Array (enum).",
+            "default": "ABSOLUTE"
           }
         },
         "required": [
@@ -7082,7 +7282,8 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 200,
-            "description": "Distance Attenuation Percentage %."
+            "description": "Distance Attenuation Percentage %.",
+            "default": 100
           },
           "confirm": {
             "type": "string",
@@ -7117,7 +7318,8 @@
             "type": "number",
             "minimum": -100.0,
             "maximum": 100.0,
-            "description": "Delay/Latency comp. ms."
+            "description": "Delay/Latency comp. ms.",
+            "default": 0.0
           },
           "confirm": {
             "type": "string",
@@ -7154,7 +7356,8 @@
               "EQOFF",
               "EQON"
             ],
-            "description": "EQ Enabled (enum)."
+            "description": "EQ Enabled (enum).",
+            "default": "EQOFF"
           }
         },
         "required": [
@@ -7229,7 +7432,8 @@
             "type": "number",
             "minimum": -24.0,
             "maximum": 24.0,
-            "description": "EQ Gain dB."
+            "description": "EQ Gain dB.",
+            "default": 0.0
           }
         },
         "required": [
@@ -7267,7 +7471,8 @@
             "type": "number",
             "minimum": 0.1,
             "maximum": 20.0,
-            "description": "EQ Q."
+            "description": "EQ Q.",
+            "default": 0.7
           }
         },
         "required": [
@@ -7360,7 +7565,8 @@
             "type": "number",
             "minimum": 0.1,
             "maximum": 20.0,
-            "description": "EQ Slope."
+            "description": "EQ Slope.",
+            "default": 0.7
           }
         },
         "required": [
@@ -7394,7 +7600,8 @@
               "OFF",
               "ON"
             ],
-            "description": "Floor Reflections Enable (enum)."
+            "description": "Floor Reflections Enable (enum).",
+            "default": "ON"
           }
         },
         "required": [
@@ -7427,7 +7634,8 @@
               "OFF",
               "ON"
             ],
-            "description": "Array Map Visibility (enum)."
+            "description": "Array Map Visibility (enum).",
+            "default": "ON"
           }
         },
         "required": [
@@ -7460,7 +7668,8 @@
               "OFF",
               "ON"
             ],
-            "description": "Map Visibility (enum)."
+            "description": "Map Visibility (enum).",
+            "default": "ON"
           }
         },
         "required": [
@@ -7493,7 +7702,8 @@
               "DISABLE",
               "ENABLE"
             ],
-            "description": "Live Source Attenuation Enable (enum)."
+            "description": "Live Source Attenuation Enable (enum).",
+            "default": "ENABLE"
           }
         },
         "required": [
@@ -7526,7 +7736,8 @@
               "DISABLE",
               "ENABLE"
             ],
-            "description": "Minimum Latency Enable (enum)."
+            "description": "Minimum Latency Enable (enum).",
+            "default": "ENABLE"
           }
         },
         "required": [
@@ -7543,7 +7754,7 @@
     },
     {
       "name": "output_orientation_set_angle_off",
-      "description": "Output Channel Will Not Amplify Objects in this Angle in Front of it (0-179 deg). (changes may affect the rest of the array). Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Half-angle of the front cone where objects are muted, in degrees. Measured outward from the speaker's facing direction. Range 0-179. Constraint: angleOn + angleOff <= 180. The annulus between angleOn and angleOff is the linear fade. Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -7557,7 +7768,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 179.0,
-            "description": "Angle Off degrees."
+            "description": "Angle Off degrees.",
+            "default": 90.0
           }
         },
         "required": [
@@ -7574,7 +7786,7 @@
     },
     {
       "name": "output_orientation_set_angle_on",
-      "description": "Output Channel Will Amplify Objects in this Angle in its Back (1-180 deg). (changes may affect the rest of the array). Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Half-angle of the rear cone where objects are fully amplified, in degrees. Measured outward from the speaker's rear axis (opposite the orientation). Range 1-180. Constraint: angleOn + angleOff <= 180. Sound directly behind the speaker is fully on; sound in front of the angleOff cone is muted; the remainder is the linear-fade transition. Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -7588,7 +7800,8 @@
             "type": "number",
             "minimum": 1.0,
             "maximum": 180.0,
-            "description": "Angle On degrees."
+            "description": "Angle On degrees.",
+            "default": 86.0
           }
         },
         "required": [
@@ -7605,7 +7818,7 @@
     },
     {
       "name": "output_orientation_set_pitch",
-      "description": "Output Channel Vertical Orientation used to Determine which Objects get amplified. Fractional degrees supported. (changes may affect the rest of the array). Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Speaker vertical orientation in degrees. 0 = horizontal, +90 = pointing straight up (+Z), -90 = pointing straight down (-Z). Positive = upward tilt. Range -90 to 90. Fractional degrees supported. Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -7619,7 +7832,8 @@
             "type": "number",
             "minimum": -90.0,
             "maximum": 90.0,
-            "description": "Pitch degrees."
+            "description": "Pitch degrees.",
+            "default": 0.0
           }
         },
         "required": [
@@ -7650,7 +7864,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 50.0,
-            "description": "Horizontal Parallax m."
+            "description": "Horizontal Parallax m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -7681,7 +7896,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Vertical Parallax m."
+            "description": "Vertical Parallax m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -7715,7 +7931,8 @@
               "Cylindrical",
               "Spherical"
             ],
-            "description": "Coordinate Mode (enum)."
+            "description": "Coordinate Mode (enum).",
+            "default": "Cartesian"
           }
         },
         "required": [
@@ -7747,7 +7964,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Position X m."
+            "description": "Position X m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -7778,7 +7996,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Position Y m."
+            "description": "Position Y m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -7809,7 +8028,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Position Z m."
+            "description": "Position Z m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -7851,7 +8071,8 @@
               "Array9",
               "Array10"
             ],
-            "description": "Array (enum)."
+            "description": "Array (enum).",
+            "default": "Single"
           }
         },
         "required": [
@@ -7882,7 +8103,8 @@
             "type": "number",
             "minimum": -92.0,
             "maximum": 0.0,
-            "description": "Attenuation dB."
+            "description": "Attenuation dB.",
+            "default": 0.0
           },
           "confirm": {
             "type": "string",
@@ -7917,7 +8139,8 @@
             "type": "number",
             "minimum": -6.0,
             "maximum": 0.0,
-            "description": "HF Damping dB/m."
+            "description": "HF Damping dB/m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -7964,7 +8187,7 @@
     },
     {
       "name": "output_set_orientation",
-      "description": "Output Channel Horizontal Orientation (0 deg = towards the audience in a frontal configuration). Fractional degrees supported. (changes may affect the rest of the array). Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Speaker horizontal orientation in degrees. 0 = facing audience (-Y), 90 = facing stage right (+X), 180 = facing upstage (+Y), -90 = facing stage left (-X). Positive = counter-clockwise viewed from above. Range -180 to 180. Fractional degrees supported. Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -7978,7 +8201,8 @@
             "type": "number",
             "minimum": -180.0,
             "maximum": 180.0,
-            "description": "Orientation degrees."
+            "description": "Orientation degrees.",
+            "default": 0.0
           }
         },
         "required": [
@@ -8012,7 +8236,8 @@
               "FDN",
               "IR"
             ],
-            "description": "Algorithm Type (enum)."
+            "description": "Algorithm Type (enum).",
+            "default": "SDN"
           }
         },
         "required": [
@@ -8043,7 +8268,8 @@
             "type": "number",
             "minimum": 1000.0,
             "maximum": 10000.0,
-            "description": "Crossover High Hz."
+            "description": "Crossover High Hz.",
+            "default": 2500.0
           }
         },
         "required": [
@@ -8074,7 +8300,8 @@
             "type": "number",
             "minimum": 50.0,
             "maximum": 500.0,
-            "description": "Crossover Low Hz."
+            "description": "Crossover Low Hz.",
+            "default": 200.0
           }
         },
         "required": [
@@ -8105,7 +8332,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 1.0,
-            "description": "Diffusion %."
+            "description": "Diffusion %.",
+            "default": 0.5
           }
         },
         "required": [
@@ -8136,7 +8364,8 @@
             "type": "number",
             "minimum": 0.5,
             "maximum": 2.0,
-            "description": "FDN Size x."
+            "description": "FDN Size x.",
+            "default": 1.0
           }
         },
         "required": [
@@ -8196,7 +8425,8 @@
             "type": "number",
             "minimum": 0.1,
             "maximum": 30.0,
-            "description": "IR Length s."
+            "description": "IR Length s.",
+            "default": 6.0
           }
         },
         "required": [
@@ -8227,7 +8457,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 30000.0,
-            "description": "IR Trim ms."
+            "description": "IR Trim ms.",
+            "default": 0.0
           }
         },
         "required": [
@@ -8260,7 +8491,8 @@
               "PernodeIROFF",
               "PernodeIRON"
             ],
-            "description": "Per-node IR (enum)."
+            "description": "Per-node IR (enum).",
+            "default": "PernodeIROFF"
           }
         },
         "required": [
@@ -8291,7 +8523,8 @@
             "type": "number",
             "minimum": 0.2,
             "maximum": 8.0,
-            "description": "RT60 s."
+            "description": "RT60 s.",
+            "default": 1.5
           }
         },
         "required": [
@@ -8322,7 +8555,8 @@
             "type": "number",
             "minimum": 0.1,
             "maximum": 9.0,
-            "description": "RT60 High Mult x."
+            "description": "RT60 High Mult x.",
+            "default": 0.4
           }
         },
         "required": [
@@ -8353,7 +8587,8 @@
             "type": "number",
             "minimum": 0.1,
             "maximum": 9.0,
-            "description": "RT60 Low Mult x."
+            "description": "RT60 Low Mult x.",
+            "default": 1.3
           }
         },
         "required": [
@@ -8384,7 +8619,8 @@
             "type": "number",
             "minimum": 0.5,
             "maximum": 4.0,
-            "description": "SDN Scale x."
+            "description": "SDN Scale x.",
+            "default": 1.0
           }
         },
         "required": [
@@ -8415,7 +8651,8 @@
             "type": "number",
             "minimum": -60.0,
             "maximum": 12.0,
-            "description": "Wet Level dB."
+            "description": "Wet Level dB.",
+            "default": 0.0
           },
           "confirm": {
             "type": "string",
@@ -8450,7 +8687,8 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 100,
-            "description": "Common Attenuation %."
+            "description": "Common Attenuation %.",
+            "default": 100
           },
           "confirm": {
             "type": "string",
@@ -8485,7 +8723,8 @@
             "type": "number",
             "minimum": -6.0,
             "maximum": 0.0,
-            "description": "Distance Attenuation dB/m."
+            "description": "Distance Attenuation dB/m.",
+            "default": -0.7
           }
         },
         "required": [
@@ -8516,7 +8755,8 @@
             "type": "number",
             "minimum": -100.0,
             "maximum": 100.0,
-            "description": "Delay/Latency comp. ms."
+            "description": "Delay/Latency comp. ms.",
+            "default": 0.0
           },
           "confirm": {
             "type": "string",
@@ -8537,7 +8777,7 @@
     },
     {
       "name": "reverb_feed_set_angle_off",
-      "description": "Reverb Channel Will Not Amplify Objects in this Angle in Front of it. Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Half-angle of the front cone where objects are muted, in degrees. Measured outward from the reverb feed's facing direction. Range 0-179. Constraint: angleOn + angleOff <= 180. Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -8551,7 +8791,8 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 179,
-            "description": "Angle Off degrees."
+            "description": "Angle Off degrees.",
+            "default": 90
           }
         },
         "required": [
@@ -8568,7 +8809,7 @@
     },
     {
       "name": "reverb_feed_set_angle_on",
-      "description": "Reverb Channel Will Amplify Objects in this Angle in its Back. Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Half-angle of the rear cone where objects are fully reproduced, in degrees. Measured outward from the reverb feed's rear axis (opposite the orientation). Range 1-180. Constraint: angleOn + angleOff <= 180. Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -8582,7 +8823,8 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 180,
-            "description": "Angle On degrees."
+            "description": "Angle On degrees.",
+            "default": 86
           }
         },
         "required": [
@@ -8613,7 +8855,8 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 200,
-            "description": "Distance Attenuation Percentage %."
+            "description": "Distance Attenuation Percentage %.",
+            "default": 100
           },
           "confirm": {
             "type": "string",
@@ -8648,7 +8891,8 @@
             "type": "number",
             "minimum": -6.0,
             "maximum": 0.0,
-            "description": "HF Damping dB/m."
+            "description": "HF Damping dB/m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -8681,7 +8925,8 @@
               "DISABLE",
               "ENABLE"
             ],
-            "description": "Live Source Attenuation Enable (enum)."
+            "description": "Live Source Attenuation Enable (enum).",
+            "default": "ENABLE"
           }
         },
         "required": [
@@ -8714,7 +8959,8 @@
               "DISABLE",
               "ENABLE"
             ],
-            "description": "Minimum Latency Enable (enum)."
+            "description": "Minimum Latency Enable (enum).",
+            "default": "ENABLE"
           }
         },
         "required": [
@@ -8731,7 +8977,7 @@
     },
     {
       "name": "reverb_feed_set_orientation",
-      "description": "Reverb Channel Horizontal Orientation (0 deg = towards the audience in a frontal configuration). Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Reverb-feed horizontal orientation in degrees (integer). 0 = facing audience (-Y), 90 = facing stage right (+X), 180 = facing upstage (+Y), -179 = facing stage left (-X). Positive = counter-clockwise viewed from above. Range -179 to 180. Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -8745,7 +8991,8 @@
             "type": "integer",
             "minimum": -179,
             "maximum": 180,
-            "description": "Orientation degrees."
+            "description": "Orientation degrees.",
+            "default": 0
           }
         },
         "required": [
@@ -8762,7 +9009,7 @@
     },
     {
       "name": "reverb_feed_set_pitch",
-      "description": "Reverb Channel Vertical Orientation used to Determine which Objects get amplified. Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Reverb-feed vertical orientation in degrees (integer). 0 = horizontal, +90 = pointing straight up (+Z), -90 = pointing straight down (-Z). Positive = upward tilt. Range -90 to 90. Value in degrees. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -8776,7 +9023,8 @@
             "type": "integer",
             "minimum": -90,
             "maximum": 90,
-            "description": "Pitch degrees."
+            "description": "Pitch degrees.",
+            "default": 0
           }
         },
         "required": [
@@ -8809,7 +9057,8 @@
               "OFF",
               "ON"
             ],
-            "description": "Map Visibility (enum)."
+            "description": "Map Visibility (enum).",
+            "default": "ON"
           }
         },
         "required": [
@@ -8866,7 +9115,8 @@
               "MUTEARRAY10",
               "UNMUTEARRAY10"
             ],
-            "description": "Mute Macros (enum)."
+            "description": "Mute Macros (enum).",
+            "default": "MuteMacroSelect"
           }
         },
         "required": [
@@ -8900,7 +9150,8 @@
               "Cylindrical",
               "Spherical"
             ],
-            "description": "Coordinate Mode (enum)."
+            "description": "Coordinate Mode (enum).",
+            "default": "Cartesian"
           }
         },
         "required": [
@@ -8932,7 +9183,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Return Offset X m."
+            "description": "Return Offset X m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -8963,7 +9215,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Return Offset Y m."
+            "description": "Return Offset Y m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -8994,7 +9247,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Return Offset Z m."
+            "description": "Return Offset Z m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -9025,7 +9279,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Position X m."
+            "description": "Position X m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -9056,7 +9311,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Position Y m."
+            "description": "Position Y m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -9087,7 +9343,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Position Z m."
+            "description": "Position Z m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -9120,7 +9377,8 @@
               "EQOFF",
               "EQON"
             ],
-            "description": "Post EQ Enabled (enum)."
+            "description": "Post EQ Enabled (enum).",
+            "default": "EQON"
           }
         },
         "required": [
@@ -9195,7 +9453,8 @@
             "type": "number",
             "minimum": -24.0,
             "maximum": 24.0,
-            "description": "Post EQ Gain dB."
+            "description": "Post EQ Gain dB.",
+            "default": 0.0
           }
         },
         "required": [
@@ -9233,7 +9492,8 @@
             "type": "number",
             "minimum": 0.1,
             "maximum": 20.0,
-            "description": "Post EQ Q."
+            "description": "Post EQ Q.",
+            "default": 0.7
           }
         },
         "required": [
@@ -9324,7 +9584,8 @@
             "type": "number",
             "minimum": 0.1,
             "maximum": 20.0,
-            "description": "Post EQ Slope."
+            "description": "Post EQ Slope.",
+            "default": 0.7
           }
         },
         "required": [
@@ -9356,7 +9617,8 @@
             "type": "number",
             "minimum": 0.1,
             "maximum": 50.0,
-            "description": "Expander Attack ms."
+            "description": "Expander Attack ms.",
+            "default": 1.0
           }
         },
         "required": [
@@ -9389,7 +9651,8 @@
               "ExpanderOFF",
               "ExpanderON"
             ],
-            "description": "Expander Bypass (enum)."
+            "description": "Expander Bypass (enum).",
+            "default": "ExpanderON"
           }
         },
         "required": [
@@ -9420,7 +9683,8 @@
             "type": "number",
             "minimum": 1.0,
             "maximum": 8.0,
-            "description": "Expander Ratio :1."
+            "description": "Expander Ratio :1.",
+            "default": 2.0
           }
         },
         "required": [
@@ -9451,7 +9715,8 @@
             "type": "number",
             "minimum": 50.0,
             "maximum": 2000.0,
-            "description": "Expander Release ms."
+            "description": "Expander Release ms.",
+            "default": 200.0
           }
         },
         "required": [
@@ -9482,7 +9747,8 @@
             "type": "number",
             "minimum": -80.0,
             "maximum": -10.0,
-            "description": "Expander Threshold dB."
+            "description": "Expander Threshold dB.",
+            "default": -40.0
           }
         },
         "required": [
@@ -9513,7 +9779,8 @@
             "type": "number",
             "minimum": 0.1,
             "maximum": 100.0,
-            "description": "Compressor Attack ms."
+            "description": "Compressor Attack ms.",
+            "default": 10.0
           }
         },
         "required": [
@@ -9546,7 +9813,8 @@
               "CompressorOFF",
               "CompressorON"
             ],
-            "description": "Compressor Bypass (enum)."
+            "description": "Compressor Bypass (enum).",
+            "default": "CompressorON"
           }
         },
         "required": [
@@ -9577,7 +9845,8 @@
             "type": "number",
             "minimum": 1.0,
             "maximum": 20.0,
-            "description": "Compressor Ratio :1."
+            "description": "Compressor Ratio :1.",
+            "default": 2.0
           }
         },
         "required": [
@@ -9608,7 +9877,8 @@
             "type": "number",
             "minimum": 10.0,
             "maximum": 1000.0,
-            "description": "Compressor Release ms."
+            "description": "Compressor Release ms.",
+            "default": 100.0
           }
         },
         "required": [
@@ -9639,7 +9909,8 @@
             "type": "number",
             "minimum": -60.0,
             "maximum": 0.0,
-            "description": "Compressor Threshold dB."
+            "description": "Compressor Threshold dB.",
+            "default": -12.0
           }
         },
         "required": [
@@ -9672,7 +9943,8 @@
               "EQOFF",
               "EQON"
             ],
-            "description": "EQ Enabled (enum)."
+            "description": "EQ Enabled (enum).",
+            "default": "EQON"
           }
         },
         "required": [
@@ -9747,7 +10019,8 @@
             "type": "number",
             "minimum": -24.0,
             "maximum": 24.0,
-            "description": "EQ Gain dB."
+            "description": "EQ Gain dB.",
+            "default": 0.0
           }
         },
         "required": [
@@ -9785,7 +10058,8 @@
             "type": "number",
             "minimum": 0.1,
             "maximum": 20.0,
-            "description": "EQ Q."
+            "description": "EQ Q.",
+            "default": 0.7
           }
         },
         "required": [
@@ -9876,7 +10150,8 @@
             "type": "number",
             "minimum": 0.1,
             "maximum": 20.0,
-            "description": "EQ Slope."
+            "description": "EQ Slope.",
+            "default": 0.7
           }
         },
         "required": [
@@ -9908,7 +10183,8 @@
             "type": "number",
             "minimum": -92.0,
             "maximum": 0.0,
-            "description": "Attenuation dB."
+            "description": "Attenuation dB.",
+            "default": 0.0
           },
           "confirm": {
             "type": "string",
@@ -10000,7 +10276,8 @@
             "type": "number",
             "minimum": -40.0,
             "maximum": 0.0,
-            "description": "Binaural Level dB."
+            "description": "Binaural Level dB.",
+            "default": 0.0
           },
           "confirm": {
             "type": "string",
@@ -10028,7 +10305,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 100.0,
-            "description": "Binaural Delay ms."
+            "description": "Binaural Delay ms.",
+            "default": 0.0
           }
         },
         "required": [
@@ -10054,7 +10332,8 @@
               "BinauralOFF",
               "BinauralON"
             ],
-            "description": "Binaural Enable (enum)."
+            "description": "Binaural Enable (enum).",
+            "default": "BinauralOFF"
           },
           "confirm": {
             "type": "string",
@@ -10074,7 +10353,7 @@
     },
     {
       "name": "system_binaural_renderer_set_binaural_listener_angle",
-      "description": "Horizontal rotation of binaural listener view (degrees, 0 = facing stage). Value in degrees.",
+      "description": "Binaural listener horizontal rotation in degrees. 0 = facing stage origin (looking +Y, upstage), positive = counter-clockwise viewed from above (matches the inputRotation / outputOrientation convention). Range -180 to 180. Fractional degrees supported. Value in degrees.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -10082,7 +10361,8 @@
             "type": "number",
             "minimum": -180.0,
             "maximum": 180.0,
-            "description": "Listener Angle degrees."
+            "description": "Listener Angle degrees.",
+            "default": 0.0
           }
         },
         "required": [
@@ -10106,7 +10386,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 10.0,
-            "description": "Listener Distance m."
+            "description": "Listener Distance m.",
+            "default": 5.0
           }
         },
         "required": [
@@ -10166,7 +10447,8 @@
               "SoloSingle",
               "SoloMulti"
             ],
-            "description": "Solo Mode (enum)."
+            "description": "Solo Mode (enum).",
+            "default": "SoloSingle"
           },
           "confirm": {
             "type": "string",
@@ -10198,7 +10480,8 @@
               "Lightpad",
               "Remote"
             ],
-            "description": "Sampler Controller (enum)."
+            "description": "Sampler Controller (enum).",
+            "default": "Off"
           }
         },
         "required": [
@@ -10223,7 +10506,8 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 64,
-            "description": "Input Channels."
+            "description": "Input Channels.",
+            "default": 8
           },
           "confirm": {
             "type": "string",
@@ -10251,7 +10535,8 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 64,
-            "description": "Output Channels."
+            "description": "Output Channels.",
+            "default": 16
           },
           "confirm": {
             "type": "string",
@@ -10279,7 +10564,8 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 16,
-            "description": "Reverb Channels."
+            "description": "Reverb Channels.",
+            "default": 0
           },
           "confirm": {
             "type": "string",
@@ -10307,7 +10593,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 10.0,
-            "description": "Haas Effect ms."
+            "description": "Haas Effect ms.",
+            "default": 0.0
           }
         },
         "required": [
@@ -10331,7 +10618,8 @@
             "type": "number",
             "minimum": -92.0,
             "maximum": 0.0,
-            "description": "Master Level dB."
+            "description": "Master Level dB.",
+            "default": 0.0
           },
           "confirm": {
             "type": "string",
@@ -10359,7 +10647,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 10.0,
-            "description": "System Latency ms."
+            "description": "System Latency ms.",
+            "default": 0.0
           }
         },
         "required": [
@@ -10403,7 +10692,8 @@
         "properties": {
           "name": {
             "type": "string",
-            "description": "Name."
+            "description": "Name.",
+            "default": "My Show"
           }
         },
         "required": [
@@ -10420,7 +10710,7 @@
     },
     {
       "name": "system_stage_set_depth",
-      "description": "Depth of the stage in meters (Box shape only). Value in m.",
+      "description": "Stage depth along the Y axis (downstage-upstage) in meters. Box shape only. Range 0-100. Value in m.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -10428,7 +10718,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 100.0,
-            "description": "Stage Depth m."
+            "description": "Stage Depth m.",
+            "default": 10.0
           }
         },
         "required": [
@@ -10444,7 +10735,7 @@
     },
     {
       "name": "system_stage_set_diameter",
-      "description": "Diameter of the stage in meters (Cylinder and Dome shapes). Value in m.",
+      "description": "Stage diameter (Cylinder footprint or Dome sphere) in meters. Cylinder and Dome shapes only. Range 0.1-100. Half this for the radius. Value in m.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -10452,7 +10743,8 @@
             "type": "number",
             "minimum": 0.1,
             "maximum": 100.0,
-            "description": "Stage Diameter m."
+            "description": "Stage Diameter m.",
+            "default": 20.0
           }
         },
         "required": [
@@ -10468,7 +10760,7 @@
     },
     {
       "name": "system_stage_set_dome_elevation",
-      "description": "Dome elevation angle: 180 = hemisphere, 360 = full sphere. Value in degrees.",
+      "description": "Dome arc angle in degrees. 180 = hemisphere (half sphere), 360 = full sphere. Dome shape only. Range 1-360. Value in degrees.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -10476,7 +10768,8 @@
             "type": "number",
             "minimum": 1.0,
             "maximum": 360.0,
-            "description": "Dome Elevation degrees."
+            "description": "Dome Elevation degrees.",
+            "default": 180.0
           }
         },
         "required": [
@@ -10492,7 +10785,7 @@
     },
     {
       "name": "system_stage_set_height",
-      "description": "Height of the stage in meters (Box and Cylinder shapes). Value in m.",
+      "description": "Stage height along the Z axis (vertical) in meters. Box and Cylinder shapes only. Range 0-100. Value in m.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -10500,7 +10793,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 100.0,
-            "description": "Stage Height m."
+            "description": "Stage Height m.",
+            "default": 8.0
           }
         },
         "required": [
@@ -10516,7 +10810,7 @@
     },
     {
       "name": "system_stage_set_origin_depth",
-      "description": "Origin Y offset from stage center (0 = centered, negative = front/downstage). Value in m.",
+      "description": "Stage origin Y offset in meters; also addressable as `stageOriginY` synonym. 0 = centered on stage, negative = downstage (toward audience), positive = upstage. Range -100 to 200. Value in m.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -10524,7 +10818,8 @@
             "type": "number",
             "minimum": -100.0,
             "maximum": 200.0,
-            "description": "Origin Depth m."
+            "description": "Origin Depth m.",
+            "default": -5.0
           }
         },
         "required": [
@@ -10540,7 +10835,7 @@
     },
     {
       "name": "system_stage_set_origin_height",
-      "description": "Origin Z offset from floor (0 = floor level, positive = above floor). Value in m.",
+      "description": "Stage origin Z offset in meters; also addressable as `stageOriginZ` synonym. 0 = floor level, positive = above floor, negative = below. Range -100 to 200. Value in m.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -10548,7 +10843,8 @@
             "type": "number",
             "minimum": -100.0,
             "maximum": 200.0,
-            "description": "Origin Height m."
+            "description": "Origin Height m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -10564,7 +10860,7 @@
     },
     {
       "name": "system_stage_set_origin_width",
-      "description": "Origin X offset from stage center (0 = centered, negative = left). Value in m.",
+      "description": "Stage origin X offset in meters; also addressable as `stageOriginX` synonym. 0 = centered on stage, negative = audience-left of center, positive = audience-right. Range -100 to 200. The origin is the (0,0,0) point input/output coordinates are measured from. Value in m.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -10572,7 +10868,8 @@
             "type": "number",
             "minimum": -100.0,
             "maximum": 200.0,
-            "description": "Origin Width m."
+            "description": "Origin Width m.",
+            "default": 0.0
           }
         },
         "required": [
@@ -10588,7 +10885,7 @@
     },
     {
       "name": "system_stage_set_shape",
-      "description": "Select the shape of the stage (Box, Cylinder, or Dome). Enum: Box ; Cylinder ; Dome.",
+      "description": "Stage geometry. 0=Box (use stageWidth + stageDepth + stageHeight), 1=Cylinder (use stageDiameter + stageHeight), 2=Dome (use stageDiameter + domeElevation). Set the shape first, then only the dimensions valid for that shape; mismatched dimension writes are ignored. Enum: Box ; Cylinder ; Dome.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -10599,7 +10896,8 @@
               "Cylinder",
               "Dome"
             ],
-            "description": "Stage Shape (enum)."
+            "description": "Stage Shape (enum).",
+            "default": "Box"
           }
         },
         "required": [
@@ -10624,7 +10922,8 @@
             "type": "number",
             "minimum": 319.2,
             "maximum": 367.7,
-            "description": "Speed of Sound m/s."
+            "description": "Speed of Sound m/s.",
+            "default": 343.0
           }
         },
         "required": [
@@ -10648,7 +10947,8 @@
             "type": "number",
             "minimum": -20.0,
             "maximum": 60.0,
-            "description": "temperature C."
+            "description": "temperature C.",
+            "default": 20.0
           }
         },
         "required": [
@@ -10664,7 +10964,7 @@
     },
     {
       "name": "system_stage_set_width",
-      "description": "Width of the stage in meters (Box shape only). Value in m.",
+      "description": "Stage width along the X axis (left-right) in meters. Box shape only. Range 0-100. Value in m.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -10672,7 +10972,8 @@
             "type": "number",
             "minimum": 0.0,
             "maximum": 100.0,
-            "description": "Stage Width m."
+            "description": "Stage Width m.",
+            "default": 20.0
           }
         },
         "required": [
@@ -10699,7 +11000,8 @@
               "Black",
               "Light"
             ],
-            "description": "Color Scheme (enum)."
+            "description": "Color Scheme (enum).",
+            "default": "DefaultDarkGray"
           }
         },
         "required": [

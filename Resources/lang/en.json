@@ -2406,7 +2406,9 @@
       "gateBlocked": "AI critical actions: blocked",
       "gateAllowed": "AI critical actions: ALLOWED",
       "aiOn":  "AI: ON",
-      "aiOff": "AI: OFF"
+      "aiOff": "AI: OFF",
+      "tier2AutoOff": "Tier 2 auto-confirm: off",
+      "tier2AutoOn":  "Tier 2 auto-confirm: ON (5 min)"
     },
     "tooltips": {
       "urlButton": "Click to copy the MCP server URL. Useful for Claude Code (claude mcp add wfs-diy <URL> -t http) or any MCP client that takes a URL. Claude Desktop instead uses the JSON config snippet — open the (?) help card.",

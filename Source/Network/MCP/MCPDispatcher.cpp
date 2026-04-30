@@ -221,6 +221,8 @@ juce::String MCPDispatcher::handleToolsCall (const juce::var& id, const juce::va
             enforcement->setProperty ("awaiting_confirmation", true);
             enforcement->setProperty ("confirmation_token",    tierOutcome.confirmationToken);
             enforcement->setProperty ("expires_in_seconds",    tierOutcome.secondsUntilExpiry);
+            if (tierOutcome.tokenExpiredRecovery)
+                enforcement->setProperty ("token_expired_recovery", true);
         }
         else
         {

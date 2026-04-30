@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "../MCPToolRegistry.h"
 #include "../MCPChangeRecords.h"
+#include "../MCPParameterRegistry.h"
 #include "../../OSCParameterBounds.h"
 #include "../../../Parameters/WFSValueTreeState.h"
 #include "../../../Parameters/WFSParameterIDs.h"
@@ -75,9 +76,39 @@ inline ToolResult set (WFSValueTreeState& state, const juce::var& args, ChangeRe
 
     auto* obj = args.getDynamicObject();
 
-    const juce::String variable = obj->getProperty ("variable").toString();
-    if (variable.isEmpty())
+    const juce::String requestedVariable = obj->getProperty ("variable").toString();
+    if (requestedVariable.isEmpty())
         return ToolResult::error ("invalid_args", "Missing required arg: variable");
+
+    // Whitelist against the parameter registry. Without this, unknown
+    // names previously silently no-op'd (the underlying ValueTree just
+    // wrote a property nobody reads, and the response showed
+    // before:null/after:null — visually identical to "the param exists
+    // but was unset"). Reject up front and offer a did-you-mean.
+    juce::String variable = requestedVariable;
+    {
+        const auto& reg = MCPParameterRegistry::getInstance();
+        if (reg.size() > 0 && ! reg.isKnown (requestedVariable))
+        {
+            juce::String message = "Unknown parameter '" + requestedVariable + "'.";
+            const auto suggestions = reg.suggestSimilar (requestedVariable);
+            if (! suggestions.isEmpty())
+            {
+                message += " Did you mean: ";
+                message += suggestions.joinIntoString (", ");
+                message += "? Use mcp_describe_parameters to browse the full registry.";
+            }
+            else
+            {
+                message += " Use mcp_describe_parameters to browse the registry.";
+            }
+            return ToolResult::error ("unknown_parameter", message);
+        }
+        // Resolve synonyms (e.g. stageOriginX → originWidth) so the rest
+        // of the handler sees the canonical name. The result envelope
+        // surfaces both names so the caller can confirm what landed.
+        variable = reg.canonicalize (requestedVariable);
+    }
 
     if (! obj->hasProperty ("value"))
         return ToolResult::error ("invalid_args", "Missing required arg: value");
@@ -241,6 +272,8 @@ inline ToolResult set (WFSValueTreeState& state, const juce::var& args, ChangeRe
 
     auto result = std::make_unique<juce::DynamicObject>();
     result->setProperty ("variable", variable);
+    if (variable != requestedVariable)
+        result->setProperty ("synonym_of", requestedVariable);
     if (channelIndex >= 0)
         result->setProperty ("channel_id", displayId);
     if (isEqBand)

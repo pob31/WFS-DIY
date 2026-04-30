@@ -630,6 +630,70 @@ def is_per_channel(row: CSVRow) -> bool:
     return row.csv_file in CHANNEL_ID_RANGE
 
 
+def coerce_default(default_str: str, type_str: str,
+                    enum_items: list[str],
+                    enum_map: dict[str, int] | None) -> Any | None:
+    """Coerce a CSV `Default` cell into the right JSON-schema value type.
+
+    Returns the value to drop into the schema's `default` slot, or None when
+    the cell can't be cleanly coerced (free-form prose like "distribute in
+    the middle of the stage", template strings like "input <ID>", or empty).
+
+    For enum-typed value args the schema declares the `value` arg as a
+    string with an `enum` list, so the default must be one of those strings.
+    Numeric defaults in enum cells are translated through `enum_map` (when
+    present, with explicit `Label (N)` IDs in the CSV) or positionally.
+    """
+    s = (default_str or "").strip()
+    if not s:
+        return None
+    type_norm = type_str.strip().upper()
+
+    if enum_items:
+        # Try positional/explicit numeric ID first.
+        try:
+            num = int(float(s))
+        except ValueError:
+            num = None
+        if num is not None:
+            if enum_map is not None:
+                # Reverse lookup: which enum_item maps to this stored ID?
+                for label, mapped in enum_map.items():
+                    if mapped == num:
+                        return label
+                return None
+            if 0 <= num < len(enum_items):
+                return enum_items[num]
+            return None
+        # Maybe the default is already the enum label slug.
+        if s in enum_items:
+            return s
+        return None
+
+    if type_norm.startswith("INT"):
+        try:
+            return int(float(s))
+        except ValueError:
+            return None
+    if type_norm.startswith("FLOAT"):
+        try:
+            return float(s)
+        except ValueError:
+            return None
+    if type_norm.startswith("STRING"):
+        # Skip template strings that contain placeholders (`<ID>`,
+        # `<index>`); they're not valid literal defaults.
+        if "<" in s and ">" in s:
+            return None
+        return s
+    if type_norm.startswith("IP"):
+        # Validate IPv4 shape; drop garbage.
+        if re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", s):
+            return s
+        return None
+    return None
+
+
 def derive_schema(row: CSVRow, tool_name: str,
                    enum_items: list[str], enum_map: dict[str, int] | None,
                    family: tuple[str, int] | None,
@@ -686,6 +750,7 @@ def derive_schema(row: CSVRow, tool_name: str,
 
     # Value argument.
     type_str = row.type.strip().upper()
+    csv_default = coerce_default(row.default, row.type, enum_items, enum_map)
     val_arg: dict[str, Any] = {}
     if enum_items:
         val_name = "value"
@@ -701,6 +766,8 @@ def derive_schema(row: CSVRow, tool_name: str,
             "enum": enum_items,
             "description": f"{row.label.strip() or 'Value'} (enum).",
         }
+        if csv_default is not None:
+            val_arg["default"] = csv_default
         properties[val_name] = val_arg
         required.append(val_name)
         value_arg_name = val_name
@@ -718,6 +785,8 @@ def derive_schema(row: CSVRow, tool_name: str,
                 pass
         unit = f" {row.unit.strip()}" if row.unit.strip() else ""
         val_arg["description"] = (row.label.strip() or "Value") + unit + "."
+        if csv_default is not None:
+            val_arg["default"] = csv_default
         properties["value"] = val_arg
         required.append("value")
     elif type_str.startswith("FLOAT"):
@@ -734,6 +803,8 @@ def derive_schema(row: CSVRow, tool_name: str,
                 pass
         unit = f" {row.unit.strip()}" if row.unit.strip() else ""
         val_arg["description"] = (row.label.strip() or "Value") + unit + "."
+        if csv_default is not None:
+            val_arg["default"] = csv_default
         properties["value"] = val_arg
         required.append("value")
     elif type_str.startswith("STRING"):
@@ -741,6 +812,8 @@ def derive_schema(row: CSVRow, tool_name: str,
             "type": "string",
             "description": (row.label.strip() or "Value") + ".",
         }
+        if csv_default is not None:
+            val_arg["default"] = csv_default
         # Self-documenting argument name for rename-style tools. Variables
         # like `outputName`, `samplerSetName`, `clusterLfoPresetName` are
         # recognisable by their `Name` suffix, and matching that to a
@@ -757,11 +830,15 @@ def derive_schema(row: CSVRow, tool_name: str,
             "pattern": r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$",
             "description": (row.label.strip() or "IPv4 address") + ".",
         }
+        if csv_default is not None:
+            val_arg["default"] = csv_default
         properties["value"] = val_arg
         required.append("value")
     else:
         # Catch-all: the row may not be a settable parameter (button, etc.).
         val_arg = {"type": "string", "description": "Value."}
+        if csv_default is not None:
+            val_arg["default"] = csv_default
         properties["value"] = val_arg
         required.append("value")
 

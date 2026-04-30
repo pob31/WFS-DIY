@@ -3,6 +3,7 @@
 #include "../../Parameters/WFSValueTreeState.h"
 #include "../../Parameters/WFSFileManager.h"
 #include "MCPGeneratedToolLoader.h"
+#include "MCPParameterRegistry.h"
 #include "tools/SessionTools.h"
 #include "tools/InputTools.h"
 #include "tools/OutputTools.h"
@@ -10,6 +11,8 @@
 #include "tools/SnapshotTools.h"
 #include "tools/UndoTools.h"
 #include "tools/SetParameterTool.h"
+#include "tools/DescribeParametersTool.h"
+#include "tools/StateInspectionTools.h"
 
 namespace WFSNetwork
 {
@@ -42,6 +45,12 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     mcpLogger->logInfo ("Loaded " + juce::String (promptRegistry->size())
                         + " workflow prompts (inline catalog)");
 
+    // Parameter registry — parses generated_tools.json once into the
+    // singleton consumed by mcp_describe_parameters and by the
+    // wfs_set_parameter whitelist. Must run before either tool is
+    // registered, but can run before or after the loader pass.
+    MCPParameterRegistry::getInstance().loadFromManifest (generatedToolsJson, *mcpLogger);
+
     // Phase 2 — register the auto-generated tool surface FIRST. The
     // hand-written tools registered below silently overwrite by name,
     // so when a Phase-1 hand-written tool collides with a generated one
@@ -63,6 +72,16 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     // parameter the auto-generated surface didn't cover. Trusted-caller
     // semantics: no clamping, exact variable names required.
     registry->registerTool (Tools::SetParameter::describe (state));
+
+    // Read-only registry tool — surfaces every known parameter so the AI
+    // can plan writes from the schema instead of guessing. Must come after
+    // MCPParameterRegistry::loadFromManifest above.
+    registry->registerTool (Tools::DescribeParameters::describeTool());
+
+    // Read-only deep-state tools — globals + per-channel full dump,
+    // complementing session_get_state's per-channel summary.
+    registry->registerTool (Tools::StateInspection::describeGlobalState (state));
+    registry->registerTool (Tools::StateInspection::describeChannelFull (state));
 
     // Undo / redo tools — Phase 5a wires the first two to the real engine.
     // mcp.get_ai_change_history remains a read-only query over the ring buffer.

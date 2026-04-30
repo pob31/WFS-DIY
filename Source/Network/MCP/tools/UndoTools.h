@@ -178,8 +178,18 @@ inline juce::var buildHistorySchema()
     limit->setProperty ("maximum", 100);
     limit->setProperty ("description", "Max number of records to return (newest last). Omit for all.");
 
+    auto compact = std::make_unique<juce::DynamicObject>();
+    compact->setProperty ("type", "boolean");
+    compact->setProperty ("default", false);
+    compact->setProperty ("description",
+        "When true, each record is collapsed to {index, timestamp_iso, "
+        "operator_description}. Omits arguments / before_state / after_state / "
+        "affected_parameters / affected_groups. Use this when scanning the "
+        "history for 'what did I just do' rather than reconstructing state.");
+
     auto props = std::make_unique<juce::DynamicObject>();
-    props->setProperty ("limit", juce::var (limit.release()));
+    props->setProperty ("limit",   juce::var (limit.release()));
+    props->setProperty ("compact", juce::var (compact.release()));
 
     auto schema = std::make_unique<juce::DynamicObject>();
     schema->setProperty ("type", "object");
@@ -188,36 +198,63 @@ inline juce::var buildHistorySchema()
     return juce::var (schema.release());
 }
 
+namespace detail
+{
+    inline juce::var changeRecordToCompactVar (const ChangeRecord& record, int index)
+    {
+        auto obj = std::make_unique<juce::DynamicObject>();
+        obj->setProperty ("index",                index);
+        obj->setProperty ("timestamp_iso",        record.timestamp.toISO8601 (true));
+        obj->setProperty ("operator_description", record.operatorDescription);
+        return juce::var (obj.release());
+    }
+}
+
 inline ToolDescriptor describeGetHistory (MCPChangeRecordBuffer& buffer)
 {
     ToolDescriptor d;
     d.name        = "mcp_get_ai_change_history";
     d.description = "Read the AI change-record ring buffer - every state-modifying tool "
                     "call this MCP server has executed in the last 100 entries. Useful "
-                    "for explaining 'what did I just do?' in voice flows. Read-only.";
+                    "for explaining 'what did I just do?' in voice flows. Read-only. "
+                    "Pass compact=true to drop the heavy fields (arguments / before / "
+                    "after / affected_parameters) when you just need a list of "
+                    "operator_descriptions.";
     d.inputSchema   = buildHistorySchema();
     d.modifiesState = false;
     d.tier        = 1;  // read-only
     d.handler = [&buffer] (const juce::var& args, ChangeRecord*) -> ToolResult
     {
         int limit = -1;
+        bool compact = false;
         if (args.isObject())
         {
             auto* obj = args.getDynamicObject();
-            if (obj != nullptr && obj->hasProperty ("limit"))
-                limit = static_cast<int> (obj->getProperty ("limit"));
+            if (obj != nullptr)
+            {
+                if (obj->hasProperty ("limit"))
+                    limit = static_cast<int> (obj->getProperty ("limit"));
+                if (obj->hasProperty ("compact"))
+                    compact = static_cast<bool> (obj->getProperty ("compact"));
+            }
         }
 
         auto records = buffer.getRecent (limit);
 
         juce::Array<juce::var> serialized;
-        for (const auto& r : records)
-            serialized.add (detail::changeRecordToVar (r));
+        for (int i = 0; i < (int) records.size(); ++i)
+        {
+            if (compact)
+                serialized.add (detail::changeRecordToCompactVar (records[(size_t) i], i));
+            else
+                serialized.add (detail::changeRecordToVar (records[(size_t) i]));
+        }
 
         auto result = std::make_unique<juce::DynamicObject>();
         result->setProperty ("records", juce::var (serialized));
         result->setProperty ("count", serialized.size());
         result->setProperty ("buffer_capacity", buffer.capacity());
+        result->setProperty ("compact", compact);
         return ToolResult::ok (juce::var (result.release()));
     };
     return d;
