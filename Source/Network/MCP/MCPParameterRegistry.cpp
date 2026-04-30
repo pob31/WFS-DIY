@@ -332,4 +332,13 @@ int MCPParameterRegistry::size() const noexcept
     return static_cast<int> (records.size());
 }
 
+const ParameterRegistryRecord*
+MCPParameterRegistry::findByVariable (const juce::String& canonicalVariable) const
+{
+    for (const auto& r : records)
+        if (r.variable == canonicalVariable)
+            return &r;
+    return nullptr;
+}
+
 } // namespace WFSNetwork

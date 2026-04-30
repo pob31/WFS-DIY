@@ -417,7 +417,7 @@ UndoResult MCPUndoEngine::undoByIndex (int recordIndex)
     for (size_t i = 0; i < chain.size(); ++i)
     {
         chain[i].redoBatchId = batchId;
-        const auto err = writePayloadHere (chain[i], chain[i].beforeState);
+        const auto err = writePayloadHere (chain[i], /* isUndo */ true);
         if (err.isNotEmpty())
         {
             firstError = err;
@@ -441,7 +441,7 @@ UndoResult MCPUndoEngine::undoByIndex (int recordIndex)
         // best we can do, and the buffer is restored regardless so the
         // operator can retry from the AI side.
         for (size_t i = failedAt + 1; i-- > 0; )
-            (void) writePayloadHere (chain[i], chain[i].afterState);
+            (void) writePayloadHere (chain[i], /* isUndo */ false);
 
         // Restore the chain to the undo ring in chronological order so
         // the newest record sits on top.
@@ -502,7 +502,7 @@ UndoResult MCPUndoEngine::redoLast()
     juce::String combinedDesc;
     for (auto it = batch.rbegin(); it != batch.rend(); ++it)
     {
-        const auto err = writePayloadHere (*it, it->afterState);
+        const auto err = writePayloadHere (*it, /* isUndo */ false);
         if (err.isNotEmpty())
         {
             // Restore everything we touched and bail out.
@@ -541,7 +541,7 @@ std::vector<ChangeRecord> MCPUndoEngine::getRedoStackSnapshot() const
 //==============================================================================
 UndoResult MCPUndoEngine::applyReverse (const ChangeRecord& record)
 {
-    const auto err = writePayloadHere (record, record.beforeState);
+    const auto err = writePayloadHere (record, /* isUndo */ true);
     if (err.isNotEmpty())
         return UndoResult::fail ("internal_error", err);
 
@@ -551,7 +551,7 @@ UndoResult MCPUndoEngine::applyReverse (const ChangeRecord& record)
 
 UndoResult MCPUndoEngine::applyForward (const ChangeRecord& record)
 {
-    const auto err = writePayloadHere (record, record.afterState);
+    const auto err = writePayloadHere (record, /* isUndo */ false);
     if (err.isNotEmpty())
         return UndoResult::fail ("internal_error", err);
 
@@ -561,7 +561,7 @@ UndoResult MCPUndoEngine::applyForward (const ChangeRecord& record)
 
 //==============================================================================
 juce::String MCPUndoEngine::writePayloadHere (const ChangeRecord& record,
-                                              const juce::var& payload)
+                                              bool isUndo)
 {
     // Caller guarantees we're on the JUCE message thread inside an
     // OriginTagScope of MCP. Doing a second callAsync here would deadlock
@@ -569,27 +569,73 @@ juce::String MCPUndoEngine::writePayloadHere (const ChangeRecord& record,
     // and the inner lambda can never run.
     jassert (juce::MessageManager::getInstance()->isThisTheMessageThread());
 
-    auto* payloadObj = payload.isObject() ? payload.getDynamicObject() : nullptr;
-    if (payloadObj == nullptr)
-        return "Record's payload (before/after state) is not an object";
-
-    const int channelIndex = resolveChannelIndex (record);
-    const bool isEqBand = isEqBandRecord (record);
-    const int bandIndex = isEqBand ? extractBandIndex (record) : -1;
-
-    try
+    auto applyOne = [this] (int channelIndex, int bandIndex,
+                              juce::DynamicObject* payloadObj) -> juce::String
     {
+        if (payloadObj == nullptr)
+            return "payload is not an object";
+
         const auto& props = payloadObj->getProperties();
         for (int i = 0; i < props.size(); ++i)
         {
             const juce::Identifier paramId = props.getName (i);
             const juce::var value = props.getValueAt (i);
 
-            if (isEqBand && bandIndex >= 0 && channelIndex >= 0)
+            if (bandIndex >= 0 && channelIndex >= 0)
                 state.setOutputEQBandParameterWithArrayPropagation (channelIndex, bandIndex, paramId, value);
             else
                 state.setParameter (paramId, value, channelIndex);
         }
+        return {};
+    };
+
+    try
+    {
+        if (! record.subWrites.empty())
+        {
+            // Batch path. Walk in REVERSE order on undo so two writes that
+            // hit the same paramId on the same channel settle on the
+            // earliest captured before-value; in chronological order on
+            // redo so the latest after-value wins.
+            const int n = static_cast<int> (record.subWrites.size());
+            if (isUndo)
+            {
+                for (int i = n - 1; i >= 0; --i)
+                {
+                    const auto& sw = record.subWrites[(size_t) i];
+                    auto* payloadObj = sw.beforeState.isObject()
+                                         ? sw.beforeState.getDynamicObject() : nullptr;
+                    const auto err = applyOne (sw.channelIndex, sw.bandIndex, payloadObj);
+                    if (err.isNotEmpty())
+                        return "Sub-write " + juce::String (i) + " (undo): " + err;
+                }
+            }
+            else
+            {
+                for (int i = 0; i < n; ++i)
+                {
+                    const auto& sw = record.subWrites[(size_t) i];
+                    auto* payloadObj = sw.afterState.isObject()
+                                         ? sw.afterState.getDynamicObject() : nullptr;
+                    const auto err = applyOne (sw.channelIndex, sw.bandIndex, payloadObj);
+                    if (err.isNotEmpty())
+                        return "Sub-write " + juce::String (i) + " (redo): " + err;
+                }
+            }
+            return {};
+        }
+
+        // Legacy single-channel path.
+        const juce::var& payload = isUndo ? record.beforeState : record.afterState;
+        auto* payloadObj = payload.isObject() ? payload.getDynamicObject() : nullptr;
+        if (payloadObj == nullptr)
+            return "Record's payload (before/after state) is not an object";
+
+        const int channelIndex = resolveChannelIndex (record);
+        const bool isEqBand = isEqBandRecord (record);
+        const int bandIndex = isEqBand ? extractBandIndex (record) : -1;
+
+        return applyOne (channelIndex, bandIndex, payloadObj);
     }
     catch (const std::exception& e)
     {
@@ -599,8 +645,6 @@ juce::String MCPUndoEngine::writePayloadHere (const ChangeRecord& record,
     {
         return "Reversal threw unknown exception";
     }
-
-    return {};
 }
 
 } // namespace WFSNetwork

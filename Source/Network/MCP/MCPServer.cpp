@@ -11,6 +11,7 @@
 #include "tools/SnapshotTools.h"
 #include "tools/UndoTools.h"
 #include "tools/SetParameterTool.h"
+#include "tools/SetParameterBatchTool.h"
 #include "tools/DescribeParametersTool.h"
 #include "tools/StateInspectionTools.h"
 
@@ -72,6 +73,11 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     // parameter the auto-generated surface didn't cover. Trusted-caller
     // semantics: no clamping, exact variable names required.
     registry->registerTool (Tools::SetParameter::describe (state));
+
+    // Batch primitive — atomic multi-write with one undo entry. Mirrors
+    // wfs_set_parameter's per-entry shape; pre-validates everything,
+    // then applies and records as a single ChangeRecord with subWrites.
+    registry->registerTool (Tools::SetParameterBatch::describe (state));
 
     // Read-only registry tool — surfaces every known parameter so the AI
     // can plan writes from the schema instead of guessing. Must come after

@@ -116,12 +116,16 @@ private:
     /** Apply a record's `after_state` to the tree (= re-apply / redo). */
     UndoResult applyForward (const ChangeRecord& record);
 
-    /** Shared write logic; `payload` is either the before_state or
-        after_state object, depending on direction. Caller is on the
-        message thread. Returns an error string on failure (empty on
-        success). */
-    juce::String writePayloadHere (const ChangeRecord& record,
-                                   const juce::var& payload);
+    /** Shared write logic. `isUndo == true` writes the record's
+        beforeState (reversal); `isUndo == false` writes its afterState
+        (re-apply). Honors the batch `subWrites` payload when non-empty:
+        each entry carries its own channel/band coordinates and its own
+        before/after. For undo of a batch, subWrites are walked in
+        REVERSE chronological order so that overlapping params on the
+        same channel settle on the earliest captured value; redo walks
+        in chronological order. Caller is on the message thread.
+        Returns an error string on failure (empty on success). */
+    juce::String writePayloadHere (const ChangeRecord& record, bool isUndo);
 
     /** Phase 5b: staleness check. Returns an UndoResult::fail with
         errorCode "stale_target" when any of the record's

@@ -86,6 +86,12 @@ public:
                                                   const juce::String& scope,
                                                   const juce::String& groupKey) const;
 
+    /** O(N) lookup by canonical variable name. Returns nullptr if unknown.
+        Pass the canonicalized name (run `canonicalize` first if the input
+        might be a synonym). Used by the batch tool for per-write tier /
+        scope / csv_section lookups during validation. */
+    const ParameterRegistryRecord* findByVariable (const juce::String& canonicalVariable) const;
+
     /** Total record count (includes records produced from nudge tools too,
         deduplicated by `variable`). */
     int size() const noexcept;

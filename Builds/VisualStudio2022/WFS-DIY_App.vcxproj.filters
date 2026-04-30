@@ -4485,6 +4485,9 @@
     <ClInclude Include="..\..\Source\Network\MCP\tools\SetParameterTool.h">
       <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\SetParameterBatchTool.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\Network\MCP\tools\DescribeParametersTool.h">
       <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
     </ClInclude>
