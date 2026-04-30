@@ -2302,18 +2302,20 @@ public:
         }
         leftY += rowHeight + spacing;
 
-        // Help cards — bottom of left column, below connection buttons
+        // Help cards — anchored to the bottom of their respective column.
+        // The MCP card lives in the right column so that opening it leaves
+        // the AI / MCP Server control row in the left column visible.
         {
             int cardW = leftColumnWidth;
             int bottomY = getHeight() - footerHeight - scaled(10);
             int netCardH = networkHelpCard.getIdealHeight(cardW);
             int admCardH = admOscHelpCard.getIdealHeight(cardW);
             int trkCardH = trackingHelpCard.getIdealHeight(cardW);
-            int mcpCardH = mcpHelpCard.getIdealHeight(cardW);
+            int mcpCardH = mcpHelpCard.getIdealHeight(rightColumnWidth);
             networkHelpCard.setBounds(leftX, bottomY - netCardH, cardW, netCardH);
             admOscHelpCard.setBounds(leftX, bottomY - admCardH, cardW, admCardH);
             trackingHelpCard.setBounds(leftX, bottomY - trkCardH, cardW, trkCardH);
-            mcpHelpCard.setBounds   (leftX, bottomY - mcpCardH, cardW, mcpCardH);
+            mcpHelpCard.setBounds   (rightColumnX, bottomY - mcpCardH, rightColumnWidth, mcpCardH);
         }
 
         // ==================== RIGHT COLUMN: TRACKING & ADM-OSC ====================
