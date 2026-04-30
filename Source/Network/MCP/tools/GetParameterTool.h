@@ -46,7 +46,8 @@ namespace detail
         juce::Array<juce::var> didYouMean;
     };
 
-    inline ResolveOutcome resolveEntry (const juce::DynamicObject& entry)
+    inline ResolveOutcome resolveEntry (const juce::DynamicObject& entry,
+                                          WFSValueTreeState& state)
     {
         ResolveOutcome out;
         out.value.requestedVariable = entry.getProperty ("variable").toString();
@@ -94,6 +95,58 @@ namespace detail
             }
         }
 
+        // Range-check channel_id against the live channel count for the
+        // variable's scope. Without this, a read for channel 99 would
+        // silently return null because the underlying ValueTree has no
+        // child at that index. Per-entry failure: surfaces in the batch
+        // tool's `errors[]` rather than rejecting the whole batch.
+        if (const auto* rec = reg.findByVariable (out.value.variable))
+        {
+            int maxChannels = -1;
+            juce::String scopeForMessage;
+            if (rec->scope == "input")
+            {
+                maxChannels = state.getNumInputChannels();
+                scopeForMessage = "input";
+            }
+            else if (rec->scope == "output" || rec->scope == "eq_band")
+            {
+                // EQ-band parameters are per-output (output_id 1..N).
+                maxChannels = state.getNumOutputChannels();
+                scopeForMessage = (rec->scope == "eq_band" ? "output (eq_band)" : "output");
+            }
+            else if (rec->scope == "reverb")
+            {
+                maxChannels = state.getNumReverbChannels();
+                scopeForMessage = "reverb";
+            }
+            else if (rec->scope == "cluster")
+            {
+                maxChannels = 10;  // cluster count is fixed at 10 by design
+                scopeForMessage = "cluster";
+            }
+
+            if (maxChannels >= 0)
+            {
+                if (out.value.channelIndex < 0)
+                {
+                    out.errorCode    = "invalid_args";
+                    out.errorMessage = "missing channel_id for " + scopeForMessage
+                                       + "-scope parameter '" + out.value.variable + "'";
+                    return out;
+                }
+                if (out.value.channelIndex >= maxChannels)
+                {
+                    out.errorCode    = "invalid_args";
+                    out.errorMessage = "channel_id "
+                                       + juce::String (out.value.displayId)
+                                       + " out of range for " + scopeForMessage
+                                       + " (1.." + juce::String (maxChannels) + ")";
+                    return out;
+                }
+            }
+        }
+
         out.ok = true;
         return out;
     }
@@ -126,7 +179,7 @@ namespace detail
         auto obj = std::make_unique<juce::DynamicObject>();
         obj->setProperty ("variable", r.variable);
         if (r.variable != r.requestedVariable)
-            obj->setProperty ("synonym_of", r.requestedVariable);
+            obj->setProperty ("requested_as", r.requestedVariable);
         if (r.channelIndex >= 0)
             obj->setProperty ("channel_id", r.displayId);
         if (r.bandIndex >= 0)
@@ -182,7 +235,7 @@ inline ToolResult getOne (WFSValueTreeState& state, const juce::var& args)
     if (! args.isObject())
         return ToolResult::error ("invalid_args", "Arguments must be a JSON object");
 
-    auto outcome = detail::resolveEntry (*args.getDynamicObject());
+    auto outcome = detail::resolveEntry (*args.getDynamicObject(), state);
     if (! outcome.ok)
     {
         juce::String message = outcome.errorMessage;
@@ -208,7 +261,7 @@ inline ToolDescriptor describeSingle (WFSValueTreeState& state)
                     "wfs_set_parameter's argument shape: {variable, "
                     "channel_id?, band?}. Whitelist + synonym + did-you-mean "
                     "behave the same as the writer. Returns {variable, "
-                    "channel_id?, band?, value, synonym_of?}. Use "
+                    "channel_id?, band?, value, requested_as?}. Use "
                     "wfs_get_parameters for batch reads, "
                     "session_get_channel_full for everything on one channel, "
                     "or session_get_state_delta to track operator/OSC writes "
@@ -317,7 +370,7 @@ inline ToolResult getBatch (WFSValueTreeState& state, const juce::var& args)
             errors.add (juce::var (err.release()));
             continue;
         }
-        auto outcome = detail::resolveEntry (*entryVar.getDynamicObject());
+        auto outcome = detail::resolveEntry (*entryVar.getDynamicObject(), state);
         if (! outcome.ok)
         {
             auto err = std::make_unique<juce::DynamicObject>();

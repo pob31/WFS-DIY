@@ -435,7 +435,7 @@ inline ToolResult batch (WFSValueTreeState& state, const juce::var& args, Change
         auto entry = std::make_unique<juce::DynamicObject>();
         entry->setProperty ("variable", w.variable);
         if (w.requestedVariable != w.variable)
-            entry->setProperty ("synonym_of", w.requestedVariable);
+            entry->setProperty ("requested_as", w.requestedVariable);
         if (w.channelIndex >= 0)
             entry->setProperty ("channel_id", w.displayId);
         if (w.bandIndex >= 0)

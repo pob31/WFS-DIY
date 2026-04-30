@@ -287,7 +287,7 @@ inline ToolResult set (WFSValueTreeState& state, const juce::var& args, ChangeRe
     auto result = std::make_unique<juce::DynamicObject>();
     result->setProperty ("variable", variable);
     if (variable != requestedVariable)
-        result->setProperty ("synonym_of", requestedVariable);
+        result->setProperty ("requested_as", requestedVariable);
     if (channelIndex >= 0)
         result->setProperty ("channel_id", displayId);
     if (isEqBand)
