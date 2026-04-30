@@ -9,24 +9,37 @@ namespace WFSNetwork
 
 /** Phase 6 — tier enforcement and operator-side safety controls.
 
-    Tier 1 tools execute immediately. Tier 2 tools require a two-step call
-    (first call returns a confirmation token; second call must pass that
-    token along with `confirm: true`). Tier 3 adds a per-operator safety
-    gate that the operator opens via the UI for ~60 s; AI clients cannot
-    open the gate themselves.
+    Three tiers, each potentially short-circuited by an operator-side
+    window. The two windows are arranged hierarchically:
 
-    Master AI toggle: the operator can disable the AI entirely from the
-    UI. When disabled, every tool call returns AIDisabled and nothing
-    executes — simplest mental model for the operator ("AI does what it
-    asks" vs "AI does nothing"). The safety gate still exists for the
-    finer-grained "destructive vs not" distinction within the enabled
-    state.
+      Tier 1: always executes immediately.
 
-    Threading: this class is owned by MCPServer. All mutating operations
-    take their own internal lock; the dispatcher calls into it from the
-    JUCE message thread and the UI calls into it from the same thread.
-    The 60 s gate auto-close runs on a juce::Timer that ticks at 4 Hz so
-    the UI countdown stays smooth without flooding the message queue. */
+      Tier 2: requires a two-step token handshake by default (first
+              call returns confirmation_token; second call passes it
+              back). The operator can open one of two windows to
+              skip the handshake:
+                - tier-2 auto-confirm window (5 minutes): tier-2 calls
+                  execute immediately;
+                - safety gate (5 minutes, see below): also covers
+                  tier-2 calls.
+
+      Tier 3: refused outright unless the safety gate is open. When
+              the gate IS open, tier-3 calls execute immediately
+              (the gate is the operator's "I trust this for
+              everything destructive" lever; per-call confirmation
+              would defeat the point). The gate is a SUPERSET of
+              the tier-2 auto-confirm window: opening it grants
+              everything tier-2 grants plus tier-3.
+
+    Master AI toggle: the operator can disable the AI entirely from
+    the UI. When disabled, every tool call returns AIDisabled.
+
+    Threading: this class is owned by MCPServer. All mutating
+    operations take their own internal lock; the dispatcher calls
+    into it from the JUCE message thread and the UI calls into it
+    from the same thread. Auto-close runs on a juce::Timer that
+    ticks at 4 Hz so the UI countdown stays smooth without flooding
+    the message queue. */
 class MCPTierEnforcement : private juce::Timer
 {
 public:

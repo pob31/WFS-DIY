@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-04-30T12:10:38Z",
+  "generated_at": "2026-04-30T15:49:27Z",
   "input_hash": "367b61c6ce695d1a652fcefa404cc8101ffd9403d10129292e9e5c0b28ac70e0",
   "source_csvs": [
     "WFS-UI_config.csv",
@@ -96,10 +96,6 @@
           "name": {
             "type": "string",
             "description": "Preset Tiles."
-          },
-          "confirm": {
-            "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -107,7 +103,7 @@
           "name"
         ]
       },
-      "tier": 3,
+      "tier": 1,
       "csv_section": "LFO Presets",
       "group_key": "cluster_lfo_presets",
       "supports_relative": false,
@@ -1502,10 +1498,6 @@
             "maximum": 0.0,
             "description": "Trigger Reset dB.",
             "default": -60.0
-          },
-          "confirm": {
-            "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -1513,7 +1505,7 @@
           "value"
         ]
       },
-      "tier": 3,
+      "tier": 1,
       "csv_section": "AutomOtion",
       "group_key": "input_automotion",
       "supports_relative": false,

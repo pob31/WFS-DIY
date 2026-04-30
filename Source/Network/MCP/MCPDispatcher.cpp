@@ -145,8 +145,10 @@ juce::String MCPDispatcher::handleInitialize (const juce::var& id, const juce::v
         "(or batch); `mcp_get_ai_change_history(compact=true)` is the "
         "cheap scan; `mcp_redo_last_undone_ai_change` for redo. "
         "Tiers: tier-1 runs immediately; tier-2 needs a confirm token "
-        "OR an open operator window (Network tab); tier-3 also needs "
-        "an open safety gate (5-minute auto-close, operator-only). "
+        "OR an open operator window (auto-confirm or safety gate); "
+        "tier-3 needs the safety gate to be open (which also covers "
+        "tier-2 - the gate is the operator's superset trust window). "
+        "Both windows auto-close after 5 minutes, operator-only. "
         "If you want a guided workflow (session startup, system "
         "tuning, snapshot management, voice rehearsal, etc.), call "
         "`prompts/list` and fetch the matching template.");

@@ -291,29 +291,42 @@ MCPTierEnforcement::Outcome MCPTierEnforcement::evaluate (const juce::String& to
         return out;
     }
 
-    // Tier 3: enforce the safety gate first. Operator must have allowed
-    // critical actions (UI button, MIDI / StreamDeck binding once those
-    // land); AI cannot allow them itself.
+    // Tier 3 needs the safety gate to be open; without it, refused
+    // outright (no token offered). The operator opens the gate from
+    // the Network tab and it auto-closes after 5 minutes.
     if (out.effectiveTier == 3 && ! isSafetyGateOpen())
     {
         out.decision = Decision::SafetyGateClosed;
         out.message  = "Critical AI actions are blocked. Ask the operator "
-                       "to allow critical actions (Network tab) before "
-                       "retrying. They auto-block again 10 minutes after "
-                       "the operator allows them.";
+                       "to allow critical actions (Network tab, 5-minute "
+                       "window) before retrying.";
         return out;
     }
 
-    // Tier-2 session override: when the operator has consented to a batch
-    // of Tier-2 work for the next ~5 minutes, skip the per-call handshake.
-    // Tier-3 still requires the token round trip even with this open.
+    // Open-gate semantics: the safety gate is a superset of tier-2
+    // auto-confirm. When it's open, both tier-2 and tier-3 calls
+    // execute immediately (the operator has already consented to the
+    // full destructive bracket; making them confirm each one would
+    // make the gate redundant). Tier-2 auto-confirm by itself only
+    // skips the handshake for tier-2 (tier-3 was already refused
+    // above, so this branch is only reached for tier-2/3-with-gate).
+    if (isSafetyGateOpen())
+    {
+        out.decision = Decision::Execute;
+        return out;
+    }
+
+    // Tier-2 session override: when the operator has consented to a
+    // batch of tier-2 work for the next ~5 minutes, skip the per-call
+    // handshake. (Reachable only when the safety gate is closed —
+    // tier-3 was refused above, so this is tier-2-only.)
     if (out.effectiveTier == 2 && isTier2AutoConfirmActive())
     {
         out.decision = Decision::Execute;
         return out;
     }
 
-    // Tier 2 (and Tier 3 with open gate): two-step confirm.
+    // Tier 2 with no operator-side override: two-step confirm.
     if (consumeMatchingToken (toolName, args))
     {
         out.decision = Decision::Execute;
@@ -332,22 +345,14 @@ MCPTierEnforcement::Outcome MCPTierEnforcement::evaluate (const juce::String& to
                  + juce::String (kConfirmationLifetimeSec)
                  + "s round-trip). New token issued. ";
 
-    if (out.effectiveTier == 3)
-    {
-        out.message = prefix
-                      + "Tier 3 action awaiting confirmation. Re-call with "
-                      "`confirm: \"" + out.confirmationToken
-                      + "\"` within " + juce::String (kConfirmationLifetimeSec)
-                      + " seconds. Critical AI actions are currently allowed.";
-    }
-    else
-    {
-        out.message = prefix
-                      + "Tier 2 action awaiting confirmation. Re-call with "
-                      "`confirm: \"" + out.confirmationToken
-                      + "\"` within " + juce::String (kConfirmationLifetimeSec)
-                      + " seconds.";
-    }
+    // After the open-gate / auto-confirm short-circuits above, this path
+    // is only reached for tier-2 calls with both windows closed. Tier-3
+    // is either Execute (gate open) or SafetyGateClosed (gate closed).
+    out.message = prefix
+                  + "Tier 2 action awaiting confirmation. Re-call with "
+                  "`confirm: \"" + out.confirmationToken
+                  + "\"` within " + juce::String (kConfirmationLifetimeSec)
+                  + " seconds.";
     return out;
 }
 

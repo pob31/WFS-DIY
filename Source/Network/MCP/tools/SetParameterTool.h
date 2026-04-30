@@ -108,6 +108,26 @@ inline ToolResult set (WFSValueTreeState& state, const juce::var& args, ChangeRe
         // of the handler sees the canonical name. The result envelope
         // surfaces both names so the caller can confirm what landed.
         variable = reg.canonicalize (requestedVariable);
+
+        // Tier escalation. The dispatcher gates on the tool's declared
+        // tier (this tool is tier-2), but the underlying parameter may
+        // be tier-3 (channel counts, port numbers, runDSP). Refuse the
+        // write and direct the AI to the dedicated auto-gen tool, which
+        // is properly classified and goes through the safety gate.
+        if (const auto* rec = reg.findByVariable (variable))
+        {
+            if (rec->tier == 3)
+            {
+                juce::String msg =
+                    "Parameter '" + variable + "' is tier-3 (destructive). "
+                    "wfs_set_parameter is the tier-2 escape hatch and cannot "
+                    "issue tier-3 writes. Use the dedicated tool";
+                if (rec->toolName.isNotEmpty())
+                    msg += " `" + rec->toolName + "`";
+                msg += " - it requires the operator's safety gate to be open.";
+                return ToolResult::error ("tier_3_underlying", msg);
+            }
+        }
     }
 
     if (! obj->hasProperty ("value"))

@@ -134,7 +134,13 @@ NUDGE_VERB = "nudge"
 SET_VERB = "set"
 
 # Tier heuristics (defaults; overrides take precedence).
-TIER_KEYWORDS_3 = ["delete", "clear", "remove", "reset", "channels",
+# IMPORTANT: matched via word-boundary regex against `variable + label` (not
+# substring). "preset" used to mis-match "reset" and tag clusterLFOPresetName
+# as tier-3; "reset" is also dropped from the list because the only variables
+# with `Reset` in their name (inputOtomoReset, the ad-hoc one above) are
+# threshold settings, not destructive operations. If a true factory-reset
+# tool ever lands, give it an explicit override in tool_tier_overrides.json.
+TIER_KEYWORDS_3 = ["delete", "clear", "remove", "channels",
                    "sampleRate", "runDSP", "reconfigure"]
 TIER_KEYWORDS_2 = ["master", "solo", "muteAll", "testTone", "store", "load",
                    "import", "export", "snapshot"]
@@ -573,14 +579,23 @@ def lookup_tier_override(variable: str, family_stem: str | None,
 
 def heuristic_tier(variable: str, label: str, type_: str,
                     min_v: str, max_v: str) -> int:
-    """Default tier classification when no override applies."""
-    name = variable + " " + label
+    """Default tier classification when no override applies.
+
+    Uses word-boundary regex so e.g. `clusterLFOPresetName` doesn't
+    accidentally match the "reset" keyword via substring. The label
+    half is naturally word-separated; the variable half is CamelCase,
+    so we split on lowercase->uppercase transitions before scanning.
+    """
+    # Split CamelCase variable into space-separated words: "inputOtomoReset"
+    # -> "input Otomo Reset". The label is already space-separated.
+    var_split = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", variable)
+    name = var_split + " " + label
     name_lower = name.lower()
     for kw in TIER_KEYWORDS_3:
-        if kw.lower() in name_lower:
+        if re.search(r"\b" + re.escape(kw.lower()) + r"\b", name_lower):
             return 3
     for kw in TIER_KEYWORDS_2:
-        if kw.lower() in name_lower:
+        if re.search(r"\b" + re.escape(kw.lower()) + r"\b", name_lower):
             return 2
     # Wide attenuation/dB ranges → tier 2 (sudden loud output risk).
     try:
