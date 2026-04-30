@@ -73,7 +73,7 @@ inline juce::var buildSchema()
     auto confirm = std::make_unique<juce::DynamicObject>();
     confirm->setProperty ("type", "string");
     confirm->setProperty ("description",
-        "Confirmation token. Tier-2 handshake covers the whole batch — "
+        "Confirmation token. Tier-2 handshake covers the whole batch - "
         "the operator's tier-2 auto-confirm window (Network tab) skips "
         "this when active.");
 
@@ -451,13 +451,13 @@ inline ToolDescriptor describe (WFSValueTreeState& state)
     d.description = "Apply up to " + juce::String (kMaxBatchSize) + " parameter "
                     "writes atomically and record them as a single undoable "
                     "entry. Pre-validates everything (whitelist + did-you-mean, "
-                    "range, type coercion, tier) before touching state — any "
+                    "range, type coercion, tier) before touching state - any "
                     "failure rejects the entire batch with no writes applied. "
                     "Tier-3 (destructive) variables are not allowed in a batch; "
                     "issue those individually. Each entry has the same shape as "
                     "wfs_set_parameter ({variable, value, channel_id?, band?}). "
                     "Use this for setting many channels or many parameters in "
-                    "one operator action — e.g. positioning a 12-speaker array.";
+                    "one operator action - e.g. positioning a 12-speaker array.";
     d.inputSchema   = buildSchema();
     d.modifiesState = true;
     d.tier        = 2;

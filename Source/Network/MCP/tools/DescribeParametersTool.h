@@ -53,7 +53,7 @@ inline juce::var buildSchema()
     domain->setProperty ("enum", domainEnum);
     domain->setProperty ("description",
         "Optional domain tag filter. Use this to narrow the registry to "
-        "params that are meaningful for a specific intent — e.g. domain="
+        "params that are meaningful for a specific intent - e.g. domain="
         "\"wfs_synthesis\" returns only params that change what the WFS "
         "speakers emit; domain=\"visualisation_only\" returns map / lock "
         "toggles that don't affect audio.");
@@ -155,7 +155,7 @@ inline ToolDescriptor describeTool()
                     "tell wfs_synthesis vs visualisation_only writes apart. "
                     "Filter with `prefix` (matches variable start), `scope`, "
                     "`group_key`, or `domain`. Use this BEFORE guessing "
-                    "parameter names — it's the source of truth for the "
+                    "parameter names - it's the source of truth for the "
                     "wfs_set_parameter escape hatch.";
     d.inputSchema   = buildSchema();
     d.modifiesState = false;

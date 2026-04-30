@@ -139,7 +139,7 @@ inline ToolDescriptor describeCreate (WFSValueTreeState& state,
                     "channel's 1-based id (always == new total). Refused with "
                     "at_capacity when count is already at the hard maximum ("
                     + juce::String (cfg.hardMax) + "). Triggers a DSP restart, "
-                    "so plan accordingly. Tier 2 — confirmation per call (or "
+                    "so plan accordingly. Tier 2 - confirmation per call (or "
                     "covered by the tier-2 auto-confirm window).";
     d.inputSchema   = emptyObjectSchema();
     d.modifiesState = true;

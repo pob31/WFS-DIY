@@ -244,12 +244,12 @@ inline ToolDescriptor describe (WFSValueTreeState& state)
                     "state against the cache and replaces it. First call "
                     "(or `reset: true`) returns a full snapshot. Captures "
                     "every origin (operator UI, OSC, tracking, automation, "
-                    "AI) — use this between turns to notice when state "
+                    "AI) - use this between turns to notice when state "
                     "drifted under you. Snapshot covers channel counts, "
                     "stage + origin, master / binaural globals, and per-"
                     "channel id+name+position (outputs also carry "
                     "orientation, pitch, array assignment). Heavier params "
-                    "(EQ, LFO, etc.) are out of scope — pull them via "
+                    "(EQ, LFO, etc.) are out of scope - pull them via "
                     "session_get_channel_full if a delta hints at trouble.";
     d.inputSchema   = schema();
     d.modifiesState = false;

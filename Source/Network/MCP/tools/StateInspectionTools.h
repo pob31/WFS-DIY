@@ -216,7 +216,7 @@ inline ToolDescriptor describeChannelFull (WFSValueTreeState& state)
 {
     ToolDescriptor d;
     d.name        = "session_get_channel_full";
-    d.description = "Read-only dump of every parameter on one channel — every "
+    d.description = "Read-only dump of every parameter on one channel - every "
                     "property in the channel's ValueTree subtree, including "
                     "child sections (Position / Attenuation / Directivity / "
                     "LiveSource / LFO / AutomOtion / Mutes / Sampler for inputs; "
