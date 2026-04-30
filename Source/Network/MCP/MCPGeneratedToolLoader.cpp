@@ -95,8 +95,11 @@ namespace
 
     /** If the tool's value schema declares an `enum` of strings, map the
         incoming arg from string to its 0-based index in the enum array.
-        Otherwise (or on unknown enum values) pass through as-is so that
-        downstream JUCE coercion still has a chance. */
+        First try an exact match; if that fails, retry with whitespace
+        stripped from both sides — the generator emits "Cluster1" but
+        humans / AIs commonly send "Cluster 1" matching the CSV display
+        form. On unknown enum values pass through unchanged so the
+        validation in dispatchGenericSet can produce a clear error. */
     juce::var coerceValue (const juce::var& incoming, const ToolBinding& binding)
     {
         if (binding.enumValues.size() > 0 && incoming.isString())
@@ -104,6 +107,11 @@ namespace
             const auto s = incoming.toString();
             for (int i = 0; i < binding.enumValues.size(); ++i)
                 if (binding.enumValues[i] == s)
+                    return juce::var (i);
+
+            const auto sNoSpace = s.removeCharacters (" \t");
+            for (int i = 0; i < binding.enumValues.size(); ++i)
+                if (binding.enumValues[i].removeCharacters (" \t") == sNoSpace)
                     return juce::var (i);
         }
         return incoming;
@@ -154,6 +162,51 @@ namespace
             return ToolResult::error ("invalid_args",
                                       "Missing required arg: " + binding.valueArgName);
         juce::var value = coerceValue (argsObj->getProperty (binding.valueArgName), binding);
+
+        // Enum validation. After coerceValue (above) has tried both
+        // exact and whitespace-tolerant string-to-index lookups, a
+        // remaining string can only be valid if it's a numeric literal
+        // (loose-typed harnesses sometimes wrap ints in strings). A
+        // remaining double must be a whole number. Anything else —
+        // "2.7" sent for a cluster selector, fractional doubles, or
+        // out-of-range indices — is rejected so the bad value never
+        // lands in the ValueTree slot.
+        if (! binding.enumValues.isEmpty())
+        {
+            auto rejectValue = [&] (const juce::String& shown)
+            {
+                return ToolResult::error ("invalid_enum_value",
+                                          "value " + shown.quoted()
+                                          + " is not a valid " + binding.internalVariable
+                                          + " value (expected an integer index 0.."
+                                          + juce::String (binding.enumValues.size() - 1)
+                                          + " or one of: " + binding.enumValues.joinIntoString (", ") + ")");
+            };
+
+            if (value.isString())
+            {
+                const auto s = value.toString().trim();
+                if (s.isEmpty() || ! s.containsOnly ("0123456789.+-eE"))
+                    return rejectValue (s);
+                const double d = s.getDoubleValue();
+                if (d != std::floor (d))
+                    return rejectValue (s);
+                value = juce::var (static_cast<int> (d));
+            }
+            else if (value.isDouble())
+            {
+                const double d = static_cast<double> (value);
+                if (d != std::floor (d))
+                    return rejectValue (juce::String (d));
+                value = juce::var (static_cast<int> (d));
+            }
+
+            if (! (value.isInt() || value.isInt64()))
+                return rejectValue (value.toString());
+            const int idx = static_cast<int> (value);
+            if (idx < 0 || idx >= binding.enumValues.size())
+                return rejectValue (juce::String (idx));
+        }
 
         // Range gate: the schema declares `minimum`/`maximum` for numeric
         // value args; fail closed on out-of-range so a confirmed AI write
