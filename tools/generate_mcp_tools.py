@@ -1059,8 +1059,9 @@ def hash_inputs(csv_dir: Path, override_files: list[Path]) -> str:
     return h.hexdigest()
 
 
-def write_json(path: Path, data: dict) -> None:
-    """Write JSON deterministically.
+def write_json(path: Path, data: dict) -> bool:
+    """Write JSON deterministically. Returns True if the file was written,
+    False if the on-disk content already matched and the write was skipped.
 
     Insertion order is preserved (Python 3.7+ dicts are insertion-ordered)
     so the schema's `properties` keep channel_id first, then sub-index,
@@ -1082,11 +1083,12 @@ def write_json(path: Path, data: dict) -> None:
         try:
             existing = path.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
             if existing == new_bytes:
-                return
+                return False
         except OSError:
             pass
     with path.open("wb") as f:
         f.write(new_bytes)
+    return True
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1226,19 +1228,21 @@ def main(argv: list[str] | None = None) -> int:
         "ignored_parameters": ignored,
         "warnings": warnings,
     }
-    write_json(out_path, payload)
+    tools_written = write_json(out_path, payload)
 
     groups_payload = {
         "schema_version": SCHEMA_VERSION,
         "input_hash": input_hash,
         "groups": groups_sorted,
     }
-    write_json(groups_path, groups_payload)
+    groups_written = write_json(groups_path, groups_payload)
 
-    print(f"wrote {out_path} - {len(tools)} tools, "
+    tools_verb = "wrote" if tools_written else "unchanged"
+    groups_verb = "wrote" if groups_written else "unchanged"
+    print(f"{tools_verb} {out_path} - {len(tools)} tools, "
           f"{len(nudge_tools)} nudge variants, {len(ignored)} ignored, "
           f"{len(warnings)} warnings")
-    print(f"wrote {groups_path} - {len(groups_sorted)} groups")
+    print(f"{groups_verb} {groups_path} - {len(groups_sorted)} groups")
     return 0
 
 
