@@ -73,7 +73,7 @@ A single JSON file: `generated_tools.json`. Structure:
 ```json
 {
   "schema_version": "1.0",
-  "generated_at": "2026-04-21T20:23:00Z",
+  "input_hash": "sha256-of-the-csv-and-override-inputs",
   "source_csvs": ["WFS-UI_input.csv", "..."],
   "tools": [
     {
@@ -181,9 +181,10 @@ The `generated_groups.json` emitted alongside the main tool file (see "Validatio
 ## Idempotency and determinism
 
 The same input CSVs must produce byte-identical output JSON across runs. This means:
-- No timestamp that changes (well — the `generated_at` field does, but it should be the only thing that changes if nothing else changed; treat it as informational, not used for equality).
+- No timestamp or other run-varying metadata in the output. The `input_hash` is computed over line-ending-normalized CSV bytes so the value is stable across platforms regardless of git's autocrlf setting.
 - Sort all output arrays by tool name.
 - Use consistent JSON formatting (2-space indent, sorted keys).
+- The writer compares the proposed bytes against the existing file and skips the write entirely when they match, so unchanged regenerations don't touch the file's mtime or dirty the working tree.
 
 Determinism matters because this file is either committed to the repo (in which case diffs should be meaningful) or regenerated at build time (in which case build caches should hit).
 
