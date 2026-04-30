@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="k6c2zA" name="WFS-DIY" projectType="guiapp" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="1.0.0beta15"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="1.0.0beta16"
               bundleIdentifier="com.wfsdiy.app" companyEmail="contact@pixetbel.org"
               companyName="Pix et Bel" companyWebsite="wfs-diy.net">
   <MAINGROUP id="U6kz3k" name="WFS-DIY">
@@ -237,6 +237,8 @@
                   file="Source/Network/MCP/tools/DescribeParametersTool.h"/>
             <FILE id="mcpToolsState" name="StateInspectionTools.h" compile="0" resource="0"
                   file="Source/Network/MCP/tools/StateInspectionTools.h"/>
+            <FILE id="mcpToolsChanLife" name="ChannelLifecycleTools.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/ChannelLifecycleTools.h"/>
           </GROUP>
         </GROUP>
       </GROUP>

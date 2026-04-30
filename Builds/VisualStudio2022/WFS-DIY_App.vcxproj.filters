@@ -4494,6 +4494,9 @@
     <ClInclude Include="..\..\Source\Network\MCP\tools\StateInspectionTools.h">
       <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\ChannelLifecycleTools.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\Controllers\PositionControl\ControllerEvent.h">
       <Filter>WFS-DIY\Source\Controllers\PositionControl</Filter>
     </ClInclude>

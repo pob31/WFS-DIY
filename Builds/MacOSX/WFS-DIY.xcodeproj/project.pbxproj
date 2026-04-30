@@ -180,6 +180,7 @@
 		573C45192697FB567520101F /* StreamDeckManager.h */ /* StreamDeckManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StreamDeckManager.h; path = ../../Source/Controllers/DialsAndButtons/StreamDeckManager.h; sourceTree = SOURCE_ROOT; };
 		5810F8314E4B23B3F2FB167F /* OSCMessageBuilder.h */ /* OSCMessageBuilder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCMessageBuilder.h; path = ../../Source/Network/OSCMessageBuilder.h; sourceTree = SOURCE_ROOT; };
 		58550861937D9037981CEAF5 /* OpenGL.framework */ /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
+		5887A796DF1FB3E3F1EB274D /* ChannelLifecycleTools.h */ /* ChannelLifecycleTools.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ChannelLifecycleTools.h; path = ../../Source/Network/MCP/tools/ChannelLifecycleTools.h; sourceTree = SOURCE_ROOT; };
 		59A4A88F7E78594000D4D566 /* LightpadTypes.h */ /* LightpadTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = LightpadTypes.h; path = ../../Source/Controllers/Sampler/LightpadTypes.h; sourceTree = SOURCE_ROOT; };
 		5D1984E28D7BAC5B5AF934B5 /* juce_audio_processors */ /* juce_audio_processors */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_audio_processors; path = ../../ThirdParty/JUCE/modules/juce_audio_processors; sourceTree = SOURCE_ROOT; };
 		5DCF6592130A5D09FC39EB71 /* AudioInterfaceWindow.cpp */ /* AudioInterfaceWindow.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioInterfaceWindow.cpp; path = ../../Source/gui/AudioInterfaceWindow.cpp; sourceTree = SOURCE_ROOT; };
@@ -451,6 +452,7 @@
 				403EC6D94D22E834FDEB7099,
 				229DF65578A1BC3F82152487,
 				733D0E78F18ED00D054A394F,
+				5887A796DF1FB3E3F1EB274D,
 			);
 			name = tools;
 			sourceTree = "<group>";
@@ -1050,7 +1052,7 @@
 					"JUCE_STANDALONE_APPLICATION=1",
 					"SIMPLEWEB_SECURE_SUPPORTED=0",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
-					"JUCE_APP_VERSION=1.0.0beta15",
+					"JUCE_APP_VERSION=1.0.0beta16",
 					"JUCE_APP_VERSION_HEX=0x10000",
 					"JucePlugin_Build_VST=0",
 					"JucePlugin_Build_VST3=0",
@@ -1133,7 +1135,7 @@
 					"JUCE_STANDALONE_APPLICATION=1",
 					"SIMPLEWEB_SECURE_SUPPORTED=0",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
-					"JUCE_APP_VERSION=1.0.0beta15",
+					"JUCE_APP_VERSION=1.0.0beta16",
 					"JUCE_APP_VERSION_HEX=0x10000",
 					"JucePlugin_Build_VST=0",
 					"JucePlugin_Build_VST3=0",

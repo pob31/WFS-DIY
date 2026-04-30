@@ -14,6 +14,7 @@
 #include "tools/SetParameterBatchTool.h"
 #include "tools/DescribeParametersTool.h"
 #include "tools/StateInspectionTools.h"
+#include "tools/ChannelLifecycleTools.h"
 
 namespace WFSNetwork
 {
@@ -88,6 +89,18 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     // complementing session_get_state's per-channel summary.
     registry->registerTool (Tools::StateInspection::describeGlobalState (state));
     registry->registerTool (Tools::StateInspection::describeChannelFull (state));
+
+    // Channel lifecycle — tier-2 wrappers that bump the global channel
+    // counts by 1 (auto-gen `system_i_o_set_*_channels` is tier 3 because
+    // it accepts arbitrary counts). Lets the AI script "create channel
+    // then write to it" flows from a blank session.
+    for (const auto& kind : { juce::String ("input"),
+                               juce::String ("output"),
+                               juce::String ("reverb") })
+    {
+        registry->registerTool (Tools::ChannelLifecycle::describeCreate (state, kind));
+        registry->registerTool (Tools::ChannelLifecycle::describeDelete (state, kind));
+    }
 
     // Undo / redo tools — Phase 5a wires the first two to the real engine.
     // mcp.get_ai_change_history remains a read-only query over the ring buffer.
