@@ -15,7 +15,6 @@ import re
 import sys
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -1040,17 +1039,23 @@ CSV_FILES_ORDER = [
 ]
 
 
+def _normalized_bytes(p: Path) -> bytes:
+    """Read a file and normalize line endings to LF, so the hash is stable
+    across platforms regardless of git's autocrlf setting."""
+    return p.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+
+
 def hash_inputs(csv_dir: Path, override_files: list[Path]) -> str:
     h = hashlib.sha256()
     for fname in CSV_FILES_ORDER:
         p = csv_dir / fname
         if p.exists():
             h.update(fname.encode())
-            h.update(p.read_bytes())
+            h.update(_normalized_bytes(p))
     for of in override_files:
         if of.exists():
             h.update(of.name.encode())
-            h.update(of.read_bytes())
+            h.update(_normalized_bytes(of))
     return h.hexdigest()
 
 
@@ -1065,9 +1070,23 @@ def write_json(path: Path, data: dict) -> None:
     construction, not by sort_keys=True (which would scramble the
     semantically-meaningful ordering of `properties`).
     """
-    text = json.dumps(data, indent=2, ensure_ascii=False)
+    text = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+    new_bytes = text.encode("utf-8")
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text + "\n", encoding="utf-8", newline="\n")
+    # Skip the write if the on-disk content already matches. Compare with line
+    # endings normalized on both sides, so a CRLF-on-disk checkout (Windows
+    # core.autocrlf=true) doesn't trigger a rewrite when the semantic content
+    # is identical. Avoids touching the file's mtime and keeps the working
+    # tree clean across rebuilds when the input CSVs haven't changed.
+    if path.exists():
+        try:
+            existing = path.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+            if existing == new_bytes:
+                return
+        except OSError:
+            pass
+    with path.open("wb") as f:
+        f.write(new_bytes)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1200,7 +1219,6 @@ def main(argv: list[str] | None = None) -> int:
 
     payload = {
         "schema_version": SCHEMA_VERSION,
-        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "input_hash": input_hash,
         "source_csvs": consumed_csvs,
         "tools": tools,
@@ -1212,7 +1230,6 @@ def main(argv: list[str] | None = None) -> int:
 
     groups_payload = {
         "schema_version": SCHEMA_VERSION,
-        "generated_at": payload["generated_at"],
         "input_hash": input_hash,
         "groups": groups_sorted,
     }

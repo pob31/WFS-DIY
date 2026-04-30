@@ -76,7 +76,7 @@ in the ignore file.
 
 `generated_tools.json` contains:
 
-- `schema_version`, `generated_at`, `input_hash`, `source_csvs`
+- `schema_version`, `input_hash`, `source_csvs`
 - `tools[]` — sorted by name; each is a JSON-Schema-shaped tool record with
   `name`, `description`, `parameters`, `tier`, `internal_osc_path` (or
   `internal_osc_path_template` for numeric-suffix families),
