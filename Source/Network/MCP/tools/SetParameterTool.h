@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "../MCPToolRegistry.h"
 #include "../MCPChangeRecords.h"
+#include "../MCPParameterRegistry.h"
 #include "../../OSCParameterBounds.h"
 #include "../../../Parameters/WFSValueTreeState.h"
 #include "../../../Parameters/WFSParameterIDs.h"
@@ -75,13 +76,77 @@ inline ToolResult set (WFSValueTreeState& state, const juce::var& args, ChangeRe
 
     auto* obj = args.getDynamicObject();
 
-    const juce::String variable = obj->getProperty ("variable").toString();
-    if (variable.isEmpty())
+    const juce::String requestedVariable = obj->getProperty ("variable").toString();
+    if (requestedVariable.isEmpty())
         return ToolResult::error ("invalid_args", "Missing required arg: variable");
+
+    // Whitelist against the parameter registry. Without this, unknown
+    // names previously silently no-op'd (the underlying ValueTree just
+    // wrote a property nobody reads, and the response showed
+    // before:null/after:null — visually identical to "the param exists
+    // but was unset"). Reject up front and offer a did-you-mean.
+    juce::String variable = requestedVariable;
+    {
+        const auto& reg = MCPParameterRegistry::getInstance();
+        if (reg.size() > 0 && ! reg.isKnown (requestedVariable))
+        {
+            juce::String message = "Unknown parameter '" + requestedVariable + "'.";
+            const auto suggestions = reg.suggestSimilar (requestedVariable);
+            if (! suggestions.isEmpty())
+            {
+                message += " Did you mean: ";
+                message += suggestions.joinIntoString (", ");
+                message += "? Use mcp_describe_parameters to browse the full registry.";
+            }
+            else
+            {
+                message += " Use mcp_describe_parameters to browse the registry.";
+            }
+            return ToolResult::error ("unknown_parameter", message);
+        }
+        // Resolve synonyms (e.g. stageOriginX → originWidth) so the rest
+        // of the handler sees the canonical name. The result envelope
+        // surfaces both names so the caller can confirm what landed.
+        variable = reg.canonicalize (requestedVariable);
+
+        // Tier escalation. The dispatcher gates on the tool's declared
+        // tier (this tool is tier-2), but the underlying parameter may
+        // be tier-3 (channel counts, port numbers, runDSP). Refuse the
+        // write and direct the AI to the dedicated auto-gen tool, which
+        // is properly classified and goes through the safety gate.
+        if (const auto* rec = reg.findByVariable (variable))
+        {
+            if (rec->tier == 3)
+            {
+                juce::String msg =
+                    "Parameter '" + variable + "' is tier-3 (destructive). "
+                    "wfs_set_parameter is the tier-2 escape hatch and cannot "
+                    "issue tier-3 writes. Use the dedicated tool";
+                if (rec->toolName.isNotEmpty())
+                    msg += " `" + rec->toolName + "`";
+                msg += " - it requires the operator's safety gate to be open.";
+                return ToolResult::error ("tier_3_underlying", msg);
+            }
+        }
+    }
 
     if (! obj->hasProperty ("value"))
         return ToolResult::error ("invalid_args", "Missing required arg: value");
     juce::var value = obj->getProperty ("value");
+
+    // Enum string -> int coercion. The registry surfaces enum_values for
+    // the auto-gen path; mirror that here so wfs_set_parameter("stageShape",
+    // "Dome") works the same way system_stage_set_shape(value="Dome") does.
+    // Run BEFORE the numeric coercion so an enum label doesn't get rejected
+    // as "not numeric".
+    if (value.isString())
+    {
+        if (auto resolved = MCPParameterRegistry::getInstance()
+                              .resolveEnumLabel (variable, value.toString()))
+        {
+            value = juce::var (*resolved);
+        }
+    }
 
     // Loose-typed clients sometimes wire JSON numbers as strings ("999"
     // rather than 999). For params with a known numeric bounds entry,
@@ -241,6 +306,8 @@ inline ToolResult set (WFSValueTreeState& state, const juce::var& args, ChangeRe
 
     auto result = std::make_unique<juce::DynamicObject>();
     result->setProperty ("variable", variable);
+    if (variable != requestedVariable)
+        result->setProperty ("requested_as", requestedVariable);
     if (channelIndex >= 0)
         result->setProperty ("channel_id", displayId);
     if (isEqBand)
@@ -254,7 +321,7 @@ inline ToolDescriptor describe (WFSValueTreeState& state)
 {
     ToolDescriptor d;
     d.name        = "wfs_set_parameter";
-    d.description = "Generic escape-hatch parameter writer. Use only when the "
+    d.description = juce::String ("Generic escape-hatch parameter writer. Use only when the "
                     "specific auto-generated tool (e.g. input.position.set_x) "
                     "doesn't fit the flow. Caller is responsible for the exact "
                     "variable name (case-sensitive) and value type. Numeric values "
@@ -262,7 +329,11 @@ inline ToolDescriptor describe (WFSValueTreeState& state)
                     "ingress (out-of-range writes are rejected). Per-channel "
                     "parameters need channel_id (1-based); EQ parameters need both "
                     "output channel_id and band (1-6). Globals "
-                    "(stage/master/network/binaural) take no channel_id.";
+                    "(stage/master/network/binaural) take no channel_id. "
+                    "Refuses tier-3 underlying writes (channel counts, port "
+                    "reconfigure, etc.) - use the dedicated tier-3 tool with "
+                    "the operator's safety gate instead.")
+                  + kTier2DescriptionSuffix;
     d.inputSchema   = buildSchema();
     d.modifiesState = true;
     d.tier        = 2;  // bypasses range clamping — confirm before applying

@@ -109,7 +109,7 @@ void MCPOSCQueryAuditor::run()
 
     if (liveTreePaths.empty())
     {
-        mcpLogger.logError ("OSCQuery audit: live tree has no paths — server returned an empty namespace");
+        mcpLogger.logError ("OSCQuery audit: live tree has no paths - server returned an empty namespace");
         return;
     }
 

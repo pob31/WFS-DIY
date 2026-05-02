@@ -327,6 +327,29 @@ juce::var WFSValueTreeState::getParameter (const juce::Identifier& paramId, int 
 
 void WFSValueTreeState::setParameter (const juce::Identifier& paramId, const juce::var& value, int channelIndex)
 {
+    // Special case: writes to channel-count parameters must go through the
+    // setNumXChannels helpers so the channel subtrees actually grow/shrink
+    // alongside the count property. A bare setProperty here updates the
+    // property but leaves the array stale — the GUI editor calls
+    // setNumXChannels directly, but OSC ingress / MCP set_parameter / file
+    // load round-trips would silently land here and desync. Cast to int via
+    // juce::var so a numeric-string ("12") still routes correctly.
+    if (paramId == inputChannels)
+    {
+        setNumInputChannels (static_cast<int> (value));
+        return;
+    }
+    if (paramId == outputChannels)
+    {
+        setNumOutputChannels (static_cast<int> (value));
+        return;
+    }
+    if (paramId == reverbChannels)
+    {
+        setNumReverbChannels (static_cast<int> (value));
+        return;
+    }
+
     auto tree = getTreeForParameter (paramId, channelIndex);
     if (tree.isValid())
         tree.setProperty (paramId, value, getActiveUndoManager());
@@ -334,6 +357,16 @@ void WFSValueTreeState::setParameter (const juce::Identifier& paramId, const juc
 
 void WFSValueTreeState::setParameterWithoutUndo (const juce::Identifier& paramId, const juce::var& value, int channelIndex)
 {
+    // Same channel-count routing as setParameter — but setNumXChannels
+    // always uses getActiveUndoManager(). When the caller asked for "no
+    // undo", the count subtree resize still needs to happen; we just
+    // accept the slightly redundant undo bookkeeping for these
+    // structural writes (the alternative is duplicating ~80 lines of
+    // setNumXChannels with `nullptr` undo, which isn't worth it).
+    if (paramId == inputChannels)  { setNumInputChannels  (static_cast<int> (value)); return; }
+    if (paramId == outputChannels) { setNumOutputChannels (static_cast<int> (value)); return; }
+    if (paramId == reverbChannels) { setNumReverbChannels (static_cast<int> (value)); return; }
+
     auto tree = getTreeForParameter (paramId, channelIndex);
     if (tree.isValid())
         tree.setProperty (paramId, value, nullptr);
@@ -1285,7 +1318,20 @@ int WFSValueTreeState::getNumOutputChannels() const
 
 int WFSValueTreeState::getNumReverbChannels() const
 {
-    return getIntParameter (reverbChannels);
+    // Count actual `Reverb`-typed children only; the Reverbs subtree also
+    // hosts global siblings (ReverbAlgorithm, ReverbPreComp, ReverbPostEQ,
+    // ReverbPostExp) that must NOT count toward channel total. Reading
+    // the reverbChannels property directly used to do this job, but the
+    // property could drift from the actual children when a writer
+    // bypassed setNumReverbChannels — which then made
+    // session_get_channel_full(reverb, ...) refuse valid IDs because the
+    // child lookup ran out of Reverb-typed siblings before the ID range.
+    auto reverbs = const_cast<WFSValueTreeState*>(this)->getReverbsState();
+    int count = 0;
+    for (int i = 0; i < reverbs.getNumChildren(); ++i)
+        if (reverbs.getChild (i).hasType (Reverb))
+            ++count;
+    return count;
 }
 
 void WFSValueTreeState::setNumInputChannels (int numChannels)
@@ -1316,8 +1362,12 @@ void WFSValueTreeState::setNumInputChannels (int numChannels)
         ensureInputSamplerSection (i);
     }
 
-    // Update the count in config
-    setParameter (inputChannels, numChannels);
+    // Update the count property directly (NOT via setParameter) so the
+    // setParameter -> setNumInputChannels routing in setParameter doesn't
+    // recurse into us.
+    auto io = getIOState();
+    if (io.isValid())
+        io.setProperty (inputChannels, numChannels, getActiveUndoManager());
     inputs.setProperty (count, numChannels, getActiveUndoManager());
 }
 
@@ -1342,8 +1392,14 @@ void WFSValueTreeState::setNumOutputChannels (int numChannels)
             outputs.removeChild (outputs.getNumChildren() - 1, getActiveUndoManager());
     }
 
-    // Update the count in config
-    setParameter (outputChannels, numChannels);
+    // Update the count property directly (NOT via setParameter) so the
+    // setParameter -> setNumOutputChannels routing in setParameter doesn't
+    // recurse into us.
+    {
+        auto io = getIOState();
+        if (io.isValid())
+            io.setProperty (outputChannels, numChannels, getActiveUndoManager());
+    }
     outputs.setProperty (count, numChannels, getActiveUndoManager());
 
     // Update input mute arrays
@@ -1422,8 +1478,14 @@ void WFSValueTreeState::setNumReverbChannels (int numChannels)
     // Ensure global post-expander section exists (handles old configs)
     ensureReverbPostExpSection();
 
-    // Update the count in config
-    setParameter (reverbChannels, numChannels);
+    // Update the count property directly (NOT via setParameter) so the
+    // setParameter -> setNumReverbChannels routing in setParameter doesn't
+    // recurse into us.
+    {
+        auto io = getIOState();
+        if (io.isValid())
+            io.setProperty (reverbChannels, numChannels, getActiveUndoManager());
+    }
     reverbs.setProperty (count, numChannels, getActiveUndoManager());
 }
 
@@ -1560,7 +1622,13 @@ bool WFSValueTreeState::canRedo() const
 
 void WFSValueTreeState::beginUndoTransaction (const juce::String& transactionName)
 {
-    getActiveUndoManager()->beginNewTransaction (transactionName);
+    // MCP-origin writes bypass the JUCE UndoManager (see getActiveUndoManager
+    // — they get their own undo path through MCPUndoEngine). beginNewTransaction
+    // doesn't handle nullptr, while setProperty(..., nullptr) does. So when a
+    // structural write like setNumInputChannels happens under an MCP origin,
+    // we silently skip the transaction-naming step instead of crashing.
+    if (auto* mgr = getActiveUndoManager())
+        mgr->beginNewTransaction (transactionName);
 }
 
 void WFSValueTreeState::clearUndoHistory()

@@ -23,6 +23,25 @@ struct AffectedGroup
     }
 };
 
+/** One slice of a multi-channel batch write. The legacy single-channel
+    record uses the top-level `beforeState` / `afterState` and a single
+    `affectedGroups` entry to identify the channel; that path can't
+    represent a batch like "set outputOrientation on outputs 1..12"
+    because every write would land on the same channel index.
+
+    A batch tool fills `subWrites` instead. Each entry carries its own
+    channel + EQ-band coordinates and its own before/after payload, and
+    the parent ChangeRecord's `affectedGroups` is the union of every
+    entry's (channel, group) pair so the existing dependency-aware undo
+    chain (`groupsIntersect`) treats the batch as one unit. */
+struct ChangeSubWrite
+{
+    int channelIndex = -1;   // -1 for global; 0-based for per-channel
+    int bandIndex    = -1;   // -1 for non-EQ; 0-based for output-EQ
+    juce::var beforeState;   // {paramId: oldValue}
+    juce::var afterState;    // {paramId: newValue}
+};
+
 /** One entry in the AI change-record ring buffer.
 
     Tier-1-success and tier-2-confirmed-execution tool calls produce a
@@ -41,6 +60,12 @@ struct ChangeRecord
     juce::var beforeState;                     // JSON object: paramName → value
     juce::var afterState;                      // JSON object: paramName → value
     OriginTag origin = OriginTag::MCP;         // always MCP for these records
+
+    /** Batch payload. Empty for single-channel records (the legacy
+        path); non-empty when the tool wrote to several channels in one
+        call. When non-empty, the undo engine ignores beforeState /
+        afterState and walks subWrites instead. */
+    std::vector<ChangeSubWrite> subWrites;
 
     /** Set by MCPUndoEngine::undoByIndex when a record is part of a multi-
         record reversal chain (target + dependents). All chain members

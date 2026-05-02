@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="k6c2zA" name="WFS-DIY" projectType="guiapp" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="1.0.0beta12"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="1.0.0beta13"
               bundleIdentifier="com.wfsdiy.app" companyEmail="contact@pixetbel.org"
               companyName="Pix et Bel" companyWebsite="wfs-diy.net">
   <MAINGROUP id="U6kz3k" name="WFS-DIY">
@@ -212,6 +212,10 @@
                 file="Source/Network/MCP/MCPPromptRegistry.h"/>
           <FILE id="mcpPromptRegCpp" name="MCPPromptRegistry.cpp" compile="1" resource="0"
                 file="Source/Network/MCP/MCPPromptRegistry.cpp"/>
+          <FILE id="mcpParamRegH" name="MCPParameterRegistry.h" compile="0" resource="0"
+                file="Source/Network/MCP/MCPParameterRegistry.h"/>
+          <FILE id="mcpParamRegCpp" name="MCPParameterRegistry.cpp" compile="1" resource="0"
+                file="Source/Network/MCP/MCPParameterRegistry.cpp"/>
           <GROUP id="{MCPTOOLSGROUP}" name="tools">
             <FILE id="mcpToolsSession" name="SessionTools.h" compile="0" resource="0"
                   file="Source/Network/MCP/tools/SessionTools.h"/>
@@ -227,6 +231,18 @@
                   file="Source/Network/MCP/tools/UndoTools.h"/>
             <FILE id="mcpToolsSetParam" name="SetParameterTool.h" compile="0" resource="0"
                   file="Source/Network/MCP/tools/SetParameterTool.h"/>
+            <FILE id="mcpToolsBatch" name="SetParameterBatchTool.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/SetParameterBatchTool.h"/>
+            <FILE id="mcpToolsGetParam" name="GetParameterTool.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/GetParameterTool.h"/>
+            <FILE id="mcpToolsDescribe" name="DescribeParametersTool.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/DescribeParametersTool.h"/>
+            <FILE id="mcpToolsState" name="StateInspectionTools.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/StateInspectionTools.h"/>
+            <FILE id="mcpToolsDelta" name="StateDeltaTool.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/StateDeltaTool.h"/>
+            <FILE id="mcpToolsChanLife" name="ChannelLifecycleTools.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/ChannelLifecycleTools.h"/>
           </GROUP>
         </GROUP>
       </GROUP>

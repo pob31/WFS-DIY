@@ -1755,12 +1755,26 @@ public:
             updateTierEnforcementUI();
         };
 
+        addAndMakeVisible(tier2AutoConfirmButton);
+        tier2AutoConfirmButton.setClickingTogglesState(true);
+        tier2AutoConfirmButton.setButtonText(LOC("ai.tier.tier2AutoOff"));
+        tier2AutoConfirmButton.onClick = [this]() {
+            if (mcpServer == nullptr) return;
+            auto& tier = mcpServer->getTierEnforcement();
+            if (tier2AutoConfirmButton.getToggleState())
+                tier.openTier2AutoConfirm();
+            else
+                tier.closeTier2AutoConfirm();
+            updateTierEnforcementUI();
+        };
+
         // Status-bar tooltips on every MCP-row button. Wired through the
         // existing mouseListener path (mouseEnter/mouseMove → showHelpText).
         mcpUrlButton.addMouseListener(this, false);
         mcpOpenLogButton.addMouseListener(this, false);
         safetyGateButton.addMouseListener(this, false);
         aiEnabledButton.addMouseListener(this, false);
+        tier2AutoConfirmButton.addMouseListener(this, false);
 
         // ==================== NETWORK CONNECTIONS TABLE ====================
         setupNetworkConnectionsTable();
@@ -1985,7 +1999,9 @@ public:
         {
             safetyGateButton.setEnabled(false);
             aiEnabledButton.setEnabled(false);
+            tier2AutoConfirmButton.setEnabled(false);
             safetyGateButton.clearCountdown();
+            tier2AutoConfirmButton.clearCountdown();
             return;
         }
 
@@ -1993,6 +2009,8 @@ public:
         const bool gateOpen   = tier.isSafetyGateOpen();
         const bool aiOn       = tier.isAIEnabled();
         const int  remaining  = tier.secondsUntilGateCloses();
+        const bool t2Open     = tier.isTier2AutoConfirmActive();
+        const int  t2Remain   = tier.secondsUntilTier2AutoConfirmCloses();
 
         safetyGateButton.setEnabled(true);
         if (safetyGateButton.getToggleState() != gateOpen)
@@ -2030,6 +2048,25 @@ public:
             : LOC("ai.tier.aiOff"));
         aiEnabledButton.setColour(juce::TextButton::buttonOnColourId,
                                   ColorScheme::get().accentGreen);
+
+        tier2AutoConfirmButton.setEnabled(true);
+        if (tier2AutoConfirmButton.getToggleState() != t2Open)
+            tier2AutoConfirmButton.setToggleState(t2Open, juce::dontSendNotification);
+        tier2AutoConfirmButton.setButtonText(t2Open
+            ? LOC("ai.tier.tier2AutoOn")
+            : LOC("ai.tier.tier2AutoOff"));
+        tier2AutoConfirmButton.setColour(juce::TextButton::buttonOnColourId,
+                                          ColorScheme::get().accentBlue);
+        if (t2Open)
+        {
+            tier2AutoConfirmButton.setCountdown(t2Remain,
+                WFSNetwork::MCPTierEnforcement::kTier2AutoConfirmLifetimeSec,
+                ColorScheme::get().buttonNormal);
+        }
+        else
+        {
+            tier2AutoConfirmButton.clearCountdown();
+        }
     }
 
     void updateMCPStatus()
@@ -2299,6 +2336,37 @@ public:
             mcpHelpButton.setBounds  (leftX + leftColumnWidth - helpBtnSize,
                                       leftY + (rowHeight - helpBtnSize) / 2,
                                       helpBtnSize, helpBtnSize);
+        }
+        leftY += rowHeight + spacing;
+
+        // Second MCP row — Tier-2 batch auto-confirm. Sits flush under the
+        // safety-gate button so the two operator-trust toggles stack
+        // vertically (Tier-3 critical actions on top, Tier-2 batch
+        // auto-confirm just below). Spans the same width as the gate button
+        // for visual balance.
+        {
+            const int helpBtnSize = scaled(20);
+            const int btnGap      = scaled(4);
+            const int labelW      = scaled(85);
+            const int urlMinW     = scaled(165);
+            const int historyMinW = scaled(120);
+            const int gateMinW    = scaled(200);
+            const int aiMinW      = scaled(75);
+
+            const int totalMinima = labelW + helpBtnSize + btnGap * 5
+                                     + urlMinW + historyMinW + gateMinW + aiMinW;
+            const int slack       = juce::jmax(0, leftColumnWidth - totalMinima);
+            const int extraEach   = slack / 4;
+            const int gateBtnW    = gateMinW + extraEach;
+
+            // Indent past label + URL + history columns, then occupy the
+            // safety-gate column's width below it. The remainder of the
+            // row stays empty — the AI on/off toggle on the row above is
+            // the only other state visible to the operator at a glance.
+            const int xOffset = labelW + btnGap
+                                 + (urlMinW + extraEach) + btnGap
+                                 + (historyMinW + extraEach) + btnGap;
+            tier2AutoConfirmButton.setBounds(leftX + xOffset, leftY, gateBtnW, rowHeight);
         }
         leftY += rowHeight + spacing;
 
@@ -2596,6 +2664,9 @@ private:
     // Phase 6 — tier enforcement controls
     CountdownTextButton safetyGateButton;  // depleting fill shows the 60 s window
     juce::TextButton    aiEnabledButton;   // master AI on/off toggle
+    // B2 — Tier-2 session override: when active, batch Tier-2 writes skip
+    // the per-call confirmation handshake for the 5-minute window.
+    CountdownTextButton tier2AutoConfirmButton;
 
     /** Adapter so NetworkTab itself doesn't need to inherit from
         MCPTierEnforcement::Listener (that would force the include into

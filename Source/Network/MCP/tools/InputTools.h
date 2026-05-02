@@ -326,8 +326,9 @@ inline ToolDescriptor describeSetAttenuation (WFSValueTreeState& state)
 {
     ToolDescriptor d;
     d.name        = "input_set_attenuation";
-    d.description = "Set an input channel's attenuation in dB. Range "
-                    "[-92, 0] where 0 = unity gain.";
+    d.description = juce::String ("Set an input channel's attenuation in dB. Range "
+                    "[-92, 0] where 0 = unity gain.")
+                  + kTier2DescriptionSuffix;
     d.inputSchema   = buildSetAttenuationSchema();
     d.modifiesState = true;
     d.tier        = 2;  // wide dB range can produce sudden loud output — confirm

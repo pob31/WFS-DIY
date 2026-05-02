@@ -133,10 +133,147 @@ NUDGE_VERB = "nudge"
 SET_VERB = "set"
 
 # Tier heuristics (defaults; overrides take precedence).
-TIER_KEYWORDS_3 = ["delete", "clear", "remove", "reset", "channels",
+# IMPORTANT: matched via word-boundary regex against `variable + label` (not
+# substring). "preset" used to mis-match "reset" and tag clusterLFOPresetName
+# as tier-3; "reset" is also dropped from the list because the only variables
+# with `Reset` in their name (inputOtomoReset, the ad-hoc one above) are
+# threshold settings, not destructive operations. If a true factory-reset
+# tool ever lands, give it an explicit override in tool_tier_overrides.json.
+TIER_KEYWORDS_3 = ["delete", "clear", "remove", "channels",
                    "sampleRate", "runDSP", "reconfigure"]
 TIER_KEYWORDS_2 = ["master", "solo", "muteAll", "testTone", "store", "load",
                    "import", "export", "snapshot"]
+
+
+# Domain heuristics. Each tool gets a list of domain tags so AI agents
+# can decide whether a write is meaningful for a given goal:
+#
+#   wfs_synthesis      changes what comes out of the WFS speakers
+#   reverb             changes the reverb engine's output
+#   binaural           changes the binaural-monitoring render only
+#   adm_osc            changes how incoming ADM-OSC data is mapped
+#   floor_reflections  affects the FR (Hackoustics) signal
+#   live_source        affects the live-source feedback tamer
+#   tracking           affects external tracking ingest
+#   routing            patching, mutes, sends, channel assignment
+#   network            transport / target / port settings
+#   visualisation_only on-screen markers, locks — no audio effect
+#   metadata           names, themes, language, file paths
+#
+# Resolution order (first match wins per row):
+#   1. Variable-name override (DOMAIN_VARIABLE_OVERRIDES)
+#   2. Section keyword in CSV's Section column (DOMAIN_BY_SECTION_KEYWORD)
+#   3. Per-CSV default (DOMAIN_DEFAULT_BY_CSV)
+#
+# Sections embedded inside per-channel tabs (e.g. "Map" rows in input.csv
+# that toggle visibility) are caught by Step 1; the rest gets the
+# audio-affecting default for the channel kind.
+
+DOMAIN_VARIABLE_OVERRIDES = {
+    # Map-display toggles — visualisation only, no audio impact.
+    "inputMapLocked":         ["visualisation_only"],
+    "inputMapVisible":        ["visualisation_only"],
+    "outputMapVisible":       ["visualisation_only"],
+    "outputArrayMapVisible":  ["visualisation_only"],
+    "reverbsMapVisible":      ["visualisation_only"],
+
+    # Names — metadata.
+    "showName":               ["metadata"],
+    "inputName":              ["metadata"],
+    "outputName":             ["metadata"],
+    "reverbName":             ["metadata"],
+    "samplerSetName":         ["metadata"],
+    "clusterName":            ["metadata"],
+    "clusterLfoPresetName":   ["metadata"],
+
+    # Channel counts — wfs_synthesis (changes the speaker array shape)
+    # and routing (changes patch matrix availability).
+    "inputChannels":          ["wfs_synthesis", "routing"],
+    "outputChannels":         ["wfs_synthesis", "routing"],
+    "reverbChannels":         ["reverb", "routing"],
+
+    # Cluster reference / plane selectors — wfs_synthesis (transforms
+    # apply through these).
+    "clusterReferenceMode":   ["wfs_synthesis"],
+    "clusterPlane":           ["wfs_synthesis"],
+}
+
+# (csv_namespace, section_substring_lowercase) -> domains.
+# Section is matched substring-style against row.section.lower().
+DOMAIN_BY_SECTION_KEYWORD = [
+    # config.csv
+    ("system", "stage",            ["wfs_synthesis"]),
+    ("system", "master",           ["wfs_synthesis"]),
+    ("system", "binaural",         ["binaural"]),
+    ("system", "controllers",      ["routing"]),
+    ("system", "ui",               ["metadata"]),
+    ("system", "files",            ["metadata"]),
+    ("system", "diagnostics",      ["metadata"]),
+    ("system", "show",             ["metadata"]),
+    ("system", "i/o",              ["wfs_synthesis", "routing"]),
+    ("system", "wfs processor",    ["wfs_synthesis"]),
+
+    # network.csv
+    ("network", "adm-osc",         ["adm_osc"]),
+    ("network", "tracking",        ["tracking"]),
+    ("network", "find my remote",  ["network"]),
+    ("network", "network",         ["network"]),
+    ("network", "osc",             ["network"]),
+    ("network", "connections",     ["network"]),
+
+    # input.csv embedded sub-sections
+    ("input", "map",               ["visualisation_only"]),
+    ("input", "live source",       ["live_source"]),
+    ("input", "hackoustics",       ["floor_reflections"]),
+    ("input", "tracking",          ["tracking"]),
+    ("input", "mutes",             ["routing"]),
+    ("input", "sampler",           ["wfs_synthesis", "routing"]),
+
+    # output.csv embedded sub-sections
+    ("output", "map",              ["visualisation_only"]),
+    ("output", "options",          ["wfs_synthesis"]),
+
+    # reverb.csv: every section is reverb-related
+    ("reverb", "",                 ["reverb"]),
+
+    # cluster.csv: transforms move sources, so wfs_synthesis
+    ("cluster", "",                ["wfs_synthesis"]),
+
+    # audio.csv: patching / test signals
+    ("audio", "",                  ["routing"]),
+]
+
+# Per-CSV fallback when no section keyword matches.
+DOMAIN_DEFAULT_BY_CSV = {
+    "WFS-UI_input.csv":      ["wfs_synthesis"],
+    "WFS-UI_output.csv":     ["wfs_synthesis"],
+    "WFS-UI_reverb.csv":     ["reverb"],
+    "WFS-UI_clusters.csv":   ["wfs_synthesis"],
+    "WFS-UI_network.csv":    ["network"],
+    "WFS-UI_config.csv":     ["metadata"],
+    "WFS-UI_audioPatch.csv": ["routing"],
+}
+
+
+def derive_domains(row: CSVRow, csv_namespace: str) -> list[str]:
+    """Resolve the domain tags for a single CSV row.
+
+    Resolution order (first match wins):
+      1. Variable-name override.
+      2. Section-keyword match scoped to the CSV namespace.
+      3. Per-CSV fallback.
+    """
+    if row.variable in DOMAIN_VARIABLE_OVERRIDES:
+        return list(DOMAIN_VARIABLE_OVERRIDES[row.variable])
+
+    section_lower = row.section.lower().strip()
+    for ns, keyword, domains in DOMAIN_BY_SECTION_KEYWORD:
+        if ns != csv_namespace:
+            continue
+        if keyword == "" or keyword in section_lower:
+            return list(domains)
+
+    return list(DOMAIN_DEFAULT_BY_CSV.get(row.csv_file, []))
 
 
 @dataclass
@@ -441,14 +578,23 @@ def lookup_tier_override(variable: str, family_stem: str | None,
 
 def heuristic_tier(variable: str, label: str, type_: str,
                     min_v: str, max_v: str) -> int:
-    """Default tier classification when no override applies."""
-    name = variable + " " + label
+    """Default tier classification when no override applies.
+
+    Uses word-boundary regex so e.g. `clusterLFOPresetName` doesn't
+    accidentally match the "reset" keyword via substring. The label
+    half is naturally word-separated; the variable half is CamelCase,
+    so we split on lowercase->uppercase transitions before scanning.
+    """
+    # Split CamelCase variable into space-separated words: "inputOtomoReset"
+    # -> "input Otomo Reset". The label is already space-separated.
+    var_split = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", variable)
+    name = var_split + " " + label
     name_lower = name.lower()
     for kw in TIER_KEYWORDS_3:
-        if kw.lower() in name_lower:
+        if re.search(r"\b" + re.escape(kw.lower()) + r"\b", name_lower):
             return 3
     for kw in TIER_KEYWORDS_2:
-        if kw.lower() in name_lower:
+        if re.search(r"\b" + re.escape(kw.lower()) + r"\b", name_lower):
             return 2
     # Wide attenuation/dB ranges → tier 2 (sudden loud output risk).
     try:
@@ -616,6 +762,34 @@ def derive_description(row: CSVRow, csv_namespace: str,
     return ". ".join(p.rstrip(".") for p in parts) + "."
 
 
+# Tier-marker suffixes appended to tool descriptions so the model sees
+# the tier on first read. Keep textually identical to the constants in
+# Source/Network/MCP/MCPToolRegistry.h — both surfaces (auto-gen and
+# hand-written) carry the same string so a regex search finds both.
+TIER_2_DESCRIPTION_SUFFIX = (
+    " [TIER 2: needs a confirm-token round trip OR an open Tier-2 "
+    "auto-confirm / safety-gate window.]"
+)
+TIER_3_DESCRIPTION_SUFFIX = (
+    " [TIER 3: destructive - refused unless the operator's safety gate "
+    "is open; with the gate open, executes immediately.]"
+)
+
+
+def append_tier_suffix(description: str, tier: int) -> str:
+    """Append the tier marker for tier-2 / tier-3 tools. Tier-1 tools
+    return unchanged — the absence of a suffix means tier-1 by
+    convention. Idempotent: running twice doesn't double the suffix."""
+    suffix = ""
+    if tier == 2:
+        suffix = TIER_2_DESCRIPTION_SUFFIX
+    elif tier == 3:
+        suffix = TIER_3_DESCRIPTION_SUFFIX
+    if suffix and not description.endswith(suffix):
+        return description + suffix
+    return description
+
+
 # Per-CSV channel-id range. Used to set the maximum channel-id integer.
 CHANNEL_ID_RANGE = {
     "WFS-UI_input.csv":   ("input_id", 1, 64),
@@ -627,6 +801,70 @@ CHANNEL_ID_RANGE = {
 
 def is_per_channel(row: CSVRow) -> bool:
     return row.csv_file in CHANNEL_ID_RANGE
+
+
+def coerce_default(default_str: str, type_str: str,
+                    enum_items: list[str],
+                    enum_map: dict[str, int] | None) -> Any | None:
+    """Coerce a CSV `Default` cell into the right JSON-schema value type.
+
+    Returns the value to drop into the schema's `default` slot, or None when
+    the cell can't be cleanly coerced (free-form prose like "distribute in
+    the middle of the stage", template strings like "input <ID>", or empty).
+
+    For enum-typed value args the schema declares the `value` arg as a
+    string with an `enum` list, so the default must be one of those strings.
+    Numeric defaults in enum cells are translated through `enum_map` (when
+    present, with explicit `Label (N)` IDs in the CSV) or positionally.
+    """
+    s = (default_str or "").strip()
+    if not s:
+        return None
+    type_norm = type_str.strip().upper()
+
+    if enum_items:
+        # Try positional/explicit numeric ID first.
+        try:
+            num = int(float(s))
+        except ValueError:
+            num = None
+        if num is not None:
+            if enum_map is not None:
+                # Reverse lookup: which enum_item maps to this stored ID?
+                for label, mapped in enum_map.items():
+                    if mapped == num:
+                        return label
+                return None
+            if 0 <= num < len(enum_items):
+                return enum_items[num]
+            return None
+        # Maybe the default is already the enum label slug.
+        if s in enum_items:
+            return s
+        return None
+
+    if type_norm.startswith("INT"):
+        try:
+            return int(float(s))
+        except ValueError:
+            return None
+    if type_norm.startswith("FLOAT"):
+        try:
+            return float(s)
+        except ValueError:
+            return None
+    if type_norm.startswith("STRING"):
+        # Skip template strings that contain placeholders (`<ID>`,
+        # `<index>`); they're not valid literal defaults.
+        if "<" in s and ">" in s:
+            return None
+        return s
+    if type_norm.startswith("IP"):
+        # Validate IPv4 shape; drop garbage.
+        if re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", s):
+            return s
+        return None
+    return None
 
 
 def derive_schema(row: CSVRow, tool_name: str,
@@ -685,6 +923,7 @@ def derive_schema(row: CSVRow, tool_name: str,
 
     # Value argument.
     type_str = row.type.strip().upper()
+    csv_default = coerce_default(row.default, row.type, enum_items, enum_map)
     val_arg: dict[str, Any] = {}
     if enum_items:
         val_name = "value"
@@ -700,6 +939,8 @@ def derive_schema(row: CSVRow, tool_name: str,
             "enum": enum_items,
             "description": f"{row.label.strip() or 'Value'} (enum).",
         }
+        if csv_default is not None:
+            val_arg["default"] = csv_default
         properties[val_name] = val_arg
         required.append(val_name)
         value_arg_name = val_name
@@ -717,6 +958,8 @@ def derive_schema(row: CSVRow, tool_name: str,
                 pass
         unit = f" {row.unit.strip()}" if row.unit.strip() else ""
         val_arg["description"] = (row.label.strip() or "Value") + unit + "."
+        if csv_default is not None:
+            val_arg["default"] = csv_default
         properties["value"] = val_arg
         required.append("value")
     elif type_str.startswith("FLOAT"):
@@ -733,6 +976,8 @@ def derive_schema(row: CSVRow, tool_name: str,
                 pass
         unit = f" {row.unit.strip()}" if row.unit.strip() else ""
         val_arg["description"] = (row.label.strip() or "Value") + unit + "."
+        if csv_default is not None:
+            val_arg["default"] = csv_default
         properties["value"] = val_arg
         required.append("value")
     elif type_str.startswith("STRING"):
@@ -740,6 +985,8 @@ def derive_schema(row: CSVRow, tool_name: str,
             "type": "string",
             "description": (row.label.strip() or "Value") + ".",
         }
+        if csv_default is not None:
+            val_arg["default"] = csv_default
         # Self-documenting argument name for rename-style tools. Variables
         # like `outputName`, `samplerSetName`, `clusterLfoPresetName` are
         # recognisable by their `Name` suffix, and matching that to a
@@ -756,11 +1003,15 @@ def derive_schema(row: CSVRow, tool_name: str,
             "pattern": r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$",
             "description": (row.label.strip() or "IPv4 address") + ".",
         }
+        if csv_default is not None:
+            val_arg["default"] = csv_default
         properties["value"] = val_arg
         required.append("value")
     else:
         # Catch-all: the row may not be a settable parameter (button, etc.).
         val_arg = {"type": "string", "description": "Value."}
+        if csv_default is not None:
+            val_arg["default"] = csv_default
         properties["value"] = val_arg
         required.append("value")
 
@@ -908,6 +1159,12 @@ def process_row(row: CSVRow,
     osc_path, osc_template = derive_osc_path(row)
 
     group_key = derive_group_key(row.section, row.variable, csv_namespace)
+    domains   = derive_domains(row, csv_namespace)
+
+    # Bake the tier marker into the description text so the model sees
+    # it on first read. _meta.tier is also surfaced on each tools/list
+    # entry, but most MCP clients don't pass _meta to the model.
+    description = append_tier_suffix(description, tier)
 
     record: dict[str, Any] = {
         "name": tool_name,
@@ -918,6 +1175,8 @@ def process_row(row: CSVRow,
         "group_key": group_key,
         "supports_relative": row.osc_inc_dec.strip().lower() == "y",
     }
+    if domains:
+        record["domains"] = domains
     if osc_template is not None:
         record["internal_osc_path_template"] = osc_template
         record["internal_variable_template"] = re.sub(
@@ -957,6 +1216,7 @@ def process_row(row: CSVRow,
             nudge_desc += (
                 " Use `session_get_state()` first if unsure which channels exist."
             )
+        nudge_desc = append_tier_suffix(nudge_desc, tier)
         nudge_record = {
             "name": nudge_name,
             "description": nudge_desc,
@@ -985,6 +1245,8 @@ def process_row(row: CSVRow,
             "group_key": group_key,
             "supports_relative": True,
         }
+        if domains:
+            nudge_record["domains"] = domains
 
     return record, nudge_record, None
 

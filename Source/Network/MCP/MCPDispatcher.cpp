@@ -113,6 +113,46 @@ juce::String MCPDispatcher::handleInitialize (const juce::var& id, const juce::v
     result->setProperty ("capabilities",    juce::var (capabilities.release()));
     result->setProperty ("serverInfo",      juce::var (serverInfo.release()));
 
+    // Welcome / quick-start. MCP clients surface this string to the model
+    // as system context on connect, so an AI lands oriented instead of
+    // having to discover the surface from scratch. ASCII only.
+    result->setProperty ("instructions",
+        "Welcome to WFS-DIY, a Wave Field Synthesis spatial audio app. "
+        "First reads to orient yourself: "
+        "(1) `mcp_describe_parameters` is the source of truth for every "
+        "writable parameter - filter by `prefix`, `scope` "
+        "(global/input/output/reverb/cluster/eq_band), `group_key`, or "
+        "`domain` (wfs_synthesis / reverb / binaural / adm_osc / "
+        "floor_reflections / live_source / tracking / routing / network / "
+        "visualisation_only / metadata). Always check this before "
+        "guessing a parameter name. "
+        "(2) `session_get_state` for a per-channel id+name+position "
+        "summary; `session_get_global_state` for stage / origin / master "
+        "/ binaural / network globals (use the `sections` filter to keep "
+        "the response small); `session_get_channel_full` for everything "
+        "on one channel. "
+        "(3) `session_get_state_delta` between turns to notice when "
+        "operator UI / OSC / automation changed state under you. "
+        "Writing: prefer `wfs_set_parameter_batch` for multi-write flows "
+        "(up to 100 atomic writes, single undo entry, single "
+        "confirmation handshake). Single writes go through the auto-"
+        "generated `<area>_set_<param>` tools; the `wfs_set_parameter` "
+        "escape hatch covers anything they miss. Channel lifecycle: "
+        "`input_create`/`input_delete`, same for output and reverb. "
+        "Reading: `wfs_get_parameter` and `wfs_get_parameters` for "
+        "ad-hoc reads matching the write API's shape. "
+        "Undo: `mcp_undo_last_ai_change` reverses the latest AI write "
+        "(or batch); `mcp_get_ai_change_history(compact=true)` is the "
+        "cheap scan; `mcp_redo_last_undone_ai_change` for redo. "
+        "Tiers: tier-1 runs immediately; tier-2 needs a confirm token "
+        "OR an open operator window (auto-confirm or safety gate); "
+        "tier-3 needs the safety gate to be open (which also covers "
+        "tier-2 - the gate is the operator's superset trust window). "
+        "Both windows auto-close after 5 minutes, operator-only. "
+        "If you want a guided workflow (session startup, system "
+        "tuning, snapshot management, voice rehearsal, etc.), call "
+        "`prompts/list` and fetch the matching template.");
+
     initialized = true;
     return makeJsonRpcResult (id, juce::var (result.release()));
 }
@@ -131,8 +171,26 @@ juce::String MCPDispatcher::handleInitialized()
 
 juce::String MCPDispatcher::handleToolsList (const juce::var& id)
 {
+    // Order the response by (tier DESC, name ASC). Several MCP clients
+    // truncate tools/list to a fixed cap (commonly ~100-256) before
+    // surfacing the tools to the model. With 393 tools registered, an
+    // alphabetical-only response pushes tier-3 (e.g.
+    // system_i_o_set_input_channels at position 311) out of the visible
+    // window, making tier-3 destructive operations effectively
+    // unreachable. Putting tier-3 first (7 tools), tier-2 next (29),
+    // tier-1 last keeps the rare-but-critical operations visible even
+    // under aggressive truncation. Within each tier, alphabetical for
+    // stable ordering across calls.
+    auto descriptors = registry.all();  // copy so we can sort without mutating the registry
+    std::sort (descriptors.begin(), descriptors.end(),
+               [] (const ToolDescriptor& a, const ToolDescriptor& b)
+               {
+                   if (a.tier != b.tier) return a.tier > b.tier;
+                   return a.name.compare (b.name) < 0;
+               });
+
     juce::Array<juce::var> tools;
-    for (const auto& descriptor : registry.all())
+    for (const auto& descriptor : descriptors)
     {
         auto entry = std::make_unique<juce::DynamicObject>();
         entry->setProperty ("name",        descriptor.name);
@@ -221,6 +279,8 @@ juce::String MCPDispatcher::handleToolsCall (const juce::var& id, const juce::va
             enforcement->setProperty ("awaiting_confirmation", true);
             enforcement->setProperty ("confirmation_token",    tierOutcome.confirmationToken);
             enforcement->setProperty ("expires_in_seconds",    tierOutcome.secondsUntilExpiry);
+            if (tierOutcome.tokenExpiredRecovery)
+                enforcement->setProperty ("token_expired_recovery", true);
         }
         else
         {

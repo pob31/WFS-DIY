@@ -1048,6 +1048,9 @@
     <ClCompile Include="..\..\Source\Network\MCP\MCPPromptRegistry.cpp">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPParameterRegistry.cpp">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\ThirdParty\hidapi\HidApiPlatform.c">
       <Filter>WFS-DIY\Source\hidapi</Filter>
     </ClCompile>
@@ -4458,6 +4461,9 @@
     <ClInclude Include="..\..\Source\Network\MCP\MCPPromptRegistry.h">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPParameterRegistry.h">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\Network\MCP\tools\SessionTools.h">
       <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
     </ClInclude>
@@ -4477,6 +4483,24 @@
       <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\MCP\tools\SetParameterTool.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\SetParameterBatchTool.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\GetParameterTool.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\DescribeParametersTool.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\StateInspectionTools.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\StateDeltaTool.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\ChannelLifecycleTools.h">
       <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Controllers\PositionControl\ControllerEvent.h">

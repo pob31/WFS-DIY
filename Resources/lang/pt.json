@@ -2205,12 +2205,14 @@
       "gateBlocked": "AI critical actions: blocked",
       "gateAllowed": "AI critical actions: ALLOWED",
       "aiOn": "AI: ON",
-      "aiOff": "AI: OFF"
+      "aiOff": "AI: OFF",
+      "tier2AutoOff": "Tier 2 auto-confirm: off",
+      "tier2AutoOn":  "Tier 2 auto-confirm: ON (5 min)"
     },
     "tooltips": {
       "urlButton": "Click to copy the MCP server URL. Useful for Claude Code (claude mcp add wfs-diy <URL> -t http) or any MCP client that takes a URL. Claude Desktop instead uses the JSON config snippet — open the (?) help card.",
       "openHistory": "Open the AI History window: scrollable timeline of every recent AI change with per-row undo / redo and a step-by-step cursor.",
-      "gate": "Allow or block destructive AI actions — deleting snapshots, resetting DSP, changing channel counts. The red fill drains over 10 minutes, then critical actions auto-block again.",
+      "gate": "Allow destructive AI actions (channel-count changes, port reconfigure, runDSP, etc.) AND skip the per-call confirm handshake for less-destructive tier-2 actions while open. Acts as a superset of the Tier 2 auto-confirm toggle. The red fill drains over 5 minutes, then auto-blocks again.",
       "aiToggle": "Master switch for the whole MCP integration. When OFF every AI tool call is refused; when ON, normal tier handling applies (the critical-actions toggle still controls destructive calls separately)."
     }
   }

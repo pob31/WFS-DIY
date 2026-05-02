@@ -3,6 +3,7 @@
 #include "../../Parameters/WFSValueTreeState.h"
 #include "../../Parameters/WFSFileManager.h"
 #include "MCPGeneratedToolLoader.h"
+#include "MCPParameterRegistry.h"
 #include "tools/SessionTools.h"
 #include "tools/InputTools.h"
 #include "tools/OutputTools.h"
@@ -10,6 +11,12 @@
 #include "tools/SnapshotTools.h"
 #include "tools/UndoTools.h"
 #include "tools/SetParameterTool.h"
+#include "tools/SetParameterBatchTool.h"
+#include "tools/GetParameterTool.h"
+#include "tools/DescribeParametersTool.h"
+#include "tools/StateInspectionTools.h"
+#include "tools/StateDeltaTool.h"
+#include "tools/ChannelLifecycleTools.h"
 
 namespace WFSNetwork
 {
@@ -42,6 +49,12 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     mcpLogger->logInfo ("Loaded " + juce::String (promptRegistry->size())
                         + " workflow prompts (inline catalog)");
 
+    // Parameter registry — parses generated_tools.json once into the
+    // singleton consumed by mcp_describe_parameters and by the
+    // wfs_set_parameter whitelist. Must run before either tool is
+    // registered, but can run before or after the loader pass.
+    MCPParameterRegistry::getInstance().loadFromManifest (generatedToolsJson, *mcpLogger);
+
     // Phase 2 — register the auto-generated tool surface FIRST. The
     // hand-written tools registered below silently overwrite by name,
     // so when a Phase-1 hand-written tool collides with a generated one
@@ -63,6 +76,42 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     // parameter the auto-generated surface didn't cover. Trusted-caller
     // semantics: no clamping, exact variable names required.
     registry->registerTool (Tools::SetParameter::describe (state));
+
+    // Batch primitive — atomic multi-write with one undo entry. Mirrors
+    // wfs_set_parameter's per-entry shape; pre-validates everything,
+    // then applies and records as a single ChangeRecord with subWrites.
+    registry->registerTool (Tools::SetParameterBatch::describe (state));
+
+    // Read-side counterparts to the write API. wfs_get_parameter +
+    // wfs_get_parameters mirror wfs_set_parameter / batch shapes.
+    registry->registerTool (Tools::GetParameter::describeSingle (state));
+    registry->registerTool (Tools::GetParameter::describeBatch (state));
+
+    // Read-only registry tool — surfaces every known parameter so the AI
+    // can plan writes from the schema instead of guessing. Must come after
+    // MCPParameterRegistry::loadFromManifest above.
+    registry->registerTool (Tools::DescribeParameters::describeTool());
+
+    // Read-only deep-state tools — globals + per-channel full dump,
+    // complementing session_get_state's per-channel summary.
+    registry->registerTool (Tools::StateInspection::describeGlobalState (state));
+    registry->registerTool (Tools::StateInspection::describeChannelFull (state));
+
+    // Server-wide delta-since-last-call snapshot. Lets the AI notice
+    // when state drifted under it (operator UI, OSC, automation, etc.).
+    registry->registerTool (Tools::StateDelta::describe (state));
+
+    // Channel lifecycle — tier-2 wrappers that bump the global channel
+    // counts by 1 (auto-gen `system_i_o_set_*_channels` is tier 3 because
+    // it accepts arbitrary counts). Lets the AI script "create channel
+    // then write to it" flows from a blank session.
+    for (const auto& kind : { juce::String ("input"),
+                               juce::String ("output"),
+                               juce::String ("reverb") })
+    {
+        registry->registerTool (Tools::ChannelLifecycle::describeCreate (state, kind));
+        registry->registerTool (Tools::ChannelLifecycle::describeDelete (state, kind));
+    }
 
     // Undo / redo tools — Phase 5a wires the first two to the real engine.
     // mcp.get_ai_change_history remains a read-only query over the ring buffer.
