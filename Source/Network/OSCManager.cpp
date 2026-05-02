@@ -826,6 +826,10 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
                 remoteStates[static_cast<size_t>(i)].phase == RemoteConnectionState::Phase::Connected)
             {
                 sendMessage(i, inputsMsg);
+                // Push per-input names/positions/offsets/clusters so newly-added
+                // inputs match JUCE's stage-grid defaults instead of the remote's
+                // (0,0,0) fallback.
+                sendAllInputPositionsToRemote(i);
             }
         }
         return;  // Don't process as channel parameter
@@ -2840,6 +2844,9 @@ void OSCManager::handleClusterScaleRotationMessage(const juce::OSCMessage& messa
         // Android sees all members move atomically.
         if (! updatedPositions.empty())
             sendClusterMembersBundle(parsed.clusterId);
+
+        if (onRemotePositionReceived)
+            onRemotePositionReceived();
     });
 }
 
