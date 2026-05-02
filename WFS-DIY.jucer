@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="k6c2zA" name="WFS-DIY" projectType="guiapp" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="1.0.0beta13"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="1.0.0beta14"
               bundleIdentifier="com.wfsdiy.app" companyEmail="contact@pixetbel.org"
               companyName="Pix et Bel" companyWebsite="wfs-diy.net">
   <MAINGROUP id="U6kz3k" name="WFS-DIY">
