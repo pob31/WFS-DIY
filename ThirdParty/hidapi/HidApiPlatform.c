@@ -13,9 +13,10 @@
 #elif defined(__APPLE__)
     #include "mac/hid.c"
 #elif defined(__linux__)
-    // Linux support can be added later if needed
-    // #include "linux/hid.c"
-    #error "HIDAPI Linux backend not yet configured. Add linux/hid.c from HIDAPI source."
+    // Project-local stub backend: returns no devices and fails all opens.
+    // Replace by including upstream linux/hid.c (hidraw + libudev) for real
+    // HID device support on Linux.
+    #include "linux/hid_stub.c"
 #else
     #error "Unsupported platform for HIDAPI"
 #endif
