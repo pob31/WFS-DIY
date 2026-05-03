@@ -92,6 +92,13 @@ git clone --recurse-submodules https://github.com/pob31/WFS-DIY.git
    ```
    Then unplug and replug the device. The rules grant access via `uaccess` (active session) and the `plugdev` group fallback. With a touchscreen connected, a **Touchscreens…** button appears on the System Config tab — click it to map each physical touchscreen to a JUCE display, with optional Swap X/Y, Flip X, and Flip Y toggles for orientation.
 
+**Linux release tarball:**
+After a successful Release build, package the app for distribution:
+```bash
+tools/linux/build-app-tarball.sh
+```
+Produces `Builds/LinuxMakefile/release/WFS-DIY-Linux-x86_64-<version>.tar.gz` containing the binary, runtime data, udev rules, and `install.sh` / `uninstall.sh` scripts that support both per-user (`~/.local`) and system (`/opt/wfs-diy`) installs.
+
 ### GPU Audio (experimental)
 
 WFS-DIY includes experimental support for GPU-accelerated audio processing using the GPU-Audio SDK. The SDK is integrated as a Git submodule at `ThirdParty/GPUAudioSDK`.

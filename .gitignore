@@ -9,6 +9,11 @@ Builds/*/Release/
 Builds/*/RelWithDebInfo/
 Builds/*/MinSizeRel/
 Builds/*/build/
+Builds/*/release/
+
+# Plugin installer outputs (.pkg, .exe, .tar.gz)
+Plugin/Installer/Output/
+Plugin/Builds/
 
 # Compiled binaries
 *.exe

@@ -39,7 +39,11 @@ if(APPLE)
 elseif(WIN32)
     set(WFS_PLUGIN_FORMATS VST3 Standalone)
 else()
-    set(WFS_PLUGIN_FORMATS VST3 Standalone)
+    # Linux: VST3 covers Reaper / Bitwig / Ardour ≥6.9 / Tracktion / Mixbus,
+    # LV2 adds Ardour-LV2 users plus the Carla / Qtractor / Hydrogen ecosystem
+    # at zero cost (JUCE 7+ ships an LV2 wrapper natively). CLAP deferred
+    # until JUCE adds native support.
+    set(WFS_PLUGIN_FORMATS VST3 LV2 Standalone)
 endif()
 
 # ---------------------------------------------------------------------------
@@ -60,6 +64,11 @@ add_library(WFSPluginShared STATIC
     Source/Shared/PluginLookAndFeel.cpp
     Source/Shared/TargetProfile.cpp
 )
+# Plugin variants are linked as shared objects (.so / .vst3 / .lv2). On Linux
+# their static-library inputs must be PIC-compiled or ld refuses with
+# "relocation R_X86_64_PC32 ... can not be used when making a shared object".
+# macOS/Windows accept this implicitly; the flag is harmless there.
+set_target_properties(WFSPluginShared PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(WFSPluginShared PUBLIC
     Source/Shared
     Source/JuceHeaderStub
@@ -120,6 +129,10 @@ function(wfs_add_plugin TARGET_NAME PLUGIN_NAME PLUGIN_CODE IS_SYNTH MAIN_SOURCE
         COPY_PLUGIN_AFTER_BUILD     FALSE
         VST3_CATEGORIES             "Fx" "Spatial"
         AU_MAIN_TYPE                "kAudioUnitType_Effect"
+        # LV2 ignores this on macOS/Windows where LV2 isn't in FORMATS, but
+        # JUCE requires it on Linux where LV2 is enabled. Per-target URI
+        # under https://wfs-diy.net/lv2/ to keep variants distinguishable.
+        LV2URI                      "https://wfs-diy.net/lv2/${TARGET_NAME}"
         PLUGIN_DESCRIPTION          "WFS-DIY DAW-side controller for the WFS-DIY spatial audio app"
         DESCRIPTION                 "${PLUGIN_NAME}")
 

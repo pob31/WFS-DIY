@@ -51,9 +51,16 @@ if [ "$SKIP_INSTALLER" = "1" ]; then
     exit 0
 fi
 
-if [ "$OS_NAME" = "Darwin" ]; then
-    echo "==> Building macOS pkg"
-    bash "$PLUGIN_DIR/Installer/build-pkg.sh"
-else
-    echo "No installer step defined for $OS_NAME; artefacts are under $BUILD_DIR."
-fi
+case "$OS_NAME" in
+    Darwin)
+        echo "==> Building macOS pkg"
+        bash "$PLUGIN_DIR/Installer/build-pkg.sh"
+        ;;
+    Linux)
+        echo "==> Building Linux tarball"
+        bash "$PLUGIN_DIR/Installer/build-tarball-linux.sh"
+        ;;
+    *)
+        echo "No installer step defined for $OS_NAME; artefacts are under $BUILD_DIR."
+        ;;
+esac

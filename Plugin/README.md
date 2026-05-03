@@ -23,8 +23,9 @@ See [docs/PRD.md](docs/PRD.md) for the full product requirements document.
 |----------|------------------------------------------|----------------------------|
 | macOS    | VST3, AU, Standalone                     | Universal (arm64 + x86_64) |
 | Windows  | VST3, Standalone                         | x64                        |
+| Linux    | VST3, LV2, Standalone                    | x86_64                     |
 
-No AAX.
+No AAX. CLAP deferred until JUCE adds native support.
 
 ## Building
 
@@ -58,6 +59,17 @@ For signed/notarized macOS builds, set these env vars before running:
     export CODESIGN_IDENTITY_APP="Developer ID Application: Your Name (TEAMID)"
     export CODESIGN_IDENTITY_INSTALL="Developer ID Installer: Your Name (TEAMID)"
     export NOTARIZE_KEYCHAIN_PROFILE="your-keychain-profile"
+
+### Linux
+
+    Plugin/Scripts/build-all.sh
+
+Produces `Plugin/Installer/Output/WFS-DIY-Plugins-Linux-x86_64-0.0.2.tar.gz` containing all VST3 + LV2 + Standalone bundles plus an `install.sh`. Extract and run:
+
+    tar xzf WFS-DIY-Plugins-Linux-x86_64-0.0.2.tar.gz
+    cd WFS-DIY-Plugins-Linux-x86_64-0.0.2
+    ./install.sh --user        # ~/.vst3 + ~/.lv2 (no sudo)
+    # or ./install.sh --system # /usr/local/lib/{vst3,lv2} (sudo)
 
 ### Skip the installer (just the binaries)
 

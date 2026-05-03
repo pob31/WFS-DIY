@@ -17,9 +17,9 @@ BEGIN
     BEGIN
       VALUE "CompanyName",  "Pix et Bel\0"
       VALUE "FileDescription",  "WFS-DIY\0"
-      VALUE "FileVersion",  "1.0.0beta14\0"
+      VALUE "FileVersion",  "1.0.0beta15\0"
       VALUE "ProductName",  "WFS-DIY\0"
-      VALUE "ProductVersion",  "1.0.0beta14\0"
+      VALUE "ProductVersion",  "1.0.0beta15\0"
     END
   END
 

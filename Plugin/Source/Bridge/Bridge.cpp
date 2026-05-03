@@ -2,6 +2,7 @@
 #include "../Shared/BridgeApi.h"
 
 #include <atomic>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <unordered_map>
