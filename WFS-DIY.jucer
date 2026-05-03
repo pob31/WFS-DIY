@@ -315,6 +315,24 @@
         <FILE id="hidapiPlatC" name="HidApiPlatform.c" compile="1" resource="0"
               file="ThirdParty/hidapi/HidApiPlatform.c"/>
       </GROUP>
+      <GROUP id="{TOUCHGROUP}" name="Touch">
+        <FILE id="touchMapH"   name="TouchDeviceMapping.h" compile="0" resource="0"
+              file="Source/Controllers/Touch/TouchDeviceMapping.h"/>
+        <FILE id="touchMgrInc" name="TouchManager.h"       compile="0" resource="0"
+              file="Source/Controllers/Touch/TouchManager.h"/>
+        <FILE id="touchStubH"  name="TouchManagerStub.h"   compile="0" resource="0"
+              file="Source/Controllers/Touch/TouchManagerStub.h"/>
+        <FILE id="evdevDevH"   name="EvdevTouchDevice.h"   compile="0" resource="0"
+              file="Source/Controllers/Touch/Linux/EvdevTouchDevice.h"/>
+        <FILE id="evdevDevC"   name="EvdevTouchDevice.cpp" compile="1" resource="0"
+              file="Source/Controllers/Touch/Linux/EvdevTouchDevice.cpp"/>
+        <FILE id="evdevMgrH"   name="EvdevTouchManager.h"  compile="0" resource="0"
+              file="Source/Controllers/Touch/Linux/EvdevTouchManager.h"/>
+        <FILE id="evdevMgrC"   name="EvdevTouchManager.cpp" compile="1" resource="0"
+              file="Source/Controllers/Touch/Linux/EvdevTouchManager.cpp"/>
+        <FILE id="touchWinH"   name="LinuxTouchscreenWindow.h" compile="0" resource="0"
+              file="Source/gui/LinuxTouchscreenWindow.h"/>
+      </GROUP>
       <FILE id="UJ07Xn" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
       <FILE id="jPX7jF" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>
       <FILE id="MkNc76" name="MainComponent.cpp" compile="1" resource="0"

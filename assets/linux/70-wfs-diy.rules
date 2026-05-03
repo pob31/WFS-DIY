@@ -26,3 +26,8 @@ KERNEL=="hidraw*",    ATTRS{idVendor}=="28bd", ATTRS{idProduct}=="5203", MODE="0
 # PID is left unmatched so all SpaceMouse models are covered.
 SUBSYSTEM=="usb",     ATTRS{idVendor}=="256f", MODE="0660", TAG+="uaccess", GROUP="plugdev"
 KERNEL=="hidraw*",    ATTRS{idVendor}=="256f", MODE="0660", TAG+="uaccess", GROUP="plugdev"
+
+# Multitouch: grant the active console user access to evdev nodes for any
+# device flagged ID_INPUT_TOUCHSCREEN. Required by the EvdevTouchManager
+# to read /dev/input/eventN and EVIOCGRAB the device while WFS-DIY uses it.
+KERNEL=="event*", ENV{ID_INPUT_TOUCHSCREEN}=="1", MODE="0660", TAG+="uaccess", GROUP="plugdev"
