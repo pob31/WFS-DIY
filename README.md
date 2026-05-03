@@ -67,7 +67,24 @@ git clone --recurse-submodules https://github.com/pob31/WFS-DIY.git
 5. macOS will ask for microphone permission on first run — click Allow (required for audio input)
 
 **Linux:**
-- Use the Makefile in `Builds/LinuxMakefile/`
+1. Install build deps (Debian / Ubuntu):
+   ```bash
+   sudo apt install build-essential pkg-config libasound2-dev libfreetype6-dev \
+       libfontconfig1-dev libgl1-mesa-dev libcurl4-openssl-dev libgtk-3-dev \
+       libwebkit2gtk-4.1-dev libudev-dev
+   ```
+2. Build:
+   ```bash
+   cd Builds/LinuxMakefile && make CONFIG=Release -j$(nproc)
+   ```
+   The binary lands at `Builds/LinuxMakefile/build/WFS-DIY` along with `lang/` and `MCP/resources/` copied next to it.
+3. **HID controller setup (one-time, optional):** to use Stream Deck, Xencelabs Quick Keys, or 3Dconnexion SpaceMouse without root, install the bundled udev rules:
+   ```bash
+   sudo cp assets/linux/50-wfs-diy.rules /etc/udev/rules.d/
+   sudo udevadm control --reload-rules
+   sudo udevadm trigger
+   ```
+   Then unplug and replug the device. The rules grant access via `uaccess` (active session) and the `plugdev` group fallback.
 
 ### GPU Audio (experimental)
 
