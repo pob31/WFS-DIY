@@ -57,6 +57,21 @@
     "helpMode": "ヘルプ",
     "oscMode": "OSC"
   },
+  "touchscreens": {
+    "title": "Linux タッチスクリーン",
+    "label": "タッチスクリーン",
+    "button": "設定",
+    "empty": "タッチスクリーンが検出されません。接続するとリストに自動的に表示されます。",
+    "disabled": "(無効)",
+    "swapXY": "X/Y 入れ替え",
+    "flipX": "X 反転",
+    "flipY": "Y 反転",
+    "errorPrefix": "エラー:",
+    "statusActive": "アクティブ — イベント取得中",
+    "statusOpening": "デバイスを開いています…",
+    "statusInactive": "未割り当て"
+  },
+
   "systemConfig": {
     "sections": {
       "show": "ショー",

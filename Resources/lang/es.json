@@ -57,6 +57,21 @@
     "helpMode": "Ayuda",
     "oscMode": "OSC"
   },
+  "touchscreens": {
+    "title": "Pantallas táctiles Linux",
+    "label": "Pantalla táctil",
+    "button": "Configurar",
+    "empty": "No se detectaron pantallas táctiles. Conecte una y la lista se actualizará automáticamente.",
+    "disabled": "(Desactivada)",
+    "swapXY": "Intercambiar X/Y",
+    "flipX": "Voltear X",
+    "flipY": "Voltear Y",
+    "errorPrefix": "Error:",
+    "statusActive": "Activa — capturando eventos",
+    "statusOpening": "Abriendo dispositivo…",
+    "statusInactive": "Sin asignar"
+  },
+
   "systemConfig": {
     "sections": {
       "show": "Show",

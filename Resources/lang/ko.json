@@ -57,6 +57,21 @@
     "helpMode": "도움말",
     "oscMode": "OSC"
   },
+  "touchscreens": {
+    "title": "Linux 터치스크린",
+    "label": "터치스크린",
+    "button": "설정",
+    "empty": "터치스크린이 감지되지 않았습니다. 연결하면 목록이 자동으로 갱신됩니다.",
+    "disabled": "(비활성화)",
+    "swapXY": "X/Y 바꾸기",
+    "flipX": "X 뒤집기",
+    "flipY": "Y 뒤집기",
+    "errorPrefix": "오류:",
+    "statusActive": "활성 — 이벤트 수신 중",
+    "statusOpening": "장치를 여는 중…",
+    "statusInactive": "할당되지 않음"
+  },
+
   "systemConfig": {
     "sections": {
       "show": "공연",

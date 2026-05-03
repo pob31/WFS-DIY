@@ -57,6 +57,21 @@
     "helpMode": "帮助",
     "oscMode": "OSC"
   },
+  "touchscreens": {
+    "title": "Linux 触摸屏",
+    "label": "触摸屏",
+    "button": "设置",
+    "empty": "未检测到触摸屏。连接后将自动出现在列表中。",
+    "disabled": "（已禁用）",
+    "swapXY": "交换 X/Y",
+    "flipX": "翻转 X",
+    "flipY": "翻转 Y",
+    "errorPrefix": "错误：",
+    "statusActive": "活动中 — 正在捕获事件",
+    "statusOpening": "正在打开设备…",
+    "statusInactive": "未分配"
+  },
+
   "systemConfig": {
     "sections": {
       "show": "演出",
