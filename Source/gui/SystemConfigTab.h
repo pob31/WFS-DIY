@@ -525,8 +525,12 @@ public:
                 onAudioInterfaceWindowRequested();
         };
 
-        // Linux multitouch settings button — added but hidden until MainComponent
-        // calls setTouchscreensButtonVisible(true). Stays invisible on macOS/Windows.
+        // Linux multitouch row — label + setup button. Both hidden until
+        // MainComponent calls setTouchscreensButtonVisible(true). Invisible on
+        // macOS/Windows since MainComponent never enables them on those platforms.
+        addChildComponent(touchscreensLabel);
+        touchscreensLabel.setText(LOC("touchscreens.label"), juce::dontSendNotification);
+
         addChildComponent(touchscreensButton);
         touchscreensButton.setButtonText(LOC("touchscreens.button"));
         touchscreensButton.onClick = [this]() {
@@ -1364,12 +1368,15 @@ public:
             updateControllerSetupButton();
         }
 
-        // Linux multitouch button — only consumes a row when visible (Linux only,
+        // Linux multitouch row — only consumes a row when visible (Linux only,
         // and only when at least one touchscreen is currently connected).
+        // Label + Setup button laid out the same way as the algorithm row above.
         if (touchscreensButton.isVisible())
         {
             y += rowHeight + spacing;
-            touchscreensButton.setBounds (x, y, fullWidth, rowHeight);
+            touchscreensLabel.setBounds (x, y, labelWidth, rowHeight);
+            touchscreensButton.setBounds (x + labelWidth, y,
+                                          fullWidth - labelWidth, rowHeight);
         }
 
         //======================================================================
@@ -1711,12 +1718,13 @@ public:
         onTouchscreensRequested = std::move (callback);
     }
 
-    /** Toggle the Linux-touchscreen button visibility (call from MainComponent
-        on Linux when the device list becomes non-empty / empty). The button
-        is laid out under audioPatchingButton and only consumes a row when shown. */
+    /** Toggle the Linux-touchscreen row visibility (call from MainComponent on
+        Linux when the device list becomes non-empty / empty). The row is laid
+        out at the bottom of column 1 and only consumes space when shown. */
     void setTouchscreensButtonVisible(bool visible)
     {
         if (touchscreensButton.isVisible() == visible) return;
+        touchscreensLabel.setVisible (visible);
         touchscreensButton.setVisible (visible);
         resized();
     }
@@ -3773,7 +3781,8 @@ public:
     juce::TextEditor reverbChannelsEditor;
     juce::TextButton gettingStartedButton;
     juce::TextButton audioPatchingButton;
-    juce::TextButton touchscreensButton;  // Linux multitouch settings; hidden by default
+    juce::Label      touchscreensLabel;    // Linux multitouch row label
+    juce::TextButton touchscreensButton;   // Linux multitouch settings; hidden by default
     juce::Label algorithmLabel;
     juce::ComboBox algorithmSelector;
     LongPressButton processingButton { 800 };

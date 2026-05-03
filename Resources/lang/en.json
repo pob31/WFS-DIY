@@ -64,7 +64,8 @@
 
   "touchscreens": {
     "title": "Linux Touchscreens",
-    "button": "Touchscreens…",
+    "label": "Touchscreen",
+    "button": "Setup",
     "empty": "No touchscreens detected. Connect one and the list will populate live.",
     "disabled": "(Disabled)",
     "swapXY": "Swap X/Y",
