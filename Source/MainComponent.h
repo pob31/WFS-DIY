@@ -46,6 +46,10 @@
 #include "Controllers/DialsAndButtons/pages/PatchWindowPages.h"
 #include "Controllers/PositionControl/ControllerManager.h"
 #include "Controllers/Sampler/LightpadManager.h"
+#include "Controllers/Touch/TouchManager.h"
+#if defined (__linux__)
+  #include "gui/LinuxTouchscreenWindow.h"
+#endif
 #include "GradientMap/GradientMapEvaluator.h"
 #include "GradientMap/GradientMapData.h"
 #include "Sampler/SamplerManager.h"
@@ -253,6 +257,14 @@ private:
 
     // ROLI Lightpad Block controllers
     std::unique_ptr<LightpadManager> lightpadManager;
+
+    // Linux multitouch (no-op stub on macOS/Windows)
+    std::unique_ptr<WFSTouch::EvdevTouchManager> touchManager;
+
+   #if defined (__linux__)
+    // Settings dialog for mapping touchscreens to displays. Lazily created.
+    std::unique_ptr<LinuxTouchscreenWindow> touchscreenWindow;
+   #endif
 
     // WFS calculation engine (computes delays, levels, HF attenuation)
     std::unique_ptr<WFSCalculationEngine> calculationEngine;

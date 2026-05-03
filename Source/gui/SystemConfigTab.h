@@ -525,6 +525,19 @@ public:
                 onAudioInterfaceWindowRequested();
         };
 
+        // Linux multitouch row — label + setup button. Both hidden until
+        // MainComponent calls setTouchscreensButtonVisible(true). Invisible on
+        // macOS/Windows since MainComponent never enables them on those platforms.
+        addChildComponent(touchscreensLabel);
+        touchscreensLabel.setText(LOC("touchscreens.label"), juce::dontSendNotification);
+
+        addChildComponent(touchscreensButton);
+        touchscreensButton.setButtonText(LOC("touchscreens.button"));
+        touchscreensButton.onClick = [this]() {
+            if (onTouchscreensRequested)
+                onTouchscreensRequested();
+        };
+
         // Algorithm selector
         addAndMakeVisible(algorithmLabel);
         algorithmLabel.setText(LOC("systemConfig.labels.algorithm"), juce::dontSendNotification);
@@ -1355,6 +1368,17 @@ public:
             updateControllerSetupButton();
         }
 
+        // Linux multitouch row — only consumes a row when visible (Linux only,
+        // and only when at least one touchscreen is currently connected).
+        // Label + Setup button laid out the same way as the algorithm row above.
+        if (touchscreensButton.isVisible())
+        {
+            y += rowHeight + spacing;
+            touchscreensLabel.setBounds (x, y, labelWidth, rowHeight);
+            touchscreensButton.setBounds (x + labelWidth, y,
+                                          fullWidth - labelWidth, rowHeight);
+        }
+
         //======================================================================
         // COLUMN 2: Stage, Master
         //======================================================================
@@ -1686,6 +1710,23 @@ public:
     void setAudioInterfaceCallback(AudioInterfaceCallback callback)
     {
         onAudioInterfaceWindowRequested = callback;
+    }
+
+    /** Wired by MainComponent on Linux to open the touchscreen mapping dialog. */
+    void setTouchscreensCallback(std::function<void()> callback)
+    {
+        onTouchscreensRequested = std::move (callback);
+    }
+
+    /** Toggle the Linux-touchscreen row visibility (call from MainComponent on
+        Linux when the device list becomes non-empty / empty). The row is laid
+        out at the bottom of column 1 and only consumes space when shown. */
+    void setTouchscreensButtonVisible(bool visible)
+    {
+        if (touchscreensButton.isVisible() == visible) return;
+        touchscreensLabel.setVisible (visible);
+        touchscreensButton.setVisible (visible);
+        resized();
     }
 
     void setConfigReloadedCallback(ConfigReloadedCallback callback)
@@ -3740,6 +3781,8 @@ public:
     juce::TextEditor reverbChannelsEditor;
     juce::TextButton gettingStartedButton;
     juce::TextButton audioPatchingButton;
+    juce::Label      touchscreensLabel;    // Linux multitouch row label
+    juce::TextButton touchscreensButton;   // Linux multitouch settings; hidden by default
     juce::Label algorithmLabel;
     juce::ComboBox algorithmSelector;
     LongPressButton processingButton { 800 };
@@ -3894,6 +3937,7 @@ public:
     BinauralCallback onBinauralChanged;
     GettingStartedCallback onGettingStartedRequested;
     std::function<void(bool)> onQuickLongPressChanged;
+    std::function<void()> onTouchscreensRequested;  // Linux multitouch dialog
 
     void updateQuickLongPressText()
     {

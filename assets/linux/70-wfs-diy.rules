@@ -1,0 +1,33 @@
+# udev rules granting non-root access to HID controllers used by WFS-DIY.
+#
+# Install with:
+#   sudo cp assets/linux/50-wfs-diy.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload-rules
+#   sudo udevadm trigger
+# (Or unplug and replug the device after reloading the rules.)
+#
+# TAG+="uaccess" grants the active console user dynamic ACL access on
+# systemd-logind systems. GROUP="plugdev" is the older fallback — add the
+# user to the plugdev group on distros without uaccess.
+
+# Elgato Stream Deck Plus (VID 0fd9, PID 0084)
+SUBSYSTEM=="usb",     ATTRS{idVendor}=="0fd9", ATTRS{idProduct}=="0084", MODE="0660", TAG+="uaccess", GROUP="plugdev"
+KERNEL=="hidraw*",    ATTRS{idVendor}=="0fd9", ATTRS{idProduct}=="0084", MODE="0660", TAG+="uaccess", GROUP="plugdev"
+
+# Xencelabs Quick Keys, wired (VID 28bd, PID 5202)
+SUBSYSTEM=="usb",     ATTRS{idVendor}=="28bd", ATTRS{idProduct}=="5202", MODE="0660", TAG+="uaccess", GROUP="plugdev"
+KERNEL=="hidraw*",    ATTRS{idVendor}=="28bd", ATTRS{idProduct}=="5202", MODE="0660", TAG+="uaccess", GROUP="plugdev"
+
+# Xencelabs Quick Keys, wireless dongle (VID 28bd, PID 5203)
+SUBSYSTEM=="usb",     ATTRS{idVendor}=="28bd", ATTRS{idProduct}=="5203", MODE="0660", TAG+="uaccess", GROUP="plugdev"
+KERNEL=="hidraw*",    ATTRS{idVendor}=="28bd", ATTRS{idProduct}=="5203", MODE="0660", TAG+="uaccess", GROUP="plugdev"
+
+# 3Dconnexion SpaceMouse — current-generation devices share VID 256f.
+# PID is left unmatched so all SpaceMouse models are covered.
+SUBSYSTEM=="usb",     ATTRS{idVendor}=="256f", MODE="0660", TAG+="uaccess", GROUP="plugdev"
+KERNEL=="hidraw*",    ATTRS{idVendor}=="256f", MODE="0660", TAG+="uaccess", GROUP="plugdev"
+
+# Multitouch: grant the active console user access to evdev nodes for any
+# device flagged ID_INPUT_TOUCHSCREEN. Required by the EvdevTouchManager
+# to read /dev/input/eventN and EVIOCGRAB the device while WFS-DIY uses it.
+KERNEL=="event*", ENV{ID_INPUT_TOUCHSCREEN}=="1", MODE="0660", TAG+="uaccess", GROUP="plugdev"

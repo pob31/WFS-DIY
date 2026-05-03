@@ -57,6 +57,21 @@
     "helpMode": "Hilfe",
     "oscMode": "OSC"
   },
+  "touchscreens": {
+    "title": "Linux Touchscreens",
+    "label": "Touchscreen",
+    "button": "Einrichten",
+    "empty": "Keine Touchscreens erkannt. Beim Anschließen erscheinen sie automatisch in der Liste.",
+    "disabled": "(Deaktiviert)",
+    "swapXY": "X/Y tauschen",
+    "flipX": "X spiegeln",
+    "flipY": "Y spiegeln",
+    "errorPrefix": "Fehler:",
+    "statusActive": "Aktiv – Ereignisse werden erfasst",
+    "statusOpening": "Gerät wird geöffnet …",
+    "statusInactive": "Nicht zugewiesen"
+  },
+
   "systemConfig": {
     "sections": {
       "show": "Show",

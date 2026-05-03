@@ -67,7 +67,30 @@ git clone --recurse-submodules https://github.com/pob31/WFS-DIY.git
 5. macOS will ask for microphone permission on first run — click Allow (required for audio input)
 
 **Linux:**
-- Use the Makefile in `Builds/LinuxMakefile/`
+1. Install build deps (Debian / Ubuntu):
+   ```bash
+   sudo apt install build-essential pkg-config libasound2-dev libfreetype6-dev \
+       libfontconfig1-dev libgl1-mesa-dev libcurl4-openssl-dev libgtk-3-dev \
+       libwebkit2gtk-4.1-dev libudev-dev
+   ```
+2. Apply Linux JUCE patches (one-time, after submodule init):
+   ```bash
+   tools/apply-linux-juce-patches.sh
+   ```
+   This patches the vendored JUCE to enable touch-source creation on Linux. Required for the userland evdev multitouch backend; safe to re-run (idempotent).
+3. Build:
+   ```bash
+   cd Builds/LinuxMakefile && make CONFIG=Release -j$(nproc)
+   ```
+   The binary lands at `Builds/LinuxMakefile/build/WFS-DIY` along with `lang/` and `MCP/resources/` copied next to it.
+4. **HID controller and touchscreen setup (one-time, optional):** to use Stream Deck, Xencelabs Quick Keys, 3Dconnexion SpaceMouse, or any USB touchscreen without root, install the bundled udev rules. The file is named `70-` so it runs after the system rules that set `ID_INPUT_TOUCHSCREEN`:
+   ```bash
+   sudo rm -f /etc/udev/rules.d/50-wfs-diy.rules   # remove older filename if present
+   sudo cp assets/linux/70-wfs-diy.rules /etc/udev/rules.d/
+   sudo udevadm control --reload-rules
+   sudo udevadm trigger
+   ```
+   Then unplug and replug the device. The rules grant access via `uaccess` (active session) and the `plugdev` group fallback. With a touchscreen connected, a **Touchscreens…** button appears on the System Config tab — click it to map each physical touchscreen to a JUCE display, with optional Swap X/Y, Flip X, and Flip Y toggles for orientation.
 
 ### GPU Audio (experimental)
 

@@ -62,6 +62,21 @@
     "oscMode": "OSC"
   },
 
+  "touchscreens": {
+    "title": "Linux Touchscreens",
+    "label": "Touchscreen",
+    "button": "Setup",
+    "empty": "No touchscreens detected. Connect one and the list will populate live.",
+    "disabled": "(Disabled)",
+    "swapXY": "Swap X/Y",
+    "flipX": "Flip X",
+    "flipY": "Flip Y",
+    "errorPrefix": "Error:",
+    "statusActive": "Active — events captured",
+    "statusOpening": "Opening device…",
+    "statusInactive": "Not mapped"
+  },
+
   "systemConfig": {
     "sections": {
       "show": "Show",

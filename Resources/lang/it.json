@@ -57,6 +57,21 @@
     "helpMode": "Aiuto",
     "oscMode": "OSC"
   },
+  "touchscreens": {
+    "title": "Schermi tattili Linux",
+    "label": "Schermo tattile",
+    "button": "Configura",
+    "empty": "Nessuno schermo tattile rilevato. Collegane uno e l'elenco si aggiornerà automaticamente.",
+    "disabled": "(Disabilitato)",
+    "swapXY": "Scambia X/Y",
+    "flipX": "Capovolgi X",
+    "flipY": "Capovolgi Y",
+    "errorPrefix": "Errore:",
+    "statusActive": "Attivo — eventi acquisiti",
+    "statusOpening": "Apertura dispositivo…",
+    "statusInactive": "Non assegnato"
+  },
+
   "systemConfig": {
     "sections": {
       "show": "Spettacolo",

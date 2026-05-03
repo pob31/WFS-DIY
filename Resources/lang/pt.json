@@ -57,6 +57,21 @@
     "helpMode": "Ajuda",
     "oscMode": "OSC"
   },
+  "touchscreens": {
+    "title": "Telas sensíveis ao toque Linux",
+    "label": "Tela sensível ao toque",
+    "button": "Configurar",
+    "empty": "Nenhuma tela sensível ao toque detectada. Conecte uma e a lista será atualizada automaticamente.",
+    "disabled": "(Desativada)",
+    "swapXY": "Trocar X/Y",
+    "flipX": "Inverter X",
+    "flipY": "Inverter Y",
+    "errorPrefix": "Erro:",
+    "statusActive": "Ativa — eventos capturados",
+    "statusOpening": "Abrindo dispositivo…",
+    "statusInactive": "Não atribuída"
+  },
+
   "systemConfig": {
     "sections": {
       "show": "Espetáculo",

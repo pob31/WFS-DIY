@@ -57,6 +57,21 @@
     "helpMode": "Aide",
     "oscMode": "OSC"
   },
+  "touchscreens": {
+    "title": "Écrans tactiles Linux",
+    "label": "Écran tactile",
+    "button": "Configurer",
+    "empty": "Aucun écran tactile détecté. Branchez-en un et la liste se mettra à jour automatiquement.",
+    "disabled": "(Désactivé)",
+    "swapXY": "Échanger X/Y",
+    "flipX": "Inverser X",
+    "flipY": "Inverser Y",
+    "errorPrefix": "Erreur :",
+    "statusActive": "Actif — événements capturés",
+    "statusOpening": "Ouverture du périphérique…",
+    "statusInactive": "Non assigné"
+  },
+
   "systemConfig": {
     "sections": {
       "show": "Spectacle",

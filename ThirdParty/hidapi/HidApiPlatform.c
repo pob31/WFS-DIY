@@ -13,9 +13,7 @@
 #elif defined(__APPLE__)
     #include "mac/hid.c"
 #elif defined(__linux__)
-    // Linux support can be added later if needed
-    // #include "linux/hid.c"
-    #error "HIDAPI Linux backend not yet configured. Add linux/hid.c from HIDAPI source."
+    #include "linux/hid.c"
 #else
     #error "Unsupported platform for HIDAPI"
 #endif
