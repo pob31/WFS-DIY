@@ -18,7 +18,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 BUILD_DIR="$PLUGIN_DIR/Builds/CMake-macOS"
 OUTPUT_DIR="$SCRIPT_DIR/Output"
-VERSION="${WFS_PLUGIN_VERSION:-0.0.1}"
+VERSION="${WFS_PLUGIN_VERSION:-0.0.2}"
 
 mkdir -p "$OUTPUT_DIR"
 

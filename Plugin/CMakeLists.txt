@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(WFS-DIY-Plugins VERSION 0.0.1 LANGUAGES C CXX)
+project(WFS-DIY-Plugins VERSION 0.0.2 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -14,7 +14,7 @@ endif()
 set(WFS_PLUGIN_COMPANY        "Pix et Bel")
 set(WFS_PLUGIN_BUNDLE_PREFIX  "net.wfsdiy")
 set(WFS_PLUGIN_MANUFACTURER   "PxBl")
-set(WFS_PLUGIN_VERSION_STRING "0.0.1")
+set(WFS_PLUGIN_VERSION_STRING "0.0.2")
 
 set(JUCE_DIR           "${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty/JUCE")
 set(JUCE_SIMPLEWEB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty/juce_simpleweb")
@@ -58,10 +58,12 @@ add_library(WFSPluginShared STATIC
     Source/Shared/OscQueryClient.cpp
     Source/Shared/BridgeLoader.cpp
     Source/Shared/PluginLookAndFeel.cpp
+    Source/Shared/TargetProfile.cpp
 )
 target_include_directories(WFSPluginShared PUBLIC
     Source/Shared
-    Source/JuceHeaderStub)
+    Source/JuceHeaderStub
+    ../Source/Shared)
 target_compile_features(WFSPluginShared PUBLIC cxx_std_17)
 target_link_libraries(WFSPluginShared PUBLIC
     juce::juce_core

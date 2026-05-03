@@ -43,13 +43,13 @@ From the repo root, in PowerShell:
 
     pwsh Plugin/Scripts/build-all.ps1
 
-Produces `Plugin/Installer/Output/WFS-DIY-Plugins-Setup-0.0.1.exe`. Run it with admin privileges to install VST3s to `C:\Program Files\Common Files\VST3\`.
+Produces `Plugin/Installer/Output/WFS-DIY-Plugins-Setup-0.0.2.exe`. Run it with admin privileges to install VST3s to `C:\Program Files\Common Files\VST3\`.
 
 ### macOS
 
     Plugin/Scripts/build-all.sh
 
-Produces `Plugin/Installer/Output/WFS-DIY-Plugins-0.0.1.pkg`. Double-click to install:
+Produces `Plugin/Installer/Output/WFS-DIY-Plugins-0.0.2.pkg`. Double-click to install:
 - VST3s → `/Library/Audio/Plug-Ins/VST3/`
 - AUs → `/Library/Audio/Plug-Ins/Components/`
 

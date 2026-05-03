@@ -42,6 +42,21 @@ namespace wfs::plugin
         return none;
     }
 
+    void MasterProcessor::dispatchOutEvent (const OutEvent& evt)
+    {
+        if (evt.isThreeFloat)
+        {
+            // 3f messages bypass the rate limiter (combined ADM triples and
+            // custom 3f sends are inherently low-frequency).
+            transport.sendFloats3 (evt.path, evt.v1, evt.v2, evt.v3);
+        }
+        else
+        {
+            const auto epsilon = 0.0001f;
+            rateLimiter.post (evt.path, evt.channelId, evt.v1, epsilon);
+        }
+    }
+
     void MasterProcessor::bridgeOutboundCallback (void* user, const char* oscPath, int channelId, double value)
     {
         if (user == nullptr)
@@ -49,27 +64,33 @@ namespace wfs::plugin
         auto* self = static_cast<MasterProcessor*> (user);
         if (! self->isConnected())
             return;
-        const auto path    = juce::String::fromUTF8 (oscPath);
-        const auto epsilon = 0.0001f;
-        self->rateLimiter.post (path, channelId, static_cast<float> (value), epsilon);
+        const auto path = juce::String::fromUTF8 (oscPath);
+
+        std::vector<OutEvent> events;
+        events.reserve (4);
+        self->translator.translate1f (path, channelId, static_cast<float> (value), events);
+        for (const auto& e : events)
+            self->dispatchOutEvent (e);
     }
 
     void MasterProcessor::bridgeOutbound3fCallback (void* user, const char* oscPath,
                                                     double v1, double v2, double v3)
     {
-        // ADM-OSC triples (/adm/obj/N/xyz, /aed) are low-frequency messages —
-        // bypass the rate limiter and send immediately. The app's OSC router
-        // dispatches by address prefix so these go to the same UDP Rx port
-        // as the native /wfs/input/ messages.
         if (user == nullptr)
             return;
         auto* self = static_cast<MasterProcessor*> (user);
         if (! self->isConnected())
             return;
-        self->transport.sendFloats3 (juce::String::fromUTF8 (oscPath),
-                                     static_cast<float> (v1),
-                                     static_cast<float> (v2),
-                                     static_cast<float> (v3));
+
+        std::vector<OutEvent> events;
+        events.reserve (2);
+        self->translator.translate3f (juce::String::fromUTF8 (oscPath),
+                                      static_cast<float> (v1),
+                                      static_cast<float> (v2),
+                                      static_cast<float> (v3),
+                                      events);
+        for (const auto& e : events)
+            self->dispatchOutEvent (e);
     }
 
     void MasterProcessor::bridgeLifecycleCallback (void* user, int inputId,
@@ -157,29 +178,57 @@ namespace wfs::plugin
 
     void MasterProcessor::getStateInformation (juce::MemoryBlock& destData)
     {
-        if (auto xml = state.copyState().createXml())
+        auto root = state.copyState();
+        // Strip any prior profile child so we don't accumulate duplicates.
+        root.removeChild (root.getChildWithName ("TargetProfileState"), nullptr);
+        root.appendChild (profileRegistry.toState(), nullptr);
+        if (auto xml = root.createXml())
             copyXmlToBinary (*xml, destData);
     }
 
     void MasterProcessor::setStateInformation (const void* data, int sizeInBytes)
     {
         if (auto xml = getXmlFromBinary (data, sizeInBytes))
-            state.replaceState (juce::ValueTree::fromXml (*xml));
+        {
+            auto restored = juce::ValueTree::fromXml (*xml);
+            const auto profileNode = restored.getChildWithName ("TargetProfileState");
+            if (profileNode.isValid())
+            {
+                profileRegistry.fromState (profileNode);
+                restored.removeChild (profileNode, nullptr);
+            }
+            state.replaceState (restored);
+        }
     }
 
     bool MasterProcessor::connectToApp (const juce::String& host, int udpPort, int httpPort, int admRxPort)
     {
         if (! transport.connect (host, udpPort))
             return false;
-        if (! query.connect (host, httpPort))
+
+        const auto& profile = profileRegistry.active();
+        const bool wantOscQuery = (profile.flow == ProfileFlow::Bidirectional);
+        const bool wantAdmRx    = (profile.flow == ProfileFlow::Bidirectional)
+                                || (profile.flow == ProfileFlow::SendOnly && profile.admEchoEnabled);
+
+        if (wantOscQuery)
         {
-            transport.disconnect();
-            return false;
+            if (! query.connect (host, httpPort))
+            {
+                transport.disconnect();
+                return false;
+            }
+        }
+        else
+        {
+            diagLog.add ("Open-loop profile (" + profile.displayName
+                         + ") - skipping OSCQuery handshake");
         }
 
         // ADM-OSC isn't exposed over OSCQuery, so we need a dedicated UDP
-        // receiver for inbound /adm/obj/N/... messages from the app.
-        if (admRxPort > 0)
+        // receiver for inbound /adm/obj/N/... messages from the app. For
+        // SendOnly profiles this is opt-in via TargetProfile::admEchoEnabled.
+        if (wantAdmRx && admRxPort > 0)
         {
             if (admReceiverOpen)
             {
@@ -202,14 +251,17 @@ namespace wfs::plugin
         // Re-subscribe for any Tracks that registered before we connected.
         // The lifecycle callback fired at bridge-register time recorded their
         // variant tags; push the subscriptions now that WebSocket is up.
-        std::map<int, juce::String> knownTracks;
+        if (wantOscQuery)
         {
-            std::lock_guard<std::mutex> sl (lock);
-            knownTracks = subscribedInputs;
-            subscribedInputs.clear();
+            std::map<int, juce::String> knownTracks;
+            {
+                std::lock_guard<std::mutex> sl (lock);
+                knownTracks = subscribedInputs;
+                subscribedInputs.clear();
+            }
+            for (auto& [inputId, tag] : knownTracks)
+                subscribeInput (inputId, tag);
         }
-        for (auto& [inputId, tag] : knownTracks)
-            subscribeInput (inputId, tag);
         return true;
     }
 
@@ -230,6 +282,11 @@ namespace wfs::plugin
         return transport.isConnected();
     }
 
+    bool MasterProcessor::isOpenLoop() const
+    {
+        return profileRegistry.active().flow == ProfileFlow::SendOnly;
+    }
+
     int MasterProcessor::getRegisteredTrackCount() const
     {
         auto& loader = BridgeLoader::getInstance();
@@ -238,6 +295,9 @@ namespace wfs::plugin
 
     juce::String MasterProcessor::getConnectionStatus() const
     {
+        if (profileRegistry.active().flow == ProfileFlow::SendOnly)
+            return transport.isConnected() ? "Open loop (one-way)" : "Disconnected";
+
         switch (query.getState())
         {
             case OscQueryClient::State::Idle:        return "Disconnected";
@@ -307,11 +367,13 @@ namespace wfs::plugin
 
     void MasterProcessor::onTrackRegistered (int inputId, const juce::String& variantTag)
     {
+        translator.setVariantTag (inputId, variantTag);
         subscribeInput (inputId, variantTag);
     }
 
     void MasterProcessor::onTrackUnregistered (int inputId)
     {
+        translator.clearVariantTag (inputId);
         unsubscribeInput (inputId);
     }
 

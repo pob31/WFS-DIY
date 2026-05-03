@@ -9,6 +9,7 @@
 #include "../Shared/OscQueryClient.h"
 #include "../Shared/RateLimiter.h"
 #include "../Shared/DiagnosticLog.h"
+#include "../Shared/TargetProfile.h"
 
 namespace wfs::plugin
 {
@@ -48,6 +49,10 @@ namespace wfs::plugin
         bool isConnected() const;
         int  getRegisteredTrackCount() const;
         juce::String getConnectionStatus() const;
+        bool isOpenLoop() const;  // true when the active profile's flow is SendOnly
+
+        TargetProfileRegistry&       getProfileRegistry()       noexcept { return profileRegistry; }
+        const TargetProfileRegistry& getProfileRegistry() const noexcept { return profileRegistry; }
 
         const DiagnosticLog& getDiagnosticLog() const noexcept { return diagLog; }
         static juce::String  getBuildStamp();
@@ -77,6 +82,11 @@ namespace wfs::plugin
         juce::OSCReceiver admReceiver;
         bool              admReceiverOpen = false;
         WfsBridgeMasterHandle* bridgeHandle = nullptr;
+
+        TargetProfileRegistry   profileRegistry;
+        TargetProfileTranslator translator { profileRegistry };
+
+        void dispatchOutEvent (const OutEvent& evt);
 
         std::mutex  lock;
         std::map<int, juce::String> subscribedInputs;

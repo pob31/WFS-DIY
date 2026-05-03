@@ -4,7 +4,7 @@
 #   pwsh Plugin/Scripts/build-all.ps1
 #
 # Runs: cmake configure -> cmake build Release -> Inno Setup compile.
-# Produces Plugin/Installer/Output/WFS-DIY-Plugins-Setup-0.0.1.exe
+# Produces Plugin/Installer/Output/WFS-DIY-Plugins-Setup-0.0.2.exe
 
 param(
     [string]$Configuration = "Release",
