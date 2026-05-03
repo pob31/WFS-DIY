@@ -3674,6 +3674,11 @@ public:
         helpTextMap[&reloadSystemConfigBackupButton] = LOC("systemConfig.help.reloadSystemBackup");
         helpTextMap[&importSystemConfigButton] = LOC("systemConfig.help.importSystem");
         helpTextMap[&exportSystemConfigButton] = LOC("systemConfig.help.exportSystem");
+        helpTextMap[&diagnosticsToggleButton] = LOC("systemConfig.help.diagnosticsToggle");
+        helpTextMap[&exportLogsButton] = LOC("systemConfig.help.exportLogs");
+        helpTextMap[&openLogFolderButton] = LOC("systemConfig.help.openLogFolder");
+        helpTextMap[&copySystemInfoButton] = LOC("systemConfig.help.copySystemInfo");
+        helpTextMap[&githubIssueButton] = LOC("systemConfig.help.reportIssue");
     }
 
     void setupMouseListeners()

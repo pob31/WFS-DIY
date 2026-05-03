@@ -263,8 +263,8 @@ void InputPatchTab::resized()
     buttonBar.removeFromLeft(buttonSpacing);
     patchingButton.setBounds(buttonBar.removeFromLeft(buttonWidth));
 
-    // Unpatch All button on the right
-    unpatchAllButton.setBounds(buttonBar.removeFromRight(buttonWidth));
+    // Unpatch All button on the right (wider to fit translated labels)
+    unpatchAllButton.setBounds(buttonBar.removeFromRight(sc(150)));
 
     // Patch matrix fills remaining space
     patchMatrix->setBounds(bounds);
@@ -515,8 +515,8 @@ void OutputPatchTab::resized()
     buttonBar.removeFromLeft(buttonSpacing);
     testingButton.setBounds(buttonBar.removeFromLeft(buttonWidth));
 
-    // Unpatch All button on the right
-    unpatchAllButton.setBounds(buttonBar.removeFromRight(buttonWidth));
+    // Unpatch All button on the right (wider to fit translated labels)
+    unpatchAllButton.setBounds(buttonBar.removeFromRight(sc(150)));
 
     // Inline test controls (between Testing button and Unpatch All)
     if (signalTypeCombo.isVisible())

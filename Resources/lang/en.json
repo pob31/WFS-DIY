@@ -263,7 +263,12 @@
       "binauralDistance": "Distance of binaural listener from stage origin (meters).",
       "binauralAngle": "Horizontal rotation of binaural listener view (degrees, 0 = facing stage).",
       "binauralAtten": "Overall level offset for binaural output (dB).",
-      "binauralDelay": "Additional delay for binaural output (milliseconds)."
+      "binauralDelay": "Additional delay for binaural output (milliseconds).",
+      "diagnosticsToggle": "Long-press to show or hide the diagnostic tools (export logs, open log folder, copy system info, report issue).",
+      "exportLogs": "Export diagnostic logs to a zip file for debugging or support.",
+      "openLogFolder": "Open the application's log folder in the system file explorer.",
+      "copySystemInfo": "Copy detailed system information to the clipboard for support requests.",
+      "reportIssue": "Open the WFS-DIY GitHub issues page in your default browser."
     },
 
     "messages": {
