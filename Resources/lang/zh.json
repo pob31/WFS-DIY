@@ -284,6 +284,13 @@
       "scaleZ": "缩放Z:",
       "oscPath": "OSC 路径:",
       "psnInterface": "PSN 接口:",
+      "mqttHost": "主机:",
+      "mqttTopic": "主题:",
+      "mqttTagIds": "标签 ID...",
+      "mqttJsonX": "X:",
+      "mqttJsonY": "Y:",
+      "mqttJsonZ": "Z:",
+      "mqttJsonQ": "Q:",
       "notAvailable": "不可用",
       "localhost": "本机 (127.0.0.1)",
       "admAxisSwap": "源轴:",
@@ -414,6 +421,7 @@
       "admOsc": "ADM-OSC",
       "psn": "PosiStageNet (PSN)",
       "rttrp": "RTTrP",
+      "mqtt": "MQTT",
       "qlab": "QLab",
       "udp": "UDP",
       "tcp": "TCP"
@@ -630,15 +638,61 @@
       "noInputs": "未分配输入",
       "trackedMarker": "[T]"
     },
-    "qlabPresetCueName": "集群 {cluster} LFO预设: {name}",
-    "qlabPresetCueCreated": "QLab提示已创建: 集群 {cluster} 预设 \"{name}\"",
     "toggles": {
+      "lfoOn": "L.F.O: 开",
+      "lfoOff": "L.F.O: 关",
       "inputsVisible": "输入：可见",
       "inputsHidden": "输入：隐藏"
     },
+    "lfo": {
+      "labels": {
+        "section": "LFO",
+        "period": "周期：",
+        "phase": "相位：",
+        "amplitude": "幅度：",
+        "angle": "角度：",
+        "ratio": "比率：",
+        "rate": "速率："
+      }
+    },
     "help": {
-      "inputsVisibility": "在地图选项卡中显示或隐藏此集群的输入。隐藏会应用于新成员；移除输入将恢复其可见性。"
-    }
+      "inputsVisibility": "在地图选项卡中显示或隐藏此集群的输入。隐藏会应用于新成员；移除输入将恢复其可见性。",
+      "referenceMode": "选择集群变换的参考点：第一个输入或重心。",
+      "positionJoystick": "在 X/Y 方向移动集群的所有输入。按住并拖动以平移。",
+      "zSlider": "沿 Z 轴（高度）移动集群的所有输入。",
+      "attenuationSlider": "调整集群所有输入的衰减（dB）。",
+      "rotationDial": "在选定平面内围绕参考点旋转集群的所有输入。",
+      "scaleJoystick": "在选定平面内相对于参考点缩放集群输入。",
+      "planeSelector": "选择用于旋转和缩放操作的平面（XY、XZ、YZ）。",
+      "lfoActiveButton": "启用或禁用集群的周期性运动（LFO）。",
+      "lfoPeriodDial": "集群运动的基础周期。",
+      "lfoPhaseDial": "集群运动的全局相位偏移。",
+      "presetTile": "点击：调用预设。双击：调用 + 启动。中键/右键点击：保存当前 LFO。",
+      "stopAllLFO": "停止全部 10 个集群上的 LFO。",
+      "exportPresets": "将全部 16 个 LFO 预设导出到 XML 文件。",
+      "importPresets": "从 XML 文件导入 LFO 预设。",
+      "qlabPreset": "创建 QLab 网络提示，以调用当前集群最后选择的 LFO 预设。"
+    },
+    "presets": {
+      "stopAll": "全部停止",
+      "export": "导出",
+      "import": "导入",
+      "exportDialog": "导出 LFO 预设",
+      "importDialog": "导入 LFO 预设",
+      "stored": "LFO 预设已保存到方格 {n}。",
+      "recalled": "已从方格 {n} 调用 LFO 预设。",
+      "exported": "LFO 预设已导出。",
+      "imported": "LFO 预设已导入。"
+    },
+    "osc": {
+      "lfoActive": "/wfs/cluster/lfoActive <id> <0|1>",
+      "lfoPeriod": "/wfs/cluster/lfoPeriod <id> <秒>",
+      "lfoPhase": "/wfs/cluster/lfoPhase <id> <度>",
+      "lfoPresetRecall": "/wfs/cluster/lfoPresetRecall <clusterId> <预设编号>",
+      "lfoStopAll": "/wfs/cluster/lfoStopAll"
+    },
+    "qlabPresetCueName": "集群 {cluster} LFO预设: {name}",
+    "qlabPresetCueCreated": "QLab提示已创建: 集群 {cluster} 预设 \"{name}\""
   },
   "eq": {
     "status": {

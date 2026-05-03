@@ -284,6 +284,13 @@
       "scaleZ": "Escala Z:",
       "oscPath": "OSC Path:",
       "psnInterface": "PSN Interface:",
+      "mqttHost": "Host:",
+      "mqttTopic": "Tópico:",
+      "mqttTagIds": "IDs Tag...",
+      "mqttJsonX": "X:",
+      "mqttJsonY": "Y:",
+      "mqttJsonZ": "Z:",
+      "mqttJsonQ": "Q:",
       "notAvailable": "Not available",
       "localhost": "Localhost (127.0.0.1)",
       "admAxisSwap": "Eixo de origem:",
@@ -414,6 +421,7 @@
       "admOsc": "ADM-OSC",
       "psn": "PosiStageNet (PSN)",
       "rttrp": "RTTrP",
+      "mqtt": "MQTT",
       "qlab": "QLab",
       "udp": "UDP",
       "tcp": "TCP"
@@ -630,15 +638,61 @@
       "noInputs": "Sem entradas atribuídas",
       "trackedMarker": "[T]"
     },
-    "qlabPresetCueName": "Cluster {cluster} Preset LFO: {name}",
-    "qlabPresetCueCreated": "Cue QLab criado: Cluster {cluster} preset \"{name}\"",
     "toggles": {
+      "lfoOn": "L.F.O: ON",
+      "lfoOff": "L.F.O: OFF",
       "inputsVisible": "Entradas: Visíveis",
       "inputsHidden": "Entradas: Ocultas"
     },
+    "lfo": {
+      "labels": {
+        "section": "LFO",
+        "period": "Período:",
+        "phase": "Fase:",
+        "amplitude": "Amplitude:",
+        "angle": "Ângulo:",
+        "ratio": "Razão:",
+        "rate": "Velocidade:"
+      }
+    },
     "help": {
-      "inputsVisibility": "Mostrar ou ocultar as entradas deste cluster no Mapa. Ocultar propaga para novos membros; remover uma entrada restaura a sua visibilidade."
-    }
+      "inputsVisibility": "Mostrar ou ocultar as entradas deste cluster no Mapa. Ocultar propaga para novos membros; remover uma entrada restaura a sua visibilidade.",
+      "referenceMode": "Selecione o ponto de referência para as transformações do cluster: Primeira Entrada ou Baricentro.",
+      "positionJoystick": "Mover todas as entradas do cluster em X/Y. Manter pressionado e arrastar para transladar.",
+      "zSlider": "Mover todas as entradas do cluster ao longo do eixo Z (altura).",
+      "attenuationSlider": "Ajustar a atenuação de todas as entradas do cluster (dB).",
+      "rotationDial": "Rodar todas as entradas do cluster em torno do ponto de referência no plano selecionado.",
+      "scaleJoystick": "Escalar as entradas do cluster relativamente ao ponto de referência no plano selecionado.",
+      "planeSelector": "Selecionar o plano para as operações de rotação e escala (XY, XZ, YZ).",
+      "lfoActiveButton": "Ativar ou desativar o movimento periódico do cluster (LFO).",
+      "lfoPeriodDial": "Período base do movimento do cluster.",
+      "lfoPhaseDial": "Desfasamento global do movimento do cluster.",
+      "presetTile": "Clique: recuperar preset. Duplo clique: recuperar + iniciar. Clique do meio/direito: guardar o LFO atual.",
+      "stopAllLFO": "Parar o LFO em todos os 10 clusters.",
+      "exportPresets": "Exportar os 16 presets LFO para um ficheiro XML.",
+      "importPresets": "Importar presets LFO a partir de um ficheiro XML.",
+      "qlabPreset": "Criar uma cue de rede QLab para recuperar o último preset LFO selecionado para o cluster atual."
+    },
+    "presets": {
+      "stopAll": "Parar tudo",
+      "export": "Exportar",
+      "import": "Importar",
+      "exportDialog": "Exportar presets LFO",
+      "importDialog": "Importar presets LFO",
+      "stored": "Preset LFO guardado na casa {n}.",
+      "recalled": "Preset LFO recuperado da casa {n}.",
+      "exported": "Presets LFO exportados.",
+      "imported": "Presets LFO importados."
+    },
+    "osc": {
+      "lfoActive": "/wfs/cluster/lfoActive <id> <0|1>",
+      "lfoPeriod": "/wfs/cluster/lfoPeriod <id> <segundos>",
+      "lfoPhase": "/wfs/cluster/lfoPhase <id> <graus>",
+      "lfoPresetRecall": "/wfs/cluster/lfoPresetRecall <clusterId> <numeroPreset>",
+      "lfoStopAll": "/wfs/cluster/lfoStopAll"
+    },
+    "qlabPresetCueName": "Cluster {cluster} Preset LFO: {name}",
+    "qlabPresetCueCreated": "Cue QLab criado: Cluster {cluster} preset \"{name}\""
   },
   "eq": {
     "status": {

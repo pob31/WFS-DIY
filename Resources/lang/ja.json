@@ -284,6 +284,14 @@
       "scaleZ": "スケールZ:",
       "oscPath": "OSC Path:",
       "psnInterface": "PSN Interface:",
+      "mqttHost": "ホスト:",
+      "mqttTopic": "トピック:",
+      "mqttTagIds": "タグID...",
+      "mqttJsonX": "X:",
+      "mqttJsonY": "Y:",
+      "mqttJsonZ": "Z:",
+      "mqttJsonQ": "Q:",
+      "admMapping": "マッピング:",
       "notAvailable": "Not available",
       "localhost": "Localhost (127.0.0.1)"
     },
@@ -333,7 +341,9 @@
       "reloadBackup": "Reload Network Configuration from backup file.",
       "importConfig": "Import Network Configuration from file.",
       "exportConfig": "Export Network Configuration to file.",
-      "removeTarget": "Delete this Network Target."
+      "removeTarget": "Delete this Network Target.",
+      "admMapping": "設定するADM-OSCマッピングを選択します。Cart = カーテシアン (xyz)、Polar = 球面 (aed)。",
+      "admMappingPanel": "ドットをドラッグしてマッピングを編集。軸タイトルをクリックで入れ替え、Flipをクリックで反転。Shiftを押しながらで両側を対称に編集。"
     },
     "buttons": {
       "storeConfig": "ネットワーク設定を保存",
@@ -378,6 +388,7 @@
       "admOsc": "ADM-OSC",
       "psn": "PosiStageNet (PSN)",
       "rttrp": "RTTrP",
+      "mqtt": "MQTT",
       "qlab": "QLab",
       "udp": "UDP",
       "tcp": "TCP"
@@ -594,15 +605,61 @@
       "noInputs": "入力が割り当てられていません",
       "trackedMarker": "[T]"
     },
-    "qlabPresetCueName": "クラスター {cluster} LFOプリセット: {name}",
-    "qlabPresetCueCreated": "QLabキュー作成: クラスター {cluster} プリセット \"{name}\"",
     "toggles": {
+      "lfoOn": "L.F.O: ON",
+      "lfoOff": "L.F.O: OFF",
       "inputsVisible": "入力: 表示",
       "inputsHidden": "入力: 非表示"
     },
+    "lfo": {
+      "labels": {
+        "section": "LFO",
+        "period": "周期:",
+        "phase": "位相:",
+        "amplitude": "振幅:",
+        "angle": "角度:",
+        "ratio": "比率:",
+        "rate": "レート:"
+      }
+    },
     "help": {
-      "inputsVisibility": "このクラスターの入力をマップタブで表示/非表示にします。非表示は新しいメンバーにも適用され、入力を削除すると再び表示されます。"
-    }
+      "inputsVisibility": "このクラスターの入力をマップタブで表示/非表示にします。非表示は新しいメンバーにも適用され、入力を削除すると再び表示されます。",
+      "referenceMode": "クラスター変換の基準点を選択: 最初の入力または重心。",
+      "positionJoystick": "クラスター内のすべての入力をX/Yで移動。ホールドしてドラッグで平行移動。",
+      "zSlider": "クラスター内のすべての入力をZ軸（高さ）に沿って移動。",
+      "attenuationSlider": "クラスター内のすべての入力の減衰を調整 (dB)。",
+      "rotationDial": "選択した平面上で、基準点を中心にクラスターのすべての入力を回転。",
+      "scaleJoystick": "選択した平面上で、基準点を中心にクラスター入力をスケーリング。",
+      "planeSelector": "回転とスケールの操作用の平面を選択 (XY、XZ、YZ)。",
+      "lfoActiveButton": "クラスターの周期的動作 (LFO) を有効/無効にします。",
+      "lfoPeriodDial": "クラスター動作の基本周期。",
+      "lfoPhaseDial": "クラスター動作のグローバル位相オフセット。",
+      "presetTile": "クリック: プリセット呼び出し。ダブルクリック: 呼び出し+開始。中/右クリック: 現在のLFOを保存。",
+      "stopAllLFO": "10個すべてのクラスターでLFOを停止。",
+      "exportPresets": "16個のLFOプリセットをすべてXMLファイルにエクスポート。",
+      "importPresets": "XMLファイルからLFOプリセットをインポート。",
+      "qlabPreset": "現在のクラスターで最後に選択されたLFOプリセットを呼び出すQLabネットワークキューを作成。"
+    },
+    "presets": {
+      "stopAll": "すべて停止",
+      "export": "エクスポート",
+      "import": "インポート",
+      "exportDialog": "LFOプリセットをエクスポート",
+      "importDialog": "LFOプリセットをインポート",
+      "stored": "LFOプリセットをタイル {n} に保存しました。",
+      "recalled": "LFOプリセットをタイル {n} から呼び出しました。",
+      "exported": "LFOプリセットをエクスポートしました。",
+      "imported": "LFOプリセットをインポートしました。"
+    },
+    "osc": {
+      "lfoActive": "/wfs/cluster/lfoActive <id> <0|1>",
+      "lfoPeriod": "/wfs/cluster/lfoPeriod <id> <秒>",
+      "lfoPhase": "/wfs/cluster/lfoPhase <id> <度>",
+      "lfoPresetRecall": "/wfs/cluster/lfoPresetRecall <clusterId> <プリセット番号>",
+      "lfoStopAll": "/wfs/cluster/lfoStopAll"
+    },
+    "qlabPresetCueName": "クラスター {cluster} LFOプリセット: {name}",
+    "qlabPresetCueCreated": "QLabキュー作成: クラスター {cluster} プリセット \"{name}\""
   },
   "eq": {
     "status": {
@@ -1207,7 +1264,8 @@
       "reset": "リセット:",
       "muteMacros": "ミュートマクロ:",
       "arrayAttenuation": "アレイ減衰:",
-      "fringe": "フリンジ:"
+      "fringe": "フリンジ:",
+      "admMapping": "ADM:"
     },
     "buttons": {
       "solo": "Solo",
@@ -1480,7 +1538,8 @@
       "otomoDest3": "相対または絶対の目的地 {name}（{unit}）。",
       "nudgeHint1": " 左右キーで調整。",
       "nudgeHint2": " 上下キーで調整。",
-      "nudgeHint3": " Page Up/Downで調整。"
+      "nudgeHint3": " Page Up/Downで調整。",
+      "admMapping": "この入力をADM-OSCマッピングに割り当て、位置の送受信を行います。"
     },
     "visualisation": {
       "delay": "delay",

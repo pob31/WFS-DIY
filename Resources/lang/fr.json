@@ -296,6 +296,13 @@
       "scaleZ": "Échelle Z :",
       "oscPath": "Chemin OSC :",
       "psnInterface": "Interface PSN :",
+      "mqttHost": "Hôte :",
+      "mqttTopic": "Sujet :",
+      "mqttTagIds": "IDs Tag...",
+      "mqttJsonX": "X :",
+      "mqttJsonY": "Y :",
+      "mqttJsonZ": "Z :",
+      "mqttJsonQ": "Q :",
       "notAvailable": "Not available",
       "localhost": "Localhost (127.0.0.1)",
       "admAxisSwap": "Axe source :",
@@ -426,6 +433,7 @@
       "admOsc": "ADM-OSC",
       "psn": "PosiStageNet (PSN)",
       "rttrp": "RTTrP",
+      "mqtt": "MQTT",
       "qlab": "QLab",
       "udp": "UDP",
       "tcp": "TCP"
@@ -642,15 +650,61 @@
       "noInputs": "Aucune entrée assignée",
       "trackedMarker": "[S]"
     },
-    "qlabPresetCueName": "Cluster {cluster} Preset LFO : {name}",
-    "qlabPresetCueCreated": "Cue QLab créé : Cluster {cluster} preset \"{name}\"",
     "toggles": {
+      "lfoOn": "L.F.O : OUI",
+      "lfoOff": "L.F.O : NON",
       "inputsVisible": "Entrées : Visibles",
       "inputsHidden": "Entrées : Masquées"
     },
+    "lfo": {
+      "labels": {
+        "section": "LFO",
+        "period": "Période :",
+        "phase": "Phase :",
+        "amplitude": "Amplitude :",
+        "angle": "Angle :",
+        "ratio": "Ratio :",
+        "rate": "Vitesse :"
+      }
+    },
     "help": {
-      "inputsVisibility": "Afficher ou masquer les entrées de ce cluster sur la carte. Le masquage s'applique aussi aux nouvelles entrées ; retirer une entrée la rend à nouveau visible."
-    }
+      "inputsVisibility": "Afficher ou masquer les entrées de ce cluster sur la carte. Le masquage s'applique aussi aux nouvelles entrées ; retirer une entrée la rend à nouveau visible.",
+      "referenceMode": "Sélectionner le point de référence pour les transformations du cluster : Première entrée ou Barycentre.",
+      "positionJoystick": "Déplacer toutes les entrées du cluster en X/Y. Cliquer et glisser pour translater.",
+      "zSlider": "Déplacer toutes les entrées du cluster sur l'axe Z (hauteur).",
+      "attenuationSlider": "Régler l'atténuation de toutes les entrées du cluster (dB).",
+      "rotationDial": "Faire pivoter toutes les entrées du cluster autour du point de référence dans le plan sélectionné.",
+      "scaleJoystick": "Mettre à l'échelle les entrées du cluster par rapport au point de référence dans le plan sélectionné.",
+      "planeSelector": "Sélectionner le plan pour les opérations de rotation et d'échelle (XY, XZ, YZ).",
+      "lfoActiveButton": "Activer ou désactiver le mouvement périodique du cluster (LFO).",
+      "lfoPeriodDial": "Période de base du mouvement du cluster.",
+      "lfoPhaseDial": "Décalage de phase global du mouvement du cluster.",
+      "presetTile": "Clic : rappeler le preset. Double-clic : rappeler + démarrer. Clic milieu/droit : enregistrer le LFO actuel.",
+      "stopAllLFO": "Arrêter le LFO sur les 10 clusters.",
+      "exportPresets": "Exporter les 16 presets LFO vers un fichier XML.",
+      "importPresets": "Importer les presets LFO depuis un fichier XML.",
+      "qlabPreset": "Créer une cue réseau QLab pour rappeler le dernier preset LFO sélectionné pour le cluster courant."
+    },
+    "presets": {
+      "stopAll": "Tout arrêter",
+      "export": "Exporter",
+      "import": "Importer",
+      "exportDialog": "Exporter les presets LFO",
+      "importDialog": "Importer les presets LFO",
+      "stored": "Preset LFO enregistré dans la case {n}.",
+      "recalled": "Preset LFO rappelé depuis la case {n}.",
+      "exported": "Presets LFO exportés.",
+      "imported": "Presets LFO importés."
+    },
+    "osc": {
+      "lfoActive": "/wfs/cluster/lfoActive <id> <0|1>",
+      "lfoPeriod": "/wfs/cluster/lfoPeriod <id> <secondes>",
+      "lfoPhase": "/wfs/cluster/lfoPhase <id> <degrés>",
+      "lfoPresetRecall": "/wfs/cluster/lfoPresetRecall <clusterId> <numéroPreset>",
+      "lfoStopAll": "/wfs/cluster/lfoStopAll"
+    },
+    "qlabPresetCueName": "Cluster {cluster} Preset LFO : {name}",
+    "qlabPresetCueCreated": "Cue QLab créé : Cluster {cluster} preset \"{name}\""
   },
   "eq": {
     "status": {

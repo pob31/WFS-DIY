@@ -284,6 +284,13 @@
       "scaleZ": "Scala Z:",
       "oscPath": "OSC Path:",
       "psnInterface": "PSN Interface:",
+      "mqttHost": "Host:",
+      "mqttTopic": "Argomento:",
+      "mqttTagIds": "ID Tag...",
+      "mqttJsonX": "X:",
+      "mqttJsonY": "Y:",
+      "mqttJsonZ": "Z:",
+      "mqttJsonQ": "Q:",
       "notAvailable": "Not available",
       "localhost": "Localhost (127.0.0.1)",
       "admAxisSwap": "Asse sorgente:",
@@ -414,6 +421,7 @@
       "admOsc": "ADM-OSC",
       "psn": "PosiStageNet (PSN)",
       "rttrp": "RTTrP",
+      "mqtt": "MQTT",
       "qlab": "QLab",
       "udp": "UDP",
       "tcp": "TCP"
@@ -630,15 +638,61 @@
       "noInputs": "Nessun ingresso assegnato",
       "trackedMarker": "[T]"
     },
-    "qlabPresetCueName": "Cluster {cluster} Preset LFO: {name}",
-    "qlabPresetCueCreated": "Cue QLab creato: Cluster {cluster} preset \"{name}\"",
     "toggles": {
+      "lfoOn": "L.F.O: ON",
+      "lfoOff": "L.F.O: OFF",
       "inputsVisible": "Ingressi: Visibili",
       "inputsHidden": "Ingressi: Nascosti"
     },
+    "lfo": {
+      "labels": {
+        "section": "LFO",
+        "period": "Periodo:",
+        "phase": "Fase:",
+        "amplitude": "Ampiezza:",
+        "angle": "Angolo:",
+        "ratio": "Rapporto:",
+        "rate": "Velocità:"
+      }
+    },
     "help": {
-      "inputsVisibility": "Mostra o nascondi gli ingressi di questo cluster sulla Mappa. Nascondere si propaga ai nuovi membri; rimuovere un ingresso ripristina la sua visibilità."
-    }
+      "inputsVisibility": "Mostra o nascondi gli ingressi di questo cluster sulla Mappa. Nascondere si propaga ai nuovi membri; rimuovere un ingresso ripristina la sua visibilità.",
+      "referenceMode": "Selezionare il punto di riferimento per le trasformazioni del cluster: Primo Ingresso o Baricentro.",
+      "positionJoystick": "Spostare tutti gli ingressi del cluster in X/Y. Tenere premuto e trascinare per traslare.",
+      "zSlider": "Spostare tutti gli ingressi del cluster lungo l'asse Z (altezza).",
+      "attenuationSlider": "Regolare l'attenuazione di tutti gli ingressi del cluster (dB).",
+      "rotationDial": "Ruotare tutti gli ingressi del cluster attorno al punto di riferimento nel piano selezionato.",
+      "scaleJoystick": "Scalare gli ingressi del cluster rispetto al punto di riferimento nel piano selezionato.",
+      "planeSelector": "Selezionare il piano per le operazioni di rotazione e scala (XY, XZ, YZ).",
+      "lfoActiveButton": "Attivare o disattivare il movimento periodico del cluster (LFO).",
+      "lfoPeriodDial": "Periodo di base del movimento del cluster.",
+      "lfoPhaseDial": "Sfasamento globale del movimento del cluster.",
+      "presetTile": "Clic: richiama preset. Doppio clic: richiama + avvia. Clic centrale/destro: memorizza l'LFO corrente.",
+      "stopAllLFO": "Ferma l'LFO su tutti e 10 i cluster.",
+      "exportPresets": "Esporta tutti i 16 preset LFO in un file XML.",
+      "importPresets": "Importa preset LFO da un file XML.",
+      "qlabPreset": "Crea una cue di rete QLab per richiamare l'ultimo preset LFO selezionato per il cluster corrente."
+    },
+    "presets": {
+      "stopAll": "Ferma tutto",
+      "export": "Esporta",
+      "import": "Importa",
+      "exportDialog": "Esporta preset LFO",
+      "importDialog": "Importa preset LFO",
+      "stored": "Preset LFO memorizzato nella casella {n}.",
+      "recalled": "Preset LFO richiamato dalla casella {n}.",
+      "exported": "Preset LFO esportati.",
+      "imported": "Preset LFO importati."
+    },
+    "osc": {
+      "lfoActive": "/wfs/cluster/lfoActive <id> <0|1>",
+      "lfoPeriod": "/wfs/cluster/lfoPeriod <id> <secondi>",
+      "lfoPhase": "/wfs/cluster/lfoPhase <id> <gradi>",
+      "lfoPresetRecall": "/wfs/cluster/lfoPresetRecall <clusterId> <numeroPreset>",
+      "lfoStopAll": "/wfs/cluster/lfoStopAll"
+    },
+    "qlabPresetCueName": "Cluster {cluster} Preset LFO: {name}",
+    "qlabPresetCueCreated": "Cue QLab creato: Cluster {cluster} preset \"{name}\""
   },
   "eq": {
     "status": {
