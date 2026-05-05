@@ -396,7 +396,7 @@
     <MODULE id="juce_simpleweb" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="roli_blocks_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
   </MODULES>
-  <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_USE_ANDROID_OBOE="0" JUCE_JACK="1"
+  <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_USE_ANDROID_OBOE="0" JUCE_JACK="0"
                JUCE_ASIO="1" JUCE_ALSA="1" JUCE_PLUGINHOST_LV2="0" JUCE_PLUGINHOST_ARA="0"/>
   <EXPORTFORMATS>
     <LINUX_MAKE targetFolder="Builds/LinuxMakefile" smallIcon="SCj321" bigIcon="SCj321"
@@ -404,10 +404,10 @@
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY"
                        headerPath="../../ThirdParty/hidapi;../../ThirdParty/hidapi/hidapi"
-                       defines="SIMPLEWEB_SECURE_SUPPORTED=0"/>
+                       defines="SIMPLEWEB_SECURE_SUPPORTED=0 JUCE_JACK=1"/>
         <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY"
                        headerPath="../../ThirdParty/hidapi;../../ThirdParty/hidapi/hidapi"
-                       defines="SIMPLEWEB_SECURE_SUPPORTED=0"/>
+                       defines="SIMPLEWEB_SECURE_SUPPORTED=0 JUCE_JACK=1"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="ThirdParty/JUCE/modules"/>
