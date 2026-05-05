@@ -58,6 +58,7 @@
 		A8A7939ED5A7BFFDB060F2C9 /* OSCRateLimiter.cpp */ = {isa = PBXBuildFile; fileRef = 878AA473BBA4523BB5BAB723; };
 		AA0EE9B55A2E6FF945DED3B3 /* include_juce_gui_extra.mm */ = {isa = PBXBuildFile; fileRef = D142B9C18D9A93EA669B6723; };
 		AAC418A6E5F85C5C87EC1EB7 /* MCPGeneratedToolLoader.cpp */ = {isa = PBXBuildFile; fileRef = 4C334641BCD17BEF2B52C9EF; };
+		AD20E4B6ED2EBC763DA28A64 /* EvdevTouchDevice.cpp */ = {isa = PBXBuildFile; fileRef = 7E49158C30F5BE20B8B34F5B; };
 		B04CC6B6E6121F0A9BB69337 /* TrackingOSCReceiver.cpp */ = {isa = PBXBuildFile; fileRef = 476960E0E45FDB16B4FAAB0B; };
 		B1102ED88546CAF3585737B7 /* WFSCalculationEngine.cpp */ = {isa = PBXBuildFile; fileRef = B2E5BB6DF397E59F6073DDFA; };
 		B189CAC736E2215D673E4945 /* include_juce_graphics_Sheenbidi.c */ = {isa = PBXBuildFile; fileRef = 2976DFB15F05C50CF08305D4; };
@@ -92,6 +93,7 @@
 		F3E9874CAF23860578708A33 /* include_juce_audio_basics.mm */ = {isa = PBXBuildFile; fileRef = EF8F5550038C576E96ECCBC3; };
 		F43ABAF1DAF97DA45A1AC7C0 /* NetworkLogWindow.cpp */ = {isa = PBXBuildFile; fileRef = 7F18FF6B90FC3250D411E692; };
 		F4AA488127D811825687FFDC /* include_juce_gui_basics.mm */ = {isa = PBXBuildFile; fileRef = 300E93A1943132FBD96DBD77; };
+		F5DB92EC3AE39F873B74C1A1 /* EvdevTouchManager.cpp */ = {isa = PBXBuildFile; fileRef = C37C3249EA99336CA8B6BA10; };
 		F7291D04FD22C7330C3E1864 /* include_juce_graphics_Harfbuzz.cpp */ = {isa = PBXBuildFile; fileRef = 1A10EA3687120F02EC073242; };
 		FD2FC5D2F99B3A1B75B972FC /* include_juce_simpleweb2.cpp */ = {isa = PBXBuildFile; fileRef = A70FA3BA6E2E60FAE3C0A5E4; };
 		FDC229349202F898CBA4ACF9 /* TrackingRTTrPReceiver.cpp */ = {isa = PBXBuildFile; fileRef = CDBED1B9FA3F02E13A4435CE; };
@@ -109,6 +111,7 @@
 		0724D2EC3F7252162C616AE8 /* InputsTab.h */ /* InputsTab.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = InputsTab.h; path = ../../Source/gui/InputsTab.h; sourceTree = SOURCE_ROOT; };
 		08134ACD67020F7944801D62 /* WfsParameters.h */ /* WfsParameters.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WfsParameters.h; path = ../../Source/WfsParameters.h; sourceTree = SOURCE_ROOT; };
 		0965060F26497EE431A8A356 /* WFS-DIY_logo.png */ /* WFS-DIY_logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "WFS-DIY_logo.png"; path = "../../Resources/WFS-DIY_logo.png"; sourceTree = SOURCE_ROOT; };
+		0C6B2CAB2D4C605312C8C3C0 /* EvdevTouchManager.h */ /* EvdevTouchManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = EvdevTouchManager.h; path = ../../Source/Controllers/Touch/Linux/EvdevTouchManager.h; sourceTree = SOURCE_ROOT; };
 		10B5F6956A7261934156D7A8 /* IOKit.framework */ /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		115C92726FC6EAC82D859DF6 /* GradientMapEvaluator.h */ /* GradientMapEvaluator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GradientMapEvaluator.h; path = ../../Source/GradientMap/GradientMapEvaluator.h; sourceTree = SOURCE_ROOT; };
 		11DA25FE53363679529C4A42 /* ArrayGeometryCalculator.h */ /* ArrayGeometryCalculator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ArrayGeometryCalculator.h; path = ../../Source/Helpers/ArrayGeometryCalculator.h; sourceTree = SOURCE_ROOT; };
@@ -169,8 +172,10 @@
 		49B4DD71B5401B3D22E619EE /* SystemConfigTabPages.h */ /* SystemConfigTabPages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SystemConfigTabPages.h; path = ../../Source/Controllers/DialsAndButtons/pages/SystemConfigTabPages.h; sourceTree = SOURCE_ROOT; };
 		4B6061E2662DD31DD344DA07 /* MCPServer.cpp */ /* MCPServer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPServer.cpp; path = ../../Source/Network/MCP/MCPServer.cpp; sourceTree = SOURCE_ROOT; };
 		4B817C847A7AC2CDC244E66C /* GpuInputBufferAlgorithm.h */ /* GpuInputBufferAlgorithm.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GpuInputBufferAlgorithm.h; path = ../../Source/DSP/GpuInputBufferAlgorithm.h; sourceTree = SOURCE_ROOT; };
+		4B82B2906A2C2E9E9FA0335A /* TouchManagerStub.h */ /* TouchManagerStub.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TouchManagerStub.h; path = ../../Source/Controllers/Touch/TouchManagerStub.h; sourceTree = SOURCE_ROOT; };
 		4C334641BCD17BEF2B52C9EF /* MCPGeneratedToolLoader.cpp */ /* MCPGeneratedToolLoader.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPGeneratedToolLoader.cpp; path = ../../Source/Network/MCP/MCPGeneratedToolLoader.cpp; sourceTree = SOURCE_ROOT; };
 		4E47CBDA2F72471CB13EF459 /* MCPOSCQueryAuditor.cpp */ /* MCPOSCQueryAuditor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPOSCQueryAuditor.cpp; path = ../../Source/Network/MCP/MCPOSCQueryAuditor.cpp; sourceTree = SOURCE_ROOT; };
+		4E9B16586B7C1B6A82EFB9D7 /* TouchManager.h */ /* TouchManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TouchManager.h; path = ../../Source/Controllers/Touch/TouchManager.h; sourceTree = SOURCE_ROOT; };
 		52706EBD8973DFD0F1366FCF /* OSCReceiverWithSenderIP.cpp */ /* OSCReceiverWithSenderIP.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCReceiverWithSenderIP.cpp; path = ../../Source/Network/OSCReceiverWithSenderIP.cpp; sourceTree = SOURCE_ROOT; };
 		527DE6F349B1DF165D7D2BF1 /* ClustersTabPages.h */ /* ClustersTabPages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ClustersTabPages.h; path = ../../Source/Controllers/DialsAndButtons/pages/ClustersTabPages.h; sourceTree = SOURCE_ROOT; };
 		54B2A0562D44FAFD14948BD4 /* Accelerate.framework */ /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
@@ -182,6 +187,7 @@
 		58550861937D9037981CEAF5 /* OpenGL.framework */ /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
 		5887A796DF1FB3E3F1EB274D /* ChannelLifecycleTools.h */ /* ChannelLifecycleTools.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ChannelLifecycleTools.h; path = ../../Source/Network/MCP/tools/ChannelLifecycleTools.h; sourceTree = SOURCE_ROOT; };
 		59A4A88F7E78594000D4D566 /* LightpadTypes.h */ /* LightpadTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = LightpadTypes.h; path = ../../Source/Controllers/Sampler/LightpadTypes.h; sourceTree = SOURCE_ROOT; };
+		5AE5C9C7BB6DD040F5788AAC /* EvdevTouchDevice.h */ /* EvdevTouchDevice.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = EvdevTouchDevice.h; path = ../../Source/Controllers/Touch/Linux/EvdevTouchDevice.h; sourceTree = SOURCE_ROOT; };
 		5D1984E28D7BAC5B5AF934B5 /* juce_audio_processors */ /* juce_audio_processors */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_audio_processors; path = ../../ThirdParty/JUCE/modules/juce_audio_processors; sourceTree = SOURCE_ROOT; };
 		5DCF6592130A5D09FC39EB71 /* AudioInterfaceWindow.cpp */ /* AudioInterfaceWindow.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioInterfaceWindow.cpp; path = ../../Source/gui/AudioInterfaceWindow.cpp; sourceTree = SOURCE_ROOT; };
 		601124A6913C54CD5AC91469 /* OSCMessageRouter.h */ /* OSCMessageRouter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCMessageRouter.h; path = ../../Source/Network/OSCMessageRouter.h; sourceTree = SOURCE_ROOT; };
@@ -199,6 +205,7 @@
 		6EDCA6152CCF68F79BC3E7F4 /* OSCLogger.cpp */ /* OSCLogger.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCLogger.cpp; path = ../../Source/Network/OSCLogger.cpp; sourceTree = SOURCE_ROOT; };
 		6F21025606613B42ABF1D66A /* MCPDispatcher.cpp */ /* MCPDispatcher.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPDispatcher.cpp; path = ../../Source/Network/MCP/MCPDispatcher.cpp; sourceTree = SOURCE_ROOT; };
 		6FEDBAFEF6FC82D102F18212 /* MCPParameterRegistry.cpp */ /* MCPParameterRegistry.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPParameterRegistry.cpp; path = ../../Source/Network/MCP/MCPParameterRegistry.cpp; sourceTree = SOURCE_ROOT; };
+		70748173154B86A649E7D0C7 /* LinuxTouchscreenWindow.h */ /* LinuxTouchscreenWindow.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = LinuxTouchscreenWindow.h; path = ../../Source/gui/LinuxTouchscreenWindow.h; sourceTree = SOURCE_ROOT; };
 		730F1505560F6C73AE07E7F8 /* TTSManager.h */ /* TTSManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TTSManager.h; path = ../../Source/Accessibility/TTSManager.h; sourceTree = SOURCE_ROOT; };
 		731872EE6D0947D8D5946510 /* juce_audio_devices */ /* juce_audio_devices */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_audio_devices; path = ../../ThirdParty/JUCE/modules/juce_audio_devices; sourceTree = SOURCE_ROOT; };
 		733D0E78F18ED00D054A394F /* StateInspectionTools.h */ /* StateInspectionTools.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StateInspectionTools.h; path = ../../Source/Network/MCP/tools/StateInspectionTools.h; sourceTree = SOURCE_ROOT; };
@@ -216,6 +223,7 @@
 		7C12942DF45AB151CC4D8F49 /* juce_audio_utils */ /* juce_audio_utils */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_audio_utils; path = ../../ThirdParty/JUCE/modules/juce_audio_utils; sourceTree = SOURCE_ROOT; };
 		7CC2840AD0983A4EADE1F6C9 /* RTTrPDecoder.cpp */ /* RTTrPDecoder.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = RTTrPDecoder.cpp; path = ../../Source/Network/RTTrPDecoder.cpp; sourceTree = SOURCE_ROOT; };
 		7E32DBC79453A291C75AE2B7 /* OSCLogger.h */ /* OSCLogger.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCLogger.h; path = ../../Source/Network/OSCLogger.h; sourceTree = SOURCE_ROOT; };
+		7E49158C30F5BE20B8B34F5B /* EvdevTouchDevice.cpp */ /* EvdevTouchDevice.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = EvdevTouchDevice.cpp; path = ../../Source/Controllers/Touch/Linux/EvdevTouchDevice.cpp; sourceTree = SOURCE_ROOT; };
 		7E602E26466DEF84F54CDE94 /* MCPToolRegistry.cpp */ /* MCPToolRegistry.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPToolRegistry.cpp; path = ../../Source/Network/MCP/MCPToolRegistry.cpp; sourceTree = SOURCE_ROOT; };
 		7E68237EC4C420693FC98A70 /* InputSpeedLimiter.h */ /* InputSpeedLimiter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = InputSpeedLimiter.h; path = ../../Source/DSP/InputSpeedLimiter.h; sourceTree = SOURCE_ROOT; };
 		7F18FF6B90FC3250D411E692 /* NetworkLogWindow.cpp */ /* NetworkLogWindow.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = NetworkLogWindow.cpp; path = ../../Source/gui/NetworkLogWindow.cpp; sourceTree = SOURCE_ROOT; };
@@ -283,6 +291,7 @@
 		C13194A76B6B84669C156769 /* StatusBar.h */ /* StatusBar.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StatusBar.h; path = ../../Source/gui/StatusBar.h; sourceTree = SOURCE_ROOT; };
 		C23555C43C15F2DD0CF3BA9C /* Metal.framework */ /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		C2A444C276327D0BCFA3510A /* RecentFilesMenuTemplate.nib */ /* RecentFilesMenuTemplate.nib */ = {isa = PBXFileReference; lastKnownFileType = file.nib; name = RecentFilesMenuTemplate.nib; path = RecentFilesMenuTemplate.nib; sourceTree = SOURCE_ROOT; };
+		C37C3249EA99336CA8B6BA10 /* EvdevTouchManager.cpp */ /* EvdevTouchManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = EvdevTouchManager.cpp; path = ../../Source/Controllers/Touch/Linux/EvdevTouchManager.cpp; sourceTree = SOURCE_ROOT; };
 		C3A44553373C3A4BB428CBD7 /* UndoTools.h */ /* UndoTools.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = UndoTools.h; path = ../../Source/Network/MCP/tools/UndoTools.h; sourceTree = SOURCE_ROOT; };
 		C435718E1939D711C1FBBB2A /* StreamDeckDevice.h */ /* StreamDeckDevice.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StreamDeckDevice.h; path = ../../Source/Controllers/DialsAndButtons/StreamDeckDevice.h; sourceTree = SOURCE_ROOT; };
 		C4A579CA77213F74CE3E6FD2 /* MCPGeneratedToolLoader.h */ /* MCPGeneratedToolLoader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPGeneratedToolLoader.h; path = ../../Source/Network/MCP/MCPGeneratedToolLoader.h; sourceTree = SOURCE_ROOT; };
@@ -323,6 +332,7 @@
 		F3A42BE562AB161EC4D151FA /* NetworkTabPages.h */ /* NetworkTabPages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = NetworkTabPages.h; path = ../../Source/Controllers/DialsAndButtons/pages/NetworkTabPages.h; sourceTree = SOURCE_ROOT; };
 		F501EC4AF4B2C1E8EFCCF28A /* GradientMapData.h */ /* GradientMapData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GradientMapData.h; path = ../../Source/GradientMap/GradientMapData.h; sourceTree = SOURCE_ROOT; };
 		F5775FB8BB6E2B98B2D6B8DF /* include_juce_audio_devices.mm */ /* include_juce_audio_devices.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_devices.mm; path = ../../JuceLibraryCode/include_juce_audio_devices.mm; sourceTree = SOURCE_ROOT; };
+		F61FB9EECF0A40443A1C417E /* TouchDeviceMapping.h */ /* TouchDeviceMapping.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TouchDeviceMapping.h; path = ../../Source/Controllers/Touch/TouchDeviceMapping.h; sourceTree = SOURCE_ROOT; };
 		F64B4CF71AC3C68B406743A1 /* PatchMatrixComponent.h */ /* PatchMatrixComponent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PatchMatrixComponent.h; path = ../../Source/gui/PatchMatrixComponent.h; sourceTree = SOURCE_ROOT; };
 		F92F41AD7A59BCB8CE6CFEA3 /* MCPUndoOverlay.cpp */ /* MCPUndoOverlay.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPUndoOverlay.cpp; path = ../../Source/gui/MCPUndoOverlay.cpp; sourceTree = SOURCE_ROOT; };
 		F9DE7E32A4C4D2AAEBBFC546 /* ReverbTabPages.h */ /* ReverbTabPages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ReverbTabPages.h; path = ../../Source/Controllers/DialsAndButtons/pages/ReverbTabPages.h; sourceTree = SOURCE_ROOT; };
@@ -473,6 +483,7 @@
 				51F86F8D82FFA977F6B511DD,
 				8793A4061608B71DC46C0B52,
 				0555190B41B975F3FF79C3DD,
+				8D0395857B34FB73485ADA19,
 				46671364821BCB5DCF52BC95,
 				AE1207ECC59B747C80031900,
 				A6107472373FC76F35C046C0,
@@ -594,6 +605,21 @@
 				69C917578578859B1CE878B8,
 			);
 			name = GradientMap;
+			sourceTree = "<group>";
+		};
+		8D0395857B34FB73485ADA19 /* Touch */ = {
+			isa = PBXGroup;
+			children = (
+				F61FB9EECF0A40443A1C417E,
+				4E9B16586B7C1B6A82EFB9D7,
+				4B82B2906A2C2E9E9FA0335A,
+				5AE5C9C7BB6DD040F5788AAC,
+				7E49158C30F5BE20B8B34F5B,
+				0C6B2CAB2D4C605312C8C3C0,
+				C37C3249EA99336CA8B6BA10,
+				70748173154B86A649E7D0C7,
+			);
+			name = Touch;
 			sourceTree = "<group>";
 		};
 		8FE4F0E1E52B0534302549F7 /* gui */ = {
@@ -928,6 +954,8 @@
 				A2337DCB65175FBFA039F9FE,
 				C4DFE83A0E4F48DD1A780437,
 				D7BE7762C078D5CE3CFD2161,
+				AD20E4B6ED2EBC763DA28A64,
+				F5DB92EC3AE39F873B74C1A1,
 				8730DF5A397C198A3FB13D60,
 				D1FB0F3B758B9AFC67248620,
 				36F17547828BD0BC27FB25DC,
@@ -1047,8 +1075,8 @@
 					"JUCE_MODULE_AVAILABLE_roli_blocks_basics=1",
 					"JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1",
 					"JUCE_ASIO=1",
-					"JUCE_ALSA=0",
-					"JUCE_JACK=0",
+					"JUCE_ALSA=1",
+					"JUCE_JACK=1",
 					"JUCE_USE_ANDROID_OBOE=0",
 					"JUCE_PLUGINHOST_LV2=0",
 					"JUCE_PLUGINHOST_ARA=0",
@@ -1056,7 +1084,7 @@
 					"JUCE_STANDALONE_APPLICATION=1",
 					"SIMPLEWEB_SECURE_SUPPORTED=0",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
-					"JUCE_APP_VERSION=1.0.0beta15",
+					"JUCE_APP_VERSION=1.0.0beta16",
 					"JUCE_APP_VERSION_HEX=0x10000",
 					"JucePlugin_Build_VST=0",
 					"JucePlugin_Build_VST3=0",
@@ -1130,8 +1158,8 @@
 					"JUCE_MODULE_AVAILABLE_roli_blocks_basics=1",
 					"JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1",
 					"JUCE_ASIO=1",
-					"JUCE_ALSA=0",
-					"JUCE_JACK=0",
+					"JUCE_ALSA=1",
+					"JUCE_JACK=1",
 					"JUCE_USE_ANDROID_OBOE=0",
 					"JUCE_PLUGINHOST_LV2=0",
 					"JUCE_PLUGINHOST_ARA=0",
@@ -1139,7 +1167,7 @@
 					"JUCE_STANDALONE_APPLICATION=1",
 					"SIMPLEWEB_SECURE_SUPPORTED=0",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
-					"JUCE_APP_VERSION=1.0.0beta15",
+					"JUCE_APP_VERSION=1.0.0beta16",
 					"JUCE_APP_VERSION_HEX=0x10000",
 					"JucePlugin_Build_VST=0",
 					"JucePlugin_Build_VST3=0",

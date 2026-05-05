@@ -848,7 +848,7 @@ private:
         sectionLabels.push_back ({ LOC ("sampler.section.cell"), y });
         y += scaled (20);
 
-        cellNameEditor.setBounds (x0, y, contentW, rowH);
+        cellNameEditor.setBounds (x0 + scaled (7), y, contentW - scaled (14), rowH);
         y += rowH + pad;
 
         int btnW = (contentW - pad * 2) / 3;
@@ -890,14 +890,18 @@ private:
 
         // Row 1: [selector] [+] [-] [Q]
         int sqBtn = rowH;  // Square buttons
+        // [+] and [-] add/remove buttons need extra 7px padding each side (the
+        // global TextButton padding is overridden for slider alignment, so we
+        // restore it manually here for visual breathing room around the glyph).
+        int addRemoveBtnW = sqBtn + scaled (14);
         int qlabBtnW = (isQLabAvailable && isQLabAvailable()) ? sqBtn + pad : 0;
-        int selectorW = contentW - 2 * (sqBtn + pad) - qlabBtnW;
+        int selectorW = contentW - 2 * (addRemoveBtnW + pad) - qlabBtnW;
         setSelector.setBounds (x0, y, juce::jmax (60, selectorW), rowH);
         int btnX = x0 + juce::jmax (60, selectorW) + pad;
-        addSetButton.setBounds (btnX, y, sqBtn, rowH);
-        btnX += sqBtn + pad;
-        deleteSetButton.setBounds (btnX, y, sqBtn, rowH);
-        btnX += sqBtn + pad;
+        addSetButton.setBounds (btnX, y, addRemoveBtnW, rowH);
+        btnX += addRemoveBtnW + pad;
+        deleteSetButton.setBounds (btnX, y, addRemoveBtnW, rowH);
+        btnX += addRemoveBtnW + pad;
         qlabSetButton.setBounds (btnX, y, sqBtn, rowH);
         qlabSetButton.setVisible (isQLabAvailable && isQLabAvailable());
         y += rowH + pad;
@@ -953,7 +957,7 @@ private:
             ay -= rowH + pad;
             copyButton.setBounds (x0, ay, halfW, rowH);
             pasteButton.setBounds (x0 + halfW + pad, ay, halfW, rowH);
-            ay -= scaled (16);
+            ay -= scaled (20);
             sectionLabels.push_back ({ LOC ("sampler.section.actions"), ay });
             ay -= sectionGap;
             sectionSeparatorYs.push_back (ay);
@@ -966,7 +970,8 @@ private:
                             int x0, int contentW, int rowH, int pad)
     {
         int enableW = contentW * 35 / 100;
-        int dirW = 30;
+        // Polarity toggle: restore 7px padding each side (overridden globally).
+        int dirW = 30 + scaled (14);
         int valueW = 45;
         int sliderW = contentW - enableW - dirW - valueW - pad * 3;
         enable.setBounds (x0, y, enableW, rowH);
