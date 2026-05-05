@@ -157,6 +157,10 @@ $(JUCE_OUTDIR)/$(JUCE_TARGET_APP) : $(OBJECTS_APP) $(JUCE_OBJDIR)/execinfo.cmd $
 	-$(V_AT)mkdir -p $(JUCE_LIBDIR)
 	-$(V_AT)mkdir -p $(JUCE_OUTDIR)
 	$(V_AT)$(CXX) -o $(JUCE_OUTDIR)/$(JUCE_TARGET_APP) $(OBJECTS_APP) $(JUCE_LDFLAGS) $(shell cat $(JUCE_OBJDIR)/execinfo.cmd) $(JUCE_LDFLAGS_APP) $(RESOURCES) $(TARGET_ARCH)
+	@echo "Copying lang/ and MCP/resources/ next to the binary"
+	$(V_AT)mkdir -p $(JUCE_OUTDIR)/lang $(JUCE_OUTDIR)/MCP/resources
+	$(V_AT)cp -R ../../Resources/lang/. $(JUCE_OUTDIR)/lang/
+	$(V_AT)cp -R ../../Documentation/MCP/resources/. $(JUCE_OUTDIR)/MCP/resources/
 
 $(JUCE_OBJDIR)/WFSValueTreeState_73cc0cca.o: ../../Source/Parameters/WFSValueTreeState.cpp
 	-$(V_AT)mkdir -p $(@D)

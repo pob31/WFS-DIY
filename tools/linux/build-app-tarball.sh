@@ -48,11 +48,15 @@ echo "==> Staging $STAGE_NAME"
 rm -rf "$STAGE_DIR"
 mkdir -p "$STAGE_DIR"
 
-# Binary + runtime resources (lang/ and MCP/resources/ are produced by the
-# Makefile postbuild and live next to the binary already).
+# Binary + runtime resources. We read lang/ and MCP/resources/ straight from
+# the source-of-truth directories rather than the Makefile postbuild output —
+# Projucer regens on macOS/Windows wipe the postbuild step, and we don't want
+# the tarball to fall back to whatever stale lang/ files happened to be left
+# next to the binary from a previous build.
 cp "$BIN" "$STAGE_DIR/WFS-DIY"
-cp -R "$BUILD_DIR/lang" "$STAGE_DIR/lang"
-cp -R "$BUILD_DIR/MCP"  "$STAGE_DIR/MCP"
+mkdir -p "$STAGE_DIR/lang" "$STAGE_DIR/MCP/resources"
+cp -R "$REPO_ROOT/Resources/lang/."                "$STAGE_DIR/lang/"
+cp -R "$REPO_ROOT/Documentation/MCP/resources/."   "$STAGE_DIR/MCP/resources/"
 
 # udev rules and the JUCE patch infrastructure.
 mkdir -p "$STAGE_DIR/share"
