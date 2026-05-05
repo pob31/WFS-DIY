@@ -10,6 +10,36 @@
 class ChannelSelectorOverlay;
 
 /**
+ * Small circular close button: filled disc with an X stroked through it.
+ */
+class CircularCloseButton : public juce::Button
+{
+public:
+    CircularCloseButton() : juce::Button("close") {}
+
+    void paintButton(juce::Graphics& g, bool isMouseOver, bool isButtonDown) override
+    {
+        auto bounds = getLocalBounds().toFloat().reduced(1.0f);
+        const float cx = bounds.getCentreX();
+        const float cy = bounds.getCentreY();
+        const float r  = juce::jmin(bounds.getWidth(), bounds.getHeight()) * 0.5f;
+
+        juce::Colour bg(0xFF505050);
+        if (isButtonDown)      bg = bg.darker(0.2f);
+        else if (isMouseOver)  bg = bg.brighter(0.3f);
+
+        g.setColour(bg);
+        g.fillEllipse(cx - r, cy - r, r * 2.0f, r * 2.0f);
+
+        const float xOff = r * 0.42f;
+        const float thickness = juce::jmax(1.0f, r * 0.22f);
+        g.setColour(juce::Colours::white);
+        g.drawLine(cx - xOff, cy - xOff, cx + xOff, cy + xOff, thickness);
+        g.drawLine(cx - xOff, cy + xOff, cx + xOff, cy - xOff, thickness);
+    }
+};
+
+/**
  * Transparent backdrop for click-outside-to-dismiss behavior
  */
 class ChannelSelectorBackdrop : public juce::Component
@@ -88,8 +118,7 @@ public:
             addAndMakeVisible(btn);
         }
 
-        // Close button
-        closeButton.setButtonText("X");
+        // Close button (circular icon)
         closeButton.onClick = [this]() {
             if (onSelect)
                 onSelect(selectedChannel); // Return current selection (no change)
@@ -122,12 +151,16 @@ public:
 
     void resized() override
     {
-        // Close button in top-right
-        closeButton.setBounds(getWidth() - padding - sc(24), padding, sc(24), sc(20));
+        // Close button in top-right (square circular icon, vertically centred in title row)
+        const int closeSize = sc(20);
+        const int closeY = padding + (titleHeight - padding - closeSize) / 2;
+        closeButton.setBounds(getWidth() - padding - closeSize,
+                              juce::jmax(closeY, padding),
+                              closeSize, closeSize);
 
         // Position buttons in grid below title
         const int startX = padding;
-        const int startY = titleHeight;
+        const int startY = titleHeight + topRowExtraPadding;
 
         for (int i = 0; i < channelButtons.size(); ++i)
         {
@@ -172,7 +205,7 @@ public:
     juce::Point<int> getRequiredSize() const
     {
         int width = padding * 2 + numColumns * buttonWidth + (numColumns - 1) * spacing;
-        int height = titleHeight + numRows * buttonHeight + (numRows - 1) * spacing + padding;
+        int height = titleHeight + topRowExtraPadding + numRows * buttonHeight + (numRows - 1) * spacing + padding;
         return {width, height};
     }
 
@@ -240,6 +273,7 @@ private:
     int spacing = sc(4);
     int padding = sc(12);
     int titleHeight = sc(32);
+    int topRowExtraPadding = sc(12);
 
     int totalChannels;
     int selectedChannel;
@@ -251,7 +285,7 @@ private:
     std::function<juce::Colour(int)> getTextColor;
 
     juce::OwnedArray<juce::TextButton> channelButtons;
-    juce::TextButton closeButton;
+    CircularCloseButton closeButton;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChannelSelectorOverlay)
 };
