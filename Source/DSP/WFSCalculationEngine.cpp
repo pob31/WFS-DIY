@@ -2277,7 +2277,23 @@ int WFSCalculationEngine::findReverbIndexFromTree (const juce::ValueTree& tree) 
         {
             auto parent = current.getParent();
             if (parent.isValid())
-                return parent.indexOf (current);
+            {
+                // The Reverbs subtree mixes per-channel `Reverb` nodes with
+                // global sibling sections (ReverbAlgorithm, ReverbPreComp,
+                // ReverbPostEQ, ReverbPostExp). Canonical channel indexing
+                // skips the globals — match that, otherwise position-cache
+                // updates land on the wrong slot or get rejected by the
+                // numReverbs bounds check.
+                int reverbCount = 0;
+                for (int i = 0; i < parent.getNumChildren(); ++i)
+                {
+                    auto child = parent.getChild (i);
+                    if (child == current)
+                        return reverbCount;
+                    if (child.hasType (Reverb))
+                        ++reverbCount;
+                }
+            }
         }
         current = current.getParent();
     }
