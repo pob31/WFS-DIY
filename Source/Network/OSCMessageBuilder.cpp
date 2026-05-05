@@ -405,7 +405,7 @@ std::optional<juce::OSCMessage> OSCMessageBuilder::buildRemoteOutputMessage(
     const auto& mappings = getInputMappings();
     auto it = mappings.find(paramId);
 
-    if (it == mappings.end())
+    if (it == mappings.end() || it->second.remotePath.isEmpty())
         return std::nullopt;
 
     return buildMessage(it->second.remotePath, channelId, value);
@@ -433,7 +433,7 @@ std::optional<juce::OSCMessage> OSCMessageBuilder::buildRemoteOutputStringMessag
     const auto& mappings = getInputMappings();
     auto it = mappings.find(paramId);
 
-    if (it == mappings.end())
+    if (it == mappings.end() || it->second.remotePath.isEmpty())
         return std::nullopt;
 
     juce::OSCMessage msg(juce::OSCAddressPattern(it->second.remotePath));
