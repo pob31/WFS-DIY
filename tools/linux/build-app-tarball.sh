@@ -12,10 +12,12 @@
 # script, an install.sh and uninstall.sh, and a .desktop entry. Mirrors the
 # macOS .pkg / Windows .exe release flow on Linux.
 #
-# Pre-requisite: a Release build of the app must already be made
-#   (cd Builds/LinuxMakefile && make CONFIG=Release -j$(nproc))
+# Pre-requisite: a clean Release build of the app must already be made
+#   (cd Builds/LinuxMakefile && make clean && make CONFIG=Release -j$(nproc))
 # This script does not invoke make itself; that's a separate concern, and
-# keeping them split lets CI parallelise build vs. package.
+# keeping them split lets CI parallelise build vs. package. The `make clean`
+# is part of the release flow specifically — incremental builds are fine for
+# day-to-day dev work, but shipping artefacts get a clean rebuild.
 
 set -euo pipefail
 
@@ -26,7 +28,7 @@ RELEASE_DIR="$REPO_ROOT/Builds/LinuxMakefile/release"
 BIN="$BUILD_DIR/WFS-DIY"
 if [[ ! -x "$BIN" ]]; then
     echo "ERROR: $BIN not found or not executable." >&2
-    echo "       Run 'cd Builds/LinuxMakefile && make CONFIG=Release -j\$(nproc)' first." >&2
+    echo "       Run 'cd Builds/LinuxMakefile && make clean && make CONFIG=Release -j\$(nproc)' first." >&2
     exit 1
 fi
 

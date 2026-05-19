@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="k6c2zA" name="WFS-DIY" projectType="guiapp" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="1.0.0beta17"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="1.0.0beta18"
               bundleIdentifier="com.wfsdiy.app" companyEmail="contact@pixetbel.org"
               companyName="Pix et Bel" companyWebsite="wfs-diy.net"
               microphonePermissionNeeded="1"
@@ -435,13 +435,13 @@
     </LINUX_MAKE>
     <VS2022 targetFolder="Builds/VisualStudio2022" smallIcon="SCj321" bigIcon="SCj321">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY" headerPath="..\..\ThirdParty\ASIOSDK\common;..\..\ThirdParty\GPUAudioSDK\gpuaudio\include;..\..\ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;..\..\ThirdParty\GPUAudioSDK\build\_deps\json-src\single_include;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi"
+        <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY" headerPath="..\..\ThirdParty\GPUAudioSDK\gpuaudio\include;..\..\ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;..\..\ThirdParty\GPUAudioSDK\build\_deps\json-src\single_include;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi"
                        libraryPath="ThirdParty\GPUAudioSDK\build\lib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\GainLib\gainlib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\simple_processor_launcher\ProcLaunchLib\RelWithDebInfo"
                        externalLibraries="gain_processor_nvidia.lib;ProcLaunchLib.lib;gainlib.lib;nvidia_resources_gain_processor_gain_processor_device_nvidia.lib;setupapi.lib"
                        extraCompilerFlags="/bigobj" defines="SIMPLEWEB_SECURE_SUPPORTED=0"
                        prebuildCommand="cd /d &quot;$(SolutionDir)..\..&quot; &amp;&amp; (where python &gt;nul 2&gt;&amp;1 &amp;&amp; python tools\generate_mcp_tools.py) &amp; exit /b 0"
                        postbuildCommand="xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot;"/>
-        <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" headerPath="..\..\ThirdParty\ASIOSDK\common;..\..\ThirdParty\GPUAudioSDK\gpuaudio\include;..\..\ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;..\..\ThirdParty\GPUAudioSDK\build\_deps\json-src\single_include;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi"
+        <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" headerPath="..\..\ThirdParty\GPUAudioSDK\gpuaudio\include;..\..\ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;..\..\ThirdParty\GPUAudioSDK\build\_deps\json-src\single_include;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi"
                        libraryPath="ThirdParty\GPUAudioSDK\build\lib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\GainLib\gainlib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\simple_processor_launcher\ProcLaunchLib\RelWithDebInfo"
                        externalLibraries="gain_processor_nvidia.lib;ProcLaunchLib.lib;gainlib.lib;nvidia_resources_gain_processor_gain_processor_device_nvidia.lib;setupapi.lib"
                        extraCompilerFlags="/bigobj" defines="SIMPLEWEB_SECURE_SUPPORTED=0"

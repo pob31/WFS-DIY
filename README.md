@@ -44,7 +44,7 @@ Open a terminal and run:
 git clone --recurse-submodules https://github.com/pob31/WFS-DIY.git
 ```
 
-> **Important:** The `--recurse-submodules` flag is required. Without it, dependencies (JUCE, ASIO SDK) will be missing and the build will fail. If you already cloned without it, run:
+> **Important:** The `--recurse-submodules` flag is required. Without it, dependencies (JUCE, etc.) will be missing and the build will fail. If you already cloned without it, run:
 > ```bash
 > cd WFS-DIY
 > git submodule update --init --recursive
@@ -93,8 +93,9 @@ git clone --recurse-submodules https://github.com/pob31/WFS-DIY.git
    Then unplug and replug the device. The rules grant access via `uaccess` (active session) and the `plugdev` group fallback. With a touchscreen connected, a **Touchscreens…** button appears on the System Config tab — click it to map each physical touchscreen to a JUCE display, with optional Swap X/Y, Flip X, and Flip Y toggles for orientation.
 
 **Linux release tarball:**
-After a successful Release build, package the app for distribution:
+Do a clean Release build, then package the app for distribution:
 ```bash
+cd Builds/LinuxMakefile && make clean && make CONFIG=Release -j$(nproc) && cd ../..
 tools/linux/build-app-tarball.sh
 ```
 Produces `Builds/LinuxMakefile/release/WFS-DIY-Linux-x86_64-<version>.tar.gz` containing the binary, runtime data, udev rules, and `install.sh` / `uninstall.sh` scripts that support both per-user (`~/.local`) and system (`/opt/wfs-diy`) installs.

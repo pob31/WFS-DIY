@@ -320,7 +320,7 @@ void EvdevTouchManager::dispatchSnapshot (const juce::String& sysPath, EvdevTouc
         return;
 
     const auto& disp = displays.getReference (entry->info.mapping.displayIndex);
-    auto userArea = disp.userArea;  // logical pixels
+    auto userArea = disp.userBounds;  // logical pixels
 
     const auto& xR = entry->info.xRange;
     const auto& yR = entry->info.yRange;

@@ -26,6 +26,7 @@
 		40BAD216FC425C9199688DAB /* MCPDispatcher.cpp */ = {isa = PBXBuildFile; fileRef = 6F21025606613B42ABF1D66A; };
 		471089E457EAE929D9FBE39A /* DiscRecording.framework */ = {isa = PBXBuildFile; fileRef = BB988ACB6CA5DBAAB5D3F273; };
 		476F09624768D72D4EA72FB2 /* Cocoa.framework */ = {isa = PBXBuildFile; fileRef = 8482C13D6FF8436DFD51EE09; };
+		4C70AEA542D412CBADAB0B89 /* include_juce_gui_basics_3.cpp */ = {isa = PBXBuildFile; fileRef = 3376D9E78846859775CC0715; };
 		59262D55C253156B90FCCD98 /* Accelerate.framework */ = {isa = PBXBuildFile; fileRef = 54B2A0562D44FAFD14948BD4; };
 		597D4525120E3BF0EECAC647 /* MCPServer.cpp */ = {isa = PBXBuildFile; fileRef = 4B6061E2662DD31DD344DA07; };
 		5D4E9619AEF393D1B45801B4 /* include_juce_audio_processors_headless_ara.cpp */ = {isa = PBXBuildFile; fileRef = A578604C7C69A5F0AB6D4219; };
@@ -43,10 +44,11 @@
 		8206CB7296A86BB520A4B965 /* WFSValueTreeState.cpp */ = {isa = PBXBuildFile; fileRef = BB85096D700BC19EC7EEF516; };
 		848D7BD2CB09162DA9DD5B7F /* OSCTCPReceiver.cpp */ = {isa = PBXBuildFile; fileRef = 83B9631F36EB03CD552105D6; };
 		8730DF5A397C198A3FB13D60 /* Main.cpp */ = {isa = PBXBuildFile; fileRef = 46671364821BCB5DCF52BC95; };
-		8AD040A87279F4A79C184136 /* Icon.icns */ = {isa = PBXBuildFile; fileRef = 8C3D4068F057864811939C03; };
 		8ADC8900F737B54FCFBA3AA8 /* Metal.framework */ = {isa = PBXBuildFile; fileRef = C23555C43C15F2DD0CF3BA9C; settings = { ATTRIBUTES = (Weak, ); }; };
+		8DC3BEC2C22D7CF136E88A22 /* include_juce_gui_basics_5.cpp */ = {isa = PBXBuildFile; fileRef = 00703200CC0660A2F30528FD; };
 		94B254A659EFEC3CC830EB46 /* WebKit.framework */ = {isa = PBXBuildFile; fileRef = 77380EEA09673557990C6B7D; };
 		9540B1CD09211574E035FEA4 /* RecentFilesMenuTemplate.nib */ = {isa = PBXBuildFile; fileRef = C2A444C276327D0BCFA3510A; };
+		98B98DC611DB1241E1EB9B5D /* AppIcon.icns */ = {isa = PBXBuildFile; fileRef = 00017D1E2679A23B85B89B75; };
 		99BBB112459F918510B37CA3 /* OSCConnection.cpp */ = {isa = PBXBuildFile; fileRef = 1D4034F17218DC090D63347F; };
 		9BC4D1D56A87AD9A8AFBFB3E /* MCPTierEnforcement.cpp */ = {isa = PBXBuildFile; fileRef = 862CC5DB39C2F08818A69F65; };
 		A2337DCB65175FBFA039F9FE /* MCPPromptRegistry.cpp */ = {isa = PBXBuildFile; fileRef = CB719CCC35A4649AA69E0F11; };
@@ -66,6 +68,7 @@
 		B392D46CBBFBD04B39FCA45A /* include_roli_blocks_basics.cpp */ = {isa = PBXBuildFile; fileRef = 77B64F99F47F0FA1391D99D4; };
 		B5998BA8416CF7672D91E3A8 /* LocalizationManager.cpp */ = {isa = PBXBuildFile; fileRef = 05D2B5A53FEB53CA24CFD91E; };
 		C06C6742DDD2187C42ACA573 /* OSCMessageBuilder.cpp */ = {isa = PBXBuildFile; fileRef = A3C78AAE2596180321C3F0F2; };
+		C3DA4CA6B34DBC70D2BE4FA0 /* include_juce_gui_basics_2.cpp */ = {isa = PBXBuildFile; fileRef = E1C619E4C45F73A1C1F29851; };
 		C4DFE83A0E4F48DD1A780437 /* MCPParameterRegistry.cpp */ = {isa = PBXBuildFile; fileRef = 6FEDBAFEF6FC82D102F18212; };
 		C5AA8699307DEBD9EE73CB9C /* ArrayGeometryCalculator.cpp */ = {isa = PBXBuildFile; fileRef = 400EA6B8131021F017321A16; };
 		C7B6B7481E56B60A2159667D /* MCPOSCQueryAuditor.cpp */ = {isa = PBXBuildFile; fileRef = 4E47CBDA2F72471CB13EF459; };
@@ -87,6 +90,7 @@
 		E5CF3F122DD4F047481C62D2 /* CoreAudio.framework */ = {isa = PBXBuildFile; fileRef = 496A4AFADE7E2E14B6D013E2; };
 		E5D3A75C2F59B454A7821B7F /* include_juce_core_CompilationTime.cpp */ = {isa = PBXBuildFile; fileRef = 1852742AC74CE662EF91C229; };
 		E8BC3989FD19A883018F7871 /* MCPLogger.cpp */ = {isa = PBXBuildFile; fileRef = A93789C1D857587E49D12A34; };
+		EA1A91E0A0A0DA71943752AF /* include_juce_gui_basics_4.cpp */ = {isa = PBXBuildFile; fileRef = 7199DB67785B6EC37029964D; };
 		EB33DD2DA1BA1C4A844E5CC5 /* WindowUtils.mm */ = {isa = PBXBuildFile; fileRef = 8E86F24313EE0226A744A907; };
 		ED8922B2E38DC02657CAD811 /* RTTrPDecoder.cpp */ = {isa = PBXBuildFile; fileRef = 7CC2840AD0983A4EADE1F6C9; };
 		EE735A95CBAA3D9711DD5363 /* MCPResourceRegistry.cpp */ = {isa = PBXBuildFile; fileRef = 3D6EAE96E42BB58B8349D561; };
@@ -101,6 +105,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		00017D1E2679A23B85B89B75 /* AppIcon.icns */ /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = file.icns; name = AppIcon.icns; path = AppIcon.icns; sourceTree = SOURCE_ROOT; };
+		00703200CC0660A2F30528FD /* include_juce_gui_basics_5.cpp */ /* include_juce_gui_basics_5.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_gui_basics_5.cpp; path = ../../JuceLibraryCode/include_juce_gui_basics_5.cpp; sourceTree = SOURCE_ROOT; };
 		00959BF07328BFC4DAE09086 /* HelpCard.h */ /* HelpCard.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = HelpCard.h; path = ../../Source/gui/HelpCard.h; sourceTree = SOURCE_ROOT; };
 		015EA0280AE439D59E4A3D5E /* include_juce_core.mm */ /* include_juce_core.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_core.mm; path = ../../JuceLibraryCode/include_juce_core.mm; sourceTree = SOURCE_ROOT; };
 		01DEEF8130F51E978E2ACD0B /* MCPUndoEngine.h */ /* MCPUndoEngine.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPUndoEngine.h; path = ../../Source/Network/MCP/MCPUndoEngine.h; sourceTree = SOURCE_ROOT; };
@@ -145,6 +151,7 @@
 		300E93A1943132FBD96DBD77 /* include_juce_gui_basics.mm */ /* include_juce_gui_basics.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_gui_basics.mm; path = ../../JuceLibraryCode/include_juce_gui_basics.mm; sourceTree = SOURCE_ROOT; };
 		30AAB0767A758FCB2A0C53AC /* MCPTransport.h */ /* MCPTransport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPTransport.h; path = ../../Source/Network/MCP/MCPTransport.h; sourceTree = SOURCE_ROOT; };
 		3193B4D9D805D393D760AE17 /* juce_gui_basics */ /* juce_gui_basics */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_gui_basics; path = ../../ThirdParty/JUCE/modules/juce_gui_basics; sourceTree = SOURCE_ROOT; };
+		3376D9E78846859775CC0715 /* include_juce_gui_basics_3.cpp */ /* include_juce_gui_basics_3.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_gui_basics_3.cpp; path = ../../JuceLibraryCode/include_juce_gui_basics_3.cpp; sourceTree = SOURCE_ROOT; };
 		344E94DE75CE8AD15E5DF4F7 /* SystemConfigTab.h */ /* SystemConfigTab.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SystemConfigTab.h; path = ../../Source/gui/SystemConfigTab.h; sourceTree = SOURCE_ROOT; };
 		3490B82F1263703CAD0AD65B /* MCPServer.h */ /* MCPServer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPServer.h; path = ../../Source/Network/MCP/MCPServer.h; sourceTree = SOURCE_ROOT; };
 		34CC6B6061AD8E05EDA699F3 /* InputBufferProcessor.h */ /* InputBufferProcessor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = InputBufferProcessor.h; path = ../../Source/DSP/InputBufferProcessor.h; sourceTree = SOURCE_ROOT; };
@@ -206,6 +213,7 @@
 		6F21025606613B42ABF1D66A /* MCPDispatcher.cpp */ /* MCPDispatcher.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPDispatcher.cpp; path = ../../Source/Network/MCP/MCPDispatcher.cpp; sourceTree = SOURCE_ROOT; };
 		6FEDBAFEF6FC82D102F18212 /* MCPParameterRegistry.cpp */ /* MCPParameterRegistry.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPParameterRegistry.cpp; path = ../../Source/Network/MCP/MCPParameterRegistry.cpp; sourceTree = SOURCE_ROOT; };
 		70748173154B86A649E7D0C7 /* LinuxTouchscreenWindow.h */ /* LinuxTouchscreenWindow.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = LinuxTouchscreenWindow.h; path = ../../Source/gui/LinuxTouchscreenWindow.h; sourceTree = SOURCE_ROOT; };
+		7199DB67785B6EC37029964D /* include_juce_gui_basics_4.cpp */ /* include_juce_gui_basics_4.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_gui_basics_4.cpp; path = ../../JuceLibraryCode/include_juce_gui_basics_4.cpp; sourceTree = SOURCE_ROOT; };
 		730F1505560F6C73AE07E7F8 /* TTSManager.h */ /* TTSManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TTSManager.h; path = ../../Source/Accessibility/TTSManager.h; sourceTree = SOURCE_ROOT; };
 		731872EE6D0947D8D5946510 /* juce_audio_devices */ /* juce_audio_devices */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_audio_devices; path = ../../ThirdParty/JUCE/modules/juce_audio_devices; sourceTree = SOURCE_ROOT; };
 		733D0E78F18ED00D054A394F /* StateInspectionTools.h */ /* StateInspectionTools.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StateInspectionTools.h; path = ../../Source/Network/MCP/tools/StateInspectionTools.h; sourceTree = SOURCE_ROOT; };
@@ -243,7 +251,6 @@
 		89F19441719BBC804132D553 /* TrackingPSNReceiver.cpp */ /* TrackingPSNReceiver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = TrackingPSNReceiver.cpp; path = ../../Source/Network/TrackingPSNReceiver.cpp; sourceTree = SOURCE_ROOT; };
 		8BDFF50F5C228E133FE51580 /* OSCManager.cpp */ /* OSCManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCManager.cpp; path = ../../Source/Network/OSCManager.cpp; sourceTree = SOURCE_ROOT; };
 		8C11E7326375A886C71FF31C /* MetalKit.framework */ /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
-		8C3D4068F057864811939C03 /* Icon.icns */ /* Icon.icns */ = {isa = PBXFileReference; lastKnownFileType = file.icns; name = Icon.icns; path = Icon.icns; sourceTree = SOURCE_ROOT; };
 		8D2BC8E06DACE9A3B7A0E535 /* PatchMatrixComponent.cpp */ /* PatchMatrixComponent.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = PatchMatrixComponent.cpp; path = ../../Source/gui/PatchMatrixComponent.cpp; sourceTree = SOURCE_ROOT; };
 		8E86F24313EE0226A744A907 /* WindowUtils.mm */ /* WindowUtils.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = WindowUtils.mm; path = ../../Source/gui/WindowUtils.mm; sourceTree = SOURCE_ROOT; };
 		8EC85A16D71B1EE81FFA31F9 /* juce_data_structures */ /* juce_data_structures */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_data_structures; path = ../../ThirdParty/JUCE/modules/juce_data_structures; sourceTree = SOURCE_ROOT; };
@@ -319,6 +326,7 @@
 		DE9E3D8B6DEF25E07D893DBA /* OSCParser.h */ /* OSCParser.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCParser.h; path = ../../Source/Network/OSCParser.h; sourceTree = SOURCE_ROOT; };
 		E0ED792E850ECE52872FBCAD /* ReverbAutoLayoutTool.h */ /* ReverbAutoLayoutTool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ReverbAutoLayoutTool.h; path = ../../Source/Network/MCP/tools/ReverbAutoLayoutTool.h; sourceTree = SOURCE_ROOT; };
 		E1C464405F00329FAEECC082 /* GpuInputBufferAlgorithm.cpp */ /* GpuInputBufferAlgorithm.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = GpuInputBufferAlgorithm.cpp; path = ../../Source/DSP/GpuInputBufferAlgorithm.cpp; sourceTree = SOURCE_ROOT; };
+		E1C619E4C45F73A1C1F29851 /* include_juce_gui_basics_2.cpp */ /* include_juce_gui_basics_2.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_gui_basics_2.cpp; path = ../../JuceLibraryCode/include_juce_gui_basics_2.cpp; sourceTree = SOURCE_ROOT; };
 		E3BBC26EC616B8996F69FB3E /* StateDeltaTool.h */ /* StateDeltaTool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StateDeltaTool.h; path = ../../Source/Network/MCP/tools/StateDeltaTool.h; sourceTree = SOURCE_ROOT; };
 		E4A0CD4099891D58FE76630E /* QuickKeysManager.h */ /* QuickKeysManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = QuickKeysManager.h; path = ../../Source/Controllers/DialsAndButtons/QuickKeysManager.h; sourceTree = SOURCE_ROOT; };
 		E6905818F38D144E669AABE1 /* TrackingPSNReceiver.h */ /* TrackingPSNReceiver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TrackingPSNReceiver.h; path = ../../Source/Network/TrackingPSNReceiver.h; sourceTree = SOURCE_ROOT; };
@@ -584,7 +592,7 @@
 			children = (
 				93517C1B57BC41C6A7CF7B88,
 				C2A444C276327D0BCFA3510A,
-				8C3D4068F057864811939C03,
+				00017D1E2679A23B85B89B75,
 			);
 			name = Resources;
 			sourceTree = "<group>";
@@ -779,6 +787,10 @@
 				1A10EA3687120F02EC073242,
 				2976DFB15F05C50CF08305D4,
 				300E93A1943132FBD96DBD77,
+				E1C619E4C45F73A1C1F29851,
+				3376D9E78846859775CC0715,
+				7199DB67785B6EC37029964D,
+				00703200CC0660A2F30528FD,
 				D142B9C18D9A93EA669B6723,
 				6C77960FDA0FEB61B0F2A30A,
 				D477110C8373179499E19443,
@@ -823,6 +835,7 @@
 				819D56535DE30EF947D5F4D4,
 				8BC7CC955FF9EA18E7BEFFCE,
 				3B80417D3D15B3EB62D5A635,
+				306E9B2810F732173958C223,
 			);
 			buildRules = (
 			);
@@ -889,20 +902,31 @@
 			buildActionMask = 2147483647;
 			files = (
 				9540B1CD09211574E035FEA4,
-				8AD040A87279F4A79C184136,
+				98B98DC611DB1241E1EB9B5D,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		3B80417D3D15B3EB62D5A635 /* Post-build script */ = {
+		306E9B2810F732173958C223 /* Sign Target */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
-			name = "Post-build script";
+			name = "Sign Target";
+			alwaysOutOfDate = 1;
+			shellPath = /bin/sh;
+			shellScript = "set -euo pipefail\n\necho Signing Identity:	${EXPANDED_CODE_SIGN_IDENTITY_NAME:-${CODE_SIGN_IDENTITY}}\n\nentitlementsFile=\"${TARGET_TEMP_DIR}/${FULL_PRODUCT_NAME}.xcent\"\n\nif [[ ! -f \"${entitlementsFile}\" ]]; then\n  entitlementsFile=\"\"\nfi\n\necho Entitlements File:	${entitlementsFile:-None}\necho\necho Running codesign --force --sign \\\"${EXPANDED_CODE_SIGN_IDENTITY:-${CODE_SIGN_IDENTITY}}\\\" --verbose=4 --timestamp  ${entitlementsFile:+--entitlements \\\"${entitlementsFile}\\\"} --generate-entitlement-der \\\"${CODESIGNING_FOLDER_PATH}\\\"\ncodesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY:-${CODE_SIGN_IDENTITY}}\" --verbose=4 --timestamp  ${entitlementsFile:+--entitlements \"${entitlementsFile}\"} --generate-entitlement-der \"${CODESIGNING_FOLDER_PATH}\"\necho\necho Running codesign --verify --deep --verbose=4 \\\"${CODESIGNING_FOLDER_PATH}\\\"\ncodesign --verify --deep --verbose=4 \"${CODESIGNING_FOLDER_PATH}\"\n";
+		};
+		3B80417D3D15B3EB62D5A635 /* Run Post-build Script */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			name = "Run Post-build Script";
 			alwaysOutOfDate = 1;
 			shellPath = /bin/sh;
 			shellScript = "mkdir -p \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/lang\"\ncp -R \"${SRCROOT}/../../Resources/lang/\" \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/lang/\"\necho \"Copied localisation files to bundle\"";
@@ -981,6 +1005,10 @@
 				F7291D04FD22C7330C3E1864,
 				B189CAC736E2215D673E4945,
 				F4AA488127D811825687FFDC,
+				C3DA4CA6B34DBC70D2BE4FA0,
+				4C70AEA542D412CBADAB0B89,
+				EA1A91E0A0A0DA71943752AF,
+				8DC3BEC2C22D7CF136E88A22,
 				AA0EE9B55A2E6FF945DED3B3,
 				2B4A8A2646517A3AD78C64FF,
 				E250B84E6CDC377F234A14E3,
@@ -1015,6 +1043,7 @@
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = NO;
@@ -1034,7 +1063,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				OTHER_CODE_SIGN_FLAGS = --timestamp;
+				OTHER_CODE_SIGN_FLAGS = "--dryrun";
 				PRODUCT_NAME = "WFS-DIY";
 				SDKROOT = macosx;
 				WARNING_CFLAGS = "-Wreorder";
@@ -1048,16 +1077,19 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_LINK_OBJC_RUNTIME = NO;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/build/$(CONFIGURATION)";
 				COPY_PHASE_STRIP = NO;
+				DEPLOYMENT_POSTPROCESSING = NO;
 				EXCLUDED_ARCHS = "";
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"_DEBUG=1",
 					"DEBUG=1",
-					"JUCE_PROJUCER_VERSION=0x8000c",
+					"JUCE_PROJUCER_VERSION=0x8000d",
 					"JUCE_MODULE_AVAILABLE_juce_audio_basics=1",
 					"JUCE_MODULE_AVAILABLE_juce_audio_devices=1",
 					"JUCE_MODULE_AVAILABLE_juce_audio_formats=1",
@@ -1086,7 +1118,7 @@
 					"JUCE_STANDALONE_APPLICATION=1",
 					"SIMPLEWEB_SECURE_SUPPORTED=0",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
-					"JUCE_APP_VERSION=1.0.0beta17",
+					"JUCE_APP_VERSION=1.0.0beta18",
 					"JUCE_APP_VERSION_HEX=0x10000",
 					"JucePlugin_Build_VST=0",
 					"JucePlugin_Build_VST3=0",
@@ -1116,9 +1148,12 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../ThirdParty/JUCE/modules $(SRCROOT)/../../ThirdParty $(SRCROOT)/../../ThirdParty/hidapi $(SRCROOT)/../../ThirdParty/hidapi/hidapi";
-				OTHER_LDFLAGS = "-lssl -lcrypto -lz -framework SystemConfiguration -framework CoreFoundation -framework IOKit";
+				OTHER_CFLAGS = "$(inherited)";
+				OTHER_CPLUSPLUSFLAGS = "$(inherited)";
+				OTHER_LDFLAGS = "$(inherited) -lssl -lcrypto -lz -framework SystemConfiguration -framework CoreFoundation -framework IOKit";
 				PRODUCT_BUNDLE_IDENTIFIER = com.wfsdiy.app;
 				PRODUCT_NAME = "WFS-DIY";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				USE_HEADERMAP = NO;
 				VALIDATE_WORKSPACE_SKIPPED_SDK_FRAMEWORKS = OpenGL;
 				VALID_ARCHS = "i386 x86_64 arm64 arm64e";
@@ -1131,16 +1166,19 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_LINK_OBJC_RUNTIME = NO;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/build/$(CONFIGURATION)";
 				DEAD_CODE_STRIPPING = YES;
+				DEPLOYMENT_POSTPROCESSING = NO;
 				EXCLUDED_ARCHS = "";
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
 				GCC_OPTIMIZATION_LEVEL = 3;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"_NDEBUG=1",
 					"NDEBUG=1",
-					"JUCE_PROJUCER_VERSION=0x8000c",
+					"JUCE_PROJUCER_VERSION=0x8000d",
 					"JUCE_MODULE_AVAILABLE_juce_audio_basics=1",
 					"JUCE_MODULE_AVAILABLE_juce_audio_devices=1",
 					"JUCE_MODULE_AVAILABLE_juce_audio_formats=1",
@@ -1169,7 +1207,7 @@
 					"JUCE_STANDALONE_APPLICATION=1",
 					"SIMPLEWEB_SECURE_SUPPORTED=0",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
-					"JUCE_APP_VERSION=1.0.0beta17",
+					"JUCE_APP_VERSION=1.0.0beta18",
 					"JUCE_APP_VERSION_HEX=0x10000",
 					"JucePlugin_Build_VST=0",
 					"JucePlugin_Build_VST3=0",
@@ -1200,9 +1238,12 @@
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../ThirdParty/JUCE/modules $(SRCROOT)/../../ThirdParty $(SRCROOT)/../../ThirdParty/hidapi $(SRCROOT)/../../ThirdParty/hidapi/hidapi";
-				OTHER_LDFLAGS = "-lssl -lcrypto -lz -framework SystemConfiguration -framework CoreFoundation -framework IOKit";
+				OTHER_CFLAGS = "$(inherited)";
+				OTHER_CPLUSPLUSFLAGS = "$(inherited)";
+				OTHER_LDFLAGS = "$(inherited) -lssl -lcrypto -lz -framework SystemConfiguration -framework CoreFoundation -framework IOKit";
 				PRODUCT_BUNDLE_IDENTIFIER = com.wfsdiy.app;
 				PRODUCT_NAME = "WFS-DIY";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				USE_HEADERMAP = NO;
 				VALIDATE_WORKSPACE_SKIPPED_SDK_FRAMEWORKS = OpenGL;
 				VALID_ARCHS = "i386 x86_64 arm64 arm64e";
@@ -1231,6 +1272,7 @@
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = NO;
@@ -1249,7 +1291,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				OTHER_CODE_SIGN_FLAGS = --timestamp;
+				OTHER_CODE_SIGN_FLAGS = "--dryrun";
 				PRODUCT_NAME = "WFS-DIY";
 				SDKROOT = macosx;
 				WARNING_CFLAGS = "-Wreorder";

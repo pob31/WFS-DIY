@@ -297,8 +297,8 @@ public:
         // Set size with display awareness — scale with display resolution
         auto& displays = juce::Desktop::getInstance().getDisplays();
         const auto* displayPtr = displays.getPrimaryDisplay();
-        juce::Rectangle<int> userArea = (displayPtr != nullptr && !displayPtr->userArea.isEmpty())
-            ? displayPtr->userArea
+        juce::Rectangle<int> userArea = (displayPtr != nullptr && !displayPtr->userBounds.isEmpty())
+            ? displayPtr->userBounds.toNearestInt()
             : displays.getTotalBounds(true);
 
         float ds = static_cast<float>(userArea.getHeight()) / 1080.0f;

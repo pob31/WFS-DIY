@@ -90,7 +90,7 @@ private:
                 const auto& d = displays.getReference (i);
                 juce::String label;
                 label << "Display " << (i + 1)
-                      << "  (" << d.userArea.getWidth() << "×" << d.userArea.getHeight() << ")";
+                      << "  (" << (int) d.userBounds.getWidth() << "x" << (int) d.userBounds.getHeight() << ")";
                 if (d.isMain) label << "  [primary]";
                 displayCombo.addItem (label, i + 2);
             }

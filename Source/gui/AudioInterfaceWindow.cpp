@@ -731,8 +731,8 @@ AudioInterfaceWindow::AudioInterfaceWindow(juce::AudioDeviceManager& deviceManag
     // Get display bounds
     auto& displays = juce::Desktop::getInstance().getDisplays();
     const auto* displayPtr = displays.getPrimaryDisplay();
-    juce::Rectangle<int> userArea = (displayPtr != nullptr && !displayPtr->userArea.isEmpty())
-        ? displayPtr->userArea
+    juce::Rectangle<int> userArea = (displayPtr != nullptr && !displayPtr->userBounds.isEmpty())
+        ? displayPtr->userBounds.toNearestInt()
         : displays.getTotalBounds(true);
 
     // Window sizing: 80% of screen width and height (min 720px height)

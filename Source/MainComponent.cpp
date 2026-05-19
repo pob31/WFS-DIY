@@ -2210,7 +2210,7 @@ MainComponent::MainComponent()
     // Make sure you set the size of the component after
     // you add any child components.
     // Set initial size to 90% of the screen, with minimum bounds
-    auto displayArea = juce::Desktop::getInstance().getDisplays().getPrimaryDisplay()->userArea;
+    auto displayArea = juce::Desktop::getInstance().getDisplays().getPrimaryDisplay()->userBounds.toNearestInt();
     int windowWidth = juce::jmax(1280, (int)(displayArea.getWidth() * 0.9f));
     int windowHeight = juce::jmax(720, (int)(displayArea.getHeight() * 0.9f));
     setSize (windowWidth, windowHeight);

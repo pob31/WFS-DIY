@@ -1982,8 +1982,7 @@ git submodule update --init --recursive
 ```
 
 **Dependencies (via submodules in `ThirdParty/`):**
-- **JUCE 8.0.12** — `ThirdParty/JUCE` (pinned to tag 8.0.12)
-- **ASIO SDK** — `ThirdParty/ASIOSDK` (from github.com/audiosdk/asio)
+- **JUCE 8.0.13** — `ThirdParty/JUCE` (pinned to tag 8.0.13; ASIO SDK is bundled with JUCE since 8.0.11)
 - **GPU Audio SDK** — `ThirdParty/GPUAudioSDK`
 
 - Project file: WFS-DIY.jucer (open in Projucer to re-export build files)
@@ -2056,7 +2055,7 @@ When updating these files, preserve the column count and avoid introducing U+FFF
 
 ---
 
-*Last updated: 2026-04-24*
-*Session changes: audited and refreshed all `Documentation/WFS-UI_*.csv` files against the live code; added `WFS-UI_clusters.csv`, `WFS-UI_arrayWizard.md`, `WFS-UI_plugins.md`. ADM-OSC and DAW Plugin Suite status updated.*
-*JUCE Version: 8.0.12*
+*Last updated: 2026-05-19*
+*Session changes: bumped JUCE 8.0.12 -> 8.0.13; removed standalone ASIOSDK submodule (JUCE bundles ASIO since 8.0.11); migrated Display::userArea callers to userBounds (deprecated in 8.0.13); app version bumped to 1.0.0beta18.*
+*JUCE Version: 8.0.13*
 *Build: Visual Studio 2022 / Xcode, x64 Debug/Release*

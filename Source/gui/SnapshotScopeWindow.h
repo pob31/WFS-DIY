@@ -971,7 +971,7 @@ public:
 
         // Size based on number of channels, scaled with display resolution
         auto* disp = juce::Desktop::getInstance().getDisplays().getPrimaryDisplay();
-        float ds = (disp && !disp->userArea.isEmpty()) ? static_cast<float>(disp->userArea.getHeight()) / 1080.0f : 1.0f;
+        float ds = (disp && !disp->userBounds.isEmpty()) ? disp->userBounds.getHeight() / 1080.0f : 1.0f;
         auto dsc = [ds](int ref) { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * ds)); };
 
         int numChannels = params.getNumInputChannels();

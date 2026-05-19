@@ -28,7 +28,9 @@ JUCE bundles additional dependencies with their own licenses. See
 - **License**: Steinberg proprietary or GPLv3 (dual license)
 - **Copyright**: (c) 2025 Steinberg Media Technologies GmbH
 
-Used under the GPLv3 path. Full license text in `ThirdParty/ASIOSDK/LICENSE.txt`.
+Used under the GPLv3 path. Since JUCE 8.0.11 the ASIO SDK ships bundled
+with JUCE; full license text in
+`ThirdParty/JUCE/modules/juce_audio_devices/native/asio/LICENSE.txt`.
 
 THE SDK IS PROVIDED BY STEINBERG MEDIA TECHNOLOGIES GMBH "AS IS" AND ANY
 EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
