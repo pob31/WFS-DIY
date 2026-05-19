@@ -245,6 +245,8 @@
                   file="Source/Network/MCP/tools/StateDeltaTool.h"/>
             <FILE id="mcpToolsChanLife" name="ChannelLifecycleTools.h" compile="0" resource="0"
                   file="Source/Network/MCP/tools/ChannelLifecycleTools.h"/>
+            <FILE id="mcpToolsRevAuto" name="ReverbAutoLayoutTool.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/ReverbAutoLayoutTool.h"/>
           </GROUP>
         </GROUP>
       </GROUP>

@@ -17,6 +17,7 @@
 #include "tools/StateInspectionTools.h"
 #include "tools/StateDeltaTool.h"
 #include "tools/ChannelLifecycleTools.h"
+#include "tools/ReverbAutoLayoutTool.h"
 
 namespace WFSNetwork
 {
@@ -81,6 +82,12 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     // wfs_set_parameter's per-entry shape; pre-validates everything,
     // then applies and records as a single ChangeRecord with subWrites.
     registry->registerTool (Tools::SetParameterBatch::describe (state));
+
+    // High-level placement: classifies speaker topology and writes reverb
+    // positions/orientations/pitch in one atomic batch. SDN-aware (chaotic
+    // standoff to avoid metallic ringing). See
+    // Documentation/MCP/specs/REVERB_AUTO_LAYOUT_*.md for the full spec.
+    registry->registerTool (Tools::ReverbAutoLayout::describe (state));
 
     // Read-side counterparts to the write API. wfs_get_parameter +
     // wfs_get_parameters mirror wfs_set_parameter / batch shapes.
