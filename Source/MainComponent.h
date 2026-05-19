@@ -14,6 +14,7 @@
 #include "DSP/BinauralProcessor.h"
 #include "DSP/ReverbEngine.h"
 #include "DSP/ReverbFeedThread.h"
+#include "DSP/OutputEQProcessor.h"
 #include "DSP/SharedInputRingBuffer.h"
 // #include "DSP/GpuInputBufferAlgorithm.h"  // Commented out - GPU Audio SDK not configured
 #include "WfsParameters.h"
@@ -367,6 +368,10 @@ private:
     std::unique_ptr<std::atomic<float>[]> outputAttenuationTargets;
     int outputAttenuationTargetsCount = 0;
     std::vector<juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative>> outputAttenuationGains;
+
+    // Per-output 6-band parametric EQ. Sized via prepare() inside
+    // resizeOutputAttenuation(); coefficients pushed from timerCallback.
+    OutputEQProcessor outputEQProcessor;
 
     // Per-reverb return attenuation (smoothed). Applied to each reverb's wet output
     // signal before mixing into WFS outputs, so the reverb engine runs at full level

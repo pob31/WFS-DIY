@@ -2512,6 +2512,9 @@ void MainComponent::resizeOutputAttenuation(int numOut, double sampleRate)
         sv.reset(sampleRate, 0.05);
         sv.setCurrentAndTargetValue(1.0f);
     }
+
+    // Per-output EQ filter bank tracks the same channel count.
+    outputEQProcessor.prepare(sampleRate, 0, numOut);
 }
 
 void MainComponent::resizeReverbAttenuation(int numReverbs, double sampleRate)
@@ -4576,6 +4579,9 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
             }
         }
 
+        // Per-output parametric EQ (after reverb-return mix, before attenuation/master gain)
+        outputEQProcessor.processBlock(wfsOutputBuffer, startSample, numSamples);
+
         // Apply per-output attenuation (before master gain, after reverb-return mix)
         {
             const int numCh = juce::jmin((int) outputAttenuationGains.size(),
@@ -5459,6 +5465,40 @@ void MainComponent::timerCallback()
                         "Reverb dropout detected - consider reducing reverb channels, IR length, or switching to SDN/FDN",
                         5000);
             }
+        }
+
+        // Push per-output EQ parameters every tick. The biquad short-circuits on
+        // no-change, so this is cheap when the user isn't touching the GUI.
+        {
+            using namespace WFSParameterIDs;
+            auto& vts = parameters.getValueTreeState();
+
+            OutputEQProcessor::Params eqParams;
+            eqParams.channels.resize(static_cast<size_t>(numOutputChannels));
+
+            for (int c = 0; c < numOutputChannels; ++c)
+            {
+                auto& cp = eqParams.channels[static_cast<size_t>(c)];
+
+                cp.enabled = static_cast<int>(vts.getOutputParameter(c, outputEQenabled)) != 0;
+
+                for (int b = 0; b < OutputEQProcessor::NUM_EQ_BANDS; ++b)
+                {
+                    auto band = vts.getOutputEQBand(c, b);
+                    auto& bp = cp.bands[static_cast<size_t>(b)];
+
+                    if (band.isValid())
+                    {
+                        bp.shape = static_cast<int>  (band.getProperty(eqShape,     0));
+                        bp.freq  = static_cast<float>(band.getProperty(eqFrequency, 1000.0f));
+                        bp.gain  = static_cast<float>(band.getProperty(eqGain,      0.0f));
+                        bp.q     = static_cast<float>(band.getProperty(eqQ,         0.7f));
+                        bp.slope = static_cast<float>(band.getProperty(eqSlope,     0.7f));
+                    }
+                }
+            }
+
+            outputEQProcessor.setParameters(eqParams);
         }
 
         // Check if any LFO is producing movement (used for map repaint and composite delta rate)
