@@ -4021,6 +4021,10 @@ private:
         row = posBlock.removeFromTop(rowHeight);
         flipXButton.setBounds(row.removeFromRight(flipBtnWidth));
         row.removeFromRight(spacing);
+        auto constraintXPos = row.removeFromRight(constraintBtnWidth);
+        constraintXButton.setBounds(constraintXPos);
+        constraintDistanceButton.setBounds(constraintXPos);  // Overlay on same position (mutually exclusive)
+        row.removeFromRight(spacing);
         coordModeLabel.setBounds(row.removeFromLeft(coordModeLabelW));
         coordModeSelector.setBounds(row.removeFromLeft(coordModeSelectorW));
         row.removeFromLeft(spacing);
@@ -4031,15 +4035,13 @@ private:
         offsetXLabel.setBounds(row.removeFromLeft(posLabelWidth));
         offsetXEditor.setBounds(row.removeFromLeft(posEditorWidth));
         offsetXUnitLabel.setBounds(row.removeFromLeft(posUnitWidth));
-        row.removeFromLeft(spacing);
-        auto constraintXPos = row.removeFromLeft(constraintBtnWidth);
-        constraintXButton.setBounds(constraintXPos);
-        constraintDistanceButton.setBounds(constraintXPos);  // Overlay on same position (mutually exclusive)
         posBlock.removeFromTop(rowGap);
 
         // Row 2: Y axis (Position Y, Offset Y, Constraint Y, Flip Y)
         row = posBlock.removeFromTop(rowHeight);
         flipYButton.setBounds(row.removeFromRight(flipBtnWidth));
+        row.removeFromRight(spacing);
+        constraintYButton.setBounds(row.removeFromRight(constraintBtnWidth));
         row.removeFromRight(spacing);
         row.removeFromLeft(coordModeLabelW + coordModeSelectorW + spacing);  // Skip coord mode space
         posYLabel.setBounds(row.removeFromLeft(posLabelWidth));
@@ -4049,13 +4051,13 @@ private:
         offsetYLabel.setBounds(row.removeFromLeft(posLabelWidth));
         offsetYEditor.setBounds(row.removeFromLeft(posEditorWidth));
         offsetYUnitLabel.setBounds(row.removeFromLeft(posUnitWidth));
-        row.removeFromLeft(spacing);
-        constraintYButton.setBounds(row.removeFromLeft(constraintBtnWidth));
         posBlock.removeFromTop(rowGap);
 
         // Row 3: ADM mapping selector + Z axis (Position Z, Offset Z, Constraint Z, Flip Z)
         row = posBlock.removeFromTop(rowHeight);
         flipZButton.setBounds(row.removeFromRight(flipBtnWidth));
+        row.removeFromRight(spacing);
+        constraintZButton.setBounds(row.removeFromRight(constraintBtnWidth));
         row.removeFromRight(spacing);
         admMappingLabel.setBounds(row.removeFromLeft(coordModeLabelW));
         admMappingSelector.setBounds(row.removeFromLeft(coordModeSelectorW));
@@ -4067,8 +4069,6 @@ private:
         offsetZLabel.setBounds(row.removeFromLeft(posLabelWidth));
         offsetZEditor.setBounds(row.removeFromLeft(posEditorWidth));
         offsetZUnitLabel.setBounds(row.removeFromLeft(posUnitWidth));
-        row.removeFromLeft(spacing);
-        constraintZButton.setBounds(row.removeFromLeft(constraintBtnWidth));
 
         // Distance constraint slider row (after position block, for Cylindrical/Spherical modes)
         // Center the slider row horizontally with Constraint R button (which replaces Constraint X)
