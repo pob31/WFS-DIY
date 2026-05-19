@@ -228,6 +228,17 @@ public:
     /** Set cluster parameter (1-based cluster index) */
     void setClusterParameter (int clusterIndex, const juce::Identifier& id, const juce::var& value);
 
+    /** If sourceInputIndex belongs to a cluster whose referenceMode == 2 (Shared
+        Position), copy the source input's inputPositionX/Y/Z to every other
+        member so the shared-position invariant is maintained. No-op for inputs
+        not in a Shared-mode cluster. */
+    void propagateSharedClusterPosition (int sourceInputIndex);
+
+    /** Enforce the shared-position invariant on a cluster (1-based clusterIndex):
+        if referenceMode == 2 and the cluster has at least one member, snap every
+        member's position to the first-ordered member's position. Idempotent. */
+    void enforceSharedClusterInvariant (int clusterIndex);
+
     //==========================================================================
     // Binaural Enable/Solo Access
     //==========================================================================

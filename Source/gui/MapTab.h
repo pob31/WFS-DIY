@@ -1144,7 +1144,7 @@ public:
                 bool isTracked = isInputFullyTracked(idx);
                 bool motionActive = isAutoMotionActive && isAutoMotionActive (idx);
                 int cluster = static_cast<int>(parameters.getInputParam(idx, "inputCluster"));
-                bool isReference = (cluster > 0) && (getClusterReferenceInput(cluster) == idx);
+                bool isReference = isClusterReferenceOrSharedMember(idx, cluster);
 
                 if (isTracked || motionActive)
                 {
@@ -1684,7 +1684,7 @@ public:
         // Determine drag behavior
         bool isTracked = isInputFullyTracked(inputIdx);
         int cluster = static_cast<int>(parameters.getInputParam(inputIdx, "inputCluster"));
-        bool isReference = (cluster > 0) && (getClusterReferenceInput(cluster) == inputIdx);
+        bool isReference = isClusterReferenceOrSharedMember(inputIdx, cluster);
 
         if (isTracked)
         {
@@ -1885,7 +1885,7 @@ public:
         // Determine target type based on input state
         bool isTracked = isInputFullyTracked(inputIdx);
         int cluster = static_cast<int>(parameters.getInputParam(inputIdx, "inputCluster"));
-        bool isReference = (cluster > 0) && (getClusterReferenceInput(cluster) == inputIdx);
+        bool isReference = isClusterReferenceOrSharedMember(inputIdx, cluster);
 
         if (isTracked && cluster > 0)
         {
@@ -2106,14 +2106,40 @@ public:
         return stageToScreen(getClusterBarycenter(clusterNum));
     }
 
-    // Apply scale to cluster members around reference point (XY plane)
+    // Apply scale to cluster members around reference point (XY plane).
+    // In Shared Position mode (referenceMode == 2) all members share the
+    // same base position, so scale instead operates on the per-input
+    // inputOffsetX/Y around the origin (which IS the shared position-relative
+    // origin for offsets).
     void applyClusterScale(int clusterNum, float scaleX, float scaleY)
     {
         // Limit scale factor to reasonable range to prevent extreme values
         scaleX = juce::jlimit(0.1f, 10.0f, scaleX);
         scaleY = juce::jlimit(0.1f, 10.0f, scaleY);
 
-        // Find reference point
+        int refMode = static_cast<int>(parameters.getValueTreeState().getClusterParameter(
+            clusterNum, WFSParameterIDs::clusterReferenceMode));
+
+        int numInputs = parameters.getNumInputChannels();
+
+        if (refMode == 2)
+        {
+            for (int i = 0; i < numInputs; ++i)
+            {
+                int inputCluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
+                if (inputCluster != clusterNum)
+                    continue;
+
+                float oxOld = static_cast<float>(parameters.getInputParam(i, "inputOffsetX"));
+                float oyOld = static_cast<float>(parameters.getInputParam(i, "inputOffsetY"));
+
+                parameters.setInputParam(i, "inputOffsetX", oxOld * scaleX);
+                parameters.setInputParam(i, "inputOffsetY", oyOld * scaleY);
+            }
+            return;
+        }
+
+        // Find reference point (mode 0 / 1)
         int refInput = getClusterReferenceInput(clusterNum);
         juce::Point<float> refPos;
 
@@ -2128,7 +2154,6 @@ public:
         }
 
         // Scale all members relative to reference
-        int numInputs = parameters.getNumInputChannels();
         for (int i = 0; i < numInputs; ++i)
         {
             int inputCluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
@@ -2156,13 +2181,45 @@ public:
         }
     }
 
-    // Apply rotation to cluster members around reference point (XY plane)
+    // Apply rotation to cluster members around reference point (XY plane).
+    // In Shared Position mode (referenceMode == 2) the rotation operates on
+    // the per-input inputOffsetX/Y vector around the origin instead of on
+    // position, because all members share the same base position.
     void applyClusterRotation(int clusterNum, float angleDeg)
     {
         if (std::abs(angleDeg) < 0.01f)
             return;
 
-        // Find reference point
+        int refMode = static_cast<int>(parameters.getValueTreeState().getClusterParameter(
+            clusterNum, WFSParameterIDs::clusterReferenceMode));
+
+        float angleRad = juce::degreesToRadians(angleDeg);
+        float cosA = std::cos(angleRad);
+        float sinA = std::sin(angleRad);
+
+        int numInputs = parameters.getNumInputChannels();
+
+        if (refMode == 2)
+        {
+            for (int i = 0; i < numInputs; ++i)
+            {
+                int inputCluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
+                if (inputCluster != clusterNum)
+                    continue;
+
+                float oxOld = static_cast<float>(parameters.getInputParam(i, "inputOffsetX"));
+                float oyOld = static_cast<float>(parameters.getInputParam(i, "inputOffsetY"));
+
+                float newOx = oxOld * cosA - oyOld * sinA;
+                float newOy = oxOld * sinA + oyOld * cosA;
+
+                parameters.setInputParam(i, "inputOffsetX", newOx);
+                parameters.setInputParam(i, "inputOffsetY", newOy);
+            }
+            return;
+        }
+
+        // Find reference point (mode 0 / 1)
         int refInput = getClusterReferenceInput(clusterNum);
         juce::Point<float> refPos;
 
@@ -2176,12 +2233,7 @@ public:
             refPos = getClusterBarycenter(clusterNum);
         }
 
-        float angleRad = juce::degreesToRadians(angleDeg);
-        float cosA = std::cos(angleRad);
-        float sinA = std::sin(angleRad);
-
         // Rotate all members around reference
-        int numInputs = parameters.getNumInputChannels();
         for (int i = 0; i < numInputs; ++i)
         {
             int inputCluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
@@ -2551,7 +2603,7 @@ private:
         {
             bool isTracked = isInputFullyTracked(idx);
             int cluster = static_cast<int>(parameters.getInputParam(idx, "inputCluster"));
-            bool isReference = (cluster > 0) && (getClusterReferenceInput(cluster) == idx);
+            bool isReference = isClusterReferenceOrSharedMember(idx, cluster);
 
             if (isTracked)
             {
@@ -2684,7 +2736,9 @@ private:
         int refMode = static_cast<int>(parameters.getValueTreeState().getClusterParameter(
             clusterNum, WFSParameterIDs::clusterReferenceMode));
 
-        if (refMode == 0 && !clusterMembers.empty())
+        // Mode 0 (First Input) and Mode 2 (Shared Position) both use the
+        // first-ordered member as the canonical reference handle.
+        if ((refMode == 0 || refMode == 2) && !clusterMembers.empty())
         {
             // Respect stored input order if available
             juce::String order = parameters.getValueTreeState().getClusterParameter(
@@ -2699,6 +2753,19 @@ private:
         }
 
         return -1;  // Barycenter mode
+    }
+
+    // True when an input should be treated as a cluster reference for move
+    // operations. In Shared Position mode (referenceMode == 2) every member
+    // is treated as a reference, because moving any of them must move the
+    // whole cluster to preserve the shared-position invariant.
+    bool isClusterReferenceOrSharedMember (int inputIdx, int clusterNum) const
+    {
+        if (clusterNum <= 0) return false;
+        int refMode = static_cast<int>(parameters.getValueTreeState().getClusterParameter(
+            clusterNum, WFSParameterIDs::clusterReferenceMode));
+        if (refMode == 2) return true;
+        return getClusterReferenceInput(clusterNum) == inputIdx;
     }
 
     //==========================================================================

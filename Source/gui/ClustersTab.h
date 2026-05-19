@@ -81,7 +81,7 @@ public:
             g.fillAll (ColorScheme::get().listSelection);
         else if (isTracked)
             g.fillAll (ColorScheme::get().listSelection.interpolatedWith (juce::Colour (0xFFFF9800), 0.3f));
-        else if (isFirst && refModeId == 1)
+        else if (isFirst && (refModeId == 1 || refModeId == 3))
             g.fillAll (ColorScheme::get().listSelection.interpolatedWith (juce::Colour (0xFF00FF00), 0.2f));
         else
             g.fillAll (ColorScheme::get().surfaceCard);
@@ -226,6 +226,7 @@ public:
         addAndMakeVisible(referenceModeSelector);
         referenceModeSelector.addItem(LOC("clusters.referenceMode.firstInput"), 1);
         referenceModeSelector.addItem(LOC("clusters.referenceMode.barycenter"), 2);
+        referenceModeSelector.addItem(LOC("clusters.referenceMode.sharedPosition"), 3);
         referenceModeSelector.setSelectedId(1, juce::dontSendNotification);
         referenceModeSelector.onChange = [this]() {
             if (selectedCluster > 0)
@@ -233,6 +234,12 @@ public:
                 int mode = referenceModeSelector.getSelectedId() - 1;
                 parameters.getValueTreeState().setClusterParameter(selectedCluster,
                     WFSParameterIDs::clusterReferenceMode, mode);
+
+                // Shared Position: snap every member of this cluster to the
+                // first-ordered member's position so the invariant holds from
+                // the moment of the switch.
+                if (mode == 2)
+                    parameters.getValueTreeState().enforceSharedClusterInvariant(selectedCluster);
             }
         };
 
@@ -1900,7 +1907,7 @@ private:
                 {
                     int mode = static_cast<int>(parameters.getValueTreeState().getClusterParameter(
                         c, WFSParameterIDs::clusterReferenceMode));
-                    if (mode == 0) // First input
+                    if (mode == 0 || mode == 2) // First input or Shared Position
                     {
                         auto [px, py, pz] = getInputPosition(clusterInputs[0]);
                         refX = px; refY = py; refZ = pz;
@@ -1919,10 +1926,53 @@ private:
                 }
             }
 
+            // In Shared Position mode (referenceMode == 2) rotation and scale
+            // operate on per-input inputOffsets (around the origin) rather
+            // than on positions, since all member positions are equal. The
+            // delta is written into the LFO offset which is added to the
+            // composite position downstream.
+            int refMode = static_cast<int>(parameters.getValueTreeState().getClusterParameter(
+                c, WFSParameterIDs::clusterReferenceMode));
+
             // Compute per-input offsets (no ValueTree writes)
             for (int inputIdx : clusterInputs)
             {
                 auto [baseX, baseY, baseZ] = getInputPosition(inputIdx);
+
+                if (refMode == 2)
+                {
+                    float ox = static_cast<float>(parameters.getInputParam(inputIdx, "inputOffsetX"));
+                    float oy = static_cast<float>(parameters.getInputParam(inputIdx, "inputOffsetY"));
+                    float oz = static_cast<float>(parameters.getInputParam(inputIdx, "inputOffsetZ"));
+
+                    float newOx = ox, newOy = oy, newOz = oz;
+
+                    if (hasRotation)
+                    {
+                        float rad = juce::degreesToRadians(oRot);
+                        float cosA = std::cos(rad);
+                        float sinA = std::sin(rad);
+                        newOx = ox * cosA - oy * sinA;
+                        newOy = ox * sinA + oy * cosA;
+                    }
+
+                    if (hasScale)
+                    {
+                        newOx *= oScale;
+                        newOy *= oScale;
+                        newOz *= oScale;
+                    }
+
+                    // LFO offset = (transformed_offset - original_offset) + translation.
+                    // Translation moves the whole cluster uniformly.
+                    clusterLFOInputOffsets[static_cast<size_t> (inputIdx)] = {
+                        (newOx - ox) + oX,
+                        (newOy - oy) + oY,
+                        (newOz - oz) + oZ
+                    };
+                    continue;
+                }
+
                 float px = baseX, py = baseY, pz = baseZ;
 
                 // Rotation around reference (XY plane, absolute angle)
@@ -2147,6 +2197,14 @@ private:
                         updateInputsVisibilityButtonState();
                 }
             }
+
+            // Rule 5: Shared Position invariant. After membership changes
+            // (a member joined or left), make sure every member of a
+            // shared-mode cluster sits at the first-ordered member's
+            // position. For a freshly-joined input on an empty cluster
+            // this is a no-op (only one member). For subsequent joins it
+            // snaps the new member onto the cluster's existing position.
+            parameters.getValueTreeState().enforceSharedClusterInvariant(c);
         }
     }
 

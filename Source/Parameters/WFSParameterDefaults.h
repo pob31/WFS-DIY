@@ -230,9 +230,9 @@ namespace WFSParameterDefaults
     // Config > Clusters Section
     //==========================================================================
 
-    constexpr int clusterReferenceModeDefault = 0;  // 0=First Input, 1=Barycenter
+    constexpr int clusterReferenceModeDefault = 0;  // 0=First Input, 1=Barycenter, 2=Shared Position
     constexpr int clusterReferenceModeMin     = 0;
-    constexpr int clusterReferenceModeMax     = 1;
+    constexpr int clusterReferenceModeMax     = 2;
 
     const juce::String clusterInputOrderDefault = "";  // empty = numeric order fallback
 

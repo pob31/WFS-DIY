@@ -663,7 +663,8 @@
     },
     "referenceMode": {
       "firstInput": "第一输入",
-      "barycenter": "重心"
+      "barycenter": "重心",
+      "sharedPosition": "共享位置"
     },
     "planes": {
       "xy": "XY",
@@ -699,7 +700,7 @@
     },
     "help": {
       "inputsVisibility": "在地图选项卡中显示或隐藏此集群的输入。隐藏会应用于新成员；移除输入将恢复其可见性。",
-      "referenceMode": "选择集群变换的参考点：第一个输入或重心。",
+      "referenceMode": "选择集群变换的参考点：第一个输入、重心或共享位置（所有成员重合；缩放和旋转应用于各输入的偏移量）。",
       "positionJoystick": "在 X/Y 方向移动集群的所有输入。按住并拖动以平移。",
       "zSlider": "沿 Z 轴（高度）移动集群的所有输入。",
       "attenuationSlider": "调整集群所有输入的衰减（dB）。",

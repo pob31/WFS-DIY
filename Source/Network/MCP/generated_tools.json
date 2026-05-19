@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "d1c6a6446fec92b52d09feacd34d6ca92ee027b124d20b2a956e3a9328d5fd6d",
+  "input_hash": "349db25169b4597e0a78e9cdc890591764efac54a9c662081e0d27e757ed325c",
   "source_csvs": [
     "WFS-UI_config.csv",
     "WFS-UI_input.csv",
@@ -1027,7 +1027,7 @@
     },
     {
       "name": "cluster_reference_set_mode",
-      "description": "Pivot point for rotation and scale transforms. Enum: First Input (0) ; Barycenter (1). Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Pivot point for rotation and scale transforms. Enum: First Input (0) ; Barycenter (1) ; Shared Position (2). Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -1041,7 +1041,8 @@
             "type": "string",
             "enum": [
               "FirstInput",
-              "Barycenter"
+              "Barycenter",
+              "SharedPosition"
             ],
             "description": "Reference Mode (enum).",
             "default": "FirstInput"
@@ -1063,7 +1064,8 @@
       "internal_variable": "clusterReferenceMode",
       "enum_string_to_int": {
         "FirstInput": 0,
-        "Barycenter": 1
+        "Barycenter": 1,
+        "SharedPosition": 2
       },
       "value_arg_name": "mode"
     },

@@ -683,7 +683,8 @@
     },
     "referenceMode": {
       "firstInput": "Erster Eingang",
-      "barycenter": "Schwerpunkt"
+      "barycenter": "Schwerpunkt",
+      "sharedPosition": "Geteilte Position"
     },
     "planes": {
       "xy": "XY",
@@ -719,7 +720,7 @@
     },
     "help": {
       "inputsVisibility": "Eingänge dieses Clusters auf der Karte ein- oder ausblenden. Ausblenden gilt auch für neue Mitglieder; Entfernen eines Eingangs stellt seine Sichtbarkeit wieder her.",
-      "referenceMode": "Wählen Sie den Referenzpunkt für Cluster-Transformationen: Erster Eingang oder Schwerpunkt.",
+      "referenceMode": "Wählen Sie den Referenzpunkt für Cluster-Transformationen: Erster Eingang, Schwerpunkt oder Geteilte Position (alle Mitglieder fallen zusammen; Skalierung und Rotation wirken auf die Einzeloffsets).",
       "positionJoystick": "Alle Cluster-Eingänge in X/Y bewegen. Halten und ziehen zum Verschieben.",
       "zSlider": "Alle Cluster-Eingänge entlang der Z-Achse (Höhe) bewegen.",
       "attenuationSlider": "Dämpfung aller Cluster-Eingänge anpassen (dB).",

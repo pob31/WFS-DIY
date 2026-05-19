@@ -2535,7 +2535,9 @@ void OSCManager::handleRemotePositionXY(const OSCMessageRouter::ParsedRemoteInpu
                 applyConstraintDistance(channelIndex, posX, posY, z);
             }
 
-            // Set both X and Y atomically (and Z if modified by distance constraint)
+            // Set both X and Y atomically (and Z if modified by distance constraint).
+            // setInputParameter handles Shared-Position cluster propagation
+            // internally so a single-input write moves the whole cluster.
             state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionX, posX);
             state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionY, posY);
             if (distanceConstraintActive)
@@ -2786,7 +2788,45 @@ void OSCManager::handleClusterScaleRotationMessage(const juce::OSCMessage& messa
         // Collect updated positions to echo back to Remote after processing
         std::vector<std::tuple<int, float, float>> updatedPositions;
 
-        if (parsed.type == OSCMessageRouter::ParsedClusterScaleRotationMessage::Type::Scale)
+        // Shared Position mode: rotation and scale operate on per-input
+        // inputOffsets around origin instead of on positions, because all
+        // member positions are equal.
+        int refMode = static_cast<int>(
+            state.getClusterParameter(parsed.clusterId, WFSParameterIDs::clusterReferenceMode));
+
+        if (refMode == 2)
+        {
+            if (parsed.type == OSCMessageRouter::ParsedClusterScaleRotationMessage::Type::Scale)
+            {
+                float scaleFactor = parsed.value;
+                for (int inputIndex : clusterInputs)
+                {
+                    float ox = varToFloat(state.getInputParameter(inputIndex, WFSParameterIDs::inputOffsetX));
+                    float oy = varToFloat(state.getInputParameter(inputIndex, WFSParameterIDs::inputOffsetY));
+                    state.setInputParameter(inputIndex, WFSParameterIDs::inputOffsetX, ox * scaleFactor);
+                    state.setInputParameter(inputIndex, WFSParameterIDs::inputOffsetY, oy * scaleFactor);
+                }
+            }
+            else // Rotation
+            {
+                float angleDeg = parsed.value;
+                float angleRad = angleDeg * (juce::MathConstants<float>::pi / 180.0f);
+                float cosA = std::cos(angleRad);
+                float sinA = std::sin(angleRad);
+                for (int inputIndex : clusterInputs)
+                {
+                    float ox = varToFloat(state.getInputParameter(inputIndex, WFSParameterIDs::inputOffsetX));
+                    float oy = varToFloat(state.getInputParameter(inputIndex, WFSParameterIDs::inputOffsetY));
+                    float newOx = ox * cosA - oy * sinA;
+                    float newOy = ox * sinA + oy * cosA;
+                    state.setInputParameter(inputIndex, WFSParameterIDs::inputOffsetX, newOx);
+                    state.setInputParameter(inputIndex, WFSParameterIDs::inputOffsetY, newOy);
+                }
+            }
+            // Positions did not change in shared mode — skip the echo
+            // updatedPositions stays empty so sendClusterMembersBundle is skipped.
+        }
+        else if (parsed.type == OSCMessageRouter::ParsedClusterScaleRotationMessage::Type::Scale)
         {
             // Apply uniform scale around reference point
             float scaleFactor = parsed.value;

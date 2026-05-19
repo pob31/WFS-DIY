@@ -630,7 +630,8 @@
     },
     "referenceMode": {
       "firstInput": "첫 번째 입력",
-      "barycenter": "무게 중심"
+      "barycenter": "무게 중심",
+      "sharedPosition": "공유 위치"
     },
     "planes": {
       "xy": "XY",
@@ -666,7 +667,7 @@
     },
     "help": {
       "inputsVisibility": "이 클러스터의 입력을 맵 탭에서 표시하거나 숨깁니다. 숨김은 새 멤버에도 적용되며, 입력을 제거하면 다시 표시됩니다.",
-      "referenceMode": "클러스터 변환의 기준점을 선택합니다: 첫 번째 입력 또는 무게 중심.",
+      "referenceMode": "클러스터 변환의 기준점을 선택합니다: 첫 번째 입력, 무게 중심, 또는 공유 위치(모든 멤버가 한 점에 모이며 스케일과 회전은 개별 오프셋에 적용됩니다).",
       "positionJoystick": "클러스터의 모든 입력을 X/Y로 이동합니다. 누른 채 드래그하여 이동합니다.",
       "zSlider": "클러스터의 모든 입력을 Z축(높이)을 따라 이동합니다.",
       "attenuationSlider": "클러스터의 모든 입력의 감쇠를 조정합니다 (dB).",

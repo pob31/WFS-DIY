@@ -663,7 +663,8 @@
     },
     "referenceMode": {
       "firstInput": "Primera entrada",
-      "barycenter": "Baricentro"
+      "barycenter": "Baricentro",
+      "sharedPosition": "Posición Compartida"
     },
     "planes": {
       "xy": "XY",
@@ -699,7 +700,7 @@
     },
     "help": {
       "inputsVisibility": "Mostrar u ocultar las entradas de este cluster en el Mapa. Ocultar se propaga a nuevos miembros; retirar una entrada restaura su visibilidad.",
-      "referenceMode": "Seleccione el punto de referencia para las transformaciones del cluster: Primera Entrada o Baricentro.",
+      "referenceMode": "Seleccione el punto de referencia para las transformaciones del cluster: Primera Entrada, Baricentro o Posición Compartida (todos los miembros coinciden; la escala y la rotación se aplican a los offsets individuales).",
       "positionJoystick": "Mover todas las entradas del cluster en X/Y. Mantener y arrastrar para trasladar.",
       "zSlider": "Mover todas las entradas del cluster a lo largo del eje Z (altura).",
       "attenuationSlider": "Ajustar la atenuación de todas las entradas del cluster (dB).",

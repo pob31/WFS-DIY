@@ -405,6 +405,13 @@ void WFSValueTreeState::setInputParameter (int channelIndex, const juce::Identif
         if (child.hasProperty (paramId))
         {
             child.setProperty (paramId, value, getActiveUndoManager());
+
+            // Maintain the Shared-Position cluster invariant: any write to
+            // inputPositionX/Y/Z on a shared-mode cluster member propagates
+            // to every other member. No-op for inputs not in Shared mode.
+            if (paramId == inputPositionX || paramId == inputPositionY || paramId == inputPositionZ)
+                propagateSharedClusterPosition (channelIndex);
+
             return;
         }
     }
@@ -2046,6 +2053,22 @@ void WFSValueTreeState::valueTreePropertyChanged (juce::ValueTree& treeWhoseProp
     {
         // When cluster assignment changes, also check constraint
         enforceClusterTrackingConstraint (channelIndex);
+
+        // And enforce the Shared-Position invariant on the new cluster so
+        // a freshly assigned input snaps to the cluster's shared position.
+        int newCluster = static_cast<int> (value);
+        if (newCluster >= 1)
+            enforceSharedClusterInvariant (newCluster);
+    }
+    else if (property == clusterReferenceMode &&
+             treeWhosePropertyHasChanged.getType() == Cluster)
+    {
+        // Reference mode flipped (from OSC, MCP, file load, etc.). If the
+        // cluster just entered Shared Position, snap all its members to the
+        // first-ordered member's position. Idempotent for non-shared modes.
+        int clusterIdx = static_cast<int> (treeWhosePropertyHasChanged.getProperty (id));
+        if (clusterIdx >= 1 && static_cast<int> (value) == 2)
+            enforceSharedClusterInvariant (clusterIdx);
     }
 
     notifyParameterListeners (property, value, channelIndex);
@@ -3164,6 +3187,137 @@ void WFSValueTreeState::enforceClusterTrackingConstraint (int changedInputIndex)
             // Disable tracking on the OTHER input (keep the one that was just changed)
             pos.setProperty (inputTrackingActive, 0, nullptr);
         }
+    }
+}
+
+// Find the first-ordered member of a cluster, honouring clusterInputOrder
+// when present, otherwise falling back to the lowest-index member. Returns
+// -1 if the cluster has no members. Used by the Shared-Position invariant.
+static int findFirstOrderedClusterMember (juce::ValueTree inputs,
+                                          const juce::Identifier& inputClusterId,
+                                          const juce::Identifier& positionId,
+                                          juce::String inputOrder,
+                                          int clusterIndex)
+{
+    const int numInputs = inputs.getNumChildren();
+
+    auto isMember = [&] (int idx) -> bool
+    {
+        if (idx < 0 || idx >= numInputs) return false;
+        auto input = inputs.getChild (idx);
+        auto pos = input.getChildWithName (positionId);
+        if (! pos.isValid()) return false;
+        return static_cast<int> (pos.getProperty (inputClusterId)) == clusterIndex;
+    };
+
+    if (inputOrder.isNotEmpty())
+    {
+        juce::StringArray tokens;
+        tokens.addTokens (inputOrder, ",", "");
+        for (const auto& tok : tokens)
+        {
+            int candidate = tok.trim().getIntValue();
+            if (isMember (candidate))
+                return candidate;
+        }
+    }
+
+    for (int i = 0; i < numInputs; ++i)
+        if (isMember (i))
+            return i;
+
+    return -1;
+}
+
+void WFSValueTreeState::propagateSharedClusterPosition (int sourceInputIndex)
+{
+    auto sourceInput = getInputState (sourceInputIndex);
+    if (! sourceInput.isValid())
+        return;
+
+    auto sourcePos = sourceInput.getChildWithName (Position);
+    if (! sourcePos.isValid())
+        return;
+
+    const int clusterIdx = static_cast<int> (sourcePos.getProperty (inputCluster));
+    if (clusterIdx < 1)
+        return;
+
+    const int mode = static_cast<int> (getClusterParameter (clusterIdx, clusterReferenceMode));
+    if (mode != 2)
+        return;
+
+    const float x = static_cast<float> (sourcePos.getProperty (inputPositionX));
+    const float y = static_cast<float> (sourcePos.getProperty (inputPositionY));
+    const float z = static_cast<float> (sourcePos.getProperty (inputPositionZ));
+
+    auto inputs = getInputsState();
+    const int numInputs = inputs.getNumChildren();
+
+    for (int i = 0; i < numInputs; ++i)
+    {
+        if (i == sourceInputIndex) continue;
+
+        auto input = inputs.getChild (i);
+        auto pos = input.getChildWithName (Position);
+        if (! pos.isValid()) continue;
+
+        if (static_cast<int> (pos.getProperty (inputCluster)) != clusterIdx)
+            continue;
+
+        // Skip the write when it's already correct — avoids reentry loops if
+        // any listener calls back into propagation.
+        if (static_cast<float> (pos.getProperty (inputPositionX)) != x)
+            pos.setProperty (inputPositionX, x, nullptr);
+        if (static_cast<float> (pos.getProperty (inputPositionY)) != y)
+            pos.setProperty (inputPositionY, y, nullptr);
+        if (static_cast<float> (pos.getProperty (inputPositionZ)) != z)
+            pos.setProperty (inputPositionZ, z, nullptr);
+    }
+}
+
+void WFSValueTreeState::enforceSharedClusterInvariant (int clusterIndex)
+{
+    if (clusterIndex < 1)
+        return;
+
+    const int mode = static_cast<int> (getClusterParameter (clusterIndex, clusterReferenceMode));
+    if (mode != 2)
+        return;
+
+    auto inputs = getInputsState();
+    const juce::String order = getClusterParameter (clusterIndex, clusterInputOrder).toString();
+    const int refIdx = findFirstOrderedClusterMember (inputs, inputCluster, Position, order, clusterIndex);
+    if (refIdx < 0)
+        return;
+
+    auto refInput = inputs.getChild (refIdx);
+    auto refPos = refInput.getChildWithName (Position);
+    if (! refPos.isValid())
+        return;
+
+    const float x = static_cast<float> (refPos.getProperty (inputPositionX));
+    const float y = static_cast<float> (refPos.getProperty (inputPositionY));
+    const float z = static_cast<float> (refPos.getProperty (inputPositionZ));
+
+    const int numInputs = inputs.getNumChildren();
+    for (int i = 0; i < numInputs; ++i)
+    {
+        if (i == refIdx) continue;
+
+        auto input = inputs.getChild (i);
+        auto pos = input.getChildWithName (Position);
+        if (! pos.isValid()) continue;
+
+        if (static_cast<int> (pos.getProperty (inputCluster)) != clusterIndex)
+            continue;
+
+        if (static_cast<float> (pos.getProperty (inputPositionX)) != x)
+            pos.setProperty (inputPositionX, x, nullptr);
+        if (static_cast<float> (pos.getProperty (inputPositionY)) != y)
+            pos.setProperty (inputPositionY, y, nullptr);
+        if (static_cast<float> (pos.getProperty (inputPositionZ)) != z)
+            pos.setProperty (inputPositionZ, z, nullptr);
     }
 }
 

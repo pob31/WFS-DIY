@@ -723,7 +723,8 @@
     },
     "referenceMode": {
       "firstInput": "First Input",
-      "barycenter": "Barycenter"
+      "barycenter": "Barycenter",
+      "sharedPosition": "Shared Position"
     },
     "planes": {
       "xy": "XY",
@@ -784,7 +785,7 @@
     },
     "help": {
       "inputsVisibility": "Show or hide this cluster's inputs on the Map tab. Hide propagates to new members; removing an input restores its visibility.",
-      "referenceMode": "Select the reference point for cluster transforms: First Input or Barycenter.",
+      "referenceMode": "Select the reference point for cluster transforms: First Input, Barycenter, or Shared Position (all members coincide; scale and rotation apply to per-input offsets).",
       "positionJoystick": "Move all cluster inputs in X/Y. Hold and drag to translate.",
       "zSlider": "Move all cluster inputs along the Z axis (height).",
       "attenuationSlider": "Adjust attenuation of all cluster inputs (dB).",
