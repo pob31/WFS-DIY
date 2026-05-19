@@ -45,6 +45,14 @@ MainComponent::MainComponent()
 
     if (!resourceDir.getChildFile("lang/en.json").existsAsFile())
     {
+        // Linux installed layout (FHS / XDG): bin at <prefix>/bin/WFS-DIY,
+        // data at <prefix>/share/wfs-diy/. This is what tools/linux/build-app-tarball.sh
+        // produces via install.sh for both --user (~/.local) and --system (/opt/wfs-diy).
+        resourceDir = exeDir.getParentDirectory().getChildFile("share/wfs-diy");
+    }
+
+    if (!resourceDir.getChildFile("lang/en.json").existsAsFile())
+    {
         // Windows dev path: go up from Builds/VisualStudio2022/x64/Debug/App to project root
         auto projectRoot = exeDir.getParentDirectory()  // x64/Debug
                                  .getParentDirectory()  // x64
@@ -776,6 +784,11 @@ MainComponent::MainComponent()
     {
         auto exeDir = juce::File::getSpecialLocation(juce::File::currentExecutableFile).getParentDirectory();
         knowledgeResourcesDir = exeDir.getChildFile("MCP/resources");
+        if (! knowledgeResourcesDir.isDirectory())
+        {
+            // Linux installed layout: <prefix>/bin/WFS-DIY → <prefix>/share/wfs-diy/MCP/resources
+            knowledgeResourcesDir = exeDir.getParentDirectory().getChildFile("share/wfs-diy/MCP/resources");
+        }
         if (! knowledgeResourcesDir.isDirectory())
         {
             // Windows VS2022 dev: project root is 5 levels up from exe

@@ -116,6 +116,30 @@ $SUDO cp -R          "$HERE/lang"                      "$APP_DIR/lang"
 $SUDO cp -R          "$HERE/MCP"                       "$APP_DIR/MCP"
 $SUDO install -m 0644 "$HERE/share/WFS-DIY_logo.png"   "$APP_DIR/WFS-DIY_logo.png"
 
+# Write a prefix-baked uninstaller into $APP_DIR so users can simply run it
+# without remembering which prefix they installed against. The inner heredoc
+# is unquoted: $PREFIX is expanded here at install time and baked in, while
+# \$PREFIX / \$SUDO / \$HOME stay literal so they are evaluated when uninstall
+# runs.
+$SUDO tee "$APP_DIR/uninstall.sh" >/dev/null <<UNINSTALL_INNER
+#!/usr/bin/env bash
+set -euo pipefail
+PREFIX="$PREFIX"
+SUDO=""; [[ "\$PREFIX" != "\$HOME/"* ]] && SUDO="sudo"
+
+\$SUDO rm -f  "\$PREFIX/bin/WFS-DIY"
+\$SUDO rm -f  "\$PREFIX/share/applications/wfs-diy.desktop"
+if [[ -f /etc/udev/rules.d/70-wfs-diy.rules ]]; then
+    sudo rm -f /etc/udev/rules.d/70-wfs-diy.rules
+    sudo udevadm control --reload-rules || true
+fi
+# Remove the share dir last — this deletes the running script too, but bash
+# has already loaded it into memory so the rest of the script still executes.
+\$SUDO rm -rf "\$PREFIX/share/wfs-diy"
+echo "Uninstalled WFS-DIY from \$PREFIX."
+UNINSTALL_INNER
+$SUDO chmod +x "$APP_DIR/uninstall.sh"
+
 # .desktop entry, with prefix substituted.
 sed "s|__PREFIX__|$PREFIX|g" "$HERE/share/wfs-diy.desktop" \
     | $SUDO tee "$DESKTOP_DIR/wfs-diy.desktop" >/dev/null
@@ -141,7 +165,7 @@ fi
 
 echo
 echo "Done. Launch from your application menu, or run: $BIN_DIR/WFS-DIY"
-echo "To uninstall: $APP_DIR/uninstall.sh"
+echo "To uninstall: ${SUDO:+$SUDO }$APP_DIR/uninstall.sh"
 INSTALL_EOF
 chmod +x "$STAGE_DIR/install.sh"
 
