@@ -4001,8 +4001,13 @@ private:
         const int posLabelWidth = scaled(75);    // "Position X:" fits fully
         const int posEditorWidth = scaled(55);
         const int posUnitWidth = scaled(25);     // "m" unit label
-        const int constraintBtnWidth = scaled(115);  // Enlarged constraint buttons
-        const int flipBtnWidth = scaled(80);
+        // On aspect ratios taller than 16:9 (e.g. 16:10 laptops) the right-anchored
+        // Constraint + Flip buttons starve the offset editor of horizontal space.
+        // Shrink them in compact mode; WrappingTextButton wraps both labels to two
+        // lines automatically when they no longer fit on one.
+        const bool compactRow = (area.getHeight() * 16 > area.getWidth() * 9);
+        const int constraintBtnWidth = compactRow ? scaled(80) : scaled(115);
+        const int flipBtnWidth       = compactRow ? scaled(55) : scaled(80);
         const int rowGap = scaled(20);  // Increased vertical padding between rows
 
         // Align Y row (second row) center with joystick center
@@ -7864,7 +7869,7 @@ private:
     juce::Label distanceMinLabel, distanceMaxLabel;
     juce::TextEditor distanceMinEditor, distanceMaxEditor;
     juce::Label distanceMinUnitLabel, distanceMaxUnitLabel;
-    juce::TextButton flipXButton, flipYButton, flipZButton;
+    WrappingTextButton flipXButton, flipYButton, flipZButton;
     juce::TextButton trackingActiveButton;
     juce::Label trackingIdLabel;
     juce::ComboBox trackingIdSelector;
