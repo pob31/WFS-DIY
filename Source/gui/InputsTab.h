@@ -3933,6 +3933,19 @@ private:
         const int dialSize = juce::jmax(40, static_cast<int>(65.0f * layoutScale));
         const int colPad = scaled(10);
 
+        // Compact layout flag for the Position section. The full
+        // position-row layout (coord mode + position + offset + constraint
+        // + flip + spacings) needs ~677 px after the joystick block on the
+        // right has claimed its ~224 px. On 16:10 laptop screens the
+        // available posBlock is well below that, so we activate a compact
+        // mode that shrinks paddings + button widths in the position section
+        // only.
+        const int joystickBlockEstimate = scaled(140 + 8 * 2 + 8 + 40 + 20);
+        const int posBlockEstimate = (area.getWidth() / 2 - colPad * 2) - joystickBlockEstimate;
+        const int requiredFullPosBlock = scaled(40 + 100 + 8 + 75 + 55 + 25 + 8 + 75 + 55 + 25 + 8 + 115 + 8 + 80);
+        const bool compactRow = posBlockEstimate < requiredFullPosBlock;
+        const int posSpacing = compactRow ? scaled(3) : scaled(8);
+
         auto col1 = area.removeFromLeft(area.getWidth() / 2).reduced(colPad, 0);
         columnDividerX = area.getX();
         showColumnDivider = true;
@@ -3973,8 +3986,8 @@ private:
 
         // Right side: Joystick and Z slider
         const int zLabelWidth = scaled(20);
-        const int joystickPadding = scaled(8);  // Padding to prevent grey disc clipping
-        auto joystickBlock = posBlock.removeFromRight(joystickSize + joystickPadding * 2 + spacing + zSliderWidth + zLabelWidth);
+        const int joystickPadding = compactRow ? scaled(3) : scaled(8);  // Padding to prevent grey disc clipping
+        auto joystickBlock = posBlock.removeFromRight(joystickSize + joystickPadding * 2 + posSpacing + zSliderWidth + zLabelWidth);
 
         // X/Y label at top-left of joystick
         const int joyLabelHeight = scaled(18);
@@ -3987,7 +4000,7 @@ private:
         joystickRow.removeFromLeft(joystickPadding);
         positionJoystick.setBounds(joystickRow.removeFromLeft(joystickSize));
         joystickRow.removeFromLeft(joystickPadding);
-        joystickRow.removeFromLeft(spacing);
+        joystickRow.removeFromLeft(posSpacing);
 
         // Z slider with label to the right at middle position
         auto zSliderArea = joystickRow.removeFromLeft(zSliderWidth);
@@ -4001,11 +4014,10 @@ private:
         const int posLabelWidth = scaled(75);    // "Position X:" fits fully
         const int posEditorWidth = scaled(55);
         const int posUnitWidth = scaled(25);     // "m" unit label
-        // On aspect ratios taller than 16:9 (e.g. 16:10 laptops) the right-anchored
-        // Constraint + Flip buttons starve the offset editor of horizontal space.
-        // Shrink them in compact mode; WrappingTextButton wraps both labels to two
-        // lines automatically when they no longer fit on one.
-        const bool compactRow = (area.getHeight() * 16 > area.getWidth() * 9);
+        // In compactRow mode (set above when the posBlock is too narrow for
+        // the full layout) the right-anchored Constraint + Flip shrink and
+        // wrap their labels to two lines via WrappingTextButton, giving the
+        // Offset editor enough room to render its numeric box.
         const int constraintBtnWidth = compactRow ? scaled(80) : scaled(115);
         const int flipBtnWidth       = compactRow ? scaled(55) : scaled(80);
         const int rowGap = scaled(20);  // Increased vertical padding between rows
@@ -4025,18 +4037,18 @@ private:
         const int coordModeSelectorW = scaled(100);
         row = posBlock.removeFromTop(rowHeight);
         flipXButton.setBounds(row.removeFromRight(flipBtnWidth));
-        row.removeFromRight(spacing);
+        row.removeFromRight(posSpacing);
         auto constraintXPos = row.removeFromRight(constraintBtnWidth);
         constraintXButton.setBounds(constraintXPos);
         constraintDistanceButton.setBounds(constraintXPos);  // Overlay on same position (mutually exclusive)
-        row.removeFromRight(spacing);
+        row.removeFromRight(posSpacing);
         coordModeLabel.setBounds(row.removeFromLeft(coordModeLabelW));
         coordModeSelector.setBounds(row.removeFromLeft(coordModeSelectorW));
-        row.removeFromLeft(spacing);
+        row.removeFromLeft(posSpacing);
         posXLabel.setBounds(row.removeFromLeft(posLabelWidth));
         posXEditor.setBounds(row.removeFromLeft(posEditorWidth));
         posXUnitLabel.setBounds(row.removeFromLeft(posUnitWidth));
-        row.removeFromLeft(spacing);
+        row.removeFromLeft(posSpacing);
         offsetXLabel.setBounds(row.removeFromLeft(posLabelWidth));
         offsetXEditor.setBounds(row.removeFromLeft(posEditorWidth));
         offsetXUnitLabel.setBounds(row.removeFromLeft(posUnitWidth));
@@ -4045,14 +4057,14 @@ private:
         // Row 2: Y axis (Position Y, Offset Y, Constraint Y, Flip Y)
         row = posBlock.removeFromTop(rowHeight);
         flipYButton.setBounds(row.removeFromRight(flipBtnWidth));
-        row.removeFromRight(spacing);
+        row.removeFromRight(posSpacing);
         constraintYButton.setBounds(row.removeFromRight(constraintBtnWidth));
-        row.removeFromRight(spacing);
-        row.removeFromLeft(coordModeLabelW + coordModeSelectorW + spacing);  // Skip coord mode space
+        row.removeFromRight(posSpacing);
+        row.removeFromLeft(coordModeLabelW + coordModeSelectorW + posSpacing);  // Skip coord mode space
         posYLabel.setBounds(row.removeFromLeft(posLabelWidth));
         posYEditor.setBounds(row.removeFromLeft(posEditorWidth));
         posYUnitLabel.setBounds(row.removeFromLeft(posUnitWidth));
-        row.removeFromLeft(spacing);
+        row.removeFromLeft(posSpacing);
         offsetYLabel.setBounds(row.removeFromLeft(posLabelWidth));
         offsetYEditor.setBounds(row.removeFromLeft(posEditorWidth));
         offsetYUnitLabel.setBounds(row.removeFromLeft(posUnitWidth));
@@ -4061,16 +4073,16 @@ private:
         // Row 3: ADM mapping selector + Z axis (Position Z, Offset Z, Constraint Z, Flip Z)
         row = posBlock.removeFromTop(rowHeight);
         flipZButton.setBounds(row.removeFromRight(flipBtnWidth));
-        row.removeFromRight(spacing);
+        row.removeFromRight(posSpacing);
         constraintZButton.setBounds(row.removeFromRight(constraintBtnWidth));
-        row.removeFromRight(spacing);
+        row.removeFromRight(posSpacing);
         admMappingLabel.setBounds(row.removeFromLeft(coordModeLabelW));
         admMappingSelector.setBounds(row.removeFromLeft(coordModeSelectorW));
-        row.removeFromLeft(spacing);
+        row.removeFromLeft(posSpacing);
         posZLabel.setBounds(row.removeFromLeft(posLabelWidth));
         posZEditor.setBounds(row.removeFromLeft(posEditorWidth));
         posZUnitLabel.setBounds(row.removeFromLeft(posUnitWidth));
-        row.removeFromLeft(spacing);
+        row.removeFromLeft(posSpacing);
         offsetZLabel.setBounds(row.removeFromLeft(posLabelWidth));
         offsetZEditor.setBounds(row.removeFromLeft(posEditorWidth));
         offsetZUnitLabel.setBounds(row.removeFromLeft(posUnitWidth));
