@@ -423,6 +423,15 @@ void WFSValueTreeState::setInputParameter (int channelIndex, const juce::Identif
         if (mutes.isValid())
             mutes.setProperty (paramId, value, getActiveUndoManager());
     }
+    else if (paramId == inputAttenuation)
+    {
+        // inputAttenuation was historically missing from createInputAttenuationSection,
+        // so projects saved before the schema fix have an Attenuation node without
+        // this property. Add it on first write so the value reaches the calc engine.
+        auto attenSection = getInputAttenuationSection (channelIndex);
+        if (attenSection.isValid())
+            attenSection.setProperty (paramId, value, getActiveUndoManager());
+    }
 }
 
 juce::ValueTree WFSValueTreeState::getInputChannelSection (int channelIndex)
@@ -2474,6 +2483,7 @@ juce::ValueTree WFSValueTreeState::createInputPositionSection (int index, int to
 juce::ValueTree WFSValueTreeState::createInputAttenuationSection()
 {
     juce::ValueTree attenuation (Attenuation);
+    attenuation.setProperty (inputAttenuation, inputAttenuationDefault, nullptr);
     attenuation.setProperty (inputAttenuationLaw, inputAttenuationLawDefault, nullptr);
     attenuation.setProperty (inputDistanceAttenuation, inputDistanceAttenuationDefault, nullptr);
     attenuation.setProperty (inputDistanceRatio, inputDistanceRatioDefault, nullptr);
