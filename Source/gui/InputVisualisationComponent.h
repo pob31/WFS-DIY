@@ -286,7 +286,17 @@ public:
      */
     void setSelectedInput(int inputIndex)
     {
+        if (selectedInput == inputIndex)
+            return;
+
         selectedInput = inputIndex;
+
+        // Re-render immediately from the cached matrix so the bars track the
+        // new channel without waiting for the next DSP push — that push is
+        // gated on the calculation matrix being dirty, so simply switching
+        // channels would otherwise leave stale values on screen.
+        if (inputIndex >= 0 && inputIndex < cachedNumInputs)
+            applyToSliders(inputIndex);
     }
 
     /**
@@ -303,49 +313,20 @@ public:
     void updateValues(const float* delaysMs, const float* levels, const float* hfDb,
                       const float* reverbDelaysMs, const float* reverbLevels, const float* reverbHfDb)
     {
+        int numInputs = (parameters != nullptr) ? parameters->getNumInputChannels() : 0;
+        if (numInputs <= 0)
+            numInputs = juce::jmax (selectedInput + 1, 1);
+
+        if (delaysMs       != nullptr) cachedDelays      .assign (delaysMs,       delaysMs       + numInputs * numOutputs);
+        if (levels         != nullptr) cachedLevels      .assign (levels,         levels         + numInputs * numOutputs);
+        if (hfDb           != nullptr) cachedHfDb        .assign (hfDb,           hfDb           + numInputs * numOutputs);
+        if (reverbDelaysMs != nullptr) cachedReverbDelays.assign (reverbDelaysMs, reverbDelaysMs + numInputs * numReverbs);
+        if (reverbLevels   != nullptr) cachedReverbLevels.assign (reverbLevels,   reverbLevels   + numInputs * numReverbs);
+        if (reverbHfDb     != nullptr) cachedReverbHfDb  .assign (reverbHfDb,     reverbHfDb     + numInputs * numReverbs);
+        cachedNumInputs = numInputs;
+
         if (selectedInput < 0) return;
-
-        // Update output sliders
-        for (int i = 0; i < numOutputs && i < delaySliders.size(); ++i)
-        {
-            int idx = selectedInput * numOutputs + i;
-
-            if (delaysMs != nullptr)
-                delaySliders[i]->setValue(delaysMs[idx]);
-
-            if (levels != nullptr)
-            {
-                // Convert linear to dB
-                float linearLevel = levels[idx];
-                float dB = (linearLevel > 0.0f) ? 20.0f * std::log10(linearLevel) : -60.0f;
-                levelSliders[i]->setValue(juce::jmax(-60.0f, dB));
-            }
-
-            if (hfDb != nullptr)
-                hfSliders[i]->setValue(hfDb[idx]);
-        }
-
-        // Update reverb sliders
-        for (int i = 0; i < numReverbs && (numOutputs + i) < delaySliders.size(); ++i)
-        {
-            int idx = selectedInput * numReverbs + i;
-            int sliderIdx = numOutputs + i;
-
-            if (reverbDelaysMs != nullptr)
-                delaySliders[sliderIdx]->setValue(reverbDelaysMs[idx]);
-
-            if (reverbLevels != nullptr)
-            {
-                float linearLevel = reverbLevels[idx];
-                float dB = (linearLevel > 0.0f) ? 20.0f * std::log10(linearLevel) : -60.0f;
-                levelSliders[sliderIdx]->setValue(juce::jmax(-60.0f, dB));
-            }
-
-            if (reverbHfDb != nullptr)
-                hfSliders[sliderIdx]->setValue(reverbHfDb[idx]);
-        }
-
-        repaint();
+        applyToSliders (selectedInput);
     }
 
     void paint(juce::Graphics& g) override
@@ -455,6 +436,49 @@ public:
     std::function<void(int, float*, float*, float*, float*, float*, float*)> onFetchValues;
 
 private:
+    /** Push cached matrix row for the given input index into the sliders. */
+    void applyToSliders (int idx)
+    {
+        for (int i = 0; i < numOutputs && i < delaySliders.size(); ++i)
+        {
+            int dataIdx = idx * numOutputs + i;
+
+            if (dataIdx < (int) cachedDelays.size())
+                delaySliders[i]->setValue (cachedDelays[(size_t) dataIdx]);
+
+            if (dataIdx < (int) cachedLevels.size())
+            {
+                float linearLevel = cachedLevels[(size_t) dataIdx];
+                float dB = (linearLevel > 0.0f) ? 20.0f * std::log10 (linearLevel) : -60.0f;
+                levelSliders[i]->setValue (juce::jmax (-60.0f, dB));
+            }
+
+            if (dataIdx < (int) cachedHfDb.size())
+                hfSliders[i]->setValue (cachedHfDb[(size_t) dataIdx]);
+        }
+
+        for (int i = 0; i < numReverbs && (numOutputs + i) < delaySliders.size(); ++i)
+        {
+            int dataIdx  = idx * numReverbs + i;
+            int sliderIdx = numOutputs + i;
+
+            if (dataIdx < (int) cachedReverbDelays.size())
+                delaySliders[sliderIdx]->setValue (cachedReverbDelays[(size_t) dataIdx]);
+
+            if (dataIdx < (int) cachedReverbLevels.size())
+            {
+                float linearLevel = cachedReverbLevels[(size_t) dataIdx];
+                float dB = (linearLevel > 0.0f) ? 20.0f * std::log10 (linearLevel) : -60.0f;
+                levelSliders[sliderIdx]->setValue (juce::jmax (-60.0f, dB));
+            }
+
+            if (dataIdx < (int) cachedReverbHfDb.size())
+                hfSliders[sliderIdx]->setValue (cachedReverbHfDb[(size_t) dataIdx]);
+        }
+
+        repaint();
+    }
+
     void timerCallback() override
     {
         if (onFetchValues && selectedInput >= 0)
@@ -478,6 +502,13 @@ private:
     int numOutputs = 0;
     int numReverbs = 0;
     int selectedInput = 0;
+
+    // Cached matrix from the latest updateValues() call, indexed
+    // [inputIndex * numOutputs (or numReverbs) + slot]. Used to repaint
+    // the bars when the user switches channels between DSP pushes.
+    std::vector<float> cachedDelays, cachedLevels, cachedHfDb;
+    std::vector<float> cachedReverbDelays, cachedReverbLevels, cachedReverbHfDb;
+    int cachedNumInputs = 0;
 
     // Sliders for each output + reverb
     juce::OwnedArray<VisualisationSlider> delaySliders;
