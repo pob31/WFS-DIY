@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="k6c2zA" name="WFS-DIY" projectType="guiapp" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="1.0.0beta16"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="1.0.0beta17"
               bundleIdentifier="com.wfsdiy.app" companyEmail="contact@pixetbel.org"
-              companyName="Pix et Bel" companyWebsite="wfs-diy.net">
+              companyName="Pix et Bel" companyWebsite="wfs-diy.net"
+              microphonePermissionNeeded="1"
+              microphonePermissionsText="WFS-DIY needs audio input access for Wave Field Synthesis processing.">
   <MAINGROUP id="U6kz3k" name="WFS-DIY">
     <GROUP id="{538962A7-151C-A49B-F334-B4176E90CD0A}" name="Resources">
       <FILE id="SCj321" name="WFS-DIY_logo.png" compile="0" resource="1"
