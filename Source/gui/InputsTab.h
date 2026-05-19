@@ -23,6 +23,7 @@
 #include "GainReductionMeter.h"
 #include "SnapshotScopeWindow.h"
 #include "buttons/LongPressButton.h"
+#include "buttons/WrappingTextButton.h"
 #include "../Localization/LocalizationManager.h"
 #include "ColumnFocusTraverser.h"
 #include "SamplerSubTab.h"
@@ -4013,9 +4014,13 @@ private:
         posBlock.removeFromTop(topPadding);
 
         // Row 1: Coord mode + X axis (Position X, Offset X, Constraint X, Flip X)
+        // Anchor flip from the right so it always gets its full width even when
+        // the row is too narrow to hold every fixed-width element on the left.
         const int coordModeLabelW = scaled(40);
         const int coordModeSelectorW = scaled(100);
         row = posBlock.removeFromTop(rowHeight);
+        flipXButton.setBounds(row.removeFromRight(flipBtnWidth));
+        row.removeFromRight(spacing);
         coordModeLabel.setBounds(row.removeFromLeft(coordModeLabelW));
         coordModeSelector.setBounds(row.removeFromLeft(coordModeSelectorW));
         row.removeFromLeft(spacing);
@@ -4030,12 +4035,12 @@ private:
         auto constraintXPos = row.removeFromLeft(constraintBtnWidth);
         constraintXButton.setBounds(constraintXPos);
         constraintDistanceButton.setBounds(constraintXPos);  // Overlay on same position (mutually exclusive)
-        row.removeFromLeft(spacing);
-        flipXButton.setBounds(row.removeFromLeft(flipBtnWidth));
         posBlock.removeFromTop(rowGap);
 
         // Row 2: Y axis (Position Y, Offset Y, Constraint Y, Flip Y)
         row = posBlock.removeFromTop(rowHeight);
+        flipYButton.setBounds(row.removeFromRight(flipBtnWidth));
+        row.removeFromRight(spacing);
         row.removeFromLeft(coordModeLabelW + coordModeSelectorW + spacing);  // Skip coord mode space
         posYLabel.setBounds(row.removeFromLeft(posLabelWidth));
         posYEditor.setBounds(row.removeFromLeft(posEditorWidth));
@@ -4046,12 +4051,12 @@ private:
         offsetYUnitLabel.setBounds(row.removeFromLeft(posUnitWidth));
         row.removeFromLeft(spacing);
         constraintYButton.setBounds(row.removeFromLeft(constraintBtnWidth));
-        row.removeFromLeft(spacing);
-        flipYButton.setBounds(row.removeFromLeft(flipBtnWidth));
         posBlock.removeFromTop(rowGap);
 
         // Row 3: ADM mapping selector + Z axis (Position Z, Offset Z, Constraint Z, Flip Z)
         row = posBlock.removeFromTop(rowHeight);
+        flipZButton.setBounds(row.removeFromRight(flipBtnWidth));
+        row.removeFromRight(spacing);
         admMappingLabel.setBounds(row.removeFromLeft(coordModeLabelW));
         admMappingSelector.setBounds(row.removeFromLeft(coordModeSelectorW));
         row.removeFromLeft(spacing);
@@ -4064,8 +4069,6 @@ private:
         offsetZUnitLabel.setBounds(row.removeFromLeft(posUnitWidth));
         row.removeFromLeft(spacing);
         constraintZButton.setBounds(row.removeFromLeft(constraintBtnWidth));
-        row.removeFromLeft(spacing);
-        flipZButton.setBounds(row.removeFromLeft(flipBtnWidth));
 
         // Distance constraint slider row (after position block, for Cylindrical/Spherical modes)
         // Center the slider row horizontally with Constraint R button (which replaces Constraint X)
@@ -7855,8 +7858,8 @@ private:
     juce::Label offsetXLabel, offsetYLabel, offsetZLabel;
     juce::TextEditor offsetXEditor, offsetYEditor, offsetZEditor;
     juce::Label offsetXUnitLabel, offsetYUnitLabel, offsetZUnitLabel;
-    juce::TextButton constraintXButton, constraintYButton, constraintZButton;
-    juce::TextButton constraintDistanceButton;
+    WrappingTextButton constraintXButton, constraintYButton, constraintZButton;
+    WrappingTextButton constraintDistanceButton;
     WfsRangeSlider distanceRangeSlider { 0.0f, 50.0f };
     juce::Label distanceMinLabel, distanceMaxLabel;
     juce::TextEditor distanceMinEditor, distanceMaxEditor;
