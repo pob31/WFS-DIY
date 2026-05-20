@@ -1078,9 +1078,12 @@ void WFSCalculationEngine::recalculateMatrix()
 
         const Position& inputPos = localInputPositions[static_cast<size_t> (inIdx)];
 
-        // Get input attenuation parameters
+        // Get input attenuation parameters. inputAttenuation lives in the Channel
+        // section - that is where the GUI, OSC and snapshot system all read/write it -
+        // while the Attenuation section holds the distance law, ratio and common-atten.
+        auto inputChannelSection = valueTreeState.getInputChannelSection (inIdx);
         auto inputAttenSection = valueTreeState.getInputAttenuationSection (inIdx);
-        float inputAtten = inputAttenSection.getProperty (inputAttenuation, inputAttenuationDefault);
+        float inputAtten = inputChannelSection.getProperty (inputAttenuation, inputAttenuationDefault);
 
         // Apply gradient map attenuation offset (additive in dB)
         if (static_cast<size_t> (inIdx) < localGradientMapOffsets.size())
@@ -1113,8 +1116,7 @@ void WFSCalculationEngine::recalculateMatrix()
         arrayAttenDb[8] = inputMutesSection.getProperty (inputArrayAtten9, inputArrayAttenDefault);
         arrayAttenDb[9] = inputMutesSection.getProperty (inputArrayAtten10, inputArrayAttenDefault);
 
-        // Get input channel parameters
-        auto inputChannelSection = valueTreeState.getInputChannelSection (inIdx);
+        // Get input channel parameters (inputChannelSection fetched above)
         int minimalLatencyMode = inputChannelSection.getProperty (inputMinimalLatency, 0);
         float inputDelayLat = inputChannelSection.getProperty (inputDelayLatency, 0.0f);
 
@@ -1744,9 +1746,11 @@ void WFSCalculationEngine::recalculateMatrix()
             continue;
         }
 
-        // Get input parameters (same as for outputs)
+        // Get input parameters (same as for outputs). inputAttenuation comes from the
+        // Channel section; distance law/ratio from the Attenuation section.
+        auto inputChannelSection = valueTreeState.getInputChannelSection (inIdx);
         auto inputAttenSection = valueTreeState.getInputAttenuationSection (inIdx);
-        float inputAtten = inputAttenSection.getProperty (inputAttenuation, inputAttenuationDefault);
+        float inputAtten = inputChannelSection.getProperty (inputAttenuation, inputAttenuationDefault);
 
         // Apply gradient map attenuation offset for reverb feeds too
         if (static_cast<size_t> (inIdx) < localGradientMapOffsets.size())
@@ -1756,7 +1760,6 @@ void WFSCalculationEngine::recalculateMatrix()
         int attenLaw = inputAttenSection.getProperty (inputAttenuationLaw, inputAttenuationLawDefault);
         float distRatio = inputAttenSection.getProperty (inputDistanceRatio, inputDistanceRatioDefault);
 
-        auto inputChannelSection = valueTreeState.getInputChannelSection (inIdx);
         int minimalLatencyMode = inputChannelSection.getProperty (inputMinimalLatency, 0);
         float inputDelayLat = inputChannelSection.getProperty (inputDelayLatency, 0.0f);
 
