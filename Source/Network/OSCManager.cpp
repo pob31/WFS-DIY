@@ -1522,6 +1522,22 @@ void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
             updateTargetStatus(targetIndex, ConnectionStatus::Connecting);
         }
     }
+    else if (address == "/remote/requestResync")
+    {
+        // Tablet detected missing channels after the initial dump and is asking us to
+        // resend. Any int32 args are the 1-based channel IDs to resend; no args means
+        // "resend the full state".
+        int targetIndex = findRemoteTargetByIP(senderIP);
+        if (targetIndex >= 0)
+        {
+            std::vector<int> channelIds;
+            for (int i = 0; i < message.size(); ++i)
+                if (message[i].isInt32())
+                    channelIds.push_back(message[i].getInt32());
+
+            resendChannelsToRemote(targetIndex, std::move(channelIds));
+        }
+    }
     else if (address == "/remote/pad/touch")
     {
         // Android remote pad touch: ,iifff zoneId touchState dx dy pressure
@@ -2646,6 +2662,13 @@ void OSCManager::applyPendingClusterMove()
     using namespace WFSParameterIDs;
     int numInputs = state.getIntParameter(inputChannels);
 
+    // Shared Position clusters move via setInputParameter's position
+    // propagation. Applying a per-member delta loop on top of that would
+    // compound (target + N*delta) and make the cluster jump, so we handle
+    // shared mode by writing a single member and letting propagation spread.
+    const bool sharedMode =
+        static_cast<int>(state.getClusterParameter(clusterId, clusterReferenceMode)) == 2;
+
     float dx = targetX;
     float dy = targetY;
 
@@ -2704,20 +2727,49 @@ void OSCManager::applyPendingClusterMove()
 
     std::vector<std::tuple<int, float, float>> updatedPositions;
 
-    for (int inputIndex = 0; inputIndex < numInputs; ++inputIndex)
+    if (sharedMode)
     {
-        juce::var clusterVar = state.getInputParameter(inputIndex, inputCluster);
-        int inputClusterId = clusterVar.isInt() ? static_cast<int>(clusterVar) : 0;
-
-        if (inputClusterId == clusterId)
+        // Collect members; write the first one's position and let
+        // propagation copy it to the rest. Record all members in the echo
+        // at the same target so the Remote sees them move together.
+        std::vector<int> members;
+        for (int i = 0; i < numInputs; ++i)
         {
-            float newX = varToFloat(state.getInputParameter(inputIndex, inputPositionX)) + dx;
-            float newY = varToFloat(state.getInputParameter(inputIndex, inputPositionY)) + dy;
+            juce::var cv = state.getInputParameter(i, inputCluster);
+            if ((cv.isInt() ? static_cast<int>(cv) : 0) == clusterId)
+                members.push_back(i);
+        }
 
-            state.setInputParameter(inputIndex, inputPositionX, newX);
-            state.setInputParameter(inputIndex, inputPositionY, newY);
+        if (! members.empty())
+        {
+            int firstMember = members.front();
+            float newX = varToFloat(state.getInputParameter(firstMember, inputPositionX)) + dx;
+            float newY = varToFloat(state.getInputParameter(firstMember, inputPositionY)) + dy;
 
-            updatedPositions.emplace_back(inputIndex + 1, newX, newY);
+            state.setInputParameter(firstMember, inputPositionX, newX);  // propagates to all members
+            state.setInputParameter(firstMember, inputPositionY, newY);
+
+            for (int m : members)
+                updatedPositions.emplace_back(m + 1, newX, newY);
+        }
+    }
+    else
+    {
+        for (int inputIndex = 0; inputIndex < numInputs; ++inputIndex)
+        {
+            juce::var clusterVar = state.getInputParameter(inputIndex, inputCluster);
+            int inputClusterId = clusterVar.isInt() ? static_cast<int>(clusterVar) : 0;
+
+            if (inputClusterId == clusterId)
+            {
+                float newX = varToFloat(state.getInputParameter(inputIndex, inputPositionX)) + dx;
+                float newY = varToFloat(state.getInputParameter(inputIndex, inputPositionY)) + dy;
+
+                state.setInputParameter(inputIndex, inputPositionX, newX);
+                state.setInputParameter(inputIndex, inputPositionY, newY);
+
+                updatedPositions.emplace_back(inputIndex + 1, newX, newY);
+            }
         }
     }
 
@@ -3924,6 +3976,25 @@ void OSCManager::resendStateToRemoteTargets()
     }
 }
 
+void OSCManager::resendChannelsToRemote(int targetIndex, std::vector<int> channelIds)
+{
+    if (targetIndex < 0 || targetIndex >= MAX_TARGETS)
+        return;
+    if (targetConfigs[static_cast<size_t>(targetIndex)].protocol != Protocol::Remote ||
+        remoteStates[static_cast<size_t>(targetIndex)].phase != RemoteConnectionState::Phase::Connected)
+        return;
+
+    // Empty list means "resend everything" (full dump). Otherwise resend only the
+    // requested channels' per-input messages. Collect on the message thread (safe
+    // ValueTree read), send on a detached background thread as paced bundles.
+    auto messages = channelIds.empty() ? collectStateDumpMessages(targetIndex)
+                                       : collectChannelDumpMessages(channelIds);
+    std::thread([this, targetIndex, msgs = std::move(messages)]()
+    {
+        sendMessagesAsBundles(targetIndex, msgs);
+    }).detach();
+}
+
 void OSCManager::sendAllInputPositionsToRemote(int targetIndex)
 {
     if (targetIndex < 0 || targetIndex >= MAX_TARGETS)
@@ -4096,6 +4167,98 @@ void OSCManager::sendAllInputParametersToRemote(int targetIndex)
 
 }
 
+void OSCManager::appendInputMessages(std::vector<juce::OSCMessage>& messages, int ch)
+{
+    const int channelId = ch + 1;
+
+    // Name
+    juce::var nameVar = state.getInputParameter(ch, WFSParameterIDs::inputName);
+    if (nameVar.isString())
+    {
+        juce::OSCMessage msg("/remoteInput/inputName");
+        msg.addInt32(channelId);
+        msg.addString(nameVar.toString());
+        messages.push_back(std::move(msg));
+    }
+
+    // Position + offset
+    auto addPosMsg = [&](const char* addr, float val) {
+        juce::OSCMessage msg(addr);
+        msg.addInt32(channelId);
+        msg.addFloat32(val);
+        messages.push_back(std::move(msg));
+    };
+
+    addPosMsg("/remoteInput/positionX", varToFloat(state.getInputParameter(ch, WFSParameterIDs::inputPositionX)));
+    addPosMsg("/remoteInput/positionY", varToFloat(state.getInputParameter(ch, WFSParameterIDs::inputPositionY)));
+    addPosMsg("/remoteInput/positionZ", varToFloat(state.getInputParameter(ch, WFSParameterIDs::inputPositionZ)));
+    addPosMsg("/remoteInput/offsetX",   varToFloat(state.getInputParameter(ch, WFSParameterIDs::inputOffsetX)));
+    addPosMsg("/remoteInput/offsetY",   varToFloat(state.getInputParameter(ch, WFSParameterIDs::inputOffsetY)));
+    addPosMsg("/remoteInput/offsetZ",   varToFloat(state.getInputParameter(ch, WFSParameterIDs::inputOffsetZ)));
+
+    // Cluster assignment
+    juce::var clusterVar = state.getInputParameter(ch, WFSParameterIDs::inputCluster);
+    int clusterValue = clusterVar.isVoid() ? 0 : static_cast<int>(clusterVar);
+    juce::OSCMessage msgCluster("/remoteInput/cluster");
+    msgCluster.addInt32(channelId);
+    msgCluster.addInt32(clusterValue);
+    messages.push_back(std::move(msgCluster));
+
+    // Tracking state
+    juce::OSCMessage msgTracked("/remoteInput/isFullyTracked");
+    msgTracked.addInt32(channelId);
+    msgTracked.addInt32(isInputFullyTracked(ch) ? 1 : 0);
+    messages.push_back(std::move(msgTracked));
+
+    // All other per-input parameters (everything in the remote map not already sent above)
+    const auto& remoteMap = OSCMessageRouter::getRemoteAddressMap();
+    auto isAlreadySent = [](const juce::String& name) {
+        return name == "positionX" || name == "positionY" || name == "positionZ"
+            || name == "offsetX"   || name == "offsetY"   || name == "offsetZ"
+            || name == "cluster"   || name == "inputName";
+    };
+
+    for (const auto& [paramName, paramId] : remoteMap)
+    {
+        if (isAlreadySent(paramName))
+            continue;
+
+        juce::var value = state.getInputParameter(ch, paramId);
+        if (value.isVoid())
+            continue;
+
+        juce::OSCMessage msg("/remoteInput/" + paramName);
+        msg.addInt32(channelId);
+
+        if (value.isInt() || value.isBool())
+            msg.addInt32(static_cast<int>(value));
+        else
+            msg.addFloat32(varToFloat(value));
+
+        messages.push_back(std::move(msg));
+    }
+}
+
+std::vector<juce::OSCMessage> OSCManager::collectChannelDumpMessages(const std::vector<int>& channelIds)
+{
+    std::vector<juce::OSCMessage> messages;
+
+    auto ioTree = state.getIOState();
+    int numInputs = ioTree.isValid()
+        ? static_cast<int>(ioTree.getProperty(WFSParameterIDs::inputChannels))
+        : 8;
+
+    for (int channelId : channelIds)
+    {
+        const int ch = channelId - 1; // channelIds are 1-based
+        if (ch < 0 || ch >= numInputs)
+            continue;
+        appendInputMessages(messages, ch);
+    }
+
+    return messages;
+}
+
 std::vector<juce::OSCMessage> OSCManager::collectStateDumpMessages(int /*targetIndex*/)
 {
     std::vector<juce::OSCMessage> messages;
@@ -4247,94 +4410,9 @@ std::vector<juce::OSCMessage> OSCManager::collectStateDumpMessages(int /*targetI
         }
     }
 
-    // --- Per-input positions, offsets, cluster, name ---
+    // --- Per-input parameters (name, positions, offsets, cluster, tracking, all others) ---
     for (int ch = 0; ch < numInputs; ++ch)
-    {
-        int channelId = ch + 1;
-
-        juce::var nameVar = state.getInputParameter(ch, WFSParameterIDs::inputName);
-        if (nameVar.isString())
-        {
-            juce::OSCMessage msg("/remoteInput/inputName");
-            msg.addInt32(channelId);
-            msg.addString(nameVar.toString());
-            messages.push_back(std::move(msg));
-        }
-
-        float posX = varToFloat(state.getInputParameter(ch, WFSParameterIDs::inputPositionX));
-        float posY = varToFloat(state.getInputParameter(ch, WFSParameterIDs::inputPositionY));
-        float posZ = varToFloat(state.getInputParameter(ch, WFSParameterIDs::inputPositionZ));
-
-        auto addPosMsg = [&](const char* addr, float val) {
-            juce::OSCMessage msg(addr);
-            msg.addInt32(channelId);
-            msg.addFloat32(val);
-            messages.push_back(std::move(msg));
-        };
-
-        addPosMsg("/remoteInput/positionX", posX);
-        addPosMsg("/remoteInput/positionY", posY);
-        addPosMsg("/remoteInput/positionZ", posZ);
-
-        float offX = varToFloat(state.getInputParameter(ch, WFSParameterIDs::inputOffsetX));
-        float offY = varToFloat(state.getInputParameter(ch, WFSParameterIDs::inputOffsetY));
-        float offZ = varToFloat(state.getInputParameter(ch, WFSParameterIDs::inputOffsetZ));
-
-        addPosMsg("/remoteInput/offsetX", offX);
-        addPosMsg("/remoteInput/offsetY", offY);
-        addPosMsg("/remoteInput/offsetZ", offZ);
-
-        juce::var clusterVar = state.getInputParameter(ch, WFSParameterIDs::inputCluster);
-        int clusterValue = clusterVar.isVoid() ? 0 : static_cast<int>(clusterVar);
-        juce::OSCMessage msgCluster("/remoteInput/cluster");
-        msgCluster.addInt32(channelId);
-        msgCluster.addInt32(clusterValue);
-        messages.push_back(std::move(msgCluster));
-    }
-
-    // --- Tracking states ---
-    for (int i = 0; i < numInputs; ++i)
-    {
-        juce::OSCMessage msg("/remoteInput/isFullyTracked");
-        msg.addInt32(i + 1);
-        msg.addInt32(isInputFullyTracked(i) ? 1 : 0);
-        messages.push_back(std::move(msg));
-    }
-
-    // --- All other per-input parameters ---
-    {
-        const auto& remoteMap = OSCMessageRouter::getRemoteAddressMap();
-
-        auto isAlreadySent = [](const juce::String& name) {
-            return name == "positionX" || name == "positionY" || name == "positionZ"
-                || name == "offsetX"   || name == "offsetY"   || name == "offsetZ"
-                || name == "cluster"   || name == "inputName";
-        };
-
-        for (int ch = 0; ch < numInputs; ++ch)
-        {
-            int channelId = ch + 1;
-            for (const auto& [paramName, paramId] : remoteMap)
-            {
-                if (isAlreadySent(paramName))
-                    continue;
-
-                juce::var value = state.getInputParameter(ch, paramId);
-                if (value.isVoid())
-                    continue;
-
-                juce::OSCMessage msg("/remoteInput/" + paramName);
-                msg.addInt32(channelId);
-
-                if (value.isInt() || value.isBool())
-                    msg.addInt32(static_cast<int>(value));
-                else
-                    msg.addFloat32(varToFloat(value));
-
-                messages.push_back(std::move(msg));
-            }
-        }
-    }
+        appendInputMessages(messages, ch);
 
     // --- Pad configuration (for remote XY pads) ---
     {
@@ -4382,6 +4460,15 @@ std::vector<juce::OSCMessage> OSCManager::collectStateDumpMessages(int /*targetI
             cnt.addInt32 (totalPads);
             messages.push_back (std::move (cnt));
         }
+    }
+
+    // --- End-of-dump marker ---
+    // Last message: tells the tablet the dump is finished and how many channels to
+    // expect, so it can verify completeness and re-request any channels lost in transit.
+    {
+        juce::OSCMessage done ("/remote/stateComplete");
+        done.addInt32 (numInputs);
+        messages.push_back (std::move (done));
     }
 
     return messages;
@@ -4595,6 +4682,14 @@ void OSCManager::sendMessagesAsBundles(int targetIndex, const std::vector<juce::
     constexpr size_t maxBundleBytes = 1200;
     constexpr size_t bundleHeaderBytes = 16; // "#bundle\0" (8) + timetag (8)
 
+    // Sleep briefly between bundles so a ~70-bundle full dump (32 channels) does not
+    // arrive as one back-to-back burst. Spreads the dump over ~350ms, which is
+    // imperceptible but lowers the chance a transient WiFi/queue hiccup drops a run
+    // of packets. The completeness/re-request path is the actual delivery guarantee;
+    // this is cheap insurance. Safe to sleep: all callers run this on a detached
+    // background thread.
+    constexpr int kInterBundleDelayMs = 5;
+
     juce::OSCBundle current;
     size_t currentBytes = bundleHeaderBytes;
     const bool loggingEnabled = logger.getEnabled();
@@ -4616,6 +4711,7 @@ void OSCManager::sendMessagesAsBundles(int targetIndex, const std::vector<juce::
                                                   config.port, config.mode);
                 }
             }
+            std::this_thread::sleep_for(std::chrono::milliseconds(kInterBundleDelayMs));
         }
         current = juce::OSCBundle{};
         currentBytes = bundleHeaderBytes;

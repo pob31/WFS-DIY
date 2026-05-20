@@ -648,6 +648,22 @@ private:
      *  Must be called on the message thread (reads ValueTree state). */
     std::vector<juce::OSCMessage> collectStateDumpMessages(int targetIndex);
 
+    /** Append all per-input OSC messages (name, positions, offsets, cluster, tracking,
+     *  and every other remote-mapped parameter) for one 0-based channel. Shared by the
+     *  full dump and the per-channel resync so the two paths never drift.
+     *  Must be called on the message thread (reads ValueTree state). */
+    void appendInputMessages(std::vector<juce::OSCMessage>& messages, int ch);
+
+    /** Collect per-input messages for a specific set of 1-based channel IDs (used to
+     *  answer a tablet re-request for channels lost in transit).
+     *  Must be called on the message thread (reads ValueTree state). */
+    std::vector<juce::OSCMessage> collectChannelDumpMessages(const std::vector<int>& channelIds);
+
+    /** Resend state to one connected Remote target: the given 1-based channel IDs, or
+     *  the full state when the list is empty. Collects on the caller thread, sends on a
+     *  detached background thread as paced bundles. */
+    void resendChannelsToRemote(int targetIndex, std::vector<int> channelIds);
+
     /** Send a batch of messages to a target with pacing to avoid overflowing
      *  the receiver's UDP buffer. Runs on a background thread. */
     void sendPacedStateDump(int targetIndex, std::vector<juce::OSCMessage> messages);

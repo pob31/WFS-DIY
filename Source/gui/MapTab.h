@@ -1144,7 +1144,7 @@ public:
                 bool isTracked = isInputFullyTracked(idx);
                 bool motionActive = isAutoMotionActive && isAutoMotionActive (idx);
                 int cluster = static_cast<int>(parameters.getInputParam(idx, "inputCluster"));
-                bool isReference = isClusterReferenceOrSharedMember(idx, cluster);
+                bool isReference = isClusterDragReference(idx, cluster);
 
                 if (isTracked || motionActive)
                 {
@@ -1684,7 +1684,7 @@ public:
         // Determine drag behavior
         bool isTracked = isInputFullyTracked(inputIdx);
         int cluster = static_cast<int>(parameters.getInputParam(inputIdx, "inputCluster"));
-        bool isReference = isClusterReferenceOrSharedMember(inputIdx, cluster);
+        bool isReference = isClusterDragReference(inputIdx, cluster);
 
         if (isTracked)
         {
@@ -2603,7 +2603,7 @@ private:
         {
             bool isTracked = isInputFullyTracked(idx);
             int cluster = static_cast<int>(parameters.getInputParam(idx, "inputCluster"));
-            bool isReference = isClusterReferenceOrSharedMember(idx, cluster);
+            bool isReference = isClusterDragReference(idx, cluster);
 
             if (isTracked)
             {
@@ -2755,16 +2755,31 @@ private:
         return -1;  // Barycenter mode
     }
 
-    // True when an input should be treated as a cluster reference for move
-    // operations. In Shared Position mode (referenceMode == 2) every member
-    // is treated as a reference, because moving any of them must move the
-    // whole cluster to preserve the shared-position invariant.
+    // True when an input should be treated as a cluster for SCALE/ROTATION
+    // gestures. In Shared Position mode (referenceMode == 2) every member
+    // counts, because a two-finger gesture on any member should scale/rotate
+    // the cluster (which operates on per-input offsets in shared mode).
     bool isClusterReferenceOrSharedMember (int inputIdx, int clusterNum) const
     {
         if (clusterNum <= 0) return false;
         int refMode = static_cast<int>(parameters.getValueTreeState().getClusterParameter(
             clusterNum, WFSParameterIDs::clusterReferenceMode));
         if (refMode == 2) return true;
+        return getClusterReferenceInput(clusterNum) == inputIdx;
+    }
+
+    // True when an input is the cluster reference for POSITION DRAGS. Shared
+    // Position (referenceMode == 2) returns false on purpose: shared members
+    // move through setInputParameter's position propagation, NOT through the
+    // per-member delta loop. Running both would compound (target + N*delta)
+    // and make the cluster jump. So a shared member drags like a normal input
+    // and propagation copies the new position to the rest.
+    bool isClusterDragReference (int inputIdx, int clusterNum) const
+    {
+        if (clusterNum <= 0) return false;
+        int refMode = static_cast<int>(parameters.getValueTreeState().getClusterParameter(
+            clusterNum, WFSParameterIDs::clusterReferenceMode));
+        if (refMode == 2) return false;
         return getClusterReferenceInput(clusterNum) == inputIdx;
     }
 
