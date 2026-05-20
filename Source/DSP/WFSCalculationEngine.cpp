@@ -1046,6 +1046,10 @@ void WFSCalculationEngine::recalculateMatrix()
 
     // Temporary arrays for level post-processing (per output, reset per input)
     std::vector<float> tempAttenuationDb (static_cast<size_t> (numOutputs));
+    // Distance/ratio attenuation component only (excludes inputAttenuation and the
+    // gradient-map offset). The common-attenuation lift is derived from THIS, so the
+    // user's deliberate input-attenuation trim is never lifted back toward 0 dB.
+    std::vector<float> tempDistanceAttenDb (static_cast<size_t> (numOutputs));
     std::vector<float> tempAngularAtten (static_cast<size_t> (numOutputs));
 
     // Track which outputs are valid for minimal latency calculation (per input)
@@ -1145,6 +1149,7 @@ void WFSCalculationEngine::recalculateMatrix()
         std::fill (validForMinLatency.begin(), validForMinLatency.end(), false);
         std::fill (validForCommonAtten.begin(), validForCommonAtten.end(), false);
         std::fill (tempAttenuationDb.begin(), tempAttenuationDb.end(), -92.0f);
+        std::fill (tempDistanceAttenDb.begin(), tempDistanceAttenDb.end(), 0.0f);
         std::fill (tempAngularAtten.begin(), tempAngularAtten.end(), 0.0f);
 
         for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
@@ -1256,7 +1261,8 @@ void WFSCalculationEngine::recalculateMatrix()
             }
 
             // Apply outputDistAttenPercent scaling to the distance-dependent part
-            float attenuationDb = inputAtten + distanceAttenDb * (outputDistAttenPercent / 100.0f);
+            float scaledDistanceAttenDb = distanceAttenDb * (outputDistAttenPercent / 100.0f);
+            float attenuationDb = inputAtten + scaledDistanceAttenDb;
 
             // Clamp to reasonable range (-92dB to 0dB)
             attenuationDb = juce::jlimit (-92.0f, 0.0f, attenuationDb);
@@ -1264,6 +1270,9 @@ void WFSCalculationEngine::recalculateMatrix()
             // Store dB and angular values for post-processing
             // (linear conversion and angular multiplication will be done after common attenuation)
             tempAttenuationDb[static_cast<size_t> (outIdx)] = attenuationDb;
+            // Store the distance-only component separately so the common-attenuation lift
+            // operates on it alone (input attenuation + gradient-map offset are preserved).
+            tempDistanceAttenDb[static_cast<size_t> (outIdx)] = juce::jlimit (-92.0f, 0.0f, scaledDistanceAttenDb);
             tempAngularAtten[static_cast<size_t> (outIdx)] = angularAtten;
 
             // Temporarily mark as active (will be replaced in post-processing)
@@ -1471,12 +1480,14 @@ void WFSCalculationEngine::recalculateMatrix()
         // 100% = keep full original attenuation (no lift applied)
         // 0% = apply full lift (all outputs raised to match minimum attenuation)
 
-        // Find minimum attenuation (needed for both current calc and ramp compensation)
+        // Find minimum attenuation (needed for both current calc and ramp compensation).
+        // Uses the distance-only component so the lift never claws back the user's
+        // input-attenuation trim - it only removes the common distance floor.
         for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
         {
             if (validForCommonAtten[static_cast<size_t> (outIdx)])
             {
-                float atten = tempAttenuationDb[static_cast<size_t> (outIdx)];
+                float atten = tempDistanceAttenDb[static_cast<size_t> (outIdx)];
                 if (atten > minAttenuation)
                 {
                     minAttenuation = atten;
