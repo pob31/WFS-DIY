@@ -1914,7 +1914,136 @@ void WFSValueTreeState::replaceState (const juce::ValueTree& newState)
         state.copyPropertiesAndChildrenFrom (newState, nullptr);
         migrateADMOSCSection();
         ensureInputAdmMappingProperty();
+        // Back-fill anything the loaded state omitted (incomplete / scope-filtered
+        // files) so no parameter is left absent on this wholesale-replace path.
+        ensureCompleteSchema();
         clearAllUndoHistories();
+    }
+}
+
+namespace
+{
+    // Recursively add to `target` any property or child present in `tmpl` but
+    // missing from `target`. Never overwrites an existing value and never removes
+    // anything. Children are matched by id (when the template child carries one),
+    // otherwise by type name - mirroring WFSFileManager::mergeTreeRecursive.
+    void backfillFromTemplate (juce::ValueTree& target, const juce::ValueTree& tmpl,
+                               juce::UndoManager* um)
+    {
+        for (int i = 0; i < tmpl.getNumProperties(); ++i)
+        {
+            const auto propName = tmpl.getPropertyName (i);
+            if (! target.hasProperty (propName))
+                target.setProperty (propName, tmpl.getProperty (propName), um);
+        }
+
+        for (int i = 0; i < tmpl.getNumChildren(); ++i)
+        {
+            const auto tmplChild = tmpl.getChild (i);
+            juce::ValueTree match;
+
+            if (tmplChild.hasProperty (id))
+            {
+                match = target.getChildWithProperty (id, tmplChild.getProperty (id));
+                if (match.isValid() && match.getType() != tmplChild.getType())
+                    match = {};
+            }
+            else
+            {
+                match = target.getChildWithName (tmplChild.getType());
+            }
+
+            if (match.isValid())
+                backfillFromTemplate (match, tmplChild, um);
+            else
+                target.appendChild (tmplChild.createCopy(), um);
+        }
+    }
+}
+
+void WFSValueTreeState::ensureCompleteSchema()
+{
+    juce::UndoManager* um = nullptr;  // schema back-fill is not an undoable user edit
+
+    // --- Config (singleton subsections) ---
+    auto config = state.getChildWithName (Config);
+    if (config.isValid())
+    {
+        juce::ValueTree defaultConfig (Config);
+        createShowSection (defaultConfig);
+        createIOSection (defaultConfig);
+        createStageSection (defaultConfig);
+        createMasterSection (defaultConfig);
+        createNetworkSection (defaultConfig);
+        createADMOSCSection (defaultConfig);
+        createTrackingSection (defaultConfig);
+        createClustersSection (defaultConfig);
+        createBinauralSection (defaultConfig);
+        createUISection (defaultConfig);
+        backfillFromTemplate (config, defaultConfig, um);
+    }
+
+    // --- Inputs (per channel; Config is back-filled first so IO counts exist) ---
+    auto inputs = state.getChildWithName (Inputs);
+    if (inputs.isValid())
+    {
+        for (int i = 0; i < inputs.getNumChildren(); ++i)
+        {
+            auto child = inputs.getChild (i);
+            if (! child.hasType (Input))
+                continue;
+            auto tmpl = createDefaultInputChannel (i);
+            backfillFromTemplate (child, tmpl, um);
+        }
+    }
+
+    // --- Outputs (per channel) ---
+    auto outputs = state.getChildWithName (Outputs);
+    if (outputs.isValid())
+    {
+        for (int i = 0; i < outputs.getNumChildren(); ++i)
+        {
+            auto child = outputs.getChild (i);
+            if (! child.hasType (Output))
+                continue;
+            auto tmpl = createDefaultOutputChannel (i);
+            backfillFromTemplate (child, tmpl, um);
+        }
+    }
+
+    // --- Reverbs (per channel + global sibling sections) ---
+    auto reverbs = state.getChildWithName (Reverbs);
+    if (reverbs.isValid())
+    {
+        int reverbCount = 0;
+        for (int i = 0; i < reverbs.getNumChildren(); ++i)
+            if (reverbs.getChild (i).hasType (Reverb))
+                ++reverbCount;
+
+        int revIdx = 0;
+        for (int i = 0; i < reverbs.getNumChildren(); ++i)
+        {
+            auto child = reverbs.getChild (i);
+            if (! child.hasType (Reverb))
+                continue;
+            auto tmpl = createDefaultReverbChannel (revIdx++, reverbCount);
+            backfillFromTemplate (child, tmpl, um);
+        }
+
+        // Global sibling sections (ReverbAlgorithm / PreComp / PostEQ / PostExp):
+        // match the template's own type so we never have to name them here.
+        auto backfillGlobal = [um, &reverbs] (juce::ValueTree tmpl)
+        {
+            auto existing = reverbs.getChildWithName (tmpl.getType());
+            if (existing.isValid())
+                backfillFromTemplate (existing, tmpl, um);
+            else
+                reverbs.appendChild (tmpl.createCopy(), um);
+        };
+        backfillGlobal (createReverbAlgorithmSection());
+        backfillGlobal (createReverbPreCompSection());
+        backfillGlobal (createReverbPostEQSection());
+        backfillGlobal (createReverbPostExpSection());
     }
 }
 

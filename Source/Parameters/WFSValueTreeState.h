@@ -435,6 +435,12 @@ public:
     /** Ensure all inputs have the inputAdmMapping property (migration) */
     void ensureInputAdmMappingProperty();
 
+    /** Back-fill any sections/properties that the default schema defines but a
+        loaded state is missing. Used on the wholesale-replace load path
+        (importCompleteConfig / full-config snapshot recall) so that an incomplete
+        or scope-filtered file cannot leave parameters permanently absent. */
+    void ensureCompleteSchema();
+
     //==========================================================================
     // ValueTree::Listener overrides
     //==========================================================================
