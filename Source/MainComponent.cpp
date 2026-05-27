@@ -4216,7 +4216,8 @@ void MainComponent::startAudioEngine()
                                        calculationEngine->getNumReverbs(),
                                        numInputChannels, numReverbs,
                                        blockSize, reverbSRRatio);
-            reverbFeedThread->startThread(juce::Thread::Priority::high);
+            reverbFeedThread->startRealtimeThread (juce::Thread::RealtimeOptions{}
+                                                       .withApproximateAudioProcessingTime (blockSize, sampleRate));
         }
     }
 

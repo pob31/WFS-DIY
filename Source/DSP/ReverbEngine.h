@@ -104,7 +104,8 @@ public:
             int hwThreads = static_cast<int> (std::thread::hardware_concurrency());
             int maxWorkers = juce::jmin (hwThreads - 2, numNodes - 1);
             maxWorkers = juce::jlimit (0, 7, maxWorkers);
-            parallelPool.prepare (maxWorkers);
+            double blockMs = sampleRate > 0.0 ? (internalBlockSize / sampleRate) * 1000.0 : 0.0;
+            parallelPool.prepare (maxWorkers, blockMs, blockMs);
         }
 
         // Prepare the active algorithm if one exists
@@ -132,7 +133,8 @@ public:
     void startProcessing()
     {
         if (! isThreadRunning())
-            startThread (juce::Thread::Priority::high);
+            startRealtimeThread (juce::Thread::RealtimeOptions{}
+                                     .withApproximateAudioProcessingTime (currentBlockSize, sampleRate));
     }
 
     /**
@@ -358,7 +360,8 @@ public:
                 stopThread (1000);
             prepareToPlay (sampleRate, currentBlockSize, numNodes);
             if (wasRunning)
-                startThread (juce::Thread::Priority::high);
+                startRealtimeThread (juce::Thread::RealtimeOptions{}
+                                         .withApproximateAudioProcessingTime (currentBlockSize, sampleRate));
         }
     }
 

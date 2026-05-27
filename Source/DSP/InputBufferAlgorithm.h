@@ -69,7 +69,8 @@ public:
         for (auto& processor : inputProcessors)
         {
             processor->setProcessingEnabled(processingEnabled);
-            processor->startThread(juce::Thread::Priority::high);
+            processor->startRealtimeThread (juce::Thread::RealtimeOptions{}
+                                                .withApproximateAudioProcessingTime (blockSize, sampleRate));
         }
     }
 
@@ -86,7 +87,8 @@ public:
         {
             processor->prepare(sampleRate, blockSize);
             processor->setProcessingEnabled(processingEnabled);
-            processor->startThread(juce::Thread::Priority::high);
+            processor->startRealtimeThread (juce::Thread::RealtimeOptions{}
+                                                .withApproximateAudioProcessingTime (blockSize, sampleRate));
         }
 
         // Re-prepare output detectors

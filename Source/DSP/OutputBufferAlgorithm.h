@@ -234,7 +234,8 @@ public:
         for (auto& processor : outputProcessors)
         {
             processor->setProcessingEnabled(processingEnabled);
-            processor->startThread(juce::Thread::Priority::high);
+            processor->startRealtimeThread (juce::Thread::RealtimeOptions{}
+                                                .withApproximateAudioProcessingTime (blockSize, sampleRate));
         }
 
         // Start input analysis thread (reads shared buffers, runs level detection)
@@ -273,7 +274,8 @@ public:
             processor->prepare(sampleRate, blockSize);
             processor->setSharedInputBuffers(sharedInputBuffers);
             processor->setProcessingEnabled(processingEnabled);
-            processor->startThread(juce::Thread::Priority::high);
+            processor->startRealtimeThread (juce::Thread::RealtimeOptions{}
+                                                .withApproximateAudioProcessingTime (blockSize, sampleRate));
         }
 
         // Re-prepare input level detectors

@@ -7,6 +7,8 @@
 #include <thread>
 #include <vector>
 
+#include "RealtimeThreadUtil.h"
+
 //==============================================================================
 /**
     Lightweight fork-join thread pool for parallelising per-node DSP.
@@ -35,13 +37,22 @@ public:
     }
 
     //==========================================================================
-    /** Create persistent worker threads. Safe to call multiple times (shuts down first). */
-    void prepare (int numWorkers)
+    /** Create persistent worker threads. Safe to call multiple times (shuts down first).
+
+        @param numWorkers     Number of persistent worker threads to spawn.
+        @param periodMs       Audio block duration in ms. When > 0, each worker upgrades itself
+                              to a realtime time-constraint policy on macOS (P-core placement).
+        @param computationMs  Expected processing time per block in ms (defaults to periodMs).
+    */
+    void prepare (int numWorkers, double periodMs = 0.0, double computationMs = 0.0)
     {
         shutdown();
 
         if (numWorkers <= 0)
             return;
+
+        realtimePeriodMs      = periodMs;
+        realtimeComputationMs = computationMs;
 
         running.store (true, std::memory_order_release);
         numActiveWorkers = numWorkers;
@@ -135,6 +146,10 @@ private:
     //==========================================================================
     void workerLoop()
     {
+        // Place this worker on a performance core (macOS); no-op elsewhere.
+        if (realtimePeriodMs > 0.0)
+            setCurrentThreadRealtimeAudio (realtimePeriodMs, realtimeComputationMs);
+
         while (running.load (std::memory_order_acquire))
         {
             // Wait for work dispatch
@@ -187,6 +202,10 @@ private:
     std::vector<std::thread> workers;
     int numActiveWorkers = 0;
     std::atomic<bool> running { false };
+
+    // Realtime scheduling hints (macOS P-core placement); 0 = disabled.
+    double realtimePeriodMs = 0.0;
+    double realtimeComputationMs = 0.0;
 
     // Dispatch signalling (main → workers)
     std::mutex dispatchMutex;

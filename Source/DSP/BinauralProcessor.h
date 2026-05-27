@@ -163,7 +163,8 @@ public:
     void startProcessing()
     {
         if (!isThreadRunning())
-            startThread (juce::Thread::Priority::high);
+            startRealtimeThread (juce::Thread::RealtimeOptions{}
+                                     .withApproximateAudioProcessingTime (currentBlockSize, sampleRate));
     }
 
     /**
@@ -239,7 +240,8 @@ public:
             bool wasRunning = isThreadRunning();
             if (wasRunning) stopThread (1000);
             prepareToPlay (sampleRate, currentBlockSize, numInputs);
-            if (wasRunning) startThread (juce::Thread::Priority::high);
+            if (wasRunning) startRealtimeThread (juce::Thread::RealtimeOptions{}
+                                                     .withApproximateAudioProcessingTime (currentBlockSize, sampleRate));
         }
     }
 
