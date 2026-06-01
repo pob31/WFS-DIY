@@ -14,9 +14,51 @@ LocalizationManager& LocalizationManager::getInstance()
 // Initialization
 //==============================================================================
 
+namespace
+{
+    /**
+     * Recursively merge `overlay` into `base`. Where both hold an object at the
+     * same key, recurse; otherwise the overlay value wins. Keys present only in
+     * `base` are left untouched. Used to overlay a locale on top of the English
+     * base so any key a locale omits falls back to English rather than a raw key.
+     */
+    void mergeInto(juce::var& base, const juce::var& overlay)
+    {
+        auto* overlayObj = overlay.getDynamicObject();
+        auto* baseObj = base.getDynamicObject();
+
+        if (overlayObj == nullptr || baseObj == nullptr)
+        {
+            base = overlay;  // not both objects -> overlay replaces base wholesale
+            return;
+        }
+
+        for (const auto& prop : overlayObj->getProperties())
+        {
+            const auto& name = prop.name;
+            const juce::var& overlayVal = prop.value;
+
+            if (baseObj->hasProperty(name))
+            {
+                juce::var childBase = baseObj->getProperty(name);
+                if (childBase.getDynamicObject() != nullptr
+                    && overlayVal.getDynamicObject() != nullptr)
+                {
+                    mergeInto(childBase, overlayVal);  // both objects -> recurse
+                    baseObj->setProperty(name, childBase);
+                    continue;
+                }
+            }
+
+            baseObj->setProperty(name, overlayVal);
+        }
+    }
+}
+
 bool LocalizationManager::loadLanguage(const juce::String& locale)
 {
-    auto langFile = getResourceDirectory().getChildFile("lang").getChildFile(locale + ".json");
+    auto langDir = getResourceDirectory().getChildFile("lang");
+    auto langFile = langDir.getChildFile(locale + ".json");
 
     if (!langFile.existsAsFile())
     {
@@ -29,6 +71,19 @@ bool LocalizationManager::loadLanguage(const juce::String& locale)
     {
         DBG("LocalizationManager: Failed to parse language file: " + langFile.getFullPathName());
         return false;
+    }
+
+    // English is the source of truth. For any other locale, load en.json as a
+    // base and overlay the locale on top, so labels/keys the locale intentionally
+    // omits (or hasn't translated yet) resolve to English instead of a raw key.
+    if (locale != "en")
+    {
+        auto enJson = juce::JSON::parse(langDir.getChildFile("en.json"));
+        if (enJson.isObject())
+        {
+            mergeInto(enJson, json);
+            json = enJson;
+        }
     }
 
     stringsRoot = json;
