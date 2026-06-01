@@ -35,9 +35,9 @@
     "help": {
       "showName": "Nombre del show actual.",
       "showLocation": "Ubicación del show actual.",
-      "inputChannels": "Número de canales de entrada.",
-      "outputChannels": "Número de canales de salida.",
-      "reverbChannels": "Número de canales de reverberación.",
+      "inputChannels": "Número de Input Channels.",
+      "outputChannels": "Número de Output Channels.",
+      "reverbChannels": "Número de Reverb Channels.",
       "audioPatch": "Abre la ventana de interfaz de audio y enrutamiento.",
       "levelMeter": "Opens the Level Meter Window.",
       "clearSolo": "Clear all input solo states.",
@@ -65,9 +65,9 @@
       "originDismissOutputs": "Pulsación larga para descartar y mantener las posiciones actuales de las salidas.",
       "originShiftReverbs": "Pulsación larga para desplazar todas las posiciones de reverb según el cambio de origen.",
       "originDismissReverbs": "Pulsación larga para descartar y mantener las posiciones actuales de las reverbs.",
-      "speedOfSound": "Velocidad del sonido (relacionada con la temperatura).",
-      "temperature": "Temperatura (determina la velocidad del sonido).",
-      "masterLevel": "Nivel master (afecta a todas las salidas).",
+      "speedOfSound": "Speed of Sound (relacionada con la temperatura).",
+      "temperature": "Temperatura (determina la Speed of Sound).",
+      "masterLevel": "Master Level (afecta a todas las salidas).",
       "systemLatency": "Latencia total del sistema (mesa de mezclas y ordenador) / La latencia/retardo específico de entradas y salidas puede configurarse en sus respectivos ajustes.",
       "haasEffect": "Efecto Haas a aplicar al sistema. Tiene en cuenta las compensaciones de latencia (sistema, entrada y salida).",
       "colorScheme": "Seleccione el esquema de color: Por defecto (gris oscuro), Negro (negro puro para pantallas OLED), o Claro (uso diurno).",
@@ -126,15 +126,15 @@
     },
     "dialogs": {
       "reduceInputChannels": {
-        "title": "¿Reducir canales de entrada?",
+        "title": "¿Reducir Input Channels?",
         "message": "Reducir de {current} a {new} canales de entrada eliminará la configuración de los canales {start} a {end}.\n\nEsta acción no se puede deshacer."
       },
       "reduceOutputChannels": {
-        "title": "¿Reducir canales de salida?",
+        "title": "¿Reducir Output Channels?",
         "message": "Reducir de {current} a {new} canales de salida eliminará la configuración de los canales {start} a {end}.\n\nEsta acción no se puede deshacer."
       },
       "reduceReverbChannels": {
-        "title": "¿Reducir canales de reverb?",
+        "title": "¿Reducir Reverb Channels?",
         "message": "Reducir de {current} a {new} canales de reverb eliminará la configuración de los canales {start} a {end}.\n\nEsta acción no se puede deshacer."
       },
       "reduce": "Reducir",
@@ -145,7 +145,7 @@
   },
   "network": {
     "help": {
-      "networkInterface": "Seleccionar la interfaz de red.",
+      "networkInterface": "Seleccionar la Network Interface.",
       "currentIP": "Dirección IP del procesador.",
       "udpPort": "Puerto de recepción UDP del procesador.",
       "tcpPort": "Puerto de recepción TCP del procesador.",
@@ -190,7 +190,7 @@
       "trackingFlipX": "Invertir el eje de la coordenada X del tracking.",
       "trackingFlipY": "Invertir el eje de la coordenada Y del tracking.",
       "trackingFlipZ": "Invertir el eje de la coordenada Z del tracking.",
-      "trackingOscPath": "Ruta OSC para el tracking en modo OSC (comienza con /)",
+      "trackingOscPath": "OSC Path para el tracking en modo OSC (comienza con /)",
       "psnInterface": "Interfaz de red para la recepción multicast PSN",
       "storeConfig": "Guardar la configuración de red en un archivo.",
       "reloadConfig": "Recargar la configuración de red desde un archivo.",
@@ -212,7 +212,7 @@
       "trackingConflictsContinue": "Continuar"
     },
     "messages": {
-      "selectFolderFirst": "Por favor seleccione primero una carpeta de proyecto en Config Sistema.",
+      "selectFolderFirst": "Por favor seleccione primero una carpeta de proyecto en System Config.",
       "configSaved": "Configuración de red guardada.",
       "configNotFound": "Archivo de configuración de red no encontrado.",
       "configReloaded": "Configuración de red recargada.",
@@ -280,7 +280,7 @@
     },
     "help": {
       "inputsVisibility": "Mostrar u ocultar las entradas de este cluster en el Mapa. Ocultar se propaga a nuevos miembros; retirar una entrada restaura su visibilidad.",
-      "referenceMode": "Seleccione el punto de referencia para las transformaciones del cluster: Primera Entrada, Baricentro o Posición Compartida (todos los miembros coinciden; la escala y la rotación se aplican a los offsets individuales).",
+      "referenceMode": "Seleccione el punto de referencia para las transformaciones del cluster: First Input, Baricentro o Shared Position (todos los miembros coinciden; la escala y la rotación se aplican a los offsets individuales).",
       "positionJoystick": "Mover todas las entradas del cluster en X/Y. Mantener y arrastrar para trasladar.",
       "zSlider": "Mover todas las entradas del cluster a lo largo del eje Z (altura).",
       "attenuationSlider": "Ajustar la atenuación de todas las entradas del cluster (dB).",
@@ -331,7 +331,7 @@
     "messages": {
       "setToSingle": "Salida {num} configurada como Individual",
       "assignedToArray": "Salida {num} asignada al Grupo {array}",
-      "selectFolderFirst": "Por favor seleccione primero una carpeta de proyecto en Config Sistema.",
+      "selectFolderFirst": "Por favor seleccione primero una carpeta de proyecto en System Config.",
       "configSaved": "Configuración de salidas guardada.",
       "configLoaded": "Configuración de salidas cargada.",
       "configNotFound": "Archivo de configuración de salidas no encontrado.",
@@ -349,9 +349,9 @@
       "applyToArray": "Aplicar cambios al resto del grupo (valor absoluto o cambios relativos).",
       "attenuation": "Atenuación del canal de salida. (los cambios pueden afectar al resto del grupo)",
       "delayLatency": "Retardo del canal de salida (valores positivos) o compensación de latencia (valores negativos). (los cambios pueden afectar al resto del grupo)",
-      "minLatency": "Desactiva el modo de latencia mínima para la salida seleccionada. (los cambios pueden afectar al resto del grupo)",
-      "liveSource": "Desactiva la atenuación de fuente en vivo para la salida seleccionada. (los cambios pueden afectar al resto del grupo)",
-      "floorReflections": "Activar o desactivar las reflexiones del suelo para este altavoz.",
+      "minLatency": "Desactiva el modo de Minimal Latency para la salida seleccionada. (los cambios pueden afectar al resto del grupo)",
+      "liveSource": "Desactiva la atenuación de Live Source para la salida seleccionada. (los cambios pueden afectar al resto del grupo)",
+      "floorReflections": "Activar o desactivar las Floor Reflections para este altavoz.",
       "distanceAtten": "Ratio de atenuación por distancia para la salida seleccionada. (los cambios pueden afectar al resto del grupo)",
       "hParallax": "Distancia horizontal del altavoz al oyente « objetivo ». (los cambios pueden afectar al resto del grupo)",
       "vParallax": "Distancia vertical del altavoz al oyente « objetivo ». Positivo cuando el altavoz está debajo de la cabeza del oyente. (los cambios pueden afectar al resto del grupo)",
@@ -371,10 +371,10 @@
       "eqEnable": "Activar o desactivar el EQ para esta salida.",
       "eqFlatten": "Pulsación larga para restablecer todas las bandas EQ.",
       "eqBandToggle": "Activar/desactivar la banda {band}. Desactivada, la banda se omite.",
-      "eqShape": "Forma del filtro EQ salida banda {band}.",
-      "eqFreq": "Frecuencia EQ salida banda {band} (20 Hz - 20 kHz).",
-      "eqGain": "Ganancia EQ salida banda {band} (-24 a +24 dB).",
-      "eqQ": "Factor Q EQ salida banda {band} (0.1 - 10.0).",
+      "eqShape": "Forma del filtro Output EQ banda {band}.",
+      "eqFreq": "Frecuencia Output EQ banda {band} (20 Hz - 20 kHz).",
+      "eqGain": "Ganancia Output EQ banda {band} (-24 a +24 dB).",
+      "eqQ": "Factor Q Output EQ banda {band} (0.1 - 10.0).",
       "eqResetBand": "Pulsación larga para restablecer la banda {band}.",
       "position1": "Canal de salida {name} ({unit}).",
       "position2": "Canal de salida {name} ({unit}).",
@@ -394,7 +394,7 @@
       "export": "Exportar configuración reverb"
     },
     "messages": {
-      "selectFolderFirst": "Por favor seleccione primero una carpeta de proyecto en Config Sistema.",
+      "selectFolderFirst": "Por favor seleccione primero una carpeta de proyecto en System Config.",
       "configSaved": "Configuración reverb guardada.",
       "configLoaded": "Configuración reverb cargada.",
       "backupLoaded": "Configuración reverb cargada desde respaldo.",
@@ -405,7 +405,7 @@
     "help": {
       "channelSelector": "Número y selección del canal de reverberación.",
       "nameEditor": "Nombre mostrado del canal de reverberación (editable).",
-      "mapVisibility": "Hacer visibles u ocultar todos los canales de reverberación en el mapa.",
+      "mapVisibility": "Hacer visibles u ocultar todos los Reverb Channels en el mapa.",
       "attenuation": "Atenuación del canal de reverberación (-92 a 0 dB).",
       "delayLatency": "Compensación de retardo/latencia de la reverberación (-100 a +100 ms).",
       "orientation": "Ángulo de orientación de la reverberación (-179 a +180 grados).",
@@ -413,7 +413,7 @@
       "angleOff": "Ángulo en el que no se produce amplificación (0-179 grados).",
       "pitch": "Orientación vertical de la reverberación (-90 a +90 grados).",
       "hfDamping": "Pérdida de alta frecuencia por metro (-6.0 a 0.0 dB/m).",
-      "distanceAttenEnable": "Porcentaje de atenuación por distancia (0-200%).",
+      "distanceAttenEnable": "Porcentaje de Distance attenuation (0-200%).",
       "coordMode": "Modo de visualización de coordenadas: Cartesiano (X/Y/Z), Cilíndrico (radio/acimut/altura), o Esférico (radio/acimut/elevación).",
       "eqEnable": "Activar o desactivar el procesamiento EQ para esta reverberación.",
       "eqFlatten": "Pulsación larga para restablecer todas las bandas pre-EQ.",
@@ -423,7 +423,7 @@
       "eqGain": "Ganancia pre-EQ banda {band} (-24 a +24 dB).",
       "eqQ": "Factor Q pre-EQ banda {band} (0.1 - 20.0).",
       "eqResetBand": "Pulsación larga para restablecer la banda pre-EQ {band}.",
-      "distanceAtten": "Atenuación por distancia para el retorno de reverberación (-6.0 a 0.0 dB/m).",
+      "distanceAtten": "Distance attenuation para el Reverb Return (-6.0 a 0.0 dB/m).",
       "commonAtten": "Porcentaje de atenuación común (0-100%).",
       "muteMacros": "Operaciones rápidas de silenciamiento para canales de salida.",
       "storeConfig": "Guardar la configuración de reverberación en archivo (con copia de seguridad).",
@@ -466,7 +466,7 @@
       "postExpAttack": "Tiempo de ataque del post-expansor (0.1 - 50 ms).",
       "postExpRelease": "Tiempo de liberación del post-expansor (50 - 2000 ms).",
       "miniLatencyTooltip": "Activar el modo de latencia mínima para este canal de reverberación. Reduce el retardo de procesamiento a costa de mayor uso de CPU.",
-      "liveSourceTooltip": "Activar el domador de atenuación Live Source. Reduce las fluctuaciones de nivel de fuentes cercanas al array.",
+      "liveSourceTooltip": "Activar el Live Source Tamer. Reduce las fluctuaciones de nivel de fuentes cercanas al array.",
       "muteButton": "Activar/desactivar silencio del retorno de reverberación para esta salida.",
       "position1": "Fuente virtual de reverberación {name} ({unit}).",
       "position2": "Fuente virtual de reverberación {name} ({unit}).",
@@ -515,7 +515,7 @@
       "trackingConflictYes": "Sí, transferir tracking"
     },
     "messages": {
-      "selectFolderFirst": "Por favor seleccione primero una carpeta de proyecto en Config Sistema.",
+      "selectFolderFirst": "Por favor seleccione primero una carpeta de proyecto en System Config.",
       "configSaved": "Configuración entradas guardada.",
       "configLoaded": "Configuración entradas cargada.",
       "backupLoaded": "Configuración entradas cargada desde respaldo.",
@@ -557,7 +557,7 @@
       "mapVisibilityButton": "Mostrar u ocultar la entrada seleccionada en el mapa.",
       "attenuationSlider": "Atenuación del canal de entrada.",
       "delayLatencySlider": "Retardo del canal de entrada (valores positivos) o compensación de latencia (valores negativos).",
-      "minimalLatencyButton": "Elegir entre precedencia acústica y latencia mínima para la precedencia de amplificación.",
+      "minimalLatencyButton": "Elegir entre Acoustic Precedence y Minimal Latency para la precedencia de amplificación.",
       "constraintXButton": "Limitar la posición a los límites del escenario en anchura.",
       "constraintYButton": "Limitar la posición a los límites del escenario en profundidad.",
       "constraintZButton": "Limitar la posición a los límites del escenario en altura.",
@@ -578,7 +578,7 @@
       "coordModeSelector": "Modo de visualización de coordenadas: Cartesiano (X/Y/Z), Cilíndrico (radio/azimut/altura) o Esférico (radio/azimut/elevación).",
       "positionJoystick": "Arrastrar para ajustar la posición X/Y en tiempo real. Vuelve al centro al soltar.",
       "positionZSlider": "Arrastrar para ajustar la posición Z (altura) en tiempo real. Vuelve al centro al soltar.",
-      "attenuationLawButton": "Modelo de ley de atenuación (disminución lineal del volumen con la distancia entre objeto y altavoz, o cuadrática).",
+      "attenuationLawButton": "Modelo de Attenuation Law (disminución lineal del volumen con la distancia entre objeto y altavoz, o cuadrática).",
       "distanceAttenDial": "Atenuación por metro entre el objeto y el altavoz.",
       "distanceRatioDial": "Ratio de atenuación para el modelo cuadrático.",
       "commonAttenDial": "Porcentaje de la parte común de la atenuación para el objeto seleccionado en relación con todas las salidas.",
@@ -590,21 +590,21 @@
       "lsRadiusSlider": "Hasta dónde afecta la atenuación a los altavoces.",
       "lsShapeSelector": "Perfil de la atenuación alrededor del objeto.",
       "lsAttenuationSlider": "Atenuación constante de los altavoces alrededor del objeto.",
-      "lsPeakEnableButton": "Activar o desactivar el compresor rápido (pico) para el Domador de Source Live.",
+      "lsPeakEnableButton": "Activar o desactivar el compresor rápido (pico) para el Live Source Tamer.",
       "lsPeakThresholdSlider": "Umbral de compresión rápida para los altavoces alrededor del objeto, para controlar transitorios.",
       "lsPeakRatioDial": "Ratio aplicado a la compresión rápida para los altavoces alrededor del objeto.",
-      "lsSlowEnableButton": "Activar o desactivar el compresor lento para el Domador de Source Live.",
+      "lsSlowEnableButton": "Activar o desactivar el compresor lento para el Live Source Tamer.",
       "lsSlowThresholdSlider": "Umbral de compresión lenta para los altavoces alrededor del objeto, para controlar el nivel sostenido.",
       "lsSlowRatioDial": "Ratio aplicado a la compresión lenta para los altavoces alrededor del objeto.",
-      "frActiveButton": "Activar las reflexiones de suelo simuladas para el objeto.",
-      "frAttenuationSlider": "Atenuación de las reflexiones de suelo simuladas para el objeto.",
-      "frDiffusionDial": "Efecto de difusión de las reflexiones de suelo simuladas para el objeto.",
-      "frLowCutActiveButton": "Activar el filtro corte bajo para las reflexiones de suelo.",
-      "frLowCutFreqSlider": "Frecuencia del corte bajo para las reflexiones de suelo.",
-      "frHighShelfActiveButton": "Activar el filtro shelving agudo para las reflexiones de suelo.",
-      "frHighShelfFreqSlider": "Frecuencia del shelving agudo para las reflexiones de suelo.",
-      "frHighShelfGainSlider": "Ganancia del shelving agudo para las reflexiones de suelo.",
-      "frHighShelfSlopeSlider": "Pendiente del shelving agudo para las reflexiones de suelo.",
+      "frActiveButton": "Activar las Floor Reflections simuladas para el objeto.",
+      "frAttenuationSlider": "Atenuación de las Floor Reflections simuladas para el objeto.",
+      "frDiffusionDial": "Efecto de difusión de las Floor Reflections simuladas para el objeto.",
+      "frLowCutActiveButton": "Activar el filtro Low Cut para las Floor Reflections.",
+      "frLowCutFreqSlider": "Frecuencia del Low Cut para las Floor Reflections.",
+      "frHighShelfActiveButton": "Activar el filtro High Shelf para las Floor Reflections.",
+      "frHighShelfFreqSlider": "Frecuencia del High Shelf para las Floor Reflections.",
+      "frHighShelfGainSlider": "Ganancia del High Shelf para las Floor Reflections.",
+      "frHighShelfSlopeSlider": "Pendiente del High Shelf para las Floor Reflections.",
       "muteReverbSendsButton": "Silenciar los envíos de esta entrada a todos los canales de reverberación.",
       "jitterSlider": "Esfera de movimientos rápidos del objeto.",
       "lfoActiveButton": "Activar o desactivar el movimiento periódico del objeto (LFO).",
@@ -638,7 +638,7 @@
       "otomoStopAllButton": "Detener globalmente todos los movimientos activos.",
       "otomoPauseResumeAllButton": "Pausar o reanudar globalmente todos los movimientos activos.",
       "muteButton": "Silenciar la salida {num} para este objeto.",
-      "muteMacrosSelector": "Macros de mute para silenciar y reactivar rápidamente los arrays.",
+      "muteMacrosSelector": "Mute Macros para silenciar y reactivar rápidamente los arrays.",
       "arrayAttenDial": "Atenuación para el array {num} (-60 a 0 dB).",
       "sidelinesActiveButton": "Activar el silenciamiento automático cuando la fuente se acerca a los bordes del escenario. No se aplica al borde delantero (lado del público).",
       "sidelinesFringeDial": "Tamaño de la zona de transición en metros. La mitad exterior silencia totalmente, la mitad interior atenúa linealmente.",
@@ -695,8 +695,8 @@
   },
   "help": {
     "binaural": {
-      "title": "Renderizador Binaural",
-      "body": "El renderizador binaural se utiliza para:\n- escuchar una mezcla espacial aproximada con auriculares,\n- crear una mezcla para salida estéreo,\n- escuchar una pista en solo a través del procesamiento espacial.\nPuede sustituir su mezcla master si solo alimenta auriculares y mezcla de medios.\nLa posición de escucha puede ajustarse en profundidad desde el punto de origen y en orientación. Los ajustes de retardo y nivel permiten igualar el sonido en la posición FOH."
+      "title": "Binaural Renderer",
+      "body": "El Binaural Renderer se utiliza para:\n- escuchar una mezcla espacial aproximada con auriculares,\n- crear una mezcla para salida estéreo,\n- escuchar una pista en solo a través del procesamiento espacial.\nPuede sustituir su mezcla master si solo alimenta auriculares y mezcla de medios.\nLa posición de escucha puede ajustarse en profundidad desde el punto de origen y en orientación. Los ajustes de retardo y nivel permiten igualar el sonido en la posición FOH."
     },
     "map": {
       "title": "Mapa",
@@ -715,7 +715,7 @@
       "body": "Movimientos únicos pueden programarse y dispararse manualmente o por nivel de sonido.\nLas coordenadas son relativas desde la posición inicial o absolutas respecto al punto de origen.\nLa entrada puede quedarse en la posición final o volver a la posición inicial.\nLa posición no puede cambiarse durante el movimiento, pero la interacción cambiará el desplazamiento de posición.\nPara disparo por nivel de audio, seleccione el umbral. Cuando el sonido baje del nivel de reinicio, el movimiento se rearmará."
     },
     "gradientMap": {
-      "title": "Mapas de Gradiente",
+      "title": "Gradient Maps",
       "body": "Los mapas de gradiente permiten controlar la atenuación, la altura y el filtrado de alta frecuencia (shelf con pendiente suave centrada en 1kHz) según la posición X, Y. Por ejemplo, puede atenuar un sonido al entrar en una zona, aplicar roll-off de altas frecuencias al alejarse del frente del escenario o ajustar automáticamente la altura de un actor en plataformas elevadas.\nHay tres capas: atenuación, altura y shelf HF. Pueden activarse/desactivarse y ocultarse.\nCada capa tiene controles de mapeo blanco y negro para ajustar el rango del efecto. El ajuste de curva controla la transición.\nCada capa puede tener formas editables (rectángulo, elipse o polígono) con gris uniforme, gradiente lineal o radial.\nAl crear un polígono, haga clic para cada esquina. Doble clic cierra la forma.\nDoble clic en un punto lo elimina. Doble clic en un lado añade un punto.\nLa escala y rotación pueden editarse desde el centro o desde el origen.\nFormas y capas pueden copiarse a otra capa.\nLos ajustes se almacenan en los archivos de entrada."
     },
     "sampler": {
@@ -723,11 +723,11 @@
       "body": "El sampler permite disparar muestras e interactuar con ellas en tiempo real.\nCuando está habilitado en una pista, el sampler reemplaza la entrada en vivo en todo momento.\nVarios samplers pueden asignarse a diferentes entradas y dispararse individualmente.\nPara usar el sampler:\n- Seleccione un Roli Lightpad o un pad en la app Android Remote conectada.\n- Añada muestras a las diferentes casillas de la cuadrícula. Ajuste su posición de inicio relativa, su nivel y eventualmente sus puntos de entrada y salida. Se pueden seleccionar varias muestras manteniendo Mayús mientras hace clic.\n- Cree conjuntos de muestras: las muestras seleccionadas se añadirán a nuevos conjuntos. Pueden añadirse o eliminarse manteniendo Ctrl/Cmd mientras hace clic en las casillas. Cada conjunto puede renombrarse y tener una secuencia fija o aleatoria. Cada conjunto tiene un ajuste de atenuación y una posición base.\n- Presione un Lightpad o pad para disparar una muestra. La presión puede mapearse a nivel, altura y filtrado de altas frecuencias. El movimiento del dedo mueve el sonido como un joystick.\nSoltar el pad detiene la muestra.\nLos ajustes del sampler se almacenan en los archivos de entrada.\nLas casillas y conjuntos pueden copiarse, exportarse e importarse."
     },
     "liveSource": {
-      "title": "Atenuador de Fuente en Vivo",
+      "title": "Live Source Tamer",
       "body": "Una fuente potente en el escenario puede no necesitar refuerzo a través de los altavoces cercanos. Imagine un cantante de ópera cerca del borde del escenario. Normalmente la distribución de nivel haría el sonido más fuerte cerca de la posición de entrada. Pero si ya es suficientemente fuerte, no deberíamos sobre-amplificarlo. Esta función gestiona esto.\nEl radio y la forma describen cómo atenuar el nivel para los altavoces dentro del radio de influencia de esta fuente. Hay varias formas: un efecto lineal en V; una U para disminución rápida; una V ajustada o una mezcla de los anteriores (seno).\nLa atenuación puede ser constante o dependiente del nivel, como una compresión local que reacciona a transitorios y al nivel RMS promedio."
     },
     "floorReflections": {
-      "title": "Reflexiones del Suelo",
+      "title": "Floor Reflections",
       "body": "Simular las reflexiones del suelo mejora la naturalidad del sonido. No esperamos que los sonidos se reproduzcan en una cámara anecoica insonorizada. Este ajuste ayuda a recrear las reflexiones del suelo esperadas.\nEl nivel de las reflexiones del suelo puede ajustarse, así como los filtros de corte bajo y de estante de altas frecuencias. La difusión añade un poco de caos para simular las irregularidades del suelo."
     },
     "reverb": {
@@ -735,11 +735,11 @@
       "body": "La reverberación ayuda a difuminar las reflexiones de los altavoces.\nColoque los nodos según la geometría del escenario.\nOtros parámetros son similares a los de Salidas y Entradas."
     },
     "reverbFeed": {
-      "title": "Alimentación de Reverberación",
-      "body": "Envío de pre-procesamiento de los canales de entrada a los nodos.\n- Orientación y ángulos On/Off definen qué entradas recibe cada nodo.\n- Amortiguación HF simula la pérdida de alta frecuencia.\n- Porcentaje de atenuación de distancia define la atenuación aplicada.\n- Latencia mínima determina si se usa el menor retardo calculado.\n- Atenuación de fuente viva reduce el nivel de entradas cercanas."
+      "title": "Reverb Feed",
+      "body": "Envío de pre-procesamiento de los Input Channels a los nodos.\n- Orientación y ángulos On/Off definen qué entradas recibe cada nodo.\n- Amortiguación HF simula la pérdida de alta frecuencia.\n- Porcentaje de atenuación de distancia define la atenuación aplicada.\n- Minimal Latency determina si se usa el menor retardo calculado.\n- Atenuación de fuente viva reduce el nivel de entradas cercanas."
     },
     "reverbReturn": {
-      "title": "Retorno de Reverberación",
+      "title": "Reverb Return",
       "body": "Post-procesamiento enviado a los altavoces.\n- Atenuación de Distancia define la caída de nivel por metro.\n- Atenuación Común mantiene un porcentaje de la atenuación más baja.\n- Mutes impiden que un canal de reverberación alimente una salida."
     },
     "reverbAlgo": {
@@ -771,21 +771,21 @@
       "body": "El tracking permite seguir la posición en 2D o 3D de actores y músicos. Existen varias soluciones basadas en etiquetas UWB, cámaras 3D, sistemas de visión por computadora y LEDs infrarrojos con cámaras sensibles a IR.\nEsta aplicación permite recibir datos de tracking desde varios protocolos: OSC, MQTT, PosiStageNet/PSN, RTTrP.\nPuede seleccionar el protocolo utilizado y configurar sus parámetros. También puede ajustar el mapeo (desplazamiento, escala y orientación).\nCada entrada tiene un toggle para habilitar el tracking, un ID para seleccionar el marcador a seguir y un algoritmo de suavizado."
     },
     "admOsc": {
-      "title": "Mapeos ADM-OSC",
+      "title": "ADM-OSC Mappings",
       "body": "ADM-OSC es un protocolo que busca mejorar la interoperabilidad del sonido espacial. Envía posiciones cartesianas (X, Y, Z) o valores polares (AED para Azimut, Elevación, Distancia) desde la consola o las curvas de automatización de un DAW.\nLos datos se envían normalizados:\n- entre -1.0 y 1.0 para X, Y y Z;\n- entre 0.0 y 1.0 para distancia,\n- entre -180° y 180° para Azimut\n- entre -90° y 90° para elevación.\nEl punto de origen puede moverse y el mapeo también puede ajustarse en diferentes segmentos para las partes interior y exterior del escenario.\nAl arrastrar los controles en los gráficos, mantener la tecla Mayús aplica ajustes simétricos en el lado opuesto."
     },
     "overview": {
       "title": "Vista general del sistema",
-      "body": "Este procesador espacial WFS pretende ser una herramienta para la sonorización natural y también una herramienta creativa que abre nuevas vías para escribir sonido en el espacio.\nAlgunos parámetros son sencillos: colocar sonido (Mapa, Tracking, Limitación de velocidad, Mapas de gradiente...), trabajar su forma (Perfil de atenuación) y su presencia acústica (Directividad, Reflexiones de suelo), darle un movimiento puntual (AutomOtion) o repetitivo (L.F.O). En algunos casos la amplificación debería limitarse alrededor de fuentes potentes en el escenario (Live Source Tamer). Todas estas funcionalidades pueden almacenarse y recuperarse internamente o con ayuda de QLab. Por otro lado el sistema permite la interacción en tiempo real para disparar y mover samples, mover grandes clusters de entradas manualmente o gracias a presets LFO fácilmente recuperables.",
+      "body": "Este procesador espacial WFS pretende ser una herramienta para la sonorización natural y también una herramienta creativa que abre nuevas vías para escribir sonido en el espacio.\nAlgunos parámetros son sencillos: colocar sonido (Mapa, Tracking, Limitación de velocidad, Gradient Maps...), trabajar su forma (Perfil de atenuación) y su presencia acústica (Directividad, Floor Reflections), darle un movimiento puntual (AutomOtion) o repetitivo (L.F.O). En algunos casos la amplificación debería limitarse alrededor de fuentes potentes en el escenario (Live Source Tamer). Todas estas funcionalidades pueden almacenarse y recuperarse internamente o con ayuda de QLab. Por otro lado el sistema permite la interacción en tiempo real para disparar y mover samples, mover grandes clusters de entradas manualmente o gracias a presets LFO fácilmente recuperables.",
       "dontShow": "No mostrar de nuevo"
     },
     "inputBasic": {
       "title": "Parámetros básicos de entradas",
-      "body": "Las entradas disponen de una gran variedad de ajustes para adaptarse a diferentes situaciones que requieren sonorización realista o herramientas creativas para diseño sonoro.\n- El nivel de entrada puede ajustarse.\n- Las entradas pueden retrasarse o intentar tener en cuenta una latencia específica (procesamiento digital de transmisión inalámbrica o efectos digitales) y compensarla para alinear mejor la amplificación y el sonido acústico.\n- La Latencia Mínima puede activarse en lugar de la Precedencia Acústica. Esto intenta sacar el sonido a través del sistema lo más rápido posible. El sistema escanea los envíos de esta entrada a las salidas buscando el menor retardo y lo sustrae de todos los retardos, evitando el efecto Haas adicional.\n- La posición (posición y offset) puede darse en coordenadas Cartesianas, Cilíndricas o Esféricas independientemente de la forma del escenario u otros canales.\n- La posición puede restringirse a las dimensiones del escenario en coordenadas Cartesianas o a un rango de distancia específico en coordenadas polares.\n- Flip tomará la posición simétrica para la coordenada dada alrededor del punto de origen.\n- El joystick y el deslizador vertical permiten control relativo de la posición.\n- Las entradas pueden asignarse a un cluster para agruparlas en movimientos coordinados."
+      "body": "Las entradas disponen de una gran variedad de ajustes para adaptarse a diferentes situaciones que requieren sonorización realista o herramientas creativas para diseño sonoro.\n- El nivel de entrada puede ajustarse.\n- Las entradas pueden retrasarse o intentar tener en cuenta una latencia específica (procesamiento digital de transmisión inalámbrica o efectos digitales) y compensarla para alinear mejor la amplificación y el sonido acústico.\n- La Minimal Latency puede activarse en lugar de la Acoustic Precedence. Esto intenta sacar el sonido a través del sistema lo más rápido posible. El sistema escanea los envíos de esta entrada a las salidas buscando el menor retardo y lo sustrae de todos los retardos, evitando el efecto Haas adicional.\n- La posición (posición y offset) puede darse en coordenadas Cartesianas, Cilíndricas o Esféricas independientemente de la forma del escenario u otros canales.\n- La posición puede restringirse a las dimensiones del escenario en coordenadas Cartesianas o a un rango de distancia específico en coordenadas polares.\n- Flip tomará la posición simétrica para la coordenada dada alrededor del punto de origen.\n- El joystick y el deslizador vertical permiten control relativo de la posición.\n- Las entradas pueden asignarse a un cluster para agruparlas en movimientos coordinados."
     },
     "inputAdvanced": {
       "title": "Controles avanzados",
-      "body": "- Las líneas laterales y la zona de transición permiten silenciar cuando una entrada se acerca a los bordes de un escenario rectangular (excepto el borde del público).\n- El Tracking puede activarse y seleccionarse el ID del tracker. El suavizado de la posición también puede ajustarse.\n- La Velocidad Máxima puede activarse y ajustarse el límite de velocidad. El sistema aplicará una aceleración y desaceleración graduales al inicio y al final del movimiento. Cuando el modo Trayectoria está activo, el sistema seguirá el camino tomado por la entrada en lugar de ir en línea recta a la posición final. Esto es especialmente útil si los movimientos deben operarse manualmente.\n- El Factor de Altura permite trabajar en 2D, ajustado al 0%, o en 3D completo, ajustado al 100%, y todo lo intermedio. Es la proporción de la altura en los cálculos de nivel y retardo. Si desea usar reflexiones de suelo, ajústelo al 100% y use la corrección de paralaje en los parámetros de salida."
+      "body": "- Las líneas laterales y la zona de transición permiten silenciar cuando una entrada se acerca a los bordes de un escenario rectangular (excepto el borde del público).\n- El Tracking puede activarse y seleccionarse el ID del tracker. El suavizado de la posición también puede ajustarse.\n- La Velocidad Máxima puede activarse y ajustarse el límite de velocidad. El sistema aplicará una aceleración y desaceleración graduales al inicio y al final del movimiento. Cuando el modo Trayectoria está activo, el sistema seguirá el camino tomado por la entrada en lugar de ir en línea recta a la posición final. Esto es especialmente útil si los movimientos deben operarse manualmente.\n- El Factor de Altura permite trabajar en 2D, ajustado al 0%, o en 3D completo, ajustado al 100%, y todo lo intermedio. Es la proporción de la altura en los cálculos de nivel y retardo. Si desea usar Floor Reflections, ajústelo al 100% y use la corrección de paralaje en los parámetros de salida."
     },
     "inputLevel": {
       "title": "Ajustes de nivel",
@@ -796,7 +796,7 @@
       "body": "Al hablar girándose, el timbre de una voz suena menos brillante. Reproducir esto era el objetivo inicial aquí, aunque generalmente queremos tener soporte para voces que no se dirigen al público o en configuraciones bi-frontales. Esto puede usarse para efectos creativos como tener una reverberación más brillante sobre un sonido directo atenuado.\nLa orientación de la entrada en azimut y en elevación puede ajustarse así como el ángulo donde las altas frecuencias no se filtrarán.\nEl HF Shelf establecerá la atenuación máxima en la parte trasera de la entrada. Hay un fundido suave (como una curva coseno) desde brillo pleno delante hasta atenuado detrás."
     },
     "inputMutes": {
-      "title": "Atenuación por array y mutes de salida",
+      "title": "Array Attenuation and Output Mutes",
       "body": "Puede establecer para cada array de salida una atenuación específica para la entrada seleccionada.\nPuede silenciar cada envío a cualquier salida individualmente. Hay macros disponibles para acelerar el proceso."
     },
     "parallax": {
@@ -805,7 +805,7 @@
     },
     "outputAdvanced": {
       "title": "Parámetros avanzados",
-      "body": "Hay algunos parámetros para ayudarle a ajustar al sonido acústico.\nLa mayoría de estos parámetros se establecen para arrays completos a menos que el modo de propagación esté desactivado para esta salida. También puede seleccionarse un cambio relativo después de un ajuste específico.\n- Orientación y Ángulos On/Off definen qué entradas amplificará cada altavoz. Por defecto los altavoces apuntan al público, de espaldas al escenario. Las entradas en el sector verde se amplificarán, pero no las que están frente al altavoz, en el sector rojo. Hay un fundido entre ambos sectores. Para subgraves, abrir completamente al máximo permitirá que todas las entradas sean captadas.\n- La Atenuación HF simula la pérdida de altas frecuencias con la distancia.\n- El porcentaje de Atenuación por Distancia define cuánta de la atenuación calculada se aplica. Para subgraves puede ser conveniente reducir al 50%.\n- La Latencia Mínima activa el escaneo del menor retardo calculado.\n- La Atenuación Live Source activa la reducción de nivel de entradas cercanas.\n- Las Reflexiones de Suelo activan si las reflexiones se aplican a la señal para esta salida como subgraves y arrays colgados..."
+      "body": "Hay algunos parámetros para ayudarle a ajustar al sonido acústico.\nLa mayoría de estos parámetros se establecen para arrays completos a menos que el modo de propagación esté desactivado para esta salida. También puede seleccionarse un cambio relativo después de un ajuste específico.\n- Orientación y Ángulos On/Off definen qué entradas amplificará cada altavoz. Por defecto los altavoces apuntan al público, de espaldas al escenario. Las entradas en el sector verde se amplificarán, pero no las que están frente al altavoz, en el sector rojo. Hay un fundido entre ambos sectores. Para subgraves, abrir completamente al máximo permitirá que todas las entradas sean captadas.\n- La Atenuación HF simula la pérdida de altas frecuencias con la distancia.\n- El porcentaje de Distance attenuation define cuánta de la atenuación calculada se aplica. Para subgraves puede ser conveniente reducir al 50%.\n- La Minimal Latency activa el escaneo del menor retardo calculado.\n- La Atenuación Live Source activa la reducción de nivel de entradas cercanas.\n- Las Floor Reflections activan si las reflexiones se aplican a la señal para esta salida como subgraves y arrays colgados..."
     },
     "tuning": {
       "title": "Afinación del sistema",
@@ -816,8 +816,8 @@
       "body": "El diseño del sistema WFS tiene que ver con la elección correcta del equipamiento y su posicionamiento. Aquí hay una guía para ayudarle con el diseño y la afinación de sus arrays.\nUn array es una línea (recta o curva) de altavoces. Este es uno de los conceptos más importantes en WFS adaptado a la sonorización y al diseño sonoro creativo.\nComo regla general, cada oyente debería escuchar tres altavoces de un array para tener suficientes pistas psicoacústicas para sentir la dirección de cada sonido. Habrá un punto óptimo entre la distancia entre los altavoces y los oyentes, su espaciado y ángulo de cobertura. Los altavoces con ángulo de cobertura de 120° pueden espaciarse la misma distancia entre el array y la primera fila. El número también depende del nivel de presión sonora. Como array colgado, bocinas trapezoidales/asimétricas con ángulo ancho (120°) bajo eje y estrecho (60°) en eje darán buena cobertura y alcance de 20-30m evitando reflexiones en las paredes. Los altavoces coaxiales generalmente no tienen suficiente alcance para grandes recintos y requieren líneas de retardo.\nEl posicionamiento puede hacerse a través del 'Wizard of OutZ' y sus presets editables."
     },
     "mcp": {
-      "title": "Servidor IA / MCP",
-      "body": "El servidor MCP permite que un asistente de IA (Claude Desktop, Claude Code, ChatGPT con conectores personalizados) lea y escriba los parámetros de esta sesión de WFS-DIY a través de una conexión de red local.\n\nLo que la IA puede hacer:\n• Leer el estado en vivo: número de canales, nombres, posiciones, atenuaciones, EQ, snapshots, clusters, toda la superficie de parámetros.\n• Mover fuentes, renombrar canales, establecer asignaciones de clusters, ajustar el diseño de arrays, colocar salidas y reverberaciones.\n• Ejecutar flujos guiados (asistentes de afinación de sistema, resolución de localización, gestión de snapshots) mediante plantillas de prompts preparadas.\n\nControles del operador en esta fila:\n• IA: ON / OFF — interruptor principal. En OFF, cada llamada de herramienta de IA se rechaza; en ON, la IA trabaja según las reglas siguientes.\n• Acciones críticas de IA: bloqueadas / PERMITIDAS — las acciones destructivas (eliminar snapshots, restablecer DSP, cambiar el número de canales) están bloqueadas por defecto. Hacer clic para permitirlas durante 10 minutos; el relleno rojo se descarga al expirar la ventana, luego se bloquean automáticamente de nuevo.\n• Abrir Historial de IA — cronología desplazable de cada cambio de IA reciente con deshacer/rehacer por fila y cursor paso a paso.\n• El botón URL MCP copia la URL del servidor al portapapeles para clientes de IA que acepten una URL directamente.\n\nConciencia del operador:\n• Cada acción de IA se registra con etiquetas de origen. La ventana de Historial de IA muestra la cronología completa; la × por fila revierte una acción con sus dependencias.\n• Si ajusta manualmente un parámetro que la IA acaba de mover, la IA es notificada y no reintentará a ciegas. Siempre tiene la última palabra.\n• Los atajos Cmd/Ctrl+Alt+Z y Cmd/Ctrl+Alt+Y deshacen y rehacen el último cambio de IA sin afectar a sus ediciones manuales (que usan Ctrl+Z normal).\n\nPara añadir este servidor a Claude Desktop:\n  1. Abrir Configuración → Desarrollador → Editar configuración.\n  2. Pegar el fragmento JSON siguiente en claude_desktop_config.json (fusionar en el bloque mcpServers existente si ya tiene uno).\n  3. Reiniciar Claude Desktop. El servidor aparece como 'wfs-diy' en el menú de herramientas.\n\nPara añadir a Claude Code, ejecutar:\n  claude mcp add wfs-diy <url> -t http\n\nLa URL cambia si cambia de interfaz de red o si el servidor cae en un puerto diferente. El botón URL en esta fila siempre refleja la URL en vivo.",
+      "title": "AI / MCP Server",
+      "body": "El MCP Server permite que un asistente de IA (Claude Desktop, Claude Code, ChatGPT con conectores personalizados) lea y escriba los parámetros de esta sesión de WFS-DIY a través de una conexión de red local.\n\nLo que la IA puede hacer:\n• Leer el estado en vivo: número de canales, nombres, posiciones, atenuaciones, EQ, snapshots, clusters, toda la superficie de parámetros.\n• Mover fuentes, renombrar canales, establecer asignaciones de clusters, ajustar el diseño de arrays, colocar salidas y reverberaciones.\n• Ejecutar flujos guiados (asistentes de afinación de sistema, resolución de localización, gestión de snapshots) mediante plantillas de prompts preparadas.\n\nControles del operador en esta fila:\n• IA: ON / OFF — interruptor principal. En OFF, cada llamada de herramienta de IA se rechaza; en ON, la IA trabaja según las reglas siguientes.\n• Acciones críticas de IA: bloqueadas / PERMITIDAS — las acciones destructivas (eliminar snapshots, restablecer DSP, cambiar el número de canales) están bloqueadas por defecto. Hacer clic para permitirlas durante 10 minutos; el relleno rojo se descarga al expirar la ventana, luego se bloquean automáticamente de nuevo.\n• Abrir Historial de IA — cronología desplazable de cada cambio de IA reciente con deshacer/rehacer por fila y cursor paso a paso.\n• El botón URL MCP copia la URL del servidor al portapapeles para clientes de IA que acepten una URL directamente.\n\nConciencia del operador:\n• Cada acción de IA se registra con etiquetas de origen. La ventana de Historial de IA muestra la cronología completa; la × por fila revierte una acción con sus dependencias.\n• Si ajusta manualmente un parámetro que la IA acaba de mover, la IA es notificada y no reintentará a ciegas. Siempre tiene la última palabra.\n• Los atajos Cmd/Ctrl+Alt+Z y Cmd/Ctrl+Alt+Y deshacen y rehacen el último cambio de IA sin afectar a sus ediciones manuales (que usan Ctrl+Z normal).\n\nPara añadir este servidor a Claude Desktop:\n  1. Abrir Configuración → Desarrollador → Editar configuración.\n  2. Pegar el fragmento JSON siguiente en claude_desktop_config.json (fusionar en el bloque mcpServers existente si ya tiene uno).\n  3. Reiniciar Claude Desktop. El servidor aparece como 'wfs-diy' en el menú de herramientas.\n\nPara añadir a Claude Code, ejecutar:\n  claude mcp add wfs-diy <url> -t http\n\nLa URL cambia si cambia de Network Interface o si el servidor cae en un puerto diferente. El botón URL en esta fila siempre refleja la URL en vivo.",
       "copyButton": "Copiar configuración",
       "copyConfirm": "Configuración MCP JSON copiada al portapapeles"
     }

@@ -35,9 +35,9 @@
     "help": {
       "showName": "Name der aktuellen Show.",
       "showLocation": "Ort der aktuellen Show.",
-      "inputChannels": "Anzahl der Eingangskanäle.",
-      "outputChannels": "Anzahl der Ausgangskanäle.",
-      "reverbChannels": "Anzahl der Hallkanäle.",
+      "inputChannels": "Anzahl der Input Channels.",
+      "outputChannels": "Anzahl der Output Channels.",
+      "reverbChannels": "Anzahl der Reverb Channels.",
       "audioPatch": "Öffnet das Audio-Interface und Patch-Fenster.",
       "levelMeter": "Opens the Level Meter Window.",
       "clearSolo": "Clear all input solo states.",
@@ -65,9 +65,9 @@
       "originDismissOutputs": "Lange drücken, um die aktuellen Ausgangspositionen beizubehalten.",
       "originShiftReverbs": "Lange drücken, um alle Reverb-Positionen entsprechend der Ursprungsänderung zu verschieben.",
       "originDismissReverbs": "Lange drücken, um die aktuellen Reverb-Positionen beizubehalten.",
-      "speedOfSound": "Schallgeschwindigkeit (abhängig von der Temperatur).",
-      "temperature": "Temperatur (bestimmt die Schallgeschwindigkeit).",
-      "masterLevel": "Masterpegel (beeinflusst alle Ausgänge).",
+      "speedOfSound": "Speed of Sound (abhängig von der Temperatur).",
+      "temperature": "Temperatur (bestimmt die Speed of Sound).",
+      "masterLevel": "Master Level (beeinflusst alle Ausgänge).",
       "systemLatency": "Gesamtlatenz des Systems (Mischpult & Computer) / Spezifische Ein- und Ausgangslatenz kann in den jeweiligen Einstellungen gesetzt werden.",
       "haasEffect": "Haas-Effekt für das System anwenden. Berücksichtigt die Latenzkompensationen (System, Eingang und Ausgang).",
       "colorScheme": "Wählen Sie das Farbschema: Standard (Dunkelgrau), Schwarz (für OLED-Displays) oder Hell (für Tageslicht).",
@@ -126,15 +126,15 @@
     },
     "dialogs": {
       "reduceInputChannels": {
-        "title": "Eingangskanäle reduzieren?",
+        "title": "Input Channels reduzieren?",
         "message": "Reduzierung von {current} auf {new} Eingangskanäle entfernt die Einstellungen für Kanäle {start} bis {end}.\n\nDies kann nicht rückgängig gemacht werden."
       },
       "reduceOutputChannels": {
-        "title": "Ausgangskanäle reduzieren?",
+        "title": "Output Channels reduzieren?",
         "message": "Reduzierung von {current} auf {new} Ausgangskanäle entfernt die Einstellungen für Kanäle {start} bis {end}.\n\nDies kann nicht rückgängig gemacht werden."
       },
       "reduceReverbChannels": {
-        "title": "Hallkanäle reduzieren?",
+        "title": "Reverb Channels reduzieren?",
         "message": "Reduzierung von {current} auf {new} Hallkanäle entfernt die Einstellungen für Kanäle {start} bis {end}.\n\nDies kann nicht rückgängig gemacht werden."
       },
       "reduce": "Reduzieren",
@@ -145,7 +145,7 @@
   },
   "network": {
     "help": {
-      "networkInterface": "Netzwerk-Schnittstelle auswählen.",
+      "networkInterface": "Network Interface auswählen.",
       "currentIP": "IP-Adresse des Prozessors.",
       "udpPort": "UDP-Empfangsport des Prozessors.",
       "tcpPort": "TCP-Empfangsport des Prozessors.",
@@ -190,7 +190,7 @@
       "trackingFlipX": "Achse der X-Koordinate des Trackings invertieren.",
       "trackingFlipY": "Achse der Y-Koordinate des Trackings invertieren.",
       "trackingFlipZ": "Achse der Z-Koordinate des Trackings invertieren.",
-      "trackingOscPath": "OSC-Pfad für das Tracking im OSC-Modus (beginnt mit /)",
+      "trackingOscPath": "OSC Path für das Tracking im OSC-Modus (beginnt mit /)",
       "psnInterface": "Netzwerk-Schnittstelle für den PSN-Multicast-Empfang",
       "storeConfig": "Netzwerkkonfiguration in Datei speichern.",
       "reloadConfig": "Netzwerkkonfiguration aus Datei neu laden.",
@@ -212,7 +212,7 @@
       "trackingConflictsContinue": "Fortfahren"
     },
     "messages": {
-      "selectFolderFirst": "Bitte wählen Sie zuerst einen Projektordner in der Systemkonfiguration.",
+      "selectFolderFirst": "Bitte wählen Sie zuerst einen Projektordner in der System Config.",
       "configSaved": "Netzwerkkonfiguration gespeichert.",
       "configNotFound": "Netzwerkkonfigurationsdatei nicht gefunden.",
       "configReloaded": "Netzwerkkonfiguration neu geladen.",
@@ -280,7 +280,7 @@
     },
     "help": {
       "inputsVisibility": "Eingänge dieses Clusters auf der Karte ein- oder ausblenden. Ausblenden gilt auch für neue Mitglieder; Entfernen eines Eingangs stellt seine Sichtbarkeit wieder her.",
-      "referenceMode": "Wählen Sie den Referenzpunkt für Cluster-Transformationen: Erster Eingang, Schwerpunkt oder Geteilte Position (alle Mitglieder fallen zusammen; Skalierung und Rotation wirken auf die Einzeloffsets).",
+      "referenceMode": "Wählen Sie den Referenzpunkt für Cluster-Transformationen: First Input, Schwerpunkt oder Shared Position (alle Mitglieder fallen zusammen; Skalierung und Rotation wirken auf die Einzeloffsets).",
       "positionJoystick": "Alle Cluster-Eingänge in X/Y bewegen. Halten und ziehen zum Verschieben.",
       "zSlider": "Alle Cluster-Eingänge entlang der Z-Achse (Höhe) bewegen.",
       "attenuationSlider": "Dämpfung aller Cluster-Eingänge anpassen (dB).",
@@ -331,7 +331,7 @@
     "messages": {
       "setToSingle": "Ausgang {num} auf Einzeln gesetzt",
       "assignedToArray": "Ausgang {num} zu Array {array} zugewiesen",
-      "selectFolderFirst": "Bitte wählen Sie zuerst einen Projektordner in der Systemkonfiguration.",
+      "selectFolderFirst": "Bitte wählen Sie zuerst einen Projektordner in der System Config.",
       "configSaved": "Ausgangskonfiguration gespeichert.",
       "configLoaded": "Ausgangskonfiguration geladen.",
       "configNotFound": "Ausgangskonfigurationsdatei nicht gefunden.",
@@ -349,9 +349,9 @@
       "applyToArray": "Änderungen auf den Rest des Arrays anwenden (Absolutwert oder relative Änderungen).",
       "attenuation": "Dämpfung des Ausgangskanals. (Änderungen können den Rest des Arrays betreffen)",
       "delayLatency": "Verzögerung des Ausgangskanals (positive Werte) oder Latenzkompensation (negative Werte). (Änderungen können den Rest des Arrays betreffen)",
-      "minLatency": "Deaktiviert den Modus minimale Latenz für den ausgewählten Ausgang. (Änderungen können den Rest des Arrays betreffen)",
-      "liveSource": "Deaktiviert die Live-Quellen-Dämpfung für den ausgewählten Ausgang. (Änderungen können den Rest des Arrays betreffen)",
-      "floorReflections": "Bodenreflexionen für diesen Lautsprecher aktivieren oder deaktivieren.",
+      "minLatency": "Deaktiviert den Modus Minimal Latency für den ausgewählten Ausgang. (Änderungen können den Rest des Arrays betreffen)",
+      "liveSource": "Deaktiviert die Live Source-Dämpfung für den ausgewählten Ausgang. (Änderungen können den Rest des Arrays betreffen)",
+      "floorReflections": "Floor Reflections für diesen Lautsprecher aktivieren oder deaktivieren.",
       "distanceAtten": "Verhältnis der Entfernungsdämpfung für den ausgewählten Ausgang. (Änderungen können den Rest des Arrays betreffen)",
       "hParallax": "Horizontaler Abstand vom Lautsprecher zum „anvisierten“ Zuhörer. (Änderungen können den Rest des Arrays betreffen)",
       "vParallax": "Vertikaler Abstand vom Lautsprecher zum „anvisierten“ Zuhörer. Positiv, wenn der Lautsprecher unter dem Kopf des Zuhörers ist. (Änderungen können den Rest des Arrays betreffen)",
@@ -371,10 +371,10 @@
       "eqEnable": "EQ-Verarbeitung für diesen Ausgang aktivieren/deaktivieren.",
       "eqFlatten": "Langer Druck, um alle EQ-Bänder zurückzusetzen.",
       "eqBandToggle": "Band {band} ein-/ausschalten. Ausgeschaltet wird das Band umgangen.",
-      "eqShape": "Ausgangs-EQ Band {band} Filterform.",
-      "eqFreq": "Ausgangs-EQ Band {band} Frequenz (20 Hz - 20 kHz).",
-      "eqGain": "Ausgangs-EQ Band {band} Gain (-24 bis +24 dB).",
-      "eqQ": "Ausgangs-EQ Band {band} Q-Faktor (0.1 - 10.0).",
+      "eqShape": "Output EQ Band {band} Filterform.",
+      "eqFreq": "Output EQ Band {band} Frequenz (20 Hz - 20 kHz).",
+      "eqGain": "Output EQ Band {band} Gain (-24 bis +24 dB).",
+      "eqQ": "Output EQ Band {band} Q-Faktor (0.1 - 10.0).",
       "eqResetBand": "Langer Druck, um Band {band} zurückzusetzen.",
       "position1": "Ausgangskanal {name} ({unit}).",
       "position2": "Ausgangskanal {name} ({unit}).",
@@ -394,7 +394,7 @@
       "export": "Hallkonfiguration exportieren"
     },
     "messages": {
-      "selectFolderFirst": "Bitte wählen Sie zuerst einen Projektordner in der Systemkonfiguration.",
+      "selectFolderFirst": "Bitte wählen Sie zuerst einen Projektordner in der System Config.",
       "configSaved": "Hallkonfiguration gespeichert.",
       "configLoaded": "Hallkonfiguration geladen.",
       "backupLoaded": "Hallkonfiguration aus Backup geladen.",
@@ -405,7 +405,7 @@
     "help": {
       "channelSelector": "Hallkanal-Nummer und Auswahl.",
       "nameEditor": "Angezeigter Hallkanal-Name (bearbeitbar).",
-      "mapVisibility": "Alle Hallkanäle auf der Karte sichtbar machen oder ausblenden.",
+      "mapVisibility": "Alle Reverb Channels auf der Karte sichtbar machen oder ausblenden.",
       "attenuation": "Hallkanal-Dämpfung (-92 bis 0 dB).",
       "delayLatency": "Verzögerungs-/Latenzkompensation der Reverb (-100 bis +100 ms).",
       "orientation": "Orientierungswinkel der Reverb (-179 bis +180 Grad).",
@@ -413,7 +413,7 @@
       "angleOff": "Winkel, bei dem keine Verstärkung stattfindet (0-179 Grad).",
       "pitch": "Vertikale Ausrichtung der Reverb (-90 bis +90 Grad).",
       "hfDamping": "Hochfrequenzverlust pro Meter (-6.0 bis 0.0 dB/m).",
-      "distanceAttenEnable": "Prozentsatz der Entfernungsdämpfung (0-200%).",
+      "distanceAttenEnable": "Prozentsatz der Distance attenuation (0-200%).",
       "coordMode": "Koordinaten-Anzeigemodus: Kartesisch (X/Y/Z), Zylindrisch (Radius/Azimut/Höhe) oder Sphärisch (Radius/Azimut/Elevation).",
       "eqEnable": "EQ-Verarbeitung für diesen Hallkanal aktivieren oder deaktivieren.",
       "eqFlatten": "Langer Druck, um alle Pre-EQ-Bänder zurückzusetzen.",
@@ -423,7 +423,7 @@
       "eqGain": "Pre-EQ Band {band} Gain (-24 bis +24 dB).",
       "eqQ": "Pre-EQ Band {band} Q-Faktor (0.1 - 20.0).",
       "eqResetBand": "Langer Druck, um Pre-EQ Band {band} zurückzusetzen.",
-      "distanceAtten": "Entfernungsdämpfung für den Hallrücklauf (-6.0 bis 0.0 dB/m).",
+      "distanceAtten": "Distance attenuation für den Hallrücklauf (-6.0 bis 0.0 dB/m).",
       "commonAtten": "Gemeinsamer Dämpfungsprozentsatz (0-100%).",
       "muteMacros": "Schnelle Stummschaltungsoperationen für Ausgangskanäle.",
       "storeConfig": "Hallkonfiguration in Datei speichern (mit Backup).",
@@ -466,7 +466,7 @@
       "postExpAttack": "Attack-Zeit des Nachexpanders (0.1 - 50 ms).",
       "postExpRelease": "Release-Zeit des Nachexpanders (50 - 2000 ms).",
       "miniLatencyTooltip": "Minimaler Latenzmodus für diesen Hallkanal aktivieren. Reduziert die Verarbeitungsverzögerung auf Kosten höherer CPU-Auslastung.",
-      "liveSourceTooltip": "Live-Source-Dämpfungsbändiger aktivieren. Reduziert Pegelschwankungen von Quellen nahe dem Array.",
+      "liveSourceTooltip": "Live Source Tamer aktivieren. Reduziert Pegelschwankungen von Quellen nahe dem Array.",
       "muteButton": "Mute für den Reverb-Rückkanal dieses Ausgangs umschalten.",
       "position1": "Reverb-Quellposition {name} ({unit}).",
       "position2": "Reverb-Quellposition {name} ({unit}).",
@@ -515,7 +515,7 @@
       "trackingConflictYes": "Ja, Tracking übertragen"
     },
     "messages": {
-      "selectFolderFirst": "Bitte wählen Sie zuerst einen Projektordner in der Systemkonfiguration.",
+      "selectFolderFirst": "Bitte wählen Sie zuerst einen Projektordner in der System Config.",
       "configSaved": "Eingangskonfiguration gespeichert.",
       "configLoaded": "Eingangskonfiguration geladen.",
       "backupLoaded": "Eingangskonfiguration aus Backup geladen.",
@@ -557,7 +557,7 @@
       "mapVisibilityButton": "Den ausgewählten Eingang auf der Karte anzeigen oder ausblenden.",
       "attenuationSlider": "Eingangskanal-Dämpfung.",
       "delayLatencySlider": "Eingangskanal-Verzögerung (positive Werte) oder Latenzkompensation (negative Werte).",
-      "minimalLatencyButton": "Wahl zwischen akustischer Präzedenz und minimaler Latenz für die Verstärkungspräzedenz.",
+      "minimalLatencyButton": "Wahl zwischen Acoustic Precedence und Minimal Latency für die Verstärkungspräzedenz.",
       "constraintXButton": "Position auf die Bühnenbreite begrenzen.",
       "constraintYButton": "Position auf die Bühnentiefe begrenzen.",
       "constraintZButton": "Position auf die Bühnenhöhe begrenzen.",
@@ -578,7 +578,7 @@
       "coordModeSelector": "Koordinatenanzeige-Modus: Kartesisch (X/Y/Z), zylindrisch (Radius/Azimut/Höhe) oder sphärisch (Radius/Azimut/Elevation).",
       "positionJoystick": "Ziehen, um die X/Y-Position in Echtzeit anzupassen. Kehrt beim Loslassen zur Mitte zurück.",
       "positionZSlider": "Ziehen, um die Z-Position (Höhe) in Echtzeit anzupassen. Kehrt beim Loslassen zur Mitte zurück.",
-      "attenuationLawButton": "Dämpfungsgesetz-Modell (lineare Lautstärkeabnahme mit dem Abstand zwischen Objekt und Lautsprecher oder quadratisch).",
+      "attenuationLawButton": "Attenuation Law-Modell (lineare Lautstärkeabnahme mit dem Abstand zwischen Objekt und Lautsprecher oder quadratisch).",
       "distanceAttenDial": "Dämpfung pro Meter zwischen Objekt und Lautsprecher.",
       "distanceRatioDial": "Dämpfungsverhältnis für das quadratische Modell.",
       "commonAttenDial": "Prozentsatz des gemeinsamen Anteils der Dämpfung für das ausgewählte Objekt relativ zu allen Ausgängen.",
@@ -590,21 +590,21 @@
       "lsRadiusSlider": "Wie weit die Dämpfung die Lautsprecher beeinflusst.",
       "lsShapeSelector": "Profil der Dämpfung um das Objekt herum.",
       "lsAttenuationSlider": "Konstante Dämpfung der Lautsprecher um das Objekt herum.",
-      "lsPeakEnableButton": "Schnellen (Peak-) Kompressor des Live-Source-Zähmers aktivieren oder deaktivieren.",
+      "lsPeakEnableButton": "Schnellen (Peak-) Kompressor des Live Source Tamers aktivieren oder deaktivieren.",
       "lsPeakThresholdSlider": "Schwellwert der schnellen Kompression für Lautsprecher um das Objekt herum, zur Kontrolle der Transienten.",
       "lsPeakRatioDial": "Ratio für die schnelle Kompression der Lautsprecher um das Objekt herum.",
-      "lsSlowEnableButton": "Langsamen Kompressor des Live-Source-Zähmers aktivieren oder deaktivieren.",
+      "lsSlowEnableButton": "Langsamen Kompressor des Live Source Tamers aktivieren oder deaktivieren.",
       "lsSlowThresholdSlider": "Schwellwert der langsamen Kompression für Lautsprecher um das Objekt herum, zur Kontrolle des Dauerpegels.",
       "lsSlowRatioDial": "Ratio für die langsame Kompression der Lautsprecher um das Objekt herum.",
-      "frActiveButton": "Simulierte Bodenreflexionen für das Objekt aktivieren.",
-      "frAttenuationSlider": "Dämpfung der simulierten Bodenreflexionen für das Objekt.",
-      "frDiffusionDial": "Diffusionseffekt der simulierten Bodenreflexionen für das Objekt.",
-      "frLowCutActiveButton": "Low-Cut-Filter für Bodenreflexionen aktivieren.",
-      "frLowCutFreqSlider": "Low-Cut-Frequenz für Bodenreflexionen.",
-      "frHighShelfActiveButton": "High-Shelf-Filter für Bodenreflexionen aktivieren.",
-      "frHighShelfFreqSlider": "High-Shelf-Frequenz für Bodenreflexionen.",
-      "frHighShelfGainSlider": "High-Shelf-Gain für Bodenreflexionen.",
-      "frHighShelfSlopeSlider": "High-Shelf-Steilheit für Bodenreflexionen.",
+      "frActiveButton": "Simulierte Floor Reflections für das Objekt aktivieren.",
+      "frAttenuationSlider": "Dämpfung der simulierten Floor Reflections für das Objekt.",
+      "frDiffusionDial": "Diffusionseffekt der simulierten Floor Reflections für das Objekt.",
+      "frLowCutActiveButton": "Low Cut-Filter für Floor Reflections aktivieren.",
+      "frLowCutFreqSlider": "Low Cut-Frequenz für Floor Reflections.",
+      "frHighShelfActiveButton": "High Shelf-Filter für Floor Reflections aktivieren.",
+      "frHighShelfFreqSlider": "High Shelf-Frequenz für Floor Reflections.",
+      "frHighShelfGainSlider": "High Shelf-Gain für Floor Reflections.",
+      "frHighShelfSlopeSlider": "High Shelf-Steilheit für Floor Reflections.",
       "muteReverbSendsButton": "Sends von diesem Eingang zu allen Hallkanälen stummschalten.",
       "jitterSlider": "Sphäre der schnellen Bewegungen des Objekts.",
       "lfoActiveButton": "Periodische Bewegung des Objekts (LFO) aktivieren oder deaktivieren.",
@@ -638,7 +638,7 @@
       "otomoStopAllButton": "Alle aktiven Bewegungen global anhalten.",
       "otomoPauseResumeAllButton": "Alle aktiven Bewegungen global pausieren oder fortsetzen.",
       "muteButton": "Ausgang {num} für dieses Objekt stummschalten.",
-      "muteMacrosSelector": "Mute-Makros zum schnellen Stummschalten und Aufheben für Arrays.",
+      "muteMacrosSelector": "Mute Macros zum schnellen Stummschalten und Aufheben für Arrays.",
       "arrayAttenDial": "Dämpfung für Array {num} (-60 bis 0 dB).",
       "sidelinesActiveButton": "Automatische Stummschaltung aktivieren, wenn die Quelle sich den Bühnenrändern nähert. Gilt nicht für die vordere (Publikums-) Kante.",
       "sidelinesFringeDial": "Übergangszonengrösse in Metern. Die äussere Hälfte schaltet vollständig stumm, die innere Hälfte blendet linear.",
@@ -695,8 +695,8 @@
   },
   "help": {
     "binaural": {
-      "title": "Binaural-Renderer",
-      "body": "Der Binaural-Renderer wird verwendet für:\n- das Abhören eines groben räumlichen Mixes über Kopfhörer,\n- das Erstellen eines Mixes für Stereoausgabe,\n- das Abhören einer einzelnen Solo-Spur durch die räumliche Verarbeitung.\nEr kann Ihren Master-Mix ersetzen, wenn dieser nur Kopfhörer und Medienmix versorgt.\nDie Hörposition kann in der Tiefe vom Ursprungspunkt und in der Orientierung angepasst werden. Delay- und Pegeleinstellungen ermöglichen die Anpassung an die FOH-Position."
+      "title": "Binaural Renderer",
+      "body": "Der Binaural Renderer wird verwendet für:\n- das Abhören eines groben räumlichen Mixes über Kopfhörer,\n- das Erstellen eines Mixes für Stereoausgabe,\n- das Abhören einer einzelnen Solo-Spur durch die räumliche Verarbeitung.\nEr kann Ihren Master-Mix ersetzen, wenn dieser nur Kopfhörer und Medienmix versorgt.\nDie Hörposition kann in der Tiefe vom Ursprungspunkt und in der Orientierung angepasst werden. Delay- und Pegeleinstellungen ermöglichen die Anpassung an die FOH-Position."
     },
     "map": {
       "title": "Karte",
@@ -715,7 +715,7 @@
       "body": "Einmalige Bewegungen können programmiert und manuell oder durch Schallpegel ausgelöst werden.\nDie Koordinaten sind entweder relativ zur Startposition oder absolut zum Ursprungspunkt.\nDer Eingang kann an der Endposition bleiben oder zur Startposition zurückkehren.\nDie Position kann während der Bewegung nicht geändert werden, aber Interaktion ändert den Positionsversatz.\nFür Pegelauslösung wählen Sie den Schwellwert. Wenn der Pegel unter den Rücksetzpegel fällt, wird die Bewegung wieder bereitgestellt."
     },
     "gradientMap": {
-      "title": "Gradientenkarten",
+      "title": "Gradient Maps",
       "body": "Gradientenkarten ermöglichen die Steuerung von Dämpfung, Höhe und Hochfrequenzfilterung (Shelf mit sanfter Flanke bei 1kHz) abhängig von der X, Y Position. Zum Beispiel können Sie einen Klang beim Betreten einer Zone ausblenden, Höhenabfall beim Entfernen von der Bühnenvorderkante anwenden oder die Höhe eines Schauspielers auf erhöhten Plattformen automatisch anpassen.\nDrei Ebenen stehen zur Verfügung: Dämpfung, Höhe und HF-Shelf. Sie können ein-/ausgeschaltet und ausgeblendet werden.\nJede Ebene hat Mapping-Regler für Weiß und Schwarz zur Bereichsanpassung. Die Kurveneinstellung steuert den Übergang.\nJede Ebene kann editierbare Formen haben (Rechteck, Ellipse oder Polygon) mit einheitlichem Grau, linearem oder radialem Gradient.\nBeim Erstellen eines Polygons klicken Sie für jede Ecke. Doppelklick schließt die Form.\nDoppelklick auf einen Punkt entfernt ihn. Doppelklick auf eine Seite fügt einen neuen Punkt hinzu.\nSkalierung und Rotation können vom Zentrum oder Ursprung aus bearbeitet werden.\nFormen und Ebenen können kopiert werden.\nEinstellungen werden in den Eingangsdateien gespeichert."
     },
     "sampler": {
@@ -723,11 +723,11 @@
       "body": "Der Sampler ermöglicht das Auslösen von Samples und die Echtzeit-Interaktion mit ihnen.\nWenn der Sampler auf einer Spur aktiviert ist, ersetzt er den Live-Eingang dauerhaft.\nMehrere Sampler können verschiedenen Eingängen zugewiesen und einzeln ausgelöst werden.\nVerwendung des Samplers:\n- Wählen Sie ein Roli Lightpad oder ein Pad in der verbundenen Android Remote App.\n- Fügen Sie Samples zu den verschiedenen Kacheln im Raster hinzu. Passen Sie die relative Startposition, den Pegel und die Ein-/Ausstiegspunkte an. Mehrere Samples können mit Umschalttaste und Klick ausgewählt werden.\n- Erstellen Sie Sample-Sets: Ausgewählte Samples werden neuen Sets hinzugefügt. Samples können nach der Erstellung eines Sets mit Strg/Cmd und Klick hinzugefügt oder entfernt werden. Jedes Set kann umbenannt werden und eine feste Sequenz oder zufällige Reihenfolge haben. Jedes Set hat eine Dämpfungseinstellung und eine Basisposition.\n- Drücken Sie ein Lightpad oder Pad, um ein Sample auszulösen. Der Druck kann auf Pegel, Höhe und Hochfrequenzfilterung gemappt werden. Die Fingerbewegung bewegt den Klang wie ein Joystick.\nLoslassen stoppt das ausgelöste Sample.\nSampler-Einstellungen werden in den Eingangsdateien gespeichert.\nKacheln und Sets können kopiert, exportiert und importiert werden."
     },
     "liveSource": {
-      "title": "Live-Quellen-Dämpfer",
+      "title": "Live Source Tamer",
       "body": "Eine laute Quelle auf der Bühne braucht möglicherweise keine Verstärkung durch die nahegelegenen Lautsprecher. Stellen Sie sich einen Opernsänger am Bühnenrand vor. Normalerweise würde die Pegelverteilung den Pegel in der Nähe der Eingangsposition erhöhen. Aber wenn es bereits laut genug ist, sollten wir nicht überverstärken. Diese Funktion verwaltet dies.\nRadius und Form beschreiben, wie der Pegel für Lautsprecher innerhalb des Einflussradius dieser Quelle abgeschwächt wird. Es gibt verschiedene Formen: ein V-förmiger linearer Effekt; ein U für schnelle Abnahme; ein enges V oder eine Mischung (Sinus).\nDie Dämpfung kann konstant oder pegelabhängig sein, wie eine lokale Kompression, die auf Transienten und den durchschnittlichen RMS-Pegel reagiert."
     },
     "floorReflections": {
-      "title": "Bodenreflexionen",
+      "title": "Floor Reflections",
       "body": "Die Simulation von Bodenreflexionen verbessert die Natürlichkeit des Klangs. Wir erwarten nicht, dass Klänge in einem schalltoten Raum wiedergegeben werden. Diese Einstellung hilft, die erwarteten Bodenreflexionen nachzubilden.\nDer Pegel der Bodenreflexionen kann ebenso angepasst werden wie die Tiefensperre und die Hochfrequenz-Shelf-Filter. Diffusion fügt etwas Chaos hinzu, um die Unebenheiten des Bodens zu simulieren."
     },
     "reverb": {
@@ -735,11 +735,11 @@
       "body": "Hall hilft, die Reflexionen der Lautsprecher zu verschleiern.\nPlatzieren Sie die Hall-Knoten entsprechend der Kanalanzahl und Bühnengeometrie.\nAndere Parameter sind ähnlich wie bei Ausgängen und Eingängen."
     },
     "reverbFeed": {
-      "title": "Hall-Einspeisung",
-      "body": "Vorverarbeitung der Eingangskanalzuführung zu den Hall-Knoten.\n- Orientierung und On/Off-Winkel bestimmen welche Eingänge empfangen werden.\n- HF-Dämpfung simuliert Hochfrequenzverlust mit Distanz.\n- Distanz-Dämpfung bestimmt die angewandte Abschwächung.\n- Minimale Latenz schaltet die Verwendung des kleinsten Delays um.\n- Live-Source-Dämpfung reduziert den Pegel nahegelegener Eingänge."
+      "title": "Reverb Feed",
+      "body": "Vorverarbeitung der Eingangskanalzuführung zu den Hall-Knoten.\n- Orientierung und On/Off-Winkel bestimmen welche Eingänge empfangen werden.\n- HF-Dämpfung simuliert Hochfrequenzverlust mit Distanz.\n- Distanz-Dämpfung bestimmt die angewandte Abschwächung.\n- Minimal Latency schaltet die Verwendung des kleinsten Delays um.\n- Live-Source-Dämpfung reduziert den Pegel nahegelegener Eingänge."
     },
     "reverbReturn": {
-      "title": "Hall-Rückgabe",
+      "title": "Reverb Return",
       "body": "Nachbearbeitung an die Lautsprecher.\n- Distanz-Dämpfung definiert den Pegelabfall pro Meter.\n- Gemeinsame Dämpfung behält einen Prozentsatz der niedrigsten Dämpfung.\n- Mutes verhindern, dass ein Hall-Kanal einen Ausgang speist."
     },
     "reverbAlgo": {
@@ -771,21 +771,21 @@
       "body": "Tracking ermöglicht die Verfolgung der 2D- oder 3D-Position von Schauspielern und Musikern. Es gibt verschiedene Tracking-Lösungen basierend auf UWB-Tags, 3D-Kameras, Computer-Vision-Systemen und Infrarot-LEDs mit IR-empfindlichen Kameras.\nDiese Anwendung kann Tracking-Daten über mehrere Protokolle empfangen: OSC, MQTT, PosiStageNet/PSN, RTTrP.\nSie können das verwendete Protokoll auswählen und die Einstellungen eingeben. Das Mapping (Versatz, Skalierung und Orientierung) kann ebenfalls angepasst werden.\nJeder Eingang hat einen Schalter zur Aktivierung des Trackings, eine ID zur Auswahl des Markers und einen Glättungsalgorithmus."
     },
     "admOsc": {
-      "title": "ADM-OSC-Zuordnungen",
+      "title": "ADM-OSC Mappings",
       "body": "ADM-OSC ist ein Protokoll zur Verbesserung der Interoperabilität für räumlichen Klang. Es sendet kartesische Positionen (X, Y, Z) oder polare Werte (AED für Azimut, Elevation, Distanz) von der Konsole oder den Automationskurven einer DAW.\nDie Daten werden normalisiert gesendet:\n- zwischen -1,0 und 1,0 für X, Y und Z;\n- zwischen 0,0 und 1,0 für Distanz,\n- zwischen -180° und 180° für Azimut\n- zwischen -90° und 90° für Elevation.\nDer Ursprungspunkt kann verschoben und das Mapping in verschiedenen Segmenten für den inneren und äußeren Bühnenbereich angepasst werden.\nBeim Ziehen der Griffe in den Diagrammen werden mit gedrückter Umschalttaste symmetrische Anpassungen auf der gegenüberliegenden Seite vorgenommen."
     },
     "overview": {
       "title": "Systemübersicht",
-      "body": "Dieser räumliche WFS-Klangprozessor soll ein Werkzeug für natürliche Beschallung und zugleich ein kreatives Werkzeug sein, das neue Wege eröffnet, Klang im Raum zu gestalten.\nEinige Parameter sind unkompliziert: Klang platzieren (Karte, Tracking, Geschwindigkeitsbegrenzung, Gradientenkarten...), seine Form bearbeiten (Attenuation-Profil) und seine akustische Präsenz (Directivity, Bodenreflexionen), ihm eine einmalige Bewegung (AutomOtion) oder eine repetitive Bewegung (L.F.O) geben. In manchen Fällen sollte die Verstärkung um laute Quellen auf der Bühne begrenzt werden (Live Source Tamer). Alle diese Funktionen können intern oder mit Hilfe von QLab gespeichert und abgerufen werden. Darüber hinaus ermöglicht das System Echtzeit-Interaktion zum Auslösen und Bewegen von Samples, zum Bewegen großer Eingabe-Cluster manuell oder dank einfach abrufbarer LFO-Presets.",
+      "body": "Dieser räumliche WFS-Klangprozessor soll ein Werkzeug für natürliche Beschallung und zugleich ein kreatives Werkzeug sein, das neue Wege eröffnet, Klang im Raum zu gestalten.\nEinige Parameter sind unkompliziert: Klang platzieren (Karte, Tracking, Geschwindigkeitsbegrenzung, Gradient Maps...), seine Form bearbeiten (Attenuation-Profil) und seine akustische Präsenz (Directivity, Floor Reflections), ihm eine einmalige Bewegung (AutomOtion) oder eine repetitive Bewegung (L.F.O) geben. In manchen Fällen sollte die Verstärkung um laute Quellen auf der Bühne begrenzt werden (Live Source Tamer). Alle diese Funktionen können intern oder mit Hilfe von QLab gespeichert und abgerufen werden. Darüber hinaus ermöglicht das System Echtzeit-Interaktion zum Auslösen und Bewegen von Samples, zum Bewegen großer Eingabe-Cluster manuell oder dank einfach abrufbarer LFO-Presets.",
       "dontShow": "Nicht mehr anzeigen"
     },
     "inputBasic": {
       "title": "Grundlegende Eingangsparameter",
-      "body": "Eingänge verfügen über eine Vielzahl von Einstellungen für verschiedene Situationen, die realistische Beschallung oder kreative Werkzeuge für Sounddesign erfordern.\n- Der Eingangspegel kann angepasst werden.\n- Eingänge können verzögert werden oder versuchen, spezifische Latenz (digitale Verarbeitung von Funkübertragung oder digitalen Effekten) zu berücksichtigen und zu kompensieren, um Verstärkung und akustischen Klang besser auszurichten.\n- Minimale Latenz kann anstelle von Acoustic Precedence aktiviert werden. Dies versucht den Klang so schnell wie möglich durch das System zu bringen. Das System scannt die Sends dieses Eingangs zu den Ausgängen auf die niedrigste Verzögerung und zieht sie von allen Verzögerungen ab, wobei der zusätzliche Haas-Effekt umgangen wird.\n- Die Position (Position und Offset) kann in Kartesischen, Zylindrischen oder Sphärischen Koordinaten unabhängig von der Bühnenform oder anderen Kanälen angegeben werden.\n- Die Position kann auf die Bühnendimensionen in Kartesischen Koordinaten oder auf einen bestimmten Entfernungsbereich in Polarkoordinaten beschränkt werden.\n- Flip nimmt die symmetrische Position für die gegebene Koordinate um den Ursprungspunkt.\n- Der Joystick und der vertikale Schieberegler ermöglichen relative Positionssteuerung.\n- Eingänge können einem Cluster zugewiesen werden, um sie für koordinierte Bewegungen zu gruppieren."
+      "body": "Eingänge verfügen über eine Vielzahl von Einstellungen für verschiedene Situationen, die realistische Beschallung oder kreative Werkzeuge für Sounddesign erfordern.\n- Der Eingangspegel kann angepasst werden.\n- Eingänge können verzögert werden oder versuchen, spezifische Latenz (digitale Verarbeitung von Funkübertragung oder digitalen Effekten) zu berücksichtigen und zu kompensieren, um Verstärkung und akustischen Klang besser auszurichten.\n- Minimal Latency kann anstelle von Acoustic Precedence aktiviert werden. Dies versucht den Klang so schnell wie möglich durch das System zu bringen. Das System scannt die Sends dieses Eingangs zu den Ausgängen auf die niedrigste Verzögerung und zieht sie von allen Verzögerungen ab, wobei der zusätzliche Haas-Effekt umgangen wird.\n- Die Position (Position und Offset) kann in Kartesischen, Zylindrischen oder Sphärischen Koordinaten unabhängig von der Bühnenform oder anderen Kanälen angegeben werden.\n- Die Position kann auf die Bühnendimensionen in Kartesischen Koordinaten oder auf einen bestimmten Entfernungsbereich in Polarkoordinaten beschränkt werden.\n- Flip nimmt die symmetrische Position für die gegebene Koordinate um den Ursprungspunkt.\n- Der Joystick und der vertikale Schieberegler ermöglichen relative Positionssteuerung.\n- Eingänge können einem Cluster zugewiesen werden, um sie für koordinierte Bewegungen zu gruppieren."
     },
     "inputAdvanced": {
       "title": "Erweiterte Steuerung",
-      "body": "- Seitenlinien und Randbereich ermöglichen die Stummschaltung, wenn ein Eingang sich den Grenzen einer rechteckigen Bühne nähert (ausser Publikumsseite).\n- Tracking kann aktiviert und die Tracker-ID ausgewählt werden. Die Positionsglättung kann ebenfalls angepasst werden.\n- Die Höchstgeschwindigkeit kann engagiert und die Geschwindigkeitsgrenze angepasst werden. Das System wendet eine graduelle Beschleunigung und Verzögerung am Anfang und Ende der Bewegung an. Wenn der Pfadmodus aktiviert ist, folgt das System dem vom Eingang genommenen Pfad und geht nicht in gerader Linie zur Endposition. Das ist besonders nützlich, wenn Bewegungen manuell gesteuert werden sollen.\n- Der Höhenfaktor erlaubt das Arbeiten in 2D, wenn auf 0 % gesetzt, oder in vollem 3D, wenn auf 100 % gesetzt, und alles dazwischen. Das ist das Verhältnis der Höhe in den Pegel- und Verzögerungsberechnungen. Wenn Sie Bodenreflexionen verwenden möchten, stellen Sie es auf 100 % und nutzen Sie die Parallaxenkorrektur in den Ausgangsparametern."
+      "body": "- Seitenlinien und Randbereich ermöglichen die Stummschaltung, wenn ein Eingang sich den Grenzen einer rechteckigen Bühne nähert (ausser Publikumsseite).\n- Tracking kann aktiviert und die Tracker-ID ausgewählt werden. Die Positionsglättung kann ebenfalls angepasst werden.\n- Die Höchstgeschwindigkeit kann engagiert und die Geschwindigkeitsgrenze angepasst werden. Das System wendet eine graduelle Beschleunigung und Verzögerung am Anfang und Ende der Bewegung an. Wenn der Pfadmodus aktiviert ist, folgt das System dem vom Eingang genommenen Pfad und geht nicht in gerader Linie zur Endposition. Das ist besonders nützlich, wenn Bewegungen manuell gesteuert werden sollen.\n- Der Höhenfaktor erlaubt das Arbeiten in 2D, wenn auf 0 % gesetzt, oder in vollem 3D, wenn auf 100 % gesetzt, und alles dazwischen. Das ist das Verhältnis der Höhe in den Pegel- und Verzögerungsberechnungen. Wenn Sie Floor Reflections verwenden möchten, stellen Sie es auf 100 % und nutzen Sie die Parallaxenkorrektur in den Ausgangsparametern."
     },
     "inputLevel": {
       "title": "Pegelanpassungen",
@@ -796,7 +796,7 @@
       "body": "Wenn man sich abwendet, klingt das Timbre einer Stimme weniger brillant. Dies zu reproduzieren war das ursprüngliche Ziel, auch wenn wir normalerweise Unterstützung für Stimmen wünschen, die nicht zum Publikum sprechen oder in bi-frontalen Konfigurationen. Dies kann für kreative Effekte genutzt werden, wie eine brillantere Nachhall auf einem gedämpften Direktsignal.\nDie Orientierung des Eingangs in Azimut und Neigung kann eingestellt werden sowie der Winkel, in dem die Hochfrequenzen nicht gefiltert werden.\nDas HF Shelf bestimmt die maximale Dämpfung hinter dem Eingang. Es gibt einen sanften Übergang (wie eine Kosinuskurve) von voller Brillanz vorne zu gedämpft hinten."
     },
     "inputMutes": {
-      "title": "Array-Abschwächung und Ausgangs-Mutes",
+      "title": "Array Attenuation and Output Mutes",
       "body": "Sie können für jedes Ausgangs-Array eine spezifische Abschwächung für den ausgewählten Eingang festlegen.\nSie können jeden Send zu jedem Ausgang einzeln stummschalten. Makros stehen zur Verfügung, um den Prozess zu beschleunigen."
     },
     "parallax": {
@@ -805,7 +805,7 @@
     },
     "outputAdvanced": {
       "title": "Erweiterte Parameter",
-      "body": "Es gibt einige Parameter zur Anpassung an den akustischen Klang.\nDie meisten dieser Parameter gelten für ganze Arrays, es sei denn, der Ausbreitungsmodus ist für diesen Ausgang im Array deaktiviert. Relative Änderung kann auch nach einer bestimmten Einstellung gewählt werden.\n- Orientierung und On/Off-Winkel definieren, welche Eingänge jeder Lautsprecher verstärkt. Standardmäßig zeigen die Lautsprecher zum Publikum, weg von der Bühne. Eingänge im grünen Sektor werden verstärkt, nicht aber die vor dem Lautsprecher im roten Sektor. Es gibt einen Übergang zwischen beiden Sektoren. Für Subbass-Lautsprecher kann das vollständige Öffnen alle Eingänge einbeziehen.\n- HF-Dämpfung simuliert den Hochfrequenzverlust mit der Entfernung.\n- Der Prozentsatz der Entfernungsdämpfung definiert, wie viel der berechneten Dämpfung angewendet wird. Für Subbass kann es sinnvoll sein, auf 50% zu senken.\n- Minimale Latenz aktiviert das Scannen nach der kleinsten berechneten Verzögerung.\n- Live-Source-Attenuation aktiviert die Pegelreduzierung naher Eingänge.\n- Bodenreflexionen aktiviert ob Reflexionen für diesen Ausgang angewendet werden, wie Subbass und geflogene Arrays..."
+      "body": "Es gibt einige Parameter zur Anpassung an den akustischen Klang.\nDie meisten dieser Parameter gelten für ganze Arrays, es sei denn, der Ausbreitungsmodus ist für diesen Ausgang im Array deaktiviert. Relative Änderung kann auch nach einer bestimmten Einstellung gewählt werden.\n- Orientierung und On/Off-Winkel definieren, welche Eingänge jeder Lautsprecher verstärkt. Standardmäßig zeigen die Lautsprecher zum Publikum, weg von der Bühne. Eingänge im grünen Sektor werden verstärkt, nicht aber die vor dem Lautsprecher im roten Sektor. Es gibt einen Übergang zwischen beiden Sektoren. Für Subbass-Lautsprecher kann das vollständige Öffnen alle Eingänge einbeziehen.\n- HF-Dämpfung simuliert den Hochfrequenzverlust mit der Entfernung.\n- Der Prozentsatz der Distance attenuation definiert, wie viel der berechneten Dämpfung angewendet wird. Für Subbass kann es sinnvoll sein, auf 50% zu senken.\n- Minimal Latency aktiviert das Scannen nach der kleinsten berechneten Verzögerung.\n- Live-Source-Attenuation aktiviert die Pegelreduzierung naher Eingänge.\n- Floor Reflections aktiviert ob Reflexionen für diesen Ausgang angewendet werden, wie Subbass und geflogene Arrays..."
     },
     "tuning": {
       "title": "Systemabstimmung",
@@ -816,8 +816,8 @@
       "body": "Das Design des WFS-Systems betrifft die richtige Auswahl der Ausrüstung und deren Positionierung. Hier ist ein Leitfaden für das Design und die Abstimmung Ihrer Arrays.\nEin Array ist eine Linie (gerade oder gekrümmt) von Lautsprechern. Dies ist eines der wichtigsten Konzepte in WFS, angepasst an Beschallung und kreatives Sounddesign.\nAls Faustregel sollte jeder Zuhörer drei Lautsprecher eines Arrays hören, um genügend psychoakustische Hinweise für die Richtungswahrnehmung zu haben. Es gibt einen Sweet Spot zwischen dem Abstand der Lautsprecher zu den Zuhörern, ihrem Abstand zueinander und ihrem Abstrahlwinkel. Lautsprecher mit 120° Abstrahlwinkel können im gleichen Abstand wie zwischen Array und erster Reihe platziert werden. Die Anzahl hängt auch vom Schalldruckpegel ab. Als Hänge-Array bieten trapezförmige/asymmetrische Hörner mit breitem Abstrahlwinkel (120°) unter der Achse und schmalem (60°) in der Achse gute Abdeckung und Reichweite bis 20-30m, während Wandreflexionen vermieden werden. Koaxiale Lautsprecher haben meist nicht genug Reichweite für große Räume und benötigen Delay-Lines.\nDie Positionierung kann über den 'Wizard of OutZ' und seine editierbaren Presets erfolgen."
     },
     "mcp": {
-      "title": "KI / MCP-Server",
-      "body": "Der MCP-Server ermöglicht es einem KI-Assistenten (Claude Desktop, Claude Code, ChatGPT mit benutzerdefinierten Konnektoren), die Parameter dieser WFS-DIY-Sitzung über eine lokale Netzwerkverbindung zu lesen und zu schreiben.\n\nWas die KI tun kann:\n• Live-Status lesen: Kanalanzahl, Namen, Positionen, Dämpfungen, EQs, Snapshots, Cluster, die gesamte Parameteroberfläche.\n• Quellen verschieben, Kanäle umbenennen, Cluster-Zuweisungen festlegen, Array-Layout anpassen, Ausgänge und Hall platzieren.\n• Geführte Workflows ausführen (Systemabstimmung, Lokalisations-Fehlersuche, Snapshot-Verwaltung) über vorbereitete Prompt-Vorlagen.\n\nBedienelemente in dieser Zeile:\n• KI: EIN / AUS — Hauptschalter. Im AUS-Zustand wird jeder KI-Tool-Aufruf abgelehnt; im EIN-Zustand arbeitet die KI nach den unten stehenden Regeln.\n• Kritische KI-Aktionen: gesperrt / ERLAUBT — destruktive Aktionen (Snapshots löschen, DSP zurücksetzen, Kanalanzahl ändern) sind standardmässig gesperrt. Klicken, um sie 10 Minuten lang zu erlauben; die rote Füllung läuft mit dem Ablauf des Fensters ab und wird dann automatisch wieder gesperrt.\n• KI-Verlauf öffnen — scrollbare Chronik aller jüngsten KI-Änderungen mit Rückgängig/Wiederherstellen pro Zeile.\n• Die MCP-URL-Schaltfläche kopiert die Server-URL in die Zwischenablage für KI-Clients, die eine URL direkt akzeptieren.\n\nBetreiber-Aufmerksamkeit:\n• Jede KI-Aktion wird mit Herkunfts-Tags aufgezeichnet. Das KI-Verlaufsfenster zeigt die vollständige Chronik; das × pro Zeile macht eine Aktion mit ihren Abhängigkeiten rückgängig.\n• Wenn Sie einen Parameter manuell anpassen, den die KI gerade verschoben hat, wird die KI benachrichtigt und versucht es nicht blindlings erneut. Sie haben immer das letzte Wort.\n• Die Tastenkombinationen Cmd/Strg+Alt+Z und Cmd/Strg+Alt+Y machen die letzte KI-Änderung rückgängig bzw. stellen sie wieder her, ohne Ihre manuellen Änderungen zu beeinflussen (die wie üblich Strg+Z verwenden).\n\nUm diesen Server zu Claude Desktop hinzuzufügen:\n  1. Einstellungen → Entwickler → Konfiguration bearbeiten öffnen.\n  2. Den JSON-Ausschnitt unten in claude_desktop_config.json einfügen (in den vorhandenen mcpServers-Block einfügen, falls bereits vorhanden).\n  3. Claude Desktop neu starten. Der Server erscheint als 'wfs-diy' im Tools-Menü.\n\nFür Claude Code ausführen:\n  claude mcp add wfs-diy <url> -t http\n\nDie URL ändert sich, wenn Sie die Netzwerkschnittstelle wechseln oder der Server auf einen anderen Port ausweicht. Die URL-Schaltfläche in dieser Zeile zeigt immer die aktuelle Live-URL.",
+      "title": "AI / MCP Server",
+      "body": "Der MCP Server ermöglicht es einem KI-Assistenten (Claude Desktop, Claude Code, ChatGPT mit benutzerdefinierten Konnektoren), die Parameter dieser WFS-DIY-Sitzung über eine lokale Netzwerkverbindung zu lesen und zu schreiben.\n\nWas die KI tun kann:\n• Live-Status lesen: Kanalanzahl, Namen, Positionen, Dämpfungen, EQs, Snapshots, Cluster, die gesamte Parameteroberfläche.\n• Quellen verschieben, Kanäle umbenennen, Cluster-Zuweisungen festlegen, Array-Layout anpassen, Ausgänge und Hall platzieren.\n• Geführte Workflows ausführen (Systemabstimmung, Lokalisations-Fehlersuche, Snapshot-Verwaltung) über vorbereitete Prompt-Vorlagen.\n\nBedienelemente in dieser Zeile:\n• KI: EIN / AUS — Hauptschalter. Im AUS-Zustand wird jeder KI-Tool-Aufruf abgelehnt; im EIN-Zustand arbeitet die KI nach den unten stehenden Regeln.\n• Kritische KI-Aktionen: gesperrt / ERLAUBT — destruktive Aktionen (Snapshots löschen, DSP zurücksetzen, Kanalanzahl ändern) sind standardmässig gesperrt. Klicken, um sie 10 Minuten lang zu erlauben; die rote Füllung läuft mit dem Ablauf des Fensters ab und wird dann automatisch wieder gesperrt.\n• KI-Verlauf öffnen — scrollbare Chronik aller jüngsten KI-Änderungen mit Rückgängig/Wiederherstellen pro Zeile.\n• Die MCP-URL-Schaltfläche kopiert die Server-URL in die Zwischenablage für KI-Clients, die eine URL direkt akzeptieren.\n\nBetreiber-Aufmerksamkeit:\n• Jede KI-Aktion wird mit Herkunfts-Tags aufgezeichnet. Das KI-Verlaufsfenster zeigt die vollständige Chronik; das × pro Zeile macht eine Aktion mit ihren Abhängigkeiten rückgängig.\n• Wenn Sie einen Parameter manuell anpassen, den die KI gerade verschoben hat, wird die KI benachrichtigt und versucht es nicht blindlings erneut. Sie haben immer das letzte Wort.\n• Die Tastenkombinationen Cmd/Strg+Alt+Z und Cmd/Strg+Alt+Y machen die letzte KI-Änderung rückgängig bzw. stellen sie wieder her, ohne Ihre manuellen Änderungen zu beeinflussen (die wie üblich Strg+Z verwenden).\n\nUm diesen Server zu Claude Desktop hinzuzufügen:\n  1. Einstellungen → Entwickler → Konfiguration bearbeiten öffnen.\n  2. Den JSON-Ausschnitt unten in claude_desktop_config.json einfügen (in den vorhandenen mcpServers-Block einfügen, falls bereits vorhanden).\n  3. Claude Desktop neu starten. Der Server erscheint als 'wfs-diy' im Tools-Menü.\n\nFür Claude Code ausführen:\n  claude mcp add wfs-diy <url> -t http\n\nDie URL ändert sich, wenn Sie die Netzwerkschnittstelle wechseln oder der Server auf einen anderen Port ausweicht. Die URL-Schaltfläche in dieser Zeile zeigt immer die aktuelle Live-URL.",
       "copyButton": "Konfiguration kopieren",
       "copyConfirm": "MCP-Konfigurations-JSON in die Zwischenablage kopiert"
     }

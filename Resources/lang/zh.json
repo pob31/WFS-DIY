@@ -35,9 +35,9 @@
     "help": {
       "showName": "当前演出的名称。",
       "showLocation": "当前演出的地点。",
-      "inputChannels": "输入通道数量。",
-      "outputChannels": "输出通道数量。",
-      "reverbChannels": "混响通道数量。",
+      "inputChannels": "Input Channels数量。",
+      "outputChannels": "Output Channels数量。",
+      "reverbChannels": "Reverb Channels数量。",
       "audioPatch": "打开音频接口和路由窗口。",
       "levelMeter": "打开电平表窗口。",
       "clearSolo": "清除所有输入的独听状态。",
@@ -65,9 +65,9 @@
       "originDismissOutputs": "长按以忽略并保持当前输出位置。",
       "originShiftReverbs": "长按以根据原点变化移动所有混响位置。",
       "originDismissReverbs": "长按以忽略并保持当前混响位置。",
-      "speedOfSound": "声速 (与温度相关)。",
-      "temperature": "温度 (决定声速)。",
-      "masterLevel": "主电平 (影响所有输出)。",
+      "speedOfSound": "Speed of Sound (与温度相关)。",
+      "temperature": "温度 (决定Speed of Sound)。",
+      "masterLevel": "Master Level (影响所有输出)。",
       "systemLatency": "系统总延迟 (调音台和计算机) / 特定输入和输出延迟可在各自设置中设定。",
       "haasEffect": "应用于系统的哈斯效应。将考虑延迟补偿 (系统、输入和输出)。",
       "colorScheme": "选择配色方案: 默认 (深灰色)、黑色 (适用于OLED显示屏) 或浅色 (日间使用)。",
@@ -126,15 +126,15 @@
     },
     "dialogs": {
       "reduceInputChannels": {
-        "title": "减少输入通道?",
+        "title": "减少Input Channels?",
         "message": "从 {current} 减少到 {new} 个输入通道将删除通道 {start} 到 {end} 的设置。\n\n此操作无法撤销。"
       },
       "reduceOutputChannels": {
-        "title": "减少输出通道?",
+        "title": "减少Output Channels?",
         "message": "从 {current} 减少到 {new} 个输出通道将删除通道 {start} 到 {end} 的设置。\n\n此操作无法撤销。"
       },
       "reduceReverbChannels": {
-        "title": "减少混响通道?",
+        "title": "减少Reverb Channels?",
         "message": "从 {current} 减少到 {new} 个混响通道将删除通道 {start} 到 {end} 的设置。\n\n此操作无法撤销。"
       },
       "reduce": "减少",
@@ -145,7 +145,7 @@
   },
   "network": {
     "help": {
-      "networkInterface": "选择网络接口。",
+      "networkInterface": "选择Network Interface。",
       "currentIP": "处理器的 IP 地址。",
       "udpPort": "处理器的 UDP 接收端口。",
       "tcpPort": "处理器的 TCP 接收端口。",
@@ -190,7 +190,7 @@
       "trackingFlipX": "反转追踪 X 坐标轴。",
       "trackingFlipY": "反转追踪 Y 坐标轴。",
       "trackingFlipZ": "反转追踪 Z 坐标轴。",
-      "trackingOscPath": "OSC 模式下追踪的 OSC 路径（以 / 开头）",
+      "trackingOscPath": "OSC 模式下追踪的 OSC Path（以 / 开头）",
       "psnInterface": "用于 PSN 多播接收的网络接口",
       "storeConfig": "将网络配置保存到文件。",
       "reloadConfig": "从文件重新加载网络配置。",
@@ -212,7 +212,7 @@
       "trackingConflictsContinue": "继续"
     },
     "messages": {
-      "selectFolderFirst": "请先在系统配置中选择项目文件夹。",
+      "selectFolderFirst": "请先在System Config中选择项目文件夹。",
       "configSaved": "网络配置已保存。",
       "configNotFound": "未找到网络配置文件。",
       "configReloaded": "网络配置已重新加载。",
@@ -280,7 +280,7 @@
     },
     "help": {
       "inputsVisibility": "在地图选项卡中显示或隐藏此集群的输入。隐藏会应用于新成员；移除输入将恢复其可见性。",
-      "referenceMode": "选择集群变换的参考点：第一个输入、重心或共享位置（所有成员重合；缩放和旋转应用于各输入的偏移量）。",
+      "referenceMode": "选择集群变换的参考点：First Input、重心或Shared Position（所有成员重合；缩放和旋转应用于各输入的偏移量）。",
       "positionJoystick": "在 X/Y 方向移动集群的所有输入。按住并拖动以平移。",
       "zSlider": "沿 Z 轴（高度）移动集群的所有输入。",
       "attenuationSlider": "调整集群所有输入的衰减（dB）。",
@@ -331,7 +331,7 @@
     "messages": {
       "setToSingle": "输出 {num} 设置为单独",
       "assignedToArray": "输出 {num} 分配到阵列 {array}",
-      "selectFolderFirst": "请先在系统配置中选择项目文件夹。",
+      "selectFolderFirst": "请先在System Config中选择项目文件夹。",
       "configSaved": "输出配置已保存。",
       "configLoaded": "输出配置已加载。",
       "configNotFound": "未找到输出配置文件。",
@@ -349,9 +349,9 @@
       "applyToArray": "将更改应用到阵列的其余部分（绝对值或相对更改）。",
       "attenuation": "输出通道衰减。（更改可能影响阵列的其余部分）",
       "delayLatency": "输出通道延迟（正值）或延迟补偿（负值）。（更改可能影响阵列的其余部分）",
-      "minLatency": "禁用所选输出的最小延迟模式。（更改可能影响阵列的其余部分）",
-      "liveSource": "禁用所选输出的现场声源衰减。（更改可能影响阵列的其余部分）",
-      "floorReflections": "启用或禁用此扬声器的地板反射。",
+      "minLatency": "禁用所选输出的Minimal Latency模式。（更改可能影响阵列的其余部分）",
+      "liveSource": "禁用所选输出的Live Source衰减。（更改可能影响阵列的其余部分）",
+      "floorReflections": "启用或禁用此扬声器的Floor Reflections。",
       "distanceAtten": "所选输出的距离衰减比率。（更改可能影响阵列的其余部分）",
       "hParallax": "扬声器到“目标”听众的水平距离。（更改可能影响阵列的其余部分）",
       "vParallax": "扬声器到“目标”听众的垂直距离。当扬声器位于听众头部下方时为正值。（更改可能影响阵列的其余部分）",
@@ -371,10 +371,10 @@
       "eqEnable": "启用或禁用此输出的EQ处理。",
       "eqFlatten": "长按重置所有EQ频段为默认值。",
       "eqBandToggle": "开启/关闭频段{band}。关闭时频段被旁路。",
-      "eqShape": "输出EQ频段{band}滤波器形状。",
-      "eqFreq": "输出EQ频段{band}频率 (20 Hz - 20 kHz)。",
-      "eqGain": "输出EQ频段{band}增益 (-24至+24 dB)。",
-      "eqQ": "输出EQ频段{band} Q因子 (0.1 - 10.0)。",
+      "eqShape": "Output EQ频段{band}滤波器形状。",
+      "eqFreq": "Output EQ频段{band}频率 (20 Hz - 20 kHz)。",
+      "eqGain": "Output EQ频段{band}增益 (-24至+24 dB)。",
+      "eqQ": "Output EQ频段{band} Q因子 (0.1 - 10.0)。",
       "eqResetBand": "长按重置频段{band}为默认值。",
       "position1": "输出通道{name}（{unit}）。",
       "position2": "输出通道{name}（{unit}）。",
@@ -394,7 +394,7 @@
       "export": "导出混响配置"
     },
     "messages": {
-      "selectFolderFirst": "请先在系统配置中选择项目文件夹。",
+      "selectFolderFirst": "请先在System Config中选择项目文件夹。",
       "configSaved": "混响配置已保存。",
       "configLoaded": "混响配置已加载。",
       "backupLoaded": "已从备份加载混响配置。",
@@ -405,7 +405,7 @@
     "help": {
       "channelSelector": "混响通道编号和选择。",
       "nameEditor": "显示的混响通道名称（可编辑）。",
-      "mapVisibility": "在地图上显示或隐藏所有混响通道。",
+      "mapVisibility": "在地图上显示或隐藏所有Reverb Channels。",
       "attenuation": "混响通道衰减（-92至0 dB）。",
       "delayLatency": "混响延迟/延时补偿（-100至+100 ms）。",
       "orientation": "混响朝向角度（-179至+180度）。",
@@ -413,7 +413,7 @@
       "angleOff": "没有放大的角度（0-179度）。",
       "pitch": "混响的垂直朝向（-90至+90度）。",
       "hfDamping": "每米高频损耗（-6.0至0.0 dB/m）。",
-      "distanceAttenEnable": "距离衰减百分比（0-200%）。",
+      "distanceAttenEnable": "Distance attenuation百分比（0-200%）。",
       "coordMode": "坐标显示模式：笛卡尔坐标（X/Y/Z）、圆柱坐标（半径/方位角/高度）或球坐标（半径/方位角/仰角）。",
       "eqEnable": "启用或禁用此混响的EQ处理。",
       "eqFlatten": "长按重置所有前置EQ频段为默认值。",
@@ -423,7 +423,7 @@
       "eqGain": "前置EQ频段{band}增益 (-24至+24 dB)。",
       "eqQ": "前置EQ频段{band} Q因子 (0.1 - 20.0)。",
       "eqResetBand": "长按重置前置EQ频段{band}为默认值。",
-      "distanceAtten": "混响返回的距离衰减（-6.0至0.0 dB/m）。",
+      "distanceAtten": "Reverb Return的Distance attenuation（-6.0至0.0 dB/m）。",
       "commonAtten": "公共衰减百分比（0-100%）。",
       "muteMacros": "输出通道的快速静音操作。",
       "storeConfig": "将混响配置存储到文件（含备份）。",
@@ -466,7 +466,7 @@
       "postExpAttack": "后扩展器起音时间（0.1 - 50 ms）。",
       "postExpRelease": "后扩展器释放时间（50 - 2000 ms）。",
       "miniLatencyTooltip": "启用此混响通道的最小延迟模式。以更高 CPU 使用为代价减少处理延迟。",
-      "liveSourceTooltip": "启用现场声源衰减调节器。减少靠近阵列的声源的电平波动。",
+      "liveSourceTooltip": "启用Live Source Tamer。减少靠近阵列的声源的电平波动。",
       "muteButton": "切换此输出通道的混响返回静音。",
       "position1": "混响虚拟声源{name}（{unit}）。",
       "position2": "混响虚拟声源{name}（{unit}）。",
@@ -515,7 +515,7 @@
       "trackingConflictYes": "是，切换追踪"
     },
     "messages": {
-      "selectFolderFirst": "请先在系统配置中选择项目文件夹。",
+      "selectFolderFirst": "请先在System Config中选择项目文件夹。",
       "configSaved": "输入配置已保存。",
       "configLoaded": "输入配置已加载。",
       "backupLoaded": "已从备份加载输入配置。",
@@ -536,7 +536,7 @@
       "trackingSwitched": "追踪已从输入 {from} 切换到输入 {to}"
     },
     "help": {
-      "solo": "收听此通道的双耳渲染。",
+      "solo": "收听此通道的Binaural渲染。",
       "soloMode": "单选：一次只听一个输入。多选：可同时听多个输入。",
       "storeConfig": "将输入配置保存到文件（含备份）。",
       "reloadConfig": "从文件重新加载输入配置。",
@@ -557,7 +557,7 @@
       "mapVisibilityButton": "在地图上显示或隐藏选定的输入。",
       "attenuationSlider": "输入通道衰减。",
       "delayLatencySlider": "输入通道延迟 (正值) 或延迟补偿 (负值)。",
-      "minimalLatencyButton": "在声学优先和最小延迟之间为放大优先级选择。",
+      "minimalLatencyButton": "在Acoustic Precedence和Minimal Latency之间为放大优先级选择。",
       "constraintXButton": "限制位置在舞台宽度范围内。",
       "constraintYButton": "限制位置在舞台深度范围内。",
       "constraintZButton": "限制位置在舞台高度范围内。",
@@ -578,7 +578,7 @@
       "coordModeSelector": "坐标显示模式：笛卡尔坐标 (X/Y/Z)、柱坐标 (半径/方位角/高度) 或球坐标 (半径/方位角/仰角)。",
       "positionJoystick": "拖动调整 X/Y 实时位置。松开后回到中心。",
       "positionZSlider": "拖动调整 Z（高度）实时位置。松开后回到中心。",
-      "attenuationLawButton": "衰减规律模型（对象与扬声器之间随距离线性降低音量）。",
+      "attenuationLawButton": "Attenuation Law模型（对象与扬声器之间随距离线性降低音量）。",
       "distanceAttenDial": "对象与扬声器之间每米衰减量。",
       "distanceRatioDial": "平方模型的衰减比率。",
       "commonAttenDial": "选定对象相对于所有输出的共同衰减百分比。",
@@ -596,15 +596,15 @@
       "lsSlowEnableButton": "启用或禁用 Live Source Tamer 的缓慢压缩器。",
       "lsSlowThresholdSlider": "对象周围扬声器的缓慢压缩阈值，用于控制持续电平。",
       "lsSlowRatioDial": "应用于对象周围扬声器的缓慢压缩比率。",
-      "frActiveButton": "为对象启用模拟地板反射。",
-      "frAttenuationSlider": "对象的模拟地板反射的衰减。",
-      "frDiffusionDial": "对象的模拟地板反射的扩散效果。",
-      "frLowCutActiveButton": "为地板反射启用低切滤波器。",
-      "frLowCutFreqSlider": "地板反射的低切频率。",
-      "frHighShelfActiveButton": "为地板反射启用高搁架滤波器。",
-      "frHighShelfFreqSlider": "地板反射的高搁架频率。",
-      "frHighShelfGainSlider": "地板反射的高搁架增益。",
-      "frHighShelfSlopeSlider": "地板反射的高搁架斜率。",
+      "frActiveButton": "为对象启用模拟Floor Reflections。",
+      "frAttenuationSlider": "对象的模拟Floor Reflections的衰减。",
+      "frDiffusionDial": "对象的模拟Floor Reflections的扩散效果。",
+      "frLowCutActiveButton": "为Floor Reflections启用Low Cut滤波器。",
+      "frLowCutFreqSlider": "Floor Reflections的Low Cut频率。",
+      "frHighShelfActiveButton": "为Floor Reflections启用High Shelf滤波器。",
+      "frHighShelfFreqSlider": "Floor Reflections的High Shelf频率。",
+      "frHighShelfGainSlider": "Floor Reflections的High Shelf增益。",
+      "frHighShelfSlopeSlider": "Floor Reflections的High Shelf斜率。",
       "muteReverbSendsButton": "静音从此输入到所有混响通道的发送。",
       "jitterSlider": "对象快速移动的球。",
       "lfoActiveButton": "启用或禁用对象的周期性运动 (LFO)。",
@@ -638,7 +638,7 @@
       "otomoStopAllButton": "全局停止所有活动运动。",
       "otomoPauseResumeAllButton": "全局暂停或恢复所有活动运动。",
       "muteButton": "为此对象静音输出 {num}。",
-      "muteMacrosSelector": "用于快速静音和取消静音阵列的静音宏。",
+      "muteMacrosSelector": "用于快速静音和取消静音阵列的Mute Macros。",
       "arrayAttenDial": "阵列 {num} 的衰减 (-60 至 0 dB)。",
       "sidelinesActiveButton": "当源接近舞台边缘时启用自动静音。不适用于前 (观众) 边缘。",
       "sidelinesFringeDial": "过渡区大小 (米)。外半部分完全静音，内半部分线性淡出。",
@@ -695,12 +695,12 @@
   },
   "help": {
     "binaural": {
-      "title": "双耳渲染器",
-      "body": "双耳渲染器用于：\n- 通过耳机收听粗略的空间混音\n- 创建立体声输出混音\n- 通过空间处理收听单独的独奏轨道\n如果仅为耳机和媒体混音供电，它可以替代您的主混音。\n收听位置可以从原点调整深度和方向。延迟和电平设置可以匹配FOH位置的声音。"
+      "title": "Binaural Renderer",
+      "body": "Binaural Renderer用于：\n- 通过耳机收听粗略的空间混音\n- 创建立体声输出混音\n- 通过空间处理收听单独的独奏轨道\n如果仅为耳机和媒体混音供电，它可以替代您的主混音。\n收听位置可以从原点调整深度和方向。延迟和电平设置可以匹配FOH位置的声音。"
     },
     "map": {
       "title": "地图",
-      "body": "- 左键点击输入或集群可拖动移动。\n- Shift+左键点击可添加或移除选择中的输入。\n- 左键拖动绘制选择矩形。\n- 双击重置位置偏移。\n- 长按无移动将切换到所选输入的标签页。\n- 点击输入以外的区域清除选择。\n- 右键拖动平移地图视图。两指拖动也可以。\n- 滚轮缩放。两指捏合也可以。\n- 中键点击重置视图。\n- 方向键移动X/Y，PageUp/Down调整高度。\n- 第二根手指可以旋转指向性和调整高度。\n- 集群上的第二根手指可以旋转和缩放。\n- 输入、输出阵列和混响节点可以隐藏。\n- 输入可以锁定以防止选择和移动。\n- 混响节点可以移动。Ctrl/Cmd对称移动节点对。\n- 启用时显示现场声源抑制器半径。\n- 可以在地图上显示音频电平。"
+      "body": "- 左键点击输入或集群可拖动移动。\n- Shift+左键点击可添加或移除选择中的输入。\n- 左键拖动绘制选择矩形。\n- 双击重置位置偏移。\n- 长按无移动将切换到所选输入的标签页。\n- 点击输入以外的区域清除选择。\n- 右键拖动平移地图视图。两指拖动也可以。\n- 滚轮缩放。两指捏合也可以。\n- 中键点击重置视图。\n- 方向键移动X/Y，PageUp/Down调整高度。\n- 第二根手指可以旋转指向性和调整高度。\n- 集群上的第二根手指可以旋转和缩放。\n- 输入、输出阵列和混响节点可以隐藏。\n- 输入可以锁定以防止选择和移动。\n- 混响节点可以移动。Ctrl/Cmd对称移动节点对。\n- 启用时显示Live Source Tamer半径。\n- 可以在地图上显示音频电平。"
     },
     "clusters": {
       "title": "集群",
@@ -715,7 +715,7 @@
       "body": "一次性运动可以编程并手动触发或通过声音电平触发。\n坐标可以是相对于起始位置的相对值或相对于原点的绝对值。\n输入可以停留在终点位置或返回起始位置。\n移动过程中无法更改位置，但与输入的交互将更改位置偏移。\n对于音频电平触发，选择运动开始的阈值。当声音降到重置电平以下时，运动将重新准备就绪。"
     },
     "gradientMap": {
-      "title": "渐变图",
+      "title": "Gradient Maps",
       "body": "渐变图允许根据X、Y位置控制衰减、高度和高频滤波（以1kHz为中心的平滑斜坡搁架滤波器）。例如，可以在进入某个区域时淡出声音，在远离舞台前方时应用高频衰减，或自动调整站在高台上的演员的高度。\n有三个图层：衰减、高度和HF搁架。它们可以开/关切换和隐藏。\n每个图层有白色和黑色的映射控制来调整效果范围。曲线设置调整过渡。\n每个图层可以有可编辑的形状（矩形、椭圆或多边形），使用纯灰色、线性渐变或径向渐变。\n创建多边形时点击每个角，双击关闭形状。\n双击现有点将其删除，双击边添加新点。\n形状和图层可以复制到其他图层。\n设置存储在输入文件中。"
     },
     "sampler": {
@@ -723,11 +723,11 @@
       "body": "采样器允许触发采样并实时与其交互。\n在轨道上启用时，采样器将始终替代实时输入。\n多个采样器可以分配给不同的输入并单独触发。\n使用采样器：\n- 选择Roli Lightpad或已连接的Android Remote应用中的触控板。\n- 将采样添加到网格中的不同方块。调整相对起始位置、电平以及入/出点。按住Shift键点击可选择多个采样。\n- 创建采样集：选中的采样将被添加到新集中。创建后可按住Ctrl/Cmd点击方块来添加或删除。每个集可以重命名，可设置固定顺序或随机顺序。每个集有衰减设置和基础位置。\n- 按下Lightpad或触控板触发采样。压力可映射到电平、高度和高频滤波。手指移动像操纵杆一样移动声音。\n松开触控板将停止采样。\n采样器设置存储在输入文件中。\n方块和集可以复制、导出和导入。"
     },
     "liveSource": {
-      "title": "现场声源抑制器",
+      "title": "Live Source Tamer",
       "body": "舞台上的大音量声源可能不需要通过附近的扬声器进行增强。想象一位靠近舞台边缘的歌剧歌手。通常电平分配会使输入位置附近的电平更大。但如果已经足够大，我们就不应该过度放大。此功能管理这一点。\n半径和形状描述了如何为此输入影响半径内的扬声器衰减电平。有多种形状：V形线性效果；U形用于快速衰减；窄V形或前述的混合（正弦）。\n衰减可以是恒定的，也可以是电平依赖的，类似于对瞬态和平均RMS电平做出反应的本地压缩。"
     },
     "floorReflections": {
-      "title": "地板反射",
+      "title": "Floor Reflections",
       "body": "模拟地板反射可以提高声音的自然度。我们不期望声音在隔音消声室中播放。此设置有助于重建预期的地板反射。\n地板反射的电平可以调整，同时还有低切和高频搁架滤波器。扩散增加一些随机性来模拟地板的不平整。"
     },
     "reverb": {
@@ -735,12 +735,12 @@
       "body": "混响有助于模糊扬声器的实际反射。\n根据通道数和舞台形状放置混响节点。\n其他参数与输出和输入类似。"
     },
     "reverbFeed": {
-      "title": "混响馈送",
-      "body": "输入通道到混响节点的预处理发送。\n- 方向和On/Off角度定义每个节点接收的输入。\n- HF衰减模拟高频随距离的损失。\n- 距离衰减百分比定义应用的衰减。\n- 最小延迟切换是否使用最小计算延迟。\n- 现场声源衰减切换附近输入的电平降低。"
+      "title": "Reverb Feed",
+      "body": "Input Channels到混响节点的预处理发送。\n- 方向和On/Off角度定义每个节点接收的输入。\n- HF衰减模拟高频随距离的损失。\n- Distance attenuation百分比定义应用的衰减。\n- Minimal Latency切换是否使用最小计算延迟。\n- Live Source衰减切换附近输入的电平降低。"
     },
     "reverbReturn": {
-      "title": "混响返回",
-      "body": "到扬声器的后处理发送。\n- 距离衰减定义每米的电平下降。\n- 共同衰减保持最低衰减的百分比。\n- 静音防止混响通道馈送到输出。"
+      "title": "Reverb Return",
+      "body": "到扬声器的后处理发送。\n- Distance attenuation定义每米的电平下降。\n- 共同衰减保持最低衰减的百分比。\n- 静音防止Reverb Channels馈送到输出。"
     },
     "reverbAlgo": {
       "title": "混响算法",
@@ -771,21 +771,21 @@
       "body": "跟踪允许追踪演员和音乐家的2D或3D位置。有多种跟踪解决方案，包括UWB标签、3D摄像头、计算机视觉系统和红外LED配合IR敏感摄像头。\n此应用程序可以从多种协议接收跟踪数据：OSC、MQTT、PosiStageNet/PSN、RTTrP。\n您可以选择使用的协议并输入其设置。还可以调整映射（偏移、缩放和方向）。\n每个输入都有一个启用跟踪的开关、一个选择跟踪标记的ID和一个减少抖动的平滑算法。"
     },
     "admOsc": {
-      "title": "ADM-OSC映射",
+      "title": "ADM-OSC Mappings",
       "body": "ADM-OSC是一种旨在提高空间声音互操作性的协议。它从调音台或DAW的自动化曲线发送笛卡尔坐标（X、Y、Z）或极坐标值（AED：方位角、仰角、距离）。\n数据以归一化方式发送：\n- X、Y和Z在-1.0到1.0之间\n- 距离在0.0到1.0之间\n- 方位角在-180°到180°之间\n- 仰角在-90°到90°之间\n原点可以移动，映射也可以针对舞台的内部和外部区域进行不同的分段调整。\n拖动图表上的控制点时，按住Shift键将在对侧应用对称调整。"
     },
     "overview": {
       "title": "系统概览",
-      "body": "这款WFS空间声音处理器旨在成为自然扩声的工具，同时也是一个创意工具，为空间中的声音书写开辟新途径。\n一些参数很直观：放置声音（地图、追踪、速度限制、渐变地图...），塑造其形状（衰减曲线）和声学存在感（指向性、地板反射），赋予其一次性运动（AutomOtion）或重复运动（L.F.O）。在某些情况下应限制舞台上大声源周围的放大（Live Source Tamer）。所有这些功能都可以在内部或借助QLab存储和调用。此外系统允许实时交互来触发和移动采样，手动或通过易于调用的LFO预设来移动大型输入群组。",
+      "body": "这款WFS空间声音处理器旨在成为自然扩声的工具，同时也是一个创意工具，为空间中的声音书写开辟新途径。\n一些参数很直观：放置声音（地图、追踪、速度限制、渐变地图...），塑造其形状（衰减曲线）和声学存在感（指向性、Floor Reflections），赋予其一次性运动（AutomOtion）或重复运动（L.F.O）。在某些情况下应限制舞台上大声源周围的放大（Live Source Tamer）。所有这些功能都可以在内部或借助QLab存储和调用。此外系统允许实时交互来触发和移动采样，手动或通过易于调用的LFO预设来移动大型输入群组。",
       "dontShow": "不再显示"
     },
     "inputBasic": {
       "title": "输入基本参数",
-      "body": "输入具有多种设置，以适应需要逼真扩声或声音设计创意工具的不同情况。\n- 输入电平可以调整。\n- 输入可以延迟，或可以尝试考虑特定延迟（无线传输或数字效果的数字处理）并进行补偿，以更好地对齐放大和声学声音。\n- 可以启用最小延迟来代替声学优先。这会尝试尽可能快地通过系统输出声音。系统扫描此输入到输出的发送以获取最低延迟，并从所有延迟中减去它，同时绕过额外的Haas效应。\n- 位置（位置和偏移）可以用直角坐标、圆柱坐标或球坐标给出，与舞台形状或其他通道无关。\n- 位置可以在直角坐标中约束到舞台尺寸，或在极坐标中约束到特定距离范围。\n- 翻转将在原点周围取给定坐标的对称位置。\n- 操纵杆和垂直滑块允许相对位置控制。\n- 输入可以分配到群组以进行协调运动。"
+      "body": "输入具有多种设置，以适应需要逼真扩声或声音设计创意工具的不同情况。\n- 输入电平可以调整。\n- 输入可以延迟，或可以尝试考虑特定延迟（无线传输或数字效果的数字处理）并进行补偿，以更好地对齐放大和声学声音。\n- 可以启用Minimal Latency来代替Acoustic Precedence。这会尝试尽可能快地通过系统输出声音。系统扫描此输入到输出的发送以获取最低延迟，并从所有延迟中减去它，同时绕过额外的Haas效应。\n- 位置（位置和偏移）可以用直角坐标、圆柱坐标或球坐标给出，与舞台形状或其他通道无关。\n- 位置可以在直角坐标中约束到舞台尺寸，或在极坐标中约束到特定距离范围。\n- 翻转将在原点周围取给定坐标的对称位置。\n- 操纵杆和垂直滑块允许相对位置控制。\n- 输入可以分配到群组以进行协调运动。"
     },
     "inputAdvanced": {
       "title": "高级控制",
-      "body": "- 边线和过渡区允许在输入接近矩形舞台边界时静音 (观众侧除外)。\n- 可以启用跟踪并选择跟踪器 ID。位置平滑度也可以调整。\n- 可以启用最大速度并调整速度限制。系统将在运动开始和结束时应用渐进加速和减速。当路径模式激活时，系统将跟随输入所走的路径，而不是直线移动到最终位置。如果运动需要手动操作，这特别有用。\n- 高度因子允许在 0% 时以 2D 工作，在 100% 时以完整 3D 工作，以及介于两者之间的所有值。这是高度在电平和延迟计算中的比率。如果您希望使用地板反射，请将其设置为 100%，并使用输出参数中的视差校正。"
+      "body": "- 边线和过渡区允许在输入接近矩形舞台边界时静音 (观众侧除外)。\n- 可以启用跟踪并选择跟踪器 ID。位置平滑度也可以调整。\n- 可以启用最大速度并调整速度限制。系统将在运动开始和结束时应用渐进加速和减速。当路径模式激活时，系统将跟随输入所走的路径，而不是直线移动到最终位置。如果运动需要手动操作，这特别有用。\n- 高度因子允许在 0% 时以 2D 工作，在 100% 时以完整 3D 工作，以及介于两者之间的所有值。这是高度在电平和延迟计算中的比率。如果您希望使用Floor Reflections，请将其设置为 100%，并使用输出参数中的视差校正。"
     },
     "inputLevel": {
       "title": "电平调整",
@@ -796,7 +796,7 @@
       "body": "当说话者转身时，声音的音色会变得不那么明亮。再现这一点是这里的最初目标，尽管我们通常希望在不面向观众或双面配置中为声音提供支持。这可以用于创意效果，如在衰减的直达声上有更明亮的混响。\n输入的方位角和俯仰角方向可以设置，以及高频不被过滤的角度。\nHF Shelf将设置输入背面的最大衰减。从前面的完全明亮到后面的衰减有一个平滑的渐变（如余弦曲线）。"
     },
     "inputMutes": {
-      "title": "阵列衰减和输出静音",
+      "title": "Array Attenuation and Output Mutes",
       "body": "您可以为每个输出阵列设置所选输入的特定衰减。\n您可以单独静音到任何输出的每个发送。有宏可以加速这个过程。"
     },
     "parallax": {
@@ -805,7 +805,7 @@
     },
     "outputAdvanced": {
       "title": "高级参数",
-      "body": "有几个参数帮助您调整以适应声学声音。\n这些参数大多为整个阵列设置，除非此输出的传播模式被关闭。特定设置后也可以选择相对变化。\n- 方向和On/Off角度定义每个扬声器将放大哪些输入。默认情况下扬声器面向观众，背对舞台。绿色扇区中的输入将被放大，但扬声器前方红色扇区中的不会。两个扇区之间有渐变。对于低音炮，完全打开到最大将允许所有输入被包含。\n- HF阻尼模拟距离造成的高频损失。\n- 距离衰减百分比定义应用多少计算的衰减。对于低音炮，降到50%可能是明智的。\n- 最小延迟启用扫描最小计算延迟。\n- 现场声源衰减启用附近输入的电平降低。\n- 地板反射切换是否将反射应用于此输出的信号，如低音炮和飞行阵列..."
+      "body": "有几个参数帮助您调整以适应声学声音。\n这些参数大多为整个阵列设置，除非此输出的传播模式被关闭。特定设置后也可以选择相对变化。\n- 方向和On/Off角度定义每个扬声器将放大哪些输入。默认情况下扬声器面向观众，背对舞台。绿色扇区中的输入将被放大，但扬声器前方红色扇区中的不会。两个扇区之间有渐变。对于低音炮，完全打开到最大将允许所有输入被包含。\n- HF阻尼模拟距离造成的高频损失。\n- Distance attenuation百分比定义应用多少计算的衰减。对于低音炮，降到50%可能是明智的。\n- Minimal Latency启用扫描最小计算延迟。\n- Live Source衰减启用附近输入的电平降低。\n- Floor Reflections切换是否将反射应用于此输出的信号，如低音炮和飞行阵列..."
     },
     "tuning": {
       "title": "系统调谐",
@@ -816,8 +816,8 @@
       "body": "WFS系统的设计涉及正确选择设备及其定位。这是帮助您进行阵列设计和调谐的指南。\n阵列是一条（直线或弯曲的）扬声器线。这是WFS中最重要的概念之一。\n经验法则是每个听众应该听到阵列的三个扬声器，以获得足够的心理声学线索来感知每个声音的方向。扬声器与听众的距离、间距和覆盖角度之间存在最佳点。120°覆盖角的扬声器可以按阵列与第一排之间的相同距离间隔。数量还取决于声压级。作为飞行阵列，轴下宽角(120°)、轴上窄角(60°)的梯形/非对称号角将提供良好的覆盖和20-30m的到达距离，同时避免墙壁反射。同轴扬声器通常对大型场所没有足够的到达距离，需要延迟线。\n定位可以通过'Wizard of OutZ'及其可编辑预设完成。"
     },
     "mcp": {
-      "title": "AI / MCP 服务器",
-      "body": "MCP 服务器允许 AI 助手 (Claude Desktop、Claude Code、带有自定义连接器的 ChatGPT) 通过本地网络连接读取和写入此 WFS-DIY 会话的参数。\n\nAI 可以做的事情:\n• 读取实时状态: 通道数、名称、位置、衰减、EQ、快照、集群、整个参数表面。\n• 移动声源、重命名通道、设置集群分配、调整阵列布局、放置输出和混响。\n• 通过预先准备的提示模板运行引导工作流 (系统调音、定位故障排查、快照管理)。\n\n此行的操作员控制:\n• AI: ON / OFF — 主开关。OFF 时拒绝每个 AI 工具调用; ON 时 AI 按照下面的规则工作。\n• AI 关键操作: 已阻止 / 已允许 — 破坏性操作 (删除快照、重置 DSP、更改通道数) 默认被阻止。点击允许 10 分钟; 红色填充随窗口到期消失，然后自动重新阻止。\n• 打开 AI 历史 — 每个最近 AI 更改的可滚动时间线。\n• MCP URL 按钮将服务器 URL 复制到剪贴板，供直接接受 URL 的 AI 客户端使用。\n\n操作员意识:\n• 每个 AI 操作都带有来源标签记录。AI 历史窗口显示完整时间线; 每行的 × 撤销操作及其依赖项。\n• 如果您手动调整了 AI 刚刚移动的参数，AI 会被通知，不会盲目重试。您始终拥有最终决定权。\n• Cmd/Ctrl+Alt+Z 和 Cmd/Ctrl+Alt+Y 快捷键撤销和重做最后的 AI 更改，不影响您的手动编辑 (使用普通 Ctrl+Z)。\n\n要将此服务器添加到 Claude Desktop:\n  1. 打开设置 → 开发者 → 编辑配置。\n  2. 将下面的 JSON 片段粘贴到 claude_desktop_config.json (如果已经有 mcpServers 块，请合并)。\n  3. 重新启动 Claude Desktop。服务器在工具菜单中显示为 'wfs-diy'。\n\n要添加到 Claude Code，运行:\n  claude mcp add wfs-diy <url> -t http\n\n如果切换网络接口或服务器回退到不同端口，URL 会更改。此行的 URL 按钮始终反映实时 URL。",
+      "title": "AI / MCP Server",
+      "body": "MCP Server允许 AI 助手 (Claude Desktop、Claude Code、带有自定义连接器的 ChatGPT) 通过本地网络连接读取和写入此 WFS-DIY 会话的参数。\n\nAI 可以做的事情:\n• 读取实时状态: 通道数、名称、位置、衰减、EQ、快照、集群、整个参数表面。\n• 移动声源、重命名通道、设置集群分配、调整阵列布局、放置输出和混响。\n• 通过预先准备的提示模板运行引导工作流 (系统调音、定位故障排查、快照管理)。\n\n此行的操作员控制:\n• AI: ON / OFF — 主开关。OFF 时拒绝每个 AI 工具调用; ON 时 AI 按照下面的规则工作。\n• AI 关键操作: 已阻止 / 已允许 — 破坏性操作 (删除快照、重置 DSP、更改通道数) 默认被阻止。点击允许 10 分钟; 红色填充随窗口到期消失，然后自动重新阻止。\n• 打开 AI 历史 — 每个最近 AI 更改的可滚动时间线。\n• MCP URL 按钮将服务器 URL 复制到剪贴板，供直接接受 URL 的 AI 客户端使用。\n\n操作员意识:\n• 每个 AI 操作都带有来源标签记录。AI 历史窗口显示完整时间线; 每行的 × 撤销操作及其依赖项。\n• 如果您手动调整了 AI 刚刚移动的参数，AI 会被通知，不会盲目重试。您始终拥有最终决定权。\n• Cmd/Ctrl+Alt+Z 和 Cmd/Ctrl+Alt+Y 快捷键撤销和重做最后的 AI 更改，不影响您的手动编辑 (使用普通 Ctrl+Z)。\n\n要将此服务器添加到 Claude Desktop:\n  1. 打开设置 → 开发者 → 编辑配置。\n  2. 将下面的 JSON 片段粘贴到 claude_desktop_config.json (如果已经有 mcpServers 块，请合并)。\n  3. 重新启动 Claude Desktop。服务器在工具菜单中显示为 'wfs-diy'。\n\n要添加到 Claude Code，运行:\n  claude mcp add wfs-diy <url> -t http\n\n如果切换Network Interface或服务器回退到不同端口，URL 会更改。此行的 URL 按钮始终反映实时 URL。",
       "copyButton": "复制配置",
       "copyConfirm": "MCP 配置 JSON 已复制到剪贴板"
     }
