@@ -1,145 +1,21 @@
 # Proofreading checklist — Chinese (中文)
 
-Locale: `zh`  |  Total keys: 1520  |  Source: `Resources/lang/en.json` vs `Resources/lang/zh.json`
+Locale: `zh`  |  Total keys: 663  |  Source: `Resources/lang/en.json` vs `Resources/lang/zh.json`
 
 ## How to use this file
+
+This checklist covers the **translated prose only** — help text, tooltips, status / dialog messages, and dialog / help-card titles. UI control labels, buttons, section and tab names, and technical / domain terms are **intentionally English in every language** (the app overlays each locale on an English base, so any key not translated here simply shows English). They are not listed and need no review.
 
 Walk through each section. For every entry:
 - If the translation reads naturally and matches the meaning of the English source, leave the `[ ]` checkbox blank or mark `[x] OK`.
 - If the translation is wrong, awkward, or has a typo, write the corrected text under `Fix:`.
-- If the translation is **identical to English**, that may be intentional: loanwords (Sampler, Tracking, Pre, Post, ON/OFF, LFO, HF, EQ, AI), proper nouns (QLab, Lightpad, Stream Deck, ADM-OSC, MQTT), technical terms (OSC Path:, Localhost), short tokens that match across languages (German System, Spanish Error). Mark `[x] OK` to confirm intent, or write `Fix:` if it should be translated.
+- **Control and parameter names appear in English inside the translated text on purpose** (e.g. fr `Nombre de Reverb Channels.`, ja `Reverb Channels数。`), so the help matches the English labels on screen. Do **not** translate these back — leave them in English.
+- If a whole entry is **identical to English**, that may be intentional: loanwords (Sampler, Tracking, Pre, Post, ON/OFF, LFO, HF, EQ, AI), proper nouns (QLab, Lightpad, Stream Deck, ADM-OSC, MQTT), technical terms (OSC Path:, Localhost). Mark `[x] OK` to confirm intent, or write `Fix:` if it should be translated.
+- `(missing — falls back to English)` means the key is untranslated and currently shows English in the UI; write the correct translation under `Fix:`.
 - Curly braces `{name}`, `{num}`, `{path}` etc. are runtime placeholders; keep them in the translation.
 - `\n` in the value is a literal newline in the rendered UI; preserve it.
 
 ---
-
-## `ai.history`
-
-- **`applied`**
-  - EN: applied
-  - ZH: 已应用
-  - [ ] OK    Fix: 
-
-- **`atHead`**
-  - EN: (no undone records — at the head)
-  - ZH: (无已撤销记录 — 位于开头)
-  - [ ] OK    Fix: 
-
-- **`batch`**
-  - EN: batch {id}
-  - ZH: 批次 {id}
-  - [ ] OK    Fix: 
-
-- **`cursorLabel`**
-  - EN: ◂  cursor (↑ applied  /  ↓ undone, redoable)
-  - ZH: ◂  光标 (↑ 已应用  /  ↓ 已撤销，可重做)
-  - [ ] OK    Fix: 
-
-- **`noChanges`**
-  - EN: No AI changes yet.
-  - ZH: 暂无 AI 修改。
-  - [ ] OK    Fix: 
-
-- **`of`**
-  - EN: of
-  - ZH: /
-  - [ ] OK    Fix: 
-
-- **`stepBack`**
-  - EN: ⏮ Step Back
-  - ZH: ⏮ 上一步
-  - [ ] OK    Fix: 
-
-- **`stepForward`**
-  - EN: Step Forward ⏭
-  - ZH: 下一步 ⏭
-  - [ ] OK    Fix: 
-
-- **`undone`**
-  - EN: undone
-  - ZH: 已撤销
-  - [ ] OK    Fix: 
-
-- **`windowTitle`**
-  - EN: AI Change History
-  - ZH: AI 修改历史
-  - [ ] OK    Fix: 
-
-## `ai.server`
-
-- **`copyUrlConfirm`**
-  - EN: MCP URL copied to clipboard: {url}
-  - ZH: MCP URL 已复制到剪贴板: {url}
-  - [ ] OK    Fix: 
-
-- **`label`**
-  - EN: MCP Server:
-  - ZH: MCP 服务器:
-  - [ ] OK    Fix: 
-
-- **`openHistory`**
-  - EN: Open AI History
-  - ZH: 打开 AI 历史
-  - [ ] OK    Fix: 
-
-- **`urlButtonRunning`**
-  - EN: http://{host}:{port}/mcp
-  - ZH: http://{host}:{port}/mcp
-  - [ ] OK    Fix: 
-
-- **`urlButtonStopped`**
-  - EN: (server not running)
-  - ZH: (服务器未运行)
-  - [ ] OK    Fix: 
-
-## `ai.tier`
-
-- **`aiOff`**
-  - EN: AI: OFF
-  - ZH: AI: OFF
-  - [ ] OK    Fix: 
-
-- **`aiOn`**
-  - EN: AI: ON
-  - ZH: AI: ON
-  - [ ] OK    Fix: 
-
-- **`gateAllowed`**
-  - EN: AI critical actions: ALLOWED
-  - ZH: AI 关键操作: 已允许
-  - [ ] OK    Fix: 
-
-- **`gateBlocked`**
-  - EN: AI critical actions: blocked
-  - ZH: AI 关键操作: 已阻止
-  - [ ] OK    Fix: 
-
-- **`tier2AutoOff`**
-  - EN: Tier 2 auto-confirm: off
-  - ZH: 二级自动确认: 关
-  - [ ] OK    Fix: 
-
-- **`tier2AutoOn`**
-  - EN: Tier 2 auto-confirm: ON (5 min)
-  - ZH: 二级自动确认: ON (5 分钟)
-  - [ ] OK    Fix: 
-
-## `ai.toast`
-
-- **`clientPrefix`**
-  - EN: Claude
-  - ZH: Claude
-  - [ ] OK    Fix: 
-
-- **`header`**
-  - EN: AI changes
-  - ZH: AI 修改
-  - [ ] OK    Fix: 
-
-- **`moreOlder`**
-  - EN: …and {count} older
-  - ZH: …以及更早的 {count} 项
-  - [ ] OK    Fix: 
 
 ## `ai.tooltips`
 
@@ -163,287 +39,6 @@ Walk through each section. For every entry:
   - ZH: 点击复制 MCP 服务器 URL。适用于 Claude Code (claude mcp add wfs-diy <URL> -t http) 或任何接受 URL 的 MCP 客户端。Claude Desktop 改为使用 JSON 配置片段 — 打开 (?) 帮助卡。
   - [ ] OK    Fix: 
 
-## `ai.undo`
-
-- **`errorPrefix`**
-  - EN: AI {verb}: {message}
-  - ZH: AI {verb}: {message}
-  - [ ] OK    Fix: 
-
-- **`successPrefix`**
-  - EN: AI {verb}: {description}
-  - ZH: AI {verb}: {description}
-  - [ ] OK    Fix: 
-
-- **`verbRedo`**
-  - EN: redo
-  - ZH: 重做
-  - [ ] OK    Fix: 
-
-- **`verbUndo`**
-  - EN: undo
-  - ZH: 撤销
-  - [ ] OK    Fix: 
-
-## `arrayHelper.acoustic`
-
-- **`distanceAtten`**
-  - EN: Distance Atten (%):
-  - ZH: 距离衰减 (%):
-  - [ ] OK    Fix: 
-
-- **`floorReflections`**
-  - EN: Floor Reflections
-  - ZH: 地板反射
-  - [ ] OK    Fix: 
-
-- **`hfDamping`**
-  - EN: HF Damping (dB/m):
-  - ZH: 高频衰减 (dB/m):
-  - [ ] OK    Fix: 
-
-- **`highCut`**
-  - EN: High Cut (Hz):
-  - ZH: 高切 (Hz):
-  - [ ] OK    Fix: 
-
-- **`hParallax`**
-  - EN: H Parallax (m):
-  - ZH: 水平视差 (m):
-  - [ ] OK    Fix: 
-
-- **`liveSource`**
-  - EN: Live Source
-  - ZH: 现场声源
-  - [ ] OK    Fix: 
-
-- **`lowCut`**
-  - EN: Low Cut (Hz):
-  - ZH: 低切 (Hz):
-  - [ ] OK    Fix: 
-
-- **`vParallax`**
-  - EN: V Parallax (m):
-  - ZH: 垂直视差 (m):
-  - [ ] OK    Fix: 
-
-## `arrayHelper.buttons`
-
-- **`apply`**
-  - EN: Apply
-  - ZH: 应用
-  - [ ] OK    Fix: 
-
-- **`close`**
-  - EN: Close
-  - ZH: 关闭
-  - [ ] OK    Fix: 
-
-## `arrayHelper.errors`
-
-- **`noPositions`**
-  - EN: No positions to apply. Check geometry parameters.
-  - ZH: 没有可应用的位置。请检查几何参数。
-  - [ ] OK    Fix: 
-
-- **`notEnoughOutputs`**
-  - EN: Not enough output channels! Need {count} starting from {start}
-  - ZH: 输出通道不足! 从 {start} 开始需要 {count} 个
-  - [ ] OK    Fix: 
-
-- **`prefix`**
-  - EN: Error: 
-  - ZH: 错误: 
-  - [ ] OK    Fix: 
-
-- **`speakerCountZero`**
-  - EN: Number of speakers must be greater than 0
-  - ZH: 扬声器数量必须大于0
-  - [ ] OK    Fix: 
-
-## `arrayHelper.geometry`
-
-- **`backFacing`**
-  - EN: Back Facing
-  - ZH: 朝后
-  - [ ] OK    Fix: 
-
-- **`centerSpacing`**
-  - EN: Center + Spacing
-  - ZH: 中心+间距
-  - [ ] OK    Fix: 
-
-- **`centerX`**
-  - EN: Center X (m):
-  - ZH: 中心X (m):
-  - [ ] OK    Fix: 
-
-- **`centerY`**
-  - EN: Center Y (m):
-  - ZH: 中心Y (m):
-  - [ ] OK    Fix: 
-
-- **`endpoints`**
-  - EN: Endpoints
-  - ZH: 端点
-  - [ ] OK    Fix: 
-
-- **`endX`**
-  - EN: End X (m):
-  - ZH: 终点X (m):
-  - [ ] OK    Fix: 
-
-- **`endY`**
-  - EN: End Y (m):
-  - ZH: 终点Y (m):
-  - [ ] OK    Fix: 
-
-- **`facingInward`**
-  - EN: Facing Inward
-  - ZH: 朝内
-  - [ ] OK    Fix: 
-
-- **`facingOutward`**
-  - EN: Facing Outward
-  - ZH: 朝外
-  - [ ] OK    Fix: 
-
-- **`frontFacing`**
-  - EN: Front Facing
-  - ZH: 朝前
-  - [ ] OK    Fix: 
-
-- **`nPairs`**
-  - EN: N Pairs:
-  - ZH: 配对数:
-  - [ ] OK    Fix: 
-
-- **`nSpeakers`**
-  - EN: N Speakers:
-  - ZH: 扬声器数:
-  - [ ] OK    Fix: 
-
-- **`orientation`**
-  - EN: Orientation (deg):
-  - ZH: 朝向 (度):
-  - [ ] OK    Fix: 
-
-- **`radius`**
-  - EN: Radius (m):
-  - ZH: 半径 (m):
-  - [ ] OK    Fix: 
-
-- **`sag`**
-  - EN: Sag (m):
-  - ZH: 下垂 (m):
-  - [ ] OK    Fix: 
-
-- **`spacing`**
-  - EN: Spacing (m):
-  - ZH: 间距 (m):
-  - [ ] OK    Fix: 
-
-- **`startAngle`**
-  - EN: Start Angle (deg):
-  - ZH: 起始角度 (度):
-  - [ ] OK    Fix: 
-
-- **`startX`**
-  - EN: Start X (m):
-  - ZH: 起点X (m):
-  - [ ] OK    Fix: 
-
-- **`startY`**
-  - EN: Start Y (m):
-  - ZH: 起点Y (m):
-  - [ ] OK    Fix: 
-
-- **`width`**
-  - EN: Width (m):
-  - ZH: 宽度 (m):
-  - [ ] OK    Fix: 
-
-- **`yEnd`**
-  - EN: Y End (m):
-  - ZH: Y终点 (m):
-  - [ ] OK    Fix: 
-
-- **`yStart`**
-  - EN: Y Start (m):
-  - ZH: Y起点 (m):
-  - [ ] OK    Fix: 
-
-- **`zHeight`**
-  - EN: Z Height (m):
-  - ZH: Z高度 (m):
-  - [ ] OK    Fix: 
-
-## `arrayHelper.presets`
-
-- **`circle`**
-  - EN: Circle
-  - ZH: 圆形
-  - [ ] OK    Fix: 
-
-- **`delayLine`**
-  - EN: Delay Line
-  - ZH: 延迟线
-  - [ ] OK    Fix: 
-
-- **`label`**
-  - EN: Preset:
-  - ZH: 预设:
-  - [ ] OK    Fix: 
-
-- **`mainRoomStraight`**
-  - EN: Main Flown Array Straight
-  - ZH: 主吊挂阵列直线
-  - [ ] OK    Fix: 
-
-- **`nearFieldCurved`**
-  - EN: Near Field Array Curved
-  - ZH: 近场阵列弯曲
-  - [ ] OK    Fix: 
-
-- **`nearFieldStraight`**
-  - EN: Near Field Array Straight
-  - ZH: 近场阵列直线
-  - [ ] OK    Fix: 
-
-- **`subBass`**
-  - EN: Sub Bass
-  - ZH: 低音炮
-  - [ ] OK    Fix: 
-
-- **`surround`**
-  - EN: Surround
-  - ZH: 环绕
-  - [ ] OK    Fix: 
-
-## `arrayHelper.preview`
-
-- **`audience`**
-  - EN: Audience
-  - ZH: 观众
-  - [ ] OK    Fix: 
-
-## `arrayHelper.sections`
-
-- **`acousticDefaults`**
-  - EN: Acoustic Defaults
-  - ZH: 声学默认值
-  - [ ] OK    Fix: 
-
-- **`geometry`**
-  - EN: Geometry
-  - ZH: 几何
-  - [ ] OK    Fix: 
-
-- **`target`**
-  - EN: Target
-  - ZH: 目标
-  - [ ] OK    Fix: 
-
 ## `arrayHelper.status`
 
 - **`applied`**
@@ -461,116 +56,26 @@ Walk through each section. For every entry:
   - ZH: 就绪
   - [ ] OK    Fix: 
 
-## `arrayHelper.target`
+## `audioPatch.dialogs`
 
-- **`array`**
-  - EN: Array:
-  - ZH: 阵列:
+- **`unpatchInputsMessage`**
+  - EN: Are you sure you want to remove all input patches?
+  - ZH: 确定要移除所有输入路由吗?
   - [ ] OK    Fix: 
 
-- **`arrayPrefix`**
-  - EN: Array
-  - ZH: 阵列
+- **`unpatchInputsTitle`**
+  - EN: Unpatch All Inputs
+  - ZH: 断开所有输入
   - [ ] OK    Fix: 
 
-- **`startingOutput`**
-  - EN: Starting Output:
-  - ZH: 起始输出:
+- **`unpatchOutputsMessage`**
+  - EN: Are you sure you want to remove all output patches?
+  - ZH: 确定要移除所有输出路由吗?
   - [ ] OK    Fix: 
 
-## `arrayHelper.window`
-
-- **`contentName`**
-  - EN: Output Array Helper
-  - ZH: 输出阵列助手
-  - [ ] OK    Fix: 
-
-- **`title`**
-  - EN: Wizard of OutZ
-  - ZH: OutZ向导
-  - [ ] OK    Fix: 
-
-## `audioPatch`
-
-- **`windowTitle`**
-  - EN: Audio Interface and Patching
-  - ZH: 音频接口和路由
-  - [ ] OK    Fix: 
-
-## `audioPatch.buttons`
-
-- **`hold`**
-  - EN: Hold
-  - ZH: 保持
-  - [ ] OK    Fix: 
-
-- **`unpatchAll`**
-  - EN: Unpatch All
-  - ZH: 断开全部
-  - [ ] OK    Fix: 
-
-## `audioPatch.deviceSettings`
-
-- **`buttons.controlPanel`**
-  - EN: Control Panel
-  - ZH: 控制面板
-  - [ ] OK    Fix: 
-
-- **`buttons.resetDevice`**
-  - EN: Reset Device
-  - ZH: 重置设备
-  - [ ] OK    Fix: 
-
-- **`labels.bufferSize`**
-  - EN: Audio buffer size:
-  - ZH: 音频缓冲区大小:
-  - [ ] OK    Fix: 
-
-- **`labels.device`**
-  - EN: Device:
-  - ZH: 设备:
-  - [ ] OK    Fix: 
-
-- **`labels.deviceType`**
-  - EN: Audio device type:
-  - ZH: 音频设备类型:
-  - [ ] OK    Fix: 
-
-- **`labels.sampleRate`**
-  - EN: Sample rate:
-  - ZH: 采样率:
-  - [ ] OK    Fix: 
-
-- **`noDevice`**
-  - EN: No Device
-  - ZH: 无设备
-  - [ ] OK    Fix: 
-
-- **`notConfigured`**
-  - EN: Not configured
-  - ZH: 未配置
-  - [ ] OK    Fix: 
-
-## `audioPatch.labels`
-
-- **`interfaceInput`**
-  - EN: Audio Interface Input
-  - ZH: 音频接口输入
-  - [ ] OK    Fix: 
-
-- **`interfaceOutput`**
-  - EN: Audio Interface Output
-  - ZH: 音频接口输出
-  - [ ] OK    Fix: 
-
-- **`processorInputs`**
-  - EN: Processor Inputs
-  - ZH: 处理器输入
-  - [ ] OK    Fix: 
-
-- **`processorOutputs`**
-  - EN: Processor Outputs
-  - ZH: 处理器输出
+- **`unpatchOutputsTitle`**
+  - EN: Unpatch All Outputs
+  - ZH: 断开所有输出
   - [ ] OK    Fix: 
 
 ## `audioPatch.messages`
@@ -578,87 +83,6 @@ Walk through each section. For every entry:
 - **`chooseTestSignal`**
   - EN: Choose a Test Signal to Enable Testing
   - ZH: 选择测试信号以启用测试模式
-  - [ ] OK    Fix: 
-
-## `audioPatch.modes`
-
-- **`patching`**
-  - EN: Patching
-  - ZH: 路由
-  - [ ] OK    Fix: 
-
-- **`scrolling`**
-  - EN: Scrolling
-  - ZH: 滚动
-  - [ ] OK    Fix: 
-
-- **`testing`**
-  - EN: Testing
-  - ZH: 测试
-  - [ ] OK    Fix: 
-
-## `audioPatch.tabs`
-
-- **`deviceSettings`**
-  - EN: Device Settings
-  - ZH: 设备设置
-  - [ ] OK    Fix: 
-
-- **`inputPatch`**
-  - EN: Input Patch
-  - ZH: 输入路由
-  - [ ] OK    Fix: 
-
-- **`outputPatch`**
-  - EN: Output Patch
-  - ZH: 输出路由
-  - [ ] OK    Fix: 
-
-## `audioPatch.testSignal`
-
-- **`labels.frequency`**
-  - EN: Frequency:
-  - ZH: 频率:
-  - [ ] OK    Fix: 
-
-- **`labels.level`**
-  - EN: Level:
-  - ZH: 电平:
-  - [ ] OK    Fix: 
-
-- **`labels.signal`**
-  - EN: Signal:
-  - ZH: 信号:
-  - [ ] OK    Fix: 
-
-- **`types.diracPulse`**
-  - EN: Dirac Pulse
-  - ZH: 狄拉克脉冲
-  - [ ] OK    Fix: 
-
-- **`types.off`**
-  - EN: Off
-  - ZH: 关闭
-  - [ ] OK    Fix: 
-
-- **`types.pinkNoise`**
-  - EN: Pink Noise
-  - ZH: 粉红噪声
-  - [ ] OK    Fix: 
-
-- **`types.pulse`**
-  - EN: Pulse
-  - ZH: 脉冲
-  - [ ] OK    Fix: 
-
-- **`types.sweep`**
-  - EN: Sweep
-  - ZH: 扫频
-  - [ ] OK    Fix: 
-
-- **`types.tone`**
-  - EN: Tone
-  - ZH: 音调
   - [ ] OK    Fix: 
 
 ## `clusters.help`
@@ -819,8 +243,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`referenceMode`**
-  - EN: Select the reference point for cluster transforms: First Input or Barycenter.
-  - ZH: 选择集群变换的参考点：第一个输入或重心。
+  - EN: Select the reference point for cluster transforms: First Input, Barycenter, or Shared Position (all members coincide; scale and rotation apply to per-input offsets).
+  - ZH: 选择集群变换的参考点：First Input、重心或Shared Position（所有成员重合；缩放和旋转应用于各输入的偏移量）。
   - [ ] OK    Fix: 
 
 - **`rotationDial`**
@@ -843,333 +267,6 @@ Walk through each section. For every entry:
   - ZH: 沿 Z 轴（高度）移动集群的所有输入。
   - [ ] OK    Fix: 
 
-## `clusters.labels`
-
-- **`assignedInputs`**
-  - EN: Assigned Inputs
-  - ZH: 已分配输入
-  - [ ] OK    Fix: 
-
-- **`attenuation`**
-  - EN: Atten
-  - ZH: 衰减
-  - [ ] OK    Fix: 
-
-- **`controls`**
-  - EN: Controls
-  - ZH: 控制
-  - [ ] OK    Fix: 
-
-- **`inputPrefix`**
-  - EN: Input
-  - ZH: 输入
-  - [ ] OK    Fix: 
-
-- **`position`**
-  - EN: Position
-  - ZH: 位置
-  - [ ] OK    Fix: 
-
-- **`posPrefix`**
-  - EN: Pos:
-  - ZH: 位置:
-  - [ ] OK    Fix: 
-
-- **`reference`**
-  - EN: Reference:
-  - ZH: 参考:
-  - [ ] OK    Fix: 
-
-- **`rotation`**
-  - EN: Rotation
-  - ZH: 旋转
-  - [ ] OK    Fix: 
-
-- **`scale`**
-  - EN: Scale
-  - ZH: 缩放
-  - [ ] OK    Fix: 
-
-- **`x`**
-  - EN: X:
-  - ZH: X:
-  - [ ] OK    Fix: 
-
-- **`y`**
-  - EN: Y:
-  - ZH: Y:
-  - [ ] OK    Fix: 
-
-- **`z`**
-  - EN: Z
-  - ZH: Z
-  - [ ] OK    Fix: 
-
-## `clusters.lfo`
-
-- **`labels.amplitude`**
-  - EN: Amplitude:
-  - ZH: 幅度：
-  - [ ] OK    Fix: 
-
-- **`labels.angle`**
-  - EN: Angle:
-  - ZH: 角度：
-  - [ ] OK    Fix: 
-
-- **`labels.period`**
-  - EN: Period:
-  - ZH: 周期：
-  - [ ] OK    Fix: 
-
-- **`labels.phase`**
-  - EN: Phase:
-  - ZH: 相位：
-  - [ ] OK    Fix: 
-
-- **`labels.rate`**
-  - EN: Rate:
-  - ZH: 速率：
-  - [ ] OK    Fix: 
-
-- **`labels.ratio`**
-  - EN: Ratio:
-  - ZH: 比率：
-  - [ ] OK    Fix: 
-
-- **`labels.rot`**
-  - EN: Rotation
-  - ZH: 旋转
-  - [ ] OK    Fix: 
-
-- **`labels.scaleLfo`**
-  - EN: Scale
-  - ZH: 缩放
-  - [ ] OK    Fix: 
-
-- **`labels.section`**
-  - EN: LFO
-  - ZH: LFO
-  - [ ] OK    Fix: 
-
-- **`labels.x`**
-  - EN: X
-  - ZH: X
-  - [ ] OK    Fix: 
-
-- **`labels.y`**
-  - EN: Y
-  - ZH: Y
-  - [ ] OK    Fix: 
-
-- **`labels.z`**
-  - EN: Z
-  - ZH: Z
-  - [ ] OK    Fix: 
-
-## `clusters.osc`
-
-- **`lfoActive`**
-  - EN: /wfs/cluster/lfoActive <id> <0|1>
-  - ZH: /wfs/cluster/lfoActive <id> <0|1>
-  - [ ] OK    Fix: 
-
-- **`lfoAmplitudeRot`**
-  - EN: /wfs/cluster/lfoAmplitudeRot <id> <degrees>
-  - ZH: /wfs/cluster/lfoAmplitudeRot <id> <degrees>
-  - [ ] OK    Fix: 
-
-- **`lfoAmplitudeScale`**
-  - EN: /wfs/cluster/lfoAmplitudeScale <id> <factor>
-  - ZH: /wfs/cluster/lfoAmplitudeScale <id> <factor>
-  - [ ] OK    Fix: 
-
-- **`lfoAmplitudeX`**
-  - EN: /wfs/cluster/lfoAmplitudeX <id> <meters>
-  - ZH: /wfs/cluster/lfoAmplitudeX <id> <meters>
-  - [ ] OK    Fix: 
-
-- **`lfoAmplitudeY`**
-  - EN: /wfs/cluster/lfoAmplitudeY <id> <meters>
-  - ZH: /wfs/cluster/lfoAmplitudeY <id> <meters>
-  - [ ] OK    Fix: 
-
-- **`lfoAmplitudeZ`**
-  - EN: /wfs/cluster/lfoAmplitudeZ <id> <meters>
-  - ZH: /wfs/cluster/lfoAmplitudeZ <id> <meters>
-  - [ ] OK    Fix: 
-
-- **`lfoPeriod`**
-  - EN: /wfs/cluster/lfoPeriod <id> <seconds>
-  - ZH: /wfs/cluster/lfoPeriod <id> <秒>
-  - [ ] OK    Fix: 
-
-- **`lfoPhase`**
-  - EN: /wfs/cluster/lfoPhase <id> <degrees>
-  - ZH: /wfs/cluster/lfoPhase <id> <度>
-  - [ ] OK    Fix: 
-
-- **`lfoPhaseRot`**
-  - EN: /wfs/cluster/lfoPhaseRot <id> <degrees>
-  - ZH: /wfs/cluster/lfoPhaseRot <id> <degrees>
-  - [ ] OK    Fix: 
-
-- **`lfoPhaseScale`**
-  - EN: /wfs/cluster/lfoPhaseScale <id> <degrees>
-  - ZH: /wfs/cluster/lfoPhaseScale <id> <degrees>
-  - [ ] OK    Fix: 
-
-- **`lfoPhaseX`**
-  - EN: /wfs/cluster/lfoPhaseX <id> <degrees>
-  - ZH: /wfs/cluster/lfoPhaseX <id> <degrees>
-  - [ ] OK    Fix: 
-
-- **`lfoPhaseY`**
-  - EN: /wfs/cluster/lfoPhaseY <id> <degrees>
-  - ZH: /wfs/cluster/lfoPhaseY <id> <degrees>
-  - [ ] OK    Fix: 
-
-- **`lfoPhaseZ`**
-  - EN: /wfs/cluster/lfoPhaseZ <id> <degrees>
-  - ZH: /wfs/cluster/lfoPhaseZ <id> <degrees>
-  - [ ] OK    Fix: 
-
-- **`lfoPresetRecall`**
-  - EN: /wfs/cluster/lfoPresetRecall <clusterId> <presetNumber>
-  - ZH: /wfs/cluster/lfoPresetRecall <clusterId> <预设编号>
-  - [ ] OK    Fix: 
-
-- **`lfoRateRot`**
-  - EN: /wfs/cluster/lfoRateRot <id> <multiplier>
-  - ZH: /wfs/cluster/lfoRateRot <id> <multiplier>
-  - [ ] OK    Fix: 
-
-- **`lfoRateScale`**
-  - EN: /wfs/cluster/lfoRateScale <id> <multiplier>
-  - ZH: /wfs/cluster/lfoRateScale <id> <multiplier>
-  - [ ] OK    Fix: 
-
-- **`lfoRateX`**
-  - EN: /wfs/cluster/lfoRateX <id> <multiplier>
-  - ZH: /wfs/cluster/lfoRateX <id> <multiplier>
-  - [ ] OK    Fix: 
-
-- **`lfoRateY`**
-  - EN: /wfs/cluster/lfoRateY <id> <multiplier>
-  - ZH: /wfs/cluster/lfoRateY <id> <multiplier>
-  - [ ] OK    Fix: 
-
-- **`lfoRateZ`**
-  - EN: /wfs/cluster/lfoRateZ <id> <multiplier>
-  - ZH: /wfs/cluster/lfoRateZ <id> <multiplier>
-  - [ ] OK    Fix: 
-
-- **`lfoShapeRot`**
-  - EN: /wfs/cluster/lfoShapeRot <id> <0-8>
-  - ZH: /wfs/cluster/lfoShapeRot <id> <0-8>
-  - [ ] OK    Fix: 
-
-- **`lfoShapeScale`**
-  - EN: /wfs/cluster/lfoShapeScale <id> <0-8>
-  - ZH: /wfs/cluster/lfoShapeScale <id> <0-8>
-  - [ ] OK    Fix: 
-
-- **`lfoShapeX`**
-  - EN: /wfs/cluster/lfoShapeX <id> <0-8>
-  - ZH: /wfs/cluster/lfoShapeX <id> <0-8>
-  - [ ] OK    Fix: 
-
-- **`lfoShapeY`**
-  - EN: /wfs/cluster/lfoShapeY <id> <0-8>
-  - ZH: /wfs/cluster/lfoShapeY <id> <0-8>
-  - [ ] OK    Fix: 
-
-- **`lfoShapeZ`**
-  - EN: /wfs/cluster/lfoShapeZ <id> <0-8>
-  - ZH: /wfs/cluster/lfoShapeZ <id> <0-8>
-  - [ ] OK    Fix: 
-
-- **`lfoStopAll`**
-  - EN: /wfs/cluster/lfoStopAll
-  - ZH: /wfs/cluster/lfoStopAll
-  - [ ] OK    Fix: 
-
-## `clusters.planes`
-
-- **`xy`**
-  - EN: XY
-  - ZH: XY
-  - [ ] OK    Fix: 
-
-- **`xz`**
-  - EN: XZ
-  - ZH: XZ
-  - [ ] OK    Fix: 
-
-- **`yz`**
-  - EN: YZ
-  - ZH: YZ
-  - [ ] OK    Fix: 
-
-## `clusters.presets`
-
-- **`export`**
-  - EN: Export
-  - ZH: 导出
-  - [ ] OK    Fix: 
-
-- **`exportDialog`**
-  - EN: Export LFO Presets
-  - ZH: 导出 LFO 预设
-  - [ ] OK    Fix: 
-
-- **`exported`**
-  - EN: LFO presets exported.
-  - ZH: LFO 预设已导出。
-  - [ ] OK    Fix: 
-
-- **`import`**
-  - EN: Import
-  - ZH: 导入
-  - [ ] OK    Fix: 
-
-- **`importDialog`**
-  - EN: Import LFO Presets
-  - ZH: 导入 LFO 预设
-  - [ ] OK    Fix: 
-
-- **`imported`**
-  - EN: LFO presets imported.
-  - ZH: LFO 预设已导入。
-  - [ ] OK    Fix: 
-
-- **`recalled`**
-  - EN: LFO preset recalled from tile {n}.
-  - ZH: 已从方格 {n} 调用 LFO 预设。
-  - [ ] OK    Fix: 
-
-- **`stopAll`**
-  - EN: Stop All
-  - ZH: 全部停止
-  - [ ] OK    Fix: 
-
-- **`stored`**
-  - EN: LFO preset stored in tile {n}.
-  - ZH: LFO 预设已保存到方格 {n}。
-  - [ ] OK    Fix: 
-
-## `clusters.referenceMode`
-
-- **`barycenter`**
-  - EN: Barycenter
-  - ZH: 重心
-  - [ ] OK    Fix: 
-
-- **`firstInput`**
-  - EN: First Input
-  - ZH: 第一输入
-  - [ ] OK    Fix: 
-
 ## `clusters.status`
 
 - **`noInputs`**
@@ -1187,33 +284,76 @@ Walk through each section. For every entry:
   - ZH: 追踪: 输入 {num} (覆盖参考)
   - [ ] OK    Fix: 
 
-## `clusters.toggles`
-
-- **`inputsHidden`**
-  - EN: Inputs: Hidden
-  - ZH: 输入：隐藏
-  - [ ] OK    Fix: 
-
-- **`inputsVisible`**
-  - EN: Inputs: Visible
-  - ZH: 输入：可见
-  - [ ] OK    Fix: 
-
-- **`lfoOff`**
-  - EN: L.F.O: OFF
-  - ZH: L.F.O: 关
-  - [ ] OK    Fix: 
-
-- **`lfoOn`**
-  - EN: L.F.O: ON
-  - ZH: L.F.O: 开
-  - [ ] OK    Fix: 
-
 ## `common`
+
+- **`add`**
+  - EN: Add
+  - ZH: 添加
+  - [ ] OK    Fix: 
+
+- **`all`**
+  - EN: All
+  - ZH: 全部
+  - [ ] OK    Fix: 
+
+- **`apply`**
+  - EN: Apply
+  - ZH: 应用
+  - [ ] OK    Fix: 
 
 - **`cancel`**
   - EN: Cancel
   - ZH: 取消
+  - [ ] OK    Fix: 
+
+- **`close`**
+  - EN: Close
+  - ZH: 关闭
+  - [ ] OK    Fix: 
+
+- **`delete`**
+  - EN: Delete
+  - ZH: 删除
+  - [ ] OK    Fix: 
+
+- **`disable`**
+  - EN: Disable
+  - ZH: 禁用
+  - [ ] OK    Fix: 
+
+- **`edit`**
+  - EN: Edit
+  - ZH: 编辑
+  - [ ] OK    Fix: 
+
+- **`enable`**
+  - EN: Enable
+  - ZH: 启用
+  - [ ] OK    Fix: 
+
+- **`export`**
+  - EN: Export
+  - ZH: 导出
+  - [ ] OK    Fix: 
+
+- **`import`**
+  - EN: Import
+  - ZH: 导入
+  - [ ] OK    Fix: 
+
+- **`load`**
+  - EN: Load
+  - ZH: 加载
+  - [ ] OK    Fix: 
+
+- **`no`**
+  - EN: No
+  - ZH: 否
+  - [ ] OK    Fix: 
+
+- **`none`**
+  - EN: None
+  - ZH: 无
   - [ ] OK    Fix: 
 
 - **`off`**
@@ -1231,75 +371,39 @@ Walk through each section. For every entry:
   - ZH: 开
   - [ ] OK    Fix: 
 
-## `eq.buttons`
-
-- **`flattenEQ`**
-  - EN: Flatten EQ
-  - ZH: 重置EQ
+- **`reload`**
+  - EN: Reload
+  - ZH: 重新加载
   - [ ] OK    Fix: 
 
-- **`resetBand`**
+- **`remove`**
+  - EN: Remove
+  - ZH: 移除
+  - [ ] OK    Fix: 
+
+- **`reset`**
   - EN: Reset
   - ZH: 重置
   - [ ] OK    Fix: 
 
-## `eq.filterTypes`
-
-- **`allPass`**
-  - EN: All-Pass
-  - ZH: 全通
+- **`save`**
+  - EN: Save
+  - ZH: 保存
   - [ ] OK    Fix: 
 
-- **`bandPass`**
-  - EN: Band Pass
-  - ZH: 带通
+- **`select`**
+  - EN: Select
+  - ZH: 选择
   - [ ] OK    Fix: 
 
-- **`highCut`**
-  - EN: High Cut
-  - ZH: 高切
+- **`store`**
+  - EN: Store
+  - ZH: 存储
   - [ ] OK    Fix: 
 
-- **`highShelf`**
-  - EN: High Shelf
-  - ZH: 高频搁架
-  - [ ] OK    Fix: 
-
-- **`lowCut`**
-  - EN: Low Cut
-  - ZH: 低切
-  - [ ] OK    Fix: 
-
-- **`lowShelf`**
-  - EN: Low Shelf
-  - ZH: 低频搁架
-  - [ ] OK    Fix: 
-
-- **`peakNotch`**
-  - EN: Peak/Notch
-  - ZH: 峰值/陷波
-  - [ ] OK    Fix: 
-
-## `eq.labels`
-
-- **`band`**
-  - EN: Band
-  - ZH: 频段
-  - [ ] OK    Fix: 
-
-- **`freq`**
-  - EN: Freq:
-  - ZH: 频率:
-  - [ ] OK    Fix: 
-
-- **`gain`**
-  - EN: Gain
-  - ZH: 增益
-  - [ ] OK    Fix: 
-
-- **`q`**
-  - EN: Q
-  - ZH: Q值
+- **`yes`**
+  - EN: Yes
+  - ZH: 是
   - [ ] OK    Fix: 
 
 ## `eq.status`
@@ -1321,182 +425,23 @@ Walk through each section. For every entry:
   - ZH: 选择项目文件夹
   - [ ] OK    Fix: 
 
-## `fileManager.errors`
-
-- **`backupNotFound`**
-  - EN: Backup not found
-  - ZH: 未找到备份
-  - [ ] OK    Fix: 
-
-- **`configStateInvalid`**
-  - EN: Config state is invalid
-  - ZH: 配置状态无效
-  - [ ] OK    Fix: 
-
-- **`failedApply`**
-  - EN: Failed to apply: {sections}
-  - ZH: 应用失败：{sections}
-  - [ ] OK    Fix: 
-
-- **`failedCreateFolder`**
-  - EN: Failed to create project folder: {path}
-  - ZH: 创建项目文件夹失败：{path}
-  - [ ] OK    Fix: 
-
-- **`failedCreateValueTree`**
-  - EN: Failed to create ValueTree from XML: {path}
-  - ZH: 从 XML 创建 ValueTree 失败：{path}
-  - [ ] OK    Fix: 
-
-- **`failedCreateXML`**
-  - EN: Failed to create XML from state
-  - ZH: 从状态创建 XML 失败
-  - [ ] OK    Fix: 
-
-- **`failedParseXML`**
-  - EN: Failed to parse XML file: {path}
-  - ZH: 解析 XML 文件失败：{path}
-  - [ ] OK    Fix: 
-
-- **`failedWriteFile`**
-  - EN: Failed to write file: {path}
-  - ZH: 写入文件失败：{path}
-  - [ ] OK    Fix: 
-
-- **`fileNotFound`**
-  - EN: File not found: {path}
-  - ZH: 未找到文件：{path}
-  - [ ] OK    Fix: 
-
-- **`invalidConfigStructure`**
-  - EN: Invalid configuration file structure
-  - ZH: 配置文件结构无效
-  - [ ] OK    Fix: 
-
-- **`noInputDataInFile`**
-  - EN: No input data found in file
-  - ZH: 文件中未找到输入数据
-  - [ ] OK    Fix: 
-
-- **`noInputDataInSnapshot`**
-  - EN: No input data in snapshot
-  - ZH: 快照中没有输入数据
-  - [ ] OK    Fix: 
-
-- **`noLFOPresetDataInFile`**
-  - EN: No LFO preset data found in file
-  - ZH: 文件中未找到LFO预设数据
-  - [ ] OK    Fix: 
-
-- **`noNetworkDataInFile`**
-  - EN: No network data found in file
-  - ZH: 文件中未找到网络数据
-  - [ ] OK    Fix: 
-
-- **`noNetworkSections`**
-  - EN: No network sections found in file
-  - ZH: 文件中未找到网络部分
-  - [ ] OK    Fix: 
-
-- **`noOutputDataInFile`**
-  - EN: No output data found in file
-  - ZH: 文件中未找到输出数据
-  - [ ] OK    Fix: 
-
-- **`noProjectFolder`**
-  - EN: No project folder specified
-  - ZH: 未指定项目文件夹
-  - [ ] OK    Fix: 
-
-- **`noReverbDataInFile`**
-  - EN: No reverb data found in file
-  - ZH: 文件中未找到混响数据
-  - [ ] OK    Fix: 
-
-- **`noSystemDataInFile`**
-  - EN: No valid system data found in file: {path}
-  - ZH: 文件中未找到有效的系统数据：{path}
-  - [ ] OK    Fix: 
-
-- **`noValidProjectFolder`**
-  - EN: No valid project folder
-  - ZH: 没有有效的项目文件夹
-  - [ ] OK    Fix: 
-
-- **`prefixInputs`**
-  - EN: Inputs: 
-  - ZH: 输入：
-  - [ ] OK    Fix: 
-
-- **`prefixNetwork`**
-  - EN: Network: 
-  - ZH: 网络：
-  - [ ] OK    Fix: 
-
-- **`prefixOutputs`**
-  - EN: Outputs: 
-  - ZH: 输出：
-  - [ ] OK    Fix: 
-
-- **`prefixReverbs`**
-  - EN: Reverbs: 
-  - ZH: 混响：
-  - [ ] OK    Fix: 
-
-- **`prefixSystem`**
-  - EN: System: 
-  - ZH: 系统：
-  - [ ] OK    Fix: 
-
-- **`snapshotNotFound`**
-  - EN: Snapshot not found
-  - ZH: 未找到快照
-  - [ ] OK    Fix: 
-
-- **`snapshotNotFoundNamed`**
-  - EN: Snapshot not found: {name}
-  - ZH: 未找到快照：{name}
-  - [ ] OK    Fix: 
-
 ## `help.admOsc`
 
 - **`body`**
-  - EN: ADM-OSC is a protocol aiming to improve interoperability for spatial sound. It sends Cartesian positions (X, Y, Z) or polar values (AED for Azimuth, Elevation, Distance) from the console or from a DAW's automation curves.
-Data is sent normalised:
-- between -1.0 and 1.0 for X, Y and Z;
-- between 0.0 to 1.0 for distance,
-- between -180° to 180° for Azimuth
-- between -90° to 90° for elevation.
-The origin point can be moved and the mapping can also be adjusted in different segments for the inner and outer parts of the stage.
-When dragging the handles on the graphs, holding the shift key will apply symmetrical adjustments on the opposite side.
-  - ZH: ADM-OSC是一种旨在提高空间声音互操作性的协议。它从调音台或DAW的自动化曲线发送笛卡尔坐标（X、Y、Z）或极坐标值（AED：方位角、仰角、距离）。
-数据以归一化方式发送：
-- X、Y和Z在-1.0到1.0之间
-- 距离在0.0到1.0之间
-- 方位角在-180°到180°之间
-- 仰角在-90°到90°之间
-原点可以移动，映射也可以针对舞台的内部和外部区域进行不同的分段调整。
-拖动图表上的控制点时，按住Shift键将在对侧应用对称调整。
+  - EN: ADM-OSC is a protocol aiming to improve interoperability for spatial sound. It sends Cartesian positions (X, Y, Z) or polar values (AED for Azimuth, Elevation, Distance) from the console or from a DAW's automation curves.\nData is sent normalised:\n- between -1.0 and 1.0 for X, Y and Z;\n- between 0.0 to 1.0 for distance,\n- between -180° to 180° for Azimuth\n- between -90° to 90° for elevation.\nThe origin point can be moved and the mapping can also be adjusted in different segments for the inner and outer parts of the stage.\nWhen dragging the handles on the graphs, holding the shift key will apply symmetrical adjustments on the opposite side.
+  - ZH: ADM-OSC是一种旨在提高空间声音互操作性的协议。它从调音台或DAW的自动化曲线发送笛卡尔坐标（X、Y、Z）或极坐标值（AED：方位角、仰角、距离）。\n数据以归一化方式发送：\n- X、Y和Z在-1.0到1.0之间\n- 距离在0.0到1.0之间\n- 方位角在-180°到180°之间\n- 仰角在-90°到90°之间\n原点可以移动，映射也可以针对舞台的内部和外部区域进行不同的分段调整。\n拖动图表上的控制点时，按住Shift键将在对侧应用对称调整。
   - [ ] OK    Fix: 
 
 - **`title`**
   - EN: ADM-OSC Mappings
-  - ZH: ADM-OSC映射
+  - ZH: ADM-OSC Mappings
   - [ ] OK    Fix: 
 
 ## `help.automOtion`
 
 - **`body`**
-  - EN: One time movement can also be programmed and triggered manually or triggered by sound level.
-The coordinates are either relative from the start position or absolute relative to the origin point.
-The input can either stay at the end position or revert to the starting position.
-Input position cannot be changed while the input is moving this way, but interacting with the input will change the position offset of the input instead.
-For audio level triggering select the sound level above which the movement will start. When the sound drops below the reset level the movement will be rearmed, ready to be triggered again. New movement automation will not be possible while the input is moving.
-  - ZH: 一次性运动可以编程并手动触发或通过声音电平触发。
-坐标可以是相对于起始位置的相对值或相对于原点的绝对值。
-输入可以停留在终点位置或返回起始位置。
-移动过程中无法更改位置，但与输入的交互将更改位置偏移。
-对于音频电平触发，选择运动开始的阈值。当声音降到重置电平以下时，运动将重新准备就绪。
+  - EN: One time movement can also be programmed and triggered manually or triggered by sound level.\nThe coordinates are either relative from the start position or absolute relative to the origin point.\nThe input can either stay at the end position or revert to the starting position.\nInput position cannot be changed while the input is moving this way, but interacting with the input will change the position offset of the input instead.\nFor audio level triggering select the sound level above which the movement will start. When the sound drops below the reset level the movement will be rearmed, ready to be triggered again. New movement automation will not be possible while the input is moving.
+  - ZH: 一次性运动可以编程并手动触发或通过声音电平触发。\n坐标可以是相对于起始位置的相对值或相对于原点的绝对值。\n输入可以停留在终点位置或返回起始位置。\n移动过程中无法更改位置，但与输入的交互将更改位置偏移。\n对于音频电平触发，选择运动开始的阈值。当声音降到重置电平以下时，运动将重新准备就绪。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1507,44 +452,20 @@ For audio level triggering select the sound level above which the movement will 
 ## `help.binaural`
 
 - **`body`**
-  - EN: The Binaural renderer is used for:
-- listening to a rough spatial mix on headphones,
-- creating a mix for stereo output,
-- listening to a single soloed track through the spatial processing.
-This may take the place of your master mix if it's only feeding headphones and media mix.
-The position of the listening position may be adjusted in depth from the origin point and in orientation. Delay and level settings allow you to eventually match the sound at the FOH position.
-  - ZH: 双耳渲染器用于：
-- 通过耳机收听粗略的空间混音
-- 创建立体声输出混音
-- 通过空间处理收听单独的独奏轨道
-如果仅为耳机和媒体混音供电，它可以替代您的主混音。
-收听位置可以从原点调整深度和方向。延迟和电平设置可以匹配FOH位置的声音。
+  - EN: The Binaural renderer is used for:\n- listening to a rough spatial mix on headphones,\n- creating a mix for stereo output,\n- listening to a single soloed track through the spatial processing.\nThis may take the place of your master mix if it's only feeding headphones and media mix.\nThe position of the listening position may be adjusted in depth from the origin point and in orientation. Delay and level settings allow you to eventually match the sound at the FOH position.
+  - ZH: Binaural Renderer用于：\n- 通过耳机收听粗略的空间混音\n- 创建立体声输出混音\n- 通过空间处理收听单独的独奏轨道\n如果仅为耳机和媒体混音供电，它可以替代您的主混音。\n收听位置可以从原点调整深度和方向。延迟和电平设置可以匹配FOH位置的声音。
   - [ ] OK    Fix: 
 
 - **`title`**
   - EN: Binaural Renderer
-  - ZH: 双耳渲染器
+  - ZH: Binaural Renderer
   - [ ] OK    Fix: 
 
 ## `help.clusters`
 
 - **`body`**
-  - EN: Clusters are groups of inputs that can be manipulated and animated as a whole.
-Each input can only be part of one cluster.
-Each cluster can only have one input with tracking fully enabled. Then this input will become the reference points for the cluster.
-If no input with tracking is part of the cluster then there are two modes for the reference point of the cluster. Either the first input assigned in the list becomes the reference or the barycentre, in other words the center of gravity or the middle of the shape formed by the assigned inputs.
-All inputs of the clusters can be moved by dragging the reference point. The individual inputs (other than a first input that would be a reference point) can still be adjusted individually. Dragging an input with tracking activated that is also a reference point for a cluster will affect its position offset and the position of the other inputs of the cluster normally.
-All inputs in a cluster can be rotated or scaled around the reference point.
-All clusters can be assigned an animation via an LFO. The positions X, Y and Z, the rotation and scale of the cluster can be controlled. The LFO has a period and a phase setting. Each individual parameter has shape, amplitude, rate and phase. The LFO settings can be assigned to pads for a quick recall. A right click will store the LFO parameters to a pad. Double clicking the top of the pad will allow to edit the name of the preset. Clicking or tapping a pad will recall the settings whether the LFO is running or not, but it will not start it if is isn't. A double click/tap will load and start the LFO.
-All input clusters share the same set of LFO presets.
-  - ZH: 集群是可以作为整体进行操作和动画的输入组。
-每个输入只能属于一个集群。
-每个集群只能有一个完全启用跟踪的输入，该输入成为集群的参考点。
-如果没有跟踪输入，参考点有两种模式：列表中第一个分配的输入或分配输入的重心。
-拖动参考点可以移动所有输入。单个输入仍然可以单独调整。拖动启用了跟踪且同时是参考点的输入将正常影响其位置偏移和集群其他输入的位置。
-集群中的所有输入都可以围绕参考点旋转或缩放。
-所有集群都可以通过LFO分配动画。可以控制X、Y、Z位置、旋转和缩放。LFO设置可以分配给触控板以快速调用。右键点击将LFO参数存储到触控板。双击触控板顶部可以编辑预设名称。点击或轻触触控板将调用设置，无论LFO是否正在运行，但不会启动已停止的LFO。双击/双触将加载并启动LFO。
-所有集群共享相同的LFO预设集。
+  - EN: Clusters are groups of inputs that can be manipulated and animated as a whole.\nEach input can only be part of one cluster.\nEach cluster can only have one input with tracking fully enabled. Then this input will become the reference points for the cluster.\nIf no input with tracking is part of the cluster then there are two modes for the reference point of the cluster. Either the first input assigned in the list becomes the reference or the barycentre, in other words the center of gravity or the middle of the shape formed by the assigned inputs.\nAll inputs of the clusters can be moved by dragging the reference point. The individual inputs (other than a first input that would be a reference point) can still be adjusted individually. Dragging an input with tracking activated that is also a reference point for a cluster will affect its position offset and the position of the other inputs of the cluster normally.\nAll inputs in a cluster can be rotated or scaled around the reference point.\nAll clusters can be assigned an animation via an LFO. The positions X, Y and Z, the rotation and scale of the cluster can be controlled. The LFO has a period and a phase setting. Each individual parameter has shape, amplitude, rate and phase. The LFO settings can be assigned to pads for a quick recall. A right click will store the LFO parameters to a pad. Double clicking the top of the pad will allow to edit the name of the preset. Clicking or tapping a pad will recall the settings whether the LFO is running or not, but it will not start it if is isn't. A double click/tap will load and start the LFO.\nAll input clusters share the same set of LFO presets.
+  - ZH: 集群是可以作为整体进行操作和动画的输入组。\n每个输入只能属于一个集群。\n每个集群只能有一个完全启用跟踪的输入，该输入成为集群的参考点。\n如果没有跟踪输入，参考点有两种模式：列表中第一个分配的输入或分配输入的重心。\n拖动参考点可以移动所有输入。单个输入仍然可以单独调整。拖动启用了跟踪且同时是参考点的输入将正常影响其位置偏移和集群其他输入的位置。\n集群中的所有输入都可以围绕参考点旋转或缩放。\n所有集群都可以通过LFO分配动画。可以控制X、Y、Z位置、旋转和缩放。LFO设置可以分配给触控板以快速调用。右键点击将LFO参数存储到触控板。双击触控板顶部可以编辑预设名称。点击或轻触触控板将调用设置，无论LFO是否正在运行，但不会启动已停止的LFO。双击/双触将加载并启动LFO。\n所有集群共享相同的LFO预设集。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1555,56 +476,32 @@ All input clusters share the same set of LFO presets.
 ## `help.floorReflections`
 
 - **`body`**
-  - EN: Simulating the floor reflections improves the naturalness of the sound. We don't expect sounds to play in a soundproof anechoic chamber. This setting helps recreate the expected floor reflections.
-The level of the floor reflections can be adjusted as well as the low cut and the high frequency shelf filters. Diffusion adds a bit of chaos to simulate the unevenness of the floor.
-  - ZH: 模拟地板反射可以提高声音的自然度。我们不期望声音在隔音消声室中播放。此设置有助于重建预期的地板反射。
-地板反射的电平可以调整，同时还有低切和高频搁架滤波器。扩散增加一些随机性来模拟地板的不平整。
+  - EN: Simulating the floor reflections improves the naturalness of the sound. We don't expect sounds to play in a soundproof anechoic chamber. This setting helps recreate the expected floor reflections.\nThe level of the floor reflections can be adjusted as well as the low cut and the high frequency shelf filters. Diffusion adds a bit of chaos to simulate the unevenness of the floor.
+  - ZH: 模拟地板反射可以提高声音的自然度。我们不期望声音在隔音消声室中播放。此设置有助于重建预期的地板反射。\n地板反射的电平可以调整，同时还有低切和高频搁架滤波器。扩散增加一些随机性来模拟地板的不平整。
   - [ ] OK    Fix: 
 
 - **`title`**
   - EN: Floor Reflections
-  - ZH: 地板反射
+  - ZH: Floor Reflections
   - [ ] OK    Fix: 
 
 ## `help.gradientMap`
 
 - **`body`**
-  - EN: Gradient maps allow to control attenuation, height and high frequency filtering (shelf with a smooth slope centered at 1kHz) depending on the X, Y position. For example, you can fade out a sound when entering a certain zone, you can have high frequency roll-off when moving away from the front of the stage, you can automatically adjust the height of an actor even when they are standing on elevated platforms without having to control height manually.
-There are three layers for attenuation, height and HF shelf. They can be toggled on and off and they also can be hidden. The focused layer will look dimmed if disabled. Unfocused layers will look dimmed if active and only the shape outlines will be visible if they are deactivated.
-Each layer has a mapping control for white and black to adjust the range of the effect. The curve setting adjusts the transition.
-Each layer can have editable shapes (rectangle, ellipse or polygon) with either a single shade of grey, a linear gradient or a radial gradient. End points of the gradients can be adjusted.
-When creating a polygon click for each corner. Double-clicking will create a last corner and close the shape.
-Double-clicking an existing point on a rectangle or a polygon will remove this corner. Double-clicking on a side will add a new point.
-The scale and rotation of each shape can be edited for its center or from the origin point.
-When enabled the corner points of the rectangles and polygons can also be edited individually.
-Shapes and layers can be copied to another layer on the same input or any other input.
-Gradient map settings are stored in the input files.
-  - ZH: 渐变图允许根据X、Y位置控制衰减、高度和高频滤波（以1kHz为中心的平滑斜坡搁架滤波器）。例如，可以在进入某个区域时淡出声音，在远离舞台前方时应用高频衰减，或自动调整站在高台上的演员的高度。
-有三个图层：衰减、高度和HF搁架。它们可以开/关切换和隐藏。
-每个图层有白色和黑色的映射控制来调整效果范围。曲线设置调整过渡。
-每个图层可以有可编辑的形状（矩形、椭圆或多边形），使用纯灰色、线性渐变或径向渐变。
-创建多边形时点击每个角，双击关闭形状。
-双击现有点将其删除，双击边添加新点。
-形状和图层可以复制到其他图层。
-设置存储在输入文件中。
+  - EN: Gradient maps allow to control attenuation, height and high frequency filtering (shelf with a smooth slope centered at 1kHz) depending on the X, Y position. For example, you can fade out a sound when entering a certain zone, you can have high frequency roll-off when moving away from the front of the stage, you can automatically adjust the height of an actor even when they are standing on elevated platforms without having to control height manually.\nThere are three layers for attenuation, height and HF shelf. They can be toggled on and off and they also can be hidden. The focused layer will look dimmed if disabled. Unfocused layers will look dimmed if active and only the shape outlines will be visible if they are deactivated.\nEach layer has a mapping control for white and black to adjust the range of the effect. The curve setting adjusts the transition.\nEach layer can have editable shapes (rectangle, ellipse or polygon) with either a single shade of grey, a linear gradient or a radial gradient. End points of the gradients can be adjusted.\nWhen creating a polygon click for each corner. Double-clicking will create a last corner and close the shape.\nDouble-clicking an existing point on a rectangle or a polygon will remove this corner. Double-clicking on a side will add a new point.\nThe scale and rotation of each shape can be edited for its center or from the origin point.\nWhen enabled the corner points of the rectangles and polygons can also be edited individually.\nShapes and layers can be copied to another layer on the same input or any other input.\nGradient map settings are stored in the input files.
+  - ZH: 渐变图允许根据X、Y位置控制衰减、高度和高频滤波（以1kHz为中心的平滑斜坡搁架滤波器）。例如，可以在进入某个区域时淡出声音，在远离舞台前方时应用高频衰减，或自动调整站在高台上的演员的高度。\n有三个图层：衰减、高度和HF搁架。它们可以开/关切换和隐藏。\n每个图层有白色和黑色的映射控制来调整效果范围。曲线设置调整过渡。\n每个图层可以有可编辑的形状（矩形、椭圆或多边形），使用纯灰色、线性渐变或径向渐变。\n创建多边形时点击每个角，双击关闭形状。\n双击现有点将其删除，双击边添加新点。\n形状和图层可以复制到其他图层。\n设置存储在输入文件中。
   - [ ] OK    Fix: 
 
 - **`title`**
   - EN: Gradient Maps
-  - ZH: 渐变图
+  - ZH: Gradient Maps
   - [ ] OK    Fix: 
 
 ## `help.inputAdvanced`
 
 - **`body`**
-  - EN: - Sidelines and Fringe enable muting when an input comes close to the limits of a rectangular stage (except downstage).
-- Tracking can be enabled and the ID of the tracker can be selected. The amount of smoothing on the position can also be adjusted.
-- Maximum Speed can be engaged and the speed limit adjusted. The system will apply a gradual acceleration and deceleration when the movement starts and finishes. When Path is enabled, the system will track the path followed by the input and will not go in a straight line to the final position. This is especially handy if movements have to be operated manually.
-- Height Factor lets you work in 2D, when set to 0%, or full 3D, when set at 100%, and anything in between. It's the ratio of the height in the level and delay calculations. If you wish to use floor reflections, set it to 100% and use the parallax correction of the output parameters.
-  - ZH: - 边线和过渡区允许在输入接近矩形舞台边界时静音 (观众侧除外)。
-- 可以启用跟踪并选择跟踪器 ID。位置平滑度也可以调整。
-- 可以启用最大速度并调整速度限制。系统将在运动开始和结束时应用渐进加速和减速。当路径模式激活时，系统将跟随输入所走的路径，而不是直线移动到最终位置。如果运动需要手动操作，这特别有用。
-- 高度因子允许在 0% 时以 2D 工作，在 100% 时以完整 3D 工作，以及介于两者之间的所有值。这是高度在电平和延迟计算中的比率。如果您希望使用地板反射，请将其设置为 100%，并使用输出参数中的视差校正。
+  - EN: - Sidelines and Fringe enable muting when an input comes close to the limits of a rectangular stage (except downstage).\n- Tracking can be enabled and the ID of the tracker can be selected. The amount of smoothing on the position can also be adjusted.\n- Maximum Speed can be engaged and the speed limit adjusted. The system will apply a gradual acceleration and deceleration when the movement starts and finishes. When Path is enabled, the system will track the path followed by the input and will not go in a straight line to the final position. This is especially handy if movements have to be operated manually.\n- Height Factor lets you work in 2D, when set to 0%, or full 3D, when set at 100%, and anything in between. It's the ratio of the height in the level and delay calculations. If you wish to use floor reflections, set it to 100% and use the parallax correction of the output parameters.
+  - ZH: - 边线和过渡区允许在输入接近矩形舞台边界时静音 (观众侧除外)。\n- 可以启用跟踪并选择跟踪器 ID。位置平滑度也可以调整。\n- 可以启用最大速度并调整速度限制。系统将在运动开始和结束时应用渐进加速和减速。当路径模式激活时，系统将跟随输入所走的路径，而不是直线移动到最终位置。如果运动需要手动操作，这特别有用。\n- 高度因子允许在 0% 时以 2D 工作，在 100% 时以完整 3D 工作，以及介于两者之间的所有值。这是高度在电平和延迟计算中的比率。如果您希望使用Floor Reflections，请将其设置为 100%，并使用输出参数中的视差校正。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1615,24 +512,8 @@ Gradient map settings are stored in the input files.
 ## `help.inputBasic`
 
 - **`body`**
-  - EN: Inputs have a wide variety of settings to account for different situations necessitating realistic sound reinforcement or creative tools for sound design.
-- Input level can be adjusted.
-- Inputs can be delayed or they can try to take into account specific latency (digital processing of wireless transmission or digital effects) and compensate for it to better align the amplification and the acoustic sound.
-- Minimal Latency can be toggled instead of Acoustic Precedence. On the other hand this tries to let the sound out through the system as soon as possible. The system scans this input's feeds to the outputs for lowest delay and subtracts it from all delays and bypasses additional Haas effect. Here the idea would be to beat the acoustic sound on stage to try and place a sound in a slightly different position by altering the location first perceived.
-- The location (position and offset) for any input can be given in Cartesian, Cylindrical or Spherical coordinates independently from the stage shape or other channels.
-- The position can be constrained to the dimensions of the stage in Cartesian coordinates or to a specific distance range in polar coordinates.
-- Flip will take symmetrical position for the given coordinate around the origin point.
-- The joystick and vertical slider allow relative control of the position.
-- Inputs can be assigned to a cluster to group them for coordinated movements.
-  - ZH: 输入具有多种设置，以适应需要逼真扩声或声音设计创意工具的不同情况。
-- 输入电平可以调整。
-- 输入可以延迟，或可以尝试考虑特定延迟（无线传输或数字效果的数字处理）并进行补偿，以更好地对齐放大和声学声音。
-- 可以启用最小延迟来代替声学优先。这会尝试尽可能快地通过系统输出声音。系统扫描此输入到输出的发送以获取最低延迟，并从所有延迟中减去它，同时绕过额外的Haas效应。
-- 位置（位置和偏移）可以用直角坐标、圆柱坐标或球坐标给出，与舞台形状或其他通道无关。
-- 位置可以在直角坐标中约束到舞台尺寸，或在极坐标中约束到特定距离范围。
-- 翻转将在原点周围取给定坐标的对称位置。
-- 操纵杆和垂直滑块允许相对位置控制。
-- 输入可以分配到群组以进行协调运动。
+  - EN: Inputs have a wide variety of settings to account for different situations necessitating realistic sound reinforcement or creative tools for sound design.\n- Input level can be adjusted.\n- Inputs can be delayed or they can try to take into account specific latency (digital processing of wireless transmission or digital effects) and compensate for it to better align the amplification and the acoustic sound.\n- Minimal Latency can be toggled instead of Acoustic Precedence. On the other hand this tries to let the sound out through the system as soon as possible. The system scans this input's feeds to the outputs for lowest delay and subtracts it from all delays and bypasses additional Haas effect. Here the idea would be to beat the acoustic sound on stage to try and place a sound in a slightly different position by altering the location first perceived.\n- The location (position and offset) for any input can be given in Cartesian, Cylindrical or Spherical coordinates independently from the stage shape or other channels.\n- The position can be constrained to the dimensions of the stage in Cartesian coordinates or to a specific distance range in polar coordinates.\n- Flip will take symmetrical position for the given coordinate around the origin point.\n- The joystick and vertical slider allow relative control of the position.\n- Inputs can be assigned to a cluster to group them for coordinated movements.
+  - ZH: 输入具有多种设置，以适应需要逼真扩声或声音设计创意工具的不同情况。\n- 输入电平可以调整。\n- 输入可以延迟，或可以尝试考虑特定延迟（无线传输或数字效果的数字处理）并进行补偿，以更好地对齐放大和声学声音。\n- 可以启用Minimal Latency来代替Acoustic Precedence。这会尝试尽可能快地通过系统输出声音。系统扫描此输入到输出的发送以获取最低延迟，并从所有延迟中减去它，同时绕过额外的Haas效应。\n- 位置（位置和偏移）可以用直角坐标、圆柱坐标或球坐标给出，与舞台形状或其他通道无关。\n- 位置可以在直角坐标中约束到舞台尺寸，或在极坐标中约束到特定距离范围。\n- 翻转将在原点周围取给定坐标的对称位置。\n- 操纵杆和垂直滑块允许相对位置控制。\n- 输入可以分配到群组以进行协调运动。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1643,12 +524,8 @@ Gradient map settings are stored in the input files.
 ## `help.inputHF`
 
 - **`body`**
-  - EN: When talking away, the timbre of a voice will sound less bright. Reproducing this was the initial goal here even though we usually want to have support for voices when not addressing the audience or in bi-frontal configurations. This can be put to good use for creative effects such as having a brighter reverb on a dampened direct sound.
-The orientation of the input in azimuth and in pitch can be set as well as the angle where the high frequencies will not be filtered.
-The HF Shelf will set the maximum attenuation in the back of the input. There is a smooth fade (like a cosine curve) from full brightness in front to damped at the rear.
-  - ZH: 当说话者转身时，声音的音色会变得不那么明亮。再现这一点是这里的最初目标，尽管我们通常希望在不面向观众或双面配置中为声音提供支持。这可以用于创意效果，如在衰减的直达声上有更明亮的混响。
-输入的方位角和俯仰角方向可以设置，以及高频不被过滤的角度。
-HF Shelf将设置输入背面的最大衰减。从前面的完全明亮到后面的衰减有一个平滑的渐变（如余弦曲线）。
+  - EN: When talking away, the timbre of a voice will sound less bright. Reproducing this was the initial goal here even though we usually want to have support for voices when not addressing the audience or in bi-frontal configurations. This can be put to good use for creative effects such as having a brighter reverb on a dampened direct sound.\nThe orientation of the input in azimuth and in pitch can be set as well as the angle where the high frequencies will not be filtered.\nThe HF Shelf will set the maximum attenuation in the back of the input. There is a smooth fade (like a cosine curve) from full brightness in front to damped at the rear.
+  - ZH: 当说话者转身时，声音的音色会变得不那么明亮。再现这一点是这里的最初目标，尽管我们通常希望在不面向观众或双面配置中为声音提供支持。这可以用于创意效果，如在衰减的直达声上有更明亮的混响。\n输入的方位角和俯仰角方向可以设置，以及高频不被过滤的角度。\nHF Shelf将设置输入背面的最大衰减。从前面的完全明亮到后面的衰减有一个平滑的渐变（如余弦曲线）。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1671,28 +548,20 @@ HF Shelf将设置输入背面的最大衰减。从前面的完全明亮到后面
 ## `help.inputMutes`
 
 - **`body`**
-  - EN: You can set for each output array a specific attenuation for the selected input.
-You can mute each send to any output individually. There are macros to speed up the process.
-  - ZH: 您可以为每个输出阵列设置所选输入的特定衰减。
-您可以单独静音到任何输出的每个发送。有宏可以加速这个过程。
+  - EN: You can set for each output array a specific attenuation for the selected input.\nYou can mute each send to any output individually. There are macros to speed up the process.
+  - ZH: 您可以为每个输出阵列设置所选输入的特定衰减。\n您可以单独静音到任何输出的每个发送。有宏可以加速这个过程。
   - [ ] OK    Fix: 
 
 - **`title`**
   - EN: Array Attenuation and Output Mutes
-  - ZH: 阵列衰减和输出静音
+  - ZH: Array Attenuation and Output Mutes
   - [ ] OK    Fix: 
 
 ## `help.lfo`
 
 - **`body`**
-  - EN: Input position can be automated. The LFO can control X, Y and Z position coordinates individually as well as the rotation of HF directivity (gyrophone).
-Adjust the global period and phase for the LFO.
-For X, Y and Z coordinates select a shape, amplitude, rate and phase as desired. A circle in the XY plane would have sine for shape for X and for Y and an offset of ±90° between the two. A square would be the same but with keystone shapes.
-Input position can be moved while the LFO is running.
-  - ZH: 输入位置可以自动化。LFO可以单独控制X、Y、Z坐标以及HF指向性的旋转（陀螺仪）。
-调整LFO的全局周期和相位。
-为X、Y、Z分别选择波形、幅度、速率和相位。XY平面的圆形运动使用正弦波形，X和Y之间偏移±90°。正方形使用梯形波形。
-LFO运行时可以移动输入位置。
+  - EN: Input position can be automated. The LFO can control X, Y and Z position coordinates individually as well as the rotation of HF directivity (gyrophone).\nAdjust the global period and phase for the LFO.\nFor X, Y and Z coordinates select a shape, amplitude, rate and phase as desired. A circle in the XY plane would have sine for shape for X and for Y and an offset of ±90° between the two. A square would be the same but with keystone shapes.\nInput position can be moved while the LFO is running.
+  - ZH: 输入位置可以自动化。LFO可以单独控制X、Y、Z坐标以及HF指向性的旋转（陀螺仪）。\n调整LFO的全局周期和相位。\n为X、Y、Z分别选择波形、幅度、速率和相位。XY平面的圆形运动使用正弦波形，X和Y之间偏移±90°。正方形使用梯形波形。\nLFO运行时可以移动输入位置。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1703,57 +572,20 @@ LFO运行时可以移动输入位置。
 ## `help.liveSource`
 
 - **`body`**
-  - EN: A loud source on stage may not need much reinforcement through the nearby speakers. Imagine an opera singer near the edge of the stage. Normally the level distribution would make the level louder near the input position. But if it is already loud enough we should be able to not over-amplify it. This function manages this.
-The radius and shape describe how to attenuate the level for a specific source for speakers within the radius of influence of this input. There are various shapes: a V shaped linear effect; a U shape for fast decrease within the radius; a tight V effect or a mix of the previous (sine).
-The attenuation can be constant or level dependent like a local compression reacting to transients and to average RMS level.
-  - ZH: 舞台上的大音量声源可能不需要通过附近的扬声器进行增强。想象一位靠近舞台边缘的歌剧歌手。通常电平分配会使输入位置附近的电平更大。但如果已经足够大，我们就不应该过度放大。此功能管理这一点。
-半径和形状描述了如何为此输入影响半径内的扬声器衰减电平。有多种形状：V形线性效果；U形用于快速衰减；窄V形或前述的混合（正弦）。
-衰减可以是恒定的，也可以是电平依赖的，类似于对瞬态和平均RMS电平做出反应的本地压缩。
+  - EN: A loud source on stage may not need much reinforcement through the nearby speakers. Imagine an opera singer near the edge of the stage. Normally the level distribution would make the level louder near the input position. But if it is already loud enough we should be able to not over-amplify it. This function manages this.\nThe radius and shape describe how to attenuate the level for a specific source for speakers within the radius of influence of this input. There are various shapes: a V shaped linear effect; a U shape for fast decrease within the radius; a tight V effect or a mix of the previous (sine).\nThe attenuation can be constant or level dependent like a local compression reacting to transients and to average RMS level.
+  - ZH: 舞台上的大音量声源可能不需要通过附近的扬声器进行增强。想象一位靠近舞台边缘的歌剧歌手。通常电平分配会使输入位置附近的电平更大。但如果已经足够大，我们就不应该过度放大。此功能管理这一点。\n半径和形状描述了如何为此输入影响半径内的扬声器衰减电平。有多种形状：V形线性效果；U形用于快速衰减；窄V形或前述的混合（正弦）。\n衰减可以是恒定的，也可以是电平依赖的，类似于对瞬态和平均RMS电平做出反应的本地压缩。
   - [ ] OK    Fix: 
 
 - **`title`**
   - EN: Live Source Tamer
-  - ZH: 现场声源抑制器
+  - ZH: Live Source Tamer
   - [ ] OK    Fix: 
 
 ## `help.map`
 
 - **`body`**
-  - EN: - A left click on an input or a cluster will allow to move it by dragging it. A single finger touch will do the same.
-- A left click with the shift key pressed will add or remove inputs to the selection. A double tap and drag will act the same way.
-- A left click drag will draw a selection rectangle to select multiple inputs and clusters at the same time.
-- A left double-click or tap will reset the position offset of the input.
-- A long left click or press with no movement will switch to the input tab with the focus on the selected input on release.
-- A left click away from any input will clear the selection.
-- A right click and drag will pan the view of the map. A two finger drag with no selected input or cluster will do the same if your operating system supports multitouch.
-- The mouse wheel will zoom in and out. A two finger pinch with no selected input or cluster will also zoom in and out.
-- A middle click will reset the view to fit the stage on the map display. There is also a dedicated set of buttons to reset the view to fit all inputs and to fit the stage respectively.
-- Selected inputs and clusters can also be moved with the arrow keys for X and Y and with the PageUp and PageDown keys for height. Hardware controllers can be used too.
-- When an input is touched, a second finger nearby can rotate the input directivity and adjust the height by pinching if your operating system allows multitouch interaction.
-- When a cluster is touched, a second finger nearby can rotate the cluster and scale it by pinching.
-- Inputs, output arrays and the reverb nodes can be hidden on the map.
-- Inputs can also be locked to prevent selecting and moving them on the map. They will still be moved by clusters, network commands, tracking and hardware controllers.
-- All reverb nodes can be moved on the map if this is enabled on the reverb tab. Holding the Ctrl/Cmd key will move each pair of reverb nodes in symmetry.
-- Inputs with offsets, LFO or with speed regulation will have a temporary position marker. But the point of interaction will remain the normal marker.
-- The Live Source Tamer radius will be displayed around input when activated.
-- There is a toggle to display the audio level for the inputs and outputs on the map tab, that's active when the audio processing is running.
-  - ZH: - 左键点击输入或集群可拖动移动。
-- Shift+左键点击可添加或移除选择中的输入。
-- 左键拖动绘制选择矩形。
-- 双击重置位置偏移。
-- 长按无移动将切换到所选输入的标签页。
-- 点击输入以外的区域清除选择。
-- 右键拖动平移地图视图。两指拖动也可以。
-- 滚轮缩放。两指捏合也可以。
-- 中键点击重置视图。
-- 方向键移动X/Y，PageUp/Down调整高度。
-- 第二根手指可以旋转指向性和调整高度。
-- 集群上的第二根手指可以旋转和缩放。
-- 输入、输出阵列和混响节点可以隐藏。
-- 输入可以锁定以防止选择和移动。
-- 混响节点可以移动。Ctrl/Cmd对称移动节点对。
-- 启用时显示现场声源抑制器半径。
-- 可以在地图上显示音频电平。
+  - EN: - A left click on an input or a cluster will allow to move it by dragging it. A single finger touch will do the same.\n- A left click with the shift key pressed will add or remove inputs to the selection. A double tap and drag will act the same way.\n- A left click drag will draw a selection rectangle to select multiple inputs and clusters at the same time.\n- A left double-click or tap will reset the position offset of the input.\n- A long left click or press with no movement will switch to the input tab with the focus on the selected input on release.\n- A left click away from any input will clear the selection.\n- A right click and drag will pan the view of the map. A two finger drag with no selected input or cluster will do the same if your operating system supports multitouch.\n- The mouse wheel will zoom in and out. A two finger pinch with no selected input or cluster will also zoom in and out.\n- A middle click will reset the view to fit the stage on the map display. There is also a dedicated set of buttons to reset the view to fit all inputs and to fit the stage respectively.\n- Selected inputs and clusters can also be moved with the arrow keys for X and Y and with the PageUp and PageDown keys for height. Hardware controllers can be used too.\n- When an input is touched, a second finger nearby can rotate the input directivity and adjust the height by pinching if your operating system allows multitouch interaction.\n- When a cluster is touched, a second finger nearby can rotate the cluster and scale it by pinching.\n- Inputs, output arrays and the reverb nodes can be hidden on the map.\n- Inputs can also be locked to prevent selecting and moving them on the map. They will still be moved by clusters, network commands, tracking and hardware controllers.\n- All reverb nodes can be moved on the map if this is enabled on the reverb tab. Holding the Ctrl/Cmd key will move each pair of reverb nodes in symmetry.\n- Inputs with offsets, LFO or with speed regulation will have a temporary position marker. But the point of interaction will remain the normal marker.\n- The Live Source Tamer radius will be displayed around input when activated.\n- There is a toggle to display the audio level for the inputs and outputs on the map tab, that's active when the audio processing is running.
+  - ZH: - 左键点击输入或集群可拖动移动。\n- Shift+左键点击可添加或移除选择中的输入。\n- 左键拖动绘制选择矩形。\n- 双击重置位置偏移。\n- 长按无移动将切换到所选输入的标签页。\n- 点击输入以外的区域清除选择。\n- 右键拖动平移地图视图。两指拖动也可以。\n- 滚轮缩放。两指捏合也可以。\n- 中键点击重置视图。\n- 方向键移动X/Y，PageUp/Down调整高度。\n- 第二根手指可以旋转指向性和调整高度。\n- 集群上的第二根手指可以旋转和缩放。\n- 输入、输出阵列和混响节点可以隐藏。\n- 输入可以锁定以防止选择和移动。\n- 混响节点可以移动。Ctrl/Cmd对称移动节点对。\n- 启用时显示Live Source Tamer半径。\n- 可以在地图上显示音频电平。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1764,60 +596,8 @@ The attenuation can be constant or level dependent like a local compression reac
 ## `help.mcp`
 
 - **`body`**
-  - EN: The MCP server lets an AI assistant (Claude Desktop, Claude Code, ChatGPT with custom connectors) read and write the parameters of this WFS-DIY session over a local network connection.
-
-What the AI can do:
-• Read live state: channel counts, names, positions, attenuations, EQs, snapshots, clusters, the full parameter surface.
-• Move sources, rename channels, set cluster assignments, adjust the array layout, place outputs and reverbs.
-• Run guided workflows (system tuning walkthroughs, troubleshooting localization, snapshot management) via prepared prompt templates.
-
-Operator controls on this row:
-• AI: ON / OFF — master switch. When OFF every AI tool call is refused; when ON the AI works under the rules below.
-• AI critical actions: blocked / ALLOWED — the destructive actions (deleting snapshots, resetting DSP, changing channel counts) are blocked by default. Click to allow them for 10 minutes; the red fill drains as the window expires, then they auto-block again.
-• Open AI History — scrollable timeline of every recent AI change with per-row undo / redo and a step-by-step cursor.
-• The MCP URL button copies the server URL to the clipboard for AI clients that take a URL directly.
-
-Operator awareness:
-• Every AI action is recorded with origin tags. The AI History window shows the full timeline; per-row × reverses an action with its dependents.
-• If you manually adjust a parameter the AI just moved, the AI is notified and will not blindly retry. You always have the last word.
-• The Cmd/Ctrl+Alt+Z and Cmd/Ctrl+Alt+Y shortcuts undo and redo the last AI change without affecting your manual edits (which use plain Ctrl+Z as usual).
-
-To add this server to Claude Desktop:
-  1. Open Settings → Developer → Edit Config.
-  2. Paste the JSON snippet below into claude_desktop_config.json (merge into the existing mcpServers block if you already have one).
-  3. Restart Claude Desktop. The server appears as 'wfs-diy' in the tools menu.
-
-To add to Claude Code, run:
-  claude mcp add wfs-diy <url> -t http
-
-The URL changes if you switch network interface or if the server falls back to a different port. The URL button on this row always reflects the live URL.
-  - ZH: MCP 服务器允许 AI 助手 (Claude Desktop、Claude Code、带有自定义连接器的 ChatGPT) 通过本地网络连接读取和写入此 WFS-DIY 会话的参数。
-
-AI 可以做的事情:
-• 读取实时状态: 通道数、名称、位置、衰减、EQ、快照、集群、整个参数表面。
-• 移动声源、重命名通道、设置集群分配、调整阵列布局、放置输出和混响。
-• 通过预先准备的提示模板运行引导工作流 (系统调音、定位故障排查、快照管理)。
-
-此行的操作员控制:
-• AI: ON / OFF — 主开关。OFF 时拒绝每个 AI 工具调用; ON 时 AI 按照下面的规则工作。
-• AI 关键操作: 已阻止 / 已允许 — 破坏性操作 (删除快照、重置 DSP、更改通道数) 默认被阻止。点击允许 10 分钟; 红色填充随窗口到期消失，然后自动重新阻止。
-• 打开 AI 历史 — 每个最近 AI 更改的可滚动时间线。
-• MCP URL 按钮将服务器 URL 复制到剪贴板，供直接接受 URL 的 AI 客户端使用。
-
-操作员意识:
-• 每个 AI 操作都带有来源标签记录。AI 历史窗口显示完整时间线; 每行的 × 撤销操作及其依赖项。
-• 如果您手动调整了 AI 刚刚移动的参数，AI 会被通知，不会盲目重试。您始终拥有最终决定权。
-• Cmd/Ctrl+Alt+Z 和 Cmd/Ctrl+Alt+Y 快捷键撤销和重做最后的 AI 更改，不影响您的手动编辑 (使用普通 Ctrl+Z)。
-
-要将此服务器添加到 Claude Desktop:
-  1. 打开设置 → 开发者 → 编辑配置。
-  2. 将下面的 JSON 片段粘贴到 claude_desktop_config.json (如果已经有 mcpServers 块，请合并)。
-  3. 重新启动 Claude Desktop。服务器在工具菜单中显示为 'wfs-diy'。
-
-要添加到 Claude Code，运行:
-  claude mcp add wfs-diy <url> -t http
-
-如果切换网络接口或服务器回退到不同端口，URL 会更改。此行的 URL 按钮始终反映实时 URL。
+  - EN: The MCP server lets an AI assistant (Claude Desktop, Claude Code, ChatGPT with custom connectors) read and write the parameters of this WFS-DIY session over a local network connection.\n\nWhat the AI can do:\n• Read live state: channel counts, names, positions, attenuations, EQs, snapshots, clusters, the full parameter surface.\n• Move sources, rename channels, set cluster assignments, adjust the array layout, place outputs and reverbs.\n• Run guided workflows (system tuning walkthroughs, troubleshooting localization, snapshot management) via prepared prompt templates.\n\nOperator controls on this row:\n• AI: ON / OFF — master switch. When OFF every AI tool call is refused; when ON the AI works under the rules below.\n• AI critical actions: blocked / ALLOWED — the destructive actions (deleting snapshots, resetting DSP, changing channel counts) are blocked by default. Click to allow them for 10 minutes; the red fill drains as the window expires, then they auto-block again.\n• Open AI History — scrollable timeline of every recent AI change with per-row undo / redo and a step-by-step cursor.\n• The MCP URL button copies the server URL to the clipboard for AI clients that take a URL directly.\n\nOperator awareness:\n• Every AI action is recorded with origin tags. The AI History window shows the full timeline; per-row × reverses an action with its dependents.\n• If you manually adjust a parameter the AI just moved, the AI is notified and will not blindly retry. You always have the last word.\n• The Cmd/Ctrl+Alt+Z and Cmd/Ctrl+Alt+Y shortcuts undo and redo the last AI change without affecting your manual edits (which use plain Ctrl+Z as usual).\n\nTo add this server to Claude Desktop:\n  1. Open Settings → Developer → Edit Config.\n  2. Paste the JSON snippet below into claude_desktop_config.json (merge into the existing mcpServers block if you already have one).\n  3. Restart Claude Desktop. The server appears as 'wfs-diy' in the tools menu.\n\nTo add to Claude Code, run:\n  claude mcp add wfs-diy <url> -t http\n\nThe URL changes if you switch network interface or if the server falls back to a different port. The URL button on this row always reflects the live URL.
+  - ZH: MCP Server允许 AI 助手 (Claude Desktop、Claude Code、带有自定义连接器的 ChatGPT) 通过本地网络连接读取和写入此 WFS-DIY 会话的参数。\n\nAI 可以做的事情:\n• 读取实时状态: 通道数、名称、位置、衰减、EQ、快照、集群、整个参数表面。\n• 移动声源、重命名通道、设置集群分配、调整阵列布局、放置输出和混响。\n• 通过预先准备的提示模板运行引导工作流 (系统调音、定位故障排查、快照管理)。\n\n此行的操作员控制:\n• AI: ON / OFF — 主开关。OFF 时拒绝每个 AI 工具调用; ON 时 AI 按照下面的规则工作。\n• AI 关键操作: 已阻止 / 已允许 — 破坏性操作 (删除快照、重置 DSP、更改通道数) 默认被阻止。点击允许 10 分钟; 红色填充随窗口到期消失，然后自动重新阻止。\n• 打开 AI 历史 — 每个最近 AI 更改的可滚动时间线。\n• MCP URL 按钮将服务器 URL 复制到剪贴板，供直接接受 URL 的 AI 客户端使用。\n\n操作员意识:\n• 每个 AI 操作都带有来源标签记录。AI 历史窗口显示完整时间线; 每行的 × 撤销操作及其依赖项。\n• 如果您手动调整了 AI 刚刚移动的参数，AI 会被通知，不会盲目重试。您始终拥有最终决定权。\n• Cmd/Ctrl+Alt+Z 和 Cmd/Ctrl+Alt+Y 快捷键撤销和重做最后的 AI 更改，不影响您的手动编辑 (使用普通 Ctrl+Z)。\n\n要将此服务器添加到 Claude Desktop:\n  1. 打开设置 → 开发者 → 编辑配置。\n  2. 将下面的 JSON 片段粘贴到 claude_desktop_config.json (如果已经有 mcpServers 块，请合并)。\n  3. 重新启动 Claude Desktop。服务器在工具菜单中显示为 'wfs-diy'。\n\n要添加到 Claude Code，运行:\n  claude mcp add wfs-diy <url> -t http\n\n如果切换Network Interface或服务器回退到不同端口，URL 会更改。此行的 URL 按钮始终反映实时 URL。
   - [ ] OK    Fix: 
 
 - **`copyButton`**
@@ -1832,29 +612,14 @@ AI 可以做的事情:
 
 - **`title`**
   - EN: AI / MCP Server
-  - ZH: AI / MCP 服务器
+  - ZH: AI / MCP Server
   - [ ] OK    Fix: 
 
 ## `help.network`
 
 - **`body`**
-  - EN: The system can communicate through several network protocols, (UDP or TCP) using OSC. OSC query can be enabled to allow the clients to discover the possible OSC paths and subscribe to some parameter updates.
-The IP of the local machine corresponding to the selected network interface is shown. The incoming TCP and UDP ports as well as the OSC Query port.
-There are a few specialised OSC clients such as:
-- Remote for the Android application for multitouch operation and for remote control.
-- QLab that can send data and that can also be programmed directly from the application.
-- ADM-OSC for control from consoles and DAW (see specific help).
-The data can be filtered to only allow the data from the recorded IP addresses or to allow any client sending on the correct ports.
-There is a Log window to see what data comes in or out, filter by the type of protocol, client and so on.
-There is also a locator function to find a lost remote Android tablet. It will flash and sound the alarm on the missing device.
-  - ZH: 系统可以通过多种网络协议（UDP或TCP）使用OSC进行通信。可以启用OSC Query让客户端发现可用的OSC路径并订阅参数更新。
-显示与所选网络接口对应的本地机器IP。传入TCP和UDP端口以及OSC Query端口。
-有几个专用OSC客户端：
-- Remote：用于多点触控操作和远程控制的Android应用程序。
-- QLab：可以发送数据，也可以直接从应用程序编程。
-- ADM-OSC：从调音台和DAW控制（参见专用帮助）。
-数据可以过滤。日志窗口显示进出数据。
-还有一个定位功能用于查找丢失的Android平板电脑。
+  - EN: The system can communicate through several network protocols, (UDP or TCP) using OSC. OSC query can be enabled to allow the clients to discover the possible OSC paths and subscribe to some parameter updates.\nThe IP of the local machine corresponding to the selected network interface is shown. The incoming TCP and UDP ports as well as the OSC Query port.\nThere are a few specialised OSC clients such as:\n- Remote for the Android application for multitouch operation and for remote control.\n- QLab that can send data and that can also be programmed directly from the application.\n- ADM-OSC for control from consoles and DAW (see specific help).\nThe data can be filtered to only allow the data from the recorded IP addresses or to allow any client sending on the correct ports.\nThere is a Log window to see what data comes in or out, filter by the type of protocol, client and so on.\nThere is also a locator function to find a lost remote Android tablet. It will flash and sound the alarm on the missing device.
+  - ZH: 系统可以通过多种网络协议（UDP或TCP）使用OSC进行通信。可以启用OSC Query让客户端发现可用的OSC路径并订阅参数更新。\n显示与所选网络接口对应的本地机器IP。传入TCP和UDP端口以及OSC Query端口。\n有几个专用OSC客户端：\n- Remote：用于多点触控操作和远程控制的Android应用程序。\n- QLab：可以发送数据，也可以直接从应用程序编程。\n- ADM-OSC：从调音台和DAW控制（参见专用帮助）。\n数据可以过滤。日志窗口显示进出数据。\n还有一个定位功能用于查找丢失的Android平板电脑。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1865,22 +630,8 @@ There is also a locator function to find a lost remote Android tablet. It will f
 ## `help.outputAdvanced`
 
 - **`body`**
-  - EN: There are a few parameters to help you adjust to the acoustic sound.
-Most of these parameters are set for whole arrays unless the propagation mode is switched to off for this output in the array. Relative change can also be selected after a specific setting.
-- Orientation and On/Off Angles define what inputs each speaker will amplify. By default the speakers are pointing to the audience, away from the stage. Inputs in the green sector will be amplified, but not the ones in front of the speaker, in the red sector. There is a fade between both sectors. For sub-bass speakers which usually come in limited numbers and locations, opening all the way to the maximum will allow you to have all inputs possibly picked up by the subwoofers.
-- HF Damping simulates the loss of high frequency with distance. Speakers close to the listeners can have more than speakers away from the stage and the listeners.
-- Distance Attenuation percentage allows you to define if more or less of the attenuation calculated from the distance and parameters of the input is applied. Again for Sub-bass in case you only have two and don't want to lose too much level or have hot-spots it may be wise to lower this setting to 50%.
-- Minimal Latency toggles whether the output is scanned for the smallest calculated delay and also if the setting once engaged on an input will reduce the delay for that input through this speaker.
-- Live Source Attenuation toggles the reduction of level of nearby input if they have this setting enabled. This may not be necessary for speakers away from the audience or for sub-bass.
-- Floor Reflections toggles if the reflections are applied to the signal for this output such as sub-bass and flown arrays...
-  - ZH: 有几个参数帮助您调整以适应声学声音。
-这些参数大多为整个阵列设置，除非此输出的传播模式被关闭。特定设置后也可以选择相对变化。
-- 方向和On/Off角度定义每个扬声器将放大哪些输入。默认情况下扬声器面向观众，背对舞台。绿色扇区中的输入将被放大，但扬声器前方红色扇区中的不会。两个扇区之间有渐变。对于低音炮，完全打开到最大将允许所有输入被包含。
-- HF阻尼模拟距离造成的高频损失。
-- 距离衰减百分比定义应用多少计算的衰减。对于低音炮，降到50%可能是明智的。
-- 最小延迟启用扫描最小计算延迟。
-- 现场声源衰减启用附近输入的电平降低。
-- 地板反射切换是否将反射应用于此输出的信号，如低音炮和飞行阵列...
+  - EN: There are a few parameters to help you adjust to the acoustic sound.\nMost of these parameters are set for whole arrays unless the propagation mode is switched to off for this output in the array. Relative change can also be selected after a specific setting.\n- Orientation and On/Off Angles define what inputs each speaker will amplify. By default the speakers are pointing to the audience, away from the stage. Inputs in the green sector will be amplified, but not the ones in front of the speaker, in the red sector. There is a fade between both sectors. For sub-bass speakers which usually come in limited numbers and locations, opening all the way to the maximum will allow you to have all inputs possibly picked up by the subwoofers.\n- HF Damping simulates the loss of high frequency with distance. Speakers close to the listeners can have more than speakers away from the stage and the listeners.\n- Distance Attenuation percentage allows you to define if more or less of the attenuation calculated from the distance and parameters of the input is applied. Again for Sub-bass in case you only have two and don't want to lose too much level or have hot-spots it may be wise to lower this setting to 50%.\n- Minimal Latency toggles whether the output is scanned for the smallest calculated delay and also if the setting once engaged on an input will reduce the delay for that input through this speaker.\n- Live Source Attenuation toggles the reduction of level of nearby input if they have this setting enabled. This may not be necessary for speakers away from the audience or for sub-bass.\n- Floor Reflections toggles if the reflections are applied to the signal for this output such as sub-bass and flown arrays...
+  - ZH: 有几个参数帮助您调整以适应声学声音。\n这些参数大多为整个阵列设置，除非此输出的传播模式被关闭。特定设置后也可以选择相对变化。\n- 方向和On/Off角度定义每个扬声器将放大哪些输入。默认情况下扬声器面向观众，背对舞台。绿色扇区中的输入将被放大，但扬声器前方红色扇区中的不会。两个扇区之间有渐变。对于低音炮，完全打开到最大将允许所有输入被包含。\n- HF阻尼模拟距离造成的高频损失。\n- Distance attenuation百分比定义应用多少计算的衰减。对于低音炮，降到50%可能是明智的。\n- Minimal Latency启用扫描最小计算延迟。\n- Live Source衰减启用附近输入的电平降低。\n- Floor Reflections切换是否将反射应用于此输出的信号，如低音炮和飞行阵列...
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1891,14 +642,8 @@ Most of these parameters are set for whole arrays unless the propagation mode is
 ## `help.outputs`
 
 - **`body`**
-  - EN: The design of the WFS system has to do with the right choice of equipment and their position. Here is a guide to help you with the design and the tuning of your arrays.
-An array is a line (straight or curved) of speakers. This is one of the most important concepts in WFS adapted to sound reinforcement and for creative sound design.
-A rule of thumb would be that each listener should hear three speakers of an array to have enough psycho-acoustic cues to feel the direction each sound is coming from. There will be a sweet spot to find between the distance between the speakers and the listeners, their spacing and coverage angle. This is especially true for short range arrays, a.k.a front fills. Speakers with a 120° coverage angle can be spaced by the same distance between the array and the first row of listeners. The number of speakers also depends on the sound pressure level. When placed as a flown array, trapezoidal/asymmetric horns with wide coverage angle (120°) below axis and narrow coverage (60°) on axis will give good coverage for seat rows a bit too far from the ground array and will have enough throw to reach 20m or 30m away while avoiding the walls of the venue where they would create reflections that give away the position of the speakers to the ears of the listeners. Most of the time for larger venues coaxial (elliptical or conical horns) have not enough reach and require one or more delay lines. They are more suited for smaller venues with few rows of seats.
-The positioning of the speakers in the system can be done through the 'Wizard of OutZ' and the editable presets it has.
-  - ZH: WFS系统的设计涉及正确选择设备及其定位。这是帮助您进行阵列设计和调谐的指南。
-阵列是一条（直线或弯曲的）扬声器线。这是WFS中最重要的概念之一。
-经验法则是每个听众应该听到阵列的三个扬声器，以获得足够的心理声学线索来感知每个声音的方向。扬声器与听众的距离、间距和覆盖角度之间存在最佳点。120°覆盖角的扬声器可以按阵列与第一排之间的相同距离间隔。数量还取决于声压级。作为飞行阵列，轴下宽角(120°)、轴上窄角(60°)的梯形/非对称号角将提供良好的覆盖和20-30m的到达距离，同时避免墙壁反射。同轴扬声器通常对大型场所没有足够的到达距离，需要延迟线。
-定位可以通过'Wizard of OutZ'及其可编辑预设完成。
+  - EN: The design of the WFS system has to do with the right choice of equipment and their position. Here is a guide to help you with the design and the tuning of your arrays.\nAn array is a line (straight or curved) of speakers. This is one of the most important concepts in WFS adapted to sound reinforcement and for creative sound design.\nA rule of thumb would be that each listener should hear three speakers of an array to have enough psycho-acoustic cues to feel the direction each sound is coming from. There will be a sweet spot to find between the distance between the speakers and the listeners, their spacing and coverage angle. This is especially true for short range arrays, a.k.a front fills. Speakers with a 120° coverage angle can be spaced by the same distance between the array and the first row of listeners. The number of speakers also depends on the sound pressure level. When placed as a flown array, trapezoidal/asymmetric horns with wide coverage angle (120°) below axis and narrow coverage (60°) on axis will give good coverage for seat rows a bit too far from the ground array and will have enough throw to reach 20m or 30m away while avoiding the walls of the venue where they would create reflections that give away the position of the speakers to the ears of the listeners. Most of the time for larger venues coaxial (elliptical or conical horns) have not enough reach and require one or more delay lines. They are more suited for smaller venues with few rows of seats.\nThe positioning of the speakers in the system can be done through the 'Wizard of OutZ' and the editable presets it has.
+  - ZH: WFS系统的设计涉及正确选择设备及其定位。这是帮助您进行阵列设计和调谐的指南。\n阵列是一条（直线或弯曲的）扬声器线。这是WFS中最重要的概念之一。\n经验法则是每个听众应该听到阵列的三个扬声器，以获得足够的心理声学线索来感知每个声音的方向。扬声器与听众的距离、间距和覆盖角度之间存在最佳点。120°覆盖角的扬声器可以按阵列与第一排之间的相同距离间隔。数量还取决于声压级。作为飞行阵列，轴下宽角(120°)、轴上窄角(60°)的梯形/非对称号角将提供良好的覆盖和20-30m的到达距离，同时避免墙壁反射。同轴扬声器通常对大型场所没有足够的到达距离，需要延迟线。\n定位可以通过'Wizard of OutZ'及其可编辑预设完成。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1909,10 +654,8 @@ The positioning of the speakers in the system can be done through the 'Wizard of
 ## `help.overview`
 
 - **`body`**
-  - EN: This WFS spatial sound processor aims to be a tool for natural sound reinforcement and also a creative tool opening new avenues for writing sound in space.
-Some parameters are straightforward: place sound (Map, Tracking, Speed Limiting, Gradient Maps...), work its shape (Attenuation Profile) and its acoustic presence (Directivity, Floor Reflections), give it a one-off motion (AutomOtion) or a repetitive movement (L.F.O). In some cases amplification should be limited around loud sources on stage (Live Source Tamer). All of these functionalities can be stored and recalled internally or with the help of QLab. On the other side the system allows real-time interaction to trigger and move samples, move large clusters of inputs manually or thanks to easily recallable LFO presets.
-  - ZH: 这款WFS空间声音处理器旨在成为自然扩声的工具，同时也是一个创意工具，为空间中的声音书写开辟新途径。
-一些参数很直观：放置声音（地图、追踪、速度限制、渐变地图...），塑造其形状（衰减曲线）和声学存在感（指向性、地板反射），赋予其一次性运动（AutomOtion）或重复运动（L.F.O）。在某些情况下应限制舞台上大声源周围的放大（Live Source Tamer）。所有这些功能都可以在内部或借助QLab存储和调用。此外系统允许实时交互来触发和移动采样，手动或通过易于调用的LFO预设来移动大型输入群组。
+  - EN: This WFS spatial sound processor aims to be a tool for natural sound reinforcement and also a creative tool opening new avenues for writing sound in space.\nSome parameters are straightforward: place sound (Map, Tracking, Speed Limiting, Gradient Maps...), work its shape (Attenuation Profile) and its acoustic presence (Directivity, Floor Reflections), give it a one-off motion (AutomOtion) or a repetitive movement (L.F.O). In some cases amplification should be limited around loud sources on stage (Live Source Tamer). All of these functionalities can be stored and recalled internally or with the help of QLab. On the other side the system allows real-time interaction to trigger and move samples, move large clusters of inputs manually or thanks to easily recallable LFO presets.
+  - ZH: 这款WFS空间声音处理器旨在成为自然扩声的工具，同时也是一个创意工具，为空间中的声音书写开辟新途径。\n一些参数很直观：放置声音（地图、追踪、速度限制、渐变地图...），塑造其形状（衰减曲线）和声学存在感（指向性、Floor Reflections），赋予其一次性运动（AutomOtion）或重复运动（L.F.O）。在某些情况下应限制舞台上大声源周围的放大（Live Source Tamer）。所有这些功能都可以在内部或借助QLab存储和调用。此外系统允许实时交互来触发和移动采样，手动或通过易于调用的LFO预设来移动大型输入群组。
   - [ ] OK    Fix: 
 
 - **`dontShow`**
@@ -1940,12 +683,8 @@ Some parameters are straightforward: place sound (Map, Tracking, Speed Limiting,
 ## `help.reverb`
 
 - **`body`**
-  - EN: Reverb helps blur the actual reflections of the speakers in the acoustic space. Without some reverb the listener might perceive the sound missing some depth because the reflections of the speakers in the acoustic of the room gives away their positions and all sounds might feel as coming from the plane of the speakers.
-Place the reverb node according to the number of channels and the geometry of the stage and listening area, and the positions of speakers. If necessary the return position can be offset from the feed position.
-Other parameters are very similar to Outputs' and Inputs'.
-  - ZH: 混响有助于模糊扬声器的实际反射。
-根据通道数和舞台形状放置混响节点。
-其他参数与输出和输入类似。
+  - EN: Reverb helps blur the actual reflections of the speakers in the acoustic space. Without some reverb the listener might perceive the sound missing some depth because the reflections of the speakers in the acoustic of the room gives away their positions and all sounds might feel as coming from the plane of the speakers.\nPlace the reverb node according to the number of channels and the geometry of the stage and listening area, and the positions of speakers. If necessary the return position can be offset from the feed position.\nOther parameters are very similar to Outputs' and Inputs'.
+  - ZH: 混响有助于模糊扬声器的实际反射。\n根据通道数和舞台形状放置混响节点。\n其他参数与输出和输入类似。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1956,16 +695,8 @@ Other parameters are very similar to Outputs' and Inputs'.
 ## `help.reverbAlgo`
 
 - **`body`**
-  - EN: There are three built-in reverb types inside this spatial sound processor:
-- SDN (Scattered Delay Network): The sound bounces between every reverb node which act as reflecting surfaces. This reverb algorithm favours an odd number of nodes that should not have too much symmetry. This helps reduce the artifacts of the reverb or any metallic sounding resonance.
-- FDN (Feedback Delay Network): Each reverb node functions as a separate reverb processor with a classical reverb algorithm. Place nodes around the stage and eventually around the audience. Inputs are sent to each node in a similar fashion as with outputs. The return signal from the reverb is then distributed like other inputs to all outputs.
-- IR (Impulse Response): This is a classical convolution reverb. You can load audio samples as impulse responses. Each reverb node can share the same IR or they can have different ones. Place nodes around the stage and eventually around the audience.
-The node positions can be adjusted directly on the map. The Ctrl/Cmd key will move a reverb node pair in symmetry.
-  - ZH: 此空间声音处理器内置三种混响类型：
-- SDN（散射延迟网络）：声音在每个混响节点之间反射，节点充当反射面。该算法适合使用对称性较少的奇数个节点，以减少伪影或金属声共振。
-- FDN（反馈延迟网络）：每个节点作为独立的混响处理器运行，使用经典混响算法。在舞台周围和观众周围放置节点。
-- IR（脉冲响应）：经典卷积混响。可以加载音频样本作为脉冲响应。每个节点可以共享相同的IR或使用不同的IR。
-节点位置可以直接在地图上调整。Ctrl/Cmd键可以对称移动混响节点对。
+  - EN: There are three built-in reverb types inside this spatial sound processor:\n- SDN (Scattered Delay Network): The sound bounces between every reverb node which act as reflecting surfaces. This reverb algorithm favours an odd number of nodes that should not have too much symmetry. This helps reduce the artifacts of the reverb or any metallic sounding resonance.\n- FDN (Feedback Delay Network): Each reverb node functions as a separate reverb processor with a classical reverb algorithm. Place nodes around the stage and eventually around the audience. Inputs are sent to each node in a similar fashion as with outputs. The return signal from the reverb is then distributed like other inputs to all outputs.\n- IR (Impulse Response): This is a classical convolution reverb. You can load audio samples as impulse responses. Each reverb node can share the same IR or they can have different ones. Place nodes around the stage and eventually around the audience.\nThe node positions can be adjusted directly on the map. The Ctrl/Cmd key will move a reverb node pair in symmetry.
+  - ZH: 此空间声音处理器内置三种混响类型：\n- SDN（散射延迟网络）：声音在每个混响节点之间反射，节点充当反射面。该算法适合使用对称性较少的奇数个节点，以减少伪影或金属声共振。\n- FDN（反馈延迟网络）：每个节点作为独立的混响处理器运行，使用经典混响算法。在舞台周围和观众周围放置节点。\n- IR（脉冲响应）：经典卷积混响。可以加载音频样本作为脉冲响应。每个节点可以共享相同的IR或使用不同的IR。\n节点位置可以直接在地图上调整。Ctrl/Cmd键可以对称移动混响节点对。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1976,23 +707,13 @@ The node positions can be adjusted directly on the map. The Ctrl/Cmd key will mo
 ## `help.reverbFeed`
 
 - **`body`**
-  - EN: Pre-processing sending of the input channels to the reverb nodes.
-- Orientation and On/Off Angles define what inputs each reverb node will receive. Inputs in the green sector will be picked-up, but not the ones in front in the red sector. There is a fade between both sectors.
-- HF Damping simulates the loss of high frequency with distance.
-- Distance Attenuation percentage allows you to define if more or less of the attenuation calculated from the distance and parameters of the input is applied.
-- Minimal Latency toggles whether the output is scanned for the smallest calculated delay and also if the setting once engaged on an input will reduce the delay for that input through this reverb node.
-- Live Source Attenuation toggles the reduction of level of nearby input if they have this setting enabled.
-  - ZH: 输入通道到混响节点的预处理发送。
-- 方向和On/Off角度定义每个节点接收的输入。
-- HF衰减模拟高频随距离的损失。
-- 距离衰减百分比定义应用的衰减。
-- 最小延迟切换是否使用最小计算延迟。
-- 现场声源衰减切换附近输入的电平降低。
+  - EN: Pre-processing sending of the input channels to the reverb nodes.\n- Orientation and On/Off Angles define what inputs each reverb node will receive. Inputs in the green sector will be picked-up, but not the ones in front in the red sector. There is a fade between both sectors.\n- HF Damping simulates the loss of high frequency with distance.\n- Distance Attenuation percentage allows you to define if more or less of the attenuation calculated from the distance and parameters of the input is applied.\n- Minimal Latency toggles whether the output is scanned for the smallest calculated delay and also if the setting once engaged on an input will reduce the delay for that input through this reverb node.\n- Live Source Attenuation toggles the reduction of level of nearby input if they have this setting enabled.
+  - ZH: Input Channels到混响节点的预处理发送。\n- 方向和On/Off角度定义每个节点接收的输入。\n- HF衰减模拟高频随距离的损失。\n- Distance attenuation百分比定义应用的衰减。\n- Minimal Latency切换是否使用最小计算延迟。\n- Live Source衰减切换附近输入的电平降低。
   - [ ] OK    Fix: 
 
 - **`title`**
   - EN: Reverb Feed
-  - ZH: 混响馈送
+  - ZH: Reverb Feed
   - [ ] OK    Fix: 
 
 ## `help.reverbPostProc`
@@ -2022,46 +743,20 @@ The node positions can be adjusted directly on the map. The Ctrl/Cmd key will mo
 ## `help.reverbReturn`
 
 - **`body`**
-  - EN: Post-processing sending to the speakers.
-- Distance Attenuation defines the level drop per meter to the speakers.
-- Common Attenuation will look for the lowest attenuation and keep only a percentage of this level drop and apply this across all other outputs.
-- Mutes and Mute Macros allow to prevent a reverb channel from feeding an output. For instance it may not be necessary to send reverb to sub-bass speakers.
-  - ZH: 到扬声器的后处理发送。
-- 距离衰减定义每米的电平下降。
-- 共同衰减保持最低衰减的百分比。
-- 静音防止混响通道馈送到输出。
+  - EN: Post-processing sending to the speakers.\n- Distance Attenuation defines the level drop per meter to the speakers.\n- Common Attenuation will look for the lowest attenuation and keep only a percentage of this level drop and apply this across all other outputs.\n- Mutes and Mute Macros allow to prevent a reverb channel from feeding an output. For instance it may not be necessary to send reverb to sub-bass speakers.
+  - ZH: 到扬声器的后处理发送。\n- Distance attenuation定义每米的电平下降。\n- 共同衰减保持最低衰减的百分比。\n- 静音防止Reverb Channels馈送到输出。
   - [ ] OK    Fix: 
 
 - **`title`**
   - EN: Reverb Return
-  - ZH: 混响返回
+  - ZH: Reverb Return
   - [ ] OK    Fix: 
 
 ## `help.sampler`
 
 - **`body`**
-  - EN: The sampler allows to trigger samples and interact with them in real time.
-The sampler when enabled on a track will replace the live input at all times.
-Several samplers can be assigned to different inputs and triggered individually.
-To use the sampler:
-- Select a Roli Lightpad or a pad on the connected Android Remote app.
-- Add samples to the different tiles in the grid to the left. Adjust their relative starting position and their level and eventually their in and out points. Several samples can be selected using the shift key while clicking.
-- Create sets of samples: selected samples will be added to new sets. Samples can be added or removed after the creation of a set by holding Ctrl/Cmd while clicking on the tiles. Each set can be renamed. Each set can either have a fixed sequence or a random order (round robin, each sample is played once before a new random order is drawn). Each set has an attenuation setting. Each set has a base position applied to the input when selecting the set. It can be moved on the map or using external control. The sample position offset is added to the set position each time a sample is triggered.
-- Press a Roli Lightpad or a pad on the Android app to trigger a sample. The pressure applied to the pad can be mapped to any of the following controls: level, height and high frequency filtering. The sensitivity can be adjusted for each. The movement of the finger on the pad will cause the sound to move. This acts by measuring the deflection from the initial contact point like a joystick. This can be disabled. All sets have their respective settings for the interaction.
-Releasing the pad will stop the triggered sample.
-Sampler settings are stored in the input files.
-For convenience sample tiles and sets can be copied, exported and imported.
-  - ZH: 采样器允许触发采样并实时与其交互。
-在轨道上启用时，采样器将始终替代实时输入。
-多个采样器可以分配给不同的输入并单独触发。
-使用采样器：
-- 选择Roli Lightpad或已连接的Android Remote应用中的触控板。
-- 将采样添加到网格中的不同方块。调整相对起始位置、电平以及入/出点。按住Shift键点击可选择多个采样。
-- 创建采样集：选中的采样将被添加到新集中。创建后可按住Ctrl/Cmd点击方块来添加或删除。每个集可以重命名，可设置固定顺序或随机顺序。每个集有衰减设置和基础位置。
-- 按下Lightpad或触控板触发采样。压力可映射到电平、高度和高频滤波。手指移动像操纵杆一样移动声音。
-松开触控板将停止采样。
-采样器设置存储在输入文件中。
-方块和集可以复制、导出和导入。
+  - EN: The sampler allows to trigger samples and interact with them in real time.\nThe sampler when enabled on a track will replace the live input at all times.\nSeveral samplers can be assigned to different inputs and triggered individually.\nTo use the sampler:\n- Select a Roli Lightpad or a pad on the connected Android Remote app.\n- Add samples to the different tiles in the grid to the left. Adjust their relative starting position and their level and eventually their in and out points. Several samples can be selected using the shift key while clicking.\n- Create sets of samples: selected samples will be added to new sets. Samples can be added or removed after the creation of a set by holding Ctrl/Cmd while clicking on the tiles. Each set can be renamed. Each set can either have a fixed sequence or a random order (round robin, each sample is played once before a new random order is drawn). Each set has an attenuation setting. Each set has a base position applied to the input when selecting the set. It can be moved on the map or using external control. The sample position offset is added to the set position each time a sample is triggered.\n- Press a Roli Lightpad or a pad on the Android app to trigger a sample. The pressure applied to the pad can be mapped to any of the following controls: level, height and high frequency filtering. The sensitivity can be adjusted for each. The movement of the finger on the pad will cause the sound to move. This acts by measuring the deflection from the initial contact point like a joystick. This can be disabled. All sets have their respective settings for the interaction.\nReleasing the pad will stop the triggered sample.\nSampler settings are stored in the input files.\nFor convenience sample tiles and sets can be copied, exported and imported.
+  - ZH: 采样器允许触发采样并实时与其交互。\n在轨道上启用时，采样器将始终替代实时输入。\n多个采样器可以分配给不同的输入并单独触发。\n使用采样器：\n- 选择Roli Lightpad或已连接的Android Remote应用中的触控板。\n- 将采样添加到网格中的不同方块。调整相对起始位置、电平以及入/出点。按住Shift键点击可选择多个采样。\n- 创建采样集：选中的采样将被添加到新集中。创建后可按住Ctrl/Cmd点击方块来添加或删除。每个集可以重命名，可设置固定顺序或随机顺序。每个集有衰减设置和基础位置。\n- 按下Lightpad或触控板触发采样。压力可映射到电平、高度和高频滤波。手指移动像操纵杆一样移动声音。\n松开触控板将停止采样。\n采样器设置存储在输入文件中。\n方块和集可以复制、导出和导入。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -2072,14 +767,8 @@ For convenience sample tiles and sets can be copied, exported and imported.
 ## `help.sessionData`
 
 - **`body`**
-  - EN: When starting a session select the working folder where the system will place the files and eventual audio files. For new projects create a new folder. When reloading a previous session navigate to the corresponding folder.
-Each section has a separate xml file (System configuration, Network, Outputs, Reverbs, Inputs) and backups. Additionally convolution reverb impulse responses and audio samples will be stored in sub-directories.
-Each section can be stored and recalled individually or as a whole.
-Each section can also export and import files from other projects.
-  - ZH: 启动会话时，选择系统将放置文件和音频文件的工作文件夹。对于新项目，创建新文件夹。重新加载之前的会话时，导航到相应的文件夹。
-每个部分都有单独的xml文件（系统配置、网络、输出、混响、输入）和备份。卷积混响脉冲响应和音频样本将存储在子目录中。
-每个部分可以单独或整体存储和调用。
-每个部分也可以从其他项目导出和导入文件。
+  - EN: When starting a session select the working folder where the system will place the files and eventual audio files. For new projects create a new folder. When reloading a previous session navigate to the corresponding folder.\nEach section has a separate xml file (System configuration, Network, Outputs, Reverbs, Inputs) and backups. Additionally convolution reverb impulse responses and audio samples will be stored in sub-directories.\nEach section can be stored and recalled individually or as a whole.\nEach section can also export and import files from other projects.
+  - ZH: 启动会话时，选择系统将放置文件和音频文件的工作文件夹。对于新项目，创建新文件夹。重新加载之前的会话时，导航到相应的文件夹。\n每个部分都有单独的xml文件（系统配置、网络、输出、混响、输入）和备份。卷积混响脉冲响应和音频样本将存储在子目录中。\n每个部分可以单独或整体存储和调用。\n每个部分也可以从其他项目导出和导入文件。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -2090,20 +779,8 @@ Each section can also export and import files from other projects.
 ## `help.snapshotScope`
 
 - **`body`**
-  - EN: Snapshots store input parameters, but can have a scope to be recalled during a performance. They can have between all parameters for all inputs and only one parameter for a single channel. They can be updated and renamed for convenience.
-The Scope tells the system what data to store or recall. It's the opposite of 'safe' parameters.
-There are several ways to do this in this application:
-- Record only the needed data in local files. The scope filter is applied when storing the data. A recall cue can be created in QLab to trigger the reading of the local file.
-- Record all data and a filter in local files. The scope filter is applied when recalling the data. This allows to eventually recall all data not taking into account the scope filter. This may come in handy when a complete configuration should be recalled during rehearsal for example. A recall cue can be created in QLab to trigger the reading of the local file.
-- Record all data in scope in QLab cues. This should not be used to recall all parameters for large configurations since QLab may stall when recalling so much data.
-The scope can show and automatically pre-select the parameters that have been manually changed (local UI, hardware controllers, remote Android application). Changed parameters are marked with a yellow mark.
-  - ZH: 快照存储输入参数，但可以有一个范围，在演出期间调用。
-范围告诉系统存储或调用哪些数据。
-有几种方法：
-- 仅在本地文件中记录所需数据。过滤器在存储时应用。
-- 在本地文件中记录所有数据和过滤器。过滤器在调用时应用。
-- 在QLab cue中记录所有范围内的数据。不建议用于大型配置。
-范围可以显示并自动预选手动更改的参数。更改的参数用黄色标记。
+  - EN: Snapshots store input parameters, but can have a scope to be recalled during a performance. They can have between all parameters for all inputs and only one parameter for a single channel. They can be updated and renamed for convenience.\nThe Scope tells the system what data to store or recall. It's the opposite of 'safe' parameters.\nThere are several ways to do this in this application:\n- Record only the needed data in local files. The scope filter is applied when storing the data. A recall cue can be created in QLab to trigger the reading of the local file.\n- Record all data and a filter in local files. The scope filter is applied when recalling the data. This allows to eventually recall all data not taking into account the scope filter. This may come in handy when a complete configuration should be recalled during rehearsal for example. A recall cue can be created in QLab to trigger the reading of the local file.\n- Record all data in scope in QLab cues. This should not be used to recall all parameters for large configurations since QLab may stall when recalling so much data.\nThe scope can show and automatically pre-select the parameters that have been manually changed (local UI, hardware controllers, remote Android application). Changed parameters are marked with a yellow mark.
+  - ZH: 快照存储输入参数，但可以有一个范围，在演出期间调用。\n范围告诉系统存储或调用哪些数据。\n有几种方法：\n- 仅在本地文件中记录所需数据。过滤器在存储时应用。\n- 在本地文件中记录所有数据和过滤器。过滤器在调用时应用。\n- 在QLab cue中记录所有范围内的数据。不建议用于大型配置。\n范围可以显示并自动预选手动更改的参数。更改的参数用黄色标记。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -2114,14 +791,8 @@ The scope can show and automatically pre-select the parameters that have been ma
 ## `help.tracking`
 
 - **`body`**
-  - EN: Tracking allows to follow the position in 2D or 3D of actors and musicians. There are several tracking solutions based on UWB (UltraWide Band) tags, 3D camera, computer vision systems and Infra-Red LED's followed by IR sensitive cameras.
-This application allows you to receive tracking data from several protocols: OSC, MQTT, PosiStageNet/PSN, RTTrP.
-You can select which protocol you're using and enter its settings. You may also adjust the mapping (offset, scaling and orientation).
-Each input has a toggle to enable tracking, an ID to select which tracking marker it should follow and a smoothing algorithm to reduce jittery movements.
-  - ZH: 跟踪允许追踪演员和音乐家的2D或3D位置。有多种跟踪解决方案，包括UWB标签、3D摄像头、计算机视觉系统和红外LED配合IR敏感摄像头。
-此应用程序可以从多种协议接收跟踪数据：OSC、MQTT、PosiStageNet/PSN、RTTrP。
-您可以选择使用的协议并输入其设置。还可以调整映射（偏移、缩放和方向）。
-每个输入都有一个启用跟踪的开关、一个选择跟踪标记的ID和一个减少抖动的平滑算法。
+  - EN: Tracking allows to follow the position in 2D or 3D of actors and musicians. There are several tracking solutions based on UWB (UltraWide Band) tags, 3D camera, computer vision systems and Infra-Red LED's followed by IR sensitive cameras.\nThis application allows you to receive tracking data from several protocols: OSC, MQTT, PosiStageNet/PSN, RTTrP.\nYou can select which protocol you're using and enter its settings. You may also adjust the mapping (offset, scaling and orientation).\nEach input has a toggle to enable tracking, an ID to select which tracking marker it should follow and a smoothing algorithm to reduce jittery movements.
+  - ZH: 跟踪允许追踪演员和音乐家的2D或3D位置。有多种跟踪解决方案，包括UWB标签、3D摄像头、计算机视觉系统和红外LED配合IR敏感摄像头。\n此应用程序可以从多种协议接收跟踪数据：OSC、MQTT、PosiStageNet/PSN、RTTrP。\n您可以选择使用的协议并输入其设置。还可以调整映射（偏移、缩放和方向）。\n每个输入都有一个启用跟踪的开关、一个选择跟踪标记的ID和一个减少抖动的平滑算法。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -2132,164 +803,13 @@ Each input has a toggle to enable tracking, an ID to select which tracking marke
 ## `help.tuning`
 
 - **`body`**
-  - EN: System tuning for WFS is different from standard PA tuning. It can proceed as follows:
-- Start with the flown array muted. Set the desired levels for the near-field speakers when listening to them in the first row. Adjust the high frequency shelf attenuation so the near-field speakers are not too bright and draw too much attention.
-- Mute the near-field array and unmute the flown array, find a suitable level towards the back of the house.
-- Unmute both arrays, adjust the delay of the flown array to bring the sound down to the correct height in the lower rows. Adjust the levels, HF shelf/distance ratio and vertical and horizontal parallax for each array to have consistent level wherever your inputs are on stage. This is especially important if your inputs are actors, singers or acoustic music instruments on stage. You may also test adding some Haas effect to delay the whole system if you feel the WFS is too early or adding comb filtering with the acoustic sound.
-You may follow a different workflow for tuning or go for different cues.
-  - ZH: WFS的系统调谐不同于标准PA调谐。可以按以下步骤进行：
-- 从飞行阵列静音开始。在第一排聆听近场扬声器时设置所需的电平。调整高频搁架衰减使近场扬声器不至于太亮。
-- 静音近场阵列并取消飞行阵列的静音，在场地后方找到合适的电平。
-- 取消两个阵列的静音，调整飞行阵列的延迟以在较低的排将声音降到正确的高度。调整每个阵列的电平、HF搁架/距离比以及垂直和水平视差，以在输入位于舞台任何位置时实现一致的电平。
-您可以采用不同的工作流程进行调谐，或针对不同情况采用不同的设置。
+  - EN: System tuning for WFS is different from standard PA tuning. It can proceed as follows:\n- Start with the flown array muted. Set the desired levels for the near-field speakers when listening to them in the first row. Adjust the high frequency shelf attenuation so the near-field speakers are not too bright and draw too much attention.\n- Mute the near-field array and unmute the flown array, find a suitable level towards the back of the house.\n- Unmute both arrays, adjust the delay of the flown array to bring the sound down to the correct height in the lower rows. Adjust the levels, HF shelf/distance ratio and vertical and horizontal parallax for each array to have consistent level wherever your inputs are on stage. This is especially important if your inputs are actors, singers or acoustic music instruments on stage. You may also test adding some Haas effect to delay the whole system if you feel the WFS is too early or adding comb filtering with the acoustic sound.\nYou may follow a different workflow for tuning or go for different cues.
+  - ZH: WFS的系统调谐不同于标准PA调谐。可以按以下步骤进行：\n- 从飞行阵列静音开始。在第一排聆听近场扬声器时设置所需的电平。调整高频搁架衰减使近场扬声器不至于太亮。\n- 静音近场阵列并取消飞行阵列的静音，在场地后方找到合适的电平。\n- 取消两个阵列的静音，调整飞行阵列的延迟以在较低的排将声音降到正确的高度。调整每个阵列的电平、HF搁架/距离比以及垂直和水平视差，以在输入位于舞台任何位置时实现一致的电平。\n您可以采用不同的工作流程进行调谐，或针对不同情况采用不同的设置。
   - [ ] OK    Fix: 
 
 - **`title`**
   - EN: System Tuning
   - ZH: 系统调谐
-  - [ ] OK    Fix: 
-
-## `inputs`
-
-- **`arrayPrefix`**
-  - EN: Array
-  - ZH: 阵列
-  - [ ] OK    Fix: 
-
-## `inputs.buttons`
-
-- **`deleteSnapshot`**
-  - EN: Delete Snapshot
-  - ZH: 删除快照
-  - [ ] OK    Fix: 
-
-- **`editScope`**
-  - EN: Edit Scope
-  - ZH: 编辑范围
-  - [ ] OK    Fix: 
-
-- **`export`**
-  - EN: Export
-  - ZH: 导出
-  - [ ] OK    Fix: 
-
-- **`hiddenOnMap`**
-  - EN: Input Hidden on Map
-  - ZH: 输入在地图上隐藏
-  - [ ] OK    Fix: 
-
-- **`import`**
-  - EN: Import
-  - ZH: 导入
-  - [ ] OK    Fix: 
-
-- **`lockOnMap`**
-  - EN: Lock on Map
-  - ZH: 在地图上锁定
-  - [ ] OK    Fix: 
-
-- **`pauseAll`**
-  - EN: Pause All
-  - ZH: 全部暂停
-  - [ ] OK    Fix: 
-
-- **`reloadBackup`**
-  - EN: Reload Backup
-  - ZH: 加载备份
-  - [ ] OK    Fix: 
-
-- **`reloadConfig`**
-  - EN: Reload Input Config
-  - ZH: 重新加载输入配置
-  - [ ] OK    Fix: 
-
-- **`reloadSnapshot`**
-  - EN: Reload Snapshot
-  - ZH: 加载快照
-  - [ ] OK    Fix: 
-
-- **`reloadWithoutScope`**
-  - EN: Reload Without Scope
-  - ZH: 无过滤重新加载
-  - [ ] OK    Fix: 
-
-- **`resumeAll`**
-  - EN: Resume All
-  - ZH: 全部恢复
-  - [ ] OK    Fix: 
-
-- **`samplerOff`**
-  - EN: Sampler: OFF
-  - ZH: 采样器: 关
-  - [ ] OK    Fix: 
-
-- **`samplerOn`**
-  - EN: Sampler: ON
-  - ZH: 采样器: 开
-  - [ ] OK    Fix: 
-
-- **`setAllInputs`**
-  - EN: Set all Inputs...
-  - ZH: 设置所有输入...
-  - [ ] OK    Fix: 
-
-- **`solo`**
-  - EN: Solo
-  - ZH: 独听
-  - [ ] OK    Fix: 
-
-- **`soloModeMulti`**
-  - EN: Multi
-  - ZH: 多选
-  - [ ] OK    Fix: 
-
-- **`soloModeSingle`**
-  - EN: Single
-  - ZH: 单选
-  - [ ] OK    Fix: 
-
-- **`stopAll`**
-  - EN: Stop All
-  - ZH: 全部停止
-  - [ ] OK    Fix: 
-
-- **`storeConfig`**
-  - EN: Store Input Config
-  - ZH: 保存输入配置
-  - [ ] OK    Fix: 
-
-- **`storeSnapshot`**
-  - EN: Store Snapshot
-  - ZH: 保存快照
-  - [ ] OK    Fix: 
-
-- **`updateSnapshot`**
-  - EN: Update Snapshot
-  - ZH: 更新快照
-  - [ ] OK    Fix: 
-
-- **`visibleOnMap`**
-  - EN: Input Visible on Map
-  - ZH: 输入在地图上可见
-  - [ ] OK    Fix: 
-
-## `inputs.clusters`
-
-- **`clusterPrefix`**
-  - EN: Cluster
-  - ZH: 集群
-  - [ ] OK    Fix: 
-
-- **`single`**
-  - EN: Single
-  - ZH: 单独
-  - [ ] OK    Fix: 
-
-## `inputs.coordinates`
-
-- **`xyz`**
-  - EN: XYZ
-  - ZH: XYZ
   - [ ] OK    Fix: 
 
 ## `inputs.dialogs`
@@ -2325,12 +845,8 @@ You may follow a different workflow for tuning or go for different cues.
   - [ ] OK    Fix: 
 
 - **`trackingConflictCluster`**
-  - EN: Input {current} has tracking enabled, but Input {existing} in Cluster {cluster} is already tracked.
-
-Only one tracked input per cluster is allowed.
-  - ZH: 输入 {current} 已启用追踪，但集群 {cluster} 中的输入 {existing} 已被追踪。
-
-每个集群仅允许一个追踪输入。
+  - EN: Input {current} has tracking enabled, but Input {existing} in Cluster {cluster} is already tracked.\n\nOnly one tracked input per cluster is allowed.
+  - ZH: 输入 {current} 已启用追踪，但集群 {cluster} 中的输入 {existing} 已被追踪。\n\n每个集群仅允许一个追踪输入。
   - [ ] OK    Fix: 
 
 - **`trackingConflictContinue`**
@@ -2339,16 +855,8 @@ Only one tracked input per cluster is allowed.
   - [ ] OK    Fix: 
 
 - **`trackingConflictSwitch`**
-  - EN: Input {existing} in Cluster {cluster} already has tracking enabled.
-
-Only one tracked input per cluster is allowed.
-
-Do you want to disable tracking on Input {existing} and enable it on Input {to}?
-  - ZH: 集群 {cluster} 中的输入 {existing} 已启用追踪。
-
-每个集群仅允许一个追踪输入。
-
-是否禁用输入 {existing} 的追踪并启用输入 {to} 的追踪？
+  - EN: Input {existing} in Cluster {cluster} already has tracking enabled.\n\nOnly one tracked input per cluster is allowed.\n\nDo you want to disable tracking on Input {existing} and enable it on Input {to}?
+  - ZH: 集群 {cluster} 中的输入 {existing} 已启用追踪。\n\n每个集群仅允许一个追踪输入。\n\n是否禁用输入 {existing} 的追踪并启用输入 {to} 的追踪？
   - [ ] OK    Fix: 
 
 - **`trackingConflictTitle`**
@@ -2362,56 +870,6 @@ Do you want to disable tracking on Input {existing} and enable it on Input {to}?
   - [ ] OK    Fix: 
 
 ## `inputs.gradientMap`
-
-- **`buttons.copyLayer`**
-  - EN: Copy Layer
-  - ZH: 复制图层
-  - [ ] OK    Fix: 
-
-- **`buttons.copyShape`**
-  - EN: Copy Shape
-  - ZH: 复制形状
-  - [ ] OK    Fix: 
-
-- **`buttons.delete`**
-  - EN: Delete
-  - ZH: 删除
-  - [ ] OK    Fix: 
-
-- **`buttons.enable`**
-  - EN: On
-  - ZH: 开
-  - [ ] OK    Fix: 
-
-- **`buttons.lock`**
-  - EN: Lock
-  - ZH: 锁定
-  - [ ] OK    Fix: 
-
-- **`buttons.pasteLayer`**
-  - EN: Paste Layer
-  - ZH: 粘贴图层
-  - [ ] OK    Fix: 
-
-- **`buttons.pasteShape`**
-  - EN: Paste Shape
-  - ZH: 粘贴形状
-  - [ ] OK    Fix: 
-
-- **`header.attenuationLayer`**
-  - EN: Attenuation Layer
-  - ZH: 衰减图层
-  - [ ] OK    Fix: 
-
-- **`header.heightLayer`**
-  - EN: Height Layer
-  - ZH: 高度图层
-  - [ ] OK    Fix: 
-
-- **`header.hfShelfLayer`**
-  - EN: HF Shelf Layer
-  - ZH: 高频搁架图层
-  - [ ] OK    Fix: 
 
 - **`help.blackValue`**
   - EN: Parameter value mapped to black (0.00–1.00)
@@ -2513,151 +971,6 @@ Do you want to disable tracking on Input {existing} and enable it on Input {to}?
   - ZH: 映射到白色的参数值（0.00–1.00）
   - [ ] OK    Fix: 
 
-- **`hints.darkMaxAtten`**
-  - EN: Dark = max attenuation | Light = none
-  - ZH: 暗 = 最大衰减 | 亮 = 无
-  - [ ] OK    Fix: 
-
-- **`hints.darkMaxHeight`**
-  - EN: Dark = max height | Light = ground
-  - ZH: 暗 = 最大高度 | 亮 = 地面
-  - [ ] OK    Fix: 
-
-- **`hints.darkMaxHF`**
-  - EN: Dark = max HF shelf | Light = none
-  - ZH: 暗 = 最大高频搁架 | 亮 = 无
-  - [ ] OK    Fix: 
-
-- **`hints.polygonClose`**
-  - EN: Double-click to close polygon
-  - ZH: 双击关闭多边形
-  - [ ] OK    Fix: 
-
-- **`hints.whiteMaxAtten`**
-  - EN: White = max attenuation | Black = none
-  - ZH: 白 = 最大衰减 | 黑 = 无
-  - [ ] OK    Fix: 
-
-- **`hints.whiteMaxHeight`**
-  - EN: White = max height | Black = ground
-  - ZH: 白 = 最大高度 | 黑 = 地面
-  - [ ] OK    Fix: 
-
-- **`hints.whiteMaxHF`**
-  - EN: White = max HF shelf | Black = none
-  - ZH: 白 = 最大高频搁架 | 黑 = 无
-  - [ ] OK    Fix: 
-
-- **`labels.black`**
-  - EN: Black:
-  - ZH: 黑色：
-  - [ ] OK    Fix: 
-
-- **`labels.blur`**
-  - EN: Blur:
-  - ZH: 模糊：
-  - [ ] OK    Fix: 
-
-- **`labels.center`**
-  - EN: Center:
-  - ZH: 中心：
-  - [ ] OK    Fix: 
-
-- **`labels.curve`**
-  - EN: Curve:
-  - ZH: 曲线：
-  - [ ] OK    Fix: 
-
-- **`labels.edge`**
-  - EN: Edge:
-  - ZH: 边缘：
-  - [ ] OK    Fix: 
-
-- **`labels.end`**
-  - EN: End:
-  - ZH: 终点：
-  - [ ] OK    Fix: 
-
-- **`labels.fill`**
-  - EN: Fill:
-  - ZH: 填充：
-  - [ ] OK    Fix: 
-
-- **`labels.name`**
-  - EN: Name:
-  - ZH: 名称：
-  - [ ] OK    Fix: 
-
-- **`labels.start`**
-  - EN: Start:
-  - ZH: 起点：
-  - [ ] OK    Fix: 
-
-- **`labels.white`**
-  - EN: White:
-  - ZH: 白色：
-  - [ ] OK    Fix: 
-
-- **`layers.attenuation`**
-  - EN: Attenuation
-  - ZH: 衰减
-  - [ ] OK    Fix: 
-
-- **`layers.height`**
-  - EN: Height
-  - ZH: 高度
-  - [ ] OK    Fix: 
-
-- **`layers.hfShelf`**
-  - EN: HF Shelf
-  - ZH: 高频搁架
-  - [ ] OK    Fix: 
-
-- **`tools.editPoints`**
-  - EN: Edit Points
-  - ZH: 编辑点
-  - [ ] OK    Fix: 
-
-- **`tools.ellipse`**
-  - EN: Ellipse
-  - ZH: 椭圆
-  - [ ] OK    Fix: 
-
-- **`tools.fill`**
-  - EN: Fill
-  - ZH: 填充
-  - [ ] OK    Fix: 
-
-- **`tools.linGrad`**
-  - EN: Linear Grad.
-  - ZH: 线性渐变
-  - [ ] OK    Fix: 
-
-- **`tools.polygon`**
-  - EN: Polygon
-  - ZH: 多边形
-  - [ ] OK    Fix: 
-
-- **`tools.radGrad`**
-  - EN: Radial Grad.
-  - ZH: 径向渐变
-  - [ ] OK    Fix: 
-
-- **`tools.rect`**
-  - EN: Rectangle
-  - ZH: 矩形
-  - [ ] OK    Fix: 
-
-- **`tools.select`**
-  - EN: Select
-  - ZH: 选择
-  - [ ] OK    Fix: 
-
-- **`warnings.heightRatioZero`**
-  - EN: Height Ratio is 0% — increase it for height to take effect
-  - ZH: 高度比率为0% — 请增大以使高度生效
-  - [ ] OK    Fix: 
-
 ## `inputs.help`
 
 - **`admMapping`**
@@ -2672,7 +985,7 @@ Do you want to disable tracking on Input {existing} and enable it on Input {to}?
 
 - **`attenuationLawButton`**
   - EN: Attenuation Law Model (Linear Decrease of Volume with Distance Between Object and Speaker or Squared).
-  - ZH: 衰减规律模型（对象与扬声器之间随距离线性降低音量）。
+  - ZH: Attenuation Law模型（对象与扬声器之间随距离线性降低音量）。
   - [ ] OK    Fix: 
 
 - **`attenuationSlider`**
@@ -2787,47 +1100,47 @@ Do you want to disable tracking on Input {existing} and enable it on Input {to}?
 
 - **`frActiveButton`**
   - EN: Enable Simulated Floor Reflections for the Object.
-  - ZH: 为对象启用模拟地板反射。
+  - ZH: 为对象启用模拟Floor Reflections。
   - [ ] OK    Fix: 
 
 - **`frAttenuationSlider`**
   - EN: Attenuation of the Simulated Floor Reflections for the Object.
-  - ZH: 对象的模拟地板反射的衰减。
+  - ZH: 对象的模拟Floor Reflections的衰减。
   - [ ] OK    Fix: 
 
 - **`frDiffusionDial`**
   - EN: Diffusion Effect of the Simulated Floor Reflections for the Object.
-  - ZH: 对象的模拟地板反射的扩散效果。
+  - ZH: 对象的模拟Floor Reflections的扩散效果。
   - [ ] OK    Fix: 
 
 - **`frHighShelfActiveButton`**
   - EN: Enable High Shelf Filter for Floor Reflections.
-  - ZH: 为地板反射启用高搁架滤波器。
+  - ZH: 为Floor Reflections启用High Shelf滤波器。
   - [ ] OK    Fix: 
 
 - **`frHighShelfFreqSlider`**
   - EN: High Shelf Frequency for Floor Reflections.
-  - ZH: 地板反射的高搁架频率。
+  - ZH: Floor Reflections的High Shelf频率。
   - [ ] OK    Fix: 
 
 - **`frHighShelfGainSlider`**
   - EN: High Shelf Gain for Floor Reflections.
-  - ZH: 地板反射的高搁架增益。
+  - ZH: Floor Reflections的High Shelf增益。
   - [ ] OK    Fix: 
 
 - **`frHighShelfSlopeSlider`**
   - EN: High Shelf Slope for Floor Reflections.
-  - ZH: 地板反射的高搁架斜率。
+  - ZH: Floor Reflections的High Shelf斜率。
   - [ ] OK    Fix: 
 
 - **`frLowCutActiveButton`**
   - EN: Enable Low Cut Filter for Floor Reflections.
-  - ZH: 为地板反射启用低切滤波器。
+  - ZH: 为Floor Reflections启用Low Cut滤波器。
   - [ ] OK    Fix: 
 
 - **`frLowCutFreqSlider`**
   - EN: Low Cut Frequency for Floor Reflections.
-  - ZH: 地板反射的低切频率。
+  - ZH: Floor Reflections的Low Cut频率。
   - [ ] OK    Fix: 
 
 - **`heightFactorDial`**
@@ -3007,7 +1320,7 @@ Do you want to disable tracking on Input {existing} and enable it on Input {to}?
 
 - **`minimalLatencyButton`**
   - EN: Select between Acoustic Precedence and Minimal Latency for Amplification Precedence.
-  - ZH: 在声学优先和最小延迟之间为放大优先级选择。
+  - ZH: 在Acoustic Precedence和Minimal Latency之间为放大优先级选择。
   - [ ] OK    Fix: 
 
 - **`muteButton`**
@@ -3017,7 +1330,7 @@ Do you want to disable tracking on Input {existing} and enable it on Input {to}?
 
 - **`muteMacrosSelector`**
   - EN: Mute Macros for Fast Muting and Unmuting of Arrays.
-  - ZH: 用于快速静音和取消静音阵列的静音宏。
+  - ZH: 用于快速静音和取消静音阵列的Mute Macros。
   - [ ] OK    Fix: 
 
 - **`muteReverbSendsButton`**
@@ -3212,7 +1525,7 @@ Do you want to disable tracking on Input {existing} and enable it on Input {to}?
 
 - **`solo`**
   - EN: Listen to Binaural Rendering of this channel.
-  - ZH: 收听此通道的双耳渲染。
+  - ZH: 收听此通道的Binaural渲染。
   - [ ] OK    Fix: 
 
 - **`soloMode`**
@@ -3253,427 +1566,6 @@ Do you want to disable tracking on Input {existing} and enable it on Input {to}?
 - **`updateSnapshot`**
   - EN: Update Selected Input Snapshot (with backup).
   - ZH: 使用当前参数更新选定的快照。
-  - [ ] OK    Fix: 
-
-## `inputs.labels`
-
-- **`admMapping`**
-  - EN: ADM:
-  - ZH: ADM:
-  - [ ] OK    Fix: 
-
-- **`amplitudeX`**
-  - EN: Amplitude X:
-  - ZH: 振幅X:
-  - [ ] OK    Fix: 
-
-- **`amplitudeY`**
-  - EN: Amplitude Y:
-  - ZH: 振幅Y:
-  - [ ] OK    Fix: 
-
-- **`amplitudeZ`**
-  - EN: Amplitude Z:
-  - ZH: 振幅Z:
-  - [ ] OK    Fix: 
-
-- **`arrayAttenuation`**
-  - EN: Array Attenuation:
-  - ZH: 阵列衰减:
-  - [ ] OK    Fix: 
-
-- **`attenuation`**
-  - EN: Attenuation:
-  - ZH: 衰减:
-  - [ ] OK    Fix: 
-
-- **`attenuationLaw`**
-  - EN: Attenuation Law:
-  - ZH: 衰减曲线:
-  - [ ] OK    Fix: 
-
-- **`cluster`**
-  - EN: Cluster:
-  - ZH: 集群:
-  - [ ] OK    Fix: 
-
-- **`commonAtten`**
-  - EN: Common Atten:
-  - ZH: 公共衰减:
-  - [ ] OK    Fix: 
-
-- **`coord`**
-  - EN: Coord:
-  - ZH: 坐标:
-  - [ ] OK    Fix: 
-
-- **`curve`**
-  - EN: Curve:
-  - ZH: 曲线:
-  - [ ] OK    Fix: 
-
-- **`delayLatency`**
-  - EN: Delay/Latency:
-  - ZH: 延迟/延时:
-  - [ ] OK    Fix: 
-
-- **`destX`**
-  - EN: Dest. X:
-  - ZH: 目标X:
-  - [ ] OK    Fix: 
-
-- **`destY`**
-  - EN: Dest. Y:
-  - ZH: 目标Y:
-  - [ ] OK    Fix: 
-
-- **`destZ`**
-  - EN: Dest. Z:
-  - ZH: 目标Z:
-  - [ ] OK    Fix: 
-
-- **`diffusion`**
-  - EN: Diffusion:
-  - ZH: 扩散:
-  - [ ] OK    Fix: 
-
-- **`directivity`**
-  - EN: Directivity:
-  - ZH: 指向性:
-  - [ ] OK    Fix: 
-
-- **`distanceAtten`**
-  - EN: Distance Atten:
-  - ZH: 距离衰减:
-  - [ ] OK    Fix: 
-
-- **`distanceRatio`**
-  - EN: Distance Ratio:
-  - ZH: 距离比:
-  - [ ] OK    Fix: 
-
-- **`duration`**
-  - EN: Duration:
-  - ZH: 持续时间:
-  - [ ] OK    Fix: 
-
-- **`frequency`**
-  - EN: Frequency:
-  - ZH: 频率:
-  - [ ] OK    Fix: 
-
-- **`fringe`**
-  - EN: Fringe:
-  - ZH: 边缘:
-  - [ ] OK    Fix: 
-
-- **`gain`**
-  - EN: Gain:
-  - ZH: 增益:
-  - [ ] OK    Fix: 
-
-- **`gyrophone`**
-  - EN: Gyrophone:
-  - ZH: 旋转声源:
-  - [ ] OK    Fix: 
-
-- **`heightFactor`**
-  - EN: Height Factor:
-  - ZH: 高度因子:
-  - [ ] OK    Fix: 
-
-- **`hfShelf`**
-  - EN: HF Shelf:
-  - ZH: 高频搁架:
-  - [ ] OK    Fix: 
-
-- **`jitter`**
-  - EN: Jitter:
-  - ZH: 抖动:
-  - [ ] OK    Fix: 
-
-- **`max`**
-  - EN: Max:
-  - ZH: 最大:
-  - [ ] OK    Fix: 
-
-- **`maxSpeed`**
-  - EN: Max Speed:
-  - ZH: 最大速度:
-  - [ ] OK    Fix: 
-
-- **`min`**
-  - EN: Min:
-  - ZH: 最小:
-  - [ ] OK    Fix: 
-
-- **`muteMacros`**
-  - EN: Mute Macros:
-  - ZH: 静音宏:
-  - [ ] OK    Fix: 
-
-- **`name`**
-  - EN: Name:
-  - ZH: 名称:
-  - [ ] OK    Fix: 
-
-- **`offsetX`**
-  - EN: Offset X:
-  - ZH: 偏移X:
-  - [ ] OK    Fix: 
-
-- **`offsetY`**
-  - EN: Offset Y:
-  - ZH: 偏移Y:
-  - [ ] OK    Fix: 
-
-- **`offsetZ`**
-  - EN: Offset Z:
-  - ZH: 偏移Z:
-  - [ ] OK    Fix: 
-
-- **`outX`**
-  - EN: Out X:
-  - ZH: 输出X:
-  - [ ] OK    Fix: 
-
-- **`outY`**
-  - EN: Out Y:
-  - ZH: 输出Y:
-  - [ ] OK    Fix: 
-
-- **`outZ`**
-  - EN: Out Z:
-  - ZH: 输出Z:
-  - [ ] OK    Fix: 
-
-- **`peakRatio`**
-  - EN: Peak Ratio:
-  - ZH: 峰值比:
-  - [ ] OK    Fix: 
-
-- **`peakThreshold`**
-  - EN: Peak Threshold:
-  - ZH: 峰值阈值:
-  - [ ] OK    Fix: 
-
-- **`period`**
-  - EN: Period:
-  - ZH: 周期:
-  - [ ] OK    Fix: 
-
-- **`phase`**
-  - EN: Phase:
-  - ZH: 相位:
-  - [ ] OK    Fix: 
-
-- **`phaseX`**
-  - EN: Phase X:
-  - ZH: 相位X:
-  - [ ] OK    Fix: 
-
-- **`phaseY`**
-  - EN: Phase Y:
-  - ZH: 相位Y:
-  - [ ] OK    Fix: 
-
-- **`phaseZ`**
-  - EN: Phase Z:
-  - ZH: 相位Z:
-  - [ ] OK    Fix: 
-
-- **`positionX`**
-  - EN: Position X:
-  - ZH: 位置X:
-  - [ ] OK    Fix: 
-
-- **`positionY`**
-  - EN: Position Y:
-  - ZH: 位置Y:
-  - [ ] OK    Fix: 
-
-- **`positionZ`**
-  - EN: Position Z:
-  - ZH: 位置Z:
-  - [ ] OK    Fix: 
-
-- **`radius`**
-  - EN: Radius:
-  - ZH: 半径:
-  - [ ] OK    Fix: 
-
-- **`rateX`**
-  - EN: Rate X:
-  - ZH: 速率X:
-  - [ ] OK    Fix: 
-
-- **`rateY`**
-  - EN: Rate Y:
-  - ZH: 速率Y:
-  - [ ] OK    Fix: 
-
-- **`rateZ`**
-  - EN: Rate Z:
-  - ZH: 速率Z:
-  - [ ] OK    Fix: 
-
-- **`reset`**
-  - EN: Reset:
-  - ZH: 重置:
-  - [ ] OK    Fix: 
-
-- **`rotation`**
-  - EN: Rotation:
-  - ZH: 旋转:
-  - [ ] OK    Fix: 
-
-- **`shape`**
-  - EN: Shape:
-  - ZH: 形状:
-  - [ ] OK    Fix: 
-
-- **`shapeX`**
-  - EN: Shape X:
-  - ZH: 形状X:
-  - [ ] OK    Fix: 
-
-- **`shapeY`**
-  - EN: Shape Y:
-  - ZH: 形状Y:
-  - [ ] OK    Fix: 
-
-- **`shapeZ`**
-  - EN: Shape Z:
-  - ZH: 形状Z:
-  - [ ] OK    Fix: 
-
-- **`slope`**
-  - EN: Slope:
-  - ZH: 斜率:
-  - [ ] OK    Fix: 
-
-- **`slowRatio`**
-  - EN: Slow Ratio:
-  - ZH: 慢速比:
-  - [ ] OK    Fix: 
-
-- **`slowThreshold`**
-  - EN: Slow Threshold:
-  - ZH: 慢速阈值:
-  - [ ] OK    Fix: 
-
-- **`speedProfile`**
-  - EN: Speed Profile:
-  - ZH: 速度曲线:
-  - [ ] OK    Fix: 
-
-- **`threshold`**
-  - EN: Threshold:
-  - ZH: 阈值:
-  - [ ] OK    Fix: 
-
-- **`tilt`**
-  - EN: Tilt:
-  - ZH: 倾斜:
-  - [ ] OK    Fix: 
-
-- **`trackingId`**
-  - EN: Tracking ID:
-  - ZH: 追踪ID:
-  - [ ] OK    Fix: 
-
-- **`trackingSmooth`**
-  - EN: Tracking Smooth:
-  - ZH: 追踪平滑:
-  - [ ] OK    Fix: 
-
-- **`xyJoystick`**
-  - EN: X/Y
-  - ZH: X/Y
-  - [ ] OK    Fix: 
-
-- **`zSlider`**
-  - EN: Z
-  - ZH: Z
-  - [ ] OK    Fix: 
-
-## `inputs.lfo`
-
-- **`gyrophone.antiClockwise`**
-  - EN: Anti-Clockwise
-  - ZH: 逆时针
-  - [ ] OK    Fix: 
-
-- **`gyrophone.clockwise`**
-  - EN: Clockwise
-  - ZH: 顺时针
-  - [ ] OK    Fix: 
-
-- **`gyrophone.off`**
-  - EN: OFF
-  - ZH: 关
-  - [ ] OK    Fix: 
-
-- **`shapes.exp`**
-  - EN: exp
-  - ZH: 指数
-  - [ ] OK    Fix: 
-
-- **`shapes.keystone`**
-  - EN: keystone
-  - ZH: 梯形
-  - [ ] OK    Fix: 
-
-- **`shapes.log`**
-  - EN: log
-  - ZH: 对数
-  - [ ] OK    Fix: 
-
-- **`shapes.off`**
-  - EN: OFF
-  - ZH: 关
-  - [ ] OK    Fix: 
-
-- **`shapes.random`**
-  - EN: random
-  - ZH: 随机
-  - [ ] OK    Fix: 
-
-- **`shapes.sawtooth`**
-  - EN: sawtooth
-  - ZH: 锯齿
-  - [ ] OK    Fix: 
-
-- **`shapes.sine`**
-  - EN: sine
-  - ZH: 正弦
-  - [ ] OK    Fix: 
-
-- **`shapes.square`**
-  - EN: square
-  - ZH: 方波
-  - [ ] OK    Fix: 
-
-- **`shapes.triangle`**
-  - EN: triangle
-  - ZH: 三角
-  - [ ] OK    Fix: 
-
-## `inputs.liveSource`
-
-- **`linear`**
-  - EN: linear
-  - ZH: 线性
-  - [ ] OK    Fix: 
-
-- **`log`**
-  - EN: log
-  - ZH: 对数
-  - [ ] OK    Fix: 
-
-- **`sine`**
-  - EN: sine
-  - ZH: 正弦
   - [ ] OK    Fix: 
 
 ## `inputs.messages`
@@ -3730,7 +1622,7 @@ Do you want to disable tracking on Input {existing} and enable it on Input {to}?
 
 - **`selectFolderFirst`**
   - EN: Please select a project folder in System Config first.
-  - ZH: 请先在系统配置中选择项目文件夹。
+  - ZH: 请先在System Config中选择项目文件夹。
   - [ ] OK    Fix: 
 
 - **`setSingle`**
@@ -3773,391 +1665,6 @@ Do you want to disable tracking on Input {existing} and enable it on Input {to}?
   - ZH: 追踪已从输入 {from} 切换到输入 {to}
   - [ ] OK    Fix: 
 
-## `inputs.muteMacros`
-
-- **`invertMutes`**
-  - EN: INVERT MUTES
-  - ZH: 反转静音
-  - [ ] OK    Fix: 
-
-- **`muteAll`**
-  - EN: MUTE ALL
-  - ZH: 全部静音
-  - [ ] OK    Fix: 
-
-- **`muteArrayPrefix`**
-  - EN: MUTE ARRAY
-  - ZH: 静音阵列
-  - [ ] OK    Fix: 
-
-- **`muteEven`**
-  - EN: MUTE EVEN
-  - ZH: 静音偶数
-  - [ ] OK    Fix: 
-
-- **`muteOdd`**
-  - EN: MUTE ODD
-  - ZH: 静音奇数
-  - [ ] OK    Fix: 
-
-- **`selectMacro`**
-  - EN: Select Macro...
-  - ZH: 选择宏...
-  - [ ] OK    Fix: 
-
-- **`unmuteAll`**
-  - EN: UNMUTE ALL
-  - ZH: 全部解除静音
-  - [ ] OK    Fix: 
-
-- **`unmuteArrayPrefix`**
-  - EN: UNMUTE ARRAY
-  - ZH: 解除阵列静音
-  - [ ] OK    Fix: 
-
-## `inputs.prefixes`
-
-- **`delay`**
-  - EN: Delay:
-  - ZH: 延迟:
-  - [ ] OK    Fix: 
-
-## `inputs.sections`
-
-- **`automotion`**
-  - EN: AutomOtion
-  - ZH: AutomOtion (自动移动)
-  - [ ] OK    Fix: 
-
-## `inputs.snapshots`
-
-- **`selectSnapshot`**
-  - EN: Select Snapshot...
-  - ZH: 选择快照...
-  - [ ] OK    Fix: 
-
-## `inputs.tabs`
-
-- **`gradientMaps`**
-  - EN: Gradient Maps
-  - ZH: 渐变图
-  - [ ] OK    Fix: 
-
-- **`inputParams`**
-  - EN: Input Parameters
-  - ZH: 输入参数
-  - [ ] OK    Fix: 
-
-- **`liveSourceHackoustics`**
-  - EN: Live Source & Hackoustics
-  - ZH: 现场声源 & Hackoustics (虚拟声学)
-  - [ ] OK    Fix: 
-
-- **`movements`**
-  - EN: Movements
-  - ZH: 运动
-  - [ ] OK    Fix: 
-
-- **`sampler`**
-  - EN: Sampler
-  - ZH: Sampler
-  - [ ] OK    Fix: 
-
-- **`visualisation`**
-  - EN: Visualisation
-  - ZH: 可视化
-  - [ ] OK    Fix: 
-
-## `inputs.toggles`
-
-- **`absolute`**
-  - EN: Absolute
-  - ZH: 绝对
-  - [ ] OK    Fix: 
-
-- **`acousticPrecedence`**
-  - EN: Acoustic Precedence
-  - ZH: 声学优先
-  - [ ] OK    Fix: 
-
-- **`attenuationLawLog`**
-  - EN: Log
-  - ZH: 对数
-  - [ ] OK    Fix: 
-
-- **`constraintROff`**
-  - EN: Constraint R: OFF
-  - ZH: 约束R: 关
-  - [ ] OK    Fix: 
-
-- **`constraintROn`**
-  - EN: Constraint R: ON
-  - ZH: 约束R: 开
-  - [ ] OK    Fix: 
-
-- **`constraintXOff`**
-  - EN: Constraint X: OFF
-  - ZH: 约束X: 关
-  - [ ] OK    Fix: 
-
-- **`constraintXOn`**
-  - EN: Constraint X: ON
-  - ZH: 约束X: 开
-  - [ ] OK    Fix: 
-
-- **`constraintYOff`**
-  - EN: Constraint Y: OFF
-  - ZH: 约束Y: 关
-  - [ ] OK    Fix: 
-
-- **`constraintYOn`**
-  - EN: Constraint Y: ON
-  - ZH: 约束Y: 开
-  - [ ] OK    Fix: 
-
-- **`constraintZOff`**
-  - EN: Constraint Z: OFF
-  - ZH: 约束Z: 关
-  - [ ] OK    Fix: 
-
-- **`constraintZOn`**
-  - EN: Constraint Z: ON
-  - ZH: 约束Z: 开
-  - [ ] OK    Fix: 
-
-- **`flipXOff`**
-  - EN: Flip X: OFF
-  - ZH: 翻转X: 关
-  - [ ] OK    Fix: 
-
-- **`flipXOn`**
-  - EN: Flip X: ON
-  - ZH: 翻转X: 开
-  - [ ] OK    Fix: 
-
-- **`flipYOff`**
-  - EN: Flip Y: OFF
-  - ZH: 翻转Y: 关
-  - [ ] OK    Fix: 
-
-- **`flipYOn`**
-  - EN: Flip Y: ON
-  - ZH: 翻转Y: 开
-  - [ ] OK    Fix: 
-
-- **`flipZOff`**
-  - EN: Flip Z: OFF
-  - ZH: 翻转Z: 关
-  - [ ] OK    Fix: 
-
-- **`flipZOn`**
-  - EN: Flip Z: ON
-  - ZH: 翻转Z: 开
-  - [ ] OK    Fix: 
-
-- **`floorReflectionsOff`**
-  - EN: Floor Reflections: OFF
-  - ZH: 地板反射: 关
-  - [ ] OK    Fix: 
-
-- **`floorReflectionsOn`**
-  - EN: Floor Reflections: ON
-  - ZH: 地板反射: 开
-  - [ ] OK    Fix: 
-
-- **`highShelfOff`**
-  - EN: High Shelf: OFF
-  - ZH: 高频搁架: 关
-  - [ ] OK    Fix: 
-
-- **`highShelfOn`**
-  - EN: High Shelf: ON
-  - ZH: 高频搁架: 开
-  - [ ] OK    Fix: 
-
-- **`lfoOff`**
-  - EN: L.F.O: OFF
-  - ZH: L.F.O: 关
-  - [ ] OK    Fix: 
-
-- **`lfoOn`**
-  - EN: L.F.O: ON
-  - ZH: L.F.O: 开
-  - [ ] OK    Fix: 
-
-- **`liveSourceTamerOff`**
-  - EN: Live Source Tamer: OFF
-  - ZH: 驯服器: OFF
-  - [ ] OK    Fix: 
-
-- **`liveSourceTamerOn`**
-  - EN: Live Source Tamer: ON
-  - ZH: 驯服器: ON
-  - [ ] OK    Fix: 
-
-- **`lowCutOff`**
-  - EN: Low Cut: OFF
-  - ZH: 低切: 关
-  - [ ] OK    Fix: 
-
-- **`lowCutOn`**
-  - EN: Low Cut: ON
-  - ZH: 低切: 开
-  - [ ] OK    Fix: 
-
-- **`lsPeakOff`**
-  - EN: Peak: OFF
-  - ZH: 峰值: OFF
-  - [ ] OK    Fix: 
-
-- **`lsPeakOn`**
-  - EN: Peak: ON
-  - ZH: 峰值: ON
-  - [ ] OK    Fix: 
-
-- **`lsSlowOff`**
-  - EN: Slow: OFF
-  - ZH: 缓慢: OFF
-  - [ ] OK    Fix: 
-
-- **`lsSlowOn`**
-  - EN: Slow: ON
-  - ZH: 缓慢: ON
-  - [ ] OK    Fix: 
-
-- **`manual`**
-  - EN: Manual
-  - ZH: 手动
-  - [ ] OK    Fix: 
-
-- **`maxSpeedOff`**
-  - EN: Max Speed: OFF
-  - ZH: 最大速度: 关
-  - [ ] OK    Fix: 
-
-- **`maxSpeedOn`**
-  - EN: Max Speed: ON
-  - ZH: 最大速度: 开
-  - [ ] OK    Fix: 
-
-- **`minimalLatency`**
-  - EN: Minimal Latency
-  - ZH: 最小延时
-  - [ ] OK    Fix: 
-
-- **`pathModeOff`**
-  - EN: Path Mode: OFF
-  - ZH: 路径模式: 关
-  - [ ] OK    Fix: 
-
-- **`pathModeOn`**
-  - EN: Path Mode: ON
-  - ZH: 路径模式: 开
-  - [ ] OK    Fix: 
-
-- **`relative`**
-  - EN: Relative
-  - ZH: 相对
-  - [ ] OK    Fix: 
-
-- **`return`**
-  - EN: Return
-  - ZH: 返回
-  - [ ] OK    Fix: 
-
-- **`reverbSendsMuted`**
-  - EN: Sends to Reverbs: Muted
-  - ZH: 混响发送: 已静音
-  - [ ] OK    Fix: 
-
-- **`reverbSendsUnmuted`**
-  - EN: Sends to Reverbs: Unmuted
-  - ZH: 混响发送: 已启用
-  - [ ] OK    Fix: 
-
-- **`sidelinesOff`**
-  - EN: Sidelines Off
-  - ZH: 边线 关
-  - [ ] OK    Fix: 
-
-- **`sidelinesOn`**
-  - EN: Sidelines On
-  - ZH: 边线 开
-  - [ ] OK    Fix: 
-
-- **`stay`**
-  - EN: Stay
-  - ZH: 停留
-  - [ ] OK    Fix: 
-
-- **`trackingOff`**
-  - EN: Tracking: OFF
-  - ZH: 追踪: 关
-  - [ ] OK    Fix: 
-
-- **`trackingOn`**
-  - EN: Tracking: ON
-  - ZH: 追踪: 开
-  - [ ] OK    Fix: 
-
-- **`triggered`**
-  - EN: Triggered
-  - ZH: 触发
-  - [ ] OK    Fix: 
-
-## `inputs.visualisation`
-
-- **`delay`**
-  - EN: delay
-  - ZH: 延迟
-  - [ ] OK    Fix: 
-
-- **`hfDamping`**
-  - EN: HF
-damping
-  - ZH: 高频
-衰减
-  - [ ] OK    Fix: 
-
-- **`level`**
-  - EN: level
-  - ZH: 电平
-  - [ ] OK    Fix: 
-
-## `levelMeter`
-
-- **`inputs`**
-  - EN: Inputs
-  - ZH: 输入
-  - [ ] OK    Fix: 
-
-- **`outputs`**
-  - EN: Outputs
-  - ZH: 输出
-  - [ ] OK    Fix: 
-
-- **`windowTitle`**
-  - EN: Level Meters
-  - ZH: 电平表
-  - [ ] OK    Fix: 
-
-## `levelMeter.buttons`
-
-- **`clearSolo`**
-  - EN: Clear Solo
-  - ZH: 清除独奏
-  - [ ] OK    Fix: 
-
-- **`soloModeMulti`**
-  - EN: Multi
-  - ZH: 多选
-  - [ ] OK    Fix: 
-
-- **`soloModeSingle`**
-  - EN: Single
-  - ZH: 单选
-  - [ ] OK    Fix: 
-
 ## `levelMeter.tooltips`
 
 - **`clearSolo`**
@@ -4173,47 +1680,6 @@ damping
 - **`soloMode`**
   - EN: Single: one input at a time. Multi: multiple inputs simultaneously.
   - ZH: 单选：一次只听一个输入。多选：可同时听多个输入。
-  - [ ] OK    Fix: 
-
-## `map`
-
-- **`detachedMessage`**
-  - EN: The map is displayed in a separate window.
-  - ZH: 地图正在单独的窗口中显示。
-  - [ ] OK    Fix: 
-
-- **`reattach`**
-  - EN: Re-attach Map
-  - ZH: 重新附加地图
-  - [ ] OK    Fix: 
-
-## `map.buttons`
-
-- **`fitInputs`**
-  - EN: Fit All Inputs to Screen
-  - ZH: 适配所有输入到屏幕
-  - [ ] OK    Fix: 
-
-- **`fitStage`**
-  - EN: Fit Stage to Screen
-  - ZH: 适配舞台到屏幕
-  - [ ] OK    Fix: 
-
-- **`hideLevels`**
-  - EN: Hide Levels
-  - ZH: 隐藏电平
-  - [ ] OK    Fix: 
-
-- **`showLevels`**
-  - EN: Show Levels
-  - ZH: 显示电平
-  - [ ] OK    Fix: 
-
-## `map.labels`
-
-- **`reverbPrefix`**
-  - EN: R
-  - ZH: 混
   - [ ] OK    Fix: 
 
 ## `map.messages`
@@ -4265,46 +1731,26 @@ damping
   - ZH: 在地图上显示输入和输出的电平
   - [ ] OK    Fix: 
 
-## `network.buttons`
+## `meta`
 
-- **`add`**
-  - EN: ADD
-  - ZH: 添加
+- **`author`**
+  - EN: WFS-DIY Team
+  - ZH: WFS-DIY Team
   - [ ] OK    Fix: 
 
-- **`export`**
-  - EN: Export
-  - ZH: 导出
+- **`language`**
+  - EN: English
+  - ZH: 中文
   - [ ] OK    Fix: 
 
-- **`findMyRemote`**
-  - EN: Find My Remote
-  - ZH: 查找遥控器
+- **`locale`**
+  - EN: en
+  - ZH: zh
   - [ ] OK    Fix: 
 
-- **`import`**
-  - EN: Import
-  - ZH: 导入
-  - [ ] OK    Fix: 
-
-- **`openLogWindow`**
-  - EN: Open Log Window
-  - ZH: 打开日志窗口
-  - [ ] OK    Fix: 
-
-- **`reloadBackup`**
-  - EN: Reload Backup
-  - ZH: 加载备份
-  - [ ] OK    Fix: 
-
-- **`reloadConfig`**
-  - EN: Reload Network Config
-  - ZH: 重新加载网络配置
-  - [ ] OK    Fix: 
-
-- **`storeConfig`**
-  - EN: Store Network Config
-  - ZH: 保存网络配置
+- **`version`**
+  - EN: 1.0.0
+  - ZH: 1.0.0
   - [ ] OK    Fix: 
 
 ## `network.dialogs`
@@ -4350,10 +1796,8 @@ damping
   - [ ] OK    Fix: 
 
 - **`trackingConflictsMessage`**
-  - EN: 
-Only one tracked input per cluster is allowed. If you continue, tracking will be kept only for the first input in each cluster.
-  - ZH: 
-每个集群仅允许一个追踪输入。如果继续，每个集群将仅保留第一个输入的追踪。
+  - EN: \nOnly one tracked input per cluster is allowed. If you continue, tracking will be kept only for the first input in each cluster.
+  - ZH: \n每个集群仅允许一个追踪输入。如果继续，每个集群将仅保留第一个输入的追踪。
   - [ ] OK    Fix: 
 
 - **`trackingConflictsTitle`**
@@ -4368,6 +1812,61 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
   - ZH: 添加新的网络目标。
   - [ ] OK    Fix: 
 
+- **`admAxisSwap`**
+  - EN: Which incoming ADM-OSC axis maps to this internal axis.
+  - ZH: 将哪个传入的 ADM-OSC 轴映射到此内部轴。
+  - [ ] OK    Fix: 
+
+- **`admAzFlip`**
+  - EN: Invert the direction of incoming azimuth.
+  - ZH: 反转传入方位角的方向。
+  - [ ] OK    Fix: 
+
+- **`admAzOffset`**
+  - EN: Azimuth offset (deg) applied to incoming ADM-OSC azimuth.
+  - ZH: 应用于传入 ADM-OSC 方位角的方位角偏移（度）。
+  - [ ] OK    Fix: 
+
+- **`admBreakpoint`**
+  - EN: Normalized breakpoint (0-1) for piecewise linear stretch.
+  - ZH: 分段线性拉伸的归一化断点（0-1）。
+  - [ ] OK    Fix: 
+
+- **`admCenterOffset`**
+  - EN: Physical position (m) where normalized 0.0 maps to.
+  - ZH: 归一化值 0.0 映射到的物理位置（m）。
+  - [ ] OK    Fix: 
+
+- **`admDistMax`**
+  - EN: Maximum physical distance (m) at ADM-OSC distance=1.
+  - ZH: ADM-OSC distance=1 时的最大物理距离（m）。
+  - [ ] OK    Fix: 
+
+- **`admDistMin`**
+  - EN: Minimum physical distance (m) at ADM-OSC distance=0.
+  - ZH: ADM-OSC distance=0 时的最小物理距离（m）。
+  - [ ] OK    Fix: 
+
+- **`admElFlip`**
+  - EN: Invert the sign of incoming elevation.
+  - ZH: 反转传入仰角的符号。
+  - [ ] OK    Fix: 
+
+- **`admInnerWidth`**
+  - EN: Physical extent (m) from center to breakpoint.
+  - ZH: 从中心到断点的物理范围（m）。
+  - [ ] OK    Fix: 
+
+- **`admInputAssign`**
+  - EN: Assign this input to an ADM-OSC mapping for receive/transmit.
+  - ZH: 将此输入分配给 ADM-OSC 映射以进行接收/发送。
+  - [ ] OK    Fix: 
+
+- **`admLinkAll`**
+  - EN: Select all 6 sides at once for uniform editing.
+  - ZH: 一次选择全部 6 个侧面进行统一编辑。
+  - [ ] OK    Fix: 
+
 - **`admMapping`**
   - EN: Select an ADM-OSC mapping to configure. Cart = Cartesian (xyz), Polar = spherical (aed).
   - ZH: 选择要配置的 ADM-OSC 映射。Cart = 笛卡尔 (xyz)，Polar = 球坐标 (aed)。
@@ -4376,6 +1875,21 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
 - **`admMappingPanel`**
   - EN: Drag dots to edit mapping. Click axis title to swap, click Flip to invert. Hold Shift to edit both sides symmetrically.
   - ZH: 拖动点以编辑映射。点击轴标题进行交换，点击 Flip 进行反转。按住 Shift 以对称编辑两侧。
+  - [ ] OK    Fix: 
+
+- **`admOuterWidth`**
+  - EN: Physical extent (m) from breakpoint to ±1.
+  - ZH: 从断点到 ±1 的物理范围（m）。
+  - [ ] OK    Fix: 
+
+- **`admSideSelect`**
+  - EN: Select sides to edit. Changes apply to all selected sides at once.
+  - ZH: 选择要编辑的侧面。更改同时应用于所有选中的侧面。
+  - [ ] OK    Fix: 
+
+- **`admSignFlip`**
+  - EN: Invert the sign of the incoming axis value.
+  - ZH: 反转传入轴值的符号。
   - [ ] OK    Fix: 
 
 - **`currentIP`**
@@ -4405,7 +1919,7 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
 
 - **`networkInterface`**
   - EN: Select the Network Interface.
-  - ZH: 选择网络接口。
+  - ZH: 选择Network Interface。
   - [ ] OK    Fix: 
 
 - **`openLogWindow`**
@@ -4515,7 +2029,7 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
 
 - **`trackingOscPath`**
   - EN: OSC Path for the Tracking in OSC Mode (starts with a /)
-  - ZH: OSC 模式下追踪的 OSC 路径（以 / 开头）
+  - ZH: OSC 模式下追踪的 OSC Path（以 / 开头）
   - [ ] OK    Fix: 
 
 - **`trackingPort`**
@@ -4556,133 +2070,6 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
 - **`udpPort`**
   - EN: UDP Receive Port of the Processor.
   - ZH: 处理器的 UDP 接收端口。
-  - [ ] OK    Fix: 
-
-## `network.labels`
-
-- **`admMapping`**
-  - EN: Mapping:
-  - ZH: 映射:
-  - [ ] OK    Fix: 
-
-- **`currentIPv4`**
-  - EN: Current IPv4:
-  - ZH: 当前IPv4:
-  - [ ] OK    Fix: 
-
-- **`interface`**
-  - EN: Network Interface:
-  - ZH: 网络接口:
-  - [ ] OK    Fix: 
-
-- **`localhost`**
-  - EN: Localhost (127.0.0.1)
-  - ZH: 本机 (127.0.0.1)
-  - [ ] OK    Fix: 
-
-- **`mqttHost`**
-  - EN: Host:
-  - ZH: 主机:
-  - [ ] OK    Fix: 
-
-- **`mqttJsonQ`**
-  - EN: Q:
-  - ZH: Q:
-  - [ ] OK    Fix: 
-
-- **`mqttJsonX`**
-  - EN: X:
-  - ZH: X:
-  - [ ] OK    Fix: 
-
-- **`mqttJsonY`**
-  - EN: Y:
-  - ZH: Y:
-  - [ ] OK    Fix: 
-
-- **`mqttJsonZ`**
-  - EN: Z:
-  - ZH: Z:
-  - [ ] OK    Fix: 
-
-- **`mqttTagIds`**
-  - EN: Tag IDs...
-  - ZH: 标签 ID...
-  - [ ] OK    Fix: 
-
-- **`mqttTopic`**
-  - EN: Topic:
-  - ZH: 主题:
-  - [ ] OK    Fix: 
-
-- **`notAvailable`**
-  - EN: Not available
-  - ZH: 不可用
-  - [ ] OK    Fix: 
-
-- **`offsetX`**
-  - EN: Offset X:
-  - ZH: 偏移X:
-  - [ ] OK    Fix: 
-
-- **`offsetY`**
-  - EN: Offset Y:
-  - ZH: 偏移Y:
-  - [ ] OK    Fix: 
-
-- **`offsetZ`**
-  - EN: Offset Z:
-  - ZH: 偏移Z:
-  - [ ] OK    Fix: 
-
-- **`oscPath`**
-  - EN: OSC Path:
-  - ZH: OSC 路径:
-  - [ ] OK    Fix: 
-
-- **`oscQuery`**
-  - EN: OSC Query:
-  - ZH: OSC查询:
-  - [ ] OK    Fix: 
-
-- **`protocol`**
-  - EN: Protocol:
-  - ZH: 协议:
-  - [ ] OK    Fix: 
-
-- **`psnInterface`**
-  - EN: PSN Interface:
-  - ZH: PSN 接口:
-  - [ ] OK    Fix: 
-
-- **`rxPort`**
-  - EN: Rx Port:
-  - ZH: 接收端口:
-  - [ ] OK    Fix: 
-
-- **`scaleX`**
-  - EN: Scale X:
-  - ZH: 缩放X:
-  - [ ] OK    Fix: 
-
-- **`scaleY`**
-  - EN: Scale Y:
-  - ZH: 缩放Y:
-  - [ ] OK    Fix: 
-
-- **`scaleZ`**
-  - EN: Scale Z:
-  - ZH: 缩放Z:
-  - [ ] OK    Fix: 
-
-- **`tcpPort`**
-  - EN: TCP Port:
-  - ZH: TCP端口:
-  - [ ] OK    Fix: 
-
-- **`udpPort`**
-  - EN: UDP Port:
-  - ZH: UDP端口:
   - [ ] OK    Fix: 
 
 ## `network.messages`
@@ -4754,271 +2141,7 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
 
 - **`selectFolderFirst`**
   - EN: Please select a project folder in System Config first.
-  - ZH: 请先在系统配置中选择项目文件夹。
-  - [ ] OK    Fix: 
-
-## `network.protocols`
-
-- **`admOsc`**
-  - EN: ADM-OSC
-  - ZH: ADM-OSC
-  - [ ] OK    Fix: 
-
-- **`disabled`**
-  - EN: DISABLED
-  - ZH: 禁用
-  - [ ] OK    Fix: 
-
-- **`mqtt`**
-  - EN: MQTT
-  - ZH: MQTT
-  - [ ] OK    Fix: 
-
-- **`osc`**
-  - EN: OSC
-  - ZH: OSC
-  - [ ] OK    Fix: 
-
-- **`psn`**
-  - EN: PosiStageNet (PSN)
-  - ZH: PosiStageNet (PSN)
-  - [ ] OK    Fix: 
-
-- **`qlab`**
-  - EN: QLab
-  - ZH: QLab
-  - [ ] OK    Fix: 
-
-- **`remote`**
-  - EN: Remote
-  - ZH: 遥控
-  - [ ] OK    Fix: 
-
-- **`rttrp`**
-  - EN: RTTrP
-  - ZH: RTTrP
-  - [ ] OK    Fix: 
-
-- **`tcp`**
-  - EN: TCP
-  - ZH: TCP
-  - [ ] OK    Fix: 
-
-- **`udp`**
-  - EN: UDP
-  - ZH: UDP
-  - [ ] OK    Fix: 
-
-## `network.sections`
-
-- **`admOsc`**
-  - EN: ADM-OSC Mappings
-  - ZH: ADM-OSC 映射
-  - [ ] OK    Fix: 
-
-- **`connections`**
-  - EN: Network Connections
-  - ZH: 网络连接
-  - [ ] OK    Fix: 
-
-- **`network`**
-  - EN: Network
-  - ZH: 网络
-  - [ ] OK    Fix: 
-
-- **`tracking`**
-  - EN: Tracking
-  - ZH: 追踪
-  - [ ] OK    Fix: 
-
-## `network.table`
-
-- **`defaultTarget`**
-  - EN: Target {num}
-  - ZH: 目标 {num}
-  - [ ] OK    Fix: 
-
-- **`ipv4Address`**
-  - EN: IPv4 Address
-  - ZH: IPv4地址
-  - [ ] OK    Fix: 
-
-- **`mode`**
-  - EN: Mode
-  - ZH: 模式
-  - [ ] OK    Fix: 
-
-- **`name`**
-  - EN: Name
-  - ZH: 名称
-  - [ ] OK    Fix: 
-
-- **`protocol`**
-  - EN: Protocol
-  - ZH: 协议
-  - [ ] OK    Fix: 
-
-- **`rx`**
-  - EN: Rx
-  - ZH: 接收
-  - [ ] OK    Fix: 
-
-- **`tx`**
-  - EN: Tx
-  - ZH: 发送
-  - [ ] OK    Fix: 
-
-- **`txPort`**
-  - EN: Tx Port
-  - ZH: 发送端口
-  - [ ] OK    Fix: 
-
-## `network.toggles`
-
-- **`disabled`**
-  - EN: Disabled
-  - ZH: 已禁用
-  - [ ] OK    Fix: 
-
-- **`enabled`**
-  - EN: Enabled
-  - ZH: 已启用
-  - [ ] OK    Fix: 
-
-- **`flipXOff`**
-  - EN: Flip X: OFF
-  - ZH: 翻转X: 关
-  - [ ] OK    Fix: 
-
-- **`flipXOn`**
-  - EN: Flip X: ON
-  - ZH: 翻转X: 开
-  - [ ] OK    Fix: 
-
-- **`flipYOff`**
-  - EN: Flip Y: OFF
-  - ZH: 翻转Y: 关
-  - [ ] OK    Fix: 
-
-- **`flipYOn`**
-  - EN: Flip Y: ON
-  - ZH: 翻转Y: 开
-  - [ ] OK    Fix: 
-
-- **`flipZOff`**
-  - EN: Flip Z: OFF
-  - ZH: 翻转Z: 关
-  - [ ] OK    Fix: 
-
-- **`flipZOn`**
-  - EN: Flip Z: ON
-  - ZH: 翻转Z: 开
-  - [ ] OK    Fix: 
-
-- **`off`**
-  - EN: OFF
-  - ZH: 关
-  - [ ] OK    Fix: 
-
-- **`on`**
-  - EN: ON
-  - ZH: 开
-  - [ ] OK    Fix: 
-
-- **`oscFilterAcceptAll`**
-  - EN: OSC Filter: Accept All
-  - ZH: OSC过滤: 接受全部
-  - [ ] OK    Fix: 
-
-- **`oscFilterRegisteredOnly`**
-  - EN: OSC Filter: Registered Only
-  - ZH: OSC过滤: 仅已注册
-  - [ ] OK    Fix: 
-
-- **`trackingOff`**
-  - EN: Tracking: OFF
-  - ZH: 追踪: 关
-  - [ ] OK    Fix: 
-
-- **`trackingOn`**
-  - EN: Tracking: ON
-  - ZH: 追踪: 开
-  - [ ] OK    Fix: 
-
-## `networkLog`
-
-- **`windowTitle`**
-  - EN: Network Log
-  - ZH: 网络日志
-  - [ ] OK    Fix: 
-
-## `networkLog.columns`
-
-- **`address`**
-  - EN: Address
-  - ZH: 地址
-  - [ ] OK    Fix: 
-
-- **`arguments`**
-  - EN: Arguments
-  - ZH: 参数
-  - [ ] OK    Fix: 
-
-- **`direction`**
-  - EN: Dir
-  - ZH: 方向
-  - [ ] OK    Fix: 
-
-- **`ip`**
-  - EN: IP
-  - ZH: IP
-  - [ ] OK    Fix: 
-
-- **`origin`**
-  - EN: Origin
-  - ZH: 来源
-  - [ ] OK    Fix: 
-
-- **`port`**
-  - EN: Port
-  - ZH: 端口
-  - [ ] OK    Fix: 
-
-- **`protocol`**
-  - EN: Protocol
-  - ZH: 协议
-  - [ ] OK    Fix: 
-
-- **`time`**
-  - EN: Time
-  - ZH: 时间
-  - [ ] OK    Fix: 
-
-- **`transport`**
-  - EN: Trans
-  - ZH: 传输
-  - [ ] OK    Fix: 
-
-## `networkLog.controls`
-
-- **`clear`**
-  - EN: CLEAR
-  - ZH: 清除
-  - [ ] OK    Fix: 
-
-- **`export`**
-  - EN: EXPORT
-  - ZH: 导出
-  - [ ] OK    Fix: 
-
-- **`hideHeartbeat`**
-  - EN: Hide Heartbeat
-  - ZH: 隐藏心跳
-  - [ ] OK    Fix: 
-
-- **`logging`**
-  - EN: Logging
-  - ZH: 日志记录
+  - ZH: 请先在System Config中选择项目文件夹。
   - [ ] OK    Fix: 
 
 ## `networkLog.dialogs`
@@ -5043,153 +2166,11 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
   - ZH: 导出失败
   - [ ] OK    Fix: 
 
-## `networkLog.exportMenu`
-
-- **`exportAll`**
-  - EN: Export All
-  - ZH: 导出全部
-  - [ ] OK    Fix: 
-
-- **`exportFiltered`**
-  - EN: Export Filtered
-  - ZH: 导出已过滤
-  - [ ] OK    Fix: 
-
-## `networkLog.filterModes`
-
-- **`clientIp`**
-  - EN: Client IP
-  - ZH: 客户端IP
-  - [ ] OK    Fix: 
-
-- **`protocol`**
-  - EN: Protocol
-  - ZH: 协议
-  - [ ] OK    Fix: 
-
-- **`rejected`**
-  - EN: Rejected
-  - ZH: 已拒绝
-  - [ ] OK    Fix: 
-
-- **`tcpUdp`**
-  - EN: TCP/UDP
-  - ZH: TCP/UDP
-  - [ ] OK    Fix: 
-
-## `networkLog.filterToggles`
-
-- **`incoming`**
-  - EN: Incoming
-  - ZH: 传入
-  - [ ] OK    Fix: 
-
-- **`outgoing`**
-  - EN: Outgoing
-  - ZH: 传出
-  - [ ] OK    Fix: 
-
-- **`tcp`**
-  - EN: TCP
-  - ZH: TCP
-  - [ ] OK    Fix: 
-
-- **`udp`**
-  - EN: UDP
-  - ZH: UDP
-  - [ ] OK    Fix: 
-
 ## `networkLog.status`
 
 - **`rejected`**
   - EN: REJECTED
   - ZH: 已拒绝
-  - [ ] OK    Fix: 
-
-## `outputs.arrayModes`
-
-- **`absolute`**
-  - EN: ABSOLUTE
-  - ZH: 绝对
-  - [ ] OK    Fix: 
-
-- **`array`**
-  - EN: Array
-  - ZH: 阵列
-  - [ ] OK    Fix: 
-
-- **`off`**
-  - EN: OFF
-  - ZH: 关
-  - [ ] OK    Fix: 
-
-- **`relative`**
-  - EN: RELATIVE
-  - ZH: 相对
-  - [ ] OK    Fix: 
-
-- **`single`**
-  - EN: Single
-  - ZH: 单独
-  - [ ] OK    Fix: 
-
-## `outputs.buttons`
-
-- **`arrayHidden`**
-  - EN: Array Hidden on Map
-  - ZH: 阵列在地图上隐藏
-  - [ ] OK    Fix: 
-
-- **`arrayVisible`**
-  - EN: Array Visible on Map
-  - ZH: 阵列在地图上可见
-  - [ ] OK    Fix: 
-
-- **`export`**
-  - EN: Export
-  - ZH: 导出
-  - [ ] OK    Fix: 
-
-- **`import`**
-  - EN: Import
-  - ZH: 导入
-  - [ ] OK    Fix: 
-
-- **`reloadBackup`**
-  - EN: Reload Backup
-  - ZH: 加载备份
-  - [ ] OK    Fix: 
-
-- **`reloadConfig`**
-  - EN: Reload Output Config
-  - ZH: 重新加载输出配置
-  - [ ] OK    Fix: 
-
-- **`speakerHidden`**
-  - EN: Speaker Hidden on Map
-  - ZH: 扬声器在地图上隐藏
-  - [ ] OK    Fix: 
-
-- **`speakerVisible`**
-  - EN: Speaker Visible on Map
-  - ZH: 扬声器在地图上可见
-  - [ ] OK    Fix: 
-
-- **`storeConfig`**
-  - EN: Store Output Config
-  - ZH: 保存输出配置
-  - [ ] OK    Fix: 
-
-- **`wizardOfOutZ`**
-  - EN: Wizard of OutZ...
-  - ZH: OutZ向导...
-  - [ ] OK    Fix: 
-
-## `outputs.coordModes`
-
-- **`xyz`**
-  - EN: XYZ
-  - ZH: XYZ
   - [ ] OK    Fix: 
 
 ## `outputs.dialogs`
@@ -5273,17 +2254,17 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
 
 - **`eqFreq`**
   - EN: Output EQ Band {band} frequency (20 Hz - 20 kHz).
-  - ZH: 输出EQ频段{band}频率 (20 Hz - 20 kHz)。
+  - ZH: Output EQ频段{band}频率 (20 Hz - 20 kHz)。
   - [ ] OK    Fix: 
 
 - **`eqGain`**
   - EN: Output EQ Band {band} gain (-24 to +24 dB).
-  - ZH: 输出EQ频段{band}增益 (-24至+24 dB)。
+  - ZH: Output EQ频段{band}增益 (-24至+24 dB)。
   - [ ] OK    Fix: 
 
 - **`eqQ`**
   - EN: Output EQ Band {band} Q factor (0.1 - 10.0).
-  - ZH: 输出EQ频段{band} Q因子 (0.1 - 10.0)。
+  - ZH: Output EQ频段{band} Q因子 (0.1 - 10.0)。
   - [ ] OK    Fix: 
 
 - **`eqResetBand`**
@@ -5293,7 +2274,7 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
 
 - **`eqShape`**
   - EN: Output EQ Band {band} filter shape.
-  - ZH: 输出EQ频段{band}滤波器形状。
+  - ZH: Output EQ频段{band}滤波器形状。
   - [ ] OK    Fix: 
 
 - **`exportConfig`**
@@ -5303,17 +2284,17 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
 
 - **`floorReflections`**
   - EN: Enable or Disable the Floor Reflections for this Speaker.
-  - ZH: 启用或禁用此扬声器的地板反射。
-  - [ ] OK    Fix: 
-
-- **`hfDamping`**
-  - EN: Loss of High Frequency Depending on Distance from Object to Output. (changes may affect the rest of the array)
-  - ZH: 根据对象到输出的距离产生的高频损失。（更改可能影响阵列的其余部分）
+  - ZH: 启用或禁用此扬声器的Floor Reflections。
   - [ ] OK    Fix: 
 
 - **`hParallax`**
   - EN: Horizontal Distance from Speaker to 'Targeted' Listener. (changes may affect the rest of the array)
   - ZH: 扬声器到“目标”听众的水平距离。（更改可能影响阵列的其余部分）
+  - [ ] OK    Fix: 
+
+- **`hfDamping`**
+  - EN: Loss of High Frequency Depending on Distance from Object to Output. (changes may affect the rest of the array)
+  - ZH: 根据对象到输出的距离产生的高频损失。（更改可能影响阵列的其余部分）
   - [ ] OK    Fix: 
 
 - **`importConfig`**
@@ -5323,7 +2304,7 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
 
 - **`liveSource`**
   - EN: Disables Live Source Attenuation for Selected Output. (changes may affect the rest of the array)
-  - ZH: 禁用所选输出的现场声源衰减。（更改可能影响阵列的其余部分）
+  - ZH: 禁用所选输出的Live Source衰减。（更改可能影响阵列的其余部分）
   - [ ] OK    Fix: 
 
 - **`mapVisibility`**
@@ -5333,7 +2314,7 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
 
 - **`minLatency`**
   - EN: Disables Minimal Latency Mode for Selected Output. (changes may affect the rest of the array)
-  - ZH: 禁用所选输出的最小延迟模式。（更改可能影响阵列的其余部分）
+  - ZH: 禁用所选输出的Minimal Latency模式。（更改可能影响阵列的其余部分）
   - [ ] OK    Fix: 
 
 - **`nameEditor`**
@@ -5386,103 +2367,6 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
   - ZH: 打开 Wizard of OutZ 以便捷地定位扬声器阵列。
   - [ ] OK    Fix: 
 
-## `outputs.labels`
-
-- **`angleOff`**
-  - EN: Angle Off:
-  - ZH: 关闭角度:
-  - [ ] OK    Fix: 
-
-- **`angleOn`**
-  - EN: Angle On:
-  - ZH: 开启角度:
-  - [ ] OK    Fix: 
-
-- **`applyToArray`**
-  - EN: Apply to Array:
-  - ZH: 应用到阵列:
-  - [ ] OK    Fix: 
-
-- **`array`**
-  - EN: Array:
-  - ZH: 阵列:
-  - [ ] OK    Fix: 
-
-- **`attenuation`**
-  - EN: Attenuation:
-  - ZH: 衰减:
-  - [ ] OK    Fix: 
-
-- **`coordinates`**
-  - EN: Coordinates:
-  - ZH: 坐标:
-  - [ ] OK    Fix: 
-
-- **`delay`**
-  - EN: Delay:
-  - ZH: 延迟:
-  - [ ] OK    Fix: 
-
-- **`delayLatency`**
-  - EN: Delay/Latency:
-  - ZH: 延迟/延时:
-  - [ ] OK    Fix: 
-
-- **`distanceAtten`**
-  - EN: Distance Atten:
-  - ZH: 距离衰减:
-  - [ ] OK    Fix: 
-
-- **`hfDamping`**
-  - EN: HF Damping:
-  - ZH: 高频衰减:
-  - [ ] OK    Fix: 
-
-- **`hParallax`**
-  - EN: Horizontal Parallax:
-  - ZH: 水平视差:
-  - [ ] OK    Fix: 
-
-- **`latency`**
-  - EN: Latency:
-  - ZH: 延时:
-  - [ ] OK    Fix: 
-
-- **`name`**
-  - EN: Name:
-  - ZH: 名称:
-  - [ ] OK    Fix: 
-
-- **`orientation`**
-  - EN: Orientation:
-  - ZH: 朝向:
-  - [ ] OK    Fix: 
-
-- **`pitch`**
-  - EN: Pitch:
-  - ZH: 俯仰:
-  - [ ] OK    Fix: 
-
-- **`positionX`**
-  - EN: Position X:
-  - ZH: 位置X:
-  - [ ] OK    Fix: 
-
-- **`positionY`**
-  - EN: Position Y:
-  - ZH: 位置Y:
-  - [ ] OK    Fix: 
-
-- **`positionZ`**
-  - EN: Position Z:
-  - ZH: 位置Z:
-  - [ ] OK    Fix: 
-
-- **`vParallax`**
-  - EN: Vertical Parallax:
-  - ZH: 垂直视差:
-  - [ ] OK    Fix: 
-
 ## `outputs.messages`
 
 - **`assignedToArray`**
@@ -5510,6 +2394,16 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
   - ZH: 输出配置已加载。
   - [ ] OK    Fix: 
 
+- **`configNotFound`**
+  - EN: Output config file not found.
+  - ZH: 未找到输出配置文件。
+  - [ ] OK    Fix: 
+
+- **`configReloaded`**
+  - EN: Output configuration reloaded.
+  - ZH: 输出配置已重新加载。
+  - [ ] OK    Fix: 
+
 - **`configSaved`**
   - EN: Output configuration saved.
   - ZH: 输出配置已保存。
@@ -5520,292 +2414,19 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
   - ZH: 错误: {error}
   - [ ] OK    Fix: 
 
+- **`noBackup`**
+  - EN: No backup output configuration found.
+  - ZH: 未找到输出配置备份。
+  - [ ] OK    Fix: 
+
 - **`selectFolderFirst`**
   - EN: Please select a project folder in System Config first.
-  - ZH: 请先在系统配置中选择项目文件夹。
+  - ZH: 请先在System Config中选择项目文件夹。
   - [ ] OK    Fix: 
 
 - **`setToSingle`**
   - EN: Output {num} set to Single
   - ZH: 输出 {num} 设置为单独
-  - [ ] OK    Fix: 
-
-## `outputs.tabs`
-
-- **`eq`**
-  - EN: Output EQ
-  - ZH: 输出EQ
-  - [ ] OK    Fix: 
-
-- **`parameters`**
-  - EN: Output Parameters
-  - ZH: 输出参数
-  - [ ] OK    Fix: 
-
-## `outputs.toggles`
-
-- **`floorReflectionsOff`**
-  - EN: Floor Reflections: OFF
-  - ZH: 地板反射: 关
-  - [ ] OK    Fix: 
-
-- **`floorReflectionsOn`**
-  - EN: Floor Reflections: ON
-  - ZH: 地板反射: 开
-  - [ ] OK    Fix: 
-
-- **`liveSourceOff`**
-  - EN: Live Source Atten: OFF
-  - ZH: 现场声源衰减: 关
-  - [ ] OK    Fix: 
-
-- **`liveSourceOn`**
-  - EN: Live Source Atten: ON
-  - ZH: 现场声源衰减: 开
-  - [ ] OK    Fix: 
-
-- **`minLatencyOff`**
-  - EN: Minimal Latency: OFF
-  - ZH: 最小延时: 关
-  - [ ] OK    Fix: 
-
-- **`minLatencyOn`**
-  - EN: Minimal Latency: ON
-  - ZH: 最小延时: 开
-  - [ ] OK    Fix: 
-
-## `outputs.units`
-
-- **`meters`**
-  - EN: m
-  - ZH: m
-  - [ ] OK    Fix: 
-
-- **`ms`**
-  - EN: ms
-  - ZH: ms
-  - [ ] OK    Fix: 
-
-## `reverbs`
-
-- **`noChannels`**
-  - EN: No reverb channels configured.
-
-Set the number of Reverb Channels in System Config.
-  - ZH: 未配置混响通道。
-
-请在系统配置中设置混响通道数量。
-  - [ ] OK    Fix: 
-
-## `reverbs.algorithm`
-
-- **`crossoverHigh`**
-  - EN: Crossover High:
-  - ZH: 分频点高:
-  - [ ] OK    Fix: 
-
-- **`crossoverLow`**
-  - EN: Crossover Low:
-  - ZH: 分频点低:
-  - [ ] OK    Fix: 
-
-- **`decaySection`**
-  - EN: Decay
-  - ZH: 衰减
-  - [ ] OK    Fix: 
-
-- **`diffusion`**
-  - EN: Diffusion:
-  - ZH: 扩散:
-  - [ ] OK    Fix: 
-
-- **`fdn`**
-  - EN: FDN
-  - ZH: FDN
-  - [ ] OK    Fix: 
-
-- **`fdnSection`**
-  - EN: FDN
-  - ZH: FDN
-  - [ ] OK    Fix: 
-
-- **`ir`**
-  - EN: IR
-  - ZH: IR
-  - [ ] OK    Fix: 
-
-- **`irFile`**
-  - EN: IR File:
-  - ZH: IR文件:
-  - [ ] OK    Fix: 
-
-- **`irImport`**
-  - EN: Import IR...
-  - ZH: 导入IR...
-  - [ ] OK    Fix: 
-
-- **`irImportSuccess`**
-  - EN: IR imported: {file}
-  - ZH: IR已导入: {file}
-  - [ ] OK    Fix: 
-
-- **`irLength`**
-  - EN: IR Length:
-  - ZH: IR长度:
-  - [ ] OK    Fix: 
-
-- **`irNoProject`**
-  - EN: Set a project folder first
-  - ZH: 请先设置项目文件夹
-  - [ ] OK    Fix: 
-
-- **`irSection`**
-  - EN: IR
-  - ZH: IR
-  - [ ] OK    Fix: 
-
-- **`irTrim`**
-  - EN: IR Trim:
-  - ZH: IR修剪:
-  - [ ] OK    Fix: 
-
-- **`noFileLoaded`**
-  - EN: No IR loaded
-  - ZH: 未加载IR
-  - [ ] OK    Fix: 
-
-- **`perNodeOff`**
-  - EN: Per-node IR OFF
-  - ZH: 逐节点IR 关
-  - [ ] OK    Fix: 
-
-- **`perNodeOn`**
-  - EN: Per-node IR ON
-  - ZH: 逐节点IR 开
-  - [ ] OK    Fix: 
-
-- **`rt60`**
-  - EN: RT60:
-  - ZH: RT60:
-  - [ ] OK    Fix: 
-
-- **`rt60HighMult`**
-  - EN: RT60 High ×:
-  - ZH: RT60 高频 ×:
-  - [ ] OK    Fix: 
-
-- **`rt60LowMult`**
-  - EN: RT60 Low ×:
-  - ZH: RT60 低频 ×:
-  - [ ] OK    Fix: 
-
-- **`scale`**
-  - EN: Scale:
-  - ZH: 比例:
-  - [ ] OK    Fix: 
-
-- **`sdn`**
-  - EN: SDN
-  - ZH: SDN
-  - [ ] OK    Fix: 
-
-- **`sdnSection`**
-  - EN: SDN
-  - ZH: SDN
-  - [ ] OK    Fix: 
-
-- **`size`**
-  - EN: Size:
-  - ZH: 大小:
-  - [ ] OK    Fix: 
-
-- **`wetLevel`**
-  - EN: Wet Level:
-  - ZH: 湿信号电平:
-  - [ ] OK    Fix: 
-
-## `reverbs.buttons`
-
-- **`editOnMap`**
-  - EN: Edit on Map
-  - ZH: 在地图上编辑
-  - [ ] OK    Fix: 
-
-- **`editOnMapOn`**
-  - EN: Edit on Map ON
-  - ZH: 在地图上编辑 ON
-  - [ ] OK    Fix: 
-
-- **`export`**
-  - EN: Export
-  - ZH: 导出
-  - [ ] OK    Fix: 
-
-- **`hiddenOnMap`**
-  - EN: Reverbs Hidden on Map
-  - ZH: 混响在地图上隐藏
-  - [ ] OK    Fix: 
-
-- **`import`**
-  - EN: Import
-  - ZH: 导入
-  - [ ] OK    Fix: 
-
-- **`mutePost`**
-  - EN: Mute Post
-  - ZH: Mute Post
-  - [ ] OK    Fix: 
-
-- **`mutePostOn`**
-  - EN: Mute Post ON
-  - ZH: 后级静音 开
-  - [ ] OK    Fix: 
-
-- **`mutePre`**
-  - EN: Mute Pre
-  - ZH: Mute Pre
-  - [ ] OK    Fix: 
-
-- **`mutePreOn`**
-  - EN: Mute Pre ON
-  - ZH: 前级静音 开
-  - [ ] OK    Fix: 
-
-- **`reloadBackup`**
-  - EN: Reload Backup
-  - ZH: 加载备份
-  - [ ] OK    Fix: 
-
-- **`reloadConfig`**
-  - EN: Reload Reverb Config
-  - ZH: 重新加载混响配置
-  - [ ] OK    Fix: 
-
-- **`soloReverbs`**
-  - EN: Solo Reverbs
-  - ZH: Solo Reverbs
-  - [ ] OK    Fix: 
-
-- **`soloReverbsOn`**
-  - EN: Solo Reverbs ON
-  - ZH: 独奏混响 开
-  - [ ] OK    Fix: 
-
-- **`storeConfig`**
-  - EN: Store Reverb Config
-  - ZH: 保存混响配置
-  - [ ] OK    Fix: 
-
-- **`visibleOnMap`**
-  - EN: Reverbs Visible on Map
-  - ZH: 混响在地图上可见
-  - [ ] OK    Fix: 
-
-## `reverbs.coordModes`
-
-- **`xyz`**
-  - EN: XYZ
-  - ZH: XYZ
   - [ ] OK    Fix: 
 
 ## `reverbs.dialogs`
@@ -5939,12 +2560,12 @@ Set the number of Reverb Channels in System Config.
 
 - **`distanceAtten`**
   - EN: Distance attenuation for reverb return (-6.0 to 0.0 dB/m).
-  - ZH: 混响返回的距离衰减（-6.0至0.0 dB/m）。
+  - ZH: Reverb Return的Distance attenuation（-6.0至0.0 dB/m）。
   - [ ] OK    Fix: 
 
 - **`distanceAttenEnable`**
   - EN: Distance attenuation percentage (0-200%).
-  - ZH: 距离衰减百分比（0-200%）。
+  - ZH: Distance attenuation百分比（0-200%）。
   - [ ] OK    Fix: 
 
 - **`eqBandToggle`**
@@ -6004,12 +2625,12 @@ Set the number of Reverb Channels in System Config.
 
 - **`liveSourceTooltip`**
   - EN: Enable Live Source attenuation tamer. Reduces level fluctuations from sources close to the array.
-  - ZH: 启用现场声源衰减调节器。减少靠近阵列的声源的电平波动。
+  - ZH: 启用Live Source Tamer。减少靠近阵列的声源的电平波动。
   - [ ] OK    Fix: 
 
 - **`mapVisibility`**
   - EN: Make Visible or Hide All Reverb Channels on the Map.
-  - ZH: 在地图上显示或隐藏所有混响通道。
+  - ZH: 在地图上显示或隐藏所有Reverb Channels。
   - [ ] OK    Fix: 
 
 - **`miniLatencyTooltip`**
@@ -6177,108 +2798,6 @@ Set the number of Reverb Channels in System Config.
   - ZH: 将混响配置存储到文件（含备份）。
   - [ ] OK    Fix: 
 
-## `reverbs.labels`
-
-- **`angleOff`**
-  - EN: Angle Off:
-  - ZH: 关闭角度:
-  - [ ] OK    Fix: 
-
-- **`angleOn`**
-  - EN: Angle On:
-  - ZH: 开启角度:
-  - [ ] OK    Fix: 
-
-- **`attenuation`**
-  - EN: Attenuation:
-  - ZH: 衰减:
-  - [ ] OK    Fix: 
-
-- **`commonAtten`**
-  - EN: Common Atten:
-  - ZH: 公共衰减:
-  - [ ] OK    Fix: 
-
-- **`coordinates`**
-  - EN: Coord:
-  - ZH: 坐标:
-  - [ ] OK    Fix: 
-
-- **`delayLatency`**
-  - EN: Delay/Latency:
-  - ZH: 延迟/延时:
-  - [ ] OK    Fix: 
-
-- **`distanceAtten`**
-  - EN: Distance Atten:
-  - ZH: 距离衰减:
-  - [ ] OK    Fix: 
-
-- **`distanceAttenPercent`**
-  - EN: Distance Atten %:
-  - ZH: 距离衰减%:
-  - [ ] OK    Fix: 
-
-- **`hfDamping`**
-  - EN: HF Damping:
-  - ZH: 高频衰减:
-  - [ ] OK    Fix: 
-
-- **`muteMacro`**
-  - EN: Mute Macro:
-  - ZH: 静音宏:
-  - [ ] OK    Fix: 
-
-- **`name`**
-  - EN: Name:
-  - ZH: 名称:
-  - [ ] OK    Fix: 
-
-- **`orientation`**
-  - EN: Orientation:
-  - ZH: 朝向:
-  - [ ] OK    Fix: 
-
-- **`outputMutes`**
-  - EN: Output Mutes:
-  - ZH: 输出静音:
-  - [ ] OK    Fix: 
-
-- **`pitch`**
-  - EN: Pitch:
-  - ZH: 俯仰:
-  - [ ] OK    Fix: 
-
-- **`positionX`**
-  - EN: Position X:
-  - ZH: 位置X:
-  - [ ] OK    Fix: 
-
-- **`positionY`**
-  - EN: Position Y:
-  - ZH: 位置Y:
-  - [ ] OK    Fix: 
-
-- **`positionZ`**
-  - EN: Position Z:
-  - ZH: 位置Z:
-  - [ ] OK    Fix: 
-
-- **`returnOffsetX`**
-  - EN: Return Offset X:
-  - ZH: 返回偏移X:
-  - [ ] OK    Fix: 
-
-- **`returnOffsetY`**
-  - EN: Return Offset Y:
-  - ZH: 返回偏移Y:
-  - [ ] OK    Fix: 
-
-- **`returnOffsetZ`**
-  - EN: Return Offset Z:
-  - ZH: 返回偏移Z:
-  - [ ] OK    Fix: 
-
 ## `reverbs.messages`
 
 - **`backupLoaded`**
@@ -6313,380 +2832,21 @@ Set the number of Reverb Channels in System Config.
 
 - **`selectFolderFirst`**
   - EN: Please select a project folder in System Config first.
-  - ZH: 请先在系统配置中选择项目文件夹。
+  - ZH: 请先在System Config中选择项目文件夹。
   - [ ] OK    Fix: 
 
-## `reverbs.muteMacros`
+## `sampler`
 
-- **`invertMutes`**
-  - EN: INVERT MUTES
-  - ZH: 反转静音
-  - [ ] OK    Fix: 
-
-- **`muteAll`**
-  - EN: MUTE ALL
-  - ZH: 全部静音
-  - [ ] OK    Fix: 
-
-- **`muteArray`**
-  - EN: MUTE ARRAY
-  - ZH: 静音阵列
-  - [ ] OK    Fix: 
-
-- **`muteEven`**
-  - EN: MUTE EVEN
-  - ZH: 静音偶数
-  - [ ] OK    Fix: 
-
-- **`muteOdd`**
-  - EN: MUTE ODD
-  - ZH: 静音奇数
-  - [ ] OK    Fix: 
-
-- **`select`**
-  - EN: Mute Macro Select
-  - ZH: 选择静音宏
-  - [ ] OK    Fix: 
-
-- **`unmuteAll`**
-  - EN: UNMUTE ALL
-  - ZH: 全部解除静音
-  - [ ] OK    Fix: 
-
-- **`unmuteArray`**
-  - EN: UNMUTE ARRAY
-  - ZH: 解除阵列静音
-  - [ ] OK    Fix: 
-
-## `reverbs.postProcessing`
-
-- **`attack`**
-  - EN: Attack:
-  - ZH: 起音:
-  - [ ] OK    Fix: 
-
-- **`expander`**
-  - EN: Expander
-  - ZH: 扩展器
-  - [ ] OK    Fix: 
-
-- **`expanderOff`**
-  - EN: Expander OFF
-  - ZH: 扩展器 关
-  - [ ] OK    Fix: 
-
-- **`expanderOn`**
-  - EN: Expander ON
-  - ZH: 扩展器 开
-  - [ ] OK    Fix: 
-
-- **`ratio`**
-  - EN: Ratio:
-  - ZH: 比率:
-  - [ ] OK    Fix: 
-
-- **`release`**
-  - EN: Release:
-  - ZH: 释放:
-  - [ ] OK    Fix: 
-
-- **`threshold`**
-  - EN: Threshold:
-  - ZH: 阈值:
-  - [ ] OK    Fix: 
-
-## `reverbs.preProcessing`
-
-- **`attack`**
-  - EN: Attack:
-  - ZH: 起音:
-  - [ ] OK    Fix: 
-
-- **`compressor`**
-  - EN: Compressor
-  - ZH: 压缩器
-  - [ ] OK    Fix: 
-
-- **`compressorOff`**
-  - EN: Compressor OFF
-  - ZH: 压缩器 关
-  - [ ] OK    Fix: 
-
-- **`compressorOn`**
-  - EN: Compressor ON
-  - ZH: 压缩器 开
-  - [ ] OK    Fix: 
-
-- **`ratio`**
-  - EN: Ratio:
-  - ZH: 比率:
-  - [ ] OK    Fix: 
-
-- **`release`**
-  - EN: Release:
-  - ZH: 释放:
-  - [ ] OK    Fix: 
-
-- **`threshold`**
-  - EN: Threshold:
-  - ZH: 阈值:
-  - [ ] OK    Fix: 
-
-## `reverbs.sections`
-
-- **`reverbFeed`**
-  - EN: Reverb Feed
-  - ZH: 混响发送
-  - [ ] OK    Fix: 
-
-- **`reverbReturn`**
-  - EN: Reverb Return
-  - ZH: 混响返回
-  - [ ] OK    Fix: 
-
-## `reverbs.tabs`
-
-- **`algorithm`**
-  - EN: Algorithm
-  - ZH: 算法
-  - [ ] OK    Fix: 
-
-- **`channelParams`**
-  - EN: Channel Parameters
-  - ZH: 通道参数
-  - [ ] OK    Fix: 
-
-- **`postProcessing`**
-  - EN: Post-Processing
-  - ZH: 后处理
-  - [ ] OK    Fix: 
-
-- **`preProcessing`**
-  - EN: Pre-Processing
-  - ZH: 前处理
-  - [ ] OK    Fix: 
-
-## `reverbs.toggles`
-
-- **`liveSourceOff`**
-  - EN: Live Source Atten OFF
-  - ZH: 现场声源衰减 关
-  - [ ] OK    Fix: 
-
-- **`liveSourceOn`**
-  - EN: Live Source Atten ON
-  - ZH: 现场声源衰减 开
-  - [ ] OK    Fix: 
-
-- **`minLatencyOff`**
-  - EN: Minimal Latency OFF
-  - ZH: 最小延时 关
-  - [ ] OK    Fix: 
-
-- **`minLatencyOn`**
-  - EN: Minimal Latency ON
-  - ZH: 最小延时 开
-  - [ ] OK    Fix: 
-
-## `sampler.buttons`
-
-- **`copy`**
-  - EN: Copy
-  - ZH: 复制
-  - [ ] OK    Fix: 
-
-- **`copyCell`**
-  - EN: Copy Cell
-  - ZH: 复制单元
-  - [ ] OK    Fix: 
-
-- **`copySet`**
-  - EN: Copy Set
-  - ZH: 复制集合
-  - [ ] OK    Fix: 
-
-- **`export`**
-  - EN: Export
-  - ZH: 导出
-  - [ ] OK    Fix: 
-
-- **`import`**
-  - EN: Import
-  - ZH: 导入
-  - [ ] OK    Fix: 
-
-- **`paste`**
-  - EN: Paste
-  - ZH: 粘贴
-  - [ ] OK    Fix: 
-
-- **`pasteCell`**
-  - EN: Paste Cell
-  - ZH: 粘贴单元
-  - [ ] OK    Fix: 
-
-- **`pasteSet`**
-  - EN: Paste Set
-  - ZH: 粘贴集合
-  - [ ] OK    Fix: 
-
-## `sampler.cell`
-
-- **`attenuation`**
-  - EN: Attenuation (dB)
-  - ZH: 衰减 (dB)
-  - [ ] OK    Fix: 
-
-- **`clear`**
-  - EN: Clear
-  - ZH: 清除
-  - [ ] OK    Fix: 
-
-- **`inOut`**
-  - EN: In/Out (ms)
-  - ZH: 淡入/淡出 (ms)
-  - [ ] OK    Fix: 
-
-- **`load`**
-  - EN: Load
-  - ZH: 加载
-  - [ ] OK    Fix: 
-
-- **`loadTitle`**
-  - EN: Load Sample
-  - ZH: 加载采样
-  - [ ] OK    Fix: 
-
-- **`offset`**
-  - EN: Offset (m)
-  - ZH: 偏移 (m)
-  - [ ] OK    Fix: 
-
-- **`preview`**
-  - EN: Preview
-  - ZH: 试听
-  - [ ] OK    Fix: 
-
-- **`previewStop`**
-  - EN: Stop
-  - ZH: 停止
+- **`guide`**
+  - EN: Select a cell on the grid to edit its properties.\nDouble-click to load a sample.\nUse Ctrl+Click to assign cells to the active set.
+  - ZH: 在网格上选择一个单元格以编辑其属性。\n双击以加载样本。\n使用 Ctrl+点击将单元格分配给活动集合。
   - [ ] OK    Fix: 
 
 ## `sampler.grid`
 
 - **`help`**
-  - EN: Click = select
-Shift = multi
-Ctrl = set toggle
-DblClick = load
+  - EN: Click = select\nShift = multi\nCtrl = set toggle\nDblClick = load
   - ZH: 单击=选择 | Shift=多选 | Ctrl=切换集合 | 双击=加载
-  - [ ] OK    Fix: 
-
-## `sampler.labels`
-
-- **`lightpadZone`**
-  - EN: Lightpad Zone
-  - ZH: Lightpad 区域
-  - [ ] OK    Fix: 
-
-- **`selectZone`**
-  - EN: Select Zone
-  - ZH: 选择区域
-  - [ ] OK    Fix: 
-
-## `sampler.lightpadZone`
-
-- **`none`**
-  - EN: None
-  - ZH: 无
-  - [ ] OK    Fix: 
-
-## `sampler.press`
-
-- **`height`**
-  - EN: Height
-  - ZH: 高度
-  - [ ] OK    Fix: 
-
-- **`hf`**
-  - EN: HF Shelf
-  - ZH: HF Shelf
-  - [ ] OK    Fix: 
-
-- **`level`**
-  - EN: Level
-  - ZH: 电平
-  - [ ] OK    Fix: 
-
-- **`xy`**
-  - EN: Position XY
-  - ZH: Position XY
-  - [ ] OK    Fix: 
-
-## `sampler.remote`
-
-- **`gridLayout`**
-  - EN: Grid Layout
-  - ZH: 网格布局
-  - [ ] OK    Fix: 
-
-## `sampler.section`
-
-- **`actions`**
-  - EN: ACTIONS
-  - ZH: 操作
-  - [ ] OK    Fix: 
-
-- **`cell`**
-  - EN: CELL PROPERTIES
-  - ZH: 单元属性
-  - [ ] OK    Fix: 
-
-- **`pressure`**
-  - EN: PRESSURE MAPPINGS
-  - ZH: 压力映射
-  - [ ] OK    Fix: 
-
-- **`set`**
-  - EN: SET MANAGEMENT
-  - ZH: 集合管理
-  - [ ] OK    Fix: 
-
-## `sampler.set`
-
-- **`copy`**
-  - EN: (copy)
-  - ZH: (副本)
-  - [ ] OK    Fix: 
-
-- **`default`**
-  - EN: Set
-  - ZH: 集合
-  - [ ] OK    Fix: 
-
-- **`level`**
-  - EN: Level (dB)
-  - ZH: 电平 (dB)
-  - [ ] OK    Fix: 
-
-- **`pos`**
-  - EN: Position (m)
-  - ZH: 位置 (m)
-  - [ ] OK    Fix: 
-
-- **`rename`**
-  - EN: Rename
-  - ZH: 重命名
-  - [ ] OK    Fix: 
-
-- **`roundRobin`**
-  - EN: Round-Robin
-  - ZH: 轮询
-  - [ ] OK    Fix: 
-
-- **`sequential`**
-  - EN: Sequential
-  - ZH: 顺序
   - [ ] OK    Fix: 
 
 ## `sampler.tooltips`
@@ -6761,14 +2921,14 @@ DblClick = load
   - ZH: 切换压力方向: + = 更大压力增加，- = 减小
   - [ ] OK    Fix: 
 
-- **`pressHeight`**
-  - EN: Map finger pressure to vertical position (Z)
-  - ZH: 将手指压力映射到垂直位置 (Z)
-  - [ ] OK    Fix: 
-
 - **`pressHF`**
   - EN: Map finger pressure to high-frequency shelf attenuation
   - ZH: 将手指压力映射到高搁架衰减
+  - [ ] OK    Fix: 
+
+- **`pressHeight`**
+  - EN: Map finger pressure to vertical position (Z)
+  - ZH: 将手指压力映射到垂直位置 (Z)
   - [ ] OK    Fix: 
 
 - **`pressLevel`**
@@ -6806,523 +2966,6 @@ DblClick = load
   - ZH: 以米设置基础位置 (X、Y、Z)
   - [ ] OK    Fix: 
 
-## `sampler.zone`
-
-- **`remotePad`**
-  - EN: Pad {num}
-  - ZH: Pad {num}
-  - [ ] OK    Fix: 
-
-- **`selectRemotePad`**
-  - EN: Select Remote Pad
-  - ZH: 选择遥控器板
-  - [ ] OK    Fix: 
-
-## `setAllInputs`
-
-- **`warning`**
-  - EN: Changes will apply to ALL inputs
-  - ZH: 更改将应用于所有输入
-  - [ ] OK    Fix: 
-
-- **`windowTitle`**
-  - EN: Set All Inputs
-  - ZH: 设置所有输入
-  - [ ] OK    Fix: 
-
-## `setAllInputs.buttons`
-
-- **`all1d`**
-  - EN: All 1/d
-  - ZH: 全部1/d
-  - [ ] OK    Fix: 
-
-- **`allLog`**
-  - EN: All Log
-  - ZH: 全部对数
-  - [ ] OK    Fix: 
-
-- **`closeWindow`**
-  - EN: CLOSE WINDOW
-  - ZH: 关闭窗口
-  - [ ] OK    Fix: 
-
-- **`flipXyzOff`**
-  - EN: Flip XYZ > OFF
-  - ZH: 翻转XYZ > 关
-  - [ ] OK    Fix: 
-
-- **`resetDirectivity`**
-  - EN: Reset directivity
-  - ZH: 重置指向性
-  - [ ] OK    Fix: 
-
-- **`turnOffJitterLfo`**
-  - EN: Turn OFF jitter & LFO
-  - ZH: 关闭抖动和LFO
-  - [ ] OK    Fix: 
-
-- **`turnOffLiveSource`**
-  - EN: Turn OFF Live source atten.
-  - ZH: 关闭现场声源衰减
-  - [ ] OK    Fix: 
-
-## `setAllInputs.coordinateModes`
-
-- **`rThetaPhi`**
-  - EN: r θ φ
-  - ZH: r θ φ
-  - [ ] OK    Fix: 
-
-- **`rThetaZ`**
-  - EN: r θ Z
-  - ZH: r θ Z
-  - [ ] OK    Fix: 
-
-- **`xyz`**
-  - EN: XYZ
-  - ZH: XYZ
-  - [ ] OK    Fix: 
-
-## `setAllInputs.labels`
-
-- **`common`**
-  - EN: common
-  - ZH: 公共
-  - [ ] OK    Fix: 
-
-- **`constraintPositions`**
-  - EN: Constraint positions:
-  - ZH: 约束位置:
-  - [ ] OK    Fix: 
-
-- **`coordinateMode`**
-  - EN: Coordinate mode:
-  - ZH: 坐标模式:
-  - [ ] OK    Fix: 
-
-- **`dbPerMeter`**
-  - EN: dB/m
-  - ZH: dB/m
-  - [ ] OK    Fix: 
-
-- **`distanceAttenuation`**
-  - EN: Distance attenuation
-  - ZH: 距离衰减
-  - [ ] OK    Fix: 
-
-- **`floorReflections`**
-  - EN: Floor Reflections:
-  - ZH: 地板反射:
-  - [ ] OK    Fix: 
-
-- **`fringe`**
-  - EN: Fringe:
-  - ZH: 边缘:
-  - [ ] OK    Fix: 
-
-- **`heightFactor`**
-  - EN: Height factor:
-  - ZH: 高度因子:
-  - [ ] OK    Fix: 
-
-- **`minimalLatency`**
-  - EN: Minimal Latency:
-  - ZH: 最小延时:
-  - [ ] OK    Fix: 
-
-- **`muteMacros`**
-  - EN: Mute macros:
-  - ZH: 静音宏:
-  - [ ] OK    Fix: 
-
-- **`ratio`**
-  - EN: ratio
-  - ZH: 比率
-  - [ ] OK    Fix: 
-
-- **`sidelines`**
-  - EN: Sidelines:
-  - ZH: 边线:
-  - [ ] OK    Fix: 
-
-## `snapshot`
-
-- **`qlabExportDone`**
-  - EN: QLab export complete: {count} cues created
-  - ZH: QLab 导出完成：已创建 {count} 个 Cue
-  - [ ] OK    Fix: 
-
-- **`qlabExportStarted`**
-  - EN: Writing {count} cues to QLab...
-  - ZH: 正在向 QLab 写入 {count} 个 Cue...
-  - [ ] OK    Fix: 
-
-- **`qlabGroupName`**
-  - EN: Snapshot "{name}"
-  - ZH: 快照 "{name}"
-  - [ ] OK    Fix: 
-
-- **`qlabMemoText`**
-  - EN: Run either of the following cues to recall or update this snapshot
-  - ZH: 运行以下任一 Cue 来加载或更新此快照
-  - [ ] OK    Fix: 
-
-- **`qlabNoTarget`**
-  - EN: No QLab target configured
-  - ZH: 未配置QLab目标
-  - [ ] OK    Fix: 
-
-- **`qlabReloadName`**
-  - EN: Reload "{name}"
-  - ZH: 加载 "{name}"
-  - [ ] OK    Fix: 
-
-- **`qlabUpdateName`**
-  - EN: Update "{name}"
-  - ZH: 更新 "{name}"
-  - [ ] OK    Fix: 
-
-## `snapshotScope`
-
-- **`all`**
-  - EN: ALL
-  - ZH: 全部
-  - [ ] OK    Fix: 
-
-- **`applyScope`**
-  - EN: Apply scope:
-  - ZH: 应用范围:
-  - [ ] OK    Fix: 
-
-- **`autoPreselectModified`**
-  - EN: Auto-preselect modified parameters
-  - ZH: 自动预选已修改的参数
-  - [ ] OK    Fix: 
-
-- **`title`**
-  - EN: Snapshot Scope: {name}
-  - ZH: 快照范围: {name}
-  - [ ] OK    Fix: 
-
-- **`whenRecalling`**
-  - EN: When Recalling
-  - ZH: 调用时
-  - [ ] OK    Fix: 
-
-- **`whenSaving`**
-  - EN: When Saving
-  - ZH: 保存时
-  - [ ] OK    Fix: 
-
-- **`windowTitle`**
-  - EN: Input Snapshot Scope
-  - ZH: 输入快照范围
-  - [ ] OK    Fix: 
-
-- **`writeSnapshotLoadCue`**
-  - EN: Write Snapshot Load Cue to QLab
-  - ZH: 将快照加载提示写入 QLab
-  - [ ] OK    Fix: 
-
-- **`writeSnapshotLoadCueTooltip`**
-  - EN: Also create a QLab cue to load this snapshot via OSC
-  - ZH: 同时创建一个通过 OSC 加载此快照的 QLab 提示
-  - [ ] OK    Fix: 
-
-- **`writeToQLab`**
-  - EN: Write to QLab
-  - ZH: 写入 QLab
-  - [ ] OK    Fix: 
-
-- **`writeToQLabTooltip`**
-  - EN: Export scope to QLab instead of saving to file
-  - ZH: 将范围导出到 QLab 而非保存到文件
-  - [ ] OK    Fix: 
-
-## `snapshotScope.buttons`
-
-- **`cancel`**
-  - EN: Cancel
-  - ZH: 取消
-  - [ ] OK    Fix: 
-
-- **`clearChanges`**
-  - EN: Clear Changes
-  - ZH: 清除更改
-  - [ ] OK    Fix: 
-
-- **`ok`**
-  - EN: OK
-  - ZH: OK
-  - [ ] OK    Fix: 
-
-- **`selectModified`**
-  - EN: Select Modified
-  - ZH: 选择已修改的
-  - [ ] OK    Fix: 
-
-## `snapshotScope.sections`
-
-- **`attenuation`**
-  - EN: Attenuation
-  - ZH: 衰减
-  - [ ] OK    Fix: 
-
-- **`automOtion`**
-  - EN: AutomOtion
-  - ZH: AutomOtion (自动移动)
-  - [ ] OK    Fix: 
-
-- **`directivity`**
-  - EN: Directivity
-  - ZH: 指向性
-  - [ ] OK    Fix: 
-
-- **`hackoustics`**
-  - EN: Hackoustics
-  - ZH: Hackoustics (虚拟声学)
-  - [ ] OK    Fix: 
-
-- **`input`**
-  - EN: Input
-  - ZH: 输入
-  - [ ] OK    Fix: 
-
-- **`lfo`**
-  - EN: LFO
-  - ZH: LFO
-  - [ ] OK    Fix: 
-
-- **`liveSource`**
-  - EN: Live Source
-  - ZH: 现场声源
-  - [ ] OK    Fix: 
-
-- **`mutes`**
-  - EN: Mutes
-  - ZH: 静音
-  - [ ] OK    Fix: 
-
-- **`position`**
-  - EN: Position
-  - ZH: 位置
-  - [ ] OK    Fix: 
-
-## `statusBar`
-
-- **`displayLabel`**
-  - EN: Display:
-  - ZH: 显示:
-  - [ ] OK    Fix: 
-
-- **`helpMode`**
-  - EN: Help
-  - ZH: 帮助
-  - [ ] OK    Fix: 
-
-- **`oscMode`**
-  - EN: OSC
-  - ZH: OSC
-  - [ ] OK    Fix: 
-
-## `systemConfig.algorithms`
-
-- **`inputBuffer`**
-  - EN: InputBuffer (read-time delays)
-  - ZH: InputBuffer (读取时延迟)
-  - [ ] OK    Fix: 
-
-- **`outputBuffer`**
-  - EN: OutputBuffer (write-time delays)
-  - ZH: OutputBuffer (写入时延迟)
-  - [ ] OK    Fix: 
-
-## `systemConfig.binauralOutput`
-
-- **`select`**
-  - EN: Select...
-  - ZH: 选择...
-  - [ ] OK    Fix: 
-
-## `systemConfig.buttons`
-
-- **`audioPatch`**
-  - EN: Audio Interface and Patching Window
-  - ZH: 音频接口和路由窗口
-  - [ ] OK    Fix: 
-
-- **`binauralOff`**
-  - EN: Binaural: OFF
-  - ZH: 双耳: 关
-  - [ ] OK    Fix: 
-
-- **`binauralOn`**
-  - EN: Binaural: ON
-  - ZH: 双耳: 开
-  - [ ] OK    Fix: 
-
-- **`clearSolo`**
-  - EN: Clear Solo
-  - ZH: 清除独听
-  - [ ] OK    Fix: 
-
-- **`copySystemInfo`**
-  - EN: Copy System Info
-  - ZH: 复制系统信息
-  - [ ] OK    Fix: 
-
-- **`diagnosticsCollapsed`**
-  - EN: Diagnostics  [+]
-  - ZH: 诊断  [+]
-  - [ ] OK    Fix: 
-
-- **`diagnosticsExpanded`**
-  - EN: Diagnostics  [-]
-  - ZH: 诊断  [-]
-  - [ ] OK    Fix: 
-
-- **`exportLogs`**
-  - EN: Export Logs
-  - ZH: 导出日志
-  - [ ] OK    Fix: 
-
-- **`exportSystem`**
-  - EN: Export System Configuration
-  - ZH: 导出系统配置
-  - [ ] OK    Fix: 
-
-- **`importSystem`**
-  - EN: Import System Configuration
-  - ZH: 导入系统配置
-  - [ ] OK    Fix: 
-
-- **`levelMeter`**
-  - EN: Level Meters
-  - ZH: 电平表
-  - [ ] OK    Fix: 
-
-- **`openLogFolder`**
-  - EN: Open Log Folder
-  - ZH: 打开日志文件夹
-  - [ ] OK    Fix: 
-
-- **`processingOff`**
-  - EN: Processing: OFF
-  - ZH: 处理: 关
-  - [ ] OK    Fix: 
-
-- **`processingOn`**
-  - EN: Processing: ON
-  - ZH: 处理: 开
-  - [ ] OK    Fix: 
-
-- **`quickLongPressOff`**
-  - EN: Normal
-  - ZH: 正常
-  - [ ] OK    Fix: 
-
-- **`quickLongPressOn`**
-  - EN: Quick
-  - ZH: 快速
-  - [ ] OK    Fix: 
-
-- **`reloadComplete`**
-  - EN: Reload Complete Configuration
-  - ZH: 重新加载完整配置
-  - [ ] OK    Fix: 
-
-- **`reloadCompleteBackup`**
-  - EN: Reload Complete Config. Backup
-  - ZH: 从备份加载完整配置
-  - [ ] OK    Fix: 
-
-- **`reloadSystem`**
-  - EN: Reload System Configuration
-  - ZH: 重新加载系统配置
-  - [ ] OK    Fix: 
-
-- **`reloadSystemBackup`**
-  - EN: Reload System Config. Backup
-  - ZH: 从备份加载系统配置
-  - [ ] OK    Fix: 
-
-- **`reportIssue`**
-  - EN: Report Issue
-  - ZH: 报告问题
-  - [ ] OK    Fix: 
-
-- **`selectProjectFolder`**
-  - EN: Select Project Folder
-  - ZH: 选择项目文件夹
-  - [ ] OK    Fix: 
-
-- **`setup`**
-  - EN: Setup
-  - ZH: 设置
-  - [ ] OK    Fix: 
-
-- **`soloModeMulti`**
-  - EN: Solo: Multi
-  - ZH: 独听: 多选
-  - [ ] OK    Fix: 
-
-- **`soloModeSingle`**
-  - EN: Solo: Single
-  - ZH: 独听: 单选
-  - [ ] OK    Fix: 
-
-- **`storeComplete`**
-  - EN: Store Complete Configuration
-  - ZH: 保存完整配置
-  - [ ] OK    Fix: 
-
-- **`storeSystem`**
-  - EN: Store System Configuration
-  - ZH: 保存系统配置
-  - [ ] OK    Fix: 
-
-## `systemConfig.colorSchemes`
-
-- **`black`**
-  - EN: Black
-  - ZH: 黑色
-  - [ ] OK    Fix: 
-
-- **`default`**
-  - EN: Default (Dark Gray)
-  - ZH: 默认 (深灰色)
-  - [ ] OK    Fix: 
-
-- **`light`**
-  - EN: Light
-  - ZH: 浅色
-  - [ ] OK    Fix: 
-
-## `systemConfig.controller`
-
-- **`lightpad`**
-  - EN: Lightpad
-  - ZH: Lightpad
-  - [ ] OK    Fix: 
-
-- **`off`**
-  - EN: Off
-  - ZH: 关闭
-  - [ ] OK    Fix: 
-
-- **`remote`**
-  - EN: Remote
-  - ZH: 遥控器
-  - [ ] OK    Fix: 
-
-## `systemConfig.devices`
-
-- **`off`**
-  - EN: Off
-  - ZH: 关
-  - [ ] OK    Fix: 
-
 ## `systemConfig.dialogs`
 
 - **`exportSystemConfig`**
@@ -7341,45 +2984,33 @@ DblClick = load
   - [ ] OK    Fix: 
 
 - **`reduceInputChannels.message`**
-  - EN: Reducing from {current} to {new} input channels will remove settings for channels {start} to {end}.
-
-This cannot be undone.
-  - ZH: 从 {current} 减少到 {new} 个输入通道将删除通道 {start} 到 {end} 的设置。
-
-此操作无法撤销。
+  - EN: Reducing from {current} to {new} input channels will remove settings for channels {start} to {end}.\n\nThis cannot be undone.
+  - ZH: 从 {current} 减少到 {new} 个输入通道将删除通道 {start} 到 {end} 的设置。\n\n此操作无法撤销。
   - [ ] OK    Fix: 
 
 - **`reduceInputChannels.title`**
   - EN: Reduce Input Channels?
-  - ZH: 减少输入通道?
+  - ZH: 减少Input Channels?
   - [ ] OK    Fix: 
 
 - **`reduceOutputChannels.message`**
-  - EN: Reducing from {current} to {new} output channels will remove settings for channels {start} to {end}.
-
-This cannot be undone.
-  - ZH: 从 {current} 减少到 {new} 个输出通道将删除通道 {start} 到 {end} 的设置。
-
-此操作无法撤销。
+  - EN: Reducing from {current} to {new} output channels will remove settings for channels {start} to {end}.\n\nThis cannot be undone.
+  - ZH: 从 {current} 减少到 {new} 个输出通道将删除通道 {start} 到 {end} 的设置。\n\n此操作无法撤销。
   - [ ] OK    Fix: 
 
 - **`reduceOutputChannels.title`**
   - EN: Reduce Output Channels?
-  - ZH: 减少输出通道?
+  - ZH: 减少Output Channels?
   - [ ] OK    Fix: 
 
 - **`reduceReverbChannels.message`**
-  - EN: Reducing from {current} to {new} reverb channels will remove settings for channels {start} to {end}.
-
-This cannot be undone.
-  - ZH: 从 {current} 减少到 {new} 个混响通道将删除通道 {start} 到 {end} 的设置。
-
-此操作无法撤销。
+  - EN: Reducing from {current} to {new} reverb channels will remove settings for channels {start} to {end}.\n\nThis cannot be undone.
+  - ZH: 从 {current} 减少到 {new} 个混响通道将删除通道 {start} 到 {end} 的设置。\n\n此操作无法撤销。
   - [ ] OK    Fix: 
 
 - **`reduceReverbChannels.title`**
   - EN: Reduce Reverb Channels?
-  - ZH: 减少混响通道?
+  - ZH: 减少Reverb Channels?
   - [ ] OK    Fix: 
 
 - **`selectProjectFolder`**
@@ -7429,6 +3060,11 @@ This cannot be undone.
   - ZH: 选择用于双声道监听的输出通道对。Off 禁用双声道输出。
   - [ ] OK    Fix: 
 
+- **`clearSolo`**
+  - EN: Clear all input solo states.
+  - ZH: 清除所有输入的独听状态。
+  - [ ] OK    Fix: 
+
 - **`colorScheme`**
   - EN: Select the color scheme: Default (dark gray), Black (pure black for OLED displays), or Light (daytime use).
   - ZH: 选择配色方案: 默认 (深灰色)、黑色 (适用于OLED显示屏) 或浅色 (日间使用)。
@@ -7476,12 +3112,17 @@ This cannot be undone.
 
 - **`inputChannels`**
   - EN: Number of Input Channels.
-  - ZH: 输入通道数量。
+  - ZH: Input Channels数量。
   - [ ] OK    Fix: 
 
 - **`language`**
   - EN: Select the user interface language. Changes take full effect after restarting the application.
   - ZH: 选择用户界面语言。重启应用程序后更改将完全生效。
+  - [ ] OK    Fix: 
+
+- **`levelMeter`**
+  - EN: Opens the Level Meter Window.
+  - ZH: 打开电平表窗口。
   - [ ] OK    Fix: 
 
 - **`lightpadSetup`**
@@ -7491,7 +3132,7 @@ This cannot be undone.
 
 - **`masterLevel`**
   - EN: Master Level (affects all outputs).
-  - ZH: 主电平 (影响所有输出)。
+  - ZH: Master Level (影响所有输出)。
   - [ ] OK    Fix: 
 
 - **`openLogFolder`**
@@ -7561,7 +3202,7 @@ This cannot be undone.
 
 - **`outputChannels`**
   - EN: Number of Output Channels.
-  - ZH: 输出通道数量。
+  - ZH: Output Channels数量。
   - [ ] OK    Fix: 
 
 - **`positionControl`**
@@ -7611,12 +3252,17 @@ This cannot be undone.
 
 - **`reverbChannels`**
   - EN: Number of Reverb Channels.
-  - ZH: 混响通道数量。
+  - ZH: Reverb Channels数量。
   - [ ] OK    Fix: 
 
 - **`sampler`**
   - EN: Enable or disable the Sampler feature for input channels.
   - ZH: 启用或禁用输入通道的采样器功能。选择控制器: Lightpad 或遥控器。
+  - [ ] OK    Fix: 
+
+- **`screenReader`**
+  - EN: Enable or disable screen reader announcements. When enabled, parameter names and values are announced on hover, and help text is read after a few seconds.
+  - ZH: 启用或禁用屏幕阅读器播报。启用后, 悬停时会播报参数名称和值, 几秒后会朗读帮助文本。
   - [ ] OK    Fix: 
 
 - **`selectProjectFolder`**
@@ -7641,7 +3287,7 @@ This cannot be undone.
 
 - **`speedOfSound`**
   - EN: Speed of Sound (related to the temperature).
-  - ZH: 声速 (与温度相关)。
+  - ZH: Speed of Sound (与温度相关)。
   - [ ] OK    Fix: 
 
 - **`stageDepth`**
@@ -7701,189 +3347,7 @@ This cannot be undone.
 
 - **`temperature`**
   - EN: Temperature (gives the Speed of Sound).
-  - ZH: 温度 (决定声速)。
-  - [ ] OK    Fix: 
-
-## `systemConfig.labels`
-
-- **`algorithm`**
-  - EN: Algorithm:
-  - ZH: 算法:
-  - [ ] OK    Fix: 
-
-- **`binauralAngle`**
-  - EN: Listener Angle:
-  - ZH: 听者角度:
-  - [ ] OK    Fix: 
-
-- **`binauralAtten`**
-  - EN: Binaural Level:
-  - ZH: 双耳电平:
-  - [ ] OK    Fix: 
-
-- **`binauralDelay`**
-  - EN: Binaural Delay:
-  - ZH: 双耳延迟:
-  - [ ] OK    Fix: 
-
-- **`binauralDistance`**
-  - EN: Listener Distance:
-  - ZH: 听者距离:
-  - [ ] OK    Fix: 
-
-- **`binauralOutput`**
-  - EN: Binaural Output:
-  - ZH: 双耳输出:
-  - [ ] OK    Fix: 
-
-- **`clickToSplit`**
-  - EN: Click to split
-  - ZH: 点击以拆分
-  - [ ] OK    Fix: 
-
-- **`colorScheme`**
-  - EN: Color Scheme:
-  - ZH: 配色方案:
-  - [ ] OK    Fix: 
-
-- **`dialsAndButtons`**
-  - EN: Dials and Buttons:
-  - ZH: 旋钮和按钮:
-  - [ ] OK    Fix: 
-
-- **`domeElevation`**
-  - EN: Elevation:
-  - ZH: 穹顶角度:
-  - [ ] OK    Fix: 
-
-- **`haasEffect`**
-  - EN: Haas Effect:
-  - ZH: 哈斯效应:
-  - [ ] OK    Fix: 
-
-- **`inputChannels`**
-  - EN: Input Channels:
-  - ZH: 输入通道:
-  - [ ] OK    Fix: 
-
-- **`language`**
-  - EN: Language:
-  - ZH: 语言:
-  - [ ] OK    Fix: 
-
-- **`lightpadArrangement`**
-  - EN: Lightpad Arrangement
-  - ZH: Lightpad 布局
-  - [ ] OK    Fix: 
-
-- **`masterLevel`**
-  - EN: Master Level:
-  - ZH: 主电平:
-  - [ ] OK    Fix: 
-
-- **`originDepth`**
-  - EN: Origin Depth:
-  - ZH: 原点深度:
-  - [ ] OK    Fix: 
-
-- **`originHeight`**
-  - EN: Origin Height:
-  - ZH: 原点高度:
-  - [ ] OK    Fix: 
-
-- **`originWidth`**
-  - EN: Origin Width:
-  - ZH: 原点宽度:
-  - [ ] OK    Fix: 
-
-- **`outputChannels`**
-  - EN: Output Channels:
-  - ZH: 输出通道:
-  - [ ] OK    Fix: 
-
-- **`positionControl`**
-  - EN: Position Control:
-  - ZH: 位置控制:
-  - [ ] OK    Fix: 
-
-- **`quickLongPress`**
-  - EN: Long Press:
-  - ZH: 长按:
-  - [ ] OK    Fix: 
-
-- **`reverbChannels`**
-  - EN: Reverb Channels:
-  - ZH: 混响通道:
-  - [ ] OK    Fix: 
-
-- **`sampler`**
-  - EN: Sampler:
-  - ZH: 采样器:
-  - [ ] OK    Fix: 
-
-- **`showLocation`**
-  - EN: Location:
-  - ZH: 地点:
-  - [ ] OK    Fix: 
-
-- **`showName`**
-  - EN: Name:
-  - ZH: 名称:
-  - [ ] OK    Fix: 
-
-- **`speedOfSound`**
-  - EN: Speed of Sound:
-  - ZH: 声速:
-  - [ ] OK    Fix: 
-
-- **`split`**
-  - EN: Split
-  - ZH: 拆分
-  - [ ] OK    Fix: 
-
-- **`stageDepth`**
-  - EN: Depth:
-  - ZH: 深度:
-  - [ ] OK    Fix: 
-
-- **`stageDiameter`**
-  - EN: Diameter:
-  - ZH: 直径:
-  - [ ] OK    Fix: 
-
-- **`stageHeight`**
-  - EN: Height:
-  - ZH: 高度:
-  - [ ] OK    Fix: 
-
-- **`stageShape`**
-  - EN: Stage Shape:
-  - ZH: 舞台形状:
-  - [ ] OK    Fix: 
-
-- **`stageWidth`**
-  - EN: Width:
-  - ZH: 宽度:
-  - [ ] OK    Fix: 
-
-- **`systemLatency`**
-  - EN: System Latency:
-  - ZH: 系统延迟:
-  - [ ] OK    Fix: 
-
-- **`temperature`**
-  - EN: Temperature:
-  - ZH: 温度:
-  - [ ] OK    Fix: 
-
-- **`updateAvailable`**
-  - EN: Update {version} available
-  - ZH: 更新 {version} 可用
-  - [ ] OK    Fix: 
-
-- **`version`**
-  - EN: Version {version}
-  - ZH: 版本 {version}
+  - ZH: 温度 (决定Speed of Sound)。
   - [ ] OK    Fix: 
 
 ## `systemConfig.messages`
@@ -7918,14 +3382,14 @@ This cannot be undone.
   - ZH: 未找到日志目录
   - [ ] OK    Fix: 
 
-- **`logsExported`**
-  - EN: Logs exported to {path}
-  - ZH: 日志已导出到 {path}
-  - [ ] OK    Fix: 
-
 - **`logsExportFailed`**
   - EN: Failed to export logs
   - ZH: 导出日志失败
+  - [ ] OK    Fix: 
+
+- **`logsExported`**
+  - EN: Logs exported to {path}
+  - ZH: 日志已导出到 {path}
   - [ ] OK    Fix: 
 
 - **`noBackupFilesFound`**
@@ -7996,314 +3460,4 @@ This cannot be undone.
 - **`systemInfoCopied`**
   - EN: System info copied to clipboard
   - ZH: 系统信息已复制到剪贴板
-  - [ ] OK    Fix: 
-
-## `systemConfig.sections`
-
-- **`binauralRenderer`**
-  - EN: Binaural Renderer
-  - ZH: 双耳渲染器
-  - [ ] OK    Fix: 
-
-- **`controllers`**
-  - EN: Controllers
-  - ZH: Controllers
-  - [ ] OK    Fix: 
-
-- **`io`**
-  - EN: I/O
-  - ZH: 输入/输出
-  - [ ] OK    Fix: 
-
-- **`master`**
-  - EN: Master Section
-  - ZH: 主控区
-  - [ ] OK    Fix: 
-
-- **`show`**
-  - EN: Show
-  - ZH: 演出
-  - [ ] OK    Fix: 
-
-- **`stage`**
-  - EN: Stage
-  - ZH: 舞台
-  - [ ] OK    Fix: 
-
-- **`ui`**
-  - EN: UI
-  - ZH: 界面
-  - [ ] OK    Fix: 
-
-- **`wfsProcessor`**
-  - EN: WFS Processor
-  - ZH: WFS处理器
-  - [ ] OK    Fix: 
-
-## `systemConfig.stageShapes`
-
-- **`box`**
-  - EN: Box
-  - ZH: 立方体
-  - [ ] OK    Fix: 
-
-- **`cylinder`**
-  - EN: Cylinder
-  - ZH: 圆柱体
-  - [ ] OK    Fix: 
-
-- **`dome`**
-  - EN: Dome
-  - ZH: 穹顶
-  - [ ] OK    Fix: 
-
-## `tabs`
-
-- **`clusters`**
-  - EN: Clusters
-  - ZH: 集群
-  - [ ] OK    Fix: 
-
-- **`inputs`**
-  - EN: Inputs
-  - ZH: 输入
-  - [ ] OK    Fix: 
-
-- **`map`**
-  - EN: Map
-  - ZH: 地图
-  - [ ] OK    Fix: 
-
-- **`network`**
-  - EN: Network
-  - ZH: 网络
-  - [ ] OK    Fix: 
-
-- **`outputs`**
-  - EN: Outputs
-  - ZH: 输出
-  - [ ] OK    Fix: 
-
-- **`reverb`**
-  - EN: Reverb
-  - ZH: 混响
-  - [ ] OK    Fix: 
-
-- **`systemConfig`**
-  - EN: System Config
-  - ZH: 系统配置
-  - [ ] OK    Fix: 
-
-## `touchscreens`
-
-- **`button`**
-  - EN: Setup
-  - ZH: 设置
-  - [ ] OK    Fix: 
-
-- **`label`**
-  - EN: Touchscreen
-  - ZH: 触摸屏
-  - [ ] OK    Fix: 
-
-## `units`
-
-- **`celsius`**
-  - EN: °C
-  - ZH: °C
-  - [ ] OK    Fix: 
-
-- **`decibelPerMeter`**
-  - EN: dB/m
-  - ZH: dB/m
-  - [ ] OK    Fix: 
-
-- **`decibels`**
-  - EN: dB
-  - ZH: dB
-  - [ ] OK    Fix: 
-
-- **`degrees`**
-  - EN: °
-  - ZH: °
-  - [ ] OK    Fix: 
-
-- **`meters`**
-  - EN: m
-  - ZH: m
-  - [ ] OK    Fix: 
-
-- **`metersPerSecond`**
-  - EN: m/s
-  - ZH: m/s
-  - [ ] OK    Fix: 
-
-- **`milliseconds`**
-  - EN: ms
-  - ZH: ms
-  - [ ] OK    Fix: 
-
-## `wizard.buttons`
-
-- **`back`**
-  - EN: Back
-  - ZH: 上一步
-  - [ ] OK    Fix: 
-
-- **`close`**
-  - EN: Close
-  - ZH: 关闭
-  - [ ] OK    Fix: 
-
-- **`done`**
-  - EN: Done
-  - ZH: 完成
-  - [ ] OK    Fix: 
-
-- **`gettingStarted`**
-  - EN: Getting Started
-  - ZH: 入门指南
-  - [ ] OK    Fix: 
-
-- **`gettingStartedHelp`**
-  - EN: Help cards guiding you through the first parameters to adjust when starting a new project
-  - ZH: 帮助卡片，引导您完成新项目启动时需要调整的第一批参数
-  - [ ] OK    Fix: 
-
-- **`next`**
-  - EN: Next
-  - ZH: 下一步
-  - [ ] OK    Fix: 
-
-- **`skip`**
-  - EN: Skip
-  - ZH: 跳过
-  - [ ] OK    Fix: 
-
-## `wizard.steps`
-
-- **`audioDevice.description`**
-  - EN: Select your audio driver and device, set the sample rate and buffer size. Check the patch routing and test your outputs. Close this window when done.
-  - ZH: 选择音频驱动程序和设备，设置采样率和缓冲区大小。检查补丁路由并测试输出。完成后关闭此窗口。
-  - [ ] OK    Fix: 
-
-- **`audioDevice.title`**
-  - EN: Configure the Audio Interface
-  - ZH: 配置音频接口
-  - [ ] OK    Fix: 
-
-- **`audioInterface.description`**
-  - EN: Click the button above or press Next to open the Audio Interface window.
-  - ZH: 点击上方按钮或按下一步打开音频接口窗口。
-  - [ ] OK    Fix: 
-
-- **`audioInterface.title`**
-  - EN: Open the Audio Interface
-  - ZH: 打开音频接口
-  - [ ] OK    Fix: 
-
-- **`configureOutputs.description`**
-  - EN: Use the array presets and geometry tools to calculate speaker positions for your arrays. Close this window when done.
-  - ZH: 使用阵列预设和几何工具计算扬声器位置。完成后关闭此窗口。
-  - [ ] OK    Fix: 
-
-- **`configureOutputs.title`**
-  - EN: Configure Output Positions
-  - ZH: 配置输出位置
-  - [ ] OK    Fix: 
-
-- **`exploreInputs.description`**
-  - EN: Click an input on the map to select it, or lasso several to move them together. Drag to position your sources. Zoom with the mouse wheel or pinch gesture, pan with right-drag or two-finger drag. Add inputs, group them into clusters, and shape your sound field. You can also control positions with a keyboard, SpaceMouse, or other external controllers. Have fun!
-  - ZH: 点击地图上的输入进行选择，或用套索选择多个。拖动定位您的声源。用鼠标滚轮或捏合手势缩放，用右键拖动或双指拖动平移。添加输入，将它们分组为集群，塑造您的声场。您还可以用键盘、SpaceMouse或其他控制器控制位置。尽情享受！
-  - [ ] OK    Fix: 
-
-- **`exploreInputs.title`**
-  - EN: Start Creating!
-  - ZH: 开始创作！
-  - [ ] OK    Fix: 
-
-- **`inputChannels.description`**
-  - EN: How many audio sources will you be spatializing?
-Set the number of input channels to match your source count.
-  - ZH: 您将空间化多少个音频源？
-根据源数量设置输入通道数。
-  - [ ] OK    Fix: 
-
-- **`inputChannels.title`**
-  - EN: Set Input Channels
-  - ZH: 设置输入通道数
-  - [ ] OK    Fix: 
-
-- **`originPoint.description`**
-  - EN: The origin is the reference point for all coordinates. Use the preset buttons or enter custom values. 'Front' places it at the audience edge.
-  - ZH: 原点是所有坐标的参考点。使用预设按钮或输入自定义值。'Front'将其放置在观众边缘。
-  - [ ] OK    Fix: 
-
-- **`originPoint.title`**
-  - EN: Set the Origin Point
-  - ZH: 设置原点
-  - [ ] OK    Fix: 
-
-- **`outputChannels.description`**
-  - EN: Set the number of output channels to match your speaker array.
-Each output corresponds to one physical speaker.
-  - ZH: 根据您的扬声器阵列设置输出通道数。
-每个输出对应一个物理扬声器。
-  - [ ] OK    Fix: 
-
-- **`outputChannels.title`**
-  - EN: Set Output Channels
-  - ZH: 设置输出通道数
-  - [ ] OK    Fix: 
-
-- **`projectFolder.description`**
-  - EN: Choose a folder to store your WFS project files. This will hold configurations, snapshots, IR files, and samples. Click the button to open the folder selector.
-  - ZH: 选择一个文件夹来存储您的WFS项目文件。它将保存配置、快照、IR文件和采样。点击按钮打开文件夹选择器。
-  - [ ] OK    Fix: 
-
-- **`projectFolder.title`**
-  - EN: Select a Project Folder
-  - ZH: 选择项目文件夹
-  - [ ] OK    Fix: 
-
-- **`reverbChannels.description`**
-  - EN: Reverb channels add room simulation. Set to 0 if you don't need reverb.
-  - ZH: 混响通道添加房间模拟。如果不需要混响，请设置为0。
-  - [ ] OK    Fix: 
-
-- **`reverbChannels.title`**
-  - EN: Set Reverb Channels
-  - ZH: 设置混响通道数
-  - [ ] OK    Fix: 
-
-- **`stageConfig.description`**
-  - EN: Set the shape and dimensions of your performance space. Choose box, cylinder, or dome, then enter the size in meters.
-  - ZH: 设置演出空间的形状和尺寸。选择箱体、圆柱或穹顶，然后以米为单位输入尺寸。
-  - [ ] OK    Fix: 
-
-- **`stageConfig.title`**
-  - EN: Define the Stage
-  - ZH: 定义舞台
-  - [ ] OK    Fix: 
-
-- **`startProcessing.description`**
-  - EN: You're all set! Long-press the Processing button to start the WFS engine. You can also start the Binaural Renderer for headphone monitoring.
-  - ZH: 一切就绪！长按Processing按钮启动WFS引擎。您也可以启动双耳渲染器进行耳机监听。
-  - [ ] OK    Fix: 
-
-- **`startProcessing.title`**
-  - EN: Start the WFS Engine
-  - ZH: 启动WFS引擎
-  - [ ] OK    Fix: 
-
-- **`wizardOfOutZ.description`**
-  - EN: Click the Wizard of OutZ button or press Next to open the output array helper.
-  - ZH: 点击Wizard of OutZ按钮或按下一步打开定位助手。
-  - [ ] OK    Fix: 
-
-- **`wizardOfOutZ.title`**
-  - EN: Position Your Outputs
-  - ZH: 定位输出
-  - [ ] OK    Fix: 
-
-
+  - [ ] OK    Fix:

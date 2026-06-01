@@ -1,145 +1,21 @@
 # Proofreading checklist — German (Deutsch)
 
-Locale: `de`  |  Total keys: 1520  |  Source: `Resources/lang/en.json` vs `Resources/lang/de.json`
+Locale: `de`  |  Total keys: 663  |  Source: `Resources/lang/en.json` vs `Resources/lang/de.json`
 
 ## How to use this file
+
+This checklist covers the **translated prose only** — help text, tooltips, status / dialog messages, and dialog / help-card titles. UI control labels, buttons, section and tab names, and technical / domain terms are **intentionally English in every language** (the app overlays each locale on an English base, so any key not translated here simply shows English). They are not listed and need no review.
 
 Walk through each section. For every entry:
 - If the translation reads naturally and matches the meaning of the English source, leave the `[ ]` checkbox blank or mark `[x] OK`.
 - If the translation is wrong, awkward, or has a typo, write the corrected text under `Fix:`.
-- If the translation is **identical to English**, that may be intentional: loanwords (Sampler, Tracking, Pre, Post, ON/OFF, LFO, HF, EQ, AI), proper nouns (QLab, Lightpad, Stream Deck, ADM-OSC, MQTT), technical terms (OSC Path:, Localhost), short tokens that match across languages (German System, Spanish Error). Mark `[x] OK` to confirm intent, or write `Fix:` if it should be translated.
+- **Control and parameter names appear in English inside the translated text on purpose** (e.g. fr `Nombre de Reverb Channels.`, ja `Reverb Channels数。`), so the help matches the English labels on screen. Do **not** translate these back — leave them in English.
+- If a whole entry is **identical to English**, that may be intentional: loanwords (Sampler, Tracking, Pre, Post, ON/OFF, LFO, HF, EQ, AI), proper nouns (QLab, Lightpad, Stream Deck, ADM-OSC, MQTT), technical terms (OSC Path:, Localhost). Mark `[x] OK` to confirm intent, or write `Fix:` if it should be translated.
+- `(missing — falls back to English)` means the key is untranslated and currently shows English in the UI; write the correct translation under `Fix:`.
 - Curly braces `{name}`, `{num}`, `{path}` etc. are runtime placeholders; keep them in the translation.
 - `\n` in the value is a literal newline in the rendered UI; preserve it.
 
 ---
-
-## `ai.history`
-
-- **`applied`**
-  - EN: applied
-  - DE: angewendet
-  - [ ] OK    Fix: 
-
-- **`atHead`**
-  - EN: (no undone records — at the head)
-  - DE: (keine rückgängig gemachten Einträge — am Anfang)
-  - [ ] OK    Fix: 
-
-- **`batch`**
-  - EN: batch {id}
-  - DE: Stapel {id}
-  - [ ] OK    Fix: 
-
-- **`cursorLabel`**
-  - EN: ◂  cursor (↑ applied  /  ↓ undone, redoable)
-  - DE: ◂  Cursor (↑ angewendet  /  ↓ rückgängig, wiederherstellbar)
-  - [ ] OK    Fix: 
-
-- **`noChanges`**
-  - EN: No AI changes yet.
-  - DE: Noch keine KI-Änderungen.
-  - [ ] OK    Fix: 
-
-- **`of`**
-  - EN: of
-  - DE: von
-  - [ ] OK    Fix: 
-
-- **`stepBack`**
-  - EN: ⏮ Step Back
-  - DE: ⏮ Zurück
-  - [ ] OK    Fix: 
-
-- **`stepForward`**
-  - EN: Step Forward ⏭
-  - DE: Vor ⏭
-  - [ ] OK    Fix: 
-
-- **`undone`**
-  - EN: undone
-  - DE: rückgängig
-  - [ ] OK    Fix: 
-
-- **`windowTitle`**
-  - EN: AI Change History
-  - DE: KI-Änderungsverlauf
-  - [ ] OK    Fix: 
-
-## `ai.server`
-
-- **`copyUrlConfirm`**
-  - EN: MCP URL copied to clipboard: {url}
-  - DE: MCP-URL in die Zwischenablage kopiert: {url}
-  - [ ] OK    Fix: 
-
-- **`label`**
-  - EN: MCP Server:
-  - DE: MCP-Server:
-  - [ ] OK    Fix: 
-
-- **`openHistory`**
-  - EN: Open AI History
-  - DE: KI-Verlauf öffnen
-  - [ ] OK    Fix: 
-
-- **`urlButtonRunning`**
-  - EN: http://{host}:{port}/mcp
-  - DE: http://{host}:{port}/mcp
-  - [ ] OK    Fix: 
-
-- **`urlButtonStopped`**
-  - EN: (server not running)
-  - DE: (Server läuft nicht)
-  - [ ] OK    Fix: 
-
-## `ai.tier`
-
-- **`aiOff`**
-  - EN: AI: OFF
-  - DE: KI: AUS
-  - [ ] OK    Fix: 
-
-- **`aiOn`**
-  - EN: AI: ON
-  - DE: KI: EIN
-  - [ ] OK    Fix: 
-
-- **`gateAllowed`**
-  - EN: AI critical actions: ALLOWED
-  - DE: Kritische KI-Aktionen: ERLAUBT
-  - [ ] OK    Fix: 
-
-- **`gateBlocked`**
-  - EN: AI critical actions: blocked
-  - DE: Kritische KI-Aktionen: gesperrt
-  - [ ] OK    Fix: 
-
-- **`tier2AutoOff`**
-  - EN: Tier 2 auto-confirm: off
-  - DE: Tier-2-Auto-Bestätigung: aus
-  - [ ] OK    Fix: 
-
-- **`tier2AutoOn`**
-  - EN: Tier 2 auto-confirm: ON (5 min)
-  - DE: Tier-2-Auto-Bestätigung: EIN (5 Min)
-  - [ ] OK    Fix: 
-
-## `ai.toast`
-
-- **`clientPrefix`**
-  - EN: Claude
-  - DE: Claude
-  - [ ] OK    Fix: 
-
-- **`header`**
-  - EN: AI changes
-  - DE: KI-Änderungen
-  - [ ] OK    Fix: 
-
-- **`moreOlder`**
-  - EN: …and {count} older
-  - DE: …und {count} ältere
-  - [ ] OK    Fix: 
 
 ## `ai.tooltips`
 
@@ -163,287 +39,6 @@ Walk through each section. For every entry:
   - DE: Klicken, um die MCP-Server-URL zu kopieren. Nützlich für Claude Code (claude mcp add wfs-diy <URL> -t http) oder jeden MCP-Client, der eine URL akzeptiert. Claude Desktop nutzt stattdessen den JSON-Konfigurationsausschnitt — öffnen Sie die (?)-Hilfekarte.
   - [ ] OK    Fix: 
 
-## `ai.undo`
-
-- **`errorPrefix`**
-  - EN: AI {verb}: {message}
-  - DE: KI {verb}: {message}
-  - [ ] OK    Fix: 
-
-- **`successPrefix`**
-  - EN: AI {verb}: {description}
-  - DE: KI {verb}: {description}
-  - [ ] OK    Fix: 
-
-- **`verbRedo`**
-  - EN: redo
-  - DE: Wiederherstellen
-  - [ ] OK    Fix: 
-
-- **`verbUndo`**
-  - EN: undo
-  - DE: Rückgängig
-  - [ ] OK    Fix: 
-
-## `arrayHelper.acoustic`
-
-- **`distanceAtten`**
-  - EN: Distance Atten (%):
-  - DE: Entf.-Dämpf. (%):
-  - [ ] OK    Fix: 
-
-- **`floorReflections`**
-  - EN: Floor Reflections
-  - DE: Bodenreflexionen
-  - [ ] OK    Fix: 
-
-- **`hfDamping`**
-  - EN: HF Damping (dB/m):
-  - DE: HF-Dämpfung (dB/m):
-  - [ ] OK    Fix: 
-
-- **`highCut`**
-  - EN: High Cut (Hz):
-  - DE: Hochpass (Hz):
-  - [ ] OK    Fix: 
-
-- **`hParallax`**
-  - EN: H Parallax (m):
-  - DE: H-Parallaxe (m):
-  - [ ] OK    Fix: 
-
-- **`liveSource`**
-  - EN: Live Source
-  - DE: Live-Quelle
-  - [ ] OK    Fix: 
-
-- **`lowCut`**
-  - EN: Low Cut (Hz):
-  - DE: Tiefpass (Hz):
-  - [ ] OK    Fix: 
-
-- **`vParallax`**
-  - EN: V Parallax (m):
-  - DE: V-Parallaxe (m):
-  - [ ] OK    Fix: 
-
-## `arrayHelper.buttons`
-
-- **`apply`**
-  - EN: Apply
-  - DE: Anwenden
-  - [ ] OK    Fix: 
-
-- **`close`**
-  - EN: Close
-  - DE: Schließen
-  - [ ] OK    Fix: 
-
-## `arrayHelper.errors`
-
-- **`noPositions`**
-  - EN: No positions to apply. Check geometry parameters.
-  - DE: Keine Positionen anzuwenden. Überprüfen Sie die Geometrieparameter.
-  - [ ] OK    Fix: 
-
-- **`notEnoughOutputs`**
-  - EN: Not enough output channels! Need {count} starting from {start}
-  - DE: Nicht genug Ausgangskanäle! Benötigt {count} ab {start}
-  - [ ] OK    Fix: 
-
-- **`prefix`**
-  - EN: Error: 
-  - DE: Fehler: 
-  - [ ] OK    Fix: 
-
-- **`speakerCountZero`**
-  - EN: Number of speakers must be greater than 0
-  - DE: Lautsprecheranzahl muss größer als 0 sein
-  - [ ] OK    Fix: 
-
-## `arrayHelper.geometry`
-
-- **`backFacing`**
-  - EN: Back Facing
-  - DE: Nach hinten gerichtet
-  - [ ] OK    Fix: 
-
-- **`centerSpacing`**
-  - EN: Center + Spacing
-  - DE: Mitte + Abstand
-  - [ ] OK    Fix: 
-
-- **`centerX`**
-  - EN: Center X (m):
-  - DE: Mitte X (m):
-  - [ ] OK    Fix: 
-
-- **`centerY`**
-  - EN: Center Y (m):
-  - DE: Mitte Y (m):
-  - [ ] OK    Fix: 
-
-- **`endpoints`**
-  - EN: Endpoints
-  - DE: Endpunkte
-  - [ ] OK    Fix: 
-
-- **`endX`**
-  - EN: End X (m):
-  - DE: Ende X (m):
-  - [ ] OK    Fix: 
-
-- **`endY`**
-  - EN: End Y (m):
-  - DE: Ende Y (m):
-  - [ ] OK    Fix: 
-
-- **`facingInward`**
-  - EN: Facing Inward
-  - DE: Nach innen gerichtet
-  - [ ] OK    Fix: 
-
-- **`facingOutward`**
-  - EN: Facing Outward
-  - DE: Nach außen gerichtet
-  - [ ] OK    Fix: 
-
-- **`frontFacing`**
-  - EN: Front Facing
-  - DE: Nach vorne gerichtet
-  - [ ] OK    Fix: 
-
-- **`nPairs`**
-  - EN: N Pairs:
-  - DE: Anz. Paare:
-  - [ ] OK    Fix: 
-
-- **`nSpeakers`**
-  - EN: N Speakers:
-  - DE: Anz. Lautspr.:
-  - [ ] OK    Fix: 
-
-- **`orientation`**
-  - EN: Orientation (deg):
-  - DE: Orientierung (Grad):
-  - [ ] OK    Fix: 
-
-- **`radius`**
-  - EN: Radius (m):
-  - DE: Radius (m):
-  - [ ] OK    Fix: 
-
-- **`sag`**
-  - EN: Sag (m):
-  - DE: Durchhang (m):
-  - [ ] OK    Fix: 
-
-- **`spacing`**
-  - EN: Spacing (m):
-  - DE: Abstand (m):
-  - [ ] OK    Fix: 
-
-- **`startAngle`**
-  - EN: Start Angle (deg):
-  - DE: Startwinkel (Grad):
-  - [ ] OK    Fix: 
-
-- **`startX`**
-  - EN: Start X (m):
-  - DE: Anfang X (m):
-  - [ ] OK    Fix: 
-
-- **`startY`**
-  - EN: Start Y (m):
-  - DE: Anfang Y (m):
-  - [ ] OK    Fix: 
-
-- **`width`**
-  - EN: Width (m):
-  - DE: Breite (m):
-  - [ ] OK    Fix: 
-
-- **`yEnd`**
-  - EN: Y End (m):
-  - DE: Y Ende (m):
-  - [ ] OK    Fix: 
-
-- **`yStart`**
-  - EN: Y Start (m):
-  - DE: Y Anfang (m):
-  - [ ] OK    Fix: 
-
-- **`zHeight`**
-  - EN: Z Height (m):
-  - DE: Z-Höhe (m):
-  - [ ] OK    Fix: 
-
-## `arrayHelper.presets`
-
-- **`circle`**
-  - EN: Circle
-  - DE: Kreis
-  - [ ] OK    Fix: 
-
-- **`delayLine`**
-  - EN: Delay Line
-  - DE: Delay-Line
-  - [ ] OK    Fix: 
-
-- **`label`**
-  - EN: Preset:
-  - DE: Vorlage:
-  - [ ] OK    Fix: 
-
-- **`mainRoomStraight`**
-  - EN: Main Flown Array Straight
-  - DE: Geflogenes Haupt-Array gerade
-  - [ ] OK    Fix: 
-
-- **`nearFieldCurved`**
-  - EN: Near Field Array Curved
-  - DE: Nahfeld-Array gebogen
-  - [ ] OK    Fix: 
-
-- **`nearFieldStraight`**
-  - EN: Near Field Array Straight
-  - DE: Nahfeld-Array gerade
-  - [ ] OK    Fix: 
-
-- **`subBass`**
-  - EN: Sub Bass
-  - DE: Subbass
-  - [ ] OK    Fix: 
-
-- **`surround`**
-  - EN: Surround
-  - DE: Surround
-  - [ ] OK    Fix: 
-
-## `arrayHelper.preview`
-
-- **`audience`**
-  - EN: Audience
-  - DE: Publikum
-  - [ ] OK    Fix: 
-
-## `arrayHelper.sections`
-
-- **`acousticDefaults`**
-  - EN: Acoustic Defaults
-  - DE: Akustische Vorgaben
-  - [ ] OK    Fix: 
-
-- **`geometry`**
-  - EN: Geometry
-  - DE: Geometrie
-  - [ ] OK    Fix: 
-
-- **`target`**
-  - EN: Target
-  - DE: Ziel
-  - [ ] OK    Fix: 
-
 ## `arrayHelper.status`
 
 - **`applied`**
@@ -461,116 +56,26 @@ Walk through each section. For every entry:
   - DE: Bereit
   - [ ] OK    Fix: 
 
-## `arrayHelper.target`
+## `audioPatch.dialogs`
 
-- **`array`**
-  - EN: Array:
-  - DE: Array:
+- **`unpatchInputsMessage`**
+  - EN: Are you sure you want to remove all input patches?
+  - DE: Möchten Sie wirklich alle Eingangs-Patches entfernen?
   - [ ] OK    Fix: 
 
-- **`arrayPrefix`**
-  - EN: Array
-  - DE: Array
+- **`unpatchInputsTitle`**
+  - EN: Unpatch All Inputs
+  - DE: Alle Eingänge trennen
   - [ ] OK    Fix: 
 
-- **`startingOutput`**
-  - EN: Starting Output:
-  - DE: Startausgang:
+- **`unpatchOutputsMessage`**
+  - EN: Are you sure you want to remove all output patches?
+  - DE: Möchten Sie wirklich alle Ausgangs-Patches entfernen?
   - [ ] OK    Fix: 
 
-## `arrayHelper.window`
-
-- **`contentName`**
-  - EN: Output Array Helper
-  - DE: Ausgangs-Array-Assistent
-  - [ ] OK    Fix: 
-
-- **`title`**
-  - EN: Wizard of OutZ
-  - DE: Assistent OutZ
-  - [ ] OK    Fix: 
-
-## `audioPatch`
-
-- **`windowTitle`**
-  - EN: Audio Interface and Patching
-  - DE: Audio-Interface und Patch
-  - [ ] OK    Fix: 
-
-## `audioPatch.buttons`
-
-- **`hold`**
-  - EN: Hold
-  - DE: Halten
-  - [ ] OK    Fix: 
-
-- **`unpatchAll`**
-  - EN: Unpatch All
-  - DE: Alle trennen
-  - [ ] OK    Fix: 
-
-## `audioPatch.deviceSettings`
-
-- **`buttons.controlPanel`**
-  - EN: Control Panel
-  - DE: Systemsteuerung
-  - [ ] OK    Fix: 
-
-- **`buttons.resetDevice`**
-  - EN: Reset Device
-  - DE: Gerät zurücksetzen
-  - [ ] OK    Fix: 
-
-- **`labels.bufferSize`**
-  - EN: Audio buffer size:
-  - DE: Audio-Puffergröße:
-  - [ ] OK    Fix: 
-
-- **`labels.device`**
-  - EN: Device:
-  - DE: Gerät:
-  - [ ] OK    Fix: 
-
-- **`labels.deviceType`**
-  - EN: Audio device type:
-  - DE: Audio-Gerätetyp:
-  - [ ] OK    Fix: 
-
-- **`labels.sampleRate`**
-  - EN: Sample rate:
-  - DE: Abtastrate:
-  - [ ] OK    Fix: 
-
-- **`noDevice`**
-  - EN: No Device
-  - DE: Kein Gerät
-  - [ ] OK    Fix: 
-
-- **`notConfigured`**
-  - EN: Not configured
-  - DE: Nicht konfiguriert
-  - [ ] OK    Fix: 
-
-## `audioPatch.labels`
-
-- **`interfaceInput`**
-  - EN: Audio Interface Input
-  - DE: Audio-Interface Eingang
-  - [ ] OK    Fix: 
-
-- **`interfaceOutput`**
-  - EN: Audio Interface Output
-  - DE: Audio-Interface Ausgang
-  - [ ] OK    Fix: 
-
-- **`processorInputs`**
-  - EN: Processor Inputs
-  - DE: Prozessor-Eingänge
-  - [ ] OK    Fix: 
-
-- **`processorOutputs`**
-  - EN: Processor Outputs
-  - DE: Prozessor-Ausgänge
+- **`unpatchOutputsTitle`**
+  - EN: Unpatch All Outputs
+  - DE: Alle Ausgänge trennen
   - [ ] OK    Fix: 
 
 ## `audioPatch.messages`
@@ -578,87 +83,6 @@ Walk through each section. For every entry:
 - **`chooseTestSignal`**
   - EN: Choose a Test Signal to Enable Testing
   - DE: Wählen Sie ein Testsignal zum Aktivieren des Testmodus
-  - [ ] OK    Fix: 
-
-## `audioPatch.modes`
-
-- **`patching`**
-  - EN: Patching
-  - DE: Patchen
-  - [ ] OK    Fix: 
-
-- **`scrolling`**
-  - EN: Scrolling
-  - DE: Scrollen
-  - [ ] OK    Fix: 
-
-- **`testing`**
-  - EN: Testing
-  - DE: Testen
-  - [ ] OK    Fix: 
-
-## `audioPatch.tabs`
-
-- **`deviceSettings`**
-  - EN: Device Settings
-  - DE: Geräteeinstellungen
-  - [ ] OK    Fix: 
-
-- **`inputPatch`**
-  - EN: Input Patch
-  - DE: Eingangs-Patch
-  - [ ] OK    Fix: 
-
-- **`outputPatch`**
-  - EN: Output Patch
-  - DE: Ausgangs-Patch
-  - [ ] OK    Fix: 
-
-## `audioPatch.testSignal`
-
-- **`labels.frequency`**
-  - EN: Frequency:
-  - DE: Frequenz:
-  - [ ] OK    Fix: 
-
-- **`labels.level`**
-  - EN: Level:
-  - DE: Pegel:
-  - [ ] OK    Fix: 
-
-- **`labels.signal`**
-  - EN: Signal:
-  - DE: Signal:
-  - [ ] OK    Fix: 
-
-- **`types.diracPulse`**
-  - EN: Dirac Pulse
-  - DE: Dirac-Impuls
-  - [ ] OK    Fix: 
-
-- **`types.off`**
-  - EN: Off
-  - DE: Aus
-  - [ ] OK    Fix: 
-
-- **`types.pinkNoise`**
-  - EN: Pink Noise
-  - DE: Rosa Rauschen
-  - [ ] OK    Fix: 
-
-- **`types.pulse`**
-  - EN: Pulse
-  - DE: Impuls
-  - [ ] OK    Fix: 
-
-- **`types.sweep`**
-  - EN: Sweep
-  - DE: Sweep
-  - [ ] OK    Fix: 
-
-- **`types.tone`**
-  - EN: Tone
-  - DE: Ton
   - [ ] OK    Fix: 
 
 ## `clusters.help`
@@ -819,8 +243,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`referenceMode`**
-  - EN: Select the reference point for cluster transforms: First Input or Barycenter.
-  - DE: Wählen Sie den Referenzpunkt für Cluster-Transformationen: Erster Eingang oder Schwerpunkt.
+  - EN: Select the reference point for cluster transforms: First Input, Barycenter, or Shared Position (all members coincide; scale and rotation apply to per-input offsets).
+  - DE: Wählen Sie den Referenzpunkt für Cluster-Transformationen: First Input, Schwerpunkt oder Shared Position (alle Mitglieder fallen zusammen; Skalierung und Rotation wirken auf die Einzeloffsets).
   - [ ] OK    Fix: 
 
 - **`rotationDial`**
@@ -843,333 +267,6 @@ Walk through each section. For every entry:
   - DE: Alle Cluster-Eingänge entlang der Z-Achse (Höhe) bewegen.
   - [ ] OK    Fix: 
 
-## `clusters.labels`
-
-- **`assignedInputs`**
-  - EN: Assigned Inputs
-  - DE: Zugewiesene Eingänge
-  - [ ] OK    Fix: 
-
-- **`attenuation`**
-  - EN: Atten
-  - DE: Dämpf.
-  - [ ] OK    Fix: 
-
-- **`controls`**
-  - EN: Controls
-  - DE: Steuerung
-  - [ ] OK    Fix: 
-
-- **`inputPrefix`**
-  - EN: Input
-  - DE: Eingang
-  - [ ] OK    Fix: 
-
-- **`position`**
-  - EN: Position
-  - DE: Position
-  - [ ] OK    Fix: 
-
-- **`posPrefix`**
-  - EN: Pos:
-  - DE: Pos:
-  - [ ] OK    Fix: 
-
-- **`reference`**
-  - EN: Reference:
-  - DE: Referenz:
-  - [ ] OK    Fix: 
-
-- **`rotation`**
-  - EN: Rotation
-  - DE: Drehung
-  - [ ] OK    Fix: 
-
-- **`scale`**
-  - EN: Scale
-  - DE: Skalierung
-  - [ ] OK    Fix: 
-
-- **`x`**
-  - EN: X:
-  - DE: X:
-  - [ ] OK    Fix: 
-
-- **`y`**
-  - EN: Y:
-  - DE: Y:
-  - [ ] OK    Fix: 
-
-- **`z`**
-  - EN: Z
-  - DE: Z
-  - [ ] OK    Fix: 
-
-## `clusters.lfo`
-
-- **`labels.amplitude`**
-  - EN: Amplitude:
-  - DE: Amplitude:
-  - [ ] OK    Fix: 
-
-- **`labels.angle`**
-  - EN: Angle:
-  - DE: Winkel:
-  - [ ] OK    Fix: 
-
-- **`labels.period`**
-  - EN: Period:
-  - DE: Periode:
-  - [ ] OK    Fix: 
-
-- **`labels.phase`**
-  - EN: Phase:
-  - DE: Phase:
-  - [ ] OK    Fix: 
-
-- **`labels.rate`**
-  - EN: Rate:
-  - DE: Rate:
-  - [ ] OK    Fix: 
-
-- **`labels.ratio`**
-  - EN: Ratio:
-  - DE: Verhältnis:
-  - [ ] OK    Fix: 
-
-- **`labels.rot`**
-  - EN: Rotation
-  - DE: Drehung
-  - [ ] OK    Fix: 
-
-- **`labels.scaleLfo`**
-  - EN: Scale
-  - DE: Skalierung
-  - [ ] OK    Fix: 
-
-- **`labels.section`**
-  - EN: LFO
-  - DE: LFO
-  - [ ] OK    Fix: 
-
-- **`labels.x`**
-  - EN: X
-  - DE: X
-  - [ ] OK    Fix: 
-
-- **`labels.y`**
-  - EN: Y
-  - DE: Y
-  - [ ] OK    Fix: 
-
-- **`labels.z`**
-  - EN: Z
-  - DE: Z
-  - [ ] OK    Fix: 
-
-## `clusters.osc`
-
-- **`lfoActive`**
-  - EN: /wfs/cluster/lfoActive <id> <0|1>
-  - DE: /wfs/cluster/lfoActive <id> <0|1>
-  - [ ] OK    Fix: 
-
-- **`lfoAmplitudeRot`**
-  - EN: /wfs/cluster/lfoAmplitudeRot <id> <degrees>
-  - DE: /wfs/cluster/lfoAmplitudeRot <id> <Grad>
-  - [ ] OK    Fix: 
-
-- **`lfoAmplitudeScale`**
-  - EN: /wfs/cluster/lfoAmplitudeScale <id> <factor>
-  - DE: /wfs/cluster/lfoAmplitudeScale <id> <Faktor>
-  - [ ] OK    Fix: 
-
-- **`lfoAmplitudeX`**
-  - EN: /wfs/cluster/lfoAmplitudeX <id> <meters>
-  - DE: /wfs/cluster/lfoAmplitudeX <id> <Meter>
-  - [ ] OK    Fix: 
-
-- **`lfoAmplitudeY`**
-  - EN: /wfs/cluster/lfoAmplitudeY <id> <meters>
-  - DE: /wfs/cluster/lfoAmplitudeY <id> <Meter>
-  - [ ] OK    Fix: 
-
-- **`lfoAmplitudeZ`**
-  - EN: /wfs/cluster/lfoAmplitudeZ <id> <meters>
-  - DE: /wfs/cluster/lfoAmplitudeZ <id> <Meter>
-  - [ ] OK    Fix: 
-
-- **`lfoPeriod`**
-  - EN: /wfs/cluster/lfoPeriod <id> <seconds>
-  - DE: /wfs/cluster/lfoPeriod <id> <Sekunden>
-  - [ ] OK    Fix: 
-
-- **`lfoPhase`**
-  - EN: /wfs/cluster/lfoPhase <id> <degrees>
-  - DE: /wfs/cluster/lfoPhase <id> <Grad>
-  - [ ] OK    Fix: 
-
-- **`lfoPhaseRot`**
-  - EN: /wfs/cluster/lfoPhaseRot <id> <degrees>
-  - DE: /wfs/cluster/lfoPhaseRot <id> <Grad>
-  - [ ] OK    Fix: 
-
-- **`lfoPhaseScale`**
-  - EN: /wfs/cluster/lfoPhaseScale <id> <degrees>
-  - DE: /wfs/cluster/lfoPhaseScale <id> <Grad>
-  - [ ] OK    Fix: 
-
-- **`lfoPhaseX`**
-  - EN: /wfs/cluster/lfoPhaseX <id> <degrees>
-  - DE: /wfs/cluster/lfoPhaseX <id> <Grad>
-  - [ ] OK    Fix: 
-
-- **`lfoPhaseY`**
-  - EN: /wfs/cluster/lfoPhaseY <id> <degrees>
-  - DE: /wfs/cluster/lfoPhaseY <id> <Grad>
-  - [ ] OK    Fix: 
-
-- **`lfoPhaseZ`**
-  - EN: /wfs/cluster/lfoPhaseZ <id> <degrees>
-  - DE: /wfs/cluster/lfoPhaseZ <id> <Grad>
-  - [ ] OK    Fix: 
-
-- **`lfoPresetRecall`**
-  - EN: /wfs/cluster/lfoPresetRecall <clusterId> <presetNumber>
-  - DE: /wfs/cluster/lfoPresetRecall <clusterId> <PresetNummer>
-  - [ ] OK    Fix: 
-
-- **`lfoRateRot`**
-  - EN: /wfs/cluster/lfoRateRot <id> <multiplier>
-  - DE: /wfs/cluster/lfoRateRot <id> <Multiplikator>
-  - [ ] OK    Fix: 
-
-- **`lfoRateScale`**
-  - EN: /wfs/cluster/lfoRateScale <id> <multiplier>
-  - DE: /wfs/cluster/lfoRateScale <id> <Multiplikator>
-  - [ ] OK    Fix: 
-
-- **`lfoRateX`**
-  - EN: /wfs/cluster/lfoRateX <id> <multiplier>
-  - DE: /wfs/cluster/lfoRateX <id> <Multiplikator>
-  - [ ] OK    Fix: 
-
-- **`lfoRateY`**
-  - EN: /wfs/cluster/lfoRateY <id> <multiplier>
-  - DE: /wfs/cluster/lfoRateY <id> <Multiplikator>
-  - [ ] OK    Fix: 
-
-- **`lfoRateZ`**
-  - EN: /wfs/cluster/lfoRateZ <id> <multiplier>
-  - DE: /wfs/cluster/lfoRateZ <id> <Multiplikator>
-  - [ ] OK    Fix: 
-
-- **`lfoShapeRot`**
-  - EN: /wfs/cluster/lfoShapeRot <id> <0-8>
-  - DE: /wfs/cluster/lfoShapeRot <id> <0-8>
-  - [ ] OK    Fix: 
-
-- **`lfoShapeScale`**
-  - EN: /wfs/cluster/lfoShapeScale <id> <0-8>
-  - DE: /wfs/cluster/lfoShapeScale <id> <0-8>
-  - [ ] OK    Fix: 
-
-- **`lfoShapeX`**
-  - EN: /wfs/cluster/lfoShapeX <id> <0-8>
-  - DE: /wfs/cluster/lfoShapeX <id> <0-8>
-  - [ ] OK    Fix: 
-
-- **`lfoShapeY`**
-  - EN: /wfs/cluster/lfoShapeY <id> <0-8>
-  - DE: /wfs/cluster/lfoShapeY <id> <0-8>
-  - [ ] OK    Fix: 
-
-- **`lfoShapeZ`**
-  - EN: /wfs/cluster/lfoShapeZ <id> <0-8>
-  - DE: /wfs/cluster/lfoShapeZ <id> <0-8>
-  - [ ] OK    Fix: 
-
-- **`lfoStopAll`**
-  - EN: /wfs/cluster/lfoStopAll
-  - DE: /wfs/cluster/lfoStopAll
-  - [ ] OK    Fix: 
-
-## `clusters.planes`
-
-- **`xy`**
-  - EN: XY
-  - DE: XY
-  - [ ] OK    Fix: 
-
-- **`xz`**
-  - EN: XZ
-  - DE: XZ
-  - [ ] OK    Fix: 
-
-- **`yz`**
-  - EN: YZ
-  - DE: YZ
-  - [ ] OK    Fix: 
-
-## `clusters.presets`
-
-- **`export`**
-  - EN: Export
-  - DE: Exportieren
-  - [ ] OK    Fix: 
-
-- **`exportDialog`**
-  - EN: Export LFO Presets
-  - DE: LFO-Presets exportieren
-  - [ ] OK    Fix: 
-
-- **`exported`**
-  - EN: LFO presets exported.
-  - DE: LFO-Presets exportiert.
-  - [ ] OK    Fix: 
-
-- **`import`**
-  - EN: Import
-  - DE: Importieren
-  - [ ] OK    Fix: 
-
-- **`importDialog`**
-  - EN: Import LFO Presets
-  - DE: LFO-Presets importieren
-  - [ ] OK    Fix: 
-
-- **`imported`**
-  - EN: LFO presets imported.
-  - DE: LFO-Presets importiert.
-  - [ ] OK    Fix: 
-
-- **`recalled`**
-  - EN: LFO preset recalled from tile {n}.
-  - DE: LFO-Preset aus Kachel {n} abgerufen.
-  - [ ] OK    Fix: 
-
-- **`stopAll`**
-  - EN: Stop All
-  - DE: Alle stoppen
-  - [ ] OK    Fix: 
-
-- **`stored`**
-  - EN: LFO preset stored in tile {n}.
-  - DE: LFO-Preset in Kachel {n} gespeichert.
-  - [ ] OK    Fix: 
-
-## `clusters.referenceMode`
-
-- **`barycenter`**
-  - EN: Barycenter
-  - DE: Schwerpunkt
-  - [ ] OK    Fix: 
-
-- **`firstInput`**
-  - EN: First Input
-  - DE: Erster Eingang
-  - [ ] OK    Fix: 
-
 ## `clusters.status`
 
 - **`noInputs`**
@@ -1187,33 +284,76 @@ Walk through each section. For every entry:
   - DE: Tracking: Eingang {num} (überschreibt Referenz)
   - [ ] OK    Fix: 
 
-## `clusters.toggles`
-
-- **`inputsHidden`**
-  - EN: Inputs: Hidden
-  - DE: Eingänge: Versteckt
-  - [ ] OK    Fix: 
-
-- **`inputsVisible`**
-  - EN: Inputs: Visible
-  - DE: Eingänge: Sichtbar
-  - [ ] OK    Fix: 
-
-- **`lfoOff`**
-  - EN: L.F.O: OFF
-  - DE: L.F.O: AUS
-  - [ ] OK    Fix: 
-
-- **`lfoOn`**
-  - EN: L.F.O: ON
-  - DE: L.F.O: EIN
-  - [ ] OK    Fix: 
-
 ## `common`
+
+- **`add`**
+  - EN: Add
+  - DE: Hinzufügen
+  - [ ] OK    Fix: 
+
+- **`all`**
+  - EN: All
+  - DE: Alle
+  - [ ] OK    Fix: 
+
+- **`apply`**
+  - EN: Apply
+  - DE: Anwenden
+  - [ ] OK    Fix: 
 
 - **`cancel`**
   - EN: Cancel
   - DE: Abbrechen
+  - [ ] OK    Fix: 
+
+- **`close`**
+  - EN: Close
+  - DE: Schließen
+  - [ ] OK    Fix: 
+
+- **`delete`**
+  - EN: Delete
+  - DE: Löschen
+  - [ ] OK    Fix: 
+
+- **`disable`**
+  - EN: Disable
+  - DE: Deaktivieren
+  - [ ] OK    Fix: 
+
+- **`edit`**
+  - EN: Edit
+  - DE: Bearbeiten
+  - [ ] OK    Fix: 
+
+- **`enable`**
+  - EN: Enable
+  - DE: Aktivieren
+  - [ ] OK    Fix: 
+
+- **`export`**
+  - EN: Export
+  - DE: Exportieren
+  - [ ] OK    Fix: 
+
+- **`import`**
+  - EN: Import
+  - DE: Importieren
+  - [ ] OK    Fix: 
+
+- **`load`**
+  - EN: Load
+  - DE: Laden
+  - [ ] OK    Fix: 
+
+- **`no`**
+  - EN: No
+  - DE: Nein
+  - [ ] OK    Fix: 
+
+- **`none`**
+  - EN: None
+  - DE: Keine
   - [ ] OK    Fix: 
 
 - **`off`**
@@ -1231,75 +371,39 @@ Walk through each section. For every entry:
   - DE: EIN
   - [ ] OK    Fix: 
 
-## `eq.buttons`
-
-- **`flattenEQ`**
-  - EN: Flatten EQ
-  - DE: EQ zurücksetzen
+- **`reload`**
+  - EN: Reload
+  - DE: Neu laden
   - [ ] OK    Fix: 
 
-- **`resetBand`**
+- **`remove`**
+  - EN: Remove
+  - DE: Entfernen
+  - [ ] OK    Fix: 
+
+- **`reset`**
   - EN: Reset
-  - DE: Reset
+  - DE: Zurücksetzen
   - [ ] OK    Fix: 
 
-## `eq.filterTypes`
-
-- **`allPass`**
-  - EN: All-Pass
-  - DE: Allpass
+- **`save`**
+  - EN: Save
+  - DE: Speichern
   - [ ] OK    Fix: 
 
-- **`bandPass`**
-  - EN: Band Pass
-  - DE: Bandpass
+- **`select`**
+  - EN: Select
+  - DE: Auswählen
   - [ ] OK    Fix: 
 
-- **`highCut`**
-  - EN: High Cut
-  - DE: Hochpassfilter
+- **`store`**
+  - EN: Store
+  - DE: Speichern
   - [ ] OK    Fix: 
 
-- **`highShelf`**
-  - EN: High Shelf
-  - DE: Höhenregler
-  - [ ] OK    Fix: 
-
-- **`lowCut`**
-  - EN: Low Cut
-  - DE: Tiefpassfilter
-  - [ ] OK    Fix: 
-
-- **`lowShelf`**
-  - EN: Low Shelf
-  - DE: Tiefenregler
-  - [ ] OK    Fix: 
-
-- **`peakNotch`**
-  - EN: Peak/Notch
-  - DE: Glocke/Kerbe
-  - [ ] OK    Fix: 
-
-## `eq.labels`
-
-- **`band`**
-  - EN: Band
-  - DE: Band
-  - [ ] OK    Fix: 
-
-- **`freq`**
-  - EN: Freq:
-  - DE: Freq:
-  - [ ] OK    Fix: 
-
-- **`gain`**
-  - EN: Gain
-  - DE: Gain
-  - [ ] OK    Fix: 
-
-- **`q`**
-  - EN: Q
-  - DE: Q
+- **`yes`**
+  - EN: Yes
+  - DE: Ja
   - [ ] OK    Fix: 
 
 ## `eq.status`
@@ -1321,182 +425,23 @@ Walk through each section. For every entry:
   - DE: Projektordner auswählen
   - [ ] OK    Fix: 
 
-## `fileManager.errors`
-
-- **`backupNotFound`**
-  - EN: Backup not found
-  - DE: Sicherung nicht gefunden
-  - [ ] OK    Fix: 
-
-- **`configStateInvalid`**
-  - EN: Config state is invalid
-  - DE: Konfigurationszustand ist ungültig
-  - [ ] OK    Fix: 
-
-- **`failedApply`**
-  - EN: Failed to apply: {sections}
-  - DE: Anwenden fehlgeschlagen: {sections}
-  - [ ] OK    Fix: 
-
-- **`failedCreateFolder`**
-  - EN: Failed to create project folder: {path}
-  - DE: Erstellung des Projektordners fehlgeschlagen: {path}
-  - [ ] OK    Fix: 
-
-- **`failedCreateValueTree`**
-  - EN: Failed to create ValueTree from XML: {path}
-  - DE: ValueTree aus XML erstellen fehlgeschlagen: {path}
-  - [ ] OK    Fix: 
-
-- **`failedCreateXML`**
-  - EN: Failed to create XML from state
-  - DE: XML aus Zustand erstellen fehlgeschlagen
-  - [ ] OK    Fix: 
-
-- **`failedParseXML`**
-  - EN: Failed to parse XML file: {path}
-  - DE: XML-Datei parsen fehlgeschlagen: {path}
-  - [ ] OK    Fix: 
-
-- **`failedWriteFile`**
-  - EN: Failed to write file: {path}
-  - DE: Datei schreiben fehlgeschlagen: {path}
-  - [ ] OK    Fix: 
-
-- **`fileNotFound`**
-  - EN: File not found: {path}
-  - DE: Datei nicht gefunden: {path}
-  - [ ] OK    Fix: 
-
-- **`invalidConfigStructure`**
-  - EN: Invalid configuration file structure
-  - DE: Ungültige Struktur der Konfigurationsdatei
-  - [ ] OK    Fix: 
-
-- **`noInputDataInFile`**
-  - EN: No input data found in file
-  - DE: Keine Eingangsdaten in der Datei gefunden
-  - [ ] OK    Fix: 
-
-- **`noInputDataInSnapshot`**
-  - EN: No input data in snapshot
-  - DE: Keine Eingangsdaten im Snapshot
-  - [ ] OK    Fix: 
-
-- **`noLFOPresetDataInFile`**
-  - EN: No LFO preset data found in file
-  - DE: Keine LFO-Preset-Daten in der Datei gefunden
-  - [ ] OK    Fix: 
-
-- **`noNetworkDataInFile`**
-  - EN: No network data found in file
-  - DE: Keine Netzwerkdaten in der Datei gefunden
-  - [ ] OK    Fix: 
-
-- **`noNetworkSections`**
-  - EN: No network sections found in file
-  - DE: Keine Netzwerk-Abschnitte in der Datei gefunden
-  - [ ] OK    Fix: 
-
-- **`noOutputDataInFile`**
-  - EN: No output data found in file
-  - DE: Keine Ausgangsdaten in der Datei gefunden
-  - [ ] OK    Fix: 
-
-- **`noProjectFolder`**
-  - EN: No project folder specified
-  - DE: Kein Projektordner angegeben
-  - [ ] OK    Fix: 
-
-- **`noReverbDataInFile`**
-  - EN: No reverb data found in file
-  - DE: Keine Hall-Daten in der Datei gefunden
-  - [ ] OK    Fix: 
-
-- **`noSystemDataInFile`**
-  - EN: No valid system data found in file: {path}
-  - DE: Keine gültigen Systemdaten in der Datei gefunden: {path}
-  - [ ] OK    Fix: 
-
-- **`noValidProjectFolder`**
-  - EN: No valid project folder
-  - DE: Kein gültiger Projektordner
-  - [ ] OK    Fix: 
-
-- **`prefixInputs`**
-  - EN: Inputs: 
-  - DE: Eingänge: 
-  - [ ] OK    Fix: 
-
-- **`prefixNetwork`**
-  - EN: Network: 
-  - DE: Netzwerk: 
-  - [ ] OK    Fix: 
-
-- **`prefixOutputs`**
-  - EN: Outputs: 
-  - DE: Ausgänge: 
-  - [ ] OK    Fix: 
-
-- **`prefixReverbs`**
-  - EN: Reverbs: 
-  - DE: Hall: 
-  - [ ] OK    Fix: 
-
-- **`prefixSystem`**
-  - EN: System: 
-  - DE: System: 
-  - [ ] OK    Fix: 
-
-- **`snapshotNotFound`**
-  - EN: Snapshot not found
-  - DE: Snapshot nicht gefunden
-  - [ ] OK    Fix: 
-
-- **`snapshotNotFoundNamed`**
-  - EN: Snapshot not found: {name}
-  - DE: Snapshot nicht gefunden: {name}
-  - [ ] OK    Fix: 
-
 ## `help.admOsc`
 
 - **`body`**
-  - EN: ADM-OSC is a protocol aiming to improve interoperability for spatial sound. It sends Cartesian positions (X, Y, Z) or polar values (AED for Azimuth, Elevation, Distance) from the console or from a DAW's automation curves.
-Data is sent normalised:
-- between -1.0 and 1.0 for X, Y and Z;
-- between 0.0 to 1.0 for distance,
-- between -180° to 180° for Azimuth
-- between -90° to 90° for elevation.
-The origin point can be moved and the mapping can also be adjusted in different segments for the inner and outer parts of the stage.
-When dragging the handles on the graphs, holding the shift key will apply symmetrical adjustments on the opposite side.
-  - DE: ADM-OSC ist ein Protokoll zur Verbesserung der Interoperabilität für räumlichen Klang. Es sendet kartesische Positionen (X, Y, Z) oder polare Werte (AED für Azimut, Elevation, Distanz) von der Konsole oder den Automationskurven einer DAW.
-Die Daten werden normalisiert gesendet:
-- zwischen -1,0 und 1,0 für X, Y und Z;
-- zwischen 0,0 und 1,0 für Distanz,
-- zwischen -180° und 180° für Azimut
-- zwischen -90° und 90° für Elevation.
-Der Ursprungspunkt kann verschoben und das Mapping in verschiedenen Segmenten für den inneren und äußeren Bühnenbereich angepasst werden.
-Beim Ziehen der Griffe in den Diagrammen werden mit gedrückter Umschalttaste symmetrische Anpassungen auf der gegenüberliegenden Seite vorgenommen.
+  - EN: ADM-OSC is a protocol aiming to improve interoperability for spatial sound. It sends Cartesian positions (X, Y, Z) or polar values (AED for Azimuth, Elevation, Distance) from the console or from a DAW's automation curves.\nData is sent normalised:\n- between -1.0 and 1.0 for X, Y and Z;\n- between 0.0 to 1.0 for distance,\n- between -180° to 180° for Azimuth\n- between -90° to 90° for elevation.\nThe origin point can be moved and the mapping can also be adjusted in different segments for the inner and outer parts of the stage.\nWhen dragging the handles on the graphs, holding the shift key will apply symmetrical adjustments on the opposite side.
+  - DE: ADM-OSC ist ein Protokoll zur Verbesserung der Interoperabilität für räumlichen Klang. Es sendet kartesische Positionen (X, Y, Z) oder polare Werte (AED für Azimut, Elevation, Distanz) von der Konsole oder den Automationskurven einer DAW.\nDie Daten werden normalisiert gesendet:\n- zwischen -1,0 und 1,0 für X, Y und Z;\n- zwischen 0,0 und 1,0 für Distanz,\n- zwischen -180° und 180° für Azimut\n- zwischen -90° und 90° für Elevation.\nDer Ursprungspunkt kann verschoben und das Mapping in verschiedenen Segmenten für den inneren und äußeren Bühnenbereich angepasst werden.\nBeim Ziehen der Griffe in den Diagrammen werden mit gedrückter Umschalttaste symmetrische Anpassungen auf der gegenüberliegenden Seite vorgenommen.
   - [ ] OK    Fix: 
 
 - **`title`**
   - EN: ADM-OSC Mappings
-  - DE: ADM-OSC-Zuordnungen
+  - DE: ADM-OSC Mappings
   - [ ] OK    Fix: 
 
 ## `help.automOtion`
 
 - **`body`**
-  - EN: One time movement can also be programmed and triggered manually or triggered by sound level.
-The coordinates are either relative from the start position or absolute relative to the origin point.
-The input can either stay at the end position or revert to the starting position.
-Input position cannot be changed while the input is moving this way, but interacting with the input will change the position offset of the input instead.
-For audio level triggering select the sound level above which the movement will start. When the sound drops below the reset level the movement will be rearmed, ready to be triggered again. New movement automation will not be possible while the input is moving.
-  - DE: Einmalige Bewegungen können programmiert und manuell oder durch Schallpegel ausgelöst werden.
-Die Koordinaten sind entweder relativ zur Startposition oder absolut zum Ursprungspunkt.
-Der Eingang kann an der Endposition bleiben oder zur Startposition zurückkehren.
-Die Position kann während der Bewegung nicht geändert werden, aber Interaktion ändert den Positionsversatz.
-Für Pegelauslösung wählen Sie den Schwellwert. Wenn der Pegel unter den Rücksetzpegel fällt, wird die Bewegung wieder bereitgestellt.
+  - EN: One time movement can also be programmed and triggered manually or triggered by sound level.\nThe coordinates are either relative from the start position or absolute relative to the origin point.\nThe input can either stay at the end position or revert to the starting position.\nInput position cannot be changed while the input is moving this way, but interacting with the input will change the position offset of the input instead.\nFor audio level triggering select the sound level above which the movement will start. When the sound drops below the reset level the movement will be rearmed, ready to be triggered again. New movement automation will not be possible while the input is moving.
+  - DE: Einmalige Bewegungen können programmiert und manuell oder durch Schallpegel ausgelöst werden.\nDie Koordinaten sind entweder relativ zur Startposition oder absolut zum Ursprungspunkt.\nDer Eingang kann an der Endposition bleiben oder zur Startposition zurückkehren.\nDie Position kann während der Bewegung nicht geändert werden, aber Interaktion ändert den Positionsversatz.\nFür Pegelauslösung wählen Sie den Schwellwert. Wenn der Pegel unter den Rücksetzpegel fällt, wird die Bewegung wieder bereitgestellt.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1507,44 +452,20 @@ Für Pegelauslösung wählen Sie den Schwellwert. Wenn der Pegel unter den Rück
 ## `help.binaural`
 
 - **`body`**
-  - EN: The Binaural renderer is used for:
-- listening to a rough spatial mix on headphones,
-- creating a mix for stereo output,
-- listening to a single soloed track through the spatial processing.
-This may take the place of your master mix if it's only feeding headphones and media mix.
-The position of the listening position may be adjusted in depth from the origin point and in orientation. Delay and level settings allow you to eventually match the sound at the FOH position.
-  - DE: Der Binaural-Renderer wird verwendet für:
-- das Abhören eines groben räumlichen Mixes über Kopfhörer,
-- das Erstellen eines Mixes für Stereoausgabe,
-- das Abhören einer einzelnen Solo-Spur durch die räumliche Verarbeitung.
-Er kann Ihren Master-Mix ersetzen, wenn dieser nur Kopfhörer und Medienmix versorgt.
-Die Hörposition kann in der Tiefe vom Ursprungspunkt und in der Orientierung angepasst werden. Delay- und Pegeleinstellungen ermöglichen die Anpassung an die FOH-Position.
+  - EN: The Binaural renderer is used for:\n- listening to a rough spatial mix on headphones,\n- creating a mix for stereo output,\n- listening to a single soloed track through the spatial processing.\nThis may take the place of your master mix if it's only feeding headphones and media mix.\nThe position of the listening position may be adjusted in depth from the origin point and in orientation. Delay and level settings allow you to eventually match the sound at the FOH position.
+  - DE: Der Binaural Renderer wird verwendet für:\n- das Abhören eines groben räumlichen Mixes über Kopfhörer,\n- das Erstellen eines Mixes für Stereoausgabe,\n- das Abhören einer einzelnen Solo-Spur durch die räumliche Verarbeitung.\nEr kann Ihren Master-Mix ersetzen, wenn dieser nur Kopfhörer und Medienmix versorgt.\nDie Hörposition kann in der Tiefe vom Ursprungspunkt und in der Orientierung angepasst werden. Delay- und Pegeleinstellungen ermöglichen die Anpassung an die FOH-Position.
   - [ ] OK    Fix: 
 
 - **`title`**
   - EN: Binaural Renderer
-  - DE: Binaural-Renderer
+  - DE: Binaural Renderer
   - [ ] OK    Fix: 
 
 ## `help.clusters`
 
 - **`body`**
-  - EN: Clusters are groups of inputs that can be manipulated and animated as a whole.
-Each input can only be part of one cluster.
-Each cluster can only have one input with tracking fully enabled. Then this input will become the reference points for the cluster.
-If no input with tracking is part of the cluster then there are two modes for the reference point of the cluster. Either the first input assigned in the list becomes the reference or the barycentre, in other words the center of gravity or the middle of the shape formed by the assigned inputs.
-All inputs of the clusters can be moved by dragging the reference point. The individual inputs (other than a first input that would be a reference point) can still be adjusted individually. Dragging an input with tracking activated that is also a reference point for a cluster will affect its position offset and the position of the other inputs of the cluster normally.
-All inputs in a cluster can be rotated or scaled around the reference point.
-All clusters can be assigned an animation via an LFO. The positions X, Y and Z, the rotation and scale of the cluster can be controlled. The LFO has a period and a phase setting. Each individual parameter has shape, amplitude, rate and phase. The LFO settings can be assigned to pads for a quick recall. A right click will store the LFO parameters to a pad. Double clicking the top of the pad will allow to edit the name of the preset. Clicking or tapping a pad will recall the settings whether the LFO is running or not, but it will not start it if is isn't. A double click/tap will load and start the LFO.
-All input clusters share the same set of LFO presets.
-  - DE: Cluster sind Gruppen von Eingängen, die als Ganzes manipuliert und animiert werden können.
-Jeder Eingang kann nur Teil eines Clusters sein.
-Jeder Cluster kann nur einen Eingang mit vollständig aktiviertem Tracking haben. Dieser wird zum Referenzpunkt des Clusters.
-Wenn kein Eingang mit Tracking vorhanden ist, gibt es zwei Modi: entweder der erste zugewiesene Eingang oder der Schwerpunkt der zugewiesenen Eingänge.
-Alle Eingänge können durch Ziehen des Referenzpunkts verschoben werden. Einzelne Eingänge können weiterhin individuell angepasst werden. Das Ziehen eines Eingangs mit aktiviertem Tracking, der auch Referenzpunkt ist, beeinflusst seinen Positionsversatz und die Position der anderen Eingänge des Clusters normal.
-Alle Eingänge eines Clusters können um den Referenzpunkt rotiert oder skaliert werden.
-Allen Clustern kann eine Animation über einen LFO zugewiesen werden. Positionen X, Y, Z, Rotation und Skalierung können gesteuert werden. LFO-Einstellungen können Pads zugewiesen werden. Ein Rechtsklick speichert die LFO-Parameter in einem Pad. Doppelklick auf den oberen Bereich des Pads ermöglicht die Bearbeitung des Preset-Namens. Klicken oder Tippen auf ein Pad ruft die Einstellungen ab, ob der LFO läuft oder nicht, startet ihn aber nicht. Ein Doppelklick/Doppeltipp lädt und startet den LFO.
-Alle Cluster teilen sich denselben Satz von LFO-Presets.
+  - EN: Clusters are groups of inputs that can be manipulated and animated as a whole.\nEach input can only be part of one cluster.\nEach cluster can only have one input with tracking fully enabled. Then this input will become the reference points for the cluster.\nIf no input with tracking is part of the cluster then there are two modes for the reference point of the cluster. Either the first input assigned in the list becomes the reference or the barycentre, in other words the center of gravity or the middle of the shape formed by the assigned inputs.\nAll inputs of the clusters can be moved by dragging the reference point. The individual inputs (other than a first input that would be a reference point) can still be adjusted individually. Dragging an input with tracking activated that is also a reference point for a cluster will affect its position offset and the position of the other inputs of the cluster normally.\nAll inputs in a cluster can be rotated or scaled around the reference point.\nAll clusters can be assigned an animation via an LFO. The positions X, Y and Z, the rotation and scale of the cluster can be controlled. The LFO has a period and a phase setting. Each individual parameter has shape, amplitude, rate and phase. The LFO settings can be assigned to pads for a quick recall. A right click will store the LFO parameters to a pad. Double clicking the top of the pad will allow to edit the name of the preset. Clicking or tapping a pad will recall the settings whether the LFO is running or not, but it will not start it if is isn't. A double click/tap will load and start the LFO.\nAll input clusters share the same set of LFO presets.
+  - DE: Cluster sind Gruppen von Eingängen, die als Ganzes manipuliert und animiert werden können.\nJeder Eingang kann nur Teil eines Clusters sein.\nJeder Cluster kann nur einen Eingang mit vollständig aktiviertem Tracking haben. Dieser wird zum Referenzpunkt des Clusters.\nWenn kein Eingang mit Tracking vorhanden ist, gibt es zwei Modi: entweder der erste zugewiesene Eingang oder der Schwerpunkt der zugewiesenen Eingänge.\nAlle Eingänge können durch Ziehen des Referenzpunkts verschoben werden. Einzelne Eingänge können weiterhin individuell angepasst werden. Das Ziehen eines Eingangs mit aktiviertem Tracking, der auch Referenzpunkt ist, beeinflusst seinen Positionsversatz und die Position der anderen Eingänge des Clusters normal.\nAlle Eingänge eines Clusters können um den Referenzpunkt rotiert oder skaliert werden.\nAllen Clustern kann eine Animation über einen LFO zugewiesen werden. Positionen X, Y, Z, Rotation und Skalierung können gesteuert werden. LFO-Einstellungen können Pads zugewiesen werden. Ein Rechtsklick speichert die LFO-Parameter in einem Pad. Doppelklick auf den oberen Bereich des Pads ermöglicht die Bearbeitung des Preset-Namens. Klicken oder Tippen auf ein Pad ruft die Einstellungen ab, ob der LFO läuft oder nicht, startet ihn aber nicht. Ein Doppelklick/Doppeltipp lädt und startet den LFO.\nAlle Cluster teilen sich denselben Satz von LFO-Presets.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1555,57 +476,32 @@ Alle Cluster teilen sich denselben Satz von LFO-Presets.
 ## `help.floorReflections`
 
 - **`body`**
-  - EN: Simulating the floor reflections improves the naturalness of the sound. We don't expect sounds to play in a soundproof anechoic chamber. This setting helps recreate the expected floor reflections.
-The level of the floor reflections can be adjusted as well as the low cut and the high frequency shelf filters. Diffusion adds a bit of chaos to simulate the unevenness of the floor.
-  - DE: Die Simulation von Bodenreflexionen verbessert die Natürlichkeit des Klangs. Wir erwarten nicht, dass Klänge in einem schalltoten Raum wiedergegeben werden. Diese Einstellung hilft, die erwarteten Bodenreflexionen nachzubilden.
-Der Pegel der Bodenreflexionen kann ebenso angepasst werden wie die Tiefensperre und die Hochfrequenz-Shelf-Filter. Diffusion fügt etwas Chaos hinzu, um die Unebenheiten des Bodens zu simulieren.
+  - EN: Simulating the floor reflections improves the naturalness of the sound. We don't expect sounds to play in a soundproof anechoic chamber. This setting helps recreate the expected floor reflections.\nThe level of the floor reflections can be adjusted as well as the low cut and the high frequency shelf filters. Diffusion adds a bit of chaos to simulate the unevenness of the floor.
+  - DE: Die Simulation von Bodenreflexionen verbessert die Natürlichkeit des Klangs. Wir erwarten nicht, dass Klänge in einem schalltoten Raum wiedergegeben werden. Diese Einstellung hilft, die erwarteten Bodenreflexionen nachzubilden.\nDer Pegel der Bodenreflexionen kann ebenso angepasst werden wie die Tiefensperre und die Hochfrequenz-Shelf-Filter. Diffusion fügt etwas Chaos hinzu, um die Unebenheiten des Bodens zu simulieren.
   - [ ] OK    Fix: 
 
 - **`title`**
   - EN: Floor Reflections
-  - DE: Bodenreflexionen
+  - DE: Floor Reflections
   - [ ] OK    Fix: 
 
 ## `help.gradientMap`
 
 - **`body`**
-  - EN: Gradient maps allow to control attenuation, height and high frequency filtering (shelf with a smooth slope centered at 1kHz) depending on the X, Y position. For example, you can fade out a sound when entering a certain zone, you can have high frequency roll-off when moving away from the front of the stage, you can automatically adjust the height of an actor even when they are standing on elevated platforms without having to control height manually.
-There are three layers for attenuation, height and HF shelf. They can be toggled on and off and they also can be hidden. The focused layer will look dimmed if disabled. Unfocused layers will look dimmed if active and only the shape outlines will be visible if they are deactivated.
-Each layer has a mapping control for white and black to adjust the range of the effect. The curve setting adjusts the transition.
-Each layer can have editable shapes (rectangle, ellipse or polygon) with either a single shade of grey, a linear gradient or a radial gradient. End points of the gradients can be adjusted.
-When creating a polygon click for each corner. Double-clicking will create a last corner and close the shape.
-Double-clicking an existing point on a rectangle or a polygon will remove this corner. Double-clicking on a side will add a new point.
-The scale and rotation of each shape can be edited for its center or from the origin point.
-When enabled the corner points of the rectangles and polygons can also be edited individually.
-Shapes and layers can be copied to another layer on the same input or any other input.
-Gradient map settings are stored in the input files.
-  - DE: Gradientenkarten ermöglichen die Steuerung von Dämpfung, Höhe und Hochfrequenzfilterung (Shelf mit sanfter Flanke bei 1kHz) abhängig von der X, Y Position. Zum Beispiel können Sie einen Klang beim Betreten einer Zone ausblenden, Höhenabfall beim Entfernen von der Bühnenvorderkante anwenden oder die Höhe eines Schauspielers auf erhöhten Plattformen automatisch anpassen.
-Drei Ebenen stehen zur Verfügung: Dämpfung, Höhe und HF-Shelf. Sie können ein-/ausgeschaltet und ausgeblendet werden.
-Jede Ebene hat Mapping-Regler für Weiß und Schwarz zur Bereichsanpassung. Die Kurveneinstellung steuert den Übergang.
-Jede Ebene kann editierbare Formen haben (Rechteck, Ellipse oder Polygon) mit einheitlichem Grau, linearem oder radialem Gradient.
-Beim Erstellen eines Polygons klicken Sie für jede Ecke. Doppelklick schließt die Form.
-Doppelklick auf einen Punkt entfernt ihn. Doppelklick auf eine Seite fügt einen neuen Punkt hinzu.
-Skalierung und Rotation können vom Zentrum oder Ursprung aus bearbeitet werden.
-Formen und Ebenen können kopiert werden.
-Einstellungen werden in den Eingangsdateien gespeichert.
+  - EN: Gradient maps allow to control attenuation, height and high frequency filtering (shelf with a smooth slope centered at 1kHz) depending on the X, Y position. For example, you can fade out a sound when entering a certain zone, you can have high frequency roll-off when moving away from the front of the stage, you can automatically adjust the height of an actor even when they are standing on elevated platforms without having to control height manually.\nThere are three layers for attenuation, height and HF shelf. They can be toggled on and off and they also can be hidden. The focused layer will look dimmed if disabled. Unfocused layers will look dimmed if active and only the shape outlines will be visible if they are deactivated.\nEach layer has a mapping control for white and black to adjust the range of the effect. The curve setting adjusts the transition.\nEach layer can have editable shapes (rectangle, ellipse or polygon) with either a single shade of grey, a linear gradient or a radial gradient. End points of the gradients can be adjusted.\nWhen creating a polygon click for each corner. Double-clicking will create a last corner and close the shape.\nDouble-clicking an existing point on a rectangle or a polygon will remove this corner. Double-clicking on a side will add a new point.\nThe scale and rotation of each shape can be edited for its center or from the origin point.\nWhen enabled the corner points of the rectangles and polygons can also be edited individually.\nShapes and layers can be copied to another layer on the same input or any other input.\nGradient map settings are stored in the input files.
+  - DE: Gradientenkarten ermöglichen die Steuerung von Dämpfung, Höhe und Hochfrequenzfilterung (Shelf mit sanfter Flanke bei 1kHz) abhängig von der X, Y Position. Zum Beispiel können Sie einen Klang beim Betreten einer Zone ausblenden, Höhenabfall beim Entfernen von der Bühnenvorderkante anwenden oder die Höhe eines Schauspielers auf erhöhten Plattformen automatisch anpassen.\nDrei Ebenen stehen zur Verfügung: Dämpfung, Höhe und HF-Shelf. Sie können ein-/ausgeschaltet und ausgeblendet werden.\nJede Ebene hat Mapping-Regler für Weiß und Schwarz zur Bereichsanpassung. Die Kurveneinstellung steuert den Übergang.\nJede Ebene kann editierbare Formen haben (Rechteck, Ellipse oder Polygon) mit einheitlichem Grau, linearem oder radialem Gradient.\nBeim Erstellen eines Polygons klicken Sie für jede Ecke. Doppelklick schließt die Form.\nDoppelklick auf einen Punkt entfernt ihn. Doppelklick auf eine Seite fügt einen neuen Punkt hinzu.\nSkalierung und Rotation können vom Zentrum oder Ursprung aus bearbeitet werden.\nFormen und Ebenen können kopiert werden.\nEinstellungen werden in den Eingangsdateien gespeichert.
   - [ ] OK    Fix: 
 
 - **`title`**
   - EN: Gradient Maps
-  - DE: Gradientenkarten
+  - DE: Gradient Maps
   - [ ] OK    Fix: 
 
 ## `help.inputAdvanced`
 
 - **`body`**
-  - EN: - Sidelines and Fringe enable muting when an input comes close to the limits of a rectangular stage (except downstage).
-- Tracking can be enabled and the ID of the tracker can be selected. The amount of smoothing on the position can also be adjusted.
-- Maximum Speed can be engaged and the speed limit adjusted. The system will apply a gradual acceleration and deceleration when the movement starts and finishes. When Path is enabled, the system will track the path followed by the input and will not go in a straight line to the final position. This is especially handy if movements have to be operated manually.
-- Height Factor lets you work in 2D, when set to 0%, or full 3D, when set at 100%, and anything in between. It's the ratio of the height in the level and delay calculations. If you wish to use floor reflections, set it to 100% and use the parallax correction of the output parameters.
-  - DE: - Seitenlinien und Randbereich ermöglichen die Stummschaltung, wenn ein Eingang sich den Grenzen einer rechteckigen Bühne nähert (ausser Publikumsseite).
-- Tracking kann aktiviert und die Tracker-ID ausgewählt werden. Die Positionsglättung kann ebenfalls angepasst werden.
-- Die Höchstgeschwindigkeit kann engagiert und die Geschwindigkeitsgrenze angepasst werden. Das System wendet eine graduelle Beschleunigung und Verzögerung am Anfang und Ende der Bewegung an. Wenn der Pfadmodus aktiviert ist, folgt das System dem vom Eingang genommenen Pfad und geht nicht in gerader Linie zur Endposition. Das ist besonders nützlich, wenn Bewegungen manuell gesteuert werden sollen.
-- Der Höhenfaktor erlaubt das Arbeiten in 2D, wenn auf 0 % gesetzt, oder in vollem 3D, wenn auf 100 % gesetzt, und alles dazwischen. Das ist das Verhältnis der Höhe in den Pegel- und Verzögerungsberechnungen. Wenn Sie Bodenreflexionen verwenden möchten, stellen Sie es auf 100 % und nutzen Sie die Parallaxenkorrektur in den Ausgangsparametern.
+  - EN: - Sidelines and Fringe enable muting when an input comes close to the limits of a rectangular stage (except downstage).\n- Tracking can be enabled and the ID of the tracker can be selected. The amount of smoothing on the position can also be adjusted.\n- Maximum Speed can be engaged and the speed limit adjusted. The system will apply a gradual acceleration and deceleration when the movement starts and finishes. When Path is enabled, the system will track the path followed by the input and will not go in a straight line to the final position. This is especially handy if movements have to be operated manually.\n- Height Factor lets you work in 2D, when set to 0%, or full 3D, when set at 100%, and anything in between. It's the ratio of the height in the level and delay calculations. If you wish to use floor reflections, set it to 100% and use the parallax correction of the output parameters.
+  - DE: - Seitenlinien und Randbereich ermöglichen die Stummschaltung, wenn ein Eingang sich den Grenzen einer rechteckigen Bühne nähert (ausser Publikumsseite).\n- Tracking kann aktiviert und die Tracker-ID ausgewählt werden. Die Positionsglättung kann ebenfalls angepasst werden.\n- Die Höchstgeschwindigkeit kann engagiert und die Geschwindigkeitsgrenze angepasst werden. Das System wendet eine graduelle Beschleunigung und Verzögerung am Anfang und Ende der Bewegung an. Wenn der Pfadmodus aktiviert ist, folgt das System dem vom Eingang genommenen Pfad und geht nicht in gerader Linie zur Endposition. Das ist besonders nützlich, wenn Bewegungen manuell gesteuert werden sollen.\n- Der Höhenfaktor erlaubt das Arbeiten in 2D, wenn auf 0 % gesetzt, oder in vollem 3D, wenn auf 100 % gesetzt, und alles dazwischen. Das ist das Verhältnis der Höhe in den Pegel- und Verzögerungsberechnungen. Wenn Sie Floor Reflections verwenden möchten, stellen Sie es auf 100 % und nutzen Sie die Parallaxenkorrektur in den Ausgangsparametern.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1616,24 +512,8 @@ Einstellungen werden in den Eingangsdateien gespeichert.
 ## `help.inputBasic`
 
 - **`body`**
-  - EN: Inputs have a wide variety of settings to account for different situations necessitating realistic sound reinforcement or creative tools for sound design.
-- Input level can be adjusted.
-- Inputs can be delayed or they can try to take into account specific latency (digital processing of wireless transmission or digital effects) and compensate for it to better align the amplification and the acoustic sound.
-- Minimal Latency can be toggled instead of Acoustic Precedence. On the other hand this tries to let the sound out through the system as soon as possible. The system scans this input's feeds to the outputs for lowest delay and subtracts it from all delays and bypasses additional Haas effect. Here the idea would be to beat the acoustic sound on stage to try and place a sound in a slightly different position by altering the location first perceived.
-- The location (position and offset) for any input can be given in Cartesian, Cylindrical or Spherical coordinates independently from the stage shape or other channels.
-- The position can be constrained to the dimensions of the stage in Cartesian coordinates or to a specific distance range in polar coordinates.
-- Flip will take symmetrical position for the given coordinate around the origin point.
-- The joystick and vertical slider allow relative control of the position.
-- Inputs can be assigned to a cluster to group them for coordinated movements.
-  - DE: Eingänge verfügen über eine Vielzahl von Einstellungen für verschiedene Situationen, die realistische Beschallung oder kreative Werkzeuge für Sounddesign erfordern.
-- Der Eingangspegel kann angepasst werden.
-- Eingänge können verzögert werden oder versuchen, spezifische Latenz (digitale Verarbeitung von Funkübertragung oder digitalen Effekten) zu berücksichtigen und zu kompensieren, um Verstärkung und akustischen Klang besser auszurichten.
-- Minimale Latenz kann anstelle von Acoustic Precedence aktiviert werden. Dies versucht den Klang so schnell wie möglich durch das System zu bringen. Das System scannt die Sends dieses Eingangs zu den Ausgängen auf die niedrigste Verzögerung und zieht sie von allen Verzögerungen ab, wobei der zusätzliche Haas-Effekt umgangen wird.
-- Die Position (Position und Offset) kann in Kartesischen, Zylindrischen oder Sphärischen Koordinaten unabhängig von der Bühnenform oder anderen Kanälen angegeben werden.
-- Die Position kann auf die Bühnendimensionen in Kartesischen Koordinaten oder auf einen bestimmten Entfernungsbereich in Polarkoordinaten beschränkt werden.
-- Flip nimmt die symmetrische Position für die gegebene Koordinate um den Ursprungspunkt.
-- Der Joystick und der vertikale Schieberegler ermöglichen relative Positionssteuerung.
-- Eingänge können einem Cluster zugewiesen werden, um sie für koordinierte Bewegungen zu gruppieren.
+  - EN: Inputs have a wide variety of settings to account for different situations necessitating realistic sound reinforcement or creative tools for sound design.\n- Input level can be adjusted.\n- Inputs can be delayed or they can try to take into account specific latency (digital processing of wireless transmission or digital effects) and compensate for it to better align the amplification and the acoustic sound.\n- Minimal Latency can be toggled instead of Acoustic Precedence. On the other hand this tries to let the sound out through the system as soon as possible. The system scans this input's feeds to the outputs for lowest delay and subtracts it from all delays and bypasses additional Haas effect. Here the idea would be to beat the acoustic sound on stage to try and place a sound in a slightly different position by altering the location first perceived.\n- The location (position and offset) for any input can be given in Cartesian, Cylindrical or Spherical coordinates independently from the stage shape or other channels.\n- The position can be constrained to the dimensions of the stage in Cartesian coordinates or to a specific distance range in polar coordinates.\n- Flip will take symmetrical position for the given coordinate around the origin point.\n- The joystick and vertical slider allow relative control of the position.\n- Inputs can be assigned to a cluster to group them for coordinated movements.
+  - DE: Eingänge verfügen über eine Vielzahl von Einstellungen für verschiedene Situationen, die realistische Beschallung oder kreative Werkzeuge für Sounddesign erfordern.\n- Der Eingangspegel kann angepasst werden.\n- Eingänge können verzögert werden oder versuchen, spezifische Latenz (digitale Verarbeitung von Funkübertragung oder digitalen Effekten) zu berücksichtigen und zu kompensieren, um Verstärkung und akustischen Klang besser auszurichten.\n- Minimal Latency kann anstelle von Acoustic Precedence aktiviert werden. Dies versucht den Klang so schnell wie möglich durch das System zu bringen. Das System scannt die Sends dieses Eingangs zu den Ausgängen auf die niedrigste Verzögerung und zieht sie von allen Verzögerungen ab, wobei der zusätzliche Haas-Effekt umgangen wird.\n- Die Position (Position und Offset) kann in Kartesischen, Zylindrischen oder Sphärischen Koordinaten unabhängig von der Bühnenform oder anderen Kanälen angegeben werden.\n- Die Position kann auf die Bühnendimensionen in Kartesischen Koordinaten oder auf einen bestimmten Entfernungsbereich in Polarkoordinaten beschränkt werden.\n- Flip nimmt die symmetrische Position für die gegebene Koordinate um den Ursprungspunkt.\n- Der Joystick und der vertikale Schieberegler ermöglichen relative Positionssteuerung.\n- Eingänge können einem Cluster zugewiesen werden, um sie für koordinierte Bewegungen zu gruppieren.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1644,12 +524,8 @@ Einstellungen werden in den Eingangsdateien gespeichert.
 ## `help.inputHF`
 
 - **`body`**
-  - EN: When talking away, the timbre of a voice will sound less bright. Reproducing this was the initial goal here even though we usually want to have support for voices when not addressing the audience or in bi-frontal configurations. This can be put to good use for creative effects such as having a brighter reverb on a dampened direct sound.
-The orientation of the input in azimuth and in pitch can be set as well as the angle where the high frequencies will not be filtered.
-The HF Shelf will set the maximum attenuation in the back of the input. There is a smooth fade (like a cosine curve) from full brightness in front to damped at the rear.
-  - DE: Wenn man sich abwendet, klingt das Timbre einer Stimme weniger brillant. Dies zu reproduzieren war das ursprüngliche Ziel, auch wenn wir normalerweise Unterstützung für Stimmen wünschen, die nicht zum Publikum sprechen oder in bi-frontalen Konfigurationen. Dies kann für kreative Effekte genutzt werden, wie eine brillantere Nachhall auf einem gedämpften Direktsignal.
-Die Orientierung des Eingangs in Azimut und Neigung kann eingestellt werden sowie der Winkel, in dem die Hochfrequenzen nicht gefiltert werden.
-Das HF Shelf bestimmt die maximale Dämpfung hinter dem Eingang. Es gibt einen sanften Übergang (wie eine Kosinuskurve) von voller Brillanz vorne zu gedämpft hinten.
+  - EN: When talking away, the timbre of a voice will sound less bright. Reproducing this was the initial goal here even though we usually want to have support for voices when not addressing the audience or in bi-frontal configurations. This can be put to good use for creative effects such as having a brighter reverb on a dampened direct sound.\nThe orientation of the input in azimuth and in pitch can be set as well as the angle where the high frequencies will not be filtered.\nThe HF Shelf will set the maximum attenuation in the back of the input. There is a smooth fade (like a cosine curve) from full brightness in front to damped at the rear.
+  - DE: Wenn man sich abwendet, klingt das Timbre einer Stimme weniger brillant. Dies zu reproduzieren war das ursprüngliche Ziel, auch wenn wir normalerweise Unterstützung für Stimmen wünschen, die nicht zum Publikum sprechen oder in bi-frontalen Konfigurationen. Dies kann für kreative Effekte genutzt werden, wie eine brillantere Nachhall auf einem gedämpften Direktsignal.\nDie Orientierung des Eingangs in Azimut und Neigung kann eingestellt werden sowie der Winkel, in dem die Hochfrequenzen nicht gefiltert werden.\nDas HF Shelf bestimmt die maximale Dämpfung hinter dem Eingang. Es gibt einen sanften Übergang (wie eine Kosinuskurve) von voller Brillanz vorne zu gedämpft hinten.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1672,28 +548,20 @@ Das HF Shelf bestimmt die maximale Dämpfung hinter dem Eingang. Es gibt einen s
 ## `help.inputMutes`
 
 - **`body`**
-  - EN: You can set for each output array a specific attenuation for the selected input.
-You can mute each send to any output individually. There are macros to speed up the process.
-  - DE: Sie können für jedes Ausgangs-Array eine spezifische Abschwächung für den ausgewählten Eingang festlegen.
-Sie können jeden Send zu jedem Ausgang einzeln stummschalten. Makros stehen zur Verfügung, um den Prozess zu beschleunigen.
+  - EN: You can set for each output array a specific attenuation for the selected input.\nYou can mute each send to any output individually. There are macros to speed up the process.
+  - DE: Sie können für jedes Ausgangs-Array eine spezifische Abschwächung für den ausgewählten Eingang festlegen.\nSie können jeden Send zu jedem Ausgang einzeln stummschalten. Makros stehen zur Verfügung, um den Prozess zu beschleunigen.
   - [ ] OK    Fix: 
 
 - **`title`**
   - EN: Array Attenuation and Output Mutes
-  - DE: Array-Abschwächung und Ausgangs-Mutes
+  - DE: Array Attenuation and Output Mutes
   - [ ] OK    Fix: 
 
 ## `help.lfo`
 
 - **`body`**
-  - EN: Input position can be automated. The LFO can control X, Y and Z position coordinates individually as well as the rotation of HF directivity (gyrophone).
-Adjust the global period and phase for the LFO.
-For X, Y and Z coordinates select a shape, amplitude, rate and phase as desired. A circle in the XY plane would have sine for shape for X and for Y and an offset of ±90° between the two. A square would be the same but with keystone shapes.
-Input position can be moved while the LFO is running.
-  - DE: Die Eingangsposition kann automatisiert werden. Der LFO kann X-, Y- und Z-Koordinaten einzeln steuern sowie die Rotation der HF-Direktionalität (Gyrophon).
-Passen Sie Periode und Phase des LFO global an.
-Für X, Y und Z wählen Sie Form, Amplitude, Rate und Phase. Ein Kreis in der XY-Ebene verwendet Sinusform für X und Y mit ±90° Versatz. Ein Quadrat wäre gleich aber mit Trapezformen.
-Die Eingangsposition kann während des LFO-Betriebs verschoben werden.
+  - EN: Input position can be automated. The LFO can control X, Y and Z position coordinates individually as well as the rotation of HF directivity (gyrophone).\nAdjust the global period and phase for the LFO.\nFor X, Y and Z coordinates select a shape, amplitude, rate and phase as desired. A circle in the XY plane would have sine for shape for X and for Y and an offset of ±90° between the two. A square would be the same but with keystone shapes.\nInput position can be moved while the LFO is running.
+  - DE: Die Eingangsposition kann automatisiert werden. Der LFO kann X-, Y- und Z-Koordinaten einzeln steuern sowie die Rotation der HF-Direktionalität (Gyrophon).\nPassen Sie Periode und Phase des LFO global an.\nFür X, Y und Z wählen Sie Form, Amplitude, Rate und Phase. Ein Kreis in der XY-Ebene verwendet Sinusform für X und Y mit ±90° Versatz. Ein Quadrat wäre gleich aber mit Trapezformen.\nDie Eingangsposition kann während des LFO-Betriebs verschoben werden.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1704,57 +572,20 @@ Die Eingangsposition kann während des LFO-Betriebs verschoben werden.
 ## `help.liveSource`
 
 - **`body`**
-  - EN: A loud source on stage may not need much reinforcement through the nearby speakers. Imagine an opera singer near the edge of the stage. Normally the level distribution would make the level louder near the input position. But if it is already loud enough we should be able to not over-amplify it. This function manages this.
-The radius and shape describe how to attenuate the level for a specific source for speakers within the radius of influence of this input. There are various shapes: a V shaped linear effect; a U shape for fast decrease within the radius; a tight V effect or a mix of the previous (sine).
-The attenuation can be constant or level dependent like a local compression reacting to transients and to average RMS level.
-  - DE: Eine laute Quelle auf der Bühne braucht möglicherweise keine Verstärkung durch die nahegelegenen Lautsprecher. Stellen Sie sich einen Opernsänger am Bühnenrand vor. Normalerweise würde die Pegelverteilung den Pegel in der Nähe der Eingangsposition erhöhen. Aber wenn es bereits laut genug ist, sollten wir nicht überverstärken. Diese Funktion verwaltet dies.
-Radius und Form beschreiben, wie der Pegel für Lautsprecher innerhalb des Einflussradius dieser Quelle abgeschwächt wird. Es gibt verschiedene Formen: ein V-förmiger linearer Effekt; ein U für schnelle Abnahme; ein enges V oder eine Mischung (Sinus).
-Die Dämpfung kann konstant oder pegelabhängig sein, wie eine lokale Kompression, die auf Transienten und den durchschnittlichen RMS-Pegel reagiert.
+  - EN: A loud source on stage may not need much reinforcement through the nearby speakers. Imagine an opera singer near the edge of the stage. Normally the level distribution would make the level louder near the input position. But if it is already loud enough we should be able to not over-amplify it. This function manages this.\nThe radius and shape describe how to attenuate the level for a specific source for speakers within the radius of influence of this input. There are various shapes: a V shaped linear effect; a U shape for fast decrease within the radius; a tight V effect or a mix of the previous (sine).\nThe attenuation can be constant or level dependent like a local compression reacting to transients and to average RMS level.
+  - DE: Eine laute Quelle auf der Bühne braucht möglicherweise keine Verstärkung durch die nahegelegenen Lautsprecher. Stellen Sie sich einen Opernsänger am Bühnenrand vor. Normalerweise würde die Pegelverteilung den Pegel in der Nähe der Eingangsposition erhöhen. Aber wenn es bereits laut genug ist, sollten wir nicht überverstärken. Diese Funktion verwaltet dies.\nRadius und Form beschreiben, wie der Pegel für Lautsprecher innerhalb des Einflussradius dieser Quelle abgeschwächt wird. Es gibt verschiedene Formen: ein V-förmiger linearer Effekt; ein U für schnelle Abnahme; ein enges V oder eine Mischung (Sinus).\nDie Dämpfung kann konstant oder pegelabhängig sein, wie eine lokale Kompression, die auf Transienten und den durchschnittlichen RMS-Pegel reagiert.
   - [ ] OK    Fix: 
 
 - **`title`**
   - EN: Live Source Tamer
-  - DE: Live-Quellen-Dämpfer
+  - DE: Live Source Tamer
   - [ ] OK    Fix: 
 
 ## `help.map`
 
 - **`body`**
-  - EN: - A left click on an input or a cluster will allow to move it by dragging it. A single finger touch will do the same.
-- A left click with the shift key pressed will add or remove inputs to the selection. A double tap and drag will act the same way.
-- A left click drag will draw a selection rectangle to select multiple inputs and clusters at the same time.
-- A left double-click or tap will reset the position offset of the input.
-- A long left click or press with no movement will switch to the input tab with the focus on the selected input on release.
-- A left click away from any input will clear the selection.
-- A right click and drag will pan the view of the map. A two finger drag with no selected input or cluster will do the same if your operating system supports multitouch.
-- The mouse wheel will zoom in and out. A two finger pinch with no selected input or cluster will also zoom in and out.
-- A middle click will reset the view to fit the stage on the map display. There is also a dedicated set of buttons to reset the view to fit all inputs and to fit the stage respectively.
-- Selected inputs and clusters can also be moved with the arrow keys for X and Y and with the PageUp and PageDown keys for height. Hardware controllers can be used too.
-- When an input is touched, a second finger nearby can rotate the input directivity and adjust the height by pinching if your operating system allows multitouch interaction.
-- When a cluster is touched, a second finger nearby can rotate the cluster and scale it by pinching.
-- Inputs, output arrays and the reverb nodes can be hidden on the map.
-- Inputs can also be locked to prevent selecting and moving them on the map. They will still be moved by clusters, network commands, tracking and hardware controllers.
-- All reverb nodes can be moved on the map if this is enabled on the reverb tab. Holding the Ctrl/Cmd key will move each pair of reverb nodes in symmetry.
-- Inputs with offsets, LFO or with speed regulation will have a temporary position marker. But the point of interaction will remain the normal marker.
-- The Live Source Tamer radius will be displayed around input when activated.
-- There is a toggle to display the audio level for the inputs and outputs on the map tab, that's active when the audio processing is running.
-  - DE: - Linksklick auf einen Eingang oder Cluster ermöglicht das Verschieben durch Ziehen.
-- Linksklick mit Umschalttaste fügt Eingänge zur Auswahl hinzu/entfernt sie.
-- Linksklick-Ziehen zeichnet ein Auswahlrechteck.
-- Doppelklick setzt den Positionsversatz zurück.
-- Langer Klick ohne Bewegung wechselt zum Eingangs-Tab.
-- Klick außerhalb löscht die Auswahl.
-- Rechtsklick-Ziehen verschiebt die Kartenansicht. Zwei-Finger-Ziehen ebenso.
-- Mausrad zoomt. Zwei-Finger-Pinch ebenfalls.
-- Mittelklick setzt die Ansicht zurück.
-- Pfeiltasten verschieben X/Y, BildAuf/Ab die Höhe.
-- Ein zweiter Finger kann die Direktionalität drehen und die Höhe anpassen.
-- Bei Clustern kann ein zweiter Finger rotieren und skalieren.
-- Eingänge, Ausgabe-Arrays und Hallknoten können ausgeblendet werden.
-- Eingänge können gesperrt werden.
-- Hallknoten können verschoben werden. Strg/Cmd bewegt Paare symmetrisch.
-- Der Live-Source-Tamer-Radius wird angezeigt.
-- Audiopegel können auf der Karte angezeigt werden.
+  - EN: - A left click on an input or a cluster will allow to move it by dragging it. A single finger touch will do the same.\n- A left click with the shift key pressed will add or remove inputs to the selection. A double tap and drag will act the same way.\n- A left click drag will draw a selection rectangle to select multiple inputs and clusters at the same time.\n- A left double-click or tap will reset the position offset of the input.\n- A long left click or press with no movement will switch to the input tab with the focus on the selected input on release.\n- A left click away from any input will clear the selection.\n- A right click and drag will pan the view of the map. A two finger drag with no selected input or cluster will do the same if your operating system supports multitouch.\n- The mouse wheel will zoom in and out. A two finger pinch with no selected input or cluster will also zoom in and out.\n- A middle click will reset the view to fit the stage on the map display. There is also a dedicated set of buttons to reset the view to fit all inputs and to fit the stage respectively.\n- Selected inputs and clusters can also be moved with the arrow keys for X and Y and with the PageUp and PageDown keys for height. Hardware controllers can be used too.\n- When an input is touched, a second finger nearby can rotate the input directivity and adjust the height by pinching if your operating system allows multitouch interaction.\n- When a cluster is touched, a second finger nearby can rotate the cluster and scale it by pinching.\n- Inputs, output arrays and the reverb nodes can be hidden on the map.\n- Inputs can also be locked to prevent selecting and moving them on the map. They will still be moved by clusters, network commands, tracking and hardware controllers.\n- All reverb nodes can be moved on the map if this is enabled on the reverb tab. Holding the Ctrl/Cmd key will move each pair of reverb nodes in symmetry.\n- Inputs with offsets, LFO or with speed regulation will have a temporary position marker. But the point of interaction will remain the normal marker.\n- The Live Source Tamer radius will be displayed around input when activated.\n- There is a toggle to display the audio level for the inputs and outputs on the map tab, that's active when the audio processing is running.
+  - DE: - Linksklick auf einen Eingang oder Cluster ermöglicht das Verschieben durch Ziehen.\n- Linksklick mit Umschalttaste fügt Eingänge zur Auswahl hinzu/entfernt sie.\n- Linksklick-Ziehen zeichnet ein Auswahlrechteck.\n- Doppelklick setzt den Positionsversatz zurück.\n- Langer Klick ohne Bewegung wechselt zum Eingangs-Tab.\n- Klick außerhalb löscht die Auswahl.\n- Rechtsklick-Ziehen verschiebt die Kartenansicht. Zwei-Finger-Ziehen ebenso.\n- Mausrad zoomt. Zwei-Finger-Pinch ebenfalls.\n- Mittelklick setzt die Ansicht zurück.\n- Pfeiltasten verschieben X/Y, BildAuf/Ab die Höhe.\n- Ein zweiter Finger kann die Direktionalität drehen und die Höhe anpassen.\n- Bei Clustern kann ein zweiter Finger rotieren und skalieren.\n- Eingänge, Ausgabe-Arrays und Hallknoten können ausgeblendet werden.\n- Eingänge können gesperrt werden.\n- Hallknoten können verschoben werden. Strg/Cmd bewegt Paare symmetrisch.\n- Der Live-Source-Tamer-Radius wird angezeigt.\n- Audiopegel können auf der Karte angezeigt werden.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1765,60 +596,8 @@ Die Dämpfung kann konstant oder pegelabhängig sein, wie eine lokale Kompressio
 ## `help.mcp`
 
 - **`body`**
-  - EN: The MCP server lets an AI assistant (Claude Desktop, Claude Code, ChatGPT with custom connectors) read and write the parameters of this WFS-DIY session over a local network connection.
-
-What the AI can do:
-• Read live state: channel counts, names, positions, attenuations, EQs, snapshots, clusters, the full parameter surface.
-• Move sources, rename channels, set cluster assignments, adjust the array layout, place outputs and reverbs.
-• Run guided workflows (system tuning walkthroughs, troubleshooting localization, snapshot management) via prepared prompt templates.
-
-Operator controls on this row:
-• AI: ON / OFF — master switch. When OFF every AI tool call is refused; when ON the AI works under the rules below.
-• AI critical actions: blocked / ALLOWED — the destructive actions (deleting snapshots, resetting DSP, changing channel counts) are blocked by default. Click to allow them for 10 minutes; the red fill drains as the window expires, then they auto-block again.
-• Open AI History — scrollable timeline of every recent AI change with per-row undo / redo and a step-by-step cursor.
-• The MCP URL button copies the server URL to the clipboard for AI clients that take a URL directly.
-
-Operator awareness:
-• Every AI action is recorded with origin tags. The AI History window shows the full timeline; per-row × reverses an action with its dependents.
-• If you manually adjust a parameter the AI just moved, the AI is notified and will not blindly retry. You always have the last word.
-• The Cmd/Ctrl+Alt+Z and Cmd/Ctrl+Alt+Y shortcuts undo and redo the last AI change without affecting your manual edits (which use plain Ctrl+Z as usual).
-
-To add this server to Claude Desktop:
-  1. Open Settings → Developer → Edit Config.
-  2. Paste the JSON snippet below into claude_desktop_config.json (merge into the existing mcpServers block if you already have one).
-  3. Restart Claude Desktop. The server appears as 'wfs-diy' in the tools menu.
-
-To add to Claude Code, run:
-  claude mcp add wfs-diy <url> -t http
-
-The URL changes if you switch network interface or if the server falls back to a different port. The URL button on this row always reflects the live URL.
-  - DE: Der MCP-Server ermöglicht es einem KI-Assistenten (Claude Desktop, Claude Code, ChatGPT mit benutzerdefinierten Konnektoren), die Parameter dieser WFS-DIY-Sitzung über eine lokale Netzwerkverbindung zu lesen und zu schreiben.
-
-Was die KI tun kann:
-• Live-Status lesen: Kanalanzahl, Namen, Positionen, Dämpfungen, EQs, Snapshots, Cluster, die gesamte Parameteroberfläche.
-• Quellen verschieben, Kanäle umbenennen, Cluster-Zuweisungen festlegen, Array-Layout anpassen, Ausgänge und Hall platzieren.
-• Geführte Workflows ausführen (Systemabstimmung, Lokalisations-Fehlersuche, Snapshot-Verwaltung) über vorbereitete Prompt-Vorlagen.
-
-Bedienelemente in dieser Zeile:
-• KI: EIN / AUS — Hauptschalter. Im AUS-Zustand wird jeder KI-Tool-Aufruf abgelehnt; im EIN-Zustand arbeitet die KI nach den unten stehenden Regeln.
-• Kritische KI-Aktionen: gesperrt / ERLAUBT — destruktive Aktionen (Snapshots löschen, DSP zurücksetzen, Kanalanzahl ändern) sind standardmässig gesperrt. Klicken, um sie 10 Minuten lang zu erlauben; die rote Füllung läuft mit dem Ablauf des Fensters ab und wird dann automatisch wieder gesperrt.
-• KI-Verlauf öffnen — scrollbare Chronik aller jüngsten KI-Änderungen mit Rückgängig/Wiederherstellen pro Zeile.
-• Die MCP-URL-Schaltfläche kopiert die Server-URL in die Zwischenablage für KI-Clients, die eine URL direkt akzeptieren.
-
-Betreiber-Aufmerksamkeit:
-• Jede KI-Aktion wird mit Herkunfts-Tags aufgezeichnet. Das KI-Verlaufsfenster zeigt die vollständige Chronik; das × pro Zeile macht eine Aktion mit ihren Abhängigkeiten rückgängig.
-• Wenn Sie einen Parameter manuell anpassen, den die KI gerade verschoben hat, wird die KI benachrichtigt und versucht es nicht blindlings erneut. Sie haben immer das letzte Wort.
-• Die Tastenkombinationen Cmd/Strg+Alt+Z und Cmd/Strg+Alt+Y machen die letzte KI-Änderung rückgängig bzw. stellen sie wieder her, ohne Ihre manuellen Änderungen zu beeinflussen (die wie üblich Strg+Z verwenden).
-
-Um diesen Server zu Claude Desktop hinzuzufügen:
-  1. Einstellungen → Entwickler → Konfiguration bearbeiten öffnen.
-  2. Den JSON-Ausschnitt unten in claude_desktop_config.json einfügen (in den vorhandenen mcpServers-Block einfügen, falls bereits vorhanden).
-  3. Claude Desktop neu starten. Der Server erscheint als 'wfs-diy' im Tools-Menü.
-
-Für Claude Code ausführen:
-  claude mcp add wfs-diy <url> -t http
-
-Die URL ändert sich, wenn Sie die Netzwerkschnittstelle wechseln oder der Server auf einen anderen Port ausweicht. Die URL-Schaltfläche in dieser Zeile zeigt immer die aktuelle Live-URL.
+  - EN: The MCP server lets an AI assistant (Claude Desktop, Claude Code, ChatGPT with custom connectors) read and write the parameters of this WFS-DIY session over a local network connection.\n\nWhat the AI can do:\n• Read live state: channel counts, names, positions, attenuations, EQs, snapshots, clusters, the full parameter surface.\n• Move sources, rename channels, set cluster assignments, adjust the array layout, place outputs and reverbs.\n• Run guided workflows (system tuning walkthroughs, troubleshooting localization, snapshot management) via prepared prompt templates.\n\nOperator controls on this row:\n• AI: ON / OFF — master switch. When OFF every AI tool call is refused; when ON the AI works under the rules below.\n• AI critical actions: blocked / ALLOWED — the destructive actions (deleting snapshots, resetting DSP, changing channel counts) are blocked by default. Click to allow them for 10 minutes; the red fill drains as the window expires, then they auto-block again.\n• Open AI History — scrollable timeline of every recent AI change with per-row undo / redo and a step-by-step cursor.\n• The MCP URL button copies the server URL to the clipboard for AI clients that take a URL directly.\n\nOperator awareness:\n• Every AI action is recorded with origin tags. The AI History window shows the full timeline; per-row × reverses an action with its dependents.\n• If you manually adjust a parameter the AI just moved, the AI is notified and will not blindly retry. You always have the last word.\n• The Cmd/Ctrl+Alt+Z and Cmd/Ctrl+Alt+Y shortcuts undo and redo the last AI change without affecting your manual edits (which use plain Ctrl+Z as usual).\n\nTo add this server to Claude Desktop:\n  1. Open Settings → Developer → Edit Config.\n  2. Paste the JSON snippet below into claude_desktop_config.json (merge into the existing mcpServers block if you already have one).\n  3. Restart Claude Desktop. The server appears as 'wfs-diy' in the tools menu.\n\nTo add to Claude Code, run:\n  claude mcp add wfs-diy <url> -t http\n\nThe URL changes if you switch network interface or if the server falls back to a different port. The URL button on this row always reflects the live URL.
+  - DE: Der MCP Server ermöglicht es einem KI-Assistenten (Claude Desktop, Claude Code, ChatGPT mit benutzerdefinierten Konnektoren), die Parameter dieser WFS-DIY-Sitzung über eine lokale Netzwerkverbindung zu lesen und zu schreiben.\n\nWas die KI tun kann:\n• Live-Status lesen: Kanalanzahl, Namen, Positionen, Dämpfungen, EQs, Snapshots, Cluster, die gesamte Parameteroberfläche.\n• Quellen verschieben, Kanäle umbenennen, Cluster-Zuweisungen festlegen, Array-Layout anpassen, Ausgänge und Hall platzieren.\n• Geführte Workflows ausführen (Systemabstimmung, Lokalisations-Fehlersuche, Snapshot-Verwaltung) über vorbereitete Prompt-Vorlagen.\n\nBedienelemente in dieser Zeile:\n• KI: EIN / AUS — Hauptschalter. Im AUS-Zustand wird jeder KI-Tool-Aufruf abgelehnt; im EIN-Zustand arbeitet die KI nach den unten stehenden Regeln.\n• Kritische KI-Aktionen: gesperrt / ERLAUBT — destruktive Aktionen (Snapshots löschen, DSP zurücksetzen, Kanalanzahl ändern) sind standardmässig gesperrt. Klicken, um sie 10 Minuten lang zu erlauben; die rote Füllung läuft mit dem Ablauf des Fensters ab und wird dann automatisch wieder gesperrt.\n• KI-Verlauf öffnen — scrollbare Chronik aller jüngsten KI-Änderungen mit Rückgängig/Wiederherstellen pro Zeile.\n• Die MCP-URL-Schaltfläche kopiert die Server-URL in die Zwischenablage für KI-Clients, die eine URL direkt akzeptieren.\n\nBetreiber-Aufmerksamkeit:\n• Jede KI-Aktion wird mit Herkunfts-Tags aufgezeichnet. Das KI-Verlaufsfenster zeigt die vollständige Chronik; das × pro Zeile macht eine Aktion mit ihren Abhängigkeiten rückgängig.\n• Wenn Sie einen Parameter manuell anpassen, den die KI gerade verschoben hat, wird die KI benachrichtigt und versucht es nicht blindlings erneut. Sie haben immer das letzte Wort.\n• Die Tastenkombinationen Cmd/Strg+Alt+Z und Cmd/Strg+Alt+Y machen die letzte KI-Änderung rückgängig bzw. stellen sie wieder her, ohne Ihre manuellen Änderungen zu beeinflussen (die wie üblich Strg+Z verwenden).\n\nUm diesen Server zu Claude Desktop hinzuzufügen:\n  1. Einstellungen → Entwickler → Konfiguration bearbeiten öffnen.\n  2. Den JSON-Ausschnitt unten in claude_desktop_config.json einfügen (in den vorhandenen mcpServers-Block einfügen, falls bereits vorhanden).\n  3. Claude Desktop neu starten. Der Server erscheint als 'wfs-diy' im Tools-Menü.\n\nFür Claude Code ausführen:\n  claude mcp add wfs-diy <url> -t http\n\nDie URL ändert sich, wenn Sie die Netzwerkschnittstelle wechseln oder der Server auf einen anderen Port ausweicht. Die URL-Schaltfläche in dieser Zeile zeigt immer die aktuelle Live-URL.
   - [ ] OK    Fix: 
 
 - **`copyButton`**
@@ -1833,29 +612,14 @@ Die URL ändert sich, wenn Sie die Netzwerkschnittstelle wechseln oder der Serve
 
 - **`title`**
   - EN: AI / MCP Server
-  - DE: KI / MCP-Server
+  - DE: AI / MCP Server
   - [ ] OK    Fix: 
 
 ## `help.network`
 
 - **`body`**
-  - EN: The system can communicate through several network protocols, (UDP or TCP) using OSC. OSC query can be enabled to allow the clients to discover the possible OSC paths and subscribe to some parameter updates.
-The IP of the local machine corresponding to the selected network interface is shown. The incoming TCP and UDP ports as well as the OSC Query port.
-There are a few specialised OSC clients such as:
-- Remote for the Android application for multitouch operation and for remote control.
-- QLab that can send data and that can also be programmed directly from the application.
-- ADM-OSC for control from consoles and DAW (see specific help).
-The data can be filtered to only allow the data from the recorded IP addresses or to allow any client sending on the correct ports.
-There is a Log window to see what data comes in or out, filter by the type of protocol, client and so on.
-There is also a locator function to find a lost remote Android tablet. It will flash and sound the alarm on the missing device.
-  - DE: Das System kann über mehrere Netzwerkprotokolle (UDP oder TCP) mittels OSC kommunizieren. OSC Query kann aktiviert werden, damit Clients die möglichen OSC-Pfade entdecken und Parameteraktualisierungen abonnieren können.
-Die IP der lokalen Maschine entsprechend der ausgewählten Netzwerkschnittstelle wird angezeigt. Die eingehenden TCP- und UDP-Ports sowie der OSC Query-Port.
-Es gibt einige spezialisierte OSC-Clients wie:
-- Remote für die Android-Anwendung für Multitouch-Bedienung und Fernsteuerung.
-- QLab zum Senden von Daten und zur direkten Programmierung aus der Anwendung.
-- ADM-OSC zur Steuerung von Konsolen und DAW (siehe spezifische Hilfe).
-Die Daten können gefiltert werden. Ein Log-Fenster zeigt ein- und ausgehende Daten.
-Es gibt auch eine Ortungsfunktion für verlorene Android-Tablets.
+  - EN: The system can communicate through several network protocols, (UDP or TCP) using OSC. OSC query can be enabled to allow the clients to discover the possible OSC paths and subscribe to some parameter updates.\nThe IP of the local machine corresponding to the selected network interface is shown. The incoming TCP and UDP ports as well as the OSC Query port.\nThere are a few specialised OSC clients such as:\n- Remote for the Android application for multitouch operation and for remote control.\n- QLab that can send data and that can also be programmed directly from the application.\n- ADM-OSC for control from consoles and DAW (see specific help).\nThe data can be filtered to only allow the data from the recorded IP addresses or to allow any client sending on the correct ports.\nThere is a Log window to see what data comes in or out, filter by the type of protocol, client and so on.\nThere is also a locator function to find a lost remote Android tablet. It will flash and sound the alarm on the missing device.
+  - DE: Das System kann über mehrere Netzwerkprotokolle (UDP oder TCP) mittels OSC kommunizieren. OSC Query kann aktiviert werden, damit Clients die möglichen OSC-Pfade entdecken und Parameteraktualisierungen abonnieren können.\nDie IP der lokalen Maschine entsprechend der ausgewählten Netzwerkschnittstelle wird angezeigt. Die eingehenden TCP- und UDP-Ports sowie der OSC Query-Port.\nEs gibt einige spezialisierte OSC-Clients wie:\n- Remote für die Android-Anwendung für Multitouch-Bedienung und Fernsteuerung.\n- QLab zum Senden von Daten und zur direkten Programmierung aus der Anwendung.\n- ADM-OSC zur Steuerung von Konsolen und DAW (siehe spezifische Hilfe).\nDie Daten können gefiltert werden. Ein Log-Fenster zeigt ein- und ausgehende Daten.\nEs gibt auch eine Ortungsfunktion für verlorene Android-Tablets.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1866,22 +630,8 @@ Es gibt auch eine Ortungsfunktion für verlorene Android-Tablets.
 ## `help.outputAdvanced`
 
 - **`body`**
-  - EN: There are a few parameters to help you adjust to the acoustic sound.
-Most of these parameters are set for whole arrays unless the propagation mode is switched to off for this output in the array. Relative change can also be selected after a specific setting.
-- Orientation and On/Off Angles define what inputs each speaker will amplify. By default the speakers are pointing to the audience, away from the stage. Inputs in the green sector will be amplified, but not the ones in front of the speaker, in the red sector. There is a fade between both sectors. For sub-bass speakers which usually come in limited numbers and locations, opening all the way to the maximum will allow you to have all inputs possibly picked up by the subwoofers.
-- HF Damping simulates the loss of high frequency with distance. Speakers close to the listeners can have more than speakers away from the stage and the listeners.
-- Distance Attenuation percentage allows you to define if more or less of the attenuation calculated from the distance and parameters of the input is applied. Again for Sub-bass in case you only have two and don't want to lose too much level or have hot-spots it may be wise to lower this setting to 50%.
-- Minimal Latency toggles whether the output is scanned for the smallest calculated delay and also if the setting once engaged on an input will reduce the delay for that input through this speaker.
-- Live Source Attenuation toggles the reduction of level of nearby input if they have this setting enabled. This may not be necessary for speakers away from the audience or for sub-bass.
-- Floor Reflections toggles if the reflections are applied to the signal for this output such as sub-bass and flown arrays...
-  - DE: Es gibt einige Parameter zur Anpassung an den akustischen Klang.
-Die meisten dieser Parameter gelten für ganze Arrays, es sei denn, der Ausbreitungsmodus ist für diesen Ausgang im Array deaktiviert. Relative Änderung kann auch nach einer bestimmten Einstellung gewählt werden.
-- Orientierung und On/Off-Winkel definieren, welche Eingänge jeder Lautsprecher verstärkt. Standardmäßig zeigen die Lautsprecher zum Publikum, weg von der Bühne. Eingänge im grünen Sektor werden verstärkt, nicht aber die vor dem Lautsprecher im roten Sektor. Es gibt einen Übergang zwischen beiden Sektoren. Für Subbass-Lautsprecher kann das vollständige Öffnen alle Eingänge einbeziehen.
-- HF-Dämpfung simuliert den Hochfrequenzverlust mit der Entfernung.
-- Der Prozentsatz der Entfernungsdämpfung definiert, wie viel der berechneten Dämpfung angewendet wird. Für Subbass kann es sinnvoll sein, auf 50% zu senken.
-- Minimale Latenz aktiviert das Scannen nach der kleinsten berechneten Verzögerung.
-- Live-Source-Attenuation aktiviert die Pegelreduzierung naher Eingänge.
-- Bodenreflexionen aktiviert ob Reflexionen für diesen Ausgang angewendet werden, wie Subbass und geflogene Arrays...
+  - EN: There are a few parameters to help you adjust to the acoustic sound.\nMost of these parameters are set for whole arrays unless the propagation mode is switched to off for this output in the array. Relative change can also be selected after a specific setting.\n- Orientation and On/Off Angles define what inputs each speaker will amplify. By default the speakers are pointing to the audience, away from the stage. Inputs in the green sector will be amplified, but not the ones in front of the speaker, in the red sector. There is a fade between both sectors. For sub-bass speakers which usually come in limited numbers and locations, opening all the way to the maximum will allow you to have all inputs possibly picked up by the subwoofers.\n- HF Damping simulates the loss of high frequency with distance. Speakers close to the listeners can have more than speakers away from the stage and the listeners.\n- Distance Attenuation percentage allows you to define if more or less of the attenuation calculated from the distance and parameters of the input is applied. Again for Sub-bass in case you only have two and don't want to lose too much level or have hot-spots it may be wise to lower this setting to 50%.\n- Minimal Latency toggles whether the output is scanned for the smallest calculated delay and also if the setting once engaged on an input will reduce the delay for that input through this speaker.\n- Live Source Attenuation toggles the reduction of level of nearby input if they have this setting enabled. This may not be necessary for speakers away from the audience or for sub-bass.\n- Floor Reflections toggles if the reflections are applied to the signal for this output such as sub-bass and flown arrays...
+  - DE: Es gibt einige Parameter zur Anpassung an den akustischen Klang.\nDie meisten dieser Parameter gelten für ganze Arrays, es sei denn, der Ausbreitungsmodus ist für diesen Ausgang im Array deaktiviert. Relative Änderung kann auch nach einer bestimmten Einstellung gewählt werden.\n- Orientierung und On/Off-Winkel definieren, welche Eingänge jeder Lautsprecher verstärkt. Standardmäßig zeigen die Lautsprecher zum Publikum, weg von der Bühne. Eingänge im grünen Sektor werden verstärkt, nicht aber die vor dem Lautsprecher im roten Sektor. Es gibt einen Übergang zwischen beiden Sektoren. Für Subbass-Lautsprecher kann das vollständige Öffnen alle Eingänge einbeziehen.\n- HF-Dämpfung simuliert den Hochfrequenzverlust mit der Entfernung.\n- Der Prozentsatz der Distance attenuation definiert, wie viel der berechneten Dämpfung angewendet wird. Für Subbass kann es sinnvoll sein, auf 50% zu senken.\n- Minimal Latency aktiviert das Scannen nach der kleinsten berechneten Verzögerung.\n- Live-Source-Attenuation aktiviert die Pegelreduzierung naher Eingänge.\n- Floor Reflections aktiviert ob Reflexionen für diesen Ausgang angewendet werden, wie Subbass und geflogene Arrays...
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1892,14 +642,8 @@ Die meisten dieser Parameter gelten für ganze Arrays, es sei denn, der Ausbreit
 ## `help.outputs`
 
 - **`body`**
-  - EN: The design of the WFS system has to do with the right choice of equipment and their position. Here is a guide to help you with the design and the tuning of your arrays.
-An array is a line (straight or curved) of speakers. This is one of the most important concepts in WFS adapted to sound reinforcement and for creative sound design.
-A rule of thumb would be that each listener should hear three speakers of an array to have enough psycho-acoustic cues to feel the direction each sound is coming from. There will be a sweet spot to find between the distance between the speakers and the listeners, their spacing and coverage angle. This is especially true for short range arrays, a.k.a front fills. Speakers with a 120° coverage angle can be spaced by the same distance between the array and the first row of listeners. The number of speakers also depends on the sound pressure level. When placed as a flown array, trapezoidal/asymmetric horns with wide coverage angle (120°) below axis and narrow coverage (60°) on axis will give good coverage for seat rows a bit too far from the ground array and will have enough throw to reach 20m or 30m away while avoiding the walls of the venue where they would create reflections that give away the position of the speakers to the ears of the listeners. Most of the time for larger venues coaxial (elliptical or conical horns) have not enough reach and require one or more delay lines. They are more suited for smaller venues with few rows of seats.
-The positioning of the speakers in the system can be done through the 'Wizard of OutZ' and the editable presets it has.
-  - DE: Das Design des WFS-Systems betrifft die richtige Auswahl der Ausrüstung und deren Positionierung. Hier ist ein Leitfaden für das Design und die Abstimmung Ihrer Arrays.
-Ein Array ist eine Linie (gerade oder gekrümmt) von Lautsprechern. Dies ist eines der wichtigsten Konzepte in WFS, angepasst an Beschallung und kreatives Sounddesign.
-Als Faustregel sollte jeder Zuhörer drei Lautsprecher eines Arrays hören, um genügend psychoakustische Hinweise für die Richtungswahrnehmung zu haben. Es gibt einen Sweet Spot zwischen dem Abstand der Lautsprecher zu den Zuhörern, ihrem Abstand zueinander und ihrem Abstrahlwinkel. Lautsprecher mit 120° Abstrahlwinkel können im gleichen Abstand wie zwischen Array und erster Reihe platziert werden. Die Anzahl hängt auch vom Schalldruckpegel ab. Als Hänge-Array bieten trapezförmige/asymmetrische Hörner mit breitem Abstrahlwinkel (120°) unter der Achse und schmalem (60°) in der Achse gute Abdeckung und Reichweite bis 20-30m, während Wandreflexionen vermieden werden. Koaxiale Lautsprecher haben meist nicht genug Reichweite für große Räume und benötigen Delay-Lines.
-Die Positionierung kann über den 'Wizard of OutZ' und seine editierbaren Presets erfolgen.
+  - EN: The design of the WFS system has to do with the right choice of equipment and their position. Here is a guide to help you with the design and the tuning of your arrays.\nAn array is a line (straight or curved) of speakers. This is one of the most important concepts in WFS adapted to sound reinforcement and for creative sound design.\nA rule of thumb would be that each listener should hear three speakers of an array to have enough psycho-acoustic cues to feel the direction each sound is coming from. There will be a sweet spot to find between the distance between the speakers and the listeners, their spacing and coverage angle. This is especially true for short range arrays, a.k.a front fills. Speakers with a 120° coverage angle can be spaced by the same distance between the array and the first row of listeners. The number of speakers also depends on the sound pressure level. When placed as a flown array, trapezoidal/asymmetric horns with wide coverage angle (120°) below axis and narrow coverage (60°) on axis will give good coverage for seat rows a bit too far from the ground array and will have enough throw to reach 20m or 30m away while avoiding the walls of the venue where they would create reflections that give away the position of the speakers to the ears of the listeners. Most of the time for larger venues coaxial (elliptical or conical horns) have not enough reach and require one or more delay lines. They are more suited for smaller venues with few rows of seats.\nThe positioning of the speakers in the system can be done through the 'Wizard of OutZ' and the editable presets it has.
+  - DE: Das Design des WFS-Systems betrifft die richtige Auswahl der Ausrüstung und deren Positionierung. Hier ist ein Leitfaden für das Design und die Abstimmung Ihrer Arrays.\nEin Array ist eine Linie (gerade oder gekrümmt) von Lautsprechern. Dies ist eines der wichtigsten Konzepte in WFS, angepasst an Beschallung und kreatives Sounddesign.\nAls Faustregel sollte jeder Zuhörer drei Lautsprecher eines Arrays hören, um genügend psychoakustische Hinweise für die Richtungswahrnehmung zu haben. Es gibt einen Sweet Spot zwischen dem Abstand der Lautsprecher zu den Zuhörern, ihrem Abstand zueinander und ihrem Abstrahlwinkel. Lautsprecher mit 120° Abstrahlwinkel können im gleichen Abstand wie zwischen Array und erster Reihe platziert werden. Die Anzahl hängt auch vom Schalldruckpegel ab. Als Hänge-Array bieten trapezförmige/asymmetrische Hörner mit breitem Abstrahlwinkel (120°) unter der Achse und schmalem (60°) in der Achse gute Abdeckung und Reichweite bis 20-30m, während Wandreflexionen vermieden werden. Koaxiale Lautsprecher haben meist nicht genug Reichweite für große Räume und benötigen Delay-Lines.\nDie Positionierung kann über den 'Wizard of OutZ' und seine editierbaren Presets erfolgen.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1910,10 +654,8 @@ Die Positionierung kann über den 'Wizard of OutZ' und seine editierbaren Preset
 ## `help.overview`
 
 - **`body`**
-  - EN: This WFS spatial sound processor aims to be a tool for natural sound reinforcement and also a creative tool opening new avenues for writing sound in space.
-Some parameters are straightforward: place sound (Map, Tracking, Speed Limiting, Gradient Maps...), work its shape (Attenuation Profile) and its acoustic presence (Directivity, Floor Reflections), give it a one-off motion (AutomOtion) or a repetitive movement (L.F.O). In some cases amplification should be limited around loud sources on stage (Live Source Tamer). All of these functionalities can be stored and recalled internally or with the help of QLab. On the other side the system allows real-time interaction to trigger and move samples, move large clusters of inputs manually or thanks to easily recallable LFO presets.
-  - DE: Dieser räumliche WFS-Klangprozessor soll ein Werkzeug für natürliche Beschallung und zugleich ein kreatives Werkzeug sein, das neue Wege eröffnet, Klang im Raum zu gestalten.
-Einige Parameter sind unkompliziert: Klang platzieren (Karte, Tracking, Geschwindigkeitsbegrenzung, Gradientenkarten...), seine Form bearbeiten (Attenuation-Profil) und seine akustische Präsenz (Directivity, Bodenreflexionen), ihm eine einmalige Bewegung (AutomOtion) oder eine repetitive Bewegung (L.F.O) geben. In manchen Fällen sollte die Verstärkung um laute Quellen auf der Bühne begrenzt werden (Live Source Tamer). Alle diese Funktionen können intern oder mit Hilfe von QLab gespeichert und abgerufen werden. Darüber hinaus ermöglicht das System Echtzeit-Interaktion zum Auslösen und Bewegen von Samples, zum Bewegen großer Eingabe-Cluster manuell oder dank einfach abrufbarer LFO-Presets.
+  - EN: This WFS spatial sound processor aims to be a tool for natural sound reinforcement and also a creative tool opening new avenues for writing sound in space.\nSome parameters are straightforward: place sound (Map, Tracking, Speed Limiting, Gradient Maps...), work its shape (Attenuation Profile) and its acoustic presence (Directivity, Floor Reflections), give it a one-off motion (AutomOtion) or a repetitive movement (L.F.O). In some cases amplification should be limited around loud sources on stage (Live Source Tamer). All of these functionalities can be stored and recalled internally or with the help of QLab. On the other side the system allows real-time interaction to trigger and move samples, move large clusters of inputs manually or thanks to easily recallable LFO presets.
+  - DE: Dieser räumliche WFS-Klangprozessor soll ein Werkzeug für natürliche Beschallung und zugleich ein kreatives Werkzeug sein, das neue Wege eröffnet, Klang im Raum zu gestalten.\nEinige Parameter sind unkompliziert: Klang platzieren (Karte, Tracking, Geschwindigkeitsbegrenzung, Gradient Maps...), seine Form bearbeiten (Attenuation-Profil) und seine akustische Präsenz (Directivity, Floor Reflections), ihm eine einmalige Bewegung (AutomOtion) oder eine repetitive Bewegung (L.F.O) geben. In manchen Fällen sollte die Verstärkung um laute Quellen auf der Bühne begrenzt werden (Live Source Tamer). Alle diese Funktionen können intern oder mit Hilfe von QLab gespeichert und abgerufen werden. Darüber hinaus ermöglicht das System Echtzeit-Interaktion zum Auslösen und Bewegen von Samples, zum Bewegen großer Eingabe-Cluster manuell oder dank einfach abrufbarer LFO-Presets.
   - [ ] OK    Fix: 
 
 - **`dontShow`**
@@ -1941,12 +683,8 @@ Einige Parameter sind unkompliziert: Klang platzieren (Karte, Tracking, Geschwin
 ## `help.reverb`
 
 - **`body`**
-  - EN: Reverb helps blur the actual reflections of the speakers in the acoustic space. Without some reverb the listener might perceive the sound missing some depth because the reflections of the speakers in the acoustic of the room gives away their positions and all sounds might feel as coming from the plane of the speakers.
-Place the reverb node according to the number of channels and the geometry of the stage and listening area, and the positions of speakers. If necessary the return position can be offset from the feed position.
-Other parameters are very similar to Outputs' and Inputs'.
-  - DE: Hall hilft, die Reflexionen der Lautsprecher zu verschleiern.
-Platzieren Sie die Hall-Knoten entsprechend der Kanalanzahl und Bühnengeometrie.
-Andere Parameter sind ähnlich wie bei Ausgängen und Eingängen.
+  - EN: Reverb helps blur the actual reflections of the speakers in the acoustic space. Without some reverb the listener might perceive the sound missing some depth because the reflections of the speakers in the acoustic of the room gives away their positions and all sounds might feel as coming from the plane of the speakers.\nPlace the reverb node according to the number of channels and the geometry of the stage and listening area, and the positions of speakers. If necessary the return position can be offset from the feed position.\nOther parameters are very similar to Outputs' and Inputs'.
+  - DE: Hall hilft, die Reflexionen der Lautsprecher zu verschleiern.\nPlatzieren Sie die Hall-Knoten entsprechend der Kanalanzahl und Bühnengeometrie.\nAndere Parameter sind ähnlich wie bei Ausgängen und Eingängen.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1957,16 +695,8 @@ Andere Parameter sind ähnlich wie bei Ausgängen und Eingängen.
 ## `help.reverbAlgo`
 
 - **`body`**
-  - EN: There are three built-in reverb types inside this spatial sound processor:
-- SDN (Scattered Delay Network): The sound bounces between every reverb node which act as reflecting surfaces. This reverb algorithm favours an odd number of nodes that should not have too much symmetry. This helps reduce the artifacts of the reverb or any metallic sounding resonance.
-- FDN (Feedback Delay Network): Each reverb node functions as a separate reverb processor with a classical reverb algorithm. Place nodes around the stage and eventually around the audience. Inputs are sent to each node in a similar fashion as with outputs. The return signal from the reverb is then distributed like other inputs to all outputs.
-- IR (Impulse Response): This is a classical convolution reverb. You can load audio samples as impulse responses. Each reverb node can share the same IR or they can have different ones. Place nodes around the stage and eventually around the audience.
-The node positions can be adjusted directly on the map. The Ctrl/Cmd key will move a reverb node pair in symmetry.
-  - DE: Drei eingebaute Halltypen stehen in diesem räumlichen Klangprozessor zur Verfügung:
-- SDN (Scattered Delay Network): Der Klang wird zwischen allen Hall-Knoten reflektiert, die als reflektierende Oberflächen wirken. Dieser Algorithmus bevorzugt eine ungerade Anzahl von Knoten ohne zu viel Symmetrie, um Artefakte oder metallische Resonanzen zu reduzieren.
-- FDN (Feedback Delay Network): Jeder Hall-Knoten funktioniert als separater Hallprozessor mit einem klassischen Algorithmus. Platzieren Sie Knoten um die Bühne und eventuell um das Publikum.
-- IR (Impulsantwort): Klassische Faltungshall. Sie können Audiosamples als Impulsantworten laden. Jeder Knoten kann dieselbe IR teilen oder verschiedene verwenden.
-Die Knotenpositionen können direkt auf der Karte angepasst werden. Die Strg/Cmd-Taste bewegt ein Hall-Knotenpaar symmetrisch.
+  - EN: There are three built-in reverb types inside this spatial sound processor:\n- SDN (Scattered Delay Network): The sound bounces between every reverb node which act as reflecting surfaces. This reverb algorithm favours an odd number of nodes that should not have too much symmetry. This helps reduce the artifacts of the reverb or any metallic sounding resonance.\n- FDN (Feedback Delay Network): Each reverb node functions as a separate reverb processor with a classical reverb algorithm. Place nodes around the stage and eventually around the audience. Inputs are sent to each node in a similar fashion as with outputs. The return signal from the reverb is then distributed like other inputs to all outputs.\n- IR (Impulse Response): This is a classical convolution reverb. You can load audio samples as impulse responses. Each reverb node can share the same IR or they can have different ones. Place nodes around the stage and eventually around the audience.\nThe node positions can be adjusted directly on the map. The Ctrl/Cmd key will move a reverb node pair in symmetry.
+  - DE: Drei eingebaute Halltypen stehen in diesem räumlichen Klangprozessor zur Verfügung:\n- SDN (Scattered Delay Network): Der Klang wird zwischen allen Hall-Knoten reflektiert, die als reflektierende Oberflächen wirken. Dieser Algorithmus bevorzugt eine ungerade Anzahl von Knoten ohne zu viel Symmetrie, um Artefakte oder metallische Resonanzen zu reduzieren.\n- FDN (Feedback Delay Network): Jeder Hall-Knoten funktioniert als separater Hallprozessor mit einem klassischen Algorithmus. Platzieren Sie Knoten um die Bühne und eventuell um das Publikum.\n- IR (Impulsantwort): Klassische Faltungshall. Sie können Audiosamples als Impulsantworten laden. Jeder Knoten kann dieselbe IR teilen oder verschiedene verwenden.\nDie Knotenpositionen können direkt auf der Karte angepasst werden. Die Strg/Cmd-Taste bewegt ein Hall-Knotenpaar symmetrisch.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1977,23 +707,13 @@ Die Knotenpositionen können direkt auf der Karte angepasst werden. Die Strg/Cmd
 ## `help.reverbFeed`
 
 - **`body`**
-  - EN: Pre-processing sending of the input channels to the reverb nodes.
-- Orientation and On/Off Angles define what inputs each reverb node will receive. Inputs in the green sector will be picked-up, but not the ones in front in the red sector. There is a fade between both sectors.
-- HF Damping simulates the loss of high frequency with distance.
-- Distance Attenuation percentage allows you to define if more or less of the attenuation calculated from the distance and parameters of the input is applied.
-- Minimal Latency toggles whether the output is scanned for the smallest calculated delay and also if the setting once engaged on an input will reduce the delay for that input through this reverb node.
-- Live Source Attenuation toggles the reduction of level of nearby input if they have this setting enabled.
-  - DE: Vorverarbeitung der Eingangskanalzuführung zu den Hall-Knoten.
-- Orientierung und On/Off-Winkel bestimmen welche Eingänge empfangen werden.
-- HF-Dämpfung simuliert Hochfrequenzverlust mit Distanz.
-- Distanz-Dämpfung bestimmt die angewandte Abschwächung.
-- Minimale Latenz schaltet die Verwendung des kleinsten Delays um.
-- Live-Source-Dämpfung reduziert den Pegel nahegelegener Eingänge.
+  - EN: Pre-processing sending of the input channels to the reverb nodes.\n- Orientation and On/Off Angles define what inputs each reverb node will receive. Inputs in the green sector will be picked-up, but not the ones in front in the red sector. There is a fade between both sectors.\n- HF Damping simulates the loss of high frequency with distance.\n- Distance Attenuation percentage allows you to define if more or less of the attenuation calculated from the distance and parameters of the input is applied.\n- Minimal Latency toggles whether the output is scanned for the smallest calculated delay and also if the setting once engaged on an input will reduce the delay for that input through this reverb node.\n- Live Source Attenuation toggles the reduction of level of nearby input if they have this setting enabled.
+  - DE: Vorverarbeitung der Eingangskanalzuführung zu den Hall-Knoten.\n- Orientierung und On/Off-Winkel bestimmen welche Eingänge empfangen werden.\n- HF-Dämpfung simuliert Hochfrequenzverlust mit Distanz.\n- Distanz-Dämpfung bestimmt die angewandte Abschwächung.\n- Minimal Latency schaltet die Verwendung des kleinsten Delays um.\n- Live-Source-Dämpfung reduziert den Pegel nahegelegener Eingänge.
   - [ ] OK    Fix: 
 
 - **`title`**
   - EN: Reverb Feed
-  - DE: Hall-Einspeisung
+  - DE: Reverb Feed
   - [ ] OK    Fix: 
 
 ## `help.reverbPostProc`
@@ -2023,46 +743,20 @@ Die Knotenpositionen können direkt auf der Karte angepasst werden. Die Strg/Cmd
 ## `help.reverbReturn`
 
 - **`body`**
-  - EN: Post-processing sending to the speakers.
-- Distance Attenuation defines the level drop per meter to the speakers.
-- Common Attenuation will look for the lowest attenuation and keep only a percentage of this level drop and apply this across all other outputs.
-- Mutes and Mute Macros allow to prevent a reverb channel from feeding an output. For instance it may not be necessary to send reverb to sub-bass speakers.
-  - DE: Nachbearbeitung an die Lautsprecher.
-- Distanz-Dämpfung definiert den Pegelabfall pro Meter.
-- Gemeinsame Dämpfung behält einen Prozentsatz der niedrigsten Dämpfung.
-- Mutes verhindern, dass ein Hall-Kanal einen Ausgang speist.
+  - EN: Post-processing sending to the speakers.\n- Distance Attenuation defines the level drop per meter to the speakers.\n- Common Attenuation will look for the lowest attenuation and keep only a percentage of this level drop and apply this across all other outputs.\n- Mutes and Mute Macros allow to prevent a reverb channel from feeding an output. For instance it may not be necessary to send reverb to sub-bass speakers.
+  - DE: Nachbearbeitung an die Lautsprecher.\n- Distanz-Dämpfung definiert den Pegelabfall pro Meter.\n- Gemeinsame Dämpfung behält einen Prozentsatz der niedrigsten Dämpfung.\n- Mutes verhindern, dass ein Hall-Kanal einen Ausgang speist.
   - [ ] OK    Fix: 
 
 - **`title`**
   - EN: Reverb Return
-  - DE: Hall-Rückgabe
+  - DE: Reverb Return
   - [ ] OK    Fix: 
 
 ## `help.sampler`
 
 - **`body`**
-  - EN: The sampler allows to trigger samples and interact with them in real time.
-The sampler when enabled on a track will replace the live input at all times.
-Several samplers can be assigned to different inputs and triggered individually.
-To use the sampler:
-- Select a Roli Lightpad or a pad on the connected Android Remote app.
-- Add samples to the different tiles in the grid to the left. Adjust their relative starting position and their level and eventually their in and out points. Several samples can be selected using the shift key while clicking.
-- Create sets of samples: selected samples will be added to new sets. Samples can be added or removed after the creation of a set by holding Ctrl/Cmd while clicking on the tiles. Each set can be renamed. Each set can either have a fixed sequence or a random order (round robin, each sample is played once before a new random order is drawn). Each set has an attenuation setting. Each set has a base position applied to the input when selecting the set. It can be moved on the map or using external control. The sample position offset is added to the set position each time a sample is triggered.
-- Press a Roli Lightpad or a pad on the Android app to trigger a sample. The pressure applied to the pad can be mapped to any of the following controls: level, height and high frequency filtering. The sensitivity can be adjusted for each. The movement of the finger on the pad will cause the sound to move. This acts by measuring the deflection from the initial contact point like a joystick. This can be disabled. All sets have their respective settings for the interaction.
-Releasing the pad will stop the triggered sample.
-Sampler settings are stored in the input files.
-For convenience sample tiles and sets can be copied, exported and imported.
-  - DE: Der Sampler ermöglicht das Auslösen von Samples und die Echtzeit-Interaktion mit ihnen.
-Wenn der Sampler auf einer Spur aktiviert ist, ersetzt er den Live-Eingang dauerhaft.
-Mehrere Sampler können verschiedenen Eingängen zugewiesen und einzeln ausgelöst werden.
-Verwendung des Samplers:
-- Wählen Sie ein Roli Lightpad oder ein Pad in der verbundenen Android Remote App.
-- Fügen Sie Samples zu den verschiedenen Kacheln im Raster hinzu. Passen Sie die relative Startposition, den Pegel und die Ein-/Ausstiegspunkte an. Mehrere Samples können mit Umschalttaste und Klick ausgewählt werden.
-- Erstellen Sie Sample-Sets: Ausgewählte Samples werden neuen Sets hinzugefügt. Samples können nach der Erstellung eines Sets mit Strg/Cmd und Klick hinzugefügt oder entfernt werden. Jedes Set kann umbenannt werden und eine feste Sequenz oder zufällige Reihenfolge haben. Jedes Set hat eine Dämpfungseinstellung und eine Basisposition.
-- Drücken Sie ein Lightpad oder Pad, um ein Sample auszulösen. Der Druck kann auf Pegel, Höhe und Hochfrequenzfilterung gemappt werden. Die Fingerbewegung bewegt den Klang wie ein Joystick.
-Loslassen stoppt das ausgelöste Sample.
-Sampler-Einstellungen werden in den Eingangsdateien gespeichert.
-Kacheln und Sets können kopiert, exportiert und importiert werden.
+  - EN: The sampler allows to trigger samples and interact with them in real time.\nThe sampler when enabled on a track will replace the live input at all times.\nSeveral samplers can be assigned to different inputs and triggered individually.\nTo use the sampler:\n- Select a Roli Lightpad or a pad on the connected Android Remote app.\n- Add samples to the different tiles in the grid to the left. Adjust their relative starting position and their level and eventually their in and out points. Several samples can be selected using the shift key while clicking.\n- Create sets of samples: selected samples will be added to new sets. Samples can be added or removed after the creation of a set by holding Ctrl/Cmd while clicking on the tiles. Each set can be renamed. Each set can either have a fixed sequence or a random order (round robin, each sample is played once before a new random order is drawn). Each set has an attenuation setting. Each set has a base position applied to the input when selecting the set. It can be moved on the map or using external control. The sample position offset is added to the set position each time a sample is triggered.\n- Press a Roli Lightpad or a pad on the Android app to trigger a sample. The pressure applied to the pad can be mapped to any of the following controls: level, height and high frequency filtering. The sensitivity can be adjusted for each. The movement of the finger on the pad will cause the sound to move. This acts by measuring the deflection from the initial contact point like a joystick. This can be disabled. All sets have their respective settings for the interaction.\nReleasing the pad will stop the triggered sample.\nSampler settings are stored in the input files.\nFor convenience sample tiles and sets can be copied, exported and imported.
+  - DE: Der Sampler ermöglicht das Auslösen von Samples und die Echtzeit-Interaktion mit ihnen.\nWenn der Sampler auf einer Spur aktiviert ist, ersetzt er den Live-Eingang dauerhaft.\nMehrere Sampler können verschiedenen Eingängen zugewiesen und einzeln ausgelöst werden.\nVerwendung des Samplers:\n- Wählen Sie ein Roli Lightpad oder ein Pad in der verbundenen Android Remote App.\n- Fügen Sie Samples zu den verschiedenen Kacheln im Raster hinzu. Passen Sie die relative Startposition, den Pegel und die Ein-/Ausstiegspunkte an. Mehrere Samples können mit Umschalttaste und Klick ausgewählt werden.\n- Erstellen Sie Sample-Sets: Ausgewählte Samples werden neuen Sets hinzugefügt. Samples können nach der Erstellung eines Sets mit Strg/Cmd und Klick hinzugefügt oder entfernt werden. Jedes Set kann umbenannt werden und eine feste Sequenz oder zufällige Reihenfolge haben. Jedes Set hat eine Dämpfungseinstellung und eine Basisposition.\n- Drücken Sie ein Lightpad oder Pad, um ein Sample auszulösen. Der Druck kann auf Pegel, Höhe und Hochfrequenzfilterung gemappt werden. Die Fingerbewegung bewegt den Klang wie ein Joystick.\nLoslassen stoppt das ausgelöste Sample.\nSampler-Einstellungen werden in den Eingangsdateien gespeichert.\nKacheln und Sets können kopiert, exportiert und importiert werden.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -2073,14 +767,8 @@ Kacheln und Sets können kopiert, exportiert und importiert werden.
 ## `help.sessionData`
 
 - **`body`**
-  - EN: When starting a session select the working folder where the system will place the files and eventual audio files. For new projects create a new folder. When reloading a previous session navigate to the corresponding folder.
-Each section has a separate xml file (System configuration, Network, Outputs, Reverbs, Inputs) and backups. Additionally convolution reverb impulse responses and audio samples will be stored in sub-directories.
-Each section can be stored and recalled individually or as a whole.
-Each section can also export and import files from other projects.
-  - DE: Beim Start einer Sitzung wählen Sie den Arbeitsordner, in dem das System die Dateien und eventuellen Audiodateien ablegen wird. Für neue Projekte erstellen Sie einen neuen Ordner. Beim Laden einer vorherigen Sitzung navigieren Sie zum entsprechenden Ordner.
-Jeder Abschnitt hat eine separate XML-Datei (Systemkonfiguration, Netzwerk, Ausgänge, Halleffekte, Eingänge) und Backups. Faltungshall-Impulsantworten und Audiosamples werden in Unterverzeichnissen gespeichert.
-Jeder Abschnitt kann einzeln oder als Ganzes gespeichert und abgerufen werden.
-Jeder Abschnitt kann auch Dateien aus anderen Projekten exportieren und importieren.
+  - EN: When starting a session select the working folder where the system will place the files and eventual audio files. For new projects create a new folder. When reloading a previous session navigate to the corresponding folder.\nEach section has a separate xml file (System configuration, Network, Outputs, Reverbs, Inputs) and backups. Additionally convolution reverb impulse responses and audio samples will be stored in sub-directories.\nEach section can be stored and recalled individually or as a whole.\nEach section can also export and import files from other projects.
+  - DE: Beim Start einer Sitzung wählen Sie den Arbeitsordner, in dem das System die Dateien und eventuellen Audiodateien ablegen wird. Für neue Projekte erstellen Sie einen neuen Ordner. Beim Laden einer vorherigen Sitzung navigieren Sie zum entsprechenden Ordner.\nJeder Abschnitt hat eine separate XML-Datei (Systemkonfiguration, Netzwerk, Ausgänge, Halleffekte, Eingänge) und Backups. Faltungshall-Impulsantworten und Audiosamples werden in Unterverzeichnissen gespeichert.\nJeder Abschnitt kann einzeln oder als Ganzes gespeichert und abgerufen werden.\nJeder Abschnitt kann auch Dateien aus anderen Projekten exportieren und importieren.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -2091,20 +779,8 @@ Jeder Abschnitt kann auch Dateien aus anderen Projekten exportieren und importie
 ## `help.snapshotScope`
 
 - **`body`**
-  - EN: Snapshots store input parameters, but can have a scope to be recalled during a performance. They can have between all parameters for all inputs and only one parameter for a single channel. They can be updated and renamed for convenience.
-The Scope tells the system what data to store or recall. It's the opposite of 'safe' parameters.
-There are several ways to do this in this application:
-- Record only the needed data in local files. The scope filter is applied when storing the data. A recall cue can be created in QLab to trigger the reading of the local file.
-- Record all data and a filter in local files. The scope filter is applied when recalling the data. This allows to eventually recall all data not taking into account the scope filter. This may come in handy when a complete configuration should be recalled during rehearsal for example. A recall cue can be created in QLab to trigger the reading of the local file.
-- Record all data in scope in QLab cues. This should not be used to recall all parameters for large configurations since QLab may stall when recalling so much data.
-The scope can show and automatically pre-select the parameters that have been manually changed (local UI, hardware controllers, remote Android application). Changed parameters are marked with a yellow mark.
-  - DE: Snapshots speichern Eingangsparameter, können aber einen Bereich haben, der während einer Aufführung abgerufen wird.
-Der Bereich teilt dem System mit, welche Daten gespeichert oder abgerufen werden sollen.
-Mehrere Methoden sind verfügbar:
-- Nur benötigte Daten in lokalen Dateien speichern. Der Filter wird beim Speichern angewandt.
-- Alle Daten und einen Filter in lokalen Dateien speichern. Der Filter wird beim Abrufen angewandt.
-- Alle Daten im Bereich in QLab-Cues speichern. Nicht für große Konfigurationen empfohlen.
-Der Bereich kann manuell geänderte Parameter anzeigen und automatisch vorauswählen. Geänderte Parameter sind gelb markiert.
+  - EN: Snapshots store input parameters, but can have a scope to be recalled during a performance. They can have between all parameters for all inputs and only one parameter for a single channel. They can be updated and renamed for convenience.\nThe Scope tells the system what data to store or recall. It's the opposite of 'safe' parameters.\nThere are several ways to do this in this application:\n- Record only the needed data in local files. The scope filter is applied when storing the data. A recall cue can be created in QLab to trigger the reading of the local file.\n- Record all data and a filter in local files. The scope filter is applied when recalling the data. This allows to eventually recall all data not taking into account the scope filter. This may come in handy when a complete configuration should be recalled during rehearsal for example. A recall cue can be created in QLab to trigger the reading of the local file.\n- Record all data in scope in QLab cues. This should not be used to recall all parameters for large configurations since QLab may stall when recalling so much data.\nThe scope can show and automatically pre-select the parameters that have been manually changed (local UI, hardware controllers, remote Android application). Changed parameters are marked with a yellow mark.
+  - DE: Snapshots speichern Eingangsparameter, können aber einen Bereich haben, der während einer Aufführung abgerufen wird.\nDer Bereich teilt dem System mit, welche Daten gespeichert oder abgerufen werden sollen.\nMehrere Methoden sind verfügbar:\n- Nur benötigte Daten in lokalen Dateien speichern. Der Filter wird beim Speichern angewandt.\n- Alle Daten und einen Filter in lokalen Dateien speichern. Der Filter wird beim Abrufen angewandt.\n- Alle Daten im Bereich in QLab-Cues speichern. Nicht für große Konfigurationen empfohlen.\nDer Bereich kann manuell geänderte Parameter anzeigen und automatisch vorauswählen. Geänderte Parameter sind gelb markiert.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -2115,14 +791,8 @@ Der Bereich kann manuell geänderte Parameter anzeigen und automatisch vorauswä
 ## `help.tracking`
 
 - **`body`**
-  - EN: Tracking allows to follow the position in 2D or 3D of actors and musicians. There are several tracking solutions based on UWB (UltraWide Band) tags, 3D camera, computer vision systems and Infra-Red LED's followed by IR sensitive cameras.
-This application allows you to receive tracking data from several protocols: OSC, MQTT, PosiStageNet/PSN, RTTrP.
-You can select which protocol you're using and enter its settings. You may also adjust the mapping (offset, scaling and orientation).
-Each input has a toggle to enable tracking, an ID to select which tracking marker it should follow and a smoothing algorithm to reduce jittery movements.
-  - DE: Tracking ermöglicht die Verfolgung der 2D- oder 3D-Position von Schauspielern und Musikern. Es gibt verschiedene Tracking-Lösungen basierend auf UWB-Tags, 3D-Kameras, Computer-Vision-Systemen und Infrarot-LEDs mit IR-empfindlichen Kameras.
-Diese Anwendung kann Tracking-Daten über mehrere Protokolle empfangen: OSC, MQTT, PosiStageNet/PSN, RTTrP.
-Sie können das verwendete Protokoll auswählen und die Einstellungen eingeben. Das Mapping (Versatz, Skalierung und Orientierung) kann ebenfalls angepasst werden.
-Jeder Eingang hat einen Schalter zur Aktivierung des Trackings, eine ID zur Auswahl des Markers und einen Glättungsalgorithmus.
+  - EN: Tracking allows to follow the position in 2D or 3D of actors and musicians. There are several tracking solutions based on UWB (UltraWide Band) tags, 3D camera, computer vision systems and Infra-Red LED's followed by IR sensitive cameras.\nThis application allows you to receive tracking data from several protocols: OSC, MQTT, PosiStageNet/PSN, RTTrP.\nYou can select which protocol you're using and enter its settings. You may also adjust the mapping (offset, scaling and orientation).\nEach input has a toggle to enable tracking, an ID to select which tracking marker it should follow and a smoothing algorithm to reduce jittery movements.
+  - DE: Tracking ermöglicht die Verfolgung der 2D- oder 3D-Position von Schauspielern und Musikern. Es gibt verschiedene Tracking-Lösungen basierend auf UWB-Tags, 3D-Kameras, Computer-Vision-Systemen und Infrarot-LEDs mit IR-empfindlichen Kameras.\nDiese Anwendung kann Tracking-Daten über mehrere Protokolle empfangen: OSC, MQTT, PosiStageNet/PSN, RTTrP.\nSie können das verwendete Protokoll auswählen und die Einstellungen eingeben. Das Mapping (Versatz, Skalierung und Orientierung) kann ebenfalls angepasst werden.\nJeder Eingang hat einen Schalter zur Aktivierung des Trackings, eine ID zur Auswahl des Markers und einen Glättungsalgorithmus.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -2133,164 +803,13 @@ Jeder Eingang hat einen Schalter zur Aktivierung des Trackings, eine ID zur Ausw
 ## `help.tuning`
 
 - **`body`**
-  - EN: System tuning for WFS is different from standard PA tuning. It can proceed as follows:
-- Start with the flown array muted. Set the desired levels for the near-field speakers when listening to them in the first row. Adjust the high frequency shelf attenuation so the near-field speakers are not too bright and draw too much attention.
-- Mute the near-field array and unmute the flown array, find a suitable level towards the back of the house.
-- Unmute both arrays, adjust the delay of the flown array to bring the sound down to the correct height in the lower rows. Adjust the levels, HF shelf/distance ratio and vertical and horizontal parallax for each array to have consistent level wherever your inputs are on stage. This is especially important if your inputs are actors, singers or acoustic music instruments on stage. You may also test adding some Haas effect to delay the whole system if you feel the WFS is too early or adding comb filtering with the acoustic sound.
-You may follow a different workflow for tuning or go for different cues.
-  - DE: Die Systemabstimmung für WFS unterscheidet sich von der Standard-PA-Abstimmung. Sie kann wie folgt vorgehen:
-- Beginnen Sie mit stummgeschaltetem Hänge-Array. Stellen Sie die gewünschten Pegel für die Nahfeld-Lautsprecher ein, wenn Sie sie in der ersten Reihe hören. Passen Sie die HF-Shelf-Dämpfung an, damit die Nahfeld-Lautsprecher nicht zu brilliant sind.
-- Schalten Sie das Nahfeld-Array stumm und das Hänge-Array ein, finden Sie einen geeigneten Pegel zum Ende des Saals hin.
-- Aktivieren Sie beide Arrays, passen Sie die Verzögerung des Hänge-Arrays an. Passen Sie Pegel, HF-Shelf/Entfernungsverhältnis und vertikale und horizontale Parallaxe für jedes Array an, um einen konsistenten Pegel zu erreichen, wo auch immer Ihre Eingänge auf der Bühne sind.
-Sie können einen anderen Workflow für die Abstimmung verfolgen oder für verschiedene Situationen unterschiedliche Einstellungen wählen.
+  - EN: System tuning for WFS is different from standard PA tuning. It can proceed as follows:\n- Start with the flown array muted. Set the desired levels for the near-field speakers when listening to them in the first row. Adjust the high frequency shelf attenuation so the near-field speakers are not too bright and draw too much attention.\n- Mute the near-field array and unmute the flown array, find a suitable level towards the back of the house.\n- Unmute both arrays, adjust the delay of the flown array to bring the sound down to the correct height in the lower rows. Adjust the levels, HF shelf/distance ratio and vertical and horizontal parallax for each array to have consistent level wherever your inputs are on stage. This is especially important if your inputs are actors, singers or acoustic music instruments on stage. You may also test adding some Haas effect to delay the whole system if you feel the WFS is too early or adding comb filtering with the acoustic sound.\nYou may follow a different workflow for tuning or go for different cues.
+  - DE: Die Systemabstimmung für WFS unterscheidet sich von der Standard-PA-Abstimmung. Sie kann wie folgt vorgehen:\n- Beginnen Sie mit stummgeschaltetem Hänge-Array. Stellen Sie die gewünschten Pegel für die Nahfeld-Lautsprecher ein, wenn Sie sie in der ersten Reihe hören. Passen Sie die HF-Shelf-Dämpfung an, damit die Nahfeld-Lautsprecher nicht zu brilliant sind.\n- Schalten Sie das Nahfeld-Array stumm und das Hänge-Array ein, finden Sie einen geeigneten Pegel zum Ende des Saals hin.\n- Aktivieren Sie beide Arrays, passen Sie die Verzögerung des Hänge-Arrays an. Passen Sie Pegel, HF-Shelf/Entfernungsverhältnis und vertikale und horizontale Parallaxe für jedes Array an, um einen konsistenten Pegel zu erreichen, wo auch immer Ihre Eingänge auf der Bühne sind.\nSie können einen anderen Workflow für die Abstimmung verfolgen oder für verschiedene Situationen unterschiedliche Einstellungen wählen.
   - [ ] OK    Fix: 
 
 - **`title`**
   - EN: System Tuning
   - DE: Systemabstimmung
-  - [ ] OK    Fix: 
-
-## `inputs`
-
-- **`arrayPrefix`**
-  - EN: Array
-  - DE: Array
-  - [ ] OK    Fix: 
-
-## `inputs.buttons`
-
-- **`deleteSnapshot`**
-  - EN: Delete Snapshot
-  - DE: Snapshot löschen
-  - [ ] OK    Fix: 
-
-- **`editScope`**
-  - EN: Edit Scope
-  - DE: Umfang bearbeiten
-  - [ ] OK    Fix: 
-
-- **`export`**
-  - EN: Export
-  - DE: Exportieren
-  - [ ] OK    Fix: 
-
-- **`hiddenOnMap`**
-  - EN: Input Hidden on Map
-  - DE: Eingang auf Karte ausgeblendet
-  - [ ] OK    Fix: 
-
-- **`import`**
-  - EN: Import
-  - DE: Importieren
-  - [ ] OK    Fix: 
-
-- **`lockOnMap`**
-  - EN: Lock on Map
-  - DE: Auf Karte sperren
-  - [ ] OK    Fix: 
-
-- **`pauseAll`**
-  - EN: Pause All
-  - DE: Alle pausieren
-  - [ ] OK    Fix: 
-
-- **`reloadBackup`**
-  - EN: Reload Backup
-  - DE: Backup laden
-  - [ ] OK    Fix: 
-
-- **`reloadConfig`**
-  - EN: Reload Input Config
-  - DE: Eingangskonf. neu laden
-  - [ ] OK    Fix: 
-
-- **`reloadSnapshot`**
-  - EN: Reload Snapshot
-  - DE: Snapshot laden
-  - [ ] OK    Fix: 
-
-- **`reloadWithoutScope`**
-  - EN: Reload Without Scope
-  - DE: Ohne Filter laden
-  - [ ] OK    Fix: 
-
-- **`resumeAll`**
-  - EN: Resume All
-  - DE: Alle fortsetzen
-  - [ ] OK    Fix: 
-
-- **`samplerOff`**
-  - EN: Sampler: OFF
-  - DE: Sampler: AUS
-  - [ ] OK    Fix: 
-
-- **`samplerOn`**
-  - EN: Sampler: ON
-  - DE: Sampler: EIN
-  - [ ] OK    Fix: 
-
-- **`setAllInputs`**
-  - EN: Set all Inputs...
-  - DE: Alle Eingänge setzen...
-  - [ ] OK    Fix: 
-
-- **`solo`**
-  - EN: Solo
-  - DE: Solo
-  - [ ] OK    Fix: 
-
-- **`soloModeMulti`**
-  - EN: Multi
-  - DE: Multi
-  - [ ] OK    Fix: 
-
-- **`soloModeSingle`**
-  - EN: Single
-  - DE: Single
-  - [ ] OK    Fix: 
-
-- **`stopAll`**
-  - EN: Stop All
-  - DE: Alle stoppen
-  - [ ] OK    Fix: 
-
-- **`storeConfig`**
-  - EN: Store Input Config
-  - DE: Eingangskonf. speichern
-  - [ ] OK    Fix: 
-
-- **`storeSnapshot`**
-  - EN: Store Snapshot
-  - DE: Snapshot speichern
-  - [ ] OK    Fix: 
-
-- **`updateSnapshot`**
-  - EN: Update Snapshot
-  - DE: Snapshot aktualisieren
-  - [ ] OK    Fix: 
-
-- **`visibleOnMap`**
-  - EN: Input Visible on Map
-  - DE: Eingang auf Karte sichtbar
-  - [ ] OK    Fix: 
-
-## `inputs.clusters`
-
-- **`clusterPrefix`**
-  - EN: Cluster
-  - DE: Cluster
-  - [ ] OK    Fix: 
-
-- **`single`**
-  - EN: Single
-  - DE: Einzeln
-  - [ ] OK    Fix: 
-
-## `inputs.coordinates`
-
-- **`xyz`**
-  - EN: XYZ
-  - DE: XYZ
   - [ ] OK    Fix: 
 
 ## `inputs.dialogs`
@@ -2326,12 +845,8 @@ Sie können einen anderen Workflow für die Abstimmung verfolgen oder für versc
   - [ ] OK    Fix: 
 
 - **`trackingConflictCluster`**
-  - EN: Input {current} has tracking enabled, but Input {existing} in Cluster {cluster} is already tracked.
-
-Only one tracked input per cluster is allowed.
-  - DE: Eingang {current} hat Tracking aktiviert, aber Eingang {existing} in Cluster {cluster} wird bereits getrackt.
-
-Nur ein getrackter Eingang pro Cluster ist erlaubt.
+  - EN: Input {current} has tracking enabled, but Input {existing} in Cluster {cluster} is already tracked.\n\nOnly one tracked input per cluster is allowed.
+  - DE: Eingang {current} hat Tracking aktiviert, aber Eingang {existing} in Cluster {cluster} wird bereits getrackt.\n\nNur ein getrackter Eingang pro Cluster ist erlaubt.
   - [ ] OK    Fix: 
 
 - **`trackingConflictContinue`**
@@ -2340,16 +855,8 @@ Nur ein getrackter Eingang pro Cluster ist erlaubt.
   - [ ] OK    Fix: 
 
 - **`trackingConflictSwitch`**
-  - EN: Input {existing} in Cluster {cluster} already has tracking enabled.
-
-Only one tracked input per cluster is allowed.
-
-Do you want to disable tracking on Input {existing} and enable it on Input {to}?
-  - DE: Eingang {existing} in Cluster {cluster} hat bereits Tracking aktiviert.
-
-Nur ein getrackter Eingang pro Cluster ist erlaubt.
-
-Möchten Sie das Tracking auf Eingang {existing} deaktivieren und auf Eingang {to} aktivieren?
+  - EN: Input {existing} in Cluster {cluster} already has tracking enabled.\n\nOnly one tracked input per cluster is allowed.\n\nDo you want to disable tracking on Input {existing} and enable it on Input {to}?
+  - DE: Eingang {existing} in Cluster {cluster} hat bereits Tracking aktiviert.\n\nNur ein getrackter Eingang pro Cluster ist erlaubt.\n\nMöchten Sie das Tracking auf Eingang {existing} deaktivieren und auf Eingang {to} aktivieren?
   - [ ] OK    Fix: 
 
 - **`trackingConflictTitle`**
@@ -2363,56 +870,6 @@ Möchten Sie das Tracking auf Eingang {existing} deaktivieren und auf Eingang {t
   - [ ] OK    Fix: 
 
 ## `inputs.gradientMap`
-
-- **`buttons.copyLayer`**
-  - EN: Copy Layer
-  - DE: Ebene kopieren
-  - [ ] OK    Fix: 
-
-- **`buttons.copyShape`**
-  - EN: Copy Shape
-  - DE: Form kopieren
-  - [ ] OK    Fix: 
-
-- **`buttons.delete`**
-  - EN: Delete
-  - DE: Löschen
-  - [ ] OK    Fix: 
-
-- **`buttons.enable`**
-  - EN: On
-  - DE: An
-  - [ ] OK    Fix: 
-
-- **`buttons.lock`**
-  - EN: Lock
-  - DE: Sperren
-  - [ ] OK    Fix: 
-
-- **`buttons.pasteLayer`**
-  - EN: Paste Layer
-  - DE: Ebene einfügen
-  - [ ] OK    Fix: 
-
-- **`buttons.pasteShape`**
-  - EN: Paste Shape
-  - DE: Form einfügen
-  - [ ] OK    Fix: 
-
-- **`header.attenuationLayer`**
-  - EN: Attenuation Layer
-  - DE: Dämpfungs-Ebene
-  - [ ] OK    Fix: 
-
-- **`header.heightLayer`**
-  - EN: Height Layer
-  - DE: Höhen-Ebene
-  - [ ] OK    Fix: 
-
-- **`header.hfShelfLayer`**
-  - EN: HF Shelf Layer
-  - DE: HF-Shelf-Ebene
-  - [ ] OK    Fix: 
 
 - **`help.blackValue`**
   - EN: Parameter value mapped to black (0.00–1.00)
@@ -2514,151 +971,6 @@ Möchten Sie das Tracking auf Eingang {existing} deaktivieren und auf Eingang {t
   - DE: Parameterwert für Weiß (0.00–1.00)
   - [ ] OK    Fix: 
 
-- **`hints.darkMaxAtten`**
-  - EN: Dark = max attenuation | Light = none
-  - DE: Dunkel = max. Dämpfung | Hell = keine
-  - [ ] OK    Fix: 
-
-- **`hints.darkMaxHeight`**
-  - EN: Dark = max height | Light = ground
-  - DE: Dunkel = max. Höhe | Hell = Boden
-  - [ ] OK    Fix: 
-
-- **`hints.darkMaxHF`**
-  - EN: Dark = max HF shelf | Light = none
-  - DE: Dunkel = max. HF-Shelf | Hell = keins
-  - [ ] OK    Fix: 
-
-- **`hints.polygonClose`**
-  - EN: Double-click to close polygon
-  - DE: Doppelklick zum Schließen des Polygons
-  - [ ] OK    Fix: 
-
-- **`hints.whiteMaxAtten`**
-  - EN: White = max attenuation | Black = none
-  - DE: Weiß = max. Dämpfung | Schwarz = keine
-  - [ ] OK    Fix: 
-
-- **`hints.whiteMaxHeight`**
-  - EN: White = max height | Black = ground
-  - DE: Weiß = max. Höhe | Schwarz = Boden
-  - [ ] OK    Fix: 
-
-- **`hints.whiteMaxHF`**
-  - EN: White = max HF shelf | Black = none
-  - DE: Weiß = max. HF-Shelf | Schwarz = keins
-  - [ ] OK    Fix: 
-
-- **`labels.black`**
-  - EN: Black:
-  - DE: Schwarz:
-  - [ ] OK    Fix: 
-
-- **`labels.blur`**
-  - EN: Blur:
-  - DE: Unschärfe:
-  - [ ] OK    Fix: 
-
-- **`labels.center`**
-  - EN: Center:
-  - DE: Mitte:
-  - [ ] OK    Fix: 
-
-- **`labels.curve`**
-  - EN: Curve:
-  - DE: Kurve:
-  - [ ] OK    Fix: 
-
-- **`labels.edge`**
-  - EN: Edge:
-  - DE: Rand:
-  - [ ] OK    Fix: 
-
-- **`labels.end`**
-  - EN: End:
-  - DE: Ende:
-  - [ ] OK    Fix: 
-
-- **`labels.fill`**
-  - EN: Fill:
-  - DE: Füllung:
-  - [ ] OK    Fix: 
-
-- **`labels.name`**
-  - EN: Name:
-  - DE: Name:
-  - [ ] OK    Fix: 
-
-- **`labels.start`**
-  - EN: Start:
-  - DE: Start:
-  - [ ] OK    Fix: 
-
-- **`labels.white`**
-  - EN: White:
-  - DE: Weiß:
-  - [ ] OK    Fix: 
-
-- **`layers.attenuation`**
-  - EN: Attenuation
-  - DE: Dämpfung
-  - [ ] OK    Fix: 
-
-- **`layers.height`**
-  - EN: Height
-  - DE: Höhe
-  - [ ] OK    Fix: 
-
-- **`layers.hfShelf`**
-  - EN: HF Shelf
-  - DE: HF-Shelf
-  - [ ] OK    Fix: 
-
-- **`tools.editPoints`**
-  - EN: Edit Points
-  - DE: Punkte bearbeiten
-  - [ ] OK    Fix: 
-
-- **`tools.ellipse`**
-  - EN: Ellipse
-  - DE: Ellipse
-  - [ ] OK    Fix: 
-
-- **`tools.fill`**
-  - EN: Fill
-  - DE: Füllen
-  - [ ] OK    Fix: 
-
-- **`tools.linGrad`**
-  - EN: Linear Grad.
-  - DE: Lin. Verlauf
-  - [ ] OK    Fix: 
-
-- **`tools.polygon`**
-  - EN: Polygon
-  - DE: Polygon
-  - [ ] OK    Fix: 
-
-- **`tools.radGrad`**
-  - EN: Radial Grad.
-  - DE: Rad. Verlauf
-  - [ ] OK    Fix: 
-
-- **`tools.rect`**
-  - EN: Rectangle
-  - DE: Rechteck
-  - [ ] OK    Fix: 
-
-- **`tools.select`**
-  - EN: Select
-  - DE: Auswahl
-  - [ ] OK    Fix: 
-
-- **`warnings.heightRatioZero`**
-  - EN: Height Ratio is 0% — increase it for height to take effect
-  - DE: Höhenverhältnis ist 0% — erhöhen Sie es, damit die Höhe wirksam wird
-  - [ ] OK    Fix: 
-
 ## `inputs.help`
 
 - **`admMapping`**
@@ -2673,7 +985,7 @@ Möchten Sie das Tracking auf Eingang {existing} deaktivieren und auf Eingang {t
 
 - **`attenuationLawButton`**
   - EN: Attenuation Law Model (Linear Decrease of Volume with Distance Between Object and Speaker or Squared).
-  - DE: Dämpfungsgesetz-Modell (lineare Lautstärkeabnahme mit dem Abstand zwischen Objekt und Lautsprecher oder quadratisch).
+  - DE: Attenuation Law-Modell (lineare Lautstärkeabnahme mit dem Abstand zwischen Objekt und Lautsprecher oder quadratisch).
   - [ ] OK    Fix: 
 
 - **`attenuationSlider`**
@@ -2788,47 +1100,47 @@ Möchten Sie das Tracking auf Eingang {existing} deaktivieren und auf Eingang {t
 
 - **`frActiveButton`**
   - EN: Enable Simulated Floor Reflections for the Object.
-  - DE: Simulierte Bodenreflexionen für das Objekt aktivieren.
+  - DE: Simulierte Floor Reflections für das Objekt aktivieren.
   - [ ] OK    Fix: 
 
 - **`frAttenuationSlider`**
   - EN: Attenuation of the Simulated Floor Reflections for the Object.
-  - DE: Dämpfung der simulierten Bodenreflexionen für das Objekt.
+  - DE: Dämpfung der simulierten Floor Reflections für das Objekt.
   - [ ] OK    Fix: 
 
 - **`frDiffusionDial`**
   - EN: Diffusion Effect of the Simulated Floor Reflections for the Object.
-  - DE: Diffusionseffekt der simulierten Bodenreflexionen für das Objekt.
+  - DE: Diffusionseffekt der simulierten Floor Reflections für das Objekt.
   - [ ] OK    Fix: 
 
 - **`frHighShelfActiveButton`**
   - EN: Enable High Shelf Filter for Floor Reflections.
-  - DE: High-Shelf-Filter für Bodenreflexionen aktivieren.
+  - DE: High Shelf-Filter für Floor Reflections aktivieren.
   - [ ] OK    Fix: 
 
 - **`frHighShelfFreqSlider`**
   - EN: High Shelf Frequency for Floor Reflections.
-  - DE: High-Shelf-Frequenz für Bodenreflexionen.
+  - DE: High Shelf-Frequenz für Floor Reflections.
   - [ ] OK    Fix: 
 
 - **`frHighShelfGainSlider`**
   - EN: High Shelf Gain for Floor Reflections.
-  - DE: High-Shelf-Gain für Bodenreflexionen.
+  - DE: High Shelf-Gain für Floor Reflections.
   - [ ] OK    Fix: 
 
 - **`frHighShelfSlopeSlider`**
   - EN: High Shelf Slope for Floor Reflections.
-  - DE: High-Shelf-Steilheit für Bodenreflexionen.
+  - DE: High Shelf-Steilheit für Floor Reflections.
   - [ ] OK    Fix: 
 
 - **`frLowCutActiveButton`**
   - EN: Enable Low Cut Filter for Floor Reflections.
-  - DE: Low-Cut-Filter für Bodenreflexionen aktivieren.
+  - DE: Low Cut-Filter für Floor Reflections aktivieren.
   - [ ] OK    Fix: 
 
 - **`frLowCutFreqSlider`**
   - EN: Low Cut Frequency for Floor Reflections.
-  - DE: Low-Cut-Frequenz für Bodenreflexionen.
+  - DE: Low Cut-Frequenz für Floor Reflections.
   - [ ] OK    Fix: 
 
 - **`heightFactorDial`**
@@ -2948,7 +1260,7 @@ Möchten Sie das Tracking auf Eingang {existing} deaktivieren und auf Eingang {t
 
 - **`lsPeakEnableButton`**
   - EN: Enable or Disable the Fast (Peak) Compressor for the Live Source Tamer.
-  - DE: Schnellen (Peak-) Kompressor des Live-Source-Zähmers aktivieren oder deaktivieren.
+  - DE: Schnellen (Peak-) Kompressor des Live Source Tamers aktivieren oder deaktivieren.
   - [ ] OK    Fix: 
 
 - **`lsPeakRatioDial`**
@@ -2973,7 +1285,7 @@ Möchten Sie das Tracking auf Eingang {existing} deaktivieren und auf Eingang {t
 
 - **`lsSlowEnableButton`**
   - EN: Enable or Disable the Slow Compressor for the Live Source Tamer.
-  - DE: Langsamen Kompressor des Live-Source-Zähmers aktivieren oder deaktivieren.
+  - DE: Langsamen Kompressor des Live Source Tamers aktivieren oder deaktivieren.
   - [ ] OK    Fix: 
 
 - **`lsSlowRatioDial`**
@@ -3008,7 +1320,7 @@ Möchten Sie das Tracking auf Eingang {existing} deaktivieren und auf Eingang {t
 
 - **`minimalLatencyButton`**
   - EN: Select between Acoustic Precedence and Minimal Latency for Amplification Precedence.
-  - DE: Wahl zwischen akustischer Präzedenz und minimaler Latenz für die Verstärkungspräzedenz.
+  - DE: Wahl zwischen Acoustic Precedence und Minimal Latency für die Verstärkungspräzedenz.
   - [ ] OK    Fix: 
 
 - **`muteButton`**
@@ -3018,7 +1330,7 @@ Möchten Sie das Tracking auf Eingang {existing} deaktivieren und auf Eingang {t
 
 - **`muteMacrosSelector`**
   - EN: Mute Macros for Fast Muting and Unmuting of Arrays.
-  - DE: Mute-Makros zum schnellen Stummschalten und Aufheben für Arrays.
+  - DE: Mute Macros zum schnellen Stummschalten und Aufheben für Arrays.
   - [ ] OK    Fix: 
 
 - **`muteReverbSendsButton`**
@@ -3256,427 +1568,6 @@ Möchten Sie das Tracking auf Eingang {existing} deaktivieren und auf Eingang {t
   - DE: Ausgewählten Eingangs-Snapshot aktualisieren (mit Sicherung).
   - [ ] OK    Fix: 
 
-## `inputs.labels`
-
-- **`admMapping`**
-  - EN: ADM:
-  - DE: ADM:
-  - [ ] OK    Fix: 
-
-- **`amplitudeX`**
-  - EN: Amplitude X:
-  - DE: Amplitude X:
-  - [ ] OK    Fix: 
-
-- **`amplitudeY`**
-  - EN: Amplitude Y:
-  - DE: Amplitude Y:
-  - [ ] OK    Fix: 
-
-- **`amplitudeZ`**
-  - EN: Amplitude Z:
-  - DE: Amplitude Z:
-  - [ ] OK    Fix: 
-
-- **`arrayAttenuation`**
-  - EN: Array Attenuation:
-  - DE: Array-Dämpfung:
-  - [ ] OK    Fix: 
-
-- **`attenuation`**
-  - EN: Attenuation:
-  - DE: Dämpfung:
-  - [ ] OK    Fix: 
-
-- **`attenuationLaw`**
-  - EN: Attenuation Law:
-  - DE: Dämpfungskurve:
-  - [ ] OK    Fix: 
-
-- **`cluster`**
-  - EN: Cluster:
-  - DE: Cluster:
-  - [ ] OK    Fix: 
-
-- **`commonAtten`**
-  - EN: Common Atten:
-  - DE: Gem. Dämpf.:
-  - [ ] OK    Fix: 
-
-- **`coord`**
-  - EN: Coord:
-  - DE: Koord.:
-  - [ ] OK    Fix: 
-
-- **`curve`**
-  - EN: Curve:
-  - DE: Kurve:
-  - [ ] OK    Fix: 
-
-- **`delayLatency`**
-  - EN: Delay/Latency:
-  - DE: Verzögerung/Latenz:
-  - [ ] OK    Fix: 
-
-- **`destX`**
-  - EN: Dest. X:
-  - DE: Ziel X:
-  - [ ] OK    Fix: 
-
-- **`destY`**
-  - EN: Dest. Y:
-  - DE: Ziel Y:
-  - [ ] OK    Fix: 
-
-- **`destZ`**
-  - EN: Dest. Z:
-  - DE: Ziel Z:
-  - [ ] OK    Fix: 
-
-- **`diffusion`**
-  - EN: Diffusion:
-  - DE: Diffusion:
-  - [ ] OK    Fix: 
-
-- **`directivity`**
-  - EN: Directivity:
-  - DE: Richtcharakteristik:
-  - [ ] OK    Fix: 
-
-- **`distanceAtten`**
-  - EN: Distance Atten:
-  - DE: Entf.-Dämpf.:
-  - [ ] OK    Fix: 
-
-- **`distanceRatio`**
-  - EN: Distance Ratio:
-  - DE: Entf.-Verhältnis:
-  - [ ] OK    Fix: 
-
-- **`duration`**
-  - EN: Duration:
-  - DE: Dauer:
-  - [ ] OK    Fix: 
-
-- **`frequency`**
-  - EN: Frequency:
-  - DE: Frequenz:
-  - [ ] OK    Fix: 
-
-- **`fringe`**
-  - EN: Fringe:
-  - DE: Randbereich:
-  - [ ] OK    Fix: 
-
-- **`gain`**
-  - EN: Gain:
-  - DE: Gain:
-  - [ ] OK    Fix: 
-
-- **`gyrophone`**
-  - EN: Gyrophone:
-  - DE: Gyrophone:
-  - [ ] OK    Fix: 
-
-- **`heightFactor`**
-  - EN: Height Factor:
-  - DE: Höhenfaktor:
-  - [ ] OK    Fix: 
-
-- **`hfShelf`**
-  - EN: HF Shelf:
-  - DE: HF-Regler:
-  - [ ] OK    Fix: 
-
-- **`jitter`**
-  - EN: Jitter:
-  - DE: Jitter:
-  - [ ] OK    Fix: 
-
-- **`max`**
-  - EN: Max:
-  - DE: Max:
-  - [ ] OK    Fix: 
-
-- **`maxSpeed`**
-  - EN: Max Speed:
-  - DE: Max. Geschw.:
-  - [ ] OK    Fix: 
-
-- **`min`**
-  - EN: Min:
-  - DE: Min:
-  - [ ] OK    Fix: 
-
-- **`muteMacros`**
-  - EN: Mute Macros:
-  - DE: Stummsch.-Makros:
-  - [ ] OK    Fix: 
-
-- **`name`**
-  - EN: Name:
-  - DE: Name:
-  - [ ] OK    Fix: 
-
-- **`offsetX`**
-  - EN: Offset X:
-  - DE: Offset X:
-  - [ ] OK    Fix: 
-
-- **`offsetY`**
-  - EN: Offset Y:
-  - DE: Offset Y:
-  - [ ] OK    Fix: 
-
-- **`offsetZ`**
-  - EN: Offset Z:
-  - DE: Offset Z:
-  - [ ] OK    Fix: 
-
-- **`outX`**
-  - EN: Out X:
-  - DE: Aus X:
-  - [ ] OK    Fix: 
-
-- **`outY`**
-  - EN: Out Y:
-  - DE: Aus Y:
-  - [ ] OK    Fix: 
-
-- **`outZ`**
-  - EN: Out Z:
-  - DE: Aus Z:
-  - [ ] OK    Fix: 
-
-- **`peakRatio`**
-  - EN: Peak Ratio:
-  - DE: Spitzenverhältnis:
-  - [ ] OK    Fix: 
-
-- **`peakThreshold`**
-  - EN: Peak Threshold:
-  - DE: Spitzenschwelle:
-  - [ ] OK    Fix: 
-
-- **`period`**
-  - EN: Period:
-  - DE: Periode:
-  - [ ] OK    Fix: 
-
-- **`phase`**
-  - EN: Phase:
-  - DE: Phase:
-  - [ ] OK    Fix: 
-
-- **`phaseX`**
-  - EN: Phase X:
-  - DE: Phase X:
-  - [ ] OK    Fix: 
-
-- **`phaseY`**
-  - EN: Phase Y:
-  - DE: Phase Y:
-  - [ ] OK    Fix: 
-
-- **`phaseZ`**
-  - EN: Phase Z:
-  - DE: Phase Z:
-  - [ ] OK    Fix: 
-
-- **`positionX`**
-  - EN: Position X:
-  - DE: Position X:
-  - [ ] OK    Fix: 
-
-- **`positionY`**
-  - EN: Position Y:
-  - DE: Position Y:
-  - [ ] OK    Fix: 
-
-- **`positionZ`**
-  - EN: Position Z:
-  - DE: Position Z:
-  - [ ] OK    Fix: 
-
-- **`radius`**
-  - EN: Radius:
-  - DE: Radius:
-  - [ ] OK    Fix: 
-
-- **`rateX`**
-  - EN: Rate X:
-  - DE: Rate X:
-  - [ ] OK    Fix: 
-
-- **`rateY`**
-  - EN: Rate Y:
-  - DE: Rate Y:
-  - [ ] OK    Fix: 
-
-- **`rateZ`**
-  - EN: Rate Z:
-  - DE: Rate Z:
-  - [ ] OK    Fix: 
-
-- **`reset`**
-  - EN: Reset:
-  - DE: Zurücksetzen:
-  - [ ] OK    Fix: 
-
-- **`rotation`**
-  - EN: Rotation:
-  - DE: Drehung:
-  - [ ] OK    Fix: 
-
-- **`shape`**
-  - EN: Shape:
-  - DE: Form:
-  - [ ] OK    Fix: 
-
-- **`shapeX`**
-  - EN: Shape X:
-  - DE: Form X:
-  - [ ] OK    Fix: 
-
-- **`shapeY`**
-  - EN: Shape Y:
-  - DE: Form Y:
-  - [ ] OK    Fix: 
-
-- **`shapeZ`**
-  - EN: Shape Z:
-  - DE: Form Z:
-  - [ ] OK    Fix: 
-
-- **`slope`**
-  - EN: Slope:
-  - DE: Steigung:
-  - [ ] OK    Fix: 
-
-- **`slowRatio`**
-  - EN: Slow Ratio:
-  - DE: Langsamverhältnis:
-  - [ ] OK    Fix: 
-
-- **`slowThreshold`**
-  - EN: Slow Threshold:
-  - DE: Langsamschwelle:
-  - [ ] OK    Fix: 
-
-- **`speedProfile`**
-  - EN: Speed Profile:
-  - DE: Geschw.-Profil:
-  - [ ] OK    Fix: 
-
-- **`threshold`**
-  - EN: Threshold:
-  - DE: Schwelle:
-  - [ ] OK    Fix: 
-
-- **`tilt`**
-  - EN: Tilt:
-  - DE: Neigung:
-  - [ ] OK    Fix: 
-
-- **`trackingId`**
-  - EN: Tracking ID:
-  - DE: Tracking-ID:
-  - [ ] OK    Fix: 
-
-- **`trackingSmooth`**
-  - EN: Tracking Smooth:
-  - DE: Tracking-Glättung:
-  - [ ] OK    Fix: 
-
-- **`xyJoystick`**
-  - EN: X/Y
-  - DE: X/Y
-  - [ ] OK    Fix: 
-
-- **`zSlider`**
-  - EN: Z
-  - DE: Z
-  - [ ] OK    Fix: 
-
-## `inputs.lfo`
-
-- **`gyrophone.antiClockwise`**
-  - EN: Anti-Clockwise
-  - DE: Gegen Uhrzeigersinn
-  - [ ] OK    Fix: 
-
-- **`gyrophone.clockwise`**
-  - EN: Clockwise
-  - DE: Im Uhrzeigersinn
-  - [ ] OK    Fix: 
-
-- **`gyrophone.off`**
-  - EN: OFF
-  - DE: AUS
-  - [ ] OK    Fix: 
-
-- **`shapes.exp`**
-  - EN: exp
-  - DE: Exp
-  - [ ] OK    Fix: 
-
-- **`shapes.keystone`**
-  - EN: keystone
-  - DE: Trapez
-  - [ ] OK    Fix: 
-
-- **`shapes.log`**
-  - EN: log
-  - DE: Log
-  - [ ] OK    Fix: 
-
-- **`shapes.off`**
-  - EN: OFF
-  - DE: AUS
-  - [ ] OK    Fix: 
-
-- **`shapes.random`**
-  - EN: random
-  - DE: Zufall
-  - [ ] OK    Fix: 
-
-- **`shapes.sawtooth`**
-  - EN: sawtooth
-  - DE: Sägezahn
-  - [ ] OK    Fix: 
-
-- **`shapes.sine`**
-  - EN: sine
-  - DE: Sinus
-  - [ ] OK    Fix: 
-
-- **`shapes.square`**
-  - EN: square
-  - DE: Rechteck
-  - [ ] OK    Fix: 
-
-- **`shapes.triangle`**
-  - EN: triangle
-  - DE: Dreieck
-  - [ ] OK    Fix: 
-
-## `inputs.liveSource`
-
-- **`linear`**
-  - EN: linear
-  - DE: linear
-  - [ ] OK    Fix: 
-
-- **`log`**
-  - EN: log
-  - DE: log
-  - [ ] OK    Fix: 
-
-- **`sine`**
-  - EN: sine
-  - DE: sinus
-  - [ ] OK    Fix: 
-
 ## `inputs.messages`
 
 - **`assignedCluster`**
@@ -3731,7 +1622,7 @@ Möchten Sie das Tracking auf Eingang {existing} deaktivieren und auf Eingang {t
 
 - **`selectFolderFirst`**
   - EN: Please select a project folder in System Config first.
-  - DE: Bitte wählen Sie zuerst einen Projektordner in der Systemkonfiguration.
+  - DE: Bitte wählen Sie zuerst einen Projektordner in der System Config.
   - [ ] OK    Fix: 
 
 - **`setSingle`**
@@ -3774,391 +1665,6 @@ Möchten Sie das Tracking auf Eingang {existing} deaktivieren und auf Eingang {t
   - DE: Tracking von Eingang {from} zu Eingang {to} gewechselt
   - [ ] OK    Fix: 
 
-## `inputs.muteMacros`
-
-- **`invertMutes`**
-  - EN: INVERT MUTES
-  - DE: STUMMSCH. INVERTIEREN
-  - [ ] OK    Fix: 
-
-- **`muteAll`**
-  - EN: MUTE ALL
-  - DE: ALLE STUMM
-  - [ ] OK    Fix: 
-
-- **`muteArrayPrefix`**
-  - EN: MUTE ARRAY
-  - DE: ARRAY STUMM
-  - [ ] OK    Fix: 
-
-- **`muteEven`**
-  - EN: MUTE EVEN
-  - DE: GERADE STUMM
-  - [ ] OK    Fix: 
-
-- **`muteOdd`**
-  - EN: MUTE ODD
-  - DE: UNGERADE STUMM
-  - [ ] OK    Fix: 
-
-- **`selectMacro`**
-  - EN: Select Macro...
-  - DE: Makro auswählen...
-  - [ ] OK    Fix: 
-
-- **`unmuteAll`**
-  - EN: UNMUTE ALL
-  - DE: ALLE LAUT
-  - [ ] OK    Fix: 
-
-- **`unmuteArrayPrefix`**
-  - EN: UNMUTE ARRAY
-  - DE: ARRAY LAUT
-  - [ ] OK    Fix: 
-
-## `inputs.prefixes`
-
-- **`delay`**
-  - EN: Delay:
-  - DE: Verzögerung:
-  - [ ] OK    Fix: 
-
-## `inputs.sections`
-
-- **`automotion`**
-  - EN: AutomOtion
-  - DE: AutomOtion
-  - [ ] OK    Fix: 
-
-## `inputs.snapshots`
-
-- **`selectSnapshot`**
-  - EN: Select Snapshot...
-  - DE: Snapshot auswählen...
-  - [ ] OK    Fix: 
-
-## `inputs.tabs`
-
-- **`gradientMaps`**
-  - EN: Gradient Maps
-  - DE: Gradientenkarten
-  - [ ] OK    Fix: 
-
-- **`inputParams`**
-  - EN: Input Parameters
-  - DE: Eingangsparameter
-  - [ ] OK    Fix: 
-
-- **`liveSourceHackoustics`**
-  - EN: Live Source & Hackoustics
-  - DE: Live Source & Hackoustik
-  - [ ] OK    Fix: 
-
-- **`movements`**
-  - EN: Movements
-  - DE: Bewegungen
-  - [ ] OK    Fix: 
-
-- **`sampler`**
-  - EN: Sampler
-  - DE: Sampler
-  - [ ] OK    Fix: 
-
-- **`visualisation`**
-  - EN: Visualisation
-  - DE: Visualisierung
-  - [ ] OK    Fix: 
-
-## `inputs.toggles`
-
-- **`absolute`**
-  - EN: Absolute
-  - DE: Absolut
-  - [ ] OK    Fix: 
-
-- **`acousticPrecedence`**
-  - EN: Acoustic Precedence
-  - DE: Akustische Präzedenz
-  - [ ] OK    Fix: 
-
-- **`attenuationLawLog`**
-  - EN: Log
-  - DE: Log
-  - [ ] OK    Fix: 
-
-- **`constraintROff`**
-  - EN: Constraint R: OFF
-  - DE: Beschränkung R: AUS
-  - [ ] OK    Fix: 
-
-- **`constraintROn`**
-  - EN: Constraint R: ON
-  - DE: Beschränkung R: EIN
-  - [ ] OK    Fix: 
-
-- **`constraintXOff`**
-  - EN: Constraint X: OFF
-  - DE: Beschränkung X: AUS
-  - [ ] OK    Fix: 
-
-- **`constraintXOn`**
-  - EN: Constraint X: ON
-  - DE: Beschränkung X: EIN
-  - [ ] OK    Fix: 
-
-- **`constraintYOff`**
-  - EN: Constraint Y: OFF
-  - DE: Beschränkung Y: AUS
-  - [ ] OK    Fix: 
-
-- **`constraintYOn`**
-  - EN: Constraint Y: ON
-  - DE: Beschränkung Y: EIN
-  - [ ] OK    Fix: 
-
-- **`constraintZOff`**
-  - EN: Constraint Z: OFF
-  - DE: Beschränkung Z: AUS
-  - [ ] OK    Fix: 
-
-- **`constraintZOn`**
-  - EN: Constraint Z: ON
-  - DE: Beschränkung Z: EIN
-  - [ ] OK    Fix: 
-
-- **`flipXOff`**
-  - EN: Flip X: OFF
-  - DE: X spiegeln: AUS
-  - [ ] OK    Fix: 
-
-- **`flipXOn`**
-  - EN: Flip X: ON
-  - DE: X spiegeln: EIN
-  - [ ] OK    Fix: 
-
-- **`flipYOff`**
-  - EN: Flip Y: OFF
-  - DE: Y spiegeln: AUS
-  - [ ] OK    Fix: 
-
-- **`flipYOn`**
-  - EN: Flip Y: ON
-  - DE: Y spiegeln: EIN
-  - [ ] OK    Fix: 
-
-- **`flipZOff`**
-  - EN: Flip Z: OFF
-  - DE: Z spiegeln: AUS
-  - [ ] OK    Fix: 
-
-- **`flipZOn`**
-  - EN: Flip Z: ON
-  - DE: Z spiegeln: EIN
-  - [ ] OK    Fix: 
-
-- **`floorReflectionsOff`**
-  - EN: Floor Reflections: OFF
-  - DE: Bodenreflexionen: AUS
-  - [ ] OK    Fix: 
-
-- **`floorReflectionsOn`**
-  - EN: Floor Reflections: ON
-  - DE: Bodenreflexionen: EIN
-  - [ ] OK    Fix: 
-
-- **`highShelfOff`**
-  - EN: High Shelf: OFF
-  - DE: Höhenregler: AUS
-  - [ ] OK    Fix: 
-
-- **`highShelfOn`**
-  - EN: High Shelf: ON
-  - DE: Höhenregler: EIN
-  - [ ] OK    Fix: 
-
-- **`lfoOff`**
-  - EN: L.F.O: OFF
-  - DE: L.F.O: AUS
-  - [ ] OK    Fix: 
-
-- **`lfoOn`**
-  - EN: L.F.O: ON
-  - DE: L.F.O: EIN
-  - [ ] OK    Fix: 
-
-- **`liveSourceTamerOff`**
-  - EN: Live Source Tamer: OFF
-  - DE: Zähmer: AUS
-  - [ ] OK    Fix: 
-
-- **`liveSourceTamerOn`**
-  - EN: Live Source Tamer: ON
-  - DE: Zähmer: EIN
-  - [ ] OK    Fix: 
-
-- **`lowCutOff`**
-  - EN: Low Cut: OFF
-  - DE: Tiefpass: AUS
-  - [ ] OK    Fix: 
-
-- **`lowCutOn`**
-  - EN: Low Cut: ON
-  - DE: Tiefpass: EIN
-  - [ ] OK    Fix: 
-
-- **`lsPeakOff`**
-  - EN: Peak: OFF
-  - DE: Peak: AUS
-  - [ ] OK    Fix: 
-
-- **`lsPeakOn`**
-  - EN: Peak: ON
-  - DE: Peak: EIN
-  - [ ] OK    Fix: 
-
-- **`lsSlowOff`**
-  - EN: Slow: OFF
-  - DE: Slow: AUS
-  - [ ] OK    Fix: 
-
-- **`lsSlowOn`**
-  - EN: Slow: ON
-  - DE: Slow: EIN
-  - [ ] OK    Fix: 
-
-- **`manual`**
-  - EN: Manual
-  - DE: Manuell
-  - [ ] OK    Fix: 
-
-- **`maxSpeedOff`**
-  - EN: Max Speed: OFF
-  - DE: Max. Geschw.: AUS
-  - [ ] OK    Fix: 
-
-- **`maxSpeedOn`**
-  - EN: Max Speed: ON
-  - DE: Max. Geschw.: EIN
-  - [ ] OK    Fix: 
-
-- **`minimalLatency`**
-  - EN: Minimal Latency
-  - DE: Minimale Latenz
-  - [ ] OK    Fix: 
-
-- **`pathModeOff`**
-  - EN: Path Mode: OFF
-  - DE: Pfadmodus: AUS
-  - [ ] OK    Fix: 
-
-- **`pathModeOn`**
-  - EN: Path Mode: ON
-  - DE: Pfadmodus: EIN
-  - [ ] OK    Fix: 
-
-- **`relative`**
-  - EN: Relative
-  - DE: Relativ
-  - [ ] OK    Fix: 
-
-- **`return`**
-  - EN: Return
-  - DE: Zurückkehren
-  - [ ] OK    Fix: 
-
-- **`reverbSendsMuted`**
-  - EN: Sends to Reverbs: Muted
-  - DE: Hall-Sends: Stumm
-  - [ ] OK    Fix: 
-
-- **`reverbSendsUnmuted`**
-  - EN: Sends to Reverbs: Unmuted
-  - DE: Hall-Sends: Aktiv
-  - [ ] OK    Fix: 
-
-- **`sidelinesOff`**
-  - EN: Sidelines Off
-  - DE: Seitenlinien Aus
-  - [ ] OK    Fix: 
-
-- **`sidelinesOn`**
-  - EN: Sidelines On
-  - DE: Seitenlinien Ein
-  - [ ] OK    Fix: 
-
-- **`stay`**
-  - EN: Stay
-  - DE: Bleiben
-  - [ ] OK    Fix: 
-
-- **`trackingOff`**
-  - EN: Tracking: OFF
-  - DE: Tracking: AUS
-  - [ ] OK    Fix: 
-
-- **`trackingOn`**
-  - EN: Tracking: ON
-  - DE: Tracking: EIN
-  - [ ] OK    Fix: 
-
-- **`triggered`**
-  - EN: Triggered
-  - DE: Ausgelöst
-  - [ ] OK    Fix: 
-
-## `inputs.visualisation`
-
-- **`delay`**
-  - EN: delay
-  - DE: Delay
-  - [ ] OK    Fix: 
-
-- **`hfDamping`**
-  - EN: HF
-damping
-  - DE: HF-
-Dämpfung
-  - [ ] OK    Fix: 
-
-- **`level`**
-  - EN: level
-  - DE: Pegel
-  - [ ] OK    Fix: 
-
-## `levelMeter`
-
-- **`inputs`**
-  - EN: Inputs
-  - DE: Eingänge
-  - [ ] OK    Fix: 
-
-- **`outputs`**
-  - EN: Outputs
-  - DE: Ausgänge
-  - [ ] OK    Fix: 
-
-- **`windowTitle`**
-  - EN: Level Meters
-  - DE: Pegelmesser
-  - [ ] OK    Fix: 
-
-## `levelMeter.buttons`
-
-- **`clearSolo`**
-  - EN: Clear Solo
-  - DE: Solo löschen
-  - [ ] OK    Fix: 
-
-- **`soloModeMulti`**
-  - EN: Multi
-  - DE: Multi
-  - [ ] OK    Fix: 
-
-- **`soloModeSingle`**
-  - EN: Single
-  - DE: Single
-  - [ ] OK    Fix: 
-
 ## `levelMeter.tooltips`
 
 - **`clearSolo`**
@@ -4174,47 +1680,6 @@ Dämpfung
 - **`soloMode`**
   - EN: Single: one input at a time. Multi: multiple inputs simultaneously.
   - DE: Einzeln: ein Eingang nach dem anderen. Mehrfach: mehrere Eingänge gleichzeitig.
-  - [ ] OK    Fix: 
-
-## `map`
-
-- **`detachedMessage`**
-  - EN: The map is displayed in a separate window.
-  - DE: Die Karte wird in einem separaten Fenster angezeigt.
-  - [ ] OK    Fix: 
-
-- **`reattach`**
-  - EN: Re-attach Map
-  - DE: Karte wieder anheften
-  - [ ] OK    Fix: 
-
-## `map.buttons`
-
-- **`fitInputs`**
-  - EN: Fit All Inputs to Screen
-  - DE: Alle Eingänge an Bildschirm anpassen
-  - [ ] OK    Fix: 
-
-- **`fitStage`**
-  - EN: Fit Stage to Screen
-  - DE: Bühne an Bildschirm anpassen
-  - [ ] OK    Fix: 
-
-- **`hideLevels`**
-  - EN: Hide Levels
-  - DE: Pegel ausblenden
-  - [ ] OK    Fix: 
-
-- **`showLevels`**
-  - EN: Show Levels
-  - DE: Pegel anzeigen
-  - [ ] OK    Fix: 
-
-## `map.labels`
-
-- **`reverbPrefix`**
-  - EN: R
-  - DE: H
   - [ ] OK    Fix: 
 
 ## `map.messages`
@@ -4266,46 +1731,26 @@ Dämpfung
   - DE: Pegel für Eingänge und Ausgänge auf der Karte anzeigen
   - [ ] OK    Fix: 
 
-## `network.buttons`
+## `meta`
 
-- **`add`**
-  - EN: ADD
-  - DE: HINZUFÜGEN
+- **`author`**
+  - EN: WFS-DIY Team
+  - DE: WFS-DIY Team
   - [ ] OK    Fix: 
 
-- **`export`**
-  - EN: Export
-  - DE: Exportieren
+- **`language`**
+  - EN: English
+  - DE: Deutsch
   - [ ] OK    Fix: 
 
-- **`findMyRemote`**
-  - EN: Find My Remote
-  - DE: Fernbedienung finden
+- **`locale`**
+  - EN: en
+  - DE: de
   - [ ] OK    Fix: 
 
-- **`import`**
-  - EN: Import
-  - DE: Importieren
-  - [ ] OK    Fix: 
-
-- **`openLogWindow`**
-  - EN: Open Log Window
-  - DE: Log-Fenster öffnen
-  - [ ] OK    Fix: 
-
-- **`reloadBackup`**
-  - EN: Reload Backup
-  - DE: Backup laden
-  - [ ] OK    Fix: 
-
-- **`reloadConfig`**
-  - EN: Reload Network Config
-  - DE: Netzwerkkonf. neu laden
-  - [ ] OK    Fix: 
-
-- **`storeConfig`**
-  - EN: Store Network Config
-  - DE: Netzwerkkonf. speichern
+- **`version`**
+  - EN: 1.0.0
+  - DE: 1.0.0
   - [ ] OK    Fix: 
 
 ## `network.dialogs`
@@ -4351,10 +1796,8 @@ Dämpfung
   - [ ] OK    Fix: 
 
 - **`trackingConflictsMessage`**
-  - EN: 
-Only one tracked input per cluster is allowed. If you continue, tracking will be kept only for the first input in each cluster.
-  - DE: 
-Nur ein getrackter Eingang pro Cluster ist erlaubt. Wenn Sie fortfahren, wird das Tracking nur für den ersten Eingang in jedem Cluster beibehalten.
+  - EN: \nOnly one tracked input per cluster is allowed. If you continue, tracking will be kept only for the first input in each cluster.
+  - DE: \nNur ein getrackter Eingang pro Cluster ist erlaubt. Wenn Sie fortfahren, wird das Tracking nur für den ersten Eingang in jedem Cluster beibehalten.
   - [ ] OK    Fix: 
 
 - **`trackingConflictsTitle`**
@@ -4369,6 +1812,61 @@ Nur ein getrackter Eingang pro Cluster ist erlaubt. Wenn Sie fortfahren, wird da
   - DE: Neues Netzwerkziel hinzufügen.
   - [ ] OK    Fix: 
 
+- **`admAxisSwap`**
+  - EN: Which incoming ADM-OSC axis maps to this internal axis.
+  - DE: Welche eingehende ADM-OSC-Achse auf diese interne Achse abgebildet wird.
+  - [ ] OK    Fix: 
+
+- **`admAzFlip`**
+  - EN: Invert the direction of incoming azimuth.
+  - DE: Richtung des eingehenden Azimuts invertieren.
+  - [ ] OK    Fix: 
+
+- **`admAzOffset`**
+  - EN: Azimuth offset (deg) applied to incoming ADM-OSC azimuth.
+  - DE: Azimut-Offset (Grad), der auf den eingehenden ADM-OSC-Azimut angewandt wird.
+  - [ ] OK    Fix: 
+
+- **`admBreakpoint`**
+  - EN: Normalized breakpoint (0-1) for piecewise linear stretch.
+  - DE: Normalisierter Breakpoint (0-1) für stückweise lineare Dehnung.
+  - [ ] OK    Fix: 
+
+- **`admCenterOffset`**
+  - EN: Physical position (m) where normalized 0.0 maps to.
+  - DE: Physische Position (m), auf die der normalisierte Wert 0.0 abgebildet wird.
+  - [ ] OK    Fix: 
+
+- **`admDistMax`**
+  - EN: Maximum physical distance (m) at ADM-OSC distance=1.
+  - DE: Maximale physische Entfernung (m) bei ADM-OSC distance=1.
+  - [ ] OK    Fix: 
+
+- **`admDistMin`**
+  - EN: Minimum physical distance (m) at ADM-OSC distance=0.
+  - DE: Minimale physische Entfernung (m) bei ADM-OSC distance=0.
+  - [ ] OK    Fix: 
+
+- **`admElFlip`**
+  - EN: Invert the sign of incoming elevation.
+  - DE: Vorzeichen der eingehenden Elevation invertieren.
+  - [ ] OK    Fix: 
+
+- **`admInnerWidth`**
+  - EN: Physical extent (m) from center to breakpoint.
+  - DE: Physische Ausdehnung (m) von der Mitte bis zum Breakpoint.
+  - [ ] OK    Fix: 
+
+- **`admInputAssign`**
+  - EN: Assign this input to an ADM-OSC mapping for receive/transmit.
+  - DE: Diesen Eingang einer ADM-OSC-Zuordnung für Empfang/Sendung zuweisen.
+  - [ ] OK    Fix: 
+
+- **`admLinkAll`**
+  - EN: Select all 6 sides at once for uniform editing.
+  - DE: Alle 6 Seiten gleichzeitig für einheitliche Bearbeitung auswählen.
+  - [ ] OK    Fix: 
+
 - **`admMapping`**
   - EN: Select an ADM-OSC mapping to configure. Cart = Cartesian (xyz), Polar = spherical (aed).
   - DE: ADM-OSC-Zuordnung auswählen. Cart = Kartesisch (xyz), Polar = sphärisch (aed).
@@ -4377,6 +1875,21 @@ Nur ein getrackter Eingang pro Cluster ist erlaubt. Wenn Sie fortfahren, wird da
 - **`admMappingPanel`**
   - EN: Drag dots to edit mapping. Click axis title to swap, click Flip to invert. Hold Shift to edit both sides symmetrically.
   - DE: Punkte ziehen, um die Zuordnung zu bearbeiten. Achsentitel klicken zum Tauschen, Flip klicken zum Invertieren. Shift halten, um beide Seiten symmetrisch zu bearbeiten.
+  - [ ] OK    Fix: 
+
+- **`admOuterWidth`**
+  - EN: Physical extent (m) from breakpoint to ±1.
+  - DE: Physische Ausdehnung (m) vom Breakpoint bis ±1.
+  - [ ] OK    Fix: 
+
+- **`admSideSelect`**
+  - EN: Select sides to edit. Changes apply to all selected sides at once.
+  - DE: Seiten zum Bearbeiten auswählen. Änderungen gelten für alle ausgewählten Seiten gleichzeitig.
+  - [ ] OK    Fix: 
+
+- **`admSignFlip`**
+  - EN: Invert the sign of the incoming axis value.
+  - DE: Vorzeichen des eingehenden Achsenwerts invertieren.
   - [ ] OK    Fix: 
 
 - **`currentIP`**
@@ -4406,7 +1919,7 @@ Nur ein getrackter Eingang pro Cluster ist erlaubt. Wenn Sie fortfahren, wird da
 
 - **`networkInterface`**
   - EN: Select the Network Interface.
-  - DE: Netzwerk-Schnittstelle auswählen.
+  - DE: Network Interface auswählen.
   - [ ] OK    Fix: 
 
 - **`openLogWindow`**
@@ -4516,7 +2029,7 @@ Nur ein getrackter Eingang pro Cluster ist erlaubt. Wenn Sie fortfahren, wird da
 
 - **`trackingOscPath`**
   - EN: OSC Path for the Tracking in OSC Mode (starts with a /)
-  - DE: OSC-Pfad für das Tracking im OSC-Modus (beginnt mit /)
+  - DE: OSC Path für das Tracking im OSC-Modus (beginnt mit /)
   - [ ] OK    Fix: 
 
 - **`trackingPort`**
@@ -4557,133 +2070,6 @@ Nur ein getrackter Eingang pro Cluster ist erlaubt. Wenn Sie fortfahren, wird da
 - **`udpPort`**
   - EN: UDP Receive Port of the Processor.
   - DE: UDP-Empfangsport des Prozessors.
-  - [ ] OK    Fix: 
-
-## `network.labels`
-
-- **`admMapping`**
-  - EN: Mapping:
-  - DE: Zuordnung:
-  - [ ] OK    Fix: 
-
-- **`currentIPv4`**
-  - EN: Current IPv4:
-  - DE: Aktuelle IPv4:
-  - [ ] OK    Fix: 
-
-- **`interface`**
-  - EN: Network Interface:
-  - DE: Netzwerkschnittstelle:
-  - [ ] OK    Fix: 
-
-- **`localhost`**
-  - EN: Localhost (127.0.0.1)
-  - DE: Localhost (127.0.0.1)
-  - [ ] OK    Fix: 
-
-- **`mqttHost`**
-  - EN: Host:
-  - DE: Host:
-  - [ ] OK    Fix: 
-
-- **`mqttJsonQ`**
-  - EN: Q:
-  - DE: Q:
-  - [ ] OK    Fix: 
-
-- **`mqttJsonX`**
-  - EN: X:
-  - DE: X:
-  - [ ] OK    Fix: 
-
-- **`mqttJsonY`**
-  - EN: Y:
-  - DE: Y:
-  - [ ] OK    Fix: 
-
-- **`mqttJsonZ`**
-  - EN: Z:
-  - DE: Z:
-  - [ ] OK    Fix: 
-
-- **`mqttTagIds`**
-  - EN: Tag IDs...
-  - DE: Tag-IDs...
-  - [ ] OK    Fix: 
-
-- **`mqttTopic`**
-  - EN: Topic:
-  - DE: Thema:
-  - [ ] OK    Fix: 
-
-- **`notAvailable`**
-  - EN: Not available
-  - DE: Nicht verfügbar
-  - [ ] OK    Fix: 
-
-- **`offsetX`**
-  - EN: Offset X:
-  - DE: Offset X:
-  - [ ] OK    Fix: 
-
-- **`offsetY`**
-  - EN: Offset Y:
-  - DE: Offset Y:
-  - [ ] OK    Fix: 
-
-- **`offsetZ`**
-  - EN: Offset Z:
-  - DE: Offset Z:
-  - [ ] OK    Fix: 
-
-- **`oscPath`**
-  - EN: OSC Path:
-  - DE: OSC Path:
-  - [ ] OK    Fix: 
-
-- **`oscQuery`**
-  - EN: OSC Query:
-  - DE: OSC Query:
-  - [ ] OK    Fix: 
-
-- **`protocol`**
-  - EN: Protocol:
-  - DE: Protokoll:
-  - [ ] OK    Fix: 
-
-- **`psnInterface`**
-  - EN: PSN Interface:
-  - DE: PSN Interface:
-  - [ ] OK    Fix: 
-
-- **`rxPort`**
-  - EN: Rx Port:
-  - DE: Rx-Port:
-  - [ ] OK    Fix: 
-
-- **`scaleX`**
-  - EN: Scale X:
-  - DE: Skalierung X:
-  - [ ] OK    Fix: 
-
-- **`scaleY`**
-  - EN: Scale Y:
-  - DE: Skalierung Y:
-  - [ ] OK    Fix: 
-
-- **`scaleZ`**
-  - EN: Scale Z:
-  - DE: Skalierung Z:
-  - [ ] OK    Fix: 
-
-- **`tcpPort`**
-  - EN: TCP Port:
-  - DE: TCP-Port:
-  - [ ] OK    Fix: 
-
-- **`udpPort`**
-  - EN: UDP Port:
-  - DE: UDP-Port:
   - [ ] OK    Fix: 
 
 ## `network.messages`
@@ -4755,271 +2141,7 @@ Nur ein getrackter Eingang pro Cluster ist erlaubt. Wenn Sie fortfahren, wird da
 
 - **`selectFolderFirst`**
   - EN: Please select a project folder in System Config first.
-  - DE: Bitte wählen Sie zuerst einen Projektordner in der Systemkonfiguration.
-  - [ ] OK    Fix: 
-
-## `network.protocols`
-
-- **`admOsc`**
-  - EN: ADM-OSC
-  - DE: ADM-OSC
-  - [ ] OK    Fix: 
-
-- **`disabled`**
-  - EN: DISABLED
-  - DE: DEAKTIVIERT
-  - [ ] OK    Fix: 
-
-- **`mqtt`**
-  - EN: MQTT
-  - DE: MQTT
-  - [ ] OK    Fix: 
-
-- **`osc`**
-  - EN: OSC
-  - DE: OSC
-  - [ ] OK    Fix: 
-
-- **`psn`**
-  - EN: PosiStageNet (PSN)
-  - DE: PosiStageNet (PSN)
-  - [ ] OK    Fix: 
-
-- **`qlab`**
-  - EN: QLab
-  - DE: QLab
-  - [ ] OK    Fix: 
-
-- **`remote`**
-  - EN: Remote
-  - DE: Fernsteuerung
-  - [ ] OK    Fix: 
-
-- **`rttrp`**
-  - EN: RTTrP
-  - DE: RTTrP
-  - [ ] OK    Fix: 
-
-- **`tcp`**
-  - EN: TCP
-  - DE: TCP
-  - [ ] OK    Fix: 
-
-- **`udp`**
-  - EN: UDP
-  - DE: UDP
-  - [ ] OK    Fix: 
-
-## `network.sections`
-
-- **`admOsc`**
-  - EN: ADM-OSC Mappings
-  - DE: ADM-OSC-Zuordnungen
-  - [ ] OK    Fix: 
-
-- **`connections`**
-  - EN: Network Connections
-  - DE: Netzwerkverbindungen
-  - [ ] OK    Fix: 
-
-- **`network`**
-  - EN: Network
-  - DE: Netzwerk
-  - [ ] OK    Fix: 
-
-- **`tracking`**
-  - EN: Tracking
-  - DE: Tracking
-  - [ ] OK    Fix: 
-
-## `network.table`
-
-- **`defaultTarget`**
-  - EN: Target {num}
-  - DE: Ziel {num}
-  - [ ] OK    Fix: 
-
-- **`ipv4Address`**
-  - EN: IPv4 Address
-  - DE: IPv4-Adresse
-  - [ ] OK    Fix: 
-
-- **`mode`**
-  - EN: Mode
-  - DE: Modus
-  - [ ] OK    Fix: 
-
-- **`name`**
-  - EN: Name
-  - DE: Name
-  - [ ] OK    Fix: 
-
-- **`protocol`**
-  - EN: Protocol
-  - DE: Protokoll
-  - [ ] OK    Fix: 
-
-- **`rx`**
-  - EN: Rx
-  - DE: Rx
-  - [ ] OK    Fix: 
-
-- **`tx`**
-  - EN: Tx
-  - DE: Tx
-  - [ ] OK    Fix: 
-
-- **`txPort`**
-  - EN: Tx Port
-  - DE: Tx-Port
-  - [ ] OK    Fix: 
-
-## `network.toggles`
-
-- **`disabled`**
-  - EN: Disabled
-  - DE: Deaktiviert
-  - [ ] OK    Fix: 
-
-- **`enabled`**
-  - EN: Enabled
-  - DE: Aktiviert
-  - [ ] OK    Fix: 
-
-- **`flipXOff`**
-  - EN: Flip X: OFF
-  - DE: X spiegeln: AUS
-  - [ ] OK    Fix: 
-
-- **`flipXOn`**
-  - EN: Flip X: ON
-  - DE: X spiegeln: EIN
-  - [ ] OK    Fix: 
-
-- **`flipYOff`**
-  - EN: Flip Y: OFF
-  - DE: Y spiegeln: AUS
-  - [ ] OK    Fix: 
-
-- **`flipYOn`**
-  - EN: Flip Y: ON
-  - DE: Y spiegeln: EIN
-  - [ ] OK    Fix: 
-
-- **`flipZOff`**
-  - EN: Flip Z: OFF
-  - DE: Z spiegeln: AUS
-  - [ ] OK    Fix: 
-
-- **`flipZOn`**
-  - EN: Flip Z: ON
-  - DE: Z spiegeln: EIN
-  - [ ] OK    Fix: 
-
-- **`off`**
-  - EN: OFF
-  - DE: AUS
-  - [ ] OK    Fix: 
-
-- **`on`**
-  - EN: ON
-  - DE: EIN
-  - [ ] OK    Fix: 
-
-- **`oscFilterAcceptAll`**
-  - EN: OSC Filter: Accept All
-  - DE: OSC-Filter: Alle akzeptieren
-  - [ ] OK    Fix: 
-
-- **`oscFilterRegisteredOnly`**
-  - EN: OSC Filter: Registered Only
-  - DE: OSC-Filter: Nur registrierte
-  - [ ] OK    Fix: 
-
-- **`trackingOff`**
-  - EN: Tracking: OFF
-  - DE: Tracking: AUS
-  - [ ] OK    Fix: 
-
-- **`trackingOn`**
-  - EN: Tracking: ON
-  - DE: Tracking: EIN
-  - [ ] OK    Fix: 
-
-## `networkLog`
-
-- **`windowTitle`**
-  - EN: Network Log
-  - DE: Netzwerk-Log
-  - [ ] OK    Fix: 
-
-## `networkLog.columns`
-
-- **`address`**
-  - EN: Address
-  - DE: Adresse
-  - [ ] OK    Fix: 
-
-- **`arguments`**
-  - EN: Arguments
-  - DE: Argumente
-  - [ ] OK    Fix: 
-
-- **`direction`**
-  - EN: Dir
-  - DE: Richt.
-  - [ ] OK    Fix: 
-
-- **`ip`**
-  - EN: IP
-  - DE: IP
-  - [ ] OK    Fix: 
-
-- **`origin`**
-  - EN: Origin
-  - DE: Quelle
-  - [ ] OK    Fix: 
-
-- **`port`**
-  - EN: Port
-  - DE: Port
-  - [ ] OK    Fix: 
-
-- **`protocol`**
-  - EN: Protocol
-  - DE: Protokoll
-  - [ ] OK    Fix: 
-
-- **`time`**
-  - EN: Time
-  - DE: Zeit
-  - [ ] OK    Fix: 
-
-- **`transport`**
-  - EN: Trans
-  - DE: Trans.
-  - [ ] OK    Fix: 
-
-## `networkLog.controls`
-
-- **`clear`**
-  - EN: CLEAR
-  - DE: LÖSCHEN
-  - [ ] OK    Fix: 
-
-- **`export`**
-  - EN: EXPORT
-  - DE: EXPORTIEREN
-  - [ ] OK    Fix: 
-
-- **`hideHeartbeat`**
-  - EN: Hide Heartbeat
-  - DE: Heartbeat ausblenden
-  - [ ] OK    Fix: 
-
-- **`logging`**
-  - EN: Logging
-  - DE: Protokollierung
+  - DE: Bitte wählen Sie zuerst einen Projektordner in der System Config.
   - [ ] OK    Fix: 
 
 ## `networkLog.dialogs`
@@ -5044,153 +2166,11 @@ Nur ein getrackter Eingang pro Cluster ist erlaubt. Wenn Sie fortfahren, wird da
   - DE: Export fehlgeschlagen
   - [ ] OK    Fix: 
 
-## `networkLog.exportMenu`
-
-- **`exportAll`**
-  - EN: Export All
-  - DE: Alle exportieren
-  - [ ] OK    Fix: 
-
-- **`exportFiltered`**
-  - EN: Export Filtered
-  - DE: Gefilterte exportieren
-  - [ ] OK    Fix: 
-
-## `networkLog.filterModes`
-
-- **`clientIp`**
-  - EN: Client IP
-  - DE: Client-IP
-  - [ ] OK    Fix: 
-
-- **`protocol`**
-  - EN: Protocol
-  - DE: Protokoll
-  - [ ] OK    Fix: 
-
-- **`rejected`**
-  - EN: Rejected
-  - DE: Abgelehnt
-  - [ ] OK    Fix: 
-
-- **`tcpUdp`**
-  - EN: TCP/UDP
-  - DE: TCP/UDP
-  - [ ] OK    Fix: 
-
-## `networkLog.filterToggles`
-
-- **`incoming`**
-  - EN: Incoming
-  - DE: Eingehend
-  - [ ] OK    Fix: 
-
-- **`outgoing`**
-  - EN: Outgoing
-  - DE: Ausgehend
-  - [ ] OK    Fix: 
-
-- **`tcp`**
-  - EN: TCP
-  - DE: TCP
-  - [ ] OK    Fix: 
-
-- **`udp`**
-  - EN: UDP
-  - DE: UDP
-  - [ ] OK    Fix: 
-
 ## `networkLog.status`
 
 - **`rejected`**
   - EN: REJECTED
   - DE: ABGELEHNT
-  - [ ] OK    Fix: 
-
-## `outputs.arrayModes`
-
-- **`absolute`**
-  - EN: ABSOLUTE
-  - DE: ABSOLUT
-  - [ ] OK    Fix: 
-
-- **`array`**
-  - EN: Array
-  - DE: Array
-  - [ ] OK    Fix: 
-
-- **`off`**
-  - EN: OFF
-  - DE: AUS
-  - [ ] OK    Fix: 
-
-- **`relative`**
-  - EN: RELATIVE
-  - DE: RELATIV
-  - [ ] OK    Fix: 
-
-- **`single`**
-  - EN: Single
-  - DE: Einzeln
-  - [ ] OK    Fix: 
-
-## `outputs.buttons`
-
-- **`arrayHidden`**
-  - EN: Array Hidden on Map
-  - DE: Array auf Karte ausgeblendet
-  - [ ] OK    Fix: 
-
-- **`arrayVisible`**
-  - EN: Array Visible on Map
-  - DE: Array auf Karte sichtbar
-  - [ ] OK    Fix: 
-
-- **`export`**
-  - EN: Export
-  - DE: Exportieren
-  - [ ] OK    Fix: 
-
-- **`import`**
-  - EN: Import
-  - DE: Importieren
-  - [ ] OK    Fix: 
-
-- **`reloadBackup`**
-  - EN: Reload Backup
-  - DE: Backup laden
-  - [ ] OK    Fix: 
-
-- **`reloadConfig`**
-  - EN: Reload Output Config
-  - DE: Ausgangskonf. neu laden
-  - [ ] OK    Fix: 
-
-- **`speakerHidden`**
-  - EN: Speaker Hidden on Map
-  - DE: Lautsprecher auf Karte ausgeblendet
-  - [ ] OK    Fix: 
-
-- **`speakerVisible`**
-  - EN: Speaker Visible on Map
-  - DE: Lautsprecher auf Karte sichtbar
-  - [ ] OK    Fix: 
-
-- **`storeConfig`**
-  - EN: Store Output Config
-  - DE: Ausgangskonf. speichern
-  - [ ] OK    Fix: 
-
-- **`wizardOfOutZ`**
-  - EN: Wizard of OutZ...
-  - DE: Assistent OutZ...
-  - [ ] OK    Fix: 
-
-## `outputs.coordModes`
-
-- **`xyz`**
-  - EN: XYZ
-  - DE: XYZ
   - [ ] OK    Fix: 
 
 ## `outputs.dialogs`
@@ -5274,17 +2254,17 @@ Nur ein getrackter Eingang pro Cluster ist erlaubt. Wenn Sie fortfahren, wird da
 
 - **`eqFreq`**
   - EN: Output EQ Band {band} frequency (20 Hz - 20 kHz).
-  - DE: Ausgangs-EQ Band {band} Frequenz (20 Hz - 20 kHz).
+  - DE: Output EQ Band {band} Frequenz (20 Hz - 20 kHz).
   - [ ] OK    Fix: 
 
 - **`eqGain`**
   - EN: Output EQ Band {band} gain (-24 to +24 dB).
-  - DE: Ausgangs-EQ Band {band} Gain (-24 bis +24 dB).
+  - DE: Output EQ Band {band} Gain (-24 bis +24 dB).
   - [ ] OK    Fix: 
 
 - **`eqQ`**
   - EN: Output EQ Band {band} Q factor (0.1 - 10.0).
-  - DE: Ausgangs-EQ Band {band} Q-Faktor (0.1 - 10.0).
+  - DE: Output EQ Band {band} Q-Faktor (0.1 - 10.0).
   - [ ] OK    Fix: 
 
 - **`eqResetBand`**
@@ -5294,7 +2274,7 @@ Nur ein getrackter Eingang pro Cluster ist erlaubt. Wenn Sie fortfahren, wird da
 
 - **`eqShape`**
   - EN: Output EQ Band {band} filter shape.
-  - DE: Ausgangs-EQ Band {band} Filterform.
+  - DE: Output EQ Band {band} Filterform.
   - [ ] OK    Fix: 
 
 - **`exportConfig`**
@@ -5304,17 +2284,17 @@ Nur ein getrackter Eingang pro Cluster ist erlaubt. Wenn Sie fortfahren, wird da
 
 - **`floorReflections`**
   - EN: Enable or Disable the Floor Reflections for this Speaker.
-  - DE: Bodenreflexionen für diesen Lautsprecher aktivieren oder deaktivieren.
-  - [ ] OK    Fix: 
-
-- **`hfDamping`**
-  - EN: Loss of High Frequency Depending on Distance from Object to Output. (changes may affect the rest of the array)
-  - DE: Hochfrequenzverlust abhängig von der Entfernung des Objekts zum Ausgang. (Änderungen können den Rest des Arrays betreffen)
+  - DE: Floor Reflections für diesen Lautsprecher aktivieren oder deaktivieren.
   - [ ] OK    Fix: 
 
 - **`hParallax`**
   - EN: Horizontal Distance from Speaker to 'Targeted' Listener. (changes may affect the rest of the array)
   - DE: Horizontaler Abstand vom Lautsprecher zum „anvisierten“ Zuhörer. (Änderungen können den Rest des Arrays betreffen)
+  - [ ] OK    Fix: 
+
+- **`hfDamping`**
+  - EN: Loss of High Frequency Depending on Distance from Object to Output. (changes may affect the rest of the array)
+  - DE: Hochfrequenzverlust abhängig von der Entfernung des Objekts zum Ausgang. (Änderungen können den Rest des Arrays betreffen)
   - [ ] OK    Fix: 
 
 - **`importConfig`**
@@ -5324,7 +2304,7 @@ Nur ein getrackter Eingang pro Cluster ist erlaubt. Wenn Sie fortfahren, wird da
 
 - **`liveSource`**
   - EN: Disables Live Source Attenuation for Selected Output. (changes may affect the rest of the array)
-  - DE: Deaktiviert die Live-Quellen-Dämpfung für den ausgewählten Ausgang. (Änderungen können den Rest des Arrays betreffen)
+  - DE: Deaktiviert die Live Source-Dämpfung für den ausgewählten Ausgang. (Änderungen können den Rest des Arrays betreffen)
   - [ ] OK    Fix: 
 
 - **`mapVisibility`**
@@ -5334,7 +2314,7 @@ Nur ein getrackter Eingang pro Cluster ist erlaubt. Wenn Sie fortfahren, wird da
 
 - **`minLatency`**
   - EN: Disables Minimal Latency Mode for Selected Output. (changes may affect the rest of the array)
-  - DE: Deaktiviert den Modus minimale Latenz für den ausgewählten Ausgang. (Änderungen können den Rest des Arrays betreffen)
+  - DE: Deaktiviert den Modus Minimal Latency für den ausgewählten Ausgang. (Änderungen können den Rest des Arrays betreffen)
   - [ ] OK    Fix: 
 
 - **`nameEditor`**
@@ -5387,103 +2367,6 @@ Nur ein getrackter Eingang pro Cluster ist erlaubt. Wenn Sie fortfahren, wird da
   - DE: Wizard of OutZ öffnen, um Lautsprecher-Arrays bequem zu positionieren.
   - [ ] OK    Fix: 
 
-## `outputs.labels`
-
-- **`angleOff`**
-  - EN: Angle Off:
-  - DE: Winkel Aus:
-  - [ ] OK    Fix: 
-
-- **`angleOn`**
-  - EN: Angle On:
-  - DE: Winkel Ein:
-  - [ ] OK    Fix: 
-
-- **`applyToArray`**
-  - EN: Apply to Array:
-  - DE: Auf Array anwenden:
-  - [ ] OK    Fix: 
-
-- **`array`**
-  - EN: Array:
-  - DE: Array:
-  - [ ] OK    Fix: 
-
-- **`attenuation`**
-  - EN: Attenuation:
-  - DE: Dämpfung:
-  - [ ] OK    Fix: 
-
-- **`coordinates`**
-  - EN: Coordinates:
-  - DE: Koordinaten:
-  - [ ] OK    Fix: 
-
-- **`delay`**
-  - EN: Delay:
-  - DE: Verzögerung:
-  - [ ] OK    Fix: 
-
-- **`delayLatency`**
-  - EN: Delay/Latency:
-  - DE: Verzögerung/Latenz:
-  - [ ] OK    Fix: 
-
-- **`distanceAtten`**
-  - EN: Distance Atten:
-  - DE: Entfernungsdämpf.:
-  - [ ] OK    Fix: 
-
-- **`hfDamping`**
-  - EN: HF Damping:
-  - DE: HF-Dämpfung:
-  - [ ] OK    Fix: 
-
-- **`hParallax`**
-  - EN: Horizontal Parallax:
-  - DE: Horiz. Parallaxe:
-  - [ ] OK    Fix: 
-
-- **`latency`**
-  - EN: Latency:
-  - DE: Latenz:
-  - [ ] OK    Fix: 
-
-- **`name`**
-  - EN: Name:
-  - DE: Name:
-  - [ ] OK    Fix: 
-
-- **`orientation`**
-  - EN: Orientation:
-  - DE: Orientierung:
-  - [ ] OK    Fix: 
-
-- **`pitch`**
-  - EN: Pitch:
-  - DE: Neigung:
-  - [ ] OK    Fix: 
-
-- **`positionX`**
-  - EN: Position X:
-  - DE: Position X:
-  - [ ] OK    Fix: 
-
-- **`positionY`**
-  - EN: Position Y:
-  - DE: Position Y:
-  - [ ] OK    Fix: 
-
-- **`positionZ`**
-  - EN: Position Z:
-  - DE: Position Z:
-  - [ ] OK    Fix: 
-
-- **`vParallax`**
-  - EN: Vertical Parallax:
-  - DE: Vert. Parallaxe:
-  - [ ] OK    Fix: 
-
 ## `outputs.messages`
 
 - **`assignedToArray`**
@@ -5511,6 +2394,16 @@ Nur ein getrackter Eingang pro Cluster ist erlaubt. Wenn Sie fortfahren, wird da
   - DE: Ausgangskonfiguration geladen.
   - [ ] OK    Fix: 
 
+- **`configNotFound`**
+  - EN: Output config file not found.
+  - DE: Ausgangskonfigurationsdatei nicht gefunden.
+  - [ ] OK    Fix: 
+
+- **`configReloaded`**
+  - EN: Output configuration reloaded.
+  - DE: Ausgangskonfiguration neu geladen.
+  - [ ] OK    Fix: 
+
 - **`configSaved`**
   - EN: Output configuration saved.
   - DE: Ausgangskonfiguration gespeichert.
@@ -5521,292 +2414,19 @@ Nur ein getrackter Eingang pro Cluster ist erlaubt. Wenn Sie fortfahren, wird da
   - DE: Fehler: {error}
   - [ ] OK    Fix: 
 
+- **`noBackup`**
+  - EN: No backup output configuration found.
+  - DE: Keine Backup-Ausgangskonfiguration gefunden.
+  - [ ] OK    Fix: 
+
 - **`selectFolderFirst`**
   - EN: Please select a project folder in System Config first.
-  - DE: Bitte wählen Sie zuerst einen Projektordner in der Systemkonfiguration.
+  - DE: Bitte wählen Sie zuerst einen Projektordner in der System Config.
   - [ ] OK    Fix: 
 
 - **`setToSingle`**
   - EN: Output {num} set to Single
   - DE: Ausgang {num} auf Einzeln gesetzt
-  - [ ] OK    Fix: 
-
-## `outputs.tabs`
-
-- **`eq`**
-  - EN: Output EQ
-  - DE: Ausgangs-EQ
-  - [ ] OK    Fix: 
-
-- **`parameters`**
-  - EN: Output Parameters
-  - DE: Ausgangsparameter
-  - [ ] OK    Fix: 
-
-## `outputs.toggles`
-
-- **`floorReflectionsOff`**
-  - EN: Floor Reflections: OFF
-  - DE: Bodenreflexionen: AUS
-  - [ ] OK    Fix: 
-
-- **`floorReflectionsOn`**
-  - EN: Floor Reflections: ON
-  - DE: Bodenreflexionen: EIN
-  - [ ] OK    Fix: 
-
-- **`liveSourceOff`**
-  - EN: Live Source Atten: OFF
-  - DE: Live-Quelle Dämpf.: AUS
-  - [ ] OK    Fix: 
-
-- **`liveSourceOn`**
-  - EN: Live Source Atten: ON
-  - DE: Live-Quelle Dämpf.: EIN
-  - [ ] OK    Fix: 
-
-- **`minLatencyOff`**
-  - EN: Minimal Latency: OFF
-  - DE: Minimale Latenz: AUS
-  - [ ] OK    Fix: 
-
-- **`minLatencyOn`**
-  - EN: Minimal Latency: ON
-  - DE: Minimale Latenz: EIN
-  - [ ] OK    Fix: 
-
-## `outputs.units`
-
-- **`meters`**
-  - EN: m
-  - DE: m
-  - [ ] OK    Fix: 
-
-- **`ms`**
-  - EN: ms
-  - DE: ms
-  - [ ] OK    Fix: 
-
-## `reverbs`
-
-- **`noChannels`**
-  - EN: No reverb channels configured.
-
-Set the number of Reverb Channels in System Config.
-  - DE: Keine Hallkanäle konfiguriert.
-
-Setzen Sie die Anzahl der Hallkanäle in der Systemkonfiguration.
-  - [ ] OK    Fix: 
-
-## `reverbs.algorithm`
-
-- **`crossoverHigh`**
-  - EN: Crossover High:
-  - DE: Trennfrequenz hoch:
-  - [ ] OK    Fix: 
-
-- **`crossoverLow`**
-  - EN: Crossover Low:
-  - DE: Trennfrequenz tief:
-  - [ ] OK    Fix: 
-
-- **`decaySection`**
-  - EN: Decay
-  - DE: Abklingen
-  - [ ] OK    Fix: 
-
-- **`diffusion`**
-  - EN: Diffusion:
-  - DE: Diffusion:
-  - [ ] OK    Fix: 
-
-- **`fdn`**
-  - EN: FDN
-  - DE: FDN
-  - [ ] OK    Fix: 
-
-- **`fdnSection`**
-  - EN: FDN
-  - DE: FDN
-  - [ ] OK    Fix: 
-
-- **`ir`**
-  - EN: IR
-  - DE: IR
-  - [ ] OK    Fix: 
-
-- **`irFile`**
-  - EN: IR File:
-  - DE: IR-Datei:
-  - [ ] OK    Fix: 
-
-- **`irImport`**
-  - EN: Import IR...
-  - DE: IR importieren...
-  - [ ] OK    Fix: 
-
-- **`irImportSuccess`**
-  - EN: IR imported: {file}
-  - DE: IR importiert: {file}
-  - [ ] OK    Fix: 
-
-- **`irLength`**
-  - EN: IR Length:
-  - DE: IR-Länge:
-  - [ ] OK    Fix: 
-
-- **`irNoProject`**
-  - EN: Set a project folder first
-  - DE: Projektordner zuerst festlegen
-  - [ ] OK    Fix: 
-
-- **`irSection`**
-  - EN: IR
-  - DE: IR
-  - [ ] OK    Fix: 
-
-- **`irTrim`**
-  - EN: IR Trim:
-  - DE: IR-Zuschnitt:
-  - [ ] OK    Fix: 
-
-- **`noFileLoaded`**
-  - EN: No IR loaded
-  - DE: Keine IR geladen
-  - [ ] OK    Fix: 
-
-- **`perNodeOff`**
-  - EN: Per-node IR OFF
-  - DE: IR pro Knoten AUS
-  - [ ] OK    Fix: 
-
-- **`perNodeOn`**
-  - EN: Per-node IR ON
-  - DE: IR pro Knoten EIN
-  - [ ] OK    Fix: 
-
-- **`rt60`**
-  - EN: RT60:
-  - DE: RT60:
-  - [ ] OK    Fix: 
-
-- **`rt60HighMult`**
-  - EN: RT60 High ×:
-  - DE: RT60 Hoch ×:
-  - [ ] OK    Fix: 
-
-- **`rt60LowMult`**
-  - EN: RT60 Low ×:
-  - DE: RT60 Tief ×:
-  - [ ] OK    Fix: 
-
-- **`scale`**
-  - EN: Scale:
-  - DE: Skalierung:
-  - [ ] OK    Fix: 
-
-- **`sdn`**
-  - EN: SDN
-  - DE: SDN
-  - [ ] OK    Fix: 
-
-- **`sdnSection`**
-  - EN: SDN
-  - DE: SDN
-  - [ ] OK    Fix: 
-
-- **`size`**
-  - EN: Size:
-  - DE: Größe:
-  - [ ] OK    Fix: 
-
-- **`wetLevel`**
-  - EN: Wet Level:
-  - DE: Wet-Pegel:
-  - [ ] OK    Fix: 
-
-## `reverbs.buttons`
-
-- **`editOnMap`**
-  - EN: Edit on Map
-  - DE: Auf Karte bearbeiten
-  - [ ] OK    Fix: 
-
-- **`editOnMapOn`**
-  - EN: Edit on Map ON
-  - DE: Auf Karte bearbeiten EIN
-  - [ ] OK    Fix: 
-
-- **`export`**
-  - EN: Export
-  - DE: Exportieren
-  - [ ] OK    Fix: 
-
-- **`hiddenOnMap`**
-  - EN: Reverbs Hidden on Map
-  - DE: Hall auf Karte ausgeblendet
-  - [ ] OK    Fix: 
-
-- **`import`**
-  - EN: Import
-  - DE: Importieren
-  - [ ] OK    Fix: 
-
-- **`mutePost`**
-  - EN: Mute Post
-  - DE: Mute Post
-  - [ ] OK    Fix: 
-
-- **`mutePostOn`**
-  - EN: Mute Post ON
-  - DE: Mute Post EIN
-  - [ ] OK    Fix: 
-
-- **`mutePre`**
-  - EN: Mute Pre
-  - DE: Mute Pre
-  - [ ] OK    Fix: 
-
-- **`mutePreOn`**
-  - EN: Mute Pre ON
-  - DE: Mute Pre EIN
-  - [ ] OK    Fix: 
-
-- **`reloadBackup`**
-  - EN: Reload Backup
-  - DE: Backup laden
-  - [ ] OK    Fix: 
-
-- **`reloadConfig`**
-  - EN: Reload Reverb Config
-  - DE: Hallkonf. neu laden
-  - [ ] OK    Fix: 
-
-- **`soloReverbs`**
-  - EN: Solo Reverbs
-  - DE: Solo Reverbs
-  - [ ] OK    Fix: 
-
-- **`soloReverbsOn`**
-  - EN: Solo Reverbs ON
-  - DE: Solo Hall EIN
-  - [ ] OK    Fix: 
-
-- **`storeConfig`**
-  - EN: Store Reverb Config
-  - DE: Hallkonf. speichern
-  - [ ] OK    Fix: 
-
-- **`visibleOnMap`**
-  - EN: Reverbs Visible on Map
-  - DE: Hall auf Karte sichtbar
-  - [ ] OK    Fix: 
-
-## `reverbs.coordModes`
-
-- **`xyz`**
-  - EN: XYZ
-  - DE: XYZ
   - [ ] OK    Fix: 
 
 ## `reverbs.dialogs`
@@ -5940,12 +2560,12 @@ Setzen Sie die Anzahl der Hallkanäle in der Systemkonfiguration.
 
 - **`distanceAtten`**
   - EN: Distance attenuation for reverb return (-6.0 to 0.0 dB/m).
-  - DE: Entfernungsdämpfung für den Hallrücklauf (-6.0 bis 0.0 dB/m).
+  - DE: Distance attenuation für den Hallrücklauf (-6.0 bis 0.0 dB/m).
   - [ ] OK    Fix: 
 
 - **`distanceAttenEnable`**
   - EN: Distance attenuation percentage (0-200%).
-  - DE: Prozentsatz der Entfernungsdämpfung (0-200%).
+  - DE: Prozentsatz der Distance attenuation (0-200%).
   - [ ] OK    Fix: 
 
 - **`eqBandToggle`**
@@ -6005,12 +2625,12 @@ Setzen Sie die Anzahl der Hallkanäle in der Systemkonfiguration.
 
 - **`liveSourceTooltip`**
   - EN: Enable Live Source attenuation tamer. Reduces level fluctuations from sources close to the array.
-  - DE: Live-Source-Dämpfungsbändiger aktivieren. Reduziert Pegelschwankungen von Quellen nahe dem Array.
+  - DE: Live Source Tamer aktivieren. Reduziert Pegelschwankungen von Quellen nahe dem Array.
   - [ ] OK    Fix: 
 
 - **`mapVisibility`**
   - EN: Make Visible or Hide All Reverb Channels on the Map.
-  - DE: Alle Hallkanäle auf der Karte sichtbar machen oder ausblenden.
+  - DE: Alle Reverb Channels auf der Karte sichtbar machen oder ausblenden.
   - [ ] OK    Fix: 
 
 - **`miniLatencyTooltip`**
@@ -6178,108 +2798,6 @@ Setzen Sie die Anzahl der Hallkanäle in der Systemkonfiguration.
   - DE: Hallkonfiguration in Datei speichern (mit Backup).
   - [ ] OK    Fix: 
 
-## `reverbs.labels`
-
-- **`angleOff`**
-  - EN: Angle Off:
-  - DE: Winkel Aus:
-  - [ ] OK    Fix: 
-
-- **`angleOn`**
-  - EN: Angle On:
-  - DE: Winkel Ein:
-  - [ ] OK    Fix: 
-
-- **`attenuation`**
-  - EN: Attenuation:
-  - DE: Dämpfung:
-  - [ ] OK    Fix: 
-
-- **`commonAtten`**
-  - EN: Common Atten:
-  - DE: Gem. Dämpf.:
-  - [ ] OK    Fix: 
-
-- **`coordinates`**
-  - EN: Coord:
-  - DE: Koord.:
-  - [ ] OK    Fix: 
-
-- **`delayLatency`**
-  - EN: Delay/Latency:
-  - DE: Verzögerung/Latenz:
-  - [ ] OK    Fix: 
-
-- **`distanceAtten`**
-  - EN: Distance Atten:
-  - DE: Entf.-Dämpf.:
-  - [ ] OK    Fix: 
-
-- **`distanceAttenPercent`**
-  - EN: Distance Atten %:
-  - DE: Entf.-Dämpf. %:
-  - [ ] OK    Fix: 
-
-- **`hfDamping`**
-  - EN: HF Damping:
-  - DE: HF-Dämpfung:
-  - [ ] OK    Fix: 
-
-- **`muteMacro`**
-  - EN: Mute Macro:
-  - DE: Stummschaltungsmakro:
-  - [ ] OK    Fix: 
-
-- **`name`**
-  - EN: Name:
-  - DE: Name:
-  - [ ] OK    Fix: 
-
-- **`orientation`**
-  - EN: Orientation:
-  - DE: Orientierung:
-  - [ ] OK    Fix: 
-
-- **`outputMutes`**
-  - EN: Output Mutes:
-  - DE: Ausgangsstummschaltungen:
-  - [ ] OK    Fix: 
-
-- **`pitch`**
-  - EN: Pitch:
-  - DE: Neigung:
-  - [ ] OK    Fix: 
-
-- **`positionX`**
-  - EN: Position X:
-  - DE: Position X:
-  - [ ] OK    Fix: 
-
-- **`positionY`**
-  - EN: Position Y:
-  - DE: Position Y:
-  - [ ] OK    Fix: 
-
-- **`positionZ`**
-  - EN: Position Z:
-  - DE: Position Z:
-  - [ ] OK    Fix: 
-
-- **`returnOffsetX`**
-  - EN: Return Offset X:
-  - DE: Rücklauf-Offset X:
-  - [ ] OK    Fix: 
-
-- **`returnOffsetY`**
-  - EN: Return Offset Y:
-  - DE: Rücklauf-Offset Y:
-  - [ ] OK    Fix: 
-
-- **`returnOffsetZ`**
-  - EN: Return Offset Z:
-  - DE: Rücklauf-Offset Z:
-  - [ ] OK    Fix: 
-
 ## `reverbs.messages`
 
 - **`backupLoaded`**
@@ -6314,380 +2832,21 @@ Setzen Sie die Anzahl der Hallkanäle in der Systemkonfiguration.
 
 - **`selectFolderFirst`**
   - EN: Please select a project folder in System Config first.
-  - DE: Bitte wählen Sie zuerst einen Projektordner in der Systemkonfiguration.
+  - DE: Bitte wählen Sie zuerst einen Projektordner in der System Config.
   - [ ] OK    Fix: 
 
-## `reverbs.muteMacros`
+## `sampler`
 
-- **`invertMutes`**
-  - EN: INVERT MUTES
-  - DE: STUMMSCH. INVERTIEREN
-  - [ ] OK    Fix: 
-
-- **`muteAll`**
-  - EN: MUTE ALL
-  - DE: ALLE STUMM
-  - [ ] OK    Fix: 
-
-- **`muteArray`**
-  - EN: MUTE ARRAY
-  - DE: ARRAY STUMM
-  - [ ] OK    Fix: 
-
-- **`muteEven`**
-  - EN: MUTE EVEN
-  - DE: GERADE STUMM
-  - [ ] OK    Fix: 
-
-- **`muteOdd`**
-  - EN: MUTE ODD
-  - DE: UNGERADE STUMM
-  - [ ] OK    Fix: 
-
-- **`select`**
-  - EN: Mute Macro Select
-  - DE: Stummschaltungsmakro wählen
-  - [ ] OK    Fix: 
-
-- **`unmuteAll`**
-  - EN: UNMUTE ALL
-  - DE: ALLE LAUT
-  - [ ] OK    Fix: 
-
-- **`unmuteArray`**
-  - EN: UNMUTE ARRAY
-  - DE: ARRAY LAUT
-  - [ ] OK    Fix: 
-
-## `reverbs.postProcessing`
-
-- **`attack`**
-  - EN: Attack:
-  - DE: Attack:
-  - [ ] OK    Fix: 
-
-- **`expander`**
-  - EN: Expander
-  - DE: Expander
-  - [ ] OK    Fix: 
-
-- **`expanderOff`**
-  - EN: Expander OFF
-  - DE: Expander AUS
-  - [ ] OK    Fix: 
-
-- **`expanderOn`**
-  - EN: Expander ON
-  - DE: Expander EIN
-  - [ ] OK    Fix: 
-
-- **`ratio`**
-  - EN: Ratio:
-  - DE: Verhältnis:
-  - [ ] OK    Fix: 
-
-- **`release`**
-  - EN: Release:
-  - DE: Release:
-  - [ ] OK    Fix: 
-
-- **`threshold`**
-  - EN: Threshold:
-  - DE: Schwelle:
-  - [ ] OK    Fix: 
-
-## `reverbs.preProcessing`
-
-- **`attack`**
-  - EN: Attack:
-  - DE: Attack:
-  - [ ] OK    Fix: 
-
-- **`compressor`**
-  - EN: Compressor
-  - DE: Kompressor
-  - [ ] OK    Fix: 
-
-- **`compressorOff`**
-  - EN: Compressor OFF
-  - DE: Kompressor AUS
-  - [ ] OK    Fix: 
-
-- **`compressorOn`**
-  - EN: Compressor ON
-  - DE: Kompressor EIN
-  - [ ] OK    Fix: 
-
-- **`ratio`**
-  - EN: Ratio:
-  - DE: Verhältnis:
-  - [ ] OK    Fix: 
-
-- **`release`**
-  - EN: Release:
-  - DE: Release:
-  - [ ] OK    Fix: 
-
-- **`threshold`**
-  - EN: Threshold:
-  - DE: Schwelle:
-  - [ ] OK    Fix: 
-
-## `reverbs.sections`
-
-- **`reverbFeed`**
-  - EN: Reverb Feed
-  - DE: Hall-Send
-  - [ ] OK    Fix: 
-
-- **`reverbReturn`**
-  - EN: Reverb Return
-  - DE: Hall-Return
-  - [ ] OK    Fix: 
-
-## `reverbs.tabs`
-
-- **`algorithm`**
-  - EN: Algorithm
-  - DE: Algorithmus
-  - [ ] OK    Fix: 
-
-- **`channelParams`**
-  - EN: Channel Parameters
-  - DE: Kanalparameter
-  - [ ] OK    Fix: 
-
-- **`postProcessing`**
-  - EN: Post-Processing
-  - DE: Nachbearbeitung
-  - [ ] OK    Fix: 
-
-- **`preProcessing`**
-  - EN: Pre-Processing
-  - DE: Vorbearbeitung
-  - [ ] OK    Fix: 
-
-## `reverbs.toggles`
-
-- **`liveSourceOff`**
-  - EN: Live Source Atten OFF
-  - DE: Live-Quelle Dämpf. AUS
-  - [ ] OK    Fix: 
-
-- **`liveSourceOn`**
-  - EN: Live Source Atten ON
-  - DE: Live-Quelle Dämpf. EIN
-  - [ ] OK    Fix: 
-
-- **`minLatencyOff`**
-  - EN: Minimal Latency OFF
-  - DE: Minimale Latenz AUS
-  - [ ] OK    Fix: 
-
-- **`minLatencyOn`**
-  - EN: Minimal Latency ON
-  - DE: Minimale Latenz EIN
-  - [ ] OK    Fix: 
-
-## `sampler.buttons`
-
-- **`copy`**
-  - EN: Copy
-  - DE: Kopieren
-  - [ ] OK    Fix: 
-
-- **`copyCell`**
-  - EN: Copy Cell
-  - DE: Zelle kopieren
-  - [ ] OK    Fix: 
-
-- **`copySet`**
-  - EN: Copy Set
-  - DE: Set kopieren
-  - [ ] OK    Fix: 
-
-- **`export`**
-  - EN: Export
-  - DE: Exportieren
-  - [ ] OK    Fix: 
-
-- **`import`**
-  - EN: Import
-  - DE: Importieren
-  - [ ] OK    Fix: 
-
-- **`paste`**
-  - EN: Paste
-  - DE: Einfügen
-  - [ ] OK    Fix: 
-
-- **`pasteCell`**
-  - EN: Paste Cell
-  - DE: Zelle einfügen
-  - [ ] OK    Fix: 
-
-- **`pasteSet`**
-  - EN: Paste Set
-  - DE: Set einfügen
-  - [ ] OK    Fix: 
-
-## `sampler.cell`
-
-- **`attenuation`**
-  - EN: Attenuation (dB)
-  - DE: Dämpfung (dB)
-  - [ ] OK    Fix: 
-
-- **`clear`**
-  - EN: Clear
-  - DE: Löschen
-  - [ ] OK    Fix: 
-
-- **`inOut`**
-  - EN: In/Out (ms)
-  - DE: Ein/Aus (ms)
-  - [ ] OK    Fix: 
-
-- **`load`**
-  - EN: Load
-  - DE: Laden
-  - [ ] OK    Fix: 
-
-- **`loadTitle`**
-  - EN: Load Sample
-  - DE: Sample laden
-  - [ ] OK    Fix: 
-
-- **`offset`**
-  - EN: Offset (m)
-  - DE: Offset (m)
-  - [ ] OK    Fix: 
-
-- **`preview`**
-  - EN: Preview
-  - DE: Vorhören
-  - [ ] OK    Fix: 
-
-- **`previewStop`**
-  - EN: Stop
-  - DE: Stopp
+- **`guide`**
+  - EN: Select a cell on the grid to edit its properties.\nDouble-click to load a sample.\nUse Ctrl+Click to assign cells to the active set.
+  - DE: Wählen Sie eine Zelle im Raster aus, um ihre Eigenschaften zu bearbeiten.\nDoppelklicken Sie, um ein Sample zu laden.\nMit Strg+Klick können Sie Zellen dem aktiven Set zuweisen.
   - [ ] OK    Fix: 
 
 ## `sampler.grid`
 
 - **`help`**
-  - EN: Click = select
-Shift = multi
-Ctrl = set toggle
-DblClick = load
+  - EN: Click = select\nShift = multi\nCtrl = set toggle\nDblClick = load
   - DE: Klick=Auswahl | Shift=Mehrfach | Strg=Set umschalten | Doppelklick=Laden
-  - [ ] OK    Fix: 
-
-## `sampler.labels`
-
-- **`lightpadZone`**
-  - EN: Lightpad Zone
-  - DE: Lightpad-Zone
-  - [ ] OK    Fix: 
-
-- **`selectZone`**
-  - EN: Select Zone
-  - DE: Zone auswählen
-  - [ ] OK    Fix: 
-
-## `sampler.lightpadZone`
-
-- **`none`**
-  - EN: None
-  - DE: Keine
-  - [ ] OK    Fix: 
-
-## `sampler.press`
-
-- **`height`**
-  - EN: Height
-  - DE: Höhe
-  - [ ] OK    Fix: 
-
-- **`hf`**
-  - EN: HF Shelf
-  - DE: HF Shelf
-  - [ ] OK    Fix: 
-
-- **`level`**
-  - EN: Level
-  - DE: Pegel
-  - [ ] OK    Fix: 
-
-- **`xy`**
-  - EN: Position XY
-  - DE: Position XY
-  - [ ] OK    Fix: 
-
-## `sampler.remote`
-
-- **`gridLayout`**
-  - EN: Grid Layout
-  - DE: Raster-Layout
-  - [ ] OK    Fix: 
-
-## `sampler.section`
-
-- **`actions`**
-  - EN: ACTIONS
-  - DE: AKTIONEN
-  - [ ] OK    Fix: 
-
-- **`cell`**
-  - EN: CELL PROPERTIES
-  - DE: ZELLENEIGENSCHAFTEN
-  - [ ] OK    Fix: 
-
-- **`pressure`**
-  - EN: PRESSURE MAPPINGS
-  - DE: DRUCKZUWEISUNGEN
-  - [ ] OK    Fix: 
-
-- **`set`**
-  - EN: SET MANAGEMENT
-  - DE: SET-VERWALTUNG
-  - [ ] OK    Fix: 
-
-## `sampler.set`
-
-- **`copy`**
-  - EN: (copy)
-  - DE: (Kopie)
-  - [ ] OK    Fix: 
-
-- **`default`**
-  - EN: Set
-  - DE: Set
-  - [ ] OK    Fix: 
-
-- **`level`**
-  - EN: Level (dB)
-  - DE: Pegel (dB)
-  - [ ] OK    Fix: 
-
-- **`pos`**
-  - EN: Position (m)
-  - DE: Position (m)
-  - [ ] OK    Fix: 
-
-- **`rename`**
-  - EN: Rename
-  - DE: Umbenennen
-  - [ ] OK    Fix: 
-
-- **`roundRobin`**
-  - EN: Round-Robin
-  - DE: Round-Robin
-  - [ ] OK    Fix: 
-
-- **`sequential`**
-  - EN: Sequential
-  - DE: Sequenziell
   - [ ] OK    Fix: 
 
 ## `sampler.tooltips`
@@ -6762,14 +2921,14 @@ DblClick = load
   - DE: Druckrichtung umschalten: + = mehr Druck erhöht, - = verringert
   - [ ] OK    Fix: 
 
-- **`pressHeight`**
-  - EN: Map finger pressure to vertical position (Z)
-  - DE: Fingerdruck auf die vertikale Position (Z) mappen
-  - [ ] OK    Fix: 
-
 - **`pressHF`**
   - EN: Map finger pressure to high-frequency shelf attenuation
   - DE: Fingerdruck auf die High-Shelf-Dämpfung mappen
+  - [ ] OK    Fix: 
+
+- **`pressHeight`**
+  - EN: Map finger pressure to vertical position (Z)
+  - DE: Fingerdruck auf die vertikale Position (Z) mappen
   - [ ] OK    Fix: 
 
 - **`pressLevel`**
@@ -6807,523 +2966,6 @@ DblClick = load
   - DE: Basisposition in Metern festlegen (X, Y, Z)
   - [ ] OK    Fix: 
 
-## `sampler.zone`
-
-- **`remotePad`**
-  - EN: Pad {num}
-  - DE: Pad {num}
-  - [ ] OK    Fix: 
-
-- **`selectRemotePad`**
-  - EN: Select Remote Pad
-  - DE: Fern-Pad auswählen
-  - [ ] OK    Fix: 
-
-## `setAllInputs`
-
-- **`warning`**
-  - EN: Changes will apply to ALL inputs
-  - DE: Änderungen werden auf ALLE Eingänge angewendet
-  - [ ] OK    Fix: 
-
-- **`windowTitle`**
-  - EN: Set All Inputs
-  - DE: Alle Eingänge setzen
-  - [ ] OK    Fix: 
-
-## `setAllInputs.buttons`
-
-- **`all1d`**
-  - EN: All 1/d
-  - DE: Alle 1/d
-  - [ ] OK    Fix: 
-
-- **`allLog`**
-  - EN: All Log
-  - DE: Alle Log
-  - [ ] OK    Fix: 
-
-- **`closeWindow`**
-  - EN: CLOSE WINDOW
-  - DE: FENSTER SCHLIESSEN
-  - [ ] OK    Fix: 
-
-- **`flipXyzOff`**
-  - EN: Flip XYZ > OFF
-  - DE: XYZ spiegeln > AUS
-  - [ ] OK    Fix: 
-
-- **`resetDirectivity`**
-  - EN: Reset directivity
-  - DE: Richtcharakt. zurücksetzen
-  - [ ] OK    Fix: 
-
-- **`turnOffJitterLfo`**
-  - EN: Turn OFF jitter & LFO
-  - DE: Jitter & LFO AUS
-  - [ ] OK    Fix: 
-
-- **`turnOffLiveSource`**
-  - EN: Turn OFF Live source atten.
-  - DE: Live-Quelle Dämpf. AUS
-  - [ ] OK    Fix: 
-
-## `setAllInputs.coordinateModes`
-
-- **`rThetaPhi`**
-  - EN: r θ φ
-  - DE: r θ φ
-  - [ ] OK    Fix: 
-
-- **`rThetaZ`**
-  - EN: r θ Z
-  - DE: r θ Z
-  - [ ] OK    Fix: 
-
-- **`xyz`**
-  - EN: XYZ
-  - DE: XYZ
-  - [ ] OK    Fix: 
-
-## `setAllInputs.labels`
-
-- **`common`**
-  - EN: common
-  - DE: Gemeinsam
-  - [ ] OK    Fix: 
-
-- **`constraintPositions`**
-  - EN: Constraint positions:
-  - DE: Positionsbeschränkungen:
-  - [ ] OK    Fix: 
-
-- **`coordinateMode`**
-  - EN: Coordinate mode:
-  - DE: Koordinatenmodus:
-  - [ ] OK    Fix: 
-
-- **`dbPerMeter`**
-  - EN: dB/m
-  - DE: dB/m
-  - [ ] OK    Fix: 
-
-- **`distanceAttenuation`**
-  - EN: Distance attenuation
-  - DE: Entfernungsdämpfung
-  - [ ] OK    Fix: 
-
-- **`floorReflections`**
-  - EN: Floor Reflections:
-  - DE: Bodenreflexionen:
-  - [ ] OK    Fix: 
-
-- **`fringe`**
-  - EN: Fringe:
-  - DE: Randbereich:
-  - [ ] OK    Fix: 
-
-- **`heightFactor`**
-  - EN: Height factor:
-  - DE: Höhenfaktor:
-  - [ ] OK    Fix: 
-
-- **`minimalLatency`**
-  - EN: Minimal Latency:
-  - DE: Minimale Latenz:
-  - [ ] OK    Fix: 
-
-- **`muteMacros`**
-  - EN: Mute macros:
-  - DE: Stummsch.-Makros:
-  - [ ] OK    Fix: 
-
-- **`ratio`**
-  - EN: ratio
-  - DE: Verhältnis
-  - [ ] OK    Fix: 
-
-- **`sidelines`**
-  - EN: Sidelines:
-  - DE: Seitenlinien:
-  - [ ] OK    Fix: 
-
-## `snapshot`
-
-- **`qlabExportDone`**
-  - EN: QLab export complete: {count} cues created
-  - DE: QLab-Export abgeschlossen: {count} Cues erstellt
-  - [ ] OK    Fix: 
-
-- **`qlabExportStarted`**
-  - EN: Writing {count} cues to QLab...
-  - DE: {count} Cues werden an QLab gesendet...
-  - [ ] OK    Fix: 
-
-- **`qlabGroupName`**
-  - EN: Snapshot "{name}"
-  - DE: Snapshot „{name}"
-  - [ ] OK    Fix: 
-
-- **`qlabMemoText`**
-  - EN: Run either of the following cues to recall or update this snapshot
-  - DE: Einen der folgenden Cues starten, um diesen Snapshot zu laden oder zu aktualisieren
-  - [ ] OK    Fix: 
-
-- **`qlabNoTarget`**
-  - EN: No QLab target configured
-  - DE: Kein QLab-Ziel konfiguriert
-  - [ ] OK    Fix: 
-
-- **`qlabReloadName`**
-  - EN: Reload "{name}"
-  - DE: Laden "{name}"
-  - [ ] OK    Fix: 
-
-- **`qlabUpdateName`**
-  - EN: Update "{name}"
-  - DE: Aktualisieren "{name}"
-  - [ ] OK    Fix: 
-
-## `snapshotScope`
-
-- **`all`**
-  - EN: ALL
-  - DE: ALLE
-  - [ ] OK    Fix: 
-
-- **`applyScope`**
-  - EN: Apply scope:
-  - DE: Umfang anwenden:
-  - [ ] OK    Fix: 
-
-- **`autoPreselectModified`**
-  - EN: Auto-preselect modified parameters
-  - DE: Geänderte Parameter automatisch vorauswählen
-  - [ ] OK    Fix: 
-
-- **`title`**
-  - EN: Snapshot Scope: {name}
-  - DE: Snapshot-Umfang: {name}
-  - [ ] OK    Fix: 
-
-- **`whenRecalling`**
-  - EN: When Recalling
-  - DE: Beim Abrufen
-  - [ ] OK    Fix: 
-
-- **`whenSaving`**
-  - EN: When Saving
-  - DE: Beim Speichern
-  - [ ] OK    Fix: 
-
-- **`windowTitle`**
-  - EN: Input Snapshot Scope
-  - DE: Eingangs-Snapshot-Umfang
-  - [ ] OK    Fix: 
-
-- **`writeSnapshotLoadCue`**
-  - EN: Write Snapshot Load Cue to QLab
-  - DE: Snapshot-Lade-Cue in QLab schreiben
-  - [ ] OK    Fix: 
-
-- **`writeSnapshotLoadCueTooltip`**
-  - EN: Also create a QLab cue to load this snapshot via OSC
-  - DE: Zusätzlich einen QLab-Cue zum Laden dieses Snapshots via OSC erstellen
-  - [ ] OK    Fix: 
-
-- **`writeToQLab`**
-  - EN: Write to QLab
-  - DE: Zu QLab schreiben
-  - [ ] OK    Fix: 
-
-- **`writeToQLabTooltip`**
-  - EN: Export scope to QLab instead of saving to file
-  - DE: Scope nach QLab exportieren statt in Datei zu speichern
-  - [ ] OK    Fix: 
-
-## `snapshotScope.buttons`
-
-- **`cancel`**
-  - EN: Cancel
-  - DE: Abbrechen
-  - [ ] OK    Fix: 
-
-- **`clearChanges`**
-  - EN: Clear Changes
-  - DE: Änderungen löschen
-  - [ ] OK    Fix: 
-
-- **`ok`**
-  - EN: OK
-  - DE: OK
-  - [ ] OK    Fix: 
-
-- **`selectModified`**
-  - EN: Select Modified
-  - DE: Geänderte auswählen
-  - [ ] OK    Fix: 
-
-## `snapshotScope.sections`
-
-- **`attenuation`**
-  - EN: Attenuation
-  - DE: Dämpfung
-  - [ ] OK    Fix: 
-
-- **`automOtion`**
-  - EN: AutomOtion
-  - DE: AutomOtion
-  - [ ] OK    Fix: 
-
-- **`directivity`**
-  - EN: Directivity
-  - DE: Richtcharakteristik
-  - [ ] OK    Fix: 
-
-- **`hackoustics`**
-  - EN: Hackoustics
-  - DE: Hackoustik
-  - [ ] OK    Fix: 
-
-- **`input`**
-  - EN: Input
-  - DE: Eingang
-  - [ ] OK    Fix: 
-
-- **`lfo`**
-  - EN: LFO
-  - DE: LFO
-  - [ ] OK    Fix: 
-
-- **`liveSource`**
-  - EN: Live Source
-  - DE: Live-Quelle
-  - [ ] OK    Fix: 
-
-- **`mutes`**
-  - EN: Mutes
-  - DE: Stummschaltungen
-  - [ ] OK    Fix: 
-
-- **`position`**
-  - EN: Position
-  - DE: Position
-  - [ ] OK    Fix: 
-
-## `statusBar`
-
-- **`displayLabel`**
-  - EN: Display:
-  - DE: Anzeige:
-  - [ ] OK    Fix: 
-
-- **`helpMode`**
-  - EN: Help
-  - DE: Hilfe
-  - [ ] OK    Fix: 
-
-- **`oscMode`**
-  - EN: OSC
-  - DE: OSC
-  - [ ] OK    Fix: 
-
-## `systemConfig.algorithms`
-
-- **`inputBuffer`**
-  - EN: InputBuffer (read-time delays)
-  - DE: InputBuffer (Lesezeitverzögerungen)
-  - [ ] OK    Fix: 
-
-- **`outputBuffer`**
-  - EN: OutputBuffer (write-time delays)
-  - DE: OutputBuffer (Schreibzeitverzögerungen)
-  - [ ] OK    Fix: 
-
-## `systemConfig.binauralOutput`
-
-- **`select`**
-  - EN: Select...
-  - DE: Auswählen...
-  - [ ] OK    Fix: 
-
-## `systemConfig.buttons`
-
-- **`audioPatch`**
-  - EN: Audio Interface and Patching Window
-  - DE: Audio-Interface und Patch-Fenster
-  - [ ] OK    Fix: 
-
-- **`binauralOff`**
-  - EN: Binaural: OFF
-  - DE: Binaural: AUS
-  - [ ] OK    Fix: 
-
-- **`binauralOn`**
-  - EN: Binaural: ON
-  - DE: Binaural: EIN
-  - [ ] OK    Fix: 
-
-- **`clearSolo`**
-  - EN: Clear Solo
-  - DE: Clear Solo
-  - [ ] OK    Fix: 
-
-- **`copySystemInfo`**
-  - EN: Copy System Info
-  - DE: Systeminfo kopieren
-  - [ ] OK    Fix: 
-
-- **`diagnosticsCollapsed`**
-  - EN: Diagnostics  [+]
-  - DE: Diagnose  [+]
-  - [ ] OK    Fix: 
-
-- **`diagnosticsExpanded`**
-  - EN: Diagnostics  [-]
-  - DE: Diagnose  [-]
-  - [ ] OK    Fix: 
-
-- **`exportLogs`**
-  - EN: Export Logs
-  - DE: Protokolle exportieren
-  - [ ] OK    Fix: 
-
-- **`exportSystem`**
-  - EN: Export System Configuration
-  - DE: Systemkonfiguration exportieren
-  - [ ] OK    Fix: 
-
-- **`importSystem`**
-  - EN: Import System Configuration
-  - DE: Systemkonfiguration importieren
-  - [ ] OK    Fix: 
-
-- **`levelMeter`**
-  - EN: Level Meters
-  - DE: Level Meters
-  - [ ] OK    Fix: 
-
-- **`openLogFolder`**
-  - EN: Open Log Folder
-  - DE: Protokollordner öffnen
-  - [ ] OK    Fix: 
-
-- **`processingOff`**
-  - EN: Processing: OFF
-  - DE: Verarbeitung: AUS
-  - [ ] OK    Fix: 
-
-- **`processingOn`**
-  - EN: Processing: ON
-  - DE: Verarbeitung: EIN
-  - [ ] OK    Fix: 
-
-- **`quickLongPressOff`**
-  - EN: Normal
-  - DE: Normal
-  - [ ] OK    Fix: 
-
-- **`quickLongPressOn`**
-  - EN: Quick
-  - DE: Schnell
-  - [ ] OK    Fix: 
-
-- **`reloadComplete`**
-  - EN: Reload Complete Configuration
-  - DE: Gesamtkonfiguration neu laden
-  - [ ] OK    Fix: 
-
-- **`reloadCompleteBackup`**
-  - EN: Reload Complete Config. Backup
-  - DE: Gesamtkonf. aus Backup laden
-  - [ ] OK    Fix: 
-
-- **`reloadSystem`**
-  - EN: Reload System Configuration
-  - DE: Systemkonfiguration neu laden
-  - [ ] OK    Fix: 
-
-- **`reloadSystemBackup`**
-  - EN: Reload System Config. Backup
-  - DE: Systemkonf. aus Backup laden
-  - [ ] OK    Fix: 
-
-- **`reportIssue`**
-  - EN: Report Issue
-  - DE: Problem melden
-  - [ ] OK    Fix: 
-
-- **`selectProjectFolder`**
-  - EN: Select Project Folder
-  - DE: Projektordner auswählen
-  - [ ] OK    Fix: 
-
-- **`setup`**
-  - EN: Setup
-  - DE: Einr.
-  - [ ] OK    Fix: 
-
-- **`soloModeMulti`**
-  - EN: Solo: Multi
-  - DE: Solo: Mehrfach
-  - [ ] OK    Fix: 
-
-- **`soloModeSingle`**
-  - EN: Solo: Single
-  - DE: Solo: Einzeln
-  - [ ] OK    Fix: 
-
-- **`storeComplete`**
-  - EN: Store Complete Configuration
-  - DE: Gesamtkonfiguration speichern
-  - [ ] OK    Fix: 
-
-- **`storeSystem`**
-  - EN: Store System Configuration
-  - DE: Systemkonfiguration speichern
-  - [ ] OK    Fix: 
-
-## `systemConfig.colorSchemes`
-
-- **`black`**
-  - EN: Black
-  - DE: Schwarz
-  - [ ] OK    Fix: 
-
-- **`default`**
-  - EN: Default (Dark Gray)
-  - DE: Standard (Dunkelgrau)
-  - [ ] OK    Fix: 
-
-- **`light`**
-  - EN: Light
-  - DE: Hell
-  - [ ] OK    Fix: 
-
-## `systemConfig.controller`
-
-- **`lightpad`**
-  - EN: Lightpad
-  - DE: Lightpad
-  - [ ] OK    Fix: 
-
-- **`off`**
-  - EN: Off
-  - DE: Aus
-  - [ ] OK    Fix: 
-
-- **`remote`**
-  - EN: Remote
-  - DE: Fernbedienung
-  - [ ] OK    Fix: 
-
-## `systemConfig.devices`
-
-- **`off`**
-  - EN: Off
-  - DE: Aus
-  - [ ] OK    Fix: 
-
 ## `systemConfig.dialogs`
 
 - **`exportSystemConfig`**
@@ -7342,45 +2984,33 @@ DblClick = load
   - [ ] OK    Fix: 
 
 - **`reduceInputChannels.message`**
-  - EN: Reducing from {current} to {new} input channels will remove settings for channels {start} to {end}.
-
-This cannot be undone.
-  - DE: Reduzierung von {current} auf {new} Eingangskanäle entfernt die Einstellungen für Kanäle {start} bis {end}.
-
-Dies kann nicht rückgängig gemacht werden.
+  - EN: Reducing from {current} to {new} input channels will remove settings for channels {start} to {end}.\n\nThis cannot be undone.
+  - DE: Reduzierung von {current} auf {new} Eingangskanäle entfernt die Einstellungen für Kanäle {start} bis {end}.\n\nDies kann nicht rückgängig gemacht werden.
   - [ ] OK    Fix: 
 
 - **`reduceInputChannels.title`**
   - EN: Reduce Input Channels?
-  - DE: Eingangskanäle reduzieren?
+  - DE: Input Channels reduzieren?
   - [ ] OK    Fix: 
 
 - **`reduceOutputChannels.message`**
-  - EN: Reducing from {current} to {new} output channels will remove settings for channels {start} to {end}.
-
-This cannot be undone.
-  - DE: Reduzierung von {current} auf {new} Ausgangskanäle entfernt die Einstellungen für Kanäle {start} bis {end}.
-
-Dies kann nicht rückgängig gemacht werden.
+  - EN: Reducing from {current} to {new} output channels will remove settings for channels {start} to {end}.\n\nThis cannot be undone.
+  - DE: Reduzierung von {current} auf {new} Ausgangskanäle entfernt die Einstellungen für Kanäle {start} bis {end}.\n\nDies kann nicht rückgängig gemacht werden.
   - [ ] OK    Fix: 
 
 - **`reduceOutputChannels.title`**
   - EN: Reduce Output Channels?
-  - DE: Ausgangskanäle reduzieren?
+  - DE: Output Channels reduzieren?
   - [ ] OK    Fix: 
 
 - **`reduceReverbChannels.message`**
-  - EN: Reducing from {current} to {new} reverb channels will remove settings for channels {start} to {end}.
-
-This cannot be undone.
-  - DE: Reduzierung von {current} auf {new} Hallkanäle entfernt die Einstellungen für Kanäle {start} bis {end}.
-
-Dies kann nicht rückgängig gemacht werden.
+  - EN: Reducing from {current} to {new} reverb channels will remove settings for channels {start} to {end}.\n\nThis cannot be undone.
+  - DE: Reduzierung von {current} auf {new} Hallkanäle entfernt die Einstellungen für Kanäle {start} bis {end}.\n\nDies kann nicht rückgängig gemacht werden.
   - [ ] OK    Fix: 
 
 - **`reduceReverbChannels.title`**
   - EN: Reduce Reverb Channels?
-  - DE: Hallkanäle reduzieren?
+  - DE: Reverb Channels reduzieren?
   - [ ] OK    Fix: 
 
 - **`selectProjectFolder`**
@@ -7430,6 +3060,11 @@ Dies kann nicht rückgängig gemacht werden.
   - DE: Wählen Sie das Ausgangskanalpaar für das binaurale Monitoring. Off deaktiviert die binaurale Ausgabe.
   - [ ] OK    Fix: 
 
+- **`clearSolo`**
+  - EN: Clear all input solo states.
+  - DE: Clear all input solo states.
+  - [ ] OK    Fix: 
+
 - **`colorScheme`**
   - EN: Select the color scheme: Default (dark gray), Black (pure black for OLED displays), or Light (daytime use).
   - DE: Wählen Sie das Farbschema: Standard (Dunkelgrau), Schwarz (für OLED-Displays) oder Hell (für Tageslicht).
@@ -7477,12 +3112,17 @@ Dies kann nicht rückgängig gemacht werden.
 
 - **`inputChannels`**
   - EN: Number of Input Channels.
-  - DE: Anzahl der Eingangskanäle.
+  - DE: Anzahl der Input Channels.
   - [ ] OK    Fix: 
 
 - **`language`**
   - EN: Select the user interface language. Changes take full effect after restarting the application.
   - DE: Wählen Sie die Sprache der Benutzeroberfläche. Änderungen werden nach Neustart der Anwendung vollständig wirksam.
+  - [ ] OK    Fix: 
+
+- **`levelMeter`**
+  - EN: Opens the Level Meter Window.
+  - DE: Opens the Level Meter Window.
   - [ ] OK    Fix: 
 
 - **`lightpadSetup`**
@@ -7492,7 +3132,7 @@ Dies kann nicht rückgängig gemacht werden.
 
 - **`masterLevel`**
   - EN: Master Level (affects all outputs).
-  - DE: Masterpegel (beeinflusst alle Ausgänge).
+  - DE: Master Level (beeinflusst alle Ausgänge).
   - [ ] OK    Fix: 
 
 - **`openLogFolder`**
@@ -7562,7 +3202,7 @@ Dies kann nicht rückgängig gemacht werden.
 
 - **`outputChannels`**
   - EN: Number of Output Channels.
-  - DE: Anzahl der Ausgangskanäle.
+  - DE: Anzahl der Output Channels.
   - [ ] OK    Fix: 
 
 - **`positionControl`**
@@ -7612,12 +3252,17 @@ Dies kann nicht rückgängig gemacht werden.
 
 - **`reverbChannels`**
   - EN: Number of Reverb Channels.
-  - DE: Anzahl der Hallkanäle.
+  - DE: Anzahl der Reverb Channels.
   - [ ] OK    Fix: 
 
 - **`sampler`**
   - EN: Enable or disable the Sampler feature for input channels.
   - DE: Aktivieren oder deaktivieren Sie die Sampler-Funktion für Eingangskanäle. Wählen Sie den Controller: Lightpad oder Fernbedienung.
+  - [ ] OK    Fix: 
+
+- **`screenReader`**
+  - EN: Enable or disable screen reader announcements. When enabled, parameter names and values are announced on hover, and help text is read after a few seconds.
+  - DE: Bildschirmleser-Ansagen aktivieren oder deaktivieren. Bei Aktivierung werden Parameternamen und -werte beim Überfahren angesagt, Hilfetexte nach einigen Sekunden vorgelesen.
   - [ ] OK    Fix: 
 
 - **`selectProjectFolder`**
@@ -7642,7 +3287,7 @@ Dies kann nicht rückgängig gemacht werden.
 
 - **`speedOfSound`**
   - EN: Speed of Sound (related to the temperature).
-  - DE: Schallgeschwindigkeit (abhängig von der Temperatur).
+  - DE: Speed of Sound (abhängig von der Temperatur).
   - [ ] OK    Fix: 
 
 - **`stageDepth`**
@@ -7702,189 +3347,7 @@ Dies kann nicht rückgängig gemacht werden.
 
 - **`temperature`**
   - EN: Temperature (gives the Speed of Sound).
-  - DE: Temperatur (bestimmt die Schallgeschwindigkeit).
-  - [ ] OK    Fix: 
-
-## `systemConfig.labels`
-
-- **`algorithm`**
-  - EN: Algorithm:
-  - DE: Algorithmus:
-  - [ ] OK    Fix: 
-
-- **`binauralAngle`**
-  - EN: Listener Angle:
-  - DE: Hörerwinkel:
-  - [ ] OK    Fix: 
-
-- **`binauralAtten`**
-  - EN: Binaural Level:
-  - DE: Binaural-Pegel:
-  - [ ] OK    Fix: 
-
-- **`binauralDelay`**
-  - EN: Binaural Delay:
-  - DE: Binaural-Verzögerung:
-  - [ ] OK    Fix: 
-
-- **`binauralDistance`**
-  - EN: Listener Distance:
-  - DE: Hörerabstand:
-  - [ ] OK    Fix: 
-
-- **`binauralOutput`**
-  - EN: Binaural Output:
-  - DE: Binaural-Ausgang:
-  - [ ] OK    Fix: 
-
-- **`clickToSplit`**
-  - EN: Click to split
-  - DE: Klicken zum Teilen
-  - [ ] OK    Fix: 
-
-- **`colorScheme`**
-  - EN: Color Scheme:
-  - DE: Farbschema:
-  - [ ] OK    Fix: 
-
-- **`dialsAndButtons`**
-  - EN: Dials and Buttons:
-  - DE: Drehregler und Tasten:
-  - [ ] OK    Fix: 
-
-- **`domeElevation`**
-  - EN: Elevation:
-  - DE: Kuppelwinkel:
-  - [ ] OK    Fix: 
-
-- **`haasEffect`**
-  - EN: Haas Effect:
-  - DE: Haas-Effekt:
-  - [ ] OK    Fix: 
-
-- **`inputChannels`**
-  - EN: Input Channels:
-  - DE: Eingangskanäle:
-  - [ ] OK    Fix: 
-
-- **`language`**
-  - EN: Language:
-  - DE: Sprache:
-  - [ ] OK    Fix: 
-
-- **`lightpadArrangement`**
-  - EN: Lightpad Arrangement
-  - DE: Lightpad-Anordnung
-  - [ ] OK    Fix: 
-
-- **`masterLevel`**
-  - EN: Master Level:
-  - DE: Masterpegel:
-  - [ ] OK    Fix: 
-
-- **`originDepth`**
-  - EN: Origin Depth:
-  - DE: Ursprung Tiefe:
-  - [ ] OK    Fix: 
-
-- **`originHeight`**
-  - EN: Origin Height:
-  - DE: Ursprung Höhe:
-  - [ ] OK    Fix: 
-
-- **`originWidth`**
-  - EN: Origin Width:
-  - DE: Ursprung Breite:
-  - [ ] OK    Fix: 
-
-- **`outputChannels`**
-  - EN: Output Channels:
-  - DE: Ausgangskanäle:
-  - [ ] OK    Fix: 
-
-- **`positionControl`**
-  - EN: Position Control:
-  - DE: Positionssteuerung:
-  - [ ] OK    Fix: 
-
-- **`quickLongPress`**
-  - EN: Long Press:
-  - DE: Langdruck:
-  - [ ] OK    Fix: 
-
-- **`reverbChannels`**
-  - EN: Reverb Channels:
-  - DE: Hallkanäle:
-  - [ ] OK    Fix: 
-
-- **`sampler`**
-  - EN: Sampler:
-  - DE: Sampler:
-  - [ ] OK    Fix: 
-
-- **`showLocation`**
-  - EN: Location:
-  - DE: Ort:
-  - [ ] OK    Fix: 
-
-- **`showName`**
-  - EN: Name:
-  - DE: Name:
-  - [ ] OK    Fix: 
-
-- **`speedOfSound`**
-  - EN: Speed of Sound:
-  - DE: Schallgeschwindigkeit:
-  - [ ] OK    Fix: 
-
-- **`split`**
-  - EN: Split
-  - DE: Teilen
-  - [ ] OK    Fix: 
-
-- **`stageDepth`**
-  - EN: Depth:
-  - DE: Tiefe:
-  - [ ] OK    Fix: 
-
-- **`stageDiameter`**
-  - EN: Diameter:
-  - DE: Durchmesser:
-  - [ ] OK    Fix: 
-
-- **`stageHeight`**
-  - EN: Height:
-  - DE: Höhe:
-  - [ ] OK    Fix: 
-
-- **`stageShape`**
-  - EN: Stage Shape:
-  - DE: Bühnenform:
-  - [ ] OK    Fix: 
-
-- **`stageWidth`**
-  - EN: Width:
-  - DE: Breite:
-  - [ ] OK    Fix: 
-
-- **`systemLatency`**
-  - EN: System Latency:
-  - DE: Systemlatenz:
-  - [ ] OK    Fix: 
-
-- **`temperature`**
-  - EN: Temperature:
-  - DE: Temperatur:
-  - [ ] OK    Fix: 
-
-- **`updateAvailable`**
-  - EN: Update {version} available
-  - DE: Update {version} verfügbar
-  - [ ] OK    Fix: 
-
-- **`version`**
-  - EN: Version {version}
-  - DE: Version {version}
+  - DE: Temperatur (bestimmt die Speed of Sound).
   - [ ] OK    Fix: 
 
 ## `systemConfig.messages`
@@ -7919,14 +3382,14 @@ Dies kann nicht rückgängig gemacht werden.
   - DE: Protokollverzeichnis nicht gefunden
   - [ ] OK    Fix: 
 
-- **`logsExported`**
-  - EN: Logs exported to {path}
-  - DE: Protokolle exportiert nach {path}
-  - [ ] OK    Fix: 
-
 - **`logsExportFailed`**
   - EN: Failed to export logs
   - DE: Protokollexport fehlgeschlagen
+  - [ ] OK    Fix: 
+
+- **`logsExported`**
+  - EN: Logs exported to {path}
+  - DE: Protokolle exportiert nach {path}
   - [ ] OK    Fix: 
 
 - **`noBackupFilesFound`**
@@ -7997,314 +3460,4 @@ Dies kann nicht rückgängig gemacht werden.
 - **`systemInfoCopied`**
   - EN: System info copied to clipboard
   - DE: Systeminfo in die Zwischenablage kopiert
-  - [ ] OK    Fix: 
-
-## `systemConfig.sections`
-
-- **`binauralRenderer`**
-  - EN: Binaural Renderer
-  - DE: Binaural-Renderer
-  - [ ] OK    Fix: 
-
-- **`controllers`**
-  - EN: Controllers
-  - DE: Controllers
-  - [ ] OK    Fix: 
-
-- **`io`**
-  - EN: I/O
-  - DE: E/A
-  - [ ] OK    Fix: 
-
-- **`master`**
-  - EN: Master Section
-  - DE: Masterbereich
-  - [ ] OK    Fix: 
-
-- **`show`**
-  - EN: Show
-  - DE: Show
-  - [ ] OK    Fix: 
-
-- **`stage`**
-  - EN: Stage
-  - DE: Bühne
-  - [ ] OK    Fix: 
-
-- **`ui`**
-  - EN: UI
-  - DE: Oberfläche
-  - [ ] OK    Fix: 
-
-- **`wfsProcessor`**
-  - EN: WFS Processor
-  - DE: WFS-Prozessor
-  - [ ] OK    Fix: 
-
-## `systemConfig.stageShapes`
-
-- **`box`**
-  - EN: Box
-  - DE: Quader
-  - [ ] OK    Fix: 
-
-- **`cylinder`**
-  - EN: Cylinder
-  - DE: Zylinder
-  - [ ] OK    Fix: 
-
-- **`dome`**
-  - EN: Dome
-  - DE: Kuppel
-  - [ ] OK    Fix: 
-
-## `tabs`
-
-- **`clusters`**
-  - EN: Clusters
-  - DE: Cluster
-  - [ ] OK    Fix: 
-
-- **`inputs`**
-  - EN: Inputs
-  - DE: Eingänge
-  - [ ] OK    Fix: 
-
-- **`map`**
-  - EN: Map
-  - DE: Karte
-  - [ ] OK    Fix: 
-
-- **`network`**
-  - EN: Network
-  - DE: Netzwerk
-  - [ ] OK    Fix: 
-
-- **`outputs`**
-  - EN: Outputs
-  - DE: Ausgänge
-  - [ ] OK    Fix: 
-
-- **`reverb`**
-  - EN: Reverb
-  - DE: Hall
-  - [ ] OK    Fix: 
-
-- **`systemConfig`**
-  - EN: System Config
-  - DE: Systemkonfiguration
-  - [ ] OK    Fix: 
-
-## `touchscreens`
-
-- **`button`**
-  - EN: Setup
-  - DE: Einrichten
-  - [ ] OK    Fix: 
-
-- **`label`**
-  - EN: Touchscreen
-  - DE: Touchscreen
-  - [ ] OK    Fix: 
-
-## `units`
-
-- **`celsius`**
-  - EN: °C
-  - DE: °C
-  - [ ] OK    Fix: 
-
-- **`decibelPerMeter`**
-  - EN: dB/m
-  - DE: dB/m
-  - [ ] OK    Fix: 
-
-- **`decibels`**
-  - EN: dB
-  - DE: dB
-  - [ ] OK    Fix: 
-
-- **`degrees`**
-  - EN: °
-  - DE: °
-  - [ ] OK    Fix: 
-
-- **`meters`**
-  - EN: m
-  - DE: m
-  - [ ] OK    Fix: 
-
-- **`metersPerSecond`**
-  - EN: m/s
-  - DE: m/s
-  - [ ] OK    Fix: 
-
-- **`milliseconds`**
-  - EN: ms
-  - DE: ms
-  - [ ] OK    Fix: 
-
-## `wizard.buttons`
-
-- **`back`**
-  - EN: Back
-  - DE: Zurück
-  - [ ] OK    Fix: 
-
-- **`close`**
-  - EN: Close
-  - DE: Schließen
-  - [ ] OK    Fix: 
-
-- **`done`**
-  - EN: Done
-  - DE: Fertig
-  - [ ] OK    Fix: 
-
-- **`gettingStarted`**
-  - EN: Getting Started
-  - DE: Erste Schritte
-  - [ ] OK    Fix: 
-
-- **`gettingStartedHelp`**
-  - EN: Help cards guiding you through the first parameters to adjust when starting a new project
-  - DE: Hilfekarten, die Sie durch die ersten Parameter führen, die beim Start eines neuen Projekts eingestellt werden müssen
-  - [ ] OK    Fix: 
-
-- **`next`**
-  - EN: Next
-  - DE: Weiter
-  - [ ] OK    Fix: 
-
-- **`skip`**
-  - EN: Skip
-  - DE: Überspringen
-  - [ ] OK    Fix: 
-
-## `wizard.steps`
-
-- **`audioDevice.description`**
-  - EN: Select your audio driver and device, set the sample rate and buffer size. Check the patch routing and test your outputs. Close this window when done.
-  - DE: Wählen Sie Ihren Audiotreiber und Ihr Gerät, stellen Sie Abtastrate und Puffergröße ein. Überprüfen Sie das Routing und testen Sie Ihre Ausgänge. Schließen Sie dieses Fenster, wenn Sie fertig sind.
-  - [ ] OK    Fix: 
-
-- **`audioDevice.title`**
-  - EN: Configure the Audio Interface
-  - DE: Audio-Interface konfigurieren
-  - [ ] OK    Fix: 
-
-- **`audioInterface.description`**
-  - EN: Click the button above or press Next to open the Audio Interface window.
-  - DE: Klicken Sie auf die Schaltfläche oben oder drücken Sie Weiter, um das Audio-Interface-Fenster zu öffnen.
-  - [ ] OK    Fix: 
-
-- **`audioInterface.title`**
-  - EN: Open the Audio Interface
-  - DE: Audio-Interface öffnen
-  - [ ] OK    Fix: 
-
-- **`configureOutputs.description`**
-  - EN: Use the array presets and geometry tools to calculate speaker positions for your arrays. Close this window when done.
-  - DE: Verwenden Sie die Array-Presets und Geometrie-Tools, um Lautsprecherpositionen zu berechnen. Schließen Sie dieses Fenster, wenn Sie fertig sind.
-  - [ ] OK    Fix: 
-
-- **`configureOutputs.title`**
-  - EN: Configure Output Positions
-  - DE: Ausgangspositionen konfigurieren
-  - [ ] OK    Fix: 
-
-- **`exploreInputs.description`**
-  - EN: Click an input on the map to select it, or lasso several to move them together. Drag to position your sources. Zoom with the mouse wheel or pinch gesture, pan with right-drag or two-finger drag. Add inputs, group them into clusters, and shape your sound field. You can also control positions with a keyboard, SpaceMouse, or other external controllers. Have fun!
-  - DE: Klicken Sie auf einen Eingang auf der Karte, um ihn auszuwählen, oder verwenden Sie das Lasso für mehrere. Ziehen Sie, um Ihre Quellen zu positionieren. Zoomen Sie mit dem Mausrad oder Pinch-Geste, verschieben Sie die Ansicht mit Rechtsklick oder Zwei-Finger-Geste. Fügen Sie Eingänge hinzu, gruppieren Sie sie in Cluster und gestalten Sie Ihr Klangfeld. Sie können Positionen auch mit Tastatur, SpaceMouse oder anderen Controllern steuern. Viel Spaß!
-  - [ ] OK    Fix: 
-
-- **`exploreInputs.title`**
-  - EN: Start Creating!
-  - DE: Loslegen!
-  - [ ] OK    Fix: 
-
-- **`inputChannels.description`**
-  - EN: How many audio sources will you be spatializing?
-Set the number of input channels to match your source count.
-  - DE: Wie viele Audioquellen werden Sie räumlich darstellen?
-Stellen Sie die Anzahl der Eingangskanäle entsprechend ein.
-  - [ ] OK    Fix: 
-
-- **`inputChannels.title`**
-  - EN: Set Input Channels
-  - DE: Eingangskanäle festlegen
-  - [ ] OK    Fix: 
-
-- **`originPoint.description`**
-  - EN: The origin is the reference point for all coordinates. Use the preset buttons or enter custom values. 'Front' places it at the audience edge.
-  - DE: Der Ursprung ist der Referenzpunkt für alle Koordinaten. Verwenden Sie die Preset-Buttons oder geben Sie eigene Werte ein. 'Front' platziert ihn am Publikumsrand.
-  - [ ] OK    Fix: 
-
-- **`originPoint.title`**
-  - EN: Set the Origin Point
-  - DE: Ursprungspunkt festlegen
-  - [ ] OK    Fix: 
-
-- **`outputChannels.description`**
-  - EN: Set the number of output channels to match your speaker array.
-Each output corresponds to one physical speaker.
-  - DE: Stellen Sie die Anzahl der Ausgangskanäle passend zu Ihrem Lautsprecher-Array ein.
-Jeder Ausgang entspricht einem physischen Lautsprecher.
-  - [ ] OK    Fix: 
-
-- **`outputChannels.title`**
-  - EN: Set Output Channels
-  - DE: Ausgangskanäle festlegen
-  - [ ] OK    Fix: 
-
-- **`projectFolder.description`**
-  - EN: Choose a folder to store your WFS project files. This will hold configurations, snapshots, IR files, and samples. Click the button to open the folder selector.
-  - DE: Wählen Sie einen Ordner für Ihre WFS-Projektdateien. Hier werden Konfigurationen, Snapshots, IR-Dateien und Samples gespeichert. Klicken Sie auf die Schaltfläche, um den Ordner auszuwählen.
-  - [ ] OK    Fix: 
-
-- **`projectFolder.title`**
-  - EN: Select a Project Folder
-  - DE: Projektordner auswählen
-  - [ ] OK    Fix: 
-
-- **`reverbChannels.description`**
-  - EN: Reverb channels add room simulation. Set to 0 if you don't need reverb.
-  - DE: Hallkanäle fügen eine Raumsimulation hinzu. Setzen Sie 0, wenn Sie keinen Hall benötigen.
-  - [ ] OK    Fix: 
-
-- **`reverbChannels.title`**
-  - EN: Set Reverb Channels
-  - DE: Hallkanäle festlegen
-  - [ ] OK    Fix: 
-
-- **`stageConfig.description`**
-  - EN: Set the shape and dimensions of your performance space. Choose box, cylinder, or dome, then enter the size in meters.
-  - DE: Legen Sie Form und Abmessungen Ihres Aufführungsraums fest. Wählen Sie Box, Zylinder oder Kuppel und geben Sie die Maße in Metern ein.
-  - [ ] OK    Fix: 
-
-- **`stageConfig.title`**
-  - EN: Define the Stage
-  - DE: Bühne definieren
-  - [ ] OK    Fix: 
-
-- **`startProcessing.description`**
-  - EN: You're all set! Long-press the Processing button to start the WFS engine. You can also start the Binaural Renderer for headphone monitoring.
-  - DE: Alles bereit! Halten Sie den Processing-Button gedrückt, um die WFS-Engine zu starten. Sie können auch den Binaural-Renderer für Kopfhörer-Monitoring starten.
-  - [ ] OK    Fix: 
-
-- **`startProcessing.title`**
-  - EN: Start the WFS Engine
-  - DE: WFS-Engine starten
-  - [ ] OK    Fix: 
-
-- **`wizardOfOutZ.description`**
-  - EN: Click the Wizard of OutZ button or press Next to open the output array helper.
-  - DE: Klicken Sie auf den Wizard of OutZ Button oder drücken Sie Weiter, um den Positionierungsassistenten zu öffnen.
-  - [ ] OK    Fix: 
-
-- **`wizardOfOutZ.title`**
-  - EN: Position Your Outputs
-  - DE: Ausgänge positionieren
-  - [ ] OK    Fix: 
-
-
+  - [ ] OK    Fix:

@@ -1,145 +1,21 @@
 # Proofreading checklist — Korean (한국어)
 
-Locale: `ko`  |  Total keys: 1520  |  Source: `Resources/lang/en.json` vs `Resources/lang/ko.json`
+Locale: `ko`  |  Total keys: 663  |  Source: `Resources/lang/en.json` vs `Resources/lang/ko.json`
 
 ## How to use this file
+
+This checklist covers the **translated prose only** — help text, tooltips, status / dialog messages, and dialog / help-card titles. UI control labels, buttons, section and tab names, and technical / domain terms are **intentionally English in every language** (the app overlays each locale on an English base, so any key not translated here simply shows English). They are not listed and need no review.
 
 Walk through each section. For every entry:
 - If the translation reads naturally and matches the meaning of the English source, leave the `[ ]` checkbox blank or mark `[x] OK`.
 - If the translation is wrong, awkward, or has a typo, write the corrected text under `Fix:`.
-- If the translation is **identical to English**, that may be intentional: loanwords (Sampler, Tracking, Pre, Post, ON/OFF, LFO, HF, EQ, AI), proper nouns (QLab, Lightpad, Stream Deck, ADM-OSC, MQTT), technical terms (OSC Path:, Localhost), short tokens that match across languages (German System, Spanish Error). Mark `[x] OK` to confirm intent, or write `Fix:` if it should be translated.
+- **Control and parameter names appear in English inside the translated text on purpose** (e.g. fr `Nombre de Reverb Channels.`, ja `Reverb Channels数。`), so the help matches the English labels on screen. Do **not** translate these back — leave them in English.
+- If a whole entry is **identical to English**, that may be intentional: loanwords (Sampler, Tracking, Pre, Post, ON/OFF, LFO, HF, EQ, AI), proper nouns (QLab, Lightpad, Stream Deck, ADM-OSC, MQTT), technical terms (OSC Path:, Localhost). Mark `[x] OK` to confirm intent, or write `Fix:` if it should be translated.
+- `(missing — falls back to English)` means the key is untranslated and currently shows English in the UI; write the correct translation under `Fix:`.
 - Curly braces `{name}`, `{num}`, `{path}` etc. are runtime placeholders; keep them in the translation.
 - `\n` in the value is a literal newline in the rendered UI; preserve it.
 
 ---
-
-## `ai.history`
-
-- **`applied`**
-  - EN: applied
-  - KO: 적용됨
-  - [ ] OK    Fix: 
-
-- **`atHead`**
-  - EN: (no undone records — at the head)
-  - KO: (실행 취소된 기록 없음 — 맨 앞)
-  - [ ] OK    Fix: 
-
-- **`batch`**
-  - EN: batch {id}
-  - KO: 배치 {id}
-  - [ ] OK    Fix: 
-
-- **`cursorLabel`**
-  - EN: ◂  cursor (↑ applied  /  ↓ undone, redoable)
-  - KO: ◂  커서 (↑ 적용됨  /  ↓ 실행 취소됨, 재실행 가능)
-  - [ ] OK    Fix: 
-
-- **`noChanges`**
-  - EN: No AI changes yet.
-  - KO: 아직 AI 변경 사항이 없습니다.
-  - [ ] OK    Fix: 
-
-- **`of`**
-  - EN: of
-  - KO: /
-  - [ ] OK    Fix: 
-
-- **`stepBack`**
-  - EN: ⏮ Step Back
-  - KO: ⏮ 뒤로
-  - [ ] OK    Fix: 
-
-- **`stepForward`**
-  - EN: Step Forward ⏭
-  - KO: 앞으로 ⏭
-  - [ ] OK    Fix: 
-
-- **`undone`**
-  - EN: undone
-  - KO: 실행 취소됨
-  - [ ] OK    Fix: 
-
-- **`windowTitle`**
-  - EN: AI Change History
-  - KO: AI 변경 기록
-  - [ ] OK    Fix: 
-
-## `ai.server`
-
-- **`copyUrlConfirm`**
-  - EN: MCP URL copied to clipboard: {url}
-  - KO: MCP URL이 클립보드에 복사되었습니다: {url}
-  - [ ] OK    Fix: 
-
-- **`label`**
-  - EN: MCP Server:
-  - KO: MCP 서버:
-  - [ ] OK    Fix: 
-
-- **`openHistory`**
-  - EN: Open AI History
-  - KO: AI 기록 열기
-  - [ ] OK    Fix: 
-
-- **`urlButtonRunning`**
-  - EN: http://{host}:{port}/mcp
-  - KO: http://{host}:{port}/mcp
-  - [ ] OK    Fix: 
-
-- **`urlButtonStopped`**
-  - EN: (server not running)
-  - KO: (서버 미실행)
-  - [ ] OK    Fix: 
-
-## `ai.tier`
-
-- **`aiOff`**
-  - EN: AI: OFF
-  - KO: AI: OFF
-  - [ ] OK    Fix: 
-
-- **`aiOn`**
-  - EN: AI: ON
-  - KO: AI: ON
-  - [ ] OK    Fix: 
-
-- **`gateAllowed`**
-  - EN: AI critical actions: ALLOWED
-  - KO: AI 중요 동작: 허용됨
-  - [ ] OK    Fix: 
-
-- **`gateBlocked`**
-  - EN: AI critical actions: blocked
-  - KO: AI 중요 동작: 차단됨
-  - [ ] OK    Fix: 
-
-- **`tier2AutoOff`**
-  - EN: Tier 2 auto-confirm: off
-  - KO: 티어 2 자동 확인: 끔
-  - [ ] OK    Fix: 
-
-- **`tier2AutoOn`**
-  - EN: Tier 2 auto-confirm: ON (5 min)
-  - KO: 티어 2 자동 확인: ON (5분)
-  - [ ] OK    Fix: 
-
-## `ai.toast`
-
-- **`clientPrefix`**
-  - EN: Claude
-  - KO: Claude
-  - [ ] OK    Fix: 
-
-- **`header`**
-  - EN: AI changes
-  - KO: AI 변경
-  - [ ] OK    Fix: 
-
-- **`moreOlder`**
-  - EN: …and {count} older
-  - KO: …그리고 이전 {count}개
-  - [ ] OK    Fix: 
 
 ## `ai.tooltips`
 
@@ -163,287 +39,6 @@ Walk through each section. For every entry:
   - KO: MCP 서버 URL을 복사하려면 클릭하세요. Claude Code (claude mcp add wfs-diy <URL> -t http) 또는 URL을 받는 모든 MCP 클라이언트에 유용합니다. Claude Desktop은 대신 JSON 구성 스니펫을 사용합니다 — (?) 도움말 카드를 여세요.
   - [ ] OK    Fix: 
 
-## `ai.undo`
-
-- **`errorPrefix`**
-  - EN: AI {verb}: {message}
-  - KO: AI {verb}: {message}
-  - [ ] OK    Fix: 
-
-- **`successPrefix`**
-  - EN: AI {verb}: {description}
-  - KO: AI {verb}: {description}
-  - [ ] OK    Fix: 
-
-- **`verbRedo`**
-  - EN: redo
-  - KO: 다시 실행
-  - [ ] OK    Fix: 
-
-- **`verbUndo`**
-  - EN: undo
-  - KO: 실행 취소
-  - [ ] OK    Fix: 
-
-## `arrayHelper.acoustic`
-
-- **`distanceAtten`**
-  - EN: Distance Atten (%):
-  - KO: 거리 감쇠 (%):
-  - [ ] OK    Fix: 
-
-- **`floorReflections`**
-  - EN: Floor Reflections
-  - KO: 바닥 반사
-  - [ ] OK    Fix: 
-
-- **`hfDamping`**
-  - EN: HF Damping (dB/m):
-  - KO: 고주파 감쇠 (dB/m):
-  - [ ] OK    Fix: 
-
-- **`highCut`**
-  - EN: High Cut (Hz):
-  - KO: 하이 컷 (Hz):
-  - [ ] OK    Fix: 
-
-- **`hParallax`**
-  - EN: H Parallax (m):
-  - KO: 수평 시차 (m):
-  - [ ] OK    Fix: 
-
-- **`liveSource`**
-  - EN: Live Source
-  - KO: 라이브 소스
-  - [ ] OK    Fix: 
-
-- **`lowCut`**
-  - EN: Low Cut (Hz):
-  - KO: 로우 컷 (Hz):
-  - [ ] OK    Fix: 
-
-- **`vParallax`**
-  - EN: V Parallax (m):
-  - KO: 수직 시차 (m):
-  - [ ] OK    Fix: 
-
-## `arrayHelper.buttons`
-
-- **`apply`**
-  - EN: Apply
-  - KO: 적용
-  - [ ] OK    Fix: 
-
-- **`close`**
-  - EN: Close
-  - KO: 닫기
-  - [ ] OK    Fix: 
-
-## `arrayHelper.errors`
-
-- **`noPositions`**
-  - EN: No positions to apply. Check geometry parameters.
-  - KO: 적용할 위치가 없습니다. 기하 매개변수를 확인하세요.
-  - [ ] OK    Fix: 
-
-- **`notEnoughOutputs`**
-  - EN: Not enough output channels! Need {count} starting from {start}
-  - KO: 출력 채널이 부족합니다! {start}부터 {count}개가 필요합니다
-  - [ ] OK    Fix: 
-
-- **`prefix`**
-  - EN: Error: 
-  - KO: 오류: 
-  - [ ] OK    Fix: 
-
-- **`speakerCountZero`**
-  - EN: Number of speakers must be greater than 0
-  - KO: 스피커 수는 0보다 커야 합니다
-  - [ ] OK    Fix: 
-
-## `arrayHelper.geometry`
-
-- **`backFacing`**
-  - EN: Back Facing
-  - KO: 뒤쪽 방향
-  - [ ] OK    Fix: 
-
-- **`centerSpacing`**
-  - EN: Center + Spacing
-  - KO: 중심 + 간격
-  - [ ] OK    Fix: 
-
-- **`centerX`**
-  - EN: Center X (m):
-  - KO: 중심 X (m):
-  - [ ] OK    Fix: 
-
-- **`centerY`**
-  - EN: Center Y (m):
-  - KO: 중심 Y (m):
-  - [ ] OK    Fix: 
-
-- **`endpoints`**
-  - EN: Endpoints
-  - KO: 끝점
-  - [ ] OK    Fix: 
-
-- **`endX`**
-  - EN: End X (m):
-  - KO: 끝 X (m):
-  - [ ] OK    Fix: 
-
-- **`endY`**
-  - EN: End Y (m):
-  - KO: 끝 Y (m):
-  - [ ] OK    Fix: 
-
-- **`facingInward`**
-  - EN: Facing Inward
-  - KO: 안쪽 방향
-  - [ ] OK    Fix: 
-
-- **`facingOutward`**
-  - EN: Facing Outward
-  - KO: 바깥쪽 방향
-  - [ ] OK    Fix: 
-
-- **`frontFacing`**
-  - EN: Front Facing
-  - KO: 앞쪽 방향
-  - [ ] OK    Fix: 
-
-- **`nPairs`**
-  - EN: N Pairs:
-  - KO: 쌍 수:
-  - [ ] OK    Fix: 
-
-- **`nSpeakers`**
-  - EN: N Speakers:
-  - KO: 스피커 수:
-  - [ ] OK    Fix: 
-
-- **`orientation`**
-  - EN: Orientation (deg):
-  - KO: 방향 (도):
-  - [ ] OK    Fix: 
-
-- **`radius`**
-  - EN: Radius (m):
-  - KO: 반지름 (m):
-  - [ ] OK    Fix: 
-
-- **`sag`**
-  - EN: Sag (m):
-  - KO: 처짐 (m):
-  - [ ] OK    Fix: 
-
-- **`spacing`**
-  - EN: Spacing (m):
-  - KO: 간격 (m):
-  - [ ] OK    Fix: 
-
-- **`startAngle`**
-  - EN: Start Angle (deg):
-  - KO: 시작 각도 (도):
-  - [ ] OK    Fix: 
-
-- **`startX`**
-  - EN: Start X (m):
-  - KO: 시작 X (m):
-  - [ ] OK    Fix: 
-
-- **`startY`**
-  - EN: Start Y (m):
-  - KO: 시작 Y (m):
-  - [ ] OK    Fix: 
-
-- **`width`**
-  - EN: Width (m):
-  - KO: 너비 (m):
-  - [ ] OK    Fix: 
-
-- **`yEnd`**
-  - EN: Y End (m):
-  - KO: Y 끝 (m):
-  - [ ] OK    Fix: 
-
-- **`yStart`**
-  - EN: Y Start (m):
-  - KO: Y 시작 (m):
-  - [ ] OK    Fix: 
-
-- **`zHeight`**
-  - EN: Z Height (m):
-  - KO: Z 높이 (m):
-  - [ ] OK    Fix: 
-
-## `arrayHelper.presets`
-
-- **`circle`**
-  - EN: Circle
-  - KO: 원형
-  - [ ] OK    Fix: 
-
-- **`delayLine`**
-  - EN: Delay Line
-  - KO: 딜레이 라인
-  - [ ] OK    Fix: 
-
-- **`label`**
-  - EN: Preset:
-  - KO: 프리셋:
-  - [ ] OK    Fix: 
-
-- **`mainRoomStraight`**
-  - EN: Main Flown Array Straight
-  - KO: 메인 플라잉 어레이 직선
-  - [ ] OK    Fix: 
-
-- **`nearFieldCurved`**
-  - EN: Near Field Array Curved
-  - KO: 근거리 어레이 곡선
-  - [ ] OK    Fix: 
-
-- **`nearFieldStraight`**
-  - EN: Near Field Array Straight
-  - KO: 근거리 어레이 직선
-  - [ ] OK    Fix: 
-
-- **`subBass`**
-  - EN: Sub Bass
-  - KO: 서브 베이스
-  - [ ] OK    Fix: 
-
-- **`surround`**
-  - EN: Surround
-  - KO: 서라운드
-  - [ ] OK    Fix: 
-
-## `arrayHelper.preview`
-
-- **`audience`**
-  - EN: Audience
-  - KO: 관객
-  - [ ] OK    Fix: 
-
-## `arrayHelper.sections`
-
-- **`acousticDefaults`**
-  - EN: Acoustic Defaults
-  - KO: 음향 기본값
-  - [ ] OK    Fix: 
-
-- **`geometry`**
-  - EN: Geometry
-  - KO: 기하
-  - [ ] OK    Fix: 
-
-- **`target`**
-  - EN: Target
-  - KO: 대상
-  - [ ] OK    Fix: 
-
 ## `arrayHelper.status`
 
 - **`applied`**
@@ -461,116 +56,26 @@ Walk through each section. For every entry:
   - KO: 준비됨
   - [ ] OK    Fix: 
 
-## `arrayHelper.target`
+## `audioPatch.dialogs`
 
-- **`array`**
-  - EN: Array:
-  - KO: 어레이:
+- **`unpatchInputsMessage`**
+  - EN: Are you sure you want to remove all input patches?
+  - KO: 모든 입력 패치를 제거하시겠습니까?
   - [ ] OK    Fix: 
 
-- **`arrayPrefix`**
-  - EN: Array
-  - KO: 어레이
+- **`unpatchInputsTitle`**
+  - EN: Unpatch All Inputs
+  - KO: 모든 입력 연결 해제
   - [ ] OK    Fix: 
 
-- **`startingOutput`**
-  - EN: Starting Output:
-  - KO: 시작 출력:
+- **`unpatchOutputsMessage`**
+  - EN: Are you sure you want to remove all output patches?
+  - KO: 모든 출력 패치를 제거하시겠습니까?
   - [ ] OK    Fix: 
 
-## `arrayHelper.window`
-
-- **`contentName`**
-  - EN: Output Array Helper
-  - KO: 출력 어레이 도우미
-  - [ ] OK    Fix: 
-
-- **`title`**
-  - EN: Wizard of OutZ
-  - KO: OutZ 마법사
-  - [ ] OK    Fix: 
-
-## `audioPatch`
-
-- **`windowTitle`**
-  - EN: Audio Interface and Patching
-  - KO: 오디오 인터페이스 및 패치
-  - [ ] OK    Fix: 
-
-## `audioPatch.buttons`
-
-- **`hold`**
-  - EN: Hold
-  - KO: 유지
-  - [ ] OK    Fix: 
-
-- **`unpatchAll`**
-  - EN: Unpatch All
-  - KO: 모두 연결 해제
-  - [ ] OK    Fix: 
-
-## `audioPatch.deviceSettings`
-
-- **`buttons.controlPanel`**
-  - EN: Control Panel
-  - KO: 제어판
-  - [ ] OK    Fix: 
-
-- **`buttons.resetDevice`**
-  - EN: Reset Device
-  - KO: 장치 초기화
-  - [ ] OK    Fix: 
-
-- **`labels.bufferSize`**
-  - EN: Audio buffer size:
-  - KO: 오디오 버퍼 크기:
-  - [ ] OK    Fix: 
-
-- **`labels.device`**
-  - EN: Device:
-  - KO: 장치:
-  - [ ] OK    Fix: 
-
-- **`labels.deviceType`**
-  - EN: Audio device type:
-  - KO: 오디오 장치 유형:
-  - [ ] OK    Fix: 
-
-- **`labels.sampleRate`**
-  - EN: Sample rate:
-  - KO: 샘플 레이트:
-  - [ ] OK    Fix: 
-
-- **`noDevice`**
-  - EN: No Device
-  - KO: 장치 없음
-  - [ ] OK    Fix: 
-
-- **`notConfigured`**
-  - EN: Not configured
-  - KO: 구성되지 않음
-  - [ ] OK    Fix: 
-
-## `audioPatch.labels`
-
-- **`interfaceInput`**
-  - EN: Audio Interface Input
-  - KO: 오디오 인터페이스 입력
-  - [ ] OK    Fix: 
-
-- **`interfaceOutput`**
-  - EN: Audio Interface Output
-  - KO: 오디오 인터페이스 출력
-  - [ ] OK    Fix: 
-
-- **`processorInputs`**
-  - EN: Processor Inputs
-  - KO: 프로세서 입력
-  - [ ] OK    Fix: 
-
-- **`processorOutputs`**
-  - EN: Processor Outputs
-  - KO: 프로세서 출력
+- **`unpatchOutputsTitle`**
+  - EN: Unpatch All Outputs
+  - KO: 모든 출력 연결 해제
   - [ ] OK    Fix: 
 
 ## `audioPatch.messages`
@@ -578,87 +83,6 @@ Walk through each section. For every entry:
 - **`chooseTestSignal`**
   - EN: Choose a Test Signal to Enable Testing
   - KO: 테스트 모드를 활성화하려면 테스트 신호를 선택하세요
-  - [ ] OK    Fix: 
-
-## `audioPatch.modes`
-
-- **`patching`**
-  - EN: Patching
-  - KO: 패칭
-  - [ ] OK    Fix: 
-
-- **`scrolling`**
-  - EN: Scrolling
-  - KO: 스크롤
-  - [ ] OK    Fix: 
-
-- **`testing`**
-  - EN: Testing
-  - KO: 테스트
-  - [ ] OK    Fix: 
-
-## `audioPatch.tabs`
-
-- **`deviceSettings`**
-  - EN: Device Settings
-  - KO: 장치 설정
-  - [ ] OK    Fix: 
-
-- **`inputPatch`**
-  - EN: Input Patch
-  - KO: 입력 패치
-  - [ ] OK    Fix: 
-
-- **`outputPatch`**
-  - EN: Output Patch
-  - KO: 출력 패치
-  - [ ] OK    Fix: 
-
-## `audioPatch.testSignal`
-
-- **`labels.frequency`**
-  - EN: Frequency:
-  - KO: 주파수:
-  - [ ] OK    Fix: 
-
-- **`labels.level`**
-  - EN: Level:
-  - KO: 레벨:
-  - [ ] OK    Fix: 
-
-- **`labels.signal`**
-  - EN: Signal:
-  - KO: 신호:
-  - [ ] OK    Fix: 
-
-- **`types.diracPulse`**
-  - EN: Dirac Pulse
-  - KO: 디락 펄스
-  - [ ] OK    Fix: 
-
-- **`types.off`**
-  - EN: Off
-  - KO: 끄기
-  - [ ] OK    Fix: 
-
-- **`types.pinkNoise`**
-  - EN: Pink Noise
-  - KO: 핑크 노이즈
-  - [ ] OK    Fix: 
-
-- **`types.pulse`**
-  - EN: Pulse
-  - KO: 펄스
-  - [ ] OK    Fix: 
-
-- **`types.sweep`**
-  - EN: Sweep
-  - KO: 스윕
-  - [ ] OK    Fix: 
-
-- **`types.tone`**
-  - EN: Tone
-  - KO: 톤
   - [ ] OK    Fix: 
 
 ## `clusters.help`
@@ -819,8 +243,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`referenceMode`**
-  - EN: Select the reference point for cluster transforms: First Input or Barycenter.
-  - KO: 클러스터 변환의 기준점을 선택합니다: 첫 번째 입력 또는 무게 중심.
+  - EN: Select the reference point for cluster transforms: First Input, Barycenter, or Shared Position (all members coincide; scale and rotation apply to per-input offsets).
+  - KO: 클러스터 변환의 기준점을 선택합니다: First Input, 무게 중심, 또는 Shared Position(모든 멤버가 한 점에 모이며 스케일과 회전은 개별 오프셋에 적용됩니다).
   - [ ] OK    Fix: 
 
 - **`rotationDial`**
@@ -843,333 +267,6 @@ Walk through each section. For every entry:
   - KO: 클러스터의 모든 입력을 Z축(높이)을 따라 이동합니다.
   - [ ] OK    Fix: 
 
-## `clusters.labels`
-
-- **`assignedInputs`**
-  - EN: Assigned Inputs
-  - KO: 할당된 입력
-  - [ ] OK    Fix: 
-
-- **`attenuation`**
-  - EN: Atten
-  - KO: 감쇠
-  - [ ] OK    Fix: 
-
-- **`controls`**
-  - EN: Controls
-  - KO: 컨트롤
-  - [ ] OK    Fix: 
-
-- **`inputPrefix`**
-  - EN: Input
-  - KO: 입력
-  - [ ] OK    Fix: 
-
-- **`position`**
-  - EN: Position
-  - KO: 위치
-  - [ ] OK    Fix: 
-
-- **`posPrefix`**
-  - EN: Pos:
-  - KO: 위치:
-  - [ ] OK    Fix: 
-
-- **`reference`**
-  - EN: Reference:
-  - KO: 참조:
-  - [ ] OK    Fix: 
-
-- **`rotation`**
-  - EN: Rotation
-  - KO: 회전
-  - [ ] OK    Fix: 
-
-- **`scale`**
-  - EN: Scale
-  - KO: 스케일
-  - [ ] OK    Fix: 
-
-- **`x`**
-  - EN: X:
-  - KO: X:
-  - [ ] OK    Fix: 
-
-- **`y`**
-  - EN: Y:
-  - KO: Y:
-  - [ ] OK    Fix: 
-
-- **`z`**
-  - EN: Z
-  - KO: Z
-  - [ ] OK    Fix: 
-
-## `clusters.lfo`
-
-- **`labels.amplitude`**
-  - EN: Amplitude:
-  - KO: 진폭:
-  - [ ] OK    Fix: 
-
-- **`labels.angle`**
-  - EN: Angle:
-  - KO: 각도:
-  - [ ] OK    Fix: 
-
-- **`labels.period`**
-  - EN: Period:
-  - KO: 주기:
-  - [ ] OK    Fix: 
-
-- **`labels.phase`**
-  - EN: Phase:
-  - KO: 위상:
-  - [ ] OK    Fix: 
-
-- **`labels.rate`**
-  - EN: Rate:
-  - KO: 속도:
-  - [ ] OK    Fix: 
-
-- **`labels.ratio`**
-  - EN: Ratio:
-  - KO: 비율:
-  - [ ] OK    Fix: 
-
-- **`labels.rot`**
-  - EN: Rotation
-  - KO: 회전
-  - [ ] OK    Fix: 
-
-- **`labels.scaleLfo`**
-  - EN: Scale
-  - KO: 스케일
-  - [ ] OK    Fix: 
-
-- **`labels.section`**
-  - EN: LFO
-  - KO: LFO
-  - [ ] OK    Fix: 
-
-- **`labels.x`**
-  - EN: X
-  - KO: X
-  - [ ] OK    Fix: 
-
-- **`labels.y`**
-  - EN: Y
-  - KO: Y
-  - [ ] OK    Fix: 
-
-- **`labels.z`**
-  - EN: Z
-  - KO: Z
-  - [ ] OK    Fix: 
-
-## `clusters.osc`
-
-- **`lfoActive`**
-  - EN: /wfs/cluster/lfoActive <id> <0|1>
-  - KO: /wfs/cluster/lfoActive <id> <0|1>
-  - [ ] OK    Fix: 
-
-- **`lfoAmplitudeRot`**
-  - EN: /wfs/cluster/lfoAmplitudeRot <id> <degrees>
-  - KO: /wfs/cluster/lfoAmplitudeRot <id> <degrees>
-  - [ ] OK    Fix: 
-
-- **`lfoAmplitudeScale`**
-  - EN: /wfs/cluster/lfoAmplitudeScale <id> <factor>
-  - KO: /wfs/cluster/lfoAmplitudeScale <id> <factor>
-  - [ ] OK    Fix: 
-
-- **`lfoAmplitudeX`**
-  - EN: /wfs/cluster/lfoAmplitudeX <id> <meters>
-  - KO: /wfs/cluster/lfoAmplitudeX <id> <meters>
-  - [ ] OK    Fix: 
-
-- **`lfoAmplitudeY`**
-  - EN: /wfs/cluster/lfoAmplitudeY <id> <meters>
-  - KO: /wfs/cluster/lfoAmplitudeY <id> <meters>
-  - [ ] OK    Fix: 
-
-- **`lfoAmplitudeZ`**
-  - EN: /wfs/cluster/lfoAmplitudeZ <id> <meters>
-  - KO: /wfs/cluster/lfoAmplitudeZ <id> <meters>
-  - [ ] OK    Fix: 
-
-- **`lfoPeriod`**
-  - EN: /wfs/cluster/lfoPeriod <id> <seconds>
-  - KO: /wfs/cluster/lfoPeriod <id> <초>
-  - [ ] OK    Fix: 
-
-- **`lfoPhase`**
-  - EN: /wfs/cluster/lfoPhase <id> <degrees>
-  - KO: /wfs/cluster/lfoPhase <id> <도>
-  - [ ] OK    Fix: 
-
-- **`lfoPhaseRot`**
-  - EN: /wfs/cluster/lfoPhaseRot <id> <degrees>
-  - KO: /wfs/cluster/lfoPhaseRot <id> <degrees>
-  - [ ] OK    Fix: 
-
-- **`lfoPhaseScale`**
-  - EN: /wfs/cluster/lfoPhaseScale <id> <degrees>
-  - KO: /wfs/cluster/lfoPhaseScale <id> <degrees>
-  - [ ] OK    Fix: 
-
-- **`lfoPhaseX`**
-  - EN: /wfs/cluster/lfoPhaseX <id> <degrees>
-  - KO: /wfs/cluster/lfoPhaseX <id> <degrees>
-  - [ ] OK    Fix: 
-
-- **`lfoPhaseY`**
-  - EN: /wfs/cluster/lfoPhaseY <id> <degrees>
-  - KO: /wfs/cluster/lfoPhaseY <id> <degrees>
-  - [ ] OK    Fix: 
-
-- **`lfoPhaseZ`**
-  - EN: /wfs/cluster/lfoPhaseZ <id> <degrees>
-  - KO: /wfs/cluster/lfoPhaseZ <id> <degrees>
-  - [ ] OK    Fix: 
-
-- **`lfoPresetRecall`**
-  - EN: /wfs/cluster/lfoPresetRecall <clusterId> <presetNumber>
-  - KO: /wfs/cluster/lfoPresetRecall <clusterId> <프리셋번호>
-  - [ ] OK    Fix: 
-
-- **`lfoRateRot`**
-  - EN: /wfs/cluster/lfoRateRot <id> <multiplier>
-  - KO: /wfs/cluster/lfoRateRot <id> <multiplier>
-  - [ ] OK    Fix: 
-
-- **`lfoRateScale`**
-  - EN: /wfs/cluster/lfoRateScale <id> <multiplier>
-  - KO: /wfs/cluster/lfoRateScale <id> <multiplier>
-  - [ ] OK    Fix: 
-
-- **`lfoRateX`**
-  - EN: /wfs/cluster/lfoRateX <id> <multiplier>
-  - KO: /wfs/cluster/lfoRateX <id> <multiplier>
-  - [ ] OK    Fix: 
-
-- **`lfoRateY`**
-  - EN: /wfs/cluster/lfoRateY <id> <multiplier>
-  - KO: /wfs/cluster/lfoRateY <id> <multiplier>
-  - [ ] OK    Fix: 
-
-- **`lfoRateZ`**
-  - EN: /wfs/cluster/lfoRateZ <id> <multiplier>
-  - KO: /wfs/cluster/lfoRateZ <id> <multiplier>
-  - [ ] OK    Fix: 
-
-- **`lfoShapeRot`**
-  - EN: /wfs/cluster/lfoShapeRot <id> <0-8>
-  - KO: /wfs/cluster/lfoShapeRot <id> <0-8>
-  - [ ] OK    Fix: 
-
-- **`lfoShapeScale`**
-  - EN: /wfs/cluster/lfoShapeScale <id> <0-8>
-  - KO: /wfs/cluster/lfoShapeScale <id> <0-8>
-  - [ ] OK    Fix: 
-
-- **`lfoShapeX`**
-  - EN: /wfs/cluster/lfoShapeX <id> <0-8>
-  - KO: /wfs/cluster/lfoShapeX <id> <0-8>
-  - [ ] OK    Fix: 
-
-- **`lfoShapeY`**
-  - EN: /wfs/cluster/lfoShapeY <id> <0-8>
-  - KO: /wfs/cluster/lfoShapeY <id> <0-8>
-  - [ ] OK    Fix: 
-
-- **`lfoShapeZ`**
-  - EN: /wfs/cluster/lfoShapeZ <id> <0-8>
-  - KO: /wfs/cluster/lfoShapeZ <id> <0-8>
-  - [ ] OK    Fix: 
-
-- **`lfoStopAll`**
-  - EN: /wfs/cluster/lfoStopAll
-  - KO: /wfs/cluster/lfoStopAll
-  - [ ] OK    Fix: 
-
-## `clusters.planes`
-
-- **`xy`**
-  - EN: XY
-  - KO: XY
-  - [ ] OK    Fix: 
-
-- **`xz`**
-  - EN: XZ
-  - KO: XZ
-  - [ ] OK    Fix: 
-
-- **`yz`**
-  - EN: YZ
-  - KO: YZ
-  - [ ] OK    Fix: 
-
-## `clusters.presets`
-
-- **`export`**
-  - EN: Export
-  - KO: 내보내기
-  - [ ] OK    Fix: 
-
-- **`exportDialog`**
-  - EN: Export LFO Presets
-  - KO: LFO 프리셋 내보내기
-  - [ ] OK    Fix: 
-
-- **`exported`**
-  - EN: LFO presets exported.
-  - KO: LFO 프리셋을 내보냈습니다.
-  - [ ] OK    Fix: 
-
-- **`import`**
-  - EN: Import
-  - KO: 가져오기
-  - [ ] OK    Fix: 
-
-- **`importDialog`**
-  - EN: Import LFO Presets
-  - KO: LFO 프리셋 가져오기
-  - [ ] OK    Fix: 
-
-- **`imported`**
-  - EN: LFO presets imported.
-  - KO: LFO 프리셋을 가져왔습니다.
-  - [ ] OK    Fix: 
-
-- **`recalled`**
-  - EN: LFO preset recalled from tile {n}.
-  - KO: LFO 프리셋을 타일 {n}에서 불러왔습니다.
-  - [ ] OK    Fix: 
-
-- **`stopAll`**
-  - EN: Stop All
-  - KO: 모두 중지
-  - [ ] OK    Fix: 
-
-- **`stored`**
-  - EN: LFO preset stored in tile {n}.
-  - KO: LFO 프리셋이 타일 {n}에 저장되었습니다.
-  - [ ] OK    Fix: 
-
-## `clusters.referenceMode`
-
-- **`barycenter`**
-  - EN: Barycenter
-  - KO: 무게 중심
-  - [ ] OK    Fix: 
-
-- **`firstInput`**
-  - EN: First Input
-  - KO: 첫 번째 입력
-  - [ ] OK    Fix: 
-
 ## `clusters.status`
 
 - **`noInputs`**
@@ -1187,33 +284,76 @@ Walk through each section. For every entry:
   - KO: 트래킹: 입력 {num} (참조 무시)
   - [ ] OK    Fix: 
 
-## `clusters.toggles`
-
-- **`inputsHidden`**
-  - EN: Inputs: Hidden
-  - KO: 입력: 숨김
-  - [ ] OK    Fix: 
-
-- **`inputsVisible`**
-  - EN: Inputs: Visible
-  - KO: 입력: 표시
-  - [ ] OK    Fix: 
-
-- **`lfoOff`**
-  - EN: L.F.O: OFF
-  - KO: L.F.O: 꺼짐
-  - [ ] OK    Fix: 
-
-- **`lfoOn`**
-  - EN: L.F.O: ON
-  - KO: L.F.O: 켜짐
-  - [ ] OK    Fix: 
-
 ## `common`
+
+- **`add`**
+  - EN: Add
+  - KO: 추가
+  - [ ] OK    Fix: 
+
+- **`all`**
+  - EN: All
+  - KO: 전체
+  - [ ] OK    Fix: 
+
+- **`apply`**
+  - EN: Apply
+  - KO: 적용
+  - [ ] OK    Fix: 
 
 - **`cancel`**
   - EN: Cancel
   - KO: 취소
+  - [ ] OK    Fix: 
+
+- **`close`**
+  - EN: Close
+  - KO: 닫기
+  - [ ] OK    Fix: 
+
+- **`delete`**
+  - EN: Delete
+  - KO: 삭제
+  - [ ] OK    Fix: 
+
+- **`disable`**
+  - EN: Disable
+  - KO: 비활성화
+  - [ ] OK    Fix: 
+
+- **`edit`**
+  - EN: Edit
+  - KO: 편집
+  - [ ] OK    Fix: 
+
+- **`enable`**
+  - EN: Enable
+  - KO: 활성화
+  - [ ] OK    Fix: 
+
+- **`export`**
+  - EN: Export
+  - KO: 내보내기
+  - [ ] OK    Fix: 
+
+- **`import`**
+  - EN: Import
+  - KO: 가져오기
+  - [ ] OK    Fix: 
+
+- **`load`**
+  - EN: Load
+  - KO: 불러오기
+  - [ ] OK    Fix: 
+
+- **`no`**
+  - EN: No
+  - KO: 아니오
+  - [ ] OK    Fix: 
+
+- **`none`**
+  - EN: None
+  - KO: 없음
   - [ ] OK    Fix: 
 
 - **`off`**
@@ -1231,75 +371,39 @@ Walk through each section. For every entry:
   - KO: 켜기
   - [ ] OK    Fix: 
 
-## `eq.buttons`
-
-- **`flattenEQ`**
-  - EN: Flatten EQ
-  - KO: EQ 초기화
+- **`reload`**
+  - EN: Reload
+  - KO: 다시 불러오기
   - [ ] OK    Fix: 
 
-- **`resetBand`**
+- **`remove`**
+  - EN: Remove
+  - KO: 제거
+  - [ ] OK    Fix: 
+
+- **`reset`**
   - EN: Reset
   - KO: 초기화
   - [ ] OK    Fix: 
 
-## `eq.filterTypes`
-
-- **`allPass`**
-  - EN: All-Pass
-  - KO: 올패스
+- **`save`**
+  - EN: Save
+  - KO: 저장
   - [ ] OK    Fix: 
 
-- **`bandPass`**
-  - EN: Band Pass
-  - KO: 밴드패스
+- **`select`**
+  - EN: Select
+  - KO: 선택
   - [ ] OK    Fix: 
 
-- **`highCut`**
-  - EN: High Cut
-  - KO: 하이 컷
+- **`store`**
+  - EN: Store
+  - KO: 저장
   - [ ] OK    Fix: 
 
-- **`highShelf`**
-  - EN: High Shelf
-  - KO: 하이 쉘프
-  - [ ] OK    Fix: 
-
-- **`lowCut`**
-  - EN: Low Cut
-  - KO: 로우 컷
-  - [ ] OK    Fix: 
-
-- **`lowShelf`**
-  - EN: Low Shelf
-  - KO: 로우 쉘프
-  - [ ] OK    Fix: 
-
-- **`peakNotch`**
-  - EN: Peak/Notch
-  - KO: 피크/노치
-  - [ ] OK    Fix: 
-
-## `eq.labels`
-
-- **`band`**
-  - EN: Band
-  - KO: 밴드
-  - [ ] OK    Fix: 
-
-- **`freq`**
-  - EN: Freq:
-  - KO: 주파수:
-  - [ ] OK    Fix: 
-
-- **`gain`**
-  - EN: Gain
-  - KO: 게인
-  - [ ] OK    Fix: 
-
-- **`q`**
-  - EN: Q
-  - KO: Q
+- **`yes`**
+  - EN: Yes
+  - KO: 예
   - [ ] OK    Fix: 
 
 ## `eq.status`
@@ -1321,182 +425,23 @@ Walk through each section. For every entry:
   - KO: 프로젝트 폴더 선택
   - [ ] OK    Fix: 
 
-## `fileManager.errors`
-
-- **`backupNotFound`**
-  - EN: Backup not found
-  - KO: 백업을 찾을 수 없습니다
-  - [ ] OK    Fix: 
-
-- **`configStateInvalid`**
-  - EN: Config state is invalid
-  - KO: 구성 상태가 유효하지 않습니다
-  - [ ] OK    Fix: 
-
-- **`failedApply`**
-  - EN: Failed to apply: {sections}
-  - KO: 적용 실패: {sections}
-  - [ ] OK    Fix: 
-
-- **`failedCreateFolder`**
-  - EN: Failed to create project folder: {path}
-  - KO: 프로젝트 폴더 생성 실패: {path}
-  - [ ] OK    Fix: 
-
-- **`failedCreateValueTree`**
-  - EN: Failed to create ValueTree from XML: {path}
-  - KO: XML에서 ValueTree를 생성하지 못했습니다: {path}
-  - [ ] OK    Fix: 
-
-- **`failedCreateXML`**
-  - EN: Failed to create XML from state
-  - KO: 상태에서 XML을 생성하지 못했습니다
-  - [ ] OK    Fix: 
-
-- **`failedParseXML`**
-  - EN: Failed to parse XML file: {path}
-  - KO: XML 파일 분석 실패: {path}
-  - [ ] OK    Fix: 
-
-- **`failedWriteFile`**
-  - EN: Failed to write file: {path}
-  - KO: 파일 쓰기 실패: {path}
-  - [ ] OK    Fix: 
-
-- **`fileNotFound`**
-  - EN: File not found: {path}
-  - KO: 파일을 찾을 수 없습니다: {path}
-  - [ ] OK    Fix: 
-
-- **`invalidConfigStructure`**
-  - EN: Invalid configuration file structure
-  - KO: 구성 파일 구조가 잘못되었습니다
-  - [ ] OK    Fix: 
-
-- **`noInputDataInFile`**
-  - EN: No input data found in file
-  - KO: 파일에서 입력 데이터를 찾을 수 없습니다
-  - [ ] OK    Fix: 
-
-- **`noInputDataInSnapshot`**
-  - EN: No input data in snapshot
-  - KO: 스냅샷에 입력 데이터가 없습니다
-  - [ ] OK    Fix: 
-
-- **`noLFOPresetDataInFile`**
-  - EN: No LFO preset data found in file
-  - KO: 파일에서 LFO 프리셋 데이터를 찾을 수 없습니다
-  - [ ] OK    Fix: 
-
-- **`noNetworkDataInFile`**
-  - EN: No network data found in file
-  - KO: 파일에서 네트워크 데이터를 찾을 수 없습니다
-  - [ ] OK    Fix: 
-
-- **`noNetworkSections`**
-  - EN: No network sections found in file
-  - KO: 파일에서 네트워크 섹션을 찾을 수 없습니다
-  - [ ] OK    Fix: 
-
-- **`noOutputDataInFile`**
-  - EN: No output data found in file
-  - KO: 파일에서 출력 데이터를 찾을 수 없습니다
-  - [ ] OK    Fix: 
-
-- **`noProjectFolder`**
-  - EN: No project folder specified
-  - KO: 프로젝트 폴더가 지정되지 않았습니다
-  - [ ] OK    Fix: 
-
-- **`noReverbDataInFile`**
-  - EN: No reverb data found in file
-  - KO: 파일에서 리버브 데이터를 찾을 수 없습니다
-  - [ ] OK    Fix: 
-
-- **`noSystemDataInFile`**
-  - EN: No valid system data found in file: {path}
-  - KO: 파일에서 유효한 시스템 데이터를 찾을 수 없습니다: {path}
-  - [ ] OK    Fix: 
-
-- **`noValidProjectFolder`**
-  - EN: No valid project folder
-  - KO: 유효한 프로젝트 폴더가 없습니다
-  - [ ] OK    Fix: 
-
-- **`prefixInputs`**
-  - EN: Inputs: 
-  - KO: 입력: 
-  - [ ] OK    Fix: 
-
-- **`prefixNetwork`**
-  - EN: Network: 
-  - KO: 네트워크: 
-  - [ ] OK    Fix: 
-
-- **`prefixOutputs`**
-  - EN: Outputs: 
-  - KO: 출력: 
-  - [ ] OK    Fix: 
-
-- **`prefixReverbs`**
-  - EN: Reverbs: 
-  - KO: 리버브: 
-  - [ ] OK    Fix: 
-
-- **`prefixSystem`**
-  - EN: System: 
-  - KO: 시스템: 
-  - [ ] OK    Fix: 
-
-- **`snapshotNotFound`**
-  - EN: Snapshot not found
-  - KO: 스냅샷을 찾을 수 없습니다
-  - [ ] OK    Fix: 
-
-- **`snapshotNotFoundNamed`**
-  - EN: Snapshot not found: {name}
-  - KO: 스냅샷을 찾을 수 없습니다: {name}
-  - [ ] OK    Fix: 
-
 ## `help.admOsc`
 
 - **`body`**
-  - EN: ADM-OSC is a protocol aiming to improve interoperability for spatial sound. It sends Cartesian positions (X, Y, Z) or polar values (AED for Azimuth, Elevation, Distance) from the console or from a DAW's automation curves.
-Data is sent normalised:
-- between -1.0 and 1.0 for X, Y and Z;
-- between 0.0 to 1.0 for distance,
-- between -180° to 180° for Azimuth
-- between -90° to 90° for elevation.
-The origin point can be moved and the mapping can also be adjusted in different segments for the inner and outer parts of the stage.
-When dragging the handles on the graphs, holding the shift key will apply symmetrical adjustments on the opposite side.
-  - KO: ADM-OSC는 공간 음향의 상호 운용성을 향상시키기 위한 프로토콜입니다. 콘솔이나 DAW의 오토메이션 커브에서 직교 좌표(X, Y, Z) 또는 극좌표 값(AED: 방위각, 고도, 거리)을 전송합니다.
-데이터는 정규화되어 전송됩니다:
-- X, Y, Z는 -1.0에서 1.0 사이
-- 거리는 0.0에서 1.0 사이
-- 방위각은 -180°에서 180° 사이
-- 고도는 -90°에서 90° 사이
-원점을 이동할 수 있으며 매핑은 스테이지의 안쪽과 바깥쪽에 대해 다른 세그먼트로 조정할 수 있습니다.
-그래프의 핸들을 드래그할 때 Shift 키를 누르면 반대쪽에 대칭 조정이 적용됩니다.
+  - EN: ADM-OSC is a protocol aiming to improve interoperability for spatial sound. It sends Cartesian positions (X, Y, Z) or polar values (AED for Azimuth, Elevation, Distance) from the console or from a DAW's automation curves.\nData is sent normalised:\n- between -1.0 and 1.0 for X, Y and Z;\n- between 0.0 to 1.0 for distance,\n- between -180° to 180° for Azimuth\n- between -90° to 90° for elevation.\nThe origin point can be moved and the mapping can also be adjusted in different segments for the inner and outer parts of the stage.\nWhen dragging the handles on the graphs, holding the shift key will apply symmetrical adjustments on the opposite side.
+  - KO: ADM-OSC는 공간 음향의 상호 운용성을 향상시키기 위한 프로토콜입니다. 콘솔이나 DAW의 오토메이션 커브에서 직교 좌표(X, Y, Z) 또는 극좌표 값(AED: 방위각, 고도, 거리)을 전송합니다.\n데이터는 정규화되어 전송됩니다:\n- X, Y, Z는 -1.0에서 1.0 사이\n- 거리는 0.0에서 1.0 사이\n- 방위각은 -180°에서 180° 사이\n- 고도는 -90°에서 90° 사이\n원점을 이동할 수 있으며 매핑은 스테이지의 안쪽과 바깥쪽에 대해 다른 세그먼트로 조정할 수 있습니다.\n그래프의 핸들을 드래그할 때 Shift 키를 누르면 반대쪽에 대칭 조정이 적용됩니다.
   - [ ] OK    Fix: 
 
 - **`title`**
   - EN: ADM-OSC Mappings
-  - KO: ADM-OSC 매핑
+  - KO: ADM-OSC Mappings
   - [ ] OK    Fix: 
 
 ## `help.automOtion`
 
 - **`body`**
-  - EN: One time movement can also be programmed and triggered manually or triggered by sound level.
-The coordinates are either relative from the start position or absolute relative to the origin point.
-The input can either stay at the end position or revert to the starting position.
-Input position cannot be changed while the input is moving this way, but interacting with the input will change the position offset of the input instead.
-For audio level triggering select the sound level above which the movement will start. When the sound drops below the reset level the movement will be rearmed, ready to be triggered again. New movement automation will not be possible while the input is moving.
-  - KO: 일회성 움직임을 프로그래밍하고 수동 또는 사운드 레벨로 트리거할 수 있습니다.
-좌표는 시작 위치에서의 상대값 또는 원점에 대한 절대값입니다.
-입력은 끝 위치에 머물거나 시작 위치로 돌아갈 수 있습니다.
-이동 중에는 위치를 변경할 수 없지만, 입력과의 상호작용은 위치 오프셋을 변경합니다.
-오디오 레벨 트리거의 경우 움직임이 시작될 임계값을 선택합니다. 사운드가 리셋 레벨 아래로 떨어지면 움직임이 재준비됩니다.
+  - EN: One time movement can also be programmed and triggered manually or triggered by sound level.\nThe coordinates are either relative from the start position or absolute relative to the origin point.\nThe input can either stay at the end position or revert to the starting position.\nInput position cannot be changed while the input is moving this way, but interacting with the input will change the position offset of the input instead.\nFor audio level triggering select the sound level above which the movement will start. When the sound drops below the reset level the movement will be rearmed, ready to be triggered again. New movement automation will not be possible while the input is moving.
+  - KO: 일회성 움직임을 프로그래밍하고 수동 또는 사운드 레벨로 트리거할 수 있습니다.\n좌표는 시작 위치에서의 상대값 또는 원점에 대한 절대값입니다.\n입력은 끝 위치에 머물거나 시작 위치로 돌아갈 수 있습니다.\n이동 중에는 위치를 변경할 수 없지만, 입력과의 상호작용은 위치 오프셋을 변경합니다.\n오디오 레벨 트리거의 경우 움직임이 시작될 임계값을 선택합니다. 사운드가 리셋 레벨 아래로 떨어지면 움직임이 재준비됩니다.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1507,44 +452,20 @@ For audio level triggering select the sound level above which the movement will 
 ## `help.binaural`
 
 - **`body`**
-  - EN: The Binaural renderer is used for:
-- listening to a rough spatial mix on headphones,
-- creating a mix for stereo output,
-- listening to a single soloed track through the spatial processing.
-This may take the place of your master mix if it's only feeding headphones and media mix.
-The position of the listening position may be adjusted in depth from the origin point and in orientation. Delay and level settings allow you to eventually match the sound at the FOH position.
-  - KO: 바이노럴 렌더러 용도:
-- 헤드폰으로 대략적인 공간 믹스 청취
-- 스테레오 출력용 믹스 생성
-- 솔로 트랙을 공간 처리로 청취
-헤드폰과 미디어 믹스만 사용하는 경우 마스터 믹스를 대체할 수 있습니다.
-청취 위치는 원점에서의 깊이와 방향으로 조정할 수 있습니다. 딜레이와 레벨 설정으로 FOH 위치의 사운드에 맞출 수 있습니다.
+  - EN: The Binaural renderer is used for:\n- listening to a rough spatial mix on headphones,\n- creating a mix for stereo output,\n- listening to a single soloed track through the spatial processing.\nThis may take the place of your master mix if it's only feeding headphones and media mix.\nThe position of the listening position may be adjusted in depth from the origin point and in orientation. Delay and level settings allow you to eventually match the sound at the FOH position.
+  - KO: Binaural Renderer 용도:\n- 헤드폰으로 대략적인 공간 믹스 청취\n- 스테레오 출력용 믹스 생성\n- 솔로 트랙을 공간 처리로 청취\n헤드폰과 미디어 믹스만 사용하는 경우 마스터 믹스를 대체할 수 있습니다.\n청취 위치는 원점에서의 깊이와 방향으로 조정할 수 있습니다. 딜레이와 레벨 설정으로 FOH 위치의 사운드에 맞출 수 있습니다.
   - [ ] OK    Fix: 
 
 - **`title`**
   - EN: Binaural Renderer
-  - KO: 바이노럴 렌더러
+  - KO: Binaural Renderer
   - [ ] OK    Fix: 
 
 ## `help.clusters`
 
 - **`body`**
-  - EN: Clusters are groups of inputs that can be manipulated and animated as a whole.
-Each input can only be part of one cluster.
-Each cluster can only have one input with tracking fully enabled. Then this input will become the reference points for the cluster.
-If no input with tracking is part of the cluster then there are two modes for the reference point of the cluster. Either the first input assigned in the list becomes the reference or the barycentre, in other words the center of gravity or the middle of the shape formed by the assigned inputs.
-All inputs of the clusters can be moved by dragging the reference point. The individual inputs (other than a first input that would be a reference point) can still be adjusted individually. Dragging an input with tracking activated that is also a reference point for a cluster will affect its position offset and the position of the other inputs of the cluster normally.
-All inputs in a cluster can be rotated or scaled around the reference point.
-All clusters can be assigned an animation via an LFO. The positions X, Y and Z, the rotation and scale of the cluster can be controlled. The LFO has a period and a phase setting. Each individual parameter has shape, amplitude, rate and phase. The LFO settings can be assigned to pads for a quick recall. A right click will store the LFO parameters to a pad. Double clicking the top of the pad will allow to edit the name of the preset. Clicking or tapping a pad will recall the settings whether the LFO is running or not, but it will not start it if is isn't. A double click/tap will load and start the LFO.
-All input clusters share the same set of LFO presets.
-  - KO: 클러스터는 전체적으로 조작하고 애니메이션할 수 있는 입력 그룹입니다.
-각 입력은 하나의 클러스터에만 속할 수 있습니다.
-각 클러스터에는 트래킹이 완전히 활성화된 입력이 하나만 있을 수 있으며, 이 입력이 기준점이 됩니다.
-트래킹 입력이 없으면 기준점에 두 가지 모드가 있습니다: 목록의 첫 번째 입력 또는 할당된 입력의 무게중심입니다.
-기준점을 드래그하여 모든 입력을 이동할 수 있습니다. 개별 입력도 별도로 조정 가능합니다. 트래킹이 활성화되고 기준점인 입력을 드래그하면 위치 오프셋과 클러스터의 다른 입력 위치가 정상적으로 영향을 받습니다.
-클러스터의 모든 입력을 기준점을 중심으로 회전하거나 크기를 조정할 수 있습니다.
-모든 클러스터에 LFO 애니메이션을 할당할 수 있습니다. X, Y, Z 위치, 회전, 스케일을 제어할 수 있습니다. LFO 설정을 패드에 할당하여 빠르게 불러올 수 있습니다. 오른쪽 클릭으로 LFO 매개변수를 패드에 저장합니다. 패드 상단을 더블클릭하면 프리셋 이름을 편집할 수 있습니다. 패드를 클릭하거나 탭하면 LFO 실행 여부와 관계없이 설정을 불러오지만, 중지된 LFO를 시작하지는 않습니다. 더블클릭/탭으로 LFO를 로드하고 시작합니다.
-모든 클러스터는 같은 LFO 프리셋 세트를 공유합니다.
+  - EN: Clusters are groups of inputs that can be manipulated and animated as a whole.\nEach input can only be part of one cluster.\nEach cluster can only have one input with tracking fully enabled. Then this input will become the reference points for the cluster.\nIf no input with tracking is part of the cluster then there are two modes for the reference point of the cluster. Either the first input assigned in the list becomes the reference or the barycentre, in other words the center of gravity or the middle of the shape formed by the assigned inputs.\nAll inputs of the clusters can be moved by dragging the reference point. The individual inputs (other than a first input that would be a reference point) can still be adjusted individually. Dragging an input with tracking activated that is also a reference point for a cluster will affect its position offset and the position of the other inputs of the cluster normally.\nAll inputs in a cluster can be rotated or scaled around the reference point.\nAll clusters can be assigned an animation via an LFO. The positions X, Y and Z, the rotation and scale of the cluster can be controlled. The LFO has a period and a phase setting. Each individual parameter has shape, amplitude, rate and phase. The LFO settings can be assigned to pads for a quick recall. A right click will store the LFO parameters to a pad. Double clicking the top of the pad will allow to edit the name of the preset. Clicking or tapping a pad will recall the settings whether the LFO is running or not, but it will not start it if is isn't. A double click/tap will load and start the LFO.\nAll input clusters share the same set of LFO presets.
+  - KO: 클러스터는 전체적으로 조작하고 애니메이션할 수 있는 입력 그룹입니다.\n각 입력은 하나의 클러스터에만 속할 수 있습니다.\n각 클러스터에는 트래킹이 완전히 활성화된 입력이 하나만 있을 수 있으며, 이 입력이 기준점이 됩니다.\n트래킹 입력이 없으면 기준점에 두 가지 모드가 있습니다: 목록의 첫 번째 입력 또는 할당된 입력의 무게중심입니다.\n기준점을 드래그하여 모든 입력을 이동할 수 있습니다. 개별 입력도 별도로 조정 가능합니다. 트래킹이 활성화되고 기준점인 입력을 드래그하면 위치 오프셋과 클러스터의 다른 입력 위치가 정상적으로 영향을 받습니다.\n클러스터의 모든 입력을 기준점을 중심으로 회전하거나 크기를 조정할 수 있습니다.\n모든 클러스터에 LFO 애니메이션을 할당할 수 있습니다. X, Y, Z 위치, 회전, 스케일을 제어할 수 있습니다. LFO 설정을 패드에 할당하여 빠르게 불러올 수 있습니다. 오른쪽 클릭으로 LFO 매개변수를 패드에 저장합니다. 패드 상단을 더블클릭하면 프리셋 이름을 편집할 수 있습니다. 패드를 클릭하거나 탭하면 LFO 실행 여부와 관계없이 설정을 불러오지만, 중지된 LFO를 시작하지는 않습니다. 더블클릭/탭으로 LFO를 로드하고 시작합니다.\n모든 클러스터는 같은 LFO 프리셋 세트를 공유합니다.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1555,56 +476,32 @@ All input clusters share the same set of LFO presets.
 ## `help.floorReflections`
 
 - **`body`**
-  - EN: Simulating the floor reflections improves the naturalness of the sound. We don't expect sounds to play in a soundproof anechoic chamber. This setting helps recreate the expected floor reflections.
-The level of the floor reflections can be adjusted as well as the low cut and the high frequency shelf filters. Diffusion adds a bit of chaos to simulate the unevenness of the floor.
-  - KO: 바닥 반사를 시뮬레이션하면 소리의 자연스러움이 향상됩니다. 방음 무향실에서 소리가 재생되는 것을 기대하지 않습니다. 이 설정은 예상되는 바닥 반사를 재현하는 데 도움이 됩니다.
-바닥 반사의 레벨은 로우컷 필터 및 고주파 쉘프 필터와 함께 조정할 수 있습니다. 디퓨전은 바닥의 불균일함을 시뮬레이션하기 위해 약간의 카오스를 추가합니다.
+  - EN: Simulating the floor reflections improves the naturalness of the sound. We don't expect sounds to play in a soundproof anechoic chamber. This setting helps recreate the expected floor reflections.\nThe level of the floor reflections can be adjusted as well as the low cut and the high frequency shelf filters. Diffusion adds a bit of chaos to simulate the unevenness of the floor.
+  - KO: 바닥 반사를 시뮬레이션하면 소리의 자연스러움이 향상됩니다. 방음 무향실에서 소리가 재생되는 것을 기대하지 않습니다. 이 설정은 예상되는 바닥 반사를 재현하는 데 도움이 됩니다.\n바닥 반사의 레벨은 로우컷 필터 및 고주파 쉘프 필터와 함께 조정할 수 있습니다. 디퓨전은 바닥의 불균일함을 시뮬레이션하기 위해 약간의 카오스를 추가합니다.
   - [ ] OK    Fix: 
 
 - **`title`**
   - EN: Floor Reflections
-  - KO: 바닥 반사
+  - KO: Floor Reflections
   - [ ] OK    Fix: 
 
 ## `help.gradientMap`
 
 - **`body`**
-  - EN: Gradient maps allow to control attenuation, height and high frequency filtering (shelf with a smooth slope centered at 1kHz) depending on the X, Y position. For example, you can fade out a sound when entering a certain zone, you can have high frequency roll-off when moving away from the front of the stage, you can automatically adjust the height of an actor even when they are standing on elevated platforms without having to control height manually.
-There are three layers for attenuation, height and HF shelf. They can be toggled on and off and they also can be hidden. The focused layer will look dimmed if disabled. Unfocused layers will look dimmed if active and only the shape outlines will be visible if they are deactivated.
-Each layer has a mapping control for white and black to adjust the range of the effect. The curve setting adjusts the transition.
-Each layer can have editable shapes (rectangle, ellipse or polygon) with either a single shade of grey, a linear gradient or a radial gradient. End points of the gradients can be adjusted.
-When creating a polygon click for each corner. Double-clicking will create a last corner and close the shape.
-Double-clicking an existing point on a rectangle or a polygon will remove this corner. Double-clicking on a side will add a new point.
-The scale and rotation of each shape can be edited for its center or from the origin point.
-When enabled the corner points of the rectangles and polygons can also be edited individually.
-Shapes and layers can be copied to another layer on the same input or any other input.
-Gradient map settings are stored in the input files.
-  - KO: 그래디언트 맵은 X, Y 위치에 따라 감쇠, 높이, 고주파 필터링(1kHz 중심의 부드러운 슬로프 쉘프)을 제어할 수 있습니다. 예를 들어 특정 구역에 진입할 때 소리를 페이드아웃하거나, 무대 전면에서 멀어질 때 고주파 롤오프를 적용하거나, 높은 플랫폼 위의 배우 높이를 자동 조정할 수 있습니다.
-감쇠, 높이, HF 쉘프의 3개 레이어가 있습니다. 켜기/끄기 전환과 숨기기가 가능합니다.
-각 레이어에는 효과 범위를 조정하는 흰색/검정 매핑 컨트롤이 있습니다. 커브 설정으로 전환을 조정합니다.
-각 레이어에 편집 가능한 도형(사각형, 타원, 다각형)을 배치할 수 있으며, 단색 회색, 선형 그래디언트, 방사형 그래디언트를 사용할 수 있습니다.
-다각형 생성 시 각 모서리를 클릭하고 더블클릭으로 닫습니다.
-기존 점을 더블클릭하면 삭제, 변을 더블클릭하면 새 점이 추가됩니다.
-도형과 레이어는 다른 레이어로 복사할 수 있습니다.
-설정은 입력 파일에 저장됩니다.
+  - EN: Gradient maps allow to control attenuation, height and high frequency filtering (shelf with a smooth slope centered at 1kHz) depending on the X, Y position. For example, you can fade out a sound when entering a certain zone, you can have high frequency roll-off when moving away from the front of the stage, you can automatically adjust the height of an actor even when they are standing on elevated platforms without having to control height manually.\nThere are three layers for attenuation, height and HF shelf. They can be toggled on and off and they also can be hidden. The focused layer will look dimmed if disabled. Unfocused layers will look dimmed if active and only the shape outlines will be visible if they are deactivated.\nEach layer has a mapping control for white and black to adjust the range of the effect. The curve setting adjusts the transition.\nEach layer can have editable shapes (rectangle, ellipse or polygon) with either a single shade of grey, a linear gradient or a radial gradient. End points of the gradients can be adjusted.\nWhen creating a polygon click for each corner. Double-clicking will create a last corner and close the shape.\nDouble-clicking an existing point on a rectangle or a polygon will remove this corner. Double-clicking on a side will add a new point.\nThe scale and rotation of each shape can be edited for its center or from the origin point.\nWhen enabled the corner points of the rectangles and polygons can also be edited individually.\nShapes and layers can be copied to another layer on the same input or any other input.\nGradient map settings are stored in the input files.
+  - KO: 그래디언트 맵은 X, Y 위치에 따라 감쇠, 높이, 고주파 필터링(1kHz 중심의 부드러운 슬로프 쉘프)을 제어할 수 있습니다. 예를 들어 특정 구역에 진입할 때 소리를 페이드아웃하거나, 무대 전면에서 멀어질 때 고주파 롤오프를 적용하거나, 높은 플랫폼 위의 배우 높이를 자동 조정할 수 있습니다.\n감쇠, 높이, HF 쉘프의 3개 레이어가 있습니다. 켜기/끄기 전환과 숨기기가 가능합니다.\n각 레이어에는 효과 범위를 조정하는 흰색/검정 매핑 컨트롤이 있습니다. 커브 설정으로 전환을 조정합니다.\n각 레이어에 편집 가능한 도형(사각형, 타원, 다각형)을 배치할 수 있으며, 단색 회색, 선형 그래디언트, 방사형 그래디언트를 사용할 수 있습니다.\n다각형 생성 시 각 모서리를 클릭하고 더블클릭으로 닫습니다.\n기존 점을 더블클릭하면 삭제, 변을 더블클릭하면 새 점이 추가됩니다.\n도형과 레이어는 다른 레이어로 복사할 수 있습니다.\n설정은 입력 파일에 저장됩니다.
   - [ ] OK    Fix: 
 
 - **`title`**
   - EN: Gradient Maps
-  - KO: 그래디언트 맵
+  - KO: Gradient Maps
   - [ ] OK    Fix: 
 
 ## `help.inputAdvanced`
 
 - **`body`**
-  - EN: - Sidelines and Fringe enable muting when an input comes close to the limits of a rectangular stage (except downstage).
-- Tracking can be enabled and the ID of the tracker can be selected. The amount of smoothing on the position can also be adjusted.
-- Maximum Speed can be engaged and the speed limit adjusted. The system will apply a gradual acceleration and deceleration when the movement starts and finishes. When Path is enabled, the system will track the path followed by the input and will not go in a straight line to the final position. This is especially handy if movements have to be operated manually.
-- Height Factor lets you work in 2D, when set to 0%, or full 3D, when set at 100%, and anything in between. It's the ratio of the height in the level and delay calculations. If you wish to use floor reflections, set it to 100% and use the parallax correction of the output parameters.
-  - KO: - 사이드라인과 프린지는 입력이 직사각형 무대의 경계에 접근할 때 음소거를 가능하게 합니다 (관객 측 제외).
-- 트래킹을 활성화하고 트래커 ID를 선택할 수 있습니다. 위치 평활화도 조정할 수 있습니다.
-- 최대 속도를 적용하고 속도 제한을 조정할 수 있습니다. 시스템은 움직임 시작과 끝에서 점진적인 가속과 감속을 적용합니다. 경로 모드가 활성화되면 시스템은 입력이 취한 경로를 따르고 최종 위치까지 직선으로 이동하지 않습니다. 움직임을 수동으로 조작해야 하는 경우 특히 유용합니다.
-- 높이 계수는 0%로 설정될 때 2D, 100%로 설정될 때 완전한 3D 및 그 사이의 모든 값으로 작업할 수 있게 합니다. 이는 레벨 및 지연 계산에서 높이의 비율입니다. 바닥 반사를 사용하려면 100%로 설정하고 출력 매개변수의 시차 보정을 사용하세요.
+  - EN: - Sidelines and Fringe enable muting when an input comes close to the limits of a rectangular stage (except downstage).\n- Tracking can be enabled and the ID of the tracker can be selected. The amount of smoothing on the position can also be adjusted.\n- Maximum Speed can be engaged and the speed limit adjusted. The system will apply a gradual acceleration and deceleration when the movement starts and finishes. When Path is enabled, the system will track the path followed by the input and will not go in a straight line to the final position. This is especially handy if movements have to be operated manually.\n- Height Factor lets you work in 2D, when set to 0%, or full 3D, when set at 100%, and anything in between. It's the ratio of the height in the level and delay calculations. If you wish to use floor reflections, set it to 100% and use the parallax correction of the output parameters.
+  - KO: - 사이드라인과 프린지는 입력이 직사각형 무대의 경계에 접근할 때 음소거를 가능하게 합니다 (관객 측 제외).\n- 트래킹을 활성화하고 트래커 ID를 선택할 수 있습니다. 위치 평활화도 조정할 수 있습니다.\n- 최대 속도를 적용하고 속도 제한을 조정할 수 있습니다. 시스템은 움직임 시작과 끝에서 점진적인 가속과 감속을 적용합니다. 경로 모드가 활성화되면 시스템은 입력이 취한 경로를 따르고 최종 위치까지 직선으로 이동하지 않습니다. 움직임을 수동으로 조작해야 하는 경우 특히 유용합니다.\n- 높이 계수는 0%로 설정될 때 2D, 100%로 설정될 때 완전한 3D 및 그 사이의 모든 값으로 작업할 수 있게 합니다. 이는 레벨 및 지연 계산에서 높이의 비율입니다. Floor Reflections를 사용하려면 100%로 설정하고 출력 매개변수의 시차 보정을 사용하세요.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1615,24 +512,8 @@ Gradient map settings are stored in the input files.
 ## `help.inputBasic`
 
 - **`body`**
-  - EN: Inputs have a wide variety of settings to account for different situations necessitating realistic sound reinforcement or creative tools for sound design.
-- Input level can be adjusted.
-- Inputs can be delayed or they can try to take into account specific latency (digital processing of wireless transmission or digital effects) and compensate for it to better align the amplification and the acoustic sound.
-- Minimal Latency can be toggled instead of Acoustic Precedence. On the other hand this tries to let the sound out through the system as soon as possible. The system scans this input's feeds to the outputs for lowest delay and subtracts it from all delays and bypasses additional Haas effect. Here the idea would be to beat the acoustic sound on stage to try and place a sound in a slightly different position by altering the location first perceived.
-- The location (position and offset) for any input can be given in Cartesian, Cylindrical or Spherical coordinates independently from the stage shape or other channels.
-- The position can be constrained to the dimensions of the stage in Cartesian coordinates or to a specific distance range in polar coordinates.
-- Flip will take symmetrical position for the given coordinate around the origin point.
-- The joystick and vertical slider allow relative control of the position.
-- Inputs can be assigned to a cluster to group them for coordinated movements.
-  - KO: 인풋에는 사실적인 음향 보강이나 사운드 디자인을 위한 다양한 설정이 있습니다.
-- 인풋 레벨을 조정할 수 있습니다.
-- 인풋을 지연시키거나 특정 레이턴시(무선 전송 또는 디지털 이펙트의 디지털 처리)를 고려하여 보상할 수 있습니다.
-- 음향 선행 대신 최소 레이턴시를 활성화할 수 있습니다. 시스템이 가능한 빨리 소리를 출력하려고 시도합니다.
-- 위치(위치 및 오프셋)는 무대 형태나 다른 채널에 관계없이 직교, 원통 또는 구면 좌표로 지정할 수 있습니다.
-- 위치는 직교 좌표에서는 무대 크기로, 극좌표에서는 특정 거리 범위로 제한할 수 있습니다.
-- 플립은 원점을 중심으로 대칭 위치를 취합니다.
-- 조이스틱과 수직 슬라이더로 위치의 상대적 제어가 가능합니다.
-- 인풋을 클러스터에 할당하여 조정된 움직임을 위해 그룹화할 수 있습니다.
+  - EN: Inputs have a wide variety of settings to account for different situations necessitating realistic sound reinforcement or creative tools for sound design.\n- Input level can be adjusted.\n- Inputs can be delayed or they can try to take into account specific latency (digital processing of wireless transmission or digital effects) and compensate for it to better align the amplification and the acoustic sound.\n- Minimal Latency can be toggled instead of Acoustic Precedence. On the other hand this tries to let the sound out through the system as soon as possible. The system scans this input's feeds to the outputs for lowest delay and subtracts it from all delays and bypasses additional Haas effect. Here the idea would be to beat the acoustic sound on stage to try and place a sound in a slightly different position by altering the location first perceived.\n- The location (position and offset) for any input can be given in Cartesian, Cylindrical or Spherical coordinates independently from the stage shape or other channels.\n- The position can be constrained to the dimensions of the stage in Cartesian coordinates or to a specific distance range in polar coordinates.\n- Flip will take symmetrical position for the given coordinate around the origin point.\n- The joystick and vertical slider allow relative control of the position.\n- Inputs can be assigned to a cluster to group them for coordinated movements.
+  - KO: 인풋에는 사실적인 음향 보강이나 사운드 디자인을 위한 다양한 설정이 있습니다.\n- 인풋 레벨을 조정할 수 있습니다.\n- 인풋을 지연시키거나 특정 레이턴시(무선 전송 또는 디지털 이펙트의 디지털 처리)를 고려하여 보상할 수 있습니다.\n- 음향 선행 대신 Minimal Latency를 활성화할 수 있습니다. 시스템이 가능한 빨리 소리를 출력하려고 시도합니다.\n- 위치(위치 및 오프셋)는 무대 형태나 다른 채널에 관계없이 직교, 원통 또는 구면 좌표로 지정할 수 있습니다.\n- 위치는 직교 좌표에서는 무대 크기로, 극좌표에서는 특정 거리 범위로 제한할 수 있습니다.\n- 플립은 원점을 중심으로 대칭 위치를 취합니다.\n- 조이스틱과 수직 슬라이더로 위치의 상대적 제어가 가능합니다.\n- 인풋을 클러스터에 할당하여 조정된 움직임을 위해 그룹화할 수 있습니다.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1643,12 +524,8 @@ Gradient map settings are stored in the input files.
 ## `help.inputHF`
 
 - **`body`**
-  - EN: When talking away, the timbre of a voice will sound less bright. Reproducing this was the initial goal here even though we usually want to have support for voices when not addressing the audience or in bi-frontal configurations. This can be put to good use for creative effects such as having a brighter reverb on a dampened direct sound.
-The orientation of the input in azimuth and in pitch can be set as well as the angle where the high frequencies will not be filtered.
-The HF Shelf will set the maximum attenuation in the back of the input. There is a smooth fade (like a cosine curve) from full brightness in front to damped at the rear.
-  - KO: 말하는 사람이 돌아서면 목소리의 음색이 덜 밝게 들립니다. 이를 재현하는 것이 원래의 목표였으며, 관객을 향하지 않는 목소리나 양면 구성에서도 지원이 필요합니다. 감쇠된 직접음에 대해 더 밝은 리버브를 갖는 것과 같은 창의적 효과에 활용할 수 있습니다.
-인풋의 방위각과 앙각의 방향, 그리고 고주파가 필터링되지 않는 각도를 설정할 수 있습니다.
-HF 셸프는 인풋 뒤쪽의 최대 감쇠를 설정합니다. 앞의 완전한 밝기에서 뒤의 감쇠까지 부드러운 페이드(코사인 커브와 같은)가 있습니다.
+  - EN: When talking away, the timbre of a voice will sound less bright. Reproducing this was the initial goal here even though we usually want to have support for voices when not addressing the audience or in bi-frontal configurations. This can be put to good use for creative effects such as having a brighter reverb on a dampened direct sound.\nThe orientation of the input in azimuth and in pitch can be set as well as the angle where the high frequencies will not be filtered.\nThe HF Shelf will set the maximum attenuation in the back of the input. There is a smooth fade (like a cosine curve) from full brightness in front to damped at the rear.
+  - KO: 말하는 사람이 돌아서면 목소리의 음색이 덜 밝게 들립니다. 이를 재현하는 것이 원래의 목표였으며, 관객을 향하지 않는 목소리나 양면 구성에서도 지원이 필요합니다. 감쇠된 직접음에 대해 더 밝은 리버브를 갖는 것과 같은 창의적 효과에 활용할 수 있습니다.\n인풋의 방위각과 앙각의 방향, 그리고 고주파가 필터링되지 않는 각도를 설정할 수 있습니다.\nHF 셸프는 인풋 뒤쪽의 최대 감쇠를 설정합니다. 앞의 완전한 밝기에서 뒤의 감쇠까지 부드러운 페이드(코사인 커브와 같은)가 있습니다.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1671,28 +548,20 @@ HF 셸프는 인풋 뒤쪽의 최대 감쇠를 설정합니다. 앞의 완전한
 ## `help.inputMutes`
 
 - **`body`**
-  - EN: You can set for each output array a specific attenuation for the selected input.
-You can mute each send to any output individually. There are macros to speed up the process.
-  - KO: 각 출력 어레이에 대해 선택된 인풋의 특정 감쇠를 설정할 수 있습니다.
-각 센드를 모든 출력에 대해 개별적으로 뮤트할 수 있습니다. 프로세스를 빠르게 하는 매크로가 있습니다.
+  - EN: You can set for each output array a specific attenuation for the selected input.\nYou can mute each send to any output individually. There are macros to speed up the process.
+  - KO: 각 출력 어레이에 대해 선택된 인풋의 특정 감쇠를 설정할 수 있습니다.\n각 센드를 모든 출력에 대해 개별적으로 뮤트할 수 있습니다. 프로세스를 빠르게 하는 매크로가 있습니다.
   - [ ] OK    Fix: 
 
 - **`title`**
   - EN: Array Attenuation and Output Mutes
-  - KO: 어레이 감쇠 및 출력 뮤트
+  - KO: Array Attenuation and Output Mutes
   - [ ] OK    Fix: 
 
 ## `help.lfo`
 
 - **`body`**
-  - EN: Input position can be automated. The LFO can control X, Y and Z position coordinates individually as well as the rotation of HF directivity (gyrophone).
-Adjust the global period and phase for the LFO.
-For X, Y and Z coordinates select a shape, amplitude, rate and phase as desired. A circle in the XY plane would have sine for shape for X and for Y and an offset of ±90° between the two. A square would be the same but with keystone shapes.
-Input position can be moved while the LFO is running.
-  - KO: 입력 위치를 자동화할 수 있습니다. LFO는 X, Y, Z 좌표를 개별적으로 제어하고 HF 지향성의 회전(자이로폰)도 제어할 수 있습니다.
-LFO의 전체 주기와 위상을 조정합니다.
-X, Y, Z 좌표에 대해 형태, 진폭, 속도, 위상을 선택합니다. XY 평면의 원은 X와 Y에 사인파를 사용하고 ±90° 오프셋을 설정합니다.
-LFO 작동 중에도 입력 위치를 이동할 수 있습니다.
+  - EN: Input position can be automated. The LFO can control X, Y and Z position coordinates individually as well as the rotation of HF directivity (gyrophone).\nAdjust the global period and phase for the LFO.\nFor X, Y and Z coordinates select a shape, amplitude, rate and phase as desired. A circle in the XY plane would have sine for shape for X and for Y and an offset of ±90° between the two. A square would be the same but with keystone shapes.\nInput position can be moved while the LFO is running.
+  - KO: 입력 위치를 자동화할 수 있습니다. LFO는 X, Y, Z 좌표를 개별적으로 제어하고 HF 지향성의 회전(자이로폰)도 제어할 수 있습니다.\nLFO의 전체 주기와 위상을 조정합니다.\nX, Y, Z 좌표에 대해 형태, 진폭, 속도, 위상을 선택합니다. XY 평면의 원은 X와 Y에 사인파를 사용하고 ±90° 오프셋을 설정합니다.\nLFO 작동 중에도 입력 위치를 이동할 수 있습니다.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1703,57 +572,20 @@ LFO 작동 중에도 입력 위치를 이동할 수 있습니다.
 ## `help.liveSource`
 
 - **`body`**
-  - EN: A loud source on stage may not need much reinforcement through the nearby speakers. Imagine an opera singer near the edge of the stage. Normally the level distribution would make the level louder near the input position. But if it is already loud enough we should be able to not over-amplify it. This function manages this.
-The radius and shape describe how to attenuate the level for a specific source for speakers within the radius of influence of this input. There are various shapes: a V shaped linear effect; a U shape for fast decrease within the radius; a tight V effect or a mix of the previous (sine).
-The attenuation can be constant or level dependent like a local compression reacting to transients and to average RMS level.
-  - KO: 무대 위의 큰 소리 소스는 근처 스피커를 통한 보강이 필요 없을 수 있습니다. 무대 가장자리의 오페라 가수를 상상해 보세요. 일반적으로 레벨 분배는 입력 위치 근처에서 더 크게 만듭니다. 하지만 이미 충분히 크다면 과도하게 증폭하지 않아야 합니다. 이 기능이 이를 관리합니다.
-반경과 형태는 이 입력의 영향 반경 내 스피커에 대한 레벨 감쇠 방법을 설명합니다. 다양한 형태가 있습니다: V자형 선형 효과, 빠른 감소를 위한 U자형, 좁은 V자형 또는 이전 것들의 혼합(사인).
-감쇠는 일정하거나 과도 응답과 평균 RMS 레벨에 반응하는 로컬 압축처럼 레벨 의존적일 수 있습니다.
+  - EN: A loud source on stage may not need much reinforcement through the nearby speakers. Imagine an opera singer near the edge of the stage. Normally the level distribution would make the level louder near the input position. But if it is already loud enough we should be able to not over-amplify it. This function manages this.\nThe radius and shape describe how to attenuate the level for a specific source for speakers within the radius of influence of this input. There are various shapes: a V shaped linear effect; a U shape for fast decrease within the radius; a tight V effect or a mix of the previous (sine).\nThe attenuation can be constant or level dependent like a local compression reacting to transients and to average RMS level.
+  - KO: 무대 위의 큰 소리 소스는 근처 스피커를 통한 보강이 필요 없을 수 있습니다. 무대 가장자리의 오페라 가수를 상상해 보세요. 일반적으로 레벨 분배는 입력 위치 근처에서 더 크게 만듭니다. 하지만 이미 충분히 크다면 과도하게 증폭하지 않아야 합니다. 이 기능이 이를 관리합니다.\n반경과 형태는 이 입력의 영향 반경 내 스피커에 대한 레벨 감쇠 방법을 설명합니다. 다양한 형태가 있습니다: V자형 선형 효과, 빠른 감소를 위한 U자형, 좁은 V자형 또는 이전 것들의 혼합(사인).\n감쇠는 일정하거나 과도 응답과 평균 RMS 레벨에 반응하는 로컬 압축처럼 레벨 의존적일 수 있습니다.
   - [ ] OK    Fix: 
 
 - **`title`**
   - EN: Live Source Tamer
-  - KO: 라이브 소스 테이머
+  - KO: Live Source Tamer
   - [ ] OK    Fix: 
 
 ## `help.map`
 
 - **`body`**
-  - EN: - A left click on an input or a cluster will allow to move it by dragging it. A single finger touch will do the same.
-- A left click with the shift key pressed will add or remove inputs to the selection. A double tap and drag will act the same way.
-- A left click drag will draw a selection rectangle to select multiple inputs and clusters at the same time.
-- A left double-click or tap will reset the position offset of the input.
-- A long left click or press with no movement will switch to the input tab with the focus on the selected input on release.
-- A left click away from any input will clear the selection.
-- A right click and drag will pan the view of the map. A two finger drag with no selected input or cluster will do the same if your operating system supports multitouch.
-- The mouse wheel will zoom in and out. A two finger pinch with no selected input or cluster will also zoom in and out.
-- A middle click will reset the view to fit the stage on the map display. There is also a dedicated set of buttons to reset the view to fit all inputs and to fit the stage respectively.
-- Selected inputs and clusters can also be moved with the arrow keys for X and Y and with the PageUp and PageDown keys for height. Hardware controllers can be used too.
-- When an input is touched, a second finger nearby can rotate the input directivity and adjust the height by pinching if your operating system allows multitouch interaction.
-- When a cluster is touched, a second finger nearby can rotate the cluster and scale it by pinching.
-- Inputs, output arrays and the reverb nodes can be hidden on the map.
-- Inputs can also be locked to prevent selecting and moving them on the map. They will still be moved by clusters, network commands, tracking and hardware controllers.
-- All reverb nodes can be moved on the map if this is enabled on the reverb tab. Holding the Ctrl/Cmd key will move each pair of reverb nodes in symmetry.
-- Inputs with offsets, LFO or with speed regulation will have a temporary position marker. But the point of interaction will remain the normal marker.
-- The Live Source Tamer radius will be displayed around input when activated.
-- There is a toggle to display the audio level for the inputs and outputs on the map tab, that's active when the audio processing is running.
-  - KO: - 입력이나 클러스터를 왼쪽 클릭하여 드래그로 이동합니다.
-- Shift+왼쪽 클릭으로 선택에 추가/제거합니다.
-- 왼쪽 클릭 드래그로 선택 사각형을 그립니다.
-- 더블클릭으로 위치 오프셋을 리셋합니다.
-- 움직임 없는 긴 클릭으로 입력 탭으로 전환합니다.
-- 입력 외부 클릭으로 선택을 해제합니다.
-- 오른쪽 클릭 드래그로 맵을 팬합니다. 두 손가락 드래그도 동일합니다.
-- 마우스 휠로 줌합니다. 두 손가락 핀치도 동일합니다.
-- 가운데 클릭으로 뷰를 리셋합니다.
-- 화살표 키로 X/Y 이동, PageUp/Down으로 높이 조정.
-- 두 번째 손가락으로 지향성 회전과 높이 조정이 가능합니다.
-- 클러스터에서는 두 번째 손가락으로 회전과 크기 조정이 가능합니다.
-- 입력, 출력 배열, 리버브 노드를 숨길 수 있습니다.
-- 입력을 잠가 선택과 이동을 방지할 수 있습니다.
-- 리버브 노드를 이동 가능. Ctrl/Cmd로 쌍을 대칭 이동합니다.
-- 라이브 소스 테이머 반경이 표시됩니다.
-- 오디오 레벨을 맵에 표시할 수 있습니다.
+  - EN: - A left click on an input or a cluster will allow to move it by dragging it. A single finger touch will do the same.\n- A left click with the shift key pressed will add or remove inputs to the selection. A double tap and drag will act the same way.\n- A left click drag will draw a selection rectangle to select multiple inputs and clusters at the same time.\n- A left double-click or tap will reset the position offset of the input.\n- A long left click or press with no movement will switch to the input tab with the focus on the selected input on release.\n- A left click away from any input will clear the selection.\n- A right click and drag will pan the view of the map. A two finger drag with no selected input or cluster will do the same if your operating system supports multitouch.\n- The mouse wheel will zoom in and out. A two finger pinch with no selected input or cluster will also zoom in and out.\n- A middle click will reset the view to fit the stage on the map display. There is also a dedicated set of buttons to reset the view to fit all inputs and to fit the stage respectively.\n- Selected inputs and clusters can also be moved with the arrow keys for X and Y and with the PageUp and PageDown keys for height. Hardware controllers can be used too.\n- When an input is touched, a second finger nearby can rotate the input directivity and adjust the height by pinching if your operating system allows multitouch interaction.\n- When a cluster is touched, a second finger nearby can rotate the cluster and scale it by pinching.\n- Inputs, output arrays and the reverb nodes can be hidden on the map.\n- Inputs can also be locked to prevent selecting and moving them on the map. They will still be moved by clusters, network commands, tracking and hardware controllers.\n- All reverb nodes can be moved on the map if this is enabled on the reverb tab. Holding the Ctrl/Cmd key will move each pair of reverb nodes in symmetry.\n- Inputs with offsets, LFO or with speed regulation will have a temporary position marker. But the point of interaction will remain the normal marker.\n- The Live Source Tamer radius will be displayed around input when activated.\n- There is a toggle to display the audio level for the inputs and outputs on the map tab, that's active when the audio processing is running.
+  - KO: - 입력이나 클러스터를 왼쪽 클릭하여 드래그로 이동합니다.\n- Shift+왼쪽 클릭으로 선택에 추가/제거합니다.\n- 왼쪽 클릭 드래그로 선택 사각형을 그립니다.\n- 더블클릭으로 위치 오프셋을 리셋합니다.\n- 움직임 없는 긴 클릭으로 입력 탭으로 전환합니다.\n- 입력 외부 클릭으로 선택을 해제합니다.\n- 오른쪽 클릭 드래그로 맵을 팬합니다. 두 손가락 드래그도 동일합니다.\n- 마우스 휠로 줌합니다. 두 손가락 핀치도 동일합니다.\n- 가운데 클릭으로 뷰를 리셋합니다.\n- 화살표 키로 X/Y 이동, PageUp/Down으로 높이 조정.\n- 두 번째 손가락으로 지향성 회전과 높이 조정이 가능합니다.\n- 클러스터에서는 두 번째 손가락으로 회전과 크기 조정이 가능합니다.\n- 입력, 출력 배열, 리버브 노드를 숨길 수 있습니다.\n- 입력을 잠가 선택과 이동을 방지할 수 있습니다.\n- 리버브 노드를 이동 가능. Ctrl/Cmd로 쌍을 대칭 이동합니다.\n- Live Source Tamer 반경이 표시됩니다.\n- 오디오 레벨을 맵에 표시할 수 있습니다.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1764,60 +596,8 @@ The attenuation can be constant or level dependent like a local compression reac
 ## `help.mcp`
 
 - **`body`**
-  - EN: The MCP server lets an AI assistant (Claude Desktop, Claude Code, ChatGPT with custom connectors) read and write the parameters of this WFS-DIY session over a local network connection.
-
-What the AI can do:
-• Read live state: channel counts, names, positions, attenuations, EQs, snapshots, clusters, the full parameter surface.
-• Move sources, rename channels, set cluster assignments, adjust the array layout, place outputs and reverbs.
-• Run guided workflows (system tuning walkthroughs, troubleshooting localization, snapshot management) via prepared prompt templates.
-
-Operator controls on this row:
-• AI: ON / OFF — master switch. When OFF every AI tool call is refused; when ON the AI works under the rules below.
-• AI critical actions: blocked / ALLOWED — the destructive actions (deleting snapshots, resetting DSP, changing channel counts) are blocked by default. Click to allow them for 10 minutes; the red fill drains as the window expires, then they auto-block again.
-• Open AI History — scrollable timeline of every recent AI change with per-row undo / redo and a step-by-step cursor.
-• The MCP URL button copies the server URL to the clipboard for AI clients that take a URL directly.
-
-Operator awareness:
-• Every AI action is recorded with origin tags. The AI History window shows the full timeline; per-row × reverses an action with its dependents.
-• If you manually adjust a parameter the AI just moved, the AI is notified and will not blindly retry. You always have the last word.
-• The Cmd/Ctrl+Alt+Z and Cmd/Ctrl+Alt+Y shortcuts undo and redo the last AI change without affecting your manual edits (which use plain Ctrl+Z as usual).
-
-To add this server to Claude Desktop:
-  1. Open Settings → Developer → Edit Config.
-  2. Paste the JSON snippet below into claude_desktop_config.json (merge into the existing mcpServers block if you already have one).
-  3. Restart Claude Desktop. The server appears as 'wfs-diy' in the tools menu.
-
-To add to Claude Code, run:
-  claude mcp add wfs-diy <url> -t http
-
-The URL changes if you switch network interface or if the server falls back to a different port. The URL button on this row always reflects the live URL.
-  - KO: MCP 서버는 AI 어시스턴트(Claude Desktop, Claude Code, 사용자 정의 커넥터가 있는 ChatGPT)가 로컬 네트워크 연결을 통해 이 WFS-DIY 세션의 매개변수를 읽고 쓸 수 있게 해줍니다.
-
-AI가 할 수 있는 일:
-• 라이브 상태 읽기: 채널 수, 이름, 위치, 감쇠, EQ, 스냅샷, 클러스터, 전체 매개변수.
-• 소스 이동, 채널 이름 변경, 클러스터 할당 설정, 어레이 레이아웃 조정, 출력 및 리버브 배치.
-• 준비된 프롬프트 템플릿을 통해 가이드 워크플로 실행 (시스템 튜닝, 위치 문제 해결, 스냅샷 관리).
-
-이 행의 운영자 컨트롤:
-• AI: ON / OFF — 메인 스위치. OFF일 때 모든 AI 도구 호출이 거부됩니다. ON일 때 AI는 아래 규칙에 따라 작동합니다.
-• 중요 AI 동작: 차단됨 / 허용됨 — 파괴적인 동작(스냅샷 삭제, DSP 재설정, 채널 수 변경)은 기본적으로 차단됩니다. 클릭하여 10분 동안 허용. 빨간색 채우기는 윈도우 만료에 따라 줄어들고 자동으로 다시 차단됩니다.
-• AI 기록 열기 — 최근 모든 AI 변경의 스크롤 가능한 타임라인.
-• MCP URL 버튼은 URL을 직접 받는 AI 클라이언트용으로 서버 URL을 클립보드에 복사합니다.
-
-운영자 인지:
-• 모든 AI 동작은 출처 태그와 함께 기록됩니다. AI 기록 창은 전체 타임라인을 보여줍니다. 행별 ×는 종속성을 포함하여 동작을 되돌립니다.
-• AI가 방금 이동한 매개변수를 수동으로 조정하면 AI에 알림이 가고 무작정 재시도하지 않습니다. 항상 마지막 결정은 당신이 합니다.
-• Cmd/Ctrl+Alt+Z 및 Cmd/Ctrl+Alt+Y 단축키는 수동 편집(일반 Ctrl+Z 사용)에 영향을 주지 않고 마지막 AI 변경을 실행 취소/다시 실행합니다.
-
-이 서버를 Claude Desktop에 추가하려면:
-  1. 설정 → 개발자 → 구성 편집을 엽니다.
-  2. 아래 JSON 스니펫을 claude_desktop_config.json에 붙여넣습니다 (이미 있는 mcpServers 블록에 병합).
-  3. Claude Desktop을 다시 시작합니다. 서버가 도구 메뉴에 'wfs-diy'로 표시됩니다.
-
-Claude Code에 추가하려면 실행:
-  claude mcp add wfs-diy <url> -t http
-
-네트워크 인터페이스를 전환하거나 서버가 다른 포트로 폴백하면 URL이 변경됩니다. 이 행의 URL 버튼은 항상 라이브 URL을 반영합니다.
+  - EN: The MCP server lets an AI assistant (Claude Desktop, Claude Code, ChatGPT with custom connectors) read and write the parameters of this WFS-DIY session over a local network connection.\n\nWhat the AI can do:\n• Read live state: channel counts, names, positions, attenuations, EQs, snapshots, clusters, the full parameter surface.\n• Move sources, rename channels, set cluster assignments, adjust the array layout, place outputs and reverbs.\n• Run guided workflows (system tuning walkthroughs, troubleshooting localization, snapshot management) via prepared prompt templates.\n\nOperator controls on this row:\n• AI: ON / OFF — master switch. When OFF every AI tool call is refused; when ON the AI works under the rules below.\n• AI critical actions: blocked / ALLOWED — the destructive actions (deleting snapshots, resetting DSP, changing channel counts) are blocked by default. Click to allow them for 10 minutes; the red fill drains as the window expires, then they auto-block again.\n• Open AI History — scrollable timeline of every recent AI change with per-row undo / redo and a step-by-step cursor.\n• The MCP URL button copies the server URL to the clipboard for AI clients that take a URL directly.\n\nOperator awareness:\n• Every AI action is recorded with origin tags. The AI History window shows the full timeline; per-row × reverses an action with its dependents.\n• If you manually adjust a parameter the AI just moved, the AI is notified and will not blindly retry. You always have the last word.\n• The Cmd/Ctrl+Alt+Z and Cmd/Ctrl+Alt+Y shortcuts undo and redo the last AI change without affecting your manual edits (which use plain Ctrl+Z as usual).\n\nTo add this server to Claude Desktop:\n  1. Open Settings → Developer → Edit Config.\n  2. Paste the JSON snippet below into claude_desktop_config.json (merge into the existing mcpServers block if you already have one).\n  3. Restart Claude Desktop. The server appears as 'wfs-diy' in the tools menu.\n\nTo add to Claude Code, run:\n  claude mcp add wfs-diy <url> -t http\n\nThe URL changes if you switch network interface or if the server falls back to a different port. The URL button on this row always reflects the live URL.
+  - KO: MCP Server는 AI 어시스턴트(Claude Desktop, Claude Code, 사용자 정의 커넥터가 있는 ChatGPT)가 로컬 네트워크 연결을 통해 이 WFS-DIY 세션의 매개변수를 읽고 쓸 수 있게 해줍니다.\n\nAI가 할 수 있는 일:\n• 라이브 상태 읽기: 채널 수, 이름, 위치, 감쇠, EQ, 스냅샷, 클러스터, 전체 매개변수.\n• 소스 이동, 채널 이름 변경, 클러스터 할당 설정, 어레이 레이아웃 조정, 출력 및 리버브 배치.\n• 준비된 프롬프트 템플릿을 통해 가이드 워크플로 실행 (시스템 튜닝, 위치 문제 해결, 스냅샷 관리).\n\n이 행의 운영자 컨트롤:\n• AI: ON / OFF — 메인 스위치. OFF일 때 모든 AI 도구 호출이 거부됩니다. ON일 때 AI는 아래 규칙에 따라 작동합니다.\n• 중요 AI 동작: 차단됨 / 허용됨 — 파괴적인 동작(스냅샷 삭제, DSP 재설정, 채널 수 변경)은 기본적으로 차단됩니다. 클릭하여 10분 동안 허용. 빨간색 채우기는 윈도우 만료에 따라 줄어들고 자동으로 다시 차단됩니다.\n• AI 기록 열기 — 최근 모든 AI 변경의 스크롤 가능한 타임라인.\n• MCP URL 버튼은 URL을 직접 받는 AI 클라이언트용으로 서버 URL을 클립보드에 복사합니다.\n\n운영자 인지:\n• 모든 AI 동작은 출처 태그와 함께 기록됩니다. AI 기록 창은 전체 타임라인을 보여줍니다. 행별 ×는 종속성을 포함하여 동작을 되돌립니다.\n• AI가 방금 이동한 매개변수를 수동으로 조정하면 AI에 알림이 가고 무작정 재시도하지 않습니다. 항상 마지막 결정은 당신이 합니다.\n• Cmd/Ctrl+Alt+Z 및 Cmd/Ctrl+Alt+Y 단축키는 수동 편집(일반 Ctrl+Z 사용)에 영향을 주지 않고 마지막 AI 변경을 실행 취소/다시 실행합니다.\n\n이 서버를 Claude Desktop에 추가하려면:\n  1. 설정 → 개발자 → 구성 편집을 엽니다.\n  2. 아래 JSON 스니펫을 claude_desktop_config.json에 붙여넣습니다 (이미 있는 mcpServers 블록에 병합).\n  3. Claude Desktop을 다시 시작합니다. 서버가 도구 메뉴에 'wfs-diy'로 표시됩니다.\n\nClaude Code에 추가하려면 실행:\n  claude mcp add wfs-diy <url> -t http\n\nNetwork Interface를 전환하거나 서버가 다른 포트로 폴백하면 URL이 변경됩니다. 이 행의 URL 버튼은 항상 라이브 URL을 반영합니다.
   - [ ] OK    Fix: 
 
 - **`copyButton`**
@@ -1832,28 +612,14 @@ Claude Code에 추가하려면 실행:
 
 - **`title`**
   - EN: AI / MCP Server
-  - KO: AI / MCP 서버
+  - KO: AI / MCP Server
   - [ ] OK    Fix: 
 
 ## `help.network`
 
 - **`body`**
-  - EN: The system can communicate through several network protocols, (UDP or TCP) using OSC. OSC query can be enabled to allow the clients to discover the possible OSC paths and subscribe to some parameter updates.
-The IP of the local machine corresponding to the selected network interface is shown. The incoming TCP and UDP ports as well as the OSC Query port.
-There are a few specialised OSC clients such as:
-- Remote for the Android application for multitouch operation and for remote control.
-- QLab that can send data and that can also be programmed directly from the application.
-- ADM-OSC for control from consoles and DAW (see specific help).
-The data can be filtered to only allow the data from the recorded IP addresses or to allow any client sending on the correct ports.
-There is a Log window to see what data comes in or out, filter by the type of protocol, client and so on.
-There is also a locator function to find a lost remote Android tablet. It will flash and sound the alarm on the missing device.
-  - KO: 시스템은 OSC를 사용하여 여러 네트워크 프로토콜(UDP 또는 TCP)로 통신할 수 있습니다. OSC Query를 활성화하면 클라이언트가 사용 가능한 OSC 경로를 검색하고 매개변수 업데이트를 구독할 수 있습니다.
-선택한 네트워크 인터페이스에 해당하는 로컬 머신 IP가 표시됩니다. 수신 TCP, UDP 포트 및 OSC Query 포트.
-전문 OSC 클라이언트:
-- Remote: 멀티터치 작동 및 원격 제어용 Android 애플리케이션.
-- QLab: 데이터 전송 및 애플리케이션에서 직접 프로그래밍.
-- ADM-OSC: 콘솔 및 DAW에서 제어(전용 도움말 참조).
-데이터 필터링, 로그 창, 분실된 Android 태블릿 위치 찾기 기능이 있습니다.
+  - EN: The system can communicate through several network protocols, (UDP or TCP) using OSC. OSC query can be enabled to allow the clients to discover the possible OSC paths and subscribe to some parameter updates.\nThe IP of the local machine corresponding to the selected network interface is shown. The incoming TCP and UDP ports as well as the OSC Query port.\nThere are a few specialised OSC clients such as:\n- Remote for the Android application for multitouch operation and for remote control.\n- QLab that can send data and that can also be programmed directly from the application.\n- ADM-OSC for control from consoles and DAW (see specific help).\nThe data can be filtered to only allow the data from the recorded IP addresses or to allow any client sending on the correct ports.\nThere is a Log window to see what data comes in or out, filter by the type of protocol, client and so on.\nThere is also a locator function to find a lost remote Android tablet. It will flash and sound the alarm on the missing device.
+  - KO: 시스템은 OSC를 사용하여 여러 네트워크 프로토콜(UDP 또는 TCP)로 통신할 수 있습니다. OSC Query를 활성화하면 클라이언트가 사용 가능한 OSC 경로를 검색하고 매개변수 업데이트를 구독할 수 있습니다.\n선택한 네트워크 인터페이스에 해당하는 로컬 머신 IP가 표시됩니다. 수신 TCP, UDP 포트 및 OSC Query 포트.\n전문 OSC 클라이언트:\n- Remote: 멀티터치 작동 및 원격 제어용 Android 애플리케이션.\n- QLab: 데이터 전송 및 애플리케이션에서 직접 프로그래밍.\n- ADM-OSC: 콘솔 및 DAW에서 제어(전용 도움말 참조).\n데이터 필터링, 로그 창, 분실된 Android 태블릿 위치 찾기 기능이 있습니다.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1864,22 +630,8 @@ There is also a locator function to find a lost remote Android tablet. It will f
 ## `help.outputAdvanced`
 
 - **`body`**
-  - EN: There are a few parameters to help you adjust to the acoustic sound.
-Most of these parameters are set for whole arrays unless the propagation mode is switched to off for this output in the array. Relative change can also be selected after a specific setting.
-- Orientation and On/Off Angles define what inputs each speaker will amplify. By default the speakers are pointing to the audience, away from the stage. Inputs in the green sector will be amplified, but not the ones in front of the speaker, in the red sector. There is a fade between both sectors. For sub-bass speakers which usually come in limited numbers and locations, opening all the way to the maximum will allow you to have all inputs possibly picked up by the subwoofers.
-- HF Damping simulates the loss of high frequency with distance. Speakers close to the listeners can have more than speakers away from the stage and the listeners.
-- Distance Attenuation percentage allows you to define if more or less of the attenuation calculated from the distance and parameters of the input is applied. Again for Sub-bass in case you only have two and don't want to lose too much level or have hot-spots it may be wise to lower this setting to 50%.
-- Minimal Latency toggles whether the output is scanned for the smallest calculated delay and also if the setting once engaged on an input will reduce the delay for that input through this speaker.
-- Live Source Attenuation toggles the reduction of level of nearby input if they have this setting enabled. This may not be necessary for speakers away from the audience or for sub-bass.
-- Floor Reflections toggles if the reflections are applied to the signal for this output such as sub-bass and flown arrays...
-  - KO: 음향 사운드에 맞게 조정하기 위한 몇 가지 파라미터가 있습니다.
-이러한 파라미터의 대부분은 전체 어레이에 설정됩니다(전파 모드가 이 출력에서 꺼져 있는 경우 제외). 특정 설정 후 상대적 변경도 선택할 수 있습니다.
-- 방향 및 On/Off 각도는 각 스피커가 어떤 인풋을 증폭할지 정의합니다. 기본적으로 스피커는 관객을 향하고 무대에서 벗어납니다. 녹색 영역의 인풋은 증폭되지만, 빨간 영역의 인풋은 증폭되지 않습니다. 서브베이스의 경우 최대로 열면 모든 인풋을 포함할 수 있습니다.
-- HF 댐핑은 거리에 따른 고주파 손실을 시뮬레이션합니다.
-- 거리 감쇠 퍼센티지는 계산된 감쇠의 적용 정도를 정의합니다. 서브베이스의 경우 50%로 낮추는 것이 현명할 수 있습니다.
-- 최소 레이턴시는 최소 계산 딜레이의 스캔을 활성화합니다.
-- 라이브 소스 감쇠는 가까운 인풋의 레벨 감소를 활성화합니다.
-- 바닥 반사는 서브베이스 및 플라잉 어레이와 같은 이 출력에 반사가 적용되는지 전환합니다...
+  - EN: There are a few parameters to help you adjust to the acoustic sound.\nMost of these parameters are set for whole arrays unless the propagation mode is switched to off for this output in the array. Relative change can also be selected after a specific setting.\n- Orientation and On/Off Angles define what inputs each speaker will amplify. By default the speakers are pointing to the audience, away from the stage. Inputs in the green sector will be amplified, but not the ones in front of the speaker, in the red sector. There is a fade between both sectors. For sub-bass speakers which usually come in limited numbers and locations, opening all the way to the maximum will allow you to have all inputs possibly picked up by the subwoofers.\n- HF Damping simulates the loss of high frequency with distance. Speakers close to the listeners can have more than speakers away from the stage and the listeners.\n- Distance Attenuation percentage allows you to define if more or less of the attenuation calculated from the distance and parameters of the input is applied. Again for Sub-bass in case you only have two and don't want to lose too much level or have hot-spots it may be wise to lower this setting to 50%.\n- Minimal Latency toggles whether the output is scanned for the smallest calculated delay and also if the setting once engaged on an input will reduce the delay for that input through this speaker.\n- Live Source Attenuation toggles the reduction of level of nearby input if they have this setting enabled. This may not be necessary for speakers away from the audience or for sub-bass.\n- Floor Reflections toggles if the reflections are applied to the signal for this output such as sub-bass and flown arrays...
+  - KO: 음향 사운드에 맞게 조정하기 위한 몇 가지 파라미터가 있습니다.\n이러한 파라미터의 대부분은 전체 어레이에 설정됩니다(전파 모드가 이 출력에서 꺼져 있는 경우 제외). 특정 설정 후 상대적 변경도 선택할 수 있습니다.\n- 방향 및 On/Off 각도는 각 스피커가 어떤 인풋을 증폭할지 정의합니다. 기본적으로 스피커는 관객을 향하고 무대에서 벗어납니다. 녹색 영역의 인풋은 증폭되지만, 빨간 영역의 인풋은 증폭되지 않습니다. 서브베이스의 경우 최대로 열면 모든 인풋을 포함할 수 있습니다.\n- HF 댐핑은 거리에 따른 고주파 손실을 시뮬레이션합니다.\n- Distance attenuation 퍼센티지는 계산된 감쇠의 적용 정도를 정의합니다. 서브베이스의 경우 50%로 낮추는 것이 현명할 수 있습니다.\n- Minimal Latency는 최소 계산 딜레이의 스캔을 활성화합니다.\n- Live Source 감쇠는 가까운 인풋의 레벨 감소를 활성화합니다.\n- Floor Reflections는 서브베이스 및 플라잉 어레이와 같은 이 출력에 반사가 적용되는지 전환합니다...
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1890,14 +642,8 @@ Most of these parameters are set for whole arrays unless the propagation mode is
 ## `help.outputs`
 
 - **`body`**
-  - EN: The design of the WFS system has to do with the right choice of equipment and their position. Here is a guide to help you with the design and the tuning of your arrays.
-An array is a line (straight or curved) of speakers. This is one of the most important concepts in WFS adapted to sound reinforcement and for creative sound design.
-A rule of thumb would be that each listener should hear three speakers of an array to have enough psycho-acoustic cues to feel the direction each sound is coming from. There will be a sweet spot to find between the distance between the speakers and the listeners, their spacing and coverage angle. This is especially true for short range arrays, a.k.a front fills. Speakers with a 120° coverage angle can be spaced by the same distance between the array and the first row of listeners. The number of speakers also depends on the sound pressure level. When placed as a flown array, trapezoidal/asymmetric horns with wide coverage angle (120°) below axis and narrow coverage (60°) on axis will give good coverage for seat rows a bit too far from the ground array and will have enough throw to reach 20m or 30m away while avoiding the walls of the venue where they would create reflections that give away the position of the speakers to the ears of the listeners. Most of the time for larger venues coaxial (elliptical or conical horns) have not enough reach and require one or more delay lines. They are more suited for smaller venues with few rows of seats.
-The positioning of the speakers in the system can be done through the 'Wizard of OutZ' and the editable presets it has.
-  - KO: WFS 시스템의 설계는 올바른 장비 선택과 배치에 관한 것입니다. 어레이 설계 및 튜닝을 위한 가이드입니다.
-어레이는 스피커의 열(직선 또는 곡선)입니다. 이것은 WFS에서 가장 중요한 개념 중 하나입니다.
-경험적으로 각 청취자는 방향을 감지하기 위한 충분한 심리음향 단서를 얻기 위해 어레이의 스피커 3개를 들어야 합니다. 스피커와 청취자 사이의 거리, 간격, 커버리지 각도 사이에 최적점이 있습니다. 120° 커버리지 각도의 스피커는 어레이와 첫 번째 줄 사이의 거리와 같은 간격으로 배치할 수 있습니다. 스피커 수는 음압 레벨에도 의존합니다. 플라잉 어레이로 배치할 경우, 축 아래 넓은(120°), 축 위 좁은(60°) 커버리지의 사다리꼴/비대칭 혼은 좋은 커버리지와 20-30m 도달 거리를 제공하면서 벽 반사를 피합니다. 동축 스피커는 대형 장소에서는 보통 도달 거리가 부족하여 딜레이 라인이 필요합니다.
-배치는 'Wizard of OutZ'와 편집 가능한 프리셋을 통해 수행할 수 있습니다.
+  - EN: The design of the WFS system has to do with the right choice of equipment and their position. Here is a guide to help you with the design and the tuning of your arrays.\nAn array is a line (straight or curved) of speakers. This is one of the most important concepts in WFS adapted to sound reinforcement and for creative sound design.\nA rule of thumb would be that each listener should hear three speakers of an array to have enough psycho-acoustic cues to feel the direction each sound is coming from. There will be a sweet spot to find between the distance between the speakers and the listeners, their spacing and coverage angle. This is especially true for short range arrays, a.k.a front fills. Speakers with a 120° coverage angle can be spaced by the same distance between the array and the first row of listeners. The number of speakers also depends on the sound pressure level. When placed as a flown array, trapezoidal/asymmetric horns with wide coverage angle (120°) below axis and narrow coverage (60°) on axis will give good coverage for seat rows a bit too far from the ground array and will have enough throw to reach 20m or 30m away while avoiding the walls of the venue where they would create reflections that give away the position of the speakers to the ears of the listeners. Most of the time for larger venues coaxial (elliptical or conical horns) have not enough reach and require one or more delay lines. They are more suited for smaller venues with few rows of seats.\nThe positioning of the speakers in the system can be done through the 'Wizard of OutZ' and the editable presets it has.
+  - KO: WFS 시스템의 설계는 올바른 장비 선택과 배치에 관한 것입니다. 어레이 설계 및 튜닝을 위한 가이드입니다.\n어레이는 스피커의 열(직선 또는 곡선)입니다. 이것은 WFS에서 가장 중요한 개념 중 하나입니다.\n경험적으로 각 청취자는 방향을 감지하기 위한 충분한 심리음향 단서를 얻기 위해 어레이의 스피커 3개를 들어야 합니다. 스피커와 청취자 사이의 거리, 간격, 커버리지 각도 사이에 최적점이 있습니다. 120° 커버리지 각도의 스피커는 어레이와 첫 번째 줄 사이의 거리와 같은 간격으로 배치할 수 있습니다. 스피커 수는 음압 레벨에도 의존합니다. 플라잉 어레이로 배치할 경우, 축 아래 넓은(120°), 축 위 좁은(60°) 커버리지의 사다리꼴/비대칭 혼은 좋은 커버리지와 20-30m 도달 거리를 제공하면서 벽 반사를 피합니다. 동축 스피커는 대형 장소에서는 보통 도달 거리가 부족하여 딜레이 라인이 필요합니다.\n배치는 'Wizard of OutZ'와 편집 가능한 프리셋을 통해 수행할 수 있습니다.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1908,10 +654,8 @@ The positioning of the speakers in the system can be done through the 'Wizard of
 ## `help.overview`
 
 - **`body`**
-  - EN: This WFS spatial sound processor aims to be a tool for natural sound reinforcement and also a creative tool opening new avenues for writing sound in space.
-Some parameters are straightforward: place sound (Map, Tracking, Speed Limiting, Gradient Maps...), work its shape (Attenuation Profile) and its acoustic presence (Directivity, Floor Reflections), give it a one-off motion (AutomOtion) or a repetitive movement (L.F.O). In some cases amplification should be limited around loud sources on stage (Live Source Tamer). All of these functionalities can be stored and recalled internally or with the help of QLab. On the other side the system allows real-time interaction to trigger and move samples, move large clusters of inputs manually or thanks to easily recallable LFO presets.
-  - KO: 이 WFS 공간 음향 프로세서는 자연스러운 음향 보강 도구이자 공간에 소리를 쓰는 새로운 길을 여는 창의적 도구입니다.
-일부 파라미터는 직관적입니다: 소리 배치(맵, 트래킹, 속도 제한, 그래디언트 맵...), 형태 가공(감쇠 프로파일), 음향적 존재감 조정(지향성, 바닥 반사), 일회성 움직임(AutomOtion) 또는 반복 움직임(L.F.O) 부여. 경우에 따라 무대 위 큰 음원 주변의 증폭을 제한해야 합니다(Live Source Tamer). 이 모든 기능은 내부적으로 또는 QLab의 도움으로 저장 및 호출할 수 있습니다. 또한 시스템은 실시간 상호작용을 통해 샘플을 트리거하고 이동하며, 대규모 인풋 클러스터를 수동으로 또는 LFO 프리셋으로 이동할 수 있게 합니다.
+  - EN: This WFS spatial sound processor aims to be a tool for natural sound reinforcement and also a creative tool opening new avenues for writing sound in space.\nSome parameters are straightforward: place sound (Map, Tracking, Speed Limiting, Gradient Maps...), work its shape (Attenuation Profile) and its acoustic presence (Directivity, Floor Reflections), give it a one-off motion (AutomOtion) or a repetitive movement (L.F.O). In some cases amplification should be limited around loud sources on stage (Live Source Tamer). All of these functionalities can be stored and recalled internally or with the help of QLab. On the other side the system allows real-time interaction to trigger and move samples, move large clusters of inputs manually or thanks to easily recallable LFO presets.
+  - KO: 이 WFS 공간 음향 프로세서는 자연스러운 음향 보강 도구이자 공간에 소리를 쓰는 새로운 길을 여는 창의적 도구입니다.\n일부 파라미터는 직관적입니다: 소리 배치(맵, 트래킹, 속도 제한, Gradient Maps...), 형태 가공(감쇠 프로파일), 음향적 존재감 조정(지향성, Floor Reflections), 일회성 움직임(AutomOtion) 또는 반복 움직임(L.F.O) 부여. 경우에 따라 무대 위 큰 음원 주변의 증폭을 제한해야 합니다(Live Source Tamer). 이 모든 기능은 내부적으로 또는 QLab의 도움으로 저장 및 호출할 수 있습니다. 또한 시스템은 실시간 상호작용을 통해 샘플을 트리거하고 이동하며, 대규모 인풋 클러스터를 수동으로 또는 LFO 프리셋으로 이동할 수 있게 합니다.
   - [ ] OK    Fix: 
 
 - **`dontShow`**
@@ -1939,12 +683,8 @@ Some parameters are straightforward: place sound (Map, Tracking, Speed Limiting,
 ## `help.reverb`
 
 - **`body`**
-  - EN: Reverb helps blur the actual reflections of the speakers in the acoustic space. Without some reverb the listener might perceive the sound missing some depth because the reflections of the speakers in the acoustic of the room gives away their positions and all sounds might feel as coming from the plane of the speakers.
-Place the reverb node according to the number of channels and the geometry of the stage and listening area, and the positions of speakers. If necessary the return position can be offset from the feed position.
-Other parameters are very similar to Outputs' and Inputs'.
-  - KO: 리버브는 스피커의 실제 반사를 흐리게 하는 데 도움이 됩니다.
-채널 수와 무대 형상에 따라 리버브 노드를 배치합니다.
-기타 매개변수는 출력 및 입력과 유사합니다.
+  - EN: Reverb helps blur the actual reflections of the speakers in the acoustic space. Without some reverb the listener might perceive the sound missing some depth because the reflections of the speakers in the acoustic of the room gives away their positions and all sounds might feel as coming from the plane of the speakers.\nPlace the reverb node according to the number of channels and the geometry of the stage and listening area, and the positions of speakers. If necessary the return position can be offset from the feed position.\nOther parameters are very similar to Outputs' and Inputs'.
+  - KO: 리버브는 스피커의 실제 반사를 흐리게 하는 데 도움이 됩니다.\n채널 수와 무대 형상에 따라 리버브 노드를 배치합니다.\n기타 매개변수는 출력 및 입력과 유사합니다.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1955,16 +695,8 @@ Other parameters are very similar to Outputs' and Inputs'.
 ## `help.reverbAlgo`
 
 - **`body`**
-  - EN: There are three built-in reverb types inside this spatial sound processor:
-- SDN (Scattered Delay Network): The sound bounces between every reverb node which act as reflecting surfaces. This reverb algorithm favours an odd number of nodes that should not have too much symmetry. This helps reduce the artifacts of the reverb or any metallic sounding resonance.
-- FDN (Feedback Delay Network): Each reverb node functions as a separate reverb processor with a classical reverb algorithm. Place nodes around the stage and eventually around the audience. Inputs are sent to each node in a similar fashion as with outputs. The return signal from the reverb is then distributed like other inputs to all outputs.
-- IR (Impulse Response): This is a classical convolution reverb. You can load audio samples as impulse responses. Each reverb node can share the same IR or they can have different ones. Place nodes around the stage and eventually around the audience.
-The node positions can be adjusted directly on the map. The Ctrl/Cmd key will move a reverb node pair in symmetry.
-  - KO: 이 공간 음향 프로세서에는 세 가지 리버브 유형이 내장되어 있습니다:
-- SDN (산란 지연 네트워크): 소리가 반사면 역할을 하는 각 리버브 노드 사이에서 반사됩니다. 이 알고리즘은 대칭이 적은 홀수 개의 노드가 적합하며 금속성 공명이나 아티팩트를 줄입니다.
-- FDN (피드백 지연 네트워크): 각 노드가 클래식 알고리즘을 가진 별도의 리버브 프로세서로 작동합니다. 무대 주변과 관객 주변에 노드를 배치합니다.
-- IR (임펄스 응답): 클래식 컨볼루션 리버브입니다. 오디오 샘플을 임펄스 응답으로 로드할 수 있습니다. 각 노드는 같은 IR을 공유하거나 다른 IR을 사용할 수 있습니다.
-노드 위치는 맵에서 직접 조정할 수 있습니다. Ctrl/Cmd 키로 리버브 노드 쌍을 대칭으로 이동합니다.
+  - EN: There are three built-in reverb types inside this spatial sound processor:\n- SDN (Scattered Delay Network): The sound bounces between every reverb node which act as reflecting surfaces. This reverb algorithm favours an odd number of nodes that should not have too much symmetry. This helps reduce the artifacts of the reverb or any metallic sounding resonance.\n- FDN (Feedback Delay Network): Each reverb node functions as a separate reverb processor with a classical reverb algorithm. Place nodes around the stage and eventually around the audience. Inputs are sent to each node in a similar fashion as with outputs. The return signal from the reverb is then distributed like other inputs to all outputs.\n- IR (Impulse Response): This is a classical convolution reverb. You can load audio samples as impulse responses. Each reverb node can share the same IR or they can have different ones. Place nodes around the stage and eventually around the audience.\nThe node positions can be adjusted directly on the map. The Ctrl/Cmd key will move a reverb node pair in symmetry.
+  - KO: 이 공간 음향 프로세서에는 세 가지 리버브 유형이 내장되어 있습니다:\n- SDN (산란 지연 네트워크): 소리가 반사면 역할을 하는 각 리버브 노드 사이에서 반사됩니다. 이 알고리즘은 대칭이 적은 홀수 개의 노드가 적합하며 금속성 공명이나 아티팩트를 줄입니다.\n- FDN (피드백 지연 네트워크): 각 노드가 클래식 알고리즘을 가진 별도의 리버브 프로세서로 작동합니다. 무대 주변과 관객 주변에 노드를 배치합니다.\n- IR (임펄스 응답): 클래식 컨볼루션 리버브입니다. 오디오 샘플을 임펄스 응답으로 로드할 수 있습니다. 각 노드는 같은 IR을 공유하거나 다른 IR을 사용할 수 있습니다.\n노드 위치는 맵에서 직접 조정할 수 있습니다. Ctrl/Cmd 키로 리버브 노드 쌍을 대칭으로 이동합니다.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -1975,23 +707,13 @@ The node positions can be adjusted directly on the map. The Ctrl/Cmd key will mo
 ## `help.reverbFeed`
 
 - **`body`**
-  - EN: Pre-processing sending of the input channels to the reverb nodes.
-- Orientation and On/Off Angles define what inputs each reverb node will receive. Inputs in the green sector will be picked-up, but not the ones in front in the red sector. There is a fade between both sectors.
-- HF Damping simulates the loss of high frequency with distance.
-- Distance Attenuation percentage allows you to define if more or less of the attenuation calculated from the distance and parameters of the input is applied.
-- Minimal Latency toggles whether the output is scanned for the smallest calculated delay and also if the setting once engaged on an input will reduce the delay for that input through this reverb node.
-- Live Source Attenuation toggles the reduction of level of nearby input if they have this setting enabled.
-  - KO: 입력 채널에서 리버브 노드로의 전처리 전송.
-- 방향과 On/Off 각도가 각 노드가 수신할 입력을 정의합니다.
-- HF 감쇠는 거리에 따른 고주파 손실을 시뮬레이션합니다.
-- 거리 감쇠 비율은 적용되는 감쇠를 정의합니다.
-- 최소 지연은 최소 계산 지연 사용을 전환합니다.
-- 라이브 소스 감쇠는 근처 입력의 레벨 감소를 전환합니다.
+  - EN: Pre-processing sending of the input channels to the reverb nodes.\n- Orientation and On/Off Angles define what inputs each reverb node will receive. Inputs in the green sector will be picked-up, but not the ones in front in the red sector. There is a fade between both sectors.\n- HF Damping simulates the loss of high frequency with distance.\n- Distance Attenuation percentage allows you to define if more or less of the attenuation calculated from the distance and parameters of the input is applied.\n- Minimal Latency toggles whether the output is scanned for the smallest calculated delay and also if the setting once engaged on an input will reduce the delay for that input through this reverb node.\n- Live Source Attenuation toggles the reduction of level of nearby input if they have this setting enabled.
+  - KO: Input Channels에서 리버브 노드로의 전처리 전송.\n- 방향과 On/Off 각도가 각 노드가 수신할 입력을 정의합니다.\n- HF 감쇠는 거리에 따른 고주파 손실을 시뮬레이션합니다.\n- Distance attenuation 비율은 적용되는 감쇠를 정의합니다.\n- Minimal Latency은 최소 계산 지연 사용을 전환합니다.\n- Live Source 감쇠는 근처 입력의 레벨 감소를 전환합니다.
   - [ ] OK    Fix: 
 
 - **`title`**
   - EN: Reverb Feed
-  - KO: 리버브 피드
+  - KO: Reverb Feed
   - [ ] OK    Fix: 
 
 ## `help.reverbPostProc`
@@ -2021,46 +743,20 @@ The node positions can be adjusted directly on the map. The Ctrl/Cmd key will mo
 ## `help.reverbReturn`
 
 - **`body`**
-  - EN: Post-processing sending to the speakers.
-- Distance Attenuation defines the level drop per meter to the speakers.
-- Common Attenuation will look for the lowest attenuation and keep only a percentage of this level drop and apply this across all other outputs.
-- Mutes and Mute Macros allow to prevent a reverb channel from feeding an output. For instance it may not be necessary to send reverb to sub-bass speakers.
-  - KO: 스피커로의 후처리 전송.
-- 거리 감쇠는 미터당 레벨 감소를 정의합니다.
-- 공통 감쇠는 최저 감쇠의 비율을 유지합니다.
-- 뮤트는 리버브 채널이 출력에 공급되는 것을 방지합니다.
+  - EN: Post-processing sending to the speakers.\n- Distance Attenuation defines the level drop per meter to the speakers.\n- Common Attenuation will look for the lowest attenuation and keep only a percentage of this level drop and apply this across all other outputs.\n- Mutes and Mute Macros allow to prevent a reverb channel from feeding an output. For instance it may not be necessary to send reverb to sub-bass speakers.
+  - KO: 스피커로의 후처리 전송.\n- Distance attenuation는 미터당 레벨 감소를 정의합니다.\n- 공통 감쇠는 최저 감쇠의 비율을 유지합니다.\n- 뮤트는 Reverb Channels이 출력에 공급되는 것을 방지합니다.
   - [ ] OK    Fix: 
 
 - **`title`**
   - EN: Reverb Return
-  - KO: 리버브 리턴
+  - KO: Reverb Return
   - [ ] OK    Fix: 
 
 ## `help.sampler`
 
 - **`body`**
-  - EN: The sampler allows to trigger samples and interact with them in real time.
-The sampler when enabled on a track will replace the live input at all times.
-Several samplers can be assigned to different inputs and triggered individually.
-To use the sampler:
-- Select a Roli Lightpad or a pad on the connected Android Remote app.
-- Add samples to the different tiles in the grid to the left. Adjust their relative starting position and their level and eventually their in and out points. Several samples can be selected using the shift key while clicking.
-- Create sets of samples: selected samples will be added to new sets. Samples can be added or removed after the creation of a set by holding Ctrl/Cmd while clicking on the tiles. Each set can be renamed. Each set can either have a fixed sequence or a random order (round robin, each sample is played once before a new random order is drawn). Each set has an attenuation setting. Each set has a base position applied to the input when selecting the set. It can be moved on the map or using external control. The sample position offset is added to the set position each time a sample is triggered.
-- Press a Roli Lightpad or a pad on the Android app to trigger a sample. The pressure applied to the pad can be mapped to any of the following controls: level, height and high frequency filtering. The sensitivity can be adjusted for each. The movement of the finger on the pad will cause the sound to move. This acts by measuring the deflection from the initial contact point like a joystick. This can be disabled. All sets have their respective settings for the interaction.
-Releasing the pad will stop the triggered sample.
-Sampler settings are stored in the input files.
-For convenience sample tiles and sets can be copied, exported and imported.
-  - KO: 샘플러는 샘플을 트리거하고 실시간으로 상호작용할 수 있습니다.
-트랙에서 활성화하면 샘플러는 항상 라이브 입력을 대체합니다.
-여러 샘플러를 다른 입력에 할당하고 개별적으로 트리거할 수 있습니다.
-샘플러 사용법:
-- Roli Lightpad 또는 연결된 Android Remote 앱의 패드를 선택합니다.
-- 그리드의 타일에 샘플을 추가합니다. 상대적 시작 위치, 레벨, 인/아웃 포인트를 조정합니다. Shift 키를 누르면서 클릭하면 여러 샘플을 선택할 수 있습니다.
-- 샘플 세트 생성: 선택한 샘플이 새 세트에 추가됩니다. Ctrl/Cmd를 누르면서 클릭하면 세트 생성 후 추가/제거할 수 있습니다. 각 세트는 이름 변경이 가능하고 고정 순서 또는 랜덤 순서를 설정할 수 있습니다. 각 세트에는 감쇠 설정과 기본 위치가 있습니다.
-- Lightpad 또는 패드를 눌러 샘플을 트리거합니다. 패드 압력은 레벨, 높이, 고주파 필터링에 매핑할 수 있습니다. 손가락 움직임은 조이스틱처럼 소리를 이동시킵니다.
-패드를 놓으면 샘플이 중지됩니다.
-샘플러 설정은 입력 파일에 저장됩니다.
-타일과 세트는 복사, 내보내기, 가져오기가 가능합니다.
+  - EN: The sampler allows to trigger samples and interact with them in real time.\nThe sampler when enabled on a track will replace the live input at all times.\nSeveral samplers can be assigned to different inputs and triggered individually.\nTo use the sampler:\n- Select a Roli Lightpad or a pad on the connected Android Remote app.\n- Add samples to the different tiles in the grid to the left. Adjust their relative starting position and their level and eventually their in and out points. Several samples can be selected using the shift key while clicking.\n- Create sets of samples: selected samples will be added to new sets. Samples can be added or removed after the creation of a set by holding Ctrl/Cmd while clicking on the tiles. Each set can be renamed. Each set can either have a fixed sequence or a random order (round robin, each sample is played once before a new random order is drawn). Each set has an attenuation setting. Each set has a base position applied to the input when selecting the set. It can be moved on the map or using external control. The sample position offset is added to the set position each time a sample is triggered.\n- Press a Roli Lightpad or a pad on the Android app to trigger a sample. The pressure applied to the pad can be mapped to any of the following controls: level, height and high frequency filtering. The sensitivity can be adjusted for each. The movement of the finger on the pad will cause the sound to move. This acts by measuring the deflection from the initial contact point like a joystick. This can be disabled. All sets have their respective settings for the interaction.\nReleasing the pad will stop the triggered sample.\nSampler settings are stored in the input files.\nFor convenience sample tiles and sets can be copied, exported and imported.
+  - KO: 샘플러는 샘플을 트리거하고 실시간으로 상호작용할 수 있습니다.\n트랙에서 활성화하면 샘플러는 항상 라이브 입력을 대체합니다.\n여러 샘플러를 다른 입력에 할당하고 개별적으로 트리거할 수 있습니다.\n샘플러 사용법:\n- Roli Lightpad 또는 연결된 Android Remote 앱의 패드를 선택합니다.\n- 그리드의 타일에 샘플을 추가합니다. 상대적 시작 위치, 레벨, 인/아웃 포인트를 조정합니다. Shift 키를 누르면서 클릭하면 여러 샘플을 선택할 수 있습니다.\n- 샘플 세트 생성: 선택한 샘플이 새 세트에 추가됩니다. Ctrl/Cmd를 누르면서 클릭하면 세트 생성 후 추가/제거할 수 있습니다. 각 세트는 이름 변경이 가능하고 고정 순서 또는 랜덤 순서를 설정할 수 있습니다. 각 세트에는 감쇠 설정과 기본 위치가 있습니다.\n- Lightpad 또는 패드를 눌러 샘플을 트리거합니다. 패드 압력은 레벨, 높이, 고주파 필터링에 매핑할 수 있습니다. 손가락 움직임은 조이스틱처럼 소리를 이동시킵니다.\n패드를 놓으면 샘플이 중지됩니다.\n샘플러 설정은 입력 파일에 저장됩니다.\n타일과 세트는 복사, 내보내기, 가져오기가 가능합니다.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -2071,14 +767,8 @@ For convenience sample tiles and sets can be copied, exported and imported.
 ## `help.sessionData`
 
 - **`body`**
-  - EN: When starting a session select the working folder where the system will place the files and eventual audio files. For new projects create a new folder. When reloading a previous session navigate to the corresponding folder.
-Each section has a separate xml file (System configuration, Network, Outputs, Reverbs, Inputs) and backups. Additionally convolution reverb impulse responses and audio samples will be stored in sub-directories.
-Each section can be stored and recalled individually or as a whole.
-Each section can also export and import files from other projects.
-  - KO: 세션 시작 시 시스템이 파일과 오디오 파일을 저장할 작업 폴더를 선택합니다. 새 프로젝트의 경우 새 폴더를 만듭니다. 이전 세션을 다시 로드하려면 해당 폴더로 이동합니다.
-각 섹션에는 별도의 xml 파일(시스템 구성, 네트워크, 출력, 리버브, 입력)과 백업이 있습니다. 컨볼루션 리버브 임펄스 응답과 오디오 샘플은 하위 디렉토리에 저장됩니다.
-각 섹션은 개별적으로 또는 전체로 저장하고 불러올 수 있습니다.
-각 섹션은 다른 프로젝트에서 파일을 내보내고 가져올 수도 있습니다.
+  - EN: When starting a session select the working folder where the system will place the files and eventual audio files. For new projects create a new folder. When reloading a previous session navigate to the corresponding folder.\nEach section has a separate xml file (System configuration, Network, Outputs, Reverbs, Inputs) and backups. Additionally convolution reverb impulse responses and audio samples will be stored in sub-directories.\nEach section can be stored and recalled individually or as a whole.\nEach section can also export and import files from other projects.
+  - KO: 세션 시작 시 시스템이 파일과 오디오 파일을 저장할 작업 폴더를 선택합니다. 새 프로젝트의 경우 새 폴더를 만듭니다. 이전 세션을 다시 로드하려면 해당 폴더로 이동합니다.\n각 섹션에는 별도의 xml 파일(시스템 구성, 네트워크, 출력, 리버브, 입력)과 백업이 있습니다. 컨볼루션 리버브 임펄스 응답과 오디오 샘플은 하위 디렉토리에 저장됩니다.\n각 섹션은 개별적으로 또는 전체로 저장하고 불러올 수 있습니다.\n각 섹션은 다른 프로젝트에서 파일을 내보내고 가져올 수도 있습니다.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -2089,20 +779,8 @@ Each section can also export and import files from other projects.
 ## `help.snapshotScope`
 
 - **`body`**
-  - EN: Snapshots store input parameters, but can have a scope to be recalled during a performance. They can have between all parameters for all inputs and only one parameter for a single channel. They can be updated and renamed for convenience.
-The Scope tells the system what data to store or recall. It's the opposite of 'safe' parameters.
-There are several ways to do this in this application:
-- Record only the needed data in local files. The scope filter is applied when storing the data. A recall cue can be created in QLab to trigger the reading of the local file.
-- Record all data and a filter in local files. The scope filter is applied when recalling the data. This allows to eventually recall all data not taking into account the scope filter. This may come in handy when a complete configuration should be recalled during rehearsal for example. A recall cue can be created in QLab to trigger the reading of the local file.
-- Record all data in scope in QLab cues. This should not be used to recall all parameters for large configurations since QLab may stall when recalling so much data.
-The scope can show and automatically pre-select the parameters that have been manually changed (local UI, hardware controllers, remote Android application). Changed parameters are marked with a yellow mark.
-  - KO: 스냅샷은 입력 매개변수를 저장하며, 공연 중 불러올 범위를 가질 수 있습니다.
-범위는 시스템에 어떤 데이터를 저장하거나 불러올지 지시합니다.
-여러 방법이 있습니다:
-- 필요한 데이터만 로컬 파일에 기록. 필터는 저장 시 적용됩니다.
-- 모든 데이터와 필터를 로컬 파일에 기록. 필터는 불러올 때 적용됩니다.
-- 모든 데이터를 QLab 큐에 기록. 대규모 설정에는 권장하지 않습니다.
-범위는 수동으로 변경된 매개변수를 표시하고 자동으로 사전 선택할 수 있습니다. 변경된 매개변수는 노란색으로 표시됩니다.
+  - EN: Snapshots store input parameters, but can have a scope to be recalled during a performance. They can have between all parameters for all inputs and only one parameter for a single channel. They can be updated and renamed for convenience.\nThe Scope tells the system what data to store or recall. It's the opposite of 'safe' parameters.\nThere are several ways to do this in this application:\n- Record only the needed data in local files. The scope filter is applied when storing the data. A recall cue can be created in QLab to trigger the reading of the local file.\n- Record all data and a filter in local files. The scope filter is applied when recalling the data. This allows to eventually recall all data not taking into account the scope filter. This may come in handy when a complete configuration should be recalled during rehearsal for example. A recall cue can be created in QLab to trigger the reading of the local file.\n- Record all data in scope in QLab cues. This should not be used to recall all parameters for large configurations since QLab may stall when recalling so much data.\nThe scope can show and automatically pre-select the parameters that have been manually changed (local UI, hardware controllers, remote Android application). Changed parameters are marked with a yellow mark.
+  - KO: 스냅샷은 입력 매개변수를 저장하며, 공연 중 불러올 범위를 가질 수 있습니다.\n범위는 시스템에 어떤 데이터를 저장하거나 불러올지 지시합니다.\n여러 방법이 있습니다:\n- 필요한 데이터만 로컬 파일에 기록. 필터는 저장 시 적용됩니다.\n- 모든 데이터와 필터를 로컬 파일에 기록. 필터는 불러올 때 적용됩니다.\n- 모든 데이터를 QLab 큐에 기록. 대규모 설정에는 권장하지 않습니다.\n범위는 수동으로 변경된 매개변수를 표시하고 자동으로 사전 선택할 수 있습니다. 변경된 매개변수는 노란색으로 표시됩니다.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -2113,14 +791,8 @@ The scope can show and automatically pre-select the parameters that have been ma
 ## `help.tracking`
 
 - **`body`**
-  - EN: Tracking allows to follow the position in 2D or 3D of actors and musicians. There are several tracking solutions based on UWB (UltraWide Band) tags, 3D camera, computer vision systems and Infra-Red LED's followed by IR sensitive cameras.
-This application allows you to receive tracking data from several protocols: OSC, MQTT, PosiStageNet/PSN, RTTrP.
-You can select which protocol you're using and enter its settings. You may also adjust the mapping (offset, scaling and orientation).
-Each input has a toggle to enable tracking, an ID to select which tracking marker it should follow and a smoothing algorithm to reduce jittery movements.
-  - KO: 트래킹은 배우와 음악가의 2D 또는 3D 위치를 추적할 수 있습니다. UWB 태그, 3D 카메라, 컴퓨터 비전 시스템, IR 감지 카메라와 적외선 LED 등 다양한 트래킹 솔루션이 있습니다.
-이 애플리케이션은 여러 프로토콜에서 트래킹 데이터를 수신할 수 있습니다: OSC, MQTT, PosiStageNet/PSN, RTTrP.
-사용할 프로토콜을 선택하고 설정을 입력할 수 있습니다. 매핑(오프셋, 스케일링, 방향)도 조정할 수 있습니다.
-각 입력에는 트래킹 활성화 토글, 추적할 마커를 선택하는 ID, 떨림을 줄이는 스무딩 알고리즘이 있습니다.
+  - EN: Tracking allows to follow the position in 2D or 3D of actors and musicians. There are several tracking solutions based on UWB (UltraWide Band) tags, 3D camera, computer vision systems and Infra-Red LED's followed by IR sensitive cameras.\nThis application allows you to receive tracking data from several protocols: OSC, MQTT, PosiStageNet/PSN, RTTrP.\nYou can select which protocol you're using and enter its settings. You may also adjust the mapping (offset, scaling and orientation).\nEach input has a toggle to enable tracking, an ID to select which tracking marker it should follow and a smoothing algorithm to reduce jittery movements.
+  - KO: 트래킹은 배우와 음악가의 2D 또는 3D 위치를 추적할 수 있습니다. UWB 태그, 3D 카메라, 컴퓨터 비전 시스템, IR 감지 카메라와 적외선 LED 등 다양한 트래킹 솔루션이 있습니다.\n이 애플리케이션은 여러 프로토콜에서 트래킹 데이터를 수신할 수 있습니다: OSC, MQTT, PosiStageNet/PSN, RTTrP.\n사용할 프로토콜을 선택하고 설정을 입력할 수 있습니다. 매핑(오프셋, 스케일링, 방향)도 조정할 수 있습니다.\n각 입력에는 트래킹 활성화 토글, 추적할 마커를 선택하는 ID, 떨림을 줄이는 스무딩 알고리즘이 있습니다.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -2131,164 +803,13 @@ Each input has a toggle to enable tracking, an ID to select which tracking marke
 ## `help.tuning`
 
 - **`body`**
-  - EN: System tuning for WFS is different from standard PA tuning. It can proceed as follows:
-- Start with the flown array muted. Set the desired levels for the near-field speakers when listening to them in the first row. Adjust the high frequency shelf attenuation so the near-field speakers are not too bright and draw too much attention.
-- Mute the near-field array and unmute the flown array, find a suitable level towards the back of the house.
-- Unmute both arrays, adjust the delay of the flown array to bring the sound down to the correct height in the lower rows. Adjust the levels, HF shelf/distance ratio and vertical and horizontal parallax for each array to have consistent level wherever your inputs are on stage. This is especially important if your inputs are actors, singers or acoustic music instruments on stage. You may also test adding some Haas effect to delay the whole system if you feel the WFS is too early or adding comb filtering with the acoustic sound.
-You may follow a different workflow for tuning or go for different cues.
-  - KO: WFS의 시스템 튜닝은 표준 PA 튜닝과 다릅니다. 다음과 같이 진행할 수 있습니다:
-- 플라잉 어레이를 뮤트하고 시작합니다. 1열에서 들으면서 니어필드 스피커의 원하는 레벨을 설정합니다. 니어필드 스피커가 너무 밝지 않도록 HF 셸프 감쇠를 조정합니다.
-- 니어필드 어레이를 뮤트하고 플라잉 어레이를 언뮤트하여 객석 뒤쪽에 적합한 레벨을 찾습니다.
-- 두 어레이를 모두 언뮤트하고, 플라잉 어레이의 딜레이를 조정하여 아래 열에서 올바른 높이로 소리를 내립니다. 각 어레이의 레벨, HF 셸프/거리 비율, 수직 및 수평 시차를 조정하여 무대 어디에 인풋이 있든 일관된 레벨을 달성합니다.
-다른 워크플로우로 튜닝하거나 상황에 따라 다른 설정을 목표로 할 수 있습니다.
+  - EN: System tuning for WFS is different from standard PA tuning. It can proceed as follows:\n- Start with the flown array muted. Set the desired levels for the near-field speakers when listening to them in the first row. Adjust the high frequency shelf attenuation so the near-field speakers are not too bright and draw too much attention.\n- Mute the near-field array and unmute the flown array, find a suitable level towards the back of the house.\n- Unmute both arrays, adjust the delay of the flown array to bring the sound down to the correct height in the lower rows. Adjust the levels, HF shelf/distance ratio and vertical and horizontal parallax for each array to have consistent level wherever your inputs are on stage. This is especially important if your inputs are actors, singers or acoustic music instruments on stage. You may also test adding some Haas effect to delay the whole system if you feel the WFS is too early or adding comb filtering with the acoustic sound.\nYou may follow a different workflow for tuning or go for different cues.
+  - KO: WFS의 시스템 튜닝은 표준 PA 튜닝과 다릅니다. 다음과 같이 진행할 수 있습니다:\n- 플라잉 어레이를 뮤트하고 시작합니다. 1열에서 들으면서 니어필드 스피커의 원하는 레벨을 설정합니다. 니어필드 스피커가 너무 밝지 않도록 HF 셸프 감쇠를 조정합니다.\n- 니어필드 어레이를 뮤트하고 플라잉 어레이를 언뮤트하여 객석 뒤쪽에 적합한 레벨을 찾습니다.\n- 두 어레이를 모두 언뮤트하고, 플라잉 어레이의 딜레이를 조정하여 아래 열에서 올바른 높이로 소리를 내립니다. 각 어레이의 레벨, HF 셸프/거리 비율, 수직 및 수평 시차를 조정하여 무대 어디에 인풋이 있든 일관된 레벨을 달성합니다.\n다른 워크플로우로 튜닝하거나 상황에 따라 다른 설정을 목표로 할 수 있습니다.
   - [ ] OK    Fix: 
 
 - **`title`**
   - EN: System Tuning
   - KO: 시스템 튜닝
-  - [ ] OK    Fix: 
-
-## `inputs`
-
-- **`arrayPrefix`**
-  - EN: Array
-  - KO: 어레이
-  - [ ] OK    Fix: 
-
-## `inputs.buttons`
-
-- **`deleteSnapshot`**
-  - EN: Delete Snapshot
-  - KO: 스냅샷 삭제
-  - [ ] OK    Fix: 
-
-- **`editScope`**
-  - EN: Edit Scope
-  - KO: 범위 편집
-  - [ ] OK    Fix: 
-
-- **`export`**
-  - EN: Export
-  - KO: 내보내기
-  - [ ] OK    Fix: 
-
-- **`hiddenOnMap`**
-  - EN: Input Hidden on Map
-  - KO: 맵에서 입력 숨김
-  - [ ] OK    Fix: 
-
-- **`import`**
-  - EN: Import
-  - KO: 가져오기
-  - [ ] OK    Fix: 
-
-- **`lockOnMap`**
-  - EN: Lock on Map
-  - KO: 맵에서 잠금
-  - [ ] OK    Fix: 
-
-- **`pauseAll`**
-  - EN: Pause All
-  - KO: 모두 일시 정지
-  - [ ] OK    Fix: 
-
-- **`reloadBackup`**
-  - EN: Reload Backup
-  - KO: 백업 불러오기
-  - [ ] OK    Fix: 
-
-- **`reloadConfig`**
-  - EN: Reload Input Config
-  - KO: 입력 설정 다시 불러오기
-  - [ ] OK    Fix: 
-
-- **`reloadSnapshot`**
-  - EN: Reload Snapshot
-  - KO: 스냅샷 불러오기
-  - [ ] OK    Fix: 
-
-- **`reloadWithoutScope`**
-  - EN: Reload Without Scope
-  - KO: 필터 없이 리로드
-  - [ ] OK    Fix: 
-
-- **`resumeAll`**
-  - EN: Resume All
-  - KO: 모두 재개
-  - [ ] OK    Fix: 
-
-- **`samplerOff`**
-  - EN: Sampler: OFF
-  - KO: Sampler: OFF
-  - [ ] OK    Fix: 
-
-- **`samplerOn`**
-  - EN: Sampler: ON
-  - KO: Sampler: ON
-  - [ ] OK    Fix: 
-
-- **`setAllInputs`**
-  - EN: Set all Inputs...
-  - KO: 모든 입력 설정...
-  - [ ] OK    Fix: 
-
-- **`solo`**
-  - EN: Solo
-  - KO: Solo
-  - [ ] OK    Fix: 
-
-- **`soloModeMulti`**
-  - EN: Multi
-  - KO: Multi
-  - [ ] OK    Fix: 
-
-- **`soloModeSingle`**
-  - EN: Single
-  - KO: Single
-  - [ ] OK    Fix: 
-
-- **`stopAll`**
-  - EN: Stop All
-  - KO: 모두 중지
-  - [ ] OK    Fix: 
-
-- **`storeConfig`**
-  - EN: Store Input Config
-  - KO: 입력 설정 저장
-  - [ ] OK    Fix: 
-
-- **`storeSnapshot`**
-  - EN: Store Snapshot
-  - KO: 스냅샷 저장
-  - [ ] OK    Fix: 
-
-- **`updateSnapshot`**
-  - EN: Update Snapshot
-  - KO: 스냅샷 업데이트
-  - [ ] OK    Fix: 
-
-- **`visibleOnMap`**
-  - EN: Input Visible on Map
-  - KO: 맵에 입력 표시
-  - [ ] OK    Fix: 
-
-## `inputs.clusters`
-
-- **`clusterPrefix`**
-  - EN: Cluster
-  - KO: 클러스터
-  - [ ] OK    Fix: 
-
-- **`single`**
-  - EN: Single
-  - KO: 단일
-  - [ ] OK    Fix: 
-
-## `inputs.coordinates`
-
-- **`xyz`**
-  - EN: XYZ
-  - KO: XYZ
   - [ ] OK    Fix: 
 
 ## `inputs.dialogs`
@@ -2324,12 +845,8 @@ You may follow a different workflow for tuning or go for different cues.
   - [ ] OK    Fix: 
 
 - **`trackingConflictCluster`**
-  - EN: Input {current} has tracking enabled, but Input {existing} in Cluster {cluster} is already tracked.
-
-Only one tracked input per cluster is allowed.
-  - KO: 입력 {current}은(는) 트래킹이 활성화되어 있지만, 클러스터 {cluster}의 입력 {existing}이(가) 이미 트래킹되고 있습니다.
-
-클러스터당 하나의 트래킹 입력만 허용됩니다.
+  - EN: Input {current} has tracking enabled, but Input {existing} in Cluster {cluster} is already tracked.\n\nOnly one tracked input per cluster is allowed.
+  - KO: 입력 {current}은(는) 트래킹이 활성화되어 있지만, 클러스터 {cluster}의 입력 {existing}이(가) 이미 트래킹되고 있습니다.\n\n클러스터당 하나의 트래킹 입력만 허용됩니다.
   - [ ] OK    Fix: 
 
 - **`trackingConflictContinue`**
@@ -2338,16 +855,8 @@ Only one tracked input per cluster is allowed.
   - [ ] OK    Fix: 
 
 - **`trackingConflictSwitch`**
-  - EN: Input {existing} in Cluster {cluster} already has tracking enabled.
-
-Only one tracked input per cluster is allowed.
-
-Do you want to disable tracking on Input {existing} and enable it on Input {to}?
-  - KO: 클러스터 {cluster}의 입력 {existing}은(는) 이미 트래킹이 활성화되어 있습니다.
-
-클러스터당 하나의 트래킹 입력만 허용됩니다.
-
-입력 {existing}의 트래킹을 비활성화하고 입력 {to}에서 활성화하시겠습니까?
+  - EN: Input {existing} in Cluster {cluster} already has tracking enabled.\n\nOnly one tracked input per cluster is allowed.\n\nDo you want to disable tracking on Input {existing} and enable it on Input {to}?
+  - KO: 클러스터 {cluster}의 입력 {existing}은(는) 이미 트래킹이 활성화되어 있습니다.\n\n클러스터당 하나의 트래킹 입력만 허용됩니다.\n\n입력 {existing}의 트래킹을 비활성화하고 입력 {to}에서 활성화하시겠습니까?
   - [ ] OK    Fix: 
 
 - **`trackingConflictTitle`**
@@ -2361,56 +870,6 @@ Do you want to disable tracking on Input {existing} and enable it on Input {to}?
   - [ ] OK    Fix: 
 
 ## `inputs.gradientMap`
-
-- **`buttons.copyLayer`**
-  - EN: Copy Layer
-  - KO: 레이어 복사
-  - [ ] OK    Fix: 
-
-- **`buttons.copyShape`**
-  - EN: Copy Shape
-  - KO: 도형 복사
-  - [ ] OK    Fix: 
-
-- **`buttons.delete`**
-  - EN: Delete
-  - KO: 삭제
-  - [ ] OK    Fix: 
-
-- **`buttons.enable`**
-  - EN: On
-  - KO: 켜기
-  - [ ] OK    Fix: 
-
-- **`buttons.lock`**
-  - EN: Lock
-  - KO: 잠금
-  - [ ] OK    Fix: 
-
-- **`buttons.pasteLayer`**
-  - EN: Paste Layer
-  - KO: 레이어 붙여넣기
-  - [ ] OK    Fix: 
-
-- **`buttons.pasteShape`**
-  - EN: Paste Shape
-  - KO: 도형 붙여넣기
-  - [ ] OK    Fix: 
-
-- **`header.attenuationLayer`**
-  - EN: Attenuation Layer
-  - KO: 감쇠 레이어
-  - [ ] OK    Fix: 
-
-- **`header.heightLayer`**
-  - EN: Height Layer
-  - KO: 높이 레이어
-  - [ ] OK    Fix: 
-
-- **`header.hfShelfLayer`**
-  - EN: HF Shelf Layer
-  - KO: HF 셸프 레이어
-  - [ ] OK    Fix: 
 
 - **`help.blackValue`**
   - EN: Parameter value mapped to black (0.00–1.00)
@@ -2512,151 +971,6 @@ Do you want to disable tracking on Input {existing} and enable it on Input {to}?
   - KO: 흰색에 매핑되는 파라미터 값 (0.00–1.00)
   - [ ] OK    Fix: 
 
-- **`hints.darkMaxAtten`**
-  - EN: Dark = max attenuation | Light = none
-  - KO: 어둡 = 최대 감쇠 | 밝음 = 없음
-  - [ ] OK    Fix: 
-
-- **`hints.darkMaxHeight`**
-  - EN: Dark = max height | Light = ground
-  - KO: 어둡 = 최대 높이 | 밝음 = 바닥
-  - [ ] OK    Fix: 
-
-- **`hints.darkMaxHF`**
-  - EN: Dark = max HF shelf | Light = none
-  - KO: 어둡 = 최대 HF 셸프 | 밝음 = 없음
-  - [ ] OK    Fix: 
-
-- **`hints.polygonClose`**
-  - EN: Double-click to close polygon
-  - KO: 다각형을 닫으려면 더블클릭
-  - [ ] OK    Fix: 
-
-- **`hints.whiteMaxAtten`**
-  - EN: White = max attenuation | Black = none
-  - KO: 흰색 = 최대 감쇠 | 검정 = 없음
-  - [ ] OK    Fix: 
-
-- **`hints.whiteMaxHeight`**
-  - EN: White = max height | Black = ground
-  - KO: 흰색 = 최대 높이 | 검정 = 바닥
-  - [ ] OK    Fix: 
-
-- **`hints.whiteMaxHF`**
-  - EN: White = max HF shelf | Black = none
-  - KO: 흰색 = 최대 HF 셸프 | 검정 = 없음
-  - [ ] OK    Fix: 
-
-- **`labels.black`**
-  - EN: Black:
-  - KO: 검정:
-  - [ ] OK    Fix: 
-
-- **`labels.blur`**
-  - EN: Blur:
-  - KO: 블러:
-  - [ ] OK    Fix: 
-
-- **`labels.center`**
-  - EN: Center:
-  - KO: 중심:
-  - [ ] OK    Fix: 
-
-- **`labels.curve`**
-  - EN: Curve:
-  - KO: 커브:
-  - [ ] OK    Fix: 
-
-- **`labels.edge`**
-  - EN: Edge:
-  - KO: 가장자리:
-  - [ ] OK    Fix: 
-
-- **`labels.end`**
-  - EN: End:
-  - KO: 끝:
-  - [ ] OK    Fix: 
-
-- **`labels.fill`**
-  - EN: Fill:
-  - KO: 채우기:
-  - [ ] OK    Fix: 
-
-- **`labels.name`**
-  - EN: Name:
-  - KO: 이름:
-  - [ ] OK    Fix: 
-
-- **`labels.start`**
-  - EN: Start:
-  - KO: 시작:
-  - [ ] OK    Fix: 
-
-- **`labels.white`**
-  - EN: White:
-  - KO: 흰색:
-  - [ ] OK    Fix: 
-
-- **`layers.attenuation`**
-  - EN: Attenuation
-  - KO: 감쇠
-  - [ ] OK    Fix: 
-
-- **`layers.height`**
-  - EN: Height
-  - KO: 높이
-  - [ ] OK    Fix: 
-
-- **`layers.hfShelf`**
-  - EN: HF Shelf
-  - KO: HF 셸프
-  - [ ] OK    Fix: 
-
-- **`tools.editPoints`**
-  - EN: Edit Points
-  - KO: 포인트 편집
-  - [ ] OK    Fix: 
-
-- **`tools.ellipse`**
-  - EN: Ellipse
-  - KO: 타원
-  - [ ] OK    Fix: 
-
-- **`tools.fill`**
-  - EN: Fill
-  - KO: 채우기
-  - [ ] OK    Fix: 
-
-- **`tools.linGrad`**
-  - EN: Linear Grad.
-  - KO: 선형 그라데이션
-  - [ ] OK    Fix: 
-
-- **`tools.polygon`**
-  - EN: Polygon
-  - KO: 다각형
-  - [ ] OK    Fix: 
-
-- **`tools.radGrad`**
-  - EN: Radial Grad.
-  - KO: 방사형 그라데이션
-  - [ ] OK    Fix: 
-
-- **`tools.rect`**
-  - EN: Rectangle
-  - KO: 사각형
-  - [ ] OK    Fix: 
-
-- **`tools.select`**
-  - EN: Select
-  - KO: 선택
-  - [ ] OK    Fix: 
-
-- **`warnings.heightRatioZero`**
-  - EN: Height Ratio is 0% — increase it for height to take effect
-  - KO: 높이 비율이 0%입니다 — 높이가 적용되려면 값을 올려주세요
-  - [ ] OK    Fix: 
-
 ## `inputs.help`
 
 - **`admMapping`**
@@ -2671,7 +985,7 @@ Do you want to disable tracking on Input {existing} and enable it on Input {to}?
 
 - **`attenuationLawButton`**
   - EN: Attenuation Law Model (Linear Decrease of Volume with Distance Between Object and Speaker or Squared).
-  - KO: 감쇠 법칙 모델 (객체와 스피커 사이의 거리에 따른 선형 음량 감소 또는 제곱).
+  - KO: Attenuation Law 모델 (객체와 스피커 사이의 거리에 따른 선형 음량 감소 또는 제곱).
   - [ ] OK    Fix: 
 
 - **`attenuationSlider`**
@@ -2786,47 +1100,47 @@ Do you want to disable tracking on Input {existing} and enable it on Input {to}?
 
 - **`frActiveButton`**
   - EN: Enable Simulated Floor Reflections for the Object.
-  - KO: 객체에 대한 시뮬레이션된 바닥 반사를 활성화.
+  - KO: 객체에 대한 시뮬레이션된 Floor Reflections를 활성화.
   - [ ] OK    Fix: 
 
 - **`frAttenuationSlider`**
   - EN: Attenuation of the Simulated Floor Reflections for the Object.
-  - KO: 객체에 대한 시뮬레이션된 바닥 반사의 감쇠.
+  - KO: 객체에 대한 시뮬레이션된 Floor Reflections의 감쇠.
   - [ ] OK    Fix: 
 
 - **`frDiffusionDial`**
   - EN: Diffusion Effect of the Simulated Floor Reflections for the Object.
-  - KO: 객체에 대한 시뮬레이션된 바닥 반사의 확산 효과.
+  - KO: 객체에 대한 시뮬레이션된 Floor Reflections의 확산 효과.
   - [ ] OK    Fix: 
 
 - **`frHighShelfActiveButton`**
   - EN: Enable High Shelf Filter for Floor Reflections.
-  - KO: 바닥 반사용 하이쉘프 필터 활성화.
+  - KO: Floor Reflections용 High Shelf 필터 활성화.
   - [ ] OK    Fix: 
 
 - **`frHighShelfFreqSlider`**
   - EN: High Shelf Frequency for Floor Reflections.
-  - KO: 바닥 반사용 하이쉘프 주파수.
+  - KO: Floor Reflections용 High Shelf 주파수.
   - [ ] OK    Fix: 
 
 - **`frHighShelfGainSlider`**
   - EN: High Shelf Gain for Floor Reflections.
-  - KO: 바닥 반사용 하이쉘프 게인.
+  - KO: Floor Reflections용 High Shelf 게인.
   - [ ] OK    Fix: 
 
 - **`frHighShelfSlopeSlider`**
   - EN: High Shelf Slope for Floor Reflections.
-  - KO: 바닥 반사용 하이쉘프 기울기.
+  - KO: Floor Reflections용 High Shelf 기울기.
   - [ ] OK    Fix: 
 
 - **`frLowCutActiveButton`**
   - EN: Enable Low Cut Filter for Floor Reflections.
-  - KO: 바닥 반사용 로우컷 필터 활성화.
+  - KO: Floor Reflections용 Low Cut 필터 활성화.
   - [ ] OK    Fix: 
 
 - **`frLowCutFreqSlider`**
   - EN: Low Cut Frequency for Floor Reflections.
-  - KO: 바닥 반사용 로우컷 주파수.
+  - KO: Floor Reflections용 Low Cut 주파수.
   - [ ] OK    Fix: 
 
 - **`heightFactorDial`**
@@ -3006,7 +1320,7 @@ Do you want to disable tracking on Input {existing} and enable it on Input {to}?
 
 - **`minimalLatencyButton`**
   - EN: Select between Acoustic Precedence and Minimal Latency for Amplification Precedence.
-  - KO: 증폭 우선순위에 대해 음향 우선순위와 최소 지연 사이를 선택.
+  - KO: 증폭 우선순위에 대해 Acoustic Precedence와 Minimal Latency 사이를 선택.
   - [ ] OK    Fix: 
 
 - **`muteButton`**
@@ -3016,7 +1330,7 @@ Do you want to disable tracking on Input {existing} and enable it on Input {to}?
 
 - **`muteMacrosSelector`**
   - EN: Mute Macros for Fast Muting and Unmuting of Arrays.
-  - KO: 어레이의 빠른 음소거 및 음소거 해제를 위한 음소거 매크로.
+  - KO: 어레이의 빠른 음소거 및 음소거 해제를 위한 Mute Macros.
   - [ ] OK    Fix: 
 
 - **`muteReverbSendsButton`**
@@ -3211,7 +1525,7 @@ Do you want to disable tracking on Input {existing} and enable it on Input {to}?
 
 - **`solo`**
   - EN: Listen to Binaural Rendering of this channel.
-  - KO: 이 채널의 바이노럴 렌더링을 청취합니다.
+  - KO: 이 채널의 Binaural 렌더링을 청취합니다.
   - [ ] OK    Fix: 
 
 - **`soloMode`**
@@ -3252,427 +1566,6 @@ Do you want to disable tracking on Input {existing} and enable it on Input {to}?
 - **`updateSnapshot`**
   - EN: Update Selected Input Snapshot (with backup).
   - KO: 선택한 입력 스냅샷을 업데이트합니다 (백업 포함).
-  - [ ] OK    Fix: 
-
-## `inputs.labels`
-
-- **`admMapping`**
-  - EN: ADM:
-  - KO: ADM:
-  - [ ] OK    Fix: 
-
-- **`amplitudeX`**
-  - EN: Amplitude X:
-  - KO: 진폭 X:
-  - [ ] OK    Fix: 
-
-- **`amplitudeY`**
-  - EN: Amplitude Y:
-  - KO: 진폭 Y:
-  - [ ] OK    Fix: 
-
-- **`amplitudeZ`**
-  - EN: Amplitude Z:
-  - KO: 진폭 Z:
-  - [ ] OK    Fix: 
-
-- **`arrayAttenuation`**
-  - EN: Array Attenuation:
-  - KO: 어레이 감쇠:
-  - [ ] OK    Fix: 
-
-- **`attenuation`**
-  - EN: Attenuation:
-  - KO: 감쇠:
-  - [ ] OK    Fix: 
-
-- **`attenuationLaw`**
-  - EN: Attenuation Law:
-  - KO: 감쇠 법칙:
-  - [ ] OK    Fix: 
-
-- **`cluster`**
-  - EN: Cluster:
-  - KO: 클러스터:
-  - [ ] OK    Fix: 
-
-- **`commonAtten`**
-  - EN: Common Atten:
-  - KO: 공통 감쇠:
-  - [ ] OK    Fix: 
-
-- **`coord`**
-  - EN: Coord:
-  - KO: 좌표:
-  - [ ] OK    Fix: 
-
-- **`curve`**
-  - EN: Curve:
-  - KO: 곡선:
-  - [ ] OK    Fix: 
-
-- **`delayLatency`**
-  - EN: Delay/Latency:
-  - KO: 지연/레이턴시:
-  - [ ] OK    Fix: 
-
-- **`destX`**
-  - EN: Dest. X:
-  - KO: 목적지 X:
-  - [ ] OK    Fix: 
-
-- **`destY`**
-  - EN: Dest. Y:
-  - KO: 목적지 Y:
-  - [ ] OK    Fix: 
-
-- **`destZ`**
-  - EN: Dest. Z:
-  - KO: 목적지 Z:
-  - [ ] OK    Fix: 
-
-- **`diffusion`**
-  - EN: Diffusion:
-  - KO: 확산:
-  - [ ] OK    Fix: 
-
-- **`directivity`**
-  - EN: Directivity:
-  - KO: 지향성:
-  - [ ] OK    Fix: 
-
-- **`distanceAtten`**
-  - EN: Distance Atten:
-  - KO: 거리 감쇠:
-  - [ ] OK    Fix: 
-
-- **`distanceRatio`**
-  - EN: Distance Ratio:
-  - KO: 거리 비율:
-  - [ ] OK    Fix: 
-
-- **`duration`**
-  - EN: Duration:
-  - KO: 지속 시간:
-  - [ ] OK    Fix: 
-
-- **`frequency`**
-  - EN: Frequency:
-  - KO: 주파수:
-  - [ ] OK    Fix: 
-
-- **`fringe`**
-  - EN: Fringe:
-  - KO: 프린지:
-  - [ ] OK    Fix: 
-
-- **`gain`**
-  - EN: Gain:
-  - KO: 게인:
-  - [ ] OK    Fix: 
-
-- **`gyrophone`**
-  - EN: Gyrophone:
-  - KO: 자이로폰:
-  - [ ] OK    Fix: 
-
-- **`heightFactor`**
-  - EN: Height Factor:
-  - KO: 높이 계수:
-  - [ ] OK    Fix: 
-
-- **`hfShelf`**
-  - EN: HF Shelf:
-  - KO: 고주파 쉘프:
-  - [ ] OK    Fix: 
-
-- **`jitter`**
-  - EN: Jitter:
-  - KO: 지터:
-  - [ ] OK    Fix: 
-
-- **`max`**
-  - EN: Max:
-  - KO: 최대:
-  - [ ] OK    Fix: 
-
-- **`maxSpeed`**
-  - EN: Max Speed:
-  - KO: 최대 속도:
-  - [ ] OK    Fix: 
-
-- **`min`**
-  - EN: Min:
-  - KO: 최소:
-  - [ ] OK    Fix: 
-
-- **`muteMacros`**
-  - EN: Mute Macros:
-  - KO: 음소거 매크로:
-  - [ ] OK    Fix: 
-
-- **`name`**
-  - EN: Name:
-  - KO: 이름:
-  - [ ] OK    Fix: 
-
-- **`offsetX`**
-  - EN: Offset X:
-  - KO: 오프셋 X:
-  - [ ] OK    Fix: 
-
-- **`offsetY`**
-  - EN: Offset Y:
-  - KO: 오프셋 Y:
-  - [ ] OK    Fix: 
-
-- **`offsetZ`**
-  - EN: Offset Z:
-  - KO: 오프셋 Z:
-  - [ ] OK    Fix: 
-
-- **`outX`**
-  - EN: Out X:
-  - KO: 출력 X:
-  - [ ] OK    Fix: 
-
-- **`outY`**
-  - EN: Out Y:
-  - KO: 출력 Y:
-  - [ ] OK    Fix: 
-
-- **`outZ`**
-  - EN: Out Z:
-  - KO: 출력 Z:
-  - [ ] OK    Fix: 
-
-- **`peakRatio`**
-  - EN: Peak Ratio:
-  - KO: 피크 비율:
-  - [ ] OK    Fix: 
-
-- **`peakThreshold`**
-  - EN: Peak Threshold:
-  - KO: 피크 임계값:
-  - [ ] OK    Fix: 
-
-- **`period`**
-  - EN: Period:
-  - KO: 주기:
-  - [ ] OK    Fix: 
-
-- **`phase`**
-  - EN: Phase:
-  - KO: 위상:
-  - [ ] OK    Fix: 
-
-- **`phaseX`**
-  - EN: Phase X:
-  - KO: 위상 X:
-  - [ ] OK    Fix: 
-
-- **`phaseY`**
-  - EN: Phase Y:
-  - KO: 위상 Y:
-  - [ ] OK    Fix: 
-
-- **`phaseZ`**
-  - EN: Phase Z:
-  - KO: 위상 Z:
-  - [ ] OK    Fix: 
-
-- **`positionX`**
-  - EN: Position X:
-  - KO: 위치 X:
-  - [ ] OK    Fix: 
-
-- **`positionY`**
-  - EN: Position Y:
-  - KO: 위치 Y:
-  - [ ] OK    Fix: 
-
-- **`positionZ`**
-  - EN: Position Z:
-  - KO: 위치 Z:
-  - [ ] OK    Fix: 
-
-- **`radius`**
-  - EN: Radius:
-  - KO: 반지름:
-  - [ ] OK    Fix: 
-
-- **`rateX`**
-  - EN: Rate X:
-  - KO: 레이트 X:
-  - [ ] OK    Fix: 
-
-- **`rateY`**
-  - EN: Rate Y:
-  - KO: 레이트 Y:
-  - [ ] OK    Fix: 
-
-- **`rateZ`**
-  - EN: Rate Z:
-  - KO: 레이트 Z:
-  - [ ] OK    Fix: 
-
-- **`reset`**
-  - EN: Reset:
-  - KO: 초기화:
-  - [ ] OK    Fix: 
-
-- **`rotation`**
-  - EN: Rotation:
-  - KO: 회전:
-  - [ ] OK    Fix: 
-
-- **`shape`**
-  - EN: Shape:
-  - KO: 형태:
-  - [ ] OK    Fix: 
-
-- **`shapeX`**
-  - EN: Shape X:
-  - KO: 형태 X:
-  - [ ] OK    Fix: 
-
-- **`shapeY`**
-  - EN: Shape Y:
-  - KO: 형태 Y:
-  - [ ] OK    Fix: 
-
-- **`shapeZ`**
-  - EN: Shape Z:
-  - KO: 형태 Z:
-  - [ ] OK    Fix: 
-
-- **`slope`**
-  - EN: Slope:
-  - KO: 기울기:
-  - [ ] OK    Fix: 
-
-- **`slowRatio`**
-  - EN: Slow Ratio:
-  - KO: 슬로우 비율:
-  - [ ] OK    Fix: 
-
-- **`slowThreshold`**
-  - EN: Slow Threshold:
-  - KO: 슬로우 임계값:
-  - [ ] OK    Fix: 
-
-- **`speedProfile`**
-  - EN: Speed Profile:
-  - KO: 속도 프로필:
-  - [ ] OK    Fix: 
-
-- **`threshold`**
-  - EN: Threshold:
-  - KO: 임계값:
-  - [ ] OK    Fix: 
-
-- **`tilt`**
-  - EN: Tilt:
-  - KO: 기울기:
-  - [ ] OK    Fix: 
-
-- **`trackingId`**
-  - EN: Tracking ID:
-  - KO: 트래킹 ID:
-  - [ ] OK    Fix: 
-
-- **`trackingSmooth`**
-  - EN: Tracking Smooth:
-  - KO: 트래킹 스무딩:
-  - [ ] OK    Fix: 
-
-- **`xyJoystick`**
-  - EN: X/Y
-  - KO: X/Y
-  - [ ] OK    Fix: 
-
-- **`zSlider`**
-  - EN: Z
-  - KO: Z
-  - [ ] OK    Fix: 
-
-## `inputs.lfo`
-
-- **`gyrophone.antiClockwise`**
-  - EN: Anti-Clockwise
-  - KO: 반시계 방향
-  - [ ] OK    Fix: 
-
-- **`gyrophone.clockwise`**
-  - EN: Clockwise
-  - KO: 시계 방향
-  - [ ] OK    Fix: 
-
-- **`gyrophone.off`**
-  - EN: OFF
-  - KO: 끄기
-  - [ ] OK    Fix: 
-
-- **`shapes.exp`**
-  - EN: exp
-  - KO: 지수
-  - [ ] OK    Fix: 
-
-- **`shapes.keystone`**
-  - EN: keystone
-  - KO: 키스톤
-  - [ ] OK    Fix: 
-
-- **`shapes.log`**
-  - EN: log
-  - KO: 로그
-  - [ ] OK    Fix: 
-
-- **`shapes.off`**
-  - EN: OFF
-  - KO: 끄기
-  - [ ] OK    Fix: 
-
-- **`shapes.random`**
-  - EN: random
-  - KO: 랜덤
-  - [ ] OK    Fix: 
-
-- **`shapes.sawtooth`**
-  - EN: sawtooth
-  - KO: 톱니
-  - [ ] OK    Fix: 
-
-- **`shapes.sine`**
-  - EN: sine
-  - KO: 사인
-  - [ ] OK    Fix: 
-
-- **`shapes.square`**
-  - EN: square
-  - KO: 사각
-  - [ ] OK    Fix: 
-
-- **`shapes.triangle`**
-  - EN: triangle
-  - KO: 삼각
-  - [ ] OK    Fix: 
-
-## `inputs.liveSource`
-
-- **`linear`**
-  - EN: linear
-  - KO: 선형
-  - [ ] OK    Fix: 
-
-- **`log`**
-  - EN: log
-  - KO: 로그
-  - [ ] OK    Fix: 
-
-- **`sine`**
-  - EN: sine
-  - KO: 사인
   - [ ] OK    Fix: 
 
 ## `inputs.messages`
@@ -3729,7 +1622,7 @@ Do you want to disable tracking on Input {existing} and enable it on Input {to}?
 
 - **`selectFolderFirst`**
   - EN: Please select a project folder in System Config first.
-  - KO: 시스템 설정에서 먼저 프로젝트 폴더를 선택하세요.
+  - KO: System Config에서 먼저 프로젝트 폴더를 선택하세요.
   - [ ] OK    Fix: 
 
 - **`setSingle`**
@@ -3772,391 +1665,6 @@ Do you want to disable tracking on Input {existing} and enable it on Input {to}?
   - KO: 트래킹이 입력 {from}에서 입력 {to}(으)로 전환됨
   - [ ] OK    Fix: 
 
-## `inputs.muteMacros`
-
-- **`invertMutes`**
-  - EN: INVERT MUTES
-  - KO: 음소거 반전
-  - [ ] OK    Fix: 
-
-- **`muteAll`**
-  - EN: MUTE ALL
-  - KO: 전체 음소거
-  - [ ] OK    Fix: 
-
-- **`muteArrayPrefix`**
-  - EN: MUTE ARRAY
-  - KO: 어레이 음소거
-  - [ ] OK    Fix: 
-
-- **`muteEven`**
-  - EN: MUTE EVEN
-  - KO: 짝수 음소거
-  - [ ] OK    Fix: 
-
-- **`muteOdd`**
-  - EN: MUTE ODD
-  - KO: 홀수 음소거
-  - [ ] OK    Fix: 
-
-- **`selectMacro`**
-  - EN: Select Macro...
-  - KO: 매크로 선택...
-  - [ ] OK    Fix: 
-
-- **`unmuteAll`**
-  - EN: UNMUTE ALL
-  - KO: 전체 음소거 해제
-  - [ ] OK    Fix: 
-
-- **`unmuteArrayPrefix`**
-  - EN: UNMUTE ARRAY
-  - KO: 어레이 음소거 해제
-  - [ ] OK    Fix: 
-
-## `inputs.prefixes`
-
-- **`delay`**
-  - EN: Delay:
-  - KO: 지연:
-  - [ ] OK    Fix: 
-
-## `inputs.sections`
-
-- **`automotion`**
-  - EN: AutomOtion
-  - KO: AutomOtion (자동이동)
-  - [ ] OK    Fix: 
-
-## `inputs.snapshots`
-
-- **`selectSnapshot`**
-  - EN: Select Snapshot...
-  - KO: 스냅샷 선택...
-  - [ ] OK    Fix: 
-
-## `inputs.tabs`
-
-- **`gradientMaps`**
-  - EN: Gradient Maps
-  - KO: 그라디언트 맵
-  - [ ] OK    Fix: 
-
-- **`inputParams`**
-  - EN: Input Parameters
-  - KO: 입력 매개변수
-  - [ ] OK    Fix: 
-
-- **`liveSourceHackoustics`**
-  - EN: Live Source & Hackoustics
-  - KO: 라이브 소스 & Hackoustics (가상음향)
-  - [ ] OK    Fix: 
-
-- **`movements`**
-  - EN: Movements
-  - KO: 움직임
-  - [ ] OK    Fix: 
-
-- **`sampler`**
-  - EN: Sampler
-  - KO: Sampler
-  - [ ] OK    Fix: 
-
-- **`visualisation`**
-  - EN: Visualisation
-  - KO: 시각화
-  - [ ] OK    Fix: 
-
-## `inputs.toggles`
-
-- **`absolute`**
-  - EN: Absolute
-  - KO: 절대
-  - [ ] OK    Fix: 
-
-- **`acousticPrecedence`**
-  - EN: Acoustic Precedence
-  - KO: 음향 우선
-  - [ ] OK    Fix: 
-
-- **`attenuationLawLog`**
-  - EN: Log
-  - KO: 로그
-  - [ ] OK    Fix: 
-
-- **`constraintROff`**
-  - EN: Constraint R: OFF
-  - KO: 제한 R: 끄기
-  - [ ] OK    Fix: 
-
-- **`constraintROn`**
-  - EN: Constraint R: ON
-  - KO: 제한 R: 켜기
-  - [ ] OK    Fix: 
-
-- **`constraintXOff`**
-  - EN: Constraint X: OFF
-  - KO: 제한 X: 끄기
-  - [ ] OK    Fix: 
-
-- **`constraintXOn`**
-  - EN: Constraint X: ON
-  - KO: 제한 X: 켜기
-  - [ ] OK    Fix: 
-
-- **`constraintYOff`**
-  - EN: Constraint Y: OFF
-  - KO: 제한 Y: 끄기
-  - [ ] OK    Fix: 
-
-- **`constraintYOn`**
-  - EN: Constraint Y: ON
-  - KO: 제한 Y: 켜기
-  - [ ] OK    Fix: 
-
-- **`constraintZOff`**
-  - EN: Constraint Z: OFF
-  - KO: 제한 Z: 끄기
-  - [ ] OK    Fix: 
-
-- **`constraintZOn`**
-  - EN: Constraint Z: ON
-  - KO: 제한 Z: 켜기
-  - [ ] OK    Fix: 
-
-- **`flipXOff`**
-  - EN: Flip X: OFF
-  - KO: X 반전: 끄기
-  - [ ] OK    Fix: 
-
-- **`flipXOn`**
-  - EN: Flip X: ON
-  - KO: X 반전: 켜기
-  - [ ] OK    Fix: 
-
-- **`flipYOff`**
-  - EN: Flip Y: OFF
-  - KO: Y 반전: 끄기
-  - [ ] OK    Fix: 
-
-- **`flipYOn`**
-  - EN: Flip Y: ON
-  - KO: Y 반전: 켜기
-  - [ ] OK    Fix: 
-
-- **`flipZOff`**
-  - EN: Flip Z: OFF
-  - KO: Z 반전: 끄기
-  - [ ] OK    Fix: 
-
-- **`flipZOn`**
-  - EN: Flip Z: ON
-  - KO: Z 반전: 켜기
-  - [ ] OK    Fix: 
-
-- **`floorReflectionsOff`**
-  - EN: Floor Reflections: OFF
-  - KO: 바닥 반사: 끄기
-  - [ ] OK    Fix: 
-
-- **`floorReflectionsOn`**
-  - EN: Floor Reflections: ON
-  - KO: 바닥 반사: 켜기
-  - [ ] OK    Fix: 
-
-- **`highShelfOff`**
-  - EN: High Shelf: OFF
-  - KO: 하이 쉘프: 끄기
-  - [ ] OK    Fix: 
-
-- **`highShelfOn`**
-  - EN: High Shelf: ON
-  - KO: 하이 쉘프: 켜기
-  - [ ] OK    Fix: 
-
-- **`lfoOff`**
-  - EN: L.F.O: OFF
-  - KO: L.F.O: 끄기
-  - [ ] OK    Fix: 
-
-- **`lfoOn`**
-  - EN: L.F.O: ON
-  - KO: L.F.O: 켜기
-  - [ ] OK    Fix: 
-
-- **`liveSourceTamerOff`**
-  - EN: Live Source Tamer: OFF
-  - KO: 테이머: OFF
-  - [ ] OK    Fix: 
-
-- **`liveSourceTamerOn`**
-  - EN: Live Source Tamer: ON
-  - KO: 테이머: ON
-  - [ ] OK    Fix: 
-
-- **`lowCutOff`**
-  - EN: Low Cut: OFF
-  - KO: 로우 컷: 끄기
-  - [ ] OK    Fix: 
-
-- **`lowCutOn`**
-  - EN: Low Cut: ON
-  - KO: 로우 컷: 켜기
-  - [ ] OK    Fix: 
-
-- **`lsPeakOff`**
-  - EN: Peak: OFF
-  - KO: Peak: OFF
-  - [ ] OK    Fix: 
-
-- **`lsPeakOn`**
-  - EN: Peak: ON
-  - KO: Peak: ON
-  - [ ] OK    Fix: 
-
-- **`lsSlowOff`**
-  - EN: Slow: OFF
-  - KO: Slow: OFF
-  - [ ] OK    Fix: 
-
-- **`lsSlowOn`**
-  - EN: Slow: ON
-  - KO: Slow: ON
-  - [ ] OK    Fix: 
-
-- **`manual`**
-  - EN: Manual
-  - KO: 수동
-  - [ ] OK    Fix: 
-
-- **`maxSpeedOff`**
-  - EN: Max Speed: OFF
-  - KO: 최대 속도: 끄기
-  - [ ] OK    Fix: 
-
-- **`maxSpeedOn`**
-  - EN: Max Speed: ON
-  - KO: 최대 속도: 켜기
-  - [ ] OK    Fix: 
-
-- **`minimalLatency`**
-  - EN: Minimal Latency
-  - KO: 최소 레이턴시
-  - [ ] OK    Fix: 
-
-- **`pathModeOff`**
-  - EN: Path Mode: OFF
-  - KO: 경로 모드: 끄기
-  - [ ] OK    Fix: 
-
-- **`pathModeOn`**
-  - EN: Path Mode: ON
-  - KO: 경로 모드: 켜기
-  - [ ] OK    Fix: 
-
-- **`relative`**
-  - EN: Relative
-  - KO: 상대
-  - [ ] OK    Fix: 
-
-- **`return`**
-  - EN: Return
-  - KO: 복귀
-  - [ ] OK    Fix: 
-
-- **`reverbSendsMuted`**
-  - EN: Sends to Reverbs: Muted
-  - KO: 리버브 센드: 음소거
-  - [ ] OK    Fix: 
-
-- **`reverbSendsUnmuted`**
-  - EN: Sends to Reverbs: Unmuted
-  - KO: 리버브 센드: 활성화
-  - [ ] OK    Fix: 
-
-- **`sidelinesOff`**
-  - EN: Sidelines Off
-  - KO: 사이드라인 끄기
-  - [ ] OK    Fix: 
-
-- **`sidelinesOn`**
-  - EN: Sidelines On
-  - KO: 사이드라인 켜기
-  - [ ] OK    Fix: 
-
-- **`stay`**
-  - EN: Stay
-  - KO: 유지
-  - [ ] OK    Fix: 
-
-- **`trackingOff`**
-  - EN: Tracking: OFF
-  - KO: 트래킹: 끄기
-  - [ ] OK    Fix: 
-
-- **`trackingOn`**
-  - EN: Tracking: ON
-  - KO: 트래킹: 켜기
-  - [ ] OK    Fix: 
-
-- **`triggered`**
-  - EN: Triggered
-  - KO: 트리거
-  - [ ] OK    Fix: 
-
-## `inputs.visualisation`
-
-- **`delay`**
-  - EN: delay
-  - KO: 지연
-  - [ ] OK    Fix: 
-
-- **`hfDamping`**
-  - EN: HF
-damping
-  - KO: HF
-감쇠
-  - [ ] OK    Fix: 
-
-- **`level`**
-  - EN: level
-  - KO: 레벨
-  - [ ] OK    Fix: 
-
-## `levelMeter`
-
-- **`inputs`**
-  - EN: Inputs
-  - KO: 입력
-  - [ ] OK    Fix: 
-
-- **`outputs`**
-  - EN: Outputs
-  - KO: 출력
-  - [ ] OK    Fix: 
-
-- **`windowTitle`**
-  - EN: Level Meters
-  - KO: 레벨 미터
-  - [ ] OK    Fix: 
-
-## `levelMeter.buttons`
-
-- **`clearSolo`**
-  - EN: Clear Solo
-  - KO: 솔로 해제
-  - [ ] OK    Fix: 
-
-- **`soloModeMulti`**
-  - EN: Multi
-  - KO: Multi
-  - [ ] OK    Fix: 
-
-- **`soloModeSingle`**
-  - EN: Single
-  - KO: Single
-  - [ ] OK    Fix: 
-
 ## `levelMeter.tooltips`
 
 - **`clearSolo`**
@@ -4172,47 +1680,6 @@ damping
 - **`soloMode`**
   - EN: Single: one input at a time. Multi: multiple inputs simultaneously.
   - KO: 단일: 한 번에 하나의 입력. 다중: 여러 입력 동시에.
-  - [ ] OK    Fix: 
-
-## `map`
-
-- **`detachedMessage`**
-  - EN: The map is displayed in a separate window.
-  - KO: 맵이 별도의 창에 표시되고 있습니다.
-  - [ ] OK    Fix: 
-
-- **`reattach`**
-  - EN: Re-attach Map
-  - KO: 맵 다시 붙이기
-  - [ ] OK    Fix: 
-
-## `map.buttons`
-
-- **`fitInputs`**
-  - EN: Fit All Inputs to Screen
-  - KO: 모든 입력을 화면에 맞추기
-  - [ ] OK    Fix: 
-
-- **`fitStage`**
-  - EN: Fit Stage to Screen
-  - KO: 무대를 화면에 맞추기
-  - [ ] OK    Fix: 
-
-- **`hideLevels`**
-  - EN: Hide Levels
-  - KO: 레벨 숨기기
-  - [ ] OK    Fix: 
-
-- **`showLevels`**
-  - EN: Show Levels
-  - KO: 레벨 표시
-  - [ ] OK    Fix: 
-
-## `map.labels`
-
-- **`reverbPrefix`**
-  - EN: R
-  - KO: 리
   - [ ] OK    Fix: 
 
 ## `map.messages`
@@ -4264,46 +1731,26 @@ damping
   - KO: 맵에 입력 및 출력 레벨 표시
   - [ ] OK    Fix: 
 
-## `network.buttons`
+## `meta`
 
-- **`add`**
-  - EN: ADD
-  - KO: 추가
+- **`author`**
+  - EN: WFS-DIY Team
+  - KO: WFS-DIY Team
   - [ ] OK    Fix: 
 
-- **`export`**
-  - EN: Export
-  - KO: 내보내기
+- **`language`**
+  - EN: English
+  - KO: 한국어
   - [ ] OK    Fix: 
 
-- **`findMyRemote`**
-  - EN: Find My Remote
-  - KO: 리모컨 찾기
+- **`locale`**
+  - EN: en
+  - KO: ko
   - [ ] OK    Fix: 
 
-- **`import`**
-  - EN: Import
-  - KO: 가져오기
-  - [ ] OK    Fix: 
-
-- **`openLogWindow`**
-  - EN: Open Log Window
-  - KO: 로그 창 열기
-  - [ ] OK    Fix: 
-
-- **`reloadBackup`**
-  - EN: Reload Backup
-  - KO: 백업 불러오기
-  - [ ] OK    Fix: 
-
-- **`reloadConfig`**
-  - EN: Reload Network Config
-  - KO: 네트워크 설정 다시 불러오기
-  - [ ] OK    Fix: 
-
-- **`storeConfig`**
-  - EN: Store Network Config
-  - KO: 네트워크 설정 저장
+- **`version`**
+  - EN: 1.0.0
+  - KO: 1.0.0
   - [ ] OK    Fix: 
 
 ## `network.dialogs`
@@ -4349,10 +1796,8 @@ damping
   - [ ] OK    Fix: 
 
 - **`trackingConflictsMessage`**
-  - EN: 
-Only one tracked input per cluster is allowed. If you continue, tracking will be kept only for the first input in each cluster.
-  - KO: 
-클러스터당 하나의 트래킹 입력만 허용됩니다. 계속하면 각 클러스터의 첫 번째 입력에 대해서만 트래킹이 유지됩니다.
+  - EN: \nOnly one tracked input per cluster is allowed. If you continue, tracking will be kept only for the first input in each cluster.
+  - KO: \n클러스터당 하나의 트래킹 입력만 허용됩니다. 계속하면 각 클러스터의 첫 번째 입력에 대해서만 트래킹이 유지됩니다.
   - [ ] OK    Fix: 
 
 - **`trackingConflictsTitle`**
@@ -4367,6 +1812,61 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
   - KO: 새 네트워크 대상 추가.
   - [ ] OK    Fix: 
 
+- **`admAxisSwap`**
+  - EN: Which incoming ADM-OSC axis maps to this internal axis.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`admAzFlip`**
+  - EN: Invert the direction of incoming azimuth.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`admAzOffset`**
+  - EN: Azimuth offset (deg) applied to incoming ADM-OSC azimuth.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`admBreakpoint`**
+  - EN: Normalized breakpoint (0-1) for piecewise linear stretch.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`admCenterOffset`**
+  - EN: Physical position (m) where normalized 0.0 maps to.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`admDistMax`**
+  - EN: Maximum physical distance (m) at ADM-OSC distance=1.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`admDistMin`**
+  - EN: Minimum physical distance (m) at ADM-OSC distance=0.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`admElFlip`**
+  - EN: Invert the sign of incoming elevation.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`admInnerWidth`**
+  - EN: Physical extent (m) from center to breakpoint.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`admInputAssign`**
+  - EN: Assign this input to an ADM-OSC mapping for receive/transmit.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`admLinkAll`**
+  - EN: Select all 6 sides at once for uniform editing.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
 - **`admMapping`**
   - EN: Select an ADM-OSC mapping to configure. Cart = Cartesian (xyz), Polar = spherical (aed).
   - KO: 구성할 ADM-OSC 매핑을 선택합니다. Cart = 데카르트 좌표 (xyz), Polar = 구면 좌표 (aed).
@@ -4375,6 +1875,21 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
 - **`admMappingPanel`**
   - EN: Drag dots to edit mapping. Click axis title to swap, click Flip to invert. Hold Shift to edit both sides symmetrically.
   - KO: 점을 드래그하여 매핑 편집. 축 제목을 클릭하여 교체, Flip을 클릭하여 반전. Shift를 누른 채로 양쪽을 대칭으로 편집.
+  - [ ] OK    Fix: 
+
+- **`admOuterWidth`**
+  - EN: Physical extent (m) from breakpoint to ±1.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`admSideSelect`**
+  - EN: Select sides to edit. Changes apply to all selected sides at once.
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`admSignFlip`**
+  - EN: Invert the sign of the incoming axis value.
+  - KO: (missing — falls back to English)
   - [ ] OK    Fix: 
 
 - **`currentIP`**
@@ -4404,7 +1919,7 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
 
 - **`networkInterface`**
   - EN: Select the Network Interface.
-  - KO: 네트워크 인터페이스를 선택합니다.
+  - KO: Network Interface를 선택합니다.
   - [ ] OK    Fix: 
 
 - **`openLogWindow`**
@@ -4514,7 +2029,7 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
 
 - **`trackingOscPath`**
   - EN: OSC Path for the Tracking in OSC Mode (starts with a /)
-  - KO: OSC 모드에서의 트래킹 OSC 경로 (/로 시작)
+  - KO: OSC 모드에서의 트래킹 OSC Path (/로 시작)
   - [ ] OK    Fix: 
 
 - **`trackingPort`**
@@ -4555,133 +2070,6 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
 - **`udpPort`**
   - EN: UDP Receive Port of the Processor.
   - KO: 프로세서의 UDP 수신 포트.
-  - [ ] OK    Fix: 
-
-## `network.labels`
-
-- **`admMapping`**
-  - EN: Mapping:
-  - KO: 매핑:
-  - [ ] OK    Fix: 
-
-- **`currentIPv4`**
-  - EN: Current IPv4:
-  - KO: 현재 IPv4:
-  - [ ] OK    Fix: 
-
-- **`interface`**
-  - EN: Network Interface:
-  - KO: 네트워크 인터페이스:
-  - [ ] OK    Fix: 
-
-- **`localhost`**
-  - EN: Localhost (127.0.0.1)
-  - KO: Localhost (127.0.0.1)
-  - [ ] OK    Fix: 
-
-- **`mqttHost`**
-  - EN: Host:
-  - KO: 호스트:
-  - [ ] OK    Fix: 
-
-- **`mqttJsonQ`**
-  - EN: Q:
-  - KO: Q:
-  - [ ] OK    Fix: 
-
-- **`mqttJsonX`**
-  - EN: X:
-  - KO: X:
-  - [ ] OK    Fix: 
-
-- **`mqttJsonY`**
-  - EN: Y:
-  - KO: Y:
-  - [ ] OK    Fix: 
-
-- **`mqttJsonZ`**
-  - EN: Z:
-  - KO: Z:
-  - [ ] OK    Fix: 
-
-- **`mqttTagIds`**
-  - EN: Tag IDs...
-  - KO: 태그 ID...
-  - [ ] OK    Fix: 
-
-- **`mqttTopic`**
-  - EN: Topic:
-  - KO: 토픽:
-  - [ ] OK    Fix: 
-
-- **`notAvailable`**
-  - EN: Not available
-  - KO: 사용할 수 없음
-  - [ ] OK    Fix: 
-
-- **`offsetX`**
-  - EN: Offset X:
-  - KO: 오프셋 X:
-  - [ ] OK    Fix: 
-
-- **`offsetY`**
-  - EN: Offset Y:
-  - KO: 오프셋 Y:
-  - [ ] OK    Fix: 
-
-- **`offsetZ`**
-  - EN: Offset Z:
-  - KO: 오프셋 Z:
-  - [ ] OK    Fix: 
-
-- **`oscPath`**
-  - EN: OSC Path:
-  - KO: OSC Path:
-  - [ ] OK    Fix: 
-
-- **`oscQuery`**
-  - EN: OSC Query:
-  - KO: OSC 쿼리:
-  - [ ] OK    Fix: 
-
-- **`protocol`**
-  - EN: Protocol:
-  - KO: 프로토콜:
-  - [ ] OK    Fix: 
-
-- **`psnInterface`**
-  - EN: PSN Interface:
-  - KO: PSN Interface:
-  - [ ] OK    Fix: 
-
-- **`rxPort`**
-  - EN: Rx Port:
-  - KO: 수신 포트:
-  - [ ] OK    Fix: 
-
-- **`scaleX`**
-  - EN: Scale X:
-  - KO: 스케일 X:
-  - [ ] OK    Fix: 
-
-- **`scaleY`**
-  - EN: Scale Y:
-  - KO: 스케일 Y:
-  - [ ] OK    Fix: 
-
-- **`scaleZ`**
-  - EN: Scale Z:
-  - KO: 스케일 Z:
-  - [ ] OK    Fix: 
-
-- **`tcpPort`**
-  - EN: TCP Port:
-  - KO: TCP 포트:
-  - [ ] OK    Fix: 
-
-- **`udpPort`**
-  - EN: UDP Port:
-  - KO: UDP 포트:
   - [ ] OK    Fix: 
 
 ## `network.messages`
@@ -4753,271 +2141,7 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
 
 - **`selectFolderFirst`**
   - EN: Please select a project folder in System Config first.
-  - KO: 시스템 설정에서 먼저 프로젝트 폴더를 선택하세요.
-  - [ ] OK    Fix: 
-
-## `network.protocols`
-
-- **`admOsc`**
-  - EN: ADM-OSC
-  - KO: ADM-OSC
-  - [ ] OK    Fix: 
-
-- **`disabled`**
-  - EN: DISABLED
-  - KO: 비활성화
-  - [ ] OK    Fix: 
-
-- **`mqtt`**
-  - EN: MQTT
-  - KO: MQTT
-  - [ ] OK    Fix: 
-
-- **`osc`**
-  - EN: OSC
-  - KO: OSC
-  - [ ] OK    Fix: 
-
-- **`psn`**
-  - EN: PosiStageNet (PSN)
-  - KO: PosiStageNet (PSN)
-  - [ ] OK    Fix: 
-
-- **`qlab`**
-  - EN: QLab
-  - KO: QLab
-  - [ ] OK    Fix: 
-
-- **`remote`**
-  - EN: Remote
-  - KO: 리모트
-  - [ ] OK    Fix: 
-
-- **`rttrp`**
-  - EN: RTTrP
-  - KO: RTTrP
-  - [ ] OK    Fix: 
-
-- **`tcp`**
-  - EN: TCP
-  - KO: TCP
-  - [ ] OK    Fix: 
-
-- **`udp`**
-  - EN: UDP
-  - KO: UDP
-  - [ ] OK    Fix: 
-
-## `network.sections`
-
-- **`admOsc`**
-  - EN: ADM-OSC Mappings
-  - KO: ADM-OSC
-  - [ ] OK    Fix: 
-
-- **`connections`**
-  - EN: Network Connections
-  - KO: 네트워크 연결
-  - [ ] OK    Fix: 
-
-- **`network`**
-  - EN: Network
-  - KO: 네트워크
-  - [ ] OK    Fix: 
-
-- **`tracking`**
-  - EN: Tracking
-  - KO: 트래킹
-  - [ ] OK    Fix: 
-
-## `network.table`
-
-- **`defaultTarget`**
-  - EN: Target {num}
-  - KO: 대상 {num}
-  - [ ] OK    Fix: 
-
-- **`ipv4Address`**
-  - EN: IPv4 Address
-  - KO: IPv4 주소
-  - [ ] OK    Fix: 
-
-- **`mode`**
-  - EN: Mode
-  - KO: 모드
-  - [ ] OK    Fix: 
-
-- **`name`**
-  - EN: Name
-  - KO: 이름
-  - [ ] OK    Fix: 
-
-- **`protocol`**
-  - EN: Protocol
-  - KO: 프로토콜
-  - [ ] OK    Fix: 
-
-- **`rx`**
-  - EN: Rx
-  - KO: 수신
-  - [ ] OK    Fix: 
-
-- **`tx`**
-  - EN: Tx
-  - KO: 송신
-  - [ ] OK    Fix: 
-
-- **`txPort`**
-  - EN: Tx Port
-  - KO: 송신 포트
-  - [ ] OK    Fix: 
-
-## `network.toggles`
-
-- **`disabled`**
-  - EN: Disabled
-  - KO: 비활성화됨
-  - [ ] OK    Fix: 
-
-- **`enabled`**
-  - EN: Enabled
-  - KO: 활성화됨
-  - [ ] OK    Fix: 
-
-- **`flipXOff`**
-  - EN: Flip X: OFF
-  - KO: X 반전: 끄기
-  - [ ] OK    Fix: 
-
-- **`flipXOn`**
-  - EN: Flip X: ON
-  - KO: X 반전: 켜기
-  - [ ] OK    Fix: 
-
-- **`flipYOff`**
-  - EN: Flip Y: OFF
-  - KO: Y 반전: 끄기
-  - [ ] OK    Fix: 
-
-- **`flipYOn`**
-  - EN: Flip Y: ON
-  - KO: Y 반전: 켜기
-  - [ ] OK    Fix: 
-
-- **`flipZOff`**
-  - EN: Flip Z: OFF
-  - KO: Z 반전: 끄기
-  - [ ] OK    Fix: 
-
-- **`flipZOn`**
-  - EN: Flip Z: ON
-  - KO: Z 반전: 켜기
-  - [ ] OK    Fix: 
-
-- **`off`**
-  - EN: OFF
-  - KO: 끄기
-  - [ ] OK    Fix: 
-
-- **`on`**
-  - EN: ON
-  - KO: 켜기
-  - [ ] OK    Fix: 
-
-- **`oscFilterAcceptAll`**
-  - EN: OSC Filter: Accept All
-  - KO: OSC 필터: 모두 허용
-  - [ ] OK    Fix: 
-
-- **`oscFilterRegisteredOnly`**
-  - EN: OSC Filter: Registered Only
-  - KO: OSC 필터: 등록된 것만
-  - [ ] OK    Fix: 
-
-- **`trackingOff`**
-  - EN: Tracking: OFF
-  - KO: 트래킹: 끄기
-  - [ ] OK    Fix: 
-
-- **`trackingOn`**
-  - EN: Tracking: ON
-  - KO: 트래킹: 켜기
-  - [ ] OK    Fix: 
-
-## `networkLog`
-
-- **`windowTitle`**
-  - EN: Network Log
-  - KO: 네트워크 로그
-  - [ ] OK    Fix: 
-
-## `networkLog.columns`
-
-- **`address`**
-  - EN: Address
-  - KO: 주소
-  - [ ] OK    Fix: 
-
-- **`arguments`**
-  - EN: Arguments
-  - KO: 인수
-  - [ ] OK    Fix: 
-
-- **`direction`**
-  - EN: Dir
-  - KO: 방향
-  - [ ] OK    Fix: 
-
-- **`ip`**
-  - EN: IP
-  - KO: IP
-  - [ ] OK    Fix: 
-
-- **`origin`**
-  - EN: Origin
-  - KO: 출처
-  - [ ] OK    Fix: 
-
-- **`port`**
-  - EN: Port
-  - KO: 포트
-  - [ ] OK    Fix: 
-
-- **`protocol`**
-  - EN: Protocol
-  - KO: 프로토콜
-  - [ ] OK    Fix: 
-
-- **`time`**
-  - EN: Time
-  - KO: 시간
-  - [ ] OK    Fix: 
-
-- **`transport`**
-  - EN: Trans
-  - KO: 전송
-  - [ ] OK    Fix: 
-
-## `networkLog.controls`
-
-- **`clear`**
-  - EN: CLEAR
-  - KO: 지우기
-  - [ ] OK    Fix: 
-
-- **`export`**
-  - EN: EXPORT
-  - KO: 내보내기
-  - [ ] OK    Fix: 
-
-- **`hideHeartbeat`**
-  - EN: Hide Heartbeat
-  - KO: 하트비트 숨기기
-  - [ ] OK    Fix: 
-
-- **`logging`**
-  - EN: Logging
-  - KO: 로깅
+  - KO: System Config에서 먼저 프로젝트 폴더를 선택하세요.
   - [ ] OK    Fix: 
 
 ## `networkLog.dialogs`
@@ -5042,153 +2166,11 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
   - KO: 내보내기 실패
   - [ ] OK    Fix: 
 
-## `networkLog.exportMenu`
-
-- **`exportAll`**
-  - EN: Export All
-  - KO: 전체 내보내기
-  - [ ] OK    Fix: 
-
-- **`exportFiltered`**
-  - EN: Export Filtered
-  - KO: 필터된 것 내보내기
-  - [ ] OK    Fix: 
-
-## `networkLog.filterModes`
-
-- **`clientIp`**
-  - EN: Client IP
-  - KO: 클라이언트 IP
-  - [ ] OK    Fix: 
-
-- **`protocol`**
-  - EN: Protocol
-  - KO: 프로토콜
-  - [ ] OK    Fix: 
-
-- **`rejected`**
-  - EN: Rejected
-  - KO: 거부됨
-  - [ ] OK    Fix: 
-
-- **`tcpUdp`**
-  - EN: TCP/UDP
-  - KO: TCP/UDP
-  - [ ] OK    Fix: 
-
-## `networkLog.filterToggles`
-
-- **`incoming`**
-  - EN: Incoming
-  - KO: 수신
-  - [ ] OK    Fix: 
-
-- **`outgoing`**
-  - EN: Outgoing
-  - KO: 송신
-  - [ ] OK    Fix: 
-
-- **`tcp`**
-  - EN: TCP
-  - KO: TCP
-  - [ ] OK    Fix: 
-
-- **`udp`**
-  - EN: UDP
-  - KO: UDP
-  - [ ] OK    Fix: 
-
 ## `networkLog.status`
 
 - **`rejected`**
   - EN: REJECTED
   - KO: 거부됨
-  - [ ] OK    Fix: 
-
-## `outputs.arrayModes`
-
-- **`absolute`**
-  - EN: ABSOLUTE
-  - KO: 절대
-  - [ ] OK    Fix: 
-
-- **`array`**
-  - EN: Array
-  - KO: 어레이
-  - [ ] OK    Fix: 
-
-- **`off`**
-  - EN: OFF
-  - KO: 끄기
-  - [ ] OK    Fix: 
-
-- **`relative`**
-  - EN: RELATIVE
-  - KO: 상대
-  - [ ] OK    Fix: 
-
-- **`single`**
-  - EN: Single
-  - KO: 단일
-  - [ ] OK    Fix: 
-
-## `outputs.buttons`
-
-- **`arrayHidden`**
-  - EN: Array Hidden on Map
-  - KO: 어레이: 맵에서 숨김
-  - [ ] OK    Fix: 
-
-- **`arrayVisible`**
-  - EN: Array Visible on Map
-  - KO: 어레이: 맵에서 표시
-  - [ ] OK    Fix: 
-
-- **`export`**
-  - EN: Export
-  - KO: 내보내기
-  - [ ] OK    Fix: 
-
-- **`import`**
-  - EN: Import
-  - KO: 가져오기
-  - [ ] OK    Fix: 
-
-- **`reloadBackup`**
-  - EN: Reload Backup
-  - KO: 백업 불러오기
-  - [ ] OK    Fix: 
-
-- **`reloadConfig`**
-  - EN: Reload Output Config
-  - KO: 출력 설정 다시 불러오기
-  - [ ] OK    Fix: 
-
-- **`speakerHidden`**
-  - EN: Speaker Hidden on Map
-  - KO: 스피커: 맵에서 숨김
-  - [ ] OK    Fix: 
-
-- **`speakerVisible`**
-  - EN: Speaker Visible on Map
-  - KO: 맵에 스피커 표시
-  - [ ] OK    Fix: 
-
-- **`storeConfig`**
-  - EN: Store Output Config
-  - KO: 출력 설정 저장
-  - [ ] OK    Fix: 
-
-- **`wizardOfOutZ`**
-  - EN: Wizard of OutZ...
-  - KO: OutZ 마법사...
-  - [ ] OK    Fix: 
-
-## `outputs.coordModes`
-
-- **`xyz`**
-  - EN: XYZ
-  - KO: XYZ
   - [ ] OK    Fix: 
 
 ## `outputs.dialogs`
@@ -5272,17 +2254,17 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
 
 - **`eqFreq`**
   - EN: Output EQ Band {band} frequency (20 Hz - 20 kHz).
-  - KO: 출력 EQ 밴드 {band} 주파수 (20 Hz - 20 kHz).
+  - KO: Output EQ 밴드 {band} 주파수 (20 Hz - 20 kHz).
   - [ ] OK    Fix: 
 
 - **`eqGain`**
   - EN: Output EQ Band {band} gain (-24 to +24 dB).
-  - KO: 출력 EQ 밴드 {band} 게인 (-24~+24 dB).
+  - KO: Output EQ 밴드 {band} 게인 (-24~+24 dB).
   - [ ] OK    Fix: 
 
 - **`eqQ`**
   - EN: Output EQ Band {band} Q factor (0.1 - 10.0).
-  - KO: 출력 EQ 밴드 {band} Q 팩터 (0.1 - 10.0).
+  - KO: Output EQ 밴드 {band} Q 팩터 (0.1 - 10.0).
   - [ ] OK    Fix: 
 
 - **`eqResetBand`**
@@ -5292,7 +2274,7 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
 
 - **`eqShape`**
   - EN: Output EQ Band {band} filter shape.
-  - KO: 출력 EQ 밴드 {band} 필터 형태.
+  - KO: Output EQ 밴드 {band} 필터 형태.
   - [ ] OK    Fix: 
 
 - **`exportConfig`**
@@ -5302,17 +2284,17 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
 
 - **`floorReflections`**
   - EN: Enable or Disable the Floor Reflections for this Speaker.
-  - KO: 이 스피커의 바닥 반사를 활성화 또는 비활성화합니다.
-  - [ ] OK    Fix: 
-
-- **`hfDamping`**
-  - EN: Loss of High Frequency Depending on Distance from Object to Output. (changes may affect the rest of the array)
-  - KO: 오브젝트에서 출력까지의 거리에 따른 고주파 손실. (변경 사항이 어레이의 나머지에 영향을 줄 수 있습니다)
+  - KO: 이 스피커의 Floor Reflections를 활성화 또는 비활성화합니다.
   - [ ] OK    Fix: 
 
 - **`hParallax`**
   - EN: Horizontal Distance from Speaker to 'Targeted' Listener. (changes may affect the rest of the array)
   - KO: 스피커에서 '대상' 청취자까지의 수평 거리. (변경 사항이 어레이의 나머지에 영향을 줄 수 있습니다)
+  - [ ] OK    Fix: 
+
+- **`hfDamping`**
+  - EN: Loss of High Frequency Depending on Distance from Object to Output. (changes may affect the rest of the array)
+  - KO: 오브젝트에서 출력까지의 거리에 따른 고주파 손실. (변경 사항이 어레이의 나머지에 영향을 줄 수 있습니다)
   - [ ] OK    Fix: 
 
 - **`importConfig`**
@@ -5322,7 +2304,7 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
 
 - **`liveSource`**
   - EN: Disables Live Source Attenuation for Selected Output. (changes may affect the rest of the array)
-  - KO: 선택한 출력의 라이브 소스 감쇠를 비활성화합니다. (변경 사항이 어레이의 나머지에 영향을 줄 수 있습니다)
+  - KO: 선택한 출력의 Live Source 감쇠를 비활성화합니다. (변경 사항이 어레이의 나머지에 영향을 줄 수 있습니다)
   - [ ] OK    Fix: 
 
 - **`mapVisibility`**
@@ -5332,7 +2314,7 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
 
 - **`minLatency`**
   - EN: Disables Minimal Latency Mode for Selected Output. (changes may affect the rest of the array)
-  - KO: 선택한 출력의 최소 레이턴시 모드를 비활성화합니다. (변경 사항이 어레이의 나머지에 영향을 줄 수 있습니다)
+  - KO: 선택한 출력의 Minimal Latency 모드를 비활성화합니다. (변경 사항이 어레이의 나머지에 영향을 줄 수 있습니다)
   - [ ] OK    Fix: 
 
 - **`nameEditor`**
@@ -5385,103 +2367,6 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
   - KO: Wizard of OutZ를 열어 스피커 어레이를 편리하게 배치합니다.
   - [ ] OK    Fix: 
 
-## `outputs.labels`
-
-- **`angleOff`**
-  - EN: Angle Off:
-  - KO: 끄기 각도:
-  - [ ] OK    Fix: 
-
-- **`angleOn`**
-  - EN: Angle On:
-  - KO: 켜기 각도:
-  - [ ] OK    Fix: 
-
-- **`applyToArray`**
-  - EN: Apply to Array:
-  - KO: 어레이에 적용:
-  - [ ] OK    Fix: 
-
-- **`array`**
-  - EN: Array:
-  - KO: 어레이:
-  - [ ] OK    Fix: 
-
-- **`attenuation`**
-  - EN: Attenuation:
-  - KO: 감쇠:
-  - [ ] OK    Fix: 
-
-- **`coordinates`**
-  - EN: Coordinates:
-  - KO: 좌표:
-  - [ ] OK    Fix: 
-
-- **`delay`**
-  - EN: Delay:
-  - KO: 지연:
-  - [ ] OK    Fix: 
-
-- **`delayLatency`**
-  - EN: Delay/Latency:
-  - KO: 지연/레이턴시:
-  - [ ] OK    Fix: 
-
-- **`distanceAtten`**
-  - EN: Distance Atten:
-  - KO: 거리 감쇠:
-  - [ ] OK    Fix: 
-
-- **`hfDamping`**
-  - EN: HF Damping:
-  - KO: 고주파 감쇠:
-  - [ ] OK    Fix: 
-
-- **`hParallax`**
-  - EN: Horizontal Parallax:
-  - KO: 수평 시차:
-  - [ ] OK    Fix: 
-
-- **`latency`**
-  - EN: Latency:
-  - KO: 레이턴시:
-  - [ ] OK    Fix: 
-
-- **`name`**
-  - EN: Name:
-  - KO: 이름:
-  - [ ] OK    Fix: 
-
-- **`orientation`**
-  - EN: Orientation:
-  - KO: 방향:
-  - [ ] OK    Fix: 
-
-- **`pitch`**
-  - EN: Pitch:
-  - KO: 피치:
-  - [ ] OK    Fix: 
-
-- **`positionX`**
-  - EN: Position X:
-  - KO: 위치 X:
-  - [ ] OK    Fix: 
-
-- **`positionY`**
-  - EN: Position Y:
-  - KO: 위치 Y:
-  - [ ] OK    Fix: 
-
-- **`positionZ`**
-  - EN: Position Z:
-  - KO: 위치 Z:
-  - [ ] OK    Fix: 
-
-- **`vParallax`**
-  - EN: Vertical Parallax:
-  - KO: 수직 시차:
-  - [ ] OK    Fix: 
-
 ## `outputs.messages`
 
 - **`assignedToArray`**
@@ -5509,6 +2394,16 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
   - KO: 출력 설정이 로드되었습니다.
   - [ ] OK    Fix: 
 
+- **`configNotFound`**
+  - EN: Output config file not found.
+  - KO: 출력 설정 파일을 찾을 수 없습니다.
+  - [ ] OK    Fix: 
+
+- **`configReloaded`**
+  - EN: Output configuration reloaded.
+  - KO: 출력 설정이 다시 로드되었습니다.
+  - [ ] OK    Fix: 
+
 - **`configSaved`**
   - EN: Output configuration saved.
   - KO: 출력 설정이 저장되었습니다.
@@ -5519,292 +2414,19 @@ Only one tracked input per cluster is allowed. If you continue, tracking will be
   - KO: 오류: {error}
   - [ ] OK    Fix: 
 
+- **`noBackup`**
+  - EN: No backup output configuration found.
+  - KO: 출력 설정 백업을 찾을 수 없습니다.
+  - [ ] OK    Fix: 
+
 - **`selectFolderFirst`**
   - EN: Please select a project folder in System Config first.
-  - KO: 시스템 설정에서 먼저 프로젝트 폴더를 선택하세요.
+  - KO: System Config에서 먼저 프로젝트 폴더를 선택하세요.
   - [ ] OK    Fix: 
 
 - **`setToSingle`**
   - EN: Output {num} set to Single
   - KO: 출력 {num}이(가) 단일로 설정됨
-  - [ ] OK    Fix: 
-
-## `outputs.tabs`
-
-- **`eq`**
-  - EN: Output EQ
-  - KO: 출력 EQ
-  - [ ] OK    Fix: 
-
-- **`parameters`**
-  - EN: Output Parameters
-  - KO: 출력 매개변수
-  - [ ] OK    Fix: 
-
-## `outputs.toggles`
-
-- **`floorReflectionsOff`**
-  - EN: Floor Reflections: OFF
-  - KO: 바닥 반사: 끄기
-  - [ ] OK    Fix: 
-
-- **`floorReflectionsOn`**
-  - EN: Floor Reflections: ON
-  - KO: 바닥 반사: 켜기
-  - [ ] OK    Fix: 
-
-- **`liveSourceOff`**
-  - EN: Live Source Atten: OFF
-  - KO: 라이브 소스 감쇠: 끄기
-  - [ ] OK    Fix: 
-
-- **`liveSourceOn`**
-  - EN: Live Source Atten: ON
-  - KO: 라이브 소스 감쇠: 켜기
-  - [ ] OK    Fix: 
-
-- **`minLatencyOff`**
-  - EN: Minimal Latency: OFF
-  - KO: 최소 레이턴시: 끄기
-  - [ ] OK    Fix: 
-
-- **`minLatencyOn`**
-  - EN: Minimal Latency: ON
-  - KO: 최소 레이턴시: 켜기
-  - [ ] OK    Fix: 
-
-## `outputs.units`
-
-- **`meters`**
-  - EN: m
-  - KO: m
-  - [ ] OK    Fix: 
-
-- **`ms`**
-  - EN: ms
-  - KO: ms
-  - [ ] OK    Fix: 
-
-## `reverbs`
-
-- **`noChannels`**
-  - EN: No reverb channels configured.
-
-Set the number of Reverb Channels in System Config.
-  - KO: 리버브 채널이 구성되지 않았습니다.
-
-시스템 설정에서 리버브 채널 수를 설정하세요.
-  - [ ] OK    Fix: 
-
-## `reverbs.algorithm`
-
-- **`crossoverHigh`**
-  - EN: Crossover High:
-  - KO: 크로스오버 고역:
-  - [ ] OK    Fix: 
-
-- **`crossoverLow`**
-  - EN: Crossover Low:
-  - KO: 크로스오버 저역:
-  - [ ] OK    Fix: 
-
-- **`decaySection`**
-  - EN: Decay
-  - KO: 감쇠
-  - [ ] OK    Fix: 
-
-- **`diffusion`**
-  - EN: Diffusion:
-  - KO: 확산:
-  - [ ] OK    Fix: 
-
-- **`fdn`**
-  - EN: FDN
-  - KO: FDN
-  - [ ] OK    Fix: 
-
-- **`fdnSection`**
-  - EN: FDN
-  - KO: FDN
-  - [ ] OK    Fix: 
-
-- **`ir`**
-  - EN: IR
-  - KO: IR
-  - [ ] OK    Fix: 
-
-- **`irFile`**
-  - EN: IR File:
-  - KO: IR 파일:
-  - [ ] OK    Fix: 
-
-- **`irImport`**
-  - EN: Import IR...
-  - KO: IR 가져오기...
-  - [ ] OK    Fix: 
-
-- **`irImportSuccess`**
-  - EN: IR imported: {file}
-  - KO: IR 가져오기 완료: {file}
-  - [ ] OK    Fix: 
-
-- **`irLength`**
-  - EN: IR Length:
-  - KO: IR 길이:
-  - [ ] OK    Fix: 
-
-- **`irNoProject`**
-  - EN: Set a project folder first
-  - KO: 먼저 프로젝트 폴더를 설정하세요
-  - [ ] OK    Fix: 
-
-- **`irSection`**
-  - EN: IR
-  - KO: IR
-  - [ ] OK    Fix: 
-
-- **`irTrim`**
-  - EN: IR Trim:
-  - KO: IR 트림:
-  - [ ] OK    Fix: 
-
-- **`noFileLoaded`**
-  - EN: No IR loaded
-  - KO: IR이 로드되지 않음
-  - [ ] OK    Fix: 
-
-- **`perNodeOff`**
-  - EN: Per-node IR OFF
-  - KO: 노드별 IR 끄기
-  - [ ] OK    Fix: 
-
-- **`perNodeOn`**
-  - EN: Per-node IR ON
-  - KO: 노드별 IR 켜기
-  - [ ] OK    Fix: 
-
-- **`rt60`**
-  - EN: RT60:
-  - KO: RT60:
-  - [ ] OK    Fix: 
-
-- **`rt60HighMult`**
-  - EN: RT60 High ×:
-  - KO: RT60 고역 ×:
-  - [ ] OK    Fix: 
-
-- **`rt60LowMult`**
-  - EN: RT60 Low ×:
-  - KO: RT60 저역 ×:
-  - [ ] OK    Fix: 
-
-- **`scale`**
-  - EN: Scale:
-  - KO: 스케일:
-  - [ ] OK    Fix: 
-
-- **`sdn`**
-  - EN: SDN
-  - KO: SDN
-  - [ ] OK    Fix: 
-
-- **`sdnSection`**
-  - EN: SDN
-  - KO: SDN
-  - [ ] OK    Fix: 
-
-- **`size`**
-  - EN: Size:
-  - KO: 크기:
-  - [ ] OK    Fix: 
-
-- **`wetLevel`**
-  - EN: Wet Level:
-  - KO: 웻 레벨:
-  - [ ] OK    Fix: 
-
-## `reverbs.buttons`
-
-- **`editOnMap`**
-  - EN: Edit on Map
-  - KO: 맵에서 편집
-  - [ ] OK    Fix: 
-
-- **`editOnMapOn`**
-  - EN: Edit on Map ON
-  - KO: 맵에서 편집 ON
-  - [ ] OK    Fix: 
-
-- **`export`**
-  - EN: Export
-  - KO: 내보내기
-  - [ ] OK    Fix: 
-
-- **`hiddenOnMap`**
-  - EN: Reverbs Hidden on Map
-  - KO: 맵에서 리버브 숨김
-  - [ ] OK    Fix: 
-
-- **`import`**
-  - EN: Import
-  - KO: 가져오기
-  - [ ] OK    Fix: 
-
-- **`mutePost`**
-  - EN: Mute Post
-  - KO: Mute Post
-  - [ ] OK    Fix: 
-
-- **`mutePostOn`**
-  - EN: Mute Post ON
-  - KO: 뮤트 포스트 ON
-  - [ ] OK    Fix: 
-
-- **`mutePre`**
-  - EN: Mute Pre
-  - KO: Mute Pre
-  - [ ] OK    Fix: 
-
-- **`mutePreOn`**
-  - EN: Mute Pre ON
-  - KO: 뮤트 프리 ON
-  - [ ] OK    Fix: 
-
-- **`reloadBackup`**
-  - EN: Reload Backup
-  - KO: 백업 불러오기
-  - [ ] OK    Fix: 
-
-- **`reloadConfig`**
-  - EN: Reload Reverb Config
-  - KO: 리버브 설정 다시 불러오기
-  - [ ] OK    Fix: 
-
-- **`soloReverbs`**
-  - EN: Solo Reverbs
-  - KO: Solo Reverbs
-  - [ ] OK    Fix: 
-
-- **`soloReverbsOn`**
-  - EN: Solo Reverbs ON
-  - KO: 솔로 리버브 ON
-  - [ ] OK    Fix: 
-
-- **`storeConfig`**
-  - EN: Store Reverb Config
-  - KO: 리버브 설정 저장
-  - [ ] OK    Fix: 
-
-- **`visibleOnMap`**
-  - EN: Reverbs Visible on Map
-  - KO: 맵에 리버브 표시
-  - [ ] OK    Fix: 
-
-## `reverbs.coordModes`
-
-- **`xyz`**
-  - EN: XYZ
-  - KO: XYZ
   - [ ] OK    Fix: 
 
 ## `reverbs.dialogs`
@@ -5938,12 +2560,12 @@ Set the number of Reverb Channels in System Config.
 
 - **`distanceAtten`**
   - EN: Distance attenuation for reverb return (-6.0 to 0.0 dB/m).
-  - KO: 리버브 리턴에 대한 거리 감쇠 (-6.0 ~ 0.0 dB/m).
+  - KO: Reverb Return에 대한 Distance attenuation (-6.0 ~ 0.0 dB/m).
   - [ ] OK    Fix: 
 
 - **`distanceAttenEnable`**
   - EN: Distance attenuation percentage (0-200%).
-  - KO: 거리 감쇠 백분율 (0-200%).
+  - KO: Distance attenuation 백분율 (0-200%).
   - [ ] OK    Fix: 
 
 - **`eqBandToggle`**
@@ -6008,7 +2630,7 @@ Set the number of Reverb Channels in System Config.
 
 - **`mapVisibility`**
   - EN: Make Visible or Hide All Reverb Channels on the Map.
-  - KO: 맵에서 모든 리버브 채널을 표시하거나 숨기기.
+  - KO: 맵에서 모든 Reverb Channels을 표시하거나 숨기기.
   - [ ] OK    Fix: 
 
 - **`miniLatencyTooltip`**
@@ -6176,108 +2798,6 @@ Set the number of Reverb Channels in System Config.
   - KO: 리버브 설정을 파일에 저장 (백업 포함).
   - [ ] OK    Fix: 
 
-## `reverbs.labels`
-
-- **`angleOff`**
-  - EN: Angle Off:
-  - KO: 끄기 각도:
-  - [ ] OK    Fix: 
-
-- **`angleOn`**
-  - EN: Angle On:
-  - KO: 켜기 각도:
-  - [ ] OK    Fix: 
-
-- **`attenuation`**
-  - EN: Attenuation:
-  - KO: 감쇠:
-  - [ ] OK    Fix: 
-
-- **`commonAtten`**
-  - EN: Common Atten:
-  - KO: 공통 감쇠:
-  - [ ] OK    Fix: 
-
-- **`coordinates`**
-  - EN: Coord:
-  - KO: 좌표:
-  - [ ] OK    Fix: 
-
-- **`delayLatency`**
-  - EN: Delay/Latency:
-  - KO: 지연/레이턴시:
-  - [ ] OK    Fix: 
-
-- **`distanceAtten`**
-  - EN: Distance Atten:
-  - KO: 거리 감쇠:
-  - [ ] OK    Fix: 
-
-- **`distanceAttenPercent`**
-  - EN: Distance Atten %:
-  - KO: 거리 감쇠 %:
-  - [ ] OK    Fix: 
-
-- **`hfDamping`**
-  - EN: HF Damping:
-  - KO: 고주파 감쇠:
-  - [ ] OK    Fix: 
-
-- **`muteMacro`**
-  - EN: Mute Macro:
-  - KO: 음소거 매크로:
-  - [ ] OK    Fix: 
-
-- **`name`**
-  - EN: Name:
-  - KO: 이름:
-  - [ ] OK    Fix: 
-
-- **`orientation`**
-  - EN: Orientation:
-  - KO: 방향:
-  - [ ] OK    Fix: 
-
-- **`outputMutes`**
-  - EN: Output Mutes:
-  - KO: 출력 음소거:
-  - [ ] OK    Fix: 
-
-- **`pitch`**
-  - EN: Pitch:
-  - KO: 피치:
-  - [ ] OK    Fix: 
-
-- **`positionX`**
-  - EN: Position X:
-  - KO: 위치 X:
-  - [ ] OK    Fix: 
-
-- **`positionY`**
-  - EN: Position Y:
-  - KO: 위치 Y:
-  - [ ] OK    Fix: 
-
-- **`positionZ`**
-  - EN: Position Z:
-  - KO: 위치 Z:
-  - [ ] OK    Fix: 
-
-- **`returnOffsetX`**
-  - EN: Return Offset X:
-  - KO: 리턴 오프셋 X:
-  - [ ] OK    Fix: 
-
-- **`returnOffsetY`**
-  - EN: Return Offset Y:
-  - KO: 리턴 오프셋 Y:
-  - [ ] OK    Fix: 
-
-- **`returnOffsetZ`**
-  - EN: Return Offset Z:
-  - KO: 리턴 오프셋 Z:
-  - [ ] OK    Fix: 
-
 ## `reverbs.messages`
 
 - **`backupLoaded`**
@@ -6312,380 +2832,21 @@ Set the number of Reverb Channels in System Config.
 
 - **`selectFolderFirst`**
   - EN: Please select a project folder in System Config first.
-  - KO: 시스템 설정에서 먼저 프로젝트 폴더를 선택하세요.
+  - KO: System Config에서 먼저 프로젝트 폴더를 선택하세요.
   - [ ] OK    Fix: 
 
-## `reverbs.muteMacros`
+## `sampler`
 
-- **`invertMutes`**
-  - EN: INVERT MUTES
-  - KO: 음소거 반전
-  - [ ] OK    Fix: 
-
-- **`muteAll`**
-  - EN: MUTE ALL
-  - KO: 전체 음소거
-  - [ ] OK    Fix: 
-
-- **`muteArray`**
-  - EN: MUTE ARRAY
-  - KO: 어레이 음소거
-  - [ ] OK    Fix: 
-
-- **`muteEven`**
-  - EN: MUTE EVEN
-  - KO: 짝수 음소거
-  - [ ] OK    Fix: 
-
-- **`muteOdd`**
-  - EN: MUTE ODD
-  - KO: 홀수 음소거
-  - [ ] OK    Fix: 
-
-- **`select`**
-  - EN: Mute Macro Select
-  - KO: 음소거 매크로 선택
-  - [ ] OK    Fix: 
-
-- **`unmuteAll`**
-  - EN: UNMUTE ALL
-  - KO: 전체 음소거 해제
-  - [ ] OK    Fix: 
-
-- **`unmuteArray`**
-  - EN: UNMUTE ARRAY
-  - KO: 어레이 음소거 해제
-  - [ ] OK    Fix: 
-
-## `reverbs.postProcessing`
-
-- **`attack`**
-  - EN: Attack:
-  - KO: 어택:
-  - [ ] OK    Fix: 
-
-- **`expander`**
-  - EN: Expander
-  - KO: 익스팬더
-  - [ ] OK    Fix: 
-
-- **`expanderOff`**
-  - EN: Expander OFF
-  - KO: 익스팬더 끄기
-  - [ ] OK    Fix: 
-
-- **`expanderOn`**
-  - EN: Expander ON
-  - KO: 익스팬더 켜기
-  - [ ] OK    Fix: 
-
-- **`ratio`**
-  - EN: Ratio:
-  - KO: 비율:
-  - [ ] OK    Fix: 
-
-- **`release`**
-  - EN: Release:
-  - KO: 릴리스:
-  - [ ] OK    Fix: 
-
-- **`threshold`**
-  - EN: Threshold:
-  - KO: 임계값:
-  - [ ] OK    Fix: 
-
-## `reverbs.preProcessing`
-
-- **`attack`**
-  - EN: Attack:
-  - KO: 어택:
-  - [ ] OK    Fix: 
-
-- **`compressor`**
-  - EN: Compressor
-  - KO: 컴프레서
-  - [ ] OK    Fix: 
-
-- **`compressorOff`**
-  - EN: Compressor OFF
-  - KO: 컴프레서 끄기
-  - [ ] OK    Fix: 
-
-- **`compressorOn`**
-  - EN: Compressor ON
-  - KO: 컴프레서 켜기
-  - [ ] OK    Fix: 
-
-- **`ratio`**
-  - EN: Ratio:
-  - KO: 비율:
-  - [ ] OK    Fix: 
-
-- **`release`**
-  - EN: Release:
-  - KO: 릴리스:
-  - [ ] OK    Fix: 
-
-- **`threshold`**
-  - EN: Threshold:
-  - KO: 임계값:
-  - [ ] OK    Fix: 
-
-## `reverbs.sections`
-
-- **`reverbFeed`**
-  - EN: Reverb Feed
-  - KO: 리버브 센드
-  - [ ] OK    Fix: 
-
-- **`reverbReturn`**
-  - EN: Reverb Return
-  - KO: 리버브 리턴
-  - [ ] OK    Fix: 
-
-## `reverbs.tabs`
-
-- **`algorithm`**
-  - EN: Algorithm
-  - KO: 알고리즘
-  - [ ] OK    Fix: 
-
-- **`channelParams`**
-  - EN: Channel Parameters
-  - KO: 채널 매개변수
-  - [ ] OK    Fix: 
-
-- **`postProcessing`**
-  - EN: Post-Processing
-  - KO: 후처리
-  - [ ] OK    Fix: 
-
-- **`preProcessing`**
-  - EN: Pre-Processing
-  - KO: 전처리
-  - [ ] OK    Fix: 
-
-## `reverbs.toggles`
-
-- **`liveSourceOff`**
-  - EN: Live Source Atten OFF
-  - KO: 라이브 소스 감쇠 끄기
-  - [ ] OK    Fix: 
-
-- **`liveSourceOn`**
-  - EN: Live Source Atten ON
-  - KO: 라이브 소스 감쇠 켜기
-  - [ ] OK    Fix: 
-
-- **`minLatencyOff`**
-  - EN: Minimal Latency OFF
-  - KO: 최소 레이턴시 끄기
-  - [ ] OK    Fix: 
-
-- **`minLatencyOn`**
-  - EN: Minimal Latency ON
-  - KO: 최소 레이턴시 켜기
-  - [ ] OK    Fix: 
-
-## `sampler.buttons`
-
-- **`copy`**
-  - EN: Copy
-  - KO: 복사
-  - [ ] OK    Fix: 
-
-- **`copyCell`**
-  - EN: Copy Cell
-  - KO: 셀 복사
-  - [ ] OK    Fix: 
-
-- **`copySet`**
-  - EN: Copy Set
-  - KO: 세트 복사
-  - [ ] OK    Fix: 
-
-- **`export`**
-  - EN: Export
-  - KO: 내보내기
-  - [ ] OK    Fix: 
-
-- **`import`**
-  - EN: Import
-  - KO: 가져오기
-  - [ ] OK    Fix: 
-
-- **`paste`**
-  - EN: Paste
-  - KO: 붙여넣기
-  - [ ] OK    Fix: 
-
-- **`pasteCell`**
-  - EN: Paste Cell
-  - KO: 셀 붙여넣기
-  - [ ] OK    Fix: 
-
-- **`pasteSet`**
-  - EN: Paste Set
-  - KO: 세트 붙여넣기
-  - [ ] OK    Fix: 
-
-## `sampler.cell`
-
-- **`attenuation`**
-  - EN: Attenuation (dB)
-  - KO: 감쇠 (dB)
-  - [ ] OK    Fix: 
-
-- **`clear`**
-  - EN: Clear
-  - KO: 지우기
-  - [ ] OK    Fix: 
-
-- **`inOut`**
-  - EN: In/Out (ms)
-  - KO: 인/아웃 (ms)
-  - [ ] OK    Fix: 
-
-- **`load`**
-  - EN: Load
-  - KO: 불러오기
-  - [ ] OK    Fix: 
-
-- **`loadTitle`**
-  - EN: Load Sample
-  - KO: 샘플 불러오기
-  - [ ] OK    Fix: 
-
-- **`offset`**
-  - EN: Offset (m)
-  - KO: 오프셋 (m)
-  - [ ] OK    Fix: 
-
-- **`preview`**
-  - EN: Preview
-  - KO: 미리듣기
-  - [ ] OK    Fix: 
-
-- **`previewStop`**
-  - EN: Stop
-  - KO: 정지
+- **`guide`**
+  - EN: Select a cell on the grid to edit its properties.\nDouble-click to load a sample.\nUse Ctrl+Click to assign cells to the active set.
+  - KO: 그리드의 셀을 선택하여 속성을 편집합니다.\n샘플을 로드하려면 두 번 클릭합니다.\nCtrl+클릭으로 셀을 활성 세트에 할당합니다.
   - [ ] OK    Fix: 
 
 ## `sampler.grid`
 
 - **`help`**
-  - EN: Click = select
-Shift = multi
-Ctrl = set toggle
-DblClick = load
+  - EN: Click = select\nShift = multi\nCtrl = set toggle\nDblClick = load
   - KO: 클릭=선택 | Shift=다중 | Ctrl=세트 전환 | 더블클릭=로드
-  - [ ] OK    Fix: 
-
-## `sampler.labels`
-
-- **`lightpadZone`**
-  - EN: Lightpad Zone
-  - KO: Lightpad 영역
-  - [ ] OK    Fix: 
-
-- **`selectZone`**
-  - EN: Select Zone
-  - KO: 영역 선택
-  - [ ] OK    Fix: 
-
-## `sampler.lightpadZone`
-
-- **`none`**
-  - EN: None
-  - KO: 없음
-  - [ ] OK    Fix: 
-
-## `sampler.press`
-
-- **`height`**
-  - EN: Height
-  - KO: 높이
-  - [ ] OK    Fix: 
-
-- **`hf`**
-  - EN: HF Shelf
-  - KO: HF Shelf
-  - [ ] OK    Fix: 
-
-- **`level`**
-  - EN: Level
-  - KO: 레벨
-  - [ ] OK    Fix: 
-
-- **`xy`**
-  - EN: Position XY
-  - KO: Position XY
-  - [ ] OK    Fix: 
-
-## `sampler.remote`
-
-- **`gridLayout`**
-  - EN: Grid Layout
-  - KO: 그리드 레이아웃
-  - [ ] OK    Fix: 
-
-## `sampler.section`
-
-- **`actions`**
-  - EN: ACTIONS
-  - KO: 동작
-  - [ ] OK    Fix: 
-
-- **`cell`**
-  - EN: CELL PROPERTIES
-  - KO: 셀 속성
-  - [ ] OK    Fix: 
-
-- **`pressure`**
-  - EN: PRESSURE MAPPINGS
-  - KO: 압력 매핑
-  - [ ] OK    Fix: 
-
-- **`set`**
-  - EN: SET MANAGEMENT
-  - KO: 세트 관리
-  - [ ] OK    Fix: 
-
-## `sampler.set`
-
-- **`copy`**
-  - EN: (copy)
-  - KO: (복사)
-  - [ ] OK    Fix: 
-
-- **`default`**
-  - EN: Set
-  - KO: 세트
-  - [ ] OK    Fix: 
-
-- **`level`**
-  - EN: Level (dB)
-  - KO: 레벨 (dB)
-  - [ ] OK    Fix: 
-
-- **`pos`**
-  - EN: Position (m)
-  - KO: 위치 (m)
-  - [ ] OK    Fix: 
-
-- **`rename`**
-  - EN: Rename
-  - KO: 이름 변경
-  - [ ] OK    Fix: 
-
-- **`roundRobin`**
-  - EN: Round-Robin
-  - KO: 라운드 로빈
-  - [ ] OK    Fix: 
-
-- **`sequential`**
-  - EN: Sequential
-  - KO: 순차
   - [ ] OK    Fix: 
 
 ## `sampler.tooltips`
@@ -6760,14 +2921,14 @@ DblClick = load
   - KO: 압력 방향 전환: + = 더 큰 압력이 증가, - = 감소
   - [ ] OK    Fix: 
 
-- **`pressHeight`**
-  - EN: Map finger pressure to vertical position (Z)
-  - KO: 손가락 압력을 수직 위치 (Z)에 매핑
-  - [ ] OK    Fix: 
-
 - **`pressHF`**
   - EN: Map finger pressure to high-frequency shelf attenuation
   - KO: 손가락 압력을 하이쉘프 감쇠에 매핑
+  - [ ] OK    Fix: 
+
+- **`pressHeight`**
+  - EN: Map finger pressure to vertical position (Z)
+  - KO: 손가락 압력을 수직 위치 (Z)에 매핑
   - [ ] OK    Fix: 
 
 - **`pressLevel`**
@@ -6805,523 +2966,6 @@ DblClick = load
   - KO: 기본 위치를 미터 단위로 설정 (X, Y, Z)
   - [ ] OK    Fix: 
 
-## `sampler.zone`
-
-- **`remotePad`**
-  - EN: Pad {num}
-  - KO: Pad {num}
-  - [ ] OK    Fix: 
-
-- **`selectRemotePad`**
-  - EN: Select Remote Pad
-  - KO: 리모컨 패드 선택
-  - [ ] OK    Fix: 
-
-## `setAllInputs`
-
-- **`warning`**
-  - EN: Changes will apply to ALL inputs
-  - KO: 변경 사항이 모든 입력에 적용됩니다
-  - [ ] OK    Fix: 
-
-- **`windowTitle`**
-  - EN: Set All Inputs
-  - KO: 모든 입력 설정
-  - [ ] OK    Fix: 
-
-## `setAllInputs.buttons`
-
-- **`all1d`**
-  - EN: All 1/d
-  - KO: 모두 1/d
-  - [ ] OK    Fix: 
-
-- **`allLog`**
-  - EN: All Log
-  - KO: 모두 로그
-  - [ ] OK    Fix: 
-
-- **`closeWindow`**
-  - EN: CLOSE WINDOW
-  - KO: 창 닫기
-  - [ ] OK    Fix: 
-
-- **`flipXyzOff`**
-  - EN: Flip XYZ > OFF
-  - KO: XYZ 반전 > 끄기
-  - [ ] OK    Fix: 
-
-- **`resetDirectivity`**
-  - EN: Reset directivity
-  - KO: 지향성 초기화
-  - [ ] OK    Fix: 
-
-- **`turnOffJitterLfo`**
-  - EN: Turn OFF jitter & LFO
-  - KO: 지터 & LFO 끄기
-  - [ ] OK    Fix: 
-
-- **`turnOffLiveSource`**
-  - EN: Turn OFF Live source atten.
-  - KO: 라이브 소스 감쇠 끄기
-  - [ ] OK    Fix: 
-
-## `setAllInputs.coordinateModes`
-
-- **`rThetaPhi`**
-  - EN: r θ φ
-  - KO: r θ φ
-  - [ ] OK    Fix: 
-
-- **`rThetaZ`**
-  - EN: r θ Z
-  - KO: r θ Z
-  - [ ] OK    Fix: 
-
-- **`xyz`**
-  - EN: XYZ
-  - KO: XYZ
-  - [ ] OK    Fix: 
-
-## `setAllInputs.labels`
-
-- **`common`**
-  - EN: common
-  - KO: 공통
-  - [ ] OK    Fix: 
-
-- **`constraintPositions`**
-  - EN: Constraint positions:
-  - KO: 위치 제한:
-  - [ ] OK    Fix: 
-
-- **`coordinateMode`**
-  - EN: Coordinate mode:
-  - KO: 좌표 모드:
-  - [ ] OK    Fix: 
-
-- **`dbPerMeter`**
-  - EN: dB/m
-  - KO: dB/m
-  - [ ] OK    Fix: 
-
-- **`distanceAttenuation`**
-  - EN: Distance attenuation
-  - KO: 거리 감쇠
-  - [ ] OK    Fix: 
-
-- **`floorReflections`**
-  - EN: Floor Reflections:
-  - KO: 바닥 반사:
-  - [ ] OK    Fix: 
-
-- **`fringe`**
-  - EN: Fringe:
-  - KO: 프린지:
-  - [ ] OK    Fix: 
-
-- **`heightFactor`**
-  - EN: Height factor:
-  - KO: 높이 계수:
-  - [ ] OK    Fix: 
-
-- **`minimalLatency`**
-  - EN: Minimal Latency:
-  - KO: 최소 레이턴시:
-  - [ ] OK    Fix: 
-
-- **`muteMacros`**
-  - EN: Mute macros:
-  - KO: 음소거 매크로:
-  - [ ] OK    Fix: 
-
-- **`ratio`**
-  - EN: ratio
-  - KO: 비율
-  - [ ] OK    Fix: 
-
-- **`sidelines`**
-  - EN: Sidelines:
-  - KO: 사이드라인:
-  - [ ] OK    Fix: 
-
-## `snapshot`
-
-- **`qlabExportDone`**
-  - EN: QLab export complete: {count} cues created
-  - KO: QLab 내보내기 완료: {count}개 큐 생성
-  - [ ] OK    Fix: 
-
-- **`qlabExportStarted`**
-  - EN: Writing {count} cues to QLab...
-  - KO: QLab에 {count}개 큐 쓰는 중...
-  - [ ] OK    Fix: 
-
-- **`qlabGroupName`**
-  - EN: Snapshot "{name}"
-  - KO: 스냅샷 "{name}"
-  - [ ] OK    Fix: 
-
-- **`qlabMemoText`**
-  - EN: Run either of the following cues to recall or update this snapshot
-  - KO: 다음 큐 중 하나를 실행하여 이 스냅샷을 불러오거나 업데이트하세요
-  - [ ] OK    Fix: 
-
-- **`qlabNoTarget`**
-  - EN: No QLab target configured
-  - KO: QLab 대상이 설정되지 않았습니다
-  - [ ] OK    Fix: 
-
-- **`qlabReloadName`**
-  - EN: Reload "{name}"
-  - KO: 불러오기 "{name}"
-  - [ ] OK    Fix: 
-
-- **`qlabUpdateName`**
-  - EN: Update "{name}"
-  - KO: 업데이트 "{name}"
-  - [ ] OK    Fix: 
-
-## `snapshotScope`
-
-- **`all`**
-  - EN: ALL
-  - KO: 전체
-  - [ ] OK    Fix: 
-
-- **`applyScope`**
-  - EN: Apply scope:
-  - KO: 범위 적용:
-  - [ ] OK    Fix: 
-
-- **`autoPreselectModified`**
-  - EN: Auto-preselect modified parameters
-  - KO: 수정된 파라미터 자동 미리 선택
-  - [ ] OK    Fix: 
-
-- **`title`**
-  - EN: Snapshot Scope: {name}
-  - KO: 스냅샷 범위: {name}
-  - [ ] OK    Fix: 
-
-- **`whenRecalling`**
-  - EN: When Recalling
-  - KO: 호출 시
-  - [ ] OK    Fix: 
-
-- **`whenSaving`**
-  - EN: When Saving
-  - KO: 저장 시
-  - [ ] OK    Fix: 
-
-- **`windowTitle`**
-  - EN: Input Snapshot Scope
-  - KO: 입력 스냅샷 범위
-  - [ ] OK    Fix: 
-
-- **`writeSnapshotLoadCue`**
-  - EN: Write Snapshot Load Cue to QLab
-  - KO: 스냅샷 로드 큐를 QLab에 쓰기
-  - [ ] OK    Fix: 
-
-- **`writeSnapshotLoadCueTooltip`**
-  - EN: Also create a QLab cue to load this snapshot via OSC
-  - KO: OSC로 이 스냅샷을 로드하는 QLab 큐도 생성
-  - [ ] OK    Fix: 
-
-- **`writeToQLab`**
-  - EN: Write to QLab
-  - KO: QLab에 쓰기
-  - [ ] OK    Fix: 
-
-- **`writeToQLabTooltip`**
-  - EN: Export scope to QLab instead of saving to file
-  - KO: 파일 저장 대신 스코프를 QLab으로 내보내기
-  - [ ] OK    Fix: 
-
-## `snapshotScope.buttons`
-
-- **`cancel`**
-  - EN: Cancel
-  - KO: 취소
-  - [ ] OK    Fix: 
-
-- **`clearChanges`**
-  - EN: Clear Changes
-  - KO: 변경 사항 지우기
-  - [ ] OK    Fix: 
-
-- **`ok`**
-  - EN: OK
-  - KO: OK
-  - [ ] OK    Fix: 
-
-- **`selectModified`**
-  - EN: Select Modified
-  - KO: 수정된 항목 선택
-  - [ ] OK    Fix: 
-
-## `snapshotScope.sections`
-
-- **`attenuation`**
-  - EN: Attenuation
-  - KO: 감쇠
-  - [ ] OK    Fix: 
-
-- **`automOtion`**
-  - EN: AutomOtion
-  - KO: AutomOtion (자동이동)
-  - [ ] OK    Fix: 
-
-- **`directivity`**
-  - EN: Directivity
-  - KO: 지향성
-  - [ ] OK    Fix: 
-
-- **`hackoustics`**
-  - EN: Hackoustics
-  - KO: Hackoustics (가상음향)
-  - [ ] OK    Fix: 
-
-- **`input`**
-  - EN: Input
-  - KO: 입력
-  - [ ] OK    Fix: 
-
-- **`lfo`**
-  - EN: LFO
-  - KO: LFO
-  - [ ] OK    Fix: 
-
-- **`liveSource`**
-  - EN: Live Source
-  - KO: 라이브 소스
-  - [ ] OK    Fix: 
-
-- **`mutes`**
-  - EN: Mutes
-  - KO: 음소거
-  - [ ] OK    Fix: 
-
-- **`position`**
-  - EN: Position
-  - KO: 위치
-  - [ ] OK    Fix: 
-
-## `statusBar`
-
-- **`displayLabel`**
-  - EN: Display:
-  - KO: 표시:
-  - [ ] OK    Fix: 
-
-- **`helpMode`**
-  - EN: Help
-  - KO: 도움말
-  - [ ] OK    Fix: 
-
-- **`oscMode`**
-  - EN: OSC
-  - KO: OSC
-  - [ ] OK    Fix: 
-
-## `systemConfig.algorithms`
-
-- **`inputBuffer`**
-  - EN: InputBuffer (read-time delays)
-  - KO: InputBuffer (읽기 시간 지연)
-  - [ ] OK    Fix: 
-
-- **`outputBuffer`**
-  - EN: OutputBuffer (write-time delays)
-  - KO: OutputBuffer (쓰기 시간 지연)
-  - [ ] OK    Fix: 
-
-## `systemConfig.binauralOutput`
-
-- **`select`**
-  - EN: Select...
-  - KO: 선택...
-  - [ ] OK    Fix: 
-
-## `systemConfig.buttons`
-
-- **`audioPatch`**
-  - EN: Audio Interface and Patching Window
-  - KO: 오디오 인터페이스 및 패치 창
-  - [ ] OK    Fix: 
-
-- **`binauralOff`**
-  - EN: Binaural: OFF
-  - KO: 바이노럴: 끄기
-  - [ ] OK    Fix: 
-
-- **`binauralOn`**
-  - EN: Binaural: ON
-  - KO: 바이노럴: 켜기
-  - [ ] OK    Fix: 
-
-- **`clearSolo`**
-  - EN: Clear Solo
-  - KO: Clear Solo
-  - [ ] OK    Fix: 
-
-- **`copySystemInfo`**
-  - EN: Copy System Info
-  - KO: 시스템 정보 복사
-  - [ ] OK    Fix: 
-
-- **`diagnosticsCollapsed`**
-  - EN: Diagnostics  [+]
-  - KO: 진단  [+]
-  - [ ] OK    Fix: 
-
-- **`diagnosticsExpanded`**
-  - EN: Diagnostics  [-]
-  - KO: 진단  [-]
-  - [ ] OK    Fix: 
-
-- **`exportLogs`**
-  - EN: Export Logs
-  - KO: 로그 내보내기
-  - [ ] OK    Fix: 
-
-- **`exportSystem`**
-  - EN: Export System Configuration
-  - KO: 시스템 설정 내보내기
-  - [ ] OK    Fix: 
-
-- **`importSystem`**
-  - EN: Import System Configuration
-  - KO: 시스템 설정 가져오기
-  - [ ] OK    Fix: 
-
-- **`levelMeter`**
-  - EN: Level Meters
-  - KO: Level Meters
-  - [ ] OK    Fix: 
-
-- **`openLogFolder`**
-  - EN: Open Log Folder
-  - KO: 로그 폴더 열기
-  - [ ] OK    Fix: 
-
-- **`processingOff`**
-  - EN: Processing: OFF
-  - KO: 처리: 끄기
-  - [ ] OK    Fix: 
-
-- **`processingOn`**
-  - EN: Processing: ON
-  - KO: 처리: 켜기
-  - [ ] OK    Fix: 
-
-- **`quickLongPressOff`**
-  - EN: Normal
-  - KO: 보통
-  - [ ] OK    Fix: 
-
-- **`quickLongPressOn`**
-  - EN: Quick
-  - KO: 빠르게
-  - [ ] OK    Fix: 
-
-- **`reloadComplete`**
-  - EN: Reload Complete Configuration
-  - KO: 전체 설정 다시 불러오기
-  - [ ] OK    Fix: 
-
-- **`reloadCompleteBackup`**
-  - EN: Reload Complete Config. Backup
-  - KO: 백업에서 전체 설정 불러오기
-  - [ ] OK    Fix: 
-
-- **`reloadSystem`**
-  - EN: Reload System Configuration
-  - KO: 시스템 설정 다시 불러오기
-  - [ ] OK    Fix: 
-
-- **`reloadSystemBackup`**
-  - EN: Reload System Config. Backup
-  - KO: 백업에서 시스템 설정 불러오기
-  - [ ] OK    Fix: 
-
-- **`reportIssue`**
-  - EN: Report Issue
-  - KO: 문제 신고
-  - [ ] OK    Fix: 
-
-- **`selectProjectFolder`**
-  - EN: Select Project Folder
-  - KO: 프로젝트 폴더 선택
-  - [ ] OK    Fix: 
-
-- **`setup`**
-  - EN: Setup
-  - KO: 설정
-  - [ ] OK    Fix: 
-
-- **`soloModeMulti`**
-  - EN: Solo: Multi
-  - KO: Solo: 다중
-  - [ ] OK    Fix: 
-
-- **`soloModeSingle`**
-  - EN: Solo: Single
-  - KO: Solo: 단일
-  - [ ] OK    Fix: 
-
-- **`storeComplete`**
-  - EN: Store Complete Configuration
-  - KO: 전체 설정 저장
-  - [ ] OK    Fix: 
-
-- **`storeSystem`**
-  - EN: Store System Configuration
-  - KO: 시스템 설정 저장
-  - [ ] OK    Fix: 
-
-## `systemConfig.colorSchemes`
-
-- **`black`**
-  - EN: Black
-  - KO: 검정
-  - [ ] OK    Fix: 
-
-- **`default`**
-  - EN: Default (Dark Gray)
-  - KO: 기본 (짙은 회색)
-  - [ ] OK    Fix: 
-
-- **`light`**
-  - EN: Light
-  - KO: 밝은
-  - [ ] OK    Fix: 
-
-## `systemConfig.controller`
-
-- **`lightpad`**
-  - EN: Lightpad
-  - KO: Lightpad
-  - [ ] OK    Fix: 
-
-- **`off`**
-  - EN: Off
-  - KO: 꺼짐
-  - [ ] OK    Fix: 
-
-- **`remote`**
-  - EN: Remote
-  - KO: 리모컨
-  - [ ] OK    Fix: 
-
-## `systemConfig.devices`
-
-- **`off`**
-  - EN: Off
-  - KO: 꺼짐
-  - [ ] OK    Fix: 
-
 ## `systemConfig.dialogs`
 
 - **`exportSystemConfig`**
@@ -7340,45 +2984,33 @@ DblClick = load
   - [ ] OK    Fix: 
 
 - **`reduceInputChannels.message`**
-  - EN: Reducing from {current} to {new} input channels will remove settings for channels {start} to {end}.
-
-This cannot be undone.
-  - KO: {current}에서 {new}개의 입력 채널로 줄이면 채널 {start}부터 {end}까지의 설정이 제거됩니다.
-
-이 작업은 취소할 수 없습니다.
+  - EN: Reducing from {current} to {new} input channels will remove settings for channels {start} to {end}.\n\nThis cannot be undone.
+  - KO: {current}에서 {new}개의 입력 채널로 줄이면 채널 {start}부터 {end}까지의 설정이 제거됩니다.\n\n이 작업은 취소할 수 없습니다.
   - [ ] OK    Fix: 
 
 - **`reduceInputChannels.title`**
   - EN: Reduce Input Channels?
-  - KO: 입력 채널을 줄이시겠습니까?
+  - KO: Input Channels을 줄이시겠습니까?
   - [ ] OK    Fix: 
 
 - **`reduceOutputChannels.message`**
-  - EN: Reducing from {current} to {new} output channels will remove settings for channels {start} to {end}.
-
-This cannot be undone.
-  - KO: {current}에서 {new}개의 출력 채널로 줄이면 채널 {start}부터 {end}까지의 설정이 제거됩니다.
-
-이 작업은 취소할 수 없습니다.
+  - EN: Reducing from {current} to {new} output channels will remove settings for channels {start} to {end}.\n\nThis cannot be undone.
+  - KO: {current}에서 {new}개의 출력 채널로 줄이면 채널 {start}부터 {end}까지의 설정이 제거됩니다.\n\n이 작업은 취소할 수 없습니다.
   - [ ] OK    Fix: 
 
 - **`reduceOutputChannels.title`**
   - EN: Reduce Output Channels?
-  - KO: 출력 채널을 줄이시겠습니까?
+  - KO: Output Channels을 줄이시겠습니까?
   - [ ] OK    Fix: 
 
 - **`reduceReverbChannels.message`**
-  - EN: Reducing from {current} to {new} reverb channels will remove settings for channels {start} to {end}.
-
-This cannot be undone.
-  - KO: {current}에서 {new}개의 리버브 채널로 줄이면 채널 {start}부터 {end}까지의 설정이 제거됩니다.
-
-이 작업은 취소할 수 없습니다.
+  - EN: Reducing from {current} to {new} reverb channels will remove settings for channels {start} to {end}.\n\nThis cannot be undone.
+  - KO: {current}에서 {new}개의 리버브 채널로 줄이면 채널 {start}부터 {end}까지의 설정이 제거됩니다.\n\n이 작업은 취소할 수 없습니다.
   - [ ] OK    Fix: 
 
 - **`reduceReverbChannels.title`**
   - EN: Reduce Reverb Channels?
-  - KO: 리버브 채널을 줄이시겠습니까?
+  - KO: Reverb Channels을 줄이시겠습니까?
   - [ ] OK    Fix: 
 
 - **`selectProjectFolder`**
@@ -7428,6 +3060,11 @@ This cannot be undone.
   - KO: 바이노럴 모니터링용 출력 채널 쌍 선택. Off는 바이노럴 출력을 비활성화.
   - [ ] OK    Fix: 
 
+- **`clearSolo`**
+  - EN: Clear all input solo states.
+  - KO: Clear all input solo states.
+  - [ ] OK    Fix: 
+
 - **`colorScheme`**
   - EN: Select the color scheme: Default (dark gray), Black (pure black for OLED displays), or Light (daytime use).
   - KO: 색상 테마 선택: 기본 (짙은 회색), 검정 (OLED 디스플레이용) 또는 밝은 (주간 사용).
@@ -7475,12 +3112,17 @@ This cannot be undone.
 
 - **`inputChannels`**
   - EN: Number of Input Channels.
-  - KO: 입력 채널 수.
+  - KO: Input Channels 수.
   - [ ] OK    Fix: 
 
 - **`language`**
   - EN: Select the user interface language. Changes take full effect after restarting the application.
   - KO: 사용자 인터페이스 언어를 선택하세요. 애플리케이션을 재시작하면 변경 사항이 완전히 적용됩니다.
+  - [ ] OK    Fix: 
+
+- **`levelMeter`**
+  - EN: Opens the Level Meter Window.
+  - KO: Opens the Level Meter Window.
   - [ ] OK    Fix: 
 
 - **`lightpadSetup`**
@@ -7490,7 +3132,7 @@ This cannot be undone.
 
 - **`masterLevel`**
   - EN: Master Level (affects all outputs).
-  - KO: 마스터 레벨 (모든 출력에 영향).
+  - KO: Master Level (모든 출력에 영향).
   - [ ] OK    Fix: 
 
 - **`openLogFolder`**
@@ -7560,7 +3202,7 @@ This cannot be undone.
 
 - **`outputChannels`**
   - EN: Number of Output Channels.
-  - KO: 출력 채널 수.
+  - KO: Output Channels 수.
   - [ ] OK    Fix: 
 
 - **`positionControl`**
@@ -7610,12 +3252,17 @@ This cannot be undone.
 
 - **`reverbChannels`**
   - EN: Number of Reverb Channels.
-  - KO: 리버브 채널 수.
+  - KO: Reverb Channels 수.
   - [ ] OK    Fix: 
 
 - **`sampler`**
   - EN: Enable or disable the Sampler feature for input channels.
   - KO: 입력 채널의 Sampler 기능을 활성화 또는 비활성화. 컨트롤러 선택: Lightpad 또는 리모컨.
+  - [ ] OK    Fix: 
+
+- **`screenReader`**
+  - EN: Enable or disable screen reader announcements. When enabled, parameter names and values are announced on hover, and help text is read after a few seconds.
+  - KO: 화면 판독기 알림을 활성화하거나 비활성화합니다. 활성화하면 마우스를 올릴 때 매개변수 이름과 값이 알려지고, 몇 초 후 도움말 텍스트가 읽힙니다.
   - [ ] OK    Fix: 
 
 - **`selectProjectFolder`**
@@ -7640,7 +3287,7 @@ This cannot be undone.
 
 - **`speedOfSound`**
   - EN: Speed of Sound (related to the temperature).
-  - KO: 음속 (온도와 관련).
+  - KO: Speed of Sound (온도와 관련).
   - [ ] OK    Fix: 
 
 - **`stageDepth`**
@@ -7700,189 +3347,7 @@ This cannot be undone.
 
 - **`temperature`**
   - EN: Temperature (gives the Speed of Sound).
-  - KO: 온도 (음속을 결정).
-  - [ ] OK    Fix: 
-
-## `systemConfig.labels`
-
-- **`algorithm`**
-  - EN: Algorithm:
-  - KO: 알고리즘:
-  - [ ] OK    Fix: 
-
-- **`binauralAngle`**
-  - EN: Listener Angle:
-  - KO: 청취자 각도:
-  - [ ] OK    Fix: 
-
-- **`binauralAtten`**
-  - EN: Binaural Level:
-  - KO: 바이노럴 레벨:
-  - [ ] OK    Fix: 
-
-- **`binauralDelay`**
-  - EN: Binaural Delay:
-  - KO: 바이노럴 지연:
-  - [ ] OK    Fix: 
-
-- **`binauralDistance`**
-  - EN: Listener Distance:
-  - KO: 청취자 거리:
-  - [ ] OK    Fix: 
-
-- **`binauralOutput`**
-  - EN: Binaural Output:
-  - KO: 바이노럴 출력:
-  - [ ] OK    Fix: 
-
-- **`clickToSplit`**
-  - EN: Click to split
-  - KO: 분할하려면 클릭
-  - [ ] OK    Fix: 
-
-- **`colorScheme`**
-  - EN: Color Scheme:
-  - KO: 색상 테마:
-  - [ ] OK    Fix: 
-
-- **`dialsAndButtons`**
-  - EN: Dials and Buttons:
-  - KO: 다이얼 및 버튼:
-  - [ ] OK    Fix: 
-
-- **`domeElevation`**
-  - EN: Elevation:
-  - KO: 돔 각도:
-  - [ ] OK    Fix: 
-
-- **`haasEffect`**
-  - EN: Haas Effect:
-  - KO: 하스 효과:
-  - [ ] OK    Fix: 
-
-- **`inputChannels`**
-  - EN: Input Channels:
-  - KO: 입력 채널:
-  - [ ] OK    Fix: 
-
-- **`language`**
-  - EN: Language:
-  - KO: 언어:
-  - [ ] OK    Fix: 
-
-- **`lightpadArrangement`**
-  - EN: Lightpad Arrangement
-  - KO: Lightpad 배치
-  - [ ] OK    Fix: 
-
-- **`masterLevel`**
-  - EN: Master Level:
-  - KO: 마스터 레벨:
-  - [ ] OK    Fix: 
-
-- **`originDepth`**
-  - EN: Origin Depth:
-  - KO: 원점 깊이:
-  - [ ] OK    Fix: 
-
-- **`originHeight`**
-  - EN: Origin Height:
-  - KO: 원점 높이:
-  - [ ] OK    Fix: 
-
-- **`originWidth`**
-  - EN: Origin Width:
-  - KO: 원점 너비:
-  - [ ] OK    Fix: 
-
-- **`outputChannels`**
-  - EN: Output Channels:
-  - KO: 출력 채널:
-  - [ ] OK    Fix: 
-
-- **`positionControl`**
-  - EN: Position Control:
-  - KO: 위치 제어:
-  - [ ] OK    Fix: 
-
-- **`quickLongPress`**
-  - EN: Long Press:
-  - KO: 길게 누르기:
-  - [ ] OK    Fix: 
-
-- **`reverbChannels`**
-  - EN: Reverb Channels:
-  - KO: 리버브 채널:
-  - [ ] OK    Fix: 
-
-- **`sampler`**
-  - EN: Sampler:
-  - KO: Sampler:
-  - [ ] OK    Fix: 
-
-- **`showLocation`**
-  - EN: Location:
-  - KO: 장소:
-  - [ ] OK    Fix: 
-
-- **`showName`**
-  - EN: Name:
-  - KO: 이름:
-  - [ ] OK    Fix: 
-
-- **`speedOfSound`**
-  - EN: Speed of Sound:
-  - KO: 음속:
-  - [ ] OK    Fix: 
-
-- **`split`**
-  - EN: Split
-  - KO: 분할
-  - [ ] OK    Fix: 
-
-- **`stageDepth`**
-  - EN: Depth:
-  - KO: 깊이:
-  - [ ] OK    Fix: 
-
-- **`stageDiameter`**
-  - EN: Diameter:
-  - KO: 직경:
-  - [ ] OK    Fix: 
-
-- **`stageHeight`**
-  - EN: Height:
-  - KO: 높이:
-  - [ ] OK    Fix: 
-
-- **`stageShape`**
-  - EN: Stage Shape:
-  - KO: 무대 형태:
-  - [ ] OK    Fix: 
-
-- **`stageWidth`**
-  - EN: Width:
-  - KO: 너비:
-  - [ ] OK    Fix: 
-
-- **`systemLatency`**
-  - EN: System Latency:
-  - KO: 시스템 지연:
-  - [ ] OK    Fix: 
-
-- **`temperature`**
-  - EN: Temperature:
-  - KO: 온도:
-  - [ ] OK    Fix: 
-
-- **`updateAvailable`**
-  - EN: Update {version} available
-  - KO: 업데이트 {version} 사용 가능
-  - [ ] OK    Fix: 
-
-- **`version`**
-  - EN: Version {version}
-  - KO: 버전 {version}
+  - KO: 온도 (Speed of Sound을 결정).
   - [ ] OK    Fix: 
 
 ## `systemConfig.messages`
@@ -7917,14 +3382,14 @@ This cannot be undone.
   - KO: 로그 디렉터리를 찾을 수 없습니다
   - [ ] OK    Fix: 
 
-- **`logsExported`**
-  - EN: Logs exported to {path}
-  - KO: 로그가 {path}에 내보내졌습니다
-  - [ ] OK    Fix: 
-
 - **`logsExportFailed`**
   - EN: Failed to export logs
   - KO: 로그 내보내기 실패
+  - [ ] OK    Fix: 
+
+- **`logsExported`**
+  - EN: Logs exported to {path}
+  - KO: 로그가 {path}에 내보내졌습니다
   - [ ] OK    Fix: 
 
 - **`noBackupFilesFound`**
@@ -7995,314 +3460,4 @@ This cannot be undone.
 - **`systemInfoCopied`**
   - EN: System info copied to clipboard
   - KO: 시스템 정보가 클립보드에 복사되었습니다
-  - [ ] OK    Fix: 
-
-## `systemConfig.sections`
-
-- **`binauralRenderer`**
-  - EN: Binaural Renderer
-  - KO: 바이노럴 렌더러
-  - [ ] OK    Fix: 
-
-- **`controllers`**
-  - EN: Controllers
-  - KO: Controllers
-  - [ ] OK    Fix: 
-
-- **`io`**
-  - EN: I/O
-  - KO: 입출력
-  - [ ] OK    Fix: 
-
-- **`master`**
-  - EN: Master Section
-  - KO: 마스터 섹션
-  - [ ] OK    Fix: 
-
-- **`show`**
-  - EN: Show
-  - KO: 공연
-  - [ ] OK    Fix: 
-
-- **`stage`**
-  - EN: Stage
-  - KO: 무대
-  - [ ] OK    Fix: 
-
-- **`ui`**
-  - EN: UI
-  - KO: 인터페이스
-  - [ ] OK    Fix: 
-
-- **`wfsProcessor`**
-  - EN: WFS Processor
-  - KO: WFS 프로세서
-  - [ ] OK    Fix: 
-
-## `systemConfig.stageShapes`
-
-- **`box`**
-  - EN: Box
-  - KO: 박스
-  - [ ] OK    Fix: 
-
-- **`cylinder`**
-  - EN: Cylinder
-  - KO: 실린더
-  - [ ] OK    Fix: 
-
-- **`dome`**
-  - EN: Dome
-  - KO: 돔
-  - [ ] OK    Fix: 
-
-## `tabs`
-
-- **`clusters`**
-  - EN: Clusters
-  - KO: 클러스터
-  - [ ] OK    Fix: 
-
-- **`inputs`**
-  - EN: Inputs
-  - KO: 입력
-  - [ ] OK    Fix: 
-
-- **`map`**
-  - EN: Map
-  - KO: 맵
-  - [ ] OK    Fix: 
-
-- **`network`**
-  - EN: Network
-  - KO: 네트워크
-  - [ ] OK    Fix: 
-
-- **`outputs`**
-  - EN: Outputs
-  - KO: 출력
-  - [ ] OK    Fix: 
-
-- **`reverb`**
-  - EN: Reverb
-  - KO: 리버브
-  - [ ] OK    Fix: 
-
-- **`systemConfig`**
-  - EN: System Config
-  - KO: 시스템 설정
-  - [ ] OK    Fix: 
-
-## `touchscreens`
-
-- **`button`**
-  - EN: Setup
-  - KO: 설정
-  - [ ] OK    Fix: 
-
-- **`label`**
-  - EN: Touchscreen
-  - KO: 터치스크린
-  - [ ] OK    Fix: 
-
-## `units`
-
-- **`celsius`**
-  - EN: °C
-  - KO: °C
-  - [ ] OK    Fix: 
-
-- **`decibelPerMeter`**
-  - EN: dB/m
-  - KO: dB/m
-  - [ ] OK    Fix: 
-
-- **`decibels`**
-  - EN: dB
-  - KO: dB
-  - [ ] OK    Fix: 
-
-- **`degrees`**
-  - EN: °
-  - KO: °
-  - [ ] OK    Fix: 
-
-- **`meters`**
-  - EN: m
-  - KO: m
-  - [ ] OK    Fix: 
-
-- **`metersPerSecond`**
-  - EN: m/s
-  - KO: m/s
-  - [ ] OK    Fix: 
-
-- **`milliseconds`**
-  - EN: ms
-  - KO: ms
-  - [ ] OK    Fix: 
-
-## `wizard.buttons`
-
-- **`back`**
-  - EN: Back
-  - KO: 이전
-  - [ ] OK    Fix: 
-
-- **`close`**
-  - EN: Close
-  - KO: 닫기
-  - [ ] OK    Fix: 
-
-- **`done`**
-  - EN: Done
-  - KO: 완료
-  - [ ] OK    Fix: 
-
-- **`gettingStarted`**
-  - EN: Getting Started
-  - KO: 시작하기
-  - [ ] OK    Fix: 
-
-- **`gettingStartedHelp`**
-  - EN: Help cards guiding you through the first parameters to adjust when starting a new project
-  - KO: 새 프로젝트를 시작할 때 먼저 조정해야 할 매개변수를 안내하는 도움말 카드
-  - [ ] OK    Fix: 
-
-- **`next`**
-  - EN: Next
-  - KO: 다음
-  - [ ] OK    Fix: 
-
-- **`skip`**
-  - EN: Skip
-  - KO: 건너뛰기
-  - [ ] OK    Fix: 
-
-## `wizard.steps`
-
-- **`audioDevice.description`**
-  - EN: Select your audio driver and device, set the sample rate and buffer size. Check the patch routing and test your outputs. Close this window when done.
-  - KO: 오디오 드라이버와 장치를 선택하고 샘플레이트와 버퍼 크기를 설정하세요. 패치 라우팅을 확인하고 출력을 테스트하세요. 완료되면 이 창을 닫으세요.
-  - [ ] OK    Fix: 
-
-- **`audioDevice.title`**
-  - EN: Configure the Audio Interface
-  - KO: 오디오 인터페이스 구성
-  - [ ] OK    Fix: 
-
-- **`audioInterface.description`**
-  - EN: Click the button above or press Next to open the Audio Interface window.
-  - KO: 위의 버튼을 클릭하거나 다음을 눌러 오디오 인터페이스 창을 엽니다.
-  - [ ] OK    Fix: 
-
-- **`audioInterface.title`**
-  - EN: Open the Audio Interface
-  - KO: 오디오 인터페이스 열기
-  - [ ] OK    Fix: 
-
-- **`configureOutputs.description`**
-  - EN: Use the array presets and geometry tools to calculate speaker positions for your arrays. Close this window when done.
-  - KO: 어레이 프리셋과 지오메트리 도구를 사용하여 스피커 위치를 계산하세요. 완료되면 이 창을 닫으세요.
-  - [ ] OK    Fix: 
-
-- **`configureOutputs.title`**
-  - EN: Configure Output Positions
-  - KO: 출력 위치 구성
-  - [ ] OK    Fix: 
-
-- **`exploreInputs.description`**
-  - EN: Click an input on the map to select it, or lasso several to move them together. Drag to position your sources. Zoom with the mouse wheel or pinch gesture, pan with right-drag or two-finger drag. Add inputs, group them into clusters, and shape your sound field. You can also control positions with a keyboard, SpaceMouse, or other external controllers. Have fun!
-  - KO: 맵에서 입력을 클릭하여 선택하거나 올가미로 여러 개를 선택하세요. 드래그하여 소스를 배치합니다. 마우스 휠이나 핀치로 줌, 우클릭 드래그나 두 손가락 드래그로 팬할 수 있습니다. 입력을 추가하고 클러스터로 그룹화하여 사운드 필드를 만드세요. 키보드, SpaceMouse 또는 기타 컨트롤러로도 위치를 제어할 수 있습니다. 즐기세요!
-  - [ ] OK    Fix: 
-
-- **`exploreInputs.title`**
-  - EN: Start Creating!
-  - KO: 만들기 시작!
-  - [ ] OK    Fix: 
-
-- **`inputChannels.description`**
-  - EN: How many audio sources will you be spatializing?
-Set the number of input channels to match your source count.
-  - KO: 몇 개의 오디오 소스를 공간화하시겠습니까?
-소스 수에 맞게 입력 채널 수를 설정하세요.
-  - [ ] OK    Fix: 
-
-- **`inputChannels.title`**
-  - EN: Set Input Channels
-  - KO: 입력 채널 수 설정
-  - [ ] OK    Fix: 
-
-- **`originPoint.description`**
-  - EN: The origin is the reference point for all coordinates. Use the preset buttons or enter custom values. 'Front' places it at the audience edge.
-  - KO: 원점은 모든 좌표의 기준점입니다. 프리셋 버튼을 사용하거나 사용자 정의 값을 입력하세요. 'Front'는 관객 쪽 가장자리에 배치합니다.
-  - [ ] OK    Fix: 
-
-- **`originPoint.title`**
-  - EN: Set the Origin Point
-  - KO: 원점 설정
-  - [ ] OK    Fix: 
-
-- **`outputChannels.description`**
-  - EN: Set the number of output channels to match your speaker array.
-Each output corresponds to one physical speaker.
-  - KO: 스피커 어레이에 맞게 출력 채널 수를 설정하세요.
-각 출력은 하나의 물리적 스피커에 해당합니다.
-  - [ ] OK    Fix: 
-
-- **`outputChannels.title`**
-  - EN: Set Output Channels
-  - KO: 출력 채널 수 설정
-  - [ ] OK    Fix: 
-
-- **`projectFolder.description`**
-  - EN: Choose a folder to store your WFS project files. This will hold configurations, snapshots, IR files, and samples. Click the button to open the folder selector.
-  - KO: WFS 프로젝트 파일을 저장할 폴더를 선택하세요. 구성, 스냅샷, IR 파일, 샘플이 저장됩니다. 버튼을 클릭하여 폴더 선택기를 엽니다.
-  - [ ] OK    Fix: 
-
-- **`projectFolder.title`**
-  - EN: Select a Project Folder
-  - KO: 프로젝트 폴더 선택
-  - [ ] OK    Fix: 
-
-- **`reverbChannels.description`**
-  - EN: Reverb channels add room simulation. Set to 0 if you don't need reverb.
-  - KO: 리버브 채널은 공간 시뮬레이션을 추가합니다. 리버브가 필요하지 않으면 0으로 설정하세요.
-  - [ ] OK    Fix: 
-
-- **`reverbChannels.title`**
-  - EN: Set Reverb Channels
-  - KO: 리버브 채널 수 설정
-  - [ ] OK    Fix: 
-
-- **`stageConfig.description`**
-  - EN: Set the shape and dimensions of your performance space. Choose box, cylinder, or dome, then enter the size in meters.
-  - KO: 공연 공간의 형태와 크기를 설정합니다. 박스, 실린더, 돔 중 선택하고 미터 단위로 크기를 입력하세요.
-  - [ ] OK    Fix: 
-
-- **`stageConfig.title`**
-  - EN: Define the Stage
-  - KO: 무대 정의
-  - [ ] OK    Fix: 
-
-- **`startProcessing.description`**
-  - EN: You're all set! Long-press the Processing button to start the WFS engine. You can also start the Binaural Renderer for headphone monitoring.
-  - KO: 준비 완료! Processing 버튼을 길게 눌러 WFS 엔진을 시작하세요. 헤드폰 모니터링용 바이노럴 렌더러도 시작할 수 있습니다.
-  - [ ] OK    Fix: 
-
-- **`startProcessing.title`**
-  - EN: Start the WFS Engine
-  - KO: WFS 엔진 시작
-  - [ ] OK    Fix: 
-
-- **`wizardOfOutZ.description`**
-  - EN: Click the Wizard of OutZ button or press Next to open the output array helper.
-  - KO: Wizard of OutZ 버튼을 클릭하거나 다음을 눌러 위치 지정 도우미를 엽니다.
-  - [ ] OK    Fix: 
-
-- **`wizardOfOutZ.title`**
-  - EN: Position Your Outputs
-  - KO: 출력 위치 지정
-  - [ ] OK    Fix: 
-
-
+  - [ ] OK    Fix:
