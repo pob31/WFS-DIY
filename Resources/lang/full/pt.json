@@ -1,0 +1,2426 @@
+{
+  "meta": {
+    "language": "Português",
+    "locale": "pt",
+    "version": "1.0.0",
+    "author": "WFS-DIY Team"
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "Cancelar",
+    "apply": "Aplicar",
+    "reset": "Reiniciar",
+    "save": "Guardar",
+    "load": "Carregar",
+    "store": "Armazenar",
+    "reload": "Recarregar",
+    "import": "Importar",
+    "export": "Exportar",
+    "enable": "Ativar",
+    "disable": "Desativar",
+    "on": "LIGADO",
+    "off": "DESLIGADO",
+    "yes": "Sim",
+    "no": "Não",
+    "delete": "Eliminar",
+    "add": "Adicionar",
+    "remove": "Remover",
+    "edit": "Editar",
+    "close": "Fechar",
+    "select": "Selecionar",
+    "all": "Todos",
+    "none": "Nenhum"
+  },
+  "units": {
+    "meters": "m",
+    "decibels": "dB",
+    "milliseconds": "ms",
+    "seconds": "s",
+    "degrees": "°",
+    "hertz": "Hz",
+    "percent": "%",
+    "celsius": "°C",
+    "metersPerSecond": "m/s",
+    "decibelPerMeter": "dB/m"
+  },
+  "tabs": {
+    "systemConfig": "Config. Sistema",
+    "inputs": "Entradas",
+    "outputs": "Saídas",
+    "reverb": "Reverberação",
+    "network": "Rede",
+    "clusters": "Clusters",
+    "map": "Mapa"
+  },
+  "statusBar": {
+    "displayLabel": "Exibir:",
+    "helpMode": "Ajuda",
+    "oscMode": "OSC"
+  },
+  "touchscreens": {
+    "title": "Telas sensíveis ao toque Linux",
+    "label": "Tela sensível ao toque",
+    "button": "Configurar",
+    "empty": "Nenhuma tela sensível ao toque detectada. Conecte uma e a lista será atualizada automaticamente.",
+    "disabled": "(Desativada)",
+    "swapXY": "Trocar X/Y",
+    "flipX": "Inverter X",
+    "flipY": "Inverter Y",
+    "errorPrefix": "Erro:",
+    "statusActive": "Ativa — eventos capturados",
+    "statusOpening": "Abrindo dispositivo…",
+    "statusInactive": "Não atribuída"
+  },
+  "systemConfig": {
+    "sections": {
+      "show": "Espetáculo",
+      "io": "E/S",
+      "stage": "Palco",
+      "master": "Secção Principal",
+      "ui": "Interface",
+      "controllers": "Controllers",
+      "wfsProcessor": "Processador WFS",
+      "binaural": "Binaural Solo",
+      "binauralRenderer": "Renderizador Binaural",
+      "files": "Ficheiros"
+    },
+    "labels": {
+      "version": "Versão {version}",
+      "updateAvailable": "Atualização {version} disponível",
+      "showName": "Nome:",
+      "showLocation": "Local:",
+      "inputChannels": "Canais de Entrada:",
+      "outputChannels": "Canais de Saída:",
+      "reverbChannels": "Canais de Reverb:",
+      "algorithm": "Algoritmo:",
+      "processing": "Processamento:",
+      "stageShape": "Forma do Palco:",
+      "stageWidth": "Largura:",
+      "stageDepth": "Profundidade:",
+      "stageHeight": "Altura:",
+      "stageDiameter": "Diâmetro:",
+      "domeElevation": "Elevação da Cúpula:",
+      "originWidth": "Origem Largura:",
+      "originDepth": "Origem Profundidade:",
+      "originHeight": "Origem Altura:",
+      "speedOfSound": "Velocidade do Som:",
+      "temperature": "Temperatura:",
+      "masterLevel": "Nível Principal:",
+      "systemLatency": "Latência do Sistema:",
+      "haasEffect": "Efeito Haas:",
+      "colorScheme": "Esquema de Cores:",
+      "quickLongPress": "Pressão longa:",
+      "screenReader": "Leitor de Ecrã:",
+      "language": "Idioma:",
+      "binauralOutput": "Saída binaural:",
+      "binauralDistance": "Distância ouvinte:",
+      "binauralAngle": "Ângulo ouvinte:",
+      "binauralAtten": "Nível binaural:",
+      "binauralDelay": "Atraso binaural:",
+      "lightpadSensitivity": "Sensibilidade:",
+      "noLightpad": "Nenhum Lightpad detetado",
+      "lightpadArrangement": "Disposição do Lightpad",
+      "split": "Dividir",
+      "clickToSplit": "Clique para dividir",
+      "dialsAndButtons": "Botões e mostradores:",
+      "positionControl": "Controlo de posição:",
+      "sampler": "Sampler:",
+      "samplerController": "Controlador:"
+    },
+    "buttons": {
+      "audioPatch": "Interface de Áudio e Patch",
+      "levelMeter": "Level Meters",
+      "clearSolo": "Clear Solo",
+      "processingOff": "Processamento: DESLIGADO",
+      "processingOn": "Processamento: LIGADO",
+      "binauralOff": "Binaural: DESLIGADO",
+      "binauralOn": "Binaural: LIGADO",
+      "soloModeSingle": "Solo: Único",
+      "soloModeMulti": "Solo: Múltiplo",
+      "selectProjectFolder": "Selecionar Pasta do Projeto",
+      "storeComplete": "Guardar Configuração Completa",
+      "reloadComplete": "Recarregar Configuração Completa",
+      "reloadCompleteBackup": "Recarregar Config. Completa do Backup",
+      "storeSystem": "Guardar Configuração do Sistema",
+      "reloadSystem": "Recarregar Configuração do Sistema",
+      "reloadSystemBackup": "Recarregar Config. Sistema do Backup",
+      "importSystem": "Importar Configuração do Sistema",
+      "exportSystem": "Exportar Configuração do Sistema",
+      "streamDeckOff": "Stream Deck+: OFF",
+      "streamDeckOn": "Stream Deck+: ON",
+      "samplerOff": "Sampler: OFF",
+      "samplerOn": "Sampler: ON",
+      "setup": "Config.",
+      "quickLongPressOff": "Normal",
+      "quickLongPressOn": "Rápido",
+      "diagnosticsExpanded": "Diagnóstico  [-]",
+      "diagnosticsCollapsed": "Diagnóstico  [+]",
+      "exportLogs": "Exportar logs",
+      "openLogFolder": "Abrir pasta de logs",
+      "copySystemInfo": "Copiar info do sistema",
+      "reportIssue": "Reportar problema"
+    },
+    "algorithms": {
+      "inputBuffer": "InputBuffer (atrasos de leitura)",
+      "outputBuffer": "OutputBuffer (atrasos de escrita)"
+    },
+    "stageShapes": {
+      "box": "Caixa",
+      "cylinder": "Cilindro",
+      "dome": "Cúpula"
+    },
+    "colorSchemes": {
+      "default": "Padrão (Cinza Escuro)",
+      "black": "Preto",
+      "light": "Claro"
+    },
+    "binauralOutput": {
+      "off": "Off",
+      "select": "Selecionar..."
+    },
+    "help": {
+      "showName": "Nome do espetáculo atual.",
+      "showLocation": "Local do espetáculo atual.",
+      "inputChannels": "Número de canais de entrada.",
+      "outputChannels": "Número de canais de saída.",
+      "reverbChannels": "Número de canais de reverberação.",
+      "audioPatch": "Abre a janela de Interface de Áudio e Patch.",
+      "levelMeter": "Opens the Level Meter Window.",
+      "clearSolo": "Clear all input solo states.",
+      "algorithm": "Selecione o algoritmo de renderização no menu.",
+      "processing": "Bloquear todos os parâmetros de E/S e iniciar o DSP. Prima longamente para parar o DSP.",
+      "soloMode": "Único: uma entrada de cada vez. Múltiplo: várias entradas simultaneamente.",
+      "stageShape": "Selecione a forma do palco (Caixa, Cilindro ou Cúpula).",
+      "stageWidth": "Largura do palco em metros (apenas forma Caixa).",
+      "stageDepth": "Profundidade do palco em metros (apenas forma Caixa).",
+      "stageHeight": "Altura do palco em metros (formas Caixa e Cilindro).",
+      "stageDiameter": "Diâmetro do palco em metros (formas Cilindro e Cúpula).",
+      "domeElevation": "Ângulo de elevação da cúpula: 180 = hemisfério, 360 = esfera completa.",
+      "originWidth": "Deslocamento X da origem do centro do palco (0 = centrado, negativo = esquerda).",
+      "originDepth": "Deslocamento Y da origem do centro do palco (0 = centrado, negativo = frente).",
+      "originHeight": "Deslocamento Z da origem do chão (0 = nível do chão, positivo = acima do chão).",
+      "originFront": "Definir origem na frente central do palco. Típico para palcos frontais.",
+      "originCenterGround": "Definir origem no centro do palco ao nível do chão. Típico para configurações Surround ou Cilíndricas.",
+      "originCenter": "Definir origem no centro do volume do palco. Típico para configurações de Cúpula Esférica.",
+      "stageScale": "Pressão longa para escalar todas as posições de entrada proporcionalmente às novas dimensões do palco.",
+      "stageFit": "Pressão longa para mover entradas fora dos limites para dentro das novas dimensões do palco.",
+      "stageDismiss": "Pressão longa para ignorar e manter as posições atuais das entradas.",
+      "originShiftInputs": "Pressão longa para deslocar todas as posições de entrada conforme a mudança de origem.",
+      "originDismissInputs": "Pressão longa para ignorar e manter as posições atuais das entradas.",
+      "originShiftOutputs": "Pressão longa para deslocar todas as posições de saída conforme a mudança de origem.",
+      "originDismissOutputs": "Pressão longa para ignorar e manter as posições atuais das saídas.",
+      "originShiftReverbs": "Pressão longa para deslocar todas as posições de reverb conforme a mudança de origem.",
+      "originDismissReverbs": "Pressão longa para ignorar e manter as posições atuais dos reverbs.",
+      "speedOfSound": "Velocidade do som (relacionada com a temperatura).",
+      "temperature": "Temperatura (determina a velocidade do som).",
+      "masterLevel": "Nível principal (afeta todas as saídas).",
+      "systemLatency": "Latência total do sistema (Mesa de mistura e Computador) / Latência específica de Entrada e Saída pode ser definida nas respetivas configurações.",
+      "haasEffect": "Efeito Haas a aplicar ao sistema. Terá em conta as compensações de latência (Sistema, Entrada e Saída).",
+      "colorScheme": "Selecione o esquema de cores: Padrão (cinza escuro), Preto (para ecrãs OLED) ou Claro (uso diurno).",
+      "quickLongPress": "Duração da pressão longa. Em vez de janelas de confirmação, este software usa pressões longas.",
+      "screenReader": "Ativar ou desativar anúncios do leitor de ecrã. Quando ativado, nomes e valores de parâmetros são anunciados ao passar o rato, e texto de ajuda é lido após alguns segundos.",
+      "selectProjectFolder": "Selecione a localização da pasta do projeto atual para guardar ficheiros.",
+      "storeComplete": "Guardar configuração completa em ficheiros (com backup).",
+      "reloadComplete": "Recarregar configuração completa dos ficheiros.",
+      "reloadCompleteBackup": "Recarregar configuração completa dos ficheiros de backup.",
+      "storeSystem": "Guardar configuração do sistema em ficheiro (com backup).",
+      "reloadSystem": "Recarregar configuração do sistema do ficheiro.",
+      "reloadSystemBackup": "Recarregar configuração do sistema do ficheiro de backup.",
+      "importSystem": "Importar configuração do sistema do ficheiro (com explorador de ficheiros).",
+      "exportSystem": "Exportar configuração do sistema para ficheiro (com explorador de ficheiros).",
+      "language": "Selecione o idioma da interface. As alterações terão efeito completo após reiniciar a aplicação.",
+      "dialsAndButtons": "Selecionar o controlador físico para botões e mostradores: Stream Deck+ ou XenceLabs Quick Keys.",
+      "positionControl": "Selecionar o controlador físico para o controlo de posição: Space Mouse, Joystick ou comando de jogos.",
+      "sampler": "Ativar ou desativar a função Sampler para os canais de entrada. Selecionar o controlador: Lightpad ou Comando.",
+      "lightpadSetup": "Exibir os Roli Lightpads conectados e permitir dividi-los em 4 pads menores.",
+      "remoteSetup": "Selecionar o número de pads na aba XY Pads do Remote.",
+      "binauralEnable": "Ativar ou desativar o processamento do renderizador binaural.",
+      "binauralOutput": "Selecionar o par de canais de saída para a monitorização binaural. Off desativa a saída binaural.",
+      "binauralDistance": "Distância do ouvinte binaural à origem do palco (metros).",
+      "binauralAngle": "Rotação horizontal da perspetiva do ouvinte binaural (graus, 0 = virado para o palco).",
+      "binauralAtten": "Deslocamento de nível global para a saída binaural (dB).",
+      "binauralDelay": "Atraso adicional para a saída binaural (milissegundos).",
+      "diagnosticsToggle": "Premir longamente para mostrar ou ocultar as ferramentas de diagnóstico (exportar registos, abrir pasta de registos, copiar info do sistema, reportar problema).",
+      "exportLogs": "Exportar os registos de diagnóstico para um ficheiro zip para depuração ou suporte.",
+      "openLogFolder": "Abrir a pasta de registos da aplicação no explorador de ficheiros do sistema.",
+      "copySystemInfo": "Copiar informações detalhadas do sistema para a área de transferência para pedidos de suporte.",
+      "reportIssue": "Abrir a página de issues do WFS-DIY no GitHub no navegador predefinido."
+    },
+    "messages": {
+      "selectFolderFirst": "Por favor, selecione primeiro uma pasta de projeto.",
+      "configSaved": "Configuração completa guardada.",
+      "configLoaded": "Configuração completa carregada.",
+      "systemConfigSaved": "Configuração do sistema guardada.",
+      "systemConfigLoaded": "Configuração do sistema carregada.",
+      "systemConfigFileNotFound": "Ficheiro de configuração do sistema não encontrado.",
+      "configLoadedFromBackup": "Configuração carregada do backup.",
+      "systemConfigLoadedFromBackup": "Configuração do sistema carregada do backup.",
+      "noBackupFilesFound": "Nenhum ficheiro de backup encontrado.",
+      "systemConfigImported": "Configuração do sistema importada.",
+      "systemConfigExported": "Configuração do sistema exportada.",
+      "partialLoad": "Carregamento parcial: {error}",
+      "partialLoadFromBackup": "Carregamento parcial do backup: {error}",
+      "error": "Erro: {error}",
+      "languageChanged": "Idioma alterado para: {language} (requer reinício para efeito completo)",
+      "restartTitle": "Reinício necessário",
+      "restartBody": "Por favor, reinicie o aplicativo para que a alteração de idioma tenha efeito completo.",
+      "logsExported": "Logs exportados para {path}",
+      "logsExportFailed": "Falha ao exportar logs",
+      "logDirNotFound": "Pasta de logs não encontrada",
+      "systemInfoCopied": "Informações do sistema copiadas para a área de transferência",
+      "selectLogExportFolder": "Selecionar destino para exportação de logs"
+    },
+    "dialogs": {
+      "reduceInputChannels": {
+        "title": "Reduzir Canais de Entrada?",
+        "message": "Reduzir de {current} para {new} canais de entrada irá remover as configurações dos canais {start} a {end}.\n\nEsta ação não pode ser desfeita."
+      },
+      "reduceOutputChannels": {
+        "title": "Reduzir Canais de Saída?",
+        "message": "Reduzir de {current} para {new} canais de saída irá remover as configurações dos canais {start} a {end}.\n\nEsta ação não pode ser desfeita."
+      },
+      "reduceReverbChannels": {
+        "title": "Reduzir Canais de Reverb?",
+        "message": "Reduzir de {current} para {new} canais de reverb irá remover as configurações dos canais {start} a {end}.\n\nEsta ação não pode ser desfeita."
+      },
+      "reduce": "Reduzir",
+      "selectProjectFolder": "Selecionar Pasta do Projeto",
+      "importSystemConfig": "Importar Configuração do Sistema",
+      "exportSystemConfig": "Exportar Configuração do Sistema"
+    },
+    "controller": {
+      "off": "Desligado",
+      "lightpad": "Lightpad",
+      "remote": "Comando"
+    },
+    "devices": {
+      "off": "Desligado",
+      "on": "Ligado"
+    }
+  },
+  "network": {
+    "sections": {
+      "network": "Rede",
+      "connections": "Ligações de Rede",
+      "admOsc": "Mapeamentos ADM-OSC",
+      "tracking": "Rastreamento"
+    },
+    "labels": {
+      "interface": "Interface de Rede:",
+      "currentIPv4": "IPv4 Atual:",
+      "udpPort": "Porta UDP:",
+      "tcpPort": "Porta TCP:",
+      "oscQuery": "OSC Query:",
+      "protocol": "Protocolo:",
+      "rxPort": "Porta Rx:",
+      "offsetX": "Deslocamento X:",
+      "offsetY": "Deslocamento Y:",
+      "offsetZ": "Deslocamento Z:",
+      "scaleX": "Escala X:",
+      "scaleY": "Escala Y:",
+      "scaleZ": "Escala Z:",
+      "oscPath": "OSC Path:",
+      "psnInterface": "PSN Interface:",
+      "mqttHost": "Host:",
+      "mqttTopic": "Tópico:",
+      "mqttTagIds": "IDs Tag...",
+      "mqttJsonX": "X:",
+      "mqttJsonY": "Y:",
+      "mqttJsonZ": "Z:",
+      "mqttJsonQ": "Q:",
+      "notAvailable": "Não disponível",
+      "localhost": "Localhost (127.0.0.1)",
+      "admAxisSwap": "Eixo de origem:",
+      "admAzFlip": "Inverter Az.",
+      "admAzOffset": "Offset Az.:",
+      "admBreakpoint": "Ponto de ruptura:",
+      "admCartMapping": "Cartesiano",
+      "admCenterOffset": "Centro:",
+      "admDistMax": "Dist. Máx:",
+      "admDistMin": "Dist. Mín:",
+      "admElFlip": "Inverter El.",
+      "admInnerWidth": "Largura interna:",
+      "admInputAssign": "Atribuição de entrada",
+      "admLinkAll": "Vincular todos",
+      "admMapping": "Mapeamento:",
+      "admMappingNone": "Nenhum",
+      "admOuterWidth": "Largura externa:",
+      "admPolarMapping": "Polar",
+      "admSideDown": "-Z Baixo",
+      "admSideDownstage": "-Y Proscênio",
+      "admSideLeft": "-X Esquerda",
+      "admSideRight": "+X Direita",
+      "admSideUp": "+Z Cima",
+      "admSideUpstage": "+Y Fundo",
+      "admSignFlip": "Inverter"
+    },
+    "help": {
+      "networkInterface": "Selecionar a interface de rede.",
+      "currentIP": "Endereço IP do processador.",
+      "udpPort": "Porta de receção UDP do processador.",
+      "tcpPort": "Porta de receção TCP do processador.",
+      "oscQueryPort": "Porta HTTP para a descoberta OSC Query. Outras aplicações podem navegar pelos parâmetros em http://localhost:<port>/",
+      "oscQueryEnable": "Ativar/desativar o servidor OSC Query para a descoberta automática de parâmetros via HTTP/WebSocket.",
+      "targetName": "Nome do destino de rede.",
+      "dataMode": "Selecionar transmissão de dados UDP ou TCP.",
+      "targetIP": "Endereço IP do destino (usar 127.0.0.1 para o host local).",
+      "txPort": "Porta de transmissão para este destino.",
+      "rxEnable": "Ativar ou desativar a receção de dados.",
+      "txEnable": "Ativar ou desativar a transmissão de dados.",
+      "protocol": "Selecionar o protocolo: DISABLED, OSC, REMOTE ou ADM-OSC.",
+      "addTarget": "Adicionar novo destino de rede.",
+      "openLogWindow": "Abrir a janela de registo de rede.",
+      "findMyRemote": "Faça o seu comando piscar e vibrar para o encontrar.",
+      "oscSourceFilter": "Filtrar OSC recebido: aceitar todas as fontes ou apenas conexões registadas com Rx ativo.",
+      "admAxisSwap": "Qual eixo ADM-OSC de entrada é mapeado para este eixo interno.",
+      "admAzFlip": "Inverter a direção do azimute de entrada.",
+      "admAzOffset": "Offset de azimute (graus) aplicado ao azimute ADM-OSC de entrada.",
+      "admBreakpoint": "Ponto de ruptura normalizado (0-1) para alongamento linear por partes.",
+      "admCenterOffset": "Posição física (m) para a qual o valor normalizado 0.0 é mapeado.",
+      "admDistMax": "Distância física máxima (m) em ADM-OSC distance=1.",
+      "admDistMin": "Distância física mínima (m) em ADM-OSC distance=0.",
+      "admElFlip": "Inverter o sinal da elevação de entrada.",
+      "admInputAssign": "Atribuir esta entrada a um mapeamento ADM-OSC para recepção/transmissão.",
+      "admLinkAll": "Selecionar todos os 6 lados de uma vez para edição uniforme.",
+      "admInnerWidth": "Extensão física (m) do centro ao ponto de ruptura.",
+      "admMapping": "Selecionar um mapeamento ADM-OSC para configurar. Cart = Cartesiano (xyz), Polar = esférico (aed).",
+      "admOuterWidth": "Extensão física (m) do ponto de ruptura a ±1.",
+      "admMappingPanel": "Arrastar pontos para editar o mapeamento. Clicar no título do eixo para trocar, clicar em Flip para inverter. Manter Shift para editar ambos os lados simetricamente.",
+      "admSideSelect": "Selecionar lados para editar. As alterações se aplicam a todos os lados selecionados simultaneamente.",
+      "admSignFlip": "Inverter o sinal do valor do eixo de entrada.",
+      "trackingEnabled": "Ativar ou desativar o processamento de dados de tracking recebidos.",
+      "trackingProtocol": "Selecionar o tipo de protocolo de tracking.",
+      "trackingPort": "Especificar a porta para receber dados de tracking.",
+      "trackingOffsetX": "Deslocamento da coordenada X do tracking.",
+      "trackingOffsetY": "Deslocamento da coordenada Y do tracking.",
+      "trackingOffsetZ": "Deslocamento da coordenada Z do tracking.",
+      "trackingScaleX": "Escala da coordenada X do tracking.",
+      "trackingScaleY": "Escala da coordenada Y do tracking.",
+      "trackingScaleZ": "Escala da coordenada Z do tracking.",
+      "trackingFlipX": "Inverter o eixo da coordenada X do tracking.",
+      "trackingFlipY": "Inverter o eixo da coordenada Y do tracking.",
+      "trackingFlipZ": "Inverter o eixo da coordenada Z do tracking.",
+      "trackingOscPath": "Caminho OSC para o tracking em modo OSC (começa com /)",
+      "psnInterface": "Interface de rede para a receção multicast PSN",
+      "storeConfig": "Guardar a configuração de rede num ficheiro.",
+      "reloadConfig": "Recarregar a configuração de rede a partir de um ficheiro.",
+      "reloadBackup": "Recarregar a configuração de rede a partir do ficheiro de cópia de segurança.",
+      "importConfig": "Importar a configuração de rede a partir de um ficheiro.",
+      "exportConfig": "Exportar a configuração de rede para um ficheiro.",
+      "removeTarget": "Eliminar este destino de rede."
+    },
+    "buttons": {
+      "storeConfig": "Guardar Config. Rede",
+      "reloadConfig": "Recarregar Config. Rede",
+      "reloadBackup": "Recarregar Backup",
+      "import": "Importar",
+      "export": "Exportar",
+      "openLogWindow": "Abrir Janela de Registo",
+      "findMyRemote": "Encontrar Controlo Remoto",
+      "add": "ADICIONAR"
+    },
+    "toggles": {
+      "enabled": "Ativado",
+      "disabled": "Desativado",
+      "on": "LIGADO",
+      "off": "DESLIGADO",
+      "trackingOn": "Rastreamento: LIGADO",
+      "trackingOff": "Rastreamento: DESLIGADO",
+      "flipXOn": "Inverter X: LIGADO",
+      "flipXOff": "Inverter X: DESLIGADO",
+      "flipYOn": "Inverter Y: LIGADO",
+      "flipYOff": "Inverter Y: DESLIGADO",
+      "flipZOn": "Inverter Z: LIGADO",
+      "flipZOff": "Inverter Z: DESLIGADO",
+      "flipOn": "Inverter: LIGADO",
+      "flipOff": "Inverter: DESLIGADO",
+      "azFlipOn": "Inv. Az.: LIGADO",
+      "azFlipOff": "Inv. Az.: DESLIGADO",
+      "elFlipOn": "Inv. El.: LIGADO",
+      "elFlipOff": "Inv. El.: DESLIGADO",
+      "oscFilterAcceptAll": "Filtro OSC: Aceitar Todos",
+      "oscFilterRegisteredOnly": "Filtro OSC: Apenas Registados"
+    },
+    "table": {
+      "name": "Nome",
+      "mode": "Modo",
+      "ipv4Address": "Endereço IPv4",
+      "txPort": "Porta Tx",
+      "rx": "Rx",
+      "tx": "Tx",
+      "protocol": "Protocolo",
+      "defaultTarget": "Destino {num}"
+    },
+    "protocols": {
+      "disabled": "DESATIVADO",
+      "osc": "OSC",
+      "remote": "Remoto",
+      "admOsc": "ADM-OSC",
+      "psn": "PosiStageNet (PSN)",
+      "rttrp": "RTTrP",
+      "mqtt": "MQTT",
+      "qlab": "QLab",
+      "udp": "UDP",
+      "tcp": "TCP"
+    },
+    "dialogs": {
+      "importConfig": "Importar Configuração de Rede",
+      "exportConfig": "Exportar Configuração de Rede",
+      "removeTargetTitle": "Remover destino",
+      "removeTargetMessage": "Eliminar o destino '{name}'?",
+      "findMyRemoteTitle": "Encontrar o meu comando",
+      "findMyRemoteMessage": "Introduza a palavra-passe do seu comando:",
+      "findMyRemotePassword": "Palavra-passe:",
+      "trackingConflictsTitle": "Conflitos de tracking detetados",
+      "trackingConflictsMessage": "\nApenas é permitida uma entrada com tracking por cluster. Se continuar, o tracking será mantido apenas para a primeira entrada de cada cluster.",
+      "trackingConflictsContinue": "Continuar"
+    },
+    "messages": {
+      "selectFolderFirst": "Por favor, selecione primeiro uma pasta de projeto em Config. Sistema.",
+      "configSaved": "Configuração de rede guardada.",
+      "configNotFound": "Ficheiro de configuração de rede não encontrado.",
+      "configReloaded": "Configuração de rede recarregada.",
+      "noBackupFound": "Nenhum ficheiro de backup encontrado.",
+      "configLoadedFromBackup": "Configuração de rede carregada do backup.",
+      "configImported": "Configuração de rede importada.",
+      "configExported": "Configuração de rede exportada.",
+      "error": "Erro: {error}",
+      "onlyOneRemote": "Apenas uma ligação REMOTA é permitida.",
+      "findDeviceSent": "Comando Encontrar dispositivo enviado.",
+      "maxTargetsReached": "Número máximo de destinos/servidores atingido.",
+      "passwordEmpty": "A palavra-passe não pode estar vazia.",
+      "oscManagerError": "Erro: gestor OSC não disponível"
+    }
+  },
+  "accessibility": {
+    "ttsEnabled": "Leitor de ecrã ativado",
+    "ttsDisabled": "Leitor de ecrã desativado"
+  },
+  "audioPatch": {
+    "windowTitle": "Interface de Áudio e Patch",
+    "labels": {
+      "processorInputs": "Entradas do processador",
+      "processorOutputs": "Saídas do processador",
+      "interfaceInput": "Entrada da interface de áudio",
+      "interfaceOutput": "Saída da interface de áudio"
+    },
+    "tabs": {
+      "deviceSettings": "Definições do Dispositivo",
+      "inputPatch": "Patch de Entrada",
+      "outputPatch": "Patch de Saída"
+    },
+    "deviceSettings": {
+      "labels": {
+        "deviceType": "Tipo de dispositivo áudio:",
+        "device": "Dispositivo:",
+        "sampleRate": "Taxa de amostragem:",
+        "bufferSize": "Tamanho do buffer de áudio:"
+      },
+      "buttons": {
+        "controlPanel": "Painel de Controlo",
+        "resetDevice": "Reiniciar Dispositivo"
+      },
+      "noDevice": "Sem Dispositivo",
+      "notConfigured": "Não configurado"
+    },
+    "modes": {
+      "scrolling": "Deslocamento",
+      "patching": "Patch",
+      "testing": "Teste"
+    },
+    "buttons": {
+      "unpatchAll": "Desligar Todos",
+      "hold": "Manter"
+    },
+    "testSignal": {
+      "labels": {
+        "signal": "Sinal:",
+        "frequency": "Frequência:",
+        "level": "Nível:"
+      },
+      "types": {
+        "off": "Desligado",
+        "pinkNoise": "Ruído Rosa",
+        "tone": "Tom",
+        "sweep": "Varrimento",
+        "diracPulse": "Impulso Dirac",
+        "pulse": "Impulso"
+      }
+    },
+    "dialogs": {
+      "unpatchInputsTitle": "Desligar Todas as Entradas",
+      "unpatchInputsMessage": "Tem a certeza que deseja remover todos os patches de entrada?",
+      "unpatchOutputsTitle": "Desligar Todas as Saídas",
+      "unpatchOutputsMessage": "Tem a certeza que deseja remover todos os patches de saída?"
+    },
+    "messages": {
+      "chooseTestSignal": "Escolha um Sinal de Teste para Ativar o Modo de Teste"
+    }
+  },
+  "networkLog": {
+    "windowTitle": "Registo de Rede",
+    "controls": {
+      "logging": "Registo",
+      "hideHeartbeat": "Ocultar Heartbeat",
+      "clear": "LIMPAR",
+      "export": "EXPORTAR"
+    },
+    "exportMenu": {
+      "exportAll": "Exportar Tudo",
+      "exportFiltered": "Exportar Filtrado"
+    },
+    "filterModes": {
+      "tcpUdp": "TCP/UDP",
+      "protocol": "Protocolo",
+      "clientIp": "IP do Cliente",
+      "rejected": "Rejeitado"
+    },
+    "filterToggles": {
+      "incoming": "Entrada",
+      "outgoing": "Saída",
+      "udp": "UDP",
+      "tcp": "TCP"
+    },
+    "columns": {
+      "time": "Hora",
+      "direction": "Dir",
+      "ip": "IP",
+      "port": "Porta",
+      "transport": "Trans",
+      "protocol": "Protocolo",
+      "address": "Endereço",
+      "arguments": "Argumentos",
+      "origin": "Origem"
+    },
+    "status": {
+      "rejected": "REJEITADO"
+    },
+    "dialogs": {
+      "exportFailedTitle": "Exportação Falhou",
+      "exportFailedMessage": "Não foi possível escrever no ficheiro: {path}",
+      "exportCompleteTitle": "Exportação Completa",
+      "exportCompleteMessage": "Registo exportado para: {path}"
+    }
+  },
+  "map": {
+    "buttons": {
+      "fitStage": "Ajustar palco à tela",
+      "fitInputs": "Ajustar todas as entradas à tela",
+      "showLevels": "Mostrar Níveis",
+      "hideLevels": "Ocultar Níveis"
+    },
+    "tooltips": {
+      "fitStage": "Ajustar o zoom e panorâmica para exibir o palco",
+      "fitInputs": "Ajustar o zoom e panorâmica para exibir todas as entradas visíveis",
+      "levels": "Mostrar os níveis de entradas e saídas no mapa",
+      "detach": "Destacar o mapa em uma janela separada para configurações de tela dupla"
+    },
+    "reattach": "Reanexar mapa",
+    "detachedMessage": "O mapa está exibido em uma janela separada.",
+    "labels": {
+      "reverbPrefix": "R"
+    },
+    "messages": {
+      "assignedCluster": "Entrada {channel} atribuída ao Cluster {cluster}",
+      "assignedClusterMulti": "{count} entradas atribuídas ao Cluster {cluster}",
+      "setSingle": "Entrada {channel} removida do cluster",
+      "setSingleMulti": "{count} entradas removidas dos clusters",
+      "clusterBrokenUp": "Cluster {cluster} dissolvido"
+    }
+  },
+  "levelMeter": {
+    "windowTitle": "Medidores de Nível",
+    "inputs": "Entradas",
+    "outputs": "Saídas",
+    "solo": "Solo visual:",
+    "soloNone": "Nenhum",
+    "buttons": {
+      "clearSolo": "Limpar solo",
+      "soloModeSingle": "Single",
+      "soloModeMulti": "Multi"
+    },
+    "tooltips": {
+      "solo": "Mostrar a contribuição da entrada para todas as saídas no medidor de nível (em modo Solo único) e reproduzir renderização binaural das entradas em solo",
+      "clearSolo": "Desativar todos os solos",
+      "soloMode": "Único: uma entrada de cada vez. Múltiplo: várias entradas simultaneamente."
+    }
+  },
+  "clusters": {
+    "labels": {
+      "assignedInputs": "Entradas Atribuídas",
+      "reference": "Referência:",
+      "position": "Posição",
+      "posPrefix": "Pos:",
+      "controls": "Controlos",
+      "z": "Z",
+      "attenuation": "Aten.",
+      "rotation": "Rotação",
+      "scale": "Escala",
+      "plane": "Plano:",
+      "x": "X:",
+      "y": "Y:",
+      "inputPrefix": "Entrada"
+    },
+    "referenceMode": {
+      "firstInput": "Primeira Entrada",
+      "barycenter": "Baricentro",
+      "sharedPosition": "Posição Partilhada"
+    },
+    "planes": {
+      "xy": "XY",
+      "xz": "XZ",
+      "yz": "YZ"
+    },
+    "status": {
+      "tracking": "Rastreamento: Entrada {num} (sobrepõe referência)",
+      "noInputs": "Sem entradas atribuídas",
+      "trackedMarker": "[T]"
+    },
+    "toggles": {
+      "lfoOn": "L.F.O: ON",
+      "lfoOff": "L.F.O: OFF",
+      "inputsVisible": "Entradas: Visíveis",
+      "inputsHidden": "Entradas: Ocultas"
+    },
+    "lfo": {
+      "labels": {
+        "section": "LFO",
+        "period": "Período:",
+        "phase": "Fase:",
+        "x": "X",
+        "y": "Y",
+        "z": "Z",
+        "rot": "Rotação",
+        "scaleLfo": "Escala",
+        "amplitude": "Amplitude:",
+        "angle": "Ângulo:",
+        "ratio": "Razão:",
+        "rate": "Velocidade:"
+      }
+    },
+    "help": {
+      "inputsVisibility": "Mostrar ou ocultar as entradas deste cluster no Mapa. Ocultar propaga para novos membros; remover uma entrada restaura a sua visibilidade.",
+      "referenceMode": "Selecione o ponto de referência para as transformações do cluster: Primeira Entrada, Baricentro ou Posição Partilhada (todos os membros coincidem; a escala e a rotação aplicam-se aos offsets individuais).",
+      "positionJoystick": "Mover todas as entradas do cluster em X/Y. Manter pressionado e arrastar para transladar.",
+      "zSlider": "Mover todas as entradas do cluster ao longo do eixo Z (altura).",
+      "attenuationSlider": "Ajustar a atenuação de todas as entradas do cluster (dB).",
+      "rotationDial": "Rodar todas as entradas do cluster em torno do ponto de referência no plano selecionado.",
+      "scaleJoystick": "Escalar as entradas do cluster relativamente ao ponto de referência no plano selecionado.",
+      "planeSelector": "Selecionar o plano para as operações de rotação e escala (XY, XZ, YZ).",
+      "lfoActiveButton": "Ativar ou desativar o movimento periódico do cluster (LFO).",
+      "lfoPeriodDial": "Período base do movimento do cluster.",
+      "lfoPhaseDial": "Desfasamento global do movimento do cluster.",
+      "presetTile": "Clique: recuperar preset. Duplo clique: recuperar + iniciar. Clique do meio/direito: guardar o LFO atual.",
+      "stopAllLFO": "Parar o LFO em todos os 10 clusters.",
+      "exportPresets": "Exportar os 16 presets LFO para um ficheiro XML.",
+      "importPresets": "Importar presets LFO a partir de um ficheiro XML.",
+      "qlabPreset": "Criar uma cue de rede QLab para recuperar o último preset LFO selecionado para o cluster atual.",
+      "lfoShapeXSelector": "Comportamento do movimento do cluster em largura.",
+      "lfoShapeYSelector": "Comportamento do movimento do cluster em profundidade.",
+      "lfoShapeZSelector": "Comportamento do movimento do cluster em altura.",
+      "lfoShapeRotSelector": "Comportamento de rotação do cluster.",
+      "lfoShapeScaleSelector": "Comportamento de escala do cluster.",
+      "lfoRateXSlider": "Movimento mais rápido ou mais lento em relação ao período base, em largura.",
+      "lfoRateYSlider": "Movimento mais rápido ou mais lento em relação ao período base, em profundidade.",
+      "lfoRateZSlider": "Movimento mais rápido ou mais lento em relação ao período base, em altura.",
+      "lfoRateRotSlider": "Rotação mais rápida ou mais lenta em relação ao período base.",
+      "lfoRateScaleSlider": "Redimensionamento mais rápido ou mais lento em relação ao período base.",
+      "lfoAmplitudeXSlider": "Largura do movimento em relação à posição de referência do cluster.",
+      "lfoAmplitudeYSlider": "Profundidade do movimento em relação à posição de referência do cluster.",
+      "lfoAmplitudeZSlider": "Altura do movimento em relação à posição de referência do cluster.",
+      "lfoAmplitudeRotSlider": "Ângulo de rotação máximo (-360 a 360 graus).",
+      "lfoAmplitudeScaleSlider": "Fator de escala máximo (0,1× a 10×, logarítmico).",
+      "lfoPhaseXDial": "Desfasamento do movimento do cluster em largura.",
+      "lfoPhaseYDial": "Desfasamento do movimento do cluster em profundidade.",
+      "lfoPhaseZDial": "Desfasamento do movimento do cluster em altura.",
+      "lfoPhaseRotDial": "Desfasamento da rotação do cluster.",
+      "lfoPhaseScaleDial": "Desfasamento do redimensionamento do cluster."
+    },
+    "presets": {
+      "stopAll": "Parar tudo",
+      "export": "Exportar",
+      "import": "Importar",
+      "exportDialog": "Exportar presets LFO",
+      "importDialog": "Importar presets LFO",
+      "stored": "Preset LFO guardado na casa {n}.",
+      "recalled": "Preset LFO recuperado da casa {n}.",
+      "exported": "Presets LFO exportados.",
+      "imported": "Presets LFO importados."
+    },
+    "osc": {
+      "lfoActive": "/wfs/cluster/lfoActive <id> <0|1>",
+      "lfoPeriod": "/wfs/cluster/lfoPeriod <id> <segundos>",
+      "lfoPhase": "/wfs/cluster/lfoPhase <id> <graus>",
+      "lfoPresetRecall": "/wfs/cluster/lfoPresetRecall <clusterId> <numeroPreset>",
+      "lfoStopAll": "/wfs/cluster/lfoStopAll",
+      "lfoShapeX": "/wfs/cluster/lfoShapeX <id> <0-8>",
+      "lfoShapeY": "/wfs/cluster/lfoShapeY <id> <0-8>",
+      "lfoShapeZ": "/wfs/cluster/lfoShapeZ <id> <0-8>",
+      "lfoShapeRot": "/wfs/cluster/lfoShapeRot <id> <0-8>",
+      "lfoShapeScale": "/wfs/cluster/lfoShapeScale <id> <0-8>",
+      "lfoRateX": "/wfs/cluster/lfoRateX <id> <multiplicador>",
+      "lfoRateY": "/wfs/cluster/lfoRateY <id> <multiplicador>",
+      "lfoRateZ": "/wfs/cluster/lfoRateZ <id> <multiplicador>",
+      "lfoRateRot": "/wfs/cluster/lfoRateRot <id> <multiplicador>",
+      "lfoRateScale": "/wfs/cluster/lfoRateScale <id> <multiplicador>",
+      "lfoAmplitudeX": "/wfs/cluster/lfoAmplitudeX <id> <metros>",
+      "lfoAmplitudeY": "/wfs/cluster/lfoAmplitudeY <id> <metros>",
+      "lfoAmplitudeZ": "/wfs/cluster/lfoAmplitudeZ <id> <metros>",
+      "lfoAmplitudeRot": "/wfs/cluster/lfoAmplitudeRot <id> <graus>",
+      "lfoAmplitudeScale": "/wfs/cluster/lfoAmplitudeScale <id> <fator>",
+      "lfoPhaseX": "/wfs/cluster/lfoPhaseX <id> <graus>",
+      "lfoPhaseY": "/wfs/cluster/lfoPhaseY <id> <graus>",
+      "lfoPhaseZ": "/wfs/cluster/lfoPhaseZ <id> <graus>",
+      "lfoPhaseRot": "/wfs/cluster/lfoPhaseRot <id> <graus>",
+      "lfoPhaseScale": "/wfs/cluster/lfoPhaseScale <id> <graus>"
+    },
+    "qlabPresetCueName": "Cluster {cluster} Preset LFO: {name}",
+    "qlabPresetCueCreated": "Cue QLab criado: Cluster {cluster} preset \"{name}\""
+  },
+  "eq": {
+    "status": {
+      "off": "EQ DESLIGADO",
+      "on": "EQ LIGADO"
+    },
+    "filterTypes": {
+      "off": "DESLIGADO",
+      "lowCut": "Corte Grave",
+      "lowShelf": "Prateleira Grave",
+      "peakNotch": "Pico/Notch",
+      "bandPass": "Passa-Banda",
+      "highShelf": "Prateleira Agudo",
+      "highCut": "Corte Agudo",
+      "allPass": "Passa-tudo"
+    },
+    "labels": {
+      "band": "Banda",
+      "freq": "Freq:",
+      "gain": "Ganho",
+      "q": "Q"
+    },
+    "buttons": {
+      "resetBand": "Reiniciar",
+      "flattenEQ": "Reiniciar EQ"
+    }
+  },
+  "outputs": {
+    "sections": {
+      "channel": "Canal",
+      "position": "Posição",
+      "settings": "Configurações"
+    },
+    "tabs": {
+      "parameters": "Parâmetros de Saída",
+      "eq": "EQ de Saída"
+    },
+    "labels": {
+      "name": "Nome:",
+      "array": "Array:",
+      "applyToArray": "Aplicar ao Array:",
+      "attenuation": "Atenuação:",
+      "delayLatency": "Atraso/Latência:",
+      "distanceAtten": "Aten. Distância:",
+      "hParallax": "Paralaxe Horiz.:",
+      "vParallax": "Paralaxe Vert.:",
+      "coordinates": "Coordenadas:",
+      "positionX": "Posição X:",
+      "positionY": "Posição Y:",
+      "positionZ": "Posição Z:",
+      "orientation": "Orientação:",
+      "radius": "Radius",
+      "azimuth": "Azimuth",
+      "height": "Height",
+      "elevation": "Elevation",
+      "angleOn": "Ângulo Ligado:",
+      "angleOff": "Ângulo Desligado:",
+      "pitch": "Inclinação:",
+      "hfDamping": "Amortecimento HF:",
+      "delay": "Atraso:",
+      "latency": "Latência:"
+    },
+    "buttons": {
+      "speakerVisible": "Altifalante Visível no Mapa",
+      "speakerHidden": "Altifalante oculto no mapa",
+      "arrayVisible": "Array visível no mapa",
+      "arrayHidden": "Array oculto no mapa",
+      "wizardOfOutZ": "Assistente OutZ...",
+      "storeConfig": "Guardar Config. Saída",
+      "reloadConfig": "Recarregar Config. Saída",
+      "reloadBackup": "Recarregar Backup",
+      "import": "Importar",
+      "export": "Exportar"
+    },
+    "toggles": {
+      "minLatencyOn": "Latência Mínima: LIGADO",
+      "minLatencyOff": "Latência Mínima: DESLIGADO",
+      "liveSourceOn": "Aten. Fonte Ao Vivo: LIGADO",
+      "liveSourceOff": "Aten. Fonte Ao Vivo: DESLIGADO",
+      "floorReflectionsOn": "Reflexões do Chão: LIGADO",
+      "floorReflectionsOff": "Reflexões do Chão: DESLIGADO"
+    },
+    "arrayModes": {
+      "single": "Individual",
+      "array": "Array",
+      "off": "DESLIGADO",
+      "absolute": "ABSOLUTO",
+      "relative": "RELATIVO"
+    },
+    "coordModes": {
+      "xyz": "XYZ"
+    },
+    "units": {
+      "meters": "m",
+      "dB": "dB",
+      "dBPerMeter": "dB/m",
+      "hz": "Hz",
+      "ms": "ms",
+      "percent": "%"
+    },
+    "dialogs": {
+      "import": "Importar Configuração de Saída",
+      "export": "Exportar Configuração de Saída"
+    },
+    "messages": {
+      "setToSingle": "Saída {num} definida como Individual",
+      "assignedToArray": "Saída {num} atribuída ao Array {array}",
+      "selectFolderFirst": "Por favor, selecione primeiro uma pasta de projeto em Config. Sistema.",
+      "configSaved": "Configuração de saída guardada.",
+      "configLoaded": "Configuração de saída carregada.",
+      "configNotFound": "Ficheiro de configuração de saída não encontrado.",
+      "configReloaded": "Configuração de saída recarregada.",
+      "noBackup": "Nenhum backup de configuração de saída encontrado.",
+      "backupLoaded": "Configuração de saída carregada do backup.",
+      "configImported": "Configuração de saída importada.",
+      "configExported": "Configuração de saída exportada.",
+      "error": "Erro: {error}"
+    },
+    "help": {
+      "channelSelector": "Numero e seleção do canal de saída.",
+      "nameEditor": "Nome exibido do canal de saída (editável).",
+      "arraySelector": "O canal de saída selecionado faz parte de um array.",
+      "applyToArray": "Aplicar alterações ao resto do array (valor absoluto ou alterações relativas).",
+      "attenuation": "Atenuação do canal de saída. (as alterações podem afetar o resto do array)",
+      "delayLatency": "Atraso do canal de saída (valores positivos) ou compensação de latência (valores negativos). (as alterações podem afetar o resto do array)",
+      "minLatency": "Desativa o modo de latência mínima para a saída selecionada. (as alterações podem afetar o resto do array)",
+      "liveSource": "Desativa a atenuação de fonte ao vivo para a saída selecionada. (as alterações podem afetar o resto do array)",
+      "floorReflections": "Ativar ou desativar as reflexões do chão para este altifalante.",
+      "distanceAtten": "Proporção de atenuação por distância para a saída selecionada. (as alterações podem afetar o resto do array)",
+      "hParallax": "Distância horizontal do altifalante ao ouvinte « alvo ». (as alterações podem afetar o resto do array)",
+      "vParallax": "Distância vertical do altifalante ao ouvinte « alvo ». Positivo quando o altifalante está abaixo da cabeça do ouvinte. (as alterações podem afetar o resto do array)",
+      "coordMode": "Modo de exibição de coordenadas: cartesiano (X/Y/Z), cilíndrico (raio/azimute/altura) ou esférico (raio/azimute/elevação).",
+      "directional": "Controlo direcional do canal de saída. Arrastar para alterar orientação, Shift+arrastar para Angle Off, Alt+arrastar para Angle On. (as alterações podem afetar o resto do array)",
+      "angleOn": "O canal de saída amplificará objetos neste ângulo atrás dele. (as alterações podem afetar o resto do array)",
+      "angleOff": "O canal de saída não amplificará objetos neste ângulo à frente dele. (as alterações podem afetar o resto do array)",
+      "pitch": "Orientação vertical do canal de saída usada para determinar quais objetos são amplificados. (as alterações podem afetar o resto do array)",
+      "hfDamping": "Perda de altas frequências em função da distância do objeto à saída. (as alterações podem afetar o resto do array)",
+      "wizardOfOutZ": "Abrir o Wizard of OutZ para posicionar arrays de altifalantes convenientemente.",
+      "mapVisibility": "Tornar visível ou ocultar a saída selecionada no mapa.",
+      "storeConfig": "Guardar a configuração de saída em ficheiro (com backup).",
+      "reloadConfig": "Recarregar a configuração de saída a partir do ficheiro.",
+      "reloadBackup": "Recarregar a configuração de saída a partir do ficheiro de backup.",
+      "importConfig": "Importar a configuração de saída a partir de ficheiro (com janela do explorador).",
+      "exportConfig": "Exportar a configuração de saída para ficheiro (com janela do explorador).",
+      "eqEnable": "Ativar ou desativar o EQ para esta saída.",
+      "eqFlatten": "Pressão longa para redefinir todas as bandas EQ.",
+      "eqBandToggle": "Ativar/desativar a banda {band}. Desativada, a banda é ignorada.",
+      "eqShape": "Forma do filtro EQ saída banda {band}.",
+      "eqFreq": "Frequência EQ saída banda {band} (20 Hz - 20 kHz).",
+      "eqGain": "Ganho EQ saída banda {band} (-24 a +24 dB).",
+      "eqQ": "Fator Q EQ saída banda {band} (0.1 - 10.0).",
+      "eqResetBand": "Pressão longa para redefinir a banda {band}.",
+      "position1": "Canal de saída {name} ({unit}).",
+      "position2": "Canal de saída {name} ({unit}).",
+      "position3": "Canal de saída {name} ({unit})."
+    }
+  },
+  "arrayHelper": {
+    "window": {
+      "title": "Assistente OutZ",
+      "contentName": "Assistente de Array de Saída"
+    },
+    "presets": {
+      "label": "Predefinição:",
+      "nearFieldStraight": "Array Campo Próximo Reto",
+      "nearFieldCurved": "Array Campo Próximo Curvo",
+      "mainRoomStraight": "Array Suspenso Principal Reto",
+      "subBass": "Sub Grave",
+      "surround": "Surround",
+      "delayLine": "Linha de Atraso",
+      "circle": "Círculo"
+    },
+    "sections": {
+      "geometry": "Geometria",
+      "acousticDefaults": "Padrões Acústicos",
+      "target": "Destino"
+    },
+    "geometry": {
+      "centerSpacing": "Centro + Espaçamento",
+      "endpoints": "Pontos Finais",
+      "nSpeakers": "N Altifalantes:",
+      "nPairs": "N Pares:",
+      "zHeight": "Altura Z (m):",
+      "orientation": "Orientação (graus):",
+      "centerX": "Centro X (m):",
+      "centerY": "Centro Y (m):",
+      "spacing": "Espaçamento (m):",
+      "startX": "Início X (m):",
+      "startY": "Início Y (m):",
+      "endX": "Fim X (m):",
+      "endY": "Fim Y (m):",
+      "sag": "Curvatura (m):",
+      "radius": "Raio (m):",
+      "startAngle": "Ângulo Inicial (graus):",
+      "facingInward": "Virado para Dentro",
+      "facingOutward": "Virado para Fora",
+      "width": "Largura (m):",
+      "yStart": "Y Início (m):",
+      "yEnd": "Y Fim (m):",
+      "frontFacing": "Virado para Frente",
+      "backFacing": "Virado para Trás"
+    },
+    "acoustic": {
+      "liveSource": "Fonte Ao Vivo",
+      "floorReflections": "Reflexões do Chão",
+      "hfDamping": "Amortecimento HF (dB/m):",
+      "hParallax": "Paralaxe H (m):",
+      "vParallax": "Paralaxe V (m):",
+      "distanceAtten": "Aten. Distância (%):",
+      "lowCut": "Corte Grave (Hz):",
+      "highCut": "Corte Agudo (Hz):"
+    },
+    "target": {
+      "array": "Array:",
+      "arrayPrefix": "Array",
+      "startingOutput": "Saída Inicial:"
+    },
+    "buttons": {
+      "apply": "Aplicar",
+      "close": "Fechar"
+    },
+    "preview": {
+      "audience": "Audiência"
+    },
+    "status": {
+      "ready": "Pronto",
+      "calculated": "Calculadas {count} posições",
+      "applied": "Aplicados {count} altifalantes ao Array {array}. Pronto para próximo array."
+    },
+    "errors": {
+      "speakerCountZero": "O número de altifalantes deve ser maior que 0",
+      "noPositions": "Sem posições para aplicar. Verifique os parâmetros de geometria.",
+      "notEnoughOutputs": "Canais de saída insuficientes! Necessários {count} a partir de {start}",
+      "prefix": "Erro: "
+    }
+  },
+  "reverbs": {
+    "noChannels": "Nenhum canal de reverberação configurado.\n\nDefina o número de Canais de Reverb em Config. Sistema.",
+    "tabs": {
+      "channelParams": "Parâmetros do Canal",
+      "preProcessing": "Pré-processamento",
+      "algorithm": "Algoritmo",
+      "postProcessing": "Pós-processamento"
+    },
+    "labels": {
+      "name": "Nome:",
+      "attenuation": "Atenuação:",
+      "delayLatency": "Atraso/Latência:",
+      "coordinates": "Coord.:",
+      "positionX": "Posição X:",
+      "positionY": "Posição Y:",
+      "positionZ": "Posição Z:",
+      "returnOffsetX": "Deslocamento Retorno X:",
+      "returnOffsetY": "Deslocamento Retorno Y:",
+      "returnOffsetZ": "Deslocamento Retorno Z:",
+      "orientation": "Orientação:",
+      "angleOn": "Ângulo Ligado:",
+      "angleOff": "Ângulo Desligado:",
+      "pitch": "Inclinação:",
+      "hfDamping": "Amortecimento HF:",
+      "distanceAttenPercent": "Aten. Distância %:",
+      "distanceAtten": "Aten. Distância:",
+      "commonAtten": "Aten. Comum:",
+      "outputMutes": "Silenciamentos de Saída:",
+      "muteMacro": "Macro de Silenciamento:"
+    },
+    "sections": {
+      "reverbFeed": "Envio de Reverb",
+      "reverbReturn": "Retorno de Reverb"
+    },
+    "buttons": {
+      "visibleOnMap": "Reverbs Visíveis no Mapa",
+      "hiddenOnMap": "Reverbs Ocultos no Mapa",
+      "soloReverbs": "Solo Reverbs",
+      "soloReverbsOn": "Solo Reverberações ON",
+      "mutePre": "Mute Pre",
+      "mutePreOn": "Mute Pré ON",
+      "mutePost": "Mute Post",
+      "mutePostOn": "Mute Pós ON",
+      "editOnMap": "Editar no mapa",
+      "editOnMapOn": "Editar no mapa ON",
+      "storeConfig": "Guardar Config. Reverb",
+      "reloadConfig": "Recarregar Config. Reverb",
+      "reloadBackup": "Recarregar Backup",
+      "import": "Importar",
+      "export": "Exportar"
+    },
+    "toggles": {
+      "minLatencyOn": "Latência Mínima LIGADO",
+      "minLatencyOff": "Latência Mínima DESLIGADO",
+      "liveSourceOn": "Aten. Fonte Ao Vivo LIGADO",
+      "liveSourceOff": "Aten. Fonte Ao Vivo DESLIGADO"
+    },
+    "coordModes": {
+      "xyz": "XYZ"
+    },
+    "muteMacros": {
+      "select": "Selecionar Macro de Silenciamento",
+      "muteAll": "SILENCIAR TODOS",
+      "unmuteAll": "ATIVAR TODOS",
+      "invertMutes": "INVERTER SILENCIAMENTOS",
+      "muteOdd": "SILENCIAR ÍMPARES",
+      "muteEven": "SILENCIAR PARES",
+      "muteArray": "SILENCIAR ARRAY",
+      "unmuteArray": "ATIVAR ARRAY"
+    },
+    "algorithm": {
+      "sdn": "SDN",
+      "fdn": "FDN",
+      "ir": "IR",
+      "decaySection": "Decaimento",
+      "rt60": "RT60:",
+      "rt60LowMult": "RT60 Grave ×:",
+      "rt60HighMult": "RT60 Agudo ×:",
+      "crossoverLow": "Crossover grave:",
+      "crossoverHigh": "Crossover agudo:",
+      "diffusion": "Difusão:",
+      "sdnSection": "SDN",
+      "scale": "Escala:",
+      "fdnSection": "FDN",
+      "size": "Tamanho:",
+      "irSection": "IR",
+      "irFile": "Ficheiro IR:",
+      "irImport": "Importar IR...",
+      "irTrim": "Corte IR:",
+      "irLength": "Comprimento IR:",
+      "perNode": "Por nó:",
+      "perNodeOn": "IR por nó LIGADO",
+      "perNodeOff": "IR por nó DESLIGADO",
+      "wetLevel": "Nível Wet:",
+      "irImportSuccess": "IR importado: {file}",
+      "irNoProject": "Defina uma pasta de projeto primeiro",
+      "noFileLoaded": "Nenhum IR carregado"
+    },
+    "preProcessing": {
+      "compressor": "Compressor",
+      "compressorOff": "Compressor DESLIGADO",
+      "compressorOn": "Compressor LIGADO",
+      "threshold": "Limiar:",
+      "ratio": "Rácio:",
+      "attack": "Ataque:",
+      "release": "Libertação:"
+    },
+    "postProcessing": {
+      "expander": "Expansor",
+      "expanderOff": "Expansor DESLIGADO",
+      "expanderOn": "Expansor LIGADO",
+      "threshold": "Limiar:",
+      "ratio": "Rácio:",
+      "attack": "Ataque:",
+      "release": "Libertação:"
+    },
+    "dialogs": {
+      "import": "Importar Configuração de Reverb",
+      "export": "Exportar Configuração de Reverb"
+    },
+    "messages": {
+      "selectFolderFirst": "Por favor, selecione primeiro uma pasta de projeto em Config. Sistema.",
+      "configSaved": "Configuração de reverb guardada.",
+      "configLoaded": "Configuração de reverb carregada.",
+      "backupLoaded": "Configuração de reverb carregada do backup.",
+      "configImported": "Configuração de reverb importada.",
+      "configExported": "Configuração de reverb exportada.",
+      "error": "Erro: {error}"
+    },
+    "help": {
+      "channelSelector": "Número e seleção do canal de reverberação.",
+      "nameEditor": "Nome exibido do canal de reverberação (editável).",
+      "mapVisibility": "Tornar visíveis ou ocultar todos os canais de reverberação no mapa.",
+      "attenuation": "Atenuação do canal de reverberação (-92 a 0 dB).",
+      "delayLatency": "Compensação de atraso/latência da reverberação (-100 a +100 ms).",
+      "orientation": "Ângulo de orientação da reverberação (-179 a +180 graus).",
+      "angleOn": "Ângulo no qual a amplificação começa (1-180 graus).",
+      "angleOff": "Ângulo no qual nenhuma amplificação ocorre (0-179 graus).",
+      "pitch": "Orientação vertical da reverberação (-90 a +90 graus).",
+      "hfDamping": "Perda de alta frequência por metro (-6.0 a 0.0 dB/m).",
+      "distanceAttenEnable": "Percentagem de atenuação por distância (0-200%).",
+      "coordMode": "Modo de exibição de coordenadas: Cartesiano (X/Y/Z), Cilíndrico (raio/azimute/altura), ou Esférico (raio/azimute/elevação).",
+      "eqEnable": "Ativar ou desativar o processamento EQ para esta reverberação.",
+      "eqFlatten": "Pressão longa para redefinir todas as bandas pré-EQ.",
+      "eqBandToggle": "Ativar/desativar a banda pré-EQ {band}.",
+      "eqShape": "Forma do filtro pré-EQ banda {band}.",
+      "eqFreq": "Frequência pré-EQ banda {band} (20 Hz - 20 kHz).",
+      "eqGain": "Ganho pré-EQ banda {band} (-24 a +24 dB).",
+      "eqQ": "Fator Q pré-EQ banda {band} (0.1 - 20.0).",
+      "eqResetBand": "Pressão longa para redefinir a banda pré-EQ {band}.",
+      "distanceAtten": "Atenuação por distância para o retorno de reverberação (-6.0 a 0.0 dB/m).",
+      "commonAtten": "Percentagem de atenuação comum (0-100%).",
+      "muteMacros": "Operações rápidas de silenciamento para canais de saída.",
+      "storeConfig": "Guardar a configuração de reverberação em ficheiro (com backup).",
+      "reloadConfig": "Recarregar a configuração de reverberação a partir de ficheiro.",
+      "reloadBackup": "Recarregar a configuração de reverberação a partir do ficheiro de backup.",
+      "importConfig": "Importar a configuração de reverberação a partir de ficheiro (com explorador de ficheiros).",
+      "exportConfig": "Exportar a configuração de reverberação para ficheiro (com explorador de ficheiros).",
+      "algoSDN": "Selecionar algoritmo de reverberação SDN (Scattering Delay Network).",
+      "algoFDN": "Selecionar algoritmo de reverberação FDN (Feedback Delay Network).",
+      "algoIR": "Selecionar algoritmo de reverberação IR (convolução por resposta impulsiva).",
+      "algoRT60": "Tempo de decaimento da reverberação RT60 (0.2 - 8.0 segundos).",
+      "algoRT60LowMult": "Multiplicador RT60 de baixa frequência (0.1 - 9.0x).",
+      "algoRT60HighMult": "Multiplicador RT60 de alta frequência (0.1 - 9.0x).",
+      "algoCrossoverLow": "Frequência de crossover grave para decaimento de 3 bandas (50 - 500 Hz).",
+      "algoCrossoverHigh": "Frequência de crossover agudo para decaimento de 3 bandas (1 - 10 kHz).",
+      "algoDiffusion": "Quantidade de difusão que controla a densidade de ecos (0 - 100%).",
+      "algoSDNScale": "Fator de escala de atraso entre nós SDN (0.5 - 4.0x).",
+      "algoFDNSize": "Multiplicador do tamanho da linha de atraso FDN (0.5 - 2.0x).",
+      "algoIRFile": "Selecionar ou importar um ficheiro de resposta impulsiva para convolução.",
+      "algoIRTrim": "Cortar o início da resposta impulsiva (0 - 100 ms).",
+      "algoIRLength": "Comprimento máximo da resposta impulsiva (0.1 - 6.0 segundos).",
+      "algoPerNode": "Usar uma IR separada para cada nó de reverberação, ou partilhar uma única IR.",
+      "algoWetLevel": "Nível de mistura wet/dry para a saída de reverberação (-60 a +12 dB).",
+      "preCompBypass": "Contornar ou ativar o pré-compressor nos envios de reverberação.",
+      "preCompThreshold": "Limiar do pré-compressor (-60 a 0 dB).",
+      "preCompRatio": "Rácio do pré-compressor (1:1 a 20:1).",
+      "preCompAttack": "Tempo de ataque do pré-compressor (0.1 - 100 ms).",
+      "preCompRelease": "Tempo de libertação do pré-compressor (10 - 1000 ms).",
+      "postEqEnable": "Ativar ou desativar o EQ de pós-processamento.",
+      "postEqShape": "Forma do filtro da banda {band} do post-EQ.",
+      "postEqFreq": "Frequência da banda {band} do post-EQ (20 Hz - 20 kHz).",
+      "postEqGain": "Ganho da banda {band} do post-EQ (-24 a +24 dB).",
+      "postEqQ": "Fator Q da banda {band} do post-EQ (0.1 - 20.0).",
+      "postEqFlatten": "Pressão longa para redefinir todas as bandas pós-EQ.",
+      "postEqBandToggle": "Ativar/desativar a banda pós-EQ {band}.",
+      "postEqResetBand": "Pressão longa para redefinir a banda pós-EQ {band}.",
+      "postExpBypass": "Contornar ou ativar o pós-expansor nos retornos de reverberação.",
+      "postExpThreshold": "Limiar do pós-expansor (-80 a -10 dB).",
+      "postExpRatio": "Rácio do pós-expansor (1:1 a 1:8).",
+      "postExpAttack": "Tempo de ataque do pós-expansor (0.1 - 50 ms).",
+      "postExpRelease": "Tempo de libertação do pós-expansor (50 - 2000 ms).",
+      "miniLatencyTooltip": "Ativa o modo de latência mínima para este canal de reverberação. Reduz o atraso de processamento à custa de maior uso de CPU.",
+      "liveSourceTooltip": "Ativa o domador de atenuação Live Source. Reduz as flutuações de nível de fontes próximas do array.",
+      "muteButton": "Ativar/desativar mudo do retorno de reverberação para esta saída.",
+      "position1": "Fonte virtual de reverberação {name} ({unit}).",
+      "position2": "Fonte virtual de reverberação {name} ({unit}).",
+      "position3": "Fonte virtual de reverberação {name} ({unit}).",
+      "returnOffset1": "Deslocamento de retorno de reverberação {name} ({unit}).",
+      "returnOffset2": "Deslocamento de retorno de reverberação {name} ({unit}).",
+      "returnOffset3": "Deslocamento de retorno de reverberação {name} ({unit})."
+    }
+  },
+  "inputs": {
+    "sections": {
+      "channel": "Canal",
+      "position": "Posição",
+      "attenuation": "Atenuação",
+      "directivity": "Diretividade",
+      "liveSource": "Domador de Fonte ao Vivo",
+      "hackoustics": "Hackústica",
+      "lfo": "LFO",
+      "automotion": "AutomOção",
+      "mutes": "Mutes"
+    },
+    "tabs": {
+      "inputParams": "Parâmetros de Entrada",
+      "liveSourceHackoustics": "Fonte ao Vivo & Hackústica",
+      "movements": "Movimentos",
+      "gradientMaps": "Mapas de Gradiente",
+      "visualisation": "Visualização",
+      "sampler": "Sampler"
+    },
+    "gradientMap": {
+      "layers": {
+        "attenuation": "Atenuação",
+        "height": "Altura",
+        "hfShelf": "Prateleira HF"
+      },
+      "labels": {
+        "white": "Branco:",
+        "black": "Preto:",
+        "curve": "Curva:",
+        "name": "Nome:",
+        "fill": "Preench.:",
+        "blur": "Desfoque:",
+        "start": "Início:",
+        "end": "Fim:",
+        "center": "Centro:",
+        "edge": "Borda:"
+      },
+      "tools": {
+        "select": "Seleção",
+        "rect": "Retângulo",
+        "ellipse": "Elipse",
+        "polygon": "Polígono",
+        "fill": "Preench.",
+        "linGrad": "Grad. Linear",
+        "radGrad": "Grad. Radial",
+        "editPoints": "Editar pontos"
+      },
+      "buttons": {
+        "enable": "On",
+        "lock": "Bloquear",
+        "delete": "Excluir",
+        "pivotCenter": "Pivô: Centro",
+        "pivotOrigin": "Pivô: Origem",
+        "copyShape": "Copiar forma",
+        "pasteShape": "Colar forma",
+        "copyLayer": "Copiar camada",
+        "pasteLayer": "Colar camada"
+      },
+      "warnings": {
+        "heightRatioZero": "A proporção de altura é 0% — aumente-a para que a altura tenha efeito"
+      },
+      "hints": {
+        "darkMaxAtten": "Escuro = atenuação máx. | Claro = nenhuma",
+        "darkMaxHeight": "Escuro = altura máx. | Claro = chão",
+        "darkMaxHF": "Escuro = prateleira HF máx. | Claro = nenhuma",
+        "whiteMaxAtten": "Branco = atenuação máx. | Preto = nenhuma",
+        "whiteMaxHeight": "Branco = altura máx. | Preto = chão",
+        "whiteMaxHF": "Branco = prateleira HF máx. | Preto = nenhuma",
+        "polygonClose": "Duplo clique para fechar o polígono"
+      },
+      "help": {
+        "layerSelect": "Selecionar esta camada para edição",
+        "layerEnable": "Ativar/desativar camada (afeta saída e OSC)",
+        "layerVisible": "Mostrar/ocultar pré-visualização da camada no canvas",
+        "whiteValue": "Valor do parâmetro mapeado para branco (0.00–1.00)",
+        "blackValue": "Valor do parâmetro mapeado para preto (0.00–1.00)",
+        "curve": "Curva gamma (-1 a 1, 0 = linear)",
+        "fillValue": "Brilho de preenchimento (0 = preto, 1 = branco)",
+        "blur": "Desfoque de bordas em metros",
+        "shapeEnable": "Ativar/desativar forma",
+        "shapeLock": "Bloquear posição da forma",
+        "shapeDelete": "Excluir forma(s) selecionada(s)",
+        "selectTool": "Selecionar e mover formas",
+        "rectTool": "Desenhar retângulo",
+        "ellipseTool": "Desenhar elipse",
+        "polygonTool": "Desenhar polígono (duplo clique para fechar)",
+        "fillTool": "Aplicar preenchimento uniforme à forma",
+        "linGradTool": "Aplicar gradiente linear à forma",
+        "radGradTool": "Aplicar gradiente radial à forma",
+        "copy": "Copiar forma ou camada selecionada",
+        "paste": "Colar forma ou camada da área de transferência"
+      },
+      "header": {
+        "attenuationLayer": "Camada Atenuação",
+        "heightLayer": "Camada Altura",
+        "hfShelfLayer": "Camada Prateleira HF"
+      }
+    },
+    "labels": {
+      "name": "Nome:",
+      "cluster": "Cluster:",
+      "attenuation": "Atenuação:",
+      "delayLatency": "Atraso/Latência:",
+      "coord": "Coord.:",
+      "positionX": "Posição X:",
+      "positionY": "Posição Y:",
+      "positionZ": "Posição Z:",
+      "offsetX": "Deslocamento X:",
+      "offsetY": "Deslocamento Y:",
+      "offsetZ": "Deslocamento Z:",
+      "min": "Mín:",
+      "max": "Máx:",
+      "trackingId": "ID de Rastreamento:",
+      "trackingSmooth": "Suavização Rastreamento:",
+      "maxSpeed": "Velocidade Máx:",
+      "heightFactor": "Fator de Altura:",
+      "xyJoystick": "X/Y",
+      "zSlider": "Z",
+      "attenuationLaw": "Lei de Atenuação:",
+      "distanceAtten": "Aten. Distância:",
+      "distanceRatio": "Rácio de Distância:",
+      "commonAtten": "Aten. Comum:",
+      "directivity": "Diretividade:",
+      "rotation": "Rotação:",
+      "tilt": "Inclinação:",
+      "hfShelf": "Prateleira HF:",
+      "radius": "Raio:",
+      "shape": "Forma:",
+      "peakThreshold": "Limiar de Pico:",
+      "peakRatio": "Rácio de Pico:",
+      "slowThreshold": "Limiar Lento:",
+      "slowRatio": "Rácio Lento:",
+      "diffusion": "Difusão:",
+      "frequency": "Frequência:",
+      "gain": "Ganho:",
+      "slope": "Inclinação:",
+      "period": "Período:",
+      "phase": "Fase:",
+      "shapeX": "Forma X:",
+      "shapeY": "Forma Y:",
+      "shapeZ": "Forma Z:",
+      "rateX": "Taxa X:",
+      "rateY": "Taxa Y:",
+      "rateZ": "Taxa Z:",
+      "amplitudeX": "Amplitude X:",
+      "amplitudeY": "Amplitude Y:",
+      "amplitudeZ": "Amplitude Z:",
+      "phaseX": "Fase X:",
+      "phaseY": "Fase Y:",
+      "phaseZ": "Fase Z:",
+      "gyrophone": "Girófone:",
+      "jitter": "Tremulação:",
+      "outX": "Saída X:",
+      "outY": "Saída Y:",
+      "outZ": "Saída Z:",
+      "destX": "Dest. X:",
+      "destY": "Dest. Y:",
+      "destZ": "Dest. Z:",
+      "duration": "Duração:",
+      "curve": "Curva:",
+      "speedProfile": "Perfil de Velocidade:",
+      "threshold": "Limiar:",
+      "reset": "Reiniciar:",
+      "muteMacros": "Macros de Silenciamento:",
+      "arrayAttenuation": "Atenuação de Array:",
+      "fringe": "Margem:",
+      "admMapping": "ADM:"
+    },
+    "buttons": {
+      "solo": "Solo",
+      "setAllInputs": "Definir todas as Entradas...",
+      "storeConfig": "Guardar Config. Entrada",
+      "reloadConfig": "Recarregar Config. Entrada",
+      "reloadBackup": "Recarregar Backup",
+      "import": "Importar",
+      "export": "Exportar",
+      "storeSnapshot": "Guardar Snapshot",
+      "reloadSnapshot": "Recarregar Snapshot",
+      "reloadWithoutScope": "Recarregar sem filtro",
+      "updateSnapshot": "Atualizar Snapshot",
+      "editScope": "Editar Âmbito",
+      "deleteSnapshot": "Eliminar Snapshot",
+      "visibleOnMap": "Entrada Visível no Mapa",
+      "hiddenOnMap": "Entrada Oculta no Mapa",
+      "lockOnMap": "Bloquear no Mapa",
+      "stopAll": "Parar Tudo",
+      "pauseAll": "Pausar Tudo",
+      "resumeAll": "Retomar Tudo",
+      "soloModeSingle": "Single",
+      "soloModeMulti": "Multi",
+      "samplerOff": "Sampler: OFF",
+      "samplerOn": "Sampler: ON"
+    },
+    "toggles": {
+      "acousticPrecedence": "Precedência Acústica",
+      "minimalLatency": "Latência Mínima",
+      "constraintXOn": "Restrição X: LIGADO",
+      "constraintXOff": "Restrição X: DESLIGADO",
+      "constraintYOn": "Restrição Y: LIGADO",
+      "constraintYOff": "Restrição Y: DESLIGADO",
+      "constraintZOn": "Restrição Z: LIGADO",
+      "constraintZOff": "Restrição Z: DESLIGADO",
+      "constraintROn": "Restrição R: LIGADO",
+      "constraintROff": "Restrição R: DESLIGADO",
+      "flipXOn": "Inverter X: LIGADO",
+      "flipXOff": "Inverter X: DESLIGADO",
+      "flipYOn": "Inverter Y: LIGADO",
+      "flipYOff": "Inverter Y: DESLIGADO",
+      "flipZOn": "Inverter Z: LIGADO",
+      "flipZOff": "Inverter Z: DESLIGADO",
+      "trackingOn": "Rastreamento: LIGADO",
+      "trackingOff": "Rastreamento: DESLIGADO",
+      "maxSpeedOn": "Vel. Máx: LIGADO",
+      "maxSpeedOff": "Vel. Máx: DESLIGADO",
+      "pathModeOn": "Modo Caminho: LIGADO",
+      "pathModeOff": "Modo Caminho: DESLIGADO",
+      "attenuationLawLog": "Log",
+      "attenuationLawLinear": "Linear",
+      "liveSourceTamerOn": "Domador: ON",
+      "liveSourceTamerOff": "Domador: OFF",
+      "lsPeakOn": "Pico: ON",
+      "lsPeakOff": "Pico: OFF",
+      "lsSlowOn": "Lento: ON",
+      "lsSlowOff": "Lento: OFF",
+      "floorReflectionsOn": "Reflexões do Chão: LIGADO",
+      "floorReflectionsOff": "Reflexões do Chão: DESLIGADO",
+      "lowCutOn": "Corte Grave: LIGADO",
+      "lowCutOff": "Corte Grave: DESLIGADO",
+      "highShelfOn": "Prateleira Agudo: LIGADO",
+      "highShelfOff": "Prateleira Agudo: DESLIGADO",
+      "reverbSendsUnmuted": "Envios para Reverbs: Ativos",
+      "reverbSendsMuted": "Envios para Reverbs: Silenciados",
+      "lfoOn": "L.F.O: LIGADO",
+      "lfoOff": "L.F.O: DESLIGADO",
+      "absolute": "Absoluto",
+      "relative": "Relativo",
+      "stay": "Ficar",
+      "return": "Regressar",
+      "manual": "Manual",
+      "triggered": "Acionado",
+      "sidelinesOn": "Linhas Laterais Ligadas",
+      "sidelinesOff": "Linhas Laterais Desligadas"
+    },
+    "clusters": {
+      "single": "Individual",
+      "clusterPrefix": "Cluster"
+    },
+    "coordinates": {
+      "xyz": "XYZ"
+    },
+    "snapshots": {
+      "selectSnapshot": "Selecionar Snapshot..."
+    },
+    "lfo": {
+      "shapes": {
+        "off": "DESLIGADO",
+        "sine": "seno",
+        "square": "quadrada",
+        "sawtooth": "dente de serra",
+        "triangle": "triângulo",
+        "keystone": "trapézio",
+        "log": "log",
+        "exp": "exp",
+        "random": "aleatório"
+      },
+      "gyrophone": {
+        "antiClockwise": "Anti-horário",
+        "off": "DESLIGADO",
+        "clockwise": "Horário"
+      }
+    },
+    "liveSource": {
+      "linear": "linear",
+      "log": "log",
+      "sine": "seno"
+    },
+    "muteMacros": {
+      "selectMacro": "Selecionar Macro...",
+      "muteAll": "SILENCIAR TODOS",
+      "unmuteAll": "ATIVAR TODOS",
+      "invertMutes": "INVERTER SILENCIAMENTOS",
+      "muteOdd": "SILENCIAR ÍMPARES",
+      "muteEven": "SILENCIAR PARES",
+      "muteArrayPrefix": "SILENCIAR ARRAY",
+      "unmuteArrayPrefix": "ATIVAR ARRAY"
+    },
+    "arrayPrefix": "Array",
+    "dialogs": {
+      "importConfig": "Importar Configuração de Entrada",
+      "exportConfig": "Exportar Configuração de Entrada",
+      "storeSnapshotTitle": "Guardar novo snapshot",
+      "storeSnapshotMessage": "Introduza um nome para o novo snapshot:",
+      "snapshotNameLabel": "Nome:",
+      "selectChannel": "Selecionar canal",
+      "trackingConflictTitle": "Conflito de tracking",
+      "trackingConflictCluster": "A entrada {current} tem o tracking ativado, mas a entrada {existing} do cluster {cluster} já está a ser rastreada.\n\nApenas é permitida uma entrada com tracking por cluster.",
+      "trackingConflictContinue": "Continuar (desativar tracking)",
+      "trackingConflictSwitch": "A entrada {existing} do cluster {cluster} já tem o tracking ativado.\n\nApenas é permitida uma entrada com tracking por cluster.\n\nDeseja desativar o tracking na entrada {existing} e ativá-lo na entrada {to}?",
+      "trackingConflictYes": "Sim, transferir tracking"
+    },
+    "messages": {
+      "selectFolderFirst": "Por favor, selecione primeiro uma pasta de projeto em Config. Sistema.",
+      "configSaved": "Configuração de entrada guardada.",
+      "configLoaded": "Configuração de entrada carregada.",
+      "backupLoaded": "Configuração de entrada carregada do backup.",
+      "configImported": "Configuração de entrada importada.",
+      "configExported": "Configuração de entrada exportada.",
+      "error": "Erro: {error}",
+      "setSingle": "Entrada {channel} definida como Individual",
+      "assignedCluster": "Entrada {channel} atribuída ao Cluster {cluster}",
+      "noSnapshotSelected": "Nenhum snapshot selecionado.",
+      "snapshotStored": "Snapshot '{name}' guardado.",
+      "snapshotLoaded": "Snapshot '{name}' carregado.",
+      "snapshotLoadedWithoutScope": "Snapshot '{name}' carregado (sem âmbito).",
+      "snapshotUpdated": "Snapshot '{name}' atualizado.",
+      "snapshotDeleted": "Snapshot '{name}' eliminado.",
+      "scopeSaved": "Âmbito do snapshot guardado.",
+      "scopeConfigured": "Âmbito configurado para o próximo snapshot.",
+      "trackingDisabled": "Rastreamento desativado para Entrada {channel}",
+      "trackingSwitched": "Rastreamento mudou de Entrada {from} para Entrada {to}"
+    },
+    "help": {
+      "solo": "Ouvir o renderização binaural deste canal.",
+      "soloMode": "Único: uma entrada de cada vez. Múltiplo: várias entradas simultaneamente.",
+      "storeConfig": "Guardar a configuração de entrada em ficheiro (com cópia de segurança).",
+      "reloadConfig": "Recarregar a configuração de entrada a partir do ficheiro.",
+      "reloadBackup": "Recarregar a configuração de entrada a partir do ficheiro de cópia de segurança.",
+      "importConfig": "Importar a configuração de entrada a partir de ficheiro (com explorador de ficheiros).",
+      "exportConfig": "Exportar a configuração de entrada para ficheiro (com explorador de ficheiros).",
+      "storeSnapshot": "Guardar novo snapshot de entrada para todos os objetos.",
+      "snapshotSelector": "Selecionar snapshot de entrada sem carregar.",
+      "reloadSnapshot": "Recarregar o snapshot de entrada selecionado para todos os objetos tendo em conta o filtro.",
+      "reloadWithoutScope": "Recarregar o snapshot de entrada selecionado para todos os objetos sem o filtro.",
+      "updateSnapshot": "Atualizar o snapshot de entrada selecionado (com cópia de segurança).",
+      "editScope": "Abrir a janela de filtro do snapshot de entrada selecionado.",
+      "deleteSnapshot": "Eliminar o snapshot de entrada selecionado com confirmação.",
+      "channelSelector": "Número e seleção do canal de entrada.",
+      "nameEditor": "Nome apresentado do canal de entrada (editável).",
+      "clusterSelector": "O objeto faz parte de um cluster.",
+      "mapLockButton": "Impedir a interação no separador Mapa.",
+      "mapVisibilityButton": "Mostrar ou ocultar a entrada selecionada no mapa.",
+      "attenuationSlider": "Atenuação do canal de entrada.",
+      "delayLatencySlider": "Atraso do canal de entrada (valores positivos) ou compensação de latência (valores negativos).",
+      "minimalLatencyButton": "Escolher entre precedência acústica e latência mínima para a precedência de amplificação.",
+      "constraintXButton": "Limitar a posição aos limites do palco em largura.",
+      "constraintYButton": "Limitar a posição aos limites do palco em profundidade.",
+      "constraintZButton": "Limitar a posição aos limites do palco em altura.",
+      "constraintDistanceButton": "Limitar a posição a um intervalo de distância da origem (para modos cilíndrico/esférico).",
+      "distanceRangeSlider": "Definir a distância mínima e máxima da origem.",
+      "distanceMinEditor": "Distância mínima da origem em metros.",
+      "distanceMaxEditor": "Distância máxima da origem em metros.",
+      "flipXButton": "X será simétrica em relação à origem. A navegação por teclado será invertida.",
+      "flipYButton": "Y será simétrica em relação à origem. A navegação por teclado será invertida.",
+      "flipZButton": "Z será simétrica em relação à origem. A navegação por teclado será invertida.",
+      "trackingActiveButton": "Ativar ou desativar o tracking para o objeto.",
+      "trackingIdSelector": "ID do tracker para o objeto.",
+      "trackingSmoothDial": "Suavização dos dados de tracking para o objeto.",
+      "maxSpeedActiveButton": "Ativar ou desativar a limitação de velocidade para o objeto.",
+      "maxSpeedDial": "Limite de velocidade máxima para o objeto.",
+      "pathModeButton": "Ativar o modo Trajetória para seguir caminhos de movimento desenhados em vez de linhas diretas.",
+      "heightFactorDial": "Considerar a elevação do objeto totalmente, parcialmente ou nada.",
+      "coordModeSelector": "Modo de exibição de coordenadas: Cartesiano (X/Y/Z), Cilíndrico (raio/azimute/altura) ou Esférico (raio/azimute/elevação).",
+      "positionJoystick": "Arrastar para ajustar a posição X/Y em tempo real. Volta ao centro ao soltar.",
+      "positionZSlider": "Arrastar para ajustar a posição Z (altura) em tempo real. Volta ao centro ao soltar.",
+      "attenuationLawButton": "Modelo da lei de atenuação (decréscimo linear do volume com a distância entre objeto e altifalante, ou quadrática).",
+      "distanceAttenDial": "Atenuação por metro entre o objeto e o altifalante.",
+      "distanceRatioDial": "Rácio de atenuação para o modelo quadrático.",
+      "commonAttenDial": "Percentagem da parte comum da atenuação para o objeto selecionado em relação a todas as saídas.",
+      "directivitySlider": "Largura do cone de brilho do objeto.",
+      "inputDirectivityDial": "Direção do objeto no plano horizontal.",
+      "tiltSlider": "Direção do objeto no plano vertical.",
+      "hfShelfSlider": "Quanto brilho se perde atrás do objeto, fora do seu cone de brilho.",
+      "lsActiveButton": "Se for necessário reduzir o nível dos altifalantes próximos do objeto (p. ex., fonte alta presente no palco).",
+      "lsRadiusSlider": "Até onde a atenuação afeta os altifalantes.",
+      "lsShapeSelector": "Perfil da atenuação à volta do objeto.",
+      "lsAttenuationSlider": "Atenuação constante dos altifalantes à volta do objeto.",
+      "lsPeakEnableButton": "Ativar ou desativar o compressor rápido (pico) do Domador de Source Live.",
+      "lsPeakThresholdSlider": "Limiar de compressão rápida para os altifalantes à volta do objeto, para controlar transitórios.",
+      "lsPeakRatioDial": "Ratio aplicado à compressão rápida para os altifalantes à volta do objeto.",
+      "lsSlowEnableButton": "Ativar ou desativar o compressor lento do Domador de Source Live.",
+      "lsSlowThresholdSlider": "Limiar de compressão lenta para os altifalantes à volta do objeto, para controlar o nível sustentado.",
+      "lsSlowRatioDial": "Ratio aplicado à compressão lenta para os altifalantes à volta do objeto.",
+      "frActiveButton": "Ativar as reflexões de chão simuladas para o objeto.",
+      "frAttenuationSlider": "Atenuação das reflexões de chão simuladas para o objeto.",
+      "frDiffusionDial": "Efeito de difusão das reflexões de chão simuladas para o objeto.",
+      "frLowCutActiveButton": "Ativar o filtro corte-baixo para as reflexões de chão.",
+      "frLowCutFreqSlider": "Frequência do corte-baixo para as reflexões de chão.",
+      "frHighShelfActiveButton": "Ativar o filtro shelving agudo para as reflexões de chão.",
+      "frHighShelfFreqSlider": "Frequência do shelving agudo para as reflexões de chão.",
+      "frHighShelfGainSlider": "Ganho do shelving agudo para as reflexões de chão.",
+      "frHighShelfSlopeSlider": "Inclinação do shelving agudo para as reflexões de chão.",
+      "muteReverbSendsButton": "Silenciar os envios desta entrada para todos os canais de reverberação.",
+      "jitterSlider": "Esfera de movimentos rápidos do objeto.",
+      "lfoActiveButton": "Ativar ou desativar o movimento periódico do objeto (LFO).",
+      "lfoPeriodDial": "Período base do movimento do objeto.",
+      "lfoPhaseDial": "Desfasamento do movimento do objeto.",
+      "lfoShapeXSelector": "Comportamento do movimento do objeto em largura.",
+      "lfoShapeYSelector": "Comportamento do movimento do objeto em profundidade.",
+      "lfoShapeZSelector": "Comportamento do movimento do objeto em altura.",
+      "lfoRateXSlider": "Movimento mais rápido ou mais lento em relação ao período base, em largura.",
+      "lfoRateYSlider": "Movimento mais rápido ou mais lento em relação ao período base, em profundidade.",
+      "lfoRateZSlider": "Movimento mais rápido ou mais lento em relação ao período base, em altura.",
+      "lfoAmplitudeXSlider": "Largura do movimento em relação à posição base do objeto.",
+      "lfoAmplitudeYSlider": "Profundidade do movimento em relação à posição base do objeto.",
+      "lfoAmplitudeZSlider": "Altura do movimento em relação à posição base do objeto.",
+      "lfoPhaseXDial": "Desfasamento do movimento do objeto em largura.",
+      "lfoPhaseYDial": "Desfasamento do movimento do objeto em profundidade.",
+      "lfoPhaseZDial": "Desfasamento do movimento do objeto em altura.",
+      "lfoGyrophoneSelector": "Rotação do cone de brilho do objeto.",
+      "otomoCoordMode": "Modo de coordenadas para destinos AutomOtion: Cartesiano (X/Y/Z), Cilíndrico (r/θ/Z) ou Esférico (r/θ/φ).",
+      "otomoAbsRelButton": "Escolher coordenadas de deslocamento relativas ou absolutas.",
+      "otomoStayReturnButton": "No fim do movimento, a fonte permanece ou regressa à posição original.",
+      "otomoSpeedProfileDial": "Velocidade constante ou aceleração e desaceleração graduais no início e no fim do movimento.",
+      "otomoTriggerButton": "Início manual do deslocamento ou disparo automático com base no nível de áudio.",
+      "otomoThresholdDial": "Definir o limiar para o disparo automático do movimento.",
+      "otomoResetDial": "Definir o nível de reposição para o disparo automático.",
+      "otomoStartButton": "Iniciar o movimento manualmente.",
+      "otomoStopButton": "Parar o movimento.",
+      "otomoPauseButton": "Pausar e retomar o movimento.",
+      "otomoDurationDial": "Duração do movimento em segundos (0,1 s a 1 hora).",
+      "otomoCurveDial": "Curvar a trajetória para a esquerda (negativo) ou para a direita (positivo) do sentido de movimento.",
+      "otomoStopAllButton": "Parar globalmente todos os movimentos ativos.",
+      "otomoPauseResumeAllButton": "Pausar ou retomar globalmente todos os movimentos ativos.",
+      "muteButton": "Silenciar a saída {num} para este objeto.",
+      "muteMacrosSelector": "Macros de mute para silenciar e reativar rapidamente os arrays.",
+      "arrayAttenDial": "Atenuação para o array {num} (-60 a 0 dB).",
+      "sidelinesActiveButton": "Ativar o silenciamento automático quando a fonte se aproxima das margens do palco. Não se aplica à margem da frente (lado do público).",
+      "sidelinesFringeDial": "Tamanho da zona de transição em metros. A metade exterior silencia totalmente, a metade interior atenua linearmente.",
+      "position1": "{name} do objeto ({unit}).",
+      "position2": "{name} do objeto ({unit}).",
+      "position3": "{name} do objeto ({unit}).",
+      "offset1": "Deslocamento {name} do objeto ({unit}). Ajustado quando o rastreamento está ativado.",
+      "offset2": "Deslocamento {name} do objeto ({unit}). Ajustado quando o rastreamento está ativado.",
+      "offset3": "Deslocamento {name} do objeto ({unit}). Ajustado quando o rastreamento está ativado.",
+      "otomoDest1": "Destino relativo ou absoluto {name} ({unit}).",
+      "otomoDest2": "Destino relativo ou absoluto {name} ({unit}).",
+      "otomoDest3": "Destino relativo ou absoluto {name} ({unit}).",
+      "nudgeHint1": " Ajustar com as teclas Esquerda e Direita.",
+      "nudgeHint2": " Ajustar com as teclas Cima e Baixo.",
+      "nudgeHint3": " Ajustar com Page Up e Page Down.",
+      "admMapping": "Atribuir esta entrada a um mapeamento ADM-OSC para recepção/transmissão de posição."
+    },
+    "visualisation": {
+      "delay": "atraso",
+      "hfDamping": "atenuação\nHF",
+      "level": "nível"
+    },
+    "prefixes": {
+      "delay": "Atraso:",
+      "latency": "Latência:",
+      "ratioPrefix": "1:"
+    }
+  },
+  "snapshotScope": {
+    "windowTitle": "Âmbito do Snapshot de Entrada",
+    "title": "Âmbito do Snapshot: {name}",
+    "applyScope": "Aplicar âmbito:",
+    "whenSaving": "Ao Guardar",
+    "whenRecalling": "Ao Recuperar",
+    "all": "TODOS",
+    "sections": {
+      "input": "Entrada",
+      "position": "Posição",
+      "attenuation": "Atenuação",
+      "directivity": "Diretividade",
+      "liveSource": "Fonte Ao Vivo",
+      "hackoustics": "Hackústica",
+      "lfo": "LFO",
+      "automOtion": "AutomOção",
+      "mutes": "Silenciamentos",
+      "admMapping": "ADM-OSC"
+    },
+    "buttons": {
+      "ok": "OK",
+      "cancel": "Cancelar",
+      "selectModified": "Selecionar modificados",
+      "clearChanges": "Limpar alterações"
+    },
+    "autoPreselectModified": "Pré-selecionar automaticamente os parâmetros modificados",
+    "writeToQLab": "Escrever no QLab",
+    "writeToQLabTooltip": "Exportar scope para QLab em vez de guardar em ficheiro",
+    "writeSnapshotLoadCue": "Escrever cue de carregamento no QLab",
+    "writeSnapshotLoadCueTooltip": "Também criar um cue QLab para carregar este snapshot via OSC"
+  },
+  "snapshot": {
+    "qlabNoTarget": "Nenhum destino QLab configurado",
+    "qlabExportStarted": "Escrevendo {count} cues no QLab...",
+    "qlabExportDone": "Exportação QLab concluída: {count} cues criados",
+    "qlabGroupName": "Captura \"{name}\"",
+    "qlabMemoText": "Execute qualquer um dos seguintes cues para recarregar ou atualizar este snapshot",
+    "qlabReloadName": "Recarregar \"{name}\"",
+    "qlabUpdateName": "Atualizar \"{name}\""
+  },
+  "setAllInputs": {
+    "windowTitle": "Definir Todas as Entradas",
+    "warning": "As alterações serão aplicadas a TODAS as entradas",
+    "labels": {
+      "coordinateMode": "Modo de coordenadas:",
+      "minimalLatency": "Latência Mínima:",
+      "constraintPositions": "Restringir posições:",
+      "heightFactor": "Fator de altura:",
+      "distanceAttenuation": "Atenuação de distância",
+      "dbPerMeter": "dB/m",
+      "ratio": "rácio",
+      "common": "comum",
+      "muteMacros": "Macros de silenciamento:",
+      "sidelines": "Linhas laterais:",
+      "fringe": "Margem:",
+      "floorReflections": "Reflexões do Chão:"
+    },
+    "buttons": {
+      "flipXyzOff": "Inverter XYZ > DESLIGADO",
+      "allLog": "Todos Log",
+      "all1d": "Todos 1/d",
+      "resetDirectivity": "Reiniciar diretividade",
+      "turnOffLiveSource": "Desligar aten. Fonte Ao Vivo",
+      "turnOffJitterLfo": "Desligar tremulação & LFO",
+      "closeWindow": "FECHAR JANELA"
+    },
+    "coordinateModes": {
+      "xyz": "XYZ",
+      "rThetaZ": "r θ Z",
+      "rThetaPhi": "r θ φ"
+    }
+  },
+  "fileManager": {
+    "dialogs": {
+      "selectProjectFolder": "Selecionar pasta de projeto"
+    },
+    "errors": {
+      "noProjectFolder": "Nenhuma pasta de projeto especificada",
+      "failedCreateFolder": "Falha ao criar a pasta do projeto: {path}",
+      "noValidProjectFolder": "Nenhuma pasta de projeto válida",
+      "invalidConfigStructure": "Estrutura do ficheiro de configuração inválida",
+      "backupNotFound": "Cópia de segurança não encontrada",
+      "noSystemDataInFile": "Não foram encontrados dados de sistema válidos no ficheiro: {path}",
+      "noNetworkDataInFile": "Não foram encontrados dados de rede no ficheiro",
+      "noNetworkSections": "Não foram encontradas secções de rede no ficheiro",
+      "noInputDataInFile": "Não foram encontrados dados de entrada no ficheiro",
+      "noOutputDataInFile": "Não foram encontrados dados de saída no ficheiro",
+      "noReverbDataInFile": "Não foram encontrados dados de reverberação no ficheiro",
+      "noLFOPresetDataInFile": "Nenhum dado de preset LFO encontrado no ficheiro",
+      "noInputDataInSnapshot": "Sem dados de entrada no snapshot",
+      "snapshotDoesNotExist": "O snapshot não existe",
+      "snapshotNotFound": "Snapshot não encontrado",
+      "snapshotNotFoundNamed": "Snapshot não encontrado: {name}",
+      "failedCreateXML": "Falha ao criar o XML a partir do estado",
+      "failedWriteFile": "Falha ao escrever o ficheiro: {path}",
+      "fileNotFound": "Ficheiro não encontrado: {path}",
+      "failedParseXML": "Falha ao analisar o ficheiro XML: {path}",
+      "failedCreateValueTree": "Falha ao criar o ValueTree a partir do XML: {path}",
+      "configStateInvalid": "Estado de configuração inválido",
+      "failedApply": "Falha ao aplicar: {sections}",
+      "prefixSystem": "Sistema: ",
+      "prefixNetwork": "Rede: ",
+      "prefixInputs": "Entradas: ",
+      "prefixOutputs": "Saídas: ",
+      "prefixReverbs": "Reverberações: "
+    }
+  },
+  "sampler": {
+    "placeholder": "Sampler — em breve",
+    "labels": {
+      "lightpadZone": "Zona Lightpad",
+      "selectZone": "Selecionar zona"
+    },
+    "lightpadZone": {
+      "none": "Nenhuma"
+    },
+    "section": {
+      "cell": "PROPRIEDADES DA CÉLULA",
+      "set": "GESTÃO DE SETS",
+      "pressure": "MAPEAMENTOS DE PRESSÃO",
+      "actions": "AÇÕES"
+    },
+    "cell": {
+      "load": "Carregar",
+      "clear": "Limpar",
+      "preview": "Pré-escuta",
+      "loadTitle": "Carregar sample",
+      "inTime": "Ent (ms)",
+      "outTime": "Saída (ms)",
+      "inOut": "Ent/Saí (ms)",
+      "offset": "Desloc. (m)",
+      "offsetX": "Offset X",
+      "offsetY": "Offset Y",
+      "offsetZ": "Offset Z",
+      "attenuation": "Atenuação (dB)",
+      "previewStop": "Parar"
+    },
+    "set": {
+      "default": "Set",
+      "rename": "Renomear",
+      "sequential": "Sequencial",
+      "roundRobin": "Round-Robin",
+      "copy": "(cópia)",
+      "pos": "Posição (m)",
+      "posX": "Pos X (m)",
+      "posY": "Pos Y (m)",
+      "posZ": "Pos Z (m)",
+      "level": "Nível (dB)"
+    },
+    "press": {
+      "level": "Nível",
+      "height": "Altura",
+      "hf": "HF Shelf",
+      "xy": "Position XY",
+      "xyScale": "Escala"
+    },
+    "buttons": {
+      "copy": "Copiar",
+      "paste": "Colar",
+      "copyCell": "Copiar célula",
+      "copySet": "Copiar set",
+      "pasteCell": "Colar célula",
+      "pasteSet": "Colar set",
+      "import": "Importar",
+      "export": "Exportar"
+    },
+    "importTitle": "Importar configuração do sampler",
+    "exportTitle": "Exportar configuração do sampler",
+    "grid": {
+      "help": "Clique=selecionar | Shift=multi | Ctrl=alternar set | DblClique=carregar"
+    },
+    "tooltips": {
+      "load": "Carregar um ficheiro de amostra na célula selecionada",
+      "clear": "Remover a amostra da célula selecionada (pressão longa)",
+      "preview": "Pré-escutar a amostra carregada",
+      "inOut": "Definir o intervalo de tempo Entrada/Saída em milissegundos. Arrastar entre os manípulos para mover ambos.",
+      "offset": "Deslocamento de posição em metros (X, Y, Z) relativo à posição do set",
+      "attenuation": "Atenuação da célula em dB (0 = sem atenuação, -60 = silêncio)",
+      "addSet": "Criar um novo set. Se houver células selecionadas, ser-lhe-ão atribuídas.",
+      "deleteSet": "Eliminar o set ativo (pressão longa)",
+      "renameSet": "Renomear o set ativo",
+      "playMode": "Alternar entre reprodução Sequencial e Round-Robin",
+      "setPos": "Definir a posição base em metros (X, Y, Z)",
+      "setLevel": "Definir o nível de saída em dB (0 = unidade, -60 = silêncio)",
+      "pressLevel": "Mapear a pressão do dedo no nível de saída",
+      "pressHeight": "Mapear a pressão do dedo na posição vertical (Z)",
+      "pressHF": "Mapear a pressão do dedo na atenuação do shelving agudo",
+      "pressDir": "Alternar a direção da pressão: + = mais pressão aumenta, - = diminui",
+      "pressCurve": "Curva de resposta à pressão (0 = côncava, 0,5 = linear, 1 = convexa)",
+      "pressXY": "Mapear a pressão do dedo no deslocamento de posição XY",
+      "pressXYScale": "Sensibilidade: a que distância a fonte se desloca por cada passo de pressão",
+      "copy": "Copiar a célula selecionada ou o set ativo para a área de transferência",
+      "paste": "Colar os dados da área de transferência na célula selecionada ou no set ativo",
+      "import": "Importar a configuração do sampler a partir de ficheiro",
+      "export": "Exportar a configuração do sampler para ficheiro"
+    },
+    "qlabSetCueName": "Entrada {channel} Set Sampler: {name}",
+    "qlabSetCueCreated": "Cue QLab criado: Entrada {channel} set \"{name}\"",
+    "guide": "Selecione uma célula na grelha para editar as suas propriedades.\nClique duas vezes para carregar uma amostra.\nUse Ctrl+Clique para atribuir células ao set ativo.",
+    "zone": {
+      "remotePad": "Pad {num}",
+      "selectRemotePad": "Selecionar Pad do Comando",
+      "noRemote": "Nenhum comando ligado"
+    },
+    "remote": {
+      "grid3x2": "3×2 (6 pads)",
+      "grid5x3": "5×3 (15 pads)",
+      "gridLayout": "Disposição da grelha"
+    }
+  },
+  "streamDeck": {
+    "systemConfig": {
+      "buttons": {
+        "audioPatch": "Áudio\nPatch",
+        "processingOn": "Processamento:\nON",
+        "processingOff": "Processamento:\nOFF",
+        "binauralOn": "Binaural:\nON",
+        "binauralOff": "Binaural:\nOFF"
+      },
+      "dials": {
+        "listenerDistance": "Distância\nOuvinte",
+        "listenerAngle": "Ângulo\nOuvinte",
+        "binauralLevel": "Nível\nBinaural",
+        "binauralDelay": "Atraso\nBinaural"
+      }
+    },
+    "map": {
+      "buttons": {
+        "showLevelsOn": "Níveis:\nON",
+        "showLevelsOff": "Níveis:\nOFF",
+        "positionMode": "Modo:\nPosição",
+        "offsetMode": "Modo:\nOffset",
+        "fitStage": "Ajustar\nPalco",
+        "fitAllInputs": "Ajustar\nTodos"
+      },
+      "dials": {
+        "selectInput": "Selecionar\nInput",
+        "selectCluster": "Selecionar\nCluster",
+        "panX": "Pan X",
+        "panY": "Pan Y",
+        "zoom": "Zoom",
+        "positionX": "Posição\nX",
+        "positionY": "Posição\nY",
+        "positionZ": "Posição\nZ",
+        "offsetX": "Offset\nX",
+        "offsetY": "Offset\nY",
+        "offsetZ": "Offset\nZ",
+        "orientation": "Orientação",
+        "clusterRefX": "Cluster\nRef X",
+        "clusterRefY": "Cluster\nRef Y",
+        "clusterScale": "Cluster\nEscala",
+        "clusterRotation": "Cluster\nRotação",
+        "moveX": "Move\nX",
+        "moveY": "Move\nY",
+        "moveZ": "Move\nZ"
+      },
+      "labels": {
+        "inputN": "Input %d",
+        "clusterN": "Cluster %d",
+        "deselect": "Desmarcar",
+        "inputs": "Inputs"
+      }
+    },
+    "inputs": {
+      "sections": {
+        "attenuationAndDelay": "Attenuation\n& Delay",
+        "positionAndDirectivity": "Position &\nDirectivity",
+        "positionAdvanced": "Position\nAdvanced",
+        "liveSourceBasics": "Live Source\nBasics",
+        "liveSourceCompression": "Live Source\nCompress.",
+        "hackoustics": "Hackoustics",
+        "hackousticsContinued": "Hackoustics\n(continued)",
+        "lfo": "LFO",
+        "automOtionPosition": "AutomOtion\nPosition",
+        "automOtionContinued": "AutomOtion\n(cont.)",
+        "automOtionManual": "AutomOtion\nManual"
+      },
+      "buttons": {
+        "minimalDelay": "Minimal\nDelay",
+        "attenuationLaw": "Attenuation\nLaw",
+        "constraint": "Constraint",
+        "flip": "Flip",
+        "constraintX": "Constraint X",
+        "constraintY": "Constraint Y",
+        "constraintZ": "Constraint Z",
+        "flipX": "Flip X",
+        "flipY": "Flip Y",
+        "flipZ": "Flip Z",
+        "sideline": "Sideline",
+        "tracking": "Tracking",
+        "maxSpeed": "Max Speed",
+        "liveSourceTamer": "Live Source\nTamer",
+        "floorReflections": "Floor\nReflections",
+        "lowCutFilter": "Low Cut\nFilter",
+        "highShelfFilter": "High Shelf\nFilter",
+        "sendToReverb": "Send to\nReverb",
+        "lfoAndJitter": "LFO &\nJitter",
+        "lfoX": "LFO X",
+        "lfoY": "LFO Y",
+        "lfoZ": "LFO Z",
+        "absRel": "Abs / Rel",
+        "stayReturn": "Stay /\nReturn",
+        "manualTriggered": "Manual /\nTriggered",
+        "play": "▶",
+        "pauseResume": "❚❚",
+        "stop": "■",
+        "stopAll": "Stop All"
+      },
+      "dials": {
+        "attenuation": "Attenuation",
+        "delay": "Delay",
+        "latency": "Latency",
+        "distanceAttenuation": "Distance\nAttenuation",
+        "ratio": "Ratio",
+        "commonAttenuation": "Common\nAttenuation",
+        "directivity": "Directivity",
+        "rotation": "Rotation",
+        "tilt": "Tilt",
+        "hfShelf": "HF Shelf",
+        "fringe": "Fringe",
+        "trackingSmooth": "Tracking\nSmooth",
+        "maxSpeed": "Max Speed",
+        "heightFactor": "Height Factor",
+        "shape": "Shape",
+        "radius": "Radius",
+        "fixedAttenuation": "Fixed\nAttenuation",
+        "peakThreshold": "Peak\nThreshold",
+        "peakRatio": "Peak Ratio",
+        "slowThreshold": "Slow\nThreshold",
+        "slowRatio": "Slow Ratio",
+        "frAttenuation": "FR\nAttenuation",
+        "frDiffusion": "FR Diffusion",
+        "lowCutFrequency": "Low Cut\nFrequency",
+        "highShelfFrequency": "High Shelf\nFrequency",
+        "highShelfGain": "High Shelf\nGain",
+        "highShelfSlope": "High Shelf\nSlope",
+        "lfoPeriod": "Period",
+        "lfoPhase": "Phase",
+        "gyrophone": "Gyrophone",
+        "jitter": "Jitter",
+        "lfoToggle": "LFO",
+        "lfoOn": "LFO\nON",
+        "lfoOff": "LFO\nOFF",
+        "lfoShape": "Shape",
+        "lfoAmplitude": "Amplitude",
+        "lfoRate": "Rate",
+        "lfoAxisPhase": "Phase",
+        "duration": "Duration",
+        "curve": "Curve",
+        "speedProfile": "Speed\nProfile",
+        "triggerThreshold": "Threshold",
+        "triggerReset": "Reset"
+      },
+      "comboOptions": {
+        "square": "square"
+      }
+    },
+    "outputs": {
+      "sections": {
+        "outputParameters": "Output\nParameters",
+        "outputOrientation": "Output\nOrientation"
+      },
+      "buttons": {
+        "minimalLatency": "Minimal\nLatency",
+        "liveSourceAtten": "Live Source\nAtten.",
+        "floorReflections": "Floor\nReflections"
+      },
+      "dials": {
+        "attenuation": "Attenuation",
+        "delay": "Delay",
+        "latency": "Latency",
+        "distanceAttenuation": "Distance\nAtten.",
+        "hfDamping": "HF Damping",
+        "onAngle": "On Angle",
+        "offAngle": "Off Angle",
+        "orientation": "Orientation",
+        "pitch": "Pitch"
+      },
+      "eq": {
+        "buttons": {
+          "eqOnOff": "EQ",
+          "bandOnOff": "Band\nOn/Off"
+        },
+        "dials": {
+          "shape": "Shape",
+          "frequency": "Frequency",
+          "gain": "Gain",
+          "q": "Q"
+        }
+      }
+    },
+    "reverb": {
+      "sections": {
+        "feedParameters": "Reverb Feed\nParameters",
+        "feedOrientation": "Reverb Feed\nOrientation",
+        "reverbReturn": "Reverb\nReturn",
+        "soloMute": "Solo\nMute"
+      },
+      "buttons": {
+        "editOnMap": "Editar\nno mapa",
+        "soloReverb": "Solo\nReverb",
+        "mutePre": "Mute\nPre",
+        "mutePost": "Mute\nPost"
+      },
+      "dials": {
+        "commonAttenuation": "Common\nAtten."
+      },
+      "noChannels": "Sem canais Reverb",
+      "algorithm": {
+        "sdn": "SDN",
+        "fdn": "FDN",
+        "ir": "IR",
+        "soloMute": "Solo\nMute",
+        "rt60Group": "RT60",
+        "crossDiffScale": "Cross\nDiff\nScale",
+        "crossDiffSize": "Cross\nDiff\nSize",
+        "rt60": "RT60",
+        "rt60High": "RT60\nHigh",
+        "rt60Low": "RT60\nLow",
+        "crossoverHigh": "Crossover\nHigh",
+        "crossoverLow": "Crossover\nLow",
+        "diffusion": "Diffusion",
+        "scale": "Scale",
+        "size": "Size",
+        "wetLevel": "Wet\nLevel",
+        "irTrim": "IR Trim",
+        "irLength": "IR\nLength"
+      }
+    },
+    "network": {
+      "buttons": {
+        "oscFilterAll": "Filtro OSC:\nTodos",
+        "oscFilterRegistered": "Filtro OSC:\nRegistados",
+        "openLog": "Abrir\nLog",
+        "trackingOn": "Tracking:\nON",
+        "trackingOff": "Tracking:\nOFF"
+      }
+    },
+    "patch": {
+      "tabs": {
+        "audioInterface": "Audio\nInterface",
+        "inputPatch": "Input\nPatch",
+        "outputPatch": "Output\nPatch"
+      },
+      "buttons": {
+        "scroll": "Scroll",
+        "patch": "Patch",
+        "test": "Test",
+        "holdOn": "Hold:\nON",
+        "holdOff": "Hold:\nOFF",
+        "patchUnpatch": "Patch /\nUnpatch",
+        "testChannel": "Test\nChannel"
+      },
+      "dials": {
+        "columns": "Column",
+        "rows": "Row",
+        "signalType": "Signal\nType",
+        "level": "Level",
+        "frequency": "Frequency"
+      }
+    },
+    "clusters": {
+      "buttons": {
+        "lfo": "LFO",
+        "lfoX": "LFO X",
+        "lfoY": "LFO Y",
+        "lfoZ": "LFO Z",
+        "preset": "Preset",
+        "rotation": "Rotação",
+        "scale": "Escala",
+        "lfoOn": "LFO\nON",
+        "lfoOff": "LFO\nOFF"
+      },
+      "dials": {
+        "stopAll": "Parar\ntudo",
+        "period": "Período",
+        "phase": "Fase",
+        "shape": "Forma",
+        "amplitude": "Amplitude",
+        "angle": "Ângulo",
+        "ratio": "Razão",
+        "rate": "Velocidade",
+        "axisPhase": "Fase",
+        "presetNav": "Preset",
+        "presetN": "Preset\n#%d",
+        "presetRow": "Linha",
+        "store": "Guardar",
+        "recall": "Recuperar",
+        "recallStart": "Recup.\n+ Iniciar"
+      }
+    }
+  },
+  "help": {
+    "overview": {
+      "title": "Visão geral do sistema",
+      "body": "Este processador espacial WFS pretende ser uma ferramenta para reforço sonoro natural e também uma ferramenta criativa abrindo novos caminhos para escrever som no espaço.\nAlguns parâmetros são diretos: posicionar som (Mapa, Tracking, Limitação de velocidade, Mapas de gradiente...), trabalhar sua forma (Perfil de atenuação) e sua presença acústica (Diretividade, Reflexões do piso), dar-lhe um movimento pontual (AutomOtion) ou repetitivo (L.F.O). Em alguns casos a amplificação deve ser limitada ao redor de fontes potentes no palco (Live Source Tamer). Todas essas funcionalidades podem ser armazenadas e recuperadas internamente ou com a ajuda do QLab. Por outro lado o sistema permite interação em tempo real para disparar e mover amostras, mover grandes clusters de entradas manualmente ou graças a presets LFO facilmente recuperáveis.",
+      "dontShow": "Não mostrar novamente"
+    },
+    "binaural": {
+      "title": "Renderizador Binaural",
+      "body": "O renderizador binaural é usado para:\n- ouvir uma mixagem espacial aproximada em fones de ouvido,\n- criar uma mixagem para saída estéreo,\n- ouvir uma faixa solo através do processamento espacial.\nPode substituir sua mixagem master se alimentar apenas fones e mixagem de mídia.\nA posição de escuta pode ser ajustada em profundidade a partir do ponto de origem e em orientação. As configurações de atraso e nível permitem igualar o som na posição FOH."
+    },
+    "map": {
+      "title": "Mapa",
+      "body": "- Clique esquerdo em uma entrada ou cluster para movê-lo arrastando.\n- Clique esquerdo com Shift adiciona ou remove entradas da seleção.\n- Clique esquerdo arrastado desenha um retângulo de seleção.\n- Duplo clique redefine o deslocamento de posição.\n- Clique longo sem movimento alterna para a aba da entrada selecionada.\n- Clique fora de qualquer entrada limpa a seleção.\n- Clique direito arrastado desloca a vista do mapa. Arrasto com dois dedos também.\n- A roda do mouse faz zoom. Pinça com dois dedos também.\n- Clique do botão do meio redefine a vista.\n- Setas movem X/Y, PageUp/Down a altura.\n- Um segundo dedo pode rotacionar a diretividade e ajustar a altura.\n- Em clusters, um segundo dedo pode rotacionar e escalar.\n- Entradas, arrays de saída e nós de reverberação podem ser ocultados.\n- Entradas podem ser bloqueadas.\n- Nós de reverberação podem ser movidos. Ctrl/Cmd move pares em simetria.\n- O raio do Live Source Tamer é exibido quando ativado.\n- Os níveis de áudio podem ser exibidos no mapa."
+    },
+    "clusters": {
+      "title": "Clusters",
+      "body": "Clusters são grupos de entradas que podem ser manipulados e animados como um conjunto.\nCada entrada só pode pertencer a um cluster.\nCada cluster pode ter apenas uma entrada com tracking totalmente habilitado, que se torna o ponto de referência.\nSe não houver entrada com tracking, há dois modos de referência: a primeira entrada atribuída ou o baricentro das entradas.\nTodas as entradas podem ser movidas arrastando o ponto de referência. Entradas individuais podem ser ajustadas separadamente. Arrastar uma entrada com tracking ativado que também é ponto de referência afetará seu deslocamento de posição e a posição das outras entradas do cluster normalmente.\nTodas as entradas de um cluster podem ser rotacionadas ou escaladas ao redor do ponto de referência.\nTodos os clusters podem receber animação via LFO. Posições X, Y, Z, rotação e escala podem ser controladas. Configurações LFO podem ser atribuídas a pads. Um clique direito armazenará os parâmetros LFO em um pad. Duplo clique no topo do pad permite editar o nome do preset. Um clique ou toque recupera as configurações esteja o LFO rodando ou não, mas não o iniciará. Um duplo clique/toque carregará e iniciará o LFO.\nTodos os clusters compartilham o mesmo conjunto de presets LFO."
+    },
+    "lfo": {
+      "title": "LFO de Entrada",
+      "body": "A posição de entrada pode ser automatizada. O LFO pode controlar as coordenadas X, Y e Z individualmente e a rotação da diretividade HF (girofone).\nAjuste o período e a fase globais do LFO.\nPara X, Y e Z selecione forma, amplitude, taxa e fase. Um círculo no plano XY usaria forma senoidal para X e Y com ±90° de defasagem.\nA posição pode ser movida enquanto o LFO está funcionando."
+    },
+    "automOtion": {
+      "title": "AutomOtion",
+      "body": "Movimentos únicos podem ser programados e disparados manualmente ou por nível de som.\nAs coordenadas são relativas da posição inicial ou absolutas em relação ao ponto de origem.\nA entrada pode ficar na posição final ou voltar à posição inicial.\nA posição não pode ser alterada durante o movimento, mas a interação mudará o deslocamento de posição.\nPara disparo por nível de áudio, selecione o limiar. Quando o som cair abaixo do nível de reinício, o movimento será rearmado."
+    },
+    "gradientMap": {
+      "title": "Mapas de Gradiente",
+      "body": "Os mapas de gradiente permitem controlar atenuação, altura e filtragem de alta frequência (shelf com inclinação suave centrada em 1kHz) dependendo da posição X, Y. Por exemplo, você pode atenuar um som ao entrar em uma zona, aplicar roll-off de altas frequências ao se afastar da frente do palco ou ajustar automaticamente a altura de um ator em plataformas elevadas.\nHá três camadas: atenuação, altura e shelf HF. Podem ser ativadas/desativadas e ocultadas.\nCada camada tem controles de mapeamento branco e preto para ajustar o alcance do efeito. A configuração de curva ajusta a transição.\nCada camada pode ter formas editáveis (retângulo, elipse ou polígono) com cinza uniforme, gradiente linear ou radial.\nAo criar um polígono, clique para cada vértice. Duplo clique fecha a forma.\nDuplo clique em um ponto o remove. Duplo clique em um lado adiciona um ponto.\nFormas e camadas podem ser copiadas.\nAs configurações são armazenadas nos arquivos de entrada."
+    },
+    "sampler": {
+      "title": "Sampler",
+      "body": "O sampler permite disparar amostras e interagir com elas em tempo real.\nQuando habilitado em uma faixa, o sampler substitui a entrada ao vivo em todos os momentos.\nVários samplers podem ser atribuídos a diferentes entradas e disparados individualmente.\nPara usar o sampler:\n- Selecione um Roli Lightpad ou um pad no app Android Remote conectado.\n- Adicione amostras aos diferentes blocos na grade. Ajuste a posição inicial relativa, o nível e os pontos de entrada e saída. Várias amostras podem ser selecionadas segurando Shift enquanto clica.\n- Crie conjuntos de amostras: as amostras selecionadas serão adicionadas a novos conjuntos. Podem ser adicionadas ou removidas segurando Ctrl/Cmd enquanto clica nos blocos. Cada conjunto pode ser renomeado e ter uma sequência fixa ou aleatória. Cada conjunto tem uma configuração de atenuação e uma posição base.\n- Pressione um Lightpad ou pad para disparar uma amostra. A pressão pode ser mapeada para nível, altura e filtragem de altas frequências. O movimento do dedo move o som como um joystick.\nSoltar o pad para a amostra.\nAs configurações do sampler são armazenadas nos arquivos de entrada.\nBlocos e conjuntos podem ser copiados, exportados e importados."
+    },
+    "inputBasic": {
+      "title": "Parâmetros básicos de entradas",
+      "body": "As entradas dispõem de uma grande variedade de configurações para se adaptar a diferentes situações que requerem reforço sonoro realista ou ferramentas criativas para design sonoro.\n- O nível de entrada pode ser ajustado.\n- As entradas podem ser atrasadas ou tentar considerar uma latência específica (processamento digital de transmissão sem fio ou efeitos digitais) e compensá-la para alinhar melhor a amplificação e o som acústico.\n- A Latência Mínima pode ser ativada em vez da Precedência Acústica. Isso tenta enviar o som através do sistema o mais rápido possível. O sistema analisa os envios desta entrada para as saídas buscando o menor atraso e o subtrai de todos os atrasos, contornando o efeito Haas adicional.\n- A posição (posição e offset) pode ser dada em coordenadas Cartesianas, Cilíndricas ou Esféricas independentemente da forma do palco ou outros canais.\n- A posição pode ser restringida às dimensões do palco em coordenadas Cartesianas ou a uma faixa de distância específica em coordenadas polares.\n- Flip tomará a posição simétrica para a coordenada dada ao redor do ponto de origem.\n- O joystick e o controle deslizante vertical permitem controle relativo da posição.\n- As entradas podem ser atribuídas a um cluster para agrupá-las em movimentos coordenados."
+    },
+    "inputAdvanced": {
+      "title": "Controles avançados",
+      "body": "- As Linhas laterais e a Zona de transição permitem o silenciamento quando uma entrada se aproxima das margens de um palco retangular (exceto a margem da frente, lado do público).\n- O Tracking pode ser ativado e o ID do tracker selecionado. A suavização da posição também pode ser ajustada.\n- A Velocidade Máxima pode ser ativada e o limite de velocidade ajustado. O sistema aplicará uma aceleração e desaceleração graduais no início e no fim do movimento. Quando o modo Trajetória está ativo, o sistema seguirá o caminho percorrido pela entrada e não irá em linha reta para a posição final. É particularmente útil se os movimentos forem operados manualmente.\n- O Fator de Altura permite trabalhar em 2D, quando definido a 0%, ou em 3D completo, quando definido a 100%, e tudo no meio. É a proporção da altura nos cálculos de nível e atraso. Se quiser usar reflexões de chão, defina-o a 100% e use a correção de paralaxe nos parâmetros de saída."
+    },
+    "inputLevel": {
+      "title": "Ajustes de nível",
+      "body": "Existem dois modelos de atenuação de nível. Um onde o nível diminui com a distância por uma proporção dada em dB/m. Alternativamente o nível é reduzido pela metade cada vez que a distância dobra. Este último pode ser mais realista, mas pode ser muito alto perto da fonte ou não dar foco suficiente. O primeiro pode ser menos preciso fisicamente, mas geralmente oferece melhor controle para uma mixagem mais uniforme e estável."
+    },
+    "inputHF": {
+      "title": "Diretividade de alta frequência",
+      "body": "Ao falar virando-se, o timbre de uma voz soa menos brilhante. Reproduzir isso era o objetivo inicial aqui, embora geralmente queiramos ter suporte para vozes quando não se dirigem ao público ou em configurações bi-frontais. Isso pode ser usado para efeitos criativos como ter uma reverberação mais brilhante sobre um som direto atenuado.\nA orientação da entrada em azimute e em elevação pode ser definida assim como o ângulo onde as altas frequências não serão filtradas.\nO HF Shelf definirá a atenuação máxima na parte traseira da entrada. Há um fade suave (como uma curva cosseno) do brilho total na frente à atenuação atrás."
+    },
+    "inputMutes": {
+      "title": "Atenuação por array e mutes de saída",
+      "body": "Você pode definir para cada array de saída uma atenuação específica para a entrada selecionada.\nVocê pode mutar cada envio para qualquer saída individualmente. Há macros disponíveis para acelerar o processo."
+    },
+    "liveSource": {
+      "title": "Atenuador de Fonte Ao Vivo",
+      "body": "Uma fonte potente no palco pode não precisar de reforço através dos alto-falantes próximos. Imagine um cantor de ópera perto da borda do palco. Normalmente a distribuição de nível tornaria o som mais alto perto da posição de entrada. Mas se já estiver alto o suficiente, não devemos sobre-amplificar. Esta função gerencia isso.\nO raio e a forma descrevem como atenuar o nível para os alto-falantes dentro do raio de influência desta fonte. Há várias formas: um efeito linear em V; um U para diminuição rápida; um V apertado ou uma mistura dos anteriores (seno).\nA atenuação pode ser constante ou dependente de nível, como uma compressão local que reage a transientes e ao nível RMS médio."
+    },
+    "floorReflections": {
+      "title": "Reflexões do Chão",
+      "body": "Simular as reflexões do chão melhora a naturalidade do som. Não esperamos que sons sejam reproduzidos em uma câmara anecoica à prova de som. Esta configuração ajuda a recriar as reflexões do chão esperadas.\nO nível das reflexões do chão pode ser ajustado, assim como os filtros de corte baixo e shelf de altas frequências. A difusão adiciona um pouco de caos para simular as irregularidades do chão."
+    },
+    "reverb": {
+      "title": "Reverberação",
+      "body": "A reverberação ajuda a difundir as reflexões dos alto-falantes.\nPosicione os nós de acordo com a geometria do palco.\nOutros parâmetros são semelhantes aos de Saídas e Entradas."
+    },
+    "reverbFeed": {
+      "title": "Alimentação de Reverberação",
+      "body": "Envio de pré-processamento dos canais de entrada para os nós.\n- Orientação e ângulos On/Off definem quais entradas cada nó recebe.\n- Amortecimento HF simula a perda de alta frequência.\n- Percentagem de atenuação de distância define a atenuação aplicada.\n- Latência mínima determina se o menor atraso é usado.\n- Atenuação de fonte ao vivo reduz o nível de entradas próximas."
+    },
+    "reverbReturn": {
+      "title": "Retorno de Reverberação",
+      "body": "Pós-processamento enviado aos alto-falantes.\n- Atenuação de Distância define a queda de nível por metro.\n- Atenuação Comum mantém uma percentagem da menor atenuação.\n- Mutes impedem um canal de reverberação de alimentar uma saída."
+    },
+    "reverbAlgo": {
+      "title": "Algoritmos de Reverberação",
+      "body": "Três tipos de reverberação estão integrados neste processador de som espacial:\n- SDN (Scattered Delay Network): O som reflete entre cada nó de reverberação que atua como superfícies refletoras. Este algoritmo favorece um número ímpar de nós sem muita simetria, para reduzir artefatos ou ressonâncias metálicas.\n- FDN (Feedback Delay Network): Cada nó funciona como um processador de reverberação separado com um algoritmo clássico. Posicione nós ao redor do palco e eventualmente ao redor do público.\n- IR (Resposta ao Impulso): Reverberação por convolução clássica. Você pode carregar amostras de áudio como respostas ao impulso. Cada nó pode compartilhar a mesma IR ou usar diferentes.\nAs posições dos nós podem ser ajustadas diretamente no mapa. A tecla Ctrl/Cmd move um par de nós em simetria."
+    },
+    "reverbPreProc": {
+      "title": "Pré-Processamento de Reverberação",
+      "body": "Inclui um EQ de 4 bandas e um Compressor para remover transientes que poderiam excitar demais o processador de reverberação."
+    },
+    "reverbPostProc": {
+      "title": "Pós-Processamento de Reverberação",
+      "body": "Inclui um EQ de 4 bandas e um Expansor que observa o sinal entrando no processador de reverberação para reduzir caudas longas de reverberação quando as entradas estão em silêncio."
+    },
+    "parallax": {
+      "title": "Correção de paralaxe",
+      "body": "Cada alto-falante aponta mais ou menos claramente para um ouvinte. Para calcular o atraso para uma entrada para cada alto-falante, consideramos a distância da entrada a este ouvinte, também podemos calcular a distância do som do alto-falante a este ouvinte. Para igualar o tempo de chegada de ambos devemos aplicar a diferença das distâncias mencionadas como atraso. Isso dá maior estabilidade quando as entradas são movidas no palco e especialmente quando se afastam da borda. Isso também pode permitir a síntese de reflexões de piso. Esta configuração pode ser ajustada finamente, em vez de simplesmente medida. Confie nos seus ouvidos!"
+    },
+    "outputAdvanced": {
+      "title": "Parâmetros avançados",
+      "body": "Existem alguns parâmetros para ajudá-lo a se ajustar ao som acústico.\nA maioria destes parâmetros é definida para arrays inteiros a menos que o modo de propagação esteja desativado para esta saída. Mudança relativa também pode ser selecionada após uma configuração específica.\n- Orientação e Ângulos On/Off definem quais entradas cada alto-falante amplificará. Por padrão os alto-falantes apontam para o público, de costas para o palco. Entradas no setor verde serão amplificadas, mas não as que estão na frente do alto-falante, no setor vermelho. Há um fade entre os dois setores. Para sub-graves, abrir completamente ao máximo permitirá incluir todas as entradas.\n- A Atenuação HF simula a perda de altas frequências com a distância.\n- A porcentagem de Atenuação por Distância define quanta da atenuação calculada é aplicada. Para sub-graves pode ser prudente reduzir para 50%.\n- A Latência Mínima ativa a varredura do menor atraso calculado.\n- A Atenuação Live Source ativa a redução de nível de entradas próximas.\n- As Reflexões de Piso ativam se as reflexões são aplicadas ao sinal para esta saída como sub-graves e arrays suspensos..."
+    },
+    "tuning": {
+      "title": "Afinação do sistema",
+      "body": "A afinação do sistema WFS é diferente da afinação PA padrão. Pode proceder assim:\n- Comece com o array suspenso mutado. Defina os níveis desejados para os alto-falantes de campo próximo ouvindo-os na primeira fila. Ajuste a atenuação do shelf de alta frequência para que não sejam muito brilhantes.\n- Mute o array de campo próximo e ative o array suspenso, encontre um nível adequado em direção ao fundo da sala.\n- Ative ambos os arrays, ajuste o atraso do array suspenso para trazer o som à altura correta nas filas inferiores. Ajuste níveis, shelf HF/proporção de distância e paralaxe vertical e horizontal para cada array para um nível consistente onde quer que estejam suas entradas no palco.\nVocê pode seguir um fluxo de trabalho diferente para afinação ou buscar configurações diferentes para diferentes situações."
+    },
+    "outputs": {
+      "title": "Design de arrays WFS",
+      "body": "O design do sistema WFS tem a ver com a escolha certa de equipamentos e seu posicionamento. Aqui está um guia para ajudá-lo com o design e afinação dos seus arrays.\nUm array é uma linha (reta ou curva) de alto-falantes. Este é um dos conceitos mais importantes em WFS adaptado ao reforço sonoro e design sonoro criativo.\nComo regra geral, cada ouvinte deve ouvir três alto-falantes de um array para ter pistas psicoacústicas suficientes para sentir a direção de cada som. Haverá um ponto ótimo entre a distância entre os alto-falantes e os ouvintes, seu espaçamento e ângulo de cobertura. Alto-falantes com ângulo de cobertura de 120° podem ser espaçados pela mesma distância entre o array e a primeira fila. O número também depende do nível de pressão sonora. Como array suspenso, cornetas trapezoidais/assimétricas com ângulo amplo (120°) abaixo do eixo e estreito (60°) no eixo darão boa cobertura e alcance de 20-30m evitando reflexões nas paredes. Alto-falantes coaxiais geralmente não têm alcance suficiente para grandes locais e requerem linhas de atraso.\nO posicionamento pode ser feito através do 'Wizard of OutZ' e seus presets editáveis."
+    },
+    "sessionData": {
+      "title": "Dados da Sessão",
+      "body": "Ao iniciar uma sessão, selecione a pasta de trabalho onde o sistema colocará os arquivos e eventuais arquivos de áudio. Para novos projetos, crie uma nova pasta. Para recarregar uma sessão anterior, navegue até a pasta correspondente.\nCada seção tem um arquivo xml separado (Configuração do sistema, Rede, Saídas, Reverberação, Entradas) e backups. Respostas ao impulso de reverberação por convolução e amostras de áudio serão armazenadas em subdiretórios.\nCada seção pode ser armazenada e recuperada individualmente ou como um todo.\nCada seção também pode exportar e importar arquivos de outros projetos."
+    },
+    "snapshotScope": {
+      "title": "Snapshots de Entrada e Escopo",
+      "body": "Snapshots armazenam parâmetros de entrada, mas podem ter um escopo para serem recuperados durante uma apresentação.\nO Escopo indica ao sistema quais dados armazenar ou recuperar.\nVários métodos estão disponíveis:\n- Gravar apenas os dados necessários em arquivos locais. O filtro é aplicado ao salvar.\n- Gravar todos os dados e um filtro em arquivos locais. O filtro é aplicado ao recuperar.\n- Gravar todos os dados em cues do QLab. Não recomendado para configurações grandes.\nO escopo pode mostrar e pré-selecionar automaticamente os parâmetros modificados manualmente. Alterações são marcadas em amarelo."
+    },
+    "network": {
+      "title": "Rede",
+      "body": "O sistema pode comunicar através de vários protocolos de rede (UDP ou TCP) usando OSC. OSC Query pode ser habilitado para permitir que os clientes descubram os caminhos OSC possíveis e se inscrevam em atualizações de parâmetros.\nO IP da máquina local correspondente à interface de rede selecionada é mostrado. As portas TCP e UDP de entrada e a porta OSC Query.\nExistem alguns clientes OSC especializados como:\n- Remote para a aplicação Android para operação multitoque e controle remoto.\n- QLab que pode enviar dados e ser programado diretamente pela aplicação.\n- ADM-OSC para controle de consoles e DAW (ver ajuda específica).\nOs dados podem ser filtrados. Uma janela de Log mostra os dados de entrada e saída.\nHá também uma função de localização para encontrar tablets Android perdidos."
+    },
+    "tracking": {
+      "title": "Tracking",
+      "body": "O tracking permite seguir a posição em 2D ou 3D de atores e músicos. Existem várias soluções baseadas em tags UWB, câmeras 3D, sistemas de visão computacional e LEDs infravermelhos com câmeras sensíveis a IR.\nEsta aplicação permite receber dados de tracking de vários protocolos: OSC, MQTT, PosiStageNet/PSN, RTTrP.\nVocê pode selecionar o protocolo utilizado e configurar suas definições. O mapeamento (offset, escala e orientação) também pode ser ajustado.\nCada entrada tem um toggle para ativar o tracking, um ID para selecionar o marcador e um algoritmo de suavização."
+    },
+    "admOsc": {
+      "title": "Mapeamentos ADM-OSC",
+      "body": "ADM-OSC é um protocolo que visa melhorar a interoperabilidade do som espacial. Envia posições cartesianas (X, Y, Z) ou valores polares (AED para Azimute, Elevação, Distância) do console ou das curvas de automação de uma DAW.\nOs dados são enviados normalizados:\n- entre -1.0 e 1.0 para X, Y e Z;\n- entre 0.0 e 1.0 para distância,\n- entre -180° e 180° para Azimute\n- entre -90° e 90° para elevação.\nO ponto de origem pode ser movido e o mapeamento pode ser ajustado em diferentes segmentos para as partes interna e externa do palco.\nAo arrastar as alças nos gráficos, segurar a tecla Shift aplica ajustes simétricos no lado oposto."
+    },
+    "mcp": {
+      "title": "Servidor IA / MCP",
+      "body": "O servidor MCP permite a um assistente de IA (Claude Desktop, Claude Code, ChatGPT com conetores personalizados) ler e escrever os parâmetros desta sessão WFS-DIY através de uma ligação de rede local.\n\nO que a IA pode fazer:\n• Ler o estado em direto: número de canais, nomes, posições, atenuações, EQ, snapshots, clusters, toda a superfície de parâmetros.\n• Mover fontes, renomear canais, definir atribuições de clusters, ajustar a disposição de arrays, posicionar saídas e reverberações.\n• Executar fluxos guiados (assistentes de afinação do sistema, resolução de problemas de localização, gestão de snapshots) através de modelos de prompt preparados.\n\nControlos do operador nesta linha:\n• IA: ON / OFF — interruptor principal. Quando OFF, cada chamada IA é recusada; quando ON, a IA opera segundo as regras abaixo.\n• Ações IA críticas: bloqueadas / PERMITIDAS — as ações destrutivas (eliminar snapshots, repor DSP, alterar o número de canais) estão bloqueadas por defeito. Clicar para as permitir durante 10 minutos; o preenchimento vermelho esvazia ao expirar a janela, depois bloqueia automaticamente.\n• Abrir Histórico IA — cronologia rolável de cada alteração recente da IA com anular/refazer por linha.\n• O botão URL MCP copia o URL do servidor para a área de transferência para clientes IA que aceitem um URL diretamente.\n\nVigilância do operador:\n• Cada ação IA é registada com etiquetas de origem. A janela Histórico IA mostra a cronologia completa; o × por linha reverte uma ação com as suas dependências.\n• Se ajustar manualmente um parâmetro que a IA acabou de mover, a IA é notificada e não retentará às cegas. Tem sempre a última palavra.\n• Os atalhos Cmd/Ctrl+Alt+Z e Cmd/Ctrl+Alt+Y anulam e refazem a última alteração da IA sem afetar as suas edições manuais (que usam Ctrl+Z normal).\n\nPara adicionar este servidor ao Claude Desktop:\n  1. Abrir Definições → Programador → Editar configuração.\n  2. Colar o trecho JSON abaixo em claude_desktop_config.json (fundir no bloco mcpServers existente, se já tiver um).\n  3. Reiniciar o Claude Desktop. O servidor aparece como 'wfs-diy' no menu de ferramentas.\n\nPara adicionar ao Claude Code, executar:\n  claude mcp add wfs-diy <url> -t http\n\nO URL muda se mudar de interface de rede ou se o servidor recorrer a uma porta diferente. O botão URL nesta linha reflete sempre o URL em direto.",
+      "copyButton": "Copiar configuração",
+      "copyConfirm": "Configuração MCP JSON copiada para a área de transferência"
+    }
+  },
+  "wizard": {
+    "buttons": {
+      "gettingStarted": "Começar",
+      "gettingStartedHelp": "Cartões de ajuda que guiam pelos primeiros parâmetros a ajustar ao iniciar um novo projeto",
+      "next": "Próximo",
+      "back": "Anterior",
+      "close": "Fechar",
+      "done": "Concluir",
+      "skip": "Pular"
+    },
+    "stepIndicator": "Passo {current} de {total}",
+    "steps": {
+      "projectFolder": {
+        "title": "Selecionar pasta do projeto",
+        "description": "Escolha uma pasta para armazenar seus arquivos de projeto WFS. Ela conterá configurações, snapshots, arquivos IR e amostras. Clique no botão para abrir o seletor de pastas."
+      },
+      "inputChannels": {
+        "title": "Definir canais de entrada",
+        "description": "Quantas fontes de áudio você vai espacializar?\nDefina o número de canais de entrada de acordo com suas fontes."
+      },
+      "outputChannels": {
+        "title": "Definir canais de saída",
+        "description": "Defina o número de canais de saída de acordo com seu array de alto-falantes.\nCada saída corresponde a um alto-falante físico."
+      },
+      "reverbChannels": {
+        "title": "Definir canais de reverberação",
+        "description": "Canais de reverberação adicionam simulação de sala. Defina como 0 se não precisar de reverberação."
+      },
+      "stageConfig": {
+        "title": "Definir o palco",
+        "description": "Defina a forma e as dimensões do seu espaço de apresentação. Escolha caixa, cilindro ou domo e insira as medidas em metros."
+      },
+      "originPoint": {
+        "title": "Definir o ponto de origem",
+        "description": "A origem é o ponto de referência para todas as coordenadas. Use os botões de predefinição ou insira valores personalizados. 'Front' o posiciona na borda do público."
+      },
+      "audioInterface": {
+        "title": "Abrir a interface de áudio",
+        "description": "Clique no botão acima ou pressione Próximo para abrir a janela da interface de áudio."
+      },
+      "audioDevice": {
+        "title": "Configurar a interface de áudio",
+        "description": "Selecione seu driver e dispositivo de áudio, defina a taxa de amostragem e o tamanho do buffer. Verifique o roteamento e teste suas saídas. Feche esta janela quando terminar."
+      },
+      "wizardOfOutZ": {
+        "title": "Posicionar suas saídas",
+        "description": "Clique no botão Wizard of OutZ ou pressione Próximo para abrir o assistente de posicionamento."
+      },
+      "configureOutputs": {
+        "title": "Configurar posições de saída",
+        "description": "Use os presets de array e ferramentas de geometria para calcular as posições dos alto-falantes. Feche esta janela quando terminar."
+      },
+      "startProcessing": {
+        "title": "Iniciar o motor WFS",
+        "description": "Tudo pronto! Mantenha pressionado o botão Processing para iniciar o motor WFS. Você também pode iniciar o renderizador binaural para monitoramento com fones de ouvido."
+      },
+      "exploreInputs": {
+        "title": "Comece a criar!",
+        "description": "Clique em uma entrada no mapa para selecioná-la, ou use o laço para selecionar várias. Arraste para posicionar suas fontes. Zoom com a roda do mouse ou gesto de pinça, desloque a vista com clique direito ou arraste com dois dedos. Adicione entradas, agrupe-as em clusters e molde seu campo sonoro. Você também pode controlar posições com teclado, SpaceMouse ou outros controladores. Divirta-se!"
+      }
+    }
+  },
+  "updateBanner": {
+    "available": "WFS-DIY v{version} está disponível!",
+    "download": "Baixar"
+  },
+  "ai": {
+    "history": {
+      "windowTitle": "Histórico de alterações da IA",
+      "stepBack": "⏮ Recuar",
+      "stepForward": "Avançar ⏭",
+      "applied": "aplicado",
+      "undone": "anulado",
+      "of": "de",
+      "noChanges": "Sem alterações da IA por enquanto.",
+      "batch": "lote {id}",
+      "cursorLabel": "◂  cursor (↑ aplicado  /  ↓ anulado, recuperável)",
+      "atHead": "(nenhum registo anulado — no topo)"
+    },
+    "toast": {
+      "header": "Alterações da IA",
+      "clientPrefix": "Claude",
+      "moreOlder": "…e mais {count} antigas"
+    },
+    "server": {
+      "label": "Servidor MCP:",
+      "stopped": "Parado",
+      "urlButtonRunning": "http://{host}:{port}/mcp",
+      "urlButtonStopped": "(servidor parado)",
+      "copyUrlConfirm": "URL MCP copiado para a área de transferência: {url}",
+      "openHistory": "Abrir histórico da IA"
+    },
+    "undo": {
+      "successPrefix": "IA {verb}: {description}",
+      "errorPrefix": "IA {verb}: {message}",
+      "verbUndo": "anulação",
+      "verbRedo": "repetição"
+    },
+    "tier": {
+      "gateBlocked": "Ações críticas da IA: bloqueadas",
+      "gateAllowed": "Ações críticas da IA: PERMITIDAS",
+      "aiOn": "IA: ON",
+      "aiOff": "IA: OFF",
+      "tier2AutoOff": "Auto-confirmação nível 2: off",
+      "tier2AutoOn": "Auto-confirmação nível 2: ON (5 min)"
+    },
+    "tooltips": {
+      "urlButton": "Clicar para copiar o URL do servidor MCP. Útil para Claude Code (claude mcp add wfs-diy <URL> -t http) ou qualquer cliente MCP que aceite um URL. Claude Desktop usa antes o trecho de configuração JSON — abrir o cartão de ajuda (?).",
+      "openHistory": "Abrir a janela Histórico de IA: cronologia rolável de cada alteração recente da IA com anular/refazer por linha e cursor passo a passo.",
+      "gate": "Permitir ações IA destrutivas (alterações no número de canais, reconfiguração de portas, runDSP, etc.) E ignorar a confirmação por chamada para ações de tier-2 menos destrutivas enquanto estiver aberta. Atua como sobreconjunto do interruptor de auto-confirmação de Tier 2. O preenchimento vermelho esvazia em 5 minutos, depois bloqueia automaticamente.",
+      "aiToggle": "Interruptor principal para toda a integração MCP. Quando OFF, cada chamada de ferramenta IA é recusada; quando ON, aplica-se a gestão normal por níveis (o interruptor de ações críticas controla separadamente as chamadas destrutivas)."
+    }
+  },
+  "signalFlow": {
+    "microphones": "Microfones",
+    "soundtracks": "Bandas sonoras",
+    "oscCommands": "Comandos OSC",
+    "console": "Mesa",
+    "directOuts": "Direct outs",
+    "postFader": "post-fader",
+    "wfsProcessor": "Processador WFS",
+    "inputs": "Entradas",
+    "outputs": "Saídas",
+    "qlabAbleton": "QLab / Ableton Live",
+    "positions": "posições e",
+    "otherParams": "outros parâmetros",
+    "scenes": "cenas",
+    "recall": "recuperar",
+    "remote": "Comando",
+    "remoteLC": "con-",
+    "control": "trolo",
+    "speakerArrays": "Conjuntos de altifalantes"
+  }
+}

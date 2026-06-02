@@ -1,0 +1,2393 @@
+{
+  "meta": {
+    "language": "한국어",
+    "locale": "ko",
+    "version": "1.0.0",
+    "author": "WFS-DIY Team"
+  },
+  "common": {
+    "ok": "확인",
+    "cancel": "취소",
+    "apply": "적용",
+    "reset": "초기화",
+    "save": "저장",
+    "load": "불러오기",
+    "store": "저장",
+    "reload": "다시 불러오기",
+    "import": "가져오기",
+    "export": "내보내기",
+    "enable": "활성화",
+    "disable": "비활성화",
+    "on": "켜기",
+    "off": "끄기",
+    "yes": "예",
+    "no": "아니오",
+    "delete": "삭제",
+    "add": "추가",
+    "remove": "제거",
+    "edit": "편집",
+    "close": "닫기",
+    "select": "선택",
+    "all": "전체",
+    "none": "없음"
+  },
+  "units": {
+    "meters": "m",
+    "decibels": "dB",
+    "milliseconds": "ms",
+    "seconds": "s",
+    "degrees": "°",
+    "hertz": "Hz",
+    "percent": "%",
+    "celsius": "°C",
+    "metersPerSecond": "m/s",
+    "decibelPerMeter": "dB/m"
+  },
+  "tabs": {
+    "systemConfig": "시스템 설정",
+    "inputs": "입력",
+    "outputs": "출력",
+    "reverb": "리버브",
+    "network": "네트워크",
+    "clusters": "클러스터",
+    "map": "맵"
+  },
+  "statusBar": {
+    "displayLabel": "표시:",
+    "helpMode": "도움말",
+    "oscMode": "OSC"
+  },
+  "touchscreens": {
+    "title": "Linux 터치스크린",
+    "label": "터치스크린",
+    "button": "설정",
+    "empty": "터치스크린이 감지되지 않았습니다. 연결하면 목록이 자동으로 갱신됩니다.",
+    "disabled": "(비활성화)",
+    "swapXY": "X/Y 바꾸기",
+    "flipX": "X 뒤집기",
+    "flipY": "Y 뒤집기",
+    "errorPrefix": "오류:",
+    "statusActive": "활성 — 이벤트 수신 중",
+    "statusOpening": "장치를 여는 중…",
+    "statusInactive": "할당되지 않음"
+  },
+  "systemConfig": {
+    "sections": {
+      "show": "공연",
+      "io": "입출력",
+      "stage": "무대",
+      "master": "마스터 섹션",
+      "ui": "인터페이스",
+      "controllers": "Controllers",
+      "wfsProcessor": "WFS 프로세서",
+      "binaural": "Binaural Solo",
+      "binauralRenderer": "바이노럴 렌더러",
+      "files": "파일"
+    },
+    "labels": {
+      "version": "버전 {version}",
+      "updateAvailable": "업데이트 {version} 사용 가능",
+      "showName": "이름:",
+      "showLocation": "장소:",
+      "inputChannels": "입력 채널:",
+      "outputChannels": "출력 채널:",
+      "reverbChannels": "리버브 채널:",
+      "algorithm": "알고리즘:",
+      "processing": "처리:",
+      "stageShape": "무대 형태:",
+      "stageWidth": "너비:",
+      "stageDepth": "깊이:",
+      "stageHeight": "높이:",
+      "stageDiameter": "직경:",
+      "domeElevation": "돔 각도:",
+      "originWidth": "원점 너비:",
+      "originDepth": "원점 깊이:",
+      "originHeight": "원점 높이:",
+      "speedOfSound": "음속:",
+      "temperature": "온도:",
+      "masterLevel": "마스터 레벨:",
+      "systemLatency": "시스템 지연:",
+      "haasEffect": "하스 효과:",
+      "colorScheme": "색상 테마:",
+      "quickLongPress": "길게 누르기:",
+      "screenReader": "화면 판독기:",
+      "language": "언어:",
+      "binauralOutput": "바이노럴 출력:",
+      "binauralDistance": "청취자 거리:",
+      "binauralAngle": "청취자 각도:",
+      "binauralAtten": "바이노럴 레벨:",
+      "binauralDelay": "바이노럴 지연:",
+      "lightpadSensitivity": "감도:",
+      "noLightpad": "Lightpad가 감지되지 않음",
+      "lightpadArrangement": "Lightpad 배치",
+      "split": "분할",
+      "clickToSplit": "분할하려면 클릭",
+      "dialsAndButtons": "다이얼 및 버튼:",
+      "positionControl": "위치 제어:",
+      "sampler": "Sampler:",
+      "samplerController": "컨트롤러:"
+    },
+    "buttons": {
+      "audioPatch": "오디오 인터페이스 및 패치 창",
+      "levelMeter": "Level Meters",
+      "clearSolo": "Clear Solo",
+      "processingOff": "처리: 끄기",
+      "processingOn": "처리: 켜기",
+      "binauralOff": "바이노럴: 끄기",
+      "binauralOn": "바이노럴: 켜기",
+      "soloModeSingle": "Solo: 단일",
+      "soloModeMulti": "Solo: 다중",
+      "selectProjectFolder": "프로젝트 폴더 선택",
+      "storeComplete": "전체 설정 저장",
+      "reloadComplete": "전체 설정 다시 불러오기",
+      "reloadCompleteBackup": "백업에서 전체 설정 불러오기",
+      "storeSystem": "시스템 설정 저장",
+      "reloadSystem": "시스템 설정 다시 불러오기",
+      "reloadSystemBackup": "백업에서 시스템 설정 불러오기",
+      "importSystem": "시스템 설정 가져오기",
+      "exportSystem": "시스템 설정 내보내기",
+      "streamDeckOff": "Stream Deck+: OFF",
+      "streamDeckOn": "Stream Deck+: ON",
+      "samplerOff": "Sampler: OFF",
+      "samplerOn": "Sampler: ON",
+      "setup": "설정",
+      "quickLongPressOff": "보통",
+      "quickLongPressOn": "빠르게",
+      "diagnosticsExpanded": "진단  [-]",
+      "diagnosticsCollapsed": "진단  [+]",
+      "exportLogs": "로그 내보내기",
+      "openLogFolder": "로그 폴더 열기",
+      "copySystemInfo": "시스템 정보 복사",
+      "reportIssue": "문제 신고"
+    },
+    "algorithms": {
+      "inputBuffer": "InputBuffer (읽기 시간 지연)",
+      "outputBuffer": "OutputBuffer (쓰기 시간 지연)"
+    },
+    "stageShapes": {
+      "box": "박스",
+      "cylinder": "실린더",
+      "dome": "돔"
+    },
+    "colorSchemes": {
+      "default": "기본 (짙은 회색)",
+      "black": "검정",
+      "light": "밝은"
+    },
+    "binauralOutput": {
+      "off": "Off",
+      "select": "선택..."
+    },
+    "help": {
+      "showName": "현재 공연의 이름.",
+      "showLocation": "현재 공연의 장소.",
+      "inputChannels": "입력 채널 수.",
+      "outputChannels": "출력 채널 수.",
+      "reverbChannels": "리버브 채널 수.",
+      "audioPatch": "오디오 인터페이스 및 패치 창을 엽니다.",
+      "levelMeter": "Opens the Level Meter Window.",
+      "clearSolo": "Clear all input solo states.",
+      "algorithm": "메뉴에서 렌더링 알고리즘을 선택하세요.",
+      "processing": "모든 입출력 매개변수를 잠그고 DSP를 시작합니다. 길게 누르면 DSP가 중지됩니다.",
+      "soloMode": "단일: 한 번에 하나의 입력. 다중: 여러 입력 동시에.",
+      "stageShape": "무대 형태를 선택하세요 (박스, 실린더 또는 돔).",
+      "stageWidth": "무대 너비 (미터) (박스 형태만 해당).",
+      "stageDepth": "무대 깊이 (미터) (박스 형태만 해당).",
+      "stageHeight": "무대 높이 (미터) (박스 및 실린더 형태).",
+      "stageDiameter": "무대 직경 (미터) (실린더 및 돔 형태).",
+      "domeElevation": "돔 고도각: 180 = 반구, 360 = 전구.",
+      "originWidth": "무대 중심에서 원점 X 오프셋 (0 = 중앙, 음수 = 왼쪽).",
+      "originDepth": "무대 중심에서 원점 Y 오프셋 (0 = 중앙, 음수 = 앞/무대 앞).",
+      "originHeight": "바닥에서 원점 Z 오프셋 (0 = 바닥 수준, 양수 = 바닥 위).",
+      "originFront": "무대 앞 중앙에 원점 설정. 정면 무대에 적합.",
+      "originCenterGround": "바닥 수준의 무대 중앙에 원점 설정. 서라운드 또는 실린더 설정에 적합.",
+      "originCenter": "무대 부피의 중심에 원점 설정. 구형 돔 설정에 적합.",
+      "stageScale": "길게 눌러 모든 입력 위치를 새 무대 크기에 비례하여 조정합니다.",
+      "stageFit": "길게 눌러 범위를 벗어난 입력을 새 무대 경계 내로 이동합니다.",
+      "stageDismiss": "길게 눌러 현재 입력 위치를 유지합니다.",
+      "originShiftInputs": "길게 눌러 원점 변경에 따라 모든 입력 위치를 이동합니다.",
+      "originDismissInputs": "길게 눌러 현재 입력 위치를 유지합니다.",
+      "originShiftOutputs": "길게 눌러 원점 변경에 따라 모든 출력 위치를 이동합니다.",
+      "originDismissOutputs": "길게 눌러 현재 출력 위치를 유지합니다.",
+      "originShiftReverbs": "길게 눌러 원점 변경에 따라 모든 리버브 위치를 이동합니다.",
+      "originDismissReverbs": "길게 눌러 현재 리버브 위치를 유지합니다.",
+      "speedOfSound": "음속 (온도와 관련).",
+      "temperature": "온도 (음속을 결정).",
+      "masterLevel": "마스터 레벨 (모든 출력에 영향).",
+      "systemLatency": "시스템 총 지연 (믹싱 보드 및 컴퓨터) / 특정 입력 및 출력 지연은 각 설정에서 설정할 수 있습니다.",
+      "haasEffect": "시스템에 적용할 하스 효과. 지연 보상 (시스템, 입력 및 출력)을 고려합니다.",
+      "colorScheme": "색상 테마 선택: 기본 (짙은 회색), 검정 (OLED 디스플레이용) 또는 밝은 (주간 사용).",
+      "quickLongPress": "길게 누르기 시간. 확인 창 대신 이 소프트웨어는 길게 누르기를 사용합니다.",
+      "screenReader": "화면 판독기 알림을 활성화하거나 비활성화합니다. 활성화하면 마우스를 올릴 때 매개변수 이름과 값이 알려지고, 몇 초 후 도움말 텍스트가 읽힙니다.",
+      "selectProjectFolder": "파일을 저장할 현재 프로젝트 폴더의 위치를 선택하세요.",
+      "storeComplete": "전체 설정을 파일에 저장 (백업 포함).",
+      "reloadComplete": "파일에서 전체 설정을 다시 불러오기.",
+      "reloadCompleteBackup": "백업 파일에서 전체 설정을 다시 불러오기.",
+      "storeSystem": "시스템 설정을 파일에 저장 (백업 포함).",
+      "reloadSystem": "파일에서 시스템 설정을 다시 불러오기.",
+      "reloadSystemBackup": "백업 파일에서 시스템 설정을 다시 불러오기.",
+      "importSystem": "파일에서 시스템 설정 가져오기 (파일 탐색기 사용).",
+      "exportSystem": "시스템 설정을 파일로 내보내기 (파일 탐색기 사용).",
+      "language": "사용자 인터페이스 언어를 선택하세요. 애플리케이션을 재시작하면 변경 사항이 완전히 적용됩니다.",
+      "dialsAndButtons": "다이얼 및 버튼용 하드웨어 컨트롤러 선택: Stream Deck+ 또는 XenceLabs Quick Keys.",
+      "positionControl": "위치 제어용 하드웨어 컨트롤러 선택: Space Mouse, 조이스틱 또는 게임패드.",
+      "sampler": "입력 채널의 Sampler 기능을 활성화 또는 비활성화. 컨트롤러 선택: Lightpad 또는 리모컨.",
+      "lightpadSetup": "연결된 Roli Lightpad를 표시하고 4개의 작은 패드로 분할할 수 있습니다.",
+      "remoteSetup": "Remote의 XY Pads 탭에서 패드 수를 선택합니다.",
+      "binauralEnable": "바이노럴 렌더러 처리를 활성화 또는 비활성화.",
+      "binauralOutput": "바이노럴 모니터링용 출력 채널 쌍 선택. Off는 바이노럴 출력을 비활성화.",
+      "binauralDistance": "바이노럴 청취자의 무대 원점으로부터의 거리 (미터).",
+      "binauralAngle": "바이노럴 청취자 시점의 수평 회전 (도, 0 = 무대 정면).",
+      "binauralAtten": "바이노럴 출력의 전체 레벨 오프셋 (dB).",
+      "binauralDelay": "바이노럴 출력의 추가 지연 (밀리초).",
+      "diagnosticsToggle": "길게 누르면 진단 도구를 표시하거나 숨깁니다 (로그 내보내기, 로그 폴더 열기, 시스템 정보 복사, 문제 보고).",
+      "exportLogs": "디버깅 또는 지원을 위해 진단 로그를 zip 파일로 내보냅니다.",
+      "openLogFolder": "응용 프로그램의 로그 폴더를 시스템 파일 탐색기에서 엽니다.",
+      "copySystemInfo": "지원 요청을 위해 자세한 시스템 정보를 클립보드로 복사합니다.",
+      "reportIssue": "WFS-DIY GitHub 이슈 페이지를 기본 브라우저에서 엽니다."
+    },
+    "messages": {
+      "selectFolderFirst": "먼저 프로젝트 폴더를 선택하세요.",
+      "configSaved": "전체 설정이 저장되었습니다.",
+      "configLoaded": "전체 설정이 로드되었습니다.",
+      "systemConfigSaved": "시스템 설정이 저장되었습니다.",
+      "systemConfigLoaded": "시스템 설정이 로드되었습니다.",
+      "systemConfigFileNotFound": "시스템 설정 파일을 찾을 수 없습니다.",
+      "configLoadedFromBackup": "백업에서 설정이 로드되었습니다.",
+      "systemConfigLoadedFromBackup": "백업에서 시스템 설정이 로드되었습니다.",
+      "noBackupFilesFound": "백업 파일을 찾을 수 없습니다.",
+      "systemConfigImported": "시스템 설정을 가져왔습니다.",
+      "systemConfigExported": "시스템 설정을 내보냈습니다.",
+      "partialLoad": "부분 로드: {error}",
+      "partialLoadFromBackup": "백업에서 부분 로드: {error}",
+      "error": "오류: {error}",
+      "languageChanged": "언어가 {language}(으)로 변경되었습니다 (완전히 적용하려면 재시작 필요)",
+      "restartTitle": "재시작 필요",
+      "restartBody": "언어 변경을 완전히 적용하려면 애플리케이션을 다시 시작해 주세요.",
+      "logsExported": "로그가 {path}에 내보내졌습니다",
+      "logsExportFailed": "로그 내보내기 실패",
+      "logDirNotFound": "로그 디렉터리를 찾을 수 없습니다",
+      "systemInfoCopied": "시스템 정보가 클립보드에 복사되었습니다",
+      "selectLogExportFolder": "로그 내보내기 대상 폴더를 선택하세요"
+    },
+    "dialogs": {
+      "reduceInputChannels": {
+        "title": "입력 채널을 줄이시겠습니까?",
+        "message": "{current}에서 {new}개의 입력 채널로 줄이면 채널 {start}부터 {end}까지의 설정이 제거됩니다.\n\n이 작업은 취소할 수 없습니다."
+      },
+      "reduceOutputChannels": {
+        "title": "출력 채널을 줄이시겠습니까?",
+        "message": "{current}에서 {new}개의 출력 채널로 줄이면 채널 {start}부터 {end}까지의 설정이 제거됩니다.\n\n이 작업은 취소할 수 없습니다."
+      },
+      "reduceReverbChannels": {
+        "title": "리버브 채널을 줄이시겠습니까?",
+        "message": "{current}에서 {new}개의 리버브 채널로 줄이면 채널 {start}부터 {end}까지의 설정이 제거됩니다.\n\n이 작업은 취소할 수 없습니다."
+      },
+      "reduce": "줄이기",
+      "selectProjectFolder": "프로젝트 폴더 선택",
+      "importSystemConfig": "시스템 설정 가져오기",
+      "exportSystemConfig": "시스템 설정 내보내기"
+    },
+    "controller": {
+      "off": "꺼짐",
+      "lightpad": "Lightpad",
+      "remote": "리모컨"
+    },
+    "devices": {
+      "off": "꺼짐",
+      "on": "켜짐"
+    }
+  },
+  "network": {
+    "sections": {
+      "network": "네트워크",
+      "connections": "네트워크 연결",
+      "admOsc": "ADM-OSC",
+      "tracking": "트래킹"
+    },
+    "labels": {
+      "interface": "네트워크 인터페이스:",
+      "currentIPv4": "현재 IPv4:",
+      "udpPort": "UDP 포트:",
+      "tcpPort": "TCP 포트:",
+      "oscQuery": "OSC 쿼리:",
+      "protocol": "프로토콜:",
+      "rxPort": "수신 포트:",
+      "offsetX": "오프셋 X:",
+      "offsetY": "오프셋 Y:",
+      "offsetZ": "오프셋 Z:",
+      "scaleX": "스케일 X:",
+      "scaleY": "스케일 Y:",
+      "scaleZ": "스케일 Z:",
+      "oscPath": "OSC Path:",
+      "psnInterface": "PSN Interface:",
+      "mqttHost": "호스트:",
+      "mqttTopic": "토픽:",
+      "mqttTagIds": "태그 ID...",
+      "mqttJsonX": "X:",
+      "mqttJsonY": "Y:",
+      "mqttJsonZ": "Z:",
+      "mqttJsonQ": "Q:",
+      "admMapping": "매핑:",
+      "notAvailable": "사용할 수 없음",
+      "localhost": "Localhost (127.0.0.1)"
+    },
+    "help": {
+      "networkInterface": "네트워크 인터페이스를 선택합니다.",
+      "currentIP": "프로세서의 IP 주소.",
+      "udpPort": "프로세서의 UDP 수신 포트.",
+      "tcpPort": "프로세서의 TCP 수신 포트.",
+      "oscQueryPort": "OSC Query 검색용 HTTP 포트. 다른 앱은 http://localhost:<port>/에서 파라미터를 탐색할 수 있습니다.",
+      "oscQueryEnable": "HTTP/WebSocket을 통한 자동 파라미터 검색을 위해 OSC Query 서버를 활성화/비활성화합니다.",
+      "targetName": "네트워크 대상 이름.",
+      "dataMode": "UDP 또는 TCP 데이터 전송을 선택.",
+      "targetIP": "대상의 IP 주소 (로컬 호스트는 127.0.0.1 사용).",
+      "txPort": "이 대상의 전송 포트.",
+      "rxEnable": "데이터 수신을 활성화 또는 비활성화합니다.",
+      "txEnable": "데이터 전송을 활성화 또는 비활성화합니다.",
+      "protocol": "프로토콜 선택: DISABLED, OSC, REMOTE 또는 ADM-OSC.",
+      "addTarget": "새 네트워크 대상 추가.",
+      "openLogWindow": "네트워크 로그 창 열기.",
+      "findMyRemote": "리모컨을 깜박이고 진동시켜 찾습니다.",
+      "oscSourceFilter": "수신 OSC 필터링: 모든 소스 수락 또는 Rx 활성화된 등록된 연결만.",
+      "admOscOffsetX": "Offset ADM-OSC X Coordinate.",
+      "admOscOffsetY": "Offset ADM-OSC Y Coordinate.",
+      "admOscOffsetZ": "Offset ADM-OSC Z Coordinate.",
+      "admOscScaleX": "Scale ADM-OSC X Coordinate.",
+      "admOscScaleY": "Scale ADM-OSC Y Coordinate.",
+      "admOscScaleZ": "Scale ADM-OSC Z Coordinate.",
+      "admOscFlipX": "Invert Axis of ADM-OSC X Coordinate.",
+      "admOscFlipY": "Invert Axis of ADM-OSC Y Coordinate.",
+      "admOscFlipZ": "Invert Axis of ADM-OSC Z Coordinate.",
+      "trackingEnabled": "수신 트래킹 데이터 처리를 활성화 또는 비활성화합니다.",
+      "trackingProtocol": "트래킹 프로토콜 유형 선택.",
+      "trackingPort": "트래킹 데이터를 수신할 포트를 지정.",
+      "trackingOffsetX": "트래킹 X 좌표 오프셋.",
+      "trackingOffsetY": "트래킹 Y 좌표 오프셋.",
+      "trackingOffsetZ": "트래킹 Z 좌표 오프셋.",
+      "trackingScaleX": "트래킹 X 좌표 스케일.",
+      "trackingScaleY": "트래킹 Y 좌표 스케일.",
+      "trackingScaleZ": "트래킹 Z 좌표 스케일.",
+      "trackingFlipX": "트래킹 X 좌표 축 반전.",
+      "trackingFlipY": "트래킹 Y 좌표 축 반전.",
+      "trackingFlipZ": "트래킹 Z 좌표 축 반전.",
+      "trackingOscPath": "OSC 모드에서의 트래킹 OSC 경로 (/로 시작)",
+      "psnInterface": "PSN 멀티캐스트 수신용 네트워크 인터페이스",
+      "storeConfig": "네트워크 구성을 파일에 저장.",
+      "reloadConfig": "파일에서 네트워크 구성 다시 불러오기.",
+      "reloadBackup": "백업 파일에서 네트워크 구성 다시 불러오기.",
+      "importConfig": "파일에서 네트워크 구성 가져오기.",
+      "exportConfig": "네트워크 구성을 파일로 내보내기.",
+      "removeTarget": "이 네트워크 대상 삭제.",
+      "admMapping": "구성할 ADM-OSC 매핑을 선택합니다. Cart = 데카르트 좌표 (xyz), Polar = 구면 좌표 (aed).",
+      "admMappingPanel": "점을 드래그하여 매핑 편집. 축 제목을 클릭하여 교체, Flip을 클릭하여 반전. Shift를 누른 채로 양쪽을 대칭으로 편집."
+    },
+    "buttons": {
+      "storeConfig": "네트워크 설정 저장",
+      "reloadConfig": "네트워크 설정 다시 불러오기",
+      "reloadBackup": "백업 불러오기",
+      "import": "가져오기",
+      "export": "내보내기",
+      "openLogWindow": "로그 창 열기",
+      "findMyRemote": "리모컨 찾기",
+      "add": "추가"
+    },
+    "toggles": {
+      "enabled": "활성화됨",
+      "disabled": "비활성화됨",
+      "on": "켜기",
+      "off": "끄기",
+      "trackingOn": "트래킹: 켜기",
+      "trackingOff": "트래킹: 끄기",
+      "flipXOn": "X 반전: 켜기",
+      "flipXOff": "X 반전: 끄기",
+      "flipYOn": "Y 반전: 켜기",
+      "flipYOff": "Y 반전: 끄기",
+      "flipZOn": "Z 반전: 켜기",
+      "flipZOff": "Z 반전: 끄기",
+      "oscFilterAcceptAll": "OSC 필터: 모두 허용",
+      "oscFilterRegisteredOnly": "OSC 필터: 등록된 것만"
+    },
+    "table": {
+      "name": "이름",
+      "mode": "모드",
+      "ipv4Address": "IPv4 주소",
+      "txPort": "송신 포트",
+      "rx": "수신",
+      "tx": "송신",
+      "protocol": "프로토콜",
+      "defaultTarget": "대상 {num}"
+    },
+    "protocols": {
+      "disabled": "비활성화",
+      "osc": "OSC",
+      "remote": "리모트",
+      "admOsc": "ADM-OSC",
+      "psn": "PosiStageNet (PSN)",
+      "rttrp": "RTTrP",
+      "mqtt": "MQTT",
+      "qlab": "QLab",
+      "udp": "UDP",
+      "tcp": "TCP"
+    },
+    "dialogs": {
+      "importConfig": "네트워크 설정 가져오기",
+      "exportConfig": "네트워크 설정 내보내기",
+      "removeTargetTitle": "대상 제거",
+      "removeTargetMessage": "대상 '{name}'을(를) 삭제하시겠습니까?",
+      "findMyRemoteTitle": "리모컨 찾기",
+      "findMyRemoteMessage": "리모컨 장치의 비밀번호를 입력하세요:",
+      "findMyRemotePassword": "비밀번호:",
+      "trackingConflictsTitle": "트래킹 충돌 감지됨",
+      "trackingConflictsMessage": "\n클러스터당 하나의 트래킹 입력만 허용됩니다. 계속하면 각 클러스터의 첫 번째 입력에 대해서만 트래킹이 유지됩니다.",
+      "trackingConflictsContinue": "계속"
+    },
+    "messages": {
+      "selectFolderFirst": "시스템 설정에서 먼저 프로젝트 폴더를 선택하세요.",
+      "configSaved": "네트워크 설정이 저장되었습니다.",
+      "configNotFound": "네트워크 설정 파일을 찾을 수 없습니다.",
+      "configReloaded": "네트워크 설정이 다시 로드되었습니다.",
+      "noBackupFound": "백업 파일을 찾을 수 없습니다.",
+      "configLoadedFromBackup": "백업에서 네트워크 설정이 로드되었습니다.",
+      "configImported": "네트워크 설정을 가져왔습니다.",
+      "configExported": "네트워크 설정을 내보냈습니다.",
+      "error": "오류: {error}",
+      "onlyOneRemote": "리모트 연결은 하나만 허용됩니다.",
+      "findDeviceSent": "장치 찾기 명령이 전송되었습니다.",
+      "maxTargetsReached": "대상/서버의 최대 수에 도달했습니다.",
+      "passwordEmpty": "비밀번호는 비워둘 수 없습니다.",
+      "oscManagerError": "오류: OSC 관리자를 사용할 수 없습니다"
+    }
+  },
+  "accessibility": {
+    "ttsEnabled": "화면 판독기 활성화됨",
+    "ttsDisabled": "화면 판독기 비활성화됨"
+  },
+  "audioPatch": {
+    "windowTitle": "오디오 인터페이스 및 패치",
+    "labels": {
+      "processorInputs": "프로세서 입력",
+      "processorOutputs": "프로세서 출력",
+      "interfaceInput": "오디오 인터페이스 입력",
+      "interfaceOutput": "오디오 인터페이스 출력"
+    },
+    "tabs": {
+      "deviceSettings": "장치 설정",
+      "inputPatch": "입력 패치",
+      "outputPatch": "출력 패치"
+    },
+    "deviceSettings": {
+      "labels": {
+        "deviceType": "오디오 장치 유형:",
+        "device": "장치:",
+        "sampleRate": "샘플 레이트:",
+        "bufferSize": "오디오 버퍼 크기:"
+      },
+      "buttons": {
+        "controlPanel": "제어판",
+        "resetDevice": "장치 초기화"
+      },
+      "noDevice": "장치 없음",
+      "notConfigured": "구성되지 않음"
+    },
+    "modes": {
+      "scrolling": "스크롤",
+      "patching": "패칭",
+      "testing": "테스트"
+    },
+    "buttons": {
+      "unpatchAll": "모두 연결 해제",
+      "hold": "유지"
+    },
+    "testSignal": {
+      "labels": {
+        "signal": "신호:",
+        "frequency": "주파수:",
+        "level": "레벨:"
+      },
+      "types": {
+        "off": "끄기",
+        "pinkNoise": "핑크 노이즈",
+        "tone": "톤",
+        "sweep": "스윕",
+        "diracPulse": "디락 펄스",
+        "pulse": "펄스"
+      }
+    },
+    "dialogs": {
+      "unpatchInputsTitle": "모든 입력 연결 해제",
+      "unpatchInputsMessage": "모든 입력 패치를 제거하시겠습니까?",
+      "unpatchOutputsTitle": "모든 출력 연결 해제",
+      "unpatchOutputsMessage": "모든 출력 패치를 제거하시겠습니까?"
+    },
+    "messages": {
+      "chooseTestSignal": "테스트 모드를 활성화하려면 테스트 신호를 선택하세요"
+    }
+  },
+  "networkLog": {
+    "windowTitle": "네트워크 로그",
+    "controls": {
+      "logging": "로깅",
+      "hideHeartbeat": "하트비트 숨기기",
+      "clear": "지우기",
+      "export": "내보내기"
+    },
+    "exportMenu": {
+      "exportAll": "전체 내보내기",
+      "exportFiltered": "필터된 것 내보내기"
+    },
+    "filterModes": {
+      "tcpUdp": "TCP/UDP",
+      "protocol": "프로토콜",
+      "clientIp": "클라이언트 IP",
+      "rejected": "거부됨"
+    },
+    "filterToggles": {
+      "incoming": "수신",
+      "outgoing": "송신",
+      "udp": "UDP",
+      "tcp": "TCP"
+    },
+    "columns": {
+      "time": "시간",
+      "direction": "방향",
+      "ip": "IP",
+      "port": "포트",
+      "transport": "전송",
+      "protocol": "프로토콜",
+      "address": "주소",
+      "arguments": "인수",
+      "origin": "출처"
+    },
+    "status": {
+      "rejected": "거부됨"
+    },
+    "dialogs": {
+      "exportFailedTitle": "내보내기 실패",
+      "exportFailedMessage": "파일에 쓸 수 없습니다: {path}",
+      "exportCompleteTitle": "내보내기 완료",
+      "exportCompleteMessage": "로그가 내보내졌습니다: {path}"
+    }
+  },
+  "map": {
+    "buttons": {
+      "fitStage": "무대를 화면에 맞추기",
+      "fitInputs": "모든 입력을 화면에 맞추기",
+      "showLevels": "레벨 표시",
+      "hideLevels": "레벨 숨기기"
+    },
+    "tooltips": {
+      "fitStage": "무대가 표시되도록 확대/축소 및 이동 조정",
+      "fitInputs": "모든 보이는 입력이 표시되도록 확대/축소 및 이동 조정",
+      "levels": "맵에 입력 및 출력 레벨 표시",
+      "detach": "듀얼 스크린 설정을 위해 맵을 별도 창으로 분리"
+    },
+    "reattach": "맵 다시 붙이기",
+    "detachedMessage": "맵이 별도의 창에 표시되고 있습니다.",
+    "labels": {
+      "reverbPrefix": "리"
+    },
+    "messages": {
+      "assignedCluster": "입력 {channel}이(가) 클러스터 {cluster}에 할당되었습니다",
+      "assignedClusterMulti": "{count}개의 입력이 클러스터 {cluster}에 할당되었습니다",
+      "setSingle": "입력 {channel}이(가) 클러스터에서 제거되었습니다",
+      "setSingleMulti": "{count}개의 입력이 클러스터에서 제거되었습니다",
+      "clusterBrokenUp": "클러스터 {cluster}이(가) 해체되었습니다"
+    }
+  },
+  "levelMeter": {
+    "windowTitle": "레벨 미터",
+    "inputs": "입력",
+    "outputs": "출력",
+    "solo": "비주얼 솔로:",
+    "soloNone": "없음",
+    "buttons": {
+      "clearSolo": "솔로 해제",
+      "soloModeSingle": "Single",
+      "soloModeMulti": "Multi"
+    },
+    "tooltips": {
+      "solo": "레벨 미터 디스플레이에서 입력의 모든 출력에 대한 기여도 표시(싱글 모드) 및 솔로 입력의 바이노럴 렌더링 재생",
+      "clearSolo": "모든 솔로 비활성화",
+      "soloMode": "단일: 한 번에 하나의 입력. 다중: 여러 입력 동시에."
+    }
+  },
+  "clusters": {
+    "labels": {
+      "assignedInputs": "할당된 입력",
+      "reference": "참조:",
+      "position": "위치",
+      "posPrefix": "위치:",
+      "controls": "컨트롤",
+      "z": "Z",
+      "attenuation": "감쇠",
+      "rotation": "회전",
+      "scale": "스케일",
+      "plane": "평면:",
+      "x": "X:",
+      "y": "Y:",
+      "inputPrefix": "입력"
+    },
+    "referenceMode": {
+      "firstInput": "첫 번째 입력",
+      "barycenter": "무게 중심",
+      "sharedPosition": "공유 위치"
+    },
+    "planes": {
+      "xy": "XY",
+      "xz": "XZ",
+      "yz": "YZ"
+    },
+    "status": {
+      "tracking": "트래킹: 입력 {num} (참조 무시)",
+      "noInputs": "할당된 입력 없음",
+      "trackedMarker": "[T]"
+    },
+    "toggles": {
+      "lfoOn": "L.F.O: 켜짐",
+      "lfoOff": "L.F.O: 꺼짐",
+      "inputsVisible": "입력: 표시",
+      "inputsHidden": "입력: 숨김"
+    },
+    "lfo": {
+      "labels": {
+        "section": "LFO",
+        "period": "주기:",
+        "phase": "위상:",
+        "x": "X",
+        "y": "Y",
+        "z": "Z",
+        "rot": "회전",
+        "scaleLfo": "스케일",
+        "amplitude": "진폭:",
+        "angle": "각도:",
+        "ratio": "비율:",
+        "rate": "속도:"
+      }
+    },
+    "help": {
+      "inputsVisibility": "이 클러스터의 입력을 맵 탭에서 표시하거나 숨깁니다. 숨김은 새 멤버에도 적용되며, 입력을 제거하면 다시 표시됩니다.",
+      "referenceMode": "클러스터 변환의 기준점을 선택합니다: 첫 번째 입력, 무게 중심, 또는 공유 위치(모든 멤버가 한 점에 모이며 스케일과 회전은 개별 오프셋에 적용됩니다).",
+      "positionJoystick": "클러스터의 모든 입력을 X/Y로 이동합니다. 누른 채 드래그하여 이동합니다.",
+      "zSlider": "클러스터의 모든 입력을 Z축(높이)을 따라 이동합니다.",
+      "attenuationSlider": "클러스터의 모든 입력의 감쇠를 조정합니다 (dB).",
+      "rotationDial": "선택한 평면에서 기준점을 중심으로 클러스터의 모든 입력을 회전합니다.",
+      "scaleJoystick": "선택한 평면에서 기준점을 중심으로 클러스터 입력의 크기를 조정합니다.",
+      "planeSelector": "회전 및 크기 조정 작업의 평면을 선택합니다 (XY, XZ, YZ).",
+      "lfoActiveButton": "클러스터의 주기적 움직임(LFO)을 활성화 또는 비활성화합니다.",
+      "lfoPeriodDial": "클러스터 움직임의 기본 주기입니다.",
+      "lfoPhaseDial": "클러스터 움직임의 전역 위상 오프셋입니다.",
+      "presetTile": "클릭: 프리셋 불러오기. 더블 클릭: 불러오기 + 시작. 가운데/오른쪽 클릭: 현재 LFO 저장.",
+      "stopAllLFO": "10개 모든 클러스터의 LFO를 중지합니다.",
+      "exportPresets": "16개의 LFO 프리셋을 모두 XML 파일로 내보냅니다.",
+      "importPresets": "XML 파일에서 LFO 프리셋을 가져옵니다.",
+      "qlabPreset": "현재 클러스터에서 마지막으로 선택한 LFO 프리셋을 불러오기 위한 QLab 네트워크 큐를 만듭니다.",
+      "lfoShapeXSelector": "너비에서 클러스터 움직임의 동작.",
+      "lfoShapeYSelector": "깊이에서 클러스터 움직임의 동작.",
+      "lfoShapeZSelector": "높이에서 클러스터 움직임의 동작.",
+      "lfoShapeRotSelector": "클러스터의 회전 동작.",
+      "lfoShapeScaleSelector": "클러스터의 스케일 동작.",
+      "lfoRateXSlider": "너비에서 기본 주기에 대한 빠르거나 느린 움직임.",
+      "lfoRateYSlider": "깊이에서 기본 주기에 대한 빠르거나 느린 움직임.",
+      "lfoRateZSlider": "높이에서 기본 주기에 대한 빠르거나 느린 움직임.",
+      "lfoRateRotSlider": "기본 주기에 대한 빠르거나 느린 회전.",
+      "lfoRateScaleSlider": "기본 주기에 대한 빠르거나 느린 스케일링.",
+      "lfoAmplitudeXSlider": "클러스터 참조 위치에 대한 너비 움직임 크기.",
+      "lfoAmplitudeYSlider": "클러스터 참조 위치에 대한 깊이 움직임 크기.",
+      "lfoAmplitudeZSlider": "클러스터 참조 위치에 대한 높이 움직임 크기.",
+      "lfoAmplitudeRotSlider": "최대 회전 각도 (-360~360도).",
+      "lfoAmplitudeScaleSlider": "최대 스케일 계수 (0.1×~10×, 로그).",
+      "lfoPhaseXDial": "너비에서 클러스터 움직임의 위상 오프셋.",
+      "lfoPhaseYDial": "깊이에서 클러스터 움직임의 위상 오프셋.",
+      "lfoPhaseZDial": "높이에서 클러스터 움직임의 위상 오프셋.",
+      "lfoPhaseRotDial": "클러스터 회전의 위상 오프셋.",
+      "lfoPhaseScaleDial": "클러스터 스케일링의 위상 오프셋."
+    },
+    "presets": {
+      "stopAll": "모두 중지",
+      "export": "내보내기",
+      "import": "가져오기",
+      "exportDialog": "LFO 프리셋 내보내기",
+      "importDialog": "LFO 프리셋 가져오기",
+      "stored": "LFO 프리셋이 타일 {n}에 저장되었습니다.",
+      "recalled": "LFO 프리셋을 타일 {n}에서 불러왔습니다.",
+      "exported": "LFO 프리셋을 내보냈습니다.",
+      "imported": "LFO 프리셋을 가져왔습니다."
+    },
+    "osc": {
+      "lfoActive": "/wfs/cluster/lfoActive <id> <0|1>",
+      "lfoPeriod": "/wfs/cluster/lfoPeriod <id> <초>",
+      "lfoPhase": "/wfs/cluster/lfoPhase <id> <도>",
+      "lfoPresetRecall": "/wfs/cluster/lfoPresetRecall <clusterId> <프리셋번호>",
+      "lfoStopAll": "/wfs/cluster/lfoStopAll",
+      "lfoShapeX": "/wfs/cluster/lfoShapeX <id> <0-8>",
+      "lfoShapeY": "/wfs/cluster/lfoShapeY <id> <0-8>",
+      "lfoShapeZ": "/wfs/cluster/lfoShapeZ <id> <0-8>",
+      "lfoShapeRot": "/wfs/cluster/lfoShapeRot <id> <0-8>",
+      "lfoShapeScale": "/wfs/cluster/lfoShapeScale <id> <0-8>",
+      "lfoRateX": "/wfs/cluster/lfoRateX <id> <multiplier>",
+      "lfoRateY": "/wfs/cluster/lfoRateY <id> <multiplier>",
+      "lfoRateZ": "/wfs/cluster/lfoRateZ <id> <multiplier>",
+      "lfoRateRot": "/wfs/cluster/lfoRateRot <id> <multiplier>",
+      "lfoRateScale": "/wfs/cluster/lfoRateScale <id> <multiplier>",
+      "lfoAmplitudeX": "/wfs/cluster/lfoAmplitudeX <id> <meters>",
+      "lfoAmplitudeY": "/wfs/cluster/lfoAmplitudeY <id> <meters>",
+      "lfoAmplitudeZ": "/wfs/cluster/lfoAmplitudeZ <id> <meters>",
+      "lfoAmplitudeRot": "/wfs/cluster/lfoAmplitudeRot <id> <degrees>",
+      "lfoAmplitudeScale": "/wfs/cluster/lfoAmplitudeScale <id> <factor>",
+      "lfoPhaseX": "/wfs/cluster/lfoPhaseX <id> <degrees>",
+      "lfoPhaseY": "/wfs/cluster/lfoPhaseY <id> <degrees>",
+      "lfoPhaseZ": "/wfs/cluster/lfoPhaseZ <id> <degrees>",
+      "lfoPhaseRot": "/wfs/cluster/lfoPhaseRot <id> <degrees>",
+      "lfoPhaseScale": "/wfs/cluster/lfoPhaseScale <id> <degrees>"
+    },
+    "qlabPresetCueName": "클러스터 {cluster} LFO 프리셋: {name}",
+    "qlabPresetCueCreated": "QLab 큐 생성: 클러스터 {cluster} 프리셋 \"{name}\""
+  },
+  "eq": {
+    "status": {
+      "off": "EQ 끄기",
+      "on": "EQ 켜기"
+    },
+    "filterTypes": {
+      "off": "끄기",
+      "lowCut": "로우 컷",
+      "lowShelf": "로우 쉘프",
+      "peakNotch": "피크/노치",
+      "bandPass": "밴드패스",
+      "highShelf": "하이 쉘프",
+      "highCut": "하이 컷",
+      "allPass": "올패스"
+    },
+    "labels": {
+      "band": "밴드",
+      "freq": "주파수:",
+      "gain": "게인",
+      "q": "Q"
+    },
+    "buttons": {
+      "resetBand": "초기화",
+      "flattenEQ": "EQ 초기화"
+    }
+  },
+  "outputs": {
+    "sections": {
+      "channel": "채널",
+      "position": "위치",
+      "settings": "설정"
+    },
+    "tabs": {
+      "parameters": "출력 매개변수",
+      "eq": "출력 EQ"
+    },
+    "labels": {
+      "name": "이름:",
+      "array": "어레이:",
+      "applyToArray": "어레이에 적용:",
+      "attenuation": "감쇠:",
+      "delayLatency": "지연/레이턴시:",
+      "distanceAtten": "거리 감쇠:",
+      "hParallax": "수평 시차:",
+      "vParallax": "수직 시차:",
+      "coordinates": "좌표:",
+      "positionX": "위치 X:",
+      "positionY": "위치 Y:",
+      "positionZ": "위치 Z:",
+      "orientation": "방향:",
+      "radius": "Radius",
+      "azimuth": "Azimuth",
+      "height": "Height",
+      "elevation": "Elevation",
+      "angleOn": "켜기 각도:",
+      "angleOff": "끄기 각도:",
+      "pitch": "피치:",
+      "hfDamping": "고주파 감쇠:",
+      "delay": "지연:",
+      "latency": "레이턴시:"
+    },
+    "buttons": {
+      "speakerVisible": "맵에 스피커 표시",
+      "speakerHidden": "스피커: 맵에서 숨김",
+      "arrayVisible": "어레이: 맵에서 표시",
+      "arrayHidden": "어레이: 맵에서 숨김",
+      "wizardOfOutZ": "OutZ 마법사...",
+      "storeConfig": "출력 설정 저장",
+      "reloadConfig": "출력 설정 다시 불러오기",
+      "reloadBackup": "백업 불러오기",
+      "import": "가져오기",
+      "export": "내보내기"
+    },
+    "toggles": {
+      "minLatencyOn": "최소 레이턴시: 켜기",
+      "minLatencyOff": "최소 레이턴시: 끄기",
+      "liveSourceOn": "라이브 소스 감쇠: 켜기",
+      "liveSourceOff": "라이브 소스 감쇠: 끄기",
+      "floorReflectionsOn": "바닥 반사: 켜기",
+      "floorReflectionsOff": "바닥 반사: 끄기"
+    },
+    "arrayModes": {
+      "single": "단일",
+      "array": "어레이",
+      "off": "끄기",
+      "absolute": "절대",
+      "relative": "상대"
+    },
+    "coordModes": {
+      "xyz": "XYZ"
+    },
+    "units": {
+      "meters": "m",
+      "dB": "dB",
+      "dBPerMeter": "dB/m",
+      "hz": "Hz",
+      "ms": "ms",
+      "percent": "%"
+    },
+    "dialogs": {
+      "import": "출력 설정 가져오기",
+      "export": "출력 설정 내보내기"
+    },
+    "messages": {
+      "setToSingle": "출력 {num}이(가) 단일로 설정됨",
+      "assignedToArray": "출력 {num}이(가) 어레이 {array}에 할당됨",
+      "selectFolderFirst": "시스템 설정에서 먼저 프로젝트 폴더를 선택하세요.",
+      "configSaved": "출력 설정이 저장되었습니다.",
+      "configLoaded": "출력 설정이 로드되었습니다.",
+      "configNotFound": "출력 설정 파일을 찾을 수 없습니다.",
+      "configReloaded": "출력 설정이 다시 로드되었습니다.",
+      "noBackup": "출력 설정 백업을 찾을 수 없습니다.",
+      "backupLoaded": "백업에서 출력 설정이 로드되었습니다.",
+      "configImported": "출력 설정을 가져왔습니다.",
+      "configExported": "출력 설정을 내보냈습니다.",
+      "error": "오류: {error}"
+    },
+    "help": {
+      "channelSelector": "출력 채널 번호 및 선택.",
+      "nameEditor": "표시되는 출력 채널 이름 (편집 가능).",
+      "arraySelector": "선택한 출력 채널이 어레이의 일부입니다.",
+      "applyToArray": "어레이의 나머지에 변경 사항 적용 (절대값 또는 상대적 변경).",
+      "attenuation": "출력 채널 감쇠. (변경 사항이 어레이의 나머지에 영향을 줄 수 있습니다)",
+      "delayLatency": "출력 채널 딜레이 (양수 값) 또는 레이턴시 보정 (음수 값). (변경 사항이 어레이의 나머지에 영향을 줄 수 있습니다)",
+      "minLatency": "선택한 출력의 최소 레이턴시 모드를 비활성화합니다. (변경 사항이 어레이의 나머지에 영향을 줄 수 있습니다)",
+      "liveSource": "선택한 출력의 라이브 소스 감쇠를 비활성화합니다. (변경 사항이 어레이의 나머지에 영향을 줄 수 있습니다)",
+      "floorReflections": "이 스피커의 바닥 반사를 활성화 또는 비활성화합니다.",
+      "distanceAtten": "선택한 출력의 거리 감쇠 비율. (변경 사항이 어레이의 나머지에 영향을 줄 수 있습니다)",
+      "hParallax": "스피커에서 '대상' 청취자까지의 수평 거리. (변경 사항이 어레이의 나머지에 영향을 줄 수 있습니다)",
+      "vParallax": "스피커에서 '대상' 청취자까지의 수직 거리. 스피커가 청취자의 머리 아래에 있을 때 양수. (변경 사항이 어레이의 나머지에 영향을 줄 수 있습니다)",
+      "coordMode": "좌표 표시 모드: 직교 좌표 (X/Y/Z), 원통 좌표 (반지름/방위각/높이) 또는 구면 좌표 (반지름/방위각/앙각).",
+      "directional": "출력 채널 방향 제어. 드래그하여 방향 변경, Shift+드래그로 Angle Off, Alt+드래그로 Angle On. (변경 사항이 어레이의 나머지에 영향을 줄 수 있습니다)",
+      "angleOn": "출력 채널은 뒤쪽의 이 각도 내에 있는 오브젝트를 증폭합니다. (변경 사항이 어레이의 나머지에 영향을 줄 수 있습니다)",
+      "angleOff": "출력 채널은 앞쪽의 이 각도 내에 있는 오브젝트를 증폭하지 않습니다. (변경 사항이 어레이의 나머지에 영향을 줄 수 있습니다)",
+      "pitch": "어떤 오브젝트가 증폭되는지 결정하는 데 사용되는 출력 채널의 수직 방향. (변경 사항이 어레이의 나머지에 영향을 줄 수 있습니다)",
+      "hfDamping": "오브젝트에서 출력까지의 거리에 따른 고주파 손실. (변경 사항이 어레이의 나머지에 영향을 줄 수 있습니다)",
+      "wizardOfOutZ": "Wizard of OutZ를 열어 스피커 어레이를 편리하게 배치합니다.",
+      "mapVisibility": "선택한 출력을 맵에서 보이게 하거나 숨깁니다.",
+      "storeConfig": "출력 설정을 파일로 저장합니다 (백업 포함).",
+      "reloadConfig": "파일에서 출력 설정을 다시 로드합니다.",
+      "reloadBackup": "백업 파일에서 출력 설정을 다시 로드합니다.",
+      "importConfig": "파일에서 출력 설정을 가져옵니다 (파일 탐색기 창 포함).",
+      "exportConfig": "출력 설정을 파일로 내보냅니다 (파일 탐색기 창 포함).",
+      "eqEnable": "이 출력의 EQ 처리를 활성화/비활성화합니다.",
+      "eqFlatten": "길게 눌러 모든 EQ 밴드를 기본값으로 초기화합니다.",
+      "eqBandToggle": "밴드 {band} 켜기/끄기. 꺼진 밴드는 바이패스됩니다.",
+      "eqShape": "출력 EQ 밴드 {band} 필터 형태.",
+      "eqFreq": "출력 EQ 밴드 {band} 주파수 (20 Hz - 20 kHz).",
+      "eqGain": "출력 EQ 밴드 {band} 게인 (-24~+24 dB).",
+      "eqQ": "출력 EQ 밴드 {band} Q 팩터 (0.1 - 10.0).",
+      "eqResetBand": "길게 눌러 밴드 {band}를 기본값으로 초기화합니다.",
+      "position1": "출력 채널 {name} ({unit}).",
+      "position2": "출력 채널 {name} ({unit}).",
+      "position3": "출력 채널 {name} ({unit})."
+    }
+  },
+  "arrayHelper": {
+    "window": {
+      "title": "OutZ 마법사",
+      "contentName": "출력 어레이 도우미"
+    },
+    "presets": {
+      "label": "프리셋:",
+      "nearFieldStraight": "근거리 어레이 직선",
+      "nearFieldCurved": "근거리 어레이 곡선",
+      "mainRoomStraight": "메인 플라잉 어레이 직선",
+      "subBass": "서브 베이스",
+      "surround": "서라운드",
+      "delayLine": "딜레이 라인",
+      "circle": "원형"
+    },
+    "sections": {
+      "geometry": "기하",
+      "acousticDefaults": "음향 기본값",
+      "target": "대상"
+    },
+    "geometry": {
+      "centerSpacing": "중심 + 간격",
+      "endpoints": "끝점",
+      "nSpeakers": "스피커 수:",
+      "nPairs": "쌍 수:",
+      "zHeight": "Z 높이 (m):",
+      "orientation": "방향 (도):",
+      "centerX": "중심 X (m):",
+      "centerY": "중심 Y (m):",
+      "spacing": "간격 (m):",
+      "startX": "시작 X (m):",
+      "startY": "시작 Y (m):",
+      "endX": "끝 X (m):",
+      "endY": "끝 Y (m):",
+      "sag": "처짐 (m):",
+      "radius": "반지름 (m):",
+      "startAngle": "시작 각도 (도):",
+      "facingInward": "안쪽 방향",
+      "facingOutward": "바깥쪽 방향",
+      "width": "너비 (m):",
+      "yStart": "Y 시작 (m):",
+      "yEnd": "Y 끝 (m):",
+      "frontFacing": "앞쪽 방향",
+      "backFacing": "뒤쪽 방향"
+    },
+    "acoustic": {
+      "liveSource": "라이브 소스",
+      "floorReflections": "바닥 반사",
+      "hfDamping": "고주파 감쇠 (dB/m):",
+      "hParallax": "수평 시차 (m):",
+      "vParallax": "수직 시차 (m):",
+      "distanceAtten": "거리 감쇠 (%):",
+      "lowCut": "로우 컷 (Hz):",
+      "highCut": "하이 컷 (Hz):"
+    },
+    "target": {
+      "array": "어레이:",
+      "arrayPrefix": "어레이",
+      "startingOutput": "시작 출력:"
+    },
+    "buttons": {
+      "apply": "적용",
+      "close": "닫기"
+    },
+    "preview": {
+      "audience": "관객"
+    },
+    "status": {
+      "ready": "준비됨",
+      "calculated": "{count}개의 위치가 계산됨",
+      "applied": "{count}개의 스피커가 어레이 {array}에 적용됨. 다음 어레이 준비됨."
+    },
+    "errors": {
+      "speakerCountZero": "스피커 수는 0보다 커야 합니다",
+      "noPositions": "적용할 위치가 없습니다. 기하 매개변수를 확인하세요.",
+      "notEnoughOutputs": "출력 채널이 부족합니다! {start}부터 {count}개가 필요합니다",
+      "prefix": "오류: "
+    }
+  },
+  "reverbs": {
+    "noChannels": "리버브 채널이 구성되지 않았습니다.\n\n시스템 설정에서 리버브 채널 수를 설정하세요.",
+    "tabs": {
+      "channelParams": "채널 매개변수",
+      "preProcessing": "전처리",
+      "algorithm": "알고리즘",
+      "postProcessing": "후처리"
+    },
+    "labels": {
+      "name": "이름:",
+      "attenuation": "감쇠:",
+      "delayLatency": "지연/레이턴시:",
+      "coordinates": "좌표:",
+      "positionX": "위치 X:",
+      "positionY": "위치 Y:",
+      "positionZ": "위치 Z:",
+      "returnOffsetX": "리턴 오프셋 X:",
+      "returnOffsetY": "리턴 오프셋 Y:",
+      "returnOffsetZ": "리턴 오프셋 Z:",
+      "orientation": "방향:",
+      "angleOn": "켜기 각도:",
+      "angleOff": "끄기 각도:",
+      "pitch": "피치:",
+      "hfDamping": "고주파 감쇠:",
+      "distanceAttenPercent": "거리 감쇠 %:",
+      "distanceAtten": "거리 감쇠:",
+      "commonAtten": "공통 감쇠:",
+      "outputMutes": "출력 음소거:",
+      "muteMacro": "음소거 매크로:"
+    },
+    "sections": {
+      "reverbFeed": "리버브 센드",
+      "reverbReturn": "리버브 리턴"
+    },
+    "buttons": {
+      "visibleOnMap": "맵에 리버브 표시",
+      "hiddenOnMap": "맵에서 리버브 숨김",
+      "soloReverbs": "Solo Reverbs",
+      "soloReverbsOn": "솔로 리버브 ON",
+      "mutePre": "Mute Pre",
+      "mutePreOn": "뮤트 프리 ON",
+      "mutePost": "Mute Post",
+      "mutePostOn": "뮤트 포스트 ON",
+      "editOnMap": "맵에서 편집",
+      "editOnMapOn": "맵에서 편집 ON",
+      "storeConfig": "리버브 설정 저장",
+      "reloadConfig": "리버브 설정 다시 불러오기",
+      "reloadBackup": "백업 불러오기",
+      "import": "가져오기",
+      "export": "내보내기"
+    },
+    "toggles": {
+      "minLatencyOn": "최소 레이턴시 켜기",
+      "minLatencyOff": "최소 레이턴시 끄기",
+      "liveSourceOn": "라이브 소스 감쇠 켜기",
+      "liveSourceOff": "라이브 소스 감쇠 끄기"
+    },
+    "coordModes": {
+      "xyz": "XYZ"
+    },
+    "muteMacros": {
+      "select": "음소거 매크로 선택",
+      "muteAll": "전체 음소거",
+      "unmuteAll": "전체 음소거 해제",
+      "invertMutes": "음소거 반전",
+      "muteOdd": "홀수 음소거",
+      "muteEven": "짝수 음소거",
+      "muteArray": "어레이 음소거",
+      "unmuteArray": "어레이 음소거 해제"
+    },
+    "algorithm": {
+      "sdn": "SDN",
+      "fdn": "FDN",
+      "ir": "IR",
+      "decaySection": "감쇠",
+      "rt60": "RT60:",
+      "rt60LowMult": "RT60 저역 ×:",
+      "rt60HighMult": "RT60 고역 ×:",
+      "crossoverLow": "크로스오버 저역:",
+      "crossoverHigh": "크로스오버 고역:",
+      "diffusion": "확산:",
+      "sdnSection": "SDN",
+      "scale": "스케일:",
+      "fdnSection": "FDN",
+      "size": "크기:",
+      "irSection": "IR",
+      "irFile": "IR 파일:",
+      "irImport": "IR 가져오기...",
+      "irTrim": "IR 트림:",
+      "irLength": "IR 길이:",
+      "perNode": "노드별:",
+      "perNodeOn": "노드별 IR 켜기",
+      "perNodeOff": "노드별 IR 끄기",
+      "wetLevel": "웻 레벨:",
+      "irImportSuccess": "IR 가져오기 완료: {file}",
+      "irNoProject": "먼저 프로젝트 폴더를 설정하세요",
+      "noFileLoaded": "IR이 로드되지 않음"
+    },
+    "preProcessing": {
+      "compressor": "컴프레서",
+      "compressorOff": "컴프레서 끄기",
+      "compressorOn": "컴프레서 켜기",
+      "threshold": "임계값:",
+      "ratio": "비율:",
+      "attack": "어택:",
+      "release": "릴리스:"
+    },
+    "postProcessing": {
+      "expander": "익스팬더",
+      "expanderOff": "익스팬더 끄기",
+      "expanderOn": "익스팬더 켜기",
+      "threshold": "임계값:",
+      "ratio": "비율:",
+      "attack": "어택:",
+      "release": "릴리스:"
+    },
+    "dialogs": {
+      "import": "리버브 설정 가져오기",
+      "export": "리버브 설정 내보내기"
+    },
+    "messages": {
+      "selectFolderFirst": "시스템 설정에서 먼저 프로젝트 폴더를 선택하세요.",
+      "configSaved": "리버브 설정이 저장되었습니다.",
+      "configLoaded": "리버브 설정이 로드되었습니다.",
+      "backupLoaded": "백업에서 리버브 설정이 로드되었습니다.",
+      "configImported": "리버브 설정을 가져왔습니다.",
+      "configExported": "리버브 설정을 내보냈습니다.",
+      "error": "오류: {error}"
+    },
+    "help": {
+      "channelSelector": "리버브 채널 번호 및 선택.",
+      "nameEditor": "표시되는 리버브 채널 이름 (편집 가능).",
+      "mapVisibility": "맵에서 모든 리버브 채널을 표시하거나 숨기기.",
+      "attenuation": "리버브 채널 감쇠 (-92 ~ 0 dB).",
+      "delayLatency": "리버브 지연/레이턴시 보정 (-100 ~ +100 ms).",
+      "orientation": "리버브 방향 각도 (-179 ~ +180도).",
+      "angleOn": "증폭이 시작되는 각도 (1-180도).",
+      "angleOff": "증폭이 발생하지 않는 각도 (0-179도).",
+      "pitch": "리버브의 수직 방향 (-90 ~ +90도).",
+      "hfDamping": "미터당 고주파 손실 (-6.0 ~ 0.0 dB/m).",
+      "distanceAttenEnable": "거리 감쇠 백분율 (0-200%).",
+      "coordMode": "좌표 표시 모드: 직교 좌표 (X/Y/Z), 원통 좌표 (반지름/방위각/높이), 또는 구면 좌표 (반지름/방위각/고도).",
+      "eqEnable": "이 리버브에 대한 EQ 처리를 활성화 또는 비활성화.",
+      "eqFlatten": "길게 눌러 모든 프리EQ 밴드를 초기화합니다.",
+      "eqBandToggle": "프리EQ 밴드 {band} 켜기/끄기.",
+      "eqShape": "프리EQ 밴드 {band} 필터 형태.",
+      "eqFreq": "프리EQ 밴드 {band} 주파수 (20 Hz - 20 kHz).",
+      "eqGain": "프리EQ 밴드 {band} 게인 (-24~+24 dB).",
+      "eqQ": "프리EQ 밴드 {band} Q 팩터 (0.1 - 20.0).",
+      "eqResetBand": "길게 눌러 프리EQ 밴드 {band}를 초기화합니다.",
+      "distanceAtten": "리버브 리턴에 대한 거리 감쇠 (-6.0 ~ 0.0 dB/m).",
+      "commonAtten": "공통 감쇠 백분율 (0-100%).",
+      "muteMacros": "출력 채널의 빠른 음소거 작업.",
+      "storeConfig": "리버브 설정을 파일에 저장 (백업 포함).",
+      "reloadConfig": "파일에서 리버브 설정 다시 불러오기.",
+      "reloadBackup": "백업 파일에서 리버브 설정 다시 불러오기.",
+      "importConfig": "파일에서 리버브 설정 가져오기 (파일 탐색기 사용).",
+      "exportConfig": "파일로 리버브 설정 내보내기 (파일 탐색기 사용).",
+      "algoSDN": "SDN (Scattering Delay Network) 리버브 알고리즘 선택.",
+      "algoFDN": "FDN (Feedback Delay Network) 리버브 알고리즘 선택.",
+      "algoIR": "IR (임펄스 응답 컨볼루션) 리버브 알고리즘 선택.",
+      "algoRT60": "리버브 감쇠 시간 RT60 (0.2 - 8.0초).",
+      "algoRT60LowMult": "저역 RT60 배수 (0.1 - 9.0x).",
+      "algoRT60HighMult": "고역 RT60 배수 (0.1 - 9.0x).",
+      "algoCrossoverLow": "3밴드 감쇠용 저역 크로스오버 주파수 (50 - 500 Hz).",
+      "algoCrossoverHigh": "3밴드 감쇠용 고역 크로스오버 주파수 (1 - 10 kHz).",
+      "algoDiffusion": "에코 밀도를 제어하는 확산량 (0 - 100%).",
+      "algoSDNScale": "SDN 노드 간 지연 스케일 팩터 (0.5 - 4.0x).",
+      "algoFDNSize": "FDN 딜레이 라인 크기 배수 (0.5 - 2.0x).",
+      "algoIRFile": "컨볼루션용 임펄스 응답 파일 선택 또는 가져오기.",
+      "algoIRTrim": "임펄스 응답의 시작 부분 트리밍 (0 - 100 ms).",
+      "algoIRLength": "최대 임펄스 응답 길이 (0.1 - 6.0초).",
+      "algoPerNode": "각 리버브 노드에 별도의 IR을 사용하거나 하나의 IR을 공유.",
+      "algoWetLevel": "리버브 출력의 웻/드라이 믹스 레벨 (-60 ~ +12 dB).",
+      "preCompBypass": "리버브 센드의 프리컴프레서를 바이패스 또는 활성화.",
+      "preCompThreshold": "프리컴프레서 임계값 (-60 ~ 0 dB).",
+      "preCompRatio": "프리컴프레서 비율 (1:1 ~ 20:1).",
+      "preCompAttack": "프리컴프레서 어택 시간 (0.1 - 100 ms).",
+      "preCompRelease": "프리컴프레서 릴리스 시간 (10 - 1000 ms).",
+      "postEqEnable": "후처리 EQ를 활성화 또는 비활성화.",
+      "postEqShape": "포스트 EQ 밴드 {band} 필터 형태.",
+      "postEqFreq": "포스트 EQ 밴드 {band} 주파수 (20 Hz - 20 kHz).",
+      "postEqGain": "포스트 EQ 밴드 {band} 게인 (-24 ~ +24 dB).",
+      "postEqQ": "포스트 EQ 밴드 {band} Q 팩터 (0.1 - 20.0).",
+      "postEqFlatten": "길게 눌러 모든 포스트EQ 밴드를 초기화합니다.",
+      "postEqBandToggle": "포스트EQ 밴드 {band} 켜기/끄기.",
+      "postEqResetBand": "길게 눌러 포스트EQ 밴드 {band}를 초기화합니다.",
+      "postExpBypass": "리버브 리턴의 포스트 익스팬더를 바이패스 또는 활성화.",
+      "postExpThreshold": "포스트 익스팬더 임계값 (-80 ~ -10 dB).",
+      "postExpRatio": "포스트 익스팬더 비율 (1:1 ~ 1:8).",
+      "postExpAttack": "포스트 익스팬더 어택 시간 (0.1 - 50 ms).",
+      "postExpRelease": "포스트 익스팬더 릴리스 시간 (50 - 2000 ms).",
+      "miniLatencyTooltip": "이 리버브 채널의 최소 지연 모드를 활성화합니다. 더 높은 CPU 사용량을 대가로 처리 지연을 줄입니다.",
+      "liveSourceTooltip": "Live Source 감쇠 테이머를 활성화합니다. 어레이에 가까운 소스의 레벨 변동을 줄입니다.",
+      "muteButton": "이 출력 채널의 리버브 리턴 음소거를 전환합니다.",
+      "position1": "리버브 가상 소스 {name} ({unit}).",
+      "position2": "리버브 가상 소스 {name} ({unit}).",
+      "position3": "리버브 가상 소스 {name} ({unit}).",
+      "returnOffset1": "리버브 리턴 오프셋 {name} ({unit}).",
+      "returnOffset2": "리버브 리턴 오프셋 {name} ({unit}).",
+      "returnOffset3": "리버브 리턴 오프셋 {name} ({unit})."
+    }
+  },
+  "inputs": {
+    "sections": {
+      "channel": "채널",
+      "position": "위치",
+      "attenuation": "감쇠",
+      "directivity": "지향성",
+      "liveSource": "라이브 소스 테이머",
+      "hackoustics": "Hackoustics (가상음향)",
+      "lfo": "LFO",
+      "automotion": "AutomOtion (자동이동)",
+      "mutes": "뮤트"
+    },
+    "tabs": {
+      "inputParams": "입력 매개변수",
+      "liveSourceHackoustics": "라이브 소스 & Hackoustics (가상음향)",
+      "movements": "움직임",
+      "gradientMaps": "그라디언트 맵",
+      "visualisation": "시각화",
+      "sampler": "Sampler"
+    },
+    "gradientMap": {
+      "layers": {
+        "attenuation": "감쇠",
+        "height": "높이",
+        "hfShelf": "HF 셸프"
+      },
+      "labels": {
+        "white": "흰색:",
+        "black": "검정:",
+        "curve": "커브:",
+        "name": "이름:",
+        "fill": "채우기:",
+        "blur": "블러:",
+        "start": "시작:",
+        "end": "끝:",
+        "center": "중심:",
+        "edge": "가장자리:"
+      },
+      "tools": {
+        "select": "선택",
+        "rect": "사각형",
+        "ellipse": "타원",
+        "polygon": "다각형",
+        "fill": "채우기",
+        "linGrad": "선형 그라데이션",
+        "radGrad": "방사형 그라데이션",
+        "editPoints": "포인트 편집"
+      },
+      "buttons": {
+        "enable": "켜기",
+        "lock": "잠금",
+        "delete": "삭제",
+        "pivotCenter": "기준: 중심",
+        "pivotOrigin": "기준: 원점",
+        "copyShape": "도형 복사",
+        "pasteShape": "도형 붙여넣기",
+        "copyLayer": "레이어 복사",
+        "pasteLayer": "레이어 붙여넣기"
+      },
+      "warnings": {
+        "heightRatioZero": "높이 비율이 0%입니다 — 높이가 적용되려면 값을 올려주세요"
+      },
+      "hints": {
+        "darkMaxAtten": "어둡 = 최대 감쇠 | 밝음 = 없음",
+        "darkMaxHeight": "어둡 = 최대 높이 | 밝음 = 바닥",
+        "darkMaxHF": "어둡 = 최대 HF 셸프 | 밝음 = 없음",
+        "whiteMaxAtten": "흰색 = 최대 감쇠 | 검정 = 없음",
+        "whiteMaxHeight": "흰색 = 최대 높이 | 검정 = 바닥",
+        "whiteMaxHF": "흰색 = 최대 HF 셸프 | 검정 = 없음",
+        "polygonClose": "다각형을 닫으려면 더블클릭"
+      },
+      "help": {
+        "layerSelect": "이 레이어를 편집용으로 선택",
+        "layerEnable": "레이어 활성화/비활성화 (출력 및 OSC에 영향)",
+        "layerVisible": "캔버스에서 레이어 미리보기 표시/숨기기",
+        "whiteValue": "흰색에 매핑되는 파라미터 값 (0.00–1.00)",
+        "blackValue": "검정에 매핑되는 파라미터 값 (0.00–1.00)",
+        "curve": "감마 커브 (-1~1, 0 = 선형)",
+        "fillValue": "채우기 밝기 (0 = 검정, 1 = 흰색)",
+        "blur": "가장자리 블러 (미터 단위)",
+        "shapeEnable": "도형 활성화/비활성화",
+        "shapeLock": "도형 위치 잠금",
+        "shapeDelete": "선택한 도형 삭제",
+        "selectTool": "도형 선택 및 이동",
+        "rectTool": "사각형 그리기",
+        "ellipseTool": "타원 그리기",
+        "polygonTool": "다각형 그리기 (더블클릭으로 닫기)",
+        "fillTool": "도형에 균일 채우기 적용",
+        "linGradTool": "도형에 선형 그라데이션 적용",
+        "radGradTool": "도형에 방사형 그라데이션 적용",
+        "copy": "선택한 도형 또는 레이어 복사",
+        "paste": "클립보드에서 도형 또는 레이어 붙여넣기"
+      },
+      "header": {
+        "attenuationLayer": "감쇠 레이어",
+        "heightLayer": "높이 레이어",
+        "hfShelfLayer": "HF 셸프 레이어"
+      }
+    },
+    "labels": {
+      "name": "이름:",
+      "cluster": "클러스터:",
+      "attenuation": "감쇠:",
+      "delayLatency": "지연/레이턴시:",
+      "coord": "좌표:",
+      "positionX": "위치 X:",
+      "positionY": "위치 Y:",
+      "positionZ": "위치 Z:",
+      "offsetX": "오프셋 X:",
+      "offsetY": "오프셋 Y:",
+      "offsetZ": "오프셋 Z:",
+      "min": "최소:",
+      "max": "최대:",
+      "trackingId": "트래킹 ID:",
+      "trackingSmooth": "트래킹 스무딩:",
+      "maxSpeed": "최대 속도:",
+      "heightFactor": "높이 계수:",
+      "xyJoystick": "X/Y",
+      "zSlider": "Z",
+      "attenuationLaw": "감쇠 법칙:",
+      "distanceAtten": "거리 감쇠:",
+      "distanceRatio": "거리 비율:",
+      "commonAtten": "공통 감쇠:",
+      "directivity": "지향성:",
+      "rotation": "회전:",
+      "tilt": "기울기:",
+      "hfShelf": "고주파 쉘프:",
+      "radius": "반지름:",
+      "shape": "형태:",
+      "peakThreshold": "피크 임계값:",
+      "peakRatio": "피크 비율:",
+      "slowThreshold": "슬로우 임계값:",
+      "slowRatio": "슬로우 비율:",
+      "diffusion": "확산:",
+      "frequency": "주파수:",
+      "gain": "게인:",
+      "slope": "기울기:",
+      "period": "주기:",
+      "phase": "위상:",
+      "shapeX": "형태 X:",
+      "shapeY": "형태 Y:",
+      "shapeZ": "형태 Z:",
+      "rateX": "레이트 X:",
+      "rateY": "레이트 Y:",
+      "rateZ": "레이트 Z:",
+      "amplitudeX": "진폭 X:",
+      "amplitudeY": "진폭 Y:",
+      "amplitudeZ": "진폭 Z:",
+      "phaseX": "위상 X:",
+      "phaseY": "위상 Y:",
+      "phaseZ": "위상 Z:",
+      "gyrophone": "자이로폰:",
+      "jitter": "지터:",
+      "outX": "출력 X:",
+      "outY": "출력 Y:",
+      "outZ": "출력 Z:",
+      "destX": "목적지 X:",
+      "destY": "목적지 Y:",
+      "destZ": "목적지 Z:",
+      "duration": "지속 시간:",
+      "curve": "곡선:",
+      "speedProfile": "속도 프로필:",
+      "threshold": "임계값:",
+      "reset": "초기화:",
+      "muteMacros": "음소거 매크로:",
+      "arrayAttenuation": "어레이 감쇠:",
+      "fringe": "프린지:",
+      "admMapping": "ADM:"
+    },
+    "buttons": {
+      "solo": "Solo",
+      "setAllInputs": "모든 입력 설정...",
+      "storeConfig": "입력 설정 저장",
+      "reloadConfig": "입력 설정 다시 불러오기",
+      "reloadBackup": "백업 불러오기",
+      "import": "가져오기",
+      "export": "내보내기",
+      "storeSnapshot": "스냅샷 저장",
+      "reloadSnapshot": "스냅샷 불러오기",
+      "reloadWithoutScope": "필터 없이 리로드",
+      "updateSnapshot": "스냅샷 업데이트",
+      "editScope": "범위 편집",
+      "deleteSnapshot": "스냅샷 삭제",
+      "visibleOnMap": "맵에 입력 표시",
+      "hiddenOnMap": "맵에서 입력 숨김",
+      "lockOnMap": "맵에서 잠금",
+      "stopAll": "모두 중지",
+      "pauseAll": "모두 일시 정지",
+      "resumeAll": "모두 재개",
+      "soloModeSingle": "Single",
+      "soloModeMulti": "Multi",
+      "samplerOff": "Sampler: OFF",
+      "samplerOn": "Sampler: ON"
+    },
+    "toggles": {
+      "acousticPrecedence": "음향 우선",
+      "minimalLatency": "최소 레이턴시",
+      "constraintXOn": "제한 X: 켜기",
+      "constraintXOff": "제한 X: 끄기",
+      "constraintYOn": "제한 Y: 켜기",
+      "constraintYOff": "제한 Y: 끄기",
+      "constraintZOn": "제한 Z: 켜기",
+      "constraintZOff": "제한 Z: 끄기",
+      "constraintROn": "제한 R: 켜기",
+      "constraintROff": "제한 R: 끄기",
+      "flipXOn": "X 반전: 켜기",
+      "flipXOff": "X 반전: 끄기",
+      "flipYOn": "Y 반전: 켜기",
+      "flipYOff": "Y 반전: 끄기",
+      "flipZOn": "Z 반전: 켜기",
+      "flipZOff": "Z 반전: 끄기",
+      "trackingOn": "트래킹: 켜기",
+      "trackingOff": "트래킹: 끄기",
+      "maxSpeedOn": "최대 속도: 켜기",
+      "maxSpeedOff": "최대 속도: 끄기",
+      "pathModeOn": "경로 모드: 켜기",
+      "pathModeOff": "경로 모드: 끄기",
+      "attenuationLawLog": "로그",
+      "attenuationLawLinear": "선형",
+      "liveSourceTamerOn": "테이머: ON",
+      "liveSourceTamerOff": "테이머: OFF",
+      "lsPeakOn": "Peak: ON",
+      "lsPeakOff": "Peak: OFF",
+      "lsSlowOn": "Slow: ON",
+      "lsSlowOff": "Slow: OFF",
+      "floorReflectionsOn": "바닥 반사: 켜기",
+      "floorReflectionsOff": "바닥 반사: 끄기",
+      "lowCutOn": "로우 컷: 켜기",
+      "lowCutOff": "로우 컷: 끄기",
+      "highShelfOn": "하이 쉘프: 켜기",
+      "highShelfOff": "하이 쉘프: 끄기",
+      "reverbSendsUnmuted": "리버브 센드: 활성화",
+      "reverbSendsMuted": "리버브 센드: 음소거",
+      "lfoOn": "L.F.O: 켜기",
+      "lfoOff": "L.F.O: 끄기",
+      "absolute": "절대",
+      "relative": "상대",
+      "stay": "유지",
+      "return": "복귀",
+      "manual": "수동",
+      "triggered": "트리거",
+      "sidelinesOn": "사이드라인 켜기",
+      "sidelinesOff": "사이드라인 끄기"
+    },
+    "clusters": {
+      "single": "단일",
+      "clusterPrefix": "클러스터"
+    },
+    "coordinates": {
+      "xyz": "XYZ"
+    },
+    "snapshots": {
+      "selectSnapshot": "스냅샷 선택..."
+    },
+    "lfo": {
+      "shapes": {
+        "off": "끄기",
+        "sine": "사인",
+        "square": "사각",
+        "sawtooth": "톱니",
+        "triangle": "삼각",
+        "keystone": "키스톤",
+        "log": "로그",
+        "exp": "지수",
+        "random": "랜덤"
+      },
+      "gyrophone": {
+        "antiClockwise": "반시계 방향",
+        "off": "끄기",
+        "clockwise": "시계 방향"
+      }
+    },
+    "liveSource": {
+      "linear": "선형",
+      "log": "로그",
+      "sine": "사인"
+    },
+    "muteMacros": {
+      "selectMacro": "매크로 선택...",
+      "muteAll": "전체 음소거",
+      "unmuteAll": "전체 음소거 해제",
+      "invertMutes": "음소거 반전",
+      "muteOdd": "홀수 음소거",
+      "muteEven": "짝수 음소거",
+      "muteArrayPrefix": "어레이 음소거",
+      "unmuteArrayPrefix": "어레이 음소거 해제"
+    },
+    "arrayPrefix": "어레이",
+    "dialogs": {
+      "importConfig": "입력 설정 가져오기",
+      "exportConfig": "입력 설정 내보내기",
+      "storeSnapshotTitle": "새 스냅샷 저장",
+      "storeSnapshotMessage": "새 스냅샷의 이름을 입력하세요:",
+      "snapshotNameLabel": "이름:",
+      "selectChannel": "채널 선택",
+      "trackingConflictTitle": "트래킹 충돌",
+      "trackingConflictCluster": "입력 {current}은(는) 트래킹이 활성화되어 있지만, 클러스터 {cluster}의 입력 {existing}이(가) 이미 트래킹되고 있습니다.\n\n클러스터당 하나의 트래킹 입력만 허용됩니다.",
+      "trackingConflictContinue": "계속 (트래킹 비활성화)",
+      "trackingConflictSwitch": "클러스터 {cluster}의 입력 {existing}은(는) 이미 트래킹이 활성화되어 있습니다.\n\n클러스터당 하나의 트래킹 입력만 허용됩니다.\n\n입력 {existing}의 트래킹을 비활성화하고 입력 {to}에서 활성화하시겠습니까?",
+      "trackingConflictYes": "예, 트래킹 전환"
+    },
+    "messages": {
+      "selectFolderFirst": "시스템 설정에서 먼저 프로젝트 폴더를 선택하세요.",
+      "configSaved": "입력 설정이 저장되었습니다.",
+      "configLoaded": "입력 설정이 로드되었습니다.",
+      "backupLoaded": "백업에서 입력 설정이 로드되었습니다.",
+      "configImported": "입력 설정을 가져왔습니다.",
+      "configExported": "입력 설정을 내보냈습니다.",
+      "error": "오류: {error}",
+      "setSingle": "입력 {channel}이(가) 단일로 설정됨",
+      "assignedCluster": "입력 {channel}이(가) 클러스터 {cluster}에 할당됨",
+      "noSnapshotSelected": "스냅샷이 선택되지 않았습니다.",
+      "snapshotStored": "스냅샷 '{name}'이(가) 저장되었습니다.",
+      "snapshotLoaded": "스냅샷 '{name}'이(가) 로드되었습니다.",
+      "snapshotLoadedWithoutScope": "스냅샷 '{name}'이(가) 로드되었습니다 (범위 없이).",
+      "snapshotUpdated": "스냅샷 '{name}'이(가) 업데이트되었습니다.",
+      "snapshotDeleted": "스냅샷 '{name}'이(가) 삭제되었습니다.",
+      "scopeSaved": "스냅샷 범위가 저장되었습니다.",
+      "scopeConfigured": "다음 스냅샷을 위한 범위가 구성되었습니다.",
+      "trackingDisabled": "입력 {channel}의 트래킹이 비활성화됨",
+      "trackingSwitched": "트래킹이 입력 {from}에서 입력 {to}(으)로 전환됨"
+    },
+    "help": {
+      "solo": "이 채널의 바이노럴 렌더링을 청취합니다.",
+      "soloMode": "단일: 한 번에 하나의 입력. 다중: 여러 입력 동시에.",
+      "storeConfig": "입력 구성을 파일에 저장합니다 (백업 포함).",
+      "reloadConfig": "파일에서 입력 구성을 다시 불러옵니다.",
+      "reloadBackup": "백업 파일에서 입력 구성을 다시 불러옵니다.",
+      "importConfig": "파일에서 입력 구성을 가져옵니다 (파일 탐색기 사용).",
+      "exportConfig": "입력 구성을 파일로 내보냅니다 (파일 탐색기 사용).",
+      "storeSnapshot": "모든 오브젝트에 대한 새 입력 스냅샷을 저장합니다.",
+      "snapshotSelector": "입력 스냅샷을 불러오지 않고 선택합니다.",
+      "reloadSnapshot": "필터를 고려하여 선택한 입력 스냅샷을 모든 오브젝트에 다시 불러옵니다.",
+      "reloadWithoutScope": "필터 없이 선택한 입력 스냅샷을 모든 오브젝트에 다시 불러옵니다.",
+      "updateSnapshot": "선택한 입력 스냅샷을 업데이트합니다 (백업 포함).",
+      "editScope": "선택한 입력 스냅샷의 필터 창을 엽니다.",
+      "deleteSnapshot": "확인 후 선택한 입력 스냅샷을 삭제합니다.",
+      "channelSelector": "입력 채널 번호 및 선택.",
+      "nameEditor": "표시되는 입력 채널 이름 (편집 가능).",
+      "clusterSelector": "객체가 클러스터의 일부입니다.",
+      "mapLockButton": "맵 탭에서의 상호작용을 방지합니다.",
+      "mapVisibilityButton": "맵에서 선택한 입력을 표시하거나 숨깁니다.",
+      "attenuationSlider": "입력 채널 감쇠.",
+      "delayLatencySlider": "입력 채널 지연 (양수 값) 또는 지연 보정 (음수 값).",
+      "minimalLatencyButton": "증폭 우선순위에 대해 음향 우선순위와 최소 지연 사이를 선택.",
+      "constraintXButton": "위치를 무대 너비 범위로 제한.",
+      "constraintYButton": "위치를 무대 깊이 범위로 제한.",
+      "constraintZButton": "위치를 무대 높이 범위로 제한.",
+      "constraintDistanceButton": "원점으로부터의 거리 범위로 위치 제한 (원통/구형 모드용).",
+      "distanceRangeSlider": "원점으로부터의 최소 및 최대 거리 설정.",
+      "distanceMinEditor": "원점으로부터의 최소 거리 (미터).",
+      "distanceMaxEditor": "원점으로부터의 최대 거리 (미터).",
+      "flipXButton": "X가 원점에 대해 대칭이 됩니다. 키보드 미세 조정이 반전됩니다.",
+      "flipYButton": "Y가 원점에 대해 대칭이 됩니다. 키보드 미세 조정이 반전됩니다.",
+      "flipZButton": "Z가 원점에 대해 대칭이 됩니다. 키보드 미세 조정이 반전됩니다.",
+      "trackingActiveButton": "객체에 대한 트래킹을 활성화 또는 비활성화.",
+      "trackingIdSelector": "객체의 트래커 ID.",
+      "trackingSmoothDial": "객체의 트래킹 데이터 평활화.",
+      "maxSpeedActiveButton": "객체의 속도 제한을 활성화 또는 비활성화.",
+      "maxSpeedDial": "객체의 최대 속도 제한.",
+      "pathModeButton": "직선 대신 그려진 이동 경로를 따르는 경로 모드 활성화.",
+      "heightFactorDial": "객체의 고도를 완전히, 부분적으로 또는 전혀 고려하지 않습니다.",
+      "coordModeSelector": "좌표 표시 모드: 직교 (X/Y/Z), 원통 (반지름/방위각/높이) 또는 구면 (반지름/방위각/고도).",
+      "positionJoystick": "X/Y 위치를 실시간으로 조정하려면 드래그합니다. 놓으면 중앙으로 돌아갑니다.",
+      "positionZSlider": "Z (높이) 위치를 실시간으로 조정하려면 드래그합니다. 놓으면 중앙으로 돌아갑니다.",
+      "attenuationLawButton": "감쇠 법칙 모델 (객체와 스피커 사이의 거리에 따른 선형 음량 감소 또는 제곱).",
+      "distanceAttenDial": "객체와 스피커 사이의 미터당 감쇠.",
+      "distanceRatioDial": "제곱 모델의 감쇠 비율.",
+      "commonAttenDial": "선택한 객체에 대한 모든 출력 대비 감쇠 공통 부분의 백분율.",
+      "directivitySlider": "객체의 밝기 콘 너비.",
+      "inputDirectivityDial": "수평면에서 객체의 방향.",
+      "tiltSlider": "수직면에서 객체의 방향.",
+      "hfShelfSlider": "밝기 콘 외부, 객체 뒤쪽에서 얼마나 많은 밝기가 손실되는지.",
+      "lsActiveButton": "객체에 가까운 스피커의 레벨을 줄여야 하는 경우 (예: 무대 위 큰 음원).",
+      "lsRadiusSlider": "감쇠가 스피커에 영향을 미치는 거리.",
+      "lsShapeSelector": "객체 주변의 감쇠 프로파일.",
+      "lsAttenuationSlider": "객체 주변 스피커의 일정한 감쇠.",
+      "lsPeakEnableButton": "Live Source Tamer의 빠른 (피크) 컴프레서를 활성화 또는 비활성화.",
+      "lsPeakThresholdSlider": "객체 주변 스피커의 트랜지언트 제어를 위한 빠른 압축 임계값.",
+      "lsPeakRatioDial": "객체 주변 스피커의 빠른 압축에 적용할 비율.",
+      "lsSlowEnableButton": "Live Source Tamer의 느린 컴프레서를 활성화 또는 비활성화.",
+      "lsSlowThresholdSlider": "객체 주변 스피커의 지속 레벨 제어를 위한 느린 압축 임계값.",
+      "lsSlowRatioDial": "객체 주변 스피커의 느린 압축에 적용할 비율.",
+      "frActiveButton": "객체에 대한 시뮬레이션된 바닥 반사를 활성화.",
+      "frAttenuationSlider": "객체에 대한 시뮬레이션된 바닥 반사의 감쇠.",
+      "frDiffusionDial": "객체에 대한 시뮬레이션된 바닥 반사의 확산 효과.",
+      "frLowCutActiveButton": "바닥 반사용 로우컷 필터 활성화.",
+      "frLowCutFreqSlider": "바닥 반사용 로우컷 주파수.",
+      "frHighShelfActiveButton": "바닥 반사용 하이쉘프 필터 활성화.",
+      "frHighShelfFreqSlider": "바닥 반사용 하이쉘프 주파수.",
+      "frHighShelfGainSlider": "바닥 반사용 하이쉘프 게인.",
+      "frHighShelfSlopeSlider": "바닥 반사용 하이쉘프 기울기.",
+      "muteReverbSendsButton": "이 입력에서 모든 리버브 채널로의 전송을 음소거.",
+      "jitterSlider": "객체의 빠른 움직임의 구.",
+      "lfoActiveButton": "객체의 주기적 움직임 (LFO)을 활성화 또는 비활성화.",
+      "lfoPeriodDial": "객체 움직임의 기본 주기.",
+      "lfoPhaseDial": "객체 움직임의 위상 오프셋.",
+      "lfoShapeXSelector": "너비에서 객체 움직임의 동작.",
+      "lfoShapeYSelector": "깊이에서 객체 움직임의 동작.",
+      "lfoShapeZSelector": "높이에서 객체 움직임의 동작.",
+      "lfoRateXSlider": "너비에서 기본 주기에 대한 빠르거나 느린 움직임.",
+      "lfoRateYSlider": "깊이에서 기본 주기에 대한 빠르거나 느린 움직임.",
+      "lfoRateZSlider": "높이에서 기본 주기에 대한 빠르거나 느린 움직임.",
+      "lfoAmplitudeXSlider": "객체 기본 위치에 대한 너비 움직임 크기.",
+      "lfoAmplitudeYSlider": "객체 기본 위치에 대한 깊이 움직임 크기.",
+      "lfoAmplitudeZSlider": "객체 기본 위치에 대한 높이 움직임 크기.",
+      "lfoPhaseXDial": "너비에서 객체 움직임의 위상 오프셋.",
+      "lfoPhaseYDial": "깊이에서 객체 움직임의 위상 오프셋.",
+      "lfoPhaseZDial": "높이에서 객체 움직임의 위상 오프셋.",
+      "lfoGyrophoneSelector": "객체의 밝기 콘 회전.",
+      "otomoCoordMode": "AutomOtion 목적지 좌표 표시 모드: 직교(X/Y/Z), 원통(r/θ/Z), 구면(r/θ/φ).",
+      "otomoAbsRelButton": "상대 또는 절대 변위 좌표 선택.",
+      "otomoStayReturnButton": "움직임 끝에 소스가 머물지 또는 원래 위치로 돌아갈지.",
+      "otomoSpeedProfileDial": "움직임 시작과 끝에서 일정한 속도 또는 점진적 가속과 감속.",
+      "otomoTriggerButton": "변위의 수동 시작 또는 오디오 레벨에 따른 자동 트리거.",
+      "otomoThresholdDial": "움직임의 자동 트리거 임계값 설정.",
+      "otomoResetDial": "자동 트리거 리셋 레벨 설정.",
+      "otomoStartButton": "움직임 수동 시작.",
+      "otomoStopButton": "움직임 정지.",
+      "otomoPauseButton": "움직임 일시 정지 및 재개.",
+      "otomoDurationDial": "움직임 지속 시간 (초, 0.1초~1시간).",
+      "otomoCurveDial": "이동 방향의 왼쪽 (음수) 또는 오른쪽 (양수)으로 경로를 구부립니다.",
+      "otomoStopAllButton": "모든 활성 움직임을 전역적으로 정지.",
+      "otomoPauseResumeAllButton": "모든 활성 움직임을 전역적으로 일시 정지 또는 재개.",
+      "muteButton": "이 객체에 대한 출력 {num} 음소거.",
+      "muteMacrosSelector": "어레이의 빠른 음소거 및 음소거 해제를 위한 음소거 매크로.",
+      "arrayAttenDial": "어레이 {num}의 감쇠 (-60~0 dB).",
+      "sidelinesActiveButton": "소스가 무대 가장자리에 접근할 때 자동 음소거 활성화. 앞쪽 (관객 측) 가장자리에는 적용되지 않습니다.",
+      "sidelinesFringeDial": "전환 영역 크기 (미터). 외부 절반은 완전히 음소거하고, 내부 절반은 선형으로 페이드합니다.",
+      "position1": "오브젝트 {name} ({unit}).",
+      "position2": "오브젝트 {name} ({unit}).",
+      "position3": "오브젝트 {name} ({unit}).",
+      "offset1": "오브젝트 오프셋 {name} ({unit}). 트래킹 활성화 시 조정됨.",
+      "offset2": "오브젝트 오프셋 {name} ({unit}). 트래킹 활성화 시 조정됨.",
+      "offset3": "오브젝트 오프셋 {name} ({unit}). 트래킹 활성화 시 조정됨.",
+      "otomoDest1": "상대 또는 절대 목적지 {name} ({unit}).",
+      "otomoDest2": "상대 또는 절대 목적지 {name} ({unit}).",
+      "otomoDest3": "상대 또는 절대 목적지 {name} ({unit}).",
+      "nudgeHint1": " 좌우 화살표 키로 조정.",
+      "nudgeHint2": " 상하 화살표 키로 조정.",
+      "nudgeHint3": " Page Up/Down으로 조정.",
+      "admMapping": "이 입력을 ADM-OSC 매핑에 할당하여 위치 송수신을 수행합니다."
+    },
+    "visualisation": {
+      "delay": "지연",
+      "hfDamping": "HF\n감쇠",
+      "level": "레벨"
+    },
+    "prefixes": {
+      "delay": "지연:",
+      "latency": "레이턴시:",
+      "ratioPrefix": "1:"
+    }
+  },
+  "snapshotScope": {
+    "windowTitle": "입력 스냅샷 범위",
+    "title": "스냅샷 범위: {name}",
+    "applyScope": "범위 적용:",
+    "whenSaving": "저장 시",
+    "whenRecalling": "호출 시",
+    "all": "전체",
+    "sections": {
+      "input": "입력",
+      "position": "위치",
+      "attenuation": "감쇠",
+      "directivity": "지향성",
+      "liveSource": "라이브 소스",
+      "hackoustics": "Hackoustics (가상음향)",
+      "lfo": "LFO",
+      "automOtion": "AutomOtion (자동이동)",
+      "mutes": "음소거",
+      "admMapping": "ADM-OSC"
+    },
+    "buttons": {
+      "ok": "OK",
+      "cancel": "취소",
+      "selectModified": "수정된 항목 선택",
+      "clearChanges": "변경 사항 지우기"
+    },
+    "autoPreselectModified": "수정된 파라미터 자동 미리 선택",
+    "writeToQLab": "QLab에 쓰기",
+    "writeToQLabTooltip": "파일 저장 대신 스코프를 QLab으로 내보내기",
+    "writeSnapshotLoadCue": "스냅샷 로드 큐를 QLab에 쓰기",
+    "writeSnapshotLoadCueTooltip": "OSC로 이 스냅샷을 로드하는 QLab 큐도 생성"
+  },
+  "snapshot": {
+    "qlabNoTarget": "QLab 대상이 설정되지 않았습니다",
+    "qlabExportStarted": "QLab에 {count}개 큐 쓰는 중...",
+    "qlabExportDone": "QLab 내보내기 완료: {count}개 큐 생성",
+    "qlabGroupName": "스냅샷 \"{name}\"",
+    "qlabMemoText": "다음 큐 중 하나를 실행하여 이 스냅샷을 불러오거나 업데이트하세요",
+    "qlabReloadName": "불러오기 \"{name}\"",
+    "qlabUpdateName": "업데이트 \"{name}\""
+  },
+  "setAllInputs": {
+    "windowTitle": "모든 입력 설정",
+    "warning": "변경 사항이 모든 입력에 적용됩니다",
+    "labels": {
+      "coordinateMode": "좌표 모드:",
+      "minimalLatency": "최소 레이턴시:",
+      "constraintPositions": "위치 제한:",
+      "heightFactor": "높이 계수:",
+      "distanceAttenuation": "거리 감쇠",
+      "dbPerMeter": "dB/m",
+      "ratio": "비율",
+      "common": "공통",
+      "muteMacros": "음소거 매크로:",
+      "sidelines": "사이드라인:",
+      "fringe": "프린지:",
+      "floorReflections": "바닥 반사:"
+    },
+    "buttons": {
+      "flipXyzOff": "XYZ 반전 > 끄기",
+      "allLog": "모두 로그",
+      "all1d": "모두 1/d",
+      "resetDirectivity": "지향성 초기화",
+      "turnOffLiveSource": "라이브 소스 감쇠 끄기",
+      "turnOffJitterLfo": "지터 & LFO 끄기",
+      "closeWindow": "창 닫기"
+    },
+    "coordinateModes": {
+      "xyz": "XYZ",
+      "rThetaZ": "r θ Z",
+      "rThetaPhi": "r θ φ"
+    }
+  },
+  "fileManager": {
+    "dialogs": {
+      "selectProjectFolder": "프로젝트 폴더 선택"
+    },
+    "errors": {
+      "noProjectFolder": "프로젝트 폴더가 지정되지 않았습니다",
+      "failedCreateFolder": "프로젝트 폴더 생성 실패: {path}",
+      "noValidProjectFolder": "유효한 프로젝트 폴더가 없습니다",
+      "invalidConfigStructure": "구성 파일 구조가 잘못되었습니다",
+      "backupNotFound": "백업을 찾을 수 없습니다",
+      "noSystemDataInFile": "파일에서 유효한 시스템 데이터를 찾을 수 없습니다: {path}",
+      "noNetworkDataInFile": "파일에서 네트워크 데이터를 찾을 수 없습니다",
+      "noNetworkSections": "파일에서 네트워크 섹션을 찾을 수 없습니다",
+      "noInputDataInFile": "파일에서 입력 데이터를 찾을 수 없습니다",
+      "noOutputDataInFile": "파일에서 출력 데이터를 찾을 수 없습니다",
+      "noReverbDataInFile": "파일에서 리버브 데이터를 찾을 수 없습니다",
+      "noLFOPresetDataInFile": "파일에서 LFO 프리셋 데이터를 찾을 수 없습니다",
+      "noInputDataInSnapshot": "스냅샷에 입력 데이터가 없습니다",
+      "snapshotDoesNotExist": "스냅샷이 존재하지 않습니다",
+      "snapshotNotFound": "스냅샷을 찾을 수 없습니다",
+      "snapshotNotFoundNamed": "스냅샷을 찾을 수 없습니다: {name}",
+      "failedCreateXML": "상태에서 XML을 생성하지 못했습니다",
+      "failedWriteFile": "파일 쓰기 실패: {path}",
+      "fileNotFound": "파일을 찾을 수 없습니다: {path}",
+      "failedParseXML": "XML 파일 분석 실패: {path}",
+      "failedCreateValueTree": "XML에서 ValueTree를 생성하지 못했습니다: {path}",
+      "configStateInvalid": "구성 상태가 유효하지 않습니다",
+      "failedApply": "적용 실패: {sections}",
+      "prefixSystem": "시스템: ",
+      "prefixNetwork": "네트워크: ",
+      "prefixInputs": "입력: ",
+      "prefixOutputs": "출력: ",
+      "prefixReverbs": "리버브: "
+    }
+  },
+  "sampler": {
+    "placeholder": "샘플러 — 곧 출시",
+    "labels": {
+      "lightpadZone": "Lightpad 영역",
+      "selectZone": "영역 선택"
+    },
+    "lightpadZone": {
+      "none": "없음"
+    },
+    "section": {
+      "cell": "셀 속성",
+      "set": "세트 관리",
+      "pressure": "압력 매핑",
+      "actions": "동작"
+    },
+    "cell": {
+      "load": "불러오기",
+      "clear": "지우기",
+      "preview": "미리듣기",
+      "loadTitle": "샘플 불러오기",
+      "inTime": "인 (ms)",
+      "outTime": "아웃 (ms)",
+      "inOut": "인/아웃 (ms)",
+      "offset": "오프셋 (m)",
+      "offsetX": "Offset X",
+      "offsetY": "Offset Y",
+      "offsetZ": "Offset Z",
+      "attenuation": "감쇠 (dB)",
+      "previewStop": "정지"
+    },
+    "set": {
+      "default": "세트",
+      "rename": "이름 변경",
+      "sequential": "순차",
+      "roundRobin": "라운드 로빈",
+      "copy": "(복사)",
+      "pos": "위치 (m)",
+      "posX": "Pos X (m)",
+      "posY": "Pos Y (m)",
+      "posZ": "Pos Z (m)",
+      "level": "레벨 (dB)"
+    },
+    "press": {
+      "level": "레벨",
+      "height": "높이",
+      "hf": "HF Shelf",
+      "xy": "Position XY",
+      "xyScale": "스케일"
+    },
+    "buttons": {
+      "copy": "복사",
+      "paste": "붙여넣기",
+      "copyCell": "셀 복사",
+      "copySet": "세트 복사",
+      "pasteCell": "셀 붙여넣기",
+      "pasteSet": "세트 붙여넣기",
+      "import": "가져오기",
+      "export": "내보내기"
+    },
+    "importTitle": "샘플러 설정 가져오기",
+    "exportTitle": "샘플러 설정 내보내기",
+    "grid": {
+      "help": "클릭=선택 | Shift=다중 | Ctrl=세트 전환 | 더블클릭=로드"
+    },
+    "tooltips": {
+      "load": "선택한 셀에 샘플 파일 로드",
+      "clear": "선택한 셀에서 샘플 제거 (길게 누르기)",
+      "preview": "로드된 샘플 미리듣기",
+      "inOut": "인/아웃 시간 범위를 밀리초로 설정. 썸 사이를 드래그하여 둘 다 이동.",
+      "offset": "세트 위치에 대한 미터 단위의 위치 오프셋 (X, Y, Z)",
+      "attenuation": "셀 감쇠 (dB, 0 = 감쇠 없음, -60 = 무음)",
+      "addSet": "새 세트 만들기. 셀이 선택되어 있으면 할당됩니다.",
+      "deleteSet": "활성 세트 삭제 (길게 누르기)",
+      "renameSet": "활성 세트 이름 바꾸기",
+      "playMode": "순차 및 라운드 로빈 재생 사이 전환",
+      "setPos": "기본 위치를 미터 단위로 설정 (X, Y, Z)",
+      "setLevel": "출력 레벨을 dB로 설정 (0 = 단위, -60 = 무음)",
+      "pressLevel": "손가락 압력을 출력 레벨에 매핑",
+      "pressHeight": "손가락 압력을 수직 위치 (Z)에 매핑",
+      "pressHF": "손가락 압력을 하이쉘프 감쇠에 매핑",
+      "pressDir": "압력 방향 전환: + = 더 큰 압력이 증가, - = 감소",
+      "pressCurve": "압력 응답 곡선 (0 = 오목, 0.5 = 선형, 1 = 볼록)",
+      "pressXY": "손가락 압력을 XY 위치 이동에 매핑",
+      "pressXYScale": "감도: 압력 단계당 소스가 이동하는 거리",
+      "copy": "선택한 셀 또는 활성 세트를 클립보드에 복사",
+      "paste": "클립보드 데이터를 선택한 셀 또는 활성 세트에 붙여넣기",
+      "import": "샘플러 구성을 파일에서 가져오기",
+      "export": "샘플러 구성을 파일로 내보내기"
+    },
+    "qlabSetCueName": "입력 {channel} 샘플러 세트: {name}",
+    "qlabSetCueCreated": "QLab 큐 생성: 입력 {channel} 세트 \"{name}\"",
+    "guide": "그리드의 셀을 선택하여 속성을 편집합니다.\n샘플을 로드하려면 두 번 클릭합니다.\nCtrl+클릭으로 셀을 활성 세트에 할당합니다.",
+    "zone": {
+      "remotePad": "Pad {num}",
+      "selectRemotePad": "리모컨 패드 선택",
+      "noRemote": "연결된 리모컨이 없음"
+    },
+    "remote": {
+      "grid3x2": "3×2 (6 패드)",
+      "grid5x3": "5×3 (15 패드)",
+      "gridLayout": "그리드 레이아웃"
+    }
+  },
+  "streamDeck": {
+    "systemConfig": {
+      "buttons": {
+        "audioPatch": "오디오\n패치",
+        "processingOn": "처리:\nON",
+        "processingOff": "처리:\nOFF",
+        "binauralOn": "바이노럴:\nON",
+        "binauralOff": "바이노럴:\nOFF"
+      },
+      "dials": {
+        "listenerDistance": "리스너\n거리",
+        "listenerAngle": "리스너\n각도",
+        "binauralLevel": "바이노럴\n레벨",
+        "binauralDelay": "바이노럴\n딜레이"
+      }
+    },
+    "map": {
+      "buttons": {
+        "showLevelsOn": "레벨:\nON",
+        "showLevelsOff": "레벨:\nOFF",
+        "positionMode": "모드:\n위치",
+        "offsetMode": "모드:\n오프셋",
+        "fitStage": "무대에\n맞춤",
+        "fitAllInputs": "모든 입력\n맞춤"
+      },
+      "dials": {
+        "selectInput": "입력\n선택",
+        "selectCluster": "클러스터\n선택",
+        "panX": "Pan X",
+        "panY": "Pan Y",
+        "zoom": "Zoom",
+        "positionX": "위치\nX",
+        "positionY": "위치\nY",
+        "positionZ": "위치\nZ",
+        "offsetX": "오프셋\nX",
+        "offsetY": "오프셋\nY",
+        "offsetZ": "오프셋\nZ",
+        "orientation": "방향",
+        "clusterRefX": "클러스터\n기준X",
+        "clusterRefY": "클러스터\n기준Y",
+        "clusterScale": "클러스터\n스케일",
+        "clusterRotation": "클러스터\n회전",
+        "moveX": "Move\nX",
+        "moveY": "Move\nY",
+        "moveZ": "Move\nZ"
+      },
+      "labels": {
+        "inputN": "입력 %d",
+        "clusterN": "클러스터 %d",
+        "deselect": "선택 해제",
+        "inputs": "Inputs"
+      }
+    },
+    "inputs": {
+      "sections": {
+        "attenuationAndDelay": "Attenuation\n& Delay",
+        "positionAndDirectivity": "Position &\nDirectivity",
+        "positionAdvanced": "Position\nAdvanced",
+        "liveSourceBasics": "Live Source\nBasics",
+        "liveSourceCompression": "Live Source\nCompress.",
+        "hackoustics": "Hackoustics",
+        "hackousticsContinued": "Hackoustics\n(continued)",
+        "lfo": "LFO",
+        "automOtionPosition": "AutomOtion\nPosition",
+        "automOtionContinued": "AutomOtion\n(cont.)",
+        "automOtionManual": "AutomOtion\nManual"
+      },
+      "buttons": {
+        "minimalDelay": "Minimal\nDelay",
+        "attenuationLaw": "Attenuation\nLaw",
+        "constraint": "Constraint",
+        "flip": "Flip",
+        "constraintX": "Constraint X",
+        "constraintY": "Constraint Y",
+        "constraintZ": "Constraint Z",
+        "flipX": "Flip X",
+        "flipY": "Flip Y",
+        "flipZ": "Flip Z",
+        "sideline": "Sideline",
+        "tracking": "Tracking",
+        "maxSpeed": "Max Speed",
+        "liveSourceTamer": "Live Source\nTamer",
+        "floorReflections": "Floor\nReflections",
+        "lowCutFilter": "Low Cut\nFilter",
+        "highShelfFilter": "High Shelf\nFilter",
+        "sendToReverb": "Send to\nReverb",
+        "lfoAndJitter": "LFO &\nJitter",
+        "lfoX": "LFO X",
+        "lfoY": "LFO Y",
+        "lfoZ": "LFO Z",
+        "absRel": "Abs / Rel",
+        "stayReturn": "Stay /\nReturn",
+        "manualTriggered": "Manual /\nTriggered",
+        "play": "▶",
+        "pauseResume": "❚❚",
+        "stop": "■",
+        "stopAll": "Stop All"
+      },
+      "dials": {
+        "attenuation": "Attenuation",
+        "delay": "Delay",
+        "latency": "Latency",
+        "distanceAttenuation": "Distance\nAttenuation",
+        "ratio": "Ratio",
+        "commonAttenuation": "Common\nAttenuation",
+        "directivity": "Directivity",
+        "rotation": "Rotation",
+        "tilt": "Tilt",
+        "hfShelf": "HF Shelf",
+        "fringe": "Fringe",
+        "trackingSmooth": "Tracking\nSmooth",
+        "maxSpeed": "Max Speed",
+        "heightFactor": "Height Factor",
+        "shape": "Shape",
+        "radius": "Radius",
+        "fixedAttenuation": "Fixed\nAttenuation",
+        "peakThreshold": "Peak\nThreshold",
+        "peakRatio": "Peak Ratio",
+        "slowThreshold": "Slow\nThreshold",
+        "slowRatio": "Slow Ratio",
+        "frAttenuation": "FR\nAttenuation",
+        "frDiffusion": "FR Diffusion",
+        "lowCutFrequency": "Low Cut\nFrequency",
+        "highShelfFrequency": "High Shelf\nFrequency",
+        "highShelfGain": "High Shelf\nGain",
+        "highShelfSlope": "High Shelf\nSlope",
+        "lfoPeriod": "Period",
+        "lfoPhase": "Phase",
+        "gyrophone": "Gyrophone",
+        "jitter": "Jitter",
+        "lfoToggle": "LFO",
+        "lfoOn": "LFO\nON",
+        "lfoOff": "LFO\nOFF",
+        "lfoShape": "Shape",
+        "lfoAmplitude": "Amplitude",
+        "lfoRate": "Rate",
+        "lfoAxisPhase": "Phase",
+        "duration": "Duration",
+        "curve": "Curve",
+        "speedProfile": "Speed\nProfile",
+        "triggerThreshold": "Threshold",
+        "triggerReset": "Reset"
+      },
+      "comboOptions": {
+        "square": "square"
+      }
+    },
+    "outputs": {
+      "sections": {
+        "outputParameters": "Output\nParameters",
+        "outputOrientation": "Output\nOrientation"
+      },
+      "buttons": {
+        "minimalLatency": "Minimal\nLatency",
+        "liveSourceAtten": "Live Source\nAtten.",
+        "floorReflections": "Floor\nReflections"
+      },
+      "dials": {
+        "attenuation": "Attenuation",
+        "delay": "Delay",
+        "latency": "Latency",
+        "distanceAttenuation": "Distance\nAtten.",
+        "hfDamping": "HF Damping",
+        "onAngle": "On Angle",
+        "offAngle": "Off Angle",
+        "orientation": "Orientation",
+        "pitch": "Pitch"
+      },
+      "eq": {
+        "buttons": {
+          "eqOnOff": "EQ",
+          "bandOnOff": "Band\nOn/Off"
+        },
+        "dials": {
+          "shape": "Shape",
+          "frequency": "Frequency",
+          "gain": "Gain",
+          "q": "Q"
+        }
+      }
+    },
+    "reverb": {
+      "sections": {
+        "feedParameters": "Reverb Feed\nParameters",
+        "feedOrientation": "Reverb Feed\nOrientation",
+        "reverbReturn": "Reverb\nReturn",
+        "soloMute": "Solo\nMute"
+      },
+      "buttons": {
+        "editOnMap": "맵에서\n편집",
+        "soloReverb": "Solo\nReverb",
+        "mutePre": "Mute\nPre",
+        "mutePost": "Mute\nPost"
+      },
+      "dials": {
+        "commonAttenuation": "Common\nAtten."
+      },
+      "noChannels": "리버브 채널 없음",
+      "algorithm": {
+        "sdn": "SDN",
+        "fdn": "FDN",
+        "ir": "IR",
+        "soloMute": "Solo\nMute",
+        "rt60Group": "RT60",
+        "crossDiffScale": "Cross\nDiff\nScale",
+        "crossDiffSize": "Cross\nDiff\nSize",
+        "rt60": "RT60",
+        "rt60High": "RT60\nHigh",
+        "rt60Low": "RT60\nLow",
+        "crossoverHigh": "Crossover\nHigh",
+        "crossoverLow": "Crossover\nLow",
+        "diffusion": "Diffusion",
+        "scale": "Scale",
+        "size": "Size",
+        "wetLevel": "Wet\nLevel",
+        "irTrim": "IR Trim",
+        "irLength": "IR\nLength"
+      }
+    },
+    "network": {
+      "buttons": {
+        "oscFilterAll": "OSC 필터:\n모두",
+        "oscFilterRegistered": "OSC 필터:\n등록됨",
+        "openLog": "로그\n열기",
+        "trackingOn": "트래킹:\nON",
+        "trackingOff": "트래킹:\nOFF"
+      }
+    },
+    "patch": {
+      "tabs": {
+        "audioInterface": "Audio\nInterface",
+        "inputPatch": "Input\nPatch",
+        "outputPatch": "Output\nPatch"
+      },
+      "buttons": {
+        "scroll": "Scroll",
+        "patch": "Patch",
+        "test": "Test",
+        "holdOn": "Hold:\nON",
+        "holdOff": "Hold:\nOFF",
+        "patchUnpatch": "Patch /\nUnpatch",
+        "testChannel": "Test\nChannel"
+      },
+      "dials": {
+        "columns": "Column",
+        "rows": "Row",
+        "signalType": "Signal\nType",
+        "level": "Level",
+        "frequency": "Frequency"
+      }
+    },
+    "clusters": {
+      "buttons": {
+        "lfo": "LFO",
+        "lfoX": "LFO X",
+        "lfoY": "LFO Y",
+        "lfoZ": "LFO Z",
+        "preset": "프리셋",
+        "rotation": "회전",
+        "scale": "스케일",
+        "lfoOn": "LFO\nON",
+        "lfoOff": "LFO\nOFF"
+      },
+      "dials": {
+        "stopAll": "모두\n정지",
+        "period": "주기",
+        "phase": "위상",
+        "shape": "형태",
+        "amplitude": "진폭",
+        "angle": "각도",
+        "ratio": "비율",
+        "rate": "속도",
+        "axisPhase": "위상",
+        "presetNav": "프리셋",
+        "presetN": "프리셋\n#%d",
+        "presetRow": "행",
+        "store": "저장",
+        "recall": "리콜",
+        "recallStart": "리콜\n+ 시작"
+      }
+    }
+  },
+  "help": {
+    "binaural": {
+      "title": "바이노럴 렌더러",
+      "body": "바이노럴 렌더러 용도:\n- 헤드폰으로 대략적인 공간 믹스 청취\n- 스테레오 출력용 믹스 생성\n- 솔로 트랙을 공간 처리로 청취\n헤드폰과 미디어 믹스만 사용하는 경우 마스터 믹스를 대체할 수 있습니다.\n청취 위치는 원점에서의 깊이와 방향으로 조정할 수 있습니다. 딜레이와 레벨 설정으로 FOH 위치의 사운드에 맞출 수 있습니다."
+    },
+    "map": {
+      "title": "맵",
+      "body": "- 입력이나 클러스터를 왼쪽 클릭하여 드래그로 이동합니다.\n- Shift+왼쪽 클릭으로 선택에 추가/제거합니다.\n- 왼쪽 클릭 드래그로 선택 사각형을 그립니다.\n- 더블클릭으로 위치 오프셋을 리셋합니다.\n- 움직임 없는 긴 클릭으로 입력 탭으로 전환합니다.\n- 입력 외부 클릭으로 선택을 해제합니다.\n- 오른쪽 클릭 드래그로 맵을 팬합니다. 두 손가락 드래그도 동일합니다.\n- 마우스 휠로 줌합니다. 두 손가락 핀치도 동일합니다.\n- 가운데 클릭으로 뷰를 리셋합니다.\n- 화살표 키로 X/Y 이동, PageUp/Down으로 높이 조정.\n- 두 번째 손가락으로 지향성 회전과 높이 조정이 가능합니다.\n- 클러스터에서는 두 번째 손가락으로 회전과 크기 조정이 가능합니다.\n- 입력, 출력 배열, 리버브 노드를 숨길 수 있습니다.\n- 입력을 잠가 선택과 이동을 방지할 수 있습니다.\n- 리버브 노드를 이동 가능. Ctrl/Cmd로 쌍을 대칭 이동합니다.\n- 라이브 소스 테이머 반경이 표시됩니다.\n- 오디오 레벨을 맵에 표시할 수 있습니다."
+    },
+    "clusters": {
+      "title": "클러스터",
+      "body": "클러스터는 전체적으로 조작하고 애니메이션할 수 있는 입력 그룹입니다.\n각 입력은 하나의 클러스터에만 속할 수 있습니다.\n각 클러스터에는 트래킹이 완전히 활성화된 입력이 하나만 있을 수 있으며, 이 입력이 기준점이 됩니다.\n트래킹 입력이 없으면 기준점에 두 가지 모드가 있습니다: 목록의 첫 번째 입력 또는 할당된 입력의 무게중심입니다.\n기준점을 드래그하여 모든 입력을 이동할 수 있습니다. 개별 입력도 별도로 조정 가능합니다. 트래킹이 활성화되고 기준점인 입력을 드래그하면 위치 오프셋과 클러스터의 다른 입력 위치가 정상적으로 영향을 받습니다.\n클러스터의 모든 입력을 기준점을 중심으로 회전하거나 크기를 조정할 수 있습니다.\n모든 클러스터에 LFO 애니메이션을 할당할 수 있습니다. X, Y, Z 위치, 회전, 스케일을 제어할 수 있습니다. LFO 설정을 패드에 할당하여 빠르게 불러올 수 있습니다. 오른쪽 클릭으로 LFO 매개변수를 패드에 저장합니다. 패드 상단을 더블클릭하면 프리셋 이름을 편집할 수 있습니다. 패드를 클릭하거나 탭하면 LFO 실행 여부와 관계없이 설정을 불러오지만, 중지된 LFO를 시작하지는 않습니다. 더블클릭/탭으로 LFO를 로드하고 시작합니다.\n모든 클러스터는 같은 LFO 프리셋 세트를 공유합니다."
+    },
+    "lfo": {
+      "title": "입력 LFO",
+      "body": "입력 위치를 자동화할 수 있습니다. LFO는 X, Y, Z 좌표를 개별적으로 제어하고 HF 지향성의 회전(자이로폰)도 제어할 수 있습니다.\nLFO의 전체 주기와 위상을 조정합니다.\nX, Y, Z 좌표에 대해 형태, 진폭, 속도, 위상을 선택합니다. XY 평면의 원은 X와 Y에 사인파를 사용하고 ±90° 오프셋을 설정합니다.\nLFO 작동 중에도 입력 위치를 이동할 수 있습니다."
+    },
+    "automOtion": {
+      "title": "AutomOtion",
+      "body": "일회성 움직임을 프로그래밍하고 수동 또는 사운드 레벨로 트리거할 수 있습니다.\n좌표는 시작 위치에서의 상대값 또는 원점에 대한 절대값입니다.\n입력은 끝 위치에 머물거나 시작 위치로 돌아갈 수 있습니다.\n이동 중에는 위치를 변경할 수 없지만, 입력과의 상호작용은 위치 오프셋을 변경합니다.\n오디오 레벨 트리거의 경우 움직임이 시작될 임계값을 선택합니다. 사운드가 리셋 레벨 아래로 떨어지면 움직임이 재준비됩니다."
+    },
+    "gradientMap": {
+      "title": "그래디언트 맵",
+      "body": "그래디언트 맵은 X, Y 위치에 따라 감쇠, 높이, 고주파 필터링(1kHz 중심의 부드러운 슬로프 쉘프)을 제어할 수 있습니다. 예를 들어 특정 구역에 진입할 때 소리를 페이드아웃하거나, 무대 전면에서 멀어질 때 고주파 롤오프를 적용하거나, 높은 플랫폼 위의 배우 높이를 자동 조정할 수 있습니다.\n감쇠, 높이, HF 쉘프의 3개 레이어가 있습니다. 켜기/끄기 전환과 숨기기가 가능합니다.\n각 레이어에는 효과 범위를 조정하는 흰색/검정 매핑 컨트롤이 있습니다. 커브 설정으로 전환을 조정합니다.\n각 레이어에 편집 가능한 도형(사각형, 타원, 다각형)을 배치할 수 있으며, 단색 회색, 선형 그래디언트, 방사형 그래디언트를 사용할 수 있습니다.\n다각형 생성 시 각 모서리를 클릭하고 더블클릭으로 닫습니다.\n기존 점을 더블클릭하면 삭제, 변을 더블클릭하면 새 점이 추가됩니다.\n도형과 레이어는 다른 레이어로 복사할 수 있습니다.\n설정은 입력 파일에 저장됩니다."
+    },
+    "sampler": {
+      "title": "샘플러",
+      "body": "샘플러는 샘플을 트리거하고 실시간으로 상호작용할 수 있습니다.\n트랙에서 활성화하면 샘플러는 항상 라이브 입력을 대체합니다.\n여러 샘플러를 다른 입력에 할당하고 개별적으로 트리거할 수 있습니다.\n샘플러 사용법:\n- Roli Lightpad 또는 연결된 Android Remote 앱의 패드를 선택합니다.\n- 그리드의 타일에 샘플을 추가합니다. 상대적 시작 위치, 레벨, 인/아웃 포인트를 조정합니다. Shift 키를 누르면서 클릭하면 여러 샘플을 선택할 수 있습니다.\n- 샘플 세트 생성: 선택한 샘플이 새 세트에 추가됩니다. Ctrl/Cmd를 누르면서 클릭하면 세트 생성 후 추가/제거할 수 있습니다. 각 세트는 이름 변경이 가능하고 고정 순서 또는 랜덤 순서를 설정할 수 있습니다. 각 세트에는 감쇠 설정과 기본 위치가 있습니다.\n- Lightpad 또는 패드를 눌러 샘플을 트리거합니다. 패드 압력은 레벨, 높이, 고주파 필터링에 매핑할 수 있습니다. 손가락 움직임은 조이스틱처럼 소리를 이동시킵니다.\n패드를 놓으면 샘플이 중지됩니다.\n샘플러 설정은 입력 파일에 저장됩니다.\n타일과 세트는 복사, 내보내기, 가져오기가 가능합니다."
+    },
+    "liveSource": {
+      "title": "라이브 소스 테이머",
+      "body": "무대 위의 큰 소리 소스는 근처 스피커를 통한 보강이 필요 없을 수 있습니다. 무대 가장자리의 오페라 가수를 상상해 보세요. 일반적으로 레벨 분배는 입력 위치 근처에서 더 크게 만듭니다. 하지만 이미 충분히 크다면 과도하게 증폭하지 않아야 합니다. 이 기능이 이를 관리합니다.\n반경과 형태는 이 입력의 영향 반경 내 스피커에 대한 레벨 감쇠 방법을 설명합니다. 다양한 형태가 있습니다: V자형 선형 효과, 빠른 감소를 위한 U자형, 좁은 V자형 또는 이전 것들의 혼합(사인).\n감쇠는 일정하거나 과도 응답과 평균 RMS 레벨에 반응하는 로컬 압축처럼 레벨 의존적일 수 있습니다."
+    },
+    "floorReflections": {
+      "title": "바닥 반사",
+      "body": "바닥 반사를 시뮬레이션하면 소리의 자연스러움이 향상됩니다. 방음 무향실에서 소리가 재생되는 것을 기대하지 않습니다. 이 설정은 예상되는 바닥 반사를 재현하는 데 도움이 됩니다.\n바닥 반사의 레벨은 로우컷 필터 및 고주파 쉘프 필터와 함께 조정할 수 있습니다. 디퓨전은 바닥의 불균일함을 시뮬레이션하기 위해 약간의 카오스를 추가합니다."
+    },
+    "reverb": {
+      "title": "리버브",
+      "body": "리버브는 스피커의 실제 반사를 흐리게 하는 데 도움이 됩니다.\n채널 수와 무대 형상에 따라 리버브 노드를 배치합니다.\n기타 매개변수는 출력 및 입력과 유사합니다."
+    },
+    "reverbFeed": {
+      "title": "리버브 피드",
+      "body": "입력 채널에서 리버브 노드로의 전처리 전송.\n- 방향과 On/Off 각도가 각 노드가 수신할 입력을 정의합니다.\n- HF 감쇠는 거리에 따른 고주파 손실을 시뮬레이션합니다.\n- 거리 감쇠 비율은 적용되는 감쇠를 정의합니다.\n- 최소 지연은 최소 계산 지연 사용을 전환합니다.\n- 라이브 소스 감쇠는 근처 입력의 레벨 감소를 전환합니다."
+    },
+    "reverbReturn": {
+      "title": "리버브 리턴",
+      "body": "스피커로의 후처리 전송.\n- 거리 감쇠는 미터당 레벨 감소를 정의합니다.\n- 공통 감쇠는 최저 감쇠의 비율을 유지합니다.\n- 뮤트는 리버브 채널이 출력에 공급되는 것을 방지합니다."
+    },
+    "reverbAlgo": {
+      "title": "리버브 알고리즘",
+      "body": "이 공간 음향 프로세서에는 세 가지 리버브 유형이 내장되어 있습니다:\n- SDN (산란 지연 네트워크): 소리가 반사면 역할을 하는 각 리버브 노드 사이에서 반사됩니다. 이 알고리즘은 대칭이 적은 홀수 개의 노드가 적합하며 금속성 공명이나 아티팩트를 줄입니다.\n- FDN (피드백 지연 네트워크): 각 노드가 클래식 알고리즘을 가진 별도의 리버브 프로세서로 작동합니다. 무대 주변과 관객 주변에 노드를 배치합니다.\n- IR (임펄스 응답): 클래식 컨볼루션 리버브입니다. 오디오 샘플을 임펄스 응답으로 로드할 수 있습니다. 각 노드는 같은 IR을 공유하거나 다른 IR을 사용할 수 있습니다.\n노드 위치는 맵에서 직접 조정할 수 있습니다. Ctrl/Cmd 키로 리버브 노드 쌍을 대칭으로 이동합니다."
+    },
+    "reverbPreProc": {
+      "title": "리버브 전처리",
+      "body": "4밴드 EQ와 컴프레서를 포함하여 리버브 프로세서를 과도하게 자극할 수 있는 트랜지언트를 제거합니다."
+    },
+    "reverbPostProc": {
+      "title": "리버브 후처리",
+      "body": "4밴드 EQ와 익스팬더를 포함하며, 입력이 조용할 때 리버브 프로세서에 들어가는 신호를 감시하여 긴 리버브 꼬리를 줄입니다."
+    },
+    "sessionData": {
+      "title": "세션 데이터",
+      "body": "세션 시작 시 시스템이 파일과 오디오 파일을 저장할 작업 폴더를 선택합니다. 새 프로젝트의 경우 새 폴더를 만듭니다. 이전 세션을 다시 로드하려면 해당 폴더로 이동합니다.\n각 섹션에는 별도의 xml 파일(시스템 구성, 네트워크, 출력, 리버브, 입력)과 백업이 있습니다. 컨볼루션 리버브 임펄스 응답과 오디오 샘플은 하위 디렉토리에 저장됩니다.\n각 섹션은 개별적으로 또는 전체로 저장하고 불러올 수 있습니다.\n각 섹션은 다른 프로젝트에서 파일을 내보내고 가져올 수도 있습니다."
+    },
+    "snapshotScope": {
+      "title": "입력 스냅샷 및 범위",
+      "body": "스냅샷은 입력 매개변수를 저장하며, 공연 중 불러올 범위를 가질 수 있습니다.\n범위는 시스템에 어떤 데이터를 저장하거나 불러올지 지시합니다.\n여러 방법이 있습니다:\n- 필요한 데이터만 로컬 파일에 기록. 필터는 저장 시 적용됩니다.\n- 모든 데이터와 필터를 로컬 파일에 기록. 필터는 불러올 때 적용됩니다.\n- 모든 데이터를 QLab 큐에 기록. 대규모 설정에는 권장하지 않습니다.\n범위는 수동으로 변경된 매개변수를 표시하고 자동으로 사전 선택할 수 있습니다. 변경된 매개변수는 노란색으로 표시됩니다."
+    },
+    "network": {
+      "title": "네트워크",
+      "body": "시스템은 OSC를 사용하여 여러 네트워크 프로토콜(UDP 또는 TCP)로 통신할 수 있습니다. OSC Query를 활성화하면 클라이언트가 사용 가능한 OSC 경로를 검색하고 매개변수 업데이트를 구독할 수 있습니다.\n선택한 네트워크 인터페이스에 해당하는 로컬 머신 IP가 표시됩니다. 수신 TCP, UDP 포트 및 OSC Query 포트.\n전문 OSC 클라이언트:\n- Remote: 멀티터치 작동 및 원격 제어용 Android 애플리케이션.\n- QLab: 데이터 전송 및 애플리케이션에서 직접 프로그래밍.\n- ADM-OSC: 콘솔 및 DAW에서 제어(전용 도움말 참조).\n데이터 필터링, 로그 창, 분실된 Android 태블릿 위치 찾기 기능이 있습니다."
+    },
+    "tracking": {
+      "title": "트래킹",
+      "body": "트래킹은 배우와 음악가의 2D 또는 3D 위치를 추적할 수 있습니다. UWB 태그, 3D 카메라, 컴퓨터 비전 시스템, IR 감지 카메라와 적외선 LED 등 다양한 트래킹 솔루션이 있습니다.\n이 애플리케이션은 여러 프로토콜에서 트래킹 데이터를 수신할 수 있습니다: OSC, MQTT, PosiStageNet/PSN, RTTrP.\n사용할 프로토콜을 선택하고 설정을 입력할 수 있습니다. 매핑(오프셋, 스케일링, 방향)도 조정할 수 있습니다.\n각 입력에는 트래킹 활성화 토글, 추적할 마커를 선택하는 ID, 떨림을 줄이는 스무딩 알고리즘이 있습니다."
+    },
+    "admOsc": {
+      "title": "ADM-OSC 매핑",
+      "body": "ADM-OSC는 공간 음향의 상호 운용성을 향상시키기 위한 프로토콜입니다. 콘솔이나 DAW의 오토메이션 커브에서 직교 좌표(X, Y, Z) 또는 극좌표 값(AED: 방위각, 고도, 거리)을 전송합니다.\n데이터는 정규화되어 전송됩니다:\n- X, Y, Z는 -1.0에서 1.0 사이\n- 거리는 0.0에서 1.0 사이\n- 방위각은 -180°에서 180° 사이\n- 고도는 -90°에서 90° 사이\n원점을 이동할 수 있으며 매핑은 스테이지의 안쪽과 바깥쪽에 대해 다른 세그먼트로 조정할 수 있습니다.\n그래프의 핸들을 드래그할 때 Shift 키를 누르면 반대쪽에 대칭 조정이 적용됩니다."
+    },
+    "overview": {
+      "title": "시스템 개요",
+      "body": "이 WFS 공간 음향 프로세서는 자연스러운 음향 보강 도구이자 공간에 소리를 쓰는 새로운 길을 여는 창의적 도구입니다.\n일부 파라미터는 직관적입니다: 소리 배치(맵, 트래킹, 속도 제한, 그래디언트 맵...), 형태 가공(감쇠 프로파일), 음향적 존재감 조정(지향성, 바닥 반사), 일회성 움직임(AutomOtion) 또는 반복 움직임(L.F.O) 부여. 경우에 따라 무대 위 큰 음원 주변의 증폭을 제한해야 합니다(Live Source Tamer). 이 모든 기능은 내부적으로 또는 QLab의 도움으로 저장 및 호출할 수 있습니다. 또한 시스템은 실시간 상호작용을 통해 샘플을 트리거하고 이동하며, 대규모 인풋 클러스터를 수동으로 또는 LFO 프리셋으로 이동할 수 있게 합니다.",
+      "dontShow": "다시 표시하지 않음"
+    },
+    "inputBasic": {
+      "title": "인풋 기본 파라미터",
+      "body": "인풋에는 사실적인 음향 보강이나 사운드 디자인을 위한 다양한 설정이 있습니다.\n- 인풋 레벨을 조정할 수 있습니다.\n- 인풋을 지연시키거나 특정 레이턴시(무선 전송 또는 디지털 이펙트의 디지털 처리)를 고려하여 보상할 수 있습니다.\n- 음향 선행 대신 최소 레이턴시를 활성화할 수 있습니다. 시스템이 가능한 빨리 소리를 출력하려고 시도합니다.\n- 위치(위치 및 오프셋)는 무대 형태나 다른 채널에 관계없이 직교, 원통 또는 구면 좌표로 지정할 수 있습니다.\n- 위치는 직교 좌표에서는 무대 크기로, 극좌표에서는 특정 거리 범위로 제한할 수 있습니다.\n- 플립은 원점을 중심으로 대칭 위치를 취합니다.\n- 조이스틱과 수직 슬라이더로 위치의 상대적 제어가 가능합니다.\n- 인풋을 클러스터에 할당하여 조정된 움직임을 위해 그룹화할 수 있습니다."
+    },
+    "inputAdvanced": {
+      "title": "고급 제어",
+      "body": "- 사이드라인과 프린지는 입력이 직사각형 무대의 경계에 접근할 때 음소거를 가능하게 합니다 (관객 측 제외).\n- 트래킹을 활성화하고 트래커 ID를 선택할 수 있습니다. 위치 평활화도 조정할 수 있습니다.\n- 최대 속도를 적용하고 속도 제한을 조정할 수 있습니다. 시스템은 움직임 시작과 끝에서 점진적인 가속과 감속을 적용합니다. 경로 모드가 활성화되면 시스템은 입력이 취한 경로를 따르고 최종 위치까지 직선으로 이동하지 않습니다. 움직임을 수동으로 조작해야 하는 경우 특히 유용합니다.\n- 높이 계수는 0%로 설정될 때 2D, 100%로 설정될 때 완전한 3D 및 그 사이의 모든 값으로 작업할 수 있게 합니다. 이는 레벨 및 지연 계산에서 높이의 비율입니다. 바닥 반사를 사용하려면 100%로 설정하고 출력 매개변수의 시차 보정을 사용하세요."
+    },
+    "inputLevel": {
+      "title": "레벨 조정",
+      "body": "두 가지 레벨 감쇠 모델이 있습니다. 하나는 거리에 따라 dB/m의 주어진 비율로 레벨이 감소하는 것입니다. 다른 하나는 거리가 두 배가 될 때마다 레벨이 절반으로 줄어드는 것입니다. 후자가 더 사실적일 수 있지만, 음원 가까이에서 너무 크거나 충분한 포커스를 제공하지 못할 수 있습니다. 전자는 물리적으로 덜 정확할 수 있지만, 일반적으로 더 균일하고 안정적인 믹스를 위한 더 나은 제어를 제공합니다."
+    },
+    "inputHF": {
+      "title": "고주파 지향성",
+      "body": "말하는 사람이 돌아서면 목소리의 음색이 덜 밝게 들립니다. 이를 재현하는 것이 원래의 목표였으며, 관객을 향하지 않는 목소리나 양면 구성에서도 지원이 필요합니다. 감쇠된 직접음에 대해 더 밝은 리버브를 갖는 것과 같은 창의적 효과에 활용할 수 있습니다.\n인풋의 방위각과 앙각의 방향, 그리고 고주파가 필터링되지 않는 각도를 설정할 수 있습니다.\nHF 셸프는 인풋 뒤쪽의 최대 감쇠를 설정합니다. 앞의 완전한 밝기에서 뒤의 감쇠까지 부드러운 페이드(코사인 커브와 같은)가 있습니다."
+    },
+    "inputMutes": {
+      "title": "어레이 감쇠 및 출력 뮤트",
+      "body": "각 출력 어레이에 대해 선택된 인풋의 특정 감쇠를 설정할 수 있습니다.\n각 센드를 모든 출력에 대해 개별적으로 뮤트할 수 있습니다. 프로세스를 빠르게 하는 매크로가 있습니다."
+    },
+    "parallax": {
+      "title": "시차 보정",
+      "body": "각 스피커는 청취자를 향하고 있습니다. 각 스피커의 인풋에 대한 딜레이를 계산하기 위해, 인풋에서 청취자까지의 거리를 고려하고 스피커에서 청취자까지의 소리 거리도 계산합니다. 두 가지의 도착 시간을 맞추기 위해 거리 차이를 딜레이로 적용해야 합니다. 이것은 무대에서 인풋을 이동할 때, 특히 무대 가장자리에서 멀어질 때 더 큰 안정성을 제공합니다. 바닥 반사 합성도 가능하게 합니다. 이 설정은 단순히 측정하는 것이 아니라 미세 조정할 수 있습니다. 귀를 믿으세요!"
+    },
+    "outputAdvanced": {
+      "title": "고급 파라미터",
+      "body": "음향 사운드에 맞게 조정하기 위한 몇 가지 파라미터가 있습니다.\n이러한 파라미터의 대부분은 전체 어레이에 설정됩니다(전파 모드가 이 출력에서 꺼져 있는 경우 제외). 특정 설정 후 상대적 변경도 선택할 수 있습니다.\n- 방향 및 On/Off 각도는 각 스피커가 어떤 인풋을 증폭할지 정의합니다. 기본적으로 스피커는 관객을 향하고 무대에서 벗어납니다. 녹색 영역의 인풋은 증폭되지만, 빨간 영역의 인풋은 증폭되지 않습니다. 서브베이스의 경우 최대로 열면 모든 인풋을 포함할 수 있습니다.\n- HF 댐핑은 거리에 따른 고주파 손실을 시뮬레이션합니다.\n- 거리 감쇠 퍼센티지는 계산된 감쇠의 적용 정도를 정의합니다. 서브베이스의 경우 50%로 낮추는 것이 현명할 수 있습니다.\n- 최소 레이턴시는 최소 계산 딜레이의 스캔을 활성화합니다.\n- 라이브 소스 감쇠는 가까운 인풋의 레벨 감소를 활성화합니다.\n- 바닥 반사는 서브베이스 및 플라잉 어레이와 같은 이 출력에 반사가 적용되는지 전환합니다..."
+    },
+    "tuning": {
+      "title": "시스템 튜닝",
+      "body": "WFS의 시스템 튜닝은 표준 PA 튜닝과 다릅니다. 다음과 같이 진행할 수 있습니다:\n- 플라잉 어레이를 뮤트하고 시작합니다. 1열에서 들으면서 니어필드 스피커의 원하는 레벨을 설정합니다. 니어필드 스피커가 너무 밝지 않도록 HF 셸프 감쇠를 조정합니다.\n- 니어필드 어레이를 뮤트하고 플라잉 어레이를 언뮤트하여 객석 뒤쪽에 적합한 레벨을 찾습니다.\n- 두 어레이를 모두 언뮤트하고, 플라잉 어레이의 딜레이를 조정하여 아래 열에서 올바른 높이로 소리를 내립니다. 각 어레이의 레벨, HF 셸프/거리 비율, 수직 및 수평 시차를 조정하여 무대 어디에 인풋이 있든 일관된 레벨을 달성합니다.\n다른 워크플로우로 튜닝하거나 상황에 따라 다른 설정을 목표로 할 수 있습니다."
+    },
+    "outputs": {
+      "title": "WFS 어레이 설계",
+      "body": "WFS 시스템의 설계는 올바른 장비 선택과 배치에 관한 것입니다. 어레이 설계 및 튜닝을 위한 가이드입니다.\n어레이는 스피커의 열(직선 또는 곡선)입니다. 이것은 WFS에서 가장 중요한 개념 중 하나입니다.\n경험적으로 각 청취자는 방향을 감지하기 위한 충분한 심리음향 단서를 얻기 위해 어레이의 스피커 3개를 들어야 합니다. 스피커와 청취자 사이의 거리, 간격, 커버리지 각도 사이에 최적점이 있습니다. 120° 커버리지 각도의 스피커는 어레이와 첫 번째 줄 사이의 거리와 같은 간격으로 배치할 수 있습니다. 스피커 수는 음압 레벨에도 의존합니다. 플라잉 어레이로 배치할 경우, 축 아래 넓은(120°), 축 위 좁은(60°) 커버리지의 사다리꼴/비대칭 혼은 좋은 커버리지와 20-30m 도달 거리를 제공하면서 벽 반사를 피합니다. 동축 스피커는 대형 장소에서는 보통 도달 거리가 부족하여 딜레이 라인이 필요합니다.\n배치는 'Wizard of OutZ'와 편집 가능한 프리셋을 통해 수행할 수 있습니다."
+    },
+    "mcp": {
+      "title": "AI / MCP 서버",
+      "body": "MCP 서버는 AI 어시스턴트(Claude Desktop, Claude Code, 사용자 정의 커넥터가 있는 ChatGPT)가 로컬 네트워크 연결을 통해 이 WFS-DIY 세션의 매개변수를 읽고 쓸 수 있게 해줍니다.\n\nAI가 할 수 있는 일:\n• 라이브 상태 읽기: 채널 수, 이름, 위치, 감쇠, EQ, 스냅샷, 클러스터, 전체 매개변수.\n• 소스 이동, 채널 이름 변경, 클러스터 할당 설정, 어레이 레이아웃 조정, 출력 및 리버브 배치.\n• 준비된 프롬프트 템플릿을 통해 가이드 워크플로 실행 (시스템 튜닝, 위치 문제 해결, 스냅샷 관리).\n\n이 행의 운영자 컨트롤:\n• AI: ON / OFF — 메인 스위치. OFF일 때 모든 AI 도구 호출이 거부됩니다. ON일 때 AI는 아래 규칙에 따라 작동합니다.\n• 중요 AI 동작: 차단됨 / 허용됨 — 파괴적인 동작(스냅샷 삭제, DSP 재설정, 채널 수 변경)은 기본적으로 차단됩니다. 클릭하여 10분 동안 허용. 빨간색 채우기는 윈도우 만료에 따라 줄어들고 자동으로 다시 차단됩니다.\n• AI 기록 열기 — 최근 모든 AI 변경의 스크롤 가능한 타임라인.\n• MCP URL 버튼은 URL을 직접 받는 AI 클라이언트용으로 서버 URL을 클립보드에 복사합니다.\n\n운영자 인지:\n• 모든 AI 동작은 출처 태그와 함께 기록됩니다. AI 기록 창은 전체 타임라인을 보여줍니다. 행별 ×는 종속성을 포함하여 동작을 되돌립니다.\n• AI가 방금 이동한 매개변수를 수동으로 조정하면 AI에 알림이 가고 무작정 재시도하지 않습니다. 항상 마지막 결정은 당신이 합니다.\n• Cmd/Ctrl+Alt+Z 및 Cmd/Ctrl+Alt+Y 단축키는 수동 편집(일반 Ctrl+Z 사용)에 영향을 주지 않고 마지막 AI 변경을 실행 취소/다시 실행합니다.\n\n이 서버를 Claude Desktop에 추가하려면:\n  1. 설정 → 개발자 → 구성 편집을 엽니다.\n  2. 아래 JSON 스니펫을 claude_desktop_config.json에 붙여넣습니다 (이미 있는 mcpServers 블록에 병합).\n  3. Claude Desktop을 다시 시작합니다. 서버가 도구 메뉴에 'wfs-diy'로 표시됩니다.\n\nClaude Code에 추가하려면 실행:\n  claude mcp add wfs-diy <url> -t http\n\n네트워크 인터페이스를 전환하거나 서버가 다른 포트로 폴백하면 URL이 변경됩니다. 이 행의 URL 버튼은 항상 라이브 URL을 반영합니다.",
+      "copyButton": "구성 복사",
+      "copyConfirm": "MCP 구성 JSON이 클립보드에 복사됨"
+    }
+  },
+  "wizard": {
+    "buttons": {
+      "gettingStarted": "시작하기",
+      "gettingStartedHelp": "새 프로젝트를 시작할 때 먼저 조정해야 할 매개변수를 안내하는 도움말 카드",
+      "next": "다음",
+      "back": "이전",
+      "close": "닫기",
+      "done": "완료",
+      "skip": "건너뛰기"
+    },
+    "stepIndicator": "{total}단계 중 {current}단계",
+    "steps": {
+      "projectFolder": {
+        "title": "프로젝트 폴더 선택",
+        "description": "WFS 프로젝트 파일을 저장할 폴더를 선택하세요. 구성, 스냅샷, IR 파일, 샘플이 저장됩니다. 버튼을 클릭하여 폴더 선택기를 엽니다."
+      },
+      "inputChannels": {
+        "title": "입력 채널 수 설정",
+        "description": "몇 개의 오디오 소스를 공간화하시겠습니까?\n소스 수에 맞게 입력 채널 수를 설정하세요."
+      },
+      "outputChannels": {
+        "title": "출력 채널 수 설정",
+        "description": "스피커 어레이에 맞게 출력 채널 수를 설정하세요.\n각 출력은 하나의 물리적 스피커에 해당합니다."
+      },
+      "reverbChannels": {
+        "title": "리버브 채널 수 설정",
+        "description": "리버브 채널은 공간 시뮬레이션을 추가합니다. 리버브가 필요하지 않으면 0으로 설정하세요."
+      },
+      "stageConfig": {
+        "title": "무대 정의",
+        "description": "공연 공간의 형태와 크기를 설정합니다. 박스, 실린더, 돔 중 선택하고 미터 단위로 크기를 입력하세요."
+      },
+      "originPoint": {
+        "title": "원점 설정",
+        "description": "원점은 모든 좌표의 기준점입니다. 프리셋 버튼을 사용하거나 사용자 정의 값을 입력하세요. 'Front'는 관객 쪽 가장자리에 배치합니다."
+      },
+      "audioInterface": {
+        "title": "오디오 인터페이스 열기",
+        "description": "위의 버튼을 클릭하거나 다음을 눌러 오디오 인터페이스 창을 엽니다."
+      },
+      "audioDevice": {
+        "title": "오디오 인터페이스 구성",
+        "description": "오디오 드라이버와 장치를 선택하고 샘플레이트와 버퍼 크기를 설정하세요. 패치 라우팅을 확인하고 출력을 테스트하세요. 완료되면 이 창을 닫으세요."
+      },
+      "wizardOfOutZ": {
+        "title": "출력 위치 지정",
+        "description": "Wizard of OutZ 버튼을 클릭하거나 다음을 눌러 위치 지정 도우미를 엽니다."
+      },
+      "configureOutputs": {
+        "title": "출력 위치 구성",
+        "description": "어레이 프리셋과 지오메트리 도구를 사용하여 스피커 위치를 계산하세요. 완료되면 이 창을 닫으세요."
+      },
+      "startProcessing": {
+        "title": "WFS 엔진 시작",
+        "description": "준비 완료! Processing 버튼을 길게 눌러 WFS 엔진을 시작하세요. 헤드폰 모니터링용 바이노럴 렌더러도 시작할 수 있습니다."
+      },
+      "exploreInputs": {
+        "title": "만들기 시작!",
+        "description": "맵에서 입력을 클릭하여 선택하거나 올가미로 여러 개를 선택하세요. 드래그하여 소스를 배치합니다. 마우스 휠이나 핀치로 줌, 우클릭 드래그나 두 손가락 드래그로 팬할 수 있습니다. 입력을 추가하고 클러스터로 그룹화하여 사운드 필드를 만드세요. 키보드, SpaceMouse 또는 기타 컨트롤러로도 위치를 제어할 수 있습니다. 즐기세요!"
+      }
+    }
+  },
+  "updateBanner": {
+    "available": "WFS-DIY v{version}을 사용할 수 있습니다!",
+    "download": "다운로드"
+  },
+  "ai": {
+    "history": {
+      "windowTitle": "AI 변경 기록",
+      "stepBack": "⏮ 뒤로",
+      "stepForward": "앞으로 ⏭",
+      "applied": "적용됨",
+      "undone": "실행 취소됨",
+      "of": "/",
+      "noChanges": "아직 AI 변경 사항이 없습니다.",
+      "batch": "배치 {id}",
+      "cursorLabel": "◂  커서 (↑ 적용됨  /  ↓ 실행 취소됨, 재실행 가능)",
+      "atHead": "(실행 취소된 기록 없음 — 맨 앞)"
+    },
+    "toast": {
+      "header": "AI 변경",
+      "clientPrefix": "Claude",
+      "moreOlder": "…그리고 이전 {count}개"
+    },
+    "server": {
+      "label": "MCP 서버:",
+      "stopped": "중지됨",
+      "urlButtonRunning": "http://{host}:{port}/mcp",
+      "urlButtonStopped": "(서버 미실행)",
+      "copyUrlConfirm": "MCP URL이 클립보드에 복사되었습니다: {url}",
+      "openHistory": "AI 기록 열기"
+    },
+    "undo": {
+      "successPrefix": "AI {verb}: {description}",
+      "errorPrefix": "AI {verb}: {message}",
+      "verbUndo": "실행 취소",
+      "verbRedo": "다시 실행"
+    },
+    "tier": {
+      "gateBlocked": "AI 중요 동작: 차단됨",
+      "gateAllowed": "AI 중요 동작: 허용됨",
+      "aiOn": "AI: ON",
+      "aiOff": "AI: OFF",
+      "tier2AutoOff": "티어 2 자동 확인: 끔",
+      "tier2AutoOn": "티어 2 자동 확인: ON (5분)"
+    },
+    "tooltips": {
+      "urlButton": "MCP 서버 URL을 복사하려면 클릭하세요. Claude Code (claude mcp add wfs-diy <URL> -t http) 또는 URL을 받는 모든 MCP 클라이언트에 유용합니다. Claude Desktop은 대신 JSON 구성 스니펫을 사용합니다 — (?) 도움말 카드를 여세요.",
+      "openHistory": "AI 기록 창 열기: 행별 실행 취소/다시 실행과 단계별 커서가 있는 최근 모든 AI 변경의 스크롤 가능한 타임라인.",
+      "gate": "파괴적인 AI 동작(채널 수 변경, 포트 재구성, runDSP 등)을 허용하고 열려 있는 동안 덜 파괴적인 티어 2 동작에 대해 호출별 확인 핸드셰이크를 건너뜁니다. 티어 2 자동 확인 토글의 상위 집합 역할을 합니다. 빨간색 채우기는 5분에 걸쳐 줄어들고, 그 후 자동으로 다시 차단됩니다.",
+      "aiToggle": "전체 MCP 통합의 메인 스위치. OFF일 때 모든 AI 도구 호출이 거부됩니다. ON일 때 일반 티어 처리가 적용됩니다 (중요 동작 토글은 파괴적 호출을 별도로 제어)."
+    }
+  },
+  "signalFlow": {
+    "microphones": "마이크",
+    "soundtracks": "사운드트랙",
+    "oscCommands": "OSC 명령",
+    "console": "콘솔",
+    "directOuts": "다이렉트 아웃",
+    "postFader": "포스트 페이더",
+    "wfsProcessor": "WFS 프로세서",
+    "inputs": "입력",
+    "outputs": "출력",
+    "qlabAbleton": "QLab / Ableton Live",
+    "positions": "위치 및",
+    "otherParams": "기타 파라미터",
+    "scenes": "씬",
+    "recall": "리콜",
+    "remote": "리모컨",
+    "remoteLC": "원격",
+    "control": "제어",
+    "speakerArrays": "스피커 어레이"
+  }
+}

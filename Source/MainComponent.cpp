@@ -95,7 +95,9 @@ MainComponent::MainComponent()
 
     // Load saved language preference from app settings, default to "en"
     juce::String savedLanguage = props.getValue("language", "en");
-    if (!locMgr.loadLanguage(savedLanguage))
+    // Load saved translation tier (how much of the UI is translated), default Minimal.
+    auto savedTier = LocalizationManager::tierFromString(props.getValue("translationTier", "minimal"));
+    if (!locMgr.loadLanguage(savedLanguage, savedTier))
     {
         // Fall back to English if saved language fails to load
         if (savedLanguage != "en")

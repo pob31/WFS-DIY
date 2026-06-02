@@ -33,6 +33,29 @@ class LocalizationManager
 {
 public:
     //==========================================================================
+    // Translation tier
+    //==========================================================================
+
+    /** How much of the UI is translated for the selected (non-English) locale. */
+    enum class TranslationTier
+    {
+        Minimal,  // Control surface English; only prose (help/messages/dialogs) translated.
+        Full      // Full localization: labels + parameter names translated too.
+    };
+
+    /** Persisted string form of a tier ("minimal" / "full"). */
+    static juce::String tierToString(TranslationTier tier)
+    {
+        return tier == TranslationTier::Full ? "full" : "minimal";
+    }
+
+    /** Parse a persisted tier string; unknown values default to Minimal. */
+    static TranslationTier tierFromString(const juce::String& s)
+    {
+        return s == "full" ? TranslationTier::Full : TranslationTier::Minimal;
+    }
+
+    //==========================================================================
     // Singleton Access
     //==========================================================================
 
@@ -43,13 +66,16 @@ public:
     //==========================================================================
 
     /**
-     * Load strings from JSON file for the specified locale.
-     * Looks for file in Resources/lang/<locale>.json
+     * Load strings from JSON file for the specified locale and tier.
+     * Minimal tier reads Resources/lang/<locale>.json (prose only);
+     * Full tier reads Resources/lang/full/<locale>.json (full localization).
+     * en.json is always overlaid as the English fallback base. English ignores tier.
      *
      * @param locale Language code (e.g., "en", "fr", "de")
+     * @param tier   How much of the UI to translate (default Minimal)
      * @return true if loaded successfully
      */
-    bool loadLanguage(const juce::String& locale);
+    bool loadLanguage(const juce::String& locale, TranslationTier tier = TranslationTier::Minimal);
 
     /**
      * Load strings from a JSON string (useful for embedded resources)
@@ -58,6 +84,9 @@ public:
 
     /** Get current language locale code */
     juce::String getCurrentLocale() const { return currentLocale; }
+
+    /** Get the current translation tier. */
+    TranslationTier getCurrentTier() const { return currentTier; }
 
     /** Check if a language is loaded */
     bool isLoaded() const { return stringsRoot.isObject(); }
@@ -129,6 +158,7 @@ private:
     ~LocalizationManager() = default;
 
     juce::String currentLocale = "en";
+    TranslationTier currentTier = TranslationTier::Minimal;
     juce::var stringsRoot;
     juce::File resourceDirectory;
 

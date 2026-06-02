@@ -55,10 +55,30 @@ namespace
     }
 }
 
-bool LocalizationManager::loadLanguage(const juce::String& locale)
+bool LocalizationManager::loadLanguage(const juce::String& locale, TranslationTier tier)
 {
     auto langDir = getResourceDirectory().getChildFile("lang");
-    auto langFile = langDir.getChildFile(locale + ".json");
+
+    // Tier selects which locale file to overlay. The "Full" tier lives in a
+    // lang/full/ subfolder (labels + parameter names translated); the default
+    // "Minimal" tier is the flat lang/<locale>.json (prose only, control surface
+    // English). English ignores the tier (it is the overlay base in both cases).
+    juce::File langFile;
+    if (locale != "en" && tier == TranslationTier::Full)
+    {
+        langFile = langDir.getChildFile("full").getChildFile(locale + ".json");
+        if (!langFile.existsAsFile())
+        {
+            // Defensive: a missing full-tier file falls back to the minimal locale
+            // rather than failing, so the UI never breaks on a partial install.
+            DBG("LocalizationManager: Full-tier file missing, falling back to minimal: " + langFile.getFullPathName());
+            langFile = langDir.getChildFile(locale + ".json");
+        }
+    }
+    else
+    {
+        langFile = langDir.getChildFile(locale + ".json");
+    }
 
     if (!langFile.existsAsFile())
     {
@@ -76,6 +96,7 @@ bool LocalizationManager::loadLanguage(const juce::String& locale)
     // English is the source of truth. For any other locale, load en.json as a
     // base and overlay the locale on top, so labels/keys the locale intentionally
     // omits (or hasn't translated yet) resolve to English instead of a raw key.
+    // The en base is always the flat superset en.json, for both tiers.
     if (locale != "en")
     {
         auto enJson = juce::JSON::parse(langDir.getChildFile("en.json"));
@@ -88,6 +109,7 @@ bool LocalizationManager::loadLanguage(const juce::String& locale)
 
     stringsRoot = json;
     currentLocale = locale;
+    currentTier = tier;
 
     return true;
 }
@@ -113,6 +135,8 @@ juce::StringArray LocalizationManager::getAvailableLanguages() const
 
     if (langDir.isDirectory())
     {
+        // Non-recursive on purpose: the lang/full/ subfolder (Full-tier files)
+        // must NOT appear here as fake languages. Keep the 'false' (no recursion).
         for (const auto& file : langDir.findChildFiles(juce::File::findFiles, false, "*.json"))
         {
             languages.add(file.getFileNameWithoutExtension());

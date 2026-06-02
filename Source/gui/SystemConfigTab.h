@@ -766,7 +766,8 @@ public:
             if (selectedIdx >= 0 && selectedIdx < availableLanguages.size())
             {
                 juce::String locale = availableLanguages[selectedIdx];
-                if (LocalizationManager::getInstance().loadLanguage(locale))
+                // Preserve the current translation tier across a language change.
+                if (LocalizationManager::getInstance().loadLanguage(locale, LocalizationManager::getInstance().getCurrentTier()))
                 {
                     // Save language to app settings (not project settings)
                     juce::PropertiesFile::Options options;
@@ -793,7 +794,56 @@ public:
 
                     // TTS: Announce selection change
                     TTSManager::getInstance().announceValueChange("Language", languageSelector.getText());
+
+                    // Refresh the tier control's enabled state (no-op for English)
+                    updateTranslationTierEnabled();
                 }
+            }
+        };
+
+        // Translation tier selector (how much of the UI is translated)
+        addAndMakeVisible(translationTierLabel);
+        translationTierLabel.setText(LOC("systemConfig.labels.translationTier"), juce::dontSendNotification);
+
+        addAndMakeVisible(translationTierSelector);
+        translationTierSelector.addItem(LOC("systemConfig.translationTiers.minimal"), 1);
+        translationTierSelector.addItem(LOC("systemConfig.translationTiers.full"), 2);
+        translationTierSelector.setSelectedId(
+            LocalizationManager::getInstance().getCurrentTier() == LocalizationManager::TranslationTier::Full ? 2 : 1,
+            juce::dontSendNotification);
+        updateTranslationTierEnabled();
+        translationTierSelector.onChange = [this]() {
+            auto& locMgr = LocalizationManager::getInstance();
+            auto tier = translationTierSelector.getSelectedId() == 2
+                ? LocalizationManager::TranslationTier::Full
+                : LocalizationManager::TranslationTier::Minimal;
+            if (locMgr.loadLanguage(locMgr.getCurrentLocale(), tier))
+            {
+                // Save tier to app settings (same file as the language preference)
+                juce::PropertiesFile::Options options;
+                options.applicationName = "WFS-DIY";
+                options.filenameSuffix = ".settings";
+                options.osxLibrarySubFolder = "Application Support";
+                options.folderName = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+                                        .getChildFile("WFS-DIY").getFullPathName();
+                juce::PropertiesFile props(options);
+                props.setValue("translationTier", LocalizationManager::tierToString(tier));
+                props.saveIfNeeded();
+
+                if (statusBar != nullptr)
+                    statusBar->showTemporaryMessage(
+                        LocalizationManager::getInstance().get("systemConfig.messages.translationTierChanged",
+                            {{"tier", translationTierSelector.getText()}}), 3000);
+
+                // Show restart popup (some UI strings are cached at construction)
+                languageRestartCard.setContent(
+                    LOC("systemConfig.messages.restartTitle"),
+                    LOC("systemConfig.messages.restartBody"));
+                resized();
+                languageRestartCard.show();
+
+                // TTS: Announce selection change
+                TTSManager::getInstance().announceValueChange("Translation", translationTierSelector.getText());
             }
         };
 
@@ -1257,7 +1307,7 @@ public:
         g.drawText(LOC("systemConfig.sections.show"), layout.col1X, scaled(10), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.io"), layout.col1X, scaled(130), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.ui"), layout.col1X, scaled(290), layout.colWidth, headerH, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.controllers"), layout.col1X, scaled(430), layout.colWidth, headerH, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.controllers"), layout.col1X, scaled(465), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.stage"), layout.col2X, scaled(10), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.master"), layout.col2X, scaled(400), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.wfsProcessor"), layout.col3X, scaled(10), layout.colWidth, headerH, juce::Justification::left);
@@ -1335,16 +1385,20 @@ public:
 
         languageLabel.setBounds(x, y, labelWidth, rowHeight);
         languageSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+        y += rowHeight + spacing;
 
-        // Language restart card — positioned below the language selector
+        translationTierLabel.setBounds(x, y, labelWidth, rowHeight);
+        translationTierSelector.setBounds(x + labelWidth, y, editorWidth * 2, rowHeight); // Wider for dropdown text
+
+        // Language/translation restart card — positioned below the translation row
         {
-            int cardW = labelWidth + editorWidth;
+            int cardW = labelWidth + editorWidth * 2;
             int cardH = languageRestartCard.getIdealHeight(cardW);
             languageRestartCard.setBounds(x, y + rowHeight + spacing, cardW, cardH);
         }
 
         // Controllers Section
-        y = scaled(460); // Start after "Controllers" header (shifted down for extra row)
+        y = scaled(495); // Start after "Controllers" header (shifted down for extra UI rows)
         dialsAndButtonsLabel.setBounds (x, y, labelWidth, rowHeight);
         dialsAndButtonsSelector.setBounds (x + labelWidth, y, editorWidth * 2, rowHeight);
         y += rowHeight + spacing;
@@ -3520,6 +3574,13 @@ public:
         languageSelector.setSelectedId(selectedId, juce::dontSendNotification);
     }
 
+    // Enable the translation-tier selector only for non-English locales
+    // (the tier is a no-op for English, which is the base of both tiers).
+    void updateTranslationTierEnabled()
+    {
+        translationTierSelector.setEnabled(LocalizationManager::getInstance().getCurrentLocale() != "en");
+    }
+
     //==============================================================================
     // Diagnostics helper methods
 
@@ -3647,6 +3708,7 @@ public:
         helpTextMap[&quickLongPressLabel] = LOC("systemConfig.help.quickLongPress");
         helpTextMap[&quickLongPressToggle] = LOC("systemConfig.help.quickLongPress");
         helpTextMap[&languageSelector] = LOC("systemConfig.help.language");
+        helpTextMap[&translationTierSelector] = LOC("systemConfig.help.translationTier");
         helpTextMap[&dialsAndButtonsSelector] = LOC("systemConfig.help.dialsAndButtons");
         helpTextMap[&positionControlSelector] = LOC("systemConfig.help.positionControl");
         helpTextMap[&controllerModeSelector] = LOC("systemConfig.help.sampler");
@@ -3875,6 +3937,8 @@ public:
     juce::ComboBox languageSelector;
     juce::StringArray availableLanguages;
     HelpCard languageRestartCard;
+    juce::Label translationTierLabel;
+    juce::ComboBox translationTierSelector;
     juce::Label dialsAndButtonsLabel;
     juce::ComboBox dialsAndButtonsSelector;
     juce::Label positionControlLabel;

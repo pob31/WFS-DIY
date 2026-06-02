@@ -1,0 +1,2393 @@
+{
+  "meta": {
+    "language": "日本語",
+    "locale": "ja",
+    "version": "1.0.0",
+    "author": "WFS-DIY Team"
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "キャンセル",
+    "apply": "適用",
+    "reset": "リセット",
+    "save": "保存",
+    "load": "読込",
+    "store": "保存",
+    "reload": "再読込",
+    "import": "インポート",
+    "export": "エクスポート",
+    "enable": "有効",
+    "disable": "無効",
+    "on": "ON",
+    "off": "OFF",
+    "yes": "はい",
+    "no": "いいえ",
+    "delete": "削除",
+    "add": "追加",
+    "remove": "削除",
+    "edit": "編集",
+    "close": "閉じる",
+    "select": "選択",
+    "all": "すべて",
+    "none": "なし"
+  },
+  "units": {
+    "meters": "m",
+    "decibels": "dB",
+    "milliseconds": "ms",
+    "seconds": "s",
+    "degrees": "°",
+    "hertz": "Hz",
+    "percent": "%",
+    "celsius": "°C",
+    "metersPerSecond": "m/s",
+    "decibelPerMeter": "dB/m"
+  },
+  "tabs": {
+    "systemConfig": "システム設定",
+    "inputs": "入力",
+    "outputs": "出力",
+    "reverb": "リバーブ",
+    "network": "ネットワーク",
+    "clusters": "クラスター",
+    "map": "マップ"
+  },
+  "statusBar": {
+    "displayLabel": "表示:",
+    "helpMode": "ヘルプ",
+    "oscMode": "OSC"
+  },
+  "touchscreens": {
+    "title": "Linux タッチスクリーン",
+    "label": "タッチスクリーン",
+    "button": "設定",
+    "empty": "タッチスクリーンが検出されません。接続するとリストに自動的に表示されます。",
+    "disabled": "(無効)",
+    "swapXY": "X/Y 入れ替え",
+    "flipX": "X 反転",
+    "flipY": "Y 反転",
+    "errorPrefix": "エラー:",
+    "statusActive": "アクティブ — イベント取得中",
+    "statusOpening": "デバイスを開いています…",
+    "statusInactive": "未割り当て"
+  },
+  "systemConfig": {
+    "sections": {
+      "show": "ショー",
+      "io": "I/O",
+      "stage": "ステージ",
+      "master": "マスターセクション",
+      "ui": "UI",
+      "controllers": "Controllers",
+      "wfsProcessor": "WFSプロセッサー",
+      "binaural": "Binaural Solo",
+      "binauralRenderer": "バイノーラルレンダラー",
+      "files": "ファイル"
+    },
+    "labels": {
+      "version": "バージョン {version}",
+      "updateAvailable": "アップデート {version} 利用可能",
+      "showName": "名前:",
+      "showLocation": "場所:",
+      "inputChannels": "入力チャンネル:",
+      "outputChannels": "出力チャンネル:",
+      "reverbChannels": "リバーブチャンネル:",
+      "algorithm": "アルゴリズム:",
+      "processing": "処理:",
+      "stageShape": "ステージ形状:",
+      "stageWidth": "幅:",
+      "stageDepth": "奥行:",
+      "stageHeight": "高さ:",
+      "stageDiameter": "直径:",
+      "domeElevation": "仰角:",
+      "originWidth": "原点 幅:",
+      "originDepth": "原点 奥行:",
+      "originHeight": "原点 高さ:",
+      "speedOfSound": "音速:",
+      "temperature": "温度:",
+      "masterLevel": "マスターレベル:",
+      "systemLatency": "システム遅延:",
+      "haasEffect": "ハース効果:",
+      "colorScheme": "カラースキーム:",
+      "quickLongPress": "長押し:",
+      "screenReader": "スクリーンリーダー:",
+      "language": "言語:",
+      "binauralOutput": "バイノーラル出力:",
+      "binauralDistance": "リスナー距離:",
+      "binauralAngle": "リスナー角度:",
+      "binauralAtten": "バイノーラルレベル:",
+      "binauralDelay": "バイノーラルディレイ:",
+      "lightpadSensitivity": "感度:",
+      "noLightpad": "Lightpadが検出されません",
+      "lightpadArrangement": "Lightpadの配置",
+      "split": "分割",
+      "clickToSplit": "クリックして分割",
+      "dialsAndButtons": "ダイヤルとボタン:",
+      "positionControl": "位置コントロール:",
+      "sampler": "Sampler:",
+      "samplerController": "コントローラー:"
+    },
+    "buttons": {
+      "audioPatch": "オーディオインターフェースとパッチング",
+      "levelMeter": "Level Meters",
+      "clearSolo": "Clear Solo",
+      "processingOff": "処理: OFF",
+      "processingOn": "処理: ON",
+      "binauralOff": "バイノーラル: OFF",
+      "binauralOn": "バイノーラル: ON",
+      "soloModeSingle": "Solo: 単一",
+      "soloModeMulti": "Solo: 複数",
+      "selectProjectFolder": "プロジェクトフォルダを選択",
+      "storeComplete": "完全な設定を保存",
+      "reloadComplete": "完全な設定を再読込",
+      "reloadCompleteBackup": "完全な設定をバックアップから再読込",
+      "storeSystem": "システム設定を保存",
+      "reloadSystem": "システム設定を再読込",
+      "reloadSystemBackup": "システム設定をバックアップから再読込",
+      "importSystem": "システム設定をインポート",
+      "exportSystem": "システム設定をエクスポート",
+      "streamDeckOff": "Stream Deck+: OFF",
+      "streamDeckOn": "Stream Deck+: ON",
+      "samplerOff": "Sampler: OFF",
+      "samplerOn": "Sampler: ON",
+      "setup": "設定",
+      "quickLongPressOff": "通常",
+      "quickLongPressOn": "クイック",
+      "diagnosticsExpanded": "診断  [-]",
+      "diagnosticsCollapsed": "診断  [+]",
+      "exportLogs": "ログをエクスポート",
+      "openLogFolder": "ログフォルダーを開く",
+      "copySystemInfo": "システム情報をコピー",
+      "reportIssue": "問題を報告"
+    },
+    "algorithms": {
+      "inputBuffer": "InputBuffer (読み取り時遅延)",
+      "outputBuffer": "OutputBuffer (書き込み時遅延)"
+    },
+    "stageShapes": {
+      "box": "ボックス",
+      "cylinder": "シリンダー",
+      "dome": "ドーム"
+    },
+    "colorSchemes": {
+      "default": "デフォルト (ダークグレー)",
+      "black": "ブラック",
+      "light": "ライト"
+    },
+    "binauralOutput": {
+      "off": "Off",
+      "select": "選択..."
+    },
+    "help": {
+      "showName": "現在のショーの名前。",
+      "showLocation": "現在のショーの場所。",
+      "inputChannels": "入力チャンネル数。",
+      "outputChannels": "出力チャンネル数。",
+      "reverbChannels": "リバーブチャンネル数。",
+      "audioPatch": "オーディオインターフェースとパッチングウィンドウを開きます。",
+      "levelMeter": "Opens the Level Meter Window.",
+      "clearSolo": "Clear all input solo states.",
+      "algorithm": "メニューからレンダリングアルゴリズムを選択します。",
+      "processing": "すべてのI/Oパラメータをロックし、DSPを開始します。長押しでDSPを停止します。",
+      "soloMode": "単一: 一度に1つの入力。複数: 複数の入力を同時に。",
+      "stageShape": "ステージの形状を選択します（ボックス、シリンダー、またはドーム）。",
+      "stageWidth": "ステージの幅（メートル）（ボックス形状のみ）。",
+      "stageDepth": "ステージの奥行（メートル）（ボックス形状のみ）。",
+      "stageHeight": "ステージの高さ（メートル）（ボックスおよびシリンダー形状）。",
+      "stageDiameter": "ステージの直径（メートル）（シリンダーおよびドーム形状）。",
+      "domeElevation": "ドームの仰角：180 = 半球、360 = 完全な球。",
+      "originWidth": "ステージ中心からの原点Xオフセット（0 = 中央、負 = 左）。",
+      "originDepth": "ステージ中心からの原点Yオフセット（0 = 中央、負 = 前方/ダウンステージ）。",
+      "originHeight": "床からの原点Zオフセット（0 = 床レベル、正 = 床上）。",
+      "originFront": "原点をステージ前方中央に設定します。フロンタルステージに一般的です。",
+      "originCenterGround": "原点をステージ中央の地面レベルに設定します。サラウンドまたはシリンドリカル設定に一般的です。",
+      "originCenter": "原点をステージボリュームの中央に設定します。球形ドーム設定に一般的です。",
+      "stageScale": "長押しで全入力位置を新しいステージ寸法に比例してスケーリングします。",
+      "stageFit": "長押しで範囲外の入力を新しいステージ境界内に移動します。",
+      "stageDismiss": "長押しで現在の入力位置を維持します。",
+      "originShiftInputs": "長押しで原点の変更に応じてすべての入力位置をシフトします。",
+      "originDismissInputs": "長押しで現在の入力位置を維持します。",
+      "originShiftOutputs": "長押しで原点の変更に応じてすべての出力位置をシフトします。",
+      "originDismissOutputs": "長押しで現在の出力位置を維持します。",
+      "originShiftReverbs": "長押しで原点の変更に応じてすべてのリバーブ位置をシフトします。",
+      "originDismissReverbs": "長押しで現在のリバーブ位置を維持します。",
+      "speedOfSound": "音速（温度に関連）。",
+      "temperature": "温度（音速を決定）。",
+      "masterLevel": "マスターレベル（すべての出力に影響）。",
+      "systemLatency": "システムの総遅延（ミキシングボードとコンピュータ）/ 特定の入出力遅延はそれぞれの設定で設定できます。",
+      "haasEffect": "システムに適用するハース効果。遅延補正（システム、入力、出力）を考慮します。",
+      "colorScheme": "カラースキームを選択：デフォルト（ダークグレー）、ブラック（OLEDディスプレイ用の純粋な黒）、またはライト（日中使用）。",
+      "quickLongPress": "長押しの持続時間。確認ウィンドウの代わりにこのソフトウェアは長押しを使用します。",
+      "screenReader": "スクリーンリーダーのアナウンスを有効または無効にします。有効にすると、パラメータ名と値がホバー時にアナウンスされ、数秒後にヘルプテキストが読み上げられます。",
+      "selectProjectFolder": "ファイルを保存する現在のプロジェクトフォルダの場所を選択します。",
+      "storeComplete": "完全な設定をファイルに保存します（バックアップ付き）。",
+      "reloadComplete": "ファイルから完全な設定を再読込します。",
+      "reloadCompleteBackup": "バックアップファイルから完全な設定を再読込します。",
+      "storeSystem": "システム設定をファイルに保存します（バックアップ付き）。",
+      "reloadSystem": "ファイルからシステム設定を再読込します。",
+      "reloadSystemBackup": "バックアップファイルからシステム設定を再読込します。",
+      "importSystem": "ファイルからシステム設定をインポートします（ファイルエクスプローラー使用）。",
+      "exportSystem": "システム設定をファイルにエクスポートします（ファイルエクスプローラー使用）。",
+      "language": "ユーザーインターフェースの言語を選択します。変更はアプリケーションの再起動後に完全に有効になります。",
+      "dialsAndButtons": "ダイヤルとボタン用のハードウェアコントローラーを選択: Stream Deck+ または XenceLabs Quick Keys。",
+      "positionControl": "位置コントロール用のハードウェアコントローラーを選択: Space Mouse、ジョイスティック、またはゲームパッド。",
+      "sampler": "入力チャンネルのSampler機能を有効または無効にします。コントローラーを選択: LightpadまたはRemote。",
+      "lightpadSetup": "接続されたRoli Lightpadを表示し、4つの小さなパッドに分割できます。",
+      "remoteSetup": "RemoteのXY Padsタブのパッド数を選択します。",
+      "binauralEnable": "バイノーラルレンダラー処理を有効または無効にします。",
+      "binauralOutput": "バイノーラルモニタリング用の出力チャンネルペアを選択。Offはバイノーラル出力を無効にします。",
+      "binauralDistance": "バイノーラルリスナーのステージ原点からの距離（メートル）。",
+      "binauralAngle": "バイノーラルリスナーの視点の水平回転（度、0=ステージ正面）。",
+      "binauralAtten": "バイノーラル出力の全体レベルオフセット（dB）。",
+      "binauralDelay": "バイノーラル出力の追加ディレイ（ミリ秒）。",
+      "diagnosticsToggle": "長押しで診断ツールの表示/非表示を切り替えます（ログのエクスポート、ログフォルダーを開く、システム情報のコピー、問題の報告）。",
+      "exportLogs": "デバッグまたはサポート用に診断ログをzipファイルにエクスポート。",
+      "openLogFolder": "アプリケーションのログフォルダーをシステムファイルエクスプローラーで開きます。",
+      "copySystemInfo": "サポートリクエスト用に詳細なシステム情報をクリップボードにコピー。",
+      "reportIssue": "WFS-DIYのGitHub Issuesページをデフォルトブラウザーで開きます。"
+    },
+    "messages": {
+      "selectFolderFirst": "最初にプロジェクトフォルダを選択してください。",
+      "configSaved": "完全な設定を保存しました。",
+      "configLoaded": "完全な設定を読み込みました。",
+      "systemConfigSaved": "システム設定を保存しました。",
+      "systemConfigLoaded": "システム設定を読み込みました。",
+      "systemConfigFileNotFound": "システム設定ファイルが見つかりません。",
+      "configLoadedFromBackup": "バックアップから設定を読み込みました。",
+      "systemConfigLoadedFromBackup": "バックアップからシステム設定を読み込みました。",
+      "noBackupFilesFound": "バックアップファイルが見つかりません。",
+      "systemConfigImported": "システム設定をインポートしました。",
+      "systemConfigExported": "システム設定をエクスポートしました。",
+      "partialLoad": "部分的な読み込み: {error}",
+      "partialLoadFromBackup": "バックアップからの部分的な読み込み: {error}",
+      "error": "エラー: {error}",
+      "languageChanged": "言語を変更しました: {language}（完全に有効にするには再起動が必要です）",
+      "restartTitle": "再起動が必要です",
+      "restartBody": "言語の変更を完全に反映するには、アプリケーションを再起動してください。",
+      "logsExported": "ログを {path} にエクスポートしました",
+      "logsExportFailed": "ログのエクスポートに失敗しました",
+      "logDirNotFound": "ログディレクトリが見つかりません",
+      "systemInfoCopied": "システム情報をクリップボードにコピーしました",
+      "selectLogExportFolder": "ログのエクスポート先を選択してください"
+    },
+    "dialogs": {
+      "reduceInputChannels": {
+        "title": "入力チャンネルを減らしますか？",
+        "message": "{current}から{new}入力チャンネルに減らすと、チャンネル{start}から{end}の設定が削除されます。\n\nこの操作は元に戻せません。"
+      },
+      "reduceOutputChannels": {
+        "title": "出力チャンネルを減らしますか？",
+        "message": "{current}から{new}出力チャンネルに減らすと、チャンネル{start}から{end}の設定が削除されます。\n\nこの操作は元に戻せません。"
+      },
+      "reduceReverbChannels": {
+        "title": "リバーブチャンネルを減らしますか？",
+        "message": "{current}から{new}リバーブチャンネルに減らすと、チャンネル{start}から{end}の設定が削除されます。\n\nこの操作は元に戻せません。"
+      },
+      "reduce": "減らす",
+      "selectProjectFolder": "プロジェクトフォルダを選択",
+      "importSystemConfig": "システム設定をインポート",
+      "exportSystemConfig": "システム設定をエクスポート"
+    },
+    "controller": {
+      "off": "オフ",
+      "lightpad": "Lightpad",
+      "remote": "リモート"
+    },
+    "devices": {
+      "off": "オフ",
+      "on": "オン"
+    }
+  },
+  "network": {
+    "sections": {
+      "network": "ネットワーク",
+      "connections": "ネットワーク接続",
+      "admOsc": "ADM-OSC",
+      "tracking": "トラッキング"
+    },
+    "labels": {
+      "interface": "ネットワークインターフェース:",
+      "currentIPv4": "現在のIPv4:",
+      "udpPort": "UDPポート:",
+      "tcpPort": "TCPポート:",
+      "oscQuery": "OSC Query:",
+      "protocol": "プロトコル:",
+      "rxPort": "受信ポート:",
+      "offsetX": "オフセットX:",
+      "offsetY": "オフセットY:",
+      "offsetZ": "オフセットZ:",
+      "scaleX": "スケールX:",
+      "scaleY": "スケールY:",
+      "scaleZ": "スケールZ:",
+      "oscPath": "OSC Path:",
+      "psnInterface": "PSN Interface:",
+      "mqttHost": "ホスト:",
+      "mqttTopic": "トピック:",
+      "mqttTagIds": "タグID...",
+      "mqttJsonX": "X:",
+      "mqttJsonY": "Y:",
+      "mqttJsonZ": "Z:",
+      "mqttJsonQ": "Q:",
+      "admMapping": "マッピング:",
+      "notAvailable": "利用不可",
+      "localhost": "Localhost (127.0.0.1)"
+    },
+    "help": {
+      "networkInterface": "ネットワークインターフェースを選択。",
+      "currentIP": "プロセッサーのIPアドレス。",
+      "udpPort": "プロセッサーのUDP受信ポート。",
+      "tcpPort": "プロセッサーのTCP受信ポート。",
+      "oscQueryPort": "OSC Queryディスカバリー用のHTTPポート。他のアプリは http://localhost:<port>/ でパラメーターを参照できます。",
+      "oscQueryEnable": "HTTP/WebSocketによる自動パラメーター検出のため、OSC Queryサーバーを有効/無効にします。",
+      "targetName": "ネットワークターゲット名。",
+      "dataMode": "UDPまたはTCPデータ送信を選択。",
+      "targetIP": "ターゲットのIPアドレス（ローカルホストには127.0.0.1を使用）。",
+      "txPort": "このターゲットの送信ポート。",
+      "rxEnable": "データ受信を有効または無効にします。",
+      "txEnable": "データ送信を有効または無効にします。",
+      "protocol": "プロトコルを選択: DISABLED、OSC、REMOTE、またはADM-OSC。",
+      "addTarget": "新しいネットワークターゲットを追加。",
+      "openLogWindow": "ネットワークログウィンドウを開く。",
+      "findMyRemote": "リモートを点滅させてバイブレーションで見つけます。",
+      "oscSourceFilter": "受信OSCをフィルタリング: 全ソースを受け入れるか、Rx有効の登録済み接続のみ。",
+      "admOscOffsetX": "Offset ADM-OSC X Coordinate.",
+      "admOscOffsetY": "Offset ADM-OSC Y Coordinate.",
+      "admOscOffsetZ": "Offset ADM-OSC Z Coordinate.",
+      "admOscScaleX": "Scale ADM-OSC X Coordinate.",
+      "admOscScaleY": "Scale ADM-OSC Y Coordinate.",
+      "admOscScaleZ": "Scale ADM-OSC Z Coordinate.",
+      "admOscFlipX": "Invert Axis of ADM-OSC X Coordinate.",
+      "admOscFlipY": "Invert Axis of ADM-OSC Y Coordinate.",
+      "admOscFlipZ": "Invert Axis of ADM-OSC Z Coordinate.",
+      "trackingEnabled": "受信トラッキングデータの処理を有効または無効にします。",
+      "trackingProtocol": "トラッキングプロトコルの種類を選択。",
+      "trackingPort": "トラッキングデータを受信するポートを指定。",
+      "trackingOffsetX": "トラッキングX座標のオフセット。",
+      "trackingOffsetY": "トラッキングY座標のオフセット。",
+      "trackingOffsetZ": "トラッキングZ座標のオフセット。",
+      "trackingScaleX": "トラッキングX座標のスケール。",
+      "trackingScaleY": "トラッキングY座標のスケール。",
+      "trackingScaleZ": "トラッキングZ座標のスケール。",
+      "trackingFlipX": "トラッキングX座標の軸を反転。",
+      "trackingFlipY": "トラッキングY座標の軸を反転。",
+      "trackingFlipZ": "トラッキングZ座標の軸を反転。",
+      "trackingOscPath": "OSCモードでのトラッキング用OSCパス（/で始まる）",
+      "psnInterface": "PSNマルチキャスト受信用のネットワークインターフェース",
+      "storeConfig": "ネットワーク設定をファイルに保存。",
+      "reloadConfig": "ファイルからネットワーク設定を再読み込み。",
+      "reloadBackup": "バックアップファイルからネットワーク設定を再読み込み。",
+      "importConfig": "ファイルからネットワーク設定をインポート。",
+      "exportConfig": "ネットワーク設定をファイルにエクスポート。",
+      "removeTarget": "このネットワークターゲットを削除。",
+      "admMapping": "設定するADM-OSCマッピングを選択します。Cart = カーテシアン (xyz)、Polar = 球面 (aed)。",
+      "admMappingPanel": "ドットをドラッグしてマッピングを編集。軸タイトルをクリックで入れ替え、Flipをクリックで反転。Shiftを押しながらで両側を対称に編集。"
+    },
+    "buttons": {
+      "storeConfig": "ネットワーク設定を保存",
+      "reloadConfig": "ネットワーク設定を再読込",
+      "reloadBackup": "バックアップから再読込",
+      "import": "インポート",
+      "export": "エクスポート",
+      "openLogWindow": "ログウィンドウを開く",
+      "findMyRemote": "リモートを探す",
+      "add": "追加"
+    },
+    "toggles": {
+      "enabled": "有効",
+      "disabled": "無効",
+      "on": "ON",
+      "off": "OFF",
+      "trackingOn": "トラッキング: ON",
+      "trackingOff": "トラッキング: OFF",
+      "flipXOn": "反転X: ON",
+      "flipXOff": "反転X: OFF",
+      "flipYOn": "反転Y: ON",
+      "flipYOff": "反転Y: OFF",
+      "flipZOn": "反転Z: ON",
+      "flipZOff": "反転Z: OFF",
+      "oscFilterAcceptAll": "OSCフィルタ: 全て受信",
+      "oscFilterRegisteredOnly": "OSCフィルタ: 登録済みのみ"
+    },
+    "table": {
+      "name": "名前",
+      "mode": "モード",
+      "ipv4Address": "IPv4アドレス",
+      "txPort": "送信ポート",
+      "rx": "受信",
+      "tx": "送信",
+      "protocol": "プロトコル",
+      "defaultTarget": "ターゲット {num}"
+    },
+    "protocols": {
+      "disabled": "無効",
+      "osc": "OSC",
+      "remote": "リモート",
+      "admOsc": "ADM-OSC",
+      "psn": "PosiStageNet (PSN)",
+      "rttrp": "RTTrP",
+      "mqtt": "MQTT",
+      "qlab": "QLab",
+      "udp": "UDP",
+      "tcp": "TCP"
+    },
+    "dialogs": {
+      "importConfig": "ネットワーク設定をインポート",
+      "exportConfig": "ネットワーク設定をエクスポート",
+      "removeTargetTitle": "ターゲットを削除",
+      "removeTargetMessage": "ターゲット「{name}」を削除しますか？",
+      "findMyRemoteTitle": "リモートを探す",
+      "findMyRemoteMessage": "リモートデバイスのパスワードを入力してください:",
+      "findMyRemotePassword": "パスワード:",
+      "trackingConflictsTitle": "トラッキングの競合が検出されました",
+      "trackingConflictsMessage": "\nクラスターごとに1つのトラッキング入力のみが許可されています。続行すると、各クラスターの最初の入力のみトラッキングが保持されます。",
+      "trackingConflictsContinue": "続行"
+    },
+    "messages": {
+      "selectFolderFirst": "まずシステム設定でプロジェクトフォルダを選択してください。",
+      "configSaved": "ネットワーク設定を保存しました。",
+      "configNotFound": "ネットワーク設定ファイルが見つかりません。",
+      "configReloaded": "ネットワーク設定を再読込しました。",
+      "noBackupFound": "バックアップファイルが見つかりません。",
+      "configLoadedFromBackup": "バックアップからネットワーク設定を読み込みました。",
+      "configImported": "ネットワーク設定をインポートしました。",
+      "configExported": "ネットワーク設定をエクスポートしました。",
+      "error": "エラー: {error}",
+      "onlyOneRemote": "リモート接続は1つのみ許可されています。",
+      "findDeviceSent": "デバイス検索コマンドを送信しました。",
+      "maxTargetsReached": "ターゲット/サーバーの最大数に達しました。",
+      "passwordEmpty": "パスワードを空にすることはできません。",
+      "oscManagerError": "エラー: OSCマネージャーが利用できません"
+    }
+  },
+  "accessibility": {
+    "ttsEnabled": "スクリーンリーダーが有効になりました",
+    "ttsDisabled": "スクリーンリーダーが無効になりました"
+  },
+  "audioPatch": {
+    "windowTitle": "オーディオインターフェースとパッチング",
+    "labels": {
+      "processorInputs": "プロセッサ入力",
+      "processorOutputs": "プロセッサ出力",
+      "interfaceInput": "オーディオインターフェース入力",
+      "interfaceOutput": "オーディオインターフェース出力"
+    },
+    "tabs": {
+      "deviceSettings": "デバイス設定",
+      "inputPatch": "入力パッチ",
+      "outputPatch": "出力パッチ"
+    },
+    "deviceSettings": {
+      "labels": {
+        "deviceType": "オーディオデバイスタイプ:",
+        "device": "デバイス:",
+        "sampleRate": "サンプルレート:",
+        "bufferSize": "オーディオバッファサイズ:"
+      },
+      "buttons": {
+        "controlPanel": "コントロールパネル",
+        "resetDevice": "デバイスをリセット"
+      },
+      "noDevice": "デバイスなし",
+      "notConfigured": "未設定"
+    },
+    "modes": {
+      "scrolling": "スクロール",
+      "patching": "パッチング",
+      "testing": "テスト"
+    },
+    "buttons": {
+      "unpatchAll": "全て解除",
+      "hold": "ホールド"
+    },
+    "testSignal": {
+      "labels": {
+        "signal": "信号:",
+        "frequency": "周波数:",
+        "level": "レベル:"
+      },
+      "types": {
+        "off": "オフ",
+        "pinkNoise": "ピンクノイズ",
+        "tone": "トーン",
+        "sweep": "スイープ",
+        "diracPulse": "ディラックパルス",
+        "pulse": "パルス"
+      }
+    },
+    "dialogs": {
+      "unpatchInputsTitle": "すべての入力を解除",
+      "unpatchInputsMessage": "すべての入力パッチを削除してもよろしいですか？",
+      "unpatchOutputsTitle": "すべての出力を解除",
+      "unpatchOutputsMessage": "すべての出力パッチを削除してもよろしいですか？"
+    },
+    "messages": {
+      "chooseTestSignal": "テストを有効にするにはテスト信号を選択してください"
+    }
+  },
+  "networkLog": {
+    "windowTitle": "ネットワークログ",
+    "controls": {
+      "logging": "ログ記録",
+      "hideHeartbeat": "ハートビートを非表示",
+      "clear": "クリア",
+      "export": "エクスポート"
+    },
+    "exportMenu": {
+      "exportAll": "すべてエクスポート",
+      "exportFiltered": "フィルター済みをエクスポート"
+    },
+    "filterModes": {
+      "tcpUdp": "TCP/UDP",
+      "protocol": "プロトコル",
+      "clientIp": "クライアントIP",
+      "rejected": "拒否済み"
+    },
+    "filterToggles": {
+      "incoming": "受信",
+      "outgoing": "送信",
+      "udp": "UDP",
+      "tcp": "TCP"
+    },
+    "columns": {
+      "time": "時刻",
+      "direction": "方向",
+      "ip": "IP",
+      "port": "ポート",
+      "transport": "転送",
+      "protocol": "プロトコル",
+      "address": "アドレス",
+      "arguments": "引数",
+      "origin": "発信元"
+    },
+    "status": {
+      "rejected": "拒否"
+    },
+    "dialogs": {
+      "exportFailedTitle": "エクスポート失敗",
+      "exportFailedMessage": "ファイルに書き込めませんでした: {path}",
+      "exportCompleteTitle": "エクスポート完了",
+      "exportCompleteMessage": "ログをエクスポートしました: {path}"
+    }
+  },
+  "map": {
+    "buttons": {
+      "fitStage": "ステージを画面に合わせる",
+      "fitInputs": "すべての入力を画面に合わせる",
+      "showLevels": "レベル表示",
+      "hideLevels": "レベル非表示"
+    },
+    "tooltips": {
+      "fitStage": "ステージが表示されるようにズームとパンを調整",
+      "fitInputs": "すべての可視入力が表示されるようにズームとパンを調整",
+      "levels": "マップ上に入出力のレベルを表示",
+      "detach": "デュアルスクリーン設定用にマップを別ウィンドウに切り離す"
+    },
+    "reattach": "マップを再接続",
+    "detachedMessage": "マップは別ウィンドウに表示されています。",
+    "labels": {
+      "reverbPrefix": "R"
+    },
+    "messages": {
+      "assignedCluster": "入力 {channel} をクラスター {cluster} に割り当てました",
+      "assignedClusterMulti": "{count} 個の入力をクラスター {cluster} に割り当てました",
+      "setSingle": "入力 {channel} をクラスターから削除しました",
+      "setSingleMulti": "{count} 個の入力をクラスターから削除しました",
+      "clusterBrokenUp": "クラスター {cluster} を解散しました"
+    }
+  },
+  "levelMeter": {
+    "windowTitle": "レベルメーター",
+    "inputs": "入力",
+    "outputs": "出力",
+    "solo": "ビジュアルソロ:",
+    "soloNone": "なし",
+    "buttons": {
+      "clearSolo": "ソロ解除",
+      "soloModeSingle": "Single",
+      "soloModeMulti": "Multi"
+    },
+    "tooltips": {
+      "solo": "レベルメーター表示で入力の全出力への貢献度を表示（シングルモード時）し、ソロ入力のバイノーラルレンダリングを再生",
+      "clearSolo": "すべてのソロを解除",
+      "soloMode": "単一: 一度に1つの入力。複数: 複数の入力を同時に。"
+    }
+  },
+  "clusters": {
+    "labels": {
+      "assignedInputs": "割り当て入力",
+      "reference": "リファレンス:",
+      "position": "ポジション",
+      "posPrefix": "位置:",
+      "controls": "コントロール",
+      "z": "Z",
+      "attenuation": "減衰",
+      "rotation": "回転",
+      "scale": "スケール",
+      "plane": "平面:",
+      "x": "X:",
+      "y": "Y:",
+      "inputPrefix": "入力"
+    },
+    "referenceMode": {
+      "firstInput": "最初の入力",
+      "barycenter": "重心",
+      "sharedPosition": "共有位置"
+    },
+    "planes": {
+      "xy": "XY",
+      "xz": "XZ",
+      "yz": "YZ"
+    },
+    "status": {
+      "tracking": "トラッキング: 入力 {num} (リファレンスを上書き)",
+      "noInputs": "入力が割り当てられていません",
+      "trackedMarker": "[T]"
+    },
+    "toggles": {
+      "lfoOn": "L.F.O: ON",
+      "lfoOff": "L.F.O: OFF",
+      "inputsVisible": "入力: 表示",
+      "inputsHidden": "入力: 非表示"
+    },
+    "lfo": {
+      "labels": {
+        "section": "LFO",
+        "period": "周期:",
+        "phase": "位相:",
+        "x": "X",
+        "y": "Y",
+        "z": "Z",
+        "rot": "回転",
+        "scaleLfo": "スケール",
+        "amplitude": "振幅:",
+        "angle": "角度:",
+        "ratio": "比率:",
+        "rate": "レート:"
+      }
+    },
+    "help": {
+      "inputsVisibility": "このクラスターの入力をマップタブで表示/非表示にします。非表示は新しいメンバーにも適用され、入力を削除すると再び表示されます。",
+      "referenceMode": "クラスター変換の基準点を選択: 最初の入力、重心、または共有位置（全メンバーが同一位置に集まり、スケールと回転は各入力のオフセットに適用されます）。",
+      "positionJoystick": "クラスター内のすべての入力をX/Yで移動。ホールドしてドラッグで平行移動。",
+      "zSlider": "クラスター内のすべての入力をZ軸（高さ）に沿って移動。",
+      "attenuationSlider": "クラスター内のすべての入力の減衰を調整 (dB)。",
+      "rotationDial": "選択した平面上で、基準点を中心にクラスターのすべての入力を回転。",
+      "scaleJoystick": "選択した平面上で、基準点を中心にクラスター入力をスケーリング。",
+      "planeSelector": "回転とスケールの操作用の平面を選択 (XY、XZ、YZ)。",
+      "lfoActiveButton": "クラスターの周期的動作 (LFO) を有効/無効にします。",
+      "lfoPeriodDial": "クラスター動作の基本周期。",
+      "lfoPhaseDial": "クラスター動作のグローバル位相オフセット。",
+      "presetTile": "クリック: プリセット呼び出し。ダブルクリック: 呼び出し+開始。中/右クリック: 現在のLFOを保存。",
+      "stopAllLFO": "10個すべてのクラスターでLFOを停止。",
+      "exportPresets": "16個のLFOプリセットをすべてXMLファイルにエクスポート。",
+      "importPresets": "XMLファイルからLFOプリセットをインポート。",
+      "qlabPreset": "現在のクラスターで最後に選択されたLFOプリセットを呼び出すQLabネットワークキューを作成。",
+      "lfoShapeXSelector": "幅方向のクラスターの動きの挙動。",
+      "lfoShapeYSelector": "奥行き方向のクラスターの動きの挙動。",
+      "lfoShapeZSelector": "高さ方向のクラスターの動きの挙動。",
+      "lfoShapeRotSelector": "クラスターの回転挙動。",
+      "lfoShapeScaleSelector": "クラスターのスケール挙動。",
+      "lfoRateXSlider": "幅方向のベース周期に対する速い/遅い動き。",
+      "lfoRateYSlider": "奥行き方向のベース周期に対する速い/遅い動き。",
+      "lfoRateZSlider": "高さ方向のベース周期に対する速い/遅い動き。",
+      "lfoRateRotSlider": "ベース周期に対する速い/遅い回転。",
+      "lfoRateScaleSlider": "ベース周期に対する速い/遅いスケーリング。",
+      "lfoAmplitudeXSlider": "クラスター参照位置に対する幅方向の動きの大きさ。",
+      "lfoAmplitudeYSlider": "クラスター参照位置に対する奥行き方向の動きの大きさ。",
+      "lfoAmplitudeZSlider": "クラスター参照位置に対する高さ方向の動きの大きさ。",
+      "lfoAmplitudeRotSlider": "最大回転角度（-360〜360度）。",
+      "lfoAmplitudeScaleSlider": "最大スケール係数（0.1×〜10×、対数）。",
+      "lfoPhaseXDial": "幅方向のクラスターの動きの位相オフセット。",
+      "lfoPhaseYDial": "奥行き方向のクラスターの動きの位相オフセット。",
+      "lfoPhaseZDial": "高さ方向のクラスターの動きの位相オフセット。",
+      "lfoPhaseRotDial": "クラスター回転の位相オフセット。",
+      "lfoPhaseScaleDial": "クラスタースケーリングの位相オフセット。"
+    },
+    "presets": {
+      "stopAll": "すべて停止",
+      "export": "エクスポート",
+      "import": "インポート",
+      "exportDialog": "LFOプリセットをエクスポート",
+      "importDialog": "LFOプリセットをインポート",
+      "stored": "LFOプリセットをタイル {n} に保存しました。",
+      "recalled": "LFOプリセットをタイル {n} から呼び出しました。",
+      "exported": "LFOプリセットをエクスポートしました。",
+      "imported": "LFOプリセットをインポートしました。"
+    },
+    "osc": {
+      "lfoActive": "/wfs/cluster/lfoActive <id> <0|1>",
+      "lfoPeriod": "/wfs/cluster/lfoPeriod <id> <秒>",
+      "lfoPhase": "/wfs/cluster/lfoPhase <id> <度>",
+      "lfoPresetRecall": "/wfs/cluster/lfoPresetRecall <clusterId> <プリセット番号>",
+      "lfoStopAll": "/wfs/cluster/lfoStopAll",
+      "lfoShapeX": "/wfs/cluster/lfoShapeX <id> <0-8>",
+      "lfoShapeY": "/wfs/cluster/lfoShapeY <id> <0-8>",
+      "lfoShapeZ": "/wfs/cluster/lfoShapeZ <id> <0-8>",
+      "lfoShapeRot": "/wfs/cluster/lfoShapeRot <id> <0-8>",
+      "lfoShapeScale": "/wfs/cluster/lfoShapeScale <id> <0-8>",
+      "lfoRateX": "/wfs/cluster/lfoRateX <id> <multiplier>",
+      "lfoRateY": "/wfs/cluster/lfoRateY <id> <multiplier>",
+      "lfoRateZ": "/wfs/cluster/lfoRateZ <id> <multiplier>",
+      "lfoRateRot": "/wfs/cluster/lfoRateRot <id> <multiplier>",
+      "lfoRateScale": "/wfs/cluster/lfoRateScale <id> <multiplier>",
+      "lfoAmplitudeX": "/wfs/cluster/lfoAmplitudeX <id> <meters>",
+      "lfoAmplitudeY": "/wfs/cluster/lfoAmplitudeY <id> <meters>",
+      "lfoAmplitudeZ": "/wfs/cluster/lfoAmplitudeZ <id> <meters>",
+      "lfoAmplitudeRot": "/wfs/cluster/lfoAmplitudeRot <id> <degrees>",
+      "lfoAmplitudeScale": "/wfs/cluster/lfoAmplitudeScale <id> <factor>",
+      "lfoPhaseX": "/wfs/cluster/lfoPhaseX <id> <degrees>",
+      "lfoPhaseY": "/wfs/cluster/lfoPhaseY <id> <degrees>",
+      "lfoPhaseZ": "/wfs/cluster/lfoPhaseZ <id> <degrees>",
+      "lfoPhaseRot": "/wfs/cluster/lfoPhaseRot <id> <degrees>",
+      "lfoPhaseScale": "/wfs/cluster/lfoPhaseScale <id> <degrees>"
+    },
+    "qlabPresetCueName": "クラスター {cluster} LFOプリセット: {name}",
+    "qlabPresetCueCreated": "QLabキュー作成: クラスター {cluster} プリセット \"{name}\""
+  },
+  "eq": {
+    "status": {
+      "off": "EQ オフ",
+      "on": "EQ オン"
+    },
+    "filterTypes": {
+      "off": "オフ",
+      "lowCut": "ローカット",
+      "lowShelf": "ローシェルフ",
+      "peakNotch": "ピーク/ノッチ",
+      "bandPass": "バンドパス",
+      "highShelf": "ハイシェルフ",
+      "highCut": "ハイカット",
+      "allPass": "オールパス"
+    },
+    "labels": {
+      "band": "バンド",
+      "freq": "周波数:",
+      "gain": "ゲイン",
+      "q": "Q"
+    },
+    "buttons": {
+      "resetBand": "リセット",
+      "flattenEQ": "EQリセット"
+    }
+  },
+  "outputs": {
+    "sections": {
+      "channel": "チャンネル",
+      "position": "位置",
+      "settings": "設定"
+    },
+    "tabs": {
+      "parameters": "出力パラメータ",
+      "eq": "出力EQ"
+    },
+    "labels": {
+      "name": "名前:",
+      "array": "アレイ:",
+      "applyToArray": "アレイに適用:",
+      "attenuation": "減衰:",
+      "delayLatency": "ディレイ/レイテンシー:",
+      "distanceAtten": "距離減衰:",
+      "hParallax": "水平パララックス:",
+      "vParallax": "垂直パララックス:",
+      "coordinates": "座標:",
+      "positionX": "位置 X:",
+      "positionY": "位置 Y:",
+      "positionZ": "位置 Z:",
+      "orientation": "向き:",
+      "radius": "Radius",
+      "azimuth": "Azimuth",
+      "height": "Height",
+      "elevation": "Elevation",
+      "angleOn": "アングル On:",
+      "angleOff": "アングル Off:",
+      "pitch": "ピッチ:",
+      "hfDamping": "HF減衰:",
+      "delay": "ディレイ:",
+      "latency": "レイテンシー:"
+    },
+    "buttons": {
+      "speakerVisible": "マップにスピーカーを表示",
+      "speakerHidden": "スピーカー: マップで非表示",
+      "arrayVisible": "アレイ: マップで表示",
+      "arrayHidden": "アレイ: マップで非表示",
+      "wizardOfOutZ": "OutZウィザード...",
+      "storeConfig": "出力設定を保存",
+      "reloadConfig": "出力設定を再読込",
+      "reloadBackup": "バックアップを読込",
+      "import": "インポート",
+      "export": "エクスポート"
+    },
+    "toggles": {
+      "minLatencyOn": "最小レイテンシー: オン",
+      "minLatencyOff": "最小レイテンシー: オフ",
+      "liveSourceOn": "ライブソース減衰: オン",
+      "liveSourceOff": "ライブソース減衰: オフ",
+      "floorReflectionsOn": "床面反射: オン",
+      "floorReflectionsOff": "床面反射: オフ"
+    },
+    "arrayModes": {
+      "single": "シングル",
+      "array": "アレイ",
+      "off": "オフ",
+      "absolute": "絶対",
+      "relative": "相対"
+    },
+    "coordModes": {
+      "xyz": "XYZ"
+    },
+    "units": {
+      "meters": "m",
+      "dB": "dB",
+      "dBPerMeter": "dB/m",
+      "hz": "Hz",
+      "ms": "ms",
+      "percent": "%"
+    },
+    "dialogs": {
+      "import": "出力設定をインポート",
+      "export": "出力設定をエクスポート"
+    },
+    "messages": {
+      "setToSingle": "出力 {num} をシングルに設定",
+      "assignedToArray": "出力 {num} をアレイ {array} に割り当て",
+      "selectFolderFirst": "まずシステム設定でプロジェクトフォルダを選択してください。",
+      "configSaved": "出力設定を保存しました。",
+      "configLoaded": "出力設定を読み込みました。",
+      "configNotFound": "出力設定ファイルが見つかりません。",
+      "configReloaded": "出力設定を再読込しました。",
+      "noBackup": "出力設定のバックアップが見つかりません。",
+      "backupLoaded": "バックアップから出力設定を読み込みました。",
+      "configImported": "出力設定をインポートしました。",
+      "configExported": "出力設定をエクスポートしました。",
+      "error": "エラー: {error}"
+    },
+    "help": {
+      "channelSelector": "出力チャンネル番号と選択。",
+      "nameEditor": "表示される出力チャンネル名（編集可能）。",
+      "arraySelector": "選択した出力チャンネルはアレイの一部です。",
+      "applyToArray": "アレイの残りに変更を適用（絶対値または相対変更）。",
+      "attenuation": "出力チャンネルの減衰。（変更はアレイの残りに影響する場合があります）",
+      "delayLatency": "出力チャンネルのディレイ（正の値）またはレイテンシー補正（負の値）。（変更はアレイの残りに影響する場合があります）",
+      "minLatency": "選択した出力の最小レイテンシーモードを無効にします。（変更はアレイの残りに影響する場合があります）",
+      "liveSource": "選択した出力のライブソース減衰を無効にします。（変更はアレイの残りに影響する場合があります）",
+      "floorReflections": "このスピーカーの床面反射を有効または無効にします。",
+      "distanceAtten": "選択した出力の距離減衰比率。（変更はアレイの残りに影響する場合があります）",
+      "hParallax": "スピーカーから「ターゲット」リスナーまでの水平距離。（変更はアレイの残りに影響する場合があります）",
+      "vParallax": "スピーカーから「ターゲット」リスナーまでの垂直距離。スピーカーがリスナーの頭より下にある場合は正の値。（変更はアレイの残りに影響する場合があります）",
+      "coordMode": "座標表示モード：直交座標（X/Y/Z）、円筒座標（半径/方位角/高さ）、または球面座標（半径/方位角/仰角）。",
+      "directional": "出力チャンネルの指向性制御。ドラッグで向きを変更、Shift+ドラッグでAngle Off、Alt+ドラッグでAngle On。（変更はアレイの残りに影響する場合があります）",
+      "angleOn": "出力チャンネルはこの角度内の背後にあるオブジェクトを増幅します。（変更はアレイの残りに影響する場合があります）",
+      "angleOff": "出力チャンネルはこの角度内の前方にあるオブジェクトを増幅しません。（変更はアレイの残りに影響する場合があります）",
+      "pitch": "どのオブジェクトを増幅するかを決定するための出力チャンネルの垂直方向。（変更はアレイの残りに影響する場合があります）",
+      "hfDamping": "オブジェクトから出力までの距離に応じた高周波の損失。（変更はアレイの残りに影響する場合があります）",
+      "wizardOfOutZ": "Wizard of OutZを開いてスピーカーアレイを簡単に配置します。",
+      "mapVisibility": "選択した出力をマップ上で表示または非表示にします。",
+      "storeConfig": "出力設定をファイルに保存します（バックアップ付き）。",
+      "reloadConfig": "ファイルから出力設定を再読み込みします。",
+      "reloadBackup": "バックアップファイルから出力設定を再読み込みします。",
+      "importConfig": "ファイルから出力設定をインポートします（ファイルエクスプローラーウィンドウ付き）。",
+      "exportConfig": "出力設定をファイルにエクスポートします（ファイルエクスプローラーウィンドウ付き）。",
+      "eqEnable": "この出力のEQ処理を有効/無効にします。",
+      "eqFlatten": "長押しで全EQバンドをデフォルトにリセットします。",
+      "eqBandToggle": "バンド{band}のオン/オフ切り替え。オフの場合バイパスされます。",
+      "eqShape": "出力EQバンド{band}のフィルター形状。",
+      "eqFreq": "出力EQバンド{band}の周波数 (20 Hz - 20 kHz)。",
+      "eqGain": "出力EQバンド{band}のゲイン (-24〜+24 dB)。",
+      "eqQ": "出力EQバンド{band}のQ値 (0.1 - 10.0)。",
+      "eqResetBand": "長押しでバンド{band}をデフォルトにリセットします。",
+      "position1": "出力チャンネル{name}（{unit}）。",
+      "position2": "出力チャンネル{name}（{unit}）。",
+      "position3": "出力チャンネル{name}（{unit}）。"
+    }
+  },
+  "arrayHelper": {
+    "window": {
+      "title": "OutZウィザード",
+      "contentName": "出力アレイヘルパー"
+    },
+    "presets": {
+      "label": "プリセット:",
+      "nearFieldStraight": "ニアフィールド直線アレイ",
+      "nearFieldCurved": "ニアフィールド曲線アレイ",
+      "mainRoomStraight": "メインフライング直線アレイ",
+      "subBass": "サブベース",
+      "surround": "サラウンド",
+      "delayLine": "ディレイライン",
+      "circle": "サークル"
+    },
+    "sections": {
+      "geometry": "ジオメトリ",
+      "acousticDefaults": "音響設定",
+      "target": "ターゲット"
+    },
+    "geometry": {
+      "centerSpacing": "中心 + 間隔",
+      "endpoints": "端点",
+      "nSpeakers": "スピーカー数:",
+      "nPairs": "ペア数:",
+      "zHeight": "Z高さ (m):",
+      "orientation": "向き (deg):",
+      "centerX": "中心 X (m):",
+      "centerY": "中心 Y (m):",
+      "spacing": "間隔 (m):",
+      "startX": "開始 X (m):",
+      "startY": "開始 Y (m):",
+      "endX": "終了 X (m):",
+      "endY": "終了 Y (m):",
+      "sag": "たわみ (m):",
+      "radius": "半径 (m):",
+      "startAngle": "開始角度 (deg):",
+      "facingInward": "内向き",
+      "facingOutward": "外向き",
+      "width": "幅 (m):",
+      "yStart": "Y開始 (m):",
+      "yEnd": "Y終了 (m):",
+      "frontFacing": "前面向き",
+      "backFacing": "背面向き"
+    },
+    "acoustic": {
+      "liveSource": "ライブソース",
+      "floorReflections": "床面反射",
+      "hfDamping": "HF減衰 (dB/m):",
+      "hParallax": "水平パララックス (m):",
+      "vParallax": "垂直パララックス (m):",
+      "distanceAtten": "距離減衰 (%):",
+      "lowCut": "ローカット (Hz):",
+      "highCut": "ハイカット (Hz):"
+    },
+    "target": {
+      "array": "アレイ:",
+      "arrayPrefix": "アレイ",
+      "startingOutput": "開始出力:"
+    },
+    "buttons": {
+      "apply": "適用",
+      "close": "閉じる"
+    },
+    "preview": {
+      "audience": "観客"
+    },
+    "status": {
+      "ready": "準備完了",
+      "calculated": "{count}個の位置を計算しました",
+      "applied": "{count}個のスピーカーをアレイ{array}に適用しました。次のアレイの準備完了。"
+    },
+    "errors": {
+      "speakerCountZero": "スピーカー数は0より大きくする必要があります",
+      "noPositions": "適用する位置がありません。ジオメトリパラメータを確認してください。",
+      "notEnoughOutputs": "出力チャンネルが足りません！{start}から{count}個必要です",
+      "prefix": "エラー: "
+    }
+  },
+  "reverbs": {
+    "noChannels": "リバーブチャンネルが設定されていません。\n\nシステム設定でリバーブチャンネル数を設定してください。",
+    "tabs": {
+      "channelParams": "チャンネルパラメータ",
+      "preProcessing": "プリプロセッシング",
+      "algorithm": "アルゴリズム",
+      "postProcessing": "ポストプロセッシング"
+    },
+    "labels": {
+      "name": "名前:",
+      "attenuation": "減衰:",
+      "delayLatency": "ディレイ/レイテンシー:",
+      "coordinates": "座標:",
+      "positionX": "位置 X:",
+      "positionY": "位置 Y:",
+      "positionZ": "位置 Z:",
+      "returnOffsetX": "リターンオフセット X:",
+      "returnOffsetY": "リターンオフセット Y:",
+      "returnOffsetZ": "リターンオフセット Z:",
+      "orientation": "向き:",
+      "angleOn": "アングル On:",
+      "angleOff": "アングル Off:",
+      "pitch": "ピッチ:",
+      "hfDamping": "HF減衰:",
+      "distanceAttenPercent": "距離減衰 %:",
+      "distanceAtten": "距離減衰:",
+      "commonAtten": "共通減衰:",
+      "outputMutes": "出力ミュート:",
+      "muteMacro": "ミュートマクロ:"
+    },
+    "sections": {
+      "reverbFeed": "リバーブフィード",
+      "reverbReturn": "リバーブリターン"
+    },
+    "buttons": {
+      "visibleOnMap": "マップにリバーブを表示",
+      "hiddenOnMap": "マップでリバーブを非表示",
+      "soloReverbs": "Solo Reverbs",
+      "soloReverbsOn": "ソロ リバーブ ON",
+      "mutePre": "Mute Pre",
+      "mutePreOn": "ミュート プレ ON",
+      "mutePost": "Mute Post",
+      "mutePostOn": "ミュート ポスト ON",
+      "editOnMap": "マップで編集",
+      "editOnMapOn": "マップで編集 ON",
+      "storeConfig": "リバーブ設定を保存",
+      "reloadConfig": "リバーブ設定を再読込",
+      "reloadBackup": "バックアップを読込",
+      "import": "インポート",
+      "export": "エクスポート"
+    },
+    "toggles": {
+      "minLatencyOn": "最小レイテンシー オン",
+      "minLatencyOff": "最小レイテンシー オフ",
+      "liveSourceOn": "ライブソース減衰 オン",
+      "liveSourceOff": "ライブソース減衰 オフ"
+    },
+    "coordModes": {
+      "xyz": "XYZ"
+    },
+    "muteMacros": {
+      "select": "ミュートマクロ選択",
+      "muteAll": "すべてミュート",
+      "unmuteAll": "すべてミュート解除",
+      "invertMutes": "ミュート反転",
+      "muteOdd": "奇数をミュート",
+      "muteEven": "偶数をミュート",
+      "muteArray": "アレイをミュート",
+      "unmuteArray": "アレイのミュート解除"
+    },
+    "algorithm": {
+      "sdn": "SDN",
+      "fdn": "FDN",
+      "ir": "IR",
+      "decaySection": "ディケイ",
+      "rt60": "RT60:",
+      "rt60LowMult": "RT60 低域 ×:",
+      "rt60HighMult": "RT60 高域 ×:",
+      "crossoverLow": "クロスオーバー低域:",
+      "crossoverHigh": "クロスオーバー高域:",
+      "diffusion": "拡散:",
+      "sdnSection": "SDN",
+      "scale": "スケール:",
+      "fdnSection": "FDN",
+      "size": "サイズ:",
+      "irSection": "IR",
+      "irFile": "IRファイル:",
+      "irImport": "IRをインポート...",
+      "irTrim": "IRトリム:",
+      "irLength": "IR長さ:",
+      "perNode": "ノードごと:",
+      "perNodeOn": "ノードごとIR オン",
+      "perNodeOff": "ノードごとIR オフ",
+      "wetLevel": "ウェットレベル:",
+      "irImportSuccess": "IRインポート完了: {file}",
+      "irNoProject": "先にプロジェクトフォルダを設定してください",
+      "noFileLoaded": "IRが読み込まれていません"
+    },
+    "preProcessing": {
+      "compressor": "コンプレッサー",
+      "compressorOff": "コンプレッサー オフ",
+      "compressorOn": "コンプレッサー オン",
+      "threshold": "スレッショルド:",
+      "ratio": "レシオ:",
+      "attack": "アタック:",
+      "release": "リリース:"
+    },
+    "postProcessing": {
+      "expander": "エキスパンダー",
+      "expanderOff": "エキスパンダー オフ",
+      "expanderOn": "エキスパンダー オン",
+      "threshold": "スレッショルド:",
+      "ratio": "レシオ:",
+      "attack": "アタック:",
+      "release": "リリース:"
+    },
+    "dialogs": {
+      "import": "リバーブ設定をインポート",
+      "export": "リバーブ設定をエクスポート"
+    },
+    "messages": {
+      "selectFolderFirst": "まずシステム設定でプロジェクトフォルダを選択してください。",
+      "configSaved": "リバーブ設定を保存しました。",
+      "configLoaded": "リバーブ設定を読み込みました。",
+      "backupLoaded": "バックアップからリバーブ設定を読み込みました。",
+      "configImported": "リバーブ設定をインポートしました。",
+      "configExported": "リバーブ設定をエクスポートしました。",
+      "error": "エラー: {error}"
+    },
+    "help": {
+      "channelSelector": "リバーブチャンネル番号と選択。",
+      "nameEditor": "表示されるリバーブチャンネル名（編集可能）。",
+      "mapVisibility": "マップ上のすべてのリバーブチャンネルを表示または非表示にする。",
+      "attenuation": "リバーブチャンネルの減衰（-92～0 dB）。",
+      "delayLatency": "リバーブの遅延/レイテンシー補正（-100～+100 ms）。",
+      "orientation": "リバーブの向き角度（-179～+180度）。",
+      "angleOn": "増幅が開始する角度（1-180度）。",
+      "angleOff": "増幅が行われない角度（0-179度）。",
+      "pitch": "リバーブの垂直方向（-90～+90度）。",
+      "hfDamping": "メートルあたりの高周波損失（-6.0～0.0 dB/m）。",
+      "distanceAttenEnable": "距離減衰のパーセンテージ（0-200%）。",
+      "coordMode": "座標表示モード：デカルト座標（X/Y/Z）、円筒座標（半径/方位角/高さ）、または球座標（半径/方位角/仰角）。",
+      "eqEnable": "このリバーブのEQ処理を有効または無効にする。",
+      "eqFlatten": "長押しで全プリEQバンドをデフォルトにリセットします。",
+      "eqBandToggle": "プリEQバンド{band}のオン/オフ切り替え。",
+      "eqShape": "プリEQバンド{band}のフィルター形状。",
+      "eqFreq": "プリEQバンド{band}の周波数 (20 Hz - 20 kHz)。",
+      "eqGain": "プリEQバンド{band}のゲイン (-24〜+24 dB)。",
+      "eqQ": "プリEQバンド{band}のQ値 (0.1 - 20.0)。",
+      "eqResetBand": "長押しでプリEQバンド{band}をデフォルトにリセットします。",
+      "distanceAtten": "リバーブリターンの距離減衰（-6.0～0.0 dB/m）。",
+      "commonAtten": "共通減衰のパーセンテージ（0-100%）。",
+      "muteMacros": "出力チャンネルのクイックミュート操作。",
+      "storeConfig": "リバーブ設定をファイルに保存（バックアップ付き）。",
+      "reloadConfig": "ファイルからリバーブ設定を再読み込み。",
+      "reloadBackup": "バックアップファイルからリバーブ設定を再読み込み。",
+      "importConfig": "ファイルからリバーブ設定をインポート（ファイルエクスプローラー使用）。",
+      "exportConfig": "ファイルにリバーブ設定をエクスポート（ファイルエクスプローラー使用）。",
+      "algoSDN": "SDN（Scattering Delay Network）リバーブアルゴリズムを選択。",
+      "algoFDN": "FDN（Feedback Delay Network）リバーブアルゴリズムを選択。",
+      "algoIR": "IR（インパルス応答畳み込み）リバーブアルゴリズムを選択。",
+      "algoRT60": "リバーブ減衰時間 RT60（0.2 - 8.0秒）。",
+      "algoRT60LowMult": "低域 RT60 乗数（0.1 - 9.0x）。",
+      "algoRT60HighMult": "高域 RT60 乗数（0.1 - 9.0x）。",
+      "algoCrossoverLow": "3バンド減衰用の低域クロスオーバー周波数（50 - 500 Hz）。",
+      "algoCrossoverHigh": "3バンド減衰用の高域クロスオーバー周波数（1 - 10 kHz）。",
+      "algoDiffusion": "エコー密度を制御する拡散量（0 - 100%）。",
+      "algoSDNScale": "SDN ノード間遅延スケールファクター（0.5 - 4.0x）。",
+      "algoFDNSize": "FDN ディレイライン長の乗数（0.5 - 2.0x）。",
+      "algoIRFile": "畳み込み用のインパルス応答ファイルを選択またはインポート。",
+      "algoIRTrim": "インパルス応答の先頭をトリム（0 - 100 ms）。",
+      "algoIRLength": "インパルス応答の最大長（0.1 - 6.0秒）。",
+      "algoPerNode": "リバーブノードごとに別々のIRを使用、または1つのIRを共有。",
+      "algoWetLevel": "リバーブ出力のウェット/ドライミックスレベル（-60～+12 dB）。",
+      "preCompBypass": "リバーブフィードのプリコンプレッサーをバイパスまたは有効にする。",
+      "preCompThreshold": "プリコンプレッサーのスレッショルド（-60～0 dB）。",
+      "preCompRatio": "プリコンプレッサーのレシオ（1:1～20:1）。",
+      "preCompAttack": "プリコンプレッサーのアタック時間（0.1 - 100 ms）。",
+      "preCompRelease": "プリコンプレッサーのリリース時間（10 - 1000 ms）。",
+      "postEqEnable": "ポストプロセッシングEQを有効または無効にする。",
+      "postEqShape": "ポストEQ バンド {band} のフィルター形状。",
+      "postEqFreq": "ポストEQ バンド {band} の周波数（20 Hz - 20 kHz）。",
+      "postEqGain": "ポストEQ バンド {band} のゲイン（-24～+24 dB）。",
+      "postEqQ": "ポストEQ バンド {band} のQ値（0.1 - 20.0）。",
+      "postEqFlatten": "長押しで全ポストEQバンドをデフォルトにリセットします。",
+      "postEqBandToggle": "ポストEQバンド{band}のオン/オフ切り替え。",
+      "postEqResetBand": "長押しでポストEQバンド{band}をデフォルトにリセットします。",
+      "postExpBypass": "リバーブリターンのポストエキスパンダーをバイパスまたは有効にする。",
+      "postExpThreshold": "ポストエキスパンダーのスレッショルド（-80～-10 dB）。",
+      "postExpRatio": "ポストエキスパンダーのレシオ（1:1～1:8）。",
+      "postExpAttack": "ポストエキスパンダーのアタック時間（0.1 - 50 ms）。",
+      "postExpRelease": "ポストエキスパンダーのリリース時間（50 - 2000 ms）。",
+      "miniLatencyTooltip": "このリバーブチャンネルの最小レイテンシーモードを有効化。CPU使用率の上昇と引き換えに処理遅延を低減します。",
+      "liveSourceTooltip": "Live Source減衰テイマーを有効化。アレイに近いソースのレベル変動を抑えます。",
+      "muteButton": "この出力チャンネルのリバーブリターンのミュートを切り替えます。",
+      "position1": "リバーブ仮想音源の{name}（{unit}）。",
+      "position2": "リバーブ仮想音源の{name}（{unit}）。",
+      "position3": "リバーブ仮想音源の{name}（{unit}）。",
+      "returnOffset1": "リバーブリターンオフセット{name}（{unit}）。",
+      "returnOffset2": "リバーブリターンオフセット{name}（{unit}）。",
+      "returnOffset3": "リバーブリターンオフセット{name}（{unit}）。"
+    }
+  },
+  "inputs": {
+    "sections": {
+      "channel": "チャンネル",
+      "position": "位置",
+      "attenuation": "減衰",
+      "directivity": "指向性",
+      "liveSource": "ライブソーステイマー",
+      "hackoustics": "Hackoustics (仮想音響)",
+      "lfo": "LFO",
+      "automotion": "AutomOtion (自動移動)",
+      "mutes": "ミュート"
+    },
+    "tabs": {
+      "inputParams": "入力パラメータ",
+      "liveSourceHackoustics": "ライブソース & Hackoustics (仮想音響)",
+      "movements": "動き",
+      "gradientMaps": "グラデーションマップ",
+      "visualisation": "可視化",
+      "sampler": "Sampler"
+    },
+    "gradientMap": {
+      "layers": {
+        "attenuation": "減衰",
+        "height": "高さ",
+        "hfShelf": "HFシェルフ"
+      },
+      "labels": {
+        "white": "白:",
+        "black": "黒:",
+        "curve": "カーブ:",
+        "name": "名前：",
+        "fill": "塗り:",
+        "blur": "ぼかし:",
+        "start": "開始:",
+        "end": "終了:",
+        "center": "中心:",
+        "edge": "端:"
+      },
+      "tools": {
+        "select": "選択",
+        "rect": "矩形",
+        "ellipse": "楕円",
+        "polygon": "多角形",
+        "fill": "塗り",
+        "linGrad": "線形グラデーション",
+        "radGrad": "放射グラデーション",
+        "editPoints": "ポイント編集"
+      },
+      "buttons": {
+        "enable": "オン",
+        "lock": "ロック",
+        "delete": "削除",
+        "pivotCenter": "基点: 中心",
+        "pivotOrigin": "基点: 原点",
+        "copyShape": "シェイプをコピー",
+        "pasteShape": "シェイプを貼り付け",
+        "copyLayer": "レイヤーをコピー",
+        "pasteLayer": "レイヤーを貼り付け"
+      },
+      "warnings": {
+        "heightRatioZero": "高さ比率が0%です — 高さを有効にするには値を上げてください"
+      },
+      "hints": {
+        "darkMaxAtten": "暗 = 最大減衰 | 明 = なし",
+        "darkMaxHeight": "暗 = 最大高さ | 明 = 地面",
+        "darkMaxHF": "暗 = 最大HFシェルフ | 明 = なし",
+        "whiteMaxAtten": "白 = 最大減衰 | 黒 = なし",
+        "whiteMaxHeight": "白 = 最大高さ | 黒 = 地面",
+        "whiteMaxHF": "白 = 最大HFシェルフ | 黒 = なし",
+        "polygonClose": "ダブルクリックでポリゴンを閉じる"
+      },
+      "help": {
+        "layerSelect": "このレイヤーを編集用に選択",
+        "layerEnable": "レイヤーの有効/無効（出力とOSCに影響）",
+        "layerVisible": "キャンバス上のレイヤープレビューを表示/非表示",
+        "whiteValue": "白にマッピングされるパラメータ値（0.00–1.00）",
+        "blackValue": "黒にマッピングされるパラメータ値（0.00–1.00）",
+        "curve": "ガンマカーブ（-1～1、0 = リニア）",
+        "fillValue": "塗りつぶし明度（0 = 黒、1 = 白）",
+        "blur": "エッジぼかし（メートル単位）",
+        "shapeEnable": "シェイプの有効/無効",
+        "shapeLock": "シェイプの位置をロック",
+        "shapeDelete": "選択したシェイプを削除",
+        "selectTool": "シェイプの選択と移動",
+        "rectTool": "矩形を描画",
+        "ellipseTool": "楕円を描画",
+        "polygonTool": "ポリゴンを描画（ダブルクリックで閉じる）",
+        "fillTool": "シェイプに均一塗りつぶしを適用",
+        "linGradTool": "シェイプに線形グラデーションを適用",
+        "radGradTool": "シェイプに放射グラデーションを適用",
+        "copy": "選択したシェイプまたはレイヤーをコピー",
+        "paste": "クリップボードからシェイプまたはレイヤーを貼り付け"
+      },
+      "header": {
+        "attenuationLayer": "減衰レイヤー",
+        "heightLayer": "高さレイヤー",
+        "hfShelfLayer": "HFシェルフ レイヤー"
+      }
+    },
+    "labels": {
+      "name": "名前:",
+      "cluster": "クラスター:",
+      "attenuation": "減衰:",
+      "delayLatency": "遅延/レイテンシー:",
+      "coord": "座標:",
+      "positionX": "位置 X:",
+      "positionY": "位置 Y:",
+      "positionZ": "位置 Z:",
+      "offsetX": "オフセット X:",
+      "offsetY": "オフセット Y:",
+      "offsetZ": "オフセット Z:",
+      "min": "最小:",
+      "max": "最大:",
+      "trackingId": "トラッキングID:",
+      "trackingSmooth": "トラッキングスムース:",
+      "maxSpeed": "最大速度:",
+      "heightFactor": "高さ係数:",
+      "xyJoystick": "X/Y",
+      "zSlider": "Z",
+      "attenuationLaw": "減衰法則:",
+      "distanceAtten": "距離減衰:",
+      "distanceRatio": "距離比率:",
+      "commonAtten": "共通減衰:",
+      "directivity": "指向性:",
+      "rotation": "回転:",
+      "tilt": "傾斜:",
+      "hfShelf": "HFシェルフ:",
+      "radius": "半径:",
+      "shape": "形状:",
+      "peakThreshold": "ピークしきい値:",
+      "peakRatio": "ピーク比率:",
+      "slowThreshold": "スローしきい値:",
+      "slowRatio": "スロー比率:",
+      "diffusion": "拡散:",
+      "frequency": "周波数:",
+      "gain": "ゲイン:",
+      "slope": "傾斜:",
+      "period": "周期:",
+      "phase": "位相:",
+      "shapeX": "形状 X:",
+      "shapeY": "形状 Y:",
+      "shapeZ": "形状 Z:",
+      "rateX": "レート X:",
+      "rateY": "レート Y:",
+      "rateZ": "レート Z:",
+      "amplitudeX": "振幅 X:",
+      "amplitudeY": "振幅 Y:",
+      "amplitudeZ": "振幅 Z:",
+      "phaseX": "位相 X:",
+      "phaseY": "位相 Y:",
+      "phaseZ": "位相 Z:",
+      "gyrophone": "ジャイロフォン:",
+      "jitter": "ジッター:",
+      "outX": "出力 X:",
+      "outY": "出力 Y:",
+      "outZ": "出力 Z:",
+      "destX": "目標 X:",
+      "destY": "目標 Y:",
+      "destZ": "目標 Z:",
+      "duration": "期間:",
+      "curve": "カーブ:",
+      "speedProfile": "速度プロファイル:",
+      "threshold": "しきい値:",
+      "reset": "リセット:",
+      "muteMacros": "ミュートマクロ:",
+      "arrayAttenuation": "アレイ減衰:",
+      "fringe": "フリンジ:",
+      "admMapping": "ADM:"
+    },
+    "buttons": {
+      "solo": "Solo",
+      "setAllInputs": "全入力を設定...",
+      "storeConfig": "入力設定を保存",
+      "reloadConfig": "入力設定を再読込",
+      "reloadBackup": "バックアップを再読込",
+      "import": "インポート",
+      "export": "エクスポート",
+      "storeSnapshot": "スナップショットを保存",
+      "reloadSnapshot": "スナップショットを再読込",
+      "reloadWithoutScope": "フィルターなしでリロード",
+      "updateSnapshot": "スナップショットを更新",
+      "editScope": "スコープを編集",
+      "deleteSnapshot": "スナップショットを削除",
+      "visibleOnMap": "マップに入力を表示",
+      "hiddenOnMap": "マップから入力を非表示",
+      "lockOnMap": "マップでロック",
+      "stopAll": "すべて停止",
+      "pauseAll": "すべて一時停止",
+      "resumeAll": "すべて再開",
+      "soloModeSingle": "Single",
+      "soloModeMulti": "Multi",
+      "samplerOff": "Sampler: OFF",
+      "samplerOn": "Sampler: ON"
+    },
+    "toggles": {
+      "acousticPrecedence": "音響優先",
+      "minimalLatency": "最小レイテンシー",
+      "constraintXOn": "制約 X: ON",
+      "constraintXOff": "制約 X: OFF",
+      "constraintYOn": "制約 Y: ON",
+      "constraintYOff": "制約 Y: OFF",
+      "constraintZOn": "制約 Z: ON",
+      "constraintZOff": "制約 Z: OFF",
+      "constraintROn": "制約 R: ON",
+      "constraintROff": "制約 R: OFF",
+      "flipXOn": "反転 X: ON",
+      "flipXOff": "反転 X: OFF",
+      "flipYOn": "反転 Y: ON",
+      "flipYOff": "反転 Y: OFF",
+      "flipZOn": "反転 Z: ON",
+      "flipZOff": "反転 Z: OFF",
+      "trackingOn": "トラッキング: ON",
+      "trackingOff": "トラッキング: OFF",
+      "maxSpeedOn": "最大速度: ON",
+      "maxSpeedOff": "最大速度: OFF",
+      "pathModeOn": "パスモード: ON",
+      "pathModeOff": "パスモード: OFF",
+      "attenuationLawLog": "対数",
+      "attenuationLawLinear": "リニア",
+      "liveSourceTamerOn": "テイマー: ON",
+      "liveSourceTamerOff": "テイマー: OFF",
+      "lsPeakOn": "Peak: ON",
+      "lsPeakOff": "Peak: OFF",
+      "lsSlowOn": "Slow: ON",
+      "lsSlowOff": "Slow: OFF",
+      "floorReflectionsOn": "床反射: ON",
+      "floorReflectionsOff": "床反射: OFF",
+      "lowCutOn": "ローカット: ON",
+      "lowCutOff": "ローカット: OFF",
+      "highShelfOn": "ハイシェルフ: ON",
+      "highShelfOff": "ハイシェルフ: OFF",
+      "reverbSendsUnmuted": "リバーブ送り: ミュート解除",
+      "reverbSendsMuted": "リバーブ送り: ミュート",
+      "lfoOn": "L.F.O: ON",
+      "lfoOff": "L.F.O: OFF",
+      "absolute": "絶対",
+      "relative": "相対",
+      "stay": "留まる",
+      "return": "戻る",
+      "manual": "手動",
+      "triggered": "トリガー",
+      "sidelinesOn": "サイドライン On",
+      "sidelinesOff": "サイドライン Off"
+    },
+    "clusters": {
+      "single": "シングル",
+      "clusterPrefix": "クラスター"
+    },
+    "coordinates": {
+      "xyz": "XYZ"
+    },
+    "snapshots": {
+      "selectSnapshot": "スナップショットを選択..."
+    },
+    "lfo": {
+      "shapes": {
+        "off": "OFF",
+        "sine": "正弦波",
+        "square": "矩形波",
+        "sawtooth": "のこぎり波",
+        "triangle": "三角波",
+        "keystone": "台形波",
+        "log": "対数",
+        "exp": "指数",
+        "random": "ランダム"
+      },
+      "gyrophone": {
+        "antiClockwise": "反時計回り",
+        "off": "OFF",
+        "clockwise": "時計回り"
+      }
+    },
+    "liveSource": {
+      "linear": "リニア",
+      "log": "対数",
+      "sine": "正弦"
+    },
+    "muteMacros": {
+      "selectMacro": "マクロを選択...",
+      "muteAll": "全てミュート",
+      "unmuteAll": "全てミュート解除",
+      "invertMutes": "ミュート反転",
+      "muteOdd": "奇数をミュート",
+      "muteEven": "偶数をミュート",
+      "muteArrayPrefix": "アレイをミュート",
+      "unmuteArrayPrefix": "アレイのミュート解除"
+    },
+    "arrayPrefix": "アレイ",
+    "dialogs": {
+      "importConfig": "入力設定をインポート",
+      "exportConfig": "入力設定をエクスポート",
+      "storeSnapshotTitle": "新しいスナップショットを保存",
+      "storeSnapshotMessage": "新しいスナップショットの名前を入力してください：",
+      "snapshotNameLabel": "名前：",
+      "selectChannel": "チャンネルを選択",
+      "trackingConflictTitle": "トラッキングの競合",
+      "trackingConflictCluster": "入力 {current} はトラッキングが有効ですが、クラスター {cluster} の入力 {existing} は既にトラッキングされています。\n\nクラスターごとに1つのトラッキング入力のみが許可されています。",
+      "trackingConflictContinue": "続行 (トラッキングを無効化)",
+      "trackingConflictSwitch": "クラスター {cluster} の入力 {existing} は既にトラッキングが有効です。\n\nクラスターごとに1つのトラッキング入力のみが許可されています。\n\n入力 {existing} のトラッキングを無効化して入力 {to} で有効化しますか？",
+      "trackingConflictYes": "はい、トラッキングを切り替え"
+    },
+    "messages": {
+      "selectFolderFirst": "まずシステム設定でプロジェクトフォルダを選択してください。",
+      "configSaved": "入力設定を保存しました。",
+      "configLoaded": "入力設定を読み込みました。",
+      "backupLoaded": "バックアップから入力設定を読み込みました。",
+      "configImported": "入力設定をインポートしました。",
+      "configExported": "入力設定をエクスポートしました。",
+      "error": "エラー: {error}",
+      "setSingle": "入力 {channel} をシングルに設定しました",
+      "assignedCluster": "入力 {channel} をクラスター {cluster} に割り当てました",
+      "noSnapshotSelected": "スナップショットが選択されていません。",
+      "snapshotStored": "スナップショット '{name}' を保存しました。",
+      "snapshotLoaded": "スナップショット '{name}' を読み込みました。",
+      "snapshotLoadedWithoutScope": "スナップショット '{name}' を読み込みました（スコープなし）。",
+      "snapshotUpdated": "スナップショット '{name}' を更新しました。",
+      "snapshotDeleted": "スナップショット '{name}' を削除しました。",
+      "scopeSaved": "スナップショットのスコープを保存しました。",
+      "scopeConfigured": "次のスナップショットのスコープを設定しました。",
+      "trackingDisabled": "入力 {channel} のトラッキングを無効にしました",
+      "trackingSwitched": "トラッキングを入力 {from} から入力 {to} に切り替えました"
+    },
+    "help": {
+      "solo": "このチャンネルのバイノーラルレンダリングを聴く。",
+      "soloMode": "単一: 一度に1つの入力。複数: 複数の入力を同時に。",
+      "storeConfig": "入力設定をファイルに保存します（バックアップ付き）。",
+      "reloadConfig": "ファイルから入力設定を再読み込みします。",
+      "reloadBackup": "バックアップファイルから入力設定を再読み込みします。",
+      "importConfig": "ファイルから入力設定をインポートします（ファイルエクスプローラー使用）。",
+      "exportConfig": "入力設定をファイルにエクスポートします（ファイルエクスプローラー使用）。",
+      "storeSnapshot": "全オブジェクトの新しい入力スナップショットを保存します。",
+      "snapshotSelector": "入力スナップショットを読み込まずに選択します。",
+      "reloadSnapshot": "フィルターを考慮して、選択した入力スナップショットを全オブジェクトに再読み込みします。",
+      "reloadWithoutScope": "フィルターなしで、選択した入力スナップショットを全オブジェクトに再読み込みします。",
+      "updateSnapshot": "選択した入力スナップショットを更新します（バックアップ付き）。",
+      "editScope": "選択した入力スナップショットのフィルターウィンドウを開きます。",
+      "deleteSnapshot": "確認付きで選択した入力スナップショットを削除します。",
+      "channelSelector": "入力チャンネル番号と選択。",
+      "nameEditor": "表示される入力チャンネル名（編集可能）。",
+      "clusterSelector": "オブジェクトはクラスターの一部です。",
+      "mapLockButton": "マップタブでの操作を防止します。",
+      "mapVisibilityButton": "マップ上で選択した入力を表示または非表示にします。",
+      "attenuationSlider": "入力チャンネルの減衰。",
+      "delayLatencySlider": "入力チャンネルのディレイ（正の値）またはレイテンシー補正（負の値）。",
+      "minimalLatencyButton": "増幅プレシデンスとして音響プレシデンスと最小レイテンシーのいずれかを選択。",
+      "constraintXButton": "位置をステージの幅に制限。",
+      "constraintYButton": "位置をステージの奥行きに制限。",
+      "constraintZButton": "位置をステージの高さに制限。",
+      "constraintDistanceButton": "位置を原点からの距離範囲に制限（円筒/球面モード用）。",
+      "distanceRangeSlider": "原点からの最小および最大距離を設定。",
+      "distanceMinEditor": "原点からの最小距離（メートル）。",
+      "distanceMaxEditor": "原点からの最大距離（メートル）。",
+      "flipXButton": "Xが原点に対して対称になります。キーボードの微調整は反転します。",
+      "flipYButton": "Yが原点に対して対称になります。キーボードの微調整は反転します。",
+      "flipZButton": "Zが原点に対して対称になります。キーボードの微調整は反転します。",
+      "trackingActiveButton": "オブジェクトのトラッキングを有効または無効にします。",
+      "trackingIdSelector": "オブジェクトのトラッカーID。",
+      "trackingSmoothDial": "オブジェクトのトラッキングデータの平滑化。",
+      "maxSpeedActiveButton": "オブジェクトの速度制限を有効または無効にします。",
+      "maxSpeedDial": "オブジェクトの最大速度制限。",
+      "pathModeButton": "直線ではなく描画された移動パスに従うパスモードを有効化。",
+      "heightFactorDial": "オブジェクトの標高を完全に、部分的に、またはまったく考慮しません。",
+      "coordModeSelector": "座標表示モード: 直交 (X/Y/Z)、円筒 (半径/方位角/高さ)、または球面 (半径/方位角/仰角)。",
+      "positionJoystick": "ドラッグしてX/Y位置をリアルタイムに調整。離すと中央に戻ります。",
+      "positionZSlider": "ドラッグしてZ位置（高さ）をリアルタイムに調整。離すと中央に戻ります。",
+      "attenuationLawButton": "減衰則モデル（オブジェクトとスピーカー間の距離による線形音量減少、または二次）。",
+      "distanceAttenDial": "オブジェクトとスピーカー間の1メートルあたりの減衰。",
+      "distanceRatioDial": "二次モデルの減衰比率。",
+      "commonAttenDial": "選択したオブジェクトのすべての出力に対する減衰の共通部分のパーセンテージ。",
+      "directivitySlider": "オブジェクトの輝度コーンの幅。",
+      "inputDirectivityDial": "水平面でのオブジェクトの方向。",
+      "tiltSlider": "垂直面でのオブジェクトの方向。",
+      "hfShelfSlider": "オブジェクトの背面、輝度コーン外でどれだけ輝度が失われるか。",
+      "lsActiveButton": "オブジェクトに近いスピーカーのレベルを下げる必要がある場合（例：ステージ上の大きな音源）。",
+      "lsRadiusSlider": "減衰がスピーカーにどこまで影響するか。",
+      "lsShapeSelector": "オブジェクトの周りの減衰のプロファイル。",
+      "lsAttenuationSlider": "オブジェクトの周りのスピーカーの一定減衰。",
+      "lsPeakEnableButton": "Live Source Tamerの高速（ピーク）コンプレッサーを有効または無効にします。",
+      "lsPeakThresholdSlider": "オブジェクトの周りのスピーカーのトランジエント制御のための高速圧縮スレッショルド。",
+      "lsPeakRatioDial": "オブジェクトの周りのスピーカーに高速圧縮を適用する比率。",
+      "lsSlowEnableButton": "Live Source Tamerの低速コンプレッサーを有効または無効にします。",
+      "lsSlowThresholdSlider": "オブジェクトの周りのスピーカーの持続レベル制御のための低速圧縮スレッショルド。",
+      "lsSlowRatioDial": "オブジェクトの周りのスピーカーに低速圧縮を適用する比率。",
+      "frActiveButton": "オブジェクトのシミュレートされた床面反射を有効化。",
+      "frAttenuationSlider": "オブジェクトのシミュレートされた床面反射の減衰。",
+      "frDiffusionDial": "オブジェクトのシミュレートされた床面反射の拡散効果。",
+      "frLowCutActiveButton": "床面反射のローカットフィルターを有効化。",
+      "frLowCutFreqSlider": "床面反射のローカット周波数。",
+      "frHighShelfActiveButton": "床面反射のハイシェルフフィルターを有効化。",
+      "frHighShelfFreqSlider": "床面反射のハイシェルフ周波数。",
+      "frHighShelfGainSlider": "床面反射のハイシェルフゲイン。",
+      "frHighShelfSlopeSlider": "床面反射のハイシェルフスロープ。",
+      "muteReverbSendsButton": "この入力からすべてのリバーブチャンネルへの送信をミュート。",
+      "jitterSlider": "オブジェクトの急速な動きの球。",
+      "lfoActiveButton": "オブジェクトの周期的な動き（LFO）を有効または無効にします。",
+      "lfoPeriodDial": "オブジェクトの動きのベース周期。",
+      "lfoPhaseDial": "オブジェクトの動きの位相オフセット。",
+      "lfoShapeXSelector": "幅方向のオブジェクトの動きの挙動。",
+      "lfoShapeYSelector": "奥行き方向のオブジェクトの動きの挙動。",
+      "lfoShapeZSelector": "高さ方向のオブジェクトの動きの挙動。",
+      "lfoRateXSlider": "幅方向のベース周期に対する速い/遅い動き。",
+      "lfoRateYSlider": "奥行き方向のベース周期に対する速い/遅い動き。",
+      "lfoRateZSlider": "高さ方向のベース周期に対する速い/遅い動き。",
+      "lfoAmplitudeXSlider": "オブジェクトのベース位置に対する幅方向の動きの大きさ。",
+      "lfoAmplitudeYSlider": "オブジェクトのベース位置に対する奥行き方向の動きの大きさ。",
+      "lfoAmplitudeZSlider": "オブジェクトのベース位置に対する高さ方向の動きの大きさ。",
+      "lfoPhaseXDial": "幅方向のオブジェクトの動きの位相オフセット。",
+      "lfoPhaseYDial": "奥行き方向のオブジェクトの動きの位相オフセット。",
+      "lfoPhaseZDial": "高さ方向のオブジェクトの動きの位相オフセット。",
+      "lfoGyrophoneSelector": "オブジェクトの輝度コーンの回転。",
+      "otomoCoordMode": "AutomOtion目的地の座標表示モード：デカルト（X/Y/Z）、円筒（r/θ/Z）、球面（r/θ/φ）。",
+      "otomoAbsRelButton": "相対または絶対の変位座標を選択。",
+      "otomoStayReturnButton": "動きの終わりに、ソースが留まるか元の位置に戻るか。",
+      "otomoSpeedProfileDial": "動きの開始と終了で一定速度または段階的な加速と減速。",
+      "otomoTriggerButton": "変位の手動開始またはオーディオレベルでの自動トリガー。",
+      "otomoThresholdDial": "動きの自動トリガーのスレッショルドを設定。",
+      "otomoResetDial": "自動トリガーのリセットレベルを設定。",
+      "otomoStartButton": "動きを手動で開始。",
+      "otomoStopButton": "動きを停止。",
+      "otomoPauseButton": "動きを一時停止して再開。",
+      "otomoDurationDial": "動きの継続時間（秒、0.1秒〜1時間）。",
+      "otomoCurveDial": "進行方向の左（負）または右（正）にパスを曲げます。",
+      "otomoStopAllButton": "すべてのアクティブな動きをグローバルに停止。",
+      "otomoPauseResumeAllButton": "すべてのアクティブな動きをグローバルに一時停止または再開。",
+      "muteButton": "このオブジェクトの出力{num}をミュート。",
+      "muteMacrosSelector": "アレイの素早いミュート/解除のためのミュートマクロ。",
+      "arrayAttenDial": "アレイ{num}の減衰（-60〜0 dB）。",
+      "sidelinesActiveButton": "ソースがステージの端に近づいたときに自動ミュートを有効化。前方（観客側）の端には適用されません。",
+      "sidelinesFringeDial": "フリンジゾーンのサイズ（メートル）。外側の半分は完全ミュート、内側の半分は線形フェード。",
+      "position1": "オブジェクトの{name}（{unit}）。",
+      "position2": "オブジェクトの{name}（{unit}）。",
+      "position3": "オブジェクトの{name}（{unit}）。",
+      "offset1": "オブジェクトのオフセット{name}（{unit}）。トラッキング有効時に調整。",
+      "offset2": "オブジェクトのオフセット{name}（{unit}）。トラッキング有効時に調整。",
+      "offset3": "オブジェクトのオフセット{name}（{unit}）。トラッキング有効時に調整。",
+      "otomoDest1": "相対または絶対の目的地 {name}（{unit}）。",
+      "otomoDest2": "相対または絶対の目的地 {name}（{unit}）。",
+      "otomoDest3": "相対または絶対の目的地 {name}（{unit}）。",
+      "nudgeHint1": " 左右キーで調整。",
+      "nudgeHint2": " 上下キーで調整。",
+      "nudgeHint3": " Page Up/Downで調整。",
+      "admMapping": "この入力をADM-OSCマッピングに割り当て、位置の送受信を行います。"
+    },
+    "visualisation": {
+      "delay": "ディレイ",
+      "hfDamping": "HF\n減衰",
+      "level": "レベル"
+    },
+    "prefixes": {
+      "delay": "遅延:",
+      "latency": "レイテンシー:",
+      "ratioPrefix": "1:"
+    }
+  },
+  "snapshotScope": {
+    "windowTitle": "入力スナップショットの範囲",
+    "title": "スナップショットの範囲: {name}",
+    "applyScope": "範囲を適用:",
+    "whenSaving": "保存時",
+    "whenRecalling": "呼び出し時",
+    "all": "全て",
+    "sections": {
+      "input": "入力",
+      "position": "位置",
+      "attenuation": "減衰",
+      "directivity": "指向性",
+      "liveSource": "ライブソース",
+      "hackoustics": "Hackoustics (仮想音響)",
+      "lfo": "LFO",
+      "automOtion": "AutomOtion (自動移動)",
+      "mutes": "ミュート",
+      "admMapping": "ADM-OSC"
+    },
+    "buttons": {
+      "ok": "OK",
+      "cancel": "キャンセル",
+      "selectModified": "変更されたものを選択",
+      "clearChanges": "変更をクリア"
+    },
+    "autoPreselectModified": "変更されたパラメーターを自動的に事前選択",
+    "writeToQLab": "QLabに書き出す",
+    "writeToQLabTooltip": "ファイル保存の代わりにスコープをQLabにエクスポート",
+    "writeSnapshotLoadCue": "スナップショット読込キューをQLabに書き出す",
+    "writeSnapshotLoadCueTooltip": "このスナップショットをOSCで読み込むQLab キューも作成する"
+  },
+  "snapshot": {
+    "qlabNoTarget": "QLab送信先が設定されていません",
+    "qlabExportStarted": "{count}個のキューをQLabに書き込み中...",
+    "qlabExportDone": "QLabエクスポート完了：{count}個のキュー作成",
+    "qlabGroupName": "スナップショット \"{name}\"",
+    "qlabMemoText": "以下のいずれかのキューを実行してこのスナップショットを読み込みまたは更新",
+    "qlabReloadName": "読み込み \"{name}\"",
+    "qlabUpdateName": "更新 \"{name}\""
+  },
+  "setAllInputs": {
+    "windowTitle": "全入力に適用",
+    "warning": "変更はすべての入力に適用されます",
+    "labels": {
+      "coordinateMode": "座標モード:",
+      "minimalLatency": "最小レイテンシー:",
+      "constraintPositions": "位置制約:",
+      "heightFactor": "高さ係数:",
+      "distanceAttenuation": "距離減衰",
+      "dbPerMeter": "dB/m",
+      "ratio": "比率",
+      "common": "共通",
+      "muteMacros": "ミュートマクロ:",
+      "sidelines": "サイドライン:",
+      "fringe": "マージン:",
+      "floorReflections": "床反射:"
+    },
+    "buttons": {
+      "flipXyzOff": "フリップ XYZ > OFF",
+      "allLog": "全てLog",
+      "all1d": "全て1/d",
+      "resetDirectivity": "指向性リセット",
+      "turnOffLiveSource": "ライブソース減衰をOFF",
+      "turnOffJitterLfo": "ジッター & LFO OFF",
+      "closeWindow": "ウィンドウを閉じる"
+    },
+    "coordinateModes": {
+      "xyz": "XYZ",
+      "rThetaZ": "r θ Z",
+      "rThetaPhi": "r θ φ"
+    }
+  },
+  "fileManager": {
+    "dialogs": {
+      "selectProjectFolder": "プロジェクトフォルダーを選択"
+    },
+    "errors": {
+      "noProjectFolder": "プロジェクトフォルダーが指定されていません",
+      "failedCreateFolder": "プロジェクトフォルダーの作成に失敗しました: {path}",
+      "noValidProjectFolder": "有効なプロジェクトフォルダーがありません",
+      "invalidConfigStructure": "設定ファイルの構造が無効です",
+      "backupNotFound": "バックアップが見つかりません",
+      "noSystemDataInFile": "ファイルに有効なシステムデータが見つかりません: {path}",
+      "noNetworkDataInFile": "ファイルにネットワークデータが見つかりません",
+      "noNetworkSections": "ファイルにネットワークセクションが見つかりません",
+      "noInputDataInFile": "ファイルに入力データが見つかりません",
+      "noOutputDataInFile": "ファイルに出力データが見つかりません",
+      "noReverbDataInFile": "ファイルにリバーブデータが見つかりません",
+      "noLFOPresetDataInFile": "ファイルにLFOプリセットデータが見つかりません",
+      "noInputDataInSnapshot": "スナップショットに入力データがありません",
+      "snapshotDoesNotExist": "スナップショットが存在しません",
+      "snapshotNotFound": "スナップショットが見つかりません",
+      "snapshotNotFoundNamed": "スナップショットが見つかりません: {name}",
+      "failedCreateXML": "状態からXMLを作成できませんでした",
+      "failedWriteFile": "ファイルの書き込みに失敗しました: {path}",
+      "fileNotFound": "ファイルが見つかりません: {path}",
+      "failedParseXML": "XMLファイルの解析に失敗しました: {path}",
+      "failedCreateValueTree": "XMLからValueTreeを作成できませんでした: {path}",
+      "configStateInvalid": "設定状態が無効です",
+      "failedApply": "適用に失敗しました: {sections}",
+      "prefixSystem": "システム: ",
+      "prefixNetwork": "ネットワーク: ",
+      "prefixInputs": "入力: ",
+      "prefixOutputs": "出力: ",
+      "prefixReverbs": "リバーブ: "
+    }
+  },
+  "sampler": {
+    "placeholder": "サンプラー — 近日公開",
+    "labels": {
+      "lightpadZone": "Lightpadゾーン",
+      "selectZone": "ゾーンを選択"
+    },
+    "lightpadZone": {
+      "none": "なし"
+    },
+    "section": {
+      "cell": "セルプロパティ",
+      "set": "セット管理",
+      "pressure": "プレッシャーマッピング",
+      "actions": "アクション"
+    },
+    "cell": {
+      "load": "読込",
+      "clear": "クリア",
+      "preview": "試聴",
+      "loadTitle": "サンプルを読み込む",
+      "inTime": "イン (ms)",
+      "outTime": "アウト (ms)",
+      "inOut": "イン/アウト (ms)",
+      "offset": "オフセット (m)",
+      "offsetX": "Offset X",
+      "offsetY": "Offset Y",
+      "offsetZ": "Offset Z",
+      "attenuation": "減衰 (dB)",
+      "previewStop": "停止"
+    },
+    "set": {
+      "default": "セット",
+      "rename": "名前変更",
+      "sequential": "シーケンシャル",
+      "roundRobin": "ラウンドロビン",
+      "copy": "(コピー)",
+      "pos": "位置 (m)",
+      "posX": "Pos X (m)",
+      "posY": "Pos Y (m)",
+      "posZ": "Pos Z (m)",
+      "level": "レベル (dB)"
+    },
+    "press": {
+      "level": "レベル",
+      "height": "高さ",
+      "hf": "HF Shelf",
+      "xy": "Position XY",
+      "xyScale": "スケール"
+    },
+    "buttons": {
+      "copy": "コピー",
+      "paste": "ペースト",
+      "copyCell": "セルをコピー",
+      "copySet": "セットをコピー",
+      "pasteCell": "セルをペースト",
+      "pasteSet": "セットをペースト",
+      "import": "インポート",
+      "export": "エクスポート"
+    },
+    "importTitle": "サンプラー設定をインポート",
+    "exportTitle": "サンプラー設定をエクスポート",
+    "grid": {
+      "help": "クリック=選択 | Shift=複数 | Ctrl=セット切替 | ダブルクリック=読込"
+    },
+    "tooltips": {
+      "load": "選択したセルにサンプルファイルをロード",
+      "clear": "選択したセルからサンプルを削除（長押し）",
+      "preview": "ロードされたサンプルをプレビュー",
+      "inOut": "イン/アウト時間範囲をミリ秒で設定。サムの間をドラッグして両方を移動。",
+      "offset": "セット位置に対するメートル単位の位置オフセット（X、Y、Z）",
+      "attenuation": "セルの減衰（dB、0=減衰なし、-60=無音）",
+      "addSet": "新しいセットを作成。セルが選択されている場合、それらが割り当てられます。",
+      "deleteSet": "アクティブなセットを削除（長押し）",
+      "renameSet": "アクティブなセットの名前を変更",
+      "playMode": "シーケンシャルとラウンドロビン再生を切り替え",
+      "setPos": "ベース位置をメートル単位で設定（X、Y、Z）",
+      "setLevel": "出力レベルをdBで設定（0=ユニティ、-60=無音）",
+      "pressLevel": "指の圧力を出力レベルにマップ",
+      "pressHeight": "指の圧力を垂直位置（Z）にマップ",
+      "pressHF": "指の圧力をハイシェルフ減衰にマップ",
+      "pressDir": "圧力方向を切り替え: + = 圧力増加で増加、- = 減少",
+      "pressCurve": "圧力応答カーブ（0=凹、0.5=線形、1=凸）",
+      "pressXY": "指の圧力をXY位置移動にマップ",
+      "pressXYScale": "感度: 圧力ステップごとにソースが移動する距離",
+      "copy": "選択したセルまたはアクティブなセットをクリップボードにコピー",
+      "paste": "クリップボードのデータを選択したセルまたはアクティブなセットに貼り付け",
+      "import": "サンプラー設定をファイルからインポート",
+      "export": "サンプラー設定をファイルにエクスポート"
+    },
+    "qlabSetCueName": "入力 {channel} サンプラーセット: {name}",
+    "qlabSetCueCreated": "QLabキュー作成: 入力 {channel} セット \"{name}\"",
+    "guide": "グリッド上のセルを選択してプロパティを編集します。\nダブルクリックでサンプルをロード。\nCtrl+クリックでセルをアクティブセットに割り当て。",
+    "zone": {
+      "remotePad": "Pad {num}",
+      "selectRemotePad": "リモートパッドを選択",
+      "noRemote": "リモートが接続されていません"
+    },
+    "remote": {
+      "grid3x2": "3×2 (6 pad)",
+      "grid5x3": "5×3 (15 pad)",
+      "gridLayout": "グリッドレイアウト"
+    }
+  },
+  "streamDeck": {
+    "systemConfig": {
+      "buttons": {
+        "audioPatch": "オーディオ\nパッチ",
+        "processingOn": "処理:\nON",
+        "processingOff": "処理:\nOFF",
+        "binauralOn": "バイノーラル:\nON",
+        "binauralOff": "バイノーラル:\nOFF"
+      },
+      "dials": {
+        "listenerDistance": "リスナー\n距離",
+        "listenerAngle": "リスナー\n角度",
+        "binauralLevel": "バイノーラル\nレベル",
+        "binauralDelay": "バイノーラル\nディレイ"
+      }
+    },
+    "map": {
+      "buttons": {
+        "showLevelsOn": "レベル:\nON",
+        "showLevelsOff": "レベル:\nOFF",
+        "positionMode": "モード:\n位置",
+        "offsetMode": "モード:\nオフセット",
+        "fitStage": "ステージに\n合わせる",
+        "fitAllInputs": "全入力に\n合わせる"
+      },
+      "dials": {
+        "selectInput": "入力\n選択",
+        "selectCluster": "クラスタ\n選択",
+        "panX": "Pan X",
+        "panY": "Pan Y",
+        "zoom": "Zoom",
+        "positionX": "位置\nX",
+        "positionY": "位置\nY",
+        "positionZ": "位置\nZ",
+        "offsetX": "オフセット\nX",
+        "offsetY": "オフセット\nY",
+        "offsetZ": "オフセット\nZ",
+        "orientation": "方向",
+        "clusterRefX": "クラスタ\n基準X",
+        "clusterRefY": "クラスタ\n基準Y",
+        "clusterScale": "クラスタ\nスケール",
+        "clusterRotation": "クラスタ\n回転",
+        "moveX": "Move\nX",
+        "moveY": "Move\nY",
+        "moveZ": "Move\nZ"
+      },
+      "labels": {
+        "inputN": "入力 %d",
+        "clusterN": "クラスタ %d",
+        "deselect": "選択解除",
+        "inputs": "Inputs"
+      }
+    },
+    "inputs": {
+      "sections": {
+        "attenuationAndDelay": "Attenuation\n& Delay",
+        "positionAndDirectivity": "Position &\nDirectivity",
+        "positionAdvanced": "Position\nAdvanced",
+        "liveSourceBasics": "Live Source\nBasics",
+        "liveSourceCompression": "Live Source\nCompress.",
+        "hackoustics": "Hackoustics",
+        "hackousticsContinued": "Hackoustics\n(continued)",
+        "lfo": "LFO",
+        "automOtionPosition": "AutomOtion\nPosition",
+        "automOtionContinued": "AutomOtion\n(cont.)",
+        "automOtionManual": "AutomOtion\nManual"
+      },
+      "buttons": {
+        "minimalDelay": "Minimal\nDelay",
+        "attenuationLaw": "Attenuation\nLaw",
+        "constraint": "Constraint",
+        "flip": "Flip",
+        "constraintX": "Constraint X",
+        "constraintY": "Constraint Y",
+        "constraintZ": "Constraint Z",
+        "flipX": "Flip X",
+        "flipY": "Flip Y",
+        "flipZ": "Flip Z",
+        "sideline": "Sideline",
+        "tracking": "Tracking",
+        "maxSpeed": "Max Speed",
+        "liveSourceTamer": "Live Source\nTamer",
+        "floorReflections": "Floor\nReflections",
+        "lowCutFilter": "Low Cut\nFilter",
+        "highShelfFilter": "High Shelf\nFilter",
+        "sendToReverb": "Send to\nReverb",
+        "lfoAndJitter": "LFO &\nJitter",
+        "lfoX": "LFO X",
+        "lfoY": "LFO Y",
+        "lfoZ": "LFO Z",
+        "absRel": "Abs / Rel",
+        "stayReturn": "Stay /\nReturn",
+        "manualTriggered": "Manual /\nTriggered",
+        "play": "▶",
+        "pauseResume": "❚❚",
+        "stop": "■",
+        "stopAll": "Stop All"
+      },
+      "dials": {
+        "attenuation": "Attenuation",
+        "delay": "Delay",
+        "latency": "Latency",
+        "distanceAttenuation": "Distance\nAttenuation",
+        "ratio": "Ratio",
+        "commonAttenuation": "Common\nAttenuation",
+        "directivity": "Directivity",
+        "rotation": "Rotation",
+        "tilt": "Tilt",
+        "hfShelf": "HF Shelf",
+        "fringe": "Fringe",
+        "trackingSmooth": "Tracking\nSmooth",
+        "maxSpeed": "Max Speed",
+        "heightFactor": "Height Factor",
+        "shape": "Shape",
+        "radius": "Radius",
+        "fixedAttenuation": "Fixed\nAttenuation",
+        "peakThreshold": "Peak\nThreshold",
+        "peakRatio": "Peak Ratio",
+        "slowThreshold": "Slow\nThreshold",
+        "slowRatio": "Slow Ratio",
+        "frAttenuation": "FR\nAttenuation",
+        "frDiffusion": "FR Diffusion",
+        "lowCutFrequency": "Low Cut\nFrequency",
+        "highShelfFrequency": "High Shelf\nFrequency",
+        "highShelfGain": "High Shelf\nGain",
+        "highShelfSlope": "High Shelf\nSlope",
+        "lfoPeriod": "Period",
+        "lfoPhase": "Phase",
+        "gyrophone": "Gyrophone",
+        "jitter": "Jitter",
+        "lfoToggle": "LFO",
+        "lfoOn": "LFO\nON",
+        "lfoOff": "LFO\nOFF",
+        "lfoShape": "Shape",
+        "lfoAmplitude": "Amplitude",
+        "lfoRate": "Rate",
+        "lfoAxisPhase": "Phase",
+        "duration": "Duration",
+        "curve": "Curve",
+        "speedProfile": "Speed\nProfile",
+        "triggerThreshold": "Threshold",
+        "triggerReset": "Reset"
+      },
+      "comboOptions": {
+        "square": "square"
+      }
+    },
+    "outputs": {
+      "sections": {
+        "outputParameters": "Output\nParameters",
+        "outputOrientation": "Output\nOrientation"
+      },
+      "buttons": {
+        "minimalLatency": "Minimal\nLatency",
+        "liveSourceAtten": "Live Source\nAtten.",
+        "floorReflections": "Floor\nReflections"
+      },
+      "dials": {
+        "attenuation": "Attenuation",
+        "delay": "Delay",
+        "latency": "Latency",
+        "distanceAttenuation": "Distance\nAtten.",
+        "hfDamping": "HF Damping",
+        "onAngle": "On Angle",
+        "offAngle": "Off Angle",
+        "orientation": "Orientation",
+        "pitch": "Pitch"
+      },
+      "eq": {
+        "buttons": {
+          "eqOnOff": "EQ",
+          "bandOnOff": "Band\nOn/Off"
+        },
+        "dials": {
+          "shape": "Shape",
+          "frequency": "Frequency",
+          "gain": "Gain",
+          "q": "Q"
+        }
+      }
+    },
+    "reverb": {
+      "sections": {
+        "feedParameters": "Reverb Feed\nParameters",
+        "feedOrientation": "Reverb Feed\nOrientation",
+        "reverbReturn": "Reverb\nReturn",
+        "soloMute": "Solo\nMute"
+      },
+      "buttons": {
+        "editOnMap": "マップで\n編集",
+        "soloReverb": "Solo\nReverb",
+        "mutePre": "Mute\nPre",
+        "mutePost": "Mute\nPost"
+      },
+      "dials": {
+        "commonAttenuation": "Common\nAtten."
+      },
+      "noChannels": "リバーブチャンネルなし",
+      "algorithm": {
+        "sdn": "SDN",
+        "fdn": "FDN",
+        "ir": "IR",
+        "soloMute": "Solo\nMute",
+        "rt60Group": "RT60",
+        "crossDiffScale": "Cross\nDiff\nScale",
+        "crossDiffSize": "Cross\nDiff\nSize",
+        "rt60": "RT60",
+        "rt60High": "RT60\nHigh",
+        "rt60Low": "RT60\nLow",
+        "crossoverHigh": "Crossover\nHigh",
+        "crossoverLow": "Crossover\nLow",
+        "diffusion": "Diffusion",
+        "scale": "Scale",
+        "size": "Size",
+        "wetLevel": "Wet\nLevel",
+        "irTrim": "IR Trim",
+        "irLength": "IR\nLength"
+      }
+    },
+    "network": {
+      "buttons": {
+        "oscFilterAll": "OSCフィルタ:\n全て",
+        "oscFilterRegistered": "OSCフィルタ:\n登録済み",
+        "openLog": "ログを\n開く",
+        "trackingOn": "トラッキング:\nON",
+        "trackingOff": "トラッキング:\nOFF"
+      }
+    },
+    "patch": {
+      "tabs": {
+        "audioInterface": "Audio\nInterface",
+        "inputPatch": "Input\nPatch",
+        "outputPatch": "Output\nPatch"
+      },
+      "buttons": {
+        "scroll": "Scroll",
+        "patch": "Patch",
+        "test": "Test",
+        "holdOn": "Hold:\nON",
+        "holdOff": "Hold:\nOFF",
+        "patchUnpatch": "Patch /\nUnpatch",
+        "testChannel": "Test\nChannel"
+      },
+      "dials": {
+        "columns": "Column",
+        "rows": "Row",
+        "signalType": "Signal\nType",
+        "level": "Level",
+        "frequency": "Frequency"
+      }
+    },
+    "clusters": {
+      "buttons": {
+        "lfo": "LFO",
+        "lfoX": "LFO X",
+        "lfoY": "LFO Y",
+        "lfoZ": "LFO Z",
+        "preset": "プリセット",
+        "rotation": "回転",
+        "scale": "スケール",
+        "lfoOn": "LFO\nON",
+        "lfoOff": "LFO\nOFF"
+      },
+      "dials": {
+        "stopAll": "全停止",
+        "period": "周期",
+        "phase": "位相",
+        "shape": "形状",
+        "amplitude": "振幅",
+        "angle": "角度",
+        "ratio": "比率",
+        "rate": "レート",
+        "axisPhase": "位相",
+        "presetNav": "プリセット",
+        "presetN": "プリセット\n#%d",
+        "presetRow": "行",
+        "store": "保存",
+        "recall": "呼出",
+        "recallStart": "呼出\n+ 開始"
+      }
+    }
+  },
+  "help": {
+    "overview": {
+      "title": "システム概要",
+      "body": "このWFS空間音響プロセッサーは、自然な音響補強のためのツールであると同時に、空間に音を書く新しい可能性を開く創造的なツールです。\nいくつかのパラメータは直感的です：音を配置する（マップ、トラッキング、速度制限、グラジエントマップ...）、形を加工する（減衰プロファイル）、音響的存在感を調整する（指向性、床面反射）、単発の動き（AutomOtion）や繰り返しの動き（L.F.O）を与える。場合によってはステージ上の大音量の音源周辺の増幅を制限する必要があります（Live Source Tamer）。これらの機能はすべて内部で、またはQLAbの助けを借りて保存・呼び出しが可能です。さらにシステムはリアルタイムインタラクションによるサンプルのトリガーと移動、大きなインプットクラスターの手動移動やLFOプリセットによる移動を可能にします。",
+      "dontShow": "今後表示しない"
+    },
+    "binaural": {
+      "title": "バイノーラルレンダラー",
+      "body": "バイノーラルレンダラーの用途：\n- ヘッドフォンで大まかな空間ミックスを聴く\n- ステレオ出力用のミックスを作成する\n- ソロトラックを空間処理で聴く\nヘッドフォンとメディアミックスのみに使用する場合、マスターミックスの代わりになります。\nリスニング位置は原点からの奥行きと向きで調整できます。ディレイとレベルの設定でFOH位置の音に合わせることができます。"
+    },
+    "map": {
+      "title": "マップ",
+      "body": "- 入力やクラスターを左クリックしてドラッグで移動できます。\n- Shiftキー+左クリックで選択に追加/削除できます。\n- 左クリックドラッグで選択矩形を描きます。\n- ダブルクリックで位置オフセットをリセットします。\n- 長押しで入力タブに切り替えます。\n- 入力以外をクリックで選択をクリアします。\n- 右クリックドラッグでマップをパンします。2本指ドラッグも同様です。\n- マウスホイールでズーム。2本指ピンチも同様です。\n- 中クリックでビューをリセットします。\n- 矢印キーでX/Y移動、PageUp/Downで高さ調整。\n- 2本目の指で指向性の回転と高さ調整ができます。\n- クラスターでは2本目の指で回転とスケーリングができます。\n- 入力、出力配列、リバーブノードを非表示にできます。\n- 入力をロックして選択・移動を防止できます。\n- リバーブノードを移動可能。Ctrl/Cmdでペアを対称移動します。\n- ライブソーステイマーの半径が表示されます。\n- オーディオレベルをマップに表示できます。"
+    },
+    "clusters": {
+      "title": "クラスター",
+      "body": "クラスターは全体として操作・アニメーションできる入力のグループです。\n各入力は1つのクラスターにのみ所属できます。\n各クラスターにはトラッキングが完全に有効な入力が1つだけ設定でき、その入力がクラスターの基準点になります。\nトラッキング入力がない場合、基準点には2つのモードがあります：リスト最初の入力か、割り当てられた入力の重心です。\n基準点をドラッグしてすべての入力を移動できます。個々の入力も個別に調整可能です。トラッキングが有効で基準点でもある入力をドラッグすると、その位置オフセットとクラスターの他の入力の位置が通常通り影響を受けます。\nクラスター内のすべての入力を基準点を中心に回転・スケーリングできます。\nすべてのクラスターにLFOアニメーションを割り当てられます。X、Y、Z位置、回転、スケールを制御できます。LFO設定をパッドに割り当てて素早く呼び出せます。右クリックでLFOパラメータをパッドに保存します。パッド上部をダブルクリックするとプリセット名を編集できます。パッドをクリックまたはタップするとLFOの実行状態に関係なく設定を呼び出しますが、停止中のLFOは開始しません。ダブルクリック/タップでLFOを読み込んで開始します。\nすべてのクラスターは同じLFOプリセットセットを共有します。"
+    },
+    "lfo": {
+      "title": "入力LFO",
+      "body": "入力位置を自動化できます。LFOはX、Y、Z座標を個別に制御でき、HF指向性の回転（ジャイロフォン）も制御できます。\nLFOのグローバルな周期と位相を調整します。\nX、Y、Zそれぞれに形状、振幅、レート、位相を選択します。XY平面の円にはX、Yにサイン波形を使い±90°のオフセットを設定します。正方形は同じですがキーストーン形状を使います。\nLFO動作中も入力位置を移動できます。"
+    },
+    "automOtion": {
+      "title": "AutomOtion",
+      "body": "一回限りの動きをプログラムし、手動またはサウンドレベルでトリガーできます。\n座標は開始位置からの相対値または原点に対する絶対値です。\n入力は終了位置に留まるか開始位置に戻ることができます。\n移動中は位置を変更できませんが、入力との対話により位置オフセットが変更されます。\nオーディオレベルトリガーでは、動きが開始するしきい値を選択します。サウンドがリセットレベル以下になると動きが再準備されます。"
+    },
+    "gradientMap": {
+      "title": "グラデーションマップ",
+      "body": "グラデーションマップはX、Y位置に応じて減衰、高さ、高周波フィルタリング（1kHz中心のなめらかなスロープのシェルフ）を制御できます。例えば、特定のゾーンに入った時に音をフェードアウトしたり、ステージ前方から離れた時に高周波ロールオフを適用したり、高台に立つ俳優の高さを自動調整できます。\n減衰、高さ、HFシェルフの3つのレイヤーがあります。オン/オフの切り替えと非表示が可能です。\n各レイヤーには白と黒のマッピングコントロールがあり、エフェクトの範囲を調整します。カーブ設定で遷移を調整します。\n各レイヤーには編集可能な形状（矩形、楕円、ポリゴン）を配置でき、単色グレー、線形グラデーション、放射状グラデーションが使えます。\nポリゴン作成時は各角をクリックし、ダブルクリックで閉じます。\n既存の点をダブルクリックで削除、辺をダブルクリックで新しい点を追加します。\n形状やレイヤーは他のレイヤーにコピーできます。\n設定は入力ファイルに保存されます。"
+    },
+    "sampler": {
+      "title": "サンプラー",
+      "body": "サンプラーはサンプルをトリガーしてリアルタイムで操作できます。\nトラックで有効にするとサンプラーは常にライブ入力を置き換えます。\n複数のサンプラーを異なる入力に割り当てて個別にトリガーできます。\nサンプラーの使い方：\n- Roli Lightpadまたは接続されたAndroid Remoteアプリのパッドを選択します。\n- グリッドの各タイルにサンプルを追加します。相対的な開始位置、レベル、イン/アウトポイントを調整します。Shiftキーを押しながらクリックで複数選択できます。\n- サンプルセットを作成：選択したサンプルが新しいセットに追加されます。Ctrl/Cmdを押しながらクリックでセット作成後に追加・削除できます。各セットは名前変更可能で、固定順序またはランダム順序を設定できます。各セットには減衰設定と基本位置があります。\n- Lightpadまたはパッドを押してサンプルをトリガーします。パッドの圧力はレベル、高さ、高周波フィルタリングにマッピングできます。指の動きはジョイスティックのように音を移動させます。\nパッドを離すとサンプルが停止します。\nサンプラー設定は入力ファイルに保存されます。\nタイルとセットはコピー、エクスポート、インポートできます。"
+    },
+    "inputBasic": {
+      "title": "インプット基本パラメータ",
+      "body": "インプットには、リアリスティックな音響補強やサウンドデザインのための創造的なツールなど、さまざまな状況に対応するための多くの設定があります。\n- インプットレベルを調整できます。\n- インプットを遅延させたり、特定のレイテンシー（ワイヤレス伝送やデジタルエフェクトのデジタル処理）を考慮して補償し、増幅と音響音をより適切に整合させることができます。\n- 音響先行の代わりに最小レイテンシーを有効にできます。これはシステムを通じてできるだけ早く音を出そうとします。システムはこのインプットの出力への送りを最小遅延でスキャンし、すべての遅延から差し引きます。\n- 位置（位置とオフセット）は、ステージの形状や他のチャンネルに関係なく、直交座標、円筒座標、球面座標で指定できます。\n- 位置は直交座標ではステージの寸法に、極座標では特定の距離範囲に制限できます。\n- フリップは原点を中心に対称位置を取ります。\n- ジョイスティックと垂直スライダーで位置の相対制御ができます。\n- インプットをクラスターに割り当てて、協調した動きのためにグループ化できます。"
+    },
+    "inputAdvanced": {
+      "title": "アドバンスト制御",
+      "body": "- サイドラインとフリンジは、入力が長方形ステージの境界に近づいたとき（観客側を除く）にミュートを可能にします。\n- トラッキングを有効化し、トラッカーIDを選択できます。位置の平滑化も調整できます。\n- 最大速度を有効化し、速度制限を調整できます。システムは動きの開始と終了で段階的な加速と減速を適用します。パスモードが有効な場合、システムは入力の通った経路をたどり、最終位置への直線移動を行いません。これは動きを手動で操作する場合に特に便利です。\n- 高さ係数は、0%設定時の2D、100%設定時の完全な3D、その間のすべての値で動作することを可能にします。これはレベルとディレイの計算における高さの比率です。床面反射を使用したい場合は、100%に設定し、出力パラメーターのパララックス補正を使用してください。"
+    },
+    "inputLevel": {
+      "title": "レベル調整",
+      "body": "レベル減衰モデルは2つあります。距離に応じてdB/mの比率でレベルが減少するもの。もう一つは距離が2倍になるごとにレベルが半分になるものです。後者はよりリアルかもしれませんが、音源の近くで音が大きすぎたり、十分なフォーカスが得られない場合があります。前者は物理的に正確ではないかもしれませんが、通常はより均一で安定したミックスのためのより良いコントロールを提供します。"
+    },
+    "inputHF": {
+      "title": "高周波指向性",
+      "body": "話者が向きを変えると、声の音色は明るさが減ります。これを再現することが本来の目的でしたが、観客に向かって話していない場合やバイフロンタル構成でもサポートが必要です。減衰した直接音に対してより明るいリバーブを持たせるなど、クリエイティブな効果にも活用できます。\nインプットの方位角と仰角の向きを設定でき、高周波がフィルタリングされない角度も設定できます。\nHFシェルフはインプットの背面での最大減衰を設定します。前面の完全な明るさから背面の減衰まで、滑らかなフェード（コサインカーブのような）があります。"
+    },
+    "inputMutes": {
+      "title": "アレイ減衰と出力ミュート",
+      "body": "各出力アレイに対して、選択したインプットの特定の減衰を設定できます。\n各送りを任意の出力に対して個別にミュートできます。プロセスを高速化するためのマクロがあります。"
+    },
+    "liveSource": {
+      "title": "ライブソーステイマー",
+      "body": "ステージ上の大音量ソースは近くのスピーカーからの増幅が不要な場合があります。ステージ端のオペラ歌手を想像してください。通常、レベル配分は入力位置付近のレベルを上げます。しかし既に十分な音量であれば、過剰増幅すべきではありません。この機能がそれを管理します。\n半径と形状は、この入力の影響半径内のスピーカーに対するレベル減衰方法を記述します。様々な形状があります：V字型の線形効果、U字型の急速減衰、狭いV字型、またはそれらの混合（サイン）。\n減衰は一定にするか、トランジェントと平均RMSレベルに反応するローカルコンプレッションのようにレベル依存にできます。"
+    },
+    "floorReflections": {
+      "title": "床面反射",
+      "body": "床面反射のシミュレーションは音の自然さを向上させます。無響室で音が再生されることは期待していません。この設定は期待される床面反射を再現するのに役立ちます。\n床面反射のレベルは、ローカットフィルターや高域シェルフフィルターと共に調整できます。ディフュージョンは床の凹凸をシミュレートするために少しのカオスを加えます。"
+    },
+    "reverb": {
+      "title": "リバーブ",
+      "body": "リバーブはスピーカーの実際の反射を曖昧にするのに役立ちます。\nチャンネル数とステージの形状に応じてリバーブノードを配置します。\nその他のパラメータは出力と入力に似ています。"
+    },
+    "reverbFeed": {
+      "title": "リバーブフィード",
+      "body": "入力チャンネルからリバーブノードへの前処理送信。\n- 方向とOn/Off角度が各ノードが受信する入力を定義します。\n- HF減衰は距離による高周波損失をシミュレートします。\n- 距離減衰率は適用される減衰を定義します。\n- 最小レイテンシは最小計算遅延の使用を切り替えます。\n- ライブソース減衰は近くの入力のレベル低減を切り替えます。"
+    },
+    "reverbReturn": {
+      "title": "リバーブリターン",
+      "body": "スピーカーへの後処理送信。\n- 距離減衰はメートルあたりのレベル低下を定義します。\n- 共通減衰は最低減衰のパーセンテージを維持します。\n- ミュートはリバーブチャンネルが出力に送られるのを防ぎます。"
+    },
+    "reverbAlgo": {
+      "title": "リバーブアルゴリズム",
+      "body": "この空間音響プロセッサには3つのリバーブタイプが内蔵されています：\n- SDN（散乱遅延ネットワーク）：音が反射面として機能する各リバーブノード間で反射します。このアルゴリズムは対称性の少ない奇数のノードが適しており、金属的な共鳴やアーティファクトを軽減します。\n- FDN（フィードバック遅延ネットワーク）：各ノードが古典的なアルゴリズムを持つ独立したリバーブプロセッサとして機能します。ステージ周辺や観客周辺にノードを配置します。\n- IR（インパルス応答）：古典的な畳み込みリバーブです。オーディオサンプルをインパルス応答として読み込めます。各ノードは同じIRを共有するか、異なるIRを使用できます。\nノードの位置はマップ上で直接調整できます。Ctrl/Cmdキーでリバーブノードのペアを対称的に移動します。"
+    },
+    "reverbPreProc": {
+      "title": "リバーブ前処理",
+      "body": "4バンドEQとコンプレッサーを含み、リバーブプロセッサを過度に励起する可能性のあるトランジェントを除去します。"
+    },
+    "reverbPostProc": {
+      "title": "リバーブ後処理",
+      "body": "4バンドEQとエキスパンダーを含み、入力が静かな時にリバーブプロセッサに入る信号を監視して長いリバーブテールを軽減します。"
+    },
+    "parallax": {
+      "title": "パララックス補正",
+      "body": "各スピーカーは多かれ少なかれリスナーに向いています。各スピーカーのインプットの遅延を計算するために、インプットからリスナーまでの距離を考慮し、スピーカーからリスナーまでの音の距離も計算できます。両方の到達時間を一致させるために、前述の距離の差を遅延として適用する必要があります。これにより、ステージ上でインプットを移動する際、特にステージの端から離れる際に、より大きな安定性が得られます。これは床面反射の合成も可能にします。この設定は単に測定するのではなく、微調整できます。耳を信じてください！"
+    },
+    "outputAdvanced": {
+      "title": "アドバンストパラメータ",
+      "body": "音響サウンドに合わせて調整するためのいくつかのパラメータがあります。\nこれらのパラメータのほとんどは、アレイ全体に設定されます（伝搬モードがこの出力でオフの場合を除く）。特定の設定後に相対変更も選択できます。\n- 方向とOn/Off角度は、各スピーカーがどのインプットを増幅するかを定義します。デフォルトではスピーカーは観客に向かい、ステージから離れています。緑のセクターのインプットは増幅されますが、スピーカーの前方の赤いセクターのインプットは増幅されません。サブバスの場合、最大まで開くことですべてのインプットをカバーできます。\n- HFダンピングは距離による高周波の損失をシミュレートします。\n- 距離減衰のパーセンテージは、計算された減衰のどれだけが適用されるかを定義します。サブバスの場合、50%に下げるのが賢明かもしれません。\n- 最小レイテンシーは最小計算遅延のスキャンを有効にします。\n- ライブソース減衰は近くのインプットのレベル低減を有効にします。\n- 床面反射は、サブバスやフライングアレイなど、この出力に反射が適用されるかどうかを切り替えます..."
+    },
+    "tuning": {
+      "title": "システムチューニング",
+      "body": "WFSのシステムチューニングは標準的なPAチューニングとは異なります。以下のように進めることができます：\n- フライングアレイをミュートして開始します。ニアフィールドスピーカーを最前列で聴きながら、希望のレベルを設定します。ニアフィールドスピーカーが明るすぎないようにHFシェルフの減衰を調整します。\n- ニアフィールドアレイをミュートしてフライングアレイをアンミュートし、客席後方に適切なレベルを見つけます。\n- 両方のアレイをアンミュートし、フライングアレイの遅延を調整して下の列で正しい高さに音を下ろします。各アレイのレベル、HFシェルフ/距離比、垂直・水平パララックスを調整して、ステージ上のどこにインプットがあっても一貫したレベルを実現します。\n異なるワークフローで調整したり、状況に応じて異なる設定を目指すこともできます。"
+    },
+    "outputs": {
+      "title": "WFSアレイ設計",
+      "body": "WFSシステムの設計は、適切な機器の選択とその配置に関わります。アレイの設計とチューニングのガイドです。\nアレイはスピーカーの列（直線または曲線）です。これはWFSにおける最も重要な概念の一つです。\n経験則として、各リスナーは方向を感じるための十分な心理音響的手がかりを得るために、アレイの3つのスピーカーを聞くべきです。スピーカーとリスナーの距離、間隔、カバレージ角度の間にスイートスポットがあります。120°のカバレージ角を持つスピーカーは、アレイと最前列の間の距離と同じ間隔で配置できます。スピーカーの数は音圧レベルにも依存します。フライングアレイとして配置する場合、軸下に広い(120°)、軸上に狭い(60°)カバレージを持つ台形/非対称ホーンが良いカバレージと20-30mの到達距離を提供し、壁での反射を避けます。同軸スピーカーは大規模会場では通常十分な到達距離がなく、ディレイラインが必要です。\n配置は'Wizard of OutZ'とその編集可能なプリセットを通じて行えます。"
+    },
+    "sessionData": {
+      "title": "セッションデータ",
+      "body": "セッション開始時に、システムがファイルとオーディオファイルを配置する作業フォルダを選択します。新規プロジェクトの場合は新しいフォルダを作成します。以前のセッションを再読み込みする場合は対応するフォルダに移動します。\n各セクションには個別のxmlファイル（システム設定、ネットワーク、出力、リバーブ、入力）とバックアップがあります。畳み込みリバーブのインパルス応答とオーディオサンプルはサブディレクトリに保存されます。\n各セクションは個別または一括で保存・呼び出しできます。\n各セクションは他のプロジェクトからファイルをエクスポート・インポートすることもできます。"
+    },
+    "snapshotScope": {
+      "title": "入力スナップショットとスコープ",
+      "body": "スナップショットは入力パラメータを保存しますが、パフォーマンス中に呼び出すスコープを持つことができます。\nスコープはシステムにどのデータを保存または呼び出すかを指示します。\n複数の方法があります：\n- 必要なデータのみをローカルファイルに記録。フィルターは保存時に適用されます。\n- すべてのデータとフィルターをローカルファイルに記録。フィルターは呼び出し時に適用されます。\n- すべてのデータをQLab cueに記録。大規模な設定には推奨されません。\nスコープは手動で変更されたパラメータを表示し自動的に事前選択できます。変更されたパラメータは黄色でマークされます。"
+    },
+    "network": {
+      "title": "ネットワーク",
+      "body": "システムはOSCを使用して複数のネットワークプロトコル（UDPまたはTCP）で通信できます。OSC Queryを有効にすると、クライアントが利用可能なOSCパスを発見しパラメータ更新を購読できます。\n選択したネットワークインターフェースに対応するローカルマシンのIPが表示されます。受信TCP・UDPポートおよびOSC Queryポート。\n専用OSCクライアント：\n- Remote：マルチタッチ操作とリモートコントロール用のAndroidアプリケーション。\n- QLab：データ送信とアプリケーションからの直接プログラミング。\n- ADM-OSC：コンソールやDAWからの制御（専用ヘルプ参照）。\nデータフィルタリング、ログウィンドウ、紛失したAndroidタブレットの位置特定機能があります。"
+    },
+    "tracking": {
+      "title": "トラッキング",
+      "body": "トラッキングは俳優やミュージシャンの2Dまたは3D位置を追跡できます。UWBタグ、3Dカメラ、コンピュータビジョンシステム、赤外線LEDとIR感度カメラなど、さまざまなトラッキングソリューションがあります。\nこのアプリケーションは複数のプロトコルからトラッキングデータを受信できます：OSC、MQTT、PosiStageNet/PSN、RTTrP。\n使用するプロトコルを選択して設定を入力できます。マッピング（オフセット、スケーリング、方向）も調整できます。\n各入力にはトラッキングを有効にするトグル、追跡するマーカーを選択するID、ジッタを軽減するスムージングアルゴリズムがあります。"
+    },
+    "admOsc": {
+      "title": "ADM-OSCマッピング",
+      "body": "ADM-OSCは空間音響の相互運用性を向上させるプロトコルです。コンソールやDAWのオートメーションカーブからデカルト座標（X, Y, Z）または極座標値（AED：方位角、仰角、距離）を送信します。\nデータは正規化されて送信されます：\n- X、Y、Zは-1.0から1.0の間\n- 距離は0.0から1.0の間\n- 方位角は-180°から180°の間\n- 仰角は-90°から90°の間\n原点を移動でき、マッピングはステージの内側と外側で異なるセグメントに調整できます。\nグラフのハンドルをドラッグする際、Shiftキーを押すと反対側に対称的な調整が適用されます。"
+    },
+    "mcp": {
+      "title": "AI / MCPサーバー",
+      "body": "MCPサーバーは、AIアシスタント（Claude Desktop、Claude Code、カスタムコネクタ付きのChatGPT）が、ローカルネットワーク接続を介してこのWFS-DIYセッションのパラメーターを読み書きできるようにします。\n\nAIができること:\n• ライブ状態の読み取り: チャンネル数、名前、位置、減衰、EQ、スナップショット、クラスター、すべてのパラメーター。\n• ソースの移動、チャンネル名の変更、クラスター割り当ての設定、アレイレイアウトの調整、出力およびリバーブの配置。\n• 用意されたプロンプトテンプレートを介してガイド付きワークフロー（システムチューニングウォークスルー、定位のトラブルシューティング、スナップショット管理）を実行。\n\nこの行のオペレーター制御:\n• AI: ON / OFF — メインスイッチ。OFFの場合、すべてのAIツール呼び出しが拒否されます。ONの場合、AIは以下のルールに従って動作します。\n• クリティカルAIアクション: ブロック / 許可 — 破壊的なアクション（スナップショットの削除、DSPのリセット、チャンネル数の変更）はデフォルトでブロックされます。クリックして10分間許可。赤い塗りつぶしはウィンドウの期限切れとともに減り、その後自動的に再度ブロックされます。\n• AI履歴を開く — 最近のすべてのAI変更のスクロール可能なタイムライン。\n• MCP URLボタンは、URLを直接受け取るAIクライアント用にサーバーURLをクリップボードにコピーします。\n\nオペレーターの注意:\n• 各AIアクションは起源タグ付きで記録されます。AI履歴ウィンドウは完全なタイムラインを表示。行ごとの×は、依存関係を含めてアクションを取り消します。\n• AIが先ほど移動したパラメーターを手動で調整すると、AIは通知され、盲目的に再試行しません。常にあなたが最後の判断を下します。\n• Cmd/Ctrl+Alt+ZおよびCmd/Ctrl+Alt+Yショートカットは、手動編集（通常のCtrl+Z）に影響を与えずに最後のAI変更を取り消す/やり直します。\n\nこのサーバーをClaude Desktopに追加するには:\n  1. 設定 → 開発者 → 設定を編集を開きます。\n  2. 下のJSONスニペットをclaude_desktop_config.jsonに貼り付けます（既にmcpServersブロックがある場合はマージ）。\n  3. Claude Desktopを再起動。サーバーはツールメニューに'wfs-diy'として表示されます。\n\nClaude Codeに追加するには、実行:\n  claude mcp add wfs-diy <url> -t http\n\nURLは、ネットワークインターフェースを切り替えたり、サーバーが別のポートにフォールバックすると変更されます。この行のURLボタンは常にライブのURLを反映します。",
+      "copyButton": "設定をコピー",
+      "copyConfirm": "MCP設定JSONをクリップボードにコピーしました"
+    }
+  },
+  "wizard": {
+    "buttons": {
+      "gettingStarted": "はじめに",
+      "gettingStartedHelp": "新しいプロジェクトを始める際に最初に調整すべきパラメータを案内するヘルプカード",
+      "next": "次へ",
+      "back": "戻る",
+      "close": "閉じる",
+      "done": "完了",
+      "skip": "スキップ"
+    },
+    "stepIndicator": "ステップ {current} / {total}",
+    "steps": {
+      "projectFolder": {
+        "title": "プロジェクトフォルダを選択",
+        "description": "WFSプロジェクトファイルを保存するフォルダを選択してください。設定、スナップショット、IRファイル、サンプルが保存されます。ボタンをクリックしてフォルダセレクタを開きます。"
+      },
+      "inputChannels": {
+        "title": "入力チャンネル数を設定",
+        "description": "空間化するオーディオソースはいくつですか？\nソース数に合わせて入力チャンネル数を設定してください。"
+      },
+      "outputChannels": {
+        "title": "出力チャンネル数を設定",
+        "description": "スピーカーアレイに合わせて出力チャンネル数を設定してください。\n各出力は1つの物理スピーカーに対応します。"
+      },
+      "reverbChannels": {
+        "title": "リバーブチャンネル数を設定",
+        "description": "リバーブチャンネルは部屋のシミュレーションを追加します。リバーブが不要な場合は0に設定してください。"
+      },
+      "stageConfig": {
+        "title": "ステージを定義",
+        "description": "パフォーマンス空間の形状と寸法を設定します。ボックス、シリンダー、ドームを選択し、メートル単位でサイズを入力してください。"
+      },
+      "originPoint": {
+        "title": "原点を設定",
+        "description": "原点はすべての座標の基準点です。プリセットボタンを使用するか、カスタム値を入力してください。「Front」は観客側の端に配置します。"
+      },
+      "audioInterface": {
+        "title": "オーディオインターフェースを開く",
+        "description": "上のボタンをクリックするか「次へ」を押して、オーディオインターフェースウィンドウを開きます。"
+      },
+      "audioDevice": {
+        "title": "オーディオインターフェースを設定",
+        "description": "オーディオドライバとデバイスを選択し、サンプルレートとバッファサイズを設定します。パッチルーティングを確認し、出力をテストしてください。完了したらこのウィンドウを閉じてください。"
+      },
+      "wizardOfOutZ": {
+        "title": "出力を配置",
+        "description": "Wizard of OutZボタンをクリックするか「次へ」を押して、配置アシスタントを開きます。"
+      },
+      "configureOutputs": {
+        "title": "出力位置を設定",
+        "description": "アレイプリセットとジオメトリツールを使用してスピーカー位置を計算します。完了したらこのウィンドウを閉じてください。"
+      },
+      "startProcessing": {
+        "title": "WFSエンジンを開始",
+        "description": "準備完了！Processingボタンを長押ししてWFSエンジンを開始します。ヘッドホンモニタリング用にバイノーラルレンダラーも開始できます。"
+      },
+      "exploreInputs": {
+        "title": "さあ、始めましょう！",
+        "description": "マップ上の入力をクリックして選択、またはラッソで複数選択できます。ドラッグでソースを配置します。マウスホイールやピンチでズーム、右ドラッグや2本指ドラッグでパンできます。入力を追加し、クラスターにグループ化して、サウンドフィールドを形作りましょう。キーボード、SpaceMouse、その他のコントローラーでも操作できます。楽しんでください！"
+      }
+    }
+  },
+  "updateBanner": {
+    "available": "WFS-DIY v{version} が利用可能です！",
+    "download": "ダウンロード"
+  },
+  "ai": {
+    "history": {
+      "windowTitle": "AI変更履歴",
+      "stepBack": "⏮ 戻る",
+      "stepForward": "進む ⏭",
+      "applied": "適用済み",
+      "undone": "取り消し済み",
+      "of": "/",
+      "noChanges": "AI変更はまだありません。",
+      "batch": "バッチ {id}",
+      "cursorLabel": "◂  カーソル (↑ 適用済み  /  ↓ 取り消し済み、やり直し可能)",
+      "atHead": "(取り消し記録なし — 先頭)"
+    },
+    "toast": {
+      "header": "AI変更",
+      "clientPrefix": "Claude",
+      "moreOlder": "…他 {count} 件"
+    },
+    "server": {
+      "label": "MCPサーバー:",
+      "stopped": "停止中",
+      "urlButtonRunning": "http://{host}:{port}/mcp",
+      "urlButtonStopped": "(サーバー停止中)",
+      "copyUrlConfirm": "MCP URLをクリップボードにコピーしました: {url}",
+      "openHistory": "AI履歴を開く"
+    },
+    "undo": {
+      "successPrefix": "AI {verb}: {description}",
+      "errorPrefix": "AI {verb}: {message}",
+      "verbUndo": "元に戻す",
+      "verbRedo": "やり直し"
+    },
+    "tier": {
+      "gateBlocked": "AI重要アクション: ブロック中",
+      "gateAllowed": "AI重要アクション: 許可済み",
+      "aiOn": "AI: ON",
+      "aiOff": "AI: OFF",
+      "tier2AutoOff": "ティア2自動確認: オフ",
+      "tier2AutoOn": "ティア2自動確認: ON (5分)"
+    },
+    "tooltips": {
+      "urlButton": "クリックしてMCPサーバーURLをコピー。Claude Code（claude mcp add wfs-diy <URL> -t http）またはURLを受け付けるあらゆるMCPクライアントで便利。Claude Desktopは代わりにJSON設定スニペットを使用 — (?)ヘルプカードを開いてください。",
+      "openHistory": "AI履歴ウィンドウを開く: 最近のすべてのAI変更を行ごとに元に戻す/やり直し可能なステップバイステップカーソル付きのスクロール可能なタイムライン。",
+      "gate": "破壊的なAIアクション（チャンネル数の変更、ポート再設定、runDSPなど）を許可し、ティア2の破壊性が低いアクションでは開いている間呼び出しごとの確認ハンドシェイクをスキップします。ティア2自動確認トグルのスーパーセットとして機能します。赤い塗りつぶしは5分かけて減り、その後自動的に再度ブロックされます。",
+      "aiToggle": "MCP統合全体のメインスイッチ。OFFの場合、すべてのAIツール呼び出しが拒否されます。ONの場合、通常のティア処理が適用されます（クリティカルアクションのトグルは破壊的な呼び出しを別途制御します）。"
+    }
+  },
+  "signalFlow": {
+    "microphones": "マイク",
+    "soundtracks": "サウンドトラック",
+    "oscCommands": "OSCコマンド",
+    "console": "コンソール",
+    "directOuts": "ダイレクトアウト",
+    "postFader": "ポストフェーダー",
+    "wfsProcessor": "WFSプロセッサー",
+    "inputs": "入力",
+    "outputs": "出力",
+    "qlabAbleton": "QLab / Ableton Live",
+    "positions": "位置と",
+    "otherParams": "その他のパラメーター",
+    "scenes": "シーン",
+    "recall": "リコール",
+    "remote": "リモート",
+    "remoteLC": "リモート",
+    "control": "コントロール",
+    "speakerArrays": "スピーカーアレイ"
+  }
+}

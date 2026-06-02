@@ -119,6 +119,7 @@
       "quickLongPress": "Long Press:",
       "screenReader": "Screen Reader:",
       "language": "Language:",
+      "translationTier": "Translation:",
       "binauralOutput": "Binaural Output:",
       "binauralDistance": "Listener Distance:",
       "binauralAngle": "Listener Angle:",
@@ -197,6 +198,11 @@
       "light": "Light"
     },
 
+    "translationTiers": {
+      "minimal": "Help & messages",
+      "full": "Everything"
+    },
+
     "binauralOutput": {
       "off": "Off",
       "select": "Select..."
@@ -253,6 +259,7 @@
       "importSystem": "Import System Configuration from file (with file explorer window).",
       "exportSystem": "Export System Configuration to file (with file explorer window).",
       "language": "Select the user interface language. Changes take full effect after restarting the application.",
+      "translationTier": "Choose how much of the interface is translated. 'Help & messages' keeps the controls in English and translates only the help text, messages and dialogs; 'Everything' translates the full interface including labels. Takes full effect after restarting.",
       "dialsAndButtons": "Select the hardware controller for dials and buttons: Stream Deck+ or XenceLabs Quick Keys.",
       "positionControl": "Select the hardware controller for position control: Space Mouse, Joystick, or Game Pad.",
       "sampler": "Enable or disable the Sampler feature for input channels.",
@@ -287,6 +294,7 @@
       "partialLoadFromBackup": "Partial load from backup: {error}",
       "error": "Error: {error}",
       "languageChanged": "Language changed to: {language} (requires restart for full effect)",
+      "translationTierChanged": "Translation set to: {tier} (requires restart for full effect)",
       "restartTitle": "Restart Required",
       "restartBody": "Please restart the application for the language change to take full effect.",
       "logsExported": "Logs exported to {path}",
