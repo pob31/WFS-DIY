@@ -125,7 +125,8 @@
       "dialsAndButtons": "Botões e mostradores:",
       "positionControl": "Controlo de posição:",
       "sampler": "Sampler:",
-      "samplerController": "Controlador:"
+      "samplerController": "Controlador:",
+      "translationTier": "Tradução:"
     },
     "buttons": {
       "audioPatch": "Interface de Áudio e Patch",
@@ -244,7 +245,8 @@
       "exportLogs": "Exportar os registos de diagnóstico para um ficheiro zip para depuração ou suporte.",
       "openLogFolder": "Abrir a pasta de registos da aplicação no explorador de ficheiros do sistema.",
       "copySystemInfo": "Copiar informações detalhadas do sistema para a área de transferência para pedidos de suporte.",
-      "reportIssue": "Abrir a página de issues do WFS-DIY no GitHub no navegador predefinido."
+      "reportIssue": "Abrir a página de issues do WFS-DIY no GitHub no navegador predefinido.",
+      "translationTier": "Escolha quanto da interface é traduzido. 'Ajuda e mensagens' mantém os controlos em inglês e traduz apenas a ajuda, as mensagens e os diálogos; 'Tudo' traduz toda a interface, incluindo os rótulos. Tem efeito completo após reiniciar."
     },
     "messages": {
       "selectFolderFirst": "Por favor, selecione primeiro uma pasta de projeto.",
@@ -268,7 +270,8 @@
       "logsExportFailed": "Falha ao exportar logs",
       "logDirNotFound": "Pasta de logs não encontrada",
       "systemInfoCopied": "Informações do sistema copiadas para a área de transferência",
-      "selectLogExportFolder": "Selecionar destino para exportação de logs"
+      "selectLogExportFolder": "Selecionar destino para exportação de logs",
+      "translationTierChanged": "Tradução definida para: {tier} (reinício necessário para efeito completo)"
     },
     "dialogs": {
       "reduceInputChannels": {
@@ -296,6 +299,10 @@
     "devices": {
       "off": "Desligado",
       "on": "Ligado"
+    },
+    "translationTiers": {
+      "minimal": "Ajuda e mensagens",
+      "full": "Tudo"
     }
   },
   "network": {

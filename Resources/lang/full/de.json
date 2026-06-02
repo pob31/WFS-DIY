@@ -125,7 +125,8 @@
       "dialsAndButtons": "Drehregler und Tasten:",
       "positionControl": "Positionssteuerung:",
       "sampler": "Sampler:",
-      "samplerController": "Controller:"
+      "samplerController": "Controller:",
+      "translationTier": "Übersetzung:"
     },
     "controller": {
       "off": "Aus",
@@ -253,7 +254,8 @@
       "exportLogs": "Diagnose-Logs in eine Zip-Datei zur Fehlersuche oder zum Support exportieren.",
       "openLogFolder": "Log-Ordner der Anwendung im System-Dateibrowser öffnen.",
       "copySystemInfo": "Detaillierte Systeminformationen für Support-Anfragen in die Zwischenablage kopieren.",
-      "reportIssue": "Die WFS-DIY GitHub-Issue-Seite im Standardbrowser öffnen."
+      "reportIssue": "Die WFS-DIY GitHub-Issue-Seite im Standardbrowser öffnen.",
+      "translationTier": "Legen Sie fest, wie viel der Oberfläche übersetzt wird. 'Hilfe & Meldungen' belässt die Bedienelemente auf Englisch und übersetzt nur Hilfetexte, Meldungen und Dialoge; 'Alles' übersetzt die gesamte Oberfläche einschließlich der Beschriftungen. Wird nach einem Neustart vollständig wirksam."
     },
     "messages": {
       "selectFolderFirst": "Bitte wählen Sie zuerst einen Projektordner aus.",
@@ -277,7 +279,8 @@
       "logsExportFailed": "Protokollexport fehlgeschlagen",
       "logDirNotFound": "Protokollverzeichnis nicht gefunden",
       "systemInfoCopied": "Systeminfo in die Zwischenablage kopiert",
-      "selectLogExportFolder": "Zielordner für den Protokollexport auswählen"
+      "selectLogExportFolder": "Zielordner für den Protokollexport auswählen",
+      "translationTierChanged": "Übersetzung auf {tier} gesetzt (Neustart für vollständige Wirkung erforderlich)"
     },
     "dialogs": {
       "reduceInputChannels": {
@@ -296,6 +299,10 @@
       "selectProjectFolder": "Projektordner auswählen",
       "importSystemConfig": "Systemkonfiguration importieren",
       "exportSystemConfig": "Systemkonfiguration exportieren"
+    },
+    "translationTiers": {
+      "minimal": "Hilfe & Meldungen",
+      "full": "Alles"
     }
   },
   "network": {

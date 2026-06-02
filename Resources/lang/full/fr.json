@@ -71,7 +71,6 @@
     "statusOpening": "Ouverture du périphérique…",
     "statusInactive": "Non assigné"
   },
-
   "systemConfig": {
     "sections": {
       "show": "Spectacle",
@@ -126,7 +125,8 @@
       "dialsAndButtons": "Boutons et molettes :",
       "positionControl": "Contrôle de position :",
       "sampler": "Sampler :",
-      "samplerController": "Contrôleur :"
+      "samplerController": "Contrôleur :",
+      "translationTier": "Traduction :"
     },
     "controller": {
       "off": "Désactivé",
@@ -254,7 +254,8 @@
       "exportLogs": "Exporter les journaux de diagnostic dans un fichier zip pour le débogage ou le support.",
       "openLogFolder": "Ouvrir le dossier des journaux de l'application dans l'explorateur de fichiers.",
       "copySystemInfo": "Copier les informations détaillées du système dans le presse-papiers pour les demandes de support.",
-      "reportIssue": "Ouvrir la page des problèmes GitHub de WFS-DIY dans votre navigateur par défaut."
+      "reportIssue": "Ouvrir la page des problèmes GitHub de WFS-DIY dans votre navigateur par défaut.",
+      "translationTier": "Choisissez quelle part de l'interface est traduite. 'Aide et messages' garde les commandes en anglais et ne traduit que l'aide, les messages et les dialogues ; 'Tout' traduit toute l'interface, y compris les libellés. Prend pleinement effet après le redémarrage."
     },
     "messages": {
       "selectFolderFirst": "Veuillez d'abord sélectionner un dossier de projet.",
@@ -278,7 +279,8 @@
       "logsExportFailed": "Échec de l'exportation des journaux",
       "logDirNotFound": "Dossier des journaux introuvable",
       "systemInfoCopied": "Informations système copiées dans le presse-papiers",
-      "selectLogExportFolder": "Sélectionner la destination pour l'exportation des journaux"
+      "selectLogExportFolder": "Sélectionner la destination pour l'exportation des journaux",
+      "translationTierChanged": "Traduction définie sur : {tier} (redémarrage requis pour un effet complet)"
     },
     "dialogs": {
       "reduceInputChannels": {
@@ -297,6 +299,10 @@
       "selectProjectFolder": "Sélectionner dossier projet",
       "importSystemConfig": "Importer configuration système",
       "exportSystemConfig": "Exporter configuration système"
+    },
+    "translationTiers": {
+      "minimal": "Aide et messages",
+      "full": "Tout"
     }
   },
   "network": {
@@ -558,7 +564,6 @@
       "chooseTestSignal": "Choisissez un signal de test pour activer le test"
     }
   },
-
   "signalFlow": {
     "microphones": "Microphones",
     "soundtracks": "Bandes-son",
@@ -579,7 +584,6 @@
     "control": "commande",
     "speakerArrays": "Réseaux d'enceintes"
   },
-
   "networkLog": {
     "windowTitle": "Journal réseau",
     "controls": {
@@ -2417,7 +2421,7 @@
       "aiOn": "IA : ON",
       "aiOff": "IA : OFF",
       "tier2AutoOff": "Auto-confirmation niveau 2 : off",
-      "tier2AutoOn":  "Auto-confirmation niveau 2 : ON (5 min)"
+      "tier2AutoOn": "Auto-confirmation niveau 2 : ON (5 min)"
     },
     "tooltips": {
       "urlButton": "Cliquer pour copier l'URL du serveur MCP. Utile pour Claude Code (claude mcp add wfs-diy <URL> -t http) ou tout client MCP qui accepte une URL. Claude Desktop utilise plutôt l'extrait de configuration JSON — ouvrez la fiche d'aide (?).",

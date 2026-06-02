@@ -125,7 +125,8 @@
       "dialsAndButtons": "旋钮和按钮:",
       "positionControl": "位置控制:",
       "sampler": "采样器:",
-      "samplerController": "控制器:"
+      "samplerController": "控制器:",
+      "translationTier": "翻译："
     },
     "buttons": {
       "audioPatch": "音频接口和路由窗口",
@@ -244,7 +245,8 @@
       "exportLogs": "将诊断日志导出为 zip 文件以进行调试或支持。",
       "openLogFolder": "在系统文件资源管理器中打开应用程序的日志文件夹。",
       "copySystemInfo": "将详细的系统信息复制到剪贴板以用于支持请求。",
-      "reportIssue": "在默认浏览器中打开 WFS-DIY 的 GitHub 问题页面。"
+      "reportIssue": "在默认浏览器中打开 WFS-DIY 的 GitHub 问题页面。",
+      "translationTier": "选择界面的翻译程度。“帮助和消息”保持控件为英文，仅翻译帮助、消息和对话框；“全部”翻译包括标签在内的整个界面。重启后完全生效。"
     },
     "messages": {
       "selectFolderFirst": "请先选择项目文件夹。",
@@ -268,7 +270,8 @@
       "logsExportFailed": "导出日志失败",
       "logDirNotFound": "未找到日志目录",
       "systemInfoCopied": "系统信息已复制到剪贴板",
-      "selectLogExportFolder": "选择日志导出目标文件夹"
+      "selectLogExportFolder": "选择日志导出目标文件夹",
+      "translationTierChanged": "翻译已设置为：{tier}（需要重启才能完全生效）"
     },
     "dialogs": {
       "reduceInputChannels": {
@@ -296,6 +299,10 @@
     "devices": {
       "off": "关",
       "on": "开"
+    },
+    "translationTiers": {
+      "minimal": "帮助和消息",
+      "full": "全部"
     }
   },
   "network": {

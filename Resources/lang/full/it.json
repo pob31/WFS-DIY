@@ -125,7 +125,8 @@
       "dialsAndButtons": "Manopole e tasti:",
       "positionControl": "Controllo di posizione:",
       "sampler": "Sampler:",
-      "samplerController": "Controller:"
+      "samplerController": "Controller:",
+      "translationTier": "Traduzione:"
     },
     "buttons": {
       "audioPatch": "Interfaccia Audio e Routing",
@@ -244,7 +245,8 @@
       "exportLogs": "Esporta i log di diagnostica in un file zip per il debug o il supporto.",
       "openLogFolder": "Apri la cartella dei log dell'applicazione nell'esploratore di file di sistema.",
       "copySystemInfo": "Copia informazioni di sistema dettagliate negli appunti per le richieste di supporto.",
-      "reportIssue": "Apri la pagina degli issue GitHub di WFS-DIY nel browser predefinito."
+      "reportIssue": "Apri la pagina degli issue GitHub di WFS-DIY nel browser predefinito.",
+      "translationTier": "Scegli quanta parte dell'interfaccia viene tradotta. 'Aiuto e messaggi' mantiene i controlli in inglese e traduce solo l'aiuto, i messaggi e le finestre di dialogo; 'Tutto' traduce l'intera interfaccia, comprese le etichette. Ha pieno effetto dopo il riavvio."
     },
     "messages": {
       "selectFolderFirst": "Seleziona prima una cartella progetto.",
@@ -268,7 +270,8 @@
       "logsExportFailed": "Esportazione dei log fallita",
       "logDirNotFound": "Cartella dei log non trovata",
       "systemInfoCopied": "Informazioni di sistema copiate negli appunti",
-      "selectLogExportFolder": "Seleziona la destinazione per l'esportazione dei log"
+      "selectLogExportFolder": "Seleziona la destinazione per l'esportazione dei log",
+      "translationTierChanged": "Traduzione impostata su: {tier} (riavvio necessario per l'effetto completo)"
     },
     "dialogs": {
       "reduceInputChannels": {
@@ -296,6 +299,10 @@
     "devices": {
       "off": "Off",
       "on": "On"
+    },
+    "translationTiers": {
+      "minimal": "Aiuto e messaggi",
+      "full": "Tutto"
     }
   },
   "network": {

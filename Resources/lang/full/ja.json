@@ -125,7 +125,8 @@
       "dialsAndButtons": "ダイヤルとボタン:",
       "positionControl": "位置コントロール:",
       "sampler": "Sampler:",
-      "samplerController": "コントローラー:"
+      "samplerController": "コントローラー:",
+      "translationTier": "翻訳："
     },
     "buttons": {
       "audioPatch": "オーディオインターフェースとパッチング",
@@ -244,7 +245,8 @@
       "exportLogs": "デバッグまたはサポート用に診断ログをzipファイルにエクスポート。",
       "openLogFolder": "アプリケーションのログフォルダーをシステムファイルエクスプローラーで開きます。",
       "copySystemInfo": "サポートリクエスト用に詳細なシステム情報をクリップボードにコピー。",
-      "reportIssue": "WFS-DIYのGitHub Issuesページをデフォルトブラウザーで開きます。"
+      "reportIssue": "WFS-DIYのGitHub Issuesページをデフォルトブラウザーで開きます。",
+      "translationTier": "インターフェースをどこまで翻訳するかを選択します。「ヘルプとメッセージ」はコントロールを英語のままにし、ヘルプ・メッセージ・ダイアログのみを翻訳します。「すべて」はラベルを含むインターフェース全体を翻訳します。再起動後に完全に反映されます。"
     },
     "messages": {
       "selectFolderFirst": "最初にプロジェクトフォルダを選択してください。",
@@ -268,7 +270,8 @@
       "logsExportFailed": "ログのエクスポートに失敗しました",
       "logDirNotFound": "ログディレクトリが見つかりません",
       "systemInfoCopied": "システム情報をクリップボードにコピーしました",
-      "selectLogExportFolder": "ログのエクスポート先を選択してください"
+      "selectLogExportFolder": "ログのエクスポート先を選択してください",
+      "translationTierChanged": "翻訳を{tier}に設定しました（完全に反映するには再起動が必要です）"
     },
     "dialogs": {
       "reduceInputChannels": {
@@ -296,6 +299,10 @@
     "devices": {
       "off": "オフ",
       "on": "オン"
+    },
+    "translationTiers": {
+      "minimal": "ヘルプとメッセージ",
+      "full": "すべて"
     }
   },
   "network": {
