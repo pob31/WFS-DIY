@@ -8,8 +8,10 @@
 #endif
 
 #if JUCE_MAC
-// Forward declaration for Objective-C helper
+// Forward declarations for Objective-C helpers
 void enableDarkTitleBarMac(void* nsWindow);
+void beginRealtimeAudioActivityMac();
+void endRealtimeAudioActivityMac();
 #endif
 
 namespace WindowUtils
@@ -37,6 +39,28 @@ namespace WindowUtils
         }
 #else
         juce::ignoreUnused(window);
+#endif
+    }
+
+    /**
+     * Real-time audio: opt the process out of macOS App Nap and timer coalescing
+     * for the app's lifetime, so the DSP worker threads stay on the performance
+     * cores even when the window is not frontmost. macOS counterpart to the
+     * Windows EcoQoS / HIGH_PRIORITY_CLASS opt-out in Main.cpp. No-op elsewhere.
+     * Call once at startup and pair with endRealtimeAudioActivity() at shutdown.
+     */
+    inline void beginRealtimeAudioActivity()
+    {
+#if JUCE_MAC
+        beginRealtimeAudioActivityMac();
+#endif
+    }
+
+    /** Ends the activity started by beginRealtimeAudioActivity(). No-op elsewhere. */
+    inline void endRealtimeAudioActivity()
+    {
+#if JUCE_MAC
+        endRealtimeAudioActivityMac();
 #endif
     }
 }

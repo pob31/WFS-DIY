@@ -109,6 +109,12 @@ public:
         }
 #endif
 
+        // Real-time audio (macOS): opt out of App Nap + timer coalescing so the
+        // DSP worker threads stay on the performance cores even when the window
+        // is not frontmost (e.g. operator switches to QLab mid-show). Counterpart
+        // to the Windows block above. No-op on other platforms.
+        WindowUtils::beginRealtimeAudioActivity();
+
         // Deferred project open: MainComponent constructor has finished but we need
         // the message loop running before loading configs
         if (pendingProjectFolder.isDirectory())
@@ -142,6 +148,9 @@ public:
         // Release 1ms timer resolution requested in initialise()
         timeEndPeriod(1);
 #endif
+
+        // End the macOS real-time activity started in initialise() (no-op elsewhere)
+        WindowUtils::endRealtimeAudioActivity();
 
         updateChecker.reset();
         mainWindow = nullptr; // (deletes our window)
