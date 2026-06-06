@@ -5,6 +5,7 @@
 #include "SharedInputRingBuffer.h"
 #include "WFSHighShelfFilter.h"
 #include "../LockFreeRingBuffer.h"
+#include "AudioWorkgroupCoordinator.h"
 #include <vector>
 #include <atomic>
 
@@ -37,6 +38,10 @@ public:
     {
         stopThread (1000);
     }
+
+    /** Optional: realtime workgroup to (re)join from the worker thread (macOS). */
+    void setWorkgroupCoordinator (AudioWorkgroupCoordinator* c) { workgroupCoordinator = c; }
+    AudioWorkgroupCoordinator* workgroupCoordinator = nullptr;
 
     /**
      * Prepare the processor for playback.
@@ -266,10 +271,17 @@ private:
         std::vector<SharedInputRingBuffer*> sharedInputsSnap;
         std::vector<int> readPositionsSnap;
 
+        // Audio workgroup membership: token lives on (and is destroyed on) this thread.
+        juce::WorkgroupToken wgToken;
+        uint32_t wgSeenGeneration = 0;
+
         while (!threadShouldExit())
         {
             if (processingEnabled.load (std::memory_order_acquire))
             {
+                if (workgroupCoordinator != nullptr)
+                    workgroupCoordinator->joinIfChanged (wgToken, wgSeenGeneration);
+
                 // Snapshot the shared-input triplet under the lock so we never
                 // read a vector mid-reallocation.
                 bool useSharedSnap;

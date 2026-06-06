@@ -1793,9 +1793,11 @@ MainComponent::MainComponent()
     binauralCalcEngine = std::make_unique<BinauralCalculationEngine>(
         parameters.getValueTreeState(), *calculationEngine);
     binauralProcessor = std::make_unique<BinauralProcessor>(*binauralCalcEngine);
+    binauralProcessor->setWorkgroupCoordinator(&workgroupCoordinator);
 
     // Initialize Reverb Engine
     reverbEngine = std::make_unique<ReverbEngine>();
+    reverbEngine->setWorkgroupCoordinator(&workgroupCoordinator);
 
     // Initialize LFO Processor for input position modulation
     lfoProcessor = std::make_unique<LFOProcessor>(parameters.getValueTreeState(), 64);
@@ -4141,6 +4143,12 @@ void MainComponent::startAudioEngine()
     double sampleRate = device->getCurrentSampleRate();
     int blockSize = device->getCurrentBufferSizeSamples();
 
+    // Publish the audio device's realtime workgroup so the DSP worker threads join it
+    // (macOS; no-op elsewhere), and make sure the algorithms hand it to their processors.
+    workgroupCoordinator.set (device->getWorkgroup());
+    inputAlgorithm.setWorkgroupCoordinator (&workgroupCoordinator);
+    outputAlgorithm.setWorkgroupCoordinator (&workgroupCoordinator);
+
     WFSLogger::getInstance().logInfo ("Starting audio engine: " + device->getName()
                                       + " @ " + juce::String (sampleRate) + " Hz"
                                       + ", buffer " + juce::String (blockSize)
@@ -4218,6 +4226,7 @@ void MainComponent::startAudioEngine()
                                        calculationEngine->getNumReverbs(),
                                        numInputChannels, numReverbs,
                                        blockSize, reverbSRRatio);
+            reverbFeedThread->setWorkgroupCoordinator (&workgroupCoordinator);
             reverbFeedThread->startRealtimeThread (juce::Thread::RealtimeOptions{}
                                                        .withApproximateAudioProcessingTime (blockSize, sampleRate));
         }
@@ -4242,6 +4251,11 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
 
     // This function will be called when the audio device is started, or when
     // its settings (i.e. sample rate, block size, etc) are changed.
+
+    // The device's realtime workgroup can change with the device/sample rate.
+    // Republish it so the DSP worker threads rejoin (macOS; no-op elsewhere).
+    if (auto* dev = deviceManager.getCurrentAudioDevice())
+        workgroupCoordinator.set (dev->getWorkgroup());
 
     // If audio engine was already started, update processor settings
     if (audioEngineStarted)

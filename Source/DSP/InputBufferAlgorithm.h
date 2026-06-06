@@ -26,6 +26,9 @@ public:
         clear();
     }
 
+    /** Optional audio workgroup; applied to each processor before its thread starts. */
+    void setWorkgroupCoordinator (AudioWorkgroupCoordinator* c) { workgroupCoordinator = c; }
+
     void prepare(int numInputs,
                 int numOutputs,
                 double sampleRate,
@@ -69,6 +72,7 @@ public:
         for (auto& processor : inputProcessors)
         {
             processor->setProcessingEnabled(processingEnabled);
+            processor->setWorkgroupCoordinator(workgroupCoordinator);
             processor->startRealtimeThread (juce::Thread::RealtimeOptions{}
                                                 .withApproximateAudioProcessingTime (blockSize, sampleRate));
         }
@@ -87,6 +91,7 @@ public:
         {
             processor->prepare(sampleRate, blockSize);
             processor->setProcessingEnabled(processingEnabled);
+            processor->setWorkgroupCoordinator(workgroupCoordinator);
             processor->startRealtimeThread (juce::Thread::RealtimeOptions{}
                                                 .withApproximateAudioProcessingTime (blockSize, sampleRate));
         }
@@ -323,6 +328,7 @@ private:
     std::atomic<bool> outputMeteringEnabled{false};
     int cachedNumOutputs = 0;
     double cachedSampleRate = 48000.0;
+    AudioWorkgroupCoordinator* workgroupCoordinator = nullptr;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(InputBufferAlgorithm)
 };

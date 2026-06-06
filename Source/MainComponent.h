@@ -16,6 +16,7 @@
 #include "DSP/ReverbFeedThread.h"
 #include "DSP/OutputEQProcessor.h"
 #include "DSP/SharedInputRingBuffer.h"
+#include "DSP/AudioWorkgroupCoordinator.h"
 // #include "DSP/GpuInputBufferAlgorithm.h"  // Commented out - GPU Audio SDK not configured
 #include "WfsParameters.h"
 #include "gui/HelpCard.h"
@@ -218,6 +219,9 @@ private:
     ProcessingAlgorithm currentAlgorithm = ProcessingAlgorithm::InputBuffer;
     int numInputChannels = 4;
     int numOutputChannels = 4;
+    // Declared before the thread-owning members so it is destroyed AFTER them
+    // (members destruct in reverse order) — workers may touch it while stopping.
+    AudioWorkgroupCoordinator workgroupCoordinator;
     InputBufferAlgorithm inputAlgorithm;
     OutputBufferAlgorithm outputAlgorithm;
     // GpuInputBufferAlgorithm gpuInputAlgorithm;  // Commented out - GPU Audio SDK not configured

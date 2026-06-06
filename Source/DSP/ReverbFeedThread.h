@@ -19,6 +19,9 @@ public:
     ReverbFeedThread() : juce::Thread("ReverbFeed") {}
     ~ReverbFeedThread() override { stopThread(2000); }
 
+    /** Optional: realtime workgroup to (re)join from the worker thread (macOS). */
+    void setWorkgroupCoordinator (AudioWorkgroupCoordinator* c) { workgroupCoordinator = c; }
+
     void prepare(const std::vector<std::unique_ptr<SharedInputRingBuffer>>& sharedInputs,
                  ReverbEngine* engine,
                  const float* reverbLevelsPtr,
@@ -78,8 +81,15 @@ public:
 private:
     void run() override
     {
+        // Audio workgroup membership: token lives on (and is destroyed on) this thread.
+        juce::WorkgroupToken wgToken;
+        uint32_t wgSeenGeneration = 0;
+
         while (!threadShouldExit())
         {
+            if (workgroupCoordinator != nullptr)
+                workgroupCoordinator->joinIfChanged(wgToken, wgSeenGeneration);
+
             if (!dataReady.load(std::memory_order_acquire))
             {
                 wait(1);
@@ -177,6 +187,7 @@ private:
     std::vector<SharedInputRingBuffer*> inputBuffers;
     std::vector<int> readPositions;
     ReverbEngine* reverbEngine = nullptr;
+    AudioWorkgroupCoordinator* workgroupCoordinator = nullptr;
 
     // (reverbLevels, reverbStride, numRevs) form a triplet published by
     // updateReverbLevels() from the message thread and consumed by run() on

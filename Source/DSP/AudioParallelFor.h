@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "RealtimeThreadUtil.h"
+#include "AudioWorkgroupCoordinator.h"
 
 //==============================================================================
 /**
@@ -43,8 +44,12 @@ public:
         @param periodMs       Audio block duration in ms. When > 0, each worker upgrades itself
                               to a realtime time-constraint policy on macOS (P-core placement).
         @param computationMs  Expected processing time per block in ms (defaults to periodMs).
+        @param coordinator    Optional audio workgroup coordinator. When non-null, each worker
+                              joins the CoreAudio device's realtime workgroup (macOS) so the
+                              kernel schedules them coherently with the rest of the DSP workers.
     */
-    void prepare (int numWorkers, double periodMs = 0.0, double computationMs = 0.0)
+    void prepare (int numWorkers, double periodMs = 0.0, double computationMs = 0.0,
+                  AudioWorkgroupCoordinator* coordinator = nullptr)
     {
         shutdown();
 
@@ -53,6 +58,7 @@ public:
 
         realtimePeriodMs      = periodMs;
         realtimeComputationMs = computationMs;
+        workgroupCoordinator  = coordinator;
 
         running.store (true, std::memory_order_release);
         numActiveWorkers = numWorkers;
@@ -150,8 +156,16 @@ private:
         if (realtimePeriodMs > 0.0)
             setCurrentThreadRealtimeAudio (realtimePeriodMs, realtimeComputationMs);
 
+        // Workgroup membership: token lives on (and is destroyed on) this thread.
+        juce::WorkgroupToken wgToken;
+        uint32_t wgSeenGeneration = 0;
+
         while (running.load (std::memory_order_acquire))
         {
+            // (Re)join the audio workgroup if it changed (no-op off macOS / when unset).
+            if (workgroupCoordinator != nullptr)
+                workgroupCoordinator->joinIfChanged (wgToken, wgSeenGeneration);
+
             // Wait for work dispatch
             {
                 std::unique_lock<std::mutex> lock (dispatchMutex);
@@ -206,6 +220,9 @@ private:
     // Realtime scheduling hints (macOS P-core placement); 0 = disabled.
     double realtimePeriodMs = 0.0;
     double realtimeComputationMs = 0.0;
+
+    // Optional audio workgroup membership (macOS); null = disabled.
+    AudioWorkgroupCoordinator* workgroupCoordinator = nullptr;
 
     // Dispatch signalling (main → workers)
     std::mutex dispatchMutex;

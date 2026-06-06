@@ -7,6 +7,7 @@
 #include "WFSHighShelfFilter.h"
 #include "WFSBiquadFilter.h"
 #include "DelayTargetSmoother.h"
+#include "AudioWorkgroupCoordinator.h"
 #include <atomic>
 #include <cstdint>
 #include <random>
@@ -81,6 +82,10 @@ public:
         delete[] frHighShelfActiveFlags;
         delete[] frMaxJitterMs;
     }
+
+    /** Optional: realtime workgroup to (re)join from the worker thread (macOS). */
+    void setWorkgroupCoordinator (AudioWorkgroupCoordinator* c) { workgroupCoordinator = c; }
+    AudioWorkgroupCoordinator* workgroupCoordinator = nullptr;
 
     void prepare(double sampleRate, int maxBlockSize)
     {
@@ -263,6 +268,10 @@ private:
         int processedBlockCount = 0;
         auto measurementStartTime = juce::Time::getMillisecondCounterHiRes();
 
+        // Audio workgroup membership: token lives on (and is destroyed on) this thread.
+        juce::WorkgroupToken wgToken;
+        uint32_t wgSeenGeneration = 0;
+
         while (!threadShouldExit())
         {
             // Sleep when processing is disabled (no work to do)
@@ -271,6 +280,10 @@ private:
                 wait(-1); // Infinite sleep until notify() from setProcessingEnabled
                 continue;
             }
+
+            // (Re)join the audio workgroup if it changed (no-op off macOS / when unset).
+            if (workgroupCoordinator != nullptr)
+                workgroupCoordinator->joinIfChanged(wgToken, wgSeenGeneration);
 
             // Wait for input data from all channels
             if (samplesAvailable.load(std::memory_order_acquire) < processingBlockSize)

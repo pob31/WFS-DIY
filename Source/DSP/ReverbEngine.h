@@ -48,6 +48,10 @@ public:
         stopThread (1000);
     }
 
+    /** Optional audio workgroup, joined by the reverb thread and its fork-join pool.
+        Set before prepareToPlay()/startProcessing(). */
+    void setWorkgroupCoordinator (AudioWorkgroupCoordinator* c) { workgroupCoordinator = c; }
+
     //==========================================================================
     // Lifecycle
     //==========================================================================
@@ -105,7 +109,7 @@ public:
             int maxWorkers = juce::jmin (hwThreads - 2, numNodes - 1);
             maxWorkers = juce::jlimit (0, 7, maxWorkers);
             double blockMs = sampleRate > 0.0 ? (internalBlockSize / sampleRate) * 1000.0 : 0.0;
-            parallelPool.prepare (maxWorkers, blockMs, blockMs);
+            parallelPool.prepare (maxWorkers, blockMs, blockMs, workgroupCoordinator);
         }
 
         // Prepare the active algorithm if one exists
@@ -372,8 +376,17 @@ private:
 
     void run() override
     {
+        // Audio workgroup membership: token lives on (and is destroyed on) this thread.
+        // This is also the fork-join calling thread for parallelPool, so the whole
+        // reverb worker group ends up in the same workgroup.
+        juce::WorkgroupToken wgToken;
+        uint32_t wgSeenGeneration = 0;
+
         while (! threadShouldExit())
         {
+            if (workgroupCoordinator != nullptr)
+                workgroupCoordinator->joinIfChanged (wgToken, wgSeenGeneration);
+
             if (numReverbNodes > 0)
             {
                 // Check if we have enough input data to process an internal block
@@ -805,6 +818,9 @@ private:
 
     // Parallel per-node processing thread pool
     AudioParallelFor parallelPool;
+
+    // Optional audio workgroup membership (macOS); null = disabled.
+    AudioWorkgroupCoordinator* workgroupCoordinator = nullptr;
 
     // Algorithm switching fade state
     static constexpr int FadeNone = 0;

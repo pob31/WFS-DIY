@@ -172,6 +172,11 @@ public:
         clear();
     }
 
+    /** Optional audio workgroup; applied to each output processor before its thread starts.
+        Note: the input-analysis and output-metering threads stay at normal priority and
+        deliberately do NOT join (they should remain off the performance cores). */
+    void setWorkgroupCoordinator (AudioWorkgroupCoordinator* c) { workgroupCoordinator = c; }
+
     void prepare(int numInputs,
                 int numOutputs,
                 double sampleRate,
@@ -234,6 +239,7 @@ public:
         for (auto& processor : outputProcessors)
         {
             processor->setProcessingEnabled(processingEnabled);
+            processor->setWorkgroupCoordinator(workgroupCoordinator);
             processor->startRealtimeThread (juce::Thread::RealtimeOptions{}
                                                 .withApproximateAudioProcessingTime (blockSize, sampleRate));
         }
@@ -274,6 +280,7 @@ public:
             processor->prepare(sampleRate, blockSize);
             processor->setSharedInputBuffers(sharedInputBuffers);
             processor->setProcessingEnabled(processingEnabled);
+            processor->setWorkgroupCoordinator(workgroupCoordinator);
             processor->startRealtimeThread (juce::Thread::RealtimeOptions{}
                                                 .withApproximateAudioProcessingTime (blockSize, sampleRate));
         }
@@ -537,6 +544,7 @@ private:
     int storedNumInputs = 0;
     int storedNumOutputs = 0;
     double cachedSampleRate = 48000.0;
+    AudioWorkgroupCoordinator* workgroupCoordinator = nullptr;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OutputBufferAlgorithm)
 };
