@@ -3888,6 +3888,7 @@ private:
         // Threshold and Reset are dimmed (not hidden) in Manual mode - handle alpha separately
         otomoThresholdLabel.setVisible(v); otomoThresholdDial.setVisible(v); otomoThresholdValueLabel.setVisible(v); otomoThresholdUnitLabel.setVisible(v);
         otomoResetLabel.setVisible(v); otomoResetDial.setVisible(v); otomoResetValueLabel.setVisible(v); otomoResetUnitLabel.setVisible(v);
+        otomoTriggerIndicator.setVisible(v); otomoResetIndicator.setVisible(v);
         otomoStartButton.setVisible(v);
         otomoStopButton.setVisible(v);
         otomoPauseButton.setVisible(v);
