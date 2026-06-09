@@ -3192,7 +3192,7 @@ void MainComponent::handleConfigReloaded()
         mapTab->repaint();
 
     if (clustersTab != nullptr)
-        clustersTab->repaint();
+        clustersTab->refreshFromValueTree();
 
     // Reconfigure visualization with potentially changed channel counts
     if (inputsTab != nullptr)

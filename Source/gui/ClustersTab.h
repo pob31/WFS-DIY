@@ -710,6 +710,31 @@ public:
 
     int getSelectedCluster() const noexcept { return selectedCluster; }
 
+    /** Re-sync all state-derived UI from the ValueTree after a bulk recall
+        (global config load, snapshot recall, input recall). Those paths restore
+        cluster data into the tree but historically only repaint() this tab, so the
+        controls otherwise show stale values until a cluster button is clicked.
+        Mirrors the sibling tabs' refreshFromValueTree(). */
+    void refreshFromValueTree()
+    {
+        // Per-cluster input counts on the 10 cluster buttons.
+        updateClusterButtonStates();
+
+        // Reload the selected cluster's full control set: reference-mode combo,
+        // inputs-visible toggle, assigned-inputs list, reference-position display,
+        // status label, and the entire LFO panel. selectCluster only reads from the
+        // tree and sets controls with dontSendNotification (and loadClusterLFOParameters
+        // is guarded by isLoadingParameters), so it writes nothing back.
+        selectCluster (juce::jlimit (1, 10, selectedCluster));
+
+        // LFO preset tile names / active-axes come from the global ClusterLFOPresets
+        // tree and otherwise stay stale after a project load.
+        for (auto* tile : presetTiles)
+            tile->updateFromValueTree();
+
+        repaint();
+    }
+
     /** Set the joystick thumb position from an external controller (visual only). */
     void setControllerDeflection (float x, float y, float /*z*/)
     {
