@@ -411,6 +411,10 @@ private:
     void resizeOutputAttenuation(int numOut, double sampleRate);
     void resizeReverbAttenuation(int numReverbs, double sampleRate);
     void stopProcessingForConfigurationChange();
+    // Builds sharedInputBuffers + reverbFeedThread and wires the binaural monitor.
+    // Called from startAudioEngine() and rebuilt by prepareToPlay() after a device
+    // restart (releaseResources() tears these down; this re-creates them).
+    void setupSharedInputFeed(int blockSize, double sampleRate);
     void loadAudioPatches();  // Load input/output patch matrices from ValueTree
     void applyInputPatch(const juce::AudioSourceChannelInfo& bufferToFill);  // Apply input patching
     void applyOutputPatch(const juce::AudioSourceChannelInfo& bufferToFill,

@@ -4124,6 +4124,54 @@ void MainComponent::showUpdateBanner (const juce::String& version, const juce::S
 }
 
 //==============================================================================
+void MainComponent::setupSharedInputFeed (int blockSize, double sampleRate)
+{
+    // Only meaningful once the engine is started; the audio callback gates its
+    // use of these buffers on audioEngineStarted/processingEnabled.
+    if (! audioEngineStarted)
+        return;
+
+    // Idempotent: stop any existing feed thread BEFORE its source buffers are
+    // freed (it holds raw pointers into sharedInputBuffers), then rebuild
+    // everything for the current block size / sample-rate ratio.
+    if (reverbFeedThread)
+    {
+        reverbFeedThread->stopThread (1000);
+        reverbFeedThread.reset();
+    }
+
+    // Create shared input buffers (used by reverb feed thread and binaural)
+    sharedInputBuffers.clear();
+    for (int i = 0; i < numInputChannels; ++i)
+    {
+        auto buf = std::make_unique<SharedInputRingBuffer>();
+        buf->setSize (blockSize * 4);
+        sharedInputBuffers.push_back (std::move (buf));
+    }
+
+    // Start reverb feed thread (computes reverb feeds off the audio callback)
+    if (reverbEngine && calculationEngine)
+    {
+        int numReverbs = reverbEngine->getNumNodes();
+        if (numReverbs > 0 && ! sharedInputBuffers.empty())
+        {
+            reverbFeedThread = std::make_unique<ReverbFeedThread>();
+            reverbFeedThread->prepare (sharedInputBuffers, reverbEngine.get(),
+                                       calculationEngine->getInputReverbLevels(),
+                                       calculationEngine->getNumReverbs(),
+                                       numInputChannels, numReverbs,
+                                       blockSize, reverbSRRatio);
+            reverbFeedThread->setWorkgroupCoordinator (&workgroupCoordinator);
+            reverbFeedThread->startRealtimeThread (juce::Thread::RealtimeOptions{}
+                                                       .withApproximateAudioProcessingTime (blockSize, sampleRate));
+        }
+    }
+
+    // Wire binaural processor to shared input buffers (reads directly, no push needed)
+    if (binauralProcessor && ! sharedInputBuffers.empty())
+        binauralProcessor->setSharedInputBuffers (sharedInputBuffers);
+}
+
 void MainComponent::startAudioEngine()
 {
     if (audioEngineStarted)
@@ -4202,39 +4250,10 @@ void MainComponent::startAudioEngine()
         processingToggle.setToggleState(false, juce::dontSendNotification);
     }
 
-    // Create shared input buffers (used by reverb feed thread)
-    if (audioEngineStarted)
-    {
-        sharedInputBuffers.clear();
-        for (int i = 0; i < numInputChannels; ++i)
-        {
-            auto buf = std::make_unique<SharedInputRingBuffer>();
-            buf->setSize(blockSize * 4);
-            sharedInputBuffers.push_back(std::move(buf));
-        }
-    }
-
-    // Start reverb feed thread (computes reverb feeds off the audio callback)
-    if (audioEngineStarted && reverbEngine && calculationEngine)
-    {
-        int numReverbs = reverbEngine->getNumNodes();
-        if (numReverbs > 0 && !sharedInputBuffers.empty())
-        {
-            reverbFeedThread = std::make_unique<ReverbFeedThread>();
-            reverbFeedThread->prepare(sharedInputBuffers, reverbEngine.get(),
-                                       calculationEngine->getInputReverbLevels(),
-                                       calculationEngine->getNumReverbs(),
-                                       numInputChannels, numReverbs,
-                                       blockSize, reverbSRRatio);
-            reverbFeedThread->setWorkgroupCoordinator (&workgroupCoordinator);
-            reverbFeedThread->startRealtimeThread (juce::Thread::RealtimeOptions{}
-                                                       .withApproximateAudioProcessingTime (blockSize, sampleRate));
-        }
-    }
-
-    // Wire binaural processor to shared input buffers (reads directly, no push needed)
-    if (audioEngineStarted && binauralProcessor && !sharedInputBuffers.empty())
-        binauralProcessor->setSharedInputBuffers(sharedInputBuffers);
+    // Build shared input buffers, reverb feed thread, and binaural wiring.
+    // Extracted into setupSharedInputFeed() so prepareToPlay() can rebuild them
+    // after a device restart (see the call there for the rationale).
+    setupSharedInputFeed (blockSize, sampleRate);
 
     // Start reverb engine thread (may have been stopped by channel count change)
     if (audioEngineStarted && reverbEngine)
@@ -4337,6 +4356,16 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
         reverbDiagReporter->startReporting (1000);
 #endif
     }
+
+    // Rebuild the reverb feed path after a device (re)start. JUCE calls
+    // releaseResources() -> prepareToPlay() on any device / sample-rate / buffer
+    // change; releaseResources() destroyed reverbFeedThread + sharedInputBuffers,
+    // and startAudioEngine() will not re-run (audioEngineStarted is still true),
+    // so without this the restarted reverb engine has no feed and pullNodeOutput()
+    // underruns every block -> a permanently stuck "Reverb dropout detected" banner.
+    // (Also re-wires the binaural monitor, which reads the same shared buffers.)
+    if (audioEngineStarted)
+        setupSharedInputFeed (samplesPerBlockExpected, sampleRate);
 
     // Prepare sampler manager
     if (samplerManager == nullptr)
