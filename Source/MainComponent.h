@@ -362,16 +362,21 @@ private:
     int patchSaveCountdown = 0;                 // Debounce timer for auto-saving patch (0 = idle)
     juce::Random random;
 
-    // Master level gain (smoothed for click-free operation)
+    // Master level gain (smoothed for click-free operation).
+    // Linear (not Multiplicative): the dB->gain target reaches exactly 0 at the
+    // -92 dB floor, and Multiplicative smoothing cannot ramp to/from 0 (it produces
+    // a NaN burst -> loud crack on the PA; the JUCE guard is only a debug jassert).
     std::atomic<float> masterLevelGainTarget { 1.0f };
-    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative> masterLevelGain;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> masterLevelGain;
 
     // Per-output attenuation (smoothed, click-free). Targets live in an atomic[]
     // because std::atomic is not movable and can't go in a std::vector. The
     // SmoothedValue array is audio-thread-only.
     std::unique_ptr<std::atomic<float>[]> outputAttenuationTargets;
     int outputAttenuationTargetsCount = 0;
-    std::vector<juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative>> outputAttenuationGains;
+    // Linear smoothing: target reaches 0 at the -92 dB floor; Multiplicative would
+    // NaN when ramping from 0 (raising an output off the bottom) -> loud crack.
+    std::vector<juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear>> outputAttenuationGains;
 
     // Per-output 6-band parametric EQ. Sized via prepare() inside
     // resizeOutputAttenuation(); coefficients pushed from timerCallback.
@@ -382,7 +387,8 @@ private:
     // internally but contributes less to the mix.
     std::unique_ptr<std::atomic<float>[]> reverbAttenuationTargets;
     int reverbAttenuationTargetsCount = 0;
-    std::vector<juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative>> reverbAttenuationGains;
+    // Linear smoothing: same reason as outputAttenuationGains (0 at the -92 dB floor).
+    std::vector<juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear>> reverbAttenuationGains;
 
     // Track device type and device name changes
     juce::String lastSavedDeviceType;
