@@ -1,0 +1,66 @@
+name: CI
+
+# Build sanity on every push / PR to main: Debug build on all three desktop
+# OSes so a broken build is caught early. No signing or packaging here — that's
+# release.yml's job. JUCE + GPUAudioSDK come in as submodules (JUCE is large, so
+# checkout is the slow part; everything else is cheap).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# A newer push to the same branch supersedes an in-flight CI run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    name: build (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Build (Debug, unsigned)
+        run: |
+          xcodebuild \
+            -project Builds/MacOSX/WFS-DIY.xcodeproj \
+            -scheme "WFS-DIY - App" \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+  windows:
+    name: build (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+      - name: Build (Debug x64)
+        run: msbuild Builds\VisualStudio2022\WFS-DIY.sln -p:Configuration=Debug -p:Platform=x64 -m
+
+  linux:
+    name: build (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install JUCE build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential pkg-config \
+            libasound2-dev libjack-jackd2-dev \
+            libfreetype-dev libfontconfig1-dev \
+            libgl1-mesa-dev libcurl4-openssl-dev \
+            libgtk-3-dev libwebkit2gtk-4.1-dev \
+            libudev-dev
+      - name: Build (Debug)
+        run: make -C Builds/LinuxMakefile CONFIG=Debug -j"$(nproc)"

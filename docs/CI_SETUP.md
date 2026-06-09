@@ -1,0 +1,78 @@
+# CI / Release automation (GitHub Actions)
+
+Two workflows under `.github/workflows/`:
+
+- **`ci.yml`** — on every push / PR to `main`: a Debug build on macOS, Windows and
+  Linux so a broken build is caught immediately. No secrets, no packaging.
+- **`release.yml`** — when a GitHub **Release is published** (or via manual
+  *Run workflow* against an existing tag): builds Release on all three OSes,
+  **signs + notarizes + staples the macOS DMG**, and attaches every artifact to
+  the Release. Windows ships as an unsigned `.zip`, Linux as a `.tar.gz`.
+
+The macOS build/sign/notarize/staple logic lives in
+[`scripts/ci/build-macos-release.sh`](../scripts/ci/build-macos-release.sh) and runs
+the same locally (it falls back to the `WFS-DIY-notary` keychain profile when the
+CI env vars are absent).
+
+> JUCE-specific gotcha (already handled by the script): the generated Xcode
+> project injects `com.apple.security.get-task-allow=true` even in Release, which
+> Apple's notary rejects (statusCode 4000). The script re-signs the `.app` with
+> `Builds/MacOSX/release-entitlements.plist` (which sets it `false`) before
+> packaging. Don't remove that step.
+
+---
+
+## One-time setup: secrets
+
+Create a protected environment named **`release`** (repo → Settings →
+Environments → New environment → `release`; optionally add required reviewers),
+then add these **5 secrets** to that environment:
+
+| Secret | What it is |
+|---|---|
+| `MACOS_CERT_P12_BASE64` | Your "Developer ID Application" cert **+ private key**, exported as `.p12`, base64-encoded |
+| `MACOS_CERT_PASSWORD` | The password you set when exporting the `.p12` |
+| `NOTARY_API_KEY_BASE64` | App Store Connect API key (`AuthKey_XXXX.p8`), base64-encoded |
+| `NOTARY_API_KEY_ID` | The key's **Key ID** (e.g. `ABCD1234EF`) |
+| `NOTARY_API_ISSUER` | The **Issuer ID** (a UUID, shown on the API-keys page) |
+
+> The App Store Connect API key is **team-wide** — the exact one created for
+> S21_HiJack works here too. Reuse those three notary secret values.
+
+### Generating the certificate `.p12`
+1. Keychain Access → **login** keychain → Certificates.
+2. Right-click **"Developer ID Application: Pierre-Olivier Boulant (TVYU3CS2N7)"**,
+   expand it, select **both** the certificate **and** its private key → **Export 2 items…** → `.p12`, set a password.
+3. Encode for the secret:
+   ```bash
+   base64 -i DeveloperID.p12 | pbcopy   # paste into MACOS_CERT_P12_BASE64
+   ```
+
+### Generating the App Store Connect API key (skip if reusing S21's)
+1. https://appstoreconnect.apple.com → **Users and Access → Integrations → App Store Connect API**.
+2. Generate a key with **Developer** access → download `AuthKey_XXXX.p8` (downloadable **once**).
+3. Note the **Key ID** and **Issuer ID** on that page.
+   ```bash
+   base64 -i AuthKey_XXXX.p8 | pbcopy   # paste into NOTARY_API_KEY_BASE64
+   ```
+
+---
+
+## Cutting a release
+
+1. Bump the version in all build files (jucer / JuceHeader / Info-App.plist /
+   pbxproj / vcxproj / resources.rc / LinuxMakefile) — currently `1.0.0beta22`.
+2. Commit + push to `main`.
+3. Create a GitHub **Release** with tag **`v<version>`** (e.g. `v1.0.0beta22`) and publish it.
+   - `verify-version` fails fast if the tag ≠ `versionString` in `JuceHeader.h`.
+4. The three jobs build and attach: signed/notarized **DMG**, Windows **zip**, Linux **tar.gz**.
+
+Manual re-run against an existing tag: Actions → **Release** → *Run workflow* → enter the tag.
+
+---
+
+## Notes / known iteration points
+- **JUCE is a submodule (~large)** — checkout is the slow step; both workflows use `submodules: recursive`.
+- **Windows is unsigned** by design (no code-signing cert). The `.zip` will show a SmartScreen prompt on first run.
+- These workflows are a first cut; the per-OS **packaging paths** (Windows `x64/Release/App`, Linux `build/WFS-DIY`) may need a tweak after the first real run — check the Actions logs.
+- **Local macOS release** (no CI): `scripts/ci/build-macos-release.sh` uses the `WFS-DIY-notary` keychain profile; `SKIP_NOTARIZE=1` to build+sign+DMG only.

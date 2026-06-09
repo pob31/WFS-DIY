@@ -1,0 +1,143 @@
+name: Release
+
+# Build distributable packages for each desktop OS and attach them to the GitHub
+# Release. Runs when a Release is published, or on manual dispatch against an
+# existing tag. macOS is signed + notarized + stapled; Windows/Linux ship as
+# archives (Windows is intentionally unsigned — no code-signing cert).
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to build and attach to (e.g. v1.0.0beta22)"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.release.tag_name || github.event.inputs.tag }}
+  cancel-in-progress: false
+
+env:
+  RELEASE_TAG: ${{ github.event.release.tag_name || github.event.inputs.tag }}
+
+jobs:
+  # Refuse to publish if the tag doesn't match the in-source version, before
+  # spending build minutes. Version lives in JuceLibraryCode/JuceHeader.h.
+  verify-version:
+    name: verify tag == versionString
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          VERSION="$(sed -nE 's/.*versionString[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' \
+                      JuceLibraryCode/JuceHeader.h | head -n1)"
+          if [ "$RELEASE_TAG" != "v$VERSION" ]; then
+            echo "::error::release tag '$RELEASE_TAG' != source 'v$VERSION'"
+            exit 1
+          fi
+          echo "ok: $RELEASE_TAG == v$VERSION"
+
+  macos:
+    name: macOS DMG (signed + notarized)
+    needs: verify-version
+    runs-on: macos-latest
+    # Signing cert + notary key live in the protected `release` environment.
+    environment: release
+    env:
+      NOTARY_API_KEY_ID: ${{ secrets.NOTARY_API_KEY_ID }}
+      NOTARY_API_ISSUER: ${{ secrets.NOTARY_API_ISSUER }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Import Developer ID signing certificate
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
+          p12-password: ${{ secrets.MACOS_CERT_PASSWORD }}
+      - name: Materialize App Store Connect API key
+        run: |
+          mkdir -p "$RUNNER_TEMP/notary"
+          KEY="$RUNNER_TEMP/notary/AuthKey.p8"
+          echo "${{ secrets.NOTARY_API_KEY_BASE64 }}" | base64 --decode > "$KEY"
+          echo "NOTARY_API_KEY=$KEY" >> "$GITHUB_ENV"
+      - name: Build, sign, notarize, staple, package
+        run: scripts/ci/build-macos-release.sh
+      - name: Attach DMG to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          fail_on_unmatched_files: true
+          files: |
+            dist/WFS-DIY-v*-macos.dmg
+            dist/WFS-DIY-v*-macos.dmg.sha256
+
+  windows:
+    name: Windows zip (unsigned)
+    needs: verify-version
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: microsoft/setup-msbuild@v2
+      - name: Build (Release x64)
+        run: msbuild Builds\VisualStudio2022\WFS-DIY.sln -p:Configuration=Release -p:Platform=x64 -m
+      - name: Package
+        shell: pwsh
+        run: |
+          $appDir = Get-ChildItem -Recurse -Directory -Filter "App" `
+            -Path "Builds\VisualStudio2022\x64\Release" | Select-Object -First 1
+          if (-not $appDir) { throw "Release App folder not found" }
+          $zip = "dist\WFS-DIY-v${{ env.RELEASE_TAG }}-windows-x64.zip"
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Compress-Archive -Path "$($appDir.FullName)\*" -DestinationPath $zip -Force
+          (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower() | Out-File "$zip.sha256" -NoNewline
+      - name: Attach zip to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          fail_on_unmatched_files: true
+          files: |
+            dist/WFS-DIY-*-windows-x64.zip
+            dist/WFS-DIY-*-windows-x64.zip.sha256
+
+  linux:
+    name: Linux tar.gz
+    needs: verify-version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install JUCE build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential pkg-config \
+            libasound2-dev libjack-jackd2-dev \
+            libfreetype-dev libfontconfig1-dev \
+            libgl1-mesa-dev libcurl4-openssl-dev \
+            libgtk-3-dev libwebkit2gtk-4.1-dev libudev-dev
+      - name: Build (Release)
+        run: make -C Builds/LinuxMakefile CONFIG=Release -j"$(nproc)"
+      - name: Package
+        run: |
+          mkdir -p dist
+          BIN="$(find Builds/LinuxMakefile/build -maxdepth 1 -type f -name 'WFS-DIY' | head -n1)"
+          [ -n "$BIN" ] || { echo "Release binary not found"; exit 1; }
+          TAR="dist/WFS-DIY-${RELEASE_TAG}-linux-x86_64.tar.gz"
+          tar -czf "$TAR" -C "$(dirname "$BIN")" "$(basename "$BIN")"
+          sha256sum "$TAR" | awk '{print $1}' > "$TAR.sha256"
+      - name: Attach tar.gz to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          fail_on_unmatched_files: true
+          files: |
+            dist/WFS-DIY-*-linux-x86_64.tar.gz
+            dist/WFS-DIY-*-linux-x86_64.tar.gz.sha256
