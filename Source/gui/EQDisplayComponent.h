@@ -552,6 +552,14 @@ public:
     // Parameters: bandIndex, paramId, newValue
     std::function<void (int, const juce::Identifier&, const juce::var&)> onParameterChanged;
 
+    // When true, setBandParameter() does NOT write the ValueTree itself — it delegates
+    // the write to onParameterChanged so the owner can persist the value with array
+    // propagation. Writing here first would make the owner's relative-mode delta
+    // (newValue - oldValue) read back as zero, so array members wouldn't move.
+    // Used by the Output EQ (array "relative" mode); left false elsewhere (Reverb EQ),
+    // which keeps the direct-write behaviour unchanged.
+    bool ownerPersistsValue = false;
+
     /** Set the UndoManager used for EQ touch interactions */
     void setUndoManager (juce::UndoManager* um) { undoManagerPtr = um; }
 
@@ -1228,7 +1236,18 @@ private:
         if (! bandTree.isValid())
             return;
 
-        // Set with undo support (nullptr if no manager assigned)
+        // When the owner persists the value (Output EQ array propagation), delegate the
+        // write entirely to onParameterChanged. Pre-writing here would zero the owner's
+        // relative-mode delta (it reads old == new), so array members wouldn't move.
+        // The owner's write lands on this same live ValueTree node, so our listener still
+        // repaints the curve.
+        if (ownerPersistsValue && onParameterChanged)
+        {
+            onParameterChanged (bandIndex, paramId, value);
+            return;
+        }
+
+        // Default path: set with undo support (nullptr if no manager assigned)
         bandTree.setProperty (paramId, value, undoManagerPtr);
 
         // Notify parent for array propagation

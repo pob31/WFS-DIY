@@ -1910,6 +1910,11 @@ private:
                     if (!isLoadingParameters)
                         saveEqBandParam(bandIndex, paramId, value);
                 };
+                // Persist EQ-graph edits through saveEqBandParam (which does array
+                // propagation) instead of EQDisplayComponent writing the ValueTree
+                // directly — otherwise relative-mode array sharing sees a zero delta
+                // and the change doesn't reach the other array members.
+                eqDisplay->ownerPersistsValue = true;
             }
             // Update EQ display enabled state
             eqDisplay->setEQEnabled(eqEnabled);
