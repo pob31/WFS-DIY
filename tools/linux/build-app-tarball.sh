@@ -7,6 +7,10 @@
 # Produces:
 #   Builds/LinuxMakefile/release/WFS-DIY-Linux-x86_64-<version>.tar.gz
 #
+# Env overrides (used by CI to match the release asset naming convention):
+#   OUTPUT_DIR    where to write the tarball   (default: Builds/LinuxMakefile/release)
+#   TARBALL_NAME  archive basename + top dir   (default: WFS-DIY-Linux-<arch>-<version>)
+#
 # The tarball contains the binary, lang/ and MCP/resources/ runtime data,
 # the udev rules for HID controllers + touchscreens, the JUCE patch + apply
 # script, an install.sh and uninstall.sh, and a .desktop entry. Mirrors the
@@ -23,7 +27,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 BUILD_DIR="$REPO_ROOT/Builds/LinuxMakefile/build"
-RELEASE_DIR="$REPO_ROOT/Builds/LinuxMakefile/release"
+RELEASE_DIR="${OUTPUT_DIR:-$REPO_ROOT/Builds/LinuxMakefile/release}"
 
 BIN="$BUILD_DIR/WFS-DIY"
 if [[ ! -x "$BIN" ]]; then
@@ -42,7 +46,7 @@ if [[ -z "$VERSION" ]]; then
 fi
 
 ARCH="$(uname -m)"
-STAGE_NAME="WFS-DIY-Linux-${ARCH}-${VERSION}"
+STAGE_NAME="${TARBALL_NAME:-WFS-DIY-Linux-${ARCH}-${VERSION}}"
 STAGE_DIR="$RELEASE_DIR/$STAGE_NAME"
 TARBALL="$RELEASE_DIR/$STAGE_NAME.tar.gz"
 
