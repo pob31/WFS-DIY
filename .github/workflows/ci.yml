@@ -4,11 +4,11 @@ name: CI
 # OSes so a broken build is caught early. No signing or packaging here — that's
 # release.yml's job.
 #
-# Speed: JUCE + GPUAudioSDK are submodules (JUCE is a large working tree), so we
-# cache the checked-out submodules keyed on their pinned SHAs instead of cloning
-# every run. Compile caching: macOS reuses Xcode DerivedData (incremental,
-# no `clean`); Linux uses ccache. (ccache+xcodebuild is unreliable, so macOS
-# uses DerivedData — same warm-build win without touching the compiler.)
+# Speed: compile caching is where the time is saved — macOS reuses Xcode
+# DerivedData (incremental, no `clean`), Linux uses ccache. JUCE/GPUAudioSDK are
+# pulled by checkout (submodules: recursive); we don't cache the submodule
+# working trees (it confused checkout's post-cleanup, and restoring ~1 GB ≈
+# re-cloning anyway).
 
 on:
   push:
@@ -27,29 +27,18 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          submodules: false
-      - name: Pin submodule SHAs
-        id: subs
+          submodules: recursive
+      - name: Resolve JUCE SHA (for cache key)
+        id: juce
         shell: bash
-        run: echo "key=$(git ls-tree HEAD ThirdParty/JUCE ThirdParty/GPUAudioSDK | awk '{print $3}' | tr '\n' '-')" >> "$GITHUB_OUTPUT"
-      - name: Cache submodules
-        id: subcache
-        uses: actions/cache@v5
-        with:
-          path: |
-            ThirdParty/JUCE
-            ThirdParty/GPUAudioSDK
-          key: subs-${{ runner.os }}-${{ steps.subs.outputs.key }}
-      - name: Init submodules (cache miss)
-        if: steps.subcache.outputs.cache-hit != 'true'
-        run: git submodule update --init --recursive ThirdParty/JUCE ThirdParty/GPUAudioSDK
+        run: echo "sha=$(git rev-parse HEAD:ThirdParty/JUCE)" >> "$GITHUB_OUTPUT"
       - name: Cache Xcode DerivedData
         uses: actions/cache@v5
         with:
           path: ~/Library/Developer/Xcode/DerivedData
-          key: deriveddata-${{ steps.subs.outputs.key }}-${{ hashFiles('Source/**', 'JuceLibraryCode/**', 'Builds/MacOSX/WFS-DIY.xcodeproj/**') }}
+          key: deriveddata-${{ steps.juce.outputs.sha }}-${{ hashFiles('Source/**', 'JuceLibraryCode/**', 'Builds/MacOSX/WFS-DIY.xcodeproj/**') }}
           restore-keys: |
-            deriveddata-${{ steps.subs.outputs.key }}-
+            deriveddata-${{ steps.juce.outputs.sha }}-
             deriveddata-
       - name: Build (Debug, unsigned)
         run: |
@@ -66,22 +55,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          submodules: false
-      - name: Pin submodule SHAs
-        id: subs
-        shell: bash
-        run: echo "key=$(git ls-tree HEAD ThirdParty/JUCE ThirdParty/GPUAudioSDK | awk '{print $3}' | tr '\n' '-')" >> "$GITHUB_OUTPUT"
-      - name: Cache submodules
-        id: subcache
-        uses: actions/cache@v5
-        with:
-          path: |
-            ThirdParty/JUCE
-            ThirdParty/GPUAudioSDK
-          key: subs-${{ runner.os }}-${{ steps.subs.outputs.key }}
-      - name: Init submodules (cache miss)
-        if: steps.subcache.outputs.cache-hit != 'true'
-        run: git submodule update --init --recursive ThirdParty/JUCE ThirdParty/GPUAudioSDK
+          submodules: recursive
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v3
       - name: Build (Debug x64)
@@ -95,22 +69,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          submodules: false
-      - name: Pin submodule SHAs
-        id: subs
-        shell: bash
-        run: echo "key=$(git ls-tree HEAD ThirdParty/JUCE ThirdParty/GPUAudioSDK | awk '{print $3}' | tr '\n' '-')" >> "$GITHUB_OUTPUT"
-      - name: Cache submodules
-        id: subcache
-        uses: actions/cache@v5
-        with:
-          path: |
-            ThirdParty/JUCE
-            ThirdParty/GPUAudioSDK
-          key: subs-${{ runner.os }}-${{ steps.subs.outputs.key }}
-      - name: Init submodules (cache miss)
-        if: steps.subcache.outputs.cache-hit != 'true'
-        run: git submodule update --init --recursive ThirdParty/JUCE ThirdParty/GPUAudioSDK
+          submodules: recursive
       - name: Install JUCE build deps + ccache
         run: |
           sudo apt-get update
