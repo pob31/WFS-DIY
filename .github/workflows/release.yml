@@ -117,6 +117,11 @@ jobs:
       - uses: actions/checkout@v5
         with:
           submodules: recursive
+      - name: Apply Linux JUCE patches
+        # Enables touch input on Linux (canUseTouch -> true) so the userland
+        # evdev multitouch backend works. The submodule ships unpatched, so this
+        # must run after checkout and before the build. Idempotent.
+        run: tools/apply-linux-juce-patches.sh
       - name: Install JUCE build deps
         run: |
           sudo apt-get update
@@ -133,8 +138,20 @@ jobs:
           mkdir -p dist
           BIN="$(find Builds/LinuxMakefile/build -maxdepth 1 -type f -name 'WFS-DIY' | head -n1)"
           [ -n "$BIN" ] || { echo "Release binary not found"; exit 1; }
-          TAR="dist/WFS-DIY-${RELEASE_TAG}-linux-x86_64.tar.gz"
-          tar -czf "$TAR" -C "$(dirname "$BIN")" "$(basename "$BIN")"
+          # Stage the binary alongside the runtime data the app loads from next
+          # to the executable: lang/ (LocalizationManager scans this; without it
+          # every label falls back to its raw key) and MCP/resources/. Read from
+          # the source-of-truth dirs, not the Makefile postbuild output. Include
+          # the logo too. Mirrors tools/linux/build-app-tarball.sh.
+          STAGE="WFS-DIY-${RELEASE_TAG}-linux-x86_64"
+          rm -rf "$STAGE"
+          mkdir -p "$STAGE/lang" "$STAGE/MCP/resources"
+          cp "$BIN"                            "$STAGE/WFS-DIY"
+          cp -R Resources/lang/.               "$STAGE/lang/"
+          cp -R Documentation/MCP/resources/.  "$STAGE/MCP/resources/"
+          cp Resources/WFS-DIY_logo.png        "$STAGE/WFS-DIY_logo.png"
+          TAR="dist/${STAGE}.tar.gz"
+          tar --owner=0 --group=0 -czf "$TAR" "$STAGE"
           sha256sum "$TAR" | awk '{print $1}' > "$TAR.sha256"
       - name: Attach tar.gz to release
         uses: softprops/action-gh-release@v3
