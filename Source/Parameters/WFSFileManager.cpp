@@ -2124,8 +2124,30 @@ void WFSFileManager::mergeTreeRecursive (juce::ValueTree& target, const juce::Va
         }
         else
         {
-            // For children without id, match by type name only
-            targetChild = target.getChildWithName (sourceChild.getType());
+            // For children without an id, match by type AND ordinal position among
+            // same-type, id-less siblings. Matching by type name alone returns the
+            // FIRST such child for every source child, so a collection of repeated
+            // id-less children (e.g. the 16 ClusterLFOPreset nodes) would all
+            // collapse into the first slot and the rest would be lost on load.
+            const auto type = sourceChild.getType();
+            int wanted = 0;
+            for (int j = 0; j < i; ++j)
+            {
+                auto prevSource = source.getChild (j);
+                if (prevSource.getType() == type && ! prevSource.hasProperty (id))
+                    ++wanted;
+            }
+
+            int seen = 0;
+            for (int c = 0; c < target.getNumChildren(); ++c)
+            {
+                auto candidate = target.getChild (c);
+                if (candidate.getType() == type && ! candidate.hasProperty (id))
+                {
+                    if (seen == wanted) { targetChild = candidate; break; }
+                    ++seen;
+                }
+            }
         }
 
         if (targetChild.isValid())
