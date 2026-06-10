@@ -31,7 +31,7 @@ jobs:
     name: verify tag == versionString
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: |
           VERSION="$(sed -nE 's/.*versionString[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' \
                       JuceLibraryCode/JuceHeader.h | head -n1)"
@@ -51,11 +51,11 @@ jobs:
       NOTARY_API_KEY_ID: ${{ secrets.NOTARY_API_KEY_ID }}
       NOTARY_API_ISSUER: ${{ secrets.NOTARY_API_ISSUER }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
       - name: Import Developer ID signing certificate
-        uses: apple-actions/import-codesign-certs@v3
+        uses: apple-actions/import-codesign-certs@v6
         with:
           p12-file-base64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
           p12-password: ${{ secrets.MACOS_CERT_PASSWORD }}
@@ -68,7 +68,7 @@ jobs:
       - name: Build, sign, notarize, staple, package
         run: scripts/ci/build-macos-release.sh
       - name: Attach DMG to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           fail_on_unmatched_files: true
@@ -81,10 +81,10 @@ jobs:
     needs: verify-version
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
-      - uses: microsoft/setup-msbuild@v2
+      - uses: microsoft/setup-msbuild@v3
       - name: Build (Release x64)
         run: msbuild Builds\VisualStudio2022\WFS-DIY.sln -p:Configuration=Release -p:Platform=x64 -m
       - name: Package
@@ -98,7 +98,7 @@ jobs:
           Compress-Archive -Path "$($appDir.FullName)\*" -DestinationPath $zip -Force
           (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower() | Out-File "$zip.sha256" -NoNewline
       - name: Attach zip to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           fail_on_unmatched_files: true
@@ -111,7 +111,7 @@ jobs:
     needs: verify-version
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
       - name: Install JUCE build deps
@@ -134,7 +134,7 @@ jobs:
           tar -czf "$TAR" -C "$(dirname "$BIN")" "$(basename "$BIN")"
           sha256sum "$TAR" | awk '{print $1}' > "$TAR.sha256"
       - name: Attach tar.gz to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           fail_on_unmatched_files: true
