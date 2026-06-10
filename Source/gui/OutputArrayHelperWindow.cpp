@@ -114,7 +114,7 @@ const std::array<ArrayPresetConfig, 7> OutputArrayHelperContent::presetConfigs =
         "Delay Line",
         true,   // supportsCenterSpacing
         true,   // supportsEndpoints
-        false,  // supportsCurve
+        true,   // supportsCurve (sag, for curved installs)
         false,  // supportsCircle
         false,  // supportsSurround
         false,  // lsAttenEnable
@@ -263,6 +263,7 @@ void ArrayPreviewComponent::paint(juce::Graphics& g)
     const float ls = static_cast<float>(getHeight()) / 350.0f;  // preview scale factor
     const float speakerRadius = juce::jmax(4.0f, juce::jmin(10.0f, 8.0f * ls));
     const float arrowLength = juce::jmax(8.0f, juce::jmin(18.0f, 15.0f * ls));
+    const bool isCirclePreset = (currentPreset == ArrayPresetType::Circle);
 
     for (size_t i = 0; i < speakerPositions.size(); ++i)
     {
@@ -289,42 +290,74 @@ void ArrayPreviewComponent::paint(juce::Graphics& g)
         g.setFont(juce::jmax(7.0f, 10.0f * ls));
         float labelW = juce::jmax(20.0f, 30.0f * ls);
         float labelH = juce::jmax(8.0f, 12.0f * ls);
-        g.drawText(juce::String(i + 1),
-                   juce::Rectangle<float>(screenPos.x - labelW / 2, screenPos.y - speakerRadius - labelH - 3.0f * ls, labelW, labelH),
-                   juce::Justification::centred);
+
+        juce::Rectangle<float> labelRect;
+        if (isCirclePreset)
+        {
+            // Place the number radially outside the ring so it clears the arrow,
+            // the speaker icon and neighbouring speakers. A circle array's
+            // orientation is exactly radial, so the outward direction is the arrow
+            // direction (facing outward) or its opposite (facing inward).
+            float radialSign = circleFacingInward ? -1.0f : 1.0f;
+            float outwardX = radialSign * std::sin(angleRad);
+            float outwardY = radialSign * std::cos(angleRad);
+            float labelDist = speakerRadius + arrowLength + labelH * 0.5f + 4.0f * ls;
+            float labelCx = screenPos.x + outwardX * labelDist;
+            float labelCy = screenPos.y + outwardY * labelDist;
+            labelRect = juce::Rectangle<float>(labelCx - labelW / 2, labelCy - labelH / 2, labelW, labelH);
+        }
+        else
+        {
+            labelRect = juce::Rectangle<float>(screenPos.x - labelW / 2,
+                                               screenPos.y - speakerRadius - labelH - 3.0f * ls,
+                                               labelW, labelH);
+        }
+        g.drawText(juce::String(i + 1), labelRect, juce::Justification::centred);
     }
 
     // Draw "Audience" label(s) based on stage shape and preset
     g.setColour(ColorScheme::get().textSecondary);
     g.setFont(juce::jmax(8.0f, 12.0f * ls));
 
-    // isCircular already defined above
-    bool isCirclePreset = (currentPreset == ArrayPresetType::Circle);
-
+    // isCircular and isCirclePreset already defined above
     if (isCirclePreset)
     {
-        // Circle preset
+        // Derive the ring centre and radius in screen space from the speakers
+        // themselves, so the labels track the actual array even when its centre is
+        // offset from the stage origin. Fall back to the stage centre if empty.
+        juce::Point<float> ringCentre = stageToScreen(-originX, -originY);
+        float ringRadius = (circleRadius > 0 ? circleRadius : 5.0f) * scale;
+        if (!speakerPositions.empty())
+        {
+            ringCentre = { 0.0f, 0.0f };
+            for (const auto& p : speakerPositions)
+                ringCentre += stageToScreen(p.x, p.y);
+            ringCentre /= static_cast<float>(speakerPositions.size());
+
+            ringRadius = 0.0f;
+            for (const auto& p : speakerPositions)
+                ringRadius = juce::jmax(ringRadius, ringCentre.getDistanceFrom(stageToScreen(p.x, p.y)));
+        }
+
+        const float audLabelH = juce::jmax(12.0f, 16.0f * ls);
+
         if (circleFacingInward)
         {
-            // Facing inward: audience in the center of the circle
-            auto center = stageToScreen(-originX, -originY);
+            // Facing inward: audience sits at the centre (origin) of the ring
             g.drawText(LOC("arrayHelper.preview.audience"),
-                       juce::Rectangle<float>(center.x - 40, center.y - 8, 80, 16),
+                       juce::Rectangle<float>(ringCentre.x - 40, ringCentre.y - audLabelH / 2, 80, audLabelH),
                        juce::Justification::centred);
         }
         else
         {
-            // Facing outward: audience at top and bottom
-            float radius = circleRadius > 0 ? circleRadius : 5.0f;
-
-            auto topPos = stageToScreen(-originX, -originY + radius + 2.0f);
-            auto bottomPos = stageToScreen(-originX, -originY - radius - 2.0f);
-
+            // Facing outward: audience surrounds the ring — place the labels well
+            // outside it, clear of the number ring drawn around the speakers.
+            float labelOffset = ringRadius + speakerRadius + arrowLength + audLabelH * 1.5f + 6.0f * ls;
             g.drawText(LOC("arrayHelper.preview.audience"),
-                       juce::Rectangle<float>(topPos.x - 40, topPos.y - 16, 80, 16),
+                       juce::Rectangle<float>(ringCentre.x - 40, ringCentre.y - labelOffset - audLabelH / 2, 80, audLabelH),
                        juce::Justification::centred);
             g.drawText(LOC("arrayHelper.preview.audience"),
-                       juce::Rectangle<float>(bottomPos.x - 40, bottomPos.y, 80, 16),
+                       juce::Rectangle<float>(ringCentre.x - 40, ringCentre.y + labelOffset - audLabelH / 2, 80, audLabelH),
                        juce::Justification::centred);
         }
     }
@@ -1177,6 +1210,7 @@ void OutputArrayHelperContent::loadPresetDefaults(ArrayPresetType preset)
             endXEditor.setText("6");
             endYEditor.setText("-12");
             orientationEditor.setText("0");  // Face audience (0° = toward -Y)
+            sagEditor.setText("0");  // Straight by default; >0 curves upstage (+Y) for curved installs
             break;
 
         case ArrayPresetType::Circle:
@@ -1247,23 +1281,47 @@ void OutputArrayHelperContent::autoCalculatePreview()
 
         case ArrayPresetType::DelayLine:
         {
-            float delayOrientation = frontFacingRadio.getToggleState() ? 0.0f : 180.0f;  // Front=audience (0°), Back=stage (180°)
-            if (centerSpacingRadio.getToggleState() && config.supportsCenterSpacing)
+            float sag = sagEditor.getText().getFloatValue();
+            bool  backFacing = backFacingRadio.getToggleState();
+            float delayOrientation = backFacing ? 180.0f : 0.0f;  // Front=audience (0°), Back=stage (180°)
+            bool  useCenter = centerSpacingRadio.getToggleState() && config.supportsCenterSpacing;
+
+            float cx = centerXEditor.getText().getFloatValue();
+            float cy = centerYEditor.getText().getFloatValue();
+            float spacing = spacingEditor.getText().getFloatValue();
+            float x1 = startXEditor.getText().getFloatValue();
+            float y1 = startYEditor.getText().getFloatValue();
+            float x2 = endXEditor.getText().getFloatValue();
+            float y2 = endYEditor.getText().getFloatValue();
+
+            if (std::abs(sag) < 0.001f)
             {
-                float cx = centerXEditor.getText().getFloatValue();
-                float cy = centerYEditor.getText().getFloatValue();
-                float spacing = spacingEditor.getText().getFloatValue();
-                positions = ArrayGeometry::calculateStraightFromCenter(
-                    numSpeakers, cx, cy, z, spacing, delayOrientation);
+                // Straight (unchanged behaviour): fixed front/back orientation
+                if (useCenter)
+                    positions = ArrayGeometry::calculateStraightFromCenter(
+                        numSpeakers, cx, cy, z, spacing, delayOrientation);
+                else
+                    positions = ArrayGeometry::calculateStraightFromEndpoints(
+                        numSpeakers, x1, y1, x2, y2, z, delayOrientation);
             }
             else
             {
-                float x1 = startXEditor.getText().getFloatValue();
-                float y1 = startYEditor.getText().getFloatValue();
-                float x2 = endXEditor.getText().getFloatValue();
-                float y2 = endYEditor.getText().getFloatValue();
-                positions = ArrayGeometry::calculateStraightFromEndpoints(
-                    numSpeakers, x1, y1, x2, y2, z, delayOrientation);
+                // Curved: derive a left->right horizontal chord for center+spacing,
+                // then reuse the curved-front-fill math (positions + fanned orientations)
+                if (useCenter)
+                {
+                    float halfWidth = spacing * juce::jmax(0, numSpeakers - 1) / 2.0f;
+                    x1 = cx - halfWidth; y1 = cy;
+                    x2 = cx + halfWidth; y2 = cy;
+                }
+                positions = ArrayGeometry::calculateCurvedArray(
+                    numSpeakers, x1, y1, x2, y2, sag, z);
+
+                // calculateCurvedArray fans toward the audience (-Y); a back-facing
+                // rear line faces upstage, so flip every orientation by 180°.
+                if (backFacing)
+                    for (auto& p : positions)
+                        p.orientation = ArrayGeometry::normalizeAngle(p.orientation + 180.0f);
             }
             break;
         }
@@ -1355,23 +1413,47 @@ void OutputArrayHelperContent::calculatePositions()
 
         case ArrayPresetType::DelayLine:
         {
-            float delayOrientation = frontFacingRadio.getToggleState() ? 0.0f : 180.0f;  // Front=audience (0°), Back=stage (180°)
-            if (centerSpacingRadio.getToggleState() && config.supportsCenterSpacing)
+            float sag = sagEditor.getText().getFloatValue();
+            bool  backFacing = backFacingRadio.getToggleState();
+            float delayOrientation = backFacing ? 180.0f : 0.0f;  // Front=audience (0°), Back=stage (180°)
+            bool  useCenter = centerSpacingRadio.getToggleState() && config.supportsCenterSpacing;
+
+            float cx = centerXEditor.getText().getFloatValue();
+            float cy = centerYEditor.getText().getFloatValue();
+            float spacing = spacingEditor.getText().getFloatValue();
+            float x1 = startXEditor.getText().getFloatValue();
+            float y1 = startYEditor.getText().getFloatValue();
+            float x2 = endXEditor.getText().getFloatValue();
+            float y2 = endYEditor.getText().getFloatValue();
+
+            if (std::abs(sag) < 0.001f)
             {
-                float cx = centerXEditor.getText().getFloatValue();
-                float cy = centerYEditor.getText().getFloatValue();
-                float spacing = spacingEditor.getText().getFloatValue();
-                calculatedPositions = ArrayGeometry::calculateStraightFromCenter(
-                    numSpeakers, cx, cy, z, spacing, delayOrientation);
+                // Straight (unchanged behaviour): fixed front/back orientation
+                if (useCenter)
+                    calculatedPositions = ArrayGeometry::calculateStraightFromCenter(
+                        numSpeakers, cx, cy, z, spacing, delayOrientation);
+                else
+                    calculatedPositions = ArrayGeometry::calculateStraightFromEndpoints(
+                        numSpeakers, x1, y1, x2, y2, z, delayOrientation);
             }
             else
             {
-                float x1 = startXEditor.getText().getFloatValue();
-                float y1 = startYEditor.getText().getFloatValue();
-                float x2 = endXEditor.getText().getFloatValue();
-                float y2 = endYEditor.getText().getFloatValue();
-                calculatedPositions = ArrayGeometry::calculateStraightFromEndpoints(
-                    numSpeakers, x1, y1, x2, y2, z, delayOrientation);
+                // Curved: derive a left->right horizontal chord for center+spacing,
+                // then reuse the curved-front-fill math (positions + fanned orientations)
+                if (useCenter)
+                {
+                    float halfWidth = spacing * juce::jmax(0, numSpeakers - 1) / 2.0f;
+                    x1 = cx - halfWidth; y1 = cy;
+                    x2 = cx + halfWidth; y2 = cy;
+                }
+                calculatedPositions = ArrayGeometry::calculateCurvedArray(
+                    numSpeakers, x1, y1, x2, y2, sag, z);
+
+                // calculateCurvedArray fans toward the audience (-Y); a back-facing
+                // rear line faces upstage, so flip every orientation by 180°.
+                if (backFacing)
+                    for (auto& p : calculatedPositions)
+                        p.orientation = ArrayGeometry::normalizeAngle(p.orientation + 180.0f);
             }
             break;
         }

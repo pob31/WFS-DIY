@@ -80,7 +80,8 @@ namespace ArrayGeometry
      * @param startY Start Y position in meters
      * @param endX End X position in meters
      * @param endY End Y position in meters
-     * @param sag Perpendicular distance from midpoint to chord (positive = toward audience)
+     * @param sag Perpendicular distance from midpoint to chord. For a left->right chord,
+     *            positive sag bows the curve toward +Y (upstage); negative toward -Y (audience).
      * @param z Height in meters
      * @return Vector of calculated speaker positions
      */

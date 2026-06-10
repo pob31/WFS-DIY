@@ -147,7 +147,8 @@ std::vector<SpeakerPosition> calculateCurvedArray(
     }
 
     // Normalized perpendicular vector (rotated 90 degrees counter-clockwise)
-    // This makes positive sag bow toward negative Y (toward audience)
+    // For a left->right chord this makes positive sag bow toward +Y (upstage),
+    // negative sag toward -Y (audience).
     float perpX = -dy / length;
     float perpY = dx / length;
 
