@@ -44,11 +44,14 @@ Open a terminal and run:
 git clone --recurse-submodules https://github.com/pob31/WFS-DIY.git
 ```
 
-> **Important:** The `--recurse-submodules` flag is required. Without it, dependencies (JUCE, etc.) will be missing and the build will fail. If you already cloned without it, run:
-> ```bash
-> cd WFS-DIY
-> git submodule update --init --recursive
-> ```
+Then bootstrap the checkout — this initialises the submodules and, on Linux, applies the JUCE multitouch patch:
+
+```bash
+cd WFS-DIY
+./tools/setup.sh
+```
+
+> **Important:** Run `./tools/setup.sh` after cloning. It initialises the submodules (JUCE, etc. — without them the build fails) **and** applies the Linux multitouch patch, so touch works in your local build without any extra steps. It's idempotent — safe to re-run any time you re-init a submodule. If you cloned without `--recurse-submodules`, `setup.sh` fixes that too.
 
 **2. Open the project and build**
 
@@ -73,7 +76,7 @@ git clone --recurse-submodules https://github.com/pob31/WFS-DIY.git
        libfontconfig1-dev libgl1-mesa-dev libcurl4-openssl-dev libgtk-3-dev \
        libwebkit2gtk-4.1-dev libudev-dev
    ```
-2. Apply Linux JUCE patches (one-time, after submodule init):
+2. Apply Linux JUCE patches — **already done if you ran `./tools/setup.sh`** above. To apply manually (e.g. after re-initing the JUCE submodule):
    ```bash
    tools/apply-linux-juce-patches.sh
    ```
