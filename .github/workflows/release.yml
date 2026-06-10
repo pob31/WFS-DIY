@@ -90,12 +90,15 @@ jobs:
       - name: Package
         shell: pwsh
         run: |
-          $appDir = Get-ChildItem -Recurse -Directory -Filter "App" `
+          # Ship only the standalone exe — NOT the whole App output folder, which
+          # also contains the multi-hundred-MB WFS-DIY.pdb debug-symbols file.
+          $exe = Get-ChildItem -Recurse -File -Filter "WFS-DIY.exe" `
             -Path "Builds\VisualStudio2022\x64\Release" | Select-Object -First 1
-          if (-not $appDir) { throw "Release App folder not found" }
-          $zip = "dist\WFS-DIY-v${{ env.RELEASE_TAG }}-windows-x64.zip"
+          if (-not $exe) { throw "Release WFS-DIY.exe not found" }
+          # RELEASE_TAG already starts with 'v' — don't prefix another one.
+          $zip = "dist\WFS-DIY-${{ env.RELEASE_TAG }}-windows-x64.zip"
           New-Item -ItemType Directory -Force dist | Out-Null
-          Compress-Archive -Path "$($appDir.FullName)\*" -DestinationPath $zip -Force
+          Compress-Archive -Path $exe.FullName -DestinationPath $zip -Force
           (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower() | Out-File "$zip.sha256" -NoNewline
       - name: Attach zip to release
         uses: softprops/action-gh-release@v3
