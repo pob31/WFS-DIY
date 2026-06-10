@@ -45,8 +45,8 @@ jobs:
     name: macOS DMG (signed + notarized)
     needs: verify-version
     runs-on: macos-latest
-    # Signing cert + notary key live in the protected `release` environment.
-    environment: release
+    # Signing cert + notary key live in the protected `WFS-DIY` environment.
+    environment: WFS-DIY
     env:
       NOTARY_API_KEY_ID: ${{ secrets.NOTARY_API_KEY_ID }}
       NOTARY_API_ISSUER: ${{ secrets.NOTARY_API_ISSUER }}
