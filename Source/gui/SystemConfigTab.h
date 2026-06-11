@@ -545,7 +545,9 @@ public:
         addAndMakeVisible(algorithmSelector);
         algorithmSelector.addItem(LOC("systemConfig.algorithms.inputBuffer"), 1);
         algorithmSelector.addItem(LOC("systemConfig.algorithms.outputBuffer"), 2);
-        // algorithmSelector.addItem("GPU InputBuffer (GPU Audio)", 3);  // Commented out - GPU Audio SDK not configured
+#if WFS_GPU_NATIVE
+        algorithmSelector.addItem(LOC("systemConfig.algorithms.nativeGpu"), 3);
+#endif
         algorithmSelector.setSelectedId(1, juce::dontSendNotification);
         algorithmSelector.onChange = [this]() {
             int selectedId = algorithmSelector.getSelectedId();
@@ -2212,7 +2214,11 @@ private:
 
         // Algorithm selector
         int algorithmId = (int)parameters.getConfigParam("ProcessingAlgorithm");
+#if WFS_GPU_NATIVE
+        if (algorithmId >= 1 && algorithmId <= 3)
+#else
         if (algorithmId >= 1 && algorithmId <= 2)  // Valid range for current algorithms
+#endif
             algorithmSelector.setSelectedId(algorithmId, juce::dontSendNotification);
 
         // Color scheme selector - update UI and apply the theme

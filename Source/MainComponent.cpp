@@ -176,8 +176,10 @@ MainComponent::MainComponent()
         currentAlgorithm = ProcessingAlgorithm::InputBuffer;
     else if (algorithmId == 2)
         currentAlgorithm = ProcessingAlgorithm::OutputBuffer;
-    // else if (algorithmId == 3)
-    //     currentAlgorithm = ProcessingAlgorithm::GpuInputBuffer;
+#if WFS_GPU_NATIVE
+    else if (algorithmId == 3)
+        currentAlgorithm = ProcessingAlgorithm::NativeGpuWfs;
+#endif
 
     /* Algorithm change handler - no longer needed as UI is in SystemConfigTab
     auto algorithmChangeHandler = [this]() {
@@ -2612,6 +2614,13 @@ void MainComponent::stopProcessingForConfigurationChange()
         outputAlgorithm.releaseResources();
         outputAlgorithm.clear();
     }
+#if WFS_GPU_NATIVE
+    else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs)
+    {
+        nativeGpuAlgorithm.releaseResources();
+        nativeGpuAlgorithm.clear();
+    }
+#endif
     // else  // Commented out - GPU Audio SDK not configured
     // {
     //     gpuInputAlgorithm.releaseResources();
@@ -2932,6 +2941,12 @@ void MainComponent::handleProcessingChange(bool enabled)
         {
             outputAlgorithm.setProcessingEnabled(true);
         }
+#if WFS_GPU_NATIVE
+        else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs)
+        {
+            nativeGpuAlgorithm.setProcessingEnabled(true);
+        }
+#endif
     }
     else
     {
@@ -2944,6 +2959,12 @@ void MainComponent::handleProcessingChange(bool enabled)
         {
             outputAlgorithm.setProcessingEnabled(processingEnabled);
         }
+#if WFS_GPU_NATIVE
+        else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs)
+        {
+            nativeGpuAlgorithm.setProcessingEnabled(processingEnabled);
+        }
+#endif
 
         // Stop reverb engine thread to save CPU
         if (reverbEngine)
@@ -4207,9 +4228,19 @@ void MainComponent::startAudioEngine()
         " numOutputChannels=" + juce::String(numOutputChannels) +
         " sampleRate=" + juce::String(sampleRate) + " blockSize=" + juce::String(blockSize));
 
+    // Pick up an algorithm change made while processing was stopped
+    {
+        int algoId = (int) parameters.getConfigParam("ProcessingAlgorithm");
+        if (algoId == 1) currentAlgorithm = ProcessingAlgorithm::InputBuffer;
+        else if (algoId == 2) currentAlgorithm = ProcessingAlgorithm::OutputBuffer;
+#if WFS_GPU_NATIVE
+        else if (algoId == 3) currentAlgorithm = ProcessingAlgorithm::NativeGpuWfs;
+#endif
+    }
+
     bool prepared = false;
     DBG("startAudioEngine: algorithm=" + juce::String(currentAlgorithm == ProcessingAlgorithm::InputBuffer ? "InputBuffer" :
-        currentAlgorithm == ProcessingAlgorithm::OutputBuffer ? "OutputBuffer" : "GpuInputBuffer"));
+        currentAlgorithm == ProcessingAlgorithm::OutputBuffer ? "OutputBuffer" : "NativeGpuWfs"));
 
     if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
     {
@@ -4235,13 +4266,50 @@ void MainComponent::startAudioEngine()
                                frHFAttenuation.data());
         prepared = true;
     }
-    // else // ProcessingAlgorithm::GpuInputBuffer
-    // {
-    //     prepared = gpuInputAlgorithm.prepare(numInputChannels, numOutputChannels,
-    //                                          sampleRate, blockSize,
-    //                                          delayTimesMs.data(), levels.data(),
-    //                                          processingEnabled);
-    // }
+#if WFS_GPU_NATIVE
+    else // ProcessingAlgorithm::NativeGpuWfs
+    {
+        prepared = nativeGpuAlgorithm.prepare(numInputChannels, numOutputChannels,
+                                              sampleRate, blockSize,
+                                              delayTimesMs.data(), levels.data(),
+                                              processingEnabled);
+        if (!prepared)
+        {
+            // Metal init failed: log, inform, fall back to the CPU InputBuffer.
+            auto errorMsg = nativeGpuAlgorithm.getLastError();
+            WFSLogger::getInstance().logWarning ("Native GPU init failed: " + errorMsg
+                                                 + " - falling back to CPU InputBuffer");
+            juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::WarningIcon,
+                "GPU (Metal)",
+                "GPU initialization failed:\n" + errorMsg
+                + "\n\nFalling back to the CPU InputBuffer algorithm.");
+            nativeGpuAlgorithm.clear();
+
+            currentAlgorithm = ProcessingAlgorithm::InputBuffer;
+            parameters.setConfigParam("ProcessingAlgorithm", 1);
+
+            inputAlgorithm.prepare(numInputChannels, numOutputChannels,
+                                   sampleRate, blockSize,
+                                   delayTimesMs.data(), levels.data(),
+                                   processingEnabled,
+                                   hfAttenuation.data(),
+                                   frDelayTimesMs.data(),
+                                   frLevels.data(),
+                                   frHFAttenuation.data());
+            prepared = true;
+        }
+        else
+        {
+            WFSLogger::getInstance().logInfo ("Native Metal WFS active: "
+                + juce::String (numInputChannels) + " in x "
+                + juce::String (numOutputChannels) + " out on "
+                + nativeGpuAlgorithm.getDeviceName()
+                + ", async pipeline depth " + juce::String (nativeGpuAlgorithm.getPipelineDepthBlocks())
+                + " = +" + juce::String (nativeGpuAlgorithm.getPipelineLatencyMs(), 2)
+                + " ms, pre-subtracted from WFS delays");
+        }
+    }
+#endif
 
     audioEngineStarted = prepared;
     if (!audioEngineStarted && processingEnabled)
@@ -4287,6 +4355,16 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
         {
             outputAlgorithm.reprepare(sampleRate, samplesPerBlockExpected, processingEnabled);
         }
+#if WFS_GPU_NATIVE
+        else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs)
+        {
+            // Device/buffer change: full re-prepare (backend is sized per block)
+            nativeGpuAlgorithm.prepare(numInputChannels, numOutputChannels,
+                                       sampleRate, samplesPerBlockExpected,
+                                       delayTimesMs.data(), levels.data(),
+                                       processingEnabled);
+        }
+#endif
         // else // GPU InputBuffer
         // {
         //     // Safely tear down GPU processing on device/sample-rate changes.
@@ -4550,10 +4628,12 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         {
             outputAlgorithm.processBlock(wfsOut, patchedInputBuffer, numInputChannels, numOutputChannels);
         }
-        // else // ProcessingAlgorithm::GpuInputBuffer
-        // {
-        //     gpuInputAlgorithm.processBlock(wfsOut, patchedInputBuffer, numInputChannels, numOutputChannels);
-        // }
+#if WFS_GPU_NATIVE
+        else // ProcessingAlgorithm::NativeGpuWfs
+        {
+            nativeGpuAlgorithm.processBlock(wfsOut, patchedInputBuffer, numInputChannels, numOutputChannels);
+        }
+#endif
 
         // Mix reverb returns into WFS output (after WFS processing wrote speaker data)
         if (numReverbs > 0 && reverbEngine && calculationEngine)
@@ -4788,10 +4868,12 @@ void MainComponent::releaseResources()
     {
         outputAlgorithm.releaseResources();
     }
-    // else  // Commented out - GPU Audio SDK not configured
-    // {
-    //     gpuInputAlgorithm.releaseResources();
-    // }
+#if WFS_GPU_NATIVE
+    else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs)
+    {
+        nativeGpuAlgorithm.releaseResources();
+    }
+#endif
 
     // Stop reverb feed thread
     if (reverbFeedThread)

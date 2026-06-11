@@ -92,6 +92,7 @@
 		E8BC3989FD19A883018F7871 /* MCPLogger.cpp */ = {isa = PBXBuildFile; fileRef = A93789C1D857587E49D12A34; };
 		EA1A91E0A0A0DA71943752AF /* include_juce_gui_basics_4.cpp */ = {isa = PBXBuildFile; fileRef = 7199DB67785B6EC37029964D; };
 		EB33DD2DA1BA1C4A844E5CC5 /* WindowUtils.mm */ = {isa = PBXBuildFile; fileRef = 8E86F24313EE0226A744A907; };
+		ABCD0001ABCD0001ABCD0001 /* MetalWfsBackend.mm */ = {isa = PBXBuildFile; fileRef = ABCD0002ABCD0002ABCD0002; };
 		ED8922B2E38DC02657CAD811 /* RTTrPDecoder.cpp */ = {isa = PBXBuildFile; fileRef = 7CC2840AD0983A4EADE1F6C9; };
 		EE735A95CBAA3D9711DD5363 /* MCPResourceRegistry.cpp */ = {isa = PBXBuildFile; fileRef = 3D6EAE96E42BB58B8349D561; };
 		F3E9874CAF23860578708A33 /* include_juce_audio_basics.mm */ = {isa = PBXBuildFile; fileRef = EF8F5550038C576E96ECCBC3; };
@@ -253,6 +254,7 @@
 		8C11E7326375A886C71FF31C /* MetalKit.framework */ /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		8D2BC8E06DACE9A3B7A0E535 /* PatchMatrixComponent.cpp */ /* PatchMatrixComponent.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = PatchMatrixComponent.cpp; path = ../../Source/gui/PatchMatrixComponent.cpp; sourceTree = SOURCE_ROOT; };
 		8E86F24313EE0226A744A907 /* WindowUtils.mm */ /* WindowUtils.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = WindowUtils.mm; path = ../../Source/gui/WindowUtils.mm; sourceTree = SOURCE_ROOT; };
+		ABCD0002ABCD0002ABCD0002 /* MetalWfsBackend.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = MetalWfsBackend.mm; path = ../../Source/DSP/gpu/MetalWfsBackend.mm; sourceTree = SOURCE_ROOT; };
 		8EC85A16D71B1EE81FFA31F9 /* juce_data_structures */ /* juce_data_structures */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_data_structures; path = ../../ThirdParty/JUCE/modules/juce_data_structures; sourceTree = SOURCE_ROOT; };
 		914270FD5178BDC567FC612C /* ControllerEvent.h */ /* ControllerEvent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ControllerEvent.h; path = ../../Source/Controllers/PositionControl/ControllerEvent.h; sourceTree = SOURCE_ROOT; };
 		93358D08FACEF28C4AEA139F /* OutputArrayHelperWindow.h */ /* OutputArrayHelperWindow.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OutputArrayHelperWindow.h; path = ../../Source/gui/OutputArrayHelperWindow.h; sourceTree = SOURCE_ROOT; };
@@ -945,6 +947,7 @@
 				0536FD9C7D3537A9344A5DF2,
 				2D18719EE35291280C362AFE,
 				EB33DD2DA1BA1C4A844E5CC5,
+				ABCD0001ABCD0001ABCD0001,
 				6D466036C8564D03292643E5,
 				766E9286416AB14B5BDC7FD4,
 				D9184EC1A9127109C87CC204,
@@ -1117,6 +1120,7 @@
 					"JUCE_STRICT_REFCOUNTEDPOINTER=1",
 					"JUCE_STANDALONE_APPLICATION=1",
 					"SIMPLEWEB_SECURE_SUPPORTED=0",
+					"WFS_GPU_NATIVE=1",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
 					"JUCE_APP_VERSION=1.0.0beta22",
 					"JUCE_APP_VERSION_HEX=0x10000",
@@ -1150,7 +1154,7 @@
 				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../ThirdParty/JUCE/modules $(SRCROOT)/../../ThirdParty $(SRCROOT)/../../ThirdParty/hidapi $(SRCROOT)/../../ThirdParty/hidapi/hidapi";
 				OTHER_CFLAGS = "$(inherited)";
 				OTHER_CPLUSPLUSFLAGS = "$(inherited)";
-				OTHER_LDFLAGS = "$(inherited) -lssl -lcrypto -lz -framework SystemConfiguration -framework CoreFoundation -framework IOKit";
+				OTHER_LDFLAGS = "$(inherited) -lssl -lcrypto -lz -framework SystemConfiguration -framework CoreFoundation -framework IOKit -framework Metal";
 				PRODUCT_BUNDLE_IDENTIFIER = com.wfsdiy.app;
 				PRODUCT_NAME = "WFS-DIY";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1206,6 +1210,7 @@
 					"JUCE_STRICT_REFCOUNTEDPOINTER=1",
 					"JUCE_STANDALONE_APPLICATION=1",
 					"SIMPLEWEB_SECURE_SUPPORTED=0",
+					"WFS_GPU_NATIVE=1",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
 					"JUCE_APP_VERSION=1.0.0beta22",
 					"JUCE_APP_VERSION_HEX=0x10000",
@@ -1240,7 +1245,7 @@
 				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../ThirdParty/JUCE/modules $(SRCROOT)/../../ThirdParty $(SRCROOT)/../../ThirdParty/hidapi $(SRCROOT)/../../ThirdParty/hidapi/hidapi";
 				OTHER_CFLAGS = "$(inherited)";
 				OTHER_CPLUSPLUSFLAGS = "$(inherited)";
-				OTHER_LDFLAGS = "$(inherited) -lssl -lcrypto -lz -framework SystemConfiguration -framework CoreFoundation -framework IOKit";
+				OTHER_LDFLAGS = "$(inherited) -lssl -lcrypto -lz -framework SystemConfiguration -framework CoreFoundation -framework IOKit -framework Metal";
 				PRODUCT_BUNDLE_IDENTIFIER = com.wfsdiy.app;
 				PRODUCT_NAME = "WFS-DIY";
 				PROVISIONING_PROFILE_SPECIFIER = "";

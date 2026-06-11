@@ -3,6 +3,9 @@
 #include <JuceHeader.h>
 #include <map>
 #include "DSP/InputBufferAlgorithm.h"
+#if WFS_GPU_NATIVE
+#include "DSP/gpu/NativeGpuWfsAlgorithm.h"
+#endif
 #include "DSP/OutputBufferAlgorithm.h"
 #include "DSP/WFSCalculationEngine.h"
 #include "DSP/LFOProcessor.h"
@@ -213,7 +216,9 @@ private:
     {
         InputBuffer,   // Read-time delays (current/original approach)
         OutputBuffer   // Write-time delays (alternative approach)
-        // GpuInputBuffer // GPU Audio-backed input-buffer variant (commented out - GPU Audio SDK not configured)
+#if WFS_GPU_NATIVE
+        , NativeGpuWfs // Native Metal WFS delay-and-sum (no SDK)
+#endif
     };
 
     ProcessingAlgorithm currentAlgorithm = ProcessingAlgorithm::InputBuffer;
@@ -224,6 +229,9 @@ private:
     AudioWorkgroupCoordinator workgroupCoordinator;
     InputBufferAlgorithm inputAlgorithm;
     OutputBufferAlgorithm outputAlgorithm;
+#if WFS_GPU_NATIVE
+    NativeGpuWfsAlgorithm nativeGpuAlgorithm;
+#endif
     // GpuInputBufferAlgorithm gpuInputAlgorithm;  // Commented out - GPU Audio SDK not configured
     bool audioCallbacksAttached = false;
     bool processingEnabled = false;

@@ -363,6 +363,16 @@
               file="Source/DSP/OutputBufferAlgorithm.h"/>
         <FILE id="gpuAlgH" name="GpuInputBufferAlgorithm.h" compile="0" resource="0"
               file="Source/DSP/GpuInputBufferAlgorithm.h"/>
+        <FILE id="ngpuPipe" name="GpuAsyncPipeline.h" compile="0" resource="0"
+              file="Source/DSP/gpu/GpuAsyncPipeline.h"/>
+        <FILE id="ngpuAlgo" name="NativeGpuWfsAlgorithm.h" compile="0" resource="0"
+              file="Source/DSP/gpu/NativeGpuWfsAlgorithm.h"/>
+        <FILE id="ngpuBakH" name="MetalWfsBackend.h" compile="0" resource="0"
+              file="Source/DSP/gpu/MetalWfsBackend.h"/>
+        <FILE id="ngpuBakM" name="MetalWfsBackend.mm" compile="1" resource="0"
+              file="Source/DSP/gpu/MetalWfsBackend.mm"/>
+        <FILE id="ngpuKrnl" name="MetalWfsKernels.h" compile="0" resource="0"
+              file="Source/DSP/gpu/MetalWfsKernels.h"/>
         <FILE id="gpuAlg" name="GpuInputBufferAlgorithm.cpp" compile="0" resource="0"
               file="Source/DSP/GpuInputBufferAlgorithm.cpp"/>
         <FILE id="gpuShimH" name="InputBufferAlgorithmGPU.h" compile="0" resource="0"
@@ -472,12 +482,12 @@
                postbuildCommand="mkdir -p &quot;${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/lang&quot;&#10;cp -R &quot;${SRCROOT}/../../Resources/lang/&quot; &quot;${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/lang/&quot;&#10;echo &quot;Copied localisation files to bundle&quot;"
                smallIcon="SCj321" bigIcon="SCj321">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY" extraLinkerFlags="-framework SystemConfiguration -framework CoreFoundation -framework IOKit"
+        <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY" extraLinkerFlags="-framework SystemConfiguration -framework CoreFoundation -framework IOKit -framework Metal"
                        headerPath="../../ThirdParty/hidapi;../../ThirdParty/hidapi/hidapi"
-                       defines="SIMPLEWEB_SECURE_SUPPORTED=0"/>
-        <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" extraLinkerFlags="-framework SystemConfiguration -framework CoreFoundation -framework IOKit"
+                       defines="SIMPLEWEB_SECURE_SUPPORTED=0&#10;WFS_GPU_NATIVE=1"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" extraLinkerFlags="-framework SystemConfiguration -framework CoreFoundation -framework IOKit -framework Metal"
                        headerPath="../../ThirdParty/hidapi;../../ThirdParty/hidapi/hidapi"
-                       defines="SIMPLEWEB_SECURE_SUPPORTED=0"/>
+                       defines="SIMPLEWEB_SECURE_SUPPORTED=0&#10;WFS_GPU_NATIVE=1"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="ThirdParty/JUCE/modules"/>
