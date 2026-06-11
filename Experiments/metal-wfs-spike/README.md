@@ -1,7 +1,7 @@
 # Native Metal WFS kernel spike
 
 Headless prototype proving the WFS delay-and-sum routing kernel on **raw Metal**
-(no GPU Audio SDK): correctness against a CPU reference + dispatch-latency and
+(no vendor SDK): correctness against a CPU reference + dispatch-latency and
 scaling benchmarks. First step of the native GPU backend (`gpu-native` branch).
 
 - `wfs_delay_sum.metal` — MSL port of the delay-and-sum kernel (gather block per
@@ -34,9 +34,9 @@ Three execution modes:
   measure by running ./spike during active desktop use.
 - **pipelined**: commit without waiting, depth 4 (the GpuAsyncPipeline model).
 
-## Comparison vs the GPU Audio SDK path (same machine, same day, gpu-audio-v2)
+## Comparison vs the earlier vendor-SDK prototype (same machine, same day)
 
-| Metric | GPU Audio SDK | Raw Metal (this spike) |
+| Metric | Vendor SDK | Raw Metal (this spike) |
 |---|---|---|
 | Sync dispatch floor, quiet desktop | 0.8–1.2 ms | **0.13–0.17 ms** (~7×) |
 | Pipelined submit round-trip | 0.02–0.2 ms | **0.007–0.022 ms** |
@@ -53,7 +53,7 @@ Notes:
 
 ## Next steps on this branch
 1. `MetalComputeBackend` for GpuAsyncPipeline (port the pipeline class from
-   gpu-audio-v2 — it is SDK-agnostic except the inner Execute/Retrieve calls).
+   the SDK prototype — it is SDK-agnostic except the inner Execute/Retrieve calls).
 2. Triple-buffered params/matrix upload (rotating buffers; this spike reuses one
    set, fine for benchmarking, not for overlapped launches with changing matrices).
 3. Partitioned-convolution kernel for IR reverb (FFT: MPSGraph or hand-rolled

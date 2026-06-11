@@ -3,9 +3,9 @@
 
 /*
     GpuAsyncPipeline — deadline isolation for GPU audio processing.
-    Native edition: backend-agnostic port of the design proven on the
-    GPU Audio SDK branch (same architecture, simpler internals — the pump
-    drives a synchronous backend call; no executor machinery).
+    Native edition: backend-agnostic port of the design proven in the
+    earlier vendor-SDK prototype (same architecture, simpler internals —
+    the pump drives a synchronous backend call; no executor machinery).
 
         audio thread:  pushInput(block) ──► in-rings        out-rings ──► popOutput(block)
                                                │                ▲
@@ -21,7 +21,7 @@
     Field data behind the design (measured on this machine, 2026-06-11):
     desktop-compositor transients stall GPU dispatch by 3-5 ms regardless of
     API; the native Metal launch floor is 0.13-0.17 ms, so the same cushion
-    is ~7x more robust here than it was on the SDK.
+    is ~7x more robust here than in the vendor-SDK prototype.
 */
 
 #include <JuceHeader.h>

@@ -123,9 +123,7 @@
 		115C92726FC6EAC82D859DF6 /* GradientMapEvaluator.h */ /* GradientMapEvaluator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GradientMapEvaluator.h; path = ../../Source/GradientMap/GradientMapEvaluator.h; sourceTree = SOURCE_ROOT; };
 		11DA25FE53363679529C4A42 /* ArrayGeometryCalculator.h */ /* ArrayGeometryCalculator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ArrayGeometryCalculator.h; path = ../../Source/Helpers/ArrayGeometryCalculator.h; sourceTree = SOURCE_ROOT; };
 		121398B0860404537150E40A /* MCPUndoEngine.cpp */ /* MCPUndoEngine.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPUndoEngine.cpp; path = ../../Source/Network/MCP/MCPUndoEngine.cpp; sourceTree = SOURCE_ROOT; };
-		12146791FE10C68B72D72F39 /* InputBufferAlgorithmGPU.cpp */ /* InputBufferAlgorithmGPU.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = InputBufferAlgorithmGPU.cpp; path = ../../Source/DSP/InputBufferAlgorithmGPU.cpp; sourceTree = SOURCE_ROOT; };
 		141DFB14179D8C4EA0A6FF2D /* MapTabWindow.h */ /* MapTabWindow.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MapTabWindow.h; path = ../../Source/gui/MapTabWindow.h; sourceTree = SOURCE_ROOT; };
-		143DF3EE177D85E1D8E1F58A /* InputBufferAlgorithmGPU.h */ /* InputBufferAlgorithmGPU.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = InputBufferAlgorithmGPU.h; path = ../../Source/DSP/InputBufferAlgorithmGPU.h; sourceTree = SOURCE_ROOT; };
 		16A918666FE95AAB720D7269 /* TestSignalGenerator.h */ /* TestSignalGenerator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TestSignalGenerator.h; path = ../../Source/DSP/TestSignalGenerator.h; sourceTree = SOURCE_ROOT; };
 		175E5DD50F0E71570D6F1B65 /* OSCReceiverWithSenderIP.h */ /* OSCReceiverWithSenderIP.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCReceiverWithSenderIP.h; path = ../../Source/Network/OSCReceiverWithSenderIP.h; sourceTree = SOURCE_ROOT; };
 		17E6F7C65A2FCF32BBDBF077 /* StreamDeckPage.h */ /* StreamDeckPage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StreamDeckPage.h; path = ../../Source/Controllers/DialsAndButtons/StreamDeckPage.h; sourceTree = SOURCE_ROOT; };
@@ -179,7 +177,6 @@
 		496A4AFADE7E2E14B6D013E2 /* CoreAudio.framework */ /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
 		49B4DD71B5401B3D22E619EE /* SystemConfigTabPages.h */ /* SystemConfigTabPages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SystemConfigTabPages.h; path = ../../Source/Controllers/DialsAndButtons/pages/SystemConfigTabPages.h; sourceTree = SOURCE_ROOT; };
 		4B6061E2662DD31DD344DA07 /* MCPServer.cpp */ /* MCPServer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPServer.cpp; path = ../../Source/Network/MCP/MCPServer.cpp; sourceTree = SOURCE_ROOT; };
-		4B817C847A7AC2CDC244E66C /* GpuInputBufferAlgorithm.h */ /* GpuInputBufferAlgorithm.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GpuInputBufferAlgorithm.h; path = ../../Source/DSP/GpuInputBufferAlgorithm.h; sourceTree = SOURCE_ROOT; };
 		4B82B2906A2C2E9E9FA0335A /* TouchManagerStub.h */ /* TouchManagerStub.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TouchManagerStub.h; path = ../../Source/Controllers/Touch/TouchManagerStub.h; sourceTree = SOURCE_ROOT; };
 		4C334641BCD17BEF2B52C9EF /* MCPGeneratedToolLoader.cpp */ /* MCPGeneratedToolLoader.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPGeneratedToolLoader.cpp; path = ../../Source/Network/MCP/MCPGeneratedToolLoader.cpp; sourceTree = SOURCE_ROOT; };
 		4E47CBDA2F72471CB13EF459 /* MCPOSCQueryAuditor.cpp */ /* MCPOSCQueryAuditor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPOSCQueryAuditor.cpp; path = ../../Source/Network/MCP/MCPOSCQueryAuditor.cpp; sourceTree = SOURCE_ROOT; };
@@ -327,7 +324,6 @@
 		DE14BD20BA58B9D03EEBABCE /* OSCQueryServer.cpp */ /* OSCQueryServer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCQueryServer.cpp; path = ../../Source/Network/OSCQueryServer.cpp; sourceTree = SOURCE_ROOT; };
 		DE9E3D8B6DEF25E07D893DBA /* OSCParser.h */ /* OSCParser.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCParser.h; path = ../../Source/Network/OSCParser.h; sourceTree = SOURCE_ROOT; };
 		E0ED792E850ECE52872FBCAD /* ReverbAutoLayoutTool.h */ /* ReverbAutoLayoutTool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ReverbAutoLayoutTool.h; path = ../../Source/Network/MCP/tools/ReverbAutoLayoutTool.h; sourceTree = SOURCE_ROOT; };
-		E1C464405F00329FAEECC082 /* GpuInputBufferAlgorithm.cpp */ /* GpuInputBufferAlgorithm.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = GpuInputBufferAlgorithm.cpp; path = ../../Source/DSP/GpuInputBufferAlgorithm.cpp; sourceTree = SOURCE_ROOT; };
 		E1C619E4C45F73A1C1F29851 /* include_juce_gui_basics_2.cpp */ /* include_juce_gui_basics_2.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_gui_basics_2.cpp; path = ../../JuceLibraryCode/include_juce_gui_basics_2.cpp; sourceTree = SOURCE_ROOT; };
 		E3BBC26EC616B8996F69FB3E /* StateDeltaTool.h */ /* StateDeltaTool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StateDeltaTool.h; path = ../../Source/Network/MCP/tools/StateDeltaTool.h; sourceTree = SOURCE_ROOT; };
 		E4A0CD4099891D58FE76630E /* QuickKeysManager.h */ /* QuickKeysManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = QuickKeysManager.h; path = ../../Source/Controllers/DialsAndButtons/QuickKeysManager.h; sourceTree = SOURCE_ROOT; };
@@ -709,10 +705,6 @@
 				C67F91CF1D3B324EB43469E0,
 				2CB2F36332CB658A8BCDB47B,
 				7AC565B6A53D12F58CA362A1,
-				4B817C847A7AC2CDC244E66C,
-				E1C464405F00329FAEECC082,
-				143DF3EE177D85E1D8E1F58A,
-				12146791FE10C68B72D72F39,
 				16A918666FE95AAB720D7269,
 				63B19585FA472659C2B6305D,
 				388303C536A2A156D54D0EDD,

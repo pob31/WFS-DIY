@@ -2,7 +2,7 @@
 # WFS-DIY project bootstrap — run once after cloning.
 #
 # Collapses post-clone setup into a single idempotent command:
-#   1. Initialise / update all git submodules (JUCE, GPUAudioSDK, ...).
+#   1. Initialise / update all git submodules (JUCE, ...).
 #   2. On Linux, apply the JUCE multitouch patch so touch works in local
 #      builds (see tools/apply-linux-juce-patches.sh). The patch only edits
 #      juce_Windowing_linux.cpp, so it is skipped on macOS/Windows.

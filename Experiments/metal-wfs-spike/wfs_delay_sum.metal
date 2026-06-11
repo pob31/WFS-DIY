@@ -1,9 +1,9 @@
 //
 // WFS delay-and-sum routing kernel - native Metal Shading Language port.
 //
-// Direct port of the wfs_input_buffer GPU Audio kernel's logic
-// (Processors/wfs_input_buffer_processor/src/cuda/WfsInputProcessor.cuh),
-// written against raw Metal instead of the GPU Audio SDK abstraction.
+// Direct port of the WFS delay-and-sum kernel logic from the earlier
+// vendor-SDK prototype, written against raw Metal instead of the SDK
+// abstraction.
 // Same architecture:
 //   - threadgroup id <  numOutputs : gather block for that output channel
 //   - threadgroup id >= numOutputs : ring-append block for input (id - numOutputs)

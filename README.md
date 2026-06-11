@@ -103,19 +103,14 @@ tools/linux/build-app-tarball.sh
 ```
 Produces `Builds/LinuxMakefile/release/WFS-DIY-Linux-x86_64-<version>.tar.gz` containing the binary, runtime data, udev rules, and `install.sh` / `uninstall.sh` scripts that support both per-user (`~/.local`) and system (`/opt/wfs-diy`) installs.
 
-### GPU Audio (experimental)
+### GPU acceleration (experimental, macOS)
 
-WFS-DIY includes experimental support for GPU-accelerated audio processing using the GPU-Audio SDK. The SDK is integrated as a Git submodule at `ThirdParty/GPUAudioSDK`.
-
-**For detailed setup instructions, see [GPU-Audio SDK Setup Guide](Documentation/GPU_AUDIO_SDK_SETUP.md)**
-
-Quick start:
-1. Initialize the submodule: `git submodule update --init --recursive`
-2. Build the SDK following the setup guide
-3. Set environment variables: `GPUAUDIO_PATH` and `GPUAUDIO_PROCESSOR_PATH`
-4. In the app, choose `GPU InputBuffer (GPU Audio)` and enable processing
-
-**Note**: The GPU Audio feature requires the [GPU Audio Platform](https://www.gpu.audio/sdk-binaries) to be installed separately.
+macOS builds include an experimental GPU-accelerated WFS algorithm written directly
+in Metal (no third-party SDK, no extra setup): choose `GPU InputBuffer (Metal)` in
+System Config. It runs the delay-and-sum stage on the GPU behind an asynchronous
+pipeline that adds a small fixed latency (pre-subtracted from the WFS delays). The
+CPU path remains the reference implementation; a CUDA equivalent for Windows is
+planned.
 
 ## Running the Application
 

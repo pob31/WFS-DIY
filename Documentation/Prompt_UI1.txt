@@ -3,7 +3,7 @@ Project Context:
 
 JUCE-based application targeting Windows (VS2022), macOS, and Linux
 Professional audio application with up to 64 inputs/64 outputs at 96kHz
-Uses GPU Audio framework for DSP acceleration
+Uses GPU acceleration for DSP (native kernels)
 Requires OSC communication for remote control
 
 Config Tab Requirements:

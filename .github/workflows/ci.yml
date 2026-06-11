@@ -5,8 +5,8 @@ name: CI
 # release.yml's job.
 #
 # Speed: compile caching is where the time is saved — macOS reuses Xcode
-# DerivedData (incremental, no `clean`), Linux uses ccache. JUCE/GPUAudioSDK are
-# pulled by checkout (submodules: recursive); we don't cache the submodule
+# DerivedData (incremental, no `clean`), Linux uses ccache. JUCE is pulled
+# by checkout (submodules: recursive); we don't cache the submodule
 # working trees (it confused checkout's post-cleanup, and restoring ~1 GB ≈
 # re-cloning anyway).
 

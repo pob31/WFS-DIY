@@ -20,7 +20,6 @@
 #include "DSP/OutputEQProcessor.h"
 #include "DSP/SharedInputRingBuffer.h"
 #include "DSP/AudioWorkgroupCoordinator.h"
-// #include "DSP/GpuInputBufferAlgorithm.h"  // Commented out - GPU Audio SDK not configured
 #include "WfsParameters.h"
 #include "gui/HelpCard.h"
 #include "Accessibility/TTSManager.h"
@@ -232,7 +231,6 @@ private:
 #if WFS_GPU_NATIVE
     NativeGpuWfsAlgorithm nativeGpuAlgorithm;
 #endif
-    // GpuInputBufferAlgorithm gpuInputAlgorithm;  // Commented out - GPU Audio SDK not configured
     bool audioCallbacksAttached = false;
     bool processingEnabled = false;
     std::atomic<bool> audioEngineStarted { false };

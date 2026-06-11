@@ -1075,12 +1075,6 @@
     <ClCompile Include="..\..\Source\DSP\WFSCalculationEngine.cpp">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\DSP\GpuInputBufferAlgorithm.cpp">
-      <Filter>WFS-DIY\Source\DSP</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Source\DSP\InputBufferAlgorithmGPU.cpp">
-      <Filter>WFS-DIY\Source\DSP</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\Source\DSP\TestSignalGenerator.cpp">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClCompile>
@@ -4678,12 +4672,6 @@
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\DSP\OutputBufferAlgorithm.h">
-      <Filter>WFS-DIY\Source\DSP</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\DSP\GpuInputBufferAlgorithm.h">
-      <Filter>WFS-DIY\Source\DSP</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\DSP\InputBufferAlgorithmGPU.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\DSP\TestSignalGenerator.h">

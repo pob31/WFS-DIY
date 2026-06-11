@@ -189,8 +189,6 @@ MainComponent::MainComponent()
             newAlgorithm = ProcessingAlgorithm::InputBuffer;
         else if (selectedId == 2)
             newAlgorithm = ProcessingAlgorithm::OutputBuffer;
-        // else if (selectedId == 3)
-        //     newAlgorithm = ProcessingAlgorithm::GpuInputBuffer;
 
         // Only act if algorithm actually changed
         if (newAlgorithm != currentAlgorithm)
@@ -213,11 +211,6 @@ MainComponent::MainComponent()
                     outputAlgorithm.releaseResources();
                     outputAlgorithm.clear();
                 }
-                // else  // Commented out - GPU Audio SDK not configured
-                // {
-                //     gpuInputAlgorithm.releaseResources();
-                //     gpuInputAlgorithm.clear();
-                // }
 
                 // Mark engine as not started (processors cleared)
                 audioEngineStarted = false;
@@ -2433,7 +2426,6 @@ MainComponent::~MainComponent()
     // Now safe to destroy processor objects
     inputAlgorithm.clear();
     outputAlgorithm.clear();
-    // gpuInputAlgorithm.clear();  // Commented out - GPU Audio SDK not configured
 }
 
 //==============================================================================
@@ -2621,11 +2613,6 @@ void MainComponent::stopProcessingForConfigurationChange()
         nativeGpuAlgorithm.clear();
     }
 #endif
-    // else  // Commented out - GPU Audio SDK not configured
-    // {
-    //     gpuInputAlgorithm.releaseResources();
-    //     gpuInputAlgorithm.clear();
-    // }
 
     // Clear shared buffer references from consumers before destroying buffers
     if (binauralProcessor)
@@ -4365,17 +4352,6 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
                                        processingEnabled);
         }
 #endif
-        // else // GPU InputBuffer
-        // {
-        //     // Safely tear down GPU processing on device/sample-rate changes.
-        //     // User can re-enable processing after the device change completes.
-        //     gpuInputAlgorithm.releaseResources();
-        //     gpuInputAlgorithm.clear();
-        //     audioEngineStarted = false;
-        //     processingEnabled = false;
-        //     processingToggle.setToggleState(false, juce::dontSendNotification);
-        //     DBG("GPU Audio: Disabled GPU path due to device/sample-rate change. Re-enable processing to reinit.");
-        // }
     }
 
     // Prepare test signal generator

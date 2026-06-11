@@ -5,7 +5,7 @@
 //   1. CORRECTNESS: bit-near agreement with a CPU reference of the same math
 //      across multiple streaming iterations (rings, ramps, history).
 //   2. LATENCY: per-dispatch round-trip (commit + waitUntilCompleted) -
-//      directly comparable to the GPU Audio SDK's in-callback sync Execute
+//      directly comparable to the vendor SDK's in-callback sync Execute
 //      (measured floor 0.8-1.2 ms on this machine).
 //   3. PIPELINED THROUGHPUT: commit-without-wait at depth D - comparable to
 //      the GpuAsyncPipeline pump round-trip (measured 0.02-0.2 ms).

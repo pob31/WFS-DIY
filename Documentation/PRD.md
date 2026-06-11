@@ -139,7 +139,7 @@ The WFS-DIY project is a JUCE-based implementation of Wave Field Synthesis (WFS)
 
 ### Phase 4: Multi-Backend Architecture
 - CPU optimization (AVX2/AVX512 backends)
-- GPU-Audio SDK integration
+- Native GPU backend integration (Metal on macOS, CUDA on Windows)
 - Intelligent processing routing
 - Performance optimization
 
@@ -162,7 +162,7 @@ The WFS-DIY project is a JUCE-based implementation of Wave Field Synthesis (WFS)
 
 ### 6.2 Mitigation Strategies
 - **Hybrid Processing Architecture**: CPU for ultra-low latency live processing, GPU for high-latency effects
-- **Multiple Backend Architecture**: Implement CPU scalar, AVX2/AVX512, and GPU-Audio SDK backends
+- **Multiple Backend Architecture**: Implement CPU scalar, AVX2/AVX512, and native GPU (Metal/CUDA) backends
 - **Intelligent Workload Distribution**: Route processing based on latency requirements
 - **Runtime Backend Selection**: Allow automatic detection and manual selection of optimal backend
 - **Performance Profiling**: Continuous monitoring of processing load and latency
@@ -200,7 +200,7 @@ The WFS-DIY project will implement a **hybrid processing architecture** that int
 - **Complex audio analysis** and visualization
 
 **Backend Options**:
-- GPU-Audio SDK (primary)
+- Native GPU kernels (Metal on macOS, CUDA on Windows)
 - CPU fallback (if GPU unavailable)
 
 ### 7.2 Intelligent Routing Strategy
