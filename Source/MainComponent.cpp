@@ -306,6 +306,12 @@ MainComponent::MainComponent()
         handleAlgorithmSelectionChange(selectedId);
     });
 
+#if WFS_GPU_NATIVE
+    systemConfigTab->setGpuDepthChangedCallback([this](int depthBlocks) {
+        handleGpuDepthChange(depthBlocks);
+    });
+#endif
+
     // Solo/Mute/EditOnMap callbacks set later (after shared state created for StreamDeck sync)
 
     systemConfigTab->setAudioInterfaceCallback([this]() {
@@ -3147,6 +3153,30 @@ void MainComponent::handleAlgorithmSelectionChange(int selectedId)
     }
 }
 
+void MainComponent::handleGpuDepthChange(int depthBlocks)
+{
+#if WFS_GPU_NATIVE
+    // The depth is read from the config param at prepare time; a restart
+    // applies it. Only meaningful while the Metal algorithm is live.
+    if (currentAlgorithm != ProcessingAlgorithm::NativeGpuWfs || !audioEngineStarted)
+        return;
+
+    const bool wasEnabled = processingEnabled;
+    stopProcessingForConfigurationChange();
+
+    WFSLogger::getInstance().logInfo ("GPU pipeline depth changed to "
+                                      + juce::String (depthBlocks)
+                                      + " blocks" + (wasEnabled ? " - restarting engine" : ""));
+    if (wasEnabled)
+    {
+        parameters.setConfigParam("ProcessingEnabled", true);
+        handleProcessingChange(true);
+    }
+#else
+    juce::ignoreUnused (depthBlocks);
+#endif
+}
+
 void MainComponent::openProjectFromFile (const juce::File& folder)
 {
     if (!folder.isDirectory())
@@ -4295,10 +4325,15 @@ void MainComponent::startAudioEngine()
 #if WFS_GPU_NATIVE
     else // ProcessingAlgorithm::NativeGpuWfs
     {
+        int gpuDepth = (int) parameters.getConfigParam ("GpuPipelineDepth");
+        if (gpuDepth < WFSParameterDefaults::gpuPipelineDepthMin
+            || gpuDepth > WFSParameterDefaults::gpuPipelineDepthMax)
+            gpuDepth = WFSParameterDefaults::gpuPipelineDepthDefault;
+
         prepared = nativeGpuAlgorithm.prepare(numInputChannels, numOutputChannels,
                                               sampleRate, blockSize,
                                               delayTimesMs.data(), levels.data(),
-                                              processingEnabled);
+                                              processingEnabled, gpuDepth);
         if (!prepared)
         {
             // Metal init failed: log, inform, fall back to the CPU InputBuffer.
@@ -4385,10 +4420,15 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
         else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs)
         {
             // Device/buffer change: full re-prepare (backend is sized per block)
+            int gpuDepth = (int) parameters.getConfigParam ("GpuPipelineDepth");
+            if (gpuDepth < WFSParameterDefaults::gpuPipelineDepthMin
+                || gpuDepth > WFSParameterDefaults::gpuPipelineDepthMax)
+                gpuDepth = WFSParameterDefaults::gpuPipelineDepthDefault;
+
             nativeGpuAlgorithm.prepare(numInputChannels, numOutputChannels,
                                        sampleRate, samplesPerBlockExpected,
                                        delayTimesMs.data(), levels.data(),
-                                       processingEnabled);
+                                       processingEnabled, gpuDepth);
         }
 #endif
     }
@@ -4992,6 +5032,27 @@ void MainComponent::saveSettings()
 
 void MainComponent::timerCallback()
 {
+#if WFS_GPU_NATIVE
+    // Once per second: surface GPU pipeline underruns (silence-filled blocks).
+    // They never trip the device xrun counter (the callback doesn't wait on
+    // the GPU), so without this log a too-shallow depth would fail silently.
+    if (++gpuPipelineStatTick >= 200) // 5 ms timer
+    {
+        gpuPipelineStatTick = 0;
+        const uint32_t u = nativeGpuAlgorithm.isReady() ? nativeGpuAlgorithm.getUnderrunCount() : 0;
+        if (u > gpuUnderrunsLogged)
+        {
+            WFSLogger::getInstance().logInfo ("GPU pipeline underruns: +"
+                + juce::String (u - gpuUnderrunsLogged) + " (total " + juce::String (u)
+                + "), peak pump " + juce::String (nativeGpuAlgorithm.getAndResetPeakGpuExecMs(), 2) + " ms");
+            gpuUnderrunsLogged = u;
+        }
+        else if (u < gpuUnderrunsLogged)
+        {
+            gpuUnderrunsLogged = u; // pipeline was re-prepared; counter re-baselined
+        }
+    }
+#endif
     // Check once whether the window is visible — skip all repaints and
     // visual-only updates when minimized to avoid message-queue congestion
     // that can starve the audio thread's parameter updates.

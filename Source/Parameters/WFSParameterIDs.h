@@ -113,6 +113,7 @@ namespace WFSParameterIDs
     const juce::Identifier masterLevel       ("masterLevel");
     const juce::Identifier systemLatency     ("systemLatency");
     const juce::Identifier haasEffect        ("haasEffect");
+    const juce::Identifier gpuPipelineDepth  ("gpuPipelineDepth"); // Native GPU async pipeline depth (blocks)
 
     //==========================================================================
     // Config > UI Section

@@ -94,6 +94,8 @@
     "labels": {
       "version": "Version {version}",
       "updateAvailable": "Update {version} available",
+      "gpuPipelineDepth": "GPU Pipeline:",
+      "gpuPipelineBlocks": "blocks",
       "showName": "Name:",
       "showLocation": "Location:",
       "inputChannels": "Input Channels:",
@@ -210,6 +212,7 @@
     },
 
     "help": {
+      "gpuPipelineDepth": "GPU pipeline depth in audio blocks. Adds depth x buffer/sample-rate of constant latency (pre-subtracted from WFS delays) and absorbs GPU stalls of the same length: deeper = immune to desktop/UI hiccups, shallower = lower latency. Applies live. Default 4.",
       "showName": "Name of the current show.",
       "showLocation": "Location of the current show.",
       "inputChannels": "Number of Input Channels.",

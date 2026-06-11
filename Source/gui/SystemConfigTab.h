@@ -466,6 +466,7 @@ public:
     using ProcessingCallback = std::function<void(bool enabled)>;
     using ChannelCountCallback = std::function<void(int inputs, int outputs, int reverbs)>;
     using AlgorithmCallback = std::function<void(int algorithmId)>;
+    using GpuDepthCallback = std::function<void(int depthBlocks)>;
     using AudioInterfaceCallback = std::function<void()>;
     using ConfigReloadedCallback = std::function<void()>;
     using DialsAndButtonsCallback = std::function<void(int deviceIndex)>;  // 0=Off, 1=SD+, 2=QK
@@ -553,6 +554,9 @@ public:
         algorithmSelector.onChange = [this]() {
             int selectedId = algorithmSelector.getSelectedId();
             parameters.setConfigParam("ProcessingAlgorithm", selectedId);
+#if WFS_GPU_NATIVE
+            updateGpuDepthVisibility();
+#endif
             if (onAlgorithmChanged)
                 onAlgorithmChanged(selectedId);
             // TTS: Announce selection change
@@ -562,6 +566,26 @@ public:
         addAndMakeVisible(processingButton);
         processingButton.setButtonText(LOC("systemConfig.buttons.processingOff"));
         processingButton.onLongPress = [this]() { toggleProcessing(); };
+
+#if WFS_GPU_NATIVE
+        // GPU async pipeline depth (blocks). Latency = depth x buffer/sr,
+        // pre-subtracted from WFS delays; applies live while running.
+        addAndMakeVisible(gpuDepthLabel);
+        gpuDepthLabel.setText(LOC("systemConfig.labels.gpuPipelineDepth"), juce::dontSendNotification);
+
+        addAndMakeVisible(gpuDepthSelector);
+        for (int d = 1; d <= 8; ++d)
+            gpuDepthSelector.addItem(juce::String(d) + " " + LOC("systemConfig.labels.gpuPipelineBlocks"), d);
+        gpuDepthSelector.setSelectedId(4, juce::dontSendNotification);
+        gpuDepthSelector.onChange = [this]() {
+            int depth = gpuDepthSelector.getSelectedId();
+            parameters.setConfigParam("GpuPipelineDepth", depth);
+            if (onGpuDepthChanged)
+                onGpuDepthChanged(depth);
+            TTSManager::getInstance().announceValueChange("GPU pipeline depth", gpuDepthSelector.getText());
+        };
+        updateGpuDepthVisibility(); // hidden unless the Metal algorithm is selected
+#endif
 
         addAndMakeVisible(soloModeButton);
         updateSoloModeButtonText();
@@ -1586,6 +1610,11 @@ public:
         y += rowHeight + spacing;
 
         processingButton.setBounds(x, y, fullWidth, rowHeight);
+#if WFS_GPU_NATIVE
+        y += rowHeight + spacing;
+        gpuDepthLabel.setBounds(x, y, labelWidth, rowHeight);
+        gpuDepthSelector.setBounds(x + labelWidth, y, editorWidth * 2, rowHeight);
+#endif
 
         // Binaural Renderer Section
         y = scaled(230); // Start after "Binaural Renderer" header at y=200
@@ -1769,6 +1798,11 @@ public:
     void setAlgorithmChangedCallback(AlgorithmCallback callback)
     {
         onAlgorithmChanged = callback;
+    }
+
+    void setGpuDepthChangedCallback(GpuDepthCallback callback)
+    {
+        onGpuDepthChanged = callback;
     }
 
     void setAudioInterfaceCallback(AudioInterfaceCallback callback)
@@ -2228,6 +2262,16 @@ private:
         if (algorithmId >= 1 && algorithmId <= 2)  // Valid range for current algorithms
 #endif
             algorithmSelector.setSelectedId(algorithmId, juce::dontSendNotification);
+
+#if WFS_GPU_NATIVE
+        {
+            int gpuDepth = (int)parameters.getConfigParam("GpuPipelineDepth");
+            if (gpuDepth < 1 || gpuDepth > 8)
+                gpuDepth = 4;
+            gpuDepthSelector.setSelectedId(gpuDepth, juce::dontSendNotification);
+            updateGpuDepthVisibility();
+        }
+#endif
 
         // Color scheme selector - update UI and apply the theme
         int colorSchemeId = (int)parameters.getConfigParam("ColorScheme");
@@ -2962,6 +3006,9 @@ public:
         reverbChannelsEditor.setEnabled(enabled);
         audioPatchingButton.setEnabled(enabled);
         algorithmSelector.setEnabled(enabled);
+#if WFS_GPU_NATIVE
+        gpuDepthSelector.setEnabled(true); // applies live - stays operable while processing
+#endif
 
         // Visual feedback - dim disabled controls using theme colors
         auto disabledColour = ColorScheme::get().textDisabled;
@@ -3104,6 +3151,15 @@ public:
         // Update UI visibility and refresh values
         loadParametersToUI();
     }
+
+#if WFS_GPU_NATIVE
+    void updateGpuDepthVisibility()
+    {
+        const bool gpuSelected = (algorithmSelector.getSelectedId() == 3);
+        gpuDepthLabel.setVisible(gpuSelected);
+        gpuDepthSelector.setVisible(gpuSelected);
+    }
+#endif
 
     void updateStageParameterVisibility()
     {
@@ -3690,6 +3746,9 @@ public:
         helpTextMap[&gettingStartedButton] = LOC("wizard.buttons.gettingStartedHelp");
         helpTextMap[&audioPatchingButton] = LOC("systemConfig.help.audioPatch");
         helpTextMap[&algorithmSelector] = LOC("systemConfig.help.algorithm");
+#if WFS_GPU_NATIVE
+        helpTextMap[&gpuDepthSelector] = LOC("systemConfig.help.gpuPipelineDepth");
+#endif
         helpTextMap[&processingButton] = LOC("systemConfig.help.processing");
         helpTextMap[&soloModeButton] = LOC("systemConfig.help.soloMode");
         helpTextMap[&stageShapeSelector] = LOC("systemConfig.help.stageShape");
@@ -3866,6 +3925,10 @@ public:
     juce::TextButton touchscreensButton;   // Linux multitouch settings; hidden by default
     juce::Label algorithmLabel;
     juce::ComboBox algorithmSelector;
+#if WFS_GPU_NATIVE
+    juce::Label gpuDepthLabel;
+    juce::ComboBox gpuDepthSelector;
+#endif
     LongPressButton processingButton { 800 };
     juce::TextButton soloModeButton;
 
@@ -4011,6 +4074,7 @@ public:
     ProcessingCallback onProcessingChanged;
     ChannelCountCallback onChannelCountChanged;
     AlgorithmCallback onAlgorithmChanged;
+    GpuDepthCallback onGpuDepthChanged;
     AudioInterfaceCallback onAudioInterfaceWindowRequested;
     ConfigReloadedCallback onConfigReloaded;
     DialsAndButtonsCallback onDialsAndButtonsChanged;

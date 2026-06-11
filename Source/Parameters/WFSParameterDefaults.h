@@ -142,6 +142,14 @@ namespace WFSParameterDefaults
     constexpr float haasEffectMin           = 0.0f;
     constexpr float haasEffectMax           = 10.0f;
 
+    // Native GPU async pipeline depth in blocks (added latency = depth x blockSize/sr,
+    // pre-subtracted from WFS delays). Field data (M4 Pro, 2026-06): desktop-compositor
+    // transients stall GPU dispatch by 3-5.3 ms; depth 4 @ 48 kHz/128 = 10.7 ms cushion
+    // (~2x margin). Raw Metal recovers ~7x faster than the SDK prototype measured.
+    constexpr int gpuPipelineDepthDefault   = 4;
+    constexpr int gpuPipelineDepthMin       = 1;
+    constexpr int gpuPipelineDepthMax       = 8;
+
     //==========================================================================
     // Config > UI Section
     //==========================================================================

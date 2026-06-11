@@ -230,6 +230,8 @@ private:
     OutputBufferAlgorithm outputAlgorithm;
 #if WFS_GPU_NATIVE
     NativeGpuWfsAlgorithm nativeGpuAlgorithm;
+    int gpuPipelineStatTick = 0;          // 5 ms timer ticks -> 1 s underrun-stat cadence
+    uint32_t gpuUnderrunsLogged = 0;      // last pipeline underrun total surfaced in the log
 #endif
     bool audioCallbacksAttached = false;
     bool processingEnabled = false;
@@ -430,6 +432,7 @@ private:
     void handleProcessingChange(bool enabled);
     void handleChannelCountChange(int inputs, int outputs, int reverbs);
     void handleAlgorithmSelectionChange(int selectedId);
+    void handleGpuDepthChange(int depthBlocks);
     void handleConfigReloaded();
     void applySamplerSetPosition (int channelIndex, const juce::ValueTree& samplerNode, int setIndex);
     void applySamplerControllerMode (int mode);
