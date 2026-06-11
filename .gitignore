@@ -107,3 +107,4 @@ tmpclaude-*
 __pycache__/
 .pytest_cache/
 Experiments/metal-wfs-spike/spike
+Experiments/metal-wfs-spike/backend_test
