@@ -15,13 +15,24 @@ scaling benchmarks. First step of the native GPU backend (`gpu-native` branch).
 ## Results — Mac mini M4 Pro, macOS 15.7, block 128 @ 48 kHz (budget 2.67 ms)
 
 ```
-matrix    | sync dispatch ms (mean/p99/max)  | pipelined ms (mean/p99) | correctness
-  8x16    |  0.135 /  0.155 /  0.234        |  0.022 /  0.059         | maxDiff 8.9e-08 PASS
- 16x32    |  0.134 /  0.202 /  0.246        |  0.010 /  0.069         | maxDiff 1.2e-07 PASS
- 32x64    |  0.127 /  0.181 /  0.229        |  0.007 /  0.055         | maxDiff 2.4e-07 PASS
- 64x64    |  0.162 /  0.279 /  0.329        |  0.008 /  0.021         | maxDiff 2.4e-07 PASS
- 64x128   |  0.172 /  0.288 /  0.568        |  0.009 /  0.026         | maxDiff 2.4e-07 PASS
+matrix    | sync (mean/p99/max)      | parked-event (mean/p99/max) | pipelined (mean/p99) | correctness
+  8x16    | 0.150 / 0.168 / 0.280   | 0.134 / 0.177 / 0.233      | 0.022 / 0.084        | PASS (9e-08)
+ 16x32    | 0.141 / 0.179 / 0.267   | 0.117 / 0.169 / 0.289      | 0.012 / 0.071        | PASS
+ 32x64    | 0.137 / 0.212 / 0.377   | 0.122 / 0.136 / 0.227      | 0.007 / 0.044        | PASS
+ 64x64    | 0.161 / 0.277 / 0.332   | 0.141 / 0.219 / 0.425      | 0.009 / 0.026        | PASS
+ 64x128   | 0.166 / 0.285 / 0.574   | 0.146 / 0.220 / 1.739      | 0.013 / 0.044        | PASS
 ```
+
+Three execution modes:
+- **sync**: encode+commit+wait per block (worst case, comparable to the SDK's
+  in-callback Execute).
+- **parked-event**: command buffers pre-committed and gated on an
+  `MTLSharedEvent`; per block the CPU only writes input and signals — the
+  supported variant of a "persistent kernel" (no watchdog risk, no spinning).
+  On a quiet desktop it saves only the encode/commit (~20 us); the open
+  question is whether pre-scheduled work survives compositor bursts better —
+  measure by running ./spike during active desktop use.
+- **pipelined**: commit without waiting, depth 4 (the GpuAsyncPipeline model).
 
 ## Comparison vs the GPU Audio SDK path (same machine, same day, gpu-audio-v2)
 

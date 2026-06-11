@@ -129,9 +129,9 @@ int main()
         printf("\nblock=%u @ %u Hz (budget %.2f ms). %s\n", blockLen, sampleRate,
                1000.0 * blockLen / sampleRate,
                "sync = commit+wait per block; pipelined = wait only every 4th");
-        printf("%-9s | %-37s | %-25s | %s\n", "matrix", "sync dispatch ms (mean/p99/max)",
-               "pipelined ms (mean/p99)", "correctness");
-        printf("---------+---------------------------------------+---------------------------+------------\n");
+        printf("%-9s | %-37s | %-29s | %-25s | %s\n", "matrix", "sync dispatch ms (mean/p99/max)",
+               "parked-event ms (mean/p99/max)", "pipelined ms (mean/p99)", "correctness");
+        printf("---------+---------------------------------------+-------------------------------+---------------------------+------------\n");
 
         for (auto sz : sizes)
         {
@@ -248,6 +248,48 @@ int main()
                 advanceState();
             }
 
+            // ---- parked: pre-committed command buffers gated on MTLSharedEvent.
+            // The "supported persistent kernel": work is already scheduled in
+            // the queue; per block the CPU only writes input + signals the
+            // event. Measures signal -> completed (no encode/commit hot path).
+            Stats parked;
+            {
+                id<MTLSharedEvent> evt = [device newSharedEvent];
+                const uint32_t kIters = 500;
+                const uint32_t kPark = 8; // buffers parked ahead
+                std::vector<id<MTLCommandBuffer>> bufs(kIters, nil);
+
+                auto parkOne = [&](uint64_t i) {
+                    if (i >= kIters) return;
+                    id<MTLCommandBuffer> cb = [queue commandBuffer];
+                    [cb encodeWaitForEvent:evt value:(i + 1)];
+                    encode(cb);
+                    [cb commit];
+                    bufs[i] = cb;
+                };
+                uint64_t nextToPark = 0;
+                for (; nextToPark < kPark; ++nextToPark)
+                    parkOne(nextToPark);
+
+                for (uint32_t iter = 0; iter < kIters; ++iter)
+                {
+                    // Safe to reuse the shared param/input buffers: only one
+                    // parked buffer is released and executed at a time.
+                    fillInput(1050 + iter);
+                    memcpy(bParams.contents, &p, sizeof(p));
+
+                    auto t0 = std::chrono::steady_clock::now();
+                    evt.signaledValue = iter + 1;   // release parked buffer #iter
+                    [bufs[iter] waitUntilCompleted];
+                    auto t1 = std::chrono::steady_clock::now();
+                    parked.add(std::chrono::duration<double, std::milli>(t1 - t0).count());
+
+                    bufs[iter] = nil;
+                    parkOne(nextToPark++);
+                    advanceState();
+                }
+            }
+
             // ---- pipelined: depth 4 (wait only on the cb from 4 iterations ago)
             Stats pip;
             {
@@ -272,9 +314,10 @@ int main()
                     if (cb) [cb waitUntilCompleted];
             }
 
-            printf("%3ux%-5u | %6.3f / %6.3f / %6.3f             | %6.3f / %6.3f           | maxDiff %.2e %s\n",
+            printf("%3ux%-5u | %6.3f / %6.3f / %6.3f             | %6.3f / %6.3f / %6.3f      | %6.3f / %6.3f           | maxDiff %.2e %s\n",
                    sz.in, sz.out,
                    sync.mean(), sync.pct(0.99), sync.maxMs,
+                   parked.mean(), parked.pct(0.99), parked.maxMs,
                    pip.mean(), pip.pct(0.99),
                    maxDiff, maxDiff < 1e-3f ? "PASS" : "FAIL");
         }
