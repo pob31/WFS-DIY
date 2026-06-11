@@ -465,6 +465,7 @@ public:
     // Callback types for notifying MainComponent of changes
     using ProcessingCallback = std::function<void(bool enabled)>;
     using ChannelCountCallback = std::function<void(int inputs, int outputs, int reverbs)>;
+    using AlgorithmCallback = std::function<void(int algorithmId)>;
     using AudioInterfaceCallback = std::function<void()>;
     using ConfigReloadedCallback = std::function<void()>;
     using DialsAndButtonsCallback = std::function<void(int deviceIndex)>;  // 0=Off, 1=SD+, 2=QK
@@ -552,6 +553,8 @@ public:
         algorithmSelector.onChange = [this]() {
             int selectedId = algorithmSelector.getSelectedId();
             parameters.setConfigParam("ProcessingAlgorithm", selectedId);
+            if (onAlgorithmChanged)
+                onAlgorithmChanged(selectedId);
             // TTS: Announce selection change
             TTSManager::getInstance().announceValueChange("Algorithm", algorithmSelector.getText());
         };
@@ -1761,6 +1764,11 @@ public:
     void setChannelCountCallback(ChannelCountCallback callback)
     {
         onChannelCountChanged = callback;
+    }
+
+    void setAlgorithmChangedCallback(AlgorithmCallback callback)
+    {
+        onAlgorithmChanged = callback;
     }
 
     void setAudioInterfaceCallback(AudioInterfaceCallback callback)
@@ -4002,6 +4010,7 @@ public:
     // Callbacks for notifying MainComponent
     ProcessingCallback onProcessingChanged;
     ChannelCountCallback onChannelCountChanged;
+    AlgorithmCallback onAlgorithmChanged;
     AudioInterfaceCallback onAudioInterfaceWindowRequested;
     ConfigReloadedCallback onConfigReloaded;
     DialsAndButtonsCallback onDialsAndButtonsChanged;

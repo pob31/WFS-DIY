@@ -429,6 +429,7 @@ private:
     // Handlers for callbacks from System Config tab
     void handleProcessingChange(bool enabled);
     void handleChannelCountChange(int inputs, int outputs, int reverbs);
+    void handleAlgorithmSelectionChange(int selectedId);
     void handleConfigReloaded();
     void applySamplerSetPosition (int channelIndex, const juce::ValueTree& samplerNode, int setIndex);
     void applySamplerControllerMode (int mode);

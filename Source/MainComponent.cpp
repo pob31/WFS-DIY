@@ -302,6 +302,10 @@ MainComponent::MainComponent()
         handleChannelCountChange(inputs, outputs, reverbs);
     });
 
+    systemConfigTab->setAlgorithmChangedCallback([this](int selectedId) {
+        handleAlgorithmSelectionChange(selectedId);
+    });
+
     // Solo/Mute/EditOnMap callbacks set later (after shared state created for StreamDeck sync)
 
     systemConfigTab->setAudioInterfaceCallback([this]() {
@@ -3106,6 +3110,41 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
 
     // Reload patch maps from the (now up-to-date) ValueTree
     loadAudioPatches();
+}
+
+void MainComponent::handleAlgorithmSelectionChange(int selectedId)
+{
+    ProcessingAlgorithm newAlgorithm = currentAlgorithm;
+    if (selectedId == 1)
+        newAlgorithm = ProcessingAlgorithm::InputBuffer;
+    else if (selectedId == 2)
+        newAlgorithm = ProcessingAlgorithm::OutputBuffer;
+#if WFS_GPU_NATIVE
+    else if (selectedId == 3)
+        newAlgorithm = ProcessingAlgorithm::NativeGpuWfs;
+#endif
+
+    if (newAlgorithm == currentAlgorithm)
+        return;
+
+    const bool wasEnabled = processingEnabled;
+
+    // Releases the OUTGOING algorithm's processors (reads currentAlgorithm,
+    // so this must run before the switch), gates the audio callback, and
+    // stops the reverb feed thread — the same teardown the channel-count
+    // change uses.
+    stopProcessingForConfigurationChange();
+
+    currentAlgorithm = newAlgorithm;
+    WFSLogger::getInstance().logInfo ("Processing algorithm changed to id "
+                                      + juce::String (selectedId)
+                                      + (wasEnabled ? " - restarting engine" : ""));
+
+    if (wasEnabled)
+    {
+        parameters.setConfigParam("ProcessingEnabled", true);
+        handleProcessingChange(true); // engine not started -> startAudioEngine() with the new algorithm
+    }
 }
 
 void MainComponent::openProjectFromFile (const juce::File& folder)
