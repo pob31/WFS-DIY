@@ -56,6 +56,15 @@ jobs:
       - uses: actions/checkout@v5
         with:
           submodules: recursive
+      # The native GPU WFS algorithm (WFS_GPU_NATIVE) compiles a CUDA backend on
+      # Windows, so the build needs the CUDA toolkit headers/libs. This sets
+      # CUDA_PATH for the MSBuild step (referenced by the .vcxproj include/lib
+      # paths). 'network' keeps the download small.
+      - name: Install CUDA Toolkit
+        uses: Jimver/cuda-toolkit@v0.2.35
+        with:
+          cuda: '12.9.0'
+          method: 'network'
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v3
       - name: Build (Debug x64)

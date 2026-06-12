@@ -84,21 +84,39 @@ jobs:
       - uses: actions/checkout@v5
         with:
           submodules: recursive
+      # The native GPU WFS algorithm (WFS_GPU_NATIVE) compiles a CUDA backend on
+      # Windows, so the build needs the CUDA toolkit headers/libs. This sets
+      # CUDA_PATH, used by the .vcxproj include/lib paths and by the postbuild
+      # step that stages the CUDA runtime DLLs next to the exe.
+      - name: Install CUDA Toolkit
+        uses: Jimver/cuda-toolkit@v0.2.35
+        with:
+          cuda: '12.9.0'
+          method: 'network'
       - uses: microsoft/setup-msbuild@v3
       - name: Build (Release x64)
         run: msbuild Builds\VisualStudio2022\WFS-DIY.sln -p:Configuration=Release -p:Platform=x64 -m
       - name: Package
         shell: pwsh
         run: |
-          # Ship only the standalone exe — NOT the whole App output folder, which
-          # also contains the multi-hundred-MB WFS-DIY.pdb debug-symbols file.
+          # Ship the standalone exe plus the CUDA runtime DLLs it loads at run
+          # time (NVRTC + cudart, staged next to the exe by the build's postbuild
+          # step). The driver API (nvcuda.dll) ships with the NVIDIA driver and is
+          # NOT redistributed. NOT the whole App output folder, which also
+          # contains the multi-hundred-MB WFS-DIY.pdb debug-symbols file.
           $exe = Get-ChildItem -Recurse -File -Filter "WFS-DIY.exe" `
             -Path "Builds\VisualStudio2022\x64\Release" | Select-Object -First 1
           if (-not $exe) { throw "Release WFS-DIY.exe not found" }
+          $appDir = $exe.Directory.FullName
+          $dlls = foreach ($p in @("cudart64_*.dll", "nvrtc64_*.dll", "nvrtc-builtins64_*.dll")) {
+            Get-ChildItem -File -Path (Join-Path $appDir $p) -ErrorAction SilentlyContinue
+          }
+          if (-not $dlls) { throw "CUDA runtime DLLs not found next to the exe (postbuild copy failed?)" }
+          $files = @($exe.FullName) + ($dlls | ForEach-Object FullName)
           # RELEASE_TAG already starts with 'v' — don't prefix another one.
           $zip = "dist\WFS-DIY-${{ env.RELEASE_TAG }}-windows-x64.zip"
           New-Item -ItemType Directory -Force dist | Out-Null
-          Compress-Archive -Path $exe.FullName -DestinationPath $zip -Force
+          Compress-Archive -Path $files -DestinationPath $zip -Force
           (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower() | Out-File "$zip.sha256" -NoNewline
       - name: Attach zip to release
         uses: softprops/action-gh-release@v3
