@@ -58,6 +58,8 @@ public:
         // noise stream key (set in prepare()); frDiffusionState holds the LP value.
         frDiffusionState.resize(static_cast<size_t>(numOutputs), 0.0f);
         frJitterKey.resize(static_cast<size_t>(numOutputs), 0u);
+        frJitterPrev.resize(static_cast<size_t>(numOutputs), 0.0f);
+        frJitterCurr.resize(static_cast<size_t>(numOutputs), 0.0f);
         frLastLevel.resize(static_cast<size_t>(numOutputs), 0.0f);
     }
 
@@ -170,6 +172,8 @@ public:
         for (auto& filter : frHFFilters)
             filter.reset();
         std::fill(frDiffusionState.begin(), frDiffusionState.end(), 0.0f);
+        std::fill(frJitterPrev.begin(), frJitterPrev.end(), 0.0f);
+        std::fill(frJitterCurr.begin(), frJitterCurr.end(), 0.0f);
         std::fill(frLastLevel.begin(), frLastLevel.end(), 0.0f);
     }
 
@@ -397,11 +401,22 @@ private:
         frWritePosition = (frWritePosition - numSamples + delayBufferLength) % delayBufferLength;
 
         // Floor-Reflection diffusion: shared zone-mapped grain model (see
-        // FrDiffusionModel.h). Applied POST-smoother, per sample, in the FR tap
-        // below - so the anti-zipper box filter can't average the grain away.
+        // FrDiffusionModel.h). The noise is stepped ONCE PER BLOCK and ramped
+        // linearly across the block (same prev->curr semantics as the GPU
+        // launches) - per-sample stepping put a white micro-walk on the delay,
+        // which the OutputBuffer's scatter-write turned into audible hiss.
+        // Applied POST-smoother in the FR tap below.
         frJitterCoeffs = FrDiffusion::computeCoeffs(
             frDiffusionAmount.load(std::memory_order_acquire),
-            static_cast<float>(currentSampleRate), 1.0f);
+            static_cast<float>(currentSampleRate), static_cast<float>(numSamples));
+        ++frJitterBlockIndex;
+        for (size_t o = 0; o < frDiffusionState.size(); ++o)
+        {
+            frJitterPrev[o] = frJitterCurr[o];
+            frJitterCurr[o] = FrDiffusion::step(frDiffusionState[o], frJitterBlockIndex,
+                                                frJitterKey[o], frJitterCoeffs);
+        }
+        const float frJitterInvLen = 1.0f / static_cast<float>(numSamples);
 
         // Generate delayed outputs for each output channel
         for (int outChannel = 0; outChannel < numOutputChannels; ++outChannel)
@@ -516,12 +531,11 @@ private:
                     // Smoothed FR delay + teleport gain envelope (independent smoother)
                     auto smoothedFr = smootherFR[outIdx].smoothedAt (currentSample);
 
-                    // Diffusion grain (shared model): low-passed noise added POST-
-                    // smoother so the box filter doesn't average it out.
-                    const float jitterSamples = FrDiffusion::step (
-                        frDiffusionState[outIdx],
-                        static_cast<uint32_t> (currentSample),
-                        frJitterKey[outIdx], frJitterCoeffs);
+                    // Diffusion grain (shared model): block-stepped, ramped across
+                    // the block (GPU prev->curr semantics), added POST-smoother.
+                    const float frJitterT = static_cast<float> (sample + 1) * frJitterInvLen;
+                    const float jitterSamples = frJitterPrev[outIdx]
+                        + (frJitterCurr[outIdx] - frJitterPrev[outIdx]) * frJitterT;
 
                     float frReadDelay = smoothedFr.delay + jitterSamples;
                     if (frReadDelay < 0.0f)
@@ -620,6 +634,8 @@ private:
     std::vector<float> frLastLevel;           // previous block's FR level per output (engage detect)
     std::atomic<float> frDiffusionAmount {0.0f};  // Diffusion fraction 0..1 (set from timer thread)
     FrDiffusion::Coeffs frJitterCoeffs;       // per-block coefficients (shared zone-map model)
+    std::vector<float> frJitterPrev, frJitterCurr; // block-boundary jitter values (ramped per sample)
+    uint32_t frJitterBlockIndex = 0;          // noise step index (one per block)
 
     // Live Source level detector (for peak/slow compression)
     std::unique_ptr<LiveSourceLevelDetector> lsDetector;

@@ -65,6 +65,8 @@ public:
         frDiffusionState.resize(static_cast<size_t>(numInputs), 0.0f);
         frJitterKey.resize(static_cast<size_t>(numInputs), 0u);
         frJitterCoeffs.resize(static_cast<size_t>(numInputs));
+        frJitterPrev.resize(static_cast<size_t>(numInputs), 0.0f);
+        frJitterCurr.resize(static_cast<size_t>(numInputs), 0.0f);
         frLastLevel.resize(static_cast<size_t>(numInputs), 0.0f);
 
         // Allocate FR filter enable flags and diffusion amounts (per input)
@@ -200,6 +202,8 @@ public:
             frHFFilters[i].reset();
         }
         std::fill(frDiffusionState.begin(), frDiffusionState.end(), 0.0f);
+        std::fill(frJitterPrev.begin(), frJitterPrev.end(), 0.0f);
+        std::fill(frJitterCurr.begin(), frJitterCurr.end(), 0.0f);
         std::fill(frLastLevel.begin(), frLastLevel.end(), 0.0f);
     }
 
@@ -376,13 +380,22 @@ private:
         if (delayBufferLength == 0 || delayData == nullptr || frDelayData == nullptr)
             return;
 
-        // Per-block diffusion coefficients from the shared zone-map model.
-        // The grain itself is applied POST-smoother, per sample, in the FR
-        // write branch below.
+        // Per-block diffusion from the shared zone-map model. The noise is
+        // stepped ONCE PER BLOCK per input and ramped linearly across the
+        // block (GPU prev->curr semantics): per-sample stepping put a white
+        // micro-walk on the write position, which this scatter architecture
+        // turned into audible hiss (skipped/doubled cells).
+        ++frJitterBlockIndex;
         for (size_t i = 0; i < frJitterCoeffs.size(); ++i)
+        {
             frJitterCoeffs[i] = FrDiffusion::computeCoeffs(
                 frDiffusionAmount[i].load(std::memory_order_acquire),
-                static_cast<float>(currentSampleRate), 1.0f);
+                static_cast<float>(currentSampleRate), static_cast<float>(numSamples));
+            frJitterPrev[i] = frJitterCurr[i];
+            frJitterCurr[i] = FrDiffusion::step(frDiffusionState[i], frJitterBlockIndex,
+                                                frJitterKey[i], frJitterCoeffs[i]);
+        }
+        const float frJitterInvLen = 1.0f / static_cast<float>(numSamples);
 
         // Precompute current delay values per input for interpolation
         float msToSamples = (float)currentSampleRate / 1000.0f;
@@ -529,12 +542,11 @@ private:
                     // Smoothed FR delay + teleport gain envelope (independent smoother)
                     auto smoothedFr = smootherFR[inIdx].smoothedAt (currentSample);
 
-                    // Diffusion grain (shared model): low-passed noise added POST-
-                    // smoother so the box filter doesn't average it out.
-                    const float jitterSamples = FrDiffusion::step (
-                        frDiffusionState[inIdx],
-                        static_cast<uint32_t> (currentSample),
-                        frJitterKey[inIdx], frJitterCoeffs[inIdx]);
+                    // Diffusion grain (shared model): block-stepped, ramped across
+                    // the block (GPU prev->curr semantics), added POST-smoother.
+                    const float frJitterT = static_cast<float> (sample + 1) * frJitterInvLen;
+                    const float jitterSamples = frJitterPrev[inIdx]
+                        + (frJitterCurr[inIdx] - frJitterPrev[inIdx]) * frJitterT;
 
                     float frDelaySamples = smoothedFr.delay + jitterSamples;
                     if (frDelaySamples < 0.0f)
@@ -628,6 +640,8 @@ private:
     std::vector<float> frDiffusionState;          // one-pole LP value per input (the grain)
     std::vector<uint32_t> frJitterKey;            // per-input noise stream key (folds output idx)
     std::vector<FrDiffusion::Coeffs> frJitterCoeffs; // per-input per-block coefficients
+    std::vector<float> frJitterPrev, frJitterCurr;   // block-boundary jitter (ramped per sample)
+    uint32_t frJitterBlockIndex = 0;                 // noise step index (one per block)
     std::vector<float> frLastLevel;               // previous block's FR level per input (engage detect)
     std::atomic<float>* frDiffusionAmount = nullptr; // Diffusion fraction 0..1 per input
     int storedNumInputs = 0;  // Store for cleanup
