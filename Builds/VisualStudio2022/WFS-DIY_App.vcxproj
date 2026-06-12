@@ -3385,6 +3385,7 @@
     <ClInclude Include="..\..\Source\DSP\gpu\WfsGpuBackend.h"/>
     <ClInclude Include="..\..\Source\DSP\gpu\CudaWfsBackend.h"/>
     <ClInclude Include="..\..\Source\DSP\gpu\CudaWfsKernels.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\WfsFrHostState.h"/>
     <ClInclude Include="..\..\Source\DSP\TestSignalGenerator.h"/>
     <ClInclude Include="..\..\Source\DSP\TrackingPositionFilter.h"/>
     <ClInclude Include="..\..\Source\DSP\InputSpeedLimiter.h"/>

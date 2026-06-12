@@ -4333,7 +4333,12 @@ void MainComponent::startAudioEngine()
         prepared = nativeGpuAlgorithm.prepare(numInputChannels, numOutputChannels,
                                               sampleRate, blockSize,
                                               delayTimesMs.data(), levels.data(),
-                                              processingEnabled, gpuDepth);
+                                              processingEnabled,
+                                              hfAttenuation.data(),
+                                              frDelayTimesMs.data(),
+                                              frLevels.data(),
+                                              frHFAttenuation.data(),
+                                              gpuDepth);
         if (!prepared)
         {
             // GPU init failed: log, inform, fall back to the CPU InputBuffer.
@@ -4428,7 +4433,12 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
             nativeGpuAlgorithm.prepare(numInputChannels, numOutputChannels,
                                        sampleRate, samplesPerBlockExpected,
                                        delayTimesMs.data(), levels.data(),
-                                       processingEnabled, gpuDepth);
+                                       processingEnabled,
+                                       hfAttenuation.data(),
+                                       frDelayTimesMs.data(),
+                                       frLevels.data(),
+                                       frHFAttenuation.data(),
+                                       gpuDepth);
         }
 #endif
     }
@@ -5456,13 +5466,22 @@ void MainComponent::timerCallback()
                         highShelfActive, highShelfFreq, highShelfGain, highShelfSlope);
                     inputAlgorithm.setFRDiffusion(static_cast<size_t>(i), diffusion);
                 }
-                else  // OutputBuffer
+                else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer)
                 {
                     outputAlgorithm.setFRFilterParams(static_cast<size_t>(i),
                         lowCutActive, lowCutFreq,
                         highShelfActive, highShelfFreq, highShelfGain, highShelfSlope);
                     outputAlgorithm.setFRDiffusion(static_cast<size_t>(i), diffusion);
                 }
+#if WFS_GPU_NATIVE
+                else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs)
+                {
+                    nativeGpuAlgorithm.setFRFilterParams(static_cast<size_t>(i),
+                        lowCutActive, lowCutFreq,
+                        highShelfActive, highShelfFreq, highShelfGain, highShelfSlope);
+                    nativeGpuAlgorithm.setFRDiffusion(static_cast<size_t>(i), diffusion);
+                }
+#endif
             }
 
             // Update visualisation with current DSP matrix values (skip when minimized)

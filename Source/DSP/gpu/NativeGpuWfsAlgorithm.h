@@ -8,14 +8,18 @@
     same matrices, same audible behavior (delays, gains, per-sample ramps).
 
     Composition:
-      MetalWfsBackend  — owns the Metal objects, persistent delay rings,
-                         prev->curr matrix snapshots, -L latency compensation
+      WfsGpuBackend    — Metal or CUDA backend (compile-time alias): owns the
+                         GPU objects, persistent delay rings (direct + FR),
+                         per-pair HF shelf states, prev->curr matrix
+                         snapshots, -L latency compensation
       GpuAsyncPipeline — pump thread + lock-free rings; the audio callback
                          never waits on the GPU
 
-    Limitations vs the CPU path (same as the SDK-era GPU mode): no per-pair
-    HF air-absorption shelf and no Floor Reflections yet (kernel parity is a
-    planned phase); the CPU path remains the reference implementation.
+    DSP parity with the CPU InputBuffer path: per-pair 800 Hz HF
+    air-absorption shelf on both taps and Floor Reflections (per-input
+    pre-filter chain, diffusion jitter, image-source delay/level matrices).
+    FR gains/delays ramp per sample where the CPU steps them at 50 Hz. The
+    CPU path remains the reference implementation.
 */
 
 #include <JuceHeader.h>
@@ -39,6 +43,10 @@ public:
                   const float* delayTimesMsPtr,
                   const float* levelsPtr,
                   bool processingEnabled,
+                  const float* hfAttenuationPtr = nullptr,
+                  const float* frDelayTimesPtr = nullptr,
+                  const float* frLevelsPtr = nullptr,
+                  const float* frHFAttenuationPtr = nullptr,
                   int pipelineDepthBlocks = kDefaultDepthBlocks)
     {
         const juce::SpinLock::ScopedLockType lock (procLock);
@@ -64,7 +72,9 @@ public:
             DBG ("Native GPU WFS: backend init failed: " + lastError);
             return false;
         }
-        backend.setMatrixPointers (delayTimesMsPtr, levelsPtr);
+        backend.setMatrixPointers (delayTimesMsPtr, levelsPtr,
+                                   hfAttenuationPtr, frDelayTimesPtr,
+                                   frLevelsPtr, frHFAttenuationPtr);
 
         if (! pipeline.prepare (&backend, inputChannelCount, outputChannelCount,
                                 blockSize, sampleRate, depth))
@@ -114,6 +124,25 @@ public:
     }
 
     void setProcessingEnabled (bool enabled)   { processingEnabledFlag = enabled; }
+
+    // === Floor Reflection parameter setters (50 Hz timer thread) ===
+    // Same signatures as InputBufferAlgorithm; forwarded to the backend's
+    // host-side FR state (atomics; safe before prepare - bounds-checked).
+
+    void setFRFilterParams (size_t inputIndex,
+                            bool lowCutActive, float lowCutFreq,
+                            bool highShelfActive, float highShelfFreq,
+                            float highShelfGain, float highShelfSlope)
+    {
+        backend.setFRFilterParams ((int) inputIndex, lowCutActive, lowCutFreq,
+                                   highShelfActive, highShelfFreq,
+                                   highShelfGain, highShelfSlope);
+    }
+
+    void setFRDiffusion (size_t inputIndex, float diffusionPercent)
+    {
+        backend.setFRDiffusion ((int) inputIndex, diffusionPercent);
+    }
 
     void releaseResources()
     {

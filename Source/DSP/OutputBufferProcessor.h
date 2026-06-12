@@ -540,12 +540,21 @@ private:
     {
         const float smoothingFactor = 0.05f;
 
+        // Decide first whether this block draws new targets (every 3rd block).
+        // The check must run on the incremented counter BEFORE the per-input
+        // loop - the previous check-at-top/reset-at-bottom ordering could never
+        // see the counter reach 3, so targets were never drawn and the
+        // Diffusion control was silently inert.
+        frDiffusionUpdateCounter++;
+        const bool drawNewTargets = (frDiffusionUpdateCounter >= 3);
+        if (drawNewTargets)
+            frDiffusionUpdateCounter = 0;
+
         for (size_t inIdx = 0; inIdx < frDiffusionState.size(); ++inIdx)
         {
             float maxJitter = frMaxJitterMs[inIdx].load(std::memory_order_relaxed);
 
-            // Occasionally update the target jitter
-            if (frDiffusionUpdateCounter >= 3)
+            if (drawNewTargets)
             {
                 std::uniform_real_distribution<float> dist(-maxJitter, maxJitter);
                 frDiffusionTarget[inIdx] = dist(frRandom);
@@ -554,10 +563,6 @@ private:
             // Smooth towards target
             frDiffusionState[inIdx] += (frDiffusionTarget[inIdx] - frDiffusionState[inIdx]) * smoothingFactor;
         }
-
-        frDiffusionUpdateCounter++;
-        if (frDiffusionUpdateCounter >= 3)
-            frDiffusionUpdateCounter = 0;
     }
 
     int outputChannelIndex;

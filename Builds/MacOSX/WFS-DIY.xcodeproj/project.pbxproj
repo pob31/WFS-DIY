@@ -137,6 +137,7 @@
 		1BD908F5EE15BCFED1F87F23 /* include_juce_events.mm */ /* include_juce_events.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_events.mm; path = ../../JuceLibraryCode/include_juce_events.mm; sourceTree = SOURCE_ROOT; };
 		1D4034F17218DC090D63347F /* OSCConnection.cpp */ /* OSCConnection.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCConnection.cpp; path = ../../Source/Network/OSCConnection.cpp; sourceTree = SOURCE_ROOT; };
 		2005A065341F1626D8F31859 /* AudioToolbox.framework */ /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
+		22239A7EE1C91BB1BEF3837D /* WfsFrHostState.h */ /* WfsFrHostState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WfsFrHostState.h; path = ../../Source/DSP/gpu/WfsFrHostState.h; sourceTree = SOURCE_ROOT; };
 		227E033B18F6304BAF888B94 /* WFSCalculationEngine.h */ /* WFSCalculationEngine.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WFSCalculationEngine.h; path = ../../Source/DSP/WFSCalculationEngine.h; sourceTree = SOURCE_ROOT; };
 		229DF65578A1BC3F82152487 /* DescribeParametersTool.h */ /* DescribeParametersTool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = DescribeParametersTool.h; path = ../../Source/Network/MCP/tools/DescribeParametersTool.h; sourceTree = SOURCE_ROOT; };
 		23EC5C0EFA931E9866518795 /* OutputsTab.h */ /* OutputsTab.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OutputsTab.h; path = ../../Source/gui/OutputsTab.h; sourceTree = SOURCE_ROOT; };
@@ -723,6 +724,7 @@
 				5EE8561910D4E43289134E47,
 				E7C67F1EB385D69F14F82390,
 				526321277F378A837914E05F,
+				22239A7EE1C91BB1BEF3837D,
 				16A918666FE95AAB720D7269,
 				63B19585FA472659C2B6305D,
 				388303C536A2A156D54D0EDD,

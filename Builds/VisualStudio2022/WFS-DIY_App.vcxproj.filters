@@ -4701,6 +4701,9 @@
     <ClInclude Include="..\..\Source\DSP\gpu\CudaWfsKernels.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\DSP\gpu\WfsFrHostState.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\DSP\TestSignalGenerator.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>

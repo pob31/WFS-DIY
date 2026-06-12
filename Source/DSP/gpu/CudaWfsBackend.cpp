@@ -1,16 +1,17 @@
 /*
     CudaWfsBackend implementation.
 
-    The kernel source lives in CudaWfsKernels.h as a string literal so the app
-    needs no .cu file and no nvcc build step; it is compiled at prepare() time
-    via NVRTC (~tens of ms once) into PTX, loaded with the CUDA Driver API, and
-    launched with cuLaunchKernel. Buffers and copies use the CUDA Runtime API.
-    Runtime + driver API share the device's primary context.
+    The kernel sources live in CudaWfsKernels.h as a string literal so the app
+    needs no .cu file and no nvcc build step; they are compiled at prepare()
+    time via NVRTC (~tens of ms once) into PTX, loaded with the CUDA Driver
+    API, and launched with cuLaunchKernel. Buffers and copies use the CUDA
+    Runtime API. Runtime + driver API share the device's primary context.
 
     Host-side processBlock mirrors MetalWfsBackend.mm exactly (matrix snapshot
-    with -L compensation, prev->curr ramp continuity, persistent device ring,
+    with -L compensation, prev->curr ramp continuity, persistent device rings,
     host-tracked ring advance), so the audible behaviour matches the Metal twin
-    and the CPU reference.
+    and the CPU reference. Floor-Reflection host work (per-input pre-filter,
+    diffusion jitter, FR matrix snapshot) lives in the shared WfsFrHostState.
 
     Threading note: prepare() runs on the engine-setup thread, but processBlock()
     runs on the GpuAsyncPipeline pump thread. CUDA driver-API context currency is
@@ -27,6 +28,7 @@
 
 #include "CudaWfsBackend.h"
 #include "CudaWfsKernels.h"
+#include "WfsFrHostState.h"
 
 #include <cuda.h>           // driver API: CUcontext, cuModule*, cuLaunchKernel
 #include <cuda_runtime.h>   // runtime API: cudaMalloc, cudaHostAlloc, cudaMemcpyAsync, props
@@ -44,12 +46,14 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstring>
 #include <string>
 #include <vector>
 
 namespace
 {
+// Host mirror of the kernel-side WfsParams - layouts must match exactly.
 struct WfsParamsGpu
 {
     uint32_t numInputs;
@@ -58,6 +62,9 @@ struct WfsParamsGpu
     uint32_t ringCapacity;
     uint32_t ringWritePos;
     uint32_t ringValidSamples;
+    uint32_t pairGroups;
+    float    shelfCosW0;
+    float    shelfSinW0;
 };
 } // namespace
 
@@ -66,40 +73,72 @@ struct CudaWfsBackend::Impl
     CUcontext    context = nullptr;   // device primary context (retained)
     CUdevice     cuDevice = 0;
     CUmodule     module = nullptr;
-    CUfunction   kernel = nullptr;
+    CUfunction   kernelPairs = nullptr;
+    CUfunction   kernelReduce = nullptr;
     cudaStream_t stream = nullptr;
 
     // Pinned host staging.
     float* hIn = nullptr;
+    float* hFrIn = nullptr;
     float* hOut = nullptr;
     float* hDelaysPrev = nullptr;
     float* hDelaysCurr = nullptr;
     float* hGainsPrev = nullptr;
     float* hGainsCurr = nullptr;
+    float* hFrDelaysPrev = nullptr;
+    float* hFrDelaysCurr = nullptr;
+    float* hFrGainsPrev = nullptr;
+    float* hFrGainsCurr = nullptr;
+    float* hHfAttenDb = nullptr;
+    float* hFrHfAttenDb = nullptr;
 
-    // Device buffers (ring is persistent across launches).
+    // Device buffers (rings + shelf states persist across launches).
     void* dIn = nullptr;
+    void* dFrIn = nullptr;
     void* dOut = nullptr;
     void* dRing = nullptr;
+    void* dFrRing = nullptr;
+    void* dScratch = nullptr;        // [(s*numOut+out)*numIn+in], rewritten each launch
+    void* dShelfState = nullptr;     // [pairs][4] persistent
+    void* dFrShelfState = nullptr;   // [pairs][4] persistent
     void* dDelaysPrev = nullptr;
     void* dDelaysCurr = nullptr;
     void* dGainsPrev = nullptr;
     void* dGainsCurr = nullptr;
+    void* dFrDelaysPrev = nullptr;
+    void* dFrDelaysCurr = nullptr;
+    void* dFrGainsPrev = nullptr;
+    void* dFrGainsCurr = nullptr;
+    void* dHfAttenDb = nullptr;
+    void* dFrHfAttenDb = nullptr;
 
     int numIn = 0, numOut = 0, blockSize = 0;
     uint32_t ringCapacity = 0;
     uint32_t ringWritePos = 0;
     uint32_t ringValid = 0;
     uint32_t maxDelaySamples = 0;
+    uint32_t pairGroups = 0;
     double sampleRate = 0.0;
     float latencyMs = 0.0f;
+    float shelfCosW0 = 1.0f;
+    float shelfSinW0 = 0.0f;
 
-    const float* delaysMs = nullptr; // app's live matrices (input-major, ms / linear)
+    // App's live matrices (input-major). FR/HF pointers may be null.
+    const float* delaysMs = nullptr;
     const float* gains = nullptr;
+    const float* hfAttenDb = nullptr;
+    const float* frDelaysMs = nullptr;
+    const float* frLevels = nullptr;
+    const float* frHfAttenDb = nullptr;
 
-    std::vector<float> delaysPrevSamples; // last launch's end matrices (samples / linear)
+    // Last launch's end matrices (ramp continuity).
+    std::vector<float> delaysPrevSamples;
     std::vector<float> gainsPrev;
+    std::vector<float> frDelaysPrevSamples;
+    std::vector<float> frGainsPrev;
     bool havePrev = false;
+
+    WfsFrHostState frHost;            // per-input FR pre-filters + jitter
 
     unsigned int threadsPerBlock = 256;
 };
@@ -175,7 +214,8 @@ bool CudaWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,
         nvrtcDestroyProgram (&prog);
 
         CK_DRV (cuModuleLoadDataEx (&m.module, ptx.data(), 0, nullptr, nullptr));
-        CK_DRV (cuModuleGetFunction (&m.kernel, m.module, "wfs_delay_sum"));
+        CK_DRV (cuModuleGetFunction (&m.kernelPairs, m.module, "wfs_pairs"));
+        CK_DRV (cuModuleGetFunction (&m.kernelReduce, m.module, "wfs_reduce"));
     }
 
     // 4) Geometry + sizing (identical to the Metal backend).
@@ -189,42 +229,100 @@ bool CudaWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,
     m.ringWritePos = 0;
     m.ringValid = 0;
     m.havePrev = false;
+    m.threadsPerBlock = 256;
+    m.pairGroups = (uint32_t) ((m.numIn * m.numOut + (int) m.threadsPerBlock - 1)
+                               / (int) m.threadsPerBlock);
+
+    // Fixed 800 Hz shelf frequency (WFSHighShelfFilter parity).
+    const double w0 = 2.0 * 3.14159265358979 * 800.0 / sampleRate;
+    m.shelfCosW0 = (float) std::cos (w0);
+    m.shelfSinW0 = (float) std::sin (w0);
 
     const uint32_t matrix = (uint32_t) (m.numIn * m.numOut);
 
-    // 5) Stream + pinned host staging + device buffers (+ zero the ring once).
+    // 5) Stream + pinned host staging + device buffers (+ zero persistent state).
     CK_RT (cudaStreamCreate (&m.stream));
 
-    CK_RT (cudaHostAlloc ((void**) &m.hIn,  (size_t) m.numIn  * m.blockSize * sizeof (float), cudaHostAllocDefault));
-    CK_RT (cudaHostAlloc ((void**) &m.hOut, (size_t) m.numOut * m.blockSize * sizeof (float), cudaHostAllocDefault));
-    CK_RT (cudaHostAlloc ((void**) &m.hDelaysPrev, matrix * sizeof (float), cudaHostAllocDefault));
-    CK_RT (cudaHostAlloc ((void**) &m.hDelaysCurr, matrix * sizeof (float), cudaHostAllocDefault));
-    CK_RT (cudaHostAlloc ((void**) &m.hGainsPrev,  matrix * sizeof (float), cudaHostAllocDefault));
-    CK_RT (cudaHostAlloc ((void**) &m.hGainsCurr,  matrix * sizeof (float), cudaHostAllocDefault));
+    auto pin = [] (float** p, size_t n) {
+        return cudaHostAlloc ((void**) p, n * sizeof (float), cudaHostAllocDefault);
+    };
+    CK_RT (pin (&m.hIn,   (size_t) m.numIn  * m.blockSize));
+    CK_RT (pin (&m.hFrIn, (size_t) m.numIn  * m.blockSize));
+    CK_RT (pin (&m.hOut,  (size_t) m.numOut * m.blockSize));
+    CK_RT (pin (&m.hDelaysPrev, matrix));
+    CK_RT (pin (&m.hDelaysCurr, matrix));
+    CK_RT (pin (&m.hGainsPrev,  matrix));
+    CK_RT (pin (&m.hGainsCurr,  matrix));
+    CK_RT (pin (&m.hFrDelaysPrev, matrix));
+    CK_RT (pin (&m.hFrDelaysCurr, matrix));
+    CK_RT (pin (&m.hFrGainsPrev,  matrix));
+    CK_RT (pin (&m.hFrGainsCurr,  matrix));
+    CK_RT (pin (&m.hHfAttenDb,    matrix));
+    CK_RT (pin (&m.hFrHfAttenDb,  matrix));
 
-    CK_RT (cudaMalloc (&m.dIn,  (size_t) m.numIn  * m.blockSize * sizeof (float)));
-    CK_RT (cudaMalloc (&m.dOut, (size_t) m.numOut * m.blockSize * sizeof (float)));
-    CK_RT (cudaMalloc (&m.dRing, (size_t) m.numIn * m.ringCapacity * sizeof (float)));
+    CK_RT (cudaMalloc (&m.dIn,   (size_t) m.numIn  * m.blockSize * sizeof (float)));
+    CK_RT (cudaMalloc (&m.dFrIn, (size_t) m.numIn  * m.blockSize * sizeof (float)));
+    CK_RT (cudaMalloc (&m.dOut,  (size_t) m.numOut * m.blockSize * sizeof (float)));
+    CK_RT (cudaMalloc (&m.dRing,   (size_t) m.numIn * m.ringCapacity * sizeof (float)));
+    CK_RT (cudaMalloc (&m.dFrRing, (size_t) m.numIn * m.ringCapacity * sizeof (float)));
+    CK_RT (cudaMalloc (&m.dScratch, (size_t) m.numIn * m.numOut * m.blockSize * sizeof (float)));
+    CK_RT (cudaMalloc (&m.dShelfState,   (size_t) matrix * 4 * sizeof (float)));
+    CK_RT (cudaMalloc (&m.dFrShelfState, (size_t) matrix * 4 * sizeof (float)));
     CK_RT (cudaMalloc (&m.dDelaysPrev, matrix * sizeof (float)));
     CK_RT (cudaMalloc (&m.dDelaysCurr, matrix * sizeof (float)));
     CK_RT (cudaMalloc (&m.dGainsPrev,  matrix * sizeof (float)));
     CK_RT (cudaMalloc (&m.dGainsCurr,  matrix * sizeof (float)));
+    CK_RT (cudaMalloc (&m.dFrDelaysPrev, matrix * sizeof (float)));
+    CK_RT (cudaMalloc (&m.dFrDelaysCurr, matrix * sizeof (float)));
+    CK_RT (cudaMalloc (&m.dFrGainsPrev,  matrix * sizeof (float)));
+    CK_RT (cudaMalloc (&m.dFrGainsCurr,  matrix * sizeof (float)));
+    CK_RT (cudaMalloc (&m.dHfAttenDb,    matrix * sizeof (float)));
+    CK_RT (cudaMalloc (&m.dFrHfAttenDb,  matrix * sizeof (float)));
 
-    CK_RT (cudaMemset (m.dRing, 0, (size_t) m.numIn * m.ringCapacity * sizeof (float)));
+    CK_RT (cudaMemset (m.dRing,   0, (size_t) m.numIn * m.ringCapacity * sizeof (float)));
+    CK_RT (cudaMemset (m.dFrRing, 0, (size_t) m.numIn * m.ringCapacity * sizeof (float)));
+    CK_RT (cudaMemset (m.dShelfState,   0, (size_t) matrix * 4 * sizeof (float)));
+    CK_RT (cudaMemset (m.dFrShelfState, 0, (size_t) matrix * 4 * sizeof (float)));
 
     m.delaysPrevSamples.assign (matrix, 0.0f);
     m.gainsPrev.assign (matrix, 0.0f);
-    m.threadsPerBlock = 256;
+    m.frDelaysPrevSamples.assign (matrix, 0.0f);
+    m.frGainsPrev.assign (matrix, 0.0f);
+
+    m.frHost.prepare (m.numIn, m.numOut, sampleRate);
 
     ready = true;
     lastError.clear();
     return true;
 }
 
-void CudaWfsBackend::setMatrixPointers (const float* delaysMsPtr, const float* gainsPtr) noexcept
+void CudaWfsBackend::setMatrixPointers (const float* delaysMsPtr, const float* gainsPtr,
+                                        const float* hfAttenDbPtr,
+                                        const float* frDelaysMsPtr,
+                                        const float* frLevelsPtr,
+                                        const float* frHfAttenDbPtr) noexcept
 {
     impl->delaysMs = delaysMsPtr;
     impl->gains = gainsPtr;
+    impl->hfAttenDb = hfAttenDbPtr;
+    impl->frDelaysMs = frDelaysMsPtr;
+    impl->frLevels = frLevelsPtr;
+    impl->frHfAttenDb = frHfAttenDbPtr;
+}
+
+void CudaWfsBackend::setFRFilterParams (int inputIndex,
+                                        bool lowCutActive, float lowCutFreq,
+                                        bool highShelfActive, float highShelfFreq,
+                                        float highShelfGain, float highShelfSlope) noexcept
+{
+    impl->frHost.setFRFilterParams (inputIndex, lowCutActive, lowCutFreq,
+                                    highShelfActive, highShelfFreq,
+                                    highShelfGain, highShelfSlope);
+}
+
+void CudaWfsBackend::setFRDiffusion (int inputIndex, float diffusionPercent) noexcept
+{
+    impl->frHost.setFRDiffusion (inputIndex, diffusionPercent);
 }
 
 bool CudaWfsBackend::processBlock (const float* const* inputs, float* const* outputs)
@@ -258,16 +356,38 @@ bool CudaWfsBackend::processBlock (const float* const* inputs, float* const* out
         dCurr[i] = std::clamp (d, 0.0f, maxDelay);
         gCurr[i] = m.gains != nullptr ? m.gains[i] : 0.0f;
     }
+
+    // Shelf gains: raw dB, stepwise per launch (CPU parity: per-block setGainDb).
+    for (uint32_t i = 0; i < matrix; ++i)
+    {
+        m.hHfAttenDb[i] = m.hfAttenDb != nullptr ? m.hfAttenDb[i] : 0.0f;
+        m.hFrHfAttenDb[i] = m.frHfAttenDb != nullptr ? m.frHfAttenDb[i] : 0.0f;
+    }
+
+    // FR: advance diffusion jitter (64-sample sub-step cadence), then snapshot
+    // the FR curr matrices. The pipeline latency is subtracted from the
+    // ABSOLUTE FR delay (direct + extra + jitter - L), preserving the
+    // FR-vs-direct offset exactly.
+    m.frHost.advanceJitter (m.blockSize);
+    m.frHost.computeFrCurr (m.delaysMs, m.frDelaysMs, m.frLevels,
+                            m.latencyMs, srScale, maxDelay,
+                            m.hFrDelaysCurr, m.hFrGainsCurr);
+
     if (! m.havePrev)
     {
         std::memcpy (m.delaysPrevSamples.data(), dCurr, matrix * sizeof (float));
         std::memcpy (m.gainsPrev.data(), gCurr, matrix * sizeof (float));
+        std::memcpy (m.frDelaysPrevSamples.data(), m.hFrDelaysCurr, matrix * sizeof (float));
+        std::memcpy (m.frGainsPrev.data(), m.hFrGainsCurr, matrix * sizeof (float));
         m.havePrev = true;
     }
     std::memcpy (m.hDelaysPrev, m.delaysPrevSamples.data(), matrix * sizeof (float));
     std::memcpy (m.hGainsPrev, m.gainsPrev.data(), matrix * sizeof (float));
+    std::memcpy (m.hFrDelaysPrev, m.frDelaysPrevSamples.data(), matrix * sizeof (float));
+    std::memcpy (m.hFrGainsPrev, m.frGainsPrev.data(), matrix * sizeof (float));
 
-    // Input channels -> flat pinned buffer (silence for missing channels).
+    // Input channels -> flat pinned buffer (silence for missing channels),
+    // and the host-side FR pre-filter chain -> frIn staging.
     for (int ch = 0; ch < m.numIn; ++ch)
     {
         if (inputs[ch] != nullptr)
@@ -275,34 +395,67 @@ bool CudaWfsBackend::processBlock (const float* const* inputs, float* const* out
         else
             std::memset (m.hIn + (size_t) ch * m.blockSize, 0, (size_t) m.blockSize * sizeof (float));
     }
+    m.frHost.filterBlock (inputs, m.hFrIn, m.blockSize);
 
-    // Host -> device (the persistent ring stays on the device).
+    // Host -> device (the persistent rings + shelf states stay on the device).
 #define PB_RT(call) do { cudaError_t _e = (call); if (_e != cudaSuccess) { \
     lastError = std::string ("CUDA runtime: ") + cudaGetErrorString (_e); ready = false; return false; } } while (0)
 
-    PB_RT (cudaMemcpyAsync (m.dIn, m.hIn, (size_t) m.numIn * m.blockSize * sizeof (float), cudaMemcpyHostToDevice, m.stream));
-    PB_RT (cudaMemcpyAsync (m.dDelaysPrev, m.hDelaysPrev, matrix * sizeof (float), cudaMemcpyHostToDevice, m.stream));
-    PB_RT (cudaMemcpyAsync (m.dDelaysCurr, m.hDelaysCurr, matrix * sizeof (float), cudaMemcpyHostToDevice, m.stream));
-    PB_RT (cudaMemcpyAsync (m.dGainsPrev, m.hGainsPrev, matrix * sizeof (float), cudaMemcpyHostToDevice, m.stream));
-    PB_RT (cudaMemcpyAsync (m.dGainsCurr, m.hGainsCurr, matrix * sizeof (float), cudaMemcpyHostToDevice, m.stream));
+    auto up = [&m] (void* dst, const float* src, size_t floats) {
+        return cudaMemcpyAsync (dst, src, floats * sizeof (float), cudaMemcpyHostToDevice, m.stream);
+    };
+    PB_RT (up (m.dIn,   m.hIn,   (size_t) m.numIn * m.blockSize));
+    PB_RT (up (m.dFrIn, m.hFrIn, (size_t) m.numIn * m.blockSize));
+    PB_RT (up (m.dDelaysPrev, m.hDelaysPrev, matrix));
+    PB_RT (up (m.dDelaysCurr, m.hDelaysCurr, matrix));
+    PB_RT (up (m.dGainsPrev, m.hGainsPrev, matrix));
+    PB_RT (up (m.dGainsCurr, m.hGainsCurr, matrix));
+    PB_RT (up (m.dFrDelaysPrev, m.hFrDelaysPrev, matrix));
+    PB_RT (up (m.dFrDelaysCurr, m.hFrDelaysCurr, matrix));
+    PB_RT (up (m.dFrGainsPrev, m.hFrGainsPrev, matrix));
+    PB_RT (up (m.dFrGainsCurr, m.hFrGainsCurr, matrix));
+    PB_RT (up (m.dHfAttenDb, m.hHfAttenDb, matrix));
+    PB_RT (up (m.dFrHfAttenDb, m.hFrHfAttenDb, matrix));
 
     WfsParamsGpu p { (uint32_t) m.numIn, (uint32_t) m.numOut, (uint32_t) m.blockSize,
-                     m.ringCapacity, m.ringWritePos, m.ringValid };
+                     m.ringCapacity, m.ringWritePos, m.ringValid,
+                     m.pairGroups, m.shelfCosW0, m.shelfSinW0 };
 
-    void* args[] = { &p, &m.dIn, &m.dOut, &m.dRing,
-                     &m.dDelaysPrev, &m.dDelaysCurr, &m.dGainsPrev, &m.dGainsCurr };
+    void* pairsArgs[] = { &p, &m.dIn, &m.dFrIn, &m.dRing, &m.dFrRing,
+                          &m.dDelaysPrev, &m.dDelaysCurr, &m.dGainsPrev, &m.dGainsCurr,
+                          &m.dFrDelaysPrev, &m.dFrDelaysCurr, &m.dFrGainsPrev, &m.dFrGainsCurr,
+                          &m.dHfAttenDb, &m.dFrHfAttenDb,
+                          &m.dShelfState, &m.dFrShelfState, &m.dScratch };
 
-    const unsigned int gridX = (unsigned int) (m.numOut + m.numIn);
-    const CUresult lr = cuLaunchKernel (m.kernel,
-                                        gridX, 1, 1,
-                                        m.threadsPerBlock, 1, 1,
-                                        0, (CUstream) m.stream,
-                                        args, nullptr);
+    // K1: pair role + both ring appends.
+    const unsigned int gridPairs = m.pairGroups + 2u * (unsigned int) m.numIn;
+    CUresult lr = cuLaunchKernel (m.kernelPairs,
+                                  gridPairs, 1, 1,
+                                  m.threadsPerBlock, 1, 1,
+                                  0, (CUstream) m.stream,
+                                  pairsArgs, nullptr);
     if (lr != CUDA_SUCCESS)
     {
         const char* s = nullptr;
         cuGetErrorString (lr, &s);
-        lastError = std::string ("CUDA launch failed: ") + (s ? s : "unknown");
+        lastError = std::string ("CUDA launch failed (pairs): ") + (s ? s : "unknown");
+        ready = false;
+        return false;
+    }
+
+    // K2: deterministic per-output reduction over the scratch (stream-ordered
+    // after K1).
+    void* reduceArgs[] = { &p, &m.dScratch, &m.dOut };
+    lr = cuLaunchKernel (m.kernelReduce,
+                         (unsigned int) m.numOut, 1, 1,
+                         m.threadsPerBlock, 1, 1,
+                         0, (CUstream) m.stream,
+                         reduceArgs, nullptr);
+    if (lr != CUDA_SUCCESS)
+    {
+        const char* s = nullptr;
+        cuGetErrorString (lr, &s);
+        lastError = std::string ("CUDA launch failed (reduce): ") + (s ? s : "unknown");
         ready = false;
         return false;
     }
@@ -322,6 +475,8 @@ bool CudaWfsBackend::processBlock (const float* const* inputs, float* const* out
     m.ringValid = std::min (m.maxDelaySamples, m.ringValid + (uint32_t) m.blockSize);
     std::memcpy (m.delaysPrevSamples.data(), dCurr, matrix * sizeof (float));
     std::memcpy (m.gainsPrev.data(), gCurr, matrix * sizeof (float));
+    std::memcpy (m.frDelaysPrevSamples.data(), m.hFrDelaysCurr, matrix * sizeof (float));
+    std::memcpy (m.frGainsPrev.data(), m.hFrGainsCurr, matrix * sizeof (float));
 
     lastLaunchMs = std::chrono::duration<double, std::milli> (
                        std::chrono::steady_clock::now() - t0).count();
@@ -333,8 +488,17 @@ void CudaWfsBackend::reset() noexcept
     auto& m = *impl;
     if (m.context != nullptr)
         cuCtxSetCurrent (m.context);
-    if (m.dRing != nullptr && m.numIn > 0 && m.ringCapacity > 0)
-        cudaMemset (m.dRing, 0, (size_t) m.numIn * m.ringCapacity * sizeof (float));
+    const size_t ringBytes = (size_t) m.numIn * m.ringCapacity * sizeof (float);
+    const size_t stateBytes = (size_t) m.numIn * m.numOut * 4 * sizeof (float);
+    if (m.dRing != nullptr && ringBytes > 0)
+        cudaMemset (m.dRing, 0, ringBytes);
+    if (m.dFrRing != nullptr && ringBytes > 0)
+        cudaMemset (m.dFrRing, 0, ringBytes);
+    if (m.dShelfState != nullptr && stateBytes > 0)
+        cudaMemset (m.dShelfState, 0, stateBytes);
+    if (m.dFrShelfState != nullptr && stateBytes > 0)
+        cudaMemset (m.dFrShelfState, 0, stateBytes);
+    m.frHost.reset();
     m.ringWritePos = 0;
     m.ringValid = 0;
     m.havePrev = false;
@@ -350,22 +514,36 @@ void CudaWfsBackend::release() noexcept
     auto freeHost = [] (float*& p) { if (p != nullptr) { cudaFreeHost (p); p = nullptr; } };
     auto freeDev  = [] (void*&  p) { if (p != nullptr) { cudaFree (p);     p = nullptr; } };
 
-    freeHost (m.hIn);  freeHost (m.hOut);
+    freeHost (m.hIn);  freeHost (m.hFrIn);  freeHost (m.hOut);
     freeHost (m.hDelaysPrev); freeHost (m.hDelaysCurr);
     freeHost (m.hGainsPrev);  freeHost (m.hGainsCurr);
+    freeHost (m.hFrDelaysPrev); freeHost (m.hFrDelaysCurr);
+    freeHost (m.hFrGainsPrev);  freeHost (m.hFrGainsCurr);
+    freeHost (m.hHfAttenDb);    freeHost (m.hFrHfAttenDb);
 
-    freeDev (m.dIn);  freeDev (m.dOut);  freeDev (m.dRing);
+    freeDev (m.dIn);  freeDev (m.dFrIn);  freeDev (m.dOut);
+    freeDev (m.dRing);  freeDev (m.dFrRing);
+    freeDev (m.dScratch);
+    freeDev (m.dShelfState); freeDev (m.dFrShelfState);
     freeDev (m.dDelaysPrev); freeDev (m.dDelaysCurr);
     freeDev (m.dGainsPrev);  freeDev (m.dGainsCurr);
+    freeDev (m.dFrDelaysPrev); freeDev (m.dFrDelaysCurr);
+    freeDev (m.dFrGainsPrev);  freeDev (m.dFrGainsCurr);
+    freeDev (m.dHfAttenDb);    freeDev (m.dFrHfAttenDb);
 
     if (m.stream != nullptr) { cudaStreamDestroy (m.stream); m.stream = nullptr; }
     if (m.module != nullptr) { cuModuleUnload (m.module); m.module = nullptr; }
-    m.kernel = nullptr;
+    m.kernelPairs = nullptr;
+    m.kernelReduce = nullptr;
 
     if (m.context != nullptr) { cuDevicePrimaryCtxRelease (m.cuDevice); m.context = nullptr; }
 
     m.delaysMs = nullptr;
     m.gains = nullptr;
+    m.hfAttenDb = nullptr;
+    m.frDelaysMs = nullptr;
+    m.frLevels = nullptr;
+    m.frHfAttenDb = nullptr;
     m.havePrev = false;
     ready = false;
 }

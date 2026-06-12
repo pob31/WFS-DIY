@@ -5,11 +5,19 @@
     the Windows/NVIDIA twin of MetalWfsBackend.
 
     JUCE-free, SDK-free. Owns the CUDA objects, the persistent per-input delay
-    ring (host-tracked positions, device-resident storage), and the prev->curr
-    matrix tracking that gives zipper-free per-sample parameter ramps inside the
-    kernel. The kernel is compiled at prepare() time via NVRTC (mirroring the
-    Metal backend's runtime MSL compile) and launched with the CUDA Driver API,
-    so the build needs no .cu file and no nvcc step.
+    rings (direct + Floor-Reflection; host-tracked positions, device-resident
+    storage), the per-pair HF shelf filter states, and the prev->curr matrix
+    tracking that gives zipper-free per-sample parameter ramps inside the
+    kernels. The kernels are compiled at prepare() time via NVRTC (mirroring
+    the Metal backend's runtime MSL compile) and launched with the CUDA Driver
+    API, so the build needs no .cu file and no nvcc step.
+
+    DSP parity with the CPU InputBuffer reference: per-pair 800 Hz / Q 0.3 HF
+    shelf on both taps (stepwise per launch, like the CPU's per-block
+    setGainDb), Floor Reflections with per-input pre-filter chain (host-side,
+    reusing WFSBiquadFilter verbatim) and live diffusion jitter. FR gains ramp
+    per sample where the CPU steps them at 50 Hz - same accepted-divergence
+    class as the base port's delay ramps.
 
     Threading contract: single caller thread for processBlock() (the
     GpuAsyncPipeline pump). processBlock is synchronous (async copies + launch
@@ -48,9 +56,27 @@ public:
                   double pipelineLatencyMs,
                   double maxDelaySeconds = 1.0);
 
-    /** Points the backend at the app's live matrices (ms delays, linear
-        gains, input-major [in*numOutputs+out]). Read at every launch. */
-    void setMatrixPointers (const float* delaysMs, const float* gains) noexcept;
+    /** Points the backend at the app's live matrices (input-major
+        [in*numOutputs+out]). Read at every launch. delaysMs in ms, gains
+        linear; hfAttenDb / frHfAttenDb in dB (negative); frDelaysMs is the
+        EXTRA delay of the reflected path relative to direct; frLevels are
+        ABSOLUTE linear gains. The four FR/HF pointers may be null (features
+        silent). */
+    void setMatrixPointers (const float* delaysMs, const float* gains,
+                            const float* hfAttenDb = nullptr,
+                            const float* frDelaysMs = nullptr,
+                            const float* frLevels = nullptr,
+                            const float* frHfAttenDb = nullptr) noexcept;
+
+    /** Per-input Floor-Reflection pre-filter parameters (50 Hz timer thread).
+        Mirrors InputBufferProcessor's setters. */
+    void setFRFilterParams (int inputIndex,
+                            bool lowCutActive, float lowCutFreq,
+                            bool highShelfActive, float highShelfFreq,
+                            float highShelfGain, float highShelfSlope) noexcept;
+
+    /** Per-input FR diffusion amount (0-100%); max jitter 5 ms at 100%. */
+    void setFRDiffusion (int inputIndex, float diffusionPercent) noexcept;
 
     /** Processes one block synchronously on the GPU.
         inputs/outputs: arrays of channel pointers (numInputs / numOutputs),

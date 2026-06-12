@@ -379,6 +379,8 @@
               file="Source/DSP/gpu/CudaWfsBackend.cpp"/>
         <FILE id="cudaKrnl" name="CudaWfsKernels.h" compile="0" resource="0"
               file="Source/DSP/gpu/CudaWfsKernels.h"/>
+        <FILE id="gpuFrHost" name="WfsFrHostState.h" compile="0" resource="0"
+              file="Source/DSP/gpu/WfsFrHostState.h"/>
         <FILE id="testSigGenH" name="TestSignalGenerator.h" compile="0" resource="0"
               file="Source/DSP/TestSignalGenerator.h"/>
         <FILE id="testSigGenCpp" name="TestSignalGenerator.cpp" compile="1"

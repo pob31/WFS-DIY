@@ -529,11 +529,20 @@ private:
         // Smoothing factor for jitter transitions (~50Hz update at 64-sample blocks @ 48kHz)
         const float smoothingFactor = 0.05f;
 
+        // Decide first whether this block draws new targets (every 3rd block).
+        // The check must run on the incremented counter BEFORE the per-output
+        // loop - the previous check-at-top/reset-at-bottom ordering could never
+        // see the counter reach 3, so targets were never drawn and the
+        // Diffusion control was silently inert.
+        frDiffusionUpdateCounter++;
+        const bool drawNewTargets = (frDiffusionUpdateCounter >= 3);
+        if (drawNewTargets)
+            frDiffusionUpdateCounter = 0;
+
         // Update each output's jitter
         for (size_t outIdx = 0; outIdx < frDiffusionState.size(); ++outIdx)
         {
-            // Occasionally update the target jitter
-            if (frDiffusionUpdateCounter >= 3)  // Update target every ~3 blocks
+            if (drawNewTargets)
             {
                 // Generate random value in range [-maxJitter, +maxJitter]
                 std::uniform_real_distribution<float> dist(-maxJitterMs, maxJitterMs);
@@ -543,10 +552,6 @@ private:
             // Smooth towards target
             frDiffusionState[outIdx] += (frDiffusionTarget[outIdx] - frDiffusionState[outIdx]) * smoothingFactor;
         }
-
-        frDiffusionUpdateCounter++;
-        if (frDiffusionUpdateCounter >= 3)
-            frDiffusionUpdateCounter = 0;
     }
 
     int inputChannelIndex;
