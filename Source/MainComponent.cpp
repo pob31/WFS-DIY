@@ -2574,6 +2574,7 @@ void MainComponent::resizeRoutingMatrices()
     // Floor Reflection matrices
     frDelayTimesMs.assign(matrixSize, 0.0f);
     frLevels.assign(matrixSize, 0.0f);
+    targetFRLevels.assign(matrixSize, 0.0f);
     frHFAttenuation.assign(matrixSize, 0.0f);
 
     // Initialize with zeros - WFSCalculationEngine will provide real values
@@ -4655,6 +4656,7 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
             {
                 delayTimesMs[i] += (targetDelayTimesMs[i] - delayTimesMs[i]) * delaySmoothingFactor;
                 levels[i] += (targetLevels[i] - levels[i]) * levelSmoothingFactor;
+                frLevels[i] += (targetFRLevels[i] - frLevels[i]) * levelSmoothingFactor;
             }
         }
 
@@ -5438,9 +5440,13 @@ void MainComponent::timerCallback()
                     targetLevels[dstIdx] = calcLevels[srcIdx];
                     hfAttenuation[dstIdx] = calcHF[srcIdx];  // HF doesn't need smoothing - filter handles it
 
-                    // Copy FR matrices (direct copy, no smoothing needed)
+                    // Copy FR matrices. Delays/HF apply directly (delay changes are
+                    // smoothed per-processor; HF steps are filter-coefficient updates),
+                    // but the LEVEL goes through the same one-pole fade as the direct
+                    // level - an instant FR level at engage produced a loud coherent
+                    // onset (tap starts at the direct delay before sliding away).
                     frDelayTimesMs[dstIdx] = calcFRDelays[srcIdx];
-                    frLevels[dstIdx] = calcFRLevels[srcIdx];
+                    targetFRLevels[dstIdx] = calcFRLevels[srcIdx];
                     frHFAttenuation[dstIdx] = calcFRHF[srcIdx];
                 }
             }

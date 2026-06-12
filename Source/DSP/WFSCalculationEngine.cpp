@@ -2459,9 +2459,25 @@ void WFSCalculationEngine::valueTreePropertyChanged (juce::ValueTree& tree,
                                   property == inputOffsetY ||
                                   property == inputOffsetZ);
 
+    // Floor Reflection parameters: per-input enable + attenuation, plus the FR
+    // low-cut / high-shelf / diffusion filter controls. These were absent from
+    // every dirty group, so toggling FR never set matrixDirty — the recalc (and
+    // the MainComponent handoff that copies FR levels/delays/filters into the
+    // processors) never ran, leaving the FR arrays at their zero init on all
+    // three algorithms. Treat them like any other per-input recalc trigger.
+    bool isInputFRProperty = (property == inputFRactive ||
+                              property == inputFRattenuation ||
+                              property == inputFRlowCutActive ||
+                              property == inputFRlowCutFreq ||
+                              property == inputFRhighShelfActive ||
+                              property == inputFRhighShelfFreq ||
+                              property == inputFRhighShelfGain ||
+                              property == inputFRhighShelfSlope ||
+                              property == inputFRdiffusion);
+
     if (isInputAttenProperty || isInputChannelProperty || isInputHeightProperty ||
         isInputDirectivityProperty || isInputMuteProperty || isInputLSProperty ||
-        isInputFlipProperty || isInputOffsetProperty)
+        isInputFlipProperty || isInputOffsetProperty || isInputFRProperty)
     {
         int inputIndex = findInputIndexFromTree (tree);
 
@@ -2483,6 +2499,7 @@ void WFSCalculationEngine::valueTreePropertyChanged (juce::ValueTree& tree,
                                    property == outputDistanceAttenPercent ||
                                    property == outputDelayLatency ||
                                    property == outputArray ||      // Array assignment affects per-array attenuation
+                                   property == outputFRenable ||   // Floor Reflection per-output enable (affects all inputs' FR)
                                    property == outputLSattenEnable);  // Live Source Tamer per-output enable
 
     // Output angular parameters

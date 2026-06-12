@@ -416,7 +416,7 @@ namespace WFSParameterDefaults
     constexpr float inputFRhighShelfSlopeMin    = 0.1f;
     constexpr float inputFRhighShelfSlopeMax    = 0.9f;
 
-    constexpr int inputFRdiffusionDefault       = 20;
+    constexpr int inputFRdiffusionDefault       = 40;
     constexpr int inputFRdiffusionMin           = 0;
     constexpr int inputFRdiffusionMax           = 100;
 

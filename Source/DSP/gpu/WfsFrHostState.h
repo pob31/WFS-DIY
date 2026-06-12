@@ -13,11 +13,12 @@
         the pump thread over numInputs x blockSize samples per launch (tens of
         microseconds) and fills the frIn staging buffer the kernel appends to
         the FR ring.
-      - Per-(in,out) diffusion jitter (the FIXED algorithm: draw a uniform
-        target every 3rd 64-sample sub-step, one-pole 0.05 toward it each
-        sub-step; per-input mt19937 seeded inputIndex*12345+67890 like the CPU
-        path). Runs ceil(blockSize/64) sub-steps per launch to match the CPU's
-        64-sample internal cadence regardless of host block size.
+      - Per-(in,out) diffusion grain (the shared zone-mapped model in
+        FrDiffusionModel.h, identical to the CPU processors): one-pole
+        low-passed hash noise per routing pair, stepped ONCE per launch with
+        updateInterval = blockSize. The kernel's prev->curr per-sample
+        interpolation reconstructs the same low-rate waveform the CPU paths
+        produce per-sample, so the grain character matches across backends.
       - FR curr-matrix computation: absolute FR delay in samples with the
         pipeline latency pre-subtracted from the ABSOLUTE delay
         (direct + extra + jitter - L), preserving the FR-vs-direct offset.
@@ -29,13 +30,13 @@
 */
 
 #include "../WFSBiquadFilter.h"
+#include "../FrDiffusionModel.h"
 
 #include <algorithm>
 #include <atomic>
 #include <cmath>
 #include <cstdint>
 #include <memory>
-#include <random>
 #include <vector>
 
 class WfsFrHostState
@@ -74,21 +75,19 @@ public:
             hs.setSlope (0.4f);
         }
 
-        jitterStateMs.assign ((size_t) numIn * (size_t) numOut, 0.0f);
-        jitterTargetMs.assign ((size_t) numIn * (size_t) numOut, 0.0f);
-        jitterCounters.assign ((size_t) numIn, 0);
-        jitterEngines.clear();
-        for (int i = 0; i < numIn; ++i)
-            jitterEngines.emplace_back ((unsigned int) (i * 12345 + 67890)); // same seeding as the CPU path
+        srHz = (float) sampleRate;
+        jitterLpState.assign ((size_t) numIn * (size_t) numOut, 0.0f);
+        jitterSamples.assign ((size_t) numIn * (size_t) numOut, 0.0f);
+        launchCounter = 0;
     }
 
     void reset()
     {
         for (auto& f : lowCutFilters)    f.reset();
         for (auto& f : highShelfFilters) f.reset();
-        std::fill (jitterStateMs.begin(), jitterStateMs.end(), 0.0f);
-        std::fill (jitterTargetMs.begin(), jitterTargetMs.end(), 0.0f);
-        std::fill (jitterCounters.begin(), jitterCounters.end(), 0);
+        std::fill (jitterLpState.begin(), jitterLpState.end(), 0.0f);
+        std::fill (jitterSamples.begin(), jitterSamples.end(), 0.0f);
+        launchCounter = 0;
     }
 
     // ==== 50 Hz timer-thread setters (mirror InputBufferProcessor's) ====
@@ -113,9 +112,10 @@ public:
     {
         if (inputIndex < 0 || inputIndex >= (int) params.size())
             return;
-        // Max jitter is 5 ms at 100% diffusion (5 / 100 = 0.05), as on CPU.
-        params[(size_t) inputIndex]->maxJitterMs.store (diffusionPercent * 0.05f,
-                                                        std::memory_order_release);
+        // Shared zone-mapped model (FrDiffusionModel.h); publish the fraction.
+        params[(size_t) inputIndex]->diffusionAmount.store (
+            std::min (1.0f, std::max (0.0f, diffusionPercent * 0.01f)),
+            std::memory_order_release);
     }
 
     // ==== Pump-thread per-launch steps ====
@@ -162,45 +162,39 @@ public:
         }
     }
 
-    /** Advances the diffusion jitter by ceil(blockSize/64) sub-steps, matching
-        the CPU's 64-sample internal cadence (draw new per-output targets every
-        3rd sub-step, one-pole 0.05 toward target each sub-step). */
+    /** Advances the diffusion grain by ONE step per launch (shared zone-mapped
+        model, updateInterval = blockSize - the amplitude normalisation in
+        FrDiffusionModel keeps the excursion identical to the CPU's per-sample
+        update). Fills jitterSamples[in*numOut+out] with the clamped per-pair
+        jitter in audio samples, consumed by computeFrCurr(). */
     void advanceJitter (int blockSize)
     {
-        const int subSteps = std::max (1, (blockSize + 63) / 64);
-        const float smoothingFactor = 0.05f;
-
-        for (int step = 0; step < subSteps; ++step)
+        for (int in = 0; in < numIn; ++in)
         {
-            for (int in = 0; in < numIn; ++in)
+            const float d = params[(size_t) in]->diffusionAmount.load (std::memory_order_acquire);
+            const auto coeffs = FrDiffusion::computeCoeffs (d, srHz, (float) blockSize);
+
+            const size_t base = (size_t) in * (size_t) numOut;
+            if (coeffs.ampSamples <= 0.0f)
             {
-                const float maxJitter = params[(size_t) in]->maxJitterMs.load (std::memory_order_acquire);
-
-                auto& counter = jitterCounters[(size_t) in];
-                ++counter;
-                const bool drawNewTargets = (counter >= 3);
-                if (drawNewTargets)
-                    counter = 0;
-
-                const size_t base = (size_t) in * (size_t) numOut;
-                for (int out = 0; out < numOut; ++out)
-                {
-                    if (drawNewTargets)
-                    {
-                        std::uniform_real_distribution<float> dist (-maxJitter, maxJitter);
-                        jitterTargetMs[base + (size_t) out] = dist (jitterEngines[(size_t) in]);
-                    }
-                    jitterStateMs[base + (size_t) out]
-                        += (jitterTargetMs[base + (size_t) out] - jitterStateMs[base + (size_t) out])
-                           * smoothingFactor;
-                }
+                std::fill (jitterSamples.begin() + (long) base,
+                           jitterSamples.begin() + (long) base + numOut, 0.0f);
+                continue;
             }
+
+            for (int out = 0; out < numOut; ++out)
+                jitterSamples[base + (size_t) out] = FrDiffusion::step (
+                    jitterLpState[base + (size_t) out], launchCounter,
+                    FrDiffusion::makeKey (in, out), coeffs);
         }
+        ++launchCounter;
     }
 
     /** Fills the FR curr matrices for this launch (input-major [in*numOut+out]):
-        frDelaysCurr in samples = clamp((directMs + extraMs + jitterMs - latencyMs)
-        * srScale, 0, maxDelaySamples); frGainsCurr = frLevels (absolute linear).
+        frDelaysCurr in samples = clamp((directMs + extraMs - latencyMs) * srScale
+        + jitterSamples, 0, maxDelaySamples); frGainsCurr = frLevels (absolute
+        linear). The diffusion grain is added POST-scale in samples - matching
+        the CPU paths, which add it post-smoother at the read/write position.
         Null app pointers produce zeros (FR silent). */
     void computeFrCurr (const float* delaysMs, const float* frDelaysMs, const float* frLevels,
                         float latencyMs, float srScale, float maxDelaySamples,
@@ -214,7 +208,7 @@ public:
 
             float d = 0.0f;
             if (delaysMs != nullptr && frDelaysMs != nullptr)
-                d = (delaysMs[m] + frDelaysMs[m] + jitterStateMs[m] - latencyMs) * srScale;
+                d = (delaysMs[m] + frDelaysMs[m] - latencyMs) * srScale + jitterSamples[m];
             frDelaysCurr[m] = std::clamp (d, 0.0f, maxDelaySamples);
         }
     }
@@ -228,7 +222,7 @@ private:
         std::atomic<float> highShelfFreq { 3000.0f };
         std::atomic<float> highShelfGain { -2.0f };
         std::atomic<float> highShelfSlope { 0.4f };
-        std::atomic<float> maxJitterMs { 0.0f };
+        std::atomic<float> diffusionAmount { 0.0f }; // Diffusion fraction 0..1
     };
 
     int numIn = 0, numOut = 0;
@@ -237,8 +231,8 @@ private:
     std::vector<WFSBiquadFilter> lowCutFilters;      // per input, persistent state
     std::vector<WFSBiquadFilter> highShelfFilters;   // per input, persistent state
 
-    std::vector<float> jitterStateMs;                // [in*numOut+out]
-    std::vector<float> jitterTargetMs;               // [in*numOut+out]
-    std::vector<int> jitterCounters;                 // per input
-    std::vector<std::mt19937> jitterEngines;         // per input
+    float srHz = 48000.0f;
+    uint32_t launchCounter = 0;
+    std::vector<float> jitterLpState;                // [in*numOut+out] one-pole LP state
+    std::vector<float> jitterSamples;                // [in*numOut+out] clamped jitter (audio samples)
 };

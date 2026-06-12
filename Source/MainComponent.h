@@ -359,6 +359,7 @@ private:
     // Random generator with ramping and exponential smoothing (temporary for testing)
     std::vector<float> targetDelayTimesMs;      // Current ramp targets (updated every tick)
     std::vector<float> targetLevels;            // Current ramp targets (updated every tick)
+    std::vector<float> targetFRLevels;          // FR level ramp targets (FR fades in/out like direct)
     std::vector<float> finalTargetDelayTimesMs; // Final destination for 1-second ramp
     std::vector<float> finalTargetLevels;       // Final destination for 1-second ramp
     std::vector<float> startDelayTimesMs;       // Starting values for 1-second ramp

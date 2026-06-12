@@ -7,6 +7,7 @@
 #include "WFSHighShelfFilter.h"
 #include "WFSBiquadFilter.h"
 #include "DelayTargetSmoother.h"
+#include "FrDiffusionModel.h"
 #include "AudioWorkgroupCoordinator.h"
 #include <atomic>
 #include <cstdint>
@@ -58,20 +59,24 @@ public:
         smootherDirect.resize(static_cast<size_t>(numInputs));
         smootherFR.resize(static_cast<size_t>(numInputs));
 
-        // Initialize diffusion state (one per input)
+        // Diffusion grain state (one per input): shared zone-mapped model, see
+        // FrDiffusionModel.h. Keys are per (input, output) so every routing
+        // pair has an independent noise stream.
         frDiffusionState.resize(static_cast<size_t>(numInputs), 0.0f);
-        frDiffusionTarget.resize(static_cast<size_t>(numInputs), 0.0f);
+        frJitterKey.resize(static_cast<size_t>(numInputs), 0u);
+        frJitterCoeffs.resize(static_cast<size_t>(numInputs));
+        frLastLevel.resize(static_cast<size_t>(numInputs), 0.0f);
 
-        // Allocate FR filter enable flags and max jitter (per input) using placement new
+        // Allocate FR filter enable flags and diffusion amounts (per input)
         storedNumInputs = numInputs;
         frLowCutActiveFlags = new std::atomic<bool>[static_cast<size_t>(numInputs)];
         frHighShelfActiveFlags = new std::atomic<bool>[static_cast<size_t>(numInputs)];
-        frMaxJitterMs = new std::atomic<float>[static_cast<size_t>(numInputs)];
+        frDiffusionAmount = new std::atomic<float>[static_cast<size_t>(numInputs)];
         for (int i = 0; i < numInputs; ++i)
         {
             frLowCutActiveFlags[i].store(false, std::memory_order_relaxed);
             frHighShelfActiveFlags[i].store(false, std::memory_order_relaxed);
-            frMaxJitterMs[i].store(0.0f, std::memory_order_relaxed);
+            frDiffusionAmount[i].store(0.0f, std::memory_order_relaxed);
         }
     }
 
@@ -80,7 +85,7 @@ public:
         stopThread(1000);
         delete[] frLowCutActiveFlags;
         delete[] frHighShelfActiveFlags;
-        delete[] frMaxJitterMs;
+        delete[] frDiffusionAmount;
     }
 
     /** Optional: realtime workgroup to (re)join from the worker thread (macOS). */
@@ -136,8 +141,10 @@ public:
         for (auto& s : smootherFR)     s.prepare(windowSamples);
         sampleCounter = 0;
 
-        // Initialize diffusion random generator with output-specific seed
-        frRandom.seed(static_cast<unsigned int>(outputChannelIndex * 54321 + 98765));
+        // Per-input noise stream keys: distinct per (input, output) so every
+        // routing pair's grain is an independent stream (see FrDiffusionModel.h).
+        for (size_t i = 0; i < frJitterKey.size(); ++i)
+            frJitterKey[i] = FrDiffusion::makeKey (static_cast<int> (i), outputChannelIndex);
     }
 
     /** Set shared input buffer pointers (called once at prepare time). */
@@ -193,7 +200,7 @@ public:
             frHFFilters[i].reset();
         }
         std::fill(frDiffusionState.begin(), frDiffusionState.end(), 0.0f);
-        std::fill(frDiffusionTarget.begin(), frDiffusionTarget.end(), 0.0f);
+        std::fill(frLastLevel.begin(), frLastLevel.end(), 0.0f);
     }
 
     void setProcessingEnabled(bool enabled)
@@ -241,14 +248,16 @@ public:
         }
     }
 
-    /** Set FR diffusion amount for a specific input (0-100%) */
+    /** Set FR diffusion amount for a specific input (0-100%).
+        Floor-roughness scattering, three perceptual zones - see
+        FrDiffusionModel.h for the shared mapping. */
     void setFRDiffusion(int inputIndex, float diffusionPercent)
     {
         if (inputIndex < 0 || inputIndex >= storedNumInputs)
             return;
 
-        // Max jitter is 5ms at 100% diffusion
-        frMaxJitterMs[static_cast<size_t>(inputIndex)].store(diffusionPercent * 0.05f, std::memory_order_release);
+        frDiffusionAmount[static_cast<size_t>(inputIndex)].store(
+            juce::jlimit(0.0f, 1.0f, diffusionPercent * 0.01f), std::memory_order_release);
     }
 
 private:
@@ -367,8 +376,13 @@ private:
         if (delayBufferLength == 0 || delayData == nullptr || frDelayData == nullptr)
             return;
 
-        // Update diffusion jitter once per block
-        updateDiffusionJitter();
+        // Per-block diffusion coefficients from the shared zone-map model.
+        // The grain itself is applied POST-smoother, per sample, in the FR
+        // write branch below.
+        for (size_t i = 0; i < frJitterCoeffs.size(); ++i)
+            frJitterCoeffs[i] = FrDiffusion::computeCoeffs(
+                frDiffusionAmount[i].load(std::memory_order_acquire),
+                static_cast<float>(currentSampleRate), 1.0f);
 
         // Precompute current delay values per input for interpolation
         float msToSamples = (float)currentSampleRate / 1000.0f;
@@ -387,16 +401,23 @@ private:
             float directDelay = directDelayMs * msToSamples;
             if (directDelay >= maxDelay) directDelay = maxDelay;
 
-            // FR delay includes the diffusion jitter. Jitter is slowly-varying
-            // (updated every 3 blocks, smoothingFactor=0.05) so feeding it in
-            // pre-smoother preserves its intended diffusion character while
-            // still removing block-to-block slope jumps.
+            // FR delay target WITHOUT jitter - the diffusion grain is applied
+            // per-sample AFTER the box smoother (in the FR write branch), so
+            // the smoother can't average the grain away.
             float frExtraDelayMs = (sharedFRDelayTimes != nullptr) ? sharedFRDelayTimes[routingIndex] : 0.0f;
-            float frJitterMs = frDiffusionState[inIdx];
-            float totalFRDelayMs = directDelayMs + frExtraDelayMs + frJitterMs;
+            float totalFRDelayMs = directDelayMs + frExtraDelayMs;
             if (totalFRDelayMs < 0.0f) totalFRDelayMs = 0.0f;
             float frDelay = totalFRDelayMs * msToSamples;
             if (frDelay >= maxDelay) frDelay = maxDelay;
+
+            // FR engage: when the tap rises from silence, snap the FR delay
+            // smoother to the current target instead of letting it slide from
+            // its stale value (= the direct delay while FR was off) - the slide
+            // started the tap coherent with the direct sound (+6 dB onset).
+            const float frLevelNow = (sharedFRLevels != nullptr) ? sharedFRLevels[routingIndex] : 0.0f;
+            if (frLevelNow > FrDiffusion::kEngageEps && frLastLevel[inIdx] <= FrDiffusion::kEngageEps)
+                smootherFR[inIdx].reset();
+            frLastLevel[inIdx] = frLevelNow;
 
             smootherDirect[inIdx].observe (directDelay, sampleCounter);
             smootherFR[inIdx].observe     (frDelay,     sampleCounter);
@@ -507,7 +528,17 @@ private:
 
                     // Smoothed FR delay + teleport gain envelope (independent smoother)
                     auto smoothedFr = smootherFR[inIdx].smoothedAt (currentSample);
-                    float frDelaySamples = smoothedFr.delay;
+
+                    // Diffusion grain (shared model): low-passed noise added POST-
+                    // smoother so the box filter doesn't average it out.
+                    const float jitterSamples = FrDiffusion::step (
+                        frDiffusionState[inIdx],
+                        static_cast<uint32_t> (currentSample),
+                        frJitterKey[inIdx], frJitterCoeffs[inIdx]);
+
+                    float frDelaySamples = smoothedFr.delay + jitterSamples;
+                    if (frDelaySamples < 0.0f)
+                        frDelaySamples = 0.0f;
 
                     // Calculate write position with FR delay offset
                     float exactWritePos = (float)writePosition + frDelaySamples;
@@ -533,36 +564,6 @@ private:
 
         // Advance the monotonic sample counter for the next block's smoother queries.
         sampleCounter += numSamples;
-    }
-
-    /** Update time-varying diffusion jitter (called once per block) */
-    void updateDiffusionJitter()
-    {
-        const float smoothingFactor = 0.05f;
-
-        // Decide first whether this block draws new targets (every 3rd block).
-        // The check must run on the incremented counter BEFORE the per-input
-        // loop - the previous check-at-top/reset-at-bottom ordering could never
-        // see the counter reach 3, so targets were never drawn and the
-        // Diffusion control was silently inert.
-        frDiffusionUpdateCounter++;
-        const bool drawNewTargets = (frDiffusionUpdateCounter >= 3);
-        if (drawNewTargets)
-            frDiffusionUpdateCounter = 0;
-
-        for (size_t inIdx = 0; inIdx < frDiffusionState.size(); ++inIdx)
-        {
-            float maxJitter = frMaxJitterMs[inIdx].load(std::memory_order_relaxed);
-
-            if (drawNewTargets)
-            {
-                std::uniform_real_distribution<float> dist(-maxJitter, maxJitter);
-                frDiffusionTarget[inIdx] = dist(frRandom);
-            }
-
-            // Smooth towards target
-            frDiffusionState[inIdx] += (frDiffusionTarget[inIdx] - frDiffusionState[inIdx]) * smoothingFactor;
-        }
     }
 
     int outputChannelIndex;
@@ -623,13 +624,13 @@ private:
     // axis for DelayTargetSmoother::observe() / smoothedAt().
     std::int64_t sampleCounter = 0;
 
-    // FR diffusion (time-varying jitter per input)
-    std::vector<float> frDiffusionState;   // Current jitter value per input
-    std::vector<float> frDiffusionTarget;  // Target jitter value per input
-    std::atomic<float>* frMaxJitterMs = nullptr;  // Max jitter per input
+    // FR diffusion grain (shared zone-mapped model, see FrDiffusionModel.h)
+    std::vector<float> frDiffusionState;          // one-pole LP value per input (the grain)
+    std::vector<uint32_t> frJitterKey;            // per-input noise stream key (folds output idx)
+    std::vector<FrDiffusion::Coeffs> frJitterCoeffs; // per-input per-block coefficients
+    std::vector<float> frLastLevel;               // previous block's FR level per input (engage detect)
+    std::atomic<float>* frDiffusionAmount = nullptr; // Diffusion fraction 0..1 per input
     int storedNumInputs = 0;  // Store for cleanup
-    std::mt19937 frRandom;                 // Random generator for diffusion
-    int frDiffusionUpdateCounter = 0;      // Counter for updating targets
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OutputBufferProcessor)
 };
