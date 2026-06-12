@@ -21,7 +21,7 @@
 #include <JuceHeader.h>
 #include <atomic>
 
-#include "MetalWfsBackend.h"
+#include "WfsGpuBackend.h"
 #include "GpuAsyncPipeline.h"
 
 class NativeGpuWfsAlgorithm
@@ -132,7 +132,7 @@ public:
 
     bool isReady() const noexcept              { return ready.load (std::memory_order_acquire); }
     juce::String getLastError() const          { return lastError; }
-    juce::String getDeviceName() const         { return "Apple Silicon (Metal)"; }
+    juce::String getDeviceName() const         { return juce::String (backend.getDeviceName()); }
     float getLastGpuExecMs() const noexcept    { return pipeline.getLastPumpMs(); }
     float getAndResetPeakGpuExecMs() noexcept  { return pipeline.getAndResetPeakPumpMs(); }
     uint32_t getUnderrunCount() const noexcept { return pipeline.getUnderrunCount(); }
@@ -140,7 +140,7 @@ public:
     int getPipelineDepthBlocks() const noexcept  { return pipeline.getDepthBlocks(); }
 
 private:
-    MetalWfsBackend backend;
+    WfsGpuBackend backend;
     GpuAsyncPipeline pipeline;
 
     int inputChannelCount { 0 };

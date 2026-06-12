@@ -30,7 +30,7 @@
 #include <vector>
 
 #include "../../LockFreeRingBuffer.h"
-#include "MetalWfsBackend.h"
+#include "WfsGpuBackend.h"
 
 class GpuAsyncPipeline : private juce::Thread
 {
@@ -43,7 +43,7 @@ public:
 
     /** Takes (non-owning) the prepared backend and starts the pump.
         The backend must already be prepare()d for the same geometry. */
-    bool prepare (MetalWfsBackend* backendToUse,
+    bool prepare (WfsGpuBackend* backendToUse,
                   int numInputChannels,
                   int numOutputChannels,
                   int blockSizeToUse,
@@ -235,7 +235,7 @@ private:
         }
     }
 
-    MetalWfsBackend* backend { nullptr }; // non-owning
+    WfsGpuBackend* backend { nullptr }; // non-owning
     std::vector<std::unique_ptr<LockFreeRingBuffer>> ringsIn, ringsOut;
     juce::AudioBuffer<float> pumpIn, pumpOut;
     std::vector<const float*> pumpInPtrs;

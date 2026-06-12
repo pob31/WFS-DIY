@@ -186,7 +186,7 @@
     "algorithms": {
       "inputBuffer": "InputBuffer (read-time delays)",
       "outputBuffer": "OutputBuffer (write-time delays)",
-      "nativeGpu": "GPU InputBuffer (Metal)"
+      "nativeGpu": "GPU InputBuffer"
     },
 
     "stageShapes": {

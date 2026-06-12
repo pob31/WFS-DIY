@@ -65,11 +65,17 @@ public:
     const std::string& getLastError() const noexcept { return lastError; }
     double getLastLaunchMs() const noexcept { return lastLaunchMs; }
 
+    /** Backend-identifying string for logs/UI. Part of the shared backend
+        contract (mirrored by CudaWfsBackend) so NativeGpuWfsAlgorithm can
+        forward it without knowing which backend is compiled in. */
+    const std::string& getDeviceName() const noexcept { return deviceName; }
+
 private:
     struct Impl;                 // Objective-C++ internals (Metal objects)
     std::unique_ptr<Impl> impl;
 
     bool ready { false };
     std::string lastError;
+    std::string deviceName { "Apple Silicon (Metal)" };
     double lastLaunchMs { 0.0 };
 };

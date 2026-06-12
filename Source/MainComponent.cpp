@@ -3157,7 +3157,7 @@ void MainComponent::handleGpuDepthChange(int depthBlocks)
 {
 #if WFS_GPU_NATIVE
     // The depth is read from the config param at prepare time; a restart
-    // applies it. Only meaningful while the Metal algorithm is live.
+    // applies it. Only meaningful while the GPU algorithm is live.
     if (currentAlgorithm != ProcessingAlgorithm::NativeGpuWfs || !audioEngineStarted)
         return;
 
@@ -4336,12 +4336,12 @@ void MainComponent::startAudioEngine()
                                               processingEnabled, gpuDepth);
         if (!prepared)
         {
-            // Metal init failed: log, inform, fall back to the CPU InputBuffer.
+            // GPU init failed: log, inform, fall back to the CPU InputBuffer.
             auto errorMsg = nativeGpuAlgorithm.getLastError();
             WFSLogger::getInstance().logWarning ("Native GPU init failed: " + errorMsg
                                                  + " - falling back to CPU InputBuffer");
             juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::WarningIcon,
-                "GPU (Metal)",
+                "GPU",
                 "GPU initialization failed:\n" + errorMsg
                 + "\n\nFalling back to the CPU InputBuffer algorithm.");
             nativeGpuAlgorithm.clear();
@@ -4361,7 +4361,7 @@ void MainComponent::startAudioEngine()
         }
         else
         {
-            WFSLogger::getInstance().logInfo ("Native Metal WFS active: "
+            WFSLogger::getInstance().logInfo ("Native GPU WFS active: "
                 + juce::String (numInputChannels) + " in x "
                 + juce::String (numOutputChannels) + " out on "
                 + nativeGpuAlgorithm.getDeviceName()
