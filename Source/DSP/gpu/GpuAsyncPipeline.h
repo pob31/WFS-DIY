@@ -32,18 +32,22 @@
 #include "../../LockFreeRingBuffer.h"
 #include "WfsGpuBackend.h"
 
-class GpuAsyncPipeline : private juce::Thread
+/** Backend-generic async pump. BackendType only needs the shared backend
+    contract subset: processBlock / isReady / getLastError / getLastLaunchMs.
+    The WFS and IR-reverb backends both satisfy it. */
+template <typename BackendType>
+class GpuAsyncPipelineT : private juce::Thread
 {
 public:
     static constexpr int kMinDepthBlocks = 1;
-    static constexpr int kMaxDepthBlocks = 8;
+    static constexpr int kMaxDepthBlocks = 16;
 
-    GpuAsyncPipeline() : juce::Thread ("Native GPU Pipeline Pump") {}
-    ~GpuAsyncPipeline() override { release(); }
+    GpuAsyncPipelineT() : juce::Thread ("Native GPU Pipeline Pump") {}
+    ~GpuAsyncPipelineT() override { release(); }
 
     /** Takes (non-owning) the prepared backend and starts the pump.
         The backend must already be prepare()d for the same geometry. */
-    bool prepare (WfsGpuBackend* backendToUse,
+    bool prepare (BackendType* backendToUse,
                   int numInputChannels,
                   int numOutputChannels,
                   int blockSizeToUse,
@@ -235,7 +239,7 @@ private:
         }
     }
 
-    WfsGpuBackend* backend { nullptr }; // non-owning
+    BackendType* backend { nullptr }; // non-owning
     std::vector<std::unique_ptr<LockFreeRingBuffer>> ringsIn, ringsOut;
     juce::AudioBuffer<float> pumpIn, pumpOut;
     std::vector<const float*> pumpInPtrs;
@@ -252,7 +256,10 @@ private:
     std::atomic<float> lastPumpMs { 0.0f };
     std::atomic<float> peakPumpMs { 0.0f };
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (GpuAsyncPipeline)
+    JUCE_DECLARE_NON_COPYABLE (GpuAsyncPipelineT)
 };
+
+/** The WFS pipeline keeps its historical name; existing callers are untouched. */
+using GpuAsyncPipeline = GpuAsyncPipelineT<WfsGpuBackend>;
 
 #endif // WFS_GPU_NATIVE

@@ -2992,6 +2992,7 @@ juce::ValueTree WFSValueTreeState::createReverbAlgorithmSection()
     algo.setProperty (reverbIRtrim,          reverbIRtrimDefault, nullptr);
     algo.setProperty (reverbIRlength,        reverbIRlengthDefault, nullptr);
     algo.setProperty (reverbPerNodeIR,       reverbPerNodeIRDefault, nullptr);
+    algo.setProperty (reverbIRGpu,           reverbIRGpuDefault, nullptr);
     algo.setProperty (reverbWetLevel,        reverbWetLevelDefault, nullptr);
     return algo;
 }

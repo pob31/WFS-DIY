@@ -16,7 +16,7 @@
     length (max duration) are applied from the cached buffer, so parameter
     changes don't require re-reading from disk.
 */
-class IRAlgorithm : public ReverbAlgorithm
+class IRAlgorithm : public ReverbIRAlgorithmBase
 {
 public:
     //==========================================================================
@@ -129,7 +129,7 @@ public:
         The buffer is cached so that trim/length changes don't require re-reading. */
     void loadIRFromBuffer (const juce::File& file,
                            juce::AudioBuffer<float>&& buf,
-                           double fileSampleRate)
+                           double fileSampleRate) override
     {
         currentIRFile = file;
         cachedIRBuffer = std::move (buf);
@@ -141,7 +141,7 @@ public:
 
     /** Set IR trim time (ms from start) and max length (seconds).
         Uses the cached buffer — no file I/O. */
-    void setIRParameters (float trimMs, float lengthSec)
+    void setIRParameters (float trimMs, float lengthSec) override
     {
         bool changed = (trimMs != irTrimMs || lengthSec != irLengthSec);
         irTrimMs = trimMs;
@@ -152,10 +152,10 @@ public:
     }
 
     /** Get the currently loaded IR file. */
-    const juce::File& getCurrentIRFile() const { return currentIRFile; }
+    const juce::File& getCurrentIRFile() const override { return currentIRFile; }
 
     /** Get the duration of the currently loaded IR file in seconds. */
-    float getIRFileDuration() const { return irFileDurationSec; }
+    float getIRFileDuration() const override { return irFileDurationSec; }
 
 #if REVERB_DIAGNOSTICS
     void setDiagnostics (ReverbDiagnostics* d) { diagPtr = d; }

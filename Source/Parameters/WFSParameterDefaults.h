@@ -866,6 +866,8 @@ namespace WFSParameterDefaults
 
     constexpr int reverbPerNodeIRDefault           = 0;       // 0=OFF, 1=ON
 
+    constexpr int reverbIRGpuDefault               = 0;       // 0=CPU, 1=GPU convolution backend
+
     constexpr float reverbWetLevelDefault          = 0.0f;    // dB
     constexpr float reverbWetLevelMin              = -60.0f;  // effectively -inf
     constexpr float reverbWetLevelMax              = 12.0f;

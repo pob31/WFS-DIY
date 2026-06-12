@@ -1081,6 +1081,12 @@
     <ClCompile Include="..\..\Source\DSP\gpu\CudaWfsBackend.cpp">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\DSP\gpu\MetalIrBackend.mm">
+      <Filter>WFS-DIY\Source\DSP</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\DSP\gpu\CudaIrBackend.cpp">
+      <Filter>WFS-DIY\Source\DSP</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Source\DSP\TestSignalGenerator.cpp">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClCompile>
@@ -4702,6 +4708,30 @@
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\DSP\gpu\WfsFrHostState.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\DSP\gpu\IrHostFft.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\DSP\gpu\IrConvHostState.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\DSP\gpu\MetalIrBackend.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\DSP\gpu\MetalIrKernels.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\DSP\gpu\CudaIrBackend.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\DSP\gpu\CudaIrKernels.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\DSP\gpu\IrGpuBackend.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\DSP\ReverbIRAlgorithmGPU.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\DSP\TestSignalGenerator.h">

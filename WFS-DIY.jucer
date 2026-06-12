@@ -381,6 +381,26 @@
               file="Source/DSP/gpu/CudaWfsKernels.h"/>
         <FILE id="gpuFrHost" name="WfsFrHostState.h" compile="0" resource="0"
               file="Source/DSP/gpu/WfsFrHostState.h"/>
+        <FILE id="irHostFft" name="IrHostFft.h" compile="0" resource="0"
+              file="Source/DSP/gpu/IrHostFft.h"/>
+        <FILE id="irConvHost" name="IrConvHostState.h" compile="0" resource="0"
+              file="Source/DSP/gpu/IrConvHostState.h"/>
+        <FILE id="irMtlBakH" name="MetalIrBackend.h" compile="0" resource="0"
+              file="Source/DSP/gpu/MetalIrBackend.h"/>
+        <FILE id="irMtlBakM" name="MetalIrBackend.mm" compile="1" resource="0"
+              file="Source/DSP/gpu/MetalIrBackend.mm"/>
+        <FILE id="irMtlKrnl" name="MetalIrKernels.h" compile="0" resource="0"
+              file="Source/DSP/gpu/MetalIrKernels.h"/>
+        <FILE id="irCudaBakH" name="CudaIrBackend.h" compile="0" resource="0"
+              file="Source/DSP/gpu/CudaIrBackend.h"/>
+        <FILE id="irCudaBakC" name="CudaIrBackend.cpp" compile="1" resource="0"
+              file="Source/DSP/gpu/CudaIrBackend.cpp"/>
+        <FILE id="irCudaKrnl" name="CudaIrKernels.h" compile="0" resource="0"
+              file="Source/DSP/gpu/CudaIrKernels.h"/>
+        <FILE id="irGpuSel" name="IrGpuBackend.h" compile="0" resource="0"
+              file="Source/DSP/gpu/IrGpuBackend.h"/>
+        <FILE id="rvbIrGpuH" name="ReverbIRAlgorithmGPU.h" compile="0" resource="0"
+              file="Source/DSP/ReverbIRAlgorithmGPU.h"/>
         <FILE id="testSigGenH" name="TestSignalGenerator.h" compile="0" resource="0"
               file="Source/DSP/TestSignalGenerator.h"/>
         <FILE id="testSigGenCpp" name="TestSignalGenerator.cpp" compile="1"

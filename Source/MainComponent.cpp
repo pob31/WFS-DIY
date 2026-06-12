@@ -5563,6 +5563,13 @@ void MainComponent::timerCallback()
                 // Push IR-specific parameters
                 if (algoType == 2)  // IR
                 {
+#if WFS_GPU_NATIVE
+                    // Convolution backend (CPU/GPU toggle); fallback status flows
+                    // back to the ReverbTab below.
+                    bool irGpu = static_cast<int>(algoSection.getProperty(reverbIRGpu, 0)) != 0;
+                    reverbEngine->setIRBackendGpu(irGpu);
+#endif
+
                     juce::String irFilePath = algoSection.getProperty(reverbIRfile, "").toString();
                     float irTrim = algoSection.getProperty(reverbIRtrim, 0.0f);
                     float irLength = algoSection.getProperty(reverbIRlength, 6.0f);
@@ -5697,6 +5704,17 @@ void MainComponent::timerCallback()
                 reverbTab->setGainReduction(
                     reverbEngine->getCompGainReductionDb(),
                     reverbEngine->getExpGainReductionDb());
+
+#if WFS_GPU_NATIVE
+            // Push IR convolution backend status (GPU active / CPU fallback)
+            if (windowVisible && reverbTab != nullptr)
+            {
+                auto irGpuStatus = reverbEngine->getIRGpuStatus();
+                reverbTab->setIRGpuStatus(static_cast<int>(irGpuStatus.mode),
+                                          irGpuStatus.device, irGpuStatus.error,
+                                          irGpuStatus.latencyMs);
+            }
+#endif
 
             // Check for reverb dropouts every ~1s (200 ticks at 5ms)
             if ((timerTicksSinceLastRandom % 200) == 100)

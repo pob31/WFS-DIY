@@ -6,6 +6,9 @@
 #include "ReverbFDNAlgorithm.h"
 #include "ReverbSDNAlgorithm.h"
 #include "ReverbIRAlgorithm.h"
+#if WFS_GPU_NATIVE
+#include "ReverbIRAlgorithmGPU.h"
+#endif
 #include "ReverbDiagnostics.h"
 #include "ReverbPreProcessor.h"
 #include "ReverbPostProcessor.h"
@@ -242,10 +245,7 @@ public:
         {
             algorithm->prepare (sampleRate, internalBlockSize, numReverbNodes);
             algorithm->setParallelFor (&parallelPool);
-#if REVERB_DIAGNOSTICS
-            if (auto* ir = dynamic_cast<IRAlgorithm*> (algorithm.get()))
-                ir->setDiagnostics (&diagnostics);
-#endif
+            attachIRDiagnostics();
         }
     }
 
@@ -270,6 +270,45 @@ public:
     /** Get the current algorithm type. */
     int getAlgorithmType() const { return currentAlgorithmType; }
 
+    //==========================================================================
+    // IR backend selection (GPU/CPU toggle)
+    //==========================================================================
+
+    /** IR convolution backend status, for the UI (see getIRGpuStatus()). */
+    struct IRGpuStatus
+    {
+        enum Mode { Cpu = 0, GpuActive, GpuFallback };
+        Mode mode = Cpu;
+        juce::String device;      // GPU device name when GpuActive
+        juce::String error;       // failure reason when GpuFallback
+        double latencyMs = 0.0;   // wet-path pipeline latency when GpuActive
+    };
+
+    /** Select the IR convolution backend (timer thread, 50 Hz). When the IR
+        algorithm is active, switches via the same fade-to-silence path as an
+        algorithm change; otherwise just records the choice for the next IR
+        instantiation. If the GPU backend can't initialise, the engine falls
+        back to CPU and reports it via getIRGpuStatus(). */
+    void setIRBackendGpu (bool useGpu)
+    {
+        if (irUseGpu.exchange (useGpu, std::memory_order_acq_rel) == useGpu)
+            return;
+
+        if (currentAlgorithmType == IR)
+        {
+            irBackendChangeRequested.store (true, std::memory_order_release);
+            if (fadeState.load (std::memory_order_acquire) == FadeNone)
+                fadeState.store (FadingOut, std::memory_order_release);
+        }
+    }
+
+    /** Current IR backend status (any thread). */
+    IRGpuStatus getIRGpuStatus() const
+    {
+        juce::SpinLock::ScopedLockType lock (irGpuStatusLock);
+        return irGpuStatus;
+    }
+
     /** Load an IR file via fade-to-silence transition.
         Reads the file outside any lock, stores the buffer as pending,
         and triggers a fade-out. The engine thread picks up the new IR
@@ -291,7 +330,9 @@ public:
         reader->read (&buffer, 0, numSamples, 0, true, false);
         double fileSR = reader->sampleRate;
 
-        // Store pending IR for the engine thread to pick up during fade
+        // Store the IR for the engine thread to pick up during fade. The
+        // buffer is RETAINED (copied at use, not moved) so a later backend
+        // switch can rebuild a fresh algorithm without a UI re-push.
         {
             std::lock_guard<std::mutex> lock (pendingIRMutex);
             pendingIRBuffer = std::move (buffer);
@@ -305,11 +346,17 @@ public:
             fadeState.store (FadingOut, std::memory_order_release);
     }
 
-    /** Set IR parameters (trim, length). Only effective for IR algorithm. */
+    /** Set IR parameters (trim, length). Only effective for IR algorithm.
+        Values are retained so rebuilt instances (backend switches) get them
+        re-applied without a UI re-push. */
     void setIRParameters (float trimMs, float lengthSec)
     {
+        lastIRTrimMs.store (trimMs, std::memory_order_relaxed);
+        lastIRLengthSec.store (lengthSec, std::memory_order_relaxed);
+        haveIRParams.store (true, std::memory_order_release);
+
         juce::SpinLock::ScopedLockType lock (algorithmLock);
-        if (auto* ir = dynamic_cast<IRAlgorithm*> (algorithm.get()))
+        if (auto* ir = dynamic_cast<ReverbIRAlgorithmBase*> (algorithm.get()))
             ir->setIRParameters (trimMs, lengthSec);
     }
 
@@ -661,75 +708,17 @@ private:
                 int newType = pendingAlgorithmType.load (std::memory_order_acquire);
                 bool algoChange = (newType != currentAlgorithmType && newType >= 0);
                 bool irChange = irChangeRequested.load (std::memory_order_acquire);
+                bool backendChange = irBackendChangeRequested.load (std::memory_order_acquire)
+                                     && (algoChange ? newType : currentAlgorithmType) == IR;
 
                 if (algoChange)
-                {
-                    // Algorithm type change takes priority
                     currentAlgorithmType = newType;
 
-                    std::unique_ptr<ReverbAlgorithm> newAlgo;
-                    switch (newType)
-                    {
-                        case SDN: newAlgo = std::make_unique<SDNAlgorithm>(); break;
-                        case FDN: newAlgo = std::make_unique<FDNAlgorithm>(); break;
-                        case IR:  newAlgo = std::make_unique<IRAlgorithm>();  break;
-                        default:  newAlgo = std::make_unique<FDNAlgorithm>(); break;
-                    }
-
-                    {
-                        juce::SpinLock::ScopedLockType lock (algorithmLock);
-                        algorithm = std::move (newAlgo);
-                        if (algorithm && sampleRate > 0)
-                        {
-                            algorithm->prepare (sampleRate, internalBlockSize, numReverbNodes);
-                            algorithm->setParallelFor (&parallelPool);
-                            algorithm->setParameters (currentParams);
-                            algorithm->updateGeometry (currentGeometry);
-#if REVERB_DIAGNOSTICS
-                            if (auto* ir = dynamic_cast<IRAlgorithm*> (algorithm.get()))
-                                ir->setDiagnostics (&diagnostics);
-#endif
-                        }
-                    }
-
-                    // Clear orphaned IR request — timer will re-push for the new algorithm
-                    irChangeRequested.store (false, std::memory_order_release);
-                }
-                else if (irChange)
+                if (algoChange || irChange || backendChange)
                 {
-                    // IR file change: create a brand new IRAlgorithm — same
-                    // code path as the algorithm-type switch which always works.
-                    juce::AudioBuffer<float> buf;
-                    juce::File file;
-                    double fileSR;
-                    {
-                        std::lock_guard<std::mutex> lock (pendingIRMutex);
-                        buf = std::move (pendingIRBuffer);
-                        file = pendingIRFile;
-                        fileSR = pendingIRSampleRate;
-                    }
                     irChangeRequested.store (false, std::memory_order_release);
-
-                    auto newAlgo = std::make_unique<IRAlgorithm>();
-
-                    {
-                        juce::SpinLock::ScopedLockType lock (algorithmLock);
-                        algorithm = std::move (newAlgo);
-                        if (algorithm && sampleRate > 0)
-                        {
-                            algorithm->prepare (sampleRate, internalBlockSize, numReverbNodes);
-                            algorithm->setParallelFor (&parallelPool);
-                            algorithm->setParameters (currentParams);
-                            algorithm->updateGeometry (currentGeometry);
-                        }
-                        if (auto* ir = dynamic_cast<IRAlgorithm*> (algorithm.get()))
-                        {
-#if REVERB_DIAGNOSTICS
-                            ir->setDiagnostics (&diagnostics);
-#endif
-                            ir->loadIRFromBuffer (file, std::move (buf), fileSR);
-                        }
-                    }
+                    irBackendChangeRequested.store (false, std::memory_order_release);
+                    installAlgorithm (currentAlgorithmType);
                 }
 
                 fadeGain = 0.0f;
@@ -761,13 +750,121 @@ private:
             {
                 fadeGain = 1.0f;
 
-                // If an IR change arrived while we were fading, re-trigger
-                if (irChangeRequested.load (std::memory_order_acquire))
+                // If an IR or backend change arrived while we were fading, re-trigger
+                if (irChangeRequested.load (std::memory_order_acquire)
+                    || irBackendChangeRequested.load (std::memory_order_acquire))
                     fadeState.store (FadingOut, std::memory_order_release);
                 else
                     fadeState.store (FadeNone, std::memory_order_release);
             }
         }
+    }
+
+    //==========================================================================
+    // Algorithm construction (engine thread, during fade silence)
+    //==========================================================================
+
+    /** Creates the IR algorithm honouring the GPU/CPU backend choice.
+        The GPU instance is prepared here (outside the algorithm lock — the
+        kernel compile takes ~10 ms) so readiness can be tested; if it fails,
+        falls back to the CPU implementation and records the reason. */
+    std::unique_ptr<ReverbAlgorithm> createIRAlgorithm()
+    {
+#if WFS_GPU_NATIVE
+        if (irUseGpu.load (std::memory_order_acquire))
+        {
+            auto gpu = std::make_unique<ReverbIRAlgorithmGPU>();
+            if (sampleRate > 0)
+                gpu->prepare (sampleRate, internalBlockSize, numReverbNodes);
+
+            if (gpu->isReady())
+            {
+                setIRGpuStatusInternal ({ IRGpuStatus::GpuActive, gpu->getDeviceName(),
+                                          {}, gpu->getPipelineLatencyMs() });
+                return gpu;
+            }
+
+            setIRGpuStatusInternal ({ IRGpuStatus::GpuFallback, {},
+                                      gpu->getLastError(), 0.0 });
+            juce::Logger::writeToLog ("GPU IR reverb unavailable, using CPU: "
+                                      + gpu->getLastError());
+        }
+        else
+        {
+            setIRGpuStatusInternal ({ IRGpuStatus::Cpu, {}, {}, 0.0 });
+        }
+#endif
+        return std::make_unique<IRAlgorithm>();
+    }
+
+    /** Creates, prepares and installs the algorithm for `type`, re-applying
+        parameters, geometry and — for IR — the retained IR file/trim/length,
+        so rebuilt instances need no UI re-push. Runs at fade silence. */
+    void installAlgorithm (int type)
+    {
+        std::unique_ptr<ReverbAlgorithm> newAlgo;
+        switch (type)
+        {
+            case SDN: newAlgo = std::make_unique<SDNAlgorithm>(); break;
+            case IR:  newAlgo = createIRAlgorithm();              break;
+            case FDN:
+            default:  newAlgo = std::make_unique<FDNAlgorithm>(); break;
+        }
+
+        // Arm the instance before it becomes visible to other threads (the
+        // GPU instance's prepare() no-ops here — already done in the factory).
+        if (sampleRate > 0)
+        {
+            newAlgo->prepare (sampleRate, internalBlockSize, numReverbNodes);
+            newAlgo->setParallelFor (&parallelPool);
+            newAlgo->setParameters (currentParams);
+            newAlgo->updateGeometry (currentGeometry);
+        }
+
+        if (auto* ir = dynamic_cast<ReverbIRAlgorithmBase*> (newAlgo.get()))
+        {
+            if (haveIRParams.load (std::memory_order_acquire))
+                ir->setIRParameters (lastIRTrimMs.load (std::memory_order_relaxed),
+                                     lastIRLengthSec.load (std::memory_order_relaxed));
+
+            // Reload the retained IR (copy — the original stays retained for
+            // the next rebuild).
+            juce::AudioBuffer<float> buf;
+            juce::File file;
+            double fileSR = 0.0;
+            {
+                std::lock_guard<std::mutex> lock (pendingIRMutex);
+                buf = pendingIRBuffer;
+                file = pendingIRFile;
+                fileSR = pendingIRSampleRate;
+            }
+            if (buf.getNumSamples() > 0)
+                ir->loadIRFromBuffer (file, std::move (buf), fileSR);
+        }
+
+        {
+            juce::SpinLock::ScopedLockType lock (algorithmLock);
+            algorithm = std::move (newAlgo);
+            attachIRDiagnostics();
+        }
+    }
+
+    void attachIRDiagnostics()
+    {
+#if REVERB_DIAGNOSTICS
+        if (auto* ir = dynamic_cast<IRAlgorithm*> (algorithm.get()))
+            ir->setDiagnostics (&diagnostics);
+#if WFS_GPU_NATIVE
+        else if (auto* irGpu = dynamic_cast<ReverbIRAlgorithmGPU*> (algorithm.get()))
+            irGpu->setDiagnostics (&diagnostics);
+#endif
+#endif
+    }
+
+    void setIRGpuStatusInternal (const IRGpuStatus& s)
+    {
+        juce::SpinLock::ScopedLockType lock (irGpuStatusLock);
+        irGpuStatus = s;
     }
 
     //==========================================================================
@@ -831,12 +928,24 @@ private:
     float fadeSamples = 2400.0f;  // ~50ms at 48kHz
     std::atomic<int> pendingAlgorithmType { -1 };
 
-    // Pending IR change (fade-to-silence transition)
+    // Pending/retained IR change (fade-to-silence transition). The buffer is
+    // retained after use so backend switches can rebuild without a UI re-push.
     std::mutex pendingIRMutex;
     juce::AudioBuffer<float> pendingIRBuffer;
     juce::File pendingIRFile;
     double pendingIRSampleRate = 0.0;
     std::atomic<bool> irChangeRequested { false };
+
+    // Retained IR trim/length (re-applied to rebuilt IR instances)
+    std::atomic<float> lastIRTrimMs { 0.0f };
+    std::atomic<float> lastIRLengthSec { 6.0f };
+    std::atomic<bool> haveIRParams { false };
+
+    // IR backend selection (GPU/CPU toggle) + status for the UI
+    std::atomic<bool> irUseGpu { false };
+    std::atomic<bool> irBackendChangeRequested { false };
+    IRGpuStatus irGpuStatus;
+    mutable juce::SpinLock irGpuStatusLock;
 
     // Always-on dropout counter (lightweight, for UI warning)
     std::atomic<uint64_t> dropoutCount { 0 };

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 
 <Project DefaultTargets="Build"
          ToolsVersion="17.0"
@@ -224,6 +224,7 @@
     <ClCompile Include="..\..\Source\WFSLogger.cpp"/>
     <ClCompile Include="..\..\Source\DSP\WFSCalculationEngine.cpp"/>
     <ClCompile Include="..\..\Source\DSP\gpu\CudaWfsBackend.cpp"/>
+    <ClCompile Include="..\..\Source\DSP\gpu\CudaIrBackend.cpp"/>
     <ClCompile Include="..\..\Source\DSP\TestSignalGenerator.cpp"/>
     <ClCompile Include="..\..\ThirdParty\JUCE\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
@@ -3386,6 +3387,14 @@
     <ClInclude Include="..\..\Source\DSP\gpu\CudaWfsBackend.h"/>
     <ClInclude Include="..\..\Source\DSP\gpu\CudaWfsKernels.h"/>
     <ClInclude Include="..\..\Source\DSP\gpu\WfsFrHostState.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\IrHostFft.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\IrConvHostState.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\MetalIrBackend.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\MetalIrKernels.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\CudaIrBackend.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\CudaIrKernels.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\IrGpuBackend.h"/>
+    <ClInclude Include="..\..\Source\DSP\ReverbIRAlgorithmGPU.h"/>
     <ClInclude Include="..\..\Source\DSP\TestSignalGenerator.h"/>
     <ClInclude Include="..\..\Source\DSP\TrackingPositionFilter.h"/>
     <ClInclude Include="..\..\Source\DSP\InputSpeedLimiter.h"/>
