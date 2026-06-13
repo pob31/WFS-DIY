@@ -3603,7 +3603,7 @@ private:
         rightCol.removeFromTop(spacing);
 
         row = rightCol.removeFromTop(rowHeight);
-        trackingIdLabel.setBounds(row.removeFromLeft(scaled(90)));
+        trackingIdLabel.setBounds(row.removeFromLeft(scaled(34)));   // short "ID:" label
         trackingIdSelector.setBounds(row.removeFromLeft(scaled(70)));
         rightCol.removeFromTop(spacing);
 
@@ -4152,8 +4152,8 @@ private:
 
         // Row 2: Tracking ID (centered)
         row = trackCol.removeFromTop(rowHeight);
-        const int trackIdLabelW = scaled(75);
-        const int trackIdSelectorW = scaled(50);
+        const int trackIdLabelW = scaled(34);   // short "ID:" label
+        const int trackIdSelectorW = scaled(70); // wide enough to show the number when collapsed
         int idRowWidth = trackIdLabelW + trackIdSelectorW;  // label + selector
         int idRowX = colCenterX - idRowWidth / 2;
         trackingIdLabel.setBounds(idRowX, row.getY(), trackIdLabelW, rowHeight);

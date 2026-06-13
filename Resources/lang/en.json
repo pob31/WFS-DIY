@@ -1436,7 +1436,7 @@
       "offsetZ": "Offset Z:",
       "min": "Min:",
       "max": "Max:",
-      "trackingId": "Tracking ID:",
+      "trackingId": "ID:",
       "trackingSmooth": "Tracking Smooth:",
       "maxSpeed": "Max Speed:",
       "heightFactor": "Height Factor:",
