@@ -549,6 +549,7 @@ public:
         algorithmSelector.addItem(LOC("systemConfig.algorithms.outputBuffer"), 2);
 #if WFS_GPU_NATIVE
         algorithmSelector.addItem(LOC("systemConfig.algorithms.nativeGpu"), 3);
+        algorithmSelector.addItem(LOC("systemConfig.algorithms.nativeGpuOutput"), 4);
 #endif
         algorithmSelector.setSelectedId(1, juce::dontSendNotification);
         algorithmSelector.onChange = [this]() {
@@ -3155,7 +3156,8 @@ public:
 #if WFS_GPU_NATIVE
     void updateGpuDepthVisibility()
     {
-        const bool gpuSelected = (algorithmSelector.getSelectedId() == 3);
+        const int id = algorithmSelector.getSelectedId();
+        const bool gpuSelected = (id == 3 || id == 4); // both GPU algorithms use the pipeline
         gpuDepthLabel.setVisible(gpuSelected);
         gpuDepthSelector.setVisible(gpuSelected);
     }

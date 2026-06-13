@@ -172,7 +172,9 @@
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (délais en lecture)",
-      "outputBuffer": "OutputBuffer (délais en écriture)"
+      "outputBuffer": "OutputBuffer (délais en écriture)",
+      "nativeGpu": "GPU InputBuffer",
+      "nativeGpuOutput": "GPU OutputBuffer"
     },
     "stageShapes": {
       "box": "Boîte",

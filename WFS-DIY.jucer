@@ -381,6 +381,22 @@
               file="Source/DSP/gpu/CudaWfsKernels.h"/>
         <FILE id="gpuFrHost" name="WfsFrHostState.h" compile="0" resource="0"
               file="Source/DSP/gpu/WfsFrHostState.h"/>
+        <FILE id="obGpuAlgo" name="NativeGpuOutputBufferAlgorithm.h" compile="0" resource="0"
+              file="Source/DSP/gpu/NativeGpuOutputBufferAlgorithm.h"/>
+        <FILE id="obGpuSel" name="ObGpuBackend.h" compile="0" resource="0"
+              file="Source/DSP/gpu/ObGpuBackend.h"/>
+        <FILE id="obMtlBakH" name="MetalObBackend.h" compile="0" resource="0"
+              file="Source/DSP/gpu/MetalObBackend.h"/>
+        <FILE id="obMtlBakM" name="MetalObBackend.mm" compile="1" resource="0"
+              file="Source/DSP/gpu/MetalObBackend.mm"/>
+        <FILE id="obMtlKrnl" name="MetalObKernels.h" compile="0" resource="0"
+              file="Source/DSP/gpu/MetalObKernels.h"/>
+        <FILE id="obCudaBakH" name="CudaObBackend.h" compile="0" resource="0"
+              file="Source/DSP/gpu/CudaObBackend.h"/>
+        <FILE id="obCudaBakC" name="CudaObBackend.cpp" compile="1" resource="0"
+              file="Source/DSP/gpu/CudaObBackend.cpp"/>
+        <FILE id="obCudaKrnl" name="CudaObKernels.h" compile="0" resource="0"
+              file="Source/DSP/gpu/CudaObKernels.h"/>
         <FILE id="irHostFft" name="IrHostFft.h" compile="0" resource="0"
               file="Source/DSP/gpu/IrHostFft.h"/>
         <FILE id="irConvHost" name="IrConvHostState.h" compile="0" resource="0"

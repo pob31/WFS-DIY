@@ -120,6 +120,7 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/WFSLogger_60115195.o \
   $(JUCE_OBJDIR)/WFSCalculationEngine_480062fe.o \
   $(JUCE_OBJDIR)/CudaWfsBackend_d20d6b9.o \
+  $(JUCE_OBJDIR)/CudaObBackend_0b00001.o \
   $(JUCE_OBJDIR)/CudaIrBackend_404ed3c.o \
   $(JUCE_OBJDIR)/TestSignalGenerator_c4132b8c.o \
   $(JUCE_OBJDIR)/BinaryData_ce4232d4.o \
@@ -402,6 +403,11 @@ $(JUCE_OBJDIR)/WFSCalculationEngine_480062fe.o: ../../Source/DSP/WFSCalculationE
 $(JUCE_OBJDIR)/CudaWfsBackend_d20d6b9.o: ../../Source/DSP/gpu/CudaWfsBackend.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling CudaWfsBackend.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/CudaObBackend_0b00001.o: ../../Source/DSP/gpu/CudaObBackend.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling CudaObBackend.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/CudaIrBackend_404ed3c.o: ../../Source/DSP/gpu/CudaIrBackend.cpp

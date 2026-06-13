@@ -163,7 +163,9 @@
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (読み取り時遅延)",
-      "outputBuffer": "OutputBuffer (書き込み時遅延)"
+      "outputBuffer": "OutputBuffer (書き込み時遅延)",
+      "nativeGpu": "GPU InputBuffer",
+      "nativeGpuOutput": "GPU OutputBuffer"
     },
     "stageShapes": {
       "box": "ボックス",

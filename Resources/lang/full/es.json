@@ -163,7 +163,9 @@
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (retardos en lectura)",
-      "outputBuffer": "OutputBuffer (retardos en escritura)"
+      "outputBuffer": "OutputBuffer (retardos en escritura)",
+      "nativeGpu": "GPU InputBuffer",
+      "nativeGpuOutput": "GPU OutputBuffer"
     },
     "stageShapes": {
       "box": "Caja",

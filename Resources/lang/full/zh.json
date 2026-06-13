@@ -163,7 +163,9 @@
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (读取时延迟)",
-      "outputBuffer": "OutputBuffer (写入时延迟)"
+      "outputBuffer": "OutputBuffer (写入时延迟)",
+      "nativeGpu": "GPU InputBuffer",
+      "nativeGpuOutput": "GPU OutputBuffer"
     },
     "stageShapes": {
       "box": "立方体",

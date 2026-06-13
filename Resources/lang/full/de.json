@@ -172,7 +172,9 @@
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (Lesezeitverzögerungen)",
-      "outputBuffer": "OutputBuffer (Schreibzeitverzögerungen)"
+      "outputBuffer": "OutputBuffer (Schreibzeitverzögerungen)",
+      "nativeGpu": "GPU InputBuffer",
+      "nativeGpuOutput": "GPU OutputBuffer"
     },
     "stageShapes": {
       "box": "Quader",

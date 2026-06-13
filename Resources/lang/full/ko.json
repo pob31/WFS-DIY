@@ -163,7 +163,9 @@
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (읽기 시간 지연)",
-      "outputBuffer": "OutputBuffer (쓰기 시간 지연)"
+      "outputBuffer": "OutputBuffer (쓰기 시간 지연)",
+      "nativeGpu": "GPU InputBuffer",
+      "nativeGpuOutput": "GPU OutputBuffer"
     },
     "stageShapes": {
       "box": "박스",

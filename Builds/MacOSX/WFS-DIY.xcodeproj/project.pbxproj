@@ -56,6 +56,8 @@
 		A3B475BAAE5DA55369EA63CB /* OSCReceiverWithSenderIP.cpp */ = {isa = PBXBuildFile; fileRef = 52706EBD8973DFD0F1366FCF; };
 		A4CC09F2DA7E16C75D0C1C27 /* include_juce_events.mm */ = {isa = PBXBuildFile; fileRef = 1BD908F5EE15BCFED1F87F23; };
 		A61FFE1598D20B2EC80D38FD /* CudaWfsBackend.cpp */ = {isa = PBXBuildFile; fileRef = E7C67F1EB385D69F14F82390; };
+		0B0002BB0000000000000004 /* MetalObBackend.mm */ = {isa = PBXBuildFile; fileRef = 0B0001AA0000000000000004; };
+		0B0002BB0000000000000007 /* CudaObBackend.cpp */ = {isa = PBXBuildFile; fileRef = 0B0001AA0000000000000007; };
 		6FA25BD56BEF41C98FAD1185 /* MetalIrBackend.mm */ = {isa = PBXBuildFile; fileRef = A0557598F5734B9EB6318852; };
 		9D704CE102BC4BBE8A67511B /* CudaIrBackend.cpp */ = {isa = PBXBuildFile; fileRef = 57C26939EBB34FB5948AF03E; };
 		A635BD6A3E95AC90F1E59D1D /* MCPToolRegistry.cpp */ = {isa = PBXBuildFile; fileRef = 7E602E26466DEF84F54CDE94; };
@@ -341,6 +343,14 @@
 		E6905818F38D144E669AABE1 /* TrackingPSNReceiver.h */ /* TrackingPSNReceiver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TrackingPSNReceiver.h; path = ../../Source/Network/TrackingPSNReceiver.h; sourceTree = SOURCE_ROOT; };
 		E6DC64388ADB0F021B9F42EE /* ControllerMapping.h */ /* ControllerMapping.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ControllerMapping.h; path = ../../Source/Controllers/PositionControl/ControllerMapping.h; sourceTree = SOURCE_ROOT; };
 		E7C67F1EB385D69F14F82390 /* CudaWfsBackend.cpp */ /* CudaWfsBackend.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = CudaWfsBackend.cpp; path = ../../Source/DSP/gpu/CudaWfsBackend.cpp; sourceTree = SOURCE_ROOT; };
+		0B0001AA0000000000000001 /* NativeGpuOutputBufferAlgorithm.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = NativeGpuOutputBufferAlgorithm.h; path = ../../Source/DSP/gpu/NativeGpuOutputBufferAlgorithm.h; sourceTree = SOURCE_ROOT; };
+		0B0001AA0000000000000002 /* ObGpuBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ObGpuBackend.h; path = ../../Source/DSP/gpu/ObGpuBackend.h; sourceTree = SOURCE_ROOT; };
+		0B0001AA0000000000000003 /* MetalObBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MetalObBackend.h; path = ../../Source/DSP/gpu/MetalObBackend.h; sourceTree = SOURCE_ROOT; };
+		0B0001AA0000000000000004 /* MetalObBackend.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = MetalObBackend.mm; path = ../../Source/DSP/gpu/MetalObBackend.mm; sourceTree = SOURCE_ROOT; };
+		0B0001AA0000000000000005 /* MetalObKernels.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MetalObKernels.h; path = ../../Source/DSP/gpu/MetalObKernels.h; sourceTree = SOURCE_ROOT; };
+		0B0001AA0000000000000006 /* CudaObBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CudaObBackend.h; path = ../../Source/DSP/gpu/CudaObBackend.h; sourceTree = SOURCE_ROOT; };
+		0B0001AA0000000000000007 /* CudaObBackend.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = CudaObBackend.cpp; path = ../../Source/DSP/gpu/CudaObBackend.cpp; sourceTree = SOURCE_ROOT; };
+		0B0001AA0000000000000008 /* CudaObKernels.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CudaObKernels.h; path = ../../Source/DSP/gpu/CudaObKernels.h; sourceTree = SOURCE_ROOT; };
 		1D594D0078504F389E307C78 /* IrHostFft.h */ /* IrHostFft.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = IrHostFft.h; path = ../../Source/DSP/gpu/IrHostFft.h; sourceTree = SOURCE_ROOT; };
 		E478616DBFEE484EA76DD9BD /* IrConvHostState.h */ /* IrConvHostState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = IrConvHostState.h; path = ../../Source/DSP/gpu/IrConvHostState.h; sourceTree = SOURCE_ROOT; };
 		897D13AA9CBB4816BECDE4D2 /* MetalIrBackend.h */ /* MetalIrBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MetalIrBackend.h; path = ../../Source/DSP/gpu/MetalIrBackend.h; sourceTree = SOURCE_ROOT; };
@@ -737,6 +747,14 @@
 				E7C67F1EB385D69F14F82390,
 				526321277F378A837914E05F,
 				22239A7EE1C91BB1BEF3837D,
+				0B0001AA0000000000000001,
+				0B0001AA0000000000000002,
+				0B0001AA0000000000000003,
+				0B0001AA0000000000000004,
+				0B0001AA0000000000000005,
+				0B0001AA0000000000000006,
+				0B0001AA0000000000000007,
+				0B0001AA0000000000000008,
 				1D594D0078504F389E307C78,
 				E478616DBFEE484EA76DD9BD,
 				897D13AA9CBB4816BECDE4D2,
@@ -1024,6 +1042,8 @@
 				B1102ED88546CAF3585737B7,
 				83C9F8CEE94C91A408FD5EED,
 				A61FFE1598D20B2EC80D38FD,
+				0B0002BB0000000000000004,
+				0B0002BB0000000000000007,
 				6FA25BD56BEF41C98FAD1185,
 				9D704CE102BC4BBE8A67511B,
 				D85DC6D9890F1B32583491C0,

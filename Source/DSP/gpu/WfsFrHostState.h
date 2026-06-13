@@ -79,6 +79,11 @@ public:
         jitterLpState.assign ((size_t) numIn * (size_t) numOut, 0.0f);
         jitterSamples.assign ((size_t) numIn * (size_t) numOut, 0.0f);
         launchCounter = 0;
+
+        // OutputBuffer (scatter) sub-step state.
+        jitterLast.assign ((size_t) numIn * (size_t) numOut, 0.0f);
+        baseCurrScratch.assign ((size_t) numIn * (size_t) numOut, 0.0f);
+        subStepCounter = 0;
     }
 
     void reset()
@@ -88,6 +93,9 @@ public:
         std::fill (jitterLpState.begin(), jitterLpState.end(), 0.0f);
         std::fill (jitterSamples.begin(), jitterSamples.end(), 0.0f);
         launchCounter = 0;
+        std::fill (jitterLast.begin(), jitterLast.end(), 0.0f);
+        subStepCounter = 0;
+        haveBase = false;
     }
 
     // ==== 50 Hz timer-thread setters (mirror InputBufferProcessor's) ====
@@ -213,6 +221,114 @@ public:
         }
     }
 
+    /** OutputBuffer (scatter) variant of the FR delay: fills a PER-SAMPLE absolute
+        FR delay buffer frDelaysOut[pair*blockSize + s] (pair = in*numOut+out),
+        sub-stepping the diffusion grain every `subBlock` samples and ramping
+        within each sub-block. This MUST match the CPU OutputBufferProcessor, which
+        steps the grain once per 64-sample processing block and ramps it across the
+        block (write-time scatter is sensitive to a per-sample noise walk on the
+        write position - it produced audible hiss, so the CPU block-steps it; a
+        single per-launch step like advanceJitter() is too coarse for the scatter).
+
+        The smoothed base FR delay (direct + extra - L, no jitter) is approximated
+        by a prev->curr linear ramp across the launch (basePrev in/out), consistent
+        with the rest of the GPU port's delay handling. Diffusion off => jitter 0 =>
+        pure base ramp (then this equals the gather path's FR delay).
+
+        Delays are clamped to a MINIMUM of 1 sample: the write-time scatter cannot
+        represent d < 1 (the head cell was just read+cleared; a same-cell write
+        only re-emerges when the head wraps ~1 s later), so pipeline-compensated
+        delays below the latency floor clamp to 1 (the scatter analogue of the
+        gather's "below L clamps to the floor" contract).
+
+        frGainsPrev/frGainsCurr gate the per-sample fill: pairs whose FR gain is 0
+        in both matrices are skipped (the kernel's doFr gate never reads their
+        rows), which removes the O(pairs*blockSize) pump-thread cost for the
+        common FR-sparse case. The jitter STATE still advances for every pair
+        (cheap, one step per sub-block) so the noise stream phase matches the CPU,
+        which steps diffusion regardless of levels. */
+    void computeFrDelaysPerSample (const float* delaysMs, const float* frDelaysMs,
+                                   const float* frGainsPrev, const float* frGainsCurr,
+                                   float latencyMs, float srScale, float maxDelaySamples,
+                                   int blockSize, int subBlock,
+                                   std::vector<float>& basePrev,   // [pairs] in/out
+                                   float* frDelaysOut) noexcept    // [pairs*blockSize]
+    {
+        const int pairs = numIn * numOut;
+        if ((int) basePrev.size() != pairs)
+            basePrev.assign ((size_t) pairs, 1.0f);
+
+        baseCurrScratch.resize ((size_t) pairs);
+        for (int m = 0; m < pairs; ++m)
+        {
+            float d = 0.0f;
+            if (delaysMs != nullptr && frDelaysMs != nullptr)
+                d = (delaysMs[m] + frDelaysMs[m] - latencyMs) * srScale;   // base, NO jitter
+            baseCurrScratch[(size_t) m] = std::clamp (d, 1.0f, maxDelaySamples);
+        }
+        if (! haveBase)
+        {
+            basePrev = baseCurrScratch;
+            haveBase = true;
+        }
+
+        // Hoist the per-input diffusion params out of the sub-block loop.
+        diffusionScratch.resize ((size_t) numIn);
+        for (int in = 0; in < numIn; ++in)
+            diffusionScratch[(size_t) in] =
+                params[(size_t) in]->diffusionAmount.load (std::memory_order_acquire);
+
+        const int sub = std::max (1, subBlock);
+        const float invLen = 1.0f / (float) std::max (1, blockSize);
+
+        for (int a = 0; a < blockSize; a += sub)
+        {
+            const int b = std::min (a + sub, blockSize);
+            const int subLen = b - a;
+            ++subStepCounter;                          // one grain step per sub-block (CPU parity)
+            const float invSub = 1.0f / (float) subLen;
+
+            for (int in = 0; in < numIn; ++in)
+            {
+                const auto coeffs = FrDiffusion::computeCoeffs (diffusionScratch[(size_t) in],
+                                                                srHz, (float) subLen);
+
+                for (int out = 0; out < numOut; ++out)
+                {
+                    const int m = in * numOut + out;
+
+                    // Advance the grain state for EVERY pair (CPU steps diffusion
+                    // regardless of levels - keeps stream phase identical)...
+                    float jCurr = 0.0f;
+                    if (coeffs.ampSamples > 0.0f)
+                        jCurr = FrDiffusion::step (jitterLpState[(size_t) m], subStepCounter,
+                                                   FrDiffusion::makeKey (in, out), coeffs);
+                    const float jPrev = jitterLast[(size_t) m];
+                    jitterLast[(size_t) m] = jCurr;
+
+                    // ...but only fill the per-sample row for FR-active pairs
+                    // (the kernel's doFr gate never reads inactive rows).
+                    if (frGainsPrev != nullptr && frGainsCurr != nullptr
+                        && frGainsPrev[m] == 0.0f && frGainsCurr[m] == 0.0f)
+                        continue;
+
+                    float* dst = frDelaysOut + (size_t) m * (size_t) blockSize;
+                    const float bp = basePrev[(size_t) m];
+                    const float bc = baseCurrScratch[(size_t) m];
+                    for (int s = a; s < b; ++s)
+                    {
+                        const float jit  = jPrev + (jCurr - jPrev) * ((float) (s - a + 1) * invSub);
+                        const float base = bp + (bc - bp) * ((float) (s + 1) * invLen);
+                        dst[(size_t) s] = std::clamp (base + jit, 1.0f, maxDelaySamples);
+                    }
+                }
+            }
+        }
+
+        for (int m = 0; m < pairs; ++m)
+            basePrev[(size_t) m] = baseCurrScratch[(size_t) m];
+    }
+
 private:
     struct InputParams
     {
@@ -235,4 +351,11 @@ private:
     uint32_t launchCounter = 0;
     std::vector<float> jitterLpState;                // [in*numOut+out] one-pole LP state
     std::vector<float> jitterSamples;                // [in*numOut+out] clamped jitter (audio samples)
+
+    // OutputBuffer (scatter) sub-step diffusion state (computeFrDelaysPerSample).
+    std::vector<float> jitterLast;                   // [in*numOut+out] previous sub-block's jitter (ramp continuity)
+    std::vector<float> baseCurrScratch;              // [in*numOut+out] this launch's base FR delay (no jitter)
+    std::vector<float> diffusionScratch;             // [numIn] hoisted per-launch diffusion amounts
+    uint32_t subStepCounter = 0;                     // 64-sample sub-block index (CPU frJitterBlockIndex parity)
+    bool haveBase = false;                           // prev->curr base-delay ramp bootstrap
 };

@@ -1,0 +1,21 @@
+#pragma once
+
+/*
+    ObGpuBackend — compile-time selection of the native GPU OutputBuffer
+    (scatter / write-time) backend. The scatter twin of WfsGpuBackend.
+
+    The Metal and CUDA backends never coexist in a single binary (one targets
+    Apple, the other Windows/NVIDIA) and expose the identical method surface
+    (prepare / setMatrixPointers / setFRFilterParams / setFRDiffusion /
+    processBlock / reset / release / isReady / getLastError / getLastLaunchMs /
+    getDeviceName). A plain type alias lets GpuAsyncPipeline and
+    NativeGpuOutputBufferAlgorithm stay backend-agnostic with zero #if scatter.
+*/
+
+#if defined(__APPLE__)
+  #include "MetalObBackend.h"
+  using ObGpuBackend = MetalObBackend;
+#else
+  #include "CudaObBackend.h"
+  using ObGpuBackend = CudaObBackend;
+#endif

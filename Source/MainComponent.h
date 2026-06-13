@@ -5,6 +5,7 @@
 #include "DSP/InputBufferAlgorithm.h"
 #if WFS_GPU_NATIVE
 #include "DSP/gpu/NativeGpuWfsAlgorithm.h"
+#include "DSP/gpu/NativeGpuOutputBufferAlgorithm.h"
 #endif
 #include "DSP/OutputBufferAlgorithm.h"
 #include "DSP/WFSCalculationEngine.h"
@@ -216,7 +217,8 @@ private:
         InputBuffer,   // Read-time delays (current/original approach)
         OutputBuffer   // Write-time delays (alternative approach)
 #if WFS_GPU_NATIVE
-        , NativeGpuWfs // Native Metal WFS delay-and-sum (no SDK)
+        , NativeGpuWfs          // Native GPU WFS delay-and-sum, gather (Metal/CUDA)
+        , NativeGpuOutputBuffer // Native GPU WFS, scatter / write-time (Metal/CUDA)
 #endif
     };
 
@@ -230,6 +232,7 @@ private:
     OutputBufferAlgorithm outputAlgorithm;
 #if WFS_GPU_NATIVE
     NativeGpuWfsAlgorithm nativeGpuAlgorithm;
+    NativeGpuOutputBufferAlgorithm nativeGpuOutputAlgorithm;
     int gpuPipelineStatTick = 0;          // 5 ms timer ticks -> 1 s underrun-stat cadence
     uint32_t gpuUnderrunsLogged = 0;      // last pipeline underrun total surfaced in the log
 #endif

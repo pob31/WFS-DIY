@@ -224,6 +224,7 @@
     <ClCompile Include="..\..\Source\WFSLogger.cpp"/>
     <ClCompile Include="..\..\Source\DSP\WFSCalculationEngine.cpp"/>
     <ClCompile Include="..\..\Source\DSP\gpu\CudaWfsBackend.cpp"/>
+    <ClCompile Include="..\..\Source\DSP\gpu\CudaObBackend.cpp"/>
     <ClCompile Include="..\..\Source\DSP\gpu\CudaIrBackend.cpp"/>
     <ClCompile Include="..\..\Source\DSP\TestSignalGenerator.cpp"/>
     <ClCompile Include="..\..\ThirdParty\JUCE\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.cpp">
@@ -3387,6 +3388,12 @@
     <ClInclude Include="..\..\Source\DSP\gpu\CudaWfsBackend.h"/>
     <ClInclude Include="..\..\Source\DSP\gpu\CudaWfsKernels.h"/>
     <ClInclude Include="..\..\Source\DSP\gpu\WfsFrHostState.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\NativeGpuOutputBufferAlgorithm.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\ObGpuBackend.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\MetalObBackend.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\MetalObKernels.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\CudaObBackend.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\CudaObKernels.h"/>
     <ClInclude Include="..\..\Source\DSP\gpu\IrHostFft.h"/>
     <ClInclude Include="..\..\Source\DSP\gpu\IrConvHostState.h"/>
     <ClInclude Include="..\..\Source\DSP\gpu\MetalIrBackend.h"/>

@@ -179,6 +179,8 @@ MainComponent::MainComponent()
 #if WFS_GPU_NATIVE
     else if (algorithmId == 3)
         currentAlgorithm = ProcessingAlgorithm::NativeGpuWfs;
+    else if (algorithmId == 4)
+        currentAlgorithm = ProcessingAlgorithm::NativeGpuOutputBuffer;
 #endif
 
     /* Algorithm change handler - no longer needed as UI is in SystemConfigTab
@@ -2623,6 +2625,11 @@ void MainComponent::stopProcessingForConfigurationChange()
         nativeGpuAlgorithm.releaseResources();
         nativeGpuAlgorithm.clear();
     }
+    else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuOutputBuffer)
+    {
+        nativeGpuOutputAlgorithm.releaseResources();
+        nativeGpuOutputAlgorithm.clear();
+    }
 #endif
 
     // Clear shared buffer references from consumers before destroying buffers
@@ -2944,6 +2951,10 @@ void MainComponent::handleProcessingChange(bool enabled)
         {
             nativeGpuAlgorithm.setProcessingEnabled(true);
         }
+        else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuOutputBuffer)
+        {
+            nativeGpuOutputAlgorithm.setProcessingEnabled(true);
+        }
 #endif
     }
     else
@@ -2961,6 +2972,10 @@ void MainComponent::handleProcessingChange(bool enabled)
         else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs)
         {
             nativeGpuAlgorithm.setProcessingEnabled(processingEnabled);
+        }
+        else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuOutputBuffer)
+        {
+            nativeGpuOutputAlgorithm.setProcessingEnabled(processingEnabled);
         }
 #endif
 
@@ -3129,6 +3144,8 @@ void MainComponent::handleAlgorithmSelectionChange(int selectedId)
 #if WFS_GPU_NATIVE
     else if (selectedId == 3)
         newAlgorithm = ProcessingAlgorithm::NativeGpuWfs;
+    else if (selectedId == 4)
+        newAlgorithm = ProcessingAlgorithm::NativeGpuOutputBuffer;
 #endif
 
     if (newAlgorithm == currentAlgorithm)
@@ -3158,8 +3175,10 @@ void MainComponent::handleGpuDepthChange(int depthBlocks)
 {
 #if WFS_GPU_NATIVE
     // The depth is read from the config param at prepare time; a restart
-    // applies it. Only meaningful while the GPU algorithm is live.
-    if (currentAlgorithm != ProcessingAlgorithm::NativeGpuWfs || !audioEngineStarted)
+    // applies it. Only meaningful while a GPU algorithm is live.
+    if ((currentAlgorithm != ProcessingAlgorithm::NativeGpuWfs
+         && currentAlgorithm != ProcessingAlgorithm::NativeGpuOutputBuffer)
+        || !audioEngineStarted)
         return;
 
     const bool wasEnabled = processingEnabled;
@@ -4292,12 +4311,14 @@ void MainComponent::startAudioEngine()
         else if (algoId == 2) currentAlgorithm = ProcessingAlgorithm::OutputBuffer;
 #if WFS_GPU_NATIVE
         else if (algoId == 3) currentAlgorithm = ProcessingAlgorithm::NativeGpuWfs;
+        else if (algoId == 4) currentAlgorithm = ProcessingAlgorithm::NativeGpuOutputBuffer;
 #endif
     }
 
     bool prepared = false;
     DBG("startAudioEngine: algorithm=" + juce::String(currentAlgorithm == ProcessingAlgorithm::InputBuffer ? "InputBuffer" :
-        currentAlgorithm == ProcessingAlgorithm::OutputBuffer ? "OutputBuffer" : "NativeGpuWfs"));
+        currentAlgorithm == ProcessingAlgorithm::OutputBuffer ? "OutputBuffer" :
+        currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs ? "NativeGpuWfs" : "NativeGpuOutputBuffer"));
 
     if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
     {
@@ -4324,7 +4345,7 @@ void MainComponent::startAudioEngine()
         prepared = true;
     }
 #if WFS_GPU_NATIVE
-    else // ProcessingAlgorithm::NativeGpuWfs
+    else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs)
     {
         int gpuDepth = (int) parameters.getConfigParam ("GpuPipelineDepth");
         if (gpuDepth < WFSParameterDefaults::gpuPipelineDepthMin
@@ -4373,6 +4394,59 @@ void MainComponent::startAudioEngine()
                 + nativeGpuAlgorithm.getDeviceName()
                 + ", async pipeline depth " + juce::String (nativeGpuAlgorithm.getPipelineDepthBlocks())
                 + " = +" + juce::String (nativeGpuAlgorithm.getPipelineLatencyMs(), 2)
+                + " ms, pre-subtracted from WFS delays");
+        }
+    }
+    else // ProcessingAlgorithm::NativeGpuOutputBuffer
+    {
+        int gpuDepth = (int) parameters.getConfigParam ("GpuPipelineDepth");
+        if (gpuDepth < WFSParameterDefaults::gpuPipelineDepthMin
+            || gpuDepth > WFSParameterDefaults::gpuPipelineDepthMax)
+            gpuDepth = WFSParameterDefaults::gpuPipelineDepthDefault;
+
+        prepared = nativeGpuOutputAlgorithm.prepare(numInputChannels, numOutputChannels,
+                                                    sampleRate, blockSize,
+                                                    delayTimesMs.data(), levels.data(),
+                                                    processingEnabled,
+                                                    hfAttenuation.data(),
+                                                    frDelayTimesMs.data(),
+                                                    frLevels.data(),
+                                                    frHFAttenuation.data(),
+                                                    gpuDepth);
+        if (!prepared)
+        {
+            // GPU init failed: log, inform, fall back to the CPU OutputBuffer
+            // (the CPU twin of this scatter algorithm).
+            auto errorMsg = nativeGpuOutputAlgorithm.getLastError();
+            WFSLogger::getInstance().logWarning ("Native GPU OutputBuffer init failed: " + errorMsg
+                                                 + " - falling back to CPU OutputBuffer");
+            juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::WarningIcon,
+                "GPU",
+                "GPU initialization failed:\n" + errorMsg
+                + "\n\nFalling back to the CPU OutputBuffer algorithm.");
+            nativeGpuOutputAlgorithm.clear();
+
+            currentAlgorithm = ProcessingAlgorithm::OutputBuffer;
+            parameters.setConfigParam("ProcessingAlgorithm", 2);
+
+            outputAlgorithm.prepare(numInputChannels, numOutputChannels,
+                                    sampleRate, blockSize,
+                                    delayTimesMs.data(), levels.data(),
+                                    processingEnabled,
+                                    hfAttenuation.data(),
+                                    frDelayTimesMs.data(),
+                                    frLevels.data(),
+                                    frHFAttenuation.data());
+            prepared = true;
+        }
+        else
+        {
+            WFSLogger::getInstance().logInfo ("Native GPU OutputBuffer active: "
+                + juce::String (numInputChannels) + " in x "
+                + juce::String (numOutputChannels) + " out on "
+                + nativeGpuOutputAlgorithm.getDeviceName()
+                + ", async pipeline depth " + juce::String (nativeGpuOutputAlgorithm.getPipelineDepthBlocks())
+                + " = +" + juce::String (nativeGpuOutputAlgorithm.getPipelineLatencyMs(), 2)
                 + " ms, pre-subtracted from WFS delays");
         }
     }
@@ -4440,6 +4514,24 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
                                        frLevels.data(),
                                        frHFAttenuation.data(),
                                        gpuDepth);
+        }
+        else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuOutputBuffer)
+        {
+            // Device/buffer change: full re-prepare (backend is sized per block)
+            int gpuDepth = (int) parameters.getConfigParam ("GpuPipelineDepth");
+            if (gpuDepth < WFSParameterDefaults::gpuPipelineDepthMin
+                || gpuDepth > WFSParameterDefaults::gpuPipelineDepthMax)
+                gpuDepth = WFSParameterDefaults::gpuPipelineDepthDefault;
+
+            nativeGpuOutputAlgorithm.prepare(numInputChannels, numOutputChannels,
+                                             sampleRate, samplesPerBlockExpected,
+                                             delayTimesMs.data(), levels.data(),
+                                             processingEnabled,
+                                             hfAttenuation.data(),
+                                             frDelayTimesMs.data(),
+                                             frLevels.data(),
+                                             frHFAttenuation.data(),
+                                             gpuDepth);
         }
 #endif
     }
@@ -4696,9 +4788,13 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
             outputAlgorithm.processBlock(wfsOut, patchedInputBuffer, numInputChannels, numOutputChannels);
         }
 #if WFS_GPU_NATIVE
-        else // ProcessingAlgorithm::NativeGpuWfs
+        else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs)
         {
             nativeGpuAlgorithm.processBlock(wfsOut, patchedInputBuffer, numInputChannels, numOutputChannels);
+        }
+        else // ProcessingAlgorithm::NativeGpuOutputBuffer
+        {
+            nativeGpuOutputAlgorithm.processBlock(wfsOut, patchedInputBuffer, numInputChannels, numOutputChannels);
         }
 #endif
 
@@ -4940,6 +5036,10 @@ void MainComponent::releaseResources()
     {
         nativeGpuAlgorithm.releaseResources();
     }
+    else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuOutputBuffer)
+    {
+        nativeGpuOutputAlgorithm.releaseResources();
+    }
 #endif
 
     // Stop reverb feed thread
@@ -5051,12 +5151,18 @@ void MainComponent::timerCallback()
     if (++gpuPipelineStatTick >= 200) // 5 ms timer
     {
         gpuPipelineStatTick = 0;
-        const uint32_t u = nativeGpuAlgorithm.isReady() ? nativeGpuAlgorithm.getUnderrunCount() : 0;
+        // Surface stats from whichever GPU algorithm is live (gather or scatter).
+        const bool obActive = (currentAlgorithm == ProcessingAlgorithm::NativeGpuOutputBuffer)
+                              && nativeGpuOutputAlgorithm.isReady();
+        const uint32_t u = obActive ? nativeGpuOutputAlgorithm.getUnderrunCount()
+                         : (nativeGpuAlgorithm.isReady() ? nativeGpuAlgorithm.getUnderrunCount() : 0);
         if (u > gpuUnderrunsLogged)
         {
+            const float peakMs = obActive ? nativeGpuOutputAlgorithm.getAndResetPeakGpuExecMs()
+                                          : nativeGpuAlgorithm.getAndResetPeakGpuExecMs();
             WFSLogger::getInstance().logInfo ("GPU pipeline underruns: +"
                 + juce::String (u - gpuUnderrunsLogged) + " (total " + juce::String (u)
-                + "), peak pump " + juce::String (nativeGpuAlgorithm.getAndResetPeakGpuExecMs(), 2) + " ms");
+                + "), peak pump " + juce::String (peakMs, 2) + " ms");
             gpuUnderrunsLogged = u;
         }
         else if (u < gpuUnderrunsLogged)
@@ -5486,6 +5592,13 @@ void MainComponent::timerCallback()
                         lowCutActive, lowCutFreq,
                         highShelfActive, highShelfFreq, highShelfGain, highShelfSlope);
                     nativeGpuAlgorithm.setFRDiffusion(static_cast<size_t>(i), diffusion);
+                }
+                else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuOutputBuffer)
+                {
+                    nativeGpuOutputAlgorithm.setFRFilterParams(static_cast<size_t>(i),
+                        lowCutActive, lowCutFreq,
+                        highShelfActive, highShelfFreq, highShelfGain, highShelfSlope);
+                    nativeGpuOutputAlgorithm.setFRDiffusion(static_cast<size_t>(i), diffusion);
                 }
 #endif
             }
