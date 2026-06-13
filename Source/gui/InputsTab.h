@@ -5551,6 +5551,7 @@ private:
         bool trigger = getIntParam(WFSParameterIDs::inputOtomoTrigger, 0) != 0;
         otomoTriggerButton.setToggleState(trigger, juce::dontSendNotification);
         otomoTriggerButton.setButtonText(trigger ? LOC("inputs.toggles.triggered") : LOC("inputs.toggles.manual"));
+        updateOtomoTriggerAppearance();  // refresh threshold/reset dimming for the newly loaded channel
 
         // Threshold stored as dB (-92 to 0), default -20 dB
         // Inverse of: dB = 20*log10(minLin + (1-minLin)*v^2)
