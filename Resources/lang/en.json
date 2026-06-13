@@ -1165,7 +1165,9 @@
       "minLatencyOn": "Minimal Latency ON",
       "minLatencyOff": "Minimal Latency OFF",
       "liveSourceOn": "Live Source Atten ON",
-      "liveSourceOff": "Live Source Atten OFF"
+      "liveSourceOff": "Live Source Atten OFF",
+      "applyToAllOn": "Apply to all nodes: ON",
+      "applyToAllOff": "Apply to all nodes: OFF"
     },
     "coordModes": {
       "xyz": "XYZ"

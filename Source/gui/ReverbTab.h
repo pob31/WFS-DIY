@@ -733,6 +733,30 @@ private:
         delayLatencyValueLabel.setText ("0.0 ms", juce::dontSendNotification);
         delayLatencyValueLabel.setJustificationType (juce::Justification::right);
         setupEditableValueLabel (delayLatencyValueLabel);
+
+        // "Apply to all nodes" link toggle (top of Channel Params subtab)
+        addAndMakeVisible (applyToAllNodesButton);
+        applyToAllNodesButton.setToggleState (applyToAllNodes, juce::dontSendNotification);
+        applyToAllNodesButton.setButtonText (applyToAllNodes ? LOC("reverbs.toggles.applyToAllOn")
+                                                             : LOC("reverbs.toggles.applyToAllOff"));
+        {
+            juce::Colour btnColour = applyToAllNodes ? juce::Colour (0xFF4CAF50)
+                                                     : ColorScheme::get().sliderTrackBg;
+            applyToAllNodesButton.setColour (juce::TextButton::buttonColourId, btnColour);
+            applyToAllNodesButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
+        }
+        applyToAllNodesButton.onClick = [this]
+        {
+            applyToAllNodes = ! applyToAllNodes;
+            applyToAllNodesButton.setToggleState (applyToAllNodes, juce::dontSendNotification);
+            applyToAllNodesButton.setButtonText (applyToAllNodes ? LOC("reverbs.toggles.applyToAllOn")
+                                                                 : LOC("reverbs.toggles.applyToAllOff"));
+            juce::Colour btnColour = applyToAllNodes ? juce::Colour (0xFF4CAF50)
+                                                     : ColorScheme::get().sliderTrackBg;
+            applyToAllNodesButton.setColour (juce::TextButton::buttonColourId, btnColour);
+            applyToAllNodesButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
+            // Runtime-only flag; no save and no retroactive sync — only future edits propagate.
+        };
     }
 
     void setupPositionSubTab()
@@ -2730,6 +2754,14 @@ private:
         const int dialSize = juce::jmax(60, static_cast<int>(100.0f * layoutScale));
         const int titleHeight = scaled(25);
 
+        // Top row: "Apply to all nodes" link toggle (full width, above the 3 columns).
+        // Carving it off `area` first shifts the columns (and their help buttons/cards) down.
+        {
+            auto topRow = area.removeFromTop (rowHeight);
+            applyToAllNodesButton.setBounds (topRow.removeFromLeft (scaled(200)));
+        }
+        area.removeFromTop (spacing);
+
         // Divide into 3 columns
         int colWidth = area.getWidth() / 3;
         auto col1 = area.removeFromLeft (colWidth).reduced (scaled(5), 0);
@@ -3290,6 +3322,9 @@ private:
         reverbFeedTitleLabel.setVisible (visible);
         reverbReturnTitleLabel.setVisible (visible);
 
+        // "Apply to all nodes" link toggle (top row of this subtab)
+        applyToAllNodesButton.setVisible (visible);
+
         // Reverb components
         attenuationLabel.setVisible (visible);
         attenuationSlider.setVisible (visible);
@@ -3604,47 +3639,75 @@ private:
             muteButtons[i].setToggleState (muteValues[i].getIntValue() != 0, juce::dontSendNotification);
     }
 
+    // Returns the ValueTree section that holds `paramId` for the given reverb channel
+    // index. Mirrors the per-section mapping used by saveReverbParam. Returns an invalid
+    // tree for unmapped params (e.g. reverbPreEQenable, which is handled separately).
+    juce::ValueTree getSectionForReverbParam (const juce::Identifier& paramId, int channelIndex)
+    {
+        auto& vts = parameters.getValueTreeState();
+
+        // Channel section parameters
+        if (paramId == WFSParameterIDs::reverbName ||
+            paramId == WFSParameterIDs::reverbAttenuation ||
+            paramId == WFSParameterIDs::reverbDelayLatency)
+            return vts.getReverbChannelSection (channelIndex);
+
+        // Position section parameters
+        if (paramId == WFSParameterIDs::reverbPositionX ||
+            paramId == WFSParameterIDs::reverbPositionY ||
+            paramId == WFSParameterIDs::reverbPositionZ ||
+            paramId == WFSParameterIDs::reverbReturnOffsetX ||
+            paramId == WFSParameterIDs::reverbReturnOffsetY ||
+            paramId == WFSParameterIDs::reverbReturnOffsetZ ||
+            paramId == WFSParameterIDs::reverbCoordinateMode)
+            return vts.getReverbPositionSection (channelIndex);
+
+        // Feed section parameters
+        if (paramId == WFSParameterIDs::reverbOrientation ||
+            paramId == WFSParameterIDs::reverbAngleOn ||
+            paramId == WFSParameterIDs::reverbAngleOff ||
+            paramId == WFSParameterIDs::reverbPitch ||
+            paramId == WFSParameterIDs::reverbHFdamping ||
+            paramId == WFSParameterIDs::reverbMiniLatencyEnable ||
+            paramId == WFSParameterIDs::reverbLSenable ||
+            paramId == WFSParameterIDs::reverbDistanceAttenEnable)
+            return vts.getReverbFeedSection (channelIndex);
+
+        // ReverbReturn section parameters
+        if (paramId == WFSParameterIDs::reverbDistanceAttenuation ||
+            paramId == WFSParameterIDs::reverbCommonAtten ||
+            paramId == WFSParameterIDs::reverbMutes ||
+            paramId == WFSParameterIDs::reverbMuteMacro)
+            return vts.getReverbReturnSection (channelIndex);
+
+        return {};
+    }
+
+    // Parameters that must always stay per-node, regardless of the "apply to all nodes"
+    // link toggle: the node name plus all spatial / orientation params (orientation and
+    // pitch are directional and stay per-node).
+    static bool isPerNodeOnlyParam (const juce::Identifier& paramId)
+    {
+        return paramId == WFSParameterIDs::reverbName ||
+               paramId == WFSParameterIDs::reverbPositionX ||
+               paramId == WFSParameterIDs::reverbPositionY ||
+               paramId == WFSParameterIDs::reverbPositionZ ||
+               paramId == WFSParameterIDs::reverbReturnOffsetX ||
+               paramId == WFSParameterIDs::reverbReturnOffsetY ||
+               paramId == WFSParameterIDs::reverbReturnOffsetZ ||
+               paramId == WFSParameterIDs::reverbCoordinateMode ||
+               paramId == WFSParameterIDs::reverbOrientation ||
+               paramId == WFSParameterIDs::reverbPitch;
+    }
+
     void saveReverbParam (const juce::Identifier& paramId, const juce::var& value)
     {
         if (isLoadingParameters) return;
 
         auto& vts = parameters.getValueTreeState();
-        int channelIndex = currentChannel - 1;
-        juce::ValueTree section;
 
-        // Map parameter IDs to their specific sections for reliable access
-        // Channel section parameters
-        if (paramId == WFSParameterIDs::reverbName ||
-            paramId == WFSParameterIDs::reverbAttenuation ||
-            paramId == WFSParameterIDs::reverbDelayLatency)
-        {
-            section = vts.getReverbChannelSection (channelIndex);
-        }
-        // Position section parameters
-        else if (paramId == WFSParameterIDs::reverbPositionX ||
-                 paramId == WFSParameterIDs::reverbPositionY ||
-                 paramId == WFSParameterIDs::reverbPositionZ ||
-                 paramId == WFSParameterIDs::reverbReturnOffsetX ||
-                 paramId == WFSParameterIDs::reverbReturnOffsetY ||
-                 paramId == WFSParameterIDs::reverbReturnOffsetZ ||
-                 paramId == WFSParameterIDs::reverbCoordinateMode)
-        {
-            section = vts.getReverbPositionSection (channelIndex);
-        }
-        // Feed section parameters
-        else if (paramId == WFSParameterIDs::reverbOrientation ||
-                 paramId == WFSParameterIDs::reverbAngleOn ||
-                 paramId == WFSParameterIDs::reverbAngleOff ||
-                 paramId == WFSParameterIDs::reverbPitch ||
-                 paramId == WFSParameterIDs::reverbHFdamping ||
-                 paramId == WFSParameterIDs::reverbMiniLatencyEnable ||
-                 paramId == WFSParameterIDs::reverbLSenable ||
-                 paramId == WFSParameterIDs::reverbDistanceAttenEnable)
-        {
-            section = vts.getReverbFeedSection (channelIndex);
-        }
-        // EQ section parameter (EQ enable toggle) — propagate to all channels
-        else if (paramId == WFSParameterIDs::reverbPreEQenable)
+        // EQ enable toggle is always global across all channels (existing behavior).
+        if (paramId == WFSParameterIDs::reverbPreEQenable)
         {
             int numChannels = parameters.getNumReverbChannels();
             for (int ch = 0; ch < numChannels; ++ch)
@@ -3655,15 +3718,22 @@ private:
             }
             return;
         }
-        // ReverbReturn section parameters
-        else if (paramId == WFSParameterIDs::reverbDistanceAttenuation ||
-                 paramId == WFSParameterIDs::reverbCommonAtten ||
-                 paramId == WFSParameterIDs::reverbMutes ||
-                 paramId == WFSParameterIDs::reverbMuteMacro)
+
+        // "Apply to all nodes" link: broadcast linkable params to every reverb node.
+        if (applyToAllNodes && ! isPerNodeOnlyParam (paramId))
         {
-            section = vts.getReverbReturnSection (channelIndex);
+            int numChannels = parameters.getNumReverbChannels();
+            for (int ch = 0; ch < numChannels; ++ch)
+            {
+                auto section = getSectionForReverbParam (paramId, ch);
+                if (section.isValid())
+                    section.setProperty (paramId, value, vts.getUndoManager());
+            }
+            return;
         }
 
+        // Per-node write (toggle OFF, or an always-per-node param).
+        auto section = getSectionForReverbParam (paramId, currentChannel - 1);
         if (section.isValid())
             section.setProperty (paramId, value, vts.getUndoManager());
     }
@@ -4411,9 +4481,25 @@ private:
             muteValues.add (muteButtons[i].getToggleState() ? "1" : "0");
 
         auto& vts = parameters.getValueTreeState();
-        auto returnSection = vts.getReverbReturnSection (currentChannel - 1);
-        if (returnSection.isValid())
-            returnSection.setProperty (WFSParameterIDs::reverbMutes, muteValues.joinIntoString (","), vts.getUndoManager());
+        const juce::String mutesStr = muteValues.joinIntoString (",");
+
+        // "Apply to all nodes" link: broadcast mutes to every reverb node when ON.
+        if (applyToAllNodes)
+        {
+            int numChannels = parameters.getNumReverbChannels();
+            for (int ch = 0; ch < numChannels; ++ch)
+            {
+                auto returnSection = vts.getReverbReturnSection (ch);
+                if (returnSection.isValid())
+                    returnSection.setProperty (WFSParameterIDs::reverbMutes, mutesStr, vts.getUndoManager());
+            }
+        }
+        else
+        {
+            auto returnSection = vts.getReverbReturnSection (currentChannel - 1);
+            if (returnSection.isValid())
+                returnSection.setProperty (WFSParameterIDs::reverbMutes, mutesStr, vts.getUndoManager());
+        }
     }
 
     void applyMuteMacro (int macroId)
@@ -5278,6 +5364,7 @@ private:
         distanceAttenEnableLabel.setVisible (hasChannels);
         distanceAttenEnableSlider.setVisible (hasChannels);
         distanceAttenEnableValueLabel.setVisible (hasChannels);
+        applyToAllNodesButton.setVisible (hasChannels);
 
         // EQ sub-tab
         eqEnableButton.setVisible (hasChannels);
@@ -5455,6 +5542,10 @@ private:
     juce::Label distanceAttenEnableLabel;
     WfsBidirectionalSlider distanceAttenEnableSlider;
     juce::Label distanceAttenEnableValueLabel;
+
+    // "Apply to all nodes" link toggle (Channel Params subtab top row)
+    juce::TextButton applyToAllNodesButton;
+    bool applyToAllNodes = true;   // default ON, runtime-only (resets each launch)
 
     // EQ sub-tab
     LongPressButton eqFlattenButton;
