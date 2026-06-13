@@ -9,6 +9,7 @@
 #if WFS_GPU_NATIVE
 #include "ReverbIRAlgorithmGPU.h"
 #include "ReverbFDNAlgorithmGPU.h"
+#include "ReverbSDNAlgorithmGPU.h"
 #endif
 #include "ReverbDiagnostics.h"
 #include "ReverbPreProcessor.h"
@@ -316,6 +317,22 @@ public:
         if (currentAlgorithmType == FDN)
         {
             fdnBackendChangeRequested.store (true, std::memory_order_release);
+            if (fadeState.load (std::memory_order_acquire) == FadeNone)
+                fadeState.store (FadingOut, std::memory_order_release);
+        }
+    }
+
+    /** Select the SDN backend (timer thread, 50 Hz). Mirrors setFDNBackendGpu:
+        when the SDN algorithm is active, switches via the fade-to-silence
+        path; otherwise records the choice for the next SDN instantiation. */
+    void setSDNBackendGpu (bool useGpu)
+    {
+        if (sdnUseGpu.exchange (useGpu, std::memory_order_acq_rel) == useGpu)
+            return;
+
+        if (currentAlgorithmType == SDN)
+        {
+            sdnBackendChangeRequested.store (true, std::memory_order_release);
             if (fadeState.load (std::memory_order_acquire) == FadeNone)
                 fadeState.store (FadingOut, std::memory_order_release);
         }
@@ -730,7 +747,8 @@ private:
                 const int effectiveType = algoChange ? newType : currentAlgorithmType;
                 bool backendChange =
                     (irBackendChangeRequested.load (std::memory_order_acquire) && effectiveType == IR)
-                    || (fdnBackendChangeRequested.load (std::memory_order_acquire) && effectiveType == FDN);
+                    || (fdnBackendChangeRequested.load (std::memory_order_acquire) && effectiveType == FDN)
+                    || (sdnBackendChangeRequested.load (std::memory_order_acquire) && effectiveType == SDN);
 
                 if (algoChange)
                     currentAlgorithmType = newType;
@@ -740,6 +758,7 @@ private:
                     irChangeRequested.store (false, std::memory_order_release);
                     irBackendChangeRequested.store (false, std::memory_order_release);
                     fdnBackendChangeRequested.store (false, std::memory_order_release);
+                    sdnBackendChangeRequested.store (false, std::memory_order_release);
                     installAlgorithm (currentAlgorithmType);
                 }
 
@@ -775,7 +794,8 @@ private:
                 // If an IR or backend change arrived while we were fading, re-trigger
                 if (irChangeRequested.load (std::memory_order_acquire)
                     || irBackendChangeRequested.load (std::memory_order_acquire)
-                    || fdnBackendChangeRequested.load (std::memory_order_acquire))
+                    || fdnBackendChangeRequested.load (std::memory_order_acquire)
+                    || sdnBackendChangeRequested.load (std::memory_order_acquire))
                     fadeState.store (FadingOut, std::memory_order_release);
                 else
                     fadeState.store (FadeNone, std::memory_order_release);
@@ -856,6 +876,39 @@ private:
         return std::make_unique<FDNAlgorithm>();
     }
 
+    /** Creates the SDN algorithm honouring the GPU/CPU backend choice. Mirrors
+        createFDNAlgorithm(): prepares the GPU instance to test readiness, falls
+        back to the CPU SDNAlgorithm if it fails, and records the status. The
+        live geometry/params are pushed by the generic install path below. */
+    std::unique_ptr<ReverbAlgorithm> createSDNAlgorithm()
+    {
+#if WFS_GPU_NATIVE
+        if (sdnUseGpu.load (std::memory_order_acquire))
+        {
+            auto gpu = std::make_unique<ReverbSDNAlgorithmGPU>();
+            if (sampleRate > 0)
+                gpu->prepare (sampleRate, internalBlockSize, numReverbNodes);
+
+            if (gpu->isReady())
+            {
+                setReverbGpuStatusInternal ({ ReverbGpuStatus::GpuActive, gpu->getDeviceName(),
+                                              {}, gpu->getPipelineLatencyMs() });
+                return gpu;
+            }
+
+            setReverbGpuStatusInternal ({ ReverbGpuStatus::GpuFallback, {},
+                                          gpu->getLastError(), 0.0 });
+            juce::Logger::writeToLog ("GPU SDN reverb unavailable, using CPU: "
+                                      + gpu->getLastError());
+        }
+        else
+        {
+            setReverbGpuStatusInternal ({ ReverbGpuStatus::Cpu, {}, {}, 0.0 });
+        }
+#endif
+        return std::make_unique<SDNAlgorithm>();
+    }
+
     /** Creates, prepares and installs the algorithm for `type`, re-applying
         parameters, geometry and — for IR — the retained IR file/trim/length,
         so rebuilt instances need no UI re-push. Runs at fade silence. */
@@ -864,7 +917,7 @@ private:
         std::unique_ptr<ReverbAlgorithm> newAlgo;
         switch (type)
         {
-            case SDN: newAlgo = std::make_unique<SDNAlgorithm>(); break;
+            case SDN: newAlgo = createSDNAlgorithm();             break;
             case IR:  newAlgo = createIRAlgorithm();              break;
             case FDN: newAlgo = createFDNAlgorithm();             break;
             default:  newAlgo = std::make_unique<FDNAlgorithm>(); break;
@@ -1005,6 +1058,8 @@ private:
     std::atomic<bool> irBackendChangeRequested { false };
     std::atomic<bool> fdnUseGpu { false };
     std::atomic<bool> fdnBackendChangeRequested { false };
+    std::atomic<bool> sdnUseGpu { false };
+    std::atomic<bool> sdnBackendChangeRequested { false };
     ReverbGpuStatus reverbGpuStatus;
     mutable juce::SpinLock reverbGpuStatusLock;
 

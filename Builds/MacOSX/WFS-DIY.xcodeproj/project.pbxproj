@@ -61,6 +61,8 @@
 		6FA25BD56BEF41C98FAD1185 /* MetalIrBackend.mm */ = {isa = PBXBuildFile; fileRef = A0557598F5734B9EB6318852; };
 		9D704CE102BC4BBE8A67511B /* CudaIrBackend.cpp */ = {isa = PBXBuildFile; fileRef = 57C26939EBB34FB5948AF03E; };
 		7137B3F64E6645BC89E3F553 /* MetalFdnBackend.mm */ = {isa = PBXBuildFile; fileRef = 5FF33247D6824D32A0135D63; };
+		D5D0AE1673E251A80D577DA6 /* MetalSdnBackend.mm */ = {isa = PBXBuildFile; fileRef = 7122058C9C3E7C1EDD75405D; };
+		4DAEE1375B80A9BE6884132E /* CudaSdnBackend.cpp */ = {isa = PBXBuildFile; fileRef = FE0336415377DCB5EC8D97E0; };
 		126D30931E8B45119F0FE75E /* CudaFdnBackend.cpp */ = {isa = PBXBuildFile; fileRef = 3EC2C7BEC46B4029AAE19C6E; };
 		A635BD6A3E95AC90F1E59D1D /* MCPToolRegistry.cpp */ = {isa = PBXBuildFile; fileRef = 7E602E26466DEF84F54CDE94; };
 		A66BB50D77A88BEC2F63217B /* OSCLogger.cpp */ = {isa = PBXBuildFile; fileRef = 6EDCA6152CCF68F79BC3E7F4; };
@@ -366,6 +368,15 @@
 		41386F863EAD4BA5990CA781 /* FdnHostConfig.h */ /* FdnHostConfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = FdnHostConfig.h; path = ../../Source/DSP/gpu/FdnHostConfig.h; sourceTree = SOURCE_ROOT; };
 		BCFD36A06BF8450FBF52F2D9 /* MetalFdnBackend.h */ /* MetalFdnBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MetalFdnBackend.h; path = ../../Source/DSP/gpu/MetalFdnBackend.h; sourceTree = SOURCE_ROOT; };
 		5FF33247D6824D32A0135D63 /* MetalFdnBackend.mm */ /* MetalFdnBackend.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = MetalFdnBackend.mm; path = ../../Source/DSP/gpu/MetalFdnBackend.mm; sourceTree = SOURCE_ROOT; };
+		7122058C9C3E7C1EDD75405D /* MetalSdnBackend.mm */ /* MetalSdnBackend.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = MetalSdnBackend.mm; path = ../../Source/DSP/gpu/MetalSdnBackend.mm; sourceTree = SOURCE_ROOT; };
+		FE0336415377DCB5EC8D97E0 /* CudaSdnBackend.cpp */ /* CudaSdnBackend.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = CudaSdnBackend.cpp; path = ../../Source/DSP/gpu/CudaSdnBackend.cpp; sourceTree = SOURCE_ROOT; };
+		BF5157B716CDA4C395572B98 /* MetalSdnBackend.h */ /* MetalSdnBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MetalSdnBackend.h; path = ../../Source/DSP/gpu/MetalSdnBackend.h; sourceTree = SOURCE_ROOT; };
+		502989956AB285D97F798D79 /* MetalSdnKernels.h */ /* MetalSdnKernels.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MetalSdnKernels.h; path = ../../Source/DSP/gpu/MetalSdnKernels.h; sourceTree = SOURCE_ROOT; };
+		2486BC26AC6145F8FE1DC58E /* SdnHostConfig.h */ /* SdnHostConfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SdnHostConfig.h; path = ../../Source/DSP/gpu/SdnHostConfig.h; sourceTree = SOURCE_ROOT; };
+		E447479F81D3B7061C89E495 /* SdnGpuBackend.h */ /* SdnGpuBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SdnGpuBackend.h; path = ../../Source/DSP/gpu/SdnGpuBackend.h; sourceTree = SOURCE_ROOT; };
+		A296DB9DF0D335950DD30E1D /* CudaSdnBackend.h */ /* CudaSdnBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CudaSdnBackend.h; path = ../../Source/DSP/gpu/CudaSdnBackend.h; sourceTree = SOURCE_ROOT; };
+		6B5952A910F6BD2AA196A443 /* CudaSdnKernels.h */ /* CudaSdnKernels.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CudaSdnKernels.h; path = ../../Source/DSP/gpu/CudaSdnKernels.h; sourceTree = SOURCE_ROOT; };
+		51DC219D73F2F1F13166055D /* ReverbSDNAlgorithmGPU.h */ /* ReverbSDNAlgorithmGPU.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ReverbSDNAlgorithmGPU.h; path = ../../Source/DSP/ReverbSDNAlgorithmGPU.h; sourceTree = SOURCE_ROOT; };
 		E3F860DA9F464635AAB28DDF /* MetalFdnKernels.h */ /* MetalFdnKernels.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MetalFdnKernels.h; path = ../../Source/DSP/gpu/MetalFdnKernels.h; sourceTree = SOURCE_ROOT; };
 		0B6D37CE4A9148D895496F79 /* CudaFdnBackend.h */ /* CudaFdnBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CudaFdnBackend.h; path = ../../Source/DSP/gpu/CudaFdnBackend.h; sourceTree = SOURCE_ROOT; };
 		3EC2C7BEC46B4029AAE19C6E /* CudaFdnBackend.cpp */ /* CudaFdnBackend.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = CudaFdnBackend.cpp; path = ../../Source/DSP/gpu/CudaFdnBackend.cpp; sourceTree = SOURCE_ROOT; };
@@ -779,6 +790,15 @@
 				41386F863EAD4BA5990CA781,
 				BCFD36A06BF8450FBF52F2D9,
 				5FF33247D6824D32A0135D63,
+				7122058C9C3E7C1EDD75405D,
+				FE0336415377DCB5EC8D97E0,
+				BF5157B716CDA4C395572B98,
+				502989956AB285D97F798D79,
+				2486BC26AC6145F8FE1DC58E,
+				E447479F81D3B7061C89E495,
+				A296DB9DF0D335950DD30E1D,
+				6B5952A910F6BD2AA196A443,
+				51DC219D73F2F1F13166055D,
 				E3F860DA9F464635AAB28DDF,
 				0B6D37CE4A9148D895496F79,
 				3EC2C7BEC46B4029AAE19C6E,
@@ -1067,6 +1087,8 @@
 				6FA25BD56BEF41C98FAD1185,
 				9D704CE102BC4BBE8A67511B,
 				7137B3F64E6645BC89E3F553,
+				D5D0AE1673E251A80D577DA6,
+				4DAEE1375B80A9BE6884132E,
 				126D30931E8B45119F0FE75E,
 				D85DC6D9890F1B32583491C0,
 				E58219E2FD5FD08754C23FE1,

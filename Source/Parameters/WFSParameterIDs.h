@@ -563,6 +563,7 @@ namespace WFSParameterIDs
     const juce::Identifier reverbPerNodeIR       ("reverbPerNodeIR");     // 0/1
     const juce::Identifier reverbIRGpu           ("reverbIRGpu");         // 0=CPU, 1=GPU convolution backend
     const juce::Identifier reverbFDNGpu          ("reverbFDNGpu");        // 0=CPU, 1=GPU FDN backend
+    const juce::Identifier reverbSDNGpu          ("reverbSDNGpu");        // 0=CPU, 1=GPU SDN backend
     const juce::Identifier reverbWetLevel        ("reverbWetLevel");      // dB
 
     // Reverb > Pre-Processing Compressor (global, stored as child of Reverbs node)

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ReverbAlgorithm.h"
-#include "AudioParallelFor.h"
 #include <array>
 #include <cmath>
 
@@ -107,22 +106,34 @@ public:
 
         int N = numActiveNodes;
 
-        // Snapshot all write positions for parallel reads
+        // Snapshot all write positions so every node reads a consistent
+        // block-start view of the delay lines.
         for (auto& path : paths)
             path.readBasePos = path.writePos;
 
-        // Process all nodes (parallel when pool available, sequential otherwise)
-        auto processNode = [&] (int n)
+        const float* inPtrs[MAX_NODES];
+        float* outPtrs[MAX_NODES];
+        for (int n = 0; n < N; ++n)
         {
-            auto sn = static_cast<size_t> (n);
-            auto& incoming  = incomingSignals[sn];
-            auto& scattered = scatteredSignals[sn];
+            inPtrs[n]  = nodeInputs.getReadPointer (n);
+            outPtrs[n] = nodeOutputs.getWritePointer (n);
+        }
 
-            const float* inputData = nodeInputs.getReadPointer (n);
-            float* outputData = nodeOutputs.getWritePointer (n);
-
-            for (int s = 0; s < numSamples; ++s)
+        // Synchronous lockstep: step every node together, sample by sample.
+        // Within a sample each node reads its incoming paths — cells written at
+        // strictly earlier samples, since every inter-node delay is >= 1 — and
+        // writes its outgoing paths for this sample, so the nodes are mutually
+        // independent at each tick. This is deterministic and matches the GPU
+        // backend bit-for-bit, unlike a node-parallel sweep over the whole block
+        // whose sub-block cross-node reads would race when a delay < block size.
+        for (int s = 0; s < numSamples; ++s)
+        {
+            for (int n = 0; n < N; ++n)
             {
+                auto sn = static_cast<size_t> (n);
+                auto& incoming  = incomingSignals[sn];
+                auto& scattered = scatteredSignals[sn];
+
                 // 1. Read incoming from all paths leading to node n
                 int inCount = 0;
                 for (int i = 0; i < N; ++i)
@@ -144,7 +155,7 @@ public:
                     scattered[static_cast<size_t> (i)] = X - incoming[static_cast<size_t> (i)];
 
                 // 3. Apply diffusion to node input
-                float diffused = inputData[s];
+                float diffused = inPtrs[n][s];
                 if (diffusionCoeff > 0.0001f)
                 {
                     auto& nd = nodeDiffusers[sn];
@@ -182,17 +193,11 @@ public:
                 ns.dcY1 = dcOut;
 
                 // 8. Apply output gain compensation
-                outputData[s] = dcOut * sdnOutputGain;
+                outPtrs[n][s] = dcOut * sdnOutputGain;
             }
-        };
+        }
 
-        if (parallel)
-            parallel->parallelFor (N, processNode);
-        else
-            for (int n = 0; n < N; ++n)
-                processNode (n);
-
-        // Advance all writePos by numSamples (done once after parallel section)
+        // Advance all writePos by numSamples (done once after the block)
         for (auto& path : paths)
             path.writePos = (path.readBasePos + numSamples) % MAX_DELAY_SAMPLES;
 
@@ -211,9 +216,10 @@ public:
         }
     }
 
-    void setParallelFor (AudioParallelFor* pool) override
+    void setParallelFor (AudioParallelFor*) override
     {
-        parallel = pool;
+        // SDN runs a synchronous lockstep over all nodes (inter-node coupling),
+        // so it does not use the block-level node thread pool.
     }
 
     void setParameters (const AlgorithmParameters& params) override
@@ -540,6 +546,4 @@ private:
     // Output processing
     float toneCoeff = 0.65f;       // One-pole LPF coefficient (~8kHz at 48kHz)
     float sdnOutputGain = 1.0f;    // Level compensation vs FDN/IR (-12dB flat cut)
-
-    AudioParallelFor* parallel = nullptr;
 };

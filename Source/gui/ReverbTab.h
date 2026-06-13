@@ -199,6 +199,10 @@ public:
             auto fdnCol = algoFDNGpuButton.getToggleState() ? juce::Colour(0xFF4CAF50) : colors.sliderTrackBg;
             algoFDNGpuButton.setColour (juce::TextButton::buttonColourId, fdnCol);
             algoFDNGpuButton.setColour (juce::TextButton::buttonOnColourId, fdnCol);
+
+            auto sdnCol = algoSDNGpuButton.getToggleState() ? juce::Colour(0xFF4CAF50) : colors.sliderTrackBg;
+            algoSDNGpuButton.setColour (juce::TextButton::buttonColourId, sdnCol);
+            algoSDNGpuButton.setColour (juce::TextButton::buttonOnColourId, sdnCol);
         }
 #endif
 
@@ -252,6 +256,8 @@ public:
         algoIRGpuStatusLabel.setColour (juce::Label::textColourId, col);
         algoFDNGpuStatusLabel.setText (text, juce::dontSendNotification);
         algoFDNGpuStatusLabel.setColour (juce::Label::textColourId, col);
+        algoSDNGpuStatusLabel.setText (text, juce::dontSendNotification);
+        algoSDNGpuStatusLabel.setColour (juce::Label::textColourId, col);
     }
 #endif
 
@@ -1615,6 +1621,29 @@ private:
         algoSDNScaleValueLabel.setText (juce::String (WFSParameterDefaults::reverbSDNscaleDefault, 2) + "x", juce::dontSendNotification);
         setupEditableValueLabel (algoSDNScaleValueLabel);
 
+#if WFS_GPU_NATIVE
+        // GPU/CPU SDN backend toggle + status (auto-falls back to CPU; mirrors
+        // the FDN GPU toggle).
+        addAndMakeVisible (algoSDNGpuButton);
+        algoSDNGpuButton.setButtonText (LOC("reverbs.algorithm.sdnGpuOff"));
+        algoSDNGpuButton.setColour (juce::TextButton::buttonColourId, ColorScheme::get().sliderTrackBg);
+        algoSDNGpuButton.setColour (juce::TextButton::buttonOnColourId, ColorScheme::get().sliderTrackBg);
+        algoSDNGpuButton.onClick = [this]
+        {
+            bool enabled = !algoSDNGpuButton.getToggleState();
+            algoSDNGpuButton.setToggleState (enabled, juce::dontSendNotification);
+            algoSDNGpuButton.setButtonText (enabled ? LOC("reverbs.algorithm.sdnGpuOn") : LOC("reverbs.algorithm.sdnGpuOff"));
+            juce::Colour btnColour = enabled ? juce::Colour (0xFF4CAF50) : ColorScheme::get().sliderTrackBg;
+            algoSDNGpuButton.setColour (juce::TextButton::buttonColourId, btnColour);
+            algoSDNGpuButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
+            saveAlgorithmParam (WFSParameterIDs::reverbSDNGpu, enabled ? 1 : 0);
+        };
+
+        addAndMakeVisible (algoSDNGpuStatusLabel);
+        algoSDNGpuStatusLabel.setJustificationType (juce::Justification::centredLeft);
+        algoSDNGpuStatusLabel.setColour (juce::Label::textColourId, ColorScheme::get().textSecondary);
+#endif
+
         // FDN section
         addAndMakeVisible (algoFDNSectionLabel);
         algoFDNSectionLabel.setText (LOC("reverbs.algorithm.fdnSection"), juce::dontSendNotification);
@@ -2111,6 +2140,7 @@ private:
         helpTextMap[&algoSDNScaleSlider] = LOC("reverbs.help.algoSDNScale");
         helpTextMap[&algoFDNSizeSlider] = LOC("reverbs.help.algoFDNSize");
 #if WFS_GPU_NATIVE
+        helpTextMap[&algoSDNGpuButton] = LOC("reverbs.help.algoSDNGpu");
         helpTextMap[&algoFDNGpuButton] = LOC("reverbs.help.algoFDNGpu");
 #endif
         helpTextMap[&algoIRFileSelector] = LOC("reverbs.help.algoIRFile");
@@ -2535,6 +2565,13 @@ private:
             algoSDNScaleValueLabel.setBounds (row.removeFromRight (valueWidth));
             col1.removeFromTop (scaled(3));
             algoSDNScaleSlider.setBounds (col1.removeFromTop (sliderHeight));
+#if WFS_GPU_NATIVE
+            col1.removeFromTop (spacing);
+            auto gpuRow = col1.removeFromTop (rowHeight);
+            algoSDNGpuButton.setBounds (gpuRow.removeFromLeft (scaled(180)));
+            gpuRow.removeFromLeft (spacing);
+            algoSDNGpuStatusLabel.setBounds (gpuRow);
+#endif
         }
 
         if (algoFDNSectionLabel.isVisible())
@@ -3223,6 +3260,10 @@ private:
             algoSDNScaleLabel.setVisible (false);
             algoSDNScaleSlider.setVisible (false);
             algoSDNScaleValueLabel.setVisible (false);
+#if WFS_GPU_NATIVE
+            algoSDNGpuButton.setVisible (false);
+            algoSDNGpuStatusLabel.setVisible (false);
+#endif
 
             algoFDNSectionLabel.setVisible (false);
             algoFDNSizeLabel.setVisible (false);
@@ -4119,6 +4160,10 @@ private:
         algoSDNScaleLabel.setVisible (isSDN);
         algoSDNScaleSlider.setVisible (isSDN);
         algoSDNScaleValueLabel.setVisible (isSDN);
+#if WFS_GPU_NATIVE
+        algoSDNGpuButton.setVisible (isSDN);
+        algoSDNGpuStatusLabel.setVisible (isSDN);
+#endif
 
         // FDN section
         algoFDNSectionLabel.setVisible (isFDN);
@@ -4285,6 +4330,14 @@ private:
         juce::Colour fdnGpuColour = fdnGpu != 0 ? juce::Colour (0xFF4CAF50) : ColorScheme::get().sliderTrackBg;
         algoFDNGpuButton.setColour (juce::TextButton::buttonColourId, fdnGpuColour);
         algoFDNGpuButton.setColour (juce::TextButton::buttonOnColourId, fdnGpuColour);
+
+        // GPU SDN backend
+        int sdnGpu = getInt (WFSParameterIDs::reverbSDNGpu, WFSParameterDefaults::reverbSDNGpuDefault);
+        algoSDNGpuButton.setToggleState (sdnGpu != 0, juce::dontSendNotification);
+        algoSDNGpuButton.setButtonText (sdnGpu != 0 ? LOC("reverbs.algorithm.sdnGpuOn") : LOC("reverbs.algorithm.sdnGpuOff"));
+        juce::Colour sdnGpuColour = sdnGpu != 0 ? juce::Colour (0xFF4CAF50) : ColorScheme::get().sliderTrackBg;
+        algoSDNGpuButton.setColour (juce::TextButton::buttonColourId, sdnGpuColour);
+        algoSDNGpuButton.setColour (juce::TextButton::buttonOnColourId, sdnGpuColour);
 #endif
 
         // Wet Level
@@ -5651,6 +5704,8 @@ private:
     juce::Label algoIRGpuStatusLabel;
     juce::TextButton algoFDNGpuButton;
     juce::Label algoFDNGpuStatusLabel;
+    juce::TextButton algoSDNGpuButton;
+    juce::Label algoSDNGpuStatusLabel;
     juce::String lastReverbGpuStatusText;
 #endif
 

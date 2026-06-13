@@ -1900,6 +1900,9 @@ MainComponent::MainComponent()
         parameters.getNumInputChannels(),
         parameters.getNumOutputChannels());
     levelMeteringManager->setAlgorithms(&inputAlgorithm, &outputAlgorithm);
+#if WFS_GPU_NATIVE
+    levelMeteringManager->setGpuAlgorithms(&nativeGpuAlgorithm, &nativeGpuOutputAlgorithm);
+#endif
 
     // Set up MapTab level overlay callbacks
     mapTab->setLevelOverlayChangedCallback([this](bool enabled) {
@@ -5318,16 +5321,30 @@ void MainComponent::timerCallback()
         {
             for (int i = 0; i < numInputChannels; ++i)
             {
-                float shortPeakDb, rmsDb;
-                if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
+                // Read the live-source input level from whichever algorithm is
+                // actually processing. The native GPU paths compute these
+                // host-side too, so AutomOtion's audio trigger works on GPU.
+                float shortPeakDb = -200.0f, rmsDb = -200.0f;
+                switch (currentAlgorithm)
                 {
-                    shortPeakDb = inputAlgorithm.getShortPeakLevelDb(static_cast<size_t>(i));
-                    rmsDb = inputAlgorithm.getRmsLevelDb(static_cast<size_t>(i));
-                }
-                else
-                {
-                    shortPeakDb = outputAlgorithm.getShortPeakLevelDb(static_cast<size_t>(i));
-                    rmsDb = outputAlgorithm.getRmsLevelDb(static_cast<size_t>(i));
+                    case ProcessingAlgorithm::InputBuffer:
+                        shortPeakDb = inputAlgorithm.getShortPeakLevelDb(static_cast<size_t>(i));
+                        rmsDb = inputAlgorithm.getRmsLevelDb(static_cast<size_t>(i));
+                        break;
+                    case ProcessingAlgorithm::OutputBuffer:
+                        shortPeakDb = outputAlgorithm.getShortPeakLevelDb(static_cast<size_t>(i));
+                        rmsDb = outputAlgorithm.getRmsLevelDb(static_cast<size_t>(i));
+                        break;
+#if WFS_GPU_NATIVE
+                    case ProcessingAlgorithm::NativeGpuWfs:
+                        shortPeakDb = nativeGpuAlgorithm.getShortPeakLevelDb(static_cast<size_t>(i));
+                        rmsDb = nativeGpuAlgorithm.getRmsLevelDb(static_cast<size_t>(i));
+                        break;
+                    case ProcessingAlgorithm::NativeGpuOutputBuffer:
+                        shortPeakDb = nativeGpuOutputAlgorithm.getShortPeakLevelDb(static_cast<size_t>(i));
+                        rmsDb = nativeGpuOutputAlgorithm.getRmsLevelDb(static_cast<size_t>(i));
+                        break;
+#endif
                 }
                 automOtionProcessor->setInputLevels(i, shortPeakDb, rmsDb);
 
@@ -5350,10 +5367,26 @@ void MainComponent::timerCallback()
         // Update level metering at 50Hz (20ms)
         if (levelMeteringManager != nullptr && levelMeteringManager->isMeteringActive())
         {
-            levelMeteringManager->setCurrentAlgorithm(
-                currentAlgorithm == ProcessingAlgorithm::InputBuffer
-                    ? LevelMeteringManager::ProcessingAlgorithm::InputBuffer
-                    : LevelMeteringManager::ProcessingAlgorithm::OutputBuffer);
+            LevelMeteringManager::ProcessingAlgorithm meteringAlg
+                = LevelMeteringManager::ProcessingAlgorithm::OutputBuffer;
+            switch (currentAlgorithm)
+            {
+                case ProcessingAlgorithm::InputBuffer:
+                    meteringAlg = LevelMeteringManager::ProcessingAlgorithm::InputBuffer;
+                    break;
+                case ProcessingAlgorithm::OutputBuffer:
+                    meteringAlg = LevelMeteringManager::ProcessingAlgorithm::OutputBuffer;
+                    break;
+#if WFS_GPU_NATIVE
+                case ProcessingAlgorithm::NativeGpuWfs:
+                    meteringAlg = LevelMeteringManager::ProcessingAlgorithm::NativeGpuWfs;
+                    break;
+                case ProcessingAlgorithm::NativeGpuOutputBuffer:
+                    meteringAlg = LevelMeteringManager::ProcessingAlgorithm::NativeGpuOutputBuffer;
+                    break;
+#endif
+            }
+            levelMeteringManager->setCurrentAlgorithm(meteringAlg);
             levelMeteringManager->updateLevels();
 
             // Repaint map if level overlay is enabled
@@ -5443,7 +5476,12 @@ void MainComponent::timerCallback()
                 float slowThresh = lsSection.getProperty(inputLSslowThreshold, -20.0f);
                 float slowRatio = lsSection.getProperty(inputLSslowRatio, 2.0f);
 
-                // Pass parameters to detector based on current algorithm
+                // Pass parameters to detector based on current algorithm.
+                // NOTE: the Live Source Tamer runs on the CPU algorithms only. The
+                // native GPU paths expose no LS API (the GPU backend can't apply a
+                // per-input compression gain), so in GPU modes this falls through to
+                // the inactive CPU outputAlgorithm and is effectively a no-op. Wiring
+                // LS-Tamer into the GPU backend is a separate feature.
                 if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
                 {
                     inputAlgorithm.setLSParameters(static_cast<size_t>(i),
@@ -5451,7 +5489,7 @@ void MainComponent::timerCallback()
                     peakGRs[i] = inputAlgorithm.getPeakGainReduction(static_cast<size_t>(i));
                     slowGRs[i] = inputAlgorithm.getSlowGainReduction(static_cast<size_t>(i));
                 }
-                else  // OutputBuffer algorithm
+                else  // OutputBuffer or (GPU → no-op) algorithm
                 {
                     outputAlgorithm.setLSParameters(static_cast<size_t>(i),
                         peakThresh, peakRatio, slowThresh, slowRatio);
@@ -5674,6 +5712,14 @@ void MainComponent::timerCallback()
                 reverbEngine->setAlgorithmType(algoType);
 
 #if WFS_GPU_NATIVE
+                // SDN backend (CPU/GPU toggle); fallback status flows back to the
+                // ReverbTab below via getReverbGpuStatus().
+                if (algoType == 0)  // SDN
+                {
+                    bool sdnGpu = static_cast<int>(algoSection.getProperty(reverbSDNGpu, 0)) != 0;
+                    reverbEngine->setSDNBackendGpu(sdnGpu);
+                }
+
                 // FDN convolution backend (CPU/GPU toggle); fallback status flows
                 // back to the ReverbTab below via getReverbGpuStatus().
                 if (algoType == 1)  // FDN

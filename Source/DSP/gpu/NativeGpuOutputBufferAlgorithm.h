@@ -33,6 +33,7 @@
 
 #include "ObGpuBackend.h"
 #include "GpuAsyncPipeline.h"
+#include "GpuLevelMeters.h"
 
 class NativeGpuOutputBufferAlgorithm
 {
@@ -91,6 +92,11 @@ public:
             return false;
         }
 
+        // Host-side level meters track the same channel counts; rebuilt here
+        // under procLock so the audio thread (gated by ready==false) never
+        // touches a half-built follower vector.
+        meters.prepare (inputChannelCount, outputChannelCount, sampleRate);
+
         ready.store (true, std::memory_order_release);
         return true;
     }
@@ -107,10 +113,19 @@ public:
         }
 
         const juce::SpinLock::ScopedTryLockType lock (procLock);
-        if (! lock.isLocked() || bufferToFill.buffer == nullptr || ! processingEnabledFlag
-            || ! pipeline.isReady())
+        if (! lock.isLocked())
         {
+            // procLock contended by prepare()/releaseResources(): skip metering
+            // entirely (the follower vectors may be mid-rebuild).
             bufferToFill.clearActiveBufferRegion();
+            return;
+        }
+
+        if (bufferToFill.buffer == nullptr || ! processingEnabledFlag || ! pipeline.isReady())
+        {
+            // Bypassed but lock held: let the meters decay toward silence.
+            bufferToFill.clearActiveBufferRegion();
+            meters.meterSilence (bufferToFill.numSamples);
             if (pipeline.hasPumpFailed())
                 ready.store (false, std::memory_order_release);
             return;
@@ -123,13 +138,25 @@ public:
                                                  numOutputChannels, outputChannelCount);
 
         pipeline.pushInput (inputBuffer, availableInputs, bufferToFill.startSample, bufferToFill.numSamples);
+        meters.meterInput (inputBuffer, availableInputs, bufferToFill.startSample, bufferToFill.numSamples);
+
         pipeline.popOutput (*buffer, availableOutputs, bufferToFill.startSample, bufferToFill.numSamples);
+        meters.meterOutput (*buffer, availableOutputs, bufferToFill.startSample, bufferToFill.numSamples);
 
         for (int ch = availableOutputs; ch < buffer->getNumChannels(); ++ch)
             buffer->clear (ch, bufferToFill.startSample, bufferToFill.numSamples);
     }
 
     void setProcessingEnabled (bool enabled)   { processingEnabledFlag = enabled; }
+
+    // === Level metering (host-side; mirrors the CPU algorithm interface) ===
+    void  setOutputMeteringEnabled (bool enabled) noexcept { meters.setOutputMeteringEnabled (enabled); }
+    float getShortPeakLevelDb (size_t i) const noexcept { return meters.getShortPeakLevelDb (i); }
+    float getRmsLevelDb       (size_t i) const noexcept { return meters.getRmsLevelDb (i); }
+    float getInputPeakLevelDb (size_t i) const noexcept { return meters.getInputPeakLevelDb (i); }
+    float getInputRmsLevelDb  (size_t i) const noexcept { return meters.getInputRmsLevelDb (i); }
+    float getOutputPeakLevelDb (size_t i) const noexcept { return meters.getOutputPeakLevelDb (i); }
+    float getOutputRmsLevelDb  (size_t i) const noexcept { return meters.getOutputRmsLevelDb (i); }
 
     // === Floor Reflection parameter setters (50 Hz timer thread) ===
     void setFRFilterParams (size_t inputIndex,
@@ -174,6 +201,7 @@ public:
 private:
     ObGpuBackend backend;
     GpuAsyncPipelineT<ObGpuBackend> pipeline;
+    GpuLevelMeters meters;
 
     int inputChannelCount { 0 };
     int outputChannelCount { 0 };

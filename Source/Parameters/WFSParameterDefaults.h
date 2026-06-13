@@ -868,6 +868,7 @@ namespace WFSParameterDefaults
 
     constexpr int reverbIRGpuDefault               = 0;       // 0=CPU, 1=GPU convolution backend
     constexpr int reverbFDNGpuDefault              = 0;       // 0=CPU, 1=GPU FDN backend
+    constexpr int reverbSDNGpuDefault              = 0;       // 0=CPU, 1=GPU SDN backend
 
     constexpr float reverbWetLevelDefault          = 0.0f;    // dB
     constexpr float reverbWetLevelMin              = -60.0f;  // effectively -inf
