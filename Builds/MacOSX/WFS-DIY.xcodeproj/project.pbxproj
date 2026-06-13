@@ -60,6 +60,8 @@
 		0B0002BB0000000000000007 /* CudaObBackend.cpp */ = {isa = PBXBuildFile; fileRef = 0B0001AA0000000000000007; };
 		6FA25BD56BEF41C98FAD1185 /* MetalIrBackend.mm */ = {isa = PBXBuildFile; fileRef = A0557598F5734B9EB6318852; };
 		9D704CE102BC4BBE8A67511B /* CudaIrBackend.cpp */ = {isa = PBXBuildFile; fileRef = 57C26939EBB34FB5948AF03E; };
+		7137B3F64E6645BC89E3F553 /* MetalFdnBackend.mm */ = {isa = PBXBuildFile; fileRef = 5FF33247D6824D32A0135D63; };
+		126D30931E8B45119F0FE75E /* CudaFdnBackend.cpp */ = {isa = PBXBuildFile; fileRef = 3EC2C7BEC46B4029AAE19C6E; };
 		A635BD6A3E95AC90F1E59D1D /* MCPToolRegistry.cpp */ = {isa = PBXBuildFile; fileRef = 7E602E26466DEF84F54CDE94; };
 		A66BB50D77A88BEC2F63217B /* OSCLogger.cpp */ = {isa = PBXBuildFile; fileRef = 6EDCA6152CCF68F79BC3E7F4; };
 		A7EBFC6FBD34D6A3021AF51A /* Foundation.framework */ = {isa = PBXBuildFile; fileRef = 6BABB0D22DF0B0DEF97EC39A; };
@@ -361,6 +363,15 @@
 		E4957CB4568D4F36AAA3194C /* CudaIrKernels.h */ /* CudaIrKernels.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CudaIrKernels.h; path = ../../Source/DSP/gpu/CudaIrKernels.h; sourceTree = SOURCE_ROOT; };
 		2545FEE4B43C470FA276DD80 /* IrGpuBackend.h */ /* IrGpuBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = IrGpuBackend.h; path = ../../Source/DSP/gpu/IrGpuBackend.h; sourceTree = SOURCE_ROOT; };
 		D9FD2AB87E2D49D196538479 /* ReverbIRAlgorithmGPU.h */ /* ReverbIRAlgorithmGPU.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ReverbIRAlgorithmGPU.h; path = ../../Source/DSP/ReverbIRAlgorithmGPU.h; sourceTree = SOURCE_ROOT; };
+		41386F863EAD4BA5990CA781 /* FdnHostConfig.h */ /* FdnHostConfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = FdnHostConfig.h; path = ../../Source/DSP/gpu/FdnHostConfig.h; sourceTree = SOURCE_ROOT; };
+		BCFD36A06BF8450FBF52F2D9 /* MetalFdnBackend.h */ /* MetalFdnBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MetalFdnBackend.h; path = ../../Source/DSP/gpu/MetalFdnBackend.h; sourceTree = SOURCE_ROOT; };
+		5FF33247D6824D32A0135D63 /* MetalFdnBackend.mm */ /* MetalFdnBackend.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = MetalFdnBackend.mm; path = ../../Source/DSP/gpu/MetalFdnBackend.mm; sourceTree = SOURCE_ROOT; };
+		E3F860DA9F464635AAB28DDF /* MetalFdnKernels.h */ /* MetalFdnKernels.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MetalFdnKernels.h; path = ../../Source/DSP/gpu/MetalFdnKernels.h; sourceTree = SOURCE_ROOT; };
+		0B6D37CE4A9148D895496F79 /* CudaFdnBackend.h */ /* CudaFdnBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CudaFdnBackend.h; path = ../../Source/DSP/gpu/CudaFdnBackend.h; sourceTree = SOURCE_ROOT; };
+		3EC2C7BEC46B4029AAE19C6E /* CudaFdnBackend.cpp */ /* CudaFdnBackend.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = CudaFdnBackend.cpp; path = ../../Source/DSP/gpu/CudaFdnBackend.cpp; sourceTree = SOURCE_ROOT; };
+		79E63120FFC4431BB83A1DF2 /* CudaFdnKernels.h */ /* CudaFdnKernels.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CudaFdnKernels.h; path = ../../Source/DSP/gpu/CudaFdnKernels.h; sourceTree = SOURCE_ROOT; };
+		7775D55E8ACF49D8B3BEDBFF /* FdnGpuBackend.h */ /* FdnGpuBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = FdnGpuBackend.h; path = ../../Source/DSP/gpu/FdnGpuBackend.h; sourceTree = SOURCE_ROOT; };
+		04BB687764F74F538485298F /* ReverbFDNAlgorithmGPU.h */ /* ReverbFDNAlgorithmGPU.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ReverbFDNAlgorithmGPU.h; path = ../../Source/DSP/ReverbFDNAlgorithmGPU.h; sourceTree = SOURCE_ROOT; };
 		EBD439A1EC10DB013ED0E482 /* NumericGuards.h */ /* NumericGuards.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = NumericGuards.h; path = ../../Source/Helpers/NumericGuards.h; sourceTree = SOURCE_ROOT; };
 		EE3AAA7F4BDC53F0808AD4D0 /* include_juce_audio_processors.mm */ /* include_juce_audio_processors.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_processors.mm; path = ../../JuceLibraryCode/include_juce_audio_processors.mm; sourceTree = SOURCE_ROOT; };
 		EF6BE4EEF00731F9E6446B7F /* MCPChangeRecords.cpp */ /* MCPChangeRecords.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPChangeRecords.cpp; path = ../../Source/Network/MCP/MCPChangeRecords.cpp; sourceTree = SOURCE_ROOT; };
@@ -765,6 +776,15 @@
 				E4957CB4568D4F36AAA3194C,
 				2545FEE4B43C470FA276DD80,
 				D9FD2AB87E2D49D196538479,
+				41386F863EAD4BA5990CA781,
+				BCFD36A06BF8450FBF52F2D9,
+				5FF33247D6824D32A0135D63,
+				E3F860DA9F464635AAB28DDF,
+				0B6D37CE4A9148D895496F79,
+				3EC2C7BEC46B4029AAE19C6E,
+				79E63120FFC4431BB83A1DF2,
+				7775D55E8ACF49D8B3BEDBFF,
+				04BB687764F74F538485298F,
 				16A918666FE95AAB720D7269,
 				63B19585FA472659C2B6305D,
 				388303C536A2A156D54D0EDD,
@@ -1046,6 +1066,8 @@
 				0B0002BB0000000000000007,
 				6FA25BD56BEF41C98FAD1185,
 				9D704CE102BC4BBE8A67511B,
+				7137B3F64E6645BC89E3F553,
+				126D30931E8B45119F0FE75E,
 				D85DC6D9890F1B32583491C0,
 				E58219E2FD5FD08754C23FE1,
 				F3E9874CAF23860578708A33,

@@ -417,6 +417,24 @@
               file="Source/DSP/gpu/IrGpuBackend.h"/>
         <FILE id="rvbIrGpuH" name="ReverbIRAlgorithmGPU.h" compile="0" resource="0"
               file="Source/DSP/ReverbIRAlgorithmGPU.h"/>
+        <FILE id="fdnHostCfg" name="FdnHostConfig.h" compile="0" resource="0"
+              file="Source/DSP/gpu/FdnHostConfig.h"/>
+        <FILE id="fdnMtlBakH" name="MetalFdnBackend.h" compile="0" resource="0"
+              file="Source/DSP/gpu/MetalFdnBackend.h"/>
+        <FILE id="fdnMtlBakM" name="MetalFdnBackend.mm" compile="1" resource="0"
+              file="Source/DSP/gpu/MetalFdnBackend.mm"/>
+        <FILE id="fdnMtlKrnl" name="MetalFdnKernels.h" compile="0" resource="0"
+              file="Source/DSP/gpu/MetalFdnKernels.h"/>
+        <FILE id="fdnCudaBakH" name="CudaFdnBackend.h" compile="0" resource="0"
+              file="Source/DSP/gpu/CudaFdnBackend.h"/>
+        <FILE id="fdnCudaBakC" name="CudaFdnBackend.cpp" compile="1" resource="0"
+              file="Source/DSP/gpu/CudaFdnBackend.cpp"/>
+        <FILE id="fdnCudaKrnl" name="CudaFdnKernels.h" compile="0" resource="0"
+              file="Source/DSP/gpu/CudaFdnKernels.h"/>
+        <FILE id="fdnGpuSel" name="FdnGpuBackend.h" compile="0" resource="0"
+              file="Source/DSP/gpu/FdnGpuBackend.h"/>
+        <FILE id="rvbFdnGpuH" name="ReverbFDNAlgorithmGPU.h" compile="0" resource="0"
+              file="Source/DSP/ReverbFDNAlgorithmGPU.h"/>
         <FILE id="testSigGenH" name="TestSignalGenerator.h" compile="0" resource="0"
               file="Source/DSP/TestSignalGenerator.h"/>
         <FILE id="testSigGenCpp" name="TestSignalGenerator.cpp" compile="1"

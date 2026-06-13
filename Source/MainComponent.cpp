@@ -5673,6 +5673,16 @@ void MainComponent::timerCallback()
                 }
                 reverbEngine->setAlgorithmType(algoType);
 
+#if WFS_GPU_NATIVE
+                // FDN convolution backend (CPU/GPU toggle); fallback status flows
+                // back to the ReverbTab below via getReverbGpuStatus().
+                if (algoType == 1)  // FDN
+                {
+                    bool fdnGpu = static_cast<int>(algoSection.getProperty(reverbFDNGpu, 0)) != 0;
+                    reverbEngine->setFDNBackendGpu(fdnGpu);
+                }
+#endif
+
                 // Push IR-specific parameters
                 if (algoType == 2)  // IR
                 {
@@ -5822,10 +5832,10 @@ void MainComponent::timerCallback()
             // Push IR convolution backend status (GPU active / CPU fallback)
             if (windowVisible && reverbTab != nullptr)
             {
-                auto irGpuStatus = reverbEngine->getIRGpuStatus();
-                reverbTab->setIRGpuStatus(static_cast<int>(irGpuStatus.mode),
-                                          irGpuStatus.device, irGpuStatus.error,
-                                          irGpuStatus.latencyMs);
+                auto gpuStatus = reverbEngine->getReverbGpuStatus();
+                reverbTab->setReverbGpuStatus(static_cast<int>(gpuStatus.mode),
+                                              gpuStatus.device, gpuStatus.error,
+                                              gpuStatus.latencyMs);
             }
 #endif
 

@@ -8,6 +8,7 @@
 #include "ReverbIRAlgorithm.h"
 #if WFS_GPU_NATIVE
 #include "ReverbIRAlgorithmGPU.h"
+#include "ReverbFDNAlgorithmGPU.h"
 #endif
 #include "ReverbDiagnostics.h"
 #include "ReverbPreProcessor.h"
@@ -271,11 +272,13 @@ public:
     int getAlgorithmType() const { return currentAlgorithmType; }
 
     //==========================================================================
-    // IR backend selection (GPU/CPU toggle)
+    // Reverb GPU backend selection (per-algorithm GPU/CPU toggle)
     //==========================================================================
 
-    /** IR convolution backend status, for the UI (see getIRGpuStatus()). */
-    struct IRGpuStatus
+    /** GPU backend status for the active reverb algorithm, for the UI
+        (see getReverbGpuStatus()). Algorithm-agnostic — IR and FDN both
+        report through it (only one algorithm is active at a time). */
+    struct ReverbGpuStatus
     {
         enum Mode { Cpu = 0, GpuActive, GpuFallback };
         Mode mode = Cpu;
@@ -288,7 +291,7 @@ public:
         algorithm is active, switches via the same fade-to-silence path as an
         algorithm change; otherwise just records the choice for the next IR
         instantiation. If the GPU backend can't initialise, the engine falls
-        back to CPU and reports it via getIRGpuStatus(). */
+        back to CPU and reports it via getReverbGpuStatus(). */
     void setIRBackendGpu (bool useGpu)
     {
         if (irUseGpu.exchange (useGpu, std::memory_order_acq_rel) == useGpu)
@@ -302,11 +305,27 @@ public:
         }
     }
 
-    /** Current IR backend status (any thread). */
-    IRGpuStatus getIRGpuStatus() const
+    /** Select the FDN backend (timer thread, 50 Hz). Mirrors setIRBackendGpu:
+        when the FDN algorithm is active, switches via the fade-to-silence
+        path; otherwise records the choice for the next FDN instantiation. */
+    void setFDNBackendGpu (bool useGpu)
     {
-        juce::SpinLock::ScopedLockType lock (irGpuStatusLock);
-        return irGpuStatus;
+        if (fdnUseGpu.exchange (useGpu, std::memory_order_acq_rel) == useGpu)
+            return;
+
+        if (currentAlgorithmType == FDN)
+        {
+            fdnBackendChangeRequested.store (true, std::memory_order_release);
+            if (fadeState.load (std::memory_order_acquire) == FadeNone)
+                fadeState.store (FadingOut, std::memory_order_release);
+        }
+    }
+
+    /** Current reverb GPU backend status (any thread). */
+    ReverbGpuStatus getReverbGpuStatus() const
+    {
+        juce::SpinLock::ScopedLockType lock (reverbGpuStatusLock);
+        return reverbGpuStatus;
     }
 
     /** Load an IR file via fade-to-silence transition.
@@ -708,8 +727,10 @@ private:
                 int newType = pendingAlgorithmType.load (std::memory_order_acquire);
                 bool algoChange = (newType != currentAlgorithmType && newType >= 0);
                 bool irChange = irChangeRequested.load (std::memory_order_acquire);
-                bool backendChange = irBackendChangeRequested.load (std::memory_order_acquire)
-                                     && (algoChange ? newType : currentAlgorithmType) == IR;
+                const int effectiveType = algoChange ? newType : currentAlgorithmType;
+                bool backendChange =
+                    (irBackendChangeRequested.load (std::memory_order_acquire) && effectiveType == IR)
+                    || (fdnBackendChangeRequested.load (std::memory_order_acquire) && effectiveType == FDN);
 
                 if (algoChange)
                     currentAlgorithmType = newType;
@@ -718,6 +739,7 @@ private:
                 {
                     irChangeRequested.store (false, std::memory_order_release);
                     irBackendChangeRequested.store (false, std::memory_order_release);
+                    fdnBackendChangeRequested.store (false, std::memory_order_release);
                     installAlgorithm (currentAlgorithmType);
                 }
 
@@ -752,7 +774,8 @@ private:
 
                 // If an IR or backend change arrived while we were fading, re-trigger
                 if (irChangeRequested.load (std::memory_order_acquire)
-                    || irBackendChangeRequested.load (std::memory_order_acquire))
+                    || irBackendChangeRequested.load (std::memory_order_acquire)
+                    || fdnBackendChangeRequested.load (std::memory_order_acquire))
                     fadeState.store (FadingOut, std::memory_order_release);
                 else
                     fadeState.store (FadeNone, std::memory_order_release);
@@ -779,22 +802,58 @@ private:
 
             if (gpu->isReady())
             {
-                setIRGpuStatusInternal ({ IRGpuStatus::GpuActive, gpu->getDeviceName(),
-                                          {}, gpu->getPipelineLatencyMs() });
+                setReverbGpuStatusInternal ({ ReverbGpuStatus::GpuActive, gpu->getDeviceName(),
+                                              {}, gpu->getPipelineLatencyMs() });
                 return gpu;
             }
 
-            setIRGpuStatusInternal ({ IRGpuStatus::GpuFallback, {},
-                                      gpu->getLastError(), 0.0 });
+            setReverbGpuStatusInternal ({ ReverbGpuStatus::GpuFallback, {},
+                                          gpu->getLastError(), 0.0 });
             juce::Logger::writeToLog ("GPU IR reverb unavailable, using CPU: "
                                       + gpu->getLastError());
         }
         else
         {
-            setIRGpuStatusInternal ({ IRGpuStatus::Cpu, {}, {}, 0.0 });
+            setReverbGpuStatusInternal ({ ReverbGpuStatus::Cpu, {}, {}, 0.0 });
         }
 #endif
         return std::make_unique<IRAlgorithm>();
+    }
+
+    /** Creates the FDN algorithm honouring the GPU/CPU backend choice. Mirrors
+        createIRAlgorithm(): prepares the GPU instance to test readiness, falls
+        back to the CPU FDNAlgorithm if it fails, and records the status. */
+    std::unique_ptr<ReverbAlgorithm> createFDNAlgorithm()
+    {
+#if WFS_GPU_NATIVE
+        if (fdnUseGpu.load (std::memory_order_acquire))
+        {
+            auto gpu = std::make_unique<ReverbFDNAlgorithmGPU>();
+            if (sampleRate > 0)
+                // prepare() with the GPU instance's DEFAULT fdnSize (1.0), exactly
+                // like the CPU FDNAlgorithm whose prepare() runs before its own
+                // setParameters — so the delay lengths match for A/B parity. The
+                // generic install path below pushes the live params (coeffs only).
+                gpu->prepare (sampleRate, internalBlockSize, numReverbNodes);
+
+            if (gpu->isReady())
+            {
+                setReverbGpuStatusInternal ({ ReverbGpuStatus::GpuActive, gpu->getDeviceName(),
+                                              {}, gpu->getPipelineLatencyMs() });
+                return gpu;
+            }
+
+            setReverbGpuStatusInternal ({ ReverbGpuStatus::GpuFallback, {},
+                                          gpu->getLastError(), 0.0 });
+            juce::Logger::writeToLog ("GPU FDN reverb unavailable, using CPU: "
+                                      + gpu->getLastError());
+        }
+        else
+        {
+            setReverbGpuStatusInternal ({ ReverbGpuStatus::Cpu, {}, {}, 0.0 });
+        }
+#endif
+        return std::make_unique<FDNAlgorithm>();
     }
 
     /** Creates, prepares and installs the algorithm for `type`, re-applying
@@ -807,7 +866,7 @@ private:
         {
             case SDN: newAlgo = std::make_unique<SDNAlgorithm>(); break;
             case IR:  newAlgo = createIRAlgorithm();              break;
-            case FDN:
+            case FDN: newAlgo = createFDNAlgorithm();             break;
             default:  newAlgo = std::make_unique<FDNAlgorithm>(); break;
         }
 
@@ -861,10 +920,10 @@ private:
 #endif
     }
 
-    void setIRGpuStatusInternal (const IRGpuStatus& s)
+    void setReverbGpuStatusInternal (const ReverbGpuStatus& s)
     {
-        juce::SpinLock::ScopedLockType lock (irGpuStatusLock);
-        irGpuStatus = s;
+        juce::SpinLock::ScopedLockType lock (reverbGpuStatusLock);
+        reverbGpuStatus = s;
     }
 
     //==========================================================================
@@ -941,11 +1000,13 @@ private:
     std::atomic<float> lastIRLengthSec { 6.0f };
     std::atomic<bool> haveIRParams { false };
 
-    // IR backend selection (GPU/CPU toggle) + status for the UI
+    // Per-algorithm GPU backend selection (toggles) + shared status for the UI
     std::atomic<bool> irUseGpu { false };
     std::atomic<bool> irBackendChangeRequested { false };
-    IRGpuStatus irGpuStatus;
-    mutable juce::SpinLock irGpuStatusLock;
+    std::atomic<bool> fdnUseGpu { false };
+    std::atomic<bool> fdnBackendChangeRequested { false };
+    ReverbGpuStatus reverbGpuStatus;
+    mutable juce::SpinLock reverbGpuStatusLock;
 
     // Always-on dropout counter (lightweight, for UI warning)
     std::atomic<uint64_t> dropoutCount { 0 };

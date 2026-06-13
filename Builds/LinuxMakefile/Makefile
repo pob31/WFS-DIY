@@ -122,6 +122,7 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/CudaWfsBackend_d20d6b9.o \
   $(JUCE_OBJDIR)/CudaObBackend_0b00001.o \
   $(JUCE_OBJDIR)/CudaIrBackend_404ed3c.o \
+  $(JUCE_OBJDIR)/CudaFdnBackend_1d99e2f.o \
   $(JUCE_OBJDIR)/TestSignalGenerator_c4132b8c.o \
   $(JUCE_OBJDIR)/BinaryData_ce4232d4.o \
   $(JUCE_OBJDIR)/include_juce_audio_basics_8a4e984a.o \
@@ -413,6 +414,11 @@ $(JUCE_OBJDIR)/CudaObBackend_0b00001.o: ../../Source/DSP/gpu/CudaObBackend.cpp
 $(JUCE_OBJDIR)/CudaIrBackend_404ed3c.o: ../../Source/DSP/gpu/CudaIrBackend.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling CudaIrBackend.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/CudaFdnBackend_1d99e2f.o: ../../Source/DSP/gpu/CudaFdnBackend.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling CudaFdnBackend.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/TestSignalGenerator_c4132b8c.o: ../../Source/DSP/TestSignalGenerator.cpp

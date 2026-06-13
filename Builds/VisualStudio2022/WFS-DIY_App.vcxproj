@@ -226,6 +226,7 @@
     <ClCompile Include="..\..\Source\DSP\gpu\CudaWfsBackend.cpp"/>
     <ClCompile Include="..\..\Source\DSP\gpu\CudaObBackend.cpp"/>
     <ClCompile Include="..\..\Source\DSP\gpu\CudaIrBackend.cpp"/>
+    <ClCompile Include="..\..\Source\DSP\gpu\CudaFdnBackend.cpp"/>
     <ClCompile Include="..\..\Source\DSP\TestSignalGenerator.cpp"/>
     <ClCompile Include="..\..\ThirdParty\JUCE\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
@@ -3402,6 +3403,13 @@
     <ClInclude Include="..\..\Source\DSP\gpu\CudaIrKernels.h"/>
     <ClInclude Include="..\..\Source\DSP\gpu\IrGpuBackend.h"/>
     <ClInclude Include="..\..\Source\DSP\ReverbIRAlgorithmGPU.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\FdnHostConfig.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\MetalFdnBackend.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\MetalFdnKernels.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\CudaFdnBackend.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\CudaFdnKernels.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\FdnGpuBackend.h"/>
+    <ClInclude Include="..\..\Source\DSP\ReverbFDNAlgorithmGPU.h"/>
     <ClInclude Include="..\..\Source\DSP\TestSignalGenerator.h"/>
     <ClInclude Include="..\..\Source\DSP\TrackingPositionFilter.h"/>
     <ClInclude Include="..\..\Source\DSP\InputSpeedLimiter.h"/>
