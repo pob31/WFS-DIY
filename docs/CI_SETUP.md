@@ -61,7 +61,7 @@ then add these **5 secrets** to that environment:
 ## Cutting a release
 
 1. Bump the version in all build files (jucer / JuceHeader / Info-App.plist /
-   pbxproj / vcxproj / resources.rc / LinuxMakefile) — currently `1.0.0beta22`.
+   pbxproj / vcxproj / resources.rc / LinuxMakefile) — currently `1.0.0beta23`.
 2. Commit + push to `main`.
 3. Create a GitHub **Release** with tag **`v<version>`** (e.g. `v1.0.0beta22`) and publish it.
    - `verify-version` fails fast if the tag ≠ `versionString` in `JuceHeader.h`.

@@ -108,8 +108,8 @@ MainComponent::MainComponent()
     // Load channel counts (persisted), clamp, and fall back to a usable default
     numInputChannels = props.getIntValue("numInputChannels", 0);
     numOutputChannels = props.getIntValue("numOutputChannels", 2);
-    numInputChannels = juce::jlimit(0, 64, numInputChannels);
-    numOutputChannels = juce::jlimit(2, 64, numOutputChannels);
+    numInputChannels = juce::jlimit(0, WFSParameterDefaults::maxInputChannels, numInputChannels);
+    numOutputChannels = juce::jlimit(2, WFSParameterDefaults::maxOutputChannels, numOutputChannels);
     if (numInputChannels == 0)
         numInputChannels = 2; // Default to a sensible input count to avoid silent processing
 
@@ -176,8 +176,12 @@ MainComponent::MainComponent()
         currentAlgorithm = ProcessingAlgorithm::InputBuffer;
     else if (algorithmId == 2)
         currentAlgorithm = ProcessingAlgorithm::OutputBuffer;
-    // else if (algorithmId == 3)
-    //     currentAlgorithm = ProcessingAlgorithm::GpuInputBuffer;
+#if WFS_GPU_NATIVE
+    else if (algorithmId == 3)
+        currentAlgorithm = ProcessingAlgorithm::NativeGpuWfs;
+    else if (algorithmId == 4)
+        currentAlgorithm = ProcessingAlgorithm::NativeGpuOutputBuffer;
+#endif
 
     /* Algorithm change handler - no longer needed as UI is in SystemConfigTab
     auto algorithmChangeHandler = [this]() {
@@ -187,8 +191,6 @@ MainComponent::MainComponent()
             newAlgorithm = ProcessingAlgorithm::InputBuffer;
         else if (selectedId == 2)
             newAlgorithm = ProcessingAlgorithm::OutputBuffer;
-        // else if (selectedId == 3)
-        //     newAlgorithm = ProcessingAlgorithm::GpuInputBuffer;
 
         // Only act if algorithm actually changed
         if (newAlgorithm != currentAlgorithm)
@@ -211,11 +213,6 @@ MainComponent::MainComponent()
                     outputAlgorithm.releaseResources();
                     outputAlgorithm.clear();
                 }
-                // else  // Commented out - GPU Audio SDK not configured
-                // {
-                //     gpuInputAlgorithm.releaseResources();
-                //     gpuInputAlgorithm.clear();
-                // }
 
                 // Mark engine as not started (processors cleared)
                 audioEngineStarted = false;
@@ -306,6 +303,16 @@ MainComponent::MainComponent()
     systemConfigTab->setChannelCountCallback([this](int inputs, int outputs, int reverbs) {
         handleChannelCountChange(inputs, outputs, reverbs);
     });
+
+    systemConfigTab->setAlgorithmChangedCallback([this](int selectedId) {
+        handleAlgorithmSelectionChange(selectedId);
+    });
+
+#if WFS_GPU_NATIVE
+    systemConfigTab->setGpuDepthChangedCallback([this](int depthBlocks) {
+        handleGpuDepthChange(depthBlocks);
+    });
+#endif
 
     // Solo/Mute/EditOnMap callbacks set later (after shared state created for StreamDeck sync)
 
@@ -1893,6 +1900,9 @@ MainComponent::MainComponent()
         parameters.getNumInputChannels(),
         parameters.getNumOutputChannels());
     levelMeteringManager->setAlgorithms(&inputAlgorithm, &outputAlgorithm);
+#if WFS_GPU_NATIVE
+    levelMeteringManager->setGpuAlgorithms(&nativeGpuAlgorithm, &nativeGpuOutputAlgorithm);
+#endif
 
     // Set up MapTab level overlay callbacks
     mapTab->setLevelOverlayChangedCallback([this](bool enabled) {
@@ -2431,7 +2441,6 @@ MainComponent::~MainComponent()
     // Now safe to destroy processor objects
     inputAlgorithm.clear();
     outputAlgorithm.clear();
-    // gpuInputAlgorithm.clear();  // Commented out - GPU Audio SDK not configured
 }
 
 //==============================================================================
@@ -2570,6 +2579,7 @@ void MainComponent::resizeRoutingMatrices()
     // Floor Reflection matrices
     frDelayTimesMs.assign(matrixSize, 0.0f);
     frLevels.assign(matrixSize, 0.0f);
+    targetFRLevels.assign(matrixSize, 0.0f);
     frHFAttenuation.assign(matrixSize, 0.0f);
 
     // Initialize with zeros - WFSCalculationEngine will provide real values
@@ -2612,11 +2622,18 @@ void MainComponent::stopProcessingForConfigurationChange()
         outputAlgorithm.releaseResources();
         outputAlgorithm.clear();
     }
-    // else  // Commented out - GPU Audio SDK not configured
-    // {
-    //     gpuInputAlgorithm.releaseResources();
-    //     gpuInputAlgorithm.clear();
-    // }
+#if WFS_GPU_NATIVE
+    else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs)
+    {
+        nativeGpuAlgorithm.releaseResources();
+        nativeGpuAlgorithm.clear();
+    }
+    else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuOutputBuffer)
+    {
+        nativeGpuOutputAlgorithm.releaseResources();
+        nativeGpuOutputAlgorithm.clear();
+    }
+#endif
 
     // Clear shared buffer references from consumers before destroying buffers
     if (binauralProcessor)
@@ -2783,7 +2800,7 @@ void MainComponent::loadAudioPatches()
 
     // Reset patch maps to "unmapped" (-1)
     inputPatchMap.assign(LevelMeteringManager::MaxHardwareInputs, -1);  // Max hardware inputs
-    outputPatchMap.assign(64, -1); // Max WFS outputs
+    outputPatchMap.assign(WFSParameterDefaults::maxOutputChannels, -1); // Max WFS outputs
 
     // Load input patches: hardware channel → WFS channel
     if (inputPatchTree.isValid())
@@ -2932,6 +2949,16 @@ void MainComponent::handleProcessingChange(bool enabled)
         {
             outputAlgorithm.setProcessingEnabled(true);
         }
+#if WFS_GPU_NATIVE
+        else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs)
+        {
+            nativeGpuAlgorithm.setProcessingEnabled(true);
+        }
+        else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuOutputBuffer)
+        {
+            nativeGpuOutputAlgorithm.setProcessingEnabled(true);
+        }
+#endif
     }
     else
     {
@@ -2944,6 +2971,16 @@ void MainComponent::handleProcessingChange(bool enabled)
         {
             outputAlgorithm.setProcessingEnabled(processingEnabled);
         }
+#if WFS_GPU_NATIVE
+        else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs)
+        {
+            nativeGpuAlgorithm.setProcessingEnabled(processingEnabled);
+        }
+        else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuOutputBuffer)
+        {
+            nativeGpuOutputAlgorithm.setProcessingEnabled(processingEnabled);
+        }
+#endif
 
         // Stop reverb engine thread to save CPU
         if (reverbEngine)
@@ -2979,7 +3016,7 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
         auto inputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::InputPatch);
         auto outputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::OutputPatch);
         int hwInCols = inputPatchTree.isValid() ? (int) inputPatchTree.getProperty(WFSParameterIDs::cols, 64) : 64;
-        int hwOutCols = outputPatchTree.isValid() ? (int) outputPatchTree.getProperty(WFSParameterIDs::cols, 64) : 64;
+        int hwOutCols = outputPatchTree.isValid() ? (int) outputPatchTree.getProperty(WFSParameterIDs::cols, WFSParameterDefaults::maxOutputChannels) : WFSParameterDefaults::maxOutputChannels;
         growPatchData(inputPatchTree, inputs, hwInCols);
         growPatchData(outputPatchTree, outputs, hwOutCols);
     }
@@ -3098,6 +3135,69 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
 
     // Reload patch maps from the (now up-to-date) ValueTree
     loadAudioPatches();
+}
+
+void MainComponent::handleAlgorithmSelectionChange(int selectedId)
+{
+    ProcessingAlgorithm newAlgorithm = currentAlgorithm;
+    if (selectedId == 1)
+        newAlgorithm = ProcessingAlgorithm::InputBuffer;
+    else if (selectedId == 2)
+        newAlgorithm = ProcessingAlgorithm::OutputBuffer;
+#if WFS_GPU_NATIVE
+    else if (selectedId == 3)
+        newAlgorithm = ProcessingAlgorithm::NativeGpuWfs;
+    else if (selectedId == 4)
+        newAlgorithm = ProcessingAlgorithm::NativeGpuOutputBuffer;
+#endif
+
+    if (newAlgorithm == currentAlgorithm)
+        return;
+
+    const bool wasEnabled = processingEnabled;
+
+    // Releases the OUTGOING algorithm's processors (reads currentAlgorithm,
+    // so this must run before the switch), gates the audio callback, and
+    // stops the reverb feed thread — the same teardown the channel-count
+    // change uses.
+    stopProcessingForConfigurationChange();
+
+    currentAlgorithm = newAlgorithm;
+    WFSLogger::getInstance().logInfo ("Processing algorithm changed to id "
+                                      + juce::String (selectedId)
+                                      + (wasEnabled ? " - restarting engine" : ""));
+
+    if (wasEnabled)
+    {
+        parameters.setConfigParam("ProcessingEnabled", true);
+        handleProcessingChange(true); // engine not started -> startAudioEngine() with the new algorithm
+    }
+}
+
+void MainComponent::handleGpuDepthChange(int depthBlocks)
+{
+#if WFS_GPU_NATIVE
+    // The depth is read from the config param at prepare time; a restart
+    // applies it. Only meaningful while a GPU algorithm is live.
+    if ((currentAlgorithm != ProcessingAlgorithm::NativeGpuWfs
+         && currentAlgorithm != ProcessingAlgorithm::NativeGpuOutputBuffer)
+        || !audioEngineStarted)
+        return;
+
+    const bool wasEnabled = processingEnabled;
+    stopProcessingForConfigurationChange();
+
+    WFSLogger::getInstance().logInfo ("GPU pipeline depth changed to "
+                                      + juce::String (depthBlocks)
+                                      + " blocks" + (wasEnabled ? " - restarting engine" : ""));
+    if (wasEnabled)
+    {
+        parameters.setConfigParam("ProcessingEnabled", true);
+        handleProcessingChange(true);
+    }
+#else
+    juce::ignoreUnused (depthBlocks);
+#endif
 }
 
 void MainComponent::openProjectFromFile (const juce::File& folder)
@@ -4207,9 +4307,27 @@ void MainComponent::startAudioEngine()
         " numOutputChannels=" + juce::String(numOutputChannels) +
         " sampleRate=" + juce::String(sampleRate) + " blockSize=" + juce::String(blockSize));
 
+    // Pick up an algorithm change made while processing was stopped
+    {
+        int algoId = (int) parameters.getConfigParam("ProcessingAlgorithm");
+        if (algoId == 1) currentAlgorithm = ProcessingAlgorithm::InputBuffer;
+        else if (algoId == 2) currentAlgorithm = ProcessingAlgorithm::OutputBuffer;
+#if WFS_GPU_NATIVE
+        else if (algoId == 3) currentAlgorithm = ProcessingAlgorithm::NativeGpuWfs;
+        else if (algoId == 4) currentAlgorithm = ProcessingAlgorithm::NativeGpuOutputBuffer;
+#endif
+    }
+
     bool prepared = false;
+#if WFS_GPU_NATIVE
     DBG("startAudioEngine: algorithm=" + juce::String(currentAlgorithm == ProcessingAlgorithm::InputBuffer ? "InputBuffer" :
-        currentAlgorithm == ProcessingAlgorithm::OutputBuffer ? "OutputBuffer" : "GpuInputBuffer"));
+        currentAlgorithm == ProcessingAlgorithm::OutputBuffer ? "OutputBuffer" :
+        currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs ? "NativeGpuWfs" : "NativeGpuOutputBuffer"));
+#else
+    // GPU enum values only exist under WFS_GPU_NATIVE; non-GPU builds (e.g. Linux
+    // without CUDA) only ever have InputBuffer / OutputBuffer.
+    DBG("startAudioEngine: algorithm=" + juce::String(currentAlgorithm == ProcessingAlgorithm::InputBuffer ? "InputBuffer" : "OutputBuffer"));
+#endif
 
     if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
     {
@@ -4235,13 +4353,113 @@ void MainComponent::startAudioEngine()
                                frHFAttenuation.data());
         prepared = true;
     }
-    // else // ProcessingAlgorithm::GpuInputBuffer
-    // {
-    //     prepared = gpuInputAlgorithm.prepare(numInputChannels, numOutputChannels,
-    //                                          sampleRate, blockSize,
-    //                                          delayTimesMs.data(), levels.data(),
-    //                                          processingEnabled);
-    // }
+#if WFS_GPU_NATIVE
+    else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs)
+    {
+        int gpuDepth = (int) parameters.getConfigParam ("GpuPipelineDepth");
+        if (gpuDepth < WFSParameterDefaults::gpuPipelineDepthMin
+            || gpuDepth > WFSParameterDefaults::gpuPipelineDepthMax)
+            gpuDepth = WFSParameterDefaults::gpuPipelineDepthDefault;
+
+        prepared = nativeGpuAlgorithm.prepare(numInputChannels, numOutputChannels,
+                                              sampleRate, blockSize,
+                                              delayTimesMs.data(), levels.data(),
+                                              processingEnabled,
+                                              hfAttenuation.data(),
+                                              frDelayTimesMs.data(),
+                                              frLevels.data(),
+                                              frHFAttenuation.data(),
+                                              gpuDepth);
+        if (!prepared)
+        {
+            // GPU init failed: log, inform, fall back to the CPU InputBuffer.
+            auto errorMsg = nativeGpuAlgorithm.getLastError();
+            WFSLogger::getInstance().logWarning ("Native GPU init failed: " + errorMsg
+                                                 + " - falling back to CPU InputBuffer");
+            juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::WarningIcon,
+                "GPU",
+                "GPU initialization failed:\n" + errorMsg
+                + "\n\nFalling back to the CPU InputBuffer algorithm.");
+            nativeGpuAlgorithm.clear();
+
+            currentAlgorithm = ProcessingAlgorithm::InputBuffer;
+            parameters.setConfigParam("ProcessingAlgorithm", 1);
+
+            inputAlgorithm.prepare(numInputChannels, numOutputChannels,
+                                   sampleRate, blockSize,
+                                   delayTimesMs.data(), levels.data(),
+                                   processingEnabled,
+                                   hfAttenuation.data(),
+                                   frDelayTimesMs.data(),
+                                   frLevels.data(),
+                                   frHFAttenuation.data());
+            prepared = true;
+        }
+        else
+        {
+            WFSLogger::getInstance().logInfo ("Native GPU WFS active: "
+                + juce::String (numInputChannels) + " in x "
+                + juce::String (numOutputChannels) + " out on "
+                + nativeGpuAlgorithm.getDeviceName()
+                + ", async pipeline depth " + juce::String (nativeGpuAlgorithm.getPipelineDepthBlocks())
+                + " = +" + juce::String (nativeGpuAlgorithm.getPipelineLatencyMs(), 2)
+                + " ms, pre-subtracted from WFS delays");
+        }
+    }
+    else // ProcessingAlgorithm::NativeGpuOutputBuffer
+    {
+        int gpuDepth = (int) parameters.getConfigParam ("GpuPipelineDepth");
+        if (gpuDepth < WFSParameterDefaults::gpuPipelineDepthMin
+            || gpuDepth > WFSParameterDefaults::gpuPipelineDepthMax)
+            gpuDepth = WFSParameterDefaults::gpuPipelineDepthDefault;
+
+        prepared = nativeGpuOutputAlgorithm.prepare(numInputChannels, numOutputChannels,
+                                                    sampleRate, blockSize,
+                                                    delayTimesMs.data(), levels.data(),
+                                                    processingEnabled,
+                                                    hfAttenuation.data(),
+                                                    frDelayTimesMs.data(),
+                                                    frLevels.data(),
+                                                    frHFAttenuation.data(),
+                                                    gpuDepth);
+        if (!prepared)
+        {
+            // GPU init failed: log, inform, fall back to the CPU OutputBuffer
+            // (the CPU twin of this scatter algorithm).
+            auto errorMsg = nativeGpuOutputAlgorithm.getLastError();
+            WFSLogger::getInstance().logWarning ("Native GPU OutputBuffer init failed: " + errorMsg
+                                                 + " - falling back to CPU OutputBuffer");
+            juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::WarningIcon,
+                "GPU",
+                "GPU initialization failed:\n" + errorMsg
+                + "\n\nFalling back to the CPU OutputBuffer algorithm.");
+            nativeGpuOutputAlgorithm.clear();
+
+            currentAlgorithm = ProcessingAlgorithm::OutputBuffer;
+            parameters.setConfigParam("ProcessingAlgorithm", 2);
+
+            outputAlgorithm.prepare(numInputChannels, numOutputChannels,
+                                    sampleRate, blockSize,
+                                    delayTimesMs.data(), levels.data(),
+                                    processingEnabled,
+                                    hfAttenuation.data(),
+                                    frDelayTimesMs.data(),
+                                    frLevels.data(),
+                                    frHFAttenuation.data());
+            prepared = true;
+        }
+        else
+        {
+            WFSLogger::getInstance().logInfo ("Native GPU OutputBuffer active: "
+                + juce::String (numInputChannels) + " in x "
+                + juce::String (numOutputChannels) + " out on "
+                + nativeGpuOutputAlgorithm.getDeviceName()
+                + ", async pipeline depth " + juce::String (nativeGpuOutputAlgorithm.getPipelineDepthBlocks())
+                + " = +" + juce::String (nativeGpuOutputAlgorithm.getPipelineLatencyMs(), 2)
+                + " ms, pre-subtracted from WFS delays");
+        }
+    }
+#endif
 
     audioEngineStarted = prepared;
     if (!audioEngineStarted && processingEnabled)
@@ -4287,17 +4505,44 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
         {
             outputAlgorithm.reprepare(sampleRate, samplesPerBlockExpected, processingEnabled);
         }
-        // else // GPU InputBuffer
-        // {
-        //     // Safely tear down GPU processing on device/sample-rate changes.
-        //     // User can re-enable processing after the device change completes.
-        //     gpuInputAlgorithm.releaseResources();
-        //     gpuInputAlgorithm.clear();
-        //     audioEngineStarted = false;
-        //     processingEnabled = false;
-        //     processingToggle.setToggleState(false, juce::dontSendNotification);
-        //     DBG("GPU Audio: Disabled GPU path due to device/sample-rate change. Re-enable processing to reinit.");
-        // }
+#if WFS_GPU_NATIVE
+        else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs)
+        {
+            // Device/buffer change: full re-prepare (backend is sized per block)
+            int gpuDepth = (int) parameters.getConfigParam ("GpuPipelineDepth");
+            if (gpuDepth < WFSParameterDefaults::gpuPipelineDepthMin
+                || gpuDepth > WFSParameterDefaults::gpuPipelineDepthMax)
+                gpuDepth = WFSParameterDefaults::gpuPipelineDepthDefault;
+
+            nativeGpuAlgorithm.prepare(numInputChannels, numOutputChannels,
+                                       sampleRate, samplesPerBlockExpected,
+                                       delayTimesMs.data(), levels.data(),
+                                       processingEnabled,
+                                       hfAttenuation.data(),
+                                       frDelayTimesMs.data(),
+                                       frLevels.data(),
+                                       frHFAttenuation.data(),
+                                       gpuDepth);
+        }
+        else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuOutputBuffer)
+        {
+            // Device/buffer change: full re-prepare (backend is sized per block)
+            int gpuDepth = (int) parameters.getConfigParam ("GpuPipelineDepth");
+            if (gpuDepth < WFSParameterDefaults::gpuPipelineDepthMin
+                || gpuDepth > WFSParameterDefaults::gpuPipelineDepthMax)
+                gpuDepth = WFSParameterDefaults::gpuPipelineDepthDefault;
+
+            nativeGpuOutputAlgorithm.prepare(numInputChannels, numOutputChannels,
+                                             sampleRate, samplesPerBlockExpected,
+                                             delayTimesMs.data(), levels.data(),
+                                             processingEnabled,
+                                             hfAttenuation.data(),
+                                             frDelayTimesMs.data(),
+                                             frLevels.data(),
+                                             frHFAttenuation.data(),
+                                             gpuDepth);
+        }
+#endif
     }
 
     // Prepare test signal generator
@@ -4512,6 +4757,7 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
             {
                 delayTimesMs[i] += (targetDelayTimesMs[i] - delayTimesMs[i]) * delaySmoothingFactor;
                 levels[i] += (targetLevels[i] - levels[i]) * levelSmoothingFactor;
+                frLevels[i] += (targetFRLevels[i] - frLevels[i]) * levelSmoothingFactor;
             }
         }
 
@@ -4550,10 +4796,16 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         {
             outputAlgorithm.processBlock(wfsOut, patchedInputBuffer, numInputChannels, numOutputChannels);
         }
-        // else // ProcessingAlgorithm::GpuInputBuffer
-        // {
-        //     gpuInputAlgorithm.processBlock(wfsOut, patchedInputBuffer, numInputChannels, numOutputChannels);
-        // }
+#if WFS_GPU_NATIVE
+        else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs)
+        {
+            nativeGpuAlgorithm.processBlock(wfsOut, patchedInputBuffer, numInputChannels, numOutputChannels);
+        }
+        else // ProcessingAlgorithm::NativeGpuOutputBuffer
+        {
+            nativeGpuOutputAlgorithm.processBlock(wfsOut, patchedInputBuffer, numInputChannels, numOutputChannels);
+        }
+#endif
 
         // Mix reverb returns into WFS output (after WFS processing wrote speaker data)
         if (numReverbs > 0 && reverbEngine && calculationEngine)
@@ -4788,10 +5040,16 @@ void MainComponent::releaseResources()
     {
         outputAlgorithm.releaseResources();
     }
-    // else  // Commented out - GPU Audio SDK not configured
-    // {
-    //     gpuInputAlgorithm.releaseResources();
-    // }
+#if WFS_GPU_NATIVE
+    else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs)
+    {
+        nativeGpuAlgorithm.releaseResources();
+    }
+    else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuOutputBuffer)
+    {
+        nativeGpuOutputAlgorithm.releaseResources();
+    }
+#endif
 
     // Stop reverb feed thread
     if (reverbFeedThread)
@@ -4895,6 +5153,52 @@ void MainComponent::saveSettings()
 
 void MainComponent::timerCallback()
 {
+#if WFS_GPU_NATIVE
+    // Once per second: surface GPU pipeline underruns (silence-filled blocks).
+    // They never trip the device xrun counter (the callback doesn't wait on
+    // the GPU), so without this log a too-shallow depth would fail silently.
+    if (++gpuPipelineStatTick >= 200) // 5 ms timer
+    {
+        gpuPipelineStatTick = 0;
+        // Surface stats from whichever GPU algorithm is live (gather or scatter).
+        const bool obActive = (currentAlgorithm == ProcessingAlgorithm::NativeGpuOutputBuffer)
+                              && nativeGpuOutputAlgorithm.isReady();
+        const uint32_t u = obActive ? nativeGpuOutputAlgorithm.getUnderrunCount()
+                         : (nativeGpuAlgorithm.isReady() ? nativeGpuAlgorithm.getUnderrunCount() : 0);
+        if (u > gpuUnderrunsLogged)
+        {
+            const float peakMs = obActive ? nativeGpuOutputAlgorithm.getAndResetPeakGpuExecMs()
+                                          : nativeGpuAlgorithm.getAndResetPeakGpuExecMs();
+            WFSLogger::getInstance().logInfo ("GPU pipeline underruns: +"
+                + juce::String (u - gpuUnderrunsLogged) + " (total " + juce::String (u)
+                + "), peak pump " + juce::String (peakMs, 2) + " ms");
+            gpuUnderrunsLogged = u;
+        }
+        else if (u < gpuUnderrunsLogged)
+        {
+            gpuUnderrunsLogged = u; // pipeline was re-prepared; counter re-baselined
+        }
+
+        // Reverb GPU pump runs its OWN pipeline (separate from the direct sound).
+        // Log once/sec while a GPU reverb is live AND it's either underrunning or
+        // its peak launch is creeping toward the per-block budget (> 60%); stays
+        // quiet when comfortably under budget.
+        uint32_t ru = 0;
+        float rPeak = 0.0f, rBudget = 0.0f;
+        if (reverbEngine != nullptr && reverbEngine->getReverbGpuPumpStats (ru, rPeak, rBudget))
+        {
+            const bool moreUnderruns = ru > reverbGpuUnderrunsLogged;
+            if (moreUnderruns || (rBudget > 0.0f && rPeak > 0.6f * rBudget))
+            {
+                WFSLogger::getInstance().logInfo ("Reverb GPU pump: peak "
+                    + juce::String (rPeak, 2) + " / " + juce::String (rBudget, 2)
+                    + " ms budget, underruns +" + juce::String (moreUnderruns ? ru - reverbGpuUnderrunsLogged : 0)
+                    + " (total " + juce::String (ru) + ")");
+            }
+            reverbGpuUnderrunsLogged = ru; // track total (also re-baselines on re-prepare)
+        }
+    }
+#endif
     // Check once whether the window is visible — skip all repaints and
     // visual-only updates when minimized to avoid message-queue congestion
     // that can starve the audio thread's parameter updates.
@@ -5042,16 +5346,30 @@ void MainComponent::timerCallback()
         {
             for (int i = 0; i < numInputChannels; ++i)
             {
-                float shortPeakDb, rmsDb;
-                if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
+                // Read the live-source input level from whichever algorithm is
+                // actually processing. The native GPU paths compute these
+                // host-side too, so AutomOtion's audio trigger works on GPU.
+                float shortPeakDb = -200.0f, rmsDb = -200.0f;
+                switch (currentAlgorithm)
                 {
-                    shortPeakDb = inputAlgorithm.getShortPeakLevelDb(static_cast<size_t>(i));
-                    rmsDb = inputAlgorithm.getRmsLevelDb(static_cast<size_t>(i));
-                }
-                else
-                {
-                    shortPeakDb = outputAlgorithm.getShortPeakLevelDb(static_cast<size_t>(i));
-                    rmsDb = outputAlgorithm.getRmsLevelDb(static_cast<size_t>(i));
+                    case ProcessingAlgorithm::InputBuffer:
+                        shortPeakDb = inputAlgorithm.getShortPeakLevelDb(static_cast<size_t>(i));
+                        rmsDb = inputAlgorithm.getRmsLevelDb(static_cast<size_t>(i));
+                        break;
+                    case ProcessingAlgorithm::OutputBuffer:
+                        shortPeakDb = outputAlgorithm.getShortPeakLevelDb(static_cast<size_t>(i));
+                        rmsDb = outputAlgorithm.getRmsLevelDb(static_cast<size_t>(i));
+                        break;
+#if WFS_GPU_NATIVE
+                    case ProcessingAlgorithm::NativeGpuWfs:
+                        shortPeakDb = nativeGpuAlgorithm.getShortPeakLevelDb(static_cast<size_t>(i));
+                        rmsDb = nativeGpuAlgorithm.getRmsLevelDb(static_cast<size_t>(i));
+                        break;
+                    case ProcessingAlgorithm::NativeGpuOutputBuffer:
+                        shortPeakDb = nativeGpuOutputAlgorithm.getShortPeakLevelDb(static_cast<size_t>(i));
+                        rmsDb = nativeGpuOutputAlgorithm.getRmsLevelDb(static_cast<size_t>(i));
+                        break;
+#endif
                 }
                 automOtionProcessor->setInputLevels(i, shortPeakDb, rmsDb);
 
@@ -5074,10 +5392,26 @@ void MainComponent::timerCallback()
         // Update level metering at 50Hz (20ms)
         if (levelMeteringManager != nullptr && levelMeteringManager->isMeteringActive())
         {
-            levelMeteringManager->setCurrentAlgorithm(
-                currentAlgorithm == ProcessingAlgorithm::InputBuffer
-                    ? LevelMeteringManager::ProcessingAlgorithm::InputBuffer
-                    : LevelMeteringManager::ProcessingAlgorithm::OutputBuffer);
+            LevelMeteringManager::ProcessingAlgorithm meteringAlg
+                = LevelMeteringManager::ProcessingAlgorithm::OutputBuffer;
+            switch (currentAlgorithm)
+            {
+                case ProcessingAlgorithm::InputBuffer:
+                    meteringAlg = LevelMeteringManager::ProcessingAlgorithm::InputBuffer;
+                    break;
+                case ProcessingAlgorithm::OutputBuffer:
+                    meteringAlg = LevelMeteringManager::ProcessingAlgorithm::OutputBuffer;
+                    break;
+#if WFS_GPU_NATIVE
+                case ProcessingAlgorithm::NativeGpuWfs:
+                    meteringAlg = LevelMeteringManager::ProcessingAlgorithm::NativeGpuWfs;
+                    break;
+                case ProcessingAlgorithm::NativeGpuOutputBuffer:
+                    meteringAlg = LevelMeteringManager::ProcessingAlgorithm::NativeGpuOutputBuffer;
+                    break;
+#endif
+            }
+            levelMeteringManager->setCurrentAlgorithm(meteringAlg);
             levelMeteringManager->updateLevels();
 
             // Repaint map if level overlay is enabled
@@ -5167,20 +5501,38 @@ void MainComponent::timerCallback()
                 float slowThresh = lsSection.getProperty(inputLSslowThreshold, -20.0f);
                 float slowRatio = lsSection.getProperty(inputLSslowRatio, 2.0f);
 
-                // Pass parameters to detector based on current algorithm
-                if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
+                // Push LS parameters to / read GR from whichever algorithm is
+                // active. The native GPU paths compute GR host-side too; the
+                // resulting attenuation is applied via the WFS level matrix (shared
+                // by CPU and GPU), so no audio is gained here — we only supply GR.
+                switch (currentAlgorithm)
                 {
-                    inputAlgorithm.setLSParameters(static_cast<size_t>(i),
-                        peakThresh, peakRatio, slowThresh, slowRatio);
-                    peakGRs[i] = inputAlgorithm.getPeakGainReduction(static_cast<size_t>(i));
-                    slowGRs[i] = inputAlgorithm.getSlowGainReduction(static_cast<size_t>(i));
-                }
-                else  // OutputBuffer algorithm
-                {
-                    outputAlgorithm.setLSParameters(static_cast<size_t>(i),
-                        peakThresh, peakRatio, slowThresh, slowRatio);
-                    peakGRs[i] = outputAlgorithm.getPeakGainReduction(static_cast<size_t>(i));
-                    slowGRs[i] = outputAlgorithm.getSlowGainReduction(static_cast<size_t>(i));
+                    case ProcessingAlgorithm::InputBuffer:
+                        inputAlgorithm.setLSParameters(static_cast<size_t>(i),
+                            peakThresh, peakRatio, slowThresh, slowRatio);
+                        peakGRs[i] = inputAlgorithm.getPeakGainReduction(static_cast<size_t>(i));
+                        slowGRs[i] = inputAlgorithm.getSlowGainReduction(static_cast<size_t>(i));
+                        break;
+                    case ProcessingAlgorithm::OutputBuffer:
+                        outputAlgorithm.setLSParameters(static_cast<size_t>(i),
+                            peakThresh, peakRatio, slowThresh, slowRatio);
+                        peakGRs[i] = outputAlgorithm.getPeakGainReduction(static_cast<size_t>(i));
+                        slowGRs[i] = outputAlgorithm.getSlowGainReduction(static_cast<size_t>(i));
+                        break;
+#if WFS_GPU_NATIVE
+                    case ProcessingAlgorithm::NativeGpuWfs:
+                        nativeGpuAlgorithm.setLSParameters(static_cast<size_t>(i), lsActive,
+                            peakThresh, peakRatio, slowThresh, slowRatio);
+                        peakGRs[i] = nativeGpuAlgorithm.getPeakGainReduction(static_cast<size_t>(i));
+                        slowGRs[i] = nativeGpuAlgorithm.getSlowGainReduction(static_cast<size_t>(i));
+                        break;
+                    case ProcessingAlgorithm::NativeGpuOutputBuffer:
+                        nativeGpuOutputAlgorithm.setLSParameters(static_cast<size_t>(i), lsActive,
+                            peakThresh, peakRatio, slowThresh, slowRatio);
+                        peakGRs[i] = nativeGpuOutputAlgorithm.getPeakGainReduction(static_cast<size_t>(i));
+                        slowGRs[i] = nativeGpuOutputAlgorithm.getSlowGainReduction(static_cast<size_t>(i));
+                        break;
+#endif
                 }
             }
 
@@ -5270,9 +5622,13 @@ void MainComponent::timerCallback()
                     targetLevels[dstIdx] = calcLevels[srcIdx];
                     hfAttenuation[dstIdx] = calcHF[srcIdx];  // HF doesn't need smoothing - filter handles it
 
-                    // Copy FR matrices (direct copy, no smoothing needed)
+                    // Copy FR matrices. Delays/HF apply directly (delay changes are
+                    // smoothed per-processor; HF steps are filter-coefficient updates),
+                    // but the LEVEL goes through the same one-pole fade as the direct
+                    // level - an instant FR level at engage produced a loud coherent
+                    // onset (tap starts at the direct delay before sliding away).
                     frDelayTimesMs[dstIdx] = calcFRDelays[srcIdx];
-                    frLevels[dstIdx] = calcFRLevels[srcIdx];
+                    targetFRLevels[dstIdx] = calcFRLevels[srcIdx];
                     frHFAttenuation[dstIdx] = calcFRHF[srcIdx];
                 }
             }
@@ -5298,13 +5654,29 @@ void MainComponent::timerCallback()
                         highShelfActive, highShelfFreq, highShelfGain, highShelfSlope);
                     inputAlgorithm.setFRDiffusion(static_cast<size_t>(i), diffusion);
                 }
-                else  // OutputBuffer
+                else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer)
                 {
                     outputAlgorithm.setFRFilterParams(static_cast<size_t>(i),
                         lowCutActive, lowCutFreq,
                         highShelfActive, highShelfFreq, highShelfGain, highShelfSlope);
                     outputAlgorithm.setFRDiffusion(static_cast<size_t>(i), diffusion);
                 }
+#if WFS_GPU_NATIVE
+                else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs)
+                {
+                    nativeGpuAlgorithm.setFRFilterParams(static_cast<size_t>(i),
+                        lowCutActive, lowCutFreq,
+                        highShelfActive, highShelfFreq, highShelfGain, highShelfSlope);
+                    nativeGpuAlgorithm.setFRDiffusion(static_cast<size_t>(i), diffusion);
+                }
+                else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuOutputBuffer)
+                {
+                    nativeGpuOutputAlgorithm.setFRFilterParams(static_cast<size_t>(i),
+                        lowCutActive, lowCutFreq,
+                        highShelfActive, highShelfFreq, highShelfGain, highShelfSlope);
+                    nativeGpuOutputAlgorithm.setFRDiffusion(static_cast<size_t>(i), diffusion);
+                }
+#endif
             }
 
             // Update visualisation with current DSP matrix values (skip when minimized)
@@ -5377,9 +5749,34 @@ void MainComponent::timerCallback()
                 }
                 reverbEngine->setAlgorithmType(algoType);
 
+#if WFS_GPU_NATIVE
+                // SDN backend (CPU/GPU toggle); fallback status flows back to the
+                // ReverbTab below via getReverbGpuStatus().
+                if (algoType == 0)  // SDN
+                {
+                    bool sdnGpu = static_cast<int>(algoSection.getProperty(reverbSDNGpu, 0)) != 0;
+                    reverbEngine->setSDNBackendGpu(sdnGpu);
+                }
+
+                // FDN convolution backend (CPU/GPU toggle); fallback status flows
+                // back to the ReverbTab below via getReverbGpuStatus().
+                if (algoType == 1)  // FDN
+                {
+                    bool fdnGpu = static_cast<int>(algoSection.getProperty(reverbFDNGpu, 0)) != 0;
+                    reverbEngine->setFDNBackendGpu(fdnGpu);
+                }
+#endif
+
                 // Push IR-specific parameters
                 if (algoType == 2)  // IR
                 {
+#if WFS_GPU_NATIVE
+                    // Convolution backend (CPU/GPU toggle); fallback status flows
+                    // back to the ReverbTab below.
+                    bool irGpu = static_cast<int>(algoSection.getProperty(reverbIRGpu, 0)) != 0;
+                    reverbEngine->setIRBackendGpu(irGpu);
+#endif
+
                     juce::String irFilePath = algoSection.getProperty(reverbIRfile, "").toString();
                     float irTrim = algoSection.getProperty(reverbIRtrim, 0.0f);
                     float irLength = algoSection.getProperty(reverbIRlength, 6.0f);
@@ -5514,6 +5911,17 @@ void MainComponent::timerCallback()
                 reverbTab->setGainReduction(
                     reverbEngine->getCompGainReductionDb(),
                     reverbEngine->getExpGainReductionDb());
+
+#if WFS_GPU_NATIVE
+            // Push IR convolution backend status (GPU active / CPU fallback)
+            if (windowVisible && reverbTab != nullptr)
+            {
+                auto gpuStatus = reverbEngine->getReverbGpuStatus();
+                reverbTab->setReverbGpuStatus(static_cast<int>(gpuStatus.mode),
+                                              gpuStatus.device, gpuStatus.error,
+                                              gpuStatus.latencyMs);
+            }
+#endif
 
             // Check for reverb dropouts every ~1s (200 ticks at 5ms)
             if ((timerTicksSinceLastRandom % 200) == 100)

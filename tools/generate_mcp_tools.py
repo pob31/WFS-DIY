@@ -793,8 +793,8 @@ def append_tier_suffix(description: str, tier: int) -> str:
 # Per-CSV channel-id range. Used to set the maximum channel-id integer.
 CHANNEL_ID_RANGE = {
     "WFS-UI_input.csv":   ("input_id", 1, 64),
-    "WFS-UI_output.csv":  ("output_id", 1, 64),
-    "WFS-UI_reverb.csv":  ("reverb_id", 1, 16),
+    "WFS-UI_output.csv":  ("output_id", 1, 128),
+    "WFS-UI_reverb.csv":  ("reverb_id", 1, 32),
     "WFS-UI_clusters.csv": ("cluster_id", 1, 10),
 }
 

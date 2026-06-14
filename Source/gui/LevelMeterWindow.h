@@ -57,9 +57,18 @@ public:
         repaint();
     }
 
+    /** Compact mode: drop the contribution/solo frame and the border insets so a
+        very narrow meter stays readable (the bar reclaims the frame's width).
+        Driven by the output layout once meters get squeezed below a legible width. */
+    void setCompact(bool c)
+    {
+        if (compact != c) { compact = c; repaint(); }
+    }
+
     void paint(juce::Graphics& g) override
     {
-        auto bounds = getLocalBounds().reduced(2);
+        const int inset = compact ? 0 : 2;
+        auto bounds = getLocalBounds().reduced(inset);
 
         // Background - darker purple tint when in contribution mode
         if (isContributionMode)
@@ -69,7 +78,7 @@ public:
         g.fillRoundedRectangle(bounds.toFloat(), 3.0f);
 
         // Calculate meter height (0 dB at top, -60 dB at bottom)
-        auto meterBounds = bounds.reduced(2);
+        auto meterBounds = bounds.reduced(inset);
         float meterHeight = static_cast<float>(meterBounds.getHeight());
 
         if (isContributionMode)
@@ -92,9 +101,13 @@ public:
                 g.fillRect(bounds.getX() + 2, contribY, bounds.getWidth() - 4, 2);
             }
 
-            // Contribution mode border - cyan
-            g.setColour(juce::Colour(0xFF00BFFF));  // Deep sky blue
-            g.drawRoundedRectangle(getLocalBounds().toFloat(), 3.0f, 2.0f);
+            // Contribution mode border - cyan (dropped in compact mode so the
+            // bar reclaims the frame inset when meters are very narrow)
+            if (! compact)
+            {
+                g.setColour(juce::Colour(0xFF00BFFF));  // Deep sky blue
+                g.drawRoundedRectangle(getLocalBounds().toFloat(), 3.0f, 2.0f);
+            }
         }
         else
         {
@@ -126,8 +139,8 @@ public:
                 g.fillRect(bounds.getX() + 2, holdY, bounds.getWidth() - 4, 2);
             }
 
-            // Solo highlight border
-            if (isSoloHighlighted)
+            // Solo highlight border (dropped in compact mode)
+            if (isSoloHighlighted && ! compact)
             {
                 g.setColour(juce::Colours::yellow);
                 g.drawRoundedRectangle(getLocalBounds().toFloat(), 3.0f, 2.0f);
@@ -180,6 +193,7 @@ private:
     float peakHoldDb = -200.0f;
     int64_t peakHoldTime = 0;
     bool isSoloHighlighted = false;
+    bool compact = false;  // drop frame + insets when squeezed (set by output layout)
 
     // Contribution mode state
     bool isContributionMode = false;
@@ -258,6 +272,13 @@ public:
         outputsLabel.setText(LOC("levelMeter.outputs"), juce::dontSendNotification);
         outputsLabel.setFont(juce::FontOptions().withHeight(14.0f).withStyle("Bold"));
 
+        // Input meters live inside a horizontally-scrollable viewport so large
+        // input counts stay usable without squashing the meters. Outputs are
+        // laid out to always fit (padding shrinks first, then meter width).
+        inputViewport.setViewedComponent(&inputMetersHolder, false);
+        inputViewport.setScrollBarsShown(false, true);  // vertical off, horizontal on
+        addAndMakeVisible(inputViewport);
+
         // Create meters
         rebuildMeters();
 
@@ -325,10 +346,10 @@ public:
         bounds.removeFromTop(sc(5));  // Spacing
         auto outputsArea = bounds;
 
-        // Input section
+        // Input section (horizontally scrollable)
         inputsLabel.setBounds(inputsArea.removeFromTop(sc(20)));
-        layoutInputMeters(inputsArea,
-                         levelManager.getCurrentAlgorithm() == LevelMeteringManager::ProcessingAlgorithm::InputBuffer);
+        inputViewport.setBounds(inputsArea);
+        layoutInputMeters(levelManager.getCurrentAlgorithm() == LevelMeteringManager::ProcessingAlgorithm::InputBuffer);
 
         // Output section
         outputsLabel.setBounds(outputsArea.removeFromTop(sc(20)));
@@ -352,16 +373,16 @@ public:
         for (int i = 0; i < numInputs; ++i)
         {
             auto* meter = inputMeters.add(new LevelMeterBar());
-            addAndMakeVisible(meter);
+            inputMetersHolder.addAndMakeVisible(meter);
 
             auto* label = inputLabels.add(new juce::Label());
             label->setText(juce::String(i + 1), juce::dontSendNotification);
             label->setJustificationType(juce::Justification::centred);
             label->setFont(juce::FontOptions().withHeight(10.0f));
-            addAndMakeVisible(label);
+            inputMetersHolder.addAndMakeVisible(label);
 
             auto* perfBar = inputPerfBars.add(new ThreadPerformanceBar());
-            addAndMakeVisible(perfBar);
+            inputMetersHolder.addAndMakeVisible(perfBar);
 
             auto* soloBtn = inputSoloButtons.add(new juce::TextButton("S"));
             soloBtn->setClickingTogglesState(true);
@@ -385,7 +406,7 @@ public:
 
                 updateSoloButtonStates();
             };
-            addAndMakeVisible(soloBtn);
+            inputMetersHolder.addAndMakeVisible(soloBtn);
         }
 
         for (int i = 0; i < numOutputs; ++i)
@@ -505,28 +526,40 @@ private:
         updateSoloModeButtonText();  // Keep in sync with changes from other tabs
     }
 
-    void layoutInputMeters(juce::Rectangle<int>& area, bool showPerfBars)
+    void layoutInputMeters(bool showPerfBars)
     {
         if (inputMeters.isEmpty())
+        {
+            inputMetersHolder.setSize(0, 0);
             return;
+        }
 
         float ls = static_cast<float>(getHeight()) / 500.0f;
         auto sc = [ls](int ref) { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * ls)); };
 
+        auto viewArea = inputViewport.getLocalBounds();
         int numMeters = inputMeters.size();
-        int meterWidth = juce::jmin(sc(30), (area.getWidth() - 20) / numMeters);
-        int spacing = juce::jmax(2, (area.getWidth() - numMeters * meterWidth) / (numMeters + 1));
 
-        int x = area.getX() + spacing;
-        int baseY = area.getY();
+        // Inputs keep their preferred meter width; the row scrolls horizontally
+        // when the total exceeds the viewport.
+        int meterWidth = sc(30);
+        int spacing = sc(4);
+        int contentWidth = spacing + numMeters * (meterWidth + spacing);
+
+        bool needsScroll = contentWidth > viewArea.getWidth();
+        int holderW = juce::jmax(contentWidth, viewArea.getWidth());
+        int holderH = viewArea.getHeight() - (needsScroll ? inputViewport.getScrollBarThickness() : 0);
+        inputMetersHolder.setSize(holderW, holderH);
+
         int labelHeight = sc(15);
         int soloButtonHeight = sc(18);
         int perfBarHeight = showPerfBars ? sc(10) : 0;
-        int meterHeight = area.getHeight() - labelHeight - soloButtonHeight - perfBarHeight - sc(8);
+        int meterHeight = holderH - labelHeight - soloButtonHeight - perfBarHeight - sc(8);
 
+        int x = spacing;
         for (int i = 0; i < numMeters; ++i)
         {
-            int y = baseY;
+            int y = 0;
             inputMeters[i]->setBounds(x, y, meterWidth, meterHeight);
             y += meterHeight + 2;
             inputLabels[i]->setBounds(x, y, meterWidth, labelHeight);
@@ -556,8 +589,36 @@ private:
         auto sc = [ls](int ref) { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * ls)); };
 
         int numMeters = meters.size();
-        int meterWidth = juce::jmin(sc(30), (area.getWidth() - 20) / numMeters);
-        int spacing = juce::jmax(2, (area.getWidth() - numMeters * meterWidth) / (numMeters + 1));
+
+        // Outputs always fit (no horizontal scroll). The width budget is spent in
+        // stages as the channel count grows:
+        //   1. shrink the inter-meter padding (meters stay at preferred width)
+        //   2. shrink the meter width (padding pinned at the minimum)
+        //   3. once a meter is too narrow for its frame to read, drop the
+        //      contribution/solo frame (setCompact) so the bar reclaims the border
+        //      inset and looks a bit larger again
+        //   4. keep shrinking the (now frameless) meter width
+        const int preferredWidth = sc(30);
+        const int minSpacing = juce::jmax(2, sc(2));
+        const int frameThreshold = sc(16);  // below this meter width the frame is dropped
+
+        int spc = (area.getWidth() - numMeters * preferredWidth) / (numMeters + 1);
+        int meterWidth, spacing;
+        if (spc >= minSpacing)
+        {
+            // Stage 1: room to spare at preferred width -> distribute it as padding.
+            meterWidth = preferredWidth;
+            spacing = spc;
+        }
+        else
+        {
+            // Stage 2/4: padding pinned at minimum, shrink the meter width.
+            spacing = minSpacing;
+            meterWidth = juce::jmax(sc(5), (area.getWidth() - (numMeters + 1) * minSpacing) / numMeters);
+        }
+
+        // Stage 3: drop the frame once a meter is too narrow to wear one.
+        const bool compact = (meterWidth < frameThreshold);
 
         int x = area.getX() + spacing;
         int baseY = area.getY();
@@ -567,6 +628,7 @@ private:
 
         for (int i = 0; i < numMeters; ++i)
         {
+            meters[i]->setCompact(compact);
             meters[i]->setBounds(x, baseY, meterWidth, meterHeight);
             labels[i]->setBounds(x, baseY + meterHeight + 2, meterWidth, labelHeight);
 
@@ -634,6 +696,10 @@ private:
     juce::Label inputsLabel;
     juce::Label outputsLabel;
 
+    // Inputs scroll horizontally inside this viewport (meters live in the holder).
+    juce::Viewport inputViewport;
+    juce::Component inputMetersHolder;
+
     juce::OwnedArray<LevelMeterBar> inputMeters;
     juce::OwnedArray<juce::Label> inputLabels;
     juce::OwnedArray<ThreadPerformanceBar> inputPerfBars;
@@ -681,7 +747,13 @@ public:
         float ds = static_cast<float>(userArea.getHeight()) / 1080.0f;
         auto dsc = [ds](int ref) { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * ds)); };
 
-        const int preferredWidth = dsc(800);
+        // First-open width scales with channel count so large rigs show more
+        // meters at once, but never exceeds 80% of the screen. Low channel
+        // counts keep the classic ~800px width. The window stays resizable.
+        const int nMax = juce::jmax(manager.getNumInputChannels(), manager.getNumOutputChannels());
+        const int desiredWidth = juce::jmax(dsc(800), dsc(60) + nMax * dsc(34));
+        const int maxWidth     = juce::jmax(dsc(800), static_cast<int>(0.8 * userArea.getWidth()));
+        const int preferredWidth = juce::jmin(desiredWidth, maxWidth);
         const int preferredHeight = dsc(500);
 
         const int margin = 40;

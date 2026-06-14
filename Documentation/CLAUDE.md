@@ -51,7 +51,7 @@ The application has established a solid foundation with infrastructure and core 
 - **Sampler subsystem** (6×6 cell grid per input, multiple user-defined Sets per input, Lightpad / Remote-pad pressure mappings)
 
 **Major features still to implement:**
-- GPU Audio framework port (against the already-vendored `ThirdParty/GPUAudioSDK`)
+- GPU acceleration build-out (native Metal WFS path ships experimentally on macOS; reverb kernels + Windows CUDA twin to follow)
 - MCP Server build-out over the `Documentation/WFS-UI_*.csv` + `.md` docs
 - Translation proofreading (9-language JSON bank needs native-speaker review)
 
@@ -864,7 +864,7 @@ When no inputs are soloed, all inputs are rendered through the binaural spatiali
 | Control | Range | Default | Description |
 |---------|-------|---------|-------------|
 | Solo Mode | Single/Multi | Single | Single = one input, Multi = multiple inputs |
-| Output Channel | Off, 1-2, 3-4, ... 63-64 | Off | First channel of stereo output pair |
+| Output Channel | Off, 1-2, 3-4, ... 127-128 | Off | First channel of stereo output pair |
 | Listener Distance | 0.5-10m | 2m | Distance from origin |
 | Listener Angle | -180° to +180° | 0° | Horizontal rotation |
 | Binaural Level | -40 to 0 dB | 0 dB | Overall level offset |
@@ -1171,7 +1171,7 @@ AudioPatch
 │   └── patchData ("1,0,0,0;0,1,0,0;..." semicolon-separated rows)
 └── OutputPatch
     ├── rows (WFS output count)
-    ├── cols (max hardware outputs = 64)
+    ├── cols (max hardware outputs = 128)
     └── patchData (same format)
 ```
 
@@ -1983,7 +1983,6 @@ git submodule update --init --recursive
 
 **Dependencies (via submodules in `ThirdParty/`):**
 - **JUCE 8.0.13** — `ThirdParty/JUCE` (pinned to tag 8.0.13; ASIO SDK is bundled with JUCE since 8.0.11)
-- **GPU Audio SDK** — `ThirdParty/GPUAudioSDK`
 
 - Project file: WFS-DIY.jucer (open in Projucer to re-export build files)
 - Builds: Visual Studio 2022, Xcode, Linux Makefile
@@ -2009,7 +2008,7 @@ For Debug build:
 
 1. **MCP Server implementation**: build the generator pipeline that consumes `Documentation/WFS-UI_*.csv` + `.md` files and emits an MCP server exposing the app's parameter/control surface to LLMs. In-progress specs under `Documentation/MCP/` (IMPLEMENTATION_ROADMAP, GENERATION_SCRIPT_SPEC, MCP_SERVER_DESIGN, MCP_TOOL_SURFACE).
 2. **Proofread translations**: the i18n system ships 9 languages (en / fr / de / es / it / pt / ja / zh / ko) under `Resources/lang/*.json`. Non-English files were generated and need native-speaker review for accuracy, naturalness of audio-engineering terminology, and any pluralization / formatting issues.
-3. **GPU Audio framework port**: port the DSP pipeline to the GPU Audio SDK (submodule already vendored at `ThirdParty/GPUAudioSDK`). Depends on the DSP algorithms being stable — the current CPU path is the reference implementation.
+3. **GPU acceleration build-out**: extend the native Metal GPU path (WFS delay-and-sum ships experimentally on macOS under `Source/DSP/gpu/`) to the reverb algorithms (partitioned-FFT IR convolution, FDN/SDN delay-network kernel) and add a CUDA twin for Windows. The CPU path is the reference implementation.
 
 ### Completed (Reverb DSP)
 - ~~Phase 1-2: GUI, parameters, OSC, localization~~

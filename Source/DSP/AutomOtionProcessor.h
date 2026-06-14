@@ -141,11 +141,15 @@ public:
     /** Start motion for a specific input channel.
      *  @param inputIndex The input channel to animate
      *  @param autoMotionSourceIndex If >= 0, read AutomOtion parameters from this input
-     *                               instead of inputIndex (used for cluster members) */
-    void startMotion (int inputIndex, int autoMotionSourceIndex = -1)
+     *                               instead of inputIndex (used for cluster members)
+     *  @param suppressBlockedFeedback If true, do not fire onMotionBlocked when the start
+     *                                 is rejected (used by the audio-trigger path so a
+     *                                 no-op trigger does not spam the status bar)
+     *  @return true if a movement was actually started, false if it was blocked/no-op */
+    bool startMotion (int inputIndex, int autoMotionSourceIndex = -1, bool suppressBlockedFeedback = false)
     {
         if (inputIndex < 0 || inputIndex >= numInputChannels)
-            return;
+            return false;
 
         auto& state = states[static_cast<size_t> (inputIndex)];
 
@@ -153,32 +157,33 @@ public:
         if (state.state == State::Playing || state.state == State::Paused || state.state == State::Returning)
         {
             DBG ("AutomOtion: Cannot start motion on input " << (inputIndex + 1) << " - movement in progress");
-            if (onMotionBlocked)
+            if (onMotionBlocked && ! suppressBlockedFeedback)
                 onMotionBlocked (inputIndex, "Motion already in progress on input " + juce::String (inputIndex + 1));
-            return;
+            return false;
         }
 
         // Check if tracking is enabled - reject if so
         if (isTrackingActive (inputIndex))
         {
             DBG ("AutomOtion: Cannot start motion on input " << (inputIndex + 1) << " - tracking is active");
-            if (onMotionBlocked)
+            if (onMotionBlocked && ! suppressBlockedFeedback)
                 onMotionBlocked (inputIndex, "Tracking is active on input " + juce::String (inputIndex + 1));
-            return;
+            return false;
         }
 
         // Check if sampler is active - reject if so
         if (isSamplerActive (inputIndex))
         {
             DBG ("AutomOtion: Cannot start motion on input " << (inputIndex + 1) << " - sampler is active");
-            if (onMotionBlocked)
+            if (onMotionBlocked && ! suppressBlockedFeedback)
                 onMotionBlocked (inputIndex, "Sampler is active on input " + juce::String (inputIndex + 1));
-            return;
+            return false;
         }
 
-        // Reset trigger state when manually or programmatically started
-        state.triggerArmed = false;
-        state.waitingForRearm = false;
+        // Note: the audio trigger flags (triggerArmed / waitingForRearm) are only
+        // cleared once the start is committed (after the guards below). Clearing them
+        // here would corrupt the trigger state on a blocked/no-op start — e.g. an
+        // Absolute + Stay input re-triggered while already at its destination.
 
         // Get current base position from ValueTree
         auto posSection = valueTreeState.getInputPositionSection (inputIndex);
@@ -315,12 +320,17 @@ public:
             std::abs (state.targetZ - baseZ) < epsilon)
         {
             DBG ("AutomOtion: No meaningful movement on input " << (inputIndex + 1) << " - already at destination");
-            if (onMotionBlocked)
+            if (onMotionBlocked && ! suppressBlockedFeedback)
                 onMotionBlocked (inputIndex, isAbsolute
                     ? "Input " + juce::String (inputIndex + 1) + " is already at destination"
                     : "Relative destination is (0, 0, 0)");
-            return;
+            return false;
         }
+
+        // All guards passed — commit the start. Clear the audio trigger flags now so a
+        // pending trigger can't double-fire over this movement.
+        state.triggerArmed = false;
+        state.waitingForRearm = false;
 
         // Store parameters
         state.duration = duration;
@@ -336,6 +346,7 @@ public:
         state.currentX = baseX;
         state.currentY = baseY;
         state.currentZ = baseZ;
+        return true;
     }
 
     /** Stop motion for a specific input channel */
@@ -735,9 +746,19 @@ private:
             // Check trigger condition: armed + short peak above threshold
             if (state.triggerArmed && state.currentShortPeakDb > triggerThresholdDb)
             {
-                // Trigger the motion!
-                startMotion (inputIndex);
-                // Note: startMotion will set triggerArmed = false
+                // Trigger the motion! (suppress blocked feedback — a no-op trigger is
+                // expected when the source already sits on the destination)
+                const bool started = startMotion (inputIndex, -1, /*suppressBlockedFeedback*/ true);
+                if (! started)
+                {
+                    // No-op trigger (e.g. Absolute + Stay input already at its
+                    // destination). Consume it and rearm once the level drops again,
+                    // so the trigger neither sticks nor refires every frame while the
+                    // peak holds. Once the source is moved away, the next peak fires.
+                    state.triggerArmed = false;
+                    state.waitingForRearm = true;
+                }
+                // On a successful start, startMotion already cleared both flags.
             }
         }
 

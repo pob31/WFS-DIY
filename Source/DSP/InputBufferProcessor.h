@@ -7,6 +7,7 @@
 #include "LiveSourceLevelDetector.h"
 #include "DelayTargetSmoother.h"
 #include "AudioWorkgroupCoordinator.h"
+#include "FrDiffusionModel.h"
 #include <atomic>
 #include <cstdint>
 #include <memory>
@@ -52,9 +53,14 @@ public:
         smootherDirect.resize(static_cast<size_t>(numOutputs));
         smootherFR.resize(static_cast<size_t>(numOutputs));
 
-        // Initialize diffusion state for time-varying jitter (one per output)
+        // Diffusion jitter state (one per output): a one-pole low-passed white
+        // noise added to the FR delay POST-smoother. frJitterKey is the per-output
+        // noise stream key (set in prepare()); frDiffusionState holds the LP value.
         frDiffusionState.resize(static_cast<size_t>(numOutputs), 0.0f);
-        frDiffusionTarget.resize(static_cast<size_t>(numOutputs), 0.0f);
+        frJitterKey.resize(static_cast<size_t>(numOutputs), 0u);
+        frJitterPrev.resize(static_cast<size_t>(numOutputs), 0.0f);
+        frJitterCurr.resize(static_cast<size_t>(numOutputs), 0.0f);
+        frLastLevel.resize(static_cast<size_t>(numOutputs), 0.0f);
     }
 
     ~InputBufferProcessor() override
@@ -120,8 +126,10 @@ public:
         for (auto& s : smootherFR)     s.prepare(windowSamples);
         sampleCounter = 0;
 
-        // Initialize diffusion random generator with input-specific seed
-        frRandom.seed(static_cast<unsigned int>(inputChannelIndex * 12345 + 67890));
+        // Per-output noise stream keys: distinct per (input, output) so every
+        // speaker's grain is an independent stream (see FrDiffusionModel.h).
+        for (size_t o = 0; o < frJitterKey.size(); ++o)
+            frJitterKey[o] = FrDiffusion::makeKey (inputChannelIndex, static_cast<int> (o));
 
         // Initialize Live Source level detector
         lsDetector = std::make_unique<LiveSourceLevelDetector>();
@@ -164,7 +172,9 @@ public:
         for (auto& filter : frHFFilters)
             filter.reset();
         std::fill(frDiffusionState.begin(), frDiffusionState.end(), 0.0f);
-        std::fill(frDiffusionTarget.begin(), frDiffusionTarget.end(), 0.0f);
+        std::fill(frJitterPrev.begin(), frJitterPrev.end(), 0.0f);
+        std::fill(frJitterCurr.begin(), frJitterCurr.end(), 0.0f);
+        std::fill(frLastLevel.begin(), frLastLevel.end(), 0.0f);
     }
 
     void setProcessingEnabled(bool enabled)
@@ -236,11 +246,14 @@ public:
         }
     }
 
-    /** Set FR diffusion amount (0-100%) */
+    /** Set FR diffusion amount (0-100%).
+        Floor-roughness scattering, three perceptual zones - see
+        FrDiffusionModel.h for the shared mapping; here we just publish
+        the fraction. */
     void setFRDiffusion(float diffusionPercent)
     {
-        // Max jitter is 5ms at 100% diffusion
-        frMaxJitterMs.store(diffusionPercent * 0.05f, std::memory_order_release);  // 5ms / 100 = 0.05
+        frDiffusionAmount.store(juce::jlimit(0.0f, 1.0f, diffusionPercent * 0.01f),
+                                std::memory_order_release);
     }
 
     // Get CPU usage percentage for this thread (0-100)
@@ -387,9 +400,23 @@ private:
         writePosition = (writePosition - numSamples + delayBufferLength) % delayBufferLength;
         frWritePosition = (frWritePosition - numSamples + delayBufferLength) % delayBufferLength;
 
-        // Update diffusion jitter for time-varying effect (once per block, ~every 64 samples)
-        float maxJitter = frMaxJitterMs.load(std::memory_order_acquire);
-        updateDiffusionJitter(maxJitter);
+        // Floor-Reflection diffusion: shared zone-mapped grain model (see
+        // FrDiffusionModel.h). The noise is stepped ONCE PER BLOCK and ramped
+        // linearly across the block (same prev->curr semantics as the GPU
+        // launches) - per-sample stepping put a white micro-walk on the delay,
+        // which the OutputBuffer's scatter-write turned into audible hiss.
+        // Applied POST-smoother in the FR tap below.
+        frJitterCoeffs = FrDiffusion::computeCoeffs(
+            frDiffusionAmount.load(std::memory_order_acquire),
+            static_cast<float>(currentSampleRate), static_cast<float>(numSamples));
+        ++frJitterBlockIndex;
+        for (size_t o = 0; o < frDiffusionState.size(); ++o)
+        {
+            frJitterPrev[o] = frJitterCurr[o];
+            frJitterCurr[o] = FrDiffusion::step(frDiffusionState[o], frJitterBlockIndex,
+                                                frJitterKey[o], frJitterCoeffs);
+        }
+        const float frJitterInvLen = 1.0f / static_cast<float>(numSamples);
 
         // Generate delayed outputs for each output channel
         for (int outChannel = 0; outChannel < numOutputChannels; ++outChannel)
@@ -425,10 +452,11 @@ private:
                 hfFilters[outChannel].setGainDb(hfGainDb);
             }
 
-            // Get FR delay parameters (extra delay + diffusion jitter)
+            // Get FR delay parameters. The diffusion jitter is NOT added here - it
+            // is applied per-sample AFTER the box smoother (see the FR tap below),
+            // so the smoother can't average the grain away.
             float frExtraDelayMs = (sharedFRDelayTimes != nullptr) ? sharedFRDelayTimes[routingIndex] : 0.0f;
-            float frJitterMs = frDiffusionState[static_cast<size_t>(outChannel)];
-            float totalFRDelayMs = directDelayMs + frExtraDelayMs + frJitterMs;
+            float totalFRDelayMs = directDelayMs + frExtraDelayMs;
             float frDelaySamples = (totalFRDelayMs / 1000.0f) * (float)currentSampleRate;
             if (frDelaySamples < 0.0f)
                 frDelaySamples = 0.0f;
@@ -446,6 +474,18 @@ private:
             // once per block; the per-sample loop below queries smoothedAt() to
             // get the box-filtered value and teleport-envelope gain.
             auto outIdx = static_cast<size_t>(outChannel);
+
+            // FR engage: when the tap rises from silence, snap the FR delay
+            // smoother to the current target instead of letting it slide from
+            // its stale value (= the direct delay while FR was off). The slide
+            // made the tap start coherent with the direct sound - an abrupt
+            // +6 dB onset that then decayed as the delay ramped away. With the
+            // level fading in (MainComponent) and the delay snapping here, the
+            // FR now ramps ON from silence at the correct delay.
+            if (frLevel > FrDiffusion::kEngageEps && frLastLevel[outIdx] <= FrDiffusion::kEngageEps)
+                smootherFR[outIdx].reset();
+            frLastLevel[outIdx] = frLevel;
+
             smootherDirect[outIdx].observe (directDelaySamples, sampleCounter);
             smootherFR[outIdx].observe     (frDelaySamples,     sampleCounter);
 
@@ -491,8 +531,18 @@ private:
                     // Smoothed FR delay + teleport gain envelope (independent smoother)
                     auto smoothedFr = smootherFR[outIdx].smoothedAt (currentSample);
 
+                    // Diffusion grain (shared model): block-stepped, ramped across
+                    // the block (GPU prev->curr semantics), added POST-smoother.
+                    const float frJitterT = static_cast<float> (sample + 1) * frJitterInvLen;
+                    const float jitterSamples = frJitterPrev[outIdx]
+                        + (frJitterCurr[outIdx] - frJitterPrev[outIdx]) * frJitterT;
+
+                    float frReadDelay = smoothedFr.delay + jitterSamples;
+                    if (frReadDelay < 0.0f)
+                        frReadDelay = 0.0f;
+
                     // Calculate fractional read position for FR signal (from FR-filtered buffer)
-                    float exactReadPos = (float)frWritePosition + (float)sample - smoothedFr.delay;
+                    float exactReadPos = (float)frWritePosition + (float)sample - frReadDelay;
                     while (exactReadPos < 0.0f)
                         exactReadPos += (float)delayBufferLength;
 
@@ -523,31 +573,6 @@ private:
         frWritePosition = (frWritePosition + numSamples) % delayBufferLength;
     }
 
-    /** Update time-varying diffusion jitter (called once per block) */
-    void updateDiffusionJitter(float maxJitterMs)
-    {
-        // Smoothing factor for jitter transitions (~50Hz update at 64-sample blocks @ 48kHz)
-        const float smoothingFactor = 0.05f;
-
-        // Update each output's jitter
-        for (size_t outIdx = 0; outIdx < frDiffusionState.size(); ++outIdx)
-        {
-            // Occasionally update the target jitter
-            if (frDiffusionUpdateCounter >= 3)  // Update target every ~3 blocks
-            {
-                // Generate random value in range [-maxJitter, +maxJitter]
-                std::uniform_real_distribution<float> dist(-maxJitterMs, maxJitterMs);
-                frDiffusionTarget[outIdx] = dist(frRandom);
-            }
-
-            // Smooth towards target
-            frDiffusionState[outIdx] += (frDiffusionTarget[outIdx] - frDiffusionState[outIdx]) * smoothingFactor;
-        }
-
-        frDiffusionUpdateCounter++;
-        if (frDiffusionUpdateCounter >= 3)
-            frDiffusionUpdateCounter = 0;
-    }
 
     int inputChannelIndex;
     int numOutputChannels;
@@ -603,12 +628,14 @@ private:
     // axis for DelayTargetSmoother::observe() / smoothedAt().
     std::int64_t sampleCounter = 0;
 
-    // FR diffusion (time-varying jitter per output)
-    std::vector<float> frDiffusionState;   // Current jitter value per output
-    std::vector<float> frDiffusionTarget;  // Target jitter value per output
-    std::atomic<float> frMaxJitterMs {0.0f};  // Max jitter in ms (set from timer thread)
-    std::mt19937 frRandom;                 // Random generator for diffusion
-    int frDiffusionUpdateCounter = 0;      // Counter for updating targets
+    // FR diffusion grain: low-passed white noise per output, added POST-smoother.
+    std::vector<float> frDiffusionState;      // one-pole LP value per output (the grain)
+    std::vector<uint32_t> frJitterKey;        // per-output independent noise stream key
+    std::vector<float> frLastLevel;           // previous block's FR level per output (engage detect)
+    std::atomic<float> frDiffusionAmount {0.0f};  // Diffusion fraction 0..1 (set from timer thread)
+    FrDiffusion::Coeffs frJitterCoeffs;       // per-block coefficients (shared zone-map model)
+    std::vector<float> frJitterPrev, frJitterCurr; // block-boundary jitter values (ramped per sample)
+    uint32_t frJitterBlockIndex = 0;          // noise step index (one per block)
 
     // Live Source level detector (for peak/slow compression)
     std::unique_ptr<LiveSourceLevelDetector> lsDetector;

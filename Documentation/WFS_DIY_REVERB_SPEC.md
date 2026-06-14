@@ -2,7 +2,7 @@
 
 ## Context
 
-The WFS-DIY JUCE application has a Reverb tab with infrastructure for 0–16 reverb nodes. The Reverb tab has three sub-tabs:
+The WFS-DIY JUCE application has a Reverb tab with infrastructure for 0–32 reverb nodes. The Reverb tab has three sub-tabs:
 
 1. **Channel Parameters** (implemented)
 2. **Reverb EQ** (content defined here)
@@ -20,7 +20,7 @@ The feed/return routing is handled by the existing system. This spec covers the 
 
 ```cpp
 static constexpr float SPEED_OF_SOUND = 343.0f; // m/s
-static constexpr int MAX_REVERB_NODES = 16;
+static constexpr int MAX_REVERB_NODES = 32;
 static constexpr int MAX_DELAY_SAMPLES = 8192;  // ~170ms at 48kHz
 ```
 

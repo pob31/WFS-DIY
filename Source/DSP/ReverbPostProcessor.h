@@ -17,7 +17,8 @@
 class ReverbPostProcessor
 {
 public:
-    static constexpr int MAX_NODES = 16;
+    // Max reverb nodes. Must stay >= WFSParameterDefaults::maxReverbChannels.
+    static constexpr int MAX_NODES = 32;
     static constexpr int NUM_EQ_BANDS = 4;
 
     //==========================================================================
@@ -51,9 +52,10 @@ public:
     // Lifecycle
     //==========================================================================
 
-    void prepare (double newSampleRate, int /*maxBlockSize*/, int numNodes)
+    void prepare (double newSampleRate, int maxBlockSize, int numNodes)
     {
         sr = newSampleRate;
+        blockSamples = std::max (1, maxBlockSize);
         numActiveNodes = std::min (numNodes, MAX_NODES);
 
         // Prepare per-node EQ filters (same global settings, independent state)
@@ -199,15 +201,11 @@ private:
         float attackSec  = params.expAttack * 0.001f;
         float releaseSec = params.expRelease * 0.001f;
 
-        // For expander: attack = how fast gain recovers when key goes above threshold
-        //               release = how fast gain reduces when key drops below threshold
-        expAttackCoeff  = 1.0f - std::exp (-1.0f / (static_cast<float> (sr) * std::max (0.0001f, attackSec)));
-        expReleaseCoeff = 1.0f - std::exp (-1.0f / (static_cast<float> (sr) * std::max (0.001f, releaseSec)));
-
-        // Scale coefficients for block-rate updates (256 samples at a time)
-        // Since we apply gain uniformly per block, we want the envelope to
-        // move at a rate appropriate for block-level updates
-        float blockDuration = 256.0f / static_cast<float> (sr);
+        // Expander gain is applied once per internal block, so the attack/release
+        // time constants are scaled by the ACTUAL block duration. internalBlockSize
+        // is now decoupled from the device buffer, so use the prepared block size
+        // rather than a hardcoded 256 (which was only correct at one buffer size).
+        const float blockDuration = static_cast<float> (blockSamples) / static_cast<float> (sr);
         expAttackCoeff  = 1.0f - std::exp (-blockDuration / std::max (0.0001f, attackSec));
         expReleaseCoeff = 1.0f - std::exp (-blockDuration / std::max (0.001f, releaseSec));
     }
@@ -217,6 +215,7 @@ private:
     //==========================================================================
 
     double sr = 48000.0;
+    int blockSamples = 256;   // engine internal block size, for block-rate expander timing
     int numActiveNodes = 0;
 
     PostProcessorParams params;

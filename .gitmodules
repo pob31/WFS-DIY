@@ -1,6 +1,3 @@
-[submodule "ThirdParty/GPUAudioSDK"]
-	path = ThirdParty/GPUAudioSDK
-	url = https://github.com/gpuaudio/gpuaudio-sdk.git
 [submodule "ThirdParty/JUCE"]
 	path = ThirdParty/JUCE
 	url = https://github.com/juce-framework/JUCE.git

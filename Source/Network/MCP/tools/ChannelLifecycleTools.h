@@ -16,14 +16,14 @@ struct ChannelKindConfig
 {
     juce::String        kindLabel;       // "input" / "output" / "reverb"
     juce::Identifier    countParamId;    // WFSParameterIDs::*Channels
-    int                 hardMax;         // 64 / 64 / 16
+    int                 hardMax;         // per-kind max channel count (from WFSParameterDefaults)
 };
 
 inline const ChannelKindConfig& configFor (const juce::String& kind)
 {
-    static const ChannelKindConfig inputCfg  { "input",  WFSParameterIDs::inputChannels,  64 };
-    static const ChannelKindConfig outputCfg { "output", WFSParameterIDs::outputChannels, 64 };
-    static const ChannelKindConfig reverbCfg { "reverb", WFSParameterIDs::reverbChannels, 16 };
+    static const ChannelKindConfig inputCfg  { "input",  WFSParameterIDs::inputChannels,  WFSParameterDefaults::maxInputChannels };
+    static const ChannelKindConfig outputCfg { "output", WFSParameterIDs::outputChannels, WFSParameterDefaults::maxOutputChannels };
+    static const ChannelKindConfig reverbCfg { "reverb", WFSParameterIDs::reverbChannels, WFSParameterDefaults::maxReverbChannels };
     if (kind == "input")  return inputCfg;
     if (kind == "output") return outputCfg;
     return reverbCfg;
@@ -64,7 +64,7 @@ inline juce::var createSchema (int hardMax)
         "How many channels to create in one call. Default 1. The new "
         "channels are appended to the end (ids = currentCount+1 .. "
         "currentCount+count). Refused with at_capacity if "
-        "currentCount + count > hardMax (16 reverbs / 64 inputs / 64 outputs). "
+        "currentCount + count > hardMax (32 reverbs / 64 inputs / 128 outputs). "
         "One tier-2 handshake covers the whole batch; the result is a single "
         "undoable entry.");
     props->setProperty ("count", juce::var (count.release()));

@@ -94,6 +94,8 @@
     "labels": {
       "version": "Version {version}",
       "updateAvailable": "Update {version} available",
+      "gpuPipelineDepth": "GPU Pipeline:",
+      "gpuPipelineBlocks": "blocks",
       "showName": "Name:",
       "showLocation": "Location:",
       "inputChannels": "Input Channels:",
@@ -183,7 +185,9 @@
 
     "algorithms": {
       "inputBuffer": "InputBuffer (read-time delays)",
-      "outputBuffer": "OutputBuffer (write-time delays)"
+      "outputBuffer": "OutputBuffer (write-time delays)",
+      "nativeGpu": "GPU InputBuffer",
+      "nativeGpuOutput": "GPU OutputBuffer"
     },
 
     "stageShapes": {
@@ -209,6 +213,7 @@
     },
 
     "help": {
+      "gpuPipelineDepth": "GPU pipeline depth in audio blocks. Adds depth x buffer/sample-rate of constant latency (pre-subtracted from WFS delays) and absorbs GPU stalls of the same length: deeper = immune to desktop/UI hiccups, shallower = lower latency. Applies live. Default 4.",
       "showName": "Name of the current show.",
       "showLocation": "Location of the current show.",
       "inputChannels": "Number of Input Channels.",
@@ -1160,7 +1165,9 @@
       "minLatencyOn": "Minimal Latency ON",
       "minLatencyOff": "Minimal Latency OFF",
       "liveSourceOn": "Live Source Atten ON",
-      "liveSourceOff": "Live Source Atten OFF"
+      "liveSourceOff": "Live Source Atten OFF",
+      "applyToAllOn": "Apply to all nodes: ON",
+      "applyToAllOff": "Apply to all nodes: OFF"
     },
     "coordModes": {
       "xyz": "XYZ"
@@ -1198,6 +1205,14 @@
       "perNode": "Per-node:",
       "perNodeOn": "Per-node IR ON",
       "perNodeOff": "Per-node IR OFF",
+      "irGpuOn": "GPU convolution ON",
+      "irGpuOff": "GPU convolution OFF",
+      "fdnGpuOn": "GPU FDN ON",
+      "fdnGpuOff": "GPU FDN OFF",
+      "sdnGpuOn": "GPU SDN ON",
+      "sdnGpuOff": "GPU SDN OFF",
+      "irGpuActive": "GPU: {device} (+{ms} ms wet)",
+      "irGpuFallback": "GPU unavailable - using CPU: {error}",
       "wetLevel": "Wet Level:",
       "irImportSuccess": "IR imported: {file}",
       "irNoProject": "Set a project folder first",
@@ -1278,6 +1293,9 @@
       "algoIRTrim": "Trim the start of the impulse response (0 - 100 ms).",
       "algoIRLength": "Maximum impulse response length (0.1 - 6.0 seconds).",
       "algoPerNode": "Use a separate IR for each reverb node, or share one IR.",
+      "algoIRGpu": "Run the IR convolution on the GPU (adds ~20 ms to the wet path only) or on the CPU. Falls back to CPU automatically if the GPU is unavailable.",
+      "algoFDNGpu": "Run the FDN reverb on the GPU (adds ~20 ms to the wet path only) or on the CPU. Falls back to CPU automatically if the GPU is unavailable.",
+      "algoSDNGpu": "Run the SDN reverb on the GPU (adds ~20 ms to the wet path only) or on the CPU. Falls back to CPU automatically if the GPU is unavailable.",
       "algoWetLevel": "Wet/dry mix level for reverb output (-60 to +12 dB).",
       "preCompBypass": "Bypass or enable the pre-compressor on reverb feeds.",
       "preCompThreshold": "Pre-compressor threshold (-60 to 0 dB).",
@@ -1423,7 +1441,7 @@
       "offsetZ": "Offset Z:",
       "min": "Min:",
       "max": "Max:",
-      "trackingId": "Tracking ID:",
+      "trackingId": "ID:",
       "trackingSmooth": "Tracking Smooth:",
       "maxSpeed": "Max Speed:",
       "heightFactor": "Height Factor:",

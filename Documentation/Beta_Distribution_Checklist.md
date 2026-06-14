@@ -7,14 +7,12 @@ The project builds successfully on both Windows (VS2022) and macOS (Xcode) as a 
 - [x] Bundle ID updated to `com.wfsdiy.app` (jucer, plist, pbxproj)
 - [x] Version set to `0.1.0` (jucer, plist, pbxproj, vcxproj)
 
-## GPU Audio & Platform Requirements
-- GPU Audio SDK is **fully disabled at compile time** (all code paths commented out)
-- The beta ships CPU-only — no GPU dependency whatsoever
-- GPU Audio requires: Windows 11 + macOS 13 (Ventura)
-- **Current deployment targets are fine for CPU-only beta:**
+## Platform Requirements
+- The beta ships CPU-only — no GPU dependency whatsoever (the experimental native
+  Metal path is macOS-only, off unless selected, and falls back to CPU on init failure)
+- **Current deployment targets are fine for the beta:**
   - Windows: 10+ (works)
-  - macOS: currently 10.13 in pbxproj (JUCE minimum), consider bumping to 13.0 when GPU Audio is enabled
-- When GPU is eventually enabled: runtime check exists (`GpuAudioManager::GetGpuAudio()` returns nullptr if unavailable), app won't crash but **outputs silence instead of falling back to CPU** — needs improvement later
+  - macOS: currently 10.13 in pbxproj (JUCE minimum)
 
 ---
 
@@ -43,7 +41,6 @@ The project builds successfully on both Windows (VS2022) and macOS (Xcode) as a 
 
 ### Prerequisites
 - [x] Update bundle ID — done (`com.wfsdiy.app`)
-- [ ] Consider bumping deployment target from 10.13 to 13.0 (for future GPU Audio compatibility)
 - [x] Set version to `0.1.0` — done
 
 ### Build

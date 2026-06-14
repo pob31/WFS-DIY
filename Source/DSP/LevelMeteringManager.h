@@ -3,6 +3,10 @@
 #include <JuceHeader.h>
 #include "InputBufferAlgorithm.h"
 #include "OutputBufferAlgorithm.h"
+#if WFS_GPU_NATIVE
+ #include "gpu/NativeGpuWfsAlgorithm.h"
+ #include "gpu/NativeGpuOutputBufferAlgorithm.h"
+#endif
 #include <vector>
 #include <array>
 #include <atomic>
@@ -28,6 +32,10 @@ public:
     {
         InputBuffer,
         OutputBuffer
+#if WFS_GPU_NATIVE
+        , NativeGpuWfs
+        , NativeGpuOutputBuffer
+#endif
     };
 
     struct LevelData
@@ -94,6 +102,16 @@ public:
         updateAlgorithmMeteringFlags();
     }
 
+#if WFS_GPU_NATIVE
+    void setGpuAlgorithms(NativeGpuWfsAlgorithm* gpuWfsAlg,
+                          NativeGpuOutputBufferAlgorithm* gpuObAlg)
+    {
+        gpuWfsAlgorithm = gpuWfsAlg;
+        gpuObAlgorithm = gpuObAlg;
+        updateAlgorithmMeteringFlags();
+    }
+#endif
+
     void setCurrentAlgorithm(ProcessingAlgorithm alg)
     {
         currentAlgorithm = alg;
@@ -158,6 +176,16 @@ public:
                 threadPerformance[i].microsecondsPerBlock = outputAlgorithm->getProcessingTimeMicroseconds(i);
             }
         }
+#if WFS_GPU_NATIVE
+        else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs && gpuWfsAlgorithm != nullptr)
+        {
+            updateLevelsFromGpu(*gpuWfsAlgorithm);
+        }
+        else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuOutputBuffer && gpuObAlgorithm != nullptr)
+        {
+            updateLevelsFromGpu(*gpuObAlgorithm);
+        }
+#endif
     }
 
     // === Level Accessors ===
@@ -192,8 +220,12 @@ public:
     {
         if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
             return numInputChannels;
-        else
-            return numOutputChannels;
+#if WFS_GPU_NATIVE
+        if (currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs
+            || currentAlgorithm == ProcessingAlgorithm::NativeGpuOutputBuffer)
+            return 1;  // single GPU pump thread
+#endif
+        return numOutputChannels;
     }
 
     // === Visual Solo ===
@@ -301,11 +333,49 @@ private:
 
         if (outputAlgorithm != nullptr)
             outputAlgorithm->setOutputMeteringEnabled(active);
+
+#if WFS_GPU_NATIVE
+        if (gpuWfsAlgorithm != nullptr)
+            gpuWfsAlgorithm->setOutputMeteringEnabled(active);
+
+        if (gpuObAlgorithm != nullptr)
+            gpuObAlgorithm->setOutputMeteringEnabled(active);
+#endif
     }
+
+#if WFS_GPU_NATIVE
+    // Both native GPU algorithms expose the same host-side metering interface
+    // (getInputPeakLevelDb / getInputRmsLevelDb / getOutputPeakLevelDb /
+    // getOutputRmsLevelDb), so a small template serves both. The GPU paths run a
+    // single pump thread, so per-channel thread-performance data is not meaningful.
+    template <typename GpuAlgorithm>
+    void updateLevelsFromGpu(const GpuAlgorithm& algorithm)
+    {
+        for (int i = 0; i < numInputChannels && i < (int)inputLevels.size(); ++i)
+        {
+            inputLevels[i].peakDb = algorithm.getInputPeakLevelDb(static_cast<size_t>(i));
+            inputLevels[i].rmsDb  = algorithm.getInputRmsLevelDb(static_cast<size_t>(i));
+        }
+
+        for (int i = 0; i < numOutputChannels && i < (int)outputLevels.size(); ++i)
+        {
+            outputLevels[i].peakDb = algorithm.getOutputPeakLevelDb(static_cast<size_t>(i));
+            outputLevels[i].rmsDb  = algorithm.getOutputRmsLevelDb(static_cast<size_t>(i));
+        }
+
+        // Single GPU pump thread — clear the (CPU-oriented) per-thread display.
+        if (! threadPerformance.empty())
+            threadPerformance[0] = ThreadPerformance{};
+    }
+#endif
 
     // Algorithm references (not owned)
     InputBufferAlgorithm* inputAlgorithm = nullptr;
     OutputBufferAlgorithm* outputAlgorithm = nullptr;
+#if WFS_GPU_NATIVE
+    NativeGpuWfsAlgorithm* gpuWfsAlgorithm = nullptr;
+    NativeGpuOutputBufferAlgorithm* gpuObAlgorithm = nullptr;
+#endif
     ProcessingAlgorithm currentAlgorithm = ProcessingAlgorithm::InputBuffer;
 
     // Channel counts

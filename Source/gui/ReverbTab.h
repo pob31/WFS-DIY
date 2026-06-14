@@ -189,6 +189,23 @@ public:
             algoPerNodeButton.setColour (juce::TextButton::buttonOnColourId, btnCol);
         }
 
+#if WFS_GPU_NATIVE
+        // Update GPU convolution + GPU FDN buttons
+        {
+            auto irCol = algoIRGpuButton.getToggleState() ? juce::Colour(0xFF4CAF50) : colors.sliderTrackBg;
+            algoIRGpuButton.setColour (juce::TextButton::buttonColourId, irCol);
+            algoIRGpuButton.setColour (juce::TextButton::buttonOnColourId, irCol);
+
+            auto fdnCol = algoFDNGpuButton.getToggleState() ? juce::Colour(0xFF4CAF50) : colors.sliderTrackBg;
+            algoFDNGpuButton.setColour (juce::TextButton::buttonColourId, fdnCol);
+            algoFDNGpuButton.setColour (juce::TextButton::buttonOnColourId, fdnCol);
+
+            auto sdnCol = algoSDNGpuButton.getToggleState() ? juce::Colour(0xFF4CAF50) : colors.sliderTrackBg;
+            algoSDNGpuButton.setColour (juce::TextButton::buttonColourId, sdnCol);
+            algoSDNGpuButton.setColour (juce::TextButton::buttonOnColourId, sdnCol);
+        }
+#endif
+
         repaint();
     }
 
@@ -212,6 +229,37 @@ public:
         preCompGRMeter.setGainReductionDb (compGRdB);
         postExpGRMeter.setGainReductionDb (expGRdB);
     }
+
+#if WFS_GPU_NATIVE
+    /** Update the reverb GPU backend status line (called from the MainComponent
+        timer). mode: 0=CPU, 1=GPU active, 2=GPU fallback. The text is generic
+        (device + wet latency, or fallback reason), shown in the IR and FDN
+        sections (only one is visible at a time). */
+    void setReverbGpuStatus (int mode, const juce::String& device,
+                             const juce::String& error, double latencyMs)
+    {
+        juce::String text;
+        if (mode == 1)
+            text = LOC("reverbs.algorithm.irGpuActive")
+                       .replace ("{device}", device)
+                       .replace ("{ms}", juce::String (latencyMs, 1));
+        else if (mode == 2)
+            text = LOC("reverbs.algorithm.irGpuFallback").replace ("{error}", error);
+
+        if (text == lastReverbGpuStatusText)
+            return;
+        lastReverbGpuStatusText = text;
+
+        const juce::Colour col = mode == 2 ? juce::Colour (0xFFE57373)
+                                           : ColorScheme::get().textSecondary;
+        algoIRGpuStatusLabel.setText (text, juce::dontSendNotification);
+        algoIRGpuStatusLabel.setColour (juce::Label::textColourId, col);
+        algoFDNGpuStatusLabel.setText (text, juce::dontSendNotification);
+        algoFDNGpuStatusLabel.setColour (juce::Label::textColourId, col);
+        algoSDNGpuStatusLabel.setText (text, juce::dontSendNotification);
+        algoSDNGpuStatusLabel.setColour (juce::Label::textColourId, col);
+    }
+#endif
 
     /** Refresh UI from ValueTree - call after config reload */
     void refreshFromValueTree()
@@ -691,6 +739,30 @@ private:
         delayLatencyValueLabel.setText ("0.0 ms", juce::dontSendNotification);
         delayLatencyValueLabel.setJustificationType (juce::Justification::right);
         setupEditableValueLabel (delayLatencyValueLabel);
+
+        // "Apply to all nodes" link toggle (top of Channel Params subtab)
+        addAndMakeVisible (applyToAllNodesButton);
+        applyToAllNodesButton.setToggleState (applyToAllNodes, juce::dontSendNotification);
+        applyToAllNodesButton.setButtonText (applyToAllNodes ? LOC("reverbs.toggles.applyToAllOn")
+                                                             : LOC("reverbs.toggles.applyToAllOff"));
+        {
+            juce::Colour btnColour = applyToAllNodes ? juce::Colour (0xFF4CAF50)
+                                                     : ColorScheme::get().sliderTrackBg;
+            applyToAllNodesButton.setColour (juce::TextButton::buttonColourId, btnColour);
+            applyToAllNodesButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
+        }
+        applyToAllNodesButton.onClick = [this]
+        {
+            applyToAllNodes = ! applyToAllNodes;
+            applyToAllNodesButton.setToggleState (applyToAllNodes, juce::dontSendNotification);
+            applyToAllNodesButton.setButtonText (applyToAllNodes ? LOC("reverbs.toggles.applyToAllOn")
+                                                                 : LOC("reverbs.toggles.applyToAllOff"));
+            juce::Colour btnColour = applyToAllNodes ? juce::Colour (0xFF4CAF50)
+                                                     : ColorScheme::get().sliderTrackBg;
+            applyToAllNodesButton.setColour (juce::TextButton::buttonColourId, btnColour);
+            applyToAllNodesButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
+            // Runtime-only flag; no save and no retroactive sync — only future edits propagate.
+        };
     }
 
     void setupPositionSubTab()
@@ -1549,6 +1621,29 @@ private:
         algoSDNScaleValueLabel.setText (juce::String (WFSParameterDefaults::reverbSDNscaleDefault, 2) + "x", juce::dontSendNotification);
         setupEditableValueLabel (algoSDNScaleValueLabel);
 
+#if WFS_GPU_NATIVE
+        // GPU/CPU SDN backend toggle + status (auto-falls back to CPU; mirrors
+        // the FDN GPU toggle).
+        addAndMakeVisible (algoSDNGpuButton);
+        algoSDNGpuButton.setButtonText (LOC("reverbs.algorithm.sdnGpuOff"));
+        algoSDNGpuButton.setColour (juce::TextButton::buttonColourId, ColorScheme::get().sliderTrackBg);
+        algoSDNGpuButton.setColour (juce::TextButton::buttonOnColourId, ColorScheme::get().sliderTrackBg);
+        algoSDNGpuButton.onClick = [this]
+        {
+            bool enabled = !algoSDNGpuButton.getToggleState();
+            algoSDNGpuButton.setToggleState (enabled, juce::dontSendNotification);
+            algoSDNGpuButton.setButtonText (enabled ? LOC("reverbs.algorithm.sdnGpuOn") : LOC("reverbs.algorithm.sdnGpuOff"));
+            juce::Colour btnColour = enabled ? juce::Colour (0xFF4CAF50) : ColorScheme::get().sliderTrackBg;
+            algoSDNGpuButton.setColour (juce::TextButton::buttonColourId, btnColour);
+            algoSDNGpuButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
+            saveAlgorithmParam (WFSParameterIDs::reverbSDNGpu, enabled ? 1 : 0);
+        };
+
+        addAndMakeVisible (algoSDNGpuStatusLabel);
+        algoSDNGpuStatusLabel.setJustificationType (juce::Justification::centredLeft);
+        algoSDNGpuStatusLabel.setColour (juce::Label::textColourId, ColorScheme::get().textSecondary);
+#endif
+
         // FDN section
         addAndMakeVisible (algoFDNSectionLabel);
         algoFDNSectionLabel.setText (LOC("reverbs.algorithm.fdnSection"), juce::dontSendNotification);
@@ -1573,6 +1668,29 @@ private:
         addAndMakeVisible (algoFDNSizeValueLabel);
         algoFDNSizeValueLabel.setText (juce::String (WFSParameterDefaults::reverbFDNsizeDefault, 2) + "x", juce::dontSendNotification);
         setupEditableValueLabel (algoFDNSizeValueLabel);
+
+#if WFS_GPU_NATIVE
+        // GPU/CPU FDN backend toggle + status (auto-falls back to CPU; mirrors
+        // the IR GPU toggle).
+        addAndMakeVisible (algoFDNGpuButton);
+        algoFDNGpuButton.setButtonText (LOC("reverbs.algorithm.fdnGpuOff"));
+        algoFDNGpuButton.setColour (juce::TextButton::buttonColourId, ColorScheme::get().sliderTrackBg);
+        algoFDNGpuButton.setColour (juce::TextButton::buttonOnColourId, ColorScheme::get().sliderTrackBg);
+        algoFDNGpuButton.onClick = [this]
+        {
+            bool enabled = !algoFDNGpuButton.getToggleState();
+            algoFDNGpuButton.setToggleState (enabled, juce::dontSendNotification);
+            algoFDNGpuButton.setButtonText (enabled ? LOC("reverbs.algorithm.fdnGpuOn") : LOC("reverbs.algorithm.fdnGpuOff"));
+            juce::Colour btnColour = enabled ? juce::Colour (0xFF4CAF50) : ColorScheme::get().sliderTrackBg;
+            algoFDNGpuButton.setColour (juce::TextButton::buttonColourId, btnColour);
+            algoFDNGpuButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
+            saveAlgorithmParam (WFSParameterIDs::reverbFDNGpu, enabled ? 1 : 0);
+        };
+
+        addAndMakeVisible (algoFDNGpuStatusLabel);
+        algoFDNGpuStatusLabel.setJustificationType (juce::Justification::centredLeft);
+        algoFDNGpuStatusLabel.setColour (juce::Label::textColourId, ColorScheme::get().textSecondary);
+#endif
 
         // IR section
         addAndMakeVisible (algoIRSectionLabel);
@@ -1639,6 +1757,29 @@ private:
             algoPerNodeButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
             saveAlgorithmParam (WFSParameterIDs::reverbPerNodeIR, enabled ? 1 : 0);
         };
+
+#if WFS_GPU_NATIVE
+        // GPU/CPU convolution backend toggle + status (engine falls back to
+        // CPU automatically when the GPU is unavailable — see status label)
+        addAndMakeVisible (algoIRGpuButton);
+        algoIRGpuButton.setButtonText (LOC("reverbs.algorithm.irGpuOff"));
+        algoIRGpuButton.setColour (juce::TextButton::buttonColourId, ColorScheme::get().sliderTrackBg);
+        algoIRGpuButton.setColour (juce::TextButton::buttonOnColourId, ColorScheme::get().sliderTrackBg);
+        algoIRGpuButton.onClick = [this]
+        {
+            bool enabled = !algoIRGpuButton.getToggleState();
+            algoIRGpuButton.setToggleState (enabled, juce::dontSendNotification);
+            algoIRGpuButton.setButtonText (enabled ? LOC("reverbs.algorithm.irGpuOn") : LOC("reverbs.algorithm.irGpuOff"));
+            juce::Colour btnColour = enabled ? juce::Colour (0xFF4CAF50) : ColorScheme::get().sliderTrackBg;
+            algoIRGpuButton.setColour (juce::TextButton::buttonColourId, btnColour);
+            algoIRGpuButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
+            saveAlgorithmParam (WFSParameterIDs::reverbIRGpu, enabled ? 1 : 0);
+        };
+
+        addAndMakeVisible (algoIRGpuStatusLabel);
+        algoIRGpuStatusLabel.setJustificationType (juce::Justification::centredLeft);
+        algoIRGpuStatusLabel.setColour (juce::Label::textColourId, ColorScheme::get().textSecondary);
+#endif
 
         // Wet Level (always visible)
         addAndMakeVisible (algoWetLevelLabel);
@@ -1859,9 +2000,14 @@ private:
         commonAttenUnitLabel.setJustificationType (juce::Justification::left);
         commonAttenUnitLabel.setMinimumHorizontalScale (1.0f);
 
-        // Mute buttons (styled like InputsTab)
+        // Mute buttons (styled like InputsTab) — inside a vertically-scrollable
+        // viewport so high output counts stay usable without overrunning the column.
         addAndMakeVisible (mutesLabel);
         mutesLabel.setText (LOC("reverbs.labels.outputMutes"), juce::dontSendNotification);
+
+        muteViewport.setViewedComponent (&muteHolder, false);
+        muteViewport.setScrollBarsShown (true, false);  // vertical when needed, no horizontal
+        addChildComponent (muteViewport);  // visibility managed by the section's setVisible paths
 
         for (int i = 0; i < maxMuteButtons; ++i)
         {
@@ -1873,7 +2019,7 @@ private:
             {
                 saveMuteStates();
             };
-            addAndMakeVisible (muteButtons[i]);
+            muteHolder.addAndMakeVisible (muteButtons[i]);
         }
 
         // Mute Macro selector
@@ -1998,10 +2144,17 @@ private:
         helpTextMap[&algoDiffusionSlider] = LOC("reverbs.help.algoDiffusion");
         helpTextMap[&algoSDNScaleSlider] = LOC("reverbs.help.algoSDNScale");
         helpTextMap[&algoFDNSizeSlider] = LOC("reverbs.help.algoFDNSize");
+#if WFS_GPU_NATIVE
+        helpTextMap[&algoSDNGpuButton] = LOC("reverbs.help.algoSDNGpu");
+        helpTextMap[&algoFDNGpuButton] = LOC("reverbs.help.algoFDNGpu");
+#endif
         helpTextMap[&algoIRFileSelector] = LOC("reverbs.help.algoIRFile");
         helpTextMap[&algoIRTrimSlider] = LOC("reverbs.help.algoIRTrim");
         helpTextMap[&algoIRLengthSlider] = LOC("reverbs.help.algoIRLength");
         helpTextMap[&algoPerNodeButton] = LOC("reverbs.help.algoPerNode");
+#if WFS_GPU_NATIVE
+        helpTextMap[&algoIRGpuButton] = LOC("reverbs.help.algoIRGpu");
+#endif
         helpTextMap[&algoWetLevelSlider] = LOC("reverbs.help.algoWetLevel");
 
         // Pre-Compressor help text
@@ -2417,6 +2570,13 @@ private:
             algoSDNScaleValueLabel.setBounds (row.removeFromRight (valueWidth));
             col1.removeFromTop (scaled(3));
             algoSDNScaleSlider.setBounds (col1.removeFromTop (sliderHeight));
+#if WFS_GPU_NATIVE
+            col1.removeFromTop (spacing);
+            auto gpuRow = col1.removeFromTop (rowHeight);
+            algoSDNGpuButton.setBounds (gpuRow.removeFromLeft (scaled(180)));
+            gpuRow.removeFromLeft (spacing);
+            algoSDNGpuStatusLabel.setBounds (gpuRow);
+#endif
         }
 
         if (algoFDNSectionLabel.isVisible())
@@ -2426,6 +2586,13 @@ private:
             algoFDNSizeValueLabel.setBounds (row.removeFromRight (valueWidth));
             col1.removeFromTop (scaled(3));
             algoFDNSizeSlider.setBounds (col1.removeFromTop (sliderHeight));
+#if WFS_GPU_NATIVE
+            col1.removeFromTop (spacing);
+            auto gpuRow = col1.removeFromTop (rowHeight);
+            algoFDNGpuButton.setBounds (gpuRow.removeFromLeft (scaled(180)));
+            gpuRow.removeFromLeft (spacing);
+            algoFDNGpuStatusLabel.setBounds (gpuRow);
+#endif
         }
 
         // IR section (visible for IR) — in col1
@@ -2454,6 +2621,13 @@ private:
             col1.removeFromTop (spacing);
 
             algoPerNodeButton.setBounds (col1.removeFromTop (rowHeight).withWidth (scaled(180)));
+#if WFS_GPU_NATIVE
+            col1.removeFromTop (spacing);
+            row = col1.removeFromTop (rowHeight);
+            algoIRGpuButton.setBounds (row.removeFromLeft (scaled(180)));
+            row.removeFromLeft (spacing);
+            algoIRGpuStatusLabel.setBounds (row);
+#endif
             col1.removeFromTop (spacing * 2);
         }
 
@@ -2621,6 +2795,14 @@ private:
         const int unitWidth = scaled(25);
         const int dialSize = juce::jmax(60, static_cast<int>(100.0f * layoutScale));
         const int titleHeight = scaled(25);
+
+        // Top row: "Apply to all nodes" link toggle (full width, above the 3 columns).
+        // Carving it off `area` first shifts the columns (and their help buttons/cards) down.
+        {
+            auto topRow = area.removeFromTop (rowHeight);
+            applyToAllNodesButton.setBounds (topRow.removeFromLeft (scaled(200)));
+        }
+        area.removeFromTop (spacing);
 
         // Divide into 3 columns
         int colWidth = area.getWidth() / 3;
@@ -2845,28 +3027,50 @@ private:
         mutesLabel.setBounds (col3.removeFromTop (titleHeight));
         col3.removeFromTop (scaled(5));
 
-        // Layout mute buttons — fill column width, max 16 per row, visually square
+        // Layout mute buttons — fill column width (16 per row) and grow the button
+        // height to use the available column height (taller, more tappable buttons).
+        // Scrolls vertically only if even square buttons would overflow.
         const int muteSpacing = scaled(2);
         const int btnInset = 6;  // WfsLookAndFeel button horizontal inset
         int numOutputs = parameters.getNumOutputChannels();
         if (numOutputs <= 0) numOutputs = 16;
 
         int muteButtonsPerRow = juce::jmin(numOutputs, 16);
-        int muteButtonSize = (col3.getWidth() - muteSpacing * (muteButtonsPerRow - 1)) / muteButtonsPerRow;
-        int muteButtonH = muteButtonSize - btnInset * 2;  // visually square after inset
         int muteRows = (numOutputs + muteButtonsPerRow - 1) / muteButtonsPerRow;
 
-        auto muteGridArea = col3.removeFromTop (muteRows * (muteButtonH + muteSpacing));
+        const int availH = col3.getHeight();
+        const int sbThick = muteViewport.getScrollBarThickness();
+        auto gridMetrics = [&] (int holderW, int& btnSize, int& btnH, int& gridH)
+        {
+            btnSize = (holderW - muteSpacing * (muteButtonsPerRow - 1)) / muteButtonsPerRow;
+            const int squareH = juce::jmax (1, btnSize - btnInset * 2);       // current square look = floor
+            const int maxH    = juce::jmax (squareH, (int) (btnSize * 1.8f));  // cap shape for few-row cases
+            const int fillH   = juce::jmax (1, availH / muteRows - muteSpacing);
+            btnH  = juce::jlimit (squareH, maxH, fillH);  // grow to fill the column height
+            gridH = muteRows * (btnH + muteSpacing);
+        };
+
+        int muteButtonSize, muteButtonH, gridHeight;
+        gridMetrics (col3.getWidth(), muteButtonSize, muteButtonH, gridHeight);
+        bool needsScroll = gridHeight > availH;
+        int holderW = col3.getWidth() - (needsScroll ? sbThick : 0);
+        if (needsScroll)
+            gridMetrics (holderW, muteButtonSize, muteButtonH, gridHeight);
+
+        int visibleH = juce::jmin (gridHeight, availH);
+        muteViewport.setBounds (col3.removeFromTop (visibleH));
+        muteHolder.setSize (holderW, gridHeight);
+
         for (int r = 0; r < muteRows; ++r)
         {
-            auto rowArea = muteGridArea.removeFromTop (muteButtonH + muteSpacing);
             for (int c = 0; c < muteButtonsPerRow; ++c)
             {
                 int index = r * muteButtonsPerRow + c;
                 if (index < numOutputs && index < maxMuteButtons)
                 {
-                    muteButtons[index].setBounds (rowArea.removeFromLeft (muteButtonSize).withHeight (muteButtonH));
-                    rowArea.removeFromLeft (muteSpacing);
+                    muteButtons[index].setBounds (c * (muteButtonSize + muteSpacing),
+                                                  r * (muteButtonH + muteSpacing),
+                                                  muteButtonSize, muteButtonH);
                     muteButtons[index].setVisible (true);
                 }
             }
@@ -3083,11 +3287,19 @@ private:
             algoSDNScaleLabel.setVisible (false);
             algoSDNScaleSlider.setVisible (false);
             algoSDNScaleValueLabel.setVisible (false);
+#if WFS_GPU_NATIVE
+            algoSDNGpuButton.setVisible (false);
+            algoSDNGpuStatusLabel.setVisible (false);
+#endif
 
             algoFDNSectionLabel.setVisible (false);
             algoFDNSizeLabel.setVisible (false);
             algoFDNSizeSlider.setVisible (false);
             algoFDNSizeValueLabel.setVisible (false);
+#if WFS_GPU_NATIVE
+            algoFDNGpuButton.setVisible (false);
+            algoFDNGpuStatusLabel.setVisible (false);
+#endif
 
             algoIRSectionLabel.setVisible (false);
             algoIRFileLabel.setVisible (false);
@@ -3099,6 +3311,10 @@ private:
             algoIRLengthSlider.setVisible (false);
             algoIRLengthValueLabel.setVisible (false);
             algoPerNodeButton.setVisible (false);
+#if WFS_GPU_NATIVE
+            algoIRGpuButton.setVisible (false);
+            algoIRGpuStatusLabel.setVisible (false);
+#endif
         }
     }
 
@@ -3174,6 +3390,9 @@ private:
         reverbFeedTitleLabel.setVisible (visible);
         reverbReturnTitleLabel.setVisible (visible);
 
+        // "Apply to all nodes" link toggle (top row of this subtab)
+        applyToAllNodesButton.setVisible (visible);
+
         // Reverb components
         attenuationLabel.setVisible (visible);
         attenuationSlider.setVisible (visible);
@@ -3219,8 +3438,9 @@ private:
         mutesLabel.setVisible (visible);
         muteMacrosLabel.setVisible (visible);
         muteMacrosSelector.setVisible (visible);
+        muteViewport.setVisible (visible);  // viewport gates overall visibility
         for (int i = 0; i < maxMuteButtons; ++i)
-            muteButtons[i].setVisible (visible && i < parameters.getNumOutputChannels());
+            muteButtons[i].setVisible (i < parameters.getNumOutputChannels());
     }
 
     //==========================================================================
@@ -3488,47 +3708,75 @@ private:
             muteButtons[i].setToggleState (muteValues[i].getIntValue() != 0, juce::dontSendNotification);
     }
 
+    // Returns the ValueTree section that holds `paramId` for the given reverb channel
+    // index. Mirrors the per-section mapping used by saveReverbParam. Returns an invalid
+    // tree for unmapped params (e.g. reverbPreEQenable, which is handled separately).
+    juce::ValueTree getSectionForReverbParam (const juce::Identifier& paramId, int channelIndex)
+    {
+        auto& vts = parameters.getValueTreeState();
+
+        // Channel section parameters
+        if (paramId == WFSParameterIDs::reverbName ||
+            paramId == WFSParameterIDs::reverbAttenuation ||
+            paramId == WFSParameterIDs::reverbDelayLatency)
+            return vts.getReverbChannelSection (channelIndex);
+
+        // Position section parameters
+        if (paramId == WFSParameterIDs::reverbPositionX ||
+            paramId == WFSParameterIDs::reverbPositionY ||
+            paramId == WFSParameterIDs::reverbPositionZ ||
+            paramId == WFSParameterIDs::reverbReturnOffsetX ||
+            paramId == WFSParameterIDs::reverbReturnOffsetY ||
+            paramId == WFSParameterIDs::reverbReturnOffsetZ ||
+            paramId == WFSParameterIDs::reverbCoordinateMode)
+            return vts.getReverbPositionSection (channelIndex);
+
+        // Feed section parameters
+        if (paramId == WFSParameterIDs::reverbOrientation ||
+            paramId == WFSParameterIDs::reverbAngleOn ||
+            paramId == WFSParameterIDs::reverbAngleOff ||
+            paramId == WFSParameterIDs::reverbPitch ||
+            paramId == WFSParameterIDs::reverbHFdamping ||
+            paramId == WFSParameterIDs::reverbMiniLatencyEnable ||
+            paramId == WFSParameterIDs::reverbLSenable ||
+            paramId == WFSParameterIDs::reverbDistanceAttenEnable)
+            return vts.getReverbFeedSection (channelIndex);
+
+        // ReverbReturn section parameters
+        if (paramId == WFSParameterIDs::reverbDistanceAttenuation ||
+            paramId == WFSParameterIDs::reverbCommonAtten ||
+            paramId == WFSParameterIDs::reverbMutes ||
+            paramId == WFSParameterIDs::reverbMuteMacro)
+            return vts.getReverbReturnSection (channelIndex);
+
+        return {};
+    }
+
+    // Parameters that must always stay per-node, regardless of the "apply to all nodes"
+    // link toggle: the node name plus all spatial / orientation params (orientation and
+    // pitch are directional and stay per-node).
+    static bool isPerNodeOnlyParam (const juce::Identifier& paramId)
+    {
+        return paramId == WFSParameterIDs::reverbName ||
+               paramId == WFSParameterIDs::reverbPositionX ||
+               paramId == WFSParameterIDs::reverbPositionY ||
+               paramId == WFSParameterIDs::reverbPositionZ ||
+               paramId == WFSParameterIDs::reverbReturnOffsetX ||
+               paramId == WFSParameterIDs::reverbReturnOffsetY ||
+               paramId == WFSParameterIDs::reverbReturnOffsetZ ||
+               paramId == WFSParameterIDs::reverbCoordinateMode ||
+               paramId == WFSParameterIDs::reverbOrientation ||
+               paramId == WFSParameterIDs::reverbPitch;
+    }
+
     void saveReverbParam (const juce::Identifier& paramId, const juce::var& value)
     {
         if (isLoadingParameters) return;
 
         auto& vts = parameters.getValueTreeState();
-        int channelIndex = currentChannel - 1;
-        juce::ValueTree section;
 
-        // Map parameter IDs to their specific sections for reliable access
-        // Channel section parameters
-        if (paramId == WFSParameterIDs::reverbName ||
-            paramId == WFSParameterIDs::reverbAttenuation ||
-            paramId == WFSParameterIDs::reverbDelayLatency)
-        {
-            section = vts.getReverbChannelSection (channelIndex);
-        }
-        // Position section parameters
-        else if (paramId == WFSParameterIDs::reverbPositionX ||
-                 paramId == WFSParameterIDs::reverbPositionY ||
-                 paramId == WFSParameterIDs::reverbPositionZ ||
-                 paramId == WFSParameterIDs::reverbReturnOffsetX ||
-                 paramId == WFSParameterIDs::reverbReturnOffsetY ||
-                 paramId == WFSParameterIDs::reverbReturnOffsetZ ||
-                 paramId == WFSParameterIDs::reverbCoordinateMode)
-        {
-            section = vts.getReverbPositionSection (channelIndex);
-        }
-        // Feed section parameters
-        else if (paramId == WFSParameterIDs::reverbOrientation ||
-                 paramId == WFSParameterIDs::reverbAngleOn ||
-                 paramId == WFSParameterIDs::reverbAngleOff ||
-                 paramId == WFSParameterIDs::reverbPitch ||
-                 paramId == WFSParameterIDs::reverbHFdamping ||
-                 paramId == WFSParameterIDs::reverbMiniLatencyEnable ||
-                 paramId == WFSParameterIDs::reverbLSenable ||
-                 paramId == WFSParameterIDs::reverbDistanceAttenEnable)
-        {
-            section = vts.getReverbFeedSection (channelIndex);
-        }
-        // EQ section parameter (EQ enable toggle) — propagate to all channels
-        else if (paramId == WFSParameterIDs::reverbPreEQenable)
+        // EQ enable toggle is always global across all channels (existing behavior).
+        if (paramId == WFSParameterIDs::reverbPreEQenable)
         {
             int numChannels = parameters.getNumReverbChannels();
             for (int ch = 0; ch < numChannels; ++ch)
@@ -3539,15 +3787,22 @@ private:
             }
             return;
         }
-        // ReverbReturn section parameters
-        else if (paramId == WFSParameterIDs::reverbDistanceAttenuation ||
-                 paramId == WFSParameterIDs::reverbCommonAtten ||
-                 paramId == WFSParameterIDs::reverbMutes ||
-                 paramId == WFSParameterIDs::reverbMuteMacro)
+
+        // "Apply to all nodes" link: broadcast linkable params to every reverb node.
+        if (applyToAllNodes && ! isPerNodeOnlyParam (paramId))
         {
-            section = vts.getReverbReturnSection (channelIndex);
+            int numChannels = parameters.getNumReverbChannels();
+            for (int ch = 0; ch < numChannels; ++ch)
+            {
+                auto section = getSectionForReverbParam (paramId, ch);
+                if (section.isValid())
+                    section.setProperty (paramId, value, vts.getUndoManager());
+            }
+            return;
         }
 
+        // Per-node write (toggle OFF, or an always-per-node param).
+        auto section = getSectionForReverbParam (paramId, currentChannel - 1);
         if (section.isValid())
             section.setProperty (paramId, value, vts.getUndoManager());
     }
@@ -3933,12 +4188,20 @@ private:
         algoSDNScaleLabel.setVisible (isSDN);
         algoSDNScaleSlider.setVisible (isSDN);
         algoSDNScaleValueLabel.setVisible (isSDN);
+#if WFS_GPU_NATIVE
+        algoSDNGpuButton.setVisible (isSDN);
+        algoSDNGpuStatusLabel.setVisible (isSDN);
+#endif
 
         // FDN section
         algoFDNSectionLabel.setVisible (isFDN);
         algoFDNSizeLabel.setVisible (isFDN);
         algoFDNSizeSlider.setVisible (isFDN);
         algoFDNSizeValueLabel.setVisible (isFDN);
+#if WFS_GPU_NATIVE
+        algoFDNGpuButton.setVisible (isFDN);
+        algoFDNGpuStatusLabel.setVisible (isFDN);
+#endif
 
         // IR section
         algoIRSectionLabel.setVisible (isIR);
@@ -3951,6 +4214,10 @@ private:
         algoIRLengthSlider.setVisible (isIR);
         algoIRLengthValueLabel.setVisible (isIR);
         algoPerNodeButton.setVisible (isIR);
+#if WFS_GPU_NATIVE
+        algoIRGpuButton.setVisible (isIR);
+        algoIRGpuStatusLabel.setVisible (isIR);
+#endif
     }
 
     void loadAlgorithmParameters()
@@ -4074,6 +4341,32 @@ private:
         juce::Colour perNodeColour = perNode != 0 ? juce::Colour (0xFF4CAF50) : ColorScheme::get().sliderTrackBg;
         algoPerNodeButton.setColour (juce::TextButton::buttonColourId, perNodeColour);
         algoPerNodeButton.setColour (juce::TextButton::buttonOnColourId, perNodeColour);
+
+#if WFS_GPU_NATIVE
+        // GPU convolution backend (IR)
+        int irGpu = getInt (WFSParameterIDs::reverbIRGpu, WFSParameterDefaults::reverbIRGpuDefault);
+        algoIRGpuButton.setToggleState (irGpu != 0, juce::dontSendNotification);
+        algoIRGpuButton.setButtonText (irGpu != 0 ? LOC("reverbs.algorithm.irGpuOn") : LOC("reverbs.algorithm.irGpuOff"));
+        juce::Colour irGpuColour = irGpu != 0 ? juce::Colour (0xFF4CAF50) : ColorScheme::get().sliderTrackBg;
+        algoIRGpuButton.setColour (juce::TextButton::buttonColourId, irGpuColour);
+        algoIRGpuButton.setColour (juce::TextButton::buttonOnColourId, irGpuColour);
+
+        // GPU FDN backend
+        int fdnGpu = getInt (WFSParameterIDs::reverbFDNGpu, WFSParameterDefaults::reverbFDNGpuDefault);
+        algoFDNGpuButton.setToggleState (fdnGpu != 0, juce::dontSendNotification);
+        algoFDNGpuButton.setButtonText (fdnGpu != 0 ? LOC("reverbs.algorithm.fdnGpuOn") : LOC("reverbs.algorithm.fdnGpuOff"));
+        juce::Colour fdnGpuColour = fdnGpu != 0 ? juce::Colour (0xFF4CAF50) : ColorScheme::get().sliderTrackBg;
+        algoFDNGpuButton.setColour (juce::TextButton::buttonColourId, fdnGpuColour);
+        algoFDNGpuButton.setColour (juce::TextButton::buttonOnColourId, fdnGpuColour);
+
+        // GPU SDN backend
+        int sdnGpu = getInt (WFSParameterIDs::reverbSDNGpu, WFSParameterDefaults::reverbSDNGpuDefault);
+        algoSDNGpuButton.setToggleState (sdnGpu != 0, juce::dontSendNotification);
+        algoSDNGpuButton.setButtonText (sdnGpu != 0 ? LOC("reverbs.algorithm.sdnGpuOn") : LOC("reverbs.algorithm.sdnGpuOff"));
+        juce::Colour sdnGpuColour = sdnGpu != 0 ? juce::Colour (0xFF4CAF50) : ColorScheme::get().sliderTrackBg;
+        algoSDNGpuButton.setColour (juce::TextButton::buttonColourId, sdnGpuColour);
+        algoSDNGpuButton.setColour (juce::TextButton::buttonOnColourId, sdnGpuColour);
+#endif
 
         // Wet Level
         float wetLevel = getFloat (WFSParameterIDs::reverbWetLevel, WFSParameterDefaults::reverbWetLevelDefault);
@@ -4269,9 +4562,25 @@ private:
             muteValues.add (muteButtons[i].getToggleState() ? "1" : "0");
 
         auto& vts = parameters.getValueTreeState();
-        auto returnSection = vts.getReverbReturnSection (currentChannel - 1);
-        if (returnSection.isValid())
-            returnSection.setProperty (WFSParameterIDs::reverbMutes, muteValues.joinIntoString (","), vts.getUndoManager());
+        const juce::String mutesStr = muteValues.joinIntoString (",");
+
+        // "Apply to all nodes" link: broadcast mutes to every reverb node when ON.
+        if (applyToAllNodes)
+        {
+            int numChannels = parameters.getNumReverbChannels();
+            for (int ch = 0; ch < numChannels; ++ch)
+            {
+                auto returnSection = vts.getReverbReturnSection (ch);
+                if (returnSection.isValid())
+                    returnSection.setProperty (WFSParameterIDs::reverbMutes, mutesStr, vts.getUndoManager());
+            }
+        }
+        else
+        {
+            auto returnSection = vts.getReverbReturnSection (currentChannel - 1);
+            if (returnSection.isValid())
+                returnSection.setProperty (WFSParameterIDs::reverbMutes, mutesStr, vts.getUndoManager());
+        }
     }
 
     void applyMuteMacro (int macroId)
@@ -5136,6 +5445,7 @@ private:
         distanceAttenEnableLabel.setVisible (hasChannels);
         distanceAttenEnableSlider.setVisible (hasChannels);
         distanceAttenEnableValueLabel.setVisible (hasChannels);
+        applyToAllNodesButton.setVisible (hasChannels);
 
         // EQ sub-tab
         eqEnableButton.setVisible (hasChannels);
@@ -5193,8 +5503,9 @@ private:
         commonAttenValueLabel.setVisible (hasChannels);
         commonAttenUnitLabel.setVisible (hasChannels);
         mutesLabel.setVisible (hasChannels);
+        muteViewport.setVisible (hasChannels);  // viewport gates overall visibility
         for (int i = 0; i < maxMuteButtons; ++i)
-            muteButtons[i].setVisible (hasChannels && i < parameters.getNumOutputChannels());
+            muteButtons[i].setVisible (i < parameters.getNumOutputChannels());
         muteMacrosLabel.setVisible (hasChannels);
         muteMacrosSelector.setVisible (hasChannels);
 
@@ -5249,7 +5560,9 @@ private:
     int columnDividerX2 = 0;
     bool showColumnDividers = false;
     static constexpr int numEqBands = 4;
-    static constexpr int maxMuteButtons = 64;
+    // Per-output reverb-feed mute buttons: sized to the max OUTPUT channel count
+    // (indexed by output, not by reverb channel).
+    static constexpr int maxMuteButtons = WFSParameterDefaults::maxOutputChannels;
     juce::Rectangle<int> subTabContentArea;
     float layoutScale = 1.0f;  // Proportional scaling factor (1.0 = 1080p reference)
     /** Scale a reference pixel value by layoutScale with a 65% minimum floor */
@@ -5313,6 +5626,10 @@ private:
     juce::Label distanceAttenEnableLabel;
     WfsBidirectionalSlider distanceAttenEnableSlider;
     juce::Label distanceAttenEnableValueLabel;
+
+    // "Apply to all nodes" link toggle (Channel Params subtab top row)
+    juce::TextButton applyToAllNodesButton;
+    bool applyToAllNodes = true;   // default ON, runtime-only (resets each launch)
 
     // EQ sub-tab
     LongPressButton eqFlattenButton;
@@ -5413,6 +5730,15 @@ private:
     WfsStandardSlider algoIRLengthSlider;
     juce::Label algoIRLengthValueLabel;
     juce::TextButton algoPerNodeButton;
+#if WFS_GPU_NATIVE
+    juce::TextButton algoIRGpuButton;
+    juce::Label algoIRGpuStatusLabel;
+    juce::TextButton algoFDNGpuButton;
+    juce::Label algoFDNGpuStatusLabel;
+    juce::TextButton algoSDNGpuButton;
+    juce::Label algoSDNGpuStatusLabel;
+    juce::String lastReverbGpuStatusText;
+#endif
 
     // Output section (always visible)
     juce::Label algoWetLevelLabel;
@@ -5466,6 +5792,8 @@ private:
     juce::Label commonAttenUnitLabel;
     juce::Label mutesLabel;
     juce::TextButton muteButtons[maxMuteButtons];
+    juce::Viewport muteViewport;   // scrolls the mute grid vertically at high output counts
+    juce::Component muteHolder;     // viewed component that holds the mute buttons
     juce::Label muteMacrosLabel;
     juce::ComboBox muteMacrosSelector;
 

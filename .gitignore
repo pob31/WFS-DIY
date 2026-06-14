@@ -106,3 +106,5 @@ tmpclaude-*
 # Python cache and test artefacts (Phase 0 generator script)
 __pycache__/
 .pytest_cache/
+Experiments/metal-wfs-spike/spike
+Experiments/metal-wfs-spike/backend_test

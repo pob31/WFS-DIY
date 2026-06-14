@@ -3,6 +3,10 @@
 #include <JuceHeader.h>
 #include <map>
 #include "DSP/InputBufferAlgorithm.h"
+#if WFS_GPU_NATIVE
+#include "DSP/gpu/NativeGpuWfsAlgorithm.h"
+#include "DSP/gpu/NativeGpuOutputBufferAlgorithm.h"
+#endif
 #include "DSP/OutputBufferAlgorithm.h"
 #include "DSP/WFSCalculationEngine.h"
 #include "DSP/LFOProcessor.h"
@@ -17,7 +21,6 @@
 #include "DSP/OutputEQProcessor.h"
 #include "DSP/SharedInputRingBuffer.h"
 #include "DSP/AudioWorkgroupCoordinator.h"
-// #include "DSP/GpuInputBufferAlgorithm.h"  // Commented out - GPU Audio SDK not configured
 #include "WfsParameters.h"
 #include "gui/HelpCard.h"
 #include "Accessibility/TTSManager.h"
@@ -213,7 +216,10 @@ private:
     {
         InputBuffer,   // Read-time delays (current/original approach)
         OutputBuffer   // Write-time delays (alternative approach)
-        // GpuInputBuffer // GPU Audio-backed input-buffer variant (commented out - GPU Audio SDK not configured)
+#if WFS_GPU_NATIVE
+        , NativeGpuWfs          // Native GPU WFS delay-and-sum, gather (Metal/CUDA)
+        , NativeGpuOutputBuffer // Native GPU WFS, scatter / write-time (Metal/CUDA)
+#endif
     };
 
     ProcessingAlgorithm currentAlgorithm = ProcessingAlgorithm::InputBuffer;
@@ -224,7 +230,13 @@ private:
     AudioWorkgroupCoordinator workgroupCoordinator;
     InputBufferAlgorithm inputAlgorithm;
     OutputBufferAlgorithm outputAlgorithm;
-    // GpuInputBufferAlgorithm gpuInputAlgorithm;  // Commented out - GPU Audio SDK not configured
+#if WFS_GPU_NATIVE
+    NativeGpuWfsAlgorithm nativeGpuAlgorithm;
+    NativeGpuOutputBufferAlgorithm nativeGpuOutputAlgorithm;
+    int gpuPipelineStatTick = 0;          // 5 ms timer ticks -> 1 s underrun-stat cadence
+    uint32_t gpuUnderrunsLogged = 0;      // last pipeline underrun total surfaced in the log
+    uint32_t reverbGpuUnderrunsLogged = 0; // last reverb-pump underrun total surfaced in the log
+#endif
     bool audioCallbacksAttached = false;
     bool processingEnabled = false;
     std::atomic<bool> audioEngineStarted { false };
@@ -351,6 +363,7 @@ private:
     // Random generator with ramping and exponential smoothing (temporary for testing)
     std::vector<float> targetDelayTimesMs;      // Current ramp targets (updated every tick)
     std::vector<float> targetLevels;            // Current ramp targets (updated every tick)
+    std::vector<float> targetFRLevels;          // FR level ramp targets (FR fades in/out like direct)
     std::vector<float> finalTargetDelayTimesMs; // Final destination for 1-second ramp
     std::vector<float> finalTargetLevels;       // Final destination for 1-second ramp
     std::vector<float> startDelayTimesMs;       // Starting values for 1-second ramp
@@ -423,6 +436,8 @@ private:
     // Handlers for callbacks from System Config tab
     void handleProcessingChange(bool enabled);
     void handleChannelCountChange(int inputs, int outputs, int reverbs);
+    void handleAlgorithmSelectionChange(int selectedId);
+    void handleGpuDepthChange(int depthBlocks);
     void handleConfigReloaded();
     void applySamplerSetPosition (int channelIndex, const juce::ValueTree& samplerNode, int setIndex);
     void applySamplerControllerMode (int mode);

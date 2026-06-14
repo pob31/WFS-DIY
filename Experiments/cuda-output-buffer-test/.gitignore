@@ -1,0 +1,4 @@
+test_ob_kernels.exe
+*.exp
+*.lib
+*.pdb

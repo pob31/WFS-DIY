@@ -1,0 +1,455 @@
+/*
+    MetalObBackend implementation (Objective-C++).
+
+    The MSL kernel sources live in MetalObKernels.h as a string literal so the
+    app needs no resource plumbing; they are compiled at prepare() time and
+    cached in two pipeline state objects (ob_pairs + ob_reduce).
+
+    v2 architecture: one thread per (in,out) pair scattering into a PRIVATE
+    persistent per-pair accumulator, then a deterministic per-output reduce -
+    the proven wfs_pairs/wfs_reduce occupancy shape (v1's single writer per
+    output was ~32x under-parallel and missed the buffer-64 deadline in the
+    field). Faithful to the CPU shared-buffer semantics by linearity. Delay
+    contract: all scatter delays >= 1 sample (host-clamped, kernel re-clamped) -
+    a write-time scatter cannot represent d < 1 (see MetalObKernels.h).
+
+    Host-side processBlock mirrors CudaObBackend.cpp (the validated reference -
+    Experiments/cuda-output-buffer-test checks the CUDA twin of the kernel string
+    against a CPU scatter model on real hardware): matrix snapshot with -L
+    compensation (min 1 sample), prev->curr ramp continuity, persistent device
+    accumulators + shelf states, host-tracked accumulator-head advance.
+    Floor-Reflection host work (per-input pre-filter, per-sample sub-stepped
+    diffusion delay staging gated on FR-active pairs) lives in the SHARED
+    WfsFrHostState.
+
+    Device memory: the per-pair accumulators dominate at
+    numIn*numOut*accLen*4 B (32x27 @ 1 s/48 kHz ~ 166 MB; 64x64 ~ 787 MB).
+    Fine on Apple unified memory; revisit a delay cap only if huge configs need
+    this algorithm on small-VRAM cards.
+
+    Dispatch ordering: one command buffer, ONE serial compute encoder, two
+    dispatches (ob_pairs then ob_reduce). A serial-dispatch-type encoder orders
+    consecutive dispatches with full memory visibility, so no barrier is needed.
+*/
+
+#include "MetalObBackend.h"
+#include "MetalObKernels.h"
+#include "WfsFrHostState.h"
+
+#import <Metal/Metal.h>
+#import <Foundation/Foundation.h>
+
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <cstring>
+#include <vector>
+
+namespace
+{
+// Host mirror of the kernel-side ObParams - layouts must match exactly.
+struct ObParamsGpu
+{
+    uint32_t numInputs;
+    uint32_t numOutputs;
+    uint32_t bufferLength;
+    uint32_t accLength;
+    uint32_t writePos;
+    float    shelfCosW0;
+    float    shelfSinW0;
+};
+
+// FR diffusion grain is sub-stepped at this cadence to match the CPU
+// OutputBufferProcessor (its internal processing block is 64 samples).
+constexpr int kObSubBlock = 64;
+} // namespace
+
+struct MetalObBackend::Impl
+{
+    id<MTLDevice> device = nil;
+    id<MTLCommandQueue> queue = nil;
+    id<MTLComputePipelineState> psoPairs = nil;
+    id<MTLComputePipelineState> psoReduce = nil;
+
+    id<MTLBuffer> bParams = nil;
+    id<MTLBuffer> bIn = nil;
+    id<MTLBuffer> bFrIn = nil;
+    id<MTLBuffer> bOut = nil;
+    id<MTLBuffer> bPairAcc = nil;         // [pairs][accLen] persistent (thread-ordered)
+    id<MTLBuffer> bPairOut = nil;         // [(s*numOut+out)*numIn+in] transient
+    id<MTLBuffer> bShelfState = nil;      // [pairs][4] persistent
+    id<MTLBuffer> bFrShelfState = nil;    // [pairs][4] persistent
+    id<MTLBuffer> bDelaysPrev = nil, bDelaysCurr = nil;
+    id<MTLBuffer> bGainsPrev = nil, bGainsCurr = nil;
+    id<MTLBuffer> bFrDelaySamples = nil;  // [pairs][blockSize] per-sample FR delay (jitter sub-stepped)
+    id<MTLBuffer> bFrGainsPrev = nil, bFrGainsCurr = nil;
+    id<MTLBuffer> bHfAttenDb = nil, bFrHfAttenDb = nil;
+
+    int numIn = 0, numOut = 0, blockSize = 0;
+    uint32_t accLen = 0;          // per-pair accumulator length (samples)
+    uint32_t writePos = 0;        // accumulator head
+    float maxDelayClamp = 0.0f;   // accLen - 1 (CPU: delayBufferLength - 1)
+    double sampleRate = 0.0;
+    float latencyMs = 0.0f;
+    float shelfCosW0 = 1.0f;
+    float shelfSinW0 = 0.0f;
+
+    // App's live matrices (input-major). FR/HF pointers may be null.
+    const float* delaysMs = nullptr;
+    const float* gains = nullptr;
+    const float* hfAttenDb = nullptr;
+    const float* frDelaysMs = nullptr;
+    const float* frLevels = nullptr;
+    const float* frHfAttenDb = nullptr;
+
+    // Last launch's end matrices (ramp continuity).
+    std::vector<float> delaysPrevSamples;
+    std::vector<float> gainsPrev;
+    std::vector<float> frBasePrev;        // [pairs] base FR delay ramp continuity (no jitter)
+    std::vector<float> frGainsPrev;
+    bool havePrev = false;
+
+    WfsFrHostState frHost;            // per-input FR pre-filters + jitter (shared)
+
+    NSUInteger threadsPerGroup = 256;
+};
+
+MetalObBackend::MetalObBackend() : impl (std::make_unique<Impl>()) {}
+MetalObBackend::~MetalObBackend() { release(); }
+
+bool MetalObBackend::prepare (int numInputs, int numOutputs, int blockSize,
+                              double sampleRate, double pipelineLatencyMs,
+                              double maxDelaySeconds)
+{
+    release();
+    auto& m = *impl;
+
+    @autoreleasepool
+    {
+        m.device = MTLCreateSystemDefaultDevice();
+        if (m.device == nil)
+        {
+            lastError = "No Metal device available";
+            return false;
+        }
+
+        NSError* err = nil;
+        id<MTLLibrary> lib = [m.device newLibraryWithSource:
+                                  [NSString stringWithUTF8String: kObScatterKernelSource]
+                                                    options: nil
+                                                      error: &err];
+        if (lib == nil)
+        {
+            lastError = std::string ("Kernel compile failed: ")
+                        + (err ? err.localizedDescription.UTF8String : "?");
+            return false;
+        }
+
+        m.psoPairs = [m.device newComputePipelineStateWithFunction:
+                          [lib newFunctionWithName: @"ob_pairs"]
+                                                             error: &err];
+        if (m.psoPairs == nil)
+        {
+            lastError = std::string ("Pipeline state failed (pairs): ")
+                        + (err ? err.localizedDescription.UTF8String : "?");
+            return false;
+        }
+        m.psoReduce = [m.device newComputePipelineStateWithFunction:
+                           [lib newFunctionWithName: @"ob_reduce"]
+                                                              error: &err];
+        if (m.psoReduce == nil)
+        {
+            lastError = std::string ("Pipeline state failed (reduce): ")
+                        + (err ? err.localizedDescription.UTF8String : "?");
+            return false;
+        }
+
+        m.queue = [m.device newCommandQueue];
+
+        m.numIn = std::max (1, numInputs);
+        m.numOut = std::max (1, numOutputs);
+        m.blockSize = std::max (1, blockSize);
+        m.sampleRate = sampleRate;
+        m.latencyMs = (float) pipelineLatencyMs;
+        m.accLen = (uint32_t) (maxDelaySeconds * sampleRate);
+        if (m.accLen < (uint32_t) m.blockSize + 2)
+            m.accLen = (uint32_t) m.blockSize + 2;           // sanity floor
+        m.maxDelayClamp = (float) (m.accLen - 1);            // CPU: delayBufferLength - 1
+        m.writePos = 0;
+        m.havePrev = false;
+
+        m.threadsPerGroup = std::min<NSUInteger> (256,
+                                std::min (m.psoPairs.maxTotalThreadsPerThreadgroup,
+                                          m.psoReduce.maxTotalThreadsPerThreadgroup));
+
+        // Fixed 800 Hz shelf frequency (WFSHighShelfFilter parity).
+        const double w0 = 2.0 * 3.14159265358979 * 800.0 / sampleRate;
+        m.shelfCosW0 = (float) std::cos (w0);
+        m.shelfSinW0 = (float) std::sin (w0);
+
+        const uint32_t matrix = (uint32_t) (m.numIn * m.numOut);
+        auto shared = MTLResourceStorageModeShared;
+        auto mkBuf = [&](size_t floats) {
+            return [m.device newBufferWithLength: floats * sizeof (float) options: shared];
+        };
+
+        m.bParams = [m.device newBufferWithLength: sizeof (ObParamsGpu) options: shared];
+        m.bIn = mkBuf ((size_t) m.numIn * m.blockSize);
+        m.bFrIn = mkBuf ((size_t) m.numIn * m.blockSize);
+        m.bOut = mkBuf ((size_t) m.numOut * m.blockSize);
+        m.bPairAcc = mkBuf ((size_t) matrix * m.accLen);     // the big one
+        m.bPairOut = mkBuf ((size_t) matrix * m.blockSize);
+        m.bShelfState = mkBuf ((size_t) matrix * 4);
+        m.bFrShelfState = mkBuf ((size_t) matrix * 4);
+        m.bDelaysPrev = mkBuf (matrix);
+        m.bDelaysCurr = mkBuf (matrix);
+        m.bGainsPrev = mkBuf (matrix);
+        m.bGainsCurr = mkBuf (matrix);
+        m.bFrDelaySamples = mkBuf ((size_t) matrix * m.blockSize);
+        m.bFrGainsPrev = mkBuf (matrix);
+        m.bFrGainsCurr = mkBuf (matrix);
+        m.bHfAttenDb = mkBuf (matrix);
+        m.bFrHfAttenDb = mkBuf (matrix);
+
+        if (! (m.bParams && m.bIn && m.bFrIn && m.bOut && m.bPairAcc && m.bPairOut
+               && m.bShelfState && m.bFrShelfState
+               && m.bDelaysPrev && m.bDelaysCurr && m.bGainsPrev && m.bGainsCurr
+               && m.bFrDelaySamples && m.bFrGainsPrev && m.bFrGainsCurr
+               && m.bHfAttenDb && m.bFrHfAttenDb))
+        {
+            lastError = "Metal buffer allocation failed (per-pair accumulators need "
+                        + std::to_string ((size_t) matrix * m.accLen * sizeof (float) / (1024 * 1024))
+                        + " MB)";
+            release();
+            return false;
+        }
+
+        memset (m.bPairAcc.contents, 0, m.bPairAcc.length);
+        memset (m.bShelfState.contents, 0, m.bShelfState.length);
+        memset (m.bFrShelfState.contents, 0, m.bFrShelfState.length);
+
+        m.delaysPrevSamples.assign (matrix, 1.0f);
+        m.gainsPrev.assign (matrix, 0.0f);
+        m.frBasePrev.assign (matrix, 1.0f);
+        m.frGainsPrev.assign (matrix, 0.0f);
+
+        m.frHost.prepare (m.numIn, m.numOut, sampleRate);
+    }
+
+    ready = true;
+    lastError.clear();
+    return true;
+}
+
+void MetalObBackend::setMatrixPointers (const float* delaysMsPtr, const float* gainsPtr,
+                                        const float* hfAttenDbPtr,
+                                        const float* frDelaysMsPtr,
+                                        const float* frLevelsPtr,
+                                        const float* frHfAttenDbPtr) noexcept
+{
+    impl->delaysMs = delaysMsPtr;
+    impl->gains = gainsPtr;
+    impl->hfAttenDb = hfAttenDbPtr;
+    impl->frDelaysMs = frDelaysMsPtr;
+    impl->frLevels = frLevelsPtr;
+    impl->frHfAttenDb = frHfAttenDbPtr;
+}
+
+void MetalObBackend::setFRFilterParams (int inputIndex,
+                                        bool lowCutActive, float lowCutFreq,
+                                        bool highShelfActive, float highShelfFreq,
+                                        float highShelfGain, float highShelfSlope) noexcept
+{
+    impl->frHost.setFRFilterParams (inputIndex, lowCutActive, lowCutFreq,
+                                    highShelfActive, highShelfFreq,
+                                    highShelfGain, highShelfSlope);
+}
+
+void MetalObBackend::setFRDiffusion (int inputIndex, float diffusionPercent) noexcept
+{
+    impl->frHost.setFRDiffusion (inputIndex, diffusionPercent);
+}
+
+bool MetalObBackend::processBlock (const float* const* inputs, float* const* outputs)
+{
+    if (! ready)
+        return false;
+
+    auto& m = *impl;
+    const uint32_t matrix = (uint32_t) (m.numIn * m.numOut);
+    const float srScale = (float) (m.sampleRate / 1000.0);
+    const float maxDelay = m.maxDelayClamp;
+
+    @autoreleasepool
+    {
+        const auto t0 = std::chrono::steady_clock::now();
+
+        // Snapshot the live matrices -> curr (with -L compensation, clamped to
+        // [1, max] - the scatter's d >= 1 contract), prev = the previous
+        // launch's curr (ramp continuity; prev >= 1 by induction).
+        float* dCurr = (float*) m.bDelaysCurr.contents;
+        float* gCurr = (float*) m.bGainsCurr.contents;
+        for (uint32_t i = 0; i < matrix; ++i)
+        {
+            float d = m.delaysMs != nullptr ? (m.delaysMs[i] - m.latencyMs) * srScale : 0.0f;
+            dCurr[i] = std::clamp (d, 1.0f, maxDelay);
+            gCurr[i] = m.gains != nullptr ? m.gains[i] : 0.0f;
+        }
+
+        // Shelf gains: raw dB, stepwise per launch (CPU parity: per-block setGainDb).
+        float* hfDb = (float*) m.bHfAttenDb.contents;
+        float* frHfDb = (float*) m.bFrHfAttenDb.contents;
+        for (uint32_t i = 0; i < matrix; ++i)
+        {
+            hfDb[i] = m.hfAttenDb != nullptr ? m.hfAttenDb[i] : 0.0f;
+            frHfDb[i] = m.frHfAttenDb != nullptr ? m.frHfAttenDb[i] : 0.0f;
+        }
+
+        // FR gain: absolute frLevels (gate + level), ramped prev->curr like direct.
+        float* fgCurr = (float*) m.bFrGainsCurr.contents;
+        for (uint32_t i = 0; i < matrix; ++i)
+            fgCurr[i] = m.frLevels != nullptr ? m.frLevels[i] : 0.0f;
+
+        // FR delay: PER-SAMPLE, with the diffusion grain sub-stepped at 64
+        // samples and ramped (CPU OutputBufferProcessor parity), clamped to
+        // d >= 1, and gated on FR-active pairs (prev||curr gain != 0).
+        m.frHost.computeFrDelaysPerSample (m.delaysMs, m.frDelaysMs,
+                                           m.frGainsPrev.data(), fgCurr,
+                                           m.latencyMs, srScale, maxDelay,
+                                           m.blockSize, kObSubBlock, m.frBasePrev,
+                                           (float*) m.bFrDelaySamples.contents);
+
+        if (! m.havePrev)
+        {
+            memcpy (m.delaysPrevSamples.data(), dCurr, matrix * sizeof (float));
+            memcpy (m.gainsPrev.data(), gCurr, matrix * sizeof (float));
+            memcpy (m.frGainsPrev.data(), fgCurr, matrix * sizeof (float));
+            m.havePrev = true;
+        }
+        memcpy (m.bDelaysPrev.contents, m.delaysPrevSamples.data(), matrix * sizeof (float));
+        memcpy (m.bGainsPrev.contents, m.gainsPrev.data(), matrix * sizeof (float));
+        memcpy (m.bFrGainsPrev.contents, m.frGainsPrev.data(), matrix * sizeof (float));
+
+        // Input channels -> flat shared buffer (silence for missing channels),
+        // and the host-side FR pre-filter chain (LowCut + HighShelf) -> frIn.
+        float* inFlat = (float*) m.bIn.contents;
+        for (int ch = 0; ch < m.numIn; ++ch)
+        {
+            if (inputs[ch] != nullptr)
+                memcpy (inFlat + (size_t) ch * m.blockSize, inputs[ch], (size_t) m.blockSize * sizeof (float));
+            else
+                memset (inFlat + (size_t) ch * m.blockSize, 0, (size_t) m.blockSize * sizeof (float));
+        }
+        m.frHost.filterBlock (inputs, (float*) m.bFrIn.contents, m.blockSize);
+
+        ObParamsGpu p { (uint32_t) m.numIn, (uint32_t) m.numOut, (uint32_t) m.blockSize,
+                        m.accLen, m.writePos, m.shelfCosW0, m.shelfSinW0 };
+        memcpy (m.bParams.contents, &p, sizeof (p));
+
+        id<MTLCommandBuffer> cb = [m.queue commandBuffer];
+        id<MTLComputeCommandEncoder> enc = [cb computeCommandEncoder]; // serial dispatch type
+
+        // K1: per-pair filter + emit + scatter (one thread per pair).
+        [enc setComputePipelineState: m.psoPairs];
+        [enc setBuffer: m.bParams offset: 0 atIndex: 0];
+        [enc setBuffer: m.bIn offset: 0 atIndex: 1];
+        [enc setBuffer: m.bFrIn offset: 0 atIndex: 2];
+        [enc setBuffer: m.bHfAttenDb offset: 0 atIndex: 3];
+        [enc setBuffer: m.bFrHfAttenDb offset: 0 atIndex: 4];
+        [enc setBuffer: m.bDelaysPrev offset: 0 atIndex: 5];
+        [enc setBuffer: m.bDelaysCurr offset: 0 atIndex: 6];
+        [enc setBuffer: m.bGainsPrev offset: 0 atIndex: 7];
+        [enc setBuffer: m.bGainsCurr offset: 0 atIndex: 8];
+        [enc setBuffer: m.bFrDelaySamples offset: 0 atIndex: 9];
+        [enc setBuffer: m.bFrGainsPrev offset: 0 atIndex: 10];
+        [enc setBuffer: m.bFrGainsCurr offset: 0 atIndex: 11];
+        [enc setBuffer: m.bShelfState offset: 0 atIndex: 12];
+        [enc setBuffer: m.bFrShelfState offset: 0 atIndex: 13];
+        [enc setBuffer: m.bPairAcc offset: 0 atIndex: 14];
+        [enc setBuffer: m.bPairOut offset: 0 atIndex: 15];
+        {
+            const NSUInteger pairs = (NSUInteger) matrix;
+            const NSUInteger groups = (pairs + m.threadsPerGroup - 1) / m.threadsPerGroup;
+            [enc dispatchThreadgroups: MTLSizeMake (groups, 1, 1)
+                threadsPerThreadgroup: MTLSizeMake (m.threadsPerGroup, 1, 1)];
+        }
+
+        // K2: deterministic per-output reduction (ordered after K1 by the
+        // serial encoder). Rebind only the slots the reduce kernel uses.
+        [enc setComputePipelineState: m.psoReduce];
+        [enc setBuffer: m.bParams offset: 0 atIndex: 0];
+        [enc setBuffer: m.bPairOut offset: 0 atIndex: 1];
+        [enc setBuffer: m.bOut offset: 0 atIndex: 2];
+        [enc dispatchThreadgroups: MTLSizeMake ((NSUInteger) m.numOut, 1, 1)
+            threadsPerThreadgroup: MTLSizeMake (m.threadsPerGroup, 1, 1)];
+
+        [enc endEncoding];
+        [cb commit];
+        [cb waitUntilCompleted];
+
+        if (cb.status == MTLCommandBufferStatusError)
+        {
+            lastError = std::string ("GPU launch failed: ")
+                        + (cb.error ? cb.error.localizedDescription.UTF8String : "?");
+            ready = false;
+            return false;
+        }
+
+        // Output flat buffer -> channels
+        const float* outFlat = (const float*) m.bOut.contents;
+        for (int ch = 0; ch < m.numOut; ++ch)
+            if (outputs[ch] != nullptr)
+                memcpy (outputs[ch], outFlat + (size_t) ch * m.blockSize, (size_t) m.blockSize * sizeof (float));
+
+        // Advance host-tracked state (FR delay continuity lives in frBasePrev,
+        // updated inside computeFrDelaysPerSample).
+        m.writePos = (m.writePos + (uint32_t) m.blockSize) % m.accLen;
+        memcpy (m.delaysPrevSamples.data(), dCurr, matrix * sizeof (float));
+        memcpy (m.gainsPrev.data(), gCurr, matrix * sizeof (float));
+        memcpy (m.frGainsPrev.data(), fgCurr, matrix * sizeof (float));
+
+        lastLaunchMs = std::chrono::duration<double, std::milli> (
+                           std::chrono::steady_clock::now() - t0).count();
+    }
+    return true;
+}
+
+void MetalObBackend::reset() noexcept
+{
+    auto& m = *impl;
+    if (m.bPairAcc != nil)
+        memset (m.bPairAcc.contents, 0, m.bPairAcc.length);
+    if (m.bShelfState != nil)
+        memset (m.bShelfState.contents, 0, m.bShelfState.length);
+    if (m.bFrShelfState != nil)
+        memset (m.bFrShelfState.contents, 0, m.bFrShelfState.length);
+    m.frHost.reset();
+    m.writePos = 0;
+    m.havePrev = false;
+}
+
+void MetalObBackend::release() noexcept
+{
+    auto& m = *impl;
+    @autoreleasepool
+    {
+        m.bParams = m.bIn = m.bFrIn = m.bOut = nil;
+        m.bPairAcc = m.bPairOut = nil;
+        m.bShelfState = m.bFrShelfState = nil;
+        m.bDelaysPrev = m.bDelaysCurr = m.bGainsPrev = m.bGainsCurr = nil;
+        m.bFrDelaySamples = m.bFrGainsPrev = m.bFrGainsCurr = nil;
+        m.bHfAttenDb = m.bFrHfAttenDb = nil;
+        m.psoPairs = nil;
+        m.psoReduce = nil;
+        m.queue = nil;
+        m.device = nil;
+    }
+    m.delaysMs = nullptr;
+    m.gains = nullptr;
+    m.hfAttenDb = nullptr;
+    m.frDelaysMs = nullptr;
+    m.frLevels = nullptr;
+    m.frHfAttenDb = nullptr;
+    m.havePrev = false;
+    ready = false;
+}

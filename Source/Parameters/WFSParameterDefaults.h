@@ -15,8 +15,8 @@ namespace WFSParameterDefaults
     //==========================================================================
 
     constexpr int maxInputChannels     = 64;
-    constexpr int maxOutputChannels    = 64;
-    constexpr int maxReverbChannels    = 16;
+    constexpr int maxOutputChannels    = 128;
+    constexpr int maxReverbChannels    = 32;
     constexpr int maxNetworkTargets    = 6;
     constexpr int maxClusters          = 10;
     constexpr int numEQBands           = 6;
@@ -49,7 +49,7 @@ namespace WFSParameterDefaults
     constexpr int binauralSoloModeDefault           = 0;      // 0=Single, 1=Multi
     constexpr int binauralOutputChannelDefault      = -1;     // -1=disabled
     constexpr int binauralOutputChannelMin          = -1;
-    constexpr int binauralOutputChannelMax          = 62;     // Max is numOutputs-2
+    constexpr int binauralOutputChannelMax          = 126;    // Max is numOutputs-2
 
     constexpr float binauralListenerDistanceDefault = 5.0f;   // meters from origin (0.0 for inward circle + circular stage)
     constexpr float binauralListenerDistanceMin     = 0.0f;
@@ -141,6 +141,14 @@ namespace WFSParameterDefaults
     constexpr float haasEffectDefault       = 0.0f;
     constexpr float haasEffectMin           = 0.0f;
     constexpr float haasEffectMax           = 10.0f;
+
+    // Native GPU async pipeline depth in blocks (added latency = depth x blockSize/sr,
+    // pre-subtracted from WFS delays). Field data (M4 Pro, 2026-06): desktop-compositor
+    // transients stall GPU dispatch by 3-5.3 ms; depth 4 @ 48 kHz/128 = 10.7 ms cushion
+    // (~2x margin). Raw Metal recovers ~7x faster than the SDK prototype measured.
+    constexpr int gpuPipelineDepthDefault   = 4;
+    constexpr int gpuPipelineDepthMin       = 1;
+    constexpr int gpuPipelineDepthMax       = 8;
 
     //==========================================================================
     // Config > UI Section
@@ -408,7 +416,7 @@ namespace WFSParameterDefaults
     constexpr float inputFRhighShelfSlopeMin    = 0.1f;
     constexpr float inputFRhighShelfSlopeMax    = 0.9f;
 
-    constexpr int inputFRdiffusionDefault       = 20;
+    constexpr int inputFRdiffusionDefault       = 40;
     constexpr int inputFRdiffusionMin           = 0;
     constexpr int inputFRdiffusionMax           = 100;
 
@@ -857,6 +865,10 @@ namespace WFSParameterDefaults
     constexpr float reverbIRlengthMax              = 30.0f;   // 30s (actual max is dynamic per file)
 
     constexpr int reverbPerNodeIRDefault           = 0;       // 0=OFF, 1=ON
+
+    constexpr int reverbIRGpuDefault               = 0;       // 0=CPU, 1=GPU convolution backend
+    constexpr int reverbFDNGpuDefault              = 0;       // 0=CPU, 1=GPU FDN backend
+    constexpr int reverbSDNGpuDefault              = 0;       // 0=CPU, 1=GPU SDN backend
 
     constexpr float reverbWetLevelDefault          = 0.0f;    // dB
     constexpr float reverbWetLevelMin              = -60.0f;  // effectively -inf

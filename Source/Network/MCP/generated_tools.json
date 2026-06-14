@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "349db25169b4597e0a78e9cdc890591764efac54a9c662081e0d27e757ed325c",
+  "input_hash": "04fcce4058acc20b5dcbc8c469e6c66248251ca4e8810a6d41fa8e88a069e785",
   "source_csvs": [
     "WFS-UI_config.csv",
     "WFS-UI_input.csv",
@@ -7905,7 +7905,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "value": {
@@ -7943,7 +7943,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "value": {
@@ -7982,7 +7982,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "value": {
@@ -8021,7 +8021,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "value": {
@@ -8058,7 +8058,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "band": {
@@ -8099,7 +8099,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "band": {
@@ -8141,7 +8141,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "band": {
@@ -8183,7 +8183,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "band": {
@@ -8241,7 +8241,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "band": {
@@ -8283,7 +8283,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "value": {
@@ -8320,7 +8320,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "value": {
@@ -8357,7 +8357,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "value": {
@@ -8394,7 +8394,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "value": {
@@ -8431,7 +8431,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "value": {
@@ -8468,7 +8468,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "value": {
@@ -8503,7 +8503,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "value": {
@@ -8538,7 +8538,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "value": {
@@ -8573,7 +8573,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "value": {
@@ -8608,7 +8608,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "value": {
@@ -8643,7 +8643,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "mode": {
@@ -8682,7 +8682,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "value": {
@@ -8717,7 +8717,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "value": {
@@ -8752,7 +8752,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "value": {
@@ -8787,7 +8787,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "value": {
@@ -8833,7 +8833,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "value": {
@@ -8872,7 +8872,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "value": {
@@ -8907,7 +8907,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "name": {
@@ -8940,7 +8940,7 @@
           "output_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 64,
+            "maximum": 128,
             "description": "Output channel number (1-based)."
           },
           "value": {
@@ -8975,7 +8975,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -9013,7 +9013,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -9048,7 +9048,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -9083,7 +9083,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -9118,7 +9118,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -9153,7 +9153,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -9185,7 +9185,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -9220,7 +9220,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -9255,7 +9255,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -9292,7 +9292,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -9327,7 +9327,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -9362,7 +9362,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -9397,7 +9397,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -9432,7 +9432,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -9471,7 +9471,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -9510,7 +9510,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -9545,7 +9545,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -9584,7 +9584,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -9619,7 +9619,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -9654,7 +9654,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -9693,7 +9693,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -9728,7 +9728,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -9765,7 +9765,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -9802,7 +9802,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -9837,7 +9837,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -9872,7 +9872,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -9909,7 +9909,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -9970,7 +9970,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "mode": {
@@ -10009,7 +10009,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -10044,7 +10044,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -10079,7 +10079,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -10114,7 +10114,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -10149,7 +10149,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -10184,7 +10184,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -10219,7 +10219,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -10256,7 +10256,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "band": {
@@ -10297,7 +10297,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "band": {
@@ -10339,7 +10339,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "band": {
@@ -10381,7 +10381,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "band": {
@@ -10437,7 +10437,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "band": {
@@ -10479,7 +10479,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -10514,7 +10514,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -10551,7 +10551,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -10586,7 +10586,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -10621,7 +10621,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -10656,7 +10656,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -10691,7 +10691,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -10728,7 +10728,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -10763,7 +10763,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -10798,7 +10798,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -10833,7 +10833,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -10870,7 +10870,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "band": {
@@ -10911,7 +10911,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "band": {
@@ -10953,7 +10953,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "band": {
@@ -10995,7 +10995,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "band": {
@@ -11051,7 +11051,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "band": {
@@ -11093,7 +11093,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -11132,7 +11132,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "value": {
@@ -11168,7 +11168,7 @@
           "reverb_id": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 16,
+            "maximum": 32,
             "description": "Reverb channel number (1-based)."
           },
           "name": {

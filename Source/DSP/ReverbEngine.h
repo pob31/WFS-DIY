@@ -6,6 +6,11 @@
 #include "ReverbFDNAlgorithm.h"
 #include "ReverbSDNAlgorithm.h"
 #include "ReverbIRAlgorithm.h"
+#if WFS_GPU_NATIVE
+#include "ReverbIRAlgorithmGPU.h"
+#include "ReverbFDNAlgorithmGPU.h"
+#include "ReverbSDNAlgorithmGPU.h"
+#endif
 #include "ReverbDiagnostics.h"
 #include "ReverbPreProcessor.h"
 #include "ReverbPostProcessor.h"
@@ -66,11 +71,17 @@ public:
         currentBlockSize = maxBlockSize;
         numReverbNodes = numNodes;
 
-        // Use 256-sample internal blocks (reverb is not latency-critical)
-        internalBlockSize = juce::jmin (256, maxBlockSize);
+        // Run the reverb at >= 256-sample internal blocks regardless of the
+        // sound-card buffer. The reverb is a wet send and not latency-critical,
+        // so decoupling it from the (small) device block gives the GPU reverb a
+        // full 256-sample budget (5.33 ms @ 48k) even when the card runs at 64 —
+        // the rings below accumulate device blocks into internal blocks. Capped
+        // at 1024 to bound the added wet latency at very large device buffers.
+        internalBlockSize = juce::jlimit (256, 1024, maxBlockSize);
 
-        // Create per-node ring buffers (32x block size to absorb convolution FFT spikes)
-        int ringSize = maxBlockSize * 32;
+        // Per-node ring buffers: 32x the LARGER of the device/internal block, to
+        // absorb convolution FFT spikes and the device<->internal size mismatch.
+        int ringSize = juce::jmax (maxBlockSize, internalBlockSize) * 32;
 
         nodeInputBuffers.clear();
         nodeOutputBuffers.clear();
@@ -84,11 +95,16 @@ public:
             nodeOutputBuffers.back()->setSize (ringSize);
         }
 
-        // Pre-fill output ring buffers with silence to provide initial cushion
-        // and absorb processing spikes without underruns
+        // Pre-fill output ring buffers with silence for an initial cushion that
+        // absorbs engine-thread scheduling jitter. Bounded to ~16 ms (with a
+        // floor of one full internal block) so it never balloons the wet-path
+        // latency or overflows the ring as internalBlockSize grows — the floor
+        // also guards the integer division from flooring to 0 at large blocks.
         {
             std::vector<float> silence (static_cast<size_t> (internalBlockSize), 0.0f);
-            int prefillBlocks = 12;  // ~32ms at 48kHz with 128-sample blocks
+            const int cushionSamples = juce::jmax (internalBlockSize,
+                                                   static_cast<int> (sampleRate * 0.016));
+            const int prefillBlocks = juce::jmax (1, cushionSamples / internalBlockSize);
             for (auto& buf : nodeOutputBuffers)
                 for (int b = 0; b < prefillBlocks; ++b)
                     buf->write (silence.data(), internalBlockSize);
@@ -138,7 +154,7 @@ public:
     {
         if (! isThreadRunning())
             startRealtimeThread (juce::Thread::RealtimeOptions{}
-                                     .withApproximateAudioProcessingTime (currentBlockSize, sampleRate));
+                                     .withApproximateAudioProcessingTime (internalBlockSize, sampleRate));
     }
 
     /**
@@ -242,10 +258,7 @@ public:
         {
             algorithm->prepare (sampleRate, internalBlockSize, numReverbNodes);
             algorithm->setParallelFor (&parallelPool);
-#if REVERB_DIAGNOSTICS
-            if (auto* ir = dynamic_cast<IRAlgorithm*> (algorithm.get()))
-                ir->setDiagnostics (&diagnostics);
-#endif
+            attachIRDiagnostics();
         }
     }
 
@@ -270,6 +283,100 @@ public:
     /** Get the current algorithm type. */
     int getAlgorithmType() const { return currentAlgorithmType; }
 
+    //==========================================================================
+    // Reverb GPU backend selection (per-algorithm GPU/CPU toggle)
+    //==========================================================================
+
+    /** GPU backend status for the active reverb algorithm, for the UI
+        (see getReverbGpuStatus()). Algorithm-agnostic — IR and FDN both
+        report through it (only one algorithm is active at a time). */
+    struct ReverbGpuStatus
+    {
+        enum Mode { Cpu = 0, GpuActive, GpuFallback };
+        Mode mode = Cpu;
+        juce::String device;      // GPU device name when GpuActive
+        juce::String error;       // failure reason when GpuFallback
+        double latencyMs = 0.0;   // wet-path pipeline latency when GpuActive
+    };
+
+    /** Select the IR convolution backend (timer thread, 50 Hz). When the IR
+        algorithm is active, switches via the same fade-to-silence path as an
+        algorithm change; otherwise just records the choice for the next IR
+        instantiation. If the GPU backend can't initialise, the engine falls
+        back to CPU and reports it via getReverbGpuStatus(). */
+    void setIRBackendGpu (bool useGpu)
+    {
+        if (irUseGpu.exchange (useGpu, std::memory_order_acq_rel) == useGpu)
+            return;
+
+        if (currentAlgorithmType == IR)
+        {
+            irBackendChangeRequested.store (true, std::memory_order_release);
+            if (fadeState.load (std::memory_order_acquire) == FadeNone)
+                fadeState.store (FadingOut, std::memory_order_release);
+        }
+    }
+
+    /** Select the FDN backend (timer thread, 50 Hz). Mirrors setIRBackendGpu:
+        when the FDN algorithm is active, switches via the fade-to-silence
+        path; otherwise records the choice for the next FDN instantiation. */
+    void setFDNBackendGpu (bool useGpu)
+    {
+        if (fdnUseGpu.exchange (useGpu, std::memory_order_acq_rel) == useGpu)
+            return;
+
+        if (currentAlgorithmType == FDN)
+        {
+            fdnBackendChangeRequested.store (true, std::memory_order_release);
+            if (fadeState.load (std::memory_order_acquire) == FadeNone)
+                fadeState.store (FadingOut, std::memory_order_release);
+        }
+    }
+
+    /** Select the SDN backend (timer thread, 50 Hz). Mirrors setFDNBackendGpu:
+        when the SDN algorithm is active, switches via the fade-to-silence
+        path; otherwise records the choice for the next SDN instantiation. */
+    void setSDNBackendGpu (bool useGpu)
+    {
+        if (sdnUseGpu.exchange (useGpu, std::memory_order_acq_rel) == useGpu)
+            return;
+
+        if (currentAlgorithmType == SDN)
+        {
+            sdnBackendChangeRequested.store (true, std::memory_order_release);
+            if (fadeState.load (std::memory_order_acquire) == FadeNone)
+                fadeState.store (FadingOut, std::memory_order_release);
+        }
+    }
+
+    /** Current reverb GPU backend status (any thread). */
+    ReverbGpuStatus getReverbGpuStatus() const
+    {
+        juce::SpinLock::ScopedLockType lock (reverbGpuStatusLock);
+        return reverbGpuStatus;
+    }
+
+#if WFS_GPU_NATIVE
+    /** Live pump telemetry for the active GPU reverb (message thread). The
+        reverb runs its OWN async pipeline, independent of the direct-sound
+        pump, so it needs its own readout. Fills underruns (cumulative) + the
+        peak pump ms since the last call (resets it) + the per-block budget ms,
+        and returns true only when a GPU reverb is actually live. */
+    bool getReverbGpuPumpStats (uint32_t& underruns, float& peakPumpMs, float& budgetMs)
+    {
+        juce::SpinLock::ScopedLockType lock (algorithmLock);
+        budgetMs = sampleRate > 0.0 ? (float) (internalBlockSize / sampleRate * 1000.0) : 0.0f;
+        auto* a = algorithm.get();
+        if (auto* s = dynamic_cast<ReverbSDNAlgorithmGPU*> (a))
+        { if (! s->isReady()) return false; underruns = s->getUnderrunCount(); peakPumpMs = s->getAndResetPeakPumpMs(); return true; }
+        if (auto* f = dynamic_cast<ReverbFDNAlgorithmGPU*> (a))
+        { if (! f->isReady()) return false; underruns = f->getUnderrunCount(); peakPumpMs = f->getAndResetPeakPumpMs(); return true; }
+        if (auto* i = dynamic_cast<ReverbIRAlgorithmGPU*> (a))
+        { if (! i->isReady()) return false; underruns = i->getUnderrunCount(); peakPumpMs = i->getAndResetPeakPumpMs(); return true; }
+        return false;
+    }
+#endif
+
     /** Load an IR file via fade-to-silence transition.
         Reads the file outside any lock, stores the buffer as pending,
         and triggers a fade-out. The engine thread picks up the new IR
@@ -291,7 +398,9 @@ public:
         reader->read (&buffer, 0, numSamples, 0, true, false);
         double fileSR = reader->sampleRate;
 
-        // Store pending IR for the engine thread to pick up during fade
+        // Store the IR for the engine thread to pick up during fade. The
+        // buffer is RETAINED (copied at use, not moved) so a later backend
+        // switch can rebuild a fresh algorithm without a UI re-push.
         {
             std::lock_guard<std::mutex> lock (pendingIRMutex);
             pendingIRBuffer = std::move (buffer);
@@ -305,11 +414,17 @@ public:
             fadeState.store (FadingOut, std::memory_order_release);
     }
 
-    /** Set IR parameters (trim, length). Only effective for IR algorithm. */
+    /** Set IR parameters (trim, length). Only effective for IR algorithm.
+        Values are retained so rebuilt instances (backend switches) get them
+        re-applied without a UI re-push. */
     void setIRParameters (float trimMs, float lengthSec)
     {
+        lastIRTrimMs.store (trimMs, std::memory_order_relaxed);
+        lastIRLengthSec.store (lengthSec, std::memory_order_relaxed);
+        haveIRParams.store (true, std::memory_order_release);
+
         juce::SpinLock::ScopedLockType lock (algorithmLock);
-        if (auto* ir = dynamic_cast<IRAlgorithm*> (algorithm.get()))
+        if (auto* ir = dynamic_cast<ReverbIRAlgorithmBase*> (algorithm.get()))
             ir->setIRParameters (trimMs, lengthSec);
     }
 
@@ -365,7 +480,7 @@ public:
             prepareToPlay (sampleRate, currentBlockSize, numNodes);
             if (wasRunning)
                 startRealtimeThread (juce::Thread::RealtimeOptions{}
-                                         .withApproximateAudioProcessingTime (currentBlockSize, sampleRate));
+                                         .withApproximateAudioProcessingTime (internalBlockSize, sampleRate));
         }
     }
 
@@ -661,75 +776,22 @@ private:
                 int newType = pendingAlgorithmType.load (std::memory_order_acquire);
                 bool algoChange = (newType != currentAlgorithmType && newType >= 0);
                 bool irChange = irChangeRequested.load (std::memory_order_acquire);
+                const int effectiveType = algoChange ? newType : currentAlgorithmType;
+                bool backendChange =
+                    (irBackendChangeRequested.load (std::memory_order_acquire) && effectiveType == IR)
+                    || (fdnBackendChangeRequested.load (std::memory_order_acquire) && effectiveType == FDN)
+                    || (sdnBackendChangeRequested.load (std::memory_order_acquire) && effectiveType == SDN);
 
                 if (algoChange)
-                {
-                    // Algorithm type change takes priority
                     currentAlgorithmType = newType;
 
-                    std::unique_ptr<ReverbAlgorithm> newAlgo;
-                    switch (newType)
-                    {
-                        case SDN: newAlgo = std::make_unique<SDNAlgorithm>(); break;
-                        case FDN: newAlgo = std::make_unique<FDNAlgorithm>(); break;
-                        case IR:  newAlgo = std::make_unique<IRAlgorithm>();  break;
-                        default:  newAlgo = std::make_unique<FDNAlgorithm>(); break;
-                    }
-
-                    {
-                        juce::SpinLock::ScopedLockType lock (algorithmLock);
-                        algorithm = std::move (newAlgo);
-                        if (algorithm && sampleRate > 0)
-                        {
-                            algorithm->prepare (sampleRate, internalBlockSize, numReverbNodes);
-                            algorithm->setParallelFor (&parallelPool);
-                            algorithm->setParameters (currentParams);
-                            algorithm->updateGeometry (currentGeometry);
-#if REVERB_DIAGNOSTICS
-                            if (auto* ir = dynamic_cast<IRAlgorithm*> (algorithm.get()))
-                                ir->setDiagnostics (&diagnostics);
-#endif
-                        }
-                    }
-
-                    // Clear orphaned IR request — timer will re-push for the new algorithm
-                    irChangeRequested.store (false, std::memory_order_release);
-                }
-                else if (irChange)
+                if (algoChange || irChange || backendChange)
                 {
-                    // IR file change: create a brand new IRAlgorithm — same
-                    // code path as the algorithm-type switch which always works.
-                    juce::AudioBuffer<float> buf;
-                    juce::File file;
-                    double fileSR;
-                    {
-                        std::lock_guard<std::mutex> lock (pendingIRMutex);
-                        buf = std::move (pendingIRBuffer);
-                        file = pendingIRFile;
-                        fileSR = pendingIRSampleRate;
-                    }
                     irChangeRequested.store (false, std::memory_order_release);
-
-                    auto newAlgo = std::make_unique<IRAlgorithm>();
-
-                    {
-                        juce::SpinLock::ScopedLockType lock (algorithmLock);
-                        algorithm = std::move (newAlgo);
-                        if (algorithm && sampleRate > 0)
-                        {
-                            algorithm->prepare (sampleRate, internalBlockSize, numReverbNodes);
-                            algorithm->setParallelFor (&parallelPool);
-                            algorithm->setParameters (currentParams);
-                            algorithm->updateGeometry (currentGeometry);
-                        }
-                        if (auto* ir = dynamic_cast<IRAlgorithm*> (algorithm.get()))
-                        {
-#if REVERB_DIAGNOSTICS
-                            ir->setDiagnostics (&diagnostics);
-#endif
-                            ir->loadIRFromBuffer (file, std::move (buf), fileSR);
-                        }
-                    }
+                    irBackendChangeRequested.store (false, std::memory_order_release);
+                    fdnBackendChangeRequested.store (false, std::memory_order_release);
+                    sdnBackendChangeRequested.store (false, std::memory_order_release);
+                    installAlgorithm (currentAlgorithmType);
                 }
 
                 fadeGain = 0.0f;
@@ -761,13 +823,192 @@ private:
             {
                 fadeGain = 1.0f;
 
-                // If an IR change arrived while we were fading, re-trigger
-                if (irChangeRequested.load (std::memory_order_acquire))
+                // If an IR or backend change arrived while we were fading, re-trigger
+                if (irChangeRequested.load (std::memory_order_acquire)
+                    || irBackendChangeRequested.load (std::memory_order_acquire)
+                    || fdnBackendChangeRequested.load (std::memory_order_acquire)
+                    || sdnBackendChangeRequested.load (std::memory_order_acquire))
                     fadeState.store (FadingOut, std::memory_order_release);
                 else
                     fadeState.store (FadeNone, std::memory_order_release);
             }
         }
+    }
+
+    //==========================================================================
+    // Algorithm construction (engine thread, during fade silence)
+    //==========================================================================
+
+    /** Creates the IR algorithm honouring the GPU/CPU backend choice.
+        The GPU instance is prepared here (outside the algorithm lock — the
+        kernel compile takes ~10 ms) so readiness can be tested; if it fails,
+        falls back to the CPU implementation and records the reason. */
+    std::unique_ptr<ReverbAlgorithm> createIRAlgorithm()
+    {
+#if WFS_GPU_NATIVE
+        if (irUseGpu.load (std::memory_order_acquire))
+        {
+            auto gpu = std::make_unique<ReverbIRAlgorithmGPU>();
+            if (sampleRate > 0)
+                gpu->prepare (sampleRate, internalBlockSize, numReverbNodes);
+
+            if (gpu->isReady())
+            {
+                setReverbGpuStatusInternal ({ ReverbGpuStatus::GpuActive, gpu->getDeviceName(),
+                                              {}, gpu->getPipelineLatencyMs() });
+                return gpu;
+            }
+
+            setReverbGpuStatusInternal ({ ReverbGpuStatus::GpuFallback, {},
+                                          gpu->getLastError(), 0.0 });
+            juce::Logger::writeToLog ("GPU IR reverb unavailable, using CPU: "
+                                      + gpu->getLastError());
+        }
+        else
+        {
+            setReverbGpuStatusInternal ({ ReverbGpuStatus::Cpu, {}, {}, 0.0 });
+        }
+#endif
+        return std::make_unique<IRAlgorithm>();
+    }
+
+    /** Creates the FDN algorithm honouring the GPU/CPU backend choice. Mirrors
+        createIRAlgorithm(): prepares the GPU instance to test readiness, falls
+        back to the CPU FDNAlgorithm if it fails, and records the status. */
+    std::unique_ptr<ReverbAlgorithm> createFDNAlgorithm()
+    {
+#if WFS_GPU_NATIVE
+        if (fdnUseGpu.load (std::memory_order_acquire))
+        {
+            auto gpu = std::make_unique<ReverbFDNAlgorithmGPU>();
+            if (sampleRate > 0)
+                // prepare() with the GPU instance's DEFAULT fdnSize (1.0), exactly
+                // like the CPU FDNAlgorithm whose prepare() runs before its own
+                // setParameters — so the delay lengths match for A/B parity. The
+                // generic install path below pushes the live params (coeffs only).
+                gpu->prepare (sampleRate, internalBlockSize, numReverbNodes);
+
+            if (gpu->isReady())
+            {
+                setReverbGpuStatusInternal ({ ReverbGpuStatus::GpuActive, gpu->getDeviceName(),
+                                              {}, gpu->getPipelineLatencyMs() });
+                return gpu;
+            }
+
+            setReverbGpuStatusInternal ({ ReverbGpuStatus::GpuFallback, {},
+                                          gpu->getLastError(), 0.0 });
+            juce::Logger::writeToLog ("GPU FDN reverb unavailable, using CPU: "
+                                      + gpu->getLastError());
+        }
+        else
+        {
+            setReverbGpuStatusInternal ({ ReverbGpuStatus::Cpu, {}, {}, 0.0 });
+        }
+#endif
+        return std::make_unique<FDNAlgorithm>();
+    }
+
+    /** Creates the SDN algorithm honouring the GPU/CPU backend choice. Mirrors
+        createFDNAlgorithm(): prepares the GPU instance to test readiness, falls
+        back to the CPU SDNAlgorithm if it fails, and records the status. The
+        live geometry/params are pushed by the generic install path below. */
+    std::unique_ptr<ReverbAlgorithm> createSDNAlgorithm()
+    {
+#if WFS_GPU_NATIVE
+        if (sdnUseGpu.load (std::memory_order_acquire))
+        {
+            auto gpu = std::make_unique<ReverbSDNAlgorithmGPU>();
+            if (sampleRate > 0)
+                gpu->prepare (sampleRate, internalBlockSize, numReverbNodes);
+
+            if (gpu->isReady())
+            {
+                setReverbGpuStatusInternal ({ ReverbGpuStatus::GpuActive, gpu->getDeviceName(),
+                                              {}, gpu->getPipelineLatencyMs() });
+                return gpu;
+            }
+
+            setReverbGpuStatusInternal ({ ReverbGpuStatus::GpuFallback, {},
+                                          gpu->getLastError(), 0.0 });
+            juce::Logger::writeToLog ("GPU SDN reverb unavailable, using CPU: "
+                                      + gpu->getLastError());
+        }
+        else
+        {
+            setReverbGpuStatusInternal ({ ReverbGpuStatus::Cpu, {}, {}, 0.0 });
+        }
+#endif
+        return std::make_unique<SDNAlgorithm>();
+    }
+
+    /** Creates, prepares and installs the algorithm for `type`, re-applying
+        parameters, geometry and — for IR — the retained IR file/trim/length,
+        so rebuilt instances need no UI re-push. Runs at fade silence. */
+    void installAlgorithm (int type)
+    {
+        std::unique_ptr<ReverbAlgorithm> newAlgo;
+        switch (type)
+        {
+            case SDN: newAlgo = createSDNAlgorithm();             break;
+            case IR:  newAlgo = createIRAlgorithm();              break;
+            case FDN: newAlgo = createFDNAlgorithm();             break;
+            default:  newAlgo = std::make_unique<FDNAlgorithm>(); break;
+        }
+
+        // Arm the instance before it becomes visible to other threads (the
+        // GPU instance's prepare() no-ops here — already done in the factory).
+        if (sampleRate > 0)
+        {
+            newAlgo->prepare (sampleRate, internalBlockSize, numReverbNodes);
+            newAlgo->setParallelFor (&parallelPool);
+            newAlgo->setParameters (currentParams);
+            newAlgo->updateGeometry (currentGeometry);
+        }
+
+        if (auto* ir = dynamic_cast<ReverbIRAlgorithmBase*> (newAlgo.get()))
+        {
+            if (haveIRParams.load (std::memory_order_acquire))
+                ir->setIRParameters (lastIRTrimMs.load (std::memory_order_relaxed),
+                                     lastIRLengthSec.load (std::memory_order_relaxed));
+
+            // Reload the retained IR (copy — the original stays retained for
+            // the next rebuild).
+            juce::AudioBuffer<float> buf;
+            juce::File file;
+            double fileSR = 0.0;
+            {
+                std::lock_guard<std::mutex> lock (pendingIRMutex);
+                buf = pendingIRBuffer;
+                file = pendingIRFile;
+                fileSR = pendingIRSampleRate;
+            }
+            if (buf.getNumSamples() > 0)
+                ir->loadIRFromBuffer (file, std::move (buf), fileSR);
+        }
+
+        {
+            juce::SpinLock::ScopedLockType lock (algorithmLock);
+            algorithm = std::move (newAlgo);
+            attachIRDiagnostics();
+        }
+    }
+
+    void attachIRDiagnostics()
+    {
+#if REVERB_DIAGNOSTICS
+        if (auto* ir = dynamic_cast<IRAlgorithm*> (algorithm.get()))
+            ir->setDiagnostics (&diagnostics);
+#if WFS_GPU_NATIVE
+        else if (auto* irGpu = dynamic_cast<ReverbIRAlgorithmGPU*> (algorithm.get()))
+            irGpu->setDiagnostics (&diagnostics);
+#endif
+#endif
+    }
+
+    void setReverbGpuStatusInternal (const ReverbGpuStatus& s)
+    {
+        juce::SpinLock::ScopedLockType lock (reverbGpuStatusLock);
+        reverbGpuStatus = s;
     }
 
     //==========================================================================
@@ -831,12 +1072,28 @@ private:
     float fadeSamples = 2400.0f;  // ~50ms at 48kHz
     std::atomic<int> pendingAlgorithmType { -1 };
 
-    // Pending IR change (fade-to-silence transition)
+    // Pending/retained IR change (fade-to-silence transition). The buffer is
+    // retained after use so backend switches can rebuild without a UI re-push.
     std::mutex pendingIRMutex;
     juce::AudioBuffer<float> pendingIRBuffer;
     juce::File pendingIRFile;
     double pendingIRSampleRate = 0.0;
     std::atomic<bool> irChangeRequested { false };
+
+    // Retained IR trim/length (re-applied to rebuilt IR instances)
+    std::atomic<float> lastIRTrimMs { 0.0f };
+    std::atomic<float> lastIRLengthSec { 6.0f };
+    std::atomic<bool> haveIRParams { false };
+
+    // Per-algorithm GPU backend selection (toggles) + shared status for the UI
+    std::atomic<bool> irUseGpu { false };
+    std::atomic<bool> irBackendChangeRequested { false };
+    std::atomic<bool> fdnUseGpu { false };
+    std::atomic<bool> fdnBackendChangeRequested { false };
+    std::atomic<bool> sdnUseGpu { false };
+    std::atomic<bool> sdnBackendChangeRequested { false };
+    ReverbGpuStatus reverbGpuStatus;
+    mutable juce::SpinLock reverbGpuStatusLock;
 
     // Always-on dropout counter (lightweight, for UI warning)
     std::atomic<uint64_t> dropoutCount { 0 };

@@ -294,6 +294,7 @@ private:
         if (paramName == "ReverbChannels") return WFSParameterIDs::reverbChannels;
         if (paramName == "ProcessingEnabled") return WFSParameterIDs::runDSP;
         if (paramName == "ProcessingAlgorithm") return WFSParameterIDs::algorithmDSP;
+        if (paramName == "GpuPipelineDepth") return WFSParameterIDs::gpuPipelineDepth;
 
         // Stage section
         if (paramName == "StageShape") return WFSParameterIDs::stageShape;
@@ -361,7 +362,8 @@ private:
         else if (paramName.startsWith ("Stage") || paramName.startsWith ("Origin") ||
                  paramName == "DomeElevation" || paramName == "SpeedOfSound" || paramName == "Temperature")
             targetSection = config.getChildWithName (WFSParameterIDs::Stage);
-        else if (paramName.startsWith ("Master") || paramName == "SystemLatency" || paramName == "HaasEffect")
+        else if (paramName.startsWith ("Master") || paramName == "SystemLatency" || paramName == "HaasEffect"
+                 || paramName == "GpuPipelineDepth")
             targetSection = config.getChildWithName (WFSParameterIDs::Master);
         else if (paramName.startsWith ("Network") || paramName.startsWith ("Current") ||
                  paramName.contains ("Port") || paramName.contains ("Udp") || paramName.contains ("Tcp"))

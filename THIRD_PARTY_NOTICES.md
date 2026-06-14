@@ -117,14 +117,6 @@ Boost Software License 1.0.
 
 ---
 
-## GPU Audio SDK
-
-- **Website**: https://github.com/gpuaudio
-- **License**: TBD
-- **Status**: Not yet integrated. License terms will be added when the SDK is included.
-
----
-
 # Standards & Protocols
 
 ## OSCQuery

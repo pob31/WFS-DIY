@@ -75,3 +75,30 @@ public:
         FDN and IR override this; SDN ignores it (inter-node coupling). */
     virtual void setParallelFor (AudioParallelFor*) {}
 };
+
+//==============================================================================
+/**
+    Common interface for IR-convolution algorithm implementations.
+
+    The engine talks to the active IR algorithm (CPU IRAlgorithm or the native
+    GPU ReverbIRAlgorithmGPU) through this base so backend selection is a pure
+    construction-time choice — no per-implementation casts in ReverbEngine.
+*/
+class ReverbIRAlgorithmBase : public ReverbAlgorithm
+{
+public:
+    /** Load an IR from a pre-read buffer (the caller does the file I/O). */
+    virtual void loadIRFromBuffer (const juce::File& file,
+                                   juce::AudioBuffer<float>&& buf,
+                                   double fileSampleRate) = 0;
+
+    /** Apply trim (ms from start) and max length (seconds, <=0 = full file)
+        to the cached IR — no file I/O. */
+    virtual void setIRParameters (float trimMs, float lengthSec) = 0;
+
+    /** The currently loaded IR file. */
+    virtual const juce::File& getCurrentIRFile() const = 0;
+
+    /** Duration of the currently loaded IR file in seconds. */
+    virtual float getIRFileDuration() const = 0;
+};
