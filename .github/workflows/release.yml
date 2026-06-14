@@ -2,8 +2,8 @@ name: Release
 
 # Build distributable packages for each desktop OS and attach them to the GitHub
 # Release. Runs when a Release is published, or on manual dispatch against an
-# existing tag. macOS is signed + notarized + stapled; Windows/Linux ship as
-# archives (Windows is intentionally unsigned — no code-signing cert).
+# existing tag. macOS is signed + notarized + stapled; Windows ships an unsigned
+# Inno Setup installer and Linux a tar.gz (no Windows code-signing cert).
 
 on:
   release:
@@ -77,7 +77,7 @@ jobs:
             dist/WFS-DIY-v*-macos.dmg.sha256
 
   windows:
-    name: Windows zip (unsigned)
+    name: Windows installer (unsigned)
     needs: verify-version
     # Pinned to windows-2022 (VS2022 / v143). GitHub is repointing windows-latest
     # to the VS2026 image; pin so the toolchain stays put and migrate deliberately.
@@ -98,40 +98,35 @@ jobs:
       - uses: microsoft/setup-msbuild@v3
       - name: Build (Release x64)
         run: msbuild Builds\VisualStudio2022\WFS-DIY.sln -p:Configuration=Release -p:Platform=x64 -m
-      - name: Package
+      - name: Build installer (Inno Setup)
         shell: pwsh
         run: |
-          # Ship the standalone exe plus the CUDA runtime DLLs it loads at run
-          # time (NVRTC + cudart, staged next to the exe by the build's postbuild
-          # step). The driver API (nvcuda.dll) ships with the NVIDIA driver and is
-          # NOT redistributed. NOT the whole App output folder, which also
-          # contains the multi-hundred-MB WFS-DIY.pdb debug-symbols file.
-          $exe = Get-ChildItem -Recurse -File -Filter "WFS-DIY.exe" `
-            -Path "Builds\VisualStudio2022\x64\Release" | Select-Object -First 1
-          if (-not $exe) { throw "Release WFS-DIY.exe not found" }
-          $appDir = $exe.Directory.FullName
-          $dlls = foreach ($p in @("cudart64_*.dll", "nvrtc64_*.dll", "nvrtc-builtins64_*.dll")) {
-            # Exclude the ~85 MB forward-compat NVRTC twin (nvrtc64_*.alt.dll): the app
-            # only loads the main nvrtc64. The build's postbuild already drops it, but
-            # filter here too so the zip is correct regardless of the build output.
-            Get-ChildItem -File -Path (Join-Path $appDir $p) -ErrorAction SilentlyContinue |
-              Where-Object { $_.Name -notlike "*.alt.dll" }
-          }
-          if (-not $dlls) { throw "CUDA runtime DLLs not found next to the exe (postbuild copy failed?)" }
-          $files = @($exe.FullName) + ($dlls | ForEach-Object FullName)
-          # RELEASE_TAG already starts with 'v' — don't prefix another one.
-          $zip = "dist\WFS-DIY-${{ env.RELEASE_TAG }}-windows-x64.zip"
+          # Compile the Inno Setup installer. It bundles the Release exe, the CUDA
+          # runtime DLLs staged next to it (cudart + main nvrtc64, excluding the
+          # ~85 MB .alt twin), the language files (Resources/lang/*.json), the app
+          # icon, LICENSE / README / third-party notices, and the .wfs file
+          # association. The driver API (nvcuda.dll) ships with the NVIDIA driver
+          # and is NOT redistributed. Pass the release version so the installer's
+          # AppVersion + filename match the tag.
+          $ver  = "${{ env.RELEASE_TAG }}" -replace '^v',''
+          $base = "WFS-DIY-${{ env.RELEASE_TAG }}-windows-x64-Setup"
           New-Item -ItemType Directory -Force dist | Out-Null
-          Compress-Archive -Path $files -DestinationPath $zip -Force
-          (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower() | Out-File "$zip.sha256" -NoNewline
-      - name: Attach zip to release
+          choco install innosetup -y --no-progress
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe not found at $iscc" }
+          & $iscc "/DMyAppVersion=$ver" "/Odist" "/F$base" "Installer\WFS-DIY-Installer.iss"
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup compile failed ($LASTEXITCODE)" }
+          $exe = "dist\$base.exe"
+          if (-not (Test-Path $exe)) { throw "Installer not produced: $exe" }
+          (Get-FileHash $exe -Algorithm SHA256).Hash.ToLower() | Out-File "$exe.sha256" -NoNewline
+      - name: Attach installer to release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           fail_on_unmatched_files: true
           files: |
-            dist/WFS-DIY-*-windows-x64.zip
-            dist/WFS-DIY-*-windows-x64.zip.sha256
+            dist/WFS-DIY-*-windows-x64-Setup.exe
+            dist/WFS-DIY-*-windows-x64-Setup.exe.sha256
 
   linux:
     name: Linux tar.gz

@@ -2,7 +2,11 @@
 ; Requires Inno Setup 6.x (https://jrsoftware.org/isinfo.php)
 
 #define MyAppName "WFS-DIY"
-#define MyAppVersion "1.0.0"
+; Version: overridable from the command line (CI passes /DMyAppVersion=<tag>
+; so the installer matches the release). Default is for local manual builds.
+#ifndef MyAppVersion
+#define MyAppVersion "1.0.0beta24"
+#endif
 #define MyAppPublisher "Pix et Bel"
 #define MyAppURL "https://wfs-diy.net"
 #define MyAppExeName "WFS-DIY.exe"
