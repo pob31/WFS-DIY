@@ -152,6 +152,15 @@ public:
     float getOutputPeakLevelDb (size_t i) const noexcept { return meters.getOutputPeakLevelDb (i); }
     float getOutputRmsLevelDb  (size_t i) const noexcept { return meters.getOutputRmsLevelDb (i); }
 
+    // === Live Source Tamer (per-input compression GR; applied via WFS level matrix) ===
+    void  setLSParameters (size_t i, bool active, float peakThresh, float peakRatio,
+                           float slowThresh, float slowRatio) noexcept
+    {
+        meters.setLSParameters (i, active, peakThresh, peakRatio, slowThresh, slowRatio);
+    }
+    float getPeakGainReduction (size_t i) const noexcept { return meters.getPeakGainReduction (i); }
+    float getSlowGainReduction (size_t i) const noexcept { return meters.getSlowGainReduction (i); }
+
     // === Floor Reflection parameter setters (50 Hz timer thread) ===
     // Same signatures as InputBufferAlgorithm; forwarded to the backend's
     // host-side FR state (atomics; safe before prepare - bounds-checked).

@@ -5495,25 +5495,38 @@ void MainComponent::timerCallback()
                 float slowThresh = lsSection.getProperty(inputLSslowThreshold, -20.0f);
                 float slowRatio = lsSection.getProperty(inputLSslowRatio, 2.0f);
 
-                // Pass parameters to detector based on current algorithm.
-                // NOTE: the Live Source Tamer runs on the CPU algorithms only. The
-                // native GPU paths expose no LS API (the GPU backend can't apply a
-                // per-input compression gain), so in GPU modes this falls through to
-                // the inactive CPU outputAlgorithm and is effectively a no-op. Wiring
-                // LS-Tamer into the GPU backend is a separate feature.
-                if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
+                // Push LS parameters to / read GR from whichever algorithm is
+                // active. The native GPU paths compute GR host-side too; the
+                // resulting attenuation is applied via the WFS level matrix (shared
+                // by CPU and GPU), so no audio is gained here — we only supply GR.
+                switch (currentAlgorithm)
                 {
-                    inputAlgorithm.setLSParameters(static_cast<size_t>(i),
-                        peakThresh, peakRatio, slowThresh, slowRatio);
-                    peakGRs[i] = inputAlgorithm.getPeakGainReduction(static_cast<size_t>(i));
-                    slowGRs[i] = inputAlgorithm.getSlowGainReduction(static_cast<size_t>(i));
-                }
-                else  // OutputBuffer or (GPU → no-op) algorithm
-                {
-                    outputAlgorithm.setLSParameters(static_cast<size_t>(i),
-                        peakThresh, peakRatio, slowThresh, slowRatio);
-                    peakGRs[i] = outputAlgorithm.getPeakGainReduction(static_cast<size_t>(i));
-                    slowGRs[i] = outputAlgorithm.getSlowGainReduction(static_cast<size_t>(i));
+                    case ProcessingAlgorithm::InputBuffer:
+                        inputAlgorithm.setLSParameters(static_cast<size_t>(i),
+                            peakThresh, peakRatio, slowThresh, slowRatio);
+                        peakGRs[i] = inputAlgorithm.getPeakGainReduction(static_cast<size_t>(i));
+                        slowGRs[i] = inputAlgorithm.getSlowGainReduction(static_cast<size_t>(i));
+                        break;
+                    case ProcessingAlgorithm::OutputBuffer:
+                        outputAlgorithm.setLSParameters(static_cast<size_t>(i),
+                            peakThresh, peakRatio, slowThresh, slowRatio);
+                        peakGRs[i] = outputAlgorithm.getPeakGainReduction(static_cast<size_t>(i));
+                        slowGRs[i] = outputAlgorithm.getSlowGainReduction(static_cast<size_t>(i));
+                        break;
+#if WFS_GPU_NATIVE
+                    case ProcessingAlgorithm::NativeGpuWfs:
+                        nativeGpuAlgorithm.setLSParameters(static_cast<size_t>(i), lsActive,
+                            peakThresh, peakRatio, slowThresh, slowRatio);
+                        peakGRs[i] = nativeGpuAlgorithm.getPeakGainReduction(static_cast<size_t>(i));
+                        slowGRs[i] = nativeGpuAlgorithm.getSlowGainReduction(static_cast<size_t>(i));
+                        break;
+                    case ProcessingAlgorithm::NativeGpuOutputBuffer:
+                        nativeGpuOutputAlgorithm.setLSParameters(static_cast<size_t>(i), lsActive,
+                            peakThresh, peakRatio, slowThresh, slowRatio);
+                        peakGRs[i] = nativeGpuOutputAlgorithm.getPeakGainReduction(static_cast<size_t>(i));
+                        slowGRs[i] = nativeGpuOutputAlgorithm.getSlowGainReduction(static_cast<size_t>(i));
+                        break;
+#endif
                 }
             }
 
