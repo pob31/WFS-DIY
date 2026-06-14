@@ -5172,6 +5172,25 @@ void MainComponent::timerCallback()
         {
             gpuUnderrunsLogged = u; // pipeline was re-prepared; counter re-baselined
         }
+
+        // Reverb GPU pump runs its OWN pipeline (separate from the direct sound).
+        // Log once/sec while a GPU reverb is live AND it's either underrunning or
+        // its peak launch is creeping toward the per-block budget (> 60%); stays
+        // quiet when comfortably under budget.
+        uint32_t ru = 0;
+        float rPeak = 0.0f, rBudget = 0.0f;
+        if (reverbEngine != nullptr && reverbEngine->getReverbGpuPumpStats (ru, rPeak, rBudget))
+        {
+            const bool moreUnderruns = ru > reverbGpuUnderrunsLogged;
+            if (moreUnderruns || (rBudget > 0.0f && rPeak > 0.6f * rBudget))
+            {
+                WFSLogger::getInstance().logInfo ("Reverb GPU pump: peak "
+                    + juce::String (rPeak, 2) + " / " + juce::String (rBudget, 2)
+                    + " ms budget, underruns +" + juce::String (moreUnderruns ? ru - reverbGpuUnderrunsLogged : 0)
+                    + " (total " + juce::String (ru) + ")");
+            }
+            reverbGpuUnderrunsLogged = ru; // track total (also re-baselines on re-prepare)
+        }
     }
 #endif
     // Check once whether the window is visible — skip all repaints and

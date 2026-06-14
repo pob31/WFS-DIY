@@ -128,6 +128,7 @@ public:
     juce::String getDeviceName() const { return juce::String (backend.getDeviceName()); }
     double getPipelineLatencyMs() const noexcept { return pipeline.getLatencyMs(); }
     uint32_t getUnderrunCount() const noexcept { return pipeline.getUnderrunCount(); }
+    float getAndResetPeakPumpMs() noexcept { return pipeline.getAndResetPeakPumpMs(); }
     bool hasPumpFailed() const noexcept { return pipeline.hasPumpFailed(); }
 
 #if REVERB_DIAGNOSTICS

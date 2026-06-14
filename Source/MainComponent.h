@@ -235,6 +235,7 @@ private:
     NativeGpuOutputBufferAlgorithm nativeGpuOutputAlgorithm;
     int gpuPipelineStatTick = 0;          // 5 ms timer ticks -> 1 s underrun-stat cadence
     uint32_t gpuUnderrunsLogged = 0;      // last pipeline underrun total surfaced in the log
+    uint32_t reverbGpuUnderrunsLogged = 0; // last reverb-pump underrun total surfaced in the log
 #endif
     bool audioCallbacksAttached = false;
     bool processingEnabled = false;

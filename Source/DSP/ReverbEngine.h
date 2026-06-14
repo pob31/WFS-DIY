@@ -71,11 +71,17 @@ public:
         currentBlockSize = maxBlockSize;
         numReverbNodes = numNodes;
 
-        // Use 256-sample internal blocks (reverb is not latency-critical)
-        internalBlockSize = juce::jmin (256, maxBlockSize);
+        // Run the reverb at >= 256-sample internal blocks regardless of the
+        // sound-card buffer. The reverb is a wet send and not latency-critical,
+        // so decoupling it from the (small) device block gives the GPU reverb a
+        // full 256-sample budget (5.33 ms @ 48k) even when the card runs at 64 —
+        // the rings below accumulate device blocks into internal blocks. Capped
+        // at 1024 to bound the added wet latency at very large device buffers.
+        internalBlockSize = juce::jlimit (256, 1024, maxBlockSize);
 
-        // Create per-node ring buffers (32x block size to absorb convolution FFT spikes)
-        int ringSize = maxBlockSize * 32;
+        // Per-node ring buffers: 32x the LARGER of the device/internal block, to
+        // absorb convolution FFT spikes and the device<->internal size mismatch.
+        int ringSize = juce::jmax (maxBlockSize, internalBlockSize) * 32;
 
         nodeInputBuffers.clear();
         nodeOutputBuffers.clear();
@@ -89,11 +95,16 @@ public:
             nodeOutputBuffers.back()->setSize (ringSize);
         }
 
-        // Pre-fill output ring buffers with silence to provide initial cushion
-        // and absorb processing spikes without underruns
+        // Pre-fill output ring buffers with silence for an initial cushion that
+        // absorbs engine-thread scheduling jitter. Bounded to ~16 ms (with a
+        // floor of one full internal block) so it never balloons the wet-path
+        // latency or overflows the ring as internalBlockSize grows — the floor
+        // also guards the integer division from flooring to 0 at large blocks.
         {
             std::vector<float> silence (static_cast<size_t> (internalBlockSize), 0.0f);
-            int prefillBlocks = 12;  // ~32ms at 48kHz with 128-sample blocks
+            const int cushionSamples = juce::jmax (internalBlockSize,
+                                                   static_cast<int> (sampleRate * 0.016));
+            const int prefillBlocks = juce::jmax (1, cushionSamples / internalBlockSize);
             for (auto& buf : nodeOutputBuffers)
                 for (int b = 0; b < prefillBlocks; ++b)
                     buf->write (silence.data(), internalBlockSize);
@@ -143,7 +154,7 @@ public:
     {
         if (! isThreadRunning())
             startRealtimeThread (juce::Thread::RealtimeOptions{}
-                                     .withApproximateAudioProcessingTime (currentBlockSize, sampleRate));
+                                     .withApproximateAudioProcessingTime (internalBlockSize, sampleRate));
     }
 
     /**
@@ -345,6 +356,27 @@ public:
         return reverbGpuStatus;
     }
 
+#if WFS_GPU_NATIVE
+    /** Live pump telemetry for the active GPU reverb (message thread). The
+        reverb runs its OWN async pipeline, independent of the direct-sound
+        pump, so it needs its own readout. Fills underruns (cumulative) + the
+        peak pump ms since the last call (resets it) + the per-block budget ms,
+        and returns true only when a GPU reverb is actually live. */
+    bool getReverbGpuPumpStats (uint32_t& underruns, float& peakPumpMs, float& budgetMs)
+    {
+        juce::SpinLock::ScopedLockType lock (algorithmLock);
+        budgetMs = sampleRate > 0.0 ? (float) (internalBlockSize / sampleRate * 1000.0) : 0.0f;
+        auto* a = algorithm.get();
+        if (auto* s = dynamic_cast<ReverbSDNAlgorithmGPU*> (a))
+        { if (! s->isReady()) return false; underruns = s->getUnderrunCount(); peakPumpMs = s->getAndResetPeakPumpMs(); return true; }
+        if (auto* f = dynamic_cast<ReverbFDNAlgorithmGPU*> (a))
+        { if (! f->isReady()) return false; underruns = f->getUnderrunCount(); peakPumpMs = f->getAndResetPeakPumpMs(); return true; }
+        if (auto* i = dynamic_cast<ReverbIRAlgorithmGPU*> (a))
+        { if (! i->isReady()) return false; underruns = i->getUnderrunCount(); peakPumpMs = i->getAndResetPeakPumpMs(); return true; }
+        return false;
+    }
+#endif
+
     /** Load an IR file via fade-to-silence transition.
         Reads the file outside any lock, stores the buffer as pending,
         and triggers a fade-out. The engine thread picks up the new IR
@@ -448,7 +480,7 @@ public:
             prepareToPlay (sampleRate, currentBlockSize, numNodes);
             if (wasRunning)
                 startRealtimeThread (juce::Thread::RealtimeOptions{}
-                                         .withApproximateAudioProcessingTime (currentBlockSize, sampleRate));
+                                         .withApproximateAudioProcessingTime (internalBlockSize, sampleRate));
         }
     }
 
