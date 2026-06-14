@@ -367,6 +367,8 @@
               file="Source/DSP/gpu/GpuBackendInterface.h"/>
         <FILE id="ngpuDevMgr" name="GpuDeviceManager.h" compile="0" resource="0"
               file="Source/DSP/gpu/GpuDeviceManager.h"/>
+        <FILE id="ngpuDynLib" name="PlatformDynLib.h" compile="0" resource="0"
+              file="Source/DSP/gpu/PlatformDynLib.h"/>
         <FILE id="ngpuFactory" name="GpuBackendFactory.h" compile="0" resource="0"
               file="Source/DSP/gpu/GpuBackendFactory.h"/>
         <FILE id="ngpuPlugin" name="GpuVendorPlugin.cpp" compile="0" resource="0"

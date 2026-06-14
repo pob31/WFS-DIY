@@ -23,10 +23,21 @@
  #error "GpuVendorPlugin.cpp must be built with WFS_GPU_NATIVE=1"
 #endif
 
+// A Windows DLL exports NOTHING by default (unlike a Linux ELF .so, whose default
+// visibility exports every extern symbol). Without an explicit export the host's
+// GetProcAddress("wfs_plugin_create_*") returns null, wrap() hits its null guard,
+// and every GPU device silently falls back to CPU. So mark each entry point.
+// POSIX needs no marker here (the plugin build sets no -fvisibility=hidden).
+#if defined(_WIN32)
+ #define WFS_PLUGIN_API __declspec(dllexport)
+#else
+ #define WFS_PLUGIN_API
+#endif
+
 extern "C" {
 
 // Plugin self-identification (matches GpuDevice::Vendor labels, lower-case).
-const char* wfs_plugin_vendor()
+WFS_PLUGIN_API const char* wfs_plugin_vendor()
 {
 #if defined(WFS_GPU_HIP)
     return "hip";
@@ -39,15 +50,20 @@ const char* wfs_plugin_vendor()
 
 // deviceIndex selects which GPU of this vendor (reserved for multi-GPU binding;
 // the backends currently bind device 0 — single-GPU machines are unaffected).
-IWfsBackend* wfs_plugin_create_wfs (int /*deviceIndex*/) { return makeWfsBackend().release(); }
-IObBackend*  wfs_plugin_create_ob  (int /*deviceIndex*/) { return makeObBackend().release();  }
-IIrBackend*  wfs_plugin_create_ir  (int /*deviceIndex*/) { return makeIrBackend().release();  }
-IFdnBackend* wfs_plugin_create_fdn (int /*deviceIndex*/) { return makeFdnBackend().release(); }
-ISdnBackend* wfs_plugin_create_sdn (int /*deviceIndex*/) { return makeSdnBackend().release(); }
+WFS_PLUGIN_API IWfsBackend* wfs_plugin_create_wfs (int /*deviceIndex*/) { return makeWfsBackend().release(); }
+WFS_PLUGIN_API IObBackend*  wfs_plugin_create_ob  (int /*deviceIndex*/) { return makeObBackend().release();  }
+WFS_PLUGIN_API IIrBackend*  wfs_plugin_create_ir  (int /*deviceIndex*/) { return makeIrBackend().release();  }
+WFS_PLUGIN_API IFdnBackend* wfs_plugin_create_fdn (int /*deviceIndex*/) { return makeFdnBackend().release(); }
+WFS_PLUGIN_API ISdnBackend* wfs_plugin_create_sdn (int /*deviceIndex*/) { return makeSdnBackend().release(); }
 
-// Destroy any backend created above (virtual dtor via IGpuBackend). The app and
-// plugin share one toolchain/stdlib, so app-side delete is also safe; this entry
-// point keeps allocation + free symmetric inside the plugin.
-void wfs_plugin_destroy (IGpuBackend* p) { delete p; }
+// Destroy any backend created above (virtual dtor via IGpuBackend). The factory
+// wraps the returned pointer in a default-deleter unique_ptr, so the host module
+// runs `delete`. That is safe ONLY while the host and the plugin share one heap:
+//   Linux  — both built with g++ → one libstdc++ → one heap (validated).
+//   Windows— both must use the DYNAMIC CRT (/MD; the JUCE VS2022 default and what
+//            tools/windows/build-gpu-plugins.ps1 forces) → one shared ucrtbase
+//            heap. If a future split breaks that invariant, route the factory's
+//            deleter through this exported symbol instead of app-side delete.
+WFS_PLUGIN_API void wfs_plugin_destroy (IGpuBackend* p) { delete p; }
 
 } // extern "C"

@@ -22,7 +22,7 @@
 #include <cstring>
 
 #if ! defined(__APPLE__)
- #include <dlfcn.h>
+ #include "PlatformDynLib.h"   // dlopen / LoadLibrary shim
 #endif
 
 struct GpuDevice
@@ -63,14 +63,14 @@ namespace wfsgpu_detail
                               const char* devGetSym, const char* devNameSym,
                               const char* idPrefix, const char* fallbackName)
     {
-        void* lib = dlopen (soA, RTLD_LAZY | RTLD_LOCAL);
-        if (lib == nullptr && soB != nullptr) lib = dlopen (soB, RTLD_LAZY | RTLD_LOCAL);
+        wfsdyn::LibHandle lib = wfsdyn::openLib (soA);
+        if (lib == nullptr && soB != nullptr) lib = wfsdyn::openLib (soB);
         if (lib == nullptr) return;                       // runtime absent -> no devices
 
-        auto init    = initSym    ? (FnInit)    dlsym (lib, initSym)    : nullptr;
-        auto count   =              (FnCount)   dlsym (lib, countSym);
-        auto devGet  = devGetSym  ? (FnDevGet)  dlsym (lib, devGetSym)  : nullptr;
-        auto devName = devNameSym ? (FnDevName) dlsym (lib, devNameSym) : nullptr;
+        auto init    = initSym    ? (FnInit)    wfsdyn::sym (lib, initSym)    : nullptr;
+        auto count   =              (FnCount)   wfsdyn::sym (lib, countSym);
+        auto devGet  = devGetSym  ? (FnDevGet)  wfsdyn::sym (lib, devGetSym)  : nullptr;
+        auto devName = devNameSym ? (FnDevName) wfsdyn::sym (lib, devNameSym) : nullptr;
         if (count == nullptr) return;
 
         if (init != nullptr) init (0);
@@ -113,6 +113,19 @@ public:
         // Metal enumeration lives in a .mm (Obj-C) on macOS — added with the
         // Metal device path; for now the macOS build reports the default device.
         devs.push_back ({ GpuDevice::Vendor::Metal, 0, "Metal (default)", "metal:0" });
+#elif defined(_WIN32)
+        // AMD / HIP: the HIP runtime DLL (AMD HIP SDK / ROCm for Windows).
+        wfsgpu_detail::enumerateVia (devs, GpuDevice::Vendor::HIP,
+                                     "amdhip64.dll", "amdhip64_6.dll",
+                                     "hipInit", "hipGetDeviceCount",
+                                     "hipDeviceGet", "hipDeviceGetName",
+                                     "hip:", "AMD GPU");
+        // NVIDIA / CUDA: the driver DLL (present with an installed NVIDIA driver).
+        wfsgpu_detail::enumerateVia (devs, GpuDevice::Vendor::CUDA,
+                                     "nvcuda.dll", nullptr,
+                                     "cuInit", "cuDeviceGetCount",
+                                     "cuDeviceGet", "cuDeviceGetName",
+                                     "cuda:", "NVIDIA GPU");
 #else
         // AMD / HIP: runtime lib carries both count + name symbols.
         wfsgpu_detail::enumerateVia (devs, GpuDevice::Vendor::HIP,

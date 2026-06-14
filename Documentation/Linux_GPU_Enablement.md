@@ -103,6 +103,57 @@ to the block above and re-saving.
 
 ---
 
+## C. Windows — plugin parity (CUDA or HIP/ROCm), runtime-selected
+
+Windows uses the **same per-vendor plugin model** as Linux so a single app can drive
+CUDA *or* AMD HIP at runtime, with CPU fallback. The shared code is portable
+(`Source/DSP/gpu/PlatformDynLib.h` wraps `dlopen`↔`LoadLibrary`,
+`/proc/self/exe`↔`GetModuleFileName`); `GpuDeviceManager` enumerates via `nvcuda.dll`
+(CUDA driver) and `amdhip64.dll` (AMD HIP SDK for Windows), and `GpuBackendFactory`
+loads `wfs_cuda.dll` / `wfs_hip.dll` next to the executable.
+
+**Build the plugin DLLs** (from a *x64 Native Tools / Developer PowerShell*):
+```
+tools\windows\build-gpu-plugins.ps1            # builds whichever of CUDA / HIP toolchains are present
+```
+- `wfs_cuda.dll` needs the CUDA Toolkit (`cl.exe` + `%CUDA_PATH%`).
+- `wfs_hip.dll` needs the **AMD HIP SDK for Windows** (`hipcc`); run from its "HIP SDK"
+  shell so `hipcc` resolves on `PATH`.
+- **Exports** — unlike a Linux `.so` (ELF default visibility exports everything), a
+  Windows DLL exports **nothing** by default. The C entry points are therefore marked
+  `__declspec(dllexport)` (on `_WIN32`) in `GpuVendorPlugin.cpp`; without that,
+  `GetProcAddress` returns null and the app **silently falls back to CPU**. The build
+  script auto-verifies with `dumpbin /EXPORTS` — expect `wfs_plugin_create_{wfs,ob,ir,
+  fdn,sdn}`, `wfs_plugin_vendor`, `wfs_plugin_destroy` (undecorated, since `extern "C"`).
+- **Shared CRT** — the script forces the **dynamic CRT** (`/MD` for `cl.exe`,
+  `-fms-runtime-lib=dll` for `hipcc`) so each plugin shares the app's heap. The factory
+  destroys plugin-allocated backends with an app-side `delete`, which is safe only when
+  app + plugin link the same dynamic UCRT (the JUCE VS2022 Release default is `/MD`; do
+  not switch the app or plugins to `/MT`).
+
+**Enable plugin mode in the VS2022 exporter** (Projucer, then re-save). Mirror the Linux
+`LINUX_MAKE` change:
+- `defines` += `WFS_GPU_PLUGINS=1` (keep `WFS_GPU_NATIVE=1`).
+- Remove the CUDA `headerPath`/`libraryPath`/`externalLibraries` (`cudart.lib;nvrtc.lib;
+  cuda.lib`) and the `/DELAYLOAD` linker flags + the CUDA-DLL post-build copy — the app
+  now links **no** GPU runtime.
+- Ship the `wfs_*.dll` plugins next to `WFS-DIY.exe` (Inno Setup `[Files]`).
+
+**Status / caveats:**
+- The shared/Windows code is in place and compile-tested **on Linux only** (no MSVC here).
+  `GpuDeviceManager` Windows enumeration + the plugin DLL build + the VS2022 config flip
+  must be validated on a real Windows box. **The committed VS2022 exporter is left on the
+  current compile-time CUDA (delay-loaded) build** — flip it to plugin mode once you've
+  built + tested the plugins on Windows, then commit the exporter change.
+- The HIP-on-Windows DLL is `amdhip64.dll` (versioned fallback `amdhip64_6.dll`); confirm
+  the name your AMD HIP SDK ships.
+- Same-vendor multi-GPU device-index binding is still deferred (binds device 0).
+
+macOS needs nothing: its GPU path is the in-process Metal backend (compile-time), and
+`GpuDeviceManager` reports a single `Metal (default)` device.
+
+---
+
 ## Open items
 - In-app audio A/B (GPU vs CPU) for HIP — user-driven (GUI/audio).
 - CUDA-on-Linux: actual compile/link check once a CUDA toolkit is installed; runtime untestable here.

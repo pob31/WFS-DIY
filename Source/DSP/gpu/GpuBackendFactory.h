@@ -24,9 +24,7 @@
 #include <string>
 
 #if ! defined(__APPLE__)
- #include <dlfcn.h>
- #include <climits>
- #include <unistd.h>
+ #include "PlatformDynLib.h"   // dlopen / LoadLibrary shim
 #endif
 
 class GpuBackendFactory
@@ -58,11 +56,11 @@ private:
         (void) createSym;
         return nullptr;                           // Metal is in-process on macOS (no plugin) — TODO
 #else
-        void* lib = loadVendor (dev->vendor);
+        wfsdyn::LibHandle lib = loadVendor (dev->vendor);
         if (lib == nullptr)
             return nullptr;                       // plugin/runtime absent -> CPU fallback
 
-        auto create = reinterpret_cast<T* (*) (int)> (dlsym (lib, createSym));
+        auto create = reinterpret_cast<T* (*) (int)> (wfsdyn::sym (lib, createSym));
         if (create == nullptr)
             return nullptr;
 
@@ -71,13 +69,13 @@ private:
     }
 
 #if ! defined(__APPLE__)
-    void* loadVendor (GpuDevice::Vendor v)
+    wfsdyn::LibHandle loadVendor (GpuDevice::Vendor v)
     {
-        const char* so = nullptr;
+        std::string so;
         switch (v)
         {
-            case GpuDevice::Vendor::HIP:  so = "libwfs_hip.so";  break;
-            case GpuDevice::Vendor::CUDA: so = "libwfs_cuda.so"; break;
+            case GpuDevice::Vendor::HIP:  so = wfsdyn::pluginName ("hip");  break;
+            case GpuDevice::Vendor::CUDA: so = wfsdyn::pluginName ("cuda"); break;
             default: return nullptr;
         }
 
@@ -86,30 +84,19 @@ private:
             return it->second;                    // cached (incl. cached null on failure)
 
         // Prefer the plugin shipped next to the executable; fall back to the
-        // loader search path (LD_LIBRARY_PATH / rpath / system dirs).
-        void* h = nullptr;
-        const std::string beside = exeDir();
+        // loader search path (LD_LIBRARY_PATH/rpath on Linux, PATH/dir on Windows).
+        wfsdyn::LibHandle h = nullptr;
+        const std::string beside = wfsdyn::exeDir();
         if (! beside.empty())
-            h = dlopen ((beside + "/" + so).c_str(), RTLD_NOW | RTLD_GLOBAL);
+            h = wfsdyn::openLib ((beside + "/" + so).c_str());
         if (h == nullptr)
-            h = dlopen (so, RTLD_NOW | RTLD_GLOBAL);
+            h = wfsdyn::openLib (so.c_str());
 
         handles[so] = h;
         return h;
     }
 
-    static std::string exeDir()
-    {
-        char buf[PATH_MAX];
-        const ssize_t n = readlink ("/proc/self/exe", buf, sizeof (buf) - 1);
-        if (n <= 0) return {};
-        buf[n] = '\0';
-        std::string p (buf);
-        const auto slash = p.find_last_of ('/');
-        return slash == std::string::npos ? std::string {} : p.substr (0, slash);
-    }
-
-    std::map<std::string, void*> handles;
+    std::map<std::string, wfsdyn::LibHandle> handles;
 #endif
 };
 
