@@ -365,6 +365,8 @@
               file="Source/DSP/gpu/GpuAsyncPipeline.h"/>
         <FILE id="ngpuIface" name="GpuBackendInterface.h" compile="0" resource="0"
               file="Source/DSP/gpu/GpuBackendInterface.h"/>
+        <FILE id="ngpuDevMgr" name="GpuDeviceManager.h" compile="0" resource="0"
+              file="Source/DSP/gpu/GpuDeviceManager.h"/>
         <FILE id="ngpuAlgo" name="NativeGpuWfsAlgorithm.h" compile="0" resource="0"
               file="Source/DSP/gpu/NativeGpuWfsAlgorithm.h"/>
         <FILE id="ngpuBakH" name="MetalWfsBackend.h" compile="0" resource="0"
