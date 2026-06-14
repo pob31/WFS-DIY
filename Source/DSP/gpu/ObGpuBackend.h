@@ -52,8 +52,17 @@ private:
     B impl;
 };
 
-inline std::unique_ptr<IObBackend> makeObBackend()
-{
-    return std::make_unique<ObBackendAdapter<ObGpuBackend>>();
-}
+#if defined(WFS_GPU_PLUGINS) && ! defined(__APPLE__)
+ #include "GpuBackendFactory.h"
+ inline std::unique_ptr<IObBackend> makeObBackend (const std::string& deviceId)
+ {
+     return GpuBackendFactory::instance().makeOb (deviceId);
+ }
+#else
+ inline std::unique_ptr<IObBackend> makeObBackend (const std::string& deviceId = {})
+ {
+     (void) deviceId;
+     return std::make_unique<ObBackendAdapter<ObGpuBackend>>();
+ }
+#endif
 #endif // WFS_GPU_NATIVE

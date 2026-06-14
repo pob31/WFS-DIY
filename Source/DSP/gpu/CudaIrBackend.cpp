@@ -25,7 +25,7 @@
 
 // Only the Windows/NVIDIA build pulls in the CUDA toolkit; on macOS the Metal
 // backend is used and this compiles to an empty TU (same as CudaWfsBackend).
-#if WFS_GPU_NATIVE && !defined(__APPLE__) && !defined(WFS_GPU_HIP)
+#if WFS_GPU_NATIVE && !defined(__APPLE__) && !defined(WFS_GPU_HIP) && !defined(WFS_GPU_PLUGINS)
 
 #include "CudaIrBackend.h"
 #include "CudaIrKernels.h"

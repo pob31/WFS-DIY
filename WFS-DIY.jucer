@@ -519,15 +519,11 @@
                 linuxExtraPkgConfig="libudev">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY"
-                       headerPath="../../ThirdParty/hidapi;../../ThirdParty/hidapi/hidapi;/opt/rocm/include"
-                       libraryPath="/opt/rocm/lib"
-                       extraLinkerFlags="-lamdhip64 -lhiprtc -Wl,-rpath,/opt/rocm/lib"
-                       defines="SIMPLEWEB_SECURE_SUPPORTED=0 JUCE_JACK=1 WFS_GPU_NATIVE=1 WFS_GPU_HIP=1 __HIP_PLATFORM_AMD__=1"/>
+                       headerPath="../../ThirdParty/hidapi;../../ThirdParty/hidapi/hidapi"
+                       defines="SIMPLEWEB_SECURE_SUPPORTED=0 JUCE_JACK=1 WFS_GPU_NATIVE=1 WFS_GPU_PLUGINS=1"/>
         <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY"
-                       headerPath="../../ThirdParty/hidapi;../../ThirdParty/hidapi/hidapi;/opt/rocm/include"
-                       libraryPath="/opt/rocm/lib"
-                       extraLinkerFlags="-lamdhip64 -lhiprtc -Wl,-rpath,/opt/rocm/lib"
-                       defines="SIMPLEWEB_SECURE_SUPPORTED=0 JUCE_JACK=1 WFS_GPU_NATIVE=1 WFS_GPU_HIP=1 __HIP_PLATFORM_AMD__=1"/>
+                       headerPath="../../ThirdParty/hidapi;../../ThirdParty/hidapi/hidapi"
+                       defines="SIMPLEWEB_SECURE_SUPPORTED=0 JUCE_JACK=1 WFS_GPU_NATIVE=1 WFS_GPU_PLUGINS=1"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="ThirdParty/JUCE/modules"/>

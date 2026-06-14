@@ -24,7 +24,7 @@
 // the Windows/NVIDIA build (WFS_GPU_NATIVE, non-Apple) pulls in the CUDA toolkit.
 // On macOS the Metal backend is used; on Linux the GPU path is off - either way
 // this compiles to an empty TU so cuda.h is never required there.
-#if WFS_GPU_NATIVE && !defined(__APPLE__) && !defined(WFS_GPU_HIP)
+#if WFS_GPU_NATIVE && !defined(__APPLE__) && !defined(WFS_GPU_HIP) && !defined(WFS_GPU_PLUGINS)
 
 #include "CudaWfsBackend.h"
 #include "CudaWfsKernels.h"

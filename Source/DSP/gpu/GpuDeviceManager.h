@@ -145,6 +145,14 @@ public:
         return false;
     }
 
+    /** First non-CPU device id ("hip:0", "metal:0", ...), or "" if CPU-only.
+        Used as the default per-role selection until the UI (Stage 4) sets it. */
+    std::string firstGpuId() const
+    {
+        for (const auto& d : devs) if (! d.isCpu()) return d.id;
+        return {};
+    }
+
 private:
     GpuDeviceManager() { refresh(); }
     std::vector<GpuDevice> devs;

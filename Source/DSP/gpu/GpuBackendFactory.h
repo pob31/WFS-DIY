@@ -25,6 +25,8 @@
 
 #if ! defined(__APPLE__)
  #include <dlfcn.h>
+ #include <climits>
+ #include <unistd.h>
 #endif
 
 class GpuBackendFactory
@@ -83,9 +85,28 @@ private:
         if (it != handles.end())
             return it->second;                    // cached (incl. cached null on failure)
 
-        void* h = dlopen (so, RTLD_NOW | RTLD_GLOBAL);
+        // Prefer the plugin shipped next to the executable; fall back to the
+        // loader search path (LD_LIBRARY_PATH / rpath / system dirs).
+        void* h = nullptr;
+        const std::string beside = exeDir();
+        if (! beside.empty())
+            h = dlopen ((beside + "/" + so).c_str(), RTLD_NOW | RTLD_GLOBAL);
+        if (h == nullptr)
+            h = dlopen (so, RTLD_NOW | RTLD_GLOBAL);
+
         handles[so] = h;
         return h;
+    }
+
+    static std::string exeDir()
+    {
+        char buf[PATH_MAX];
+        const ssize_t n = readlink ("/proc/self/exe", buf, sizeof (buf) - 1);
+        if (n <= 0) return {};
+        buf[n] = '\0';
+        std::string p (buf);
+        const auto slash = p.find_last_of ('/');
+        return slash == std::string::npos ? std::string {} : p.substr (0, slash);
     }
 
     std::map<std::string, void*> handles;

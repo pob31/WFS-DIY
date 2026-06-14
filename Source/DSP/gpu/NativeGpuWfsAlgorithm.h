@@ -27,6 +27,7 @@
 #include <memory>
 
 #include "WfsGpuBackend.h"
+#include "GpuDeviceManager.h"
 #include "GpuAsyncPipeline.h"
 #include "GpuLevelMeters.h"
 
@@ -57,7 +58,12 @@ public:
         processingEnabledFlag = processingEnabled;
 
         pipeline.release();
-        backend = makeWfsBackend();
+        backend = makeWfsBackend (GpuDeviceManager::instance().firstGpuId());
+        if (backend == nullptr)
+        {
+            lastError = "No GPU backend available (using CPU)";
+            return false;
+        }
 
         inputChannelCount = juce::jmax (1, numInputs);
         outputChannelCount = juce::jmax (1, numOutputs);

@@ -52,10 +52,20 @@ private:
     B impl;
 };
 
-/** Runtime-polymorphic entry point. Today returns the compile-time-selected
-    backend wrapped behind IWfsBackend; Phase 3 will choose by device/vendor. */
-inline std::unique_ptr<IWfsBackend> makeWfsBackend()
-{
-    return std::make_unique<WfsBackendAdapter<WfsGpuBackend>>();
-}
+/** Runtime-polymorphic entry point. On the plugin build (WFS_GPU_PLUGINS, Linux)
+    it dlopens the per-vendor plugin for the device id; otherwise it returns the
+    compile-time-selected backend (macOS Metal / Windows CUDA / Linux hard-link). */
+#if defined(WFS_GPU_PLUGINS) && ! defined(__APPLE__)
+ #include "GpuBackendFactory.h"
+ inline std::unique_ptr<IWfsBackend> makeWfsBackend (const std::string& deviceId)
+ {
+     return GpuBackendFactory::instance().makeWfs (deviceId);
+ }
+#else
+ inline std::unique_ptr<IWfsBackend> makeWfsBackend (const std::string& deviceId = {})
+ {
+     (void) deviceId;
+     return std::make_unique<WfsBackendAdapter<WfsGpuBackend>>();
+ }
+#endif
 #endif // WFS_GPU_NATIVE

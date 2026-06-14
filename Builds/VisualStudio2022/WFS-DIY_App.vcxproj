@@ -225,6 +225,9 @@
     <ClCompile Include="..\..\Source\MainComponent.cpp"/>
     <ClCompile Include="..\..\Source\WFSLogger.cpp"/>
     <ClCompile Include="..\..\Source\DSP\WFSCalculationEngine.cpp"/>
+    <ClCompile Include="..\..\Source\DSP\gpu\plugin\GpuVendorPlugin.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\..\Source\DSP\gpu\CudaWfsBackend.cpp"/>
     <ClCompile Include="..\..\Source\DSP\gpu\HipWfsBackend.cpp"/>
     <ClCompile Include="..\..\Source\DSP\gpu\CudaObBackend.cpp"/>
@@ -3390,6 +3393,9 @@
     <ClInclude Include="..\..\Source\DSP\InputBufferAlgorithm.h"/>
     <ClInclude Include="..\..\Source\DSP\OutputBufferAlgorithm.h"/>
     <ClInclude Include="..\..\Source\DSP\gpu\GpuAsyncPipeline.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\GpuBackendInterface.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\GpuDeviceManager.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\GpuBackendFactory.h"/>
     <ClInclude Include="..\..\Source\DSP\gpu\NativeGpuWfsAlgorithm.h"/>
     <ClInclude Include="..\..\Source\DSP\gpu\MetalWfsBackend.h"/>
     <ClInclude Include="..\..\Source\DSP\gpu\MetalWfsKernels.h"/>

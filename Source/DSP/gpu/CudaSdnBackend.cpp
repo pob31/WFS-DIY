@@ -17,7 +17,7 @@
     with __syncthreads() — the network couples nodes within a block.
 */
 
-#if WFS_GPU_NATIVE && !defined(__APPLE__) && !defined(WFS_GPU_HIP)
+#if WFS_GPU_NATIVE && !defined(__APPLE__) && !defined(WFS_GPU_HIP) && !defined(WFS_GPU_PLUGINS)
 
 #include "CudaSdnBackend.h"
 #include "CudaSdnKernels.h"

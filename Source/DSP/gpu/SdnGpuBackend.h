@@ -46,8 +46,17 @@ private:
     B impl;
 };
 
-inline std::unique_ptr<ISdnBackend> makeSdnBackend()
-{
-    return std::make_unique<SdnBackendAdapter<SdnGpuBackend>>();
-}
+#if defined(WFS_GPU_PLUGINS) && ! defined(__APPLE__)
+ #include "GpuBackendFactory.h"
+ inline std::unique_ptr<ISdnBackend> makeSdnBackend (const std::string& deviceId)
+ {
+     return GpuBackendFactory::instance().makeSdn (deviceId);
+ }
+#else
+ inline std::unique_ptr<ISdnBackend> makeSdnBackend (const std::string& deviceId = {})
+ {
+     (void) deviceId;
+     return std::make_unique<SdnBackendAdapter<SdnGpuBackend>>();
+ }
+#endif
 #endif // WFS_GPU_NATIVE

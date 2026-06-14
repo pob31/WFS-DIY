@@ -26,6 +26,7 @@
 #include "ReverbAlgorithm.h"
 #include "ReverbDiagnostics.h"
 #include "gpu/FdnGpuBackend.h"
+#include "gpu/GpuDeviceManager.h"
 #include "gpu/GpuAsyncPipeline.h"
 
 #include <cmath>
@@ -57,7 +58,12 @@ public:
 
         ready = false;
         pipeline.release();
-        backend = makeFdnBackend();
+        backend = makeFdnBackend (GpuDeviceManager::instance().firstGpuId());
+        if (backend == nullptr)
+        {
+            lastError = "No GPU backend available (using CPU)";
+            return;
+        }
 
         sampleRate = newSampleRate;
         blockSize = juce::jmax (1, maxBlockSize);
