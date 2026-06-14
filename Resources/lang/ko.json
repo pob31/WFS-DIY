@@ -33,6 +33,7 @@
   },
   "systemConfig": {
     "help": {
+      "gpuPipelineDepth": "오디오 블록 단위의 GPU 파이프라인 깊이. depth x 버퍼/샘플레이트만큼의 일정한 레이턴시를 추가하고(WFS 지연에서 미리 차감됨) 같은 길이의 GPU 지연을 흡수합니다. 깊을수록 데스크톱/UI 끊김에 강하고, 얕을수록 레이턴시가 낮아집니다. 실시간 적용. 기본값 4.",
       "showName": "현재 공연의 이름.",
       "showLocation": "현재 공연의 장소.",
       "inputChannels": "Input Channels 수.",
@@ -392,6 +393,7 @@
       "channelSelector": "리버브 채널 번호 및 선택.",
       "nameEditor": "표시되는 리버브 채널 이름 (편집 가능).",
       "mapVisibility": "맵에서 모든 Reverb Channels을 표시하거나 숨기기.",
+      "applyToAllNodes": "켜면 매개변수 변경이 모든 리버브 노드에 동시에 적용되고, 끄면 선택한 노드에만 적용됩니다. 런타임에만 적용되며 이후 변경 사항만 전파됩니다.",
       "attenuation": "리버브 채널 감쇠 (-92 ~ 0 dB).",
       "delayLatency": "리버브 지연/레이턴시 보정 (-100 ~ +100 ms).",
       "orientation": "리버브 방향 각도 (-179 ~ +180도).",
@@ -432,6 +434,9 @@
       "algoIRTrim": "임펄스 응답의 시작 부분 트리밍 (0 - 100 ms).",
       "algoIRLength": "최대 임펄스 응답 길이 (0.1 - 6.0초).",
       "algoPerNode": "각 리버브 노드에 별도의 IR을 사용하거나 하나의 IR을 공유.",
+      "algoIRGpu": "IR 컨볼루션을 GPU에서 실행합니다(웻 신호에만 약 20 ms 추가). GPU를 사용할 수 없으면 자동으로 CPU로 전환됩니다.",
+      "algoFDNGpu": "FDN 리버브를 GPU에서 실행합니다(웻 신호에만 약 20 ms 추가). GPU를 사용할 수 없으면 자동으로 CPU로 전환됩니다.",
+      "algoSDNGpu": "SDN 리버브를 GPU에서 실행합니다(웻 신호에만 약 20 ms 추가). GPU를 사용할 수 없으면 자동으로 CPU로 전환됩니다.",
       "algoWetLevel": "리버브 출력의 웻/드라이 믹스 레벨 (-60 ~ +12 dB).",
       "preCompBypass": "리버브 센드의 프리컴프레서를 바이패스 또는 활성화.",
       "preCompThreshold": "프리컴프레서 임계값 (-60 ~ 0 dB).",

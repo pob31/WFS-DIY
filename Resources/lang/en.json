@@ -1253,6 +1253,7 @@
       "channelSelector": "Reverb Channel Number and Selection.",
       "nameEditor": "Displayed Reverb Channel Name (editable).",
       "mapVisibility": "Make Visible or Hide All Reverb Channels on the Map.",
+      "applyToAllNodes": "When ON, parameter edits are applied to every reverb node at once; when OFF, only the selected node. Runtime only - only future edits propagate.",
       "attenuation": "Reverb channel attenuation (-92 to 0 dB).",
       "delayLatency": "Reverb delay/latency compensation (-100 to +100 ms).",
       "orientation": "Reverb orientation angle (-179 to +180 degrees).",

@@ -33,6 +33,7 @@
   },
   "systemConfig": {
     "help": {
+      "gpuPipelineDepth": "Profondità della pipeline GPU in blocchi audio. Aggiunge depth x buffer/frequenza di campionamento di latenza costante (pre-sottratta dai ritardi WFS) e assorbe gli stalli della GPU della stessa durata: più profonda = immune agli scatti del desktop/interfaccia, meno profonda = latenza inferiore. Si applica in tempo reale. Predefinito 4.",
       "showName": "Nome dello spettacolo corrente.",
       "showLocation": "Luogo dello spettacolo corrente.",
       "inputChannels": "Numero di Input Channels.",
@@ -406,6 +407,7 @@
       "channelSelector": "Numero e selezione del canale di riverbero.",
       "nameEditor": "Nome visualizzato del canale di riverbero (modificabile).",
       "mapVisibility": "Rendere visibili o nascondere tutti i Reverb Channels sulla mappa.",
+      "applyToAllNodes": "Quando attivo, le modifiche dei parametri si applicano a tutti i nodi di riverbero contemporaneamente; quando disattivo, solo al nodo selezionato. Solo a runtime - si propagano solo le modifiche future.",
       "attenuation": "Attenuazione del canale di riverbero (-92 a 0 dB).",
       "delayLatency": "Compensazione ritardo/latenza del riverbero (-100 a +100 ms).",
       "orientation": "Angolo di orientamento del riverbero (-179 a +180 gradi).",
@@ -446,6 +448,9 @@
       "algoIRTrim": "Tagliare l'inizio della risposta impulsiva (0 - 100 ms).",
       "algoIRLength": "Lunghezza massima della risposta impulsiva (0.1 - 6.0 secondi).",
       "algoPerNode": "Usare una IR separata per ogni nodo di riverbero, o condividere una sola IR.",
+      "algoIRGpu": "Esegue la convoluzione IR sulla GPU (aggiunge ~20 ms solo al segnale wet) o sulla CPU. Passa automaticamente alla CPU se la GPU non è disponibile.",
+      "algoFDNGpu": "Esegue il riverbero FDN sulla GPU (aggiunge ~20 ms solo al segnale wet) o sulla CPU. Passa automaticamente alla CPU se la GPU non è disponibile.",
+      "algoSDNGpu": "Esegue il riverbero SDN sulla GPU (aggiunge ~20 ms solo al segnale wet) o sulla CPU. Passa automaticamente alla CPU se la GPU non è disponibile.",
       "algoWetLevel": "Livello di mix wet/dry per l'uscita del riverbero (-60 a +12 dB).",
       "preCompBypass": "Bypassare o attivare il pre-compressore sulle mandate di riverbero.",
       "preCompThreshold": "Soglia del pre-compressore (-60 a 0 dB).",

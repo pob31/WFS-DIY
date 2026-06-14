@@ -33,6 +33,7 @@
   },
   "systemConfig": {
     "help": {
+      "gpuPipelineDepth": "Profundidad del pipeline GPU en bloques de audio. Añade depth x búfer/frecuencia de muestreo de latencia constante (pre-restada de los retardos WFS) y absorbe pausas de la GPU de la misma duración: más profundo = inmune a tirones del escritorio/IU, menos profundo = menor latencia. Se aplica en directo. Predeterminado 4.",
       "showName": "Nombre del show actual.",
       "showLocation": "Ubicación del show actual.",
       "inputChannels": "Número de Input Channels.",
@@ -406,6 +407,7 @@
       "channelSelector": "Número y selección del canal de reverberación.",
       "nameEditor": "Nombre mostrado del canal de reverberación (editable).",
       "mapVisibility": "Hacer visibles u ocultar todos los Reverb Channels en el mapa.",
+      "applyToAllNodes": "Cuando está activado, los cambios de parámetros se aplican a todos los nodos de reverberación a la vez; cuando está desactivado, solo al nodo seleccionado. Solo en tiempo de ejecución - solo se propagan los cambios futuros.",
       "attenuation": "Atenuación del canal de reverberación (-92 a 0 dB).",
       "delayLatency": "Compensación de retardo/latencia de la reverberación (-100 a +100 ms).",
       "orientation": "Ángulo de orientación de la reverberación (-179 a +180 grados).",
@@ -446,6 +448,9 @@
       "algoIRTrim": "Recortar el inicio de la respuesta al impulso (0 - 100 ms).",
       "algoIRLength": "Longitud máxima de la respuesta al impulso (0.1 - 6.0 segundos).",
       "algoPerNode": "Usar una IR separada para cada nodo de reverberación, o compartir una sola IR.",
+      "algoIRGpu": "Ejecuta la convolución IR en la GPU (añade ~20 ms solo a la señal wet) o en la CPU. Vuelve automáticamente a la CPU si la GPU no está disponible.",
+      "algoFDNGpu": "Ejecuta la reverb FDN en la GPU (añade ~20 ms solo a la señal wet) o en la CPU. Vuelve automáticamente a la CPU si la GPU no está disponible.",
+      "algoSDNGpu": "Ejecuta la reverb SDN en la GPU (añade ~20 ms solo a la señal wet) o en la CPU. Vuelve automáticamente a la CPU si la GPU no está disponible.",
       "algoWetLevel": "Nivel de mezcla wet/dry para la salida de reverberación (-60 a +12 dB).",
       "preCompBypass": "Omitir o activar el precompresor en los envíos de reverberación.",
       "preCompThreshold": "Umbral del precompresor (-60 a 0 dB).",

@@ -87,6 +87,8 @@
     "labels": {
       "version": "バージョン {version}",
       "updateAvailable": "アップデート {version} 利用可能",
+      "gpuPipelineDepth": "GPUパイプライン:",
+      "gpuPipelineBlocks": "ブロック",
       "showName": "名前:",
       "showLocation": "場所:",
       "inputChannels": "入力チャンネル:",
@@ -182,6 +184,7 @@
       "select": "選択..."
     },
     "help": {
+      "gpuPipelineDepth": "オーディオブロック単位のGPUパイプラインの深さ。depth x バッファ/サンプルレートの一定のレイテンシーを追加し（WFS遅延から事前に差し引かれます）、同じ長さのGPUストールを吸収します。深いほどデスクトップ/UIの引っかかりに強く、浅いほど低レイテンシーになります。リアルタイムで適用。デフォルトは4。",
       "showName": "現在のショーの名前。",
       "showLocation": "現在のショーの場所。",
       "inputChannels": "入力チャンネル数。",
@@ -1129,6 +1132,7 @@
       "channelSelector": "リバーブチャンネル番号と選択。",
       "nameEditor": "表示されるリバーブチャンネル名（編集可能）。",
       "mapVisibility": "マップ上のすべてのリバーブチャンネルを表示または非表示にする。",
+      "applyToAllNodes": "オンの場合、パラメーターの変更がすべてのリバーブノードに同時に適用されます。オフの場合は選択中のノードのみに適用されます。実行時のみ有効で、以降の変更のみが反映されます。",
       "attenuation": "リバーブチャンネルの減衰（-92～0 dB）。",
       "delayLatency": "リバーブの遅延/レイテンシー補正（-100～+100 ms）。",
       "orientation": "リバーブの向き角度（-179～+180度）。",

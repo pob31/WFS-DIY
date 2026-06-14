@@ -97,6 +97,7 @@
       <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\x64;..\..\ThirdParty\juce_simpleweb\libs\VisualStudio2022\$(Platform)\MDd;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <LargeAddressAware>true</LargeAddressAware>
       <AdditionalDependencies>libssl.lib;libcrypto.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/DELAYLOAD:nvcuda.dll /DELAYLOAD:cudart64_12.dll /DELAYLOAD:nvrtc64_120_0.dll %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -111,7 +112,7 @@
 </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\cudart64_*.dll&quot; &quot;$(OutDir)&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\nvrtc64_*.dll&quot; &quot;$(OutDir)&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\nvrtc-builtins64_*.dll&quot; &quot;$(OutDir)&quot;
+      <Command>xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\cudart64_*.dll&quot; &quot;$(OutDir)&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\nvrtc64_*.dll&quot; &quot;$(OutDir)&quot; &amp; del /Q &quot;$(OutDir)nvrtc64_*.alt.dll&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\nvrtc-builtins64_*.dll&quot; &quot;$(OutDir)&quot;
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -157,6 +158,7 @@
       <LargeAddressAware>true</LargeAddressAware>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <AdditionalDependencies>libssl.lib;libcrypto.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/DELAYLOAD:nvcuda.dll /DELAYLOAD:cudart64_12.dll /DELAYLOAD:nvrtc64_120_0.dll %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -171,7 +173,7 @@
 </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\cudart64_*.dll&quot; &quot;$(OutDir)&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\nvrtc64_*.dll&quot; &quot;$(OutDir)&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\nvrtc-builtins64_*.dll&quot; &quot;$(OutDir)&quot;
+      <Command>xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\cudart64_*.dll&quot; &quot;$(OutDir)&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\nvrtc64_*.dll&quot; &quot;$(OutDir)&quot; &amp; del /Q &quot;$(OutDir)nvrtc64_*.alt.dll&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\nvrtc-builtins64_*.dll&quot; &quot;$(OutDir)&quot;
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>

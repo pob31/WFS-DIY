@@ -79,7 +79,9 @@ jobs:
   windows:
     name: Windows zip (unsigned)
     needs: verify-version
-    runs-on: windows-latest
+    # Pinned to windows-2022 (VS2022 / v143). GitHub is repointing windows-latest
+    # to the VS2026 image; pin so the toolchain stays put and migrate deliberately.
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v5
         with:
@@ -109,7 +111,11 @@ jobs:
           if (-not $exe) { throw "Release WFS-DIY.exe not found" }
           $appDir = $exe.Directory.FullName
           $dlls = foreach ($p in @("cudart64_*.dll", "nvrtc64_*.dll", "nvrtc-builtins64_*.dll")) {
-            Get-ChildItem -File -Path (Join-Path $appDir $p) -ErrorAction SilentlyContinue
+            # Exclude the ~85 MB forward-compat NVRTC twin (nvrtc64_*.alt.dll): the app
+            # only loads the main nvrtc64. The build's postbuild already drops it, but
+            # filter here too so the zip is correct regardless of the build output.
+            Get-ChildItem -File -Path (Join-Path $appDir $p) -ErrorAction SilentlyContinue |
+              Where-Object { $_.Name -notlike "*.alt.dll" }
           }
           if (-not $dlls) { throw "CUDA runtime DLLs not found next to the exe (postbuild copy failed?)" }
           $files = @($exe.FullName) + ($dlls | ForEach-Object FullName)

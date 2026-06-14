@@ -48,6 +48,15 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 ; Main executable (Release build)
 Source: "..\Builds\VisualStudio2022\x64\Release\App\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 
+; CUDA runtime DLLs the exe implicit-links and loads at startup (CUDA Runtime +
+; NVRTC). They must sit next to the exe; the build's postbuild step stages them
+; into the Release App dir. Ship the main nvrtc64 only -- the .alt forward-compat
+; copy is ~85 MB and not needed. (nvcuda.dll, the driver API, ships with the
+; NVIDIA driver and is NOT redistributed.)
+Source: "..\Builds\VisualStudio2022\x64\Release\App\cudart64_*.dll";         DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Builds\VisualStudio2022\x64\Release\App\nvrtc64_*.dll";          DestDir: "{app}"; Excludes: "*.alt.dll"; Flags: ignoreversion
+Source: "..\Builds\VisualStudio2022\x64\Release\App\nvrtc-builtins64_*.dll"; DestDir: "{app}"; Flags: ignoreversion
+
 ; Language files
 Source: "..\Resources\lang\*.json"; DestDir: "{app}\lang"; Flags: ignoreversion recursesubdirs
 

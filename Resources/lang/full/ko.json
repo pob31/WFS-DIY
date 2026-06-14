@@ -87,6 +87,8 @@
     "labels": {
       "version": "버전 {version}",
       "updateAvailable": "업데이트 {version} 사용 가능",
+      "gpuPipelineDepth": "GPU 파이프라인:",
+      "gpuPipelineBlocks": "블록",
       "showName": "이름:",
       "showLocation": "장소:",
       "inputChannels": "입력 채널:",
@@ -182,6 +184,7 @@
       "select": "선택..."
     },
     "help": {
+      "gpuPipelineDepth": "오디오 블록 단위의 GPU 파이프라인 깊이. depth x 버퍼/샘플레이트만큼의 일정한 레이턴시를 추가하고(WFS 지연에서 미리 차감됨) 같은 길이의 GPU 지연을 흡수합니다. 깊을수록 데스크톱/UI 끊김에 강하고, 얕을수록 레이턴시가 낮아집니다. 실시간 적용. 기본값 4.",
       "showName": "현재 공연의 이름.",
       "showLocation": "현재 공연의 장소.",
       "inputChannels": "입력 채널 수.",
@@ -1129,6 +1132,7 @@
       "channelSelector": "리버브 채널 번호 및 선택.",
       "nameEditor": "표시되는 리버브 채널 이름 (편집 가능).",
       "mapVisibility": "맵에서 모든 리버브 채널을 표시하거나 숨기기.",
+      "applyToAllNodes": "켜면 매개변수 변경이 모든 리버브 노드에 동시에 적용되고, 끄면 선택한 노드에만 적용됩니다. 런타임에만 적용되며 이후 변경 사항만 전파됩니다.",
       "attenuation": "리버브 채널 감쇠 (-92 ~ 0 dB).",
       "delayLatency": "리버브 지연/레이턴시 보정 (-100 ~ +100 ms).",
       "orientation": "리버브 방향 각도 (-179 ~ +180도).",
