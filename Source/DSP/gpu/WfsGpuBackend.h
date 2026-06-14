@@ -3,8 +3,7 @@
 /*
     WfsGpuBackend — compile-time selection of the native GPU WFS backend.
 
-    The Metal and CUDA backends never coexist in a single binary (one targets
-    Apple, the other Windows/NVIDIA) and they expose the identical method
+    The Metal, CUDA, and HIP backends never coexist in a single binary (Apple -> Metal, AMD/Linux -> HIP, else -> CUDA) and they expose the identical method
     surface (prepare / setMatrixPointers / processBlock / reset / release /
     isReady / getLastError / getLastLaunchMs / getDeviceName). A plain type
     alias is therefore enough to let GpuAsyncPipeline and NativeGpuWfsAlgorithm

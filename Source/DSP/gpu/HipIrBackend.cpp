@@ -2,7 +2,7 @@
     HipIrBackend implementation.
 
     The kernel source lives in CudaIrKernels.h as a string literal, compiled
-    at prepare() time via NVRTC into PTX, loaded with the CUDA Driver API and
+    at prepare() time via hipRTC into PTX, loaded with the CUDA Driver API and
     launched with hipModuleLaunchKernel; buffers and copies use the Runtime API on a
     private stream — the exact pattern of CudaWfsBackend.cpp.
 
@@ -31,9 +31,8 @@
 #include "CudaIrKernels.h"
 #include "IrConvHostState.h"
 
-#include <hip/hip_runtime.h>           // driver API: hipCtx_t, cuModule*, hipModuleLaunchKernel
-#include <hip/hip_runtime.h>   // runtime API: hipMalloc, hipHostMalloc, hipMemcpyAsync
-#include <hip/hiprtc.h>
+#include <hip/hip_runtime.h>   // HIP runtime + driver API (hipMalloc, hipModule*, hipModuleLaunchKernel, props)
+#include <hip/hiprtc.h>        // hipRTC: runtime kernel compilation
 
 // Same linkage approach as CudaWfsBackend.cpp (Projucer's externalLibraries
 // does not reach AdditionalDependencies for this project).
@@ -67,8 +66,6 @@ constexpr int kIrSegmentsPerLaunch = 64;
 
 struct HipIrBackend::Impl
 {
-    hipCtx_t    context = nullptr;   // device primary context (retained)
-    hipDevice_t     cuDevice = 0;
     hipModule_t     module = nullptr;
     hipFunction_t   kernelMac = nullptr;
     hipStream_t stream = nullptr;
@@ -112,7 +109,7 @@ bool HipIrBackend::prepare (int numNodes, int blockSize,
         return false;
     }
 
-    // 1) Pick device 0, report its name, derive the SM architecture.
+    // 1) Pick device 0; read its name + GFX arch (gcnArchName).
     int devCount = 0;
     CK_RT (hipGetDeviceCount (&devCount));
     if (devCount == 0)
@@ -133,13 +130,7 @@ bool HipIrBackend::prepare (int numNodes, int blockSize,
         return false;
     }
 
-    // 2) Init the driver API and retain the primary context the runtime uses.
-    CK_DRV (hipInit (0));
-    CK_DRV (hipDeviceGet (&m.cuDevice, 0));
-    CK_DRV (hipDevicePrimaryCtxRetain (&m.context, m.cuDevice));
-    CK_DRV (hipCtxSetCurrent (m.context));
-
-    // 3) NVRTC-compile the kernel string to PTX for this GPU's arch.
+    // 3) hipRTC-compile the kernel string to a code object for this GPU's arch.
     {
         hiprtcProgram prog = nullptr;
         if (hiprtcCreateProgram (&prog, kIrFdlMacKernelSource, "ir_fdl_mac.cu", 0, nullptr, nullptr) != HIPRTC_SUCCESS)
@@ -225,9 +216,9 @@ bool HipIrBackend::processBlock (const float* const* inputs, float* const* outpu
     auto& m = *impl;
 
     // processBlock runs on the pump thread; bind the primary context here.
-    if (hipCtxSetCurrent (m.context) != hipSuccess)
+    if (hipSetDevice (0) != hipSuccess)
     {
-        lastError = "HIP driver: hipCtxSetCurrent failed on pump thread";
+        lastError = "HIP: hipSetDevice failed on pump thread";
         ready = false;
         return false;
     }
@@ -324,8 +315,7 @@ void HipIrBackend::release() noexcept
 {
     auto& m = *impl;
 
-    if (m.context != nullptr)
-        hipCtxSetCurrent (m.context);
+    hipSetDevice (0);
 
     auto freeHost = [] (float*& p) { if (p != nullptr) { hipHostFree (p); p = nullptr; } };
     auto freeDev  = [] (void*&  p) { if (p != nullptr) { hipFree (p);     p = nullptr; } };
@@ -337,7 +327,6 @@ void HipIrBackend::release() noexcept
     if (m.module != nullptr) { hipModuleUnload (m.module); m.module = nullptr; }
     m.kernelMac = nullptr;
 
-    if (m.context != nullptr) { hipDevicePrimaryCtxRelease (m.cuDevice); m.context = nullptr; }
 
     ready = false;
 }

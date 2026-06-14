@@ -2,7 +2,7 @@
     HipObBackend implementation — the scatter / write-time twin of
     CudaWfsBackend.cpp.
 
-    The kernel sources live in CudaObKernels.h as a string literal (NVRTC-compiled
+    The kernel sources live in CudaObKernels.h as a string literal (hipRTC-compiled
     at prepare() time into PTX, loaded with the CUDA Driver API, launched with
     hipModuleLaunchKernel). Buffers and copies use the CUDA Runtime API; runtime + driver
     share the device's primary context.
@@ -32,9 +32,8 @@
 #include "CudaObKernels.h"
 #include "WfsFrHostState.h"
 
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hiprtc.h>
+#include <hip/hip_runtime.h>   // HIP runtime + driver API (hipMalloc, hipModule*, hipModuleLaunchKernel, props)
+#include <hip/hiprtc.h>        // hipRTC: runtime kernel compilation
 
 #if defined(_MSC_VER)
  #pragma comment(lib, "cudart.lib")
@@ -70,8 +69,6 @@ constexpr int kObSubBlock = 64;
 
 struct HipObBackend::Impl
 {
-    hipCtx_t    context = nullptr;
-    hipDevice_t     cuDevice = 0;
     hipModule_t     module = nullptr;
     hipFunction_t   kernelPairs = nullptr;
     hipFunction_t   kernelReduce = nullptr;
@@ -165,11 +162,6 @@ bool HipObBackend::prepare (int numInputs, int numOutputs, int blockSize,
     CK_RT (hipGetDeviceProperties (&prop, 0));
     deviceName = std::string (prop.name) + " (HIP)";
     const std::string archName = prop.gcnArchName;
-
-    CK_DRV (hipInit (0));
-    CK_DRV (hipDeviceGet (&m.cuDevice, 0));
-    CK_DRV (hipDevicePrimaryCtxRetain (&m.context, m.cuDevice));
-    CK_DRV (hipCtxSetCurrent (m.context));
 
     {
         hiprtcProgram prog = nullptr;
@@ -325,9 +317,9 @@ bool HipObBackend::processBlock (const float* const* inputs, float* const* outpu
     const float srScale = (float) (m.sampleRate / 1000.0);
     const float maxDelay = m.maxDelayClamp;
 
-    if (hipCtxSetCurrent (m.context) != hipSuccess)
+    if (hipSetDevice (0) != hipSuccess)
     {
-        lastError = "HIP driver: hipCtxSetCurrent failed on pump thread";
+        lastError = "HIP: hipSetDevice failed on pump thread";
         ready = false;
         return false;
     }
@@ -464,8 +456,7 @@ bool HipObBackend::processBlock (const float* const* inputs, float* const* outpu
 void HipObBackend::reset() noexcept
 {
     auto& m = *impl;
-    if (m.context != nullptr)
-        hipCtxSetCurrent (m.context);
+    hipSetDevice (0);
     const size_t accBytes = (size_t) m.numIn * m.numOut * m.accLen * sizeof (float);
     const size_t stateBytes = (size_t) m.numIn * m.numOut * 4 * sizeof (float);
     if (m.dPairAcc != nullptr && accBytes > 0)
@@ -483,8 +474,7 @@ void HipObBackend::release() noexcept
 {
     auto& m = *impl;
 
-    if (m.context != nullptr)
-        hipCtxSetCurrent (m.context);
+    hipSetDevice (0);
 
     auto freeHost = [] (float*& p) { if (p != nullptr) { hipHostFree (p); p = nullptr; } };
     auto freeDev  = [] (void*&  p) { if (p != nullptr) { hipFree (p);     p = nullptr; } };
@@ -510,7 +500,6 @@ void HipObBackend::release() noexcept
     m.kernelPairs = nullptr;
     m.kernelReduce = nullptr;
 
-    if (m.context != nullptr) { hipDevicePrimaryCtxRelease (m.cuDevice); m.context = nullptr; }
 
     m.delaysMs = nullptr;
     m.gains = nullptr;

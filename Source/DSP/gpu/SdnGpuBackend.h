@@ -3,7 +3,7 @@
 /*
     SdnGpuBackend — compile-time selection of the native GPU SDN reverb backend.
 
-    Mirrors FdnGpuBackend.h / IrGpuBackend.h: the Metal and CUDA SDN backends
+    Mirrors FdnGpuBackend.h / IrGpuBackend.h: the Metal, CUDA, and HIP SDN backends
     never coexist in one binary and expose the identical method surface (prepare /
     setGeometry / setParameters / requestReset / processBlock / release / isReady /
     getLastError / getLastLaunchMs / getDeviceName), so a type alias keeps

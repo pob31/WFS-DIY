@@ -3,7 +3,7 @@
 /*
     FdnGpuBackend — compile-time selection of the native GPU FDN reverb backend.
 
-    Mirrors WfsGpuBackend.h / IrGpuBackend.h: the Metal and CUDA FDN backends
+    Mirrors WfsGpuBackend.h / IrGpuBackend.h: the Metal, CUDA, and HIP FDN backends
     never coexist in one binary and expose the identical method surface
     (prepare / setParameters / requestReset / processBlock / release / isReady /
     getLastError / getLastLaunchMs / getDeviceName), so a type alias keeps

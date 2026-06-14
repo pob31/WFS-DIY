@@ -3,7 +3,7 @@
 /*
     IrGpuBackend — compile-time selection of the native GPU IR-reverb backend.
 
-    Mirrors WfsGpuBackend.h: the Metal and CUDA IR backends never coexist in
+    Mirrors WfsGpuBackend.h: the Metal, CUDA, and HIP IR backends never coexist in
     one binary and expose the identical method surface (prepare / stageIr /
     requestReset / processBlock / release / isReady / getLastError /
     getLastLaunchMs / getDeviceName / getSegmentsLoaded / getSegmentsTotal),

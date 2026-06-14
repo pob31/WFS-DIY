@@ -2,7 +2,7 @@
     HipFdnBackend implementation.
 
     The kernel source lives in CudaFdnKernels.h as a string literal, compiled
-    at prepare() via NVRTC into PTX, loaded with the CUDA Driver API and
+    at prepare() via hipRTC into PTX, loaded with the CUDA Driver API and
     launched with hipModuleLaunchKernel; buffers and copies use the Runtime API on a
     private stream — the same pattern as CudaWfsBackend / CudaIrBackend.
 
@@ -22,9 +22,8 @@
 #include "CudaFdnKernels.h"
 #include "FdnHostConfig.h"
 
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime.h>
-#include <hip/hiprtc.h>
+#include <hip/hip_runtime.h>   // HIP runtime + driver API (hipMalloc, hipModule*, hipModuleLaunchKernel, props)
+#include <hip/hiprtc.h>        // hipRTC: runtime kernel compilation
 
 #if defined(_MSC_VER)
  #pragma comment(lib, "cudart.lib")
@@ -61,8 +60,6 @@ struct FdnParamsGpu
 
 struct HipFdnBackend::Impl
 {
-    hipCtx_t    context = nullptr;
-    hipDevice_t     cuDevice = 0;
     hipModule_t     module = nullptr;
     hipFunction_t   kernel = nullptr;
     hipStream_t stream = nullptr;
@@ -138,11 +135,6 @@ bool HipFdnBackend::prepare (int numNodes, int blockSize, double sampleRate, flo
     CK_RT (hipGetDeviceProperties (&prop, 0));
     deviceName = std::string (prop.name) + " (HIP)";
     const std::string archName = prop.gcnArchName;
-
-    CK_DRV (hipInit (0));
-    CK_DRV (hipDeviceGet (&m.cuDevice, 0));
-    CK_DRV (hipDevicePrimaryCtxRetain (&m.context, m.cuDevice));
-    CK_DRV (hipCtxSetCurrent (m.context));
 
     {
         hiprtcProgram prog = nullptr;
@@ -279,9 +271,9 @@ bool HipFdnBackend::processBlock (const float* const* inputs, float* const* outp
     const size_t maxDiffLen  = (size_t) m.cfg.maxDiffLen;
     const size_t maxFbApLen  = (size_t) m.cfg.maxFbApLen;
 
-    if (hipCtxSetCurrent (m.context) != hipSuccess)
+    if (hipSetDevice (0) != hipSuccess)
     {
-        lastError = "HIP driver: hipCtxSetCurrent failed on pump thread";
+        lastError = "HIP: hipSetDevice failed on pump thread";
         ready = false;
         return false;
     }
@@ -377,8 +369,7 @@ bool HipFdnBackend::processBlock (const float* const* inputs, float* const* outp
 void HipFdnBackend::release() noexcept
 {
     auto& m = *impl;
-    if (m.context != nullptr)
-        hipCtxSetCurrent (m.context);
+    hipSetDevice (0);
 
     auto freeHost = [] (float*& p) { if (p) { hipHostFree (p); p = nullptr; } };
     auto freeDev  = [] (void*&  p) { if (p) { hipFree (p);     p = nullptr; } };
@@ -400,7 +391,6 @@ void HipFdnBackend::release() noexcept
     if (m.module != nullptr) { hipModuleUnload (m.module); m.module = nullptr; }
     m.kernel = nullptr;
 
-    if (m.context != nullptr) { hipDevicePrimaryCtxRelease (m.cuDevice); m.context = nullptr; }
     ready = false;
 }
 

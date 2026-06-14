@@ -17,7 +17,7 @@
 
     Threading note: prepare() runs on the engine-setup thread, but processBlock()
     runs on the GpuAsyncPipeline pump thread. HIP driver-API context currency is
-    per-thread, so processBlock() binds the primary context (hipCtxSetCurrent) at
+    per-thread, so processBlock() binds the device (hipSetDevice) at
     the top - cheap (a TLS write) and makes both the driver launch and the runtime
     copies use the same context on the pump thread.
 */
@@ -64,8 +64,6 @@ struct WfsParamsGpu
 
 struct HipWfsBackend::Impl
 {
-    hipCtx_t    context = nullptr;   // device primary context (retained)
-    hipDevice_t     cuDevice = 0;
     hipModule_t     module = nullptr;
     hipFunction_t   kernelPairs = nullptr;
     hipFunction_t   kernelReduce = nullptr;
@@ -154,7 +152,7 @@ bool HipWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,
     release();
     auto& m = *impl;
 
-    // 1) Pick device 0, report its name, derive the SM architecture.
+    // 1) Pick device 0; read its name + GFX arch (gcnArchName).
     int devCount = 0;
     CK_RT (hipGetDeviceCount (&devCount));
     if (devCount == 0)
@@ -169,12 +167,6 @@ bool HipWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,
     deviceName = std::string (prop.name) + " (HIP)";
     // hipRTC targets an AMD GFX arch by name (e.g. "gfx1103"), not an SM number.
     const std::string archName = prop.gcnArchName;
-
-    // 2) Init the driver API and retain the same primary context the runtime uses.
-    CK_DRV (hipInit (0));
-    CK_DRV (hipDeviceGet (&m.cuDevice, 0));
-    CK_DRV (hipDevicePrimaryCtxRetain (&m.context, m.cuDevice));
-    CK_DRV (hipCtxSetCurrent (m.context));
 
     // 3) hipRTC-compile the kernel string to a code object for this GPU's arch.
     {
@@ -330,11 +322,11 @@ bool HipWfsBackend::processBlock (const float* const* inputs, float* const* outp
     const float srScale = (float) (m.sampleRate / 1000.0);
     const float maxDelay = (float) m.maxDelaySamples;
 
-    // processBlock runs on the pump thread; bind the primary context here so
+    // processBlock runs on the pump thread; bind device 0 here so
     // both the driver launch and the runtime copies use it.
-    if (hipCtxSetCurrent (m.context) != hipSuccess)
+    if (hipSetDevice (0) != hipSuccess)
     {
-        lastError = "HIP driver: hipCtxSetCurrent failed on pump thread";
+        lastError = "HIP: hipSetDevice failed on pump thread";
         ready = false;
         return false;
     }
@@ -481,8 +473,7 @@ bool HipWfsBackend::processBlock (const float* const* inputs, float* const* outp
 void HipWfsBackend::reset() noexcept
 {
     auto& m = *impl;
-    if (m.context != nullptr)
-        hipCtxSetCurrent (m.context);
+    hipSetDevice (0);
     const size_t ringBytes = (size_t) m.numIn * m.ringCapacity * sizeof (float);
     const size_t stateBytes = (size_t) m.numIn * m.numOut * 4 * sizeof (float);
     if (m.dRing != nullptr && ringBytes > 0)
@@ -503,8 +494,7 @@ void HipWfsBackend::release() noexcept
 {
     auto& m = *impl;
 
-    if (m.context != nullptr)
-        hipCtxSetCurrent (m.context);
+    hipSetDevice (0);
 
     auto freeHost = [] (float*& p) { if (p != nullptr) { hipHostFree (p); p = nullptr; } };
     auto freeDev  = [] (void*&  p) { if (p != nullptr) { hipFree (p);     p = nullptr; } };
@@ -531,7 +521,6 @@ void HipWfsBackend::release() noexcept
     m.kernelPairs = nullptr;
     m.kernelReduce = nullptr;
 
-    if (m.context != nullptr) { hipDevicePrimaryCtxRelease (m.cuDevice); m.context = nullptr; }
 
     m.delaysMs = nullptr;
     m.gains = nullptr;
