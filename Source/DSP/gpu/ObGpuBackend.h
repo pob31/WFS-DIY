@@ -15,6 +15,9 @@
 #if defined(__APPLE__)
   #include "MetalObBackend.h"
   using ObGpuBackend = MetalObBackend;
+#elif defined(WFS_GPU_HIP)
+  #include "HipObBackend.h"
+  using ObGpuBackend = HipObBackend;
 #else
   #include "CudaObBackend.h"
   using ObGpuBackend = CudaObBackend;

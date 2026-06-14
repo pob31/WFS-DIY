@@ -1,61 +1,42 @@
 /*
-    CudaWfsBackend implementation.
+    HipWfsBackend implementation.
 
-    The kernel sources live in CudaWfsKernels.h as a string literal so the app
-    needs no .cu file and no nvcc build step; they are compiled at prepare()
-    time via NVRTC (~tens of ms once) into PTX, loaded with the CUDA Driver
-    API, and launched with cuLaunchKernel. Buffers and copies use the CUDA
-    Runtime API. Runtime + driver API share the device's primary context.
+    The kernel sources live in CudaWfsKernels.h as a string literal (shared
+    verbatim with the CUDA backend - the same CUDA-C source is valid HIP) so the
+    app needs no .hip file and no hipcc build step; they are compiled at
+    prepare() time via hipRTC (~tens of ms once) into a HIP code object, loaded
+    with the HIP module API, and launched with hipModuleLaunchKernel. Buffers and
+    copies use the HIP runtime API. Runtime + driver API share the device's
+    primary context.
 
-    Host-side processBlock mirrors MetalWfsBackend.mm exactly (matrix snapshot
-    with -L compensation, prev->curr ramp continuity, persistent device rings,
-    host-tracked ring advance), so the audible behaviour matches the Metal twin
-    and the CPU reference. Floor-Reflection host work (per-input pre-filter,
+    Host-side processBlock mirrors CudaWfsBackend / MetalWfsBackend exactly
+    (matrix snapshot with -L compensation, prev->curr ramp continuity, persistent
+    device rings, host-tracked ring advance), so the audible behaviour matches the
+    twins and the CPU reference. Floor-Reflection host work (per-input pre-filter,
     diffusion jitter, FR matrix snapshot) lives in the shared WfsFrHostState.
 
     Threading note: prepare() runs on the engine-setup thread, but processBlock()
-    runs on the GpuAsyncPipeline pump thread. CUDA driver-API context currency is
-    per-thread, so processBlock() binds the primary context (cuCtxSetCurrent) at
+    runs on the GpuAsyncPipeline pump thread. HIP driver-API context currency is
+    per-thread, so processBlock() binds the primary context (hipCtxSetCurrent) at
     the top - cheap (a TLS write) and makes both the driver launch and the runtime
     copies use the same context on the pump thread.
 */
 
 // This translation unit is in the shared file list for every exporter, but only
-// the Windows/NVIDIA build (WFS_GPU_NATIVE, non-Apple) pulls in the CUDA toolkit.
-// On macOS the Metal backend is used; on Linux the GPU path is off - either way
-// this compiles to an empty TU so cuda.h is never required there.
-#if WFS_GPU_NATIVE && !defined(__APPLE__) && !defined(WFS_GPU_HIP)
+// the Linux/AMD build (WFS_GPU_NATIVE, non-Apple, WFS_GPU_HIP) pulls in the ROCm
+// toolkit. On macOS the Metal backend is used; on Windows/NVIDIA the CUDA twin is;
+// otherwise this compiles to an empty TU so the hip headers are never required.
+#if WFS_GPU_NATIVE && !defined(__APPLE__) && defined(WFS_GPU_HIP)
 
-#include "CudaWfsBackend.h"
-#include "CudaWfsKernels.h"
+#include "HipWfsBackend.h"
+#include "CudaWfsKernels.h"   // kernel source shared with the CUDA backend (valid HIP)
 #include "WfsFrHostState.h"
 
-#include <cuda.h>           // driver API: CUcontext, cuModule*, cuLaunchKernel
-#include <cuda_runtime.h>   // runtime API: cudaMalloc, cudaHostAlloc, cudaMemcpyAsync, props
-#include <nvrtc.h>
+#include <hip/hip_runtime.h>   // HIP runtime + driver API (hipMalloc, hipModule*, hipModuleLaunchKernel, props)
+#include <hip/hiprtc.h>        // hipRTC: runtime kernel compilation
 
-// Projucer's externalLibraries field does not reach AdditionalDependencies for
-// this project (setupapi.lib is likewise linked via a pragma in hidapi), so link
-// the CUDA import libs here. libraryPath ($(CUDA_PATH)\lib\x64) is on the search
-// path via the .jucer, so the linker resolves these.
-#if defined(_MSC_VER)
- #pragma comment(lib, "cudart.lib")
- #pragma comment(lib, "nvrtc.lib")
- #pragma comment(lib, "cuda.lib")
-
- // The CUDA DLLs are DELAY-LOADED (the /DELAYLOAD flags live in the VS exporter's
- // extraLinkerFlags / the .vcxproj <Link><AdditionalOptions> -- the linker does
- // NOT honour /DELAYLOAD via #pragma comment(linker)). Without delay-load the
- // three DLLs sit in the exe's import table and the loader fails at startup when
- // nvcuda.dll is absent (AMD / Intel / no GPU), stranding CPU-only users.
- // Delay-loaded, they load only on first use: every GPU backend calls
- // cudaGetDeviceCount first -- cudart (shipped next to the exe) loads fine and
- // reports "no driver" gracefully, so the engine falls back to the CPU path;
- // nvcuda is only reached once a device is confirmed present. delayimp.lib
- // provides the delay-load helper (__delayLoadHelper2); the comment(lib) pragma
- // IS honoured, so it stays here next to the other CUDA libs.
- #pragma comment(lib, "delayimp.lib")
-#endif
+// Linux links the HIP libs via the .jucer externalLibraries (-lamdhip64 -lhiprtc);
+// no MSVC-style #pragma comment(lib, ...) is needed or honoured here.
 
 #include <algorithm>
 #include <chrono>
@@ -81,14 +62,14 @@ struct WfsParamsGpu
 };
 } // namespace
 
-struct CudaWfsBackend::Impl
+struct HipWfsBackend::Impl
 {
-    CUcontext    context = nullptr;   // device primary context (retained)
-    CUdevice     cuDevice = 0;
-    CUmodule     module = nullptr;
-    CUfunction   kernelPairs = nullptr;
-    CUfunction   kernelReduce = nullptr;
-    cudaStream_t stream = nullptr;
+    hipCtx_t    context = nullptr;   // device primary context (retained)
+    hipDevice_t     cuDevice = 0;
+    hipModule_t     module = nullptr;
+    hipFunction_t   kernelPairs = nullptr;
+    hipFunction_t   kernelReduce = nullptr;
+    hipStream_t stream = nullptr;
 
     // Pinned host staging.
     float* hIn = nullptr;
@@ -156,17 +137,17 @@ struct CudaWfsBackend::Impl
     unsigned int threadsPerBlock = 256;
 };
 
-CudaWfsBackend::CudaWfsBackend() : impl (std::make_unique<Impl>()) {}
-CudaWfsBackend::~CudaWfsBackend() { release(); }
+HipWfsBackend::HipWfsBackend() : impl (std::make_unique<Impl>()) {}
+HipWfsBackend::~HipWfsBackend() { release(); }
 
 // prepare()-only error helpers: set lastError, tear down, return false.
-#define CK_RT(call)  do { cudaError_t _e = (call); if (_e != cudaSuccess) { \
-    lastError = std::string ("CUDA runtime: ") + cudaGetErrorString (_e); release(); return false; } } while (0)
-#define CK_DRV(call) do { CUresult _e = (call); if (_e != CUDA_SUCCESS) { const char* _s = nullptr; \
-    cuGetErrorString (_e, &_s); lastError = std::string ("CUDA driver: ") + (_s ? _s : "unknown"); \
+#define CK_RT(call)  do { hipError_t _e = (call); if (_e != hipSuccess) { \
+    lastError = std::string ("HIP runtime: ") + hipGetErrorString (_e); release(); return false; } } while (0)
+#define CK_DRV(call) do { hipError_t _e = (call); if (_e != hipSuccess) { const char* _s = nullptr; \
+    hipDrvGetErrorString (_e, &_s); lastError = std::string ("HIP driver: ") + (_s ? _s : "unknown"); \
     release(); return false; } } while (0)
 
-bool CudaWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,
+bool HipWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,
                               double sampleRate, double pipelineLatencyMs,
                               double maxDelaySeconds)
 {
@@ -175,60 +156,61 @@ bool CudaWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,
 
     // 1) Pick device 0, report its name, derive the SM architecture.
     int devCount = 0;
-    CK_RT (cudaGetDeviceCount (&devCount));
+    CK_RT (hipGetDeviceCount (&devCount));
     if (devCount == 0)
     {
-        lastError = "No CUDA device available";
+        lastError = "No HIP device available";
         return false;
     }
-    CK_RT (cudaSetDevice (0));
+    CK_RT (hipSetDevice (0));
 
-    cudaDeviceProp prop;
-    CK_RT (cudaGetDeviceProperties (&prop, 0));
-    deviceName = std::string (prop.name) + " (CUDA)";
-    const int arch = prop.major * 10 + prop.minor; // e.g. Turing GTX 1650 -> 75
+    hipDeviceProp_t prop;
+    CK_RT (hipGetDeviceProperties (&prop, 0));
+    deviceName = std::string (prop.name) + " (HIP)";
+    // hipRTC targets an AMD GFX arch by name (e.g. "gfx1103"), not an SM number.
+    const std::string archName = prop.gcnArchName;
 
     // 2) Init the driver API and retain the same primary context the runtime uses.
-    CK_DRV (cuInit (0));
-    CK_DRV (cuDeviceGet (&m.cuDevice, 0));
-    CK_DRV (cuDevicePrimaryCtxRetain (&m.context, m.cuDevice));
-    CK_DRV (cuCtxSetCurrent (m.context));
+    CK_DRV (hipInit (0));
+    CK_DRV (hipDeviceGet (&m.cuDevice, 0));
+    CK_DRV (hipDevicePrimaryCtxRetain (&m.context, m.cuDevice));
+    CK_DRV (hipCtxSetCurrent (m.context));
 
-    // 3) NVRTC-compile the kernel string to PTX for this GPU's arch.
+    // 3) hipRTC-compile the kernel string to a code object for this GPU's arch.
     {
-        nvrtcProgram prog = nullptr;
-        if (nvrtcCreateProgram (&prog, kWfsDelaySumKernelSource, "wfs_delay_sum.cu", 0, nullptr, nullptr) != NVRTC_SUCCESS)
+        hiprtcProgram prog = nullptr;
+        if (hiprtcCreateProgram (&prog, kWfsDelaySumKernelSource, "wfs_delay_sum.cu", 0, nullptr, nullptr) != HIPRTC_SUCCESS)
         {
-            lastError = "NVRTC: program creation failed";
+            lastError = "hipRTC: program creation failed";
             release();
             return false;
         }
 
-        const std::string archOpt = "--gpu-architecture=compute_" + std::to_string (arch);
+        const std::string archOpt = "--offload-arch=" + archName;
         const char* opts[] = { archOpt.c_str() };
-        const nvrtcResult comp = nvrtcCompileProgram (prog, 1, opts);
-        if (comp != NVRTC_SUCCESS)
+        const hiprtcResult comp = hiprtcCompileProgram (prog, 1, opts);
+        if (comp != HIPRTC_SUCCESS)
         {
             size_t logSize = 0;
-            nvrtcGetProgramLogSize (prog, &logSize);
+            hiprtcGetProgramLogSize (prog, &logSize);
             std::string log (logSize, '\0');
             if (logSize > 0)
-                nvrtcGetProgramLog (prog, &log[0]);
-            lastError = std::string ("NVRTC compile failed: ") + log;
-            nvrtcDestroyProgram (&prog);
+                hiprtcGetProgramLog (prog, &log[0]);
+            lastError = std::string ("hipRTC compile failed: ") + log;
+            hiprtcDestroyProgram (&prog);
             release();
             return false;
         }
 
         size_t ptxSize = 0;
-        nvrtcGetPTXSize (prog, &ptxSize);
+        hiprtcGetCodeSize (prog, &ptxSize);
         std::vector<char> ptx (ptxSize);
-        nvrtcGetPTX (prog, ptx.data());
-        nvrtcDestroyProgram (&prog);
+        hiprtcGetCode (prog, ptx.data());
+        hiprtcDestroyProgram (&prog);
 
-        CK_DRV (cuModuleLoadDataEx (&m.module, ptx.data(), 0, nullptr, nullptr));
-        CK_DRV (cuModuleGetFunction (&m.kernelPairs, m.module, "wfs_pairs"));
-        CK_DRV (cuModuleGetFunction (&m.kernelReduce, m.module, "wfs_reduce"));
+        CK_DRV (hipModuleLoadDataEx (&m.module, ptx.data(), 0, nullptr, nullptr));
+        CK_DRV (hipModuleGetFunction (&m.kernelPairs, m.module, "wfs_pairs"));
+        CK_DRV (hipModuleGetFunction (&m.kernelReduce, m.module, "wfs_reduce"));
     }
 
     // 4) Geometry + sizing (identical to the Metal backend).
@@ -254,10 +236,10 @@ bool CudaWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,
     const uint32_t matrix = (uint32_t) (m.numIn * m.numOut);
 
     // 5) Stream + pinned host staging + device buffers (+ zero persistent state).
-    CK_RT (cudaStreamCreate (&m.stream));
+    CK_RT (hipStreamCreate (&m.stream));
 
     auto pin = [] (float** p, size_t n) {
-        return cudaHostAlloc ((void**) p, n * sizeof (float), cudaHostAllocDefault);
+        return hipHostMalloc ((void**) p, n * sizeof (float), hipHostMallocDefault);
     };
     CK_RT (pin (&m.hIn,   (size_t) m.numIn  * m.blockSize));
     CK_RT (pin (&m.hFrIn, (size_t) m.numIn  * m.blockSize));
@@ -273,29 +255,29 @@ bool CudaWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,
     CK_RT (pin (&m.hHfAttenDb,    matrix));
     CK_RT (pin (&m.hFrHfAttenDb,  matrix));
 
-    CK_RT (cudaMalloc (&m.dIn,   (size_t) m.numIn  * m.blockSize * sizeof (float)));
-    CK_RT (cudaMalloc (&m.dFrIn, (size_t) m.numIn  * m.blockSize * sizeof (float)));
-    CK_RT (cudaMalloc (&m.dOut,  (size_t) m.numOut * m.blockSize * sizeof (float)));
-    CK_RT (cudaMalloc (&m.dRing,   (size_t) m.numIn * m.ringCapacity * sizeof (float)));
-    CK_RT (cudaMalloc (&m.dFrRing, (size_t) m.numIn * m.ringCapacity * sizeof (float)));
-    CK_RT (cudaMalloc (&m.dScratch, (size_t) m.numIn * m.numOut * m.blockSize * sizeof (float)));
-    CK_RT (cudaMalloc (&m.dShelfState,   (size_t) matrix * 4 * sizeof (float)));
-    CK_RT (cudaMalloc (&m.dFrShelfState, (size_t) matrix * 4 * sizeof (float)));
-    CK_RT (cudaMalloc (&m.dDelaysPrev, matrix * sizeof (float)));
-    CK_RT (cudaMalloc (&m.dDelaysCurr, matrix * sizeof (float)));
-    CK_RT (cudaMalloc (&m.dGainsPrev,  matrix * sizeof (float)));
-    CK_RT (cudaMalloc (&m.dGainsCurr,  matrix * sizeof (float)));
-    CK_RT (cudaMalloc (&m.dFrDelaysPrev, matrix * sizeof (float)));
-    CK_RT (cudaMalloc (&m.dFrDelaysCurr, matrix * sizeof (float)));
-    CK_RT (cudaMalloc (&m.dFrGainsPrev,  matrix * sizeof (float)));
-    CK_RT (cudaMalloc (&m.dFrGainsCurr,  matrix * sizeof (float)));
-    CK_RT (cudaMalloc (&m.dHfAttenDb,    matrix * sizeof (float)));
-    CK_RT (cudaMalloc (&m.dFrHfAttenDb,  matrix * sizeof (float)));
+    CK_RT (hipMalloc (&m.dIn,   (size_t) m.numIn  * m.blockSize * sizeof (float)));
+    CK_RT (hipMalloc (&m.dFrIn, (size_t) m.numIn  * m.blockSize * sizeof (float)));
+    CK_RT (hipMalloc (&m.dOut,  (size_t) m.numOut * m.blockSize * sizeof (float)));
+    CK_RT (hipMalloc (&m.dRing,   (size_t) m.numIn * m.ringCapacity * sizeof (float)));
+    CK_RT (hipMalloc (&m.dFrRing, (size_t) m.numIn * m.ringCapacity * sizeof (float)));
+    CK_RT (hipMalloc (&m.dScratch, (size_t) m.numIn * m.numOut * m.blockSize * sizeof (float)));
+    CK_RT (hipMalloc (&m.dShelfState,   (size_t) matrix * 4 * sizeof (float)));
+    CK_RT (hipMalloc (&m.dFrShelfState, (size_t) matrix * 4 * sizeof (float)));
+    CK_RT (hipMalloc (&m.dDelaysPrev, matrix * sizeof (float)));
+    CK_RT (hipMalloc (&m.dDelaysCurr, matrix * sizeof (float)));
+    CK_RT (hipMalloc (&m.dGainsPrev,  matrix * sizeof (float)));
+    CK_RT (hipMalloc (&m.dGainsCurr,  matrix * sizeof (float)));
+    CK_RT (hipMalloc (&m.dFrDelaysPrev, matrix * sizeof (float)));
+    CK_RT (hipMalloc (&m.dFrDelaysCurr, matrix * sizeof (float)));
+    CK_RT (hipMalloc (&m.dFrGainsPrev,  matrix * sizeof (float)));
+    CK_RT (hipMalloc (&m.dFrGainsCurr,  matrix * sizeof (float)));
+    CK_RT (hipMalloc (&m.dHfAttenDb,    matrix * sizeof (float)));
+    CK_RT (hipMalloc (&m.dFrHfAttenDb,  matrix * sizeof (float)));
 
-    CK_RT (cudaMemset (m.dRing,   0, (size_t) m.numIn * m.ringCapacity * sizeof (float)));
-    CK_RT (cudaMemset (m.dFrRing, 0, (size_t) m.numIn * m.ringCapacity * sizeof (float)));
-    CK_RT (cudaMemset (m.dShelfState,   0, (size_t) matrix * 4 * sizeof (float)));
-    CK_RT (cudaMemset (m.dFrShelfState, 0, (size_t) matrix * 4 * sizeof (float)));
+    CK_RT (hipMemset (m.dRing,   0, (size_t) m.numIn * m.ringCapacity * sizeof (float)));
+    CK_RT (hipMemset (m.dFrRing, 0, (size_t) m.numIn * m.ringCapacity * sizeof (float)));
+    CK_RT (hipMemset (m.dShelfState,   0, (size_t) matrix * 4 * sizeof (float)));
+    CK_RT (hipMemset (m.dFrShelfState, 0, (size_t) matrix * 4 * sizeof (float)));
 
     m.delaysPrevSamples.assign (matrix, 0.0f);
     m.gainsPrev.assign (matrix, 0.0f);
@@ -309,7 +291,7 @@ bool CudaWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,
     return true;
 }
 
-void CudaWfsBackend::setMatrixPointers (const float* delaysMsPtr, const float* gainsPtr,
+void HipWfsBackend::setMatrixPointers (const float* delaysMsPtr, const float* gainsPtr,
                                         const float* hfAttenDbPtr,
                                         const float* frDelaysMsPtr,
                                         const float* frLevelsPtr,
@@ -323,7 +305,7 @@ void CudaWfsBackend::setMatrixPointers (const float* delaysMsPtr, const float* g
     impl->frHfAttenDb = frHfAttenDbPtr;
 }
 
-void CudaWfsBackend::setFRFilterParams (int inputIndex,
+void HipWfsBackend::setFRFilterParams (int inputIndex,
                                         bool lowCutActive, float lowCutFreq,
                                         bool highShelfActive, float highShelfFreq,
                                         float highShelfGain, float highShelfSlope) noexcept
@@ -333,12 +315,12 @@ void CudaWfsBackend::setFRFilterParams (int inputIndex,
                                     highShelfGain, highShelfSlope);
 }
 
-void CudaWfsBackend::setFRDiffusion (int inputIndex, float diffusionPercent) noexcept
+void HipWfsBackend::setFRDiffusion (int inputIndex, float diffusionPercent) noexcept
 {
     impl->frHost.setFRDiffusion (inputIndex, diffusionPercent);
 }
 
-bool CudaWfsBackend::processBlock (const float* const* inputs, float* const* outputs)
+bool HipWfsBackend::processBlock (const float* const* inputs, float* const* outputs)
 {
     if (! ready)
         return false;
@@ -350,9 +332,9 @@ bool CudaWfsBackend::processBlock (const float* const* inputs, float* const* out
 
     // processBlock runs on the pump thread; bind the primary context here so
     // both the driver launch and the runtime copies use it.
-    if (cuCtxSetCurrent (m.context) != CUDA_SUCCESS)
+    if (hipCtxSetCurrent (m.context) != hipSuccess)
     {
-        lastError = "CUDA driver: cuCtxSetCurrent failed on pump thread";
+        lastError = "HIP driver: hipCtxSetCurrent failed on pump thread";
         ready = false;
         return false;
     }
@@ -411,11 +393,11 @@ bool CudaWfsBackend::processBlock (const float* const* inputs, float* const* out
     m.frHost.filterBlock (inputs, m.hFrIn, m.blockSize);
 
     // Host -> device (the persistent rings + shelf states stay on the device).
-#define PB_RT(call) do { cudaError_t _e = (call); if (_e != cudaSuccess) { \
-    lastError = std::string ("CUDA runtime: ") + cudaGetErrorString (_e); ready = false; return false; } } while (0)
+#define PB_RT(call) do { hipError_t _e = (call); if (_e != hipSuccess) { \
+    lastError = std::string ("HIP runtime: ") + hipGetErrorString (_e); ready = false; return false; } } while (0)
 
     auto up = [&m] (void* dst, const float* src, size_t floats) {
-        return cudaMemcpyAsync (dst, src, floats * sizeof (float), cudaMemcpyHostToDevice, m.stream);
+        return hipMemcpyAsync (dst, src, floats * sizeof (float), hipMemcpyHostToDevice, m.stream);
     };
     PB_RT (up (m.dIn,   m.hIn,   (size_t) m.numIn * m.blockSize));
     PB_RT (up (m.dFrIn, m.hFrIn, (size_t) m.numIn * m.blockSize));
@@ -442,16 +424,16 @@ bool CudaWfsBackend::processBlock (const float* const* inputs, float* const* out
 
     // K1: pair role + both ring appends.
     const unsigned int gridPairs = m.pairGroups + 2u * (unsigned int) m.numIn;
-    CUresult lr = cuLaunchKernel (m.kernelPairs,
+    hipError_t lr = hipModuleLaunchKernel (m.kernelPairs,
                                   gridPairs, 1, 1,
                                   m.threadsPerBlock, 1, 1,
-                                  0, (CUstream) m.stream,
+                                  0, (hipStream_t) m.stream,
                                   pairsArgs, nullptr);
-    if (lr != CUDA_SUCCESS)
+    if (lr != hipSuccess)
     {
         const char* s = nullptr;
-        cuGetErrorString (lr, &s);
-        lastError = std::string ("CUDA launch failed (pairs): ") + (s ? s : "unknown");
+        hipDrvGetErrorString (lr, &s);
+        lastError = std::string ("HIP launch failed (pairs): ") + (s ? s : "unknown");
         ready = false;
         return false;
     }
@@ -459,22 +441,22 @@ bool CudaWfsBackend::processBlock (const float* const* inputs, float* const* out
     // K2: deterministic per-output reduction over the scratch (stream-ordered
     // after K1).
     void* reduceArgs[] = { &p, &m.dScratch, &m.dOut };
-    lr = cuLaunchKernel (m.kernelReduce,
+    lr = hipModuleLaunchKernel (m.kernelReduce,
                          (unsigned int) m.numOut, 1, 1,
                          m.threadsPerBlock, 1, 1,
-                         0, (CUstream) m.stream,
+                         0, (hipStream_t) m.stream,
                          reduceArgs, nullptr);
-    if (lr != CUDA_SUCCESS)
+    if (lr != hipSuccess)
     {
         const char* s = nullptr;
-        cuGetErrorString (lr, &s);
-        lastError = std::string ("CUDA launch failed (reduce): ") + (s ? s : "unknown");
+        hipDrvGetErrorString (lr, &s);
+        lastError = std::string ("HIP launch failed (reduce): ") + (s ? s : "unknown");
         ready = false;
         return false;
     }
 
-    PB_RT (cudaMemcpyAsync (m.hOut, m.dOut, (size_t) m.numOut * m.blockSize * sizeof (float), cudaMemcpyDeviceToHost, m.stream));
-    PB_RT (cudaStreamSynchronize (m.stream));
+    PB_RT (hipMemcpyAsync (m.hOut, m.dOut, (size_t) m.numOut * m.blockSize * sizeof (float), hipMemcpyDeviceToHost, m.stream));
+    PB_RT (hipStreamSynchronize (m.stream));
 
 #undef PB_RT
 
@@ -496,36 +478,36 @@ bool CudaWfsBackend::processBlock (const float* const* inputs, float* const* out
     return true;
 }
 
-void CudaWfsBackend::reset() noexcept
+void HipWfsBackend::reset() noexcept
 {
     auto& m = *impl;
     if (m.context != nullptr)
-        cuCtxSetCurrent (m.context);
+        hipCtxSetCurrent (m.context);
     const size_t ringBytes = (size_t) m.numIn * m.ringCapacity * sizeof (float);
     const size_t stateBytes = (size_t) m.numIn * m.numOut * 4 * sizeof (float);
     if (m.dRing != nullptr && ringBytes > 0)
-        cudaMemset (m.dRing, 0, ringBytes);
+        hipMemset (m.dRing, 0, ringBytes);
     if (m.dFrRing != nullptr && ringBytes > 0)
-        cudaMemset (m.dFrRing, 0, ringBytes);
+        hipMemset (m.dFrRing, 0, ringBytes);
     if (m.dShelfState != nullptr && stateBytes > 0)
-        cudaMemset (m.dShelfState, 0, stateBytes);
+        hipMemset (m.dShelfState, 0, stateBytes);
     if (m.dFrShelfState != nullptr && stateBytes > 0)
-        cudaMemset (m.dFrShelfState, 0, stateBytes);
+        hipMemset (m.dFrShelfState, 0, stateBytes);
     m.frHost.reset();
     m.ringWritePos = 0;
     m.ringValid = 0;
     m.havePrev = false;
 }
 
-void CudaWfsBackend::release() noexcept
+void HipWfsBackend::release() noexcept
 {
     auto& m = *impl;
 
     if (m.context != nullptr)
-        cuCtxSetCurrent (m.context);
+        hipCtxSetCurrent (m.context);
 
-    auto freeHost = [] (float*& p) { if (p != nullptr) { cudaFreeHost (p); p = nullptr; } };
-    auto freeDev  = [] (void*&  p) { if (p != nullptr) { cudaFree (p);     p = nullptr; } };
+    auto freeHost = [] (float*& p) { if (p != nullptr) { hipHostFree (p); p = nullptr; } };
+    auto freeDev  = [] (void*&  p) { if (p != nullptr) { hipFree (p);     p = nullptr; } };
 
     freeHost (m.hIn);  freeHost (m.hFrIn);  freeHost (m.hOut);
     freeHost (m.hDelaysPrev); freeHost (m.hDelaysCurr);
@@ -544,12 +526,12 @@ void CudaWfsBackend::release() noexcept
     freeDev (m.dFrGainsPrev);  freeDev (m.dFrGainsCurr);
     freeDev (m.dHfAttenDb);    freeDev (m.dFrHfAttenDb);
 
-    if (m.stream != nullptr) { cudaStreamDestroy (m.stream); m.stream = nullptr; }
-    if (m.module != nullptr) { cuModuleUnload (m.module); m.module = nullptr; }
+    if (m.stream != nullptr) { hipStreamDestroy (m.stream); m.stream = nullptr; }
+    if (m.module != nullptr) { hipModuleUnload (m.module); m.module = nullptr; }
     m.kernelPairs = nullptr;
     m.kernelReduce = nullptr;
 
-    if (m.context != nullptr) { cuDevicePrimaryCtxRelease (m.cuDevice); m.context = nullptr; }
+    if (m.context != nullptr) { hipDevicePrimaryCtxRelease (m.cuDevice); m.context = nullptr; }
 
     m.delaysMs = nullptr;
     m.gains = nullptr;

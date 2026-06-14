@@ -13,6 +13,9 @@
 #if defined(__APPLE__)
   #include "MetalFdnBackend.h"
   using FdnGpuBackend = MetalFdnBackend;
+#elif defined(WFS_GPU_HIP)
+  #include "HipFdnBackend.h"
+  using FdnGpuBackend = HipFdnBackend;
 #else
   #include "CudaFdnBackend.h"
   using FdnGpuBackend = CudaFdnBackend;

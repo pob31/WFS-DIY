@@ -1,9 +1,9 @@
 /*
-    CudaIrBackend implementation.
+    HipIrBackend implementation.
 
     The kernel source lives in CudaIrKernels.h as a string literal, compiled
     at prepare() time via NVRTC into PTX, loaded with the CUDA Driver API and
-    launched with cuLaunchKernel; buffers and copies use the Runtime API on a
+    launched with hipModuleLaunchKernel; buffers and copies use the Runtime API on a
     private stream — the exact pattern of CudaWfsBackend.cpp.
 
     Host-side behaviour mirrors MetalIrBackend.mm via the shared
@@ -25,15 +25,15 @@
 
 // Only the Windows/NVIDIA build pulls in the CUDA toolkit; on macOS the Metal
 // backend is used and this compiles to an empty TU (same as CudaWfsBackend).
-#if WFS_GPU_NATIVE && !defined(__APPLE__) && !defined(WFS_GPU_HIP)
+#if WFS_GPU_NATIVE && !defined(__APPLE__) && defined(WFS_GPU_HIP)
 
-#include "CudaIrBackend.h"
+#include "HipIrBackend.h"
 #include "CudaIrKernels.h"
 #include "IrConvHostState.h"
 
-#include <cuda.h>           // driver API: CUcontext, cuModule*, cuLaunchKernel
-#include <cuda_runtime.h>   // runtime API: cudaMalloc, cudaHostAlloc, cudaMemcpyAsync
-#include <nvrtc.h>
+#include <hip/hip_runtime.h>           // driver API: hipCtx_t, cuModule*, hipModuleLaunchKernel
+#include <hip/hip_runtime.h>   // runtime API: hipMalloc, hipHostMalloc, hipMemcpyAsync
+#include <hip/hiprtc.h>
 
 // Same linkage approach as CudaWfsBackend.cpp (Projucer's externalLibraries
 // does not reach AdditionalDependencies for this project).
@@ -65,13 +65,13 @@ struct IrParamsGpu
 constexpr int kIrSegmentsPerLaunch = 64;
 } // namespace
 
-struct CudaIrBackend::Impl
+struct HipIrBackend::Impl
 {
-    CUcontext    context = nullptr;   // device primary context (retained)
-    CUdevice     cuDevice = 0;
-    CUmodule     module = nullptr;
-    CUfunction   kernelMac = nullptr;
-    cudaStream_t stream = nullptr;
+    hipCtx_t    context = nullptr;   // device primary context (retained)
+    hipDevice_t     cuDevice = 0;
+    hipModule_t     module = nullptr;
+    hipFunction_t   kernelMac = nullptr;
+    hipStream_t stream = nullptr;
 
     // Pinned host staging.
     float* hIrSpectra = nullptr;   // [segCapacity][fftLen]
@@ -89,17 +89,17 @@ struct CudaIrBackend::Impl
     IrConvHostState host;
 };
 
-CudaIrBackend::CudaIrBackend() : impl (std::make_unique<Impl>()) {}
-CudaIrBackend::~CudaIrBackend() { release(); }
+HipIrBackend::HipIrBackend() : impl (std::make_unique<Impl>()) {}
+HipIrBackend::~HipIrBackend() { release(); }
 
 // prepare()-only error helpers: set lastError, tear down, return false.
-#define CK_RT(call)  do { cudaError_t _e = (call); if (_e != cudaSuccess) { \
-    lastError = std::string ("CUDA runtime: ") + cudaGetErrorString (_e); release(); return false; } } while (0)
-#define CK_DRV(call) do { CUresult _e = (call); if (_e != CUDA_SUCCESS) { const char* _s = nullptr; \
-    cuGetErrorString (_e, &_s); lastError = std::string ("CUDA driver: ") + (_s ? _s : "unknown"); \
+#define CK_RT(call)  do { hipError_t _e = (call); if (_e != hipSuccess) { \
+    lastError = std::string ("HIP runtime: ") + hipGetErrorString (_e); release(); return false; } } while (0)
+#define CK_DRV(call) do { hipError_t _e = (call); if (_e != hipSuccess) { const char* _s = nullptr; \
+    hipDrvGetErrorString (_e, &_s); lastError = std::string ("HIP driver: ") + (_s ? _s : "unknown"); \
     release(); return false; } } while (0)
 
-bool CudaIrBackend::prepare (int numNodes, int blockSize,
+bool HipIrBackend::prepare (int numNodes, int blockSize,
                              double sampleRate, int maxIrSamples)
 {
     release();
@@ -114,18 +114,18 @@ bool CudaIrBackend::prepare (int numNodes, int blockSize,
 
     // 1) Pick device 0, report its name, derive the SM architecture.
     int devCount = 0;
-    CK_RT (cudaGetDeviceCount (&devCount));
+    CK_RT (hipGetDeviceCount (&devCount));
     if (devCount == 0)
     {
-        lastError = "No CUDA device available";
+        lastError = "No HIP device available";
         return false;
     }
-    CK_RT (cudaSetDevice (0));
+    CK_RT (hipSetDevice (0));
 
-    cudaDeviceProp prop;
-    CK_RT (cudaGetDeviceProperties (&prop, 0));
-    deviceName = std::string (prop.name) + " (CUDA)";
-    const int arch = prop.major * 10 + prop.minor;
+    hipDeviceProp_t prop;
+    CK_RT (hipGetDeviceProperties (&prop, 0));
+    deviceName = std::string (prop.name) + " (HIP)";
+    const std::string archName = prop.gcnArchName;
 
     if (blockSize > prop.maxThreadsPerBlock)
     {
@@ -134,45 +134,45 @@ bool CudaIrBackend::prepare (int numNodes, int blockSize,
     }
 
     // 2) Init the driver API and retain the primary context the runtime uses.
-    CK_DRV (cuInit (0));
-    CK_DRV (cuDeviceGet (&m.cuDevice, 0));
-    CK_DRV (cuDevicePrimaryCtxRetain (&m.context, m.cuDevice));
-    CK_DRV (cuCtxSetCurrent (m.context));
+    CK_DRV (hipInit (0));
+    CK_DRV (hipDeviceGet (&m.cuDevice, 0));
+    CK_DRV (hipDevicePrimaryCtxRetain (&m.context, m.cuDevice));
+    CK_DRV (hipCtxSetCurrent (m.context));
 
     // 3) NVRTC-compile the kernel string to PTX for this GPU's arch.
     {
-        nvrtcProgram prog = nullptr;
-        if (nvrtcCreateProgram (&prog, kIrFdlMacKernelSource, "ir_fdl_mac.cu", 0, nullptr, nullptr) != NVRTC_SUCCESS)
+        hiprtcProgram prog = nullptr;
+        if (hiprtcCreateProgram (&prog, kIrFdlMacKernelSource, "ir_fdl_mac.cu", 0, nullptr, nullptr) != HIPRTC_SUCCESS)
         {
-            lastError = "NVRTC: program creation failed";
+            lastError = "hipRTC: program creation failed";
             release();
             return false;
         }
 
-        const std::string archOpt = "--gpu-architecture=compute_" + std::to_string (arch);
+        const std::string archOpt = "--offload-arch=" + archName;
         const char* opts[] = { archOpt.c_str() };
-        const nvrtcResult comp = nvrtcCompileProgram (prog, 1, opts);
-        if (comp != NVRTC_SUCCESS)
+        const hiprtcResult comp = hiprtcCompileProgram (prog, 1, opts);
+        if (comp != HIPRTC_SUCCESS)
         {
             size_t logSize = 0;
-            nvrtcGetProgramLogSize (prog, &logSize);
+            hiprtcGetProgramLogSize (prog, &logSize);
             std::string log (logSize, '\0');
             if (logSize > 0)
-                nvrtcGetProgramLog (prog, &log[0]);
-            lastError = std::string ("NVRTC compile failed: ") + log;
-            nvrtcDestroyProgram (&prog);
+                hiprtcGetProgramLog (prog, &log[0]);
+            lastError = std::string ("hipRTC compile failed: ") + log;
+            hiprtcDestroyProgram (&prog);
             release();
             return false;
         }
 
         size_t ptxSize = 0;
-        nvrtcGetPTXSize (prog, &ptxSize);
+        hiprtcGetCodeSize (prog, &ptxSize);
         std::vector<char> ptx (ptxSize);
-        nvrtcGetPTX (prog, ptx.data());
-        nvrtcDestroyProgram (&prog);
+        hiprtcGetCode (prog, ptx.data());
+        hiprtcDestroyProgram (&prog);
 
-        CK_DRV (cuModuleLoadDataEx (&m.module, ptx.data(), 0, nullptr, nullptr));
-        CK_DRV (cuModuleGetFunction (&m.kernelMac, m.module, "ir_fdl_mac"));
+        CK_DRV (hipModuleLoadDataEx (&m.module, ptx.data(), 0, nullptr, nullptr));
+        CK_DRV (hipModuleGetFunction (&m.kernelMac, m.module, "ir_fdl_mac"));
     }
 
     // 4) Geometry + buffers.
@@ -182,21 +182,21 @@ bool CudaIrBackend::prepare (int numNodes, int blockSize,
     m.sampleRate = sampleRate;
     const size_t segCap = (size_t) m.host.getSegCapacity();
 
-    CK_RT (cudaStreamCreate (&m.stream));
+    CK_RT (hipStreamCreate (&m.stream));
 
     auto pin = [] (float** p, size_t n) {
-        return cudaHostAlloc ((void**) p, n * sizeof (float), cudaHostAllocDefault);
+        return hipHostMalloc ((void**) p, n * sizeof (float), hipHostMallocDefault);
     };
     CK_RT (pin (&m.hIrSpectra, segCap * (size_t) m.fftLen));
     CK_RT (pin (&m.hInSpectra, (size_t) m.numNodes * (size_t) m.fftLen));
     CK_RT (pin (&m.hOutSpectra, (size_t) m.numNodes * (size_t) m.fftLen));
 
-    CK_RT (cudaMalloc (&m.dIrSpectra, segCap * (size_t) m.fftLen * sizeof (float)));
-    CK_RT (cudaMalloc (&m.dInSpectra, (size_t) m.numNodes * segCap * (size_t) m.fftLen * sizeof (float)));
-    CK_RT (cudaMalloc (&m.dOutSpectra, (size_t) m.numNodes * (size_t) m.fftLen * sizeof (float)));
+    CK_RT (hipMalloc (&m.dIrSpectra, segCap * (size_t) m.fftLen * sizeof (float)));
+    CK_RT (hipMalloc (&m.dInSpectra, (size_t) m.numNodes * segCap * (size_t) m.fftLen * sizeof (float)));
+    CK_RT (hipMalloc (&m.dOutSpectra, (size_t) m.numNodes * (size_t) m.fftLen * sizeof (float)));
 
     // Unwritten ring slots must read as silence history.
-    CK_RT (cudaMemset (m.dInSpectra, 0,
+    CK_RT (hipMemset (m.dInSpectra, 0,
                        (size_t) m.numNodes * segCap * (size_t) m.fftLen * sizeof (float)));
 
     ready = true;
@@ -204,20 +204,20 @@ bool CudaIrBackend::prepare (int numNodes, int blockSize,
     return true;
 }
 
-void CudaIrBackend::stageIr (const float* monoIr, int numSamples)
+void HipIrBackend::stageIr (const float* monoIr, int numSamples)
 {
     impl->host.stageIr (monoIr, numSamples);
 }
 
-void CudaIrBackend::requestReset() noexcept
+void HipIrBackend::requestReset() noexcept
 {
     impl->host.requestReset();
 }
 
-int CudaIrBackend::getSegmentsLoaded() const noexcept { return impl->host.getSegmentsLoaded(); }
-int CudaIrBackend::getSegmentsTotal() const noexcept  { return impl->host.getSegmentsTotal(); }
+int HipIrBackend::getSegmentsLoaded() const noexcept { return impl->host.getSegmentsLoaded(); }
+int HipIrBackend::getSegmentsTotal() const noexcept  { return impl->host.getSegmentsTotal(); }
 
-bool CudaIrBackend::processBlock (const float* const* inputs, float* const* outputs)
+bool HipIrBackend::processBlock (const float* const* inputs, float* const* outputs)
 {
     if (! ready)
         return false;
@@ -225,9 +225,9 @@ bool CudaIrBackend::processBlock (const float* const* inputs, float* const* outp
     auto& m = *impl;
 
     // processBlock runs on the pump thread; bind the primary context here.
-    if (cuCtxSetCurrent (m.context) != CUDA_SUCCESS)
+    if (hipCtxSetCurrent (m.context) != hipSuccess)
     {
-        lastError = "CUDA driver: cuCtxSetCurrent failed on pump thread";
+        lastError = "HIP driver: hipCtxSetCurrent failed on pump thread";
         ready = false;
         return false;
     }
@@ -236,11 +236,11 @@ bool CudaIrBackend::processBlock (const float* const* inputs, float* const* outp
     const size_t segCap = (size_t) m.host.getSegCapacity();
     const size_t specBytes = (size_t) m.fftLen * sizeof (float);
 
-#define PB_RT(call) do { cudaError_t _e = (call); if (_e != cudaSuccess) { \
-    lastError = std::string ("CUDA runtime: ") + cudaGetErrorString (_e); ready = false; return false; } } while (0)
+#define PB_RT(call) do { hipError_t _e = (call); if (_e != hipSuccess) { \
+    lastError = std::string ("HIP runtime: ") + hipGetErrorString (_e); ready = false; return false; } } while (0)
 
     if (m.host.consumeResetRequest())
-        PB_RT (cudaMemsetAsync (m.dInSpectra, 0,
+        PB_RT (hipMemsetAsync (m.dInSpectra, 0,
                                 (size_t) m.numNodes * segCap * specBytes, m.stream));
 
     // Progressive IR load: FFT a budgeted batch into the pinned staging and
@@ -250,10 +250,10 @@ bool CudaIrBackend::processBlock (const float* const* inputs, float* const* outp
         const int before = m.host.getSegmentsLoaded();
         const int written = m.host.loadMoreSegments (m.hIrSpectra, kIrSegmentsPerLaunch);
         if (written > 0)
-            PB_RT (cudaMemcpyAsync ((char*) m.dIrSpectra + (size_t) before * specBytes,
+            PB_RT (hipMemcpyAsync ((char*) m.dIrSpectra + (size_t) before * specBytes,
                                     m.hIrSpectra + (size_t) before * (size_t) m.fftLen,
                                     (size_t) written * specBytes,
-                                    cudaMemcpyHostToDevice, m.stream));
+                                    hipMemcpyHostToDevice, m.stream));
     }
 
     // Newest input spectra -> pinned staging -> one strided 2D copy into each
@@ -263,17 +263,17 @@ bool CudaIrBackend::processBlock (const float* const* inputs, float* const* outp
     for (int node = 0; node < m.numNodes; ++node)
         m.host.transformInput (inputs[node],
                                m.hInSpectra + (size_t) node * (size_t) m.fftLen);
-    PB_RT (cudaMemcpy2DAsync ((char*) m.dInSpectra + head * specBytes,
+    PB_RT (hipMemcpy2DAsync ((char*) m.dInSpectra + head * specBytes,
                               segCap * specBytes,
                               m.hInSpectra, specBytes,
                               specBytes, (size_t) m.numNodes,
-                              cudaMemcpyHostToDevice, m.stream));
+                              hipMemcpyHostToDevice, m.stream));
 
     // No IR yet: wet output is silence, but the ring copy above still has to
     // land before the pinned staging is reused next launch.
     if (m.host.getSegmentsLoaded() == 0)
     {
-        PB_RT (cudaStreamSynchronize (m.stream));
+        PB_RT (hipStreamSynchronize (m.stream));
         for (int node = 0; node < m.numNodes; ++node)
             if (outputs[node] != nullptr)
                 std::memset (outputs[node], 0, (size_t) m.blockSize * sizeof (float));
@@ -287,24 +287,24 @@ bool CudaIrBackend::processBlock (const float* const* inputs, float* const* outp
                     (uint32_t) head };
 
     void* args[] = { &p, &m.dIrSpectra, &m.dInSpectra, &m.dOutSpectra };
-    const CUresult lr = cuLaunchKernel (m.kernelMac,
+    const hipError_t lr = hipModuleLaunchKernel (m.kernelMac,
                                         (unsigned int) m.numNodes, 1, 1,
                                         (unsigned int) m.blockSize, 1, 1,
-                                        0, (CUstream) m.stream,
+                                        0, (hipStream_t) m.stream,
                                         args, nullptr);
-    if (lr != CUDA_SUCCESS)
+    if (lr != hipSuccess)
     {
         const char* s = nullptr;
-        cuGetErrorString (lr, &s);
-        lastError = std::string ("CUDA launch failed (ir_fdl_mac): ") + (s ? s : "unknown");
+        hipDrvGetErrorString (lr, &s);
+        lastError = std::string ("HIP launch failed (ir_fdl_mac): ") + (s ? s : "unknown");
         ready = false;
         return false;
     }
 
-    PB_RT (cudaMemcpyAsync (m.hOutSpectra, m.dOutSpectra,
+    PB_RT (hipMemcpyAsync (m.hOutSpectra, m.dOutSpectra,
                             (size_t) m.numNodes * specBytes,
-                            cudaMemcpyDeviceToHost, m.stream));
-    PB_RT (cudaStreamSynchronize (m.stream));
+                            hipMemcpyDeviceToHost, m.stream));
+    PB_RT (hipStreamSynchronize (m.stream));
 
 #undef PB_RT
 
@@ -320,24 +320,24 @@ bool CudaIrBackend::processBlock (const float* const* inputs, float* const* outp
     return true;
 }
 
-void CudaIrBackend::release() noexcept
+void HipIrBackend::release() noexcept
 {
     auto& m = *impl;
 
     if (m.context != nullptr)
-        cuCtxSetCurrent (m.context);
+        hipCtxSetCurrent (m.context);
 
-    auto freeHost = [] (float*& p) { if (p != nullptr) { cudaFreeHost (p); p = nullptr; } };
-    auto freeDev  = [] (void*&  p) { if (p != nullptr) { cudaFree (p);     p = nullptr; } };
+    auto freeHost = [] (float*& p) { if (p != nullptr) { hipHostFree (p); p = nullptr; } };
+    auto freeDev  = [] (void*&  p) { if (p != nullptr) { hipFree (p);     p = nullptr; } };
 
     freeHost (m.hIrSpectra); freeHost (m.hInSpectra); freeHost (m.hOutSpectra);
     freeDev (m.dIrSpectra); freeDev (m.dInSpectra); freeDev (m.dOutSpectra);
 
-    if (m.stream != nullptr) { cudaStreamDestroy (m.stream); m.stream = nullptr; }
-    if (m.module != nullptr) { cuModuleUnload (m.module); m.module = nullptr; }
+    if (m.stream != nullptr) { hipStreamDestroy (m.stream); m.stream = nullptr; }
+    if (m.module != nullptr) { hipModuleUnload (m.module); m.module = nullptr; }
     m.kernelMac = nullptr;
 
-    if (m.context != nullptr) { cuDevicePrimaryCtxRelease (m.cuDevice); m.context = nullptr; }
+    if (m.context != nullptr) { hipDevicePrimaryCtxRelease (m.cuDevice); m.context = nullptr; }
 
     ready = false;
 }

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="k6c2zA" name="WFS-DIY" projectType="guiapp" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="1.0.0beta24"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="1.0.0beta25"
               bundleIdentifier="com.wfsdiy.app" companyEmail="contact@pixetbel.org"
               companyName="Pix et Bel" companyWebsite="wfs-diy.net"
               microphonePermissionNeeded="1"
@@ -379,6 +379,10 @@
               file="Source/DSP/gpu/CudaWfsBackend.cpp"/>
         <FILE id="cudaKrnl" name="CudaWfsKernels.h" compile="0" resource="0"
               file="Source/DSP/gpu/CudaWfsKernels.h"/>
+        <FILE id="hipBakH" name="HipWfsBackend.h" compile="0" resource="0"
+              file="Source/DSP/gpu/HipWfsBackend.h"/>
+        <FILE id="hipBakC" name="HipWfsBackend.cpp" compile="1" resource="0"
+              file="Source/DSP/gpu/HipWfsBackend.cpp"/>
         <FILE id="gpuFrHost" name="WfsFrHostState.h" compile="0" resource="0"
               file="Source/DSP/gpu/WfsFrHostState.h"/>
         <FILE id="obGpuAlgo" name="NativeGpuOutputBufferAlgorithm.h" compile="0" resource="0"
@@ -397,6 +401,10 @@
               file="Source/DSP/gpu/CudaObBackend.cpp"/>
         <FILE id="obCudaKrnl" name="CudaObKernels.h" compile="0" resource="0"
               file="Source/DSP/gpu/CudaObKernels.h"/>
+        <FILE id="obHipBakH" name="HipObBackend.h" compile="0" resource="0"
+              file="Source/DSP/gpu/HipObBackend.h"/>
+        <FILE id="obHipBakC" name="HipObBackend.cpp" compile="1" resource="0"
+              file="Source/DSP/gpu/HipObBackend.cpp"/>
         <FILE id="irHostFft" name="IrHostFft.h" compile="0" resource="0"
               file="Source/DSP/gpu/IrHostFft.h"/>
         <FILE id="irConvHost" name="IrConvHostState.h" compile="0" resource="0"
@@ -413,6 +421,10 @@
               file="Source/DSP/gpu/CudaIrBackend.cpp"/>
         <FILE id="irCudaKrnl" name="CudaIrKernels.h" compile="0" resource="0"
               file="Source/DSP/gpu/CudaIrKernels.h"/>
+        <FILE id="irHipBakH" name="HipIrBackend.h" compile="0" resource="0"
+              file="Source/DSP/gpu/HipIrBackend.h"/>
+        <FILE id="irHipBakC" name="HipIrBackend.cpp" compile="1" resource="0"
+              file="Source/DSP/gpu/HipIrBackend.cpp"/>
         <FILE id="irGpuSel" name="IrGpuBackend.h" compile="0" resource="0"
               file="Source/DSP/gpu/IrGpuBackend.h"/>
         <FILE id="rvbIrGpuH" name="ReverbIRAlgorithmGPU.h" compile="0" resource="0"
@@ -431,6 +443,10 @@
               file="Source/DSP/gpu/CudaFdnBackend.cpp"/>
         <FILE id="fdnCudaKrnl" name="CudaFdnKernels.h" compile="0" resource="0"
               file="Source/DSP/gpu/CudaFdnKernels.h"/>
+        <FILE id="fdnHipBakH" name="HipFdnBackend.h" compile="0" resource="0"
+              file="Source/DSP/gpu/HipFdnBackend.h"/>
+        <FILE id="fdnHipBakC" name="HipFdnBackend.cpp" compile="1" resource="0"
+              file="Source/DSP/gpu/HipFdnBackend.cpp"/>
         <FILE id="fdnGpuSel" name="FdnGpuBackend.h" compile="0" resource="0"
               file="Source/DSP/gpu/FdnGpuBackend.h"/>
         <FILE id="rvbFdnGpuH" name="ReverbFDNAlgorithmGPU.h" compile="0" resource="0"
@@ -449,6 +465,10 @@
               file="Source/DSP/gpu/CudaSdnBackend.cpp"/>
         <FILE id="sdnCudaKrnl" name="CudaSdnKernels.h" compile="0" resource="0"
               file="Source/DSP/gpu/CudaSdnKernels.h"/>
+        <FILE id="sdnHipBakH" name="HipSdnBackend.h" compile="0" resource="0"
+              file="Source/DSP/gpu/HipSdnBackend.h"/>
+        <FILE id="sdnHipBakC" name="HipSdnBackend.cpp" compile="1" resource="0"
+              file="Source/DSP/gpu/HipSdnBackend.cpp"/>
         <FILE id="sdnGpuSel" name="SdnGpuBackend.h" compile="0" resource="0"
               file="Source/DSP/gpu/SdnGpuBackend.h"/>
         <FILE id="rvbSdnGpuH" name="ReverbSDNAlgorithmGPU.h" compile="0" resource="0"
@@ -491,11 +511,15 @@
                 linuxExtraPkgConfig="libudev">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY"
-                       headerPath="../../ThirdParty/hidapi;../../ThirdParty/hidapi/hidapi"
-                       defines="SIMPLEWEB_SECURE_SUPPORTED=0 JUCE_JACK=1"/>
+                       headerPath="../../ThirdParty/hidapi;../../ThirdParty/hidapi/hidapi;/opt/rocm/include"
+                       libraryPath="/opt/rocm/lib"
+                       extraLinkerFlags="-lamdhip64 -lhiprtc -Wl,-rpath,/opt/rocm/lib"
+                       defines="SIMPLEWEB_SECURE_SUPPORTED=0 JUCE_JACK=1 WFS_GPU_NATIVE=1 WFS_GPU_HIP=1 __HIP_PLATFORM_AMD__=1"/>
         <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY"
-                       headerPath="../../ThirdParty/hidapi;../../ThirdParty/hidapi/hidapi"
-                       defines="SIMPLEWEB_SECURE_SUPPORTED=0 JUCE_JACK=1"/>
+                       headerPath="../../ThirdParty/hidapi;../../ThirdParty/hidapi/hidapi;/opt/rocm/include"
+                       libraryPath="/opt/rocm/lib"
+                       extraLinkerFlags="-lamdhip64 -lhiprtc -Wl,-rpath,/opt/rocm/lib"
+                       defines="SIMPLEWEB_SECURE_SUPPORTED=0 JUCE_JACK=1 WFS_GPU_NATIVE=1 WFS_GPU_HIP=1 __HIP_PLATFORM_AMD__=1"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="ThirdParty/JUCE/modules"/>

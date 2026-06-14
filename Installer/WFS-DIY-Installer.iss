@@ -5,7 +5,7 @@
 ; Version: overridable from the command line (CI passes /DMyAppVersion=<tag>
 ; so the installer matches the release). Default is for local manual builds.
 #ifndef MyAppVersion
-#define MyAppVersion "1.0.0beta24"
+#define MyAppVersion "1.0.0beta25"
 #endif
 #define MyAppPublisher "Pix et Bel"
 #define MyAppURL "https://wfs-diy.net"

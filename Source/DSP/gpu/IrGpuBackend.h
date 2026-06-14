@@ -14,6 +14,9 @@
 #if defined(__APPLE__)
   #include "MetalIrBackend.h"
   using IrGpuBackend = MetalIrBackend;
+#elif defined(WFS_GPU_HIP)
+  #include "HipIrBackend.h"
+  using IrGpuBackend = HipIrBackend;
 #else
   #include "CudaIrBackend.h"
   using IrGpuBackend = CudaIrBackend;

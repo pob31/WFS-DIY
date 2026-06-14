@@ -14,6 +14,9 @@
 #if defined(__APPLE__)
   #include "MetalWfsBackend.h"
   using WfsGpuBackend = MetalWfsBackend;
+#elif defined(WFS_GPU_HIP)
+  #include "HipWfsBackend.h"
+  using WfsGpuBackend = HipWfsBackend;
 #else
   #include "CudaWfsBackend.h"
   using WfsGpuBackend = CudaWfsBackend;
