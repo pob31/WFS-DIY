@@ -86,6 +86,16 @@ for 24.04 prefer adding the `cuda-ubuntu2404` repo). Gives `/usr/local/cuda/{inc
 **Build:** resave + `make` as above. Expected: host TUs compile with g++ (CUDA host APIs are plain
 C++); first failure if linkage is incomplete is unresolved `cuLaunchKernel`/`nvrtc*`/`cudaMalloc`.
 
+**Validated (2026-06-14):** all 5 `Cuda*Backend.cpp` compile with g++ against CUDA 13.3 headers, and
+the **full app links** against `libcudart.so.13` / `libnvrtc.so.13` / `libcuda.so.1` on Linux. It
+cannot be *run* here (no NVIDIA driver supplies `libcuda.so.1` at load time) — runtime needs NVIDIA
+hardware.
+
+> **Variant-switch gotcha:** when flipping the `LINUX_MAKE` config between the HIP and CUDA blocks,
+> run `make clean` before rebuilding. A flags-only change does not change the source mtimes, so make
+> will not recompile the `Cuda*`/`Hip*` TUs and the link will pull stale objects from the other
+> variant (empty `Cuda*` objects, or `Hip*` objects referencing `hipModuleUnload`).
+
 **Why one exporter can't hold both:** Projucer's `LINUX_MAKE` has a single flag set, so the
 committed config is either HIP or CUDA. Until Phase 3 (runtime dlopen of either vendor in one
 binary), switch by editing the `LINUX_MAKE` `defines`/`headerPath`/`libraryPath`/`extraLinkerFlags`
