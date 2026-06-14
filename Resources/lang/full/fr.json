@@ -87,6 +87,8 @@
     "labels": {
       "version": "Version {version}",
       "updateAvailable": "Mise à jour {version} disponible",
+      "gpuPipelineDepth": "Pipeline GPU :",
+      "gpuPipelineBlocks": "blocs",
       "showName": "Nom :",
       "showLocation": "Lieu :",
       "inputChannels": "Canaux d'entrée :",
@@ -191,6 +193,7 @@
       "select": "Sélectionner..."
     },
     "help": {
+      "gpuPipelineDepth": "Profondeur du pipeline GPU en blocs audio. Ajoute depth x buffer/fréquence d'échantillonnage de latence constante (pré-soustraite des délais WFS) et absorbe les interruptions GPU de même durée : plus profond = immunisé contre les à-coups du bureau/de l'interface, moins profond = latence plus faible. Application en direct. Défaut 4.",
       "showName": "Nom du spectacle actuel.",
       "showLocation": "Lieu du spectacle actuel.",
       "inputChannels": "Nombre de canaux d'entrée.",
@@ -1178,6 +1181,7 @@
       "channelSelector": "Numéro et sélection du canal de réverbération.",
       "nameEditor": "Nom affiché du canal de réverbération (modifiable).",
       "mapVisibility": "Rendre visibles ou masquer tous les canaux de réverbération sur la carte.",
+      "applyToAllNodes": "Lorsque activé, les modifications de paramètres s'appliquent à tous les nœuds de réverbération à la fois ; lorsque désactivé, uniquement au nœud sélectionné. Effet à l'exécution uniquement - seules les modifications futures se propagent.",
       "attenuation": "Atténuation du canal de réverbération (-92 à 0 dB).",
       "delayLatency": "Compensation de délai/latence de la réverbération (-100 à +100 ms).",
       "orientation": "Angle d'orientation de la réverbération (-179 à +180 degrés).",

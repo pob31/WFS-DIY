@@ -87,6 +87,8 @@
     "labels": {
       "version": "Versione {version}",
       "updateAvailable": "Aggiornamento {version} disponibile",
+      "gpuPipelineDepth": "Pipeline GPU:",
+      "gpuPipelineBlocks": "blocchi",
       "showName": "Nome:",
       "showLocation": "Luogo:",
       "inputChannels": "Canali Ingresso:",
@@ -182,6 +184,7 @@
       "select": "Seleziona..."
     },
     "help": {
+      "gpuPipelineDepth": "Profondità della pipeline GPU in blocchi audio. Aggiunge depth x buffer/frequenza di campionamento di latenza costante (pre-sottratta dai ritardi WFS) e assorbe gli stalli della GPU della stessa durata: più profonda = immune agli scatti del desktop/interfaccia, meno profonda = latenza inferiore. Si applica in tempo reale. Predefinito 4.",
       "showName": "Nome dello spettacolo corrente.",
       "showLocation": "Luogo dello spettacolo corrente.",
       "inputChannels": "Numero di canali di ingresso.",
@@ -1162,6 +1165,7 @@
       "channelSelector": "Numero e selezione del canale di riverbero.",
       "nameEditor": "Nome visualizzato del canale di riverbero (modificabile).",
       "mapVisibility": "Rendere visibili o nascondere tutti i canali di riverbero sulla mappa.",
+      "applyToAllNodes": "Quando attivo, le modifiche dei parametri si applicano a tutti i nodi di riverbero contemporaneamente; quando disattivo, solo al nodo selezionato. Solo a runtime - si propagano solo le modifiche future.",
       "attenuation": "Attenuazione del canale di riverbero (-92 a 0 dB).",
       "delayLatency": "Compensazione ritardo/latenza del riverbero (-100 a +100 ms).",
       "orientation": "Angolo di orientamento del riverbero (-179 a +180 gradi).",

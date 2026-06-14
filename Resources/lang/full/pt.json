@@ -87,6 +87,8 @@
     "labels": {
       "version": "Versão {version}",
       "updateAvailable": "Atualização {version} disponível",
+      "gpuPipelineDepth": "Pipeline GPU:",
+      "gpuPipelineBlocks": "blocos",
       "showName": "Nome:",
       "showLocation": "Local:",
       "inputChannels": "Canais de Entrada:",
@@ -182,6 +184,7 @@
       "select": "Selecionar..."
     },
     "help": {
+      "gpuPipelineDepth": "Profundidade do pipeline GPU em blocos de áudio. Adiciona depth x buffer/taxa de amostragem de latência constante (pré-subtraída dos atrasos WFS) e absorve interrupções da GPU da mesma duração: mais profundo = imune a engasgos do ambiente de trabalho/IU, menos profundo = menor latência. Aplicado em tempo real. Predefinição 4.",
       "showName": "Nome do espetáculo atual.",
       "showLocation": "Local do espetáculo atual.",
       "inputChannels": "Número de canais de entrada.",
@@ -1162,6 +1165,7 @@
       "channelSelector": "Número e seleção do canal de reverberação.",
       "nameEditor": "Nome exibido do canal de reverberação (editável).",
       "mapVisibility": "Tornar visíveis ou ocultar todos os canais de reverberação no mapa.",
+      "applyToAllNodes": "Quando ativado, as alterações de parâmetros aplicam-se a todos os nós de reverberação ao mesmo tempo; quando desativado, apenas ao nó selecionado. Apenas em tempo de execução - só as alterações futuras se propagam.",
       "attenuation": "Atenuação do canal de reverberação (-92 a 0 dB).",
       "delayLatency": "Compensação de atraso/latência da reverberação (-100 a +100 ms).",
       "orientation": "Ângulo de orientação da reverberação (-179 a +180 graus).",

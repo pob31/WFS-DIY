@@ -33,6 +33,7 @@
   },
   "systemConfig": {
     "help": {
+      "gpuPipelineDepth": "以音频块为单位的 GPU 管线深度。增加 depth x 缓冲/采样率的恒定延迟（已预先从 WFS 延迟中扣除），并吸收相同长度的 GPU 停顿：越深 = 越不受桌面/界面卡顿影响，越浅 = 延迟越低。实时生效。默认 4。",
       "showName": "当前演出的名称。",
       "showLocation": "当前演出的地点。",
       "inputChannels": "Input Channels数量。",
@@ -406,6 +407,7 @@
       "channelSelector": "混响通道编号和选择。",
       "nameEditor": "显示的混响通道名称（可编辑）。",
       "mapVisibility": "在地图上显示或隐藏所有Reverb Channels。",
+      "applyToAllNodes": "开启时，参数更改会同时应用于所有混响节点；关闭时仅应用于所选节点。仅在运行时生效，且只有后续更改会传播。",
       "attenuation": "混响通道衰减（-92至0 dB）。",
       "delayLatency": "混响延迟/延时补偿（-100至+100 ms）。",
       "orientation": "混响朝向角度（-179至+180度）。",
@@ -446,6 +448,9 @@
       "algoIRTrim": "修剪脉冲响应的开头（0 - 100 ms）。",
       "algoIRLength": "脉冲响应最大长度（0.1 - 6.0秒）。",
       "algoPerNode": "为每个混响节点使用单独的IR，或共享一个IR。",
+      "algoIRGpu": "在 GPU 上运行 IR 卷积（仅湿声路径增加约 20 ms），或在 CPU 上运行。GPU 不可用时自动回退到 CPU。",
+      "algoFDNGpu": "在 GPU 上运行 FDN 混响（仅湿声路径增加约 20 ms），或在 CPU 上运行。GPU 不可用时自动回退到 CPU。",
+      "algoSDNGpu": "在 GPU 上运行 SDN 混响（仅湿声路径增加约 20 ms），或在 CPU 上运行。GPU 不可用时自动回退到 CPU。",
       "algoWetLevel": "混响输出的湿/干混合电平（-60至+12 dB）。",
       "preCompBypass": "旁通或启用混响发送上的预压缩器。",
       "preCompThreshold": "预压缩器阈值（-60至0 dB）。",

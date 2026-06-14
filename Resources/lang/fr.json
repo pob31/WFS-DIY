@@ -33,6 +33,7 @@
   },
   "systemConfig": {
     "help": {
+      "gpuPipelineDepth": "Profondeur du pipeline GPU en blocs audio. Ajoute depth x buffer/fréquence d'échantillonnage de latence constante (pré-soustraite des délais WFS) et absorbe les interruptions GPU de même durée : plus profond = immunisé contre les à-coups du bureau/de l'interface, moins profond = latence plus faible. Application en direct. Défaut 4.",
       "showName": "Nom du spectacle actuel.",
       "showLocation": "Lieu du spectacle actuel.",
       "inputChannels": "Nombre d'Input Channels.",
@@ -406,6 +407,7 @@
       "channelSelector": "Numéro et sélection du canal de réverbération.",
       "nameEditor": "Nom affiché du canal de réverbération (modifiable).",
       "mapVisibility": "Rendre visibles ou masquer tous les Reverb Channels sur la carte.",
+      "applyToAllNodes": "Lorsque activé, les modifications de paramètres s'appliquent à tous les nœuds de réverbération à la fois ; lorsque désactivé, uniquement au nœud sélectionné. Effet à l'exécution uniquement - seules les modifications futures se propagent.",
       "attenuation": "Atténuation du canal de réverbération (-92 à 0 dB).",
       "delayLatency": "Compensation de délai/latence de la réverbération (-100 à +100 ms).",
       "orientation": "Angle d'orientation de la réverbération (-179 à +180 degrés).",
@@ -446,6 +448,9 @@
       "algoIRTrim": "Couper le début de la réponse impulsionnelle (0 - 100 ms).",
       "algoIRLength": "Longueur maximale de la réponse impulsionnelle (0.1 - 6.0 secondes).",
       "algoPerNode": "Utiliser une IR séparée pour chaque nœud de réverbération, ou partager une seule IR.",
+      "algoIRGpu": "Exécute la convolution IR sur le GPU (ajoute ~20 ms au signal wet uniquement) ou sur le CPU. Bascule automatiquement sur le CPU si le GPU est indisponible.",
+      "algoFDNGpu": "Exécute la réverb FDN sur le GPU (ajoute ~20 ms au signal wet uniquement) ou sur le CPU. Bascule automatiquement sur le CPU si le GPU est indisponible.",
+      "algoSDNGpu": "Exécute la réverb SDN sur le GPU (ajoute ~20 ms au signal wet uniquement) ou sur le CPU. Bascule automatiquement sur le CPU si le GPU est indisponible.",
       "algoWetLevel": "Niveau de mix wet/dry pour la sortie de réverbération (-60 à +12 dB).",
       "preCompBypass": "Contourner ou activer le pré-compresseur sur les envois de réverbération.",
       "preCompThreshold": "Seuil du pré-compresseur (-60 à 0 dB).",

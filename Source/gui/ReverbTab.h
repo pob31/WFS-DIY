@@ -2095,6 +2095,7 @@ private:
         helpTextMap[&reverbHelpButton] = LOC("help.reverb.title");
         helpTextMap[&reverbFeedHelpButton] = LOC("help.reverbFeed.title");
         helpTextMap[&reverbReturnHelpButton] = LOC("help.reverbReturn.title");
+        helpTextMap[&applyToAllNodesButton] = LOC("reverbs.help.applyToAllNodes");
         helpTextMap[&channelSelector] = LOC("reverbs.help.channelSelector");
         helpTextMap[&nameEditor] = LOC("reverbs.help.nameEditor");
         helpTextMap[&mapVisibilityButton] = LOC("reverbs.help.mapVisibility");

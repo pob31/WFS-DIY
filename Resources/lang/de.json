@@ -33,6 +33,7 @@
   },
   "systemConfig": {
     "help": {
+      "gpuPipelineDepth": "GPU-Pipeline-Tiefe in Audioblöcken. Fügt depth x Puffer/Abtastrate an konstanter Latenz hinzu (vorab von den WFS-Verzögerungen abgezogen) und gleicht GPU-Aussetzer gleicher Länge aus: tiefer = immun gegen Desktop-/UI-Ruckler, flacher = geringere Latenz. Wird live angewendet. Standard 4.",
       "showName": "Name der aktuellen Show.",
       "showLocation": "Ort der aktuellen Show.",
       "inputChannels": "Anzahl der Input Channels.",
@@ -406,6 +407,7 @@
       "channelSelector": "Hallkanal-Nummer und Auswahl.",
       "nameEditor": "Angezeigter Hallkanal-Name (bearbeitbar).",
       "mapVisibility": "Alle Reverb Channels auf der Karte sichtbar machen oder ausblenden.",
+      "applyToAllNodes": "Wenn EIN, werden Parameteränderungen auf alle Hallknoten gleichzeitig angewendet; wenn AUS, nur auf den ausgewählten Knoten. Nur zur Laufzeit - nur künftige Änderungen werden übernommen.",
       "attenuation": "Hallkanal-Dämpfung (-92 bis 0 dB).",
       "delayLatency": "Verzögerungs-/Latenzkompensation der Reverb (-100 bis +100 ms).",
       "orientation": "Orientierungswinkel der Reverb (-179 bis +180 Grad).",
@@ -446,6 +448,9 @@
       "algoIRTrim": "Anfang der Impulsantwort trimmen (0 - 100 ms).",
       "algoIRLength": "Maximale Impulsantwortlänge (0.1 - 6.0 Sekunden).",
       "algoPerNode": "Separate IR für jeden Hallknoten verwenden oder eine IR teilen.",
+      "algoIRGpu": "Führt die IR-Faltung auf der GPU aus (fügt nur dem Wet-Signal ~20 ms hinzu) oder auf der CPU. Fällt automatisch auf die CPU zurück, wenn keine GPU verfügbar ist.",
+      "algoFDNGpu": "Führt den FDN-Hall auf der GPU aus (fügt nur dem Wet-Signal ~20 ms hinzu) oder auf der CPU. Fällt automatisch auf die CPU zurück, wenn keine GPU verfügbar ist.",
+      "algoSDNGpu": "Führt den SDN-Hall auf der GPU aus (fügt nur dem Wet-Signal ~20 ms hinzu) oder auf der CPU. Fällt automatisch auf die CPU zurück, wenn keine GPU verfügbar ist.",
       "algoWetLevel": "Wet/Dry-Mischpegel für den Hallausgang (-60 bis +12 dB).",
       "preCompBypass": "Vorkompressor für Hallsendungen umgehen oder aktivieren.",
       "preCompThreshold": "Schwelle des Vorkompressors (-60 bis 0 dB).",
