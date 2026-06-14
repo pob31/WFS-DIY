@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 
 <Project DefaultTargets="Build"
          ToolsVersion="17.0"
@@ -227,6 +227,7 @@
     <ClCompile Include="..\..\Source\DSP\gpu\CudaObBackend.cpp"/>
     <ClCompile Include="..\..\Source\DSP\gpu\CudaIrBackend.cpp"/>
     <ClCompile Include="..\..\Source\DSP\gpu\CudaFdnBackend.cpp"/>
+    <ClCompile Include="..\..\Source\DSP\gpu\CudaSdnBackend.cpp"/>
     <ClCompile Include="..\..\Source\DSP\TestSignalGenerator.cpp"/>
     <ClCompile Include="..\..\ThirdParty\JUCE\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
@@ -3410,6 +3411,13 @@
     <ClInclude Include="..\..\Source\DSP\gpu\CudaFdnKernels.h"/>
     <ClInclude Include="..\..\Source\DSP\gpu\FdnGpuBackend.h"/>
     <ClInclude Include="..\..\Source\DSP\ReverbFDNAlgorithmGPU.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\SdnHostConfig.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\MetalSdnBackend.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\MetalSdnKernels.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\CudaSdnBackend.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\CudaSdnKernels.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\SdnGpuBackend.h"/>
+    <ClInclude Include="..\..\Source\DSP\ReverbSDNAlgorithmGPU.h"/>
     <ClInclude Include="..\..\Source\DSP\TestSignalGenerator.h"/>
     <ClInclude Include="..\..\Source\DSP\TrackingPositionFilter.h"/>
     <ClInclude Include="..\..\Source\DSP\InputSpeedLimiter.h"/>
