@@ -20,3 +20,33 @@
   #include "CudaFdnBackend.h"
   using FdnGpuBackend = CudaFdnBackend;
 #endif
+
+#if WFS_GPU_NATIVE
+#include "GpuBackendInterface.h"
+#include <memory>
+
+// Thin adapter wrapping the compile-time-selected concrete FDN backend behind
+// IFdnBackend (runtime-polymorphic). The concrete backend is untouched.
+template <class B>
+class FdnBackendAdapter final : public IFdnBackend
+{
+public:
+    bool prepare (int nn, int bs, double sr, float sz) override { return impl.prepare (nn, bs, sr, sz); }
+    void setParameters (float a, float b, float c, float d, float e, float f) noexcept override
+        { impl.setParameters (a, b, c, d, e, f); }
+    void requestReset() noexcept override { impl.requestReset(); }
+    bool processBlock (const float* const* in, float* const* out) override { return impl.processBlock (in, out); }
+    void release() noexcept override { impl.release(); }
+    bool isReady() const noexcept override { return impl.isReady(); }
+    const std::string& getLastError() const noexcept override { return impl.getLastError(); }
+    double getLastLaunchMs() const noexcept override { return impl.getLastLaunchMs(); }
+    const std::string& getDeviceName() const noexcept override { return impl.getDeviceName(); }
+private:
+    B impl;
+};
+
+inline std::unique_ptr<IFdnBackend> makeFdnBackend()
+{
+    return std::make_unique<FdnBackendAdapter<FdnGpuBackend>>();
+}
+#endif // WFS_GPU_NATIVE

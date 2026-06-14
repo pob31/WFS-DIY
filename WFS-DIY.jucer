@@ -363,6 +363,8 @@
               file="Source/DSP/OutputBufferAlgorithm.h"/>
         <FILE id="ngpuPipe" name="GpuAsyncPipeline.h" compile="0" resource="0"
               file="Source/DSP/gpu/GpuAsyncPipeline.h"/>
+        <FILE id="ngpuIface" name="GpuBackendInterface.h" compile="0" resource="0"
+              file="Source/DSP/gpu/GpuBackendInterface.h"/>
         <FILE id="ngpuAlgo" name="NativeGpuWfsAlgorithm.h" compile="0" resource="0"
               file="Source/DSP/gpu/NativeGpuWfsAlgorithm.h"/>
         <FILE id="ngpuBakH" name="MetalWfsBackend.h" compile="0" resource="0"

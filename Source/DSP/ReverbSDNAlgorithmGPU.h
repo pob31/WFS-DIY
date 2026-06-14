@@ -28,6 +28,7 @@
 #include "gpu/GpuAsyncPipeline.h"
 
 #include <cmath>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -41,7 +42,7 @@ public:
     ~ReverbSDNAlgorithmGPU() override
     {
         pipeline.release();   // pump stops BEFORE the backend dies
-        backend.release();
+        backend.reset();
     }
 
     //==========================================================================
@@ -56,15 +57,15 @@ public:
 
         ready = false;
         pipeline.release();
-        backend.release();
+        backend = makeSdnBackend();
 
         sampleRate = newSampleRate;
         blockSize = juce::jmax (1, maxBlockSize);
         numNodes = juce::jmax (1, newNumNodes);
 
-        if (! backend.prepare (numNodes, blockSize, sampleRate))
+        if (! backend->prepare (numNodes, blockSize, sampleRate))
         {
-            lastError = backend.getLastError();
+            lastError = backend->getLastError();
             DBG ("GPU SDN reverb: backend init failed: " + lastError);
             return;
         }
@@ -76,12 +77,12 @@ public:
                             (int) std::ceil (kCushionMs / blockMs))
             : 4;
 
-        if (! pipeline.prepare (&backend, numNodes, numNodes,
+        if (! pipeline.prepare (backend.get(), numNodes, numNodes,
                                 blockSize, sampleRate, depth))
         {
             lastError = pipeline.getLastError().toStdString();
             DBG ("GPU SDN reverb: pipeline init failed: " + lastError);
-            backend.release();
+            backend.reset();
             return;
         }
 
@@ -98,7 +99,8 @@ public:
 
     void reset() override
     {
-        backend.requestReset();
+        if (backend)
+            backend->requestReset();
     }
 
     void processBlock (const juce::AudioBuffer<float>& nodeInputs,
@@ -131,7 +133,7 @@ public:
 
     bool isReady() const noexcept { return ready && pipeline.isReady(); }
     juce::String getLastError() const { return juce::String (lastError); }
-    juce::String getDeviceName() const { return juce::String (backend.getDeviceName()); }
+    juce::String getDeviceName() const { return backend ? juce::String (backend->getDeviceName()) : juce::String(); }
     double getPipelineLatencyMs() const noexcept { return pipeline.getLatencyMs(); }
     uint32_t getUnderrunCount() const noexcept { return pipeline.getUnderrunCount(); }
     float getAndResetPeakPumpMs() noexcept { return pipeline.getAndResetPeakPumpMs(); }
@@ -140,10 +142,11 @@ public:
 private:
     void pushParameters()
     {
-        backend.setParameters (currentParams.rt60, currentParams.rt60LowMult,
-                               currentParams.rt60HighMult, currentParams.crossoverLow,
-                               currentParams.crossoverHigh, currentParams.diffusion,
-                               currentParams.sdnScale);
+        if (backend)
+            backend->setParameters (currentParams.rt60, currentParams.rt60LowMult,
+                                    currentParams.rt60HighMult, currentParams.crossoverLow,
+                                    currentParams.crossoverHigh, currentParams.diffusion,
+                                    currentParams.sdnScale);
     }
 
     void pushGeometry()
@@ -157,11 +160,12 @@ private:
             xyz[i * 3 + 1] = currentGeometry[i].y;
             xyz[i * 3 + 2] = currentGeometry[i].z;
         }
-        backend.setGeometry (xyz.data(), (int) currentGeometry.size());
+        if (backend)
+            backend->setGeometry (xyz.data(), (int) currentGeometry.size());
     }
 
-    SdnGpuBackend backend;
-    GpuAsyncPipelineT<SdnGpuBackend> pipeline;
+    std::unique_ptr<ISdnBackend> backend;
+    GpuAsyncPipelineT<IGpuBackend> pipeline;
 
     double sampleRate { 0.0 };
     int blockSize { 0 };
