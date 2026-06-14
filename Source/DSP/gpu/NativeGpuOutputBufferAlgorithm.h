@@ -56,7 +56,8 @@ public:
                   const float* frDelayTimesPtr = nullptr,
                   const float* frLevelsPtr = nullptr,
                   const float* frHFAttenuationPtr = nullptr,
-                  int pipelineDepthBlocks = kDefaultDepthBlocks)
+                  int pipelineDepthBlocks = kDefaultDepthBlocks,
+                  const std::string& deviceId = {})
     {
         const juce::SpinLock::ScopedLockType lock (procLock);
         ready.store (false, std::memory_order_release);
@@ -64,7 +65,9 @@ public:
         processingEnabledFlag = processingEnabled;
 
         pipeline.release();
-        backend = makeObBackend (GpuDeviceManager::instance().firstGpuId());
+        backend = makeObBackend (deviceId.empty()
+                                     ? GpuDeviceManager::instance().firstGpuId()
+                                     : deviceId);
         if (backend == nullptr)
         {
             lastError = "No GPU backend available (using CPU)";

@@ -58,7 +58,9 @@ public:
 
         ready = false;
         pipeline.release();
-        backend = makeSdnBackend (GpuDeviceManager::instance().firstGpuId());
+        backend = makeSdnBackend (gpuDeviceId.empty()
+                                      ? GpuDeviceManager::instance().firstGpuId()
+                                      : gpuDeviceId);
         if (backend == nullptr)
         {
             lastError = "No GPU backend available (using CPU)";
@@ -137,6 +139,10 @@ public:
     //==========================================================================
     // Status (engine/UI)
 
+    /** Select which compute device the GPU backend binds (e.g. "hip:0"); empty
+        falls back to the first detected GPU. Call before prepare(). */
+    void setDeviceId (const std::string& id) { gpuDeviceId = id; }
+
     bool isReady() const noexcept { return ready && pipeline.isReady(); }
     juce::String getLastError() const { return juce::String (lastError); }
     juce::String getDeviceName() const { return backend ? juce::String (backend->getDeviceName()) : juce::String(); }
@@ -178,6 +184,7 @@ private:
     int numNodes { 0 };
     bool ready { false };
     std::string lastError;
+    std::string gpuDeviceId;
     AlgorithmParameters currentParams;
     std::vector<NodePosition> currentGeometry;
     std::vector<float> xyz;

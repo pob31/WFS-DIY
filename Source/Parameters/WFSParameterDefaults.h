@@ -866,9 +866,12 @@ namespace WFSParameterDefaults
 
     constexpr int reverbPerNodeIRDefault           = 0;       // 0=OFF, 1=ON
 
-    constexpr int reverbIRGpuDefault               = 0;       // 0=CPU, 1=GPU convolution backend
-    constexpr int reverbFDNGpuDefault              = 0;       // 0=CPU, 1=GPU FDN backend
-    constexpr int reverbSDNGpuDefault              = 0;       // 0=CPU, 1=GPU SDN backend
+    constexpr int reverbIRGpuDefault               = 0;       // legacy 0=CPU/1=GPU (migrated to device id)
+    constexpr int reverbFDNGpuDefault              = 0;       // legacy
+    constexpr int reverbSDNGpuDefault              = 0;       // legacy
+    constexpr const char* reverbIRGpuDeviceDefault  = "cpu";  // compute device id
+    constexpr const char* reverbFDNGpuDeviceDefault = "cpu";
+    constexpr const char* reverbSDNGpuDeviceDefault = "cpu";
 
     constexpr float reverbWetLevelDefault          = 0.0f;    // dB
     constexpr float reverbWetLevelMin              = -60.0f;  // effectively -inf

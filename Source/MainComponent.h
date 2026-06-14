@@ -223,6 +223,7 @@ private:
     };
 
     ProcessingAlgorithm currentAlgorithm = ProcessingAlgorithm::InputBuffer;
+    std::string currentDeviceId = "cpu";   // compute device for the GPU algorithm paths ("cpu"/"hip:0"/...)
     int numInputChannels = 4;
     int numOutputChannels = 4;
     // Declared before the thread-owning members so it is destroyed AFTER them

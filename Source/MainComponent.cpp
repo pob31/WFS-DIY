@@ -3151,7 +3151,13 @@ void MainComponent::handleAlgorithmSelectionChange(int selectedId)
         newAlgorithm = ProcessingAlgorithm::NativeGpuOutputBuffer;
 #endif
 
-    if (newAlgorithm == currentAlgorithm)
+    // Read the device too: switching between two GPU devices is the same algoId,
+    // so the algorithm alone would mask a device change.
+    std::string newDeviceId = parameters.getConfigParam("ProcessingAlgorithmDevice").toString().toStdString();
+    if (newDeviceId.empty())
+        newDeviceId = "cpu";
+
+    if (newAlgorithm == currentAlgorithm && newDeviceId == currentDeviceId)
         return;
 
     const bool wasEnabled = processingEnabled;
@@ -3163,8 +3169,10 @@ void MainComponent::handleAlgorithmSelectionChange(int selectedId)
     stopProcessingForConfigurationChange();
 
     currentAlgorithm = newAlgorithm;
+    currentDeviceId = newDeviceId;
     WFSLogger::getInstance().logInfo ("Processing algorithm changed to id "
                                       + juce::String (selectedId)
+                                      + " device " + juce::String (currentDeviceId)
                                       + (wasEnabled ? " - restarting engine" : ""));
 
     if (wasEnabled)
@@ -4315,6 +4323,10 @@ void MainComponent::startAudioEngine()
 #if WFS_GPU_NATIVE
         else if (algoId == 3) currentAlgorithm = ProcessingAlgorithm::NativeGpuWfs;
         else if (algoId == 4) currentAlgorithm = ProcessingAlgorithm::NativeGpuOutputBuffer;
+
+        currentDeviceId = parameters.getConfigParam("ProcessingAlgorithmDevice").toString().toStdString();
+        if (currentDeviceId.empty())
+            currentDeviceId = (algoId >= 3) ? GpuDeviceManager::instance().firstGpuId() : std::string("cpu");
 #endif
     }
 
@@ -4369,7 +4381,7 @@ void MainComponent::startAudioEngine()
                                               frDelayTimesMs.data(),
                                               frLevels.data(),
                                               frHFAttenuation.data(),
-                                              gpuDepth);
+                                              gpuDepth, currentDeviceId);
         if (!prepared)
         {
             // GPU init failed: log, inform, fall back to the CPU InputBuffer.
@@ -4421,7 +4433,7 @@ void MainComponent::startAudioEngine()
                                                     frDelayTimesMs.data(),
                                                     frLevels.data(),
                                                     frHFAttenuation.data(),
-                                                    gpuDepth);
+                                                    gpuDepth, currentDeviceId);
         if (!prepared)
         {
             // GPU init failed: log, inform, fall back to the CPU OutputBuffer
@@ -4522,7 +4534,7 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
                                        frDelayTimesMs.data(),
                                        frLevels.data(),
                                        frHFAttenuation.data(),
-                                       gpuDepth);
+                                       gpuDepth, currentDeviceId);
         }
         else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuOutputBuffer)
         {
@@ -4540,7 +4552,7 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
                                              frDelayTimesMs.data(),
                                              frLevels.data(),
                                              frHFAttenuation.data(),
-                                             gpuDepth);
+                                             gpuDepth, currentDeviceId);
         }
 #endif
     }
@@ -5754,16 +5766,22 @@ void MainComponent::timerCallback()
                 // ReverbTab below via getReverbGpuStatus().
                 if (algoType == 0)  // SDN
                 {
-                    bool sdnGpu = static_cast<int>(algoSection.getProperty(reverbSDNGpu, 0)) != 0;
-                    reverbEngine->setSDNBackendGpu(sdnGpu);
+                    std::string sdnDev = algoSection.hasProperty(reverbSDNGpuDevice)
+                        ? algoSection.getProperty(reverbSDNGpuDevice).toString().toStdString()
+                        : (static_cast<int>(algoSection.getProperty(reverbSDNGpu, 0)) != 0
+                               ? GpuDeviceManager::instance().firstGpuId() : std::string("cpu"));
+                    reverbEngine->setSDNBackendDevice(sdnDev);
                 }
 
                 // FDN convolution backend (CPU/GPU toggle); fallback status flows
                 // back to the ReverbTab below via getReverbGpuStatus().
                 if (algoType == 1)  // FDN
                 {
-                    bool fdnGpu = static_cast<int>(algoSection.getProperty(reverbFDNGpu, 0)) != 0;
-                    reverbEngine->setFDNBackendGpu(fdnGpu);
+                    std::string fdnDev = algoSection.hasProperty(reverbFDNGpuDevice)
+                        ? algoSection.getProperty(reverbFDNGpuDevice).toString().toStdString()
+                        : (static_cast<int>(algoSection.getProperty(reverbFDNGpu, 0)) != 0
+                               ? GpuDeviceManager::instance().firstGpuId() : std::string("cpu"));
+                    reverbEngine->setFDNBackendDevice(fdnDev);
                 }
 #endif
 
@@ -5773,8 +5791,11 @@ void MainComponent::timerCallback()
 #if WFS_GPU_NATIVE
                     // Convolution backend (CPU/GPU toggle); fallback status flows
                     // back to the ReverbTab below.
-                    bool irGpu = static_cast<int>(algoSection.getProperty(reverbIRGpu, 0)) != 0;
-                    reverbEngine->setIRBackendGpu(irGpu);
+                    std::string irDev = algoSection.hasProperty(reverbIRGpuDevice)
+                        ? algoSection.getProperty(reverbIRGpuDevice).toString().toStdString()
+                        : (static_cast<int>(algoSection.getProperty(reverbIRGpu, 0)) != 0
+                               ? GpuDeviceManager::instance().firstGpuId() : std::string("cpu"));
+                    reverbEngine->setIRBackendDevice(irDev);
 #endif
 
                     juce::String irFilePath = algoSection.getProperty(reverbIRfile, "").toString();

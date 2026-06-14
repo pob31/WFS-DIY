@@ -12,6 +12,9 @@
 #include "DialUIComponents.h"
 #include "StatusBar.h"
 #include "EQDisplayComponent.h"
+#if WFS_GPU_NATIVE
+ #include "../DSP/gpu/GpuDeviceManager.h"
+#endif
 #include "../Helpers/CoordinateConverter.h"
 #include "buttons/LongPressButton.h"
 #include "buttons/EQBandToggle.h"
@@ -189,22 +192,8 @@ public:
             algoPerNodeButton.setColour (juce::TextButton::buttonOnColourId, btnCol);
         }
 
-#if WFS_GPU_NATIVE
-        // Update GPU convolution + GPU FDN buttons
-        {
-            auto irCol = algoIRGpuButton.getToggleState() ? juce::Colour(0xFF4CAF50) : colors.sliderTrackBg;
-            algoIRGpuButton.setColour (juce::TextButton::buttonColourId, irCol);
-            algoIRGpuButton.setColour (juce::TextButton::buttonOnColourId, irCol);
-
-            auto fdnCol = algoFDNGpuButton.getToggleState() ? juce::Colour(0xFF4CAF50) : colors.sliderTrackBg;
-            algoFDNGpuButton.setColour (juce::TextButton::buttonColourId, fdnCol);
-            algoFDNGpuButton.setColour (juce::TextButton::buttonOnColourId, fdnCol);
-
-            auto sdnCol = algoSDNGpuButton.getToggleState() ? juce::Colour(0xFF4CAF50) : colors.sliderTrackBg;
-            algoSDNGpuButton.setColour (juce::TextButton::buttonColourId, sdnCol);
-            algoSDNGpuButton.setColour (juce::TextButton::buttonOnColourId, sdnCol);
-        }
-#endif
+        // (GPU compute selection is now a device ComboBox, not a toggle button —
+        // no per-state button colour to refresh here.)
 
         repaint();
     }
@@ -1622,26 +1611,10 @@ private:
         setupEditableValueLabel (algoSDNScaleValueLabel);
 
 #if WFS_GPU_NATIVE
-        // GPU/CPU SDN backend toggle + status (auto-falls back to CPU; mirrors
-        // the FDN GPU toggle).
-        addAndMakeVisible (algoSDNGpuButton);
-        algoSDNGpuButton.setButtonText (LOC("reverbs.algorithm.sdnGpuOff"));
-        algoSDNGpuButton.setColour (juce::TextButton::buttonColourId, ColorScheme::get().sliderTrackBg);
-        algoSDNGpuButton.setColour (juce::TextButton::buttonOnColourId, ColorScheme::get().sliderTrackBg);
-        algoSDNGpuButton.onClick = [this]
-        {
-            bool enabled = !algoSDNGpuButton.getToggleState();
-            algoSDNGpuButton.setToggleState (enabled, juce::dontSendNotification);
-            algoSDNGpuButton.setButtonText (enabled ? LOC("reverbs.algorithm.sdnGpuOn") : LOC("reverbs.algorithm.sdnGpuOff"));
-            juce::Colour btnColour = enabled ? juce::Colour (0xFF4CAF50) : ColorScheme::get().sliderTrackBg;
-            algoSDNGpuButton.setColour (juce::TextButton::buttonColourId, btnColour);
-            algoSDNGpuButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
-            saveAlgorithmParam (WFSParameterIDs::reverbSDNGpu, enabled ? 1 : 0);
-        };
-
-        addAndMakeVisible (algoSDNGpuStatusLabel);
-        algoSDNGpuStatusLabel.setJustificationType (juce::Justification::centredLeft);
-        algoSDNGpuStatusLabel.setColour (juce::Label::textColourId, ColorScheme::get().textSecondary);
+        // CPU + per-GPU-device compute selector (auto-falls back to CPU; hidden
+        // entirely when no GPU platform is detected).
+        buildReverbDeviceList();
+        setupReverbDeviceSelector (algoSDNDeviceSelector, algoSDNGpuStatusLabel, WFSParameterIDs::reverbSDNGpuDevice);
 #endif
 
         // FDN section
@@ -1670,26 +1643,7 @@ private:
         setupEditableValueLabel (algoFDNSizeValueLabel);
 
 #if WFS_GPU_NATIVE
-        // GPU/CPU FDN backend toggle + status (auto-falls back to CPU; mirrors
-        // the IR GPU toggle).
-        addAndMakeVisible (algoFDNGpuButton);
-        algoFDNGpuButton.setButtonText (LOC("reverbs.algorithm.fdnGpuOff"));
-        algoFDNGpuButton.setColour (juce::TextButton::buttonColourId, ColorScheme::get().sliderTrackBg);
-        algoFDNGpuButton.setColour (juce::TextButton::buttonOnColourId, ColorScheme::get().sliderTrackBg);
-        algoFDNGpuButton.onClick = [this]
-        {
-            bool enabled = !algoFDNGpuButton.getToggleState();
-            algoFDNGpuButton.setToggleState (enabled, juce::dontSendNotification);
-            algoFDNGpuButton.setButtonText (enabled ? LOC("reverbs.algorithm.fdnGpuOn") : LOC("reverbs.algorithm.fdnGpuOff"));
-            juce::Colour btnColour = enabled ? juce::Colour (0xFF4CAF50) : ColorScheme::get().sliderTrackBg;
-            algoFDNGpuButton.setColour (juce::TextButton::buttonColourId, btnColour);
-            algoFDNGpuButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
-            saveAlgorithmParam (WFSParameterIDs::reverbFDNGpu, enabled ? 1 : 0);
-        };
-
-        addAndMakeVisible (algoFDNGpuStatusLabel);
-        algoFDNGpuStatusLabel.setJustificationType (juce::Justification::centredLeft);
-        algoFDNGpuStatusLabel.setColour (juce::Label::textColourId, ColorScheme::get().textSecondary);
+        setupReverbDeviceSelector (algoFDNDeviceSelector, algoFDNGpuStatusLabel, WFSParameterIDs::reverbFDNGpuDevice);
 #endif
 
         // IR section
@@ -1759,26 +1713,9 @@ private:
         };
 
 #if WFS_GPU_NATIVE
-        // GPU/CPU convolution backend toggle + status (engine falls back to
-        // CPU automatically when the GPU is unavailable — see status label)
-        addAndMakeVisible (algoIRGpuButton);
-        algoIRGpuButton.setButtonText (LOC("reverbs.algorithm.irGpuOff"));
-        algoIRGpuButton.setColour (juce::TextButton::buttonColourId, ColorScheme::get().sliderTrackBg);
-        algoIRGpuButton.setColour (juce::TextButton::buttonOnColourId, ColorScheme::get().sliderTrackBg);
-        algoIRGpuButton.onClick = [this]
-        {
-            bool enabled = !algoIRGpuButton.getToggleState();
-            algoIRGpuButton.setToggleState (enabled, juce::dontSendNotification);
-            algoIRGpuButton.setButtonText (enabled ? LOC("reverbs.algorithm.irGpuOn") : LOC("reverbs.algorithm.irGpuOff"));
-            juce::Colour btnColour = enabled ? juce::Colour (0xFF4CAF50) : ColorScheme::get().sliderTrackBg;
-            algoIRGpuButton.setColour (juce::TextButton::buttonColourId, btnColour);
-            algoIRGpuButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
-            saveAlgorithmParam (WFSParameterIDs::reverbIRGpu, enabled ? 1 : 0);
-        };
-
-        addAndMakeVisible (algoIRGpuStatusLabel);
-        algoIRGpuStatusLabel.setJustificationType (juce::Justification::centredLeft);
-        algoIRGpuStatusLabel.setColour (juce::Label::textColourId, ColorScheme::get().textSecondary);
+        // CPU + per-GPU-device compute selector (engine falls back to CPU
+        // automatically when the GPU is unavailable — see status label).
+        setupReverbDeviceSelector (algoIRDeviceSelector, algoIRGpuStatusLabel, WFSParameterIDs::reverbIRGpuDevice);
 #endif
 
         // Wet Level (always visible)
@@ -2146,15 +2083,15 @@ private:
         helpTextMap[&algoSDNScaleSlider] = LOC("reverbs.help.algoSDNScale");
         helpTextMap[&algoFDNSizeSlider] = LOC("reverbs.help.algoFDNSize");
 #if WFS_GPU_NATIVE
-        helpTextMap[&algoSDNGpuButton] = LOC("reverbs.help.algoSDNGpu");
-        helpTextMap[&algoFDNGpuButton] = LOC("reverbs.help.algoFDNGpu");
+        helpTextMap[&algoSDNDeviceSelector] = LOC("reverbs.help.algoSDNGpu");
+        helpTextMap[&algoFDNDeviceSelector] = LOC("reverbs.help.algoFDNGpu");
 #endif
         helpTextMap[&algoIRFileSelector] = LOC("reverbs.help.algoIRFile");
         helpTextMap[&algoIRTrimSlider] = LOC("reverbs.help.algoIRTrim");
         helpTextMap[&algoIRLengthSlider] = LOC("reverbs.help.algoIRLength");
         helpTextMap[&algoPerNodeButton] = LOC("reverbs.help.algoPerNode");
 #if WFS_GPU_NATIVE
-        helpTextMap[&algoIRGpuButton] = LOC("reverbs.help.algoIRGpu");
+        helpTextMap[&algoIRDeviceSelector] = LOC("reverbs.help.algoIRGpu");
 #endif
         helpTextMap[&algoWetLevelSlider] = LOC("reverbs.help.algoWetLevel");
 
@@ -2574,7 +2511,7 @@ private:
 #if WFS_GPU_NATIVE
             col1.removeFromTop (spacing);
             auto gpuRow = col1.removeFromTop (rowHeight);
-            algoSDNGpuButton.setBounds (gpuRow.removeFromLeft (scaled(180)));
+            algoSDNDeviceSelector.setBounds (gpuRow.removeFromLeft (scaled(180)));
             gpuRow.removeFromLeft (spacing);
             algoSDNGpuStatusLabel.setBounds (gpuRow);
 #endif
@@ -2590,7 +2527,7 @@ private:
 #if WFS_GPU_NATIVE
             col1.removeFromTop (spacing);
             auto gpuRow = col1.removeFromTop (rowHeight);
-            algoFDNGpuButton.setBounds (gpuRow.removeFromLeft (scaled(180)));
+            algoFDNDeviceSelector.setBounds (gpuRow.removeFromLeft (scaled(180)));
             gpuRow.removeFromLeft (spacing);
             algoFDNGpuStatusLabel.setBounds (gpuRow);
 #endif
@@ -2625,7 +2562,7 @@ private:
 #if WFS_GPU_NATIVE
             col1.removeFromTop (spacing);
             row = col1.removeFromTop (rowHeight);
-            algoIRGpuButton.setBounds (row.removeFromLeft (scaled(180)));
+            algoIRDeviceSelector.setBounds (row.removeFromLeft (scaled(180)));
             row.removeFromLeft (spacing);
             algoIRGpuStatusLabel.setBounds (row);
 #endif
@@ -3289,7 +3226,7 @@ private:
             algoSDNScaleSlider.setVisible (false);
             algoSDNScaleValueLabel.setVisible (false);
 #if WFS_GPU_NATIVE
-            algoSDNGpuButton.setVisible (false);
+            algoSDNDeviceSelector.setVisible (false);
             algoSDNGpuStatusLabel.setVisible (false);
 #endif
 
@@ -3298,7 +3235,7 @@ private:
             algoFDNSizeSlider.setVisible (false);
             algoFDNSizeValueLabel.setVisible (false);
 #if WFS_GPU_NATIVE
-            algoFDNGpuButton.setVisible (false);
+            algoFDNDeviceSelector.setVisible (false);
             algoFDNGpuStatusLabel.setVisible (false);
 #endif
 
@@ -3313,7 +3250,7 @@ private:
             algoIRLengthValueLabel.setVisible (false);
             algoPerNodeButton.setVisible (false);
 #if WFS_GPU_NATIVE
-            algoIRGpuButton.setVisible (false);
+            algoIRDeviceSelector.setVisible (false);
             algoIRGpuStatusLabel.setVisible (false);
 #endif
         }
@@ -3823,6 +3760,58 @@ private:
         }
     }
 
+#if WFS_GPU_NATIVE
+    void buildReverbDeviceList()
+    {
+        reverbDevices.clear();
+        reverbDevices.push_back ({ "cpu", "CPU" });
+        for (const auto& d : GpuDeviceManager::instance().devices())
+            if (! d.isCpu())
+                reverbDevices.push_back ({ juce::String (d.id), juce::String (d.name) });
+        reverbHasGpu = reverbDevices.size() > 1;
+    }
+
+    // Replaces the old CPU/GPU toggle: a "CPU + each GPU device" dropdown,
+    // hidden entirely when no GPU platform is present.
+    void setupReverbDeviceSelector (juce::ComboBox& cb, juce::Label& statusLabel,
+                                    const juce::Identifier& paramId)
+    {
+        for (int i = 0; i < (int) reverbDevices.size(); ++i)
+            cb.addItem (reverbDevices[(size_t) i].second, i + 1);
+        cb.setSelectedId (1, juce::dontSendNotification);
+        cb.onChange = [this, &cb, paramId]
+        {
+            const int id = cb.getSelectedId();
+            const juce::String devId = (id >= 1 && id <= (int) reverbDevices.size())
+                                       ? reverbDevices[(size_t) (id - 1)].first : juce::String ("cpu");
+            saveAlgorithmParam (paramId, devId);
+        };
+        addChildComponent (cb);
+        cb.setVisible (reverbHasGpu);
+        addChildComponent (statusLabel);
+        statusLabel.setJustificationType (juce::Justification::centredLeft);
+        statusLabel.setColour (juce::Label::textColourId, ColorScheme::get().textSecondary);
+        statusLabel.setVisible (reverbHasGpu);
+    }
+
+    // Sets the selector from the stored device id, migrating the legacy 0/1 int.
+    void applyReverbDeviceSelector (juce::ComboBox& cb, const juce::Identifier& newId,
+                                    const juce::Identifier& oldId)
+    {
+        auto section = parameters.getValueTreeState().ensureReverbAlgorithmSection();
+        juce::String devId = "cpu";
+        if (section.hasProperty (newId))
+            devId = section.getProperty (newId).toString();
+        else if ((int) section.getProperty (oldId, 0) != 0)
+            devId = juce::String (GpuDeviceManager::instance().firstGpuId());
+
+        int comboId = 1;
+        for (int i = 0; i < (int) reverbDevices.size(); ++i)
+            if (reverbDevices[(size_t) i].first == devId) { comboId = i + 1; break; }
+        cb.setSelectedId (comboId, juce::dontSendNotification);
+    }
+#endif
+
     void saveAlgorithmParam (const juce::Identifier& paramId, const juce::var& value)
     {
         if (isLoadingParameters) return;
@@ -4190,8 +4179,8 @@ private:
         algoSDNScaleSlider.setVisible (isSDN);
         algoSDNScaleValueLabel.setVisible (isSDN);
 #if WFS_GPU_NATIVE
-        algoSDNGpuButton.setVisible (isSDN);
-        algoSDNGpuStatusLabel.setVisible (isSDN);
+        algoSDNDeviceSelector.setVisible (isSDN && reverbHasGpu);
+        algoSDNGpuStatusLabel.setVisible (isSDN && reverbHasGpu);
 #endif
 
         // FDN section
@@ -4200,8 +4189,8 @@ private:
         algoFDNSizeSlider.setVisible (isFDN);
         algoFDNSizeValueLabel.setVisible (isFDN);
 #if WFS_GPU_NATIVE
-        algoFDNGpuButton.setVisible (isFDN);
-        algoFDNGpuStatusLabel.setVisible (isFDN);
+        algoFDNDeviceSelector.setVisible (isFDN && reverbHasGpu);
+        algoFDNGpuStatusLabel.setVisible (isFDN && reverbHasGpu);
 #endif
 
         // IR section
@@ -4216,8 +4205,8 @@ private:
         algoIRLengthValueLabel.setVisible (isIR);
         algoPerNodeButton.setVisible (isIR);
 #if WFS_GPU_NATIVE
-        algoIRGpuButton.setVisible (isIR);
-        algoIRGpuStatusLabel.setVisible (isIR);
+        algoIRDeviceSelector.setVisible (isIR && reverbHasGpu);
+        algoIRGpuStatusLabel.setVisible (isIR && reverbHasGpu);
 #endif
     }
 
@@ -4344,29 +4333,10 @@ private:
         algoPerNodeButton.setColour (juce::TextButton::buttonOnColourId, perNodeColour);
 
 #if WFS_GPU_NATIVE
-        // GPU convolution backend (IR)
-        int irGpu = getInt (WFSParameterIDs::reverbIRGpu, WFSParameterDefaults::reverbIRGpuDefault);
-        algoIRGpuButton.setToggleState (irGpu != 0, juce::dontSendNotification);
-        algoIRGpuButton.setButtonText (irGpu != 0 ? LOC("reverbs.algorithm.irGpuOn") : LOC("reverbs.algorithm.irGpuOff"));
-        juce::Colour irGpuColour = irGpu != 0 ? juce::Colour (0xFF4CAF50) : ColorScheme::get().sliderTrackBg;
-        algoIRGpuButton.setColour (juce::TextButton::buttonColourId, irGpuColour);
-        algoIRGpuButton.setColour (juce::TextButton::buttonOnColourId, irGpuColour);
-
-        // GPU FDN backend
-        int fdnGpu = getInt (WFSParameterIDs::reverbFDNGpu, WFSParameterDefaults::reverbFDNGpuDefault);
-        algoFDNGpuButton.setToggleState (fdnGpu != 0, juce::dontSendNotification);
-        algoFDNGpuButton.setButtonText (fdnGpu != 0 ? LOC("reverbs.algorithm.fdnGpuOn") : LOC("reverbs.algorithm.fdnGpuOff"));
-        juce::Colour fdnGpuColour = fdnGpu != 0 ? juce::Colour (0xFF4CAF50) : ColorScheme::get().sliderTrackBg;
-        algoFDNGpuButton.setColour (juce::TextButton::buttonColourId, fdnGpuColour);
-        algoFDNGpuButton.setColour (juce::TextButton::buttonOnColourId, fdnGpuColour);
-
-        // GPU SDN backend
-        int sdnGpu = getInt (WFSParameterIDs::reverbSDNGpu, WFSParameterDefaults::reverbSDNGpuDefault);
-        algoSDNGpuButton.setToggleState (sdnGpu != 0, juce::dontSendNotification);
-        algoSDNGpuButton.setButtonText (sdnGpu != 0 ? LOC("reverbs.algorithm.sdnGpuOn") : LOC("reverbs.algorithm.sdnGpuOff"));
-        juce::Colour sdnGpuColour = sdnGpu != 0 ? juce::Colour (0xFF4CAF50) : ColorScheme::get().sliderTrackBg;
-        algoSDNGpuButton.setColour (juce::TextButton::buttonColourId, sdnGpuColour);
-        algoSDNGpuButton.setColour (juce::TextButton::buttonOnColourId, sdnGpuColour);
+        // GPU compute device per reverb algorithm (CPU + detected GPUs).
+        applyReverbDeviceSelector (algoIRDeviceSelector,  WFSParameterIDs::reverbIRGpuDevice,  WFSParameterIDs::reverbIRGpu);
+        applyReverbDeviceSelector (algoFDNDeviceSelector, WFSParameterIDs::reverbFDNGpuDevice, WFSParameterIDs::reverbFDNGpu);
+        applyReverbDeviceSelector (algoSDNDeviceSelector, WFSParameterIDs::reverbSDNGpuDevice, WFSParameterIDs::reverbSDNGpu);
 #endif
 
         // Wet Level
@@ -5732,13 +5702,15 @@ private:
     juce::Label algoIRLengthValueLabel;
     juce::TextButton algoPerNodeButton;
 #if WFS_GPU_NATIVE
-    juce::TextButton algoIRGpuButton;
+    juce::ComboBox algoIRDeviceSelector;
     juce::Label algoIRGpuStatusLabel;
-    juce::TextButton algoFDNGpuButton;
+    juce::ComboBox algoFDNDeviceSelector;
     juce::Label algoFDNGpuStatusLabel;
-    juce::TextButton algoSDNGpuButton;
+    juce::ComboBox algoSDNDeviceSelector;
     juce::Label algoSDNGpuStatusLabel;
     juce::String lastReverbGpuStatusText;
+    std::vector<std::pair<juce::String, juce::String>> reverbDevices;  // {deviceId, displayName}; [0] = {"cpu","CPU"}
+    bool reverbHasGpu = false;
 #endif
 
     // Output section (always visible)
