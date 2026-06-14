@@ -42,6 +42,19 @@
  #pragma comment(lib, "cudart.lib")
  #pragma comment(lib, "nvrtc.lib")
  #pragma comment(lib, "cuda.lib")
+
+ // The CUDA DLLs are DELAY-LOADED (the /DELAYLOAD flags live in the VS exporter's
+ // extraLinkerFlags / the .vcxproj <Link><AdditionalOptions> -- the linker does
+ // NOT honour /DELAYLOAD via #pragma comment(linker)). Without delay-load the
+ // three DLLs sit in the exe's import table and the loader fails at startup when
+ // nvcuda.dll is absent (AMD / Intel / no GPU), stranding CPU-only users.
+ // Delay-loaded, they load only on first use: every GPU backend calls
+ // cudaGetDeviceCount first -- cudart (shipped next to the exe) loads fine and
+ // reports "no driver" gracefully, so the engine falls back to the CPU path;
+ // nvcuda is only reached once a device is confirmed present. delayimp.lib
+ // provides the delay-load helper (__delayLoadHelper2); the comment(lib) pragma
+ // IS honoured, so it stays here next to the other CUDA libs.
+ #pragma comment(lib, "delayimp.lib")
 #endif
 
 #include <algorithm>
