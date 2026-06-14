@@ -4319,9 +4319,15 @@ void MainComponent::startAudioEngine()
     }
 
     bool prepared = false;
+#if WFS_GPU_NATIVE
     DBG("startAudioEngine: algorithm=" + juce::String(currentAlgorithm == ProcessingAlgorithm::InputBuffer ? "InputBuffer" :
         currentAlgorithm == ProcessingAlgorithm::OutputBuffer ? "OutputBuffer" :
         currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs ? "NativeGpuWfs" : "NativeGpuOutputBuffer"));
+#else
+    // GPU enum values only exist under WFS_GPU_NATIVE; non-GPU builds (e.g. Linux
+    // without CUDA) only ever have InputBuffer / OutputBuffer.
+    DBG("startAudioEngine: algorithm=" + juce::String(currentAlgorithm == ProcessingAlgorithm::InputBuffer ? "InputBuffer" : "OutputBuffer"));
+#endif
 
     if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
     {
