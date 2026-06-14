@@ -2000,9 +2000,14 @@ private:
         commonAttenUnitLabel.setJustificationType (juce::Justification::left);
         commonAttenUnitLabel.setMinimumHorizontalScale (1.0f);
 
-        // Mute buttons (styled like InputsTab)
+        // Mute buttons (styled like InputsTab) — inside a vertically-scrollable
+        // viewport so high output counts stay usable without overrunning the column.
         addAndMakeVisible (mutesLabel);
         mutesLabel.setText (LOC("reverbs.labels.outputMutes"), juce::dontSendNotification);
+
+        muteViewport.setViewedComponent (&muteHolder, false);
+        muteViewport.setScrollBarsShown (true, false);  // vertical when needed, no horizontal
+        addChildComponent (muteViewport);  // visibility managed by the section's setVisible paths
 
         for (int i = 0; i < maxMuteButtons; ++i)
         {
@@ -2014,7 +2019,7 @@ private:
             {
                 saveMuteStates();
             };
-            addAndMakeVisible (muteButtons[i]);
+            muteHolder.addAndMakeVisible (muteButtons[i]);
         }
 
         // Mute Macro selector
@@ -3022,28 +3027,50 @@ private:
         mutesLabel.setBounds (col3.removeFromTop (titleHeight));
         col3.removeFromTop (scaled(5));
 
-        // Layout mute buttons — fill column width, max 16 per row, visually square
+        // Layout mute buttons — fill column width (16 per row) and grow the button
+        // height to use the available column height (taller, more tappable buttons).
+        // Scrolls vertically only if even square buttons would overflow.
         const int muteSpacing = scaled(2);
         const int btnInset = 6;  // WfsLookAndFeel button horizontal inset
         int numOutputs = parameters.getNumOutputChannels();
         if (numOutputs <= 0) numOutputs = 16;
 
         int muteButtonsPerRow = juce::jmin(numOutputs, 16);
-        int muteButtonSize = (col3.getWidth() - muteSpacing * (muteButtonsPerRow - 1)) / muteButtonsPerRow;
-        int muteButtonH = muteButtonSize - btnInset * 2;  // visually square after inset
         int muteRows = (numOutputs + muteButtonsPerRow - 1) / muteButtonsPerRow;
 
-        auto muteGridArea = col3.removeFromTop (muteRows * (muteButtonH + muteSpacing));
+        const int availH = col3.getHeight();
+        const int sbThick = muteViewport.getScrollBarThickness();
+        auto gridMetrics = [&] (int holderW, int& btnSize, int& btnH, int& gridH)
+        {
+            btnSize = (holderW - muteSpacing * (muteButtonsPerRow - 1)) / muteButtonsPerRow;
+            const int squareH = juce::jmax (1, btnSize - btnInset * 2);       // current square look = floor
+            const int maxH    = juce::jmax (squareH, (int) (btnSize * 1.8f));  // cap shape for few-row cases
+            const int fillH   = juce::jmax (1, availH / muteRows - muteSpacing);
+            btnH  = juce::jlimit (squareH, maxH, fillH);  // grow to fill the column height
+            gridH = muteRows * (btnH + muteSpacing);
+        };
+
+        int muteButtonSize, muteButtonH, gridHeight;
+        gridMetrics (col3.getWidth(), muteButtonSize, muteButtonH, gridHeight);
+        bool needsScroll = gridHeight > availH;
+        int holderW = col3.getWidth() - (needsScroll ? sbThick : 0);
+        if (needsScroll)
+            gridMetrics (holderW, muteButtonSize, muteButtonH, gridHeight);
+
+        int visibleH = juce::jmin (gridHeight, availH);
+        muteViewport.setBounds (col3.removeFromTop (visibleH));
+        muteHolder.setSize (holderW, gridHeight);
+
         for (int r = 0; r < muteRows; ++r)
         {
-            auto rowArea = muteGridArea.removeFromTop (muteButtonH + muteSpacing);
             for (int c = 0; c < muteButtonsPerRow; ++c)
             {
                 int index = r * muteButtonsPerRow + c;
                 if (index < numOutputs && index < maxMuteButtons)
                 {
-                    muteButtons[index].setBounds (rowArea.removeFromLeft (muteButtonSize).withHeight (muteButtonH));
-                    rowArea.removeFromLeft (muteSpacing);
+                    muteButtons[index].setBounds (c * (muteButtonSize + muteSpacing),
+                                                  r * (muteButtonH + muteSpacing),
+                                                  muteButtonSize, muteButtonH);
                     muteButtons[index].setVisible (true);
                 }
             }
@@ -3411,8 +3438,9 @@ private:
         mutesLabel.setVisible (visible);
         muteMacrosLabel.setVisible (visible);
         muteMacrosSelector.setVisible (visible);
+        muteViewport.setVisible (visible);  // viewport gates overall visibility
         for (int i = 0; i < maxMuteButtons; ++i)
-            muteButtons[i].setVisible (visible && i < parameters.getNumOutputChannels());
+            muteButtons[i].setVisible (i < parameters.getNumOutputChannels());
     }
 
     //==========================================================================
@@ -5475,8 +5503,9 @@ private:
         commonAttenValueLabel.setVisible (hasChannels);
         commonAttenUnitLabel.setVisible (hasChannels);
         mutesLabel.setVisible (hasChannels);
+        muteViewport.setVisible (hasChannels);  // viewport gates overall visibility
         for (int i = 0; i < maxMuteButtons; ++i)
-            muteButtons[i].setVisible (hasChannels && i < parameters.getNumOutputChannels());
+            muteButtons[i].setVisible (i < parameters.getNumOutputChannels());
         muteMacrosLabel.setVisible (hasChannels);
         muteMacrosSelector.setVisible (hasChannels);
 
@@ -5531,7 +5560,9 @@ private:
     int columnDividerX2 = 0;
     bool showColumnDividers = false;
     static constexpr int numEqBands = 4;
-    static constexpr int maxMuteButtons = 64;
+    // Per-output reverb-feed mute buttons: sized to the max OUTPUT channel count
+    // (indexed by output, not by reverb channel).
+    static constexpr int maxMuteButtons = WFSParameterDefaults::maxOutputChannels;
     juce::Rectangle<int> subTabContentArea;
     float layoutScale = 1.0f;  // Proportional scaling factor (1.0 = 1080p reference)
     /** Scale a reference pixel value by layoutScale with a 65% minimum floor */
@@ -5761,6 +5792,8 @@ private:
     juce::Label commonAttenUnitLabel;
     juce::Label mutesLabel;
     juce::TextButton muteButtons[maxMuteButtons];
+    juce::Viewport muteViewport;   // scrolls the mute grid vertically at high output counts
+    juce::Component muteHolder;     // viewed component that holds the mute buttons
     juce::Label muteMacrosLabel;
     juce::ComboBox muteMacrosSelector;
 

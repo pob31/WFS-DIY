@@ -18,7 +18,8 @@
 class SDNAlgorithm : public ReverbAlgorithm
 {
 public:
-    static constexpr int MAX_NODES = 16;
+    // Max SDN nodes = max reverb channels. Must stay >= WFSParameterDefaults::maxReverbChannels.
+    static constexpr int MAX_NODES = 32;
     static constexpr int MAX_DELAY_SAMPLES = 8192;
     static constexpr float SPEED_OF_SOUND = 343.0f;
     static constexpr int NUM_DIFFUSERS_PER_NODE = 2;

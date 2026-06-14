@@ -90,7 +90,7 @@ extern "C" __global__ void sdn_process (
     {
         const int base = (int) (p.ringWritePos + s);
 
-        float incoming[16];
+        float incoming[32];  // per-node scratch; size >= MAX_NODES (reverb maxReverbChannels)
         float sumIn = 0.0f;
         unsigned int k = 0u;
         for (unsigned int i = 0u; i < N; ++i)

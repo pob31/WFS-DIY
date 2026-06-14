@@ -864,7 +864,7 @@ When no inputs are soloed, all inputs are rendered through the binaural spatiali
 | Control | Range | Default | Description |
 |---------|-------|---------|-------------|
 | Solo Mode | Single/Multi | Single | Single = one input, Multi = multiple inputs |
-| Output Channel | Off, 1-2, 3-4, ... 63-64 | Off | First channel of stereo output pair |
+| Output Channel | Off, 1-2, 3-4, ... 127-128 | Off | First channel of stereo output pair |
 | Listener Distance | 0.5-10m | 2m | Distance from origin |
 | Listener Angle | -180° to +180° | 0° | Horizontal rotation |
 | Binaural Level | -40 to 0 dB | 0 dB | Overall level offset |
@@ -1171,7 +1171,7 @@ AudioPatch
 │   └── patchData ("1,0,0,0;0,1,0,0;..." semicolon-separated rows)
 └── OutputPatch
     ├── rows (WFS output count)
-    ├── cols (max hardware outputs = 64)
+    ├── cols (max hardware outputs = 128)
     └── patchData (same format)
 ```
 

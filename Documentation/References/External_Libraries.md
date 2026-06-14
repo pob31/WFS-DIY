@@ -198,7 +198,7 @@ This document contains references to external libraries, protocols, and resource
 ### System Specifications
 - **Maximum Inputs**: 64 channels (adjustable based on resources)
 - **Maximum Outputs**: 128 channels (adjustable based on resources)
-- **Reverb Channels**: Up to 16 channels for pseudoacoustics (adjustable)
+- **Reverb Channels**: Up to 32 channels for pseudoacoustics (adjustable)
 - **Effects Channels**: Up to 16 channels for sound design (adjustable)
 - **Latency**: Adjustable (target <3ms for acoustic sound reinforcement)
 - **Sample Rate**: Adjustable (44.1kHz, 48kHz, 96kHz, 192kHz)

@@ -40,7 +40,7 @@ The WFS-DIY project is a JUCE-based implementation of Wave Field Synthesis (WFS)
 - **Latency Compensation**: Global and per-channel delay compensation for signal path
 - **Array Management**: Speaker grouping, macro controls, and shared parameters
 - **Scalable I/O**: Up to 64 inputs and 128 outputs (adjustable based on resources)
-- **Effects Processing**: Up to 16 reverb channels and 16 effects channels (adjustable)
+- **Effects Processing**: Up to 32 reverb channels and 16 effects channels (adjustable)
 - **Reflections Processing**: Floor reflections with mirror source calculations (expandable to multiple surfaces)
 - **Pseudoacoustic Enhancement**: Decorrelated jitter for natural sound character
 

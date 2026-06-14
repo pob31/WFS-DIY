@@ -108,8 +108,8 @@ MainComponent::MainComponent()
     // Load channel counts (persisted), clamp, and fall back to a usable default
     numInputChannels = props.getIntValue("numInputChannels", 0);
     numOutputChannels = props.getIntValue("numOutputChannels", 2);
-    numInputChannels = juce::jlimit(0, 64, numInputChannels);
-    numOutputChannels = juce::jlimit(2, 64, numOutputChannels);
+    numInputChannels = juce::jlimit(0, WFSParameterDefaults::maxInputChannels, numInputChannels);
+    numOutputChannels = juce::jlimit(2, WFSParameterDefaults::maxOutputChannels, numOutputChannels);
     if (numInputChannels == 0)
         numInputChannels = 2; // Default to a sensible input count to avoid silent processing
 
@@ -2800,7 +2800,7 @@ void MainComponent::loadAudioPatches()
 
     // Reset patch maps to "unmapped" (-1)
     inputPatchMap.assign(LevelMeteringManager::MaxHardwareInputs, -1);  // Max hardware inputs
-    outputPatchMap.assign(64, -1); // Max WFS outputs
+    outputPatchMap.assign(WFSParameterDefaults::maxOutputChannels, -1); // Max WFS outputs
 
     // Load input patches: hardware channel → WFS channel
     if (inputPatchTree.isValid())
@@ -3016,7 +3016,7 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
         auto inputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::InputPatch);
         auto outputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::OutputPatch);
         int hwInCols = inputPatchTree.isValid() ? (int) inputPatchTree.getProperty(WFSParameterIDs::cols, 64) : 64;
-        int hwOutCols = outputPatchTree.isValid() ? (int) outputPatchTree.getProperty(WFSParameterIDs::cols, 64) : 64;
+        int hwOutCols = outputPatchTree.isValid() ? (int) outputPatchTree.getProperty(WFSParameterIDs::cols, WFSParameterDefaults::maxOutputChannels) : WFSParameterDefaults::maxOutputChannels;
         growPatchData(inputPatchTree, inputs, hwInCols);
         growPatchData(outputPatchTree, outputs, hwOutCols);
     }

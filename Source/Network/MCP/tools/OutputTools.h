@@ -37,7 +37,7 @@ inline juce::var buildSetCartesianSchema()
     auto outputId = std::make_unique<juce::DynamicObject>();
     outputId->setProperty ("type", "integer");
     outputId->setProperty ("minimum", 1);
-    outputId->setProperty ("maximum", 64);
+    outputId->setProperty ("maximum", WFSParameterDefaults::maxOutputChannels);
     outputId->setProperty ("description", "Output channel number (1-based).");
 
     // Phase 8: tier-2 tools require a two-step confirmation handshake.

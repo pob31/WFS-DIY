@@ -1,5 +1,6 @@
 #include "PatchMatrixComponent.h"
 #include "../Parameters/WFSParameterIDs.h"
+#include "../Parameters/WFSParameterDefaults.h"
 #include "ColorUtilities.h"
 #include "../Accessibility/TTSManager.h"
 #include "../Localization/LocalizationManager.h"
@@ -788,10 +789,10 @@ void PatchMatrixComponent::updateChannelCounts()
     else
         numWFSChannels = parameters.getNumOutputChannels();
 
-    // Hardware channels: use max (64) or read from patch tree if specified
+    // Hardware channels: use max or read from patch tree if specified
     if (patchTree.isValid())
     {
-        numHardwareChannels = patchTree.getProperty(WFSParameterIDs::cols, 64);
+        numHardwareChannels = patchTree.getProperty(WFSParameterIDs::cols, WFSParameterDefaults::maxOutputChannels);
 
         auto activeId = isInputPatch ? WFSParameterIDs::activeHardwareInputs
                                      : WFSParameterIDs::activeHardwareOutputs;
@@ -799,7 +800,7 @@ void PatchMatrixComponent::updateChannelCounts()
     }
     else
     {
-        numHardwareChannels = 64;  // Maximum hardware channels
+        numHardwareChannels = WFSParameterDefaults::maxOutputChannels;  // Maximum hardware channels fallback
         activeHardwareChannels = 0;
     }
 

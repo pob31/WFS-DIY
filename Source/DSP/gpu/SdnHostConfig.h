@@ -33,7 +33,7 @@
 class SdnHostConfig
 {
 public:
-    static constexpr int   MAX_NODES = 16;
+    static constexpr int   MAX_NODES = 32;  // >= WFSParameterDefaults::maxReverbChannels
     static constexpr int   MAX_DELAY_SAMPLES = 8192;
     static constexpr int   NUM_DIFFUSERS = 2;
     static constexpr float SPEED_OF_SOUND = 343.0f;

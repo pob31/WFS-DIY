@@ -17,7 +17,8 @@
 class ReverbPostProcessor
 {
 public:
-    static constexpr int MAX_NODES = 16;
+    // Max reverb nodes. Must stay >= WFSParameterDefaults::maxReverbChannels.
+    static constexpr int MAX_NODES = 32;
     static constexpr int NUM_EQ_BANDS = 4;
 
     //==========================================================================

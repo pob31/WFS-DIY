@@ -15,8 +15,8 @@ namespace WFSParameterDefaults
     //==========================================================================
 
     constexpr int maxInputChannels     = 64;
-    constexpr int maxOutputChannels    = 64;
-    constexpr int maxReverbChannels    = 16;
+    constexpr int maxOutputChannels    = 128;
+    constexpr int maxReverbChannels    = 32;
     constexpr int maxNetworkTargets    = 6;
     constexpr int maxClusters          = 10;
     constexpr int numEQBands           = 6;
@@ -49,7 +49,7 @@ namespace WFSParameterDefaults
     constexpr int binauralSoloModeDefault           = 0;      // 0=Single, 1=Multi
     constexpr int binauralOutputChannelDefault      = -1;     // -1=disabled
     constexpr int binauralOutputChannelMin          = -1;
-    constexpr int binauralOutputChannelMax          = 62;     // Max is numOutputs-2
+    constexpr int binauralOutputChannelMax          = 126;    // Max is numOutputs-2
 
     constexpr float binauralListenerDistanceDefault = 5.0f;   // meters from origin (0.0 for inward circle + circular stage)
     constexpr float binauralListenerDistanceMin     = 0.0f;

@@ -2,6 +2,7 @@
 #include "ColorScheme.h"
 #include "WfsLookAndFeel.h"
 #include "../Localization/LocalizationManager.h"
+#include "../Parameters/WFSParameterDefaults.h"
 
 //==============================================================================
 // Preset configurations
@@ -652,7 +653,7 @@ void OutputArrayHelperContent::setupTargetSection()
 
     addAndMakeVisible(startOutputSelector);
     int numOutputs = parameters.getNumOutputChannels();
-    if (numOutputs <= 0) numOutputs = 64;
+    if (numOutputs <= 0) numOutputs = WFSParameterDefaults::maxOutputChannels;
     for (int i = 1; i <= numOutputs; ++i)
         startOutputSelector.addItem(juce::String(i), i);
     startOutputSelector.setSelectedId(1, juce::dontSendNotification);
@@ -1507,7 +1508,7 @@ void OutputArrayHelperContent::applyToOutputs()
     int startOutput = startOutputSelector.getSelectedId() - 1;  // 0-based
     int N = static_cast<int>(calculatedPositions.size());
     int numOutputs = parameters.getNumOutputChannels();
-    if (numOutputs <= 0) numOutputs = 64;
+    if (numOutputs <= 0) numOutputs = WFSParameterDefaults::maxOutputChannels;
 
     // Validate
     if (startOutput + N > numOutputs)

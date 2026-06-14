@@ -37,7 +37,7 @@ inline juce::var buildSetCartesianSchema()
     auto reverbId = std::make_unique<juce::DynamicObject>();
     reverbId->setProperty ("type", "integer");
     reverbId->setProperty ("minimum", 1);
-    reverbId->setProperty ("maximum", 16);
+    reverbId->setProperty ("maximum", WFSParameterDefaults::maxReverbChannels);
     reverbId->setProperty ("description", "Reverb channel number (1-based).");
 
     auto props = std::make_unique<juce::DynamicObject>();

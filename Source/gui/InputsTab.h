@@ -2876,8 +2876,14 @@ private:
 
     void setupMutesTab()
     {
-        // Create 64 mute toggle buttons (8x8 grid)
-        for (int i = 0; i < 64; ++i)
+        // Mute grid lives inside a vertically-scrollable viewport so high output
+        // counts stay usable without overrunning the column.
+        muteViewport.setViewedComponent(&muteHolder, false);
+        muteViewport.setScrollBarsShown(true, false);  // vertical when needed, no horizontal
+        addChildComponent(muteViewport);  // visibility managed by setMutesVisible
+
+        // Create per-output mute toggle buttons (grid laid out dynamically per output count)
+        for (int i = 0; i < maxMuteButtons; ++i)
         {
             muteButtons[i].setButtonText(juce::String(i + 1));
             muteButtons[i].setClickingTogglesState(true);
@@ -2886,7 +2892,7 @@ private:
             muteButtons[i].onClick = [this, i]() {
                 saveMuteStates();
             };
-            addAndMakeVisible(muteButtons[i]);
+            muteHolder.addAndMakeVisible(muteButtons[i]);
         }
 
         // Mute Macros selector
@@ -3009,23 +3015,23 @@ private:
         switch (macroId)
         {
             case 2: // MUTE ALL
-                for (int i = 0; i < 64; ++i)
+                for (int i = 0; i < maxMuteButtons; ++i)
                     muteButtons[i].setToggleState(true, juce::sendNotification);
                 break;
             case 3: // UNMUTE ALL
-                for (int i = 0; i < 64; ++i)
+                for (int i = 0; i < maxMuteButtons; ++i)
                     muteButtons[i].setToggleState(false, juce::sendNotification);
                 break;
             case 4: // INVERT MUTES
-                for (int i = 0; i < 64; ++i)
+                for (int i = 0; i < maxMuteButtons; ++i)
                     muteButtons[i].setToggleState(!muteButtons[i].getToggleState(), juce::sendNotification);
                 break;
             case 5: // MUTE ODD
-                for (int i = 0; i < 64; ++i)
+                for (int i = 0; i < maxMuteButtons; ++i)
                     muteButtons[i].setToggleState((i % 2) == 0, juce::sendNotification);
                 break;
             case 6: // MUTE EVEN
-                for (int i = 0; i < 64; ++i)
+                for (int i = 0; i < maxMuteButtons; ++i)
                     muteButtons[i].setToggleState((i % 2) == 1, juce::sendNotification);
                 break;
             default:
@@ -3039,7 +3045,7 @@ private:
                     int numOutputs = parameters.getNumOutputChannels();
                     if (numOutputs <= 0) numOutputs = 16;
 
-                    for (int outIdx = 0; outIdx < numOutputs && outIdx < 64; ++outIdx)
+                    for (int outIdx = 0; outIdx < numOutputs && outIdx < maxMuteButtons; ++outIdx)
                     {
                         int outputArray = static_cast<int>(parameters.getOutputParam(outIdx, "outputArray"));
                         if (outputArray == arrayNumber)
@@ -4314,29 +4320,46 @@ private:
         muteMacrosSelector.setBounds(row.removeFromLeft(scaled(150)));
         col2.removeFromTop(spacing);
 
-        // --- Mutes section (fill column width, max 16 per row, visually square) ---
+        // --- Mutes section (scrollable; fill column width, max 16 per row, visually square) ---
         const int muteSpacing = scaled(2);
         const int btnInset = 6;  // WfsLookAndFeel button horizontal inset
         int numOutputs = parameters.getNumOutputChannels();
         if (numOutputs <= 0) numOutputs = 16;
 
         int muteButtonsPerRow = juce::jmin(numOutputs, 16);
-        int muteButtonSize = (col2.getWidth() - muteSpacing * (muteButtonsPerRow - 1)) / muteButtonsPerRow;
-        int muteButtonH = muteButtonSize - btnInset * 2;  // visually square after inset
         int muteRows = (numOutputs + muteButtonsPerRow - 1) / muteButtonsPerRow;
 
-        auto muteGridArea = col2.removeFromTop(muteRows * (muteButtonH + muteSpacing));
+        // The grid scrolls vertically if it is taller than the remaining column
+        // space. Reserve scrollbar width only when scrolling so buttons stay square.
+        const int availH = col2.getHeight();
+        const int sbThick = muteViewport.getScrollBarThickness();
+        auto gridMetrics = [&] (int holderW, int& btnSize, int& btnH, int& gridH)
+        {
+            btnSize = (holderW - muteSpacing * (muteButtonsPerRow - 1)) / muteButtonsPerRow;
+            btnH = btnSize - btnInset * 2;  // visually square after inset
+            gridH = muteRows * (btnH + muteSpacing);
+        };
+
+        int muteButtonSize, muteButtonH, gridHeight;
+        gridMetrics(col2.getWidth(), muteButtonSize, muteButtonH, gridHeight);
+        bool needsScroll = gridHeight > availH;
+        int holderW = col2.getWidth() - (needsScroll ? sbThick : 0);
+        if (needsScroll)
+            gridMetrics(holderW, muteButtonSize, muteButtonH, gridHeight);
+
+        int visibleH = juce::jmin(gridHeight, availH);
+        muteViewport.setBounds(col2.removeFromTop(visibleH));
+        muteHolder.setSize(holderW, gridHeight);
+
         for (int r = 0; r < muteRows; ++r)
         {
-            auto rowArea = muteGridArea.removeFromTop(muteButtonH + muteSpacing);
             for (int c = 0; c < muteButtonsPerRow; ++c)
             {
                 int index = r * muteButtonsPerRow + c;
                 if (index < numOutputs)
-                {
-                    muteButtons[index].setBounds(rowArea.removeFromLeft(muteButtonSize).withHeight(muteButtonH));
-                    rowArea.removeFromLeft(muteSpacing);
-                }
+                    muteButtons[index].setBounds(c * (muteButtonSize + muteSpacing),
+                                                 r * (muteButtonH + muteSpacing),
+                                                 muteButtonSize, muteButtonH);
             }
         }
 
@@ -4929,8 +4952,11 @@ private:
         int numOutputs = parameters.getNumOutputChannels();
         if (numOutputs <= 0) numOutputs = 16;  // Default
 
-        for (int i = 0; i < 64; ++i)
-            muteButtons[i].setVisible(v && i < numOutputs);
+        // The viewport gates overall visibility; per-button visibility (inside the
+        // holder) tracks the active output count so unused buttons stay hidden.
+        muteViewport.setVisible(v);
+        for (int i = 0; i < maxMuteButtons; ++i)
+            muteButtons[i].setVisible(i < numOutputs);
         muteMacrosLabel.setVisible(v);
         muteMacrosSelector.setVisible(v);
 
@@ -5580,12 +5606,12 @@ private:
         {
             juce::StringArray muteValues;
             muteValues.addTokens(muteStr, ",", "");
-            for (int i = 0; i < juce::jmin(64, muteValues.size()); ++i)
+            for (int i = 0; i < juce::jmin(maxMuteButtons, muteValues.size()); ++i)
                 muteButtons[i].setToggleState(muteValues[i].getIntValue() != 0, juce::dontSendNotification);
         }
         else
         {
-            for (int i = 0; i < 64; ++i)
+            for (int i = 0; i < maxMuteButtons; ++i)
                 muteButtons[i].setToggleState(false, juce::dontSendNotification);
         }
 
@@ -7103,7 +7129,7 @@ private:
         helpTextMap[&otomoStopAllButton] = LOC("inputs.help.otomoStopAllButton");
         helpTextMap[&otomoPauseResumeAllButton] = LOC("inputs.help.otomoPauseResumeAllButton");
         // Mutes tab
-        for (int i = 0; i < 64; ++i)
+        for (int i = 0; i < maxMuteButtons; ++i)
             helpTextMap[&muteButtons[i]] = LOC("inputs.help.muteButton").replace("{num}", juce::String(i + 1));
         helpTextMap[&muteMacrosSelector] = LOC("inputs.help.muteMacrosSelector");
         // Array attenuation
@@ -7226,7 +7252,7 @@ private:
         oscMethodMap[&otomoStopAllButton] = "/wfs/input/otomoStopAll";
         oscMethodMap[&otomoPauseResumeAllButton] = "/wfs/input/otomoPauseResumeAll";
         // Mutes tab
-        for (int i = 0; i < 64; ++i)
+        for (int i = 0; i < maxMuteButtons; ++i)
             oscMethodMap[&muteButtons[i]] = "/wfs/input/mutes <ID> " + juce::String(i + 1) + " <value>";
         oscMethodMap[&muteMacrosSelector] = "/wfs/input/muteMacro <ID> <value>";
         // Array attenuation
@@ -7797,7 +7823,7 @@ private:
     {
         if (isLoadingParameters) return;
         juce::StringArray muteValues;
-        for (int i = 0; i < 64; ++i)
+        for (int i = 0; i < maxMuteButtons; ++i)
             muteValues.add(muteButtons[i].getToggleState() ? "1" : "0");
         parameters.setInputParam(currentChannel - 1, WFSParameterIDs::inputMutes.toString(), muteValues.joinIntoString(","));
     }
@@ -8152,7 +8178,12 @@ private:
     InputVisualisationComponent visualisationComponent;
 
     // Mutes tab
-    juce::TextButton muteButtons[64];
+    // One per-output mute button. Sized to the max output channel count (these mutes
+    // are indexed by output, not input). Layout/visibility loops bound by numOutputs.
+    static constexpr int maxMuteButtons = WFSParameterDefaults::maxOutputChannels;
+    juce::TextButton muteButtons[maxMuteButtons];
+    juce::Viewport muteViewport;   // scrolls the mute grid vertically at high output counts
+    juce::Component muteHolder;     // viewed component that holds the mute buttons
     juce::Label muteMacrosLabel;
     juce::ComboBox muteMacrosSelector;
 

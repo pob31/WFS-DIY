@@ -117,7 +117,7 @@ kernel void sdn_process (
         const int base = (int) (p.ringWritePos + s);
 
         // 1. read incoming from every path i->n; Householder sum.
-        float incoming[16];
+        float incoming[32];  // per-node scratch; size >= MAX_NODES (reverb maxReverbChannels)
         float sumIn = 0.0f;
         uint  k = 0u;
         for (uint i = 0u; i < N; ++i)

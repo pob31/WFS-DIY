@@ -789,21 +789,23 @@ private:
 
     void applyMuteMacroToAllInputs(int macroId)
     {
+        constexpr int kMaxMutes = WFSParameterDefaults::maxOutputChannels;  // per-output mutes
         int numInputs = parameters.getNumInputChannels();
         int numOutputs = parameters.getNumOutputChannels();
-        if (numOutputs <= 0) numOutputs = 64;
+        if (numOutputs <= 0) numOutputs = kMaxMutes;
+        numOutputs = juce::jmin(numOutputs, kMaxMutes);  // guard the fixed muteStates array
 
         for (int inputIdx = 0; inputIdx < numInputs; ++inputIdx)
         {
             // Get current mute states for this input (comma-separated "0,1,0,1,..." format)
-            bool muteStates[64] = {false};
+            bool muteStates[kMaxMutes] = {false};
             juce::var mutesVar = parameters.getInputParam(inputIdx, WFSParameterIDs::inputMutes.toString());
             if (mutesVar.isString())
             {
                 juce::String muteStr = mutesVar.toString();
                 juce::StringArray muteValues;
                 muteValues.addTokens(muteStr, ",", "");
-                for (int i = 0; i < juce::jmin(64, muteValues.size()); ++i)
+                for (int i = 0; i < juce::jmin(kMaxMutes, muteValues.size()); ++i)
                     muteStates[i] = (muteValues[i] == "1");
             }
 
@@ -814,7 +816,7 @@ private:
                         muteStates[o] = true;
                     break;
                 case 3:  // UNMUTE ALL
-                    for (int o = 0; o < 64; ++o)
+                    for (int o = 0; o < numOutputs; ++o)
                         muteStates[o] = false;
                     break;
                 case 4:  // INVERT MUTES
@@ -849,7 +851,7 @@ private:
 
             // Save as comma-separated string (same format as InputsTab)
             juce::StringArray muteValues;
-            for (int i = 0; i < 64; ++i)
+            for (int i = 0; i < kMaxMutes; ++i)
                 muteValues.add(muteStates[i] ? "1" : "0");
             parameters.setInputParam(inputIdx, WFSParameterIDs::inputMutes.toString(), muteValues.joinIntoString(","));
         }
