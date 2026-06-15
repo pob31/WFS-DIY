@@ -47,14 +47,14 @@
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(Platform)\$(Configuration)\App\</IntDir>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">WFS-DIY</TargetName>
     <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateManifest>
-    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(LibraryPath);$(CUDA_PATH)\lib\x64;..\..\ThirdParty\juce_simpleweb\libs\VisualStudio2022\$(Platform)\MDd</LibraryPath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(LibraryPath);..\..\ThirdParty\juce_simpleweb\libs\VisualStudio2022\$(Platform)\MDd</LibraryPath>
     <PreBuildEventUseInBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</PreBuildEventUseInBuild>
     <PostBuildEventUseInBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</PostBuildEventUseInBuild>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)$(Platform)\$(Configuration)\App\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(Platform)\$(Configuration)\App\</IntDir>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">WFS-DIY</TargetName>
     <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateManifest>
-    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(LibraryPath);$(CUDA_PATH)\lib\x64;..\..\ThirdParty\juce_simpleweb\libs\VisualStudio2022\$(Platform)\MD</LibraryPath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(LibraryPath);..\..\ThirdParty\juce_simpleweb\libs\VisualStudio2022\$(Platform)\MD</LibraryPath>
     <PreBuildEventUseInBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</PreBuildEventUseInBuild>
     <PostBuildEventUseInBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</PostBuildEventUseInBuild>
   </PropertyGroup>
@@ -69,8 +69,8 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>..\..\JuceLibraryCode;..\..\ThirdParty\JUCE\modules;..\..\ThirdParty;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;$(CUDA_PATH)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;DEBUG;_DEBUG;JUCE_PROJUCER_VERSION=0x8000d;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_opengl=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=1;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta25;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\JuceLibraryCode;..\..\ThirdParty\JUCE\modules;..\..\ThirdParty;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;DEBUG;_DEBUG;JUCE_PROJUCER_VERSION=0x8000d;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_opengl=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=1;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;WFS_GPU_PLUGINS=1;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta25;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -84,8 +84,8 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>..\..\JuceLibraryCode;..\..\ThirdParty\JUCE\modules;..\..\ThirdParty;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;$(CUDA_PATH)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;DEBUG;_DEBUG;JUCE_PROJUCER_VERSION=0x8000d;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_opengl=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=1;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta25;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\JuceLibraryCode;..\..\ThirdParty\JUCE\modules;..\..\ThirdParty;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;DEBUG;_DEBUG;JUCE_PROJUCER_VERSION=0x8000d;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_opengl=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=1;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;WFS_GPU_PLUGINS=1;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta25;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
     <Link>
       <OutputFile>$(OutDir)\WFS-DIY.exe</OutputFile>
@@ -94,10 +94,9 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>$(IntDir)\WFS-DIY.pdb</ProgramDatabaseFile>
       <SubSystem>Windows</SubSystem>
-      <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\x64;..\..\ThirdParty\juce_simpleweb\libs\VisualStudio2022\$(Platform)\MDd;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\ThirdParty\juce_simpleweb\libs\VisualStudio2022\$(Platform)\MDd;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <LargeAddressAware>true</LargeAddressAware>
       <AdditionalDependencies>libssl.lib;libcrypto.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalOptions>/DELAYLOAD:nvcuda.dll /DELAYLOAD:cudart64_12.dll /DELAYLOAD:nvrtc64_120_0.dll %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -105,14 +104,14 @@
     </Bscmake>
     <Lib>
       <AdditionalDependencies>libssl.lib;libcrypto.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\x64;..\..\ThirdParty\juce_simpleweb\libs\VisualStudio2022\$(Platform)\MDd;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\ThirdParty\juce_simpleweb\libs\VisualStudio2022\$(Platform)\MDd;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
     <PreBuildEvent>
       <Command>cd /d &quot;$(SolutionDir)..\..&quot; &amp;&amp; (where python &gt;nul 2&gt;&amp;1 &amp;&amp; python tools\generate_mcp_tools.py) &amp; exit /b 0
 </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\cudart64_*.dll&quot; &quot;$(OutDir)&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\nvrtc64_*.dll&quot; &quot;$(OutDir)&quot; &amp; del /Q &quot;$(OutDir)nvrtc64_*.alt.dll&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\nvrtc-builtins64_*.dll&quot; &quot;$(OutDir)&quot;
+      <Command>xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot;
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -127,8 +126,8 @@
     <ClCompile>
       <Optimization>Full</Optimization>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>..\..\JuceLibraryCode;..\..\ThirdParty\JUCE\modules;..\..\ThirdParty;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;$(CUDA_PATH)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;NDEBUG;JUCE_PROJUCER_VERSION=0x8000d;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_opengl=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=1;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta25;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\JuceLibraryCode;..\..\ThirdParty\JUCE\modules;..\..\ThirdParty;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;NDEBUG;JUCE_PROJUCER_VERSION=0x8000d;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_opengl=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=1;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;WFS_GPU_PLUGINS=1;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta25;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -142,8 +141,8 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>..\..\JuceLibraryCode;..\..\ThirdParty\JUCE\modules;..\..\ThirdParty;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;$(CUDA_PATH)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;NDEBUG;JUCE_PROJUCER_VERSION=0x8000d;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_opengl=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=1;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta25;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\JuceLibraryCode;..\..\ThirdParty\JUCE\modules;..\..\ThirdParty;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;NDEBUG;JUCE_PROJUCER_VERSION=0x8000d;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_opengl=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=1;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;WFS_GPU_PLUGINS=1;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta25;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
     <Link>
       <OutputFile>$(OutDir)\WFS-DIY.exe</OutputFile>
@@ -154,11 +153,10 @@
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\x64;..\..\ThirdParty\juce_simpleweb\libs\VisualStudio2022\$(Platform)\MD;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\ThirdParty\juce_simpleweb\libs\VisualStudio2022\$(Platform)\MD;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <LargeAddressAware>true</LargeAddressAware>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <AdditionalDependencies>libssl.lib;libcrypto.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalOptions>/DELAYLOAD:nvcuda.dll /DELAYLOAD:cudart64_12.dll /DELAYLOAD:nvrtc64_120_0.dll %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -166,14 +164,14 @@
     </Bscmake>
     <Lib>
       <AdditionalDependencies>libssl.lib;libcrypto.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\x64;..\..\ThirdParty\juce_simpleweb\libs\VisualStudio2022\$(Platform)\MD;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\ThirdParty\juce_simpleweb\libs\VisualStudio2022\$(Platform)\MD;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
     <PreBuildEvent>
       <Command>cd /d &quot;$(SolutionDir)..\..&quot; &amp;&amp; (where python &gt;nul 2&gt;&amp;1 &amp;&amp; python tools\generate_mcp_tools.py) &amp; exit /b 0
 </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\cudart64_*.dll&quot; &quot;$(OutDir)&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\nvrtc64_*.dll&quot; &quot;$(OutDir)&quot; &amp; del /Q &quot;$(OutDir)nvrtc64_*.alt.dll&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\nvrtc-builtins64_*.dll&quot; &quot;$(OutDir)&quot;
+      <Command>xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot;
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -3395,6 +3393,7 @@
     <ClInclude Include="..\..\Source\DSP\gpu\GpuAsyncPipeline.h"/>
     <ClInclude Include="..\..\Source\DSP\gpu\GpuBackendInterface.h"/>
     <ClInclude Include="..\..\Source\DSP\gpu\GpuDeviceManager.h"/>
+    <ClInclude Include="..\..\Source\DSP\gpu\PlatformDynLib.h"/>
     <ClInclude Include="..\..\Source\DSP\gpu\GpuBackendFactory.h"/>
     <ClInclude Include="..\..\Source\DSP\gpu\NativeGpuWfsAlgorithm.h"/>
     <ClInclude Include="..\..\Source\DSP\gpu\MetalWfsBackend.h"/>

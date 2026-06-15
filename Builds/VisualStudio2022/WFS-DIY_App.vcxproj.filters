@@ -4731,6 +4731,9 @@
     <ClInclude Include="..\..\Source\DSP\gpu\GpuDeviceManager.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\DSP\gpu\PlatformDynLib.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\DSP\gpu\GpuBackendFactory.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>

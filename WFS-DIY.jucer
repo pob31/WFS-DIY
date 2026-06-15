@@ -549,18 +549,16 @@
     </LINUX_MAKE>
     <VS2022 targetFolder="Builds/VisualStudio2022" smallIcon="SCj321" bigIcon="SCj321">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY" headerPath="..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;$(CUDA_PATH)\include"
-                       libraryPath="$(CUDA_PATH)\lib\x64"
-                       externalLibraries="setupapi.lib;cudart.lib;nvrtc.lib;cuda.lib"
-                       extraCompilerFlags="/bigobj" extraLinkerFlags="/DELAYLOAD:nvcuda.dll /DELAYLOAD:cudart64_12.dll /DELAYLOAD:nvrtc64_120_0.dll" defines="SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1"
+        <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY" headerPath="..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi"
+                       externalLibraries="setupapi.lib"
+                       extraCompilerFlags="/bigobj" defines="SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;WFS_GPU_PLUGINS=1"
                        prebuildCommand="cd /d &quot;$(SolutionDir)..\..&quot; &amp;&amp; (where python &gt;nul 2&gt;&amp;1 &amp;&amp; python tools\generate_mcp_tools.py) &amp; exit /b 0"
-                       postbuildCommand="xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\cudart64_*.dll&quot; &quot;$(OutDir)&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\nvrtc64_*.dll&quot; &quot;$(OutDir)&quot; &amp; del /Q &quot;$(OutDir)nvrtc64_*.alt.dll&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\nvrtc-builtins64_*.dll&quot; &quot;$(OutDir)&quot;"/>
-        <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" headerPath="..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;$(CUDA_PATH)\include"
-                       libraryPath="$(CUDA_PATH)\lib\x64"
-                       externalLibraries="setupapi.lib;cudart.lib;nvrtc.lib;cuda.lib"
-                       extraCompilerFlags="/bigobj" extraLinkerFlags="/DELAYLOAD:nvcuda.dll /DELAYLOAD:cudart64_12.dll /DELAYLOAD:nvrtc64_120_0.dll" defines="SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1"
+                       postbuildCommand="xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot;"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" headerPath="..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi"
+                       externalLibraries="setupapi.lib"
+                       extraCompilerFlags="/bigobj" defines="SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;WFS_GPU_PLUGINS=1"
                        prebuildCommand="cd /d &quot;$(SolutionDir)..\..&quot; &amp;&amp; (where python &gt;nul 2&gt;&amp;1 &amp;&amp; python tools\generate_mcp_tools.py) &amp; exit /b 0"
-                       postbuildCommand="xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\cudart64_*.dll&quot; &quot;$(OutDir)&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\nvrtc64_*.dll&quot; &quot;$(OutDir)&quot; &amp; del /Q &quot;$(OutDir)nvrtc64_*.alt.dll&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\nvrtc-builtins64_*.dll&quot; &quot;$(OutDir)&quot;"/>
+                       postbuildCommand="xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot;"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="ThirdParty/JUCE/modules"/>
