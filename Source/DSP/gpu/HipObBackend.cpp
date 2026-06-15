@@ -22,10 +22,10 @@
     prepare() fails gracefully with the size in the error message).
 */
 
-// In the shared file list for every exporter, but only the Windows/NVIDIA build
-// (WFS_GPU_NATIVE, non-Apple) pulls in the CUDA toolkit. On macOS the Metal
-// backend is used; on Linux the GPU path is off - either way this compiles to an
-// empty TU so hip/hip_runtime.h is never required there.
+// This translation unit is in the shared file list for every exporter, but only
+// the Linux/AMD build (WFS_GPU_NATIVE, non-Apple, WFS_GPU_HIP) pulls in the ROCm
+// toolkit. On macOS the Metal backend is used; on Windows/NVIDIA the CUDA twin is;
+// otherwise this compiles to an empty TU so the hip headers are never required.
 #if WFS_GPU_NATIVE && !defined(__APPLE__) && defined(WFS_GPU_HIP)
 
 #include "HipObBackend.h"
@@ -35,11 +35,10 @@
 #include <hip/hip_runtime.h>   // HIP runtime + driver API (hipMalloc, hipModule*, hipModuleLaunchKernel, props)
 #include <hip/hiprtc.h>        // hipRTC: runtime kernel compilation
 
-#if defined(_MSC_VER)
- #pragma comment(lib, "cudart.lib")
- #pragma comment(lib, "nvrtc.lib")
- #pragma comment(lib, "cuda.lib")
-#endif
+// Linux links the HIP libs via the .jucer externalLibraries (-lamdhip64 -lhiprtc),
+// and the Windows wfs_hip.dll links them via hipcc; no MSVC-style #pragma
+// comment(lib, ...) is needed or honoured here. (A CUDA pragma here would wrongly
+// pull cudart/nvrtc into the AMD plugin.)
 
 #include <algorithm>
 #include <chrono>
@@ -243,7 +242,7 @@ bool HipObBackend::prepare (int numInputs, int numOutputs, int blockSize,
         const size_t accBytes = (size_t) matrix * m.accLen * sizeof (float);
         if (hipMalloc (&m.dPairAcc, accBytes) != hipSuccess)
         {
-            lastError = "CUDA: per-pair accumulator allocation failed ("
+            lastError = "HIP: per-pair accumulator allocation failed ("
                         + std::to_string (accBytes / (1024 * 1024)) + " MB)";
             release();
             return false;
@@ -514,4 +513,4 @@ void HipObBackend::release() noexcept
 #undef CK_RT
 #undef CK_DRV
 
-#endif // WFS_GPU_NATIVE && !defined(__APPLE__)
+#endif // WFS_GPU_NATIVE && !defined(__APPLE__) && defined(WFS_GPU_HIP)

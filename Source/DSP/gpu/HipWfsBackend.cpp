@@ -535,4 +535,4 @@ void HipWfsBackend::release() noexcept
 #undef CK_RT
 #undef CK_DRV
 
-#endif // WFS_GPU_NATIVE && !defined(__APPLE__)
+#endif // WFS_GPU_NATIVE && !defined(__APPLE__) && defined(WFS_GPU_HIP)

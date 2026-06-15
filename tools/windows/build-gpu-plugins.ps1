@@ -55,11 +55,21 @@ if ($cuda -and (Test-Path (Join-Path $cuda "include\cuda.h")) -and (Get-Command 
 # ---- AMD / HIP (hipcc from the HIP SDK for Windows) ----
 # Run from the "HIP SDK" environment so `hipcc` (hipcc.bat/.pl) resolves on PATH;
 # -fms-runtime-lib=dll is the clang spelling of /MD (shared dynamic CRT, see above).
+# hipcc's --hip-link auto-links the HIP runtime (amdhip64) but NOT hiprtc, the
+# runtime kernel-compiler the backends call (hiprtcCreateProgram/Compile/GetCode/
+# ...). Link hiprtc.lib explicitly, mirroring the Linux .jucer's -lhiprtc. hipcc
+# re-splits its command line on spaces, so a "-L<dir with spaces>" (e.g. the SDK's
+# default "C:\Program Files\AMD\ROCm\..\lib") would be mangled; put the SDK lib dir
+# on the linker's %LIB% (lld-link honours it) instead. Resolve the SDK root from
+# HIP_PATH (set by the HIP SDK shell) or from hipcc's own location.
 if (Get-Command hipcc -ErrorAction SilentlyContinue) {
     Write-Host "Building wfs_hip.dll ..."
+    $hipRoot = if ($env:HIP_PATH) { $env:HIP_PATH } else { Split-Path (Split-Path (Get-Command hipcc).Source) }
+    $env:LIB = (Join-Path $hipRoot "lib") + ";" + $env:LIB
     & hipcc -shared -std=c++17 -O2 -fms-runtime-lib=dll -DWFS_GPU_NATIVE=1 -DWFS_GPU_HIP=1 `
         -I"$Src" -I"$Root\Source\DSP" `
         @hipSrc $plugin `
+        -lhiprtc `
         -o "$OutDir\wfs_hip.dll"
     Write-Host "  -> $OutDir\wfs_hip.dll"
     $built = $true

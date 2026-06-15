@@ -1,13 +1,13 @@
 /*
     HipIrBackend implementation.
 
-    The kernel source lives in CudaIrKernels.h as a string literal, compiled
-    at prepare() time via hipRTC into PTX, loaded with the CUDA Driver API and
-    launched with hipModuleLaunchKernel; buffers and copies use the Runtime API on a
-    private stream — the exact pattern of CudaWfsBackend.cpp.
+    The kernel source lives in CudaIrKernels.h as a string literal (valid HIP),
+    compiled at prepare() time via hipRTC into code, loaded with the HIP driver
+    API and launched with hipModuleLaunchKernel; buffers and copies use the Runtime
+    API on a private stream — the exact pattern of CudaWfsBackend.cpp.
 
     Host-side behaviour mirrors MetalIrBackend.mm via the shared
-    IrConvHostState; the only CUDA-specific work is the pinned staging for
+    IrConvHostState; the only HIP-specific work is the pinned staging for
     the per-launch spectra (host FFTs can't write device memory directly,
     unlike Metal's shared storage):
         hIrSpectra  [segCapacity][fftLen]   full-size pinned IR staging;
@@ -23,8 +23,9 @@
     the WFS twin.
 */
 
-// Only the Windows/NVIDIA build pulls in the CUDA toolkit; on macOS the Metal
-// backend is used and this compiles to an empty TU (same as CudaWfsBackend).
+// Only the Linux/AMD build (WFS_GPU_HIP) pulls in the ROCm toolkit; on macOS the
+// Metal backend is used and otherwise this compiles to an empty TU (same as
+// CudaWfsBackend).
 #if WFS_GPU_NATIVE && !defined(__APPLE__) && defined(WFS_GPU_HIP)
 
 #include "HipIrBackend.h"
@@ -34,13 +35,10 @@
 #include <hip/hip_runtime.h>   // HIP runtime + driver API (hipMalloc, hipModule*, hipModuleLaunchKernel, props)
 #include <hip/hiprtc.h>        // hipRTC: runtime kernel compilation
 
-// Same linkage approach as CudaWfsBackend.cpp (Projucer's externalLibraries
-// does not reach AdditionalDependencies for this project).
-#if defined(_MSC_VER)
- #pragma comment(lib, "cudart.lib")
- #pragma comment(lib, "nvrtc.lib")
- #pragma comment(lib, "cuda.lib")
-#endif
+// Linux links the HIP libs via the .jucer externalLibraries (-lamdhip64 -lhiprtc),
+// and the Windows wfs_hip.dll links them via hipcc; no MSVC-style #pragma
+// comment(lib, ...) is needed or honoured here. (A CUDA pragma here would wrongly
+// pull cudart/nvrtc into the AMD plugin.)
 
 #include <algorithm>
 #include <chrono>
@@ -334,4 +332,4 @@ void HipIrBackend::release() noexcept
 #undef CK_RT
 #undef CK_DRV
 
-#endif // WFS_GPU_NATIVE && !defined(__APPLE__)
+#endif // WFS_GPU_NATIVE && !defined(__APPLE__) && defined(WFS_GPU_HIP)
