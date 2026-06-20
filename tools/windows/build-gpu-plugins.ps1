@@ -9,9 +9,15 @@
         wfs_cuda.dll   (NVIDIA/CUDA)  — needs the CUDA Toolkit (cl.exe + CUDA_PATH)
         wfs_hip.dll    (AMD/HIP)      — needs the AMD HIP SDK for Windows (hipcc)
 
+    Besides the plugin DLLs, this stages the CUDA runtime DLLs the cuda plugin
+    loads at runtime (CUDA Runtime + NVRTC) next to it, so a machine with only the
+    NVIDIA driver (no CUDA toolkit) still gets GPU acceleration. The app/installer
+    then ship the plugins + those runtime DLLs from this one dir.
+
     Usage (from a "x64 Native Tools Command Prompt for VS" / Developer PowerShell):
         tools\windows\build-gpu-plugins.ps1 [-OutDir <dir>]
-    OutDir defaults to Builds\VisualStudio2022\x64\Release (beside the .exe).
+    OutDir defaults to Builds\VisualStudio2022\x64\Release\App (beside the .exe,
+    where GpuBackendFactory dlopens the plugins and the installer collects them).
 
     NOTE: untested in CI — validate on a real Windows + toolkit setup.
 #>
@@ -20,7 +26,7 @@ param([string]$OutDir = "")
 $ErrorActionPreference = "Stop"
 $Root = (Resolve-Path "$PSScriptRoot\..\..").Path
 $Src  = Join-Path $Root "Source\DSP\gpu"
-if ([string]::IsNullOrEmpty($OutDir)) { $OutDir = Join-Path $Root "Builds\VisualStudio2022\x64\Release" }
+if ([string]::IsNullOrEmpty($OutDir)) { $OutDir = Join-Path $Root "Builds\VisualStudio2022\x64\Release\App" }
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 
 $plugin    = Join-Path $Src "plugin\GpuVendorPlugin.cpp"
@@ -47,6 +53,16 @@ if ($cuda -and (Test-Path (Join-Path $cuda "include\cuda.h")) -and (Get-Command 
         /Fe:"$OutDir\wfs_cuda.dll" `
         /link /LIBPATH:"$cuda\lib\x64" cudart.lib nvrtc.lib cuda.lib
     Write-Host "  -> $OutDir\wfs_cuda.dll"
+
+    # Stage the CUDA runtime DLLs wfs_cuda.dll links (CUDA Runtime + NVRTC) next
+    # to it so the plugin loads on a driver-only machine (no CUDA toolkit). Skip
+    # the ~85 MB nvrtc *.alt.dll forward-compat twin (not needed at runtime).
+    # nvcuda.dll (the driver API) ships with the NVIDIA driver and is NOT copied.
+    $cudaBin = Join-Path $cuda "bin"
+    Get-ChildItem $cudaBin -Filter "cudart64_*.dll"          | Copy-Item -Destination $OutDir -Force
+    Get-ChildItem $cudaBin -Filter "nvrtc64_*.dll"           | Where-Object { $_.Name -notlike "*.alt.dll" } | Copy-Item -Destination $OutDir -Force
+    Get-ChildItem $cudaBin -Filter "nvrtc-builtins64_*.dll"  | Copy-Item -Destination $OutDir -Force
+    Write-Host "  staged CUDA runtime DLLs (cudart/nvrtc/nvrtc-builtins) -> $OutDir"
     $built = $true
 } else {
     Write-Host "skip wfs_cuda.dll (no CUDA_PATH/cl.exe)"

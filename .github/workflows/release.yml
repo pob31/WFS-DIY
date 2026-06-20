@@ -86,10 +86,11 @@ jobs:
       - uses: actions/checkout@v5
         with:
           submodules: recursive
-      # The native GPU WFS algorithm (WFS_GPU_NATIVE) compiles a CUDA backend on
-      # Windows, so the build needs the CUDA toolkit headers/libs. This sets
-      # CUDA_PATH, used by the .vcxproj include/lib paths and by the postbuild
-      # step that stages the CUDA runtime DLLs next to the exe.
+      # GPU acceleration on Windows lives in the runtime-loaded plugins (the app
+      # builds with WFS_GPU_PLUGINS and links no GPU runtime itself). wfs_cuda.dll
+      # is compiled by tools/windows/build-gpu-plugins.ps1 below with cl.exe + the
+      # CUDA toolkit headers/libs. This step sets CUDA_PATH, used by that script to
+      # compile the plugin and to stage the CUDA runtime DLLs next to the exe.
       - name: Install CUDA Toolkit
         uses: Jimver/cuda-toolkit@v0.2.35
         with:
@@ -98,16 +99,34 @@ jobs:
       - uses: microsoft/setup-msbuild@v3
       - name: Build (Release x64)
         run: msbuild Builds\VisualStudio2022\WFS-DIY.sln -p:Configuration=Release -p:Platform=x64 -m
+      - name: Build GPU plugin (wfs_cuda.dll) + stage CUDA runtime; add prebuilt HIP
+        shell: pwsh
+        run: |
+          # msbuild builds only the app; the GPU plugins are a standalone cl.exe
+          # build. setup-msbuild puts msbuild (not cl.exe) on PATH, so enter the
+          # MSVC dev shell here. CUDA_PATH is already set by the toolkit step.
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vs = & $vswhere -latest -property installationPath
+          Import-Module (Join-Path $vs 'Common7\Tools\Microsoft.VisualStudio.DevShell.dll')
+          Enter-VsDevShell -VsInstallPath $vs -SkipAutomaticLocation -DevCmdArguments '-arch=x64' | Out-Null
+          tools\windows\build-gpu-plugins.ps1
+          # The runner has no AMD HIP SDK, so wfs_hip.dll wasn't built here -- add
+          # the prebuilt copy committed in the repo so AMD users get GPU too.
+          $app = 'Builds\VisualStudio2022\x64\Release\App'
+          Copy-Item tools\windows\prebuilt\wfs_hip.dll $app -Force
+          if (-not (Test-Path "$app\wfs_cuda.dll")) { throw 'wfs_cuda.dll was not built -- GPU would silently fall back to CPU' }
+          Get-ChildItem $app -Filter '*.dll' | Where-Object { $_.Name -match 'wfs_|cudart|nvrtc' } | Format-Table Name,Length
       - name: Build installer (Inno Setup)
         shell: pwsh
         run: |
-          # Compile the Inno Setup installer. It bundles the Release exe, the CUDA
-          # runtime DLLs staged next to it (cudart + main nvrtc64, excluding the
-          # ~85 MB .alt twin), the language files (Resources/lang/*.json), the app
-          # icon, LICENSE / README / third-party notices, and the .wfs file
-          # association. The driver API (nvcuda.dll) ships with the NVIDIA driver
-          # and is NOT redistributed. Pass the release version so the installer's
-          # AppVersion + filename match the tag.
+          # Compile the Inno Setup installer. It bundles the Release exe, the GPU
+          # plugins (wfs_cuda.dll built above + the prebuilt wfs_hip.dll) and the
+          # CUDA runtime DLLs staged next to them (cudart + main nvrtc64, excluding
+          # the ~85 MB .alt twin), the language files (Resources/lang/*.json), the
+          # app icon, LICENSE / README / third-party notices, and the .wfs file
+          # association. The vendor driver APIs (nvcuda.dll / amdhip64) ship with
+          # the GPU drivers and are NOT redistributed. Pass the release version so
+          # the installer's AppVersion + filename match the tag.
           $ver  = "${{ env.RELEASE_TAG }}" -replace '^v',''
           $base = "WFS-DIY-${{ env.RELEASE_TAG }}-windows-x64-Setup"
           New-Item -ItemType Directory -Force dist | Out-Null

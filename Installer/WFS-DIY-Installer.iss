@@ -5,7 +5,7 @@
 ; Version: overridable from the command line (CI passes /DMyAppVersion=<tag>
 ; so the installer matches the release). Default is for local manual builds.
 #ifndef MyAppVersion
-#define MyAppVersion "1.0.0beta25"
+#define MyAppVersion "1.0.0beta26"
 #endif
 #define MyAppPublisher "Pix et Bel"
 #define MyAppURL "https://wfs-diy.net"
@@ -52,14 +52,27 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 ; Main executable (Release build)
 Source: "..\Builds\VisualStudio2022\x64\Release\App\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 
-; CUDA runtime DLLs the exe implicit-links and loads at startup (CUDA Runtime +
-; NVRTC). They must sit next to the exe; the build's postbuild step stages them
-; into the Release App dir. Ship the main nvrtc64 only -- the .alt forward-compat
-; copy is ~85 MB and not needed. (nvcuda.dll, the driver API, ships with the
-; NVIDIA driver and is NOT redistributed.)
-Source: "..\Builds\VisualStudio2022\x64\Release\App\cudart64_*.dll";         DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Builds\VisualStudio2022\x64\Release\App\nvrtc64_*.dll";          DestDir: "{app}"; Excludes: "*.alt.dll"; Flags: ignoreversion
-Source: "..\Builds\VisualStudio2022\x64\Release\App\nvrtc-builtins64_*.dll"; DestDir: "{app}"; Flags: ignoreversion
+; GPU acceleration plugins, staged next to the exe by
+; tools\windows\build-gpu-plugins.ps1 (run it after the Release app build; the
+; release workflow runs it too). The app dlopens these by name from beside the
+; exe. All GPU files below are optional (skipifsourcedoesntexist) so a CPU-only
+; build still produces an installer.
+;   wfs_cuda.dll - NVIDIA plugin; loads cudart64 + nvrtc64 (bundled below) plus
+;                  nvcuda.dll (the driver API, shipped with the NVIDIA driver and
+;                  NOT redistributed here).
+;   wfs_hip.dll  - AMD plugin; loads amdhip64 / hiprtc from the user's AMD HIP
+;                  runtime (NOT bundled). CI copies a prebuilt copy from
+;                  tools\windows\prebuilt since the runner has no HIP SDK.
+Source: "..\Builds\VisualStudio2022\x64\Release\App\wfs_cuda.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "..\Builds\VisualStudio2022\x64\Release\App\wfs_hip.dll";  DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+
+; CUDA Runtime + NVRTC DLLs that wfs_cuda.dll loads at runtime (staged next to it
+; by build-gpu-plugins.ps1), so a machine with only the NVIDIA driver still gets
+; GPU acceleration. Ship the main nvrtc64 only -- the .alt forward-compat copy is
+; ~85 MB and not needed.
+Source: "..\Builds\VisualStudio2022\x64\Release\App\cudart64_*.dll";         DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "..\Builds\VisualStudio2022\x64\Release\App\nvrtc64_*.dll";          DestDir: "{app}"; Excludes: "*.alt.dll"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "..\Builds\VisualStudio2022\x64\Release\App\nvrtc-builtins64_*.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 
 ; Language files
 Source: "..\Resources\lang\*.json"; DestDir: "{app}\lang"; Flags: ignoreversion recursesubdirs
