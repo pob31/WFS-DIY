@@ -21,7 +21,9 @@
 // Build (Linux):
 //   g++ -std=c++17 -DWFS_GPU_NATIVE=1 -I../Source/DSP/gpu test-gpu-plugin.cpp -ldl -o test-gpu-plugin
 //
-// Usage: test-gpu-plugin <plugin-path>
+// Usage: test-gpu-plugin <plugin-path> [device-index]
+//   device-index (optional, default 0) selects which GPU of the vendor to bind
+//   (e.g. 1 for the second of two identical cards) — passed to create(idx).
 // Exit code 0 = backend created, prepared, and produced finite, non-silent,
 // approximately-correct output for BOTH scenarios; non-zero = failure (reason printed).
 
@@ -30,6 +32,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -104,8 +107,9 @@ static int driveConstant (IWfsBackend* b, int nIn, int nOut, int block,
 
 int main (int argc, char** argv)
 {
-    if (argc < 2) { std::printf ("usage: %s <plugin-path>\n", argv[0]); return 2; }
+    if (argc < 2) { std::printf ("usage: %s <plugin-path> [device-index]\n", argv[0]); return 2; }
     const char* path = argv[1];
+    const int deviceIndex = (argc >= 3) ? std::atoi (argv[2]) : 0;
 
     Lib lib = openLib (path);
     if (lib == nullptr) { std::printf ("FAIL: could not load '%s'\n", path); return 3; }
@@ -116,7 +120,8 @@ int main (int argc, char** argv)
     if (create == nullptr) { std::printf ("FAIL: wfs_plugin_create_wfs not exported\n"); return 4; }
     auto kill = [destroy] (IGpuBackend* p) { if (destroy) destroy (p); else delete p; };
 
-    std::printf ("loaded: %s   vendor: %s\n", path, vendor ? vendor() : "(no wfs_plugin_vendor)");
+    std::printf ("loaded: %s   vendor: %s   deviceIndex: %d\n",
+                 path, vendor ? vendor() : "(no wfs_plugin_vendor)", deviceIndex);
 
     const int block = 64;
     const double sr = 48000.0;
@@ -124,7 +129,7 @@ int main (int argc, char** argv)
 
     // ---- Scenario A: 1x1, gain 1, delay 0 -> output settles to input ----
     {
-        IWfsBackend* b = create (0);
+        IWfsBackend* b = create (deviceIndex);
         if (b == nullptr) { std::printf ("FAIL: create_wfs returned null (no device / init failed)\n"); return 5; }
 
         if (! b->prepare (1, 1, block, sr, /*latencyMs*/ 0.0, /*maxDelaySeconds*/ 1.0))
@@ -149,7 +154,7 @@ int main (int argc, char** argv)
     // out = g0*in0 + g1*in1 (gains indexed [in*numOut+out]; reduce streams inputs).
     // A backend that ignored input 1 (a 1x1 passthrough) would give 0.5, not 0.6.
     {
-        IWfsBackend* b = create (0);
+        IWfsBackend* b = create (deviceIndex);
         if (b == nullptr) { std::printf ("FAIL: [B] create_wfs returned null\n"); return 5; }
 
         if (! b->prepare (2, 1, block, sr, /*latencyMs*/ 0.0, /*maxDelaySeconds*/ 1.0))

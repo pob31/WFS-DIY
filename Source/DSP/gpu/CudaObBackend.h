@@ -19,7 +19,7 @@
 class CudaObBackend
 {
 public:
-    CudaObBackend();
+    explicit CudaObBackend (int deviceIndex = 0);
     ~CudaObBackend();
 
     CudaObBackend (const CudaObBackend&) = delete;

@@ -65,7 +65,8 @@ struct MetalIrBackend::Impl
     IrConvHostState host;
 };
 
-MetalIrBackend::MetalIrBackend() : impl (std::make_unique<Impl>()) {}
+// deviceIndex accepted for API uniformity but ignored on macOS (system default device).
+MetalIrBackend::MetalIrBackend (int deviceIndex) : impl (std::make_unique<Impl>()) { (void) deviceIndex; }
 MetalIrBackend::~MetalIrBackend() { release(); }
 
 bool MetalIrBackend::prepare (int numNodes, int blockSize,

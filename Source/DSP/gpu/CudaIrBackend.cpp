@@ -83,13 +83,14 @@ struct CudaIrBackend::Impl
     void* dInSpectra = nullptr;    // [numNodes][segCapacity][fftLen]
     void* dOutSpectra = nullptr;   // [numNodes][fftLen]
 
+    int deviceIndex = 0;             // which CUDA device to bind (ctor-injected)
     int numNodes = 0, blockSize = 0, fftLen = 0;
     double sampleRate = 0.0;
 
     IrConvHostState host;
 };
 
-CudaIrBackend::CudaIrBackend() : impl (std::make_unique<Impl>()) {}
+CudaIrBackend::CudaIrBackend (int deviceIndex) : impl (std::make_unique<Impl>()) { impl->deviceIndex = deviceIndex; }
 CudaIrBackend::~CudaIrBackend() { release(); }
 
 // prepare()-only error helpers: set lastError, tear down, return false.
@@ -112,7 +113,7 @@ bool CudaIrBackend::prepare (int numNodes, int blockSize,
         return false;
     }
 
-    // 1) Pick device 0, report its name, derive the SM architecture.
+    // 1) Pick the selected device, report its name, derive the SM architecture.
     int devCount = 0;
     CK_RT (cudaGetDeviceCount (&devCount));
     if (devCount == 0)
@@ -120,10 +121,16 @@ bool CudaIrBackend::prepare (int numNodes, int blockSize,
         lastError = "No CUDA device available";
         return false;
     }
-    CK_RT (cudaSetDevice (0));
+    if (m.deviceIndex < 0 || m.deviceIndex >= devCount)
+    {
+        lastError = "CUDA device index " + std::to_string (m.deviceIndex)
+                    + " out of range (" + std::to_string (devCount) + " present)";
+        return false;
+    }
+    CK_RT (cudaSetDevice (m.deviceIndex));
 
     cudaDeviceProp prop;
-    CK_RT (cudaGetDeviceProperties (&prop, 0));
+    CK_RT (cudaGetDeviceProperties (&prop, m.deviceIndex));
     deviceName = std::string (prop.name) + " (CUDA)";
     const int arch = prop.major * 10 + prop.minor;
 
@@ -135,7 +142,7 @@ bool CudaIrBackend::prepare (int numNodes, int blockSize,
 
     // 2) Init the driver API and retain the primary context the runtime uses.
     CK_DRV (cuInit (0));
-    CK_DRV (cuDeviceGet (&m.cuDevice, 0));
+    CK_DRV (cuDeviceGet (&m.cuDevice, m.deviceIndex));
     CK_DRV (cuDevicePrimaryCtxRetain (&m.context, m.cuDevice));
     CK_DRV (cuCtxSetCurrent (m.context));
 
@@ -224,13 +231,16 @@ bool CudaIrBackend::processBlock (const float* const* inputs, float* const* outp
 
     auto& m = *impl;
 
-    // processBlock runs on the pump thread; bind the primary context here.
+    // processBlock runs on the pump thread; bind the primary context here, plus
+    // the runtime current-device so the runtime copies/memsets on m.stream
+    // target the selected device.
     if (cuCtxSetCurrent (m.context) != CUDA_SUCCESS)
     {
         lastError = "CUDA driver: cuCtxSetCurrent failed on pump thread";
         ready = false;
         return false;
     }
+    cudaSetDevice (m.deviceIndex);
 
     const auto t0 = std::chrono::steady_clock::now();
     const size_t segCap = (size_t) m.host.getSegCapacity();

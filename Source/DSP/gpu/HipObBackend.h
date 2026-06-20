@@ -19,7 +19,7 @@
 class HipObBackend
 {
 public:
-    HipObBackend();
+    explicit HipObBackend (int deviceIndex = 0);
     ~HipObBackend();
 
     HipObBackend (const HipObBackend&) = delete;

@@ -92,6 +92,7 @@ struct HipFdnBackend::Impl
     void* dToneState = nullptr;
     void* dDcState = nullptr;
 
+    int deviceIndex = 0;             // which HIP device to bind (ctor-injected)
     int numNodes = 0, blockSize = 0;
     double sampleRate = 0.0;
     FdnParamsGpu params {};
@@ -106,7 +107,7 @@ struct HipFdnBackend::Impl
     std::atomic<bool> resetRequested { false };
 };
 
-HipFdnBackend::HipFdnBackend() : impl (std::make_unique<Impl>()) {}
+HipFdnBackend::HipFdnBackend (int deviceIndex) : impl (std::make_unique<Impl>()) { impl->deviceIndex = deviceIndex; }
 HipFdnBackend::~HipFdnBackend() { release(); }
 
 #define CK_RT(call)  do { hipError_t _e = (call); if (_e != hipSuccess) { \
@@ -128,10 +129,16 @@ bool HipFdnBackend::prepare (int numNodes, int blockSize, double sampleRate, flo
     int devCount = 0;
     CK_RT (hipGetDeviceCount (&devCount));
     if (devCount == 0) { lastError = "No HIP device available"; return false; }
-    CK_RT (hipSetDevice (0));
+    if (m.deviceIndex < 0 || m.deviceIndex >= devCount)
+    {
+        lastError = "HIP device index " + std::to_string (m.deviceIndex)
+                    + " out of range (" + std::to_string (devCount) + " present)";
+        return false;
+    }
+    CK_RT (hipSetDevice (m.deviceIndex));
 
     hipDeviceProp_t prop;
-    CK_RT (hipGetDeviceProperties (&prop, 0));
+    CK_RT (hipGetDeviceProperties (&prop, m.deviceIndex));
     deviceName = std::string (prop.name) + " (HIP)";
     const std::string archName = prop.gcnArchName;
 
@@ -270,7 +277,7 @@ bool HipFdnBackend::processBlock (const float* const* inputs, float* const* outp
     const size_t maxDiffLen  = (size_t) m.cfg.maxDiffLen;
     const size_t maxFbApLen  = (size_t) m.cfg.maxFbApLen;
 
-    if (hipSetDevice (0) != hipSuccess)
+    if (hipSetDevice (m.deviceIndex) != hipSuccess)
     {
         lastError = "HIP: hipSetDevice failed on pump thread";
         ready = false;
@@ -368,7 +375,7 @@ bool HipFdnBackend::processBlock (const float* const* inputs, float* const* outp
 void HipFdnBackend::release() noexcept
 {
     auto& m = *impl;
-    hipSetDevice (0);
+    hipSetDevice (m.deviceIndex);
 
     auto freeHost = [] (float*& p) { if (p) { hipHostFree (p); p = nullptr; } };
     auto freeDev  = [] (void*&  p) { if (p) { hipFree (p);     p = nullptr; } };

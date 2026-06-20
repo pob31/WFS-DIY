@@ -32,6 +32,8 @@ template <class B>
 class WfsBackendAdapter final : public IWfsBackend
 {
 public:
+    explicit WfsBackendAdapter (int deviceIndex = 0) : impl (deviceIndex) {}
+
     bool prepare (int ni, int no, int bs, double sr, double lat, double maxDel) override
         { return impl.prepare (ni, no, bs, sr, lat, maxDel); }
     void setMatrixPointers (const float* d, const float* g, const float* hf,
@@ -62,10 +64,16 @@ private:
      return GpuBackendFactory::instance().makeWfs (deviceId);
  }
 #else
+ // In-process: bind a specific device of the compiled-in vendor. The int
+ // overload (no default — keeps makeWfsBackend() unambiguous) is what the plugin
+ // entry point calls; the string overload serves the macOS/non-plugin app path.
+ inline std::unique_ptr<IWfsBackend> makeWfsBackend (int deviceIndex)
+ {
+     return std::make_unique<WfsBackendAdapter<WfsGpuBackend>> (deviceIndex);
+ }
  inline std::unique_ptr<IWfsBackend> makeWfsBackend (const std::string& deviceId = {})
  {
-     (void) deviceId;
-     return std::make_unique<WfsBackendAdapter<WfsGpuBackend>>();
+     return makeWfsBackend (deviceIndexFromId (deviceId));
  }
 #endif
 #endif // WFS_GPU_NATIVE

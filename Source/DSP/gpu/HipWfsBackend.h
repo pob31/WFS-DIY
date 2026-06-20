@@ -40,7 +40,7 @@
 class HipWfsBackend
 {
 public:
-    HipWfsBackend();
+    explicit HipWfsBackend (int deviceIndex = 0);
     ~HipWfsBackend();
 
     HipWfsBackend (const HipWfsBackend&) = delete;

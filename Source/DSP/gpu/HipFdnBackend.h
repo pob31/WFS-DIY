@@ -20,7 +20,7 @@
 class HipFdnBackend
 {
 public:
-    HipFdnBackend();
+    explicit HipFdnBackend (int deviceIndex = 0);
     ~HipFdnBackend();
 
     HipFdnBackend (const HipFdnBackend&) = delete;

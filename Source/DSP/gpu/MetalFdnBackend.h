@@ -23,7 +23,7 @@
 class MetalFdnBackend
 {
 public:
-    MetalFdnBackend();
+    explicit MetalFdnBackend (int deviceIndex = 0);
     ~MetalFdnBackend();
 
     MetalFdnBackend (const MetalFdnBackend&) = delete;

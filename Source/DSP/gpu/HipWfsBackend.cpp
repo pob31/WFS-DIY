@@ -132,10 +132,11 @@ struct HipWfsBackend::Impl
 
     WfsFrHostState frHost;            // per-input FR pre-filters + jitter
 
+    int deviceIndex = 0;             // which HIP device to bind (ctor-injected)
     unsigned int threadsPerBlock = 256;
 };
 
-HipWfsBackend::HipWfsBackend() : impl (std::make_unique<Impl>()) {}
+HipWfsBackend::HipWfsBackend (int deviceIndex) : impl (std::make_unique<Impl>()) { impl->deviceIndex = deviceIndex; }
 HipWfsBackend::~HipWfsBackend() { release(); }
 
 // prepare()-only error helpers: set lastError, tear down, return false.
@@ -152,7 +153,7 @@ bool HipWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,
     release();
     auto& m = *impl;
 
-    // 1) Pick device 0; read its name + GFX arch (gcnArchName).
+    // 1) Pick the selected device; read its name + GFX arch (gcnArchName).
     int devCount = 0;
     CK_RT (hipGetDeviceCount (&devCount));
     if (devCount == 0)
@@ -160,10 +161,16 @@ bool HipWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,
         lastError = "No HIP device available";
         return false;
     }
-    CK_RT (hipSetDevice (0));
+    if (m.deviceIndex < 0 || m.deviceIndex >= devCount)
+    {
+        lastError = "HIP device index " + std::to_string (m.deviceIndex)
+                    + " out of range (" + std::to_string (devCount) + " present)";
+        return false;
+    }
+    CK_RT (hipSetDevice (m.deviceIndex));
 
     hipDeviceProp_t prop;
-    CK_RT (hipGetDeviceProperties (&prop, 0));
+    CK_RT (hipGetDeviceProperties (&prop, m.deviceIndex));
     deviceName = std::string (prop.name) + " (HIP)";
     // hipRTC targets an AMD GFX arch by name (e.g. "gfx1103"), not an SM number.
     const std::string archName = prop.gcnArchName;
@@ -322,9 +329,9 @@ bool HipWfsBackend::processBlock (const float* const* inputs, float* const* outp
     const float srScale = (float) (m.sampleRate / 1000.0);
     const float maxDelay = (float) m.maxDelaySamples;
 
-    // processBlock runs on the pump thread; bind device 0 here so
+    // processBlock runs on the pump thread; bind the selected device here so
     // both the driver launch and the runtime copies use it.
-    if (hipSetDevice (0) != hipSuccess)
+    if (hipSetDevice (m.deviceIndex) != hipSuccess)
     {
         lastError = "HIP: hipSetDevice failed on pump thread";
         ready = false;
@@ -473,7 +480,7 @@ bool HipWfsBackend::processBlock (const float* const* inputs, float* const* outp
 void HipWfsBackend::reset() noexcept
 {
     auto& m = *impl;
-    hipSetDevice (0);
+    hipSetDevice (m.deviceIndex);
     const size_t ringBytes = (size_t) m.numIn * m.ringCapacity * sizeof (float);
     const size_t stateBytes = (size_t) m.numIn * m.numOut * 4 * sizeof (float);
     if (m.dRing != nullptr && ringBytes > 0)
@@ -494,7 +501,7 @@ void HipWfsBackend::release() noexcept
 {
     auto& m = *impl;
 
-    hipSetDevice (0);
+    hipSetDevice (m.deviceIndex);
 
     auto freeHost = [] (float*& p) { if (p != nullptr) { hipHostFree (p); p = nullptr; } };
     auto freeDev  = [] (void*&  p) { if (p != nullptr) { hipFree (p);     p = nullptr; } };

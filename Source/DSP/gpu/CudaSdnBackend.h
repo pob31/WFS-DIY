@@ -20,7 +20,7 @@
 class CudaSdnBackend
 {
 public:
-    CudaSdnBackend();
+    explicit CudaSdnBackend (int deviceIndex = 0);
     ~CudaSdnBackend();
 
     CudaSdnBackend (const CudaSdnBackend&) = delete;

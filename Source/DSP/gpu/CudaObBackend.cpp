@@ -133,10 +133,11 @@ struct CudaObBackend::Impl
 
     WfsFrHostState frHost;            // per-input FR pre-filters + jitter (shared)
 
+    int deviceIndex = 0;             // which CUDA device to bind (ctor-injected)
     unsigned int threadsPerBlock = 256;
 };
 
-CudaObBackend::CudaObBackend() : impl (std::make_unique<Impl>()) {}
+CudaObBackend::CudaObBackend (int deviceIndex) : impl (std::make_unique<Impl>()) { impl->deviceIndex = deviceIndex; }
 CudaObBackend::~CudaObBackend() { release(); }
 
 #define CK_RT(call)  do { cudaError_t _e = (call); if (_e != cudaSuccess) { \
@@ -159,15 +160,21 @@ bool CudaObBackend::prepare (int numInputs, int numOutputs, int blockSize,
         lastError = "No CUDA device available";
         return false;
     }
-    CK_RT (cudaSetDevice (0));
+    if (m.deviceIndex < 0 || m.deviceIndex >= devCount)
+    {
+        lastError = "CUDA device index " + std::to_string (m.deviceIndex)
+                    + " out of range (" + std::to_string (devCount) + " present)";
+        return false;
+    }
+    CK_RT (cudaSetDevice (m.deviceIndex));
 
     cudaDeviceProp prop;
-    CK_RT (cudaGetDeviceProperties (&prop, 0));
+    CK_RT (cudaGetDeviceProperties (&prop, m.deviceIndex));
     deviceName = std::string (prop.name) + " (CUDA)";
     const int arch = prop.major * 10 + prop.minor;
 
     CK_DRV (cuInit (0));
-    CK_DRV (cuDeviceGet (&m.cuDevice, 0));
+    CK_DRV (cuDeviceGet (&m.cuDevice, m.deviceIndex));
     CK_DRV (cuDevicePrimaryCtxRetain (&m.context, m.cuDevice));
     CK_DRV (cuCtxSetCurrent (m.context));
 
@@ -331,6 +338,7 @@ bool CudaObBackend::processBlock (const float* const* inputs, float* const* outp
         ready = false;
         return false;
     }
+    cudaSetDevice (m.deviceIndex);   // runtime copies on m.stream target the selected device
 
     const auto t0 = std::chrono::steady_clock::now();
 
@@ -465,7 +473,10 @@ void CudaObBackend::reset() noexcept
 {
     auto& m = *impl;
     if (m.context != nullptr)
+    {
         cuCtxSetCurrent (m.context);
+        cudaSetDevice (m.deviceIndex);   // runtime cudaMemset below targets the selected device
+    }
     const size_t accBytes = (size_t) m.numIn * m.numOut * m.accLen * sizeof (float);
     const size_t stateBytes = (size_t) m.numIn * m.numOut * 4 * sizeof (float);
     if (m.dPairAcc != nullptr && accBytes > 0)

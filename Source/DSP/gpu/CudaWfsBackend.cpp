@@ -125,6 +125,7 @@ struct CudaWfsBackend::Impl
     void* dHfAttenDb = nullptr;
     void* dFrHfAttenDb = nullptr;
 
+    int deviceIndex = 0;             // which CUDA device to bind (ctor-injected)
     int numIn = 0, numOut = 0, blockSize = 0;
     uint32_t ringCapacity = 0;
     uint32_t ringWritePos = 0;
@@ -156,7 +157,7 @@ struct CudaWfsBackend::Impl
     unsigned int threadsPerBlock = 256;
 };
 
-CudaWfsBackend::CudaWfsBackend() : impl (std::make_unique<Impl>()) {}
+CudaWfsBackend::CudaWfsBackend (int deviceIndex) : impl (std::make_unique<Impl>()) { impl->deviceIndex = deviceIndex; }
 CudaWfsBackend::~CudaWfsBackend() { release(); }
 
 // prepare()-only error helpers: set lastError, tear down, return false.
@@ -173,7 +174,10 @@ bool CudaWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,
     release();
     auto& m = *impl;
 
-    // 1) Pick device 0, report its name, derive the SM architecture.
+    // 1) Pick the selected device, report its name, derive the SM architecture.
+    //    The runtime ordinal (cudaSetDevice) and driver ordinal (cuDeviceGet)
+    //    agree under the default CUDA_DEVICE_ORDER; for two identical GPUs the
+    //    fastest-first tie resolves to PCI-bus order, so they always match.
     int devCount = 0;
     CK_RT (cudaGetDeviceCount (&devCount));
     if (devCount == 0)
@@ -181,16 +185,22 @@ bool CudaWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,
         lastError = "No CUDA device available";
         return false;
     }
-    CK_RT (cudaSetDevice (0));
+    if (m.deviceIndex < 0 || m.deviceIndex >= devCount)
+    {
+        lastError = "CUDA device index " + std::to_string (m.deviceIndex)
+                    + " out of range (" + std::to_string (devCount) + " present)";
+        return false;
+    }
+    CK_RT (cudaSetDevice (m.deviceIndex));
 
     cudaDeviceProp prop;
-    CK_RT (cudaGetDeviceProperties (&prop, 0));
+    CK_RT (cudaGetDeviceProperties (&prop, m.deviceIndex));
     deviceName = std::string (prop.name) + " (CUDA)";
     const int arch = prop.major * 10 + prop.minor; // e.g. Turing GTX 1650 -> 75
 
     // 2) Init the driver API and retain the same primary context the runtime uses.
     CK_DRV (cuInit (0));
-    CK_DRV (cuDeviceGet (&m.cuDevice, 0));
+    CK_DRV (cuDeviceGet (&m.cuDevice, m.deviceIndex));
     CK_DRV (cuDevicePrimaryCtxRetain (&m.context, m.cuDevice));
     CK_DRV (cuCtxSetCurrent (m.context));
 
@@ -349,13 +359,17 @@ bool CudaWfsBackend::processBlock (const float* const* inputs, float* const* out
     const float maxDelay = (float) m.maxDelaySamples;
 
     // processBlock runs on the pump thread; bind the primary context here so
-    // both the driver launch and the runtime copies use it.
+    // the driver launch uses it, and bind the runtime current-device so the
+    // runtime copies (cudaMemcpyAsync / cudaStreamSynchronize on m.stream) also
+    // target the selected device (the stream is bound to the device it was
+    // created on). Both are cheap per-thread writes.
     if (cuCtxSetCurrent (m.context) != CUDA_SUCCESS)
     {
         lastError = "CUDA driver: cuCtxSetCurrent failed on pump thread";
         ready = false;
         return false;
     }
+    cudaSetDevice (m.deviceIndex);
 
     const auto t0 = std::chrono::steady_clock::now();
 
@@ -500,7 +514,10 @@ void CudaWfsBackend::reset() noexcept
 {
     auto& m = *impl;
     if (m.context != nullptr)
+    {
         cuCtxSetCurrent (m.context);
+        cudaSetDevice (m.deviceIndex);   // runtime cudaMemset below targets the selected device
+    }
     const size_t ringBytes = (size_t) m.numIn * m.ringCapacity * sizeof (float);
     const size_t stateBytes = (size_t) m.numIn * m.numOut * 4 * sizeof (float);
     if (m.dRing != nullptr && ringBytes > 0)

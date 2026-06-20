@@ -32,6 +32,8 @@ template <class B>
 class ObBackendAdapter final : public IObBackend
 {
 public:
+    explicit ObBackendAdapter (int deviceIndex = 0) : impl (deviceIndex) {}
+
     bool prepare (int ni, int no, int bs, double sr, double lat, double maxDel) override
         { return impl.prepare (ni, no, bs, sr, lat, maxDel); }
     void setMatrixPointers (const float* d, const float* g, const float* hf,
@@ -59,10 +61,14 @@ private:
      return GpuBackendFactory::instance().makeOb (deviceId);
  }
 #else
+ // In-process: bind a specific device of the compiled-in vendor (see WfsGpuBackend.h).
+ inline std::unique_ptr<IObBackend> makeObBackend (int deviceIndex)
+ {
+     return std::make_unique<ObBackendAdapter<ObGpuBackend>> (deviceIndex);
+ }
  inline std::unique_ptr<IObBackend> makeObBackend (const std::string& deviceId = {})
  {
-     (void) deviceId;
-     return std::make_unique<ObBackendAdapter<ObGpuBackend>>();
+     return makeObBackend (deviceIndexFromId (deviceId));
  }
 #endif
 #endif // WFS_GPU_NATIVE

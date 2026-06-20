@@ -23,6 +23,27 @@
 
 #include <string>
 
+/** Parses the per-vendor device ordinal out of a GpuDeviceManager id string
+    ("cuda:1" -> 1, "metal:0" -> 0, "cpu" / "" / malformed -> 0). The factory
+    already resolves the ordinal on the plugin path; this is for the in-process
+    (macOS / non-plugin) path that only has the id string. Non-throwing. */
+inline int deviceIndexFromId (const std::string& id) noexcept
+{
+    const std::string::size_type colon = id.find_last_of (':');
+    if (colon == std::string::npos || colon + 1 >= id.size())
+        return 0;
+
+    int value = 0;
+    for (std::string::size_type i = colon + 1; i < id.size(); ++i)
+    {
+        const char c = id[i];
+        if (c < '0' || c > '9')
+            return 0;                         // malformed -> default device
+        value = value * 10 + (c - '0');
+    }
+    return value;
+}
+
 struct IGpuBackend
 {
     virtual ~IGpuBackend() = default;

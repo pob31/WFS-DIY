@@ -32,6 +32,8 @@ template <class B>
 class IrBackendAdapter final : public IIrBackend
 {
 public:
+    explicit IrBackendAdapter (int deviceIndex = 0) : impl (deviceIndex) {}
+
     bool prepare (int nn, int bs, double sr, int maxIr) override { return impl.prepare (nn, bs, sr, maxIr); }
     void stageIr (const float* ir, int n) override { impl.stageIr (ir, n); }
     void requestReset() noexcept override { impl.requestReset(); }
@@ -54,10 +56,14 @@ private:
      return GpuBackendFactory::instance().makeIr (deviceId);
  }
 #else
+ // In-process: bind a specific device of the compiled-in vendor (see WfsGpuBackend.h).
+ inline std::unique_ptr<IIrBackend> makeIrBackend (int deviceIndex)
+ {
+     return std::make_unique<IrBackendAdapter<IrGpuBackend>> (deviceIndex);
+ }
  inline std::unique_ptr<IIrBackend> makeIrBackend (const std::string& deviceId = {})
  {
-     (void) deviceId;
-     return std::make_unique<IrBackendAdapter<IrGpuBackend>>();
+     return makeIrBackend (deviceIndexFromId (deviceId));
  }
 #endif
 #endif // WFS_GPU_NATIVE

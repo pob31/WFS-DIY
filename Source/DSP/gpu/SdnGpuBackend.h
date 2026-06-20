@@ -31,6 +31,8 @@ template <class B>
 class SdnBackendAdapter final : public ISdnBackend
 {
 public:
+    explicit SdnBackendAdapter (int deviceIndex = 0) : impl (deviceIndex) {}
+
     bool prepare (int nn, int bs, double sr) override { return impl.prepare (nn, bs, sr); }
     void setGeometry (const float* xyz, int count) noexcept override { impl.setGeometry (xyz, count); }
     void setParameters (float a, float b, float c, float d, float e, float f, float g) noexcept override
@@ -53,10 +55,14 @@ private:
      return GpuBackendFactory::instance().makeSdn (deviceId);
  }
 #else
+ // In-process: bind a specific device of the compiled-in vendor (see WfsGpuBackend.h).
+ inline std::unique_ptr<ISdnBackend> makeSdnBackend (int deviceIndex)
+ {
+     return std::make_unique<SdnBackendAdapter<SdnGpuBackend>> (deviceIndex);
+ }
  inline std::unique_ptr<ISdnBackend> makeSdnBackend (const std::string& deviceId = {})
  {
-     (void) deviceId;
-     return std::make_unique<SdnBackendAdapter<SdnGpuBackend>>();
+     return makeSdnBackend (deviceIndexFromId (deviceId));
  }
 #endif
 #endif // WFS_GPU_NATIVE

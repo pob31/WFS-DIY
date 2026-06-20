@@ -114,9 +114,11 @@ struct HipSdnBackend::Impl
     std::vector<SdnHostConfig::NodePos> posScratch;
 
     std::atomic<bool> resetRequested { false };
+
+    int deviceIndex = 0;             // which HIP device to bind (ctor-injected)
 };
 
-HipSdnBackend::HipSdnBackend() : impl (std::make_unique<Impl>()) {}
+HipSdnBackend::HipSdnBackend (int deviceIndex) : impl (std::make_unique<Impl>()) { impl->deviceIndex = deviceIndex; }
 HipSdnBackend::~HipSdnBackend() { release(); }
 
 #define CK_RT(call)  do { hipError_t _e = (call); if (_e != hipSuccess) { \
@@ -141,10 +143,16 @@ bool HipSdnBackend::prepare (int numNodes, int blockSize, double sampleRate)
     int devCount = 0;
     CK_RT (hipGetDeviceCount (&devCount));
     if (devCount == 0) { lastError = "No HIP device available"; return false; }
-    CK_RT (hipSetDevice (0));
+    if (m.deviceIndex < 0 || m.deviceIndex >= devCount)
+    {
+        lastError = "HIP device index " + std::to_string (m.deviceIndex)
+                    + " out of range (" + std::to_string (devCount) + " present)";
+        return false;
+    }
+    CK_RT (hipSetDevice (m.deviceIndex));
 
     hipDeviceProp_t prop;
-    CK_RT (hipGetDeviceProperties (&prop, 0));
+    CK_RT (hipGetDeviceProperties (&prop, m.deviceIndex));
     deviceName = std::string (prop.name) + " (HIP)";
     const std::string archName = prop.gcnArchName;
 
@@ -301,7 +309,7 @@ bool HipSdnBackend::processBlock (const float* const* inputs, float* const* outp
     const size_t maxDelay = (size_t) SdnHostConfig::MAX_DELAY_SAMPLES;
     const size_t maxDiff  = (size_t) m.cfg.maxDiffLen;
 
-    if (hipSetDevice (0) != hipSuccess)
+    if (hipSetDevice (m.deviceIndex) != hipSuccess)
     {
         lastError = "HIP: hipSetDevice failed on pump thread";
         ready = false;
@@ -436,7 +444,7 @@ bool HipSdnBackend::processBlock (const float* const* inputs, float* const* outp
 void HipSdnBackend::release() noexcept
 {
     auto& m = *impl;
-    hipSetDevice (0);
+    hipSetDevice (m.deviceIndex);
 
     auto freeHostF = [] (float*& p) { if (p) { hipHostFree (p); p = nullptr; } };
     auto freeHostI = [] (int*&   p) { if (p) { hipHostFree (p); p = nullptr; } };

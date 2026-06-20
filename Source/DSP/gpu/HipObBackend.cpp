@@ -129,10 +129,11 @@ struct HipObBackend::Impl
 
     WfsFrHostState frHost;            // per-input FR pre-filters + jitter (shared)
 
+    int deviceIndex = 0;             // which HIP device to bind (ctor-injected)
     unsigned int threadsPerBlock = 256;
 };
 
-HipObBackend::HipObBackend() : impl (std::make_unique<Impl>()) {}
+HipObBackend::HipObBackend (int deviceIndex) : impl (std::make_unique<Impl>()) { impl->deviceIndex = deviceIndex; }
 HipObBackend::~HipObBackend() { release(); }
 
 #define CK_RT(call)  do { hipError_t _e = (call); if (_e != hipSuccess) { \
@@ -155,10 +156,16 @@ bool HipObBackend::prepare (int numInputs, int numOutputs, int blockSize,
         lastError = "No HIP device available";
         return false;
     }
-    CK_RT (hipSetDevice (0));
+    if (m.deviceIndex < 0 || m.deviceIndex >= devCount)
+    {
+        lastError = "HIP device index " + std::to_string (m.deviceIndex)
+                    + " out of range (" + std::to_string (devCount) + " present)";
+        return false;
+    }
+    CK_RT (hipSetDevice (m.deviceIndex));
 
     hipDeviceProp_t prop;
-    CK_RT (hipGetDeviceProperties (&prop, 0));
+    CK_RT (hipGetDeviceProperties (&prop, m.deviceIndex));
     deviceName = std::string (prop.name) + " (HIP)";
     const std::string archName = prop.gcnArchName;
 
@@ -316,7 +323,7 @@ bool HipObBackend::processBlock (const float* const* inputs, float* const* outpu
     const float srScale = (float) (m.sampleRate / 1000.0);
     const float maxDelay = m.maxDelayClamp;
 
-    if (hipSetDevice (0) != hipSuccess)
+    if (hipSetDevice (m.deviceIndex) != hipSuccess)
     {
         lastError = "HIP: hipSetDevice failed on pump thread";
         ready = false;
@@ -455,7 +462,7 @@ bool HipObBackend::processBlock (const float* const* inputs, float* const* outpu
 void HipObBackend::reset() noexcept
 {
     auto& m = *impl;
-    hipSetDevice (0);
+    hipSetDevice (m.deviceIndex);
     const size_t accBytes = (size_t) m.numIn * m.numOut * m.accLen * sizeof (float);
     const size_t stateBytes = (size_t) m.numIn * m.numOut * 4 * sizeof (float);
     if (m.dPairAcc != nullptr && accBytes > 0)
@@ -473,7 +480,7 @@ void HipObBackend::release() noexcept
 {
     auto& m = *impl;
 
-    hipSetDevice (0);
+    hipSetDevice (m.deviceIndex);
 
     auto freeHost = [] (float*& p) { if (p != nullptr) { hipHostFree (p); p = nullptr; } };
     auto freeDev  = [] (void*&  p) { if (p != nullptr) { hipFree (p);     p = nullptr; } };

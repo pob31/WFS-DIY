@@ -78,13 +78,14 @@ struct HipIrBackend::Impl
     void* dInSpectra = nullptr;    // [numNodes][segCapacity][fftLen]
     void* dOutSpectra = nullptr;   // [numNodes][fftLen]
 
+    int deviceIndex = 0;             // which HIP device to bind (ctor-injected)
     int numNodes = 0, blockSize = 0, fftLen = 0;
     double sampleRate = 0.0;
 
     IrConvHostState host;
 };
 
-HipIrBackend::HipIrBackend() : impl (std::make_unique<Impl>()) {}
+HipIrBackend::HipIrBackend (int deviceIndex) : impl (std::make_unique<Impl>()) { impl->deviceIndex = deviceIndex; }
 HipIrBackend::~HipIrBackend() { release(); }
 
 // prepare()-only error helpers: set lastError, tear down, return false.
@@ -107,7 +108,7 @@ bool HipIrBackend::prepare (int numNodes, int blockSize,
         return false;
     }
 
-    // 1) Pick device 0; read its name + GFX arch (gcnArchName).
+    // 1) Pick the selected device; read its name + GFX arch (gcnArchName).
     int devCount = 0;
     CK_RT (hipGetDeviceCount (&devCount));
     if (devCount == 0)
@@ -115,10 +116,16 @@ bool HipIrBackend::prepare (int numNodes, int blockSize,
         lastError = "No HIP device available";
         return false;
     }
-    CK_RT (hipSetDevice (0));
+    if (m.deviceIndex < 0 || m.deviceIndex >= devCount)
+    {
+        lastError = "HIP device index " + std::to_string (m.deviceIndex)
+                    + " out of range (" + std::to_string (devCount) + " present)";
+        return false;
+    }
+    CK_RT (hipSetDevice (m.deviceIndex));
 
     hipDeviceProp_t prop;
-    CK_RT (hipGetDeviceProperties (&prop, 0));
+    CK_RT (hipGetDeviceProperties (&prop, m.deviceIndex));
     deviceName = std::string (prop.name) + " (HIP)";
     const std::string archName = prop.gcnArchName;
 
@@ -213,8 +220,8 @@ bool HipIrBackend::processBlock (const float* const* inputs, float* const* outpu
 
     auto& m = *impl;
 
-    // processBlock runs on the pump thread; bind the primary context here.
-    if (hipSetDevice (0) != hipSuccess)
+    // processBlock runs on the pump thread; bind the selected device here.
+    if (hipSetDevice (m.deviceIndex) != hipSuccess)
     {
         lastError = "HIP: hipSetDevice failed on pump thread";
         ready = false;
@@ -313,7 +320,7 @@ void HipIrBackend::release() noexcept
 {
     auto& m = *impl;
 
-    hipSetDevice (0);
+    hipSetDevice (m.deviceIndex);
 
     auto freeHost = [] (float*& p) { if (p != nullptr) { hipHostFree (p); p = nullptr; } };
     auto freeDev  = [] (void*&  p) { if (p != nullptr) { hipFree (p);     p = nullptr; } };

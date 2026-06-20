@@ -141,6 +141,30 @@ public:
                                      "cuDeviceGet", "cuDeviceGetName",
                                      "cuda:", "NVIDIA GPU");
 #endif
+
+        // Disambiguate identical model names (e.g. two identical GPUs) so each is
+        // selectable in the UI comboboxes (all of which display GpuDevice::name).
+        // Append the per-vendor ordinal only on collision; unique names stay clean.
+        // Snapshot the raw names first so renaming one device does not perturb the
+        // collision test for the next.
+        std::vector<std::string> rawNames;
+        rawNames.reserve (devs.size());
+        for (const auto& d : devs)
+            rawNames.push_back (d.name);
+
+        for (std::size_t i = 0; i < devs.size(); ++i)
+        {
+            if (devs[i].isCpu())
+                continue;
+
+            std::size_t sameName = 0;
+            for (std::size_t j = 0; j < devs.size(); ++j)
+                if (! devs[j].isCpu() && rawNames[j] == rawNames[i])
+                    ++sameName;
+
+            if (sameName > 1)
+                devs[i].name += " #" + std::to_string (devs[i].index);
+        }
     }
 
     const std::vector<GpuDevice>& devices() const noexcept { return devs; }

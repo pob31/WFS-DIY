@@ -48,13 +48,14 @@ WFS_PLUGIN_API const char* wfs_plugin_vendor()
 #endif
 }
 
-// deviceIndex selects which GPU of this vendor (reserved for multi-GPU binding;
-// the backends currently bind device 0 — single-GPU machines are unaffected).
-WFS_PLUGIN_API IWfsBackend* wfs_plugin_create_wfs (int /*deviceIndex*/) { return makeWfsBackend().release(); }
-WFS_PLUGIN_API IObBackend*  wfs_plugin_create_ob  (int /*deviceIndex*/) { return makeObBackend().release();  }
-WFS_PLUGIN_API IIrBackend*  wfs_plugin_create_ir  (int /*deviceIndex*/) { return makeIrBackend().release();  }
-WFS_PLUGIN_API IFdnBackend* wfs_plugin_create_fdn (int /*deviceIndex*/) { return makeFdnBackend().release(); }
-WFS_PLUGIN_API ISdnBackend* wfs_plugin_create_sdn (int /*deviceIndex*/) { return makeSdnBackend().release(); }
+// deviceIndex selects which GPU of this vendor to bind (the factory resolves it
+// from the device id, e.g. "cuda:1" -> 1). Forwarded to the concrete backend's
+// constructor; single-GPU machines pass 0 and are unaffected.
+WFS_PLUGIN_API IWfsBackend* wfs_plugin_create_wfs (int deviceIndex) { return makeWfsBackend (deviceIndex).release(); }
+WFS_PLUGIN_API IObBackend*  wfs_plugin_create_ob  (int deviceIndex) { return makeObBackend  (deviceIndex).release(); }
+WFS_PLUGIN_API IIrBackend*  wfs_plugin_create_ir  (int deviceIndex) { return makeIrBackend  (deviceIndex).release(); }
+WFS_PLUGIN_API IFdnBackend* wfs_plugin_create_fdn (int deviceIndex) { return makeFdnBackend (deviceIndex).release(); }
+WFS_PLUGIN_API ISdnBackend* wfs_plugin_create_sdn (int deviceIndex) { return makeSdnBackend (deviceIndex).release(); }
 
 // Destroy any backend created above (virtual dtor via IGpuBackend). The factory
 // wraps the returned pointer in a default-deleter unique_ptr, so the host module
