@@ -4,6 +4,7 @@
 #include "../MCPToolRegistry.h"
 #include "../../../Parameters/WFSValueTreeState.h"
 #include "../../../Parameters/WFSParameterIDs.h"
+#include "../../../Parameters/WFSFileManager.h"
 
 namespace WFSNetwork::Tools::Session
 {
@@ -101,6 +102,48 @@ inline ToolDescriptor describe (WFSValueTreeState& state)
     d.handler = [&state] (const juce::var&, ChangeRecord*) -> ToolResult
     {
         return getState (state);
+    };
+    return d;
+}
+
+/** session.save — persist the full session to the current project folder.
+    Same code path as the SystemConfig tab's Save button
+    (WFSFileManager::saveCompleteConfig → system/network/inputs/outputs/
+    reverbs .xml, each with a rolling backup). Tier 2: it overwrites the
+    operator's saved show on disk, so it needs the confirm round-trip. */
+inline ToolResult save (WFSFileManager& fileManager)
+{
+    if (! fileManager.hasValidProjectFolder())
+        return ToolResult::error ("no_project_folder",
+                                  "No valid project folder is open - load or create a "
+                                  "project before calling session_save.");
+
+    if (! fileManager.saveCompleteConfig())
+        return ToolResult::error ("save_failed", fileManager.getLastError());
+
+    auto result = std::make_unique<juce::DynamicObject>();
+    result->setProperty ("saved", true);
+    result->setProperty ("project_folder", fileManager.getProjectFolder().getFullPathName());
+    return ToolResult::ok (juce::var (result.release()));
+}
+
+inline ToolDescriptor describeSave (WFSFileManager& fileManager)
+{
+    ToolDescriptor d;
+    d.name        = "session_save";
+    d.description = "Save the complete current session (system, network, inputs, "
+                    "outputs, reverbs) to the open project folder - identical to "
+                    "the operator pressing Save in the System Config tab. "
+                    "Overwrites the project's config files on disk (a rolling "
+                    "backup of each file is kept in backups/). Fails if no "
+                    "project folder is open."
+                  + juce::String (kTier2DescriptionSuffix);
+    d.inputSchema   = buildInputSchema();
+    d.modifiesState = false;  // writes disk, not the in-memory session — nothing to undo
+    d.tier        = 2;  // overwrites the saved show on disk
+    d.handler = [&fileManager] (const juce::var&, ChangeRecord*) -> ToolResult
+    {
+        return save (fileManager);
     };
     return d;
 }

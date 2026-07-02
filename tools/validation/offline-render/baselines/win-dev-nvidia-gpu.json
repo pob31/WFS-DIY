@@ -1,0 +1,8 @@
+{
+  "gpu-gather/fr-toggle": "162dc0cacfe045427c6673430d62bb4449784d67ef84984c7993ece72c0d7a76",
+  "gpu-gather/moving": "1b8fc9cb924f6aac1e9ad5b5170a360ad4a7ee9f467f7fe52215f69e3157f5bf",
+  "gpu-gather/static": "8c2fcfda2790f180c8c9ab4528d8a58d8ec4f6ed5f801799006b68ab8f360b94",
+  "gpu-scatter/fr-toggle": "3f0a7e6de691d4c248029b7862106af18fd52398463a237c4bd8d7922e3aedbc",
+  "gpu-scatter/moving": "c29d780ac6ea9bbb52895f6162890757fc460e05dac6c1c32f1d0a4ed1659adf",
+  "gpu-scatter/static": "8c2fcfda2790f180c8c9ab4528d8a58d8ec4f6ed5f801799006b68ab8f360b94"
+}

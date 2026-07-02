@@ -1,0 +1,1280 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- WFS Processor Configuration File -->
+<!-- Type: inputs -->
+
+<InputConfig version="1.0">
+  <Inputs count="8">
+    <Input id="1">
+      <Channel inputName="Vocal" inputAttenuation="-6.0" inputDelayLatency="0.0"
+               inputMinimalLatency="0" inputMapLocked="0" inputMapVisible="1"
+               inputHiddenByCluster="0" inputSamplerActive="0" samplerMidiZoneQuadrant="0"
+               lightpadZoneId="-1"/>
+      <Position inputPositionX="-2.0" inputPositionY="1.5" inputPositionZ="0.0"
+                inputOffsetX="0.0" inputOffsetY="0.0" inputOffsetZ="0.0" inputConstraintX="1"
+                inputConstraintY="1" inputConstraintZ="1" inputConstraintDistance="0"
+                inputConstraintDistanceMin="0.0" inputConstraintDistanceMax="50.0"
+                inputFlipX="0" inputFlipY="0" inputFlipZ="0" inputCluster="0"
+                inputTrackingActive="0" inputTrackingID="1" inputTrackingSmooth="100"
+                inputMaxSpeedActive="0" inputMaxSpeed="1.0" inputPathModeActive="0"
+                inputHeightFactor="0" inputCoordinateMode="0" inputAdmMapping="-1"
+                inputJitter="0.0"/>
+      <Attenuation inputAttenuationLaw="0" inputDistanceAttenuation="-0.699999988079071"
+                   inputDistanceRatio="1.0" inputCommonAtten="100"/>
+      <Directivity inputDirectivity="360" inputRotation="0" inputTilt="0" inputHFshelf="-6.0"/>
+      <LiveSourceTamer inputLSradius="3.0" inputLSshape="0" inputLSattenuation="0.0"
+                       inputLSpeakThreshold="-20.0" inputLSpeakRatio="2.0" inputLSslowThreshold="-20.0"
+                       inputLSslowRatio="2.0"/>
+      <Hackoustics inputFRactive="0" inputFRattenuation="-3.0" inputFRlowCutActive="1"
+                   inputFRlowCutFreq="100" inputFRhighShelfActive="1" inputFRhighShelfFreq="3000"
+                   inputFRhighShelfGain="-2.0" inputFRhighShelfSlope="0.4000000059604645"
+                   inputFRdiffusion="40"/>
+      <LFO inputLFOactive="0" inputLFOperiod="5.0" inputLFOphase="0" inputLFOshapeX="0"
+           inputLFOshapeY="0" inputLFOshapeZ="0" inputLFOrateX="1.0" inputLFOrateY="1.0"
+           inputLFOrateZ="1.0" inputLFOamplitudeX="1.0" inputLFOamplitudeY="1.0"
+           inputLFOamplitudeZ="1.0" inputLFOphaseX="0" inputLFOphaseY="0"
+           inputLFOphaseZ="0" inputLFOgyrophone="0"/>
+      <AutomOtion inputOtomoX="0.0" inputOtomoY="0.0" inputOtomoZ="0.0" inputOtomoAbsoluteRelative="0"
+                  inputOtomoStayReturn="0" inputOtomoSpeedProfile="0" inputOtomoDuration="5.0"
+                  inputOtomoCurve="0" inputOtomoTrigger="0" inputOtomoThreshold="-20.0"
+                  inputOtomoReset="-60.0" inputOtomoPauseResume="1" inputOtomoCoordinateMode="0"
+                  inputOtomoR="0.0" inputOtomoTheta="0.0" inputOtomoRsph="0.0"
+                  inputOtomoPhi="0.0"/>
+      <Mutes inputMutes="0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0" inputSidelinesActive="0"
+             inputSidelinesFringe="1.0" inputMuteReverbSends="0" inputArrayAtten1="0.0"
+             inputArrayAtten2="0.0" inputArrayAtten3="0.0" inputArrayAtten4="0.0"
+             inputArrayAtten5="0.0" inputArrayAtten6="0.0" inputArrayAtten7="0.0"
+             inputArrayAtten8="0.0" inputArrayAtten9="0.0" inputArrayAtten10="0.0"/>
+      <GradientMaps>
+        <GradientLayer id="0" gmLayerEnabled="0" gmLayerParam="0" gmLayerWhite="0.0"
+                       gmLayerBlack="0.0" gmLayerCurve="0.0" gmLayerVisible="1"/>
+        <GradientLayer id="1" gmLayerEnabled="0" gmLayerParam="1" gmLayerWhite="0.0"
+                       gmLayerBlack="0.0" gmLayerCurve="0.0" gmLayerVisible="1"/>
+        <GradientLayer id="2" gmLayerEnabled="0" gmLayerParam="2" gmLayerWhite="0.0"
+                       gmLayerBlack="0.0" gmLayerCurve="0.0" gmLayerVisible="1"/>
+      </GradientMaps>
+      <Sampler inputSamplerActiveSet="0">
+        <SamplerCell id="0" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="1" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="2" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="3" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="4" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="5" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="6" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="7" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="8" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="9" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="10" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="11" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="12" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="13" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="14" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="15" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="16" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="17" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="18" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="19" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="20" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="21" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="22" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="23" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="24" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="25" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="26" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="27" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="28" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="29" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="30" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="31" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="32" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="33" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="34" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="35" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+      </Sampler>
+    </Input>
+    <Input id="2">
+      <Channel inputName="Input 2" inputAttenuation="0.0" inputDelayLatency="0.0"
+               inputMinimalLatency="0" inputMapLocked="0" inputMapVisible="1"
+               inputHiddenByCluster="0" inputSamplerActive="0" samplerMidiZoneQuadrant="0"
+               lightpadZoneId="-1"/>
+      <Position inputPositionX="2.0" inputPositionY="1.5" inputPositionZ="0.0"
+                inputOffsetX="0.0" inputOffsetY="0.0" inputOffsetZ="0.0" inputConstraintX="1"
+                inputConstraintY="1" inputConstraintZ="1" inputConstraintDistance="0"
+                inputConstraintDistanceMin="0.0" inputConstraintDistanceMax="50.0"
+                inputFlipX="0" inputFlipY="0" inputFlipZ="0" inputCluster="0"
+                inputTrackingActive="0" inputTrackingID="2" inputTrackingSmooth="100"
+                inputMaxSpeedActive="0" inputMaxSpeed="1.0" inputPathModeActive="0"
+                inputHeightFactor="0" inputCoordinateMode="0" inputAdmMapping="-1"
+                inputJitter="0.0"/>
+      <Attenuation inputAttenuationLaw="0" inputDistanceAttenuation="-0.699999988079071"
+                   inputDistanceRatio="1.0" inputCommonAtten="100"/>
+      <Directivity inputDirectivity="360" inputRotation="0" inputTilt="0" inputHFshelf="-6.0"/>
+      <LiveSourceTamer inputLSradius="3.0" inputLSshape="0" inputLSattenuation="0.0"
+                       inputLSpeakThreshold="-20.0" inputLSpeakRatio="2.0" inputLSslowThreshold="-20.0"
+                       inputLSslowRatio="2.0"/>
+      <Hackoustics inputFRactive="0" inputFRattenuation="-3.0" inputFRlowCutActive="1"
+                   inputFRlowCutFreq="100" inputFRhighShelfActive="1" inputFRhighShelfFreq="3000"
+                   inputFRhighShelfGain="-2.0" inputFRhighShelfSlope="0.4000000059604645"
+                   inputFRdiffusion="40"/>
+      <LFO inputLFOactive="0" inputLFOperiod="5.0" inputLFOphase="0" inputLFOshapeX="0"
+           inputLFOshapeY="0" inputLFOshapeZ="0" inputLFOrateX="1.0" inputLFOrateY="1.0"
+           inputLFOrateZ="1.0" inputLFOamplitudeX="1.0" inputLFOamplitudeY="1.0"
+           inputLFOamplitudeZ="1.0" inputLFOphaseX="0" inputLFOphaseY="0"
+           inputLFOphaseZ="0" inputLFOgyrophone="0"/>
+      <AutomOtion inputOtomoX="0.0" inputOtomoY="0.0" inputOtomoZ="0.0" inputOtomoAbsoluteRelative="0"
+                  inputOtomoStayReturn="0" inputOtomoSpeedProfile="0" inputOtomoDuration="5.0"
+                  inputOtomoCurve="0" inputOtomoTrigger="0" inputOtomoThreshold="-20.0"
+                  inputOtomoReset="-60.0" inputOtomoPauseResume="1" inputOtomoCoordinateMode="0"
+                  inputOtomoR="0.0" inputOtomoTheta="0.0" inputOtomoRsph="0.0"
+                  inputOtomoPhi="0.0"/>
+      <Mutes inputMutes="0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0" inputSidelinesActive="0"
+             inputSidelinesFringe="1.0" inputMuteReverbSends="0" inputArrayAtten1="0.0"
+             inputArrayAtten2="0.0" inputArrayAtten3="0.0" inputArrayAtten4="0.0"
+             inputArrayAtten5="0.0" inputArrayAtten6="0.0" inputArrayAtten7="0.0"
+             inputArrayAtten8="0.0" inputArrayAtten9="0.0" inputArrayAtten10="0.0"/>
+      <GradientMaps>
+        <GradientLayer id="0" gmLayerEnabled="0" gmLayerParam="0" gmLayerWhite="0.0"
+                       gmLayerBlack="0.0" gmLayerCurve="0.0" gmLayerVisible="1"/>
+        <GradientLayer id="1" gmLayerEnabled="0" gmLayerParam="1" gmLayerWhite="0.0"
+                       gmLayerBlack="0.0" gmLayerCurve="0.0" gmLayerVisible="1"/>
+        <GradientLayer id="2" gmLayerEnabled="0" gmLayerParam="2" gmLayerWhite="0.0"
+                       gmLayerBlack="0.0" gmLayerCurve="0.0" gmLayerVisible="1"/>
+      </GradientMaps>
+      <Sampler inputSamplerActiveSet="0">
+        <SamplerCell id="0" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="1" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="2" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="3" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="4" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="5" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="6" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="7" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="8" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="9" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="10" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="11" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="12" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="13" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="14" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="15" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="16" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="17" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="18" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="19" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="20" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="21" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="22" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="23" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="24" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="25" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="26" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="27" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="28" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="29" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="30" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="31" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="32" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="33" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="34" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="35" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+      </Sampler>
+    </Input>
+    <Input id="3">
+      <Channel inputName="Input 3" inputAttenuation="0.0" inputDelayLatency="0.0"
+               inputMinimalLatency="0" inputMapLocked="0" inputMapVisible="1"
+               inputHiddenByCluster="0" inputSamplerActive="0" samplerMidiZoneQuadrant="0"
+               lightpadZoneId="-1"/>
+      <Position inputPositionX="0.0" inputPositionY="3.0" inputPositionZ="0.0"
+                inputOffsetX="0.0" inputOffsetY="0.0" inputOffsetZ="0.0" inputConstraintX="1"
+                inputConstraintY="1" inputConstraintZ="1" inputConstraintDistance="0"
+                inputConstraintDistanceMin="0.0" inputConstraintDistanceMax="50.0"
+                inputFlipX="0" inputFlipY="0" inputFlipZ="0" inputCluster="0"
+                inputTrackingActive="0" inputTrackingID="3" inputTrackingSmooth="100"
+                inputMaxSpeedActive="0" inputMaxSpeed="1.0" inputPathModeActive="0"
+                inputHeightFactor="0" inputCoordinateMode="0" inputAdmMapping="-1"
+                inputJitter="0.0"/>
+      <Attenuation inputAttenuationLaw="0" inputDistanceAttenuation="-0.699999988079071"
+                   inputDistanceRatio="1.0" inputCommonAtten="100"/>
+      <Directivity inputDirectivity="360" inputRotation="0" inputTilt="0" inputHFshelf="-6.0"/>
+      <LiveSourceTamer inputLSradius="3.0" inputLSshape="0" inputLSattenuation="0.0"
+                       inputLSpeakThreshold="-20.0" inputLSpeakRatio="2.0" inputLSslowThreshold="-20.0"
+                       inputLSslowRatio="2.0"/>
+      <Hackoustics inputFRactive="0" inputFRattenuation="-3.0" inputFRlowCutActive="1"
+                   inputFRlowCutFreq="100" inputFRhighShelfActive="1" inputFRhighShelfFreq="3000"
+                   inputFRhighShelfGain="-2.0" inputFRhighShelfSlope="0.4000000059604645"
+                   inputFRdiffusion="40"/>
+      <LFO inputLFOactive="0" inputLFOperiod="5.0" inputLFOphase="0" inputLFOshapeX="0"
+           inputLFOshapeY="0" inputLFOshapeZ="0" inputLFOrateX="1.0" inputLFOrateY="1.0"
+           inputLFOrateZ="1.0" inputLFOamplitudeX="1.0" inputLFOamplitudeY="1.0"
+           inputLFOamplitudeZ="1.0" inputLFOphaseX="0" inputLFOphaseY="0"
+           inputLFOphaseZ="0" inputLFOgyrophone="0"/>
+      <AutomOtion inputOtomoX="0.0" inputOtomoY="0.0" inputOtomoZ="0.0" inputOtomoAbsoluteRelative="0"
+                  inputOtomoStayReturn="0" inputOtomoSpeedProfile="0" inputOtomoDuration="5.0"
+                  inputOtomoCurve="0" inputOtomoTrigger="0" inputOtomoThreshold="-20.0"
+                  inputOtomoReset="-60.0" inputOtomoPauseResume="1" inputOtomoCoordinateMode="0"
+                  inputOtomoR="0.0" inputOtomoTheta="0.0" inputOtomoRsph="0.0"
+                  inputOtomoPhi="0.0"/>
+      <Mutes inputMutes="0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0" inputSidelinesActive="0"
+             inputSidelinesFringe="1.0" inputMuteReverbSends="0" inputArrayAtten1="0.0"
+             inputArrayAtten2="0.0" inputArrayAtten3="0.0" inputArrayAtten4="0.0"
+             inputArrayAtten5="0.0" inputArrayAtten6="0.0" inputArrayAtten7="0.0"
+             inputArrayAtten8="0.0" inputArrayAtten9="0.0" inputArrayAtten10="0.0"/>
+      <GradientMaps>
+        <GradientLayer id="0" gmLayerEnabled="0" gmLayerParam="0" gmLayerWhite="0.0"
+                       gmLayerBlack="0.0" gmLayerCurve="0.0" gmLayerVisible="1"/>
+        <GradientLayer id="1" gmLayerEnabled="0" gmLayerParam="1" gmLayerWhite="0.0"
+                       gmLayerBlack="0.0" gmLayerCurve="0.0" gmLayerVisible="1"/>
+        <GradientLayer id="2" gmLayerEnabled="0" gmLayerParam="2" gmLayerWhite="0.0"
+                       gmLayerBlack="0.0" gmLayerCurve="0.0" gmLayerVisible="1"/>
+      </GradientMaps>
+      <Sampler inputSamplerActiveSet="0">
+        <SamplerCell id="0" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="1" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="2" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="3" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="4" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="5" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="6" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="7" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="8" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="9" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="10" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="11" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="12" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="13" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="14" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="15" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="16" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="17" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="18" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="19" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="20" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="21" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="22" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="23" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="24" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="25" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="26" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="27" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="28" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="29" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="30" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="31" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="32" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="33" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="34" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="35" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+      </Sampler>
+    </Input>
+    <Input id="4">
+      <Channel inputName="Input 4" inputAttenuation="0.0" inputDelayLatency="0.0"
+               inputMinimalLatency="0" inputMapLocked="0" inputMapVisible="1"
+               inputHiddenByCluster="0" inputSamplerActive="0" samplerMidiZoneQuadrant="0"
+               lightpadZoneId="-1"/>
+      <Position inputPositionX="-1.111110687255859" inputPositionY="5.0" inputPositionZ="0.0"
+                inputOffsetX="0.0" inputOffsetY="0.0" inputOffsetZ="0.0" inputConstraintX="1"
+                inputConstraintY="1" inputConstraintZ="1" inputConstraintDistance="0"
+                inputConstraintDistanceMin="0.0" inputConstraintDistanceMax="50.0"
+                inputFlipX="0" inputFlipY="0" inputFlipZ="0" inputCluster="0"
+                inputTrackingActive="0" inputTrackingID="4" inputTrackingSmooth="100"
+                inputMaxSpeedActive="0" inputMaxSpeed="1.0" inputPathModeActive="0"
+                inputHeightFactor="0" inputCoordinateMode="0" inputAdmMapping="-1"
+                inputJitter="0.0"/>
+      <Attenuation inputAttenuationLaw="0" inputDistanceAttenuation="-0.699999988079071"
+                   inputDistanceRatio="1.0" inputCommonAtten="100"/>
+      <Directivity inputDirectivity="360" inputRotation="0" inputTilt="0" inputHFshelf="-6.0"/>
+      <LiveSourceTamer inputLSradius="3.0" inputLSshape="0" inputLSattenuation="0.0"
+                       inputLSpeakThreshold="-20.0" inputLSpeakRatio="2.0" inputLSslowThreshold="-20.0"
+                       inputLSslowRatio="2.0"/>
+      <Hackoustics inputFRactive="0" inputFRattenuation="-3.0" inputFRlowCutActive="1"
+                   inputFRlowCutFreq="100" inputFRhighShelfActive="1" inputFRhighShelfFreq="3000"
+                   inputFRhighShelfGain="-2.0" inputFRhighShelfSlope="0.4000000059604645"
+                   inputFRdiffusion="40"/>
+      <LFO inputLFOactive="0" inputLFOperiod="5.0" inputLFOphase="0" inputLFOshapeX="0"
+           inputLFOshapeY="0" inputLFOshapeZ="0" inputLFOrateX="1.0" inputLFOrateY="1.0"
+           inputLFOrateZ="1.0" inputLFOamplitudeX="1.0" inputLFOamplitudeY="1.0"
+           inputLFOamplitudeZ="1.0" inputLFOphaseX="0" inputLFOphaseY="0"
+           inputLFOphaseZ="0" inputLFOgyrophone="0"/>
+      <AutomOtion inputOtomoX="0.0" inputOtomoY="0.0" inputOtomoZ="0.0" inputOtomoAbsoluteRelative="0"
+                  inputOtomoStayReturn="0" inputOtomoSpeedProfile="0" inputOtomoDuration="5.0"
+                  inputOtomoCurve="0" inputOtomoTrigger="0" inputOtomoThreshold="-20.0"
+                  inputOtomoReset="-60.0" inputOtomoPauseResume="1" inputOtomoCoordinateMode="0"
+                  inputOtomoR="0.0" inputOtomoTheta="0.0" inputOtomoRsph="0.0"
+                  inputOtomoPhi="0.0"/>
+      <Mutes inputMutes="0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0" inputSidelinesActive="0"
+             inputSidelinesFringe="1.0" inputMuteReverbSends="0" inputArrayAtten1="0.0"
+             inputArrayAtten2="0.0" inputArrayAtten3="0.0" inputArrayAtten4="0.0"
+             inputArrayAtten5="0.0" inputArrayAtten6="0.0" inputArrayAtten7="0.0"
+             inputArrayAtten8="0.0" inputArrayAtten9="0.0" inputArrayAtten10="0.0"/>
+      <GradientMaps>
+        <GradientLayer id="0" gmLayerEnabled="0" gmLayerParam="0" gmLayerWhite="0.0"
+                       gmLayerBlack="0.0" gmLayerCurve="0.0" gmLayerVisible="1"/>
+        <GradientLayer id="1" gmLayerEnabled="0" gmLayerParam="1" gmLayerWhite="0.0"
+                       gmLayerBlack="0.0" gmLayerCurve="0.0" gmLayerVisible="1"/>
+        <GradientLayer id="2" gmLayerEnabled="0" gmLayerParam="2" gmLayerWhite="0.0"
+                       gmLayerBlack="0.0" gmLayerCurve="0.0" gmLayerVisible="1"/>
+      </GradientMaps>
+      <Sampler inputSamplerActiveSet="0">
+        <SamplerCell id="0" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="1" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="2" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="3" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="4" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="5" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="6" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="7" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="8" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="9" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="10" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="11" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="12" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="13" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="14" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="15" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="16" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="17" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="18" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="19" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="20" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="21" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="22" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="23" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="24" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="25" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="26" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="27" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="28" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="29" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="30" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="31" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="32" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="33" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="34" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="35" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+      </Sampler>
+    </Input>
+    <Input id="5">
+      <Channel inputName="Input 5" inputAttenuation="0.0" inputDelayLatency="0.0"
+               inputMinimalLatency="0" inputMapLocked="0" inputMapVisible="1"
+               inputHiddenByCluster="0" inputSamplerActive="0" samplerMidiZoneQuadrant="0"
+               lightpadZoneId="-1"/>
+      <Position inputPositionX="1.111111640930176" inputPositionY="5.0" inputPositionZ="0.0"
+                inputOffsetX="0.0" inputOffsetY="0.0" inputOffsetZ="0.0" inputConstraintX="1"
+                inputConstraintY="1" inputConstraintZ="1" inputConstraintDistance="0"
+                inputConstraintDistanceMin="0.0" inputConstraintDistanceMax="50.0"
+                inputFlipX="0" inputFlipY="0" inputFlipZ="0" inputCluster="0"
+                inputTrackingActive="0" inputTrackingID="5" inputTrackingSmooth="100"
+                inputMaxSpeedActive="0" inputMaxSpeed="1.0" inputPathModeActive="0"
+                inputHeightFactor="0" inputCoordinateMode="0" inputAdmMapping="-1"
+                inputJitter="0.0"/>
+      <Attenuation inputAttenuationLaw="0" inputDistanceAttenuation="-0.699999988079071"
+                   inputDistanceRatio="1.0" inputCommonAtten="100"/>
+      <Directivity inputDirectivity="360" inputRotation="0" inputTilt="0" inputHFshelf="-6.0"/>
+      <LiveSourceTamer inputLSradius="3.0" inputLSshape="0" inputLSattenuation="0.0"
+                       inputLSpeakThreshold="-20.0" inputLSpeakRatio="2.0" inputLSslowThreshold="-20.0"
+                       inputLSslowRatio="2.0"/>
+      <Hackoustics inputFRactive="0" inputFRattenuation="-3.0" inputFRlowCutActive="1"
+                   inputFRlowCutFreq="100" inputFRhighShelfActive="1" inputFRhighShelfFreq="3000"
+                   inputFRhighShelfGain="-2.0" inputFRhighShelfSlope="0.4000000059604645"
+                   inputFRdiffusion="40"/>
+      <LFO inputLFOactive="0" inputLFOperiod="5.0" inputLFOphase="0" inputLFOshapeX="0"
+           inputLFOshapeY="0" inputLFOshapeZ="0" inputLFOrateX="1.0" inputLFOrateY="1.0"
+           inputLFOrateZ="1.0" inputLFOamplitudeX="1.0" inputLFOamplitudeY="1.0"
+           inputLFOamplitudeZ="1.0" inputLFOphaseX="0" inputLFOphaseY="0"
+           inputLFOphaseZ="0" inputLFOgyrophone="0"/>
+      <AutomOtion inputOtomoX="0.0" inputOtomoY="0.0" inputOtomoZ="0.0" inputOtomoAbsoluteRelative="0"
+                  inputOtomoStayReturn="0" inputOtomoSpeedProfile="0" inputOtomoDuration="5.0"
+                  inputOtomoCurve="0" inputOtomoTrigger="0" inputOtomoThreshold="-20.0"
+                  inputOtomoReset="-60.0" inputOtomoPauseResume="1" inputOtomoCoordinateMode="0"
+                  inputOtomoR="0.0" inputOtomoTheta="0.0" inputOtomoRsph="0.0"
+                  inputOtomoPhi="0.0"/>
+      <Mutes inputMutes="0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0" inputSidelinesActive="0"
+             inputSidelinesFringe="1.0" inputMuteReverbSends="0" inputArrayAtten1="0.0"
+             inputArrayAtten2="0.0" inputArrayAtten3="0.0" inputArrayAtten4="0.0"
+             inputArrayAtten5="0.0" inputArrayAtten6="0.0" inputArrayAtten7="0.0"
+             inputArrayAtten8="0.0" inputArrayAtten9="0.0" inputArrayAtten10="0.0"/>
+      <GradientMaps>
+        <GradientLayer id="0" gmLayerEnabled="0" gmLayerParam="0" gmLayerWhite="0.0"
+                       gmLayerBlack="0.0" gmLayerCurve="0.0" gmLayerVisible="1"/>
+        <GradientLayer id="1" gmLayerEnabled="0" gmLayerParam="1" gmLayerWhite="0.0"
+                       gmLayerBlack="0.0" gmLayerCurve="0.0" gmLayerVisible="1"/>
+        <GradientLayer id="2" gmLayerEnabled="0" gmLayerParam="2" gmLayerWhite="0.0"
+                       gmLayerBlack="0.0" gmLayerCurve="0.0" gmLayerVisible="1"/>
+      </GradientMaps>
+      <Sampler inputSamplerActiveSet="0">
+        <SamplerCell id="0" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="1" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="2" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="3" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="4" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="5" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="6" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="7" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="8" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="9" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="10" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="11" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="12" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="13" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="14" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="15" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="16" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="17" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="18" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="19" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="20" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="21" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="22" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="23" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="24" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="25" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="26" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="27" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="28" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="29" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="30" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="31" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="32" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="33" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="34" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="35" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+      </Sampler>
+    </Input>
+    <Input id="6">
+      <Channel inputName="Input 6" inputAttenuation="0.0" inputDelayLatency="0.0"
+               inputMinimalLatency="0" inputMapLocked="0" inputMapVisible="1"
+               inputHiddenByCluster="0" inputSamplerActive="0" samplerMidiZoneQuadrant="0"
+               lightpadZoneId="-1"/>
+      <Position inputPositionX="3.333333969116211" inputPositionY="5.0" inputPositionZ="0.0"
+                inputOffsetX="0.0" inputOffsetY="0.0" inputOffsetZ="0.0" inputConstraintX="1"
+                inputConstraintY="1" inputConstraintZ="1" inputConstraintDistance="0"
+                inputConstraintDistanceMin="0.0" inputConstraintDistanceMax="50.0"
+                inputFlipX="0" inputFlipY="0" inputFlipZ="0" inputCluster="0"
+                inputTrackingActive="0" inputTrackingID="6" inputTrackingSmooth="100"
+                inputMaxSpeedActive="0" inputMaxSpeed="1.0" inputPathModeActive="0"
+                inputHeightFactor="0" inputCoordinateMode="0" inputAdmMapping="-1"
+                inputJitter="0.0"/>
+      <Attenuation inputAttenuationLaw="0" inputDistanceAttenuation="-0.699999988079071"
+                   inputDistanceRatio="1.0" inputCommonAtten="100"/>
+      <Directivity inputDirectivity="360" inputRotation="0" inputTilt="0" inputHFshelf="-6.0"/>
+      <LiveSourceTamer inputLSradius="3.0" inputLSshape="0" inputLSattenuation="0.0"
+                       inputLSpeakThreshold="-20.0" inputLSpeakRatio="2.0" inputLSslowThreshold="-20.0"
+                       inputLSslowRatio="2.0"/>
+      <Hackoustics inputFRactive="0" inputFRattenuation="-3.0" inputFRlowCutActive="1"
+                   inputFRlowCutFreq="100" inputFRhighShelfActive="1" inputFRhighShelfFreq="3000"
+                   inputFRhighShelfGain="-2.0" inputFRhighShelfSlope="0.4000000059604645"
+                   inputFRdiffusion="40"/>
+      <LFO inputLFOactive="0" inputLFOperiod="5.0" inputLFOphase="0" inputLFOshapeX="0"
+           inputLFOshapeY="0" inputLFOshapeZ="0" inputLFOrateX="1.0" inputLFOrateY="1.0"
+           inputLFOrateZ="1.0" inputLFOamplitudeX="1.0" inputLFOamplitudeY="1.0"
+           inputLFOamplitudeZ="1.0" inputLFOphaseX="0" inputLFOphaseY="0"
+           inputLFOphaseZ="0" inputLFOgyrophone="0"/>
+      <AutomOtion inputOtomoX="0.0" inputOtomoY="0.0" inputOtomoZ="0.0" inputOtomoAbsoluteRelative="0"
+                  inputOtomoStayReturn="0" inputOtomoSpeedProfile="0" inputOtomoDuration="5.0"
+                  inputOtomoCurve="0" inputOtomoTrigger="0" inputOtomoThreshold="-20.0"
+                  inputOtomoReset="-60.0" inputOtomoPauseResume="1" inputOtomoCoordinateMode="0"
+                  inputOtomoR="0.0" inputOtomoTheta="0.0" inputOtomoRsph="0.0"
+                  inputOtomoPhi="0.0"/>
+      <Mutes inputMutes="0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0" inputSidelinesActive="0"
+             inputSidelinesFringe="1.0" inputMuteReverbSends="0" inputArrayAtten1="0.0"
+             inputArrayAtten2="0.0" inputArrayAtten3="0.0" inputArrayAtten4="0.0"
+             inputArrayAtten5="0.0" inputArrayAtten6="0.0" inputArrayAtten7="0.0"
+             inputArrayAtten8="0.0" inputArrayAtten9="0.0" inputArrayAtten10="0.0"/>
+      <GradientMaps>
+        <GradientLayer id="0" gmLayerEnabled="0" gmLayerParam="0" gmLayerWhite="0.0"
+                       gmLayerBlack="0.0" gmLayerCurve="0.0" gmLayerVisible="1"/>
+        <GradientLayer id="1" gmLayerEnabled="0" gmLayerParam="1" gmLayerWhite="0.0"
+                       gmLayerBlack="0.0" gmLayerCurve="0.0" gmLayerVisible="1"/>
+        <GradientLayer id="2" gmLayerEnabled="0" gmLayerParam="2" gmLayerWhite="0.0"
+                       gmLayerBlack="0.0" gmLayerCurve="0.0" gmLayerVisible="1"/>
+      </GradientMaps>
+      <Sampler inputSamplerActiveSet="0">
+        <SamplerCell id="0" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="1" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="2" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="3" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="4" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="5" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="6" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="7" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="8" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="9" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="10" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="11" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="12" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="13" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="14" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="15" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="16" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="17" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="18" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="19" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="20" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="21" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="22" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="23" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="24" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="25" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="26" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="27" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="28" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="29" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="30" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="31" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="32" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="33" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="34" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="35" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+      </Sampler>
+    </Input>
+    <Input id="7">
+      <Channel inputName="Input 7" inputAttenuation="0.0" inputDelayLatency="0.0"
+               inputMinimalLatency="0" inputMapLocked="0" inputMapVisible="1"
+               inputHiddenByCluster="0" inputSamplerActive="0" samplerMidiZoneQuadrant="0"
+               lightpadZoneId="-1"/>
+      <Position inputPositionX="5.55555534362793" inputPositionY="5.0" inputPositionZ="0.0"
+                inputOffsetX="0.0" inputOffsetY="0.0" inputOffsetZ="0.0" inputConstraintX="1"
+                inputConstraintY="1" inputConstraintZ="1" inputConstraintDistance="0"
+                inputConstraintDistanceMin="0.0" inputConstraintDistanceMax="50.0"
+                inputFlipX="0" inputFlipY="0" inputFlipZ="0" inputCluster="0"
+                inputTrackingActive="0" inputTrackingID="7" inputTrackingSmooth="100"
+                inputMaxSpeedActive="0" inputMaxSpeed="1.0" inputPathModeActive="0"
+                inputHeightFactor="0" inputCoordinateMode="0" inputAdmMapping="-1"
+                inputJitter="0.0"/>
+      <Attenuation inputAttenuationLaw="0" inputDistanceAttenuation="-0.699999988079071"
+                   inputDistanceRatio="1.0" inputCommonAtten="100"/>
+      <Directivity inputDirectivity="360" inputRotation="0" inputTilt="0" inputHFshelf="-6.0"/>
+      <LiveSourceTamer inputLSradius="3.0" inputLSshape="0" inputLSattenuation="0.0"
+                       inputLSpeakThreshold="-20.0" inputLSpeakRatio="2.0" inputLSslowThreshold="-20.0"
+                       inputLSslowRatio="2.0"/>
+      <Hackoustics inputFRactive="0" inputFRattenuation="-3.0" inputFRlowCutActive="1"
+                   inputFRlowCutFreq="100" inputFRhighShelfActive="1" inputFRhighShelfFreq="3000"
+                   inputFRhighShelfGain="-2.0" inputFRhighShelfSlope="0.4000000059604645"
+                   inputFRdiffusion="40"/>
+      <LFO inputLFOactive="0" inputLFOperiod="5.0" inputLFOphase="0" inputLFOshapeX="0"
+           inputLFOshapeY="0" inputLFOshapeZ="0" inputLFOrateX="1.0" inputLFOrateY="1.0"
+           inputLFOrateZ="1.0" inputLFOamplitudeX="1.0" inputLFOamplitudeY="1.0"
+           inputLFOamplitudeZ="1.0" inputLFOphaseX="0" inputLFOphaseY="0"
+           inputLFOphaseZ="0" inputLFOgyrophone="0"/>
+      <AutomOtion inputOtomoX="0.0" inputOtomoY="0.0" inputOtomoZ="0.0" inputOtomoAbsoluteRelative="0"
+                  inputOtomoStayReturn="0" inputOtomoSpeedProfile="0" inputOtomoDuration="5.0"
+                  inputOtomoCurve="0" inputOtomoTrigger="0" inputOtomoThreshold="-20.0"
+                  inputOtomoReset="-60.0" inputOtomoPauseResume="1" inputOtomoCoordinateMode="0"
+                  inputOtomoR="0.0" inputOtomoTheta="0.0" inputOtomoRsph="0.0"
+                  inputOtomoPhi="0.0"/>
+      <Mutes inputMutes="0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0" inputSidelinesActive="0"
+             inputSidelinesFringe="1.0" inputMuteReverbSends="0" inputArrayAtten1="0.0"
+             inputArrayAtten2="0.0" inputArrayAtten3="0.0" inputArrayAtten4="0.0"
+             inputArrayAtten5="0.0" inputArrayAtten6="0.0" inputArrayAtten7="0.0"
+             inputArrayAtten8="0.0" inputArrayAtten9="0.0" inputArrayAtten10="0.0"/>
+      <GradientMaps>
+        <GradientLayer id="0" gmLayerEnabled="0" gmLayerParam="0" gmLayerWhite="0.0"
+                       gmLayerBlack="0.0" gmLayerCurve="0.0" gmLayerVisible="1"/>
+        <GradientLayer id="1" gmLayerEnabled="0" gmLayerParam="1" gmLayerWhite="0.0"
+                       gmLayerBlack="0.0" gmLayerCurve="0.0" gmLayerVisible="1"/>
+        <GradientLayer id="2" gmLayerEnabled="0" gmLayerParam="2" gmLayerWhite="0.0"
+                       gmLayerBlack="0.0" gmLayerCurve="0.0" gmLayerVisible="1"/>
+      </GradientMaps>
+      <Sampler inputSamplerActiveSet="0">
+        <SamplerCell id="0" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="1" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="2" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="3" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="4" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="5" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="6" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="7" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="8" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="9" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="10" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="11" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="12" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="13" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="14" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="15" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="16" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="17" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="18" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="19" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="20" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="21" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="22" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="23" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="24" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="25" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="26" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="27" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="28" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="29" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="30" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="31" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="32" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="33" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="34" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="35" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+      </Sampler>
+    </Input>
+    <Input id="8">
+      <Channel inputName="Input 8" inputAttenuation="0.0" inputDelayLatency="0.0"
+               inputMinimalLatency="0" inputMapLocked="0" inputMapVisible="1"
+               inputHiddenByCluster="0" inputSamplerActive="0" samplerMidiZoneQuadrant="0"
+               lightpadZoneId="-1"/>
+      <Position inputPositionX="7.777778625488281" inputPositionY="5.0" inputPositionZ="0.0"
+                inputOffsetX="0.0" inputOffsetY="0.0" inputOffsetZ="0.0" inputConstraintX="1"
+                inputConstraintY="1" inputConstraintZ="1" inputConstraintDistance="0"
+                inputConstraintDistanceMin="0.0" inputConstraintDistanceMax="50.0"
+                inputFlipX="0" inputFlipY="0" inputFlipZ="0" inputCluster="0"
+                inputTrackingActive="0" inputTrackingID="8" inputTrackingSmooth="100"
+                inputMaxSpeedActive="0" inputMaxSpeed="1.0" inputPathModeActive="0"
+                inputHeightFactor="0" inputCoordinateMode="0" inputAdmMapping="-1"
+                inputJitter="0.0"/>
+      <Attenuation inputAttenuationLaw="0" inputDistanceAttenuation="-0.699999988079071"
+                   inputDistanceRatio="1.0" inputCommonAtten="100"/>
+      <Directivity inputDirectivity="360" inputRotation="0" inputTilt="0" inputHFshelf="-6.0"/>
+      <LiveSourceTamer inputLSradius="3.0" inputLSshape="0" inputLSattenuation="0.0"
+                       inputLSpeakThreshold="-20.0" inputLSpeakRatio="2.0" inputLSslowThreshold="-20.0"
+                       inputLSslowRatio="2.0"/>
+      <Hackoustics inputFRactive="0" inputFRattenuation="-3.0" inputFRlowCutActive="1"
+                   inputFRlowCutFreq="100" inputFRhighShelfActive="1" inputFRhighShelfFreq="3000"
+                   inputFRhighShelfGain="-2.0" inputFRhighShelfSlope="0.4000000059604645"
+                   inputFRdiffusion="40"/>
+      <LFO inputLFOactive="0" inputLFOperiod="5.0" inputLFOphase="0" inputLFOshapeX="0"
+           inputLFOshapeY="0" inputLFOshapeZ="0" inputLFOrateX="1.0" inputLFOrateY="1.0"
+           inputLFOrateZ="1.0" inputLFOamplitudeX="1.0" inputLFOamplitudeY="1.0"
+           inputLFOamplitudeZ="1.0" inputLFOphaseX="0" inputLFOphaseY="0"
+           inputLFOphaseZ="0" inputLFOgyrophone="0"/>
+      <AutomOtion inputOtomoX="0.0" inputOtomoY="0.0" inputOtomoZ="0.0" inputOtomoAbsoluteRelative="0"
+                  inputOtomoStayReturn="0" inputOtomoSpeedProfile="0" inputOtomoDuration="5.0"
+                  inputOtomoCurve="0" inputOtomoTrigger="0" inputOtomoThreshold="-20.0"
+                  inputOtomoReset="-60.0" inputOtomoPauseResume="1" inputOtomoCoordinateMode="0"
+                  inputOtomoR="0.0" inputOtomoTheta="0.0" inputOtomoRsph="0.0"
+                  inputOtomoPhi="0.0"/>
+      <Mutes inputMutes="0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0" inputSidelinesActive="0"
+             inputSidelinesFringe="1.0" inputMuteReverbSends="0" inputArrayAtten1="0.0"
+             inputArrayAtten2="0.0" inputArrayAtten3="0.0" inputArrayAtten4="0.0"
+             inputArrayAtten5="0.0" inputArrayAtten6="0.0" inputArrayAtten7="0.0"
+             inputArrayAtten8="0.0" inputArrayAtten9="0.0" inputArrayAtten10="0.0"/>
+      <GradientMaps>
+        <GradientLayer id="0" gmLayerEnabled="0" gmLayerParam="0" gmLayerWhite="0.0"
+                       gmLayerBlack="0.0" gmLayerCurve="0.0" gmLayerVisible="1"/>
+        <GradientLayer id="1" gmLayerEnabled="0" gmLayerParam="1" gmLayerWhite="0.0"
+                       gmLayerBlack="0.0" gmLayerCurve="0.0" gmLayerVisible="1"/>
+        <GradientLayer id="2" gmLayerEnabled="0" gmLayerParam="2" gmLayerWhite="0.0"
+                       gmLayerBlack="0.0" gmLayerCurve="0.0" gmLayerVisible="1"/>
+      </GradientMaps>
+      <Sampler inputSamplerActiveSet="0">
+        <SamplerCell id="0" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="1" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="2" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="3" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="4" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="5" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="6" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="7" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="8" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="9" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="10" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="11" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="12" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="13" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="14" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="15" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="16" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="17" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="18" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="19" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="20" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="21" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="22" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="23" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="24" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="25" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="26" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="27" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="28" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="29" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="30" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="31" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="32" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="33" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="34" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+        <SamplerCell id="35" samplerCellName="" samplerCellFile="" samplerCellInTime="0.0"
+                     samplerCellOutTime="20.0" samplerCellOffsetX="0.0" samplerCellOffsetY="0.0"
+                     samplerCellOffsetZ="0.0" samplerCellAttenuation="0.0"/>
+      </Sampler>
+    </Input>
+  </Inputs>
+</InputConfig>

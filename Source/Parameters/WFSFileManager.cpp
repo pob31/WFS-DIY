@@ -2114,13 +2114,27 @@ void WFSFileManager::mergeTreeRecursive (juce::ValueTree& target, const juce::Va
         juce::ValueTree targetChild;
 
         // For children with an "id" property (Input, Output, Reverb channels),
-        // match by both type AND id to avoid mixing up channels
+        // match by both type AND id to avoid mixing up channels.
+        // The match must scan for type+id together: getChildWithProperty()
+        // returns the first child of ANY type with that id, and siblings of
+        // different types can share an id namespace (ADMCartMapping and
+        // ADMPolarMapping both use ids 0-3). Invalidating on a type
+        // mismatch made every ADMPolarMapping look "missing", so each
+        // network.xml load appended 4 duplicate nodes and the file grew on
+        // every load/save cycle.
         if (sourceChild.hasProperty (id))
         {
-            targetChild = target.getChildWithProperty (id, sourceChild.getProperty (id));
-            // Verify type also matches (in case id is used elsewhere)
-            if (targetChild.isValid() && targetChild.getType() != sourceChild.getType())
-                targetChild = juce::ValueTree();
+            const auto sourceId = sourceChild.getProperty (id);
+            for (int c = 0; c < target.getNumChildren(); ++c)
+            {
+                auto candidate = target.getChild (c);
+                if (candidate.getType() == sourceChild.getType()
+                    && candidate.getProperty (id) == sourceId)
+                {
+                    targetChild = candidate;
+                    break;
+                }
+            }
         }
         else
         {

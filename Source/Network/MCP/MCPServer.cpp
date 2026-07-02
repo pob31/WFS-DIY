@@ -66,6 +66,12 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     // Phase 1 hand-written tools — registered after the generated set so
     // that any name collision keeps the hand-written variant.
     registry->registerTool (Tools::Session::describe (state));
+    // Full-session save — the only headless path to persist a project
+    // (every other saveCompleteConfig caller is a UI button). Tier 2.
+    // Added for the control-replay harnesses (docs/architecture/
+    // control-replay-harness.md); useful to any MCP client that wants
+    // its changes to survive a restart.
+    registry->registerTool (Tools::Session::describeSave (fileMgr));
     registry->registerTool (Tools::Input::describeSetName (state));
     registry->registerTool (Tools::Input::describeSetCartesian (state));
     registry->registerTool (Tools::Input::describeSetAttenuation (state));

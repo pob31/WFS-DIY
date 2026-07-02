@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- WFS Processor Configuration File -->
+<!-- Type: system -->
+
+<SystemConfig version="1.0">
+  <Config>
+    <Show showName="My Show" showLocation="" autoPreselectDirty="0"/>
+    <IO inputChannels="8" outputChannels="16" reverbChannels="1" algorithmDSP="0"/>
+    <Stage stageShape="0" stageWidth="12.0" stageDepth="10.0" stageHeight="8.0"
+           stageDiameter="20.0" domeElevation="180.0" originWidth="0.0"
+           originDepth="-5.0" originHeight="0.0" speedOfSound="343.0" temperature="20.0"/>
+    <Master masterLevel="0.0" systemLatency="0.0" haasEffect="0.0" reverbsMapVisible="1"/>
+    <Clusters count="10">
+      <Cluster id="1" clusterReferenceMode="0" clusterInputOrder="" clusterInputsVisible="1">
+        <ClusterLFO clusterLFOactive="0" clusterLFOperiod="5.0" clusterLFOphase="0"
+                    clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
+                    clusterLFOshapeRot="0" clusterLFOshapeScale="0" clusterLFOrateX="1.0"
+                    clusterLFOrateY="1.0" clusterLFOrateZ="1.0" clusterLFOrateRot="1.0"
+                    clusterLFOrateScale="1.0" clusterLFOamplitudeX="1.0" clusterLFOamplitudeY="1.0"
+                    clusterLFOamplitudeZ="1.0" clusterLFOamplitudeRot="0" clusterLFOamplitudeScale="1.0"
+                    clusterLFOphaseX="0" clusterLFOphaseY="0" clusterLFOphaseZ="0"
+                    clusterLFOphaseRot="0" clusterLFOphaseScale="0"/>
+      </Cluster>
+      <Cluster id="2" clusterReferenceMode="0" clusterInputOrder="" clusterInputsVisible="1">
+        <ClusterLFO clusterLFOactive="0" clusterLFOperiod="5.0" clusterLFOphase="0"
+                    clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
+                    clusterLFOshapeRot="0" clusterLFOshapeScale="0" clusterLFOrateX="1.0"
+                    clusterLFOrateY="1.0" clusterLFOrateZ="1.0" clusterLFOrateRot="1.0"
+                    clusterLFOrateScale="1.0" clusterLFOamplitudeX="1.0" clusterLFOamplitudeY="1.0"
+                    clusterLFOamplitudeZ="1.0" clusterLFOamplitudeRot="0" clusterLFOamplitudeScale="1.0"
+                    clusterLFOphaseX="0" clusterLFOphaseY="0" clusterLFOphaseZ="0"
+                    clusterLFOphaseRot="0" clusterLFOphaseScale="0"/>
+      </Cluster>
+      <Cluster id="3" clusterReferenceMode="0" clusterInputOrder="" clusterInputsVisible="1">
+        <ClusterLFO clusterLFOactive="0" clusterLFOperiod="5.0" clusterLFOphase="0"
+                    clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
+                    clusterLFOshapeRot="0" clusterLFOshapeScale="0" clusterLFOrateX="1.0"
+                    clusterLFOrateY="1.0" clusterLFOrateZ="1.0" clusterLFOrateRot="1.0"
+                    clusterLFOrateScale="1.0" clusterLFOamplitudeX="1.0" clusterLFOamplitudeY="1.0"
+                    clusterLFOamplitudeZ="1.0" clusterLFOamplitudeRot="0" clusterLFOamplitudeScale="1.0"
+                    clusterLFOphaseX="0" clusterLFOphaseY="0" clusterLFOphaseZ="0"
+                    clusterLFOphaseRot="0" clusterLFOphaseScale="0"/>
+      </Cluster>
+      <Cluster id="4" clusterReferenceMode="0" clusterInputOrder="" clusterInputsVisible="1">
+        <ClusterLFO clusterLFOactive="0" clusterLFOperiod="5.0" clusterLFOphase="0"
+                    clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
+                    clusterLFOshapeRot="0" clusterLFOshapeScale="0" clusterLFOrateX="1.0"
+                    clusterLFOrateY="1.0" clusterLFOrateZ="1.0" clusterLFOrateRot="1.0"
+                    clusterLFOrateScale="1.0" clusterLFOamplitudeX="1.0" clusterLFOamplitudeY="1.0"
+                    clusterLFOamplitudeZ="1.0" clusterLFOamplitudeRot="0" clusterLFOamplitudeScale="1.0"
+                    clusterLFOphaseX="0" clusterLFOphaseY="0" clusterLFOphaseZ="0"
+                    clusterLFOphaseRot="0" clusterLFOphaseScale="0"/>
+      </Cluster>
+      <Cluster id="5" clusterReferenceMode="0" clusterInputOrder="" clusterInputsVisible="1">
+        <ClusterLFO clusterLFOactive="0" clusterLFOperiod="5.0" clusterLFOphase="0"
+                    clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
+                    clusterLFOshapeRot="0" clusterLFOshapeScale="0" clusterLFOrateX="1.0"
+                    clusterLFOrateY="1.0" clusterLFOrateZ="1.0" clusterLFOrateRot="1.0"
+                    clusterLFOrateScale="1.0" clusterLFOamplitudeX="1.0" clusterLFOamplitudeY="1.0"
+                    clusterLFOamplitudeZ="1.0" clusterLFOamplitudeRot="0" clusterLFOamplitudeScale="1.0"
+                    clusterLFOphaseX="0" clusterLFOphaseY="0" clusterLFOphaseZ="0"
+                    clusterLFOphaseRot="0" clusterLFOphaseScale="0"/>
+      </Cluster>
+      <Cluster id="6" clusterReferenceMode="0" clusterInputOrder="" clusterInputsVisible="1">
+        <ClusterLFO clusterLFOactive="0" clusterLFOperiod="5.0" clusterLFOphase="0"
+                    clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
+                    clusterLFOshapeRot="0" clusterLFOshapeScale="0" clusterLFOrateX="1.0"
+                    clusterLFOrateY="1.0" clusterLFOrateZ="1.0" clusterLFOrateRot="1.0"
+                    clusterLFOrateScale="1.0" clusterLFOamplitudeX="1.0" clusterLFOamplitudeY="1.0"
+                    clusterLFOamplitudeZ="1.0" clusterLFOamplitudeRot="0" clusterLFOamplitudeScale="1.0"
+                    clusterLFOphaseX="0" clusterLFOphaseY="0" clusterLFOphaseZ="0"
+                    clusterLFOphaseRot="0" clusterLFOphaseScale="0"/>
+      </Cluster>
+      <Cluster id="7" clusterReferenceMode="0" clusterInputOrder="" clusterInputsVisible="1">
+        <ClusterLFO clusterLFOactive="0" clusterLFOperiod="5.0" clusterLFOphase="0"
+                    clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
+                    clusterLFOshapeRot="0" clusterLFOshapeScale="0" clusterLFOrateX="1.0"
+                    clusterLFOrateY="1.0" clusterLFOrateZ="1.0" clusterLFOrateRot="1.0"
+                    clusterLFOrateScale="1.0" clusterLFOamplitudeX="1.0" clusterLFOamplitudeY="1.0"
+                    clusterLFOamplitudeZ="1.0" clusterLFOamplitudeRot="0" clusterLFOamplitudeScale="1.0"
+                    clusterLFOphaseX="0" clusterLFOphaseY="0" clusterLFOphaseZ="0"
+                    clusterLFOphaseRot="0" clusterLFOphaseScale="0"/>
+      </Cluster>
+      <Cluster id="8" clusterReferenceMode="0" clusterInputOrder="" clusterInputsVisible="1">
+        <ClusterLFO clusterLFOactive="0" clusterLFOperiod="5.0" clusterLFOphase="0"
+                    clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
+                    clusterLFOshapeRot="0" clusterLFOshapeScale="0" clusterLFOrateX="1.0"
+                    clusterLFOrateY="1.0" clusterLFOrateZ="1.0" clusterLFOrateRot="1.0"
+                    clusterLFOrateScale="1.0" clusterLFOamplitudeX="1.0" clusterLFOamplitudeY="1.0"
+                    clusterLFOamplitudeZ="1.0" clusterLFOamplitudeRot="0" clusterLFOamplitudeScale="1.0"
+                    clusterLFOphaseX="0" clusterLFOphaseY="0" clusterLFOphaseZ="0"
+                    clusterLFOphaseRot="0" clusterLFOphaseScale="0"/>
+      </Cluster>
+      <Cluster id="9" clusterReferenceMode="0" clusterInputOrder="" clusterInputsVisible="1">
+        <ClusterLFO clusterLFOactive="0" clusterLFOperiod="5.0" clusterLFOphase="0"
+                    clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
+                    clusterLFOshapeRot="0" clusterLFOshapeScale="0" clusterLFOrateX="1.0"
+                    clusterLFOrateY="1.0" clusterLFOrateZ="1.0" clusterLFOrateRot="1.0"
+                    clusterLFOrateScale="1.0" clusterLFOamplitudeX="1.0" clusterLFOamplitudeY="1.0"
+                    clusterLFOamplitudeZ="1.0" clusterLFOamplitudeRot="0" clusterLFOamplitudeScale="1.0"
+                    clusterLFOphaseX="0" clusterLFOphaseY="0" clusterLFOphaseZ="0"
+                    clusterLFOphaseRot="0" clusterLFOphaseScale="0"/>
+      </Cluster>
+      <Cluster id="10" clusterReferenceMode="0" clusterInputOrder="" clusterInputsVisible="1">
+        <ClusterLFO clusterLFOactive="0" clusterLFOperiod="5.0" clusterLFOphase="0"
+                    clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
+                    clusterLFOshapeRot="0" clusterLFOshapeScale="0" clusterLFOrateX="1.0"
+                    clusterLFOrateY="1.0" clusterLFOrateZ="1.0" clusterLFOrateRot="1.0"
+                    clusterLFOrateScale="1.0" clusterLFOamplitudeX="1.0" clusterLFOamplitudeY="1.0"
+                    clusterLFOamplitudeZ="1.0" clusterLFOamplitudeRot="0" clusterLFOamplitudeScale="1.0"
+                    clusterLFOphaseX="0" clusterLFOphaseY="0" clusterLFOphaseZ="0"
+                    clusterLFOphaseRot="0" clusterLFOphaseScale="0"/>
+      </Cluster>
+    </Clusters>
+    <Binaural binauralSoloMode="0" binauralOutputChannel="-1" binauralListenerDistance="5.0"
+              binauralListenerAngle="0" binauralAttenuation="0.0" binauralDelay="0.0"
+              inputSoloStates=""/>
+    <UI streamDeckEnabled="1" samplerEnabled="0" samplerBlockSerial=""
+        lightpadPad0Split="0" lightpadPad1Split="0" lightpadPad2Split="0"
+        lightpadPad0DeviceId="" lightpadPad1DeviceId="" lightpadPad2DeviceId=""
+        lightpadSensitivity="0.05000000074505806"/>
+    <ClusterLFOPresets>
+      <ClusterLFOPreset clusterLFOPresetName="" clusterLFOperiod="5.0" clusterLFOphase="0"
+                        clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
+                        clusterLFOshapeRot="0" clusterLFOshapeScale="0" clusterLFOrateX="1.0"
+                        clusterLFOrateY="1.0" clusterLFOrateZ="1.0" clusterLFOrateRot="1.0"
+                        clusterLFOrateScale="1.0" clusterLFOamplitudeX="1.0" clusterLFOamplitudeY="1.0"
+                        clusterLFOamplitudeZ="1.0" clusterLFOamplitudeRot="0" clusterLFOamplitudeScale="1.0"
+                        clusterLFOphaseX="0" clusterLFOphaseY="0" clusterLFOphaseZ="0"
+                        clusterLFOphaseRot="0" clusterLFOphaseScale="0"/>
+      <ClusterLFOPreset clusterLFOPresetName="" clusterLFOperiod="5.0" clusterLFOphase="0"
+                        clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
+                        clusterLFOshapeRot="0" clusterLFOshapeScale="0" clusterLFOrateX="1.0"
+                        clusterLFOrateY="1.0" clusterLFOrateZ="1.0" clusterLFOrateRot="1.0"
+                        clusterLFOrateScale="1.0" clusterLFOamplitudeX="1.0" clusterLFOamplitudeY="1.0"
+                        clusterLFOamplitudeZ="1.0" clusterLFOamplitudeRot="0" clusterLFOamplitudeScale="1.0"
+                        clusterLFOphaseX="0" clusterLFOphaseY="0" clusterLFOphaseZ="0"
+                        clusterLFOphaseRot="0" clusterLFOphaseScale="0"/>
+      <ClusterLFOPreset clusterLFOPresetName="" clusterLFOperiod="5.0" clusterLFOphase="0"
+                        clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
+                        clusterLFOshapeRot="0" clusterLFOshapeScale="0" clusterLFOrateX="1.0"
+                        clusterLFOrateY="1.0" clusterLFOrateZ="1.0" clusterLFOrateRot="1.0"
+                        clusterLFOrateScale="1.0" clusterLFOamplitudeX="1.0" clusterLFOamplitudeY="1.0"
+                        clusterLFOamplitudeZ="1.0" clusterLFOamplitudeRot="0" clusterLFOamplitudeScale="1.0"
+                        clusterLFOphaseX="0" clusterLFOphaseY="0" clusterLFOphaseZ="0"
+                        clusterLFOphaseRot="0" clusterLFOphaseScale="0"/>
+      <ClusterLFOPreset clusterLFOPresetName="" clusterLFOperiod="5.0" clusterLFOphase="0"
+                        clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
+                        clusterLFOshapeRot="0" clusterLFOshapeScale="0" clusterLFOrateX="1.0"
+                        clusterLFOrateY="1.0" clusterLFOrateZ="1.0" clusterLFOrateRot="1.0"
+                        clusterLFOrateScale="1.0" clusterLFOamplitudeX="1.0" clusterLFOamplitudeY="1.0"
+                        clusterLFOamplitudeZ="1.0" clusterLFOamplitudeRot="0" clusterLFOamplitudeScale="1.0"
+                        clusterLFOphaseX="0" clusterLFOphaseY="0" clusterLFOphaseZ="0"
+                        clusterLFOphaseRot="0" clusterLFOphaseScale="0"/>
+      <ClusterLFOPreset clusterLFOPresetName="" clusterLFOperiod="5.0" clusterLFOphase="0"
+                        clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
+                        clusterLFOshapeRot="0" clusterLFOshapeScale="0" clusterLFOrateX="1.0"
+                        clusterLFOrateY="1.0" clusterLFOrateZ="1.0" clusterLFOrateRot="1.0"
+                        clusterLFOrateScale="1.0" clusterLFOamplitudeX="1.0" clusterLFOamplitudeY="1.0"
+                        clusterLFOamplitudeZ="1.0" clusterLFOamplitudeRot="0" clusterLFOamplitudeScale="1.0"
+                        clusterLFOphaseX="0" clusterLFOphaseY="0" clusterLFOphaseZ="0"
+                        clusterLFOphaseRot="0" clusterLFOphaseScale="0"/>
+      <ClusterLFOPreset clusterLFOPresetName="" clusterLFOperiod="5.0" clusterLFOphase="0"
+                        clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
+                        clusterLFOshapeRot="0" clusterLFOshapeScale="0" clusterLFOrateX="1.0"
+                        clusterLFOrateY="1.0" clusterLFOrateZ="1.0" clusterLFOrateRot="1.0"
+                        clusterLFOrateScale="1.0" clusterLFOamplitudeX="1.0" clusterLFOamplitudeY="1.0"
+                        clusterLFOamplitudeZ="1.0" clusterLFOamplitudeRot="0" clusterLFOamplitudeScale="1.0"
+                        clusterLFOphaseX="0" clusterLFOphaseY="0" clusterLFOphaseZ="0"
+                        clusterLFOphaseRot="0" clusterLFOphaseScale="0"/>
+      <ClusterLFOPreset clusterLFOPresetName="" clusterLFOperiod="5.0" clusterLFOphase="0"
+                        clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
+                        clusterLFOshapeRot="0" clusterLFOshapeScale="0" clusterLFOrateX="1.0"
+                        clusterLFOrateY="1.0" clusterLFOrateZ="1.0" clusterLFOrateRot="1.0"
+                        clusterLFOrateScale="1.0" clusterLFOamplitudeX="1.0" clusterLFOamplitudeY="1.0"
+                        clusterLFOamplitudeZ="1.0" clusterLFOamplitudeRot="0" clusterLFOamplitudeScale="1.0"
+                        clusterLFOphaseX="0" clusterLFOphaseY="0" clusterLFOphaseZ="0"
+                        clusterLFOphaseRot="0" clusterLFOphaseScale="0"/>
+      <ClusterLFOPreset clusterLFOPresetName="" clusterLFOperiod="5.0" clusterLFOphase="0"
+                        clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
+                        clusterLFOshapeRot="0" clusterLFOshapeScale="0" clusterLFOrateX="1.0"
+                        clusterLFOrateY="1.0" clusterLFOrateZ="1.0" clusterLFOrateRot="1.0"
+                        clusterLFOrateScale="1.0" clusterLFOamplitudeX="1.0" clusterLFOamplitudeY="1.0"
+                        clusterLFOamplitudeZ="1.0" clusterLFOamplitudeRot="0" clusterLFOamplitudeScale="1.0"
+                        clusterLFOphaseX="0" clusterLFOphaseY="0" clusterLFOphaseZ="0"
+                        clusterLFOphaseRot="0" clusterLFOphaseScale="0"/>
+      <ClusterLFOPreset clusterLFOPresetName="" clusterLFOperiod="5.0" clusterLFOphase="0"
+                        clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
+                        clusterLFOshapeRot="0" clusterLFOshapeScale="0" clusterLFOrateX="1.0"
+                        clusterLFOrateY="1.0" clusterLFOrateZ="1.0" clusterLFOrateRot="1.0"
+                        clusterLFOrateScale="1.0" clusterLFOamplitudeX="1.0" clusterLFOamplitudeY="1.0"
+                        clusterLFOamplitudeZ="1.0" clusterLFOamplitudeRot="0" clusterLFOamplitudeScale="1.0"
+                        clusterLFOphaseX="0" clusterLFOphaseY="0" clusterLFOphaseZ="0"
+                        clusterLFOphaseRot="0" clusterLFOphaseScale="0"/>
+      <ClusterLFOPreset clusterLFOPresetName="" clusterLFOperiod="5.0" clusterLFOphase="0"
+                        clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
+                        clusterLFOshapeRot="0" clusterLFOshapeScale="0" clusterLFOrateX="1.0"
+                        clusterLFOrateY="1.0" clusterLFOrateZ="1.0" clusterLFOrateRot="1.0"
+                        clusterLFOrateScale="1.0" clusterLFOamplitudeX="1.0" clusterLFOamplitudeY="1.0"
+                        clusterLFOamplitudeZ="1.0" clusterLFOamplitudeRot="0" clusterLFOamplitudeScale="1.0"
+                        clusterLFOphaseX="0" clusterLFOphaseY="0" clusterLFOphaseZ="0"
+                        clusterLFOphaseRot="0" clusterLFOphaseScale="0"/>
+      <ClusterLFOPreset clusterLFOPresetName="" clusterLFOperiod="5.0" clusterLFOphase="0"
+                        clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
+                        clusterLFOshapeRot="0" clusterLFOshapeScale="0" clusterLFOrateX="1.0"
+                        clusterLFOrateY="1.0" clusterLFOrateZ="1.0" clusterLFOrateRot="1.0"
+                        clusterLFOrateScale="1.0" clusterLFOamplitudeX="1.0" clusterLFOamplitudeY="1.0"
+                        clusterLFOamplitudeZ="1.0" clusterLFOamplitudeRot="0" clusterLFOamplitudeScale="1.0"
+                        clusterLFOphaseX="0" clusterLFOphaseY="0" clusterLFOphaseZ="0"
+                        clusterLFOphaseRot="0" clusterLFOphaseScale="0"/>
+      <ClusterLFOPreset clusterLFOPresetName="" clusterLFOperiod="5.0" clusterLFOphase="0"
+                        clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
+                        clusterLFOshapeRot="0" clusterLFOshapeScale="0" clusterLFOrateX="1.0"
+                        clusterLFOrateY="1.0" clusterLFOrateZ="1.0" clusterLFOrateRot="1.0"
+                        clusterLFOrateScale="1.0" clusterLFOamplitudeX="1.0" clusterLFOamplitudeY="1.0"
+                        clusterLFOamplitudeZ="1.0" clusterLFOamplitudeRot="0" clusterLFOamplitudeScale="1.0"
+                        clusterLFOphaseX="0" clusterLFOphaseY="0" clusterLFOphaseZ="0"
+                        clusterLFOphaseRot="0" clusterLFOphaseScale="0"/>
+      <ClusterLFOPreset clusterLFOPresetName="" clusterLFOperiod="5.0" clusterLFOphase="0"
+                        clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
+                        clusterLFOshapeRot="0" clusterLFOshapeScale="0" clusterLFOrateX="1.0"
+                        clusterLFOrateY="1.0" clusterLFOrateZ="1.0" clusterLFOrateRot="1.0"
+                        clusterLFOrateScale="1.0" clusterLFOamplitudeX="1.0" clusterLFOamplitudeY="1.0"
+                        clusterLFOamplitudeZ="1.0" clusterLFOamplitudeRot="0" clusterLFOamplitudeScale="1.0"
+                        clusterLFOphaseX="0" clusterLFOphaseY="0" clusterLFOphaseZ="0"
+                        clusterLFOphaseRot="0" clusterLFOphaseScale="0"/>
+      <ClusterLFOPreset clusterLFOPresetName="" clusterLFOperiod="5.0" clusterLFOphase="0"
+                        clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
+                        clusterLFOshapeRot="0" clusterLFOshapeScale="0" clusterLFOrateX="1.0"
+                        clusterLFOrateY="1.0" clusterLFOrateZ="1.0" clusterLFOrateRot="1.0"
+                        clusterLFOrateScale="1.0" clusterLFOamplitudeX="1.0" clusterLFOamplitudeY="1.0"
+                        clusterLFOamplitudeZ="1.0" clusterLFOamplitudeRot="0" clusterLFOamplitudeScale="1.0"
+                        clusterLFOphaseX="0" clusterLFOphaseY="0" clusterLFOphaseZ="0"
+                        clusterLFOphaseRot="0" clusterLFOphaseScale="0"/>
+      <ClusterLFOPreset clusterLFOPresetName="" clusterLFOperiod="5.0" clusterLFOphase="0"
+                        clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
+                        clusterLFOshapeRot="0" clusterLFOshapeScale="0" clusterLFOrateX="1.0"
+                        clusterLFOrateY="1.0" clusterLFOrateZ="1.0" clusterLFOrateRot="1.0"
+                        clusterLFOrateScale="1.0" clusterLFOamplitudeX="1.0" clusterLFOamplitudeY="1.0"
+                        clusterLFOamplitudeZ="1.0" clusterLFOamplitudeRot="0" clusterLFOamplitudeScale="1.0"
+                        clusterLFOphaseX="0" clusterLFOphaseY="0" clusterLFOphaseZ="0"
+                        clusterLFOphaseRot="0" clusterLFOphaseScale="0"/>
+      <ClusterLFOPreset clusterLFOPresetName="" clusterLFOperiod="5.0" clusterLFOphase="0"
+                        clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
+                        clusterLFOshapeRot="0" clusterLFOshapeScale="0" clusterLFOrateX="1.0"
+                        clusterLFOrateY="1.0" clusterLFOrateZ="1.0" clusterLFOrateRot="1.0"
+                        clusterLFOrateScale="1.0" clusterLFOamplitudeX="1.0" clusterLFOamplitudeY="1.0"
+                        clusterLFOamplitudeZ="1.0" clusterLFOamplitudeRot="0" clusterLFOamplitudeScale="1.0"
+                        clusterLFOphaseX="0" clusterLFOphaseY="0" clusterLFOphaseZ="0"
+                        clusterLFOphaseRot="0" clusterLFOphaseScale="0"/>
+    </ClusterLFOPresets>
+  </Config>
+  <AudioPatch driverMode="0" audioInterface="">
+    <InputPatch rows="8" cols="64" patchData="1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0"
+                activeHardwareInputs="0"/>
+    <OutputPatch rows="16" cols="64" patchData="1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0"
+                 activeHardwareOutputs="0"/>
+  </AudioPatch>
+</SystemConfig>

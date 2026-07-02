@@ -842,6 +842,17 @@ MainComponent::MainComponent()
                                                         knowledgeResourcesDir);
     mcpServer->start (WFSNetwork::MCPServer::kDefaultPort, /*loopbackOnly*/ true);
 
+    // Automation hook (control-replay harnesses): WFS_MCP_AI_ENABLED=1 in the
+    // environment flips the MCP AI master toggle on at startup — the exact
+    // equivalent of the operator clicking the Network-tab "AI" button. MCP
+    // stays loopback-only and tier enforcement still applies; the tier-3
+    // safety gate deliberately has no such hook and remains UI-only.
+    if (juce::SystemStats::getEnvironmentVariable ("WFS_MCP_AI_ENABLED", {}) == "1")
+    {
+        mcpServer->getTierEnforcement().setAIEnabled (true);
+        oscManager->getLogger().logText ("MCP AI enabled at startup via WFS_MCP_AI_ENABLED=1");
+    }
+
     // Phase 7: kick the OSCQuery cross-check if OSCQuery is already up
     // (e.g. saved-on-startup setting). When the user toggles OSCQuery
     // later, NetworkTab calls runOSCQueryAudit again with the new URL.

@@ -1,0 +1,593 @@
+[
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "capabilities": {
+          "prompts": {
+            "listChanged": false
+          },
+          "resources": {
+            "listChanged": false,
+            "subscribe": false
+          },
+          "tools": {
+            "listChanged": false
+          }
+        },
+        "instructions": "<INSTRUCTIONS>",
+        "protocolVersion": "2024-11-05",
+        "serverInfo": {
+          "name": "WFS-DIY",
+          "version": "<VERSION>"
+        }
+      }
+    },
+    "step": "initialize"
+  },
+  {
+    "census": {
+      "_meta": {
+        "ai_enabled": true,
+        "critical_actions_allowed": false
+      },
+      "count_at_least_350": true,
+      "spot_check_present": {
+        "mcp_undo_last_ai_change": true,
+        "session_get_state": true,
+        "session_save": true,
+        "system_i_o_set_input_channels": true,
+        "wfs_set_parameter": true,
+        "wfs_set_parameter_batch": true
+      },
+      "tier_counts": {
+        "1": 370,
+        "2": 38,
+        "3": 8
+      },
+      "tier_ordering_ok": true
+    },
+    "step": "tools_list_census"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "{\"channel_id\": 1, \"value\": -5.0, \"variable\": \"inputPositionX\"}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    "step": "tier1_write"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "{\"channel_id\": 1, \"value\": -5.0, \"variable\": \"inputPositionX\"}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    "step": "tier1_readback"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "Tier 2 action awaiting confirmation. Re-call with `confirm: \"<TOKEN>\"` within 30 seconds.",
+            "type": "text"
+          }
+        ],
+        "isError": false,
+        "tier_enforcement": {
+          "awaiting_confirmation": true,
+          "confirmation_token": "<TOKEN>",
+          "declared_tier": 2,
+          "expires_in_seconds": "<SECONDS>",
+          "tool": "input_set_attenuation"
+        }
+      }
+    },
+    "step": "tier2_awaiting_confirmation"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "{\"db\": -3.0, \"input_id\": 2}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    "step": "tier2_confirmed"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "Critical AI actions are blocked. Ask the operator to allow critical actions (Network tab, 5-minute window) before retrying.",
+            "type": "text"
+          }
+        ],
+        "isError": true,
+        "tier_enforcement": {
+          "declared_tier": 3,
+          "safety_gate_closed": true,
+          "tool": "system_i_o_set_input_channels"
+        }
+      }
+    },
+    "step": "tier3_gate_closed"
+  },
+  {
+    "step": "batch_before",
+    "values": [
+      [
+        "inputPositionX",
+        1,
+        -5.0
+      ],
+      [
+        "inputPositionX",
+        2,
+        2.0
+      ],
+      [
+        "inputPositionX",
+        3,
+        0.0
+      ],
+      [
+        "inputPositionX",
+        4,
+        -1.111111
+      ],
+      [
+        "inputPositionX",
+        5,
+        1.111112
+      ],
+      [
+        "inputPositionX",
+        6,
+        3.333334
+      ],
+      [
+        "inputPositionX",
+        7,
+        5.555555
+      ],
+      [
+        "inputPositionX",
+        8,
+        7.777779
+      ],
+      [
+        "inputPositionY",
+        1,
+        1.5
+      ],
+      [
+        "inputPositionY",
+        2,
+        1.5
+      ],
+      [
+        "inputPositionY",
+        3,
+        3.0
+      ],
+      [
+        "inputPositionY",
+        4,
+        5.0
+      ],
+      [
+        "inputPositionY",
+        5,
+        5.0
+      ],
+      [
+        "inputPositionY",
+        6,
+        5.0
+      ],
+      [
+        "inputPositionY",
+        7,
+        5.0
+      ],
+      [
+        "inputPositionY",
+        8,
+        5.0
+      ]
+    ]
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "Tier 2 action awaiting confirmation. Re-call with `confirm: \"<TOKEN>\"` within 30 seconds.",
+            "type": "text"
+          }
+        ],
+        "isError": false,
+        "tier_enforcement": {
+          "awaiting_confirmation": true,
+          "confirmation_token": "<TOKEN>",
+          "declared_tier": 2,
+          "expires_in_seconds": "<SECONDS>",
+          "tool": "wfs_set_parameter_batch"
+        }
+      }
+    },
+    "step": "batch_awaiting_confirmation"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "{\"applied\": [{\"after\": 0.25, \"before\": -5.0, \"channel_id\": 1, \"variable\": \"inputPositionX\"}, {\"after\": 0.5, \"before\": \"2.0\", \"channel_id\": 2, \"variable\": \"inputPositionX\"}, {\"after\": 0.75, \"before\": \"0.0\", \"channel_id\": 3, \"variable\": \"inputPositionX\"}, {\"after\": 1.0, \"before\": \"-1.111110687255859\", \"channel_id\": 4, \"variable\": \"inputPositionX\"}, {\"after\": 1.25, \"before\": \"1.111111640930176\", \"channel_id\": 5, \"variable\": \"inputPositionX\"}, {\"after\": 1.5, \"before\": 3.333333969116211, \"channel_id\": 6, \"variable\": \"inputPositionX\"}, {\"after\": 1.75, \"before\": 5.55555534362793, \"channel_id\": 7, \"variable\": \"inputPositionX\"}, {\"after\": 2.0, \"before\": 7.777778625488281, \"channel_id\": 8, \"variable\": \"inputPositionX\"}, {\"after\": 0.5, \"before\": \"1.5\", \"channel_id\": 1, \"variable\": \"inputPositionY\"}, {\"after\": 1.0, \"before\": \"1.5\", \"channel_id\": 2, \"variable\": \"inputPositionY\"}, {\"after\": 1.5, \"before\": \"3.0\", \"channel_id\": 3, \"variable\": \"inputPositionY\"}, {\"after\": 2.0, \"before\": 5.0, \"channel_id\": 4, \"variable\": \"inputPositionY\"}, {\"after\": 2.5, \"before\": 5.0, \"channel_id\": 5, \"variable\": \"inputPositionY\"}, {\"after\": 3.0, \"before\": 5.0, \"channel_id\": 6, \"variable\": \"inputPositionY\"}, {\"after\": 3.5, \"before\": 5.0, \"channel_id\": 7, \"variable\": \"inputPositionY\"}, {\"after\": 4.0, \"before\": 5.0, \"channel_id\": 8, \"variable\": \"inputPositionY\"}], \"count\": 16, \"operator_description\": \"Batch: 16 writes (16 Position)\"}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    "step": "batch_confirmed"
+  },
+  {
+    "step": "batch_after",
+    "values": [
+      [
+        "inputPositionX",
+        1,
+        0.25
+      ],
+      [
+        "inputPositionX",
+        2,
+        0.5
+      ],
+      [
+        "inputPositionX",
+        3,
+        0.75
+      ],
+      [
+        "inputPositionX",
+        4,
+        1.0
+      ],
+      [
+        "inputPositionX",
+        5,
+        1.25
+      ],
+      [
+        "inputPositionX",
+        6,
+        1.5
+      ],
+      [
+        "inputPositionX",
+        7,
+        1.75
+      ],
+      [
+        "inputPositionX",
+        8,
+        2.0
+      ],
+      [
+        "inputPositionY",
+        1,
+        0.5
+      ],
+      [
+        "inputPositionY",
+        2,
+        1.0
+      ],
+      [
+        "inputPositionY",
+        3,
+        1.5
+      ],
+      [
+        "inputPositionY",
+        4,
+        2.0
+      ],
+      [
+        "inputPositionY",
+        5,
+        2.5
+      ],
+      [
+        "inputPositionY",
+        6,
+        3.0
+      ],
+      [
+        "inputPositionY",
+        7,
+        3.5
+      ],
+      [
+        "inputPositionY",
+        8,
+        4.0
+      ]
+    ]
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "{\"after_applied\": {\"inputPositionX\": 7.777778625488281, \"inputPositionY\": 5.0}, \"before_applied\": {\"inputPositionX\": 2.0, \"inputPositionY\": 4.0}, \"operator_description\": \"Undid: Batch: 16 writes (16 Position)\", \"records_affected\": 1}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    "step": "undo"
+  },
+  {
+    "step": "after_undo",
+    "values": [
+      [
+        "inputPositionX",
+        1,
+        -5.0
+      ],
+      [
+        "inputPositionX",
+        2,
+        2.0
+      ],
+      [
+        "inputPositionX",
+        3,
+        0.0
+      ],
+      [
+        "inputPositionX",
+        4,
+        -1.111111
+      ],
+      [
+        "inputPositionX",
+        5,
+        1.111112
+      ],
+      [
+        "inputPositionX",
+        6,
+        3.333334
+      ],
+      [
+        "inputPositionX",
+        7,
+        5.555555
+      ],
+      [
+        "inputPositionX",
+        8,
+        7.777779
+      ],
+      [
+        "inputPositionY",
+        1,
+        1.5
+      ],
+      [
+        "inputPositionY",
+        2,
+        1.5
+      ],
+      [
+        "inputPositionY",
+        3,
+        3.0
+      ],
+      [
+        "inputPositionY",
+        4,
+        5.0
+      ],
+      [
+        "inputPositionY",
+        5,
+        5.0
+      ],
+      [
+        "inputPositionY",
+        6,
+        5.0
+      ],
+      [
+        "inputPositionY",
+        7,
+        5.0
+      ],
+      [
+        "inputPositionY",
+        8,
+        5.0
+      ]
+    ]
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "{\"after_applied\": {\"inputPositionX\": 2.0, \"inputPositionY\": 4.0}, \"before_applied\": {\"inputPositionX\": 7.777778625488281, \"inputPositionY\": 5.0}, \"operator_description\": \"Redid: Batch: 16 writes (16 Position)\", \"records_affected\": 1}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    "step": "redo"
+  },
+  {
+    "step": "after_redo",
+    "values": [
+      [
+        "inputPositionX",
+        1,
+        0.25
+      ],
+      [
+        "inputPositionX",
+        2,
+        0.5
+      ],
+      [
+        "inputPositionX",
+        3,
+        0.75
+      ],
+      [
+        "inputPositionX",
+        4,
+        1.0
+      ],
+      [
+        "inputPositionX",
+        5,
+        1.25
+      ],
+      [
+        "inputPositionX",
+        6,
+        1.5
+      ],
+      [
+        "inputPositionX",
+        7,
+        1.75
+      ],
+      [
+        "inputPositionX",
+        8,
+        2.0
+      ],
+      [
+        "inputPositionY",
+        1,
+        0.5
+      ],
+      [
+        "inputPositionY",
+        2,
+        1.0
+      ],
+      [
+        "inputPositionY",
+        3,
+        1.5
+      ],
+      [
+        "inputPositionY",
+        4,
+        2.0
+      ],
+      [
+        "inputPositionY",
+        5,
+        2.5
+      ],
+      [
+        "inputPositionY",
+        6,
+        3.0
+      ],
+      [
+        "inputPositionY",
+        7,
+        3.5
+      ],
+      [
+        "inputPositionY",
+        8,
+        4.0
+      ]
+    ]
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "{\"buffer_capacity\": 100, \"compact\": true, \"count\": 3, \"records\": [{\"index\": 0, \"operator_description\": \"Set inputPositionX for input 1 to -5.0\", \"timestamp_iso\": \"<TIMESTAMP>\"}, {\"index\": 1, \"operator_description\": \"Set input 2 (Input 2) attenuation to -3.0 dB\", \"timestamp_iso\": \"<TIMESTAMP>\"}, {\"index\": 2, \"operator_description\": \"Batch: 16 writes (16 Position)\", \"timestamp_iso\": \"<TIMESTAMP>\"}]}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    "step": "history_compact"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "AI is disabled by the operator (Network tab). Ask the operator to re-enable it before retrying.",
+            "type": "text"
+          }
+        ],
+        "isError": true,
+        "tier_enforcement": {
+          "ai_disabled": true,
+          "declared_tier": 1,
+          "tool": "input_position_set_x"
+        }
+      }
+    },
+    "step": "ai_disabled"
+  }
+]

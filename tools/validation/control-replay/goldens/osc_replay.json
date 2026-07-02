@@ -1,0 +1,38 @@
+{
+  "input1.positionX": [
+    -3.25
+  ],
+  "input2.attenuation": [
+    -12.5
+  ],
+  "input3.name": [
+    "OSC Renamed"
+  ],
+  "input4.cluster": [
+    1.0
+  ],
+  "input4.positionX": [
+    "-1.111110687255859"
+  ],
+  "input4.positionY": [
+    5.0
+  ],
+  "input5.positionX": [
+    2.0
+  ],
+  "input6.positionX": [
+    1.109401
+  ],
+  "input6.positionY": [
+    1.664101
+  ],
+  "output1.positionX": [
+    -4.5
+  ],
+  "reverb1.positionX": [
+    2.25
+  ],
+  "stage.width": [
+    14.0
+  ]
+}

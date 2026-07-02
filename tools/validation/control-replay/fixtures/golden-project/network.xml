@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- WFS Processor Configuration File -->
+<!-- Type: network -->
+
+<NetworkConfig version="1.0">
+  <NetworkSettings>
+    <Network networkInterface="Wi-Fi" networkCurrentIP="127.0.0.1" networkRxUDPport="8000"
+             networkRxTCPport="8001" findDevicePassword="" networkOscQueryEnabled="1"
+             networkOscQueryPort="5005">
+      <Target id="0" networkTSname="replay-target" networkTSdataMode="0" networkTSip="127.0.0.1"
+              networkTSport="9010" networkTSrxEnable="1" networkTStxEnable="1"
+              networkTSProtocol="1" networkTSqlabPatch="1"/>
+    </Network>
+    <ADMOSC>
+      <ADMCartMapping id="0">
+        <ADMCartAxis admCartAxisId="0" admCartAxisSwap="0" admCartSignFlip="0" admCartCenterOffset="0.0"
+                     admCartBreakpoint="0.5" admCartPosInnerWidth="5.0" admCartPosOuterWidth="5.0"
+                     admCartNegInnerWidth="5.0" admCartNegOuterWidth="5.0"/>
+        <ADMCartAxis admCartAxisId="1" admCartAxisSwap="1" admCartSignFlip="1" admCartCenterOffset="0.0"
+                     admCartBreakpoint="0.5" admCartPosInnerWidth="5.0" admCartPosOuterWidth="5.0"
+                     admCartNegInnerWidth="5.0" admCartNegOuterWidth="5.0"/>
+        <ADMCartAxis admCartAxisId="2" admCartAxisSwap="2" admCartSignFlip="0" admCartCenterOffset="0.0"
+                     admCartBreakpoint="0.5" admCartPosInnerWidth="5.0" admCartPosOuterWidth="5.0"
+                     admCartNegInnerWidth="5.0" admCartNegOuterWidth="5.0"/>
+      </ADMCartMapping>
+      <ADMCartMapping id="1">
+        <ADMCartAxis admCartAxisId="0" admCartAxisSwap="0" admCartSignFlip="0" admCartCenterOffset="0.0"
+                     admCartBreakpoint="0.5" admCartPosInnerWidth="5.0" admCartPosOuterWidth="5.0"
+                     admCartNegInnerWidth="5.0" admCartNegOuterWidth="5.0"/>
+        <ADMCartAxis admCartAxisId="1" admCartAxisSwap="1" admCartSignFlip="1" admCartCenterOffset="0.0"
+                     admCartBreakpoint="0.5" admCartPosInnerWidth="5.0" admCartPosOuterWidth="5.0"
+                     admCartNegInnerWidth="5.0" admCartNegOuterWidth="5.0"/>
+        <ADMCartAxis admCartAxisId="2" admCartAxisSwap="2" admCartSignFlip="0" admCartCenterOffset="0.0"
+                     admCartBreakpoint="0.5" admCartPosInnerWidth="5.0" admCartPosOuterWidth="5.0"
+                     admCartNegInnerWidth="5.0" admCartNegOuterWidth="5.0"/>
+      </ADMCartMapping>
+      <ADMCartMapping id="2">
+        <ADMCartAxis admCartAxisId="0" admCartAxisSwap="0" admCartSignFlip="0" admCartCenterOffset="0.0"
+                     admCartBreakpoint="0.5" admCartPosInnerWidth="5.0" admCartPosOuterWidth="5.0"
+                     admCartNegInnerWidth="5.0" admCartNegOuterWidth="5.0"/>
+        <ADMCartAxis admCartAxisId="1" admCartAxisSwap="1" admCartSignFlip="1" admCartCenterOffset="0.0"
+                     admCartBreakpoint="0.5" admCartPosInnerWidth="5.0" admCartPosOuterWidth="5.0"
+                     admCartNegInnerWidth="5.0" admCartNegOuterWidth="5.0"/>
+        <ADMCartAxis admCartAxisId="2" admCartAxisSwap="2" admCartSignFlip="0" admCartCenterOffset="0.0"
+                     admCartBreakpoint="0.5" admCartPosInnerWidth="5.0" admCartPosOuterWidth="5.0"
+                     admCartNegInnerWidth="5.0" admCartNegOuterWidth="5.0"/>
+      </ADMCartMapping>
+      <ADMCartMapping id="3">
+        <ADMCartAxis admCartAxisId="0" admCartAxisSwap="0" admCartSignFlip="0" admCartCenterOffset="0.0"
+                     admCartBreakpoint="0.5" admCartPosInnerWidth="5.0" admCartPosOuterWidth="5.0"
+                     admCartNegInnerWidth="5.0" admCartNegOuterWidth="5.0"/>
+        <ADMCartAxis admCartAxisId="1" admCartAxisSwap="1" admCartSignFlip="1" admCartCenterOffset="0.0"
+                     admCartBreakpoint="0.5" admCartPosInnerWidth="5.0" admCartPosOuterWidth="5.0"
+                     admCartNegInnerWidth="5.0" admCartNegOuterWidth="5.0"/>
+        <ADMCartAxis admCartAxisId="2" admCartAxisSwap="2" admCartSignFlip="0" admCartCenterOffset="0.0"
+                     admCartBreakpoint="0.5" admCartPosInnerWidth="5.0" admCartPosOuterWidth="5.0"
+                     admCartNegInnerWidth="5.0" admCartNegOuterWidth="5.0"/>
+      </ADMCartMapping>
+      <ADMPolarMapping id="0" admPolarAzimuthOffset="0.0" admPolarAzimuthFlip="0" admPolarElevationFlip="0"
+                       admPolarDistMin="0.0" admPolarDistMax="10.0"/>
+      <ADMPolarMapping id="1" admPolarAzimuthOffset="0.0" admPolarAzimuthFlip="0" admPolarElevationFlip="0"
+                       admPolarDistMin="0.0" admPolarDistMax="10.0"/>
+      <ADMPolarMapping id="2" admPolarAzimuthOffset="0.0" admPolarAzimuthFlip="0" admPolarElevationFlip="0"
+                       admPolarDistMin="0.0" admPolarDistMax="10.0"/>
+      <ADMPolarMapping id="3" admPolarAzimuthOffset="0.0" admPolarAzimuthFlip="0" admPolarElevationFlip="0"
+                       admPolarDistMin="0.0" admPolarDistMax="10.0"/>
+    </ADMOSC>
+    <Tracking trackingEnabled="0" trackingProtocol="0" trackingPort="7000"
+              trackingOffsetX="0.0" trackingOffsetY="0.0" trackingOffsetZ="0.0"
+              trackingScaleX="1.0" trackingScaleY="1.0" trackingScaleZ="1.0"
+              trackingFlipX="0" trackingFlipY="0" trackingFlipZ="0"/>
+  </NetworkSettings>
+</NetworkConfig>
