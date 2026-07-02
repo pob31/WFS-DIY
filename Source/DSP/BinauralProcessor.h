@@ -48,6 +48,12 @@ public:
      */
     void prepareToPlay (double newSampleRate, int maxBlockSize, int numInputs)
     {
+        // Reconfigure only while the worker is stopped — all call sites stop the
+        // thread first (MainComponent prepareToPlay/releaseResources/timerCallback,
+        // handleChannelCountChange). This invariant is why sampleRate/
+        // numInputChannels/currentBlockSize are deliberately non-atomic.
+        jassert (! isThreadRunning());
+
         sampleRate = newSampleRate;
         numInputChannels = numInputs;
         currentBlockSize = maxBlockSize;
@@ -354,6 +360,10 @@ private:
     {
         int numSamples = currentBlockSize;
 
+        // One snapshot copy per block — the RT thread's only parameter source.
+        // Never read the ValueTree from here (RT-safety: no locks on the tree, no allocation).
+        const auto rt = binauralCalc.getRtParams();
+
         // Clear output accumulators
         outputBlockL.clear();
         outputBlockR.clear();
@@ -362,13 +372,13 @@ private:
         float* outR = outputBlockR.getWritePointer (0);
 
         // Check if any inputs are soloed
-        bool anySoloed = binauralCalc.getNumSoloedInputs() > 0;
+        bool anySoloed = rt.numSoloed > 0;
 
         // Process each input
         for (int inputIdx = 0; inputIdx < numInputChannels; ++inputIdx)
         {
             // Skip if soloed mode and this input isn't soloed
-            if (anySoloed && !binauralCalc.isInputSoloed (inputIdx))
+            if (anySoloed && !rt.isSoloed (inputIdx))
             {
                 // Still need to consume input data to keep buffers in sync
                 if (useSharedSnap && inputIdx < (int)sharedInputsSnap.size())
@@ -387,8 +397,8 @@ private:
             if (samplesRead == 0)
                 continue;
 
-            // Get binaural parameters for this input
-            auto binauralPair = binauralCalc.calculate (inputIdx);
+            // Get binaural parameters for this input (tree-free, snapshot-driven)
+            auto binauralPair = binauralCalc.calculate (inputIdx, rt);
 
             const float* inputData = inputBlock.getReadPointer (0);
 
@@ -502,6 +512,8 @@ private:
 
     BinauralCalculationEngine& binauralCalc;
 
+    // Deliberately non-atomic: written only in prepareToPlay(), which asserts the
+    // worker thread is stopped (thread join/start provides the happens-before edge).
     double sampleRate = 48000.0;
     int numInputChannels = 0;
     int currentBlockSize = 512;
