@@ -1,7 +1,9 @@
 # Offline Render Harness — Design (Phase 0 of the spatcore extraction)
 
-Status: designed, not yet implemented. Target: `tools/validation/offline-render/`
-(CMake console app, following the `Plugin/CMakeLists.txt` precedent).
+Status: **implemented** at `tools/validation/offline-render/` (CMake console app,
+`Plugin/CMakeLists.txt` precedent) — CPU gather/scatter + SDN/FDN/IR paths, 3
+scenarios each, all 15 combos run-to-run deterministic; machine baseline at
+`baselines/win-dev-nvidia.json`. GPU gather/scatter paths are milestone 2.
 
 Purpose: the **bit-exact gate** for every extraction phase. Renders a fixed
 input through the four WFS renderers and the three reverb algorithms, entirely
@@ -74,6 +76,14 @@ drives one level lower, where synchronous/drainable entry points exist —
   build the harness with `REVERB_DIAGNOSTICS=0`; leave metering off (default).
 - No RNG anywhere in these five classes (LFO/TestSignal RNG is upstream and
   replaced by the replayed matrices).
+- **IR path (found during implementation):** `juce::dsp::Convolution` loads IRs
+  on a background thread and installs the engine mid-`process()` with a 50 ms
+  crossfade (juce_Convolution.cpp:1055-1130) — the install block index is
+  timing-dependent. The harness warms up by probing (impulse + silence) until
+  every node's convolver shows a tail, then calls `reset()` (kills engine
+  crossfade, juce_Convolution.cpp:1277-1281); everything after is
+  deterministic. CPU paths also require `--block` to be a multiple of the
+  64-sample worker chunk or the drain stalls.
 
 ## Control input: scripted deterministic timelines (not a MainComponent recorder)
 
