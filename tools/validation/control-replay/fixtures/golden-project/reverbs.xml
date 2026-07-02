@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- WFS Processor Configuration File -->
+<!-- Type: reverbs -->
+
+<ReverbConfig version="1.0">
+  <Reverbs count="1">
+    <ReverbAlgorithm reverbAlgoType="0" reverbRT60="1.5" reverbRT60LowMult="1.299999952316284"
+                     reverbRT60HighMult="0.4000000059604645" reverbCrossoverLow="200.0"
+                     reverbCrossoverHigh="2500.0" reverbDiffusion="0.5" reverbSDNscale="1.0"
+                     reverbFDNsize="1.0" reverbIRfile="" reverbIRtrim="0.0" reverbIRlength="6.0"
+                     reverbPerNodeIR="0" reverbIRGpuDevice="cpu" reverbFDNGpuDevice="cpu"
+                     reverbSDNGpuDevice="cpu" reverbWetLevel="0.0"/>
+    <ReverbPreComp reverbPreCompBypass="1" reverbPreCompThreshold="-12.0" reverbPreCompRatio="2.0"
+                   reverbPreCompAttack="10.00000190734863" reverbPreCompRelease="100.0"/>
+    <ReverbPostEQ reverbPostEQenable="1">
+      <PostEQBand id="1" reverbPostEQshape="0" reverbPostEQfreq="200" reverbPostEQgain="0.0"
+                  reverbPostEQq="0.7000000476837158" reverbPostEQslope="0.699999988079071"/>
+      <PostEQBand id="2" reverbPostEQshape="3" reverbPostEQfreq="800" reverbPostEQgain="0.0"
+                  reverbPostEQq="0.7000000476837158" reverbPostEQslope="0.699999988079071"/>
+      <PostEQBand id="3" reverbPostEQshape="3" reverbPostEQfreq="2000" reverbPostEQgain="0.0"
+                  reverbPostEQq="0.7000000476837158" reverbPostEQslope="0.699999988079071"/>
+      <PostEQBand id="4" reverbPostEQshape="4" reverbPostEQfreq="4999" reverbPostEQgain="0.0"
+                  reverbPostEQq="0.7000000476837158" reverbPostEQslope="0.699999988079071"/>
+    </ReverbPostEQ>
+    <ReverbPostExp reverbPostExpBypass="1" reverbPostExpThreshold="-40.0" reverbPostExpRatio="2.0"
+                   reverbPostExpAttack="1.0" reverbPostExpRelease="200.0"/>
+    <Reverb id="1">
+      <Channel reverbName="Reverb 1" reverbAttenuation="0.0" reverbDelayLatency="0.0"/>
+      <Position reverbPositionX="1.0" reverbPositionY="2.0" reverbPositionZ="0.0"
+                reverbReturnOffsetX="0.0" reverbReturnOffsetY="0.0" reverbReturnOffsetZ="0.0"
+                reverbCoordinateMode="0"/>
+      <Feed reverbOrientation="0" reverbAngleOn="86" reverbAngleOff="90"
+            reverbPitch="0" reverbHFdamping="0.0" reverbMiniLatencyEnable="1"
+            reverbLSenable="1" reverbDistanceAttenEnable="100"/>
+      <EQ reverbPreEQenable="1">
+        <Band id="1" reverbPreEQshape="0" reverbPreEQfreq="200" reverbPreEQgain="0.0"
+              reverbPreEQq="0.699999988079071" reverbPreEQslope="0.699999988079071"/>
+        <Band id="2" reverbPreEQshape="3" reverbPreEQfreq="800" reverbPreEQgain="0.0"
+              reverbPreEQq="0.699999988079071" reverbPreEQslope="0.699999988079071"/>
+        <Band id="3" reverbPreEQshape="3" reverbPreEQfreq="2000" reverbPreEQgain="0.0"
+              reverbPreEQq="0.699999988079071" reverbPreEQslope="0.699999988079071"/>
+        <Band id="4" reverbPreEQshape="4" reverbPreEQfreq="5000" reverbPreEQgain="0.0"
+              reverbPreEQq="0.699999988079071" reverbPreEQslope="0.699999988079071"/>
+      </EQ>
+      <Return reverbDistanceAttenuation="-0.699999988079071" reverbCommonAtten="100"
+              reverbMutes="0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0" reverbMuteMacro="0"/>
+    </Reverb>
+  </Reverbs>
+</ReverbConfig>
