@@ -39,32 +39,50 @@ The seven WFS-UI CSVs use three different column layouts. The generator must acc
 
 | File | Columns | Notable differences |
 |---|---|---|
-| `WFS-UI_config.csv` | 12 | Compact layout: no Formula column, no OSC-path column, no Keyboard-shortcuts column. Matches `WFS-UI_network.csv`. |
-| `WFS-UI_network.csv` | 12 | Same compact layout as `WFS-UI_config.csv`. |
-| `WFS-UI_audioPatch.csv` | 17 | Standard layout shared with output / reverb / clusters. |
-| `WFS-UI_output.csv` | 17 | Standard layout. |
-| `WFS-UI_reverb.csv` | 17 | Standard layout. |
-| `WFS-UI_clusters.csv` | 17 | Standard layout. |
-| `WFS-UI_input.csv` | 18 | Standard layout plus two extra columns: `OSC inc/dec` (column 14) and `OSC path optional value` (column 15). |
+| `WFS-UI_config.csv` | 13 | Compact layout: no Formula column, no OSC-path column, no Keyboard-shortcuts column. Matches `WFS-UI_network.csv`. |
+| `WFS-UI_network.csv` | 13 | Same compact layout as `WFS-UI_config.csv`. |
+| `WFS-UI_audioPatch.csv` | 18 | Standard layout shared with output / reverb / clusters. |
+| `WFS-UI_output.csv` | 18 | Standard layout. |
+| `WFS-UI_reverb.csv` | 18 | Standard layout. |
+| `WFS-UI_clusters.csv` | 18 | Standard layout. |
+| `WFS-UI_input.csv` | 19 | Standard layout plus two extra columns: `OSC inc/dec` and `OSC path optional value`. |
 
-The 12-column header order:
+Every file carries a `Tier` column immediately after `Default` — the explicit per-parameter
+MCP confirmation tier (1/2/3). See *Tier resolution* below.
 
-`Section, Label, Variable, UI, Type, Min, Max, Default, Unit, enum, Notes, Hover help text in the status bar`
+The 13-column header order (compact):
 
-The 17-column header order:
+`Section, Label, Variable, UI, Type, Min, Max, Default, Tier, Unit, enum, Notes, Hover help text in the status bar`
 
-`Section, Label, Variable, UI, Type, Min, Max, Default, Formula for UI elements (x from 0.0 to 1.0), Unit, enum, Notes, Array value, OSC path, OSC remote path, Hover help text in the status bar, Keyboard shortcuts`
+The 18-column header order (standard):
 
-The 18-column header (input only) inserts after column 13:
+`Section, Label, Variable, UI, Type, Min, Max, Default, Tier, Formula for UI elements (x from 0.0 to 1.0), Unit, enum, Notes, Array value, OSC path, OSC remote path, Hover help text in the status bar, Keyboard shortcuts`
+
+The 19-column header (input only) additionally inserts, after `Notes`:
 
 `..., Notes, OSC path, OSC "inc" or "dec" before value to increment of decrement, OSC path optional value, OSC remote path, ...`
 
-The generator should detect the column count from the header row and dispatch to the appropriate column-index map. Do not hardcode column indices.
+The generator maps columns by header **name** (not by index), so column order/position is
+flexible and adding a column is layout-agnostic. Do not hardcode column indices.
 
 Plus two override files, also committed to the repo:
 
-- `tool_tier_overrides.json` — per-parameter tier overrides (when the heuristic default is wrong).
+- `tool_tier_overrides.json` — per-parameter tier **fallback** (used only when a row's `Tier`
+  cell is blank; see *Tier resolution*).
 - `tool_generation_ignores.json` — parameters to skip entirely.
+
+### Tier resolution
+
+Tier is resolved per parameter row with this precedence:
+
+1. **`Tier` CSV column** — the primary, authorable source (values 1/2/3).
+2. **`tool_tier_overrides.json`** — fallback when the `Tier` cell is blank.
+3. **Heuristic** (keyword + wide-dB span) — last-resort fallback; it appends a loud
+   `warnings[]` entry (`no explicit Tier in CSV…`) so unclassified params are visible.
+
+An out-of-range / non-integer `Tier` cell is ignored (with an `invalid Tier value` warning) and
+resolution falls through to steps 2–3. To (re)snapshot the column from the current effective
+tiers, run `python tools/mcp/populate_tier_column.py`.
 
 ## Outputs
 
@@ -149,14 +167,15 @@ For each row in each CSV:
    - Default from the CSV Default column if present.
    - For per-channel parameters (the Variable starts with `input`, `output`, `reverb`, `cluster`, `sampler`), the first argument is always the channel id as an integer, and the range depends on which CSV the row came from. The script emits the per-CSV upper bound: 64 for `WFS-UI_input.csv` and `WFS-UI_output.csv`, 16 for `WFS-UI_reverb.csv`, 10 for `WFS-UI_clusters.csv`, 36 for sampler cell indices in `WFS-UI_input.csv` (the 6×6 grid). The server validates against the runtime channel count, which can be lower than the upper bound.
 
-5. **Determine tier** via heuristics:
-   - If the parameter name contains `delete`, `clear`, `remove`, `reset`: Tier 3.
-   - If it contains `master`, `channels`, `sampleRate`, `runDSP`, `reconfigure`: Tier 3.
-   - If it touches attenuation or level with wide range (more than 40 dB total range): Tier 2.
-   - If it's a test tone, solo, or mute-all operation: Tier 2.
-   - If it's a read-only get: Tier 1.
-   - Default: Tier 1.
-   - Override from `tool_tier_overrides.json` takes precedence.
+5. **Determine tier** (see *Tier resolution* above for the authoritative order):
+   - **Primary:** the row's explicit **`Tier` CSV column** (values 1/2/3).
+   - **Fallback (blank cell):** `tool_tier_overrides.json`, then the heuristics below (which warn):
+     - name contains `delete`, `clear`, `remove`, `channels`, `sampleRate`, `runDSP`,
+       `reconfigure`: Tier 3.
+     - `master`, `solo`, `muteAll`, `testTone`, `store`, `load`, `import`, `export`,
+       `snapshot`: Tier 2.
+     - attenuation/level with wide range (≥ 40 dB total span): Tier 2.
+     - otherwise: Tier 1.
 
 6. **Detect relative/nudge support**: the "OSC 'inc' or 'dec'" column has `y` → generate a paired nudge tool.
 
@@ -216,6 +235,10 @@ This doubles as the validation source for hand-written compound tools: a unit te
 
 ## Override file formats
 
+> The `Tier` CSV column is the primary tier source (see *Tier resolution*). `tool_tier_overrides.json`
+> is now a **fallback**, consulted only for rows whose `Tier` cell is blank. Its `<band>` / `*`
+> wildcard key conventions below still apply to that fallback path.
+
 `tool_tier_overrides.json`:
 ```json
 {
@@ -250,7 +273,8 @@ Unit tests for the script:
 
 - Known row → expected JSON output (golden-file tests for a handful of representative rows).
 - Malformed CSV → clear error message, no partial output.
-- Override file takes precedence over heuristic.
+- Explicit `Tier` column takes precedence over override file and heuristic; a blank cell falls back
+  to the override then the heuristic (which warns); an invalid cell warns and falls through.
 - Ignored parameters don't appear in output.
 - Ordering is deterministic.
 

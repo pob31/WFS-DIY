@@ -2031,7 +2031,7 @@ For Debug build:
 
 These files are the canonical reference for every user-facing parameter, control, and setup flow in the app. They feed the MCP-server generator under `Documentation/MCP/`:
 
-**Tab-by-tab control surface (CSV, 17 or 18 columns):**
+**Tab-by-tab control surface (CSV, 18 or 19 columns):**
 - `Documentation/WFS-UI_config.csv` — SystemConfigTab
 - `Documentation/WFS-UI_network.csv` — NetworkTab (176 rows, includes full ADM-OSC mapping exhaustive enumeration)
 - `Documentation/WFS-UI_input.csv` — InputsTab (189 rows, includes Sampler subsystem)
@@ -2045,12 +2045,15 @@ These files are the canonical reference for every user-facing parameter, control
 - `Documentation/WFS-UI_plugins.md` — DAW Plugin Suite (6 plugins) + end-to-end OSC / OSCQuery / ADM-OSC setup guide
 
 **Column conventions:**
-- Most CSVs use a 17-column layout (Section, Label, Variable, UI, Type, Min, Max, Default, Formula, Unit, enum, Notes, Array value, OSC path, OSC remote path, Hover, Keyboard shortcuts).
-- `WFS-UI_input.csv` has 18 columns (adds "OSC inc/dec" and "OSC path optional value").
-- `WFS-UI_config.csv` uses a compact 12-column layout (no Formula, OSC path, or Keyboard columns).
-- `WFS-UI_network.csv` also uses 12 columns to match the config file's compact style.
+- Most CSVs use an 18-column layout (Section, Label, Variable, UI, Type, Min, Max, Default, Tier, Formula, Unit, enum, Notes, Array value, OSC path, OSC remote path, Hover, Keyboard shortcuts).
+- `WFS-UI_input.csv` has 19 columns (adds "OSC inc/dec" and "OSC path optional value").
+- `WFS-UI_config.csv` uses a compact 13-column layout (no Formula, OSC path, or Keyboard columns).
+- `WFS-UI_network.csv` also uses 13 columns to match the config file's compact style.
+- The `Tier` column (immediately after `Default`) is the explicit per-parameter MCP confirmation
+  tier (1/2/3) and is the **primary source** the generator reads; `tool_tier_overrides.json` +
+  the keyword heuristic are fallbacks. Re-snapshot it with `python tools/mcp/populate_tier_column.py`.
 
-When updating these files, preserve the column count and avoid introducing U+FFFD characters (old versions had encoding glitches in curly-quote cells that have been cleaned up).
+When updating these files, preserve the column count and avoid introducing U+FFFD characters (old versions had encoding glitches in curly-quote cells that have been cleaned up). The generator matches columns by header name, so a new column can go anywhere, but keep the layouts consistent for readability.
 
 ---
 

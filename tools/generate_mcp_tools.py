@@ -287,6 +287,7 @@ class CSVRow:
     min: str = ""
     max: str = ""
     default: str = ""
+    tier: str = ""
     formula: str = ""
     unit: str = ""
     enum: str = ""
@@ -311,6 +312,7 @@ HEADER_ALIASES = {
     "Min":      "min",
     "Max":      "max",
     "Default":  "default",
+    "Tier":     "tier",
     "Formula for UI elements (x from 0.0 to 1.0)": "formula",
     "Unit":     "unit",
     "enum":     "enum",
@@ -478,6 +480,30 @@ def detect_numeric_family(variable: str) -> tuple[str, int] | None:
     return stem, num
 
 
+def compute_real_family_stems(csv_dir: Path) -> set[str]:
+    """Pre-scan every CSV and return the set of numeric-suffix stems that have
+    ≥ 2 sister variables sharing the same stem (e.g. `inputArrayAtten` for
+    inputArrayAtten1..10). Without this gate, a lone parameter whose name ends
+    in digits — such as `reverbRT60` — is mistakenly treated as the 60th member
+    of a 60-element family and silently skipped by process_row's family dedup.
+
+    Used by both main() and tools/mcp/populate_tier_column.py so the family
+    detection resolves identically in each.
+    """
+    stems_seen: dict[str, set[int]] = defaultdict(set)
+    for fname in CSV_FILES_ORDER:
+        p = csv_dir / fname
+        if not p.exists():
+            continue
+        for row in read_csv(p):
+            if not row.variable.strip():
+                continue
+            m = _NUMERIC_FAMILY_RE.match(row.variable)
+            if m:
+                stems_seen[m.group(1)].add(int(m.group(2)))
+    return {s for s, nums in stems_seen.items() if len(nums) >= 2}
+
+
 def detect_band_placeholder(variable: str) -> bool:
     return "<band>" in variable
 
@@ -556,6 +582,20 @@ def is_ignored(variable: str, ignore_map: dict[str, str]) -> str | None:
     if variable in ignore_map:
         return ignore_map[variable]
     return None
+
+
+def parse_tier_cell(cell: str) -> int | None:
+    """Parse the CSV `Tier` cell. Returns 1, 2, or 3 for a valid explicit tier,
+    or None if the cell is blank or holds an out-of-range / non-integer value
+    (the caller then falls back to the override file / heuristic)."""
+    s = (cell or "").strip()
+    if not s:
+        return None
+    try:
+        v = int(s)
+    except ValueError:
+        return None
+    return v if v in (1, 2, 3) else None
 
 
 def lookup_tier_override(variable: str, family_stem: str | None,
@@ -1142,12 +1182,30 @@ def process_row(row: CSVRow,
     description = derive_description(row, csv_namespace,
                                        per_channel=is_per_channel(row))
 
-    # Tier
+    # Tier resolution. Precedence: explicit CSV `Tier` column (the primary,
+    # authorable source) -> tool_tier_overrides.json (retained fallback) ->
+    # keyword/dB-span heuristic. The heuristic warns when it fires so
+    # unclassified params are loud, not silent (open-questions-control Q1).
     fam_stem = family[0] if family is not None else None
-    tier = lookup_tier_override(row.variable, fam_stem, band, tier_overrides)
+    tier = parse_tier_cell(row.tier)
+    if tier is None:
+        if row.tier.strip():
+            warnings.append({
+                "variable": row.variable,
+                "csv_file": row.csv_file,
+                "message": f"invalid Tier value {row.tier.strip()!r} "
+                           "(expected 1, 2, or 3); ignored",
+            })
+        tier = lookup_tier_override(row.variable, fam_stem, band, tier_overrides)
     if tier is None:
         tier = heuristic_tier(row.variable, row.label, row.type,
                                 row.min, row.max)
+        warnings.append({
+            "variable": row.variable,
+            "csv_file": row.csv_file,
+            "message": f"no explicit Tier in CSV; heuristic assigned tier "
+                       f"{tier} — add an explicit Tier column value",
+        })
 
     # Phase 8: tier-2/3 schemas declare an optional `confirm` field so
     # AI clients can satisfy the two-step handshake. Tier-1 schemas are
@@ -1399,18 +1457,7 @@ def main(argv: list[str] | None = None) -> int:
     # mistakenly treated as the 60th member of a 60-element family and
     # silently skipped by process_row's family dedup.
     global _REAL_FAMILY_STEMS
-    _stems_seen: dict[str, set[int]] = defaultdict(set)
-    for fname in CSV_FILES_ORDER:
-        p = csv_dir / fname
-        if not p.exists():
-            continue
-        for row in read_csv(p):
-            if not row.variable.strip():
-                continue
-            m = _NUMERIC_FAMILY_RE.match(row.variable)
-            if m:
-                _stems_seen[m.group(1)].add(int(m.group(2)))
-    _REAL_FAMILY_STEMS = {s for s, nums in _stems_seen.items() if len(nums) >= 2}
+    _REAL_FAMILY_STEMS = compute_real_family_stems(csv_dir)
 
     tools: list[dict] = []
     nudge_tools: list[dict] = []
