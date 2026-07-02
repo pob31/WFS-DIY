@@ -1,5 +1,5 @@
 #include "RTTrPDecoder.h"
-#include "NetworkStringUtils.h"
+#include "../../spatcore/control/osc/NetworkStringUtils.h"
 
 namespace RTTrP
 {

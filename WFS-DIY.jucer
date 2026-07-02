@@ -126,25 +126,25 @@
         <FILE id="netIngestQueueCpp" name="OSCIngestQueue.cpp" compile="1" resource="0"
               file="Source/Network/OSCIngestQueue.cpp"/>
         <FILE id="netTrkIngestQH" name="TrackingIngestQueue.h" compile="0" resource="0"
-              file="Source/Network/TrackingIngestQueue.h"/>
+              file="spatcore/control/osc/TrackingIngestQueue.h"/>
         <FILE id="netTrkIngestQCpp" name="TrackingIngestQueue.cpp" compile="1" resource="0"
-              file="Source/Network/TrackingIngestQueue.cpp"/>
+              file="spatcore/control/osc/TrackingIngestQueue.cpp"/>
         <FILE id="netMgrH" name="OSCManager.h" compile="0" resource="0" file="Source/Network/OSCManager.h"/>
         <FILE id="netMgrCpp" name="OSCManager.cpp" compile="1" resource="0"
               file="Source/Network/OSCManager.cpp"/>
         <FILE id="netAdmH" name="ADMOSCMapping.h" compile="0" resource="0"
               file="Source/Network/ADMOSCMapping.h"/>
         <FILE id="netUdpRxH" name="OSCReceiverWithSenderIP.h" compile="0" resource="0"
-              file="Source/Network/OSCReceiverWithSenderIP.h"/>
+              file="spatcore/control/osc/OSCReceiverWithSenderIP.h"/>
         <FILE id="netUdpRxCpp" name="OSCReceiverWithSenderIP.cpp" compile="1"
-              resource="0" file="Source/Network/OSCReceiverWithSenderIP.cpp"/>
+              resource="0" file="spatcore/control/osc/OSCReceiverWithSenderIP.cpp"/>
         <FILE id="netTcpRxH" name="OSCTCPReceiver.h" compile="0" resource="0"
-              file="Source/Network/OSCTCPReceiver.h"/>
+              file="spatcore/control/osc/OSCTCPReceiver.h"/>
         <FILE id="netTcpRxCpp" name="OSCTCPReceiver.cpp" compile="1" resource="0"
-              file="Source/Network/OSCTCPReceiver.cpp"/>
-        <FILE id="netParseH" name="OSCParser.h" compile="0" resource="0" file="Source/Network/OSCParser.h"/>
+              file="spatcore/control/osc/OSCTCPReceiver.cpp"/>
+        <FILE id="netParseH" name="OSCParser.h" compile="0" resource="0" file="spatcore/control/osc/OSCParser.h"/>
         <FILE id="netStrUtilH" name="NetworkStringUtils.h" compile="0" resource="0"
-              file="Source/Network/NetworkStringUtils.h"/>
+              file="spatcore/control/osc/NetworkStringUtils.h"/>
         <FILE id="netQueryH" name="OSCQueryServer.h" compile="0" resource="0"
               file="Source/Network/OSCQueryServer.h"/>
         <FILE id="netQueryCpp" name="OSCQueryServer.cpp" compile="1" resource="0"

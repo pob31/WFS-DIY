@@ -90,10 +90,10 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/OSCMessageRouter_d5ec64db.o \
   $(JUCE_OBJDIR)/OSCParameterBounds_6ab619e9.o \
   $(JUCE_OBJDIR)/OSCIngestQueue_17124ab8.o \
-  $(JUCE_OBJDIR)/TrackingIngestQueue_1aad6436.o \
+  $(JUCE_OBJDIR)/TrackingIngestQueue_bab31329.o \
   $(JUCE_OBJDIR)/OSCManager_ce19fc58.o \
-  $(JUCE_OBJDIR)/OSCReceiverWithSenderIP_915fb210.o \
-  $(JUCE_OBJDIR)/OSCTCPReceiver_c566011b.o \
+  $(JUCE_OBJDIR)/OSCReceiverWithSenderIP_483eaf83.o \
+  $(JUCE_OBJDIR)/OSCTCPReceiver_3c158648.o \
   $(JUCE_OBJDIR)/OSCQueryServer_604ad0d6.o \
   $(JUCE_OBJDIR)/TrackingOSCReceiver_8ed4cb7.o \
   $(JUCE_OBJDIR)/TrackingPSNReceiver_a269fe83.o \
@@ -263,7 +263,7 @@ $(JUCE_OBJDIR)/OSCIngestQueue_17124ab8.o: ../../Source/Network/OSCIngestQueue.cp
 	@echo "Compiling OSCIngestQueue.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
-$(JUCE_OBJDIR)/TrackingIngestQueue_1aad6436.o: ../../Source/Network/TrackingIngestQueue.cpp
+$(JUCE_OBJDIR)/TrackingIngestQueue_bab31329.o: ../../spatcore/control/osc/TrackingIngestQueue.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling TrackingIngestQueue.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
@@ -273,12 +273,12 @@ $(JUCE_OBJDIR)/OSCManager_ce19fc58.o: ../../Source/Network/OSCManager.cpp
 	@echo "Compiling OSCManager.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
-$(JUCE_OBJDIR)/OSCReceiverWithSenderIP_915fb210.o: ../../Source/Network/OSCReceiverWithSenderIP.cpp
+$(JUCE_OBJDIR)/OSCReceiverWithSenderIP_483eaf83.o: ../../spatcore/control/osc/OSCReceiverWithSenderIP.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling OSCReceiverWithSenderIP.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
-$(JUCE_OBJDIR)/OSCTCPReceiver_c566011b.o: ../../Source/Network/OSCTCPReceiver.cpp
+$(JUCE_OBJDIR)/OSCTCPReceiver_3c158648.o: ../../spatcore/control/osc/OSCTCPReceiver.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling OSCTCPReceiver.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"

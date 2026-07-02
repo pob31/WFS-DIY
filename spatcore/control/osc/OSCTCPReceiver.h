@@ -1,6 +1,6 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include <juce_osc/juce_osc.h>
 #include "OSCReceiverWithSenderIP.h"
 
 namespace WFSNetwork

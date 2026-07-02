@@ -20,7 +20,7 @@
 #include "hidapi/hidapi.h"
 
 #include <JuceHeader.h>
-#include "../../Network/NetworkStringUtils.h"
+#include "../../../spatcore/control/osc/NetworkStringUtils.h"
 
 #if JUCE_WINDOWS
  #include <windows.h>

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "OSCReceiverWithSenderIP.h"
+#include "../../spatcore/control/osc/OSCReceiverWithSenderIP.h"
 #include "../Parameters/WFSValueTreeState.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/ParameterDirtyTracker.h"

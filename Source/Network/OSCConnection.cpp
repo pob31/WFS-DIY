@@ -1,5 +1,5 @@
 #include "OSCConnection.h"
-#include "OSCSerializer.h"
+#include "../../spatcore/control/osc/OSCSerializer.h"
 
 namespace WFSNetwork
 {
