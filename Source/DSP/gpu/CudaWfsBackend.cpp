@@ -204,7 +204,7 @@ bool CudaWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,
     CK_DRV (cuDevicePrimaryCtxRetain (&m.context, m.cuDevice));
     CK_DRV (cuCtxSetCurrent (m.context));
 
-    // 3) NVRTC-compile the kernel string to PTX for this GPU's arch.
+    // 3) NVRTC-compile the kernel string to cubin for this GPU's arch.
     {
         nvrtcProgram prog = nullptr;
         if (nvrtcCreateProgram (&prog, kWfsDelaySumKernelSource, "wfs_delay_sum.cu", 0, nullptr, nullptr) != NVRTC_SUCCESS)
@@ -214,7 +214,11 @@ bool CudaWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,
             return false;
         }
 
-        const std::string archOpt = "--gpu-architecture=compute_" + std::to_string (arch);
+        // sm_ (not compute_): emit arch-exact SASS and skip the driver's PTX JIT,
+        // which rejects PTX from an NVRTC newer than the driver
+        // (CUDA_ERROR_UNSUPPORTED_PTX_VERSION). With cubin the min-driver bar is
+        // "supports this GPU", not "at least as new as the bundled NVRTC".
+        const std::string archOpt = "--gpu-architecture=sm_" + std::to_string (arch);
         const char* opts[] = { archOpt.c_str() };
         const nvrtcResult comp = nvrtcCompileProgram (prog, 1, opts);
         if (comp != NVRTC_SUCCESS)
@@ -230,13 +234,13 @@ bool CudaWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,
             return false;
         }
 
-        size_t ptxSize = 0;
-        nvrtcGetPTXSize (prog, &ptxSize);
-        std::vector<char> ptx (ptxSize);
-        nvrtcGetPTX (prog, ptx.data());
+        size_t cubinSize = 0;
+        nvrtcGetCUBINSize (prog, &cubinSize);
+        std::vector<char> cubin (cubinSize);
+        nvrtcGetCUBIN (prog, cubin.data());
         nvrtcDestroyProgram (&prog);
 
-        CK_DRV (cuModuleLoadDataEx (&m.module, ptx.data(), 0, nullptr, nullptr));
+        CK_DRV (cuModuleLoadDataEx (&m.module, cubin.data(), 0, nullptr, nullptr));
         CK_DRV (cuModuleGetFunction (&m.kernelPairs, m.module, "wfs_pairs"));
         CK_DRV (cuModuleGetFunction (&m.kernelReduce, m.module, "wfs_reduce"));
     }
