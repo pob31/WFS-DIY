@@ -3,6 +3,8 @@
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <atomic>
 
+namespace spatcore::rt {
+
 //==============================================================================
 /**
     Shares the current audio device's realtime workgroup with the DSP worker
@@ -77,3 +79,8 @@ private:
     juce::AudioWorkgroup current;
     std::atomic<uint32_t> generation { 0 };
 };
+
+} // namespace spatcore::rt
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+using spatcore::rt::AudioWorkgroupCoordinator;

@@ -3,6 +3,8 @@
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <cmath>
 
+namespace spatcore::dsp {
+
 namespace WFSHelpers
 {
 
@@ -27,3 +29,8 @@ inline float safeClamp (float lowerLimit, float upperLimit, float value) noexcep
 }
 
 } // namespace WFSHelpers
+
+} // namespace spatcore::dsp
+
+// Extraction-compat alias — app code migrates to qualified names later.
+namespace WFSHelpers = spatcore::dsp::WFSHelpers;

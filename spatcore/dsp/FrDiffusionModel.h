@@ -34,6 +34,8 @@
     interpolation reconstructs the same low-rate waveform). One header so the
     three algorithms can never drift apart in character.
 */
+namespace spatcore::dsp {
+
 namespace FrDiffusion
 {
     // ==== Zone-map tunables (audition-tuned 2026-06-12; see header comment) ====
@@ -109,4 +111,9 @@ namespace FrDiffusion
         const float j = state * c.scale;
         return std::min (c.ampSamples, std::max (-c.ampSamples, j));
     }
-}
+} // namespace FrDiffusion
+
+} // namespace spatcore::dsp
+
+// Extraction-compat alias — app code migrates to qualified names later.
+namespace FrDiffusion = spatcore::dsp::FrDiffusion;

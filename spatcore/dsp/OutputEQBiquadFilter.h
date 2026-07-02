@@ -2,6 +2,8 @@
 
 #include <cmath>
 
+namespace spatcore::dsp {
+
 //==============================================================================
 /**
     Parametric biquad filter for the per-output 6-band EQ.
@@ -219,3 +221,8 @@ private:
     float x1 = 0.0f, x2 = 0.0f;
     float y1 = 0.0f, y2 = 0.0f;
 };
+
+} // namespace spatcore::dsp
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+using spatcore::dsp::OutputEQBiquadFilter;

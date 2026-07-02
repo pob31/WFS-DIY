@@ -5,6 +5,8 @@
 #include <array>
 #include <memory>
 
+namespace spatcore::dsp {
+
 /**
  * Input Speed Limiter
  *
@@ -430,3 +432,8 @@ private:
 
     static constexpr int waypointIntervalMs = 20;  // ~50Hz capture rate
 };
+
+} // namespace spatcore::dsp
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+using spatcore::dsp::InputSpeedLimiter;

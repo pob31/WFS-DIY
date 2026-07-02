@@ -10,6 +10,9 @@
 #include <atomic>
 #include <cmath>
 
+// Note: REVERB_DIAGNOSTICS itself is a macro and stays at global scope.
+namespace spatcore::rt {
+
 //==============================================================================
 /**
     Shared diagnostic counters for ReverbEngine.
@@ -160,5 +163,11 @@ private:
 
     ReverbDiagnostics& diag;
 };
+
+} // namespace spatcore::rt
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+using spatcore::rt::ReverbDiagnostics;
+using spatcore::rt::ReverbDiagnosticReporter;
 
 #endif // REVERB_DIAGNOSTICS

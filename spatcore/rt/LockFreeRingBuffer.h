@@ -4,6 +4,8 @@
 #include <atomic>
 #include "ReverbDiagnostics.h"
 
+namespace spatcore::rt {
+
 //==============================================================================
 /**
     Lock-free ring buffer for single producer, single consumer audio data transfer.
@@ -141,3 +143,8 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LockFreeRingBuffer)
 };
+
+} // namespace spatcore::rt
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+using spatcore::rt::LockFreeRingBuffer;

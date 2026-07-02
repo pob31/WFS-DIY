@@ -2,6 +2,8 @@
 
 #include <cmath>
 
+namespace spatcore::dsp {
+
 //==============================================================================
 /**
     Configurable biquad filter for WFS floor reflections.
@@ -180,3 +182,8 @@ private:
     float slope = 0.4f;          // Shelf slope (0.1-0.9)
     double sampleRate = 44100.0;
 };
+
+} // namespace spatcore::dsp
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+using spatcore::dsp::WFSBiquadFilter;

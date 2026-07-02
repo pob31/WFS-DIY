@@ -8,6 +8,8 @@
  #include <pthread.h>
 #endif
 
+namespace spatcore::rt {
+
 //==============================================================================
 /**
     Upgrades the *calling* thread to a realtime time-constraint scheduling policy
@@ -57,3 +59,8 @@ inline bool setCurrentThreadRealtimeAudio (double periodMs, double computationMs
     return false;
    #endif
 }
+
+} // namespace spatcore::rt
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+using spatcore::rt::setCurrentThreadRealtimeAudio;
