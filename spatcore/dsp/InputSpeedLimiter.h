@@ -1,9 +1,11 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include <juce_audio_basics/juce_audio_basics.h>
 #include <cmath>
 #include <array>
 #include <memory>
+
+namespace spatcore::dsp {
 
 /**
  * Input Speed Limiter
@@ -430,3 +432,8 @@ private:
 
     static constexpr int waypointIntervalMs = 20;  // ~50Hz capture rate
 };
+
+} // namespace spatcore::dsp
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+using spatcore::dsp::InputSpeedLimiter;

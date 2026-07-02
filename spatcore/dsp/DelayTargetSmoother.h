@@ -4,6 +4,8 @@
 #include <cmath>
 #include <algorithm>
 
+namespace spatcore::dsp {
+
 /**
  * DelayTargetSmoother
  *
@@ -252,3 +254,8 @@ private:
     std::int64_t   teleportStart_       = -1;    // -1 when not in a teleport
     float          teleportSnapValue_   = 0.0f;
 };
+
+} // namespace spatcore::dsp
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+using spatcore::dsp::DelayTargetSmoother;

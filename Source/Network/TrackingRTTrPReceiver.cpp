@@ -1,5 +1,5 @@
 #include "TrackingRTTrPReceiver.h"
-#include "../DSP/TrackingPositionFilter.h"
+#include "../../spatcore/dsp/TrackingPositionFilter.h"
 #include "OSCLogger.h"
 #include <cmath>
 

@@ -5,9 +5,13 @@
 
 #if REVERB_DIAGNOSTICS
 
-#include <JuceHeader.h>
+#include <juce_audio_basics/juce_audio_basics.h>
+#include <juce_events/juce_events.h>
 #include <atomic>
 #include <cmath>
+
+// Note: REVERB_DIAGNOSTICS itself is a macro and stays at global scope.
+namespace spatcore::rt {
 
 //==============================================================================
 /**
@@ -159,5 +163,11 @@ private:
 
     ReverbDiagnostics& diag;
 };
+
+} // namespace spatcore::rt
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+using spatcore::rt::ReverbDiagnostics;
+using spatcore::rt::ReverbDiagnosticReporter;
 
 #endif // REVERB_DIAGNOSTICS

@@ -84,7 +84,7 @@
         <FILE id="arrGeomCpp" name="ArrayGeometryCalculator.cpp" compile="1"
               resource="0" file="Source/Helpers/ArrayGeometryCalculator.cpp"/>
         <FILE id="numGuardsH" name="NumericGuards.h" compile="0" resource="0"
-              file="Source/Helpers/NumericGuards.h"/>
+              file="spatcore/dsp/NumericGuards.h"/>
       </GROUP>
       <GROUP id="{ACCESSGROUP}" name="Accessibility">
         <FILE id="accTTSMgr" name="TTSManager.h" compile="0" resource="0" file="Source/Accessibility/TTSManager.h"/>
@@ -356,7 +356,7 @@
         <FILE id="wfsCalcCpp" name="WFSCalculationEngine.cpp" compile="1" resource="0"
               file="Source/DSP/WFSCalculationEngine.cpp"/>
         <FILE id="wfsHFFilter" name="WFSHighShelfFilter.h" compile="0" resource="0"
-              file="Source/DSP/WFSHighShelfFilter.h"/>
+              file="spatcore/dsp/WFSHighShelfFilter.h"/>
         <FILE id="inpPro" name="InputBufferProcessor.h" compile="0" resource="0"
               file="Source/DSP/InputBufferProcessor.h"/>
         <FILE id="outPro" name="OutputBufferProcessor.h" compile="0" resource="0"
@@ -492,9 +492,9 @@
         <FILE id="testSigGenCpp" name="TestSignalGenerator.cpp" compile="1"
               resource="0" file="Source/DSP/TestSignalGenerator.cpp"/>
         <FILE id="trkPosFilter" name="TrackingPositionFilter.h" compile="0"
-              resource="0" file="Source/DSP/TrackingPositionFilter.h"/>
+              resource="0" file="spatcore/dsp/TrackingPositionFilter.h"/>
         <FILE id="inpSpdLimH" name="InputSpeedLimiter.h" compile="0" resource="0"
-              file="Source/DSP/InputSpeedLimiter.h"/>
+              file="spatcore/dsp/InputSpeedLimiter.h"/>
       </GROUP>
     </GROUP>
   </MAINGROUP>

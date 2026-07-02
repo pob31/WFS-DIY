@@ -1,12 +1,14 @@
 #pragma once
 
 #include <cmath>
-#include <JuceHeader.h>
+#include <juce_audio_basics/juce_audio_basics.h>
 
 /**
  * Shared LFO waveform shapes and generation utility.
  * Used by both LFOProcessor (per-input) and ClusterLFOProcessor (per-cluster).
  */
+namespace spatcore::dsp {
+
 namespace LFOWaveforms
 {
     //==========================================================================
@@ -101,3 +103,8 @@ namespace LFOWaveforms
     }
 
 } // namespace LFOWaveforms
+
+} // namespace spatcore::dsp
+
+// Extraction-compat alias — app code migrates to qualified names later.
+namespace LFOWaveforms = spatcore::dsp::LFOWaveforms;

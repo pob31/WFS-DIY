@@ -17,7 +17,7 @@
 #define WFS_GPU_NATIVE 1
 
 #include "MetalObBackend.h"
-#include "../../Source/DSP/FrDiffusionModel.h"   // shared grain model (CPU parity check)
+#include "../../spatcore/dsp/FrDiffusionModel.h"   // shared grain model (CPU parity check)
 
 #include <algorithm>
 #include <cmath>

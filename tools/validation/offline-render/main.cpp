@@ -51,8 +51,8 @@
 
 #include "DSP/InputBufferProcessor.h"     // CPU gather (per-input worker threads)
 #include "DSP/OutputBufferProcessor.h"    // CPU scatter (per-output worker threads)
-#include "DSP/SharedInputRingBuffer.h"
-#include "DSP/AudioParallelFor.h"
+#include "../../../spatcore/rt/SharedInputRingBuffer.h"
+#include "../../../spatcore/rt/AudioParallelFor.h"
 #include "DSP/ReverbAlgorithm.h"
 #include "DSP/ReverbSDNAlgorithm.h"
 #include "DSP/ReverbFDNAlgorithm.h"

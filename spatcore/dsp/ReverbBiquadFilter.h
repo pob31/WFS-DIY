@@ -2,28 +2,32 @@
 
 #include <cmath>
 
+namespace spatcore::dsp {
+
 //==============================================================================
 /**
-    Parametric biquad filter for the per-output 6-band EQ.
+    Parametric biquad filter for the reverb pre/post EQ.
 
-    Shape IDs match the Output EQ GUI mapping (distinct from ReverbBiquadFilter):
+    Supports 6 filter shapes matching reverbPreEQshape / reverbPostEQshape:
       0 = OFF (pass-through)
-      1 = LowCut    (2nd-order high-pass)
+      1 = LowCut (2nd-order high-pass)
       2 = LowShelf
       3 = Peak / Notch
-      4 = BandPass  (constant-skirt, normalized peak gain)
-      5 = HighShelf
-      6 = HighCut   (2nd-order low-pass)
-      7 = AllPass   (2nd-order all-pass)
+      4 = HighShelf
+      5 = HighCut (2nd-order low-pass)
 
     Uses Audio EQ Cookbook formulas (Robert Bristow-Johnson).
+    Designed for per-sample processing in the reverb engine thread.
 */
-class OutputEQBiquadFilter
+class ReverbBiquadFilter
 {
 public:
-    OutputEQBiquadFilter() = default;
+    ReverbBiquadFilter() = default;
 
     //==========================================================================
+    // Lifecycle
+    //==========================================================================
+
     void prepare (double newSampleRate)
     {
         sampleRate = newSampleRate;
@@ -37,14 +41,17 @@ public:
     }
 
     //==========================================================================
+    // Parameter setters — recalculates only when something changed
+    //==========================================================================
+
     void setParameters (int newShape, float newFreq, float newGainDb,
                         float newQ, float newSlope)
     {
-        newFreq  = std::max (20.0f,  std::min (newFreq,  20000.0f));
-        newQ     = std::max (0.1f,   std::min (newQ,     20.0f));
-        newSlope = std::max (0.1f,   std::min (newSlope, 20.0f));
+        newFreq = std::max (20.0f, std::min (newFreq, 20000.0f));
+        newQ    = std::max (0.1f, std::min (newQ, 20.0f));
+        newSlope = std::max (0.1f, std::min (newSlope, 20.0f));
         newGainDb = std::max (-24.0f, std::min (newGainDb, 24.0f));
-        newShape  = std::max (0, std::min (newShape, 7));
+        newShape = std::max (0, std::min (newShape, 6));
 
         if (shape != newShape || freq != newFreq || gainDb != newGainDb
             || q != newQ || slope != newSlope)
@@ -62,6 +69,9 @@ public:
     bool isActive() const { return shape != 0; }
 
     //==========================================================================
+    // Processing
+    //==========================================================================
+
     float processSample (float input)
     {
         if (shape == 0)
@@ -96,7 +106,7 @@ private:
         }
 
         constexpr float pi = 3.14159265358979f;
-        float w0    = 2.0f * pi * freq / static_cast<float> (sampleRate);
+        float w0 = 2.0f * pi * freq / static_cast<float> (sampleRate);
         float cosw0 = std::cos (w0);
         float sinw0 = std::sin (w0);
 
@@ -108,9 +118,9 @@ private:
             {
                 float alpha = sinw0 / (2.0f * q);
                 a0_inv = 1.0f / (1.0f + alpha);
-                b0 =  ((1.0f + cosw0) / 2.0f) * a0_inv;
+                b0 = ((1.0f + cosw0) / 2.0f) * a0_inv;
                 b1 = -(1.0f + cosw0) * a0_inv;
-                b2 =  ((1.0f + cosw0) / 2.0f) * a0_inv;
+                b2 = ((1.0f + cosw0) / 2.0f) * a0_inv;
                 a1 = (-2.0f * cosw0) * a0_inv;
                 a2 = (1.0f - alpha) * a0_inv;
                 break;
@@ -124,11 +134,11 @@ private:
                 float sqrtA2alpha = 2.0f * std::sqrt (A) * alpha;
 
                 a0_inv = 1.0f / ((A + 1.0f) + (A - 1.0f) * cosw0 + sqrtA2alpha);
-                b0 =       A * ((A + 1.0f) - (A - 1.0f) * cosw0 + sqrtA2alpha) * a0_inv;
-                b1 = 2.0f * A * ((A - 1.0f) - (A + 1.0f) * cosw0)              * a0_inv;
-                b2 =       A * ((A + 1.0f) - (A - 1.0f) * cosw0 - sqrtA2alpha) * a0_inv;
-                a1 = -2.0f *    ((A - 1.0f) + (A + 1.0f) * cosw0)              * a0_inv;
-                a2 =            ((A + 1.0f) + (A - 1.0f) * cosw0 - sqrtA2alpha) * a0_inv;
+                b0 = A * ((A + 1.0f) - (A - 1.0f) * cosw0 + sqrtA2alpha) * a0_inv;
+                b1 = 2.0f * A * ((A - 1.0f) - (A + 1.0f) * cosw0) * a0_inv;
+                b2 = A * ((A + 1.0f) - (A - 1.0f) * cosw0 - sqrtA2alpha) * a0_inv;
+                a1 = -2.0f * ((A - 1.0f) + (A + 1.0f) * cosw0) * a0_inv;
+                a2 = ((A + 1.0f) + (A - 1.0f) * cosw0 - sqrtA2alpha) * a0_inv;
                 break;
             }
 
@@ -139,26 +149,14 @@ private:
 
                 a0_inv = 1.0f / (1.0f + alpha / A);
                 b0 = (1.0f + alpha * A) * a0_inv;
-                b1 = (-2.0f * cosw0)    * a0_inv;
+                b1 = (-2.0f * cosw0) * a0_inv;
                 b2 = (1.0f - alpha * A) * a0_inv;
-                a1 = (-2.0f * cosw0)    * a0_inv;
+                a1 = (-2.0f * cosw0) * a0_inv;
                 a2 = (1.0f - alpha / A) * a0_inv;
                 break;
             }
 
-            case 4: // BandPass (constant 0 dB peak gain)
-            {
-                float alpha = sinw0 / (2.0f * q);
-                a0_inv = 1.0f / (1.0f + alpha);
-                b0 =  alpha            * a0_inv;
-                b1 =  0.0f;
-                b2 = -alpha            * a0_inv;
-                a1 = (-2.0f * cosw0)   * a0_inv;
-                a2 = (1.0f - alpha)    * a0_inv;
-                break;
-            }
-
-            case 5: // HighShelf
+            case 4: // HighShelf
             {
                 float A = std::pow (10.0f, gainDb / 40.0f);
                 float alpha = (sinw0 / 2.0f) * std::sqrt (
@@ -166,35 +164,35 @@ private:
                 float sqrtA2alpha = 2.0f * std::sqrt (A) * alpha;
 
                 a0_inv = 1.0f / ((A + 1.0f) - (A - 1.0f) * cosw0 + sqrtA2alpha);
-                b0 =       A * ((A + 1.0f) + (A - 1.0f) * cosw0 + sqrtA2alpha) * a0_inv;
-                b1 = -2.0f * A * ((A - 1.0f) + (A + 1.0f) * cosw0)              * a0_inv;
-                b2 =       A * ((A + 1.0f) + (A - 1.0f) * cosw0 - sqrtA2alpha) * a0_inv;
-                a1 =  2.0f *    ((A - 1.0f) - (A + 1.0f) * cosw0)              * a0_inv;
-                a2 =            ((A + 1.0f) - (A - 1.0f) * cosw0 - sqrtA2alpha) * a0_inv;
+                b0 = A * ((A + 1.0f) + (A - 1.0f) * cosw0 + sqrtA2alpha) * a0_inv;
+                b1 = -2.0f * A * ((A - 1.0f) + (A + 1.0f) * cosw0) * a0_inv;
+                b2 = A * ((A + 1.0f) + (A - 1.0f) * cosw0 - sqrtA2alpha) * a0_inv;
+                a1 = 2.0f * ((A - 1.0f) - (A + 1.0f) * cosw0) * a0_inv;
+                a2 = ((A + 1.0f) - (A - 1.0f) * cosw0 - sqrtA2alpha) * a0_inv;
                 break;
             }
 
-            case 6: // HighCut (low-pass)
+            case 5: // HighCut (low-pass)
             {
                 float alpha = sinw0 / (2.0f * q);
                 a0_inv = 1.0f / (1.0f + alpha);
                 b0 = ((1.0f - cosw0) / 2.0f) * a0_inv;
-                b1 =  (1.0f - cosw0)         * a0_inv;
+                b1 = (1.0f - cosw0) * a0_inv;
                 b2 = ((1.0f - cosw0) / 2.0f) * a0_inv;
-                a1 = (-2.0f * cosw0)         * a0_inv;
-                a2 = (1.0f - alpha)          * a0_inv;
+                a1 = (-2.0f * cosw0) * a0_inv;
+                a2 = (1.0f - alpha) * a0_inv;
                 break;
             }
 
-            case 7: // AllPass (2nd-order)
+            case 6: // BandPass
             {
                 float alpha = sinw0 / (2.0f * q);
                 a0_inv = 1.0f / (1.0f + alpha);
-                b0 = (1.0f - alpha)   * a0_inv;
-                b1 = (-2.0f * cosw0)  * a0_inv;
-                b2 = (1.0f + alpha)   * a0_inv;
-                a1 = (-2.0f * cosw0)  * a0_inv;
-                a2 = (1.0f - alpha)   * a0_inv;
+                b0 = alpha * a0_inv;
+                b1 = 0.0f;
+                b2 = -alpha * a0_inv;
+                a1 = (-2.0f * cosw0) * a0_inv;
+                a2 = (1.0f - alpha) * a0_inv;
                 break;
             }
 
@@ -206,16 +204,26 @@ private:
     }
 
     //==========================================================================
-    int   shape  = 0;
-    float freq   = 1000.0f;
+    // State
+    //==========================================================================
+
+    int shape = 0;          // 0=OFF, 1=LowCut, 2=LowShelf, 3=Peak, 4=HighShelf, 5=HighCut
+    float freq = 1000.0f;
     float gainDb = 0.0f;
-    float q      = 0.7f;
-    float slope  = 0.7f;
+    float q = 0.7f;
+    float slope = 0.7f;
     double sampleRate = 48000.0;
 
+    // Biquad coefficients (normalized, a0 = 1)
     float b0 = 1.0f, b1 = 0.0f, b2 = 0.0f;
     float a1 = 0.0f, a2 = 0.0f;
 
+    // Delay elements
     float x1 = 0.0f, x2 = 0.0f;
     float y1 = 0.0f, y2 = 0.0f;
 };
+
+} // namespace spatcore::dsp
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+using spatcore::dsp::ReverbBiquadFilter;

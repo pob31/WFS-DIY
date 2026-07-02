@@ -1,6 +1,6 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include <juce_audio_basics/juce_audio_basics.h>
 #include <cmath>
 #include <vector>
 
@@ -278,3 +278,11 @@ private:
 
     std::vector<std::unique_ptr<PerInputState>> states;
 };
+
+// Extraction-compat: the class itself stays at global scope for now because
+// app headers forward-declare `class TrackingPositionFilter;` (Source/Network/
+// Tracking*Receiver.h), and a global using-alias of a namespaced class would
+// conflict with those forward declarations. The spatcore-qualified name below
+// is the migration target; the class body moves inside the namespace once
+// the app's forward declarations are qualified.
+namespace spatcore::dsp { using ::TrackingPositionFilter; }

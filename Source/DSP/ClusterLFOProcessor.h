@@ -4,7 +4,7 @@
 #include "../Parameters/WFSValueTreeState.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
-#include "LFOWaveforms.h"
+#include "../../spatcore/dsp/LFOWaveforms.h"
 
 /**
  * Cluster LFO Processor

@@ -3,7 +3,7 @@
 #include <JuceHeader.h>
 #include "../Parameters/WFSValueTreeState.h"
 #include "../Parameters/WFSParameterIDs.h"
-#include "LFOWaveforms.h"
+#include "../../spatcore/dsp/LFOWaveforms.h"
 
 /**
  * LFO Processor for WFS Input Position Modulation

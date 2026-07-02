@@ -3298,7 +3298,7 @@
     <ClInclude Include="..\..\Source\gui\PatchMatrixComponent.h"/>
     <ClInclude Include="..\..\Source\gui\AudioPatchTab.h"/>
     <ClInclude Include="..\..\Source\Helpers\ArrayGeometryCalculator.h"/>
-    <ClInclude Include="..\..\Source\Helpers\NumericGuards.h"/>
+    <ClInclude Include="..\..\spatcore\dsp\NumericGuards.h"/>
     <ClInclude Include="..\..\Source\Accessibility\TTSManager.h"/>
     <ClInclude Include="..\..\Source\Localization\LocalizationManager.h"/>
     <ClInclude Include="..\..\Source\Network\OSCProtocolTypes.h"/>
@@ -3387,7 +3387,7 @@
     <ClInclude Include="..\..\Source\WFSLogger.h"/>
     <ClInclude Include="..\..\Source\UpdateChecker.h"/>
     <ClInclude Include="..\..\Source\DSP\WFSCalculationEngine.h"/>
-    <ClInclude Include="..\..\Source\DSP\WFSHighShelfFilter.h"/>
+    <ClInclude Include="..\..\spatcore\dsp\WFSHighShelfFilter.h"/>
     <ClInclude Include="..\..\Source\DSP\InputBufferProcessor.h"/>
     <ClInclude Include="..\..\Source\DSP\OutputBufferProcessor.h"/>
     <ClInclude Include="..\..\Source\DSP\InputBufferAlgorithm.h"/>
@@ -3438,8 +3438,8 @@
     <ClInclude Include="..\..\Source\DSP\gpu\SdnGpuBackend.h"/>
     <ClInclude Include="..\..\Source\DSP\ReverbSDNAlgorithmGPU.h"/>
     <ClInclude Include="..\..\Source\DSP\TestSignalGenerator.h"/>
-    <ClInclude Include="..\..\Source\DSP\TrackingPositionFilter.h"/>
-    <ClInclude Include="..\..\Source\DSP\InputSpeedLimiter.h"/>
+    <ClInclude Include="..\..\spatcore\dsp\TrackingPositionFilter.h"/>
+    <ClInclude Include="..\..\spatcore\dsp\InputSpeedLimiter.h"/>
     <ClInclude Include="..\..\ThirdParty\JUCE\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.h"/>
     <ClInclude Include="..\..\ThirdParty\JUCE\modules\juce_audio_basics\buffers\juce_AudioChannelSet.h"/>
     <ClInclude Include="..\..\ThirdParty\JUCE\modules\juce_audio_basics\buffers\juce_AudioDataConverters.h"/>

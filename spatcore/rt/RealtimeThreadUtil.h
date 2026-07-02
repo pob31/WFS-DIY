@@ -1,12 +1,14 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include <juce_audio_basics/juce_audio_basics.h>
 
 #if JUCE_MAC
  #include <mach/mach.h>
  #include <mach/thread_policy.h>
  #include <pthread.h>
 #endif
+
+namespace spatcore::rt {
 
 //==============================================================================
 /**
@@ -57,3 +59,8 @@ inline bool setCurrentThreadRealtimeAudio (double periodMs, double computationMs
     return false;
    #endif
 }
+
+} // namespace spatcore::rt
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+using spatcore::rt::setCurrentThreadRealtimeAudio;

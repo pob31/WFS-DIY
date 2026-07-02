@@ -1,7 +1,9 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include <juce_audio_basics/juce_audio_basics.h>
 #include <atomic>
+
+namespace spatcore::rt {
 
 //==============================================================================
 /**
@@ -77,3 +79,8 @@ private:
     juce::AudioWorkgroup current;
     std::atomic<uint32_t> generation { 0 };
 };
+
+} // namespace spatcore::rt
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+using spatcore::rt::AudioWorkgroupCoordinator;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "OutputEQBiquadFilter.h"
+#include "../../spatcore/dsp/OutputEQBiquadFilter.h"
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <array>
 #include <vector>

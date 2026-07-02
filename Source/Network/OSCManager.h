@@ -17,7 +17,7 @@
 #include "TrackingMQTTReceiver.h"
 #include "ADMOSCMapping.h"
 #include "../Parameters/WFSValueTreeState.h"
-#include "../DSP/TrackingPositionFilter.h"
+#include "../../spatcore/dsp/TrackingPositionFilter.h"
 
 namespace WFSNetwork
 {

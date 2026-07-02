@@ -1,7 +1,9 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include <juce_audio_basics/juce_audio_basics.h>
 #include <atomic>
+
+namespace spatcore::rt {
 
 //==============================================================================
 /**
@@ -95,3 +97,8 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SharedInputRingBuffer)
 };
+
+} // namespace spatcore::rt
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+using spatcore::rt::SharedInputRingBuffer;

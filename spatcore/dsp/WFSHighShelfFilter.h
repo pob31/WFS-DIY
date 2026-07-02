@@ -2,6 +2,8 @@
 
 #include <cmath>
 
+namespace spatcore::dsp {
+
 //==============================================================================
 /**
     Simple high shelf biquad filter for WFS air absorption simulation.
@@ -111,3 +113,8 @@ private:
     float gainDb = 0.0f;
     double sampleRate = 44100.0;
 };
+
+} // namespace spatcore::dsp
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+using spatcore::dsp::WFSHighShelfFilter;
