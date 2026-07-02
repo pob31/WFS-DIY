@@ -114,7 +114,8 @@ struct MetalObBackend::Impl
     NSUInteger threadsPerGroup = 256;
 };
 
-MetalObBackend::MetalObBackend() : impl (std::make_unique<Impl>()) {}
+// deviceIndex accepted for API uniformity but ignored on macOS (system default device).
+MetalObBackend::MetalObBackend (int deviceIndex) : impl (std::make_unique<Impl>()) { (void) deviceIndex; }
 MetalObBackend::~MetalObBackend() { release(); }
 
 bool MetalObBackend::prepare (int numInputs, int numOutputs, int blockSize,

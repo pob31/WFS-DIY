@@ -35,7 +35,7 @@
 class MetalObBackend
 {
 public:
-    MetalObBackend();
+    explicit MetalObBackend (int deviceIndex = 0);
     ~MetalObBackend();
 
     MetalObBackend (const MetalObBackend&) = delete;

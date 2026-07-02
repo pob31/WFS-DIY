@@ -280,6 +280,80 @@ def test_override_takes_precedence_over_heuristic():
     assert tool["tier"] == 3
 
 
+def test_csv_tier_column_beats_override_and_heuristic():
+    """The explicit CSV `Tier` column is the primary source: it wins over both
+    the override file and the heuristic."""
+    row = make_row(
+        "WFS-UI_input.csv",
+        section="Attenuation",
+        label="Attenuation",
+        variable="inputAttenuation",
+        type="FLOAT", min="-92.0", max="0.0",
+        tier="3",  # explicit CSV column
+        osc_path="/wfs/input/attenuation",
+        hover="Input Channel Attenuation.",
+    )
+    # Override says 2, wide-dB heuristic would say 2 as well — the column's 3 wins.
+    tool = run_process(row, tier_overrides={"inputAttenuation": 2})
+    assert tool["tier"] == 3
+
+
+def test_blank_tier_falls_back_to_override():
+    """A blank Tier cell falls back to the override file (no warning about the
+    heuristic, since the override resolved it)."""
+    row = make_row(
+        "WFS-UI_input.csv",
+        section="Position", label="Position X", variable="inputPositionX",
+        type="FLOAT", min="-50.0", max="50.0", tier="",
+        osc_path="/wfs/input/positionX", hover="Object Position in Width.",
+    )
+    warnings: list[dict] = []
+    tool, _n, _i = g.process_row(row, {}, {"inputPositionX": 3}, warnings)
+    assert tool["tier"] == 3
+    assert not [w for w in warnings if "no explicit Tier" in w["message"]]
+
+
+def test_blank_tier_falls_back_to_heuristic_and_warns():
+    """A blank Tier cell with no override falls back to the heuristic AND emits
+    a loud warning so unclassified params are visible, not silent."""
+    row = make_row(
+        "WFS-UI_input.csv",
+        section="Position", label="Position X", variable="inputPositionX",
+        type="FLOAT", min="-50.0", max="50.0", tier="",
+        osc_path="/wfs/input/positionX", hover="Object Position in Width.",
+    )
+    warnings: list[dict] = []
+    tool, _n, _i = g.process_row(row, {}, {}, warnings)
+    assert tool["tier"] == 1  # narrow range, no keywords -> heuristic tier 1
+    tier_warnings = [w for w in warnings if "no explicit Tier" in w["message"]]
+    assert len(tier_warnings) == 1
+    assert tier_warnings[0]["variable"] == "inputPositionX"
+
+
+def test_invalid_tier_cell_warns_and_falls_back():
+    """An out-of-range / non-integer Tier cell is ignored (with a warning) and
+    resolution falls through to the override / heuristic."""
+    for bad in ("5", "x", "0", "2.5"):
+        row = make_row(
+            "WFS-UI_input.csv",
+            section="Position", label="Position X", variable="inputPositionX",
+            type="FLOAT", min="-50.0", max="50.0", tier=bad,
+            osc_path="/wfs/input/positionX", hover="Object Position in Width.",
+        )
+        warnings: list[dict] = []
+        tool, _n, _i = g.process_row(row, {}, {"inputPositionX": 2}, warnings)
+        assert tool["tier"] == 2, bad  # fell back to the override
+        assert [w for w in warnings if "invalid Tier value" in w["message"]], bad
+
+
+def test_parse_tier_cell():
+    assert g.parse_tier_cell("1") == 1
+    assert g.parse_tier_cell(" 2 ") == 2
+    assert g.parse_tier_cell("3") == 3
+    for bad in ("", "0", "4", "x", "2.0", None):
+        assert g.parse_tier_cell(bad) is None, bad
+
+
 def test_ignore_list_drops_row():
     row = make_row(
         "WFS-UI_input.csv",
@@ -359,6 +433,14 @@ def test_integration_runs_against_live_csvs(tmp_path):
         assert t["tier"] in (1, 2, 3), t["name"]
         assert t["group_key"], t["name"]
         assert t["description"], t["name"]
+    # Completeness gate: every shipped tool row carries an explicit `Tier`
+    # column value, so the heuristic never fires on the live CSVs (and no
+    # `invalid Tier` cell slipped in). If this trips, a new parameter row was
+    # added without a Tier — run tools/mcp/populate_tier_column.py.
+    tier_warnings = [w for w in data["warnings"]
+                     if "no explicit Tier" in w.get("message", "")
+                     or "invalid Tier value" in w.get("message", "")]
+    assert not tier_warnings, f"rows missing/invalid Tier: {tier_warnings}"
 
 
 def test_schema_quality_smoke(tmp_path):

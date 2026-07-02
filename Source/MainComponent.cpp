@@ -3151,7 +3151,13 @@ void MainComponent::handleAlgorithmSelectionChange(int selectedId)
         newAlgorithm = ProcessingAlgorithm::NativeGpuOutputBuffer;
 #endif
 
-    if (newAlgorithm == currentAlgorithm)
+    // Read the device too: switching between two GPU devices is the same algoId,
+    // so the algorithm alone would mask a device change.
+    std::string newDeviceId = parameters.getConfigParam("ProcessingAlgorithmDevice").toString().toStdString();
+    if (newDeviceId.empty())
+        newDeviceId = "cpu";
+
+    if (newAlgorithm == currentAlgorithm && newDeviceId == currentDeviceId)
         return;
 
     const bool wasEnabled = processingEnabled;
@@ -3163,8 +3169,10 @@ void MainComponent::handleAlgorithmSelectionChange(int selectedId)
     stopProcessingForConfigurationChange();
 
     currentAlgorithm = newAlgorithm;
+    currentDeviceId = newDeviceId;
     WFSLogger::getInstance().logInfo ("Processing algorithm changed to id "
                                       + juce::String (selectedId)
+                                      + " device " + juce::String (currentDeviceId)
                                       + (wasEnabled ? " - restarting engine" : ""));
 
     if (wasEnabled)
@@ -4315,6 +4323,10 @@ void MainComponent::startAudioEngine()
 #if WFS_GPU_NATIVE
         else if (algoId == 3) currentAlgorithm = ProcessingAlgorithm::NativeGpuWfs;
         else if (algoId == 4) currentAlgorithm = ProcessingAlgorithm::NativeGpuOutputBuffer;
+
+        currentDeviceId = parameters.getConfigParam("ProcessingAlgorithmDevice").toString().toStdString();
+        if (currentDeviceId.empty())
+            currentDeviceId = (algoId >= 3) ? GpuDeviceManager::instance().firstGpuId() : std::string("cpu");
 #endif
     }
 
@@ -4369,7 +4381,7 @@ void MainComponent::startAudioEngine()
                                               frDelayTimesMs.data(),
                                               frLevels.data(),
                                               frHFAttenuation.data(),
-                                              gpuDepth);
+                                              gpuDepth, currentDeviceId);
         if (!prepared)
         {
             // GPU init failed: log, inform, fall back to the CPU InputBuffer.
@@ -4421,7 +4433,7 @@ void MainComponent::startAudioEngine()
                                                     frDelayTimesMs.data(),
                                                     frLevels.data(),
                                                     frHFAttenuation.data(),
-                                                    gpuDepth);
+                                                    gpuDepth, currentDeviceId);
         if (!prepared)
         {
             // GPU init failed: log, inform, fall back to the CPU OutputBuffer
@@ -4522,7 +4534,7 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
                                        frDelayTimesMs.data(),
                                        frLevels.data(),
                                        frHFAttenuation.data(),
-                                       gpuDepth);
+                                       gpuDepth, currentDeviceId);
         }
         else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuOutputBuffer)
         {
@@ -4540,7 +4552,7 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
                                              frDelayTimesMs.data(),
                                              frLevels.data(),
                                              frHFAttenuation.data(),
-                                             gpuDepth);
+                                             gpuDepth, currentDeviceId);
         }
 #endif
     }
@@ -4551,9 +4563,12 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
         testSignalGenerator->prepare(sampleRate, samplesPerBlockExpected);
     }
 
-    // Prepare binaural processor
+    // Prepare binaural processor. Stop the worker first: on device/sample-rate/
+    // buffer changes JUCE calls releaseResources -> prepareToPlay, and the worker
+    // must not run while prepareToPlay rebuilds its buffers (see the jassert there).
     if (binauralProcessor)
     {
+        binauralProcessor->stopProcessing();
         binauralProcessor->prepareToPlay(sampleRate, samplesPerBlockExpected, numInputChannels);
         binauralProcessor->startProcessing();
     }
@@ -5057,6 +5072,15 @@ void MainComponent::releaseResources()
         reverbFeedThread->stopThread(1000);
         reverbFeedThread.reset();
     }
+
+    // Stop the binaural worker and drop its raw pointers into sharedInputBuffers
+    // BEFORE destroying the buffers below — the worker must not outlive what it reads.
+    if (binauralProcessor)
+    {
+        binauralProcessor->stopProcessing();
+        binauralProcessor->clearSharedInputBuffers();
+    }
+
     sharedInputBuffers.clear();
 
     // Release reverb engine
@@ -5566,34 +5590,40 @@ void MainComponent::timerCallback()
             }
         }
 
-        // Sync binaural processor enabled state from ValueTree
+        // Sync binaural processor enabled state from ValueTree.
+        // Ordering matters: the worker may already be running (started gated-off in
+        // prepareToPlay), so quiesce it, rebuild buffers, publish the RT snapshot,
+        // and only then un-gate — the hot loop must never see half-built state.
         if (binauralProcessor)
         {
             bool enabled = parameters.getValueTreeState().getBinauralEnabled();
             bool wasEnabled = binauralProcessor->isEnabled();
-            binauralProcessor->setEnabled(enabled);
 
             if (enabled && !wasEnabled)
             {
-                // Ensure processor is prepared and thread is running
-                auto* device = deviceManager.getCurrentAudioDevice();
-                if (device)
+                binauralProcessor->stopProcessing();   // quiesce before reconfiguring
+                if (auto* device = deviceManager.getCurrentAudioDevice())
                 {
                     binauralProcessor->prepareToPlay(device->getCurrentSampleRate(),
                                                      device->getCurrentBufferSizeSamples(),
                                                      numInputChannels);
                 }
+                if (binauralCalcEngine != nullptr)
+                    binauralCalcEngine->refreshRtSnapshot();  // publish before un-gating
+                binauralProcessor->setEnabled(true);
                 binauralProcessor->startProcessing();
             }
             else if (!enabled && wasEnabled)
             {
+                binauralProcessor->setEnabled(false);
                 binauralProcessor->stopProcessing();
             }
         }
 
-        // Always recalculate binaural positions (listener params may have changed independently)
+        // Always republish the binaural RT snapshot (recalculates listener/speaker
+        // positions and publishes params/solo state for the realtime thread)
         if (binauralCalcEngine != nullptr)
-            binauralCalcEngine->recalculatePositions();
+            binauralCalcEngine->refreshRtSnapshot();
 
         // Only recalculate WFS matrix if input positions have changed (dirty flag set)
         if (calculationEngine->recalculateMatrixIfDirty())
@@ -5754,16 +5784,22 @@ void MainComponent::timerCallback()
                 // ReverbTab below via getReverbGpuStatus().
                 if (algoType == 0)  // SDN
                 {
-                    bool sdnGpu = static_cast<int>(algoSection.getProperty(reverbSDNGpu, 0)) != 0;
-                    reverbEngine->setSDNBackendGpu(sdnGpu);
+                    std::string sdnDev = algoSection.hasProperty(reverbSDNGpuDevice)
+                        ? algoSection.getProperty(reverbSDNGpuDevice).toString().toStdString()
+                        : (static_cast<int>(algoSection.getProperty(reverbSDNGpu, 0)) != 0
+                               ? GpuDeviceManager::instance().firstGpuId() : std::string("cpu"));
+                    reverbEngine->setSDNBackendDevice(sdnDev);
                 }
 
                 // FDN convolution backend (CPU/GPU toggle); fallback status flows
                 // back to the ReverbTab below via getReverbGpuStatus().
                 if (algoType == 1)  // FDN
                 {
-                    bool fdnGpu = static_cast<int>(algoSection.getProperty(reverbFDNGpu, 0)) != 0;
-                    reverbEngine->setFDNBackendGpu(fdnGpu);
+                    std::string fdnDev = algoSection.hasProperty(reverbFDNGpuDevice)
+                        ? algoSection.getProperty(reverbFDNGpuDevice).toString().toStdString()
+                        : (static_cast<int>(algoSection.getProperty(reverbFDNGpu, 0)) != 0
+                               ? GpuDeviceManager::instance().firstGpuId() : std::string("cpu"));
+                    reverbEngine->setFDNBackendDevice(fdnDev);
                 }
 #endif
 
@@ -5773,8 +5809,11 @@ void MainComponent::timerCallback()
 #if WFS_GPU_NATIVE
                     // Convolution backend (CPU/GPU toggle); fallback status flows
                     // back to the ReverbTab below.
-                    bool irGpu = static_cast<int>(algoSection.getProperty(reverbIRGpu, 0)) != 0;
-                    reverbEngine->setIRBackendGpu(irGpu);
+                    std::string irDev = algoSection.hasProperty(reverbIRGpuDevice)
+                        ? algoSection.getProperty(reverbIRGpuDevice).toString().toStdString()
+                        : (static_cast<int>(algoSection.getProperty(reverbIRGpu, 0)) != 0
+                               ? GpuDeviceManager::instance().firstGpuId() : std::string("cpu"));
+                    reverbEngine->setIRBackendDevice(irDev);
 #endif
 
                     juce::String irFilePath = algoSection.getProperty(reverbIRfile, "").toString();

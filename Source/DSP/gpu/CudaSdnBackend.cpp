@@ -17,7 +17,7 @@
     with __syncthreads() — the network couples nodes within a block.
 */
 
-#if WFS_GPU_NATIVE && !defined(__APPLE__)
+#if WFS_GPU_NATIVE && !defined(__APPLE__) && !defined(WFS_GPU_HIP) && !defined(WFS_GPU_PLUGINS)
 
 #include "CudaSdnBackend.h"
 #include "CudaSdnKernels.h"
@@ -118,9 +118,11 @@ struct CudaSdnBackend::Impl
     std::vector<SdnHostConfig::NodePos> posScratch;
 
     std::atomic<bool> resetRequested { false };
+
+    int deviceIndex = 0;             // which CUDA device to bind (ctor-injected)
 };
 
-CudaSdnBackend::CudaSdnBackend() : impl (std::make_unique<Impl>()) {}
+CudaSdnBackend::CudaSdnBackend (int deviceIndex) : impl (std::make_unique<Impl>()) { impl->deviceIndex = deviceIndex; }
 CudaSdnBackend::~CudaSdnBackend() { release(); }
 
 #define CK_RT(call)  do { cudaError_t _e = (call); if (_e != cudaSuccess) { \
@@ -145,15 +147,21 @@ bool CudaSdnBackend::prepare (int numNodes, int blockSize, double sampleRate)
     int devCount = 0;
     CK_RT (cudaGetDeviceCount (&devCount));
     if (devCount == 0) { lastError = "No CUDA device available"; return false; }
-    CK_RT (cudaSetDevice (0));
+    if (m.deviceIndex < 0 || m.deviceIndex >= devCount)
+    {
+        lastError = "CUDA device index " + std::to_string (m.deviceIndex)
+                    + " out of range (" + std::to_string (devCount) + " present)";
+        return false;
+    }
+    CK_RT (cudaSetDevice (m.deviceIndex));
 
     cudaDeviceProp prop;
-    CK_RT (cudaGetDeviceProperties (&prop, 0));
+    CK_RT (cudaGetDeviceProperties (&prop, m.deviceIndex));
     deviceName = std::string (prop.name) + " (CUDA)";
     const int arch = prop.major * 10 + prop.minor;
 
     CK_DRV (cuInit (0));
-    CK_DRV (cuDeviceGet (&m.cuDevice, 0));
+    CK_DRV (cuDeviceGet (&m.cuDevice, m.deviceIndex));
     CK_DRV (cuDevicePrimaryCtxRetain (&m.context, m.cuDevice));
     CK_DRV (cuCtxSetCurrent (m.context));
 
@@ -316,6 +324,7 @@ bool CudaSdnBackend::processBlock (const float* const* inputs, float* const* out
         ready = false;
         return false;
     }
+    cudaSetDevice (m.deviceIndex);   // runtime copies/memsets on m.stream target the selected device
 
     const auto t0 = std::chrono::steady_clock::now();
 

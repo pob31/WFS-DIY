@@ -30,8 +30,10 @@
 
 #include <JuceHeader.h>
 #include <atomic>
+#include <memory>
 
 #include "ObGpuBackend.h"
+#include "GpuDeviceManager.h"
 #include "GpuAsyncPipeline.h"
 #include "GpuLevelMeters.h"
 
@@ -54,7 +56,8 @@ public:
                   const float* frDelayTimesPtr = nullptr,
                   const float* frLevelsPtr = nullptr,
                   const float* frHFAttenuationPtr = nullptr,
-                  int pipelineDepthBlocks = kDefaultDepthBlocks)
+                  int pipelineDepthBlocks = kDefaultDepthBlocks,
+                  const std::string& deviceId = {})
     {
         const juce::SpinLock::ScopedLockType lock (procLock);
         ready.store (false, std::memory_order_release);
@@ -62,33 +65,40 @@ public:
         processingEnabledFlag = processingEnabled;
 
         pipeline.release();
-        backend.release();
+        backend = makeObBackend (deviceId.empty()
+                                     ? GpuDeviceManager::instance().firstGpuId()
+                                     : deviceId);
+        if (backend == nullptr)
+        {
+            lastError = "No GPU backend available (using CPU)";
+            return false;
+        }
 
         inputChannelCount = juce::jmax (1, numInputs);
         outputChannelCount = juce::jmax (1, numOutputs);
 
-        const int depth = juce::jlimit (GpuAsyncPipeline::kMinDepthBlocks,
-                                        GpuAsyncPipeline::kMaxDepthBlocks,
+        const int depth = juce::jlimit (GpuAsyncPipelineT<IGpuBackend>::kMinDepthBlocks,
+                                        GpuAsyncPipelineT<IGpuBackend>::kMaxDepthBlocks,
                                         pipelineDepthBlocks);
         const double latencyMs = depth * 1000.0 * blockSize / sampleRate;
 
-        if (! backend.prepare (inputChannelCount, outputChannelCount,
-                               blockSize, sampleRate, latencyMs))
+        if (! backend->prepare (inputChannelCount, outputChannelCount,
+                                blockSize, sampleRate, latencyMs, 1.0))
         {
-            lastError = juce::String (backend.getLastError());
+            lastError = juce::String (backend->getLastError());
             DBG ("Native GPU OutputBuffer: backend init failed: " + lastError);
             return false;
         }
-        backend.setMatrixPointers (delayTimesMsPtr, levelsPtr,
-                                   hfAttenuationPtr, frDelayTimesPtr,
-                                   frLevelsPtr, frHFAttenuationPtr);
+        backend->setMatrixPointers (delayTimesMsPtr, levelsPtr,
+                                    hfAttenuationPtr, frDelayTimesPtr,
+                                    frLevelsPtr, frHFAttenuationPtr);
 
-        if (! pipeline.prepare (&backend, inputChannelCount, outputChannelCount,
+        if (! pipeline.prepare (backend.get(), inputChannelCount, outputChannelCount,
                                 blockSize, sampleRate, depth))
         {
             lastError = pipeline.getLastError();
             DBG ("Native GPU OutputBuffer: pipeline init failed: " + lastError);
-            backend.release();
+            backend.reset();
             return false;
         }
 
@@ -173,14 +183,16 @@ public:
                             bool highShelfActive, float highShelfFreq,
                             float highShelfGain, float highShelfSlope)
     {
-        backend.setFRFilterParams ((int) inputIndex, lowCutActive, lowCutFreq,
-                                   highShelfActive, highShelfFreq,
-                                   highShelfGain, highShelfSlope);
+        if (backend)
+            backend->setFRFilterParams ((int) inputIndex, lowCutActive, lowCutFreq,
+                                        highShelfActive, highShelfFreq,
+                                        highShelfGain, highShelfSlope);
     }
 
     void setFRDiffusion (size_t inputIndex, float diffusionPercent)
     {
-        backend.setFRDiffusion ((int) inputIndex, diffusionPercent);
+        if (backend)
+            backend->setFRDiffusion ((int) inputIndex, diffusionPercent);
     }
 
     void releaseResources()
@@ -188,7 +200,7 @@ public:
         const juce::SpinLock::ScopedLockType lock (procLock);
         ready.store (false, std::memory_order_release);
         pipeline.release();
-        backend.release();
+        backend.reset();
     }
 
     void clear()
@@ -200,7 +212,7 @@ public:
 
     bool isReady() const noexcept              { return ready.load (std::memory_order_acquire); }
     juce::String getLastError() const          { return lastError; }
-    juce::String getDeviceName() const         { return juce::String (backend.getDeviceName()); }
+    juce::String getDeviceName() const         { return backend ? juce::String (backend->getDeviceName()) : juce::String(); }
     float getLastGpuExecMs() const noexcept    { return pipeline.getLastPumpMs(); }
     float getAndResetPeakGpuExecMs() noexcept  { return pipeline.getAndResetPeakPumpMs(); }
     uint32_t getUnderrunCount() const noexcept { return pipeline.getUnderrunCount(); }
@@ -208,8 +220,8 @@ public:
     int getPipelineDepthBlocks() const noexcept  { return pipeline.getDepthBlocks(); }
 
 private:
-    ObGpuBackend backend;
-    GpuAsyncPipelineT<ObGpuBackend> pipeline;
+    std::unique_ptr<IObBackend> backend;
+    GpuAsyncPipelineT<IGpuBackend> pipeline;
     GpuLevelMeters meters;
 
     int inputChannelCount { 0 };

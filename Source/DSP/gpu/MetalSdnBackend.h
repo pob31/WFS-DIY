@@ -24,7 +24,7 @@
 class MetalSdnBackend
 {
 public:
-    MetalSdnBackend();
+    explicit MetalSdnBackend (int deviceIndex = 0);
     ~MetalSdnBackend();
 
     MetalSdnBackend (const MetalSdnBackend&) = delete;

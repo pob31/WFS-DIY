@@ -95,7 +95,8 @@ struct MetalSdnBackend::Impl
     std::atomic<bool> resetRequested { false };
 };
 
-MetalSdnBackend::MetalSdnBackend() : impl (std::make_unique<Impl>()) {}
+// deviceIndex accepted for API uniformity but ignored on macOS (system default device).
+MetalSdnBackend::MetalSdnBackend (int deviceIndex) : impl (std::make_unique<Impl>()) { (void) deviceIndex; }
 MetalSdnBackend::~MetalSdnBackend() { release(); }
 
 bool MetalSdnBackend::prepare (int numNodes, int blockSize, double sampleRate)

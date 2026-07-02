@@ -51,7 +51,7 @@ The application has established a solid foundation with infrastructure and core 
 - **Sampler subsystem** (6×6 cell grid per input, multiple user-defined Sets per input, Lightpad / Remote-pad pressure mappings)
 
 **Major features still to implement:**
-- GPU acceleration build-out (native Metal WFS path ships experimentally on macOS; reverb kernels + Windows CUDA twin to follow)
+- GPU acceleration — largely complete across all 5 DSP kernels and 3 vendor backends (see the GPU Acceleration section); only Linux CUDA runtime validation remains (low priority)
 - MCP Server build-out over the `Documentation/WFS-UI_*.csv` + `.md` docs
 - Translation proofreading (9-language JSON bank needs native-speaker review)
 
@@ -1970,6 +1970,37 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 
 ---
 
+## GPU Acceleration (Source/DSP/gpu/)
+
+Optional native GPU compute for the heavy DSP kernels; the CPU path remains the reference implementation. All five kernel families are ported: **WFS** delay-and-sum (gather), **OutputBuffer** (scatter), **IR** convolution, **FDN** reverb, and **SDN** reverb. Kernels are compiled **at runtime** (NVRTC for CUDA, hipRTC for HIP) from shared CUDA-C kernel source (valid HIP) — there is no offline kernel-compile step.
+
+### Vendor backends
+| Vendor | Runtime | Source |
+|--------|---------|--------|
+| Metal (Apple) | in-process (compiled into the app) | `Metal*Backend.mm` |
+| CUDA (NVIDIA) | `libwfs_cuda.so` / `wfs_cuda.dll` plugin | `Cuda*Backend.cpp` |
+| HIP/ROCm (AMD) | `libwfs_hip.so` / `wfs_hip.dll` plugin | `Hip*Backend.cpp` |
+
+On Windows/Linux the app is **CPU-safe**: it links no GPU runtime and `dlopen`s the per-vendor plugin selected at runtime (`GpuBackendFactory` → the C factories in `plugin/GpuVendorPlugin.cpp`). On macOS the Metal backend is compiled directly into the app. Per-role device selection (WFS processor + reverb) is exposed in the UI and persisted (`algorithmDeviceId`, `reverb*GpuDevice`).
+
+### Platform / vendor status
+| Platform | CUDA | HIP / ROCm | Metal |
+|----------|------|------------|-------|
+| **Windows** | ✅ built + bundled (CI + installer) | ✅ built + bundled | — n/a |
+| **Linux** | ⏳ builds + links; runtime validation pending (no NVIDIA GPU on dev box) | ✅ built + **hardware-tested** on gfx1103 (Radeon 780M, ROCm 6.4) | — n/a |
+| **macOS** | — n/a | — n/a | ✅ in-process reference GPU path |
+
+The Linux HIP path is validated end-to-end via `tools/test-gpu-plugin` (see `Documentation/GPU_Plugin_Smoke_Test.md`): all 5 kernel families hipRTC-compile and produce finite, ~correct output on real AMD hardware. Linux CUDA compiles and links but is not runtime-validated (low priority).
+
+### Build (Linux)
+```bash
+make -C Builds/LinuxMakefile CONFIG=Debug   # CPU-safe app (links no GPU runtime)
+tools/linux/build-gpu-plugins.sh            # libwfs_hip.so / libwfs_cuda.so (whichever toolchain is present)
+```
+On Windows, `tools/windows/build-gpu-plugins.ps1` builds `wfs_cuda.dll` / `wfs_hip.dll`; CI and the installer bundle them beside the app.
+
+---
+
 ## Build Notes
 
 ### Prerequisites & Cloning
@@ -1982,7 +2013,7 @@ git submodule update --init --recursive
 ```
 
 **Dependencies (via submodules in `ThirdParty/`):**
-- **JUCE 8.0.13** — `ThirdParty/JUCE` (pinned to tag 8.0.13; ASIO SDK is bundled with JUCE since 8.0.11)
+- **JUCE 8.0.14** — `ThirdParty/JUCE` (pinned to tag 8.0.14; ASIO SDK is bundled with JUCE since 8.0.11)
 
 - Project file: WFS-DIY.jucer (open in Projucer to re-export build files)
 - Builds: Visual Studio 2022, Xcode, Linux Makefile
@@ -2008,7 +2039,7 @@ For Debug build:
 
 1. **MCP Server implementation**: build the generator pipeline that consumes `Documentation/WFS-UI_*.csv` + `.md` files and emits an MCP server exposing the app's parameter/control surface to LLMs. In-progress specs under `Documentation/MCP/` (IMPLEMENTATION_ROADMAP, GENERATION_SCRIPT_SPEC, MCP_SERVER_DESIGN, MCP_TOOL_SURFACE).
 2. **Proofread translations**: the i18n system ships 9 languages (en / fr / de / es / it / pt / ja / zh / ko) under `Resources/lang/*.json`. Non-English files were generated and need native-speaker review for accuracy, naturalness of audio-engineering terminology, and any pluralization / formatting issues.
-3. **GPU acceleration build-out**: extend the native Metal GPU path (WFS delay-and-sum ships experimentally on macOS under `Source/DSP/gpu/`) to the reverb algorithms (partitioned-FFT IR convolution, FDN/SDN delay-network kernel) and add a CUDA twin for Windows. The CPU path is the reference implementation.
+3. **GPU acceleration**: all 5 DSP kernel families (WFS gather, OutputBuffer scatter, IR convolution, FDN, SDN) are ported to Metal (macOS), CUDA (NVIDIA) and HIP/ROCm (AMD) under `Source/DSP/gpu/`, with runtime per-role device selection. Windows CUDA + HIP plugins ship in CI/installer; Linux HIP is hardware-tested on gfx1103. **Remaining:** Linux CUDA runtime validation (low priority — no NVIDIA GPU on the dev box). The CPU path remains the reference implementation. See the GPU Acceleration section.
 
 ### Completed (Reverb DSP)
 - ~~Phase 1-2: GUI, parameters, OSC, localization~~
@@ -2031,7 +2062,7 @@ For Debug build:
 
 These files are the canonical reference for every user-facing parameter, control, and setup flow in the app. They feed the MCP-server generator under `Documentation/MCP/`:
 
-**Tab-by-tab control surface (CSV, 17 or 18 columns):**
+**Tab-by-tab control surface (CSV, 18 or 19 columns):**
 - `Documentation/WFS-UI_config.csv` — SystemConfigTab
 - `Documentation/WFS-UI_network.csv` — NetworkTab (176 rows, includes full ADM-OSC mapping exhaustive enumeration)
 - `Documentation/WFS-UI_input.csv` — InputsTab (189 rows, includes Sampler subsystem)
@@ -2045,16 +2076,19 @@ These files are the canonical reference for every user-facing parameter, control
 - `Documentation/WFS-UI_plugins.md` — DAW Plugin Suite (6 plugins) + end-to-end OSC / OSCQuery / ADM-OSC setup guide
 
 **Column conventions:**
-- Most CSVs use a 17-column layout (Section, Label, Variable, UI, Type, Min, Max, Default, Formula, Unit, enum, Notes, Array value, OSC path, OSC remote path, Hover, Keyboard shortcuts).
-- `WFS-UI_input.csv` has 18 columns (adds "OSC inc/dec" and "OSC path optional value").
-- `WFS-UI_config.csv` uses a compact 12-column layout (no Formula, OSC path, or Keyboard columns).
-- `WFS-UI_network.csv` also uses 12 columns to match the config file's compact style.
+- Most CSVs use an 18-column layout (Section, Label, Variable, UI, Type, Min, Max, Default, Tier, Formula, Unit, enum, Notes, Array value, OSC path, OSC remote path, Hover, Keyboard shortcuts).
+- `WFS-UI_input.csv` has 19 columns (adds "OSC inc/dec" and "OSC path optional value").
+- `WFS-UI_config.csv` uses a compact 13-column layout (no Formula, OSC path, or Keyboard columns).
+- `WFS-UI_network.csv` also uses 13 columns to match the config file's compact style.
+- The `Tier` column (immediately after `Default`) is the explicit per-parameter MCP confirmation
+  tier (1/2/3) and is the **primary source** the generator reads; `tool_tier_overrides.json` +
+  the keyword heuristic are fallbacks. Re-snapshot it with `python tools/mcp/populate_tier_column.py`.
 
-When updating these files, preserve the column count and avoid introducing U+FFFD characters (old versions had encoding glitches in curly-quote cells that have been cleaned up).
+When updating these files, preserve the column count and avoid introducing U+FFFD characters (old versions had encoding glitches in curly-quote cells that have been cleaned up). The generator matches columns by header name, so a new column can go anywhere, but keep the layouts consistent for readability.
 
 ---
 
-*Last updated: 2026-05-19*
-*Session changes: bumped JUCE 8.0.12 -> 8.0.13; removed standalone ASIOSDK submodule (JUCE bundles ASIO since 8.0.11); migrated Display::userArea callers to userBounds (deprecated in 8.0.13); app version bumped to 1.0.0beta18.*
-*JUCE Version: 8.0.13*
-*Build: Visual Studio 2022 / Xcode, x64 Debug/Release*
+*Last updated: 2026-07-02*
+*Session changes: bumped JUCE 8.0.13 -> 8.0.14 (re-applied the Linux canUseTouch multitouch patch); documented GPU acceleration status — Windows CUDA + HIP built/bundled, Linux HIP hardware-tested on gfx1103, Linux CUDA runtime validation pending.*
+*JUCE Version: 8.0.14*
+*Build: Visual Studio 2022 / Xcode / Linux Makefile, x64 Debug/Release*

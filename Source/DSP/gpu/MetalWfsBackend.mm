@@ -104,7 +104,10 @@ struct MetalWfsBackend::Impl
     NSUInteger threadsPerGroup = 256;
 };
 
-MetalWfsBackend::MetalWfsBackend() : impl (std::make_unique<Impl>()) {}
+// deviceIndex is accepted for backend-API uniformity but ignored on macOS:
+// device selection binds the system default device (multi-device enumeration
+// for Metal is a separate follow-up).
+MetalWfsBackend::MetalWfsBackend (int deviceIndex) : impl (std::make_unique<Impl>()) { (void) deviceIndex; }
 MetalWfsBackend::~MetalWfsBackend() { release(); }
 
 bool MetalWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,

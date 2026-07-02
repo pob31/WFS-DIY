@@ -1154,6 +1154,7 @@ void WFSValueTreeState::setClusterParameter (int clusterIndex, const juce::Ident
 
 bool WFSValueTreeState::getBinauralEnabled() const
 {
+    JUCE_ASSERT_MESSAGE_THREAD  // ValueTree reads are message-thread only; RT threads use BinauralCalculationEngine's RtParams snapshot
     auto binaural = getBinauralState();
     if (binaural.isValid())
         return (bool) binaural.getProperty (binauralEnabled, binauralEnabledDefault);
@@ -1169,6 +1170,7 @@ void WFSValueTreeState::setBinauralEnabled (bool isEnabled)
 
 int WFSValueTreeState::getBinauralSoloMode() const
 {
+    JUCE_ASSERT_MESSAGE_THREAD  // see getBinauralEnabled()
     auto binaural = getBinauralState();
     if (binaural.isValid())
         return (int) binaural.getProperty (binauralSoloMode, binauralSoloModeDefault);
@@ -1184,6 +1186,7 @@ void WFSValueTreeState::setBinauralSoloMode (int mode)
 
 bool WFSValueTreeState::isInputSoloed (int inputIndex) const
 {
+    JUCE_ASSERT_MESSAGE_THREAD  // parses a String — never call from RT threads; see getBinauralEnabled()
     auto binaural = getBinauralState();
     if (!binaural.isValid())
         return false;
@@ -1243,6 +1246,7 @@ void WFSValueTreeState::clearAllSoloStates()
 
 int WFSValueTreeState::getNumSoloedInputs() const
 {
+    JUCE_ASSERT_MESSAGE_THREAD  // parses a String — never call from RT threads; see getBinauralEnabled()
     auto binaural = getBinauralState();
     if (!binaural.isValid())
         return 0;
@@ -1264,6 +1268,7 @@ int WFSValueTreeState::getNumSoloedInputs() const
 
 int WFSValueTreeState::getBinauralOutputChannel() const
 {
+    JUCE_ASSERT_MESSAGE_THREAD  // audio callback uses BinauralCalculationEngine::getBinauralOutputChannel() (atomic) instead
     auto binaural = getBinauralState();
     if (binaural.isValid())
         return (int) binaural.getProperty (binauralOutputChannel, binauralOutputChannelDefault);
@@ -2992,9 +2997,9 @@ juce::ValueTree WFSValueTreeState::createReverbAlgorithmSection()
     algo.setProperty (reverbIRtrim,          reverbIRtrimDefault, nullptr);
     algo.setProperty (reverbIRlength,        reverbIRlengthDefault, nullptr);
     algo.setProperty (reverbPerNodeIR,       reverbPerNodeIRDefault, nullptr);
-    algo.setProperty (reverbIRGpu,           reverbIRGpuDefault, nullptr);
-    algo.setProperty (reverbFDNGpu,          reverbFDNGpuDefault, nullptr);
-    algo.setProperty (reverbSDNGpu,          reverbSDNGpuDefault, nullptr);
+    algo.setProperty (reverbIRGpuDevice,     reverbIRGpuDeviceDefault, nullptr);
+    algo.setProperty (reverbFDNGpuDevice,    reverbFDNGpuDeviceDefault, nullptr);
+    algo.setProperty (reverbSDNGpuDevice,    reverbSDNGpuDeviceDefault, nullptr);
     algo.setProperty (reverbWetLevel,        reverbWetLevelDefault, nullptr);
     return algo;
 }

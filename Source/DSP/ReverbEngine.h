@@ -304,10 +304,14 @@ public:
         algorithm change; otherwise just records the choice for the next IR
         instantiation. If the GPU backend can't initialise, the engine falls
         back to CPU and reports it via getReverbGpuStatus(). */
-    void setIRBackendGpu (bool useGpu)
+    void setIRBackendDevice (const std::string& deviceId)
     {
-        if (irUseGpu.exchange (useGpu, std::memory_order_acq_rel) == useGpu)
-            return;
+        {
+            const juce::SpinLock::ScopedLockType lock (deviceIdLock);
+            if (irDeviceId == deviceId)
+                return;
+            irDeviceId = deviceId;
+        }
 
         if (currentAlgorithmType == IR)
         {
@@ -320,10 +324,14 @@ public:
     /** Select the FDN backend (timer thread, 50 Hz). Mirrors setIRBackendGpu:
         when the FDN algorithm is active, switches via the fade-to-silence
         path; otherwise records the choice for the next FDN instantiation. */
-    void setFDNBackendGpu (bool useGpu)
+    void setFDNBackendDevice (const std::string& deviceId)
     {
-        if (fdnUseGpu.exchange (useGpu, std::memory_order_acq_rel) == useGpu)
-            return;
+        {
+            const juce::SpinLock::ScopedLockType lock (deviceIdLock);
+            if (fdnDeviceId == deviceId)
+                return;
+            fdnDeviceId = deviceId;
+        }
 
         if (currentAlgorithmType == FDN)
         {
@@ -336,10 +344,14 @@ public:
     /** Select the SDN backend (timer thread, 50 Hz). Mirrors setFDNBackendGpu:
         when the SDN algorithm is active, switches via the fade-to-silence
         path; otherwise records the choice for the next SDN instantiation. */
-    void setSDNBackendGpu (bool useGpu)
+    void setSDNBackendDevice (const std::string& deviceId)
     {
-        if (sdnUseGpu.exchange (useGpu, std::memory_order_acq_rel) == useGpu)
-            return;
+        {
+            const juce::SpinLock::ScopedLockType lock (deviceIdLock);
+            if (sdnDeviceId == deviceId)
+                return;
+            sdnDeviceId = deviceId;
+        }
 
         if (currentAlgorithmType == SDN)
         {
@@ -846,9 +858,12 @@ private:
     std::unique_ptr<ReverbAlgorithm> createIRAlgorithm()
     {
 #if WFS_GPU_NATIVE
-        if (irUseGpu.load (std::memory_order_acquire))
+        std::string deviceId;
+        { const juce::SpinLock::ScopedLockType lock (deviceIdLock); deviceId = irDeviceId; }
+        if (! deviceId.empty() && deviceId != "cpu")
         {
             auto gpu = std::make_unique<ReverbIRAlgorithmGPU>();
+            gpu->setDeviceId (deviceId);
             if (sampleRate > 0)
                 gpu->prepare (sampleRate, internalBlockSize, numReverbNodes);
 
@@ -878,9 +893,12 @@ private:
     std::unique_ptr<ReverbAlgorithm> createFDNAlgorithm()
     {
 #if WFS_GPU_NATIVE
-        if (fdnUseGpu.load (std::memory_order_acquire))
+        std::string deviceId;
+        { const juce::SpinLock::ScopedLockType lock (deviceIdLock); deviceId = fdnDeviceId; }
+        if (! deviceId.empty() && deviceId != "cpu")
         {
             auto gpu = std::make_unique<ReverbFDNAlgorithmGPU>();
+            gpu->setDeviceId (deviceId);
             if (sampleRate > 0)
                 // prepare() with the GPU instance's DEFAULT fdnSize (1.0), exactly
                 // like the CPU FDNAlgorithm whose prepare() runs before its own
@@ -915,9 +933,12 @@ private:
     std::unique_ptr<ReverbAlgorithm> createSDNAlgorithm()
     {
 #if WFS_GPU_NATIVE
-        if (sdnUseGpu.load (std::memory_order_acquire))
+        std::string deviceId;
+        { const juce::SpinLock::ScopedLockType lock (deviceIdLock); deviceId = sdnDeviceId; }
+        if (! deviceId.empty() && deviceId != "cpu")
         {
             auto gpu = std::make_unique<ReverbSDNAlgorithmGPU>();
+            gpu->setDeviceId (deviceId);
             if (sampleRate > 0)
                 gpu->prepare (sampleRate, internalBlockSize, numReverbNodes);
 
@@ -1085,12 +1106,15 @@ private:
     std::atomic<float> lastIRLengthSec { 6.0f };
     std::atomic<bool> haveIRParams { false };
 
-    // Per-algorithm GPU backend selection (toggles) + shared status for the UI
-    std::atomic<bool> irUseGpu { false };
+    // Per-algorithm GPU device selection (deviceId; "cpu"/"" = CPU) + shared
+    // status for the UI. The deviceId strings are guarded by deviceIdLock
+    // (written by the 50 Hz timer thread, read at algorithm-swap time).
+    juce::SpinLock deviceIdLock;
+    std::string irDeviceId  { "cpu" };
     std::atomic<bool> irBackendChangeRequested { false };
-    std::atomic<bool> fdnUseGpu { false };
+    std::string fdnDeviceId { "cpu" };
     std::atomic<bool> fdnBackendChangeRequested { false };
-    std::atomic<bool> sdnUseGpu { false };
+    std::string sdnDeviceId { "cpu" };
     std::atomic<bool> sdnBackendChangeRequested { false };
     ReverbGpuStatus reverbGpuStatus;
     mutable juce::SpinLock reverbGpuStatusLock;

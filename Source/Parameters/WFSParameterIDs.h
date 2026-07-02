@@ -74,6 +74,7 @@ namespace WFSParameterIDs
     const juce::Identifier outputChannels    ("outputChannels");
     const juce::Identifier reverbChannels    ("reverbChannels");
     const juce::Identifier algorithmDSP      ("algorithmDSP");
+    const juce::Identifier algorithmDeviceId ("algorithmDeviceId");   // compute device for the GPU algorithm paths ("cpu"/"hip:0"/...)
     const juce::Identifier runDSP            ("runDSP");
 
     //==========================================================================
@@ -561,9 +562,12 @@ namespace WFSParameterIDs
     const juce::Identifier reverbIRtrim          ("reverbIRtrim");        // ms
     const juce::Identifier reverbIRlength        ("reverbIRlength");      // seconds
     const juce::Identifier reverbPerNodeIR       ("reverbPerNodeIR");     // 0/1
-    const juce::Identifier reverbIRGpu           ("reverbIRGpu");         // 0=CPU, 1=GPU convolution backend
-    const juce::Identifier reverbFDNGpu          ("reverbFDNGpu");        // 0=CPU, 1=GPU FDN backend
-    const juce::Identifier reverbSDNGpu          ("reverbSDNGpu");        // 0=CPU, 1=GPU SDN backend
+    const juce::Identifier reverbIRGpu           ("reverbIRGpu");         // legacy 0=CPU/1=GPU (migrated to reverbIRGpuDevice)
+    const juce::Identifier reverbFDNGpu          ("reverbFDNGpu");        // legacy 0=CPU/1=GPU (migrated to reverbFDNGpuDevice)
+    const juce::Identifier reverbSDNGpu          ("reverbSDNGpu");        // legacy 0=CPU/1=GPU (migrated to reverbSDNGpuDevice)
+    const juce::Identifier reverbIRGpuDevice     ("reverbIRGpuDevice");   // compute device id ("cpu"/"hip:0"/...)
+    const juce::Identifier reverbFDNGpuDevice    ("reverbFDNGpuDevice");  // compute device id
+    const juce::Identifier reverbSDNGpuDevice    ("reverbSDNGpuDevice");  // compute device id
     const juce::Identifier reverbWetLevel        ("reverbWetLevel");      // dB
 
     // Reverb > Pre-Processing Compressor (global, stored as child of Reverbs node)

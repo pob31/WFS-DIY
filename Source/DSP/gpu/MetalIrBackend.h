@@ -28,7 +28,7 @@
 class MetalIrBackend
 {
 public:
-    MetalIrBackend();
+    explicit MetalIrBackend (int deviceIndex = 0);
     ~MetalIrBackend();
 
     MetalIrBackend (const MetalIrBackend&) = delete;

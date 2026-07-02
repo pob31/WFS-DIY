@@ -14,6 +14,12 @@ TrackingMQTTReceiver::TrackingMQTTReceiver (WFSValueTreeState& valueTreeState)
     : Thread ("MQTT Tracking Receiver")
     , state (valueTreeState)
 {
+    // The queue drains on the message thread and applies each update via the
+    // existing (now message-thread-only) routing method. MQTT is position-only.
+    ingestQueue.setApply ([this] (const TrackingUpdate& u)
+    {
+        if (u.hasPos) routePositionToInput (u.key, u.x, u.y, u.z, u.quality);
+    });
 }
 
 TrackingMQTTReceiver::~TrackingMQTTReceiver()
@@ -506,8 +512,17 @@ void TrackingMQTTReceiver::processJsonPayload (const juce::String& topic, const 
     if (transformFlipY.load()) y = -y;
     if (transformFlipZ.load()) z = -z;
 
-    // Route to input (slot index = input index)
-    routePositionToInput (slot, x, y, z, quality);
+    // Marshal onto the message thread — the queue drains and does the ValueTree
+    // write (and its listeners) there. The slot was resolved above via the
+    // thread-safe tag table; it is re-validated (inputTrackingActive) on the drain.
+    TrackingUpdate update;
+    update.key     = slot;
+    update.x       = x;
+    update.y       = y;
+    update.z       = z;
+    update.quality = quality;
+    update.hasPos  = true;
+    ingestQueue.push (update);
 }
 
 juce::String TrackingMQTTReceiver::extractTagIdFromTopic (const juce::String& topic) const
@@ -562,6 +577,8 @@ int TrackingMQTTReceiver::findSlotForTagId (const juce::String& tagId) const
 
 void TrackingMQTTReceiver::routePositionToInput (int inputIndex, float x, float y, float z, float quality)
 {
+    JUCE_ASSERT_MESSAGE_THREAD  // runs only on the ingest-queue drain
+
     auto posSection = state.getInputPositionSection (inputIndex);
     if (! posSection.isValid())
         return;

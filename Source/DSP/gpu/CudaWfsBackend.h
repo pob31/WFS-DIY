@@ -39,7 +39,7 @@
 class CudaWfsBackend
 {
 public:
-    CudaWfsBackend();
+    explicit CudaWfsBackend (int deviceIndex = 0);
     ~CudaWfsBackend();
 
     CudaWfsBackend (const CudaWfsBackend&) = delete;

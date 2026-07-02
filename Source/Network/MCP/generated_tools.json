@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "04fcce4058acc20b5dcbc8c469e6c66248251ca4e8810a6d41fa8e88a069e785",
+  "input_hash": "c249acbce064caa3d92ed5190cfec3c13ab47b7e2e60936714b4d8fcc2cf3fdc",
   "source_csvs": [
     "WFS-UI_config.csv",
     "WFS-UI_input.csv",
@@ -11575,7 +11575,7 @@
     },
     {
       "name": "system_master_section_set_master_level",
-      "description": "Master Level (affects all outputs). Value in dB. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
+      "description": "Master Level (affects all outputs). Value in dB. [TIER 3: destructive - refused unless the operator's safety gate is open; with the gate open, executes immediately.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -11595,7 +11595,7 @@
           "value"
         ]
       },
-      "tier": 2,
+      "tier": 3,
       "csv_section": "Master Section",
       "group_key": "system_master_section",
       "supports_relative": false,

@@ -22,6 +22,11 @@ Plugin/Builds/
 *.dylib
 *.app
 
+# Exception: the prebuilt AMD/HIP GPU plugin is committed on purpose because the
+# Windows CI runner has no AMD HIP SDK to build it (see
+# tools/windows/prebuilt/README.md). Force-tracked despite the *.dll rule above.
+!tools/windows/prebuilt/wfs_hip.dll
+
 # Object files
 *.obj
 *.o

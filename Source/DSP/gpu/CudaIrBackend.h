@@ -20,7 +20,7 @@
 class CudaIrBackend
 {
 public:
-    CudaIrBackend();
+    explicit CudaIrBackend (int deviceIndex = 0);
     ~CudaIrBackend();
 
     CudaIrBackend (const CudaIrBackend&) = delete;

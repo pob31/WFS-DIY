@@ -37,7 +37,7 @@
 class MetalWfsBackend
 {
 public:
-    MetalWfsBackend();
+    explicit MetalWfsBackend (int deviceIndex = 0);
     ~MetalWfsBackend();
 
     MetalWfsBackend (const MetalWfsBackend&) = delete;

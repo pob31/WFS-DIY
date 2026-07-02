@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="k6c2zA" name="WFS-DIY" projectType="guiapp" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="1.0.0beta24"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="1.0.0beta26"
               bundleIdentifier="com.wfsdiy.app" companyEmail="contact@pixetbel.org"
               companyName="Pix et Bel" companyWebsite="wfs-diy.net"
               microphonePermissionNeeded="1"
@@ -125,6 +125,10 @@
               file="Source/Network/OSCIngestQueue.h"/>
         <FILE id="netIngestQueueCpp" name="OSCIngestQueue.cpp" compile="1" resource="0"
               file="Source/Network/OSCIngestQueue.cpp"/>
+        <FILE id="netTrkIngestQH" name="TrackingIngestQueue.h" compile="0" resource="0"
+              file="Source/Network/TrackingIngestQueue.h"/>
+        <FILE id="netTrkIngestQCpp" name="TrackingIngestQueue.cpp" compile="1" resource="0"
+              file="Source/Network/TrackingIngestQueue.cpp"/>
         <FILE id="netMgrH" name="OSCManager.h" compile="0" resource="0" file="Source/Network/OSCManager.h"/>
         <FILE id="netMgrCpp" name="OSCManager.cpp" compile="1" resource="0"
               file="Source/Network/OSCManager.cpp"/>
@@ -363,6 +367,16 @@
               file="Source/DSP/OutputBufferAlgorithm.h"/>
         <FILE id="ngpuPipe" name="GpuAsyncPipeline.h" compile="0" resource="0"
               file="Source/DSP/gpu/GpuAsyncPipeline.h"/>
+        <FILE id="ngpuIface" name="GpuBackendInterface.h" compile="0" resource="0"
+              file="Source/DSP/gpu/GpuBackendInterface.h"/>
+        <FILE id="ngpuDevMgr" name="GpuDeviceManager.h" compile="0" resource="0"
+              file="Source/DSP/gpu/GpuDeviceManager.h"/>
+        <FILE id="ngpuDynLib" name="PlatformDynLib.h" compile="0" resource="0"
+              file="Source/DSP/gpu/PlatformDynLib.h"/>
+        <FILE id="ngpuFactory" name="GpuBackendFactory.h" compile="0" resource="0"
+              file="Source/DSP/gpu/GpuBackendFactory.h"/>
+        <FILE id="ngpuPlugin" name="GpuVendorPlugin.cpp" compile="0" resource="0"
+              file="Source/DSP/gpu/plugin/GpuVendorPlugin.cpp"/>
         <FILE id="ngpuAlgo" name="NativeGpuWfsAlgorithm.h" compile="0" resource="0"
               file="Source/DSP/gpu/NativeGpuWfsAlgorithm.h"/>
         <FILE id="ngpuBakH" name="MetalWfsBackend.h" compile="0" resource="0"
@@ -379,6 +393,10 @@
               file="Source/DSP/gpu/CudaWfsBackend.cpp"/>
         <FILE id="cudaKrnl" name="CudaWfsKernels.h" compile="0" resource="0"
               file="Source/DSP/gpu/CudaWfsKernels.h"/>
+        <FILE id="hipBakH" name="HipWfsBackend.h" compile="0" resource="0"
+              file="Source/DSP/gpu/HipWfsBackend.h"/>
+        <FILE id="hipBakC" name="HipWfsBackend.cpp" compile="1" resource="0"
+              file="Source/DSP/gpu/HipWfsBackend.cpp"/>
         <FILE id="gpuFrHost" name="WfsFrHostState.h" compile="0" resource="0"
               file="Source/DSP/gpu/WfsFrHostState.h"/>
         <FILE id="obGpuAlgo" name="NativeGpuOutputBufferAlgorithm.h" compile="0" resource="0"
@@ -397,6 +415,10 @@
               file="Source/DSP/gpu/CudaObBackend.cpp"/>
         <FILE id="obCudaKrnl" name="CudaObKernels.h" compile="0" resource="0"
               file="Source/DSP/gpu/CudaObKernels.h"/>
+        <FILE id="obHipBakH" name="HipObBackend.h" compile="0" resource="0"
+              file="Source/DSP/gpu/HipObBackend.h"/>
+        <FILE id="obHipBakC" name="HipObBackend.cpp" compile="1" resource="0"
+              file="Source/DSP/gpu/HipObBackend.cpp"/>
         <FILE id="irHostFft" name="IrHostFft.h" compile="0" resource="0"
               file="Source/DSP/gpu/IrHostFft.h"/>
         <FILE id="irConvHost" name="IrConvHostState.h" compile="0" resource="0"
@@ -413,6 +435,10 @@
               file="Source/DSP/gpu/CudaIrBackend.cpp"/>
         <FILE id="irCudaKrnl" name="CudaIrKernels.h" compile="0" resource="0"
               file="Source/DSP/gpu/CudaIrKernels.h"/>
+        <FILE id="irHipBakH" name="HipIrBackend.h" compile="0" resource="0"
+              file="Source/DSP/gpu/HipIrBackend.h"/>
+        <FILE id="irHipBakC" name="HipIrBackend.cpp" compile="1" resource="0"
+              file="Source/DSP/gpu/HipIrBackend.cpp"/>
         <FILE id="irGpuSel" name="IrGpuBackend.h" compile="0" resource="0"
               file="Source/DSP/gpu/IrGpuBackend.h"/>
         <FILE id="rvbIrGpuH" name="ReverbIRAlgorithmGPU.h" compile="0" resource="0"
@@ -431,6 +457,10 @@
               file="Source/DSP/gpu/CudaFdnBackend.cpp"/>
         <FILE id="fdnCudaKrnl" name="CudaFdnKernels.h" compile="0" resource="0"
               file="Source/DSP/gpu/CudaFdnKernels.h"/>
+        <FILE id="fdnHipBakH" name="HipFdnBackend.h" compile="0" resource="0"
+              file="Source/DSP/gpu/HipFdnBackend.h"/>
+        <FILE id="fdnHipBakC" name="HipFdnBackend.cpp" compile="1" resource="0"
+              file="Source/DSP/gpu/HipFdnBackend.cpp"/>
         <FILE id="fdnGpuSel" name="FdnGpuBackend.h" compile="0" resource="0"
               file="Source/DSP/gpu/FdnGpuBackend.h"/>
         <FILE id="rvbFdnGpuH" name="ReverbFDNAlgorithmGPU.h" compile="0" resource="0"
@@ -449,6 +479,10 @@
               file="Source/DSP/gpu/CudaSdnBackend.cpp"/>
         <FILE id="sdnCudaKrnl" name="CudaSdnKernels.h" compile="0" resource="0"
               file="Source/DSP/gpu/CudaSdnKernels.h"/>
+        <FILE id="sdnHipBakH" name="HipSdnBackend.h" compile="0" resource="0"
+              file="Source/DSP/gpu/HipSdnBackend.h"/>
+        <FILE id="sdnHipBakC" name="HipSdnBackend.cpp" compile="1" resource="0"
+              file="Source/DSP/gpu/HipSdnBackend.cpp"/>
         <FILE id="sdnGpuSel" name="SdnGpuBackend.h" compile="0" resource="0"
               file="Source/DSP/gpu/SdnGpuBackend.h"/>
         <FILE id="rvbSdnGpuH" name="ReverbSDNAlgorithmGPU.h" compile="0" resource="0"
@@ -492,10 +526,10 @@
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY"
                        headerPath="../../ThirdParty/hidapi;../../ThirdParty/hidapi/hidapi"
-                       defines="SIMPLEWEB_SECURE_SUPPORTED=0 JUCE_JACK=1"/>
+                       defines="SIMPLEWEB_SECURE_SUPPORTED=0 JUCE_JACK=1 WFS_GPU_NATIVE=1 WFS_GPU_PLUGINS=1"/>
         <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY"
                        headerPath="../../ThirdParty/hidapi;../../ThirdParty/hidapi/hidapi"
-                       defines="SIMPLEWEB_SECURE_SUPPORTED=0 JUCE_JACK=1"/>
+                       defines="SIMPLEWEB_SECURE_SUPPORTED=0 JUCE_JACK=1 WFS_GPU_NATIVE=1 WFS_GPU_PLUGINS=1"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="ThirdParty/JUCE/modules"/>
@@ -519,18 +553,16 @@
     </LINUX_MAKE>
     <VS2022 targetFolder="Builds/VisualStudio2022" smallIcon="SCj321" bigIcon="SCj321">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY" headerPath="..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;$(CUDA_PATH)\include"
-                       libraryPath="$(CUDA_PATH)\lib\x64"
-                       externalLibraries="setupapi.lib;cudart.lib;nvrtc.lib;cuda.lib"
-                       extraCompilerFlags="/bigobj" extraLinkerFlags="/DELAYLOAD:nvcuda.dll /DELAYLOAD:cudart64_12.dll /DELAYLOAD:nvrtc64_120_0.dll" defines="SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1"
+        <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY" headerPath="..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi"
+                       externalLibraries="setupapi.lib"
+                       extraCompilerFlags="/bigobj" defines="SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;WFS_GPU_PLUGINS=1"
                        prebuildCommand="cd /d &quot;$(SolutionDir)..\..&quot; &amp;&amp; (where python &gt;nul 2&gt;&amp;1 &amp;&amp; python tools\generate_mcp_tools.py) &amp; exit /b 0"
-                       postbuildCommand="xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\cudart64_*.dll&quot; &quot;$(OutDir)&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\nvrtc64_*.dll&quot; &quot;$(OutDir)&quot; &amp; del /Q &quot;$(OutDir)nvrtc64_*.alt.dll&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\nvrtc-builtins64_*.dll&quot; &quot;$(OutDir)&quot;"/>
-        <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" headerPath="..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;$(CUDA_PATH)\include"
-                       libraryPath="$(CUDA_PATH)\lib\x64"
-                       externalLibraries="setupapi.lib;cudart.lib;nvrtc.lib;cuda.lib"
-                       extraCompilerFlags="/bigobj" extraLinkerFlags="/DELAYLOAD:nvcuda.dll /DELAYLOAD:cudart64_12.dll /DELAYLOAD:nvrtc64_120_0.dll" defines="SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1"
+                       postbuildCommand="xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot;"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" headerPath="..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi"
+                       externalLibraries="setupapi.lib"
+                       extraCompilerFlags="/bigobj" defines="SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;WFS_GPU_PLUGINS=1"
                        prebuildCommand="cd /d &quot;$(SolutionDir)..\..&quot; &amp;&amp; (where python &gt;nul 2&gt;&amp;1 &amp;&amp; python tools\generate_mcp_tools.py) &amp; exit /b 0"
-                       postbuildCommand="xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\cudart64_*.dll&quot; &quot;$(OutDir)&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\nvrtc64_*.dll&quot; &quot;$(OutDir)&quot; &amp; del /Q &quot;$(OutDir)nvrtc64_*.alt.dll&quot; &amp; copy /Y &quot;$(CUDA_PATH)\bin\nvrtc-builtins64_*.dll&quot; &quot;$(OutDir)&quot;"/>
+                       postbuildCommand="xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot;"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="ThirdParty/JUCE/modules"/>

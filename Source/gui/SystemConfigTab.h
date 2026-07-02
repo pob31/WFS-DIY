@@ -16,6 +16,9 @@
 #include "../Controllers/Sampler/LightpadTypes.h"
 #include "HelpCard.h"
 #include "LightpadArrangementOverlay.h"
+#if WFS_GPU_NATIVE
+ #include "../DSP/gpu/GpuDeviceManager.h"
+#endif
 
 #if JUCE_WINDOWS
     #include <winsock2.h>
@@ -545,21 +548,19 @@ public:
         algorithmLabel.setText(LOC("systemConfig.labels.algorithm"), juce::dontSendNotification);
 
         addAndMakeVisible(algorithmSelector);
-        algorithmSelector.addItem(LOC("systemConfig.algorithms.inputBuffer"), 1);
-        algorithmSelector.addItem(LOC("systemConfig.algorithms.outputBuffer"), 2);
-#if WFS_GPU_NATIVE
-        algorithmSelector.addItem(LOC("systemConfig.algorithms.nativeGpu"), 3);
-        algorithmSelector.addItem(LOC("systemConfig.algorithms.nativeGpuOutput"), 4);
-#endif
-        algorithmSelector.setSelectedId(1, juce::dontSendNotification);
+        populateAlgorithmSelector();
         algorithmSelector.onChange = [this]() {
-            int selectedId = algorithmSelector.getSelectedId();
-            parameters.setConfigParam("ProcessingAlgorithm", selectedId);
+            // The combo id is internal; we persist the stable (algoId 1-4 +
+            // deviceId) pair so the rest of the app is unchanged.
+            const AlgoEntry* e = findAlgoEntry (algorithmSelector.getSelectedId());
+            const int algoId = e ? e->algoId : 1;
+            parameters.setConfigParam("ProcessingAlgorithm", algoId);
+            parameters.setConfigParam("ProcessingAlgorithmDevice", e ? e->deviceId : juce::String("cpu"));
 #if WFS_GPU_NATIVE
             updateGpuDepthVisibility();
 #endif
             if (onAlgorithmChanged)
-                onAlgorithmChanged(selectedId);
+                onAlgorithmChanged(algoId);
             // TTS: Announce selection change
             TTSManager::getInstance().announceValueChange("Algorithm", algorithmSelector.getText());
         };
@@ -2255,14 +2256,22 @@ private:
         systemLatencyEditor.setText(juce::String((float)parameters.getConfigParam("SystemLatency"), 2), false);
         haasEffectEditor.setText(juce::String((float)parameters.getConfigParam("HaasEffect"), 2), false);
 
-        // Algorithm selector
-        int algorithmId = (int)parameters.getConfigParam("ProcessingAlgorithm");
+        // Algorithm selector — restore by (algoId, deviceId). Devices can differ
+        // between sessions, so match the stored pair against the live entries
+        // (falls back to CPU if the stored GPU device is gone).
+        {
+            const int algoId = (int) parameters.getConfigParam("ProcessingAlgorithm");
+            juce::String devId = parameters.getConfigParam("ProcessingAlgorithmDevice").toString();
 #if WFS_GPU_NATIVE
-        if (algorithmId >= 1 && algorithmId <= 3)
-#else
-        if (algorithmId >= 1 && algorithmId <= 2)  // Valid range for current algorithms
+            if (algoId >= 3 && devId.isEmpty())
+                devId = juce::String (GpuDeviceManager::instance().firstGpuId());  // migrate legacy GPU selection
 #endif
-            algorithmSelector.setSelectedId(algorithmId, juce::dontSendNotification);
+            int comboId = (algoId == 2) ? 2 : 1;
+            for (const auto& e : algorithmEntries)
+                if (e.algoId == algoId && (algoId <= 2 || e.deviceId == devId))
+                    { comboId = e.comboId; break; }
+            algorithmSelector.setSelectedId (comboId, juce::dontSendNotification);
+        }
 
 #if WFS_GPU_NATIVE
         {
@@ -3153,11 +3162,51 @@ public:
         loadParametersToUI();
     }
 
+    // The WFS Processor combo: 2 CPU algorithms + (per detected GPU device) an
+    // Input Buffer and an Output Buffer entry. The combo id is internal; each
+    // entry maps to a stable (algoId 1-4, deviceId) pair persisted in config.
+    struct AlgoEntry { int comboId; int algoId; juce::String deviceId; };
+    std::vector<AlgoEntry> algorithmEntries;
+
+    const AlgoEntry* findAlgoEntry (int comboId) const
+    {
+        for (const auto& e : algorithmEntries) if (e.comboId == comboId) return &e;
+        return nullptr;
+    }
+
+    void populateAlgorithmSelector()
+    {
+        algorithmSelector.clear (juce::dontSendNotification);
+        algorithmEntries.clear();
+
+        auto add = [this] (int comboId, int algoId, const juce::String& deviceId, const juce::String& text)
+        {
+            algorithmSelector.addItem (text, comboId);
+            algorithmEntries.push_back ({ comboId, algoId, deviceId });
+        };
+
+        add (1, 1, "cpu", LOC("systemConfig.algorithms.inputBuffer")  + " (CPU)");
+        add (2, 2, "cpu", LOC("systemConfig.algorithms.outputBuffer") + " (CPU)");
+
+#if WFS_GPU_NATIVE
+        int g = 0;
+        for (const auto& d : GpuDeviceManager::instance().devices())
+        {
+            if (d.isCpu()) continue;
+            const juce::String name (d.name);
+            add (10 + g * 2, 3, juce::String (d.id), LOC("systemConfig.algorithms.inputBuffer")  + " (" + name + ")");
+            add (11 + g * 2, 4, juce::String (d.id), LOC("systemConfig.algorithms.outputBuffer") + " (" + name + ")");
+            ++g;
+        }
+#endif
+        algorithmSelector.setSelectedId (1, juce::dontSendNotification);
+    }
+
 #if WFS_GPU_NATIVE
     void updateGpuDepthVisibility()
     {
-        const int id = algorithmSelector.getSelectedId();
-        const bool gpuSelected = (id == 3 || id == 4); // both GPU algorithms use the pipeline
+        const AlgoEntry* e = findAlgoEntry (algorithmSelector.getSelectedId());
+        const bool gpuSelected = (e != nullptr && (e->algoId == 3 || e->algoId == 4));
         gpuDepthLabel.setVisible(gpuSelected);
         gpuDepthSelector.setVisible(gpuSelected);
     }

@@ -107,9 +107,12 @@ The `undo_last_ai_change` and `redo_last_undone_ai_change` tools are the AI-faci
 
 **Phasing**: the three tools are registered from Phase 1 so clients can depend on their existence, but full implementation (with staleness detection, cross-actor notification, and the overlay UI) lands in Phase 4. Phase 1 stubs return a structured "not yet implemented" response that identifies the capability as pending.
 
-## Tier assignment heuristics for auto-generated tools
+## Tier assignment for auto-generated tools
 
-The generation script cannot perfectly tier tools automatically. A default assignment is:
+Tier is set per parameter by the explicit **`Tier` CSV column** (values 1/2/3), which the generator
+reads as the **primary source**. `tool_tier_overrides.json` and the keyword/dB heuristic below are
+only fallbacks for rows whose `Tier` cell is blank (the heuristic warns when it fires). The default
+classification the column was snapshotted from:
 
 - **Read-only tools** (get_*): always Tier 1.
 - **Parameters with numeric ranges that cannot produce sudden loud output**: Tier 1. Position changes, timing parameters, LFO settings, filter frequencies, directivity angles.
@@ -117,7 +120,10 @@ The generation script cannot perfectly tier tools automatically. A default assig
 - **Parameters that delete or overwrite persistent data**: Tier 3. Delete snapshot, overwrite configuration files, clear projects.
 - **Parameters that restart the DSP or reconfigure I/O**: Tier 3. Channel counts, audio interface selection, sample rate.
 
-The generation script should emit a default tier for each tool based on heuristics (keyword matching in parameter names: `delete`, `clear`, `master`, `channels`, `interface`, etc.). Hand-edit the generated JSON via an override file (`tool_tier_overrides.json`) committed to the repo when the defaults are wrong. The generator merges overrides over defaults.
+Author tier per parameter in the CSV `Tier` column. When it is blank, the generator falls back to
+`tool_tier_overrides.json` and then the keyword/dB heuristic (which emits a `no explicit Tier`
+warning). Re-snapshot the column from the current effective tiers with
+`python tools/mcp/populate_tier_column.py`.
 
 ## Argument type mapping
 

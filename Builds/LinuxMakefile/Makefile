@@ -39,7 +39,7 @@ ifeq ($(CONFIG),Debug)
     TARGET_ARCH := 
   endif
 
-  JUCE_CPPFLAGS := $(DEPFLAGS) "-DLINUX=1" "-DDEBUG=1" "-D_DEBUG=1" "-DJUCE_PROJUCER_VERSION=0x8000d" "-DJUCE_MODULE_AVAILABLE_juce_audio_basics=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_devices=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_formats=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_processors=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_utils=1" "-DJUCE_MODULE_AVAILABLE_juce_core=1" "-DJUCE_MODULE_AVAILABLE_juce_data_structures=1" "-DJUCE_MODULE_AVAILABLE_juce_dsp=1" "-DJUCE_MODULE_AVAILABLE_juce_events=1" "-DJUCE_MODULE_AVAILABLE_juce_graphics=1" "-DJUCE_MODULE_AVAILABLE_juce_gui_basics=1" "-DJUCE_MODULE_AVAILABLE_juce_gui_extra=1" "-DJUCE_MODULE_AVAILABLE_juce_opengl=1" "-DJUCE_MODULE_AVAILABLE_juce_osc=1" "-DJUCE_MODULE_AVAILABLE_juce_simpleweb=1" "-DJUCE_MODULE_AVAILABLE_roli_blocks_basics=1" "-DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1" "-DJUCE_ASIO=1" "-DJUCE_ALSA=1" "-DJUCE_JACK=1" "-DJUCE_USE_ANDROID_OBOE=0" "-DJUCE_PLUGINHOST_LV2=0" "-DJUCE_PLUGINHOST_ARA=0" "-DJUCE_STRICT_REFCOUNTEDPOINTER=1" "-DJUCE_STANDALONE_APPLICATION=1" "-DSIMPLEWEB_SECURE_SUPPORTED=0" "-DJUCER_LINUX_MAKE_6D53C8B4=1" "-DJUCE_APP_VERSION=1.0.0beta24" "-DJUCE_APP_VERSION_HEX=0x10000" $(shell $(PKG_CONFIG) --cflags $(shell ($(PKG_CONFIG) --exists webkit2gtk-4.1 && echo webkit2gtk-4.1) || echo webkit2gtk-4.0) alsa freetype2 fontconfig gl libcurl gtk+-x11-3.0 libudev) -pthread -I../../JuceLibraryCode -I../../ThirdParty/JUCE/modules -I../../ThirdParty -I../../ThirdParty/hidapi -I../../ThirdParty/hidapi/hidapi $(CPPFLAGS)
+  JUCE_CPPFLAGS := $(DEPFLAGS) "-DLINUX=1" "-DDEBUG=1" "-D_DEBUG=1" "-DJUCE_PROJUCER_VERSION=0x8000e" "-DJUCE_MODULE_AVAILABLE_juce_audio_basics=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_devices=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_formats=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_processors=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_utils=1" "-DJUCE_MODULE_AVAILABLE_juce_core=1" "-DJUCE_MODULE_AVAILABLE_juce_data_structures=1" "-DJUCE_MODULE_AVAILABLE_juce_dsp=1" "-DJUCE_MODULE_AVAILABLE_juce_events=1" "-DJUCE_MODULE_AVAILABLE_juce_graphics=1" "-DJUCE_MODULE_AVAILABLE_juce_gui_basics=1" "-DJUCE_MODULE_AVAILABLE_juce_gui_extra=1" "-DJUCE_MODULE_AVAILABLE_juce_opengl=1" "-DJUCE_MODULE_AVAILABLE_juce_osc=1" "-DJUCE_MODULE_AVAILABLE_juce_simpleweb=1" "-DJUCE_MODULE_AVAILABLE_roli_blocks_basics=1" "-DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1" "-DJUCE_ASIO=1" "-DJUCE_ALSA=1" "-DJUCE_JACK=1" "-DJUCE_USE_ANDROID_OBOE=0" "-DJUCE_PLUGINHOST_LV2=0" "-DJUCE_PLUGINHOST_ARA=0" "-DJUCE_STRICT_REFCOUNTEDPOINTER=1" "-DJUCE_STANDALONE_APPLICATION=1" "-DSIMPLEWEB_SECURE_SUPPORTED=0" "-DWFS_GPU_NATIVE=1" "-DWFS_GPU_PLUGINS=1" "-DJUCER_LINUX_MAKE_6D53C8B4=1" "-DJUCE_APP_VERSION=1.0.0beta26" "-DJUCE_APP_VERSION_HEX=0x10000" $(shell $(PKG_CONFIG) --cflags $(shell ($(PKG_CONFIG) --exists webkit2gtk-4.1 && echo webkit2gtk-4.1) || echo webkit2gtk-4.0) alsa freetype2 fontconfig gl libcurl gtk+-x11-3.0 libudev) -pthread -I../../JuceLibraryCode -I../../ThirdParty/JUCE/modules -I../../ThirdParty -I../../ThirdParty/hidapi -I../../ThirdParty/hidapi/hidapi $(CPPFLAGS)
   JUCE_CPPFLAGS_APP :=  "-DJucePlugin_Build_VST=0" "-DJucePlugin_Build_VST3=0" "-DJucePlugin_Build_AU=0" "-DJucePlugin_Build_AUv3=0" "-DJucePlugin_Build_AAX=0" "-DJucePlugin_Build_Standalone=0" "-DJucePlugin_Build_Unity=0" "-DJucePlugin_Build_LV2=0"
   JUCE_TARGET_APP := WFS-DIY
 
@@ -60,7 +60,7 @@ ifeq ($(CONFIG),Release)
     TARGET_ARCH := 
   endif
 
-  JUCE_CPPFLAGS := $(DEPFLAGS) "-DLINUX=1" "-DNDEBUG=1" "-DJUCE_PROJUCER_VERSION=0x8000d" "-DJUCE_MODULE_AVAILABLE_juce_audio_basics=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_devices=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_formats=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_processors=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_utils=1" "-DJUCE_MODULE_AVAILABLE_juce_core=1" "-DJUCE_MODULE_AVAILABLE_juce_data_structures=1" "-DJUCE_MODULE_AVAILABLE_juce_dsp=1" "-DJUCE_MODULE_AVAILABLE_juce_events=1" "-DJUCE_MODULE_AVAILABLE_juce_graphics=1" "-DJUCE_MODULE_AVAILABLE_juce_gui_basics=1" "-DJUCE_MODULE_AVAILABLE_juce_gui_extra=1" "-DJUCE_MODULE_AVAILABLE_juce_opengl=1" "-DJUCE_MODULE_AVAILABLE_juce_osc=1" "-DJUCE_MODULE_AVAILABLE_juce_simpleweb=1" "-DJUCE_MODULE_AVAILABLE_roli_blocks_basics=1" "-DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1" "-DJUCE_ASIO=1" "-DJUCE_ALSA=1" "-DJUCE_JACK=1" "-DJUCE_USE_ANDROID_OBOE=0" "-DJUCE_PLUGINHOST_LV2=0" "-DJUCE_PLUGINHOST_ARA=0" "-DJUCE_STRICT_REFCOUNTEDPOINTER=1" "-DJUCE_STANDALONE_APPLICATION=1" "-DSIMPLEWEB_SECURE_SUPPORTED=0" "-DJUCER_LINUX_MAKE_6D53C8B4=1" "-DJUCE_APP_VERSION=1.0.0beta24" "-DJUCE_APP_VERSION_HEX=0x10000" $(shell $(PKG_CONFIG) --cflags $(shell ($(PKG_CONFIG) --exists webkit2gtk-4.1 && echo webkit2gtk-4.1) || echo webkit2gtk-4.0) alsa freetype2 fontconfig gl libcurl gtk+-x11-3.0 libudev) -pthread -I../../JuceLibraryCode -I../../ThirdParty/JUCE/modules -I../../ThirdParty -I../../ThirdParty/hidapi -I../../ThirdParty/hidapi/hidapi $(CPPFLAGS)
+  JUCE_CPPFLAGS := $(DEPFLAGS) "-DLINUX=1" "-DNDEBUG=1" "-DJUCE_PROJUCER_VERSION=0x8000e" "-DJUCE_MODULE_AVAILABLE_juce_audio_basics=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_devices=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_formats=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_processors=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_utils=1" "-DJUCE_MODULE_AVAILABLE_juce_core=1" "-DJUCE_MODULE_AVAILABLE_juce_data_structures=1" "-DJUCE_MODULE_AVAILABLE_juce_dsp=1" "-DJUCE_MODULE_AVAILABLE_juce_events=1" "-DJUCE_MODULE_AVAILABLE_juce_graphics=1" "-DJUCE_MODULE_AVAILABLE_juce_gui_basics=1" "-DJUCE_MODULE_AVAILABLE_juce_gui_extra=1" "-DJUCE_MODULE_AVAILABLE_juce_opengl=1" "-DJUCE_MODULE_AVAILABLE_juce_osc=1" "-DJUCE_MODULE_AVAILABLE_juce_simpleweb=1" "-DJUCE_MODULE_AVAILABLE_roli_blocks_basics=1" "-DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1" "-DJUCE_ASIO=1" "-DJUCE_ALSA=1" "-DJUCE_JACK=1" "-DJUCE_USE_ANDROID_OBOE=0" "-DJUCE_PLUGINHOST_LV2=0" "-DJUCE_PLUGINHOST_ARA=0" "-DJUCE_STRICT_REFCOUNTEDPOINTER=1" "-DJUCE_STANDALONE_APPLICATION=1" "-DSIMPLEWEB_SECURE_SUPPORTED=0" "-DWFS_GPU_NATIVE=1" "-DWFS_GPU_PLUGINS=1" "-DJUCER_LINUX_MAKE_6D53C8B4=1" "-DJUCE_APP_VERSION=1.0.0beta26" "-DJUCE_APP_VERSION_HEX=0x10000" $(shell $(PKG_CONFIG) --cflags $(shell ($(PKG_CONFIG) --exists webkit2gtk-4.1 && echo webkit2gtk-4.1) || echo webkit2gtk-4.0) alsa freetype2 fontconfig gl libcurl gtk+-x11-3.0 libudev) -pthread -I../../JuceLibraryCode -I../../ThirdParty/JUCE/modules -I../../ThirdParty -I../../ThirdParty/hidapi -I../../ThirdParty/hidapi/hidapi $(CPPFLAGS)
   JUCE_CPPFLAGS_APP :=  "-DJucePlugin_Build_VST=0" "-DJucePlugin_Build_VST3=0" "-DJucePlugin_Build_AU=0" "-DJucePlugin_Build_AUv3=0" "-DJucePlugin_Build_AAX=0" "-DJucePlugin_Build_Standalone=0" "-DJucePlugin_Build_Unity=0" "-DJucePlugin_Build_LV2=0"
   JUCE_TARGET_APP := WFS-DIY
 
@@ -90,6 +90,7 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/OSCMessageRouter_d5ec64db.o \
   $(JUCE_OBJDIR)/OSCParameterBounds_6ab619e9.o \
   $(JUCE_OBJDIR)/OSCIngestQueue_17124ab8.o \
+  $(JUCE_OBJDIR)/TrackingIngestQueue_1aad6436.o \
   $(JUCE_OBJDIR)/OSCManager_ce19fc58.o \
   $(JUCE_OBJDIR)/OSCReceiverWithSenderIP_915fb210.o \
   $(JUCE_OBJDIR)/OSCTCPReceiver_c566011b.o \
@@ -120,10 +121,15 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/WFSLogger_60115195.o \
   $(JUCE_OBJDIR)/WFSCalculationEngine_480062fe.o \
   $(JUCE_OBJDIR)/CudaWfsBackend_d20d6b9.o \
+  $(JUCE_OBJDIR)/HipWfsBackend_3985daaf.o \
   $(JUCE_OBJDIR)/CudaObBackend_e4da3f62.o \
+  $(JUCE_OBJDIR)/HipObBackend_6a69e4ac.o \
   $(JUCE_OBJDIR)/CudaIrBackend_c8e26e4c.o \
+  $(JUCE_OBJDIR)/HipIrBackend_4e721396.o \
   $(JUCE_OBJDIR)/CudaFdnBackend_9e82b4d.o \
+  $(JUCE_OBJDIR)/HipFdnBackend_364d2f43.o \
   $(JUCE_OBJDIR)/CudaSdnBackend_822b6860.o \
+  $(JUCE_OBJDIR)/HipSdnBackend_ae906c56.o \
   $(JUCE_OBJDIR)/TestSignalGenerator_c4132b8c.o \
   $(JUCE_OBJDIR)/BinaryData_ce4232d4.o \
   $(JUCE_OBJDIR)/include_juce_audio_basics_8a4e984a.o \
@@ -255,6 +261,11 @@ $(JUCE_OBJDIR)/OSCParameterBounds_6ab619e9.o: ../../Source/Network/OSCParameterB
 $(JUCE_OBJDIR)/OSCIngestQueue_17124ab8.o: ../../Source/Network/OSCIngestQueue.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling OSCIngestQueue.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/TrackingIngestQueue_1aad6436.o: ../../Source/Network/TrackingIngestQueue.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling TrackingIngestQueue.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/OSCManager_ce19fc58.o: ../../Source/Network/OSCManager.cpp
@@ -407,9 +418,19 @@ $(JUCE_OBJDIR)/CudaWfsBackend_d20d6b9.o: ../../Source/DSP/gpu/CudaWfsBackend.cpp
 	@echo "Compiling CudaWfsBackend.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
+$(JUCE_OBJDIR)/HipWfsBackend_3985daaf.o: ../../Source/DSP/gpu/HipWfsBackend.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling HipWfsBackend.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
 $(JUCE_OBJDIR)/CudaObBackend_e4da3f62.o: ../../Source/DSP/gpu/CudaObBackend.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling CudaObBackend.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/HipObBackend_6a69e4ac.o: ../../Source/DSP/gpu/HipObBackend.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling HipObBackend.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/CudaIrBackend_c8e26e4c.o: ../../Source/DSP/gpu/CudaIrBackend.cpp
@@ -417,14 +438,29 @@ $(JUCE_OBJDIR)/CudaIrBackend_c8e26e4c.o: ../../Source/DSP/gpu/CudaIrBackend.cpp
 	@echo "Compiling CudaIrBackend.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
+$(JUCE_OBJDIR)/HipIrBackend_4e721396.o: ../../Source/DSP/gpu/HipIrBackend.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling HipIrBackend.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
 $(JUCE_OBJDIR)/CudaFdnBackend_9e82b4d.o: ../../Source/DSP/gpu/CudaFdnBackend.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling CudaFdnBackend.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
+$(JUCE_OBJDIR)/HipFdnBackend_364d2f43.o: ../../Source/DSP/gpu/HipFdnBackend.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling HipFdnBackend.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
 $(JUCE_OBJDIR)/CudaSdnBackend_822b6860.o: ../../Source/DSP/gpu/CudaSdnBackend.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling CudaSdnBackend.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/HipSdnBackend_ae906c56.o: ../../Source/DSP/gpu/HipSdnBackend.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling HipSdnBackend.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/TestSignalGenerator_c4132b8c.o: ../../Source/DSP/TestSignalGenerator.cpp

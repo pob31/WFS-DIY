@@ -4,7 +4,9 @@
 #include "../Parameters/WFSValueTreeState.h"
 #include "../Parameters/WFSParameterDefaults.h"
 #include "WFSCalculationEngine.h"
+#include <atomic>
 #include <cmath>
+#include <cstdint>
 
 /**
  * BinauralCalculationEngine
@@ -19,10 +21,19 @@
  * - On Angle: 135° (full coverage behind speaker)
  * - Off Angle: 30° (mute zone in front of speaker)
  * - HF Shelf: -0.3 dB/m
+ *
+ * Threading model:
+ * - The message thread publishes an RtParams snapshot via refreshRtSnapshot()
+ *   (called from MainComponent's timer). It is the only place the ValueTree is read.
+ * - The realtime BinauralProcessor thread copies the snapshot once per block via
+ *   getRtParams() and never touches the ValueTree or allocates.
+ * - The audio callback reads only the lock-free rtOutputChannel atomic.
  */
 class BinauralCalculationEngine
 {
 public:
+    using Position = WFSCalculationEngine::Position;
+
     struct BinauralOutput
     {
         float delayMs = 0.0f;
@@ -36,69 +47,146 @@ public:
         BinauralOutput right;
     };
 
+    /**
+     * POD snapshot of everything the realtime thread needs for one block.
+     * Published by the message thread (refreshRtSnapshot), copied by the RT
+     * worker under a brief SpinLock (getRtParams). Trivially copyable — no
+     * ValueTree access, no heap allocation on the RT side.
+     */
+    struct RtParams
+    {
+        Position leftSpeakerPos;
+        Position rightSpeakerPos;
+        float leftSpeakerOrientation  = 0.0f;   // radians
+        float rightSpeakerOrientation = 0.0f;   // radians
+        float attenLinear   = 1.0f;             // 10^(binauralAttenuation/20), precomputed on publish
+        float delayOffsetMs = 0.0f;
+        std::uint64_t soloMask = 0;             // bit i set = input i soloed
+        int numSoloed = 0;
+
+        bool isSoloed (int inputIndex) const noexcept
+        {
+            return inputIndex >= 0 && inputIndex < 64
+                && ((soloMask >> inputIndex) & 1ull) != 0;
+        }
+    };
+
+    static_assert (WFSParameterDefaults::maxInputChannels <= 64,
+                   "RtParams::soloMask is a 64-bit bitmask");
+
     BinauralCalculationEngine (WFSValueTreeState& params, WFSCalculationEngine& wfsCalc)
         : valueTreeState (params)
         , wfsCalcEngine (wfsCalc)
     {
-        recalculatePositions();
+        refreshRtSnapshot();
     }
 
     /**
      * Get binaural output parameters for an input channel.
-     * Uses composite position from WFSCalculationEngine.
+     * Uses composite position from WFSCalculationEngine and the caller's RtParams
+     * snapshot. RT-safe: no ValueTree access, no allocation.
      */
-    BinauralPair calculate (int inputIndex) const
+    BinauralPair calculate (int inputIndex, const RtParams& rt) const
     {
-        using namespace WFSParameterDefaults;
-
         BinauralPair result;
 
-        // Get input position from WFS engine
+        // Get input position from WFS engine (positionLock-guarded cache, tree-free)
         auto inputPos = wfsCalcEngine.getCompositeInputPosition (inputIndex);
 
-        // Get binaural parameters
-        float attenOffset = getBinauralAttenuation();
-        float delayOffset = getBinauralDelay();
-
         // Calculate for left speaker
-        result.left = calculateForSpeaker (inputPos, leftSpeakerPos, leftSpeakerOrientation);
-        result.left.delayMs += delayOffset;
-        result.left.level *= std::pow (10.0f, attenOffset / 20.0f);
+        result.left = calculateForSpeaker (inputPos, rt.leftSpeakerPos, rt.leftSpeakerOrientation);
+        result.left.delayMs += rt.delayOffsetMs;
+        result.left.level *= rt.attenLinear;
 
         // Calculate for right speaker
-        result.right = calculateForSpeaker (inputPos, rightSpeakerPos, rightSpeakerOrientation);
-        result.right.delayMs += delayOffset;
-        result.right.level *= std::pow (10.0f, attenOffset / 20.0f);
+        result.right = calculateForSpeaker (inputPos, rt.rightSpeakerPos, rt.rightSpeakerOrientation);
+        result.right.delayMs += rt.delayOffsetMs;
+        result.right.level *= rt.attenLinear;
 
         return result;
     }
 
     /**
-     * Check if an input is currently soloed.
+     * Copy the current RT snapshot. Called once per block by the realtime
+     * BinauralProcessor thread. The lock window is a single struct copy —
+     * same cost class as BinauralProcessor's sharedInputsLock.
      */
-    bool isInputSoloed (int inputIndex) const
+    RtParams getRtParams() const
     {
-        return valueTreeState.isInputSoloed (inputIndex);
-    }
-
-    /**
-     * Check if multi-solo mode is active.
-     */
-    bool isMultiSoloMode() const
-    {
-        return valueTreeState.getBinauralSoloMode() == 1;
+        const juce::SpinLock::ScopedLockType lock (rtParamsLock);
+        return rtParams;
     }
 
     /**
      * Get the binaural output channel (-1 = disabled).
+     * Lock-free relaxed atomic — safe to call from the audio device callback.
      */
     int getBinauralOutputChannel() const
     {
-        return valueTreeState.getBinauralOutputChannel();
+        return rtOutputChannel.load (std::memory_order_relaxed);
     }
 
     /**
+     * Recompute listener/speaker geometry from the ValueTree and publish a fresh
+     * RtParams snapshot for the realtime thread. MESSAGE THREAD ONLY — this is
+     * the single place the binaural parameters are read from the ValueTree.
+     * Called every timer tick from MainComponent and before the RT worker is
+     * (re)enabled, so the worker never observes an unpublished snapshot.
+     */
+    void refreshRtSnapshot()
+    {
+        JUCE_ASSERT_MESSAGE_THREAD
+
+        // Update the message-thread geometry scratch (listener/speaker positions)
+        recalculatePositions();
+
+        // Build the snapshot locally, outside the lock
+        RtParams fresh;
+        fresh.leftSpeakerPos          = leftSpeakerPos;
+        fresh.rightSpeakerPos         = rightSpeakerPos;
+        fresh.leftSpeakerOrientation  = leftSpeakerOrientation;
+        fresh.rightSpeakerOrientation = rightSpeakerOrientation;
+        fresh.attenLinear             = std::pow (10.0f, getBinauralAttenuation() / 20.0f);
+        fresh.delayOffsetMs           = getBinauralDelay();
+
+        int outputChannel = WFSParameterDefaults::binauralOutputChannelDefault;
+
+        auto binaural = valueTreeState.getBinauralState();
+        if (binaural.isValid())
+        {
+            outputChannel = (int) binaural.getProperty (WFSParameterIDs::binauralOutputChannel,
+                                                        WFSParameterDefaults::binauralOutputChannelDefault);
+
+            // Parse the solo CSV here, on the message thread, so the RT thread
+            // never touches Strings. Matches WFSValueTreeState::isInputSoloed semantics.
+            juce::String soloStates = binaural.getProperty (WFSParameterIDs::inputSoloStates,
+                                                            juce::String()).toString();
+            juce::StringArray states;
+            states.addTokens (soloStates, ",", "");
+
+            const int numStates = juce::jmin (states.size(), 64);
+            for (int i = 0; i < numStates; ++i)
+            {
+                if (states[i] == "1")
+                {
+                    fresh.soloMask |= (1ull << i);
+                    ++fresh.numSoloed;
+                }
+            }
+        }
+
+        // Publish: the critical section is exactly one struct copy
+        {
+            const juce::SpinLock::ScopedLockType lock (rtParamsLock);
+            rtParams = fresh;
+        }
+        rtOutputChannel.store (outputChannel, std::memory_order_relaxed);
+    }
+
+private:
+    /**
      * Get binaural attenuation in dB.
+     * Message-thread publish-side scratch — reads the ValueTree; do not call from RT threads.
      */
     float getBinauralAttenuation() const
     {
@@ -111,6 +199,7 @@ public:
 
     /**
      * Get binaural delay in ms.
+     * Message-thread publish-side scratch — reads the ValueTree; do not call from RT threads.
      */
     float getBinauralDelay() const
     {
@@ -122,15 +211,9 @@ public:
     }
 
     /**
-     * Get number of currently soloed inputs.
-     */
-    int getNumSoloedInputs() const
-    {
-        return valueTreeState.getNumSoloedInputs();
-    }
-
-    /**
      * Recalculate listener and speaker positions when parameters change.
+     * Message-thread publish-side scratch (members below are snapshot sources);
+     * the RT thread consumes them only via the published RtParams copy.
      */
     void recalculatePositions()
     {
@@ -173,9 +256,6 @@ public:
         rightSpeakerPos.y = listenerPosition.y + halfSpacing * std::sin (angleRad);
         rightSpeakerPos.z = listenerPosition.z;
     }
-
-private:
-    using Position = WFSCalculationEngine::Position;
 
     /**
      * Calculate binaural output for one virtual speaker.
@@ -288,10 +368,16 @@ private:
     WFSValueTreeState& valueTreeState;
     WFSCalculationEngine& wfsCalcEngine;
 
-    // Listener and virtual speaker positions
+    // Listener and virtual speaker positions — message-thread scratch, snapshot
+    // sources for refreshRtSnapshot(). The RT thread reads only the RtParams copy.
     Position listenerPosition;
     Position leftSpeakerPos;
     Position rightSpeakerPos;
     float leftSpeakerOrientation = 0.0f;   // radians
     float rightSpeakerOrientation = 0.0f;  // radians
+
+    // RT snapshot: published by the message thread, copied per block by the RT worker
+    RtParams rtParams;                     // guarded by rtParamsLock
+    mutable juce::SpinLock rtParamsLock;
+    std::atomic<int> rtOutputChannel { WFSParameterDefaults::binauralOutputChannelDefault };
 };

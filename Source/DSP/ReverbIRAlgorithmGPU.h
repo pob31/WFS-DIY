@@ -32,10 +32,12 @@
 #include "ReverbAlgorithm.h"
 #include "ReverbDiagnostics.h"
 #include "gpu/IrGpuBackend.h"
+#include "gpu/GpuDeviceManager.h"
 #include "gpu/GpuAsyncPipeline.h"
 
 #include <atomic>
 #include <cmath>
+#include <memory>
 #include <vector>
 
 class ReverbIRAlgorithmGPU : public ReverbIRAlgorithmBase
@@ -49,7 +51,7 @@ public:
     ~ReverbIRAlgorithmGPU() override
     {
         pipeline.release();   // pump stops BEFORE the backend dies
-        backend.release();
+        backend.reset();
     }
 
     //==========================================================================
@@ -64,16 +66,23 @@ public:
 
         ready = false;
         pipeline.release();
-        backend.release();
+        backend = makeIrBackend (gpuDeviceId.empty()
+                                     ? GpuDeviceManager::instance().firstGpuId()
+                                     : gpuDeviceId);
+        if (backend == nullptr)
+        {
+            lastError = "No GPU backend available (using CPU)";
+            return;
+        }
 
         sampleRate = newSampleRate;
         blockSize = juce::jmax (1, maxBlockSize);
         numNodes = juce::jmax (1, newNumNodes);
 
-        if (! backend.prepare (numNodes, blockSize, sampleRate,
-                               (int) (kMaxIrSeconds * sampleRate)))
+        if (! backend->prepare (numNodes, blockSize, sampleRate,
+                                (int) (kMaxIrSeconds * sampleRate)))
         {
-            lastError = backend.getLastError();
+            lastError = backend->getLastError();
             DBG ("GPU IR reverb: backend init failed: " + lastError);
             return;
         }
@@ -85,12 +94,12 @@ public:
                             (int) std::ceil (kCushionMs / blockMs))
             : 4;
 
-        if (! pipeline.prepare (&backend, numNodes, numNodes,
+        if (! pipeline.prepare (backend.get(), numNodes, numNodes,
                                 blockSize, sampleRate, depth))
         {
             lastError = pipeline.getLastError().toStdString();
             DBG ("GPU IR reverb: pipeline init failed: " + lastError);
-            backend.release();
+            backend.reset();
             return;
         }
 
@@ -109,7 +118,8 @@ public:
     {
         // Clears GPU input history + overlap tails at the next pump launch;
         // the loaded IR spectra survive.
-        backend.requestReset();
+        if (backend)
+            backend->requestReset();
     }
 
     void processBlock (const juce::AudioBuffer<float>& nodeInputs,
@@ -125,8 +135,8 @@ public:
 #if REVERB_DIAGNOSTICS
         if (diagPtr != nullptr)
         {
-            const int cur = backend.getSegmentsLoaded() * blockSize;
-            const int total = backend.getSegmentsTotal() * blockSize;
+            const int cur = backend->getSegmentsLoaded() * blockSize;
+            const int total = backend->getSegmentsTotal() * blockSize;
             diagPtr->irCurrentSize.store (cur, std::memory_order_relaxed);
             diagPtr->irExpectedSize.store (total, std::memory_order_relaxed);
             diagPtr->irFullyLoaded.store (total > 0 && cur == total, std::memory_order_relaxed);
@@ -173,9 +183,13 @@ public:
     //==========================================================================
     // Status (engine/UI)
 
+    /** Select which compute device the GPU backend binds (e.g. "hip:0"); empty
+        falls back to the first detected GPU. Call before prepare(). */
+    void setDeviceId (const std::string& id) { gpuDeviceId = id; }
+
     bool isReady() const noexcept { return ready && pipeline.isReady(); }
     juce::String getLastError() const { return juce::String (lastError); }
-    juce::String getDeviceName() const { return juce::String (backend.getDeviceName()); }
+    juce::String getDeviceName() const { return backend ? juce::String (backend->getDeviceName()) : juce::String(); }
     double getPipelineLatencyMs() const noexcept { return pipeline.getLatencyMs(); }
     uint32_t getUnderrunCount() const noexcept { return pipeline.getUnderrunCount(); }
     float getAndResetPeakPumpMs() noexcept { return pipeline.getAndResetPeakPumpMs(); }
@@ -242,18 +256,20 @@ private:
                 v *= scale;
         }
 
-        backend.stageIr (mono.data(), (int) mono.size());
+        if (backend)
+            backend->stageIr (mono.data(), (int) mono.size());
     }
 
     //==========================================================================
-    IrGpuBackend backend;
-    GpuAsyncPipelineT<IrGpuBackend> pipeline;
+    std::unique_ptr<IIrBackend> backend;
+    GpuAsyncPipelineT<IGpuBackend> pipeline;
 
     double sampleRate { 0.0 };
     int blockSize { 0 };
     int numNodes { 0 };
     bool ready { false };
     std::string lastError;
+    std::string gpuDeviceId;
 
     // Cached IR (full file) + parameters, mirroring the CPU class
     juce::AudioBuffer<float> cachedIRBuffer;
