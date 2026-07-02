@@ -1,4 +1,4 @@
-<#
+﻿<#
     build-gpu-plugins.ps1 — build the per-vendor GPU plugin DLLs on Windows
     (Phase 3, the Windows twin of tools/linux/build-gpu-plugins.sh).
 
@@ -68,26 +68,45 @@ if ($cuda -and (Test-Path (Join-Path $cuda "include\cuda.h")) -and (Get-Command 
     Write-Host "skip wfs_cuda.dll (no CUDA_PATH/cl.exe)"
 }
 
-# ---- AMD / HIP (hipcc from the HIP SDK for Windows) ----
-# Run from the "HIP SDK" environment so `hipcc` (hipcc.bat/.pl) resolves on PATH;
-# -fms-runtime-lib=dll is the clang spelling of /MD (shared dynamic CRT, see above).
-# hipcc's --hip-link auto-links the HIP runtime (amdhip64) but NOT hiprtc, the
-# runtime kernel-compiler the backends call (hiprtcCreateProgram/Compile/GetCode/
-# ...). Link hiprtc.lib explicitly, mirroring the Linux .jucer's -lhiprtc. hipcc
-# re-splits its command line on spaces, so a "-L<dir with spaces>" (e.g. the SDK's
-# default "C:\Program Files\AMD\ROCm\..\lib") would be mangled; put the SDK lib dir
-# on the linker's %LIB% (lld-link honours it) instead. Resolve the SDK root from
-# HIP_PATH (set by the HIP SDK shell) or from hipcc's own location.
+# ---- AMD / HIP (host-mode clang++ from the HIP SDK for Windows) ----
+# The Hip*Backend.cpp files are HOST-ONLY C++: the kernels are hiprtc runtime-
+# compiled strings (CudaWfsKernels.h et al.), so there is NO device code to
+# compile here -- exactly like the CUDA branch above builds host code with
+# cl.exe, not nvcc. Do NOT use hipcc: it forces `-x hip` (device) compilation,
+# and on Windows that pulls HIP's device-math headers (__clang_hip_cmath.h)
+# whose isgreater/isless/... overloads collide with MSVC <cmath>'s
+# _CLANG_BUILTIN2(...) and fail to build. (On Linux hipcc works because
+# libstdc++'s <cmath> doesn't clash.) So compile as host C++ with the SDK's
+# clang++ (-x c++), define __HIP_PLATFORM_AMD__ so <hip/hip_runtime.h> exposes
+# the host API, and link amdhip64 (HIP runtime) + hiprtc (runtime kernel
+# compiler). -fms-runtime-lib=dll is the clang spelling of /MD (shared dynamic
+# CRT, see above). Resolve the SDK root from HIP_PATH (set by the HIP SDK shell)
+# or from hipcc's own location; the app is expected to run from a Developer
+# shell so clang++ finds the MSVC toolchain + Windows SDK via INCLUDE/LIB.
 if (Get-Command hipcc -ErrorAction SilentlyContinue) {
     Write-Host "Building wfs_hip.dll ..."
-    $hipRoot = if ($env:HIP_PATH) { $env:HIP_PATH } else { Split-Path (Split-Path (Get-Command hipcc).Source) }
-    $env:LIB = (Join-Path $hipRoot "lib") + ";" + $env:LIB
-    & hipcc -shared -std=c++17 -O2 -fms-runtime-lib=dll -DWFS_GPU_NATIVE=1 -DWFS_GPU_HIP=1 `
+    $hipRoot  = if ($env:HIP_PATH) { $env:HIP_PATH } else { Split-Path (Split-Path (Get-Command hipcc).Source) }
+    $hipClang = Join-Path $hipRoot "bin\clang++.exe"
+    & $hipClang -shared -std=c++17 -O2 -fms-runtime-lib=dll -x c++ `
+        -D__HIP_PLATFORM_AMD__=1 -DWFS_GPU_NATIVE=1 -DWFS_GPU_HIP=1 `
+        -isystem "$hipRoot\include" `
         -I"$Src" -I"$Root\Source\DSP" `
         @hipSrc $plugin `
-        -lhiprtc `
+        -fuse-ld=lld --ld-path="$hipRoot\bin\lld-link.exe" `
+        -L"$hipRoot\lib" -lamdhip64 -lhiprtc `
         -o "$OutDir\wfs_hip.dll"
     Write-Host "  -> $OutDir\wfs_hip.dll"
+
+    # NOTE: unlike the CUDA runtime above, the HIP runtime is deliberately NOT
+    # staged next to the plugin. amdhip64_*.dll loads if copied but then fails
+    # device init (hipErrorNoDevice: "no ROCm-capable device is detected"),
+    # because it locates its ROCm support files relative to its own directory --
+    # a relocated copy can't find them. So the runtime must load IN PLACE from
+    # the ROCm install; the app adds that install's bin to its DLL search path at
+    # startup (PlatformDynLib.h ensureVendorRuntimeSearchPath), which resolves
+    # both the amdhip64 enumeration and the plugin's amdhip64/hiprtc imports.
+    # hipRTC ships only with the HIP SDK (not the consumer Adrenalin driver), so
+    # an installed HIP SDK / ROCm is required for AMD GPU acceleration.
     $built = $true
 } else {
     Write-Host "skip wfs_hip.dll (hipcc not found)"

@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 #include <cstring>
+#include <initializer_list>
 
 #if ! defined(__APPLE__)
  #include "PlatformDynLib.h"   // dlopen / LoadLibrary shim
@@ -58,13 +59,17 @@ namespace wfsgpu_detail
     using FnDevName = int (*) (char*, int, int);
 
     inline void enumerateVia (std::vector<GpuDevice>& out, GpuDevice::Vendor vendor,
-                              const char* soA, const char* soB,
+                              std::initializer_list<const char*> soNames,
                               const char* initSym, const char* countSym,
                               const char* devGetSym, const char* devNameSym,
                               const char* idPrefix, const char* fallbackName)
     {
-        wfsdyn::LibHandle lib = wfsdyn::openLib (soA);
-        if (lib == nullptr && soB != nullptr) lib = wfsdyn::openLib (soB);
+        // Try each candidate runtime name in order (versioned SDK names, the
+        // generic name, the driver-bundled name) until one loads; the vendor
+        // ships several across releases (amdhip64_7.dll / _6.dll, libamdhip64.so.7 ...).
+        wfsdyn::LibHandle lib = nullptr;
+        for (const char* n : soNames)
+            if (n != nullptr && (lib = wfsdyn::openLib (n)) != nullptr) break;
         if (lib == nullptr) return;                       // runtime absent -> no devices
 
         auto init    = initSym    ? (FnInit)    wfsdyn::sym (lib, initSym)    : nullptr;
@@ -114,29 +119,34 @@ public:
         // Metal device path; for now the macOS build reports the default device.
         devs.push_back ({ GpuDevice::Vendor::Metal, 0, "Metal (default)", "metal:0" });
 #elif defined(_WIN32)
-        // AMD / HIP: the HIP runtime DLL (AMD HIP SDK / ROCm for Windows).
+        // AMD / HIP: the HIP runtime DLL. Prefer the versioned SDK name we build
+        // against (amdhip64_7.dll), then the generic name, then the ROCm-6 name
+        // the consumer Adrenalin driver drops in System32. (ensureVendorRuntime-
+        // SearchPath in PlatformDynLib.h has already added the ROCm bin so these
+        // resolve even when it is not on PATH.)
         wfsgpu_detail::enumerateVia (devs, GpuDevice::Vendor::HIP,
-                                     "amdhip64.dll", "amdhip64_6.dll",
+                                     { "amdhip64_7.dll", "amdhip64.dll", "amdhip64_6.dll" },
                                      "hipInit", "hipGetDeviceCount",
                                      "hipDeviceGet", "hipDeviceGetName",
                                      "hip:", "AMD GPU");
         // NVIDIA / CUDA: the driver DLL (present with an installed NVIDIA driver).
         wfsgpu_detail::enumerateVia (devs, GpuDevice::Vendor::CUDA,
-                                     "nvcuda.dll", nullptr,
+                                     { "nvcuda.dll" },
                                      "cuInit", "cuDeviceGetCount",
                                      "cuDeviceGet", "cuDeviceGetName",
                                      "cuda:", "NVIDIA GPU");
 #else
-        // AMD / HIP: runtime lib carries both count + name symbols.
+        // AMD / HIP: runtime lib carries both count + name symbols. Prefer the
+        // newest SONAME (ROCm 7), then ROCm 6, then the unversioned dev symlink.
         wfsgpu_detail::enumerateVia (devs, GpuDevice::Vendor::HIP,
-                                     "libamdhip64.so.6", "libamdhip64.so",
+                                     { "libamdhip64.so.7", "libamdhip64.so.6", "libamdhip64.so" },
                                      "hipInit", "hipGetDeviceCount",
                                      "hipDeviceGet", "hipDeviceGetName",
                                      "hip:", "AMD GPU");
         // NVIDIA / CUDA: enumerate via the DRIVER lib (only present with an
         // installed NVIDIA driver), so a toolkit-only box reports no CUDA GPU.
         wfsgpu_detail::enumerateVia (devs, GpuDevice::Vendor::CUDA,
-                                     "libcuda.so.1", "libcuda.so",
+                                     { "libcuda.so.1", "libcuda.so" },
                                      "cuInit", "cuDeviceGetCount",
                                      "cuDeviceGet", "cuDeviceGetName",
                                      "cuda:", "NVIDIA GPU");

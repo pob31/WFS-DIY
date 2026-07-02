@@ -35,7 +35,43 @@ namespace wfsdyn
 
     using LibHandle = HMODULE;
 
-    inline LibHandle openLib (const char* name) noexcept { return ::LoadLibraryA (name); }
+    // The AMD/HIP runtime (amdhip64_*.dll + hiprtc*.dll) is NOT relocatable: a
+    // copy loads but then fails device init (hipErrorNoDevice, "no ROCm-capable
+    // device is detected") because it locates its ROCm support files relative to
+    // its own directory -- a relocated copy can't find them. It must load IN
+    // PLACE from the ROCm install, so we do NOT ship it next to the app. Some
+    // HIP SDK installers set HIP_PATH (or ROCM_PATH) but do NOT put its bin on
+    // PATH (as seen with ROCm 7.1), leaving amdhip64_*.dll unfindable. Add that
+    // bin to the process DLL search path once, before the first GPU dlopen, so
+    // BOTH the device enumeration (amdhip64) and the plugin's amdhip64/hiprtc
+    // imports resolve. No-op when the env is unset (no HIP SDK) -> the vendor
+    // simply enumerates no device and the app stays on the CPU path.
+    inline void ensureVendorRuntimeSearchPath() noexcept
+    {
+        static const bool once = [] () noexcept -> bool
+        {
+            const char* vars[2] = { "HIP_PATH", "ROCM_PATH" };
+            char buf[MAX_PATH];
+            for (int i = 0; i < 2; ++i)
+            {
+                const DWORD n = ::GetEnvironmentVariableA (vars[i], buf, (DWORD) sizeof (buf));
+                if (n == 0 || n >= sizeof (buf)) continue;
+                std::string root (buf, n);
+                while (! root.empty() && (root.back() == '\\' || root.back() == '/')) root.pop_back();
+                if (root.empty()) continue;
+                ::SetDllDirectoryA ((root + "\\bin").c_str());   // augments search (keeps app dir/System32/PATH)
+                return true;
+            }
+            return false;
+        }();
+        (void) once;
+    }
+
+    inline LibHandle openLib (const char* name) noexcept
+    {
+        ensureVendorRuntimeSearchPath();
+        return ::LoadLibraryA (name);
+    }
     inline void*     sym (LibHandle h, const char* s) noexcept { return (void*) ::GetProcAddress (h, s); }
 
     /** Directory containing the running executable (no trailing separator), or "". */
