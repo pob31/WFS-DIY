@@ -1,5 +1,5 @@
 #include "TrackingMQTTReceiver.h"
-#include "../DSP/TrackingPositionFilter.h"
+#include "../../spatcore/dsp/TrackingPositionFilter.h"
 #include "OSCLogger.h"
 #include "NetworkStringUtils.h"
 

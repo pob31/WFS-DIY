@@ -3,7 +3,7 @@
 #include "OSCParser.h"
 #include "QLabCueBuilder.h"
 #include "../Helpers/CoordinateConverter.h"
-#include "../Helpers/NumericGuards.h"
+#include "../../spatcore/dsp/NumericGuards.h"
 #include "../Parameters/WFSConstraints.h"
 #include "../WFSLogger.h"
 #include <thread>

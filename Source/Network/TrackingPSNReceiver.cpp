@@ -1,5 +1,5 @@
 #include "TrackingPSNReceiver.h"
-#include "../DSP/TrackingPositionFilter.h"
+#include "../../spatcore/dsp/TrackingPositionFilter.h"
 #include "OSCLogger.h"
 
 namespace WFSNetwork

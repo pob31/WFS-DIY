@@ -2,7 +2,7 @@
 
 #include <JuceHeader.h>
 #include "SamplerData.h"
-#include "../DSP/WFSHighShelfFilter.h"
+#include "../../spatcore/dsp/WFSHighShelfFilter.h"
 
 /**
  * Per-channel monophonic sampler engine.

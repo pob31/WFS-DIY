@@ -1,5 +1,5 @@
 #include "WFSCalculationEngine.h"
-#include "../Helpers/NumericGuards.h"
+#include "../../spatcore/dsp/NumericGuards.h"
 #include <array>
 #include <limits>
 

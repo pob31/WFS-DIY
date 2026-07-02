@@ -30,7 +30,7 @@
 
 #include <JuceHeader.h>
 #include "ReverbAlgorithm.h"
-#include "ReverbDiagnostics.h"
+#include "../../spatcore/rt/ReverbDiagnostics.h"
 #include "gpu/IrGpuBackend.h"
 #include "gpu/GpuDeviceManager.h"
 #include "gpu/GpuAsyncPipeline.h"

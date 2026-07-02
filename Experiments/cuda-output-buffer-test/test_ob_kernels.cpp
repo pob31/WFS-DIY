@@ -32,7 +32,7 @@
 */
 
 #include "../../Source/DSP/gpu/CudaObKernels.h"
-#include "../../Source/DSP/FrDiffusionModel.h"
+#include "../../spatcore/dsp/FrDiffusionModel.h"
 
 #include <cuda.h>
 #include <cuda_runtime.h>

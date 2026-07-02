@@ -2,10 +2,10 @@
 
 #include <JuceHeader.h>
 #include "BinauralCalculationEngine.h"
-#include "SharedInputRingBuffer.h"
-#include "WFSHighShelfFilter.h"
-#include "../LockFreeRingBuffer.h"
-#include "AudioWorkgroupCoordinator.h"
+#include "../../spatcore/rt/SharedInputRingBuffer.h"
+#include "../../spatcore/dsp/WFSHighShelfFilter.h"
+#include "../../spatcore/rt/LockFreeRingBuffer.h"
+#include "../../spatcore/rt/AudioWorkgroupCoordinator.h"
 #include <vector>
 #include <atomic>
 

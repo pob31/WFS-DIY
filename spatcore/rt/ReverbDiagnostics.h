@@ -5,7 +5,8 @@
 
 #if REVERB_DIAGNOSTICS
 
-#include <JuceHeader.h>
+#include <juce_audio_basics/juce_audio_basics.h>
+#include <juce_events/juce_events.h>
 #include <atomic>
 #include <cmath>
 

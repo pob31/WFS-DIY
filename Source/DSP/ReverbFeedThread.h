@@ -1,7 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "SharedInputRingBuffer.h"
+#include "../../spatcore/rt/SharedInputRingBuffer.h"
 #include "ReverbEngine.h"
 #include <atomic>
 #include <vector>

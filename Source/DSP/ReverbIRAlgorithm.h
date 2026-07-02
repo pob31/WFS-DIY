@@ -1,8 +1,8 @@
 #pragma once
 
 #include "ReverbAlgorithm.h"
-#include "ReverbDiagnostics.h"
-#include "AudioParallelFor.h"
+#include "../../spatcore/rt/ReverbDiagnostics.h"
+#include "../../spatcore/rt/AudioParallelFor.h"
 
 //==============================================================================
 /**

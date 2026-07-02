@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cmath>
-#include <JuceHeader.h>
+#include <juce_audio_basics/juce_audio_basics.h>
 
 /**
  * Shared LFO waveform shapes and generation utility.

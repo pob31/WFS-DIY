@@ -29,7 +29,7 @@
 #include <memory>
 #include <vector>
 
-#include "../../LockFreeRingBuffer.h"
+#include "../../../spatcore/rt/LockFreeRingBuffer.h"
 #include "WfsGpuBackend.h"
 
 /** Backend-generic async pump. BackendType only needs the shared backend
