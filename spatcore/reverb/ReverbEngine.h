@@ -1,7 +1,7 @@
 #pragma once
 
-#include <JuceHeader.h>
-#include "../../spatcore/rt/LockFreeRingBuffer.h"
+#include <juce_audio_basics/juce_audio_basics.h>
+#include "../rt/LockFreeRingBuffer.h"
 #include "ReverbAlgorithm.h"
 #include "ReverbFDNAlgorithm.h"
 #include "ReverbSDNAlgorithm.h"
@@ -11,10 +11,10 @@
 #include "ReverbFDNAlgorithmGPU.h"
 #include "ReverbSDNAlgorithmGPU.h"
 #endif
-#include "../../spatcore/rt/ReverbDiagnostics.h"
+#include "../rt/ReverbDiagnostics.h"
 #include "ReverbPreProcessor.h"
 #include "ReverbPostProcessor.h"
-#include "../../spatcore/rt/AudioParallelFor.h"
+#include "../rt/AudioParallelFor.h"
 #include <atomic>
 #include <memory>
 #include <mutex>

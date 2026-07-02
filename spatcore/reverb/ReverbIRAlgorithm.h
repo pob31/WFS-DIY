@@ -1,8 +1,9 @@
 #pragma once
 
+#include <juce_dsp/juce_dsp.h>
 #include "ReverbAlgorithm.h"
-#include "../../spatcore/rt/ReverbDiagnostics.h"
-#include "../../spatcore/rt/AudioParallelFor.h"
+#include "../rt/ReverbDiagnostics.h"
+#include "../rt/AudioParallelFor.h"
 
 //==============================================================================
 /**

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../spatcore/dsp/ReverbBiquadFilter.h"
+#include "../dsp/ReverbBiquadFilter.h"
 #include <array>
 #include <vector>
 #include <cmath>

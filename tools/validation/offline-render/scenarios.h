@@ -17,7 +17,7 @@
 #include <string>
 #include <vector>
 
-#include "DSP/ReverbAlgorithm.h"   // AlgorithmParameters, NodePosition (POD)
+#include "../../../spatcore/reverb/ReverbAlgorithm.h"   // AlgorithmParameters, NodePosition (POD)
 
 namespace scenario
 {

@@ -32,10 +32,10 @@
 #include <atomic>
 #include <memory>
 
-#include "ObGpuBackend.h"
-#include "GpuDeviceManager.h"
-#include "GpuAsyncPipeline.h"
-#include "GpuLevelMeters.h"
+#include "../gpu/ObGpuBackend.h"
+#include "../gpu/GpuDeviceManager.h"
+#include "../gpu/GpuAsyncPipeline.h"
+#include "../gpu/GpuLevelMeters.h"
 
 class NativeGpuOutputBufferAlgorithm
 {

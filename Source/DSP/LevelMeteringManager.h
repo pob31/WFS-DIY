@@ -1,11 +1,11 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "InputBufferAlgorithm.h"
-#include "OutputBufferAlgorithm.h"
+#include "../../spatcore/wfs/InputBufferAlgorithm.h"
+#include "../../spatcore/wfs/OutputBufferAlgorithm.h"
 #if WFS_GPU_NATIVE
- #include "../../spatcore/gpu/NativeGpuWfsAlgorithm.h"
- #include "../../spatcore/gpu/NativeGpuOutputBufferAlgorithm.h"
+ #include "../../spatcore/wfs/NativeGpuWfsAlgorithm.h"
+ #include "../../spatcore/wfs/NativeGpuOutputBufferAlgorithm.h"
 #endif
 #include <vector>
 #include <array>

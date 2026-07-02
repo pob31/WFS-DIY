@@ -49,14 +49,14 @@
 #include <string>
 #include <vector>
 
-#include "DSP/InputBufferProcessor.h"     // CPU gather (per-input worker threads)
-#include "DSP/OutputBufferProcessor.h"    // CPU scatter (per-output worker threads)
+#include "../../../spatcore/wfs/InputBufferProcessor.h"     // CPU gather (per-input worker threads)
+#include "../../../spatcore/wfs/OutputBufferProcessor.h"    // CPU scatter (per-output worker threads)
 #include "../../../spatcore/rt/SharedInputRingBuffer.h"
 #include "../../../spatcore/rt/AudioParallelFor.h"
-#include "DSP/ReverbAlgorithm.h"
-#include "DSP/ReverbSDNAlgorithm.h"
-#include "DSP/ReverbFDNAlgorithm.h"
-#include "DSP/ReverbIRAlgorithm.h"
+#include "../../../spatcore/reverb/ReverbAlgorithm.h"
+#include "../../../spatcore/reverb/ReverbSDNAlgorithm.h"
+#include "../../../spatcore/reverb/ReverbFDNAlgorithm.h"
+#include "../../../spatcore/reverb/ReverbIRAlgorithm.h"
 
 #if WFS_GPU_NATIVE
  #include "../../../spatcore/gpu/GpuDeviceManager.h"   // device enumeration ("cuda:0", ...)

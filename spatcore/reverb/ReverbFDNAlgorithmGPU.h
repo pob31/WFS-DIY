@@ -22,12 +22,12 @@
     CPU FDNAlgorithm and reports the fallback (same UX as the GPU IR fallback).
 */
 
-#include <JuceHeader.h>
+#include <juce_audio_basics/juce_audio_basics.h>
 #include "ReverbAlgorithm.h"
-#include "../../spatcore/rt/ReverbDiagnostics.h"
-#include "../../spatcore/gpu/FdnGpuBackend.h"
-#include "../../spatcore/gpu/GpuDeviceManager.h"
-#include "../../spatcore/gpu/GpuAsyncPipeline.h"
+#include "../rt/ReverbDiagnostics.h"
+#include "../gpu/FdnGpuBackend.h"
+#include "../gpu/GpuDeviceManager.h"
+#include "../gpu/GpuAsyncPipeline.h"
 
 #include <cmath>
 #include <memory>

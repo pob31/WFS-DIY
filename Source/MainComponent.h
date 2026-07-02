@@ -2,12 +2,12 @@
 
 #include <JuceHeader.h>
 #include <map>
-#include "DSP/InputBufferAlgorithm.h"
+#include "../spatcore/wfs/InputBufferAlgorithm.h"
 #if WFS_GPU_NATIVE
-#include "../spatcore/gpu/NativeGpuWfsAlgorithm.h"
-#include "../spatcore/gpu/NativeGpuOutputBufferAlgorithm.h"
+#include "../spatcore/wfs/NativeGpuWfsAlgorithm.h"
+#include "../spatcore/wfs/NativeGpuOutputBufferAlgorithm.h"
 #endif
-#include "DSP/OutputBufferAlgorithm.h"
+#include "../spatcore/wfs/OutputBufferAlgorithm.h"
 #include "DSP/WFSCalculationEngine.h"
 #include "DSP/LFOProcessor.h"
 #include "DSP/AutomOtionProcessor.h"
@@ -16,8 +16,8 @@
 #include "DSP/TestSignalGenerator.h"
 #include "DSP/BinauralCalculationEngine.h"
 #include "DSP/BinauralProcessor.h"
-#include "DSP/ReverbEngine.h"
-#include "DSP/ReverbFeedThread.h"
+#include "../spatcore/reverb/ReverbEngine.h"
+#include "../spatcore/reverb/ReverbFeedThread.h"
 #include "DSP/OutputEQProcessor.h"
 #include "../spatcore/rt/SharedInputRingBuffer.h"
 #include "../spatcore/rt/AudioWorkgroupCoordinator.h"

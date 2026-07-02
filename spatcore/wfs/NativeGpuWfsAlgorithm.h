@@ -26,10 +26,10 @@
 #include <atomic>
 #include <memory>
 
-#include "WfsGpuBackend.h"
-#include "GpuDeviceManager.h"
-#include "GpuAsyncPipeline.h"
-#include "GpuLevelMeters.h"
+#include "../gpu/WfsGpuBackend.h"
+#include "../gpu/GpuDeviceManager.h"
+#include "../gpu/GpuAsyncPipeline.h"
+#include "../gpu/GpuLevelMeters.h"
 
 class NativeGpuWfsAlgorithm
 {
