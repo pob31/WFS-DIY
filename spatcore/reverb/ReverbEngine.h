@@ -262,7 +262,7 @@ public:
         }
     }
 
-    /** Algorithm type constants matching WFSParameterIDs::reverbAlgoType */
+    /** Algorithm type contract — consumers map their algorithm parameter to these values. */
     enum AlgorithmType { SDN = 0, FDN = 1, IR = 2 };
 
     /**
