@@ -67,6 +67,13 @@ enumerates a single hard-coded `metal:0` (`GpuDeviceManager.h:112-115`); and per
 across *different vendors* is structurally supported but untested (no AMD GPU on the dev machine —
 see memory).
 
+**Update (2026-07 — RESOLVED for single-device AMD/Windows).** The Windows HIP backend is now
+hardware-validated: `wfs_hip.dll` passes all 7 smoke-test scenarios on a Radeon 780M (gfx1103,
+ROCm 7.1) and the app runs WFS + SDN reverb on it over live ASIO — see
+`docs/AMD_Windows_HIP_Validation.md`. This closes the last untested cell of the *single-vendor*
+platform matrix. Still open: per-role multi-GPU across *different vendors* (AMD + NVIDIA in one
+box), which needs dual-vendor hardware.
+
 **Decision.** During extraction do you (a) finish the Metal per-device factory path and unify the
 in-process vs plugin dispatch, or (b) freeze the abstraction and just move it?
 
