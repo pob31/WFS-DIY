@@ -33,7 +33,11 @@
 class SdnHostConfig
 {
 public:
-    static constexpr int   MAX_NODES = 32;  // >= WFSParameterDefaults::maxReverbChannels
+    // spatcore capability bound: the SDN kernels' per-node scratch is float[32]
+    // (Cuda/Metal SdnKernels.h, byte-frozen), so consumers must keep their node
+    // count <= 32; backend prepare() clamps to this. Cost is O(N^2) — prefer
+    // FDN/IR beyond it (docs/architecture/open-questions-audio.md Q6).
+    static constexpr int   MAX_NODES = 32;
     static constexpr int   MAX_DELAY_SAMPLES = 8192;
     static constexpr int   NUM_DIFFUSERS = 2;
     static constexpr float SPEED_OF_SOUND = 343.0f;

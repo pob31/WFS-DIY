@@ -104,7 +104,7 @@ bool MetalSdnBackend::prepare (int numNodes, int blockSize, double sampleRate)
     release();
     auto& m = *impl;
 
-    m.numNodes = std::max (1, numNodes);
+    m.numNodes = std::min (std::max (1, numNodes), SdnHostConfig::MAX_NODES);
     m.blockSize = std::max (1, blockSize);
     m.sampleRate = sampleRate;
     m.cfg.prepare (m.numNodes, sampleRate);
