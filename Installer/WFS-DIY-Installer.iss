@@ -77,6 +77,13 @@ Source: "..\Builds\VisualStudio2022\x64\Release\App\nvrtc-builtins64_*.dll"; Des
 ; Language files
 Source: "..\Resources\lang\*.json"; DestDir: "{app}\lang"; Flags: ignoreversion recursesubdirs
 
+; MCP knowledge-base resources (AI control surface) + the generated tool
+; surface. MainComponent resolves these at {app}\MCP\... via
+; exeDir.getChildFile("MCP/...") -- without these, MCP tool-calling and
+; knowledge-resource lookups silently find nothing in the installed app.
+Source: "..\Documentation\MCP\resources\*";              DestDir: "{app}\MCP\resources"; Flags: ignoreversion recursesubdirs
+Source: "..\Source\Network\MCP\generated_tools.json";    DestDir: "{app}\MCP";           Flags: ignoreversion
+
 ; App icon (for folder branding)
 Source: "..\Builds\VisualStudio2022\icon.ico"; DestDir: "{app}"; DestName: "WFS-DIY.ico"; Flags: ignoreversion
 

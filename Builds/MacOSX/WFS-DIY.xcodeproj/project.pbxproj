@@ -1063,7 +1063,7 @@
 			name = "Run Post-build Script";
 			alwaysOutOfDate = 1;
 			shellPath = /bin/sh;
-			shellScript = "mkdir -p \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/lang\"\ncp -R \"${SRCROOT}/../../Resources/lang/\" \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/lang/\"\necho \"Copied localisation files to bundle\"";
+			shellScript = "mkdir -p \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/lang\"\ncp -R \"${SRCROOT}/../../Resources/lang/\" \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/lang/\"\nmkdir -p \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/MCP/resources\"\ncp -R \"${SRCROOT}/../../Documentation/MCP/resources/\" \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/MCP/resources/\"\ncp \"${SRCROOT}/../../Source/Network/MCP/generated_tools.json\" \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/MCP/\"\necho \"Copied localisation + MCP files to bundle\"";
 		};
 /* End PBXShellScriptBuildPhase section */
 

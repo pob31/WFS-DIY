@@ -756,13 +756,20 @@ MainComponent::MainComponent()
     // Initialize MCP server (AI control surface). Phase 2 Block 1: also
     // loads the auto-generated tool surface from generated_tools.json.
     // Resolve the JSON file path by checking, in order:
-    //   1. <exeDir>/MCP/generated_tools.json    (production, after postbuild)
-    //   2. <projectRoot>/Source/Network/MCP/...  (Windows VS2022 dev)
-    //   3. <projectRoot>/Source/Network/MCP/...  (macOS dev)
+    //   1. <exeDir>/MCP/generated_tools.json         (Windows/Linux production, after postbuild)
+    //   2. <exeDir>/../Resources/MCP/generated_tools.json (macOS bundle production)
+    //   3. <projectRoot>/Source/Network/MCP/...       (Windows VS2022 dev)
+    //   4. <projectRoot>/Source/Network/MCP/...       (macOS dev)
     juce::File generatedToolsJson;
     {
         auto exeDir = juce::File::getSpecialLocation(juce::File::currentExecutableFile).getParentDirectory();
         generatedToolsJson = exeDir.getChildFile("MCP/generated_tools.json");
+        if (! generatedToolsJson.existsAsFile())
+        {
+            // macOS bundle: exe is at Contents/MacOS/, postbuild stages this at
+            // Contents/Resources/MCP/ (same convention as lang/, see resourceDir above).
+            generatedToolsJson = exeDir.getParentDirectory().getChildFile("Resources/MCP/generated_tools.json");
+        }
         if (! generatedToolsJson.existsAsFile())
         {
             // Windows VS2022 dev: exe at Builds/VisualStudio2022/x64/Debug/App/
@@ -797,6 +804,12 @@ MainComponent::MainComponent()
         {
             // Linux installed layout: <prefix>/bin/WFS-DIY → <prefix>/share/wfs-diy/MCP/resources
             knowledgeResourcesDir = exeDir.getParentDirectory().getChildFile("share/wfs-diy/MCP/resources");
+        }
+        if (! knowledgeResourcesDir.isDirectory())
+        {
+            // macOS bundle: exe is at Contents/MacOS/, postbuild stages this at
+            // Contents/Resources/MCP/resources (same convention as lang/, see resourceDir above).
+            knowledgeResourcesDir = exeDir.getParentDirectory().getChildFile("Resources/MCP/resources");
         }
         if (! knowledgeResourcesDir.isDirectory())
         {

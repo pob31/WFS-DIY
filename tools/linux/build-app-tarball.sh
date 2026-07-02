@@ -78,6 +78,10 @@ cp "$BIN" "$STAGE_DIR/WFS-DIY"
 mkdir -p "$STAGE_DIR/lang" "$STAGE_DIR/MCP/resources"
 cp -R "$REPO_ROOT/Resources/lang/."                "$STAGE_DIR/lang/"
 cp -R "$REPO_ROOT/Documentation/MCP/resources/."   "$STAGE_DIR/MCP/resources/"
+# The generated tool surface (MCP server's list of AI-callable tools) --
+# without this next to the binary, exeDir.getChildFile("MCP/generated_tools.json")
+# finds nothing and MCP tool-calling silently comes up empty.
+cp "$REPO_ROOT/Source/Network/MCP/generated_tools.json" "$STAGE_DIR/MCP/"
 
 # ----------------------------------------------------------------------------
 # GPU bundle (optional): per-vendor plugins + their full runtime closure so the

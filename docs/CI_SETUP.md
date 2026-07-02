@@ -7,7 +7,8 @@ Two workflows under `.github/workflows/`:
 - **`release.yml`** — when a GitHub **Release is published** (or via manual
   *Run workflow* against an existing tag): builds Release on all three OSes,
   **signs + notarizes + staples the macOS DMG**, and attaches every artifact to
-  the Release. Windows ships as an unsigned `.zip`, Linux as a `.tar.gz`.
+  the Release. Windows ships as an unsigned Inno Setup `.exe` installer, Linux
+  as a `.tar.gz`.
 
 The macOS build/sign/notarize/staple logic lives in
 [`scripts/ci/build-macos-release.sh`](../scripts/ci/build-macos-release.sh) and runs
@@ -60,12 +61,15 @@ then add these **5 secrets** to that environment:
 
 ## Cutting a release
 
-1. Bump the version in all build files (jucer / JuceHeader / Info-App.plist /
-   pbxproj / vcxproj / resources.rc / LinuxMakefile) — currently `1.0.0beta23`.
+1. Bump the version in the `.jucer` (`version=` attribute), then run
+   `Projucer --resave WFS-DIY.jucer` to propagate it into JuceHeader.h /
+   Info-App.plist / pbxproj / vcxproj / resources.rc / LinuxMakefile — don't
+   hand-edit the generated files individually, they'll drift.
 2. Commit + push to `main`.
-3. Create a GitHub **Release** with tag **`v<version>`** (e.g. `v1.0.0beta22`) and publish it.
+3. Create a GitHub **Release** with tag **`v<version>`** (e.g. `v1.0.0beta26`) and publish it.
    - `verify-version` fails fast if the tag ≠ `versionString` in `JuceHeader.h`.
-4. The three jobs build and attach: signed/notarized **DMG**, Windows **zip**, Linux **tar.gz**.
+4. The three jobs build and attach: signed/notarized **DMG**, Windows Inno Setup
+   **.exe** installer, Linux **tar.gz**.
 
 Manual re-run against an existing tag: Actions → **Release** → *Run workflow* → enter the tag.
 
@@ -73,6 +77,14 @@ Manual re-run against an existing tag: Actions → **Release** → *Run workflow
 
 ## Notes / known iteration points
 - **JUCE is a submodule (~large)** — checkout is the slow step; both workflows use `submodules: recursive`.
-- **Windows is unsigned** by design (no code-signing cert). The `.zip` will show a SmartScreen prompt on first run.
+- **Windows is unsigned** by design (no code-signing cert). The installer will show a SmartScreen prompt on first run.
+- **Linux HIP is not built in CI.** The Linux job installs the CUDA toolkit (so
+  `libwfs_cuda.so` builds and bundles its runtime closure via
+  `tools/linux/build-app-tarball.sh`'s `BUNDLE_GPU=auto`), but there's no
+  equivalent ROCm install step — a full ROCm install is multi-GB and slow/flaky
+  on a shared runner, and there's no small prebuilt fallback like Windows' committed
+  `tools/windows/prebuilt/wfs_hip.dll` (the Linux HIP runtime closure is far
+  larger than one DLL). The Linux release tarball therefore ships without
+  `libwfs_hip.so` — AMD users on Linux fall back to CPU until this is revisited.
 - These workflows are a first cut; the per-OS **packaging paths** (Windows `x64/Release/App`, Linux `build/WFS-DIY`) may need a tweak after the first real run — check the Actions logs.
 - **Local macOS release** (no CI): `scripts/ci/build-macos-release.sh` uses the `WFS-DIY-notary` keychain profile; `SKIP_NOTARIZE=1` to build+sign+DMG only.
