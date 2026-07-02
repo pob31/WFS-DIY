@@ -3,7 +3,7 @@
   "outputAttenuation": 2,
   "reverbAttenuation": 2,
   "inputArrayAtten*": 2,
-  "MasterLevel": 3,
+  "masterLevel": 3,
 
   "inputDelayLatency": 2,
   "outputDelayLatency": 2,
