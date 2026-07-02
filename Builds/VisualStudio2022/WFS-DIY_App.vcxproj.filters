@@ -4446,7 +4446,7 @@
     <ClInclude Include="..\..\Source\Helpers\ArrayGeometryCalculator.h">
       <Filter>WFS-DIY\Source\Helpers</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Helpers\NumericGuards.h">
+    <ClInclude Include="..\..\spatcore\dsp\NumericGuards.h">
       <Filter>WFS-DIY\Source\Helpers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Accessibility\TTSManager.h">
@@ -4713,7 +4713,7 @@
     <ClInclude Include="..\..\Source\DSP\WFSCalculationEngine.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\DSP\WFSHighShelfFilter.h">
+    <ClInclude Include="..\..\spatcore\dsp\WFSHighShelfFilter.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\DSP\InputBufferProcessor.h">
@@ -4866,10 +4866,10 @@
     <ClInclude Include="..\..\Source\DSP\TestSignalGenerator.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\DSP\TrackingPositionFilter.h">
+    <ClInclude Include="..\..\spatcore\dsp\TrackingPositionFilter.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\DSP\InputSpeedLimiter.h">
+    <ClInclude Include="..\..\spatcore\dsp\InputSpeedLimiter.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\ThirdParty\JUCE\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.h">

@@ -157,6 +157,7 @@
 		1D15D9B673B4EC4DA1BA57BE /* HipFdnBackend.cpp */ /* HipFdnBackend.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = HipFdnBackend.cpp; path = ../../Source/DSP/gpu/HipFdnBackend.cpp; sourceTree = SOURCE_ROOT; };
 		1D4034F17218DC090D63347F /* OSCConnection.cpp */ /* OSCConnection.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCConnection.cpp; path = ../../Source/Network/OSCConnection.cpp; sourceTree = SOURCE_ROOT; };
 		1DE02096923CAE23AE752B0F /* CudaObBackend.h */ /* CudaObBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CudaObBackend.h; path = ../../Source/DSP/gpu/CudaObBackend.h; sourceTree = SOURCE_ROOT; };
+		1EFDB9EA59803579E0783B3B /* NumericGuards.h */ /* NumericGuards.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = NumericGuards.h; path = ../../spatcore/dsp/NumericGuards.h; sourceTree = SOURCE_ROOT; };
 		2005A065341F1626D8F31859 /* AudioToolbox.framework */ /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 		22239A7EE1C91BB1BEF3837D /* WfsFrHostState.h */ /* WfsFrHostState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WfsFrHostState.h; path = ../../Source/DSP/gpu/WfsFrHostState.h; sourceTree = SOURCE_ROOT; };
 		227E033B18F6304BAF888B94 /* WFSCalculationEngine.h */ /* WFSCalculationEngine.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WFSCalculationEngine.h; path = ../../Source/DSP/WFSCalculationEngine.h; sourceTree = SOURCE_ROOT; };
@@ -188,7 +189,6 @@
 		366967657B27DF70D955B956 /* PatchWindowPages.h */ /* PatchWindowPages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PatchWindowPages.h; path = ../../Source/Controllers/DialsAndButtons/pages/PatchWindowPages.h; sourceTree = SOURCE_ROOT; };
 		3686FA549875B11C3A90C790 /* ControllerManager.h */ /* ControllerManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ControllerManager.h; path = ../../Source/Controllers/PositionControl/ControllerManager.h; sourceTree = SOURCE_ROOT; };
 		37A64E364B5651AEABDA9662 /* UpdateBanner.h */ /* UpdateBanner.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = UpdateBanner.h; path = ../../Source/gui/UpdateBanner.h; sourceTree = SOURCE_ROOT; };
-		388303C536A2A156D54D0EDD /* TrackingPositionFilter.h */ /* TrackingPositionFilter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TrackingPositionFilter.h; path = ../../Source/DSP/TrackingPositionFilter.h; sourceTree = SOURCE_ROOT; };
 		397E48E69531DACFDCC4C03E /* juce_events */ /* juce_events */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_events; path = ../../ThirdParty/JUCE/modules/juce_events; sourceTree = SOURCE_ROOT; };
 		3B762799D2662B552253B03C /* juce_core */ /* juce_core */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_core; path = ../../ThirdParty/JUCE/modules/juce_core; sourceTree = SOURCE_ROOT; };
 		3BEDA7AE9F163D8CB7DBB3D0 /* MCPChangeRecords.h */ /* MCPChangeRecords.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPChangeRecords.h; path = ../../Source/Network/MCP/MCPChangeRecords.h; sourceTree = SOURCE_ROOT; };
@@ -218,6 +218,7 @@
 		4C334641BCD17BEF2B52C9EF /* MCPGeneratedToolLoader.cpp */ /* MCPGeneratedToolLoader.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPGeneratedToolLoader.cpp; path = ../../Source/Network/MCP/MCPGeneratedToolLoader.cpp; sourceTree = SOURCE_ROOT; };
 		4E47CBDA2F72471CB13EF459 /* MCPOSCQueryAuditor.cpp */ /* MCPOSCQueryAuditor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPOSCQueryAuditor.cpp; path = ../../Source/Network/MCP/MCPOSCQueryAuditor.cpp; sourceTree = SOURCE_ROOT; };
 		4E9B16586B7C1B6A82EFB9D7 /* TouchManager.h */ /* TouchManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TouchManager.h; path = ../../Source/Controllers/Touch/TouchManager.h; sourceTree = SOURCE_ROOT; };
+		52195E18FE0EE1007ED6D692 /* TrackingPositionFilter.h */ /* TrackingPositionFilter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TrackingPositionFilter.h; path = ../../spatcore/dsp/TrackingPositionFilter.h; sourceTree = SOURCE_ROOT; };
 		526321277F378A837914E05F /* CudaWfsKernels.h */ /* CudaWfsKernels.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CudaWfsKernels.h; path = ../../Source/DSP/gpu/CudaWfsKernels.h; sourceTree = SOURCE_ROOT; };
 		52706EBD8973DFD0F1366FCF /* OSCReceiverWithSenderIP.cpp */ /* OSCReceiverWithSenderIP.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCReceiverWithSenderIP.cpp; path = ../../Source/Network/OSCReceiverWithSenderIP.cpp; sourceTree = SOURCE_ROOT; };
 		527DE6F349B1DF165D7D2BF1 /* ClustersTabPages.h */ /* ClustersTabPages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ClustersTabPages.h; path = ../../Source/Controllers/DialsAndButtons/pages/ClustersTabPages.h; sourceTree = SOURCE_ROOT; };
@@ -281,7 +282,6 @@
 		7E32DBC79453A291C75AE2B7 /* OSCLogger.h */ /* OSCLogger.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCLogger.h; path = ../../Source/Network/OSCLogger.h; sourceTree = SOURCE_ROOT; };
 		7E49158C30F5BE20B8B34F5B /* EvdevTouchDevice.cpp */ /* EvdevTouchDevice.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = EvdevTouchDevice.cpp; path = ../../Source/Controllers/Touch/Linux/EvdevTouchDevice.cpp; sourceTree = SOURCE_ROOT; };
 		7E602E26466DEF84F54CDE94 /* MCPToolRegistry.cpp */ /* MCPToolRegistry.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPToolRegistry.cpp; path = ../../Source/Network/MCP/MCPToolRegistry.cpp; sourceTree = SOURCE_ROOT; };
-		7E68237EC4C420693FC98A70 /* InputSpeedLimiter.h */ /* InputSpeedLimiter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = InputSpeedLimiter.h; path = ../../Source/DSP/InputSpeedLimiter.h; sourceTree = SOURCE_ROOT; };
 		7E78519542F17CDCFFFC25D1 /* HipObBackend.h */ /* HipObBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = HipObBackend.h; path = ../../Source/DSP/gpu/HipObBackend.h; sourceTree = SOURCE_ROOT; };
 		7EF8C2559DD689273DF48533 /* PlatformDynLib.h */ /* PlatformDynLib.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PlatformDynLib.h; path = ../../Source/DSP/gpu/PlatformDynLib.h; sourceTree = SOURCE_ROOT; };
 		7F18FF6B90FC3250D411E692 /* NetworkLogWindow.cpp */ /* NetworkLogWindow.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = NetworkLogWindow.cpp; path = ../../Source/gui/NetworkLogWindow.cpp; sourceTree = SOURCE_ROOT; };
@@ -375,6 +375,7 @@
 		C76B234E02F32DF1865B2F27 /* NetworkTab.h */ /* NetworkTab.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = NetworkTab.h; path = ../../Source/gui/NetworkTab.h; sourceTree = SOURCE_ROOT; };
 		C7954DCF4E6A85985F98667B /* juce_graphics */ /* juce_graphics */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_graphics; path = ../../ThirdParty/JUCE/modules/juce_graphics; sourceTree = SOURCE_ROOT; };
 		C7C47F0656977414C3A87685 /* JuceHeader.h */ /* JuceHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = JuceHeader.h; path = ../../JuceLibraryCode/JuceHeader.h; sourceTree = SOURCE_ROOT; };
+		C8A9B2AE6E06248A092E14C1 /* WFSHighShelfFilter.h */ /* WFSHighShelfFilter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WFSHighShelfFilter.h; path = ../../spatcore/dsp/WFSHighShelfFilter.h; sourceTree = SOURCE_ROOT; };
 		C94811DE622E6FFD11FA1C8B /* juce_gui_extra */ /* juce_gui_extra */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_gui_extra; path = ../../ThirdParty/JUCE/modules/juce_gui_extra; sourceTree = SOURCE_ROOT; };
 		CA0621138DD4DFC3AF7A711E /* OSCProtocolTypes.h */ /* OSCProtocolTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCProtocolTypes.h; path = ../../Source/Network/OSCProtocolTypes.h; sourceTree = SOURCE_ROOT; };
 		CB719CCC35A4649AA69E0F11 /* MCPPromptRegistry.cpp */ /* MCPPromptRegistry.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPPromptRegistry.cpp; path = ../../Source/Network/MCP/MCPPromptRegistry.cpp; sourceTree = SOURCE_ROOT; };
@@ -401,14 +402,12 @@
 		E6905818F38D144E669AABE1 /* TrackingPSNReceiver.h */ /* TrackingPSNReceiver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TrackingPSNReceiver.h; path = ../../Source/Network/TrackingPSNReceiver.h; sourceTree = SOURCE_ROOT; };
 		E6DC64388ADB0F021B9F42EE /* ControllerMapping.h */ /* ControllerMapping.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ControllerMapping.h; path = ../../Source/Controllers/PositionControl/ControllerMapping.h; sourceTree = SOURCE_ROOT; };
 		E7C67F1EB385D69F14F82390 /* CudaWfsBackend.cpp */ /* CudaWfsBackend.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = CudaWfsBackend.cpp; path = ../../Source/DSP/gpu/CudaWfsBackend.cpp; sourceTree = SOURCE_ROOT; };
-		EBD439A1EC10DB013ED0E482 /* NumericGuards.h */ /* NumericGuards.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = NumericGuards.h; path = ../../Source/Helpers/NumericGuards.h; sourceTree = SOURCE_ROOT; };
 		EC86EC108C2409136460987C /* GpuVendorPlugin.cpp */ /* GpuVendorPlugin.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = GpuVendorPlugin.cpp; path = ../../Source/DSP/gpu/plugin/GpuVendorPlugin.cpp; sourceTree = SOURCE_ROOT; };
 		ECFB31AAC70A68393BA6B737 /* ReverbSDNAlgorithmGPU.h */ /* ReverbSDNAlgorithmGPU.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ReverbSDNAlgorithmGPU.h; path = ../../Source/DSP/ReverbSDNAlgorithmGPU.h; sourceTree = SOURCE_ROOT; };
 		EE3AAA7F4BDC53F0808AD4D0 /* include_juce_audio_processors.mm */ /* include_juce_audio_processors.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_processors.mm; path = ../../JuceLibraryCode/include_juce_audio_processors.mm; sourceTree = SOURCE_ROOT; };
 		EEBAA498259F58983AD0A5FC /* TrackingIngestQueue.h */ /* TrackingIngestQueue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TrackingIngestQueue.h; path = ../../Source/Network/TrackingIngestQueue.h; sourceTree = SOURCE_ROOT; };
 		EF6BE4EEF00731F9E6446B7F /* MCPChangeRecords.cpp */ /* MCPChangeRecords.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPChangeRecords.cpp; path = ../../Source/Network/MCP/MCPChangeRecords.cpp; sourceTree = SOURCE_ROOT; };
 		EF8F5550038C576E96ECCBC3 /* include_juce_audio_basics.mm */ /* include_juce_audio_basics.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_basics.mm; path = ../../JuceLibraryCode/include_juce_audio_basics.mm; sourceTree = SOURCE_ROOT; };
-		F0166C597380A249A99EA956 /* WFSHighShelfFilter.h */ /* WFSHighShelfFilter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WFSHighShelfFilter.h; path = ../../Source/DSP/WFSHighShelfFilter.h; sourceTree = SOURCE_ROOT; };
 		F0BBBCFFEEBC5E54F494D60B /* QuartzCore.framework */ /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		F2B42823EF4F0DD61B685289 /* roli_blocks_basics */ /* roli_blocks_basics */ = {isa = PBXFileReference; lastKnownFileType = folder; name = roli_blocks_basics; path = ../../ThirdParty/roli_blocks_basics; sourceTree = SOURCE_ROOT; };
 		F32CED8B6E425904AC3F289F /* HipIrBackend.cpp */ /* HipIrBackend.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = HipIrBackend.cpp; path = ../../Source/DSP/gpu/HipIrBackend.cpp; sourceTree = SOURCE_ROOT; };
@@ -422,6 +421,7 @@
 		F9DE7E32A4C4D2AAEBBFC546 /* ReverbTabPages.h */ /* ReverbTabPages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ReverbTabPages.h; path = ../../Source/Controllers/DialsAndButtons/pages/ReverbTabPages.h; sourceTree = SOURCE_ROOT; };
 		FD7DB43D6E3D1AF4724A2303 /* MapTabPlaceholder.h */ /* MapTabPlaceholder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MapTabPlaceholder.h; path = ../../Source/gui/MapTabPlaceholder.h; sourceTree = SOURCE_ROOT; };
 		FF19CF83E92F49AE429BA580 /* Security.framework */ /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		FFF64FEECBD12610B6F38F64 /* InputSpeedLimiter.h */ /* InputSpeedLimiter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = InputSpeedLimiter.h; path = ../../spatcore/dsp/InputSpeedLimiter.h; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -679,7 +679,7 @@
 			children = (
 				11DA25FE53363679529C4A42,
 				400EA6B8131021F017321A16,
-				EBD439A1EC10DB013ED0E482,
+				1EFDB9EA59803579E0783B3B,
 			);
 			name = Helpers;
 			sourceTree = "<group>";
@@ -779,7 +779,7 @@
 			children = (
 				227E033B18F6304BAF888B94,
 				B2E5BB6DF397E59F6073DDFA,
-				F0166C597380A249A99EA956,
+				C8A9B2AE6E06248A092E14C1,
 				34CC6B6061AD8E05EDA699F3,
 				C67F91CF1D3B324EB43469E0,
 				2CB2F36332CB658A8BCDB47B,
@@ -847,8 +847,8 @@
 				ECFB31AAC70A68393BA6B737,
 				16A918666FE95AAB720D7269,
 				63B19585FA472659C2B6305D,
-				388303C536A2A156D54D0EDD,
-				7E68237EC4C420693FC98A70,
+				52195E18FE0EE1007ED6D692,
+				FFF64FEECBD12610B6F38F64,
 			);
 			name = DSP;
 			sourceTree = "<group>";
