@@ -103,9 +103,9 @@
         <FILE id="netConnCpp" name="OSCConnection.cpp" compile="1" resource="0"
               file="Source/Network/OSCConnection.cpp"/>
         <FILE id="netRateH" name="OSCRateLimiter.h" compile="0" resource="0"
-              file="Source/Network/OSCRateLimiter.h"/>
+              file="spatcore/control/osc/OSCRateLimiter.h"/>
         <FILE id="netRateCpp" name="OSCRateLimiter.cpp" compile="1" resource="0"
-              file="Source/Network/OSCRateLimiter.cpp"/>
+              file="spatcore/control/osc/OSCRateLimiter.cpp"/>
         <FILE id="netLogH" name="OSCLogger.h" compile="0" resource="0" file="Source/Network/OSCLogger.h"/>
         <FILE id="netLogCpp" name="OSCLogger.cpp" compile="1" resource="0"
               file="Source/Network/OSCLogger.cpp"/>

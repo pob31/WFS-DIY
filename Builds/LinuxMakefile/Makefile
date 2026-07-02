@@ -84,7 +84,7 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/ArrayGeometryCalculator_9da01084.o \
   $(JUCE_OBJDIR)/LocalizationManager_cd7d45c7.o \
   $(JUCE_OBJDIR)/OSCConnection_e11ce5d.o \
-  $(JUCE_OBJDIR)/OSCRateLimiter_e0330d3.o \
+  $(JUCE_OBJDIR)/OSCRateLimiter_84b2b600.o \
   $(JUCE_OBJDIR)/OSCLogger_524110f.o \
   $(JUCE_OBJDIR)/OSCMessageBuilder_d95fd113.o \
   $(JUCE_OBJDIR)/OSCMessageRouter_d5ec64db.o \
@@ -233,7 +233,7 @@ $(JUCE_OBJDIR)/OSCConnection_e11ce5d.o: ../../Source/Network/OSCConnection.cpp
 	@echo "Compiling OSCConnection.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
-$(JUCE_OBJDIR)/OSCRateLimiter_e0330d3.o: ../../Source/Network/OSCRateLimiter.cpp
+$(JUCE_OBJDIR)/OSCRateLimiter_84b2b600.o: ../../spatcore/control/osc/OSCRateLimiter.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling OSCRateLimiter.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"

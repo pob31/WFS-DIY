@@ -970,7 +970,7 @@
     <ClCompile Include="..\..\Source\Network\OSCConnection.cpp">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\Network\OSCRateLimiter.cpp">
+    <ClCompile Include="..\..\spatcore\control\osc\OSCRateLimiter.cpp">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Source\Network\OSCLogger.cpp">
@@ -4461,7 +4461,7 @@
     <ClInclude Include="..\..\Source\Network\OSCConnection.h">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Network\OSCRateLimiter.h">
+    <ClInclude Include="..\..\spatcore\control\osc\OSCRateLimiter.h">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\OSCLogger.h">

@@ -56,6 +56,7 @@
 		8730DF5A397C198A3FB13D60 /* Main.cpp */ = {isa = PBXBuildFile; fileRef = 46671364821BCB5DCF52BC95; };
 		8ADC8900F737B54FCFBA3AA8 /* Metal.framework */ = {isa = PBXBuildFile; fileRef = C23555C43C15F2DD0CF3BA9C; settings = { ATTRIBUTES = (Weak, ); }; };
 		8DC3BEC2C22D7CF136E88A22 /* include_juce_gui_basics_5.cpp */ = {isa = PBXBuildFile; fileRef = 00703200CC0660A2F30528FD; };
+		8ED50230E8A53F54E270C993 /* OSCRateLimiter.cpp */ = {isa = PBXBuildFile; fileRef = D7C4755CB02AB2A87557F96A; };
 		94B254A659EFEC3CC830EB46 /* WebKit.framework */ = {isa = PBXBuildFile; fileRef = 77380EEA09673557990C6B7D; };
 		9540B1CD09211574E035FEA4 /* RecentFilesMenuTemplate.nib */ = {isa = PBXBuildFile; fileRef = C2A444C276327D0BCFA3510A; };
 		98B98DC611DB1241E1EB9B5D /* AppIcon.icns */ = {isa = PBXBuildFile; fileRef = 00017D1E2679A23B85B89B75; };
@@ -67,7 +68,6 @@
 		A635BD6A3E95AC90F1E59D1D /* MCPToolRegistry.cpp */ = {isa = PBXBuildFile; fileRef = 7E602E26466DEF84F54CDE94; };
 		A66BB50D77A88BEC2F63217B /* OSCLogger.cpp */ = {isa = PBXBuildFile; fileRef = 6EDCA6152CCF68F79BC3E7F4; };
 		A7EBFC6FBD34D6A3021AF51A /* Foundation.framework */ = {isa = PBXBuildFile; fileRef = 6BABB0D22DF0B0DEF97EC39A; };
-		A8A7939ED5A7BFFDB060F2C9 /* OSCRateLimiter.cpp */ = {isa = PBXBuildFile; fileRef = 878AA473BBA4523BB5BAB723; };
 		AA0EE9B55A2E6FF945DED3B3 /* include_juce_gui_extra.mm */ = {isa = PBXBuildFile; fileRef = D142B9C18D9A93EA669B6723; };
 		AAC418A6E5F85C5C87EC1EB7 /* MCPGeneratedToolLoader.cpp */ = {isa = PBXBuildFile; fileRef = 4C334641BCD17BEF2B52C9EF; };
 		AD0B81545FC7B7ECC49EDD17 /* HipIrBackend.cpp */ = {isa = PBXBuildFile; fileRef = 4BAE219BEA140C849F862D6A; };
@@ -156,6 +156,7 @@
 		1D4034F17218DC090D63347F /* OSCConnection.cpp */ /* OSCConnection.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCConnection.cpp; path = ../../Source/Network/OSCConnection.cpp; sourceTree = SOURCE_ROOT; };
 		1E2EF1F7B6FAF4535668A685 /* NativeGpuOutputBufferAlgorithm.h */ /* NativeGpuOutputBufferAlgorithm.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = NativeGpuOutputBufferAlgorithm.h; path = ../../spatcore/wfs/NativeGpuOutputBufferAlgorithm.h; sourceTree = SOURCE_ROOT; };
 		1EFDB9EA59803579E0783B3B /* NumericGuards.h */ /* NumericGuards.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = NumericGuards.h; path = ../../spatcore/dsp/NumericGuards.h; sourceTree = SOURCE_ROOT; };
+		1F8077CBC925A0A89913DF02 /* OSCRateLimiter.h */ /* OSCRateLimiter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCRateLimiter.h; path = ../../spatcore/control/osc/OSCRateLimiter.h; sourceTree = SOURCE_ROOT; };
 		1F9D94046CD304F5B29D772D /* GpuBackendInterface.h */ /* GpuBackendInterface.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GpuBackendInterface.h; path = ../../spatcore/gpu/GpuBackendInterface.h; sourceTree = SOURCE_ROOT; };
 		2005A065341F1626D8F31859 /* AudioToolbox.framework */ /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 		227E033B18F6304BAF888B94 /* WFSCalculationEngine.h */ /* WFSCalculationEngine.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WFSCalculationEngine.h; path = ../../Source/DSP/WFSCalculationEngine.h; sourceTree = SOURCE_ROOT; };
@@ -286,7 +287,6 @@
 		86519489EE432CA881B69097 /* OSCIngestQueue.cpp */ /* OSCIngestQueue.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCIngestQueue.cpp; path = ../../Source/Network/OSCIngestQueue.cpp; sourceTree = SOURCE_ROOT; };
 		868254CCFF4A0FB7BEF84A0C /* CudaWfsBackend.cpp */ /* CudaWfsBackend.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = CudaWfsBackend.cpp; path = ../../spatcore/gpu/CudaWfsBackend.cpp; sourceTree = SOURCE_ROOT; };
 		86ACB563EE1E39D812C368F8 /* include_juce_audio_processors_headless.mm */ /* include_juce_audio_processors_headless.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_processors_headless.mm; path = ../../JuceLibraryCode/include_juce_audio_processors_headless.mm; sourceTree = SOURCE_ROOT; };
-		878AA473BBA4523BB5BAB723 /* OSCRateLimiter.cpp */ /* OSCRateLimiter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCRateLimiter.cpp; path = ../../Source/Network/OSCRateLimiter.cpp; sourceTree = SOURCE_ROOT; };
 		88828B243F838905A44A3AE5 /* include_juce_audio_formats.mm */ /* include_juce_audio_formats.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_formats.mm; path = ../../JuceLibraryCode/include_juce_audio_formats.mm; sourceTree = SOURCE_ROOT; };
 		88FCF7AA0FC9085D1059579A /* AudioInterfaceWindow.h */ /* AudioInterfaceWindow.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = AudioInterfaceWindow.h; path = ../../Source/gui/AudioInterfaceWindow.h; sourceTree = SOURCE_ROOT; };
 		89B654EDBBF10BBCF67395CF /* MCPOSCQueryAuditor.h */ /* MCPOSCQueryAuditor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPOSCQueryAuditor.h; path = ../../Source/Network/MCP/MCPOSCQueryAuditor.h; sourceTree = SOURCE_ROOT; };
@@ -340,7 +340,6 @@
 		B06893EFB59B82E33EBAE3D9 /* TrackingIngestQueue.h */ /* TrackingIngestQueue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TrackingIngestQueue.h; path = ../../spatcore/control/osc/TrackingIngestQueue.h; sourceTree = SOURCE_ROOT; };
 		B2E5BB6DF397E59F6073DDFA /* WFSCalculationEngine.cpp */ /* WFSCalculationEngine.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = WFSCalculationEngine.cpp; path = ../../Source/DSP/WFSCalculationEngine.cpp; sourceTree = SOURCE_ROOT; };
 		B47B20DA63B9FB03BA3BB715 /* hidapi.h */ /* hidapi.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = hidapi.h; path = ../../ThirdParty/hidapi/hidapi/hidapi.h; sourceTree = SOURCE_ROOT; };
-		B660F4211F4C145BD3C3D28B /* OSCRateLimiter.h */ /* OSCRateLimiter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCRateLimiter.h; path = ../../Source/Network/OSCRateLimiter.h; sourceTree = SOURCE_ROOT; };
 		B66C4CD793ED18E9CF0CFA51 /* MetalWfsBackend.mm */ /* MetalWfsBackend.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = MetalWfsBackend.mm; path = ../../spatcore/gpu/MetalWfsBackend.mm; sourceTree = SOURCE_ROOT; };
 		B7421A28E242EE8C51B7A481 /* MCPHistoryWindow.cpp */ /* MCPHistoryWindow.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPHistoryWindow.cpp; path = ../../Source/gui/MCPHistoryWindow.cpp; sourceTree = SOURCE_ROOT; };
 		B95FA1145B43CE18EA4E39C6 /* SdnHostConfig.h */ /* SdnHostConfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SdnHostConfig.h; path = ../../spatcore/gpu/SdnHostConfig.h; sourceTree = SOURCE_ROOT; };
@@ -387,6 +386,7 @@
 		D58538C0D4D28062E527FEC4 /* OutputBufferProcessor.h */ /* OutputBufferProcessor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OutputBufferProcessor.h; path = ../../spatcore/wfs/OutputBufferProcessor.h; sourceTree = SOURCE_ROOT; };
 		D5FFD6B047686E41C3548942 /* SpaceMouseDevice.h */ /* SpaceMouseDevice.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SpaceMouseDevice.h; path = ../../Source/Controllers/PositionControl/SpaceMouseDevice.h; sourceTree = SOURCE_ROOT; };
 		D66F14AF4EFB90CB4068CAEB /* CudaIrBackend.h */ /* CudaIrBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CudaIrBackend.h; path = ../../spatcore/gpu/CudaIrBackend.h; sourceTree = SOURCE_ROOT; };
+		D7C4755CB02AB2A87557F96A /* OSCRateLimiter.cpp */ /* OSCRateLimiter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCRateLimiter.cpp; path = ../../spatcore/control/osc/OSCRateLimiter.cpp; sourceTree = SOURCE_ROOT; };
 		D82AC3F6B9C66CD74406D81B /* HidApiPlatform.c */ /* HidApiPlatform.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = HidApiPlatform.c; path = ../../ThirdParty/hidapi/HidApiPlatform.c; sourceTree = SOURCE_ROOT; };
 		DAF0A8D52DEC4B51BA171B78 /* OSCQueryServer.h */ /* OSCQueryServer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCQueryServer.h; path = ../../Source/Network/OSCQueryServer.h; sourceTree = SOURCE_ROOT; };
 		DAF8F992F5710B0186D52495 /* CudaIrKernels.h */ /* CudaIrKernels.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CudaIrKernels.h; path = ../../spatcore/gpu/CudaIrKernels.h; sourceTree = SOURCE_ROOT; };
@@ -484,8 +484,8 @@
 				CA0621138DD4DFC3AF7A711E,
 				3FF29F71D97D69B1B619CBDC,
 				1D4034F17218DC090D63347F,
-				B660F4211F4C145BD3C3D28B,
-				878AA473BBA4523BB5BAB723,
+				1F8077CBC925A0A89913DF02,
+				D7C4755CB02AB2A87557F96A,
 				7E32DBC79453A291C75AE2B7,
 				6EDCA6152CCF68F79BC3E7F4,
 				5810F8314E4B23B3F2FB167F,
@@ -1085,7 +1085,7 @@
 				C5AA8699307DEBD9EE73CB9C,
 				B5998BA8416CF7672D91E3A8,
 				99BBB112459F918510B37CA3,
-				A8A7939ED5A7BFFDB060F2C9,
+				8ED50230E8A53F54E270C993,
 				A66BB50D77A88BEC2F63217B,
 				C06C6742DDD2187C42ACA573,
 				178AAAFBA10B6850F5EAB0CB,

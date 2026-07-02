@@ -3,7 +3,7 @@
 #include <JuceHeader.h>
 #include "OSCProtocolTypes.h"
 #include "OSCConnection.h"
-#include "OSCRateLimiter.h"
+#include "../../spatcore/control/osc/OSCRateLimiter.h"
 #include "OSCLogger.h"
 #include "OSCMessageBuilder.h"
 #include "OSCMessageRouter.h"

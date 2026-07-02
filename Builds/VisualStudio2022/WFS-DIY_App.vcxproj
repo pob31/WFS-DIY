@@ -188,7 +188,7 @@
     <ClCompile Include="..\..\Source\Helpers\ArrayGeometryCalculator.cpp"/>
     <ClCompile Include="..\..\Source\Localization\LocalizationManager.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCConnection.cpp"/>
-    <ClCompile Include="..\..\Source\Network\OSCRateLimiter.cpp"/>
+    <ClCompile Include="..\..\spatcore\control\osc\OSCRateLimiter.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCLogger.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCMessageBuilder.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCMessageRouter.cpp"/>
@@ -3303,7 +3303,7 @@
     <ClInclude Include="..\..\Source\Localization\LocalizationManager.h"/>
     <ClInclude Include="..\..\Source\Network\OSCProtocolTypes.h"/>
     <ClInclude Include="..\..\Source\Network\OSCConnection.h"/>
-    <ClInclude Include="..\..\Source\Network\OSCRateLimiter.h"/>
+    <ClInclude Include="..\..\spatcore\control\osc\OSCRateLimiter.h"/>
     <ClInclude Include="..\..\Source\Network\OSCLogger.h"/>
     <ClInclude Include="..\..\Source\Network\OSCMessageBuilder.h"/>
     <ClInclude Include="..\..\Source\Network\OSCMessageRouter.h"/>

@@ -1,9 +1,31 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "../../spatcore/control/osc/OscTransportTypes.h"
+
+namespace spatcore::control::osc { class OSCRateLimiter; }
 
 namespace WFSNetwork
 {
+
+// App-agnostic transport/attribution types live in spatcore (Phase 4a);
+// re-exported here so existing WFSNetwork:: call sites compile unchanged.
+using spatcore::control::osc::OriginTag;
+using spatcore::control::osc::g_currentOriginTag;
+using spatcore::control::osc::getCurrentOriginTag;
+using spatcore::control::osc::OriginTagScope;
+using spatcore::control::osc::ConnectionMode;
+using spatcore::control::osc::ConnectionStatus;
+using spatcore::control::osc::Axis;
+using spatcore::control::osc::DeltaDirection;
+using spatcore::control::osc::GlobalConfig;
+using spatcore::control::osc::MAX_TARGETS;
+using spatcore::control::osc::MAX_RATE_HZ;
+using spatcore::control::osc::MIN_INTERVAL_MS;
+using spatcore::control::osc::DEFAULT_UDP_PORT;
+using spatcore::control::osc::DEFAULT_TCP_PORT;
+using spatcore::control::osc::DEFAULT_TX_PORT;
+using spatcore::control::osc::OSCRateLimiter;
 
 //==============================================================================
 // Protocol Types
@@ -22,80 +44,6 @@ enum class Protocol
     QLab = 7,       // QLab cue writing protocol
     MQTT = 8,       // MQTT tracking protocol
     MCP = 9         // Model Context Protocol (AI client control surface)
-};
-
-/** Origin tag for parameter changes — identifies which actor caused a write.
-    Set via OriginTagScope (RAII guard, below) before issuing a write; the
-    parameter system's change-notification dispatch reads it and propagates
-    it to listeners (Network Log, AI undo stack, etc.). */
-enum class OriginTag
-{
-    None = 0,        // Default — no origin attributed (e.g. internal initialization)
-    UI,              // User-driven via JUCE GUI controls
-    MCP,             // AI client via MCP server
-    OSC,             // Arbitrary external OSC client (NOT the Android Remote — see Remote)
-    Tracking,        // Position tracking integration loop
-    Snapshot,        // Snapshot recall / Reload Configuration
-    LFO,             // LFO modulation writes
-    Move,            // AutomOtion programmed movement
-    Automation,      // DAW host automation via plugin layer
-    Hardware,        // Hardware controllers — Stream Deck+, Quick Keys, SpaceMouse, Lightpad
-    Remote           // Android Remote tablet (the WFS Control app, /remoteInput/* dialect)
-};
-
-/** Thread-local current origin tag. Read by listeners (e.g. OSCLogger) when
-    constructing log entries / change records; written via OriginTagScope.
-    `inline` lets it live in a header without an ODR violation across TUs. */
-inline thread_local OriginTag g_currentOriginTag = OriginTag::None;
-
-/** Read the current thread's origin tag. */
-inline OriginTag getCurrentOriginTag() noexcept { return g_currentOriginTag; }
-
-/** RAII guard that sets the thread-local origin tag for its lifetime, then
-    restores the previous value on destruction. Nesting is supported — inner
-    scopes shadow outer scopes and the outer value resumes when the inner
-    scope ends. Use at every external write entry point (OSC inbound handler,
-    snapshot recall, MCP dispatcher, etc.). */
-struct OriginTagScope
-{
-    OriginTag previous;
-    explicit OriginTagScope (OriginTag tag) noexcept
-        : previous (g_currentOriginTag) { g_currentOriginTag = tag; }
-    ~OriginTagScope() noexcept { g_currentOriginTag = previous; }
-
-    OriginTagScope (const OriginTagScope&) = delete;
-    OriginTagScope& operator= (const OriginTagScope&) = delete;
-};
-
-/** Connection mode (transport layer) */
-enum class ConnectionMode
-{
-    UDP = 0,
-    TCP = 1
-};
-
-/** Connection status for UI display */
-enum class ConnectionStatus
-{
-    Disconnected,
-    Connecting,
-    Connected,
-    Error
-};
-
-/** Axis for position/offset operations */
-enum class Axis
-{
-    X,
-    Y,
-    Z
-};
-
-/** Direction for REMOTE protocol delta commands */
-enum class DeltaDirection
-{
-    Increment,
-    Decrement
 };
 
 //==============================================================================
@@ -129,37 +77,9 @@ struct TargetConfig
     }
 };
 
-/** Global network configuration */
-struct GlobalConfig
-{
-    int udpReceivePort = 8000;
-    int tcpReceivePort = 8001;
-    juce::String networkInterface;
-    bool ipFilteringEnabled = false;
-    juce::StringArray allowedIPs;
-};
-
 //==============================================================================
 // Constants
 //==============================================================================
-
-/** Maximum number of network targets */
-constexpr int MAX_TARGETS = 6;
-
-/** Rate limiting: maximum messages per second */
-constexpr int MAX_RATE_HZ = 50;
-
-/** Rate limiting: minimum interval between messages in milliseconds */
-constexpr int MIN_INTERVAL_MS = 20;
-
-/** Default UDP receive port */
-constexpr int DEFAULT_UDP_PORT = 8000;
-
-/** Default TCP receive port */
-constexpr int DEFAULT_TCP_PORT = 8001;
-
-/** Default target transmit port */
-constexpr int DEFAULT_TX_PORT = 9000;
 
 /** Default QLab OSC command port */
 constexpr int DEFAULT_QLAB_PORT = 53000;
