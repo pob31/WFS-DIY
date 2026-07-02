@@ -29,8 +29,8 @@
     filters at block start (WFSBiquadFilter recalculates only on change).
 */
 
-#include "../../../spatcore/dsp/WFSBiquadFilter.h"
-#include "../../../spatcore/dsp/FrDiffusionModel.h"
+#include "../dsp/WFSBiquadFilter.h"
+#include "../dsp/FrDiffusionModel.h"
 
 #include <algorithm>
 #include <atomic>

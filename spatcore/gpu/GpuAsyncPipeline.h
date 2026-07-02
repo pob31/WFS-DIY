@@ -24,12 +24,12 @@
     is ~7x more robust here than in the vendor-SDK prototype.
 */
 
-#include <JuceHeader.h>
+#include <juce_audio_basics/juce_audio_basics.h>
 #include <atomic>
 #include <memory>
 #include <vector>
 
-#include "../../../spatcore/rt/LockFreeRingBuffer.h"
+#include "../rt/LockFreeRingBuffer.h"
 #include "WfsGpuBackend.h"
 
 /** Backend-generic async pump. BackendType only needs the shared backend

@@ -2,48 +2,42 @@
 #if WFS_GPU_NATIVE
 
 /*
-    NativeGpuOutputBufferAlgorithm — the WFS OutputBuffer (scatter / write-time)
-    algorithm on native Metal / CUDA. The GPU twin of the CPU OutputBuffer, and
-    the scatter sibling of NativeGpuWfsAlgorithm (which is the gather / read-time
-    GPU path). Drop-in fourth algorithm beside the CPU InputBuffer, CPU
-    OutputBuffer and NativeGpuWfs: same prepare/processBlock/release protocol,
-    same matrices.
+    NativeGpuWfsAlgorithm — the WFS delay-and-sum input-buffer algorithm on
+    native Metal. Drop-in third algorithm beside the CPU InputBuffer and
+    OutputBuffer implementations: same prepare/processBlock/release protocol,
+    same matrices, same audible behavior (delays, gains, per-sample ramps).
 
     Composition:
-      ObGpuBackend     — Metal or CUDA backend (compile-time alias): owns the GPU
-                         objects, persistent per-output delay accumulators
-                         (direct + FR), per-pair HF shelf states, prev->curr
-                         matrix snapshots, -L latency compensation
-      GpuAsyncPipeline — pump thread + lock-free rings (templated; instantiated
-                         here for ObGpuBackend); the audio callback never waits
-                         on the GPU
+      WfsGpuBackend    — Metal or CUDA backend (compile-time alias): owns the
+                         GPU objects, persistent delay rings (direct + FR),
+                         per-pair HF shelf states, prev->curr matrix
+                         snapshots, -L latency compensation
+      GpuAsyncPipeline — pump thread + lock-free rings; the audio callback
+                         never waits on the GPU
 
-    DSP parity with the CPU OutputBuffer path: write-time scatter into a
-    per-output delay accumulator, per-pair 800 Hz HF air-absorption shelf on both
-    taps, Floor Reflections (per-input pre-filter chain, diffusion jitter,
-    image-source delay/level matrices). As with the WFS GPU port, delay/gain
-    ramp per sample (prev->curr) where the CPU steps them at 50 Hz, and the CPU
-    OutputBuffer's DelayTargetSmoother box/teleport envelope is approximated by
-    that per-block linear ramp (same documented divergence as NativeGpuWfs). The
-    CPU OutputBuffer path remains the reference implementation.
+    DSP parity with the CPU InputBuffer path: per-pair 800 Hz HF
+    air-absorption shelf on both taps and Floor Reflections (per-input
+    pre-filter chain, diffusion jitter, image-source delay/level matrices).
+    FR gains/delays ramp per sample where the CPU steps them at 50 Hz. The
+    CPU path remains the reference implementation.
 */
 
-#include <JuceHeader.h>
+#include <juce_audio_basics/juce_audio_basics.h>
 #include <atomic>
 #include <memory>
 
-#include "ObGpuBackend.h"
+#include "WfsGpuBackend.h"
 #include "GpuDeviceManager.h"
 #include "GpuAsyncPipeline.h"
 #include "GpuLevelMeters.h"
 
-class NativeGpuOutputBufferAlgorithm
+class NativeGpuWfsAlgorithm
 {
 public:
     static constexpr int kDefaultDepthBlocks = 4;
 
-    NativeGpuOutputBufferAlgorithm() = default;
-    ~NativeGpuOutputBufferAlgorithm() { clear(); }
+    NativeGpuWfsAlgorithm() = default;
+    ~NativeGpuWfsAlgorithm() { clear(); }
 
     bool prepare (int numInputs,
                   int numOutputs,
@@ -65,9 +59,9 @@ public:
         processingEnabledFlag = processingEnabled;
 
         pipeline.release();
-        backend = makeObBackend (deviceId.empty()
-                                     ? GpuDeviceManager::instance().firstGpuId()
-                                     : deviceId);
+        backend = makeWfsBackend (deviceId.empty()
+                                      ? GpuDeviceManager::instance().firstGpuId()
+                                      : deviceId);
         if (backend == nullptr)
         {
             lastError = "No GPU backend available (using CPU)";
@@ -86,7 +80,7 @@ public:
                                 blockSize, sampleRate, latencyMs, 1.0))
         {
             lastError = juce::String (backend->getLastError());
-            DBG ("Native GPU OutputBuffer: backend init failed: " + lastError);
+            DBG ("Native GPU WFS: backend init failed: " + lastError);
             return false;
         }
         backend->setMatrixPointers (delayTimesMsPtr, levelsPtr,
@@ -97,7 +91,7 @@ public:
                                 blockSize, sampleRate, depth))
         {
             lastError = pipeline.getLastError();
-            DBG ("Native GPU OutputBuffer: pipeline init failed: " + lastError);
+            DBG ("Native GPU WFS: pipeline init failed: " + lastError);
             backend.reset();
             return false;
         }
@@ -178,6 +172,9 @@ public:
     float getSlowGainReduction (size_t i) const noexcept { return meters.getSlowGainReduction (i); }
 
     // === Floor Reflection parameter setters (50 Hz timer thread) ===
+    // Same signatures as InputBufferAlgorithm; forwarded to the backend's
+    // host-side FR state (atomics; safe before prepare - bounds-checked).
+
     void setFRFilterParams (size_t inputIndex,
                             bool lowCutActive, float lowCutFreq,
                             bool highShelfActive, float highShelfFreq,
@@ -220,7 +217,7 @@ public:
     int getPipelineDepthBlocks() const noexcept  { return pipeline.getDepthBlocks(); }
 
 private:
-    std::unique_ptr<IObBackend> backend;
+    std::unique_ptr<IWfsBackend> backend;
     GpuAsyncPipelineT<IGpuBackend> pipeline;
     GpuLevelMeters meters;
 
@@ -231,7 +228,7 @@ private:
     std::atomic<bool> ready { false };
     juce::SpinLock procLock;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NativeGpuOutputBufferAlgorithm)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NativeGpuWfsAlgorithm)
 };
 
 #endif // WFS_GPU_NATIVE

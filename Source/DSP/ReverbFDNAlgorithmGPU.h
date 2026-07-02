@@ -25,9 +25,9 @@
 #include <JuceHeader.h>
 #include "ReverbAlgorithm.h"
 #include "../../spatcore/rt/ReverbDiagnostics.h"
-#include "gpu/FdnGpuBackend.h"
-#include "gpu/GpuDeviceManager.h"
-#include "gpu/GpuAsyncPipeline.h"
+#include "../../spatcore/gpu/FdnGpuBackend.h"
+#include "../../spatcore/gpu/GpuDeviceManager.h"
+#include "../../spatcore/gpu/GpuAsyncPipeline.h"
 
 #include <cmath>
 #include <memory>

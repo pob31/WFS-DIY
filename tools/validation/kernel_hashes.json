@@ -1,12 +1,12 @@
 {
-  "Source/DSP/gpu/CudaFdnKernels.h": "3aaa2b94784273abcc50c322f059e356e285a2704411f2c0942e41bf10560c8a",
-  "Source/DSP/gpu/CudaIrKernels.h": "43ca61acd4ba897f287c2a1cd12469f777db3298717092062454ee6a8b3b5e4f",
-  "Source/DSP/gpu/CudaObKernels.h": "2db5016ef26ae3aee1eb803d352332b6f28596856e2638e490f4463fd1885417",
-  "Source/DSP/gpu/CudaSdnKernels.h": "42689ccdd237f4683923b2690a0d42ddb00130ab027edf06bf36320b5bdd2a1e",
-  "Source/DSP/gpu/CudaWfsKernels.h": "5cc7b006664fd471f113b77529f24b830809c7878e58e1aefcabb7ad190a2a17",
-  "Source/DSP/gpu/MetalFdnKernels.h": "6237984d38ad9a95aa78acd9dbdc96381ec58e9f1cbcabeca34ef40107a5e999",
-  "Source/DSP/gpu/MetalIrKernels.h": "cd899ac3b90d42abd70e8862c9923f3d08f0ac19b699b2ed09c38b75e5796594",
-  "Source/DSP/gpu/MetalObKernels.h": "48c3ba37bc07849ebe9ec78ad5f8485ad02909ab8089264d862465ccfe8d7865",
-  "Source/DSP/gpu/MetalSdnKernels.h": "909546398c6d82d32907f638b3293210a91e34230b2c2b4e15aed0c6a116bd9b",
-  "Source/DSP/gpu/MetalWfsKernels.h": "d3dd9786d9d45a01b156bdf2ed6fa01a90245fef92cf0f2e6391b42e59916293"
+  "spatcore/gpu/CudaFdnKernels.h": "3aaa2b94784273abcc50c322f059e356e285a2704411f2c0942e41bf10560c8a",
+  "spatcore/gpu/CudaIrKernels.h": "43ca61acd4ba897f287c2a1cd12469f777db3298717092062454ee6a8b3b5e4f",
+  "spatcore/gpu/CudaObKernels.h": "2db5016ef26ae3aee1eb803d352332b6f28596856e2638e490f4463fd1885417",
+  "spatcore/gpu/CudaSdnKernels.h": "42689ccdd237f4683923b2690a0d42ddb00130ab027edf06bf36320b5bdd2a1e",
+  "spatcore/gpu/CudaWfsKernels.h": "5cc7b006664fd471f113b77529f24b830809c7878e58e1aefcabb7ad190a2a17",
+  "spatcore/gpu/MetalFdnKernels.h": "6237984d38ad9a95aa78acd9dbdc96381ec58e9f1cbcabeca34ef40107a5e999",
+  "spatcore/gpu/MetalIrKernels.h": "cd899ac3b90d42abd70e8862c9923f3d08f0ac19b699b2ed09c38b75e5796594",
+  "spatcore/gpu/MetalObKernels.h": "48c3ba37bc07849ebe9ec78ad5f8485ad02909ab8089264d862465ccfe8d7865",
+  "spatcore/gpu/MetalSdnKernels.h": "909546398c6d82d32907f638b3293210a91e34230b2c2b4e15aed0c6a116bd9b",
+  "spatcore/gpu/MetalWfsKernels.h": "d3dd9786d9d45a01b156bdf2ed6fa01a90245fef92cf0f2e6391b42e59916293"
 }

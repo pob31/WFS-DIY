@@ -4,8 +4,8 @@
 #include <map>
 #include "DSP/InputBufferAlgorithm.h"
 #if WFS_GPU_NATIVE
-#include "DSP/gpu/NativeGpuWfsAlgorithm.h"
-#include "DSP/gpu/NativeGpuOutputBufferAlgorithm.h"
+#include "../spatcore/gpu/NativeGpuWfsAlgorithm.h"
+#include "../spatcore/gpu/NativeGpuOutputBufferAlgorithm.h"
 #endif
 #include "DSP/OutputBufferAlgorithm.h"
 #include "DSP/WFSCalculationEngine.h"

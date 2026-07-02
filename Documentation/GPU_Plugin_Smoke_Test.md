@@ -43,7 +43,7 @@ The tool loads a **plugin**, so it covers the plugin-based vendors only:
 
 ## The plugin ABI it drives
 
-The entry points come from `Source/DSP/gpu/plugin/GpuVendorPlugin.cpp`:
+The entry points come from `spatcore/gpu/plugin/GpuVendorPlugin.cpp`:
 
 | Symbol | Returns | Purpose |
 |--------|---------|---------|
@@ -57,7 +57,7 @@ The entry points come from `Source/DSP/gpu/plugin/GpuVendorPlugin.cpp`:
 
 `deviceIndex` (the optional CLI arg, default `0`) selects which GPU **of that
 vendor** to bind — e.g. `1` for the second of two identical cards. The shared
-interfaces live in `Source/DSP/gpu/GpuBackendInterface.h`.
+interfaces live in `spatcore/gpu/GpuBackendInterface.h`.
 
 ---
 
@@ -129,7 +129,7 @@ cl /nologo /EHsc /std:c++17 /DWFS_GPU_NATIVE=1 /I..\Source\DSP\gpu ^
 **Linux:**
 
 ```
-g++ -std=c++17 -DWFS_GPU_NATIVE=1 -I../Source/DSP/gpu test-gpu-plugin.cpp -ldl -o test-gpu-plugin
+g++ -std=c++17 -DWFS_GPU_NATIVE=1 -I../spatcore/gpu test-gpu-plugin.cpp -ldl -o test-gpu-plugin
 ```
 
 The **plugin itself** is built separately by `tools/windows/build-gpu-plugins.ps1`
@@ -222,7 +222,7 @@ PASS: all GPU backends (WFS gather+reduce, OB scatter, IR conv, FDN, SDN) ...
 ## Related
 
 - `Documentation/Linux_GPU_Enablement.md` — Linux GPU build/enable notes.
-- `Source/DSP/gpu/GpuBackendInterface.h` — the shared backend interfaces.
-- `Source/DSP/gpu/plugin/GpuVendorPlugin.cpp` — the plugin entry points.
+- `spatcore/gpu/GpuBackendInterface.h` — the shared backend interfaces.
+- `spatcore/gpu/plugin/GpuVendorPlugin.cpp` — the plugin entry points.
 - `tools/windows/build-gpu-plugins.ps1` / `tools/linux/build-gpu-plugins.sh` —
   build the plugin DLLs/SOs this tool loads.

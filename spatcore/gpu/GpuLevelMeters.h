@@ -1,7 +1,7 @@
 #pragma once
 #if WFS_GPU_NATIVE
 
-#include <JuceHeader.h>
+#include <juce_audio_basics/juce_audio_basics.h>
 #include <atomic>
 #include <vector>
 #include <memory>

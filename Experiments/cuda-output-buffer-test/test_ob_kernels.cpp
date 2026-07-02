@@ -31,7 +31,7 @@
     Run:                        test_ob_kernels.exe
 */
 
-#include "../../Source/DSP/gpu/CudaObKernels.h"
+#include "../../spatcore/gpu/CudaObKernels.h"
 #include "../../spatcore/dsp/FrDiffusionModel.h"
 
 #include <cuda.h>

@@ -59,9 +59,9 @@
 #include "DSP/ReverbIRAlgorithm.h"
 
 #if WFS_GPU_NATIVE
- #include "DSP/gpu/GpuDeviceManager.h"   // device enumeration ("cuda:0", ...)
- #include "DSP/gpu/WfsGpuBackend.h"      // makeWfsBackend (gather)
- #include "DSP/gpu/ObGpuBackend.h"       // makeObBackend  (scatter)
+ #include "../../../spatcore/gpu/GpuDeviceManager.h"   // device enumeration ("cuda:0", ...)
+ #include "../../../spatcore/gpu/WfsGpuBackend.h"      // makeWfsBackend (gather)
+ #include "../../../spatcore/gpu/ObGpuBackend.h"       // makeObBackend  (scatter)
 #endif
 
 #include "scenarios.h"

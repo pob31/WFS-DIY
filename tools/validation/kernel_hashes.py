@@ -27,7 +27,7 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-GPU_DIR = REPO_ROOT / "Source" / "DSP" / "gpu"
+GPU_DIR = REPO_ROOT / "spatcore" / "gpu"
 MANIFEST = Path(__file__).resolve().parent / "kernel_hashes.json"
 
 

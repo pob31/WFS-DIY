@@ -15,7 +15,7 @@ every GPU backend mirrors it (and the Metal/CUDA twins).
 | Windows / NVIDIA | CUDA | Ships. Unchanged. |
 | macOS | Metal | Ships. Unchanged. |
 
-Backend selection is compile-time in the five `Source/DSP/gpu/*GpuBackend.h` aliases:
+Backend selection is compile-time in the five `spatcore/gpu/*GpuBackend.h` aliases:
 `#if __APPLE__` → Metal, `#elif defined(WFS_GPU_HIP)` → Hip, `#else` → Cuda. `WFS_GPU_NATIVE`
 is the master switch the rest of the app keys on (`MainComponent`, `ReverbEngine.h`,
 `LevelMeteringManager.h`). The runtime, per-role, multi-vendor device selector (dlopen-based,
@@ -107,7 +107,7 @@ to the block above and re-saving.
 
 Windows uses the **same per-vendor plugin model** as Linux so a single app can drive
 CUDA *or* AMD HIP at runtime, with CPU fallback. The shared code is portable
-(`Source/DSP/gpu/PlatformDynLib.h` wraps `dlopen`↔`LoadLibrary`,
+(`spatcore/gpu/PlatformDynLib.h` wraps `dlopen`↔`LoadLibrary`,
 `/proc/self/exe`↔`GetModuleFileName`); `GpuDeviceManager` enumerates via `nvcuda.dll`
 (CUDA driver) and `amdhip64.dll` (AMD HIP SDK for Windows), and `GpuBackendFactory`
 loads `wfs_cuda.dll` / `wfs_hip.dll` next to the executable.
