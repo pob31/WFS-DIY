@@ -3,7 +3,7 @@
 #include <JuceHeader.h>
 #include <vector>
 #include "../Network/MCP/MCPUndoEngine.h"
-#include "../Network/MCP/MCPChangeRecords.h"
+#include "../../spatcore/control/mcp/MCPChangeRecords.h"
 #include "ColorScheme.h"
 
 /** Persistent navigator over the AI change-record ring + redo stack.

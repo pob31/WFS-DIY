@@ -2,7 +2,7 @@
 
 #include <JuceHeader.h>
 #include <map>
-#include "MCPChangeRecords.h"
+#include "../../../spatcore/control/mcp/MCPChangeRecords.h"
 #include "../OSCProtocolTypes.h"
 
 class WFSValueTreeState;

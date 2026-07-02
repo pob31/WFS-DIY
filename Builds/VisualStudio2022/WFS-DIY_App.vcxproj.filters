@@ -1021,19 +1021,19 @@
     <ClCompile Include="..\..\Source\Network\MCP\MCPLogger.cpp">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\Network\MCP\MCPChangeRecords.cpp">
+    <ClCompile Include="..\..\spatcore\control\mcp\MCPChangeRecords.cpp">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Source\Network\MCP\MCPUndoEngine.cpp">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\Network\MCP\MCPTierEnforcement.cpp">
+    <ClCompile Include="..\..\spatcore\control\mcp\MCPTierEnforcement.cpp">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Source\Network\MCP\MCPOSCQueryAuditor.cpp">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\Network\MCP\MCPToolRegistry.cpp">
+    <ClCompile Include="..\..\spatcore\control\mcp\MCPToolRegistry.cpp">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Source\Network\MCP\MCPDispatcher.cpp">
@@ -1048,10 +1048,10 @@
     <ClCompile Include="..\..\Source\Network\MCP\MCPGeneratedToolLoader.cpp">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\Network\MCP\MCPResourceRegistry.cpp">
+    <ClCompile Include="..\..\spatcore\control\mcp\MCPResourceRegistry.cpp">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\Network\MCP\MCPPromptRegistry.cpp">
+    <ClCompile Include="..\..\spatcore\control\mcp\MCPPromptRegistry.cpp">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Source\Network\MCP\MCPParameterRegistry.cpp">
@@ -4521,19 +4521,19 @@
     <ClInclude Include="..\..\Source\Network\MCP\MCPLogger.h">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Network\MCP\MCPChangeRecords.h">
+    <ClInclude Include="..\..\spatcore\control\mcp\MCPChangeRecords.h">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\MCP\MCPUndoEngine.h">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Network\MCP\MCPTierEnforcement.h">
+    <ClInclude Include="..\..\spatcore\control\mcp\MCPTierEnforcement.h">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\MCP\MCPOSCQueryAuditor.h">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Network\MCP\MCPToolRegistry.h">
+    <ClInclude Include="..\..\spatcore\control\mcp\MCPToolRegistry.h">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\MCP\MCPDispatcher.h">
@@ -4548,10 +4548,10 @@
     <ClInclude Include="..\..\Source\Network\MCP\MCPGeneratedToolLoader.h">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Network\MCP\MCPResourceRegistry.h">
+    <ClInclude Include="..\..\spatcore\control\mcp\MCPResourceRegistry.h">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Network\MCP\MCPPromptRegistry.h">
+    <ClInclude Include="..\..\spatcore\control\mcp\MCPPromptRegistry.h">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\MCP\MCPParameterRegistry.h">

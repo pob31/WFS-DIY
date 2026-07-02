@@ -175,25 +175,25 @@
           <FILE id="mcpLogCpp" name="MCPLogger.cpp" compile="1" resource="0"
                 file="Source/Network/MCP/MCPLogger.cpp"/>
           <FILE id="mcpRecH" name="MCPChangeRecords.h" compile="0" resource="0"
-                file="Source/Network/MCP/MCPChangeRecords.h"/>
+                file="spatcore/control/mcp/MCPChangeRecords.h"/>
           <FILE id="mcpRecCpp" name="MCPChangeRecords.cpp" compile="1" resource="0"
-                file="Source/Network/MCP/MCPChangeRecords.cpp"/>
+                file="spatcore/control/mcp/MCPChangeRecords.cpp"/>
           <FILE id="mcpUndoEngH" name="MCPUndoEngine.h" compile="0" resource="0"
                 file="Source/Network/MCP/MCPUndoEngine.h"/>
           <FILE id="mcpUndoEngCpp" name="MCPUndoEngine.cpp" compile="1" resource="0"
                 file="Source/Network/MCP/MCPUndoEngine.cpp"/>
           <FILE id="mcpTierEnfH" name="MCPTierEnforcement.h" compile="0" resource="0"
-                file="Source/Network/MCP/MCPTierEnforcement.h"/>
+                file="spatcore/control/mcp/MCPTierEnforcement.h"/>
           <FILE id="mcpTierEnfCpp" name="MCPTierEnforcement.cpp" compile="1" resource="0"
-                file="Source/Network/MCP/MCPTierEnforcement.cpp"/>
+                file="spatcore/control/mcp/MCPTierEnforcement.cpp"/>
           <FILE id="mcpOscQAudH" name="MCPOSCQueryAuditor.h" compile="0" resource="0"
                 file="Source/Network/MCP/MCPOSCQueryAuditor.h"/>
           <FILE id="mcpOscQAudCpp" name="MCPOSCQueryAuditor.cpp" compile="1" resource="0"
                 file="Source/Network/MCP/MCPOSCQueryAuditor.cpp"/>
           <FILE id="mcpRegH" name="MCPToolRegistry.h" compile="0" resource="0"
-                file="Source/Network/MCP/MCPToolRegistry.h"/>
+                file="spatcore/control/mcp/MCPToolRegistry.h"/>
           <FILE id="mcpRegCpp" name="MCPToolRegistry.cpp" compile="1" resource="0"
-                file="Source/Network/MCP/MCPToolRegistry.cpp"/>
+                file="spatcore/control/mcp/MCPToolRegistry.cpp"/>
           <FILE id="mcpDispH" name="MCPDispatcher.h" compile="0" resource="0"
                 file="Source/Network/MCP/MCPDispatcher.h"/>
           <FILE id="mcpDispCpp" name="MCPDispatcher.cpp" compile="1" resource="0"
@@ -211,13 +211,13 @@
           <FILE id="mcpGenLoadCpp" name="MCPGeneratedToolLoader.cpp" compile="1" resource="0"
                 file="Source/Network/MCP/MCPGeneratedToolLoader.cpp"/>
           <FILE id="mcpResRegH" name="MCPResourceRegistry.h" compile="0" resource="0"
-                file="Source/Network/MCP/MCPResourceRegistry.h"/>
+                file="spatcore/control/mcp/MCPResourceRegistry.h"/>
           <FILE id="mcpResRegCpp" name="MCPResourceRegistry.cpp" compile="1" resource="0"
-                file="Source/Network/MCP/MCPResourceRegistry.cpp"/>
+                file="spatcore/control/mcp/MCPResourceRegistry.cpp"/>
           <FILE id="mcpPromptRegH" name="MCPPromptRegistry.h" compile="0" resource="0"
-                file="Source/Network/MCP/MCPPromptRegistry.h"/>
+                file="spatcore/control/mcp/MCPPromptRegistry.h"/>
           <FILE id="mcpPromptRegCpp" name="MCPPromptRegistry.cpp" compile="1" resource="0"
-                file="Source/Network/MCP/MCPPromptRegistry.cpp"/>
+                file="spatcore/control/mcp/MCPPromptRegistry.cpp"/>
           <FILE id="mcpParamRegH" name="MCPParameterRegistry.h" compile="0" resource="0"
                 file="Source/Network/MCP/MCPParameterRegistry.h"/>
           <FILE id="mcpParamRegCpp" name="MCPParameterRegistry.cpp" compile="1" resource="0"

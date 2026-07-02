@@ -2,12 +2,12 @@
 
 #include <JuceHeader.h>
 #include "MCPLogger.h"
-#include "MCPToolRegistry.h"
-#include "MCPChangeRecords.h"
+#include "../../../spatcore/control/mcp/MCPToolRegistry.h"
+#include "../../../spatcore/control/mcp/MCPChangeRecords.h"
 #include "MCPUndoEngine.h"
-#include "MCPResourceRegistry.h"
-#include "MCPPromptRegistry.h"
-#include "MCPTierEnforcement.h"
+#include "../../../spatcore/control/mcp/MCPResourceRegistry.h"
+#include "../../../spatcore/control/mcp/MCPPromptRegistry.h"
+#include "../../../spatcore/control/mcp/MCPTierEnforcement.h"
 #include "MCPOSCQueryAuditor.h"
 #include "MCPDispatcher.h"
 #include "MCPTransport.h"

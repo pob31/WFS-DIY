@@ -101,17 +101,17 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/TrackingRTTrPReceiver_b5859348.o \
   $(JUCE_OBJDIR)/TrackingMQTTReceiver_2e949d4.o \
   $(JUCE_OBJDIR)/MCPLogger_2a5b9495.o \
-  $(JUCE_OBJDIR)/MCPChangeRecords_e03307d7.o \
+  $(JUCE_OBJDIR)/MCPChangeRecords_7b85d714.o \
   $(JUCE_OBJDIR)/MCPUndoEngine_c559304b.o \
-  $(JUCE_OBJDIR)/MCPTierEnforcement_b50d2263.o \
+  $(JUCE_OBJDIR)/MCPTierEnforcement_c6e91660.o \
   $(JUCE_OBJDIR)/MCPOSCQueryAuditor_f9f00b9a.o \
-  $(JUCE_OBJDIR)/MCPToolRegistry_f3164e7a.o \
+  $(JUCE_OBJDIR)/MCPToolRegistry_8cbe239d.o \
   $(JUCE_OBJDIR)/MCPDispatcher_73f0ae2c.o \
   $(JUCE_OBJDIR)/MCPTransport_c748070e.o \
   $(JUCE_OBJDIR)/MCPServer_9ddbbcc8.o \
   $(JUCE_OBJDIR)/MCPGeneratedToolLoader_a9aa861f.o \
-  $(JUCE_OBJDIR)/MCPResourceRegistry_2820fff0.o \
-  $(JUCE_OBJDIR)/MCPPromptRegistry_3ef51846.o \
+  $(JUCE_OBJDIR)/MCPResourceRegistry_51c38b93.o \
+  $(JUCE_OBJDIR)/MCPPromptRegistry_dfc30a9.o \
   $(JUCE_OBJDIR)/MCPParameterRegistry_efa6b86b.o \
   $(JUCE_OBJDIR)/HidApiPlatform_aec62187.o \
   $(JUCE_OBJDIR)/EvdevTouchDevice_2707a63d.o \
@@ -318,7 +318,7 @@ $(JUCE_OBJDIR)/MCPLogger_2a5b9495.o: ../../Source/Network/MCP/MCPLogger.cpp
 	@echo "Compiling MCPLogger.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
-$(JUCE_OBJDIR)/MCPChangeRecords_e03307d7.o: ../../Source/Network/MCP/MCPChangeRecords.cpp
+$(JUCE_OBJDIR)/MCPChangeRecords_7b85d714.o: ../../spatcore/control/mcp/MCPChangeRecords.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling MCPChangeRecords.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
@@ -328,7 +328,7 @@ $(JUCE_OBJDIR)/MCPUndoEngine_c559304b.o: ../../Source/Network/MCP/MCPUndoEngine.
 	@echo "Compiling MCPUndoEngine.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
-$(JUCE_OBJDIR)/MCPTierEnforcement_b50d2263.o: ../../Source/Network/MCP/MCPTierEnforcement.cpp
+$(JUCE_OBJDIR)/MCPTierEnforcement_c6e91660.o: ../../spatcore/control/mcp/MCPTierEnforcement.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling MCPTierEnforcement.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
@@ -338,7 +338,7 @@ $(JUCE_OBJDIR)/MCPOSCQueryAuditor_f9f00b9a.o: ../../Source/Network/MCP/MCPOSCQue
 	@echo "Compiling MCPOSCQueryAuditor.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
-$(JUCE_OBJDIR)/MCPToolRegistry_f3164e7a.o: ../../Source/Network/MCP/MCPToolRegistry.cpp
+$(JUCE_OBJDIR)/MCPToolRegistry_8cbe239d.o: ../../spatcore/control/mcp/MCPToolRegistry.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling MCPToolRegistry.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
@@ -363,12 +363,12 @@ $(JUCE_OBJDIR)/MCPGeneratedToolLoader_a9aa861f.o: ../../Source/Network/MCP/MCPGe
 	@echo "Compiling MCPGeneratedToolLoader.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
-$(JUCE_OBJDIR)/MCPResourceRegistry_2820fff0.o: ../../Source/Network/MCP/MCPResourceRegistry.cpp
+$(JUCE_OBJDIR)/MCPResourceRegistry_51c38b93.o: ../../spatcore/control/mcp/MCPResourceRegistry.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling MCPResourceRegistry.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
-$(JUCE_OBJDIR)/MCPPromptRegistry_3ef51846.o: ../../Source/Network/MCP/MCPPromptRegistry.cpp
+$(JUCE_OBJDIR)/MCPPromptRegistry_dfc30a9.o: ../../spatcore/control/mcp/MCPPromptRegistry.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling MCPPromptRegistry.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
