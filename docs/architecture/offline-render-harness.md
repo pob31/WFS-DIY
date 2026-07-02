@@ -3,7 +3,15 @@
 Status: **implemented** at `tools/validation/offline-render/` (CMake console app,
 `Plugin/CMakeLists.txt` precedent) — CPU gather/scatter + SDN/FDN/IR paths, 3
 scenarios each, all 15 combos run-to-run deterministic; machine baseline at
-`baselines/win-dev-nvidia.json`. GPU gather/scatter paths are milestone 2.
+`baselines/win-dev-nvidia.json`. Milestone 2 (GPU) is also done: gpu-gather /
+gpu-scatter drive the vendor backends synchronously exactly as §3 below
+(`WFS_GPU_NATIVE=1 WFS_GPU_PLUGINS=1`, plugin dlopen — no GPU runtime linked;
+`--device cuda:0`, `--plugin-dir` / auto-probed app build dir). GPU hashes are
+per device+driver and live in the separate `baselines/win-dev-nvidia-gpu.json`,
+checked in a separate `--path gpu` invocation so the CPU baseline stays
+portable; `--path all` skips the gpu paths with a note when no GPU/plugin is
+present. GPU determinism verified: all 6 gpu combos identical across 5 runs
+(CUDA reduce order stable on this device/driver).
 
 Purpose: the **bit-exact gate** for every extraction phase. Renders a fixed
 input through the four WFS renderers and the three reverb algorithms, entirely

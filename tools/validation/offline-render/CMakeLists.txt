@@ -9,8 +9,10 @@
 #         -G "Visual Studio 18 2026"
 #   cmake --build tools/validation/offline-render/build --config Release
 #
-# Milestone 1 is CPU + reverb only; do NOT define WFS_GPU_NATIVE here (the GPU
-# paths are milestone 2 and are #if-guarded in main.cpp).
+# GPU paths (milestone 2): WFS_GPU_NATIVE=1 + WFS_GPU_PLUGINS=1 mirror the
+# app's Windows config — the harness links NO GPU runtime; GpuBackendFactory
+# dlopens the per-vendor plugin (wfs_cuda.dll / wfs_hip.dll) at runtime. Set
+# WFS_OFFLINE_RENDER_GPU=OFF for a CPU-only build of the harness.
 
 cmake_minimum_required(VERSION 3.22)
 
@@ -37,10 +39,18 @@ target_sources(offline-render PRIVATE
 target_include_directories(offline-render PRIVATE
     ${REPO_ROOT}/Source)
 
+option(WFS_OFFLINE_RENDER_GPU "Compile the gpu-gather/gpu-scatter paths (plugin dlopen, no GPU runtime linked)" ON)
+
 target_compile_definitions(offline-render PRIVATE
     REVERB_DIAGNOSTICS=0
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0)
+
+if(WFS_OFFLINE_RENDER_GPU)
+    target_compile_definitions(offline-render PRIVATE
+        WFS_GPU_NATIVE=1
+        WFS_GPU_PLUGINS=1)
+endif()
 
 target_link_libraries(offline-render PRIVATE
     juce::juce_core

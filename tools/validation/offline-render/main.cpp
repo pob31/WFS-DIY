@@ -8,9 +8,11 @@
 // the SHA-256 of the raw float32 PCM (little-endian, channel-major byte dump)
 // of all output channels.
 //
-//   offline-render --path <cpu-gather|cpu-scatter|reverb-sdn|reverb-fdn|reverb-ir|all>
+//   offline-render --path <cpu-gather|cpu-scatter|reverb-sdn|reverb-fdn|reverb-ir
+//                          |gpu-gather|gpu-scatter|cpu|gpu|all>
 //                  --scenario <static|moving|fr-toggle|all>
 //                  [--blocks N] [--block 512] [--sr 48000] [--in 8] [--out 16]
+//                  [--device cuda:0] [--plugin-dir <dir with wfs_cuda.dll>]
 //                  [--wav out.wav] [--raw out.f32]
 //                  [--check baselines/<machine>.json] [--update]
 //
@@ -20,8 +22,20 @@
 //
 // The harness compiles the app's DSP headers in place and drives them exactly
 // as the app does (drain-pull below the async algorithm wrappers) — no
-// production-code changes. GPU paths (gpu-gather / gpu-scatter) are milestone 2
-// and are only compiled when WFS_GPU_NATIVE is defined.
+// production-code changes.
+//
+// GPU paths (milestone 2, WFS_GPU_NATIVE builds): drive the vendor backends
+// SYNCHRONOUSLY — makeWfsBackend/makeObBackend(deviceId) ->
+// prepare(..., pipelineLatencyMs = 0, ...) -> setMatrixPointers ->
+// processBlock — bypassing NativeGpu*Algorithm / GpuAsyncPipelineT entirely.
+// Like the app (WFS_GPU_PLUGINS), no GPU runtime is linked: GpuBackendFactory
+// dlopens wfs_cuda.dll / wfs_hip.dll at runtime (--plugin-dir, or an
+// auto-probed Builds/VisualStudio2022 output dir, is added to the DLL search
+// path). GPU hashes are a SELF-CONSISTENCY gate only (same device + driver);
+// keep them in a separate baseline file (baselines/<machine>-gpu.json) checked
+// in a separate invocation (--path gpu --check ...) so the CPU baseline stays
+// portable. With --path all, GPU paths are SKIPPED with a note when no
+// GPU/plugin is present; explicitly requested gpu paths fail with exit 6.
 //==============================================================================
 
 #include <JuceHeader.h>
@@ -43,6 +57,12 @@
 #include "DSP/ReverbSDNAlgorithm.h"
 #include "DSP/ReverbFDNAlgorithm.h"
 #include "DSP/ReverbIRAlgorithm.h"
+
+#if WFS_GPU_NATIVE
+ #include "DSP/gpu/GpuDeviceManager.h"   // device enumeration ("cuda:0", ...)
+ #include "DSP/gpu/WfsGpuBackend.h"      // makeWfsBackend (gather)
+ #include "DSP/gpu/ObGpuBackend.h"       // makeObBackend  (scatter)
+#endif
 
 #include "scenarios.h"
 #include "sha256.h"
@@ -67,6 +87,8 @@ enum class Path
     ReverbSdn,
     ReverbFdn,
     ReverbIr,
+    GpuGather,
+    GpuScatter,
 };
 
 const char* pathName (Path p)
@@ -78,6 +100,8 @@ const char* pathName (Path p)
         case Path::ReverbSdn:  return "reverb-sdn";
         case Path::ReverbFdn:  return "reverb-fdn";
         case Path::ReverbIr:   return "reverb-ir";
+        case Path::GpuGather:  return "gpu-gather";
+        case Path::GpuScatter: return "gpu-scatter";
     }
     return "?";
 }
@@ -89,15 +113,25 @@ bool pathFromName (const std::string& s, Path& out)
     if (s == "reverb-sdn")  { out = Path::ReverbSdn;  return true; }
     if (s == "reverb-fdn")  { out = Path::ReverbFdn;  return true; }
     if (s == "reverb-ir")   { out = Path::ReverbIr;   return true; }
+    if (s == "gpu-gather")  { out = Path::GpuGather;  return true; }
+    if (s == "gpu-scatter") { out = Path::GpuScatter; return true; }
     return false;
 }
 
-const std::vector<Path>& allPaths()
+bool isGpuPath (Path p) { return p == Path::GpuGather || p == Path::GpuScatter; }
+
+const std::vector<Path>& cpuPaths()
 {
-    static const std::vector<Path> all {
+    static const std::vector<Path> v {
         Path::CpuGather, Path::CpuScatter,
         Path::ReverbSdn, Path::ReverbFdn, Path::ReverbIr };
-    return all;
+    return v;
+}
+
+const std::vector<Path>& gpuPaths()
+{
+    static const std::vector<Path> v { Path::GpuGather, Path::GpuScatter };
+    return v;
 }
 
 using ChannelData = std::vector<std::vector<float>>;   // [channel][sample]
@@ -478,7 +512,209 @@ ChannelData renderReverb (Path path, scenario::Id id, const Config& cfg)
 }
 
 //==============================================================================
-ChannelData renderOne (Path path, scenario::Id id, const Config& cfg)
+// GPU gather / scatter (milestone 2): synchronous backend drive per the design
+// doc — makeWfsBackend/makeObBackend(deviceId) -> prepare(..., latency 0, ...)
+// -> setMatrixPointers -> processBlock. With pipelineLatencyMs = 0 there is no
+// -L delay pre-subtraction and no primed silence. NativeGpu*Algorithm and
+// GpuAsyncPipelineT are bypassed entirely.
+//==============================================================================
+#if WFS_GPU_NATIVE
+
+/** Make a plugin directory (wfs_cuda.dll + its nvrtc companions) resolvable by
+    GpuBackendFactory, which falls back to LoadLibraryA/dlopen by plain name.
+    Windows: prepend to PATH (additive — does not disturb PlatformDynLib's
+    SetDllDirectory slot used for the HIP runtime). POSIX: dlopen does not
+    re-read the environment at runtime, so the caller must launch with
+    LD_LIBRARY_PATH already containing the plugin dir. */
+void addPluginDirToSearchPath (const juce::File& dir)
+{
+#if defined(_WIN32)
+    const juce::String oldPath = juce::SystemStats::getEnvironmentVariable ("PATH", {});
+    const juce::String newPath = dir.getFullPathName() + ";" + oldPath;
+    ::SetEnvironmentVariableA ("PATH", newPath.toRawUTF8());
+#else
+    std::fprintf (stderr,
+        "note: on POSIX, launch with LD_LIBRARY_PATH=%s so the vendor plugin resolves\n",
+        dir.getFullPathName().toRawUTF8());
+#endif
+}
+
+/** Repo-relative auto-probe for the built vendor plugins: walk up from the
+    harness executable looking for the app build output directories. */
+juce::File autoProbePluginDir()
+{
+    const char* candidates[] = {
+        "Builds/VisualStudio2022/x64/Release/App",
+        "Builds/VisualStudio2022/x64/Debug/App",
+        "Builds/LinuxMakefile/build",
+    };
+
+    auto dir = juce::File::getSpecialLocation (juce::File::currentExecutableFile)
+                   .getParentDirectory();
+    for (int up = 0; up < 10 && dir != dir.getParentDirectory(); ++up)
+    {
+        for (const char* c : candidates)
+        {
+            const auto d = dir.getChildFile (c);
+            if (d.getChildFile ("wfs_cuda.dll").existsAsFile()
+                || d.getChildFile ("wfs_hip.dll").existsAsFile()
+                || d.getChildFile ("libwfs_cuda.so").existsAsFile()
+                || d.getChildFile ("libwfs_hip.so").existsAsFile())
+                return d;
+        }
+        dir = dir.getParentDirectory();
+    }
+    return {};
+}
+
+/** Resolve the GPU device id: honour --device, else first enumerated GPU.
+    Returns "" with a reason when unavailable. */
+std::string resolveGpuDeviceId (const std::string& requested, std::string& whyNot)
+{
+    auto& mgr = GpuDeviceManager::instance();
+
+    if (! requested.empty())
+    {
+        const GpuDevice* d = mgr.find (requested);
+        if (d == nullptr)
+        {
+            whyNot = "device '" + requested + "' not found (available:";
+            for (const auto& dev : mgr.devices())
+                whyNot += " " + dev.id;
+            whyNot += ")";
+            return {};
+        }
+        if (d->isCpu())
+        {
+            whyNot = "'cpu' is not a GPU device";
+            return {};
+        }
+        return requested;
+    }
+
+    const std::string first = mgr.firstGpuId();
+    if (first.empty())
+        whyNot = "no GPU device enumerated (vendor driver runtime absent)";
+    return first;
+}
+
+/** Shared synchronous drive for both GPU paths (IWfsBackend and IObBackend
+    expose the identical method surface but are unrelated types). */
+template <class BackendPtr>
+ChannelData renderGpuCommon (BackendPtr& backend, scenario::Id id,
+                             const Config& cfg, const char* what)
+{
+    const int srInt = static_cast<int> (cfg.sr);
+    scenario::WfsMatrices m;
+    m.allocate (cfg.numIn, cfg.numOut);
+    scenario::applyWfsTick (id, 0, cfg.numIn, cfg.numOut, m);
+
+    if (! backend->prepare (cfg.numIn, cfg.numOut, cfg.block, cfg.sr,
+                            /*pipelineLatencyMs*/ 0.0, /*maxDelaySeconds*/ 1.0))
+    {
+        std::fprintf (stderr, "FATAL: %s prepare() failed: %s\n",
+                      what, backend->getLastError().c_str());
+        std::exit (7);
+    }
+    std::fprintf (stderr, "note: %s device: %s\n", what, backend->getDeviceName().c_str());
+
+    backend->setMatrixPointers (m.delayMs.data(), m.levels.data(), m.hfDb.data(),
+                                m.frDelayMs.data(), m.frLevels.data(), m.frHfDb.data());
+
+    const auto fr = scenario::frSettings (id);
+    for (int in = 0; in < cfg.numIn; ++in)
+    {
+        backend->setFRFilterParams (in, fr.lowCutActive, fr.lowCutFreq,
+                                    fr.highShelfActive, fr.highShelfFreq,
+                                    fr.highShelfGain, fr.highShelfSlope);
+        backend->setFRDiffusion (in, fr.diffusionPercent);
+    }
+
+    const int64_t total = static_cast<int64_t> (cfg.blocks) * cfg.block;
+    ChannelData out (static_cast<size_t> (cfg.numOut),
+                     std::vector<float> (static_cast<size_t> (total), 0.0f));
+
+    std::vector<std::vector<float>> inBuf (static_cast<size_t> (cfg.numIn),
+                                           std::vector<float> (static_cast<size_t> (cfg.block)));
+    std::vector<std::vector<float>> outBuf (static_cast<size_t> (cfg.numOut),
+                                            std::vector<float> (static_cast<size_t> (cfg.block)));
+    std::vector<const float*> inPtrs;
+    std::vector<float*> outPtrs;
+    for (auto& c : inBuf)  inPtrs.push_back (c.data());
+    for (auto& c : outBuf) outPtrs.push_back (c.data());
+
+    int lastTick = 0;
+    for (int b = 0; b < cfg.blocks; ++b)
+    {
+        const int64_t startSample = static_cast<int64_t> (b) * cfg.block;
+
+        // Matrices are read at every launch; re-write them at tick boundaries
+        // between the synchronous processBlock calls (same 50 Hz stepping as
+        // the app's timer thread; the backend's prev->curr tracking ramps
+        // per-sample inside the kernels).
+        const int tick = tickForSample (startSample, srInt);
+        if (tick != lastTick)
+        {
+            scenario::applyWfsTick (id, tick, cfg.numIn, cfg.numOut, m);
+            lastTick = tick;
+        }
+
+        for (int in = 0; in < cfg.numIn; ++in)
+        {
+            float* dst = inBuf[static_cast<size_t> (in)].data();
+            for (int s = 0; s < cfg.block; ++s)
+                dst[s] = scenario::inputSample (id, in, startSample + s, cfg.sr);
+        }
+
+        if (! backend->processBlock (inPtrs.data(), outPtrs.data()))
+        {
+            std::fprintf (stderr, "FATAL: %s processBlock() failed on block %d: %s\n",
+                          what, b, backend->getLastError().c_str());
+            std::exit (7);
+        }
+
+        for (int o = 0; o < cfg.numOut; ++o)
+            std::memcpy (out[static_cast<size_t> (o)].data() + startSample,
+                         outBuf[static_cast<size_t> (o)].data(),
+                         static_cast<size_t> (cfg.block) * sizeof (float));
+    }
+
+    backend->release();
+    return out;
+}
+
+ChannelData renderGpu (Path path, scenario::Id id, const Config& cfg,
+                       const std::string& deviceId)
+{
+    if (path == Path::GpuGather)
+    {
+        auto b = makeWfsBackend (deviceId);
+        if (b == nullptr)
+        {
+            std::fprintf (stderr, "FATAL: gpu-gather: could not create backend for '%s' "
+                                  "(vendor plugin missing or device init failed)\n",
+                          deviceId.c_str());
+            std::exit (6);
+        }
+        return renderGpuCommon (b, id, cfg, "gpu-gather");
+    }
+
+    auto b = makeObBackend (deviceId);
+    if (b == nullptr)
+    {
+        std::fprintf (stderr, "FATAL: gpu-scatter: could not create backend for '%s' "
+                              "(vendor plugin missing or device init failed)\n",
+                      deviceId.c_str());
+        std::exit (6);
+    }
+    return renderGpuCommon (b, id, cfg, "gpu-scatter");
+}
+
+#endif // WFS_GPU_NATIVE
+
+//==============================================================================
+ChannelData renderOne (Path path, scenario::Id id, const Config& cfg,
+                       const std::string& gpuDeviceId)
 {
     switch (path)
     {
@@ -487,6 +723,15 @@ ChannelData renderOne (Path path, scenario::Id id, const Config& cfg)
         case Path::ReverbSdn:
         case Path::ReverbFdn:
         case Path::ReverbIr:   return renderReverb (path, id, cfg);
+        case Path::GpuGather:
+        case Path::GpuScatter:
+#if WFS_GPU_NATIVE
+            return renderGpu (path, id, cfg, gpuDeviceId);
+#else
+            (void) gpuDeviceId;
+            std::fprintf (stderr, "FATAL: GPU paths require a WFS_GPU_NATIVE build\n");
+            std::exit (6);
+#endif
     }
     return {};
 }
@@ -547,11 +792,22 @@ juce::File taggedFile (const juce::File& base, const std::string& tag)
 void usage()
 {
     std::fprintf (stderr,
-        "usage: offline-render --path <cpu-gather|cpu-scatter|reverb-sdn|reverb-fdn|reverb-ir|all>\n"
+        "usage: offline-render --path <cpu-gather|cpu-scatter|reverb-sdn|reverb-fdn|reverb-ir\n"
+        "                              |gpu-gather|gpu-scatter|cpu|gpu|all>\n"
         "                      --scenario <static|moving|fr-toggle|all>\n"
         "                      [--blocks N] [--block 512] [--sr 48000] [--in 8] [--out 16]\n"
+        "                      [--device cuda:0] [--plugin-dir <dir with wfs_cuda.dll>]\n"
         "                      [--wav out.wav] [--raw out.f32]\n"
-        "                      [--check baselines/<machine>.json] [--update]\n");
+        "                      [--check baselines/<machine>.json] [--update]\n"
+        "\n"
+        "GPU baselines are per device+driver: keep them in a separate file and check\n"
+        "them in a separate invocation, e.g.\n"
+        "  offline-render --path cpu --check baselines/<machine>.json\n"
+        "  offline-render --path gpu --check baselines/<machine>-gpu.json\n"
+        "\n"
+        "exit codes: 0 ok, 1 baseline mismatch, 2 usage, 3 drain timeout,\n"
+        "            4 IR-load timeout, 5 self-test, 6 GPU/plugin unavailable,\n"
+        "            7 GPU runtime failure\n");
 }
 
 } // namespace
@@ -572,7 +828,7 @@ int main (int argc, char* argv[])
 
     Config cfg;
     std::string pathArg = "all", scenarioArg = "all";
-    std::string wavArg, rawArg, checkArg;
+    std::string wavArg, rawArg, checkArg, deviceArg, pluginDirArg;
     bool update = false;
 
     for (int i = 1; i < argc; ++i)
@@ -596,6 +852,8 @@ int main (int argc, char* argv[])
         else if (a == "--sr")       cfg.sr = std::atof (next().c_str());
         else if (a == "--in")       cfg.numIn = std::atoi (next().c_str());
         else if (a == "--out")      cfg.numOut = std::atoi (next().c_str());
+        else if (a == "--device")   deviceArg = next();
+        else if (a == "--plugin-dir") pluginDirArg = next();
         else if (a == "--wav")      wavArg = next();
         else if (a == "--raw")      rawArg = next();
         else if (a == "--check")    checkArg = next();
@@ -617,20 +875,21 @@ int main (int argc, char* argv[])
     }
 
     std::vector<Path> paths;
+    bool gpuOptional = false;   // --path all: skip gpu paths with a note when unavailable
     if (pathArg == "all")
-        paths = allPaths();
+    {
+        paths = cpuPaths();
+        for (const Path p : gpuPaths())
+            paths.push_back (p);
+        gpuOptional = true;
+    }
+    else if (pathArg == "cpu")
+        paths = cpuPaths();
+    else if (pathArg == "gpu")
+        paths = gpuPaths();
     else
     {
         Path p;
-        if (pathArg == "gpu-gather" || pathArg == "gpu-scatter")
-        {
-#if defined(WFS_GPU_NATIVE)
-            std::fprintf (stderr, "error: GPU paths are milestone 2 (not implemented yet)\n");
-#else
-            std::fprintf (stderr, "error: GPU paths require a WFS_GPU_NATIVE build (milestone 2)\n");
-#endif
-            return 2;
-        }
         if (! pathFromName (pathArg, p))
         {
             std::fprintf (stderr, "error: unknown path '%s'\n", pathArg.c_str());
@@ -663,6 +922,64 @@ int main (int argc, char* argv[])
         return 2;
     }
 
+    //==========================================================================
+    // GPU availability: resolve the device and plugin BEFORE rendering so
+    // --path all can skip cleanly on GPU-less machines (the CPU baseline gate
+    // must still pass there), while explicit gpu requests fail loudly (exit 6).
+    //==========================================================================
+    std::string gpuDeviceId;
+    const bool wantsGpu = std::any_of (paths.begin(), paths.end(), isGpuPath);
+    if (wantsGpu)
+    {
+        std::string whyNot;
+        bool gpuOk = false;
+
+#if WFS_GPU_NATIVE
+        // Make the vendor plugin dir resolvable before the factory's dlopen.
+        juce::File pluginDir;
+        if (! pluginDirArg.empty())
+            pluginDir = juce::File::getCurrentWorkingDirectory()
+                            .getChildFile (juce::String (pluginDirArg));
+        else
+            pluginDir = autoProbePluginDir();
+
+        if (pluginDir.isDirectory())
+        {
+            addPluginDirToSearchPath (pluginDir);
+            std::fprintf (stderr, "note: GPU plugin dir: %s\n",
+                          pluginDir.getFullPathName().toRawUTF8());
+        }
+
+        gpuDeviceId = resolveGpuDeviceId (deviceArg, whyNot);
+        if (! gpuDeviceId.empty())
+        {
+            auto probe = makeWfsBackend (gpuDeviceId);   // dlopen + create only
+            if (probe != nullptr)
+                gpuOk = true;
+            else
+                whyNot = "vendor plugin for '" + gpuDeviceId
+                       + "' not found/loadable (see --plugin-dir)";
+        }
+#else
+        whyNot = "harness built without WFS_GPU_NATIVE";
+#endif
+
+        if (! gpuOk)
+        {
+            if (gpuOptional)
+            {
+                std::fprintf (stderr, "note: skipping gpu paths: %s\n", whyNot.c_str());
+                paths.erase (std::remove_if (paths.begin(), paths.end(), isGpuPath),
+                             paths.end());
+            }
+            else
+            {
+                std::fprintf (stderr, "error: GPU unavailable: %s\n", whyNot.c_str());
+                return 6;
+            }
+        }
+    }
+
     const bool multiCombo = paths.size() * scenarios.size() > 1;
     std::map<std::string, std::string> results;   // "path/scenario" -> sha256
 
@@ -671,7 +988,7 @@ int main (int argc, char* argv[])
         for (const scenario::Id s : scenarios)
         {
             const std::string key = std::string (pathName (p)) + "/" + scenario::name (s);
-            const ChannelData chans = renderOne (p, s, cfg);
+            const ChannelData chans = renderOne (p, s, cfg, gpuDeviceId);
             const std::string hash = hashChannels (chans);
             results[key] = hash;
             std::printf ("%s sha256=%s\n", key.c_str(), hash.c_str());
