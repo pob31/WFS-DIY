@@ -14,6 +14,13 @@ TrackingRTTrPReceiver::TrackingRTTrPReceiver(WFSValueTreeState& valueTreeState)
     : Thread("RTTrP Tracking Receiver")
     , state(valueTreeState)
 {
+    // The queue drains on the message thread and applies each update via the
+    // existing (now message-thread-only) routing methods.
+    ingestQueue.setApply ([this] (const TrackingUpdate& u)
+    {
+        if (u.hasPos) routePositionToInputs (u.key, u.x, u.y, u.z);
+        if (u.hasOri) routeOrientationToInputs (u.key, u.rotation);
+    });
 }
 
 TrackingRTTrPReceiver::~TrackingRTTrPReceiver()
@@ -124,9 +131,13 @@ void TrackingRTTrPReceiver::run()
 
 void TrackingRTTrPReceiver::processTrackable(const RTTrP::Trackable& trackable)
 {
+    // NETWORK THREAD — decode + transform only. Never touch the ValueTree here;
+    // build one decoded update and push it to the queue, which drains and writes
+    // on the message thread.
     ++trackersProcessed;
 
-    int trackingId = trackable.id;
+    TrackingUpdate update;
+    update.key = trackable.id;
 
     // Process position if available
     if (trackable.hasPosition)
@@ -142,22 +153,28 @@ void TrackingRTTrPReceiver::processTrackable(const RTTrP::Trackable& trackable)
         if (flipY.load()) y = -y;
         if (flipZ.load()) z = -z;
 
-        routePositionToInputs(trackingId, x, y, z);
+        update.x = x;
+        update.y = y;
+        update.z = z;
+        update.hasPos = true;
     }
 
     // Process orientation if available
     // Prefer quaternion if available, otherwise use Euler angles
     if (trackable.hasQuaternion)
     {
-        float rotation = quaternionToYaw(trackable.quaternion);
-        routeOrientationToInputs(trackingId, rotation);
+        update.rotation = quaternionToYaw(trackable.quaternion);
+        update.hasOri = true;
     }
     else if (trackable.hasEuler)
     {
         // Use R3 as yaw (depends on rotation order, but commonly the last rotation is yaw)
-        float rotation = static_cast<float>(trackable.euler.r3);
-        routeOrientationToInputs(trackingId, rotation);
+        update.rotation = static_cast<float>(trackable.euler.r3);
+        update.hasOri = true;
     }
+
+    if (update.hasPos || update.hasOri)
+        ingestQueue.push (update);
 }
 
 float TrackingRTTrPReceiver::quaternionToYaw(const RTTrP::Quaternion& q) const
@@ -174,6 +191,8 @@ float TrackingRTTrPReceiver::quaternionToYaw(const RTTrP::Quaternion& q) const
 
 void TrackingRTTrPReceiver::routePositionToInputs(int trackingId, float x, float y, float z)
 {
+    JUCE_ASSERT_MESSAGE_THREAD  // runs only on the ingest-queue drain
+
     int numInputs = state.getNumInputChannels();
     bool anyRouted = false;
 
@@ -238,6 +257,8 @@ void TrackingRTTrPReceiver::routePositionToInputs(int trackingId, float x, float
 
 void TrackingRTTrPReceiver::routeOrientationToInputs(int trackingId, float rotation)
 {
+    JUCE_ASSERT_MESSAGE_THREAD  // runs only on the ingest-queue drain
+
     int numInputs = state.getNumInputChannels();
     bool anyRouted = false;
 

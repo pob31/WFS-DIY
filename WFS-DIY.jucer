@@ -125,6 +125,10 @@
               file="Source/Network/OSCIngestQueue.h"/>
         <FILE id="netIngestQueueCpp" name="OSCIngestQueue.cpp" compile="1" resource="0"
               file="Source/Network/OSCIngestQueue.cpp"/>
+        <FILE id="netTrkIngestQH" name="TrackingIngestQueue.h" compile="0" resource="0"
+              file="Source/Network/TrackingIngestQueue.h"/>
+        <FILE id="netTrkIngestQCpp" name="TrackingIngestQueue.cpp" compile="1" resource="0"
+              file="Source/Network/TrackingIngestQueue.cpp"/>
         <FILE id="netMgrH" name="OSCManager.h" compile="0" resource="0" file="Source/Network/OSCManager.h"/>
         <FILE id="netMgrCpp" name="OSCManager.cpp" compile="1" resource="0"
               file="Source/Network/OSCManager.cpp"/>

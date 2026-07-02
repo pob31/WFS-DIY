@@ -4,6 +4,7 @@
 #include "../Parameters/WFSValueTreeState.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/ParameterDirtyTracker.h"
+#include "TrackingIngestQueue.h"
 
 class TrackingPositionFilter;
 
@@ -121,6 +122,10 @@ private:
 
     // Snapshot-scope dirty tracker — wired up by OSCManager
     ParameterDirtyTracker* dirtyTracker = nullptr;
+
+    // Marshals decoded updates from this network thread onto the message thread,
+    // where the ValueTree writes (and their listeners) actually run.
+    TrackingIngestQueue ingestQueue;
 
     WFSValueTreeState& state;
 

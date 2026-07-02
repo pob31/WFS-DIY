@@ -13,6 +13,13 @@ TrackingPSNReceiver::TrackingPSNReceiver(WFSValueTreeState& valueTreeState)
     : Thread("PSN Tracking Receiver")
     , state(valueTreeState)
 {
+    // The queue drains on the message thread and applies each update via the
+    // existing (now message-thread-only) routing methods.
+    ingestQueue.setApply ([this] (const TrackingUpdate& u)
+    {
+        if (u.hasPos) routePositionToInputs (u.key, u.x, u.y, u.z);
+        if (u.hasOri) routeOrientationToInputs (u.key, u.rotation);
+    });
 }
 
 TrackingPSNReceiver::~TrackingPSNReceiver()
@@ -139,9 +146,13 @@ void TrackingPSNReceiver::run()
 
 void TrackingPSNReceiver::processTrackerData(const ::psn::tracker& tracker)
 {
+    // NETWORK THREAD — decode + transform only. Never touch the ValueTree here;
+    // build one decoded update and push it to the queue, which drains and writes
+    // on the message thread.
     ++trackersProcessed;
 
-    int trackingId = tracker.get_id();
+    TrackingUpdate update;
+    update.key = tracker.get_id();
 
     // Process position if available
     if (tracker.is_pos_set())
@@ -157,7 +168,10 @@ void TrackingPSNReceiver::processTrackerData(const ::psn::tracker& tracker)
         if (flipY.load()) y = -y;
         if (flipZ.load()) z = -z;
 
-        routePositionToInputs(trackingId, x, y, z);
+        update.x = x;
+        update.y = y;
+        update.z = z;
+        update.hasPos = true;
     }
 
     // Process orientation if available
@@ -166,13 +180,18 @@ void TrackingPSNReceiver::processTrackerData(const ::psn::tracker& tracker)
         auto ori = tracker.get_ori();
         // PSN orientation: x=pitch, y=roll, z=yaw (in degrees typically)
         // Map Z-axis (yaw) to inputRotation for directivity
-        float rotation = ori.z;
-        routeOrientationToInputs(trackingId, rotation);
+        update.rotation = ori.z;
+        update.hasOri = true;
     }
+
+    if (update.hasPos || update.hasOri)
+        ingestQueue.push (update);
 }
 
 void TrackingPSNReceiver::routePositionToInputs(int trackingId, float x, float y, float z)
 {
+    JUCE_ASSERT_MESSAGE_THREAD  // runs only on the ingest-queue drain
+
     int numInputs = state.getNumInputChannels();
     bool anyRouted = false;
 
@@ -238,6 +257,8 @@ void TrackingPSNReceiver::routePositionToInputs(int trackingId, float x, float y
 
 void TrackingPSNReceiver::routeOrientationToInputs(int trackingId, float rotation)
 {
+    JUCE_ASSERT_MESSAGE_THREAD  // runs only on the ingest-queue drain
+
     int numInputs = state.getNumInputChannels();
     bool anyRouted = false;
 
