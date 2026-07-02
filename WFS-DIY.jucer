@@ -366,125 +366,125 @@
         <FILE id="outAlg" name="OutputBufferAlgorithm.h" compile="0" resource="0"
               file="Source/DSP/OutputBufferAlgorithm.h"/>
         <FILE id="ngpuPipe" name="GpuAsyncPipeline.h" compile="0" resource="0"
-              file="Source/DSP/gpu/GpuAsyncPipeline.h"/>
+              file="spatcore/gpu/GpuAsyncPipeline.h"/>
         <FILE id="ngpuIface" name="GpuBackendInterface.h" compile="0" resource="0"
-              file="Source/DSP/gpu/GpuBackendInterface.h"/>
+              file="spatcore/gpu/GpuBackendInterface.h"/>
         <FILE id="ngpuDevMgr" name="GpuDeviceManager.h" compile="0" resource="0"
-              file="Source/DSP/gpu/GpuDeviceManager.h"/>
+              file="spatcore/gpu/GpuDeviceManager.h"/>
         <FILE id="ngpuDynLib" name="PlatformDynLib.h" compile="0" resource="0"
-              file="Source/DSP/gpu/PlatformDynLib.h"/>
+              file="spatcore/gpu/PlatformDynLib.h"/>
         <FILE id="ngpuFactory" name="GpuBackendFactory.h" compile="0" resource="0"
-              file="Source/DSP/gpu/GpuBackendFactory.h"/>
+              file="spatcore/gpu/GpuBackendFactory.h"/>
         <FILE id="ngpuPlugin" name="GpuVendorPlugin.cpp" compile="0" resource="0"
-              file="Source/DSP/gpu/plugin/GpuVendorPlugin.cpp"/>
+              file="spatcore/gpu/plugin/GpuVendorPlugin.cpp"/>
         <FILE id="ngpuAlgo" name="NativeGpuWfsAlgorithm.h" compile="0" resource="0"
-              file="Source/DSP/gpu/NativeGpuWfsAlgorithm.h"/>
+              file="spatcore/gpu/NativeGpuWfsAlgorithm.h"/>
         <FILE id="ngpuBakH" name="MetalWfsBackend.h" compile="0" resource="0"
-              file="Source/DSP/gpu/MetalWfsBackend.h"/>
+              file="spatcore/gpu/MetalWfsBackend.h"/>
         <FILE id="ngpuBakM" name="MetalWfsBackend.mm" compile="1" resource="0"
-              file="Source/DSP/gpu/MetalWfsBackend.mm"/>
+              file="spatcore/gpu/MetalWfsBackend.mm"/>
         <FILE id="ngpuKrnl" name="MetalWfsKernels.h" compile="0" resource="0"
-              file="Source/DSP/gpu/MetalWfsKernels.h"/>
+              file="spatcore/gpu/MetalWfsKernels.h"/>
         <FILE id="ngpuSel" name="WfsGpuBackend.h" compile="0" resource="0"
-              file="Source/DSP/gpu/WfsGpuBackend.h"/>
+              file="spatcore/gpu/WfsGpuBackend.h"/>
         <FILE id="cudaBakH" name="CudaWfsBackend.h" compile="0" resource="0"
-              file="Source/DSP/gpu/CudaWfsBackend.h"/>
+              file="spatcore/gpu/CudaWfsBackend.h"/>
         <FILE id="cudaBakC" name="CudaWfsBackend.cpp" compile="1" resource="0"
-              file="Source/DSP/gpu/CudaWfsBackend.cpp"/>
+              file="spatcore/gpu/CudaWfsBackend.cpp"/>
         <FILE id="cudaKrnl" name="CudaWfsKernels.h" compile="0" resource="0"
-              file="Source/DSP/gpu/CudaWfsKernels.h"/>
+              file="spatcore/gpu/CudaWfsKernels.h"/>
         <FILE id="hipBakH" name="HipWfsBackend.h" compile="0" resource="0"
-              file="Source/DSP/gpu/HipWfsBackend.h"/>
+              file="spatcore/gpu/HipWfsBackend.h"/>
         <FILE id="hipBakC" name="HipWfsBackend.cpp" compile="1" resource="0"
-              file="Source/DSP/gpu/HipWfsBackend.cpp"/>
+              file="spatcore/gpu/HipWfsBackend.cpp"/>
         <FILE id="gpuFrHost" name="WfsFrHostState.h" compile="0" resource="0"
-              file="Source/DSP/gpu/WfsFrHostState.h"/>
+              file="spatcore/gpu/WfsFrHostState.h"/>
         <FILE id="obGpuAlgo" name="NativeGpuOutputBufferAlgorithm.h" compile="0" resource="0"
-              file="Source/DSP/gpu/NativeGpuOutputBufferAlgorithm.h"/>
+              file="spatcore/gpu/NativeGpuOutputBufferAlgorithm.h"/>
         <FILE id="obGpuSel" name="ObGpuBackend.h" compile="0" resource="0"
-              file="Source/DSP/gpu/ObGpuBackend.h"/>
+              file="spatcore/gpu/ObGpuBackend.h"/>
         <FILE id="obMtlBakH" name="MetalObBackend.h" compile="0" resource="0"
-              file="Source/DSP/gpu/MetalObBackend.h"/>
+              file="spatcore/gpu/MetalObBackend.h"/>
         <FILE id="obMtlBakM" name="MetalObBackend.mm" compile="1" resource="0"
-              file="Source/DSP/gpu/MetalObBackend.mm"/>
+              file="spatcore/gpu/MetalObBackend.mm"/>
         <FILE id="obMtlKrnl" name="MetalObKernels.h" compile="0" resource="0"
-              file="Source/DSP/gpu/MetalObKernels.h"/>
+              file="spatcore/gpu/MetalObKernels.h"/>
         <FILE id="obCudaBakH" name="CudaObBackend.h" compile="0" resource="0"
-              file="Source/DSP/gpu/CudaObBackend.h"/>
+              file="spatcore/gpu/CudaObBackend.h"/>
         <FILE id="obCudaBakC" name="CudaObBackend.cpp" compile="1" resource="0"
-              file="Source/DSP/gpu/CudaObBackend.cpp"/>
+              file="spatcore/gpu/CudaObBackend.cpp"/>
         <FILE id="obCudaKrnl" name="CudaObKernels.h" compile="0" resource="0"
-              file="Source/DSP/gpu/CudaObKernels.h"/>
+              file="spatcore/gpu/CudaObKernels.h"/>
         <FILE id="obHipBakH" name="HipObBackend.h" compile="0" resource="0"
-              file="Source/DSP/gpu/HipObBackend.h"/>
+              file="spatcore/gpu/HipObBackend.h"/>
         <FILE id="obHipBakC" name="HipObBackend.cpp" compile="1" resource="0"
-              file="Source/DSP/gpu/HipObBackend.cpp"/>
+              file="spatcore/gpu/HipObBackend.cpp"/>
         <FILE id="irHostFft" name="IrHostFft.h" compile="0" resource="0"
-              file="Source/DSP/gpu/IrHostFft.h"/>
+              file="spatcore/gpu/IrHostFft.h"/>
         <FILE id="irConvHost" name="IrConvHostState.h" compile="0" resource="0"
-              file="Source/DSP/gpu/IrConvHostState.h"/>
+              file="spatcore/gpu/IrConvHostState.h"/>
         <FILE id="irMtlBakH" name="MetalIrBackend.h" compile="0" resource="0"
-              file="Source/DSP/gpu/MetalIrBackend.h"/>
+              file="spatcore/gpu/MetalIrBackend.h"/>
         <FILE id="irMtlBakM" name="MetalIrBackend.mm" compile="1" resource="0"
-              file="Source/DSP/gpu/MetalIrBackend.mm"/>
+              file="spatcore/gpu/MetalIrBackend.mm"/>
         <FILE id="irMtlKrnl" name="MetalIrKernels.h" compile="0" resource="0"
-              file="Source/DSP/gpu/MetalIrKernels.h"/>
+              file="spatcore/gpu/MetalIrKernels.h"/>
         <FILE id="irCudaBakH" name="CudaIrBackend.h" compile="0" resource="0"
-              file="Source/DSP/gpu/CudaIrBackend.h"/>
+              file="spatcore/gpu/CudaIrBackend.h"/>
         <FILE id="irCudaBakC" name="CudaIrBackend.cpp" compile="1" resource="0"
-              file="Source/DSP/gpu/CudaIrBackend.cpp"/>
+              file="spatcore/gpu/CudaIrBackend.cpp"/>
         <FILE id="irCudaKrnl" name="CudaIrKernels.h" compile="0" resource="0"
-              file="Source/DSP/gpu/CudaIrKernels.h"/>
+              file="spatcore/gpu/CudaIrKernels.h"/>
         <FILE id="irHipBakH" name="HipIrBackend.h" compile="0" resource="0"
-              file="Source/DSP/gpu/HipIrBackend.h"/>
+              file="spatcore/gpu/HipIrBackend.h"/>
         <FILE id="irHipBakC" name="HipIrBackend.cpp" compile="1" resource="0"
-              file="Source/DSP/gpu/HipIrBackend.cpp"/>
+              file="spatcore/gpu/HipIrBackend.cpp"/>
         <FILE id="irGpuSel" name="IrGpuBackend.h" compile="0" resource="0"
-              file="Source/DSP/gpu/IrGpuBackend.h"/>
+              file="spatcore/gpu/IrGpuBackend.h"/>
         <FILE id="rvbIrGpuH" name="ReverbIRAlgorithmGPU.h" compile="0" resource="0"
               file="Source/DSP/ReverbIRAlgorithmGPU.h"/>
         <FILE id="fdnHostCfg" name="FdnHostConfig.h" compile="0" resource="0"
-              file="Source/DSP/gpu/FdnHostConfig.h"/>
+              file="spatcore/gpu/FdnHostConfig.h"/>
         <FILE id="fdnMtlBakH" name="MetalFdnBackend.h" compile="0" resource="0"
-              file="Source/DSP/gpu/MetalFdnBackend.h"/>
+              file="spatcore/gpu/MetalFdnBackend.h"/>
         <FILE id="fdnMtlBakM" name="MetalFdnBackend.mm" compile="1" resource="0"
-              file="Source/DSP/gpu/MetalFdnBackend.mm"/>
+              file="spatcore/gpu/MetalFdnBackend.mm"/>
         <FILE id="fdnMtlKrnl" name="MetalFdnKernels.h" compile="0" resource="0"
-              file="Source/DSP/gpu/MetalFdnKernels.h"/>
+              file="spatcore/gpu/MetalFdnKernels.h"/>
         <FILE id="fdnCudaBakH" name="CudaFdnBackend.h" compile="0" resource="0"
-              file="Source/DSP/gpu/CudaFdnBackend.h"/>
+              file="spatcore/gpu/CudaFdnBackend.h"/>
         <FILE id="fdnCudaBakC" name="CudaFdnBackend.cpp" compile="1" resource="0"
-              file="Source/DSP/gpu/CudaFdnBackend.cpp"/>
+              file="spatcore/gpu/CudaFdnBackend.cpp"/>
         <FILE id="fdnCudaKrnl" name="CudaFdnKernels.h" compile="0" resource="0"
-              file="Source/DSP/gpu/CudaFdnKernels.h"/>
+              file="spatcore/gpu/CudaFdnKernels.h"/>
         <FILE id="fdnHipBakH" name="HipFdnBackend.h" compile="0" resource="0"
-              file="Source/DSP/gpu/HipFdnBackend.h"/>
+              file="spatcore/gpu/HipFdnBackend.h"/>
         <FILE id="fdnHipBakC" name="HipFdnBackend.cpp" compile="1" resource="0"
-              file="Source/DSP/gpu/HipFdnBackend.cpp"/>
+              file="spatcore/gpu/HipFdnBackend.cpp"/>
         <FILE id="fdnGpuSel" name="FdnGpuBackend.h" compile="0" resource="0"
-              file="Source/DSP/gpu/FdnGpuBackend.h"/>
+              file="spatcore/gpu/FdnGpuBackend.h"/>
         <FILE id="rvbFdnGpuH" name="ReverbFDNAlgorithmGPU.h" compile="0" resource="0"
               file="Source/DSP/ReverbFDNAlgorithmGPU.h"/>
         <FILE id="sdnHostCfg" name="SdnHostConfig.h" compile="0" resource="0"
-              file="Source/DSP/gpu/SdnHostConfig.h"/>
+              file="spatcore/gpu/SdnHostConfig.h"/>
         <FILE id="sdnMtlBakH" name="MetalSdnBackend.h" compile="0" resource="0"
-              file="Source/DSP/gpu/MetalSdnBackend.h"/>
+              file="spatcore/gpu/MetalSdnBackend.h"/>
         <FILE id="sdnMtlBakM" name="MetalSdnBackend.mm" compile="1" resource="0"
-              file="Source/DSP/gpu/MetalSdnBackend.mm"/>
+              file="spatcore/gpu/MetalSdnBackend.mm"/>
         <FILE id="sdnMtlKrnl" name="MetalSdnKernels.h" compile="0" resource="0"
-              file="Source/DSP/gpu/MetalSdnKernels.h"/>
+              file="spatcore/gpu/MetalSdnKernels.h"/>
         <FILE id="sdnCudaBakH" name="CudaSdnBackend.h" compile="0" resource="0"
-              file="Source/DSP/gpu/CudaSdnBackend.h"/>
+              file="spatcore/gpu/CudaSdnBackend.h"/>
         <FILE id="sdnCudaBakC" name="CudaSdnBackend.cpp" compile="1" resource="0"
-              file="Source/DSP/gpu/CudaSdnBackend.cpp"/>
+              file="spatcore/gpu/CudaSdnBackend.cpp"/>
         <FILE id="sdnCudaKrnl" name="CudaSdnKernels.h" compile="0" resource="0"
-              file="Source/DSP/gpu/CudaSdnKernels.h"/>
+              file="spatcore/gpu/CudaSdnKernels.h"/>
         <FILE id="sdnHipBakH" name="HipSdnBackend.h" compile="0" resource="0"
-              file="Source/DSP/gpu/HipSdnBackend.h"/>
+              file="spatcore/gpu/HipSdnBackend.h"/>
         <FILE id="sdnHipBakC" name="HipSdnBackend.cpp" compile="1" resource="0"
-              file="Source/DSP/gpu/HipSdnBackend.cpp"/>
+              file="spatcore/gpu/HipSdnBackend.cpp"/>
         <FILE id="sdnGpuSel" name="SdnGpuBackend.h" compile="0" resource="0"
-              file="Source/DSP/gpu/SdnGpuBackend.h"/>
+              file="spatcore/gpu/SdnGpuBackend.h"/>
         <FILE id="rvbSdnGpuH" name="ReverbSDNAlgorithmGPU.h" compile="0" resource="0"
               file="Source/DSP/ReverbSDNAlgorithmGPU.h"/>
         <FILE id="testSigGenH" name="TestSignalGenerator.h" compile="0" resource="0"

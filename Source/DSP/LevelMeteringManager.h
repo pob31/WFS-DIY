@@ -4,8 +4,8 @@
 #include "InputBufferAlgorithm.h"
 #include "OutputBufferAlgorithm.h"
 #if WFS_GPU_NATIVE
- #include "gpu/NativeGpuWfsAlgorithm.h"
- #include "gpu/NativeGpuOutputBufferAlgorithm.h"
+ #include "../../spatcore/gpu/NativeGpuWfsAlgorithm.h"
+ #include "../../spatcore/gpu/NativeGpuOutputBufferAlgorithm.h"
 #endif
 #include <vector>
 #include <array>

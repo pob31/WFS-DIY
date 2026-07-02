@@ -120,16 +120,16 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/MainComponent_a6ffb4a5.o \
   $(JUCE_OBJDIR)/WFSLogger_60115195.o \
   $(JUCE_OBJDIR)/WFSCalculationEngine_480062fe.o \
-  $(JUCE_OBJDIR)/CudaWfsBackend_d20d6b9.o \
-  $(JUCE_OBJDIR)/HipWfsBackend_3985daaf.o \
-  $(JUCE_OBJDIR)/CudaObBackend_e4da3f62.o \
-  $(JUCE_OBJDIR)/HipObBackend_6a69e4ac.o \
-  $(JUCE_OBJDIR)/CudaIrBackend_c8e26e4c.o \
-  $(JUCE_OBJDIR)/HipIrBackend_4e721396.o \
-  $(JUCE_OBJDIR)/CudaFdnBackend_9e82b4d.o \
-  $(JUCE_OBJDIR)/HipFdnBackend_364d2f43.o \
-  $(JUCE_OBJDIR)/CudaSdnBackend_822b6860.o \
-  $(JUCE_OBJDIR)/HipSdnBackend_ae906c56.o \
+  $(JUCE_OBJDIR)/CudaWfsBackend_8c566f57.o \
+  $(JUCE_OBJDIR)/HipWfsBackend_eb0bb651.o \
+  $(JUCE_OBJDIR)/CudaObBackend_96601b04.o \
+  $(JUCE_OBJDIR)/HipObBackend_4c90cca.o \
+  $(JUCE_OBJDIR)/CudaIrBackend_7a6849ee.o \
+  $(JUCE_OBJDIR)/HipIrBackend_e8d13bb4.o \
+  $(JUCE_OBJDIR)/CudaFdnBackend_891dc3eb.o \
+  $(JUCE_OBJDIR)/HipFdnBackend_e7d30ae5.o \
+  $(JUCE_OBJDIR)/CudaSdnBackend_16100fe.o \
+  $(JUCE_OBJDIR)/HipSdnBackend_601647f8.o \
   $(JUCE_OBJDIR)/TestSignalGenerator_c4132b8c.o \
   $(JUCE_OBJDIR)/BinaryData_ce4232d4.o \
   $(JUCE_OBJDIR)/include_juce_audio_basics_8a4e984a.o \
@@ -413,52 +413,52 @@ $(JUCE_OBJDIR)/WFSCalculationEngine_480062fe.o: ../../Source/DSP/WFSCalculationE
 	@echo "Compiling WFSCalculationEngine.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
-$(JUCE_OBJDIR)/CudaWfsBackend_d20d6b9.o: ../../Source/DSP/gpu/CudaWfsBackend.cpp
+$(JUCE_OBJDIR)/CudaWfsBackend_8c566f57.o: ../../spatcore/gpu/CudaWfsBackend.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling CudaWfsBackend.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
-$(JUCE_OBJDIR)/HipWfsBackend_3985daaf.o: ../../Source/DSP/gpu/HipWfsBackend.cpp
+$(JUCE_OBJDIR)/HipWfsBackend_eb0bb651.o: ../../spatcore/gpu/HipWfsBackend.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling HipWfsBackend.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
-$(JUCE_OBJDIR)/CudaObBackend_e4da3f62.o: ../../Source/DSP/gpu/CudaObBackend.cpp
+$(JUCE_OBJDIR)/CudaObBackend_96601b04.o: ../../spatcore/gpu/CudaObBackend.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling CudaObBackend.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
-$(JUCE_OBJDIR)/HipObBackend_6a69e4ac.o: ../../Source/DSP/gpu/HipObBackend.cpp
+$(JUCE_OBJDIR)/HipObBackend_4c90cca.o: ../../spatcore/gpu/HipObBackend.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling HipObBackend.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
-$(JUCE_OBJDIR)/CudaIrBackend_c8e26e4c.o: ../../Source/DSP/gpu/CudaIrBackend.cpp
+$(JUCE_OBJDIR)/CudaIrBackend_7a6849ee.o: ../../spatcore/gpu/CudaIrBackend.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling CudaIrBackend.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
-$(JUCE_OBJDIR)/HipIrBackend_4e721396.o: ../../Source/DSP/gpu/HipIrBackend.cpp
+$(JUCE_OBJDIR)/HipIrBackend_e8d13bb4.o: ../../spatcore/gpu/HipIrBackend.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling HipIrBackend.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
-$(JUCE_OBJDIR)/CudaFdnBackend_9e82b4d.o: ../../Source/DSP/gpu/CudaFdnBackend.cpp
+$(JUCE_OBJDIR)/CudaFdnBackend_891dc3eb.o: ../../spatcore/gpu/CudaFdnBackend.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling CudaFdnBackend.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
-$(JUCE_OBJDIR)/HipFdnBackend_364d2f43.o: ../../Source/DSP/gpu/HipFdnBackend.cpp
+$(JUCE_OBJDIR)/HipFdnBackend_e7d30ae5.o: ../../spatcore/gpu/HipFdnBackend.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling HipFdnBackend.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
-$(JUCE_OBJDIR)/CudaSdnBackend_822b6860.o: ../../Source/DSP/gpu/CudaSdnBackend.cpp
+$(JUCE_OBJDIR)/CudaSdnBackend_16100fe.o: ../../spatcore/gpu/CudaSdnBackend.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling CudaSdnBackend.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
-$(JUCE_OBJDIR)/HipSdnBackend_ae906c56.o: ../../Source/DSP/gpu/HipSdnBackend.cpp
+$(JUCE_OBJDIR)/HipSdnBackend_601647f8.o: ../../spatcore/gpu/HipSdnBackend.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling HipSdnBackend.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"

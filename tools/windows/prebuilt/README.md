@@ -15,7 +15,7 @@ rule would otherwise ignore it).
 
 ### Rebuild + recommit when the HIP backend changes
 
-This DLL is a binary snapshot of `Source/DSP/gpu/Hip*Backend.cpp` +
+This DLL is a binary snapshot of `spatcore/gpu/Hip*Backend.cpp` +
 `plugin/GpuVendorPlugin.cpp`. Whenever that source changes, rebuild and recommit:
 
 1. On a Windows box with the AMD HIP SDK **and** the MSVC toolchain, from a

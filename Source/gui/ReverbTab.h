@@ -13,7 +13,7 @@
 #include "StatusBar.h"
 #include "EQDisplayComponent.h"
 #if WFS_GPU_NATIVE
- #include "../DSP/gpu/GpuDeviceManager.h"
+ #include "../../spatcore/gpu/GpuDeviceManager.h"
 #endif
 #include "../Helpers/CoordinateConverter.h"
 #include "buttons/LongPressButton.h"

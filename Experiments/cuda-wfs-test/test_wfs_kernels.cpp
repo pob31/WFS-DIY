@@ -20,7 +20,7 @@
       test_wfs_kernels.exe
 */
 
-#include "../../Source/DSP/gpu/CudaWfsKernels.h"
+#include "../../spatcore/gpu/CudaWfsKernels.h"
 
 #include <cuda.h>
 #include <cuda_runtime.h>

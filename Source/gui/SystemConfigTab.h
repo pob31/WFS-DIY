@@ -17,7 +17,7 @@
 #include "HelpCard.h"
 #include "LightpadArrangementOverlay.h"
 #if WFS_GPU_NATIVE
- #include "../DSP/gpu/GpuDeviceManager.h"
+ #include "../../spatcore/gpu/GpuDeviceManager.h"
 #endif
 
 #if JUCE_WINDOWS

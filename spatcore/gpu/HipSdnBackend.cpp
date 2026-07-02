@@ -1,10 +1,10 @@
 /*
-    CudaSdnBackend implementation.
+    HipSdnBackend implementation.
 
-    The kernel source lives in CudaSdnKernels.h as a string literal, compiled at
-    prepare() via NVRTC into PTX, loaded with the CUDA Driver API and launched
-    with cuLaunchKernel; buffers and copies use the Runtime API on a private
-    stream — the same pattern as CudaFdnBackend / CudaWfsBackend.
+    The kernel source lives in CudaSdnKernels.h as a string literal (valid HIP),
+    compiled at prepare() via hipRTC into code, loaded with the HIP driver API and
+    launched with hipModuleLaunchKernel; buffers and copies use the Runtime API on a
+    private stream — the same pattern as CudaFdnBackend / CudaWfsBackend.
 
     Host-side behaviour mirrors MetalSdnBackend.mm via the shared SdnHostConfig.
     The persistent SDN state (per-path delay lines, decay-filter states, diffuser
@@ -17,21 +17,19 @@
     with __syncthreads() — the network couples nodes within a block.
 */
 
-#if WFS_GPU_NATIVE && !defined(__APPLE__) && !defined(WFS_GPU_HIP) && !defined(WFS_GPU_PLUGINS)
+#if WFS_GPU_NATIVE && !defined(__APPLE__) && defined(WFS_GPU_HIP)
 
-#include "CudaSdnBackend.h"
+#include "HipSdnBackend.h"
 #include "CudaSdnKernels.h"
 #include "SdnHostConfig.h"
 
-#include <cuda.h>
-#include <cuda_runtime.h>
-#include <nvrtc.h>
+#include <hip/hip_runtime.h>   // HIP runtime + driver API (hipMalloc, hipModule*, hipModuleLaunchKernel, props)
+#include <hip/hiprtc.h>        // hipRTC: runtime kernel compilation
 
-#if defined(_MSC_VER)
- #pragma comment(lib, "cudart.lib")
- #pragma comment(lib, "nvrtc.lib")
- #pragma comment(lib, "cuda.lib")
-#endif
+// Linux links the HIP libs via the .jucer externalLibraries (-lamdhip64 -lhiprtc),
+// and the Windows wfs_hip.dll links them via hipcc; no MSVC-style #pragma
+// comment(lib, ...) is needed or honoured here. (A CUDA pragma here would wrongly
+// pull cudart/nvrtc into the AMD plugin.)
 
 #include <algorithm>
 #include <atomic>
@@ -62,13 +60,11 @@ struct SdnParamsGpu
 };
 } // namespace
 
-struct CudaSdnBackend::Impl
+struct HipSdnBackend::Impl
 {
-    CUcontext    context = nullptr;
-    CUdevice     cuDevice = 0;
-    CUmodule     module = nullptr;
-    CUfunction   kernel = nullptr;
-    cudaStream_t stream = nullptr;
+    hipModule_t     module = nullptr;
+    hipFunction_t   kernel = nullptr;
+    hipStream_t stream = nullptr;
 
     // Pinned host staging.
     float* hInputs = nullptr;
@@ -119,24 +115,24 @@ struct CudaSdnBackend::Impl
 
     std::atomic<bool> resetRequested { false };
 
-    int deviceIndex = 0;             // which CUDA device to bind (ctor-injected)
+    int deviceIndex = 0;             // which HIP device to bind (ctor-injected)
 };
 
-CudaSdnBackend::CudaSdnBackend (int deviceIndex) : impl (std::make_unique<Impl>()) { impl->deviceIndex = deviceIndex; }
-CudaSdnBackend::~CudaSdnBackend() { release(); }
+HipSdnBackend::HipSdnBackend (int deviceIndex) : impl (std::make_unique<Impl>()) { impl->deviceIndex = deviceIndex; }
+HipSdnBackend::~HipSdnBackend() { release(); }
 
-#define CK_RT(call)  do { cudaError_t _e = (call); if (_e != cudaSuccess) { \
-    lastError = std::string ("CUDA runtime: ") + cudaGetErrorString (_e); release(); return false; } } while (0)
-#define CK_DRV(call) do { CUresult _e = (call); if (_e != CUDA_SUCCESS) { const char* _s = nullptr; \
-    cuGetErrorString (_e, &_s); lastError = std::string ("CUDA driver: ") + (_s ? _s : "unknown"); \
+#define CK_RT(call)  do { hipError_t _e = (call); if (_e != hipSuccess) { \
+    lastError = std::string ("HIP runtime: ") + hipGetErrorString (_e); release(); return false; } } while (0)
+#define CK_DRV(call) do { hipError_t _e = (call); if (_e != hipSuccess) { const char* _s = nullptr; \
+    hipDrvGetErrorString (_e, &_s); lastError = std::string ("HIP driver: ") + (_s ? _s : "unknown"); \
     release(); return false; } } while (0)
 
-bool CudaSdnBackend::prepare (int numNodes, int blockSize, double sampleRate)
+bool HipSdnBackend::prepare (int numNodes, int blockSize, double sampleRate)
 {
     release();
     auto& m = *impl;
 
-    m.numNodes = std::max (1, numNodes);
+    m.numNodes = std::min (std::max (1, numNodes), SdnHostConfig::MAX_NODES);
     m.blockSize = std::max (1, blockSize);
     m.sampleRate = sampleRate;
     m.cfg.prepare (m.numNodes, sampleRate);
@@ -145,56 +141,50 @@ bool CudaSdnBackend::prepare (int numNodes, int blockSize, double sampleRate)
     m.needUpload = true;
 
     int devCount = 0;
-    CK_RT (cudaGetDeviceCount (&devCount));
-    if (devCount == 0) { lastError = "No CUDA device available"; return false; }
+    CK_RT (hipGetDeviceCount (&devCount));
+    if (devCount == 0) { lastError = "No HIP device available"; return false; }
     if (m.deviceIndex < 0 || m.deviceIndex >= devCount)
     {
-        lastError = "CUDA device index " + std::to_string (m.deviceIndex)
+        lastError = "HIP device index " + std::to_string (m.deviceIndex)
                     + " out of range (" + std::to_string (devCount) + " present)";
         return false;
     }
-    CK_RT (cudaSetDevice (m.deviceIndex));
+    CK_RT (hipSetDevice (m.deviceIndex));
 
-    cudaDeviceProp prop;
-    CK_RT (cudaGetDeviceProperties (&prop, m.deviceIndex));
-    deviceName = std::string (prop.name) + " (CUDA)";
-    const int arch = prop.major * 10 + prop.minor;
-
-    CK_DRV (cuInit (0));
-    CK_DRV (cuDeviceGet (&m.cuDevice, m.deviceIndex));
-    CK_DRV (cuDevicePrimaryCtxRetain (&m.context, m.cuDevice));
-    CK_DRV (cuCtxSetCurrent (m.context));
+    hipDeviceProp_t prop;
+    CK_RT (hipGetDeviceProperties (&prop, m.deviceIndex));
+    deviceName = std::string (prop.name) + " (HIP)";
+    const std::string archName = prop.gcnArchName;
 
     {
-        nvrtcProgram prog = nullptr;
-        if (nvrtcCreateProgram (&prog, kSdnProcessKernelSource, "sdn_process.cu", 0, nullptr, nullptr) != NVRTC_SUCCESS)
+        hiprtcProgram prog = nullptr;
+        if (hiprtcCreateProgram (&prog, kSdnProcessKernelSource, "sdn_process.cu", 0, nullptr, nullptr) != HIPRTC_SUCCESS)
         {
-            lastError = "NVRTC: program creation failed";
+            lastError = "hipRTC: program creation failed";
             release();
             return false;
         }
-        // sm_ + cubin, not compute_ + driver PTX JIT — see CudaWfsBackend.cpp for why.
-        const std::string archOpt = "--gpu-architecture=sm_" + std::to_string (arch);
+        const std::string archOpt = "--offload-arch=" + archName;
         const char* opts[] = { archOpt.c_str() };
-        if (nvrtcCompileProgram (prog, 1, opts) != NVRTC_SUCCESS)
+        if (hiprtcCompileProgram (prog, 1, opts) != HIPRTC_SUCCESS)
         {
             size_t logSize = 0;
-            nvrtcGetProgramLogSize (prog, &logSize);
+            hiprtcGetProgramLogSize (prog, &logSize);
             std::string log (logSize, '\0');
-            if (logSize > 0) nvrtcGetProgramLog (prog, &log[0]);
-            lastError = std::string ("NVRTC compile failed: ") + log;
-            nvrtcDestroyProgram (&prog);
+            if (logSize > 0) hiprtcGetProgramLog (prog, &log[0]);
+            lastError = std::string ("hipRTC compile failed: ") + log;
+            hiprtcDestroyProgram (&prog);
             release();
             return false;
         }
-        size_t cubinSize = 0;
-        nvrtcGetCUBINSize (prog, &cubinSize);
-        std::vector<char> cubin (cubinSize);
-        nvrtcGetCUBIN (prog, cubin.data());
-        nvrtcDestroyProgram (&prog);
+        size_t ptxSize = 0;
+        hiprtcGetCodeSize (prog, &ptxSize);
+        std::vector<char> ptx (ptxSize);
+        hiprtcGetCode (prog, ptx.data());
+        hiprtcDestroyProgram (&prog);
 
-        CK_DRV (cuModuleLoadDataEx (&m.module, cubin.data(), 0, nullptr, nullptr));
-        CK_DRV (cuModuleGetFunction (&m.kernel, m.module, "sdn_process"));
+        CK_DRV (hipModuleLoadDataEx (&m.module, ptx.data(), 0, nullptr, nullptr));
+        CK_DRV (hipModuleGetFunction (&m.kernel, m.module, "sdn_process"));
     }
 
     const int N = m.numNodes;
@@ -203,10 +193,10 @@ bool CudaSdnBackend::prepare (int numNodes, int blockSize, double sampleRate)
     const size_t maxDelay = (size_t) SdnHostConfig::MAX_DELAY_SAMPLES;
     const size_t maxDiff  = (size_t) m.cfg.maxDiffLen;
 
-    CK_RT (cudaStreamCreate (&m.stream));
+    CK_RT (hipStreamCreate (&m.stream));
 
-    auto pinF = [] (float** p, size_t n) { return cudaHostAlloc ((void**) p, n * sizeof (float), cudaHostAllocDefault); };
-    auto pinI = [] (int**   p, size_t n) { return cudaHostAlloc ((void**) p, n * sizeof (int),   cudaHostAllocDefault); };
+    auto pinF = [] (float** p, size_t n) { return hipHostMalloc ((void**) p, n * sizeof (float), hipHostMallocDefault); };
+    auto pinI = [] (int**   p, size_t n) { return hipHostMalloc ((void**) p, n * sizeof (int),   hipHostMallocDefault); };
     CK_RT (pinF (&m.hInputs,  (size_t) N * m.blockSize));
     CK_RT (pinF (&m.hOutputs, (size_t) N * m.blockSize));
     CK_RT (pinI (&m.hDelayLength,       (size_t) P));
@@ -216,8 +206,8 @@ bool CudaSdnBackend::prepare (int numNodes, int blockSize, double sampleRate)
     CK_RT (pinF (&m.hGainMid,  (size_t) P));
     CK_RT (pinF (&m.hGainHigh, (size_t) P));
 
-    auto devF = [] (void** p, size_t n) { return cudaMalloc (p, n * sizeof (float)); };
-    auto devI = [] (void** p, size_t n) { return cudaMalloc (p, n * sizeof (int));   };
+    auto devF = [] (void** p, size_t n) { return hipMalloc (p, n * sizeof (float)); };
+    auto devI = [] (void** p, size_t n) { return hipMalloc (p, n * sizeof (int));   };
     CK_RT (devF (&m.dInputs,  (size_t) N * m.blockSize));
     CK_RT (devF (&m.dOutputs, (size_t) N * m.blockSize));
     CK_RT (devF (&m.dDelayLines,        (size_t) P * maxDelay));
@@ -236,22 +226,22 @@ bool CudaSdnBackend::prepare (int numNodes, int blockSize, double sampleRate)
     CK_RT (devF (&m.dDcState,   (size_t) N * 2));
 
     // Upload the static config + initial dynamic config (one-time).
-    CK_RT (cudaMemcpy (m.dDiffuserDelays, m.cfg.diffuserDelays.data(), (size_t) N * D * sizeof (int), cudaMemcpyHostToDevice));
-    CK_RT (cudaMemcpy (m.dDelayLength,       m.cfg.delayLength.data(),       (size_t) P * sizeof (int), cudaMemcpyHostToDevice));
-    CK_RT (cudaMemcpy (m.dTargetDelayLength, m.cfg.targetDelayLength.data(), (size_t) P * sizeof (int), cudaMemcpyHostToDevice));
-    CK_RT (cudaMemcpy (m.dCrossfadeMix,      m.cfg.crossfadeMix.data(),      (size_t) P * sizeof (float), cudaMemcpyHostToDevice));
-    CK_RT (cudaMemcpy (m.dGainLow,  m.cfg.gainLow.data(),  (size_t) P * sizeof (float), cudaMemcpyHostToDevice));
-    CK_RT (cudaMemcpy (m.dGainMid,  m.cfg.gainMid.data(),  (size_t) P * sizeof (float), cudaMemcpyHostToDevice));
-    CK_RT (cudaMemcpy (m.dGainHigh, m.cfg.gainHigh.data(), (size_t) P * sizeof (float), cudaMemcpyHostToDevice));
+    CK_RT (hipMemcpy (m.dDiffuserDelays, m.cfg.diffuserDelays.data(), (size_t) N * D * sizeof (int), hipMemcpyHostToDevice));
+    CK_RT (hipMemcpy (m.dDelayLength,       m.cfg.delayLength.data(),       (size_t) P * sizeof (int), hipMemcpyHostToDevice));
+    CK_RT (hipMemcpy (m.dTargetDelayLength, m.cfg.targetDelayLength.data(), (size_t) P * sizeof (int), hipMemcpyHostToDevice));
+    CK_RT (hipMemcpy (m.dCrossfadeMix,      m.cfg.crossfadeMix.data(),      (size_t) P * sizeof (float), hipMemcpyHostToDevice));
+    CK_RT (hipMemcpy (m.dGainLow,  m.cfg.gainLow.data(),  (size_t) P * sizeof (float), hipMemcpyHostToDevice));
+    CK_RT (hipMemcpy (m.dGainMid,  m.cfg.gainMid.data(),  (size_t) P * sizeof (float), hipMemcpyHostToDevice));
+    CK_RT (hipMemcpy (m.dGainHigh, m.cfg.gainHigh.data(), (size_t) P * sizeof (float), hipMemcpyHostToDevice));
 
     // Zero the persistent state.
-    CK_RT (cudaMemset (m.dDelayLines,    0, (size_t) P * maxDelay * sizeof (float)));
-    CK_RT (cudaMemset (m.dDecayLowState,  0, (size_t) P * sizeof (float)));
-    CK_RT (cudaMemset (m.dDecayHighState, 0, (size_t) P * sizeof (float)));
-    CK_RT (cudaMemset (m.dDiffRings,    0, (size_t) N * D * maxDiff * sizeof (float)));
-    CK_RT (cudaMemset (m.dDiffWritePos, 0, (size_t) N * D * sizeof (int)));
-    CK_RT (cudaMemset (m.dToneState, 0, (size_t) N * sizeof (float)));
-    CK_RT (cudaMemset (m.dDcState,   0, (size_t) N * 2 * sizeof (float)));
+    CK_RT (hipMemset (m.dDelayLines,    0, (size_t) P * maxDelay * sizeof (float)));
+    CK_RT (hipMemset (m.dDecayLowState,  0, (size_t) P * sizeof (float)));
+    CK_RT (hipMemset (m.dDecayHighState, 0, (size_t) P * sizeof (float)));
+    CK_RT (hipMemset (m.dDiffRings,    0, (size_t) N * D * maxDiff * sizeof (float)));
+    CK_RT (hipMemset (m.dDiffWritePos, 0, (size_t) N * D * sizeof (int)));
+    CK_RT (hipMemset (m.dToneState, 0, (size_t) N * sizeof (float)));
+    CK_RT (hipMemset (m.dDcState,   0, (size_t) N * 2 * sizeof (float)));
 
     m.params = SdnParamsGpu { (uint32_t) N, (uint32_t) m.numPaths, (uint32_t) m.blockSize,
                               (uint32_t) SdnHostConfig::MAX_DELAY_SAMPLES, 0u,
@@ -265,7 +255,7 @@ bool CudaSdnBackend::prepare (int numNodes, int blockSize, double sampleRate)
     return true;
 }
 
-void CudaSdnBackend::setGeometry (const float* xyz, int count) noexcept
+void HipSdnBackend::setGeometry (const float* xyz, int count) noexcept
 {
     auto& m = *impl;
     std::lock_guard<std::mutex> lock (m.geomMutex);
@@ -274,7 +264,7 @@ void CudaSdnBackend::setGeometry (const float* xyz, int count) noexcept
     m.geometryDirty.store (true, std::memory_order_release);
 }
 
-void CudaSdnBackend::setParameters (float rt60, float rt60LowMult, float rt60HighMult,
+void HipSdnBackend::setParameters (float rt60, float rt60LowMult, float rt60HighMult,
                                     float crossoverLow, float crossoverHigh,
                                     float diffusion, float sdnScale) noexcept
 {
@@ -286,12 +276,12 @@ void CudaSdnBackend::setParameters (float rt60, float rt60LowMult, float rt60Hig
     m.paramsDirty.store (true, std::memory_order_release);
 }
 
-void CudaSdnBackend::requestReset() noexcept
+void HipSdnBackend::requestReset() noexcept
 {
     impl->resetRequested.store (true, std::memory_order_release);
 }
 
-bool CudaSdnBackend::processBlock (const float* const* inputs, float* const* outputs)
+bool HipSdnBackend::processBlock (const float* const* inputs, float* const* outputs)
 {
     if (! ready)
         return false;
@@ -319,28 +309,27 @@ bool CudaSdnBackend::processBlock (const float* const* inputs, float* const* out
     const size_t maxDelay = (size_t) SdnHostConfig::MAX_DELAY_SAMPLES;
     const size_t maxDiff  = (size_t) m.cfg.maxDiffLen;
 
-    if (cuCtxSetCurrent (m.context) != CUDA_SUCCESS)
+    if (hipSetDevice (m.deviceIndex) != hipSuccess)
     {
-        lastError = "CUDA driver: cuCtxSetCurrent failed on pump thread";
+        lastError = "HIP: hipSetDevice failed on pump thread";
         ready = false;
         return false;
     }
-    cudaSetDevice (m.deviceIndex);   // runtime copies/memsets on m.stream target the selected device
 
     const auto t0 = std::chrono::steady_clock::now();
 
-#define PB_RT(call) do { cudaError_t _e = (call); if (_e != cudaSuccess) { \
-    lastError = std::string ("CUDA runtime: ") + cudaGetErrorString (_e); ready = false; return false; } } while (0)
+#define PB_RT(call) do { hipError_t _e = (call); if (_e != hipSuccess) { \
+    lastError = std::string ("HIP runtime: ") + hipGetErrorString (_e); ready = false; return false; } } while (0)
 
     if (m.resetRequested.exchange (false, std::memory_order_acq_rel))
     {
-        PB_RT (cudaMemsetAsync (m.dDelayLines,    0, (size_t) P * maxDelay * sizeof (float), m.stream));
-        PB_RT (cudaMemsetAsync (m.dDecayLowState,  0, (size_t) P * sizeof (float), m.stream));
-        PB_RT (cudaMemsetAsync (m.dDecayHighState, 0, (size_t) P * sizeof (float), m.stream));
-        PB_RT (cudaMemsetAsync (m.dDiffRings,    0, (size_t) N * D * maxDiff * sizeof (float), m.stream));
-        PB_RT (cudaMemsetAsync (m.dDiffWritePos, 0, (size_t) N * D * sizeof (int), m.stream));
-        PB_RT (cudaMemsetAsync (m.dToneState, 0, (size_t) N * sizeof (float), m.stream));
-        PB_RT (cudaMemsetAsync (m.dDcState,   0, (size_t) N * 2 * sizeof (float), m.stream));
+        PB_RT (hipMemsetAsync (m.dDelayLines,    0, (size_t) P * maxDelay * sizeof (float), m.stream));
+        PB_RT (hipMemsetAsync (m.dDecayLowState,  0, (size_t) P * sizeof (float), m.stream));
+        PB_RT (hipMemsetAsync (m.dDecayHighState, 0, (size_t) P * sizeof (float), m.stream));
+        PB_RT (hipMemsetAsync (m.dDiffRings,    0, (size_t) N * D * maxDiff * sizeof (float), m.stream));
+        PB_RT (hipMemsetAsync (m.dDiffWritePos, 0, (size_t) N * D * sizeof (int), m.stream));
+        PB_RT (hipMemsetAsync (m.dToneState, 0, (size_t) N * sizeof (float), m.stream));
+        PB_RT (hipMemsetAsync (m.dDcState,   0, (size_t) N * 2 * sizeof (float), m.stream));
         m.ringWritePos = 0;
     }
 
@@ -384,12 +373,12 @@ bool CudaSdnBackend::processBlock (const float* const* inputs, float* const* out
         std::memcpy (m.hGainLow,  m.cfg.gainLow.data(),  (size_t) P * sizeof (float));
         std::memcpy (m.hGainMid,  m.cfg.gainMid.data(),  (size_t) P * sizeof (float));
         std::memcpy (m.hGainHigh, m.cfg.gainHigh.data(), (size_t) P * sizeof (float));
-        PB_RT (cudaMemcpyAsync (m.dDelayLength,       m.hDelayLength,       (size_t) P * sizeof (int), cudaMemcpyHostToDevice, m.stream));
-        PB_RT (cudaMemcpyAsync (m.dTargetDelayLength, m.hTargetDelayLength, (size_t) P * sizeof (int), cudaMemcpyHostToDevice, m.stream));
-        PB_RT (cudaMemcpyAsync (m.dCrossfadeMix,      m.hCrossfadeMix,      (size_t) P * sizeof (float), cudaMemcpyHostToDevice, m.stream));
-        PB_RT (cudaMemcpyAsync (m.dGainLow,  m.hGainLow,  (size_t) P * sizeof (float), cudaMemcpyHostToDevice, m.stream));
-        PB_RT (cudaMemcpyAsync (m.dGainMid,  m.hGainMid,  (size_t) P * sizeof (float), cudaMemcpyHostToDevice, m.stream));
-        PB_RT (cudaMemcpyAsync (m.dGainHigh, m.hGainHigh, (size_t) P * sizeof (float), cudaMemcpyHostToDevice, m.stream));
+        PB_RT (hipMemcpyAsync (m.dDelayLength,       m.hDelayLength,       (size_t) P * sizeof (int), hipMemcpyHostToDevice, m.stream));
+        PB_RT (hipMemcpyAsync (m.dTargetDelayLength, m.hTargetDelayLength, (size_t) P * sizeof (int), hipMemcpyHostToDevice, m.stream));
+        PB_RT (hipMemcpyAsync (m.dCrossfadeMix,      m.hCrossfadeMix,      (size_t) P * sizeof (float), hipMemcpyHostToDevice, m.stream));
+        PB_RT (hipMemcpyAsync (m.dGainLow,  m.hGainLow,  (size_t) P * sizeof (float), hipMemcpyHostToDevice, m.stream));
+        PB_RT (hipMemcpyAsync (m.dGainMid,  m.hGainMid,  (size_t) P * sizeof (float), hipMemcpyHostToDevice, m.stream));
+        PB_RT (hipMemcpyAsync (m.dGainHigh, m.hGainHigh, (size_t) P * sizeof (float), hipMemcpyHostToDevice, m.stream));
 
         m.params.diffusionCoeff = m.cfg.diffusionCoeff;
         m.params.lowCoeff = m.cfg.lowCoeff;
@@ -406,7 +395,7 @@ bool CudaSdnBackend::processBlock (const float* const* inputs, float* const* out
         else
             std::memset (m.hInputs + (size_t) n * m.blockSize, 0, (size_t) m.blockSize * sizeof (float));
     }
-    PB_RT (cudaMemcpyAsync (m.dInputs, m.hInputs, (size_t) N * m.blockSize * sizeof (float), cudaMemcpyHostToDevice, m.stream));
+    PB_RT (hipMemcpyAsync (m.dInputs, m.hInputs, (size_t) N * m.blockSize * sizeof (float), hipMemcpyHostToDevice, m.stream));
 
     m.params.ringWritePos = m.ringWritePos;
 
@@ -419,22 +408,22 @@ bool CudaSdnBackend::processBlock (const float* const* inputs, float* const* out
         &m.dToneState, &m.dDcState
     };
 
-    const CUresult lr = cuLaunchKernel (m.kernel,
+    const hipError_t lr = hipModuleLaunchKernel (m.kernel,
                                         1, 1, 1,
                                         (unsigned int) N, 1, 1,
-                                        0, (CUstream) m.stream,
+                                        0, (hipStream_t) m.stream,
                                         args, nullptr);
-    if (lr != CUDA_SUCCESS)
+    if (lr != hipSuccess)
     {
         const char* s = nullptr;
-        cuGetErrorString (lr, &s);
-        lastError = std::string ("CUDA launch failed (sdn_process): ") + (s ? s : "unknown");
+        hipDrvGetErrorString (lr, &s);
+        lastError = std::string ("HIP launch failed (sdn_process): ") + (s ? s : "unknown");
         ready = false;
         return false;
     }
 
-    PB_RT (cudaMemcpyAsync (m.hOutputs, m.dOutputs, (size_t) N * m.blockSize * sizeof (float), cudaMemcpyDeviceToHost, m.stream));
-    PB_RT (cudaStreamSynchronize (m.stream));
+    PB_RT (hipMemcpyAsync (m.hOutputs, m.dOutputs, (size_t) N * m.blockSize * sizeof (float), hipMemcpyDeviceToHost, m.stream));
+    PB_RT (hipStreamSynchronize (m.stream));
 
 #undef PB_RT
 
@@ -452,15 +441,14 @@ bool CudaSdnBackend::processBlock (const float* const* inputs, float* const* out
     return true;
 }
 
-void CudaSdnBackend::release() noexcept
+void HipSdnBackend::release() noexcept
 {
     auto& m = *impl;
-    if (m.context != nullptr)
-        cuCtxSetCurrent (m.context);
+    hipSetDevice (m.deviceIndex);
 
-    auto freeHostF = [] (float*& p) { if (p) { cudaFreeHost (p); p = nullptr; } };
-    auto freeHostI = [] (int*&   p) { if (p) { cudaFreeHost (p); p = nullptr; } };
-    auto freeDev   = [] (void*&  p) { if (p) { cudaFree (p);     p = nullptr; } };
+    auto freeHostF = [] (float*& p) { if (p) { hipHostFree (p); p = nullptr; } };
+    auto freeHostI = [] (int*&   p) { if (p) { hipHostFree (p); p = nullptr; } };
+    auto freeDev   = [] (void*&  p) { if (p) { hipFree (p);     p = nullptr; } };
 
     freeHostF (m.hInputs); freeHostF (m.hOutputs);
     freeHostI (m.hDelayLength); freeHostI (m.hTargetDelayLength);
@@ -474,15 +462,14 @@ void CudaSdnBackend::release() noexcept
     freeDev (m.dDiffuserDelays); freeDev (m.dDiffRings); freeDev (m.dDiffWritePos);
     freeDev (m.dToneState); freeDev (m.dDcState);
 
-    if (m.stream != nullptr) { cudaStreamDestroy (m.stream); m.stream = nullptr; }
-    if (m.module != nullptr) { cuModuleUnload (m.module); m.module = nullptr; }
+    if (m.stream != nullptr) { hipStreamDestroy (m.stream); m.stream = nullptr; }
+    if (m.module != nullptr) { hipModuleUnload (m.module); m.module = nullptr; }
     m.kernel = nullptr;
 
-    if (m.context != nullptr) { cuDevicePrimaryCtxRelease (m.cuDevice); m.context = nullptr; }
     ready = false;
 }
 
 #undef CK_RT
 #undef CK_DRV
 
-#endif // WFS_GPU_NATIVE && !defined(__APPLE__)
+#endif // WFS_GPU_NATIVE && !defined(__APPLE__) && defined(WFS_GPU_HIP)

@@ -41,7 +41,7 @@
 // Build (Windows, from a VS dev prompt):
 //   cl /nologo /EHsc /std:c++17 /DWFS_GPU_NATIVE=1 /I..\Source\DSP\gpu test-gpu-plugin.cpp /Fe:test-gpu-plugin.exe
 // Build (Linux):
-//   g++ -std=c++17 -DWFS_GPU_NATIVE=1 -I../Source/DSP/gpu test-gpu-plugin.cpp -ldl -o test-gpu-plugin
+//   g++ -std=c++17 -DWFS_GPU_NATIVE=1 -I../spatcore/gpu test-gpu-plugin.cpp -ldl -o test-gpu-plugin
 //
 // Usage: test-gpu-plugin <plugin-path> [device-index]
 //   device-index (optional, default 0) selects which GPU of the vendor to bind
