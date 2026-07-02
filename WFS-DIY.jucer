@@ -358,13 +358,13 @@
         <FILE id="wfsHFFilter" name="WFSHighShelfFilter.h" compile="0" resource="0"
               file="spatcore/dsp/WFSHighShelfFilter.h"/>
         <FILE id="inpPro" name="InputBufferProcessor.h" compile="0" resource="0"
-              file="Source/DSP/InputBufferProcessor.h"/>
+              file="spatcore/wfs/InputBufferProcessor.h"/>
         <FILE id="outPro" name="OutputBufferProcessor.h" compile="0" resource="0"
-              file="Source/DSP/OutputBufferProcessor.h"/>
+              file="spatcore/wfs/OutputBufferProcessor.h"/>
         <FILE id="inpAlg" name="InputBufferAlgorithm.h" compile="0" resource="0"
-              file="Source/DSP/InputBufferAlgorithm.h"/>
+              file="spatcore/wfs/InputBufferAlgorithm.h"/>
         <FILE id="outAlg" name="OutputBufferAlgorithm.h" compile="0" resource="0"
-              file="Source/DSP/OutputBufferAlgorithm.h"/>
+              file="spatcore/wfs/OutputBufferAlgorithm.h"/>
         <FILE id="ngpuPipe" name="GpuAsyncPipeline.h" compile="0" resource="0"
               file="spatcore/gpu/GpuAsyncPipeline.h"/>
         <FILE id="ngpuIface" name="GpuBackendInterface.h" compile="0" resource="0"
@@ -378,7 +378,7 @@
         <FILE id="ngpuPlugin" name="GpuVendorPlugin.cpp" compile="0" resource="0"
               file="spatcore/gpu/plugin/GpuVendorPlugin.cpp"/>
         <FILE id="ngpuAlgo" name="NativeGpuWfsAlgorithm.h" compile="0" resource="0"
-              file="spatcore/gpu/NativeGpuWfsAlgorithm.h"/>
+              file="spatcore/wfs/NativeGpuWfsAlgorithm.h"/>
         <FILE id="ngpuBakH" name="MetalWfsBackend.h" compile="0" resource="0"
               file="spatcore/gpu/MetalWfsBackend.h"/>
         <FILE id="ngpuBakM" name="MetalWfsBackend.mm" compile="1" resource="0"
@@ -400,7 +400,7 @@
         <FILE id="gpuFrHost" name="WfsFrHostState.h" compile="0" resource="0"
               file="spatcore/gpu/WfsFrHostState.h"/>
         <FILE id="obGpuAlgo" name="NativeGpuOutputBufferAlgorithm.h" compile="0" resource="0"
-              file="spatcore/gpu/NativeGpuOutputBufferAlgorithm.h"/>
+              file="spatcore/wfs/NativeGpuOutputBufferAlgorithm.h"/>
         <FILE id="obGpuSel" name="ObGpuBackend.h" compile="0" resource="0"
               file="spatcore/gpu/ObGpuBackend.h"/>
         <FILE id="obMtlBakH" name="MetalObBackend.h" compile="0" resource="0"
@@ -442,7 +442,7 @@
         <FILE id="irGpuSel" name="IrGpuBackend.h" compile="0" resource="0"
               file="spatcore/gpu/IrGpuBackend.h"/>
         <FILE id="rvbIrGpuH" name="ReverbIRAlgorithmGPU.h" compile="0" resource="0"
-              file="Source/DSP/ReverbIRAlgorithmGPU.h"/>
+              file="spatcore/reverb/ReverbIRAlgorithmGPU.h"/>
         <FILE id="fdnHostCfg" name="FdnHostConfig.h" compile="0" resource="0"
               file="spatcore/gpu/FdnHostConfig.h"/>
         <FILE id="fdnMtlBakH" name="MetalFdnBackend.h" compile="0" resource="0"
@@ -464,7 +464,7 @@
         <FILE id="fdnGpuSel" name="FdnGpuBackend.h" compile="0" resource="0"
               file="spatcore/gpu/FdnGpuBackend.h"/>
         <FILE id="rvbFdnGpuH" name="ReverbFDNAlgorithmGPU.h" compile="0" resource="0"
-              file="Source/DSP/ReverbFDNAlgorithmGPU.h"/>
+              file="spatcore/reverb/ReverbFDNAlgorithmGPU.h"/>
         <FILE id="sdnHostCfg" name="SdnHostConfig.h" compile="0" resource="0"
               file="spatcore/gpu/SdnHostConfig.h"/>
         <FILE id="sdnMtlBakH" name="MetalSdnBackend.h" compile="0" resource="0"
@@ -486,7 +486,7 @@
         <FILE id="sdnGpuSel" name="SdnGpuBackend.h" compile="0" resource="0"
               file="spatcore/gpu/SdnGpuBackend.h"/>
         <FILE id="rvbSdnGpuH" name="ReverbSDNAlgorithmGPU.h" compile="0" resource="0"
-              file="Source/DSP/ReverbSDNAlgorithmGPU.h"/>
+              file="spatcore/reverb/ReverbSDNAlgorithmGPU.h"/>
         <FILE id="testSigGenH" name="TestSignalGenerator.h" compile="0" resource="0"
               file="Source/DSP/TestSignalGenerator.h"/>
         <FILE id="testSigGenCpp" name="TestSignalGenerator.cpp" compile="1"

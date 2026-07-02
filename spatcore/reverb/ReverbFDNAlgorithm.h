@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ReverbAlgorithm.h"
-#include "../../spatcore/rt/AudioParallelFor.h"
+#include "../rt/AudioParallelFor.h"
 #include <array>
 #include <cmath>
 

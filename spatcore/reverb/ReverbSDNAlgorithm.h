@@ -18,7 +18,9 @@
 class SDNAlgorithm : public ReverbAlgorithm
 {
 public:
-    // Max SDN nodes = max reverb channels. Must stay >= WFSParameterDefaults::maxReverbChannels.
+    // spatcore capability bound: consumers keep their node count <= this
+    // (same 32-node contract as gpu/SdnHostConfig::MAX_NODES; SDN cost is O(N^2),
+    // prefer FDN/IR beyond it).
     static constexpr int MAX_NODES = 32;
     static constexpr int MAX_DELAY_SAMPLES = 8192;
     static constexpr float SPEED_OF_SOUND = 343.0f;

@@ -1,9 +1,9 @@
 #pragma once
 
 #include "OutputBufferProcessor.h"
-#include "../../spatcore/rt/SharedInputRingBuffer.h"
-#include "LiveSourceLevelDetector.h"
-#include "OutputLevelDetector.h"
+#include "../rt/SharedInputRingBuffer.h"
+#include "../dsp/LiveSourceLevelDetector.h"
+#include "../dsp/OutputLevelDetector.h"
 #include <vector>
 #include <memory>
 #include <atomic>

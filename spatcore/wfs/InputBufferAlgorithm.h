@@ -1,7 +1,7 @@
 #pragma once
 
 #include "InputBufferProcessor.h"
-#include "OutputLevelDetector.h"
+#include "../dsp/OutputLevelDetector.h"
 #include <vector>
 #include <memory>
 #include <atomic>

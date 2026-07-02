@@ -28,12 +28,13 @@
     fallback).
 */
 
-#include <JuceHeader.h>
+#include <juce_audio_basics/juce_audio_basics.h>
+#include <juce_dsp/juce_dsp.h>
 #include "ReverbAlgorithm.h"
-#include "../../spatcore/rt/ReverbDiagnostics.h"
-#include "../../spatcore/gpu/IrGpuBackend.h"
-#include "../../spatcore/gpu/GpuDeviceManager.h"
-#include "../../spatcore/gpu/GpuAsyncPipeline.h"
+#include "../rt/ReverbDiagnostics.h"
+#include "../gpu/IrGpuBackend.h"
+#include "../gpu/GpuDeviceManager.h"
+#include "../gpu/GpuAsyncPipeline.h"
 
 #include <atomic>
 #include <cmath>

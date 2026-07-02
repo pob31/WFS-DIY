@@ -4716,16 +4716,16 @@
     <ClInclude Include="..\..\spatcore\dsp\WFSHighShelfFilter.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\DSP\InputBufferProcessor.h">
+    <ClInclude Include="..\..\spatcore\wfs\InputBufferProcessor.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\DSP\OutputBufferProcessor.h">
+    <ClInclude Include="..\..\spatcore\wfs\OutputBufferProcessor.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\DSP\InputBufferAlgorithm.h">
+    <ClInclude Include="..\..\spatcore\wfs\InputBufferAlgorithm.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\DSP\OutputBufferAlgorithm.h">
+    <ClInclude Include="..\..\spatcore\wfs\OutputBufferAlgorithm.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\spatcore\gpu\GpuAsyncPipeline.h">
@@ -4743,7 +4743,7 @@
     <ClInclude Include="..\..\spatcore\gpu\GpuBackendFactory.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\spatcore\gpu\NativeGpuWfsAlgorithm.h">
+    <ClInclude Include="..\..\spatcore\wfs\NativeGpuWfsAlgorithm.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\spatcore\gpu\MetalWfsBackend.h">
@@ -4767,7 +4767,7 @@
     <ClInclude Include="..\..\spatcore\gpu\WfsFrHostState.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\spatcore\gpu\NativeGpuOutputBufferAlgorithm.h">
+    <ClInclude Include="..\..\spatcore\wfs\NativeGpuOutputBufferAlgorithm.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\spatcore\gpu\ObGpuBackend.h">
@@ -4812,7 +4812,7 @@
     <ClInclude Include="..\..\spatcore\gpu\IrGpuBackend.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\DSP\ReverbIRAlgorithmGPU.h">
+    <ClInclude Include="..\..\spatcore\reverb\ReverbIRAlgorithmGPU.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\spatcore\gpu\FdnHostConfig.h">
@@ -4836,7 +4836,7 @@
     <ClInclude Include="..\..\spatcore\gpu\FdnGpuBackend.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\DSP\ReverbFDNAlgorithmGPU.h">
+    <ClInclude Include="..\..\spatcore\reverb\ReverbFDNAlgorithmGPU.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\spatcore\gpu\SdnHostConfig.h">
@@ -4860,7 +4860,7 @@
     <ClInclude Include="..\..\spatcore\gpu\SdnGpuBackend.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\DSP\ReverbSDNAlgorithmGPU.h">
+    <ClInclude Include="..\..\spatcore\reverb\ReverbSDNAlgorithmGPU.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\DSP\TestSignalGenerator.h">

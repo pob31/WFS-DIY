@@ -1,14 +1,14 @@
 #pragma once
 
-#include <JuceHeader.h>
-#include "../../spatcore/rt/LockFreeRingBuffer.h"
-#include "../../spatcore/rt/SharedInputRingBuffer.h"
-#include "OutputLevelDetector.h"
-#include "../../spatcore/dsp/WFSHighShelfFilter.h"
-#include "../../spatcore/dsp/WFSBiquadFilter.h"
-#include "../../spatcore/dsp/DelayTargetSmoother.h"
-#include "../../spatcore/dsp/FrDiffusionModel.h"
-#include "../../spatcore/rt/AudioWorkgroupCoordinator.h"
+#include <juce_audio_basics/juce_audio_basics.h>
+#include "../rt/LockFreeRingBuffer.h"
+#include "../rt/SharedInputRingBuffer.h"
+#include "../dsp/OutputLevelDetector.h"
+#include "../dsp/WFSHighShelfFilter.h"
+#include "../dsp/WFSBiquadFilter.h"
+#include "../dsp/DelayTargetSmoother.h"
+#include "../dsp/FrDiffusionModel.h"
+#include "../rt/AudioWorkgroupCoordinator.h"
 #include <atomic>
 #include <cstdint>
 #include <random>

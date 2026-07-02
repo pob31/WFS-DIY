@@ -3388,16 +3388,16 @@
     <ClInclude Include="..\..\Source\UpdateChecker.h"/>
     <ClInclude Include="..\..\Source\DSP\WFSCalculationEngine.h"/>
     <ClInclude Include="..\..\spatcore\dsp\WFSHighShelfFilter.h"/>
-    <ClInclude Include="..\..\Source\DSP\InputBufferProcessor.h"/>
-    <ClInclude Include="..\..\Source\DSP\OutputBufferProcessor.h"/>
-    <ClInclude Include="..\..\Source\DSP\InputBufferAlgorithm.h"/>
-    <ClInclude Include="..\..\Source\DSP\OutputBufferAlgorithm.h"/>
+    <ClInclude Include="..\..\spatcore\wfs\InputBufferProcessor.h"/>
+    <ClInclude Include="..\..\spatcore\wfs\OutputBufferProcessor.h"/>
+    <ClInclude Include="..\..\spatcore\wfs\InputBufferAlgorithm.h"/>
+    <ClInclude Include="..\..\spatcore\wfs\OutputBufferAlgorithm.h"/>
     <ClInclude Include="..\..\spatcore\gpu\GpuAsyncPipeline.h"/>
     <ClInclude Include="..\..\spatcore\gpu\GpuBackendInterface.h"/>
     <ClInclude Include="..\..\spatcore\gpu\GpuDeviceManager.h"/>
     <ClInclude Include="..\..\spatcore\gpu\PlatformDynLib.h"/>
     <ClInclude Include="..\..\spatcore\gpu\GpuBackendFactory.h"/>
-    <ClInclude Include="..\..\spatcore\gpu\NativeGpuWfsAlgorithm.h"/>
+    <ClInclude Include="..\..\spatcore\wfs\NativeGpuWfsAlgorithm.h"/>
     <ClInclude Include="..\..\spatcore\gpu\MetalWfsBackend.h"/>
     <ClInclude Include="..\..\spatcore\gpu\MetalWfsKernels.h"/>
     <ClInclude Include="..\..\spatcore\gpu\WfsGpuBackend.h"/>
@@ -3405,7 +3405,7 @@
     <ClInclude Include="..\..\spatcore\gpu\CudaWfsKernels.h"/>
     <ClInclude Include="..\..\spatcore\gpu\HipWfsBackend.h"/>
     <ClInclude Include="..\..\spatcore\gpu\WfsFrHostState.h"/>
-    <ClInclude Include="..\..\spatcore\gpu\NativeGpuOutputBufferAlgorithm.h"/>
+    <ClInclude Include="..\..\spatcore\wfs\NativeGpuOutputBufferAlgorithm.h"/>
     <ClInclude Include="..\..\spatcore\gpu\ObGpuBackend.h"/>
     <ClInclude Include="..\..\spatcore\gpu\MetalObBackend.h"/>
     <ClInclude Include="..\..\spatcore\gpu\MetalObKernels.h"/>
@@ -3420,7 +3420,7 @@
     <ClInclude Include="..\..\spatcore\gpu\CudaIrKernels.h"/>
     <ClInclude Include="..\..\spatcore\gpu\HipIrBackend.h"/>
     <ClInclude Include="..\..\spatcore\gpu\IrGpuBackend.h"/>
-    <ClInclude Include="..\..\Source\DSP\ReverbIRAlgorithmGPU.h"/>
+    <ClInclude Include="..\..\spatcore\reverb\ReverbIRAlgorithmGPU.h"/>
     <ClInclude Include="..\..\spatcore\gpu\FdnHostConfig.h"/>
     <ClInclude Include="..\..\spatcore\gpu\MetalFdnBackend.h"/>
     <ClInclude Include="..\..\spatcore\gpu\MetalFdnKernels.h"/>
@@ -3428,7 +3428,7 @@
     <ClInclude Include="..\..\spatcore\gpu\CudaFdnKernels.h"/>
     <ClInclude Include="..\..\spatcore\gpu\HipFdnBackend.h"/>
     <ClInclude Include="..\..\spatcore\gpu\FdnGpuBackend.h"/>
-    <ClInclude Include="..\..\Source\DSP\ReverbFDNAlgorithmGPU.h"/>
+    <ClInclude Include="..\..\spatcore\reverb\ReverbFDNAlgorithmGPU.h"/>
     <ClInclude Include="..\..\spatcore\gpu\SdnHostConfig.h"/>
     <ClInclude Include="..\..\spatcore\gpu\MetalSdnBackend.h"/>
     <ClInclude Include="..\..\spatcore\gpu\MetalSdnKernels.h"/>
@@ -3436,7 +3436,7 @@
     <ClInclude Include="..\..\spatcore\gpu\CudaSdnKernels.h"/>
     <ClInclude Include="..\..\spatcore\gpu\HipSdnBackend.h"/>
     <ClInclude Include="..\..\spatcore\gpu\SdnGpuBackend.h"/>
-    <ClInclude Include="..\..\Source\DSP\ReverbSDNAlgorithmGPU.h"/>
+    <ClInclude Include="..\..\spatcore\reverb\ReverbSDNAlgorithmGPU.h"/>
     <ClInclude Include="..\..\Source\DSP\TestSignalGenerator.h"/>
     <ClInclude Include="..\..\spatcore\dsp\TrackingPositionFilter.h"/>
     <ClInclude Include="..\..\spatcore\dsp\InputSpeedLimiter.h"/>
