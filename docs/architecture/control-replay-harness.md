@@ -1,10 +1,37 @@
 # Control-Plane Replay Harnesses — Design (Phase 0 of the spatcore extraction)
 
-Status: designed. Target: `tools/validation/control-replay/` (Python, stdlib
+Status: **implemented** at `tools/validation/control-replay/` (Python, stdlib
 only — repo convention per `tools/fuzz/`). Three drivers gate the control
 plane through the LIVE app (state/OSC/MCP are not yet extractable):
 session round-trip, OSC replay, MCP transcript replay
-(`core-boundary-proposal-control.md` §7).
+(`core-boundary-proposal-control.md` §7). All three pass repeatably from
+clean fixture copies.
+
+Implementation corrections to this design:
+- The assumed MCP session-save tool did not exist — a minimal **tier-2
+  `session_save` tool** was added (`tools/SessionTools.h`, calls the same
+  `saveCompleteConfig()` as the SystemConfig Save button).
+- `saveCompleteConfig` writes **5** section files, not 7 — `show.xml` and
+  `audio_patch.xml` are legacy getters; the audio patch is embedded in
+  `system.xml`. The round-trip diffs the 5 real files.
+- The fixture's network config (OSCQuery on, one localhost OSC target) had to
+  be hand-edited then canonicalized through a load→save cycle, because the
+  generated `network_set_*` MCP tools are silent no-ops (defect list below).
+
+App defects surfaced by the harness (fixed: #1; open: #2-#5):
+1. **FIXED** — `WFSFileManager::mergeTreeRecursive` matched children by id
+   only, so `ADMCartMapping`/`ADMPolarMapping` (shared ids 0-3) duplicated 4
+   nodes on every `network.xml` load; load→save was never a fixed point.
+2. Generated `network_set_t_s*` / `network_set_osc_query_enabled` MCP tools
+   silently no-op: `WFSValueTreeState::getTreeForParameter` never resolves
+   `NetworkTarget` children (writes vanish, success payload returned).
+3. `input_set_attenuation` coerces a missing `db` argument to 0.0 dB instead
+   of erroring — schema-required args are not validated server-side.
+4. `OSCIngestQueue` coalescing keeps only the newest write per
+   (address, channel) slot — rapid absolute-then-increment OSC sequences are
+   lossy; the driver spaces sends as a workaround.
+5. File-loaded numeric XML attributes stay string-typed in the ValueTree until
+   first runtime write (visible in OSCQuery read-backs).
 
 ## Verified facts the drivers build on (file:line in code as of 2026-07-02)
 
