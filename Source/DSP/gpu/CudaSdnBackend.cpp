@@ -173,7 +173,8 @@ bool CudaSdnBackend::prepare (int numNodes, int blockSize, double sampleRate)
             release();
             return false;
         }
-        const std::string archOpt = "--gpu-architecture=compute_" + std::to_string (arch);
+        // sm_ + cubin, not compute_ + driver PTX JIT — see CudaWfsBackend.cpp for why.
+        const std::string archOpt = "--gpu-architecture=sm_" + std::to_string (arch);
         const char* opts[] = { archOpt.c_str() };
         if (nvrtcCompileProgram (prog, 1, opts) != NVRTC_SUCCESS)
         {
@@ -186,13 +187,13 @@ bool CudaSdnBackend::prepare (int numNodes, int blockSize, double sampleRate)
             release();
             return false;
         }
-        size_t ptxSize = 0;
-        nvrtcGetPTXSize (prog, &ptxSize);
-        std::vector<char> ptx (ptxSize);
-        nvrtcGetPTX (prog, ptx.data());
+        size_t cubinSize = 0;
+        nvrtcGetCUBINSize (prog, &cubinSize);
+        std::vector<char> cubin (cubinSize);
+        nvrtcGetCUBIN (prog, cubin.data());
         nvrtcDestroyProgram (&prog);
 
-        CK_DRV (cuModuleLoadDataEx (&m.module, ptx.data(), 0, nullptr, nullptr));
+        CK_DRV (cuModuleLoadDataEx (&m.module, cubin.data(), 0, nullptr, nullptr));
         CK_DRV (cuModuleGetFunction (&m.kernel, m.module, "sdn_process"));
     }
 
