@@ -39,6 +39,8 @@
 #include <memory>
 #include <vector>
 
+namespace spatcore::gpu {
+
 class WfsFrHostState
 {
 public:
@@ -359,3 +361,8 @@ private:
     uint32_t subStepCounter = 0;                     // 64-sample sub-block index (CPU frJitterBlockIndex parity)
     bool haveBase = false;                           // prev->curr base-delay ramp bootstrap
 };
+
+} // namespace spatcore::gpu
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::gpu::WfsFrHostState;

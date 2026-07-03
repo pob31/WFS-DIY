@@ -27,6 +27,8 @@
  #include "PlatformDynLib.h"   // dlopen / LoadLibrary shim
 #endif
 
+namespace spatcore::gpu {
+
 class GpuBackendFactory
 {
 public:
@@ -99,5 +101,10 @@ private:
     std::map<std::string, wfsdyn::LibHandle> handles;
 #endif
 };
+
+} // namespace spatcore::gpu
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::gpu::GpuBackendFactory;
 
 #endif // WFS_GPU_NATIVE

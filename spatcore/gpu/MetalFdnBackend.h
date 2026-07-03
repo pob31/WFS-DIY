@@ -20,6 +20,8 @@
 #include <memory>
 #include <string>
 
+namespace spatcore::gpu {
+
 class MetalFdnBackend
 {
 public:
@@ -65,3 +67,8 @@ private:
     std::string deviceName { "Apple Silicon (Metal)" };
     double lastLaunchMs { 0.0 };
 };
+
+} // namespace spatcore::gpu
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::gpu::MetalFdnBackend;

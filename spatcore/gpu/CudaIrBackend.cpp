@@ -49,6 +49,8 @@
 #include <string>
 #include <vector>
 
+namespace spatcore::gpu {
+
 namespace
 {
 // Host mirror of the kernel-side IrParams - layouts must match exactly.
@@ -355,5 +357,7 @@ void CudaIrBackend::release() noexcept
 
 #undef CK_RT
 #undef CK_DRV
+
+} // namespace spatcore::gpu
 
 #endif // WFS_GPU_NATIVE && !defined(__APPLE__)

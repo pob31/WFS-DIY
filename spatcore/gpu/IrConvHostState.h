@@ -30,6 +30,8 @@
 #include <mutex>
 #include <vector>
 
+namespace spatcore::gpu {
+
 class IrConvHostState
 {
 public:
@@ -196,5 +198,10 @@ private:
     std::atomic<int> segmentsLoaded { 0 };
     std::atomic<int> segTotal { 0 };
 };
+
+} // namespace spatcore::gpu
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::gpu::IrConvHostState;
 
 #endif // WFS_GPU_NATIVE

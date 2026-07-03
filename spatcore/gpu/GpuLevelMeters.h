@@ -7,6 +7,8 @@
 #include <memory>
 #include <cmath>
 
+namespace spatcore::gpu {
+
 /*
     GpuLevelMeters — lean host-side level metering for the native GPU WFS
     algorithms (NativeGpuWfs / NativeGpuOutputBuffer).
@@ -372,5 +374,10 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (GpuLevelMeters)
 };
+
+} // namespace spatcore::gpu
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::gpu::GpuLevelMeters;
 
 #endif // WFS_GPU_NATIVE

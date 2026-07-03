@@ -13,18 +13,26 @@
 
 #if defined(__APPLE__)
   #include "MetalIrBackend.h"
-  using IrGpuBackend = MetalIrBackend;
+  namespace spatcore::gpu { using IrGpuBackend = MetalIrBackend; }
 #elif defined(WFS_GPU_HIP)
   #include "HipIrBackend.h"
-  using IrGpuBackend = HipIrBackend;
+  namespace spatcore::gpu { using IrGpuBackend = HipIrBackend; }
 #else
   #include "CudaIrBackend.h"
-  using IrGpuBackend = CudaIrBackend;
+  namespace spatcore::gpu { using IrGpuBackend = CudaIrBackend; }
 #endif
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::gpu::IrGpuBackend;
 
 #if WFS_GPU_NATIVE
 #include "GpuBackendInterface.h"
 #include <memory>
+#if defined(WFS_GPU_PLUGINS) && ! defined(__APPLE__)
+ #include "GpuBackendFactory.h"  // hoisted: an #include cannot sit inside the namespace
+#endif
+
+namespace spatcore::gpu {
 
 // Thin adapter wrapping the compile-time-selected concrete IR backend behind
 // IIrBackend (runtime-polymorphic). The concrete backend is untouched.
@@ -50,7 +58,6 @@ private:
 };
 
 #if defined(WFS_GPU_PLUGINS) && ! defined(__APPLE__)
- #include "GpuBackendFactory.h"
  inline std::unique_ptr<IIrBackend> makeIrBackend (const std::string& deviceId)
  {
      return GpuBackendFactory::instance().makeIr (deviceId);
@@ -66,4 +73,11 @@ private:
      return makeIrBackend (deviceIndexFromId (deviceId));
  }
 #endif
+
+} // namespace spatcore::gpu
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+using spatcore::gpu::IrBackendAdapter;
+using spatcore::gpu::makeIrBackend;
+
 #endif // WFS_GPU_NATIVE

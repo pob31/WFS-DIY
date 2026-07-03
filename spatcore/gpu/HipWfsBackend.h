@@ -37,6 +37,8 @@
 #include <memory>
 #include <string>
 
+namespace spatcore::gpu {
+
 class HipWfsBackend
 {
 public:
@@ -107,3 +109,8 @@ private:
     std::string deviceName;
     double lastLaunchMs { 0.0 };
 };
+
+} // namespace spatcore::gpu
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::gpu::HipWfsBackend;

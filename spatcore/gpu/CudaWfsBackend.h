@@ -36,6 +36,8 @@
 #include <memory>
 #include <string>
 
+namespace spatcore::gpu {
+
 class CudaWfsBackend
 {
 public:
@@ -106,3 +108,8 @@ private:
     std::string deviceName;
     double lastLaunchMs { 0.0 };
 };
+
+} // namespace spatcore::gpu
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::gpu::CudaWfsBackend;

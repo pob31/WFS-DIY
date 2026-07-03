@@ -34,6 +34,8 @@
 #include <cstring>
 #include <vector>
 
+namespace spatcore::gpu {
+
 namespace
 {
 // Host mirror of the kernel-side WfsParams - layouts must match exactly.
@@ -449,3 +451,5 @@ void MetalWfsBackend::release() noexcept
     m.havePrev = false;
     ready = false;
 }
+
+} // namespace spatcore::gpu

@@ -12,18 +12,26 @@
 
 #if defined(__APPLE__)
   #include "MetalFdnBackend.h"
-  using FdnGpuBackend = MetalFdnBackend;
+  namespace spatcore::gpu { using FdnGpuBackend = MetalFdnBackend; }
 #elif defined(WFS_GPU_HIP)
   #include "HipFdnBackend.h"
-  using FdnGpuBackend = HipFdnBackend;
+  namespace spatcore::gpu { using FdnGpuBackend = HipFdnBackend; }
 #else
   #include "CudaFdnBackend.h"
-  using FdnGpuBackend = CudaFdnBackend;
+  namespace spatcore::gpu { using FdnGpuBackend = CudaFdnBackend; }
 #endif
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::gpu::FdnGpuBackend;
 
 #if WFS_GPU_NATIVE
 #include "GpuBackendInterface.h"
 #include <memory>
+#if defined(WFS_GPU_PLUGINS) && ! defined(__APPLE__)
+ #include "GpuBackendFactory.h"  // hoisted: an #include cannot sit inside the namespace
+#endif
+
+namespace spatcore::gpu {
 
 // Thin adapter wrapping the compile-time-selected concrete FDN backend behind
 // IFdnBackend (runtime-polymorphic). The concrete backend is untouched.
@@ -48,7 +56,6 @@ private:
 };
 
 #if defined(WFS_GPU_PLUGINS) && ! defined(__APPLE__)
- #include "GpuBackendFactory.h"
  inline std::unique_ptr<IFdnBackend> makeFdnBackend (const std::string& deviceId)
  {
      return GpuBackendFactory::instance().makeFdn (deviceId);
@@ -64,4 +71,11 @@ private:
      return makeFdnBackend (deviceIndexFromId (deviceId));
  }
 #endif
+
+} // namespace spatcore::gpu
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+using spatcore::gpu::FdnBackendAdapter;
+using spatcore::gpu::makeFdnBackend;
+
 #endif // WFS_GPU_NATIVE

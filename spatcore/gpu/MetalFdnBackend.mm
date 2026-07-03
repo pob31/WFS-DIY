@@ -29,6 +29,8 @@
 #include <cstring>
 #include <mutex>
 
+namespace spatcore::gpu {
+
 namespace
 {
 // Host mirror of the kernel-side FdnParams - layout must match exactly.
@@ -366,5 +368,7 @@ void MetalFdnBackend::release() noexcept
     }
     ready = false;
 }
+
+} // namespace spatcore::gpu
 
 #endif // WFS_GPU_NATIVE
