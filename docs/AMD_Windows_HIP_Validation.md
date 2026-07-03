@@ -37,7 +37,7 @@ From a Developer PowerShell at the repo root:
 tools\windows\build-gpu-plugins.ps1        # builds wfs_hip.dll (skips CUDA if no toolkit — fine)
 
 cd tools
-cl /nologo /EHsc /std:c++17 /DWFS_GPU_NATIVE=1 /I..\Source\DSP\gpu `
+cl /nologo /EHsc /std:c++17 /DWFS_GPU_NATIVE=1 /I..\spatcore\gpu `
    test-gpu-plugin.cpp `
    /Fe:..\Builds\VisualStudio2022\x64\Release\App\test-gpu-plugin.exe
 ```
