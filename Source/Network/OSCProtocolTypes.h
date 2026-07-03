@@ -3,7 +3,11 @@
 #include <JuceHeader.h>
 #include "../../spatcore/control/osc/OscTransportTypes.h"
 
-namespace spatcore::control::osc { class OSCRateLimiter; }
+namespace spatcore::control::osc
+{
+    class OSCRateLimiter;
+    class OSCIngestQueue;
+}
 
 namespace WFSNetwork
 {
@@ -26,6 +30,7 @@ using spatcore::control::osc::DEFAULT_UDP_PORT;
 using spatcore::control::osc::DEFAULT_TCP_PORT;
 using spatcore::control::osc::DEFAULT_TX_PORT;
 using spatcore::control::osc::OSCRateLimiter;
+using spatcore::control::osc::OSCIngestQueue;
 
 //==============================================================================
 // Protocol Types

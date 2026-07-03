@@ -1,14 +1,17 @@
 #pragma once
 
-#include <JuceHeader.h>
-#include "OSCProtocolTypes.h"
+#include <juce_core/juce_core.h>
+#include <juce_events/juce_events.h>
+#include "OscTransportTypes.h"
 
 #include <atomic>
 #include <deque>
 #include <functional>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
-namespace WFSNetwork
+namespace spatcore::control::osc
 {
 
 /**
@@ -18,8 +21,8 @@ namespace WFSNetwork
  * MessageManager dispatch path. Two responsibilities:
  *
  *  1. Coalesce hot per-(address, channel) parameter updates so that a
- *     flood of `/wfs/input/positionX 7 ...` messages collapses to a
- *     single ValueTree write per drain tick instead of a separate
+ *     flood of e.g. `/wfs/input/positionX 7 ...` messages collapses to
+ *     a single ValueTree write per drain tick instead of a separate
  *     callAsync per UDP datagram.
  *
  *  2. Bound the queue depth for non-coalesceable messages (bundles,
@@ -30,16 +33,49 @@ namespace WFSNetwork
  * a `juce::MessageManager::callAsync` lambda holding a MemoryBlock +
  * String, the queue grows unboundedly under flood, and the GUI freezes.
  *
+ * The queue owns only the generic machinery (coalesce map + bounded
+ * FIFO + timed drain + OSC 1.0 wire parsing). WHICH addresses coalesce
+ * and how the coalescing key is derived is app dialect, injected at
+ * construction as a Classifier (core-boundary-proposal-control.md §2).
+ *
  * Thread model:
  *  - `push(...)` is called on receiver threads (UDP socket thread,
  *    each TCP client thread).
- *  - The first `push` after a drain schedules exactly one callAsync.
- *  - The drain runs on the MessageManager thread, swaps the maps under
- *    lock, then iterates and calls the dispatch callback per item.
+ *  - The drain runs on the MessageManager thread at a fixed Timer
+ *    cadence, swaps the maps under lock, then iterates and calls the
+ *    dispatch callback per item.
  */
 class OSCIngestQueue : private juce::Timer
 {
 public:
+    /** One coalesceable address family. */
+    struct CoalesceRule
+    {
+        /** OSC address prefix, e.g. "/wfs/input/". An inbound message
+         *  whose address starts with this prefix is coalesced. */
+        juce::String prefix;
+
+        /** Convention: true means the first int32 argument is the
+         *  channel id and the coalesce key is "<address>|<channel>"
+         *  (per-channel parameters). false means the family carries no
+         *  channel id and the key is the full address (global config
+         *  parameters). */
+        bool firstInt32IsChannel = true;
+    };
+
+    /** App-injected classification state: the coalescing-prefix set
+     *  plus the key-derivation conventions the app's dialect uses. */
+    struct Classifier
+    {
+        std::vector<CoalesceRule> rules;
+
+        /** Convention: when true, a digit immediately after a
+         *  per-channel prefix (the OSCQuery short form, e.g.
+         *  "/wfs/input/7/positionX") bypasses coalescing and goes
+         *  through the FIFO path uncanonicalised. */
+        bool digitAfterPrefixBypasses = true;
+    };
+
     using DispatchFn = std::function<void (const juce::MemoryBlock& data,
                                             const juce::String& senderIP,
                                             int port,
@@ -50,8 +86,8 @@ public:
     using DropReportFn = std::function<void (uint64_t totalDropped,
                                               ConnectionMode transport)>;
 
-    OSCIngestQueue();
-    ~OSCIngestQueue();
+    explicit OSCIngestQueue (Classifier classifierIn);
+    ~OSCIngestQueue() override;
 
     void setDispatch (DispatchFn fn)         { dispatch  = std::move (fn); }
     void setDropReport (DropReportFn fn)     { dropReport = std::move (fn); }
@@ -86,16 +122,29 @@ private:
         ConnectionMode    transport = ConnectionMode::UDP;
     };
 
+    /** Precomputed byte-comparable form of a CoalesceRule (built once
+     *  at construction so the receiver-thread hot path is a memcmp). */
+    struct Rule
+    {
+        std::string prefix;
+        int         len = 0;
+        bool        perChannel = true;
+    };
+
     /** Cheap address + first-int32 extraction directly off the
-     *  datagram bytes. Returns true if the datagram should be
-     *  coalesced; outKey is set to the coalesce key. Returns false
-     *  for unparseable, bundles, or non-coalesceable addresses, in
-     *  which case the caller routes to the FIFO. */
-    static bool tryClassify (const char* data, int dataSize,
-                              juce::String& outKey);
+     *  datagram bytes, matched against the injected rules. Returns
+     *  true if the datagram should be coalesced; outKey is set to the
+     *  coalesce key. Returns false for unparseable, bundles, or
+     *  non-coalesceable addresses, in which case the caller routes to
+     *  the FIFO. */
+    bool tryClassify (const char* data, int dataSize,
+                      juce::String& outKey) const;
 
     void timerCallback() override;
     void drainBatch();
+
+    std::vector<Rule> rules;
+    bool              digitAfterPrefixBypasses = true;
 
     juce::CriticalSection                            lock;
     std::unordered_map<juce::String, IngestItem>     coalesced;
@@ -134,4 +183,4 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (OSCIngestQueue)
 };
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::osc

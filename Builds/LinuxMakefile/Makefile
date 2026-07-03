@@ -91,7 +91,7 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/OSCMessageBuilder_d95fd113.o \
   $(JUCE_OBJDIR)/OSCMessageRouter_d5ec64db.o \
   $(JUCE_OBJDIR)/OSCParameterBounds_6ab619e9.o \
-  $(JUCE_OBJDIR)/OSCIngestQueue_17124ab8.o \
+  $(JUCE_OBJDIR)/OSCIngestQueue_8dc1cfe5.o \
   $(JUCE_OBJDIR)/TrackingIngestQueue_bab31329.o \
   $(JUCE_OBJDIR)/OSCManager_ce19fc58.o \
   $(JUCE_OBJDIR)/OSCReceiverWithSenderIP_483eaf83.o \
@@ -270,7 +270,7 @@ $(JUCE_OBJDIR)/OSCParameterBounds_6ab619e9.o: ../../Source/Network/OSCParameterB
 	@echo "Compiling OSCParameterBounds.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
-$(JUCE_OBJDIR)/OSCIngestQueue_17124ab8.o: ../../Source/Network/OSCIngestQueue.cpp
+$(JUCE_OBJDIR)/OSCIngestQueue_8dc1cfe5.o: ../../spatcore/control/osc/OSCIngestQueue.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling OSCIngestQueue.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
