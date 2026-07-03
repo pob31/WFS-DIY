@@ -88,6 +88,32 @@ public:
     virtual void setParameterWithoutUndo (const juce::Identifier& id, const juce::var& value, int channelIndex = -1);
 
     //==========================================================================
+    // Write Interceptor (control Q6a)
+    //==========================================================================
+
+    /** WRITE-INTERCEPTOR — consulted on every setter path through the store,
+     *  BEFORE the value lands in the tree. The app registers its validation
+     *  here (numeric bounds clamp, geometry constraints, ...) so no write
+     *  path routed through the store can bypass it. The interceptor returns
+     *  the value to write: return `proposed` untouched (same var object) to
+     *  accept a write verbatim — already-validated callers then produce
+     *  byte-identical results.
+     *
+     *  @param property  the property being written
+     *  @param proposed  the value the caller asked for
+     *  @param node      the node the write lands on (read-only context)
+     *  @returns         the value that will actually be written             */
+    using WriteInterceptor = std::function<juce::var (const juce::Identifier& property,
+                                                      const juce::var& proposed,
+                                                      const juce::ValueTree& node)>;
+
+    /** Register (or clear, with nullptr) the write interceptor. */
+    void setWriteInterceptor (WriteInterceptor interceptor)
+    {
+        writeInterceptor = std::move (interceptor);
+    }
+
+    //==========================================================================
     // Undo / Redo  (per-domain — one UndoManager per app-declared domain)
     //==========================================================================
 
@@ -202,6 +228,12 @@ protected:
     /** Notify registered listeners of a parameter change */
     void notifyParameterListeners (const juce::Identifier& id, const juce::var& value, int channelIndex);
 
+    /** Single write choke point: consults the write interceptor (when
+     *  registered), then performs the property write. Every setter path
+     *  through the store — core and subclass — must funnel through this. */
+    void writeProperty (juce::ValueTree& node, const juce::Identifier& property,
+                        const juce::var& value, juce::UndoManager* undoManager);
+
     //==========================================================================
     // Protected Members
     //==========================================================================
@@ -217,6 +249,7 @@ private:
     std::vector<std::unique_ptr<juce::UndoManager>> undoManagers;
     juce::StringArray undoDomainNames;
     int activeDomain = 0;
+    WriteInterceptor writeInterceptor;
 
     // Listener management
     struct ListenerEntry

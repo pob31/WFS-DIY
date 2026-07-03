@@ -60,14 +60,23 @@ void TreeParameterStore::setParameter (const juce::Identifier& paramId, const ju
 {
     auto tree = getTreeForParameter (paramId, channelIndex);
     if (tree.isValid())
-        tree.setProperty (paramId, value, getActiveUndoManager());
+        writeProperty (tree, paramId, value, getActiveUndoManager());
 }
 
 void TreeParameterStore::setParameterWithoutUndo (const juce::Identifier& paramId, const juce::var& value, int channelIndex)
 {
     auto tree = getTreeForParameter (paramId, channelIndex);
     if (tree.isValid())
-        tree.setProperty (paramId, value, nullptr);
+        writeProperty (tree, paramId, value, nullptr);
+}
+
+void TreeParameterStore::writeProperty (juce::ValueTree& node, const juce::Identifier& property,
+                                        const juce::var& value, juce::UndoManager* undoManager)
+{
+    if (writeInterceptor != nullptr)
+        node.setProperty (property, writeInterceptor (property, value, node), undoManager);
+    else
+        node.setProperty (property, value, undoManager);
 }
 
 //==============================================================================

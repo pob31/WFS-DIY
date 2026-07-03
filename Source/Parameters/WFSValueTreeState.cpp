@@ -1,4 +1,5 @@
 #include "WFSValueTreeState.h"
+#include "../Network/OSCParameterBounds.h"
 
 using namespace WFSParameterIDs;
 using namespace WFSParameterDefaults;
@@ -11,6 +12,32 @@ WFSValueTreeState::WFSValueTreeState()
     : TreeParameterStore (static_cast<int> (UndoDomain::COUNT),
                           { "Input", "Output", "Reverb", "Map", "Config", "Clusters" })
 {
+    // WRITE-INTERCEPTOR (control Q6a): numeric-bounds hardening at the store
+    // choke point, using the same bounds table OSC ingress and the MCP
+    // escape-hatch validate against (both of those REJECT out-of-range before
+    // the store; this clamp only ever fires for paths that used to bypass
+    // validation). In-range numeric writes and all non-numeric writes return
+    // the proposed var UNTOUCHED — same object, same type — so every
+    // already-validated caller produces byte-identical results.
+    setWriteInterceptor ([] (const juce::Identifier& property, const juce::var& proposed,
+                             const juce::ValueTree&) -> juce::var
+    {
+        if (proposed.isDouble() || proposed.isInt() || proposed.isInt64())
+        {
+            if (const auto bounds = WFSNetwork::getBounds (property))
+            {
+                const double d = static_cast<double> (proposed);
+                if (d < bounds->min || d > bounds->max)
+                {
+                    const double clamped = juce::jlimit (bounds->min, bounds->max, d);
+                    return bounds->isInt ? juce::var (juce::roundToInt (clamped))
+                                         : juce::var (clamped);
+                }
+            }
+        }
+        return proposed;
+    });
+
     initializeDefaultState();
     state.addListener (this);
 }
@@ -373,7 +400,7 @@ void WFSValueTreeState::setInputParameter (int channelIndex, const juce::Identif
         auto child = input.getChild (i);
         if (child.hasProperty (paramId))
         {
-            child.setProperty (paramId, value, getActiveUndoManager());
+            writeProperty (child, paramId, value, getActiveUndoManager());
 
             // Maintain the Shared-Position cluster invariant: any write to
             // inputPositionX/Y/Z on a shared-mode cluster member propagates
@@ -391,13 +418,13 @@ void WFSValueTreeState::setInputParameter (int channelIndex, const juce::Identif
     {
         auto position = getInputPositionSection (channelIndex);
         if (position.isValid())
-            position.setProperty (paramId, value, getActiveUndoManager());
+            writeProperty (position, paramId, value, getActiveUndoManager());
     }
     else if (paramId == inputMuteReverbSends)
     {
         auto mutes = getInputMutesSection (channelIndex);
         if (mutes.isValid())
-            mutes.setProperty (paramId, value, getActiveUndoManager());
+            writeProperty (mutes, paramId, value, getActiveUndoManager());
     }
     // Note: inputAttenuation always exists in the Channel section (created by
     // createInputChannelSection), so the search loop above always finds it - no
@@ -530,7 +557,7 @@ void WFSValueTreeState::setOutputParameter (int channelIndex, const juce::Identi
         auto child = output.getChild (i);
         if (child.hasProperty (paramId))
         {
-            child.setProperty (paramId, value, getActiveUndoManager());
+            writeProperty (child, paramId, value, getActiveUndoManager());
             return;
         }
     }
@@ -541,7 +568,7 @@ void WFSValueTreeState::setOutputParameter (int channelIndex, const juce::Identi
     {
         auto position = getOutputPositionSection (channelIndex);
         if (position.isValid())
-            position.setProperty (paramId, value, getActiveUndoManager());
+            writeProperty (position, paramId, value, getActiveUndoManager());
     }
 }
 
@@ -557,7 +584,7 @@ void WFSValueTreeState::setOutputParameterDirect (int channelIndex, const juce::
         auto child = output.getChild (i);
         if (child.hasProperty (paramId))
         {
-            child.setProperty (paramId, value, getActiveUndoManager());
+            writeProperty (child, paramId, value, getActiveUndoManager());
             return;
         }
     }
@@ -567,7 +594,7 @@ void WFSValueTreeState::setOutputEQBandParameterDirect (int channelIndex, int ba
 {
     auto band = getOutputEQBand (channelIndex, bandIndex);
     if (band.isValid())
-        band.setProperty (paramId, value, getActiveUndoManager());
+        writeProperty (band, paramId, value, getActiveUndoManager());
 }
 
 bool WFSValueTreeState::isArrayLinkedParameter (const juce::Identifier& paramId)
@@ -736,7 +763,7 @@ void WFSValueTreeState::setOutputEQBandParameterWithArrayPropagation (int channe
     {
         auto band = getOutputEQBand (channelIndex, bandIndex);
         if (band.isValid())
-            band.setProperty (paramId, value, getActiveUndoManager());
+            writeProperty (band, paramId, value, getActiveUndoManager());
         return;
     }
 
@@ -746,7 +773,7 @@ void WFSValueTreeState::setOutputEQBandParameterWithArrayPropagation (int channe
     {
         auto band = getOutputEQBand (channelIndex, bandIndex);
         if (band.isValid())
-            band.setProperty (paramId, value, getActiveUndoManager());
+            writeProperty (band, paramId, value, getActiveUndoManager());
         return;
     }
 
@@ -756,7 +783,7 @@ void WFSValueTreeState::setOutputEQBandParameterWithArrayPropagation (int channe
     {
         auto band = getOutputEQBand (channelIndex, bandIndex);
         if (band.isValid())
-            band.setProperty (paramId, value, getActiveUndoManager());
+            writeProperty (band, paramId, value, getActiveUndoManager());
         return;
     }
 
@@ -770,7 +797,7 @@ void WFSValueTreeState::setOutputEQBandParameterWithArrayPropagation (int channe
     float delta = newFloat - oldFloat;
 
     // Set the originating channel's band
-    band.setProperty (paramId, value, getActiveUndoManager());
+    writeProperty (band, paramId, value, getActiveUndoManager());
 
     // Propagate to array members
     int numOutputs = getNumOutputChannels();
@@ -882,7 +909,7 @@ void WFSValueTreeState::setReverbParameter (int channelIndex, const juce::Identi
         auto child = reverb.getChild (i);
         if (child.hasProperty (paramId))
         {
-            child.setProperty (paramId, value, getActiveUndoManager());
+            writeProperty (child, paramId, value, getActiveUndoManager());
             return;
         }
 
@@ -894,7 +921,7 @@ void WFSValueTreeState::setReverbParameter (int channelIndex, const juce::Identi
                 auto band = child.getChild (j);
                 if (band.hasProperty (paramId))
                 {
-                    band.setProperty (paramId, value, getActiveUndoManager());
+                    writeProperty (band, paramId, value, getActiveUndoManager());
                     return;
                 }
             }
@@ -907,7 +934,7 @@ void WFSValueTreeState::setReverbParameter (int channelIndex, const juce::Identi
     {
         auto position = getReverbPositionSection (channelIndex);
         if (position.isValid())
-            position.setProperty (paramId, value, getActiveUndoManager());
+            writeProperty (position, paramId, value, getActiveUndoManager());
     }
 }
 
@@ -1114,7 +1141,7 @@ void WFSValueTreeState::setClusterParameter (int clusterIndex, const juce::Ident
 {
     auto cluster = getClusterState (clusterIndex);
     if (cluster.isValid())
-        cluster.setProperty (paramId, value, getActiveUndoManager());
+        writeProperty (cluster, paramId, value, getActiveUndoManager());
 }
 
 //==============================================================================
