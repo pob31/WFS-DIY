@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "WFSParameterIDs.h"
 #include "WFSParameterDefaults.h"
+#include "../../spatcore/control/state/TreeParameterStore.h"
 
 /**
  * Undo domain — each tab has its own undo history.
@@ -22,14 +23,19 @@ enum class UndoDomain
  * WFS ValueTree State Manager
  *
  * Central management class for all WFS processor parameters using JUCE ValueTree.
- * Provides:
- * - Hierarchical parameter organization
- * - Per-tab Undo/Redo support (one UndoManager per UndoDomain)
- * - Type-safe parameter access
- * - Listener registration for UI components
- * - Thread-safe parameter updates
+ * Derives from spatcore::control::state::TreeParameterStore, which owns the
+ * app-agnostic mechanics (root tree, typed get/set, listener registry +
+ * change-notification dispatch, per-domain UndoManager array, origin-aware
+ * undo suppression, post-write hook). This class supplies everything
+ * WFS-schema-shaped:
+ * - Hierarchical parameter organization (section builders + accessors)
+ * - Scope routing (getTreeForParameter / getParameterScope)
+ * - Semantic invariants (cluster shared-position, tracking uniqueness),
+ *   registered into the core post-write hook
+ * - The six WFS tab undo domains (UndoDomain), mapped onto the core's
+ *   integer domain indices
  */
-class WFSValueTreeState : public juce::ValueTree::Listener
+class WFSValueTreeState : public spatcore::control::state::TreeParameterStore
 {
 public:
     //==========================================================================
@@ -42,10 +48,6 @@ public:
     //==========================================================================
     // State Access
     //==========================================================================
-
-    /** Get the root ValueTree state */
-    juce::ValueTree getState() { return state; }
-    const juce::ValueTree getState() const { return state; }
 
     /** Get config section */
     juce::ValueTree getConfigState();
@@ -89,24 +91,15 @@ public:
     //==========================================================================
     // Parameter Access - Type Safe
     //==========================================================================
+    // Typed getters (getFloatParameter / getIntParameter / getStringParameter /
+    // getParameter) are inherited from TreeParameterStore; they resolve through
+    // this class's getTreeForParameter override.
 
-    /** Get a float parameter value */
-    float getFloatParameter (const juce::Identifier& id, int channelIndex = -1) const;
-
-    /** Get an int parameter value */
-    int getIntParameter (const juce::Identifier& id, int channelIndex = -1) const;
-
-    /** Get a string parameter value */
-    juce::String getStringParameter (const juce::Identifier& id, int channelIndex = -1) const;
-
-    /** Get a var parameter value (generic) */
-    juce::var getParameter (const juce::Identifier& id, int channelIndex = -1) const;
-
-    /** Set a parameter value */
-    void setParameter (const juce::Identifier& id, const juce::var& value, int channelIndex = -1);
+    /** Set a parameter value (routes channel-count writes to setNumXChannels) */
+    void setParameter (const juce::Identifier& id, const juce::var& value, int channelIndex = -1) override;
 
     /** Set a parameter value without undo */
-    void setParameterWithoutUndo (const juce::Identifier& id, const juce::var& value, int channelIndex = -1);
+    void setParameterWithoutUndo (const juce::Identifier& id, const juce::var& value, int channelIndex = -1) override;
 
     //==========================================================================
     // Input Channel Access
@@ -319,42 +312,28 @@ public:
     //==========================================================================
     // Undo / Redo  (per-domain — one UndoManager per tab)
     //==========================================================================
+    // The UndoManager array, active-domain state, undo/redo/canUndo/canRedo,
+    // beginUndoTransaction, clearUndoHistory/clearAllUndoHistories and the
+    // MCP-origin undo suppression live in TreeParameterStore. These thin
+    // wrappers map the WFS tab-domain enum onto the core's integer indices.
 
     /** Set the currently active undo domain (called by MainComponent on tab change) */
-    void setActiveDomain (UndoDomain domain);
+    void setActiveDomain (UndoDomain domain)
+    {
+        TreeParameterStore::setActiveDomain (static_cast<int> (domain));
+    }
 
     /** Get the currently active undo domain */
-    UndoDomain getActiveDomain() const;
+    UndoDomain getActiveDomain() const
+    {
+        return static_cast<UndoDomain> (TreeParameterStore::getActiveDomain());
+    }
 
     /** Get UndoManager for a specific domain */
-    juce::UndoManager* getUndoManagerForDomain (UndoDomain domain);
-
-    /** Get UndoManager for the currently active domain */
-    juce::UndoManager* getActiveUndoManager();
-
-    /** Convenience: get UndoManager (returns active domain's manager) */
-    juce::UndoManager* getUndoManager() { return getActiveUndoManager(); }
-
-    /** Perform undo on the active domain */
-    bool undo();
-
-    /** Perform redo on the active domain */
-    bool redo();
-
-    /** Check if undo is available on the active domain */
-    bool canUndo() const;
-
-    /** Check if redo is available on the active domain */
-    bool canRedo() const;
-
-    /** Begin a new undo transaction on the active domain */
-    void beginUndoTransaction (const juce::String& name);
-
-    /** Clear undo history for the active domain */
-    void clearUndoHistory();
-
-    /** Clear undo history for ALL domains */
-    void clearAllUndoHistories();
+    juce::UndoManager* getUndoManagerForDomain (UndoDomain domain)
+    {
+        return TreeParameterStore::getUndoManagerForDomain (static_cast<int> (domain));
+    }
 
     /** RAII helper: temporarily switch the active undo domain, restoring on destruction */
     struct ScopedUndoDomain
@@ -365,25 +344,6 @@ public:
         WFSValueTreeState& state;
         UndoDomain previous;
     };
-
-    //==========================================================================
-    // Listener Management
-    //==========================================================================
-
-    /** Callback type for parameter changes */
-    using ParameterCallback = std::function<void (const juce::var&)>;
-
-    /** Add a listener for a specific parameter */
-    void addParameterListener (const juce::Identifier& id, ParameterCallback callback, int channelIndex = -1);
-
-    /** Remove listeners for a parameter */
-    void removeParameterListeners (const juce::Identifier& id, int channelIndex = -1);
-
-    /** Add a ValueTree listener */
-    void addListener (juce::ValueTree::Listener* listener);
-
-    /** Remove a ValueTree listener */
-    void removeListener (juce::ValueTree::Listener* listener);
 
     //==========================================================================
     // State Management
@@ -441,38 +401,20 @@ public:
         or scope-filtered file cannot leave parameters permanently absent. */
     void ensureCompleteSchema();
 
+protected:
     //==========================================================================
-    // ValueTree::Listener overrides
+    // TreeParameterStore seams (change-notification dispatch hooks)
     //==========================================================================
 
-    void valueTreePropertyChanged (juce::ValueTree& treeWhosePropertyHasChanged,
-                                   const juce::Identifier& property) override;
-    void valueTreeChildAdded (juce::ValueTree& parentTree, juce::ValueTree& childWhichHasBeenAdded) override;
-    void valueTreeChildRemoved (juce::ValueTree& parentTree, juce::ValueTree& childWhichHasBeenRemoved,
-                                int indexFromWhichChildWasRemoved) override;
-    void valueTreeChildOrderChanged (juce::ValueTree& parentTreeWhoseChildrenHaveMoved,
-                                     int oldIndex, int newIndex) override;
-    void valueTreeParentChanged (juce::ValueTree& treeWhoseParentHasChanged) override;
+    /** Derive the channel index for a changed node (Input/Output/Reverb parent id) */
+    int resolveChannelIndex (const juce::ValueTree& changedNode) const override;
+
+    /** POST-WRITE HOOK — WFS semantic invariants (cluster tracking uniqueness,
+        shared-position snap) run here, before listener dispatch. */
+    void handlePostWrite (juce::ValueTree& changedNode, const juce::Identifier& property,
+                          const juce::var& value, int channelIndex) override;
 
 private:
-    //==========================================================================
-    // Private Members
-    //==========================================================================
-
-    juce::ValueTree state;
-    juce::UndoManager undoManagers[static_cast<int> (UndoDomain::COUNT)];
-    UndoDomain activeDomain = UndoDomain::Input;
-
-    // Listener management
-    struct ListenerEntry
-    {
-        juce::Identifier parameterId;
-        int channelIndex;
-        ParameterCallback callback;
-    };
-    std::vector<ListenerEntry> parameterListeners;
-    juce::CriticalSection listenerLock;
-
     //==========================================================================
     // Initialization
     //==========================================================================
@@ -540,11 +482,8 @@ private:
     // Helper Methods
     //==========================================================================
 
-    /** Find the correct ValueTree for a given parameter ID */
-    juce::ValueTree getTreeForParameter (const juce::Identifier& id, int channelIndex) const;
-
-    /** Notify registered listeners of a parameter change */
-    void notifyParameterListeners (const juce::Identifier& id, const juce::var& value, int channelIndex);
+    /** Find the correct ValueTree for a given parameter ID (core schema-routing seam) */
+    juce::ValueTree getTreeForParameter (const juce::Identifier& id, int channelIndex) const override;
 
     /** Determine if a parameter belongs to input, output, reverb, or config */
     enum class ParameterScope { Config, Input, Output, Reverb, AudioPatch, Unknown };

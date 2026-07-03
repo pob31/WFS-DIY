@@ -13,6 +13,10 @@
     </GROUP>
     <GROUP id="{559A80C2-DA9A-4473-80A2-AE173C8D9D42}" name="Source">
       <GROUP id="{PARAMGROUP}" name="Parameters">
+        <FILE id="coreTreeStoreH" name="TreeParameterStore.h" compile="0" resource="0"
+              file="spatcore/control/state/TreeParameterStore.h"/>
+        <FILE id="coreTreeStoreCpp" name="TreeParameterStore.cpp" compile="1" resource="0"
+              file="spatcore/control/state/TreeParameterStore.cpp"/>
         <FILE id="wfsParamIDs" name="WFSParameterIDs.h" compile="0" resource="0"
               file="Source/Parameters/WFSParameterIDs.h"/>
         <FILE id="wfsParamDef" name="WFSParameterDefaults.h" compile="0" resource="0"

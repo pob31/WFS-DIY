@@ -72,6 +72,7 @@ ifeq ($(CONFIG),Release)
 endif
 
 OBJECTS_APP := \
+  $(JUCE_OBJDIR)/TreeParameterStore_c55a85fb.o \
   $(JUCE_OBJDIR)/WFSValueTreeState_73cc0cca.o \
   $(JUCE_OBJDIR)/WFSFileManager_910393b3.o \
   $(JUCE_OBJDIR)/NetworkLogWindow_80b93fa3.o \
@@ -172,6 +173,11 @@ $(JUCE_OUTDIR)/$(JUCE_TARGET_APP) : $(OBJECTS_APP) $(JUCE_OBJDIR)/execinfo.cmd $
 	-$(V_AT)mkdir -p $(JUCE_LIBDIR)
 	-$(V_AT)mkdir -p $(JUCE_OUTDIR)
 	$(V_AT)$(CXX) -o $(JUCE_OUTDIR)/$(JUCE_TARGET_APP) $(OBJECTS_APP) $(JUCE_LDFLAGS) $(shell cat $(JUCE_OBJDIR)/execinfo.cmd) $(JUCE_LDFLAGS_APP) $(RESOURCES) $(TARGET_ARCH)
+
+$(JUCE_OBJDIR)/TreeParameterStore_c55a85fb.o: ../../spatcore/control/state/TreeParameterStore.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling TreeParameterStore.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/WFSValueTreeState_73cc0cca.o: ../../Source/Parameters/WFSValueTreeState.cpp
 	-$(V_AT)mkdir -p $(@D)
