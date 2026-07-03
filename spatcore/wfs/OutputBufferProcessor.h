@@ -13,6 +13,8 @@
 #include <cstdint>
 #include <random>
 
+namespace spatcore::wfs {
+
 //==============================================================================
 /**
     Processes a single output channel with contributions from multiple input channels.
@@ -648,3 +650,8 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OutputBufferProcessor)
 };
+
+} // namespace spatcore::wfs
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::wfs::OutputBufferProcessor;

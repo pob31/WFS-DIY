@@ -8,6 +8,8 @@
 #include <memory>
 #include <atomic>
 
+namespace spatcore::wfs {
+
 //==============================================================================
 /**
     Dedicated thread for input-side analysis (level detection, Live Source Tamer).
@@ -548,3 +550,10 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OutputBufferAlgorithm)
 };
+
+} // namespace spatcore::wfs
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+using spatcore::wfs::InputAnalysisThread;
+using spatcore::wfs::OutputMeteringThread;
+using spatcore::wfs::OutputBufferAlgorithm;

@@ -13,6 +13,8 @@
 #include <memory>
 #include <random>
 
+namespace spatcore::wfs {
+
 //==============================================================================
 /**
     Processes a single input channel with delay lines outputting to multiple channels.
@@ -642,3 +644,8 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(InputBufferProcessor)
 };
+
+} // namespace spatcore::wfs
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::wfs::InputBufferProcessor;

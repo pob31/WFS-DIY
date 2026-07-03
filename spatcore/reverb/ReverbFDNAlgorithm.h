@@ -5,6 +5,8 @@
 #include <array>
 #include <cmath>
 
+namespace spatcore::reverb {
+
 //==============================================================================
 /**
     FDN (Feedback Delay Network) reverb algorithm.
@@ -486,3 +488,8 @@ private:
     std::vector<FDNNode> nodes;
     AudioParallelFor* parallel = nullptr;
 };
+
+} // namespace spatcore::reverb
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::reverb::FDNAlgorithm;

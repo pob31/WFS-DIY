@@ -5,6 +5,8 @@
 #include <vector>
 #include <cmath>
 
+namespace spatcore::reverb {
+
 //==============================================================================
 /**
     Reverb Pre-Processor: per-node 4-band EQ → sidechain tap → global compressor.
@@ -252,3 +254,8 @@ private:
     float compAttackCoeff  = 0.01f;
     float compReleaseCoeff = 0.001f;
 };
+
+} // namespace spatcore::reverb
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::reverb::ReverbPreProcessor;

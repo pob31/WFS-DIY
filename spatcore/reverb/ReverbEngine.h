@@ -24,6 +24,8 @@
 #include <chrono>
 #endif
 
+namespace spatcore::reverb {
+
 //==============================================================================
 /**
     ReverbEngine
@@ -1126,3 +1128,8 @@ private:
     ReverbDiagnostics diagnostics;
 #endif
 };
+
+} // namespace spatcore::reverb
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::reverb::ReverbEngine;

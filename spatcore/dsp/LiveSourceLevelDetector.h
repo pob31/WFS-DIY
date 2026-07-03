@@ -5,6 +5,8 @@
 #include <vector>
 #include <cmath>
 
+namespace spatcore::dsp {
+
 /**
  * LiveSourceLevelDetector
  *
@@ -272,3 +274,8 @@ private:
     std::atomic<float> slowThreshold{-20.0f};
     std::atomic<float> slowRatio{2.0f};
 };
+
+} // namespace spatcore::dsp
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::dsp::LiveSourceLevelDetector;

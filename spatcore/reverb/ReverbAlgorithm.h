@@ -5,6 +5,8 @@
 
 class AudioParallelFor;
 
+namespace spatcore::reverb {
+
 //==============================================================================
 /**
     Parameters shared by all reverb algorithms.
@@ -102,3 +104,11 @@ public:
     /** Duration of the currently loaded IR file in seconds. */
     virtual float getIRFileDuration() const = 0;
 };
+
+} // namespace spatcore::reverb
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+using spatcore::reverb::AlgorithmParameters;
+using spatcore::reverb::NodePosition;
+using spatcore::reverb::ReverbAlgorithm;
+using spatcore::reverb::ReverbIRAlgorithmBase;

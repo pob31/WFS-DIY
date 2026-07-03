@@ -5,6 +5,8 @@
 #include "../rt/ReverbDiagnostics.h"
 #include "../rt/AudioParallelFor.h"
 
+namespace spatcore::reverb {
+
 //==============================================================================
 /**
     IR (Impulse Response Convolution) reverb algorithm.
@@ -222,3 +224,8 @@ private:
     double cachedIRSampleRate = 0.0;
     float irFileDurationSec = 0.0f;
 };
+
+} // namespace spatcore::reverb
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::reverb::IRAlgorithm;

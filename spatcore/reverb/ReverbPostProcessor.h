@@ -5,6 +5,8 @@
 #include <vector>
 #include <cmath>
 
+namespace spatcore::reverb {
+
 //==============================================================================
 /**
     Reverb Post-Processor: global 4-band EQ → sidechain-keyed expander.
@@ -236,3 +238,8 @@ private:
     float expAttackCoeff  = 0.1f;
     float expReleaseCoeff = 0.01f;
 };
+
+} // namespace spatcore::reverb
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::reverb::ReverbPostProcessor;
