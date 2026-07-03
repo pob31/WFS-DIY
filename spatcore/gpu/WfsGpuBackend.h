@@ -12,18 +12,26 @@
 
 #if defined(__APPLE__)
   #include "MetalWfsBackend.h"
-  using WfsGpuBackend = MetalWfsBackend;
+  namespace spatcore::gpu { using WfsGpuBackend = MetalWfsBackend; }
 #elif defined(WFS_GPU_HIP)
   #include "HipWfsBackend.h"
-  using WfsGpuBackend = HipWfsBackend;
+  namespace spatcore::gpu { using WfsGpuBackend = HipWfsBackend; }
 #else
   #include "CudaWfsBackend.h"
-  using WfsGpuBackend = CudaWfsBackend;
+  namespace spatcore::gpu { using WfsGpuBackend = CudaWfsBackend; }
 #endif
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::gpu::WfsGpuBackend;
 
 #if WFS_GPU_NATIVE
 #include "GpuBackendInterface.h"
 #include <memory>
+#if defined(WFS_GPU_PLUGINS) && ! defined(__APPLE__)
+ #include "GpuBackendFactory.h"  // hoisted: an #include cannot sit inside the namespace
+#endif
+
+namespace spatcore::gpu {
 
 // Thin adapter wrapping the compile-time-selected concrete WFS backend behind
 // IWfsBackend, so the algorithm wrapper can hold it by interface pointer
@@ -58,7 +66,6 @@ private:
     it dlopens the per-vendor plugin for the device id; otherwise it returns the
     compile-time-selected backend (macOS Metal / Windows CUDA / Linux hard-link). */
 #if defined(WFS_GPU_PLUGINS) && ! defined(__APPLE__)
- #include "GpuBackendFactory.h"
  inline std::unique_ptr<IWfsBackend> makeWfsBackend (const std::string& deviceId)
  {
      return GpuBackendFactory::instance().makeWfs (deviceId);
@@ -76,4 +83,11 @@ private:
      return makeWfsBackend (deviceIndexFromId (deviceId));
  }
 #endif
+
+} // namespace spatcore::gpu
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+using spatcore::gpu::WfsBackendAdapter;
+using spatcore::gpu::makeWfsBackend;
+
 #endif // WFS_GPU_NATIVE

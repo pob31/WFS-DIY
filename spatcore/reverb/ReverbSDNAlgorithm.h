@@ -4,6 +4,8 @@
 #include <array>
 #include <cmath>
 
+namespace spatcore::reverb {
+
 //==============================================================================
 /**
     SDN (Scattering Delay Network) reverb algorithm.
@@ -550,3 +552,8 @@ private:
     float toneCoeff = 0.65f;       // One-pole LPF coefficient (~8kHz at 48kHz)
     float sdnOutputGain = 1.0f;    // Level compensation vs FDN/IR (-12dB flat cut)
 };
+
+} // namespace spatcore::reverb
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::reverb::SDNAlgorithm;

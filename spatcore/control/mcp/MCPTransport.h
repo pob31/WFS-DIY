@@ -4,7 +4,7 @@
 #include <juce_simpleweb/juce_simpleweb.h>
 #include "MCPLogSink.h"
 
-namespace WFSNetwork
+namespace spatcore::control::mcp
 {
 
 /** HTTP transport for the MCP server.
@@ -76,4 +76,4 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MCPTransport)
 };
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::mcp

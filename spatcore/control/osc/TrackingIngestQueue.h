@@ -7,7 +7,7 @@
 #include <functional>
 #include <unordered_map>
 
-namespace WFSNetwork
+namespace spatcore::control::osc
 {
 
 /**
@@ -108,4 +108,4 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TrackingIngestQueue)
 };
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::osc

@@ -237,7 +237,7 @@ public:
 
         // Serial starts at byte 2, null-terminated ASCII (bounded scan to
         // avoid reading past the report buffer if the device omits the null)
-        return WFSNetwork::safeStringFromBoundedCString (
+        return spatcore::control::osc::safeStringFromBoundedCString (
             reinterpret_cast<const char*> (report + 2),
             FEATURE_REPORT_SIZE - 2);
     }
@@ -256,7 +256,7 @@ public:
         int res = hid_get_feature_report (deviceHandle, report, FEATURE_REPORT_SIZE);
         if (res < 0) return {};
 
-        return WFSNetwork::safeStringFromBoundedCString (
+        return spatcore::control::osc::safeStringFromBoundedCString (
             reinterpret_cast<const char*> (report + 2),
             FEATURE_REPORT_SIZE - 2);
     }

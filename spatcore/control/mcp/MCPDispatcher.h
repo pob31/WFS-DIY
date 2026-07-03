@@ -10,7 +10,7 @@
 #include "MCPPromptRegistry.h"
 #include "MCPTierEnforcement.h"
 
-namespace WFSNetwork
+namespace spatcore::control::mcp
 {
 
 /** Identity the server advertises in the MCP `initialize` response.
@@ -110,4 +110,4 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MCPDispatcher)
 };
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::mcp

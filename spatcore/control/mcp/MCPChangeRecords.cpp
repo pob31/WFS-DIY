@@ -1,6 +1,6 @@
 #include "MCPChangeRecords.h"
 
-namespace WFSNetwork
+namespace spatcore::control::mcp
 {
 
 MCPChangeRecordBuffer::MCPChangeRecordBuffer (int capacity)
@@ -93,4 +93,4 @@ int MCPChangeRecordBuffer::markMatchingAsSelfCorrected (std::function<bool (cons
     return count;
 }
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::mcp

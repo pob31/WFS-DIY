@@ -17,6 +17,8 @@
 #include <memory>
 #include <string>
 
+namespace spatcore::gpu {
+
 class HipIrBackend
 {
 public:
@@ -55,3 +57,8 @@ private:
     std::string deviceName { "NVIDIA (HIP)" };
     double lastLaunchMs { 0.0 };
 };
+
+} // namespace spatcore::gpu
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::gpu::HipIrBackend;

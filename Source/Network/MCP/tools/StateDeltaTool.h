@@ -2,7 +2,7 @@
 
 #include <JuceHeader.h>
 #include <map>
-#include "../../../../spatcore/control/mcp/MCPToolRegistry.h"
+#include "../MCPCompat.h"
 #include "../../../Parameters/WFSValueTreeState.h"
 #include "../../../Parameters/WFSParameterIDs.h"
 

@@ -37,6 +37,8 @@
 #include "../gpu/GpuAsyncPipeline.h"
 #include "../gpu/GpuLevelMeters.h"
 
+namespace spatcore::wfs {
+
 class NativeGpuOutputBufferAlgorithm
 {
 public:
@@ -233,5 +235,10 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NativeGpuOutputBufferAlgorithm)
 };
+
+} // namespace spatcore::wfs
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::wfs::NativeGpuOutputBufferAlgorithm;
 
 #endif // WFS_GPU_NATIVE

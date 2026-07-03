@@ -6,6 +6,8 @@
 #include <atomic>
 #include <vector>
 
+namespace spatcore::reverb {
+
 /**
     Dedicated thread for computing reverb feed sums from input audio.
     Reads from shared input ring buffers, computes weighted input->reverb sums,
@@ -211,3 +213,8 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ReverbFeedThread)
 };
+
+} // namespace spatcore::reverb
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::reverb::ReverbFeedThread;

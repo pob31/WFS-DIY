@@ -13,18 +13,26 @@
 
 #if defined(__APPLE__)
   #include "MetalObBackend.h"
-  using ObGpuBackend = MetalObBackend;
+  namespace spatcore::gpu { using ObGpuBackend = MetalObBackend; }
 #elif defined(WFS_GPU_HIP)
   #include "HipObBackend.h"
-  using ObGpuBackend = HipObBackend;
+  namespace spatcore::gpu { using ObGpuBackend = HipObBackend; }
 #else
   #include "CudaObBackend.h"
-  using ObGpuBackend = CudaObBackend;
+  namespace spatcore::gpu { using ObGpuBackend = CudaObBackend; }
 #endif
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::gpu::ObGpuBackend;
 
 #if WFS_GPU_NATIVE
 #include "GpuBackendInterface.h"
 #include <memory>
+#if defined(WFS_GPU_PLUGINS) && ! defined(__APPLE__)
+ #include "GpuBackendFactory.h"  // hoisted: an #include cannot sit inside the namespace
+#endif
+
+namespace spatcore::gpu {
 
 // Thin adapter wrapping the compile-time-selected concrete OutputBuffer backend
 // behind IObBackend (runtime-polymorphic). The concrete backend is untouched.
@@ -55,7 +63,6 @@ private:
 };
 
 #if defined(WFS_GPU_PLUGINS) && ! defined(__APPLE__)
- #include "GpuBackendFactory.h"
  inline std::unique_ptr<IObBackend> makeObBackend (const std::string& deviceId)
  {
      return GpuBackendFactory::instance().makeOb (deviceId);
@@ -71,4 +78,11 @@ private:
      return makeObBackend (deviceIndexFromId (deviceId));
  }
 #endif
+
+} // namespace spatcore::gpu
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+using spatcore::gpu::ObBackendAdapter;
+using spatcore::gpu::makeObBackend;
+
 #endif // WFS_GPU_NATIVE

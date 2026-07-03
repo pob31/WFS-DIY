@@ -32,6 +32,8 @@
 #include <cstring>
 #include <vector>
 
+namespace spatcore::gpu {
+
 class IrHostFft
 {
 public:
@@ -202,3 +204,8 @@ private:
     std::vector<float> spRe, spIm;   // split twiddles e^{-2 pi i k / N}
     std::vector<float> work;
 };
+
+} // namespace spatcore::gpu
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::gpu::IrHostFft;

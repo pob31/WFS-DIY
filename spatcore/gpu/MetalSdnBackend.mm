@@ -34,6 +34,8 @@
 #include <mutex>
 #include <vector>
 
+namespace spatcore::gpu {
+
 namespace
 {
 // Host mirror of the kernel-side SdnParams - layout must match exactly.
@@ -431,5 +433,7 @@ void MetalSdnBackend::release() noexcept
     }
     ready = false;
 }
+
+} // namespace spatcore::gpu
 
 #endif // WFS_GPU_NATIVE

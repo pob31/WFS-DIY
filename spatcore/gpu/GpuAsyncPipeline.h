@@ -32,6 +32,8 @@
 #include "../rt/LockFreeRingBuffer.h"
 #include "WfsGpuBackend.h"
 
+namespace spatcore::gpu {
+
 /** Backend-generic async pump. BackendType only needs the shared backend
     contract subset: processBlock / isReady / getLastError / getLastLaunchMs.
     The WFS and IR-reverb backends both satisfy it. */
@@ -261,5 +263,11 @@ private:
 
 /** The WFS pipeline keeps its historical name; existing callers are untouched. */
 using GpuAsyncPipeline = GpuAsyncPipelineT<WfsGpuBackend>;
+
+} // namespace spatcore::gpu
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+using spatcore::gpu::GpuAsyncPipelineT;
+using spatcore::gpu::GpuAsyncPipeline;
 
 #endif // WFS_GPU_NATIVE

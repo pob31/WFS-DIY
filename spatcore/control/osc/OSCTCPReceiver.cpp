@@ -1,7 +1,7 @@
 #include "OSCTCPReceiver.h"
 #include "OSCParser.h"
 
-namespace WFSNetwork
+namespace spatcore::control::osc
 {
 
 //==============================================================================
@@ -330,4 +330,4 @@ void OSCTCPReceiver::ClientHandler::parseOSCData(const juce::MemoryBlock& data)
     }
 }
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::osc

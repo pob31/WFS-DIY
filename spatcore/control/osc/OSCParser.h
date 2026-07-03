@@ -3,7 +3,7 @@
 #include <juce_core/juce_core.h>
 #include "NetworkStringUtils.h"
 
-namespace WFSNetwork
+namespace spatcore::control::osc
 {
 
 /**
@@ -188,4 +188,4 @@ namespace OSCParser
 
 } // namespace OSCParser
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::osc

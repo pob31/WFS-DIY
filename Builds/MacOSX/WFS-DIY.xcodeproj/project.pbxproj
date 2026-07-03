@@ -186,6 +186,7 @@
 		330B07F4056294A91381C726 /* MCPTransport.h */ /* MCPTransport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPTransport.h; path = ../../spatcore/control/mcp/MCPTransport.h; sourceTree = SOURCE_ROOT; };
 		3376D9E78846859775CC0715 /* include_juce_gui_basics_3.cpp */ /* include_juce_gui_basics_3.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_gui_basics_3.cpp; path = ../../JuceLibraryCode/include_juce_gui_basics_3.cpp; sourceTree = SOURCE_ROOT; };
 		344E94DE75CE8AD15E5DF4F7 /* SystemConfigTab.h */ /* SystemConfigTab.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SystemConfigTab.h; path = ../../Source/gui/SystemConfigTab.h; sourceTree = SOURCE_ROOT; };
+		A3C09A7F1263703CAD0AD65B /* MCPCompat.h */ /* MCPCompat.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPCompat.h; path = ../../Source/Network/MCP/MCPCompat.h; sourceTree = SOURCE_ROOT; };
 		3490B82F1263703CAD0AD65B /* MCPServer.h */ /* MCPServer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPServer.h; path = ../../Source/Network/MCP/MCPServer.h; sourceTree = SOURCE_ROOT; };
 		359A0BC4EBF9F94A8B6A77BF /* MetalSdnKernels.h */ /* MetalSdnKernels.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MetalSdnKernels.h; path = ../../spatcore/gpu/MetalSdnKernels.h; sourceTree = SOURCE_ROOT; };
 		35A75BE8F742B3CF106ACE1B /* WFSValueTreeState.h */ /* WFSValueTreeState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WFSValueTreeState.h; path = ../../Source/Parameters/WFSValueTreeState.h; sourceTree = SOURCE_ROOT; };
@@ -635,6 +636,7 @@
 				CA1E9F9547203C0558722585,
 				330B07F4056294A91381C726,
 				5D5B1B273C74327EAFD83543,
+				A3C09A7F1263703CAD0AD65B,
 				3490B82F1263703CAD0AD65B,
 				4B6061E2662DD31DD344DA07,
 				C4A579CA77213F74CE3E6FD2,

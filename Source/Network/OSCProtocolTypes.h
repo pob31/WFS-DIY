@@ -2,11 +2,18 @@
 
 #include <JuceHeader.h>
 #include "../../spatcore/control/osc/OscTransportTypes.h"
+#include "../../spatcore/control/osc/NetworkStringUtils.h"
 
 namespace spatcore::control::osc
 {
     class OSCRateLimiter;
     class OSCIngestQueue;
+    class OSCReceiverWithSenderIP;
+    class OSCTCPReceiver;
+    struct TrackingUpdate;
+    class TrackingIngestQueue;
+    namespace OSCParser {}      // declared so the alias below is valid before
+    namespace OSCSerializer {}  // the real headers are included
 }
 
 namespace WFSNetwork
@@ -31,6 +38,14 @@ using spatcore::control::osc::DEFAULT_TCP_PORT;
 using spatcore::control::osc::DEFAULT_TX_PORT;
 using spatcore::control::osc::OSCRateLimiter;
 using spatcore::control::osc::OSCIngestQueue;
+using spatcore::control::osc::OSCReceiverWithSenderIP;
+using spatcore::control::osc::OSCTCPReceiver;
+using spatcore::control::osc::TrackingUpdate;
+using spatcore::control::osc::TrackingIngestQueue;
+using spatcore::control::osc::safeStringFromBytes;
+using spatcore::control::osc::safeStringFromBoundedCString;
+namespace OSCParser     = spatcore::control::osc::OSCParser;
+namespace OSCSerializer = spatcore::control::osc::OSCSerializer;
 
 //==============================================================================
 // Protocol Types

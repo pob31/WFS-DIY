@@ -45,6 +45,8 @@
 #include <cstring>
 #include <vector>
 
+namespace spatcore::gpu {
+
 namespace
 {
 // Host mirror of the kernel-side ObParams - layouts must match exactly.
@@ -454,3 +456,5 @@ void MetalObBackend::release() noexcept
     m.havePrev = false;
     ready = false;
 }
+
+} // namespace spatcore::gpu

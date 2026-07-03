@@ -3334,6 +3334,7 @@
     <ClInclude Include="..\..\spatcore\control\mcp\MCPToolRegistry.h"/>
     <ClInclude Include="..\..\spatcore\control\mcp\MCPDispatcher.h"/>
     <ClInclude Include="..\..\spatcore\control\mcp\MCPTransport.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPCompat.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\MCPServer.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\MCPGeneratedToolLoader.h"/>
     <ClInclude Include="..\..\spatcore\control\mcp\MCPResourceRegistry.h"/>

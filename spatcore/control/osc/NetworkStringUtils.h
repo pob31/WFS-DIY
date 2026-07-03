@@ -3,7 +3,7 @@
 #include <juce_core/juce_core.h>
 #include <cstring>
 
-namespace WFSNetwork
+namespace spatcore::control::osc
 {
 
 /**
@@ -53,4 +53,4 @@ inline juce::String safeStringFromBoundedCString (const char* data, int maxBytes
     return safeStringFromBytes (data, len);
 }
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::osc

@@ -38,6 +38,8 @@
 #include <string>
 #include <vector>
 
+namespace spatcore::gpu {
+
 namespace
 {
 struct FdnParamsGpu
@@ -402,5 +404,7 @@ void HipFdnBackend::release() noexcept
 
 #undef CK_RT
 #undef CK_DRV
+
+} // namespace spatcore::gpu
 
 #endif // WFS_GPU_NATIVE && !defined(__APPLE__) && defined(WFS_GPU_HIP)

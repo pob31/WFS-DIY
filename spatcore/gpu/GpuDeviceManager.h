@@ -26,6 +26,8 @@
  #include "PlatformDynLib.h"   // dlopen / LoadLibrary shim
 #endif
 
+namespace spatcore::gpu {
+
 struct GpuDevice
 {
     enum class Vendor { CPU, HIP, CUDA, Metal };
@@ -204,5 +206,11 @@ private:
     GpuDeviceManager() { refresh(); }
     std::vector<GpuDevice> devs;
 };
+
+} // namespace spatcore::gpu
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+using spatcore::gpu::GpuDevice;
+using spatcore::gpu::GpuDeviceManager;
 
 #endif // WFS_GPU_NATIVE

@@ -4554,6 +4554,9 @@
     <ClInclude Include="..\..\spatcore\control\mcp\MCPTransport.h">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPCompat.h">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\Network\MCP\MCPServer.h">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClInclude>

@@ -2,7 +2,7 @@
 
 #include <juce_core/juce_core.h>
 
-namespace WFSNetwork
+namespace spatcore::control::mcp
 {
 
 /** Dispatcher-facing slice of the app's undo engine.
@@ -28,4 +28,4 @@ public:
     virtual juce::Array<juce::var> drainPendingNotifications() = 0;
 };
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::mcp

@@ -41,6 +41,8 @@
 #include <memory>
 #include <vector>
 
+namespace spatcore::reverb {
+
 class ReverbIRAlgorithmGPU : public ReverbIRAlgorithmBase
 {
 public:
@@ -286,5 +288,10 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ReverbIRAlgorithmGPU)
 };
+
+} // namespace spatcore::reverb
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::reverb::ReverbIRAlgorithmGPU;
 
 #endif // WFS_GPU_NATIVE

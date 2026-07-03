@@ -1,8 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "../../../../spatcore/control/mcp/MCPToolRegistry.h"
-#include "../../../../spatcore/control/mcp/MCPChangeRecords.h"
+#include "../MCPCompat.h"
 #include "../../../Parameters/WFSValueTreeState.h"
 #include "../../../Parameters/WFSParameterIDs.h"
 

@@ -4,7 +4,7 @@
 #include <functional>
 #include "MCPChangeRecords.h"
 
-namespace WFSNetwork
+namespace spatcore::control::mcp
 {
 
 /** Tier-marker suffixes appended to a tool's description so the model
@@ -91,4 +91,4 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MCPToolRegistry)
 };
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::mcp

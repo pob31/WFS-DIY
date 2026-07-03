@@ -1,7 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "../../../../spatcore/control/mcp/MCPToolRegistry.h"
+#include "../MCPCompat.h"
 #include "../../../Parameters/WFSFileManager.h"
 
 namespace WFSNetwork::Tools::Snapshot

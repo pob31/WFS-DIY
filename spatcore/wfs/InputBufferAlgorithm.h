@@ -6,6 +6,8 @@
 #include <memory>
 #include <atomic>
 
+namespace spatcore::wfs {
+
 //==============================================================================
 /**
     Input-based WFS algorithm using read-time delays.
@@ -332,3 +334,8 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(InputBufferAlgorithm)
 };
+
+} // namespace spatcore::wfs
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::wfs::InputBufferAlgorithm;

@@ -3,7 +3,7 @@
 #include <utility>
 #include <vector>
 
-namespace WFSNetwork
+namespace spatcore::control::osc
 {
 
 TrackingIngestQueue::TrackingIngestQueue()
@@ -93,4 +93,4 @@ void TrackingIngestQueue::drainBatch()
     }
 }
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::osc

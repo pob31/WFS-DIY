@@ -33,6 +33,8 @@
 #include <string>
 #include <vector>
 
+namespace spatcore::reverb {
+
 class ReverbSDNAlgorithmGPU : public ReverbAlgorithm
 {
 public:
@@ -191,5 +193,10 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ReverbSDNAlgorithmGPU)
 };
+
+} // namespace spatcore::reverb
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::reverb::ReverbSDNAlgorithmGPU;
 
 #endif // WFS_GPU_NATIVE

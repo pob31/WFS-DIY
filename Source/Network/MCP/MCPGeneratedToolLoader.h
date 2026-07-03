@@ -4,10 +4,12 @@
 
 class WFSValueTreeState;
 
+namespace spatcore::control::mcp { class MCPToolRegistry; }
+
 namespace WFSNetwork
 {
 
-class MCPToolRegistry;
+using spatcore::control::mcp::MCPToolRegistry;
 class MCPLogger;
 
 namespace Tools::Generated

@@ -30,6 +30,8 @@
 #include <cstdint>
 #include <vector>
 
+namespace spatcore::gpu {
+
 class SdnHostConfig
 {
 public:
@@ -238,4 +240,10 @@ public:
         return changed;
     }
 };
+
+} // namespace spatcore::gpu
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::gpu::SdnHostConfig;
+
 #endif // WFS_GPU_NATIVE

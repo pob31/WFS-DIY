@@ -177,12 +177,12 @@ static void testOscRoundtrip()
     msg.addFloat32 (3.5f);
     msg.addString ("hello");
 
-    const juce::MemoryBlock bytes = WFSNetwork::OSCSerializer::serializeMessage (msg);
+    const juce::MemoryBlock bytes = spatcore::control::osc::OSCSerializer::serializeMessage (msg);
     CHECK (bytes.getSize() > 0);
     CHECK (bytes.getSize() % 4 == 0);   // OSC packets are 4-byte aligned
 
     int pos = 0;
-    const juce::OSCMessage parsed = WFSNetwork::OSCParser::parseMessage (
+    const juce::OSCMessage parsed = spatcore::control::osc::OSCParser::parseMessage (
         static_cast<const char*> (bytes.getData()),
         static_cast<int> (bytes.getSize()), pos);
 
@@ -194,7 +194,7 @@ static void testOscRoundtrip()
     CHECK (parsed[2].isString() && parsed[2].getString() == "hello");
 
     // Encode(decode(x)) is byte-identical
-    const juce::MemoryBlock bytes2 = WFSNetwork::OSCSerializer::serializeMessage (parsed);
+    const juce::MemoryBlock bytes2 = spatcore::control::osc::OSCSerializer::serializeMessage (parsed);
     CHECK (bytes2 == bytes);
 }
 

@@ -23,6 +23,8 @@
 
 #include <string>
 
+namespace spatcore::gpu {
+
 /** Parses the per-vendor device ordinal out of a GpuDeviceManager id string
     ("cuda:1" -> 1, "metal:0" -> 0, "cpu" / "" / malformed -> 0). The factory
     already resolves the ordinal on the plugin path; this is for the in-process
@@ -120,5 +122,16 @@ struct ISdnBackend : IGpuBackend
                                 float diffusion, float sdnScale) noexcept = 0;
     virtual void requestReset() noexcept = 0;
 };
+
+} // namespace spatcore::gpu
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+using spatcore::gpu::deviceIndexFromId;
+using spatcore::gpu::IGpuBackend;
+using spatcore::gpu::IWfsBackend;
+using spatcore::gpu::IObBackend;
+using spatcore::gpu::IIrBackend;
+using spatcore::gpu::IFdnBackend;
+using spatcore::gpu::ISdnBackend;
 
 #endif // WFS_GPU_NATIVE

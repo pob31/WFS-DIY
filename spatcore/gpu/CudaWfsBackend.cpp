@@ -64,6 +64,8 @@
 #include <string>
 #include <vector>
 
+namespace spatcore::gpu {
+
 namespace
 {
 // Host mirror of the kernel-side WfsParams - layouts must match exactly.
@@ -584,5 +586,7 @@ void CudaWfsBackend::release() noexcept
 
 #undef CK_RT
 #undef CK_DRV
+
+} // namespace spatcore::gpu
 
 #endif // WFS_GPU_NATIVE && !defined(__APPLE__)

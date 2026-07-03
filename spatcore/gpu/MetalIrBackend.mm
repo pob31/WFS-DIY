@@ -30,6 +30,8 @@
 #include <chrono>
 #include <cstring>
 
+namespace spatcore::gpu {
+
 namespace
 {
 // Host mirror of the kernel-side IrParams - layouts must match exactly.
@@ -261,5 +263,7 @@ void MetalIrBackend::release() noexcept
     }
     ready = false;
 }
+
+} // namespace spatcore::gpu
 
 #endif // WFS_GPU_NATIVE

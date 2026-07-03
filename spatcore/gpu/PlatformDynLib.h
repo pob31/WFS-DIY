@@ -29,6 +29,8 @@
  #include <unistd.h>
 #endif
 
+namespace spatcore::gpu {
+
 namespace wfsdyn
 {
 #if defined(_WIN32)
@@ -117,5 +119,7 @@ namespace wfsdyn
         return (std::string) libPrefix() + "wfs_" + vendor + libExt();
     }
 }
+
+} // namespace spatcore::gpu
 
 #endif // WFS_GPU_NATIVE && !__APPLE__

@@ -25,6 +25,8 @@
 #include <cstdint>
 #include <vector>
 
+namespace spatcore::gpu {
+
 class FdnHostConfig
 {
 public:
@@ -188,4 +190,10 @@ private:
          0.24f, -0.29f,  0.20f, -0.25f,  -0.22f,  0.26f, -0.21f,  0.27f
     };
 };
+
+} // namespace spatcore::gpu
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::gpu::FdnHostConfig;
+
 #endif // WFS_GPU_NATIVE

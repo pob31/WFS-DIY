@@ -5,6 +5,8 @@
 #include <vector>
 #include <cmath>
 
+namespace spatcore::dsp {
+
 /**
  * OutputLevelDetector
  *
@@ -136,3 +138,8 @@ private:
     std::atomic<float> peakDb{-200.0f};
     std::atomic<float> rmsDb{-200.0f};
 };
+
+} // namespace spatcore::dsp
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::dsp::OutputLevelDetector;

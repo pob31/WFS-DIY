@@ -3,7 +3,7 @@
 #include <JuceHeader.h>
 #include "../OSCLogger.h"
 #include "../OSCProtocolTypes.h"
-#include "../../../spatcore/control/mcp/MCPLogSink.h"
+#include "MCPCompat.h"
 
 namespace WFSNetwork
 {
