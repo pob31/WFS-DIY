@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "WFSValueTreeState.h"
+#include "../../spatcore/control/state/XmlPersistence.h"
 
 #if JUCE_MAC
 void setFolderIconMac (const char* folderPath);
@@ -17,6 +18,13 @@ void setFolderIconMac (const char* folderPath);
  * - Snapshot management with scope filtering
  * - Automatic backup creation
  * - Project folder structure management
+ *
+ * Composes spatcore::control::state::XmlPersistence for the app-agnostic
+ * machinery (XML file I/O with header convention, rolling backups, and the
+ * merge/backfill engine). This class keeps everything WFS-shaped: the
+ * section-split file layout (show/system/inputs/outputs/reverbs/audio_patch/
+ * network), the .wfs manifest, snapshots + scope filtering, dialogs, and the
+ * WFSParameterDefaults-range merge validator injected into the core engine.
  */
 class WFSFileManager
 {
@@ -412,6 +420,7 @@ private:
     //==========================================================================
 
     WFSValueTreeState& valueTreeState;
+    spatcore::control::state::XmlPersistence persistence;
     juce::File projectFolder;
     juce::String lastError;
 
@@ -419,10 +428,12 @@ private:
     // Internal Methods
     //==========================================================================
 
-    /** Write ValueTree to XML file with human-readable formatting */
+    /** Write ValueTree to XML file with human-readable formatting
+        (delegates to spatcore XmlPersistence, mapping failures to localized errors) */
     bool writeToXmlFile (const juce::ValueTree& tree, const juce::File& file);
 
-    /** Read ValueTree from XML file */
+    /** Read ValueTree from XML file
+        (delegates to spatcore XmlPersistence, mapping failures to localized errors) */
     juce::ValueTree readFromXmlFile (const juce::File& file);
 
     /** Extract config section from state */
@@ -473,20 +484,14 @@ private:
     /** Deserialize extended scope from ValueTree */
     ExtendedSnapshotScope deserializeExtendedScope (const juce::ValueTree& scopeTree) const;
 
-    /** Create file header comment */
-    static juce::String createXmlHeader (const juce::String& fileType);
-
     /** Set error message */
     void setError (const juce::String& error);
 
     /** Brand the project folder with a custom icon (platform-specific) */
     void brandProjectFolder();
 
-    /** Merge properties from source to target (only set properties that exist in source) */
-    void mergeProperties (juce::ValueTree& target, const juce::ValueTree& source,
-                          juce::UndoManager* undoManager);
-
-    /** Recursively merge tree including children (preserves existing properties/children not in source) */
+    /** Recursively merge tree including children (preserves existing properties/children not in source)
+        (delegates to spatcore XmlPersistence with the WFS bounds validator injected) */
     void mergeTreeRecursive (juce::ValueTree& target, const juce::ValueTree& source,
                              juce::UndoManager* undoManager);
 

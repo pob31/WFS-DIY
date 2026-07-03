@@ -934,6 +934,9 @@
     <ClCompile Include="..\..\spatcore\control\state\TreeParameterStore.cpp">
       <Filter>WFS-DIY\Source\Parameters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\spatcore\control\state\XmlPersistence.cpp">
+      <Filter>WFS-DIY\Source\Parameters</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Source\Parameters\WFSValueTreeState.cpp">
       <Filter>WFS-DIY\Source\Parameters</Filter>
     </ClCompile>
@@ -988,7 +991,7 @@
     <ClCompile Include="..\..\Source\Network\OSCParameterBounds.cpp">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\Network\OSCIngestQueue.cpp">
+    <ClCompile Include="..\..\spatcore\control\osc\OSCIngestQueue.cpp">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClCompile>
     <ClCompile Include="..\..\spatcore\control\osc\TrackingIngestQueue.cpp">
@@ -4374,6 +4377,9 @@
     <ClInclude Include="..\..\spatcore\control\state\TreeParameterStore.h">
       <Filter>WFS-DIY\Source\Parameters</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\spatcore\control\state\XmlPersistence.h">
+      <Filter>WFS-DIY\Source\Parameters</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\Parameters\WFSParameterIDs.h">
       <Filter>WFS-DIY\Source\Parameters</Filter>
     </ClInclude>
@@ -4482,7 +4488,7 @@
     <ClInclude Include="..\..\Source\Network\OSCParameterBounds.h">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Network\OSCIngestQueue.h">
+    <ClInclude Include="..\..\spatcore\control\osc\OSCIngestQueue.h">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClInclude>
     <ClInclude Include="..\..\spatcore\control\osc\TrackingIngestQueue.h">

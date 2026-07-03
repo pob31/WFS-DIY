@@ -685,7 +685,7 @@ private:
 
     // Inbound coalesce + bounded FIFO. UDP and TCP receivers push raw
     // bytes here; the queue posts a single drain callAsync per tick.
-    std::unique_ptr<class OSCIngestQueue> ingestQueue;
+    std::unique_ptr<OSCIngestQueue> ingestQueue;
 
     // Connections (one per target)
     std::array<std::unique_ptr<OSCConnection>, MAX_TARGETS> connections;

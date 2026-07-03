@@ -1,5 +1,5 @@
 #include "OSCManager.h"
-#include "OSCIngestQueue.h"
+#include "../../spatcore/control/osc/OSCIngestQueue.h"
 #include "../../spatcore/control/osc/OSCParser.h"
 #include "QLabCueBuilder.h"
 #include "../Helpers/CoordinateConverter.h"
@@ -70,7 +70,18 @@ OSCManager::OSCManager(WFSValueTreeState& valueTreeState)
     // Inbound ingest queue: receiver threads push raw datagram bytes
     // here, the queue coalesces hot per-(address, channel) updates and
     // bounds the FIFO for everything else, then drains on the MM thread.
-    ingestQueue = std::make_unique<OSCIngestQueue>();
+    // The queue machinery lives in spatcore; the WFS dialect knowledge —
+    // which address families coalesce and the "first int32 arg is the
+    // channel id" keying convention — is injected here by the app.
+    OSCIngestQueue::Classifier ingestClassifier;
+    ingestClassifier.rules = {
+        { OSCPaths::INPUT_PREFIX,        true  },   // "/wfs/input/"    key: addr|channel
+        { OSCPaths::OUTPUT_PREFIX,       true  },   // "/wfs/output/"   key: addr|channel
+        { "/wfs/reverb/",                true  },   //                  key: addr|channel
+        { OSCPaths::REMOTE_INPUT_PREFIX, true  },   // "/remoteInput/"  key: addr|channel
+        { OSCPaths::CONFIG_PREFIX,       false }    // "/wfs/config/"   global: key on address
+    };
+    ingestQueue = std::make_unique<OSCIngestQueue>(std::move(ingestClassifier));
     ingestQueue->setDispatch([this] (const juce::MemoryBlock& data,
                                      const juce::String& senderIP,
                                      int port,

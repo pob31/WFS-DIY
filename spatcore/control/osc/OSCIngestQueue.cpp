@@ -1,14 +1,28 @@
 #include "OSCIngestQueue.h"
-#include "../../spatcore/control/osc/NetworkStringUtils.h"
+#include "NetworkStringUtils.h"
 
 #include <cstring>
 #include <utility>
 
-namespace WFSNetwork
+namespace spatcore::control::osc
 {
 
-OSCIngestQueue::OSCIngestQueue()
+OSCIngestQueue::OSCIngestQueue (Classifier classifierIn)
+    : digitAfterPrefixBypasses (classifierIn.digitAfterPrefixBypasses)
 {
+    // Precompute the byte-comparable rule table once so tryClassify on
+    // the receiver threads is a bounds check + memcmp per rule.
+    rules.reserve (classifierIn.rules.size());
+    for (const auto& r : classifierIn.rules)
+    {
+        Rule rule;
+        rule.prefix     = r.prefix.toStdString();
+        rule.len        = static_cast<int> (rule.prefix.size());
+        rule.perChannel = r.firstInt32IsChannel;
+        if (rule.len > 0)
+            rules.push_back (std::move (rule));
+    }
+
     // Drain at a fixed cadence on the MessageManager thread. This
     // guarantees the GUI gets idle slices between batches, which
     // callAsync-on-demand draining cannot (each call piles onto the MM
@@ -35,24 +49,10 @@ namespace
 {
     // Round up to next 4-byte boundary (OSC alignment).
     inline int alignTo4 (int v) noexcept { return (v + 3) & ~3; }
-
-    struct Prefix { const char* str; int len; bool perChannel; };
-
-    // Coalesceable address prefixes. For per-channel prefixes we read
-    // the first int32 arg as the channel id and key on
-    // "<address>|<channel>"; for /wfs/config/ (no channel) we key on
-    // the full address.
-    constexpr Prefix kPrefixes[] = {
-        { "/wfs/input/",   11, true  },
-        { "/wfs/output/",  12, true  },
-        { "/wfs/reverb/",  12, true  },
-        { "/remoteInput/", 13, true  },
-        { "/wfs/config/",  12, false }
-    };
 }
 
 bool OSCIngestQueue::tryClassify (const char* data, int dataSize,
-                                   juce::String& outKey)
+                                   juce::String& outKey) const
 {
     if (data == nullptr || dataSize <= 0 || data[0] != '/')
         return false;  // not a leading-/-message; bundles fall here too
@@ -64,13 +64,13 @@ bool OSCIngestQueue::tryClassify (const char* data, int dataSize,
     if (addrEnd == 0 || addrEnd >= dataSize)
         return false;
 
-    // Match against the prefix set.
-    const Prefix* matched = nullptr;
-    for (const auto& p : kPrefixes)
+    // Match against the injected prefix set.
+    const Rule* matched = nullptr;
+    for (const auto& r : rules)
     {
-        if (addrEnd >= p.len && std::memcmp (data, p.str, (size_t) p.len) == 0)
+        if (addrEnd >= r.len && std::memcmp (data, r.prefix.data(), (size_t) r.len) == 0)
         {
-            matched = &p;
+            matched = &r;
             break;
         }
     }
@@ -81,17 +81,18 @@ bool OSCIngestQueue::tryClassify (const char* data, int dataSize,
     // immediately after the prefix. We don't try to canonicalise those
     // here — they go through the FIFO path. (Normalising would mean
     // re-emitting the standard form, which is more work than it saves.)
-    if (matched->perChannel
+    if (digitAfterPrefixBypasses
+        && matched->perChannel
         && matched->len < addrEnd
         && data[matched->len] >= '0' && data[matched->len] <= '9')
     {
         return false;
     }
 
-    // For /wfs/config/* there is no channel id; key on the address.
+    // For channel-less families (e.g. /wfs/config/*) key on the address.
     if (! matched->perChannel)
     {
-        outKey = safeStringFromBytes (data, addrEnd);
+        outKey = WFSNetwork::safeStringFromBytes (data, addrEnd);
         if (outKey.isEmpty())
             return false;  // address contained invalid UTF-8 — let FIFO handle it
         return true;
@@ -125,7 +126,7 @@ bool OSCIngestQueue::tryClassify (const char* data, int dataSize,
                         | (static_cast<uint8_t> (data[argStart + 3]));
     const int channelId = static_cast<int32_t> (bits);
 
-    juce::String addr = safeStringFromBytes (data, addrEnd);
+    juce::String addr = WFSNetwork::safeStringFromBytes (data, addrEnd);
     if (addr.isEmpty())
         return false;
     outKey = addr + "|" + juce::String (channelId);
@@ -246,4 +247,4 @@ void OSCIngestQueue::drainBatch()
         dropReport (droppedTotal.load (std::memory_order_relaxed), dropTransport);
 }
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::osc

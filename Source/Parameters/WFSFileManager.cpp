@@ -36,11 +36,55 @@ static void stripTransientToggles (juce::ValueTree& tree)
 }
 
 //==============================================================================
+// File-load value gate (injected into the core merge engine)
+//==============================================================================
+
+// File-load value gate (mirrors the OSC entry path): for any property
+// with a documented numeric range in WFSParameterDefaults.h, reject
+// non-finite values and out-of-range values before they reach the
+// ValueTree. Rejected properties keep their current target value (the
+// app's startup default). Properties without a bounds entry — names,
+// XML metadata, mute-list strings — pass through unchanged.
+static std::optional<juce::var> validateFileLoadProperty (const juce::Identifier& propName,
+                                                          const juce::var& v)
+{
+    if (auto bounds = WFSNetwork::getBounds (propName); bounds.has_value())
+    {
+        // Coerce to double regardless of the underlying var type:
+        // ValueTree::fromXml stores XML attributes as Strings, so
+        // "NaN"/"Infinity" need to round-trip through string parsing
+        // to surface as non-finite here.
+        const double d = static_cast<double> (v);
+
+        if (! std::isfinite (d))
+        {
+            const char* kind = std::isnan (d) ? "NaN" : "Inf";
+            WFSLogger::getInstance().logWarning (
+                "File load: rejected " + propName.toString()
+                + " (non-finite, " + kind + ")");
+            return std::nullopt;
+        }
+        if (d < bounds->min || d > bounds->max)
+        {
+            WFSLogger::getInstance().logWarning (
+                "File load: rejected " + propName.toString() + " ("
+                + WFSNetwork::formatOutOfRangeReason (propName, d) + ")");
+            return std::nullopt;
+        }
+    }
+
+    return v;
+}
+
+//==============================================================================
 // Construction
 //==============================================================================
 
 WFSFileManager::WFSFileManager (WFSValueTreeState& state)
-    : valueTreeState (state)
+    : valueTreeState (state),
+      persistence ({ "WFS Processor Configuration File",
+                     WFSParameterIDs::id,
+                     &validateFileLoadProperty })
 {
 }
 
@@ -1704,56 +1748,24 @@ bool WFSFileManager::applyInputWithExtendedScope (int channelIndex, const juce::
 
 bool WFSFileManager::createBackup (const juce::File& file)
 {
-    if (!file.existsAsFile())
-        return true;
-
-    auto backupFolder = getBackupFolder();
-    backupFolder.createDirectory();
-
-    auto timestamp = getBackupTimestamp();
-    auto backupFile = backupFolder.getChildFile (
-        file.getFileNameWithoutExtension() + "_" + timestamp + file.getFileExtension());
-
-    return file.copyFileTo (backupFile);
+    return spatcore::control::state::XmlPersistence::createBackup (file, getBackupFolder());
 }
 
 juce::Array<juce::File> WFSFileManager::getBackups (const juce::String& fileType) const
 {
-    juce::Array<juce::File> backups;
-    auto backupFolder = getBackupFolder();
-
-    if (backupFolder.isDirectory())
-    {
-        auto files = backupFolder.findChildFiles (juce::File::findFiles, false, fileType + "_*.*");
-
-        // Sort by modification time (newest first)
-        std::sort (files.begin(), files.end(),
-            [] (const juce::File& a, const juce::File& b)
-            {
-                return a.getLastModificationTime() > b.getLastModificationTime();
-            });
-
-        for (auto& file : files)
-            backups.add (file);
-    }
-
-    return backups;
+    return spatcore::control::state::XmlPersistence::listBackups (getBackupFolder(), fileType);
 }
 
 void WFSFileManager::cleanupBackups (int keepCount)
 {
-    // Clean up each file type
-    for (auto& type : { "system", "network", "inputs", "outputs", "reverbs" })
-    {
-        auto backups = getBackups (type);
-        for (int i = keepCount; i < backups.size(); ++i)
-            backups[i].deleteFile();
-    }
+    // Clean up each section file type (the WFS multi-file layout)
+    spatcore::control::state::XmlPersistence::cleanupBackups (
+        getBackupFolder(), { "system", "network", "inputs", "outputs", "reverbs" }, keepCount);
 }
 
 juce::String WFSFileManager::getBackupTimestamp()
 {
-    return juce::Time::getCurrentTime().formatted ("%Y%m%d_%H%M%S");
+    return spatcore::control::state::XmlPersistence::backupTimestamp();
 }
 
 //==============================================================================
@@ -1762,50 +1774,50 @@ juce::String WFSFileManager::getBackupTimestamp()
 
 bool WFSFileManager::writeToXmlFile (const juce::ValueTree& tree, const juce::File& file)
 {
-    auto xml = tree.createXml();
-    if (xml == nullptr)
+    using WriteResult = spatcore::control::state::XmlPersistence::WriteResult;
+
+    switch (persistence.writeTreeToFile (tree, file))
     {
-        setError (LOC ("fileManager.errors.failedCreateXML"));
-        return false;
+        case WriteResult::ok:
+            return true;
+
+        case WriteResult::xmlConversionFailed:
+            setError (LOC ("fileManager.errors.failedCreateXML"));
+            return false;
+
+        case WriteResult::fileWriteFailed:
+        default:
+            setError (LOC ("fileManager.errors.failedWriteFile").replace ("{path}", file.getFullPathName()));
+            return false;
     }
-
-    // Create human-readable XML with our custom header (without JUCE's default declaration)
-    juce::String header = createXmlHeader (file.getFileNameWithoutExtension());
-    auto format = juce::XmlElement::TextFormat().withoutHeader();
-    juce::String xmlString = header + xml->toString (format);
-
-    if (!file.replaceWithText (xmlString))
-    {
-        setError (LOC ("fileManager.errors.failedWriteFile").replace ("{path}", file.getFullPathName()));
-        return false;
-    }
-
-    return true;
 }
 
 juce::ValueTree WFSFileManager::readFromXmlFile (const juce::File& file)
 {
-    if (!file.existsAsFile())
+    using ReadError = spatcore::control::state::XmlPersistence::ReadError;
+
+    auto result = persistence.readTreeFromFile (file);
+
+    switch (result.error)
     {
-        setError (LOC ("fileManager.errors.fileNotFound").replace ("{path}", file.getFullPathName()));
-        return {};
+        case ReadError::none:
+            break;
+
+        case ReadError::fileNotFound:
+            setError (LOC ("fileManager.errors.fileNotFound").replace ("{path}", file.getFullPathName()));
+            return {};
+
+        case ReadError::parseFailed:
+            setError (LOC ("fileManager.errors.failedParseXML").replace ("{path}", file.getFullPathName()));
+            return {};
+
+        case ReadError::treeConversionFailed:
+        default:
+            setError (LOC ("fileManager.errors.failedCreateValueTree").replace ("{path}", file.getFullPathName()));
+            return {};
     }
 
-    auto xml = juce::XmlDocument::parse (file);
-    if (xml == nullptr)
-    {
-        setError (LOC ("fileManager.errors.failedParseXML").replace ("{path}", file.getFullPathName()));
-        return {};
-    }
-
-    auto tree = juce::ValueTree::fromXml (*xml);
-    if (!tree.isValid())
-    {
-        setError (LOC ("fileManager.errors.failedCreateValueTree").replace ("{path}", file.getFullPathName()));
-        return {};
-    }
-
-    return tree;
+    return result.tree;
 }
 
 juce::ValueTree WFSFileManager::extractConfigSection() const
@@ -2041,140 +2053,18 @@ bool WFSFileManager::applyNetworkSection (const juce::ValueTree& networkContaine
     return success;
 }
 
-juce::String WFSFileManager::createXmlHeader (const juce::String& fileType)
-{
-    juce::String header;
-    header << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-    header << "<!-- WFS Processor Configuration File -->\n";
-    header << "<!-- Type: " << fileType << " -->\n";
-    header << "<!-- Created: " << juce::Time::getCurrentTime().toString (true, true) << " -->\n";
-    header << "\n";
-    return header;
-}
-
 //==============================================================================
 // Merge Helpers (preserves missing properties)
 //==============================================================================
 
-void WFSFileManager::mergeProperties (juce::ValueTree& target, const juce::ValueTree& source,
-                                       juce::UndoManager* undoManager)
-{
-    // Only copy properties that exist in source - missing properties keep their current value.
-    //
-    // File-load value gate (mirrors the OSC entry path): for any property
-    // with a documented numeric range in WFSParameterDefaults.h, reject
-    // non-finite values and out-of-range values before they reach the
-    // ValueTree. Rejected properties keep their current target value (the
-    // app's startup default). Properties without a bounds entry — names,
-    // XML metadata, mute-list strings — pass through unchanged.
-    for (int i = 0; i < source.getNumProperties(); ++i)
-    {
-        const auto propName = source.getPropertyName (i);
-        const auto v        = source.getProperty (propName);
-
-        if (auto bounds = WFSNetwork::getBounds (propName); bounds.has_value())
-        {
-            // Coerce to double regardless of the underlying var type:
-            // ValueTree::fromXml stores XML attributes as Strings, so
-            // "NaN"/"Infinity" need to round-trip through string parsing
-            // to surface as non-finite here.
-            const double d = static_cast<double> (v);
-
-            if (! std::isfinite (d))
-            {
-                const char* kind = std::isnan (d) ? "NaN" : "Inf";
-                WFSLogger::getInstance().logWarning (
-                    "File load: rejected " + propName.toString()
-                    + " (non-finite, " + kind + ")");
-                continue;
-            }
-            if (d < bounds->min || d > bounds->max)
-            {
-                WFSLogger::getInstance().logWarning (
-                    "File load: rejected " + propName.toString() + " ("
-                    + WFSNetwork::formatOutOfRangeReason (propName, d) + ")");
-                continue;
-            }
-        }
-
-        target.setProperty (propName, v, undoManager);
-    }
-}
-
 void WFSFileManager::mergeTreeRecursive (juce::ValueTree& target, const juce::ValueTree& source,
                                           juce::UndoManager* undoManager)
 {
-    // Merge properties (only those in source)
-    mergeProperties (target, source, undoManager);
-
-    // Merge children
-    for (int i = 0; i < source.getNumChildren(); ++i)
-    {
-        auto sourceChild = source.getChild (i);
-        juce::ValueTree targetChild;
-
-        // For children with an "id" property (Input, Output, Reverb channels),
-        // match by both type AND id to avoid mixing up channels.
-        // The match must scan for type+id together: getChildWithProperty()
-        // returns the first child of ANY type with that id, and siblings of
-        // different types can share an id namespace (ADMCartMapping and
-        // ADMPolarMapping both use ids 0-3). Invalidating on a type
-        // mismatch made every ADMPolarMapping look "missing", so each
-        // network.xml load appended 4 duplicate nodes and the file grew on
-        // every load/save cycle.
-        if (sourceChild.hasProperty (id))
-        {
-            const auto sourceId = sourceChild.getProperty (id);
-            for (int c = 0; c < target.getNumChildren(); ++c)
-            {
-                auto candidate = target.getChild (c);
-                if (candidate.getType() == sourceChild.getType()
-                    && candidate.getProperty (id) == sourceId)
-                {
-                    targetChild = candidate;
-                    break;
-                }
-            }
-        }
-        else
-        {
-            // For children without an id, match by type AND ordinal position among
-            // same-type, id-less siblings. Matching by type name alone returns the
-            // FIRST such child for every source child, so a collection of repeated
-            // id-less children (e.g. the 16 ClusterLFOPreset nodes) would all
-            // collapse into the first slot and the rest would be lost on load.
-            const auto type = sourceChild.getType();
-            int wanted = 0;
-            for (int j = 0; j < i; ++j)
-            {
-                auto prevSource = source.getChild (j);
-                if (prevSource.getType() == type && ! prevSource.hasProperty (id))
-                    ++wanted;
-            }
-
-            int seen = 0;
-            for (int c = 0; c < target.getNumChildren(); ++c)
-            {
-                auto candidate = target.getChild (c);
-                if (candidate.getType() == type && ! candidate.hasProperty (id))
-                {
-                    if (seen == wanted) { targetChild = candidate; break; }
-                    ++seen;
-                }
-            }
-        }
-
-        if (targetChild.isValid())
-        {
-            // Child exists - recursively merge
-            mergeTreeRecursive (targetChild, sourceChild, undoManager);
-        }
-        else
-        {
-            // Child doesn't exist in target - add it (new section in file)
-            target.appendChild (sourceChild.createCopy(), undoManager);
-        }
-    }
+    // Core merge/backfill engine: "missing = keep" property merge, children
+    // matched by type+id (channels, ADM mappings) or by type+ordinal among
+    // id-less siblings (e.g. the 16 ClusterLFOPreset nodes). Every property
+    // passes through the injected WFS bounds validator (validateFileLoadProperty).
+    persistence.mergeTreeRecursive (target, source, undoManager);
 }
 
 void WFSFileManager::setError (const juce::String& error)
