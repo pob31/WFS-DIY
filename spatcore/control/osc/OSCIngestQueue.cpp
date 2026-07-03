@@ -92,7 +92,7 @@ bool OSCIngestQueue::tryClassify (const char* data, int dataSize,
     // For channel-less families (e.g. /wfs/config/*) key on the address.
     if (! matched->perChannel)
     {
-        outKey = WFSNetwork::safeStringFromBytes (data, addrEnd);
+        outKey = safeStringFromBytes (data, addrEnd);
         if (outKey.isEmpty())
             return false;  // address contained invalid UTF-8 — let FIFO handle it
         return true;
@@ -126,7 +126,7 @@ bool OSCIngestQueue::tryClassify (const char* data, int dataSize,
                         | (static_cast<uint8_t> (data[argStart + 3]));
     const int channelId = static_cast<int32_t> (bits);
 
-    juce::String addr = WFSNetwork::safeStringFromBytes (data, addrEnd);
+    juce::String addr = safeStringFromBytes (data, addrEnd);
     if (addr.isEmpty())
         return false;
     outKey = addr + "|" + juce::String (channelId);

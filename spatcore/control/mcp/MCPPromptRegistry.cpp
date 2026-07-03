@@ -1,6 +1,6 @@
 #include "MCPPromptRegistry.h"
 
-namespace WFSNetwork
+namespace spatcore::control::mcp
 {
 
 namespace
@@ -292,4 +292,4 @@ const PromptEntry* MCPPromptRegistry::findByName (const juce::String& name) cons
     return nullptr;
 }
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::mcp

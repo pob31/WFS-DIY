@@ -4,7 +4,7 @@
 #include <deque>
 #include "../osc/OscTransportTypes.h"
 
-namespace WFSNetwork
+namespace spatcore::control::mcp
 {
 
 /** Identifies a parameter group as "(channel_id, group_name)".
@@ -147,4 +147,4 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MCPChangeRecordBuffer)
 };
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::mcp

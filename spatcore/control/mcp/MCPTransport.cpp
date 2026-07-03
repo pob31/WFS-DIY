@@ -1,6 +1,6 @@
 #include "MCPTransport.h"
 
-namespace WFSNetwork
+namespace spatcore::control::mcp
 {
 
 namespace
@@ -210,4 +210,4 @@ int MCPTransport::resolveClientPort (const std::shared_ptr<HttpServer::Request>&
     }
 }
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::mcp

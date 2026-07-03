@@ -2,7 +2,7 @@
 
 #include <juce_osc/juce_osc.h>
 
-namespace WFSNetwork
+namespace spatcore::control::osc
 {
 
 /**
@@ -99,4 +99,4 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OSCReceiverWithSenderIP)
 };
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::osc

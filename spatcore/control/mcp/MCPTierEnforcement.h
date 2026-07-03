@@ -5,7 +5,7 @@
 #include <map>
 #include <atomic>
 
-namespace WFSNetwork
+namespace spatcore::control::mcp
 {
 
 /** Phase 6 — tier enforcement and operator-side safety controls.
@@ -162,4 +162,4 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MCPTierEnforcement)
 };
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::mcp

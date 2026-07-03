@@ -1,6 +1,5 @@
 #include "MCPGeneratedToolLoader.h"
-#include "../../../spatcore/control/mcp/MCPToolRegistry.h"
-#include "../../../spatcore/control/mcp/MCPChangeRecords.h"
+#include "MCPCompat.h"
 #include "MCPLogger.h"
 #include "../../Parameters/WFSValueTreeState.h"
 

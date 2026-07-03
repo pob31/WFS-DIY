@@ -2,7 +2,7 @@
 
 #include <juce_core/juce_core.h>
 
-namespace WFSNetwork
+namespace spatcore::control::osc
 {
 
 /**
@@ -131,4 +131,4 @@ namespace OSCSerializer
 
 } // namespace OSCSerializer
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::osc

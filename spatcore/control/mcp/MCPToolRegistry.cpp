@@ -1,6 +1,6 @@
 #include "MCPToolRegistry.h"
 
-namespace WFSNetwork
+namespace spatcore::control::mcp
 {
 
 void MCPToolRegistry::registerTool (ToolDescriptor descriptor)
@@ -29,4 +29,4 @@ const ToolDescriptor* MCPToolRegistry::find (const juce::String& name) const
     return nullptr;
 }
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::mcp

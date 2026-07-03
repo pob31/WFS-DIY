@@ -3,7 +3,7 @@
 #include <JuceHeader.h>
 #include <set>
 #include "../Network/MCP/MCPUndoEngine.h"
-#include "../../spatcore/control/mcp/MCPChangeRecords.h"
+#include "../Network/MCP/MCPCompat.h"
 #include "ColorScheme.h"
 
 /** Growing-toast overlay for AI-undo records.

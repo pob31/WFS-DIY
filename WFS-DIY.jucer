@@ -210,6 +210,8 @@
                 file="spatcore/control/mcp/MCPTransport.h"/>
           <FILE id="mcpTransCpp" name="MCPTransport.cpp" compile="1" resource="0"
                 file="spatcore/control/mcp/MCPTransport.cpp"/>
+          <FILE id="mcpCompatH" name="MCPCompat.h" compile="0" resource="0"
+                file="Source/Network/MCP/MCPCompat.h"/>
           <FILE id="mcpSrvH" name="MCPServer.h" compile="0" resource="0"
                 file="Source/Network/MCP/MCPServer.h"/>
           <FILE id="mcpSrvCpp" name="MCPServer.cpp" compile="1" resource="0"

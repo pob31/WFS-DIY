@@ -2,7 +2,7 @@
 
 #include <juce_core/juce_core.h>
 
-namespace WFSNetwork
+namespace spatcore::control::mcp
 {
 
 /** One named argument a prompt accepts at invocation time. The MCP spec
@@ -51,4 +51,4 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MCPPromptRegistry)
 };
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::mcp

@@ -1,7 +1,7 @@
 #include "MCPDispatcher.h"
 #include <juce_events/juce_events.h>
 
-namespace WFSNetwork
+namespace spatcore::control::mcp
 {
 
 namespace
@@ -596,4 +596,4 @@ juce::String MCPDispatcher::toCompactJson (const juce::var& v)
     return juce::JSON::toString (v, /*allOnOneLine*/ true);
 }
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::mcp

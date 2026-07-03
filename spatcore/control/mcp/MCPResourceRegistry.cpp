@@ -1,6 +1,6 @@
 #include "MCPResourceRegistry.h"
 
-namespace WFSNetwork
+namespace spatcore::control::mcp
 {
 
 namespace
@@ -174,4 +174,4 @@ const ResourceEntry* MCPResourceRegistry::findByURI (const juce::String& uri) co
     return nullptr;
 }
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::mcp

@@ -2,7 +2,7 @@
 
 #include <juce_core/juce_core.h>
 
-namespace WFSNetwork
+namespace spatcore::control::mcp
 {
 
 /** One entry in the WFS knowledge-base resource catalog. Each entry maps an
@@ -53,4 +53,4 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MCPResourceRegistry)
 };
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::mcp

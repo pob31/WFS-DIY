@@ -1,7 +1,7 @@
 #include "OSCReceiverWithSenderIP.h"
 #include "OSCParser.h"
 
-namespace WFSNetwork
+namespace spatcore::control::osc
 {
 
 //==============================================================================
@@ -171,4 +171,4 @@ void OSCReceiverWithSenderIP::notifyBundle(const juce::OSCBundle& bundle,
     listeners.call([&](Listener& l) { l.oscBundleReceived(bundle, senderIP); });
 }
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::osc

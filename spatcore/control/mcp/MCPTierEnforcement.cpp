@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <vector>
 
-namespace WFSNetwork
+namespace spatcore::control::mcp
 {
 
 namespace
@@ -444,4 +444,4 @@ bool MCPTierEnforcement::isAIEnabled() const noexcept
 void MCPTierEnforcement::addListener    (Listener* l) { listeners.add    (l); }
 void MCPTierEnforcement::removeListener (Listener* l) { listeners.remove (l); }
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::mcp

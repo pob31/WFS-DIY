@@ -2,15 +2,9 @@
 
 #include <JuceHeader.h>
 #include "MCPLogger.h"
-#include "../../../spatcore/control/mcp/MCPToolRegistry.h"
-#include "../../../spatcore/control/mcp/MCPChangeRecords.h"
+#include "MCPCompat.h"
 #include "MCPUndoEngine.h"
-#include "../../../spatcore/control/mcp/MCPResourceRegistry.h"
-#include "../../../spatcore/control/mcp/MCPPromptRegistry.h"
-#include "../../../spatcore/control/mcp/MCPTierEnforcement.h"
 #include "MCPOSCQueryAuditor.h"
-#include "../../../spatcore/control/mcp/MCPDispatcher.h"
-#include "../../../spatcore/control/mcp/MCPTransport.h"
 
 class WFSValueTreeState;
 class WFSFileManager;

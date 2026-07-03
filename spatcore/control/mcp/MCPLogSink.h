@@ -2,7 +2,7 @@
 
 #include <juce_core/juce_core.h>
 
-namespace WFSNetwork
+namespace spatcore::control::mcp
 {
 
 /** Core-facing logging interface for the MCP transport + dispatcher.
@@ -38,4 +38,4 @@ public:
     virtual void logError (const juce::String& message) = 0;
 };
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::mcp
