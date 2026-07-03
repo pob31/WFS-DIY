@@ -1,6 +1,6 @@
 #include "OSCRateLimiter.h"
 
-namespace WFSNetwork
+namespace spatcore::control::osc
 {
 
 //==============================================================================
@@ -254,4 +254,4 @@ juce::String OSCRateLimiter::buildCoalescingKey(const juce::OSCMessage& message)
     return address;
 }
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::osc

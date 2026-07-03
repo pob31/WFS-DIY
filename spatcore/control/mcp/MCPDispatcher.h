@@ -1,19 +1,29 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include <juce_core/juce_core.h>
 #include <atomic>
-#include "MCPLogger.h"
+#include "MCPLogSink.h"
 #include "MCPToolRegistry.h"
 #include "MCPChangeRecords.h"
-#include "MCPUndoEngine.h"
+#include "MCPUndoHooks.h"
 #include "MCPResourceRegistry.h"
 #include "MCPPromptRegistry.h"
 #include "MCPTierEnforcement.h"
 
-class WFSValueTreeState;
-
 namespace WFSNetwork
 {
+
+/** Identity the server advertises in the MCP `initialize` response.
+    Provided by the app at construction — the core has no product name,
+    version, or workflow vocabulary of its own. `instructions` is the
+    welcome / quick-start text MCP clients surface to the model as system
+    context on connect (ASCII only). */
+struct ServerIdentity
+{
+    juce::String name;          // serverInfo.name    (e.g. "WFS-DIY")
+    juce::String version;       // serverInfo.version (e.g. ProjectInfo::versionString)
+    juce::String instructions;  // initialize result `instructions` field
+};
 
 /** JSON-RPC method dispatcher.
 
@@ -31,14 +41,14 @@ namespace WFSNetwork
 class MCPDispatcher
 {
 public:
-    MCPDispatcher (WFSValueTreeState& state,
+    MCPDispatcher (ServerIdentity serverIdentity,
                    MCPToolRegistry& registry,
                    MCPChangeRecordBuffer& ringBuffer,
-                   MCPUndoEngine& undoEngine,
+                   MCPUndoHooks& undoEngine,
                    MCPResourceRegistry& resourceRegistry,
                    MCPPromptRegistry& promptRegistry,
                    MCPTierEnforcement& tierEnforcement,
-                   MCPLogger& mcpLogger);
+                   MCPLogSink& mcpLogger);
 
     /** Receive a raw HTTP body, return a JSON-RPC envelope as a string.
         Always returns a syntactically valid JSON-RPC 2.0 envelope, even
@@ -81,14 +91,14 @@ private:
                              ChangeRecord* record,
                              ToolResult& outResult);
 
-    WFSValueTreeState& state;
+    ServerIdentity identity;
     MCPToolRegistry& registry;
     MCPChangeRecordBuffer& ringBuffer;
-    MCPUndoEngine& undoEngine;
+    MCPUndoHooks& undoEngine;
     MCPResourceRegistry& resources;
     MCPPromptRegistry& prompts;
     MCPTierEnforcement& tierEnforcement;
-    MCPLogger& mcpLogger;
+    MCPLogSink& mcpLogger;
 
     std::atomic<bool> initialized { false };  // flips true after `initialize` succeeds
     int toolTimeoutMs = 5000;

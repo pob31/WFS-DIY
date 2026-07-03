@@ -5,8 +5,8 @@
 #include <algorithm>
 #include <vector>
 #include <array>
-#include "../MCPToolRegistry.h"
-#include "../MCPChangeRecords.h"
+#include "../../../../spatcore/control/mcp/MCPToolRegistry.h"
+#include "../../../../spatcore/control/mcp/MCPChangeRecords.h"
 #include "../../../Parameters/WFSValueTreeState.h"
 #include "../../../Parameters/WFSParameterIDs.h"
 

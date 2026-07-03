@@ -1,9 +1,9 @@
 #pragma once
 
-#include <JuceHeader.h>
-#include "OSCProtocolTypes.h"
+#include <juce_osc/juce_osc.h>
+#include "OscTransportTypes.h"
 
-namespace WFSNetwork
+namespace spatcore::control::osc
 {
 
 /**
@@ -160,4 +160,4 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OSCRateLimiter)
 };
 
-} // namespace WFSNetwork
+} // namespace spatcore::control::osc

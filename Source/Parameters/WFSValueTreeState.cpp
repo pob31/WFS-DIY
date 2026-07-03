@@ -1,5 +1,5 @@
 #include "WFSValueTreeState.h"
-#include "../Network/OSCProtocolTypes.h"
+#include "../Network/OSCParameterBounds.h"
 
 using namespace WFSParameterIDs;
 using namespace WFSParameterDefaults;
@@ -9,7 +9,35 @@ using namespace WFSParameterDefaults;
 //==============================================================================
 
 WFSValueTreeState::WFSValueTreeState()
+    : TreeParameterStore (static_cast<int> (UndoDomain::COUNT),
+                          { "Input", "Output", "Reverb", "Map", "Config", "Clusters" })
 {
+    // WRITE-INTERCEPTOR (control Q6a): numeric-bounds hardening at the store
+    // choke point, using the same bounds table OSC ingress and the MCP
+    // escape-hatch validate against (both of those REJECT out-of-range before
+    // the store; this clamp only ever fires for paths that used to bypass
+    // validation). In-range numeric writes and all non-numeric writes return
+    // the proposed var UNTOUCHED — same object, same type — so every
+    // already-validated caller produces byte-identical results.
+    setWriteInterceptor ([] (const juce::Identifier& property, const juce::var& proposed,
+                             const juce::ValueTree&) -> juce::var
+    {
+        if (proposed.isDouble() || proposed.isInt() || proposed.isInt64())
+        {
+            if (const auto bounds = WFSNetwork::getBounds (property))
+            {
+                const double d = static_cast<double> (proposed);
+                if (d < bounds->min || d > bounds->max)
+                {
+                    const double clamped = juce::jlimit (bounds->min, bounds->max, d);
+                    return bounds->isInt ? juce::var (juce::roundToInt (clamped))
+                                         : juce::var (clamped);
+                }
+            }
+        }
+        return proposed;
+    });
+
     initializeDefaultState();
     state.addListener (this);
 }
@@ -292,38 +320,10 @@ juce::ValueTree WFSValueTreeState::getAudioPatchState()
 //==============================================================================
 // Parameter Access - Type Safe
 //==============================================================================
-
-float WFSValueTreeState::getFloatParameter (const juce::Identifier& paramId, int channelIndex) const
-{
-    auto tree = getTreeForParameter (paramId, channelIndex);
-    if (tree.isValid() && tree.hasProperty (paramId))
-        return static_cast<float> (tree.getProperty (paramId));
-    return 0.0f;
-}
-
-int WFSValueTreeState::getIntParameter (const juce::Identifier& paramId, int channelIndex) const
-{
-    auto tree = getTreeForParameter (paramId, channelIndex);
-    if (tree.isValid() && tree.hasProperty (paramId))
-        return static_cast<int> (tree.getProperty (paramId));
-    return 0;
-}
-
-juce::String WFSValueTreeState::getStringParameter (const juce::Identifier& paramId, int channelIndex) const
-{
-    auto tree = getTreeForParameter (paramId, channelIndex);
-    if (tree.isValid() && tree.hasProperty (paramId))
-        return tree.getProperty (paramId).toString();
-    return {};
-}
-
-juce::var WFSValueTreeState::getParameter (const juce::Identifier& paramId, int channelIndex) const
-{
-    auto tree = getTreeForParameter (paramId, channelIndex);
-    if (tree.isValid())
-        return tree.getProperty (paramId);
-    return {};
-}
+// Typed getters live in TreeParameterStore (resolved through the
+// getTreeForParameter override below). The setters stay here because the
+// channel-count writes need schema-structural routing before the generic
+// core write.
 
 void WFSValueTreeState::setParameter (const juce::Identifier& paramId, const juce::var& value, int channelIndex)
 {
@@ -350,9 +350,7 @@ void WFSValueTreeState::setParameter (const juce::Identifier& paramId, const juc
         return;
     }
 
-    auto tree = getTreeForParameter (paramId, channelIndex);
-    if (tree.isValid())
-        tree.setProperty (paramId, value, getActiveUndoManager());
+    TreeParameterStore::setParameter (paramId, value, channelIndex);
 }
 
 void WFSValueTreeState::setParameterWithoutUndo (const juce::Identifier& paramId, const juce::var& value, int channelIndex)
@@ -367,9 +365,7 @@ void WFSValueTreeState::setParameterWithoutUndo (const juce::Identifier& paramId
     if (paramId == outputChannels) { setNumOutputChannels (static_cast<int> (value)); return; }
     if (paramId == reverbChannels) { setNumReverbChannels (static_cast<int> (value)); return; }
 
-    auto tree = getTreeForParameter (paramId, channelIndex);
-    if (tree.isValid())
-        tree.setProperty (paramId, value, nullptr);
+    TreeParameterStore::setParameterWithoutUndo (paramId, value, channelIndex);
 }
 
 //==============================================================================
@@ -404,7 +400,7 @@ void WFSValueTreeState::setInputParameter (int channelIndex, const juce::Identif
         auto child = input.getChild (i);
         if (child.hasProperty (paramId))
         {
-            child.setProperty (paramId, value, getActiveUndoManager());
+            writeProperty (child, paramId, value, getActiveUndoManager());
 
             // Maintain the Shared-Position cluster invariant: any write to
             // inputPositionX/Y/Z on a shared-mode cluster member propagates
@@ -422,13 +418,13 @@ void WFSValueTreeState::setInputParameter (int channelIndex, const juce::Identif
     {
         auto position = getInputPositionSection (channelIndex);
         if (position.isValid())
-            position.setProperty (paramId, value, getActiveUndoManager());
+            writeProperty (position, paramId, value, getActiveUndoManager());
     }
     else if (paramId == inputMuteReverbSends)
     {
         auto mutes = getInputMutesSection (channelIndex);
         if (mutes.isValid())
-            mutes.setProperty (paramId, value, getActiveUndoManager());
+            writeProperty (mutes, paramId, value, getActiveUndoManager());
     }
     // Note: inputAttenuation always exists in the Channel section (created by
     // createInputChannelSection), so the search loop above always finds it - no
@@ -561,7 +557,7 @@ void WFSValueTreeState::setOutputParameter (int channelIndex, const juce::Identi
         auto child = output.getChild (i);
         if (child.hasProperty (paramId))
         {
-            child.setProperty (paramId, value, getActiveUndoManager());
+            writeProperty (child, paramId, value, getActiveUndoManager());
             return;
         }
     }
@@ -572,7 +568,7 @@ void WFSValueTreeState::setOutputParameter (int channelIndex, const juce::Identi
     {
         auto position = getOutputPositionSection (channelIndex);
         if (position.isValid())
-            position.setProperty (paramId, value, getActiveUndoManager());
+            writeProperty (position, paramId, value, getActiveUndoManager());
     }
 }
 
@@ -588,7 +584,7 @@ void WFSValueTreeState::setOutputParameterDirect (int channelIndex, const juce::
         auto child = output.getChild (i);
         if (child.hasProperty (paramId))
         {
-            child.setProperty (paramId, value, getActiveUndoManager());
+            writeProperty (child, paramId, value, getActiveUndoManager());
             return;
         }
     }
@@ -598,7 +594,7 @@ void WFSValueTreeState::setOutputEQBandParameterDirect (int channelIndex, int ba
 {
     auto band = getOutputEQBand (channelIndex, bandIndex);
     if (band.isValid())
-        band.setProperty (paramId, value, getActiveUndoManager());
+        writeProperty (band, paramId, value, getActiveUndoManager());
 }
 
 bool WFSValueTreeState::isArrayLinkedParameter (const juce::Identifier& paramId)
@@ -767,7 +763,7 @@ void WFSValueTreeState::setOutputEQBandParameterWithArrayPropagation (int channe
     {
         auto band = getOutputEQBand (channelIndex, bandIndex);
         if (band.isValid())
-            band.setProperty (paramId, value, getActiveUndoManager());
+            writeProperty (band, paramId, value, getActiveUndoManager());
         return;
     }
 
@@ -777,7 +773,7 @@ void WFSValueTreeState::setOutputEQBandParameterWithArrayPropagation (int channe
     {
         auto band = getOutputEQBand (channelIndex, bandIndex);
         if (band.isValid())
-            band.setProperty (paramId, value, getActiveUndoManager());
+            writeProperty (band, paramId, value, getActiveUndoManager());
         return;
     }
 
@@ -787,7 +783,7 @@ void WFSValueTreeState::setOutputEQBandParameterWithArrayPropagation (int channe
     {
         auto band = getOutputEQBand (channelIndex, bandIndex);
         if (band.isValid())
-            band.setProperty (paramId, value, getActiveUndoManager());
+            writeProperty (band, paramId, value, getActiveUndoManager());
         return;
     }
 
@@ -801,7 +797,7 @@ void WFSValueTreeState::setOutputEQBandParameterWithArrayPropagation (int channe
     float delta = newFloat - oldFloat;
 
     // Set the originating channel's band
-    band.setProperty (paramId, value, getActiveUndoManager());
+    writeProperty (band, paramId, value, getActiveUndoManager());
 
     // Propagate to array members
     int numOutputs = getNumOutputChannels();
@@ -913,7 +909,7 @@ void WFSValueTreeState::setReverbParameter (int channelIndex, const juce::Identi
         auto child = reverb.getChild (i);
         if (child.hasProperty (paramId))
         {
-            child.setProperty (paramId, value, getActiveUndoManager());
+            writeProperty (child, paramId, value, getActiveUndoManager());
             return;
         }
 
@@ -925,7 +921,7 @@ void WFSValueTreeState::setReverbParameter (int channelIndex, const juce::Identi
                 auto band = child.getChild (j);
                 if (band.hasProperty (paramId))
                 {
-                    band.setProperty (paramId, value, getActiveUndoManager());
+                    writeProperty (band, paramId, value, getActiveUndoManager());
                     return;
                 }
             }
@@ -938,7 +934,7 @@ void WFSValueTreeState::setReverbParameter (int channelIndex, const juce::Identi
     {
         auto position = getReverbPositionSection (channelIndex);
         if (position.isValid())
-            position.setProperty (paramId, value, getActiveUndoManager());
+            writeProperty (position, paramId, value, getActiveUndoManager());
     }
 }
 
@@ -1145,7 +1141,7 @@ void WFSValueTreeState::setClusterParameter (int clusterIndex, const juce::Ident
 {
     auto cluster = getClusterState (clusterIndex);
     if (cluster.isValid())
-        cluster.setProperty (paramId, value, getActiveUndoManager());
+        writeProperty (cluster, paramId, value, getActiveUndoManager());
 }
 
 //==============================================================================
@@ -1583,113 +1579,11 @@ void WFSValueTreeState::recomputePatchCols()
 }
 
 //==============================================================================
-// Undo / Redo  (per-domain)
+// Undo / Redo + Listener Management — moved to TreeParameterStore.
+// (Per-domain UndoManager array, MCP-origin undo suppression, parameter
+// listener registry and ValueTree listener add/remove all live in the core;
+// the UndoDomain-typed wrappers are inline in the header.)
 //==============================================================================
-
-void WFSValueTreeState::setActiveDomain (UndoDomain domain)
-{
-    activeDomain = domain;
-}
-
-UndoDomain WFSValueTreeState::getActiveDomain() const
-{
-    return activeDomain;
-}
-
-juce::UndoManager* WFSValueTreeState::getUndoManagerForDomain (UndoDomain domain)
-{
-    auto idx = static_cast<int> (domain);
-    jassert (idx >= 0 && idx < static_cast<int> (UndoDomain::COUNT));
-    return &undoManagers[idx];
-}
-
-juce::UndoManager* WFSValueTreeState::getActiveUndoManager()
-{
-    // MCP-origin writes bypass the JUCE UndoManager entirely — AI changes
-    // have a dedicated undo channel (MCPUndoEngine + Ctrl+Alt+Z + toast ×).
-    // Without this, all AI writes pile into one open JUCE transaction and a
-    // single Ctrl+Z reverts every AI change at once.
-    if (WFSNetwork::getCurrentOriginTag() == WFSNetwork::OriginTag::MCP)
-        return nullptr;
-
-    return getUndoManagerForDomain (activeDomain);
-}
-
-bool WFSValueTreeState::undo()
-{
-    return getActiveUndoManager()->undo();
-}
-
-bool WFSValueTreeState::redo()
-{
-    return getActiveUndoManager()->redo();
-}
-
-bool WFSValueTreeState::canUndo() const
-{
-    return undoManagers[static_cast<int> (activeDomain)].canUndo();
-}
-
-bool WFSValueTreeState::canRedo() const
-{
-    return undoManagers[static_cast<int> (activeDomain)].canRedo();
-}
-
-void WFSValueTreeState::beginUndoTransaction (const juce::String& transactionName)
-{
-    // MCP-origin writes bypass the JUCE UndoManager (see getActiveUndoManager
-    // — they get their own undo path through MCPUndoEngine). beginNewTransaction
-    // doesn't handle nullptr, while setProperty(..., nullptr) does. So when a
-    // structural write like setNumInputChannels happens under an MCP origin,
-    // we silently skip the transaction-naming step instead of crashing.
-    if (auto* mgr = getActiveUndoManager())
-        mgr->beginNewTransaction (transactionName);
-}
-
-void WFSValueTreeState::clearUndoHistory()
-{
-    getActiveUndoManager()->clearUndoHistory();
-}
-
-void WFSValueTreeState::clearAllUndoHistories()
-{
-    for (int i = 0; i < static_cast<int> (UndoDomain::COUNT); ++i)
-        undoManagers[i].clearUndoHistory();
-}
-
-//==============================================================================
-// Listener Management
-//==============================================================================
-
-void WFSValueTreeState::addParameterListener (const juce::Identifier& paramId,
-                                               ParameterCallback callback,
-                                               int channelIndex)
-{
-    juce::ScopedLock lock (listenerLock);
-    parameterListeners.push_back ({ paramId, channelIndex, std::move (callback) });
-}
-
-void WFSValueTreeState::removeParameterListeners (const juce::Identifier& paramId, int channelIndex)
-{
-    juce::ScopedLock lock (listenerLock);
-    parameterListeners.erase (
-        std::remove_if (parameterListeners.begin(), parameterListeners.end(),
-            [&] (const ListenerEntry& entry)
-            {
-                return entry.parameterId == paramId && entry.channelIndex == channelIndex;
-            }),
-        parameterListeners.end());
-}
-
-void WFSValueTreeState::addListener (juce::ValueTree::Listener* listener)
-{
-    state.addListener (listener);
-}
-
-void WFSValueTreeState::removeListener (juce::ValueTree::Listener* listener)
-{
-    state.removeListener (listener);
-}
 
 //==============================================================================
 // State Management
@@ -2149,15 +2043,18 @@ void WFSValueTreeState::copyStateFrom (const WFSValueTreeState& other)
 }
 
 //==============================================================================
-// ValueTree::Listener Implementation
+// TreeParameterStore seams (change-notification dispatch hooks)
 //==============================================================================
+// The ValueTree::Listener plumbing lives in TreeParameterStore. Its
+// valueTreePropertyChanged calls resolveChannelIndex, then the POST-WRITE
+// HOOK (handlePostWrite — the WFS semantic invariants below), then
+// notifyParameterListeners — the same order as the pre-split monolith.
 
-void WFSValueTreeState::valueTreePropertyChanged (juce::ValueTree& treeWhosePropertyHasChanged,
-                                                   const juce::Identifier& property)
+int WFSValueTreeState::resolveChannelIndex (const juce::ValueTree& changedNode) const
 {
     // Determine channel index if this is an input/output/reverb parameter
     int channelIndex = -1;
-    auto parent = treeWhosePropertyHasChanged.getParent();
+    auto parent = changedNode.getParent();
 
     if (parent.isValid())
     {
@@ -2169,8 +2066,12 @@ void WFSValueTreeState::valueTreePropertyChanged (juce::ValueTree& treeWhoseProp
             channelIndex = static_cast<int> (parent.getParent().getProperty (id)) - 1;
     }
 
-    auto value = treeWhosePropertyHasChanged.getProperty (property);
+    return channelIndex;
+}
 
+void WFSValueTreeState::handlePostWrite (juce::ValueTree& changedNode, const juce::Identifier& property,
+                                         const juce::var& value, int channelIndex)
+{
     // Enforce tracking constraint: only one tracked input per cluster
     // This catches changes from OSC, file loading, and any other source
     if (property == inputTrackingActive && channelIndex >= 0)
@@ -2189,37 +2090,15 @@ void WFSValueTreeState::valueTreePropertyChanged (juce::ValueTree& treeWhoseProp
             enforceSharedClusterInvariant (newCluster);
     }
     else if (property == clusterReferenceMode &&
-             treeWhosePropertyHasChanged.getType() == Cluster)
+             changedNode.getType() == Cluster)
     {
         // Reference mode flipped (from OSC, MCP, file load, etc.). If the
         // cluster just entered Shared Position, snap all its members to the
         // first-ordered member's position. Idempotent for non-shared modes.
-        int clusterIdx = static_cast<int> (treeWhosePropertyHasChanged.getProperty (id));
+        int clusterIdx = static_cast<int> (changedNode.getProperty (id));
         if (clusterIdx >= 1 && static_cast<int> (value) == 2)
             enforceSharedClusterInvariant (clusterIdx);
     }
-
-    notifyParameterListeners (property, value, channelIndex);
-}
-
-void WFSValueTreeState::valueTreeChildAdded (juce::ValueTree&, juce::ValueTree&)
-{
-    // Could notify listeners of structural changes if needed
-}
-
-void WFSValueTreeState::valueTreeChildRemoved (juce::ValueTree&, juce::ValueTree&, int)
-{
-    // Could notify listeners of structural changes if needed
-}
-
-void WFSValueTreeState::valueTreeChildOrderChanged (juce::ValueTree&, int, int)
-{
-    // Not typically needed for parameters
-}
-
-void WFSValueTreeState::valueTreeParentChanged (juce::ValueTree&)
-{
-    // Not typically needed for parameters
 }
 
 //==============================================================================
@@ -3249,22 +3128,6 @@ juce::ValueTree WFSValueTreeState::getTreeForParameter (const juce::Identifier& 
 
         default:
             return {};
-    }
-}
-
-void WFSValueTreeState::notifyParameterListeners (const juce::Identifier& paramId,
-                                                   const juce::var& value,
-                                                   int channelIndex)
-{
-    juce::ScopedLock lock (listenerLock);
-
-    for (const auto& entry : parameterListeners)
-    {
-        if (entry.parameterId == paramId &&
-            (entry.channelIndex == -1 || entry.channelIndex == channelIndex))
-        {
-            entry.callback (value);
-        }
     }
 }
 

@@ -1,8 +1,8 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include <juce_core/juce_core.h>
 #include <deque>
-#include "../OSCProtocolTypes.h"
+#include "../osc/OscTransportTypes.h"
 
 namespace WFSNetwork
 {
@@ -59,7 +59,8 @@ struct ChangeRecord
     std::vector<AffectedGroup> affectedGroups; // (channel_id, group_name)
     juce::var beforeState;                     // JSON object: paramName → value
     juce::var afterState;                      // JSON object: paramName → value
-    OriginTag origin = OriginTag::MCP;         // always MCP for these records
+    spatcore::control::osc::OriginTag origin
+        = spatcore::control::osc::OriginTag::MCP;  // always MCP for these records
 
     /** Batch payload. Empty for single-channel records (the legacy
         path); non-empty when the tool wrote to several channels in one

@@ -1,5 +1,5 @@
 #include "OSCIngestQueue.h"
-#include "NetworkStringUtils.h"
+#include "../../spatcore/control/osc/NetworkStringUtils.h"
 
 #include <cstring>
 #include <utility>

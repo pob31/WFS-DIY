@@ -24,7 +24,7 @@ namespace
     }
 }
 
-MCPTransport::MCPTransport (MCPLogger& l) : mcpLogger (l) {}
+MCPTransport::MCPTransport (MCPLogSink& l) : mcpLogger (l) {}
 
 MCPTransport::~MCPTransport()
 {

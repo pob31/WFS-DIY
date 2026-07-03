@@ -176,6 +176,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\spatcore\control\state\TreeParameterStore.cpp"/>
     <ClCompile Include="..\..\Source\Parameters\WFSValueTreeState.cpp"/>
     <ClCompile Include="..\..\Source\Parameters\WFSFileManager.cpp"/>
     <ClCompile Include="..\..\Source\gui\NetworkLogWindow.cpp"/>
@@ -188,16 +189,16 @@
     <ClCompile Include="..\..\Source\Helpers\ArrayGeometryCalculator.cpp"/>
     <ClCompile Include="..\..\Source\Localization\LocalizationManager.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCConnection.cpp"/>
-    <ClCompile Include="..\..\Source\Network\OSCRateLimiter.cpp"/>
+    <ClCompile Include="..\..\spatcore\control\osc\OSCRateLimiter.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCLogger.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCMessageBuilder.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCMessageRouter.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCParameterBounds.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCIngestQueue.cpp"/>
-    <ClCompile Include="..\..\Source\Network\TrackingIngestQueue.cpp"/>
+    <ClCompile Include="..\..\spatcore\control\osc\TrackingIngestQueue.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCManager.cpp"/>
-    <ClCompile Include="..\..\Source\Network\OSCReceiverWithSenderIP.cpp"/>
-    <ClCompile Include="..\..\Source\Network\OSCTCPReceiver.cpp"/>
+    <ClCompile Include="..\..\spatcore\control\osc\OSCReceiverWithSenderIP.cpp"/>
+    <ClCompile Include="..\..\spatcore\control\osc\OSCTCPReceiver.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCQueryServer.cpp"/>
     <ClCompile Include="..\..\Source\Network\TrackingOSCReceiver.cpp"/>
     <ClCompile Include="..\..\Source\Network\TrackingPSNReceiver.cpp"/>
@@ -205,17 +206,17 @@
     <ClCompile Include="..\..\Source\Network\TrackingRTTrPReceiver.cpp"/>
     <ClCompile Include="..\..\Source\Network\TrackingMQTTReceiver.cpp"/>
     <ClCompile Include="..\..\Source\Network\MCP\MCPLogger.cpp"/>
-    <ClCompile Include="..\..\Source\Network\MCP\MCPChangeRecords.cpp"/>
+    <ClCompile Include="..\..\spatcore\control\mcp\MCPChangeRecords.cpp"/>
     <ClCompile Include="..\..\Source\Network\MCP\MCPUndoEngine.cpp"/>
-    <ClCompile Include="..\..\Source\Network\MCP\MCPTierEnforcement.cpp"/>
+    <ClCompile Include="..\..\spatcore\control\mcp\MCPTierEnforcement.cpp"/>
     <ClCompile Include="..\..\Source\Network\MCP\MCPOSCQueryAuditor.cpp"/>
-    <ClCompile Include="..\..\Source\Network\MCP\MCPToolRegistry.cpp"/>
-    <ClCompile Include="..\..\Source\Network\MCP\MCPDispatcher.cpp"/>
-    <ClCompile Include="..\..\Source\Network\MCP\MCPTransport.cpp"/>
+    <ClCompile Include="..\..\spatcore\control\mcp\MCPToolRegistry.cpp"/>
+    <ClCompile Include="..\..\spatcore\control\mcp\MCPDispatcher.cpp"/>
+    <ClCompile Include="..\..\spatcore\control\mcp\MCPTransport.cpp"/>
     <ClCompile Include="..\..\Source\Network\MCP\MCPServer.cpp"/>
     <ClCompile Include="..\..\Source\Network\MCP\MCPGeneratedToolLoader.cpp"/>
-    <ClCompile Include="..\..\Source\Network\MCP\MCPResourceRegistry.cpp"/>
-    <ClCompile Include="..\..\Source\Network\MCP\MCPPromptRegistry.cpp"/>
+    <ClCompile Include="..\..\spatcore\control\mcp\MCPResourceRegistry.cpp"/>
+    <ClCompile Include="..\..\spatcore\control\mcp\MCPPromptRegistry.cpp"/>
     <ClCompile Include="..\..\Source\Network\MCP\MCPParameterRegistry.cpp"/>
     <ClCompile Include="..\..\ThirdParty\hidapi\HidApiPlatform.c"/>
     <ClCompile Include="..\..\Source\Controllers\Touch\Linux\EvdevTouchDevice.cpp"/>
@@ -3272,6 +3273,7 @@
     <ClCompile Include="..\..\JuceLibraryCode\include_roli_blocks_basics.cpp"/>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\spatcore\control\state\TreeParameterStore.h"/>
     <ClInclude Include="..\..\Source\Parameters\WFSParameterIDs.h"/>
     <ClInclude Include="..\..\Source\Parameters\WFSParameterDefaults.h"/>
     <ClInclude Include="..\..\Source\Parameters\WFSValueTreeState.h"/>
@@ -3303,19 +3305,19 @@
     <ClInclude Include="..\..\Source\Localization\LocalizationManager.h"/>
     <ClInclude Include="..\..\Source\Network\OSCProtocolTypes.h"/>
     <ClInclude Include="..\..\Source\Network\OSCConnection.h"/>
-    <ClInclude Include="..\..\Source\Network\OSCRateLimiter.h"/>
+    <ClInclude Include="..\..\spatcore\control\osc\OSCRateLimiter.h"/>
     <ClInclude Include="..\..\Source\Network\OSCLogger.h"/>
     <ClInclude Include="..\..\Source\Network\OSCMessageBuilder.h"/>
     <ClInclude Include="..\..\Source\Network\OSCMessageRouter.h"/>
     <ClInclude Include="..\..\Source\Network\OSCParameterBounds.h"/>
     <ClInclude Include="..\..\Source\Network\OSCIngestQueue.h"/>
-    <ClInclude Include="..\..\Source\Network\TrackingIngestQueue.h"/>
+    <ClInclude Include="..\..\spatcore\control\osc\TrackingIngestQueue.h"/>
     <ClInclude Include="..\..\Source\Network\OSCManager.h"/>
     <ClInclude Include="..\..\Source\Network\ADMOSCMapping.h"/>
-    <ClInclude Include="..\..\Source\Network\OSCReceiverWithSenderIP.h"/>
-    <ClInclude Include="..\..\Source\Network\OSCTCPReceiver.h"/>
-    <ClInclude Include="..\..\Source\Network\OSCParser.h"/>
-    <ClInclude Include="..\..\Source\Network\NetworkStringUtils.h"/>
+    <ClInclude Include="..\..\spatcore\control\osc\OSCReceiverWithSenderIP.h"/>
+    <ClInclude Include="..\..\spatcore\control\osc\OSCTCPReceiver.h"/>
+    <ClInclude Include="..\..\spatcore\control\osc\OSCParser.h"/>
+    <ClInclude Include="..\..\spatcore\control\osc\NetworkStringUtils.h"/>
     <ClInclude Include="..\..\Source\Network\OSCQueryServer.h"/>
     <ClInclude Include="..\..\Source\Network\TrackingOSCReceiver.h"/>
     <ClInclude Include="..\..\Source\Network\TrackingPSNReceiver.h"/>
@@ -3323,17 +3325,17 @@
     <ClInclude Include="..\..\Source\Network\TrackingRTTrPReceiver.h"/>
     <ClInclude Include="..\..\Source\Network\TrackingMQTTReceiver.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\MCPLogger.h"/>
-    <ClInclude Include="..\..\Source\Network\MCP\MCPChangeRecords.h"/>
+    <ClInclude Include="..\..\spatcore\control\mcp\MCPChangeRecords.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\MCPUndoEngine.h"/>
-    <ClInclude Include="..\..\Source\Network\MCP\MCPTierEnforcement.h"/>
+    <ClInclude Include="..\..\spatcore\control\mcp\MCPTierEnforcement.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\MCPOSCQueryAuditor.h"/>
-    <ClInclude Include="..\..\Source\Network\MCP\MCPToolRegistry.h"/>
-    <ClInclude Include="..\..\Source\Network\MCP\MCPDispatcher.h"/>
-    <ClInclude Include="..\..\Source\Network\MCP\MCPTransport.h"/>
+    <ClInclude Include="..\..\spatcore\control\mcp\MCPToolRegistry.h"/>
+    <ClInclude Include="..\..\spatcore\control\mcp\MCPDispatcher.h"/>
+    <ClInclude Include="..\..\spatcore\control\mcp\MCPTransport.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\MCPServer.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\MCPGeneratedToolLoader.h"/>
-    <ClInclude Include="..\..\Source\Network\MCP\MCPResourceRegistry.h"/>
-    <ClInclude Include="..\..\Source\Network\MCP\MCPPromptRegistry.h"/>
+    <ClInclude Include="..\..\spatcore\control\mcp\MCPResourceRegistry.h"/>
+    <ClInclude Include="..\..\spatcore\control\mcp\MCPPromptRegistry.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\MCPParameterRegistry.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\tools\SessionTools.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\tools\InputTools.h"/>

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "../MCPToolRegistry.h"
+#include "../../../../spatcore/control/mcp/MCPToolRegistry.h"
 #include "../MCPParameterRegistry.h"
 
 namespace WFSNetwork::Tools::DescribeParameters

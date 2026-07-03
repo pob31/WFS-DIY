@@ -13,6 +13,10 @@
     </GROUP>
     <GROUP id="{559A80C2-DA9A-4473-80A2-AE173C8D9D42}" name="Source">
       <GROUP id="{PARAMGROUP}" name="Parameters">
+        <FILE id="coreTreeStoreH" name="TreeParameterStore.h" compile="0" resource="0"
+              file="spatcore/control/state/TreeParameterStore.h"/>
+        <FILE id="coreTreeStoreCpp" name="TreeParameterStore.cpp" compile="1" resource="0"
+              file="spatcore/control/state/TreeParameterStore.cpp"/>
         <FILE id="wfsParamIDs" name="WFSParameterIDs.h" compile="0" resource="0"
               file="Source/Parameters/WFSParameterIDs.h"/>
         <FILE id="wfsParamDef" name="WFSParameterDefaults.h" compile="0" resource="0"
@@ -103,9 +107,9 @@
         <FILE id="netConnCpp" name="OSCConnection.cpp" compile="1" resource="0"
               file="Source/Network/OSCConnection.cpp"/>
         <FILE id="netRateH" name="OSCRateLimiter.h" compile="0" resource="0"
-              file="Source/Network/OSCRateLimiter.h"/>
+              file="spatcore/control/osc/OSCRateLimiter.h"/>
         <FILE id="netRateCpp" name="OSCRateLimiter.cpp" compile="1" resource="0"
-              file="Source/Network/OSCRateLimiter.cpp"/>
+              file="spatcore/control/osc/OSCRateLimiter.cpp"/>
         <FILE id="netLogH" name="OSCLogger.h" compile="0" resource="0" file="Source/Network/OSCLogger.h"/>
         <FILE id="netLogCpp" name="OSCLogger.cpp" compile="1" resource="0"
               file="Source/Network/OSCLogger.cpp"/>
@@ -126,25 +130,25 @@
         <FILE id="netIngestQueueCpp" name="OSCIngestQueue.cpp" compile="1" resource="0"
               file="Source/Network/OSCIngestQueue.cpp"/>
         <FILE id="netTrkIngestQH" name="TrackingIngestQueue.h" compile="0" resource="0"
-              file="Source/Network/TrackingIngestQueue.h"/>
+              file="spatcore/control/osc/TrackingIngestQueue.h"/>
         <FILE id="netTrkIngestQCpp" name="TrackingIngestQueue.cpp" compile="1" resource="0"
-              file="Source/Network/TrackingIngestQueue.cpp"/>
+              file="spatcore/control/osc/TrackingIngestQueue.cpp"/>
         <FILE id="netMgrH" name="OSCManager.h" compile="0" resource="0" file="Source/Network/OSCManager.h"/>
         <FILE id="netMgrCpp" name="OSCManager.cpp" compile="1" resource="0"
               file="Source/Network/OSCManager.cpp"/>
         <FILE id="netAdmH" name="ADMOSCMapping.h" compile="0" resource="0"
               file="Source/Network/ADMOSCMapping.h"/>
         <FILE id="netUdpRxH" name="OSCReceiverWithSenderIP.h" compile="0" resource="0"
-              file="Source/Network/OSCReceiverWithSenderIP.h"/>
+              file="spatcore/control/osc/OSCReceiverWithSenderIP.h"/>
         <FILE id="netUdpRxCpp" name="OSCReceiverWithSenderIP.cpp" compile="1"
-              resource="0" file="Source/Network/OSCReceiverWithSenderIP.cpp"/>
+              resource="0" file="spatcore/control/osc/OSCReceiverWithSenderIP.cpp"/>
         <FILE id="netTcpRxH" name="OSCTCPReceiver.h" compile="0" resource="0"
-              file="Source/Network/OSCTCPReceiver.h"/>
+              file="spatcore/control/osc/OSCTCPReceiver.h"/>
         <FILE id="netTcpRxCpp" name="OSCTCPReceiver.cpp" compile="1" resource="0"
-              file="Source/Network/OSCTCPReceiver.cpp"/>
-        <FILE id="netParseH" name="OSCParser.h" compile="0" resource="0" file="Source/Network/OSCParser.h"/>
+              file="spatcore/control/osc/OSCTCPReceiver.cpp"/>
+        <FILE id="netParseH" name="OSCParser.h" compile="0" resource="0" file="spatcore/control/osc/OSCParser.h"/>
         <FILE id="netStrUtilH" name="NetworkStringUtils.h" compile="0" resource="0"
-              file="Source/Network/NetworkStringUtils.h"/>
+              file="spatcore/control/osc/NetworkStringUtils.h"/>
         <FILE id="netQueryH" name="OSCQueryServer.h" compile="0" resource="0"
               file="Source/Network/OSCQueryServer.h"/>
         <FILE id="netQueryCpp" name="OSCQueryServer.cpp" compile="1" resource="0"
@@ -175,33 +179,33 @@
           <FILE id="mcpLogCpp" name="MCPLogger.cpp" compile="1" resource="0"
                 file="Source/Network/MCP/MCPLogger.cpp"/>
           <FILE id="mcpRecH" name="MCPChangeRecords.h" compile="0" resource="0"
-                file="Source/Network/MCP/MCPChangeRecords.h"/>
+                file="spatcore/control/mcp/MCPChangeRecords.h"/>
           <FILE id="mcpRecCpp" name="MCPChangeRecords.cpp" compile="1" resource="0"
-                file="Source/Network/MCP/MCPChangeRecords.cpp"/>
+                file="spatcore/control/mcp/MCPChangeRecords.cpp"/>
           <FILE id="mcpUndoEngH" name="MCPUndoEngine.h" compile="0" resource="0"
                 file="Source/Network/MCP/MCPUndoEngine.h"/>
           <FILE id="mcpUndoEngCpp" name="MCPUndoEngine.cpp" compile="1" resource="0"
                 file="Source/Network/MCP/MCPUndoEngine.cpp"/>
           <FILE id="mcpTierEnfH" name="MCPTierEnforcement.h" compile="0" resource="0"
-                file="Source/Network/MCP/MCPTierEnforcement.h"/>
+                file="spatcore/control/mcp/MCPTierEnforcement.h"/>
           <FILE id="mcpTierEnfCpp" name="MCPTierEnforcement.cpp" compile="1" resource="0"
-                file="Source/Network/MCP/MCPTierEnforcement.cpp"/>
+                file="spatcore/control/mcp/MCPTierEnforcement.cpp"/>
           <FILE id="mcpOscQAudH" name="MCPOSCQueryAuditor.h" compile="0" resource="0"
                 file="Source/Network/MCP/MCPOSCQueryAuditor.h"/>
           <FILE id="mcpOscQAudCpp" name="MCPOSCQueryAuditor.cpp" compile="1" resource="0"
                 file="Source/Network/MCP/MCPOSCQueryAuditor.cpp"/>
           <FILE id="mcpRegH" name="MCPToolRegistry.h" compile="0" resource="0"
-                file="Source/Network/MCP/MCPToolRegistry.h"/>
+                file="spatcore/control/mcp/MCPToolRegistry.h"/>
           <FILE id="mcpRegCpp" name="MCPToolRegistry.cpp" compile="1" resource="0"
-                file="Source/Network/MCP/MCPToolRegistry.cpp"/>
+                file="spatcore/control/mcp/MCPToolRegistry.cpp"/>
           <FILE id="mcpDispH" name="MCPDispatcher.h" compile="0" resource="0"
-                file="Source/Network/MCP/MCPDispatcher.h"/>
+                file="spatcore/control/mcp/MCPDispatcher.h"/>
           <FILE id="mcpDispCpp" name="MCPDispatcher.cpp" compile="1" resource="0"
-                file="Source/Network/MCP/MCPDispatcher.cpp"/>
+                file="spatcore/control/mcp/MCPDispatcher.cpp"/>
           <FILE id="mcpTransH" name="MCPTransport.h" compile="0" resource="0"
-                file="Source/Network/MCP/MCPTransport.h"/>
+                file="spatcore/control/mcp/MCPTransport.h"/>
           <FILE id="mcpTransCpp" name="MCPTransport.cpp" compile="1" resource="0"
-                file="Source/Network/MCP/MCPTransport.cpp"/>
+                file="spatcore/control/mcp/MCPTransport.cpp"/>
           <FILE id="mcpSrvH" name="MCPServer.h" compile="0" resource="0"
                 file="Source/Network/MCP/MCPServer.h"/>
           <FILE id="mcpSrvCpp" name="MCPServer.cpp" compile="1" resource="0"
@@ -211,13 +215,13 @@
           <FILE id="mcpGenLoadCpp" name="MCPGeneratedToolLoader.cpp" compile="1" resource="0"
                 file="Source/Network/MCP/MCPGeneratedToolLoader.cpp"/>
           <FILE id="mcpResRegH" name="MCPResourceRegistry.h" compile="0" resource="0"
-                file="Source/Network/MCP/MCPResourceRegistry.h"/>
+                file="spatcore/control/mcp/MCPResourceRegistry.h"/>
           <FILE id="mcpResRegCpp" name="MCPResourceRegistry.cpp" compile="1" resource="0"
-                file="Source/Network/MCP/MCPResourceRegistry.cpp"/>
+                file="spatcore/control/mcp/MCPResourceRegistry.cpp"/>
           <FILE id="mcpPromptRegH" name="MCPPromptRegistry.h" compile="0" resource="0"
-                file="Source/Network/MCP/MCPPromptRegistry.h"/>
+                file="spatcore/control/mcp/MCPPromptRegistry.h"/>
           <FILE id="mcpPromptRegCpp" name="MCPPromptRegistry.cpp" compile="1" resource="0"
-                file="Source/Network/MCP/MCPPromptRegistry.cpp"/>
+                file="spatcore/control/mcp/MCPPromptRegistry.cpp"/>
           <FILE id="mcpParamRegH" name="MCPParameterRegistry.h" compile="0" resource="0"
                 file="Source/Network/MCP/MCPParameterRegistry.h"/>
           <FILE id="mcpParamRegCpp" name="MCPParameterRegistry.cpp" compile="1" resource="0"

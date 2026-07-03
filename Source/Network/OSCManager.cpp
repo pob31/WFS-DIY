@@ -1,6 +1,6 @@
 #include "OSCManager.h"
 #include "OSCIngestQueue.h"
-#include "OSCParser.h"
+#include "../../spatcore/control/osc/OSCParser.h"
 #include "QLabCueBuilder.h"
 #include "../Helpers/CoordinateConverter.h"
 #include "../../spatcore/dsp/NumericGuards.h"

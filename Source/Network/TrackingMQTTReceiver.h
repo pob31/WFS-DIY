@@ -4,8 +4,8 @@
 #include "../Parameters/WFSValueTreeState.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/ParameterDirtyTracker.h"
-#include "TrackingIngestQueue.h"
-#include "NetworkStringUtils.h"
+#include "../../spatcore/control/osc/TrackingIngestQueue.h"
+#include "../../spatcore/control/osc/NetworkStringUtils.h"
 #include <array>
 
 class TrackingPositionFilter;

@@ -5,6 +5,19 @@ Generates `Source/Network/MCP/generated_tools.json` (and a companion
 files. The MCP server (built in a future Claude Code session) loads these at
 startup and registers the corresponding tools.
 
+## Layout (spatcore Phase 4d split)
+
+- `spatcore/tools/codegen/generate_mcp_tools.py` — app-agnostic generator
+  core (CSV reader, naming pipeline, family collapse, tier precedence,
+  schema derivation, deterministic writer). Defines no WFS vocabulary.
+- `tools/mcp/wfs_codegen_config.py` — the WFS-DIY tables (namespaces,
+  abbreviations, channel-id ranges, tier keyword fallbacks, OSC path
+  conventions, domain taxonomy, input list, default output paths).
+- `tools/generate_mcp_tools.py` — thin entry-point wrapper preserving the
+  historical CLI (used by the VS prebuild step); importing it yields the
+  configured core module, so `import generate_mcp_tools as g` keeps working
+  for the tests, `populate_tier_column.py`, and `audit_param_bounds.py`.
+
 This is **Phase 0** of the MCP roadmap — see `Documentation/MCP/IMPLEMENTATION_ROADMAP.md`.
 The authoritative spec for the generator's behaviour is
 `Documentation/MCP/specs/GENERATION_SCRIPT_SPEC.md`.
