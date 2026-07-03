@@ -1,8 +1,8 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include <juce_core/juce_core.h>
 #include <juce_simpleweb/juce_simpleweb.h>
-#include "MCPLogger.h"
+#include "MCPLogSink.h"
 
 namespace WFSNetwork
 {
@@ -28,7 +28,7 @@ public:
                                                          const juce::String& clientIP,
                                                          int clientPort)>;
 
-    explicit MCPTransport (MCPLogger& mcpLogger);
+    explicit MCPTransport (MCPLogSink& mcpLogger);
     ~MCPTransport() override;
 
     /** Start listening on the given port. Returns true if the listener
@@ -64,7 +64,7 @@ private:
     static juce::String resolveClientIP (const std::shared_ptr<HttpServer::Request>& request);
     static int          resolveClientPort (const std::shared_ptr<HttpServer::Request>& request);
 
-    MCPLogger& mcpLogger;
+    MCPLogSink& mcpLogger;
     HandlerCallback handler;
     juce::CriticalSection handlerLock;
 

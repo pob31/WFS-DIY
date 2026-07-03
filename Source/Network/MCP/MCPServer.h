@@ -9,8 +9,8 @@
 #include "../../../spatcore/control/mcp/MCPPromptRegistry.h"
 #include "../../../spatcore/control/mcp/MCPTierEnforcement.h"
 #include "MCPOSCQueryAuditor.h"
-#include "MCPDispatcher.h"
-#include "MCPTransport.h"
+#include "../../../spatcore/control/mcp/MCPDispatcher.h"
+#include "../../../spatcore/control/mcp/MCPTransport.h"
 
 class WFSValueTreeState;
 class WFSFileManager;

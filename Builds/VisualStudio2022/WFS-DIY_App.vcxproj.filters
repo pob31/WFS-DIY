@@ -1036,10 +1036,10 @@
     <ClCompile Include="..\..\spatcore\control\mcp\MCPToolRegistry.cpp">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\Network\MCP\MCPDispatcher.cpp">
+    <ClCompile Include="..\..\spatcore\control\mcp\MCPDispatcher.cpp">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\Network\MCP\MCPTransport.cpp">
+    <ClCompile Include="..\..\spatcore\control\mcp\MCPTransport.cpp">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Source\Network\MCP\MCPServer.cpp">
@@ -4536,10 +4536,10 @@
     <ClInclude Include="..\..\spatcore\control\mcp\MCPToolRegistry.h">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Network\MCP\MCPDispatcher.h">
+    <ClInclude Include="..\..\spatcore\control\mcp\MCPDispatcher.h">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Network\MCP\MCPTransport.h">
+    <ClInclude Include="..\..\spatcore\control\mcp\MCPTransport.h">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\MCP\MCPServer.h">

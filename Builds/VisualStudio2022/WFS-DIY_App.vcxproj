@@ -210,8 +210,8 @@
     <ClCompile Include="..\..\spatcore\control\mcp\MCPTierEnforcement.cpp"/>
     <ClCompile Include="..\..\Source\Network\MCP\MCPOSCQueryAuditor.cpp"/>
     <ClCompile Include="..\..\spatcore\control\mcp\MCPToolRegistry.cpp"/>
-    <ClCompile Include="..\..\Source\Network\MCP\MCPDispatcher.cpp"/>
-    <ClCompile Include="..\..\Source\Network\MCP\MCPTransport.cpp"/>
+    <ClCompile Include="..\..\spatcore\control\mcp\MCPDispatcher.cpp"/>
+    <ClCompile Include="..\..\spatcore\control\mcp\MCPTransport.cpp"/>
     <ClCompile Include="..\..\Source\Network\MCP\MCPServer.cpp"/>
     <ClCompile Include="..\..\Source\Network\MCP\MCPGeneratedToolLoader.cpp"/>
     <ClCompile Include="..\..\spatcore\control\mcp\MCPResourceRegistry.cpp"/>
@@ -3328,8 +3328,8 @@
     <ClInclude Include="..\..\spatcore\control\mcp\MCPTierEnforcement.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\MCPOSCQueryAuditor.h"/>
     <ClInclude Include="..\..\spatcore\control\mcp\MCPToolRegistry.h"/>
-    <ClInclude Include="..\..\Source\Network\MCP\MCPDispatcher.h"/>
-    <ClInclude Include="..\..\Source\Network\MCP\MCPTransport.h"/>
+    <ClInclude Include="..\..\spatcore\control\mcp\MCPDispatcher.h"/>
+    <ClInclude Include="..\..\spatcore\control\mcp\MCPTransport.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\MCPServer.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\MCPGeneratedToolLoader.h"/>
     <ClInclude Include="..\..\spatcore\control\mcp\MCPResourceRegistry.h"/>

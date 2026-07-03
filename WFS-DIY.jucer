@@ -195,13 +195,13 @@
           <FILE id="mcpRegCpp" name="MCPToolRegistry.cpp" compile="1" resource="0"
                 file="spatcore/control/mcp/MCPToolRegistry.cpp"/>
           <FILE id="mcpDispH" name="MCPDispatcher.h" compile="0" resource="0"
-                file="Source/Network/MCP/MCPDispatcher.h"/>
+                file="spatcore/control/mcp/MCPDispatcher.h"/>
           <FILE id="mcpDispCpp" name="MCPDispatcher.cpp" compile="1" resource="0"
-                file="Source/Network/MCP/MCPDispatcher.cpp"/>
+                file="spatcore/control/mcp/MCPDispatcher.cpp"/>
           <FILE id="mcpTransH" name="MCPTransport.h" compile="0" resource="0"
-                file="Source/Network/MCP/MCPTransport.h"/>
+                file="spatcore/control/mcp/MCPTransport.h"/>
           <FILE id="mcpTransCpp" name="MCPTransport.cpp" compile="1" resource="0"
-                file="Source/Network/MCP/MCPTransport.cpp"/>
+                file="spatcore/control/mcp/MCPTransport.cpp"/>
           <FILE id="mcpSrvH" name="MCPServer.h" compile="0" resource="0"
                 file="Source/Network/MCP/MCPServer.h"/>
           <FILE id="mcpSrvCpp" name="MCPServer.cpp" compile="1" resource="0"

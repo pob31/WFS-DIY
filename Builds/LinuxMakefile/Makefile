@@ -106,8 +106,8 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/MCPTierEnforcement_c6e91660.o \
   $(JUCE_OBJDIR)/MCPOSCQueryAuditor_f9f00b9a.o \
   $(JUCE_OBJDIR)/MCPToolRegistry_8cbe239d.o \
-  $(JUCE_OBJDIR)/MCPDispatcher_73f0ae2c.o \
-  $(JUCE_OBJDIR)/MCPTransport_c748070e.o \
+  $(JUCE_OBJDIR)/MCPDispatcher_7ec1700f.o \
+  $(JUCE_OBJDIR)/MCPTransport_1a35fccb.o \
   $(JUCE_OBJDIR)/MCPServer_9ddbbcc8.o \
   $(JUCE_OBJDIR)/MCPGeneratedToolLoader_a9aa861f.o \
   $(JUCE_OBJDIR)/MCPResourceRegistry_51c38b93.o \
@@ -343,12 +343,12 @@ $(JUCE_OBJDIR)/MCPToolRegistry_8cbe239d.o: ../../spatcore/control/mcp/MCPToolReg
 	@echo "Compiling MCPToolRegistry.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
-$(JUCE_OBJDIR)/MCPDispatcher_73f0ae2c.o: ../../Source/Network/MCP/MCPDispatcher.cpp
+$(JUCE_OBJDIR)/MCPDispatcher_7ec1700f.o: ../../spatcore/control/mcp/MCPDispatcher.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling MCPDispatcher.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
-$(JUCE_OBJDIR)/MCPTransport_c748070e.o: ../../Source/Network/MCP/MCPTransport.cpp
+$(JUCE_OBJDIR)/MCPTransport_1a35fccb.o: ../../spatcore/control/mcp/MCPTransport.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling MCPTransport.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"

@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include <map>
 #include "../../../spatcore/control/mcp/MCPChangeRecords.h"
+#include "../../../spatcore/control/mcp/MCPUndoHooks.h"
 #include "../OSCProtocolTypes.h"
 
 class WFSValueTreeState;
@@ -52,7 +53,8 @@ struct UndoResult
     Phase 5b layers staleness detection and cross-actor notifications on
     top of this primitive; Phase 5c adds the toast overlay that calls
     `undoByIndex` (Block 2) for per-row clicks. */
-class MCPUndoEngine : private juce::ValueTree::Listener
+class MCPUndoEngine : public MCPUndoHooks,
+                      private juce::ValueTree::Listener
 {
 public:
     MCPUndoEngine (WFSValueTreeState& state, MCPChangeRecordBuffer& undoRing);
@@ -87,7 +89,7 @@ public:
     /** Called by the dispatcher whenever a new state-modifying tool call
         lands. Standard undo/redo semantics: a fresh action invalidates any
         pending redo history. */
-    void onNewStateModifyingRecord();
+    void onNewStateModifyingRecord() override;
 
     /** Read-only count of records currently on the redo ring. Useful for
         the AI to know whether redo is available. */
@@ -107,7 +109,7 @@ public:
         Each entry is a juce::var containing a DynamicObject with fields:
         type, summary, parameter, channel_id, ai_value, current_value,
         since_origin. */
-    juce::Array<juce::var> drainPendingNotifications();
+    juce::Array<juce::var> drainPendingNotifications() override;
 
 private:
     /** Apply a record's `before_state` to the tree (= reversal). */
