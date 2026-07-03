@@ -17,6 +17,10 @@
               file="spatcore/control/state/TreeParameterStore.h"/>
         <FILE id="coreTreeStoreCpp" name="TreeParameterStore.cpp" compile="1" resource="0"
               file="spatcore/control/state/TreeParameterStore.cpp"/>
+        <FILE id="coreXmlPersH" name="XmlPersistence.h" compile="0" resource="0"
+              file="spatcore/control/state/XmlPersistence.h"/>
+        <FILE id="coreXmlPersCpp" name="XmlPersistence.cpp" compile="1" resource="0"
+              file="spatcore/control/state/XmlPersistence.cpp"/>
         <FILE id="wfsParamIDs" name="WFSParameterIDs.h" compile="0" resource="0"
               file="Source/Parameters/WFSParameterIDs.h"/>
         <FILE id="wfsParamDef" name="WFSParameterDefaults.h" compile="0" resource="0"

@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0147BD859A2D7D55D6755381 /* TrackingMQTTReceiver.cpp */ = {isa = PBXBuildFile; fileRef = 27C38CBA50A052A050BD5462; };
+		02C0B9F8F05793F28755A9E6 /* XmlPersistence.cpp */ = {isa = PBXBuildFile; fileRef = 78499000C7DBA493077EBC37; };
 		0536FD9C7D3537A9344A5DF2 /* MCPHistoryWindow.cpp */ = {isa = PBXBuildFile; fileRef = B7421A28E242EE8C51B7A481; };
 		074B7E72ADC7BF70E6DE6552 /* OSCReceiverWithSenderIP.cpp */ = {isa = PBXBuildFile; fileRef = 1557615117698279AF4F8AE9; };
 		096579233CE326ECF174D666 /* MCPTransport.cpp */ = {isa = PBXBuildFile; fileRef = 5D5B1B273C74327EAFD83543; };
@@ -269,6 +270,7 @@
 		77380EEA09673557990C6B7D /* WebKit.framework */ /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
 		77B64F99F47F0FA1391D99D4 /* include_roli_blocks_basics.cpp */ /* include_roli_blocks_basics.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_roli_blocks_basics.cpp; path = ../../JuceLibraryCode/include_roli_blocks_basics.cpp; sourceTree = SOURCE_ROOT; };
 		77BC43148C440708053B17E3 /* ControllerDevice.h */ /* ControllerDevice.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ControllerDevice.h; path = ../../Source/Controllers/PositionControl/ControllerDevice.h; sourceTree = SOURCE_ROOT; };
+		78499000C7DBA493077EBC37 /* XmlPersistence.cpp */ /* XmlPersistence.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = XmlPersistence.cpp; path = ../../spatcore/control/state/XmlPersistence.cpp; sourceTree = SOURCE_ROOT; };
 		7A54176DB331E6CFDFC348CA /* BinaryData.h */ /* BinaryData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = BinaryData.h; path = ../../JuceLibraryCode/BinaryData.h; sourceTree = SOURCE_ROOT; };
 		7AFF9282759B81540BA02DCC /* MapTab.h */ /* MapTab.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MapTab.h; path = ../../Source/gui/MapTab.h; sourceTree = SOURCE_ROOT; };
 		7B874E1E9B9C2D6461A3055A /* MetalObBackend.h */ /* MetalObBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MetalObBackend.h; path = ../../spatcore/gpu/MetalObBackend.h; sourceTree = SOURCE_ROOT; };
@@ -399,6 +401,7 @@
 		DE8B9DC3A3958616E8F80B41 /* CudaFdnKernels.h */ /* CudaFdnKernels.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CudaFdnKernels.h; path = ../../spatcore/gpu/CudaFdnKernels.h; sourceTree = SOURCE_ROOT; };
 		E0D96951986CE93A30071986 /* CudaObBackend.cpp */ /* CudaObBackend.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = CudaObBackend.cpp; path = ../../spatcore/gpu/CudaObBackend.cpp; sourceTree = SOURCE_ROOT; };
 		E0ED792E850ECE52872FBCAD /* ReverbAutoLayoutTool.h */ /* ReverbAutoLayoutTool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ReverbAutoLayoutTool.h; path = ../../Source/Network/MCP/tools/ReverbAutoLayoutTool.h; sourceTree = SOURCE_ROOT; };
+		E1C3671AD66E2F1E72F8C5A8 /* XmlPersistence.h */ /* XmlPersistence.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = XmlPersistence.h; path = ../../spatcore/control/state/XmlPersistence.h; sourceTree = SOURCE_ROOT; };
 		E1C619E4C45F73A1C1F29851 /* include_juce_gui_basics_2.cpp */ /* include_juce_gui_basics_2.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_gui_basics_2.cpp; path = ../../JuceLibraryCode/include_juce_gui_basics_2.cpp; sourceTree = SOURCE_ROOT; };
 		E3BBC26EC616B8996F69FB3E /* StateDeltaTool.h */ /* StateDeltaTool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StateDeltaTool.h; path = ../../Source/Network/MCP/tools/StateDeltaTool.h; sourceTree = SOURCE_ROOT; };
 		E4A0CD4099891D58FE76630E /* QuickKeysManager.h */ /* QuickKeysManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = QuickKeysManager.h; path = ../../Source/Controllers/DialsAndButtons/QuickKeysManager.h; sourceTree = SOURCE_ROOT; };
@@ -952,6 +955,8 @@
 			children = (
 				5A315C25BA6DBB1BB7BC4AF0,
 				95ED9C6A1C974D7A9CB763CE,
+				E1C3671AD66E2F1E72F8C5A8,
+				78499000C7DBA493077EBC37,
 				D2F96573DB7A8C68446E361C,
 				A96E05E0B144008AE500DBAE,
 				35A75BE8F742B3CF106ACE1B,
@@ -1078,6 +1083,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				DA1D92F60AEB5BB675C4BB82,
+				02C0B9F8F05793F28755A9E6,
 				8206CB7296A86BB520A4B965,
 				DDEBC46A91123F8716D9D977,
 				F43ABAF1DAF97DA45A1AC7C0,
