@@ -149,7 +149,12 @@ public:
     juce::String getLastError() const { return juce::String (lastError); }
     juce::String getDeviceName() const { return backend ? juce::String (backend->getDeviceName()) : juce::String(); }
     double getPipelineLatencyMs() const noexcept { return pipeline.getLatencyMs(); }
+    int getPipelineDepthBlocks() const noexcept { return pipeline.getDepthBlocks(); }
     uint32_t getUnderrunCount() const noexcept { return pipeline.getUnderrunCount(); }
+    /** NON-resetting last pump wall ms — for the 20 Hz meter UI. The
+        destructive getAndResetPeakPumpMs() stays exclusive to the 1/s
+        underrun logger (F4 of the GPU host-path plan). */
+    float getLastPumpMs() const noexcept { return pipeline.getLastPumpMs(); }
     float getAndResetPeakPumpMs() noexcept { return pipeline.getAndResetPeakPumpMs(); }
     bool hasPumpFailed() const noexcept { return pipeline.hasPumpFailed(); }
 

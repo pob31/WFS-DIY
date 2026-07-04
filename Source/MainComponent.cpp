@@ -2451,6 +2451,8 @@ MainComponent::~MainComponent()
 
     // Stop all processing threads BEFORE shutting down audio device
     // (prevents threads from accessing device state during ASIO teardown)
+    if (levelMeteringManager)
+        levelMeteringManager->setReverbSources(nullptr, nullptr, 0.0f);
     if (reverbFeedThread)
     {
         reverbFeedThread->stopThread(1000);
@@ -2663,7 +2665,11 @@ void MainComponent::stopProcessingForConfigurationChange()
     if (binauralProcessor)
         binauralProcessor->clearSharedInputBuffers();
 
-    // Stop reverb feed thread and engine for reconfiguration
+    // Stop reverb feed thread and engine for reconfiguration (drop the
+    // metering manager's raw feed-thread pointer first; re-wired by the next
+    // setupSharedInputFeed)
+    if (levelMeteringManager)
+        levelMeteringManager->setReverbSources(reverbEngine.get(), nullptr, 0.0f);
     if (reverbFeedThread)
     {
         reverbFeedThread->stopThread(1000);
@@ -4302,6 +4308,14 @@ void MainComponent::setupSharedInputFeed (int blockSize, double sampleRate)
     // Wire binaural processor to shared input buffers (reads directly, no push needed)
     if (binauralProcessor && ! sharedInputBuffers.empty())
         binauralProcessor->setSharedInputBuffers (sharedInputBuffers);
+
+    // (Re)wire the GPU pipeline strip's reverb telemetry sources: the feed
+    // thread was just rebuilt (or dropped when numReverbs == 0), so refresh
+    // the metering manager's raw pointers. Feed budget = one device block.
+    if (levelMeteringManager)
+        levelMeteringManager->setReverbSources (
+            reverbEngine.get(), reverbFeedThread.get(),
+            sampleRate > 0.0 ? (float) (1000.0 * blockSize / sampleRate) : 0.0f);
 }
 
 void MainComponent::startAudioEngine()
@@ -5090,7 +5104,10 @@ void MainComponent::releaseResources()
     }
 #endif
 
-    // Stop reverb feed thread
+    // Stop reverb feed thread (drop the metering manager's raw pointer first;
+    // re-wired by the next setupSharedInputFeed)
+    if (levelMeteringManager)
+        levelMeteringManager->setReverbSources(reverbEngine.get(), nullptr, 0.0f);
     if (reverbFeedThread)
     {
         reverbFeedThread->stopThread(1000);

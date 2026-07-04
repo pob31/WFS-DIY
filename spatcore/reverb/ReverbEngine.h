@@ -16,13 +16,11 @@
 #include "ReverbPostProcessor.h"
 #include "../rt/AudioParallelFor.h"
 #include <atomic>
+#include <chrono>   // always-on duty telemetry (M0); also used by REVERB_DIAGNOSTICS
 #include <memory>
 #include <mutex>
 #include <thread>
 #include <vector>
-#if REVERB_DIAGNOSTICS
-#include <chrono>
-#endif
 
 namespace spatcore::reverb {
 
@@ -389,7 +387,81 @@ public:
         { if (! i->isReady()) return false; underruns = i->getUnderrunCount(); peakPumpMs = i->getAndResetPeakPumpMs(); return true; }
         return false;
     }
+
+    /** NON-destructive live sample of the active GPU reverb pump, for the
+        20 Hz meter UI (message thread). Deliberately separate from
+        getReverbGpuPumpStats(): that one RESETS the peak and stays exclusive
+        to the 1/s underrun logger; this one only reads getLastPumpMs() (the
+        meter keeps its own UI-side rolling peak). Uses tryEnter so the UI
+        sampler can never block behind the engine thread's algorithm lock —
+        returns false with `out` untouched when contended (caller keeps its
+        previous sample). */
+    struct ReverbGpuLiveSample
+    {
+        bool live = false;          // a GPU reverb is current and ready
+        float lastPumpMs = 0.0f;    // last pump wall (non-destructive)
+        float budgetMs = 0.0f;      // internal block budget (ms)
+        uint32_t underruns = 0;     // cumulative pipeline underruns
+        float latencyMs = 0.0f;     // pipeline cushion latency
+        int depthBlocks = 0;        // pipeline depth
+    };
+
+    bool sampleReverbGpuLive (ReverbGpuLiveSample& out)
+    {
+        if (! algorithmLock.tryEnter())
+            return false;
+
+        ReverbGpuLiveSample s;
+        s.budgetMs = sampleRate > 0.0 ? (float) (internalBlockSize / sampleRate * 1000.0) : 0.0f;
+
+        auto fill = [&s] (auto* gpu)
+        {
+            if (! gpu->isReady())
+                return;
+            s.live = true;
+            s.lastPumpMs = gpu->getLastPumpMs();
+            s.underruns = gpu->getUnderrunCount();
+            s.latencyMs = (float) gpu->getPipelineLatencyMs();
+            s.depthBlocks = gpu->getPipelineDepthBlocks();
+        };
+
+        auto* a = algorithm.get();
+        if (auto* p = dynamic_cast<ReverbSDNAlgorithmGPU*> (a))      fill (p);
+        else if (auto* p = dynamic_cast<ReverbFDNAlgorithmGPU*> (a)) fill (p);
+        else if (auto* p = dynamic_cast<ReverbIRAlgorithmGPU*> (a))  fill (p);
+
+        algorithmLock.exit();
+        out = s;
+        return true;
+    }
 #endif
+
+    //==========================================================================
+    // Engine duty telemetry — always-on (GPU host-path optimization M0), i.e.
+    // OUTSIDE the REVERB_DIAGNOSTICS fence which is compiled out in release
+    // builds. One steady_clock pair per internal block (375/s at 96k) is
+    // noise; relaxed atomics, non-destructive reads.
+    //==========================================================================
+
+    /** Microseconds spent in the last processBlock() (pre + algo + post). */
+    float getLastEngineBlockUs() const noexcept
+    {
+        return lastEngineBlockUs.load (std::memory_order_relaxed);
+    }
+
+    /** Blocks processed since start (wraps; UI uses it as a liveness tick). */
+    uint32_t getEngineBlockCount() const noexcept
+    {
+        return engineBlockCounter.load (std::memory_order_relaxed);
+    }
+
+    /** Per-internal-block budget in microseconds (0 before prepareToPlay). */
+    float getEngineBudgetUs() const noexcept
+    {
+        return sampleRate > 0.0
+            ? (float) (internalBlockSize / sampleRate * 1.0e6)
+            : 0.0f;
+    }
 
     /** Load an IR file via fade-to-silence transition.
         Reads the file outside any lock, stores the buffer as pending,
@@ -548,6 +620,9 @@ private:
 
     void processBlock()
     {
+        // Always-on duty clock (outside the REVERB_DIAGNOSTICS fence, which is
+        // compiled out in release builds — F5 of the GPU host-path plan).
+        const auto engineBlockStart = std::chrono::steady_clock::now();
 #if REVERB_DIAGNOSTICS
         auto blockStart = std::chrono::steady_clock::now();
 
@@ -753,6 +828,12 @@ private:
 
         diagnostics.blocksProcessed.fetch_add (1, std::memory_order_relaxed);
 #endif
+
+        // Always-on duty telemetry (see getLastEngineBlockUs).
+        lastEngineBlockUs.store (std::chrono::duration<float, std::micro> (
+                                     std::chrono::steady_clock::now() - engineBlockStart).count(),
+                                 std::memory_order_relaxed);
+        engineBlockCounter.fetch_add (1, std::memory_order_relaxed);
     }
 
     //==========================================================================
@@ -1123,6 +1204,10 @@ private:
 
     // Always-on dropout counter (lightweight, for UI warning)
     std::atomic<uint64_t> dropoutCount { 0 };
+
+    // Always-on engine duty telemetry (see getLastEngineBlockUs)
+    std::atomic<float> lastEngineBlockUs { 0.0f };
+    std::atomic<uint32_t> engineBlockCounter { 0 };
 
 #if REVERB_DIAGNOSTICS
     ReverbDiagnostics diagnostics;

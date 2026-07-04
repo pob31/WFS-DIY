@@ -715,6 +715,16 @@
       "solo": "Display the contribution of the input to all outputs in the Level Meter display (in Single mode) and play binaural render of soloed inputs",
       "clearSolo": "Disengage all solo toggles",
       "soloMode": "Single: one input at a time. Multi: multiple inputs simultaneously."
+    },
+    "gpuStrip": {
+      "wfsPump": "WFS pump",
+      "reverbPump": "Rev pump",
+      "feed": "Feed",
+      "engine": "Engine",
+      "status": "underruns W:{wu} R:{ru} | depth {wd}/{rd} | latency {wl}/{rl} ms",
+      "inactive": "inactive",
+      "tooltip": "last {last} ms | budget {budget} ms | 3s peak {peak} ms | underruns {under}",
+      "tooltipNoUnderruns": "last {last} ms | budget {budget} ms | 3s peak {peak} ms"
     }
   },
 
