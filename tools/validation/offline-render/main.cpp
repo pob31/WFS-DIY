@@ -9,16 +9,25 @@
 // of all output channels.
 //
 //   offline-render --path <cpu-gather|cpu-scatter|reverb-sdn|reverb-fdn|reverb-ir
-//                          |gpu-gather|gpu-scatter|cpu|gpu|all>
+//                          |gpu-gather|gpu-scatter|gpu-reverb-sdn|gpu-reverb-fdn
+//                          |gpu-reverb-ir|cpu|gpu|all>
 //                  --scenario <static|moving|fr-toggle|all>
 //                  [--blocks N] [--block 512] [--sr 48000] [--in 8] [--out 16]
 //                  [--device cuda:0] [--plugin-dir <dir with wfs_cuda.dll>]
 //                  [--wav out.wav] [--raw out.f32]
 //                  [--check baselines/<machine>.json] [--update]
+//                  [--bench] [--warmup 16] [--bench-json <file>]
 //
 // --check compares each rendered hash against the committed JSON baseline and
 // exits 1 on any mismatch (same contract as tools/validation/kernel_hashes.py);
 // --check with --update rewrites the baseline entries for the combos just run.
+//
+// --bench (GPU host-path optimization M0) reports per path x scenario: blocks,
+// wall ms, xRealtime, per-block budget ms, and — for GPU paths — the
+// distribution of backend->getLastLaunchMs() (min/median/p99/max/mean, via
+// nth_element). The first --warmup blocks (default 16) are excluded from wall
+// and launch stats. Hashes still print; only the default baseline shape is
+// baselined — bench shapes (e.g. 96k/128/64x128) are NOT meant for --check.
 //
 // The harness compiles the app's DSP headers in place and drives them exactly
 // as the app does (drain-pull below the async algorithm wrappers) — no
@@ -42,8 +51,10 @@
 
 #include <algorithm>
 #include <cinttypes>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <functional>
 #include <map>
 #include <memory>
 #include <string>
@@ -62,6 +73,9 @@
  #include "../../../spatcore/gpu/GpuDeviceManager.h"   // device enumeration ("cuda:0", ...)
  #include "../../../spatcore/gpu/WfsGpuBackend.h"      // makeWfsBackend (gather)
  #include "../../../spatcore/gpu/ObGpuBackend.h"       // makeObBackend  (scatter)
+ #include "../../../spatcore/gpu/SdnGpuBackend.h"      // makeSdnBackend (reverb)
+ #include "../../../spatcore/gpu/FdnGpuBackend.h"      // makeFdnBackend (reverb)
+ #include "../../../spatcore/gpu/IrGpuBackend.h"       // makeIrBackend  (reverb)
 #endif
 
 #include "scenarios.h"
@@ -89,36 +103,49 @@ enum class Path
     ReverbIr,
     GpuGather,
     GpuScatter,
+    GpuReverbSdn,
+    GpuReverbFdn,
+    GpuReverbIr,
 };
 
 const char* pathName (Path p)
 {
     switch (p)
     {
-        case Path::CpuGather:  return "cpu-gather";
-        case Path::CpuScatter: return "cpu-scatter";
-        case Path::ReverbSdn:  return "reverb-sdn";
-        case Path::ReverbFdn:  return "reverb-fdn";
-        case Path::ReverbIr:   return "reverb-ir";
-        case Path::GpuGather:  return "gpu-gather";
-        case Path::GpuScatter: return "gpu-scatter";
+        case Path::CpuGather:    return "cpu-gather";
+        case Path::CpuScatter:   return "cpu-scatter";
+        case Path::ReverbSdn:    return "reverb-sdn";
+        case Path::ReverbFdn:    return "reverb-fdn";
+        case Path::ReverbIr:     return "reverb-ir";
+        case Path::GpuGather:    return "gpu-gather";
+        case Path::GpuScatter:   return "gpu-scatter";
+        case Path::GpuReverbSdn: return "gpu-reverb-sdn";
+        case Path::GpuReverbFdn: return "gpu-reverb-fdn";
+        case Path::GpuReverbIr:  return "gpu-reverb-ir";
     }
     return "?";
 }
 
 bool pathFromName (const std::string& s, Path& out)
 {
-    if (s == "cpu-gather")  { out = Path::CpuGather;  return true; }
-    if (s == "cpu-scatter") { out = Path::CpuScatter; return true; }
-    if (s == "reverb-sdn")  { out = Path::ReverbSdn;  return true; }
-    if (s == "reverb-fdn")  { out = Path::ReverbFdn;  return true; }
-    if (s == "reverb-ir")   { out = Path::ReverbIr;   return true; }
-    if (s == "gpu-gather")  { out = Path::GpuGather;  return true; }
-    if (s == "gpu-scatter") { out = Path::GpuScatter; return true; }
+    if (s == "cpu-gather")     { out = Path::CpuGather;    return true; }
+    if (s == "cpu-scatter")    { out = Path::CpuScatter;   return true; }
+    if (s == "reverb-sdn")     { out = Path::ReverbSdn;    return true; }
+    if (s == "reverb-fdn")     { out = Path::ReverbFdn;    return true; }
+    if (s == "reverb-ir")      { out = Path::ReverbIr;     return true; }
+    if (s == "gpu-gather")     { out = Path::GpuGather;    return true; }
+    if (s == "gpu-scatter")    { out = Path::GpuScatter;   return true; }
+    if (s == "gpu-reverb-sdn") { out = Path::GpuReverbSdn; return true; }
+    if (s == "gpu-reverb-fdn") { out = Path::GpuReverbFdn; return true; }
+    if (s == "gpu-reverb-ir")  { out = Path::GpuReverbIr;  return true; }
     return false;
 }
 
-bool isGpuPath (Path p) { return p == Path::GpuGather || p == Path::GpuScatter; }
+bool isGpuPath (Path p)
+{
+    return p == Path::GpuGather || p == Path::GpuScatter
+        || p == Path::GpuReverbSdn || p == Path::GpuReverbFdn || p == Path::GpuReverbIr;
+}
 
 const std::vector<Path>& cpuPaths()
 {
@@ -130,11 +157,166 @@ const std::vector<Path>& cpuPaths()
 
 const std::vector<Path>& gpuPaths()
 {
-    static const std::vector<Path> v { Path::GpuGather, Path::GpuScatter };
+    static const std::vector<Path> v {
+        Path::GpuGather, Path::GpuScatter,
+        Path::GpuReverbSdn, Path::GpuReverbFdn, Path::GpuReverbIr };
     return v;
 }
 
 using ChannelData = std::vector<std::vector<float>>;   // [channel][sample]
+
+//==============================================================================
+// --bench: per-combo wall clock + per-block launchMs distribution (M0 of the
+// GPU host-path optimization). The render loops call blockBegin/blockEnd once
+// per block; blocks below the warmup threshold are excluded from every stat.
+// GPU paths pass backend->getLastLaunchMs() to blockEnd; CPU paths pass a
+// negative sentinel (wall/xRealtime only — no launch distribution).
+//==============================================================================
+struct Bench
+{
+    bool enabled = false;
+    int warmup = 16;                    // blocks excluded from all stats
+
+    struct LaunchStats
+    {
+        bool valid = false;
+        double minMs = 0.0, medianMs = 0.0, p99Ms = 0.0, maxMs = 0.0, meanMs = 0.0;
+    };
+
+    struct Result
+    {
+        int blocks = 0;                 // measured (post-warmup) blocks
+        double wallMs = 0.0;
+        double xRealtime = 0.0;
+        double budgetMs = 0.0;
+        LaunchStats launch;
+    };
+
+    void beginCombo (const Config& cfg)
+    {
+        if (! enabled)
+            return;
+        effWarmup = std::max (0, std::min (warmup, cfg.blocks - 1));
+        if (effWarmup != warmup)
+            std::fprintf (stderr, "note: bench warmup clamped to %d (%d blocks total)\n",
+                          effWarmup, cfg.blocks);
+        launchMs.clear();
+        launchMs.reserve (static_cast<size_t> (cfg.blocks - effWarmup));
+        wallStart = 0.0;
+        wallMs = 0.0;
+        measured = 0;
+    }
+
+    /** Top of the per-block loop body. Starts the wall clock when the first
+        measured block begins. */
+    void blockBegin (int b)
+    {
+        if (enabled && b == effWarmup)
+            wallStart = juce::Time::getMillisecondCounterHiRes();
+    }
+
+    /** Bottom of the per-block loop body. launchMsValue < 0 => CPU path. */
+    void blockEnd (int b, double launchMsValue)
+    {
+        if (! enabled || b < effWarmup)
+            return;
+        ++measured;
+        wallMs = juce::Time::getMillisecondCounterHiRes() - wallStart;
+        if (launchMsValue >= 0.0)
+            launchMs.push_back (launchMsValue);
+    }
+
+    /** Print + record the just-rendered combo (call after renderOne). */
+    void report (const std::string& key, const Config& cfg)
+    {
+        if (! enabled)
+            return;
+
+        Result r;
+        r.blocks = measured;
+        r.wallMs = wallMs;
+        r.budgetMs = 1000.0 * cfg.block / cfg.sr;
+        const double audioSeconds = static_cast<double> (measured) * cfg.block / cfg.sr;
+        r.xRealtime = wallMs > 0.0 ? audioSeconds / (wallMs / 1000.0) : 0.0;
+
+        if (! launchMs.empty())
+        {
+            std::vector<double> v = launchMs;   // nth_element permutes
+            const size_t n = v.size();
+            auto nth = [&v] (size_t idx) { std::nth_element (v.begin(), v.begin() + (long) idx, v.end()); return v[idx]; };
+
+            r.launch.valid = true;
+            r.launch.medianMs = nth (n / 2);
+            r.launch.p99Ms = nth (std::min (n - 1, static_cast<size_t> (std::llround (0.99 * static_cast<double> (n - 1)))));
+            const auto mm = std::minmax_element (v.begin(), v.end());
+            r.launch.minMs = *mm.first;
+            r.launch.maxMs = *mm.second;
+            double sum = 0.0;
+            for (double d : v) sum += d;
+            r.launch.meanMs = sum / static_cast<double> (n);
+        }
+
+        if (r.launch.valid)
+            std::printf ("bench %s blocks=%d wallMs=%.2f xRealtime=%.2f budgetMs=%.4f "
+                         "launchMs[min=%.4f med=%.4f p99=%.4f max=%.4f mean=%.4f]\n",
+                         key.c_str(), r.blocks, r.wallMs, r.xRealtime, r.budgetMs,
+                         r.launch.minMs, r.launch.medianMs, r.launch.p99Ms,
+                         r.launch.maxMs, r.launch.meanMs);
+        else
+            std::printf ("bench %s blocks=%d wallMs=%.2f xRealtime=%.2f budgetMs=%.4f\n",
+                         key.c_str(), r.blocks, r.wallMs, r.xRealtime, r.budgetMs);
+        std::fflush (stdout);
+
+        results[key] = r;
+    }
+
+    /** Optional machine-readable dump (--bench-json). */
+    bool writeJson (const juce::File& f, const Config& cfg) const
+    {
+        juce::String json;
+        json << "{\n"
+             << "  \"sr\": " << cfg.sr << ",\n"
+             << "  \"block\": " << cfg.block << ",\n"
+             << "  \"blocks\": " << cfg.blocks << ",\n"
+             << "  \"in\": " << cfg.numIn << ",\n"
+             << "  \"out\": " << cfg.numOut << ",\n"
+             << "  \"warmup\": " << warmup << ",\n"
+             << "  \"results\": {\n";
+        size_t i = 0;
+        for (const auto& e : results)
+        {
+            const Result& r = e.second;
+            json << "    \"" << juce::String (e.first) << "\": { "
+                 << "\"blocks\": " << r.blocks
+                 << ", \"wallMs\": " << juce::String (r.wallMs, 3)
+                 << ", \"xRealtime\": " << juce::String (r.xRealtime, 3)
+                 << ", \"budgetMs\": " << juce::String (r.budgetMs, 5);
+            if (r.launch.valid)
+                json << ", \"launchMs\": { \"min\": " << juce::String (r.launch.minMs, 5)
+                     << ", \"median\": " << juce::String (r.launch.medianMs, 5)
+                     << ", \"p99\": " << juce::String (r.launch.p99Ms, 5)
+                     << ", \"max\": " << juce::String (r.launch.maxMs, 5)
+                     << ", \"mean\": " << juce::String (r.launch.meanMs, 5) << " }";
+            json << " }";
+            if (++i < results.size()) json << ",";
+            json << "\n";
+        }
+        json << "  }\n}\n";
+
+        f.getParentDirectory().createDirectory();
+        return f.replaceWithText (json);
+    }
+
+private:
+    int effWarmup = 0;
+    int measured = 0;
+    double wallStart = 0.0;
+    double wallMs = 0.0;
+    std::vector<double> launchMs;
+    std::map<std::string, Result> results;
+};
+
+Bench gBench;
 
 //==============================================================================
 // Drain-pull with a bounded spin: a hung worker fails the gate loudly instead
@@ -231,6 +413,7 @@ ChannelData renderCpuGather (scenario::Id id, const Config& cfg)
 
     for (int b = 0; b < cfg.blocks; ++b)
     {
+        gBench.blockBegin (b);
         const int64_t startSample = static_cast<int64_t> (b) * cfg.block;
 
         // Matrix timeline: re-write the arrays at tick boundaries, between
@@ -265,6 +448,7 @@ ChannelData renderCpuGather (scenario::Id id, const Config& cfg)
                     dst[s] += tmp[static_cast<size_t> (s)];
             }
         }
+        gBench.blockEnd (b, -1.0);
     }
 
     for (auto& p : procs)
@@ -341,6 +525,7 @@ ChannelData renderCpuScatter (scenario::Id id, const Config& cfg)
 
     for (int b = 0; b < cfg.blocks; ++b)
     {
+        gBench.blockBegin (b);
         const int64_t startSample = static_cast<int64_t> (b) * cfg.block;
 
         const int tick = tickForSample (startSample, srInt);
@@ -370,6 +555,7 @@ ChannelData renderCpuScatter (scenario::Id id, const Config& cfg)
                        out[static_cast<size_t> (outCh)].data() + startSample,
                        cfg.block, "cpu-scatter");
         }
+        gBench.blockEnd (b, -1.0);
     }
 
     for (auto& p : procs)
@@ -483,6 +669,7 @@ ChannelData renderReverb (Path path, scenario::Id id, const Config& cfg)
 
     for (int b = 0; b < cfg.blocks; ++b)
     {
+        gBench.blockBegin (b);
         const int64_t startSample = static_cast<int64_t> (b) * cfg.block;
 
         const int tick = tickForSample (startSample, srInt);
@@ -506,6 +693,7 @@ ChannelData renderReverb (Path path, scenario::Id id, const Config& cfg)
             std::memcpy (out[static_cast<size_t> (n)].data() + startSample,
                          nodeOut.getReadPointer (n),
                          static_cast<size_t> (cfg.block) * sizeof (float));
+        gBench.blockEnd (b, -1.0);
     }
 
     return out;
@@ -646,6 +834,7 @@ ChannelData renderGpuCommon (BackendPtr& backend, scenario::Id id,
     int lastTick = 0;
     for (int b = 0; b < cfg.blocks; ++b)
     {
+        gBench.blockBegin (b);
         const int64_t startSample = static_cast<int64_t> (b) * cfg.block;
 
         // Matrices are read at every launch; re-write them at tick boundaries
@@ -677,6 +866,7 @@ ChannelData renderGpuCommon (BackendPtr& backend, scenario::Id id,
             std::memcpy (out[static_cast<size_t> (o)].data() + startSample,
                          outBuf[static_cast<size_t> (o)].data(),
                          static_cast<size_t> (cfg.block) * sizeof (float));
+        gBench.blockEnd (b, backend->getLastLaunchMs());
     }
 
     backend->release();
@@ -710,6 +900,180 @@ ChannelData renderGpu (Path path, scenario::Id id, const Config& cfg,
     return renderGpuCommon (b, id, cfg, "gpu-scatter");
 }
 
+//==============================================================================
+// GPU reverb (SDN / FDN / IR): synchronous backend drive, mirroring
+// renderGpuCommon — makeXxxBackend(deviceId) -> prepare -> setup ->
+// processBlock loop. ReverbXxxAlgorithmGPU and GpuAsyncPipelineT are bypassed
+// entirely, so there is no pipeline cushion and no wet-level scaling (the
+// engine applies wetLevel; the hash covers the raw backend output).
+//
+// Node count = --in (like the CPU reverb paths). Parameters step at the same
+// 50 Hz tick cadence as the app's timer thread; the IR path stages the
+// deterministic scenario IR raw (the app-side 0.125/sqrt(energy) normalisation
+// lives in ReverbIRAlgorithmGPU, not in the backend under test). The IR
+// backend's progressive segment load (64 segs/launch) is a pure function of
+// the block sequence, so early blocks convolve against the partially loaded
+// IR deterministically — hashable.
+//==============================================================================
+ChannelData renderGpuReverb (Path path, scenario::Id id, const Config& cfg,
+                             const std::string& deviceId)
+{
+    const int srInt = static_cast<int> (cfg.sr);
+    const int nodes = cfg.numIn;
+    const char* what = pathName (path);
+
+    auto fatalCreate = [&] ()
+    {
+        std::fprintf (stderr, "FATAL: %s: could not create backend for '%s' "
+                              "(vendor plugin missing or device init failed)\n",
+                      what, deviceId.c_str());
+        std::exit (6);
+    };
+    auto fatalPrepare = [&] (const std::string& err)
+    {
+        std::fprintf (stderr, "FATAL: %s prepare() failed: %s\n", what, err.c_str());
+        std::exit (7);
+    };
+
+    // Per-backend setup; the shared processBlock loop below only needs the
+    // IGpuBackend surface + a per-tick parameter push (empty for IR, which
+    // ignores AlgorithmParameters like its CPU counterpart).
+    std::unique_ptr<ISdnBackend> sdn;
+    std::unique_ptr<IFdnBackend> fdn;
+    std::unique_ptr<IIrBackend> irb;
+    IGpuBackend* backend = nullptr;
+    std::function<void (int)> pushTickParams;
+
+    if (path == Path::GpuReverbSdn)
+    {
+        sdn = makeSdnBackend (deviceId);
+        if (sdn == nullptr)
+            fatalCreate();
+        if (! sdn->prepare (nodes, cfg.block, cfg.sr))
+            fatalPrepare (sdn->getLastError());
+
+        // Geometry first (like ReverbSDNAlgorithmGPU::prepare): inter-node
+        // delays are entirely geometry-derived.
+        const auto pos = scenario::nodeBox (nodes);
+        std::vector<float> xyz;
+        xyz.reserve (pos.size() * 3);
+        for (const auto& p : pos)
+        {
+            xyz.push_back (p.x);
+            xyz.push_back (p.y);
+            xyz.push_back (p.z);
+        }
+        sdn->setGeometry (xyz.data(), nodes);
+
+        pushTickParams = [&sdn, id] (int tick)
+        {
+            const auto p = scenario::reverbParams (id, tick);
+            sdn->setParameters (p.rt60, p.rt60LowMult, p.rt60HighMult,
+                                p.crossoverLow, p.crossoverHigh,
+                                p.diffusion, p.sdnScale);
+        };
+        backend = sdn.get();
+    }
+    else if (path == Path::GpuReverbFdn)
+    {
+        fdn = makeFdnBackend (deviceId);
+        if (fdn == nullptr)
+            fatalCreate();
+        // fdnSize is a prepare()-time constant (matching the CPU FDN whose
+        // delay lengths never resize at runtime); the scenario timeline never
+        // changes it (defaults to 1.0).
+        if (! fdn->prepare (nodes, cfg.block, cfg.sr,
+                            scenario::reverbParams (id, 0).fdnSize))
+            fatalPrepare (fdn->getLastError());
+
+        pushTickParams = [&fdn, id] (int tick)
+        {
+            const auto p = scenario::reverbParams (id, tick);
+            fdn->setParameters (p.rt60, p.rt60LowMult, p.rt60HighMult,
+                                p.crossoverLow, p.crossoverHigh, p.diffusion);
+        };
+        backend = fdn.get();
+    }
+    else // Path::GpuReverbIr
+    {
+        const auto ir = scenario::deterministicIr (cfg.sr);
+
+        irb = makeIrBackend (deviceId);
+        if (irb == nullptr)
+            fatalCreate();
+        // Device allocation sized to the scenario IR (the app caps at 10 s;
+        // the harness IR is 0.5 s, keeping segCapacity — and hence the ring
+        // allocation — small). Requires a power-of-two block in [4, 1024].
+        if (! irb->prepare (nodes, cfg.block, cfg.sr, static_cast<int> (ir.size())))
+            fatalPrepare (irb->getLastError());
+
+        irb->stageIr (ir.data(), static_cast<int> (ir.size()));
+        backend = irb.get();
+    }
+
+    std::fprintf (stderr, "note: %s device: %s\n", what, backend->getDeviceName().c_str());
+
+    // Guarantee zeroed device state before block 0 (consumed at the first
+    // processBlock), independent of whether prepare() cleared its buffers.
+    if (sdn) sdn->requestReset();
+    if (fdn) fdn->requestReset();
+    if (irb) irb->requestReset();
+
+    if (pushTickParams)
+        pushTickParams (0);
+
+    const int64_t total = static_cast<int64_t> (cfg.blocks) * cfg.block;
+    ChannelData out (static_cast<size_t> (nodes),
+                     std::vector<float> (static_cast<size_t> (total), 0.0f));
+
+    std::vector<std::vector<float>> inBuf (static_cast<size_t> (nodes),
+                                           std::vector<float> (static_cast<size_t> (cfg.block)));
+    std::vector<std::vector<float>> outBuf (static_cast<size_t> (nodes),
+                                            std::vector<float> (static_cast<size_t> (cfg.block)));
+    std::vector<const float*> inPtrs;
+    std::vector<float*> outPtrs;
+    for (auto& c : inBuf)  inPtrs.push_back (c.data());
+    for (auto& c : outBuf) outPtrs.push_back (c.data());
+
+    int lastTick = 0;
+    for (int b = 0; b < cfg.blocks; ++b)
+    {
+        gBench.blockBegin (b);
+        const int64_t startSample = static_cast<int64_t> (b) * cfg.block;
+
+        const int tick = tickForSample (startSample, srInt);
+        if (tick != lastTick)
+        {
+            if (pushTickParams)
+                pushTickParams (tick);
+            lastTick = tick;
+        }
+
+        for (int n = 0; n < nodes; ++n)
+        {
+            float* dst = inBuf[static_cast<size_t> (n)].data();
+            for (int s = 0; s < cfg.block; ++s)
+                dst[s] = scenario::inputSample (id, n, startSample + s, cfg.sr);
+        }
+
+        if (! backend->processBlock (inPtrs.data(), outPtrs.data()))
+        {
+            std::fprintf (stderr, "FATAL: %s processBlock() failed on block %d: %s\n",
+                          what, b, backend->getLastError().c_str());
+            std::exit (7);
+        }
+
+        for (int n = 0; n < nodes; ++n)
+            std::memcpy (out[static_cast<size_t> (n)].data() + startSample,
+                         outBuf[static_cast<size_t> (n)].data(),
+                         static_cast<size_t> (cfg.block) * sizeof (float));
+        gBench.blockEnd (b, backend->getLastLaunchMs());
+    }
+
+    backend->release();
+    return out;
+}
+
 #endif // WFS_GPU_NATIVE
 
 //==============================================================================
@@ -728,11 +1092,22 @@ ChannelData renderOne (Path path, scenario::Id id, const Config& cfg,
 #if WFS_GPU_NATIVE
             return renderGpu (path, id, cfg, gpuDeviceId);
 #else
-            (void) gpuDeviceId;
-            std::fprintf (stderr, "FATAL: GPU paths require a WFS_GPU_NATIVE build\n");
-            std::exit (6);
+            break;
+#endif
+        case Path::GpuReverbSdn:
+        case Path::GpuReverbFdn:
+        case Path::GpuReverbIr:
+#if WFS_GPU_NATIVE
+            return renderGpuReverb (path, id, cfg, gpuDeviceId);
+#else
+            break;
 #endif
     }
+#if ! WFS_GPU_NATIVE
+    (void) gpuDeviceId;
+    std::fprintf (stderr, "FATAL: GPU paths require a WFS_GPU_NATIVE build\n");
+    std::exit (6);
+#endif
     return {};
 }
 
@@ -793,17 +1168,23 @@ void usage()
 {
     std::fprintf (stderr,
         "usage: offline-render --path <cpu-gather|cpu-scatter|reverb-sdn|reverb-fdn|reverb-ir\n"
-        "                              |gpu-gather|gpu-scatter|cpu|gpu|all>\n"
+        "                              |gpu-gather|gpu-scatter|gpu-reverb-sdn|gpu-reverb-fdn\n"
+        "                              |gpu-reverb-ir|cpu|gpu|all>\n"
         "                      --scenario <static|moving|fr-toggle|all>\n"
         "                      [--blocks N] [--block 512] [--sr 48000] [--in 8] [--out 16]\n"
         "                      [--device cuda:0] [--plugin-dir <dir with wfs_cuda.dll>]\n"
         "                      [--wav out.wav] [--raw out.f32]\n"
         "                      [--check baselines/<machine>.json] [--update]\n"
+        "                      [--bench] [--warmup 16] [--bench-json <file>]\n"
         "\n"
         "GPU baselines are per device+driver: keep them in a separate file and check\n"
         "them in a separate invocation, e.g.\n"
         "  offline-render --path cpu --check baselines/<machine>.json\n"
         "  offline-render --path gpu --check baselines/<machine>-gpu.json\n"
+        "\n"
+        "--bench reports blocks / wall ms / xRealtime / budget ms per combo (plus the\n"
+        "launchMs min/med/p99/max/mean distribution on GPU paths), excluding the first\n"
+        "--warmup blocks. Bench shapes other than the default are not baselined.\n"
         "\n"
         "exit codes: 0 ok, 1 baseline mismatch, 2 usage, 3 drain timeout,\n"
         "            4 IR-load timeout, 5 self-test, 6 GPU/plugin unavailable,\n"
@@ -828,7 +1209,7 @@ int main (int argc, char* argv[])
 
     Config cfg;
     std::string pathArg = "all", scenarioArg = "all";
-    std::string wavArg, rawArg, checkArg, deviceArg, pluginDirArg;
+    std::string wavArg, rawArg, checkArg, deviceArg, pluginDirArg, benchJsonArg;
     bool update = false;
 
     for (int i = 1; i < argc; ++i)
@@ -858,6 +1239,9 @@ int main (int argc, char* argv[])
         else if (a == "--raw")      rawArg = next();
         else if (a == "--check")    checkArg = next();
         else if (a == "--update")   update = true;
+        else if (a == "--bench")    gBench.enabled = true;
+        else if (a == "--warmup")   gBench.warmup = std::atoi (next().c_str());
+        else if (a == "--bench-json") { benchJsonArg = next(); gBench.enabled = true; }
         else if (a == "--help" || a == "-h") { usage(); return 0; }
         else
         {
@@ -871,6 +1255,11 @@ int main (int argc, char* argv[])
         || cfg.numIn <= 0 || cfg.numOut <= 0)
     {
         std::fprintf (stderr, "error: invalid size/rate arguments\n");
+        return 2;
+    }
+    if (gBench.warmup < 0)
+    {
+        std::fprintf (stderr, "error: --warmup must be >= 0\n");
         return 2;
     }
 
@@ -988,11 +1377,13 @@ int main (int argc, char* argv[])
         for (const scenario::Id s : scenarios)
         {
             const std::string key = std::string (pathName (p)) + "/" + scenario::name (s);
+            gBench.beginCombo (cfg);
             const ChannelData chans = renderOne (p, s, cfg, gpuDeviceId);
             const std::string hash = hashChannels (chans);
             results[key] = hash;
             std::printf ("%s sha256=%s\n", key.c_str(), hash.c_str());
             std::fflush (stdout);
+            gBench.report (key, cfg);
 
             const std::string tag = std::string (pathName (p)) + "-" + scenario::name (s);
             if (! wavArg.empty())
@@ -1012,6 +1403,18 @@ int main (int argc, char* argv[])
                                   f.getFullPathName().toRawUTF8());
             }
         }
+    }
+
+    if (! benchJsonArg.empty())
+    {
+        const auto f = juce::File::getCurrentWorkingDirectory()
+                           .getChildFile (juce::String (benchJsonArg));
+        if (gBench.writeJson (f, cfg))
+            std::fprintf (stderr, "note: bench JSON written to %s\n",
+                          f.getFullPathName().toRawUTF8());
+        else
+            std::fprintf (stderr, "warning: could not write %s\n",
+                          f.getFullPathName().toRawUTF8());
     }
 
     if (checkArg.empty())

@@ -7,6 +7,8 @@
  #include "../../spatcore/wfs/NativeGpuWfsAlgorithm.h"
  #include "../../spatcore/wfs/NativeGpuOutputBufferAlgorithm.h"
 #endif
+#include "../../spatcore/reverb/ReverbEngine.h"
+#include "../../spatcore/reverb/ReverbFeedThread.h"
 #include <vector>
 #include <array>
 #include <atomic>
@@ -48,6 +50,40 @@ public:
     {
         float cpuPercent = 0.0f;
         float microsecondsPerBlock = 0.0f;
+    };
+
+    /**
+     * GPU pipeline telemetry snapshot (GPU host-path optimization M0),
+     * sampled in updateLevels() on the message thread and read by the
+     * LevelMeterWindow GPU strip at 20 Hz. All values come from
+     * NON-destructive accessors — the destructive peak accessors
+     * (getAndResetPeak*) stay exclusive to the 1/s underrun logger in
+     * MainComponent::timerCallback (F4). The ui-peak fields are a rolling
+     * ~3 s max over the sampled values: a sampled floor for the true
+     * per-block peak (true peaks still reach the log on underrun).
+     */
+    struct GpuPipelineStats
+    {
+        // Direct-sound GPU pump (WFS gather or OB scatter, whichever is current)
+        bool wfsLive = false;
+        float wfsLastMs = 0.0f, wfsBudgetMs = 0.0f, wfsUiPeakMs = 0.0f;
+        uint32_t wfsUnderruns = 0;
+        int wfsDepthBlocks = 0;
+        float wfsLatencyMs = 0.0f;
+
+        // GPU reverb pump (own async pipeline; SDN/FDN/IR wrapper)
+        bool revLive = false;
+        float revLastMs = 0.0f, revBudgetMs = 0.0f, revUiPeakMs = 0.0f;
+        uint32_t revUnderruns = 0;
+        int revDepthBlocks = 0;
+        float revLatencyMs = 0.0f;
+
+        // ReverbFeedThread duty (per device block) + ReverbEngine duty
+        // (per internal block) — always-on atomics, CPU-side threads.
+        bool feedLive = false;
+        float feedLastMs = 0.0f, feedBudgetMs = 0.0f, feedUiPeakMs = 0.0f, feedPct = 0.0f;
+        bool engineLive = false;
+        float engineLastMs = 0.0f, engineBudgetMs = 0.0f, engineUiPeakMs = 0.0f, enginePct = 0.0f;
     };
 
     LevelMeteringManager(int numInputs, int numOutputs)
@@ -112,6 +148,22 @@ public:
     }
 #endif
 
+    /**
+     * Wire the reverb-side telemetry sources for the GPU pipeline strip.
+     * Called by MainComponent after setupSharedInputFeed() (and re-called on
+     * every feed-thread rebuild / teardown — either pointer may be null).
+     * feedBudgetMsIn is the feed thread's per-batch budget (device block ms);
+     * MainComponent owns block size + sample rate at the wiring site.
+     * Message thread only (same thread as updateLevels()).
+     */
+    void setReverbSources(ReverbEngine* engine, ReverbFeedThread* feedThread,
+                          float feedBudgetMsIn)
+    {
+        reverbEngine = engine;
+        reverbFeedThread = feedThread;
+        feedBudgetMs = feedBudgetMsIn;
+    }
+
     void setCurrentAlgorithm(ProcessingAlgorithm alg)
     {
         currentAlgorithm = alg;
@@ -120,6 +172,18 @@ public:
     ProcessingAlgorithm getCurrentAlgorithm() const
     {
         return currentAlgorithm;
+    }
+
+    /** True when a native GPU direct-sound algorithm is current (drives the
+        GPU pipeline strip visibility in the level meter window). */
+    bool isGpuAlgorithmCurrent() const
+    {
+#if WFS_GPU_NATIVE
+        return currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs
+            || currentAlgorithm == ProcessingAlgorithm::NativeGpuOutputBuffer;
+#else
+        return false;
+#endif
     }
 
     // === Level Updates ===
@@ -186,6 +250,16 @@ public:
             updateLevelsFromGpu(*gpuObAlgorithm);
         }
 #endif
+
+        updateGpuPipelineStats();
+    }
+
+    /** Latest GPU pipeline telemetry (message thread; refreshed by
+        updateLevels() while metering is active and a GPU algorithm is
+        current — zeroed otherwise). */
+    GpuPipelineStats getGpuPipelineStats() const
+    {
+        return gpuStats;
     }
 
     // === Level Accessors ===
@@ -369,6 +443,119 @@ private:
     }
 #endif
 
+    //==========================================================================
+    // GPU pipeline telemetry sampling (message thread, from updateLevels()).
+    //==========================================================================
+
+    /** Rolling ~3 s peak-hold over sampled values (documented as a sampled
+        floor of the true per-block peak — see GpuPipelineStats). */
+    struct UiPeakHold
+    {
+        static constexpr double kHoldMs = 3000.0;
+        float peak = 0.0f;
+        double heldAtMs = 0.0;
+
+        float update(float v, double nowMs) noexcept
+        {
+            if (v >= peak || nowMs - heldAtMs > kHoldMs)
+            {
+                peak = v;
+                heldAtMs = nowMs;
+            }
+            return peak;
+        }
+    };
+
+    void updateGpuPipelineStats()
+    {
+        if (!isGpuAlgorithmCurrent())
+        {
+            gpuStats = GpuPipelineStats{};   // strip hidden; don't show stale numbers
+            return;
+        }
+
+#if WFS_GPU_NATIVE
+        const double nowMs = juce::Time::getMillisecondCounterHiRes();
+        GpuPipelineStats s = gpuStats;   // rev* fields carry over when the
+                                         // engine's try-lock sample is skipped
+        // Direct-sound pump: whichever GPU algorithm is current. Budget is
+        // recovered exactly from the pipeline's own numbers
+        // (latency = depth * blockMs => blockMs = latency / depth).
+        s.wfsLive = false;
+        if (currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs && gpuWfsAlgorithm != nullptr)
+            sampleDirectPump(*gpuWfsAlgorithm, s, nowMs);
+        else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuOutputBuffer && gpuObAlgorithm != nullptr)
+            sampleDirectPump(*gpuObAlgorithm, s, nowMs);
+
+        // Reverb pump: non-destructive engine sample (try-lock — on contention
+        // keep the previous rev* values for this tick).
+        if (reverbEngine != nullptr)
+        {
+            ReverbEngine::ReverbGpuLiveSample rs;
+            if (reverbEngine->sampleReverbGpuLive(rs))
+            {
+                s.revLive = rs.live;
+                s.revLastMs = rs.lastPumpMs;
+                s.revBudgetMs = rs.budgetMs;
+                s.revUnderruns = rs.underruns;
+                s.revDepthBlocks = rs.depthBlocks;
+                s.revLatencyMs = rs.latencyMs;
+            }
+            if (s.revLive)
+                s.revUiPeakMs = revUiPeak.update(s.revLastMs, nowMs);
+
+            // Engine duty (always-on relaxed atomics)
+            s.engineLive = reverbEngine->isActive();
+            s.engineLastMs = reverbEngine->getLastEngineBlockUs() * 0.001f;
+            s.engineBudgetMs = reverbEngine->getEngineBudgetUs() * 0.001f;
+            s.enginePct = s.engineBudgetMs > 0.0f
+                              ? 100.0f * s.engineLastMs / s.engineBudgetMs : 0.0f;
+            s.engineUiPeakMs = engineUiPeak.update(s.engineLastMs, nowMs);
+        }
+        else
+        {
+            s.revLive = false;
+            s.engineLive = false;
+        }
+
+        // Feed thread duty (always-on relaxed atomics; budget wired by
+        // MainComponent = device block ms).
+        if (reverbFeedThread != nullptr)
+        {
+            s.feedLive = true;
+            s.feedLastMs = reverbFeedThread->getLastBatchUs() * 0.001f;
+            s.feedBudgetMs = feedBudgetMs;
+            s.feedPct = feedBudgetMs > 0.0f ? 100.0f * s.feedLastMs / feedBudgetMs : 0.0f;
+            s.feedUiPeakMs = feedUiPeak.update(s.feedLastMs, nowMs);
+        }
+        else
+        {
+            s.feedLive = false;
+        }
+
+        gpuStats = s;
+#endif
+    }
+
+#if WFS_GPU_NATIVE
+    // NativeGpuWfsAlgorithm and NativeGpuOutputBufferAlgorithm expose the same
+    // pump telemetry surface but are unrelated types (same pattern as
+    // updateLevelsFromGpu above).
+    template <typename GpuAlgorithm>
+    void sampleDirectPump(const GpuAlgorithm& alg, GpuPipelineStats& s, double nowMs)
+    {
+        if (!alg.isReady())
+            return;
+        s.wfsLive = true;
+        s.wfsLastMs = alg.getLastGpuExecMs();          // = pipeline lastPumpMs, non-destructive
+        s.wfsUnderruns = alg.getUnderrunCount();
+        s.wfsDepthBlocks = alg.getPipelineDepthBlocks();
+        s.wfsLatencyMs = (float)alg.getPipelineLatencyMs();
+        s.wfsBudgetMs = s.wfsDepthBlocks > 0 ? s.wfsLatencyMs / (float)s.wfsDepthBlocks : 0.0f;
+        s.wfsUiPeakMs = wfsUiPeak.update(s.wfsLastMs, nowMs);
+    }
+#endif
+
     // Algorithm references (not owned)
     InputBufferAlgorithm* inputAlgorithm = nullptr;
     OutputBufferAlgorithm* outputAlgorithm = nullptr;
@@ -377,6 +564,16 @@ private:
     NativeGpuOutputBufferAlgorithm* gpuObAlgorithm = nullptr;
 #endif
     ProcessingAlgorithm currentAlgorithm = ProcessingAlgorithm::InputBuffer;
+
+    // Reverb telemetry sources (not owned; message-thread wiring — see
+    // setReverbSources)
+    ReverbEngine* reverbEngine = nullptr;
+    ReverbFeedThread* reverbFeedThread = nullptr;
+    float feedBudgetMs = 0.0f;
+
+    // GPU pipeline strip state (message thread only)
+    GpuPipelineStats gpuStats;
+    UiPeakHold wfsUiPeak, revUiPeak, feedUiPeak, engineUiPeak;
 
     // Channel counts
     int numInputChannels = 0;

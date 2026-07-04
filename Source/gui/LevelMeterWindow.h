@@ -216,6 +216,16 @@ public:
         repaint();
     }
 
+    /** GPU pipeline strip variant: percent-of-budget fill with a caller-built
+        tooltip (setPerformance's default tooltip is CPU-thread-shaped). */
+    void setPercent(float percentOfBudget, const juce::String& tooltipText)
+    {
+        currentCpuPercent = percentOfBudget;
+        currentMicroseconds = 0.0f;
+        setTooltip(tooltipText);
+        repaint();
+    }
+
     void paint(juce::Graphics& g) override
     {
         auto bounds = getLocalBounds().reduced(1);
@@ -299,6 +309,31 @@ public:
             toggleSoloMode();
         };
 
+        // GPU pipeline strip (GPU host-path optimization M0): four
+        // percent-of-budget bars (WFS pump | Reverb pump | Feed | Engine) plus
+        // an underruns/depth/latency status line. Hidden until a native GPU
+        // algorithm is current (see timerCallback).
+        {
+            juce::Label* stripLabels[] = { &gpuWfsLabel, &gpuRevLabel, &gpuFeedLabel, &gpuEngineLabel };
+            const char* stripKeys[] = { "levelMeter.gpuStrip.wfsPump", "levelMeter.gpuStrip.reverbPump",
+                                        "levelMeter.gpuStrip.feed", "levelMeter.gpuStrip.engine" };
+            for (int i = 0; i < 4; ++i)
+            {
+                stripLabels[i]->setText(LOC(stripKeys[i]), juce::dontSendNotification);
+                stripLabels[i]->setJustificationType(juce::Justification::centredRight);
+                stripLabels[i]->setFont(juce::FontOptions().withHeight(10.0f));
+                addChildComponent(stripLabels[i]);
+            }
+            addChildComponent(gpuWfsBar);
+            addChildComponent(gpuRevBar);
+            addChildComponent(gpuFeedBar);
+            addChildComponent(gpuEngineBar);
+
+            gpuStripStatus.setJustificationType(juce::Justification::centredLeft);
+            gpuStripStatus.setFont(juce::FontOptions().withHeight(10.0f));
+            addChildComponent(gpuStripStatus);
+        }
+
         // Initialize button states
         updateSoloButtonStates();
         updateSoloButtonColors();
@@ -339,6 +374,28 @@ public:
         soloModeButton.setBounds(controlsArea.removeFromLeft(sc(100)));
 
         bounds.removeFromBottom(sc(10));  // Spacing
+
+        // GPU pipeline strip: one perf-bar-height row just above the controls,
+        // carved only while a native GPU algorithm is current (the per-channel
+        // thread bars are meaningless then — single pump thread).
+        if (levelManager.isGpuAlgorithmCurrent())
+        {
+            auto strip = bounds.removeFromBottom(sc(14));
+            bounds.removeFromBottom(sc(4));  // Spacing
+
+            const int statusW = juce::jmax(sc(230), strip.getWidth() / 3);
+            gpuStripStatus.setBounds(strip.removeFromRight(statusW).reduced(sc(4), 0));
+
+            juce::Label* stripLabels[] = { &gpuWfsLabel, &gpuRevLabel, &gpuFeedLabel, &gpuEngineLabel };
+            ThreadPerformanceBar* stripBars[] = { &gpuWfsBar, &gpuRevBar, &gpuFeedBar, &gpuEngineBar };
+            const int cellW = strip.getWidth() / 4;
+            for (int i = 0; i < 4; ++i)
+            {
+                auto cell = strip.removeFromLeft(cellW).reduced(sc(2), 0);
+                stripLabels[i]->setBounds(cell.removeFromLeft(juce::jmin(sc(60), cell.getWidth() / 2)));
+                stripBars[i]->setBounds(cell);
+            }
+        }
 
         // Split remaining area for inputs and outputs
         int halfHeight = bounds.getHeight() / 2;
@@ -493,37 +550,128 @@ private:
             }
         }
 
-        // Update thread performance bars
-        bool isInputBuffer = (levelManager.getCurrentAlgorithm() ==
-                              LevelMeteringManager::ProcessingAlgorithm::InputBuffer);
-
-        if (isInputBuffer)
+        // Update thread performance bars — or, in GPU mode, the GPU pipeline
+        // strip that replaces them (the per-channel bars are meaningless with
+        // a single pump thread; LevelMeteringManager clears them).
+        const bool gpuMode = levelManager.isGpuAlgorithmCurrent();
+        if (gpuMode != gpuStripVisible)
         {
-            for (int i = 0; i < inputPerfBars.size(); ++i)
-            {
-                auto perf = levelManager.getThreadPerformance(i);
-                inputPerfBars[i]->setPerformance(perf.cpuPercent, perf.microsecondsPerBlock);
-                inputPerfBars[i]->setVisible(true);
-            }
+            gpuStripVisible = gpuMode;
+            for (auto* c : gpuStripComponents())
+                c->setVisible(gpuMode);
+            resized();   // (un)carve the strip row
+        }
+
+        if (gpuMode)
+        {
+            for (auto* bar : inputPerfBars)
+                bar->setVisible(false);
             for (auto* bar : outputPerfBars)
                 bar->setVisible(false);
+            updateGpuStrip();
         }
         else
         {
-            for (int i = 0; i < outputPerfBars.size(); ++i)
+            bool isInputBuffer = (levelManager.getCurrentAlgorithm() ==
+                                  LevelMeteringManager::ProcessingAlgorithm::InputBuffer);
+
+            if (isInputBuffer)
             {
-                auto perf = levelManager.getThreadPerformance(i);
-                outputPerfBars[i]->setPerformance(perf.cpuPercent, perf.microsecondsPerBlock);
-                outputPerfBars[i]->setVisible(true);
+                for (int i = 0; i < inputPerfBars.size(); ++i)
+                {
+                    auto perf = levelManager.getThreadPerformance(i);
+                    inputPerfBars[i]->setPerformance(perf.cpuPercent, perf.microsecondsPerBlock);
+                    inputPerfBars[i]->setVisible(true);
+                }
+                for (auto* bar : outputPerfBars)
+                    bar->setVisible(false);
             }
-            for (auto* bar : inputPerfBars)
-                bar->setVisible(false);
+            else
+            {
+                for (int i = 0; i < outputPerfBars.size(); ++i)
+                {
+                    auto perf = levelManager.getThreadPerformance(i);
+                    outputPerfBars[i]->setPerformance(perf.cpuPercent, perf.microsecondsPerBlock);
+                    outputPerfBars[i]->setVisible(true);
+                }
+                for (auto* bar : inputPerfBars)
+                    bar->setVisible(false);
+            }
         }
 
         // Update solo button states and colors
         updateSoloButtonStates();
         updateSoloButtonColors();
         updateSoloModeButtonText();  // Keep in sync with changes from other tabs
+    }
+
+    //==========================================================================
+    // GPU pipeline strip (see constructor / resized / timerCallback)
+    //==========================================================================
+
+    std::array<juce::Component*, 9> gpuStripComponents()
+    {
+        return { &gpuWfsLabel, &gpuWfsBar, &gpuRevLabel, &gpuRevBar,
+                 &gpuFeedLabel, &gpuFeedBar, &gpuEngineLabel, &gpuEngineBar,
+                 &gpuStripStatus };
+    }
+
+    void updateGpuStrip()
+    {
+        const auto s = levelManager.getGpuPipelineStats();
+
+        auto pctOf = [](float lastMs, float budgetMs)
+        {
+            return budgetMs > 0.0f ? 100.0f * lastMs / budgetMs : 0.0f;
+        };
+        auto tooltip = [](float lastMs, float budgetMs, float peakMs,
+                          juce::uint32 underruns, bool showUnderruns)
+        {
+            juce::String t = LOC(showUnderruns ? "levelMeter.gpuStrip.tooltip"
+                                               : "levelMeter.gpuStrip.tooltipNoUnderruns")
+                                 .replace("{last}", juce::String(lastMs, 2))
+                                 .replace("{budget}", juce::String(budgetMs, 2))
+                                 .replace("{peak}", juce::String(peakMs, 2));
+            if (showUnderruns)
+                t = t.replace("{under}", juce::String(underruns));
+            return t;
+        };
+        const juce::String inactive = LOC("levelMeter.gpuStrip.inactive");
+
+        if (s.wfsLive)
+            gpuWfsBar.setPercent(pctOf(s.wfsLastMs, s.wfsBudgetMs),
+                                 tooltip(s.wfsLastMs, s.wfsBudgetMs, s.wfsUiPeakMs, s.wfsUnderruns, true));
+        else
+            gpuWfsBar.setPercent(0.0f, inactive);
+
+        if (s.revLive)
+            gpuRevBar.setPercent(pctOf(s.revLastMs, s.revBudgetMs),
+                                 tooltip(s.revLastMs, s.revBudgetMs, s.revUiPeakMs, s.revUnderruns, true));
+        else
+            gpuRevBar.setPercent(0.0f, inactive);
+
+        if (s.feedLive)
+            gpuFeedBar.setPercent(s.feedPct,
+                                  tooltip(s.feedLastMs, s.feedBudgetMs, s.feedUiPeakMs, 0, false));
+        else
+            gpuFeedBar.setPercent(0.0f, inactive);
+
+        if (s.engineLive)
+            gpuEngineBar.setPercent(s.enginePct,
+                                    tooltip(s.engineLastMs, s.engineBudgetMs, s.engineUiPeakMs, 0, false));
+        else
+            gpuEngineBar.setPercent(0.0f, inactive);
+
+        const juce::String dash("-");
+        gpuStripStatus.setText(
+            LOC("levelMeter.gpuStrip.status")
+                .replace("{wu}", s.wfsLive ? juce::String(s.wfsUnderruns) : dash)
+                .replace("{ru}", s.revLive ? juce::String(s.revUnderruns) : dash)
+                .replace("{wd}", s.wfsLive ? juce::String(s.wfsDepthBlocks) : dash)
+                .replace("{rd}", s.revLive ? juce::String(s.revDepthBlocks) : dash)
+                .replace("{wl}", s.wfsLive ? juce::String(s.wfsLatencyMs, 1) : dash)
+                .replace("{rl}", s.revLive ? juce::String(s.revLatencyMs, 1) : dash),
+            juce::dontSendNotification);
     }
 
     void layoutInputMeters(bool showPerfBars)
@@ -711,6 +859,12 @@ private:
 
     juce::TextButton clearSoloButton;
     juce::TextButton soloModeButton;
+
+    // GPU pipeline strip (visible only when a native GPU algorithm is current)
+    juce::Label gpuWfsLabel, gpuRevLabel, gpuFeedLabel, gpuEngineLabel;
+    ThreadPerformanceBar gpuWfsBar, gpuRevBar, gpuFeedBar, gpuEngineBar;
+    juce::Label gpuStripStatus;
+    bool gpuStripVisible = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LevelMeterWindowContent)
 };

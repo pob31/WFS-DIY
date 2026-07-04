@@ -64,6 +64,21 @@
 #include <string>
 #include <vector>
 
+// Optional per-stage host timers (GPU host-path optimization M0 deep-dive
+// tool). Default OFF: rebuild the vendor plugin with /DWFS_GPU_STAGE_TIMERS=1
+// to get a stderr line every 512 blocks with per-stage mean ms
+// {snapshot, frPrep, uploadIssue, wait, unpack}. When off this preprocesses
+// to nothing — lastLaunchMs semantics untouched; NOT exposed via IGpuBackend.
+#ifndef WFS_GPU_STAGE_TIMERS
+ #define WFS_GPU_STAGE_TIMERS 0
+#endif
+#if WFS_GPU_STAGE_TIMERS
+ #include <cstdio>
+ #define WFS_STAGE_MARK(name) const auto name = std::chrono::steady_clock::now()
+#else
+ #define WFS_STAGE_MARK(name)
+#endif
+
 namespace spatcore::gpu {
 
 namespace
@@ -155,6 +170,13 @@ struct CudaWfsBackend::Impl
     bool havePrev = false;
 
     WfsFrHostState frHost;            // per-input FR pre-filters + jitter
+
+#if WFS_GPU_STAGE_TIMERS
+    // Per-stage accumulators (pump thread only; printed/reset every 512 blocks)
+    double stSnapshotMs = 0.0, stFrPrepMs = 0.0, stUploadIssueMs = 0.0,
+           stWaitMs = 0.0, stUnpackMs = 0.0;
+    uint32_t stBlocks = 0;
+#endif
 
     unsigned int threadsPerBlock = 256;
 };
@@ -396,6 +418,7 @@ bool CudaWfsBackend::processBlock (const float* const* inputs, float* const* out
         m.hHfAttenDb[i] = m.hfAttenDb != nullptr ? m.hfAttenDb[i] : 0.0f;
         m.hFrHfAttenDb[i] = m.frHfAttenDb != nullptr ? m.frHfAttenDb[i] : 0.0f;
     }
+    WFS_STAGE_MARK (stA);   // snapshot: matrix + shelf staging
 
     // FR: advance diffusion jitter (64-sample sub-step cadence), then snapshot
     // the FR curr matrices. The pipeline latency is subtracted from the
@@ -405,6 +428,7 @@ bool CudaWfsBackend::processBlock (const float* const* inputs, float* const* out
     m.frHost.computeFrCurr (m.delaysMs, m.frDelaysMs, m.frLevels,
                             m.latencyMs, srScale, maxDelay,
                             m.hFrDelaysCurr, m.hFrGainsCurr);
+    WFS_STAGE_MARK (stB);   // frPrep: jitter advance + FR curr snapshot
 
     if (! m.havePrev)
     {
@@ -418,6 +442,7 @@ bool CudaWfsBackend::processBlock (const float* const* inputs, float* const* out
     std::memcpy (m.hGainsPrev, m.gainsPrev.data(), matrix * sizeof (float));
     std::memcpy (m.hFrDelaysPrev, m.frDelaysPrevSamples.data(), matrix * sizeof (float));
     std::memcpy (m.hFrGainsPrev, m.frGainsPrev.data(), matrix * sizeof (float));
+    WFS_STAGE_MARK (stC);   // snapshot: prev staging memcpys
 
     // Input channels -> flat pinned buffer (silence for missing channels),
     // and the host-side FR pre-filter chain -> frIn staging.
@@ -428,7 +453,9 @@ bool CudaWfsBackend::processBlock (const float* const* inputs, float* const* out
         else
             std::memset (m.hIn + (size_t) ch * m.blockSize, 0, (size_t) m.blockSize * sizeof (float));
     }
+    WFS_STAGE_MARK (stD);   // uploadIssue: input pack
     m.frHost.filterBlock (inputs, m.hFrIn, m.blockSize);
+    WFS_STAGE_MARK (stE);   // frPrep: FR pre-filter chain
 
     // Host -> device (the persistent rings + shelf states stay on the device).
 #define PB_RT(call) do { cudaError_t _e = (call); if (_e != cudaSuccess) { \
@@ -494,7 +521,9 @@ bool CudaWfsBackend::processBlock (const float* const* inputs, float* const* out
     }
 
     PB_RT (cudaMemcpyAsync (m.hOut, m.dOut, (size_t) m.numOut * m.blockSize * sizeof (float), cudaMemcpyDeviceToHost, m.stream));
+    WFS_STAGE_MARK (stF);   // uploadIssue: H2D uploads + launches + D2H issue
     PB_RT (cudaStreamSynchronize (m.stream));
+    WFS_STAGE_MARK (stG);   // wait: stream sync
 
 #undef PB_RT
 
@@ -510,6 +539,28 @@ bool CudaWfsBackend::processBlock (const float* const* inputs, float* const* out
     std::memcpy (m.gainsPrev.data(), gCurr, matrix * sizeof (float));
     std::memcpy (m.frDelaysPrevSamples.data(), m.hFrDelaysCurr, matrix * sizeof (float));
     std::memcpy (m.frGainsPrev.data(), m.hFrGainsCurr, matrix * sizeof (float));
+
+#if WFS_GPU_STAGE_TIMERS
+    {
+        const auto stH = std::chrono::steady_clock::now();   // unpack end
+        auto ms = [] (auto a, auto b) { return std::chrono::duration<double, std::milli> (b - a).count(); };
+        m.stSnapshotMs    += ms (t0, stA) + ms (stB, stC);
+        m.stFrPrepMs      += ms (stA, stB) + ms (stD, stE);
+        m.stUploadIssueMs += ms (stC, stD) + ms (stE, stF);
+        m.stWaitMs        += ms (stF, stG);
+        m.stUnpackMs      += ms (stG, stH);
+        if (++m.stBlocks == 512)
+        {
+            const double inv = 1.0 / 512.0;
+            std::fprintf (stderr, "[wfs-cuda stages, mean ms over 512 blocks] "
+                          "snapshot=%.4f frPrep=%.4f uploadIssue=%.4f wait=%.4f unpack=%.4f\n",
+                          m.stSnapshotMs * inv, m.stFrPrepMs * inv, m.stUploadIssueMs * inv,
+                          m.stWaitMs * inv, m.stUnpackMs * inv);
+            m.stSnapshotMs = m.stFrPrepMs = m.stUploadIssueMs = m.stWaitMs = m.stUnpackMs = 0.0;
+            m.stBlocks = 0;
+        }
+    }
+#endif
 
     lastLaunchMs = std::chrono::duration<double, std::milli> (
                        std::chrono::steady_clock::now() - t0).count();

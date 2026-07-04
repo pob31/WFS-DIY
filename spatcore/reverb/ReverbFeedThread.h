@@ -4,6 +4,7 @@
 #include "../rt/SharedInputRingBuffer.h"
 #include "ReverbEngine.h"
 #include <atomic>
+#include <chrono>
 #include <vector>
 
 namespace spatcore::reverb {
@@ -80,6 +81,26 @@ public:
         numRevs = newNumReverbs;
     }
 
+    //==========================================================================
+    // Duty telemetry — always-on (GPU host-path optimization M0). One
+    // steady_clock pair per processed batch (~750/s at 96k/128) is noise;
+    // relaxed atomics, read by the 20 Hz metering sampler on the message
+    // thread. Non-destructive (no reset-on-read).
+    //==========================================================================
+
+    /** Microseconds spent computing the last feed batch (read inputs + gated
+        mix + downsample + push). 0 until the first batch. */
+    float getLastBatchUs() const noexcept
+    {
+        return lastBatchUs.load (std::memory_order_relaxed);
+    }
+
+    /** Batches processed since prepare (wraps; UI uses it as a liveness tick). */
+    uint32_t getBatchCount() const noexcept
+    {
+        return batchCounter.load (std::memory_order_relaxed);
+    }
+
 private:
     void run() override
     {
@@ -129,6 +150,11 @@ private:
             if (minAvail < numSamples)
                 continue;
 
+            // Duty telemetry: time the real batch work (input read + gated mix
+            // + downsample + push). Early-outs above (no data / no engine) are
+            // idle, not work, and stay untimed.
+            const auto batchStart = std::chrono::steady_clock::now();
+
             // Read all input channels into temp buffers (one read per channel)
             for (int ch = 0; ch < numInputs && ch < (int)inputBuffers.size(); ++ch)
                 inputBuffers[ch]->readWithPosition(readPositions[ch], inputBlocks.getWritePointer(ch), numSamples);
@@ -143,46 +169,52 @@ private:
                     downsampleBuffer.clear(revIdx, 0, pushSamples);
                     reverbEngine->pushNodeInput(revIdx, downsampleBuffer.getReadPointer(revIdx), pushSamples);
                 }
-                continue;
             }
-
-            // Compute reverb feeds: for each node, sum weighted input contributions
-            feedBuffer.clear();
-
-            for (int revIdx = 0; revIdx < numRevsSnap; ++revIdx)
+            else
             {
-                float* feedData = feedBuffer.getWritePointer(revIdx);
+                // Compute reverb feeds: for each node, sum weighted input contributions
+                feedBuffer.clear();
 
-                for (int inIdx = 0; inIdx < numInputs; ++inIdx)
+                for (int revIdx = 0; revIdx < numRevsSnap; ++revIdx)
                 {
-                    float feedLevel = levelsSnap[inIdx * strideSnap + revIdx];
+                    float* feedData = feedBuffer.getWritePointer(revIdx);
 
-                    if (feedLevel > 0.0001f)
+                    for (int inIdx = 0; inIdx < numInputs; ++inIdx)
                     {
-                        const float* inputData = inputBlocks.getReadPointer(inIdx);
-                        juce::FloatVectorOperations::addWithMultiply(feedData, inputData, feedLevel, numSamples);
-                    }
-                }
+                        float feedLevel = levelsSnap[inIdx * strideSnap + revIdx];
 
-                // Downsample and push
-                if (reverbSRRatio > 1)
-                {
-                    float* dsData = downsampleBuffer.getWritePointer(revIdx);
-                    float invRatio = 1.0f / static_cast<float>(reverbSRRatio);
-                    for (int i = 0; i < pushSamples; ++i)
-                    {
-                        float sum = 0.0f;
-                        for (int j = 0; j < reverbSRRatio; ++j)
-                            sum += feedData[i * reverbSRRatio + j];
-                        dsData[i] = sum * invRatio;
+                        if (feedLevel > 0.0001f)
+                        {
+                            const float* inputData = inputBlocks.getReadPointer(inIdx);
+                            juce::FloatVectorOperations::addWithMultiply(feedData, inputData, feedLevel, numSamples);
+                        }
                     }
-                    reverbEngine->pushNodeInput(revIdx, dsData, pushSamples);
-                }
-                else
-                {
-                    reverbEngine->pushNodeInput(revIdx, feedData, numSamples);
+
+                    // Downsample and push
+                    if (reverbSRRatio > 1)
+                    {
+                        float* dsData = downsampleBuffer.getWritePointer(revIdx);
+                        float invRatio = 1.0f / static_cast<float>(reverbSRRatio);
+                        for (int i = 0; i < pushSamples; ++i)
+                        {
+                            float sum = 0.0f;
+                            for (int j = 0; j < reverbSRRatio; ++j)
+                                sum += feedData[i * reverbSRRatio + j];
+                            dsData[i] = sum * invRatio;
+                        }
+                        reverbEngine->pushNodeInput(revIdx, dsData, pushSamples);
+                    }
+                    else
+                    {
+                        reverbEngine->pushNodeInput(revIdx, feedData, numSamples);
+                    }
                 }
             }
+
+            lastBatchUs.store(std::chrono::duration<float, std::micro>(
+                                  std::chrono::steady_clock::now() - batchStart).count(),
+                              std::memory_order_relaxed);
+            batchCounter.fetch_add(1, std::memory_order_relaxed);
         }
     }
 
@@ -206,6 +238,10 @@ private:
     int reverbSRRatio = 1;
     std::atomic<bool> dataReady{false};
     std::atomic<bool> isMuted{false};
+
+    // Always-on duty telemetry (see accessors above)
+    std::atomic<float> lastBatchUs{0.0f};
+    std::atomic<uint32_t> batchCounter{0};
 
     juce::AudioBuffer<float> inputBlocks;      // numInputs channels, one block each
     juce::AudioBuffer<float> feedBuffer;       // numReverbs channels, feed sums
