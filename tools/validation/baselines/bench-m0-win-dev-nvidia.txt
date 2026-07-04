@@ -1,0 +1,95 @@
+# M0 bench baseline — pre-optimization reference (win-dev-nvidia)
+#
+# Machine : win-dev-nvidia (dev laptop; NOT the 9950X+RTX5070 target rig)
+# GPU     : NVIDIA RTX PRO 2000 Blackwell Generation Laptop GPU, driver 596.72 (CUDA)
+# Date    : 2026-07-04
+# Tree    : gpu-host/m0-bench-telemetry @ 711df35 (harness commit 6da10a9)
+# Plugin  : wfs_cuda.dll rebuilt at 711df35 (WFS_GPU_STAGE_TIMERS off)
+#
+# These are the launchMs distributions every later milestone (M1 blocking
+# waits, M2 upload diet, M3 parallel prep) is compared against, on matched
+# harness+plugin builds. launchMs = backend->getLastLaunchMs() = host wall of
+# the whole synchronous processBlock INCLUDING the spinning
+# cudaStreamSynchronize (the M1 target). Warmup 16 blocks excluded.
+#
+# Reading the numbers below:
+# - gpu-scatter/fr-toggle at the rig shape blows the 1.33 ms budget
+#   (med 2.26 / p99 3.73 ms, 0.70x realtime) — the 4 MiB/block per-sample FR
+#   staging+upload (M2c target).
+# - gpu-reverb-sdn sits at ~2.35 ms med regardless of scenario — the 1-block
+#   SDN kernel shape ceiling (documented honestly in the plan; host changes
+#   cannot move it, only the spin-wait share of it).
+# - This laptop GPU is slower than the target 5070; absolute values here
+#   gate regressions/improvements per-machine, not rig projections.
+
+# ---------------------------------------------------------------------------
+# Run 1: default baseline shape
+# offline-render --bench --path gpu --scenario all
+#   (sr 48000, block 512, blocks 200, in 8, out 16, warmup 16)
+# ---------------------------------------------------------------------------
+gpu-gather/static sha256=8c2fcfda2790f180c8c9ab4528d8a58d8ec4f6ed5f801799006b68ab8f360b94
+bench gpu-gather/static blocks=184 wallMs=65.61 xRealtime=29.91 budgetMs=10.6667 launchMs[min=0.2736 med=0.3272 p99=0.5409 max=0.6237 mean=0.3291]
+gpu-gather/moving sha256=1b8fc9cb924f6aac1e9ad5b5170a360ad4a7ee9f467f7fe52215f69e3157f5bf
+bench gpu-gather/moving blocks=184 wallMs=60.50 xRealtime=32.44 budgetMs=10.6667 launchMs[min=0.2631 med=0.2971 p99=0.3836 max=0.4577 mean=0.3005]
+gpu-gather/fr-toggle sha256=162dc0cacfe045427c6673430d62bb4449784d67ef84984c7993ece72c0d7a76
+bench gpu-gather/fr-toggle blocks=184 wallMs=74.64 xRealtime=26.29 budgetMs=10.6667 launchMs[min=0.2900 med=0.4023 p99=0.4903 max=0.7331 mean=0.3810]
+gpu-scatter/static sha256=8c2fcfda2790f180c8c9ab4528d8a58d8ec4f6ed5f801799006b68ab8f360b94
+bench gpu-scatter/static blocks=184 wallMs=78.63 xRealtime=24.96 budgetMs=10.6667 launchMs[min=0.3695 med=0.3974 p99=0.4614 max=0.4654 mean=0.4011]
+gpu-scatter/moving sha256=c29d780ac6ea9bbb52895f6162890757fc460e05dac6c1c32f1d0a4ed1659adf
+bench gpu-scatter/moving blocks=184 wallMs=85.05 xRealtime=23.08 budgetMs=10.6667 launchMs[min=0.3930 med=0.4229 p99=0.5838 max=0.7583 mean=0.4320]
+gpu-scatter/fr-toggle sha256=3f0a7e6de691d4c248029b7862106af18fd52398463a237c4bd8d7922e3aedbc
+bench gpu-scatter/fr-toggle blocks=184 wallMs=116.24 xRealtime=16.88 budgetMs=10.6667 launchMs[min=0.3772 med=0.6878 p99=1.0175 max=1.0506 mean=0.6065]
+gpu-reverb-sdn/static sha256=81f2302b9fa0067aeb566685f7c52c225c08ee338141e9455a0eaa5513e1b0f2
+bench gpu-reverb-sdn/static blocks=184 wallMs=281.21 xRealtime=6.98 budgetMs=10.6667 launchMs[min=1.4313 med=1.4934 p99=1.5917 max=1.8527 mean=1.4947]
+gpu-reverb-sdn/moving sha256=085b00becc36cf1face1e34807c8e5f46b5aa0e5972d94c576ea68ffc6472d4a
+bench gpu-reverb-sdn/moving blocks=184 wallMs=278.99 xRealtime=7.03 budgetMs=10.6667 launchMs[min=1.4248 med=1.4726 p99=1.7293 max=1.7531 mean=1.4849]
+gpu-reverb-sdn/fr-toggle sha256=01a43ce47e8289669e842b5d1c8e537ad5db0d5bd8893b4ba7d536479e1562f7
+bench gpu-reverb-sdn/fr-toggle blocks=184 wallMs=280.30 xRealtime=7.00 budgetMs=10.6667 launchMs[min=1.4270 med=1.4799 p99=1.7405 max=1.9042 mean=1.4897]
+gpu-reverb-fdn/static sha256=c96f2a51b7ec21615d596ecb3ad53af47359ed1635a505a06d1df282a1319d9b
+bench gpu-reverb-fdn/static blocks=184 wallMs=84.41 xRealtime=23.25 budgetMs=10.6667 launchMs[min=0.3831 med=0.4221 p99=0.5919 max=0.6711 mean=0.4325]
+gpu-reverb-fdn/moving sha256=f223ab0450a7c6e757a8e5efed1e7eb38dd7749bc04bb24cea23758281b27590
+bench gpu-reverb-fdn/moving blocks=184 wallMs=85.81 xRealtime=22.87 budgetMs=10.6667 launchMs[min=0.3847 med=0.4180 p99=0.5221 max=0.6903 mean=0.4278]
+gpu-reverb-fdn/fr-toggle sha256=8844f4d2fd3227a654b4d1c5eea229b400ebf7db70510a3f11cfe0bc8edd66e7
+bench gpu-reverb-fdn/fr-toggle blocks=184 wallMs=90.56 xRealtime=21.67 budgetMs=10.6667 launchMs[min=0.4003 med=0.4542 p99=0.6503 max=0.7045 mean=0.4659]
+gpu-reverb-ir/static sha256=1dc292f9d8e50d912902329a110a53fdfa633423b2409be55035168f61fa53ac
+bench gpu-reverb-ir/static blocks=184 wallMs=45.63 xRealtime=43.01 budgetMs=10.6667 launchMs[min=0.1767 med=0.2213 p99=0.3381 max=0.5407 mean=0.2248]
+gpu-reverb-ir/moving sha256=d9b89b47feed0a77726bd7483167ae0e5bd27b993d5b0a4fc0ec41b116bceea2
+bench gpu-reverb-ir/moving blocks=184 wallMs=37.17 xRealtime=52.80 budgetMs=10.6667 launchMs[min=0.1384 med=0.1722 p99=0.2301 max=0.2633 mean=0.1777]
+gpu-reverb-ir/fr-toggle sha256=8f56e50e9bc1a7cf2e09339d58052a9092cf5975d1ea3fe050c48bb0bfcdb8a9
+bench gpu-reverb-ir/fr-toggle blocks=184 wallMs=38.87 xRealtime=50.49 budgetMs=10.6667 launchMs[min=0.1361 med=0.1912 p99=0.2611 max=0.2884 mean=0.1876]
+
+# ---------------------------------------------------------------------------
+# Run 2: target rig shape
+# offline-render --bench --path gpu --scenario all --sr 96000 --block 128 --in 64 --out 128 --blocks 2000
+#   (warmup 16; reverb paths run 64 nodes = --in)
+# ---------------------------------------------------------------------------
+gpu-gather/static sha256=ba4fabf0bb9b7c6db4124d2ac356ac8ba3c67bc6a2f9bfed8f36fdedc56ac46f
+bench gpu-gather/static blocks=1984 wallMs=722.54 xRealtime=3.66 budgetMs=1.3333 launchMs[min=0.2363 med=0.3101 p99=0.4355 max=0.7884 mean=0.3155]
+gpu-gather/moving sha256=c3fda69e8eab07da2bbaaf12e387b8d0c11ea8d2177e2bb2434116c13591e758
+bench gpu-gather/moving blocks=1984 wallMs=761.61 xRealtime=3.47 budgetMs=1.3333 launchMs[min=0.2381 med=0.3227 p99=0.4864 max=0.6525 mean=0.3264]
+gpu-gather/fr-toggle sha256=6c4e2fa59ac1197af1b33f9b86df6453f6ca0e8670b9dd7214bbfc405895fec5
+bench gpu-gather/fr-toggle blocks=1984 wallMs=887.03 xRealtime=2.98 budgetMs=1.3333 launchMs[min=0.3094 med=0.3914 p99=0.5889 max=0.9771 mean=0.3973]
+gpu-scatter/static sha256=ba4fabf0bb9b7c6db4124d2ac356ac8ba3c67bc6a2f9bfed8f36fdedc56ac46f
+bench gpu-scatter/static blocks=1984 wallMs=1810.52 xRealtime=1.46 budgetMs=1.3333 launchMs[min=0.7982 med=0.8542 p99=1.0321 max=1.6743 mean=0.8608]
+gpu-scatter/moving sha256=870e9fbfdf936d32d86bb541437559c085e302911c1d783e15648284123df230
+bench gpu-scatter/moving blocks=1984 wallMs=1832.69 xRealtime=1.44 budgetMs=1.3333 launchMs[min=0.7916 med=0.8528 p99=1.0401 max=1.3698 mean=0.8638]
+gpu-scatter/fr-toggle sha256=b180da539a0b387c7883811fc334725c2c57e4a97756a6de1de631d70e4d2976
+bench gpu-scatter/fr-toggle blocks=1984 wallMs=3800.14 xRealtime=0.70 budgetMs=1.3333 launchMs[min=0.8455 med=2.2595 p99=3.7280 max=4.5914 mean=1.8618]
+gpu-reverb-sdn/static sha256=f0e77ebc4bd175c0467884ada1999bfc8138eb300cd31a35cf16194c56df2c58
+bench gpu-reverb-sdn/static blocks=1984 wallMs=4914.66 xRealtime=0.54 budgetMs=1.3333 launchMs[min=2.2181 med=2.3549 p99=2.9521 max=3.9768 mean=2.4236]
+gpu-reverb-sdn/moving sha256=41ccb29ce2be1d5a561260173f8d417f0d12c75b60680bc83794e07096a7f5e3
+bench gpu-reverb-sdn/moving blocks=1984 wallMs=4800.13 xRealtime=0.55 budgetMs=1.3333 launchMs[min=2.2370 med=2.3509 p99=2.5931 max=3.3990 mean=2.3658]
+gpu-reverb-sdn/fr-toggle sha256=8a30048e7640c082ad8c03dd9e4d2d665db487576872f7e850071278d11bdbad
+bench gpu-reverb-sdn/fr-toggle blocks=1984 wallMs=4793.10 xRealtime=0.55 budgetMs=1.3333 launchMs[min=2.2320 med=2.3512 p99=2.5547 max=2.8210 mean=2.3625]
+gpu-reverb-fdn/static sha256=c2198531be57c67bf51d53d8c00a02c9e1bde7549d73a0525db18e150126f01a
+bench gpu-reverb-fdn/static blocks=1984 wallMs=618.68 xRealtime=4.28 budgetMs=1.3333 launchMs[min=0.1852 med=0.2622 p99=0.3965 max=1.0140 mean=0.2631]
+gpu-reverb-fdn/moving sha256=85b2d93b67bfd1f296efc08176c4f133ecd232740be262f1277ec2df7df13717
+bench gpu-reverb-fdn/moving blocks=1984 wallMs=629.86 xRealtime=4.20 budgetMs=1.3333 launchMs[min=0.1853 med=0.2659 p99=0.3921 max=0.6022 mean=0.2712]
+gpu-reverb-fdn/fr-toggle sha256=644e74181f5e98e142857375ab3d1f9a0592e0c85582c36e1985c1056a7570ab
+bench gpu-reverb-fdn/fr-toggle blocks=1984 wallMs=664.78 xRealtime=3.98 budgetMs=1.3333 launchMs[min=0.1933 med=0.2774 p99=0.4021 max=0.6614 mean=0.2820]
+gpu-reverb-ir/static sha256=75842a8a6676fc9346b9c5bb462bdf85b2d93a080c4887c73364ad86552b8c4f
+bench gpu-reverb-ir/static blocks=1984 wallMs=758.85 xRealtime=3.49 budgetMs=1.3333 launchMs[min=0.2466 med=0.3256 p99=0.5497 max=0.9177 mean=0.3376]
+gpu-reverb-ir/moving sha256=d750e08bf59579207c78a027472c06ee1d4214c88c7fae4d749f269075129a25
+bench gpu-reverb-ir/moving blocks=1984 wallMs=719.44 xRealtime=3.68 budgetMs=1.3333 launchMs[min=0.1865 med=0.3235 p99=0.5169 max=0.9126 mean=0.3171]
+gpu-reverb-ir/fr-toggle sha256=c3927a14370b24267a80ce3d012d710d93cb5a713573853e883efb987ec875f1
+bench gpu-reverb-ir/fr-toggle blocks=1984 wallMs=633.99 xRealtime=4.17 budgetMs=1.3333 launchMs[min=0.1850 med=0.2554 p99=0.4903 max=0.7984 mean=0.2743]
