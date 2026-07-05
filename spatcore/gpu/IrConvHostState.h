@@ -212,6 +212,23 @@ public:
         });
     }
 
+    /** Node-safe single-node input transform (M3): zero-pads + FFTs one node's
+        input block into an ARBITRARY destSpectrum (fftLen floats) using this
+        node's scratch row. Lets a strided-ring backend (Metal writes straight
+        into bInSpectra[(node*segCap + head)*fftLen]) drive parallelFor(numNodes)
+        itself. input may be null (silence). Bit-identical to transformInput. */
+    void transformInputNode (int node, const float* input, float* destSpectrum)
+    {
+        float* scratch = nodeScratch.data() + (size_t) node * (size_t) fftLen;
+        if (input != nullptr)
+            std::memcpy (scratch, input, (size_t) blockSize * sizeof (float));
+        else
+            std::memset (scratch, 0, (size_t) blockSize * sizeof (float));
+        std::memset (scratch + blockSize, 0, (size_t) blockSize * sizeof (float));
+        // in == work == scratch (transform in place), out = the spectrum row.
+        fft.forward (scratch, destSpectrum, scratch);
+    }
+
     /** Inverse-FFTs + overlap-adds every node across the pool (node-safe:
         per-node scratch row + per-node tail). outputs[node] may be null (skip).
         Bit-identical to a produceOutput() loop. */
