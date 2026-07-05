@@ -25,6 +25,7 @@
 #include "spatcore/rt/LockFreeRingBuffer.h"
 #include "spatcore/rt/RtSnapshot.h"
 #include "spatcore/rt/RtThreadPriority.h"
+#include "spatcore/gpu/GpuHostWorkPool.h"
 #include "spatcore/dsp/DelayTargetSmoother.h"
 #include "spatcore/control/osc/OSCSerializer.h"
 #include "spatcore/control/osc/OSCParser.h"
@@ -222,6 +223,53 @@ static void testRtThreadPriority()
 }
 
 //==============================================================================
+// GpuHostWorkPool worker-count invariance: the SAME per-item workload run
+// through parallelFor with 0 workers (sequential kill switch) and 3 workers
+// must be BIT-identical. This is the executable form of the M3 determinism
+// contract — each item writes only its own row and its FP sequence is a pure
+// function of the item index, so the dynamic work-stealing schedule cannot
+// affect the result. (The real backends' GPU 15/15 cross-check under
+// WFS_GPU_HOST_WORKERS=0 vs =3 is the on-hardware version of this test.)
+static std::vector<float> runPoolWorkload (int numWorkers)
+{
+    spatcore::gpu::GpuHostWorkPool pool;
+    pool.prepare (numWorkers, 1.3333, 0.5);
+
+    const int count  = 257;   // deliberately not a multiple of the worker count
+    const int rowLen = 31;
+    std::vector<float> out ((size_t) count * (size_t) rowLen, 0.0f);
+
+    pool.parallelFor (count, [&] (int i)
+    {
+        // Per-item state partitioning: item i touches ONLY its own row, and the
+        // sample sequence is a pure function of i — no cross-item accumulation.
+        float* row = out.data() + (size_t) i * (size_t) rowLen;
+        float acc = (float) i * 0.5f;
+        for (int s = 0; s < rowLen; ++s)
+        {
+            acc = acc * 0.9999f + std::sin ((float) (i + 1) * 0.017f * (float) (s + 1));
+            row[s] = acc;
+        }
+    });
+
+    pool.shutdown();
+    return out;
+}
+
+static void testGpuHostWorkPoolDeterminism()
+{
+    const auto seq = runPoolWorkload (0);   // sequential (kill switch)
+    const auto par = runPoolWorkload (3);   // 3 workers + caller = 4 lanes
+
+    CHECK (! seq.empty());
+    CHECK (seq.size() == par.size());
+    CHECK (std::memcmp (seq.data(), par.data(), seq.size() * sizeof (float)) == 0);
+
+    for (float v : seq)
+        CHECK (std::isfinite (v));
+}
+
+//==============================================================================
 int main()
 {
     try
@@ -231,6 +279,7 @@ int main()
         testRtSnapshot();
         testOscRoundtrip();
         testRtThreadPriority();
+        testGpuHostWorkPoolDeterminism();
     }
     catch (const std::exception& e)
     {

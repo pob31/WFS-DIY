@@ -75,6 +75,7 @@
 #include "gpu/GpuDeviceManager.h"
 #include "gpu/GpuBackendFactory.h"
 #include "gpu/GpuAsyncPipeline.h"
+#include "gpu/GpuHostWorkPool.h"
 #include "gpu/GpuLevelMeters.h"
 #include "gpu/PlatformDynLib.h"
 #include "gpu/WfsFrHostState.h"
