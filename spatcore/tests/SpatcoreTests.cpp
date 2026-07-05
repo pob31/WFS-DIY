@@ -269,6 +269,52 @@ static void testGpuHostWorkPoolDeterminism()
         CHECK (std::isfinite (v));
 }
 
+// Cross-generation barrier stress test. The pump calls parallelFor once per
+// audio block, back-to-back, forever. A worker that finishes the LAST item of
+// generation N must not bleed into generation N+1's item state (the M3 audit's
+// confirmed critical race: without a worker-quiescence barrier a straggler
+// re-reads nextItem/currentFunc that the next call is overwriting -> torn read /
+// use-after-free of the previous call's captured frame). Here: many tight
+// back-to-back generations with a small item count (workers finish fast, so the
+// finish->redispatch window is narrow and hit often), each generation carrying a
+// UNIQUE base captured by a fresh lambda and validating its OWN result. On the
+// pre-fix code this reliably mismatches or crashes on a multicore box; with the
+// generation barrier it must pass. (Probabilistic by nature — a stress guard,
+// not a proof; the proof is the audit + the ordering argument in the header.)
+static void testGpuHostWorkPoolCrossGenBarrier()
+{
+    spatcore::gpu::GpuHostWorkPool pool;
+
+    // Oversubscribe: many more workers than cores forces the OS to preempt a
+    // worker constantly, so the finish->redispatch window (a worker preempted
+    // right after the last item, before it re-checks the item counter) is hit
+    // often. With a tiny item count most workers find no work and race straight
+    // to the completion barrier — exactly the interleaving the bug needs.
+    const unsigned hw = std::thread::hardware_concurrency();
+    const int workers = (int) (hw > 0 ? hw * 2u : 8u);   // oversubscribed
+    pool.prepare (workers, 1.3333, 0.5);
+
+    const int rounds = 50000;
+    const int count  = 3;               // tiny => tight finish/redispatch window
+    std::vector<int> out ((size_t) count, 0);
+
+    for (int r = 0; r < rounds; ++r)
+    {
+        const int base = r * 7 + 1;     // unique per generation
+        std::fill (out.begin(), out.end(), -1);
+
+        // Fresh lambda each round; its captured frame is destroyed when this
+        // parallelFor returns, so a bled straggler invoking a STALE currentFunc
+        // would read a destroyed capture (UAF) or write the previous base.
+        pool.parallelFor (count, [&out, base] (int i) { out[(size_t) i] = base + i; });
+
+        for (int i = 0; i < count; ++i)
+            CHECK (out[(size_t) i] == base + i);
+    }
+
+    pool.shutdown();
+}
+
 //==============================================================================
 int main()
 {
@@ -280,6 +326,7 @@ int main()
         testOscRoundtrip();
         testRtThreadPriority();
         testGpuHostWorkPoolDeterminism();
+        testGpuHostWorkPoolCrossGenBarrier();
     }
     catch (const std::exception& e)
     {

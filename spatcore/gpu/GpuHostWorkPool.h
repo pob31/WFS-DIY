@@ -22,6 +22,22 @@
       - Workers NEVER touch GPU APIs — every parallelFor lambda operates on host
         memory only, so there are no per-worker GPU-context concerns.
 
+    Concurrency protocol (generation barrier). Each parallelFor is a numbered
+    DISPATCH GENERATION. A worker wakes on a generation, drains items for exactly
+    that generation, then re-parks until the NEXT bump — it can never bleed into
+    the following call's item state. parallelFor does NOT return until EVERY
+    worker has LEFT executeItems for the current generation (workersRemaining
+    reaches 0), not merely until every item ran. That worker-quiescence barrier
+    is what makes it safe to clear/re-publish currentFunc, nextItem and
+    totalItems for the next call: waiting on an items-done count alone is NOT
+    sufficient, because the worker performing the final item is still spinning in
+    the item loop and could otherwise re-read state the next call is overwriting
+    (a torn read of the non-atomic currentFunc / a use-after-free of its captured
+    stack frame). All cross-thread publication rides the dispatchMutex (payload
+    written before the generation bump, read after the matching acquire) and the
+    doneMutex (the workersRemaining barrier), so no payload atomic needs more than
+    relaxed ordering.
+
     Determinism (plan section 4): parallelFor distributes items dynamically, but
     every item writes only item-indexed state and every item's FP sequence is a
     pure function of (item index, block inputs, per-item persistent state) — no
@@ -90,9 +106,11 @@ public:
 
         running.store (false, std::memory_order_release);
 
+        // Advance the generation so any parked worker's wait predicate fires
+        // (in addition to !running), then wake them to observe the stop.
         {
             std::lock_guard<std::mutex> lock (dispatchMutex);
-            dispatch.store (true, std::memory_order_release);
+            dispatchGen.fetch_add (1, std::memory_order_release);
         }
         dispatchCV.notify_all();
 
@@ -106,9 +124,10 @@ public:
 
     //==========================================================================
     /** Run func(0), func(1), ... func(count-1) across the workers + the calling
-        thread, blocking until all items complete. Sequential fallback when no
-        workers are prepared or count <= 1 (identical call order to a plain
-        for-loop). Single-caller contract: only the pump thread calls this. */
+        thread, blocking until all items complete AND all workers have re-parked.
+        Sequential fallback when no workers are prepared or count <= 1 (identical
+        call order to a plain for-loop). Single-caller contract: only the pump
+        thread calls this. */
     template <typename Func>
     void parallelFor (int count, Func&& func)
     {
@@ -124,38 +143,38 @@ public:
             return;
         }
 
-        // Publish the work item. currentFunc holds a type-erased view of func;
-        // it is only alive for the duration of this call (workers are parked
-        // again before we return), so capturing by reference is safe.
+        // Publish this generation's work. currentFunc holds a type-erased view of
+        // func; it is written here (before the generation bump) and only read by a
+        // worker after it observes the new generation through dispatchMutex, so the
+        // read/write pair is ordered and race-free. Kept alive until the barrier
+        // below confirms every worker has left executeItems.
         currentFunc = [&func] (int i) { func (i); };
         totalItems.store (count, std::memory_order_relaxed);
         nextItem.store (0, std::memory_order_relaxed);
-        doneCount.store (0, std::memory_order_release);
+        workersRemaining.store (numActiveWorkers, std::memory_order_relaxed);
 
-        // Wake the workers.
+        // Release the workers by advancing the dispatch generation. A worker only
+        // serves the generation it wakes on and re-parks until the next bump, so it
+        // can never bleed into the following call's item state.
         {
             std::lock_guard<std::mutex> lock (dispatchMutex);
-            dispatch.store (true, std::memory_order_release);
+            dispatchGen.fetch_add (1, std::memory_order_release);
         }
         dispatchCV.notify_all();
 
         // The calling (pump) thread participates.
         executeItems();
 
-        // Wait for every item to complete (CV, no spin).
+        // Barrier: wait until EVERY worker has LEFT executeItems for this
+        // generation (workersRemaining == 0), not merely until every item ran.
+        // Only then are the workers quiescent, so clearing / re-publishing the
+        // work state below (and on the next call) cannot race a straggler.
         {
             std::unique_lock<std::mutex> lock (doneMutex);
-            doneCV.wait (lock, [this, count] {
-                return doneCount.load (std::memory_order_acquire) >= count;
+            doneCV.wait (lock, [this] {
+                return workersRemaining.load (std::memory_order_acquire) == 0;
             });
         }
-
-        // Park the workers again (clear dispatch).
-        {
-            std::lock_guard<std::mutex> lock (dispatchMutex);
-            dispatch.store (false, std::memory_order_release);
-        }
-        dispatchCV.notify_all();
 
         currentFunc = nullptr;
     }
@@ -173,13 +192,18 @@ private:
         if (realtimePeriodMs > 0.0)
             spatcore::rt::setCurrentThreadAudioPriority (realtimePeriodMs, realtimeComputationMs);
 
+        uint64_t myGen = 0;
+
         while (running.load (std::memory_order_acquire))
         {
+            // Park until the caller advances the generation (or asks us to stop).
             {
                 std::unique_lock<std::mutex> lock (dispatchMutex);
-                dispatchCV.wait (lock, [this] {
-                    return dispatch.load (std::memory_order_acquire);
+                dispatchCV.wait (lock, [this, myGen] {
+                    return dispatchGen.load (std::memory_order_acquire) != myGen
+                        || ! running.load (std::memory_order_acquire);
                 });
+                myGen = dispatchGen.load (std::memory_order_acquire);
             }
 
             if (! running.load (std::memory_order_acquire))
@@ -187,13 +211,15 @@ private:
 
             executeItems();
 
-            // Wait until the caller clears dispatch (has collected all items).
+            // Report we have left executeItems for this generation. The last
+            // worker out releases the caller's quiescence barrier. We then loop
+            // back and park for the NEXT generation (myGen == dispatchGen now, so
+            // the predicate stays false until the caller's next bump) — no worker
+            // can re-enter executeItems for a generation it has already served.
+            if (workersRemaining.fetch_sub (1, std::memory_order_acq_rel) - 1 == 0)
             {
-                std::unique_lock<std::mutex> lock (dispatchMutex);
-                dispatchCV.wait (lock, [this] {
-                    return ! dispatch.load (std::memory_order_acquire)
-                        || ! running.load (std::memory_order_acquire);
-                });
+                std::lock_guard<std::mutex> lock (doneMutex);
+                doneCV.notify_one();
             }
         }
     }
@@ -208,14 +234,7 @@ private:
             if (idx >= total)
                 break;
 
-            if (currentFunc)
-                currentFunc (idx);
-
-            if (doneCount.fetch_add (1, std::memory_order_release) + 1 >= total)
-            {
-                std::lock_guard<std::mutex> lock (doneMutex);
-                doneCV.notify_one();
-            }
+            currentFunc (idx);
         }
     }
 
@@ -228,20 +247,22 @@ private:
     double realtimePeriodMs = 0.0;
     double realtimeComputationMs = 0.0;
 
-    // Dispatch signalling (caller -> workers).
+    // Dispatch signalling (caller -> workers): a monotonic generation counter.
+    // A worker serves exactly the generation it wakes on; the caller bumps it to
+    // release a new one. Rides dispatchMutex so the payload writes below publish.
     std::mutex dispatchMutex;
     std::condition_variable dispatchCV;
-    std::atomic<bool> dispatch { false };
+    std::atomic<uint64_t> dispatchGen { 0 };
 
-    // Completion signalling (workers -> caller).
+    // Completion / quiescence barrier (workers -> caller).
     std::mutex doneMutex;
     std::condition_variable doneCV;
+    std::atomic<int> workersRemaining { 0 };
 
-    // Work items.
+    // Work items for the current generation (published under dispatchMutex).
     std::function<void (int)> currentFunc;
     std::atomic<int> totalItems { 0 };
     std::atomic<int> nextItem { 0 };
-    std::atomic<int> doneCount { 0 };
 };
 
 //==============================================================================
