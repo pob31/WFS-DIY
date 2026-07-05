@@ -69,11 +69,43 @@ struct MetalWfsBackend::Impl
     id<MTLBuffer> bScratch = nil;        // [(s*numOut+out)*numIn+in], rewritten each launch
     id<MTLBuffer> bShelfState = nil;     // [pairs][4] persistent
     id<MTLBuffer> bFrShelfState = nil;   // [pairs][4] persistent
-    id<MTLBuffer> bDelaysPrev = nil, bDelaysCurr = nil;
-    id<MTLBuffer> bGainsPrev = nil, bGainsCurr = nil;
-    id<MTLBuffer> bFrDelaysPrev = nil, bFrDelaysCurr = nil;
-    id<MTLBuffer> bFrGainsPrev = nil, bFrGainsCurr = nil;
-    id<MTLBuffer> bHfAttenDb = nil, bFrHfAttenDb = nil;
+    // Host staging (curr snapshot only — prev never leaves the device, see the
+    // PingPong note below). The GPU reads the ping-pong slots / the *Dev single
+    // buffers, never these staging buffers directly.
+    id<MTLBuffer> bDelaysCurr = nil;
+    id<MTLBuffer> bGainsCurr = nil;
+    id<MTLBuffer> bFrDelaysCurr = nil;
+    id<MTLBuffer> bFrGainsCurr = nil;
+    id<MTLBuffer> bHfAttenDb = nil, bFrHfAttenDb = nil;         // single-buffer staging
+    id<MTLBuffer> bHfAttenDbDev = nil, bFrHfAttenDbDev = nil;   // single device buffers (GPU-read)
+
+    // Upload diet (M2): device ping-pong per prev/curr matrix pair, mirrored
+    // from CudaWfsBackend.cpp (d9893cc). The kernel takes the matrix pointers
+    // as bound BUFFERS and only READS them (const, MetalWfsKernels.h), so
+    // "prev" never needs a host round-trip: it is simply the slot uploaded one
+    // launch earlier. Only a CHANGED curr is uploaded (memcpy'd into the
+    // alternate slot, then swap); unchanged blocks bind prev == curr == the
+    // live slot — the kernel ramps x->x = x, bit-exact, and aliasing the two
+    // bindings is legal because neither is written through. First launch:
+    // upload once, bind prev == curr (the old havePrev bootstrap semantics).
+    // The pump is fully synchronous ([cb waitUntilCompleted] before the next
+    // fill), so memcpy'ing a slot the previous launch read is hazard-free.
+    struct PingPong
+    {
+        id<MTLBuffer> slot[2] = { nil, nil };
+        int  curr = 0;               // slot holding the last-consumed curr
+        bool everUploaded = false;   // first launch: upload once, prev == curr
+    };
+    PingPong ppDelays, ppGains, ppFrDelays, ppFrGains;
+    bool hfUploaded = false;         // single-buffer change-detect state
+    bool frHfUploaded = false;
+
+    // Change-detect baselines: the last STAGED (== last uploaded) copy of each
+    // matrix, memcmp'd against the freshly staged buffer. Comparing staged
+    // copies (never the live app matrices) is torn-read-safe: it compares
+    // exactly the values the kernel would consume.
+    std::vector<float> lastDelays, lastGains, lastFrDelays, lastFrGains;
+    std::vector<float> lastHfAttenDb, lastFrHfAttenDb;
 
     int numIn = 0, numOut = 0, blockSize = 0;
     uint32_t ringCapacity = 0;
@@ -93,13 +125,6 @@ struct MetalWfsBackend::Impl
     const float* frDelaysMs = nullptr;
     const float* frLevels = nullptr;
     const float* frHfAttenDb = nullptr;
-
-    // Last launch's end matrices (ramp continuity).
-    std::vector<float> delaysPrevSamples;
-    std::vector<float> gainsPrev;
-    std::vector<float> frDelaysPrevSamples;
-    std::vector<float> frGainsPrev;
-    bool havePrev = false;
 
     WfsFrHostState frHost;            // per-input FR pre-filters + jitter
 
@@ -170,7 +195,6 @@ bool MetalWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,
         m.ringCapacity = m.maxDelaySamples + (uint32_t) m.blockSize;
         m.ringWritePos = 0;
         m.ringValid = 0;
-        m.havePrev = false;
 
         // Threadgroup size must satisfy BOTH PSOs; pairGroups derives from it.
         m.threadsPerGroup = std::min<NSUInteger> (256,
@@ -199,22 +223,33 @@ bool MetalWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,
         m.bScratch = mkBuf ((size_t) m.numIn * m.numOut * m.blockSize);
         m.bShelfState = mkBuf ((size_t) matrix * 4);
         m.bFrShelfState = mkBuf ((size_t) matrix * 4);
-        m.bDelaysPrev = mkBuf (matrix);
         m.bDelaysCurr = mkBuf (matrix);
-        m.bGainsPrev = mkBuf (matrix);
         m.bGainsCurr = mkBuf (matrix);
-        m.bFrDelaysPrev = mkBuf (matrix);
         m.bFrDelaysCurr = mkBuf (matrix);
-        m.bFrGainsPrev = mkBuf (matrix);
         m.bFrGainsCurr = mkBuf (matrix);
         m.bHfAttenDb = mkBuf (matrix);
         m.bFrHfAttenDb = mkBuf (matrix);
+        for (auto* pp : { &m.ppDelays, &m.ppGains, &m.ppFrDelays, &m.ppFrGains })
+        {
+            pp->slot[0] = mkBuf (matrix);
+            pp->slot[1] = mkBuf (matrix);
+            pp->curr = 0;
+            pp->everUploaded = false;
+        }
+        m.bHfAttenDbDev = mkBuf (matrix);
+        m.bFrHfAttenDbDev = mkBuf (matrix);
+        m.hfUploaded = false;
+        m.frHfUploaded = false;
 
         if (! (m.bParams && m.bIn && m.bFrIn && m.bOut && m.bRing && m.bFrRing
                && m.bScratch && m.bShelfState && m.bFrShelfState
-               && m.bDelaysPrev && m.bDelaysCurr && m.bGainsPrev && m.bGainsCurr
-               && m.bFrDelaysPrev && m.bFrDelaysCurr && m.bFrGainsPrev && m.bFrGainsCurr
-               && m.bHfAttenDb && m.bFrHfAttenDb))
+               && m.bDelaysCurr && m.bGainsCurr && m.bFrDelaysCurr && m.bFrGainsCurr
+               && m.ppDelays.slot[0] && m.ppDelays.slot[1]
+               && m.ppGains.slot[0] && m.ppGains.slot[1]
+               && m.ppFrDelays.slot[0] && m.ppFrDelays.slot[1]
+               && m.ppFrGains.slot[0] && m.ppFrGains.slot[1]
+               && m.bHfAttenDb && m.bFrHfAttenDb
+               && m.bHfAttenDbDev && m.bFrHfAttenDbDev))
         {
             lastError = "Metal buffer allocation failed";
             release();
@@ -226,10 +261,12 @@ bool MetalWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,
         memset (m.bShelfState.contents, 0, m.bShelfState.length);
         memset (m.bFrShelfState.contents, 0, m.bFrShelfState.length);
 
-        m.delaysPrevSamples.assign (matrix, 0.0f);
-        m.gainsPrev.assign (matrix, 0.0f);
-        m.frDelaysPrevSamples.assign (matrix, 0.0f);
-        m.frGainsPrev.assign (matrix, 0.0f);
+        m.lastDelays.assign (matrix, 0.0f);
+        m.lastGains.assign (matrix, 0.0f);
+        m.lastFrDelays.assign (matrix, 0.0f);
+        m.lastFrGains.assign (matrix, 0.0f);
+        m.lastHfAttenDb.assign (matrix, 0.0f);
+        m.lastFrHfAttenDb.assign (matrix, 0.0f);
 
         m.frHost.prepare (m.numIn, m.numOut, sampleRate);
     }
@@ -313,19 +350,6 @@ bool MetalWfsBackend::processBlock (const float* const* inputs, float* const* ou
                                 m.latencyMs, srScale, maxDelay,
                                 fdCurr, fgCurr);
 
-        if (! m.havePrev)
-        {
-            memcpy (m.delaysPrevSamples.data(), dCurr, matrix * sizeof (float));
-            memcpy (m.gainsPrev.data(), gCurr, matrix * sizeof (float));
-            memcpy (m.frDelaysPrevSamples.data(), fdCurr, matrix * sizeof (float));
-            memcpy (m.frGainsPrev.data(), fgCurr, matrix * sizeof (float));
-            m.havePrev = true;
-        }
-        memcpy (m.bDelaysPrev.contents, m.delaysPrevSamples.data(), matrix * sizeof (float));
-        memcpy (m.bGainsPrev.contents, m.gainsPrev.data(), matrix * sizeof (float));
-        memcpy (m.bFrDelaysPrev.contents, m.frDelaysPrevSamples.data(), matrix * sizeof (float));
-        memcpy (m.bFrGainsPrev.contents, m.frGainsPrev.data(), matrix * sizeof (float));
-
         // Input channels -> flat shared buffer (silence for missing channels),
         // and the host-side FR pre-filter chain -> frIn staging.
         float* inFlat = (float*) m.bIn.contents;
@@ -337,6 +361,56 @@ bool MetalWfsBackend::processBlock (const float* const* inputs, float* const* ou
                 memset (inFlat + (size_t) ch * m.blockSize, 0, (size_t) m.blockSize * sizeof (float));
         }
         m.frHost.filterBlock (inputs, (float*) m.bFrIn.contents, m.blockSize);
+
+        // Upload diet: memcmp each freshly staged matrix against its lastStaged
+        // baseline. Unchanged => skip the memcpy AND the slot swap (bind prev ==
+        // curr == the live slot; the kernel ramps x->x = x). Changed => memcpy
+        // into the alternate slot, prev = the previous slot (last launch's curr,
+        // already on-device), swap. First launch: single memcpy, prev == curr
+        // (the old havePrev bootstrap, bit-exact). Safe against in-flight reads:
+        // the previous block ended with [cb waitUntilCompleted], so no launch is
+        // reading either slot while we write it. (Shared storage: a skipped
+        // memcpy leaves the slot's previous contents intact — the CUDA skip
+        // semantics exactly.)
+        auto stagePair = [matrix] (Impl::PingPong& pp, const float* staged,
+                                   std::vector<float>& last,
+                                   id<MTLBuffer>& prevArg, id<MTLBuffer>& currArg)
+        {
+            const size_t bytes = (size_t) matrix * sizeof (float);
+            if (pp.everUploaded && std::memcmp (staged, last.data(), bytes) == 0)
+            {
+                prevArg = currArg = pp.slot[pp.curr];      // unchanged: no upload, no swap
+                return;
+            }
+            const int next = pp.everUploaded ? (pp.curr ^ 1) : pp.curr;
+            memcpy (pp.slot[next].contents, staged, bytes);   // "upload" into alternate slot
+            std::memcpy (last.data(), staged, bytes);
+            prevArg = pp.slot[pp.curr];                    // first launch: prev == curr
+            currArg = pp.slot[next];
+            pp.curr = next;
+            pp.everUploaded = true;
+        };
+        auto stageSingle = [matrix] (id<MTLBuffer> dBuf, const float* staged,
+                                     std::vector<float>& last, bool& uploaded)
+        {
+            const size_t bytes = (size_t) matrix * sizeof (float);
+            if (uploaded && std::memcmp (staged, last.data(), bytes) == 0)
+                return;
+            memcpy (dBuf.contents, staged, bytes);
+            std::memcpy (last.data(), staged, bytes);
+            uploaded = true;
+        };
+
+        id<MTLBuffer> dDelaysPrevArg = nil, dDelaysCurrArg = nil;
+        id<MTLBuffer> dGainsPrevArg = nil, dGainsCurrArg = nil;
+        id<MTLBuffer> dFrDelaysPrevArg = nil, dFrDelaysCurrArg = nil;
+        id<MTLBuffer> dFrGainsPrevArg = nil, dFrGainsCurrArg = nil;
+        stagePair (m.ppDelays,   dCurr,  m.lastDelays,   dDelaysPrevArg,   dDelaysCurrArg);
+        stagePair (m.ppGains,    gCurr,  m.lastGains,    dGainsPrevArg,    dGainsCurrArg);
+        stagePair (m.ppFrDelays, fdCurr, m.lastFrDelays, dFrDelaysPrevArg, dFrDelaysCurrArg);
+        stagePair (m.ppFrGains,  fgCurr, m.lastFrGains,  dFrGainsPrevArg,  dFrGainsCurrArg);
+        stageSingle (m.bHfAttenDbDev,   hfDb,   m.lastHfAttenDb,   m.hfUploaded);
+        stageSingle (m.bFrHfAttenDbDev, frHfDb, m.lastFrHfAttenDb, m.frHfUploaded);
 
         WfsParamsGpu p { (uint32_t) m.numIn, (uint32_t) m.numOut, (uint32_t) m.blockSize,
                          m.ringCapacity, m.ringWritePos, m.ringValid,
@@ -353,16 +427,16 @@ bool MetalWfsBackend::processBlock (const float* const* inputs, float* const* ou
         [enc setBuffer: m.bFrIn offset: 0 atIndex: 2];
         [enc setBuffer: m.bRing offset: 0 atIndex: 3];
         [enc setBuffer: m.bFrRing offset: 0 atIndex: 4];
-        [enc setBuffer: m.bDelaysPrev offset: 0 atIndex: 5];
-        [enc setBuffer: m.bDelaysCurr offset: 0 atIndex: 6];
-        [enc setBuffer: m.bGainsPrev offset: 0 atIndex: 7];
-        [enc setBuffer: m.bGainsCurr offset: 0 atIndex: 8];
-        [enc setBuffer: m.bFrDelaysPrev offset: 0 atIndex: 9];
-        [enc setBuffer: m.bFrDelaysCurr offset: 0 atIndex: 10];
-        [enc setBuffer: m.bFrGainsPrev offset: 0 atIndex: 11];
-        [enc setBuffer: m.bFrGainsCurr offset: 0 atIndex: 12];
-        [enc setBuffer: m.bHfAttenDb offset: 0 atIndex: 13];
-        [enc setBuffer: m.bFrHfAttenDb offset: 0 atIndex: 14];
+        [enc setBuffer: dDelaysPrevArg offset: 0 atIndex: 5];
+        [enc setBuffer: dDelaysCurrArg offset: 0 atIndex: 6];
+        [enc setBuffer: dGainsPrevArg offset: 0 atIndex: 7];
+        [enc setBuffer: dGainsCurrArg offset: 0 atIndex: 8];
+        [enc setBuffer: dFrDelaysPrevArg offset: 0 atIndex: 9];
+        [enc setBuffer: dFrDelaysCurrArg offset: 0 atIndex: 10];
+        [enc setBuffer: dFrGainsPrevArg offset: 0 atIndex: 11];
+        [enc setBuffer: dFrGainsCurrArg offset: 0 atIndex: 12];
+        [enc setBuffer: m.bHfAttenDbDev offset: 0 atIndex: 13];
+        [enc setBuffer: m.bFrHfAttenDbDev offset: 0 atIndex: 14];
         [enc setBuffer: m.bShelfState offset: 0 atIndex: 15];
         [enc setBuffer: m.bFrShelfState offset: 0 atIndex: 16];
         [enc setBuffer: m.bScratch offset: 0 atIndex: 17];
@@ -395,13 +469,10 @@ bool MetalWfsBackend::processBlock (const float* const* inputs, float* const* ou
             if (outputs[ch] != nullptr)
                 memcpy (outputs[ch], outFlat + (size_t) ch * m.blockSize, (size_t) m.blockSize * sizeof (float));
 
-        // Advance host-tracked state
+        // Advance host-tracked state (matrix prev continuity now lives on the
+        // device: the ping-pong slots + lastStaged baselines, updated at upload).
         m.ringWritePos = (m.ringWritePos + (uint32_t) m.blockSize) % m.ringCapacity;
         m.ringValid = std::min (m.maxDelaySamples, m.ringValid + (uint32_t) m.blockSize);
-        memcpy (m.delaysPrevSamples.data(), dCurr, matrix * sizeof (float));
-        memcpy (m.gainsPrev.data(), gCurr, matrix * sizeof (float));
-        memcpy (m.frDelaysPrevSamples.data(), fdCurr, matrix * sizeof (float));
-        memcpy (m.frGainsPrev.data(), fgCurr, matrix * sizeof (float));
 
         lastLaunchMs = std::chrono::duration<double, std::milli> (
                            std::chrono::steady_clock::now() - t0).count();
@@ -423,7 +494,17 @@ void MetalWfsBackend::reset() noexcept
     m.frHost.reset();
     m.ringWritePos = 0;
     m.ringValid = 0;
-    m.havePrev = false;
+
+    // Upload-diet state back to first-launch semantics: the next block
+    // force-uploads every matrix and binds prev == curr (old havePrev
+    // bootstrap). lastStaged baselines re-zeroed to match prepare().
+    for (auto* pp : { &m.ppDelays, &m.ppGains, &m.ppFrDelays, &m.ppFrGains })
+        pp->everUploaded = false;
+    m.hfUploaded = false;
+    m.frHfUploaded = false;
+    for (auto* v : { &m.lastDelays, &m.lastGains, &m.lastFrDelays, &m.lastFrGains,
+                     &m.lastHfAttenDb, &m.lastFrHfAttenDb })
+        std::fill (v->begin(), v->end(), 0.0f);
 }
 
 void MetalWfsBackend::release() noexcept
@@ -434,9 +515,19 @@ void MetalWfsBackend::release() noexcept
         m.bParams = m.bIn = m.bFrIn = m.bOut = nil;
         m.bRing = m.bFrRing = m.bScratch = nil;
         m.bShelfState = m.bFrShelfState = nil;
-        m.bDelaysPrev = m.bDelaysCurr = m.bGainsPrev = m.bGainsCurr = nil;
-        m.bFrDelaysPrev = m.bFrDelaysCurr = m.bFrGainsPrev = m.bFrGainsCurr = nil;
+        m.bDelaysCurr = m.bGainsCurr = nil;
+        m.bFrDelaysCurr = m.bFrGainsCurr = nil;
         m.bHfAttenDb = m.bFrHfAttenDb = nil;
+        m.bHfAttenDbDev = m.bFrHfAttenDbDev = nil;
+        for (auto* pp : { &m.ppDelays, &m.ppGains, &m.ppFrDelays, &m.ppFrGains })
+        {
+            pp->slot[0] = nil;
+            pp->slot[1] = nil;
+            pp->curr = 0;
+            pp->everUploaded = false;
+        }
+        m.hfUploaded = false;
+        m.frHfUploaded = false;
         m.psoPairs = nil;
         m.psoReduce = nil;
         m.queue = nil;
@@ -448,7 +539,6 @@ void MetalWfsBackend::release() noexcept
     m.frDelaysMs = nullptr;
     m.frLevels = nullptr;
     m.frHfAttenDb = nullptr;
-    m.havePrev = false;
     ready = false;
 }
 

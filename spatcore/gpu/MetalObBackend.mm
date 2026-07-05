@@ -43,6 +43,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstring>
+#include <utility>
 #include <vector>
 
 namespace spatcore::gpu {
@@ -81,11 +82,51 @@ struct MetalObBackend::Impl
     id<MTLBuffer> bPairOut = nil;         // [(s*numOut+out)*numIn+in] transient
     id<MTLBuffer> bShelfState = nil;      // [pairs][4] persistent
     id<MTLBuffer> bFrShelfState = nil;    // [pairs][4] persistent
-    id<MTLBuffer> bDelaysPrev = nil, bDelaysCurr = nil;
-    id<MTLBuffer> bGainsPrev = nil, bGainsCurr = nil;
-    id<MTLBuffer> bFrDelaySamples = nil;  // [pairs][blockSize] per-sample FR delay (jitter sub-stepped)
-    id<MTLBuffer> bFrGainsPrev = nil, bFrGainsCurr = nil;
-    id<MTLBuffer> bHfAttenDb = nil, bFrHfAttenDb = nil;
+    // Host staging (curr snapshot only — prev never leaves the device). The GPU
+    // reads the ping-pong slots / the *Dev buffers, never these staging buffers.
+    id<MTLBuffer> bDelaysCurr = nil;
+    id<MTLBuffer> bGainsCurr = nil;
+    id<MTLBuffer> bFrDelaySamples = nil;     // [pairs][blockSize] per-sample FR delay staging (jitter sub-stepped)
+    id<MTLBuffer> bFrDelaySamplesDev = nil;  // [pairs][blockSize] device buffer the kernel reads (tiered upload)
+    id<MTLBuffer> bFrGainsCurr = nil;
+    id<MTLBuffer> bHfAttenDb = nil, bFrHfAttenDb = nil;         // single-buffer staging
+    id<MTLBuffer> bHfAttenDbDev = nil, bFrHfAttenDbDev = nil;   // single device buffers (GPU-read)
+
+    // Upload diet (M2): device ping-pong per prev/curr matrix pair, mirrored
+    // from CudaObBackend.cpp (d9893cc). The kernel takes the matrix pointers as
+    // bound BUFFERS and only READS them (const, MetalObKernels.h), so "prev"
+    // never needs a host round-trip: it is simply the slot uploaded one launch
+    // earlier. Only a CHANGED curr is uploaded (memcpy'd into the alternate
+    // slot, then swap); unchanged blocks bind prev == curr == the live slot —
+    // the kernel ramps x->x = x, bit-exact. First launch: upload once, bind
+    // prev == curr (the old havePrev bootstrap). The pump is fully synchronous
+    // ([cb waitUntilCompleted] before the next fill), so memcpy'ing a slot the
+    // previous launch read is hazard-free.
+    struct PingPong
+    {
+        id<MTLBuffer> slot[2] = { nil, nil };
+        int  curr = 0;               // slot holding the last-consumed curr
+        bool everUploaded = false;   // first launch: upload once, prev == curr
+    };
+    PingPong ppDelays, ppGains, ppFrGains;
+    bool hfUploaded = false;         // single-buffer change-detect state
+    bool frHfUploaded = false;
+
+    // Change-detect baselines: the last STAGED (== last uploaded) copy of each
+    // matrix, memcmp'd against the freshly staged buffer. lastFrGains doubles as
+    // the FR-activity gate input for computeFrDelaysPerSample and the active-row
+    // upload scan (it IS last launch's staged FR gains — the same values the
+    // kernel's doFr gate reads as frGainsPrev).
+    std::vector<float> lastDelays, lastGains, lastFrGains;
+    std::vector<float> lastHfAttenDb, lastFrHfAttenDb;
+
+    // Scatter FR tiers: coalesced [firstPair, count) runs of FR-active pairs
+    // (prev|curr gain != 0). Rows are pair-indexed in*numOut+out, so activity
+    // yields contiguous runs; one memcpy per run copies exactly the rows the
+    // kernel's doFr gate will read (all other rows are neither filled by
+    // WfsFrHostState nor read). Empty => the whole [pairs][blockSize] upload
+    // disappears.
+    std::vector<std::pair<uint32_t, uint32_t>> frActiveRuns;
 
     int numIn = 0, numOut = 0, blockSize = 0;
     uint32_t accLen = 0;          // per-pair accumulator length (samples)
@@ -104,12 +145,7 @@ struct MetalObBackend::Impl
     const float* frLevels = nullptr;
     const float* frHfAttenDb = nullptr;
 
-    // Last launch's end matrices (ramp continuity).
-    std::vector<float> delaysPrevSamples;
-    std::vector<float> gainsPrev;
     std::vector<float> frBasePrev;        // [pairs] base FR delay ramp continuity (no jitter)
-    std::vector<float> frGainsPrev;
-    bool havePrev = false;
 
     WfsFrHostState frHost;            // per-input FR pre-filters + jitter (shared)
 
@@ -179,7 +215,6 @@ bool MetalObBackend::prepare (int numInputs, int numOutputs, int blockSize,
             m.accLen = (uint32_t) m.blockSize + 2;           // sanity floor
         m.maxDelayClamp = (float) (m.accLen - 1);            // CPU: delayBufferLength - 1
         m.writePos = 0;
-        m.havePrev = false;
 
         m.threadsPerGroup = std::min<NSUInteger> (256,
                                 std::min (m.psoPairs.maxTotalThreadsPerThreadgroup,
@@ -204,21 +239,34 @@ bool MetalObBackend::prepare (int numInputs, int numOutputs, int blockSize,
         m.bPairOut = mkBuf ((size_t) matrix * m.blockSize);
         m.bShelfState = mkBuf ((size_t) matrix * 4);
         m.bFrShelfState = mkBuf ((size_t) matrix * 4);
-        m.bDelaysPrev = mkBuf (matrix);
         m.bDelaysCurr = mkBuf (matrix);
-        m.bGainsPrev = mkBuf (matrix);
         m.bGainsCurr = mkBuf (matrix);
-        m.bFrDelaySamples = mkBuf ((size_t) matrix * m.blockSize);
-        m.bFrGainsPrev = mkBuf (matrix);
         m.bFrGainsCurr = mkBuf (matrix);
+        for (auto* pp : { &m.ppDelays, &m.ppGains, &m.ppFrGains })
+        {
+            pp->slot[0] = mkBuf (matrix);
+            pp->slot[1] = mkBuf (matrix);
+            pp->curr = 0;
+            pp->everUploaded = false;
+        }
+        m.bFrDelaySamples = mkBuf ((size_t) matrix * m.blockSize);
+        m.bFrDelaySamplesDev = mkBuf ((size_t) matrix * m.blockSize);
         m.bHfAttenDb = mkBuf (matrix);
         m.bFrHfAttenDb = mkBuf (matrix);
+        m.bHfAttenDbDev = mkBuf (matrix);
+        m.bFrHfAttenDbDev = mkBuf (matrix);
+        m.hfUploaded = false;
+        m.frHfUploaded = false;
 
         if (! (m.bParams && m.bIn && m.bFrIn && m.bOut && m.bPairAcc && m.bPairOut
                && m.bShelfState && m.bFrShelfState
-               && m.bDelaysPrev && m.bDelaysCurr && m.bGainsPrev && m.bGainsCurr
-               && m.bFrDelaySamples && m.bFrGainsPrev && m.bFrGainsCurr
-               && m.bHfAttenDb && m.bFrHfAttenDb))
+               && m.bDelaysCurr && m.bGainsCurr && m.bFrGainsCurr
+               && m.ppDelays.slot[0] && m.ppDelays.slot[1]
+               && m.ppGains.slot[0] && m.ppGains.slot[1]
+               && m.ppFrGains.slot[0] && m.ppFrGains.slot[1]
+               && m.bFrDelaySamples && m.bFrDelaySamplesDev
+               && m.bHfAttenDb && m.bFrHfAttenDb
+               && m.bHfAttenDbDev && m.bFrHfAttenDbDev))
         {
             lastError = "Metal buffer allocation failed (per-pair accumulators need "
                         + std::to_string ((size_t) matrix * m.accLen * sizeof (float) / (1024 * 1024))
@@ -230,11 +278,19 @@ bool MetalObBackend::prepare (int numInputs, int numOutputs, int blockSize,
         memset (m.bPairAcc.contents, 0, m.bPairAcc.length);
         memset (m.bShelfState.contents, 0, m.bShelfState.length);
         memset (m.bFrShelfState.contents, 0, m.bFrShelfState.length);
+        // Hygiene: define the FR delay device rows once — with the tiered
+        // upload, rows for never-active pairs would otherwise stay unwritten
+        // (the kernel never reads them, but a defined buffer is one less trap).
+        memset (m.bFrDelaySamplesDev.contents, 0, m.bFrDelaySamplesDev.length);
 
-        m.delaysPrevSamples.assign (matrix, 1.0f);
-        m.gainsPrev.assign (matrix, 0.0f);
+        m.lastDelays.assign (matrix, 0.0f);
+        m.lastGains.assign (matrix, 0.0f);
+        m.lastFrGains.assign (matrix, 0.0f);   // zeros: first-launch FR gate input (CPU parity)
+        m.lastHfAttenDb.assign (matrix, 0.0f);
+        m.lastFrHfAttenDb.assign (matrix, 0.0f);
         m.frBasePrev.assign (matrix, 1.0f);
-        m.frGainsPrev.assign (matrix, 0.0f);
+        m.frActiveRuns.clear();
+        m.frActiveRuns.reserve (64);
 
         m.frHost.prepare (m.numIn, m.numOut, sampleRate);
     }
@@ -313,25 +369,46 @@ bool MetalObBackend::processBlock (const float* const* inputs, float* const* out
         for (uint32_t i = 0; i < matrix; ++i)
             fgCurr[i] = m.frLevels != nullptr ? m.frLevels[i] : 0.0f;
 
+        // Scatter FR tiers: scan pair activity (prev|curr FR gain != 0) and
+        // coalesce consecutive active pairs into upload runs. lastFrGains still
+        // holds LAST launch's staged gains here (refresh happens at upload time
+        // below) — numerically the same frGainsPrev the kernel's doFr gate reads,
+        // and the same predicate WfsFrHostState uses to skip the per-sample fill,
+        // so filled == uploaded == kernel-read rows, exactly. Toggle parity: a
+        // pair turning off stays active for one ramp-out block (prev != 0), then
+        // drops out; the jitter state-advance inside computeFrDelaysPerSample
+        // keeps running for every pair regardless (phase parity across toggles).
+        m.frActiveRuns.clear();
+        {
+            uint32_t runStart = 0;
+            bool inRun = false;
+            for (uint32_t i = 0; i < matrix; ++i)
+            {
+                const bool active = m.lastFrGains[i] != 0.0f || fgCurr[i] != 0.0f;
+                if (active && ! inRun)
+                {
+                    runStart = i;
+                    inRun = true;
+                }
+                else if (! active && inRun)
+                {
+                    m.frActiveRuns.push_back ({ runStart, i - runStart });
+                    inRun = false;
+                }
+            }
+            if (inRun)
+                m.frActiveRuns.push_back ({ runStart, matrix - runStart });
+        }
+
         // FR delay: PER-SAMPLE, with the diffusion grain sub-stepped at 64
         // samples and ramped (CPU OutputBufferProcessor parity), clamped to
-        // d >= 1, and gated on FR-active pairs (prev||curr gain != 0).
+        // d >= 1, and gated on FR-active pairs (gate input = lastFrGains: last
+        // launch's staged gains, zeros on the first launch / after reset).
         m.frHost.computeFrDelaysPerSample (m.delaysMs, m.frDelaysMs,
-                                           m.frGainsPrev.data(), fgCurr,
+                                           m.lastFrGains.data(), fgCurr,
                                            m.latencyMs, srScale, maxDelay,
                                            m.blockSize, kObSubBlock, m.frBasePrev,
                                            (float*) m.bFrDelaySamples.contents);
-
-        if (! m.havePrev)
-        {
-            memcpy (m.delaysPrevSamples.data(), dCurr, matrix * sizeof (float));
-            memcpy (m.gainsPrev.data(), gCurr, matrix * sizeof (float));
-            memcpy (m.frGainsPrev.data(), fgCurr, matrix * sizeof (float));
-            m.havePrev = true;
-        }
-        memcpy (m.bDelaysPrev.contents, m.delaysPrevSamples.data(), matrix * sizeof (float));
-        memcpy (m.bGainsPrev.contents, m.gainsPrev.data(), matrix * sizeof (float));
-        memcpy (m.bFrGainsPrev.contents, m.frGainsPrev.data(), matrix * sizeof (float));
 
         // Input channels -> flat shared buffer (silence for missing channels),
         // and the host-side FR pre-filter chain (LowCut + HighShelf) -> frIn.
@@ -345,6 +422,67 @@ bool MetalObBackend::processBlock (const float* const* inputs, float* const* out
         }
         m.frHost.filterBlock (inputs, (float*) m.bFrIn.contents, m.blockSize);
 
+        // Upload diet: memcmp each freshly staged matrix against its lastStaged
+        // baseline. Unchanged => skip the memcpy AND the slot swap (bind prev ==
+        // curr == the live slot; the kernel ramps x->x = x). Changed => memcpy
+        // into the alternate slot, prev = the previous slot (last launch's curr,
+        // already on-device), swap. First launch: single memcpy, prev == curr
+        // (the old havePrev bootstrap, bit-exact). Safe against in-flight reads:
+        // the previous block ended with [cb waitUntilCompleted], so no launch is
+        // reading either slot while we write it. (Shared storage: a skipped
+        // memcpy leaves the slot's previous contents intact — CUDA skip
+        // semantics exactly.)
+        auto stagePair = [matrix] (Impl::PingPong& pp, const float* staged,
+                                   std::vector<float>& last,
+                                   id<MTLBuffer>& prevArg, id<MTLBuffer>& currArg)
+        {
+            const size_t bytes = (size_t) matrix * sizeof (float);
+            if (pp.everUploaded && std::memcmp (staged, last.data(), bytes) == 0)
+            {
+                prevArg = currArg = pp.slot[pp.curr];      // unchanged: no upload, no swap
+                return;
+            }
+            const int next = pp.everUploaded ? (pp.curr ^ 1) : pp.curr;
+            memcpy (pp.slot[next].contents, staged, bytes);   // "upload" into alternate slot
+            std::memcpy (last.data(), staged, bytes);
+            prevArg = pp.slot[pp.curr];                    // first launch: prev == curr
+            currArg = pp.slot[next];
+            pp.curr = next;
+            pp.everUploaded = true;
+        };
+        auto stageSingle = [matrix] (id<MTLBuffer> dBuf, const float* staged,
+                                     std::vector<float>& last, bool& uploaded)
+        {
+            const size_t bytes = (size_t) matrix * sizeof (float);
+            if (uploaded && std::memcmp (staged, last.data(), bytes) == 0)
+                return;
+            memcpy (dBuf.contents, staged, bytes);
+            std::memcpy (last.data(), staged, bytes);
+            uploaded = true;
+        };
+
+        id<MTLBuffer> dDelaysPrevArg = nil, dDelaysCurrArg = nil;
+        id<MTLBuffer> dGainsPrevArg = nil, dGainsCurrArg = nil;
+        id<MTLBuffer> dFrGainsPrevArg = nil, dFrGainsCurrArg = nil;
+        stagePair (m.ppDelays,  dCurr,  m.lastDelays,  dDelaysPrevArg,  dDelaysCurrArg);
+        stagePair (m.ppGains,   gCurr,  m.lastGains,   dGainsPrevArg,   dGainsCurrArg);
+        stagePair (m.ppFrGains, fgCurr, m.lastFrGains, dFrGainsPrevArg, dFrGainsCurrArg);
+        stageSingle (m.bHfAttenDbDev,   hfDb,   m.lastHfAttenDb,   m.hfUploaded);
+        stageSingle (m.bFrHfAttenDbDev, frHfDb, m.lastFrHfAttenDb, m.frHfUploaded);
+
+        // Per-sample FR delays: upload only the coalesced active-pair runs; no
+        // runs (FR fully idle) => the whole [pairs][blockSize] copy disappears.
+        // Every row the kernel will read this block was freshly filled this
+        // block; never-active device rows keep their prepare-time zeros.
+        {
+            const float* frStaged = (const float*) m.bFrDelaySamples.contents;
+            float* frDev = (float*) m.bFrDelaySamplesDev.contents;
+            for (const auto& r : m.frActiveRuns)
+                memcpy (frDev + (size_t) r.first * m.blockSize,
+                        frStaged + (size_t) r.first * m.blockSize,
+                        (size_t) r.second * m.blockSize * sizeof (float));
+        }
+
         ObParamsGpu p { (uint32_t) m.numIn, (uint32_t) m.numOut, (uint32_t) m.blockSize,
                         m.accLen, m.writePos, m.shelfCosW0, m.shelfSinW0 };
         memcpy (m.bParams.contents, &p, sizeof (p));
@@ -357,15 +495,15 @@ bool MetalObBackend::processBlock (const float* const* inputs, float* const* out
         [enc setBuffer: m.bParams offset: 0 atIndex: 0];
         [enc setBuffer: m.bIn offset: 0 atIndex: 1];
         [enc setBuffer: m.bFrIn offset: 0 atIndex: 2];
-        [enc setBuffer: m.bHfAttenDb offset: 0 atIndex: 3];
-        [enc setBuffer: m.bFrHfAttenDb offset: 0 atIndex: 4];
-        [enc setBuffer: m.bDelaysPrev offset: 0 atIndex: 5];
-        [enc setBuffer: m.bDelaysCurr offset: 0 atIndex: 6];
-        [enc setBuffer: m.bGainsPrev offset: 0 atIndex: 7];
-        [enc setBuffer: m.bGainsCurr offset: 0 atIndex: 8];
-        [enc setBuffer: m.bFrDelaySamples offset: 0 atIndex: 9];
-        [enc setBuffer: m.bFrGainsPrev offset: 0 atIndex: 10];
-        [enc setBuffer: m.bFrGainsCurr offset: 0 atIndex: 11];
+        [enc setBuffer: m.bHfAttenDbDev offset: 0 atIndex: 3];
+        [enc setBuffer: m.bFrHfAttenDbDev offset: 0 atIndex: 4];
+        [enc setBuffer: dDelaysPrevArg offset: 0 atIndex: 5];
+        [enc setBuffer: dDelaysCurrArg offset: 0 atIndex: 6];
+        [enc setBuffer: dGainsPrevArg offset: 0 atIndex: 7];
+        [enc setBuffer: dGainsCurrArg offset: 0 atIndex: 8];
+        [enc setBuffer: m.bFrDelaySamplesDev offset: 0 atIndex: 9];
+        [enc setBuffer: dFrGainsPrevArg offset: 0 atIndex: 10];
+        [enc setBuffer: dFrGainsCurrArg offset: 0 atIndex: 11];
         [enc setBuffer: m.bShelfState offset: 0 atIndex: 12];
         [enc setBuffer: m.bFrShelfState offset: 0 atIndex: 13];
         [enc setBuffer: m.bPairAcc offset: 0 atIndex: 14];
@@ -405,11 +543,9 @@ bool MetalObBackend::processBlock (const float* const* inputs, float* const* out
                 memcpy (outputs[ch], outFlat + (size_t) ch * m.blockSize, (size_t) m.blockSize * sizeof (float));
 
         // Advance host-tracked state (FR delay continuity lives in frBasePrev,
-        // updated inside computeFrDelaysPerSample).
+        // updated inside computeFrDelaysPerSample; matrix prev continuity now
+        // lives on the device: the ping-pong slots + lastStaged baselines).
         m.writePos = (m.writePos + (uint32_t) m.blockSize) % m.accLen;
-        memcpy (m.delaysPrevSamples.data(), dCurr, matrix * sizeof (float));
-        memcpy (m.gainsPrev.data(), gCurr, matrix * sizeof (float));
-        memcpy (m.frGainsPrev.data(), fgCurr, matrix * sizeof (float));
 
         lastLaunchMs = std::chrono::duration<double, std::milli> (
                            std::chrono::steady_clock::now() - t0).count();
@@ -428,7 +564,17 @@ void MetalObBackend::reset() noexcept
         memset (m.bFrShelfState.contents, 0, m.bFrShelfState.length);
     m.frHost.reset();
     m.writePos = 0;
-    m.havePrev = false;
+
+    // Upload-diet state back to first-launch semantics: the next block
+    // force-uploads every matrix and binds prev == curr (old havePrev
+    // bootstrap). lastFrGains back to zeros = the first-launch FR gate input.
+    for (auto* pp : { &m.ppDelays, &m.ppGains, &m.ppFrGains })
+        pp->everUploaded = false;
+    m.hfUploaded = false;
+    m.frHfUploaded = false;
+    for (auto* v : { &m.lastDelays, &m.lastGains, &m.lastFrGains,
+                     &m.lastHfAttenDb, &m.lastFrHfAttenDb })
+        std::fill (v->begin(), v->end(), 0.0f);
 }
 
 void MetalObBackend::release() noexcept
@@ -439,9 +585,19 @@ void MetalObBackend::release() noexcept
         m.bParams = m.bIn = m.bFrIn = m.bOut = nil;
         m.bPairAcc = m.bPairOut = nil;
         m.bShelfState = m.bFrShelfState = nil;
-        m.bDelaysPrev = m.bDelaysCurr = m.bGainsPrev = m.bGainsCurr = nil;
-        m.bFrDelaySamples = m.bFrGainsPrev = m.bFrGainsCurr = nil;
+        m.bDelaysCurr = m.bGainsCurr = m.bFrGainsCurr = nil;
+        m.bFrDelaySamples = m.bFrDelaySamplesDev = nil;
         m.bHfAttenDb = m.bFrHfAttenDb = nil;
+        m.bHfAttenDbDev = m.bFrHfAttenDbDev = nil;
+        for (auto* pp : { &m.ppDelays, &m.ppGains, &m.ppFrGains })
+        {
+            pp->slot[0] = nil;
+            pp->slot[1] = nil;
+            pp->curr = 0;
+            pp->everUploaded = false;
+        }
+        m.hfUploaded = false;
+        m.frHfUploaded = false;
         m.psoPairs = nil;
         m.psoReduce = nil;
         m.queue = nil;
@@ -453,7 +609,6 @@ void MetalObBackend::release() noexcept
     m.frDelaysMs = nullptr;
     m.frLevels = nullptr;
     m.frHfAttenDb = nullptr;
-    m.havePrev = false;
     ready = false;
 }
 
