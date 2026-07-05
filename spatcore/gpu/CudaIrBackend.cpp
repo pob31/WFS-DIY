@@ -30,6 +30,7 @@
 #include "CudaIrBackend.h"
 #include "CudaIrKernels.h"
 #include "IrConvHostState.h"
+#include "GpuHostWorkPool.h"
 
 #include <cuda.h>           // driver API: CUcontext, cuModule*, cuLaunchKernel
 #include <cuda_runtime.h>   // runtime API: cudaMalloc, cudaHostAlloc, cudaMemcpyAsync
@@ -91,6 +92,11 @@ struct CudaIrBackend::Impl
     double sampleRate = 0.0;
 
     IrConvHostState host;
+
+    // M3: host worker pool for the per-node input/output FFTs + the segment
+    // loader. Owned here, created in prepare(), joined in release() BEFORE any
+    // CUDA teardown; workers only touch host memory (plan section 3).
+    GpuHostWorkPool pool;
 };
 
 CudaIrBackend::CudaIrBackend (int deviceIndex) : impl (std::make_unique<Impl>()) { impl->deviceIndex = deviceIndex; }
@@ -215,6 +221,16 @@ bool CudaIrBackend::prepare (int numNodes, int blockSize,
     CK_RT (cudaMemset (m.dInSpectra, 0,
                        (size_t) m.numNodes * segCap * (size_t) m.fftLen * sizeof (float)));
 
+    // M3 host worker pool: auto = clamp(physicalCores/8, 1, 2) lanes for the IR
+    // pump (FFTs are heavier per item than gather prep, and the IR pump shares
+    // the box with the WFS pump); WFS_GPU_HOST_WORKERS overrides (0 = seq).
+    {
+        const int autoWorkers = std::clamp (spatcore::rt::physicalCoreCount() / 8, 1, 2);
+        const int workers = hostWorkerCountFromEnv (autoWorkers);
+        const double periodMs = (sampleRate > 0.0) ? (1000.0 * m.blockSize / sampleRate) : 0.0;
+        m.pool.prepare (workers, periodMs, periodMs);
+    }
+
     ready = true;
     lastError.clear();
     return true;
@@ -267,7 +283,9 @@ bool CudaIrBackend::processBlock (const float* const* inputs, float* const* outp
     m.host.consumeStagedIr();
     {
         const int before = m.host.getSegmentsLoaded();
-        const int written = m.host.loadMoreSegments (m.hIrSpectra, kIrSegmentsPerLaunch);
+        // M3: budgeted IR-segment FFTs run across the pool (per-segment scratch),
+        // removing IR-load pump spikes. Bit-identical to the sequential loader.
+        const int written = m.host.loadMoreSegments (m.hIrSpectra, kIrSegmentsPerLaunch, m.pool);
         if (written > 0)
             PB_RT (cudaMemcpyAsync ((char*) m.dIrSpectra + (size_t) before * specBytes,
                                     m.hIrSpectra + (size_t) before * (size_t) m.fftLen,
@@ -276,12 +294,11 @@ bool CudaIrBackend::processBlock (const float* const* inputs, float* const* outp
     }
 
     // Newest input spectra -> pinned staging -> one strided 2D copy into each
-    // node's ring slot.
+    // node's ring slot. M3: the per-node forward FFTs run across the pool
+    // (per-node scratch; node-safe), bit-identical to the sequential loop.
     m.host.advanceRing();
     const size_t head = (size_t) m.host.getRingHead();
-    for (int node = 0; node < m.numNodes; ++node)
-        m.host.transformInput (inputs[node],
-                               m.hInSpectra + (size_t) node * (size_t) m.fftLen);
+    m.host.transformInputs (inputs, m.hInSpectra, m.pool);
     PB_RT (cudaMemcpy2DAsync ((char*) m.dInSpectra + head * specBytes,
                               segCap * specBytes,
                               m.hInSpectra, specBytes,
@@ -329,12 +346,10 @@ bool CudaIrBackend::processBlock (const float* const* inputs, float* const* outp
 
 #undef PB_RT
 
-    // Accumulated spectra -> inverse FFT + overlap-add per node.
-    for (int node = 0; node < m.numNodes; ++node)
-        if (outputs[node] != nullptr)
-            m.host.produceOutput (node,
-                                  m.hOutSpectra + (size_t) node * (size_t) m.fftLen,
-                                  outputs[node]);
+    // Accumulated spectra -> inverse FFT + overlap-add per node. M3: the
+    // per-node inverse FFTs + overlap-add run across the pool (per-node scratch
+    // + per-node tail; node-safe), bit-identical to the sequential loop.
+    m.host.produceOutputs (outputs, m.hOutSpectra, m.pool);
 
     lastLaunchMs = std::chrono::duration<double, std::milli> (
                        std::chrono::steady_clock::now() - t0).count();
@@ -344,6 +359,10 @@ bool CudaIrBackend::processBlock (const float* const* inputs, float* const* outp
 void CudaIrBackend::release() noexcept
 {
     auto& m = *impl;
+
+    // M3: join the host worker pool BEFORE any CUDA teardown (workers touch only
+    // host memory).
+    m.pool.shutdown();
 
     if (m.context != nullptr)
         cuCtxSetCurrent (m.context);

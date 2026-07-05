@@ -409,6 +409,8 @@
               file="spatcore/gpu/HipWfsBackend.cpp"/>
         <FILE id="gpuFrHost" name="WfsFrHostState.h" compile="0" resource="0"
               file="spatcore/gpu/WfsFrHostState.h"/>
+        <FILE id="gpuWkPool" name="GpuHostWorkPool.h" compile="0" resource="0"
+              file="spatcore/gpu/GpuHostWorkPool.h"/>
         <FILE id="obGpuAlgo" name="NativeGpuOutputBufferAlgorithm.h" compile="0" resource="0"
               file="spatcore/wfs/NativeGpuOutputBufferAlgorithm.h"/>
         <FILE id="obGpuSel" name="ObGpuBackend.h" compile="0" resource="0"

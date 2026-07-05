@@ -35,6 +35,7 @@
 #include "MetalObBackend.h"
 #include "MetalObKernels.h"
 #include "WfsFrHostState.h"
+#include "GpuHostWorkPool.h"
 
 #import <Metal/Metal.h>
 #import <Foundation/Foundation.h>
@@ -148,6 +149,10 @@ struct MetalObBackend::Impl
     std::vector<float> frBasePrev;        // [pairs] base FR delay ramp continuity (no jitter)
 
     WfsFrHostState frHost;            // per-input FR pre-filters + jitter (shared)
+
+    // M3: host worker pool for the fused per-input prep. Joined in release()
+    // before any Metal teardown; workers touch only host memory (plan section 3).
+    GpuHostWorkPool pool;
 
     NSUInteger threadsPerGroup = 256;
 };
@@ -295,6 +300,15 @@ bool MetalObBackend::prepare (int numInputs, int numOutputs, int blockSize,
         m.frHost.prepare (m.numIn, m.numOut, sampleRate);
     }
 
+    // M3 host worker pool: auto = clamp(physicalCores/8, 1, 3) lanes for
+    // Wfs/Ob; WFS_GPU_HOST_WORKERS overrides (0 = sequential kill switch).
+    {
+        const int autoWorkers = std::clamp (spatcore::rt::physicalCoreCount() / 8, 1, 3);
+        const int workers = hostWorkerCountFromEnv (autoWorkers);
+        const double periodMs = (sampleRate > 0.0) ? (1000.0 * m.blockSize / sampleRate) : 0.0;
+        m.pool.prepare (workers, periodMs, periodMs);
+    }
+
     ready = true;
     lastError.clear();
     return true;
@@ -343,41 +357,72 @@ bool MetalObBackend::processBlock (const float* const* inputs, float* const* out
     {
         const auto t0 = std::chrono::steady_clock::now();
 
-        // Snapshot the live matrices -> curr (with -L compensation, clamped to
-        // [1, max] - the scatter's d >= 1 contract), prev = the previous
-        // launch's curr (ramp continuity; prev >= 1 by induction).
-        float* dCurr = (float*) m.bDelaysCurr.contents;
-        float* gCurr = (float*) m.bGainsCurr.contents;
-        for (uint32_t i = 0; i < matrix; ++i)
-        {
-            float d = m.delaysMs != nullptr ? (m.delaysMs[i] - m.latencyMs) * srScale : 0.0f;
-            dCurr[i] = std::clamp (d, 1.0f, maxDelay);
-            gCurr[i] = m.gains != nullptr ? m.gains[i] : 0.0f;
-        }
+        // Shared-storage staging pointers, captured before the parallelFor; the
+        // run scan + staging below read them AFTER the join.
+        float* dCurr   = (float*) m.bDelaysCurr.contents;
+        float* gCurr   = (float*) m.bGainsCurr.contents;
+        float* hfDb    = (float*) m.bHfAttenDb.contents;
+        float* frHfDb  = (float*) m.bFrHfAttenDb.contents;
+        float* fgCurr  = (float*) m.bFrGainsCurr.contents;
+        float* inFlat  = (float*) m.bIn.contents;
+        float* frInFlat = (float*) m.bFrIn.contents;
+        float* frDelaySamples = (float*) m.bFrDelaySamples.contents;
 
-        // Shelf gains: raw dB, stepwise per launch (CPU parity: per-block setGainDb).
-        float* hfDb = (float*) m.bHfAttenDb.contents;
-        float* frHfDb = (float*) m.bFrHfAttenDb.contents;
-        for (uint32_t i = 0; i < matrix; ++i)
-        {
-            hfDb[i] = m.hfAttenDb != nullptr ? m.hfAttenDb[i] : 0.0f;
-            frHfDb[i] = m.frHfAttenDb != nullptr ? m.frHfAttenDb[i] : 0.0f;
-        }
+        // M3: pump-thread setup for the fused per-input prep, BEFORE the
+        // parallelFor (basePrev sizing + base-delay bootstrap + sub-step base).
+        const int pairs = m.numIn * m.numOut;
+        if ((int) m.frBasePrev.size() != pairs)
+            m.frBasePrev.assign ((size_t) pairs, 1.0f);
+        m.frHost.beginFrDelaysPerSample (pairs);
+        const bool firstFrBlock  = m.frHost.consumeFirstFrDelayBlock();
+        const uint32_t subStepBase = m.frHost.currentSubStep();
+        const int subLen = std::max (1, kObSubBlock);
+        const int numSubBlocks = (m.blockSize + subLen - 1) / subLen;
 
-        // FR gain: absolute frLevels (gate + level), ramped prev->curr like direct.
-        float* fgCurr = (float*) m.bFrGainsCurr.contents;
-        for (uint32_t i = 0; i < matrix; ++i)
-            fgCurr[i] = m.frLevels != nullptr ? m.frLevels[i] : 0.0f;
+        // ONE fused parallelFor(numIn): direct + shelf + FR-gain snapshot rows,
+        // the PER-SAMPLE FR-delay lane (global step index reconstructed as
+        // subStepBase + k + 1), input pack, and FR pre-filter — all for one
+        // input. Item-indexed state only => bit-identical for any worker count
+        // (section-4 OB row). subStepCounter committed once after the join.
+        m.pool.parallelFor (m.numIn, [&] (int in)
+        {
+            const int nOut = m.numOut;
+            const size_t rowBase = (size_t) in * (size_t) nOut;
+
+            for (int out = 0; out < nOut; ++out)
+            {
+                const size_t i = rowBase + (size_t) out;
+                const float d = m.delaysMs != nullptr ? (m.delaysMs[i] - m.latencyMs) * srScale : 0.0f;
+                dCurr[i]  = std::clamp (d, 1.0f, maxDelay);   // scatter d >= 1
+                gCurr[i]  = m.gains      != nullptr ? m.gains[i]      : 0.0f;
+                hfDb[i]   = m.hfAttenDb   != nullptr ? m.hfAttenDb[i]   : 0.0f;
+                frHfDb[i] = m.frHfAttenDb != nullptr ? m.frHfAttenDb[i] : 0.0f;
+                fgCurr[i] = m.frLevels    != nullptr ? m.frLevels[i]    : 0.0f;
+            }
+
+            m.frHost.computeFrDelaysPerSampleForInput (in, firstFrBlock, subStepBase,
+                                                       m.delaysMs, m.frDelaysMs,
+                                                       m.lastFrGains.data(), fgCurr,
+                                                       m.latencyMs, srScale, maxDelay,
+                                                       m.blockSize, kObSubBlock, m.frBasePrev,
+                                                       frDelaySamples);
+
+            if (inputs[in] != nullptr)
+                memcpy (inFlat + (size_t) in * m.blockSize, inputs[in], (size_t) m.blockSize * sizeof (float));
+            else
+                memset (inFlat + (size_t) in * m.blockSize, 0, (size_t) m.blockSize * sizeof (float));
+            m.frHost.filterBlockForInput (in, inputs, frInFlat, m.blockSize);
+        });
+        m.frHost.commitSubSteps (numSubBlocks);   // hoisted subStepCounter += numSubBlocks
 
         // Scatter FR tiers: scan pair activity (prev|curr FR gain != 0) and
-        // coalesce consecutive active pairs into upload runs. lastFrGains still
+        // coalesce consecutive active pairs into upload runs. Runs on the pump
+        // thread AFTER the join (needs the full staged fgCurr). lastFrGains still
         // holds LAST launch's staged gains here (refresh happens at upload time
-        // below) — numerically the same frGainsPrev the kernel's doFr gate reads,
-        // and the same predicate WfsFrHostState uses to skip the per-sample fill,
-        // so filled == uploaded == kernel-read rows, exactly. Toggle parity: a
-        // pair turning off stays active for one ramp-out block (prev != 0), then
-        // drops out; the jitter state-advance inside computeFrDelaysPerSample
-        // keeps running for every pair regardless (phase parity across toggles).
+        // below) — numerically the same frGainsPrev the kernel's doFr gate reads
+        // and the same predicate the per-sample fill used, so filled == uploaded
+        // == kernel-read rows, exactly. Toggle parity: a pair turning off stays
+        // active for one ramp-out block (prev != 0), then drops out.
         m.frActiveRuns.clear();
         {
             uint32_t runStart = 0;
@@ -399,28 +444,6 @@ bool MetalObBackend::processBlock (const float* const* inputs, float* const* out
             if (inRun)
                 m.frActiveRuns.push_back ({ runStart, matrix - runStart });
         }
-
-        // FR delay: PER-SAMPLE, with the diffusion grain sub-stepped at 64
-        // samples and ramped (CPU OutputBufferProcessor parity), clamped to
-        // d >= 1, and gated on FR-active pairs (gate input = lastFrGains: last
-        // launch's staged gains, zeros on the first launch / after reset).
-        m.frHost.computeFrDelaysPerSample (m.delaysMs, m.frDelaysMs,
-                                           m.lastFrGains.data(), fgCurr,
-                                           m.latencyMs, srScale, maxDelay,
-                                           m.blockSize, kObSubBlock, m.frBasePrev,
-                                           (float*) m.bFrDelaySamples.contents);
-
-        // Input channels -> flat shared buffer (silence for missing channels),
-        // and the host-side FR pre-filter chain (LowCut + HighShelf) -> frIn.
-        float* inFlat = (float*) m.bIn.contents;
-        for (int ch = 0; ch < m.numIn; ++ch)
-        {
-            if (inputs[ch] != nullptr)
-                memcpy (inFlat + (size_t) ch * m.blockSize, inputs[ch], (size_t) m.blockSize * sizeof (float));
-            else
-                memset (inFlat + (size_t) ch * m.blockSize, 0, (size_t) m.blockSize * sizeof (float));
-        }
-        m.frHost.filterBlock (inputs, (float*) m.bFrIn.contents, m.blockSize);
 
         // Upload diet: memcmp each freshly staged matrix against its lastStaged
         // baseline. Unchanged => skip the memcpy AND the slot swap (bind prev ==
@@ -580,6 +603,10 @@ void MetalObBackend::reset() noexcept
 void MetalObBackend::release() noexcept
 {
     auto& m = *impl;
+
+    // M3: join the host worker pool BEFORE any Metal teardown (host memory only).
+    m.pool.shutdown();
+
     @autoreleasepool
     {
         m.bParams = m.bIn = m.bFrIn = m.bOut = nil;

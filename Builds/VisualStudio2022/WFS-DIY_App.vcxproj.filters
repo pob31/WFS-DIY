@@ -4782,6 +4782,9 @@
     <ClInclude Include="..\..\spatcore\gpu\WfsFrHostState.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\spatcore\gpu\GpuHostWorkPool.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\spatcore\wfs\NativeGpuOutputBufferAlgorithm.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>

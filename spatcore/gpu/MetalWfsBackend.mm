@@ -24,6 +24,7 @@
 #include "MetalWfsBackend.h"
 #include "MetalWfsKernels.h"
 #include "WfsFrHostState.h"
+#include "GpuHostWorkPool.h"
 
 #import <Metal/Metal.h>
 #import <Foundation/Foundation.h>
@@ -127,6 +128,10 @@ struct MetalWfsBackend::Impl
     const float* frHfAttenDb = nullptr;
 
     WfsFrHostState frHost;            // per-input FR pre-filters + jitter
+
+    // M3: host worker pool for the fused per-input prep. Joined in release()
+    // before any Metal teardown; workers touch only host memory (plan section 3).
+    GpuHostWorkPool pool;
 
     NSUInteger threadsPerGroup = 256;
 };
@@ -271,6 +276,15 @@ bool MetalWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,
         m.frHost.prepare (m.numIn, m.numOut, sampleRate);
     }
 
+    // M3 host worker pool: auto = clamp(physicalCores/8, 1, 3) lanes for
+    // Wfs/Ob; WFS_GPU_HOST_WORKERS overrides (0 = sequential kill switch).
+    {
+        const int autoWorkers = std::clamp (spatcore::rt::physicalCoreCount() / 8, 1, 3);
+        const int workers = hostWorkerCountFromEnv (autoWorkers);
+        const double periodMs = (sampleRate > 0.0) ? (1000.0 * m.blockSize / sampleRate) : 0.0;
+        m.pool.prepare (workers, periodMs, periodMs);
+    }
+
     ready = true;
     lastError.clear();
     return true;
@@ -319,48 +333,50 @@ bool MetalWfsBackend::processBlock (const float* const* inputs, float* const* ou
     {
         const auto t0 = std::chrono::steady_clock::now();
 
-        // Snapshot the live matrices -> curr (with -L compensation, clamped),
-        // prev = the previous launch's curr (ramp continuity).
-        float* dCurr = (float*) m.bDelaysCurr.contents;
-        float* gCurr = (float*) m.bGainsCurr.contents;
-        for (uint32_t i = 0; i < matrix; ++i)
-        {
-            float d = m.delaysMs != nullptr ? (m.delaysMs[i] - m.latencyMs) * srScale : 0.0f;
-            dCurr[i] = std::clamp (d, 0.0f, maxDelay);
-            gCurr[i] = m.gains != nullptr ? m.gains[i] : 0.0f;
-        }
-
-        // Shelf gains: raw dB, stepwise per launch (CPU parity: per-block setGainDb).
-        float* hfDb = (float*) m.bHfAttenDb.contents;
+        // Shared-storage staging pointers (the GPU reads the ping-pong slots /
+        // *Dev buffers, never these directly). Captured before the parallelFor;
+        // the staging (memcmp/upload) below reads them AFTER the join.
+        float* dCurr  = (float*) m.bDelaysCurr.contents;
+        float* gCurr  = (float*) m.bGainsCurr.contents;
+        float* hfDb   = (float*) m.bHfAttenDb.contents;
         float* frHfDb = (float*) m.bFrHfAttenDb.contents;
-        for (uint32_t i = 0; i < matrix; ++i)
-        {
-            hfDb[i] = m.hfAttenDb != nullptr ? m.hfAttenDb[i] : 0.0f;
-            frHfDb[i] = m.frHfAttenDb != nullptr ? m.frHfAttenDb[i] : 0.0f;
-        }
-
-        // FR: advance diffusion jitter (64-sample sub-step cadence), then
-        // snapshot the FR curr matrices. The pipeline latency is subtracted
-        // from the ABSOLUTE FR delay (direct + extra + jitter - L),
-        // preserving the FR-vs-direct offset exactly.
         float* fdCurr = (float*) m.bFrDelaysCurr.contents;
         float* fgCurr = (float*) m.bFrGainsCurr.contents;
-        m.frHost.advanceJitter (m.blockSize);
-        m.frHost.computeFrCurr (m.delaysMs, m.frDelaysMs, m.frLevels,
-                                m.latencyMs, srScale, maxDelay,
-                                fdCurr, fgCurr);
-
-        // Input channels -> flat shared buffer (silence for missing channels),
-        // and the host-side FR pre-filter chain -> frIn staging.
         float* inFlat = (float*) m.bIn.contents;
-        for (int ch = 0; ch < m.numIn; ++ch)
+        float* frInFlat = (float*) m.bFrIn.contents;
+
+        // M3: ONE fused parallelFor(numIn) — input pack, per-input FR pre-filter,
+        // per-input jitter advance (launch index HOISTED), and the direct +
+        // shelf + FR-curr snapshot rows for that input. Item-indexed state only
+        // => bit-identical for any worker count (section-4 determinism table).
+        const uint32_t launchIdx = m.frHost.currentLaunchIndex();
+        m.pool.parallelFor (m.numIn, [&] (int in)
         {
-            if (inputs[ch] != nullptr)
-                memcpy (inFlat + (size_t) ch * m.blockSize, inputs[ch], (size_t) m.blockSize * sizeof (float));
+            const int nOut = m.numOut;
+            const size_t rowBase = (size_t) in * (size_t) nOut;
+
+            for (int out = 0; out < nOut; ++out)
+            {
+                const size_t i = rowBase + (size_t) out;
+                const float d = m.delaysMs != nullptr ? (m.delaysMs[i] - m.latencyMs) * srScale : 0.0f;
+                dCurr[i]  = std::clamp (d, 0.0f, maxDelay);
+                gCurr[i]  = m.gains      != nullptr ? m.gains[i]      : 0.0f;
+                hfDb[i]   = m.hfAttenDb   != nullptr ? m.hfAttenDb[i]   : 0.0f;
+                frHfDb[i] = m.frHfAttenDb != nullptr ? m.frHfAttenDb[i] : 0.0f;
+            }
+
+            m.frHost.advanceJitterForInput (in, launchIdx, m.blockSize);
+            m.frHost.computeFrCurrForInput (in, m.delaysMs, m.frDelaysMs, m.frLevels,
+                                            m.latencyMs, srScale, maxDelay,
+                                            fdCurr, fgCurr);
+
+            if (inputs[in] != nullptr)
+                memcpy (inFlat + (size_t) in * m.blockSize, inputs[in], (size_t) m.blockSize * sizeof (float));
             else
-                memset (inFlat + (size_t) ch * m.blockSize, 0, (size_t) m.blockSize * sizeof (float));
-        }
-        m.frHost.filterBlock (inputs, (float*) m.bFrIn.contents, m.blockSize);
+                memset (inFlat + (size_t) in * m.blockSize, 0, (size_t) m.blockSize * sizeof (float));
+            m.frHost.filterBlockForInput (in, inputs, frInFlat, m.blockSize);
+        });
+        m.frHost.commitJitterLaunch();   // hoisted ++launchCounter, once after the join
 
         // Upload diet: memcmp each freshly staged matrix against its lastStaged
         // baseline. Unchanged => skip the memcpy AND the slot swap (bind prev ==
@@ -510,6 +526,10 @@ void MetalWfsBackend::reset() noexcept
 void MetalWfsBackend::release() noexcept
 {
     auto& m = *impl;
+
+    // M3: join the host worker pool BEFORE any Metal teardown (host memory only).
+    m.pool.shutdown();
+
     @autoreleasepool
     {
         m.bParams = m.bIn = m.bFrIn = m.bOut = nil;

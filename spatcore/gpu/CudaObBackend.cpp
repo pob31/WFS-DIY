@@ -31,6 +31,7 @@
 #include "CudaObBackend.h"
 #include "CudaObKernels.h"
 #include "WfsFrHostState.h"
+#include "GpuHostWorkPool.h"
 
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -174,6 +175,12 @@ struct CudaObBackend::Impl
     std::vector<float> frBasePrev;        // [pairs] base FR delay ramp continuity (no jitter)
 
     WfsFrHostState frHost;            // per-input FR pre-filters + jitter (shared)
+
+    // M3: host worker pool for the fused per-input prep (input pack + FR filter
+    // + direct/shelf/FR-gain snapshot + per-sample FR-delay lane). Owned here,
+    // created in prepare(), joined in release() BEFORE any CUDA teardown;
+    // workers only touch host memory, never CUDA APIs (plan section 3).
+    GpuHostWorkPool pool;
 
 #if WFS_GPU_STAGE_TIMERS
     // Per-stage accumulators (pump thread only; printed/reset every 512 blocks)
@@ -350,6 +357,15 @@ bool CudaObBackend::prepare (int numInputs, int numOutputs, int blockSize,
 
     m.frHost.prepare (m.numIn, m.numOut, sampleRate);
 
+    // M3 host worker pool: auto = clamp(physicalCores/8, 1, 3) lanes for
+    // Wfs/Ob; WFS_GPU_HOST_WORKERS overrides (0 = sequential kill switch).
+    {
+        const int autoWorkers = std::clamp (spatcore::rt::physicalCoreCount() / 8, 1, 3);
+        const int workers = hostWorkerCountFromEnv (autoWorkers);
+        const double periodMs = (sampleRate > 0.0) ? (1000.0 * m.blockSize / sampleRate) : 0.0;
+        m.pool.prepare (workers, periodMs, periodMs);
+    }
+
     ready = true;
     lastError.clear();
     return true;
@@ -404,36 +420,68 @@ bool CudaObBackend::processBlock (const float* const* inputs, float* const* outp
 
     const auto t0 = std::chrono::steady_clock::now();
 
-    // Snapshot the live matrices -> curr (with -L compensation, clamped to
-    // [1, max] - the scatter's d >= 1 contract), prev = last launch's curr.
-    float* dCurr = m.hDelaysCurr;
-    float* gCurr = m.hGainsCurr;
-    for (uint32_t i = 0; i < matrix; ++i)
+    // M3: pump-thread setup for the fused per-input prep. basePrev sizing +
+    // the base-delay ramp bootstrap + the sub-step base are all resolved here,
+    // BEFORE the parallelFor (so the lanes only touch item-indexed state).
+    const int pairs = m.numIn * m.numOut;
+    if ((int) m.frBasePrev.size() != pairs)
+        m.frBasePrev.assign ((size_t) pairs, 1.0f);
+    m.frHost.beginFrDelaysPerSample (pairs);
+    const bool firstFrBlock  = m.frHost.consumeFirstFrDelayBlock();
+    const uint32_t subStepBase = m.frHost.currentSubStep();
+    const int subLen = std::max (1, kObSubBlock);
+    const int numSubBlocks = (m.blockSize + subLen - 1) / subLen;
+
+    // ONE fused parallelFor(numIn): direct + shelf + FR-gain snapshot rows,
+    // the PER-SAMPLE FR-delay lane (diffusion grain sub-stepped at 64 samples,
+    // global step index reconstructed as subStepBase + k + 1 => identical n per
+    // (pair, sub-block) as the sequential code), input pack, and FR pre-filter —
+    // all for one input. Item-indexed state only, no cross-item host
+    // accumulation => bit-identical for any worker count (section-4 OB row).
+    // The subStepCounter is committed once after the join; the change-detect +
+    // active-run scan + uploads stay on the pump thread (they need the full
+    // staged matrix). The FR gate uses lastFrGains (last launch's staged gains,
+    // read-only until upload) as prev + this item's freshly-written hFrGainsCurr
+    // as curr (lane-local read-after-write).
+    m.pool.parallelFor (m.numIn, [&] (int in)
     {
-        float d = m.delaysMs != nullptr ? (m.delaysMs[i] - m.latencyMs) * srScale : 0.0f;
-        dCurr[i] = std::clamp (d, 1.0f, maxDelay);
-        gCurr[i] = m.gains != nullptr ? m.gains[i] : 0.0f;
-    }
+        const int nOut = m.numOut;
+        const size_t rowBase = (size_t) in * (size_t) nOut;
 
-    for (uint32_t i = 0; i < matrix; ++i)
-    {
-        m.hHfAttenDb[i] = m.hfAttenDb != nullptr ? m.hfAttenDb[i] : 0.0f;
-        m.hFrHfAttenDb[i] = m.frHfAttenDb != nullptr ? m.frHfAttenDb[i] : 0.0f;
-    }
+        for (int out = 0; out < nOut; ++out)
+        {
+            const size_t i = rowBase + (size_t) out;
+            const float d = m.delaysMs != nullptr ? (m.delaysMs[i] - m.latencyMs) * srScale : 0.0f;
+            m.hDelaysCurr[i]   = std::clamp (d, 1.0f, maxDelay);   // scatter d >= 1
+            m.hGainsCurr[i]    = m.gains      != nullptr ? m.gains[i]      : 0.0f;
+            m.hHfAttenDb[i]    = m.hfAttenDb   != nullptr ? m.hfAttenDb[i]   : 0.0f;
+            m.hFrHfAttenDb[i]  = m.frHfAttenDb != nullptr ? m.frHfAttenDb[i] : 0.0f;
+            m.hFrGainsCurr[i]  = m.frLevels    != nullptr ? m.frLevels[i]    : 0.0f;
+        }
 
-    // FR gain: absolute frLevels (gate + level), ramped prev->curr like direct.
-    for (uint32_t i = 0; i < matrix; ++i)
-        m.hFrGainsCurr[i] = m.frLevels != nullptr ? m.frLevels[i] : 0.0f;
+        m.frHost.computeFrDelaysPerSampleForInput (in, firstFrBlock, subStepBase,
+                                                   m.delaysMs, m.frDelaysMs,
+                                                   m.lastFrGains.data(), m.hFrGainsCurr,
+                                                   m.latencyMs, srScale, maxDelay,
+                                                   m.blockSize, kObSubBlock, m.frBasePrev,
+                                                   m.hFrDelaySamples);
 
-    // Scatter FR tiers: scan pair activity (prev|curr FR gain != 0) and
-    // coalesce consecutive active pairs into upload runs. lastFrGains still
-    // holds LAST launch's staged gains here (refresh happens at upload time
-    // below) — numerically the same frGainsPrev the kernel's doFr gate reads,
-    // and the same predicate WfsFrHostState uses to skip the per-sample fill,
-    // so filled == uploaded == kernel-read rows, exactly. Toggle parity: a
-    // pair turning off stays active for one ramp-out block (prev != 0), then
-    // drops out; the jitter state-advance inside computeFrDelaysPerSample
-    // keeps running for every pair regardless (phase parity across toggles).
+        if (inputs[in] != nullptr)
+            std::memcpy (m.hIn + (size_t) in * m.blockSize, inputs[in], (size_t) m.blockSize * sizeof (float));
+        else
+            std::memset (m.hIn + (size_t) in * m.blockSize, 0, (size_t) m.blockSize * sizeof (float));
+        m.frHost.filterBlockForInput (in, inputs, m.hFrIn, m.blockSize);
+    });
+    m.frHost.commitSubSteps (numSubBlocks);   // hoisted subStepCounter += numSubBlocks
+
+    // Scatter FR tiers: scan pair activity (prev|curr FR gain != 0) and coalesce
+    // consecutive active pairs into upload runs. Runs on the pump thread AFTER
+    // the join (needs the full staged hFrGainsCurr). lastFrGains still holds
+    // LAST launch's staged gains here (refresh happens at upload time below) —
+    // numerically the same frGainsPrev the kernel's doFr gate reads and the same
+    // predicate the per-sample fill used, so filled == uploaded == kernel-read
+    // rows, exactly. Toggle parity: a pair turning off stays active for one
+    // ramp-out block (prev != 0), then drops out.
     m.frActiveRuns.clear();
     {
         uint32_t runStart = 0;
@@ -455,29 +503,11 @@ bool CudaObBackend::processBlock (const float* const* inputs, float* const* outp
         if (inRun)
             m.frActiveRuns.push_back ({ runStart, matrix - runStart });
     }
-    WFS_STAGE_MARK (stA);   // snapshot: matrix + shelf + FR-gain staging + run scan
 
-    // FR delay: PER-SAMPLE, diffusion grain sub-stepped at 64 samples and ramped
-    // (CPU OutputBufferProcessor parity), clamped to d >= 1, gated on FR-active
-    // pairs (gate input = lastFrGains: last launch's staged gains, zeros on the
-    // first launch / after reset — CPU parity).
-    m.frHost.computeFrDelaysPerSample (m.delaysMs, m.frDelaysMs,
-                                       m.lastFrGains.data(), m.hFrGainsCurr,
-                                       m.latencyMs, srScale, maxDelay,
-                                       m.blockSize, kObSubBlock, m.frBasePrev,
-                                       m.hFrDelaySamples);
-    WFS_STAGE_MARK (stB);   // frPrep: per-sample FR delay staging
-
-    for (int ch = 0; ch < m.numIn; ++ch)
-    {
-        if (inputs[ch] != nullptr)
-            std::memcpy (m.hIn + (size_t) ch * m.blockSize, inputs[ch], (size_t) m.blockSize * sizeof (float));
-        else
-            std::memset (m.hIn + (size_t) ch * m.blockSize, 0, (size_t) m.blockSize * sizeof (float));
-    }
-    WFS_STAGE_MARK (stD);   // uploadIssue: input pack
-    m.frHost.filterBlock (inputs, m.hFrIn, m.blockSize);
-    WFS_STAGE_MARK (stE);   // frPrep: FR pre-filter chain
+    WFS_STAGE_MARK (stA);   // host prep (fused parallelFor) + run scan
+    WFS_STAGE_MARK (stB);
+    WFS_STAGE_MARK (stD);
+    WFS_STAGE_MARK (stE);
 
 #define PB_RT(call) do { cudaError_t _e = (call); if (_e != cudaSuccess) { \
     lastError = std::string ("CUDA runtime: ") + cudaGetErrorString (_e); ready = false; return false; } } while (0)
@@ -667,6 +697,10 @@ void CudaObBackend::reset() noexcept
 void CudaObBackend::release() noexcept
 {
     auto& m = *impl;
+
+    // M3: join the host worker pool BEFORE any CUDA teardown (workers touch only
+    // host memory).
+    m.pool.shutdown();
 
     if (m.context != nullptr)
         cuCtxSetCurrent (m.context);

@@ -172,6 +172,43 @@ public:
         }
     }
 
+    /** Per-input entry point of filterBlock: runs the FR pre-filter chain for a
+        SINGLE input row (input `in`), writing frInFlat[in*blockSize + s]. Split
+        verbatim from the filterBlock loop body so a host worker pool can run one
+        input per item. Per-input biquad state (lowCutFilters[in],
+        highShelfFilters[in]) + the disjoint hFrIn row => bit-identical to the
+        sequential filterBlock for any item scheduling (section-4 determinism). */
+    void filterBlockForInput (int in, const float* const* inputs, float* frInFlat, int blockSize) noexcept
+    {
+        auto& p = *params[(size_t) in];
+        const bool lcActive = p.lowCutActive.load (std::memory_order_acquire);
+        const bool hsActive = p.highShelfActive.load (std::memory_order_acquire);
+
+        auto& lc = lowCutFilters[(size_t) in];
+        auto& hs = highShelfFilters[(size_t) in];
+
+        if (lcActive)
+            lc.setFrequency (p.lowCutFreq.load (std::memory_order_acquire));
+        if (hsActive)
+        {
+            hs.setFrequency (p.highShelfFreq.load (std::memory_order_acquire));
+            hs.setGainDb (p.highShelfGain.load (std::memory_order_acquire));
+            hs.setSlope (p.highShelfSlope.load (std::memory_order_acquire));
+        }
+
+        const float* src = (inputs != nullptr) ? inputs[in] : nullptr;
+        float* dst = frInFlat + (size_t) in * (size_t) blockSize;
+        for (int s = 0; s < blockSize; ++s)
+        {
+            float v = (src != nullptr) ? src[s] : 0.0f;
+            if (lcActive)
+                v = lc.processSample (v);
+            if (hsActive)
+                v = hs.processSample (v);
+            dst[s] = v;
+        }
+    }
+
     /** Advances the diffusion grain by ONE step per launch (shared zone-mapped
         model, updateInterval = blockSize - the amplitude normalisation in
         FrDiffusionModel keeps the excursion identical to the CPU's per-sample
@@ -200,6 +237,41 @@ public:
         ++launchCounter;
     }
 
+    /** Per-input entry point of advanceJitter for input `in`, using an EXPLICIT
+        launch index `n` instead of the member launchCounter (which the fused
+        parallelFor caller HOISTS: it passes currentLaunchIndex() to every item,
+        then calls commitJitterLaunch() once AFTER the join). Reconstructing the
+        same `n` per (pair) as the sequential code keeps FrDiffusion::step's hash
+        noise identical. Per-pair one-pole state (jitterLpState/jitterSamples
+        rows for this input) is disjoint => item-order-invariant (section 4). */
+    void advanceJitterForInput (int in, uint32_t n, int blockSize) noexcept
+    {
+        const float d = params[(size_t) in]->diffusionAmount.load (std::memory_order_acquire);
+        const auto coeffs = FrDiffusion::computeCoeffs (d, srHz, (float) blockSize);
+
+        const size_t base = (size_t) in * (size_t) numOut;
+        if (coeffs.ampSamples <= 0.0f)
+        {
+            std::fill (jitterSamples.begin() + (long) base,
+                       jitterSamples.begin() + (long) base + numOut, 0.0f);
+            return;
+        }
+
+        for (int out = 0; out < numOut; ++out)
+            jitterSamples[base + (size_t) out] = FrDiffusion::step (
+                jitterLpState[base + (size_t) out], n,
+                FrDiffusion::makeKey (in, out), coeffs);
+    }
+
+    /** The launch index every item this block passes to advanceJitterForInput
+        (== the value the sequential advanceJitter would use for the whole
+        block). Read once on the pump thread before the parallelFor. */
+    uint32_t currentLaunchIndex() const noexcept { return launchCounter; }
+
+    /** Commit one launch of the diffusion grain: called ONCE after the join,
+        the hoisted equivalent of advanceJitter's trailing ++launchCounter. */
+    void commitJitterLaunch() noexcept { ++launchCounter; }
+
     /** Fills the FR curr matrices for this launch (input-major [in*numOut+out]):
         frDelaysCurr in samples = clamp((directMs + extraMs - latencyMs) * srScale
         + jitterSamples, 0, maxDelaySamples); frGainsCurr = frLevels (absolute
@@ -213,6 +285,30 @@ public:
         const size_t matrix = (size_t) numIn * (size_t) numOut;
         for (size_t m = 0; m < matrix; ++m)
         {
+            const float g = (frLevels != nullptr) ? frLevels[m] : 0.0f;
+            frGainsCurr[m] = g;
+
+            float d = 0.0f;
+            if (delaysMs != nullptr && frDelaysMs != nullptr)
+                d = (delaysMs[m] + frDelaysMs[m] - latencyMs) * srScale + jitterSamples[m];
+            frDelaysCurr[m] = std::clamp (d, 0.0f, maxDelaySamples);
+        }
+    }
+
+    /** Per-input entry point of computeFrCurr: fills the FR curr matrix rows for
+        input `in` ([in*numOut, (in+1)*numOut)). Pure elementwise transform of
+        the app matrices + this input's jitterSamples (written by
+        advanceJitterForInput in the SAME item, so the read-after-write ordering
+        holds within the lane). Disjoint rows => item-order-invariant. */
+    void computeFrCurrForInput (int in,
+                                const float* delaysMs, const float* frDelaysMs, const float* frLevels,
+                                float latencyMs, float srScale, float maxDelaySamples,
+                                float* frDelaysCurr, float* frGainsCurr) const noexcept
+    {
+        const size_t base = (size_t) in * (size_t) numOut;
+        for (int out = 0; out < numOut; ++out)
+        {
+            const size_t m = base + (size_t) out;
             const float g = (frLevels != nullptr) ? frLevels[m] : 0.0f;
             frGainsCurr[m] = g;
 
@@ -329,6 +425,120 @@ public:
 
         for (int m = 0; m < pairs; ++m)
             basePrev[(size_t) m] = baseCurrScratch[(size_t) m];
+    }
+
+    //==========================================================================
+    // Per-input (fused parallelFor) decomposition of computeFrDelaysPerSample.
+    // The pump thread calls the three tiny orchestration helpers around the
+    // parallelFor; each item runs computeFrDelaysPerSampleForInput for one input
+    // lane. The determinism argument (section-4 OB row): the sub-block sequence
+    // runs IN ORDER within each lane, the global step index is reconstructed as
+    // subStepBase + k + 1 (identical n per (pair, sub-block) as sequential), and
+    // every mutable row (jitterLpState/jitterLast/basePrev/baseCurrScratch,
+    // hFrDelaySamples) is indexed by pair m = in*numOut+out, disjoint per input.
+    //==========================================================================
+
+    /** Pump-thread setup before the parallelFor: sizes the shared base-delay
+        scratch to `pairs`. Call once per block. */
+    void beginFrDelaysPerSample (int pairs)
+    {
+        baseCurrScratch.resize ((size_t) pairs);
+    }
+
+    /** Consumes the prev->curr base-delay ramp bootstrap flag (true exactly on
+        the first block after prepare()/reset()). Read on the pump thread and
+        passed to every item; each lane copies its own baseCurrScratch rows into
+        basePrev when true (the per-row form of the sequential
+        `if (!haveBase) basePrev = baseCurrScratch`). */
+    bool consumeFirstFrDelayBlock() noexcept
+    {
+        const bool first = ! haveBase;
+        haveBase = true;
+        return first;
+    }
+
+    /** The 64-sample sub-block base index every item passes to
+        computeFrDelaysPerSampleForInput this block (== the value the sequential
+        code holds at block entry). */
+    uint32_t currentSubStep() const noexcept { return subStepCounter; }
+
+    /** Commit `numSubBlocks` grain steps after the join — the hoisted equivalent
+        of the sequential per-sub-block ++subStepCounter. */
+    void commitSubSteps (int numSubBlocks) noexcept { subStepCounter += (uint32_t) numSubBlocks; }
+
+    /** One input lane of computeFrDelaysPerSample (see the block comment above).
+        `firstBlock` from consumeFirstFrDelayBlock(); `subStepBase` from
+        currentSubStep(). */
+    void computeFrDelaysPerSampleForInput (int in, bool firstBlock, uint32_t subStepBase,
+                                           const float* delaysMs, const float* frDelaysMs,
+                                           const float* frGainsPrev, const float* frGainsCurr,
+                                           float latencyMs, float srScale, float maxDelaySamples,
+                                           int blockSize, int subBlock,
+                                           std::vector<float>& basePrev,
+                                           float* frDelaysOut) noexcept
+    {
+        const int sub = std::max (1, subBlock);
+        const float invLen = 1.0f / (float) std::max (1, blockSize);
+        const float dIn = params[(size_t) in]->diffusionAmount.load (std::memory_order_acquire);
+        const size_t rowBase = (size_t) in * (size_t) numOut;
+
+        // Base FR delay (direct + extra - L, NO jitter) for this input's pairs,
+        // plus the first-block prev==curr bootstrap (per row).
+        for (int out = 0; out < numOut; ++out)
+        {
+            const size_t m = rowBase + (size_t) out;
+            float d = 0.0f;
+            if (delaysMs != nullptr && frDelaysMs != nullptr)
+                d = (delaysMs[m] + frDelaysMs[m] - latencyMs) * srScale;
+            const float bc = std::clamp (d, 1.0f, maxDelaySamples);
+            baseCurrScratch[m] = bc;
+            if (firstBlock)
+                basePrev[m] = bc;
+        }
+
+        // Sub-block loop IN ORDER within the lane; n reconstructed per sub-block.
+        int k = 0;
+        for (int a = 0; a < blockSize; a += sub, ++k)
+        {
+            const int b = std::min (a + sub, blockSize);
+            const int subLen = b - a;
+            const uint32_t n = subStepBase + (uint32_t) k + 1u;
+            const float invSub = 1.0f / (float) subLen;
+            const auto coeffs = FrDiffusion::computeCoeffs (dIn, srHz, (float) subLen);
+
+            for (int out = 0; out < numOut; ++out)
+            {
+                const size_t m = rowBase + (size_t) out;
+
+                float jCurr = 0.0f;
+                if (coeffs.ampSamples > 0.0f)
+                    jCurr = FrDiffusion::step (jitterLpState[m], n,
+                                               FrDiffusion::makeKey (in, out), coeffs);
+                const float jPrev = jitterLast[m];
+                jitterLast[m] = jCurr;
+
+                if (frGainsPrev != nullptr && frGainsCurr != nullptr
+                    && frGainsPrev[m] == 0.0f && frGainsCurr[m] == 0.0f)
+                    continue;
+
+                float* dst = frDelaysOut + m * (size_t) blockSize;
+                const float bp = basePrev[m];
+                const float bc = baseCurrScratch[m];
+                for (int s = a; s < b; ++s)
+                {
+                    const float jit  = jPrev + (jCurr - jPrev) * ((float) (s - a + 1) * invSub);
+                    const float base = bp + (bc - bp) * ((float) (s + 1) * invLen);
+                    dst[(size_t) s] = std::clamp (base + jit, 1.0f, maxDelaySamples);
+                }
+            }
+        }
+
+        // Final basePrev update for this input's pairs (sequential trailing loop).
+        for (int out = 0; out < numOut; ++out)
+        {
+            const size_t m = rowBase + (size_t) out;
+            basePrev[m] = baseCurrScratch[m];
+        }
     }
 
 private:

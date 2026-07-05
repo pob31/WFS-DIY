@@ -22,6 +22,7 @@
 
 #include "MetalIrKernels.h"
 #include "IrConvHostState.h"
+#include "GpuHostWorkPool.h"
 
 #import <Metal/Metal.h>
 #import <Foundation/Foundation.h>
@@ -65,6 +66,10 @@ struct MetalIrBackend::Impl
     double sampleRate = 0.0;
 
     IrConvHostState host;
+
+    // M3: host worker pool for the per-node input/output FFTs + segment loader.
+    // Joined in release() before any Metal teardown; host memory only.
+    GpuHostWorkPool pool;
 };
 
 // deviceIndex accepted for API uniformity but ignored on macOS (system default device).
@@ -151,6 +156,15 @@ bool MetalIrBackend::prepare (int numNodes, int blockSize,
         memset (m.bInSpectra.contents, 0, m.bInSpectra.length);
     }
 
+    // M3 host worker pool: auto = clamp(physicalCores/8, 1, 2) lanes for the IR
+    // pump; WFS_GPU_HOST_WORKERS overrides (0 = sequential kill switch).
+    {
+        const int autoWorkers = std::clamp (spatcore::rt::physicalCoreCount() / 8, 1, 2);
+        const int workers = hostWorkerCountFromEnv (autoWorkers);
+        const double periodMs = (sampleRate > 0.0) ? (1000.0 * m.blockSize / sampleRate) : 0.0;
+        m.pool.prepare (workers, periodMs, periodMs);
+    }
+
     ready = true;
     lastError.clear();
     return true;
@@ -184,17 +198,22 @@ bool MetalIrBackend::processBlock (const float* const* inputs, float* const* out
             memset (m.bInSpectra.contents, 0, m.bInSpectra.length);
 
         m.host.consumeStagedIr();
-        m.host.loadMoreSegments ((float*) m.bIrSpectra.contents, kIrSegmentsPerLaunch);
+        // M3: budgeted IR-segment FFTs run across the pool (per-segment scratch).
+        m.host.loadMoreSegments ((float*) m.bIrSpectra.contents, kIrSegmentsPerLaunch, m.pool);
 
         // Newest input spectra into this launch's ring slot (host FFT writes
-        // straight into the shared buffer).
+        // straight into the shared buffer). M3: the per-node forward FFTs run
+        // across the pool; each node writes its own strided ring slot with its
+        // own scratch row (node-safe), bit-identical to the sequential loop.
         m.host.advanceRing();
         const size_t segCap = (size_t) m.host.getSegCapacity();
         const size_t head = (size_t) m.host.getRingHead();
         float* inBase = (float*) m.bInSpectra.contents;
-        for (int node = 0; node < m.numNodes; ++node)
-            m.host.transformInput (inputs[node],
-                                   inBase + ((size_t) node * segCap + head) * (size_t) m.fftLen);
+        m.pool.parallelFor (m.numNodes, [&] (int node)
+        {
+            m.host.transformInputNode (node, inputs[node],
+                                       inBase + ((size_t) node * segCap + head) * (size_t) m.fftLen);
+        });
 
         // No IR yet (or still loading segment 0): wet output is silence, but
         // the ring keeps accumulating history so the tail is correct the
@@ -237,13 +256,11 @@ bool MetalIrBackend::processBlock (const float* const* inputs, float* const* out
             return false;
         }
 
-        // Accumulated spectra -> inverse FFT + overlap-add per node.
+        // Accumulated spectra -> inverse FFT + overlap-add per node. M3: runs
+        // across the pool (per-node scratch + per-node tail; contiguous
+        // [numNodes][fftLen] output), bit-identical to the sequential loop.
         const float* outBase = (const float*) m.bOutSpectra.contents;
-        for (int node = 0; node < m.numNodes; ++node)
-            if (outputs[node] != nullptr)
-                m.host.produceOutput (node,
-                                      outBase + (size_t) node * (size_t) m.fftLen,
-                                      outputs[node]);
+        m.host.produceOutputs (outputs, outBase, m.pool);
 
         lastLaunchMs = std::chrono::duration<double, std::milli> (
                            std::chrono::steady_clock::now() - t0).count();
@@ -254,6 +271,10 @@ bool MetalIrBackend::processBlock (const float* const* inputs, float* const* out
 void MetalIrBackend::release() noexcept
 {
     auto& m = *impl;
+
+    // M3: join the host worker pool BEFORE any Metal teardown (host memory only).
+    m.pool.shutdown();
+
     @autoreleasepool
     {
         m.bParams = m.bIrSpectra = m.bInSpectra = m.bOutSpectra = nil;
