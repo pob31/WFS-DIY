@@ -92,13 +92,26 @@ public:
     int getRealLength() const noexcept { return n; }
     int getNumBins() const noexcept { return m; }   // packed float2 count = P
 
-    /** in: N reals. out: N floats = P packed (re,im) pairs. May alias. */
-    void forward (const float* in, float* out)
+    /** in: N reals. out: N floats = P packed (re,im) pairs. May alias.
+        Member-scratch overload (single-thread callers). */
+    void forward (const float* in, float* out) { forward (in, out, work.data()); }
+
+    /** in: N floats = P packed pairs. out: N reals. May alias.
+        Member-scratch overload (single-thread callers). */
+    void inverse (const float* in, float* out) { inverse (in, out, work.data()); }
+
+    /** External-scratch forward (M3): the twiddle/bit-reversal tables are
+        read-only after prepare(), so one IrHostFft instance can be driven from
+        several worker threads at once, each passing its OWN `work` buffer
+        (>= N floats). `in` may equal `work` (transform in place); `out` must
+        NOT alias `work`. Bit-identical to the member-scratch overload. */
+    void forward (const float* in, float* out, float* work) const
     {
         // z[j] = (x[2j], x[2j+1]) — the interleaved input IS the packed
         // complex sequence, straight into the work buffer.
-        std::memcpy (work.data(), in, (size_t) n * sizeof (float));
-        fftComplex (work.data(), false);
+        if (work != in)
+            std::memcpy (work, in, (size_t) n * sizeof (float));
+        fftComplex (work, false);
 
         const float z0re = work[0], z0im = work[1];
         out[0] = z0re + z0im;   // DC
@@ -124,8 +137,10 @@ public:
         }
     }
 
-    /** in: N floats = P packed pairs. out: N reals. May alias. */
-    void inverse (const float* in, float* out)
+    /** External-scratch inverse (M3): as forward() above. `in` must NOT alias
+        `work`; `out` MAY equal `work` (the final scale writes out[j] from
+        work[j] index-for-index). Bit-identical to the member-scratch overload. */
+    void inverse (const float* in, float* out, float* work) const
     {
         // Z[0] from the real DC/Nyquist pair.
         const float dc = in[0], ny = in[1];
@@ -153,7 +168,7 @@ public:
             work[(size_t) (2 * k + 1)] = xeIm + xoRe;
         }
 
-        fftComplex (work.data(), true);
+        fftComplex (work, true);
 
         const float scale = 1.0f / (float) m;
         for (int j = 0; j < n; ++j)

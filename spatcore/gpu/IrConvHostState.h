@@ -23,6 +23,7 @@
 */
 
 #include "IrHostFft.h"
+#include "GpuHostWorkPool.h"
 
 #include <algorithm>
 #include <atomic>
@@ -35,6 +36,11 @@ namespace spatcore::gpu {
 class IrConvHostState
 {
 public:
+    // Progressive IR-loader batch cap (per launch). Sizes the per-segment FFT
+    // scratch, so the M3 pool-driven loadMoreSegments never needs more than
+    // this many concurrent scratch rows. The backends pass this as maxSegments.
+    static constexpr int kMaxLoadSegmentsPerLaunch = 64;
+
     /** False if blockSize is unusable (not a power of two in [4, 1024]). */
     bool prepare (int numNodesIn, int blockSizeIn, int maxIrSamplesIn)
     {
@@ -49,6 +55,10 @@ public:
 
         tails.assign ((size_t) numNodes * (size_t) blockSize, 0.0f);
         timeScratch.assign ((size_t) fftLen, 0.0f);
+        // M3 per-item FFT scratch (external-scratch overloads read the tables
+        // read-only, so worker threads each drive their own row).
+        nodeScratch.assign ((size_t) numNodes * (size_t) fftLen, 0.0f);
+        segScratch.assign ((size_t) kMaxLoadSegmentsPerLaunch * (size_t) fftLen, 0.0f);
         ringHead = segCapacity - 1;   // first advance lands on slot 0
 
         irTimeDomain.clear();
@@ -174,6 +184,90 @@ public:
         std::memcpy (tail, timeScratch.data() + blockSize, (size_t) blockSize * sizeof (float));
     }
 
+    //==========================================================================
+    // M3 pool-driven variants: each item (node / segment) transforms into its
+    // own spectrum row using its own scratch row, so ANY worker count is
+    // bit-identical to the sequential loop (FFT tables read-only, per-node tail
+    // + spectra rows disjoint — section-4 IR rows). The IR pump wraps its per-
+    // node/segment loops in these; the FFT math is IrHostFft-shared, so CUDA /
+    // HIP / Metal stay identical.
+    //==========================================================================
+
+    /** Zero-pads + FFTs every node's input block into hInSpectraBase[node*fftLen]
+        across the pool (node-safe: per-node scratch row). inputs[node] may be
+        null (silence). Bit-identical to a transformInput() loop. */
+    void transformInputs (const float* const* inputs, float* hInSpectraBase, GpuHostWorkPool& pool)
+    {
+        pool.parallelFor (numNodes, [this, inputs, hInSpectraBase] (int node)
+        {
+            float* scratch = nodeScratch.data() + (size_t) node * (size_t) fftLen;
+            const float* input = (inputs != nullptr) ? inputs[node] : nullptr;
+            if (input != nullptr)
+                std::memcpy (scratch, input, (size_t) blockSize * sizeof (float));
+            else
+                std::memset (scratch, 0, (size_t) blockSize * sizeof (float));
+            std::memset (scratch + blockSize, 0, (size_t) blockSize * sizeof (float));
+            // in == work == scratch (transform in place), out = the spectrum row.
+            fft.forward (scratch, hInSpectraBase + (size_t) node * (size_t) fftLen, scratch);
+        });
+    }
+
+    /** Inverse-FFTs + overlap-adds every node across the pool (node-safe:
+        per-node scratch row + per-node tail). outputs[node] may be null (skip).
+        Bit-identical to a produceOutput() loop. */
+    void produceOutputs (float* const* outputs, const float* hOutSpectraBase, GpuHostWorkPool& pool)
+    {
+        pool.parallelFor (numNodes, [this, outputs, hOutSpectraBase] (int node)
+        {
+            float* out = (outputs != nullptr) ? outputs[node] : nullptr;
+            if (out == nullptr)
+                return;
+            float* scratch = nodeScratch.data() + (size_t) node * (size_t) fftLen;
+            const float* acc = hOutSpectraBase + (size_t) node * (size_t) fftLen;
+            // in = acc (external, != work), out == work == scratch.
+            fft.inverse (acc, scratch, scratch);
+            const float* tail = tails.data() + (size_t) node * (size_t) blockSize;
+            for (int i = 0; i < blockSize; ++i)
+                out[i] = scratch[i] + tail[i];
+            std::memcpy (tails.data() + (size_t) node * (size_t) blockSize,
+                         scratch + blockSize, (size_t) blockSize * sizeof (float));
+        });
+    }
+
+    /** Pool-driven progressive loader: FFTs up to maxSegments pending IR segments
+        into irSpectraBase[seg*fftLen] (per-segment scratch row), advancing the
+        loaded counter after the join. maxSegments is clamped to
+        kMaxLoadSegmentsPerLaunch. Returns segments written. Bit-identical to the
+        sequential loadMoreSegments (segments independent). */
+    int loadMoreSegments (float* irSpectraBase, int maxSegments, GpuHostWorkPool& pool)
+    {
+        const int total  = segTotal.load (std::memory_order_relaxed);
+        const int before = segmentsLoaded.load (std::memory_order_relaxed);
+
+        int count = std::min (total - before, maxSegments);
+        if (count > kMaxLoadSegmentsPerLaunch)
+            count = kMaxLoadSegmentsPerLaunch;
+        if (count <= 0)
+            return 0;
+
+        pool.parallelFor (count, [this, irSpectraBase, before] (int j)
+        {
+            const int seg = before + j;
+            const size_t start = (size_t) seg * (size_t) blockSize;
+            const size_t avail = irTimeDomain.size() - start;
+            const size_t copyN = std::min (avail, (size_t) blockSize);
+
+            float* scratch = segScratch.data() + (size_t) j * (size_t) fftLen;
+            std::memset (scratch, 0, (size_t) fftLen * sizeof (float));
+            std::memcpy (scratch, irTimeDomain.data() + start, copyN * sizeof (float));
+            // in == work == scratch, out = the IR spectrum row.
+            fft.forward (scratch, irSpectraBase + (size_t) seg * (size_t) fftLen, scratch);
+        });
+
+        segmentsLoaded.store (before + count, std::memory_order_relaxed);
+        return count;
+    }
+
 private:
     IrHostFft fft;
 
@@ -185,7 +279,9 @@ private:
     int ringHead = 0;
 
     std::vector<float> tails;        // [numNodes][blockSize]
-    std::vector<float> timeScratch;  // [fftLen]
+    std::vector<float> timeScratch;  // [fftLen] (single-thread member-scratch path)
+    std::vector<float> nodeScratch;  // [numNodes][fftLen] M3 per-node FFT scratch
+    std::vector<float> segScratch;   // [kMaxLoadSegmentsPerLaunch][fftLen] M3 per-segment
 
     // Engine thread -> pump thread IR handoff
     std::mutex stageMutex;

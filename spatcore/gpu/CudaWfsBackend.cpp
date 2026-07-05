@@ -29,6 +29,7 @@
 #include "CudaWfsBackend.h"
 #include "CudaWfsKernels.h"
 #include "WfsFrHostState.h"
+#include "GpuHostWorkPool.h"
 
 #include <cuda.h>           // driver API: CUcontext, cuModule*, cuLaunchKernel
 #include <cuda_runtime.h>   // runtime API: cudaMalloc, cudaHostAlloc, cudaMemcpyAsync, props
@@ -178,6 +179,12 @@ struct CudaWfsBackend::Impl
     const float* frHfAttenDb = nullptr;
 
     WfsFrHostState frHost;            // per-input FR pre-filters + jitter
+
+    // M3: host worker pool for the fused per-input prep (input pack + FR filter
+    // + jitter advance + matrix/FR snapshot rows). Owned here, created in
+    // prepare(), joined in release() BEFORE any CUDA teardown; workers only
+    // touch host memory, never CUDA APIs (plan section 3).
+    GpuHostWorkPool pool;
 
 #if WFS_GPU_STAGE_TIMERS
     // Per-stage accumulators (pump thread only; printed/reset every 512 blocks)
@@ -353,6 +360,17 @@ bool CudaWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,
 
     m.frHost.prepare (m.numIn, m.numOut, sampleRate);
 
+    // M3 host worker pool: auto = clamp(physicalCores/8, 1, 3) lanes for
+    // Wfs/Ob; WFS_GPU_HOST_WORKERS overrides (0 = sequential kill switch +
+    // determinism cross-check). periodMs/computationMs feed macOS P-core
+    // placement only. Workers self-elevate to the audio scheduling class.
+    {
+        const int autoWorkers = std::clamp (spatcore::rt::physicalCoreCount() / 8, 1, 3);
+        const int workers = hostWorkerCountFromEnv (autoWorkers);
+        const double periodMs = (sampleRate > 0.0) ? (1000.0 * m.blockSize / sampleRate) : 0.0;
+        m.pool.prepare (workers, periodMs, periodMs);
+    }
+
     ready = true;
     lastError.clear();
     return true;
@@ -412,47 +430,56 @@ bool CudaWfsBackend::processBlock (const float* const* inputs, float* const* out
 
     const auto t0 = std::chrono::steady_clock::now();
 
-    // Snapshot the live matrices -> curr (with -L compensation, clamped),
-    // prev = the previous launch's curr (ramp continuity).
-    float* dCurr = m.hDelaysCurr;
-    float* gCurr = m.hGainsCurr;
-    for (uint32_t i = 0; i < matrix; ++i)
+    // M3: ONE fused parallelFor(numIn) does ALL per-input host prep — input
+    // pack, per-input FR pre-filter, per-input jitter advance, and the direct +
+    // shelf + FR-curr matrix snapshot rows for that input ([in*numOut,
+    // (in+1)*numOut)). Every item writes only item-indexed state and each FP
+    // sequence is a pure function of (input, block inputs, per-input persistent
+    // state) with no cross-item host accumulation, so the result is
+    // bit-identical for ANY worker count (section-4 determinism table). The
+    // launchCounter is HOISTED: currentLaunchIndex() is read here and passed to
+    // every item; commitJitterLaunch() runs ONCE after the join. The M2 memcmp
+    // change-detect + upload stay on the pump thread AFTER the join (they need
+    // the full staged matrix).
+    const uint32_t launchIdx = m.frHost.currentLaunchIndex();
+    m.pool.parallelFor (m.numIn, [&] (int in)
     {
-        float d = m.delaysMs != nullptr ? (m.delaysMs[i] - m.latencyMs) * srScale : 0.0f;
-        dCurr[i] = std::clamp (d, 0.0f, maxDelay);
-        gCurr[i] = m.gains != nullptr ? m.gains[i] : 0.0f;
-    }
+        const int nOut = m.numOut;
+        const size_t rowBase = (size_t) in * (size_t) nOut;
 
-    // Shelf gains: raw dB, stepwise per launch (CPU parity: per-block setGainDb).
-    for (uint32_t i = 0; i < matrix; ++i)
-    {
-        m.hHfAttenDb[i] = m.hfAttenDb != nullptr ? m.hfAttenDb[i] : 0.0f;
-        m.hFrHfAttenDb[i] = m.frHfAttenDb != nullptr ? m.frHfAttenDb[i] : 0.0f;
-    }
-    WFS_STAGE_MARK (stA);   // snapshot: matrix + shelf staging
+        // Direct matrix snapshot (-L, clamped) + raw-dB shelf staging, this
+        // input's rows. prev = the previous launch's curr (device ping-pong).
+        for (int out = 0; out < nOut; ++out)
+        {
+            const size_t i = rowBase + (size_t) out;
+            const float d = m.delaysMs != nullptr ? (m.delaysMs[i] - m.latencyMs) * srScale : 0.0f;
+            m.hDelaysCurr[i]  = std::clamp (d, 0.0f, maxDelay);
+            m.hGainsCurr[i]   = m.gains      != nullptr ? m.gains[i]      : 0.0f;
+            m.hHfAttenDb[i]   = m.hfAttenDb   != nullptr ? m.hfAttenDb[i]   : 0.0f;
+            m.hFrHfAttenDb[i] = m.frHfAttenDb != nullptr ? m.frHfAttenDb[i] : 0.0f;
+        }
 
-    // FR: advance diffusion jitter (64-sample sub-step cadence), then snapshot
-    // the FR curr matrices. The pipeline latency is subtracted from the
-    // ABSOLUTE FR delay (direct + extra + jitter - L), preserving the
-    // FR-vs-direct offset exactly.
-    m.frHost.advanceJitter (m.blockSize);
-    m.frHost.computeFrCurr (m.delaysMs, m.frDelaysMs, m.frLevels,
-                            m.latencyMs, srScale, maxDelay,
-                            m.hFrDelaysCurr, m.hFrGainsCurr);
-    WFS_STAGE_MARK (stB);   // frPrep: jitter advance + FR curr snapshot
+        // FR jitter advance (hoisted launch index) then FR curr snapshot rows —
+        // computeFrCurrForInput reads this item's jitterSamples, written just
+        // above in the SAME item (lane-local read-after-write).
+        m.frHost.advanceJitterForInput (in, launchIdx, m.blockSize);
+        m.frHost.computeFrCurrForInput (in, m.delaysMs, m.frDelaysMs, m.frLevels,
+                                        m.latencyMs, srScale, maxDelay,
+                                        m.hFrDelaysCurr, m.hFrGainsCurr);
 
-    // Input channels -> flat pinned buffer (silence for missing channels),
-    // and the host-side FR pre-filter chain -> frIn staging.
-    for (int ch = 0; ch < m.numIn; ++ch)
-    {
-        if (inputs[ch] != nullptr)
-            std::memcpy (m.hIn + (size_t) ch * m.blockSize, inputs[ch], (size_t) m.blockSize * sizeof (float));
+        // Input pack row (silence for a missing channel) + FR pre-filter row.
+        if (inputs[in] != nullptr)
+            std::memcpy (m.hIn + (size_t) in * m.blockSize, inputs[in], (size_t) m.blockSize * sizeof (float));
         else
-            std::memset (m.hIn + (size_t) ch * m.blockSize, 0, (size_t) m.blockSize * sizeof (float));
-    }
-    WFS_STAGE_MARK (stD);   // uploadIssue: input pack
-    m.frHost.filterBlock (inputs, m.hFrIn, m.blockSize);
-    WFS_STAGE_MARK (stE);   // frPrep: FR pre-filter chain
+            std::memset (m.hIn + (size_t) in * m.blockSize, 0, (size_t) m.blockSize * sizeof (float));
+        m.frHost.filterBlockForInput (in, inputs, m.hFrIn, m.blockSize);
+    });
+    m.frHost.commitJitterLaunch();   // hoisted ++launchCounter, once after the join
+
+    WFS_STAGE_MARK (stA);   // host prep (fused parallelFor)
+    WFS_STAGE_MARK (stB);
+    WFS_STAGE_MARK (stD);
+    WFS_STAGE_MARK (stE);
 
     // Host -> device (the persistent rings + shelf states stay on the device).
 #define PB_RT(call) do { cudaError_t _e = (call); if (_e != cudaSuccess) { \
@@ -645,6 +672,11 @@ void CudaWfsBackend::reset() noexcept
 void CudaWfsBackend::release() noexcept
 {
     auto& m = *impl;
+
+    // M3: join the host worker pool BEFORE any CUDA teardown (and before the
+    // plugin DLL could unload). Workers touch only host memory, so this is a
+    // clean fork-join drain with no GPU-context concerns.
+    m.pool.shutdown();
 
     if (m.context != nullptr)
         cuCtxSetCurrent (m.context);

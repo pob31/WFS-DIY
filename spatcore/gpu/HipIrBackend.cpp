@@ -31,6 +31,7 @@
 #include "HipIrBackend.h"
 #include "CudaIrKernels.h"
 #include "IrConvHostState.h"
+#include "GpuHostWorkPool.h"
 
 #include <hip/hip_runtime.h>   // HIP runtime + driver API (hipMalloc, hipModule*, hipModuleLaunchKernel, props)
 #include <hip/hiprtc.h>        // hipRTC: runtime kernel compilation
@@ -86,6 +87,10 @@ struct HipIrBackend::Impl
     double sampleRate = 0.0;
 
     IrConvHostState host;
+
+    // M3: host worker pool for the per-node input/output FFTs + segment loader.
+    // Joined in release() before any HIP teardown; host memory only.
+    GpuHostWorkPool pool;
 };
 
 HipIrBackend::HipIrBackend (int deviceIndex) : impl (std::make_unique<Impl>()) { impl->deviceIndex = deviceIndex; }
@@ -203,6 +208,15 @@ bool HipIrBackend::prepare (int numNodes, int blockSize,
     CK_RT (hipMemset (m.dInSpectra, 0,
                        (size_t) m.numNodes * segCap * (size_t) m.fftLen * sizeof (float)));
 
+    // M3 host worker pool: auto = clamp(physicalCores/8, 1, 2) lanes for the IR
+    // pump; WFS_GPU_HOST_WORKERS overrides (0 = sequential kill switch).
+    {
+        const int autoWorkers = std::clamp (spatcore::rt::physicalCoreCount() / 8, 1, 2);
+        const int workers = hostWorkerCountFromEnv (autoWorkers);
+        const double periodMs = (sampleRate > 0.0) ? (1000.0 * m.blockSize / sampleRate) : 0.0;
+        m.pool.prepare (workers, periodMs, periodMs);
+    }
+
     ready = true;
     lastError.clear();
     return true;
@@ -252,7 +266,8 @@ bool HipIrBackend::processBlock (const float* const* inputs, float* const* outpu
     m.host.consumeStagedIr();
     {
         const int before = m.host.getSegmentsLoaded();
-        const int written = m.host.loadMoreSegments (m.hIrSpectra, kIrSegmentsPerLaunch);
+        // M3: budgeted IR-segment FFTs run across the pool (per-segment scratch).
+        const int written = m.host.loadMoreSegments (m.hIrSpectra, kIrSegmentsPerLaunch, m.pool);
         if (written > 0)
             PB_RT (hipMemcpyAsync ((char*) m.dIrSpectra + (size_t) before * specBytes,
                                     m.hIrSpectra + (size_t) before * (size_t) m.fftLen,
@@ -261,12 +276,11 @@ bool HipIrBackend::processBlock (const float* const* inputs, float* const* outpu
     }
 
     // Newest input spectra -> pinned staging -> one strided 2D copy into each
-    // node's ring slot.
+    // node's ring slot. M3: the per-node forward FFTs run across the pool
+    // (per-node scratch; node-safe), bit-identical to the sequential loop.
     m.host.advanceRing();
     const size_t head = (size_t) m.host.getRingHead();
-    for (int node = 0; node < m.numNodes; ++node)
-        m.host.transformInput (inputs[node],
-                               m.hInSpectra + (size_t) node * (size_t) m.fftLen);
+    m.host.transformInputs (inputs, m.hInSpectra, m.pool);
     PB_RT (hipMemcpy2DAsync ((char*) m.dInSpectra + head * specBytes,
                               segCap * specBytes,
                               m.hInSpectra, specBytes,
@@ -314,12 +328,9 @@ bool HipIrBackend::processBlock (const float* const* inputs, float* const* outpu
 
 #undef PB_RT
 
-    // Accumulated spectra -> inverse FFT + overlap-add per node.
-    for (int node = 0; node < m.numNodes; ++node)
-        if (outputs[node] != nullptr)
-            m.host.produceOutput (node,
-                                  m.hOutSpectra + (size_t) node * (size_t) m.fftLen,
-                                  outputs[node]);
+    // Accumulated spectra -> inverse FFT + overlap-add per node. M3: runs across
+    // the pool (per-node scratch + per-node tail), bit-identical to the loop.
+    m.host.produceOutputs (outputs, m.hOutSpectra, m.pool);
 
     lastLaunchMs = std::chrono::duration<double, std::milli> (
                        std::chrono::steady_clock::now() - t0).count();
@@ -329,6 +340,9 @@ bool HipIrBackend::processBlock (const float* const* inputs, float* const* outpu
 void HipIrBackend::release() noexcept
 {
     auto& m = *impl;
+
+    // M3: join the host worker pool BEFORE any HIP teardown (host memory only).
+    m.pool.shutdown();
 
     hipSetDevice (m.deviceIndex);
 
