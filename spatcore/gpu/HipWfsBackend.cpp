@@ -72,17 +72,13 @@ struct HipWfsBackend::Impl
     hipStream_t stream = nullptr;
     hipEvent_t  syncEvent = nullptr;  // blocking-sync end-of-block wait (no spin)
 
-    // Pinned host staging.
+    // Pinned host staging (curr only — prev never leaves the device, see below).
     float* hIn = nullptr;
     float* hFrIn = nullptr;
     float* hOut = nullptr;
-    float* hDelaysPrev = nullptr;
     float* hDelaysCurr = nullptr;
-    float* hGainsPrev = nullptr;
     float* hGainsCurr = nullptr;
-    float* hFrDelaysPrev = nullptr;
     float* hFrDelaysCurr = nullptr;
-    float* hFrGainsPrev = nullptr;
     float* hFrGainsCurr = nullptr;
     float* hHfAttenDb = nullptr;
     float* hFrHfAttenDb = nullptr;
@@ -96,16 +92,34 @@ struct HipWfsBackend::Impl
     void* dScratch = nullptr;        // [(s*numOut+out)*numIn+in], rewritten each launch
     void* dShelfState = nullptr;     // [pairs][4] persistent
     void* dFrShelfState = nullptr;   // [pairs][4] persistent
-    void* dDelaysPrev = nullptr;
-    void* dDelaysCurr = nullptr;
-    void* dGainsPrev = nullptr;
-    void* dGainsCurr = nullptr;
-    void* dFrDelaysPrev = nullptr;
-    void* dFrDelaysCurr = nullptr;
-    void* dFrGainsPrev = nullptr;
-    void* dFrGainsCurr = nullptr;
-    void* dHfAttenDb = nullptr;
+    void* dHfAttenDb = nullptr;      // single buffer (stepwise, no prev/curr ramp)
     void* dFrHfAttenDb = nullptr;
+
+    // Upload diet (M2): device ping-pong per prev/curr matrix pair. The kernel
+    // takes the matrix pointers as launch ARGUMENTS and only READS them
+    // (const __restrict__, CudaWfsKernels.h), so "prev" never needs a host
+    // round-trip: it is simply the slot uploaded one launch earlier. Only a
+    // CHANGED curr is uploaded (into the alternate slot, then swap); unchanged
+    // blocks pass prev == curr == the live slot — the kernel ramps x->x = x,
+    // bit-exact, and aliasing the two pointers is legal because neither is
+    // written through. First launch: upload once, pass prev == curr (exactly
+    // the old havePrev bootstrap semantics).
+    struct PingPong
+    {
+        void* slot[2] = { nullptr, nullptr };
+        int   curr = 0;               // slot holding the last-consumed curr
+        bool  everUploaded = false;   // first launch: upload once, prev == curr
+    };
+    PingPong ppDelays, ppGains, ppFrDelays, ppFrGains;
+    bool hfUploaded = false;          // single-buffer change-detect state
+    bool frHfUploaded = false;
+
+    // Change-detect baselines: the last STAGED (== last uploaded) copy of each
+    // matrix, memcmp'd against the freshly staged pinned buffer. Comparing
+    // staged copies (never the live app matrices) is torn-read-safe: it
+    // compares exactly the values the kernel would consume.
+    std::vector<float> lastDelays, lastGains, lastFrDelays, lastFrGains;
+    std::vector<float> lastHfAttenDb, lastFrHfAttenDb;
 
     int numIn = 0, numOut = 0, blockSize = 0;
     uint32_t ringCapacity = 0;
@@ -125,13 +139,6 @@ struct HipWfsBackend::Impl
     const float* frDelaysMs = nullptr;
     const float* frLevels = nullptr;
     const float* frHfAttenDb = nullptr;
-
-    // Last launch's end matrices (ramp continuity).
-    std::vector<float> delaysPrevSamples;
-    std::vector<float> gainsPrev;
-    std::vector<float> frDelaysPrevSamples;
-    std::vector<float> frGainsPrev;
-    bool havePrev = false;
 
     WfsFrHostState frHost;            // per-input FR pre-filters + jitter
 
@@ -225,7 +232,6 @@ bool HipWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,
     m.ringCapacity = m.maxDelaySamples + (uint32_t) m.blockSize;
     m.ringWritePos = 0;
     m.ringValid = 0;
-    m.havePrev = false;
     m.threadsPerBlock = 256;
     m.pairGroups = (uint32_t) ((m.numIn * m.numOut + (int) m.threadsPerBlock - 1)
                                / (int) m.threadsPerBlock);
@@ -251,13 +257,9 @@ bool HipWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,
     CK_RT (pin (&m.hIn,   (size_t) m.numIn  * m.blockSize));
     CK_RT (pin (&m.hFrIn, (size_t) m.numIn  * m.blockSize));
     CK_RT (pin (&m.hOut,  (size_t) m.numOut * m.blockSize));
-    CK_RT (pin (&m.hDelaysPrev, matrix));
     CK_RT (pin (&m.hDelaysCurr, matrix));
-    CK_RT (pin (&m.hGainsPrev,  matrix));
     CK_RT (pin (&m.hGainsCurr,  matrix));
-    CK_RT (pin (&m.hFrDelaysPrev, matrix));
     CK_RT (pin (&m.hFrDelaysCurr, matrix));
-    CK_RT (pin (&m.hFrGainsPrev,  matrix));
     CK_RT (pin (&m.hFrGainsCurr,  matrix));
     CK_RT (pin (&m.hHfAttenDb,    matrix));
     CK_RT (pin (&m.hFrHfAttenDb,  matrix));
@@ -270,26 +272,29 @@ bool HipWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,
     CK_RT (hipMalloc (&m.dScratch, (size_t) m.numIn * m.numOut * m.blockSize * sizeof (float)));
     CK_RT (hipMalloc (&m.dShelfState,   (size_t) matrix * 4 * sizeof (float)));
     CK_RT (hipMalloc (&m.dFrShelfState, (size_t) matrix * 4 * sizeof (float)));
-    CK_RT (hipMalloc (&m.dDelaysPrev, matrix * sizeof (float)));
-    CK_RT (hipMalloc (&m.dDelaysCurr, matrix * sizeof (float)));
-    CK_RT (hipMalloc (&m.dGainsPrev,  matrix * sizeof (float)));
-    CK_RT (hipMalloc (&m.dGainsCurr,  matrix * sizeof (float)));
-    CK_RT (hipMalloc (&m.dFrDelaysPrev, matrix * sizeof (float)));
-    CK_RT (hipMalloc (&m.dFrDelaysCurr, matrix * sizeof (float)));
-    CK_RT (hipMalloc (&m.dFrGainsPrev,  matrix * sizeof (float)));
-    CK_RT (hipMalloc (&m.dFrGainsCurr,  matrix * sizeof (float)));
+    for (auto* pp : { &m.ppDelays, &m.ppGains, &m.ppFrDelays, &m.ppFrGains })
+    {
+        CK_RT (hipMalloc (&pp->slot[0], matrix * sizeof (float)));
+        CK_RT (hipMalloc (&pp->slot[1], matrix * sizeof (float)));
+        pp->curr = 0;
+        pp->everUploaded = false;
+    }
     CK_RT (hipMalloc (&m.dHfAttenDb,    matrix * sizeof (float)));
     CK_RT (hipMalloc (&m.dFrHfAttenDb,  matrix * sizeof (float)));
+    m.hfUploaded = false;
+    m.frHfUploaded = false;
 
     CK_RT (hipMemset (m.dRing,   0, (size_t) m.numIn * m.ringCapacity * sizeof (float)));
     CK_RT (hipMemset (m.dFrRing, 0, (size_t) m.numIn * m.ringCapacity * sizeof (float)));
     CK_RT (hipMemset (m.dShelfState,   0, (size_t) matrix * 4 * sizeof (float)));
     CK_RT (hipMemset (m.dFrShelfState, 0, (size_t) matrix * 4 * sizeof (float)));
 
-    m.delaysPrevSamples.assign (matrix, 0.0f);
-    m.gainsPrev.assign (matrix, 0.0f);
-    m.frDelaysPrevSamples.assign (matrix, 0.0f);
-    m.frGainsPrev.assign (matrix, 0.0f);
+    m.lastDelays.assign (matrix, 0.0f);
+    m.lastGains.assign (matrix, 0.0f);
+    m.lastFrDelays.assign (matrix, 0.0f);
+    m.lastFrGains.assign (matrix, 0.0f);
+    m.lastHfAttenDb.assign (matrix, 0.0f);
+    m.lastFrHfAttenDb.assign (matrix, 0.0f);
 
     m.frHost.prepare (m.numIn, m.numOut, sampleRate);
 
@@ -375,19 +380,6 @@ bool HipWfsBackend::processBlock (const float* const* inputs, float* const* outp
                             m.latencyMs, srScale, maxDelay,
                             m.hFrDelaysCurr, m.hFrGainsCurr);
 
-    if (! m.havePrev)
-    {
-        std::memcpy (m.delaysPrevSamples.data(), dCurr, matrix * sizeof (float));
-        std::memcpy (m.gainsPrev.data(), gCurr, matrix * sizeof (float));
-        std::memcpy (m.frDelaysPrevSamples.data(), m.hFrDelaysCurr, matrix * sizeof (float));
-        std::memcpy (m.frGainsPrev.data(), m.hFrGainsCurr, matrix * sizeof (float));
-        m.havePrev = true;
-    }
-    std::memcpy (m.hDelaysPrev, m.delaysPrevSamples.data(), matrix * sizeof (float));
-    std::memcpy (m.hGainsPrev, m.gainsPrev.data(), matrix * sizeof (float));
-    std::memcpy (m.hFrDelaysPrev, m.frDelaysPrevSamples.data(), matrix * sizeof (float));
-    std::memcpy (m.hFrGainsPrev, m.frGainsPrev.data(), matrix * sizeof (float));
-
     // Input channels -> flat pinned buffer (silence for missing channels),
     // and the host-side FR pre-filter chain -> frIn staging.
     for (int ch = 0; ch < m.numIn; ++ch)
@@ -408,24 +400,70 @@ bool HipWfsBackend::processBlock (const float* const* inputs, float* const* outp
     };
     PB_RT (up (m.dIn,   m.hIn,   (size_t) m.numIn * m.blockSize));
     PB_RT (up (m.dFrIn, m.hFrIn, (size_t) m.numIn * m.blockSize));
-    PB_RT (up (m.dDelaysPrev, m.hDelaysPrev, matrix));
-    PB_RT (up (m.dDelaysCurr, m.hDelaysCurr, matrix));
-    PB_RT (up (m.dGainsPrev, m.hGainsPrev, matrix));
-    PB_RT (up (m.dGainsCurr, m.hGainsCurr, matrix));
-    PB_RT (up (m.dFrDelaysPrev, m.hFrDelaysPrev, matrix));
-    PB_RT (up (m.dFrDelaysCurr, m.hFrDelaysCurr, matrix));
-    PB_RT (up (m.dFrGainsPrev, m.hFrGainsPrev, matrix));
-    PB_RT (up (m.dFrGainsCurr, m.hFrGainsCurr, matrix));
-    PB_RT (up (m.dHfAttenDb, m.hHfAttenDb, matrix));
-    PB_RT (up (m.dFrHfAttenDb, m.hFrHfAttenDb, matrix));
+
+    // Upload diet: memcmp each freshly staged matrix against its lastStaged
+    // baseline. Unchanged => skip the upload AND the slot swap (prev == curr ==
+    // live slot; the kernel ramps x->x = x). Changed => upload into the
+    // alternate slot, prev = the previous slot (last launch's curr, already
+    // on-device), swap. First launch: single upload, prev == curr (the old
+    // havePrev bootstrap, bit-exact). Safe against in-flight reads: the
+    // previous block ended with hipEventSynchronize, so no launch is reading
+    // either slot while we upload.
+    auto stagePair = [&m, matrix] (Impl::PingPong& pp, const float* staged,
+                                   std::vector<float>& last,
+                                   void*& prevArg, void*& currArg) -> hipError_t
+    {
+        const size_t bytes = (size_t) matrix * sizeof (float);
+        if (pp.everUploaded && std::memcmp (staged, last.data(), bytes) == 0)
+        {
+            prevArg = currArg = pp.slot[pp.curr];      // unchanged: no upload, no swap
+            return hipSuccess;
+        }
+        const int next = pp.everUploaded ? (pp.curr ^ 1) : pp.curr;
+        const hipError_t e = hipMemcpyAsync (pp.slot[next], staged, bytes,
+                                             hipMemcpyHostToDevice, m.stream);
+        if (e != hipSuccess)
+            return e;
+        std::memcpy (last.data(), staged, bytes);
+        prevArg = pp.slot[pp.curr];                    // first launch: prev == curr
+        currArg = pp.slot[next];
+        pp.curr = next;
+        pp.everUploaded = true;
+        return e;
+    };
+    auto stageSingle = [&m, matrix] (void* dBuf, const float* staged,
+                                     std::vector<float>& last, bool& uploaded) -> hipError_t
+    {
+        const size_t bytes = (size_t) matrix * sizeof (float);
+        if (uploaded && std::memcmp (staged, last.data(), bytes) == 0)
+            return hipSuccess;
+        const hipError_t e = hipMemcpyAsync (dBuf, staged, bytes,
+                                             hipMemcpyHostToDevice, m.stream);
+        if (e != hipSuccess)
+            return e;
+        std::memcpy (last.data(), staged, bytes);
+        uploaded = true;
+        return e;
+    };
+
+    void* dDelaysPrevArg = nullptr;   void* dDelaysCurrArg = nullptr;
+    void* dGainsPrevArg = nullptr;    void* dGainsCurrArg = nullptr;
+    void* dFrDelaysPrevArg = nullptr; void* dFrDelaysCurrArg = nullptr;
+    void* dFrGainsPrevArg = nullptr;  void* dFrGainsCurrArg = nullptr;
+    PB_RT (stagePair (m.ppDelays,   m.hDelaysCurr,   m.lastDelays,   dDelaysPrevArg,   dDelaysCurrArg));
+    PB_RT (stagePair (m.ppGains,    m.hGainsCurr,    m.lastGains,    dGainsPrevArg,    dGainsCurrArg));
+    PB_RT (stagePair (m.ppFrDelays, m.hFrDelaysCurr, m.lastFrDelays, dFrDelaysPrevArg, dFrDelaysCurrArg));
+    PB_RT (stagePair (m.ppFrGains,  m.hFrGainsCurr,  m.lastFrGains,  dFrGainsPrevArg,  dFrGainsCurrArg));
+    PB_RT (stageSingle (m.dHfAttenDb,   m.hHfAttenDb,   m.lastHfAttenDb,   m.hfUploaded));
+    PB_RT (stageSingle (m.dFrHfAttenDb, m.hFrHfAttenDb, m.lastFrHfAttenDb, m.frHfUploaded));
 
     WfsParamsGpu p { (uint32_t) m.numIn, (uint32_t) m.numOut, (uint32_t) m.blockSize,
                      m.ringCapacity, m.ringWritePos, m.ringValid,
                      m.pairGroups, m.shelfCosW0, m.shelfSinW0 };
 
     void* pairsArgs[] = { &p, &m.dIn, &m.dFrIn, &m.dRing, &m.dFrRing,
-                          &m.dDelaysPrev, &m.dDelaysCurr, &m.dGainsPrev, &m.dGainsCurr,
-                          &m.dFrDelaysPrev, &m.dFrDelaysCurr, &m.dFrGainsPrev, &m.dFrGainsCurr,
+                          &dDelaysPrevArg, &dDelaysCurrArg, &dGainsPrevArg, &dGainsCurrArg,
+                          &dFrDelaysPrevArg, &dFrDelaysCurrArg, &dFrGainsPrevArg, &dFrGainsCurrArg,
                           &m.dHfAttenDb, &m.dFrHfAttenDb,
                           &m.dShelfState, &m.dFrShelfState, &m.dScratch };
 
@@ -473,13 +511,10 @@ bool HipWfsBackend::processBlock (const float* const* inputs, float* const* outp
         if (outputs[ch] != nullptr)
             std::memcpy (outputs[ch], m.hOut + (size_t) ch * m.blockSize, (size_t) m.blockSize * sizeof (float));
 
-    // Advance host-tracked state.
+    // Advance host-tracked state (matrix prev continuity now lives on the
+    // device: the ping-pong slots + lastStaged baselines, updated at upload).
     m.ringWritePos = (m.ringWritePos + (uint32_t) m.blockSize) % m.ringCapacity;
     m.ringValid = std::min (m.maxDelaySamples, m.ringValid + (uint32_t) m.blockSize);
-    std::memcpy (m.delaysPrevSamples.data(), dCurr, matrix * sizeof (float));
-    std::memcpy (m.gainsPrev.data(), gCurr, matrix * sizeof (float));
-    std::memcpy (m.frDelaysPrevSamples.data(), m.hFrDelaysCurr, matrix * sizeof (float));
-    std::memcpy (m.frGainsPrev.data(), m.hFrGainsCurr, matrix * sizeof (float));
 
     lastLaunchMs = std::chrono::duration<double, std::milli> (
                        std::chrono::steady_clock::now() - t0).count();
@@ -503,7 +538,17 @@ void HipWfsBackend::reset() noexcept
     m.frHost.reset();
     m.ringWritePos = 0;
     m.ringValid = 0;
-    m.havePrev = false;
+
+    // Upload-diet state back to first-launch semantics: the next block
+    // force-uploads every matrix and passes prev == curr (old havePrev
+    // bootstrap). lastStaged baselines re-zeroed to match prepare().
+    for (auto* pp : { &m.ppDelays, &m.ppGains, &m.ppFrDelays, &m.ppFrGains })
+        pp->everUploaded = false;
+    m.hfUploaded = false;
+    m.frHfUploaded = false;
+    for (auto* v : { &m.lastDelays, &m.lastGains, &m.lastFrDelays, &m.lastFrGains,
+                     &m.lastHfAttenDb, &m.lastFrHfAttenDb })
+        std::fill (v->begin(), v->end(), 0.0f);
 }
 
 void HipWfsBackend::release() noexcept
@@ -516,21 +561,24 @@ void HipWfsBackend::release() noexcept
     auto freeDev  = [] (void*&  p) { if (p != nullptr) { hipFree (p);     p = nullptr; } };
 
     freeHost (m.hIn);  freeHost (m.hFrIn);  freeHost (m.hOut);
-    freeHost (m.hDelaysPrev); freeHost (m.hDelaysCurr);
-    freeHost (m.hGainsPrev);  freeHost (m.hGainsCurr);
-    freeHost (m.hFrDelaysPrev); freeHost (m.hFrDelaysCurr);
-    freeHost (m.hFrGainsPrev);  freeHost (m.hFrGainsCurr);
+    freeHost (m.hDelaysCurr);   freeHost (m.hGainsCurr);
+    freeHost (m.hFrDelaysCurr); freeHost (m.hFrGainsCurr);
     freeHost (m.hHfAttenDb);    freeHost (m.hFrHfAttenDb);
 
     freeDev (m.dIn);  freeDev (m.dFrIn);  freeDev (m.dOut);
     freeDev (m.dRing);  freeDev (m.dFrRing);
     freeDev (m.dScratch);
     freeDev (m.dShelfState); freeDev (m.dFrShelfState);
-    freeDev (m.dDelaysPrev); freeDev (m.dDelaysCurr);
-    freeDev (m.dGainsPrev);  freeDev (m.dGainsCurr);
-    freeDev (m.dFrDelaysPrev); freeDev (m.dFrDelaysCurr);
-    freeDev (m.dFrGainsPrev);  freeDev (m.dFrGainsCurr);
+    for (auto* pp : { &m.ppDelays, &m.ppGains, &m.ppFrDelays, &m.ppFrGains })
+    {
+        freeDev (pp->slot[0]);
+        freeDev (pp->slot[1]);
+        pp->curr = 0;
+        pp->everUploaded = false;
+    }
     freeDev (m.dHfAttenDb);    freeDev (m.dFrHfAttenDb);
+    m.hfUploaded = false;
+    m.frHfUploaded = false;
 
     if (m.syncEvent != nullptr) { hipEventDestroy (m.syncEvent); m.syncEvent = nullptr; }
     if (m.stream != nullptr) { hipStreamDestroy (m.stream); m.stream = nullptr; }
@@ -545,7 +593,6 @@ void HipWfsBackend::release() noexcept
     m.frDelaysMs = nullptr;
     m.frLevels = nullptr;
     m.frHfAttenDb = nullptr;
-    m.havePrev = false;
     ready = false;
 }
 

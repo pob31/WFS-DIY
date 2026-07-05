@@ -47,6 +47,7 @@
 #include <cmath>
 #include <cstring>
 #include <string>
+#include <utility>
 #include <vector>
 
 // Optional per-stage host timers (GPU host-path optimization M0 deep-dive
@@ -95,16 +96,13 @@ struct CudaObBackend::Impl
     cudaStream_t stream = nullptr;
     cudaEvent_t  syncEvent = nullptr;  // blocking-sync end-of-block wait (no spin)
 
-    // Pinned host staging.
+    // Pinned host staging (curr only — prev never leaves the device, see below).
     float* hIn = nullptr;
     float* hFrIn = nullptr;
     float* hOut = nullptr;
-    float* hDelaysPrev = nullptr;
     float* hDelaysCurr = nullptr;
-    float* hGainsPrev = nullptr;
     float* hGainsCurr = nullptr;
     float* hFrDelaySamples = nullptr;     // [pairs][blockSize] per-sample FR delay (jitter sub-stepped)
-    float* hFrGainsPrev = nullptr;
     float* hFrGainsCurr = nullptr;
     float* hHfAttenDb = nullptr;
     float* hFrHfAttenDb = nullptr;
@@ -117,15 +115,45 @@ struct CudaObBackend::Impl
     void* dPairOut = nullptr;         // [(s*numOut+out)*numIn+in] transient
     void* dShelfState = nullptr;      // [pairs][4] persistent
     void* dFrShelfState = nullptr;    // [pairs][4] persistent
-    void* dDelaysPrev = nullptr;
-    void* dDelaysCurr = nullptr;
-    void* dGainsPrev = nullptr;
-    void* dGainsCurr = nullptr;
     void* dFrDelaySamples = nullptr;  // [pairs][blockSize] per-sample FR delay
-    void* dFrGainsPrev = nullptr;
-    void* dFrGainsCurr = nullptr;
-    void* dHfAttenDb = nullptr;
+    void* dHfAttenDb = nullptr;       // single buffer (stepwise, no prev/curr ramp)
     void* dFrHfAttenDb = nullptr;
+
+    // Upload diet (M2): device ping-pong per prev/curr matrix pair. The kernel
+    // takes the matrix pointers as launch ARGUMENTS and only READS them
+    // (const __restrict__, CudaObKernels.h), so "prev" never needs a host
+    // round-trip: it is simply the slot uploaded one launch earlier. Only a
+    // CHANGED curr is uploaded (into the alternate slot, then swap); unchanged
+    // blocks pass prev == curr == the live slot — the kernel ramps x->x = x,
+    // bit-exact, and aliasing the two pointers is legal because neither is
+    // written through. First launch: upload once, pass prev == curr (exactly
+    // the old havePrev bootstrap semantics).
+    struct PingPong
+    {
+        void* slot[2] = { nullptr, nullptr };
+        int   curr = 0;               // slot holding the last-consumed curr
+        bool  everUploaded = false;   // first launch: upload once, prev == curr
+    };
+    PingPong ppDelays, ppGains, ppFrGains;
+    bool hfUploaded = false;          // single-buffer change-detect state
+    bool frHfUploaded = false;
+
+    // Change-detect baselines: the last STAGED (== last uploaded) copy of each
+    // matrix, memcmp'd against the freshly staged pinned buffer. Comparing
+    // staged copies (never the live app matrices) is torn-read-safe. lastFrGains
+    // doubles as the FR-activity gate input for computeFrDelaysPerSample and the
+    // active-row upload scan (it IS last launch's staged FR gains — the same
+    // values the kernel's doFr gate reads as frGainsPrev).
+    std::vector<float> lastDelays, lastGains, lastFrGains;
+    std::vector<float> lastHfAttenDb, lastFrHfAttenDb;
+
+    // Scatter FR tiers: coalesced [firstPair, count) runs of FR-active pairs
+    // (prev|curr gain != 0). Rows are pair-indexed in*numOut+out, so activity
+    // yields contiguous runs; one cudaMemcpyAsync per run uploads exactly the
+    // rows the kernel's doFr gate will read (all other rows are neither filled
+    // by WfsFrHostState nor read — F6). Empty => tier-1 global skip: the whole
+    // [pairs][blockSize] upload disappears.
+    std::vector<std::pair<uint32_t, uint32_t>> frActiveRuns;
 
     int numIn = 0, numOut = 0, blockSize = 0;
     uint32_t accLen = 0;
@@ -143,11 +171,7 @@ struct CudaObBackend::Impl
     const float* frLevels = nullptr;
     const float* frHfAttenDb = nullptr;
 
-    std::vector<float> delaysPrevSamples;
-    std::vector<float> gainsPrev;
     std::vector<float> frBasePrev;        // [pairs] base FR delay ramp continuity (no jitter)
-    std::vector<float> frGainsPrev;
-    bool havePrev = false;
 
     WfsFrHostState frHost;            // per-input FR pre-filters + jitter (shared)
 
@@ -250,7 +274,6 @@ bool CudaObBackend::prepare (int numInputs, int numOutputs, int blockSize,
         m.accLen = (uint32_t) m.blockSize + 2;
     m.maxDelayClamp = (float) (m.accLen - 1);
     m.writePos = 0;
-    m.havePrev = false;
     m.threadsPerBlock = 256;
 
     const double w0 = 2.0 * 3.14159265358979 * 800.0 / sampleRate;
@@ -272,12 +295,9 @@ bool CudaObBackend::prepare (int numInputs, int numOutputs, int blockSize,
     CK_RT (pin (&m.hIn,   (size_t) m.numIn  * m.blockSize));
     CK_RT (pin (&m.hFrIn, (size_t) m.numIn  * m.blockSize));
     CK_RT (pin (&m.hOut,  (size_t) m.numOut * m.blockSize));
-    CK_RT (pin (&m.hDelaysPrev, matrix));
     CK_RT (pin (&m.hDelaysCurr, matrix));
-    CK_RT (pin (&m.hGainsPrev,  matrix));
     CK_RT (pin (&m.hGainsCurr,  matrix));
     CK_RT (pin (&m.hFrDelaySamples, (size_t) matrix * m.blockSize));
-    CK_RT (pin (&m.hFrGainsPrev,  matrix));
     CK_RT (pin (&m.hFrGainsCurr,  matrix));
     CK_RT (pin (&m.hHfAttenDb,    matrix));
     CK_RT (pin (&m.hFrHfAttenDb,  matrix));
@@ -298,24 +318,35 @@ bool CudaObBackend::prepare (int numInputs, int numOutputs, int blockSize,
     CK_RT (cudaMalloc (&m.dPairOut, (size_t) matrix * m.blockSize * sizeof (float)));
     CK_RT (cudaMalloc (&m.dShelfState,   (size_t) matrix * 4 * sizeof (float)));
     CK_RT (cudaMalloc (&m.dFrShelfState, (size_t) matrix * 4 * sizeof (float)));
-    CK_RT (cudaMalloc (&m.dDelaysPrev, matrix * sizeof (float)));
-    CK_RT (cudaMalloc (&m.dDelaysCurr, matrix * sizeof (float)));
-    CK_RT (cudaMalloc (&m.dGainsPrev,  matrix * sizeof (float)));
-    CK_RT (cudaMalloc (&m.dGainsCurr,  matrix * sizeof (float)));
+    for (auto* pp : { &m.ppDelays, &m.ppGains, &m.ppFrGains })
+    {
+        CK_RT (cudaMalloc (&pp->slot[0], matrix * sizeof (float)));
+        CK_RT (cudaMalloc (&pp->slot[1], matrix * sizeof (float)));
+        pp->curr = 0;
+        pp->everUploaded = false;
+    }
     CK_RT (cudaMalloc (&m.dFrDelaySamples, (size_t) matrix * m.blockSize * sizeof (float)));
-    CK_RT (cudaMalloc (&m.dFrGainsPrev,  matrix * sizeof (float)));
-    CK_RT (cudaMalloc (&m.dFrGainsCurr,  matrix * sizeof (float)));
     CK_RT (cudaMalloc (&m.dHfAttenDb,    matrix * sizeof (float)));
     CK_RT (cudaMalloc (&m.dFrHfAttenDb,  matrix * sizeof (float)));
+    m.hfUploaded = false;
+    m.frHfUploaded = false;
 
     CK_RT (cudaMemset (m.dPairAcc, 0, (size_t) matrix * m.accLen * sizeof (float)));
     CK_RT (cudaMemset (m.dShelfState,   0, (size_t) matrix * 4 * sizeof (float)));
     CK_RT (cudaMemset (m.dFrShelfState, 0, (size_t) matrix * 4 * sizeof (float)));
+    // Hygiene: define the FR delay rows once — with the tiered upload, rows for
+    // never-active pairs would otherwise stay unwritten VRAM forever (the
+    // kernel never reads them, but a defined buffer is one less trap).
+    CK_RT (cudaMemset (m.dFrDelaySamples, 0, (size_t) matrix * m.blockSize * sizeof (float)));
 
-    m.delaysPrevSamples.assign (matrix, 1.0f);
-    m.gainsPrev.assign (matrix, 0.0f);
+    m.lastDelays.assign (matrix, 0.0f);
+    m.lastGains.assign (matrix, 0.0f);
+    m.lastFrGains.assign (matrix, 0.0f);   // zeros: first-launch FR gate input (CPU parity)
+    m.lastHfAttenDb.assign (matrix, 0.0f);
+    m.lastFrHfAttenDb.assign (matrix, 0.0f);
     m.frBasePrev.assign (matrix, 1.0f);
-    m.frGainsPrev.assign (matrix, 0.0f);
+    m.frActiveRuns.clear();
+    m.frActiveRuns.reserve (64);
 
     m.frHost.prepare (m.numIn, m.numOut, sampleRate);
 
@@ -393,28 +424,49 @@ bool CudaObBackend::processBlock (const float* const* inputs, float* const* outp
     // FR gain: absolute frLevels (gate + level), ramped prev->curr like direct.
     for (uint32_t i = 0; i < matrix; ++i)
         m.hFrGainsCurr[i] = m.frLevels != nullptr ? m.frLevels[i] : 0.0f;
-    WFS_STAGE_MARK (stA);   // snapshot: matrix + shelf + FR-gain staging
+
+    // Scatter FR tiers: scan pair activity (prev|curr FR gain != 0) and
+    // coalesce consecutive active pairs into upload runs. lastFrGains still
+    // holds LAST launch's staged gains here (refresh happens at upload time
+    // below) — numerically the same frGainsPrev the kernel's doFr gate reads,
+    // and the same predicate WfsFrHostState uses to skip the per-sample fill,
+    // so filled == uploaded == kernel-read rows, exactly. Toggle parity: a
+    // pair turning off stays active for one ramp-out block (prev != 0), then
+    // drops out; the jitter state-advance inside computeFrDelaysPerSample
+    // keeps running for every pair regardless (phase parity across toggles).
+    m.frActiveRuns.clear();
+    {
+        uint32_t runStart = 0;
+        bool inRun = false;
+        for (uint32_t i = 0; i < matrix; ++i)
+        {
+            const bool active = m.lastFrGains[i] != 0.0f || m.hFrGainsCurr[i] != 0.0f;
+            if (active && ! inRun)
+            {
+                runStart = i;
+                inRun = true;
+            }
+            else if (! active && inRun)
+            {
+                m.frActiveRuns.push_back ({ runStart, i - runStart });
+                inRun = false;
+            }
+        }
+        if (inRun)
+            m.frActiveRuns.push_back ({ runStart, matrix - runStart });
+    }
+    WFS_STAGE_MARK (stA);   // snapshot: matrix + shelf + FR-gain staging + run scan
 
     // FR delay: PER-SAMPLE, diffusion grain sub-stepped at 64 samples and ramped
-    // (CPU OutputBufferProcessor parity), clamped to d >= 1, gated on FR-active pairs.
+    // (CPU OutputBufferProcessor parity), clamped to d >= 1, gated on FR-active
+    // pairs (gate input = lastFrGains: last launch's staged gains, zeros on the
+    // first launch / after reset — CPU parity).
     m.frHost.computeFrDelaysPerSample (m.delaysMs, m.frDelaysMs,
-                                       m.frGainsPrev.data(), m.hFrGainsCurr,
+                                       m.lastFrGains.data(), m.hFrGainsCurr,
                                        m.latencyMs, srScale, maxDelay,
                                        m.blockSize, kObSubBlock, m.frBasePrev,
                                        m.hFrDelaySamples);
     WFS_STAGE_MARK (stB);   // frPrep: per-sample FR delay staging
-
-    if (! m.havePrev)
-    {
-        std::memcpy (m.delaysPrevSamples.data(), dCurr, matrix * sizeof (float));
-        std::memcpy (m.gainsPrev.data(), gCurr, matrix * sizeof (float));
-        std::memcpy (m.frGainsPrev.data(), m.hFrGainsCurr, matrix * sizeof (float));
-        m.havePrev = true;
-    }
-    std::memcpy (m.hDelaysPrev, m.delaysPrevSamples.data(), matrix * sizeof (float));
-    std::memcpy (m.hGainsPrev, m.gainsPrev.data(), matrix * sizeof (float));
-    std::memcpy (m.hFrGainsPrev, m.frGainsPrev.data(), matrix * sizeof (float));
-    WFS_STAGE_MARK (stC);   // snapshot: prev staging memcpys
 
     for (int ch = 0; ch < m.numIn; ++ch)
     {
@@ -435,23 +487,76 @@ bool CudaObBackend::processBlock (const float* const* inputs, float* const* outp
     };
     PB_RT (up (m.dIn,   m.hIn,   (size_t) m.numIn * m.blockSize));
     PB_RT (up (m.dFrIn, m.hFrIn, (size_t) m.numIn * m.blockSize));
-    PB_RT (up (m.dDelaysPrev, m.hDelaysPrev, matrix));
-    PB_RT (up (m.dDelaysCurr, m.hDelaysCurr, matrix));
-    PB_RT (up (m.dGainsPrev, m.hGainsPrev, matrix));
-    PB_RT (up (m.dGainsCurr, m.hGainsCurr, matrix));
-    PB_RT (up (m.dFrDelaySamples, m.hFrDelaySamples, (size_t) matrix * m.blockSize));
-    PB_RT (up (m.dFrGainsPrev, m.hFrGainsPrev, matrix));
-    PB_RT (up (m.dFrGainsCurr, m.hFrGainsCurr, matrix));
-    PB_RT (up (m.dHfAttenDb, m.hHfAttenDb, matrix));
-    PB_RT (up (m.dFrHfAttenDb, m.hFrHfAttenDb, matrix));
+
+    // Upload diet: memcmp each freshly staged matrix against its lastStaged
+    // baseline. Unchanged => skip the upload AND the slot swap (prev == curr ==
+    // live slot; the kernel ramps x->x = x). Changed => upload into the
+    // alternate slot, prev = the previous slot (last launch's curr, already
+    // on-device), swap. First launch: single upload, prev == curr (the old
+    // havePrev bootstrap, bit-exact). Safe against in-flight reads: the
+    // previous block ended with cudaEventSynchronize, so no launch is reading
+    // either slot while we upload.
+    auto stagePair = [&m, matrix] (Impl::PingPong& pp, const float* staged,
+                                   std::vector<float>& last,
+                                   void*& prevArg, void*& currArg) -> cudaError_t
+    {
+        const size_t bytes = (size_t) matrix * sizeof (float);
+        if (pp.everUploaded && std::memcmp (staged, last.data(), bytes) == 0)
+        {
+            prevArg = currArg = pp.slot[pp.curr];      // unchanged: no upload, no swap
+            return cudaSuccess;
+        }
+        const int next = pp.everUploaded ? (pp.curr ^ 1) : pp.curr;
+        const cudaError_t e = cudaMemcpyAsync (pp.slot[next], staged, bytes,
+                                               cudaMemcpyHostToDevice, m.stream);
+        if (e != cudaSuccess)
+            return e;
+        std::memcpy (last.data(), staged, bytes);
+        prevArg = pp.slot[pp.curr];                    // first launch: prev == curr
+        currArg = pp.slot[next];
+        pp.curr = next;
+        pp.everUploaded = true;
+        return e;
+    };
+    auto stageSingle = [&m, matrix] (void* dBuf, const float* staged,
+                                     std::vector<float>& last, bool& uploaded) -> cudaError_t
+    {
+        const size_t bytes = (size_t) matrix * sizeof (float);
+        if (uploaded && std::memcmp (staged, last.data(), bytes) == 0)
+            return cudaSuccess;
+        const cudaError_t e = cudaMemcpyAsync (dBuf, staged, bytes,
+                                               cudaMemcpyHostToDevice, m.stream);
+        if (e != cudaSuccess)
+            return e;
+        std::memcpy (last.data(), staged, bytes);
+        uploaded = true;
+        return e;
+    };
+
+    void* dDelaysPrevArg = nullptr;  void* dDelaysCurrArg = nullptr;
+    void* dGainsPrevArg = nullptr;   void* dGainsCurrArg = nullptr;
+    void* dFrGainsPrevArg = nullptr; void* dFrGainsCurrArg = nullptr;
+    PB_RT (stagePair (m.ppDelays,  m.hDelaysCurr,  m.lastDelays,  dDelaysPrevArg,  dDelaysCurrArg));
+    PB_RT (stagePair (m.ppGains,   m.hGainsCurr,   m.lastGains,   dGainsPrevArg,   dGainsCurrArg));
+    PB_RT (stagePair (m.ppFrGains, m.hFrGainsCurr, m.lastFrGains, dFrGainsPrevArg, dFrGainsCurrArg));
+    PB_RT (stageSingle (m.dHfAttenDb,   m.hHfAttenDb,   m.lastHfAttenDb,   m.hfUploaded));
+    PB_RT (stageSingle (m.dFrHfAttenDb, m.hFrHfAttenDb, m.lastFrHfAttenDb, m.frHfUploaded));
+
+    // Per-sample FR delays: upload only the coalesced active-pair runs (tier 2);
+    // no runs (tier 1, FR fully idle) => the 4 MiB-class upload disappears.
+    // Every row the kernel will read this block was freshly filled this block.
+    for (const auto& r : m.frActiveRuns)
+        PB_RT (up ((float*) m.dFrDelaySamples + (size_t) r.first * m.blockSize,
+                   m.hFrDelaySamples + (size_t) r.first * m.blockSize,
+                   (size_t) r.second * m.blockSize));
 
     ObParamsGpu p { (uint32_t) m.numIn, (uint32_t) m.numOut, (uint32_t) m.blockSize,
                     m.accLen, m.writePos, m.shelfCosW0, m.shelfSinW0 };
 
     // K1: per-pair filter + emit + scatter (one thread per pair).
     void* pairsArgs[] = { &p, &m.dIn, &m.dFrIn, &m.dHfAttenDb, &m.dFrHfAttenDb,
-                          &m.dDelaysPrev, &m.dDelaysCurr, &m.dGainsPrev, &m.dGainsCurr,
-                          &m.dFrDelaySamples, &m.dFrGainsPrev, &m.dFrGainsCurr,
+                          &dDelaysPrevArg, &dDelaysCurrArg, &dGainsPrevArg, &dGainsCurrArg,
+                          &m.dFrDelaySamples, &dFrGainsPrevArg, &dFrGainsCurrArg,
                           &m.dShelfState, &m.dFrShelfState, &m.dPairAcc, &m.dPairOut };
     const unsigned int pairGrid = (matrix + m.threadsPerBlock - 1) / m.threadsPerBlock;
     CUresult lr = cuLaunchKernel (m.kernelPairs,
@@ -497,19 +602,17 @@ bool CudaObBackend::processBlock (const float* const* inputs, float* const* outp
             std::memcpy (outputs[ch], m.hOut + (size_t) ch * m.blockSize, (size_t) m.blockSize * sizeof (float));
 
     // Advance host-tracked state (FR delay continuity lives in frBasePrev,
-    // updated inside computeFrDelaysPerSample).
+    // updated inside computeFrDelaysPerSample; matrix prev continuity now lives
+    // on the device: the ping-pong slots + lastStaged baselines).
     m.writePos = (m.writePos + (uint32_t) m.blockSize) % m.accLen;
-    std::memcpy (m.delaysPrevSamples.data(), dCurr, matrix * sizeof (float));
-    std::memcpy (m.gainsPrev.data(), gCurr, matrix * sizeof (float));
-    std::memcpy (m.frGainsPrev.data(), m.hFrGainsCurr, matrix * sizeof (float));
 
 #if WFS_GPU_STAGE_TIMERS
     {
         const auto stH = std::chrono::steady_clock::now();   // unpack end
         auto ms = [] (auto a, auto b) { return std::chrono::duration<double, std::milli> (b - a).count(); };
-        m.stSnapshotMs    += ms (t0, stA) + ms (stB, stC);
+        m.stSnapshotMs    += ms (t0, stA);
         m.stFrPrepMs      += ms (stA, stB) + ms (stD, stE);
-        m.stUploadIssueMs += ms (stC, stD) + ms (stE, stF);
+        m.stUploadIssueMs += ms (stB, stD) + ms (stE, stF);
         m.stWaitMs        += ms (stF, stG);
         m.stUnpackMs      += ms (stG, stH);
         if (++m.stBlocks == 512)
@@ -548,7 +651,17 @@ void CudaObBackend::reset() noexcept
         cudaMemset (m.dFrShelfState, 0, stateBytes);
     m.frHost.reset();
     m.writePos = 0;
-    m.havePrev = false;
+
+    // Upload-diet state back to first-launch semantics: the next block
+    // force-uploads every matrix and passes prev == curr (old havePrev
+    // bootstrap). lastFrGains back to zeros = the first-launch FR gate input.
+    for (auto* pp : { &m.ppDelays, &m.ppGains, &m.ppFrGains })
+        pp->everUploaded = false;
+    m.hfUploaded = false;
+    m.frHfUploaded = false;
+    for (auto* v : { &m.lastDelays, &m.lastGains, &m.lastFrGains,
+                     &m.lastHfAttenDb, &m.lastFrHfAttenDb })
+        std::fill (v->begin(), v->end(), 0.0f);
 }
 
 void CudaObBackend::release() noexcept
@@ -562,20 +675,25 @@ void CudaObBackend::release() noexcept
     auto freeDev  = [] (void*&  p) { if (p != nullptr) { cudaFree (p);     p = nullptr; } };
 
     freeHost (m.hIn);  freeHost (m.hFrIn);  freeHost (m.hOut);
-    freeHost (m.hDelaysPrev); freeHost (m.hDelaysCurr);
-    freeHost (m.hGainsPrev);  freeHost (m.hGainsCurr);
+    freeHost (m.hDelaysCurr); freeHost (m.hGainsCurr);
     freeHost (m.hFrDelaySamples);
-    freeHost (m.hFrGainsPrev);  freeHost (m.hFrGainsCurr);
+    freeHost (m.hFrGainsCurr);
     freeHost (m.hHfAttenDb);    freeHost (m.hFrHfAttenDb);
 
     freeDev (m.dIn);  freeDev (m.dFrIn);  freeDev (m.dOut);
     freeDev (m.dPairAcc);  freeDev (m.dPairOut);
     freeDev (m.dShelfState); freeDev (m.dFrShelfState);
-    freeDev (m.dDelaysPrev); freeDev (m.dDelaysCurr);
-    freeDev (m.dGainsPrev);  freeDev (m.dGainsCurr);
+    for (auto* pp : { &m.ppDelays, &m.ppGains, &m.ppFrGains })
+    {
+        freeDev (pp->slot[0]);
+        freeDev (pp->slot[1]);
+        pp->curr = 0;
+        pp->everUploaded = false;
+    }
     freeDev (m.dFrDelaySamples);
-    freeDev (m.dFrGainsPrev);  freeDev (m.dFrGainsCurr);
     freeDev (m.dHfAttenDb);    freeDev (m.dFrHfAttenDb);
+    m.hfUploaded = false;
+    m.frHfUploaded = false;
 
     if (m.syncEvent != nullptr) { cudaEventDestroy (m.syncEvent); m.syncEvent = nullptr; }
     if (m.stream != nullptr) { cudaStreamDestroy (m.stream); m.stream = nullptr; }
@@ -591,7 +709,6 @@ void CudaObBackend::release() noexcept
     m.frDelaysMs = nullptr;
     m.frLevels = nullptr;
     m.frHfAttenDb = nullptr;
-    m.havePrev = false;
     ready = false;
 }
 
