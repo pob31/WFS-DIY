@@ -37,6 +37,7 @@
 #include "rt/AudioWorkgroupCoordinator.h"
 #include "rt/LockFreeRingBuffer.h"
 #include "rt/RealtimeThreadUtil.h"
+#include "rt/RtThreadPriority.h"
 #include "rt/ReverbDiagnostics.h"
 #include "rt/RtSnapshot.h"
 #include "rt/SharedInputRingBuffer.h"

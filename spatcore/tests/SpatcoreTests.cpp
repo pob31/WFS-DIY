@@ -24,6 +24,7 @@
 
 #include "spatcore/rt/LockFreeRingBuffer.h"
 #include "spatcore/rt/RtSnapshot.h"
+#include "spatcore/rt/RtThreadPriority.h"
 #include "spatcore/dsp/DelayTargetSmoother.h"
 #include "spatcore/control/osc/OSCSerializer.h"
 #include "spatcore/control/osc/OSCParser.h"
@@ -199,6 +200,28 @@ static void testOscRoundtrip()
 }
 
 //==============================================================================
+// RtThreadPriority smoke: elevating the calling thread and querying the core
+// count must not crash and must return sane values. The elevation is a
+// scheduling hint only (never affects computed audio), so this is a "does it
+// run" check, not a value check — the return value is allowed to be false on a
+// machine/policy that declines the request (e.g. no RLIMIT_RTPRIO on Linux, or
+// avrt.dll absent on Windows -> HIGHEST fallback returns false).
+static void testRtThreadPriority()
+{
+    // periodMs = one 128-sample block at 96 kHz; computationMs a slice of it.
+    const bool elevated = spatcore::rt::setCurrentThreadAudioPriority (1.3333, 0.5);
+    (void) elevated;   // platform/policy-dependent; must not crash regardless
+
+    // A second call on the same thread must be idempotent (Windows: reuses the
+    // per-thread MMCSS task handle rather than re-registering).
+    spatcore::rt::setCurrentThreadAudioPriority (1.3333, 0.5);
+
+    const int cores = spatcore::rt::physicalCoreCount();
+    CHECK (cores >= 1);
+    CHECK (cores <= 4096);   // sanity upper bound
+}
+
+//==============================================================================
 int main()
 {
     try
@@ -207,6 +230,7 @@ int main()
         testDelayTargetSmootherDeterminism();
         testRtSnapshot();
         testOscRoundtrip();
+        testRtThreadPriority();
     }
     catch (const std::exception& e)
     {
