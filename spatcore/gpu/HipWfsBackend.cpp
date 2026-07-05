@@ -70,6 +70,7 @@ struct HipWfsBackend::Impl
     hipFunction_t   kernelPairs = nullptr;
     hipFunction_t   kernelReduce = nullptr;
     hipStream_t stream = nullptr;
+    hipEvent_t  syncEvent = nullptr;  // blocking-sync end-of-block wait (no spin)
 
     // Pinned host staging.
     float* hIn = nullptr;
@@ -238,6 +239,11 @@ bool HipWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,
 
     // 5) Stream + pinned host staging + device buffers (+ zero persistent state).
     CK_RT (hipStreamCreate (&m.stream));
+
+    // End-of-block sync event: BlockingSync makes hipEventSynchronize yield the
+    // pump thread on an OS primitive instead of the spin-wait of
+    // hipStreamSynchronize; DisableTiming skips timestamp bookkeeping.
+    CK_RT (hipEventCreateWithFlags (&m.syncEvent, hipEventBlockingSync | hipEventDisableTiming));
 
     auto pin = [] (float** p, size_t n) {
         return hipHostMalloc ((void**) p, n * sizeof (float), hipHostMallocDefault);
@@ -457,7 +463,8 @@ bool HipWfsBackend::processBlock (const float* const* inputs, float* const* outp
     }
 
     PB_RT (hipMemcpyAsync (m.hOut, m.dOut, (size_t) m.numOut * m.blockSize * sizeof (float), hipMemcpyDeviceToHost, m.stream));
-    PB_RT (hipStreamSynchronize (m.stream));
+    PB_RT (hipEventRecord (m.syncEvent, m.stream));
+    PB_RT (hipEventSynchronize (m.syncEvent));   // blocking-sync event: yields, no spin
 
 #undef PB_RT
 
@@ -525,6 +532,7 @@ void HipWfsBackend::release() noexcept
     freeDev (m.dFrGainsPrev);  freeDev (m.dFrGainsCurr);
     freeDev (m.dHfAttenDb);    freeDev (m.dFrHfAttenDb);
 
+    if (m.syncEvent != nullptr) { hipEventDestroy (m.syncEvent); m.syncEvent = nullptr; }
     if (m.stream != nullptr) { hipStreamDestroy (m.stream); m.stream = nullptr; }
     if (m.module != nullptr) { hipModuleUnload (m.module); m.module = nullptr; }
     m.kernelPairs = nullptr;

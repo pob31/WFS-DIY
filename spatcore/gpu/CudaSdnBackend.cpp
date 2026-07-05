@@ -71,6 +71,7 @@ struct CudaSdnBackend::Impl
     CUmodule     module = nullptr;
     CUfunction   kernel = nullptr;
     cudaStream_t stream = nullptr;
+    cudaEvent_t  syncEvent = nullptr;  // blocking-sync end-of-block wait (no spin)
 
     // Pinned host staging.
     float* hInputs = nullptr;
@@ -206,6 +207,11 @@ bool CudaSdnBackend::prepare (int numNodes, int blockSize, double sampleRate)
     const size_t maxDiff  = (size_t) m.cfg.maxDiffLen;
 
     CK_RT (cudaStreamCreate (&m.stream));
+
+    // End-of-block sync event: BlockingSync makes cudaEventSynchronize yield the
+    // pump thread on an OS primitive instead of the spin-wait of
+    // cudaStreamSynchronize; DisableTiming skips timestamp bookkeeping.
+    CK_RT (cudaEventCreateWithFlags (&m.syncEvent, cudaEventBlockingSync | cudaEventDisableTiming));
 
     auto pinF = [] (float** p, size_t n) { return cudaHostAlloc ((void**) p, n * sizeof (float), cudaHostAllocDefault); };
     auto pinI = [] (int**   p, size_t n) { return cudaHostAlloc ((void**) p, n * sizeof (int),   cudaHostAllocDefault); };
@@ -436,7 +442,8 @@ bool CudaSdnBackend::processBlock (const float* const* inputs, float* const* out
     }
 
     PB_RT (cudaMemcpyAsync (m.hOutputs, m.dOutputs, (size_t) N * m.blockSize * sizeof (float), cudaMemcpyDeviceToHost, m.stream));
-    PB_RT (cudaStreamSynchronize (m.stream));
+    PB_RT (cudaEventRecord (m.syncEvent, m.stream));
+    PB_RT (cudaEventSynchronize (m.syncEvent));   // blocking-sync event: yields, no spin
 
 #undef PB_RT
 
@@ -476,6 +483,7 @@ void CudaSdnBackend::release() noexcept
     freeDev (m.dDiffuserDelays); freeDev (m.dDiffRings); freeDev (m.dDiffWritePos);
     freeDev (m.dToneState); freeDev (m.dDcState);
 
+    if (m.syncEvent != nullptr) { cudaEventDestroy (m.syncEvent); m.syncEvent = nullptr; }
     if (m.stream != nullptr) { cudaStreamDestroy (m.stream); m.stream = nullptr; }
     if (m.module != nullptr) { cuModuleUnload (m.module); m.module = nullptr; }
     m.kernel = nullptr;

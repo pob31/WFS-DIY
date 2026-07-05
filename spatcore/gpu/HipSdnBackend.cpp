@@ -67,6 +67,7 @@ struct HipSdnBackend::Impl
     hipModule_t     module = nullptr;
     hipFunction_t   kernel = nullptr;
     hipStream_t stream = nullptr;
+    hipEvent_t  syncEvent = nullptr;  // blocking-sync end-of-block wait (no spin)
 
     // Pinned host staging.
     float* hInputs = nullptr;
@@ -196,6 +197,11 @@ bool HipSdnBackend::prepare (int numNodes, int blockSize, double sampleRate)
     const size_t maxDiff  = (size_t) m.cfg.maxDiffLen;
 
     CK_RT (hipStreamCreate (&m.stream));
+
+    // End-of-block sync event: BlockingSync makes hipEventSynchronize yield the
+    // pump thread on an OS primitive instead of the spin-wait of
+    // hipStreamSynchronize; DisableTiming skips timestamp bookkeeping.
+    CK_RT (hipEventCreateWithFlags (&m.syncEvent, hipEventBlockingSync | hipEventDisableTiming));
 
     auto pinF = [] (float** p, size_t n) { return hipHostMalloc ((void**) p, n * sizeof (float), hipHostMallocDefault); };
     auto pinI = [] (int**   p, size_t n) { return hipHostMalloc ((void**) p, n * sizeof (int),   hipHostMallocDefault); };
@@ -425,7 +431,8 @@ bool HipSdnBackend::processBlock (const float* const* inputs, float* const* outp
     }
 
     PB_RT (hipMemcpyAsync (m.hOutputs, m.dOutputs, (size_t) N * m.blockSize * sizeof (float), hipMemcpyDeviceToHost, m.stream));
-    PB_RT (hipStreamSynchronize (m.stream));
+    PB_RT (hipEventRecord (m.syncEvent, m.stream));
+    PB_RT (hipEventSynchronize (m.syncEvent));   // blocking-sync event: yields, no spin
 
 #undef PB_RT
 
@@ -464,6 +471,7 @@ void HipSdnBackend::release() noexcept
     freeDev (m.dDiffuserDelays); freeDev (m.dDiffRings); freeDev (m.dDiffWritePos);
     freeDev (m.dToneState); freeDev (m.dDcState);
 
+    if (m.syncEvent != nullptr) { hipEventDestroy (m.syncEvent); m.syncEvent = nullptr; }
     if (m.stream != nullptr) { hipStreamDestroy (m.stream); m.stream = nullptr; }
     if (m.module != nullptr) { hipModuleUnload (m.module); m.module = nullptr; }
     m.kernel = nullptr;
