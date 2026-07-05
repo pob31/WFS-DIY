@@ -3410,6 +3410,7 @@
     <ClInclude Include="..\..\spatcore\gpu\CudaWfsKernels.h"/>
     <ClInclude Include="..\..\spatcore\gpu\HipWfsBackend.h"/>
     <ClInclude Include="..\..\spatcore\gpu\WfsFrHostState.h"/>
+    <ClInclude Include="..\..\spatcore\gpu\GpuHostWorkPool.h"/>
     <ClInclude Include="..\..\spatcore\wfs\NativeGpuOutputBufferAlgorithm.h"/>
     <ClInclude Include="..\..\spatcore\gpu\ObGpuBackend.h"/>
     <ClInclude Include="..\..\spatcore\gpu\MetalObBackend.h"/>
