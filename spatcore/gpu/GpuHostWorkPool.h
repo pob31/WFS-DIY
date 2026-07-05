@@ -87,6 +87,22 @@ public:
         realtimePeriodMs      = periodMs;
         realtimeComputationMs = computationMs;
 
+        // Reset the generation state to first-prepare semantics. Every worker
+        // seeds myGen = 0, but dispatchGen is a PERSISTENT member bumped by every
+        // prior parallelFor and by shutdown(); on a re-prepare() (backends call
+        // release()->pool.shutdown() then pool.prepare() on any SR/block/channel
+        // change) it would be > 0, so the fresh workers would see
+        // dispatchGen != myGen and phantom-serve a stale generation that can race
+        // the first real dispatch's currentFunc and double-decrement the barrier.
+        // shutdown() above has joined all workers, so no thread observes these
+        // stores; the workers spawned below start from a clean generation 0.
+        // (Relaxed is safe: std::thread construction synchronises the new thread
+        // with these prior writes.)
+        dispatchGen.store (0, std::memory_order_relaxed);
+        workersRemaining.store (0, std::memory_order_relaxed);
+        nextItem.store (0, std::memory_order_relaxed);
+        totalItems.store (0, std::memory_order_relaxed);
+
         running.store (true, std::memory_order_release);
         numActiveWorkers = numWorkers;
 

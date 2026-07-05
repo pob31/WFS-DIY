@@ -283,8 +283,6 @@ static void testGpuHostWorkPoolDeterminism()
 // not a proof; the proof is the audit + the ordering argument in the header.)
 static void testGpuHostWorkPoolCrossGenBarrier()
 {
-    spatcore::gpu::GpuHostWorkPool pool;
-
     // Oversubscribe: many more workers than cores forces the OS to preempt a
     // worker constantly, so the finish->redispatch window (a worker preempted
     // right after the last item, before it re-checks the item counter) is hit
@@ -292,24 +290,39 @@ static void testGpuHostWorkPoolCrossGenBarrier()
     // to the completion barrier — exactly the interleaving the bug needs.
     const unsigned hw = std::thread::hardware_concurrency();
     const int workers = (int) (hw > 0 ? hw * 2u : 8u);   // oversubscribed
-    pool.prepare (workers, 1.3333, 0.5);
+    const int count   = 3;               // tiny => tight finish/redispatch window
 
-    const int rounds = 50000;
-    const int count  = 3;               // tiny => tight finish/redispatch window
+    // The pool is RE-PREPARED many times (backends re-prepare on any SR/block/
+    // channel change: release()->pool.shutdown() then pool.prepare()). The first
+    // parallelFor after each fresh prepare is the window for the phantom-
+    // generation defect (fresh workers seed myGen=0 while a stale dispatchGen>0
+    // would make them serve a bogus generation). So: many prepares, each followed
+    // immediately by tight back-to-back generations, all validated per round.
+    spatcore::gpu::GpuHostWorkPool pool;
     std::vector<int> out ((size_t) count, 0);
 
-    for (int r = 0; r < rounds; ++r)
+    const int prepares         = 500;    // 500 fresh-prepare (phantom) windows
+    const int roundsPerPrepare = 200;    // tight back-to-back gens after each
+
+    int g = 0;
+    for (int p = 0; p < prepares; ++p)
     {
-        const int base = r * 7 + 1;     // unique per generation
-        std::fill (out.begin(), out.end(), -1);
+        pool.prepare (workers, 1.3333, 0.5);   // re-prepare must reset dispatchGen
 
-        // Fresh lambda each round; its captured frame is destroyed when this
-        // parallelFor returns, so a bled straggler invoking a STALE currentFunc
-        // would read a destroyed capture (UAF) or write the previous base.
-        pool.parallelFor (count, [&out, base] (int i) { out[(size_t) i] = base + i; });
+        for (int r = 0; r < roundsPerPrepare; ++r)
+        {
+            const int base = (++g) * 7 + 1;    // unique per generation
+            std::fill (out.begin(), out.end(), -1);
 
-        for (int i = 0; i < count; ++i)
-            CHECK (out[(size_t) i] == base + i);
+            // Fresh lambda each round; its captured frame is destroyed when this
+            // parallelFor returns, so a bled straggler invoking a STALE currentFunc
+            // would read a destroyed capture (UAF), write a wrong base, or hit a
+            // nullptr currentFunc (std::bad_function_call).
+            pool.parallelFor (count, [&out, base] (int i) { out[(size_t) i] = base + i; });
+
+            for (int i = 0; i < count; ++i)
+                CHECK (out[(size_t) i] == base + i);
+        }
     }
 
     pool.shutdown();
