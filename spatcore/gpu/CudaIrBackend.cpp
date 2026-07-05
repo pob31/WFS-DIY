@@ -74,6 +74,7 @@ struct CudaIrBackend::Impl
     CUmodule     module = nullptr;
     CUfunction   kernelMac = nullptr;
     cudaStream_t stream = nullptr;
+    cudaEvent_t  syncEvent = nullptr;  // blocking-sync end-of-block wait (no spin)
 
     // Pinned host staging.
     float* hIrSpectra = nullptr;   // [segCapacity][fftLen]
@@ -194,6 +195,11 @@ bool CudaIrBackend::prepare (int numNodes, int blockSize,
 
     CK_RT (cudaStreamCreate (&m.stream));
 
+    // End-of-block sync event: BlockingSync makes cudaEventSynchronize yield the
+    // pump thread on an OS primitive instead of the spin-wait of
+    // cudaStreamSynchronize; DisableTiming skips timestamp bookkeeping.
+    CK_RT (cudaEventCreateWithFlags (&m.syncEvent, cudaEventBlockingSync | cudaEventDisableTiming));
+
     auto pin = [] (float** p, size_t n) {
         return cudaHostAlloc ((void**) p, n * sizeof (float), cudaHostAllocDefault);
     };
@@ -286,7 +292,8 @@ bool CudaIrBackend::processBlock (const float* const* inputs, float* const* outp
     // land before the pinned staging is reused next launch.
     if (m.host.getSegmentsLoaded() == 0)
     {
-        PB_RT (cudaStreamSynchronize (m.stream));
+        PB_RT (cudaEventRecord (m.syncEvent, m.stream));
+        PB_RT (cudaEventSynchronize (m.syncEvent));   // blocking-sync event: yields, no spin
         for (int node = 0; node < m.numNodes; ++node)
             if (outputs[node] != nullptr)
                 std::memset (outputs[node], 0, (size_t) m.blockSize * sizeof (float));
@@ -317,7 +324,8 @@ bool CudaIrBackend::processBlock (const float* const* inputs, float* const* outp
     PB_RT (cudaMemcpyAsync (m.hOutSpectra, m.dOutSpectra,
                             (size_t) m.numNodes * specBytes,
                             cudaMemcpyDeviceToHost, m.stream));
-    PB_RT (cudaStreamSynchronize (m.stream));
+    PB_RT (cudaEventRecord (m.syncEvent, m.stream));
+    PB_RT (cudaEventSynchronize (m.syncEvent));   // blocking-sync event: yields, no spin
 
 #undef PB_RT
 
@@ -346,6 +354,7 @@ void CudaIrBackend::release() noexcept
     freeHost (m.hIrSpectra); freeHost (m.hInSpectra); freeHost (m.hOutSpectra);
     freeDev (m.dIrSpectra); freeDev (m.dInSpectra); freeDev (m.dOutSpectra);
 
+    if (m.syncEvent != nullptr) { cudaEventDestroy (m.syncEvent); m.syncEvent = nullptr; }
     if (m.stream != nullptr) { cudaStreamDestroy (m.stream); m.stream = nullptr; }
     if (m.module != nullptr) { cuModuleUnload (m.module); m.module = nullptr; }
     m.kernelMac = nullptr;

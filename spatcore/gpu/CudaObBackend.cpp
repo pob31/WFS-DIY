@@ -93,6 +93,7 @@ struct CudaObBackend::Impl
     CUfunction   kernelPairs = nullptr;
     CUfunction   kernelReduce = nullptr;
     cudaStream_t stream = nullptr;
+    cudaEvent_t  syncEvent = nullptr;  // blocking-sync end-of-block wait (no spin)
 
     // Pinned host staging.
     float* hIn = nullptr;
@@ -259,6 +260,11 @@ bool CudaObBackend::prepare (int numInputs, int numOutputs, int blockSize,
     const uint32_t matrix = (uint32_t) (m.numIn * m.numOut);
 
     CK_RT (cudaStreamCreate (&m.stream));
+
+    // End-of-block sync event: BlockingSync makes cudaEventSynchronize yield the
+    // pump thread on an OS primitive instead of the spin-wait of
+    // cudaStreamSynchronize; DisableTiming skips timestamp bookkeeping.
+    CK_RT (cudaEventCreateWithFlags (&m.syncEvent, cudaEventBlockingSync | cudaEventDisableTiming));
 
     auto pin = [] (float** p, size_t n) {
         return cudaHostAlloc ((void**) p, n * sizeof (float), cudaHostAllocDefault);
@@ -480,8 +486,9 @@ bool CudaObBackend::processBlock (const float* const* inputs, float* const* outp
 
     PB_RT (cudaMemcpyAsync (m.hOut, m.dOut, (size_t) m.numOut * m.blockSize * sizeof (float), cudaMemcpyDeviceToHost, m.stream));
     WFS_STAGE_MARK (stF);   // uploadIssue: H2D uploads (incl. per-sample FR) + launches + D2H issue
-    PB_RT (cudaStreamSynchronize (m.stream));
-    WFS_STAGE_MARK (stG);   // wait: stream sync
+    PB_RT (cudaEventRecord (m.syncEvent, m.stream));
+    PB_RT (cudaEventSynchronize (m.syncEvent));   // blocking-sync event: yields, no spin
+    WFS_STAGE_MARK (stG);   // wait: event sync
 
 #undef PB_RT
 
@@ -570,6 +577,7 @@ void CudaObBackend::release() noexcept
     freeDev (m.dFrGainsPrev);  freeDev (m.dFrGainsCurr);
     freeDev (m.dHfAttenDb);    freeDev (m.dFrHfAttenDb);
 
+    if (m.syncEvent != nullptr) { cudaEventDestroy (m.syncEvent); m.syncEvent = nullptr; }
     if (m.stream != nullptr) { cudaStreamDestroy (m.stream); m.stream = nullptr; }
     if (m.module != nullptr) { cuModuleUnload (m.module); m.module = nullptr; }
     m.kernelPairs = nullptr;

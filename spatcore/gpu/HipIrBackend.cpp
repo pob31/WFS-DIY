@@ -69,6 +69,7 @@ struct HipIrBackend::Impl
     hipModule_t     module = nullptr;
     hipFunction_t   kernelMac = nullptr;
     hipStream_t stream = nullptr;
+    hipEvent_t  syncEvent = nullptr;  // blocking-sync end-of-block wait (no spin)
 
     // Pinned host staging.
     float* hIrSpectra = nullptr;   // [segCapacity][fftLen]
@@ -182,6 +183,11 @@ bool HipIrBackend::prepare (int numNodes, int blockSize,
 
     CK_RT (hipStreamCreate (&m.stream));
 
+    // End-of-block sync event: BlockingSync makes hipEventSynchronize yield the
+    // pump thread on an OS primitive instead of the spin-wait of
+    // hipStreamSynchronize; DisableTiming skips timestamp bookkeeping.
+    CK_RT (hipEventCreateWithFlags (&m.syncEvent, hipEventBlockingSync | hipEventDisableTiming));
+
     auto pin = [] (float** p, size_t n) {
         return hipHostMalloc ((void**) p, n * sizeof (float), hipHostMallocDefault);
     };
@@ -271,7 +277,8 @@ bool HipIrBackend::processBlock (const float* const* inputs, float* const* outpu
     // land before the pinned staging is reused next launch.
     if (m.host.getSegmentsLoaded() == 0)
     {
-        PB_RT (hipStreamSynchronize (m.stream));
+        PB_RT (hipEventRecord (m.syncEvent, m.stream));
+        PB_RT (hipEventSynchronize (m.syncEvent));   // blocking-sync event: yields, no spin
         for (int node = 0; node < m.numNodes; ++node)
             if (outputs[node] != nullptr)
                 std::memset (outputs[node], 0, (size_t) m.blockSize * sizeof (float));
@@ -302,7 +309,8 @@ bool HipIrBackend::processBlock (const float* const* inputs, float* const* outpu
     PB_RT (hipMemcpyAsync (m.hOutSpectra, m.dOutSpectra,
                             (size_t) m.numNodes * specBytes,
                             hipMemcpyDeviceToHost, m.stream));
-    PB_RT (hipStreamSynchronize (m.stream));
+    PB_RT (hipEventRecord (m.syncEvent, m.stream));
+    PB_RT (hipEventSynchronize (m.syncEvent));   // blocking-sync event: yields, no spin
 
 #undef PB_RT
 
@@ -330,6 +338,7 @@ void HipIrBackend::release() noexcept
     freeHost (m.hIrSpectra); freeHost (m.hInSpectra); freeHost (m.hOutSpectra);
     freeDev (m.dIrSpectra); freeDev (m.dInSpectra); freeDev (m.dOutSpectra);
 
+    if (m.syncEvent != nullptr) { hipEventDestroy (m.syncEvent); m.syncEvent = nullptr; }
     if (m.stream != nullptr) { hipStreamDestroy (m.stream); m.stream = nullptr; }
     if (m.module != nullptr) { hipModuleUnload (m.module); m.module = nullptr; }
     m.kernelMac = nullptr;

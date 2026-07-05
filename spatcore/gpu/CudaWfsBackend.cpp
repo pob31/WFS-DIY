@@ -106,6 +106,7 @@ struct CudaWfsBackend::Impl
     CUfunction   kernelPairs = nullptr;
     CUfunction   kernelReduce = nullptr;
     cudaStream_t stream = nullptr;
+    cudaEvent_t  syncEvent = nullptr;  // blocking-sync end-of-block wait (no spin)
 
     // Pinned host staging.
     float* hIn = nullptr;
@@ -294,6 +295,11 @@ bool CudaWfsBackend::prepare (int numInputs, int numOutputs, int blockSize,
     // 5) Stream + pinned host staging + device buffers (+ zero persistent state).
     CK_RT (cudaStreamCreate (&m.stream));
 
+    // End-of-block sync event: BlockingSync makes cudaEventSynchronize yield the
+    // pump thread on an OS primitive instead of the spin-wait of
+    // cudaStreamSynchronize; DisableTiming skips timestamp bookkeeping.
+    CK_RT (cudaEventCreateWithFlags (&m.syncEvent, cudaEventBlockingSync | cudaEventDisableTiming));
+
     auto pin = [] (float** p, size_t n) {
         return cudaHostAlloc ((void**) p, n * sizeof (float), cudaHostAllocDefault);
     };
@@ -388,7 +394,7 @@ bool CudaWfsBackend::processBlock (const float* const* inputs, float* const* out
 
     // processBlock runs on the pump thread; bind the primary context here so
     // the driver launch uses it, and bind the runtime current-device so the
-    // runtime copies (cudaMemcpyAsync / cudaStreamSynchronize on m.stream) also
+    // runtime copies (cudaMemcpyAsync / event sync on m.stream) also
     // target the selected device (the stream is bound to the device it was
     // created on). Both are cheap per-thread writes.
     if (cuCtxSetCurrent (m.context) != CUDA_SUCCESS)
@@ -522,8 +528,9 @@ bool CudaWfsBackend::processBlock (const float* const* inputs, float* const* out
 
     PB_RT (cudaMemcpyAsync (m.hOut, m.dOut, (size_t) m.numOut * m.blockSize * sizeof (float), cudaMemcpyDeviceToHost, m.stream));
     WFS_STAGE_MARK (stF);   // uploadIssue: H2D uploads + launches + D2H issue
-    PB_RT (cudaStreamSynchronize (m.stream));
-    WFS_STAGE_MARK (stG);   // wait: stream sync
+    PB_RT (cudaEventRecord (m.syncEvent, m.stream));
+    PB_RT (cudaEventSynchronize (m.syncEvent));   // blocking-sync event: yields, no spin
+    WFS_STAGE_MARK (stG);   // wait: event sync
 
 #undef PB_RT
 
@@ -618,6 +625,7 @@ void CudaWfsBackend::release() noexcept
     freeDev (m.dFrGainsPrev);  freeDev (m.dFrGainsCurr);
     freeDev (m.dHfAttenDb);    freeDev (m.dFrHfAttenDb);
 
+    if (m.syncEvent != nullptr) { cudaEventDestroy (m.syncEvent); m.syncEvent = nullptr; }
     if (m.stream != nullptr) { cudaStreamDestroy (m.stream); m.stream = nullptr; }
     if (m.module != nullptr) { cuModuleUnload (m.module); m.module = nullptr; }
     m.kernelPairs = nullptr;

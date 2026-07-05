@@ -1,0 +1,43 @@
+﻿# M1 bench - blocking event waits (win-dev-nvidia)
+#
+# Machine : win-dev-nvidia (dev laptop; NOT the 9950X+RTX5070 target rig)
+# GPU     : NVIDIA RTX PRO 2000 Blackwell Laptop GPU, driver 596.72 (CUDA)
+# Date    : 2026-07-05
+# Change  : cudaStreamSynchronize -> cudaEventRecord+cudaEventSynchronize
+#           (cudaEventBlockingSync|cudaEventDisableTiming) in all 5 CUDA + 5 HIP
+#           backends. launchMs may sit slightly above M0 (event wake cost);
+#           the win is pump-core CPU (spin eliminated), visible on the rig A/B.
+#
+# offline-render --bench --path gpu --scenario all
+bench gpu-gather/static blocks=184 wallMs=85.10 xRealtime=23.06 budgetMs=10.6667 launchMs[min=0.2765 med=0.3630 p99=1.8166 max=4.7607 mean=0.4204]
+bench gpu-gather/moving blocks=184 wallMs=71.28 xRealtime=27.53 budgetMs=10.6667 launchMs[min=0.2785 med=0.3521 p99=0.4586 max=0.4748 mean=0.3492]
+bench gpu-gather/fr-toggle blocks=184 wallMs=78.95 xRealtime=24.86 budgetMs=10.6667 launchMs[min=0.2813 med=0.3985 p99=0.6917 max=1.0907 mean=0.4032]
+bench gpu-scatter/static blocks=184 wallMs=88.16 xRealtime=22.26 budgetMs=10.6667 launchMs[min=0.4015 med=0.4433 p99=0.5236 max=0.7620 mean=0.4518]
+bench gpu-scatter/moving blocks=184 wallMs=101.93 xRealtime=19.25 budgetMs=10.6667 launchMs[min=0.3978 med=0.4678 p99=0.9269 max=3.7174 mean=0.5133]
+bench gpu-scatter/fr-toggle blocks=184 wallMs=122.78 xRealtime=15.99 budgetMs=10.6667 launchMs[min=0.4233 med=0.5810 p99=0.9425 max=1.0426 mean=0.6372]
+bench gpu-reverb-sdn/static blocks=184 wallMs=295.25 xRealtime=6.65 budgetMs=10.6667 launchMs[min=1.4486 med=1.5428 p99=1.8562 max=1.9808 mean=1.5630]
+bench gpu-reverb-sdn/moving blocks=184 wallMs=298.80 xRealtime=6.57 budgetMs=10.6667 launchMs[min=1.4391 med=1.5437 p99=1.9156 max=3.0821 mean=1.5722]
+bench gpu-reverb-sdn/fr-toggle blocks=184 wallMs=299.70 xRealtime=6.55 budgetMs=10.6667 launchMs[min=1.4745 med=1.5475 p99=2.2781 max=2.4263 mean=1.5840]
+bench gpu-reverb-fdn/static blocks=184 wallMs=114.40 xRealtime=17.16 budgetMs=10.6667 launchMs[min=0.4212 med=0.5281 p99=0.7395 max=0.8860 mean=0.5380]
+bench gpu-reverb-fdn/moving blocks=184 wallMs=109.30 xRealtime=17.96 budgetMs=10.6667 launchMs[min=0.4220 med=0.5288 p99=0.6978 max=0.9538 mean=0.5385]
+bench gpu-reverb-fdn/fr-toggle blocks=184 wallMs=102.92 xRealtime=19.07 budgetMs=10.6667 launchMs[min=0.3921 med=0.4847 p99=0.8879 max=3.3428 mean=0.5138]
+bench gpu-reverb-ir/static blocks=184 wallMs=62.05 xRealtime=31.63 budgetMs=10.6667 launchMs[min=0.1980 med=0.2512 p99=0.7157 max=3.3868 mean=0.2962]
+bench gpu-reverb-ir/moving blocks=184 wallMs=57.50 xRealtime=34.14 budgetMs=10.6667 launchMs[min=0.2301 med=0.2525 p99=0.5403 max=0.9634 mean=0.2716]
+bench gpu-reverb-ir/fr-toggle blocks=184 wallMs=57.25 xRealtime=34.28 budgetMs=10.6667 launchMs[min=0.2248 med=0.2654 p99=0.4606 max=0.5904 mean=0.2726]
+
+# offline-render --bench --path gpu --scenario all --sr 96000 --block 128 --in 64 --out 128 --blocks 2000
+bench gpu-gather/static blocks=1984 wallMs=825.80 xRealtime=3.20 budgetMs=1.3333 launchMs[min=0.2595 med=0.3392 p99=0.5950 max=7.5818 mean=0.3622]
+bench gpu-gather/moving blocks=1984 wallMs=923.56 xRealtime=2.86 budgetMs=1.3333 launchMs[min=0.2776 med=0.3706 p99=0.7696 max=2.1051 mean=0.3967]
+bench gpu-gather/fr-toggle blocks=1984 wallMs=1092.36 xRealtime=2.42 budgetMs=1.3333 launchMs[min=0.3225 med=0.4475 p99=0.9242 max=1.6668 mean=0.4772]
+bench gpu-scatter/static blocks=1984 wallMs=2107.52 xRealtime=1.26 budgetMs=1.3333 launchMs[min=0.7982 med=0.9264 p99=1.9198 max=5.8117 mean=0.9805]
+bench gpu-scatter/moving blocks=1984 wallMs=2162.35 xRealtime=1.22 budgetMs=1.3333 launchMs[min=0.8097 med=0.9429 p99=2.1808 max=7.3294 mean=1.0027]
+bench gpu-scatter/fr-toggle blocks=1984 wallMs=4888.25 xRealtime=0.54 budgetMs=1.3333 launchMs[min=0.8757 med=2.5689 p99=5.8911 max=10.4178 mean=2.3664]
+bench gpu-reverb-sdn/static blocks=1984 wallMs=5309.30 xRealtime=0.50 budgetMs=1.3333 launchMs[min=2.2362 med=2.4592 p99=3.9802 max=6.1815 mean=2.5748]
+bench gpu-reverb-sdn/moving blocks=1984 wallMs=5218.86 xRealtime=0.51 budgetMs=1.3333 launchMs[min=2.2651 med=2.4433 p99=4.4877 max=17.0717 mean=2.5293]
+bench gpu-reverb-sdn/fr-toggle blocks=1984 wallMs=5219.23 xRealtime=0.51 budgetMs=1.3333 launchMs[min=2.2850 med=2.4471 p99=4.7238 max=12.1600 mean=2.5347]
+bench gpu-reverb-fdn/static blocks=1984 wallMs=890.07 xRealtime=2.97 budgetMs=1.3333 launchMs[min=0.2217 med=0.3405 p99=0.7004 max=15.6502 mean=0.3742]
+bench gpu-reverb-fdn/moving blocks=1984 wallMs=887.88 xRealtime=2.98 budgetMs=1.3333 launchMs[min=0.2152 med=0.3203 p99=1.0762 max=5.0345 mean=0.3565]
+bench gpu-reverb-fdn/fr-toggle blocks=1984 wallMs=867.42 xRealtime=3.05 budgetMs=1.3333 launchMs[min=0.2198 med=0.3201 p99=0.8565 max=11.5634 mean=0.3477]
+bench gpu-reverb-ir/static blocks=1984 wallMs=822.45 xRealtime=3.22 budgetMs=1.3333 launchMs[min=0.2034 med=0.3275 p99=0.6963 max=2.3701 mean=0.3533]
+bench gpu-reverb-ir/moving blocks=1984 wallMs=899.90 xRealtime=2.94 budgetMs=1.3333 launchMs[min=0.2050 med=0.3369 p99=1.0209 max=7.9378 mean=0.3899]
+bench gpu-reverb-ir/fr-toggle blocks=1984 wallMs=907.31 xRealtime=2.92 budgetMs=1.3333 launchMs[min=0.2308 med=0.3473 p99=0.8581 max=2.9301 mean=0.3849]
