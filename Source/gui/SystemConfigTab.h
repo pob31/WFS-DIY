@@ -13,7 +13,7 @@
 #include "ColumnFocusTraverser.h"
 #include "../AppSettings.h"
 #include "../WFSLogger.h"
-#include "../Controllers/Sampler/LightpadTypes.h"
+#include "../../spatcore/controllers/lightpad/LightpadTypes.h"
 #include "HelpCard.h"
 #include "LightpadArrangementOverlay.h"
 #if WFS_GPU_NATIVE

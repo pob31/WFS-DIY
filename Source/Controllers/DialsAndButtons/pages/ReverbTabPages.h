@@ -10,7 +10,7 @@
  *   3: Post-Processing  (4-band EQ + Post-Expander)
  */
 
-#include "../StreamDeckPage.h"
+#include "../../../../spatcore/controllers/streamdeck/StreamDeckPage.h"
 #include "../../../Parameters/WFSValueTreeState.h"
 #include "../../../Parameters/WFSParameterIDs.h"
 #include "../../../Parameters/WFSParameterDefaults.h"

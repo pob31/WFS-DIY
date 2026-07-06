@@ -12,9 +12,9 @@
 #include <JuceHeader.h>
 #include "../../AppSettings.h"
 #include "../../Network/OSCProtocolTypes.h"
-#include "StreamDeckDevice.h"
-#include "StreamDeckPage.h"
-#include "StreamDeckRenderer.h"
+#include "../../../spatcore/controllers/streamdeck/StreamDeckDevice.h"
+#include "../../../spatcore/controllers/streamdeck/StreamDeckPage.h"
+#include "../../../spatcore/controllers/streamdeck/StreamDeckRenderer.h"
 
 class StreamDeckManager : private juce::Timer
 {

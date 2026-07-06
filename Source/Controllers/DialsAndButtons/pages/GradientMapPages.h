@@ -8,7 +8,7 @@
  * Section 3: Shape controls (select, edit points, type cycle, fill cycle, fill/blur dials)
  */
 
-#include "../StreamDeckPage.h"
+#include "../../../../spatcore/controllers/streamdeck/StreamDeckPage.h"
 #include "../../../GradientMap/GradientMapEditor.h"
 #include "../../../Localization/LocalizationManager.h"
 

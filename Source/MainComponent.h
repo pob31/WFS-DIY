@@ -51,7 +51,7 @@
 #include "Controllers/DialsAndButtons/pages/PatchWindowPages.h"
 #include "Controllers/PositionControl/ControllerManager.h"
 #include "Controllers/Sampler/LightpadManager.h"
-#include "Controllers/Touch/TouchManager.h"
+#include "../spatcore/controllers/touch/TouchManager.h"
 #if defined (__linux__)
   #include "gui/LinuxTouchscreenWindow.h"
 #endif

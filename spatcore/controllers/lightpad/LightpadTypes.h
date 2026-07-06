@@ -7,9 +7,11 @@
 
 #pragma once
 
-#include <JuceHeader.h>
+#include <juce_graphics/juce_graphics.h>
 #include <vector>
 #include <set>
+
+namespace spatcore::controllers {
 
 //==============================================================================
 // Pad layout info reported by LightpadManager after topology auto-detection
@@ -220,3 +222,15 @@ namespace LightpadPixelFont
         1,0,0,1,0,
     };
 }
+
+} // namespace spatcore::controllers
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+using spatcore::controllers::PadLayoutInfo;
+using spatcore::controllers::LightpadZoneInfo;
+using spatcore::controllers::encodeZoneId;
+using spatcore::controllers::decodeZoneId;
+using spatcore::controllers::getActiveZoneIds;
+using spatcore::controllers::getZoneDisplayName;
+namespace LightpadColours = spatcore::controllers::LightpadColours;
+namespace LightpadPixelFont = spatcore::controllers::LightpadPixelFont;

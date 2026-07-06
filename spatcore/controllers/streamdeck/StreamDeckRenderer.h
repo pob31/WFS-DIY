@@ -8,9 +8,11 @@
  *   Blue = level, Teal = spatial, Yellow = time, Violet = effects
  */
 
-#include <JuceHeader.h>
+#include <juce_graphics/juce_graphics.h>
 #include "StreamDeckPage.h"
 #include "StreamDeckDevice.h"
+
+namespace spatcore::controllers {
 
 class StreamDeckRenderer
 {
@@ -446,3 +448,8 @@ public:
         renderAndSendAllLcdZones (device, page);
     }
 };
+
+} // namespace spatcore::controllers
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::controllers::StreamDeckRenderer;

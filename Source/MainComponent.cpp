@@ -13,7 +13,7 @@
 #include "Controllers/DialsAndButtons/pages/ReverbTabPages.h"
 #include "Controllers/DialsAndButtons/pages/ClustersTabPages.h"
 #include "Controllers/DialsAndButtons/pages/PatchWindowPages.h"
-#include "Controllers/PositionControl/SpaceMouseDevice.h"
+#include "../spatcore/controllers/spacemouse/SpaceMouseDevice.h"
 #include "Controllers/Sampler/LightpadManager.h"
 
 //==============================================================================

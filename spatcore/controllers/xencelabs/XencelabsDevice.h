@@ -20,7 +20,10 @@
 #define HID_API_NO_EXPORT_DEFINE
 #include "hidapi/hidapi.h"
 
-#include <JuceHeader.h>
+#include <juce_core/juce_core.h>
+#include <juce_events/juce_events.h>
+
+namespace spatcore::controllers {
 
 class XencelabsDevice : private juce::Thread
 {
@@ -614,3 +617,8 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (XencelabsDevice)
 };
+
+} // namespace spatcore::controllers
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::controllers::XencelabsDevice;

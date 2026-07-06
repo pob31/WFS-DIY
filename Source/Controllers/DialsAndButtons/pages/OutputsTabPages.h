@@ -10,7 +10,7 @@
  *   1: Output EQ          (6-band parametric EQ with band selection)
  */
 
-#include "../StreamDeckPage.h"
+#include "../../../../spatcore/controllers/streamdeck/StreamDeckPage.h"
 #include "../../../Parameters/WFSValueTreeState.h"
 #include "../../../Parameters/WFSParameterIDs.h"
 #include "../../../Parameters/WFSParameterDefaults.h"

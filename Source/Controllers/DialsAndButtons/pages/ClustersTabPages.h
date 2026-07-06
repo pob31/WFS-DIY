@@ -8,7 +8,7 @@
  *   Bottom row: Preset | Rotation | Scale | On/Off (toggle)
  */
 
-#include "../StreamDeckPage.h"
+#include "../../../../spatcore/controllers/streamdeck/StreamDeckPage.h"
 #include "../../../Parameters/WFSValueTreeState.h"
 #include "../../../Parameters/WFSParameterIDs.h"
 #include "../../../Parameters/WFSParameterDefaults.h"

@@ -1,8 +1,8 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include <juce_core/juce_core.h>
 
-namespace WFSTouch {
+namespace spatcore::controllers {
 
 /**
     Persistent mapping between a physical touchscreen and a JUCE display.
@@ -51,4 +51,10 @@ struct TouchDeviceMapping
     }
 };
 
-} // namespace WFSTouch
+} // namespace spatcore::controllers
+
+// Extraction-compat re-export — app call sites keep naming WFSTouch::*.
+namespace WFSTouch
+{
+    using spatcore::controllers::TouchDeviceMapping;
+}

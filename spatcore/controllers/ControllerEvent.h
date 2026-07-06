@@ -7,7 +7,9 @@
  * from any controller device (SpaceMouse, joystick, gamepad, etc.).
  */
 
-#include <JuceHeader.h>
+#include <juce_core/juce_core.h>
+
+namespace spatcore::controllers {
 
 struct ControllerEvent
 {
@@ -26,3 +28,8 @@ struct ControllerEvent
     float value        = 0.0f;  // -1..+1 for axes, 1.0 for press, 0.0 for release
     juce::String deviceName;
 };
+
+} // namespace spatcore::controllers
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::controllers::ControllerEvent;

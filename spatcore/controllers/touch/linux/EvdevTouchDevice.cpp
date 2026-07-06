@@ -10,7 +10,7 @@
 #include <linux/input.h>
 #include <sys/ioctl.h>
 
-namespace WFSTouch {
+namespace spatcore::controllers {
 
 EvdevTouchDevice::EvdevTouchDevice (const juce::String& devNodePath,
                                     const juce::String& sysPathIn,
@@ -217,6 +217,6 @@ void EvdevTouchDevice::runReadLoop()
     running.store (false, std::memory_order_release);
 }
 
-} // namespace WFSTouch
+} // namespace spatcore::controllers
 
 #endif // JUCE_LINUX

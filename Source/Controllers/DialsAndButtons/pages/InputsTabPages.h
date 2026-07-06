@@ -12,7 +12,7 @@
  *   3: Visualisation (display-only, minimal controls)
  */
 
-#include "../StreamDeckPage.h"
+#include "../../../../spatcore/controllers/streamdeck/StreamDeckPage.h"
 #include "../../../Parameters/WFSValueTreeState.h"
 #include "../../../Parameters/WFSParameterIDs.h"
 #include "../../../Parameters/WFSParameterDefaults.h"

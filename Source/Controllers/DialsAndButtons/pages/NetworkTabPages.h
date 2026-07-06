@@ -9,7 +9,7 @@
  * No dials — the Network tab has no dial-appropriate parameters.
  */
 
-#include "../StreamDeckPage.h"
+#include "../../../../spatcore/controllers/streamdeck/StreamDeckPage.h"
 #include "../../../Parameters/WFSValueTreeState.h"
 #include "../../../Parameters/WFSParameterIDs.h"
 #include "../../../Localization/LocalizationManager.h"

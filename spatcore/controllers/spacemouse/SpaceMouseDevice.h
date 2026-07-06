@@ -18,12 +18,23 @@
 #define HID_API_NO_EXPORT_DEFINE
 #include "hidapi/hidapi.h"
 
+#include <juce_core/juce_core.h>
+
 #if JUCE_WINDOWS
+ // Keep windows.h from defining min/max macros that would break any JUCE
+ // (or std) header parsed after this one in the same TU. In the app build
+ // JUCE's own NOMINMAX'd windows.h always comes first, so this is a no-op
+ // there; it matters for consumers that include this header first.
+ #ifndef NOMINMAX
+  #define NOMINMAX
+ #endif
  #include <windows.h>
  #include <tlhelp32.h>
 #endif
 
-#include "ControllerDevice.h"
+#include "../ControllerDevice.h"
+
+namespace spatcore::controllers {
 
 class SpaceMouseDevice : public ControllerDevice
 {
@@ -425,3 +436,8 @@ private:
     static bool kill3DxWareProcesses() { return true; }
 #endif
 };
+
+} // namespace spatcore::controllers
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::controllers::SpaceMouseDevice;

@@ -13,8 +13,8 @@
 #pragma once
 
 #include <roli_blocks_basics/roli_blocks_basics.h>
-#include "LightpadDevice.h"
-#include "LightpadTypes.h"
+#include "../../../spatcore/controllers/lightpad/LightpadDevice.h"
+#include "../../../spatcore/controllers/lightpad/LightpadTypes.h"
 #include "../../Parameters/WFSParameterIDs.h"
 #include "../../Parameters/WFSParameterDefaults.h"
 #include "../../Network/OSCProtocolTypes.h"

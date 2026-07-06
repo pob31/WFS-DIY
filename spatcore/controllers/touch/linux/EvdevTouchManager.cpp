@@ -9,7 +9,7 @@
 #include <errno.h>
 #include <string.h>
 
-namespace WFSTouch {
+namespace spatcore::controllers {
 
 static constexpr const char* kSettingsKey = "linuxTouchscreenMappings";
 
@@ -544,6 +544,6 @@ juce::String EvdevTouchManager::describeDevice (const juce::String& sysPath)
     return juce::File (sysPath).getFileName();
 }
 
-} // namespace WFSTouch
+} // namespace spatcore::controllers
 
 #endif // JUCE_LINUX

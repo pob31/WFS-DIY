@@ -34,6 +34,12 @@ endif()
 option(SPATCORE_STANDALONE_TESTS
     "Build spatcore's own unit-test console app (tests/)" OFF)
 
+# Hardware controller device layer (SpaceMouse / Stream Deck+ / Quick Keys /
+# Lightpad / Linux evdev touch). OFF-able because headless consumers may not
+# want the HID / BLOCKS dependencies at all.
+option(SPATCORE_CONTROLLERS
+    "Build spatcore-controllers (needs hidapi headers + roli_blocks_basics module)" ON)
+
 # ---------------------------------------------------------------------------
 # Consumer-provides-JUCE contract
 # ---------------------------------------------------------------------------
@@ -191,6 +197,91 @@ target_link_libraries(spatcore-control PUBLIC
 set_target_properties(spatcore-control PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 spatcore_apply_compile_flags(spatcore-control)
+
+# ---------------------------------------------------------------------------
+# spatcore-controllers
+# ---------------------------------------------------------------------------
+# Hardware controller device layer. Header-only apart from the Linux evdev
+# touch .cpps, which self-guard on __linux__ and compile to empty TUs on
+# Windows/macOS (same pattern as the gpu backend .cpps above).
+#
+# Consumer-provides contracts (mirroring juce_simpleweb above):
+#   roli_blocks_basics          JUCE module for the ROLI Lightpad BLOCKS
+#                               protocol (lightpad/LightpadDevice.h). The
+#                               consumer registers it with juce_add_module().
+#                               Inside the WFS-DIY repo it lives at
+#                               ThirdParty/roli_blocks_basics.
+#   SPATCORE_HIDAPI_INCLUDE_DIR Directory that contains hidapi/hidapi.h
+#                               (headers only - the hid_* implementation is
+#                               compiled by the final app, e.g. WFS-DIY's
+#                               ThirdParty/hidapi/HidApiPlatform.c). Inside
+#                               the WFS-DIY repo: ThirdParty/hidapi.
+if(SPATCORE_CONTROLLERS)
+    if(NOT TARGET roli_blocks_basics)
+        message(FATAL_ERROR
+            "spatcore: no roli_blocks_basics target (needed by "
+            "spatcore-controllers' LightpadDevice). The consumer must register "
+            "the module with juce_add_module(<path>/roli_blocks_basics) after "
+            "adding JUCE, or configure with -DSPATCORE_CONTROLLERS=OFF. Inside "
+            "the WFS-DIY repo the module lives at ThirdParty/roli_blocks_basics; "
+            "see spatcore/tests/standalone/CMakeLists.txt.")
+    endif()
+
+    if(NOT SPATCORE_HIDAPI_INCLUDE_DIR)
+        message(FATAL_ERROR
+            "spatcore: SPATCORE_HIDAPI_INCLUDE_DIR is not set (spatcore-"
+            "controllers' HID drivers include \"hidapi/hidapi.h\"). Point it at "
+            "a directory containing hidapi/hidapi.h, or configure with "
+            "-DSPATCORE_CONTROLLERS=OFF. Inside the WFS-DIY repo: "
+            "ThirdParty/hidapi; see spatcore/tests/standalone/CMakeLists.txt.")
+    endif()
+
+    add_library(spatcore-controllers STATIC
+        controllers/SpatcoreControllersCompileCheck.cpp
+        controllers/touch/linux/EvdevTouchDevice.cpp
+        controllers/touch/linux/EvdevTouchManager.cpp
+    )
+
+    target_include_directories(spatcore-controllers PUBLIC
+        "${SPATCORE_INCLUDE_ROOT}"
+        "${SPATCORE_HIDAPI_INCLUDE_DIR}")
+
+    # JUCE module deps as measured from spatcore/controllers includes (2026-07):
+    #   juce_graphics         streamdeck button/LCD rendering + JPEG packing,
+    #                         page/binding colours, lightpad LED colours
+    #   juce_gui_basics       touch/linux/EvdevTouchManager (Desktop /
+    #                         ComponentPeer touch injection; Linux-only code
+    #                         but the dependency is declared unconditionally)
+    #   juce_data_structures  touch/linux/EvdevTouchManager settings
+    #                         (PropertiesFile)
+    #   juce_events           device drivers' MessageManager::callAsync + Timer
+    #   juce_core             threads, strings, everything
+    #   roli_blocks_basics    lightpad/LightpadDevice.h (BLOCKS protocol)
+    target_link_libraries(spatcore-controllers PUBLIC
+        juce::juce_gui_basics
+        juce::juce_graphics
+        juce::juce_data_structures
+        juce::juce_events
+        juce::juce_core
+        roli_blocks_basics)
+
+    # Linux evdev touch needs libudev for enumeration/hotplug (the app's
+    # Linux exporter declares pkg-config libudev the same way).
+    if(UNIX AND NOT APPLE)
+        find_package(PkgConfig REQUIRED)
+        pkg_check_modules(UDEV REQUIRED IMPORTED_TARGET libudev)
+        target_link_libraries(spatcore-controllers PUBLIC PkgConfig::UDEV)
+    endif()
+
+    set_target_properties(spatcore-controllers PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+    if(MSVC)
+        # The evdev .cpps are empty TUs on Windows by design; silence LNK4221.
+        set_target_properties(spatcore-controllers PROPERTIES STATIC_LIBRARY_OPTIONS "/IGNORE:4221")
+    endif()
+
+    spatcore_apply_compile_flags(spatcore-controllers)
+endif()
 
 # ---------------------------------------------------------------------------
 # Tests

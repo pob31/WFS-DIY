@@ -267,29 +267,29 @@
       <GROUP id="{CONTROLLERSGROUP}" name="Controllers">
         <GROUP id="{POSCTRLGROUP}" name="PositionControl">
           <FILE id="ctrlEventH" name="ControllerEvent.h" compile="0" resource="0"
-                file="Source/Controllers/PositionControl/ControllerEvent.h"/>
+                file="spatcore/controllers/ControllerEvent.h"/>
           <FILE id="ctrlDeviceH" name="ControllerDevice.h" compile="0" resource="0"
-                file="Source/Controllers/PositionControl/ControllerDevice.h"/>
+                file="spatcore/controllers/ControllerDevice.h"/>
           <FILE id="ctrlSpaceH" name="SpaceMouseDevice.h" compile="0" resource="0"
-                file="Source/Controllers/PositionControl/SpaceMouseDevice.h"/>
+                file="spatcore/controllers/spacemouse/SpaceMouseDevice.h"/>
           <FILE id="ctrlMapH" name="ControllerMapping.h" compile="0" resource="0"
-                file="Source/Controllers/PositionControl/ControllerMapping.h"/>
+                file="spatcore/controllers/ControllerMapping.h"/>
           <FILE id="ctrlMgrH" name="ControllerManager.h" compile="0" resource="0"
                 file="Source/Controllers/PositionControl/ControllerManager.h"/>
         </GROUP>
         <GROUP id="{DIALSBUTTONSGROUP}" name="DialsAndButtons">
           <FILE id="sdDevH" name="StreamDeckDevice.h" compile="0" resource="0"
-                file="Source/Controllers/DialsAndButtons/StreamDeckDevice.h"/>
+                file="spatcore/controllers/streamdeck/StreamDeckDevice.h"/>
           <FILE id="sdPageH" name="StreamDeckPage.h" compile="0" resource="0"
-                file="Source/Controllers/DialsAndButtons/StreamDeckPage.h"/>
+                file="spatcore/controllers/streamdeck/StreamDeckPage.h"/>
           <FILE id="sdRendH" name="StreamDeckRenderer.h" compile="0" resource="0"
-                file="Source/Controllers/DialsAndButtons/StreamDeckRenderer.h"/>
+                file="spatcore/controllers/streamdeck/StreamDeckRenderer.h"/>
           <FILE id="sdMgrH" name="StreamDeckManager.h" compile="0" resource="0"
                 file="Source/Controllers/DialsAndButtons/StreamDeckManager.h"/>
           <FILE id="xlDevH" name="XencelabsDevice.h" compile="0" resource="0"
-                file="Source/Controllers/DialsAndButtons/XencelabsDevice.h"/>
+                file="spatcore/controllers/xencelabs/XencelabsDevice.h"/>
           <FILE id="qkPageH" name="QuickKeysPage.h" compile="0" resource="0"
-                file="Source/Controllers/DialsAndButtons/QuickKeysPage.h"/>
+                file="spatcore/controllers/xencelabs/QuickKeysPage.h"/>
           <FILE id="qkMgrH" name="QuickKeysManager.h" compile="0" resource="0"
                 file="Source/Controllers/DialsAndButtons/QuickKeysManager.h"/>
           <GROUP id="{SDPAGESGROUP}" name="pages">
@@ -313,9 +313,9 @@
         </GROUP>
         <GROUP id="{SAMPLERCTRLGROUP}" name="Sampler">
           <FILE id="lpTypesH" name="LightpadTypes.h" compile="0" resource="0"
-                file="Source/Controllers/Sampler/LightpadTypes.h"/>
+                file="spatcore/controllers/lightpad/LightpadTypes.h"/>
           <FILE id="lpDeviceH" name="LightpadDevice.h" compile="0" resource="0"
-                file="Source/Controllers/Sampler/LightpadDevice.h"/>
+                file="spatcore/controllers/lightpad/LightpadDevice.h"/>
           <FILE id="lpMgrH" name="LightpadManager.h" compile="0" resource="0"
                 file="Source/Controllers/Sampler/LightpadManager.h"/>
         </GROUP>
@@ -335,19 +335,19 @@
       </GROUP>
       <GROUP id="{TOUCHGROUP}" name="Touch">
         <FILE id="touchMapH"   name="TouchDeviceMapping.h" compile="0" resource="0"
-              file="Source/Controllers/Touch/TouchDeviceMapping.h"/>
+              file="spatcore/controllers/touch/TouchDeviceMapping.h"/>
         <FILE id="touchMgrInc" name="TouchManager.h"       compile="0" resource="0"
-              file="Source/Controllers/Touch/TouchManager.h"/>
+              file="spatcore/controllers/touch/TouchManager.h"/>
         <FILE id="touchStubH"  name="TouchManagerStub.h"   compile="0" resource="0"
-              file="Source/Controllers/Touch/TouchManagerStub.h"/>
+              file="spatcore/controllers/touch/TouchManagerStub.h"/>
         <FILE id="evdevDevH"   name="EvdevTouchDevice.h"   compile="0" resource="0"
-              file="Source/Controllers/Touch/Linux/EvdevTouchDevice.h"/>
+              file="spatcore/controllers/touch/linux/EvdevTouchDevice.h"/>
         <FILE id="evdevDevC"   name="EvdevTouchDevice.cpp" compile="1" resource="0"
-              file="Source/Controllers/Touch/Linux/EvdevTouchDevice.cpp"/>
+              file="spatcore/controllers/touch/linux/EvdevTouchDevice.cpp"/>
         <FILE id="evdevMgrH"   name="EvdevTouchManager.h"  compile="0" resource="0"
-              file="Source/Controllers/Touch/Linux/EvdevTouchManager.h"/>
+              file="spatcore/controllers/touch/linux/EvdevTouchManager.h"/>
         <FILE id="evdevMgrC"   name="EvdevTouchManager.cpp" compile="1" resource="0"
-              file="Source/Controllers/Touch/Linux/EvdevTouchManager.cpp"/>
+              file="spatcore/controllers/touch/linux/EvdevTouchManager.cpp"/>
         <FILE id="touchWinH"   name="LinuxTouchscreenWindow.h" compile="0" resource="0"
               file="Source/gui/LinuxTouchscreenWindow.h"/>
       </GROUP>

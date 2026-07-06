@@ -12,7 +12,7 @@
  *   2: Output Patch     (Scroll/Patch/Test modes, test signal controls)
  */
 
-#include "../StreamDeckPage.h"
+#include "../../../../spatcore/controllers/streamdeck/StreamDeckPage.h"
 #include "../../../gui/PatchMatrixComponent.h"
 #include "../../../DSP/TestSignalGenerator.h"
 #include "../../../Localization/LocalizationManager.h"

@@ -1066,10 +1066,10 @@
     <ClCompile Include="..\..\ThirdParty\hidapi\HidApiPlatform.c">
       <Filter>WFS-DIY\Source\hidapi</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\Controllers\Touch\Linux\EvdevTouchDevice.cpp">
+    <ClCompile Include="..\..\spatcore\controllers\touch\linux\EvdevTouchDevice.cpp">
       <Filter>WFS-DIY\Source\Touch</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\Controllers\Touch\Linux\EvdevTouchManager.cpp">
+    <ClCompile Include="..\..\spatcore\controllers\touch\linux\EvdevTouchManager.cpp">
       <Filter>WFS-DIY\Source\Touch</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Source\Main.cpp">
@@ -4614,37 +4614,37 @@
     <ClInclude Include="..\..\Source\Network\MCP\tools\ReverbAutoLayoutTool.h">
       <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Controllers\PositionControl\ControllerEvent.h">
+    <ClInclude Include="..\..\spatcore\controllers\ControllerEvent.h">
       <Filter>WFS-DIY\Source\Controllers\PositionControl</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Controllers\PositionControl\ControllerDevice.h">
+    <ClInclude Include="..\..\spatcore\controllers\ControllerDevice.h">
       <Filter>WFS-DIY\Source\Controllers\PositionControl</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Controllers\PositionControl\SpaceMouseDevice.h">
+    <ClInclude Include="..\..\spatcore\controllers\spacemouse\SpaceMouseDevice.h">
       <Filter>WFS-DIY\Source\Controllers\PositionControl</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Controllers\PositionControl\ControllerMapping.h">
+    <ClInclude Include="..\..\spatcore\controllers\ControllerMapping.h">
       <Filter>WFS-DIY\Source\Controllers\PositionControl</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Controllers\PositionControl\ControllerManager.h">
       <Filter>WFS-DIY\Source\Controllers\PositionControl</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\StreamDeckDevice.h">
+    <ClInclude Include="..\..\spatcore\controllers\streamdeck\StreamDeckDevice.h">
       <Filter>WFS-DIY\Source\Controllers\DialsAndButtons</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\StreamDeckPage.h">
+    <ClInclude Include="..\..\spatcore\controllers\streamdeck\StreamDeckPage.h">
       <Filter>WFS-DIY\Source\Controllers\DialsAndButtons</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\StreamDeckRenderer.h">
+    <ClInclude Include="..\..\spatcore\controllers\streamdeck\StreamDeckRenderer.h">
       <Filter>WFS-DIY\Source\Controllers\DialsAndButtons</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\StreamDeckManager.h">
       <Filter>WFS-DIY\Source\Controllers\DialsAndButtons</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\XencelabsDevice.h">
+    <ClInclude Include="..\..\spatcore\controllers\xencelabs\XencelabsDevice.h">
       <Filter>WFS-DIY\Source\Controllers\DialsAndButtons</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\QuickKeysPage.h">
+    <ClInclude Include="..\..\spatcore\controllers\xencelabs\QuickKeysPage.h">
       <Filter>WFS-DIY\Source\Controllers\DialsAndButtons</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\QuickKeysManager.h">
@@ -4674,10 +4674,10 @@
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\PatchWindowPages.h">
       <Filter>WFS-DIY\Source\Controllers\DialsAndButtons\pages</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Controllers\Sampler\LightpadTypes.h">
+    <ClInclude Include="..\..\spatcore\controllers\lightpad\LightpadTypes.h">
       <Filter>WFS-DIY\Source\Controllers\Sampler</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Controllers\Sampler\LightpadDevice.h">
+    <ClInclude Include="..\..\spatcore\controllers\lightpad\LightpadDevice.h">
       <Filter>WFS-DIY\Source\Controllers\Sampler</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Controllers\Sampler\LightpadManager.h">
@@ -4695,19 +4695,19 @@
     <ClInclude Include="..\..\ThirdParty\hidapi\hidapi\hidapi.h">
       <Filter>WFS-DIY\Source\hidapi</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Controllers\Touch\TouchDeviceMapping.h">
+    <ClInclude Include="..\..\spatcore\controllers\touch\TouchDeviceMapping.h">
       <Filter>WFS-DIY\Source\Touch</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Controllers\Touch\TouchManager.h">
+    <ClInclude Include="..\..\spatcore\controllers\touch\TouchManager.h">
       <Filter>WFS-DIY\Source\Touch</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Controllers\Touch\TouchManagerStub.h">
+    <ClInclude Include="..\..\spatcore\controllers\touch\TouchManagerStub.h">
       <Filter>WFS-DIY\Source\Touch</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Controllers\Touch\Linux\EvdevTouchDevice.h">
+    <ClInclude Include="..\..\spatcore\controllers\touch\linux\EvdevTouchDevice.h">
       <Filter>WFS-DIY\Source\Touch</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Controllers\Touch\Linux\EvdevTouchManager.h">
+    <ClInclude Include="..\..\spatcore\controllers\touch\linux\EvdevTouchManager.h">
       <Filter>WFS-DIY\Source\Touch</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\gui\LinuxTouchscreenWindow.h">

@@ -12,6 +12,8 @@
 #include <roli_blocks_basics/roli_blocks_basics.h>
 #include "LightpadTypes.h"
 
+namespace spatcore::controllers {
+
 class LightpadDevice : public roli::TouchSurface::Listener,
                         public roli::Block::ProgramLoadedListener
 {
@@ -401,3 +403,8 @@ private:
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LightpadDevice)
 };
+
+} // namespace spatcore::controllers
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::controllers::LightpadDevice;

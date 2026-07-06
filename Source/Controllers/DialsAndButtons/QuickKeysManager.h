@@ -14,8 +14,8 @@
 
 #include <JuceHeader.h>
 #include "../../Network/OSCProtocolTypes.h"
-#include "XencelabsDevice.h"
-#include "QuickKeysPage.h"
+#include "../../../spatcore/controllers/xencelabs/XencelabsDevice.h"
+#include "../../../spatcore/controllers/xencelabs/QuickKeysPage.h"
 
 class QuickKeysManager : private juce::Timer
 {

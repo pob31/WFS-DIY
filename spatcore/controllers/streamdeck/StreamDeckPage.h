@@ -13,7 +13,9 @@
  * making bindings independent of any specific parameter system.
  */
 
-#include <JuceHeader.h>
+#include <juce_graphics/juce_graphics.h>
+
+namespace spatcore::controllers {
 
 //==============================================================================
 /** Describes how a rotary dial is bound to a parameter. */
@@ -351,3 +353,11 @@ public:
     /** Optional callback when section changes (for bidirectional sync). */
     std::function<void (int sectionIndex)> onSectionChanged;
 };
+
+} // namespace spatcore::controllers
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+using spatcore::controllers::DialBinding;
+using spatcore::controllers::ButtonBinding;
+using spatcore::controllers::StreamDeckSection;
+using spatcore::controllers::StreamDeckPage;

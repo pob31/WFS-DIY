@@ -10,7 +10,9 @@
  * Reuses DialBinding from StreamDeckPage.h for parameter definitions.
  */
 
-#include "StreamDeckPage.h"
+#include "../streamdeck/StreamDeckPage.h"
+
+namespace spatcore::controllers {
 
 //==============================================================================
 /** A single traversable parameter binding for the Quick Keys wheel. */
@@ -88,3 +90,9 @@ struct QuickKeysPage
         return &bindings[(size_t) idx];
     }
 };
+
+} // namespace spatcore::controllers
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+using spatcore::controllers::QuickKeysBinding;
+using spatcore::controllers::QuickKeysPage;
