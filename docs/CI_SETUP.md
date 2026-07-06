@@ -69,7 +69,11 @@ then add these **5 secrets** to that environment:
 3. Create a GitHub **Release** with tag **`v<version>`** (e.g. `v1.0.0beta26`) and publish it.
    - `verify-version` fails fast if the tag ≠ `versionString` in `JuceHeader.h`.
 4. The three jobs build and attach: signed/notarized **DMG**, Windows Inno Setup
-   **.exe** installer, Linux **tar.gz**.
+   **.exe** installer, Linux **tar.gz** (CPU + NVIDIA/CUDA).
+5. **(AMD Linux, manual)** On the Ubuntu+ROCm box, follow
+   [`docs/Linux_AMD_Release_Tarball.md`](Linux_AMD_Release_Tarball.md) to build and
+   attach the supplementary `…-linux-x86_64-rocm.tar.gz` for AMD-on-Linux GPU
+   users. Optional — skipping it just leaves AMD Linux users on CPU fallback.
 
 Manual re-run against an existing tag: Actions → **Release** → *Run workflow* → enter the tag.
 
@@ -101,7 +105,11 @@ Manual re-run against an existing tag: Actions → **Release** → *Run workflow
   equivalent ROCm install step — a full ROCm install is multi-GB and slow/flaky
   on a shared runner, and there's no small prebuilt fallback like Windows' committed
   `tools/windows/prebuilt/wfs_hip.dll` (the Linux HIP runtime closure is far
-  larger than one DLL). The Linux release tarball therefore ships without
-  `libwfs_hip.so` — AMD users on Linux fall back to CPU until this is revisited.
+  larger than one DLL). So the CI Linux tarball
+  (`WFS-DIY-<tag>-linux-x86_64.tar.gz`) serves CPU + NVIDIA users. AMD-on-Linux
+  GPU support is closed by a **manual per-release step on the Ubuntu+ROCm box**
+  that builds a supplementary `…-linux-x86_64-rocm.tar.gz` (and functionally
+  smoke-tests the plugin on real AMD hardware first) — runbook:
+  [`docs/Linux_AMD_Release_Tarball.md`](Linux_AMD_Release_Tarball.md).
 - These workflows are a first cut; the per-OS **packaging paths** (Windows `x64/Release/App`, Linux `build/WFS-DIY`) may need a tweak after the first real run — check the Actions logs.
 - **Local macOS release** (no CI): `scripts/ci/build-macos-release.sh` uses the `WFS-DIY-notary` keychain profile; `SKIP_NOTARIZE=1` to build+sign+DMG only.
