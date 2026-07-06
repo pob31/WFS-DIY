@@ -18,6 +18,15 @@ the manifest (and invalidate GPU output baselines — rerun the smoke tests).
 
 The manifest keys are paths relative to the repo root so it survives the
 planned move of the gpu tree into spatcore/ with a one-line GPU_DIR change.
+
+Hashes are of LF-normalized bytes, NOT raw checkout bytes: Windows clones
+(autocrlf) materialize the headers with CRLF while Linux/macOS check out LF,
+and the manifest must give the same verdict everywhere (it runs in CI on
+ubuntu). This matches the actual contract — the kernel text is compiled from
+C++ string literals, and every compiler normalizes physical line endings in
+translation phase 1, so NVRTC/hipRTC see identical source either way. A
+lone-CR edit would slip through, but a lone CR inside a kernel string would
+be a byte nobody can type by accident.
 """
 
 import argparse
@@ -36,7 +45,8 @@ def current_hashes() -> dict:
     if not files:
         sys.exit(f"error: no *Kernels.h found under {GPU_DIR}")
     return {
-        str(f.relative_to(REPO_ROOT)).replace("\\", "/"): hashlib.sha256(f.read_bytes()).hexdigest()
+        str(f.relative_to(REPO_ROOT)).replace("\\", "/"):
+            hashlib.sha256(f.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
         for f in files
     }
 
