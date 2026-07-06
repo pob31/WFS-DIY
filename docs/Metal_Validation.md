@@ -1,5 +1,9 @@
 # macOS + Metal Validation Runbook
 
+**Status: Part B done** (build + in-app CPU/GPU power characterization on a Mac
+mini M4 Pro, 2026-07-06/07 — see **Results** at the end). **Part A** (spatcore
+host tests + ThreadSanitizer) **not yet run**.
+
 Goal: validate the two things that have never been exercised on a Mac —
 (1) the **spatcore host code under a real macOS scheduler + ThreadSanitizer**
 (the `GpuHostWorkPool` fork-join pool, `RtThreadPriority`'s mach branch), and
@@ -92,6 +96,93 @@ dropouts.
 - Part A: A1 pass/fail; **A2 TSan result** (clean or the race report verbatim).
 - Part B: **does the app compile?** (the key Metal-mirror question); in-app GPU
   observations (output OK, underruns, wattage if available).
+
+---
+
+## Results — Part B: build + in-app CPU/GPU power characterization (M4 Pro)
+
+### Environment
+
+| Item | Value |
+| --- | --- |
+| Machine | Mac mini, Apple **M4 Pro**, 24 GB |
+| macOS | 15.7.7 (24G720) |
+| Xcode | 26.3 |
+| JUCE | 8.0.14 |
+| App | `1.0.0beta26` |
+| Code | `spatcore/phase-5-engine-seams` @ `66aa49c` |
+| Audio I/O | RME Fireface (USB); TotalMix FX + Dante Controller running alongside |
+| Test signal | WFS 32 in × 32 out (Metal input buffer), SDN 32-node reverb (Metal), 96 kHz |
+
+### B1 — build
+
+`xcodebuild -project Builds/MacOSX/WFS-DIY.xcodeproj -scheme "WFS-DIY - App" -configuration Release clean build`
+→ **BUILD SUCCEEDED**, 0 errors, 0 warnings. Confirms the M2/M3 Metal mirror code
+(upload-diet ping-pong buffers, `GpuHostWorkPool`-driven parallel host prep)
+compiles clean under ARC on real hardware — the same clean result held across
+several rebuilds this session on `gpu-host/m3-parallel-prep`, `main`, and
+`spatcore/phase-5-engine-seams`. Binary confirmed `arm64`, links
+`Metal.framework` + `MetalKit.framework` (weak), `WFS_GPU_NATIVE=1` set in the
+Release config.
+
+### B2 — in-app GPU pass: CPU/GPU power characterization
+
+Measured with `sudo powermetrics --samplers cpu_power,gpu_power(,tasks) -i 1000
+-n ~10` while the app processed live audio through the RME interface. Five
+configs tested, varying host buffer size and which stage (WFS input-buffer
+gather/scatter vs. SDN reverb) ran on CPU vs. Metal:
+
+| # | Buffer | Input buffer | SDN reverb | CPU Power | GPU Power | GPU active/idle | Audio |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 64 samples | GPU (Metal) | GPU (Metal) | 1908 mW | 2009 mW | 100% / 0% | **noisy** |
+| 2 | 128 samples† | GPU (Metal) | GPU (Metal) | 1543–1881 mW | 1850–1889 mW | 100% / 0% | **still scratchy** |
+| 3 | 128 samples | CPU | GPU (Metal) | 5911 mW | 1873–1886 mW | 100% / 0% | not confirmed‡ |
+| 4 | 128 samples | CPU | CPU | 6899 mW | 108 mW | 20% / 80% | **clean** |
+| 5 | 64 samples | CPU | CPU | 7095–7207 mW | 96–122 mW | 18–24% / 76–82% | **clean** |
+
+† Internal main-processing block count was halved (4→2) alongside the buffer
+doubling, keeping total direct-sound buffering constant at 256 samples —
+isolates host-buffer size from the deadline math.
+‡ GPU numbers are indistinguishable from #2 (same 100%/0% pin, same ~1.85–1.9 W)
+— strongly suggests still scratchy, but not directly confirmed by ear.
+
+### Findings
+
+1. **The SDN Metal reverb kernel's dispatch — not the WFS input-buffer
+   gather/scatter, not host-buffer size — is what pins the GPU at exactly 100%
+   active / 0% idle.** Configs 1–3 all show the identical GPU signature
+   (100%/0%, ~1.85–2.0 W, parked at 1578 MHz / P10) regardless of buffer size
+   or whether the input buffer shares the GPU. Zero idle residency means zero
+   dispatch slack; the single-threadgroup, `mem_device`-barrier design used for
+   SDN's coupled-node correctness appears to have a real-time viability ceiling
+   at or below **32 nodes / 96 kHz / 64–128-sample buffers** on this M4 Pro
+   GPU.
+2. **Moving SDN to CPU drops GPU load to background levels** (96–122 mW,
+   18–24% active — just WindowServer/compositor, not the app) and produces
+   clean audio at **both** buffer sizes tested (configs 4 and 5, both
+   confirmed).
+3. **The CPU path has real headroom.** Halving the buffer 128→64 with
+   everything on CPU increased combined power only ~3–4% (7.0 W → 7.2–7.3 W)
+   despite doubling the callback rate, and stayed clean — unlike the GPU-SDN
+   configs, which stayed pinned at 100% regardless of buffer size and never
+   produced clean audio in any tested config.
+4. **Unexplained anomaly:** `coreaudiod`'s own deadline-count scaled exactly
+   with buffer size (750/s → 1503/s, matching 96000/128 and 96000/64
+   precisely), but `WFS-DIY`'s self-reported `Deadlines(<2ms)` metric fell from
+   ~25,186/s (config 4) to ~109/s (config 5) — the opposite direction physics
+   would suggest. Not yet understood; flagged for follow-up rather than
+   explained away.
+5. **Practical implication:** for this node count/buffer/rate combination,
+   GPU-accelerated SDN is not real-time-safe on this hardware today. Until the
+   kernel's per-block barrier overhead is reduced, default to CPU SDN at this
+   scale (or gate GPU SDN to lower node counts / larger buffers where headroom
+   exists).
+
+### Open items
+- Audio-quality confirmation still pending for config 3 (CPU input + GPU SDN).
+- Part A (spatcore host tests + ThreadSanitizer) not run this session — still
+  open per the original runbook.
+- The `Deadlines(<2ms)` anomaly (finding 4) is unexplained.
 
 ## Follow-up (not in this pass)
 Byte-exact Metal offline validation (the 15/15 GPU baseline gate the CUDA/HIP boxes
