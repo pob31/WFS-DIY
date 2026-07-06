@@ -1794,7 +1794,6 @@ MainComponent::MainComponent()
 
     // Initialize Test Signal Generator for audio interface testing
     testSignalGenerator = std::make_unique<TestSignalGenerator>();
-    calculationEngine->setLSGainsPtr(lsTamerEngine->getLSGains());
 
     // Set up LFO offset callback for MapTab visualization
     if (mapTab != nullptr)
@@ -3054,7 +3053,7 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
         calculationEngine->recalculateAllInputPositions();
         calculationEngine->recalculateAllReverbPositions();
         rebuildAllGradientMaps();
-        calculationEngine->recalculateMatrix();
+        calculationEngine->recalculateMatrix(lsTamerEngine ? lsTamerEngine->getLSGains() : nullptr);
 
         const float* calcDelays = calculationEngine->getDelayTimesMs();
         const float* calcLevels = calculationEngine->getLevels();
@@ -3357,7 +3356,7 @@ void MainComponent::handleConfigReloaded()
         rebuildAllGradientMaps();
 
         // Force immediate recalculation (don't wait for next timer tick)
-        calculationEngine->recalculateMatrix();
+        calculationEngine->recalculateMatrix(lsTamerEngine ? lsTamerEngine->getLSGains() : nullptr);
 
         // Immediately update visualization with recalculated values
         if (inputsTab != nullptr)
@@ -5599,8 +5598,9 @@ void MainComponent::timerCallback()
         if (binauralCalcEngine != nullptr)
             binauralCalcEngine->refreshRtSnapshot();
 
-        // Only recalculate WFS matrix if input positions have changed (dirty flag set)
-        if (calculationEngine->recalculateMatrixIfDirty())
+        // Only recalculate WFS matrix if input positions have changed (dirty flag set).
+        // LS gains are supplied fresh each call (never cached by the engine).
+        if (calculationEngine->recalculateMatrixIfDirty(lsTamerEngine ? lsTamerEngine->getLSGains() : nullptr))
         {
 
             // Copy calculated values to target arrays

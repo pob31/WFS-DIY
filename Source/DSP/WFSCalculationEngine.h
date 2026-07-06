@@ -124,11 +124,15 @@ public:
     //==========================================================================
 
     /** Recalculate entire delay/level/HF matrix if dirty. Call this at control rate (~50Hz)
+        lsGains: Live Source Tamer gains applied during level calculation, or nullptr for
+        unity. Index: [inputIndex * numOutputs + outputIndex]. Supplied fresh on every call
+        (never cached) so the engine holds no pointer into LiveSourceTamerEngine.
         Returns true if recalculation was performed, false if skipped (not dirty) */
-    bool recalculateMatrixIfDirty();
+    bool recalculateMatrixIfDirty (const float* lsGains);
 
-    /** Force recalculation regardless of dirty state */
-    void recalculateMatrix();
+    /** Force recalculation regardless of dirty state.
+        See recalculateMatrixIfDirty() for the lsGains contract. */
+    void recalculateMatrix (const float* lsGains);
 
     /** Check if matrix needs recalculation */
     bool isMatrixDirty() const { return matrixDirty.load(); }
@@ -186,15 +190,6 @@ public:
     /** Get pointer to FR HF attenuation array (dB, negative).
         Size = numInputs * numOutputs */
     const float* getFRHFAttenuationDb() const { return frHFAttenuationDb.data(); }
-
-    //==========================================================================
-    // Live Source Tamer Integration
-    //==========================================================================
-
-    /** Set pointer to LS gains array (owned by LiveSourceTamerEngine).
-        Index: [inputIndex * numOutputs + outputIndex]
-        The gains are applied during level calculation in recalculateMatrix(). */
-    void setLSGainsPtr(const float* ptr) { sharedLSGains = ptr; }
 
     //==========================================================================
     // Reverb Position Access (thread-safe)
@@ -350,10 +345,6 @@ private:
     std::vector<float> reverbOutputDelayTimesMs;
     std::vector<float> reverbOutputLevels;
     std::vector<float> reverbOutputHFAttenuationDb;
-
-    // Live Source Tamer gains (owned by LiveSourceTamerEngine)
-    // Index: [inputIndex * numOutputs + outputIndex]
-    const float* sharedLSGains = nullptr;
 
     // Thread safety
     mutable juce::CriticalSection positionLock;
