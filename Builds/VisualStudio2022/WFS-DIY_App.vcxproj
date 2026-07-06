@@ -3362,10 +3362,10 @@
     <ClInclude Include="..\..\spatcore\controllers\streamdeck\StreamDeckDevice.h"/>
     <ClInclude Include="..\..\spatcore\controllers\streamdeck\StreamDeckPage.h"/>
     <ClInclude Include="..\..\spatcore\controllers\streamdeck\StreamDeckRenderer.h"/>
-    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\StreamDeckManager.h"/>
+    <ClInclude Include="..\..\spatcore\controllers\streamdeck\StreamDeckManager.h"/>
     <ClInclude Include="..\..\spatcore\controllers\xencelabs\XencelabsDevice.h"/>
     <ClInclude Include="..\..\spatcore\controllers\xencelabs\QuickKeysPage.h"/>
-    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\QuickKeysManager.h"/>
+    <ClInclude Include="..\..\spatcore\controllers\xencelabs\QuickKeysManager.h"/>
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\InputsTabPages.h"/>
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\NetworkTabPages.h"/>
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\OutputsTabPages.h"/>
@@ -3376,7 +3376,7 @@
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\PatchWindowPages.h"/>
     <ClInclude Include="..\..\spatcore\controllers\lightpad\LightpadTypes.h"/>
     <ClInclude Include="..\..\spatcore\controllers\lightpad\LightpadDevice.h"/>
-    <ClInclude Include="..\..\Source\Controllers\Sampler\LightpadManager.h"/>
+    <ClInclude Include="..\..\spatcore\controllers\lightpad\LightpadManager.h"/>
     <ClInclude Include="..\..\Source\GradientMap\GradientMapData.h"/>
     <ClInclude Include="..\..\Source\GradientMap\GradientMapEvaluator.h"/>
     <ClInclude Include="..\..\Source\GradientMap\GradientMapEditor.h"/>

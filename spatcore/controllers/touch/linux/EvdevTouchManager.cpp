@@ -13,14 +13,14 @@ namespace spatcore::controllers {
 
 static constexpr const char* kSettingsKey = "linuxTouchscreenMappings";
 
-EvdevTouchManager::EvdevTouchManager()
+EvdevTouchManager::EvdevTouchManager (const juce::String& settingsAppName)
 {
     juce::PropertiesFile::Options options;
-    options.applicationName     = "WFS-DIY";
+    options.applicationName     = settingsAppName;
     options.filenameSuffix      = ".settings";
     options.osxLibrarySubFolder = "Application Support";
     options.folderName          = juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory)
-                                       .getChildFile ("WFS-DIY").getFullPathName();
+                                       .getChildFile (settingsAppName).getFullPathName();
     settings = std::make_unique<juce::PropertiesFile> (options);
 
     udevContext = udev_new();

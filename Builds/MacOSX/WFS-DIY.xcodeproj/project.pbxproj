@@ -226,7 +226,6 @@
 		5666A72E13A6F246D954D91A /* WfsFrHostState.h */ /* WfsFrHostState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WfsFrHostState.h; path = ../../spatcore/gpu/WfsFrHostState.h; sourceTree = SOURCE_ROOT; };
 		5708250B17E10EA1BEA04BBC /* SetParameterTool.h */ /* SetParameterTool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SetParameterTool.h; path = ../../Source/Network/MCP/tools/SetParameterTool.h; sourceTree = SOURCE_ROOT; };
 		571D549FDC58EA8A421E3329 /* juce_audio_processors_headless */ /* juce_audio_processors_headless */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_audio_processors_headless; path = ../../ThirdParty/JUCE/modules/juce_audio_processors_headless; sourceTree = SOURCE_ROOT; };
-		573C45192697FB567520101F /* StreamDeckManager.h */ /* StreamDeckManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StreamDeckManager.h; path = ../../Source/Controllers/DialsAndButtons/StreamDeckManager.h; sourceTree = SOURCE_ROOT; };
 		5810F8314E4B23B3F2FB167F /* OSCMessageBuilder.h */ /* OSCMessageBuilder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCMessageBuilder.h; path = ../../Source/Network/OSCMessageBuilder.h; sourceTree = SOURCE_ROOT; };
 		58550861937D9037981CEAF5 /* OpenGL.framework */ /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
 		5887A796DF1FB3E3F1EB274D /* ChannelLifecycleTools.h */ /* ChannelLifecycleTools.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ChannelLifecycleTools.h; path = ../../Source/Network/MCP/tools/ChannelLifecycleTools.h; sourceTree = SOURCE_ROOT; };
@@ -311,9 +310,10 @@
 		95ED9C6A1C974D7A9CB763CE /* TreeParameterStore.cpp */ /* TreeParameterStore.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = TreeParameterStore.cpp; path = ../../spatcore/control/state/TreeParameterStore.cpp; sourceTree = SOURCE_ROOT; };
 		96EF36F93A65DA8B60E88E82 /* MCPPromptRegistry.h */ /* MCPPromptRegistry.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPPromptRegistry.h; path = ../../spatcore/control/mcp/MCPPromptRegistry.h; sourceTree = SOURCE_ROOT; };
 		9764DFB51CFF07FA5D7F8A13 /* WfsGpuBackend.h */ /* WfsGpuBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WfsGpuBackend.h; path = ../../spatcore/gpu/WfsGpuBackend.h; sourceTree = SOURCE_ROOT; };
+		9774E10CF85F3C3ADF7BB857 /* LightpadManager.h */ /* LightpadManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = LightpadManager.h; path = ../../spatcore/controllers/lightpad/LightpadManager.h; sourceTree = SOURCE_ROOT; };
 		981B4FDA4C849575BA2BA462 /* HipWfsBackend.cpp */ /* HipWfsBackend.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = HipWfsBackend.cpp; path = ../../spatcore/gpu/HipWfsBackend.cpp; sourceTree = SOURCE_ROOT; };
 		985483A84729EE26DE85D575 /* TrackingRTTrPReceiver.h */ /* TrackingRTTrPReceiver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TrackingRTTrPReceiver.h; path = ../../Source/Network/TrackingRTTrPReceiver.h; sourceTree = SOURCE_ROOT; };
-		9DAB4C03DEE4586FA4E52782 /* LightpadManager.h */ /* LightpadManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = LightpadManager.h; path = ../../Source/Controllers/Sampler/LightpadManager.h; sourceTree = SOURCE_ROOT; };
+		9D694DF0A6065B72BB8A4A10 /* StreamDeckManager.h */ /* StreamDeckManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StreamDeckManager.h; path = ../../spatcore/controllers/streamdeck/StreamDeckManager.h; sourceTree = SOURCE_ROOT; };
 		9F2BD03DF373651E39BEDFE5 /* TrackingMQTTReceiver.h */ /* TrackingMQTTReceiver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TrackingMQTTReceiver.h; path = ../../Source/Network/TrackingMQTTReceiver.h; sourceTree = SOURCE_ROOT; };
 		9F333764A6A1446DF0903EC4 /* MetalSdnBackend.mm */ /* MetalSdnBackend.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = MetalSdnBackend.mm; path = ../../spatcore/gpu/MetalSdnBackend.mm; sourceTree = SOURCE_ROOT; };
 		A0B89D22E0764DB96C3EA998 /* include_juce_graphics.mm */ /* include_juce_graphics.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_graphics.mm; path = ../../JuceLibraryCode/include_juce_graphics.mm; sourceTree = SOURCE_ROOT; };
@@ -336,6 +336,7 @@
 		A9937509256CBFA14535037B /* CoreMIDI.framework */ /* CoreMIDI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMIDI.framework; path = System/Library/Frameworks/CoreMIDI.framework; sourceTree = SDKROOT; };
 		AA18B98AF1EAE9073E7847DE /* OSCParameterBounds.h */ /* OSCParameterBounds.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCParameterBounds.h; path = ../../Source/Network/OSCParameterBounds.h; sourceTree = SOURCE_ROOT; };
 		AA3D6463B920C9F5617110A3 /* ReverbTab.h */ /* ReverbTab.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ReverbTab.h; path = ../../Source/gui/ReverbTab.h; sourceTree = SOURCE_ROOT; };
+		AA9560CBC301397A84EC4AF8 /* QuickKeysManager.h */ /* QuickKeysManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = QuickKeysManager.h; path = ../../spatcore/controllers/xencelabs/QuickKeysManager.h; sourceTree = SOURCE_ROOT; };
 		AC103C23CF134FD2779DDD03 /* CoreAudioKit.framework */ /* CoreAudioKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudioKit.framework; path = System/Library/Frameworks/CoreAudioKit.framework; sourceTree = SDKROOT; };
 		AD40E648FCB22B8740DDF334 /* MCPLogger.h */ /* MCPLogger.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPLogger.h; path = ../../Source/Network/MCP/MCPLogger.h; sourceTree = SOURCE_ROOT; };
 		AE1207ECC59B747C80031900 /* MainComponent.h */ /* MainComponent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MainComponent.h; path = ../../Source/MainComponent.h; sourceTree = SOURCE_ROOT; };
@@ -405,7 +406,6 @@
 		E1C3671AD66E2F1E72F8C5A8 /* XmlPersistence.h */ /* XmlPersistence.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = XmlPersistence.h; path = ../../spatcore/control/state/XmlPersistence.h; sourceTree = SOURCE_ROOT; };
 		E1C619E4C45F73A1C1F29851 /* include_juce_gui_basics_2.cpp */ /* include_juce_gui_basics_2.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_gui_basics_2.cpp; path = ../../JuceLibraryCode/include_juce_gui_basics_2.cpp; sourceTree = SOURCE_ROOT; };
 		E3BBC26EC616B8996F69FB3E /* StateDeltaTool.h */ /* StateDeltaTool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StateDeltaTool.h; path = ../../Source/Network/MCP/tools/StateDeltaTool.h; sourceTree = SOURCE_ROOT; };
-		E4A0CD4099891D58FE76630E /* QuickKeysManager.h */ /* QuickKeysManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = QuickKeysManager.h; path = ../../Source/Controllers/DialsAndButtons/QuickKeysManager.h; sourceTree = SOURCE_ROOT; };
 		E57F5553F6F16A1DD0E9D41A /* MetalIrKernels.h */ /* MetalIrKernels.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MetalIrKernels.h; path = ../../spatcore/gpu/MetalIrKernels.h; sourceTree = SOURCE_ROOT; };
 		E6905818F38D144E669AABE1 /* TrackingPSNReceiver.h */ /* TrackingPSNReceiver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TrackingPSNReceiver.h; path = ../../Source/Network/TrackingPSNReceiver.h; sourceTree = SOURCE_ROOT; };
 		E8AB1DE6C5E638E6D7A21684 /* HipWfsBackend.h */ /* HipWfsBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = HipWfsBackend.h; path = ../../spatcore/gpu/HipWfsBackend.h; sourceTree = SOURCE_ROOT; };
@@ -472,7 +472,7 @@
 			children = (
 				FD81514309518056F5B4FABC,
 				942338628BC727C2830909A6,
-				9DAB4C03DEE4586FA4E52782,
+				9774E10CF85F3C3ADF7BB857,
 			);
 			name = Sampler;
 			sourceTree = "<group>";
@@ -774,10 +774,10 @@
 				775A4354BC8B66B3EAB499B8,
 				78E9E9816A661EAA7E514FDF,
 				1B28B101927A84789B514315,
-				573C45192697FB567520101F,
+				9D694DF0A6065B72BB8A4A10,
 				FB7C63DE1F9B7C0C201F5EFB,
 				7891B62DA17A8C237F34699D,
-				E4A0CD4099891D58FE76630E,
+				AA9560CBC301397A84EC4AF8,
 				A2162BB72A14BE3C22282C07,
 			);
 			name = DialsAndButtons;

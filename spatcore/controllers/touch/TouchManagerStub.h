@@ -25,7 +25,7 @@ public:
     struct DeviceInfo {};
     using ChangeCallback = std::function<void()>;
 
-    EvdevTouchManager() {}
+    explicit EvdevTouchManager (const juce::String& /*settingsAppName*/) {}
     std::vector<DeviceInfo> getDetectedDevices() const { return {}; }
     void setMapping (const juce::String&, const TouchDeviceMapping&) {}
     int  addChangeListener (ChangeCallback) { return 0; }

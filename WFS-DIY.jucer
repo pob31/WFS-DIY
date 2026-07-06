@@ -285,13 +285,13 @@
           <FILE id="sdRendH" name="StreamDeckRenderer.h" compile="0" resource="0"
                 file="spatcore/controllers/streamdeck/StreamDeckRenderer.h"/>
           <FILE id="sdMgrH" name="StreamDeckManager.h" compile="0" resource="0"
-                file="Source/Controllers/DialsAndButtons/StreamDeckManager.h"/>
+                file="spatcore/controllers/streamdeck/StreamDeckManager.h"/>
           <FILE id="xlDevH" name="XencelabsDevice.h" compile="0" resource="0"
                 file="spatcore/controllers/xencelabs/XencelabsDevice.h"/>
           <FILE id="qkPageH" name="QuickKeysPage.h" compile="0" resource="0"
                 file="spatcore/controllers/xencelabs/QuickKeysPage.h"/>
           <FILE id="qkMgrH" name="QuickKeysManager.h" compile="0" resource="0"
-                file="Source/Controllers/DialsAndButtons/QuickKeysManager.h"/>
+                file="spatcore/controllers/xencelabs/QuickKeysManager.h"/>
           <GROUP id="{SDPAGESGROUP}" name="pages">
             <FILE id="sdInpPages" name="InputsTabPages.h" compile="0" resource="0"
                   file="Source/Controllers/DialsAndButtons/pages/InputsTabPages.h"/>
@@ -317,7 +317,7 @@
           <FILE id="lpDeviceH" name="LightpadDevice.h" compile="0" resource="0"
                 file="spatcore/controllers/lightpad/LightpadDevice.h"/>
           <FILE id="lpMgrH" name="LightpadManager.h" compile="0" resource="0"
-                file="Source/Controllers/Sampler/LightpadManager.h"/>
+                file="spatcore/controllers/lightpad/LightpadManager.h"/>
         </GROUP>
       </GROUP>
       <GROUP id="{GRADIENTMAPGROUP}" name="GradientMap">

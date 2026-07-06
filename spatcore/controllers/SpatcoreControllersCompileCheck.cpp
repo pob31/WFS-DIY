@@ -32,17 +32,21 @@
 #include "spacemouse/SpaceMouseDevice.h"
 
 // Elgato Stream Deck+ HID driver + page/binding model + framebuffer renderer
+// + page-registry/event-routing manager
 #include "streamdeck/StreamDeckDevice.h"
 #include "streamdeck/StreamDeckPage.h"
 #include "streamdeck/StreamDeckRenderer.h"
+#include "streamdeck/StreamDeckManager.h"
 
-// Xencelabs Quick Keys HID driver + wheel page model
+// Xencelabs Quick Keys HID driver + wheel page model + traverse/adjust manager
 #include "xencelabs/XencelabsDevice.h"
 #include "xencelabs/QuickKeysPage.h"
+#include "xencelabs/QuickKeysManager.h"
 
 // ROLI Lightpad BLOCKS (roli_blocks_basics JUCE module)
 #include "lightpad/LightpadTypes.h"
 #include "lightpad/LightpadDevice.h"
+#include "lightpad/LightpadManager.h"
 
 // Touchscreen input (Linux evdev implementation behind a cross-platform
 // include site; the stub compiles on Windows/macOS)

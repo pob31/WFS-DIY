@@ -4638,7 +4638,7 @@
     <ClInclude Include="..\..\spatcore\controllers\streamdeck\StreamDeckRenderer.h">
       <Filter>WFS-DIY\Source\Controllers\DialsAndButtons</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\StreamDeckManager.h">
+    <ClInclude Include="..\..\spatcore\controllers\streamdeck\StreamDeckManager.h">
       <Filter>WFS-DIY\Source\Controllers\DialsAndButtons</Filter>
     </ClInclude>
     <ClInclude Include="..\..\spatcore\controllers\xencelabs\XencelabsDevice.h">
@@ -4647,7 +4647,7 @@
     <ClInclude Include="..\..\spatcore\controllers\xencelabs\QuickKeysPage.h">
       <Filter>WFS-DIY\Source\Controllers\DialsAndButtons</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\QuickKeysManager.h">
+    <ClInclude Include="..\..\spatcore\controllers\xencelabs\QuickKeysManager.h">
       <Filter>WFS-DIY\Source\Controllers\DialsAndButtons</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\InputsTabPages.h">
@@ -4680,7 +4680,7 @@
     <ClInclude Include="..\..\spatcore\controllers\lightpad\LightpadDevice.h">
       <Filter>WFS-DIY\Source\Controllers\Sampler</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Controllers\Sampler\LightpadManager.h">
+    <ClInclude Include="..\..\spatcore\controllers\lightpad\LightpadManager.h">
       <Filter>WFS-DIY\Source\Controllers\Sampler</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\GradientMap\GradientMapData.h">

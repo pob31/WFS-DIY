@@ -12,10 +12,12 @@
  * Wheel button press toggles between modes.
  */
 
-#include <JuceHeader.h>
-#include "../../Network/OSCProtocolTypes.h"
-#include "../../../spatcore/controllers/xencelabs/XencelabsDevice.h"
-#include "../../../spatcore/controllers/xencelabs/QuickKeysPage.h"
+#include <juce_events/juce_events.h>
+#include "../../control/osc/OscTransportTypes.h"
+#include "XencelabsDevice.h"
+#include "QuickKeysPage.h"
+
+namespace spatcore::controllers {
 
 class QuickKeysManager : private juce::Timer
 {
@@ -31,16 +33,18 @@ public:
         // Each input event runs inside an OriginTagScope { Hardware } so
         // page-binding writes are credited to the controller in change
         // records and cross-actor notifications.
+        using spatcore::control::osc::OriginTagScope;
+        using spatcore::control::osc::OriginTag;
         device.onButtonPressed  = [this] (int btn) {
-            WFSNetwork::OriginTagScope s { WFSNetwork::OriginTag::Hardware };
+            OriginTagScope s { OriginTag::Hardware };
             handleButtonPressed (btn);
         };
         device.onButtonReleased = [this] (int btn) {
-            WFSNetwork::OriginTagScope s { WFSNetwork::OriginTag::Hardware };
+            OriginTagScope s { OriginTag::Hardware };
             handleButtonReleased (btn);
         };
         device.onWheelRotated   = [this] (int dir) {
-            WFSNetwork::OriginTagScope s { WFSNetwork::OriginTag::Hardware };
+            OriginTagScope s { OriginTag::Hardware };
             handleWheelRotated (dir);
         };
         device.onConnectionChanged = [this] (bool connected) { handleConnectionChanged (connected); };
@@ -305,3 +309,8 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (QuickKeysManager)
 };
+
+} // namespace spatcore::controllers
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::controllers::QuickKeysManager;

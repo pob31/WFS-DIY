@@ -1,5 +1,6 @@
 #include "MainComponent.h"
 #include "WFSLogger.h"
+#include "AppSettings.h"
 #include "Parameters/WFSParameterIDs.h"
 #include "Localization/LocalizationManager.h"
 #include "Accessibility/TTSManager.h"
@@ -14,7 +15,7 @@
 #include "Controllers/DialsAndButtons/pages/ClustersTabPages.h"
 #include "Controllers/DialsAndButtons/pages/PatchWindowPages.h"
 #include "../spatcore/controllers/spacemouse/SpaceMouseDevice.h"
-#include "Controllers/Sampler/LightpadManager.h"
+#include "../spatcore/controllers/lightpad/LightpadManager.h"
 
 //==============================================================================
 MainComponent::MainComponent()
@@ -875,14 +876,18 @@ MainComponent::MainComponent()
     // Initialize Stream Deck+ physical controller
     streamDeckManager = std::make_unique<StreamDeckManager>();
 
+    // App binding: the brightness to re-apply on (re)connect comes from the
+    // persisted app settings (spatcore's manager no longer reads AppSettings).
+    streamDeckManager->getConnectBrightness = [] { return AppSettings::getStreamDeckBrightness(); };
+
     // Initialize Xencelabs Quick Keys controller
     quickKeysManager = std::make_unique<QuickKeysManager>();
 
     // Linux multitouch (no-op stub on macOS/Windows). Discovers touchscreens
     // via libudev and bridges per-finger evdev events into JUCE's MouseEvent
     // pipeline so MapTab/EQDisplay/PatchMatrix see the same touch API they
-    // already see on Windows.
-    touchManager = std::make_unique<WFSTouch::EvdevTouchManager>();
+    // already see on Windows. "WFS-DIY" names the persisted mapping store.
+    touchManager = std::make_unique<WFSTouch::EvdevTouchManager> ("WFS-DIY");
 
    #if defined (__linux__)
     // Show / hide the SystemConfig "Touchscreens..." button based on whether
@@ -1681,7 +1686,7 @@ MainComponent::MainComponent()
 
     // Initialize Lightpad Manager (ROLI Lightpad Blocks)
     {
-        lightpadManager = std::make_unique<LightpadManager> (parameters);
+        lightpadManager = std::make_unique<LightpadManager> (WFSParameterDefaults::lightpadSensitivityDefault);
 
         lightpadManager->callbacks.moveInputDelta = [this] (int inputIdx, float dx, float dy)
         {

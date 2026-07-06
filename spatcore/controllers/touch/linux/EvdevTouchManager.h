@@ -40,7 +40,10 @@ namespace spatcore::controllers {
 class EvdevTouchManager
 {
 public:
-    EvdevTouchManager();
+    /** @param settingsAppName  Application name for the persisted mapping
+        store (PropertiesFile app + folder name). The app injects its own
+        identity here (extraction seam: this used to be hard-coded). */
+    explicit EvdevTouchManager (const juce::String& settingsAppName);
     ~EvdevTouchManager();
 
     EvdevTouchManager (const EvdevTouchManager&) = delete;
