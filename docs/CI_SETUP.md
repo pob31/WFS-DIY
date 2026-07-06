@@ -76,7 +76,14 @@ Manual re-run against an existing tag: Actions → **Release** → *Run workflow
 ---
 
 ## Notes / known iteration points
-- **JUCE is a submodule (~large)** — checkout is the slow step; both workflows use `submodules: recursive`.
+- **JUCE and spatcore are submodules** — checkout uses `submodules: recursive` in
+  both workflows (JUCE is the slow one; spatcore is small). spatcore is public, so
+  the default `GITHUB_TOKEN` fetches it fine. A spatcore bump is a normal PR via
+  `tools/bump-spatcore.ps1` + the gate ritual it prints.
+- **`tools/windows/prebuilt/wfs_hip.dll` is a committed binary** that release CI
+  bundles (the runner has no HIP SDK). It must be manually rebuilt + recommitted
+  whenever `spatcore/gpu` HIP sources change — the bump-spatcore ritual reminds
+  you; provenance lives in `tools/windows/prebuilt/README.md`.
 - **Windows is unsigned** by design (no code-signing cert). The installer will show a SmartScreen prompt on first run.
 - **Linux HIP is not built in CI.** The Linux job installs the CUDA toolkit (so
   `libwfs_cuda.so` builds and bundles its runtime closure via
