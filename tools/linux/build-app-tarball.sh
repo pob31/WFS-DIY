@@ -408,7 +408,7 @@ Or just run in place:
 
 The app expects lang/ and MCP/ to sit next to the binary, which they do
 in this archive. udev rules under share/70-wfs-diy.rules grant non-root
-access to Stream Deck, Xencelabs Quick Keys, 3Dconnexion SpaceMouse and
+access to Stream Deck, 3Dconnexion SpaceMouse and
 USB touchscreens. The installer offers to drop them in /etc/udev/rules.d
 on request.
 ${GPU_README}

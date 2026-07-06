@@ -82,7 +82,7 @@ public:
         stopMonitoring();
         // Do NOT call hid_exit() here. hidapi's hid_exit is NOT reference-counted:
         // it unconditionally FreeLibrary's hid.dll / cfgmgr32.dll. Any other HID
-        // client (XencelabsDevice, LightpadDevice, SpaceMouseDevice) still alive
+        // client (LightpadDevice, SpaceMouseDevice) still alive
         // would then crash on its next HID call because the static HidD_* function
         // pointers point into unloaded DLLs. Let the OS reclaim on process exit.
     }

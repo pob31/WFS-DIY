@@ -4641,15 +4641,6 @@
     <ClInclude Include="..\..\spatcore\controllers\streamdeck\StreamDeckManager.h">
       <Filter>WFS-DIY\Source\Controllers\DialsAndButtons</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\spatcore\controllers\xencelabs\XencelabsDevice.h">
-      <Filter>WFS-DIY\Source\Controllers\DialsAndButtons</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\spatcore\controllers\xencelabs\QuickKeysPage.h">
-      <Filter>WFS-DIY\Source\Controllers\DialsAndButtons</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\spatcore\controllers\xencelabs\QuickKeysManager.h">
-      <Filter>WFS-DIY\Source\Controllers\DialsAndButtons</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\InputsTabPages.h">
       <Filter>WFS-DIY\Source\Controllers\DialsAndButtons\pages</Filter>
     </ClInclude>

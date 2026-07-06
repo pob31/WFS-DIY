@@ -15,7 +15,7 @@
 // reference this file - the app compiles spatcore sources directly through
 // Projucer.
 //
-// hidapi note: StreamDeckDevice / XencelabsDevice / SpaceMouseDevice include
+// hidapi note: StreamDeckDevice / SpaceMouseDevice include
 // "hidapi/hidapi.h" and call hid_* only from implicitly-inline member
 // functions, so compiling (and even linking) this TU needs hidapi HEADERS
 // only (SPATCORE_HIDAPI_INCLUDE_DIR); the hid_* implementation is provided
@@ -37,11 +37,6 @@
 #include "streamdeck/StreamDeckPage.h"
 #include "streamdeck/StreamDeckRenderer.h"
 #include "streamdeck/StreamDeckManager.h"
-
-// Xencelabs Quick Keys HID driver + wheel page model + traverse/adjust manager
-#include "xencelabs/XencelabsDevice.h"
-#include "xencelabs/QuickKeysPage.h"
-#include "xencelabs/QuickKeysManager.h"
 
 // ROLI Lightpad BLOCKS (roli_blocks_basics JUCE module)
 #include "lightpad/LightpadTypes.h"

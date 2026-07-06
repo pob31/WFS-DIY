@@ -47,7 +47,6 @@
 #include "Network/OSCManager.h"
 #include "Network/MCP/MCPServer.h"
 #include "../spatcore/controllers/streamdeck/StreamDeckManager.h"
-#include "../spatcore/controllers/xencelabs/QuickKeysManager.h"
 #include "Controllers/DialsAndButtons/pages/PatchWindowPages.h"
 #include "Controllers/PositionControl/ControllerManager.h"
 #include "../spatcore/controllers/lightpad/LightpadManager.h"
@@ -268,7 +267,6 @@ private:
 
     // Stream Deck+ physical controller
     std::unique_ptr<StreamDeckManager> streamDeckManager;
-    std::unique_ptr<QuickKeysManager> quickKeysManager;
 
     // Input controllers (SpaceMouse, joystick, gamepad)
     std::unique_ptr<ControllerManager> controllerManager;

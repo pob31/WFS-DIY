@@ -84,7 +84,7 @@
       "importSystem": "파일에서 시스템 설정 가져오기 (파일 탐색기 사용).",
       "exportSystem": "시스템 설정을 파일로 내보내기 (파일 탐색기 사용).",
       "language": "사용자 인터페이스 언어를 선택하세요. 애플리케이션을 재시작하면 변경 사항이 완전히 적용됩니다.",
-      "dialsAndButtons": "다이얼 및 버튼용 하드웨어 컨트롤러 선택: Stream Deck+ 또는 XenceLabs Quick Keys.",
+      "dialsAndButtons": "다이얼 및 버튼용 하드웨어 컨트롤러 선택: Stream Deck+.",
       "positionControl": "위치 제어용 하드웨어 컨트롤러 선택: Space Mouse, 조이스틱 또는 게임패드.",
       "sampler": "입력 채널의 Sampler 기능을 활성화 또는 비활성화. 컨트롤러 선택: Lightpad 또는 리모컨.",
       "lightpadSetup": "연결된 Roli Lightpad를 표시하고 4개의 작은 패드로 분할할 수 있습니다.",

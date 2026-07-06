@@ -34,9 +34,9 @@ endif()
 option(SPATCORE_STANDALONE_TESTS
     "Build spatcore's own unit-test console app (tests/)" OFF)
 
-# Hardware controller device layer (SpaceMouse / Stream Deck+ / Quick Keys /
-# Lightpad / Linux evdev touch). OFF-able because headless consumers may not
-# want the HID / BLOCKS dependencies at all.
+# Hardware controller device layer (SpaceMouse / Stream Deck+ / Lightpad /
+# Linux evdev touch). OFF-able because headless consumers may not want the
+# HID / BLOCKS dependencies at all.
 option(SPATCORE_CONTROLLERS
     "Build spatcore-controllers (needs hidapi headers + roli_blocks_basics module)" ON)
 

@@ -884,12 +884,10 @@ public:
         addAndMakeVisible (dialsAndButtonsSelector);
         dialsAndButtonsSelector.addItem (LOC ("systemConfig.devices.off"), 1);
         dialsAndButtonsSelector.addItem ("Stream Deck+", 2);
-        dialsAndButtonsSelector.addItem ("XenceLabs Quick Keys", 3);
-        dialsAndButtonsSelector.setItemEnabled (3, false);  // Not yet implemented
         dialsAndButtonsSelector.onChange = [this]()
         {
             if (isLoadingParameters) return;
-            int deviceIndex = dialsAndButtonsSelector.getSelectedId() - 1;  // 0=Off, 1=SD+, 2=QK
+            int deviceIndex = dialsAndButtonsSelector.getSelectedId() - 1;  // 0=Off, 1=SD+
             parameters.setConfigParam ("DialsAndButtonsDevice", deviceIndex);
             if (onDialsAndButtonsChanged)
                 onDialsAndButtonsChanged (deviceIndex);

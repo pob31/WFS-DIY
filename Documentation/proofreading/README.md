@@ -32,7 +32,7 @@ Each file covers the ~663 translated prose keys (ja and ko currently have 14 unt
 
 These categories are deliberately not translated:
 - **Audio loanwords**: Sampler, Tracking, Pre, Post, ON/OFF, LFO, HF, EQ, AI, OSC, MQTT
-- **Proper nouns**: QLab, Lightpad, Stream Deck, ADM-OSC, PosiStageNet, RTTrP, Ableton Live, Roli, Xencelabs Quick Keys
+- **Proper nouns**: QLab, Lightpad, Stream Deck, ADM-OSC, PosiStageNet, RTTrP, Ableton Live, Roli
 - **Technical terms**: OSC Path:, Localhost, http://localhost:..., file extensions
 - **Math notation**: r θ φ, r θ Z, single-letter axis labels (X, Y, Z, Q)
 - **Short identical short tokens**: e.g. German "Position" == English "Position", Spanish "Error" == English "Error"

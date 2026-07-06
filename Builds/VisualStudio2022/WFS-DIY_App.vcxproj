@@ -3363,9 +3363,6 @@
     <ClInclude Include="..\..\spatcore\controllers\streamdeck\StreamDeckPage.h"/>
     <ClInclude Include="..\..\spatcore\controllers\streamdeck\StreamDeckRenderer.h"/>
     <ClInclude Include="..\..\spatcore\controllers\streamdeck\StreamDeckManager.h"/>
-    <ClInclude Include="..\..\spatcore\controllers\xencelabs\XencelabsDevice.h"/>
-    <ClInclude Include="..\..\spatcore\controllers\xencelabs\QuickKeysPage.h"/>
-    <ClInclude Include="..\..\spatcore\controllers\xencelabs\QuickKeysManager.h"/>
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\InputsTabPages.h"/>
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\NetworkTabPages.h"/>
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\OutputsTabPages.h"/>

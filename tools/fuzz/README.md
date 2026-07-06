@@ -100,7 +100,7 @@ Exit code: `0` no findings, `1` findings recorded, `2` app died.
 
 - File-format fuzzing (XML snapshots / lang JSON / IR audio) is **not**
   covered. Different harness.
-- HID controllers (Stream Deck+, Xencelabs, SpaceMouse, Lightpad) are
+- HID controllers (Stream Deck+, SpaceMouse, Lightpad) are
   **not** covered — would need userland HID injection.
 - The read-back signal depends on OSCQuery being enabled and reachable.
   When it isn't, NaN/Inf in the tree won't be detected here; you'd see

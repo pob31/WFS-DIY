@@ -7,13 +7,15 @@ reasoning survives independent of the branch/PR.
 
 ## Scope and motivation
 
-The controller device layer (SpaceMouse position control, StreamDeck+/Xencelabs
-Quick Keys dials & buttons, ROLI Lightpad, touchscreen input) was requested for
-extraction so the two future apps (XOA, Tight-WFS) inherit hardware controller
-support rather than reimplementing HID/BLOCKS protocol handling from scratch.
+The controller device layer (SpaceMouse position control, StreamDeck+ dials &
+buttons, ROLI Lightpad, touchscreen input) was requested for extraction so the
+two future apps (XOA, Tight-WFS) inherit hardware controller support rather
+than reimplementing HID/BLOCKS protocol handling from scratch.
 
 Source: `Source/Controllers/{DialsAndButtons,PositionControl,Sampler,Touch}/`
-(32 files). Target: `spatcore/controllers/` (21 files moved).
+(32 files). Target: `spatcore/controllers/` (18 files moved — see Removed
+section below for the 3 Xencelabs Quick Keys files that were moved here and
+then deleted outright rather than kept).
 
 ## Classification
 
@@ -28,9 +30,6 @@ Source: `Source/Controllers/{DialsAndButtons,PositionControl,Sampler,Touch}/`
 | DialsAndButtons/StreamDeckPage.h | DEVICE (param-system-agnostic binding model) | moved → `streamdeck/` |
 | DialsAndButtons/StreamDeckRenderer.h | DEVICE (page→button/LCD rendering) | moved → `streamdeck/` |
 | DialsAndButtons/StreamDeckManager.h | MIXED | moved with seams (brightness getter injected) |
-| DialsAndButtons/XencelabsDevice.h | DEVICE (HID protocol, OLED/LED/wheel) | moved → `xencelabs/` |
-| DialsAndButtons/QuickKeysPage.h | DEVICE (binding model, reuses DialBinding) | moved → `xencelabs/` |
-| DialsAndButtons/QuickKeysManager.h | MIXED (only OriginTag) | moved, requalified |
 | DialsAndButtons/pages/*.h (9 files) | APP BINDING (bind WFSValueTreeState/WFSParameterIDs/Defaults + LocalizationManager; some pull GradientMapEditor/PatchMatrixComponent/TestSignalGenerator/CoordinateConverter/AppSettings) | **stay** |
 | Sampler/LightpadTypes.h | DEVICE (zone encoding, colours, pixel font) | moved → `lightpad/` |
 | Sampler/LightpadDevice.h | DEVICE (BLOCKS protocol, already module-clean) | moved → `lightpad/` |
@@ -108,16 +107,30 @@ physical check:
 2. **Stream Deck+** — pages render (buttons + LCD); dial rotate/press/fine-mode;
    **brightness set → unplug/replug must re-apply** (the cut seam — a broken
    binding would silently jump to the 100 default instead).
-3. **Xencelabs Quick Keys** — OLED labels, wheel traverse/adjust toggle, LED
-   ring modes.
-4. **ROLI Lightpad** — zone split/colours; touch moves the input at the
+3. **ROLI Lightpad** — zone split/colours; touch moves the input at the
    **same sensitivity as before** (the injected default is 0.05; a wrong wire
    would feel different).
-5. **Linux touchscreen box** — builds via LinuxMakefile (evdev paths are
+4. **Linux touchscreen box** — builds via LinuxMakefile (evdev paths are
    compile-only-verified on Windows); mappings **persist across restart**
    (same `~/.config/WFS-DIY` file — the ctor-arg seam must not have moved it).
-6. Cross-check: one dial write shows `Hardware` origin in the network log /
+5. Cross-check: one dial write shows `Hardware` origin in the network log /
    change records (confirms the OriginTag requalification).
+
+## Removed: Xencelabs Quick Keys
+
+`XencelabsDevice.h`, `QuickKeysPage.h`, and `QuickKeysManager.h` were moved
+into `spatcore/controllers/xencelabs/` alongside the rest of this phase, then
+deleted outright — from spatcore and from the WFS-DIY app — rather than kept
+as an extracted device. The hardware is limited and the UI entry
+(`SystemConfigTab`'s "XenceLabs Quick Keys" dials-and-buttons option) was
+already `setItemEnabled(false)` / "Not yet implemented", so no user could
+ever select it and no user-facing regression results. There is no persisted
+session data to migrate: the `DialsAndButtonsDevice` config parameter's only
+reachable values were 0 (Off) and 1 (Stream Deck+). All references — the
+three device-layer files, the `.jucer`/build-project entries, the app-side
+`quickKeysManager` member and its System Config dial page registration, the
+udev rules, localization strings, and documentation mentions — were removed
+in the same pass as this doc update.
 
 ## Relationship to the rest of the extraction
 
