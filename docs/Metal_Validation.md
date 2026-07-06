@@ -178,6 +178,17 @@ isolates host-buffer size from the deadline math.
    scale (or gate GPU SDN to lower node counts / larger buffers where headroom
    exists).
 
+### Addendum (2026-07-07) — SDN node-count threshold
+
+Follow-up test on the same M4 Pro rig: **SDN on Metal at 15 nodes is clean**
+(32 remains noisy). So the real-time ceiling sits between 15 and 32 nodes at
+96 kHz on this GPU — per-node gather work is a genuine cost component, not
+just the per-sample barrier floor, and GPU SDN **is** viable at reduced node
+counts. The threshold is hardware-specific; a soft UI warning above a viable
+node count (or a per-platform default of CPU-SDN at high counts) is the
+candidate follow-up. FDN and IR on Metal are clean at 32 nodes — the ceiling
+is specific to SDN's single-threadgroup dispatch.
+
 ### Open items
 - Audio-quality confirmation still pending for config 3 (CPU input + GPU SDN).
 - Part A (spatcore host tests + ThreadSanitizer) not run this session — still
