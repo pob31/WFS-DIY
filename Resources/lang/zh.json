@@ -84,7 +84,7 @@
       "importSystem": "从文件导入系统配置 (使用文件浏览器)。",
       "exportSystem": "将系统配置导出到文件 (使用文件浏览器)。",
       "language": "选择用户界面语言。重启应用程序后更改将完全生效。",
-      "dialsAndButtons": "为旋钮和按钮选择硬件控制器: Stream Deck+ 或 XenceLabs Quick Keys。",
+      "dialsAndButtons": "为旋钮和按钮选择硬件控制器: Stream Deck+。",
       "positionControl": "为位置控制选择硬件控制器: Space Mouse、操纵杆或游戏手柄。",
       "sampler": "启用或禁用输入通道的采样器功能。选择控制器: Lightpad 或遥控器。",
       "lightpadSetup": "显示已连接的Roli Lightpad并允许将其分成4个较小的触控板。",

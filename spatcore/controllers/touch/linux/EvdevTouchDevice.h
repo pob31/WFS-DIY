@@ -2,13 +2,13 @@
 
 #if defined (__linux__)
 
-#include <JuceHeader.h>
+#include <juce_core/juce_core.h>
 
 #include <array>
 #include <atomic>
 #include <functional>
 
-namespace WFSTouch {
+namespace spatcore::controllers {
 
 /**
     Owns a single /dev/input/eventN file descriptor, reads Multitouch
@@ -98,6 +98,12 @@ private:
     SnapshotCallback snapshotCallback;
 };
 
-} // namespace WFSTouch
+} // namespace spatcore::controllers
+
+// Extraction-compat re-export — app call sites keep naming WFSTouch::*.
+namespace WFSTouch
+{
+    using spatcore::controllers::EvdevTouchDevice;
+}
 
 #endif // JUCE_LINUX

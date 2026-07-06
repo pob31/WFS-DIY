@@ -244,7 +244,7 @@
       "importSystem": "Systemkonfiguration aus Datei importieren (mit Datei-Explorer).",
       "exportSystem": "Systemkonfiguration in Datei exportieren (mit Datei-Explorer).",
       "language": "Wählen Sie die Sprache der Benutzeroberfläche. Änderungen werden nach Neustart der Anwendung vollständig wirksam.",
-      "dialsAndButtons": "Wählen Sie den Hardware-Controller für Drehregler und Tasten: Stream Deck+ oder XenceLabs Quick Keys.",
+      "dialsAndButtons": "Wählen Sie den Hardware-Controller für Drehregler und Tasten: Stream Deck+.",
       "positionControl": "Wählen Sie den Hardware-Controller für die Positionssteuerung: Space Mouse, Joystick oder Gamepad.",
       "sampler": "Aktivieren oder deaktivieren Sie die Sampler-Funktion für Eingangskanäle. Wählen Sie den Controller: Lightpad oder Fernbedienung.",
       "lightpadSetup": "Verbundene Roli Lightpads anzeigen und in 4 kleinere Pads aufteilen.",

@@ -1,13 +1,13 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include <juce_core/juce_core.h>
 
 #include "TouchDeviceMapping.h"
 
 #include <vector>
 #include <functional>
 
-namespace WFSTouch {
+namespace spatcore::controllers {
 
 #if ! defined (__linux__)
 
@@ -25,7 +25,7 @@ public:
     struct DeviceInfo {};
     using ChangeCallback = std::function<void()>;
 
-    EvdevTouchManager() {}
+    explicit EvdevTouchManager (const juce::String& /*settingsAppName*/) {}
     std::vector<DeviceInfo> getDetectedDevices() const { return {}; }
     void setMapping (const juce::String&, const TouchDeviceMapping&) {}
     int  addChangeListener (ChangeCallback) { return 0; }
@@ -34,4 +34,12 @@ public:
 
 #endif
 
-} // namespace WFSTouch
+} // namespace spatcore::controllers
+
+// Extraction-compat re-export — app call sites keep naming WFSTouch::*.
+#if ! defined (__linux__)
+namespace WFSTouch
+{
+    using spatcore::controllers::EvdevTouchManager;
+}
+#endif

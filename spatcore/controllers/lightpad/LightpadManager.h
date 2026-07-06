@@ -15,11 +15,9 @@
 #include <roli_blocks_basics/roli_blocks_basics.h>
 #include "LightpadDevice.h"
 #include "LightpadTypes.h"
-#include "../../Parameters/WFSParameterIDs.h"
-#include "../../Parameters/WFSParameterDefaults.h"
-#include "../../Network/OSCProtocolTypes.h"
+#include "../../control/osc/OscTransportTypes.h"
 
-class WfsParameters;  // forward declare
+namespace spatcore::controllers {
 
 class LightpadManager : public roli::TopologySource::Listener,
                          private juce::Timer
@@ -42,8 +40,12 @@ public:
     std::function<void (const std::vector<PadLayoutInfo>&)> onTopologyChanged;
 
     //==============================================================================
-    explicit LightpadManager (WfsParameters& params)
-        : parameters (params)
+    /** @param initialSensitivity  Position-delta scale in meters per unit of
+        pad deflection. The app injects its default here (extraction seam:
+        the manager used to read WFSParameterDefaults directly) and can
+        adjust it later via setSensitivity(). */
+    explicit LightpadManager (float initialSensitivity)
+        : sensitivity (initialSensitivity)
     {
         topologySource.addListener (this);
     }
@@ -176,7 +178,8 @@ public:
     //==============================================================================
     juce::String getZoneDisplayName (int zoneId) const
     {
-        return ::getZoneDisplayName (zoneId, padSplit);
+        // Qualified: the free function in LightpadTypes.h, not this member.
+        return spatcore::controllers::getZoneDisplayName (zoneId, padSplit);
     }
 
     std::vector<std::pair<int, juce::String>> getAllZonesWithNames() const
@@ -336,15 +339,13 @@ public:
 
 private:
     //==============================================================================
-    WfsParameters& parameters;
-
     roli::PhysicalTopologySource topologySource;
     std::vector<std::unique_ptr<LightpadDevice>> devices;
 
     std::atomic<int> numDetectedPads { 0 };
     std::vector<PadLayoutInfo> padLayouts;  // current topology layout
     bool padSplit[maxPads] = { false, false, false };
-    float sensitivity = WFSParameterDefaults::lightpadSensitivityDefault;
+    float sensitivity;  // set from the constructor; see setSensitivity()
 
     std::map<int, int> zoneToInput;  // zoneId → inputChannel (0-based)
 
@@ -366,7 +367,8 @@ private:
         // Phase 7: tag onTouchStart / onTouchEnd as hardware-origin so any
         // ValueTree side effects (e.g. sample triggering) are correctly
         // credited.
-        WFSNetwork::OriginTagScope originScope { WFSNetwork::OriginTag::Hardware };
+        spatcore::control::osc::OriginTagScope originScope {
+            spatcore::control::osc::OriginTag::Hardware };
 
         // Resolve zone → input channel for start/end callbacks
         auto it = zoneToInput.find (zoneId);
@@ -398,7 +400,8 @@ private:
         // Phase 7: every per-tick callback below performs a hardware-driven
         // ValueTree write. Wrap once at the chokepoint so change records and
         // cross-actor notifications credit the Lightpad.
-        WFSNetwork::OriginTagScope originScope { WFSNetwork::OriginTag::Hardware };
+        spatcore::control::osc::OriginTagScope originScope {
+            spatcore::control::osc::OriginTag::Hardware };
 
         for (auto& [zoneId, state] : zoneTouchState)
         {
@@ -449,3 +452,8 @@ private:
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LightpadManager)
 };
+
+} // namespace spatcore::controllers
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::controllers::LightpadManager;

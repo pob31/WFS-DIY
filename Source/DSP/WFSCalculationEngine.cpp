@@ -63,8 +63,8 @@ WFSCalculationEngine::WFSCalculationEngine (WFSValueTreeState& state)
     recalculateAllInputPositions();
     recalculateAllReverbPositions();
 
-    // Initial matrix calculation
-    recalculateMatrix();
+    // Initial matrix calculation (no Live Source Tamer exists yet — unity gains)
+    recalculateMatrix (nullptr);
 
     // Listen to parameter changes
     valueTreeState.addListener (this);
@@ -870,16 +870,16 @@ float WFSCalculationEngine::calculateReverbFeedAngularAttenuation (int /*inputIn
     return 1.0f - progress;
 }
 
-bool WFSCalculationEngine::recalculateMatrixIfDirty()
+bool WFSCalculationEngine::recalculateMatrixIfDirty (const float* lsGains)
 {
     if (!matrixDirty.load())
         return false;
 
-    recalculateMatrix();
+    recalculateMatrix (lsGains);
     return true;
 }
 
-void WFSCalculationEngine::recalculateMatrix()
+void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
 {
     // Clear dirty flag at start (any new changes during calc will set it again)
     matrixDirty.store(false);
@@ -1574,8 +1574,8 @@ void WFSCalculationEngine::recalculateMatrix()
             linearLevel *= angularAtten;
 
             // Apply Live Source Tamer gain (linear multiplier 0.0-1.0)
-            if (sharedLSGains != nullptr)
-                linearLevel *= sharedLSGains[matrixIdx];
+            if (lsGains != nullptr)
+                linearLevel *= lsGains[matrixIdx];
 
             // Apply Sideline attenuation (linear multiplier 0.0-1.0)
             float sidelineAtten = calculateSidelineAttenuation (inIdx, inputPos);
@@ -2443,7 +2443,8 @@ void WFSCalculationEngine::valueTreePropertyChanged (juce::ValueTree& tree,
                                 property == inputArrayAtten9 ||
                                 property == inputArrayAtten10);
 
-    // Live Source Tamer parameters (affect level calculations via sharedLSGains)
+    // Live Source Tamer parameters (affect level calculations via the lsGains
+    // array passed into recalculateMatrix())
     bool isInputLSProperty = (property == inputLSactive ||
                               property == inputLSradius ||
                               property == inputLSshape ||

@@ -86,7 +86,7 @@ cd WFS-DIY
    cd Builds/LinuxMakefile && make CONFIG=Release -j$(nproc)
    ```
    The binary lands at `Builds/LinuxMakefile/build/WFS-DIY` along with `lang/` and `MCP/resources/` copied next to it.
-4. **HID controller and touchscreen setup (one-time, optional):** to use Stream Deck, Xencelabs Quick Keys, 3Dconnexion SpaceMouse, or any USB touchscreen without root, install the bundled udev rules. The file is named `70-` so it runs after the system rules that set `ID_INPUT_TOUCHSCREEN`:
+4. **HID controller and touchscreen setup (one-time, optional):** to use Stream Deck, 3Dconnexion SpaceMouse, or any USB touchscreen without root, install the bundled udev rules. The file is named `70-` so it runs after the system rules that set `ID_INPUT_TOUCHSCREEN`:
    ```bash
    sudo rm -f /etc/udev/rules.d/50-wfs-diy.rules   # remove older filename if present
    sudo cp assets/linux/70-wfs-diy.rules /etc/udev/rules.d/

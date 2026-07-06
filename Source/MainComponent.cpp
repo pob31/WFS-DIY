@@ -1,5 +1,6 @@
 #include "MainComponent.h"
 #include "WFSLogger.h"
+#include "AppSettings.h"
 #include "Parameters/WFSParameterIDs.h"
 #include "Localization/LocalizationManager.h"
 #include "Accessibility/TTSManager.h"
@@ -13,8 +14,8 @@
 #include "Controllers/DialsAndButtons/pages/ReverbTabPages.h"
 #include "Controllers/DialsAndButtons/pages/ClustersTabPages.h"
 #include "Controllers/DialsAndButtons/pages/PatchWindowPages.h"
-#include "Controllers/PositionControl/SpaceMouseDevice.h"
-#include "Controllers/Sampler/LightpadManager.h"
+#include "../spatcore/controllers/spacemouse/SpaceMouseDevice.h"
+#include "../spatcore/controllers/lightpad/LightpadManager.h"
 
 //==============================================================================
 MainComponent::MainComponent()
@@ -330,7 +331,7 @@ MainComponent::MainComponent()
 
     systemConfigTab->setDialsAndButtonsCallback ([this] (int deviceIndex)
     {
-        // 0=Off, 1=Stream Deck+, 2=XenceLabs Quick Keys
+        // 0=Off, 1=Stream Deck+
 
         // Stream Deck+: check for Elgato app conflict
         if (deviceIndex == 1 && StreamDeckDevice::isStreamDeckAppRunning())
@@ -367,12 +368,6 @@ MainComponent::MainComponent()
 
         if (streamDeckManager)
             streamDeckManager->setEnabled (deviceIndex == 1);
-        if (quickKeysManager)
-        {
-            quickKeysManager->setEnabled (deviceIndex == 2);
-            if (deviceIndex == 2)
-                quickKeysManager->setActivePage (tabbedComponent.getCurrentTabIndex(), 0);
-        }
     });
 
     systemConfigTab->setPositionControlCallback ([this] (int deviceIndex)
@@ -691,8 +686,6 @@ MainComponent::MainComponent()
             else
                 streamDeckManager->setMainTab (tabIndex);
         }
-        if (quickKeysManager)
-            quickKeysManager->setActivePage (tabIndex, 0);
         if ((tabIndex == 4 || tabIndex == 6) && systemConfigTab != nullptr)
             systemConfigTab->setInputsOrMapTabVisited();
         if ((tabIndex == 2 || tabIndex == 3 || tabIndex == 4 || tabIndex == 6) && systemConfigTab != nullptr)
@@ -875,14 +868,15 @@ MainComponent::MainComponent()
     // Initialize Stream Deck+ physical controller
     streamDeckManager = std::make_unique<StreamDeckManager>();
 
-    // Initialize Xencelabs Quick Keys controller
-    quickKeysManager = std::make_unique<QuickKeysManager>();
+    // App binding: the brightness to re-apply on (re)connect comes from the
+    // persisted app settings (spatcore's manager no longer reads AppSettings).
+    streamDeckManager->getConnectBrightness = [] { return AppSettings::getStreamDeckBrightness(); };
 
     // Linux multitouch (no-op stub on macOS/Windows). Discovers touchscreens
     // via libudev and bridges per-finger evdev events into JUCE's MouseEvent
     // pipeline so MapTab/EQDisplay/PatchMatrix see the same touch API they
-    // already see on Windows.
-    touchManager = std::make_unique<WFSTouch::EvdevTouchManager>();
+    // already see on Windows. "WFS-DIY" names the persisted mapping store.
+    touchManager = std::make_unique<WFSTouch::EvdevTouchManager> ("WFS-DIY");
 
    #if defined (__linux__)
     // Show / hide the SystemConfig "Touchscreens..." button based on whether
@@ -909,7 +903,6 @@ MainComponent::MainComponent()
     {
         int dbDevice = static_cast<int> (parameters.getConfigParam ("DialsAndButtonsDevice"));
         streamDeckManager->setEnabled (dbDevice == 1);
-        quickKeysManager->setEnabled (dbDevice == 2);
     }
 
     // Position Control enable state is applied at creation time (see controllerManager init below)
@@ -1130,60 +1123,6 @@ MainComponent::MainComponent()
         streamDeckManager->registerPage (
             SystemConfigTabPages::SYSCONFIG_MAIN_TAB_INDEX, 0,
             SystemConfigTabPages::createPage (0, vts, sysCB));
-
-        // Register Quick Keys System Config page (binaural traversal)
-        {
-            using namespace WFSParameterIDs;
-            using namespace WFSParameterDefaults;
-
-            QuickKeysPage qkSysPage;
-            qkSysPage.pageName = "System Config";
-            qkSysPage.tabName = "Binaural";
-            qkSysPage.sectionName = "Renderer";
-
-            const auto sliderOrange = juce::Colour (0xFFFF5722);
-            const auto dialGrey     = juce::Colour (0xFF808080);
-
-            // Distance (short name for 8-char OLED)
-            QuickKeysBinding distBinding;
-            distBinding.dial = SystemConfigTabPages::makeBinauralFloatDial (
-                "Distance", LOC ("units.meters"),
-                binauralListenerDistanceMin, binauralListenerDistanceMax,
-                0.1f, 0.01f, 2, vts, binauralListenerDistance);
-            distBinding.ledColour = sliderOrange;
-            qkSysPage.bindings.push_back (std::move (distBinding));
-
-            // Angle
-            QuickKeysBinding angleBinding;
-            angleBinding.dial = SystemConfigTabPages::makeBinauralIntDial (
-                "Angle", LOC ("units.degrees"),
-                binauralListenerAngleMin, binauralListenerAngleMax,
-                5, 1, vts, binauralListenerAngle);
-            angleBinding.ledColour = dialGrey;
-            qkSysPage.bindings.push_back (std::move (angleBinding));
-
-            // Level
-            QuickKeysBinding levelBinding;
-            levelBinding.dial = SystemConfigTabPages::makeBinauralFloatDial (
-                "Level", LOC ("units.decibels"),
-                binauralAttenuationMin, binauralAttenuationMax,
-                0.5f, 0.1f, 1, vts, binauralAttenuation);
-            levelBinding.ledColour = sliderOrange;
-            qkSysPage.bindings.push_back (std::move (levelBinding));
-
-            // Delay
-            QuickKeysBinding delayBinding;
-            delayBinding.dial = SystemConfigTabPages::makeBinauralFloatDial (
-                "Delay", LOC ("units.milliseconds"),
-                binauralDelayMin, binauralDelayMax,
-                1.0f, 0.1f, 1, vts, binauralDelay);
-            delayBinding.ledColour = sliderOrange;
-            qkSysPage.bindings.push_back (std::move (delayBinding));
-
-            quickKeysManager->registerPage (
-                SystemConfigTabPages::SYSCONFIG_MAIN_TAB_INDEX, 0,
-                std::move (qkSysPage));
-        }
 
         // Map tab callbacks and state queries
         auto mapPosOffsetMode = std::make_shared<bool> (false);
@@ -1681,7 +1620,7 @@ MainComponent::MainComponent()
 
     // Initialize Lightpad Manager (ROLI Lightpad Blocks)
     {
-        lightpadManager = std::make_unique<LightpadManager> (parameters);
+        lightpadManager = std::make_unique<LightpadManager> (WFSParameterDefaults::lightpadSensitivityDefault);
 
         lightpadManager->callbacks.moveInputDelta = [this] (int inputIdx, float dx, float dy)
         {
@@ -1855,7 +1794,6 @@ MainComponent::MainComponent()
 
     // Initialize Test Signal Generator for audio interface testing
     testSignalGenerator = std::make_unique<TestSignalGenerator>();
-    calculationEngine->setLSGainsPtr(lsTamerEngine->getLSGains());
 
     // Set up LFO offset callback for MapTab visualization
     if (mapTab != nullptr)
@@ -3115,7 +3053,7 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
         calculationEngine->recalculateAllInputPositions();
         calculationEngine->recalculateAllReverbPositions();
         rebuildAllGradientMaps();
-        calculationEngine->recalculateMatrix();
+        calculationEngine->recalculateMatrix(lsTamerEngine ? lsTamerEngine->getLSGains() : nullptr);
 
         const float* calcDelays = calculationEngine->getDelayTimesMs();
         const float* calcLevels = calculationEngine->getLevels();
@@ -3418,7 +3356,7 @@ void MainComponent::handleConfigReloaded()
         rebuildAllGradientMaps();
 
         // Force immediate recalculation (don't wait for next timer tick)
-        calculationEngine->recalculateMatrix();
+        calculationEngine->recalculateMatrix(lsTamerEngine ? lsTamerEngine->getLSGains() : nullptr);
 
         // Immediately update visualization with recalculated values
         if (inputsTab != nullptr)
@@ -3489,12 +3427,6 @@ void MainComponent::handleConfigReloaded()
         int dbDevice = (int) parameters.getConfigParam ("DialsAndButtonsDevice");
         if (streamDeckManager)
             streamDeckManager->setEnabled (dbDevice == 1);
-        if (quickKeysManager)
-        {
-            quickKeysManager->setEnabled (dbDevice == 2);
-            if (dbDevice == 2)
-                quickKeysManager->setActivePage (tabbedComponent.getCurrentTabIndex(), 0);
-        }
     }
 
     // Flush all pending OSC messages immediately after loading
@@ -5666,8 +5598,9 @@ void MainComponent::timerCallback()
         if (binauralCalcEngine != nullptr)
             binauralCalcEngine->refreshRtSnapshot();
 
-        // Only recalculate WFS matrix if input positions have changed (dirty flag set)
-        if (calculationEngine->recalculateMatrixIfDirty())
+        // Only recalculate WFS matrix if input positions have changed (dirty flag set).
+        // LS gains are supplied fresh each call (never cached by the engine).
+        if (calculationEngine->recalculateMatrixIfDirty(lsTamerEngine ? lsTamerEngine->getLSGains() : nullptr))
         {
 
             // Copy calculated values to target arrays

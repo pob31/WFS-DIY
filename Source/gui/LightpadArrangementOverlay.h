@@ -10,7 +10,7 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "../Controllers/Sampler/LightpadTypes.h"
+#include "../../spatcore/controllers/lightpad/LightpadTypes.h"
 #include "LightpadZoneOverlay.h"  // for LightpadZoneBackdrop
 #include "ColorScheme.h"
 #include "../Localization/LocalizationManager.h"

@@ -84,7 +84,7 @@
       "importSystem": "Importar configuração do sistema do ficheiro (com explorador de ficheiros).",
       "exportSystem": "Exportar configuração do sistema para ficheiro (com explorador de ficheiros).",
       "language": "Selecione o idioma da interface. As alterações terão efeito completo após reiniciar a aplicação.",
-      "dialsAndButtons": "Selecionar o controlador físico para botões e mostradores: Stream Deck+ ou XenceLabs Quick Keys.",
+      "dialsAndButtons": "Selecionar o controlador físico para botões e mostradores: Stream Deck+.",
       "positionControl": "Selecionar o controlador físico para o controlo de posição: Space Mouse, Joystick ou comando de jogos.",
       "sampler": "Ativar ou desativar a função Sampler para os canais de entrada. Selecionar o controlador: Lightpad ou Comando.",
       "lightpadSetup": "Exibir os Roli Lightpads conectados e permitir dividi-los em 4 pads menores.",

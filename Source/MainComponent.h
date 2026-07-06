@@ -10,7 +10,7 @@
 #include "../spatcore/wfs/OutputBufferAlgorithm.h"
 #include "DSP/WFSCalculationEngine.h"
 #include "DSP/LFOProcessor.h"
-#include "DSP/AutomOtionProcessor.h"
+#include "Automation/AutomOtionProcessor.h"
 #include "../spatcore/dsp/InputSpeedLimiter.h"
 #include "DSP/LiveSourceTamerEngine.h"
 #include "DSP/TestSignalGenerator.h"
@@ -46,12 +46,11 @@
 #include "gui/GettingStartedWizard.h"
 #include "Network/OSCManager.h"
 #include "Network/MCP/MCPServer.h"
-#include "Controllers/DialsAndButtons/StreamDeckManager.h"
-#include "Controllers/DialsAndButtons/QuickKeysManager.h"
+#include "../spatcore/controllers/streamdeck/StreamDeckManager.h"
 #include "Controllers/DialsAndButtons/pages/PatchWindowPages.h"
 #include "Controllers/PositionControl/ControllerManager.h"
-#include "Controllers/Sampler/LightpadManager.h"
-#include "Controllers/Touch/TouchManager.h"
+#include "../spatcore/controllers/lightpad/LightpadManager.h"
+#include "../spatcore/controllers/touch/TouchManager.h"
 #if defined (__linux__)
   #include "gui/LinuxTouchscreenWindow.h"
 #endif
@@ -268,7 +267,6 @@ private:
 
     // Stream Deck+ physical controller
     std::unique_ptr<StreamDeckManager> streamDeckManager;
-    std::unique_ptr<QuickKeysManager> quickKeysManager;
 
     // Input controllers (SpaceMouse, joystick, gamepad)
     std::unique_ptr<ControllerManager> controllerManager;

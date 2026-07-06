@@ -33,6 +33,7 @@ FORBIDDEN = [
     "GradientMap/",
     "Localization/",
     "MainComponent",
+    "AppSettings",
     "WFSValueTreeState",
     "WFSParameterIDs",
     "WFSParameterDefaults",

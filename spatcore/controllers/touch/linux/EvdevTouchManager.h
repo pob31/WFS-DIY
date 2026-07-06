@@ -2,7 +2,8 @@
 
 #if defined (__linux__)
 
-#include <JuceHeader.h>
+#include <juce_data_structures/juce_data_structures.h>
+#include <juce_gui_basics/juce_gui_basics.h>
 
 #include "EvdevTouchDevice.h"
 #include "../TouchDeviceMapping.h"
@@ -16,7 +17,7 @@
 struct udev;
 struct udev_monitor;
 
-namespace WFSTouch {
+namespace spatcore::controllers {
 
 /**
     Top-level multi-touchscreen orchestrator (Linux only).
@@ -39,7 +40,10 @@ namespace WFSTouch {
 class EvdevTouchManager
 {
 public:
-    EvdevTouchManager();
+    /** @param settingsAppName  Application name for the persisted mapping
+        store (PropertiesFile app + folder name). The app injects its own
+        identity here (extraction seam: this used to be hard-coded). */
+    explicit EvdevTouchManager (const juce::String& settingsAppName);
     ~EvdevTouchManager();
 
     EvdevTouchManager (const EvdevTouchManager&) = delete;
@@ -150,6 +154,12 @@ private:
     JUCE_DECLARE_WEAK_REFERENCEABLE (EvdevTouchManager)
 };
 
-} // namespace WFSTouch
+} // namespace spatcore::controllers
+
+// Extraction-compat re-export — app call sites keep naming WFSTouch::*.
+namespace WFSTouch
+{
+    using spatcore::controllers::EvdevTouchManager;
+}
 
 #endif // JUCE_LINUX

@@ -11,9 +11,9 @@
  */
 
 #include <JuceHeader.h>
-#include "ControllerEvent.h"
-#include "ControllerDevice.h"
-#include "ControllerMapping.h"
+#include "../../../spatcore/controllers/ControllerEvent.h"
+#include "../../../spatcore/controllers/ControllerDevice.h"
+#include "../../../spatcore/controllers/ControllerMapping.h"
 #include "../../Network/OSCProtocolTypes.h"
 
 class ControllerManager : private juce::Timer

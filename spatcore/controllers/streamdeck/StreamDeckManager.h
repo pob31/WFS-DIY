@@ -9,12 +9,13 @@
  * Handles bidirectional parameter sync and ComboBox dial interaction mode.
  */
 
-#include <JuceHeader.h>
-#include "../../AppSettings.h"
-#include "../../Network/OSCProtocolTypes.h"
+#include <juce_events/juce_events.h>
+#include "../../control/osc/OscTransportTypes.h"
 #include "StreamDeckDevice.h"
 #include "StreamDeckPage.h"
 #include "StreamDeckRenderer.h"
+
+namespace spatcore::controllers {
 
 class StreamDeckManager : private juce::Timer
 {
@@ -29,24 +30,26 @@ public:
         // OriginTagScope { Hardware } so any ValueTree writes the page
         // bindings perform are credited to the hardware controller in
         // change records and cross-actor notifications.
+        using spatcore::control::osc::OriginTagScope;
+        using spatcore::control::osc::OriginTag;
         device.onButtonPressed  = [this] (int btn) {
-            WFSNetwork::OriginTagScope s { WFSNetwork::OriginTag::Hardware };
+            OriginTagScope s { OriginTag::Hardware };
             handleButtonPressed (btn);
         };
         device.onButtonReleased = [this] (int btn) {
-            WFSNetwork::OriginTagScope s { WFSNetwork::OriginTag::Hardware };
+            OriginTagScope s { OriginTag::Hardware };
             handleButtonReleased (btn);
         };
         device.onDialRotated    = [this] (int dial, int dir) {
-            WFSNetwork::OriginTagScope s { WFSNetwork::OriginTag::Hardware };
+            OriginTagScope s { OriginTag::Hardware };
             handleDialRotated (dial, dir);
         };
         device.onDialPressed    = [this] (int dial) {
-            WFSNetwork::OriginTagScope s { WFSNetwork::OriginTag::Hardware };
+            OriginTagScope s { OriginTag::Hardware };
             handleDialPressed (dial);
         };
         device.onDialReleased   = [this] (int dial) {
-            WFSNetwork::OriginTagScope s { WFSNetwork::OriginTag::Hardware };
+            OriginTagScope s { OriginTag::Hardware };
             handleDialReleased (dial);
         };
         device.onConnectionChanged = [this] (bool connected) { handleConnectionChanged (connected); };
@@ -186,6 +189,11 @@ public:
         Called after onRequestMainTabChange when topRowNavigateToItem >= 0.
         The itemIndex is 0-based. */
     std::function<void (int tabIndex, int itemIndex)> onRequestItemSelect;
+
+    /** Brightness (0-100) to apply when the device (re)connects. The app
+        injects its persisted setting here (extraction seam: the manager used
+        to read AppSettings directly). Unset -> full brightness. */
+    std::function<int()> getConnectBrightness;
 
     //==========================================================================
     // Override Page (for floating windows like Audio Interface & Patch)
@@ -540,7 +548,7 @@ private:
 
         if (connected)
         {
-            device.setBrightness (AppSettings::getStreamDeckBrightness());
+            device.setBrightness (getConnectBrightness ? getConnectBrightness() : 100);
             refreshCurrentPage();
         }
     }
@@ -726,3 +734,8 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (StreamDeckManager)
 };
+
+} // namespace spatcore::controllers
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::controllers::StreamDeckManager;

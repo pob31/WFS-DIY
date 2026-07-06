@@ -8,7 +8,9 @@
  * Includes default profiles for known devices.
  */
 
-#include <JuceHeader.h>
+#include <juce_core/juce_core.h>
+
+namespace spatcore::controllers {
 
 namespace ControllerActions
 {
@@ -124,3 +126,11 @@ struct ControllerProfile
         return p;
     }
 };
+
+} // namespace spatcore::controllers
+
+// Extraction-compat aliases — app code migrates to qualified names later.
+namespace ControllerActions = spatcore::controllers::ControllerActions;
+using spatcore::controllers::AxisMapping;
+using spatcore::controllers::ButtonMapping;
+using spatcore::controllers::ControllerProfile;

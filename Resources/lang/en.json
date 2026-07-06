@@ -265,7 +265,7 @@
       "exportSystem": "Export System Configuration to file (with file explorer window).",
       "language": "Select the user interface language. Changes take full effect after restarting the application.",
       "translationTier": "Choose how much of the interface is translated. 'Help & messages' keeps the controls in English and translates only the help text, messages and dialogs; 'Everything' translates the full interface including labels. Takes full effect after restarting.",
-      "dialsAndButtons": "Select the hardware controller for dials and buttons: Stream Deck+ or XenceLabs Quick Keys.",
+      "dialsAndButtons": "Select the hardware controller for dials and buttons: Stream Deck+.",
       "positionControl": "Select the hardware controller for position control: Space Mouse, Joystick, or Game Pad.",
       "sampler": "Enable or disable the Sampler feature for input channels.",
       "lightpadSetup": "Display the connected Roli Lightpads and allow for splitting them in 4 smaller pads.",

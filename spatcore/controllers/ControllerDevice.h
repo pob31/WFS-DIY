@@ -11,8 +11,11 @@
  * Subclasses implement: tryConnect(), poll(), disconnect(), and device metadata.
  */
 
-#include <JuceHeader.h>
+#include <juce_core/juce_core.h>
+#include <juce_events/juce_events.h>
 #include "ControllerEvent.h"
+
+namespace spatcore::controllers {
 
 class ControllerDevice : private juce::Thread,
                          private juce::Timer
@@ -159,3 +162,8 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ControllerDevice)
 };
+
+} // namespace spatcore::controllers
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::controllers::ControllerDevice;

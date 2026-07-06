@@ -2,7 +2,7 @@
 
 #include <JuceHeader.h>
 
-#include "../Controllers/Touch/TouchManager.h"
+#include "../../spatcore/controllers/touch/TouchManager.h"
 #include "../Localization/LocalizationManager.h"
 #include "ColorScheme.h"
 

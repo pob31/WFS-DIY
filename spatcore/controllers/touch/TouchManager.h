@@ -10,7 +10,7 @@
 */
 
 #if defined (__linux__)
-    #include "Linux/EvdevTouchManager.h"
+    #include "linux/EvdevTouchManager.h"
 #else
     #include "TouchManagerStub.h"
 #endif

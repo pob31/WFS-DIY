@@ -19,13 +19,23 @@
 #define HID_API_NO_EXPORT_DEFINE
 #include "hidapi/hidapi.h"
 
-#include <JuceHeader.h>
-#include "../../../spatcore/control/osc/NetworkStringUtils.h"
+#include <juce_events/juce_events.h>
+#include <juce_graphics/juce_graphics.h>
+#include "../../control/osc/NetworkStringUtils.h"
 
 #if JUCE_WINDOWS
+ // Keep windows.h from defining min/max macros that would break any JUCE
+ // (or std) header parsed after this one in the same TU. In the app build
+ // JUCE's own NOMINMAX'd windows.h always comes first, so this is a no-op
+ // there; it matters for consumers that include this header first.
+ #ifndef NOMINMAX
+  #define NOMINMAX
+ #endif
  #include <windows.h>
  #include <tlhelp32.h>
 #endif
+
+namespace spatcore::controllers {
 
 class StreamDeckDevice : private juce::Thread,
                          private juce::Timer
@@ -72,7 +82,7 @@ public:
         stopMonitoring();
         // Do NOT call hid_exit() here. hidapi's hid_exit is NOT reference-counted:
         // it unconditionally FreeLibrary's hid.dll / cfgmgr32.dll. Any other HID
-        // client (XencelabsDevice, LightpadDevice, SpaceMouseDevice) still alive
+        // client (LightpadDevice, SpaceMouseDevice) still alive
         // would then crash on its next HID call because the static HidD_* function
         // pointers point into unloaded DLLs. Let the OS reclaim on process exit.
     }
@@ -742,3 +752,8 @@ private:
     static bool killStreamDeckApp()        { return true; }
 #endif
 };
+
+} // namespace spatcore::controllers
+
+// Extraction-compat alias — app code migrates to qualified names later.
+using spatcore::controllers::StreamDeckDevice;

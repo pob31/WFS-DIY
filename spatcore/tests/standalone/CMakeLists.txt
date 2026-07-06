@@ -47,5 +47,12 @@ if(_sw_libs)
     set_target_properties(juce_simpleweb PROPERTIES INTERFACE_LINK_LIBRARIES "${_sw_libs}")
 endif()
 
+# Consumer side of spatcore-controllers' contracts: the ROLI BLOCKS module
+# for the Lightpad driver, and the vendored hidapi HEADERS for the HID
+# drivers (headers only - hid_* impls live in the final app, so the test
+# build never links a HID backend).
+juce_add_module("${REPO_ROOT}/ThirdParty/roli_blocks_basics")
+set(SPATCORE_HIDAPI_INCLUDE_DIR "${REPO_ROOT}/ThirdParty/hidapi")
+
 set(SPATCORE_STANDALONE_TESTS ON)
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../.." "${CMAKE_CURRENT_BINARY_DIR}/spatcore")

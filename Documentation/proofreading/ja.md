@@ -3081,8 +3081,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`dialsAndButtons`**
-  - EN: Select the hardware controller for dials and buttons: Stream Deck+ or XenceLabs Quick Keys.
-  - JA: ダイヤルとボタン用のハードウェアコントローラーを選択: Stream Deck+ または XenceLabs Quick Keys。
+  - EN: Select the hardware controller for dials and buttons: Stream Deck+.
+  - JA: ダイヤルとボタン用のハードウェアコントローラーを選択: Stream Deck+。
   - [ ] OK    Fix: 
 
 - **`domeElevation`**
