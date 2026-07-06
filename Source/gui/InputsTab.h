@@ -15,7 +15,7 @@
 #include "sliders/WfsAutoCenterSlider.h"
 #include "InputVisualisationComponent.h"
 #include "dials/WfsLFOIndicators.h"
-#include "../DSP/AutomOtionProcessor.h"
+#include "../Automation/AutomOtionProcessor.h"
 #include "../Helpers/CoordinateConverter.h"
 #include "SetAllInputsWindow.h"
 #include "../GradientMap/GradientMapEditor.h"

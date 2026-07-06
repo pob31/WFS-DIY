@@ -511,7 +511,7 @@ The LFOProcessor generates periodic position offsets for each input channel, cre
 ### AutomOtion Processor (Programmed Position Movement)
 The AutomOtionProcessor provides programmed point-to-point movement for input channel positions, enabling automated source movements.
 
-**Core File:** `Source/DSP/AutomOtionProcessor.h`
+**Core File:** `Source/Automation/AutomOtionProcessor.h`
 
 **Movement Features:**
 - **Coordinates**: Absolute (move to target) or Relative (offset from current)
@@ -1938,7 +1938,7 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 - `Source/Parameters/WFSValueTreeState.h/cpp` - State management
 - `Source/DSP/WFSCalculationEngine.h/cpp` - WFS delay/level/HF + reverb matrix calculations
 - `Source/DSP/LFOProcessor.h` - Position/rotation modulation oscillator
-- `Source/DSP/AutomOtionProcessor.h` - Programmed position movement with audio triggering
+- `Source/Automation/AutomOtionProcessor.h` - Programmed position movement with audio triggering
 - `Source/DSP/InputSpeedLimiter.h` - Speed-limited position interpolation with tanh smoothing
 - `Source/DSP/WFSHighShelfFilter.h` - HF air absorption biquad filter
 - `Source/DSP/WFSBiquadFilter.h` - Generic biquad filter (low-cut, high-shelf for FR)

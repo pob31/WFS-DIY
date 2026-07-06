@@ -10,7 +10,7 @@
 #include "../spatcore/wfs/OutputBufferAlgorithm.h"
 #include "DSP/WFSCalculationEngine.h"
 #include "DSP/LFOProcessor.h"
-#include "DSP/AutomOtionProcessor.h"
+#include "Automation/AutomOtionProcessor.h"
 #include "../spatcore/dsp/InputSpeedLimiter.h"
 #include "DSP/LiveSourceTamerEngine.h"
 #include "DSP/TestSignalGenerator.h"
