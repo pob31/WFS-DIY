@@ -25,7 +25,7 @@ This project is based on the Cycling74's Max8 Prototype found at https://wfs-diy
 
 **Windows:**
 1. Install [Git for Windows](https://git-scm.com/download/win)
-2. Install [Visual Studio 2022 Community](https://visualstudio.microsoft.com/) (free) — during install, select the **"Desktop development with C++"** workload
+2. Install [Visual Studio 2026 Community](https://visualstudio.microsoft.com/) (free) — during install, select the **"Desktop development with C++"** workload. The checked-in projects target the v145 toolset (the `Builds/VisualStudio2022` folder name is just the Projucer exporter label; older VS versions can still build with `msbuild -p:PlatformToolset=v143`).
 
 **macOS:**
 1. Install [Xcode](https://apps.apple.com/app/xcode/id497799835) from the App Store (free)
@@ -103,19 +103,29 @@ tools/linux/build-app-tarball.sh
 ```
 Produces `Builds/LinuxMakefile/release/WFS-DIY-Linux-x86_64-<version>.tar.gz` containing the binary, runtime data, udev rules, and `install.sh` / `uninstall.sh` scripts that support both per-user (`~/.local`) and system (`/opt/wfs-diy`) installs.
 
-### GPU acceleration (experimental, macOS)
+### GPU acceleration
 
-macOS builds include an experimental GPU-accelerated WFS algorithm written directly
-in Metal (no third-party SDK, no extra setup): choose `GPU InputBuffer (Metal)` in
-System Config. It runs the delay-and-sum stage on the GPU behind an asynchronous
-pipeline that adds a small fixed latency (pre-subtracted from the WFS delays). The
-CPU path remains the reference implementation; a CUDA equivalent for Windows is
-planned.
+Both WFS renderers and all three reverb algorithms (FDN, SDN, IR) can run on the
+GPU on every platform: **CUDA** (NVIDIA) and **HIP** (AMD) on Windows/Linux via
+runtime-loaded plugin libraries — the app itself links no GPU runtime and falls
+back to the CPU cleanly when no device or driver is present — and **Metal**
+in-process on macOS (no third-party SDK). Kernels are compiled at runtime
+(NVRTC / hipRTC / Metal), and release installers bundle those compiler runtimes,
+so end users only need their vendor GPU driver. Devices are selected per engine
+in System Config. The CPU path remains the reference implementation and every
+GPU path is gated bit-exact against committed render baselines.
+
+Building the GPU plugins locally needs the vendor toolkit (CUDA Toolkit for
+`wfs_cuda`, AMD HIP SDK / ROCm for `wfs_hip`) — see
+`tools/windows/build-gpu-plugins.ps1` / `tools/linux/build-gpu-plugins.sh`.
+Release installers deliberately ship the CUDA **12.9** runtime so pre-Turing
+NVIDIA GPUs (GTX 9xx/10xx) keep acceleration; developing against newer toolkits
+(13.x) works fine.
 
 ## Running the Application
 
 ### Windows
-- **Required**: [Microsoft Visual C++ Redistributable 2022 (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe) — may already be installed on your system
+- **Required**: [Microsoft Visual C++ Redistributable (x64)](https://aka.ms/vs/18/release/vc_redist.x64.exe) — may already be installed on your system
 - **Recommended**: ASIO drivers for your audio interface (WASAPI is available as fallback)
 
 ### macOS

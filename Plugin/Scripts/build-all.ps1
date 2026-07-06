@@ -22,14 +22,14 @@ if (-not (Test-Path $BuildDir)) {
     New-Item -ItemType Directory -Path $BuildDir | Out-Null
 }
 
-$Generators = @("Ninja", "Visual Studio 17 2022")
+$Generators = @("Ninja", "Visual Studio 18 2026", "Visual Studio 17 2022")
 $Configured = $false
 foreach ($gen in $Generators) {
     try {
         if ($gen -eq "Ninja") {
             cmake -S $PluginDir -B $BuildDir -G "Ninja" -DCMAKE_BUILD_TYPE=$Configuration
         } else {
-            cmake -S $PluginDir -B $BuildDir -G "Visual Studio 17 2022" -A x64
+            cmake -S $PluginDir -B $BuildDir -G $gen -A x64
         }
         if ($LASTEXITCODE -eq 0) { $Configured = $true; break }
     } catch {

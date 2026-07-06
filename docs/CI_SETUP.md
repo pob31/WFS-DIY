@@ -76,6 +76,16 @@ Manual re-run against an existing tag: Actions → **Release** → *Run workflow
 ---
 
 ## Notes / known iteration points
+- **Windows toolchain = VS2026 (v145)** everywhere: the vcxproj bakes
+  `PlatformToolset=v145` (set in the `.jucer`, survives Projucer resaves) and CI
+  runs on the `windows-2025` image (VS2026). The `Builds/VisualStudio2022`
+  folder name is just the Projucer exporter label. Older VS can override with
+  `-p:PlatformToolset=v143`.
+- **CUDA: dev ≠ ship, on purpose.** Dev machines run the latest toolkit (13.3);
+  release CI installs **12.9** because the bundled nvrtc compiles kernels on the
+  user's machine and CUDA 13.x dropped pre-Turing GPUs (< sm_75). 12.9 covers
+  Maxwell (sm_50) → Blackwell (sm_120). Bump = consciously dropping GTX 9xx/10xx
+  users. HIP has no CI-side equivalent (prebuilt DLL, ROCm 7.1 — see below).
 - **JUCE and spatcore are submodules** — checkout uses `submodules: recursive` in
   both workflows (JUCE is the slow one; spatcore is small). spatcore is public, so
   the default `GITHUB_TOKEN` fetches it fine. A spatcore bump is a normal PR via

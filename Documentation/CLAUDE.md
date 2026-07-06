@@ -2016,19 +2016,20 @@ git submodule update --init --recursive
 - **JUCE 8.0.14** — `ThirdParty/JUCE` (pinned to tag 8.0.14; ASIO SDK is bundled with JUCE since 8.0.11)
 
 - Project file: WFS-DIY.jucer (open in Projucer to re-export build files)
-- Builds: Visual Studio 2022, Xcode, Linux Makefile
+- Builds: Visual Studio 2026 (v145 toolset; the `Builds/VisualStudio2022` folder
+  name is the Projucer exporter label), Xcode, Linux Makefile
 
 ### Build Commands (Windows)
 
-**MSBuild (Visual Studio 2022):**
+**MSBuild (Visual Studio 2026, v145 baked into the vcxproj):**
 ```bash
 cd "d:\Dev\WFS_DIY_v1\Builds\VisualStudio2022"
-"C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe" WFS-DIY.sln -p:Configuration=Release -m
+"C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe" WFS-DIY.sln -p:Configuration=Release -m
 ```
 
 For Debug build:
 ```bash
-"C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe" WFS-DIY.sln -p:Configuration=Debug -m
+"C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe" WFS-DIY.sln -p:Configuration=Debug -m
 ```
 
 **Note:** The `-m` flag enables parallel builds for faster compilation.

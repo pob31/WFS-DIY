@@ -79,9 +79,10 @@ jobs:
   windows:
     name: Windows installer (unsigned)
     needs: verify-version
-    # Pinned to windows-2022 (VS2022 / v143). GitHub is repointing windows-latest
-    # to the VS2026 image; pin so the toolchain stays put and migrate deliberately.
-    runs-on: windows-2022
+    # windows-2025 = the VS2026 (v145) image — matches the checked-in vcxproj
+    # toolset and every dev machine. Keep the explicit pin (not windows-latest)
+    # so future image repoints stay a deliberate choice.
+    runs-on: windows-2025
     steps:
       - uses: actions/checkout@v5
         with:
@@ -91,6 +92,12 @@ jobs:
       # is compiled by tools/windows/build-gpu-plugins.ps1 below with cl.exe + the
       # CUDA toolkit headers/libs. This step sets CUDA_PATH, used by that script to
       # compile the plugin and to stage the CUDA runtime DLLs next to the exe.
+      #
+      # 12.9 is a DELIBERATE shipping floor, not staleness (dev machines run
+      # 13.3): the staged nvrtc compiles kernels on the user's machine, and
+      # CUDA 13.x dropped every pre-Turing GPU (< sm_75). nvrtc 12.9 spans
+      # Maxwell (sm_50) through Blackwell (sm_120), so GTX 9xx/10xx rigs keep
+      # GPU acceleration. Bump only as a conscious drop-old-GPUs decision.
       - name: Install CUDA Toolkit
         uses: Jimver/cuda-toolkit@v0.2.35
         with:

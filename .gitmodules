@@ -4,3 +4,4 @@
 [submodule "spatcore"]
 	path = spatcore
 	url = https://github.com/pob31/spatcore.git
+	ignore = untracked

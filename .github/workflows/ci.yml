@@ -56,9 +56,10 @@ jobs:
 
   windows:
     name: build (Windows)
-    # Pinned to windows-2022 (VS2022 / v143). GitHub is repointing windows-latest
-    # to the VS2026 image; pin so the toolchain stays put and migrate deliberately.
-    runs-on: windows-2022
+    # windows-2025 = the VS2026 (v145) image — matches the checked-in vcxproj
+    # toolset and every dev machine. Keep the explicit pin (not windows-latest)
+    # so future image repoints stay a deliberate choice.
+    runs-on: windows-2025
     steps:
       - uses: actions/checkout@v5
         with:

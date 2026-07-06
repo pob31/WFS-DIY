@@ -53,7 +53,7 @@ The WFS-DIY project is a JUCE-based implementation of Wave Field Synthesis (WFS)
 - **Scalability**: Adjustable based on setup and available processing power
 
 ### 2.3 Platform Requirements
-- **Windows**: Windows 10/11, Visual Studio 2022+
+- **Windows**: Windows 10/11, Visual Studio 2026 (checked-in projects target the v145 toolset)
 - **macOS**: macOS 10.15+, Xcode 12+
 - **Linux**: Ubuntu 20.04+, GCC 9+
 

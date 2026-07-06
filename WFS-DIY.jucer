@@ -557,17 +557,18 @@
         <MODULEPATH id="roli_blocks_basics" path="ThirdParty"/>
       </MODULEPATHS>
     </LINUX_MAKE>
-    <VS2022 targetFolder="Builds/VisualStudio2022" smallIcon="SCj321" bigIcon="SCj321">
+    <VS2022 targetFolder="Builds/VisualStudio2022" smallIcon="SCj321" bigIcon="SCj321"
+            toolset="v145">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY" headerPath="..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi"
                        externalLibraries="setupapi.lib"
                        extraCompilerFlags="/bigobj" defines="SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;WFS_GPU_PLUGINS=1"
-                       prebuildCommand="cd /d &quot;$(SolutionDir)..\..&quot; &amp;&amp; (where python &gt;nul 2&gt;&amp;1 &amp;&amp; python tools\generate_mcp_tools.py) &amp; exit /b 0"
+                       prebuildCommand="cd /d &quot;$(SolutionDir)..\..&quot; &amp;&amp; (where python &gt;nul 2&gt;&amp;1 &amp;&amp; python -B tools\generate_mcp_tools.py) &amp; exit /b 0"
                        postbuildCommand="xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot;"/>
         <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" headerPath="..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi"
                        externalLibraries="setupapi.lib"
                        extraCompilerFlags="/bigobj" defines="SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;WFS_GPU_PLUGINS=1"
-                       prebuildCommand="cd /d &quot;$(SolutionDir)..\..&quot; &amp;&amp; (where python &gt;nul 2&gt;&amp;1 &amp;&amp; python tools\generate_mcp_tools.py) &amp; exit /b 0"
+                       prebuildCommand="cd /d &quot;$(SolutionDir)..\..&quot; &amp;&amp; (where python &gt;nul 2&gt;&amp;1 &amp;&amp; python -B tools\generate_mcp_tools.py) &amp; exit /b 0"
                        postbuildCommand="xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot;"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
