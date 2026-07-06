@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "../Parameters/WFSValueTreeState.h"
 #include "../Parameters/WFSParameterDefaults.h"
+#include "../../spatcore/rt/RtSnapshot.h"
 #include "WFSCalculationEngine.h"
 #include <atomic>
 #include <cmath>
@@ -50,8 +51,8 @@ public:
     /**
      * POD snapshot of everything the realtime thread needs for one block.
      * Published by the message thread (refreshRtSnapshot), copied by the RT
-     * worker under a brief SpinLock (getRtParams). Trivially copyable — no
-     * ValueTree access, no heap allocation on the RT side.
+     * worker via spatcore::rt::RtSnapshot (getRtParams). Trivially copyable —
+     * no ValueTree access, no heap allocation on the RT side.
      */
     struct RtParams
     {
@@ -113,8 +114,7 @@ public:
      */
     RtParams getRtParams() const
     {
-        const juce::SpinLock::ScopedLockType lock (rtParamsLock);
-        return rtParams;
+        return rtSnapshot.acquire();
     }
 
     /**
@@ -176,10 +176,7 @@ public:
         }
 
         // Publish: the critical section is exactly one struct copy
-        {
-            const juce::SpinLock::ScopedLockType lock (rtParamsLock);
-            rtParams = fresh;
-        }
+        rtSnapshot.publish (fresh);
         rtOutputChannel.store (outputChannel, std::memory_order_relaxed);
     }
 
@@ -376,8 +373,9 @@ private:
     float leftSpeakerOrientation = 0.0f;   // radians
     float rightSpeakerOrientation = 0.0f;  // radians
 
-    // RT snapshot: published by the message thread, copied per block by the RT worker
-    RtParams rtParams;                     // guarded by rtParamsLock
-    mutable juce::SpinLock rtParamsLock;
+    // RT snapshot: published by the message thread, copied per block by the RT worker.
+    // spatcore::rt::RtSnapshot was modeled on this engine's original hand-rolled
+    // RtParams+SpinLock publish/acquire; this now uses the shared primitive.
+    spatcore::rt::RtSnapshot<RtParams> rtSnapshot;
     std::atomic<int> rtOutputChannel { WFSParameterDefaults::binauralOutputChannelDefault };
 };
