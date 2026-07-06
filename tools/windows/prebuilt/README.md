@@ -13,6 +13,11 @@ workflow copies it next to the exe before packaging.
 It is force-tracked via a `!` rule in the repo `.gitignore` (the global `*.dll`
 rule would otherwise ignore it).
 
+**Current binary**: built 2026-07-07 from spatcore v0.1.0 (`b787058`) with
+ROCm 7.1 clang++ against the MSVC 14.51 dynamic UCRT. Includes the GPU
+host-path work (M1 blocking event waits, M2 upload diet, M3 GpuHostWorkPool).
+Update this line whenever you recommit the DLL.
+
 ### Rebuild + recommit when the HIP backend changes
 
 This DLL is a binary snapshot of `spatcore/gpu/Hip*Backend.cpp` +
