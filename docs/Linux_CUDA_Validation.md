@@ -114,3 +114,49 @@ regardless of milestone; testing after the GPU-host M3 merge lands covers M1
 with the maintainer that M3 is merged before starting, or run now against M0–M2 if
 you want to shake out any Linux-CUDA-specific build issues early (they'd be
 independent of the milestone).
+
+---
+
+## Validation Results — 2026-07-06 (first Linux × CUDA runtime pass)
+
+**Machine:** Ubuntu 22.04.5, kernel 6.8.0-124, GTX 1650 Mobile (Turing, sm_75).
+**Versions:** NVIDIA driver 610.43.02 · CUDA Toolkit 13.3 (V13.3.73) · g++ 11.4.
+
+### Build
+- **App** (`Builds/LinuxMakefile`, `make CONFIG=Release`): **OK**, links clean.
+  Extra JUCE Linux deps this box needed beyond the Prerequisites list:
+  `libudev-dev` (hidapi), `libjack-jackd2-dev` (JUCE JACK), `libgl1-mesa-dev`.
+- **GPU plugins** (`tools/linux/build-gpu-plugins.sh`): **OK** — built both
+  `libwfs_cuda.so` and `libwfs_hip.so` (hipcc was present, so HIP built too).
+
+### Step 3 — headless smoke test: **PASS (all 7 scenarios, exit 0)**
+
+```
+device: NVIDIA GeForce GTX 1650 (CUDA)
+[A] WFS 1x1 g=1 d=0   out.mean=0.5000  peak=0.5000  launchMs=0.070  -> PASS
+[B] WFS 2->1 reduce   out.mean=0.6000  peak=0.6000  launchMs=0.116  -> PASS
+[C] IR conv    nodes=4  peak=1.0000  tailPeak=0.8290  segs=16/16  launchMs=0.103  -> PASS
+[D] FDN reverb nodes=8  peak=0.0426  tailPeak=0.0223  launchMs=0.960  -> PASS
+[E] SDN reverb nodes=8  peak=0.0897  tailPeak=0.0897  launchMs=1.878  -> PASS
+[F] OB 1x1 g=1 d=0    out.mean=0.5000  peak=0.5000  launchMs=0.075  -> PASS
+[G] OB 1->2 scatter   out0=0.5000  out1=0.2500  peak=0.5000  launchMs=0.069  -> PASS
+```
+
+Proves plugin load, NVRTC runtime kernel compilation for sm_75, and real GPU
+launches for WFS gather+reduce, OB scatter, IR conv, FDN and SDN — the whole
+CUDA compute path exercised on Linux for the first time.
+
+### Step 4 — in-app pass: **PENDING**
+
+Blocked on audio hardware, not on the GPU path: the rig's RME Digiface Dante
+must be flashed into USB Class-Compliant mode (via RME's Mac Firmware Update
+Tool) before it enumerates as an ALSA card on Linux. To be completed once the
+interface is available.
+
+### Notes
+- **HIP build fix** (independent of CUDA): `hipcc`'s clang auto-selected GCC 12
+  but only libstdc++-11 headers were installed → `<cmath>` not found. Resolved
+  by installing `libstdc++-12-dev` (or pin clang with
+  `HIPCC_COMPILE_FLAGS_APPEND=--gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/11`).
+- The compiled smoke-test binary `tools/test-gpu-plugin` is left untracked — a
+  build artifact, not for commit.
