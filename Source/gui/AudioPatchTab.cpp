@@ -617,6 +617,11 @@ void OutputPatchTab::updateTestControlsVisibility(bool visible)
 
     if (visible)
         updateTestControlsEnabledState();
+
+    // Reconcile the Tone-only frequency controls: updateFrequencyVisibility()
+    // guards on signalTypeCombo.isVisible(), so this hides the frequency slider
+    // when leaving Testing mode and re-shows it when re-entering with Tone selected.
+    updateFrequencyVisibility();
 }
 
 void OutputPatchTab::updateTestControlsEnabledState()
