@@ -188,20 +188,40 @@ void ArrayPreviewComponent::paint(juce::Graphics& g)
     float stageExtentX = isCircular ? stageDiameter : stageWidth;
     float stageExtentY = isCircular ? stageDiameter : stageDepth;
 
-    // Calculate transform to fit stage in view with padding
+    // Calculate transform to fit the whole stage AND all speakers in view.
+    // The stage box (in the raw stage coordinates used by stageToScreen) is
+    // centred on (-originX, -originY); speakers may lie outside it, so fit the
+    // union bounding box of both rather than the stage alone.
+    float boxMinX = -stageExtentX / 2.0f - originX;
+    float boxMaxX =  stageExtentX / 2.0f - originX;
+    float boxMinY = -stageExtentY / 2.0f - originY;
+    float boxMaxY =  stageExtentY / 2.0f - originY;
+    for (const auto& pos : speakerPositions)
+    {
+        boxMinX = juce::jmin(boxMinX, pos.x);
+        boxMaxX = juce::jmax(boxMaxX, pos.x);
+        boxMinY = juce::jmin(boxMinY, pos.y);
+        boxMaxY = juce::jmax(boxMaxY, pos.y);
+    }
+
     const float padding = 20.0f;
     float viewWidth = bounds.getWidth() - padding * 2;
     float viewHeight = bounds.getHeight() - padding * 2;
 
-    float scaleX = viewWidth / stageExtentX;
-    float scaleY = viewHeight / stageExtentY;
+    float contentWidth = juce::jmax(0.01f, boxMaxX - boxMinX);
+    float contentHeight = juce::jmax(0.01f, boxMaxY - boxMinY);
+
+    float scaleX = viewWidth / contentWidth;
+    float scaleY = viewHeight / contentHeight;
     scale = juce::jmin(scaleX, scaleY);
 
-    // Center the stage in the view (origin is at center for center-referenced system)
-    float scaledWidth = stageExtentX * scale;
-    float scaledHeight = stageExtentY * scale;
-    offsetX = padding + (viewWidth - scaledWidth) / 2.0f + (stageExtentX / 2.0f + originX) * scale;
-    offsetY = padding + (viewHeight - scaledHeight) / 2.0f + (stageExtentY / 2.0f + originY) * scale;
+    // Centre the content's bounding box in the view. stageToScreen maps
+    // (x, y) -> (offsetX + x*scale, offsetY - y*scale), so solve for the offsets
+    // that place the box centre at the view centre.
+    float centreX = (boxMinX + boxMaxX) / 2.0f;
+    float centreY = (boxMinY + boxMaxY) / 2.0f;
+    offsetX = bounds.getCentreX() - centreX * scale;
+    offsetY = bounds.getCentreY() + centreY * scale;
 
     // Draw stage bounds
     if (isCircular)
@@ -652,11 +672,24 @@ void OutputArrayHelperContent::setupTargetSection()
     startOutputLabel.setText(LOC("arrayHelper.target.startingOutput"), juce::dontSendNotification);
 
     addAndMakeVisible(startOutputSelector);
+    refreshOutputChannels();
+}
+
+void OutputArrayHelperContent::refreshOutputChannels()
+{
     int numOutputs = parameters.getNumOutputChannels();
     if (numOutputs <= 0) numOutputs = WFSParameterDefaults::maxOutputChannels;
+
+    // Preserve the current selection where it still exists.
+    int previousSelection = startOutputSelector.getSelectedId();
+
+    startOutputSelector.clear(juce::dontSendNotification);
     for (int i = 1; i <= numOutputs; ++i)
         startOutputSelector.addItem(juce::String(i), i);
-    startOutputSelector.setSelectedId(1, juce::dontSendNotification);
+
+    int selection = (previousSelection >= 1 && previousSelection <= numOutputs)
+                        ? previousSelection : 1;
+    startOutputSelector.setSelectedId(selection, juce::dontSendNotification);
 }
 
 void OutputArrayHelperContent::setupButtons()

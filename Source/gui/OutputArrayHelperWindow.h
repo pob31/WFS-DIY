@@ -123,6 +123,11 @@ public:
     void paint(juce::Graphics& g) override;
     void resized() override;
 
+    /** Repopulate the starting-output selector from the current output channel
+        count. Called when the window is re-shown so channel edits made after the
+        first open are reflected. */
+    void refreshOutputChannels();
+
     std::unique_ptr<juce::ComponentTraverser> createKeyboardFocusTraverser() override
     {
         return std::make_unique<ColumnCircuitTraverser>(std::vector<std::vector<juce::Component*>>{
@@ -346,6 +351,9 @@ public:
 
     /** Get the content component for external overlay use. */
     juce::Component* getContentComp() { return getContentComponent(); }
+
+    /** Refresh the starting-output selector from the current channel count. */
+    void refreshOutputChannels() { if (content != nullptr) content->refreshOutputChannels(); }
 
 private:
     std::unique_ptr<OutputArrayHelperContent> content;

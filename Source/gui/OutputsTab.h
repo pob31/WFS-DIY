@@ -2337,6 +2337,8 @@ private:
     {
         if (arrayHelperWindow == nullptr)
             arrayHelperWindow = std::make_unique<OutputArrayHelperWindow>(parameters);
+        else
+            arrayHelperWindow->refreshOutputChannels();  // Reflect channel-count edits since last open
 
         arrayHelperWindow->setVisible(true);
         arrayHelperWindow->toFront(true);
