@@ -27,6 +27,7 @@ public:
         int channelId = 0;
         juce::var value;
         float rampTimeSec = 0.0f;  // Optional 3rd OSC arg: transition time in seconds (0 = apply immediately)
+        bool rampArgIgnored = false; // A trailing numeric arg was present but the param is not fade-capable
         bool valid = false;
         juce::String invalidReason; // Set when valid==false because the value failed range gate.
     };

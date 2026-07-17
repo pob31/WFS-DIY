@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "b298cdf465f0e8dc903bb28c3345201f84d1c318f2d2b14d428e2f84c4c83547",
+  "input_hash": "3a3d5d11f4bafb3a5099b047d0ce32ac6a1fa10a4d1807f313e6f223912ffffc",
   "source_csvs": [
     "WFS-UI_config.csv",
     "WFS-UI_input.csv",
@@ -4406,7 +4406,7 @@
     },
     {
       "name": "input_position_set_constraint_distance_max",
-      "description": "Constraint Distance Max. Value in m. Enum: Visible in Cylindrical/Spherical modes. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Maximum Allowed Distance from Origin. Value in m. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -4436,12 +4436,12 @@
       "domains": [
         "wfs_synthesis"
       ],
-      "internal_osc_path": "",
+      "internal_osc_path": "/wfs/input/constraintDistanceMax",
       "internal_variable": "inputConstraintDistanceMax"
     },
     {
       "name": "input_position_set_constraint_distance_min",
-      "description": "Constraint Distance Min. Value in m. Enum: Visible in Cylindrical/Spherical modes. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Minimum Allowed Distance from Origin. Value in m. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -4471,7 +4471,7 @@
       "domains": [
         "wfs_synthesis"
       ],
-      "internal_osc_path": "",
+      "internal_osc_path": "/wfs/input/constraintDistanceMin",
       "internal_variable": "inputConstraintDistanceMin"
     },
     {
@@ -4880,7 +4880,7 @@
     },
     {
       "name": "input_sampler_set_cell_attenuation",
-      "description": "Per-cell level trim. Value in dB. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
+      "description": "Per-cell level trim. Value in dB. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -4896,13 +4896,6 @@
             "maximum": 0.0,
             "description": "Cell Attenuation dB.",
             "default": 0.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           },
           "confirm": {
             "type": "string",
@@ -4961,7 +4954,7 @@
     },
     {
       "name": "input_sampler_set_cell_in_time",
-      "description": "Fade-in / start-offset of the sample (ms). Value in ms. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Fade-in / start-offset of the sample (ms). Value in ms. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -4977,13 +4970,6 @@
             "maximum": 5000.0,
             "description": "Cell In Time ms.",
             "default": 0.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -5150,7 +5136,7 @@
     },
     {
       "name": "input_sampler_set_cell_out_time",
-      "description": "Fade-out time of the sample (ms). Value in ms. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Fade-out time of the sample (ms). Value in ms. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -5166,13 +5152,6 @@
             "maximum": 5000.0,
             "description": "Cell Out Time ms.",
             "default": 20.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -5235,7 +5214,7 @@
     },
     {
       "name": "input_sampler_set_set_level",
-      "description": "Set-level attenuation. Value in dB. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
+      "description": "Set-level attenuation. Value in dB. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -5251,13 +5230,6 @@
             "maximum": 0.0,
             "description": "Set Level dB.",
             "default": 0.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           },
           "confirm": {
             "type": "string",
@@ -6290,7 +6262,7 @@
     },
     {
       "name": "input_sidelines_set_fringe",
-      "description": "Sidelines Fringe. Value in m. Enum: Greyed out but editable when sidelinesActive == 0. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Width of Gradual Attenuation Zone Around the Sideline. Value in m. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -6320,7 +6292,7 @@
       "domains": [
         "wfs_synthesis"
       ],
-      "internal_osc_path": "",
+      "internal_osc_path": "/wfs/input/sidelinesFringe",
       "internal_variable": "inputSidelinesFringe"
     },
     {
@@ -14872,21 +14844,6 @@
     },
     {
       "variable": "gmShapeType",
-      "csv_file": "WFS-UI_input.csv",
-      "message": "no hover help text; description may be weak"
-    },
-    {
-      "variable": "inputConstraintDistanceMax",
-      "csv_file": "WFS-UI_input.csv",
-      "message": "no hover help text; description may be weak"
-    },
-    {
-      "variable": "inputConstraintDistanceMin",
-      "csv_file": "WFS-UI_input.csv",
-      "message": "no hover help text; description may be weak"
-    },
-    {
-      "variable": "inputSidelinesFringe",
       "csv_file": "WFS-UI_input.csv",
       "message": "no hover help text; description may be weak"
     },

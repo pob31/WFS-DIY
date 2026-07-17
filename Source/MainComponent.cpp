@@ -5254,7 +5254,7 @@ void MainComponent::timerCallback()
         // Step OSC-driven parameter ramps (3rd-float "transition time in seconds")
         // BEFORE everything else so the 50 Hz recalculation below sees the latest values.
         if (oscManager != nullptr)
-            oscManager->processParameterRamps (0.02f);
+            oscManager->processParameterRamps();
 
         // Process Input Speed Limiter at 50Hz (BEFORE flip/offset/LFO)
         if (speedLimiter != nullptr)

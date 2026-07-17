@@ -459,12 +459,13 @@ public:
                      std::function<void(int sentCount)> onComplete = nullptr);
 
     /**
-     * Step all active input-parameter ramps. Call at 50 Hz from the main timer.
-     * Ramps are started when an incoming OSC message carries a non-zero
-     * "transition time in seconds" third argument on a ramp-capable input
-     * parameter (see OSCMessageRouter::isInputParamRampCapable).
+     * Step all active input-parameter ramps. Call at ~50 Hz from the main
+     * timer; progress uses wall-clock elapsed time so late timer ticks do not
+     * stretch ramp durations. Ramps are started when an incoming OSC message
+     * carries a non-zero "transition time in seconds" third argument on a
+     * ramp-capable input parameter (see OSCMessageRouter::isInputParamRampCapable).
      */
-    void processParameterRamps (float deltaTimeSeconds) { parameterRamper.process (deltaTimeSeconds); }
+    void processParameterRamps() { parameterRamper.process(); }
 
     /** Cancel all in-flight input parameter ramps. */
     void cancelAllParameterRamps() { parameterRamper.cancelAll(); }

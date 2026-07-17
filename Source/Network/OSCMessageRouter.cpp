@@ -611,8 +611,13 @@ OSCMessageRouter::ParsedInputMessage OSCMessageRouter::parseInputMessage(const j
                     result.value = extractFloat(message[0]);
 
                 // Optional ramp time: /wfs/input/{channelID}/{param} <value> <rampTimeSec>
-                if (message.size() >= 2 && isInputParamRampCapable(result.paramId))
-                    result.rampTimeSec = clampRampSeconds (extractFloat (message[1]));
+                if (message.size() >= 2)
+                {
+                    if (isInputParamRampCapable(result.paramId))
+                        result.rampTimeSec = clampRampSeconds (extractFloat (message[1]));
+                    else if (message[1].isFloat32() || message[1].isInt32())
+                        result.rampArgIgnored = true;
+                }
 
                 if (! valueWithinBounds (result.paramId, result.value, result.invalidReason))
                     return result;
@@ -636,8 +641,13 @@ OSCMessageRouter::ParsedInputMessage OSCMessageRouter::parseInputMessage(const j
 
         // Optional ramp time argument — only accepted for parameters listed as
         // ramp-capable in Documentation/WFS-UI_input.csv.
-        if (message.size() >= 3 && isInputParamRampCapable(result.paramId))
-            result.rampTimeSec = clampRampSeconds (extractFloat (message[2]));
+        if (message.size() >= 3)
+        {
+            if (isInputParamRampCapable(result.paramId))
+                result.rampTimeSec = clampRampSeconds (extractFloat (message[2]));
+            else if (message[2].isFloat32() || message[2].isInt32())
+                result.rampArgIgnored = true;
+        }
 
         if (! valueWithinBounds (result.paramId, result.value, result.invalidReason))
             return result;

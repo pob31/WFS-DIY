@@ -1909,11 +1909,55 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
                 && channelIndex >= 0
                 && parsed.value.isDouble())
             {
+                double targetValue = static_cast<double> (parsed.value);
+
+                // Positions: clamp the ramp target through the same constraints the
+                // instant-set path applies, so the ramp ends where an instant set
+                // would have landed.
+                if (parsed.paramId == WFSParameterIDs::inputPositionX ||
+                    parsed.paramId == WFSParameterIDs::inputPositionY ||
+                    parsed.paramId == WFSParameterIDs::inputPositionZ)
+                {
+                    float v = static_cast<float> (targetValue);
+                    if (parsed.paramId == WFSParameterIDs::inputPositionX)
+                        v = applyConstraintX (channelIndex, v);
+                    else if (parsed.paramId == WFSParameterIDs::inputPositionY)
+                        v = applyConstraintY (channelIndex, v);
+                    else
+                        v = applyConstraintZ (channelIndex, v);
+
+                    float x = varToFloat (state.getInputParameter (channelIndex, WFSParameterIDs::inputPositionX));
+                    float y = varToFloat (state.getInputParameter (channelIndex, WFSParameterIDs::inputPositionY));
+                    float z = varToFloat (state.getInputParameter (channelIndex, WFSParameterIDs::inputPositionZ));
+                    if (parsed.paramId == WFSParameterIDs::inputPositionX)      x = v;
+                    else if (parsed.paramId == WFSParameterIDs::inputPositionY) y = v;
+                    else                                                        z = v;
+                    applyConstraintDistance (channelIndex, x, y, z);
+
+                    targetValue = (parsed.paramId == WFSParameterIDs::inputPositionX) ? x
+                                : (parsed.paramId == WFSParameterIDs::inputPositionY) ? y : z;
+                }
+
+                const juce::var currentVar = state.getInputParameter (channelIndex, parsed.paramId);
+                const double startValue = currentVar.isVoid() ? targetValue
+                                                              : static_cast<double> (currentVar);
+                logger.logText ("Ramp started: " + parsed.paramId.toString()
+                                + " ch " + juce::String (parsed.channelId)
+                                + ": " + juce::String (startValue, 3)
+                                + " -> " + juce::String (targetValue, 3)
+                                + " over " + juce::String (parsed.rampTimeSec, 2) + " s");
+
                 parameterRamper.startRamp (channelIndex, parsed.paramId,
-                                           static_cast<double> (parsed.value),
+                                           targetValue,
                                            parsed.rampTimeSec);
                 return;
             }
+
+            // A trailing numeric arg was sent for a parameter that is not
+            // fade-capable — tell the user instead of silently jumping.
+            if (parsed.rampArgIgnored)
+                logger.logText ("Fade time ignored: " + parsed.paramId.toString()
+                                + " is not fade-capable (see WFS-UI_input.csv)");
 
             // Special cases that need immediate processing (position constraints, etc.)
             bool needsSpecialHandling =
