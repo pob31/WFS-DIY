@@ -1052,7 +1052,7 @@ OSCMessageRouter::ParsedArrayAdjustMessage OSCMessageRouter::parseArrayAdjustMes
     if (!isArrayAdjustAddress(address))
         return result;
 
-    // Need exactly 2 args: <array #> <value change>
+    // Need at least 2 args: <array #> <value change> or <array #> <inc/dec> [<value>]
     if (message.size() < 2)
         return result;
 
@@ -1061,7 +1061,7 @@ OSCMessageRouter::ParsedArrayAdjustMessage OSCMessageRouter::parseArrayAdjustMes
     // Map array adjust addresses to output parameter IDs
     if (paramName == "delayLatency")
         result.paramId = WFSParameterIDs::outputDelayLatency;
-    else if (paramName == "attenuation")
+    else if (paramName == "attenuation" || paramName == "level")
         result.paramId = WFSParameterIDs::outputAttenuation;
     else if (paramName == "Hparallax")
         result.paramId = WFSParameterIDs::outputHparallax;
@@ -1071,6 +1071,21 @@ OSCMessageRouter::ParsedArrayAdjustMessage OSCMessageRouter::parseArrayAdjustMes
         return result;  // Unknown parameter
 
     result.arrayId = extractInt(message[0]);
+
+    // Delta mode: /arrayAdjust/<param> <array #> <inc/dec> <value>
+    if (message[1].isString())
+    {
+        juce::String directive = extractString(message[1]);
+        if (! directive.equalsIgnoreCase("inc") && ! directive.equalsIgnoreCase("dec"))
+            return result;  // Unknown directive
+
+        float magnitude = (message.size() >= 3) ? extractFloat(message[2]) : 1.0f;
+        result.valueChange = directive.equalsIgnoreCase("inc") ? magnitude : -magnitude;
+        result.valid = true;
+        return result;
+    }
+
+    // Plain numeric delta: /arrayAdjust/<param> <array #> <value change>
     result.valueChange = extractFloat(message[1]);
     result.valid = true;
 

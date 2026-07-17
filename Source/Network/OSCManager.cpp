@@ -2611,21 +2611,22 @@ void OSCManager::handleArrayAdjustMessage(const juce::OSCMessage& message)
         // Iterate through all outputs and adjust those matching the array ID
         for (int outputIndex = 0; outputIndex < numOutputs; ++outputIndex)
         {
-            // Get the array assignment for this output (0-based index)
+            // Get the array assignment for this output (0-based index).
+            // The stored var may be int (GUI), double (OSC set) or string
+            // (XML session load) — convert numerically rather than gating
+            // on isInt(), which silently skipped non-int-typed outputs.
             juce::var arrayVar = state.getOutputParameter(outputIndex, WFSParameterIDs::outputArray);
-            int outputArrayId = arrayVar.isInt() ? static_cast<int>(arrayVar) : 0;
+            int outputArrayId = arrayVar.isVoid() ? 0
+                                                  : static_cast<int>(static_cast<double>(arrayVar));
 
             // Check if this output belongs to the target array (1-based from remote)
             if (outputArrayId == parsed.arrayId)
             {
-                // Get current parameter value
+                // Get current parameter value (int/double/string-typed vars
+                // all convert numerically; void reads as 0)
                 juce::var currentVar = state.getOutputParameter(outputIndex, parsed.paramId);
-                float currentValue = 0.0f;
-
-                if (currentVar.isDouble())
-                    currentValue = static_cast<float>(static_cast<double>(currentVar));
-                else if (currentVar.isInt())
-                    currentValue = static_cast<float>(static_cast<int>(currentVar));
+                float currentValue = currentVar.isVoid()
+                    ? 0.0f : static_cast<float>(static_cast<double>(currentVar));
 
                 // Apply delta and set new value
                 float newValue = currentValue + parsed.valueChange;
