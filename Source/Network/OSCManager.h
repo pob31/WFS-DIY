@@ -709,8 +709,8 @@ private:
     std::unique_ptr<OSCQueryServer> oscQueryServer;
 
     // Coalescing: pending incoming standard OSC updates (latest value per param+channel wins)
-    struct PendingParamUpdate { juce::Identifier paramId; int channelId; juce::var value; };
-    std::map<juce::String, PendingParamUpdate> pendingParamUpdates;  // key = "paramId:channelId"
+    struct PendingParamUpdate { juce::Identifier paramId; int channelId; juce::var value; juce::String senderIP; };
+    std::map<juce::String, PendingParamUpdate> pendingParamUpdates;  // key = "paramId:channelId", latest value + sender win
     juce::CriticalSection pendingParamLock;
     std::atomic<bool> paramDrainScheduled { false };
 

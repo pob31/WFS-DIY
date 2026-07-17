@@ -43,9 +43,11 @@ public:
     int getHttpPort() const { return httpPort; }
     int getOscPort() const { return oscPort; }
 
-    /** Call before processing incoming OSC to suppress push-back to the sender's IP */
+    /** Call before applying an incoming OSC write so push-back to the sender's IP
+        is suppressed. Must bracket the ValueTree write itself (message thread):
+        the origin is captured when the change is queued, not when it is flushed. */
     void beginIncomingOSC(const juce::String& senderIP);
-    /** Call after processing incoming OSC */
+    /** Call after applying the incoming OSC write */
     void endIncomingOSC();
 
 
@@ -100,15 +102,22 @@ private:
     std::atomic<bool> suppressIP { false };
     juce::CriticalSection senderIPLock;
 
+    // Origin IP of the write currently being applied (empty when none). Read at
+    // queue time in valueTreePropertyChanged so the flush timer doesn't race the
+    // begin/end window. Per-IP, not per-connection: two WS clients on the same
+    // host are both suppressed when either's UDP write echoes back.
+    juce::String getCurrentOriginIP() const;
+
     // --- Throttled Push ---
     // Accumulate dirty paths, flush every ~30ms to avoid flooding the message queue
-    struct PendingPush { juce::String oscPath; juce::var value; };
-    std::map<juce::String, PendingPush> pendingPushes;  // key = oscPath, latest value wins
+    struct PendingPush { juce::String oscPath; juce::var value; juce::String skipIP; };
+    std::map<juce::String, PendingPush> pendingPushes;  // key = oscPath, latest value + origin win
     juce::CriticalSection pendingPushLock;
     void timerCallback() override;
 
     // --- Value Change Push ---
-    void pushValueChange(const juce::String& oscPath, const juce::var& value);
+    void pushValueChange(const juce::String& oscPath, const juce::var& value,
+                         const juce::String& skipIP);
 
     // Reverse lookup: paramId -> OSC address name (built lazily)
     struct ReverseEntry { juce::String oscName; juce::String category; /* "input","output","reverb" */ };

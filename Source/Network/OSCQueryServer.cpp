@@ -65,6 +65,14 @@ void OSCQueryServer::endIncomingOSC()
     suppressIP = false;
 }
 
+juce::String OSCQueryServer::getCurrentOriginIP() const
+{
+    if (!suppressIP.load())
+        return {};
+    const juce::ScopedLock sl(senderIPLock);
+    return lastOSCSenderIP;
+}
+
 void OSCQueryServer::stop()
 {
     if (!running.load())
@@ -284,7 +292,8 @@ void OSCQueryServer::removeAllSubscriptions(const juce::String& connectionId)
 // Value Change Push (binary OSC via WebSocket)
 //==============================================================================
 
-void OSCQueryServer::pushValueChange(const juce::String& oscPath, const juce::var& value)
+void OSCQueryServer::pushValueChange(const juce::String& oscPath, const juce::var& value,
+                                     const juce::String& skipIP)
 {
     if (!wsServer || !running.load())
         return;
@@ -342,13 +351,6 @@ void OSCQueryServer::pushValueChange(const juce::String& oscPath, const juce::va
         auto it = subscriptions.find(oscPath);
         if (it != subscriptions.end())
             listeners = it->second;
-    }
-
-    juce::String skipIP;
-    if (suppressIP.load())
-    {
-        const juce::ScopedLock sl(senderIPLock);
-        skipIP = lastOSCSenderIP;
     }
 
     for (const auto& connId : listeners)
@@ -452,7 +454,7 @@ void OSCQueryServer::timerCallback()
     }
 
     for (const auto& [path, pending] : toDrain)
-        pushValueChange(pending.oscPath, pending.value);
+        pushValueChange(pending.oscPath, pending.value, pending.skipIP);
 }
 
 void OSCQueryServer::valueTreePropertyChanged(juce::ValueTree& tree,
@@ -480,11 +482,14 @@ void OSCQueryServer::valueTreePropertyChanged(juce::ValueTree& tree,
             return;
     }
 
-    // Accumulate for throttled push — latest value per path wins
+    // Accumulate for throttled push — latest value per path wins. Capture the
+    // origin IP NOW (the write happens inside the sender's begin/endIncomingOSC
+    // window on the message thread); reading it at flush time would race the
+    // window closing and echo the value back to its sender.
     juce::var value = tree.getProperty(property);
     {
         const juce::ScopedLock sl(pendingPushLock);
-        pendingPushes[oscPath] = { oscPath, value };
+        pendingPushes[oscPath] = { oscPath, value, getCurrentOriginIP() };
     }
 }
 

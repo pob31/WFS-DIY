@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "../Parameters/WFSValueTreeState.h"
 
+#include <functional>
 #include <map>
 #include <set>
 #include <utility>
@@ -25,15 +26,29 @@ class OSCParameterRamper
 public:
     explicit OSCParameterRamper (WFSValueTreeState& s) : state (s) {}
 
+    /** Hooks bracketing each ramp-step ValueTree write with the originating
+        sender's IP, so the OSCQuery server can suppress pushing the ramp
+        trajectory back to the client whose OSC message started it. */
+    void setOriginWriteHooks (std::function<void (const juce::String&)> begin,
+                              std::function<void()> end)
+    {
+        beginOriginWrite = std::move (begin);
+        endOriginWrite   = std::move (end);
+    }
+
     /** Start (or replace) a ramp for one input parameter on one channel.
         @param channelIndex 0-based channel index.
         @param paramId      Input parameter identifier.
         @param targetValue  Target value to reach at the end of the ramp.
-        @param rampTimeSec  Ramp duration in seconds (minimum 1 ms). */
+        @param rampTimeSec  Ramp duration in seconds (minimum 1 ms).
+        @param originIP     IP of the OSC sender that started the ramp (empty
+                            for internal origins); each step write is tagged
+                            with it via the origin-write hooks. */
     void startRamp (int channelIndex,
                     const juce::Identifier& paramId,
                     double targetValue,
-                    float rampTimeSec)
+                    float rampTimeSec,
+                    const juce::String& originIP = {})
     {
         if (channelIndex < 0)
             return;
@@ -51,6 +66,7 @@ public:
         r.targetValue = targetValue;
         r.elapsed     = 0.0f;
         r.total       = rampTimeSec;
+        r.originIP    = originIP;
 
         const Key key { channelIndex, paramId.toString() };
         const juce::ScopedLock sl (lock);
@@ -72,7 +88,7 @@ public:
                 static_cast<float> ((nowMs - lastProcessMs) * 0.001));
         lastProcessMs = nowMs;
 
-        std::vector<std::tuple<int, juce::String, double>> writes;
+        std::vector<std::tuple<int, juce::String, double, juce::String>> writes;
 
         {
             const juce::ScopedLock sl (lock);
@@ -112,7 +128,7 @@ public:
                 if (isIntParam (juce::Identifier (it->first.second)))
                     v = static_cast<double> (juce::roundToInt (v));
 
-                writes.emplace_back (it->first.first, it->first.second, v);
+                writes.emplace_back (it->first.first, it->first.second, v, r.originIP);
 
                 if (r.elapsed >= r.total)
                 {
@@ -128,9 +144,19 @@ public:
         }
 
         // Apply writes outside the lock to avoid holding it during ValueTree
-        // listener notification chains.
-        for (auto& [ch, name, v] : writes)
+        // listener notification chains. Each write is bracketed with the
+        // originating sender's IP so intermediate ramp values are not pushed
+        // back to the client that requested the ramp (other subscribers still
+        // receive the full trajectory).
+        for (auto& [ch, name, v, origin] : writes)
+        {
+            const bool tagOrigin = origin.isNotEmpty() && beginOriginWrite && endOriginWrite;
+            if (tagOrigin)
+                beginOriginWrite (origin);
             state.setInputParameter (ch, juce::Identifier (name), juce::var (v));
+            if (tagOrigin)
+                endOriginWrite();
+        }
     }
 
     /** Cancel a specific ramp without writing its final target. */
@@ -180,12 +206,15 @@ private:
         bool   hasWritten  = false;
         float  elapsed     = 0.0f;
         float  total       = 1.0f;
+        juce::String originIP;      // Sender that started the ramp (echo suppression)
     };
 
     WFSValueTreeState& state;
     std::map<Key, RampState> activeRamps;
     juce::CriticalSection lock;
     double lastProcessMs = 0.0;
+    std::function<void (const juce::String&)> beginOriginWrite;
+    std::function<void()> endOriginWrite;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (OSCParameterRamper)
 };

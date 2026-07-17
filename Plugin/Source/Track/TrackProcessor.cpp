@@ -3,6 +3,14 @@
 
 namespace wfs::plugin
 {
+    // Inbound app->plugin writes are dropped when the incoming value already
+    // matches the parameter (natural units). setValueNotifyingHost on an
+    // unchanged value still reads as an external touch to the DAW — Ableton
+    // punches automation playback out into override — so redundant echoes
+    // must never reach the host. Matches the ADM outbound guard's epsilon;
+    // well below the 0.01 APVTS step, well above float round-trip noise.
+    static constexpr float kInboundApplyEpsilon = 1.0e-3f;
+
     juce::String TrackProcessor::getBuildStamp()
     {
         return juce::String (__DATE__) + " " + juce::String (__TIME__);
@@ -278,6 +286,8 @@ namespace wfs::plugin
             auto* param = state.getParameter (variant.positions[(size_t) i].paramID);
             if (param == nullptr)
                 continue;
+            if (std::abs (d[i] - param->convertFrom0to1 (param->getValue())) < kInboundApplyEpsilon)
+                continue;
             param->setValueNotifyingHost (
                 juce::jlimit (0.0f, 1.0f, param->convertTo0to1 (d[i])));
         }
@@ -384,6 +394,9 @@ namespace wfs::plugin
         {
             auto* param = self->state.getParameter (self->variant.positions[(size_t) i].paramID);
             if (param == nullptr)
+                continue;
+            if (std::abs (static_cast<float> (values[i])
+                          - param->convertFrom0to1 (param->getValue())) < kInboundApplyEpsilon)
                 continue;
             param->setValueNotifyingHost (
                 juce::jlimit (0.0f, 1.0f,
@@ -516,6 +529,9 @@ namespace wfs::plugin
         {
             if (auto* param = self->state.getParameter (paramID))
             {
+                const float currentNat = param->convertFrom0to1 (param->getValue());
+                if (std::abs (static_cast<float> (value) - currentNat) < kInboundApplyEpsilon)
+                    return;
                 self->isApplyingRemoteChange.store (true);
                 const auto norm = param->convertTo0to1 (static_cast<float> (value));
                 param->setValueNotifyingHost (norm);

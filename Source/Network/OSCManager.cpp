@@ -67,6 +67,12 @@ OSCManager::OSCManager(WFSValueTreeState& valueTreeState)
         connections[i] = std::make_unique<OSCConnection>(static_cast<int>(i));
     }
 
+    // Tag each ramp-step write with the sender that started the ramp so the
+    // OSCQuery server doesn't push the trajectory back to that client.
+    parameterRamper.setOriginWriteHooks(
+        [this](const juce::String& ip) { if (oscQueryServer) oscQueryServer->beginIncomingOSC(ip); },
+        [this]()                       { if (oscQueryServer) oscQueryServer->endIncomingOSC(); });
+
     // Inbound ingest queue: receiver threads push raw datagram bytes
     // here, the queue coalesces hot per-(address, channel) updates and
     // bounds the FIFO for everything else, then drains on the MM thread.
@@ -1464,15 +1470,16 @@ void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
     if (OSCMessageRouter::isInputAddress(address) || OSCMessageRouter::isOutputAddress(address)
         || OSCMessageRouter::isReverbAddress(address) || OSCMessageRouter::isConfigAddress(address))
     {
+        // Bracket only the synchronous part of the handler: every deferred
+        // write (callAsync lambdas, coalesced drain, ramp steps) re-establishes
+        // its own origin window, and the OSCQuery server captures the origin at
+        // queue time — so no deferred endIncomingOSC is needed (the old
+        // deferred clear raced the 30ms push flush and broke suppression).
         if (oscQueryServer)
             oscQueryServer->beginIncomingOSC(senderIP);
         handleStandardOSCMessage(message, senderIP, port, transport);
-        // Clear the suppress flag after the async ValueTree update completes
         if (oscQueryServer)
-        {
-            auto* oqPtr = oscQueryServer.get();
-            juce::MessageManager::callAsync([oqPtr]() { oqPtr->endIncomingOSC(); });
-        }
+            oscQueryServer->endIncomingOSC();
     }
     else if (OSCMessageRouter::isRemoteInputAddress(address))
     {
@@ -1605,7 +1612,14 @@ void OSCManager::handleIncomingBundle(const juce::OSCBundle& bundle,
             if (OSCMessageRouter::isInputAddress(address) || OSCMessageRouter::isOutputAddress(address)
                 || OSCMessageRouter::isReverbAddress(address) || OSCMessageRouter::isConfigAddress(address))
             {
+                // Same OSCQuery echo suppression as the non-bundled path: any
+                // synchronous ValueTree write records this sender as its origin
+                // (deferred writes capture senderIP themselves).
+                if (oscQueryServer)
+                    oscQueryServer->beginIncomingOSC(senderIP);
                 handleStandardOSCMessage(message, senderIP, port, transport);
+                if (oscQueryServer)
+                    oscQueryServer->endIncomingOSC();
             }
             else if (OSCMessageRouter::isRemoteInputAddress(address))
             {
@@ -1657,14 +1671,19 @@ void OSCManager::drainPendingParamUpdates()
         return;
 
     ScopedIncomingProtocol incomingGuard (*this, Protocol::OSC);
-    if (oscQueryServer) oscQueryServer->beginIncomingOSC("coalesced");
 
-    // Apply all updates — use setParameter which auto-routes to the correct scope
+    // Apply all updates — use setParameter which auto-routes to the correct scope.
+    // Suppression must be per-update: coalesced updates can come from different
+    // senders, and each write must record its own origin so the OSCQuery push
+    // skips exactly the client that sent it.
     for (const auto& [key, upd] : updates)
+    {
+        if (oscQueryServer) oscQueryServer->beginIncomingOSC(upd.senderIP);
         state.setParameter(upd.paramId, upd.value, upd.channelId);
+        if (oscQueryServer) oscQueryServer->endIncomingOSC();
+    }
 
     incomingGuard.release();
-    if (oscQueryServer) oscQueryServer->endIncomingOSC();
 }
 
 void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
@@ -1720,9 +1739,10 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
 
             if (channelIndex >= 0)
             {
-                juce::MessageManager::callAsync([this, paramName, channelIndex, newValue]()
+                juce::MessageManager::callAsync([this, paramName, channelIndex, newValue, senderIP]()
                 {
                     ScopedIncomingProtocol incomingGuard (*this, Protocol::OSC);
+                    if (oscQueryServer) oscQueryServer->beginIncomingOSC(senderIP);
                     WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
                     state.beginUndoTransaction ("OSC Input");
 
@@ -1801,6 +1821,8 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
                     // Notify for waypoint capture (path mode)
                     if (!isOffset && onRemoteWaypointCapture)
                         onRemoteWaypointCapture(channelIndex, x, y, z);
+
+                    if (oscQueryServer) oscQueryServer->endIncomingOSC();
                 });
             }
             return;  // Handled - don't fall through to normal processing
@@ -1825,9 +1847,10 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
 
             if (channelIndex >= 0)
             {
-                juce::MessageManager::callAsync([this, paramName, channelIndex, newValue]()
+                juce::MessageManager::callAsync([this, paramName, channelIndex, newValue, senderIP]()
                 {
                     ScopedIncomingProtocol incomingGuard (*this, Protocol::OSC);
+                    if (oscQueryServer) oscQueryServer->beginIncomingOSC(senderIP);
                     WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
                     state.beginUndoTransaction ("OSC Input");
 
@@ -1889,6 +1912,8 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
                     state.setInputParameter(channelIndex, WFSParameterIDs::inputOtomoX, x);
                     state.setInputParameter(channelIndex, WFSParameterIDs::inputOtomoY, y);
                     state.setInputParameter(channelIndex, WFSParameterIDs::inputOtomoZ, z);
+
+                    if (oscQueryServer) oscQueryServer->endIncomingOSC();
                 });
             }
             return;  // Handled - don't fall through to normal processing
@@ -1949,7 +1974,8 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
 
                 parameterRamper.startRamp (channelIndex, parsed.paramId,
                                            targetValue,
-                                           parsed.rampTimeSec);
+                                           parsed.rampTimeSec,
+                                           senderIP);
                 return;
             }
 
@@ -1971,10 +1997,10 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
 
             if (needsSpecialHandling)
             {
-                juce::MessageManager::callAsync([this, parsed, channelIndex]()
+                juce::MessageManager::callAsync([this, parsed, channelIndex, senderIP]()
                 {
                     ScopedIncomingProtocol incomingGuard (*this, Protocol::OSC);
-                    if (oscQueryServer) oscQueryServer->beginIncomingOSC("special");
+                    if (oscQueryServer) oscQueryServer->beginIncomingOSC(senderIP);
                     WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
                     state.beginUndoTransaction ("OSC Input");
 
@@ -2040,7 +2066,7 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
                 juce::String key = parsed.paramId.toString() + ":" + juce::String(channelIndex);
                 {
                     const juce::ScopedLock sl(pendingParamLock);
-                    pendingParamUpdates[key] = { parsed.paramId, channelIndex, parsed.value };
+                    pendingParamUpdates[key] = { parsed.paramId, channelIndex, parsed.value, senderIP };
                 }
                 if (!paramDrainScheduled.exchange(true))
                 {
@@ -2066,7 +2092,7 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
                 juce::String key = parsed.paramId.toString() + ":" + juce::String(channelIndex);
                 {
                     const juce::ScopedLock sl(pendingParamLock);
-                    pendingParamUpdates[key] = { parsed.paramId, channelIndex, parsed.value };
+                    pendingParamUpdates[key] = { parsed.paramId, channelIndex, parsed.value, senderIP };
                 }
                 if (!paramDrainScheduled.exchange(true))
                     juce::MessageManager::callAsync([this]() { drainPendingParamUpdates(); });
@@ -2091,7 +2117,7 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
                 juce::String key = parsed.paramId.toString() + ":" + juce::String(channelIndex);
                 {
                     const juce::ScopedLock sl(pendingParamLock);
-                    pendingParamUpdates[key] = { parsed.paramId, channelIndex, parsed.value };
+                    pendingParamUpdates[key] = { parsed.paramId, channelIndex, parsed.value, senderIP };
                 }
                 if (!paramDrainScheduled.exchange(true))
                     juce::MessageManager::callAsync([this]() { drainPendingParamUpdates(); });
@@ -2099,9 +2125,10 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
             else if (parsed.isEQparam)
             {
                 // EQ params need special handling — keep direct callAsync
-                juce::MessageManager::callAsync([this, parsed, channelIndex]()
+                juce::MessageManager::callAsync([this, parsed, channelIndex, senderIP]()
                 {
                     ScopedIncomingProtocol incomingGuard (*this, Protocol::OSC);
+                    if (oscQueryServer) oscQueryServer->beginIncomingOSC(senderIP);
                     WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Reverb);
                     if (channelIndex >= 0)
                     {
@@ -2118,6 +2145,7 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
                             }
                         }
                     }
+                    if (oscQueryServer) oscQueryServer->endIncomingOSC();
                 });
             }
         }
@@ -2133,9 +2161,10 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
         auto parsed = OSCMessageRouter::parseConfigMessage(message);
         if (parsed.valid)
         {
-            juce::MessageManager::callAsync([this, parsed]()
+            juce::MessageManager::callAsync([this, parsed, senderIP]()
             {
                 ScopedIncomingProtocol incomingGuard (*this, Protocol::OSC);
+                if (oscQueryServer) oscQueryServer->beginIncomingOSC(senderIP);
                 WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Reverb);
                 state.beginUndoTransaction ("OSC Reverb Config");
 
@@ -2197,6 +2226,7 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
                     // Standard config parameter
                     state.setParameter(parsed.paramId, parsed.value);
                 }
+                if (oscQueryServer) oscQueryServer->endIncomingOSC();
             });
         }
         else
