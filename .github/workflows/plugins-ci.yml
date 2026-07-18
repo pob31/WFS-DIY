@@ -1,0 +1,149 @@
+name: Plugins CI
+
+# Build-check the plugin suite (Plugin/CMakeLists.txt, target WFSPluginsAll)
+# on all three desktop OSes and upload unsigned installer artifacts:
+#   Windows: VST3 + Standalone        -> Inno Setup .exe
+#   macOS:   VST3 + AU + Standalone   -> .pkg (unsigned here; signed on release)
+#   Linux:   VST3 + LV2 + Standalone  -> tar.gz
+#
+# cmake is invoked directly with explicit generators (not Plugin/Scripts/
+# build-all.*): the scripts' Ninja-first probing is nondeterministic on
+# runners (MinGW gcc on PATH), and the Windows installer script expects the
+# multi-config Release/ layout only a VS generator produces.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Plugin/**'
+      - 'ThirdParty/JUCE'
+      - 'ThirdParty/juce_simpleweb/**'
+      - '.github/workflows/plugins-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'Plugin/**'
+      - 'ThirdParty/JUCE'
+      - 'ThirdParty/juce_simpleweb/**'
+      - '.github/workflows/plugins-ci.yml'
+
+concurrency:
+  group: plugins-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    name: Windows (VST3)
+    # windows-2025 = the VS2026 (v145) image — same deliberate pin as ci.yml.
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Configure
+        run: cmake -S Plugin -B Plugin/Builds/CMake-Windows -G "Visual Studio 18 2026" -A x64
+
+      - name: Build WFSPluginsAll (Release)
+        run: cmake --build Plugin/Builds/CMake-Windows --config Release --target WFSPluginsAll --parallel
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe not found" }
+          & $iscc Plugin\Installer\WFS-DIY-Plugins.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC failed with exit code $LASTEXITCODE" }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plugins-windows-installer
+          path: Plugin/Installer/Output/WFS-DIY-Plugins-Setup-*.exe
+          if-no-files-found: error
+
+  macos:
+    name: macOS (VST3 + AU, universal)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Ensure ninja
+        run: which ninja || brew install ninja
+
+      - name: Configure
+        run: cmake -S Plugin -B Plugin/Builds/CMake-macOS -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build WFSPluginsAll (Release)
+        run: cmake --build Plugin/Builds/CMake-macOS --target WFSPluginsAll --parallel
+
+      - name: Verify universal binaries
+        run: |
+          BIN="Plugin/Builds/CMake-macOS/WFSPluginMaster_artefacts/Release/VST3/WFS-DIY Master.vst3/Contents/MacOS/WFS-DIY Master"
+          ARCHS="$(lipo -archs "$BIN")"
+          echo "archs: $ARCHS"
+          case "$ARCHS" in
+            *x86_64*arm64*|*arm64*x86_64*) ;;
+            *) echo "::error::expected universal binary, got: $ARCHS"; exit 1 ;;
+          esac
+
+      - name: Build pkg (unsigned)
+        run: |
+          VERSION="$(sed -nE 's/^project\(WFS-DIY-Plugins[[:space:]]+VERSION[[:space:]]+([0-9.]+).*/\1/p' Plugin/CMakeLists.txt)"
+          [ -n "$VERSION" ] || { echo "::error::could not parse version from Plugin/CMakeLists.txt"; exit 1; }
+          WFS_PLUGIN_VERSION="$VERSION" Plugin/Installer/build-pkg.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plugins-macos-pkg-unsigned
+          path: Plugin/Installer/Output/WFS-DIY-Plugins-*.pkg
+          if-no-files-found: error
+
+  linux:
+    name: Linux (VST3 + LV2)
+    runs-on: ubuntu-latest
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential pkg-config ccache ninja-build \
+            libasound2-dev libjack-jackd2-dev libfreetype-dev \
+            libfontconfig1-dev libgl1-mesa-dev libcurl4-openssl-dev \
+            libgtk-3-dev libwebkit2gtk-4.1-dev libudev-dev
+
+      - name: Restore ccache
+        uses: actions/cache@v5
+        with:
+          path: .ccache
+          key: ccache-plugins-linux-${{ github.sha }}
+          restore-keys: ccache-plugins-linux-
+
+      - name: Configure
+        run: >
+          cmake -S Plugin -B Plugin/Builds/CMake-Linux -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+      - name: Build WFSPluginsAll (Release)
+        run: cmake --build Plugin/Builds/CMake-Linux --target WFSPluginsAll --parallel
+
+      - name: Build tarball
+        run: Plugin/Installer/build-tarball-linux.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plugins-linux-tarball
+          path: Plugin/Installer/Output/WFS-DIY-Plugins-Linux-*.tar.gz
+          if-no-files-found: error

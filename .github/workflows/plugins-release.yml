@@ -1,0 +1,203 @@
+name: Plugins Release
+
+# Build the plugin-suite installers and attach them to a GitHub Release.
+# Runs when a release is published with a `plugins-v*` tag (the plugin suite
+# versions independently from the app: Plugin/CMakeLists.txt VERSION), or on
+# manual dispatch against an existing tag. macOS pkg is signed + notarized +
+# stapled; Windows ships an unsigned Inno Setup installer; Linux a tar.gz.
+#
+# App releases (`v*` tags) skip every job here via the verify-version gate.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing plugins release tag (e.g. plugins-v0.0.2)"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: plugins-release-${{ github.event.release.tag_name || github.event.inputs.tag }}
+  cancel-in-progress: false
+
+env:
+  RELEASE_TAG: ${{ github.event.release.tag_name || github.event.inputs.tag }}
+
+jobs:
+  # Refuse to publish if the tag doesn't match the in-source version, before
+  # spending build minutes. Also guards the version triplication between
+  # project(VERSION), WFS_PLUGIN_VERSION_STRING and the Inno Setup script.
+  verify-version:
+    name: verify tag == plugin version
+    if: startsWith(github.event.release.tag_name || github.event.inputs.tag, 'plugins-v')
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: check
+        run: |
+          VERSION="$(grep -oP 'project\(WFS-DIY-Plugins\s+VERSION\s+\K[0-9]+\.[0-9]+\.[0-9]+' Plugin/CMakeLists.txt)"
+          [ -n "$VERSION" ] || { echo "::error::could not read VERSION from Plugin/CMakeLists.txt"; exit 1; }
+          if [ "$RELEASE_TAG" != "plugins-v$VERSION" ]; then
+            echo "::error::release tag '$RELEASE_TAG' != source 'plugins-v$VERSION'"
+            exit 1
+          fi
+          grep -q "WFS_PLUGIN_VERSION_STRING \"$VERSION\"" Plugin/CMakeLists.txt \
+            || { echo "::error::WFS_PLUGIN_VERSION_STRING != $VERSION in Plugin/CMakeLists.txt"; exit 1; }
+          grep -Eq "MyAppVersion[[:space:]]+\"$VERSION\"" Plugin/Installer/WFS-DIY-Plugins.iss \
+            || { echo "::error::MyAppVersion != $VERSION in WFS-DIY-Plugins.iss"; exit 1; }
+          echo "ok: $RELEASE_TAG == plugins-v$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  macos:
+    name: macOS pkg (signed + notarized)
+    needs: verify-version
+    runs-on: macos-latest
+    # Signing cert + notary key live in the protected `WFS-DIY` environment.
+    environment: WFS-DIY
+    env:
+      NOTARY_API_KEY_ID: ${{ secrets.NOTARY_API_KEY_ID }}
+      NOTARY_API_ISSUER: ${{ secrets.NOTARY_API_ISSUER }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Import Developer ID signing certificate
+        uses: apple-actions/import-codesign-certs@v6
+        with:
+          p12-file-base64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
+          p12-password: ${{ secrets.MACOS_CERT_PASSWORD }}
+
+      - name: Materialize App Store Connect API key
+        run: |
+          mkdir -p "$RUNNER_TEMP/notary"
+          KEY="$RUNNER_TEMP/notary/AuthKey.p8"
+          echo "${{ secrets.NOTARY_API_KEY_BASE64 }}" | base64 --decode > "$KEY"
+          echo "NOTARY_API_KEY=$KEY" >> "$GITHUB_ENV"
+
+      - name: Resolve signing identities
+        run: |
+          APP_ID="$(security find-identity -v -p codesigning | sed -nE 's/.*"(Developer ID Application: [^"]*)".*/\1/p' | head -n1)"
+          # NB: `-p codesigning` filters OUT installer certs — look them up unfiltered.
+          INST_ID="$(security find-identity -v | sed -nE 's/.*"(Developer ID Installer: [^"]*)".*/\1/p' | head -n1)"
+          [ -n "$APP_ID" ]  || { echo "::error::no 'Developer ID Application' identity in keychain"; exit 1; }
+          [ -n "$INST_ID" ] || { echo "::error::no 'Developer ID Installer' identity in the p12 — pkg notarization requires one (re-export the p12 with both certs)"; exit 1; }
+          echo "CODESIGN_IDENTITY_APP=$APP_ID" >> "$GITHUB_ENV"
+          echo "CODESIGN_IDENTITY_INSTALL=$INST_ID" >> "$GITHUB_ENV"
+
+      - name: Ensure ninja
+        run: which ninja || brew install ninja
+
+      - name: Configure
+        run: cmake -S Plugin -B Plugin/Builds/CMake-macOS -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build WFSPluginsAll (Release)
+        run: cmake --build Plugin/Builds/CMake-macOS --target WFSPluginsAll --parallel
+
+      - name: Package, sign, notarize, staple
+        run: |
+          WFS_PLUGIN_VERSION="${{ needs.verify-version.outputs.version }}" Plugin/Installer/build-pkg.sh
+
+      - name: Checksum
+        run: |
+          PKG="Plugin/Installer/Output/WFS-DIY-Plugins-${{ needs.verify-version.outputs.version }}.pkg"
+          shasum -a 256 "$PKG" | awk '{print $1}' > "$PKG.sha256"
+
+      - name: Attach pkg to release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          fail_on_unmatched_files: true
+          files: |
+            Plugin/Installer/Output/WFS-DIY-Plugins-*.pkg
+            Plugin/Installer/Output/WFS-DIY-Plugins-*.pkg.sha256
+
+  windows:
+    name: Windows installer (unsigned)
+    needs: verify-version
+    # windows-2025 = the VS2026 (v145) image — same deliberate pin as ci.yml.
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Configure
+        run: cmake -S Plugin -B Plugin/Builds/CMake-Windows -G "Visual Studio 18 2026" -A x64
+
+      - name: Build WFSPluginsAll (Release)
+        run: cmake --build Plugin/Builds/CMake-Windows --config Release --target WFSPluginsAll --parallel
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe not found" }
+          & $iscc Plugin\Installer\WFS-DIY-Plugins.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC failed with exit code $LASTEXITCODE" }
+
+      - name: Checksum
+        shell: pwsh
+        run: |
+          $exe = Get-Item "Plugin\Installer\Output\WFS-DIY-Plugins-Setup-*.exe"
+          (Get-FileHash $exe -Algorithm SHA256).Hash.ToLower() |
+            Out-File -FilePath "$($exe.FullName).sha256" -Encoding ascii -NoNewline
+
+      - name: Attach installer to release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          fail_on_unmatched_files: true
+          files: |
+            Plugin/Installer/Output/WFS-DIY-Plugins-Setup-*.exe
+            Plugin/Installer/Output/WFS-DIY-Plugins-Setup-*.exe.sha256
+
+  linux:
+    name: Linux tarball
+    needs: verify-version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential pkg-config ninja-build \
+            libasound2-dev libjack-jackd2-dev libfreetype-dev \
+            libfontconfig1-dev libgl1-mesa-dev libcurl4-openssl-dev \
+            libgtk-3-dev libwebkit2gtk-4.1-dev libudev-dev
+
+      - name: Configure
+        run: cmake -S Plugin -B Plugin/Builds/CMake-Linux -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build WFSPluginsAll (Release)
+        run: cmake --build Plugin/Builds/CMake-Linux --target WFSPluginsAll --parallel
+
+      - name: Build tarball
+        run: Plugin/Installer/build-tarball-linux.sh
+
+      - name: Checksum
+        run: |
+          TAR="$(ls Plugin/Installer/Output/WFS-DIY-Plugins-Linux-*.tar.gz)"
+          sha256sum "$TAR" | awk '{print $1}' > "$TAR.sha256"
+
+      - name: Attach tarball to release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          fail_on_unmatched_files: true
+          files: |
+            Plugin/Installer/Output/WFS-DIY-Plugins-Linux-*.tar.gz
+            Plugin/Installer/Output/WFS-DIY-Plugins-Linux-*.tar.gz.sha256

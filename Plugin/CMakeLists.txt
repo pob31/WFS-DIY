@@ -1,15 +1,20 @@
 cmake_minimum_required(VERSION 3.22)
 
+# Must be set BEFORE project(): enable_language() creates these cache entries
+# (empty = build machine's native arch), after which set(... CACHE) is a
+# silent no-op — single-config generators (Ninja/Makefiles) then produce
+# native-only binaries. Xcode masked this by defaulting to ARCHS_STANDARD.
+# (APPLE is only defined by project(); use the host check this early.)
+if(CMAKE_HOST_APPLE)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "macOS deployment target")
+    set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Universal binary archs")
+endif()
+
 project(WFS-DIY-Plugins VERSION 0.0.2 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
-if(APPLE)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "macOS deployment target")
-    set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Universal binary archs")
-endif()
 
 set(WFS_PLUGIN_COMPANY        "Pix et Bel")
 set(WFS_PLUGIN_BUNDLE_PREFIX  "net.wfsdiy")
