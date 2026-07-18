@@ -911,6 +911,7 @@
     "messages": {
       "setToSingle": "Sortie {num} définie en Individuel",
       "assignedToArray": "Sortie {num} assignée au Groupe {array}",
+      "arrayEditSingle": "Édition Ctrl : modification appliquée à cette sortie uniquement (Groupe {array} non affecté)",
       "selectFolderFirst": "Veuillez d'abord sélectionner un dossier projet dans Config Système.",
       "configSaved": "Configuration des sorties enregistrée.",
       "configLoaded": "Configuration des sorties chargée.",

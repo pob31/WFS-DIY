@@ -332,6 +332,7 @@
     "messages": {
       "setToSingle": "Ausgang {num} auf Einzeln gesetzt",
       "assignedToArray": "Ausgang {num} zu Array {array} zugewiesen",
+      "arrayEditSingle": "Strg-Bearbeitung: Änderung nur auf diesen Ausgang angewendet (Array {array} nicht betroffen)",
       "selectFolderFirst": "Bitte wählen Sie zuerst einen Projektordner in der System Config.",
       "configSaved": "Ausgangskonfiguration gespeichert.",
       "configLoaded": "Ausgangskonfiguration geladen.",

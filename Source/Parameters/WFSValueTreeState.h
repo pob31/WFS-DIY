@@ -156,11 +156,14 @@ public:
                                                   const juce::var& value,
                                                   bool propagateToArray = true);
 
-    /** Set output EQ band parameter with array propagation */
+    /** Set output EQ band parameter with array propagation
+     *  @param propagateToArray If true, considers array linking mode (default true)
+     */
     void setOutputEQBandParameterWithArrayPropagation (int channelIndex,
                                                         int bandIndex,
                                                         const juce::Identifier& id,
-                                                        const juce::var& value);
+                                                        const juce::var& value,
+                                                        bool propagateToArray = true);
 
     /** Check if a parameter is array-linked (should propagate to array members) */
     static bool isArrayLinkedParameter (const juce::Identifier& paramId);

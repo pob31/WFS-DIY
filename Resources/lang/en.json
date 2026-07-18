@@ -990,6 +990,7 @@
     "messages": {
       "setToSingle": "Output {num} set to Single",
       "assignedToArray": "Output {num} assigned to Array {array}",
+      "arrayEditSingle": "Ctrl edit: change applied to this output only (Array {array} not affected)",
       "selectFolderFirst": "Please select a project folder in System Config first.",
       "configSaved": "Output configuration saved.",
       "configLoaded": "Output configuration loaded.",

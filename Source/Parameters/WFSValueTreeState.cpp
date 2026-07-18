@@ -766,10 +766,11 @@ void WFSValueTreeState::setOutputParameterWithArrayPropagation (int channelIndex
 void WFSValueTreeState::setOutputEQBandParameterWithArrayPropagation (int channelIndex,
                                                                        int bandIndex,
                                                                        const juce::Identifier& paramId,
-                                                                       const juce::var& value)
+                                                                       const juce::var& value,
+                                                                       bool propagateToArray)
 {
     // Check if this is an array-linked EQ parameter
-    if (!isArrayLinkedEQParameter (paramId))
+    if (!propagateToArray || !isArrayLinkedEQParameter (paramId))
     {
         auto band = getOutputEQBand (channelIndex, bandIndex);
         if (band.isValid())

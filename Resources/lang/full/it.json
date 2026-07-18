@@ -895,6 +895,7 @@
     "messages": {
       "setToSingle": "Uscita {num} impostata su Singolo",
       "assignedToArray": "Uscita {num} assegnata all'Array {array}",
+      "arrayEditSingle": "Modifica con Ctrl: variazione applicata solo a questa uscita (Array {array} non interessato)",
       "selectFolderFirst": "Seleziona prima una cartella progetto in Config Sistema.",
       "configSaved": "Configurazione uscite salvata.",
       "configLoaded": "Configurazione uscite caricata.",

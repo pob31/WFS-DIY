@@ -12,6 +12,7 @@
 
 #include "../../../../spatcore/controllers/streamdeck/StreamDeckPage.h"
 #include "../../../Parameters/WFSValueTreeState.h"
+#include "../../../Parameters/ArrayParamEdit.h"
 #include "../../../Parameters/WFSParameterIDs.h"
 #include "../../../Parameters/WFSParameterDefaults.h"
 #include "../../../Localization/LocalizationManager.h"
@@ -27,6 +28,7 @@ inline ButtonBinding makeOutputToggleButton (const juce::String& label,
                                               juce::Colour offColour,
                                               juce::Colour onColour,
                                               WFSValueTreeState& state,
+                                              ArrayParamEdit& arrayEdit,
                                               int ch,
                                               const juce::Identifier& paramId)
 {
@@ -41,10 +43,10 @@ inline ButtonBinding makeOutputToggleButton (const juce::String& label,
         return static_cast<int> (state.getOutputParameter (ch, paramId)) != 0;
     };
 
-    btn.onPress = [&state, ch, paramId]()
+    btn.onPress = [&state, &arrayEdit, ch, paramId]()
     {
         int current = static_cast<int> (state.getOutputParameter (ch, paramId));
-        state.setOutputParameter (ch, paramId, current != 0 ? 0 : 1);
+        arrayEdit.write (ch, paramId, current != 0 ? 0 : 1);
     };
 
     return btn;
@@ -61,6 +63,7 @@ inline DialBinding makeOutputFloatDial (const juce::String& name,
                                          int decimals,
                                          bool exponential,
                                          WFSValueTreeState& state,
+                                         ArrayParamEdit& arrayEdit,
                                          int ch,
                                          const juce::Identifier& paramId)
 {
@@ -80,9 +83,9 @@ inline DialBinding makeOutputFloatDial (const juce::String& name,
         return static_cast<float> (state.getOutputParameter (ch, paramId));
     };
 
-    dial.setValue = [&state, ch, paramId] (float v)
+    dial.setValue = [&arrayEdit, ch, paramId] (float v)
     {
-        state.setOutputParameter (ch, paramId, v);
+        arrayEdit.write (ch, paramId, v);
     };
 
     return dial;
@@ -97,6 +100,7 @@ inline DialBinding makeOutputIntDial (const juce::String& name,
                                        int minVal, int maxVal,
                                        int stepVal, int fineVal,
                                        WFSValueTreeState& state,
+                                       ArrayParamEdit& arrayEdit,
                                        int ch,
                                        const juce::Identifier& paramId)
 {
@@ -116,9 +120,9 @@ inline DialBinding makeOutputIntDial (const juce::String& name,
         return static_cast<float> (static_cast<int> (state.getOutputParameter (ch, paramId)));
     };
 
-    dial.setValue = [&state, ch, paramId] (float v)
+    dial.setValue = [&arrayEdit, ch, paramId] (float v)
     {
-        state.setOutputParameter (ch, paramId, juce::roundToInt (v));
+        arrayEdit.write (ch, paramId, juce::roundToInt (v));
     };
 
     return dial;
@@ -129,6 +133,7 @@ inline DialBinding makeOutputIntDial (const juce::String& name,
 //==============================================================================
 
 inline StreamDeckPage createOutputParametersPage (WFSValueTreeState& state,
+                                                    ArrayParamEdit& arrayEdit,
                                                     int channelIndex)
 {
     using namespace WFSParameterIDs;
@@ -152,24 +157,24 @@ inline StreamDeckPage createOutputParametersPage (WFSValueTreeState& state,
         // Button 1: Toggle Minimal Latency
         sec.buttons[1] = makeOutputToggleButton (LOC ("streamDeck.outputs.buttons.minimalLatency"),
                                                   grey, juce::Colour (0xFF4A90D9),
-                                                  state, ch, outputMiniLatencyEnable);
+                                                  state, arrayEdit, ch, outputMiniLatencyEnable);
 
         // Button 2: Toggle Live Source Attenuation
         sec.buttons[2] = makeOutputToggleButton (LOC ("streamDeck.outputs.buttons.liveSourceAtten"),
                                                   grey, juce::Colour (0xFF4A90D9),
-                                                  state, ch, outputLSattenEnable);
+                                                  state, arrayEdit, ch, outputLSattenEnable);
 
         // Button 3: Toggle Floor Reflections
         sec.buttons[3] = makeOutputToggleButton (LOC ("streamDeck.outputs.buttons.floorReflections"),
                                                   grey, juce::Colour (0xFF4A90D9),
-                                                  state, ch, outputFRenable);
+                                                  state, arrayEdit, ch, outputFRenable);
 
         // Dial 0: Attenuation (-92 to 0 dB) — clamped to 0 dB on Stream Deck+
         sec.dials[0] = makeOutputFloatDial (LOC ("streamDeck.outputs.dials.attenuation"),
                                              LOC ("units.decibels"),
                                              outputAttenuationMin, 0.0f,
                                              0.5f, 0.1f, 1, false,
-                                             state, ch, outputAttenuation);
+                                             state, arrayEdit, ch, outputAttenuation);
         sec.dials[0].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
 
         // Dial 1: Delay/Latency (-100 to 100 ms) with dynamic name
@@ -177,7 +182,7 @@ inline StreamDeckPage createOutputParametersPage (WFSValueTreeState& state,
                                              LOC ("units.milliseconds"),
                                              outputDelayLatencyMin, outputDelayLatencyMax,
                                              0.5f, 0.1f, 1, false,
-                                             state, ch, outputDelayLatency);
+                                             state, arrayEdit, ch, outputDelayLatency);
         sec.dials[1].barColour = juce::Colour (0xFFD4A017);  // Gold (time)
 
         sec.dials[1].getDynamicName = [&state, ch]()
@@ -192,7 +197,7 @@ inline StreamDeckPage createOutputParametersPage (WFSValueTreeState& state,
                                            LOC ("units.percent"),
                                            outputDistanceAttenPercentMin, outputDistanceAttenPercentMax,
                                            2, 1,
-                                           state, ch, outputDistanceAttenPercent);
+                                           state, arrayEdit, ch, outputDistanceAttenPercent);
         sec.dials[2].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
 
         // Dial 3: HF Damping (-24 to 0 dB)
@@ -200,7 +205,7 @@ inline StreamDeckPage createOutputParametersPage (WFSValueTreeState& state,
                                              LOC ("units.decibels"),
                                              outputHFdampingMin, outputHFdampingMax,
                                              0.5f, 0.1f, 1, false,
-                                             state, ch, outputHFdamping);
+                                             state, arrayEdit, ch, outputHFdamping);
         sec.dials[3].barColour = juce::Colour (0xFFE07878);  // Rose (HF)
     }
 
@@ -219,7 +224,7 @@ inline StreamDeckPage createOutputParametersPage (WFSValueTreeState& state,
                                            LOC ("units.degrees"),
                                            outputAngleOnMin, outputAngleOnMax,
                                            2, 1,
-                                           state, ch, outputAngleOn);
+                                           state, arrayEdit, ch, outputAngleOn);
         sec.dials[0].barColour = juce::Colour (0xFF4CAF50);  // Green (angle on)
 
         // Dial 1: Off Angle (0-180 degrees)
@@ -227,7 +232,7 @@ inline StreamDeckPage createOutputParametersPage (WFSValueTreeState& state,
                                            LOC ("units.degrees"),
                                            outputAngleOffMin, outputAngleOffMax,
                                            2, 1,
-                                           state, ch, outputAngleOff);
+                                           state, arrayEdit, ch, outputAngleOff);
         sec.dials[1].barColour = juce::Colour (0xFFE53935);  // Red (angle off)
 
         // Dial 2: Orientation (-180 to 180 degrees)
@@ -235,7 +240,7 @@ inline StreamDeckPage createOutputParametersPage (WFSValueTreeState& state,
                                            LOC ("units.degrees"),
                                            outputOrientationMin, outputOrientationMax,
                                            5, 1,
-                                           state, ch, outputOrientation);
+                                           state, arrayEdit, ch, outputOrientation);
         sec.dials[2].barColour = juce::Colour (0xFF26A69A);  // Teal (spatial)
 
         // Dial 3: Pitch (-90 to 90 degrees)
@@ -243,7 +248,7 @@ inline StreamDeckPage createOutputParametersPage (WFSValueTreeState& state,
                                            LOC ("units.degrees"),
                                            outputPitchMin, outputPitchMax,
                                            2, 1,
-                                           state, ch, outputPitch);
+                                           state, arrayEdit, ch, outputPitch);
         sec.dials[3].barColour = juce::Colour (0xFF26A69A);  // Teal (spatial)
     }
 
@@ -288,6 +293,7 @@ static constexpr int comboToShape[] = { 1, 2, 3, 4, 7, 5, 6 };
 static constexpr int shapeToCombo[] = { 0, 0, 1, 2, 3, 5, 6, 4 };
 
 inline StreamDeckPage createOutputEQPage (WFSValueTreeState& state,
+                                            ArrayParamEdit& arrayEdit,
                                             int channelIndex,
                                             std::shared_ptr<int> selectedBand,
                                             std::function<void (int)> onBandSelectedInGui = nullptr)
@@ -347,10 +353,10 @@ inline StreamDeckPage createOutputEQPage (WFSValueTreeState& state,
             return static_cast<int> (state.getOutputParameter (ch, outputEQenabled)) != 0;
         };
 
-        btn.onPress = [&state, ch]()
+        btn.onPress = [&state, &arrayEdit, ch]()
         {
             int current = static_cast<int> (state.getOutputParameter (ch, outputEQenabled));
-            state.setOutputParameter (ch, outputEQenabled, current != 0 ? 0 : 1);
+            arrayEdit.write (ch, outputEQenabled, current != 0 ? 0 : 1);
         };
 
         btn.getDynamicLabel = [&state, ch]()
@@ -390,14 +396,14 @@ inline StreamDeckPage createOutputEQPage (WFSValueTreeState& state,
                 return static_cast<int> (bt.getProperty (eqShape, 0)) != 0;
             };
 
-            btn.onPress = [&state, ch, band]()
+            btn.onPress = [&state, &arrayEdit, ch, band]()
             {
                 auto bt = state.getOutputEQBand (ch, band);
                 int shape = static_cast<int> (bt.getProperty (eqShape, 0));
                 if (shape != 0)
-                    state.setOutputEQBandParameterWithArrayPropagation (ch, band, eqShape, 0);
+                    arrayEdit.writeEQ (ch, band, eqShape, 0);
                 else
-                    state.setOutputEQBandParameterWithArrayPropagation (ch, band, eqShape, eqBandComboDefaults[band]);
+                    arrayEdit.writeEQ (ch, band, eqShape, eqBandComboDefaults[band]);
             };
 
             btn.getDynamicLabel = [&state, ch, band]()
@@ -444,10 +450,10 @@ inline StreamDeckPage createOutputEQPage (WFSValueTreeState& state,
                 return static_cast<float> (shapeToCombo[shape]);
             };
 
-            dial.setValue = [&state, ch, band] (float v)
+            dial.setValue = [&arrayEdit, ch, band] (float v)
             {
                 int comboIndex = juce::jlimit (0, 6, juce::roundToInt (v));
-                state.setOutputEQBandParameterWithArrayPropagation (ch, band, eqShape, comboToShape[comboIndex]);
+                arrayEdit.writeEQ (ch, band, eqShape, comboToShape[comboIndex]);
             };
         }
 
@@ -472,9 +478,9 @@ inline StreamDeckPage createOutputEQPage (WFSValueTreeState& state,
                 return static_cast<float> (bt.getProperty (eqFrequency, eqFrequencyDefault));
             };
 
-            dial.setValue = [&state, ch, band] (float v)
+            dial.setValue = [&arrayEdit, ch, band] (float v)
             {
-                state.setOutputEQBandParameterWithArrayPropagation (ch, band, eqFrequency, v);
+                arrayEdit.writeEQ (ch, band, eqFrequency, v);
             };
 
             dial.barColour = bandColour;
@@ -502,9 +508,9 @@ inline StreamDeckPage createOutputEQPage (WFSValueTreeState& state,
                 return static_cast<float> (bt.getProperty (eqGain, eqGainDefault));
             };
 
-            dial.setValue = [&state, ch, band] (float v)
+            dial.setValue = [&arrayEdit, ch, band] (float v)
             {
-                state.setOutputEQBandParameterWithArrayPropagation (ch, band, eqGain, v);
+                arrayEdit.writeEQ (ch, band, eqGain, v);
             };
 
             // Dynamic name: show "—" for LowCut(1), BandPass(4), HighCut(6), AllPass(7)
@@ -540,9 +546,9 @@ inline StreamDeckPage createOutputEQPage (WFSValueTreeState& state,
                 return static_cast<float> (bt.getProperty (eqQ, eqQDefault));
             };
 
-            dial.setValue = [&state, ch, band] (float v)
+            dial.setValue = [&arrayEdit, ch, band] (float v)
             {
-                state.setOutputEQBandParameterWithArrayPropagation (ch, band, eqQ, v);
+                arrayEdit.writeEQ (ch, band, eqQ, v);
             };
 
             dial.barColour = bandColour;
@@ -565,20 +571,22 @@ static constexpr int OUTPUTS_MAIN_TAB_INDEX = 2;
 /** Create a Stream Deck page for the given Outputs subtab.
     @param subTabIndex   Subtab index (0 = Parameters, 1 = EQ)
     @param state         The shared value tree state
+    @param arrayEdit     Array-bypass gate for user-originated output writes
     @param channelIndex  Output channel index (0-based)
     @param selectedBand  Shared EQ band selection state (0-5)
 */
 inline StreamDeckPage createPage (int subTabIndex,
                                    WFSValueTreeState& state,
+                                   ArrayParamEdit& arrayEdit,
                                    int channelIndex,
                                    std::shared_ptr<int> selectedBand = nullptr,
                                    std::function<void (int)> onBandSelectedInGui = nullptr)
 {
     switch (subTabIndex)
     {
-        case 0:  return createOutputParametersPage (state, channelIndex);
+        case 0:  return createOutputParametersPage (state, arrayEdit, channelIndex);
         case 1:  if (selectedBand != nullptr)
-                     return createOutputEQPage (state, channelIndex, selectedBand, onBandSelectedInGui);
+                     return createOutputEQPage (state, arrayEdit, channelIndex, selectedBand, onBandSelectedInGui);
                  return StreamDeckPage ("Outputs > EQ");
         default: return StreamDeckPage ("Outputs > Unknown");
     }

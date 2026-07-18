@@ -332,6 +332,7 @@
     "messages": {
       "setToSingle": "Saída {num} definida como Individual",
       "assignedToArray": "Saída {num} atribuída ao Array {array}",
+      "arrayEditSingle": "Edição com Ctrl: alteração aplicada apenas a esta saída (Array {array} não afetado)",
       "selectFolderFirst": "Por favor, selecione primeiro uma pasta de projeto em System Config.",
       "configSaved": "Configuração de saída guardada.",
       "configLoaded": "Configuração de saída carregada.",

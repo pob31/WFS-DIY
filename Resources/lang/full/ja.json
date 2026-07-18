@@ -862,6 +862,7 @@
     "messages": {
       "setToSingle": "出力 {num} をシングルに設定",
       "assignedToArray": "出力 {num} をアレイ {array} に割り当て",
+      "arrayEditSingle": "Ctrl編集: 変更をこの出力のみに適用 (アレイ {array} には影響しません)",
       "selectFolderFirst": "まずシステム設定でプロジェクトフォルダを選択してください。",
       "configSaved": "出力設定を保存しました。",
       "configLoaded": "出力設定を読み込みました。",

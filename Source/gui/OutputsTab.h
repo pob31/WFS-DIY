@@ -130,6 +130,14 @@ public:
             binauralTree.addListener(this);
         ColorScheme::Manager::getInstance().addListener(this);
 
+        // Announce Ctrl/Cmd bypassed edits (change limited to this output,
+        // array propagation skipped) in the status bar, once per gesture.
+        parameters.getArrayEdit().onBypassStarted = [this](int arrayId) {
+            showStatusMessage(LocalizationManager::getInstance().get(
+                "outputs.messages.arrayEditSingle",
+                {{"array", juce::String(arrayId)}}));
+        };
+
         // ==================== HEADER SECTION ====================
         // Channel Selector - use configured output count
         int numOutputs = parameters.getNumOutputChannels();
@@ -286,6 +294,7 @@ public:
 
     ~OutputsTab() override
     {
+        parameters.getArrayEdit().onBypassStarted = nullptr;
         ColorScheme::Manager::getInstance().removeListener(this);
         outputsTree.removeListener(this);
         configTree.removeListener(this);
@@ -1939,14 +1948,15 @@ private:
     void saveOutputParam(const juce::Identifier& paramId, const juce::var& value)
     {
         if (isLoadingParameters) return;
-        parameters.setOutputParam(currentChannel - 1, paramId.toString(), value);
+        // Routes through the array-bypass gate: Ctrl/Cmd limits the edit to
+        // this output, otherwise normal array propagation applies.
+        parameters.getArrayEdit().write(currentChannel - 1, paramId, value);
     }
 
     void saveEqBandParam(int bandIndex, const juce::Identifier& paramId, const juce::var& value)
     {
         if (isLoadingParameters) return;
-        // Array propagation is now handled automatically by setOutputEQBandParam
-        parameters.setOutputEQBandParam(currentChannel - 1, bandIndex, paramId.toString(), value);
+        parameters.getArrayEdit().writeEQ(currentChannel - 1, bandIndex, paramId, value);
     }
 
     juce::String formatFrequency(int freq)

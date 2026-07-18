@@ -6,6 +6,7 @@
 #include "Parameters/WFSValueTreeState.h"
 #include "Parameters/WFSFileManager.h"
 #include "Parameters/ParameterDirtyTracker.h"
+#include "Parameters/ArrayParamEdit.h"
 
 /**
  * WFS Parameters - Backward Compatible Wrapper
@@ -260,6 +261,11 @@ public:
     ParameterDirtyTracker& getDirtyTracker() { return dirtyTracker; }
     const ParameterDirtyTracker& getDirtyTracker() const { return dirtyTracker; }
 
+    /** Get the array-bypass editing gate for output parameters (Ctrl/Cmd
+        during a user edit limits the change to the edited output instead of
+        propagating to its array) */
+    ArrayParamEdit& getArrayEdit() { return arrayEdit; }
+
     /** Get undo manager for the active domain */
     juce::UndoManager* getUndoManager() { return valueTreeState.getUndoManager(); }
 
@@ -273,6 +279,7 @@ private:
     WFSValueTreeState valueTreeState;
     WFSFileManager fileManager;
     ParameterDirtyTracker dirtyTracker;
+    ArrayParamEdit arrayEdit { valueTreeState };
 
     //==============================================================================
     // Parameter Name Mapping

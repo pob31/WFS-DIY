@@ -895,6 +895,7 @@
     "messages": {
       "setToSingle": "Salida {num} configurada como Individual",
       "assignedToArray": "Salida {num} asignada al Grupo {array}",
+      "arrayEditSingle": "Edición con Ctrl: cambio aplicado solo a esta salida (Grupo {array} no afectado)",
       "selectFolderFirst": "Por favor seleccione primero una carpeta de proyecto en Config Sistema.",
       "configSaved": "Configuración de salidas guardada.",
       "configLoaded": "Configuración de salidas cargada.",

@@ -862,6 +862,7 @@
     "messages": {
       "setToSingle": "출력 {num}이(가) 단일로 설정됨",
       "assignedToArray": "출력 {num}이(가) 어레이 {array}에 할당됨",
+      "arrayEditSingle": "Ctrl 편집: 변경이 이 출력에만 적용됨 (어레이 {array}에는 영향 없음)",
       "selectFolderFirst": "시스템 설정에서 먼저 프로젝트 폴더를 선택하세요.",
       "configSaved": "출력 설정이 저장되었습니다.",
       "configLoaded": "출력 설정이 로드되었습니다.",

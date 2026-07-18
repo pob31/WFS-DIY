@@ -332,6 +332,7 @@
     "messages": {
       "setToSingle": "输出 {num} 设置为单独",
       "assignedToArray": "输出 {num} 分配到阵列 {array}",
+      "arrayEditSingle": "Ctrl 编辑：更改仅应用于此输出（不影响阵列 {array}）",
       "selectFolderFirst": "请先在System Config中选择项目文件夹。",
       "configSaved": "输出配置已保存。",
       "configLoaded": "输出配置已加载。",

@@ -963,7 +963,7 @@ MainComponent::MainComponent()
         {
             streamDeckManager->registerPage (
                 OutputsTabPages::OUTPUTS_MAIN_TAB_INDEX, subTab,
-                OutputsTabPages::createPage (subTab, vts, 0, outputEqBandState, onEqBandSelectedGui));
+                OutputsTabPages::createPage (subTab, vts, parameters.getArrayEdit(), 0, outputEqBandState, onEqBandSelectedGui));
         }
 
         // Register Reverb tab pages (subtab 0 = Channel Params, 1 = Pre-Processing, 3 = Post-Processing)
@@ -1296,7 +1296,7 @@ MainComponent::MainComponent()
             {
                 auto& vts = parameters.getValueTreeState();
                 streamDeckManager->registerPage (mainTab, subTab,
-                    OutputsTabPages::createPage (subTab, vts, channel - 1, outputEqBandState, onEqBandSelectedGui));
+                    OutputsTabPages::createPage (subTab, vts, parameters.getArrayEdit(), channel - 1, outputEqBandState, onEqBandSelectedGui));
             }
             else if (mainTab == NetworkTabPages::NETWORK_MAIN_TAB_INDEX)
             {
