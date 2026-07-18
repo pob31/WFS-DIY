@@ -119,10 +119,12 @@ private:
         // Long-press affordance: a right-pointing triangle outline on the left
         // edge — a lighter shade on dark buttons, a darker shade on light buttons —
         // so a long-press button reads as distinct from an ordinary one at a glance.
+        // Faint at rest, rising to full strength on hover.
         {
             bool darkBg = bgColour.getBrightness() < 0.5f;
             auto triColour = darkBg ? bgColour.brighter(0.5f) : bgColour.darker(0.35f);
-            g.setColour(isEnabled() ? triColour : triColour.withAlpha(0.4f));
+            float triAlpha = !isEnabled() ? 0.3f : (shouldHighlight ? 1.0f : 0.4f);
+            g.setColour(triColour.withAlpha(triAlpha));
 
             float triH = juce::jmin(9.0f, bounds.getHeight() * 0.4f);
             float triW = triH * 0.72f;
