@@ -5331,15 +5331,10 @@ private:
                 if (result == 1)  // OK clicked
                 {
                     findDevicePassword = alertWindow->getTextEditorContents("password");
-                    if (findDevicePassword.isNotEmpty())
-                    {
-                        sendFindDeviceOsc();
-                    }
-                    else
-                    {
-                        if (statusBar != nullptr)
-                            statusBar->setHelpText(LOC("network.messages.passwordEmpty"));
-                    }
+                    // Send regardless of whether the field is empty: a tablet with no
+                    // find-my-device password set responds to an empty password, while a
+                    // protected one simply ignores the non-matching empty string.
+                    sendFindDeviceOsc();
                 }
                 delete alertWindow;
             }
