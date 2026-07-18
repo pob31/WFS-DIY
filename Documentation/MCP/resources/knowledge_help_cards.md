@@ -16,6 +16,26 @@ Each section has a separate xml file (System configuration, Network, Outputs, Re
 Each section can be stored and recalled individually or as a whole.
 Each section can also export and import files from other projects.
 
+*Keyboard Shortcuts*
+H opens the help card closest to the pointer.
+I, O and R open the Input, Output and Reverb tabs respectively; for a few seconds afterwards you can type a channel number to select it (confirm with Enter).
+N opens the Network tab.
+C opens the Clusters tab.
+M opens the Map tab.
+Spacebar scrolls to the next channel and Shift+Spacebar to the previous one in the Input, Output and Reverb tabs. On the Clusters tab they cycle through the clusters.
+Ctrl/Cmd while adjusting a parameter of an output channel that is part of an array adjusts the parameter for the selected channel only, temporarily disabling the propagation to the rest of the array.
+F1 to F10 assign inputs to the corresponding cluster in the Input and Map tabs, assign outputs to the corresponding array in the Output tab, and select the corresponding cluster in the Clusters tab. F11 sets the channel back to Single.
+Shift while adjusting a parameter of an input that is part of a cluster adjusts this parameter for the other inputs of the cluster in relative mode: the variation affects all inputs of the cluster, but relative offsets are kept. Ctrl/Cmd+Shift changes the parameter in absolute mode: the value becomes identical across all inputs of the cluster.
+Ctrl/Cmd+Z undoes the last change; Ctrl/Cmd+Y or Ctrl/Cmd+Shift+Z redoes it.
+
+*Diagnostics & Feedback*
+The diagnostic tools are hidden by default: long-press the Diagnostics button to show or hide them. They appear automatically when the previous session did not shut down cleanly.
+To send feedback or report a problem, click Report Issue: it opens the project's GitHub issue tracker in your browser. Describe what happened, what you expected and the steps to reproduce it, then attach the exported diagnostic data.
+Export Logs copies the useful data to a WFS-DIY-logs folder at the location you choose: the logs of the current and up to five previous sessions, plus the application settings file. Attach this folder (or a zip of it) to your report.
+The session logs contain start-up information (application version, operating system, CPU, channel counts), project loading, network activity and errors. No audio is ever recorded.
+Open Log Folder shows the raw session logs on disk (the WFS-DIY/logs folder in the user application data directory), useful to find a specific session.
+Copy System Info puts a short summary on the clipboard — application version, operating system, CPU and the current audio device with its sample rate and buffer size — ready to paste into an issue.
+
 *Network*
 The system can communicate through several network protocols, (UDP or TCP) using OSC. OSC query can be enabled to allow the clients to discover the possible OSC paths and subscribe to some parameter updates.
 The IP of the local machine corresponding to the selected network interface is shown. The incoming TCP and UDP ports as well as the OSC Query port.

@@ -508,10 +508,42 @@ private:
     class BodyComponent : public juce::Component
     {
     public:
+        /** Parse lightweight *emphasis* markup: text between single asterisks
+            is rendered bold in the primary text colour (used to highlight key
+            names in the Keyboard Shortcuts card). Text without asterisks
+            renders exactly as before. */
+        static juce::AttributedString buildAttributedText(const juce::String& text,
+                                                          const juce::Font& normalFont)
+        {
+            auto& palette = ColorScheme::get();
+            const auto boldFont = normalFont.boldened();
+
+            juce::AttributedString as;
+            as.setJustification(juce::Justification::topLeft);
+            as.setLineSpacing(normalFont.getHeight() * 0.4f);
+
+            juce::String rest = text;
+            bool isBold = false;
+            for (int idx = rest.indexOfChar('*'); idx >= 0; idx = rest.indexOfChar('*'))
+            {
+                auto segment = rest.substring(0, idx);
+                if (segment.isNotEmpty())
+                    as.append(segment, isBold ? boldFont : normalFont,
+                              isBold ? palette.textPrimary : palette.textSecondary);
+                rest = rest.substring(idx + 1);
+                isBold = ! isBold;
+            }
+            if (rest.isNotEmpty())
+                as.append(rest, isBold ? boldFont : normalFont,
+                          isBold ? palette.textPrimary : palette.textSecondary);
+            return as;
+        }
+
         void paint(juce::Graphics& g) override
         {
             float scale = WfsLookAndFeel::uiScale;
             auto font = juce::Font(juce::FontOptions().withHeight(juce::jmax(15.0f, 19.0f * scale)));
+            float lineH = font.getHeight() * 1.4f;
             int w = getWidth();
             int y = 0;
 
@@ -525,18 +557,11 @@ private:
                 }
                 else
                 {
-                    // Draw text
-                    g.setColour(ColorScheme::get().textSecondary);
-                    g.setFont(font);
-                    float lineH = font.getHeight() * 1.4f;
-                    juce::GlyphArrangement glyphs;
-                    glyphs.addJustifiedText(font, section.text, 0.0f, (float)y + lineH,
-                                            (float)w, juce::Justification::left);
-                    glyphs.draw(g);
-                    int numLines = glyphs.getNumGlyphs() > 0
-                        ? (int)((glyphs.getBoundingBox(glyphs.getNumGlyphs() - 1, 1, true).getBottom() - (float)y) / lineH) + 1
-                        : 1;
-                    y += (int)(numLines * lineH + lineH * 0.5f);
+                    auto as = buildAttributedText(section.text, font);
+                    juce::TextLayout layout;
+                    layout.createLayout(as, (float)w);
+                    layout.draw(g, juce::Rectangle<float>(0.0f, (float)y, (float)w, layout.getHeight()));
+                    y += (int)std::ceil(layout.getHeight() + lineH * 0.5f);
                 }
             }
         }
@@ -556,13 +581,10 @@ private:
                 }
                 else
                 {
-                    // Match paint() logic: text starts at y + lineH baseline
-                    juce::GlyphArrangement glyphs;
-                    glyphs.addJustifiedText(font, section.text, 0.0f, lineH, (float)width, juce::Justification::left);
-                    float textBottom = lineH; // minimum one line
-                    if (glyphs.getNumGlyphs() > 0)
-                        textBottom = glyphs.getBoundingBox(glyphs.getNumGlyphs() - 1, 1, true).getBottom();
-                    totalH += (int)(textBottom + lineH);
+                    auto as = buildAttributedText(section.text, font);
+                    juce::TextLayout layout;
+                    layout.createLayout(as, (float)width);
+                    totalH += (int)std::ceil(layout.getHeight() + lineH * 0.5f);
                 }
             }
             return totalH + (int)lineH;

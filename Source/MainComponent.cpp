@@ -6777,6 +6777,16 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         tabbedComponent.setCurrentTabIndex(6);  // Map tab
         return true;
     }
+    if (key.isKeyCode('N') && !key.getModifiers().isCommandDown())
+    {
+        tabbedComponent.setCurrentTabIndex(1);  // Network tab
+        return true;
+    }
+    if (key.isKeyCode('C') && !key.getModifiers().isCommandDown())
+    {
+        tabbedComponent.setCurrentTabIndex(5);  // Clusters tab
+        return true;
+    }
 
     // Help card cycling: H key
     // Get current tab index for tab-specific shortcuts

@@ -1114,6 +1114,12 @@ public:
         sessionDataHelpCard.setContent(LOC("help.sessionData.title"), LOC("help.sessionData.body"));
         sessionDataHelpButton.setCard(&sessionDataHelpCard);
 
+        // Keyboard Shortcuts help card (scrollable — the list is long)
+        addAndMakeVisible(shortcutsHelpButton);
+        addChildComponent(shortcutsHelpCard);
+        shortcutsHelpCard.setContent(LOC("help.shortcuts.title"), LOC("help.shortcuts.body"));
+        shortcutsHelpButton.setCard(&shortcutsHelpCard);
+
         // Store/Reload Section
         addAndMakeVisible(selectProjectFolderButton);
         selectProjectFolderButton.setButtonText(LOC("systemConfig.buttons.selectProjectFolder"));
@@ -1212,6 +1218,15 @@ public:
         // Update-available hyperlink — hidden until UpdateChecker reports a newer release.
         addChildComponent (updateAvailableLink);
         updateAvailableLink.setJustificationType (juce::Justification::centredLeft);
+
+        // Diagnostics & Feedback help card — always visible (it also explains
+        // how to reveal the long-press-hidden diagnostic tools). Added AFTER
+        // versionLabel: the "?" sits inside the label's full-width row, so it
+        // must be above it in z-order or the label swallows the clicks.
+        addAndMakeVisible (diagnosticsHelpButton);
+        addChildComponent (diagnosticsHelpCard);
+        diagnosticsHelpCard.setContent (LOC ("help.diagnostics.title"), LOC ("help.diagnostics.body"));
+        diagnosticsHelpButton.setCard (&diagnosticsHelpCard);
 
         // Setup numeric input filtering
         setupNumericEditors();
@@ -1592,6 +1607,19 @@ public:
             {
                 versionLabel.setBounds (x, diagY, fullWidth, rowHeight);
             }
+
+            // Diagnostics help "?" — right end of the version-label row
+            {
+                const int btnSize = scaled(20);  // matches every other "?" button across the tabs
+                diagnosticsHelpButton.setBounds (x + fullWidth - btnSize,
+                                                 diagY + (rowHeight - btnSize) / 2,
+                                                 btnSize, btnSize);
+                int cardW = juce::jmin(getWidth() - scaled(60), scaled(700));
+                int cardH = diagnosticsHelpCard.getIdealHeight(cardW);
+                diagnosticsHelpCard.setBounds(getWidth() / 2 - cardW / 2,
+                                              juce::jmax(scaled(20), getHeight() / 2 - cardH / 2),
+                                              cardW, cardH);
+            }
         }
 
         //======================================================================
@@ -1690,11 +1718,27 @@ public:
             int gsY = getHeight() - footerH - scaled(10) - rowHeight;
             gettingStartedButton.setBounds(layout.col1X, gsY, layout.colWidth, rowHeight);
 
-            // Overview help button — above Getting Started, right-aligned
-            const int btnSize = scaled(24);
+            // Overview help button — above Getting Started, right-aligned.
+            // scaled(20) matches every other "?" button across the tabs.
+            // (The Keyboard Shortcuts button below reuses this btnSize.)
+            const int btnSize = scaled(20);
             overviewHelpButton.setBounds (layout.col1X + layout.colWidth - btnSize,
                                           gsY - btnSize - spacing * 4,
                                           btnSize, btnSize);
+
+            // Keyboard Shortcuts help button — same right-aligned column as the
+            // overview "?", but up on the "UI" section header line (painted at
+            // scaled(290) with a scaled(20) row, see paint()).
+            shortcutsHelpButton.setBounds (layout.col1X + layout.colWidth - btnSize,
+                                           scaled(290) + (scaled(20) - btnSize) / 2,
+                                           btnSize, btnSize);
+
+            // Keyboard Shortcuts card — large, centered; scrolls if it overflows
+            int shortcutsW = juce::jmin(getWidth() - scaled(60), scaled(760));
+            int shortcutsH = juce::jmin(getHeight() - scaled(80), scaled(640));
+            shortcutsHelpCard.setBounds(getWidth() / 2 - shortcutsW / 2,
+                                        getHeight() / 2 - shortcutsH / 2,
+                                        shortcutsW, shortcutsH);
 
             // Overview help card — large, centered on screen
             int cardW = juce::jmin(getWidth() - scaled(60), scaled(900));
@@ -2049,7 +2093,8 @@ public:
 
     std::vector<HelpCardButton*> getVisibleHelpButtons() override
     {
-        return { &overviewHelpButton, &binauralHelpButton, &sessionDataHelpButton };
+        return { &overviewHelpButton, &shortcutsHelpButton, &binauralHelpButton,
+                 &sessionDataHelpButton, &diagnosticsHelpButton };
     }
 
 private:
@@ -3849,6 +3894,8 @@ public:
         helpTextMap[&overviewHelpButton] = LOC("help.overview.title");
         helpTextMap[&binauralHelpButton] = LOC("help.binaural.title");
         helpTextMap[&sessionDataHelpButton] = LOC("help.sessionData.title");
+        helpTextMap[&shortcutsHelpButton] = LOC("help.shortcuts.title");
+        helpTextMap[&diagnosticsHelpButton] = LOC("help.diagnostics.title");
         helpTextMap[&selectProjectFolderButton] = LOC("systemConfig.help.selectProjectFolder");
         helpTextMap[&storeCompleteConfigButton] = LOC("systemConfig.help.storeComplete");
         helpTextMap[&reloadCompleteConfigButton] = LOC("systemConfig.help.reloadComplete");
@@ -4105,6 +4152,10 @@ public:
     HelpCard sessionDataHelpCard;
     HelpCardButton overviewHelpButton;
     HelpCard overviewHelpCard;
+    HelpCardButton shortcutsHelpButton;
+    ScrollableHelpCard shortcutsHelpCard;
+    HelpCardButton diagnosticsHelpButton;
+    HelpCard diagnosticsHelpCard;
     juce::ToggleButton overviewDontShowToggle;
 
     // Store/Reload Section
