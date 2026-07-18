@@ -6,7 +6,14 @@
 #
 #   CODESIGN_IDENTITY_APP     - "Developer ID Application: ..." (optional)
 #   CODESIGN_IDENTITY_INSTALL - "Developer ID Installer: ..."   (optional)
-#   NOTARIZE_KEYCHAIN_PROFILE - notarytool keychain profile name (optional)
+#
+# Notarization credentials (resolved in this order, same contract as
+# scripts/ci/build-macos-release.sh; notarization runs when any is set):
+#   1. App Store Connect API key (used by CI):
+#        NOTARY_API_KEY (path to .p8) + NOTARY_API_KEY_ID + NOTARY_API_ISSUER
+#   2. Apple-ID app-specific password:
+#        NOTARY_APPLE_ID + NOTARY_PASSWORD + NOTARY_TEAM_ID
+#   3. notarytool keychain profile: NOTARIZE_KEYCHAIN_PROFILE
 #
 # Input tree layout (matches JUCE CMake):
 #   Plugin/Builds/CMake-macOS/WFSPlugin<Name>_artefacts/Release/<Format>/...
@@ -112,10 +119,26 @@ if [ -n "${CODESIGN_IDENTITY_INSTALL:-}" ]; then
     mv "$PKG_FINAL.signed" "$PKG_FINAL"
 fi
 
-if [ -n "${NOTARIZE_KEYCHAIN_PROFILE:-}" ]; then
-    echo "Submitting for notarization with profile: $NOTARIZE_KEYCHAIN_PROFILE"
-    xcrun notarytool submit "$PKG_FINAL" --keychain-profile "$NOTARIZE_KEYCHAIN_PROFILE" --wait
+NOTARY_AUTH=()
+if [ -n "${NOTARY_API_KEY:-}" ] && [ -n "${NOTARY_API_KEY_ID:-}" ] && [ -n "${NOTARY_API_ISSUER:-}" ]; then
+    NOTARY_AUTH=(--key "$NOTARY_API_KEY" --key-id "$NOTARY_API_KEY_ID" --issuer "$NOTARY_API_ISSUER")
+elif [ -n "${NOTARY_APPLE_ID:-}" ] && [ -n "${NOTARY_PASSWORD:-}" ] && [ -n "${NOTARY_TEAM_ID:-}" ]; then
+    NOTARY_AUTH=(--apple-id "$NOTARY_APPLE_ID" --password "$NOTARY_PASSWORD" --team-id "$NOTARY_TEAM_ID")
+elif [ -n "${NOTARIZE_KEYCHAIN_PROFILE:-}" ]; then
+    NOTARY_AUTH=(--keychain-profile "$NOTARIZE_KEYCHAIN_PROFILE")
+fi
+
+if [ "${#NOTARY_AUTH[@]}" -gt 0 ]; then
+    # Apple rejects unsigned installer packages outright.
+    if [ -z "${CODESIGN_IDENTITY_INSTALL:-}" ]; then
+        echo "ERROR: notarization requested but CODESIGN_IDENTITY_INSTALL is not set" >&2
+        echo "       (an unsigned pkg would be rejected by the notary service)" >&2
+        exit 1
+    fi
+    echo "Submitting for notarization"
+    xcrun notarytool submit "$PKG_FINAL" "${NOTARY_AUTH[@]}" --wait
     xcrun stapler staple "$PKG_FINAL"
+    xcrun stapler validate "$PKG_FINAL"
 fi
 
 echo "Produced: $PKG_FINAL"

@@ -76,6 +76,27 @@ Produces `Plugin/Installer/Output/WFS-DIY-Plugins-Linux-x86_64-0.0.2.tar.gz` con
     pwsh Plugin/Scripts/build-all.ps1 -SkipInstaller
     Plugin/Scripts/build-all.sh --skip-installer
 
+## CI and releases
+
+`.github/workflows/plugins-ci.yml` build-checks all three OSes on every
+push/PR touching `Plugin/**` (or the JUCE/juce_simpleweb third-party dirs)
+and uploads unsigned installer artifacts.
+
+`.github/workflows/plugins-release.yml` builds the distributable installers
+(signed + notarized `.pkg` on macOS) and attaches them to a GitHub Release.
+The plugin suite versions independently from the app — release ritual:
+
+1. Bump the version in **three** places (the release workflow refuses to run
+   if they disagree): `project(WFS-DIY-Plugins VERSION x.y.z)` and
+   `WFS_PLUGIN_VERSION_STRING` in `Plugin/CMakeLists.txt`, and
+   `MyAppVersion` in `Plugin/Installer/WFS-DIY-Plugins.iss`.
+2. Tag `plugins-vx.y.z` and publish a GitHub Release for that tag
+   (app releases keep their plain `v*` tags and skip this workflow).
+3. The workflow attaches `WFS-DIY-Plugins-Setup-x.y.z.exe`,
+   `WFS-DIY-Plugins-x.y.z.pkg`, `WFS-DIY-Plugins-Linux-x86_64-x.y.z.tar.gz`
+   and `.sha256` sidecars. macOS signing/notary secrets live in the
+   protected `WFS-DIY` environment (same as the app release).
+
 ## Architecture
 
 All plugins share one code base. Master owns the network connection to the WFS-DIY app (UDP OSC + OSC Query HTTP/WebSocket). Track plugins have no network code — they talk to Master through a process-wide singleton exposed by `WFS-DIY-PluginBridge` (a tiny shared library installed next to the VST3 bundles).
