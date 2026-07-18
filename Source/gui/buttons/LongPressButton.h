@@ -112,11 +112,13 @@ private:
         g.setColour(bgColour);
         g.fillRoundedRectangle(bounds, 4.0f);
         g.setColour(ColorScheme::get().buttonBorder);
-        g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
+        // Inset the stroke by half its width so the full 1px sits inside the
+        // bounds — otherwise the bottom/right edges clip to a faint half-pixel line.
+        g.drawRoundedRectangle(bounds.reduced(0.5f), 4.0f, 1.0f);
 
-        // Long-press affordance: a right-pointing triangle on the left edge — a
-        // lighter shade on dark buttons, a darker shade on light buttons — so a
-        // long-press button reads as distinct from an ordinary one at a glance.
+        // Long-press affordance: a right-pointing triangle outline on the left
+        // edge — a lighter shade on dark buttons, a darker shade on light buttons —
+        // so a long-press button reads as distinct from an ordinary one at a glance.
         {
             bool darkBg = bgColour.getBrightness() < 0.5f;
             auto triColour = darkBg ? bgColour.brighter(0.5f) : bgColour.darker(0.35f);
@@ -131,7 +133,8 @@ private:
             tri.lineTo(cx + triW, cy);
             tri.lineTo(cx, cy + triH * 0.5f);
             tri.closeSubPath();
-            g.fillPath(tri);
+            g.strokePath(tri, juce::PathStrokeType(1.2f, juce::PathStrokeType::curved,
+                                                   juce::PathStrokeType::rounded));
         }
 
         // Progress indicator during long press (fills from left to right)
