@@ -1950,12 +1950,18 @@ private:
         if (isLoadingParameters) return;
         // Routes through the array-bypass gate: Ctrl/Cmd limits the edit to
         // this output, otherwise normal array propagation applies.
+        // isSelfWriting stops valueTreePropertyChanged from scheduling a full
+        // loadChannelParameters for our own (synchronous) write, including the
+        // array-propagated member writes — one reload per drag event floods
+        // the message queue.
+        const juce::ScopedValueSetter<bool> selfWriteScope(isSelfWriting, true);
         parameters.getArrayEdit().write(currentChannel - 1, paramId, value);
     }
 
     void saveEqBandParam(int bandIndex, const juce::Identifier& paramId, const juce::var& value)
     {
         if (isLoadingParameters) return;
+        const juce::ScopedValueSetter<bool> selfWriteScope(isSelfWriting, true);
         parameters.getArrayEdit().writeEQ(currentChannel - 1, bandIndex, paramId, value);
     }
 
@@ -2496,8 +2502,9 @@ private:
         }
 
         // Check if this is a parameter change for the current channel (e.g., from OSC)
-        // Skip if we're already loading parameters (avoid recursion)
-        if (!isLoadingParameters)
+        // Skip if we're already loading parameters (avoid recursion) or if this
+        // tab made the write itself (its controls are already up to date).
+        if (!isLoadingParameters && !isSelfWriting)
         {
             // Find if this tree belongs to the current channel's Output tree
             juce::ValueTree parent = tree;
@@ -2508,11 +2515,20 @@ private:
                     int channelId = parent.getProperty(WFSParameterIDs::id, -1);
                     if (channelId == currentChannel)
                     {
-                        // This is a parameter change for the current channel - refresh UI
-                        juce::MessageManager::callAsync([this]()
+                        // This is a parameter change for the current channel -
+                        // refresh the UI. Coalesced: high-rate external writes
+                        // (OSC ramps, arrayAdjust) must not queue one full
+                        // reload per write.
+                        if (!channelReloadPending)
                         {
-                            loadChannelParameters(currentChannel);
-                        });
+                            channelReloadPending = true;
+                            juce::MessageManager::callAsync([this]()
+                            {
+                                channelReloadPending = false;
+                                if (currentChannel > 0)
+                                    loadChannelParameters(currentChannel);
+                            });
+                        }
                     }
                     break;
                 }
@@ -2534,6 +2550,8 @@ private:
     juce::ValueTree ioTree;
     juce::ValueTree binauralTree;
     bool isLoadingParameters = false;
+    bool isSelfWriting = false;         // True while this tab writes the tree itself (controls already up to date, skip reload)
+    bool channelReloadPending = false;  // At most one queued loadChannelParameters at a time (external writes are coalesced)
     StatusBar* statusBar = nullptr;
     std::map<juce::Component*, juce::String> helpTextMap;
     std::map<juce::Component*, juce::String> oscMethodMap;

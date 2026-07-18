@@ -3711,6 +3711,11 @@ private:
     {
         if (isLoadingParameters) return;
 
+        // isSelfWriting stops valueTreePropertyChanged from scheduling a full
+        // loadChannelParameters for our own (synchronous) writes — one reload
+        // per drag event floods the message queue.
+        const juce::ScopedValueSetter<bool> selfWriteScope (isSelfWriting, true);
+
         auto& vts = parameters.getValueTreeState();
 
         // EQ enable toggle is always global across all channels (existing behavior).
@@ -3748,6 +3753,7 @@ private:
     void saveEQBandParam (int bandIndex, const juce::Identifier& paramId, const juce::var& value)
     {
         if (isLoadingParameters) return;
+        const juce::ScopedValueSetter<bool> selfWriteScope (isSelfWriting, true);
 
         auto& vts = parameters.getValueTreeState();
         // Pre-EQ band changes propagate to all reverb channels
@@ -3815,6 +3821,7 @@ private:
     void saveAlgorithmParam (const juce::Identifier& paramId, const juce::var& value)
     {
         if (isLoadingParameters) return;
+        const juce::ScopedValueSetter<bool> selfWriteScope (isSelfWriting, true);
 
         auto& vts = parameters.getValueTreeState();
         auto section = vts.ensureReverbAlgorithmSection();
@@ -3825,6 +3832,7 @@ private:
     void savePostEQParam (const juce::Identifier& paramId, const juce::var& value)
     {
         if (isLoadingParameters) return;
+        const juce::ScopedValueSetter<bool> selfWriteScope (isSelfWriting, true);
 
         auto& vts = parameters.getValueTreeState();
         auto section = vts.ensureReverbPostEQSection();
@@ -3835,6 +3843,7 @@ private:
     void savePostEQBandParam (int bandIndex, const juce::Identifier& paramId, const juce::var& value)
     {
         if (isLoadingParameters) return;
+        const juce::ScopedValueSetter<bool> selfWriteScope (isSelfWriting, true);
 
         auto& vts = parameters.getValueTreeState();
         auto band = vts.getReverbPostEQBand (bandIndex);
@@ -3982,6 +3991,7 @@ private:
     void savePreCompParam (const juce::Identifier& paramId, const juce::var& value)
     {
         if (isLoadingParameters) return;
+        const juce::ScopedValueSetter<bool> selfWriteScope (isSelfWriting, true);
         auto& vts = parameters.getValueTreeState();
         auto preComp = vts.ensureReverbPreCompSection();
         if (preComp.isValid())
@@ -4052,6 +4062,7 @@ private:
     void savePostExpParam (const juce::Identifier& paramId, const juce::var& value)
     {
         if (isLoadingParameters) return;
+        const juce::ScopedValueSetter<bool> selfWriteScope (isSelfWriting, true);
         auto& vts = parameters.getValueTreeState();
         auto postExp = vts.ensureReverbPostExpSection();
         if (postExp.isValid())
@@ -5145,7 +5156,7 @@ private:
         }
 
         // Check if this is a ReverbAlgorithm parameter change (global)
-        if (!isLoadingParameters && tree.getType() == WFSParameterIDs::ReverbAlgorithm)
+        if (!isLoadingParameters && !isSelfWriting && tree.getType() == WFSParameterIDs::ReverbAlgorithm)
         {
             juce::MessageManager::callAsync ([this]()
             {
@@ -5157,7 +5168,7 @@ private:
         }
 
         // Check if this is a ReverbPreComp parameter change (global)
-        if (!isLoadingParameters && tree.getType() == WFSParameterIDs::ReverbPreComp)
+        if (!isLoadingParameters && !isSelfWriting && tree.getType() == WFSParameterIDs::ReverbPreComp)
         {
             juce::MessageManager::callAsync ([this]()
             {
@@ -5167,8 +5178,8 @@ private:
         }
 
         // Check if this is a ReverbPostEQ parameter change (global)
-        if (!isLoadingParameters && (tree.getType() == WFSParameterIDs::ReverbPostEQ ||
-                                     tree.getType() == WFSParameterIDs::PostEQBand))
+        if (!isLoadingParameters && !isSelfWriting && (tree.getType() == WFSParameterIDs::ReverbPostEQ ||
+                                                       tree.getType() == WFSParameterIDs::PostEQBand))
         {
             juce::MessageManager::callAsync ([this]()
             {
@@ -5178,7 +5189,7 @@ private:
         }
 
         // Check if this is a ReverbPostExp parameter change (global)
-        if (!isLoadingParameters && tree.getType() == WFSParameterIDs::ReverbPostExp)
+        if (!isLoadingParameters && !isSelfWriting && tree.getType() == WFSParameterIDs::ReverbPostExp)
         {
             juce::MessageManager::callAsync ([this]()
             {
@@ -5211,6 +5222,9 @@ private:
                 return;
             }
 
+            if (isSelfWriting)
+                return;  // this tab's own write — controls are already up to date
+
             juce::ValueTree parent = tree;
             while (parent.isValid())
             {
@@ -5219,10 +5233,18 @@ private:
                     int channelId = parent.getProperty (WFSParameterIDs::id, -1);
                     if (channelId == currentChannel)
                     {
-                        juce::MessageManager::callAsync ([this]()
+                        // Coalesced: high-rate external writes (OSC ramps) must
+                        // not queue one full reload per write.
+                        if (!channelReloadPending)
                         {
-                            loadChannelParameters (currentChannel);
-                        });
+                            channelReloadPending = true;
+                            juce::MessageManager::callAsync ([this]()
+                            {
+                                channelReloadPending = false;
+                                if (currentChannel > 0)
+                                    loadChannelParameters (currentChannel);
+                            });
+                        }
                     }
                     break;
                 }
@@ -5518,6 +5540,8 @@ private:
     juce::ValueTree configTree;
     juce::ValueTree ioTree;
     bool isLoadingParameters = false;
+    bool isSelfWriting = false;         // True while this tab writes the tree itself (controls already up to date, skip reload)
+    bool channelReloadPending = false;  // At most one queued loadChannelParameters at a time (external writes are coalesced)
     bool reverbPositionDirty = false;  // Coalesces rapid position updates from map drag
     StatusBar* statusBar = nullptr;
     int currentChannel = 1;
