@@ -731,6 +731,7 @@
   "clusters": {
     "labels": {
       "assignedInputs": "Assigned Inputs",
+      "clearInputs": "Clear Inputs",
       "reference": "Reference:",
       "position": "Position",
       "posPrefix": "Pos:",

@@ -1014,6 +1014,7 @@ private:
         minimalLatencyButton.setButtonText(LOC("inputs.toggles.acousticPrecedence"));
         minimalLatencyButton.setClickingTogglesState(true);
         minimalLatencyButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFD4A017));  // Yellow (time)
+        minimalLatencyButton.setColour(juce::TextButton::textColourOnId, juce::Colours::black);  // Black text reads clearly on the yellow active background
         minimalLatencyButton.onClick = [this]() {
             bool minLat = minimalLatencyButton.getToggleState();
             minimalLatencyButton.setButtonText(minLat ? LOC("inputs.toggles.minimalLatency") : LOC("inputs.toggles.acousticPrecedence"));
@@ -1826,6 +1827,7 @@ private:
             directivityValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputDirectivity, degrees);
             inputDirectivityDial.setDirectivity(static_cast<float>(degrees));
+            updateDirectivityDimming();
         };
         addAndMakeVisible(directivitySlider);
         addAndMakeVisible(directivityValueLabel);
@@ -1886,12 +1888,37 @@ private:
             hfShelfValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputHFshelf, dB);
             inputDirectivityDial.setHfShelf(dB);
+            updateDirectivityDimming();
         };
         addAndMakeVisible(hfShelfSlider);
         addAndMakeVisible(hfShelfValueLabel);
         hfShelfValueLabel.setText("-6.0 dB", juce::dontSendNotification);
         hfShelfValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(hfShelfValueLabel);
+    }
+
+    /** Dim the directivity control group when the feature has no audible effect:
+        an omnidirectional source (360°) or a flat HF shelf (0 dB) means directivity,
+        HF shelf, rotation and tilt all do nothing, so grey them out to make that clear. */
+    void updateDirectivityDimming()
+    {
+        bool active = (inputDirectivityDial.getDirectivity() < 359.5f)
+                   && (inputDirectivityDial.getHfShelf() < -0.05f);
+        float alpha = active ? 1.0f : 0.5f;
+
+        directivityLabel.setAlpha(alpha);
+        directivitySlider.setAlpha(alpha);
+        directivityValueLabel.setAlpha(alpha);
+        hfShelfLabel.setAlpha(alpha);
+        hfShelfSlider.setAlpha(alpha);
+        hfShelfValueLabel.setAlpha(alpha);
+        rotationLabel.setAlpha(alpha);
+        inputDirectivityDial.setAlpha(alpha);
+        rotationValueLabel.setAlpha(alpha);
+        rotationUnitLabel.setAlpha(alpha);
+        tiltLabel.setAlpha(alpha);
+        tiltSlider.setAlpha(alpha);
+        tiltValueLabel.setAlpha(alpha);
     }
 
     void setupLiveSourceTab()
@@ -5284,6 +5311,8 @@ private:
         hfShelfSlider.setValue(juce::jlimit(0.0f, 1.0f, hfShelfSliderVal));
         hfShelfValueLabel.setText(juce::String(hfShelfDB, 1) + " dB", juce::dontSendNotification);
         inputDirectivityDial.setHfShelf(hfShelfDB);
+
+        updateDirectivityDimming();
 
         // ==================== LIVE SOURCE TAB ====================
         bool lsActive = getIntParam(WFSParameterIDs::inputLSactive, 0) != 0;

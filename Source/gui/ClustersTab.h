@@ -218,6 +218,13 @@ public:
         inputsList.setColour(juce::ListBox::backgroundColourId, ColorScheme::get().backgroundAlt);
         inputsList.setRowHeight(24);
 
+        // Clear-inputs button at the bottom of the input list. Long press guards
+        // it so the whole cluster isn't emptied by an accidental tap.
+        addAndMakeVisible(clearInputsButton);
+        clearInputsButton.setButtonText(LOC("clusters.labels.clearInputs"));
+        clearInputsButton.setBaseColour(juce::Colour(0xFFB71C1C));
+        clearInputsButton.onLongPress = [this]() { clearClusterInputs(); };
+
         // ==================== CENTER PANEL - REFERENCE + CONTROLS ====================
         // Reference mode selector
         addAndMakeVisible(referenceModeLabel);
@@ -485,6 +492,8 @@ public:
         leftPanel.removeFromTop(scaled(4));
         inputsVisibilityButton.setBounds(leftPanel.removeFromTop(scaled(22)));
         leftPanel.removeFromTop(scaled(5));
+        clearInputsButton.setBounds(leftPanel.removeFromBottom(scaled(28)));
+        leftPanel.removeFromBottom(scaled(5));
         inputsList.setBounds(leftPanel);
 
         // Help button — top-right of center panel
@@ -826,6 +835,7 @@ private:
     juce::Label assignedInputsLabel;
     juce::TextButton inputsVisibilityButton;
     juce::ListBox inputsList { {}, this };
+    LongPressButton clearInputsButton { 700 }; // long press guards this destructive action
 
     // Reference + status
     juce::Label referenceModeLabel;
@@ -2178,6 +2188,23 @@ private:
                                                   : "clusters.toggles.inputsHidden"));
     }
 
+    /** Unassign every input from the currently displayed cluster. The inputCluster
+        listener refreshes the list, the cluster-button counts, and re-applies the
+        cluster visibility/shared-position policy. */
+    void clearClusterInputs()
+    {
+        if (selectedCluster < 1)
+            return;
+
+        parameters.getValueTreeState().beginUndoTransaction("Clear Cluster Inputs");
+        int numInputs = parameters.getNumInputChannels();
+        for (int i = 0; i < numInputs; ++i)
+        {
+            if (static_cast<int>(parameters.getInputParam(i, "inputCluster")) == selectedCluster)
+                parameters.setInputParam(i, "inputCluster", 0);
+        }
+    }
+
     void applyClusterPolicyAfterInputClusterChange()
     {
         int numInputs = parameters.getNumInputChannels();
@@ -2323,6 +2350,9 @@ private:
 
         inputsList.updateContent();
         inputsList.repaint();
+
+        // Nothing to clear when the cluster is empty.
+        clearInputsButton.setEnabled(!assignedInputs.empty());
     }
 
     //==========================================================================

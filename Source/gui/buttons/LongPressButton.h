@@ -99,18 +99,40 @@ private:
         bounds.removeFromRight(6.0f);
 
         // Background — always use theme button colors (slightly darker for footer buttons)
+        juce::Colour bgColour;
         if (!isEnabled())
-            g.setColour(ColorScheme::get().buttonNormal.withAlpha(0.4f));
+            bgColour = ColorScheme::get().buttonNormal.withAlpha(0.4f);
         else if (shouldBeDown)
-            g.setColour(hasCustomBaseColour ? ColorScheme::get().buttonPressed.darker(0.15f) : ColorScheme::get().buttonPressed);
+            bgColour = hasCustomBaseColour ? ColorScheme::get().buttonPressed.darker(0.15f) : ColorScheme::get().buttonPressed;
         else if (shouldHighlight)
-            g.setColour(hasCustomBaseColour ? ColorScheme::get().buttonHover.darker(0.15f) : ColorScheme::get().buttonHover);
+            bgColour = hasCustomBaseColour ? ColorScheme::get().buttonHover.darker(0.15f) : ColorScheme::get().buttonHover;
         else
-            g.setColour(hasCustomBaseColour ? ColorScheme::get().buttonNormal.darker(0.15f) : ColorScheme::get().buttonNormal);
+            bgColour = hasCustomBaseColour ? ColorScheme::get().buttonNormal.darker(0.15f) : ColorScheme::get().buttonNormal;
 
+        g.setColour(bgColour);
         g.fillRoundedRectangle(bounds, 4.0f);
         g.setColour(ColorScheme::get().buttonBorder);
         g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
+
+        // Long-press affordance: a right-pointing triangle on the left edge — a
+        // lighter shade on dark buttons, a darker shade on light buttons — so a
+        // long-press button reads as distinct from an ordinary one at a glance.
+        {
+            bool darkBg = bgColour.getBrightness() < 0.5f;
+            auto triColour = darkBg ? bgColour.brighter(0.5f) : bgColour.darker(0.35f);
+            g.setColour(isEnabled() ? triColour : triColour.withAlpha(0.4f));
+
+            float triH = juce::jmin(9.0f, bounds.getHeight() * 0.4f);
+            float triW = triH * 0.72f;
+            float cx = bounds.getX() + 7.0f;
+            float cy = bounds.getCentreY();
+            juce::Path tri;
+            tri.startNewSubPath(cx, cy - triH * 0.5f);
+            tri.lineTo(cx + triW, cy);
+            tri.lineTo(cx, cy + triH * 0.5f);
+            tri.closeSubPath();
+            g.fillPath(tri);
+        }
 
         // Progress indicator during long press (fills from left to right)
         if (isLongPressActive && !thresholdReached)
