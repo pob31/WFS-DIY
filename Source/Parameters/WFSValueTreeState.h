@@ -168,6 +168,9 @@ public:
     /** Check if an EQ band parameter is array-linked */
     static bool isArrayLinkedEQParameter (const juce::Identifier& paramId);
 
+    /** Check if an output parameter is an on/off toggle (no meaningful relative delta) */
+    static bool isBooleanOutputParameter (const juce::Identifier& paramId);
+
     /** Get the ValueTree for a specific output channel subsection */
     juce::ValueTree getOutputChannelSection (int channelIndex);
     juce::ValueTree getOutputPositionSection (int channelIndex);

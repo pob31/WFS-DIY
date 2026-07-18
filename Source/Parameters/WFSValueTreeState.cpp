@@ -626,6 +626,16 @@ bool WFSValueTreeState::isArrayLinkedEQParameter (const juce::Identifier& paramI
            paramId == eqSlope;
 }
 
+bool WFSValueTreeState::isBooleanOutputParameter (const juce::Identifier& paramId)
+{
+    // On/off toggles: a "relative" delta is meaningless for these, so array
+    // propagation must always share the absolute state (see propagation below).
+    return paramId == outputMiniLatencyEnable ||
+           paramId == outputLSattenEnable ||
+           paramId == outputFRenable ||
+           paramId == outputEQenabled;
+}
+
 float WFSValueTreeState::clampOutputParamToRange (const juce::Identifier& paramId, float value)
 {
     using namespace WFSParameterDefaults;
@@ -725,9 +735,11 @@ void WFSValueTreeState::setOutputParameterWithArrayPropagation (int channelIndex
         if (memberApplyMode == 0)  // This member is unlinked (OFF)
             continue;
 
-        // Absolute value only when BOTH source and member are ABSOLUTE;
-        // otherwise apply the delta (RELATIVE source, or ABSOLUTE source → RELATIVE member)
-        if (applyMode == 1 && memberApplyMode == 1)
+        // Absolute value when BOTH source and member are ABSOLUTE, or for on/off
+        // toggles in any mode — a toggle has no meaningful relative offset, so a
+        // delta would invert already-matching members instead of sharing the state.
+        // Otherwise apply the delta (RELATIVE source, or ABSOLUTE source → RELATIVE member).
+        if ((applyMode == 1 && memberApplyMode == 1) || isBooleanOutputParameter (paramId))
         {
             setOutputParameterDirect (i, paramId, value);
         }
@@ -736,12 +748,10 @@ void WFSValueTreeState::setOutputParameterWithArrayPropagation (int channelIndex
             float memberCurrent = static_cast<float> (getOutputParameter (i, paramId));
             float memberNew = clampOutputParamToRange (paramId, memberCurrent + delta);
 
-            // For int parameters, round the result
+            // For int parameters, round the result (toggles never reach this branch)
             if (paramId == outputOrientation || paramId == outputAngleOn ||
                 paramId == outputAngleOff || paramId == outputPitch ||
-                paramId == outputDistanceAttenPercent ||
-                paramId == outputMiniLatencyEnable || paramId == outputLSattenEnable ||
-                paramId == outputFRenable || paramId == outputEQenabled)
+                paramId == outputDistanceAttenPercent)
             {
                 setOutputParameterDirect (i, paramId, static_cast<int> (std::round (memberNew)));
             }
