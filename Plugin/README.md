@@ -92,6 +92,10 @@ The plugin suite versions independently from the app — release ritual:
    `MyAppVersion` in `Plugin/Installer/WFS-DIY-Plugins.iss`.
 2. Tag `plugins-vx.y.z` and publish a GitHub Release for that tag
    (app releases keep their plain `v*` tags and skip this workflow).
+   Publish it as NOT the latest release — uncheck "Set as the latest
+   release" in the UI or use `gh release create --latest=false` — the
+   repo's "latest" is reserved for main-app `v*` releases (the workflow
+   also passes `make_latest: false` when attaching assets as a backstop).
 3. The workflow attaches `WFS-DIY-Plugins-Setup-x.y.z.exe`,
    `WFS-DIY-Plugins-x.y.z.pkg`, `WFS-DIY-Plugins-Linux-x86_64-x.y.z.tar.gz`
    and `.sha256` sidecars. macOS signing/notary secrets live in the

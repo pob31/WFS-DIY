@@ -113,6 +113,8 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ env.RELEASE_TAG }}
+          # "latest release" is reserved for the main app's v* releases.
+          make_latest: false
           fail_on_unmatched_files: true
           files: |
             Plugin/Installer/Output/WFS-DIY-Plugins-*.pkg
@@ -156,6 +158,8 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ env.RELEASE_TAG }}
+          # "latest release" is reserved for the main app's v* releases.
+          make_latest: false
           fail_on_unmatched_files: true
           files: |
             Plugin/Installer/Output/WFS-DIY-Plugins-Setup-*.exe
@@ -197,6 +201,8 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ env.RELEASE_TAG }}
+          # "latest release" is reserved for the main app's v* releases.
+          make_latest: false
           fail_on_unmatched_files: true
           files: |
             Plugin/Installer/Output/WFS-DIY-Plugins-Linux-*.tar.gz
