@@ -1792,6 +1792,16 @@
       "delay": "Delay:",
       "latency": "Latency:",
       "ratioPrefix": "1:"
+    },
+    "warnings": {
+      "short": "no effect",
+      "minimalLatency": "Minimal latency is enabled for this input, but no speaker has minimal latency enabled. Enable it on at least one output for this to take effect.",
+      "liveSource": "The live-source tamer is enabled for this input, but no speaker has live-source attenuation enabled. Enable it on at least one output for this to take effect.",
+      "floorReflections": {
+        "base": "Floor reflections are enabled for this input but cannot be produced:",
+        "noSpeakers": "no speaker has floor reflections enabled with strictly positive horizontal and vertical parallax (listener head away from and above the speaker).",
+        "onFloor": "the source is on the floor — raise it above the floor (Z > 0) for reflections."
+      }
     }
   },
 

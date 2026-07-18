@@ -28,6 +28,7 @@
 #include "ColumnFocusTraverser.h"
 #include "SamplerSubTab.h"
 #include "HelpCard.h"
+#include "InlineWarning.h"
 
 //==============================================================================
 // Custom Transport Button - Play (right-pointing triangle)
@@ -168,6 +169,7 @@ public:
           configTree(params.getConfigTree()),
           ioTree(params.getConfigTree().getChildWithName(WFSParameterIDs::IO)),
           binauralTree(params.getValueTreeState().getBinauralState()),
+          outputsTree(params.getOutputTree()),
           samplerSubTab(params)
     {
         // Enable keyboard focus so we can receive focus back after text editing
@@ -181,6 +183,10 @@ public:
             ioTree.addListener(this);
         if (binauralTree.isValid())
             binauralTree.addListener(this);
+        // Outputs live in a separate top-level tree; listen so per-input feature
+        // warnings react live when speaker capabilities change on the Outputs tab.
+        if (outputsTree.isValid())
+            outputsTree.addListener(this);
         ColorScheme::Manager::getInstance().addListener(this);
 
         // ==================== HEADER SECTION ====================
@@ -487,6 +493,8 @@ public:
         configTree.removeListener(this);
         if (ioTree.isValid())
             ioTree.removeListener(this);
+        if (outputsTree.isValid())
+            outputsTree.removeListener(this);
         if (binauralTree.isValid())
             binauralTree.removeListener(this);
     }
@@ -558,6 +566,17 @@ public:
             ioTree = newIOTree;
             if (ioTree.isValid())
                 ioTree.addListener(this);
+        }
+
+        // Likewise re-acquire the outputs tree (feeds the per-input feature warnings)
+        auto newOutputsTree = parameters.getOutputTree();
+        if (newOutputsTree != outputsTree)
+        {
+            if (outputsTree.isValid())
+                outputsTree.removeListener(this);
+            outputsTree = newOutputsTree;
+            if (outputsTree.isValid())
+                outputsTree.addListener(this);
         }
 
         // Update channel selector count
@@ -1019,7 +1038,17 @@ private:
             bool minLat = minimalLatencyButton.getToggleState();
             minimalLatencyButton.setButtonText(minLat ? LOC("inputs.toggles.minimalLatency") : LOC("inputs.toggles.acousticPrecedence"));
             saveInputParam(WFSParameterIDs::inputMinimalLatency, minLat ? 1 : 0);
+            updateFeatureWarnings();
         };
+
+        // Feature warnings (hidden until updateFeatureWarnings() decides otherwise).
+        // Captions/tooltips that never change are set once here; the FR tooltip is
+        // rebuilt per-evaluation because it depends on what's missing.
+        addChildComponent(minLatencyWarning);
+        minLatencyWarning.setWarning(LOC("inputs.warnings.short"), LOC("inputs.warnings.minimalLatency"));
+        addChildComponent(lsWarning);
+        lsWarning.setWarning(LOC("inputs.warnings.short"), LOC("inputs.warnings.liveSource"));
+        addChildComponent(frWarning);
     }
 
     void setupPositionTab()
@@ -1921,6 +1950,69 @@ private:
         tiltValueLabel.setAlpha(alpha);
     }
 
+    /** Show/hide the per-input feature warnings. A warning appears only when its
+        feature is enabled on the current input, its sub-tab is showing, and the
+        system can't actually deliver the effect:
+          - Minimal latency / Live source tamer: no speaker has the matching
+            capability enabled.
+          - Floor reflections: no speaker has FR enabled with strictly positive H
+            and V parallax (listener head away from and above the speaker), and/or
+            the source sits on the floor (Z <= 0) so no reflection geometry exists.
+        Positions are set by the tab layouts; this only flips visibility + the FR
+        detail text, so it is cheap to call from toggles and tree listeners. */
+    void updateFeatureWarnings()
+    {
+        const int tab = subTabBar.getCurrentTabIndex();
+        const int numOutputs = parameters.getNumOutputChannels();
+
+        auto anySpeakerHas = [this, numOutputs](const char* paramName)
+        {
+            for (int o = 0; o < numOutputs; ++o)
+                if (static_cast<int>(parameters.getOutputParam(o, paramName)) != 0)
+                    return true;
+            return false;
+        };
+
+        // Minimal latency — Input Parameters tab (index 0)
+        bool minLatWarn = (tab == 0)
+                       && minimalLatencyButton.getToggleState()
+                       && !anySpeakerHas("outputMiniLatencyEnable");
+        minLatencyWarning.setVisible(minLatWarn);
+
+        // Live source tamer — Live Source & Hackoustics tab (index 1)
+        bool lsWarn = (tab == 1)
+                   && lsActiveButton.getToggleState()
+                   && !anySpeakerHas("outputLSattenEnable");
+        lsWarning.setVisible(lsWarn);
+
+        // Floor reflections — Live Source & Hackoustics tab (index 1)
+        bool anyFRspeaker = false;
+        for (int o = 0; o < numOutputs; ++o)
+        {
+            if (static_cast<int>(parameters.getOutputParam(o, "outputFRenable")) != 0
+                && static_cast<float>(parameters.getOutputParam(o, "outputHparallax")) > 0.0f
+                && static_cast<float>(parameters.getOutputParam(o, "outputVparallax")) > 0.0f)
+            {
+                anyFRspeaker = true;
+                break;
+            }
+        }
+        bool inputOffFloor = currentChannel > 0
+            && static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionZ")) > 0.0f;
+
+        bool frWarn = (tab == 1) && frActiveButton.getToggleState() && !(anyFRspeaker && inputOffFloor);
+        if (frWarn)
+        {
+            juce::String detail = LOC("inputs.warnings.floorReflections.base");
+            if (!anyFRspeaker)
+                detail += " " + LOC("inputs.warnings.floorReflections.noSpeakers");
+            if (!inputOffFloor)
+                detail += " " + LOC("inputs.warnings.floorReflections.onFloor");
+            frWarning.setWarning(LOC("inputs.warnings.short"), detail);
+        }
+        frWarning.setVisible(frWarn);
+    }
+
     void setupLiveSourceTab()
     {
         // Live Source Active button
@@ -1938,6 +2030,7 @@ private:
                 setLsSlowParametersAlpha(lsSlowEnableButton.getToggleState() ? 1.0f : 0.5f);
             }
             saveInputParam(WFSParameterIDs::inputLSactive, enabled ? 1 : 0);
+            updateFeatureWarnings();
         };
 
         // Radius slider
@@ -2125,6 +2218,7 @@ private:
             updateLowCutAlpha();
             updateHighShelfAlpha();
             saveInputParam(WFSParameterIDs::inputFRactive, enabled ? 1 : 0);
+            updateFeatureWarnings();
         };
 
         // Floor Reflections Attenuation slider
@@ -3187,6 +3281,11 @@ private:
             samplerSubTab.setVisible(true);
             samplerSubTab.setBounds(subTabContentArea);
         }
+
+        // Single authority for the feature-warning visibility: gated on the active
+        // sub-tab so warnings never leak onto other sub-tabs (and, as children of
+        // this tab, they are hidden whenever the Inputs tab itself isn't showing).
+        updateFeatureWarnings();
     }
 
     void setInputPropertiesVisible(bool v)
@@ -4008,6 +4107,11 @@ private:
         const int buttonWidth = scaled(150);
         const int buttonX = (row.getWidth() - buttonWidth) / 2;
         minimalLatencyButton.setBounds(row.getX() + buttonX, row.getY(), buttonWidth, rowHeight);
+        // Warning in the gap to the right of the centred button
+        {
+            int warnX = row.getX() + buttonX + buttonWidth + scaled(6);
+            minLatencyWarning.setBounds(warnX, row.getY(), juce::jmax(0, row.getRight() - warnX), rowHeight);
+        }
         col1.removeFromTop(spacing * 2);
 
         // --- Position section (3-row layout with joystick on right) ---
@@ -4454,6 +4558,10 @@ private:
             lsActiveButton.setBounds(activeRow.withWidth(scaled(180)));
             const int btnSize = scaled(20);
             lsHelpButton.setBounds(activeRow.getRight() - btnSize, activeRow.getY(), btnSize, btnSize);
+            // Warning fills the gap between the toggle and the help button
+            int warnX = activeRow.getX() + scaled(180) + scaled(6);
+            lsWarning.setBounds(warnX, activeRow.getY(),
+                                juce::jmax(0, activeRow.getRight() - btnSize - scaled(4) - warnX), rowHeight);
         }
         col1.removeFromTop(spacing * 2);  // Extra padding after toggle
 
@@ -4550,6 +4658,10 @@ private:
             frActiveButton.setBounds(activeRow.withWidth(scaled(180)));
             const int btnSize = scaled(20);
             frHelpButton.setBounds(activeRow.getRight() - btnSize, activeRow.getY(), btnSize, btnSize);
+            // Warning fills the gap between the toggle and the help button
+            int warnX = activeRow.getX() + scaled(180) + scaled(6);
+            frWarning.setBounds(warnX, activeRow.getY(),
+                                juce::jmax(0, activeRow.getRight() - btnSize - scaled(4) - warnX), rowHeight);
         }
         col2.removeFromTop(spacing);
 
@@ -5712,6 +5824,7 @@ private:
         updateSamplerButtonState();
         updateSamplerSubTab();
         samplerSubTab.setCurrentChannel(currentChannel - 1);
+        updateFeatureWarnings();  // refresh for the newly selected input (toggle states + off-floor)
     }
 
     // ==================== TEXT EDITOR LISTENER ====================
@@ -7371,6 +7484,17 @@ private:
             juce::MessageManager::callAsync ([this]() { updateAdmSelectorAppearance(); });
         }
 
+        // A speaker capability (or its parallax) changed on the Outputs tab — the
+        // per-input feature warnings depend on these, so re-evaluate them.
+        if (property == WFSParameterIDs::outputMiniLatencyEnable ||
+            property == WFSParameterIDs::outputLSattenEnable ||
+            property == WFSParameterIDs::outputFRenable ||
+            property == WFSParameterIDs::outputHparallax ||
+            property == WFSParameterIDs::outputVparallax)
+        {
+            juce::MessageManager::callAsync ([this]() { updateFeatureWarnings(); });
+        }
+
         // Check if solo states changed (stored in binaural tree)
         if (tree == binauralTree && property == WFSParameterIDs::inputSoloStates)
         {
@@ -7440,6 +7564,9 @@ private:
                                 offsetXEditor.setText (juce::String (static_cast<float> (parameters.getInputParam (idx, "inputOffsetX")), 2), juce::dontSendNotification);
                                 offsetYEditor.setText (juce::String (static_cast<float> (parameters.getInputParam (idx, "inputOffsetY")), 2), juce::dontSendNotification);
                                 offsetZEditor.setText (juce::String (static_cast<float> (parameters.getInputParam (idx, "inputOffsetZ")), 2), juce::dontSendNotification);
+
+                                // Z affects the floor-reflection off-floor condition
+                                updateFeatureWarnings();
                             });
                         }
                         break;
@@ -7864,6 +7991,7 @@ private:
     juce::ValueTree configTree;
     juce::ValueTree ioTree;
     juce::ValueTree binauralTree;
+    juce::ValueTree outputsTree;  // speaker capabilities (drives per-input feature warnings)
     bool isLoadingParameters = false;
     bool suppressParameterReload = false;  // Prevent feedback loop during joystick/Z slider continuous updates
     StatusBar* statusBar = nullptr;
@@ -7920,6 +8048,12 @@ private:
     WfsBidirectionalSlider delayLatencySlider;
     juce::Label delayLatencyValueLabel;
     juce::TextButton minimalLatencyButton;
+
+    // Warnings shown when an input feature is enabled but no speaker supports it
+    // (or, for floor reflections, the geometry can't produce them).
+    InlineWarning minLatencyWarning;
+    InlineWarning lsWarning;
+    InlineWarning frWarning;
 
     // Position tab
     juce::Label coordModeLabel;
