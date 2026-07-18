@@ -189,6 +189,18 @@ public:
             outputsTree.addListener(this);
         ColorScheme::Manager::getInstance().addListener(this);
 
+        // Announce cluster-wide edits (Shift / Ctrl+Shift on any input control)
+        // in the status bar, once per gesture.
+        parameters.getClusterEdit().onPropagationStarted =
+            [this](int cluster, int memberCount, ClusterParamEdit::Mode mode) {
+                showStatusMessage(LocalizationManager::getInstance().get(
+                    mode == ClusterParamEdit::Mode::Absolute
+                        ? "inputs.messages.clusterEditAbsolute"
+                        : "inputs.messages.clusterEditRelative",
+                    {{"count", juce::String(memberCount)},
+                     {"cluster", juce::String(cluster)}}));
+            };
+
         // ==================== HEADER SECTION ====================
         // Channel Selector - use configured input count
         int numInputs = parameters.getNumInputChannels();
@@ -488,6 +500,7 @@ public:
 
     ~InputsTab() override
     {
+        parameters.getClusterEdit().onPropagationStarted = nullptr;
         ColorScheme::Manager::getInstance().removeListener(this);
         inputsTree.removeListener(this);
         configTree.removeListener(this);
@@ -7577,7 +7590,7 @@ private:
             return;
         }
 
-        if (!isLoadingParameters && !suppressParameterReload
+        if (!isLoadingParameters && !suppressParameterReload && !isSelfWriting
             && !tree.hasType(WFSParameterIDs::SamplerCell)
             && !tree.hasType(WFSParameterIDs::SamplerSet)
             && !tree.hasType(WFSParameterIDs::Sampler))
@@ -7591,11 +7604,20 @@ private:
                     int channelId = parent.getProperty(WFSParameterIDs::id, -1);
                     if (channelId == currentChannel)
                     {
-                        // This is a parameter change for the current channel - refresh UI
-                        juce::MessageManager::callAsync([this]()
+                        // This is a parameter change for the current channel -
+                        // refresh the UI. Coalesced: high-rate external writes
+                        // (OSC ramps, MCP) must not queue one full reload per
+                        // write or the message thread drowns in reloads.
+                        if (!channelReloadPending)
                         {
-                            loadChannelParameters(currentChannel);
-                        });
+                            channelReloadPending = true;
+                            juce::MessageManager::callAsync([this]()
+                            {
+                                channelReloadPending = false;
+                                if (currentChannel > 0)
+                                    loadChannelParameters(currentChannel);
+                            });
+                        }
                     }
                     break;
                 }
@@ -7635,7 +7657,15 @@ private:
     void saveInputParam(const juce::Identifier& paramId, const juce::var& value)
     {
         if (isLoadingParameters) return;
-        parameters.setInputParam(currentChannel - 1, paramId.toString(), value);
+        // Routes through the cluster-edit engine: a plain write for the edited
+        // channel, plus propagation to cluster members when Shift (relative)
+        // or Ctrl/Cmd+Shift (absolute) is held.
+        // isSelfWriting stops valueTreePropertyChanged from scheduling a full
+        // loadChannelParameters for our own write (ValueTree listeners fire
+        // synchronously inside it): the editing control has already updated
+        // itself, and one reload per drag event floods the message queue.
+        const juce::ScopedValueSetter<bool> selfWriteScope(isSelfWriting, true);
+        parameters.getClusterEdit().write(currentChannel - 1, paramId, value);
     }
 
     void toggleMapLock()
@@ -7981,7 +8011,10 @@ private:
         juce::StringArray muteValues;
         for (int i = 0; i < maxMuteButtons; ++i)
             muteValues.add(muteButtons[i].getToggleState() ? "1" : "0");
-        parameters.setInputParam(currentChannel - 1, WFSParameterIDs::inputMutes.toString(), muteValues.joinIntoString(","));
+        // Through the cluster-edit engine so Shift-clicking a mute copies the
+        // whole mute state to the other inputs of the cluster.
+        const juce::ScopedValueSetter<bool> selfWriteScope(isSelfWriting, true);
+        parameters.getClusterEdit().write(currentChannel - 1, WFSParameterIDs::inputMutes, muteValues.joinIntoString(","));
     }
 
     // ==================== MEMBER VARIABLES ====================
@@ -7994,6 +8027,8 @@ private:
     juce::ValueTree outputsTree;  // speaker capabilities (drives per-input feature warnings)
     bool isLoadingParameters = false;
     bool suppressParameterReload = false;  // Prevent feedback loop during joystick/Z slider continuous updates
+    bool isSelfWriting = false;            // True while this tab writes the tree itself (controls already up to date, skip reload)
+    bool channelReloadPending = false;     // At most one queued loadChannelParameters at a time (external writes are coalesced)
     StatusBar* statusBar = nullptr;
     AutomOtionProcessor* automOtionProcessor = nullptr;
     std::map<juce::Component*, juce::String> helpTextMap;

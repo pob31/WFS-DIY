@@ -525,7 +525,9 @@
       "scopeSaved": "스냅샷 범위가 저장되었습니다.",
       "scopeConfigured": "다음 스냅샷을 위한 범위가 구성되었습니다.",
       "trackingDisabled": "입력 {channel}의 트래킹이 비활성화됨",
-      "trackingSwitched": "트래킹이 입력 {from}에서 입력 {to}(으)로 전환됨"
+      "trackingSwitched": "트래킹이 입력 {from}에서 입력 {to}(으)로 전환됨",
+      "clusterEditRelative": "Shift 편집: 클러스터 {cluster}의 다른 입력 {count}개에 상대 변경 적용",
+      "clusterEditAbsolute": "Ctrl+Shift 편집: 클러스터 {cluster}의 다른 입력 {count}개에 값 복사"
     },
     "help": {
       "solo": "이 채널의 Binaural 렌더링을 청취합니다.",

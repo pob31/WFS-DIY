@@ -1661,7 +1661,9 @@
       "scopeSaved": "Snapshot scope saved.",
       "scopeConfigured": "Scope configured for next snapshot.",
       "trackingDisabled": "Tracking disabled for Input {channel}",
-      "trackingSwitched": "Tracking switched from Input {from} to Input {to}"
+      "trackingSwitched": "Tracking switched from Input {from} to Input {to}",
+      "clusterEditRelative": "Shift edit: applying relative change to {count} other input(s) of Cluster {cluster}",
+      "clusterEditAbsolute": "Ctrl+Shift edit: copying value to {count} other input(s) of Cluster {cluster}"
     },
     "help": {
       "solo": "Listen to Binaural Rendering of this channel.",

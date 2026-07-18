@@ -1580,7 +1580,9 @@
       "scopeSaved": "Snapshot-Umfang gespeichert.",
       "scopeConfigured": "Umfang für nächsten Snapshot konfiguriert.",
       "trackingDisabled": "Tracking für Eingang {channel} deaktiviert",
-      "trackingSwitched": "Tracking von Eingang {from} zu Eingang {to} gewechselt"
+      "trackingSwitched": "Tracking von Eingang {from} zu Eingang {to} gewechselt",
+      "clusterEditRelative": "Shift-Bearbeitung: relative Änderung auf {count} weitere Eingänge von Cluster {cluster} angewendet",
+      "clusterEditAbsolute": "Strg+Shift-Bearbeitung: Wert auf {count} weitere Eingänge von Cluster {cluster} kopiert"
     },
     "help": {
       "solo": "Binaurales Rendering dieses Kanals abhören.",

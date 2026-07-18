@@ -539,7 +539,9 @@
       "scopeSaved": "Âmbito do snapshot guardado.",
       "scopeConfigured": "Âmbito configurado para o próximo snapshot.",
       "trackingDisabled": "Rastreamento desativado para Entrada {channel}",
-      "trackingSwitched": "Rastreamento mudou de Entrada {from} para Entrada {to}"
+      "trackingSwitched": "Rastreamento mudou de Entrada {from} para Entrada {to}",
+      "clusterEditRelative": "Edição com Shift: alteração relativa aplicada a {count} outra(s) entrada(s) do Cluster {cluster}",
+      "clusterEditAbsolute": "Edição com Ctrl+Shift: valor copiado para {count} outra(s) entrada(s) do Cluster {cluster}"
     },
     "help": {
       "solo": "Ouvir o renderização binaural deste canal.",

@@ -16,6 +16,7 @@
 #include "../../../Parameters/WFSValueTreeState.h"
 #include "../../../Parameters/WFSParameterIDs.h"
 #include "../../../Parameters/WFSParameterDefaults.h"
+#include "../../../Parameters/ClusterParamEdit.h"
 #include "../../../Localization/LocalizationManager.h"
 
 namespace InputsTabPages
@@ -29,6 +30,7 @@ inline ButtonBinding makeToggleButton (const juce::String& label,
                                         juce::Colour offColour,
                                         juce::Colour onColour,
                                         WFSValueTreeState& state,
+                                        ClusterParamEdit& clusterEdit,
                                         int ch,
                                         const juce::Identifier& paramId,
                                         bool rebuildsPage = false)
@@ -45,10 +47,10 @@ inline ButtonBinding makeToggleButton (const juce::String& label,
         return static_cast<int> (state.getInputParameter (ch, paramId)) != 0;
     };
 
-    btn.onPress = [&state, ch, paramId]()
+    btn.onPress = [&state, &clusterEdit, ch, paramId]()
     {
         int current = static_cast<int> (state.getInputParameter (ch, paramId));
-        state.setInputParameter (ch, paramId, current != 0 ? 0 : 1);
+        clusterEdit.write (ch, paramId, current != 0 ? 0 : 1);
     };
 
     return btn;
@@ -65,6 +67,7 @@ inline DialBinding makeFloatDial (const juce::String& name,
                                    int decimals,
                                    bool exponential,
                                    WFSValueTreeState& state,
+                                   ClusterParamEdit& clusterEdit,
                                    int ch,
                                    const juce::Identifier& paramId)
 {
@@ -84,9 +87,9 @@ inline DialBinding makeFloatDial (const juce::String& name,
         return static_cast<float> (state.getInputParameter (ch, paramId));
     };
 
-    dial.setValue = [&state, ch, paramId] (float v)
+    dial.setValue = [&clusterEdit, ch, paramId] (float v)
     {
-        state.setInputParameter (ch, paramId, v);
+        clusterEdit.write (ch, paramId, v);
     };
 
     return dial;
@@ -101,6 +104,7 @@ inline DialBinding makeIntDial (const juce::String& name,
                                  int minVal, int maxVal,
                                  int stepVal, int fineVal,
                                  WFSValueTreeState& state,
+                                 ClusterParamEdit& clusterEdit,
                                  int ch,
                                  const juce::Identifier& paramId)
 {
@@ -120,9 +124,9 @@ inline DialBinding makeIntDial (const juce::String& name,
         return static_cast<float> (static_cast<int> (state.getInputParameter (ch, paramId)));
     };
 
-    dial.setValue = [&state, ch, paramId] (float v)
+    dial.setValue = [&clusterEdit, ch, paramId] (float v)
     {
-        state.setInputParameter (ch, paramId, juce::roundToInt (v));
+        clusterEdit.write (ch, paramId, juce::roundToInt (v));
     };
 
     return dial;
@@ -133,6 +137,7 @@ inline DialBinding makeIntDial (const juce::String& name,
 //==============================================================================
 
 inline StreamDeckPage createInputParametersPage (WFSValueTreeState& state,
+                                                  ClusterParamEdit& clusterEdit,
                                                   int ch,
                                                   std::shared_ptr<bool> flipMode)
 {
@@ -150,23 +155,23 @@ inline StreamDeckPage createInputParametersPage (WFSValueTreeState& state,
         // Bottom buttons: [empty] | Minimal Delay | Atten Law | [empty]
         sec.buttons[1] = makeToggleButton (LOC ("streamDeck.inputs.buttons.minimalDelay"),
                                             juce::Colour (0xFF3A3A3A), juce::Colour (0xFF4A90D9),
-                                            state, ch, inputMinimalLatency);
+                                            state, clusterEdit, ch, inputMinimalLatency);
 
         sec.buttons[2] = makeToggleButton (LOC ("streamDeck.inputs.buttons.attenuationLaw"),
                                             juce::Colour (0xFF3A3A3A), juce::Colour (0xFFC9A94E),
-                                            state, ch, inputAttenuationLaw, true);  // rebuilds page
+                                            state, clusterEdit, ch, inputAttenuationLaw, true);  // rebuilds page
 
         // Dials: Attenuation | Delay/Latency | DistAtten or Ratio | Common Atten
         sec.dials[0] = makeFloatDial (LOC ("streamDeck.inputs.dials.attenuation"), LOC ("units.decibels"),
                                        inputAttenuationMin, inputAttenuationMax,
                                        1.0f, 0.25f, 1, false,
-                                       state, ch, inputAttenuation);
+                                       state, clusterEdit, ch, inputAttenuation);
         sec.dials[0].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
 
         sec.dials[1] = makeFloatDial (LOC ("streamDeck.inputs.dials.delay"), LOC ("units.milliseconds"),
                                        inputDelayLatencyMin, inputDelayLatencyMax,
                                        2.0f, 0.5f, 1, false,
-                                       state, ch, inputDelayLatency);
+                                       state, clusterEdit, ch, inputDelayLatency);
         sec.dials[1].barColour = juce::Colour (0xFFD4A017);  // Gold (time)
 
         // Dynamic label: "Delay" for values >= 0, "Latency" for values < 0
@@ -183,7 +188,7 @@ inline StreamDeckPage createInputParametersPage (WFSValueTreeState& state,
             sec.dials[2] = makeFloatDial (LOC ("streamDeck.inputs.dials.ratio"), "x",
                                            inputDistanceRatioMin, inputDistanceRatioMax,
                                            0.02f, 0.005f, 2, true,
-                                           state, ch, inputDistanceRatio);
+                                           state, clusterEdit, ch, inputDistanceRatio);
             sec.dials[2].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
         }
         else
@@ -191,14 +196,14 @@ inline StreamDeckPage createInputParametersPage (WFSValueTreeState& state,
             sec.dials[2] = makeFloatDial (LOC ("streamDeck.inputs.dials.distanceAttenuation"), LOC ("units.decibelPerMeter"),
                                            inputDistanceAttenuationMin, inputDistanceAttenuationMax,
                                            0.1f, 0.02f, 2, false,
-                                           state, ch, inputDistanceAttenuation);
+                                           state, clusterEdit, ch, inputDistanceAttenuation);
             sec.dials[2].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
         }
 
         sec.dials[3] = makeIntDial (LOC ("streamDeck.inputs.dials.commonAttenuation"), LOC ("units.percent"),
                                      inputCommonAttenMin, inputCommonAttenMax,
                                      2, 1,
-                                     state, ch, inputCommonAtten);
+                                     state, clusterEdit, ch, inputCommonAtten);
         sec.dials[3].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
     }
 
@@ -231,50 +236,50 @@ inline StreamDeckPage createInputParametersPage (WFSValueTreeState& state,
         {
             sec.buttons[1] = makeToggleButton (LOC ("streamDeck.inputs.buttons.flipX"),
                                                 juce::Colour (0xFF3A3A3A), juce::Colour (0xFF9B6FC3),
-                                                state, ch, inputFlipX);
+                                                state, clusterEdit, ch, inputFlipX);
             sec.buttons[2] = makeToggleButton (LOC ("streamDeck.inputs.buttons.flipY"),
                                                 juce::Colour (0xFF3A3A3A), juce::Colour (0xFF9B6FC3),
-                                                state, ch, inputFlipY);
+                                                state, clusterEdit, ch, inputFlipY);
             sec.buttons[3] = makeToggleButton (LOC ("streamDeck.inputs.buttons.flipZ"),
                                                 juce::Colour (0xFF3A3A3A), juce::Colour (0xFF9B6FC3),
-                                                state, ch, inputFlipZ);
+                                                state, clusterEdit, ch, inputFlipZ);
         }
         else
         {
             sec.buttons[1] = makeToggleButton (LOC ("streamDeck.inputs.buttons.constraintX"),
                                                 juce::Colour (0xFF3A3A3A), juce::Colour (0xFF5BBFBA),
-                                                state, ch, inputConstraintX);
+                                                state, clusterEdit, ch, inputConstraintX);
             sec.buttons[2] = makeToggleButton (LOC ("streamDeck.inputs.buttons.constraintY"),
                                                 juce::Colour (0xFF3A3A3A), juce::Colour (0xFF5BBFBA),
-                                                state, ch, inputConstraintY);
+                                                state, clusterEdit, ch, inputConstraintY);
             sec.buttons[3] = makeToggleButton (LOC ("streamDeck.inputs.buttons.constraintZ"),
                                                 juce::Colour (0xFF3A3A3A), juce::Colour (0xFF5BBFBA),
-                                                state, ch, inputConstraintZ);
+                                                state, clusterEdit, ch, inputConstraintZ);
         }
 
         // Dials: Directivity | Rotation | Tilt | HF Shelf
         sec.dials[0] = makeIntDial (LOC ("streamDeck.inputs.dials.directivity"), "deg",
                                      inputDirectivityMin, inputDirectivityMax,
                                      5, 1,
-                                     state, ch, inputDirectivity);
+                                     state, clusterEdit, ch, inputDirectivity);
         sec.dials[0].barColour = juce::Colour (0xFF26A69A);  // Teal (spatial)
 
         sec.dials[1] = makeIntDial (LOC ("streamDeck.inputs.dials.rotation"), "deg",
                                      inputRotationMin, inputRotationMax,
                                      5, 1,
-                                     state, ch, inputRotation);
+                                     state, clusterEdit, ch, inputRotation);
         sec.dials[1].barColour = juce::Colour (0xFF26A69A);  // Teal (spatial)
 
         sec.dials[2] = makeIntDial (LOC ("streamDeck.inputs.dials.tilt"), "deg",
                                      inputTiltMin, inputTiltMax,
                                      2, 1,
-                                     state, ch, inputTilt);
+                                     state, clusterEdit, ch, inputTilt);
         sec.dials[2].barColour = juce::Colour (0xFF26A69A);  // Teal (spatial)
 
         sec.dials[3] = makeFloatDial (LOC ("streamDeck.inputs.dials.hfShelf"), LOC ("units.decibels"),
                                        inputHFshelfMin, inputHFshelfMax,
                                        0.5f, 0.1f, 1, false,
-                                       state, ch, inputHFshelf);
+                                       state, clusterEdit, ch, inputHFshelf);
         sec.dials[3].barColour = juce::Colour (0xFFE07878);  // Rose (HF)
     }
 
@@ -287,46 +292,46 @@ inline StreamDeckPage createInputParametersPage (WFSValueTreeState& state,
         // Bottom buttons: Sideline | Tracking | Max Speed | [empty]
         sec.buttons[0] = makeToggleButton (LOC ("streamDeck.inputs.buttons.sideline"),
                                             juce::Colour (0xFF3A3A3A), juce::Colour (0xFFC9A94E),
-                                            state, ch, inputSidelinesActive);
+                                            state, clusterEdit, ch, inputSidelinesActive);
 
         sec.buttons[1] = makeToggleButton (LOC ("streamDeck.inputs.buttons.tracking"),
                                             juce::Colour (0xFF3A3A3A), juce::Colour (0xFFC9A94E),
-                                            state, ch, inputTrackingActive);
+                                            state, clusterEdit, ch, inputTrackingActive);
 
         sec.buttons[2] = makeToggleButton (LOC ("streamDeck.inputs.buttons.maxSpeed"),
                                             juce::Colour (0xFF3A3A3A), juce::Colour (0xFFC9A94E),
-                                            state, ch, inputMaxSpeedActive);
+                                            state, clusterEdit, ch, inputMaxSpeedActive);
 
         // Dials: Fringe | Tracking Smooth | Max Speed | Height Factor
         sec.dials[0] = makeFloatDial (LOC ("streamDeck.inputs.dials.fringe"), LOC ("units.meters"),
                                        inputSidelinesFringeMin, inputSidelinesFringeMax,
                                        0.02f, 0.005f, 2, true,
-                                       state, ch, inputSidelinesFringe);
+                                       state, clusterEdit, ch, inputSidelinesFringe);
         sec.dials[0].barColour = juce::Colour (0xFF26A69A);  // Teal (matches UI sidelines fringe)
 
         sec.dials[1] = makeIntDial (LOC ("streamDeck.inputs.dials.trackingSmooth"), LOC ("units.percent"),
                                      inputTrackingSmoothMin, inputTrackingSmoothMax,
                                      2, 1,
-                                     state, ch, inputTrackingSmooth);
+                                     state, clusterEdit, ch, inputTrackingSmooth);
         sec.dials[1].barColour = juce::Colour (0xFF00ACC1);  // Cyan (smooth)
 
         sec.dials[2] = makeFloatDial (LOC ("streamDeck.inputs.dials.maxSpeed"), LOC ("units.metersPerSecond"),
                                        inputMaxSpeedMin, inputMaxSpeedMax,
                                        0.02f, 0.005f, 2, true,
-                                       state, ch, inputMaxSpeed);
+                                       state, clusterEdit, ch, inputMaxSpeed);
         sec.dials[2].barColour = juce::Colour (0xFF00ACC1);  // Cyan (speed)
 
         sec.dials[3] = makeIntDial (LOC ("streamDeck.inputs.dials.heightFactor"), LOC ("units.percent"),
                                      inputHeightFactorMin, inputHeightFactorMax,
                                      2, 1,
-                                     state, ch, inputHeightFactor);
+                                     state, clusterEdit, ch, inputHeightFactor);
         sec.dials[3].barColour = juce::Colour (0xFF26A69A);  // Teal (height factor)
 
         // Push toggles between 0% and 100%
-        sec.dials[3].onPress = [&state, ch]()
+        sec.dials[3].onPress = [&state, &clusterEdit, ch]()
         {
             int current = static_cast<int> (state.getInputParameter (ch, inputHeightFactor));
-            state.setInputParameter (ch, inputHeightFactor, (current >= 100) ? 0 : 100);
+            clusterEdit.write (ch, inputHeightFactor, (current >= 100) ? 0 : 100);
         };
     }
 
@@ -346,6 +351,7 @@ inline StreamDeckPage createInputParametersPage (WFSValueTreeState& state,
 //==============================================================================
 
 inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
+                                             ClusterParamEdit& clusterEdit,
                                              int channelIndex)
 {
     using namespace WFSParameterIDs;
@@ -368,7 +374,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
         // Button 0 — Toggle Live Source Tamer
         sec.buttons[0] = makeToggleButton (
             LOC ("streamDeck.inputs.buttons.liveSourceTamer"),
-            offGrey, onGreen, state, ch, inputLSactive);
+            offGrey, onGreen, state, clusterEdit, ch, inputLSactive);
 
         // Dial 0 — Shape (ComboBox)
         {
@@ -389,9 +395,9 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
                 return static_cast<float> (static_cast<int> (state.getInputParameter (ch, inputLSshape)));
             };
 
-            dial.setValue = [&state, ch] (float v)
+            dial.setValue = [&clusterEdit, ch] (float v)
             {
-                state.setInputParameter (ch, inputLSshape, juce::roundToInt (v));
+                clusterEdit.write (ch, inputLSshape, juce::roundToInt (v));
             };
 
             sec.dials[0] = dial;
@@ -403,7 +409,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
             LOC ("units.meters"),
             inputLSradiusMin, inputLSradiusMax,
             1.0f, 0.25f, 1, false,
-            state, ch, inputLSradius);
+            state, clusterEdit, ch, inputLSradius);
         sec.dials[1].barColour = juce::Colour (0xFF00ACC1);  // Cyan (distance)
 
         // Dial 2 — Fixed Attenuation
@@ -412,7 +418,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
             LOC ("units.decibels"),
             inputLSattenuationMin, inputLSattenuationMax,
             1.0f, 0.25f, 1, false,
-            state, ch, inputLSattenuation);
+            state, clusterEdit, ch, inputLSattenuation);
         sec.dials[2].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
     }
 
@@ -430,7 +436,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
             LOC ("units.decibels"),
             inputLSpeakThresholdMin, inputLSpeakThresholdMax,
             1.0f, 0.25f, 1, false,
-            state, ch, inputLSpeakThreshold);
+            state, clusterEdit, ch, inputLSpeakThreshold);
         sec.dials[0].barColour = juce::Colour (0xFFE67E22);  // Orange (matches UI peak threshold)
 
         // Dial 1 — Peak Ratio
@@ -439,7 +445,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
             "",
             inputLSpeakRatioMin, inputLSpeakRatioMax,
             0.5f, 0.1f, 1, false,
-            state, ch, inputLSpeakRatio);
+            state, clusterEdit, ch, inputLSpeakRatio);
         sec.dials[1].barColour = juce::Colour (0xFFE67E22);  // Orange (matches UI peak ratio)
 
         // Dial 2 — Slow Threshold
@@ -448,7 +454,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
             LOC ("units.decibels"),
             inputLSslowThresholdMin, inputLSslowThresholdMax,
             1.0f, 0.25f, 1, false,
-            state, ch, inputLSslowThreshold);
+            state, clusterEdit, ch, inputLSslowThreshold);
         sec.dials[2].barColour = juce::Colour (0xFFCC5522);  // Burnt orange (matches UI slow threshold)
 
         // Dial 3 — Slow Ratio
@@ -457,7 +463,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
             "",
             inputLSslowRatioMin, inputLSslowRatioMax,
             0.5f, 0.1f, 1, false,
-            state, ch, inputLSslowRatio);
+            state, clusterEdit, ch, inputLSslowRatio);
         sec.dials[3].barColour = juce::Colour (0xFFCC5522);  // Burnt orange (matches UI slow ratio)
     }
 
@@ -472,12 +478,12 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
         // Button 0 — Toggle Floor Reflections
         sec.buttons[0] = makeToggleButton (
             LOC ("streamDeck.inputs.buttons.floorReflections"),
-            offGrey, onGreen, state, ch, inputFRactive);
+            offGrey, onGreen, state, clusterEdit, ch, inputFRactive);
 
         // Button 2 — Toggle Low Cut Filter
         sec.buttons[2] = makeToggleButton (
             LOC ("streamDeck.inputs.buttons.lowCutFilter"),
-            offGrey, onGreen, state, ch, inputFRlowCutActive);
+            offGrey, onGreen, state, clusterEdit, ch, inputFRlowCutActive);
 
         // Dial 0 — FR Attenuation
         sec.dials[0] = makeFloatDial (
@@ -485,7 +491,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
             LOC ("units.decibels"),
             inputFRattenuationMin, inputFRattenuationMax,
             1.0f, 0.25f, 1, false,
-            state, ch, inputFRattenuation);
+            state, clusterEdit, ch, inputFRattenuation);
         sec.dials[0].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
 
         // Dial 1 — FR Diffusion
@@ -494,7 +500,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
             LOC ("units.percent"),
             inputFRdiffusionMin, inputFRdiffusionMax,
             5, 1,
-            state, ch, inputFRdiffusion);
+            state, clusterEdit, ch, inputFRdiffusion);
         sec.dials[1].barColour = juce::Colour (0xFF26A69A);  // Teal (matches UI FR diffusion)
 
         // Dial 2 — Low Cut Frequency (exponential 20–20000 Hz)
@@ -515,9 +521,9 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
                 return static_cast<float> (static_cast<int> (state.getInputParameter (ch, inputFRlowCutFreq)));
             };
 
-            dial.setValue = [&state, ch] (float v)
+            dial.setValue = [&clusterEdit, ch] (float v)
             {
-                state.setInputParameter (ch, inputFRlowCutFreq, juce::roundToInt (v));
+                clusterEdit.write (ch, inputFRlowCutFreq, juce::roundToInt (v));
             };
 
             dial.barColour = juce::Colour (0xFF6A5BAF);  // Purple (matches UI low cut freq)
@@ -536,7 +542,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
         // Button 0 — Toggle High Shelf Filter
         sec.buttons[0] = makeToggleButton (
             LOC ("streamDeck.inputs.buttons.highShelfFilter"),
-            offGrey, onGreen, state, ch, inputFRhighShelfActive);
+            offGrey, onGreen, state, clusterEdit, ch, inputFRhighShelfActive);
 
         // Button 3 — Toggle Send to Reverb (inverted: ON = value 0 = not muted)
         {
@@ -551,10 +557,10 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
                 return static_cast<int> (state.getInputParameter (ch, inputMuteReverbSends)) == 0;
             };
 
-            btn.onPress = [&state, ch]()
+            btn.onPress = [&state, &clusterEdit, ch]()
             {
                 int current = static_cast<int> (state.getInputParameter (ch, inputMuteReverbSends));
-                state.setInputParameter (ch, inputMuteReverbSends, current != 0 ? 0 : 1);
+                clusterEdit.write (ch, inputMuteReverbSends, current != 0 ? 0 : 1);
             };
 
             sec.buttons[3] = btn;
@@ -578,9 +584,9 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
                 return static_cast<float> (static_cast<int> (state.getInputParameter (ch, inputFRhighShelfFreq)));
             };
 
-            dial.setValue = [&state, ch] (float v)
+            dial.setValue = [&clusterEdit, ch] (float v)
             {
-                state.setInputParameter (ch, inputFRhighShelfFreq, juce::roundToInt (v));
+                clusterEdit.write (ch, inputFRhighShelfFreq, juce::roundToInt (v));
             };
 
             dial.barColour = juce::Colour (0xFFA67FC4);  // Light purple (matches UI high shelf freq)
@@ -593,7 +599,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
             LOC ("units.decibels"),
             inputFRhighShelfGainMin, inputFRhighShelfGainMax,
             1.0f, 0.25f, 1, false,
-            state, ch, inputFRhighShelfGain);
+            state, clusterEdit, ch, inputFRhighShelfGain);
         sec.dials[1].barColour = juce::Colour (0xFFA67FC4);  // Light purple (matches UI high shelf gain)
 
         // Dial 2 — High Shelf Slope
@@ -602,7 +608,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
             "",
             inputFRhighShelfSlopeMin, inputFRhighShelfSlopeMax,
             0.1f, 0.01f, 2, false,
-            state, ch, inputFRhighShelfSlope);
+            state, clusterEdit, ch, inputFRhighShelfSlope);
         sec.dials[2].barColour = juce::Colour (0xFFA67FC4);  // Light purple (matches UI high shelf slope)
     }
 
@@ -627,6 +633,7 @@ struct MovementCallbacks
 };
 
 inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
+                                            ClusterParamEdit& clusterEdit,
                                             int ch,
                                             std::shared_ptr<int> lfoSubMode,
                                             MovementCallbacks movCB = {})
@@ -688,14 +695,14 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
                 {
                     return static_cast<float> (static_cast<int> (state.getInputParameter (ch, inputLFOactive)));
                 };
-                d.setValue = [&state, ch] (float v)
+                d.setValue = [&clusterEdit, ch] (float v)
                 {
-                    state.setInputParameter (ch, inputLFOactive, juce::roundToInt (v));
+                    clusterEdit.write (ch, inputLFOactive, juce::roundToInt (v));
                 };
-                d.onPress = [&state, ch]()
+                d.onPress = [&state, &clusterEdit, ch]()
                 {
                     int current = static_cast<int> (state.getInputParameter (ch, inputLFOactive));
-                    state.setInputParameter (ch, inputLFOactive, current != 0 ? 0 : 1);
+                    clusterEdit.write (ch, inputLFOactive, current != 0 ? 0 : 1);
                 };
                 sec.dials[0] = std::move (d);
             }
@@ -704,13 +711,13 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
                                            LOC ("units.seconds"),
                                            inputLFOperiodMin, inputLFOperiodMax,
                                            0.02f, 0.005f, 2, true,
-                                           state, ch, inputLFOperiod);
+                                           state, clusterEdit, ch, inputLFOperiod);
             sec.dials[1].barColour = juce::Colour (0xFFD4A017);  // Gold (time/period)
 
             sec.dials[2] = makeIntDial (LOC ("streamDeck.inputs.dials.lfoPhase"),
                                          LOC ("units.degrees"),
                                          inputLFOphaseMin, inputLFOphaseMax,
-                                         5, 1, state, ch, inputLFOphase);
+                                         5, 1, state, clusterEdit, ch, inputLFOphase);
             sec.dials[2].barColour = juce::Colour (0xFF9B59B6);  // Purple (phase)
 
             // Gyrophone: ComboBox, param values -1/0/1 mapped to index 0/1/2
@@ -731,9 +738,9 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
                     int v = static_cast<int> (state.getInputParameter (ch, inputLFOgyrophone));
                     return static_cast<float> (v + 1);  // -1->0, 0->1, 1->2
                 };
-                gyroDial.setValue = [&state, ch] (float v)
+                gyroDial.setValue = [&clusterEdit, ch] (float v)
                 {
-                    state.setInputParameter (ch, inputLFOgyrophone, juce::roundToInt (v) - 1);
+                    clusterEdit.write (ch, inputLFOgyrophone, juce::roundToInt (v) - 1);
                 };
                 sec.dials[3] = std::move (gyroDial);
             }
@@ -767,9 +774,9 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
                 {
                     return static_cast<float> (static_cast<int> (state.getInputParameter (ch, shapeId)));
                 };
-                shapeDial.setValue = [&state, ch, shapeId] (float v)
+                shapeDial.setValue = [&clusterEdit, ch, shapeId] (float v)
                 {
-                    state.setInputParameter (ch, shapeId, juce::roundToInt (v));
+                    clusterEdit.write (ch, shapeId, juce::roundToInt (v));
                 };
                 sec.dials[0] = std::move (shapeDial);
             }
@@ -778,20 +785,20 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
                                            LOC ("units.meters"),
                                            inputLFOamplitudeMin, inputLFOamplitudeMax,
                                            0.5f, 0.1f, 1, false,
-                                           state, ch, amplitudeIds[axis]);
+                                           state, clusterEdit, ch, amplitudeIds[axis]);
             sec.dials[1].barColour = juce::Colour (0xFF26A69A);  // Teal (LFO amplitude)
 
             sec.dials[2] = makeFloatDial (LOC ("streamDeck.inputs.dials.lfoRate"),
                                            "x",
                                            inputLFOrateMin, inputLFOrateMax,
                                            0.02f, 0.005f, 2, true,
-                                           state, ch, rateIds[axis]);
+                                           state, clusterEdit, ch, rateIds[axis]);
             sec.dials[2].barColour = juce::Colour (0xFFD4A017);  // Gold (LFO rate)
 
             sec.dials[3] = makeIntDial (LOC ("streamDeck.inputs.dials.lfoAxisPhase"),
                                          LOC ("units.degrees"),
                                          inputLFOphaseMin, inputLFOphaseMax,
-                                         5, 1, state, ch, phaseIds[axis]);
+                                         5, 1, state, clusterEdit, ch, phaseIds[axis]);
             sec.dials[3].barColour = juce::Colour (0xFF9B59B6);  // Purple (LFO phase)
         }
     }
@@ -818,10 +825,10 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
             {
                 return static_cast<int> (state.getInputParameter (ch, inputOtomoAbsoluteRelative)) != 0;
             };
-            btn.onPress = [&state, ch]()
+            btn.onPress = [&state, &clusterEdit, ch]()
             {
                 int cur = static_cast<int> (state.getInputParameter (ch, inputOtomoAbsoluteRelative));
-                state.setInputParameter (ch, inputOtomoAbsoluteRelative, cur != 0 ? 0 : 1);
+                clusterEdit.write (ch, inputOtomoAbsoluteRelative, cur != 0 ? 0 : 1);
             };
         }
 
@@ -837,10 +844,10 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
             {
                 return static_cast<int> (state.getInputParameter (ch, inputOtomoStayReturn)) != 0;
             };
-            btn.onPress = [&state, ch]()
+            btn.onPress = [&state, &clusterEdit, ch]()
             {
                 int cur = static_cast<int> (state.getInputParameter (ch, inputOtomoStayReturn));
-                state.setInputParameter (ch, inputOtomoStayReturn, cur != 0 ? 0 : 1);
+                clusterEdit.write (ch, inputOtomoStayReturn, cur != 0 ? 0 : 1);
             };
         }
 
@@ -866,7 +873,7 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
 
             auto pid = pids[coordMode];
             dial.getValue = [&state, ch, pid]() { return static_cast<float> (state.getInputParameter (ch, pid)); };
-            dial.setValue = [&state, ch, pid] (float v) { state.setInputParameter (ch, pid, v); };
+            dial.setValue = [&clusterEdit, ch, pid] (float v) { clusterEdit.write (ch, pid, v); };
 
             dial.getDynamicName = [&state, ch]()
             {
@@ -894,7 +901,7 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
 
             auto pid = pids[coordMode];
             dial.getValue = [&state, ch, pid]() { return static_cast<float> (state.getInputParameter (ch, pid)); };
-            dial.setValue = [&state, ch, pid] (float v) { state.setInputParameter (ch, pid, v); };
+            dial.setValue = [&clusterEdit, ch, pid] (float v) { clusterEdit.write (ch, pid, v); };
 
             dial.getDynamicName = [&state, ch]()
             {
@@ -922,7 +929,7 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
 
             auto pid = pids[coordMode];
             dial.getValue = [&state, ch, pid]() { return static_cast<float> (state.getInputParameter (ch, pid)); };
-            dial.setValue = [&state, ch, pid] (float v) { state.setInputParameter (ch, pid, v); };
+            dial.setValue = [&clusterEdit, ch, pid] (float v) { clusterEdit.write (ch, pid, v); };
 
             dial.getDynamicName = [&state, ch]()
             {
@@ -947,28 +954,28 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
         // Button 3: Manual/Triggered toggle
         sec.buttons[3] = makeToggleButton (
             LOC ("streamDeck.inputs.buttons.manualTriggered"),
-            offGrey, juce::Colour (0xFFD4A843), state, ch, inputOtomoTrigger);
+            offGrey, juce::Colour (0xFFD4A843), state, clusterEdit, ch, inputOtomoTrigger);
 
         // Dial 0: Duration (exponential 0.1–3600 s)
         sec.dials[0] = makeFloatDial (LOC ("streamDeck.inputs.dials.duration"),
                                        LOC ("units.seconds"),
                                        inputOtomoDurationMin, inputOtomoDurationMax,
                                        0.02f, 0.005f, 1, true,
-                                       state, ch, inputOtomoDuration);
+                                       state, clusterEdit, ch, inputOtomoDuration);
         sec.dials[0].barColour = juce::Colour (0xFFD4A017);  // Gold (time/duration)
 
         // Dial 1: Curve (-100 to 100 %)
         sec.dials[1] = makeIntDial (LOC ("streamDeck.inputs.dials.curve"),
                                      LOC ("units.percent"),
                                      inputOtomoCurveMin, inputOtomoCurveMax,
-                                     2, 1, state, ch, inputOtomoCurve);
+                                     2, 1, state, clusterEdit, ch, inputOtomoCurve);
         sec.dials[1].barColour = juce::Colour (0xFF00ACC1);  // Cyan (speed/smooth)
 
         // Dial 2: Speed Profile (0–100 %)
         sec.dials[2] = makeIntDial (LOC ("streamDeck.inputs.dials.speedProfile"),
                                      LOC ("units.percent"),
                                      inputOtomoSpeedProfileMin, inputOtomoSpeedProfileMax,
-                                     2, 1, state, ch, inputOtomoSpeedProfile);
+                                     2, 1, state, clusterEdit, ch, inputOtomoSpeedProfile);
         sec.dials[2].barColour = juce::Colour (0xFF00ACC1);  // Cyan (speed)
 
         // Dial 3: Trigger Threshold (primary) + Trigger Reset (altBinding on press)
@@ -976,7 +983,7 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
                                        LOC ("units.decibels"),
                                        inputOtomoThresholdMin, inputOtomoThresholdMax,
                                        1.0f, 0.25f, 1, false,
-                                       state, ch, inputOtomoThreshold);
+                                       state, clusterEdit, ch, inputOtomoThreshold);
         sec.dials[3].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
 
         sec.dials[3].altBinding = std::make_unique<DialBinding> (
@@ -984,7 +991,7 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
                            LOC ("units.decibels"),
                            inputOtomoResetMin, inputOtomoResetMax,
                            1.0f, 0.25f, 1, false,
-                           state, ch, inputOtomoReset));
+                           state, clusterEdit, ch, inputOtomoReset));
         sec.dials[3].altBinding->barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
     }
 
@@ -1100,6 +1107,7 @@ static constexpr int INPUTS_MAIN_TAB_INDEX = 4;
     @param movementCB   Transport callbacks for AutomOtion (subtab 2 only) */
 inline StreamDeckPage createPage (int subTabIndex,
                                    WFSValueTreeState& state,
+                                   ClusterParamEdit& clusterEdit,
                                    int channelIndex,
                                    std::shared_ptr<bool> flipMode = nullptr,
                                    std::shared_ptr<int> lfoSubMode = nullptr,
@@ -1107,9 +1115,9 @@ inline StreamDeckPage createPage (int subTabIndex,
 {
     switch (subTabIndex)
     {
-        case 0:  return createInputParametersPage (state, channelIndex, flipMode);
-        case 1:  return createLiveSourcePage (state, channelIndex);
-        case 2:  return createMovementsPage (state, channelIndex, lfoSubMode, movementCB);
+        case 0:  return createInputParametersPage (state, clusterEdit, channelIndex, flipMode);
+        case 1:  return createLiveSourcePage (state, clusterEdit, channelIndex);
+        case 2:  return createMovementsPage (state, clusterEdit, channelIndex, lfoSubMode, movementCB);
         case 3:  return StreamDeckPage ("Gradient Map");  // Handled separately via GradientMapPages
         case 4:  return createVisualisationPage (state, channelIndex);
         default: return StreamDeckPage ("Inputs > Unknown");

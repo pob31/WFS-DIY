@@ -539,7 +539,9 @@
       "scopeSaved": "快照范围已保存。",
       "scopeConfigured": "已为下一个快照配置范围。",
       "trackingDisabled": "输入 {channel} 的追踪已禁用",
-      "trackingSwitched": "追踪已从输入 {from} 切换到输入 {to}"
+      "trackingSwitched": "追踪已从输入 {from} 切换到输入 {to}",
+      "clusterEditRelative": "Shift 编辑：相对更改已应用到集群 {cluster} 的其他 {count} 个输入",
+      "clusterEditAbsolute": "Ctrl+Shift 编辑：值已复制到集群 {cluster} 的其他 {count} 个输入"
     },
     "help": {
       "solo": "收听此通道的Binaural渲染。",

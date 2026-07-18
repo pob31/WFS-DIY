@@ -944,7 +944,7 @@ MainComponent::MainComponent()
             {
                 streamDeckManager->registerPage (
                     InputsTabPages::INPUTS_MAIN_TAB_INDEX, subTab,
-                    InputsTabPages::createPage (subTab, vts, 0, flipModeState, lfoSubModeState, movCB));
+                    InputsTabPages::createPage (subTab, vts, parameters.getClusterEdit(), 0, flipModeState, lfoSubModeState, movCB));
             }
         }
 
@@ -1289,7 +1289,7 @@ MainComponent::MainComponent()
                 {
                     auto& vts = parameters.getValueTreeState();
                     streamDeckManager->registerPage (mainTab, subTab,
-                        InputsTabPages::createPage (subTab, vts, channel - 1, flipModeState, lfoSubModeState, movCB));
+                        InputsTabPages::createPage (subTab, vts, parameters.getClusterEdit(), channel - 1, flipModeState, lfoSubModeState, movCB));
                 }
             }
             else if (mainTab == OutputsTabPages::OUTPUTS_MAIN_TAB_INDEX)

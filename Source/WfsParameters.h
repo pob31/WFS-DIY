@@ -6,6 +6,7 @@
 #include "Parameters/WFSValueTreeState.h"
 #include "Parameters/WFSFileManager.h"
 #include "Parameters/ParameterDirtyTracker.h"
+#include "Parameters/ClusterParamEdit.h"
 #include "Parameters/ArrayParamEdit.h"
 
 /**
@@ -261,6 +262,10 @@ public:
     ParameterDirtyTracker& getDirtyTracker() { return dirtyTracker; }
     const ParameterDirtyTracker& getDirtyTracker() const { return dirtyTracker; }
 
+    /** Get the cluster-wide parameter editing engine (modifier-driven
+        propagation of user edits to other inputs of the same cluster) */
+    ClusterParamEdit& getClusterEdit() { return clusterEdit; }
+
     /** Get the array-bypass editing gate for output parameters (Ctrl/Cmd
         during a user edit limits the change to the edited output instead of
         propagating to its array) */
@@ -279,6 +284,7 @@ private:
     WFSValueTreeState valueTreeState;
     WFSFileManager fileManager;
     ParameterDirtyTracker dirtyTracker;
+    ClusterParamEdit clusterEdit { valueTreeState };
     ArrayParamEdit arrayEdit { valueTreeState };
 
     //==============================================================================

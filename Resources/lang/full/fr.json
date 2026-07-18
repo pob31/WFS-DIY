@@ -1576,7 +1576,9 @@
       "scopeSaved": "Portée du snapshot enregistrée.",
       "scopeConfigured": "Portée configurée pour le prochain snapshot.",
       "trackingDisabled": "Tracking désactivé pour Entrée {channel}",
-      "trackingSwitched": "Tracking transféré de Entrée {from} à Entrée {to}"
+      "trackingSwitched": "Tracking transféré de Entrée {from} à Entrée {to}",
+      "clusterEditRelative": "Édition Maj : changement relatif appliqué à {count} autre(s) entrée(s) du Groupe {cluster}",
+      "clusterEditAbsolute": "Édition Ctrl+Maj : valeur copiée sur {count} autre(s) entrée(s) du Groupe {cluster}"
     },
     "help": {
       "solo": "Écouter le rendu binaural de ce canal.",

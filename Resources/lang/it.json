@@ -539,7 +539,9 @@
       "scopeSaved": "Ambito snapshot salvato.",
       "scopeConfigured": "Ambito configurato per il prossimo snapshot.",
       "trackingDisabled": "Tracking disabilitato per Ingresso {channel}",
-      "trackingSwitched": "Tracking trasferito da Ingresso {from} a Ingresso {to}"
+      "trackingSwitched": "Tracking trasferito da Ingresso {from} a Ingresso {to}",
+      "clusterEditRelative": "Modifica con Shift: variazione relativa applicata a {count} altri ingressi del Cluster {cluster}",
+      "clusterEditAbsolute": "Modifica con Ctrl+Shift: valore copiato su {count} altri ingressi del Cluster {cluster}"
     },
     "help": {
       "solo": "Ascoltare il rendering binaurale di questo canale.",

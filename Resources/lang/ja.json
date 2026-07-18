@@ -525,7 +525,9 @@
       "scopeSaved": "スナップショットのスコープを保存しました。",
       "scopeConfigured": "次のスナップショットのスコープを設定しました。",
       "trackingDisabled": "入力 {channel} のトラッキングを無効にしました",
-      "trackingSwitched": "トラッキングを入力 {from} から入力 {to} に切り替えました"
+      "trackingSwitched": "トラッキングを入力 {from} から入力 {to} に切り替えました",
+      "clusterEditRelative": "Shift編集: クラスター {cluster} の他の {count} 入力に相対変更を適用",
+      "clusterEditAbsolute": "Ctrl+Shift編集: クラスター {cluster} の他の {count} 入力に値をコピー"
     },
     "help": {
       "solo": "このチャンネルのBinauralレンダリングを聴く。",
