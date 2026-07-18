@@ -94,6 +94,11 @@ WFSFileManager::WFSFileManager (WFSValueTreeState& state)
 
 void WFSFileManager::setProjectFolder (const juce::File& folder)
 {
+    // A different folder means the in-memory config no longer matches what's on
+    // disk there — block auto-saves until it is loaded or explicitly saved.
+    if (folder != projectFolder)
+        systemConfigSynced = false;
+
     projectFolder = folder;
 }
 
@@ -525,7 +530,27 @@ bool WFSFileManager::saveSystemConfig()
     systemState.appendChild (extractAudioPatchSection().createCopy(), nullptr);
     stripTransientToggles (systemState);
 
-    return writeToXmlFile (systemState, file);
+    bool ok = writeToXmlFile (systemState, file);
+    if (ok)
+        systemConfigSynced = true;  // Explicit save re-syncs memory with the folder
+    return ok;
+}
+
+bool WFSFileManager::autoSaveSystemConfig()
+{
+    if (!hasValidProjectFolder())
+        return false;
+
+    // Never clobber an existing system.xml the user hasn't loaded (or saved) this
+    // session: right after selecting a work folder the in-memory state is still
+    // the previous/default config. A folder with no system.xml is safe to initialise.
+    if (!systemConfigSynced && getSystemConfigFile().existsAsFile())
+    {
+        WFSLogger::getInstance().logInfo ("Auto-save of system config skipped: config not yet loaded from this project folder");
+        return false;
+    }
+
+    return saveSystemConfig();
 }
 
 bool WFSFileManager::loadSystemConfig()
@@ -537,14 +562,22 @@ bool WFSFileManager::loadSystemConfig()
     }
 
     WFSLogger::getInstance().logInfo ("Loading system config");
-    return importSystemConfig (getSystemConfigFile());
+    bool ok = importSystemConfig (getSystemConfigFile());
+    if (ok)
+        systemConfigSynced = true;
+    return ok;
 }
 
 bool WFSFileManager::loadSystemConfigBackup (int backupIndex)
 {
     auto backups = getBackups ("system");
     if (backupIndex >= 0 && backupIndex < backups.size())
-        return importSystemConfig (backups[backupIndex]);
+    {
+        bool ok = importSystemConfig (backups[backupIndex]);
+        if (ok)
+            systemConfigSynced = true;
+        return ok;
+    }
 
     setError (LOC ("fileManager.errors.backupNotFound"));
     return false;

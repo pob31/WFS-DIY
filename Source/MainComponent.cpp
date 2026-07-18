@@ -2379,10 +2379,12 @@ MainComponent::~MainComponent()
     // Save settings before shutdown (while device is still available)
     saveSettings();
 
-    // Also save system config (includes audio patch) to project folder
+    // Also save system config (includes audio patch) to project folder.
+    // Auto-save variant: skipped if the folder's config was never loaded this
+    // session, so quitting can't clobber a config selected but not yet reloaded.
     auto& fileManager = parameters.getFileManager();
     if (fileManager.hasValidProjectFolder())
-        fileManager.saveSystemConfig();
+        fileManager.autoSaveSystemConfig();
 
     // Clean up status bar (owned by this component, not TabbedComponent)
     delete statusBar;
@@ -5236,12 +5238,13 @@ void MainComponent::timerCallback()
         }
     }
 
-    // Debounced auto-save of audio patch to disk
+    // Debounced auto-save of audio patch to disk (auto-save variant: won't
+    // overwrite a project folder's config that hasn't been loaded this session)
     if (patchSaveCountdown > 0 && --patchSaveCountdown == 0)
     {
         auto& fm = parameters.getFileManager();
         if (fm.hasValidProjectFolder())
-            fm.saveSystemConfig();
+            fm.autoSaveSystemConfig();
     }
 
     // Increment tick counter

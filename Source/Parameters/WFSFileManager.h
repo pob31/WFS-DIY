@@ -140,6 +140,13 @@ public:
     /** Save system configuration to project folder */
     bool saveSystemConfig();
 
+    /** Auto-save variant used by the background/shutdown saves (sound-card settings
+        persistence). Refuses to overwrite an existing system.xml in a project folder
+        whose config hasn't been loaded (or explicitly saved) this session — otherwise
+        selecting a work folder and starting audio before reloading would clobber the
+        on-disk config with the in-memory defaults. */
+    bool autoSaveSystemConfig();
+
     /** Load system configuration from project folder */
     bool loadSystemConfig();
 
@@ -423,6 +430,11 @@ private:
     spatcore::control::state::XmlPersistence persistence;
     juce::File projectFolder;
     juce::String lastError;
+
+    // True once the in-memory system config is in sync with the current project
+    // folder (loaded from it, or explicitly saved to it). Gates autoSaveSystemConfig
+    // so background saves can't clobber a config the user hasn't loaded yet.
+    bool systemConfigSynced = false;
 
     //==========================================================================
     // Internal Methods
