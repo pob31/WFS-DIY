@@ -329,7 +329,9 @@ public:
         g.fillRoundedRectangle(bounds, cornerSize);
 
         g.setColour(button.findColour(juce::ComboBox::outlineColourId));
-        g.drawRoundedRectangle(bounds, cornerSize, 1.0f);
+        // Inset the stroke by half its width so the full 1px sits inside the
+        // bounds — otherwise the bottom edge clips to a faint half-pixel line.
+        g.drawRoundedRectangle(bounds.reduced(0.5f), cornerSize, 1.0f);
     }
 
     //==========================================================================
@@ -345,7 +347,9 @@ public:
                                                  static_cast<float>(height));
 
         g.setColour(box.findColour(juce::ComboBox::backgroundColourId));
-        g.fillRoundedRectangle(boxBounds, cornerSize);
+        // Fill on the same inset bounds as the outline so no half-pixel fill
+        // sliver protrudes below the frame's bottom edge.
+        g.fillRoundedRectangle(boxBounds.reduced(0.5f, 0.5f), cornerSize);
 
         g.setColour(box.findColour(juce::ComboBox::outlineColourId));
         g.drawRoundedRectangle(boxBounds.reduced(0.5f, 0.5f), cornerSize, 1.0f);
