@@ -2832,6 +2832,7 @@ private:
         otomoCurveLabel.setJustificationType(juce::Justification::centred);
         otomoCurveDial.setColours(juce::Colours::black, juce::Colour(0xFF26A69A), juce::Colours::grey);
         otomoCurveDial.setTrackColours(ColorScheme::get().sliderTrackBg, juce::Colour(0xFF26A69A));
+        otomoCurveDial.setBipolar(true);  // 0 % centre — arc grows from 12 o'clock
         otomoCurveDial.onGestureStart = [this]() {
             parameters.getValueTreeState().beginUndoTransaction ("Input AutomOtion Curve");
         };

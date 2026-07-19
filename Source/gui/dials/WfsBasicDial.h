@@ -73,6 +73,19 @@ public:
         repaint();
     }
 
+    /** Bipolar mode: the active track arc extends from the 12 o'clock centre of
+        the range to the current value (like WfsBidirectionalSlider), instead of
+        from the start of the track. For dials whose natural rest is mid-range,
+        e.g. EQ gain (0 dB) or the AutomOtion curve (0 %). */
+    void setBipolar(bool shouldBeBipolar)
+    {
+        if (bipolar != shouldBeBipolar)
+        {
+            bipolar = shouldBeBipolar;
+            repaint();
+        }
+    }
+
     std::function<void(float)> onValueChanged;
 
     // Gesture callbacks for undo transaction boundaries
@@ -127,12 +140,18 @@ private:
         // Calculate corresponding track angle (90° offset from needle)
         const float currentTrackAngle = trackStartAngle + trackAngleRange * normalizedValue;
 
-        // Draw active track (from start to current value)
-        juce::Path activeTrack;
-        activeTrack.addCentredArc(centre.x, centre.y, trackRadius, trackRadius,
-                                   0.0f, trackStartAngle, currentTrackAngle, true);
-        g.setColour(activeTrackColour);
-        g.strokePath(activeTrack, juce::PathStrokeType(trackWidth, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        // Draw active track — from the track start, or from the range centre in
+        // bipolar mode (arc grows towards either side of 12 o'clock).
+        const float activeFromAngle = bipolar ? trackStartAngle + trackAngleRange * 0.5f
+                                              : trackStartAngle;
+        if (!juce::approximatelyEqual(activeFromAngle, currentTrackAngle))
+        {
+            juce::Path activeTrack;
+            activeTrack.addCentredArc(centre.x, centre.y, trackRadius, trackRadius,
+                                       0.0f, activeFromAngle, currentTrackAngle, true);
+            g.setColour(activeTrackColour);
+            g.strokePath(activeTrack, juce::PathStrokeType(trackWidth, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        }
 
         // Draw indicator dot on the track (Android app style) - use theme color
         auto dotRadius = trackWidth * 0.8f; // Dot slightly smaller than track width
@@ -205,6 +224,7 @@ private:
     float value = 0.0f;
     float minValue = 0.0f;
     float maxValue = 1.0f;
+    bool bipolar = false;  // active arc from range centre instead of track start
 
     // TTS accessibility
     juce::String ttsParameterName;

@@ -1145,6 +1145,7 @@ private:
             eqBandGainLabel[i].setJustificationType (juce::Justification::centred);
 
             eqBandGainDial[i].setTrackColours (ColorScheme::get().sliderTrackBg, bandColour);
+            eqBandGainDial[i].setBipolar (true);  // 0 dB centre — arc grows from 12 o'clock
             eqBandGainDial[i].onValueChanged = [this, i] (float v)
             {
                 float gain = v * 48.0f - 24.0f;  // -24 to +24 dB
@@ -1843,6 +1844,7 @@ private:
             postEqBandGainLabel[i].setJustificationType (juce::Justification::centred);
 
             postEqBandGainDial[i].setTrackColours (ColorScheme::get().sliderTrackBg, bandColour);
+            postEqBandGainDial[i].setBipolar (true);  // 0 dB centre — arc grows from 12 o'clock
             postEqBandGainDial[i].onValueChanged = [this, i] (float v)
             {
                 float gain = v * 48.0f - 24.0f;

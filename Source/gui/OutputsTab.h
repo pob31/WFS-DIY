@@ -1041,6 +1041,7 @@ private:
             eqBandGainLabel[i].setJustificationType(juce::Justification::centred);
 
             eqBandGainDial[i].setTrackColours(juce::Colour(0xFF2D2D2D), bandColour);
+            eqBandGainDial[i].setBipolar(true);  // 0 dB centre — arc grows from 12 o'clock
             eqBandGainDial[i].onGestureStart = [this, i]() {
                 parameters.getValueTreeState().beginUndoTransaction ("Output EQ Gain Band " + juce::String(i + 1));
             };
