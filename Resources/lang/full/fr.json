@@ -879,12 +879,12 @@
       "export": "Exporter"
     },
     "toggles": {
-      "minLatencyOn": "Latence min : OUI",
-      "minLatencyOff": "Latence min : NON",
-      "liveSourceOn": "Atténuation live : OUI",
-      "liveSourceOff": "Atténuation live : NON",
-      "floorReflectionsOn": "Réflexions sol : OUI",
-      "floorReflectionsOff": "Réflexions sol : NON"
+      "minLatencyOn": "Latence min : Autorisé",
+      "minLatencyOff": "Latence min : Exclu",
+      "liveSourceOn": "Atténuation live : Autorisé",
+      "liveSourceOff": "Atténuation live : Exclu",
+      "floorReflectionsOn": "Réflexions sol : Autorisé",
+      "floorReflectionsOff": "Réflexions sol : Exclu"
     },
     "arrayModes": {
       "single": "Individuel",
@@ -930,9 +930,9 @@
       "applyToArray": "Appliquer les modifications au reste du groupe (valeur absolue ou modifications relatives).",
       "attenuation": "Atténuation du canal de sortie. (les modifications peuvent affecter le reste du groupe)",
       "delayLatency": "Délai du canal de sortie (valeurs positives) ou compensation de latence (valeurs négatives). (les modifications peuvent affecter le reste du groupe)",
-      "minLatency": "Désactive le mode latence minimale pour la sortie sélectionnée. (les modifications peuvent affecter le reste du groupe)",
-      "liveSource": "Désactive l'atténuation de source live pour la sortie sélectionnée. (les modifications peuvent affecter le reste du groupe)",
-      "floorReflections": "Activer ou désactiver les réflexions du sol pour cette enceinte.",
+      "minLatency": "Autoriser ou exclure cette enceinte du traitement Minimal Latency. (peut affecter le reste du groupe)",
+      "liveSource": "Autoriser ou exclure cette enceinte de l'atténuation Live Source. (peut affecter le reste du groupe)",
+      "floorReflections": "Autoriser ou exclure cette enceinte des Floor Reflections.",
       "distanceAtten": "Ratio d'atténuation par la distance pour la sortie sélectionnée. (les modifications peuvent affecter le reste du groupe)",
       "hParallax": "Distance horizontale de l'enceinte à l'auditeur « ciblé ». (les modifications peuvent affecter le reste du groupe)",
       "vParallax": "Distance verticale de l'enceinte à l'auditeur « ciblé ». Positif lorsque l'enceinte est en dessous de la tête de l'auditeur. (les modifications peuvent affecter le reste du groupe)",
@@ -1093,10 +1093,10 @@
       "export": "Exporter"
     },
     "toggles": {
-      "minLatencyOn": "Latence min OUI",
-      "minLatencyOff": "Latence min NON",
-      "liveSourceOn": "Atténuation live OUI",
-      "liveSourceOff": "Atténuation live NON"
+      "minLatencyOn": "Latence min Autorisé",
+      "minLatencyOff": "Latence min Exclu",
+      "liveSourceOn": "Atténuation live Autorisé",
+      "liveSourceOff": "Atténuation live Exclu"
     },
     "coordModes": {
       "xyz": "XYZ"
@@ -1245,8 +1245,8 @@
       "postExpRatio": "Ratio du post-expanseur (1:1 à 1:8).",
       "postExpAttack": "Temps d'attaque du post-expanseur (0.1 - 50 ms).",
       "postExpRelease": "Temps de relâchement du post-expanseur (50 - 2000 ms).",
-      "miniLatencyTooltip": "Activer le mode latence minimale pour ce canal de réverbération. Réduit le délai de traitement au prix d'une utilisation CPU plus élevée.",
-      "liveSourceTooltip": "Activer le dompteur d'atténuation Live Source. Réduit les fluctuations de niveau des sources proches du groupe.",
+      "miniLatencyTooltip": "Autoriser ou exclure ce départ de réverbération du traitement Minimal Latency.",
+      "liveSourceTooltip": "Autoriser ou exclure ce départ de réverbération de l'atténuation Live Source.",
       "muteButton": "Activer/désactiver le mute du retour de réverbération pour cette sortie.",
       "position1": "Source virtuelle de réverbération {name} ({unit}).",
       "position2": "Source virtuelle de réverbération {name} ({unit}).",

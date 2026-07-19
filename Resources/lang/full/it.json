@@ -863,12 +863,12 @@
       "export": "Esporta"
     },
     "toggles": {
-      "minLatencyOn": "Latenza Minima: ON",
-      "minLatencyOff": "Latenza Minima: OFF",
-      "liveSourceOn": "Atten Live Source: ON",
-      "liveSourceOff": "Atten Live Source: OFF",
-      "floorReflectionsOn": "Riflessioni Pavimento: ON",
-      "floorReflectionsOff": "Riflessioni Pavimento: OFF"
+      "minLatencyOn": "Latenza Minima: Consentito",
+      "minLatencyOff": "Latenza Minima: Escluso",
+      "liveSourceOn": "Atten Live Source: Consentito",
+      "liveSourceOff": "Atten Live Source: Escluso",
+      "floorReflectionsOn": "Riflessioni Pavimento: Consentito",
+      "floorReflectionsOff": "Riflessioni Pavimento: Escluso"
     },
     "arrayModes": {
       "single": "Singolo",
@@ -914,9 +914,9 @@
       "applyToArray": "Applicare le modifiche al resto dell'array (valore assoluto o modifiche relative).",
       "attenuation": "Attenuazione del canale di uscita. (le modifiche possono influenzare il resto dell'array)",
       "delayLatency": "Ritardo del canale di uscita (valori positivi) o compensazione di latenza (valori negativi). (le modifiche possono influenzare il resto dell'array)",
-      "minLatency": "Disattiva la modalità latenza minima per l'uscita selezionata. (le modifiche possono influenzare il resto dell'array)",
-      "liveSource": "Disattiva l'attenuazione della sorgente dal vivo per l'uscita selezionata. (le modifiche possono influenzare il resto dell'array)",
-      "floorReflections": "Attivare o disattivare le riflessioni del pavimento per questo altoparlante.",
+      "minLatency": "Consentire o escludere questo altoparlante dall'elaborazione Minimal Latency. (può influenzare il resto dell'array)",
+      "liveSource": "Consentire o escludere questo altoparlante dall'attenuazione Live Source. (può influenzare il resto dell'array)",
+      "floorReflections": "Consentire o escludere questo altoparlante dalle Floor Reflections.",
       "distanceAtten": "Rapporto di attenuazione per distanza per l'uscita selezionata. (le modifiche possono influenzare il resto dell'array)",
       "hParallax": "Distanza orizzontale dall'altoparlante all'ascoltatore « mirato ». (le modifiche possono influenzare il resto dell'array)",
       "vParallax": "Distanza verticale dall'altoparlante all'ascoltatore « mirato ». Positivo quando l'altoparlante è sotto la testa dell'ascoltatore. (le modifiche possono influenzare il resto dell'array)",
@@ -1077,10 +1077,10 @@
       "export": "Esporta"
     },
     "toggles": {
-      "minLatencyOn": "Latenza Minima ON",
-      "minLatencyOff": "Latenza Minima OFF",
-      "liveSourceOn": "Atten Live Source ON",
-      "liveSourceOff": "Atten Live Source OFF"
+      "minLatencyOn": "Latenza Minima Consentito",
+      "minLatencyOff": "Latenza Minima Escluso",
+      "liveSourceOn": "Atten Live Source Consentito",
+      "liveSourceOff": "Atten Live Source Escluso"
     },
     "coordModes": {
       "xyz": "XYZ"
@@ -1229,8 +1229,8 @@
       "postExpRatio": "Rapporto del post-espansore (1:1 a 1:8).",
       "postExpAttack": "Tempo di attacco del post-espansore (0.1 - 50 ms).",
       "postExpRelease": "Tempo di rilascio del post-espansore (50 - 2000 ms).",
-      "miniLatencyTooltip": "Attiva la modalità di latenza minima per questo canale di riverbero. Riduce il ritardo di elaborazione al costo di un maggiore uso della CPU.",
-      "liveSourceTooltip": "Attiva il Domatore di attenuazione Live Source. Riduce le fluttuazioni di livello delle sorgenti vicine all'array.",
+      "miniLatencyTooltip": "Consentire o escludere questa mandata di riverbero dall'elaborazione Minimal Latency.",
+      "liveSourceTooltip": "Consentire o escludere questa mandata di riverbero dall'attenuazione Live Source.",
       "muteButton": "Attiva/disattiva il mute del ritorno di riverbero per questa uscita.",
       "position1": "Sorgente virtuale riverbero {name} ({unit}).",
       "position2": "Sorgente virtuale riverbero {name} ({unit}).",

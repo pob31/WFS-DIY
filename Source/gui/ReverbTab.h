@@ -994,6 +994,7 @@ private:
         miniLatencyEnableButton.setButtonText (LOC("reverbs.toggles.minLatencyOff"));
         miniLatencyEnableButton.setColour (juce::TextButton::buttonColourId, ColorScheme::get().sliderTrackBg);
         miniLatencyEnableButton.setColour (juce::TextButton::buttonOnColourId, ColorScheme::get().sliderTrackBg);
+        miniLatencyEnableButton.setColour (juce::TextButton::textColourOnId, juce::Colours::black);  // Black text reads clearly on the yellow "allowed" background
         miniLatencyEnableButton.onClick = [this]
         {
             bool enabled = !miniLatencyEnableButton.getToggleState();

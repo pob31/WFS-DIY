@@ -642,6 +642,7 @@ private:
         minLatencyEnableButton.setClickingTogglesState(true);
         minLatencyEnableButton.setToggleState(true, juce::dontSendNotification);
         minLatencyEnableButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFD4A017));  // Yellow (time)
+        minLatencyEnableButton.setColour(juce::TextButton::textColourOnId, juce::Colours::black);  // Black text reads clearly on the yellow active background
         minLatencyEnableButton.onClick = [this]() {
             bool enabled = minLatencyEnableButton.getToggleState();
             minLatencyEnableButton.setButtonText(enabled ? LOC("outputs.toggles.minLatencyOn") : LOC("outputs.toggles.minLatencyOff"));

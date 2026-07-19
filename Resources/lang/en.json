@@ -958,12 +958,12 @@
       "export": "Export"
     },
     "toggles": {
-      "minLatencyOn": "Minimal Latency: ON",
-      "minLatencyOff": "Minimal Latency: OFF",
-      "liveSourceOn": "Live Source Atten: ON",
-      "liveSourceOff": "Live Source Atten: OFF",
-      "floorReflectionsOn": "Floor Reflections: ON",
-      "floorReflectionsOff": "Floor Reflections: OFF"
+      "minLatencyOn": "Minimal Latency: Allowed",
+      "minLatencyOff": "Minimal Latency: Excluded",
+      "liveSourceOn": "Live Source Atten: Allowed",
+      "liveSourceOff": "Live Source Atten: Excluded",
+      "floorReflectionsOn": "Floor Reflections: Allowed",
+      "floorReflectionsOff": "Floor Reflections: Excluded"
     },
     "arrayModes": {
       "single": "Single",
@@ -1009,9 +1009,9 @@
       "applyToArray": "Apply Changes to the rest of the Array (Absolute value or Relative changes).",
       "attenuation": "Output Channel Attenuation. (changes may affect the rest of the array)",
       "delayLatency": "Output Channel Delay (positive values) or Latency Compensation (negative values). (changes may affect the rest of the array)",
-      "minLatency": "Disables Minimal Latency Mode for Selected Output. (changes may affect the rest of the array)",
-      "liveSource": "Disables Live Source Attenuation for Selected Output. (changes may affect the rest of the array)",
-      "floorReflections": "Enable or Disable the Floor Reflections for this Speaker.",
+      "minLatency": "Allow or exclude this speaker from Minimal Latency processing. (may affect the rest of the array)",
+      "liveSource": "Allow or exclude this speaker from Live Source Attenuation. (may affect the rest of the array)",
+      "floorReflections": "Allow or exclude this speaker from Floor Reflections.",
       "distanceAtten": "Ratio of Distance Attenuation for Selected Output. (changes may affect the rest of the array)",
       "hParallax": "Horizontal Distance from Speaker to 'Targeted' Listener. (changes may affect the rest of the array)",
       "vParallax": "Vertical Distance from Speaker to 'Targeted' Listener. Positive when the Speaker is Below the head of the Listener. (changes may affect the rest of the array)",
@@ -1174,10 +1174,10 @@
       "export": "Export"
     },
     "toggles": {
-      "minLatencyOn": "Minimal Latency ON",
-      "minLatencyOff": "Minimal Latency OFF",
-      "liveSourceOn": "Live Source Atten ON",
-      "liveSourceOff": "Live Source Atten OFF",
+      "minLatencyOn": "Minimal Latency Allowed",
+      "minLatencyOff": "Minimal Latency Excluded",
+      "liveSourceOn": "Live Source Atten Allowed",
+      "liveSourceOff": "Live Source Atten Excluded",
       "applyToAllOn": "Apply to all nodes: ON",
       "applyToAllOff": "Apply to all nodes: OFF"
     },
@@ -1328,8 +1328,8 @@
       "postExpRatio": "Post-expander ratio (1:1 to 1:8).",
       "postExpAttack": "Post-expander attack time (0.1 - 50 ms).",
       "postExpRelease": "Post-expander release time (50 - 2000 ms).",
-      "miniLatencyTooltip": "Enable minimal latency mode for this reverb channel. Reduces processing delay at the cost of higher CPU usage.",
-      "liveSourceTooltip": "Enable Live Source attenuation tamer. Reduces level fluctuations from sources close to the array.",
+      "miniLatencyTooltip": "Allow or exclude this reverb feed from Minimal Latency processing.",
+      "liveSourceTooltip": "Allow or exclude this reverb feed from Live Source Attenuation.",
       "position1": "Reverb virtual source {name} ({unit}).",
       "position2": "Reverb virtual source {name} ({unit}).",
       "position3": "Reverb virtual source {name} ({unit}).",
@@ -2412,7 +2412,7 @@
     },
     "outputAdvanced": {
       "title": "Advanced Parameters",
-      "body": "There are a few parameters to help you adjust to the acoustic sound.\nMost of these parameters are set for whole arrays unless the propagation mode is switched to off for this output in the array. Relative change can also be selected after a specific setting.\n- Orientation and On/Off Angles define what inputs each speaker will amplify. By default the speakers are pointing to the audience, away from the stage. Inputs in the green sector will be amplified, but not the ones in front of the speaker, in the red sector. There is a fade between both sectors. For sub-bass speakers which usually come in limited numbers and locations, opening all the way to the maximum will allow you to have all inputs possibly picked up by the subwoofers.\n- HF Damping simulates the loss of high frequency with distance. Speakers close to the listeners can have more than speakers away from the stage and the listeners.\n- Distance Attenuation percentage allows you to define if more or less of the attenuation calculated from the distance and parameters of the input is applied. Again for Sub-bass in case you only have two and don't want to lose too much level or have hot-spots it may be wise to lower this setting to 50%.\n- Minimal Latency toggles whether the output is scanned for the smallest calculated delay and also if the setting once engaged on an input will reduce the delay for that input through this speaker.\n- Live Source Attenuation toggles the reduction of level of nearby input if they have this setting enabled. This may not be necessary for speakers away from the audience or for sub-bass.\n- Floor Reflections toggles if the reflections are applied to the signal for this output such as sub-bass and flown arrays..."
+      "body": "There are a few parameters to help you adjust to the acoustic sound.\nMost of these parameters are set for whole arrays unless the propagation mode is switched to off for this output in the array. Relative change can also be selected after a specific setting.\n- Orientation and On/Off Angles define what inputs each speaker will amplify. By default the speakers are pointing to the audience, away from the stage. Inputs in the green sector will be amplified, but not the ones in front of the speaker, in the red sector. There is a fade between both sectors. For sub-bass speakers which usually come in limited numbers and locations, opening all the way to the maximum will allow you to have all inputs possibly picked up by the subwoofers.\n- HF Damping simulates the loss of high frequency with distance. Speakers close to the listeners can have more than speakers away from the stage and the listeners.\n- Distance Attenuation percentage allows you to define if more or less of the attenuation calculated from the distance and parameters of the input is applied. Again for Sub-bass in case you only have two and don't want to lose too much level or have hot-spots it may be wise to lower this setting to 50%.\n- Minimal Latency allows or excludes this speaker from Minimal Latency processing. When allowed, the output is scanned for the smallest calculated delay and, once the setting is engaged on an input, the delay for that input through this speaker is reduced.\n- Live Source Attenuation allows or excludes this speaker from the level reduction of nearby inputs that have this setting enabled. This may not be necessary for speakers away from the audience or for sub-bass.\n- Floor Reflections allows or excludes this speaker from the reflections applied to the signal, such as sub-bass and flown arrays..."
     },
     "tuning": {
       "title": "System Tuning",

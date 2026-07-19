@@ -830,12 +830,12 @@
       "export": "エクスポート"
     },
     "toggles": {
-      "minLatencyOn": "最小レイテンシー: オン",
-      "minLatencyOff": "最小レイテンシー: オフ",
-      "liveSourceOn": "ライブソース減衰: オン",
-      "liveSourceOff": "ライブソース減衰: オフ",
-      "floorReflectionsOn": "床面反射: オン",
-      "floorReflectionsOff": "床面反射: オフ"
+      "minLatencyOn": "最小レイテンシー: 許可",
+      "minLatencyOff": "最小レイテンシー: 除外",
+      "liveSourceOn": "ライブソース減衰: 許可",
+      "liveSourceOff": "ライブソース減衰: 除外",
+      "floorReflectionsOn": "床面反射: 許可",
+      "floorReflectionsOff": "床面反射: 除外"
     },
     "arrayModes": {
       "single": "シングル",
@@ -881,9 +881,9 @@
       "applyToArray": "アレイの残りに変更を適用（絶対値または相対変更）。",
       "attenuation": "出力チャンネルの減衰。（変更はアレイの残りに影響する場合があります）",
       "delayLatency": "出力チャンネルのディレイ（正の値）またはレイテンシー補正（負の値）。（変更はアレイの残りに影響する場合があります）",
-      "minLatency": "選択した出力の最小レイテンシーモードを無効にします。（変更はアレイの残りに影響する場合があります）",
-      "liveSource": "選択した出力のライブソース減衰を無効にします。（変更はアレイの残りに影響する場合があります）",
-      "floorReflections": "このスピーカーの床面反射を有効または無効にします。",
+      "minLatency": "このスピーカーをMinimal Latency処理に含めるか除外します。（アレイの残りに影響する場合があります）",
+      "liveSource": "このスピーカーをLive Source減衰に含めるか除外します。（アレイの残りに影響する場合があります）",
+      "floorReflections": "このスピーカーをFloor Reflectionsに含めるか除外します。",
       "distanceAtten": "選択した出力の距離減衰比率。（変更はアレイの残りに影響する場合があります）",
       "hParallax": "スピーカーから「ターゲット」リスナーまでの水平距離。（変更はアレイの残りに影響する場合があります）",
       "vParallax": "スピーカーから「ターゲット」リスナーまでの垂直距離。スピーカーがリスナーの頭より下にある場合は正の値。（変更はアレイの残りに影響する場合があります）",
@@ -1044,10 +1044,10 @@
       "export": "エクスポート"
     },
     "toggles": {
-      "minLatencyOn": "最小レイテンシー オン",
-      "minLatencyOff": "最小レイテンシー オフ",
-      "liveSourceOn": "ライブソース減衰 オン",
-      "liveSourceOff": "ライブソース減衰 オフ"
+      "minLatencyOn": "最小レイテンシー 許可",
+      "minLatencyOff": "最小レイテンシー 除外",
+      "liveSourceOn": "ライブソース減衰 許可",
+      "liveSourceOff": "ライブソース減衰 除外"
     },
     "coordModes": {
       "xyz": "XYZ"
@@ -1196,8 +1196,8 @@
       "postExpRatio": "ポストエキスパンダーのレシオ（1:1～1:8）。",
       "postExpAttack": "ポストエキスパンダーのアタック時間（0.1 - 50 ms）。",
       "postExpRelease": "ポストエキスパンダーのリリース時間（50 - 2000 ms）。",
-      "miniLatencyTooltip": "このリバーブチャンネルの最小レイテンシーモードを有効化。CPU使用率の上昇と引き換えに処理遅延を低減します。",
-      "liveSourceTooltip": "Live Source減衰テイマーを有効化。アレイに近いソースのレベル変動を抑えます。",
+      "miniLatencyTooltip": "このリバーブフィードをMinimal Latency処理に含めるか除外します。",
+      "liveSourceTooltip": "このリバーブフィードをLive Source減衰に含めるか除外します。",
       "muteButton": "この出力チャンネルのリバーブリターンのミュートを切り替えます。",
       "position1": "リバーブ仮想音源の{name}（{unit}）。",
       "position2": "リバーブ仮想音源の{name}（{unit}）。",

@@ -883,12 +883,12 @@
       "export": "Exportieren"
     },
     "toggles": {
-      "minLatencyOn": "Minimale Latenz: EIN",
-      "minLatencyOff": "Minimale Latenz: AUS",
-      "liveSourceOn": "Live-Quelle Dämpf.: EIN",
-      "liveSourceOff": "Live-Quelle Dämpf.: AUS",
-      "floorReflectionsOn": "Bodenreflexionen: EIN",
-      "floorReflectionsOff": "Bodenreflexionen: AUS"
+      "minLatencyOn": "Minimale Latenz: Erlaubt",
+      "minLatencyOff": "Minimale Latenz: Ausgeschlossen",
+      "liveSourceOn": "Live-Quelle Dämpf.: Erlaubt",
+      "liveSourceOff": "Live-Quelle Dämpf.: Ausgeschlossen",
+      "floorReflectionsOn": "Bodenreflexionen: Erlaubt",
+      "floorReflectionsOff": "Bodenreflexionen: Ausgeschlossen"
     },
     "arrayModes": {
       "single": "Einzeln",
@@ -934,9 +934,9 @@
       "applyToArray": "Änderungen auf den Rest des Arrays anwenden (Absolutwert oder relative Änderungen).",
       "attenuation": "Dämpfung des Ausgangskanals. (Änderungen können den Rest des Arrays betreffen)",
       "delayLatency": "Verzögerung des Ausgangskanals (positive Werte) oder Latenzkompensation (negative Werte). (Änderungen können den Rest des Arrays betreffen)",
-      "minLatency": "Deaktiviert den Modus minimale Latenz für den ausgewählten Ausgang. (Änderungen können den Rest des Arrays betreffen)",
-      "liveSource": "Deaktiviert die Live-Quellen-Dämpfung für den ausgewählten Ausgang. (Änderungen können den Rest des Arrays betreffen)",
-      "floorReflections": "Bodenreflexionen für diesen Lautsprecher aktivieren oder deaktivieren.",
+      "minLatency": "Diesen Lautsprecher für die Minimal-Latency-Verarbeitung zulassen oder ausschließen. (kann den Rest des Arrays betreffen)",
+      "liveSource": "Diesen Lautsprecher für die Live-Source-Dämpfung zulassen oder ausschließen. (kann den Rest des Arrays betreffen)",
+      "floorReflections": "Diesen Lautsprecher für Floor Reflections zulassen oder ausschließen.",
       "distanceAtten": "Verhältnis der Entfernungsdämpfung für den ausgewählten Ausgang. (Änderungen können den Rest des Arrays betreffen)",
       "hParallax": "Horizontaler Abstand vom Lautsprecher zum „anvisierten“ Zuhörer. (Änderungen können den Rest des Arrays betreffen)",
       "vParallax": "Vertikaler Abstand vom Lautsprecher zum „anvisierten“ Zuhörer. Positiv, wenn der Lautsprecher unter dem Kopf des Zuhörers ist. (Änderungen können den Rest des Arrays betreffen)",
@@ -1097,10 +1097,10 @@
       "export": "Exportieren"
     },
     "toggles": {
-      "minLatencyOn": "Minimale Latenz EIN",
-      "minLatencyOff": "Minimale Latenz AUS",
-      "liveSourceOn": "Live-Quelle Dämpf. EIN",
-      "liveSourceOff": "Live-Quelle Dämpf. AUS"
+      "minLatencyOn": "Minimale Latenz Erlaubt",
+      "minLatencyOff": "Minimale Latenz Ausgeschlossen",
+      "liveSourceOn": "Live-Quelle Dämpf. Erlaubt",
+      "liveSourceOff": "Live-Quelle Dämpf. Ausgeschlossen"
     },
     "coordModes": {
       "xyz": "XYZ"
@@ -1249,8 +1249,8 @@
       "postExpRatio": "Verhältnis des Nachexpanders (1:1 bis 1:8).",
       "postExpAttack": "Attack-Zeit des Nachexpanders (0.1 - 50 ms).",
       "postExpRelease": "Release-Zeit des Nachexpanders (50 - 2000 ms).",
-      "miniLatencyTooltip": "Minimaler Latenzmodus für diesen Hallkanal aktivieren. Reduziert die Verarbeitungsverzögerung auf Kosten höherer CPU-Auslastung.",
-      "liveSourceTooltip": "Live-Source-Dämpfungsbändiger aktivieren. Reduziert Pegelschwankungen von Quellen nahe dem Array.",
+      "miniLatencyTooltip": "Diesen Reverb-Feed für die Minimal-Latency-Verarbeitung zulassen oder ausschließen.",
+      "liveSourceTooltip": "Diesen Reverb-Feed für die Live-Source-Dämpfung zulassen oder ausschließen.",
       "muteButton": "Mute für den Reverb-Rückkanal dieses Ausgangs umschalten.",
       "position1": "Reverb-Quellposition {name} ({unit}).",
       "position2": "Reverb-Quellposition {name} ({unit}).",
