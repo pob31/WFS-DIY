@@ -145,6 +145,11 @@
     }
   },
   "network": {
+    "remote": {
+      "protocolMismatch": "L'application distante utilise le protocole v{remote}, v{local} attendu — mettez à jour l'application tablette",
+      "notResponding": "La télécommande ne répond pas — l'application tablette est peut-être obsolète ou injoignable"
+    },
+
     "help": {
       "networkInterface": "Sélectionner l'Network Interface.",
       "currentIP": "Adresse IP du processeur.",

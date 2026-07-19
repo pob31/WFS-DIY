@@ -1,7 +1,9 @@
 #pragma once
 
+#include <atomic>
 #include <JuceHeader.h>
 #include "OSCProtocolTypes.h"
+#include "RemoteProtocol.h"
 #include "OSCConnection.h"
 #include "../../spatcore/control/osc/OSCRateLimiter.h"
 #include "OSCLogger.h"
@@ -382,6 +384,18 @@ public:
      */
     std::function<void(int targetIndex)> onRemoteConnectionReady;
 
+    /** Callback when a Remote client reports a protocol version different from ours
+     *  (kRemoteProtocolVersion). The connection proceeds anyway; the UI should show a
+     *  persistent warning telling the operator to update the tablet app (or this app).
+     *  Fired on the message thread. */
+    std::function<void(int targetIndex, int remoteVersion, int expectedVersion)> onRemoteProtocolMismatch;
+
+    /** Callback when a Remote target has been pinged repeatedly with no pong (~10 s).
+     *  Likely causes: no tablet at that IP, or a pre-v2 tablet app that silently
+     *  ignores versioned pings. Fired once per connection attempt, on the message
+     *  thread; cleared when a pong finally arrives. */
+    std::function<void(int targetIndex)> onRemoteHandshakeStalled;
+
     /** Callback when a remote pad touch event is received.
      *  Args: zoneId, touchState (0=UP, 1=DOWN, 2=MOVE), dx, dy, pressure */
     std::function<void (int, int, float, float, float)> onRemotePadTouch;
@@ -597,6 +611,12 @@ private:
 
     void sendRemoteChannelDump(int channelId);
 
+    /** Build the ~95-message detailed parameter dump for one channel (1-based).
+     *  Shared by sendRemoteChannelDump and collectStateDumpMessages so the full
+     *  dump and the channel-select dump can't drift apart.
+     *  Must be called on the message thread (reads ValueTree state). */
+    std::vector<juce::OSCMessage> collectRemoteChannelDumpMessages(int channelId);
+
     /**
      * Check if tracking is fully active for an input.
      * Requires global tracking enabled, protocol not disabled, AND per-input tracking active.
@@ -638,7 +658,7 @@ private:
     // Remote handshake/heartbeat methods
     void sendRemotePing(int targetIndex);
     void sendRemoteHeartbeat(int targetIndex);
-    void handleRemotePong(int targetIndex, int sequenceNumber);
+    void handleRemotePong(int targetIndex, int sequenceNumber, int remoteVersion);
     void handleRemoteHeartbeatAck(int targetIndex, int sequenceNumber);
     void onRemoteConnected(int targetIndex, bool isReconnection);
     void onRemoteDisconnected(int targetIndex);
@@ -664,10 +684,6 @@ private:
      *  the full state when the list is empty. Collects on the caller thread, sends on a
      *  detached background thread as paced bundles. */
     void resendChannelsToRemote(int targetIndex, std::vector<int> channelIds);
-
-    /** Send a batch of messages to a target with pacing to avoid overflowing
-     *  the receiver's UDP buffer. Runs on a background thread. */
-    void sendPacedStateDump(int targetIndex, std::vector<juce::OSCMessage> messages);
 
     int findRemoteTargetByIP(const juce::String& senderIP) const;
 
@@ -755,6 +771,11 @@ private:
     int remoteSelectedChannel = 1;
     std::set<juce::Identifier> remoteModifiedParams;
 
+    // Monotonic id stamped on each full state dump (/remote/dumpBegin and
+    // /remote/stateComplete carry it) so the tablet can pair the markers and detect
+    // a lost dumpBegin. Only touched on the message thread (collectStateDumpMessages).
+    int nextDumpSequence = 1;
+
     // Cached pad config for state dump replay
     struct CachedPadConfig
     {
@@ -768,22 +789,34 @@ private:
     struct RemoteConnectionState
     {
         enum class Phase { Disconnected, Connecting, Connected };
-        Phase phase = Phase::Disconnected;
+        // Atomic: written on the message thread, read by detached dump-sender threads.
+        std::atomic<Phase> phase { Phase::Disconnected };
         juce::int64 lastPingSentTime = 0;
         juce::int64 lastPongReceivedTime = 0;
         int pendingSequenceNumber = 0;
         int nextSequenceNumber = 1;
         bool wasConnectedBefore = false;
+        // Protocol version the tablet reported in its pong (0 = unknown, 1 = legacy
+        // tablet that sent a version-less ",i" pong).
+        int reportedProtocolVersion = 0;
+        // Handshake-stall detection: counts pings sent without a pong so the UI can
+        // hint that the tablet app may be outdated (a v1 tablet silently ignores
+        // v2 ",ii" pings and will never answer).
+        int pingAttemptsWhileConnecting = 0;
+        bool stallNotified = false;
     };
     std::array<RemoteConnectionState, MAX_TARGETS> remoteStates;
 
     static constexpr int HEARTBEAT_INTERVAL_MS = 2000;
     static constexpr int CONNECTION_TIMEOUT_MS = 6000;
+    // Unanswered pings while Connecting before onRemoteHandshakeStalled fires (~10 s).
+    static constexpr int STALL_PING_ATTEMPTS = 5;
 
     // Loop prevention: tracks the protocol type of incoming message being processed
     // Set to Protocol::Disabled when not processing an incoming message
-    // When set, only blocks re-sending to targets of the SAME protocol type
-    Protocol incomingProtocol = Protocol::Disabled;
+    // When set, only blocks re-sending to targets of the SAME protocol type.
+    // Atomic: written on the message thread, read from detached dump-sender threads.
+    std::atomic<Protocol> incomingProtocol { Protocol::Disabled };
 
     // RAII guard for incomingProtocol. Set on construction, cleared to
     // Protocol::Disabled on scope exit (unless release() was called first).

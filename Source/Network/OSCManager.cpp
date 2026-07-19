@@ -1329,6 +1329,7 @@ void OSCManager::timerCallback()
                     sendRemotePing(i);
                     remoteState.phase = RemoteConnectionState::Phase::Connecting;
                     remoteState.lastPingSentTime = now;
+                    remoteState.pingAttemptsWhileConnecting = 1;
                     // Update UI to show connecting
                     if (targetStatuses[static_cast<size_t>(i)] != ConnectionStatus::Connecting)
                         updateTargetStatus(i, ConnectionStatus::Connecting);
@@ -1340,6 +1341,18 @@ void OSCManager::timerCallback()
                     {
                         sendRemotePing(i);
                         remoteState.lastPingSentTime = now;
+
+                        // After ~10s of unanswered pings, hint that the tablet app may
+                        // be outdated (a pre-v2 app silently ignores versioned pings).
+                        // Also fires when there is simply no tablet at that address, so
+                        // the UI must word this as a possibility, not a diagnosis.
+                        if (++remoteState.pingAttemptsWhileConnecting >= STALL_PING_ATTEMPTS &&
+                            ! remoteState.stallNotified)
+                        {
+                            remoteState.stallNotified = true;
+                            if (onRemoteHandshakeStalled)
+                                onRemoteHandshakeStalled(i);
+                        }
                     }
                     // Ensure UI shows connecting
                     if (targetStatuses[static_cast<size_t>(i)] != ConnectionStatus::Connecting)
@@ -1517,7 +1530,10 @@ void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
         if (targetIndex >= 0 && message.size() >= 1 && message[0].isInt32())
         {
             int seqNum = message[0].getInt32();
-            handleRemotePong(targetIndex, seqNum);
+            // v2 tablets append their protocol version; v1 pongs are just ",i".
+            int remoteVersion = (message.size() >= 2 && message[1].isInt32())
+                                    ? message[1].getInt32() : 1;
+            handleRemotePong(targetIndex, seqNum, remoteVersion);
         }
     }
     else if (address == "/remote/heartbeatAck")
@@ -3305,12 +3321,12 @@ void OSCManager::handleClusterLFOMessage(const juce::OSCMessage& message)
     });
 }
 
-void OSCManager::sendRemoteChannelDump(int channelId)
+std::vector<juce::OSCMessage> OSCManager::collectRemoteChannelDumpMessages(int channelId)
 {
     // Convert 1-based channelId to 0-based index for internal API
     int channelIndex = channelId - 1;
     if (channelIndex < 0)
-        return;
+        return {};
 
     // Helper lambda to get a parameter value as float (uses 0-based channelIndex)
     auto getParam = [this, channelIndex](const juce::Identifier& paramId) -> float {
@@ -3448,6 +3464,15 @@ void OSCManager::sendRemoteChannelDump(int channelId)
         trackedMsg.addInt32(fullyTracked ? 1 : 0);
         messages.push_back(std::move(trackedMsg));
     }
+
+    return messages;
+}
+
+void OSCManager::sendRemoteChannelDump(int channelId)
+{
+    auto messages = collectRemoteChannelDumpMessages(channelId);
+    if (messages.empty())
+        return;
 
     // Send the whole per-input dump as a small sequence of OSC bundles (one or two
     // datagrams under MTU each). This bypasses the rate limiter, which previously
@@ -3931,10 +3956,11 @@ void OSCManager::sendRemotePing(int targetIndex)
     int seqNum = remoteState.nextSequenceNumber++;
     remoteState.pendingSequenceNumber = seqNum;
 
+    // v2 ping: sequence + our protocol version so the tablet can flag a mismatch.
     juce::OSCMessage msg("/remote/ping");
     msg.addInt32(seqNum);
+    msg.addInt32(kRemoteProtocolVersion);
     sendMessage(targetIndex, msg);
-
 }
 
 void OSCManager::sendRemoteHeartbeat(int targetIndex)
@@ -3951,7 +3977,7 @@ void OSCManager::sendRemoteHeartbeat(int targetIndex)
     sendMessage(targetIndex, msg);
 }
 
-void OSCManager::handleRemotePong(int targetIndex, int sequenceNumber)
+void OSCManager::handleRemotePong(int targetIndex, int sequenceNumber, int remoteVersion)
 {
     if (targetIndex < 0 || targetIndex >= MAX_TARGETS)
         return;
@@ -3967,6 +3993,9 @@ void OSCManager::handleRemotePong(int targetIndex, int sequenceNumber)
     }
 
     remoteState.lastPongReceivedTime = juce::Time::currentTimeMillis();
+    remoteState.pingAttemptsWhileConnecting = 0;
+    remoteState.stallNotified = false;
+    remoteState.reportedProtocolVersion = remoteVersion;
 
     if (remoteState.phase == RemoteConnectionState::Phase::Connecting)
     {
@@ -3976,6 +4005,17 @@ void OSCManager::handleRemotePong(int targetIndex, int sequenceNumber)
 
         // Update target status to trigger onConnectionStatusChanged callback
         updateTargetStatus(targetIndex, ConnectionStatus::Connected);
+
+        // Version check: warn (don't block) on mismatch. Fired on every connect so
+        // the UI flag survives reconnect cycles (the status-changed callback clears
+        // it on each new connection attempt).
+        if (remoteVersion != kRemoteProtocolVersion)
+        {
+            DBG("OSCManager: Remote target " << targetIndex << " speaks protocol v"
+                << remoteVersion << ", expected v" << kRemoteProtocolVersion);
+            if (onRemoteProtocolMismatch)
+                onRemoteProtocolMismatch(targetIndex, remoteVersion, kRemoteProtocolVersion);
+        }
 
         onRemoteConnected(targetIndex, isReconnection);
     }
@@ -4349,11 +4389,25 @@ std::vector<juce::OSCMessage> OSCManager::collectStateDumpMessages(int /*targetI
 {
     std::vector<juce::OSCMessage> messages;
 
+    const int dumpSeq = nextDumpSequence++;
+
     // --- /inputs ---
     auto ioTree = state.getIOState();
     int numInputs = ioTree.isValid()
         ? static_cast<int>(ioTree.getProperty(WFSParameterIDs::inputChannels))
         : 8;
+
+    // --- Start-of-dump marker ---
+    // First message: announces a fresh full dump so the tablet resets its
+    // completeness tracking for this cycle (its previous dump's bookkeeping would
+    // otherwise mask channels lost in transit during a project-load re-dump).
+    {
+        juce::OSCMessage begin ("/remote/dumpBegin");
+        begin.addInt32 (dumpSeq);
+        begin.addInt32 (numInputs);
+        messages.push_back (std::move (begin));
+    }
+
     messages.push_back(OSCMessageBuilder::buildConfigIntMessage("/inputs", numInputs));
 
     // --- Stage config ---
@@ -4548,58 +4602,32 @@ std::vector<juce::OSCMessage> OSCManager::collectStateDumpMessages(int /*targetI
         }
     }
 
+    // --- Selected-channel detailed dump ---
+    // The per-input block above carries names/positions plus the remote address-map
+    // params; finish with the full ~95-message detailed dump of the currently
+    // selected channel. Both sides default their selection to channel 1 and the
+    // tablet only re-requests a channel when the operator taps it — which never
+    // happens for the already-selected default — so without this, channel 1 is the
+    // one channel that can't recover from load-time loss. Costs ~3 bundles.
+    {
+        auto selectedMessages = collectRemoteChannelDumpMessages(remoteSelectedChannel);
+        messages.insert(messages.end(),
+                        std::make_move_iterator(selectedMessages.begin()),
+                        std::make_move_iterator(selectedMessages.end()));
+    }
+
     // --- End-of-dump marker ---
     // Last message: tells the tablet the dump is finished and how many channels to
-    // expect, so it can verify completeness and re-request any channels lost in transit.
+    // expect, so it can verify completeness and re-request any channels lost in
+    // transit. Carries the dump sequence so the tablet can detect a lost dumpBegin.
     {
         juce::OSCMessage done ("/remote/stateComplete");
         done.addInt32 (numInputs);
+        done.addInt32 (dumpSeq);
         messages.push_back (std::move (done));
     }
 
     return messages;
-}
-
-void OSCManager::sendPacedStateDump(int targetIndex, std::vector<juce::OSCMessage> messages)
-{
-    // Send from a background thread with pacing to avoid overflowing
-    // the receiver's UDP socket buffer.
-    // The Android receive loop processes packets sequentially (receive -> parse -> callback),
-    // so bursts of hundreds of UDP packets cause the OS buffer to overflow and silently
-    // drop packets. We pace by sleeping 2ms every 4 messages to give the receiver time
-    // to drain. For 32 inputs (~1088 messages) this takes ~544ms — fast enough to be
-    // imperceptible but slow enough to avoid drops.
-    std::thread([this, targetIndex, msgs = std::move(messages)]()
-    {
-        const auto& config = targetConfigs[static_cast<size_t>(targetIndex)];
-        int count = 0;
-        const bool loggingEnabled = logger.getEnabled();
-
-        for (const auto& msg : msgs)
-        {
-            // Check connection is still valid
-            if (!connections[static_cast<size_t>(targetIndex)])
-                break;
-
-            if (connections[static_cast<size_t>(targetIndex)]->send(msg))
-            {
-                ++messagesSent;
-                if (loggingEnabled)
-                    logger.logSentWithDetails(targetIndex, msg, config.protocol,
-                                              config.ipAddress, config.port, config.mode);
-            }
-
-            if (++count % 4 == 0)
-                std::this_thread::sleep_for(std::chrono::milliseconds(2));
-        }
-
-        // Notify connection ready on the message thread
-        juce::MessageManager::callAsync([this, targetIndex]()
-        {
-            if (onRemoteConnectionReady)
-                onRemoteConnectionReady(targetIndex);
-        });
-    }).detach();
 }
 
 int OSCManager::findRemoteTargetByIP(const juce::String& senderIP) const
@@ -4755,9 +4783,19 @@ void OSCManager::sendMessagesAsBundles(int targetIndex, const std::vector<juce::
         return;
     if (config.protocol == Protocol::Remote &&
         remoteStates[static_cast<size_t>(targetIndex)].phase != RemoteConnectionState::Phase::Connected)
+    {
+        DBG("OSCManager: dropping " << (int) messages.size()
+            << " dump messages for target " << targetIndex << " (not connected)");
         return;
-    if (config.protocol == Protocol::Remote && incomingProtocol == Protocol::Remote)
-        return; // loop prevention
+    }
+    // Note: deliberately NO incomingProtocol loop-prevention check here. Every caller
+    // is an explicit state/channel dump (connect, project load, requestResync,
+    // channel select) — never a ValueTree-listener echo — and this runs on detached
+    // background threads, where a transient read of incomingProtocol (set on the
+    // message thread while processing an unrelated tablet gesture) used to silently
+    // discard the entire dump. Per-parameter echo suppression lives in the
+    // ValueTree-listener send path. Invariant: callers must not invoke this
+    // synchronously from inside a Remote ScopedIncomingProtocol scope.
 
     auto& connection = connections[static_cast<size_t>(targetIndex)];
     if (! connection)

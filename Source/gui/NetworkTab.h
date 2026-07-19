@@ -1964,7 +1964,43 @@ public:
                 // Must update UI on message thread
                 juce::MessageManager::callAsync([this, targetIndex, status]()
                 {
+                    if (targetIndex >= 0 && targetIndex < maxTargets)
+                    {
+                        // A new connection attempt / disconnect resets the remote
+                        // warnings; a Connected pong re-fires the mismatch callback
+                        // (queued after this one) if it still applies.
+                        remoteHandshakeStalled[targetIndex] = false;
+                        remoteProtocolMismatch[targetIndex] = false;
+                    }
                     updateTargetConnectionStatus(targetIndex, status);
+                });
+            };
+
+            // Remote tablet reports a different protocol version: connected but amber,
+            // with a tooltip telling the operator which side to update.
+            oscManager->onRemoteProtocolMismatch = [this](int targetIndex, int remoteVersion, int expectedVersion)
+            {
+                juce::MessageManager::callAsync([this, targetIndex, remoteVersion, expectedVersion]()
+                {
+                    if (targetIndex < 0 || targetIndex >= maxTargets)
+                        return;
+                    remoteProtocolMismatch[targetIndex] = true;
+                    remoteReportedVersion[targetIndex] = remoteVersion;
+                    remoteExpectedVersion[targetIndex] = expectedVersion;
+                    updateTargetConnectionStatus(targetIndex, WFSNetwork::ConnectionStatus::Connected);
+                });
+            };
+
+            // Repeated unanswered pings: possibly no tablet, possibly an outdated app
+            // that silently ignores versioned pings.
+            oscManager->onRemoteHandshakeStalled = [this](int targetIndex)
+            {
+                juce::MessageManager::callAsync([this, targetIndex]()
+                {
+                    if (targetIndex < 0 || targetIndex >= maxTargets)
+                        return;
+                    remoteHandshakeStalled[targetIndex] = true;
+                    updateTargetConnectionStatus(targetIndex, WFSNetwork::ConnectionStatus::Connecting);
                 });
             };
         }
@@ -2592,6 +2628,12 @@ private:
 
     // ==================== NETWORK CONNECTIONS TABLE ====================
     static constexpr int maxTargets = 6;
+
+    // Remote-protocol warning state per target row (message thread only)
+    bool remoteProtocolMismatch[maxTargets] = {};
+    bool remoteHandshakeStalled[maxTargets] = {};
+    int remoteReportedVersion[maxTargets] = {};
+    int remoteExpectedVersion[maxTargets] = {};
 
     // Structure for each target row
     struct NetworkTargetRow
@@ -3685,6 +3727,21 @@ private:
                 textColor = ColorScheme::get().textPrimary;
                 break;
         }
+
+        // Remote-specific overlays on the base status
+        juce::String tooltip;
+        if (status == WFSNetwork::ConnectionStatus::Connected && remoteProtocolMismatch[targetIndex])
+        {
+            bgColor = juce::Colour(0xFF4D3A1A);  // Dark amber tint
+            tooltip = LocalizationManager::getInstance().get("network.remote.protocolMismatch",
+                {{"remote", juce::String(remoteReportedVersion[targetIndex])},
+                 {"local", juce::String(remoteExpectedVersion[targetIndex])}});
+        }
+        else if (status == WFSNetwork::ConnectionStatus::Connecting && remoteHandshakeStalled[targetIndex])
+        {
+            tooltip = LOC("network.remote.notResponding");
+        }
+        row.nameEditor.setTooltip(tooltip);
 
         row.nameEditor.setColour(juce::TextEditor::backgroundColourId, bgColor);
         row.nameEditor.setColour(juce::TextEditor::textColourId, textColor);

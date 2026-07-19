@@ -337,6 +337,11 @@
       "tracking": "Tracking"
     },
 
+    "remote": {
+      "protocolMismatch": "Remote app uses protocol v{remote}, expected v{local} — update the tablet app",
+      "notResponding": "Remote not responding — the tablet app may be outdated or unreachable"
+    },
+
     "labels": {
       "interface": "Network Interface:",
       "currentIPv4": "Current IPv4:",
