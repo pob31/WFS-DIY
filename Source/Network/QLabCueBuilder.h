@@ -168,8 +168,10 @@ public:
             reload.movePosition = 2;
             reload.messages.push_back (juce::OSCMessage ("/new", juce::String ("network")));
             reload.messages.push_back (juce::OSCMessage ("/cue/selected/patch", qlabPatchNumber));
+            // Quote the name: QLab tokenises unquoted custom-message arguments
+            // at spaces, which would split "snapshot 34" into two OSC args.
             reload.messages.push_back (juce::OSCMessage ("/cue/selected/customString",
-                juce::String ("/wfs/input/snapshot/load " + snapshotName)));
+                juce::String ("/wfs/input/snapshot/load \"" + snapshotName + "\"")));
             reload.messages.push_back (juce::OSCMessage ("/cue/selected/name",
                 LOC("snapshot.qlabReloadName").replace ("{name}", snapshotName)));
             sequence.networkCues.push_back (std::move (reload));
@@ -182,7 +184,7 @@ public:
             update.messages.push_back (juce::OSCMessage ("/new", juce::String ("network")));
             update.messages.push_back (juce::OSCMessage ("/cue/selected/patch", qlabPatchNumber));
             update.messages.push_back (juce::OSCMessage ("/cue/selected/customString",
-                juce::String ("/wfs/input/snapshot/store " + snapshotName)));
+                juce::String ("/wfs/input/snapshot/store \"" + snapshotName + "\"")));
             update.messages.push_back (juce::OSCMessage ("/cue/selected/name",
                 LOC("snapshot.qlabUpdateName").replace ("{name}", snapshotName)));
             sequence.networkCues.push_back (std::move (update));

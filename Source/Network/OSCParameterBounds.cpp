@@ -167,6 +167,20 @@ namespace
             BIND_I (inputCommonAtten);
 
             //------------------------------------------------------------------
+            // Input / Array Attenuation (all ten share one Min/Max pair)
+            //------------------------------------------------------------------
+            BIND_F_AS (inputArrayAtten1,  inputArrayAtten);
+            BIND_F_AS (inputArrayAtten2,  inputArrayAtten);
+            BIND_F_AS (inputArrayAtten3,  inputArrayAtten);
+            BIND_F_AS (inputArrayAtten4,  inputArrayAtten);
+            BIND_F_AS (inputArrayAtten5,  inputArrayAtten);
+            BIND_F_AS (inputArrayAtten6,  inputArrayAtten);
+            BIND_F_AS (inputArrayAtten7,  inputArrayAtten);
+            BIND_F_AS (inputArrayAtten8,  inputArrayAtten);
+            BIND_F_AS (inputArrayAtten9,  inputArrayAtten);
+            BIND_F_AS (inputArrayAtten10, inputArrayAtten);
+
+            //------------------------------------------------------------------
             // Input / Directivity
             //------------------------------------------------------------------
             BIND_I (inputDirectivity);

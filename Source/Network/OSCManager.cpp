@@ -1715,9 +1715,26 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
     //==========================================================================
     if (address.startsWith ("/wfs/input/snapshot/"))
     {
+        // A snapshot name containing spaces may arrive split into several
+        // string args (QLab tokenises unquoted custom-message arguments).
+        // Join all leading string/number args back into one name so legacy
+        // unquoted cues keep working; quoted names arrive as a single arg.
         juce::String snapshotName;
-        if (message.size() >= 1 && message[0].isString())
-            snapshotName = message[0].getString();
+        for (int i = 0; i < message.size(); ++i)
+        {
+            juce::String part;
+            if (message[i].isString())
+                part = message[i].getString();
+            else if (message[i].isInt32())
+                part = juce::String (message[i].getInt32());
+            else if (message[i].isFloat32())
+                part = juce::String (message[i].getFloat32());
+
+            if (part.isEmpty())
+                break;
+            snapshotName = snapshotName.isEmpty() ? part : snapshotName + " " + part;
+        }
+        snapshotName = snapshotName.trim();
 
         if (snapshotName.isNotEmpty())
         {
@@ -1982,11 +1999,15 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
                 const juce::var currentVar = state.getInputParameter (channelIndex, parsed.paramId);
                 const double startValue = currentVar.isVoid() ? targetValue
                                                               : static_cast<double> (currentVar);
+                juce::String clampNote;
+                if (parsed.rampTimeSecRequested > parsed.rampTimeSec)
+                    clampNote = " (requested " + juce::String (parsed.rampTimeSecRequested, 1)
+                              + " s, clamped to 600 s max)";
                 logger.logText ("Ramp started: " + parsed.paramId.toString()
                                 + " ch " + juce::String (parsed.channelId)
                                 + ": " + juce::String (startValue, 3)
                                 + " -> " + juce::String (targetValue, 3)
-                                + " over " + juce::String (parsed.rampTimeSec, 2) + " s");
+                                + " over " + juce::String (parsed.rampTimeSec, 2) + " s" + clampNote);
 
                 parameterRamper.startRamp (channelIndex, parsed.paramId,
                                            targetValue,

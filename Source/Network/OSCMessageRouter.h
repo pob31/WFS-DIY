@@ -27,6 +27,7 @@ public:
         int channelId = 0;
         juce::var value;
         float rampTimeSec = 0.0f;  // Optional 3rd OSC arg: transition time in seconds (0 = apply immediately)
+        float rampTimeSecRequested = 0.0f; // As sent by the client, before the [0, 600] s clamp
         bool rampArgIgnored = false; // A trailing numeric arg was present but the param is not fade-capable
         bool valid = false;
         juce::String invalidReason; // Set when valid==false because the value failed range gate.
@@ -245,6 +246,20 @@ public:
      * Extract a string value from OSC arguments.
      */
     static juce::String extractString(const juce::OSCArgument& arg);
+
+    /**
+     * True when the string is a plain decimal number (optional sign, digits,
+     * at most one dot — e.g. "10", "-3.5", "10000."). Used to accept numeric
+     * values/fade times from clients that type OSC arguments as strings
+     * (QLab custom messages are the motivating case).
+     */
+    static bool isNumericString(const juce::String& s);
+
+    /**
+     * Like extractFloat, but also accepts a string argument that is a plain
+     * decimal number. Non-numeric strings (e.g. "inc"/"dec") return 0.
+     */
+    static float extractFloatLenient(const juce::OSCArgument& arg);
 
     /**
      * Extract the parameter portion from an OSC address.

@@ -190,7 +190,8 @@ public:
         static const std::set<juce::Identifier> intParams = {
             inputHeightFactor, inputDirectivity, inputRotation, inputTilt,
             inputFRlowCutFreq, inputFRhighShelfFreq, inputFRdiffusion,
-            inputLFOphase, inputLFOphaseX, inputLFOphaseY, inputLFOphaseZ
+            inputLFOphase, inputLFOphaseX, inputLFOphaseY, inputLFOphaseZ,
+            inputCommonAtten
         };
         return intParams.find (paramId) != intParams.end();
     }

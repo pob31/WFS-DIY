@@ -125,6 +125,18 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getInputAddres
         { "mutes",           WFSParameterIDs::inputMutes },
         { "muteMacro",       WFSParameterIDs::inputMuteMacro },
 
+        // Array Attenuation (per-input send level to each output array)
+        { "arrayAtten1",     WFSParameterIDs::inputArrayAtten1 },
+        { "arrayAtten2",     WFSParameterIDs::inputArrayAtten2 },
+        { "arrayAtten3",     WFSParameterIDs::inputArrayAtten3 },
+        { "arrayAtten4",     WFSParameterIDs::inputArrayAtten4 },
+        { "arrayAtten5",     WFSParameterIDs::inputArrayAtten5 },
+        { "arrayAtten6",     WFSParameterIDs::inputArrayAtten6 },
+        { "arrayAtten7",     WFSParameterIDs::inputArrayAtten7 },
+        { "arrayAtten8",     WFSParameterIDs::inputArrayAtten8 },
+        { "arrayAtten9",     WFSParameterIDs::inputArrayAtten9 },
+        { "arrayAtten10",    WFSParameterIDs::inputArrayAtten10 },
+
         // Sidelines
         { "sidelinesEnable", WFSParameterIDs::inputSidelinesActive },
         { "sidelinesFringe", WFSParameterIDs::inputSidelinesFringe },
@@ -521,6 +533,48 @@ juce::String OSCMessageRouter::extractString(const juce::OSCArgument& arg)
     return {};
 }
 
+bool OSCMessageRouter::isNumericString(const juce::String& s)
+{
+    const juce::String t = s.trim();
+    if (t.isEmpty())
+        return false;
+
+    int digits = 0, dots = 0;
+    for (int i = 0; i < t.length(); ++i)
+    {
+        const auto c = t[i];
+        if (c == '+' || c == '-')
+        {
+            if (i != 0)
+                return false;
+        }
+        else if (c == '.')
+        {
+            if (++dots > 1)
+                return false;
+        }
+        else if (c >= '0' && c <= '9')
+        {
+            ++digits;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    return digits > 0;
+}
+
+float OSCMessageRouter::extractFloatLenient(const juce::OSCArgument& arg)
+{
+    if (arg.isString())
+    {
+        const juce::String s = arg.getString();
+        return isNumericString(s) ? s.trim().getFloatValue() : 0.0f;
+    }
+    return extractFloat(arg);
+}
+
 bool OSCMessageRouter::hasOnlyFiniteFloats(const juce::OSCMessage& message,
                                            juce::String& outReason)
 {
@@ -605,17 +659,28 @@ OSCMessageRouter::ParsedInputMessage OSCMessageRouter::parseInputMessage(const j
                 result.paramId = it->second;
                 result.channelId = firstSeg.getIntValue();
 
-                if (message[0].isString())
+                // Numeric strings are coerced to floats — QLab custom messages
+                // may type every argument as a string. inputName legitimately
+                // takes arbitrary text and is exempt.
+                if (message[0].isString()
+                    && (result.paramId == WFSParameterIDs::inputName
+                        || ! isNumericString (message[0].getString())))
                     result.value = extractString(message[0]);
                 else
-                    result.value = extractFloat(message[0]);
+                    result.value = extractFloatLenient(message[0]);
 
                 // Optional ramp time: /wfs/input/{channelID}/{param} <value> <rampTimeSec>
                 if (message.size() >= 2)
                 {
-                    if (isInputParamRampCapable(result.paramId))
-                        result.rampTimeSec = clampRampSeconds (extractFloat (message[1]));
-                    else if (message[1].isFloat32() || message[1].isInt32())
+                    const bool fadeIsNumeric = message[1].isFloat32() || message[1].isInt32()
+                        || (message[1].isString() && isNumericString (message[1].getString()));
+
+                    if (fadeIsNumeric && isInputParamRampCapable(result.paramId))
+                    {
+                        result.rampTimeSecRequested = extractFloatLenient (message[1]);
+                        result.rampTimeSec = clampRampSeconds (result.rampTimeSecRequested);
+                    }
+                    else if (fadeIsNumeric)
                         result.rampArgIgnored = true;
                 }
 
@@ -634,18 +699,30 @@ OSCMessageRouter::ParsedInputMessage OSCMessageRouter::parseInputMessage(const j
     {
         result.channelId = extractInt(message[0]);
 
-        if (message[1].isString())
+        // Numeric strings are coerced to floats — QLab custom messages may
+        // type every argument as a string. inputName legitimately takes
+        // arbitrary text and is exempt (as are the "inc"/"dec" directives,
+        // which are non-numeric and therefore stay strings).
+        if (message[1].isString()
+            && (result.paramId == WFSParameterIDs::inputName
+                || ! isNumericString (message[1].getString())))
             result.value = extractString(message[1]);
         else
-            result.value = extractFloat(message[1]);
+            result.value = extractFloatLenient(message[1]);
 
         // Optional ramp time argument — only accepted for parameters listed as
         // ramp-capable in Documentation/WFS-UI_input.csv.
         if (message.size() >= 3)
         {
-            if (isInputParamRampCapable(result.paramId))
-                result.rampTimeSec = clampRampSeconds (extractFloat (message[2]));
-            else if (message[2].isFloat32() || message[2].isInt32())
+            const bool fadeIsNumeric = message[2].isFloat32() || message[2].isInt32()
+                || (message[2].isString() && isNumericString (message[2].getString()));
+
+            if (fadeIsNumeric && isInputParamRampCapable(result.paramId))
+            {
+                result.rampTimeSecRequested = extractFloatLenient (message[2]);
+                result.rampTimeSec = clampRampSeconds (result.rampTimeSecRequested);
+            }
+            else if (fadeIsNumeric)
                 result.rampArgIgnored = true;
         }
 
@@ -664,6 +741,18 @@ bool OSCMessageRouter::isInputParamRampCapable(const juce::Identifier& paramId)
     // Documentation/WFS-UI_input.csv: every row with
     // "extra value is transition time in seconds".
     static const std::set<juce::Identifier> rampCapable = {
+        WFSParameterIDs::inputAttenuation,
+        WFSParameterIDs::inputCommonAtten,
+        WFSParameterIDs::inputArrayAtten1,
+        WFSParameterIDs::inputArrayAtten2,
+        WFSParameterIDs::inputArrayAtten3,
+        WFSParameterIDs::inputArrayAtten4,
+        WFSParameterIDs::inputArrayAtten5,
+        WFSParameterIDs::inputArrayAtten6,
+        WFSParameterIDs::inputArrayAtten7,
+        WFSParameterIDs::inputArrayAtten8,
+        WFSParameterIDs::inputArrayAtten9,
+        WFSParameterIDs::inputArrayAtten10,
         WFSParameterIDs::inputDelayLatency,
         WFSParameterIDs::inputPositionX,
         WFSParameterIDs::inputPositionY,

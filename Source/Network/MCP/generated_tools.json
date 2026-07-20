@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "3a3d5d11f4bafb3a5099b047d0ce32ac6a1fa10a4d1807f313e6f223912ffffc",
+  "input_hash": "7af8b1dd2a0da5914510835cc419e9d199f2fbb7c10578abc6c66c90311502c4",
   "source_csvs": [
     "WFS-UI_config.csv",
     "WFS-UI_input.csv",
@@ -1071,7 +1071,7 @@
     },
     {
       "name": "input_attenuation_set_common_attenuation",
-      "description": "Percentage of the Common Part of the Attenuation for selected Object Relative to All Outputs. Value in %. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
+      "description": "Percentage of the Common Part of the Attenuation for selected Object Relative to All Outputs. Value in %. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -1087,6 +1087,13 @@
             "maximum": 100,
             "description": "Common Attenuation %.",
             "default": 100
+          },
+          "transition_seconds": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 600.0,
+            "default": 0.0,
+            "description": "Time to transition to the new value. 0 means instant."
           },
           "confirm": {
             "type": "string",
@@ -5852,7 +5859,7 @@
     },
     {
       "name": "input_set_array_attenuation",
-      "description": "Per-Array Attenuation for Array 1. Dimmed if Array has No Outputs Assigned. Value in dB. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
+      "description": "Per-Array Attenuation for Array 1. Dimmed if Array has No Outputs Assigned. Value in dB. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -5874,6 +5881,13 @@
             "maximum": 0.0,
             "description": "Array 1 Attenuation dB.",
             "default": 0.0
+          },
+          "transition_seconds": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 600.0,
+            "default": 0.0,
+            "description": "Time to transition to the new value. 0 means instant."
           },
           "confirm": {
             "type": "string",
@@ -5898,7 +5912,7 @@
     },
     {
       "name": "input_set_attenuation",
-      "description": "Input Channel Attenuation. Value in dB. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
+      "description": "Input Channel Attenuation. Value in dB. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -5914,6 +5928,13 @@
             "maximum": 0.0,
             "description": "Attenuation dB.",
             "default": 0.0
+          },
+          "transition_seconds": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 600.0,
+            "default": 0.0,
+            "description": "Time to transition to the new value. 0 means instant."
           },
           "confirm": {
             "type": "string",
