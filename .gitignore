@@ -26,6 +26,10 @@ Plugin/Builds/
 # Windows CI runner has no AMD HIP SDK to build it (see
 # tools/windows/prebuilt/README.md). Force-tracked despite the *.dll rule above.
 !tools/windows/prebuilt/wfs_hip.dll
+# ...but not the import lib / export file the DLL build drops next to it —
+# nothing links against the plugin (it's LoadLibrary'd at runtime).
+tools/windows/prebuilt/*.lib
+tools/windows/prebuilt/*.exp
 
 # Object files
 *.obj
