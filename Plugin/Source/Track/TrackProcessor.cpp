@@ -16,9 +16,9 @@ namespace wfs::plugin
         return juce::String (__DATE__) + " " + juce::String (__TIME__);
     }
 
-    const std::array<NonPositionParamSpec, 9>& getSharedTrackParams()
+    const std::array<NonPositionParamSpec, 10>& getSharedTrackParams()
     {
-        static const std::array<NonPositionParamSpec, 9> params = {{
+        static const std::array<NonPositionParamSpec, 10> params = {{
             { "attenuation",         "Attenuation",         "/wfs/input/attenuation",         false, -92.0f,   0.0f,   0.0f, "dB",
               TrackWidget::LogSlider,       -12.0f },
             { "attenuationLaw",      "Attenuation Law",     "/wfs/input/attenuationLaw",      true,    0.0f,   1.0f,   0.0f, "",
@@ -27,6 +27,8 @@ namespace wfs::plugin
               TrackWidget::LinearSlider,      0.0f },
             { "distanceRatio",       "Distance Ratio",      "/wfs/input/distanceRatio",       false,   0.1f,  10.0f,   1.0f, "x",
               TrackWidget::LogSlider,         1.0f },
+            { "commonAtten",         "Common Atten.",       "/wfs/input/commonAtten",         true,    0.0f, 100.0f, 100.0f, "%",
+              TrackWidget::LinearSlider,      0.0f },
             { "directivity",         "Directivity",         "/wfs/input/directivity",         true,    2.0f, 360.0f, 360.0f, juce::CharPointer_UTF8 ("\xc2\xb0"),
               TrackWidget::LinearSlider,      0.0f },
             { "rotation",            "Rotation",            "/wfs/input/rotation",            true,  -179.0f, 180.0f,   0.0f, juce::CharPointer_UTF8 ("\xc2\xb0"),

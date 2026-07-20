@@ -5,7 +5,7 @@
 ; Output: Plugin\Installer\Output\WFS-DIY-Plugins-Setup-<version>.exe
 
 #define MyAppName       "WFS-DIY Plugin Suite"
-#define MyAppVersion    "0.0.3"
+#define MyAppVersion    "0.0.4"
 #define MyAppPublisher  "Pix et Bel"
 #define MyAppURL        "https://wfs-diy.net"
 

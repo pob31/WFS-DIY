@@ -32,7 +32,7 @@ namespace wfs::plugin
         float skewMidpoint;   // 0 = linear; only applied for float params
     };
 
-    const std::array<NonPositionParamSpec, 9>& getSharedTrackParams();
+    const std::array<NonPositionParamSpec, 10>& getSharedTrackParams();
 
     class TrackProcessor  : public juce::AudioProcessor,
                             private juce::AudioProcessorValueTreeState::Listener

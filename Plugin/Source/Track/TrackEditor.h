@@ -67,6 +67,11 @@ namespace wfs::plugin
 
         std::unique_ptr<juce::ParameterAttachment> lawVisibilityAttachment;
 
+        juce::Label         commonAttenLabel;
+        juce::Label         commonAttenValueLabel;
+        WfsStandardSlider   commonAttenSlider { WfsSliderBase::Orientation::horizontal };
+        std::unique_ptr<WfsSliderNormalisedAttachment> commonAttenAttachment;
+
         // Position: X/Y/Z number boxes
         struct NumberBoxRow
         {

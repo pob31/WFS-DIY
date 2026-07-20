@@ -14,6 +14,7 @@ namespace wfs::plugin
             "/wfs/input/attenuationLaw",
             "/wfs/input/distanceAttenuation",
             "/wfs/input/distanceRatio",
+            "/wfs/input/commonAtten",
             "/wfs/input/directivity",
             "/wfs/input/rotation",
             "/wfs/input/tilt",

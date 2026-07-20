@@ -46,7 +46,7 @@ namespace wfs::plugin
         setLookAndFeel (&lookAndFeel);
         logoImage = juce::ImageCache::getFromMemory (BinaryData::WFSDIY_logo_png,
                                                      BinaryData::WFSDIY_logo_pngSize);
-        setSize (500, 740);
+        setSize (500, 774);
 
         // Title
         titleLabel.setText ("WFS-DIY Track", juce::dontSendNotification);
@@ -129,6 +129,15 @@ namespace wfs::plugin
                 });
             lawVisibilityAttachment->sendInitialUpdate();
         }
+
+        setupRowLabel   (commonAttenLabel, "Common Atten.");
+        setupValueLabel (commonAttenValueLabel);
+        commonAttenSlider.setTrackColours (juce::Colour (DarkPalette::sliderTrackBg),
+                                           juce::Colour (DarkPalette::accentBlueBright));
+        addAndMakeVisible (commonAttenSlider);
+        if (auto* param = p.getState().getParameter ("commonAtten"))
+            commonAttenAttachment = std::make_unique<WfsSliderNormalisedAttachment> (
+                *param, commonAttenSlider);
 
         // ── Position ───────────────────────────────────────────────────
         if (p.getVariant().positionsWired)
@@ -221,6 +230,8 @@ namespace wfs::plugin
                         [] (float v) { return juce::String (v, 2) + " dB/m"; });
         wireValueLabel ("distanceRatio",       distanceRatioValueLabel,
                         [] (float v) { return juce::String (v, 2) + " x"; });
+        wireValueLabel ("commonAtten",         commonAttenValueLabel,
+                        [] (float v) { return juce::String (juce::roundToInt (v)) + " %"; });
 
         // Make the value labels editable: double-click to type a value,
         // Enter to commit. Parses out any unit suffix (" dB", "°", etc.).
@@ -254,6 +265,7 @@ namespace wfs::plugin
         wireEditable (hfShelfValueLabel,             "hfShelf");
         wireEditable (distanceAttenuationValueLabel, "distanceAttenuation");
         wireEditable (distanceRatioValueLabel,       "distanceRatio");
+        wireEditable (commonAttenValueLabel,         "commonAtten");
 
         buildLabel.setText ("Build: " + TrackProcessor::getBuildStamp(), juce::dontSendNotification);
         buildLabel.setFont (juce::FontOptions (11.0f));
@@ -366,6 +378,7 @@ namespace wfs::plugin
             layoutLabelSliderValue (distanceRatioLabel,
                                     distanceRatioSlider,
                                     distanceRatioValueLabel);
+        layoutLabelSliderValue (commonAttenLabel, commonAttenSlider, commonAttenValueLabel);
         area.removeFromTop (6);
 
         // ── Position ──────────────────────────────
