@@ -298,6 +298,12 @@ public:
         /** Check if a parameter is included for a channel (via its scope item) */
         bool isParameterIncluded (const juce::Identifier& paramId, int channelIndex) const;
 
+        /** Semantic equality: same apply mode and same per-item/per-channel
+            inclusion across all scope items and channels. Raw map comparison
+            would be wrong — an absent key and an explicit `true` entry both
+            mean "included". */
+        bool isEquivalentTo (const ExtendedSnapshotScope& other, int numChannels) const;
+
         //----------------------------------------------------------------------
         // Modification methods
         //----------------------------------------------------------------------
@@ -378,6 +384,12 @@ public:
 
     /** Save extended scope to snapshot file (updates scope only, not parameters) */
     bool setExtendedSnapshotScope (const juce::String& snapshotName, const ExtendedSnapshotScope& scope);
+
+    /** Rewrite an existing snapshot's embedded scope in place (with backup),
+        without re-capturing live values. When the new scope's apply mode is
+        OnSave, the stored input data is additionally trimmed down to the new
+        scope — removal only: values absent from the file cannot be re-added. */
+    bool updateInputSnapshotScope (const juce::String& snapshotName, const ExtendedSnapshotScope& scope);
 
     /** Current value of the global sampler master switch (Config > UI > samplerEnabled). */
     bool isSamplerMasterOn() const;
@@ -489,6 +501,10 @@ private:
 
     /** Apply input data with extended scope filtering */
     bool applyInputWithExtendedScope (int channelIndex, const juce::ValueTree& inputData, const ExtendedSnapshotScope& scope);
+
+    /** Remove out-of-scope values from a stored snapshot Input tree, in place.
+        Used by updateInputSnapshotScope for OnSave scopes; never adds data. */
+    void trimSnapshotInputToScope (juce::ValueTree& inputData, const ExtendedSnapshotScope& scope, int channelIndex);
 
     /** Serialize extended scope to ValueTree */
     juce::ValueTree serializeExtendedScope (const ExtendedSnapshotScope& scope, int numChannels) const;

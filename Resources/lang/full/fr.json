@@ -1575,6 +1575,7 @@
       "snapshotDeleted": "Snapshot '{name}' supprimé.",
       "scopeSaved": "Portée du snapshot enregistrée.",
       "scopeConfigured": "Portée configurée pour le prochain snapshot.",
+      "snapshotScopeUpdated": "Portée du snapshot '{name}' mise à jour.",
       "trackingDisabled": "Tracking désactivé pour Entrée {channel}",
       "trackingSwitched": "Tracking transféré de Entrée {from} à Entrée {to}",
       "clusterEditRelative": "Édition Maj : changement relatif appliqué à {count} autre(s) entrée(s) du Groupe {cluster}",
@@ -1735,7 +1736,9 @@
       "ok": "OK",
       "cancel": "Annuler",
       "selectModified": "Sélectionner modifiés",
-      "clearChanges": "Effacer les changements"
+      "clearChanges": "Effacer les changements",
+      "updateSnapshotScope": "Mettre à jour la portée",
+      "updateSnapshotScopeTooltip": "Écrit la portée modifiée dans le snapshot sélectionné sans réenregistrer ses valeurs. Pour les snapshots « À l'enregistrement », les valeurs hors de la nouvelle portée sont supprimées (sauvegarde créée au préalable)."
     },
     "autoPreselectModified": "Présélectionner les paramètres modifiés",
     "writeToQLab": "Exporter vers QLab",

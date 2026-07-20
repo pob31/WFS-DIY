@@ -6763,17 +6763,21 @@ private:
 
         if (snapshotScopeWindow == nullptr || !snapshotScopeWindow->isVisible())
         {
-            // OK commits, Cancel/X discards: the window edits a working copy.
-            // The real scope is only overwritten when the user clicks OK.
+            // The window edits a working copy; the close result decides its fate:
+            // OK keeps it for the session (new snapshots), the long-press "Update
+            // Snapshot Scope" button writes it into the selected snapshot's file,
+            // Cancel/X discards it.
             // shared_ptr so the lambda remains copy-constructible for std::function.
             auto working = std::make_shared<WFSFileManager::ExtendedSnapshotScope>(*scopePtr);
 
-            snapshotScopeWindow = std::make_unique<SnapshotScopeWindow>(parameters, windowTitle, *working, &parameters.getDirtyTracker());
+            snapshotScopeWindow = std::make_unique<SnapshotScopeWindow>(parameters, windowTitle, *working, hasSelectedSnapshot, &parameters.getDirtyTracker());
             snapshotScopeWindow->setQLabAvailable (isQLabAvailable ? isQLabAvailable() : false);
             snapshotScopeWindow->onWindowClosed =
-                [this, hasSelectedSnapshot, selectedSnapshot, scopePtr, working]
-                (bool saved, bool writeToQLab, bool writeLoadCue)
+                [this, selectedSnapshot, working]
+                (SnapshotScopeWindow::CloseResult result, bool writeToQLab, bool writeLoadCue)
             {
+                using CloseResult = SnapshotScopeWindow::CloseResult;
+
                 writeToQLabEnabled = writeToQLab;
                 writeSnapshotLoadCueEnabled = writeLoadCue;
 
@@ -6786,28 +6790,29 @@ private:
                     showSection.setProperty (WFSParameterIDs::writeSnapshotLoadCue, writeLoadCue, nullptr);
                 }
 
-                if (saved)
+                if (result == CloseResult::Saved)
                 {
-                    // Single atomic commit — OK is the only path that mutates the real scope.
-                    *scopePtr = *working;
-
-                    // Also mirror into currentScope so the next "Create Snapshot" starts from
-                    // whatever the user last edited, regardless of whether they were editing a
-                    // selected snapshot's scope or the new-snapshot default.
+                    // OK is session-only: the edited scope becomes the default for the
+                    // next "Create Snapshot"; the selected snapshot's file and cached
+                    // scope stay untouched (the long-press button handles those).
                     currentScope = *working;
                     currentScopeInitialized = true;
-
-                    if (hasSelectedSnapshot)
+                    showStatusMessage(LOC("inputs.messages.scopeConfigured"));
+                }
+                else if (result == CloseResult::ScopeUpdated)
+                {
+                    // Long-press: write the scope into the snapshot file (with backup;
+                    // OnSave scopes also trim the stored values) and refresh the cache.
+                    auto& fileManager = parameters.getFileManager();
+                    if (fileManager.updateInputSnapshotScope(selectedSnapshot, *working))
                     {
-                        auto& fileManager = parameters.getFileManager();
-                        if (fileManager.setExtendedSnapshotScope(selectedSnapshot, *scopePtr))
-                            showStatusMessage(LOC("inputs.messages.scopeSaved"));
-                        else
-                            showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
+                        snapshotScopes[selectedSnapshot] = *working;
+                        showStatusMessage(LOC("inputs.messages.snapshotScopeUpdated").replace("{name}", selectedSnapshot));
+                        updateSnapshotButtonStates();  // applyMode drives "Reload w/o Scope" enablement
                     }
                     else
                     {
-                        showStatusMessage(LOC("inputs.messages.scopeConfigured"));
+                        showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
                     }
                 }
                 // Cancel / X / any other close: do nothing — working copy is discarded

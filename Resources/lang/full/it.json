@@ -1559,6 +1559,7 @@
       "snapshotDeleted": "Snapshot '{name}' eliminato.",
       "scopeSaved": "Ambito snapshot salvato.",
       "scopeConfigured": "Ambito configurato per il prossimo snapshot.",
+      "snapshotScopeUpdated": "Ambito dello snapshot '{name}' aggiornato.",
       "trackingDisabled": "Tracking disabilitato per Ingresso {channel}",
       "trackingSwitched": "Tracking trasferito da Ingresso {from} a Ingresso {to}",
       "clusterEditRelative": "Modifica con Shift: variazione relativa applicata a {count} altri ingressi del Cluster {cluster}",
@@ -1719,7 +1720,9 @@
       "ok": "OK",
       "cancel": "Annulla",
       "selectModified": "Seleziona modificati",
-      "clearChanges": "Cancella modifiche"
+      "clearChanges": "Cancella modifiche",
+      "updateSnapshotScope": "Aggiorna ambito",
+      "updateSnapshotScopeTooltip": "Scrive l'ambito modificato nello snapshot selezionato senza risalvarne i valori. Per gli snapshot 'Al salvataggio', i valori memorizzati fuori dal nuovo ambito vengono rimossi (prima viene creato un backup)."
     },
     "autoPreselectModified": "Preseleziona automaticamente i parametri modificati",
     "writeToQLab": "Scrivi su QLab",

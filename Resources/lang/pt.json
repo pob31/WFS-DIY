@@ -538,6 +538,7 @@
       "snapshotDeleted": "Snapshot '{name}' eliminado.",
       "scopeSaved": "Âmbito do snapshot guardado.",
       "scopeConfigured": "Âmbito configurado para o próximo snapshot.",
+      "snapshotScopeUpdated": "Âmbito do snapshot '{name}' atualizado.",
       "trackingDisabled": "Rastreamento desativado para Entrada {channel}",
       "trackingSwitched": "Rastreamento mudou de Entrada {from} para Entrada {to}",
       "clusterEditRelative": "Edição com Shift: alteração relativa aplicada a {count} outra(s) entrada(s) do Cluster {cluster}",

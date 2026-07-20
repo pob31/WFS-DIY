@@ -1559,6 +1559,7 @@
       "snapshotDeleted": "Snapshot '{name}' eliminado.",
       "scopeSaved": "Alcance del snapshot guardado.",
       "scopeConfigured": "Alcance configurado para el próximo snapshot.",
+      "snapshotScopeUpdated": "Alcance del snapshot '{name}' actualizado.",
       "trackingDisabled": "Tracking desactivado para Entrada {channel}",
       "trackingSwitched": "Tracking cambiado de Entrada {from} a Entrada {to}",
       "clusterEditRelative": "Edición con Shift: cambio relativo aplicado a {count} otra(s) entrada(s) del Grupo {cluster}",
@@ -1719,7 +1720,9 @@
       "ok": "OK",
       "cancel": "Cancelar",
       "selectModified": "Seleccionar modificados",
-      "clearChanges": "Borrar cambios"
+      "clearChanges": "Borrar cambios",
+      "updateSnapshotScope": "Actualizar alcance",
+      "updateSnapshotScopeTooltip": "Escribe el alcance editado en el snapshot seleccionado sin volver a guardar sus valores. Para snapshots 'Al guardar', los valores almacenados fuera del nuevo alcance se eliminan (se crea una copia de seguridad primero)."
     },
     "autoPreselectModified": "Preseleccionar automáticamente parámetros modificados",
     "writeToQLab": "Escribir a QLab",

@@ -1665,6 +1665,7 @@
       "snapshotDeleted": "Snapshot '{name}' deleted.",
       "scopeSaved": "Snapshot scope saved.",
       "scopeConfigured": "Scope configured for next snapshot.",
+      "snapshotScopeUpdated": "Snapshot '{name}' scope updated.",
       "trackingDisabled": "Tracking disabled for Input {channel}",
       "trackingSwitched": "Tracking switched from Input {from} to Input {to}",
       "clusterEditRelative": "Shift edit: applying relative change to {count} other input(s) of Cluster {cluster}",
@@ -1836,7 +1837,9 @@
       "ok": "OK",
       "cancel": "Cancel",
       "selectModified": "Select Modified",
-      "clearChanges": "Clear Changes"
+      "clearChanges": "Clear Changes",
+      "updateSnapshotScope": "Update Snapshot Scope",
+      "updateSnapshotScopeTooltip": "Write the edited scope into the selected snapshot without re-saving its values. For 'When Saving' snapshots, stored values outside the new scope are removed (backup created first)."
     },
     "autoPreselectModified": "Auto-preselect modified parameters",
     "writeToQLab": "Write to QLab",

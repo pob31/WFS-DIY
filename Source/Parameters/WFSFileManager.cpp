@@ -1157,6 +1157,19 @@ bool WFSFileManager::ExtendedSnapshotScope::isParameterIncluded (const juce::Ide
     return true;  // Unknown parameters are included by default
 }
 
+bool WFSFileManager::ExtendedSnapshotScope::isEquivalentTo (const ExtendedSnapshotScope& other, int numChannels) const
+{
+    if (applyMode != other.applyMode)
+        return false;
+
+    for (const auto& item : getScopeItems())
+        for (int ch = 0; ch < numChannels; ++ch)
+            if (isIncluded (item.itemId, ch) != other.isIncluded (item.itemId, ch))
+                return false;
+
+    return true;
+}
+
 void WFSFileManager::ExtendedSnapshotScope::setIncluded (const juce::String& itemId, int channelIndex, bool included)
 {
     auto key = makeKey (itemId, channelIndex);
@@ -1430,6 +1443,127 @@ bool WFSFileManager::setExtendedSnapshotScope (const juce::String& snapshotName,
     return writeToXmlFile (snapshot, file);
 }
 
+bool WFSFileManager::updateInputSnapshotScope (const juce::String& snapshotName, const ExtendedSnapshotScope& scope)
+{
+    auto file = getInputSnapshotsFolder().getChildFile (snapshotName + snapshotExtension);
+    auto snapshot = readFromXmlFile (file);
+
+    if (!snapshot.isValid())
+    {
+        setError (LOC ("fileManager.errors.snapshotNotFoundNamed").replace ("{name}", snapshotName));
+        return false;
+    }
+
+    createBackup (file);
+
+    // Replace the embedded scope
+    auto existingScope = snapshot.getChildWithName ("ExtendedScope");
+    if (existingScope.isValid())
+        snapshot.removeChild (existingScope, nullptr);
+
+    int numInputs = valueTreeState.getNumInputChannels();
+    snapshot.appendChild (serializeExtendedScope (scope, numInputs), nullptr);
+
+    // OnSave: the stored data is what recall applies, so trim it to the new
+    // scope (removal only). OnRecall files keep their full data so the scope
+    // can be broadened again later.
+    if (scope.applyMode == ExtendedSnapshotScope::ApplyMode::OnSave)
+    {
+        auto inputsData = snapshot.getChildWithName (Inputs);
+        for (int i = 0; i < inputsData.getNumChildren(); ++i)
+        {
+            auto inputData = inputsData.getChild (i);
+            int channelIndex = static_cast<int> (inputData.getProperty (id)) - 1;
+            if (channelIndex >= 0)
+                trimSnapshotInputToScope (inputData, scope, channelIndex);
+        }
+    }
+
+    stripTransientToggles (snapshot);
+    return writeToXmlFile (snapshot, file);
+}
+
+void WFSFileManager::trimSnapshotInputToScope (juce::ValueTree& inputData, const ExtendedSnapshotScope& scope, int channelIndex)
+{
+    // Removal only, in place: anything the scope excludes is deleted; everything
+    // else (including unknown/legacy properties) is left untouched. The global
+    // sampler master is deliberately NOT folded in here (withGlobals) — it must
+    // not silently delete stored sampler data while the master happens to be off.
+
+    // Channel section — inputName is always kept
+    auto channelTree = inputData.getChildWithName (Channel);
+    if (channelTree.isValid())
+    {
+        if (!scope.isIncluded ("inputAttenuation", channelIndex))
+            channelTree.removeProperty (inputAttenuation, nullptr);
+        if (!scope.isIncluded ("inputDelay", channelIndex))
+        {
+            channelTree.removeProperty (inputDelayLatency, nullptr);
+            channelTree.removeProperty (inputMinimalLatency, nullptr);
+        }
+        if (!scope.isIncluded ("sampler", channelIndex))
+            channelTree.removeProperty (inputSamplerActive, nullptr);
+    }
+
+    // Property-based sections: drop excluded items' parameters
+    static const juce::Identifier propertySections[] = {
+        Position, Attenuation, Directivity, LiveSourceTamer,
+        Hackoustics, LFO, AutomOtion, Mutes
+    };
+
+    for (const auto& sectionId : propertySections)
+    {
+        auto sectionTree = inputData.getChildWithName (sectionId);
+        if (!sectionTree.isValid())
+            continue;
+
+        for (const auto& item : ExtendedSnapshotScope::getScopeItems())
+        {
+            if (item.sectionId == sectionId && !scope.isIncluded (item.itemId, channelIndex))
+                for (const auto& paramId : item.parameterIds)
+                    sectionTree.removeProperty (paramId, nullptr);
+        }
+
+        if (sectionTree.getNumProperties() == 0 && sectionTree.getNumChildren() == 0)
+            inputData.removeChild (sectionTree, nullptr);
+    }
+
+    // Gradient Maps — layers matched by their 0-based `id` (positional fallback
+    // for pre-id-era files; kept layers get tagged so the result is unambiguous)
+    auto gmTree = inputData.getChildWithName (GradientMaps);
+    if (gmTree.isValid())
+    {
+        const juce::String layerItemIds[] = { "gmLayer1", "gmLayer2", "gmLayer3" };
+
+        for (int li = gmTree.getNumChildren() - 1; li >= 0; --li)
+        {
+            auto layerChild = gmTree.getChild (li);
+            int layerIdx = static_cast<int> (layerChild.getProperty (id, li));
+
+            if (layerIdx < 0 || layerIdx >= 3)
+                continue;  // unrecognisable layer — leave untouched
+
+            if (!scope.isIncluded (layerItemIds[layerIdx], channelIndex))
+                gmTree.removeChild (li, nullptr);
+            else if (!layerChild.hasProperty (id))
+                layerChild.setProperty (id, layerIdx, nullptr);
+        }
+
+        if (gmTree.getNumChildren() == 0)
+            inputData.removeChild (gmTree, nullptr);
+    }
+
+    // Sampler — whole-subtree removal (cells + dynamic set children)
+    if (!scope.isIncluded ("sampler", channelIndex))
+    {
+        auto samplerTree = inputData.getChildWithName (Sampler);
+        if (samplerTree.isValid())
+            inputData.removeChild (samplerTree, nullptr);
+    }
+
+    // ADMMapping items have no stored snapshot data — nothing to trim.
+}
+
 juce::ValueTree WFSFileManager::serializeExtendedScope (const ExtendedSnapshotScope& scope, int numChannels) const
 {
     juce::ValueTree scopeTree ("ExtendedScope");
@@ -1635,7 +1769,12 @@ juce::ValueTree WFSFileManager::extractInputWithExtendedScope (int channelIndex,
                     auto layerChild = gmSource.getChild (li);
                     if (layerChild.isValid())
                     {
-                        gmFiltered.appendChild (layerChild.createCopy(), nullptr);
+                        // Layers are matched by their 0-based `id` at recall; tag
+                        // pre-id-era trees so partially-scoped files stay unambiguous.
+                        auto layerCopy = layerChild.createCopy();
+                        if (!layerCopy.hasProperty (id))
+                            layerCopy.setProperty (id, li, nullptr);
+                        gmFiltered.appendChild (layerCopy, nullptr);
                         hasContent = true;
                     }
                 }
@@ -1742,17 +1881,28 @@ bool WFSFileManager::applyInputWithExtendedScope (int channelIndex, const juce::
 
             const juce::String layerItemIds[] = { "gmLayer1", "gmLayer2", "gmLayer3" };
 
-            for (int li = 0; li < gmSource.getNumChildren() && li < 3; ++li)
+            // Match stored layers to live slots by their 0-based `id` (positional
+            // fallback for pre-id-era files): scoped OnSave files omit excluded
+            // layers, so position alone would assign the remainder to wrong slots.
+            for (int si = 0; si < gmSource.getNumChildren(); ++si)
             {
-                if (scope.isIncluded (layerItemIds[li], channelIndex))
+                auto sourceLayer = gmSource.getChild (si);
+                int layerIdx = static_cast<int> (sourceLayer.getProperty (id, si));
+
+                if (layerIdx < 0 || layerIdx >= 3 || layerIdx >= gmTarget.getNumChildren())
+                    continue;
+
+                if (scope.isIncluded (layerItemIds[layerIdx], channelIndex))
                 {
-                    auto sourceLayer = gmSource.getChild (li);
-                    if (sourceLayer.isValid() && li < gmTarget.getNumChildren())
-                    {
-                        // Replace entire layer subtree (properties + shape children)
-                        auto targetLayer = gmTarget.getChild (li);
-                        targetLayer.copyPropertiesAndChildrenFrom (sourceLayer, undoManager);
-                    }
+                    // Replace entire layer subtree (properties + shape children).
+                    // Copy with `id` normalised to the target slot rather than
+                    // stripped — copyPropertiesAndChildrenFrom removes absent
+                    // properties, which would delete the live layer's id and
+                    // break gradient-map dirty tracking.
+                    auto layerData = sourceLayer.createCopy();
+                    layerData.setProperty (id, layerIdx, nullptr);
+                    auto targetLayer = gmTarget.getChild (layerIdx);
+                    targetLayer.copyPropertiesAndChildrenFrom (layerData, undoManager);
                 }
             }
         }

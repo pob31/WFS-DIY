@@ -1579,6 +1579,7 @@
       "snapshotDeleted": "Snapshot '{name}' gelöscht.",
       "scopeSaved": "Snapshot-Umfang gespeichert.",
       "scopeConfigured": "Umfang für nächsten Snapshot konfiguriert.",
+      "snapshotScopeUpdated": "Umfang von Snapshot '{name}' aktualisiert.",
       "trackingDisabled": "Tracking für Eingang {channel} deaktiviert",
       "trackingSwitched": "Tracking von Eingang {from} zu Eingang {to} gewechselt",
       "clusterEditRelative": "Shift-Bearbeitung: relative Änderung auf {count} weitere Eingänge von Cluster {cluster} angewendet",
@@ -1739,7 +1740,9 @@
       "ok": "OK",
       "cancel": "Abbrechen",
       "selectModified": "Geänderte auswählen",
-      "clearChanges": "Änderungen löschen"
+      "clearChanges": "Änderungen löschen",
+      "updateSnapshotScope": "Umfang aktualisieren",
+      "updateSnapshotScopeTooltip": "Schreibt den bearbeiteten Umfang in den ausgewählten Snapshot, ohne dessen Werte neu zu speichern. Bei 'Beim Speichern'-Snapshots werden gespeicherte Werte außerhalb des neuen Umfangs entfernt (Sicherung wird vorher erstellt)."
     },
     "autoPreselectModified": "Geänderte Parameter automatisch vorauswählen",
     "writeToQLab": "Zu QLab schreiben",

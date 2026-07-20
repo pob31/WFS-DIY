@@ -1559,6 +1559,7 @@
       "snapshotDeleted": "快照 '{name}' 已删除。",
       "scopeSaved": "快照范围已保存。",
       "scopeConfigured": "已为下一个快照配置范围。",
+      "snapshotScopeUpdated": "快照 '{name}' 的范围已更新。",
       "trackingDisabled": "输入 {channel} 的追踪已禁用",
       "trackingSwitched": "追踪已从输入 {from} 切换到输入 {to}",
       "clusterEditRelative": "Shift 编辑：相对更改已应用到集群 {cluster} 的其他 {count} 个输入",
@@ -1719,7 +1720,9 @@
       "ok": "OK",
       "cancel": "取消",
       "selectModified": "选择已修改的",
-      "clearChanges": "清除更改"
+      "clearChanges": "清除更改",
+      "updateSnapshotScope": "更新快照范围",
+      "updateSnapshotScopeTooltip": "将编辑后的范围写入选定的快照，而不重新保存其数值。对于“保存时”快照，新范围之外的已存数值将被删除（会先创建备份）。"
     },
     "autoPreselectModified": "自动预选已修改的参数",
     "writeToQLab": "写入 QLab",

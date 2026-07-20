@@ -543,6 +543,7 @@
       "snapshotDeleted": "Snapshot '{name}' supprimé.",
       "scopeSaved": "Portée du snapshot enregistrée.",
       "scopeConfigured": "Portée configurée pour le prochain snapshot.",
+      "snapshotScopeUpdated": "Portée du snapshot '{name}' mise à jour.",
       "trackingDisabled": "Tracking désactivé pour Entrée {channel}",
       "trackingSwitched": "Tracking transféré de Entrée {from} à Entrée {to}",
       "clusterEditRelative": "Édition Maj : changement relatif appliqué à {count} autre(s) entrée(s) du Groupe {cluster}",

@@ -11,6 +11,7 @@
 #include "WfsLookAndFeel.h"
 #include "WindowUtils.h"
 #include "HelpCard.h"
+#include "buttons/LongPressButton.h"
 
 /**
  * Snapshot Scope Window
@@ -522,11 +523,13 @@ public:
     using ExtendedScope = WFSFileManager::ExtendedSnapshotScope;
 
     SnapshotScopeContent (WfsParameters& params, const juce::String& snapshotNameValue, ExtendedScope& scopeRef,
-                          ParameterDirtyTracker* dirtyTrackerPtr = nullptr)
+                          bool hasSelectedSnapshotValue, ParameterDirtyTracker* dirtyTrackerPtr = nullptr)
         : parameters (params),
           snapshotName (snapshotNameValue),
           scope (scopeRef),
+          originalScope (scopeRef),  // baseline captured before any auto-preselect below
           numChannels (params.getNumInputChannels()),
+          hasSelectedSnapshot (hasSelectedSnapshotValue),
           dirtyTracker (dirtyTrackerPtr)
     {
         ColorScheme::Manager::getInstance().addListener (this);
@@ -548,6 +551,7 @@ public:
         applySavingButton.onClick = [this]() {
             scope.applyMode = ExtendedScope::ApplyMode::OnSave;
             updateSnapshotLoadCueVisibility();
+            refreshUpdateScopeButtonVisibility();
         };
 
         addAndMakeVisible (applyRecallingButton);
@@ -557,6 +561,7 @@ public:
         applyRecallingButton.onClick = [this]() {
             scope.applyMode = ExtendedScope::ApplyMode::OnRecall;
             updateSnapshotLoadCueVisibility();
+            refreshUpdateScopeButtonVisibility();
         };
 
         // Set initial state
@@ -568,7 +573,10 @@ public:
         // Channel header (fixed at top)
         channelHeader = std::make_unique<ScopeChannelHeader> (scope, numChannels);
         addAndMakeVisible (channelHeader.get());
-        channelHeader->onScopeChanged = [this]() { gridComponent->repaint(); };
+        channelHeader->onScopeChanged = [this]() {
+            gridComponent->repaint();
+            refreshUpdateScopeButtonVisibility();
+        };
 
         // Scrollable grid (pass dirty tracker for earmarks)
         gridComponent = std::make_unique<ScopeGridComponent> (scope, numChannels, dirtyTracker);
@@ -604,7 +612,10 @@ public:
         if (!gridComponent->hiddenSections.empty())
             gridComponent->buildLayout();
 
-        gridComponent->onScopeChanged = [this]() { channelHeader->repaint(); };
+        gridComponent->onScopeChanged = [this]() {
+            channelHeader->repaint();
+            refreshUpdateScopeButtonVisibility();
+        };
         gridComponent->onLayoutChanged = [this]() { resized(); };
 
         addAndMakeVisible (viewport);
@@ -725,12 +736,25 @@ public:
                 onCloseRequested();
         };
 
+        // Long-press: write the edited scope into the selected snapshot (shown
+        // only when a snapshot is selected and the scope differs from it)
+        addChildComponent (updateScopeButton);
+        updateScopeButton.setButtonText (LOC("snapshotScope.buttons.updateSnapshotScope"));
+        updateScopeButton.setTooltip (LOC("snapshotScope.buttons.updateSnapshotScopeTooltip"));
+        updateScopeButton.setBaseColour (juce::Colour (0xFF996633));  // Yellow-orange, matches footer Update Snapshot
+        updateScopeButton.onLongPress = [this]() {
+            if (onUpdateScopeRequested)
+                onUpdateScopeRequested (writeToQLabToggle.getToggleState(),
+                                        writeSnapshotLoadCueToggle.getToggleState());
+        };
+
         // Help card
         addAndMakeVisible(scopeHelpButton);
         addChildComponent(scopeHelpCard);
         scopeHelpCard.setContent(LOC("help.snapshotScope.title"), LOC("help.snapshotScope.body"));
         scopeHelpButton.setCard(&scopeHelpCard);
 
+        refreshUpdateScopeButtonVisibility();
         applyTheme();
     }
 
@@ -841,6 +865,12 @@ public:
         saveButton.setBounds (buttonX, buttonRow.getY(), buttonWidth, sc(30));
         cancelButton.setBounds (buttonX + buttonWidth + buttonSpacing, buttonRow.getY(), buttonWidth, sc(30));
 
+        // Long-press update button, left-aligned so OK/Cancel never shift when it
+        // appears. Width clamped to the free space left of OK (the window has no
+        // minimum-size constrainer).
+        int updateWidth = juce::jmax (0, juce::jmin (sc(190), buttonX - sc(10) - buttonRow.getX()));
+        updateScopeButton.setBounds (buttonRow.getX(), buttonRow.getY(), updateWidth, sc(30));
+
         // Update scaled sizes for grid and header
         gridComponent->updateScaledSizes();
         channelHeader->updateScaledSizes();
@@ -856,6 +886,7 @@ public:
 
     std::function<void()> onCloseRequested;
     std::function<void(bool writeToQLab, bool writeSnapshotLoadCue)> onSaveRequested;
+    std::function<void(bool writeToQLab, bool writeSnapshotLoadCue)> onUpdateScopeRequested;
 
     /** Enable/disable the QLab radio option based on whether a QLab target exists */
     void setQLabAvailable (bool available)
@@ -877,7 +908,9 @@ private:
     WfsParameters& parameters;
     juce::String snapshotName;
     ExtendedScope& scope;
+    ExtendedScope originalScope;  // as opened — drives "changes made" detection
     int numChannels;
+    bool hasSelectedSnapshot = false;
 
     juce::Label titleLabel;
     juce::Label applyModeLabel;
@@ -895,6 +928,7 @@ private:
     juce::TextButton clearChangesButton;
     juce::TextButton saveButton;
     juce::TextButton cancelButton;
+    LongPressButton updateScopeButton;
     bool qlabAvailable = false;
     ParameterDirtyTracker* dirtyTracker = nullptr;
     HelpCardButton scopeHelpButton;
@@ -919,6 +953,12 @@ private:
 
         gridComponent->repaint();
         channelHeader->repaint();
+        refreshUpdateScopeButtonVisibility();
+    }
+
+    void refreshUpdateScopeButtonVisibility()
+    {
+        updateScopeButton.setVisible (hasSelectedSnapshot && !scope.isEquivalentTo (originalScope, numChannels));
     }
 
     void updateSelectModifiedVisibility()
@@ -949,8 +989,13 @@ class SnapshotScopeWindow : public juce::DocumentWindow,
 public:
     using ExtendedScope = WFSFileManager::ExtendedSnapshotScope;
 
+    /** How the window was dismissed:
+        Saved        = OK — keep the edited scope for the session (new snapshots).
+        ScopeUpdated = long-press — write the edited scope into the selected snapshot. */
+    enum class CloseResult { Cancelled, Saved, ScopeUpdated };
+
     SnapshotScopeWindow (WfsParameters& params, const juce::String& snapshotName, ExtendedScope& scope,
-                         ParameterDirtyTracker* dirtyTracker = nullptr)
+                         bool hasSelectedSnapshot, ParameterDirtyTracker* dirtyTracker = nullptr)
         : DocumentWindow (LOC("snapshotScope.windowTitle"),
                           ColorScheme::get().background,
                           DocumentWindow::closeButton)
@@ -958,10 +1003,16 @@ public:
         setUsingNativeTitleBar (true);
         setResizable (true, true);
 
-        content = std::make_unique<SnapshotScopeContent> (params, snapshotName, scope, dirtyTracker);
+        content = std::make_unique<SnapshotScopeContent> (params, snapshotName, scope, hasSelectedSnapshot, dirtyTracker);
         content->onCloseRequested = [this]() { closeButtonPressed(); };
         content->onSaveRequested = [this](bool writeQLab, bool writeLoadCue) {
-            saved = true;
+            result = CloseResult::Saved;
+            writeToQLab = writeQLab;
+            writeSnapshotLoadCue = writeLoadCue;
+            closeButtonPressed();
+        };
+        content->onUpdateScopeRequested = [this](bool writeQLab, bool writeLoadCue) {
+            result = CloseResult::ScopeUpdated;
             writeToQLab = writeQLab;
             writeSnapshotLoadCue = writeLoadCue;
             closeButtonPressed();
@@ -996,7 +1047,7 @@ public:
     {
         setVisible (false);
         if (onWindowClosed)
-            onWindowClosed (saved, writeToQLab, writeSnapshotLoadCue);
+            onWindowClosed (result, writeToQLab, writeSnapshotLoadCue);
     }
 
     void colorSchemeChanged() override
@@ -1005,7 +1056,7 @@ public:
         repaint();
     }
 
-    std::function<void (bool saved, bool writeToQLab, bool writeSnapshotLoadCue)> onWindowClosed;
+    std::function<void (CloseResult result, bool writeToQLab, bool writeSnapshotLoadCue)> onWindowClosed;
 
     /** Set whether QLab export is available (pass through to content) */
     void setQLabAvailable (bool available)
@@ -1016,7 +1067,7 @@ public:
 
 private:
     std::unique_ptr<SnapshotScopeContent> content;
-    bool saved = false;
+    CloseResult result = CloseResult::Cancelled;
     bool writeToQLab = false;
     bool writeSnapshotLoadCue = false;
 

@@ -1526,6 +1526,7 @@
       "snapshotDeleted": "スナップショット '{name}' を削除しました。",
       "scopeSaved": "スナップショットのスコープを保存しました。",
       "scopeConfigured": "次のスナップショットのスコープを設定しました。",
+      "snapshotScopeUpdated": "スナップショット '{name}' のスコープを更新しました。",
       "trackingDisabled": "入力 {channel} のトラッキングを無効にしました",
       "trackingSwitched": "トラッキングを入力 {from} から入力 {to} に切り替えました",
       "clusterEditRelative": "Shift編集: クラスター {cluster} の他の {count} 入力に相対変更を適用",
@@ -1686,7 +1687,9 @@
       "ok": "OK",
       "cancel": "キャンセル",
       "selectModified": "変更されたものを選択",
-      "clearChanges": "変更をクリア"
+      "clearChanges": "変更をクリア",
+      "updateSnapshotScope": "スコープを更新",
+      "updateSnapshotScopeTooltip": "値を再保存せずに、編集したスコープを選択中のスナップショットに書き込みます。「保存時」スナップショットでは、新しいスコープ外の保存済みの値は削除されます（事前にバックアップを作成）。"
     },
     "autoPreselectModified": "変更されたパラメーターを自動的に事前選択",
     "writeToQLab": "QLabに書き出す",
