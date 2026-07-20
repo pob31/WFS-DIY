@@ -510,6 +510,7 @@ bool WFSFileManager::importCompleteConfig (const juce::File& file)
 
     // Note: No undo transaction needed for config import - changes are intentional and don't need undo
     valueTreeState.replaceState (loadedState);
+    valueTreeState.enforceAllSharedClusterInvariants();
     return true;
 }
 
@@ -635,7 +636,12 @@ bool WFSFileManager::importSystemConfig (const juce::File& file)
         setError (LOC ("fileManager.errors.noSystemDataInFile").replace ("{path}", file.getFullPathName()));
 
     if (appliedSomething)
+    {
+        // Cluster modes may have changed without a property transition event
+        // (e.g. mode already 2 in both state and file): re-assert coincidence.
+        valueTreeState.enforceAllSharedClusterInvariants();
         valueTreeState.clearAllUndoHistories();
+    }
 
     return appliedSomething;
 }
@@ -811,7 +817,12 @@ bool WFSFileManager::importInputConfig (const juce::File& file)
 
     bool result = applyInputsSection (inputsTree);
     if (result)
+    {
+        // Bulk position writes bypass setInputParameter's shared-position
+        // propagation; old projects may contain diverged Shared-mode members.
+        valueTreeState.enforceAllSharedClusterInvariants();
         valueTreeState.clearAllUndoHistories();
+    }
     return result;
 }
 
@@ -1409,6 +1420,10 @@ bool WFSFileManager::loadInputSnapshotWithExtendedScope (const juce::String& sna
                 applyInputWithExtendedScope (channelIndex, inputData, ExtendedSnapshotScope());  // All included
         }
     }
+
+    // Snapshot positions can re-diverge a Shared-mode cluster (per-channel raw
+    // apply); snap members back onto the first-ordered member.
+    valueTreeState.enforceAllSharedClusterInvariants();
 
     return true;
 }

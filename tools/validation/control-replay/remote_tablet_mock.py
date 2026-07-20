@@ -14,6 +14,13 @@ asserts the v2 remote-protocol contract:
   4. resync        /remote/requestResync {1,5} resends those channels;
                    an empty requestResync yields a full dump with a fresh
                    dumpBegin seq (same code path as the project-load re-dump)
+  5. shared load   the fixture is patched into an "old project": cluster 1 in
+                   Shared Position mode with members 1+2 at diverged positions;
+                   load-time invariant enforcement must dump them coincident
+  6. release echo  after a /cluster/positionXY drag, the final
+                   /remoteInput/positionXY release write must be echoed back
+                   for EVERY member (release coords differ from the last drag
+                   step, so only the release echo can carry them)
 
 Stdlib-only, follows the control-replay harness conventions (common.py).
 Exit codes: 0 pass, 1 mismatch, 2 usage, 3 app failed to start.
@@ -186,6 +193,33 @@ def add_remote_target(project_dir: Path) -> None:
     net.write_text(text.replace(marker, insert, 1), encoding="utf-8")
 
 
+def make_diverged_shared_cluster(project_dir: Path) -> None:
+    """Patch the temp fixture into an 'old project': cluster 1 becomes Shared
+    Position (mode 2) and inputs 1+2 join it while keeping their diverged
+    fixture positions (-2.0, 1.5) and (2.0, 1.5) — the state an older app
+    version could have saved before the invariant existed."""
+    system = project_dir / "system.xml"
+    text = system.read_text(encoding="utf-8")
+    marker = '<Cluster id="1" clusterReferenceMode="0"'
+    if marker not in text:
+        print("[remote-mock] fixture system.xml layout changed; "
+              "cannot set cluster 1 to Shared Position", file=sys.stderr)
+        raise SystemExit(EXIT_MISMATCH)
+    system.write_text(
+        text.replace(marker, '<Cluster id="1" clusterReferenceMode="2"', 1),
+        encoding="utf-8")
+
+    inputs = project_dir / "inputs.xml"
+    text = inputs.read_text(encoding="utf-8")
+    if text.count('inputCluster="0"') < 2:
+        print("[remote-mock] fixture inputs.xml layout changed; "
+              "cannot assign inputs 1+2 to cluster 1", file=sys.stderr)
+        raise SystemExit(EXIT_MISMATCH)
+    # First two occurrences belong to inputs 1 and 2 (document order).
+    text = text.replace('inputCluster="0"', 'inputCluster="1"', 2)
+    inputs.write_text(text, encoding="utf-8")
+
+
 # ---------------------------------------------------------------------------
 # Dump analysis helpers
 # ---------------------------------------------------------------------------
@@ -252,6 +286,7 @@ def main() -> int:
     work_root = Path(tempfile.mkdtemp(prefix="wfs-remote-mock-"))
     project_dir = copy_fixture_to_temp(work_root / "work")
     add_remote_target(project_dir)
+    make_diverged_shared_cluster(project_dir)
 
     tablet = MockTablet()
     app = App(exe, fixture_wfs(project_dir))
@@ -291,6 +326,45 @@ def main() -> int:
                   f"({ch1} distinct addresses)")
 
         last_seq = dump["seq"] if dump else -1
+
+        # ---- 5. shared-cluster load-time invariant enforcement ----------
+        # The fixture was patched so cluster 1 is Shared Position with members
+        # 1 (-2.0, 1.5) and 2 (2.0, 1.5) diverged on disk; load-time
+        # enforcement must snap member 2 onto member 1. The connect dump can
+        # interleave with the post-load re-dump (two detached paced senders),
+        # so analyze a dedicated quiescent full resync instead — and do it
+        # BEFORE the gesture checks below move the cluster.
+        def last_position(msgs, ch):
+            pos = None
+            for adr, _tt, a in msgs:
+                if adr == "/remoteInput/positionXY" and len(a) >= 3 and a[0] == ch:
+                    pos = (a[1], a[2])
+                elif adr == "/remoteInput/positionX" and len(a) >= 2 and a[0] == ch:
+                    pos = (a[1], pos[1] if pos else None)
+                elif adr == "/remoteInput/positionY" and len(a) >= 2 and a[0] == ch:
+                    pos = (pos[0] if pos else None, a[1])
+            return pos
+
+        eps = 1e-3
+        time.sleep(1.5)  # let any post-load re-dump drain first
+        mark = tablet.mark()
+        tablet.tx.send("/remote/requestResync", [])
+        dump5 = tablet.wait_for(
+            lambda msgs: find_dump(msgs, after_seq=last_seq),
+            timeout=20.0, mark=mark)
+        if dump5:
+            last_seq = dump5["seq"]
+            p1 = last_position(dump5["body"], 1)
+            p2 = last_position(dump5["body"], 2)
+            coincident = (p1 is not None and p2 is not None and
+                          None not in p1 and None not in p2 and
+                          abs(p1[0] - (-2.0)) < eps and abs(p1[1] - 1.5) < eps and
+                          abs(p2[0] - p1[0]) < eps and abs(p2[1] - p1[1]) < eps)
+            check(coincident,
+                  f"shared cluster loads coincident at (-2.0, 1.5) "
+                  f"(ch1={p1}, ch2={p2})")
+        else:
+            check(False, "shared-cluster load check: no quiescent dump")
 
         # ---- 3. race: gesture blast during a full re-dump ---------------
         mark = tablet.mark()
@@ -332,6 +406,34 @@ def main() -> int:
             return {1, 5} <= names
         check(tablet.wait_for(got_channels, timeout=15.0, mark=mark) is not None,
               "requestResync {1,5} resends channels 1 and 5")
+
+        # ---- 6. release write echoes the whole shared cluster ------------
+        # Simulate the tablet's drag: throttled /cluster/positionXY steps,
+        # then the single /remoteInput/positionXY release write at coords
+        # that differ from the last drag step. Only the fix-B echo can carry
+        # the release coords for the NON-dragged member (channel 2).
+        mark = tablet.mark()
+        for i in range(5):
+            tablet.tx.send("/cluster/positionXY",
+                           [("i", 1), ("f", -1.0 + 0.7 * i), ("f", 2.0 + 0.4 * i)])
+            time.sleep(0.04)
+        release = (3.0, 4.0)
+        tablet.tx.send("/remoteInput/positionXY",
+                       [("i", 1), ("f", release[0]), ("f", release[1])])
+
+        def release_echoed(msgs):
+            got1 = got2 = False
+            for adr, _tt, a in msgs:
+                if adr == "/remoteInput/positionXY" and len(a) >= 3:
+                    at_release = (abs(a[1] - release[0]) < eps and
+                                  abs(a[2] - release[1]) < eps)
+                    if a[0] == 1 and at_release:
+                        got1 = True
+                    elif a[0] == 2 and at_release:
+                        got2 = True
+            return got1 and got2
+        check(tablet.wait_for(release_echoed, timeout=10.0, mark=mark) is not None,
+              f"release write echoed for both members at {release}")
 
         return EXIT_PASS if not failures else EXIT_MISMATCH
     finally:

@@ -21,6 +21,17 @@ static float varToFloat (const juce::var& v, float defaultVal = 0.0f)
     return static_cast<float> (static_cast<double> (v));
 }
 
+// Helper: convert juce::var to int, tolerant of the var's underlying type.
+// ValueTree::fromXml loads every property as a STRING var, so guarding reads
+// with isInt() silently yields the fallback for freshly loaded projects —
+// cluster ids, reference modes and constraint flags must convert, not
+// type-check. (This exact pattern made tablet cluster drags no-op after load.)
+static int varToInt (const juce::var& v, int defaultVal = 0)
+{
+    if (v.isVoid()) return defaultVal;
+    return static_cast<int> (v);
+}
+
 //==============================================================================
 // Construction / Destruction
 //==============================================================================
@@ -1201,7 +1212,7 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
             // members visually in lockstep on the tablet (no per-channel jitter from
             // independent rate-limited streams). Non-cluster inputs send immediately.
             juce::var clusterVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputCluster);
-            int memberCluster = clusterVar.isInt() ? static_cast<int>(clusterVar) : 0;
+            int memberCluster = varToInt(clusterVar);
 
             if (memberCluster >= 1 && memberCluster <= 10)
             {
@@ -2423,9 +2434,9 @@ void OSCManager::handleRemoteParameterSet(const OSCMessageRouter::ParsedRemoteIn
 
                 // Check if distance constraint is enabled for this channel
                 juce::var coordModeVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputCoordinateMode);
-                int coordMode = coordModeVar.isInt() ? static_cast<int>(coordModeVar) : 0;
+                int coordMode = varToInt(coordModeVar);
                 juce::var constraintDistVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputConstraintDistance);
-                int constraintDist = constraintDistVar.isInt() ? static_cast<int>(constraintDistVar) : 0;
+                int constraintDist = varToInt(constraintDistVar);
                 bool distanceConstraintActive = (coordMode == 1 || coordMode == 2) && constraintDist != 0;
 
                 if (distanceConstraintActive)
@@ -2554,9 +2565,9 @@ void OSCManager::handleRemoteParameterDelta(const OSCMessageRouter::ParsedRemote
 
                 // Check if distance constraint is enabled for this channel
                 juce::var coordModeVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputCoordinateMode);
-                int coordMode = coordModeVar.isInt() ? static_cast<int>(coordModeVar) : 0;
+                int coordMode = varToInt(coordModeVar);
                 juce::var constraintDistVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputConstraintDistance);
-                int constraintDist = constraintDistVar.isInt() ? static_cast<int>(constraintDistVar) : 0;
+                int constraintDist = varToInt(constraintDistVar);
                 bool distanceConstraintActive = (coordMode == 1 || coordMode == 2) && constraintDist != 0;
 
                 if (distanceConstraintActive)
@@ -2658,9 +2669,9 @@ void OSCManager::handleRemotePositionXY(const OSCMessageRouter::ParsedRemoteInpu
 
             // Check if distance constraint is enabled for this channel
             juce::var coordModeVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputCoordinateMode);
-            int coordMode = coordModeVar.isInt() ? static_cast<int>(coordModeVar) : 0;
+            int coordMode = varToInt(coordModeVar);
             juce::var constraintDistVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputConstraintDistance);
-            int constraintDist = constraintDistVar.isInt() ? static_cast<int>(constraintDistVar) : 0;
+            int constraintDist = varToInt(constraintDistVar);
             bool distanceConstraintActive = (coordMode == 1 || coordMode == 2) && constraintDist != 0;
 
             // Get current Z value for constraint calculations and waypoint capture
@@ -2695,6 +2706,22 @@ void OSCManager::handleRemotePositionXY(const OSCMessageRouter::ParsedRemoteInpu
             // Notify UI to repaint map
             if (onRemotePositionReceived)
                 onRemotePositionReceived();
+
+            // For a Shared-Position cluster member this write propagated to every
+            // member, but per-parameter echoes were suppressed by the incoming
+            // guard. This handler fires for such a member essentially only at
+            // gesture release (drag traffic uses /cluster/positionXY), so echo
+            // the whole cluster once as authoritative confirmation of the final
+            // positions — without it the tablet's post-gesture re-sync settles
+            // on the last mid-drag echo. Mirrors applyPendingClusterMove.
+            juce::var cv = state.getInputParameter(channelIndex, WFSParameterIDs::inputCluster);
+            int cid = varToInt(cv);
+            if (cid >= 1 && cid <= 10 &&
+                static_cast<int>(state.getClusterParameter(cid, WFSParameterIDs::clusterReferenceMode)) == 2)
+            {
+                incomingGuard.release();
+                sendClusterMembersBundle(cid);
+            }
         }
     });
 }
@@ -2799,7 +2826,7 @@ void OSCManager::applyPendingClusterMove()
     if (type == OSCMessageRouter::ParsedClusterMoveMessage::Type::PositionXY)
     {
         juce::var refModeVar = state.getClusterParameter (clusterId, clusterReferenceMode);
-        int refMode = refModeVar.isInt() ? static_cast<int> (refModeVar) : 0;
+        int refMode = varToInt(refModeVar);
 
         std::vector<int> members;
         float sumX = 0.0f, sumY = 0.0f;
@@ -2808,7 +2835,7 @@ void OSCManager::applyPendingClusterMove()
         for (int i = 0; i < numInputs; ++i)
         {
             juce::var cv = state.getInputParameter (i, inputCluster);
-            if ((cv.isInt() ? static_cast<int> (cv) : 0) != clusterId) continue;
+            if ((varToInt(cv)) != clusterId) continue;
             members.push_back (i);
             float px = varToFloat (state.getInputParameter (i, inputPositionX));
             float py = varToFloat (state.getInputParameter (i, inputPositionY));
@@ -2859,7 +2886,7 @@ void OSCManager::applyPendingClusterMove()
         for (int i = 0; i < numInputs; ++i)
         {
             juce::var cv = state.getInputParameter(i, inputCluster);
-            if ((cv.isInt() ? static_cast<int>(cv) : 0) == clusterId)
+            if ((varToInt(cv)) == clusterId)
                 members.push_back(i);
         }
 
@@ -2881,7 +2908,7 @@ void OSCManager::applyPendingClusterMove()
         for (int inputIndex = 0; inputIndex < numInputs; ++inputIndex)
         {
             juce::var clusterVar = state.getInputParameter(inputIndex, inputCluster);
-            int inputClusterId = clusterVar.isInt() ? static_cast<int>(clusterVar) : 0;
+            int inputClusterId = varToInt(clusterVar);
 
             if (inputClusterId == clusterId)
             {
@@ -2936,7 +2963,7 @@ void OSCManager::handleClusterScaleRotationMessage(const juce::OSCMessage& messa
         for (int inputIndex = 0; inputIndex < numInputs; ++inputIndex)
         {
             juce::var clusterVar = state.getInputParameter(inputIndex, WFSParameterIDs::inputCluster);
-            int inputClusterId = clusterVar.isInt() ? static_cast<int>(clusterVar) : 0;
+            int inputClusterId = varToInt(clusterVar);
 
             if (inputClusterId == parsed.clusterId)
             {
@@ -3131,7 +3158,7 @@ void OSCManager::applyPendingClusterGesture()
     for (int i = 0; i < numInputs; ++i)
     {
         juce::var cv = state.getInputParameter(i, inputCluster);
-        if ((cv.isInt() ? static_cast<int>(cv) : 0) != clusterId) continue;
+        if ((varToInt(cv)) != clusterId) continue;
         members.push_back(i);
         if (refInput < 0 && isInputFullyTracked(i))
             refInput = i;
@@ -3140,7 +3167,7 @@ void OSCManager::applyPendingClusterGesture()
 
     // Check reference mode
     juce::var refModeVar = state.getClusterParameter(clusterId, clusterReferenceMode);
-    int refMode = refModeVar.isInt() ? static_cast<int>(refModeVar) : 0;
+    int refMode = varToInt(refModeVar);
 
     if (refInput < 0 && refMode == 0)
     {
@@ -3349,16 +3376,12 @@ std::vector<juce::OSCMessage> OSCManager::collectRemoteChannelDumpMessages(int c
     if (channelIndex < 0)
         return {};
 
-    // Helper lambda to get a parameter value as float (uses 0-based channelIndex)
+    // Helper lambda to get a parameter value as float (uses 0-based channelIndex).
+    // varToFloat converts whatever var type the state holds — critically the
+    // STRING vars a fresh project load produces; a type-checked fall-through
+    // here used to dump zeros for every parameter after loading a project.
     auto getParam = [this, channelIndex](const juce::Identifier& paramId) -> float {
-        juce::var val = state.getInputParameter(channelIndex, paramId);
-        if (val.isDouble())
-            return static_cast<float>(static_cast<double>(val));
-        if (val.isInt())
-            return static_cast<float>(static_cast<int>(val));
-        if (val.isBool())
-            return static_cast<bool>(val) ? 1.0f : 0.0f;
-        return 0.0f;
+        return varToFloat(state.getInputParameter(channelIndex, paramId));
     };
 
     // Collect all input parameters for this channel
@@ -3366,14 +3389,7 @@ std::vector<juce::OSCMessage> OSCManager::collectRemoteChannelDumpMessages(int c
 
     // Helper lambda to get an integer parameter value (uses 0-based channelIndex)
     auto getIntParam = [this, channelIndex](const juce::Identifier& paramId) -> int {
-        juce::var val = state.getInputParameter(channelIndex, paramId);
-        if (val.isInt())
-            return static_cast<int>(val);
-        if (val.isDouble())
-            return static_cast<int>(static_cast<double>(val));
-        if (val.isBool())
-            return static_cast<bool>(val) ? 1 : 0;
-        return 0;
+        return varToInt(state.getInputParameter(channelIndex, paramId));
     };
 
     // Integer parameters - sent with ,ii type tag
@@ -3846,15 +3862,15 @@ float OSCManager::getStageMaxZ() const
 float OSCManager::applyConstraintX(int channelIndex, float value) const
 {
     juce::var constraintVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputConstraintX);
-    int constraint = constraintVar.isInt() ? static_cast<int>(constraintVar) : 1;
+    int constraint = varToInt(constraintVar, 1);
 
     if (constraint != 0)
     {
         // Check if distance constraint should take precedence over rectangular X bound
         juce::var coordModeVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputCoordinateMode);
-        int coordMode = coordModeVar.isInt() ? static_cast<int>(coordModeVar) : 0;
+        int coordMode = varToInt(coordModeVar);
         juce::var constraintDistVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputConstraintDistance);
-        int constraintDist = constraintDistVar.isInt() ? static_cast<int>(constraintDistVar) : 0;
+        int constraintDist = varToInt(constraintDistVar);
 
         // Skip rectangular X bound in cylindrical/spherical mode when distance constraint is enabled
         if ((coordMode == 1 || coordMode == 2) && constraintDist != 0)
@@ -3869,15 +3885,15 @@ float OSCManager::applyConstraintX(int channelIndex, float value) const
 float OSCManager::applyConstraintY(int channelIndex, float value) const
 {
     juce::var constraintVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputConstraintY);
-    int constraint = constraintVar.isInt() ? static_cast<int>(constraintVar) : 1;
+    int constraint = varToInt(constraintVar, 1);
 
     if (constraint != 0)
     {
         // Check if distance constraint should take precedence over rectangular Y bound
         juce::var coordModeVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputCoordinateMode);
-        int coordMode = coordModeVar.isInt() ? static_cast<int>(coordModeVar) : 0;
+        int coordMode = varToInt(coordModeVar);
         juce::var constraintDistVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputConstraintDistance);
-        int constraintDist = constraintDistVar.isInt() ? static_cast<int>(constraintDistVar) : 0;
+        int constraintDist = varToInt(constraintDistVar);
 
         // Skip rectangular Y bound in cylindrical/spherical mode when distance constraint is enabled
         if ((coordMode == 1 || coordMode == 2) && constraintDist != 0)
@@ -3892,15 +3908,15 @@ float OSCManager::applyConstraintY(int channelIndex, float value) const
 float OSCManager::applyConstraintZ(int channelIndex, float value) const
 {
     juce::var constraintVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputConstraintZ);
-    int constraint = constraintVar.isInt() ? static_cast<int>(constraintVar) : 1;
+    int constraint = varToInt(constraintVar, 1);
 
     if (constraint != 0)
     {
         // Check if distance constraint should take precedence over rectangular Z bound
         juce::var coordModeVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputCoordinateMode);
-        int coordMode = coordModeVar.isInt() ? static_cast<int>(coordModeVar) : 0;
+        int coordMode = varToInt(coordModeVar);
         juce::var constraintDistVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputConstraintDistance);
-        int constraintDist = constraintDistVar.isInt() ? static_cast<int>(constraintDistVar) : 0;
+        int constraintDist = varToInt(constraintDistVar);
 
         // Skip rectangular Z bound in spherical mode when distance constraint is enabled
         if (coordMode == 2 && constraintDist != 0)
@@ -3916,7 +3932,7 @@ void OSCManager::applyConstraintDistance(int channelIndex, float& x, float& y, f
 {
     // Get coordinate mode
     juce::var coordModeVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputCoordinateMode);
-    int coordMode = coordModeVar.isInt() ? static_cast<int>(coordModeVar) : 0;
+    int coordMode = varToInt(coordModeVar);
 
     // Only apply in Cylindrical (1) or Spherical (2) modes
     if (coordMode != 1 && coordMode != 2)
@@ -3924,7 +3940,7 @@ void OSCManager::applyConstraintDistance(int channelIndex, float& x, float& y, f
 
     // Check if distance constraint is enabled
     juce::var constraintDistVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputConstraintDistance);
-    int constraintDist = constraintDistVar.isInt() ? static_cast<int>(constraintDistVar) : 0;
+    int constraintDist = varToInt(constraintDistVar);
     if (constraintDist == 0)
         return;
 
@@ -4714,7 +4730,7 @@ void OSCManager::sendClusterMembersBundle(int clusterId)
     for (int i = 0; i < numInputs; ++i)
     {
         juce::var cv = state.getInputParameter(i, WFSParameterIDs::inputCluster);
-        int memberCluster = cv.isInt() ? static_cast<int>(cv) : 0;
+        int memberCluster = varToInt(cv);
         if (memberCluster != clusterId)
             continue;
 
@@ -4738,8 +4754,11 @@ void OSCManager::sendClusterMembersBundle(int clusterId)
             config.txEnabled &&
             remoteStates[static_cast<size_t>(i)].phase == RemoteConnectionState::Phase::Connected)
         {
-            if (incomingProtocol == Protocol::Remote)
-                continue;
+            // Callers must release any Remote ScopedIncomingProtocol before
+            // invoking (see applyPendingClusterMove); a member echo skipped here
+            // would be silently lost because the flush timer has already drained
+            // its dirty flag by the time this runs.
+            jassert (incomingProtocol != Protocol::Remote);
 
             if (connections[static_cast<size_t>(i)])
             {
@@ -4884,6 +4903,9 @@ void OSCManager::sendMessagesAsBundles(int targetIndex, const std::vector<juce::
 
 void OSCManager::ClusterMemberFlushTimer::timerCallback()
 {
+    // The drained values are used purely as per-cluster dirty flags:
+    // sendClusterMembersBundle re-reads live ValueTree state, so a late flush
+    // always sends fresh positions, never the buffered ones.
     std::array<std::map<int, std::pair<float, float>>, 11> drained;
     bool anyPending = false;
     {

@@ -3339,6 +3339,12 @@ void WFSValueTreeState::enforceSharedClusterInvariant (int clusterIndex)
     }
 }
 
+void WFSValueTreeState::enforceAllSharedClusterInvariants()
+{
+    for (int c = 1; c <= 10; ++c)
+        enforceSharedClusterInvariant (c);
+}
+
 WFSValueTreeState::ParameterScope WFSValueTreeState::getParameterScope (const juce::Identifier& paramId) const
 {
     // Check for config-level parameters that might have misleading prefixes

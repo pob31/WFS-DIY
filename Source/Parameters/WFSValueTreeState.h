@@ -238,6 +238,13 @@ public:
         member's position to the first-ordered member's position. Idempotent. */
     void enforceSharedClusterInvariant (int clusterIndex);
 
+    /** Enforce the shared-position invariant on every cluster. Needed after any
+        bulk state apply (project load, config import, snapshot recall): those
+        paths write positions via raw setProperty, bypassing the per-write
+        propagation, so a Shared-mode cluster saved by an older version (or with
+        diverged member positions in the file) would otherwise load diverged. */
+    void enforceAllSharedClusterInvariants();
+
     //==========================================================================
     // Binaural Enable/Solo Access
     //==========================================================================
