@@ -39,7 +39,7 @@ Floor Reflections	Diffusion	FRdiffusion	/remoteInput/FRdiffusion	YES	YES	Dial	IN
 Jitter	Jitter	jitter	/remoteInput/jitter	YES	YES	H range Slider	FLOAT	0.0	10.0	10*pow(x,2)	m		
 LFO	Active	LFOactive	/remoteInput/LFOactive	YES	YES	Text button	INT	0	1			ON�; OFF	
 LFO	Period	LFOperiod	/remoteInput/LFOperiod	YES	YES	Dial	FLOAT	0.01	100.0	pow(10.0,sqrt(x)*4.0-2.0)	s		Greyed out but editable when LFOactive == 0
-LFO	Phase	LFOphase	/remoteInput/LFOphase	YES	YES	Direction dial	INT	0	360	x*360	�		Greyed out but editable when LFOactive == 0
+LFO	Phase	LFOphase	/remoteInput/LFOphase	YES	YES	Direction dial	INT	-180	180	(x*360)-180	�		Greyed out but editable when LFOactive == 0
 LFO	Shape X	LFOshapeX	/remoteInput/LFOshapeX	YES	YES	Drop down menu	INT	0	8			OFF�; sine�; square�; sawtooth�; triangle�; keystone�; log�; exp�; random	Greyed out but editable when LFOactive == 0
 LFO	Shape Y	LFOshapeY	/remoteInput/LFOshapeY	YES	YES	Drop down menu	INT	0	8			OFF�; sine�; square�; sawtooth�; triangle�; keystone�; log�; exp�; random	Greyed out but editable when LFOactive == 0
 LFO	Shape Z	LFOshapeZ	/remoteInput/LFOshapeZ	YES	YES	Drop down menu	INT	0	8			OFF�; sine�; square�; sawtooth�; triangle�; keystone�; log�; exp�; random	Greyed out but editable when LFOactive == 0
@@ -49,7 +49,7 @@ LFO	Rate Z	LFOrateZ	/remoteInput/LFOrateZ	YES	YES	H Slider	FLOAT	0.01	100	pow(10
 LFO	Amplitude X	LFOamplitudeX	/remoteInput/LFOamplitudeX	YES	YES	H Bidirectional slider	FLOAT	0.0	50.0	x*50.0	m		Greyed out but editable when LFOactive == 0 or LFOShapeX == 0
 LFO	Amplitude Y	LFOamplitudeY	/remoteInput/LFOamplitudeY	YES	YES	V Bidirectional slider	FLOAT	0.0	50.0	x*50.0	m		Greyed out but editable when LFOactive == 0 or LFOShapeY == 0
 LFO	Amplitude Z	LFOamplitudeZ	/remoteInput/LFOamplitudeZ	YES	YES	V Bidirectional slider	FLOAT	0.0	50.0	x*50.0	m		Greyed out but editable when LFOactive == 0 or LFOShapeZ == 0
-LFO	Phase X	LFOphaseX	/remoteInput/LFOphaseX	YES	YES	Direction dial	INT	0	360	x*360	�		Greyed out but editable when LFOactive == 0 or LFOShapeX == 0
-LFO	Phase Y	LFOphaseY	/remoteInput/LFOphaseY	YES	YES	Direction dial	INT	0	360	x*360	�		Greyed out but editable when LFOactive == 0 or LFOShapeY == 0
-LFO	Phase Z	LFOphaseZ	/remoteInput/LFOphaseZ	YES	YES	Direction dial	INT	0	360	x*360	�		Greyed out but editable when LFOactive == 0 or LFOShapeZ == 0
+LFO	Phase X	LFOphaseX	/remoteInput/LFOphaseX	YES	YES	Direction dial	INT	-180	180	(x*360)-180	�		Greyed out but editable when LFOactive == 0 or LFOShapeX == 0
+LFO	Phase Y	LFOphaseY	/remoteInput/LFOphaseY	YES	YES	Direction dial	INT	-180	180	(x*360)-180	�		Greyed out but editable when LFOactive == 0 or LFOShapeY == 0
+LFO	Phase Z	LFOphaseZ	/remoteInput/LFOphaseZ	YES	YES	Direction dial	INT	-180	180	(x*360)-180	�		Greyed out but editable when LFOactive == 0 or LFOShapeZ == 0
 LFO	Gyrophone	LFOgyrophone	/remoteInput/LFOgyrophone	YES	YES	Drop down menu	INT	-1	1			Anti-Clockwise�; OFF�; Clockwise	Greyed out but editable when LFOactive == 0

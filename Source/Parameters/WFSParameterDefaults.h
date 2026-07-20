@@ -22,6 +22,17 @@ namespace WFSParameterDefaults
     constexpr int numEQBands           = 6;
     constexpr int numReverbPreEQBands  = 4;
 
+    /** Wrap an LFO phase (degrees) into [-180, 180]. Values already in range
+        pass through untouched, so both typed endpoints (-180 and 180) are
+        preserved; out-of-range values wrap to the equivalent angle in
+        [-180, 180) — e.g. 270 -> -90, 360 -> 0, -270 -> 90. */
+    constexpr int wrapPhaseDegrees (int deg)
+    {
+        if (deg >= -180 && deg <= 180)
+            return deg;
+        return ((deg + 180) % 360 + 360) % 360 - 180;
+    }
+
     //==========================================================================
     // Config > Show Section
     //==========================================================================
@@ -432,8 +443,8 @@ namespace WFSParameterDefaults
     constexpr float inputLFOperiodMax           = 100.0f;
 
     constexpr int inputLFOphaseDefault          = 0;
-    constexpr int inputLFOphaseMin              = 0;
-    constexpr int inputLFOphaseMax              = 360;
+    constexpr int inputLFOphaseMin              = -180;
+    constexpr int inputLFOphaseMax              = 180;
 
     constexpr int inputLFOshapeDefault          = 0;  // 0=OFF, 1=sine, 2=square, 3=sawtooth, 4=triangle, 5=keystone, 6=log, 7=exp, 8=random
     constexpr int inputLFOshapeMin              = 0;

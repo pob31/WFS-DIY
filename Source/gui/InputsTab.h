@@ -2415,7 +2415,7 @@ private:
         };
         lfoPeriodDial.onValueChanged = [this](float v) {
             float period = std::pow(10.0f, std::sqrt(v) * 4.0f - 2.0f);
-            lfoPeriodValueLabel.setText(juce::String(period, 2), juce::dontSendNotification);
+            lfoPeriodValueLabel.setText(formatLfoPeriod(period), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputLFOperiod, period);  // Save real period in seconds
         };
         addAndMakeVisible(lfoPeriodDial);
@@ -3202,6 +3202,16 @@ private:
         label.setEditable(true, false);  // Single click to edit
         // Keep existing justification (labels set centred should stay centred)
         label.addListener(this);
+    }
+
+    // LFO period display: keep at most 4 significant characters so the value
+    // always fits its narrow label ("0.01".."9.99" -> 2 decimals, "10.0" ->
+    // 1 decimal, "100" -> none)
+    static juce::String formatLfoPeriod(float seconds)
+    {
+        if (seconds >= 99.995f) return juce::String(juce::roundToInt(seconds));
+        if (seconds >= 9.9995f) return juce::String(seconds, 1);
+        return juce::String(seconds, 2);
     }
 
     // Helper to layout dial value and unit labels under dial
@@ -4819,7 +4829,7 @@ private:
         auto periodDialBounds = periodArea.removeFromTop(headerDialSize);
         lfoPeriodDial.setBounds(periodDialBounds.withSizeKeepingCentre(headerDialSize, headerDialSize));
         int periodCenterX = periodDialBounds.getX() + periodDialBounds.getWidth() / 2;
-        layoutDialValueUnit(lfoPeriodValueLabel, lfoPeriodUnitLabel, periodCenterX, periodArea.getY(), periodArea.getHeight(), scaled(32), scaled(25));
+        layoutDialValueUnit(lfoPeriodValueLabel, lfoPeriodUnitLabel, periodCenterX, periodArea.getY(), periodArea.getHeight(), scaled(40), scaled(25));
         headerRow.removeFromLeft(headerSpacing);
 
         // Phase: label at top, dial centered, value+unit at bottom
@@ -5603,11 +5613,11 @@ private:
         // Inverse of: period = pow(10, sqrt(v)*4 - 2) => v = pow((log10(period)+2)/4, 2)
         float lfoPeriodSlider = std::pow((std::log10(lfoPeriodSec) + 2.0f) / 4.0f, 2.0f);
         lfoPeriodDial.setValue(juce::jlimit(0.0f, 1.0f, lfoPeriodSlider));
-        lfoPeriodValueLabel.setText(juce::String(lfoPeriodSec, 2), juce::dontSendNotification);
+        lfoPeriodValueLabel.setText(formatLfoPeriod(lfoPeriodSec), juce::dontSendNotification);
 
         // LFO Phase stored as degrees (-180 to 180), default 0
         int lfoPhaseDeg = getIntParam(WFSParameterIDs::inputLFOphase, 0);
-        lfoPhaseDeg = juce::jlimit(-180, 180, lfoPhaseDeg);
+        lfoPhaseDeg = WFSParameterDefaults::wrapPhaseDegrees(lfoPhaseDeg);
         lfoPhaseDial.setAngle(static_cast<float>(lfoPhaseDeg));
         lfoPhaseValueLabel.setText(juce::String(lfoPhaseDeg), juce::dontSendNotification);
 
@@ -5653,17 +5663,17 @@ private:
 
         // LFO Phase X/Y/Z stored as degrees (-180 to 180), default 0
         int phaseXDeg = getIntParam(WFSParameterIDs::inputLFOphaseX, 0);
-        phaseXDeg = juce::jlimit(-180, 180, phaseXDeg);
+        phaseXDeg = WFSParameterDefaults::wrapPhaseDegrees(phaseXDeg);
         lfoPhaseXDial.setAngle(static_cast<float>(phaseXDeg));
         lfoPhaseXValueLabel.setText(juce::String(phaseXDeg) + juce::String::charToString(0x00B0), juce::dontSendNotification);
 
         int phaseYDeg = getIntParam(WFSParameterIDs::inputLFOphaseY, 0);
-        phaseYDeg = juce::jlimit(-180, 180, phaseYDeg);
+        phaseYDeg = WFSParameterDefaults::wrapPhaseDegrees(phaseYDeg);
         lfoPhaseYDial.setAngle(static_cast<float>(phaseYDeg));
         lfoPhaseYValueLabel.setText(juce::String(phaseYDeg) + juce::String::charToString(0x00B0), juce::dontSendNotification);
 
         int phaseZDeg = getIntParam(WFSParameterIDs::inputLFOphaseZ, 0);
-        phaseZDeg = juce::jlimit(-180, 180, phaseZDeg);
+        phaseZDeg = WFSParameterDefaults::wrapPhaseDegrees(phaseZDeg);
         lfoPhaseZDial.setAngle(static_cast<float>(phaseZDeg));
         lfoPhaseZValueLabel.setText(juce::String(phaseZDeg) + juce::String::charToString(0x00B0), juce::dontSendNotification);
 
@@ -6231,11 +6241,11 @@ private:
             float v = sqrtV * sqrtV;
             lfoPeriodDial.setValue(juce::jlimit(0.0f, 1.0f, v));
             // Force label update
-            lfoPeriodValueLabel.setText(juce::String(period, 2), juce::dontSendNotification);
+            lfoPeriodValueLabel.setText(formatLfoPeriod(period), juce::dontSendNotification);
         }
         else if (label == &lfoPhaseValueLabel)
         {
-            int degrees = juce::jlimit(0, 360, static_cast<int>(value));
+            int degrees = WFSParameterDefaults::wrapPhaseDegrees(static_cast<int>(value));
             lfoPhaseDial.setAngle(static_cast<float>(degrees));
             // Force label update
             lfoPhaseValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
@@ -6286,19 +6296,19 @@ private:
         }
         else if (label == &lfoPhaseXValueLabel)
         {
-            int degrees = juce::jlimit(0, 360, static_cast<int>(value));
+            int degrees = WFSParameterDefaults::wrapPhaseDegrees(static_cast<int>(value));
             lfoPhaseXDial.setAngle(static_cast<float>(degrees));
             lfoPhaseXValueLabel.setText(juce::String(degrees) + juce::String::charToString(0x00B0), juce::dontSendNotification);
         }
         else if (label == &lfoPhaseYValueLabel)
         {
-            int degrees = juce::jlimit(0, 360, static_cast<int>(value));
+            int degrees = WFSParameterDefaults::wrapPhaseDegrees(static_cast<int>(value));
             lfoPhaseYDial.setAngle(static_cast<float>(degrees));
             lfoPhaseYValueLabel.setText(juce::String(degrees) + juce::String::charToString(0x00B0), juce::dontSendNotification);
         }
         else if (label == &lfoPhaseZValueLabel)
         {
-            int degrees = juce::jlimit(0, 360, static_cast<int>(value));
+            int degrees = WFSParameterDefaults::wrapPhaseDegrees(static_cast<int>(value));
             lfoPhaseZDial.setAngle(static_cast<float>(degrees));
             lfoPhaseZValueLabel.setText(juce::String(degrees) + juce::String::charToString(0x00B0), juce::dontSendNotification);
         }

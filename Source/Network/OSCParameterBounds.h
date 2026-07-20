@@ -39,6 +39,13 @@ std::optional<ParamBounds> getBounds (const juce::Identifier& paramId);
  *  filtered earlier — this function does not re-check finiteness. */
 bool isInRange (const juce::Identifier& paramId, double value);
 
+/** True for the LFO phase parameter IDs (input global + X/Y/Z, cluster
+ *  global + X/Y/Z/Rot/Scale). These are circular quantities: their bounds
+ *  entry accepts a legacy-compat window of [-180, 360] and the ValueTree
+ *  write interceptor wraps stored values into the canonical [-180, 180]
+ *  via WFSParameterDefaults::wrapPhaseDegrees. */
+bool isLFOPhaseParam (const juce::Identifier& paramId);
+
 /** Format a short rejection reason such as
  *  `"out of range: 99.0 not in [0.0, 50.0]"`. */
 juce::String formatOutOfRangeReason (const juce::Identifier& paramId,

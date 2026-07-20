@@ -59,6 +59,15 @@ namespace
     #define BIND_BOOL(name)                                                 \
         m[WFSParameterIDs::name] = { 0.0, 1.0, true }
 
+    // LFO phase params: the canonical range is [-180, 180]
+    // (WFSParameterDefaults::inputLFOphaseMin/Max), but the gates accept up
+    // to 360 as a legacy-compat window — the input LFO convention used to be
+    // 0..360, and QLab cues / old project files may still carry such values.
+    // Anything in (180, 360] is wrapped into range by the ValueTree write
+    // interceptor (WFSValueTreeState) rather than rejected here.
+    #define BIND_PHASE(name)                                                \
+        m[WFSParameterIDs::name] = { -180.0, 360.0, true }
+
     const BoundsMap& bounds()
     {
         static const BoundsMap map = []
@@ -103,7 +112,12 @@ namespace
             // Cluster / LFO (per-cluster)
             //------------------------------------------------------------------
             BIND_F (clusterLFOperiod);
-            BIND_I (clusterLFOphase);
+            BIND_PHASE (clusterLFOphase);
+            BIND_PHASE (clusterLFOphaseX);
+            BIND_PHASE (clusterLFOphaseY);
+            BIND_PHASE (clusterLFOphaseZ);
+            BIND_PHASE (clusterLFOphaseRot);
+            BIND_PHASE (clusterLFOphaseScale);
             // Shape: enum-like, bind with explicit range from inputLFOshape.
             BIND_I_AS (clusterLFOshapeX,     inputLFOshape);
             BIND_I_AS (clusterLFOshapeY,     inputLFOshape);
@@ -221,7 +235,7 @@ namespace
             BIND_F (inputJitter);
             BIND_BOOL (inputLFOactive);
             BIND_F (inputLFOperiod);
-            BIND_I (inputLFOphase);
+            BIND_PHASE (inputLFOphase);
             BIND_I_AS (inputLFOshapeX, inputLFOshape);
             BIND_I_AS (inputLFOshapeY, inputLFOshape);
             BIND_I_AS (inputLFOshapeZ, inputLFOshape);
@@ -231,9 +245,9 @@ namespace
             BIND_F_AS (inputLFOamplitudeX, inputLFOamplitude);
             BIND_F_AS (inputLFOamplitudeY, inputLFOamplitude);
             BIND_F_AS (inputLFOamplitudeZ, inputLFOamplitude);
-            BIND_I_AS (inputLFOphaseX, inputLFOphase);
-            BIND_I_AS (inputLFOphaseY, inputLFOphase);
-            BIND_I_AS (inputLFOphaseZ, inputLFOphase);
+            BIND_PHASE (inputLFOphaseX);
+            BIND_PHASE (inputLFOphaseY);
+            BIND_PHASE (inputLFOphaseZ);
             BIND_I (inputLFOgyrophone);
 
             //------------------------------------------------------------------
@@ -400,6 +414,7 @@ namespace
     #undef BIND_F_AS
     #undef BIND_I_AS
     #undef BIND_BOOL
+    #undef BIND_PHASE
 }
 
 std::optional<ParamBounds> getBounds (const juce::Identifier& paramId)
@@ -417,6 +432,21 @@ bool isInRange (const juce::Identifier& paramId, double value)
     if (! b.has_value())
         return true;
     return value >= b->min && value <= b->max;
+}
+
+bool isLFOPhaseParam (const juce::Identifier& paramId)
+{
+    using namespace WFSParameterIDs;
+    return paramId == inputLFOphase
+        || paramId == inputLFOphaseX
+        || paramId == inputLFOphaseY
+        || paramId == inputLFOphaseZ
+        || paramId == clusterLFOphase
+        || paramId == clusterLFOphaseX
+        || paramId == clusterLFOphaseY
+        || paramId == clusterLFOphaseZ
+        || paramId == clusterLFOphaseRot
+        || paramId == clusterLFOphaseScale;
 }
 
 juce::String formatOutOfRangeReason (const juce::Identifier& paramId, double value)

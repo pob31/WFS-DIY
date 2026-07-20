@@ -171,8 +171,9 @@ def parse_header_bounds() -> dict[str, HeaderBound]:
 #   BIND_F_AS (inputPositionX, inputPosition);
 #   BIND_I_AS (clusterLFOshapeX, inputLFOshape);
 #   BIND_BOOL (inputFlipX);
+#   BIND_PHASE (inputLFOphase);
 BIND_RE = re.compile(
-    r"\b(BIND_F|BIND_I|BIND_F_AS|BIND_I_AS|BIND_BOOL)\s*\(\s*"
+    r"\b(BIND_F|BIND_I|BIND_F_AS|BIND_I_AS|BIND_BOOL|BIND_PHASE)\s*\(\s*"
     r"(\w+)\s*(?:,\s*(\w+))?\s*\)"
 )
 
@@ -194,6 +195,9 @@ def parse_gate_bindings() -> dict[str, GateBinding]:
         prefix = m.group(3) if m.group(3) else None
         if macro == "BIND_BOOL":
             kind = "BOOL"
+            prefix = None
+        elif macro == "BIND_PHASE":
+            kind = "PHASE"
             prefix = None
         elif macro in ("BIND_F", "BIND_I"):
             kind = "F" if macro == "BIND_F" else "I"
@@ -341,6 +345,15 @@ def main() -> int:
             else:
                 # CSV says non-{0,1} but binding says BOOL — drift.
                 drifts.append((var, cb, HeaderBound("(BIND_BOOL)", 0, 1), gate))
+                continue
+        elif prefix is None and gate is not None and gate.kind == "PHASE":
+            # BIND_PHASE gates accept [-180, 360] as a legacy-compat window,
+            # but the canonical documented range is [-180, 180] (values in
+            # (180, 360] are wrapped at the store). CSV should say -180..180.
+            if cb.min_v == -180.0 and cb.max_v == 180.0:
+                continue
+            else:
+                drifts.append((var, cb, HeaderBound("(BIND_PHASE)", -180, 180), gate))
                 continue
 
         hb = header_bounds.get(prefix) if prefix else None

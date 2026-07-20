@@ -28,7 +28,15 @@ public:
 
     void setAngle(float degrees)
     {
-        degrees = juce::jlimit(-180.0f, 180.0f, degrees);
+        // Wrap into [-180, 180]: angles are circular, so out-of-range values
+        // (typed or dragged past the ends) continue around instead of saturating.
+        if (degrees > 180.0f || degrees < -180.0f)
+        {
+            degrees = std::fmod(degrees + 180.0f, 360.0f);
+            if (degrees < 0.0f)
+                degrees += 360.0f;
+            degrees -= 180.0f;
+        }
         if (!juce::approximatelyEqual(degrees, angleDegrees))
         {
             angleDegrees = degrees;

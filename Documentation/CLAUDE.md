@@ -498,11 +498,11 @@ The LFOProcessor generates periodic position offsets for each input channel, cre
 |-----------|-------|-------------|
 | `inputLFOactive` | 0/1 | Enable LFO for this input |
 | `inputLFOperiod` | 0.01-120s | Base period for one cycle |
-| `inputLFOphase` | 0-360° | Global phase offset |
+| `inputLFOphase` | -180 to 180° | Global phase offset |
 | `inputLFOshapeX/Y/Z` | 0-8 | Waveform shape per axis |
 | `inputLFOrateX/Y/Z` | 0.01-100 | Rate multiplier per axis |
 | `inputLFOamplitudeX/Y/Z` | 0-50m | Peak amplitude per axis |
-| `inputLFOphaseX/Y/Z` | 0-360° | Phase offset per axis |
+| `inputLFOphaseX/Y/Z` | -180 to 180° | Phase offset per axis |
 
 **UI Indicators (InputsTab LFO sub-tab):**
 - Progress dial: Shows main ramp position (0→1) as rotating dot

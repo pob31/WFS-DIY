@@ -24,6 +24,17 @@ WFSValueTreeState::WFSValueTreeState()
     {
         if (proposed.isDouble() || proposed.isInt() || proposed.isInt64())
         {
+            // LFO phases are circular: wrap into the canonical [-180, 180]
+            // instead of clamping, so legacy 0..360 values (accepted by the
+            // gates' compat window) land on the equivalent angle.
+            if (WFSNetwork::isLFOPhaseParam (property))
+            {
+                const double d = static_cast<double> (proposed);
+                if (d < -180.0 || d > 180.0)
+                    return juce::var (WFSParameterDefaults::wrapPhaseDegrees (juce::roundToInt (d)));
+                return proposed;
+            }
+
             if (const auto bounds = WFSNetwork::getBounds (property))
             {
                 const double d = static_cast<double> (proposed);

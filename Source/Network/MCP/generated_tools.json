@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "7af8b1dd2a0da5914510835cc419e9d199f2fbb7c10578abc6c66c90311502c4",
+  "input_hash": "c19c4c319ec2b47cf794fa23bc4617f5315a09a4c8119a4065163aad1f003d91",
   "source_csvs": [
     "WFS-UI_config.csv",
     "WFS-UI_input.csv",
@@ -3469,7 +3469,7 @@
     },
     {
       "name": "input_lfo_set_phase",
-      "description": "Global LFO phase offset for this source in degrees, 0-360 (one cycle). 0 = start of cycle, 180 = half cycle in. Combined additively with the per-axis phase (LFOphaseX/Y/Z). Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Global LFO phase offset for this source in degrees, range -180 to 180. 0 = start of cycle, 90 = quarter-cycle in. Combined additively with the per-axis phase (LFOphaseX/Y/Z). Values sent in the legacy 0-360 convention are wrapped to the equivalent angle. Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -3481,8 +3481,8 @@
           },
           "value": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 360,
+            "minimum": -180,
+            "maximum": 180,
             "description": "Phase °.",
             "default": 0
           },
@@ -3512,7 +3512,7 @@
     },
     {
       "name": "input_lfo_set_phase_x",
-      "description": "X-axis (width) LFO phase offset for this source in degrees, 0-360 (one cycle). Stacks on top of the global LFOphase. Use to desync axes. Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "X-axis (width) LFO phase offset for this source in degrees, range -180 to 180. Stacks on top of the global LFOphase. Use to desync axes. Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -3524,8 +3524,8 @@
           },
           "value": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 360,
+            "minimum": -180,
+            "maximum": 180,
             "description": "Phase X °.",
             "default": 0
           },
@@ -3555,7 +3555,7 @@
     },
     {
       "name": "input_lfo_set_phase_y",
-      "description": "Y-axis (depth) LFO phase offset for this source in degrees, 0-360 (one cycle). Stacks on top of the global LFOphase. Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Y-axis (depth) LFO phase offset for this source in degrees, range -180 to 180. Stacks on top of the global LFOphase. Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -3567,8 +3567,8 @@
           },
           "value": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 360,
+            "minimum": -180,
+            "maximum": 180,
             "description": "Phase Y °.",
             "default": 0
           },
@@ -3598,7 +3598,7 @@
     },
     {
       "name": "input_lfo_set_phase_z",
-      "description": "Z-axis (height) LFO phase offset for this source in degrees, 0-360 (one cycle). Stacks on top of the global LFOphase. Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Z-axis (height) LFO phase offset for this source in degrees, range -180 to 180. Stacks on top of the global LFOphase. Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -3610,8 +3610,8 @@
           },
           "value": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 360,
+            "minimum": -180,
+            "maximum": 180,
             "description": "Phase Z °.",
             "default": 0
           },

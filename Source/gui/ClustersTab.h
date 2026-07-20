@@ -1134,7 +1134,7 @@ private:
             if (isLoadingParameters) return;
             // Log scale: 0->1 maps to 0.01->100s
             float periodSec = 0.01f * std::pow(10000.0f, val);
-            lfoPeriodValueLabel.setText(juce::String(periodSec, 2) + " s", juce::dontSendNotification);
+            lfoPeriodValueLabel.setText(formatLfoPeriod(periodSec) + " s", juce::dontSendNotification);
             saveClusterLFOParam(WFSParameterIDs::clusterLFOperiod, periodSec);
         };
 
@@ -1666,10 +1666,10 @@ private:
         float periodSec = static_cast<float>(lfoSection.getProperty(clusterLFOperiod, clusterLFOperiodDefault));
         float periodSlider = std::log10(periodSec / 0.01f) / std::log10(10000.0f);
         lfoPeriodDial.setValue(juce::jlimit(0.0f, 1.0f, periodSlider));
-        lfoPeriodValueLabel.setText(juce::String(periodSec, 2) + " s", juce::dontSendNotification);
+        lfoPeriodValueLabel.setText(formatLfoPeriod(periodSec) + " s", juce::dontSendNotification);
 
         // Global phase
-        int globalPhase = static_cast<int>(lfoSection.getProperty(clusterLFOphase, 0));
+        int globalPhase = wrapPhaseDegrees(static_cast<int>(lfoSection.getProperty(clusterLFOphase, 0)));
         lfoPhaseDial.setAngle(static_cast<float>(globalPhase));
         lfoPhaseValueLabel.setText(juce::String(globalPhase) + juce::String::charToString(0x00B0), juce::dontSendNotification);
 
@@ -1717,7 +1717,7 @@ private:
             }
 
             // Phase
-            int phaseDeg = static_cast<int>(lfoSection.getProperty(phaseIds[a], 0));
+            int phaseDeg = wrapPhaseDegrees(static_cast<int>(lfoSection.getProperty(phaseIds[a], 0)));
             row.phaseDial.setAngle(static_cast<float>(phaseDeg));
             row.phaseValueLabel.setText(juce::String(phaseDeg) + juce::String::charToString(0x00B0), juce::dontSendNotification);
         }
@@ -1794,6 +1794,16 @@ private:
         label.addListener(this);
     }
 
+    // LFO period display: keep at most 4 significant characters so the value
+    // plus " s" always fits the label ("0.01".."9.99" -> 2 decimals,
+    // "10.0" -> 1 decimal, "100" -> none)
+    static juce::String formatLfoPeriod(float seconds)
+    {
+        if (seconds >= 99.995f) return juce::String(juce::roundToInt(seconds));
+        if (seconds >= 9.9995f) return juce::String(seconds, 1);
+        return juce::String(seconds, 2);
+    }
+
     void editorShown (juce::Label* label, juce::TextEditor& editor) override
     {
         for (auto& col : lfoCircuits)
@@ -1818,14 +1828,18 @@ private:
             // Inverse of: period = 0.01 * pow(10000, v) → v = log10(period/0.01) / log10(10000)
             float v = std::log10(period / 0.01f) / 4.0f;
             lfoPeriodDial.setValue(juce::jlimit(0.0f, 1.0f, v));
+            // Force label update (onValueChanged doesn't fire when the dial value is unchanged)
+            lfoPeriodValueLabel.setText(formatLfoPeriod(period) + " s", juce::dontSendNotification);
             return;
         }
 
         // Phase value label (global)
         if (label == &lfoPhaseValueLabel)
         {
-            int deg = juce::jlimit(0, 360, static_cast<int>(std::round(val)));
+            int deg = WFSParameterDefaults::wrapPhaseDegrees(static_cast<int>(std::round(val)));
             lfoPhaseDial.setAngle(static_cast<float>(deg));
+            // Force label update (onAngleChanged doesn't fire when the dial value is unchanged)
+            lfoPhaseValueLabel.setText(juce::String(deg) + juce::String::charToString(0x00B0), juce::dontSendNotification);
             return;
         }
 
@@ -1867,8 +1881,10 @@ private:
 
             if (label == &row.phaseValueLabel)
             {
-                int deg = juce::jlimit(0, 360, static_cast<int>(std::round(val)));
+                int deg = WFSParameterDefaults::wrapPhaseDegrees(static_cast<int>(std::round(val)));
                 row.phaseDial.setAngle(static_cast<float>(deg));
+                // Force label update (onAngleChanged doesn't fire when the dial value is unchanged)
+                row.phaseValueLabel.setText(juce::String(deg) + juce::String::charToString(0x00B0), juce::dontSendNotification);
                 return;
             }
         }

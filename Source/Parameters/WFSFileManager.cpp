@@ -1,5 +1,6 @@
 #include "WFSFileManager.h"
 #include "WFSParameterIDs.h"
+#include "WFSParameterDefaults.h"
 #include "../AppSettings.h"
 #include "../Localization/LocalizationManager.h"
 #include "../Network/OSCParameterBounds.h"
@@ -71,6 +72,13 @@ static std::optional<juce::var> validateFileLoadProperty (const juce::Identifier
                 + WFSNetwork::formatOutOfRangeReason (propName, d) + ")");
             return std::nullopt;
         }
+
+        // LFO phases are circular: projects saved under the legacy 0..360
+        // convention pass the compat window above; wrap them into the
+        // canonical [-180, 180] here (the store interceptor would do the
+        // same, but this keeps the loaded tree normalized at the source).
+        if (WFSNetwork::isLFOPhaseParam (propName) && (d < -180.0 || d > 180.0))
+            return juce::var (WFSParameterDefaults::wrapPhaseDegrees (juce::roundToInt (d)));
     }
 
     return v;
