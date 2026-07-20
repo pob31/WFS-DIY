@@ -2,6 +2,28 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit).
 
+## v1.0.0beta33 — 2026-07-20
+
+### Added
+- Plugins: Common Attenuation parameter added to all five ADM-OSC Track variants, mirroring the app's input Common Attenuation control and kept in sync via app→plugin OSCQuery subscription (plugin version bumped to 0.0.4).
+- Snapshots: new "Update Snapshot Scope" long-press action that rewrites a selected snapshot's stored scope in place, without re-capturing live values — useful when you only meant to narrow what a snapshot covers rather than overwrite its captured state.
+
+### Fixed
+- Fixed OSC/QLab fades appearing not to work: QLab can send custom-message arguments as OSC strings rather than numbers, and a string-typed fade value was silently treated as an instant jump to 0. Numeric-looking strings for both the value and fade time are now coerced to floats.
+- Added fade support for `inputAttenuation`, `inputCommonAtten`, and the `inputArrayAtten1..10` array sends, none of which were OSC-fade-routable before.
+- QLab snapshot load/store cues now quote the snapshot name so names containing spaces round-trip correctly.
+- Fixed a Shared Position cluster stale-jump on remote release, affecting clusters saved by older project versions: several ValueTree reads across the OSC layer silently defaulted to 0 for freshly loaded string-typed properties, which also caused per-channel remote state dumps to send zeros for every parameter right after a project load.
+- Unified the LFO phase controls onto a single -180..180 range with circular wrap; previously three conflicting conventions (0..360 vs -180..180 in different places) meant a typed value like 270 could silently become 180.
+- Fixed LFO period value label rounding/truncation and widened the field so values like "100.0" display correctly.
+- Fixed a snapshot-recall bug where gradient-map layers were matched positionally instead of by ID, misapplying partially-scoped snapshots to the wrong layer slots.
+
+### Changed
+- Floor Reflections diffusion now uses a faithful port of the Max prototype's shimmer model (fast unipolar noise, <= 0.3 ms, 50-300 Hz) in place of the previous slow bipolar wander, fixing reflections that sounded too mellow.
+
+### Chore/Internal
+- Refreshed the prebuilt `wfs_hip.dll` with the Max-prototype Floor Reflections diffusion update.
+- Added `.gitignore` entries for import-lib/exp byproducts of the prebuilt HIP plugin.
+
 ## v1.0.0beta32 — 2026-07-19 (also tagged plugins-v0.0.3)
 
 ### Added
