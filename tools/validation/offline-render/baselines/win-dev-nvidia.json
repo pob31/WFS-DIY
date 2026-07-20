@@ -1,8 +1,8 @@
 {
-  "cpu-gather/fr-toggle": "faea7974226b3dd69d7bb94657a128aa5d24b93fb6617d058a94436007f7d683",
+  "cpu-gather/fr-toggle": "0becf8cb447d96ce17601c959b69d19377a20c06a9d27a8c94a32ccf8f13e490",
   "cpu-gather/moving": "ce5de35b02a1b4bd5161ce9f942203d3c31fb64605e186b8212fb8fb8a32d599",
   "cpu-gather/static": "fdb861f27a8ee58ba042bcbe1554c26d85659771165d6be1a253dd3380b163e7",
-  "cpu-scatter/fr-toggle": "71feafdcafbe31ccdbb50804c011adb98384d7be2ad84384f3119931ccdbd046",
+  "cpu-scatter/fr-toggle": "81d8ac8fa1b292c7b8eea71c2c081a9db1e52177e986ec2a1335902d540c0ef6",
   "cpu-scatter/moving": "f18871dbf3893e5da7c63cb0037ea7f9fde7aca089d0507af84d037bbd876b3d",
   "cpu-scatter/static": "f859c890d51e674194c548029b1e56e31a2ed92559931e58be8f6055028c3aeb",
   "reverb-fdn/fr-toggle": "7ea334dc3714d2e2af779472e790c563c66e59e76669ab1f78d5ed46af215633",

@@ -76,7 +76,8 @@ drives one level lower, where synchronous/drainable entry points exist —
 ## Determinism notes (verified)
 
 - FR diffusion "jitter" is **hash-keyed** (`FrDiffusionModel.h`, Squirrel hash
-  over a monotonic per-block index + (in,out) key) — bit-reproducible, no RNG.
+  over each stream's own segment counter + (in,out) key) — bit-reproducible,
+  no RNG; a stream's trajectory depends only on samples advanced since reset.
 - `DelayTargetSmoother` is sample-index-driven — deterministic.
 - Per-channel CPU threads do no cross-thread summation; reverb parallelFor is
   per-node with disjoint outputs — worker count never changes results.

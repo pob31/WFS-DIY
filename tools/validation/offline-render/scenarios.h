@@ -23,7 +23,7 @@ namespace scenario
 {
 
 //==============================================================================
-// Squirrel-hash noise — same idiom as Source/DSP/FrDiffusionModel.h
+// Squirrel-hash noise — same idiom as spatcore/dsp/FrDiffusionModel.h
 // (FrDiffusion::hashNoiseBipolar / makeKey), duplicated locally so the input
 // generator has no dependency on app RNG or app headers beyond the reverb PODs.
 //==============================================================================

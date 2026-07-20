@@ -70,11 +70,11 @@ struct CpuObTwin
     std::vector<float> accDir, accFr;          // [numOut][accLen]
     std::vector<float> shelf, frShelf;         // [pairs][4] = x1,x2,y1,y2
     std::vector<float> dPrev, gPrev, fgPrev;   // [pairs]
-    // FR diffusion (CPU OutputBufferProcessor parity): per-64-sample step + ramp.
+    // FR diffusion (WfsFrHostState / CPU OutputBufferProcessor parity): per-sample.
     std::vector<float> diffusion;              // [numIn] fraction 0..1
-    std::vector<float> jitterLp, jitterLast, baseFrPrev;  // [pairs]
-    uint32_t subStep = 0; bool haveBase = false;
-    static constexpr int kSub = 64;
+    std::vector<FrDiffusion::State> jitterStates;  // [pairs]
+    std::vector<float> baseFrPrev;             // [pairs]
+    bool haveBase = false;
 
     void setDiffusion (int in, float percent) { if (in >= 0 && in < (int) diffusion.size()) diffusion[(size_t) in] = std::min (1.0f, std::max (0.0f, percent * 0.01f)); }
 
@@ -87,7 +87,7 @@ struct CpuObTwin
         srScale = (float) (sampleRate / 1000.0);
         const double w0 = 2.0 * 3.14159265358979 * 800.0 / sampleRate;
         cosw0 = (float) std::cos (w0); sinw0 = (float) std::sin (w0);
-        writePos = 0; havePrev = false; haveBase = false; subStep = 0;
+        writePos = 0; havePrev = false; haveBase = false;
         accDir.assign ((size_t) numOut * accLen, 0.0f);
         accFr.assign ((size_t) numOut * accLen, 0.0f);
         const size_t pairs = (size_t) numIn * numOut;
@@ -95,7 +95,11 @@ struct CpuObTwin
         frShelf.assign (pairs * 4, 0.0f);
         dPrev.assign (pairs, 0.0f); gPrev.assign (pairs, 0.0f); fgPrev.assign (pairs, 0.0f);
         diffusion.assign ((size_t) numIn, 0.0f);
-        jitterLp.assign (pairs, 0.0f); jitterLast.assign (pairs, 0.0f); baseFrPrev.assign (pairs, 0.0f);
+        jitterStates.assign (pairs, FrDiffusion::State {});
+        for (int in = 0; in < numIn; ++in)
+            for (int out = 0; out < numOut; ++out)
+                FrDiffusion::resetState (jitterStates[(size_t) in * numOut + out], FrDiffusion::makeKey (in, out));
+        baseFrPrev.assign (pairs, 0.0f);
     }
 
     void processBlock (const float* delaysMs, const float* gains, const float* hfDb,
@@ -118,31 +122,30 @@ struct CpuObTwin
         if (! havePrev) { dPrev = dCurr; gPrev = gCurr; fgPrev = fgCurr; havePrev = true; }
         if (! haveBase) { baseFrPrev = baseCurr; haveBase = true; }
 
-        // Per-sample absolute FR delay: diffusion grain stepped every 64 samples and
-        // ramped (exact CPU OutputBufferProcessor model, lines 386-398 / 547-549).
-        std::vector<float> frDelayPS (pairs * blockSize);
+        // Per-sample absolute FR delay: jitter stepped per sample for FR-active
+        // pairs (exact WfsFrHostState / CPU OutputBufferProcessor model);
+        // inactive pairs advance their stream in one span.
+        std::vector<float> frDelayPS (pairs * blockSize, 0.0f);
         {
             const float invLen = 1.0f / (float) blockSize;
-            for (int a = 0; a < blockSize; a += kSub)
+            for (int in = 0; in < numIn; ++in)
             {
-                const int b = std::min (a + kSub, blockSize);
-                const int subLen = b - a; ++subStep; const float invSub = 1.0f / (float) subLen;
-                for (int in = 0; in < numIn; ++in)
+                const auto coeffs = FrDiffusion::computeCoeffs (diffusion[(size_t) in], (float) sr);
+                for (int out = 0; out < numOut; ++out)
                 {
-                    const auto coeffs = FrDiffusion::computeCoeffs (diffusion[(size_t) in], (float) sr, (float) subLen);
-                    for (int out = 0; out < numOut; ++out)
+                    const size_t m = (size_t) in * numOut + out;
+                    const uint32_t key = FrDiffusion::makeKey (in, out);
+                    if (fgPrev[m] == 0.0f && fgCurr[m] == 0.0f)
                     {
-                        const size_t m = (size_t) in * numOut + out;
-                        float jCurr = (coeffs.ampSamples > 0.0f)
-                            ? FrDiffusion::step (jitterLp[m], subStep, FrDiffusion::makeKey (in, out), coeffs) : 0.0f;
-                        const float jPrev = jitterLast[m]; jitterLast[m] = jCurr;
-                        const float bp = baseFrPrev[m], bc = baseCurr[m];
-                        for (int s = a; s < b; ++s)
-                        {
-                            const float jit  = jPrev + (jCurr - jPrev) * ((float) (s - a + 1) * invSub);
-                            const float base = bp + (bc - bp) * ((float) (s + 1) * invLen);
-                            frDelayPS[m * blockSize + s] = std::clamp (base + jit, 1.0f, maxClamp);
-                        }
+                        FrDiffusion::advanceSpan (jitterStates[m], key, coeffs, blockSize);
+                        continue;
+                    }
+                    const float bp = baseFrPrev[m], bc = baseCurr[m];
+                    for (int s = 0; s < blockSize; ++s)
+                    {
+                        const float jit  = FrDiffusion::processSample (jitterStates[m], key, coeffs);
+                        const float base = bp + (bc - bp) * ((float) (s + 1) * invLen);
+                        frDelayPS[m * blockSize + s] = std::clamp (base + jit, 1.0f, maxClamp);
                     }
                 }
             }
