@@ -1799,8 +1799,8 @@ private:
     // "10.0" -> 1 decimal, "100" -> none)
     static juce::String formatLfoPeriod(float seconds)
     {
-        if (seconds >= 99.995f) return juce::String(juce::roundToInt(seconds));
-        if (seconds >= 9.9995f) return juce::String(seconds, 1);
+        if (seconds >= 99.95f) return juce::String(juce::roundToInt(seconds));
+        if (seconds >= 9.995f) return juce::String(seconds, 1);
         return juce::String(seconds, 2);
     }
 

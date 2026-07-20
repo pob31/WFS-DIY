@@ -3209,8 +3209,8 @@ private:
     // 1 decimal, "100" -> none)
     static juce::String formatLfoPeriod(float seconds)
     {
-        if (seconds >= 99.995f) return juce::String(juce::roundToInt(seconds));
-        if (seconds >= 9.9995f) return juce::String(seconds, 1);
+        if (seconds >= 99.95f) return juce::String(juce::roundToInt(seconds));
+        if (seconds >= 9.995f) return juce::String(seconds, 1);
         return juce::String(seconds, 2);
     }
 
@@ -4829,7 +4829,7 @@ private:
         auto periodDialBounds = periodArea.removeFromTop(headerDialSize);
         lfoPeriodDial.setBounds(periodDialBounds.withSizeKeepingCentre(headerDialSize, headerDialSize));
         int periodCenterX = periodDialBounds.getX() + periodDialBounds.getWidth() / 2;
-        layoutDialValueUnit(lfoPeriodValueLabel, lfoPeriodUnitLabel, periodCenterX, periodArea.getY(), periodArea.getHeight(), scaled(40), scaled(25));
+        layoutDialValueUnit(lfoPeriodValueLabel, lfoPeriodUnitLabel, periodCenterX, periodArea.getY(), periodArea.getHeight(), scaled(55), scaled(25));
         headerRow.removeFromLeft(headerSpacing);
 
         // Phase: label at top, dial centered, value+unit at bottom
