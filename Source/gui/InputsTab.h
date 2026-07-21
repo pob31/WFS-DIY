@@ -8234,20 +8234,14 @@ private:
         auto curves  = std::shared_ptr<juce::Drawable>(HelpCardSVG::parse(HelpCardSVG::get_liveSourceTamerCurvesSVG()).release());
 
         struct LegendRow { juce::String num, text; int tone; }; // tone: 0 text, 1 blue, 2 green
-        auto drawFigure = [](juce::Graphics& g, juce::Rectangle<int> area,
-                             const std::shared_ptr<juce::Drawable>& drawable,
+        auto drawLegend = [](juce::Graphics& g, juce::Rectangle<float> cell,
                              const std::vector<LegendRow>& rows)
         {
-            auto f = area.toFloat();
-            auto drawing = f.removeFromLeft(f.getWidth() * 0.58f);
-            if (drawable)
-                drawable->drawWithin(g, drawing, juce::RectanglePlacement::centred, 1.0f);
-
             auto& cs = ColorScheme::get();
             auto font = juce::Font(juce::FontOptions(juce::jmax(12.0f, 15.0f * WfsLookAndFeel::uiScale)));
             g.setFont(font);
             float rowH = font.getHeight() * 1.55f;
-            auto legend = f.reduced(10.0f, 0.0f);
+            auto legend = cell.reduced(10.0f, 0.0f);
             float y = legend.getCentreY() - rowH * (float) rows.size() * 0.5f;
             for (auto& r : rows)
             {
@@ -8260,18 +8254,7 @@ private:
             }
         };
 
-        std::vector<LegendRow> topLegend = {
-            { "1", LOC("help.liveSource.legendPosition"),       0 },
-            { "2", LOC("help.liveSource.legendMaxAttenuation"), 1 },
-            { "3", LOC("help.liveSource.legendNoAttenuation"),  1 },
-            { "4", LOC("help.liveSource.legendRadius"),         2 },
-        };
-        lsHelpCard.addIllustration(210, [topView, drawFigure, topLegend](juce::Graphics& g, juce::Rectangle<int> area)
-        {
-            drawFigure(g, area, topView, topLegend);
-        });
-
-        std::vector<LegendRow> curveLegend = {
+        std::vector<LegendRow> shapeLegend = {
             { "1", LOC("help.liveSource.legendLinear"),      0 },
             { "2", LOC("help.liveSource.legendSquare"),      0 },
             { "3", LOC("help.liveSource.legendLog"),         0 },
@@ -8279,9 +8262,33 @@ private:
             { "5", LOC("help.liveSource.legendAttenuation"), 1 },
             { "6", LOC("help.liveSource.legendRadius"),      2 },
         };
-        lsHelpCard.addIllustration(300, [curves, drawFigure, curveLegend](juce::Graphics& g, juce::Rectangle<int> area)
+        std::vector<LegendRow> zoneLegend = {
+            { "1", LOC("help.liveSource.legendPosition"),       0 },
+            { "2", LOC("help.liveSource.legendMaxAttenuation"), 1 },
+            { "3", LOC("help.liveSource.legendNoAttenuation"),  1 },
+            { "4", LOC("help.liveSource.legendRadius"),         2 },
+        };
+
+        // Single 2×2 staggered section so the whole card fits without
+        // scrolling: shapes figure top-left with its legend to the right,
+        // zone-of-influence legend bottom-left with its figure to the right.
+        // The diagonal placement keeps the two drawings from reading as one.
+        lsHelpCard.addIllustration(400, [topView, curves, drawLegend, shapeLegend, zoneLegend]
+                                        (juce::Graphics& g, juce::Rectangle<int> area)
         {
-            drawFigure(g, area, curves, curveLegend);
+            auto f = area.toFloat();
+            auto shapesRow = f.removeFromTop(f.getHeight() * 0.58f);
+            auto zoneRow = f;
+
+            auto shapesCell = shapesRow.removeFromLeft(shapesRow.getWidth() * 0.52f);
+            if (curves)
+                curves->drawWithin(g, shapesCell, juce::RectanglePlacement::centred, 1.0f);
+            drawLegend(g, shapesRow, shapeLegend);
+
+            auto zoneCell = zoneRow.removeFromRight(zoneRow.getWidth() * 0.52f);
+            if (topView)
+                topView->drawWithin(g, zoneCell, juce::RectanglePlacement::centred, 1.0f);
+            drawLegend(g, zoneRow, zoneLegend);
         });
     }
 
