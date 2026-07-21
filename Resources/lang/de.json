@@ -741,7 +741,16 @@
     },
     "liveSource": {
       "title": "Live Source Tamer",
-      "body": "Live-Quellen-Dämpfer\n\nEine laute Quelle auf der Bühne braucht möglicherweise keine Verstärkung durch die nahegelegenen Lautsprecher. Stellen Sie sich einen Opernsänger am Bühnenrand vor. Normalerweise würde die Pegelverteilung den Pegel in der Nähe der Eingangsposition erhöhen. Aber wenn es bereits laut genug ist, sollten wir nicht überverstärken. Diese Funktion verwaltet dies.\nRadius und Form beschreiben, wie der Pegel für Lautsprecher innerhalb des Einflussradius dieser Quelle abgeschwächt wird. Es gibt verschiedene Formen: ein V-förmiger linearer Effekt; ein U für schnelle Abnahme; ein enges V oder eine Mischung (Sinus).\nDie Dämpfung kann konstant oder pegelabhängig sein, wie eine lokale Kompression, die auf Transienten und den durchschnittlichen RMS-Pegel reagiert."
+      "body": "Live-Quellen-Dämpfer\n\nEine laute Quelle auf der Bühne braucht möglicherweise keine Verstärkung durch die nahegelegenen Lautsprecher. Stellen Sie sich einen Opernsänger am Bühnenrand vor. Normalerweise würde die Pegelverteilung den Pegel in der Nähe der Eingangsposition erhöhen. Aber wenn es bereits laut genug ist, sollten wir nicht überverstärken. Diese Funktion verwaltet dies.\nRadius und Form beschreiben, wie der Pegel für Lautsprecher innerhalb des Einflussradius dieser Quelle abgeschwächt wird. Es gibt verschiedene Formen: ein V-förmiger linearer Effekt; ein U für schnelle Abnahme; ein enges V oder eine Mischung (Sinus).\nDie Dämpfung kann konstant oder pegelabhängig sein, wie eine lokale Kompression, die auf Transienten und den durchschnittlichen RMS-Pegel reagiert.",
+      "legendPosition": "Position der Quelle",
+      "legendMaxAttenuation": "maximale Dämpfung",
+      "legendNoAttenuation": "keine Dämpfung",
+      "legendRadius": "Radius",
+      "legendLinear": "linear",
+      "legendSquare": "Quadrat x²",
+      "legendLog": "log",
+      "legendSine": "sinus",
+      "legendAttenuation": "Dämpfung"
     },
     "floorReflections": {
       "title": "Floor Reflections",

@@ -741,7 +741,16 @@
     },
     "liveSource": {
       "title": "Live Source Tamer",
-      "body": "Atenuador de Fuente en Vivo\n\nUna fuente potente en el escenario puede no necesitar refuerzo a través de los altavoces cercanos. Imagine un cantante de ópera cerca del borde del escenario. Normalmente la distribución de nivel haría el sonido más fuerte cerca de la posición de entrada. Pero si ya es suficientemente fuerte, no deberíamos sobre-amplificarlo. Esta función gestiona esto.\nEl radio y la forma describen cómo atenuar el nivel para los altavoces dentro del radio de influencia de esta fuente. Hay varias formas: un efecto lineal en V; una U para disminución rápida; una V ajustada o una mezcla de los anteriores (seno).\nLa atenuación puede ser constante o dependiente del nivel, como una compresión local que reacciona a transitorios y al nivel RMS promedio."
+      "body": "Atenuador de Fuente en Vivo\n\nUna fuente potente en el escenario puede no necesitar refuerzo a través de los altavoces cercanos. Imagine un cantante de ópera cerca del borde del escenario. Normalmente la distribución de nivel haría el sonido más fuerte cerca de la posición de entrada. Pero si ya es suficientemente fuerte, no deberíamos sobre-amplificarlo. Esta función gestiona esto.\nEl radio y la forma describen cómo atenuar el nivel para los altavoces dentro del radio de influencia de esta fuente. Hay varias formas: un efecto lineal en V; una U para disminución rápida; una V ajustada o una mezcla de los anteriores (seno).\nLa atenuación puede ser constante o dependiente del nivel, como una compresión local que reacciona a transitorios y al nivel RMS promedio.",
+      "legendPosition": "posición de la fuente",
+      "legendMaxAttenuation": "atenuación máxima",
+      "legendNoAttenuation": "sin atenuación",
+      "legendRadius": "radio",
+      "legendLinear": "lineal",
+      "legendSquare": "cuadrado x²",
+      "legendLog": "log",
+      "legendSine": "seno",
+      "legendAttenuation": "atenuación"
     },
     "floorReflections": {
       "title": "Floor Reflections",

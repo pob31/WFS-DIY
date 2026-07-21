@@ -23,6 +23,7 @@
 #include "GainReductionMeter.h"
 #include "RefreshableComboBox.h"
 #include "SnapshotScopeWindow.h"
+#include "HelpCardSVG.h"
 #include "buttons/LongPressButton.h"
 #include "buttons/WrappingTextButton.h"
 #include "../Localization/LocalizationManager.h"
@@ -317,7 +318,7 @@ public:
         // Live Source & Floor Reflections help cards
         addAndMakeVisible(lsHelpButton);
         addChildComponent(lsHelpCard);
-        lsHelpCard.setContent(LOC("help.liveSource.title"), LOC("help.liveSource.body"));
+        buildLiveSourceHelpContent();
         lsHelpButton.setCard(&lsHelpCard);
 
         addAndMakeVisible(frHelpButton);
@@ -4752,7 +4753,8 @@ private:
             int bottomY = subTabContentArea.getBottom();
 
             int lsCardX = subTabContentArea.getX() + colPad;
-            int lsCardH = lsHelpCard.getIdealHeight(cardW);
+            int lsCardH = juce::jmin(subTabContentArea.getHeight(),
+                                     lsHelpCard.getPreferredHeight(cardW));
             lsHelpCard.setBounds(lsCardX, bottomY - lsCardH, cardW, lsCardH);
 
             int frCardX = subTabContentArea.getX() + subTabContentArea.getWidth() / 2 + colPad;
@@ -8216,8 +8218,75 @@ private:
     WfsStandardSlider frHighShelfSlopeSlider;
     juce::Label frHighShelfSlopeValueLabel;
     juce::TextButton muteReverbSendsButton;
+    /** Live Source Tamer help card: body text + the two figures (top view,
+        attenuation profiles). The SVGs carry numbered markers only; the
+        localized legend is drawn in the margin next to each figure, so
+        translations never touch the drawings (and CJK goes through JUCE's
+        normal font fallback instead of SVG text). */
+    void buildLiveSourceHelpContent()
+    {
+        lsHelpCard.setContent(LOC("help.liveSource.title"), "");
+        lsHelpCard.clearSections();
+        lsHelpCard.addTextSection(LOC("help.liveSource.body"));
+
+        // Parse once; shared_ptr so the lambda captures stay copyable
+        auto topView = std::shared_ptr<juce::Drawable>(HelpCardSVG::parse(HelpCardSVG::get_liveSourceTamerTopSVG()).release());
+        auto curves  = std::shared_ptr<juce::Drawable>(HelpCardSVG::parse(HelpCardSVG::get_liveSourceTamerCurvesSVG()).release());
+
+        struct LegendRow { juce::String num, text; int tone; }; // tone: 0 text, 1 blue, 2 green
+        auto drawFigure = [](juce::Graphics& g, juce::Rectangle<int> area,
+                             const std::shared_ptr<juce::Drawable>& drawable,
+                             const std::vector<LegendRow>& rows)
+        {
+            auto f = area.toFloat();
+            auto drawing = f.removeFromLeft(f.getWidth() * 0.58f);
+            if (drawable)
+                drawable->drawWithin(g, drawing, juce::RectanglePlacement::centred, 1.0f);
+
+            auto& cs = ColorScheme::get();
+            auto font = juce::Font(juce::FontOptions(juce::jmax(12.0f, 15.0f * WfsLookAndFeel::uiScale)));
+            g.setFont(font);
+            float rowH = font.getHeight() * 1.55f;
+            auto legend = f.reduced(10.0f, 0.0f);
+            float y = legend.getCentreY() - rowH * (float) rows.size() * 0.5f;
+            for (auto& r : rows)
+            {
+                auto rowArea = juce::Rectangle<float>(legend.getX(), y, legend.getWidth(), rowH);
+                g.setColour(r.tone == 1 ? cs.accentBlue : r.tone == 2 ? cs.accentGreen : cs.textPrimary);
+                g.drawText(r.num, rowArea.removeFromLeft(20.0f), juce::Justification::centredLeft);
+                g.setColour(cs.textPrimary);
+                g.drawText(r.text, rowArea, juce::Justification::centredLeft);
+                y += rowH;
+            }
+        };
+
+        std::vector<LegendRow> topLegend = {
+            { "1", LOC("help.liveSource.legendPosition"),       0 },
+            { "2", LOC("help.liveSource.legendMaxAttenuation"), 1 },
+            { "3", LOC("help.liveSource.legendNoAttenuation"),  1 },
+            { "4", LOC("help.liveSource.legendRadius"),         2 },
+        };
+        lsHelpCard.addIllustration(210, [topView, drawFigure, topLegend](juce::Graphics& g, juce::Rectangle<int> area)
+        {
+            drawFigure(g, area, topView, topLegend);
+        });
+
+        std::vector<LegendRow> curveLegend = {
+            { "1", LOC("help.liveSource.legendLinear"),      0 },
+            { "2", LOC("help.liveSource.legendSquare"),      0 },
+            { "3", LOC("help.liveSource.legendLog"),         0 },
+            { "4", LOC("help.liveSource.legendSine"),        0 },
+            { "5", LOC("help.liveSource.legendAttenuation"), 1 },
+            { "6", LOC("help.liveSource.legendRadius"),      2 },
+        };
+        lsHelpCard.addIllustration(300, [curves, drawFigure, curveLegend](juce::Graphics& g, juce::Rectangle<int> area)
+        {
+            drawFigure(g, area, curves, curveLegend);
+        });
+    }
+
     HelpCardButton lsHelpButton;
-    HelpCard lsHelpCard;
+    ScrollableHelpCard lsHelpCard;
     HelpCardButton frHelpButton;
     HelpCard frHelpCard;
 

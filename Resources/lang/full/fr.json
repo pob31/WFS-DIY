@@ -2236,7 +2236,16 @@
     },
     "liveSource": {
       "title": "Atténuateur de Source Live",
-      "body": "Une source puissante sur scène n'a pas forcément besoin d'être renforcée par les haut-parleurs proches. Imaginez un chanteur d'opéra près du bord de la scène. Normalement la distribution de niveau rendrait le son plus fort près de la position de la source. Mais si c'est déjà assez fort, on devrait pouvoir ne pas sur-amplifier. Cette fonction gère cela.\nLe rayon et la forme décrivent comment atténuer le niveau pour les haut-parleurs dans le rayon d'influence de cette source. Il y a différentes formes : un effet linéaire en V ; un U pour une décroissance rapide ; un V serré ou un mélange des précédents (sinus).\nL'atténuation peut être constante ou dépendante du niveau, comme une compression locale réagissant aux transitoires et au niveau RMS moyen."
+      "body": "Une source puissante sur scène n'a pas forcément besoin d'être renforcée par les haut-parleurs proches. Imaginez un chanteur d'opéra près du bord de la scène. Normalement la distribution de niveau rendrait le son plus fort près de la position de la source. Mais si c'est déjà assez fort, on devrait pouvoir ne pas sur-amplifier. Cette fonction gère cela.\nLe rayon et la forme décrivent comment atténuer le niveau pour les haut-parleurs dans le rayon d'influence de cette source. Il y a différentes formes : un effet linéaire en V ; un U pour une décroissance rapide ; un V serré ou un mélange des précédents (sinus).\nL'atténuation peut être constante ou dépendante du niveau, comme une compression locale réagissant aux transitoires et au niveau RMS moyen.",
+      "legendPosition": "position de la source",
+      "legendMaxAttenuation": "atténuation maximale",
+      "legendNoAttenuation": "pas d'atténuation",
+      "legendRadius": "rayon",
+      "legendLinear": "linéaire",
+      "legendSquare": "carré x²",
+      "legendLog": "log",
+      "legendSine": "sinus",
+      "legendAttenuation": "atténuation"
     },
     "floorReflections": {
       "title": "Réflexions du Sol",
