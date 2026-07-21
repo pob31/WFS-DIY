@@ -2013,7 +2013,7 @@ git submodule update --init --recursive
 ```
 
 **Dependencies (via submodules in `ThirdParty/`):**
-- **JUCE 8.0.14** — `ThirdParty/JUCE` (pinned to tag 8.0.14; ASIO SDK is bundled with JUCE since 8.0.11)
+- **JUCE 9.0.0** — `ThirdParty/JUCE` (pinned to tag 9.0.0; ASIO SDK is bundled with JUCE since 8.0.11). The submodule builds unpatched: JUCE 9's native XInput2 multitouch replaced the old Linux canUseTouch patch + evdev touch backend (Windows windows opt back into raw multi-touch via `WindowUtils::enableRawMultiTouch`). Linux builds need `libxi-dev`; `juce_opengl` was dropped from the project (unused) so EGL is not required.
 
 - Project file: WFS-DIY.jucer (open in Projucer to re-export build files)
 - Builds: Visual Studio 2026 (v145 toolset; the `Builds/VisualStudio2022` folder

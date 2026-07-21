@@ -116,8 +116,6 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/MCPPromptRegistry_dfc30a9.o \
   $(JUCE_OBJDIR)/MCPParameterRegistry_efa6b86b.o \
   $(JUCE_OBJDIR)/HidApiPlatform_aec62187.o \
-  $(JUCE_OBJDIR)/EvdevTouchDevice_8b3fc3a9.o \
-  $(JUCE_OBJDIR)/EvdevTouchManager_3daf3a04.o \
   $(JUCE_OBJDIR)/Main_90ebc5c2.o \
   $(JUCE_OBJDIR)/MainComponent_a6ffb4a5.o \
   $(JUCE_OBJDIR)/WFSLogger_60115195.o \
@@ -401,16 +399,6 @@ $(JUCE_OBJDIR)/HidApiPlatform_aec62187.o: ../../ThirdParty/hidapi/HidApiPlatform
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling HidApiPlatform.c"
 	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/EvdevTouchDevice_8b3fc3a9.o: ../../spatcore/controllers/touch/linux/EvdevTouchDevice.cpp
-	-$(V_AT)mkdir -p $(@D)
-	@echo "Compiling EvdevTouchDevice.cpp"
-	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/EvdevTouchManager_3daf3a04.o: ../../spatcore/controllers/touch/linux/EvdevTouchManager.cpp
-	-$(V_AT)mkdir -p $(@D)
-	@echo "Compiling EvdevTouchManager.cpp"
-	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/Main_90ebc5c2.o: ../../Source/Main.cpp
 	-$(V_AT)mkdir -p $(@D)

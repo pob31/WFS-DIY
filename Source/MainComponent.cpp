@@ -872,33 +872,6 @@ MainComponent::MainComponent()
     // persisted app settings (spatcore's manager no longer reads AppSettings).
     streamDeckManager->getConnectBrightness = [] { return AppSettings::getStreamDeckBrightness(); };
 
-    // Linux multitouch (no-op stub on macOS/Windows). Discovers touchscreens
-    // via libudev and bridges per-finger evdev events into JUCE's MouseEvent
-    // pipeline so MapTab/EQDisplay/PatchMatrix see the same touch API they
-    // already see on Windows. "WFS-DIY" names the persisted mapping store.
-    touchManager = std::make_unique<WFSTouch::EvdevTouchManager> ("WFS-DIY");
-
-   #if defined (__linux__)
-    // Show / hide the SystemConfig "Touchscreens..." button based on whether
-    // any touchscreens are currently connected, with live updates on hotplug.
-    auto refreshTouchButton = [this]
-    {
-        if (systemConfigTab && touchManager)
-            systemConfigTab->setTouchscreensButtonVisible (! touchManager->getDetectedDevices().empty());
-    };
-    refreshTouchButton();
-    touchManager->addChangeListener (refreshTouchButton);
-
-    systemConfigTab->setTouchscreensCallback ([this]
-    {
-        if (! touchManager) return;
-        if (touchscreenWindow == nullptr)
-            touchscreenWindow = std::make_unique<LinuxTouchscreenWindow> (*touchManager);
-        touchscreenWindow->setVisible (true);
-        touchscreenWindow->toFront (true);
-    });
-   #endif
-
     // Apply initial Dials & Buttons device selection (default Off)
     {
         int dbDevice = static_cast<int> (parameters.getConfigParam ("DialsAndButtonsDevice"));

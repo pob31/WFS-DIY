@@ -19,7 +19,8 @@ KERNEL=="hidraw*",    ATTRS{idVendor}=="0fd9", ATTRS{idProduct}=="0084", MODE="0
 SUBSYSTEM=="usb",     ATTRS{idVendor}=="256f", MODE="0660", TAG+="uaccess", GROUP="plugdev"
 KERNEL=="hidraw*",    ATTRS{idVendor}=="256f", MODE="0660", TAG+="uaccess", GROUP="plugdev"
 
-# Multitouch: grant the active console user access to evdev nodes for any
-# device flagged ID_INPUT_TOUCHSCREEN. Required by the EvdevTouchManager
-# to read /dev/input/eventN and EVIOCGRAB the device while WFS-DIY uses it.
+# Touchscreen evdev access — legacy. Since JUCE 9 the app reads touch
+# natively via XInput2 (no direct evdev access), so WFS-DIY itself no longer
+# needs this rule; it is kept for older releases whose evdev backend read
+# /dev/input/eventN directly, and is harmless otherwise.
 KERNEL=="event*", ENV{ID_INPUT_TOUCHSCREEN}=="1", MODE="0660", TAG+="uaccess", GROUP="plugdev"

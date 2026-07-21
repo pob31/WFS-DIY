@@ -44,14 +44,14 @@ Open a terminal and run:
 git clone --recurse-submodules https://github.com/pob31/WFS-DIY.git
 ```
 
-Then bootstrap the checkout — this initialises the submodules and, on Linux, applies the JUCE multitouch patch:
+Then bootstrap the checkout — this initialises the submodules:
 
 ```bash
 cd WFS-DIY
 ./tools/setup.sh
 ```
 
-> **Important:** Run `./tools/setup.sh` after cloning. It initialises the submodules (JUCE, etc. — without them the build fails) **and** applies the Linux multitouch patch, so touch works in your local build without any extra steps. It's idempotent — safe to re-run any time you re-init a submodule. If you cloned without `--recurse-submodules`, `setup.sh` fixes that too.
+> **Important:** Run `./tools/setup.sh` after cloning. It initialises the submodules (JUCE, etc. — without them the build fails). It's idempotent — safe to re-run any time you re-init a submodule. If you cloned without `--recurse-submodules`, `setup.sh` fixes that too.
 
 **2. Open the project and build**
 
@@ -74,26 +74,23 @@ cd WFS-DIY
    ```bash
    sudo apt install build-essential pkg-config libasound2-dev libfreetype6-dev \
        libfontconfig1-dev libgl1-mesa-dev libcurl4-openssl-dev libgtk-3-dev \
-       libwebkit2gtk-4.1-dev libudev-dev
+       libwebkit2gtk-4.1-dev libudev-dev libxi-dev
    ```
-2. Apply Linux JUCE patches — **already done if you ran `./tools/setup.sh`** above. To apply manually (e.g. after re-initing the JUCE submodule):
-   ```bash
-   tools/apply-linux-juce-patches.sh
-   ```
-   This patches the vendored JUCE to enable touch-source creation on Linux. Required for the userland evdev multitouch backend; safe to re-run (idempotent).
-3. Build:
+   (`libxi-dev` provides the XInput2 headers for JUCE 9's native Linux multitouch.)
+2. Build:
    ```bash
    cd Builds/LinuxMakefile && make CONFIG=Release -j$(nproc)
    ```
    The binary lands at `Builds/LinuxMakefile/build/WFS-DIY` along with `lang/` and `MCP/resources/` copied next to it.
-4. **HID controller and touchscreen setup (one-time, optional):** to use Stream Deck, 3Dconnexion SpaceMouse, or any USB touchscreen without root, install the bundled udev rules. The file is named `70-` so it runs after the system rules that set `ID_INPUT_TOUCHSCREEN`:
+3. **HID controller setup (one-time, optional):** to use Stream Deck or 3Dconnexion SpaceMouse without root, install the bundled udev rules:
    ```bash
    sudo rm -f /etc/udev/rules.d/50-wfs-diy.rules   # remove older filename if present
    sudo cp assets/linux/70-wfs-diy.rules /etc/udev/rules.d/
    sudo udevadm control --reload-rules
    sudo udevadm trigger
    ```
-   Then unplug and replug the device. The rules grant access via `uaccess` (active session) and the `plugdev` group fallback. With a touchscreen connected, a **Touchscreens…** button appears on the System Config tab — click it to map each physical touchscreen to a JUCE display, with optional Swap X/Y, Flip X, and Flip Y toggles for orientation.
+   Then unplug and replug the device. The rules grant access via `uaccess` (active session) and the `plugdev` group fallback.
+4. **Touchscreens:** multitouch works out of the box on X11 — JUCE 9 reads it natively via XInput2, no root access, udev rules, or in-app setup needed. On multi-display rigs, map each touchscreen to its display at the OS level: `xinput map-to-output "<device name>" <output>` (e.g. `HDMI-1`); most desktop environments do this automatically for a single touchscreen.
 
 **Linux release tarball:**
 Do a clean Release build, then package the app for distribution:

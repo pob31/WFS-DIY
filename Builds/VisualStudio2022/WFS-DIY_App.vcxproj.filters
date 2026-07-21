@@ -50,9 +50,6 @@
     <Filter Include="WFS-DIY\Source\hidapi">
       <UniqueIdentifier>{32D100D4-D9F1-9555-30BF-5F6C12E44D29}</UniqueIdentifier>
     </Filter>
-    <Filter Include="WFS-DIY\Source\Touch">
-      <UniqueIdentifier>{FCB3101B-65DE-B466-4C9C-8F165933135D}</UniqueIdentifier>
-    </Filter>
     <Filter Include="WFS-DIY\Source\DSP">
       <UniqueIdentifier>{17A0B288-77FA-A44E-2FD6-CD9A8B53854E}</UniqueIdentifier>
     </Filter>
@@ -1197,12 +1194,6 @@
     </ClCompile>
     <ClCompile Include="..\..\ThirdParty\hidapi\HidApiPlatform.c">
       <Filter>WFS-DIY\Source\hidapi</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\spatcore\controllers\touch\linux\EvdevTouchDevice.cpp">
-      <Filter>WFS-DIY\Source\Touch</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\spatcore\controllers\touch\linux\EvdevTouchManager.cpp">
-      <Filter>WFS-DIY\Source\Touch</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Source\Main.cpp">
       <Filter>WFS-DIY\Source</Filter>
@@ -4967,24 +4958,6 @@
     </ClInclude>
     <ClInclude Include="..\..\ThirdParty\hidapi\hidapi\hidapi.h">
       <Filter>WFS-DIY\Source\hidapi</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\spatcore\controllers\touch\TouchDeviceMapping.h">
-      <Filter>WFS-DIY\Source\Touch</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\spatcore\controllers\touch\TouchManager.h">
-      <Filter>WFS-DIY\Source\Touch</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\spatcore\controllers\touch\TouchManagerStub.h">
-      <Filter>WFS-DIY\Source\Touch</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\spatcore\controllers\touch\linux\EvdevTouchDevice.h">
-      <Filter>WFS-DIY\Source\Touch</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\spatcore\controllers\touch\linux\EvdevTouchManager.h">
-      <Filter>WFS-DIY\Source\Touch</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\gui\LinuxTouchscreenWindow.h">
-      <Filter>WFS-DIY\Source\Touch</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\MainComponent.h">
       <Filter>WFS-DIY\Source</Filter>
