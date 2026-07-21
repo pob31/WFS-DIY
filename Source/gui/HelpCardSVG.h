@@ -3184,7 +3184,7 @@ R"SVG(       d="M 0,0 V -6"
        transform="matrix(1.3333333,0,0,-1.3333333,302.404,104.5588)"
        clip-path="url(#clipPath41)" />
     <text id="text41" transform="matrix(1.3333333,0,0,1.3333333,313,75)"><tspan style="font-size:13px;font-family:Calibri, sans-serif;fill:#0000ff;fill-opacity:1;stroke:none" x="0" y="0">5</tspan></text>
-    <text id="text42" transform="matrix(1.3333333,0,0,1.3333333,110.0612,28.707333)"><tspan style="font-size:13px;font-family:Calibri, sans-serif;fill:#000000;fill-opacity:1;stroke:none" x="10" y="0">1</tspan><tspan style="font-size:13px;font-family:Calibri, sans-serif;fill:#000000;fill-opacity:1;stroke:none" x="2" y="87.480003">2</tspan><tspan style="font-size:13px;font-family:Calibri, sans-serif;fill:#000000;fill-opacity:1;stroke:none" x="16" y="174.96001">3</tspan><tspan style="font-size:13px;font-family:Calibri, sans-serif;fill:#000000;fill-opacity:1;stroke:none" x="14" y="262.44">4</tspan></text>
+    <text id="text42" transform="matrix(1.3333333,0,0,1.3333333,110.0612,28.707333)"><tspan style="font-size:13px;font-family:Calibri, sans-serif;fill:#000000;fill-opacity:1;stroke:none" x="31" y="0" text-anchor="middle">1</tspan><tspan style="font-size:13px;font-family:Calibri, sans-serif;fill:#000000;fill-opacity:1;stroke:none" x="31" y="87.480003" text-anchor="middle">2</tspan><tspan style="font-size:13px;font-family:Calibri, sans-serif;fill:#000000;fill-opacity:1;stroke:none" x="31" y="174.96001" text-anchor="middle">3</tspan><tspan style="font-size:13px;font-family:Calibri, sans-serif;fill:#000000;fill-opacity:1;stroke:none" x="31" y="262.44" text-anchor="middle">4</tspan></text>
   </g>
 </svg>
 )SVG"
