@@ -119,7 +119,11 @@ private:
         // Long-press affordance: a right-pointing triangle outline on the left
         // edge — a lighter shade on dark buttons, a darker shade on light buttons —
         // so a long-press button reads as distinct from an ordinary one at a glance.
-        // Faint at rest, rising to full strength on hover.
+        // Faint at rest, rising to full strength on hover. Buttons constructed
+        // with a near-zero duration (the { 1 } idiom, e.g. select-project-folder,
+        // edit-snapshot-scope) trigger on an ordinary click, so they must not
+        // advertise a hold.
+        if (getEffectiveDuration() >= 100)
         {
             bool darkBg = bgColour.getBrightness() < 0.5f;
             auto triColour = darkBg ? bgColour.brighter(0.5f) : bgColour.darker(0.35f);

@@ -57,20 +57,6 @@
     "helpMode": "Aiuto",
     "oscMode": "OSC"
   },
-  "touchscreens": {
-    "title": "Schermi tattili Linux",
-    "label": "Schermo tattile",
-    "button": "Configura",
-    "empty": "Nessuno schermo tattile rilevato. Collegane uno e l'elenco si aggiornerà automaticamente.",
-    "disabled": "(Disabilitato)",
-    "swapXY": "Scambia X/Y",
-    "flipX": "Capovolgi X",
-    "flipY": "Capovolgi Y",
-    "errorPrefix": "Errore:",
-    "statusActive": "Attivo — eventi acquisiti",
-    "statusOpening": "Apertura dispositivo…",
-    "statusInactive": "Non assegnato"
-  },
   "systemConfig": {
     "sections": {
       "show": "Spettacolo",
@@ -2230,7 +2216,16 @@
     },
     "liveSource": {
       "title": "Attenuatore Sorgente Live",
-      "body": "Una sorgente potente sul palco potrebbe non aver bisogno di rinforzo attraverso gli altoparlanti vicini. Immaginate un cantante d'opera vicino al bordo del palco. Normalmente la distribuzione del livello renderebbe il suono più forte vicino alla posizione dell'ingresso. Ma se è già abbastanza forte, non dovremmo sovra-amplificarlo. Questa funzione gestisce questo.\nIl raggio e la forma descrivono come attenuare il livello per gli altoparlanti nel raggio d'influenza di questa sorgente. Ci sono varie forme: un effetto lineare a V; una U per diminuzione rapida; una V stretta o un mix dei precedenti (seno).\nL'attenuazione può essere costante o dipendente dal livello, come una compressione locale che reagisce ai transienti e al livello RMS medio."
+      "body": "Una sorgente potente sul palco potrebbe non aver bisogno di rinforzo attraverso gli altoparlanti vicini. Immaginate un cantante d'opera vicino al bordo del palco. Normalmente la distribuzione del livello renderebbe il suono più forte vicino alla posizione dell'ingresso. Ma se è già abbastanza forte, non dovremmo sovra-amplificarlo. Questa funzione gestisce questo.\nIl raggio e la forma descrivono come attenuare il livello per gli altoparlanti nel raggio d'influenza di questa sorgente. Ci sono varie forme: un effetto lineare a V; una U per diminuzione rapida; una V stretta o un mix dei precedenti (seno).\nL'attenuazione può essere costante o dipendente dal livello, come una compressione locale che reagisce ai transienti e al livello RMS medio.",
+      "legendPosition": "posizione della sorgente",
+      "legendMaxAttenuation": "attenuazione massima",
+      "legendNoAttenuation": "nessuna attenuazione",
+      "legendRadius": "raggio",
+      "legendLinear": "lineare",
+      "legendSquare": "quadrato x²",
+      "legendLog": "log",
+      "legendSine": "sinusoide",
+      "legendAttenuation": "attenuazione"
     },
     "floorReflections": {
       "title": "Riflessioni del Pavimento",

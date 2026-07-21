@@ -416,6 +416,18 @@ public:
         viewport.setScrollBarsShown(visible, false);
     }
 
+    /** Height this card needs to show every section without scrolling at the
+        given card width — text metrics vary with font engine and uiScale, so
+        size cards from this rather than a fixed ratio, clamped to the space
+        available at the call site. Mirrors the layout maths in resized(). */
+    int getPreferredHeight(int cardWidth) const
+    {
+        float scale = WfsLookAndFeel::uiScale;
+        int titleH = (int)(34 * scale);
+        int contentW = cardWidth - 28 - 14; // reduced(14) each side + scrollbar gutter
+        return 28 + titleH + 8 + bodyContent.calculateHeight(contentW);
+    }
+
     /** Clear all sections (for building content incrementally) */
     void clearSections()
     {

@@ -2013,7 +2013,7 @@ git submodule update --init --recursive
 ```
 
 **Dependencies (via submodules in `ThirdParty/`):**
-- **JUCE 8.0.14** — `ThirdParty/JUCE` (pinned to tag 8.0.14; ASIO SDK is bundled with JUCE since 8.0.11)
+- **JUCE 9.0.0** — `ThirdParty/JUCE` (pinned to tag 9.0.0; ASIO SDK is bundled with JUCE since 8.0.11). The submodule builds unpatched: JUCE 9's native XInput2 multitouch replaced the old Linux canUseTouch patch + evdev touch backend (Windows windows opt back into raw multi-touch via `WindowUtils::enableRawMultiTouch`). Linux builds need `libxi-dev`; `juce_opengl` was dropped from the project (unused) so EGL is not required.
 
 - Project file: WFS-DIY.jucer (open in Projucer to re-export build files)
 - Builds: Visual Studio 2026 (v145 toolset; the `Builds/VisualStudio2022` folder
@@ -2089,7 +2089,7 @@ When updating these files, preserve the column count and avoid introducing U+FFF
 
 ---
 
-*Last updated: 2026-07-02*
-*Session changes: bumped JUCE 8.0.13 -> 8.0.14 (re-applied the Linux canUseTouch multitouch patch); documented GPU acceleration status — Windows CUDA + HIP built/bundled, Linux HIP hardware-tested on gfx1103, Linux CUDA runtime validation pending.*
-*JUCE Version: 8.0.14*
+*Last updated: 2026-07-21*
+*Session changes: migrated JUCE 8.0.14 -> 9.0.0 (branch juce9-migration, PR #8): native XInput2 Linux multitouch replaced the canUseTouch patch + evdev backend (both deleted); Windows windows opt back into raw multi-touch via WindowUtils::enableRawMultiTouch; juce_opengl dropped (unused, avoids EGL dep); libxi-dev added to CI + docs. Verified: offline-render 15/15 bit-exact, 5/5 control-replay E2E, 3-OS CI green. Also: content-sized help cards, long-press affordance gating, Live Source Tamer help figures with localized legends.*
+*JUCE Version: 9.0.0*
 *Build: Visual Studio 2022 / Xcode / Linux Makefile, x64 Debug/Release*

@@ -175,12 +175,8 @@ jobs:
         with:
           cuda: '12.9.0'
           method: 'network'
-      - name: Apply Linux JUCE patches
-        # Enables touch input on Linux (canUseTouch -> true) so the userland
-        # evdev multitouch backend works. The submodule ships unpatched, so this
-        # must run after checkout and before the build. Idempotent.
-        run: tools/apply-linux-juce-patches.sh
       - name: Install JUCE build deps
+        # libxi-dev: JUCE 9 native XInput2 multitouch (JUCE_USE_XINPUT).
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -188,7 +184,7 @@ jobs:
             libasound2-dev libjack-jackd2-dev \
             libfreetype-dev libfontconfig1-dev \
             libgl1-mesa-dev libcurl4-openssl-dev \
-            libgtk-3-dev libwebkit2gtk-4.1-dev libudev-dev
+            libgtk-3-dev libwebkit2gtk-4.1-dev libudev-dev libxi-dev
       - name: Build (Release)
         run: make -C Builds/LinuxMakefile CONFIG=Release -j"$(nproc)"
       - name: Package

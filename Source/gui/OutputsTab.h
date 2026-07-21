@@ -1448,7 +1448,8 @@ private:
             const int btnSize = scaled(20);
             tuningHelpButton.setBounds(row.removeFromRight(btnSize).withHeight(btnSize));
             row.removeFromRight(spacing);
-            int cardH = rightColBounds.getHeight() * 3 / 5;
+            int cardH = juce::jmin(rightColBounds.getHeight(),
+                                   tuningHelpCard.getPreferredHeight(rightColBounds.getWidth()));
             tuningHelpCard.setBounds(rightColBounds.getX(), rightColBounds.getBottom() - cardH,
                                       rightColBounds.getWidth(), cardH);
         }
@@ -1633,8 +1634,9 @@ private:
             const int btnSize = scaled(20);
             parallaxHelpButton.setBounds(helpBtnX,
                                           vParallaxLabel.getY(), btnSize, btnSize);
-            // Parallax help card — bottom of right column, reduced height
-            int cardH = rightColBounds.getHeight() * 3 / 5;
+            // Parallax help card — bottom of right column, sized to content
+            int cardH = juce::jmin(rightColBounds.getHeight(),
+                                   parallaxHelpCard.getPreferredHeight(rightColBounds.getWidth()));
             parallaxHelpCard.setBounds(rightColBounds.getX(), rightColBounds.getBottom() - cardH,
                                         rightColBounds.getWidth(), cardH);
         }

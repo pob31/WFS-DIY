@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="k6c2zA" name="WFS-DIY" projectType="guiapp" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="1.0.0beta34"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="1.0.0beta35"
               bundleIdentifier="com.wfsdiy.app" companyEmail="contact@pixetbel.org"
               companyName="Pix et Bel" companyWebsite="wfs-diy.net"
               microphonePermissionNeeded="1"
@@ -329,24 +329,6 @@
         <FILE id="hidapiPlatC" name="HidApiPlatform.c" compile="1" resource="0"
               file="ThirdParty/hidapi/HidApiPlatform.c"/>
       </GROUP>
-      <GROUP id="{TOUCHGROUP}" name="Touch">
-        <FILE id="touchMapH"   name="TouchDeviceMapping.h" compile="0" resource="0"
-              file="spatcore/controllers/touch/TouchDeviceMapping.h"/>
-        <FILE id="touchMgrInc" name="TouchManager.h"       compile="0" resource="0"
-              file="spatcore/controllers/touch/TouchManager.h"/>
-        <FILE id="touchStubH"  name="TouchManagerStub.h"   compile="0" resource="0"
-              file="spatcore/controllers/touch/TouchManagerStub.h"/>
-        <FILE id="evdevDevH"   name="EvdevTouchDevice.h"   compile="0" resource="0"
-              file="spatcore/controllers/touch/linux/EvdevTouchDevice.h"/>
-        <FILE id="evdevDevC"   name="EvdevTouchDevice.cpp" compile="1" resource="0"
-              file="spatcore/controllers/touch/linux/EvdevTouchDevice.cpp"/>
-        <FILE id="evdevMgrH"   name="EvdevTouchManager.h"  compile="0" resource="0"
-              file="spatcore/controllers/touch/linux/EvdevTouchManager.h"/>
-        <FILE id="evdevMgrC"   name="EvdevTouchManager.cpp" compile="1" resource="0"
-              file="spatcore/controllers/touch/linux/EvdevTouchManager.cpp"/>
-        <FILE id="touchWinH"   name="LinuxTouchscreenWindow.h" compile="0" resource="0"
-              file="Source/gui/LinuxTouchscreenWindow.h"/>
-      </GROUP>
       <FILE id="UJ07Xn" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
       <FILE id="jPX7jF" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>
       <FILE id="MkNc76" name="MainComponent.cpp" compile="1" resource="0"
@@ -521,7 +503,6 @@
     <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
-    <MODULE id="juce_opengl" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_osc" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_simpleweb" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="roli_blocks_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
@@ -552,7 +533,6 @@
         <MODULEPATH id="juce_graphics" path="ThirdParty/JUCE/modules"/>
         <MODULEPATH id="juce_gui_basics" path="ThirdParty/JUCE/modules"/>
         <MODULEPATH id="juce_gui_extra" path="ThirdParty/JUCE/modules"/>
-        <MODULEPATH id="juce_opengl" path="ThirdParty/JUCE/modules"/>
         <MODULEPATH id="juce_osc" path="ThirdParty/JUCE/modules"/>
         <MODULEPATH id="juce_audio_processors_headless" path="ThirdParty/JUCE/modules"/>
         <MODULEPATH id="juce_simpleweb" path="ThirdParty"/>
@@ -586,7 +566,6 @@
         <MODULEPATH id="juce_graphics" path="ThirdParty/JUCE/modules"/>
         <MODULEPATH id="juce_gui_basics" path="ThirdParty/JUCE/modules"/>
         <MODULEPATH id="juce_gui_extra" path="ThirdParty/JUCE/modules"/>
-        <MODULEPATH id="juce_opengl" path="ThirdParty/JUCE/modules"/>
         <MODULEPATH id="juce_osc" path="ThirdParty/JUCE/modules"/>
         <MODULEPATH id="juce_audio_processors_headless" path="ThirdParty/JUCE/modules"/>
         <MODULEPATH id="juce_simpleweb" path="ThirdParty"/>
@@ -617,7 +596,6 @@
         <MODULEPATH id="juce_graphics" path="ThirdParty/JUCE/modules"/>
         <MODULEPATH id="juce_gui_basics" path="ThirdParty/JUCE/modules"/>
         <MODULEPATH id="juce_gui_extra" path="ThirdParty/JUCE/modules"/>
-        <MODULEPATH id="juce_opengl" path="ThirdParty/JUCE/modules"/>
         <MODULEPATH id="juce_osc" path="ThirdParty/JUCE/modules"/>
         <MODULEPATH id="juce_audio_processors_headless" path="ThirdParty/JUCE/modules"/>
         <MODULEPATH id="juce_simpleweb" path="ThirdParty"/>

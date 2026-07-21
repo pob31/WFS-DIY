@@ -62,20 +62,6 @@
     "oscMode": "OSC"
   },
 
-  "touchscreens": {
-    "title": "Linux Touchscreens",
-    "label": "Touchscreen",
-    "button": "Setup",
-    "empty": "No touchscreens detected. Connect one and the list will populate live.",
-    "disabled": "(Disabled)",
-    "swapXY": "Swap X/Y",
-    "flipX": "Flip X",
-    "flipY": "Flip Y",
-    "errorPrefix": "Error:",
-    "statusActive": "Active — events captured",
-    "statusOpening": "Opening device…",
-    "statusInactive": "Not mapped"
-  },
 
   "systemConfig": {
     "sections": {
@@ -2401,7 +2387,16 @@
     },
     "liveSource": {
       "title": "Live Source Tamer",
-      "body": "A loud source on stage may not need much reinforcement through the nearby speakers. Imagine an opera singer near the edge of the stage. Normally the level distribution would make the level louder near the input position. But if it is already loud enough we should be able to not over-amplify it. This function manages this.\nThe radius and shape describe how to attenuate the level for a specific source for speakers within the radius of influence of this input. There are various shapes: a V shaped linear effect; a U shape for fast decrease within the radius; a tight V effect or a mix of the previous (sine).\nThe attenuation can be constant or level dependent like a local compression reacting to transients and to average RMS level."
+      "body": "A loud source on stage may not need much reinforcement through the nearby speakers. Imagine an opera singer near the edge of the stage. Normally the level distribution would make the level louder near the input position. But if it is already loud enough we should be able to not over-amplify it. This function manages this.\nThe radius and shape describe how to attenuate the level for a specific source for speakers within the radius of influence of this input. There are various shapes: a V shaped linear effect; a U shape for fast decrease within the radius; a tight V effect or a mix of the previous (sine).\nThe attenuation can be constant or level dependent like a local compression reacting to transients and to average RMS level.",
+      "legendPosition": "position of the source",
+      "legendMaxAttenuation": "maximum attenuation",
+      "legendNoAttenuation": "no attenuation",
+      "legendRadius": "radius",
+      "legendLinear": "linear",
+      "legendSquare": "square x²",
+      "legendLog": "log",
+      "legendSine": "sine",
+      "legendAttenuation": "attenuation"
     },
     "floorReflections": {
       "title": "Floor Reflections",

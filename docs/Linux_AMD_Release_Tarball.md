@@ -46,7 +46,7 @@ users just fall back to CPU as they do today.
     libasound2-dev libjack-jackd2-dev \
     libfreetype-dev libfontconfig1-dev \
     libgl1-mesa-dev libcurl4-openssl-dev \
-    libgtk-3-dev libwebkit2gtk-4.1-dev libudev-dev
+    libgtk-3-dev libwebkit2gtk-4.1-dev libudev-dev libxi-dev
   ```
 - **GitHub CLI** for attaching the asset:
   ```bash
@@ -80,8 +80,11 @@ exact sources the release was cut from.
 git fetch --tags origin
 git checkout "$TAG"
 git submodule update --init --recursive
-tools/apply-linux-juce-patches.sh          # touch-input patch (idempotent; CI runs it too)
 ```
+
+(Tags before the JUCE 9 migration additionally need
+`tools/apply-linux-juce-patches.sh` from that tag's tree — since JUCE 9,
+touch input is native and the submodule builds unpatched.)
 
 ### 2. Clean Release build of the app
 

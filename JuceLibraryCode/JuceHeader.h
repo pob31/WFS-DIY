@@ -26,7 +26,6 @@
 #include <juce_graphics/juce_graphics.h>
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <juce_gui_extra/juce_gui_extra.h>
-#include <juce_opengl/juce_opengl.h>
 #include <juce_osc/juce_osc.h>
 #include <juce_simpleweb/juce_simpleweb.h>
 #include <roli_blocks_basics/roli_blocks_basics.h>
@@ -48,7 +47,7 @@ namespace ProjectInfo
 {
     const char* const  projectName    = "WFS-DIY";
     const char* const  companyName    = "Pix et Bel";
-    const char* const  versionString  = "1.0.0beta34";
+    const char* const  versionString  = "1.0.0beta35";
     const int          versionNumber  = 0x10000;
 }
 #endif
