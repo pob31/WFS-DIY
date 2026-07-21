@@ -114,6 +114,9 @@ public:
     /** Get samples folder (for sampler feature) */
     juce::File getSamplesFolder() const;
 
+    /** Get scope templates folder (<project>/snapshots/scopes) */
+    juce::File getScopeTemplatesFolder() const;
+
     //==========================================================================
     // Complete Configuration
     //==========================================================================
@@ -393,6 +396,23 @@ public:
 
     /** Current value of the global sampler master switch (Config > UI > samplerEnabled). */
     bool isSamplerMasterOn() const;
+
+    //==========================================================================
+    // Scope Templates (grid-only presets, stored in <project>/snapshots/scopes)
+    //==========================================================================
+
+    /** Save the grid (itemChannelStates) as a named template. Overwrites silently. */
+    bool saveScopeTemplate (const juce::String& templateName, const ExtendedSnapshotScope& scope);
+
+    /** Load a template's grid into target.itemChannelStates.
+        applyMode and everything else in target are left untouched. */
+    bool loadScopeTemplateGrid (const juce::String& templateName, ExtendedSnapshotScope& target);
+
+    /** Get list of available scope templates */
+    juce::StringArray getScopeTemplateNames() const;
+
+    /** Delete a scope template */
+    bool deleteScopeTemplate (const juce::String& templateName);
 
     //==========================================================================
     // Backup Management

@@ -12,6 +12,7 @@
 #include "WindowUtils.h"
 #include "HelpCard.h"
 #include "buttons/LongPressButton.h"
+#include "RefreshableComboBox.h"
 
 /**
  * Snapshot Scope Window
@@ -720,6 +721,44 @@ public:
         if (autoPreselectToggle.getToggleState() && dirtyTracker != nullptr && dirtyTracker->hasAnyDirty())
             applyDirtyToScope();
 
+        // Scope templates: named grid-only presets stored in <project>/snapshots/scopes
+        addAndMakeVisible (templateLabel);
+        templateLabel.setText (LOC("snapshotScope.templates.label"), juce::dontSendNotification);
+
+        addAndMakeVisible (templateSelector);
+        templateSelector.addItem (LOC("snapshotScope.templates.selectTemplate"), 1);
+        templateSelector.onChange = [this]() { updateTemplateButtonStates(); };
+        templateSelector.onPopupAboutToShow = [this]() { refreshTemplateList(); };
+
+        addAndMakeVisible (storeTemplateButton);
+        storeTemplateButton.setButtonText (LOC("snapshotScope.templates.store"));
+        storeTemplateButton.setTooltip (LOC("snapshotScope.templates.storeTooltip"));
+        storeTemplateButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF996633));  // Yellow-orange
+        storeTemplateButton.onClick = [this]() { storeTemplate(); };
+
+        addAndMakeVisible (reloadTemplateButton);
+        reloadTemplateButton.setButtonText (LOC("snapshotScope.templates.reload"));
+        reloadTemplateButton.setTooltip (LOC("snapshotScope.templates.reloadTooltip"));
+        reloadTemplateButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF669933));  // Yellow-green
+        reloadTemplateButton.onClick = [this]() { reloadTemplate(); };
+        reloadTemplateButton.setEnabled (false);
+
+        addAndMakeVisible (updateTemplateButton);
+        updateTemplateButton.setButtonText (LOC("snapshotScope.templates.update"));
+        updateTemplateButton.setTooltip (LOC("snapshotScope.templates.updateTooltip"));
+        updateTemplateButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF996633));  // Yellow-orange
+        updateTemplateButton.onClick = [this]() { updateTemplate(); };
+        updateTemplateButton.setEnabled (false);
+
+        addAndMakeVisible (deleteTemplateButton);
+        deleteTemplateButton.setButtonText (LOC("snapshotScope.templates.deleteTemplate"));
+        deleteTemplateButton.setTooltip (LOC("snapshotScope.templates.deleteTooltip"));
+        deleteTemplateButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF661A33));  // Burgundy
+        deleteTemplateButton.onClick = [this]() { deleteTemplate(); };
+        deleteTemplateButton.setEnabled (false);
+
+        refreshTemplateList();
+
         // Action buttons
         addAndMakeVisible (saveButton);
         saveButton.setButtonText (LOC("snapshotScope.buttons.ok"));
@@ -780,6 +819,11 @@ public:
 
         titleLabel.setColour (juce::Label::textColourId, colors.textPrimary);
         applyModeLabel.setColour (juce::Label::textColourId, colors.textPrimary);
+        templateLabel.setColour (juce::Label::textColourId, colors.textPrimary);
+        storeTemplateButton.setColour (juce::TextButton::textColourOffId, colors.textPrimary);
+        reloadTemplateButton.setColour (juce::TextButton::textColourOffId, colors.textPrimary);
+        updateTemplateButton.setColour (juce::TextButton::textColourOffId, colors.textPrimary);
+        deleteTemplateButton.setColour (juce::TextButton::textColourOffId, colors.textPrimary);
 
         saveButton.setColour (juce::TextButton::buttonColourId, colors.accentGreen);
         saveButton.setColour (juce::TextButton::textColourOffId, colors.textPrimary);
@@ -801,7 +845,7 @@ public:
 
     void resized() override
     {
-        float ls = static_cast<float>(getHeight()) / 600.0f;
+        float ls = static_cast<float>(getHeight()) / 635.0f;
         auto sc = [ls](int ref) { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * ls)); };
 
         auto bounds = getLocalBounds().reduced (sc(10));
@@ -851,6 +895,18 @@ public:
             dirtyRow.removeFromLeft (sc(130));  // reserve space to keep Clear Changes fixed
         dirtyRow.removeFromLeft (sc(10));
         clearChangesButton.setBounds (dirtyRow.removeFromLeft (sc(130)));
+        bounds.removeFromTop (sc(5));
+
+        // Scope templates row
+        auto tplRow = bounds.removeFromTop (sc(28));
+        templateLabel.setBounds (tplRow.removeFromLeft (sc(90)));
+        templateSelector.setBounds (tplRow.removeFromLeft (sc(150)).reduced (0, sc(2)));
+        tplRow.removeFromLeft (sc(8));
+        for (auto* b : { &storeTemplateButton, &reloadTemplateButton, &updateTemplateButton, &deleteTemplateButton })
+        {
+            b->setBounds (tplRow.removeFromLeft (sc(76)));
+            tplRow.removeFromLeft (sc(6));
+        }
         bounds.removeFromTop (sc(5));
 
         // Action buttons at bottom
@@ -926,6 +982,12 @@ private:
     juce::ToggleButton autoPreselectToggle;
     juce::TextButton selectModifiedButton;
     juce::TextButton clearChangesButton;
+    juce::Label templateLabel;
+    RefreshableComboBox templateSelector;
+    juce::TextButton storeTemplateButton;
+    juce::TextButton reloadTemplateButton;
+    juce::TextButton updateTemplateButton;
+    juce::TextButton deleteTemplateButton;
     juce::TextButton saveButton;
     juce::TextButton cancelButton;
     LongPressButton updateScopeButton;
@@ -959,6 +1021,128 @@ private:
     void refreshUpdateScopeButtonVisibility()
     {
         updateScopeButton.setVisible (hasSelectedSnapshot && !scope.isEquivalentTo (originalScope, numChannels));
+    }
+
+    void refreshTemplateList()
+    {
+        auto previousSelection = templateSelector.getText();
+
+        auto names = parameters.getFileManager().getScopeTemplateNames();
+        templateSelector.clear (juce::dontSendNotification);
+        templateSelector.addItem (LOC("snapshotScope.templates.selectTemplate"), 1);
+        int itemId = 2;
+        for (const auto& n : names)
+            templateSelector.addItem (n, itemId++);
+
+        // Keep the current selection if that template still exists,
+        // otherwise fall back to the placeholder so the box is never blank
+        if (previousSelection.isNotEmpty() && names.contains (previousSelection))
+            templateSelector.setText (previousSelection, juce::dontSendNotification);
+        else
+            templateSelector.setSelectedId (1, juce::dontSendNotification);
+
+        updateTemplateButtonStates();
+    }
+
+    void updateTemplateButtonStates()
+    {
+        bool hasSelection = templateSelector.getSelectedId() > 1;
+        reloadTemplateButton.setEnabled (hasSelection);
+        updateTemplateButton.setEnabled (hasSelection);
+        deleteTemplateButton.setEnabled (hasSelection);
+    }
+
+    void storeTemplate()
+    {
+        auto* dialog = new juce::AlertWindow (
+            LOC("snapshotScope.templates.storeTitle"),
+            LOC("snapshotScope.templates.storeMessage"),
+            juce::MessageBoxIconType::NoIcon);
+
+        dialog->addTextEditor ("name", WFSFileManager::getDefaultSnapshotName(),
+                               LOC("snapshotScope.templates.nameLabel"));
+        dialog->addButton (LOC("common.ok"), 1, juce::KeyPress (juce::KeyPress::returnKey));
+        dialog->addButton (LOC("common.cancel"), 0, juce::KeyPress (juce::KeyPress::escapeKey));
+
+        dialog->enterModalState (true, juce::ModalCallbackFunction::create (
+            [this, dialog](int result)
+            {
+                if (result == 1)
+                {
+                    auto templateName = dialog->getTextEditorContents ("name");
+                    if (templateName.isNotEmpty())
+                    {
+                        auto& fileManager = parameters.getFileManager();
+                        if (fileManager.saveScopeTemplate (templateName, scope))
+                        {
+                            refreshTemplateList();
+                            templateSelector.setText (templateName, juce::dontSendNotification);
+                            updateTemplateButtonStates();
+                        }
+                        else
+                        {
+                            showTemplateError (fileManager.getLastError());
+                        }
+                    }
+                }
+                delete dialog;
+            }
+        ), true);
+    }
+
+    void reloadTemplate()
+    {
+        if (templateSelector.getSelectedId() <= 1)
+            return;
+
+        auto& fileManager = parameters.getFileManager();
+        if (fileManager.loadScopeTemplateGrid (templateSelector.getText(), scope))
+        {
+            gridComponent->repaint();
+            channelHeader->repaint();
+            refreshUpdateScopeButtonVisibility();
+        }
+        else
+        {
+            showTemplateError (fileManager.getLastError());
+        }
+    }
+
+    void updateTemplate()
+    {
+        if (templateSelector.getSelectedId() <= 1)
+            return;
+
+        auto& fileManager = parameters.getFileManager();
+        auto templateName = templateSelector.getText();
+        fileManager.createBackup (fileManager.getScopeTemplatesFolder().getChildFile (templateName + ".xml"));
+
+        if (! fileManager.saveScopeTemplate (templateName, scope))
+            showTemplateError (fileManager.getLastError());
+    }
+
+    void deleteTemplate()
+    {
+        if (templateSelector.getSelectedId() <= 1)
+            return;
+
+        auto& fileManager = parameters.getFileManager();
+        auto deletedName = templateSelector.getText();
+        if (fileManager.deleteScopeTemplate (deletedName))
+        {
+            templateSelector.setSelectedId (1, juce::dontSendNotification);
+            refreshTemplateList();
+        }
+        else
+        {
+            showTemplateError (fileManager.getLastError());
+        }
+    }
+
+    void showTemplateError (const juce::String& message)
+    {
+        juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::WarningIcon,
+                                                LOC("snapshotScope.templates.errorTitle"), message);
     }
 
     void updateSelectModifiedVisibility()
@@ -1030,7 +1214,7 @@ public:
         int scaledParamLabelWidth = juce::jmax(90, static_cast<int>(140.0f * ds));
         int gridWidth = scaledParamLabelWidth + numChannels * scaledCellSize + dsc(50);
         int width = juce::jmax (dsc(600), juce::jmin (dsc(1200), gridWidth));
-        int height = dsc(600);
+        int height = dsc(635);
         centreWithSize (width, height);
         setVisible (true);
         WindowUtils::enableDarkTitleBar (this);

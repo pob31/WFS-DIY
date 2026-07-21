@@ -2,6 +2,11 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit).
 
+## v1.0.0beta34 — 2026-07-21
+
+### Added
+- Snapshots: Scope Templates in the Snapshot Scope window — store the current channel × parameter inclusion grid as a named template, then reload, update, or delete it from a dropdown. Templates are grid-only (the apply mode and QLab/auto-preselect toggles are left untouched on reload) and are saved as XML files in `<project>/snapshots/scopes/`, so they travel with the project. Store is always available; Reload/Update/Delete enable once a template is selected. Channels added after a template was stored default to included on reload.
+
 ## v1.0.0beta33 — 2026-07-20
 
 ### Added

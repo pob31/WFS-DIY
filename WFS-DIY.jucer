@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="k6c2zA" name="WFS-DIY" projectType="guiapp" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="1.0.0beta33"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="1.0.0beta34"
               bundleIdentifier="com.wfsdiy.app" companyEmail="contact@pixetbel.org"
               companyName="Pix et Bel" companyWebsite="wfs-diy.net"
               microphonePermissionNeeded="1"
@@ -42,6 +42,8 @@
         <FILE id="guiWizard" name="GettingStartedWizard.h" compile="0" resource="0"
               file="Source/gui/GettingStartedWizard.h"/>
         <FILE id="guiHelpCard" name="HelpCard.h" compile="0" resource="0" file="Source/gui/HelpCard.h"/>
+        <FILE id="guiRefrCombo" name="RefreshableComboBox.h" compile="0" resource="0"
+              file="Source/gui/RefreshableComboBox.h"/>
         <FILE id="guiSysCfg" name="SystemConfigTab.h" compile="0" resource="0"
               file="Source/gui/SystemConfigTab.h"/>
         <FILE id="guiOutTab" name="OutputsTab.h" compile="0" resource="0" file="Source/gui/OutputsTab.h"/>

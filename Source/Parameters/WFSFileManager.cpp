@@ -134,6 +134,7 @@ bool WFSFileManager::createProjectFolderStructure()
     getBackupFolder().createDirectory();
     getInputSnapshotsFolder().createDirectory();
     getOutputSnapshotsFolder().createDirectory();
+    getScopeTemplatesFolder().createDirectory();
     getIRFolder().createDirectory();
     getSamplesFolder().createDirectory();
 
@@ -314,6 +315,12 @@ juce::File WFSFileManager::getOutputSnapshotsFolder() const
 {
     if (! projectFolder.isDirectory()) return {};
     return projectFolder.getChildFile ("snapshots").getChildFile ("outputs");
+}
+
+juce::File WFSFileManager::getScopeTemplatesFolder() const
+{
+    if (! projectFolder.isDirectory()) return {};
+    return projectFolder.getChildFile ("snapshots").getChildFile ("scopes");
 }
 
 juce::File WFSFileManager::getIRFolder() const
@@ -1504,6 +1511,75 @@ bool WFSFileManager::updateInputSnapshotScope (const juce::String& snapshotName,
 
     stripTransientToggles (snapshot);
     return writeToXmlFile (snapshot, file);
+}
+
+//==============================================================================
+// Scope Templates
+//==============================================================================
+
+bool WFSFileManager::saveScopeTemplate (const juce::String& templateName, const ExtendedSnapshotScope& scope)
+{
+    auto folder = getScopeTemplatesFolder();
+    if (folder == juce::File())
+    {
+        setError (LOC ("fileManager.errors.noProjectFolder"));
+        return false;
+    }
+    folder.createDirectory();
+
+    juce::ValueTree tpl ("ScopeTemplate");
+    tpl.setProperty (version, "1.0", nullptr);
+    tpl.setProperty (name, templateName, nullptr);
+
+    // Same embedded format as snapshot scopes; the applyMode property it
+    // carries is ignored on template load (templates are grid-only).
+    tpl.appendChild (serializeExtendedScope (scope, valueTreeState.getNumInputChannels()), nullptr);
+
+    return writeToXmlFile (tpl, folder.getChildFile (templateName + snapshotExtension));
+}
+
+bool WFSFileManager::loadScopeTemplateGrid (const juce::String& templateName, ExtendedSnapshotScope& target)
+{
+    auto file = getScopeTemplatesFolder().getChildFile (templateName + snapshotExtension);
+    auto tpl = readFromXmlFile (file);
+
+    if (! tpl.isValid())
+        return false;
+
+    auto scopeTree = tpl.getChildWithName ("ExtendedScope");
+    if (! scopeTree.isValid())
+    {
+        setError (LOC ("fileManager.errors.noScopeDataInTemplate"));
+        return false;
+    }
+
+    auto loaded = deserializeExtendedScope (scopeTree);
+    target.itemChannelStates = std::move (loaded.itemChannelStates);
+    return true;
+}
+
+juce::StringArray WFSFileManager::getScopeTemplateNames() const
+{
+    juce::StringArray names;
+    auto folder = getScopeTemplatesFolder();
+
+    if (folder.isDirectory())
+    {
+        for (auto& file : folder.findChildFiles (juce::File::findFiles, false, "*" + juce::String (snapshotExtension)))
+            names.add (file.getFileNameWithoutExtension());
+    }
+
+    return names;
+}
+
+bool WFSFileManager::deleteScopeTemplate (const juce::String& templateName)
+{
+    auto file = getScopeTemplatesFolder().getChildFile (templateName + snapshotExtension);
+    if (file.existsAsFile())
+        return file.deleteFile();
+
+    setError (LOC ("fileManager.errors.snapshotNotFound"));
+    return false;
 }
 
 void WFSFileManager::trimSnapshotInputToScope (juce::ValueTree& inputData, const ExtendedSnapshotScope& scope, int channelIndex)

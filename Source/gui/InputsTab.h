@@ -21,6 +21,7 @@
 #include "../GradientMap/GradientMapEditor.h"
 #include "../AppSettings.h"
 #include "GainReductionMeter.h"
+#include "RefreshableComboBox.h"
 #include "SnapshotScopeWindow.h"
 #include "buttons/LongPressButton.h"
 #include "buttons/WrappingTextButton.h"
@@ -127,20 +128,6 @@ public:
         g.setColour(ColorScheme::get().textPrimary);
         g.fillRect(iconBounds.getX(), iconBounds.getY(), barWidth, iconBounds.getHeight());
         g.fillRect(iconBounds.getX() + barWidth + gap, iconBounds.getY(), barWidth, iconBounds.getHeight());
-    }
-};
-
-/** ComboBox subclass that rescans content before showing the popup menu. */
-class RefreshableComboBox : public juce::ComboBox
-{
-public:
-    std::function<void()> onPopupAboutToShow;
-
-    void showPopup() override
-    {
-        if (onPopupAboutToShow)
-            onPopupAboutToShow();
-        juce::ComboBox::showPopup();
     }
 };
 
