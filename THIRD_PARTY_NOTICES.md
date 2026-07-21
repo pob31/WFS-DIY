@@ -12,12 +12,14 @@ licenses and copyright notices are reproduced below.
 - **Copyright**: Raw Material Software Limited
 
 The JUCE Framework modules are dual-licensed under the AGPLv3
-(https://www.gnu.org/licenses/agpl-3.0.en.html) and the commercial JUCE 8
-End User Licence Agreement (https://juce.com/legal/juce-8-licence/).
+(https://www.gnu.org/licenses/agpl-3.0.en.html) and the commercial JUCE
+End User Licence Agreement (https://juce.com/legal/juce-8-licence/ —
+the JUCE 9 release kept the JUCE 8 terms unchanged).
 
-WFS-DIY uses JUCE under the AGPLv3, which is compatible with GPLv3.
+WFS-DIY uses JUCE 9 under the AGPLv3, which is compatible with GPLv3.
 
-JUCE bundles additional dependencies with their own licenses. See
+JUCE bundles additional dependencies with their own licenses (since
+JUCE 9 this includes lunasvg, MIT-licensed, used for SVG rendering). See
 `ThirdParty/JUCE/LICENSE.md` for the full list.
 
 ---

@@ -2,6 +2,27 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit).
 
+## v1.0.0beta35 — 2026-07-21
+
+### Added
+- Live Source Tamer help card now shows the two attenuation figures (the four attenuation profiles; the zone of influence around the source) in a compact side-by-side layout. The drawings carry numbered markers only; the legends are drawn next to each figure and localized in all 9 languages (source SVGs under `Documentation/svg/`).
+
+### Changed
+- **Upgraded JUCE 8.0.14 → 9.0.0** (released the same day):
+  - **Linux multitouch is now native** via XInput2 — the bundled JUCE `canUseTouch` patch, the userland evdev touch backend, and the Touchscreens mapping window are retired. Touch needs no root access or udev rules anymore; on multi-display rigs, map a touchscreen to its display at the OS level with `xinput map-to-output`. Linux builds need `libxi-dev` (XInput2 headers).
+  - **Windows keeps raw per-finger multi-touch** on all app windows: JUCE 9 switches to OS gesture recognition by default, and the app explicitly opts back in so multi-finger source drags and the hand-rolled pinch zoom (Map, EQ display, patch matrix) keep working. The DAW plugin editors keep the new gesture default.
+  - New lunasvg-based SVG engine renders the help-card drawings more faithfully (better line weights).
+  - macOS uses JUCE 9's rewritten CoreAudio backend (aggregate-device API).
+  - `juce_opengl` removed from the project — it was compiled in but never used, and dropping it avoids JUCE 9's new EGL build dependency on Linux.
+- Help cards now size themselves to their content instead of a fixed fraction of the column, fixing the System Tuning card's clipped drawings and a needless scrollbar on the Parallax card under JUCE 9's text engine.
+
+### Fixed
+- Buttons that trigger on a plain click (work-folder select, snapshot scope edit) no longer display the long-press triangle affordance.
+
+### Chore/Internal
+- CI: the Linux JUCE-patch step is gone from all workflows; `libxi-dev` added to the app and plugin apt lists; `tools/setup.sh` is submodule-init only.
+- Upgrade verified: offline-render CPU baselines bit-exact (15/15 combos) against the pre-upgrade renders; all five control-replay E2E drivers pass; app + plugin suite build clean on all three OSes with zero new warnings.
+
 ## v1.0.0beta34 — 2026-07-21
 
 ### Added

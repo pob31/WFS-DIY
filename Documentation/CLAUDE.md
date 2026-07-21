@@ -2089,7 +2089,7 @@ When updating these files, preserve the column count and avoid introducing U+FFF
 
 ---
 
-*Last updated: 2026-07-02*
-*Session changes: bumped JUCE 8.0.13 -> 8.0.14 (re-applied the Linux canUseTouch multitouch patch); documented GPU acceleration status — Windows CUDA + HIP built/bundled, Linux HIP hardware-tested on gfx1103, Linux CUDA runtime validation pending.*
-*JUCE Version: 8.0.14*
+*Last updated: 2026-07-21*
+*Session changes: migrated JUCE 8.0.14 -> 9.0.0 (branch juce9-migration, PR #8): native XInput2 Linux multitouch replaced the canUseTouch patch + evdev backend (both deleted); Windows windows opt back into raw multi-touch via WindowUtils::enableRawMultiTouch; juce_opengl dropped (unused, avoids EGL dep); libxi-dev added to CI + docs. Verified: offline-render 15/15 bit-exact, 5/5 control-replay E2E, 3-OS CI green. Also: content-sized help cards, long-press affordance gating, Live Source Tamer help figures with localized legends.*
+*JUCE Version: 9.0.0*
 *Build: Visual Studio 2022 / Xcode / Linux Makefile, x64 Debug/Release*

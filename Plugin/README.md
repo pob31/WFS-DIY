@@ -27,6 +27,12 @@ See [docs/PRD.md](docs/PRD.md) for the full product requirements document.
 
 No AAX. CLAP deferred until JUCE adds native support.
 
+On Windows touchscreens the plugin editors use the OS gesture recognition
+that JUCE 9 enables by default (no raw multi-touch opt-in) — the right fit
+for knob/slider panels. The WFS-DIY app itself opts back into raw
+per-finger touch for its multi-finger surfaces; plugin editors have no
+such surfaces.
+
 ## Building
 
 Plugin is its own CMake subproject — independent of the main app's Projucer flow.
@@ -34,7 +40,7 @@ Plugin is its own CMake subproject — independent of the main app's Projucer fl
 Requirements:
 - CMake 3.22+
 - A C++17 toolchain (MSVC 2022, Xcode 14+, or Clang/GCC on Linux)
-- JUCE 8.0.12 and `juce_simpleweb` pulled in via the repo's `ThirdParty/` (git submodules, see main repo README)
+- JUCE 9.0.0 and `juce_simpleweb` pulled in via the repo's `ThirdParty/` (git submodules, see main repo README)
 - Windows: [Inno Setup 6](https://jrsoftware.org/isdl.php) to build the installer
 - macOS: standard command-line tools for `pkgbuild`/`productbuild`
 
