@@ -903,6 +903,7 @@ public:
         centreWithSize(dsc(370), dsc(880));
         setVisible(true);
         WindowUtils::enableDarkTitleBar(this);
+        WindowUtils::enableRawMultiTouch(this);
 
         ColorScheme::Manager::getInstance().addListener(this);
     }

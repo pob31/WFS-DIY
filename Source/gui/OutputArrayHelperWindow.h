@@ -320,6 +320,7 @@ public:
         centreWithSize(windowWidth, windowHeight);
         setVisible(true);
         WindowUtils::enableDarkTitleBar(this);
+        WindowUtils::enableRawMultiTouch(this);
 
         // Register for theme changes
         ColorScheme::Manager::getInstance().addListener(this);

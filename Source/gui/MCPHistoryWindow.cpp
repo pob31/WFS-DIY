@@ -2,6 +2,7 @@
 #include "../Network/OSCProtocolTypes.h"
 #include "../Localization/LocalizationManager.h"
 #include "WfsLookAndFeel.h"
+#include "WindowUtils.h"
 
 namespace
 {
@@ -521,6 +522,7 @@ MCPHistoryWindow::MCPHistoryWindow (WFSNetwork::MCPUndoEngine& engine,
 {
     setUsingNativeTitleBar (true);
     setResizable (true, true);
+    WindowUtils::enableRawMultiTouch (this);
 
     auto* content = new MCPHistoryWindowContent (engine, undoRing);
     setContentOwned (content, false);

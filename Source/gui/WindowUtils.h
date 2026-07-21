@@ -43,6 +43,24 @@ namespace WindowUtils
     }
 
     /**
+     * Preserve raw multi-touch on Windows under JUCE 9, which delivers OS
+     * gestures (pinch → mouseMagnify) by default instead of per-finger events.
+     * The app's hand-rolled pinch/multi-drag (EQDisplay, MapTab, PatchMatrix)
+     * needs the raw points, so every window hosting them opts back in; doing so
+     * disables OS gestures/mouseMagnify() on that window on Windows only —
+     * macOS trackpad mouseMagnify is unaffected. No-op under JUCE 8 and on
+     * other OSes. Call from the window constructor.
+     */
+    inline void enableRawMultiTouch(juce::TopLevelWindow* window)
+    {
+#if JUCE_WINDOWS && (JUCE_MAJOR_VERSION >= 9)
+        window->setUsingWindowsMultiTouch(true);
+#else
+        juce::ignoreUnused(window);
+#endif
+    }
+
+    /**
      * Real-time audio: opt the process out of macOS App Nap and timer coalescing
      * for the app's lifetime, so the DSP worker threads stay on the performance
      * cores even when the window is not frontmost. macOS counterpart to the

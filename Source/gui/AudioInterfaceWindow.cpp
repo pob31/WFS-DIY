@@ -744,6 +744,7 @@ AudioInterfaceWindow::AudioInterfaceWindow(juce::AudioDeviceManager& deviceManag
     centreWithSize(windowWidth, windowHeight);
     setVisible(true);
     WindowUtils::enableDarkTitleBar(this);
+    WindowUtils::enableRawMultiTouch(this);
 }
 
 void AudioInterfaceWindow::closeButtonPressed()

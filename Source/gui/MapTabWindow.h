@@ -51,6 +51,7 @@ public:
         centreWithSize(windowWidth, windowHeight);
         setVisible(true);
         WindowUtils::enableDarkTitleBar(this);
+        WindowUtils::enableRawMultiTouch(this);
     }
 
     ~MapTabWindow() override = default;

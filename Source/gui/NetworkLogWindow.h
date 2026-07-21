@@ -190,6 +190,7 @@ public:
         centreWithSize(windowWidth, windowHeight);
         setVisible(true);
         WindowUtils::enableDarkTitleBar(this);
+        WindowUtils::enableRawMultiTouch(this);
     }
 
     void closeButtonPressed() override

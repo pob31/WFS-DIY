@@ -223,6 +223,7 @@ public:
 
             setVisible (true);
             WindowUtils::enableDarkTitleBar (this);
+            WindowUtils::enableRawMultiTouch (this);
         }
 
         void closeButtonPressed() override
