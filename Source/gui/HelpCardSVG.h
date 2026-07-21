@@ -55,12 +55,24 @@ inline juce::String localizeSignalFlow(const juce::String& svg)
     return result;
 }
 
-inline std::unique_ptr<juce::Drawable> parse(const juce::String& svg)
+/** String → Drawable across JUCE versions. JUCE 9 removed
+    Drawable::createFromSVG(XmlElement&) in favour of the lunasvg-backed
+    createFromSVGString(); the #else branch keeps 8.x building until the
+    JUCE 9 migration lands, then can be deleted. */
+inline std::unique_ptr<juce::Drawable> svgToDrawable(const juce::String& svg)
 {
-    auto adapted = adaptForTheme(svg);
-    auto xml = juce::XmlDocument::parse(adapted);
+   #if JUCE_MAJOR_VERSION >= 9
+    return juce::Drawable::createFromSVGString(svg);
+   #else
+    auto xml = juce::XmlDocument::parse(svg);
     if (xml == nullptr) return nullptr;
     return juce::Drawable::createFromSVG(*xml);
+   #endif
+}
+
+inline std::unique_ptr<juce::Drawable> parse(const juce::String& svg)
+{
+    return svgToDrawable(adaptForTheme(svg));
 }
 
 inline std::unique_ptr<juce::Drawable> parseSignalFlow(const juce::String& svg)
@@ -140,9 +152,7 @@ inline std::unique_ptr<juce::Drawable> parseSignalFlow(const juce::String& svg)
         adapted = adapted.replace("stroke: blue", "stroke: #0033aa");
     }
 
-    auto xml = juce::XmlDocument::parse(adapted);
-    if (xml == nullptr) return nullptr;
-    return juce::Drawable::createFromSVG(*xml);
+    return svgToDrawable(adapted);
 }
 
 
@@ -314,9 +324,7 @@ inline std::unique_ptr<juce::Drawable> parseMapPin()
     if (isDark)
         svg = svg.replace("fill:#0e232e", "fill:#ffffff");  // Dark dot → white
     // Light mode: dot stays dark (#0e232e) — visible on light background
-    auto xml = juce::XmlDocument::parse(svg);
-    if (xml == nullptr) return nullptr;
-    return juce::Drawable::createFromSVG(*xml);
+    return svgToDrawable(svg);
 }
 
 inline const char* parallax1SVG = R"SVG(<?xml version="1.0" encoding="UTF-8"?>
