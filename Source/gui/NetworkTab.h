@@ -3609,7 +3609,7 @@ private:
             targetName = LOC("network.table.defaultTarget").replace("{num}", juce::String(index + 1));
 
         juce::AlertWindow::showOkCancelBox(
-            juce::AlertWindow::QuestionIcon,
+            juce::MessageBoxIconType::QuestionIcon,
             LOC("network.dialogs.removeTargetTitle"),
             LOC("network.dialogs.removeTargetMessage").replace("{name}", targetName),
             LOC("common.ok"),
@@ -5375,7 +5375,7 @@ private:
         auto* alertWindow = new juce::AlertWindow(
             LOC("network.dialogs.findMyRemoteTitle"),
             LOC("network.dialogs.findMyRemoteMessage"),
-            juce::AlertWindow::QuestionIcon
+            juce::MessageBoxIconType::QuestionIcon
         );
 
         alertWindow->addTextEditor("password", findDevicePassword, LOC("network.dialogs.findMyRemotePassword"), true);
@@ -5849,7 +5849,7 @@ private:
         conflictMsg += LOC("network.dialogs.trackingConflictsMessage");
 
         juce::AlertWindow::showOkCancelBox(
-            juce::AlertWindow::WarningIcon,
+            juce::MessageBoxIconType::WarningIcon,
             LOC("network.dialogs.trackingConflictsTitle"),
             conflictMsg,
             LOC("network.dialogs.trackingConflictsContinue"),

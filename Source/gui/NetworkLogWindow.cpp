@@ -704,7 +704,7 @@ void NetworkLogWindowContent::exportToCSV(bool filteredOnly)
     juce::FileOutputStream output(exportFile);
     if (!output.openedOk())
     {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+        juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::WarningIcon,
             LOC("networkLog.dialogs.exportFailedTitle"),
             LOC("networkLog.dialogs.exportFailedMessage").replace("{path}", exportFile.getFullPathName()));
         return;
@@ -738,7 +738,7 @@ void NetworkLogWindowContent::exportToCSV(bool filteredOnly)
 
     output.flush();
 
-    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
+    juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::InfoIcon,
         LOC("networkLog.dialogs.exportCompleteTitle"),
         LOC("networkLog.dialogs.exportCompleteMessage").replace("{path}", exportFile.getFullPathName()));
 }

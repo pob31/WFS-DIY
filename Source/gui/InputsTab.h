@@ -7891,7 +7891,7 @@ private:
 
         // Show conflict dialog asynchronously
         juce::AlertWindow::showOkCancelBox(
-            juce::AlertWindow::WarningIcon,
+            juce::MessageBoxIconType::WarningIcon,
             LOC("inputs.dialogs.trackingConflictTitle"),
             LOC("inputs.dialogs.trackingConflictCluster")
                 .replace("{current}", juce::String(currentChannel))
@@ -7979,7 +7979,7 @@ private:
 
         // Conflict detected - show warning dialog
         juce::AlertWindow::showOkCancelBox(
-            juce::AlertWindow::WarningIcon,
+            juce::MessageBoxIconType::WarningIcon,
             LOC("inputs.dialogs.trackingConflictTitle"),
             LOC("inputs.dialogs.trackingConflictSwitch")
                 .replace("{existing}", juce::String(existingTrackedInput + 1))
