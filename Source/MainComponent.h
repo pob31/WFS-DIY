@@ -319,6 +319,18 @@ private:
     // Key: inputIndex (0-based), Value: (deltaX, deltaY)
     std::map<int, std::pair<float, float>> lastSentCompositeDeltas;
 
+    // /remote/vis/* mirroring: matrix recalcs mark this pending; timerCallback
+    // drains it at most every visSendIntervalMs (trailing edge, so the final
+    // state of a drag always goes out).
+    bool visSendPending = false;
+    juce::int64 lastVisSendMs = 0;
+    static constexpr int visSendIntervalMs = 100;
+
+    // Send /remote/vis/selection plus delays+levels rows for the current
+    // selection (and per-tablet pinned channels) to connected Remote targets.
+    // targetIndex == -1 sends to all. Message thread only.
+    void sendVisualisationToRemotes(int targetIndex = -1);
+
     // Live Source Tamer engine for per-speaker gain reduction
     std::unique_ptr<LiveSourceTamerEngine> lsTamerEngine;
 

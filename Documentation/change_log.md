@@ -2,6 +2,24 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit).
 
+## v1.0.0beta36 — 2026-07-23
+
+### Added
+- **Remote protocol v3 — bargraph on the tablet**: the Inputs → Visualisation bargraph (per-speaker delays and levels) is now mirrored to the Android remote (WFS Control 1.0-beta_9), where a new Visualisation tab shows it full-screen — sized for the tablet that already sits by the console. Designed for training: new users can watch the levels and delays react as they move sources in the app.
+  - The tab **follows the app's selected channel** — InputsTab selection, the Map tab's temporary multi-selection, and cluster selection are all mirrored (`/remote/vis/selection`). With several channels selected, the tablet shows one metric (all delays or all levels, chosen on the tablet) across the selection.
+  - A tablet-side **pin** (`/remote/vis/pin`) locks the display to one channel; it is view-only and never moves the app's selection. Pins are per-tablet and restored automatically on reconnect.
+  - Rows (`/remote/vis/delays` + `/remote/vis/levels`, one bundle per channel) are sent on matrix recalculation, throttled to ≤10 Hz with a guaranteed trailing send, and flow even when the app window is minimized. Levels travel as display-ready dB so the tablet's labels match the desktop bargraph exactly. Value labels are tinted by each output's array assignment (`/remote/vis/outputArrays`). HF damping stays desktop-only.
+  - Backwards compatible: a v2 tablet ignores the new messages (amber mismatch banner as usual); the new tab on a v3 tablet shows an "update the server" hint against an older app.
+- Snapshots: storing a snapshot or scope template under an existing name now warns before overwriting.
+
+### Fixed
+- Sampler: samples referenced by absolute path load again, and every silently-gated trigger is now logged so misfiring pads can be diagnosed.
+- Help: the Overview "?" aligns with the Diagnostics "?"; the attenuation-curve digit markers are centred on each profile's dip.
+
+### Chore/Internal
+- Regenerated the 9-language translation-proofreading checklists (663 → 687 keys).
+- `remote_tablet_mock.py` extended to assert the v3 visualisation contract (config/selection/rows after handshake, pin round-trip without a channel dump, ≤10 Hz row rate during a drag).
+
 ## v1.0.0beta35 — 2026-07-21
 
 ### Added

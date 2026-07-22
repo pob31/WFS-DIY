@@ -1,7 +1,7 @@
-"""Mock Android tablet for the Remote protocol (v2) — end-to-end checks.
+"""Mock Android tablet for the Remote protocol (v3) — end-to-end checks.
 
 Impersonates the WFS Control tablet over UDP against a live app instance and
-asserts the v2 remote-protocol contract:
+asserts the remote-protocol contract:
 
   1. handshake     /remote/ping arrives as ",ii" (seq, version 2)
   2. dump shape    after pong: /remote/dumpBegin first, /remote/stateComplete
@@ -21,6 +21,11 @@ asserts the v2 remote-protocol contract:
                    /remoteInput/positionXY release write must be echoed back
                    for EVERY member (release coords differ from the last drag
                    step, so only the release echo can carry them)
+  7. vis mirror    v3 /remote/vis/* contract: config + outputArrays +
+                   selection + a delays/levels row pair for the selected
+                   channel arrive after connect; /remote/vis/pin N answers
+                   with channel N's rows without triggering a channel dump;
+                   moving a source refreshes rows at <= ~10 Hz
 
 Stdlib-only, follows the control-replay harness conventions (common.py).
 Exit codes: 0 pass, 1 mismatch, 2 usage, 3 app failed to start.
@@ -45,7 +50,7 @@ from common import (EXIT_MISMATCH, EXIT_PASS, App, OSCSender,
                     copy_fixture_to_temp, find_exe, fixture_wfs,
                     kill_stale_instances)
 
-EXPECTED_PROTOCOL_VERSION = 2
+EXPECTED_PROTOCOL_VERSION = 3
 MOCK_LISTEN_PORT = 9020        # the Remote target's networkTSport in the fixture
 APP_RX_PORT = 8000             # networkRxUDPport in the fixture
 
@@ -434,6 +439,106 @@ def main() -> int:
             return got1 and got2
         check(tablet.wait_for(release_echoed, timeout=10.0, mark=mark) is not None,
               f"release write echoed for both members at {release}")
+
+        # ---- 7. v3 visualisation mirroring ------------------------------
+        # 7a. connect-time init: config + outputArrays + selection + a
+        # delays/levels pair for the selected channel, with row float counts
+        # matching the announced channel counts.
+        def find_vis_init(msgs):
+            cfg = arrays = sel = delays = levels = None
+            for adr, _tt, a in msgs:
+                if adr == "/remote/vis/config" and len(a) >= 2:
+                    cfg = (a[0], a[1])
+                elif adr == "/remote/vis/outputArrays" and a:
+                    arrays = a
+                elif adr == "/remote/vis/selection" and len(a) >= 3:
+                    sel = a
+                elif adr == "/remote/vis/delays" and len(a) >= 3:
+                    delays = a
+                elif adr == "/remote/vis/levels" and len(a) >= 3:
+                    levels = a
+            if cfg and arrays and sel and delays and levels:
+                return {"cfg": cfg, "arrays": arrays, "sel": sel,
+                        "delays": delays, "levels": levels}
+            return None
+
+        vis = tablet.wait_for(lambda _msgs: find_vis_init(tablet.snapshot()),
+                              timeout=10.0)
+        check(vis is not None,
+              "vis init (config + outputArrays + selection + row pair)")
+        if vis:
+            n_out, n_rev = vis["cfg"]
+            check(n_out > 0, f"vis config numOutputs > 0 ({n_out})")
+            check(vis["arrays"][0] == n_out and
+                  len(vis["arrays"]) == 1 + n_out,
+                  f"outputArrays carries {n_out} array ids")
+            for label, row in (("delays", vis["delays"]),
+                               ("levels", vis["levels"])):
+                ch, ro, rr = row[0], row[1], row[2]
+                check(ro == n_out and rr == n_rev and
+                      len(row) == 3 + n_out + n_rev,
+                      f"vis {label} row self-describes {n_out}+{n_rev} floats "
+                      f"(ch {ch})")
+            check(all(-60.0 <= v <= 0.0 for v in vis["levels"][3:]),
+                  "vis levels are dB in [-60, 0]")
+
+        # 7b. pin: rows for channel 5 arrive, no channel dump is triggered,
+        # and the desktop selection (vis selection primary) is untouched.
+        mark = tablet.mark()
+        tablet.tx.send("/remote/vis/pin", [("i", 5)])
+
+        def pinned_rows(msgs):
+            got_d = got_l = False
+            for adr, _tt, a in msgs:
+                if adr == "/remote/vis/delays" and a and a[0] == 5:
+                    got_d = True
+                elif adr == "/remote/vis/levels" and a and a[0] == 5:
+                    got_l = True
+            return got_d and got_l
+        check(tablet.wait_for(pinned_rows, timeout=10.0, mark=mark) is not None,
+              "pin 5 answered with channel 5 delays+levels rows")
+        time.sleep(1.0)
+        pin_msgs = tablet.since(mark)
+        check(not any(adr == "/remote/dumpBegin" for adr, _tt, _a in pin_msgs),
+              "pin did not trigger a dump")
+        check(not any(adr == "/remote/vis/selection" and a and a[0] == 5
+                      for adr, _tt, a in pin_msgs),
+              "pin did not move the desktop selection")
+
+        # 7c. moving a source refreshes rows, throttled to <= ~10 Hz.
+        mark = tablet.mark()
+        drag = OSCSender(port=APP_RX_PORT, delay=0.0)
+        drag_seconds = 1.5
+        t0 = time.monotonic()
+        x = 0.0
+        while time.monotonic() - t0 < drag_seconds:
+            x = (x + 0.02) % 2.0
+            drag.send("/remoteInput/positionXY",
+                      [("i", 1), ("f", -1.0 + x), ("f", 1.0)])
+            time.sleep(0.01)  # ~100 Hz gesture
+        drag.close()
+        time.sleep(0.5)  # trailing-edge send
+        moved = [a for adr, _tt, a in tablet.since(mark)
+                 if adr == "/remote/vis/delays" and a and a[0] == 1]
+        check(len(moved) >= 1, f"drag produced fresh vis rows ({len(moved)})")
+        check(len(moved) <= int(drag_seconds * 10) + 4,
+              f"vis rows throttled to <= ~10 Hz ({len(moved)} in "
+              f"{drag_seconds}s)")
+
+        # 7d. unpin stops pinned-channel rows.
+        tablet.tx.send("/remote/vis/pin", [("i", 0)])
+        time.sleep(0.3)
+        mark = tablet.mark()
+        drag2 = OSCSender(port=APP_RX_PORT, delay=0.0)
+        for i in range(20):
+            drag2.send("/remoteInput/positionXY",
+                       [("i", 1), ("f", -0.5 + 0.02 * i), ("f", 1.2)])
+            time.sleep(0.02)
+        drag2.close()
+        time.sleep(0.5)
+        after_unpin = [a for adr, _tt, a in tablet.since(mark)
+                       if adr == "/remote/vis/delays" and a and a[0] == 5]
+        check(not after_unpin, "unpin stops channel 5 rows")
 
         return EXIT_PASS if not failures else EXIT_MISMATCH
     finally:

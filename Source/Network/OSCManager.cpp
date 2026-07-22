@@ -1583,6 +1583,25 @@ void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
             resendChannelsToRemote(targetIndex, std::move(channelIds));
         }
     }
+    else if (address == "/remote/vis/pin")
+    {
+        // Tablet pins (1-based channel) or unpins (0) a visualisation channel.
+        // View-only: must not touch remoteSelectedChannel, fire onRemoteChannelSelect,
+        // or trigger a channel dump. On pin, MainComponent replies with that
+        // channel's rows addressed to this target only.
+        int targetIndex = findRemoteTargetByIP(senderIP);
+        if (targetIndex >= 0 && message.size() >= 1 && message[0].isInt32())
+        {
+            int channelId = juce::jmax(0, message[0].getInt32());
+            remoteStates[static_cast<size_t>(targetIndex)].pinnedVisChannel = channelId;
+            if (channelId > 0 && onRemoteVisPinRequested)
+                juce::MessageManager::callAsync([this, targetIndex, channelId]()
+                {
+                    if (onRemoteVisPinRequested)
+                        onRemoteVisPinRequested(targetIndex, channelId);
+                });
+        }
+    }
     else if (address == "/remote/pad/touch")
     {
         // Android remote pad touch: ,iifff zoneId touchState dx dy pressure
@@ -4080,6 +4099,9 @@ void OSCManager::onRemoteConnected(int targetIndex, bool /*isReconnection*/)
 {
     DBG("OSCManager: Remote target " << targetIndex << " connected");
 
+    // Any pin belongs to the previous session; the tablet re-sends it on reconnect.
+    remoteStates[static_cast<size_t>(targetIndex)].pinnedVisChannel = 0;
+
     // Delay the initial state dump to let the connection stabilize
     juce::Timer::callAfterDelay(500, [this, targetIndex]()
     {
@@ -4112,6 +4134,7 @@ void OSCManager::onRemoteDisconnected(int targetIndex)
 
     auto& remoteState = remoteStates[static_cast<size_t>(targetIndex)];
     remoteState.phase = RemoteConnectionState::Phase::Disconnected;
+    remoteState.pinnedVisChannel = 0;
 
     DBG("OSCManager: Remote target " << targetIndex << " disconnected");
 
@@ -4775,6 +4798,140 @@ void OSCManager::sendClusterMembersBundle(int clusterId)
             }
         }
     }
+}
+
+//==============================================================================
+// REMOTE Visualisation mirroring (protocol v3, /remote/vis/*)
+//==============================================================================
+
+void OSCManager::sendRemoteVisBundle(const juce::OSCBundle& bundle, int targetIndex)
+{
+    if (bundle.size() == 0)
+        return;
+
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        if (targetIndex >= 0 && i != targetIndex)
+            continue;
+
+        const auto& config = targetConfigs[static_cast<size_t>(i)];
+        if (config.protocol == Protocol::Remote &&
+            config.txEnabled &&
+            remoteStates[static_cast<size_t>(i)].phase == RemoteConnectionState::Phase::Connected &&
+            connections[static_cast<size_t>(i)])
+        {
+            if (connections[static_cast<size_t>(i)]->send(bundle))
+            {
+                messagesSent += bundle.size();
+                for (const auto& element : bundle)
+                {
+                    if (element.isMessage())
+                        logger.logSentWithDetails(i, element.getMessage(), config.protocol,
+                                                  config.ipAddress, config.port, config.mode);
+                }
+            }
+        }
+    }
+}
+
+void OSCManager::sendRemoteVisConfig(int numOutputs, int numReverbs, int targetIndex)
+{
+    juce::OSCBundle bundle;
+
+    juce::OSCMessage cfg("/remote/vis/config");
+    cfg.addInt32(numOutputs);
+    cfg.addInt32(numReverbs);
+    bundle.addElement(cfg);
+
+    juce::OSCMessage arrays("/remote/vis/outputArrays");
+    arrays.addInt32(numOutputs);
+    for (int i = 0; i < numOutputs; ++i)
+        arrays.addInt32(varToInt(state.getOutputParameter(i, WFSParameterIDs::outputArray)));
+    bundle.addElement(arrays);
+
+    sendRemoteVisBundle(bundle, targetIndex);
+}
+
+void OSCManager::sendRemoteVisSelection(int primaryChannel, int clusterId,
+                                        const std::vector<int>& multiSelection, int targetIndex)
+{
+    juce::OSCMessage msg("/remote/vis/selection");
+    msg.addInt32(primaryChannel);
+    msg.addInt32(clusterId);
+    msg.addInt32(static_cast<int>(multiSelection.size()));
+    for (int ch : multiSelection)
+        msg.addInt32(ch);
+
+    juce::OSCBundle bundle;
+    bundle.addElement(msg);
+    sendRemoteVisBundle(bundle, targetIndex);
+}
+
+void OSCManager::sendRemoteVisRows(int channelId,
+                                   const float* delaysMs, const float* levelsLinear,
+                                   int outputStride, int numOutputs,
+                                   const float* reverbDelaysMs, const float* reverbLevelsLinear,
+                                   int reverbStride, int numReverbs,
+                                   int targetIndex)
+{
+    if (channelId < 1 || delaysMs == nullptr || levelsLinear == nullptr)
+        return;
+
+    const int row = channelId - 1;
+
+    juce::OSCMessage delays("/remote/vis/delays");
+    delays.addInt32(channelId);
+    delays.addInt32(numOutputs);
+    delays.addInt32(numReverbs);
+
+    juce::OSCMessage levels("/remote/vis/levels");
+    levels.addInt32(channelId);
+    levels.addInt32(numOutputs);
+    levels.addInt32(numReverbs);
+
+    // Levels travel as display-ready dB (clamped [-60, 0]) so the tablet's
+    // numeric labels match the desktop bargraph exactly.
+    auto linearToDb = [](float linear)
+    {
+        return linear > 0.0f ? juce::jlimit(-60.0f, 0.0f, 20.0f * std::log10(linear))
+                             : -60.0f;
+    };
+
+    for (int o = 0; o < numOutputs; ++o)
+    {
+        delays.addFloat32(delaysMs[row * outputStride + o]);
+        levels.addFloat32(linearToDb(levelsLinear[row * outputStride + o]));
+    }
+    for (int r = 0; r < numReverbs; ++r)
+    {
+        const bool haveReverb = reverbDelaysMs != nullptr && reverbLevelsLinear != nullptr;
+        delays.addFloat32(haveReverb ? reverbDelaysMs[row * reverbStride + r] : 0.0f);
+        levels.addFloat32(haveReverb ? linearToDb(reverbLevelsLinear[row * reverbStride + r]) : -60.0f);
+    }
+
+    juce::OSCBundle bundle;
+    bundle.addElement(delays);
+    bundle.addElement(levels);
+    sendRemoteVisBundle(bundle, targetIndex);
+}
+
+int OSCManager::getRemoteVisPinnedChannel(int targetIndex) const
+{
+    if (targetIndex < 0 || targetIndex >= MAX_TARGETS)
+        return 0;
+    return remoteStates[static_cast<size_t>(targetIndex)].pinnedVisChannel;
+}
+
+std::vector<std::pair<int, int>> OSCManager::getConnectedRemoteVisPins() const
+{
+    std::vector<std::pair<int, int>> pins;
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        const auto& rs = remoteStates[static_cast<size_t>(i)];
+        if (rs.phase == RemoteConnectionState::Phase::Connected && rs.pinnedVisChannel > 0)
+            pins.emplace_back(i, rs.pinnedVisChannel);
+    }
+    return pins;
 }
 
 namespace

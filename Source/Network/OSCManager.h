@@ -180,6 +180,46 @@ public:
     void sendCompositeDeltaToRemote(int inputId, float deltaX, float deltaY);
 
     //==========================================================================
+    // REMOTE Visualisation mirroring (protocol v3, /remote/vis/*)
+    //==========================================================================
+
+    /**
+     * Send /remote/vis/config (channel counts) and /remote/vis/outputArrays
+     * (per-output array assignment for label tinting) as one bundle.
+     * @param targetIndex Specific Remote target, or -1 for all connected remotes
+     */
+    void sendRemoteVisConfig(int numOutputs, int numReverbs, int targetIndex = -1);
+
+    /**
+     * Send /remote/vis/selection: the desktop's current input selection.
+     * @param primaryChannel 1-based InputsTab channel
+     * @param clusterId Selected map cluster/barycenter (0 = none, 1-10)
+     * @param multiSelection 1-based channel IDs of the map multi-selection
+     *                       (or cluster members when a cluster is selected)
+     */
+    void sendRemoteVisSelection(int primaryChannel, int clusterId,
+                                const std::vector<int>& multiSelection, int targetIndex = -1);
+
+    /**
+     * Send one channel's visualisation rows as a /remote/vis/delays +
+     * /remote/vis/levels bundle. Arrays are the engine's flat matrices indexed
+     * (channelId-1)*stride + i; levels are linear and converted to dB here
+     * (clamped [-60, 0]) to match the desktop bargraph labels.
+     */
+    void sendRemoteVisRows(int channelId,
+                           const float* delaysMs, const float* levelsLinear,
+                           int outputStride, int numOutputs,
+                           const float* reverbDelaysMs, const float* reverbLevelsLinear,
+                           int reverbStride, int numReverbs,
+                           int targetIndex = -1);
+
+    /** Channel pinned by a tablet via /remote/vis/pin (0 = none). */
+    int getRemoteVisPinnedChannel(int targetIndex) const;
+
+    /** All (targetIndex, pinnedChannel) pairs for connected remotes with an active pin. */
+    std::vector<std::pair<int, int>> getConnectedRemoteVisPins() const;
+
+    //==========================================================================
     // IP Filtering
     //==========================================================================
 
@@ -399,6 +439,12 @@ public:
     /** Callback when a remote pad touch event is received.
      *  Args: zoneId, touchState (0=UP, 1=DOWN, 2=MOVE), dx, dy, pressure */
     std::function<void (int, int, float, float, float)> onRemotePadTouch;
+
+    /** Callback when a tablet pins a visualisation channel via /remote/vis/pin
+     *  (1-based channelId; not fired for unpin). MainComponent answers with that
+     *  channel's rows sent to that target only. Fired async on the message thread.
+     *  Must NOT alter remoteSelectedChannel or trigger a channel dump. */
+    std::function<void(int targetIndex, int channelId)> onRemoteVisPinRequested;
 
     /** Check if any remote target is connected */
     bool hasConnectedRemote() const
@@ -804,6 +850,10 @@ private:
         // v2 ",ii" pings and will never answer).
         int pingAttemptsWhileConnecting = 0;
         bool stallNotified = false;
+        // Visualisation channel pinned by this tablet via /remote/vis/pin
+        // (0 = follow mode). Reset on connect/disconnect; the tablet re-sends
+        // its pin after reconnecting.
+        int pinnedVisChannel = 0;
     };
     std::array<RemoteConnectionState, MAX_TARGETS> remoteStates;
 
@@ -860,6 +910,10 @@ private:
     // Used to deliver cluster-wide position updates atomically (lockstep on the
     // tablet) and to flush pending member echoes coalesced from valueTreePropertyChanged.
     void sendClusterMembersBundle(int clusterId);
+
+    // Send a /remote/vis/* bundle to one connected Remote target (or all when
+    // targetIndex == -1), bypassing the rate limiter.
+    void sendRemoteVisBundle(const juce::OSCBundle& bundle, int targetIndex);
 
     // Send a list of OSC messages to a single Remote target, packed into juce::OSCBundles
     // sized to stay under typical Ethernet MTU (single UDP datagram, no IP fragmentation).

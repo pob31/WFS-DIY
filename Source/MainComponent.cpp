@@ -1169,11 +1169,13 @@ MainComponent::MainComponent()
             MapTabPages::MAP_MAIN_TAB_INDEX, 0,
             MapTabPages::createPage (0, vts, mapCB, mapQ, mapPosOffsetMode));
 
-        // Wire map selection changes to rebuild Stream Deck page
+        // Wire map selection changes to rebuild Stream Deck page and mirror the
+        // new selection to connected tablets
         mapTab->setMapSelectionChangedCallback ([this]()
         {
             if (streamDeckManager && streamDeckManager->getCurrentMainTab() == MapTabPages::MAP_MAIN_TAB_INDEX)
                 streamDeckManager->refreshCurrentPage();
+            sendVisualisationToRemotes();
         });
 
         // Register Clusters tab page (LFO controls)
@@ -1897,6 +1899,7 @@ MainComponent::MainComponent()
             oscManager->setRemoteSelectedChannel(channelId);
         if (streamDeckManager)
             streamDeckManager->setChannel(channelId);
+        sendVisualisationToRemotes();
     };
 
     // Activate/deactivate sampler channel in the audio engine
@@ -2145,11 +2148,38 @@ MainComponent::MainComponent()
         }
     };
 
-    // Send composite deltas for all inputs when a Remote client connects and initial data has been sent
-    oscManager->onRemoteConnectionReady = [this](int /*targetIndex*/)
+    // Answer tablet /remote/vis/pin requests with that channel's rows, sent to
+    // that tablet only. View-only: desktop selection is never touched.
+    oscManager->onRemoteVisPinRequested = [this](int targetIndex, int channelId)
     {
         if (calculationEngine == nullptr || oscManager == nullptr)
             return;
+        if (channelId < 1 || channelId > parameters.getNumInputChannels())
+            return;
+
+        oscManager->sendRemoteVisRows(channelId,
+                                      calculationEngine->getDelayTimesMs(),
+                                      calculationEngine->getLevels(),
+                                      calculationEngine->getNumOutputs(),
+                                      parameters.getNumOutputChannels(),
+                                      calculationEngine->getInputReverbDelayTimesMs(),
+                                      calculationEngine->getInputReverbLevels(),
+                                      calculationEngine->getNumReverbs(),
+                                      parameters.getNumReverbChannels(),
+                                      targetIndex);
+    };
+
+    // Send composite deltas for all inputs when a Remote client connects and initial data has been sent
+    oscManager->onRemoteConnectionReady = [this](int targetIndex)
+    {
+        if (calculationEngine == nullptr || oscManager == nullptr)
+            return;
+
+        // Initial /remote/vis/* state for the tablet that just connected:
+        // channel counts + array assignments, then selection and rows.
+        oscManager->sendRemoteVisConfig(parameters.getNumOutputChannels(),
+                                        parameters.getNumReverbChannels(), targetIndex);
+        sendVisualisationToRemotes(targetIndex);
 
         // Get number of input channels
         int numInputChannels = parameters.getNumInputChannels();
@@ -3094,10 +3124,84 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
                 targetDelayTimesMs.data(), targetLevels.data(), hfAttenuation.data(),
                 reverbDelays.data(), reverbLevelsVec.data(), reverbHF.data());
         }
+
+        // Mirror the new channel counts and fresh matrix to connected tablets
+        if (oscManager != nullptr)
+        {
+            oscManager->sendRemoteVisConfig(numOutputChannels, reverbs);
+            sendVisualisationToRemotes();
+        }
     }
 
     // Reload patch maps from the (now up-to-date) ValueTree
     loadAudioPatches();
+}
+
+void MainComponent::sendVisualisationToRemotes(int targetIndex)
+{
+    if (oscManager == nullptr || calculationEngine == nullptr || !oscManager->hasConnectedRemote())
+        return;
+
+    const int numInputs  = parameters.getNumInputChannels();
+    const int numOutputs = parameters.getNumOutputChannels();
+    const int numReverbs = parameters.getNumReverbChannels();
+
+    // Current desktop selection: the InputsTab channel is always valid; the map
+    // contributes either a temporary multi-selection or the members of the
+    // selected cluster/barycenter.
+    int primary = inputsTab != nullptr ? inputsTab->getSelectedInputIndex() + 1 : 1;
+
+    int clusterId = 0;
+    std::vector<int> selection;
+    if (mapTab != nullptr)
+    {
+        clusterId = juce::jmax(0, mapTab->getSelectedBarycenter());
+        if (clusterId >= 1)
+        {
+            for (int i = 0; i < numInputs; ++i)
+            {
+                juce::var cv = parameters.getValueTreeState()
+                                   .getInputParameter(i, WFSParameterIDs::inputCluster);
+                if (!cv.isVoid() && static_cast<int>(cv) == clusterId)
+                    selection.push_back(i + 1);
+            }
+        }
+        else
+        {
+            for (int idx : mapTab->getSelectedInputSet())  // 0-based indices
+                selection.push_back(idx + 1);
+        }
+    }
+
+    oscManager->sendRemoteVisSelection(primary, clusterId, selection, targetIndex);
+
+    // Rows straight from the engine matrices (max-channel stride) — independent
+    // of windowVisible and of the GUI's re-strided copies.
+    const float* delays  = calculationEngine->getDelayTimesMs();
+    const float* levels  = calculationEngine->getLevels();
+    const int    stride  = calculationEngine->getNumOutputs();
+    const float* rDelays = calculationEngine->getInputReverbDelayTimesMs();
+    const float* rLevels = calculationEngine->getInputReverbLevels();
+    const int    rStride = calculationEngine->getNumReverbs();
+
+    std::set<int> channels(selection.begin(), selection.end());
+    channels.insert(primary);
+
+    for (int ch : channels)
+        if (ch >= 1 && ch <= numInputs)
+            oscManager->sendRemoteVisRows(ch, delays, levels, stride, numOutputs,
+                                          rDelays, rLevels, rStride, numReverbs, targetIndex);
+
+    // Per-tablet pinned channels not already covered by the selection broadcast
+    for (const auto& [pinTarget, pinChannel] : oscManager->getConnectedRemoteVisPins())
+    {
+        if (targetIndex >= 0 && pinTarget != targetIndex)
+            continue;
+        if (channels.count(pinChannel) > 0 || pinChannel < 1 || pinChannel > numInputs)
+            continue;
+        oscManager->sendRemoteVisRows(pinChannel, delays, levels, stride, numOutputs,
+                                      rDelays, rLevels, rStride, numReverbs, pinTarget);
+    }
 }
 
 void MainComponent::handleAlgorithmSelectionChange(int selectedId)
@@ -5721,6 +5825,23 @@ void MainComponent::timerCallback()
                 inputsTab->updateVisualisation(
                     targetDelayTimesMs.data(), targetLevels.data(), hfAttenuation.data(),
                     reverbDelays.data(), reverbLevels.data(), reverbHF.data());
+            }
+
+            // Tablet mirroring is throttled below and must run even when the
+            // window is hidden, so only mark the recalc here.
+            visSendPending = true;
+        }
+
+        // Drain pending tablet visualisation updates at most every visSendIntervalMs.
+        // Trailing-edge: the last recalc of a drag always goes out.
+        if (visSendPending)
+        {
+            juce::int64 nowMs = juce::Time::currentTimeMillis();
+            if (nowMs - lastVisSendMs >= visSendIntervalMs)
+            {
+                sendVisualisationToRemotes();
+                visSendPending = false;
+                lastVisSendMs = nowMs;
             }
         }
 
