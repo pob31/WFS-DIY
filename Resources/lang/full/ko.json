@@ -1487,6 +1487,7 @@
       "storeSnapshotTitle": "새 스냅샷 저장",
       "storeSnapshotMessage": "새 스냅샷의 이름을 입력하세요:",
       "snapshotNameLabel": "이름:",
+      "snapshotOverwriteWarning": "이 이름의 스냅샷이 이미 있습니다 — 덮어씁니다.",
       "selectChannel": "채널 선택",
       "trackingConflictTitle": "트래킹 충돌",
       "trackingConflictCluster": "입력 {current}은(는) 트래킹이 활성화되어 있지만, 클러스터 {cluster}의 입력 {existing}이(가) 이미 트래킹되고 있습니다.\n\n클러스터당 하나의 트래킹 입력만 허용됩니다.",

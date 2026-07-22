@@ -1626,6 +1626,7 @@
       "storeSnapshotTitle": "Store New Snapshot",
       "storeSnapshotMessage": "Enter a name for the new snapshot:",
       "snapshotNameLabel": "Name:",
+      "snapshotOverwriteWarning": "A snapshot with this name already exists — it will be overwritten.",
       "selectChannel": "Select Channel",
       "trackingConflictTitle": "Tracking Conflict",
       "trackingConflictCluster": "Input {current} has tracking enabled, but Input {existing} in Cluster {cluster} is already tracked.\n\nOnly one tracked input per cluster is allowed.",
@@ -1846,7 +1847,8 @@
       "storeTitle": "Store Scope Template",
       "storeMessage": "Enter a name for this scope template:",
       "nameLabel": "Template name",
-      "errorTitle": "Scope Template Error"
+      "errorTitle": "Scope Template Error",
+      "overwriteWarning": "A template with this name already exists — it will be overwritten."
     }
   },
 

@@ -518,6 +518,7 @@
       "storeSnapshotTitle": "Enregistrer un nouveau snapshot",
       "storeSnapshotMessage": "Entrez un nom pour le nouveau snapshot :",
       "snapshotNameLabel": "Nom :",
+      "snapshotOverwriteWarning": "Un snapshot portant ce nom existe déjà — il sera écrasé.",
       "selectChannel": "Sélectionner le canal",
       "trackingConflictTitle": "Conflit de tracking",
       "trackingConflictCluster": "L'entrée {current} a le tracking activé, mais l'entrée {existing} du cluster {cluster} est déjà suivie.\n\nUn seul tracking actif par cluster est autorisé.",

@@ -23,6 +23,7 @@
 #include "GainReductionMeter.h"
 #include "RefreshableComboBox.h"
 #include "SnapshotScopeWindow.h"
+#include "DuplicateNameWarning.h"
 #include "HelpCardSVG.h"
 #include "buttons/LongPressButton.h"
 #include "buttons/WrappingTextButton.h"
@@ -6529,8 +6530,13 @@ private:
         dialog->addButton(LOC("common.ok"), 1, juce::KeyPress(juce::KeyPress::returnKey));
         dialog->addButton(LOC("common.cancel"), 0, juce::KeyPress(juce::KeyPress::escapeKey));
 
+        // Warn (red field + message) if the name would overwrite an existing snapshot
+        auto warning = DuplicateNameWarning::attach(*dialog, "name",
+                           fileManager.getInputSnapshotNames(),
+                           LOC("inputs.dialogs.snapshotOverwriteWarning"));
+
         dialog->enterModalState(true, juce::ModalCallbackFunction::create(
-            [this, dialog](int result)
+            [this, dialog, warning](int result)
             {
                 if (result == 1)
                 {

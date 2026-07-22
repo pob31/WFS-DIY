@@ -499,6 +499,7 @@
       "storeSnapshotTitle": "新しいスナップショットを保存",
       "storeSnapshotMessage": "新しいスナップショットの名前を入力してください：",
       "snapshotNameLabel": "名前：",
+      "snapshotOverwriteWarning": "この名前のスナップショットは既に存在します — 上書きされます。",
       "selectChannel": "チャンネルを選択",
       "trackingConflictTitle": "トラッキングの競合",
       "trackingConflictCluster": "入力 {current} はトラッキングが有効ですが、クラスター {cluster} の入力 {existing} は既にトラッキングされています。\n\nクラスターごとに1つのトラッキング入力のみが許可されています。",

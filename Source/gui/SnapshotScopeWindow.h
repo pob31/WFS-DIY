@@ -12,6 +12,7 @@
 #include "WindowUtils.h"
 #include "HelpCard.h"
 #include "buttons/LongPressButton.h"
+#include "DuplicateNameWarning.h"
 #include "RefreshableComboBox.h"
 
 /**
@@ -1064,8 +1065,13 @@ private:
         dialog->addButton (LOC("common.ok"), 1, juce::KeyPress (juce::KeyPress::returnKey));
         dialog->addButton (LOC("common.cancel"), 0, juce::KeyPress (juce::KeyPress::escapeKey));
 
+        // Warn (red field + message) if the name would overwrite an existing template
+        auto warning = DuplicateNameWarning::attach (*dialog, "name",
+                           parameters.getFileManager().getScopeTemplateNames(),
+                           LOC("snapshotScope.templates.overwriteWarning"));
+
         dialog->enterModalState (true, juce::ModalCallbackFunction::create (
-            [this, dialog](int result)
+            [this, dialog, warning](int result)
             {
                 if (result == 1)
                 {

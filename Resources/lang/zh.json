@@ -513,6 +513,7 @@
       "storeSnapshotTitle": "保存新快照",
       "storeSnapshotMessage": "请输入新快照的名称：",
       "snapshotNameLabel": "名称：",
+      "snapshotOverwriteWarning": "已存在同名快照 — 将被覆盖。",
       "selectChannel": "选择通道",
       "trackingConflictTitle": "追踪冲突",
       "trackingConflictCluster": "输入 {current} 已启用追踪，但集群 {cluster} 中的输入 {existing} 已被追踪。\n\n每个集群仅允许一个追踪输入。",
