@@ -1694,12 +1694,15 @@ public:
             int gsY = getHeight() - footerH - scaled(10) - rowHeight;
             gettingStartedButton.setBounds(layout.col1X, gsY, layout.colWidth, rowHeight);
 
-            // Overview help button — above Getting Started, right-aligned.
+            // Overview help button — right-aligned in the row directly above the
+            // Getting Started button. That row shares its Y with the diagnostics
+            // "?" (which sits above the diagnostics toggle, itself level with
+            // Getting Started), so the two "?" buttons line up horizontally.
             // scaled(20) matches every other "?" button across the tabs.
             // (The Keyboard Shortcuts button below reuses this btnSize.)
             const int btnSize = scaled(20);
             overviewHelpButton.setBounds (layout.col1X + layout.colWidth - btnSize,
-                                          gsY - btnSize - spacing * 4,
+                                          gsY - (rowHeight + spacing) + (rowHeight - btnSize) / 2,
                                           btnSize, btnSize);
 
             // Keyboard Shortcuts help button — same right-aligned column as the
