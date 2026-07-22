@@ -1,6 +1,6 @@
 # Proofreading checklist — Korean (한국어)
 
-Locale: `ko`  |  Total keys: 663  |  Source: `Resources/lang/en.json` vs `Resources/lang/ko.json`
+Locale: `ko`  |  Total keys: 687  |  Source: `Resources/lang/en.json` vs `Resources/lang/ko.json`
 
 ## How to use this file
 
@@ -429,7 +429,7 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: ADM-OSC is a protocol aiming to improve interoperability for spatial sound. It sends Cartesian positions (X, Y, Z) or polar values (AED for Azimuth, Elevation, Distance) from the console or from a DAW's automation curves.\nData is sent normalised:\n- between -1.0 and 1.0 for X, Y and Z;\n- between 0.0 to 1.0 for distance,\n- between -180° to 180° for Azimuth\n- between -90° to 90° for elevation.\nThe origin point can be moved and the mapping can also be adjusted in different segments for the inner and outer parts of the stage.\nWhen dragging the handles on the graphs, holding the shift key will apply symmetrical adjustments on the opposite side.
-  - KO: ADM-OSC는 공간 음향의 상호 운용성을 향상시키기 위한 프로토콜입니다. 콘솔이나 DAW의 오토메이션 커브에서 직교 좌표(X, Y, Z) 또는 극좌표 값(AED: 방위각, 고도, 거리)을 전송합니다.\n데이터는 정규화되어 전송됩니다:\n- X, Y, Z는 -1.0에서 1.0 사이\n- 거리는 0.0에서 1.0 사이\n- 방위각은 -180°에서 180° 사이\n- 고도는 -90°에서 90° 사이\n원점을 이동할 수 있으며 매핑은 스테이지의 안쪽과 바깥쪽에 대해 다른 세그먼트로 조정할 수 있습니다.\n그래프의 핸들을 드래그할 때 Shift 키를 누르면 반대쪽에 대칭 조정이 적용됩니다.
+  - KO: ADM-OSC 매핑\n\nADM-OSC는 공간 음향의 상호 운용성을 향상시키기 위한 프로토콜입니다. 콘솔이나 DAW의 오토메이션 커브에서 직교 좌표(X, Y, Z) 또는 극좌표 값(AED: 방위각, 고도, 거리)을 전송합니다.\n데이터는 정규화되어 전송됩니다:\n- X, Y, Z는 -1.0에서 1.0 사이\n- 거리는 0.0에서 1.0 사이\n- 방위각은 -180°에서 180° 사이\n- 고도는 -90°에서 90° 사이\n원점을 이동할 수 있으며 매핑은 스테이지의 안쪽과 바깥쪽에 대해 다른 세그먼트로 조정할 수 있습니다.\n그래프의 핸들을 드래그할 때 Shift 키를 누르면 반대쪽에 대칭 조정이 적용됩니다.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -453,7 +453,7 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: The Binaural renderer is used for:\n- listening to a rough spatial mix on headphones,\n- creating a mix for stereo output,\n- listening to a single soloed track through the spatial processing.\nThis may take the place of your master mix if it's only feeding headphones and media mix.\nThe position of the listening position may be adjusted in depth from the origin point and in orientation. Delay and level settings allow you to eventually match the sound at the FOH position.
-  - KO: Binaural Renderer 용도:\n- 헤드폰으로 대략적인 공간 믹스 청취\n- 스테레오 출력용 믹스 생성\n- 솔로 트랙을 공간 처리로 청취\n헤드폰과 미디어 믹스만 사용하는 경우 마스터 믹스를 대체할 수 있습니다.\n청취 위치는 원점에서의 깊이와 방향으로 조정할 수 있습니다. 딜레이와 레벨 설정으로 FOH 위치의 사운드에 맞출 수 있습니다.
+  - KO: 바이노럴 렌더러\n\nBinaural Renderer 용도:\n- 헤드폰으로 대략적인 공간 믹스 청취\n- 스테레오 출력용 믹스 생성\n- 솔로 트랙을 공간 처리로 청취\n헤드폰과 미디어 믹스만 사용하는 경우 마스터 믹스를 대체할 수 있습니다.\n청취 위치는 원점에서의 깊이와 방향으로 조정할 수 있습니다. 딜레이와 레벨 설정으로 FOH 위치의 사운드에 맞출 수 있습니다.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -471,6 +471,18 @@ Walk through each section. For every entry:
 - **`title`**
   - EN: Clusters
   - KO: 클러스터
+  - [ ] OK    Fix: 
+
+## `help.diagnostics`
+
+- **`body`**
+  - EN: The diagnostic tools are hidden by default: long-press the Diagnostics button below to show or hide them. They appear automatically when the previous session did not shut down cleanly.\nTo send feedback or report a problem, click Report Issue: it opens the project's GitHub issue tracker in your browser. Describe what happened, what you expected and the steps to reproduce it, then attach the exported diagnostic data.\nExport Logs copies the useful data to a WFS-DIY-logs folder at the location you choose: the logs of the current and up to five previous sessions, plus the application settings file. Attach this folder (or a zip of it) to your report.\nThe session logs contain start-up information (application version, operating system, CPU, channel counts), project loading, network activity and errors. No audio is ever recorded.\nOpen Log Folder shows the raw session logs on disk (the WFS-DIY/logs folder in the user application data directory), useful to find a specific session.\nCopy System Info puts a short summary on the clipboard — application version, operating system, CPU and the current audio device with its sample rate and buffer size — ready to paste into an issue.
+  - KO: 진단 도구는 기본적으로 숨겨져 있습니다. 아래 Diagnostics 버튼을 길게 누르면 표시하거나 숨길 수 있습니다. 이전 세션이 정상적으로 종료되지 않은 경우 자동으로 표시됩니다.\n피드백을 보내거나 문제를 신고하려면 '문제 신고'(Report Issue)를 클릭하세요. 브라우저에서 프로젝트의 GitHub 이슈 트래커가 열립니다. 무슨 일이 있었는지, 무엇을 기대했는지, 재현 단계를 설명하고 내보낸 진단 데이터를 첨부하세요.\n'로그 내보내기'(Export Logs)는 선택한 위치의 WFS-DIY-logs 폴더에 유용한 데이터를 복사합니다. 현재 세션과 최대 5개의 이전 세션 로그, 그리고 애플리케이션 설정 파일이 포함됩니다. 이 폴더(또는 zip)를 신고에 첨부하세요.\n세션 로그에는 시작 정보(앱 버전, 운영 체제, CPU, 채널 수), 프로젝트 로드, 네트워크 활동 및 오류가 기록됩니다. 오디오는 절대 녹음되지 않습니다.\n'로그 폴더 열기'(Open Log Folder)는 디스크의 원본 세션 로그(사용자 애플리케이션 데이터의 WFS-DIY/logs 폴더)를 표시합니다. 특정 세션을 찾을 때 유용합니다.\n'시스템 정보 복사'(Copy System Info)는 앱 버전, 운영 체제, CPU, 현재 오디오 장치(샘플링 레이트와 버퍼 크기)의 짧은 요약을 클립보드에 복사합니다. 이슈에 바로 붙여넣을 수 있습니다.
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Diagnostics & Feedback
+  - KO: 진단 및 피드백
   - [ ] OK    Fix: 
 
 ## `help.floorReflections`
@@ -549,7 +561,7 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: You can set for each output array a specific attenuation for the selected input.\nYou can mute each send to any output individually. There are macros to speed up the process.
-  - KO: 각 출력 어레이에 대해 선택된 인풋의 특정 감쇠를 설정할 수 있습니다.\n각 센드를 모든 출력에 대해 개별적으로 뮤트할 수 있습니다. 프로세스를 빠르게 하는 매크로가 있습니다.
+  - KO: 어레이 감쇠 및 출력 뮤트\n\n각 출력 어레이에 대해 선택된 인풋의 특정 감쇠를 설정할 수 있습니다.\n각 센드를 모든 출력에 대해 개별적으로 뮤트할 수 있습니다. 프로세스를 빠르게 하는 매크로가 있습니다.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -573,7 +585,52 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: A loud source on stage may not need much reinforcement through the nearby speakers. Imagine an opera singer near the edge of the stage. Normally the level distribution would make the level louder near the input position. But if it is already loud enough we should be able to not over-amplify it. This function manages this.\nThe radius and shape describe how to attenuate the level for a specific source for speakers within the radius of influence of this input. There are various shapes: a V shaped linear effect; a U shape for fast decrease within the radius; a tight V effect or a mix of the previous (sine).\nThe attenuation can be constant or level dependent like a local compression reacting to transients and to average RMS level.
-  - KO: 무대 위의 큰 소리 소스는 근처 스피커를 통한 보강이 필요 없을 수 있습니다. 무대 가장자리의 오페라 가수를 상상해 보세요. 일반적으로 레벨 분배는 입력 위치 근처에서 더 크게 만듭니다. 하지만 이미 충분히 크다면 과도하게 증폭하지 않아야 합니다. 이 기능이 이를 관리합니다.\n반경과 형태는 이 입력의 영향 반경 내 스피커에 대한 레벨 감쇠 방법을 설명합니다. 다양한 형태가 있습니다: V자형 선형 효과, 빠른 감소를 위한 U자형, 좁은 V자형 또는 이전 것들의 혼합(사인).\n감쇠는 일정하거나 과도 응답과 평균 RMS 레벨에 반응하는 로컬 압축처럼 레벨 의존적일 수 있습니다.
+  - KO: 라이브 소스 테이머\n\n무대 위의 큰 소리 소스는 근처 스피커를 통한 보강이 필요 없을 수 있습니다. 무대 가장자리의 오페라 가수를 상상해 보세요. 일반적으로 레벨 분배는 입력 위치 근처에서 더 크게 만듭니다. 하지만 이미 충분히 크다면 과도하게 증폭하지 않아야 합니다. 이 기능이 이를 관리합니다.\n반경과 형태는 이 입력의 영향 반경 내 스피커에 대한 레벨 감쇠 방법을 설명합니다. 다양한 형태가 있습니다: V자형 선형 효과, 빠른 감소를 위한 U자형, 좁은 V자형 또는 이전 것들의 혼합(사인).\n감쇠는 일정하거나 과도 응답과 평균 RMS 레벨에 반응하는 로컬 압축처럼 레벨 의존적일 수 있습니다.
+  - [ ] OK    Fix: 
+
+- **`legendAttenuation`**
+  - EN: attenuation
+  - KO: 감쇠
+  - [ ] OK    Fix: 
+
+- **`legendLinear`**
+  - EN: linear
+  - KO: 선형
+  - [ ] OK    Fix: 
+
+- **`legendLog`**
+  - EN: log
+  - KO: 로그
+  - [ ] OK    Fix: 
+
+- **`legendMaxAttenuation`**
+  - EN: maximum attenuation
+  - KO: 최대 감쇠
+  - [ ] OK    Fix: 
+
+- **`legendNoAttenuation`**
+  - EN: no attenuation
+  - KO: 감쇠 없음
+  - [ ] OK    Fix: 
+
+- **`legendPosition`**
+  - EN: position of the source
+  - KO: 음원 위치
+  - [ ] OK    Fix: 
+
+- **`legendRadius`**
+  - EN: radius
+  - KO: 반경
+  - [ ] OK    Fix: 
+
+- **`legendSine`**
+  - EN: sine
+  - KO: 사인
+  - [ ] OK    Fix: 
+
+- **`legendSquare`**
+  - EN: square x²
+  - KO: 제곱 x²
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -597,7 +654,7 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: The MCP server lets an AI assistant (Claude Desktop, Claude Code, ChatGPT with custom connectors) read and write the parameters of this WFS-DIY session over a local network connection.\n\nWhat the AI can do:\n• Read live state: channel counts, names, positions, attenuations, EQs, snapshots, clusters, the full parameter surface.\n• Move sources, rename channels, set cluster assignments, adjust the array layout, place outputs and reverbs.\n• Run guided workflows (system tuning walkthroughs, troubleshooting localization, snapshot management) via prepared prompt templates.\n\nOperator controls on this row:\n• AI: ON / OFF — master switch. When OFF every AI tool call is refused; when ON the AI works under the rules below.\n• AI critical actions: blocked / ALLOWED — the destructive actions (deleting snapshots, resetting DSP, changing channel counts) are blocked by default. Click to allow them for 10 minutes; the red fill drains as the window expires, then they auto-block again.\n• Open AI History — scrollable timeline of every recent AI change with per-row undo / redo and a step-by-step cursor.\n• The MCP URL button copies the server URL to the clipboard for AI clients that take a URL directly.\n\nOperator awareness:\n• Every AI action is recorded with origin tags. The AI History window shows the full timeline; per-row × reverses an action with its dependents.\n• If you manually adjust a parameter the AI just moved, the AI is notified and will not blindly retry. You always have the last word.\n• The Cmd/Ctrl+Alt+Z and Cmd/Ctrl+Alt+Y shortcuts undo and redo the last AI change without affecting your manual edits (which use plain Ctrl+Z as usual).\n\nTo add this server to Claude Desktop:\n  1. Open Settings → Developer → Edit Config.\n  2. Paste the JSON snippet below into claude_desktop_config.json (merge into the existing mcpServers block if you already have one).\n  3. Restart Claude Desktop. The server appears as 'wfs-diy' in the tools menu.\n\nTo add to Claude Code, run:\n  claude mcp add wfs-diy <url> -t http\n\nThe URL changes if you switch network interface or if the server falls back to a different port. The URL button on this row always reflects the live URL.
-  - KO: MCP Server는 AI 어시스턴트(Claude Desktop, Claude Code, 사용자 정의 커넥터가 있는 ChatGPT)가 로컬 네트워크 연결을 통해 이 WFS-DIY 세션의 매개변수를 읽고 쓸 수 있게 해줍니다.\n\nAI가 할 수 있는 일:\n• 라이브 상태 읽기: 채널 수, 이름, 위치, 감쇠, EQ, 스냅샷, 클러스터, 전체 매개변수.\n• 소스 이동, 채널 이름 변경, 클러스터 할당 설정, 어레이 레이아웃 조정, 출력 및 리버브 배치.\n• 준비된 프롬프트 템플릿을 통해 가이드 워크플로 실행 (시스템 튜닝, 위치 문제 해결, 스냅샷 관리).\n\n이 행의 운영자 컨트롤:\n• AI: ON / OFF — 메인 스위치. OFF일 때 모든 AI 도구 호출이 거부됩니다. ON일 때 AI는 아래 규칙에 따라 작동합니다.\n• 중요 AI 동작: 차단됨 / 허용됨 — 파괴적인 동작(스냅샷 삭제, DSP 재설정, 채널 수 변경)은 기본적으로 차단됩니다. 클릭하여 10분 동안 허용. 빨간색 채우기는 윈도우 만료에 따라 줄어들고 자동으로 다시 차단됩니다.\n• AI 기록 열기 — 최근 모든 AI 변경의 스크롤 가능한 타임라인.\n• MCP URL 버튼은 URL을 직접 받는 AI 클라이언트용으로 서버 URL을 클립보드에 복사합니다.\n\n운영자 인지:\n• 모든 AI 동작은 출처 태그와 함께 기록됩니다. AI 기록 창은 전체 타임라인을 보여줍니다. 행별 ×는 종속성을 포함하여 동작을 되돌립니다.\n• AI가 방금 이동한 매개변수를 수동으로 조정하면 AI에 알림이 가고 무작정 재시도하지 않습니다. 항상 마지막 결정은 당신이 합니다.\n• Cmd/Ctrl+Alt+Z 및 Cmd/Ctrl+Alt+Y 단축키는 수동 편집(일반 Ctrl+Z 사용)에 영향을 주지 않고 마지막 AI 변경을 실행 취소/다시 실행합니다.\n\n이 서버를 Claude Desktop에 추가하려면:\n  1. 설정 → 개발자 → 구성 편집을 엽니다.\n  2. 아래 JSON 스니펫을 claude_desktop_config.json에 붙여넣습니다 (이미 있는 mcpServers 블록에 병합).\n  3. Claude Desktop을 다시 시작합니다. 서버가 도구 메뉴에 'wfs-diy'로 표시됩니다.\n\nClaude Code에 추가하려면 실행:\n  claude mcp add wfs-diy <url> -t http\n\nNetwork Interface를 전환하거나 서버가 다른 포트로 폴백하면 URL이 변경됩니다. 이 행의 URL 버튼은 항상 라이브 URL을 반영합니다.
+  - KO: AI / MCP 서버\n\nMCP Server는 AI 어시스턴트(Claude Desktop, Claude Code, 사용자 정의 커넥터가 있는 ChatGPT)가 로컬 네트워크 연결을 통해 이 WFS-DIY 세션의 매개변수를 읽고 쓸 수 있게 해줍니다.\n\nAI가 할 수 있는 일:\n• 라이브 상태 읽기: 채널 수, 이름, 위치, 감쇠, EQ, 스냅샷, 클러스터, 전체 매개변수.\n• 소스 이동, 채널 이름 변경, 클러스터 할당 설정, 어레이 레이아웃 조정, 출력 및 리버브 배치.\n• 준비된 프롬프트 템플릿을 통해 가이드 워크플로 실행 (시스템 튜닝, 위치 문제 해결, 스냅샷 관리).\n\n이 행의 운영자 컨트롤:\n• AI: ON / OFF — 메인 스위치. OFF일 때 모든 AI 도구 호출이 거부됩니다. ON일 때 AI는 아래 규칙에 따라 작동합니다.\n• 중요 AI 동작: 차단됨 / 허용됨 — 파괴적인 동작(스냅샷 삭제, DSP 재설정, 채널 수 변경)은 기본적으로 차단됩니다. 클릭하여 10분 동안 허용. 빨간색 채우기는 윈도우 만료에 따라 줄어들고 자동으로 다시 차단됩니다.\n• AI 기록 열기 — 최근 모든 AI 변경의 스크롤 가능한 타임라인.\n• MCP URL 버튼은 URL을 직접 받는 AI 클라이언트용으로 서버 URL을 클립보드에 복사합니다.\n\n운영자 인지:\n• 모든 AI 동작은 출처 태그와 함께 기록됩니다. AI 기록 창은 전체 타임라인을 보여줍니다. 행별 ×는 종속성을 포함하여 동작을 되돌립니다.\n• AI가 방금 이동한 매개변수를 수동으로 조정하면 AI에 알림이 가고 무작정 재시도하지 않습니다. 항상 마지막 결정은 당신이 합니다.\n• Cmd/Ctrl+Alt+Z 및 Cmd/Ctrl+Alt+Y 단축키는 수동 편집(일반 Ctrl+Z 사용)에 영향을 주지 않고 마지막 AI 변경을 실행 취소/다시 실행합니다.\n\n이 서버를 Claude Desktop에 추가하려면:\n  1. 설정 → 개발자 → 구성 편집을 엽니다.\n  2. 아래 JSON 스니펫을 claude_desktop_config.json에 붙여넣습니다 (이미 있는 mcpServers 블록에 병합).\n  3. Claude Desktop을 다시 시작합니다. 서버가 도구 메뉴에 'wfs-diy'로 표시됩니다.\n\nClaude Code에 추가하려면 실행:\n  claude mcp add wfs-diy <url> -t http\n\nNetwork Interface를 전환하거나 서버가 다른 포트로 폴백하면 URL이 변경됩니다. 이 행의 URL 버튼은 항상 라이브 URL을 반영합니다.
   - [ ] OK    Fix: 
 
 - **`copyButton`**
@@ -630,7 +687,7 @@ Walk through each section. For every entry:
 ## `help.outputAdvanced`
 
 - **`body`**
-  - EN: There are a few parameters to help you adjust to the acoustic sound.\nMost of these parameters are set for whole arrays unless the propagation mode is switched to off for this output in the array. Relative change can also be selected after a specific setting.\n- Orientation and On/Off Angles define what inputs each speaker will amplify. By default the speakers are pointing to the audience, away from the stage. Inputs in the green sector will be amplified, but not the ones in front of the speaker, in the red sector. There is a fade between both sectors. For sub-bass speakers which usually come in limited numbers and locations, opening all the way to the maximum will allow you to have all inputs possibly picked up by the subwoofers.\n- HF Damping simulates the loss of high frequency with distance. Speakers close to the listeners can have more than speakers away from the stage and the listeners.\n- Distance Attenuation percentage allows you to define if more or less of the attenuation calculated from the distance and parameters of the input is applied. Again for Sub-bass in case you only have two and don't want to lose too much level or have hot-spots it may be wise to lower this setting to 50%.\n- Minimal Latency toggles whether the output is scanned for the smallest calculated delay and also if the setting once engaged on an input will reduce the delay for that input through this speaker.\n- Live Source Attenuation toggles the reduction of level of nearby input if they have this setting enabled. This may not be necessary for speakers away from the audience or for sub-bass.\n- Floor Reflections toggles if the reflections are applied to the signal for this output such as sub-bass and flown arrays...
+  - EN: There are a few parameters to help you adjust to the acoustic sound.\nMost of these parameters are set for whole arrays unless the propagation mode is switched to off for this output in the array. Relative change can also be selected after a specific setting.\n- Orientation and On/Off Angles define what inputs each speaker will amplify. By default the speakers are pointing to the audience, away from the stage. Inputs in the green sector will be amplified, but not the ones in front of the speaker, in the red sector. There is a fade between both sectors. For sub-bass speakers which usually come in limited numbers and locations, opening all the way to the maximum will allow you to have all inputs possibly picked up by the subwoofers.\n- HF Damping simulates the loss of high frequency with distance. Speakers close to the listeners can have more than speakers away from the stage and the listeners.\n- Distance Attenuation percentage allows you to define if more or less of the attenuation calculated from the distance and parameters of the input is applied. Again for Sub-bass in case you only have two and don't want to lose too much level or have hot-spots it may be wise to lower this setting to 50%.\n- Minimal Latency allows or excludes this speaker from Minimal Latency processing. When allowed, the output is scanned for the smallest calculated delay and, once the setting is engaged on an input, the delay for that input through this speaker is reduced.\n- Live Source Attenuation allows or excludes this speaker from the level reduction of nearby inputs that have this setting enabled. This may not be necessary for speakers away from the audience or for sub-bass.\n- Floor Reflections allows or excludes this speaker from the reflections applied to the signal, such as sub-bass and flown arrays...
   - KO: 음향 사운드에 맞게 조정하기 위한 몇 가지 파라미터가 있습니다.\n이러한 파라미터의 대부분은 전체 어레이에 설정됩니다(전파 모드가 이 출력에서 꺼져 있는 경우 제외). 특정 설정 후 상대적 변경도 선택할 수 있습니다.\n- 방향 및 On/Off 각도는 각 스피커가 어떤 인풋을 증폭할지 정의합니다. 기본적으로 스피커는 관객을 향하고 무대에서 벗어납니다. 녹색 영역의 인풋은 증폭되지만, 빨간 영역의 인풋은 증폭되지 않습니다. 서브베이스의 경우 최대로 열면 모든 인풋을 포함할 수 있습니다.\n- HF 댐핑은 거리에 따른 고주파 손실을 시뮬레이션합니다.\n- Distance attenuation 퍼센티지는 계산된 감쇠의 적용 정도를 정의합니다. 서브베이스의 경우 50%로 낮추는 것이 현명할 수 있습니다.\n- Minimal Latency는 최소 계산 딜레이의 스캔을 활성화합니다.\n- Live Source 감쇠는 가까운 인풋의 레벨 감소를 활성화합니다.\n- Floor Reflections는 서브베이스 및 플라잉 어레이와 같은 이 출력에 반사가 적용되는지 전환합니다...
   - [ ] OK    Fix: 
 
@@ -708,7 +765,7 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: Pre-processing sending of the input channels to the reverb nodes.\n- Orientation and On/Off Angles define what inputs each reverb node will receive. Inputs in the green sector will be picked-up, but not the ones in front in the red sector. There is a fade between both sectors.\n- HF Damping simulates the loss of high frequency with distance.\n- Distance Attenuation percentage allows you to define if more or less of the attenuation calculated from the distance and parameters of the input is applied.\n- Minimal Latency toggles whether the output is scanned for the smallest calculated delay and also if the setting once engaged on an input will reduce the delay for that input through this reverb node.\n- Live Source Attenuation toggles the reduction of level of nearby input if they have this setting enabled.
-  - KO: Input Channels에서 리버브 노드로의 전처리 전송.\n- 방향과 On/Off 각도가 각 노드가 수신할 입력을 정의합니다.\n- HF 감쇠는 거리에 따른 고주파 손실을 시뮬레이션합니다.\n- Distance attenuation 비율은 적용되는 감쇠를 정의합니다.\n- Minimal Latency은 최소 계산 지연 사용을 전환합니다.\n- Live Source 감쇠는 근처 입력의 레벨 감소를 전환합니다.
+  - KO: 리버브 피드\n\nInput Channels에서 리버브 노드로의 전처리 전송.\n- 방향과 On/Off 각도가 각 노드가 수신할 입력을 정의합니다.\n- HF 감쇠는 거리에 따른 고주파 손실을 시뮬레이션합니다.\n- Distance attenuation 비율은 적용되는 감쇠를 정의합니다.\n- Minimal Latency은 최소 계산 지연 사용을 전환합니다.\n- Live Source 감쇠는 근처 입력의 레벨 감소를 전환합니다.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -744,7 +801,7 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: Post-processing sending to the speakers.\n- Distance Attenuation defines the level drop per meter to the speakers.\n- Common Attenuation will look for the lowest attenuation and keep only a percentage of this level drop and apply this across all other outputs.\n- Mutes and Mute Macros allow to prevent a reverb channel from feeding an output. For instance it may not be necessary to send reverb to sub-bass speakers.
-  - KO: 스피커로의 후처리 전송.\n- Distance attenuation는 미터당 레벨 감소를 정의합니다.\n- 공통 감쇠는 최저 감쇠의 비율을 유지합니다.\n- 뮤트는 Reverb Channels이 출력에 공급되는 것을 방지합니다.
+  - KO: 리버브 리턴\n\n스피커로의 후처리 전송.\n- Distance attenuation는 미터당 레벨 감소를 정의합니다.\n- 공통 감쇠는 최저 감쇠의 비율을 유지합니다.\n- 뮤트는 Reverb Channels이 출력에 공급되는 것을 방지합니다.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -774,6 +831,18 @@ Walk through each section. For every entry:
 - **`title`**
   - EN: Session Data
   - KO: 세션 데이터
+  - [ ] OK    Fix: 
+
+## `help.shortcuts`
+
+- **`body`**
+  - EN: *H* opens the help card closest to the pointer.\n*I*, *O* and *R* open the Input, Output and Reverb tabs respectively; for a few seconds afterwards you can type a channel number to select it (confirm with *Enter*).\n*N* opens the Network tab.\n*C* opens the Clusters tab.\n*M* opens the Map tab.\n*Spacebar* scrolls to the next channel and *Shift+Spacebar* to the previous one in the Input, Output and Reverb tabs. On the Clusters tab they cycle through the clusters.\n*Ctrl/Cmd* while adjusting a parameter of an output channel that is part of an array adjusts the parameter for the selected channel only, temporarily disabling the propagation to the rest of the array.\n*F1* to *F10* assign inputs to the corresponding cluster in the Input and Map tabs, assign outputs to the corresponding array in the Output tab, and select the corresponding cluster in the Clusters tab. *F11* sets the channel back to Single.\n*Shift* while adjusting a parameter of an input that is part of a cluster adjusts this parameter for the other inputs of the cluster in relative mode: the variation affects all inputs of the cluster, but relative offsets are kept. *Ctrl/Cmd+Shift* changes the parameter in absolute mode: the value becomes identical across all inputs of the cluster.\n*Ctrl/Cmd+Z* undoes the last change; *Ctrl/Cmd+Y* or *Ctrl/Cmd+Shift+Z* redoes it.
+  - KO: *H*: 포인터에서 가장 가까운 도움말 카드를 엽니다.\n*I*, *O*, *R*: 각각 Inputs(입력), Outputs(출력), Reverb 탭을 엽니다. 이후 몇 초 동안 채널 번호를 입력해 선택할 수 있습니다(*Enter*로 확인).\n*N*: Network(네트워크) 탭을 엽니다.\n*C*: Clusters(클러스터) 탭을 엽니다.\n*M*: Map(맵) 탭을 엽니다.\n*스페이스바*: Inputs, Outputs, Reverb 탭에서 다음 채널로, *Shift+스페이스바*는 이전 채널로 이동합니다. Clusters 탭에서는 클러스터를 순환합니다.\n*Ctrl/Cmd*: 어레이에 속한 출력의 파라미터를 조정하는 동안 누르면 선택된 채널만 조정되며, 어레이의 나머지 채널로의 전파가 일시적으로 비활성화됩니다.\n*F1*~*F10*: Inputs, Map 탭에서는 입력을 해당 클러스터에 할당하고, Outputs 탭에서는 출력을 해당 어레이에 할당하며, Clusters 탭에서는 해당 클러스터를 선택합니다. *F11*은 채널을 Single로 되돌립니다.\n*Shift*: 클러스터에 속한 입력의 파라미터를 조정하는 동안 누르면 클러스터의 다른 입력도 상대 모드로 조정됩니다. 변화는 클러스터의 모든 입력에 적용되지만 상대적인 차이는 유지됩니다. *Ctrl/Cmd+Shift*는 절대 모드로 변경하여 클러스터의 모든 입력 값이 동일해집니다.\n*Ctrl/Cmd+Z*: 마지막 변경을 실행 취소합니다. *Ctrl/Cmd+Y* 또는 *Ctrl/Cmd+Shift+Z*는 다시 실행합니다.
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Keyboard Shortcuts
+  - KO: 키보드 단축키
   - [ ] OK    Fix: 
 
 ## `help.snapshotScope`
@@ -1580,6 +1649,16 @@ Walk through each section. For every entry:
   - KO: 백업에서 입력 설정이 로드되었습니다.
   - [ ] OK    Fix: 
 
+- **`clusterEditAbsolute`**
+  - EN: Ctrl+Shift edit: copying value to {count} other input(s) of Cluster {cluster}
+  - KO: Ctrl+Shift 편집: 클러스터 {cluster}의 다른 입력 {count}개에 값 복사
+  - [ ] OK    Fix: 
+
+- **`clusterEditRelative`**
+  - EN: Shift edit: applying relative change to {count} other input(s) of Cluster {cluster}
+  - KO: Shift 편집: 클러스터 {cluster}의 다른 입력 {count}개에 상대 변경 적용
+  - [ ] OK    Fix: 
+
 - **`configExported`**
   - EN: Input configuration exported.
   - KO: 입력 설정을 내보냈습니다.
@@ -1643,6 +1722,11 @@ Walk through each section. For every entry:
 - **`snapshotLoadedWithoutScope`**
   - EN: Snapshot '{name}' loaded (without scope).
   - KO: 스냅샷 '{name}'이(가) 로드되었습니다 (범위 없이).
+  - [ ] OK    Fix: 
+
+- **`snapshotScopeUpdated`**
+  - EN: Snapshot '{name}' scope updated.
+  - KO: 스냅샷 '{name}'의 범위가 업데이트되었습니다.
   - [ ] OK    Fix: 
 
 - **`snapshotStored`**
@@ -2144,6 +2228,18 @@ Walk through each section. For every entry:
   - KO: System Config에서 먼저 프로젝트 폴더를 선택하세요.
   - [ ] OK    Fix: 
 
+## `network.remote`
+
+- **`notResponding`**
+  - EN: Remote not responding — the tablet app may be outdated or unreachable
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`protocolMismatch`**
+  - EN: Remote app uses protocol v{remote}, expected v{local} — update the tablet app
+  - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
 ## `networkLog.dialogs`
 
 - **`exportCompleteMessage`**
@@ -2283,8 +2379,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`floorReflections`**
-  - EN: Enable or Disable the Floor Reflections for this Speaker.
-  - KO: 이 스피커의 Floor Reflections를 활성화 또는 비활성화합니다.
+  - EN: Allow or exclude this speaker from Floor Reflections.
+  - KO: 이 스피커를 Floor Reflections에 포함하거나 제외합니다.
   - [ ] OK    Fix: 
 
 - **`hParallax`**
@@ -2303,8 +2399,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`liveSource`**
-  - EN: Disables Live Source Attenuation for Selected Output. (changes may affect the rest of the array)
-  - KO: 선택한 출력의 Live Source 감쇠를 비활성화합니다. (변경 사항이 어레이의 나머지에 영향을 줄 수 있습니다)
+  - EN: Allow or exclude this speaker from Live Source Attenuation. (may affect the rest of the array)
+  - KO: 이 스피커를 Live Source 감쇠에 포함하거나 제외합니다. (어레이의 나머지에 영향을 줄 수 있습니다)
   - [ ] OK    Fix: 
 
 - **`mapVisibility`**
@@ -2313,8 +2409,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`minLatency`**
-  - EN: Disables Minimal Latency Mode for Selected Output. (changes may affect the rest of the array)
-  - KO: 선택한 출력의 Minimal Latency 모드를 비활성화합니다. (변경 사항이 어레이의 나머지에 영향을 줄 수 있습니다)
+  - EN: Allow or exclude this speaker from Minimal Latency processing. (may affect the rest of the array)
+  - KO: 이 스피커를 Minimal Latency 처리에 포함하거나 제외합니다. (어레이의 나머지에 영향을 줄 수 있습니다)
   - [ ] OK    Fix: 
 
 - **`nameEditor`**
@@ -2368,6 +2464,11 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 ## `outputs.messages`
+
+- **`arrayEditSingle`**
+  - EN: Ctrl edit: change applied to this output only (Array {array} not affected)
+  - KO: Ctrl 편집: 변경이 이 출력에만 적용됨 (어레이 {array}에는 영향 없음)
+  - [ ] OK    Fix: 
 
 - **`assignedToArray`**
   - EN: Output {num} assigned to Array {array}
@@ -2463,6 +2564,11 @@ Walk through each section. For every entry:
   - KO: FDN (Feedback Delay Network) 리버브 알고리즘 선택.
   - [ ] OK    Fix: 
 
+- **`algoFDNGpu`**
+  - EN: Run the FDN reverb on the GPU (adds ~20 ms to the wet path only) or on the CPU. Falls back to CPU automatically if the GPU is unavailable.
+  - KO: FDN 리버브를 GPU에서 실행합니다(웻 신호에만 약 20 ms 추가). GPU를 사용할 수 없으면 자동으로 CPU로 전환됩니다.
+  - [ ] OK    Fix: 
+
 - **`algoFDNSize`**
   - EN: FDN delay line size multiplier (0.5 - 2.0x).
   - KO: FDN 딜레이 라인 크기 배수 (0.5 - 2.0x).
@@ -2476,6 +2582,11 @@ Walk through each section. For every entry:
 - **`algoIRFile`**
   - EN: Select or import an impulse response file for convolution.
   - KO: 컨볼루션용 임펄스 응답 파일 선택 또는 가져오기.
+  - [ ] OK    Fix: 
+
+- **`algoIRGpu`**
+  - EN: Run the IR convolution on the GPU (adds ~20 ms to the wet path only) or on the CPU. Falls back to CPU automatically if the GPU is unavailable.
+  - KO: IR 컨볼루션을 GPU에서 실행합니다(웻 신호에만 약 20 ms 추가). GPU를 사용할 수 없으면 자동으로 CPU로 전환됩니다.
   - [ ] OK    Fix: 
 
 - **`algoIRLength`**
@@ -2513,6 +2624,11 @@ Walk through each section. For every entry:
   - KO: SDN (Scattering Delay Network) 리버브 알고리즘 선택.
   - [ ] OK    Fix: 
 
+- **`algoSDNGpu`**
+  - EN: Run the SDN reverb on the GPU (adds ~20 ms to the wet path only) or on the CPU. Falls back to CPU automatically if the GPU is unavailable.
+  - KO: SDN 리버브를 GPU에서 실행합니다(웻 신호에만 약 20 ms 추가). GPU를 사용할 수 없으면 자동으로 CPU로 전환됩니다.
+  - [ ] OK    Fix: 
+
 - **`algoSDNScale`**
   - EN: SDN inter-node delay scale factor (0.5 - 4.0x).
   - KO: SDN 노드 간 지연 스케일 팩터 (0.5 - 4.0x).
@@ -2531,6 +2647,11 @@ Walk through each section. For every entry:
 - **`angleOn`**
   - EN: Angle at which amplification starts (1-180 degrees).
   - KO: 증폭이 시작되는 각도 (1-180도).
+  - [ ] OK    Fix: 
+
+- **`applyToAllNodes`**
+  - EN: When ON, parameter edits are applied to every reverb node at once; when OFF, only the selected node. Runtime only - only future edits propagate.
+  - KO: 켜면 매개변수 변경이 모든 리버브 노드에 동시에 적용되고, 끄면 선택한 노드에만 적용됩니다. 런타임에만 적용되며 이후 변경 사항만 전파됩니다.
   - [ ] OK    Fix: 
 
 - **`attenuation`**
@@ -2624,8 +2745,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`liveSourceTooltip`**
-  - EN: Enable Live Source attenuation tamer. Reduces level fluctuations from sources close to the array.
-  - KO: Live Source 감쇠 테이머를 활성화합니다. 어레이에 가까운 소스의 레벨 변동을 줄입니다.
+  - EN: Allow or exclude this reverb feed from Live Source Attenuation.
+  - KO: 이 리버브 피드를 Live Source 감쇠에 포함하거나 제외합니다.
   - [ ] OK    Fix: 
 
 - **`mapVisibility`**
@@ -2634,8 +2755,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`miniLatencyTooltip`**
-  - EN: Enable minimal latency mode for this reverb channel. Reduces processing delay at the cost of higher CPU usage.
-  - KO: 이 리버브 채널의 최소 지연 모드를 활성화합니다. 더 높은 CPU 사용량을 대가로 처리 지연을 줄입니다.
+  - EN: Allow or exclude this reverb feed from Minimal Latency processing.
+  - KO: 이 리버브 피드를 Minimal Latency 처리에 포함하거나 제외합니다.
   - [ ] OK    Fix: 
 
 - **`muteButton`**
@@ -3098,6 +3219,11 @@ Walk through each section. For every entry:
 - **`exportSystem`**
   - EN: Export System Configuration to file (with file explorer window).
   - KO: 시스템 설정을 파일로 내보내기 (파일 탐색기 사용).
+  - [ ] OK    Fix: 
+
+- **`gpuPipelineDepth`**
+  - EN: GPU pipeline depth in audio blocks. Adds depth x buffer/sample-rate of constant latency (pre-subtracted from WFS delays) and absorbs GPU stalls of the same length: deeper = immune to desktop/UI hiccups, shallower = lower latency. Applies live. Default 4.
+  - KO: 오디오 블록 단위의 GPU 파이프라인 깊이. depth x 버퍼/샘플레이트만큼의 일정한 레이턴시를 추가하고(WFS 지연에서 미리 차감됨) 같은 길이의 GPU 지연을 흡수합니다. 깊을수록 데스크톱/UI 끊김에 강하고, 얕을수록 레이턴시가 낮아집니다. 실시간 적용. 기본값 4.
   - [ ] OK    Fix: 
 
 - **`haasEffect`**

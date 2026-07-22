@@ -1,6 +1,6 @@
 # Proofreading checklist — Chinese (中文)
 
-Locale: `zh`  |  Total keys: 663  |  Source: `Resources/lang/en.json` vs `Resources/lang/zh.json`
+Locale: `zh`  |  Total keys: 687  |  Source: `Resources/lang/en.json` vs `Resources/lang/zh.json`
 
 ## How to use this file
 
@@ -429,7 +429,7 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: ADM-OSC is a protocol aiming to improve interoperability for spatial sound. It sends Cartesian positions (X, Y, Z) or polar values (AED for Azimuth, Elevation, Distance) from the console or from a DAW's automation curves.\nData is sent normalised:\n- between -1.0 and 1.0 for X, Y and Z;\n- between 0.0 to 1.0 for distance,\n- between -180° to 180° for Azimuth\n- between -90° to 90° for elevation.\nThe origin point can be moved and the mapping can also be adjusted in different segments for the inner and outer parts of the stage.\nWhen dragging the handles on the graphs, holding the shift key will apply symmetrical adjustments on the opposite side.
-  - ZH: ADM-OSC是一种旨在提高空间声音互操作性的协议。它从调音台或DAW的自动化曲线发送笛卡尔坐标（X、Y、Z）或极坐标值（AED：方位角、仰角、距离）。\n数据以归一化方式发送：\n- X、Y和Z在-1.0到1.0之间\n- 距离在0.0到1.0之间\n- 方位角在-180°到180°之间\n- 仰角在-90°到90°之间\n原点可以移动，映射也可以针对舞台的内部和外部区域进行不同的分段调整。\n拖动图表上的控制点时，按住Shift键将在对侧应用对称调整。
+  - ZH: ADM-OSC映射\n\nADM-OSC是一种旨在提高空间声音互操作性的协议。它从调音台或DAW的自动化曲线发送笛卡尔坐标（X、Y、Z）或极坐标值（AED：方位角、仰角、距离）。\n数据以归一化方式发送：\n- X、Y和Z在-1.0到1.0之间\n- 距离在0.0到1.0之间\n- 方位角在-180°到180°之间\n- 仰角在-90°到90°之间\n原点可以移动，映射也可以针对舞台的内部和外部区域进行不同的分段调整。\n拖动图表上的控制点时，按住Shift键将在对侧应用对称调整。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -453,7 +453,7 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: The Binaural renderer is used for:\n- listening to a rough spatial mix on headphones,\n- creating a mix for stereo output,\n- listening to a single soloed track through the spatial processing.\nThis may take the place of your master mix if it's only feeding headphones and media mix.\nThe position of the listening position may be adjusted in depth from the origin point and in orientation. Delay and level settings allow you to eventually match the sound at the FOH position.
-  - ZH: Binaural Renderer用于：\n- 通过耳机收听粗略的空间混音\n- 创建立体声输出混音\n- 通过空间处理收听单独的独奏轨道\n如果仅为耳机和媒体混音供电，它可以替代您的主混音。\n收听位置可以从原点调整深度和方向。延迟和电平设置可以匹配FOH位置的声音。
+  - ZH: 双耳渲染器\n\nBinaural Renderer用于：\n- 通过耳机收听粗略的空间混音\n- 创建立体声输出混音\n- 通过空间处理收听单独的独奏轨道\n如果仅为耳机和媒体混音供电，它可以替代您的主混音。\n收听位置可以从原点调整深度和方向。延迟和电平设置可以匹配FOH位置的声音。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -473,11 +473,23 @@ Walk through each section. For every entry:
   - ZH: 集群
   - [ ] OK    Fix: 
 
+## `help.diagnostics`
+
+- **`body`**
+  - EN: The diagnostic tools are hidden by default: long-press the Diagnostics button below to show or hide them. They appear automatically when the previous session did not shut down cleanly.\nTo send feedback or report a problem, click Report Issue: it opens the project's GitHub issue tracker in your browser. Describe what happened, what you expected and the steps to reproduce it, then attach the exported diagnostic data.\nExport Logs copies the useful data to a WFS-DIY-logs folder at the location you choose: the logs of the current and up to five previous sessions, plus the application settings file. Attach this folder (or a zip of it) to your report.\nThe session logs contain start-up information (application version, operating system, CPU, channel counts), project loading, network activity and errors. No audio is ever recorded.\nOpen Log Folder shows the raw session logs on disk (the WFS-DIY/logs folder in the user application data directory), useful to find a specific session.\nCopy System Info puts a short summary on the clipboard — application version, operating system, CPU and the current audio device with its sample rate and buffer size — ready to paste into an issue.
+  - ZH: 诊断工具默认隐藏：长按下方的 Diagnostics 按钮可显示或隐藏它们。如果上一个会话未正常退出，它们会自动显示。\n要发送反馈或报告问题，请点击「报告问题」（Report Issue）：浏览器中会打开项目的 GitHub 问题跟踪器。请描述发生了什么、期望的结果以及复现步骤，并附上导出的诊断数据。\n「导出日志」（Export Logs）会将有用的数据复制到所选位置的 WFS-DIY-logs 文件夹中：当前会话及最多五个先前会话的日志，以及应用程序设置文件。请将此文件夹（或其压缩包）附加到报告中。\n会话日志包含启动信息（应用版本、操作系统、CPU、通道数）、项目加载、网络活动和错误。绝不会录制音频。\n「打开日志文件夹」（Open Log Folder）会显示磁盘上的原始会话日志（位于用户应用程序数据目录的 WFS-DIY/logs 文件夹），便于查找特定会话。\n「复制系统信息」（Copy System Info）会将简短摘要复制到剪贴板——应用版本、操作系统、CPU 以及当前音频设备及其采样率和缓冲区大小——可直接粘贴到问题报告中。
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Diagnostics & Feedback
+  - ZH: 诊断与反馈
+  - [ ] OK    Fix: 
+
 ## `help.floorReflections`
 
 - **`body`**
   - EN: Simulating the floor reflections improves the naturalness of the sound. We don't expect sounds to play in a soundproof anechoic chamber. This setting helps recreate the expected floor reflections.\nThe level of the floor reflections can be adjusted as well as the low cut and the high frequency shelf filters. Diffusion adds a bit of chaos to simulate the unevenness of the floor.
-  - ZH: 模拟地板反射可以提高声音的自然度。我们不期望声音在隔音消声室中播放。此设置有助于重建预期的地板反射。\n地板反射的电平可以调整，同时还有低切和高频搁架滤波器。扩散增加一些随机性来模拟地板的不平整。
+  - ZH: 地板反射\n\n模拟地板反射可以提高声音的自然度。我们不期望声音在隔音消声室中播放。此设置有助于重建预期的地板反射。\n地板反射的电平可以调整，同时还有低切和高频搁架滤波器。扩散增加一些随机性来模拟地板的不平整。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -549,7 +561,7 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: You can set for each output array a specific attenuation for the selected input.\nYou can mute each send to any output individually. There are macros to speed up the process.
-  - ZH: 您可以为每个输出阵列设置所选输入的特定衰减。\n您可以单独静音到任何输出的每个发送。有宏可以加速这个过程。
+  - ZH: 阵列衰减和输出静音\n\n您可以为每个输出阵列设置所选输入的特定衰减。\n您可以单独静音到任何输出的每个发送。有宏可以加速这个过程。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -573,7 +585,52 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: A loud source on stage may not need much reinforcement through the nearby speakers. Imagine an opera singer near the edge of the stage. Normally the level distribution would make the level louder near the input position. But if it is already loud enough we should be able to not over-amplify it. This function manages this.\nThe radius and shape describe how to attenuate the level for a specific source for speakers within the radius of influence of this input. There are various shapes: a V shaped linear effect; a U shape for fast decrease within the radius; a tight V effect or a mix of the previous (sine).\nThe attenuation can be constant or level dependent like a local compression reacting to transients and to average RMS level.
-  - ZH: 舞台上的大音量声源可能不需要通过附近的扬声器进行增强。想象一位靠近舞台边缘的歌剧歌手。通常电平分配会使输入位置附近的电平更大。但如果已经足够大，我们就不应该过度放大。此功能管理这一点。\n半径和形状描述了如何为此输入影响半径内的扬声器衰减电平。有多种形状：V形线性效果；U形用于快速衰减；窄V形或前述的混合（正弦）。\n衰减可以是恒定的，也可以是电平依赖的，类似于对瞬态和平均RMS电平做出反应的本地压缩。
+  - ZH: 现场声源抑制器\n\n舞台上的大音量声源可能不需要通过附近的扬声器进行增强。想象一位靠近舞台边缘的歌剧歌手。通常电平分配会使输入位置附近的电平更大。但如果已经足够大，我们就不应该过度放大。此功能管理这一点。\n半径和形状描述了如何为此输入影响半径内的扬声器衰减电平。有多种形状：V形线性效果；U形用于快速衰减；窄V形或前述的混合（正弦）。\n衰减可以是恒定的，也可以是电平依赖的，类似于对瞬态和平均RMS电平做出反应的本地压缩。
+  - [ ] OK    Fix: 
+
+- **`legendAttenuation`**
+  - EN: attenuation
+  - ZH: 衰减
+  - [ ] OK    Fix: 
+
+- **`legendLinear`**
+  - EN: linear
+  - ZH: 线性
+  - [ ] OK    Fix: 
+
+- **`legendLog`**
+  - EN: log
+  - ZH: 对数
+  - [ ] OK    Fix: 
+
+- **`legendMaxAttenuation`**
+  - EN: maximum attenuation
+  - ZH: 最大衰减
+  - [ ] OK    Fix: 
+
+- **`legendNoAttenuation`**
+  - EN: no attenuation
+  - ZH: 无衰减
+  - [ ] OK    Fix: 
+
+- **`legendPosition`**
+  - EN: position of the source
+  - ZH: 声源位置
+  - [ ] OK    Fix: 
+
+- **`legendRadius`**
+  - EN: radius
+  - ZH: 半径
+  - [ ] OK    Fix: 
+
+- **`legendSine`**
+  - EN: sine
+  - ZH: 正弦
+  - [ ] OK    Fix: 
+
+- **`legendSquare`**
+  - EN: square x²
+  - ZH: 平方 x²
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -597,7 +654,7 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: The MCP server lets an AI assistant (Claude Desktop, Claude Code, ChatGPT with custom connectors) read and write the parameters of this WFS-DIY session over a local network connection.\n\nWhat the AI can do:\n• Read live state: channel counts, names, positions, attenuations, EQs, snapshots, clusters, the full parameter surface.\n• Move sources, rename channels, set cluster assignments, adjust the array layout, place outputs and reverbs.\n• Run guided workflows (system tuning walkthroughs, troubleshooting localization, snapshot management) via prepared prompt templates.\n\nOperator controls on this row:\n• AI: ON / OFF — master switch. When OFF every AI tool call is refused; when ON the AI works under the rules below.\n• AI critical actions: blocked / ALLOWED — the destructive actions (deleting snapshots, resetting DSP, changing channel counts) are blocked by default. Click to allow them for 10 minutes; the red fill drains as the window expires, then they auto-block again.\n• Open AI History — scrollable timeline of every recent AI change with per-row undo / redo and a step-by-step cursor.\n• The MCP URL button copies the server URL to the clipboard for AI clients that take a URL directly.\n\nOperator awareness:\n• Every AI action is recorded with origin tags. The AI History window shows the full timeline; per-row × reverses an action with its dependents.\n• If you manually adjust a parameter the AI just moved, the AI is notified and will not blindly retry. You always have the last word.\n• The Cmd/Ctrl+Alt+Z and Cmd/Ctrl+Alt+Y shortcuts undo and redo the last AI change without affecting your manual edits (which use plain Ctrl+Z as usual).\n\nTo add this server to Claude Desktop:\n  1. Open Settings → Developer → Edit Config.\n  2. Paste the JSON snippet below into claude_desktop_config.json (merge into the existing mcpServers block if you already have one).\n  3. Restart Claude Desktop. The server appears as 'wfs-diy' in the tools menu.\n\nTo add to Claude Code, run:\n  claude mcp add wfs-diy <url> -t http\n\nThe URL changes if you switch network interface or if the server falls back to a different port. The URL button on this row always reflects the live URL.
-  - ZH: MCP Server允许 AI 助手 (Claude Desktop、Claude Code、带有自定义连接器的 ChatGPT) 通过本地网络连接读取和写入此 WFS-DIY 会话的参数。\n\nAI 可以做的事情:\n• 读取实时状态: 通道数、名称、位置、衰减、EQ、快照、集群、整个参数表面。\n• 移动声源、重命名通道、设置集群分配、调整阵列布局、放置输出和混响。\n• 通过预先准备的提示模板运行引导工作流 (系统调音、定位故障排查、快照管理)。\n\n此行的操作员控制:\n• AI: ON / OFF — 主开关。OFF 时拒绝每个 AI 工具调用; ON 时 AI 按照下面的规则工作。\n• AI 关键操作: 已阻止 / 已允许 — 破坏性操作 (删除快照、重置 DSP、更改通道数) 默认被阻止。点击允许 10 分钟; 红色填充随窗口到期消失，然后自动重新阻止。\n• 打开 AI 历史 — 每个最近 AI 更改的可滚动时间线。\n• MCP URL 按钮将服务器 URL 复制到剪贴板，供直接接受 URL 的 AI 客户端使用。\n\n操作员意识:\n• 每个 AI 操作都带有来源标签记录。AI 历史窗口显示完整时间线; 每行的 × 撤销操作及其依赖项。\n• 如果您手动调整了 AI 刚刚移动的参数，AI 会被通知，不会盲目重试。您始终拥有最终决定权。\n• Cmd/Ctrl+Alt+Z 和 Cmd/Ctrl+Alt+Y 快捷键撤销和重做最后的 AI 更改，不影响您的手动编辑 (使用普通 Ctrl+Z)。\n\n要将此服务器添加到 Claude Desktop:\n  1. 打开设置 → 开发者 → 编辑配置。\n  2. 将下面的 JSON 片段粘贴到 claude_desktop_config.json (如果已经有 mcpServers 块，请合并)。\n  3. 重新启动 Claude Desktop。服务器在工具菜单中显示为 'wfs-diy'。\n\n要添加到 Claude Code，运行:\n  claude mcp add wfs-diy <url> -t http\n\n如果切换Network Interface或服务器回退到不同端口，URL 会更改。此行的 URL 按钮始终反映实时 URL。
+  - ZH: AI / MCP 服务器\n\nMCP Server允许 AI 助手 (Claude Desktop、Claude Code、带有自定义连接器的 ChatGPT) 通过本地网络连接读取和写入此 WFS-DIY 会话的参数。\n\nAI 可以做的事情:\n• 读取实时状态: 通道数、名称、位置、衰减、EQ、快照、集群、整个参数表面。\n• 移动声源、重命名通道、设置集群分配、调整阵列布局、放置输出和混响。\n• 通过预先准备的提示模板运行引导工作流 (系统调音、定位故障排查、快照管理)。\n\n此行的操作员控制:\n• AI: ON / OFF — 主开关。OFF 时拒绝每个 AI 工具调用; ON 时 AI 按照下面的规则工作。\n• AI 关键操作: 已阻止 / 已允许 — 破坏性操作 (删除快照、重置 DSP、更改通道数) 默认被阻止。点击允许 10 分钟; 红色填充随窗口到期消失，然后自动重新阻止。\n• 打开 AI 历史 — 每个最近 AI 更改的可滚动时间线。\n• MCP URL 按钮将服务器 URL 复制到剪贴板，供直接接受 URL 的 AI 客户端使用。\n\n操作员意识:\n• 每个 AI 操作都带有来源标签记录。AI 历史窗口显示完整时间线; 每行的 × 撤销操作及其依赖项。\n• 如果您手动调整了 AI 刚刚移动的参数，AI 会被通知，不会盲目重试。您始终拥有最终决定权。\n• Cmd/Ctrl+Alt+Z 和 Cmd/Ctrl+Alt+Y 快捷键撤销和重做最后的 AI 更改，不影响您的手动编辑 (使用普通 Ctrl+Z)。\n\n要将此服务器添加到 Claude Desktop:\n  1. 打开设置 → 开发者 → 编辑配置。\n  2. 将下面的 JSON 片段粘贴到 claude_desktop_config.json (如果已经有 mcpServers 块，请合并)。\n  3. 重新启动 Claude Desktop。服务器在工具菜单中显示为 'wfs-diy'。\n\n要添加到 Claude Code，运行:\n  claude mcp add wfs-diy <url> -t http\n\n如果切换Network Interface或服务器回退到不同端口，URL 会更改。此行的 URL 按钮始终反映实时 URL。
   - [ ] OK    Fix: 
 
 - **`copyButton`**
@@ -630,7 +687,7 @@ Walk through each section. For every entry:
 ## `help.outputAdvanced`
 
 - **`body`**
-  - EN: There are a few parameters to help you adjust to the acoustic sound.\nMost of these parameters are set for whole arrays unless the propagation mode is switched to off for this output in the array. Relative change can also be selected after a specific setting.\n- Orientation and On/Off Angles define what inputs each speaker will amplify. By default the speakers are pointing to the audience, away from the stage. Inputs in the green sector will be amplified, but not the ones in front of the speaker, in the red sector. There is a fade between both sectors. For sub-bass speakers which usually come in limited numbers and locations, opening all the way to the maximum will allow you to have all inputs possibly picked up by the subwoofers.\n- HF Damping simulates the loss of high frequency with distance. Speakers close to the listeners can have more than speakers away from the stage and the listeners.\n- Distance Attenuation percentage allows you to define if more or less of the attenuation calculated from the distance and parameters of the input is applied. Again for Sub-bass in case you only have two and don't want to lose too much level or have hot-spots it may be wise to lower this setting to 50%.\n- Minimal Latency toggles whether the output is scanned for the smallest calculated delay and also if the setting once engaged on an input will reduce the delay for that input through this speaker.\n- Live Source Attenuation toggles the reduction of level of nearby input if they have this setting enabled. This may not be necessary for speakers away from the audience or for sub-bass.\n- Floor Reflections toggles if the reflections are applied to the signal for this output such as sub-bass and flown arrays...
+  - EN: There are a few parameters to help you adjust to the acoustic sound.\nMost of these parameters are set for whole arrays unless the propagation mode is switched to off for this output in the array. Relative change can also be selected after a specific setting.\n- Orientation and On/Off Angles define what inputs each speaker will amplify. By default the speakers are pointing to the audience, away from the stage. Inputs in the green sector will be amplified, but not the ones in front of the speaker, in the red sector. There is a fade between both sectors. For sub-bass speakers which usually come in limited numbers and locations, opening all the way to the maximum will allow you to have all inputs possibly picked up by the subwoofers.\n- HF Damping simulates the loss of high frequency with distance. Speakers close to the listeners can have more than speakers away from the stage and the listeners.\n- Distance Attenuation percentage allows you to define if more or less of the attenuation calculated from the distance and parameters of the input is applied. Again for Sub-bass in case you only have two and don't want to lose too much level or have hot-spots it may be wise to lower this setting to 50%.\n- Minimal Latency allows or excludes this speaker from Minimal Latency processing. When allowed, the output is scanned for the smallest calculated delay and, once the setting is engaged on an input, the delay for that input through this speaker is reduced.\n- Live Source Attenuation allows or excludes this speaker from the level reduction of nearby inputs that have this setting enabled. This may not be necessary for speakers away from the audience or for sub-bass.\n- Floor Reflections allows or excludes this speaker from the reflections applied to the signal, such as sub-bass and flown arrays...
   - ZH: 有几个参数帮助您调整以适应声学声音。\n这些参数大多为整个阵列设置，除非此输出的传播模式被关闭。特定设置后也可以选择相对变化。\n- 方向和On/Off角度定义每个扬声器将放大哪些输入。默认情况下扬声器面向观众，背对舞台。绿色扇区中的输入将被放大，但扬声器前方红色扇区中的不会。两个扇区之间有渐变。对于低音炮，完全打开到最大将允许所有输入被包含。\n- HF阻尼模拟距离造成的高频损失。\n- Distance attenuation百分比定义应用多少计算的衰减。对于低音炮，降到50%可能是明智的。\n- Minimal Latency启用扫描最小计算延迟。\n- Live Source衰减启用附近输入的电平降低。\n- Floor Reflections切换是否将反射应用于此输出的信号，如低音炮和飞行阵列...
   - [ ] OK    Fix: 
 
@@ -708,7 +765,7 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: Pre-processing sending of the input channels to the reverb nodes.\n- Orientation and On/Off Angles define what inputs each reverb node will receive. Inputs in the green sector will be picked-up, but not the ones in front in the red sector. There is a fade between both sectors.\n- HF Damping simulates the loss of high frequency with distance.\n- Distance Attenuation percentage allows you to define if more or less of the attenuation calculated from the distance and parameters of the input is applied.\n- Minimal Latency toggles whether the output is scanned for the smallest calculated delay and also if the setting once engaged on an input will reduce the delay for that input through this reverb node.\n- Live Source Attenuation toggles the reduction of level of nearby input if they have this setting enabled.
-  - ZH: Input Channels到混响节点的预处理发送。\n- 方向和On/Off角度定义每个节点接收的输入。\n- HF衰减模拟高频随距离的损失。\n- Distance attenuation百分比定义应用的衰减。\n- Minimal Latency切换是否使用最小计算延迟。\n- Live Source衰减切换附近输入的电平降低。
+  - ZH: 混响馈送\n\nInput Channels到混响节点的预处理发送。\n- 方向和On/Off角度定义每个节点接收的输入。\n- HF衰减模拟高频随距离的损失。\n- Distance attenuation百分比定义应用的衰减。\n- Minimal Latency切换是否使用最小计算延迟。\n- Live Source衰减切换附近输入的电平降低。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -744,7 +801,7 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: Post-processing sending to the speakers.\n- Distance Attenuation defines the level drop per meter to the speakers.\n- Common Attenuation will look for the lowest attenuation and keep only a percentage of this level drop and apply this across all other outputs.\n- Mutes and Mute Macros allow to prevent a reverb channel from feeding an output. For instance it may not be necessary to send reverb to sub-bass speakers.
-  - ZH: 到扬声器的后处理发送。\n- Distance attenuation定义每米的电平下降。\n- 共同衰减保持最低衰减的百分比。\n- 静音防止Reverb Channels馈送到输出。
+  - ZH: 混响返回\n\n到扬声器的后处理发送。\n- Distance attenuation定义每米的电平下降。\n- 共同衰减保持最低衰减的百分比。\n- 静音防止Reverb Channels馈送到输出。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -774,6 +831,18 @@ Walk through each section. For every entry:
 - **`title`**
   - EN: Session Data
   - ZH: 会话数据
+  - [ ] OK    Fix: 
+
+## `help.shortcuts`
+
+- **`body`**
+  - EN: *H* opens the help card closest to the pointer.\n*I*, *O* and *R* open the Input, Output and Reverb tabs respectively; for a few seconds afterwards you can type a channel number to select it (confirm with *Enter*).\n*N* opens the Network tab.\n*C* opens the Clusters tab.\n*M* opens the Map tab.\n*Spacebar* scrolls to the next channel and *Shift+Spacebar* to the previous one in the Input, Output and Reverb tabs. On the Clusters tab they cycle through the clusters.\n*Ctrl/Cmd* while adjusting a parameter of an output channel that is part of an array adjusts the parameter for the selected channel only, temporarily disabling the propagation to the rest of the array.\n*F1* to *F10* assign inputs to the corresponding cluster in the Input and Map tabs, assign outputs to the corresponding array in the Output tab, and select the corresponding cluster in the Clusters tab. *F11* sets the channel back to Single.\n*Shift* while adjusting a parameter of an input that is part of a cluster adjusts this parameter for the other inputs of the cluster in relative mode: the variation affects all inputs of the cluster, but relative offsets are kept. *Ctrl/Cmd+Shift* changes the parameter in absolute mode: the value becomes identical across all inputs of the cluster.\n*Ctrl/Cmd+Z* undoes the last change; *Ctrl/Cmd+Y* or *Ctrl/Cmd+Shift+Z* redoes it.
+  - ZH: *H*：打开离指针最近的帮助卡片。\n*I*、*O*、*R*：分别打开 Inputs（输入）、Outputs（输出）和 Reverb 标签页；随后几秒内可输入通道编号进行选择（按 *Enter* 确认）。\n*N*：打开 Network（网络）标签页。\n*C*：打开 Clusters（集群）标签页。\n*M*：打开 Map（地图）标签页。\n*空格键*：在 Inputs、Outputs 和 Reverb 标签页中切换到下一个通道，*Shift+空格*切换到上一个通道。在 Clusters 标签页中则循环切换集群。\n*Ctrl/Cmd*：调整属于阵列的输出通道参数时按住，仅调整所选通道，暂时禁用向阵列其余通道的传播。\n*F1* 到 *F10*：在 Inputs 和 Map 标签页中将输入分配到对应的集群，在 Outputs 标签页中将输出分配到对应的阵列，在 Clusters 标签页中选择对应的集群。*F11* 将通道恢复为 Single。\n*Shift*：调整属于集群的输入参数时按住，以相对模式调整集群中其他输入的该参数：变化作用于集群的所有输入，但保留相对差值。*Ctrl/Cmd+Shift* 以绝对模式更改参数：集群所有输入的该参数值变为相同。\n*Ctrl/Cmd+Z*：撤销最近的更改；*Ctrl/Cmd+Y* 或 *Ctrl/Cmd+Shift+Z* 重做。
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Keyboard Shortcuts
+  - ZH: 键盘快捷键
   - [ ] OK    Fix: 
 
 ## `help.snapshotScope`
@@ -1580,6 +1649,16 @@ Walk through each section. For every entry:
   - ZH: 已从备份加载输入配置。
   - [ ] OK    Fix: 
 
+- **`clusterEditAbsolute`**
+  - EN: Ctrl+Shift edit: copying value to {count} other input(s) of Cluster {cluster}
+  - ZH: Ctrl+Shift 编辑：值已复制到集群 {cluster} 的其他 {count} 个输入
+  - [ ] OK    Fix: 
+
+- **`clusterEditRelative`**
+  - EN: Shift edit: applying relative change to {count} other input(s) of Cluster {cluster}
+  - ZH: Shift 编辑：相对更改已应用到集群 {cluster} 的其他 {count} 个输入
+  - [ ] OK    Fix: 
+
 - **`configExported`**
   - EN: Input configuration exported.
   - ZH: 输入配置已导出。
@@ -1643,6 +1722,11 @@ Walk through each section. For every entry:
 - **`snapshotLoadedWithoutScope`**
   - EN: Snapshot '{name}' loaded (without scope).
   - ZH: 快照 '{name}' 已加载（无范围）。
+  - [ ] OK    Fix: 
+
+- **`snapshotScopeUpdated`**
+  - EN: Snapshot '{name}' scope updated.
+  - ZH: 快照 '{name}' 的范围已更新。
   - [ ] OK    Fix: 
 
 - **`snapshotStored`**
@@ -2144,6 +2228,18 @@ Walk through each section. For every entry:
   - ZH: 请先在System Config中选择项目文件夹。
   - [ ] OK    Fix: 
 
+## `network.remote`
+
+- **`notResponding`**
+  - EN: Remote not responding — the tablet app may be outdated or unreachable
+  - ZH: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`protocolMismatch`**
+  - EN: Remote app uses protocol v{remote}, expected v{local} — update the tablet app
+  - ZH: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
 ## `networkLog.dialogs`
 
 - **`exportCompleteMessage`**
@@ -2283,8 +2379,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`floorReflections`**
-  - EN: Enable or Disable the Floor Reflections for this Speaker.
-  - ZH: 启用或禁用此扬声器的Floor Reflections。
+  - EN: Allow or exclude this speaker from Floor Reflections.
+  - ZH: 允许或排除此扬声器参与Floor Reflections。
   - [ ] OK    Fix: 
 
 - **`hParallax`**
@@ -2303,8 +2399,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`liveSource`**
-  - EN: Disables Live Source Attenuation for Selected Output. (changes may affect the rest of the array)
-  - ZH: 禁用所选输出的Live Source衰减。（更改可能影响阵列的其余部分）
+  - EN: Allow or exclude this speaker from Live Source Attenuation. (may affect the rest of the array)
+  - ZH: 允许或排除此扬声器参与Live Source衰减。（可能影响阵列的其余部分）
   - [ ] OK    Fix: 
 
 - **`mapVisibility`**
@@ -2313,8 +2409,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`minLatency`**
-  - EN: Disables Minimal Latency Mode for Selected Output. (changes may affect the rest of the array)
-  - ZH: 禁用所选输出的Minimal Latency模式。（更改可能影响阵列的其余部分）
+  - EN: Allow or exclude this speaker from Minimal Latency processing. (may affect the rest of the array)
+  - ZH: 允许或排除此扬声器参与Minimal Latency处理。（可能影响阵列的其余部分）
   - [ ] OK    Fix: 
 
 - **`nameEditor`**
@@ -2368,6 +2464,11 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 ## `outputs.messages`
+
+- **`arrayEditSingle`**
+  - EN: Ctrl edit: change applied to this output only (Array {array} not affected)
+  - ZH: Ctrl 编辑：更改仅应用于此输出（不影响阵列 {array}）
+  - [ ] OK    Fix: 
 
 - **`assignedToArray`**
   - EN: Output {num} assigned to Array {array}
@@ -2463,6 +2564,11 @@ Walk through each section. For every entry:
   - ZH: 选择FDN（Feedback Delay Network）混响算法。
   - [ ] OK    Fix: 
 
+- **`algoFDNGpu`**
+  - EN: Run the FDN reverb on the GPU (adds ~20 ms to the wet path only) or on the CPU. Falls back to CPU automatically if the GPU is unavailable.
+  - ZH: 在 GPU 上运行 FDN 混响（仅湿声路径增加约 20 ms），或在 CPU 上运行。GPU 不可用时自动回退到 CPU。
+  - [ ] OK    Fix: 
+
 - **`algoFDNSize`**
   - EN: FDN delay line size multiplier (0.5 - 2.0x).
   - ZH: FDN延迟线大小乘数（0.5 - 2.0x）。
@@ -2476,6 +2582,11 @@ Walk through each section. For every entry:
 - **`algoIRFile`**
   - EN: Select or import an impulse response file for convolution.
   - ZH: 选择或导入用于卷积的脉冲响应文件。
+  - [ ] OK    Fix: 
+
+- **`algoIRGpu`**
+  - EN: Run the IR convolution on the GPU (adds ~20 ms to the wet path only) or on the CPU. Falls back to CPU automatically if the GPU is unavailable.
+  - ZH: 在 GPU 上运行 IR 卷积（仅湿声路径增加约 20 ms），或在 CPU 上运行。GPU 不可用时自动回退到 CPU。
   - [ ] OK    Fix: 
 
 - **`algoIRLength`**
@@ -2513,6 +2624,11 @@ Walk through each section. For every entry:
   - ZH: 选择SDN（Scattering Delay Network）混响算法。
   - [ ] OK    Fix: 
 
+- **`algoSDNGpu`**
+  - EN: Run the SDN reverb on the GPU (adds ~20 ms to the wet path only) or on the CPU. Falls back to CPU automatically if the GPU is unavailable.
+  - ZH: 在 GPU 上运行 SDN 混响（仅湿声路径增加约 20 ms），或在 CPU 上运行。GPU 不可用时自动回退到 CPU。
+  - [ ] OK    Fix: 
+
 - **`algoSDNScale`**
   - EN: SDN inter-node delay scale factor (0.5 - 4.0x).
   - ZH: SDN节点间延迟比例因子（0.5 - 4.0x）。
@@ -2531,6 +2647,11 @@ Walk through each section. For every entry:
 - **`angleOn`**
   - EN: Angle at which amplification starts (1-180 degrees).
   - ZH: 放大开始的角度（1-180度）。
+  - [ ] OK    Fix: 
+
+- **`applyToAllNodes`**
+  - EN: When ON, parameter edits are applied to every reverb node at once; when OFF, only the selected node. Runtime only - only future edits propagate.
+  - ZH: 开启时，参数更改会同时应用于所有混响节点；关闭时仅应用于所选节点。仅在运行时生效，且只有后续更改会传播。
   - [ ] OK    Fix: 
 
 - **`attenuation`**
@@ -2624,8 +2745,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`liveSourceTooltip`**
-  - EN: Enable Live Source attenuation tamer. Reduces level fluctuations from sources close to the array.
-  - ZH: 启用Live Source Tamer。减少靠近阵列的声源的电平波动。
+  - EN: Allow or exclude this reverb feed from Live Source Attenuation.
+  - ZH: 允许或排除此混响馈送参与Live Source衰减。
   - [ ] OK    Fix: 
 
 - **`mapVisibility`**
@@ -2634,8 +2755,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`miniLatencyTooltip`**
-  - EN: Enable minimal latency mode for this reverb channel. Reduces processing delay at the cost of higher CPU usage.
-  - ZH: 启用此混响通道的最小延迟模式。以更高 CPU 使用为代价减少处理延迟。
+  - EN: Allow or exclude this reverb feed from Minimal Latency processing.
+  - ZH: 允许或排除此混响馈送参与Minimal Latency处理。
   - [ ] OK    Fix: 
 
 - **`muteButton`**
@@ -3098,6 +3219,11 @@ Walk through each section. For every entry:
 - **`exportSystem`**
   - EN: Export System Configuration to file (with file explorer window).
   - ZH: 将系统配置导出到文件 (使用文件浏览器)。
+  - [ ] OK    Fix: 
+
+- **`gpuPipelineDepth`**
+  - EN: GPU pipeline depth in audio blocks. Adds depth x buffer/sample-rate of constant latency (pre-subtracted from WFS delays) and absorbs GPU stalls of the same length: deeper = immune to desktop/UI hiccups, shallower = lower latency. Applies live. Default 4.
+  - ZH: 以音频块为单位的 GPU 管线深度。增加 depth x 缓冲/采样率的恒定延迟（已预先从 WFS 延迟中扣除），并吸收相同长度的 GPU 停顿：越深 = 越不受桌面/界面卡顿影响，越浅 = 延迟越低。实时生效。默认 4。
   - [ ] OK    Fix: 
 
 - **`haasEffect`**

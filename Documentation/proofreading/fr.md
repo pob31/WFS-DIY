@@ -1,6 +1,6 @@
 # Proofreading checklist — French (Français)
 
-Locale: `fr`  |  Total keys: 663  |  Source: `Resources/lang/en.json` vs `Resources/lang/fr.json`
+Locale: `fr`  |  Total keys: 687  |  Source: `Resources/lang/en.json` vs `Resources/lang/fr.json`
 
 ## How to use this file
 
@@ -429,7 +429,7 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: ADM-OSC is a protocol aiming to improve interoperability for spatial sound. It sends Cartesian positions (X, Y, Z) or polar values (AED for Azimuth, Elevation, Distance) from the console or from a DAW's automation curves.\nData is sent normalised:\n- between -1.0 and 1.0 for X, Y and Z;\n- between 0.0 to 1.0 for distance,\n- between -180° to 180° for Azimuth\n- between -90° to 90° for elevation.\nThe origin point can be moved and the mapping can also be adjusted in different segments for the inner and outer parts of the stage.\nWhen dragging the handles on the graphs, holding the shift key will apply symmetrical adjustments on the opposite side.
-  - FR: ADM-OSC est un protocole visant à améliorer l'interopérabilité du son spatialisé. Il envoie des positions cartésiennes (X, Y, Z) ou des valeurs polaires (AED pour Azimut, Élévation, Distance) depuis la console ou les courbes d'automation d'un DAW.\nLes données sont envoyées normalisées :\n- entre -1.0 et 1.0 pour X, Y et Z ;\n- entre 0.0 et 1.0 pour la distance,\n- entre -180° et 180° pour l'azimut\n- entre -90° et 90° pour l'élévation.\nLe point d'origine peut être déplacé et le mapping peut aussi être ajusté en différents segments pour les parties intérieure et extérieure de la scène.\nEn glissant les poignées sur les graphiques, maintenir la touche Maj applique des ajustements symétriques du côté opposé.
+  - FR: Mappings ADM-OSC\n\nADM-OSC est un protocole visant à améliorer l'interopérabilité du son spatialisé. Il envoie des positions cartésiennes (X, Y, Z) ou des valeurs polaires (AED pour Azimut, Élévation, Distance) depuis la console ou les courbes d'automation d'un DAW.\nLes données sont envoyées normalisées :\n- entre -1.0 et 1.0 pour X, Y et Z ;\n- entre 0.0 et 1.0 pour la distance,\n- entre -180° et 180° pour l'azimut\n- entre -90° et 90° pour l'élévation.\nLe point d'origine peut être déplacé et le mapping peut aussi être ajusté en différents segments pour les parties intérieure et extérieure de la scène.\nEn glissant les poignées sur les graphiques, maintenir la touche Maj applique des ajustements symétriques du côté opposé.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -453,7 +453,7 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: The Binaural renderer is used for:\n- listening to a rough spatial mix on headphones,\n- creating a mix for stereo output,\n- listening to a single soloed track through the spatial processing.\nThis may take the place of your master mix if it's only feeding headphones and media mix.\nThe position of the listening position may be adjusted in depth from the origin point and in orientation. Delay and level settings allow you to eventually match the sound at the FOH position.
-  - FR: Le Binaural Renderer est utilisé pour :\n- écouter un mix spatial approximatif au casque,\n- créer un mix pour une sortie stéréo,\n- écouter une piste solotée à travers le traitement spatial.\nIl peut remplacer votre mix master s'il n'alimente que le casque et le mix média.\nLa position d'écoute peut être ajustée en profondeur depuis le point d'origine et en orientation. Les réglages de délai et de niveau permettent de faire correspondre le son à la position FOH.
+  - FR: Rendu Binaural\n\nLe Binaural Renderer est utilisé pour :\n- écouter un mix spatial approximatif au casque,\n- créer un mix pour une sortie stéréo,\n- écouter une piste solotée à travers le traitement spatial.\nIl peut remplacer votre mix master s'il n'alimente que le casque et le mix média.\nLa position d'écoute peut être ajustée en profondeur depuis le point d'origine et en orientation. Les réglages de délai et de niveau permettent de faire correspondre le son à la position FOH.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -473,11 +473,23 @@ Walk through each section. For every entry:
   - FR: Clusters
   - [ ] OK    Fix: 
 
+## `help.diagnostics`
+
+- **`body`**
+  - EN: The diagnostic tools are hidden by default: long-press the Diagnostics button below to show or hide them. They appear automatically when the previous session did not shut down cleanly.\nTo send feedback or report a problem, click Report Issue: it opens the project's GitHub issue tracker in your browser. Describe what happened, what you expected and the steps to reproduce it, then attach the exported diagnostic data.\nExport Logs copies the useful data to a WFS-DIY-logs folder at the location you choose: the logs of the current and up to five previous sessions, plus the application settings file. Attach this folder (or a zip of it) to your report.\nThe session logs contain start-up information (application version, operating system, CPU, channel counts), project loading, network activity and errors. No audio is ever recorded.\nOpen Log Folder shows the raw session logs on disk (the WFS-DIY/logs folder in the user application data directory), useful to find a specific session.\nCopy System Info puts a short summary on the clipboard — application version, operating system, CPU and the current audio device with its sample rate and buffer size — ready to paste into an issue.
+  - FR: Les outils de diagnostic sont masqués par défaut : un appui long sur le bouton Diagnostic ci-dessous les affiche ou les masque. Ils apparaissent automatiquement si la session précédente ne s'est pas terminée proprement.\nPour envoyer un retour ou signaler un problème, cliquez sur « Signaler un problème » (Report Issue) : le suivi des tickets GitHub du projet s'ouvre dans votre navigateur. Décrivez ce qui s'est passé, ce que vous attendiez et les étapes pour reproduire le problème, puis joignez les données de diagnostic exportées.\n« Exporter les journaux » (Export Logs) copie les données utiles dans un dossier WFS-DIY-logs à l'emplacement de votre choix : les journaux de la session en cours et jusqu'à cinq sessions précédentes, plus le fichier de réglages de l'application. Joignez ce dossier (ou un zip de celui-ci) à votre rapport.\nLes journaux de session contiennent les informations de démarrage (version de l'application, système d'exploitation, CPU, nombre de canaux), le chargement des projets, l'activité réseau et les erreurs. Aucun audio n'est jamais enregistré.\n« Ouvrir le dossier des journaux » (Open Log Folder) affiche les journaux bruts sur le disque (dossier WFS-DIY/logs des données d'application de l'utilisateur), utile pour retrouver une session précise.\n« Copier les infos système » (Copy System Info) place un court résumé dans le presse-papiers — version de l'application, système d'exploitation, CPU et périphérique audio actuel avec sa fréquence d'échantillonnage et sa taille de tampon — prêt à coller dans un ticket.
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Diagnostics & Feedback
+  - FR: Diagnostic et retours
+  - [ ] OK    Fix: 
+
 ## `help.floorReflections`
 
 - **`body`**
   - EN: Simulating the floor reflections improves the naturalness of the sound. We don't expect sounds to play in a soundproof anechoic chamber. This setting helps recreate the expected floor reflections.\nThe level of the floor reflections can be adjusted as well as the low cut and the high frequency shelf filters. Diffusion adds a bit of chaos to simulate the unevenness of the floor.
-  - FR: Simuler les réflexions du sol améliore le naturel du son. On ne s'attend pas à ce que les sons soient diffusés dans une chambre anéchoïque insonorisée. Ce réglage aide à recréer les réflexions du sol attendues.\nLe niveau des réflexions du sol peut être ajusté ainsi que les filtres coupe-bas et le shelf hautes fréquences. La diffusion ajoute un peu de chaos pour simuler les irrégularités du sol.
+  - FR: Réflexions du Sol\n\nSimuler les réflexions du sol améliore le naturel du son. On ne s'attend pas à ce que les sons soient diffusés dans une chambre anéchoïque insonorisée. Ce réglage aide à recréer les réflexions du sol attendues.\nLe niveau des réflexions du sol peut être ajusté ainsi que les filtres coupe-bas et le shelf hautes fréquences. La diffusion ajoute un peu de chaos pour simuler les irrégularités du sol.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -489,7 +501,7 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: Gradient maps allow to control attenuation, height and high frequency filtering (shelf with a smooth slope centered at 1kHz) depending on the X, Y position. For example, you can fade out a sound when entering a certain zone, you can have high frequency roll-off when moving away from the front of the stage, you can automatically adjust the height of an actor even when they are standing on elevated platforms without having to control height manually.\nThere are three layers for attenuation, height and HF shelf. They can be toggled on and off and they also can be hidden. The focused layer will look dimmed if disabled. Unfocused layers will look dimmed if active and only the shape outlines will be visible if they are deactivated.\nEach layer has a mapping control for white and black to adjust the range of the effect. The curve setting adjusts the transition.\nEach layer can have editable shapes (rectangle, ellipse or polygon) with either a single shade of grey, a linear gradient or a radial gradient. End points of the gradients can be adjusted.\nWhen creating a polygon click for each corner. Double-clicking will create a last corner and close the shape.\nDouble-clicking an existing point on a rectangle or a polygon will remove this corner. Double-clicking on a side will add a new point.\nThe scale and rotation of each shape can be edited for its center or from the origin point.\nWhen enabled the corner points of the rectangles and polygons can also be edited individually.\nShapes and layers can be copied to another layer on the same input or any other input.\nGradient map settings are stored in the input files.
-  - FR: Les cartes de gradient permettent de contrôler l'atténuation, la hauteur et le filtrage haute fréquence (shelf avec une pente douce centrée à 1kHz) en fonction de la position X, Y. Par exemple, vous pouvez atténuer un son en entrant dans une zone, appliquer un roll-off haute fréquence en s'éloignant de l'avant-scène, ou ajuster automatiquement la hauteur d'un acteur sur des plateformes surélevées.\nTrois couches sont disponibles : atténuation, hauteur et shelf HF. Elles peuvent être activées/désactivées et masquées. La couche active apparaît atténuée si désactivée. Les couches non focalisées apparaissent atténuées si actives.\nChaque couche a un contrôle de mapping blanc et noir pour ajuster la plage de l'effet. Le réglage de courbe ajuste la transition.\nChaque couche peut avoir des formes éditables (rectangle, ellipse ou polygone) avec un gris uni, un gradient linéaire ou radial.\nPour créer un polygone, cliquez pour chaque coin. Double-cliquez pour fermer la forme.\nDouble-cliquer sur un point existant le supprime. Double-cliquer sur un côté ajoute un nouveau point.\nL'échelle et la rotation de chaque forme peuvent être éditées depuis son centre ou depuis l'origine.\nLes formes et couches peuvent être copiées vers une autre couche.\nLes réglages sont stockés dans les fichiers d'entrée.
+  - FR: Cartes de Gradient\n\nLes cartes de gradient permettent de contrôler l'atténuation, la hauteur et le filtrage haute fréquence (shelf avec une pente douce centrée à 1kHz) en fonction de la position X, Y. Par exemple, vous pouvez atténuer un son en entrant dans une zone, appliquer un roll-off haute fréquence en s'éloignant de l'avant-scène, ou ajuster automatiquement la hauteur d'un acteur sur des plateformes surélevées.\nTrois couches sont disponibles : atténuation, hauteur et shelf HF. Elles peuvent être activées/désactivées et masquées. La couche active apparaît atténuée si désactivée. Les couches non focalisées apparaissent atténuées si actives.\nChaque couche a un contrôle de mapping blanc et noir pour ajuster la plage de l'effet. Le réglage de courbe ajuste la transition.\nChaque couche peut avoir des formes éditables (rectangle, ellipse ou polygone) avec un gris uni, un gradient linéaire ou radial.\nPour créer un polygone, cliquez pour chaque coin. Double-cliquez pour fermer la forme.\nDouble-cliquer sur un point existant le supprime. Double-cliquer sur un côté ajoute un nouveau point.\nL'échelle et la rotation de chaque forme peuvent être éditées depuis son centre ou depuis l'origine.\nLes formes et couches peuvent être copiées vers une autre couche.\nLes réglages sont stockés dans les fichiers d'entrée.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -549,7 +561,7 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: You can set for each output array a specific attenuation for the selected input.\nYou can mute each send to any output individually. There are macros to speed up the process.
-  - FR: Vous pouvez définir pour chaque array de sortie une atténuation spécifique pour l'entrée sélectionnée.\nVous pouvez couper chaque envoi vers n'importe quelle sortie individuellement. Des macros sont disponibles pour accélérer le processus.
+  - FR: Atténuation par array et mutes de sortie\n\nVous pouvez définir pour chaque array de sortie une atténuation spécifique pour l'entrée sélectionnée.\nVous pouvez couper chaque envoi vers n'importe quelle sortie individuellement. Des macros sont disponibles pour accélérer le processus.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -573,7 +585,52 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: A loud source on stage may not need much reinforcement through the nearby speakers. Imagine an opera singer near the edge of the stage. Normally the level distribution would make the level louder near the input position. But if it is already loud enough we should be able to not over-amplify it. This function manages this.\nThe radius and shape describe how to attenuate the level for a specific source for speakers within the radius of influence of this input. There are various shapes: a V shaped linear effect; a U shape for fast decrease within the radius; a tight V effect or a mix of the previous (sine).\nThe attenuation can be constant or level dependent like a local compression reacting to transients and to average RMS level.
-  - FR: Une source puissante sur scène n'a pas forcément besoin d'être renforcée par les haut-parleurs proches. Imaginez un chanteur d'opéra près du bord de la scène. Normalement la distribution de niveau rendrait le son plus fort près de la position de la source. Mais si c'est déjà assez fort, on devrait pouvoir ne pas sur-amplifier. Cette fonction gère cela.\nLe rayon et la forme décrivent comment atténuer le niveau pour les haut-parleurs dans le rayon d'influence de cette source. Il y a différentes formes : un effet linéaire en V ; un U pour une décroissance rapide ; un V serré ou un mélange des précédents (sinus).\nL'atténuation peut être constante ou dépendante du niveau, comme une compression locale réagissant aux transitoires et au niveau RMS moyen.
+  - FR: Atténuateur de Source Live\n\nUne source puissante sur scène n'a pas forcément besoin d'être renforcée par les haut-parleurs proches. Imaginez un chanteur d'opéra près du bord de la scène. Normalement la distribution de niveau rendrait le son plus fort près de la position de la source. Mais si c'est déjà assez fort, on devrait pouvoir ne pas sur-amplifier. Cette fonction gère cela.\nLe rayon et la forme décrivent comment atténuer le niveau pour les haut-parleurs dans le rayon d'influence de cette source. Il y a différentes formes : un effet linéaire en V ; un U pour une décroissance rapide ; un V serré ou un mélange des précédents (sinus).\nL'atténuation peut être constante ou dépendante du niveau, comme une compression locale réagissant aux transitoires et au niveau RMS moyen.
+  - [ ] OK    Fix: 
+
+- **`legendAttenuation`**
+  - EN: attenuation
+  - FR: atténuation
+  - [ ] OK    Fix: 
+
+- **`legendLinear`**
+  - EN: linear
+  - FR: linéaire
+  - [ ] OK    Fix: 
+
+- **`legendLog`**
+  - EN: log
+  - FR: log
+  - [ ] OK    Fix: 
+
+- **`legendMaxAttenuation`**
+  - EN: maximum attenuation
+  - FR: atténuation maximale
+  - [ ] OK    Fix: 
+
+- **`legendNoAttenuation`**
+  - EN: no attenuation
+  - FR: pas d'atténuation
+  - [ ] OK    Fix: 
+
+- **`legendPosition`**
+  - EN: position of the source
+  - FR: position de la source
+  - [ ] OK    Fix: 
+
+- **`legendRadius`**
+  - EN: radius
+  - FR: rayon
+  - [ ] OK    Fix: 
+
+- **`legendSine`**
+  - EN: sine
+  - FR: sinus
+  - [ ] OK    Fix: 
+
+- **`legendSquare`**
+  - EN: square x²
+  - FR: carré x²
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -597,7 +654,7 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: The MCP server lets an AI assistant (Claude Desktop, Claude Code, ChatGPT with custom connectors) read and write the parameters of this WFS-DIY session over a local network connection.\n\nWhat the AI can do:\n• Read live state: channel counts, names, positions, attenuations, EQs, snapshots, clusters, the full parameter surface.\n• Move sources, rename channels, set cluster assignments, adjust the array layout, place outputs and reverbs.\n• Run guided workflows (system tuning walkthroughs, troubleshooting localization, snapshot management) via prepared prompt templates.\n\nOperator controls on this row:\n• AI: ON / OFF — master switch. When OFF every AI tool call is refused; when ON the AI works under the rules below.\n• AI critical actions: blocked / ALLOWED — the destructive actions (deleting snapshots, resetting DSP, changing channel counts) are blocked by default. Click to allow them for 10 minutes; the red fill drains as the window expires, then they auto-block again.\n• Open AI History — scrollable timeline of every recent AI change with per-row undo / redo and a step-by-step cursor.\n• The MCP URL button copies the server URL to the clipboard for AI clients that take a URL directly.\n\nOperator awareness:\n• Every AI action is recorded with origin tags. The AI History window shows the full timeline; per-row × reverses an action with its dependents.\n• If you manually adjust a parameter the AI just moved, the AI is notified and will not blindly retry. You always have the last word.\n• The Cmd/Ctrl+Alt+Z and Cmd/Ctrl+Alt+Y shortcuts undo and redo the last AI change without affecting your manual edits (which use plain Ctrl+Z as usual).\n\nTo add this server to Claude Desktop:\n  1. Open Settings → Developer → Edit Config.\n  2. Paste the JSON snippet below into claude_desktop_config.json (merge into the existing mcpServers block if you already have one).\n  3. Restart Claude Desktop. The server appears as 'wfs-diy' in the tools menu.\n\nTo add to Claude Code, run:\n  claude mcp add wfs-diy <url> -t http\n\nThe URL changes if you switch network interface or if the server falls back to a different port. The URL button on this row always reflects the live URL.
-  - FR: Le MCP Server permet à un assistant IA (Claude Desktop, Claude Code, ChatGPT avec connecteurs personnalisés) de lire et d'écrire les paramètres de cette session WFS-DIY via une connexion réseau locale.\n\nCe que l'IA peut faire :\n• Lire l'état en direct : nombres de canaux, noms, positions, atténuations, EQ, snapshots, clusters, l'ensemble des paramètres.\n• Déplacer des sources, renommer des canaux, définir des assignations de clusters, ajuster la disposition des arrays, placer sorties et réverbérations.\n• Exécuter des workflows guidés (assistants d'accord système, dépannage de localisation, gestion des snapshots) via des modèles de prompts préparés.\n\nContrôles opérateur sur cette ligne :\n• IA : ON / OFF — interrupteur principal. Sur OFF, tout appel d'outil IA est refusé ; sur ON, l'IA fonctionne selon les règles ci-dessous.\n• Actions IA critiques : bloquées / AUTORISÉES — les actions destructrices (suppression de snapshots, réinitialisation DSP, changement du nombre de canaux) sont bloquées par défaut. Cliquer pour les autoriser pendant 10 minutes ; le remplissage rouge s'écoule à l'expiration, puis se bloque à nouveau automatiquement.\n• Ouvrir Historique IA — chronologie déroulante de chaque modification IA récente avec annulation/rétablissement par ligne et curseur pas à pas.\n• Le bouton URL MCP copie l'URL du serveur dans le presse-papiers pour les clients IA qui acceptent une URL directement.\n\nVigilance opérateur :\n• Chaque action IA est enregistrée avec des tags d'origine. La fenêtre Historique IA affiche la chronologie complète ; le × par ligne annule une action avec ses dépendances.\n• Si vous ajustez manuellement un paramètre que l'IA vient de modifier, l'IA est notifiée et ne réessayera pas aveuglément. Vous avez toujours le dernier mot.\n• Les raccourcis Cmd/Ctrl+Alt+Z et Cmd/Ctrl+Alt+Y annulent et rétablissent la dernière modification IA sans affecter vos modifications manuelles (qui utilisent Ctrl+Z classique).\n\nPour ajouter ce serveur à Claude Desktop :\n  1. Ouvrir Réglages → Développeur → Modifier la configuration.\n  2. Coller l'extrait JSON ci-dessous dans claude_desktop_config.json (fusionner dans le bloc mcpServers existant si vous en avez déjà un).\n  3. Redémarrer Claude Desktop. Le serveur apparaît sous le nom 'wfs-diy' dans le menu outils.\n\nPour l'ajouter à Claude Code, exécuter :\n  claude mcp add wfs-diy <url> -t http\n\nL'URL change si vous changez de Network Interface ou si le serveur bascule sur un port différent. Le bouton URL sur cette ligne reflète toujours l'URL en direct.
+  - FR: Serveur IA / MCP\n\nLe MCP Server permet à un assistant IA (Claude Desktop, Claude Code, ChatGPT avec connecteurs personnalisés) de lire et d'écrire les paramètres de cette session WFS-DIY via une connexion réseau locale.\n\nCe que l'IA peut faire :\n• Lire l'état en direct : nombres de canaux, noms, positions, atténuations, EQ, snapshots, clusters, l'ensemble des paramètres.\n• Déplacer des sources, renommer des canaux, définir des assignations de clusters, ajuster la disposition des arrays, placer sorties et réverbérations.\n• Exécuter des workflows guidés (assistants d'accord système, dépannage de localisation, gestion des snapshots) via des modèles de prompts préparés.\n\nContrôles opérateur sur cette ligne :\n• IA : ON / OFF — interrupteur principal. Sur OFF, tout appel d'outil IA est refusé ; sur ON, l'IA fonctionne selon les règles ci-dessous.\n• Actions IA critiques : bloquées / AUTORISÉES — les actions destructrices (suppression de snapshots, réinitialisation DSP, changement du nombre de canaux) sont bloquées par défaut. Cliquer pour les autoriser pendant 10 minutes ; le remplissage rouge s'écoule à l'expiration, puis se bloque à nouveau automatiquement.\n• Ouvrir Historique IA — chronologie déroulante de chaque modification IA récente avec annulation/rétablissement par ligne et curseur pas à pas.\n• Le bouton URL MCP copie l'URL du serveur dans le presse-papiers pour les clients IA qui acceptent une URL directement.\n\nVigilance opérateur :\n• Chaque action IA est enregistrée avec des tags d'origine. La fenêtre Historique IA affiche la chronologie complète ; le × par ligne annule une action avec ses dépendances.\n• Si vous ajustez manuellement un paramètre que l'IA vient de modifier, l'IA est notifiée et ne réessayera pas aveuglément. Vous avez toujours le dernier mot.\n• Les raccourcis Cmd/Ctrl+Alt+Z et Cmd/Ctrl+Alt+Y annulent et rétablissent la dernière modification IA sans affecter vos modifications manuelles (qui utilisent Ctrl+Z classique).\n\nPour ajouter ce serveur à Claude Desktop :\n  1. Ouvrir Réglages → Développeur → Modifier la configuration.\n  2. Coller l'extrait JSON ci-dessous dans claude_desktop_config.json (fusionner dans le bloc mcpServers existant si vous en avez déjà un).\n  3. Redémarrer Claude Desktop. Le serveur apparaît sous le nom 'wfs-diy' dans le menu outils.\n\nPour l'ajouter à Claude Code, exécuter :\n  claude mcp add wfs-diy <url> -t http\n\nL'URL change si vous changez de Network Interface ou si le serveur bascule sur un port différent. Le bouton URL sur cette ligne reflète toujours l'URL en direct.
   - [ ] OK    Fix: 
 
 - **`copyButton`**
@@ -630,7 +687,7 @@ Walk through each section. For every entry:
 ## `help.outputAdvanced`
 
 - **`body`**
-  - EN: There are a few parameters to help you adjust to the acoustic sound.\nMost of these parameters are set for whole arrays unless the propagation mode is switched to off for this output in the array. Relative change can also be selected after a specific setting.\n- Orientation and On/Off Angles define what inputs each speaker will amplify. By default the speakers are pointing to the audience, away from the stage. Inputs in the green sector will be amplified, but not the ones in front of the speaker, in the red sector. There is a fade between both sectors. For sub-bass speakers which usually come in limited numbers and locations, opening all the way to the maximum will allow you to have all inputs possibly picked up by the subwoofers.\n- HF Damping simulates the loss of high frequency with distance. Speakers close to the listeners can have more than speakers away from the stage and the listeners.\n- Distance Attenuation percentage allows you to define if more or less of the attenuation calculated from the distance and parameters of the input is applied. Again for Sub-bass in case you only have two and don't want to lose too much level or have hot-spots it may be wise to lower this setting to 50%.\n- Minimal Latency toggles whether the output is scanned for the smallest calculated delay and also if the setting once engaged on an input will reduce the delay for that input through this speaker.\n- Live Source Attenuation toggles the reduction of level of nearby input if they have this setting enabled. This may not be necessary for speakers away from the audience or for sub-bass.\n- Floor Reflections toggles if the reflections are applied to the signal for this output such as sub-bass and flown arrays...
+  - EN: There are a few parameters to help you adjust to the acoustic sound.\nMost of these parameters are set for whole arrays unless the propagation mode is switched to off for this output in the array. Relative change can also be selected after a specific setting.\n- Orientation and On/Off Angles define what inputs each speaker will amplify. By default the speakers are pointing to the audience, away from the stage. Inputs in the green sector will be amplified, but not the ones in front of the speaker, in the red sector. There is a fade between both sectors. For sub-bass speakers which usually come in limited numbers and locations, opening all the way to the maximum will allow you to have all inputs possibly picked up by the subwoofers.\n- HF Damping simulates the loss of high frequency with distance. Speakers close to the listeners can have more than speakers away from the stage and the listeners.\n- Distance Attenuation percentage allows you to define if more or less of the attenuation calculated from the distance and parameters of the input is applied. Again for Sub-bass in case you only have two and don't want to lose too much level or have hot-spots it may be wise to lower this setting to 50%.\n- Minimal Latency allows or excludes this speaker from Minimal Latency processing. When allowed, the output is scanned for the smallest calculated delay and, once the setting is engaged on an input, the delay for that input through this speaker is reduced.\n- Live Source Attenuation allows or excludes this speaker from the level reduction of nearby inputs that have this setting enabled. This may not be necessary for speakers away from the audience or for sub-bass.\n- Floor Reflections allows or excludes this speaker from the reflections applied to the signal, such as sub-bass and flown arrays...
   - FR: Il y a quelques paramètres pour vous aider à ajuster au son acoustique.\nLa plupart de ces paramètres sont définis pour des arrays entiers sauf si le mode de propagation est désactivé pour cette sortie dans l'array. Un changement relatif peut aussi être sélectionné après un réglage spécifique.\n- Orientation et Angles On/Off définissent quelles entrées chaque haut-parleur amplifiera. Par défaut les haut-parleurs pointent vers le public, dos à la scène. Les entrées dans le secteur vert seront amplifiées, mais pas celles devant le haut-parleur, dans le secteur rouge. Il y a un fondu entre les deux secteurs. Pour les haut-parleurs de sub-basses qui sont généralement en nombre et emplacements limités, ouvrir complètement au maximum permettra d'avoir toutes les entrées potentiellement captées par les subwoofers.\n- L'Atténuation HF simule la perte de hautes fréquences avec la distance. Les haut-parleurs proches des auditeurs peuvent en avoir plus que ceux éloignés de la scène et des auditeurs.\n- Le pourcentage d'Atténuation par Distance permet de définir si plus ou moins de l'atténuation calculée à partir de la distance et des paramètres de l'entrée est appliquée. Encore pour les Sub-basses, si vous n'en avez que deux et ne voulez pas trop perdre de niveau ou avoir des points chauds, il peut être judicieux de baisser ce réglage à 50%.\n- La Minimal Latency active si la sortie est scannée pour le plus petit délai calculé et aussi si le réglage une fois engagé sur une entrée réduira le délai pour cette entrée à travers ce haut-parleur.\n- L'Atténuation Live Source active la réduction de niveau des entrées proches si elles ont ce réglage activé. Cela peut ne pas être nécessaire pour les haut-parleurs éloignés du public ou pour les sub-basses.\n- Les Floor Reflections activent si les réflexions sont appliquées au signal pour cette sortie comme les sub-basses et les arrays suspendus...
   - [ ] OK    Fix: 
 
@@ -708,7 +765,7 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: Pre-processing sending of the input channels to the reverb nodes.\n- Orientation and On/Off Angles define what inputs each reverb node will receive. Inputs in the green sector will be picked-up, but not the ones in front in the red sector. There is a fade between both sectors.\n- HF Damping simulates the loss of high frequency with distance.\n- Distance Attenuation percentage allows you to define if more or less of the attenuation calculated from the distance and parameters of the input is applied.\n- Minimal Latency toggles whether the output is scanned for the smallest calculated delay and also if the setting once engaged on an input will reduce the delay for that input through this reverb node.\n- Live Source Attenuation toggles the reduction of level of nearby input if they have this setting enabled.
-  - FR: Envoi pré-traitement des Input Channels aux nœuds de réverbération.\n- Orientation et angles On/Off définissent quelles entrées chaque nœud recevra.\n- Amortissement HF simule la perte de hautes fréquences avec la distance.\n- Pourcentage d'atténuation de distance définit l'atténuation appliquée.\n- Minimal Latency détermine si le plus petit délai calculé est utilisé.\n- Atténuation Live Source active la réduction de niveau des entrées proches.
+  - FR: Alimentation Réverbération\n\nEnvoi pré-traitement des Input Channels aux nœuds de réverbération.\n- Orientation et angles On/Off définissent quelles entrées chaque nœud recevra.\n- Amortissement HF simule la perte de hautes fréquences avec la distance.\n- Pourcentage d'atténuation de distance définit l'atténuation appliquée.\n- Minimal Latency détermine si le plus petit délai calculé est utilisé.\n- Atténuation Live Source active la réduction de niveau des entrées proches.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -744,7 +801,7 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: Post-processing sending to the speakers.\n- Distance Attenuation defines the level drop per meter to the speakers.\n- Common Attenuation will look for the lowest attenuation and keep only a percentage of this level drop and apply this across all other outputs.\n- Mutes and Mute Macros allow to prevent a reverb channel from feeding an output. For instance it may not be necessary to send reverb to sub-bass speakers.
-  - FR: Post-traitement envoyé aux haut-parleurs.\n- Atténuation de Distance définit la perte de niveau par mètre.\n- Atténuation Commune garde un pourcentage de la plus faible atténuation.\n- Mutes et Mute Macros empêchent un canal de réverbération d'alimenter une sortie.
+  - FR: Retour Réverbération\n\nPost-traitement envoyé aux haut-parleurs.\n- Atténuation de Distance définit la perte de niveau par mètre.\n- Atténuation Commune garde un pourcentage de la plus faible atténuation.\n- Mutes et Mute Macros empêchent un canal de réverbération d'alimenter une sortie.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -774,6 +831,18 @@ Walk through each section. For every entry:
 - **`title`**
   - EN: Session Data
   - FR: Données de Session
+  - [ ] OK    Fix: 
+
+## `help.shortcuts`
+
+- **`body`**
+  - EN: *H* opens the help card closest to the pointer.\n*I*, *O* and *R* open the Input, Output and Reverb tabs respectively; for a few seconds afterwards you can type a channel number to select it (confirm with *Enter*).\n*N* opens the Network tab.\n*C* opens the Clusters tab.\n*M* opens the Map tab.\n*Spacebar* scrolls to the next channel and *Shift+Spacebar* to the previous one in the Input, Output and Reverb tabs. On the Clusters tab they cycle through the clusters.\n*Ctrl/Cmd* while adjusting a parameter of an output channel that is part of an array adjusts the parameter for the selected channel only, temporarily disabling the propagation to the rest of the array.\n*F1* to *F10* assign inputs to the corresponding cluster in the Input and Map tabs, assign outputs to the corresponding array in the Output tab, and select the corresponding cluster in the Clusters tab. *F11* sets the channel back to Single.\n*Shift* while adjusting a parameter of an input that is part of a cluster adjusts this parameter for the other inputs of the cluster in relative mode: the variation affects all inputs of the cluster, but relative offsets are kept. *Ctrl/Cmd+Shift* changes the parameter in absolute mode: the value becomes identical across all inputs of the cluster.\n*Ctrl/Cmd+Z* undoes the last change; *Ctrl/Cmd+Y* or *Ctrl/Cmd+Shift+Z* redoes it.
+  - FR: *H* ouvre la carte d'aide la plus proche du pointeur.\n*I*, *O* et *R* ouvrent respectivement les onglets Inputs (entrées), Outputs (sorties) et Reverb ; pendant quelques secondes, vous pouvez ensuite saisir un numéro de canal pour le sélectionner (validez avec *Entrée*).\n*N* ouvre l'onglet Network (réseau).\n*C* ouvre l'onglet Clusters (groupes).\n*M* ouvre l'onglet Map (carte).\nLa *barre d'espace* passe au canal suivant et *Maj+Espace* au canal précédent dans les onglets Inputs, Outputs et Reverb. Dans l'onglet Clusters, elles font défiler les groupes.\n*Ctrl/Cmd* pendant l'ajustement d'un paramètre d'une sortie appartenant à un array ajuste le paramètre du canal sélectionné uniquement, en désactivant temporairement la propagation au reste de l'array.\n*F1* à *F10* assignent les entrées au groupe correspondant dans les onglets Inputs et Map, assignent les sorties à l'array correspondant dans l'onglet Outputs et sélectionnent le groupe correspondant dans l'onglet Clusters. *F11* repasse le canal en Single.\n*Maj* pendant l'ajustement d'un paramètre d'une entrée appartenant à un groupe ajuste ce paramètre pour les autres entrées du groupe en mode relatif : la variation s'applique à toutes les entrées du groupe en conservant leurs écarts. *Ctrl/Cmd+Maj* modifie le paramètre en mode absolu : la valeur devient identique pour toutes les entrées du groupe.\n*Ctrl/Cmd+Z* annule la dernière modification ; *Ctrl/Cmd+Y* ou *Ctrl/Cmd+Maj+Z* la rétablit.
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Keyboard Shortcuts
+  - FR: Raccourcis clavier
   - [ ] OK    Fix: 
 
 ## `help.snapshotScope`
@@ -1580,6 +1649,16 @@ Walk through each section. For every entry:
   - FR: Configuration entrées chargée depuis la sauvegarde.
   - [ ] OK    Fix: 
 
+- **`clusterEditAbsolute`**
+  - EN: Ctrl+Shift edit: copying value to {count} other input(s) of Cluster {cluster}
+  - FR: Édition Ctrl+Maj : valeur copiée sur {count} autre(s) entrée(s) du Groupe {cluster}
+  - [ ] OK    Fix: 
+
+- **`clusterEditRelative`**
+  - EN: Shift edit: applying relative change to {count} other input(s) of Cluster {cluster}
+  - FR: Édition Maj : changement relatif appliqué à {count} autre(s) entrée(s) du Groupe {cluster}
+  - [ ] OK    Fix: 
+
 - **`configExported`**
   - EN: Input configuration exported.
   - FR: Configuration entrées exportée.
@@ -1643,6 +1722,11 @@ Walk through each section. For every entry:
 - **`snapshotLoadedWithoutScope`**
   - EN: Snapshot '{name}' loaded (without scope).
   - FR: Snapshot '{name}' chargé (sans portée).
+  - [ ] OK    Fix: 
+
+- **`snapshotScopeUpdated`**
+  - EN: Snapshot '{name}' scope updated.
+  - FR: Portée du snapshot '{name}' mise à jour.
   - [ ] OK    Fix: 
 
 - **`snapshotStored`**
@@ -2144,6 +2228,18 @@ Walk through each section. For every entry:
   - FR: Veuillez d'abord sélectionner un dossier projet dans System Config.
   - [ ] OK    Fix: 
 
+## `network.remote`
+
+- **`notResponding`**
+  - EN: Remote not responding — the tablet app may be outdated or unreachable
+  - FR: La télécommande ne répond pas — l'application tablette est peut-être obsolète ou injoignable
+  - [ ] OK    Fix: 
+
+- **`protocolMismatch`**
+  - EN: Remote app uses protocol v{remote}, expected v{local} — update the tablet app
+  - FR: L'application distante utilise le protocole v{remote}, v{local} attendu — mettez à jour l'application tablette
+  - [ ] OK    Fix: 
+
 ## `networkLog.dialogs`
 
 - **`exportCompleteMessage`**
@@ -2283,8 +2379,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`floorReflections`**
-  - EN: Enable or Disable the Floor Reflections for this Speaker.
-  - FR: Activer ou désactiver les Floor Reflections pour cette enceinte.
+  - EN: Allow or exclude this speaker from Floor Reflections.
+  - FR: Autoriser ou exclure cette enceinte des Floor Reflections.
   - [ ] OK    Fix: 
 
 - **`hParallax`**
@@ -2303,8 +2399,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`liveSource`**
-  - EN: Disables Live Source Attenuation for Selected Output. (changes may affect the rest of the array)
-  - FR: Désactive l'atténuation de Live Source pour la sortie sélectionnée. (les modifications peuvent affecter le reste du groupe)
+  - EN: Allow or exclude this speaker from Live Source Attenuation. (may affect the rest of the array)
+  - FR: Autoriser ou exclure cette enceinte de l'atténuation Live Source. (peut affecter le reste du groupe)
   - [ ] OK    Fix: 
 
 - **`mapVisibility`**
@@ -2313,8 +2409,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`minLatency`**
-  - EN: Disables Minimal Latency Mode for Selected Output. (changes may affect the rest of the array)
-  - FR: Désactive le mode Minimal Latency pour la sortie sélectionnée. (les modifications peuvent affecter le reste du groupe)
+  - EN: Allow or exclude this speaker from Minimal Latency processing. (may affect the rest of the array)
+  - FR: Autoriser ou exclure cette enceinte du traitement Minimal Latency. (peut affecter le reste du groupe)
   - [ ] OK    Fix: 
 
 - **`nameEditor`**
@@ -2368,6 +2464,11 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 ## `outputs.messages`
+
+- **`arrayEditSingle`**
+  - EN: Ctrl edit: change applied to this output only (Array {array} not affected)
+  - FR: Édition Ctrl : modification appliquée à cette sortie uniquement (Groupe {array} non affecté)
+  - [ ] OK    Fix: 
 
 - **`assignedToArray`**
   - EN: Output {num} assigned to Array {array}
@@ -2463,6 +2564,11 @@ Walk through each section. For every entry:
   - FR: Sélectionner l'algorithme de réverbération FDN (Feedback Delay Network).
   - [ ] OK    Fix: 
 
+- **`algoFDNGpu`**
+  - EN: Run the FDN reverb on the GPU (adds ~20 ms to the wet path only) or on the CPU. Falls back to CPU automatically if the GPU is unavailable.
+  - FR: Exécute la réverb FDN sur le GPU (ajoute ~20 ms au signal wet uniquement) ou sur le CPU. Bascule automatiquement sur le CPU si le GPU est indisponible.
+  - [ ] OK    Fix: 
+
 - **`algoFDNSize`**
   - EN: FDN delay line size multiplier (0.5 - 2.0x).
   - FR: Multiplicateur de taille des lignes de délai FDN (0.5 - 2.0x).
@@ -2476,6 +2582,11 @@ Walk through each section. For every entry:
 - **`algoIRFile`**
   - EN: Select or import an impulse response file for convolution.
   - FR: Sélectionner ou importer un fichier de réponse impulsionnelle pour la convolution.
+  - [ ] OK    Fix: 
+
+- **`algoIRGpu`**
+  - EN: Run the IR convolution on the GPU (adds ~20 ms to the wet path only) or on the CPU. Falls back to CPU automatically if the GPU is unavailable.
+  - FR: Exécute la convolution IR sur le GPU (ajoute ~20 ms au signal wet uniquement) ou sur le CPU. Bascule automatiquement sur le CPU si le GPU est indisponible.
   - [ ] OK    Fix: 
 
 - **`algoIRLength`**
@@ -2513,6 +2624,11 @@ Walk through each section. For every entry:
   - FR: Sélectionner l'algorithme de réverbération SDN (Scattering Delay Network).
   - [ ] OK    Fix: 
 
+- **`algoSDNGpu`**
+  - EN: Run the SDN reverb on the GPU (adds ~20 ms to the wet path only) or on the CPU. Falls back to CPU automatically if the GPU is unavailable.
+  - FR: Exécute la réverb SDN sur le GPU (ajoute ~20 ms au signal wet uniquement) ou sur le CPU. Bascule automatiquement sur le CPU si le GPU est indisponible.
+  - [ ] OK    Fix: 
+
 - **`algoSDNScale`**
   - EN: SDN inter-node delay scale factor (0.5 - 4.0x).
   - FR: Facteur d'échelle du délai inter-nœuds SDN (0.5 - 4.0x).
@@ -2531,6 +2647,11 @@ Walk through each section. For every entry:
 - **`angleOn`**
   - EN: Angle at which amplification starts (1-180 degrees).
   - FR: Angle auquel l'amplification commence (1-180 degrés).
+  - [ ] OK    Fix: 
+
+- **`applyToAllNodes`**
+  - EN: When ON, parameter edits are applied to every reverb node at once; when OFF, only the selected node. Runtime only - only future edits propagate.
+  - FR: Lorsque activé, les modifications de paramètres s'appliquent à tous les nœuds de réverbération à la fois ; lorsque désactivé, uniquement au nœud sélectionné. Effet à l'exécution uniquement - seules les modifications futures se propagent.
   - [ ] OK    Fix: 
 
 - **`attenuation`**
@@ -2624,8 +2745,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`liveSourceTooltip`**
-  - EN: Enable Live Source attenuation tamer. Reduces level fluctuations from sources close to the array.
-  - FR: Activer le Live Source Tamer. Réduit les fluctuations de niveau des sources proches du groupe.
+  - EN: Allow or exclude this reverb feed from Live Source Attenuation.
+  - FR: Autoriser ou exclure ce départ de réverbération de l'atténuation Live Source.
   - [ ] OK    Fix: 
 
 - **`mapVisibility`**
@@ -2634,8 +2755,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`miniLatencyTooltip`**
-  - EN: Enable minimal latency mode for this reverb channel. Reduces processing delay at the cost of higher CPU usage.
-  - FR: Activer le mode latence minimale pour ce canal de réverbération. Réduit le délai de traitement au prix d'une utilisation CPU plus élevée.
+  - EN: Allow or exclude this reverb feed from Minimal Latency processing.
+  - FR: Autoriser ou exclure ce départ de réverbération du traitement Minimal Latency.
   - [ ] OK    Fix: 
 
 - **`muteButton`**
@@ -3098,6 +3219,11 @@ Walk through each section. For every entry:
 - **`exportSystem`**
   - EN: Export System Configuration to file (with file explorer window).
   - FR: Exporte la configuration système vers un fichier (avec explorateur de fichiers).
+  - [ ] OK    Fix: 
+
+- **`gpuPipelineDepth`**
+  - EN: GPU pipeline depth in audio blocks. Adds depth x buffer/sample-rate of constant latency (pre-subtracted from WFS delays) and absorbs GPU stalls of the same length: deeper = immune to desktop/UI hiccups, shallower = lower latency. Applies live. Default 4.
+  - FR: Profondeur du pipeline GPU en blocs audio. Ajoute depth x buffer/fréquence d'échantillonnage de latence constante (pré-soustraite des délais WFS) et absorbe les interruptions GPU de même durée : plus profond = immunisé contre les à-coups du bureau/de l'interface, moins profond = latence plus faible. Application en direct. Défaut 4.
   - [ ] OK    Fix: 
 
 - **`haasEffect`**

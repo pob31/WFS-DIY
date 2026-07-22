@@ -1,6 +1,6 @@
 # Proofreading checklist — Japanese (日本語)
 
-Locale: `ja`  |  Total keys: 663  |  Source: `Resources/lang/en.json` vs `Resources/lang/ja.json`
+Locale: `ja`  |  Total keys: 687  |  Source: `Resources/lang/en.json` vs `Resources/lang/ja.json`
 
 ## How to use this file
 
@@ -429,7 +429,7 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: ADM-OSC is a protocol aiming to improve interoperability for spatial sound. It sends Cartesian positions (X, Y, Z) or polar values (AED for Azimuth, Elevation, Distance) from the console or from a DAW's automation curves.\nData is sent normalised:\n- between -1.0 and 1.0 for X, Y and Z;\n- between 0.0 to 1.0 for distance,\n- between -180° to 180° for Azimuth\n- between -90° to 90° for elevation.\nThe origin point can be moved and the mapping can also be adjusted in different segments for the inner and outer parts of the stage.\nWhen dragging the handles on the graphs, holding the shift key will apply symmetrical adjustments on the opposite side.
-  - JA: ADM-OSCは空間音響の相互運用性を向上させるプロトコルです。コンソールやDAWのオートメーションカーブからデカルト座標（X, Y, Z）または極座標値（AED：方位角、仰角、距離）を送信します。\nデータは正規化されて送信されます：\n- X、Y、Zは-1.0から1.0の間\n- 距離は0.0から1.0の間\n- 方位角は-180°から180°の間\n- 仰角は-90°から90°の間\n原点を移動でき、マッピングはステージの内側と外側で異なるセグメントに調整できます。\nグラフのハンドルをドラッグする際、Shiftキーを押すと反対側に対称的な調整が適用されます。
+  - JA: ADM-OSCマッピング\n\nADM-OSCは空間音響の相互運用性を向上させるプロトコルです。コンソールやDAWのオートメーションカーブからデカルト座標（X, Y, Z）または極座標値（AED：方位角、仰角、距離）を送信します。\nデータは正規化されて送信されます：\n- X、Y、Zは-1.0から1.0の間\n- 距離は0.0から1.0の間\n- 方位角は-180°から180°の間\n- 仰角は-90°から90°の間\n原点を移動でき、マッピングはステージの内側と外側で異なるセグメントに調整できます。\nグラフのハンドルをドラッグする際、Shiftキーを押すと反対側に対称的な調整が適用されます。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -453,7 +453,7 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: The Binaural renderer is used for:\n- listening to a rough spatial mix on headphones,\n- creating a mix for stereo output,\n- listening to a single soloed track through the spatial processing.\nThis may take the place of your master mix if it's only feeding headphones and media mix.\nThe position of the listening position may be adjusted in depth from the origin point and in orientation. Delay and level settings allow you to eventually match the sound at the FOH position.
-  - JA: Binaural Rendererの用途：\n- ヘッドフォンで大まかな空間ミックスを聴く\n- ステレオ出力用のミックスを作成する\n- ソロトラックを空間処理で聴く\nヘッドフォンとメディアミックスのみに使用する場合、マスターミックスの代わりになります。\nリスニング位置は原点からの奥行きと向きで調整できます。ディレイとレベルの設定でFOH位置の音に合わせることができます。
+  - JA: バイノーラルレンダラー\n\nBinaural Rendererの用途：\n- ヘッドフォンで大まかな空間ミックスを聴く\n- ステレオ出力用のミックスを作成する\n- ソロトラックを空間処理で聴く\nヘッドフォンとメディアミックスのみに使用する場合、マスターミックスの代わりになります。\nリスニング位置は原点からの奥行きと向きで調整できます。ディレイとレベルの設定でFOH位置の音に合わせることができます。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -471,6 +471,18 @@ Walk through each section. For every entry:
 - **`title`**
   - EN: Clusters
   - JA: クラスター
+  - [ ] OK    Fix: 
+
+## `help.diagnostics`
+
+- **`body`**
+  - EN: The diagnostic tools are hidden by default: long-press the Diagnostics button below to show or hide them. They appear automatically when the previous session did not shut down cleanly.\nTo send feedback or report a problem, click Report Issue: it opens the project's GitHub issue tracker in your browser. Describe what happened, what you expected and the steps to reproduce it, then attach the exported diagnostic data.\nExport Logs copies the useful data to a WFS-DIY-logs folder at the location you choose: the logs of the current and up to five previous sessions, plus the application settings file. Attach this folder (or a zip of it) to your report.\nThe session logs contain start-up information (application version, operating system, CPU, channel counts), project loading, network activity and errors. No audio is ever recorded.\nOpen Log Folder shows the raw session logs on disk (the WFS-DIY/logs folder in the user application data directory), useful to find a specific session.\nCopy System Info puts a short summary on the clipboard — application version, operating system, CPU and the current audio device with its sample rate and buffer size — ready to paste into an issue.
+  - JA: 診断ツールは既定では非表示です。下の Diagnostics ボタンを長押しすると表示／非表示が切り替わります。前回のセッションが正常に終了しなかった場合は自動的に表示されます。\nフィードバックや問題の報告には「問題を報告」（Report Issue）をクリックします。ブラウザーでプロジェクトの GitHub イシュートラッカーが開きます。何が起きたか、何を期待していたか、再現手順を記載し、エクスポートした診断データを添付してください。\n「ログをエクスポート」（Export Logs）は、選択した場所の WFS-DIY-logs フォルダーに有用なデータをコピーします。現在のセッションと最大5つ前までのセッションのログ、およびアプリケーション設定ファイルが含まれます。このフォルダー（または zip）を報告に添付してください。\nセッションログには起動情報（アプリのバージョン、OS、CPU、チャンネル数）、プロジェクトの読み込み、ネットワーク活動、エラーが記録されます。音声が記録されることはありません。\n「ログフォルダーを開く」（Open Log Folder）は、ディスク上の生のセッションログ（ユーザーのアプリケーションデータにある WFS-DIY/logs フォルダー）を表示します。特定のセッションを探すのに便利です。\n「システム情報をコピー」（Copy System Info）は、アプリのバージョン、OS、CPU、現在のオーディオデバイス（サンプルレートとバッファーサイズ）の短い要約をクリップボードにコピーします。そのままイシューに貼り付けられます。
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Diagnostics & Feedback
+  - JA: 診断とフィードバック
   - [ ] OK    Fix: 
 
 ## `help.floorReflections`
@@ -549,7 +561,7 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: You can set for each output array a specific attenuation for the selected input.\nYou can mute each send to any output individually. There are macros to speed up the process.
-  - JA: 各出力アレイに対して、選択したインプットの特定の減衰を設定できます。\n各送りを任意の出力に対して個別にミュートできます。プロセスを高速化するためのマクロがあります。
+  - JA: アレイ減衰と出力ミュート\n\n各出力アレイに対して、選択したインプットの特定の減衰を設定できます。\n各送りを任意の出力に対して個別にミュートできます。プロセスを高速化するためのマクロがあります。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -573,7 +585,52 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: A loud source on stage may not need much reinforcement through the nearby speakers. Imagine an opera singer near the edge of the stage. Normally the level distribution would make the level louder near the input position. But if it is already loud enough we should be able to not over-amplify it. This function manages this.\nThe radius and shape describe how to attenuate the level for a specific source for speakers within the radius of influence of this input. There are various shapes: a V shaped linear effect; a U shape for fast decrease within the radius; a tight V effect or a mix of the previous (sine).\nThe attenuation can be constant or level dependent like a local compression reacting to transients and to average RMS level.
-  - JA: ステージ上の大音量ソースは近くのスピーカーからの増幅が不要な場合があります。ステージ端のオペラ歌手を想像してください。通常、レベル配分は入力位置付近のレベルを上げます。しかし既に十分な音量であれば、過剰増幅すべきではありません。この機能がそれを管理します。\n半径と形状は、この入力の影響半径内のスピーカーに対するレベル減衰方法を記述します。様々な形状があります：V字型の線形効果、U字型の急速減衰、狭いV字型、またはそれらの混合（サイン）。\n減衰は一定にするか、トランジェントと平均RMSレベルに反応するローカルコンプレッションのようにレベル依存にできます。
+  - JA: ライブソーステイマー\n\nステージ上の大音量ソースは近くのスピーカーからの増幅が不要な場合があります。ステージ端のオペラ歌手を想像してください。通常、レベル配分は入力位置付近のレベルを上げます。しかし既に十分な音量であれば、過剰増幅すべきではありません。この機能がそれを管理します。\n半径と形状は、この入力の影響半径内のスピーカーに対するレベル減衰方法を記述します。様々な形状があります：V字型の線形効果、U字型の急速減衰、狭いV字型、またはそれらの混合（サイン）。\n減衰は一定にするか、トランジェントと平均RMSレベルに反応するローカルコンプレッションのようにレベル依存にできます。
+  - [ ] OK    Fix: 
+
+- **`legendAttenuation`**
+  - EN: attenuation
+  - JA: 減衰
+  - [ ] OK    Fix: 
+
+- **`legendLinear`**
+  - EN: linear
+  - JA: リニア
+  - [ ] OK    Fix: 
+
+- **`legendLog`**
+  - EN: log
+  - JA: 対数
+  - [ ] OK    Fix: 
+
+- **`legendMaxAttenuation`**
+  - EN: maximum attenuation
+  - JA: 最大減衰
+  - [ ] OK    Fix: 
+
+- **`legendNoAttenuation`**
+  - EN: no attenuation
+  - JA: 減衰なし
+  - [ ] OK    Fix: 
+
+- **`legendPosition`**
+  - EN: position of the source
+  - JA: 音源の位置
+  - [ ] OK    Fix: 
+
+- **`legendRadius`**
+  - EN: radius
+  - JA: 半径
+  - [ ] OK    Fix: 
+
+- **`legendSine`**
+  - EN: sine
+  - JA: 正弦
+  - [ ] OK    Fix: 
+
+- **`legendSquare`**
+  - EN: square x²
+  - JA: 二乗 x²
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -597,7 +654,7 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: The MCP server lets an AI assistant (Claude Desktop, Claude Code, ChatGPT with custom connectors) read and write the parameters of this WFS-DIY session over a local network connection.\n\nWhat the AI can do:\n• Read live state: channel counts, names, positions, attenuations, EQs, snapshots, clusters, the full parameter surface.\n• Move sources, rename channels, set cluster assignments, adjust the array layout, place outputs and reverbs.\n• Run guided workflows (system tuning walkthroughs, troubleshooting localization, snapshot management) via prepared prompt templates.\n\nOperator controls on this row:\n• AI: ON / OFF — master switch. When OFF every AI tool call is refused; when ON the AI works under the rules below.\n• AI critical actions: blocked / ALLOWED — the destructive actions (deleting snapshots, resetting DSP, changing channel counts) are blocked by default. Click to allow them for 10 minutes; the red fill drains as the window expires, then they auto-block again.\n• Open AI History — scrollable timeline of every recent AI change with per-row undo / redo and a step-by-step cursor.\n• The MCP URL button copies the server URL to the clipboard for AI clients that take a URL directly.\n\nOperator awareness:\n• Every AI action is recorded with origin tags. The AI History window shows the full timeline; per-row × reverses an action with its dependents.\n• If you manually adjust a parameter the AI just moved, the AI is notified and will not blindly retry. You always have the last word.\n• The Cmd/Ctrl+Alt+Z and Cmd/Ctrl+Alt+Y shortcuts undo and redo the last AI change without affecting your manual edits (which use plain Ctrl+Z as usual).\n\nTo add this server to Claude Desktop:\n  1. Open Settings → Developer → Edit Config.\n  2. Paste the JSON snippet below into claude_desktop_config.json (merge into the existing mcpServers block if you already have one).\n  3. Restart Claude Desktop. The server appears as 'wfs-diy' in the tools menu.\n\nTo add to Claude Code, run:\n  claude mcp add wfs-diy <url> -t http\n\nThe URL changes if you switch network interface or if the server falls back to a different port. The URL button on this row always reflects the live URL.
-  - JA: MCP Serverは、AIアシスタント（Claude Desktop、Claude Code、カスタムコネクタ付きのChatGPT）が、ローカルネットワーク接続を介してこのWFS-DIYセッションのパラメーターを読み書きできるようにします。\n\nAIができること:\n• ライブ状態の読み取り: チャンネル数、名前、位置、減衰、EQ、スナップショット、クラスター、すべてのパラメーター。\n• ソースの移動、チャンネル名の変更、クラスター割り当ての設定、アレイレイアウトの調整、出力およびリバーブの配置。\n• 用意されたプロンプトテンプレートを介してガイド付きワークフロー（システムチューニングウォークスルー、定位のトラブルシューティング、スナップショット管理）を実行。\n\nこの行のオペレーター制御:\n• AI: ON / OFF — メインスイッチ。OFFの場合、すべてのAIツール呼び出しが拒否されます。ONの場合、AIは以下のルールに従って動作します。\n• クリティカルAIアクション: ブロック / 許可 — 破壊的なアクション（スナップショットの削除、DSPのリセット、チャンネル数の変更）はデフォルトでブロックされます。クリックして10分間許可。赤い塗りつぶしはウィンドウの期限切れとともに減り、その後自動的に再度ブロックされます。\n• AI履歴を開く — 最近のすべてのAI変更のスクロール可能なタイムライン。\n• MCP URLボタンは、URLを直接受け取るAIクライアント用にサーバーURLをクリップボードにコピーします。\n\nオペレーターの注意:\n• 各AIアクションは起源タグ付きで記録されます。AI履歴ウィンドウは完全なタイムラインを表示。行ごとの×は、依存関係を含めてアクションを取り消します。\n• AIが先ほど移動したパラメーターを手動で調整すると、AIは通知され、盲目的に再試行しません。常にあなたが最後の判断を下します。\n• Cmd/Ctrl+Alt+ZおよびCmd/Ctrl+Alt+Yショートカットは、手動編集（通常のCtrl+Z）に影響を与えずに最後のAI変更を取り消す/やり直します。\n\nこのサーバーをClaude Desktopに追加するには:\n  1. 設定 → 開発者 → 設定を編集を開きます。\n  2. 下のJSONスニペットをclaude_desktop_config.jsonに貼り付けます（既にmcpServersブロックがある場合はマージ）。\n  3. Claude Desktopを再起動。サーバーはツールメニューに'wfs-diy'として表示されます。\n\nClaude Codeに追加するには、実行:\n  claude mcp add wfs-diy <url> -t http\n\nURLは、Network Interfaceを切り替えたり、サーバーが別のポートにフォールバックすると変更されます。この行のURLボタンは常にライブのURLを反映します。
+  - JA: AI / MCPサーバー\n\nMCP Serverは、AIアシスタント（Claude Desktop、Claude Code、カスタムコネクタ付きのChatGPT）が、ローカルネットワーク接続を介してこのWFS-DIYセッションのパラメーターを読み書きできるようにします。\n\nAIができること:\n• ライブ状態の読み取り: チャンネル数、名前、位置、減衰、EQ、スナップショット、クラスター、すべてのパラメーター。\n• ソースの移動、チャンネル名の変更、クラスター割り当ての設定、アレイレイアウトの調整、出力およびリバーブの配置。\n• 用意されたプロンプトテンプレートを介してガイド付きワークフロー（システムチューニングウォークスルー、定位のトラブルシューティング、スナップショット管理）を実行。\n\nこの行のオペレーター制御:\n• AI: ON / OFF — メインスイッチ。OFFの場合、すべてのAIツール呼び出しが拒否されます。ONの場合、AIは以下のルールに従って動作します。\n• クリティカルAIアクション: ブロック / 許可 — 破壊的なアクション（スナップショットの削除、DSPのリセット、チャンネル数の変更）はデフォルトでブロックされます。クリックして10分間許可。赤い塗りつぶしはウィンドウの期限切れとともに減り、その後自動的に再度ブロックされます。\n• AI履歴を開く — 最近のすべてのAI変更のスクロール可能なタイムライン。\n• MCP URLボタンは、URLを直接受け取るAIクライアント用にサーバーURLをクリップボードにコピーします。\n\nオペレーターの注意:\n• 各AIアクションは起源タグ付きで記録されます。AI履歴ウィンドウは完全なタイムラインを表示。行ごとの×は、依存関係を含めてアクションを取り消します。\n• AIが先ほど移動したパラメーターを手動で調整すると、AIは通知され、盲目的に再試行しません。常にあなたが最後の判断を下します。\n• Cmd/Ctrl+Alt+ZおよびCmd/Ctrl+Alt+Yショートカットは、手動編集（通常のCtrl+Z）に影響を与えずに最後のAI変更を取り消す/やり直します。\n\nこのサーバーをClaude Desktopに追加するには:\n  1. 設定 → 開発者 → 設定を編集を開きます。\n  2. 下のJSONスニペットをclaude_desktop_config.jsonに貼り付けます（既にmcpServersブロックがある場合はマージ）。\n  3. Claude Desktopを再起動。サーバーはツールメニューに'wfs-diy'として表示されます。\n\nClaude Codeに追加するには、実行:\n  claude mcp add wfs-diy <url> -t http\n\nURLは、Network Interfaceを切り替えたり、サーバーが別のポートにフォールバックすると変更されます。この行のURLボタンは常にライブのURLを反映します。
   - [ ] OK    Fix: 
 
 - **`copyButton`**
@@ -630,7 +687,7 @@ Walk through each section. For every entry:
 ## `help.outputAdvanced`
 
 - **`body`**
-  - EN: There are a few parameters to help you adjust to the acoustic sound.\nMost of these parameters are set for whole arrays unless the propagation mode is switched to off for this output in the array. Relative change can also be selected after a specific setting.\n- Orientation and On/Off Angles define what inputs each speaker will amplify. By default the speakers are pointing to the audience, away from the stage. Inputs in the green sector will be amplified, but not the ones in front of the speaker, in the red sector. There is a fade between both sectors. For sub-bass speakers which usually come in limited numbers and locations, opening all the way to the maximum will allow you to have all inputs possibly picked up by the subwoofers.\n- HF Damping simulates the loss of high frequency with distance. Speakers close to the listeners can have more than speakers away from the stage and the listeners.\n- Distance Attenuation percentage allows you to define if more or less of the attenuation calculated from the distance and parameters of the input is applied. Again for Sub-bass in case you only have two and don't want to lose too much level or have hot-spots it may be wise to lower this setting to 50%.\n- Minimal Latency toggles whether the output is scanned for the smallest calculated delay and also if the setting once engaged on an input will reduce the delay for that input through this speaker.\n- Live Source Attenuation toggles the reduction of level of nearby input if they have this setting enabled. This may not be necessary for speakers away from the audience or for sub-bass.\n- Floor Reflections toggles if the reflections are applied to the signal for this output such as sub-bass and flown arrays...
+  - EN: There are a few parameters to help you adjust to the acoustic sound.\nMost of these parameters are set for whole arrays unless the propagation mode is switched to off for this output in the array. Relative change can also be selected after a specific setting.\n- Orientation and On/Off Angles define what inputs each speaker will amplify. By default the speakers are pointing to the audience, away from the stage. Inputs in the green sector will be amplified, but not the ones in front of the speaker, in the red sector. There is a fade between both sectors. For sub-bass speakers which usually come in limited numbers and locations, opening all the way to the maximum will allow you to have all inputs possibly picked up by the subwoofers.\n- HF Damping simulates the loss of high frequency with distance. Speakers close to the listeners can have more than speakers away from the stage and the listeners.\n- Distance Attenuation percentage allows you to define if more or less of the attenuation calculated from the distance and parameters of the input is applied. Again for Sub-bass in case you only have two and don't want to lose too much level or have hot-spots it may be wise to lower this setting to 50%.\n- Minimal Latency allows or excludes this speaker from Minimal Latency processing. When allowed, the output is scanned for the smallest calculated delay and, once the setting is engaged on an input, the delay for that input through this speaker is reduced.\n- Live Source Attenuation allows or excludes this speaker from the level reduction of nearby inputs that have this setting enabled. This may not be necessary for speakers away from the audience or for sub-bass.\n- Floor Reflections allows or excludes this speaker from the reflections applied to the signal, such as sub-bass and flown arrays...
   - JA: 音響サウンドに合わせて調整するためのいくつかのパラメータがあります。\nこれらのパラメータのほとんどは、アレイ全体に設定されます（伝搬モードがこの出力でオフの場合を除く）。特定の設定後に相対変更も選択できます。\n- 方向とOn/Off角度は、各スピーカーがどのインプットを増幅するかを定義します。デフォルトではスピーカーは観客に向かい、ステージから離れています。緑のセクターのインプットは増幅されますが、スピーカーの前方の赤いセクターのインプットは増幅されません。サブバスの場合、最大まで開くことですべてのインプットをカバーできます。\n- HFダンピングは距離による高周波の損失をシミュレートします。\n- Distance attenuationのパーセンテージは、計算された減衰のどれだけが適用されるかを定義します。サブバスの場合、50%に下げるのが賢明かもしれません。\n- Minimal Latencyは最小計算遅延のスキャンを有効にします。\n- Live Source減衰は近くのインプットのレベル低減を有効にします。\n- Floor Reflectionsは、サブバスやフライングアレイなど、この出力に反射が適用されるかどうかを切り替えます...
   - [ ] OK    Fix: 
 
@@ -708,7 +765,7 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: Pre-processing sending of the input channels to the reverb nodes.\n- Orientation and On/Off Angles define what inputs each reverb node will receive. Inputs in the green sector will be picked-up, but not the ones in front in the red sector. There is a fade between both sectors.\n- HF Damping simulates the loss of high frequency with distance.\n- Distance Attenuation percentage allows you to define if more or less of the attenuation calculated from the distance and parameters of the input is applied.\n- Minimal Latency toggles whether the output is scanned for the smallest calculated delay and also if the setting once engaged on an input will reduce the delay for that input through this reverb node.\n- Live Source Attenuation toggles the reduction of level of nearby input if they have this setting enabled.
-  - JA: Input Channelsからリバーブノードへの前処理送信。\n- 方向とOn/Off角度が各ノードが受信する入力を定義します。\n- HF減衰は距離による高周波損失をシミュレートします。\n- Distance attenuation率は適用される減衰を定義します。\n- 最小レイテンシは最小計算遅延の使用を切り替えます。\n- Live Source減衰は近くの入力のレベル低減を切り替えます。
+  - JA: リバーブフィード\n\nInput Channelsからリバーブノードへの前処理送信。\n- 方向とOn/Off角度が各ノードが受信する入力を定義します。\n- HF減衰は距離による高周波損失をシミュレートします。\n- Distance attenuation率は適用される減衰を定義します。\n- 最小レイテンシは最小計算遅延の使用を切り替えます。\n- Live Source減衰は近くの入力のレベル低減を切り替えます。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -744,7 +801,7 @@ Walk through each section. For every entry:
 
 - **`body`**
   - EN: Post-processing sending to the speakers.\n- Distance Attenuation defines the level drop per meter to the speakers.\n- Common Attenuation will look for the lowest attenuation and keep only a percentage of this level drop and apply this across all other outputs.\n- Mutes and Mute Macros allow to prevent a reverb channel from feeding an output. For instance it may not be necessary to send reverb to sub-bass speakers.
-  - JA: スピーカーへの後処理送信。\n- Distance attenuationはメートルあたりのレベル低下を定義します。\n- 共通減衰は最低減衰のパーセンテージを維持します。\n- ミュートはReverb Channelsが出力に送られるのを防ぎます。
+  - JA: リバーブリターン\n\nスピーカーへの後処理送信。\n- Distance attenuationはメートルあたりのレベル低下を定義します。\n- 共通減衰は最低減衰のパーセンテージを維持します。\n- ミュートはReverb Channelsが出力に送られるのを防ぎます。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -774,6 +831,18 @@ Walk through each section. For every entry:
 - **`title`**
   - EN: Session Data
   - JA: セッションデータ
+  - [ ] OK    Fix: 
+
+## `help.shortcuts`
+
+- **`body`**
+  - EN: *H* opens the help card closest to the pointer.\n*I*, *O* and *R* open the Input, Output and Reverb tabs respectively; for a few seconds afterwards you can type a channel number to select it (confirm with *Enter*).\n*N* opens the Network tab.\n*C* opens the Clusters tab.\n*M* opens the Map tab.\n*Spacebar* scrolls to the next channel and *Shift+Spacebar* to the previous one in the Input, Output and Reverb tabs. On the Clusters tab they cycle through the clusters.\n*Ctrl/Cmd* while adjusting a parameter of an output channel that is part of an array adjusts the parameter for the selected channel only, temporarily disabling the propagation to the rest of the array.\n*F1* to *F10* assign inputs to the corresponding cluster in the Input and Map tabs, assign outputs to the corresponding array in the Output tab, and select the corresponding cluster in the Clusters tab. *F11* sets the channel back to Single.\n*Shift* while adjusting a parameter of an input that is part of a cluster adjusts this parameter for the other inputs of the cluster in relative mode: the variation affects all inputs of the cluster, but relative offsets are kept. *Ctrl/Cmd+Shift* changes the parameter in absolute mode: the value becomes identical across all inputs of the cluster.\n*Ctrl/Cmd+Z* undoes the last change; *Ctrl/Cmd+Y* or *Ctrl/Cmd+Shift+Z* redoes it.
+  - JA: *H*：ポインターに最も近いヘルプカードを開きます。\n*I*、*O*、*R*：それぞれ Inputs（入力）、Outputs（出力）、Reverb タブを開きます。その後数秒間はチャンネル番号を入力して選択できます（*Enter* で確定）。\n*N*：Network（ネットワーク）タブを開きます。\n*C*：Clusters（クラスター）タブを開きます。\n*M*：Map（マップ）タブを開きます。\n*スペースキー*：Inputs・Outputs・Reverb タブで次のチャンネルへ、*Shift+スペース*で前のチャンネルへ移動します。Clusters タブではクラスターを順に切り替えます。\n*Ctrl/Cmd*：アレイに属する出力のパラメーターを調整中に押すと、選択中のチャンネルのみが変更され、アレイの他のチャンネルへの伝播が一時的に無効になります。\n*F1*〜*F10*：Inputs・Map タブでは入力を対応するクラスターに割り当て、Outputs タブでは出力を対応するアレイに割り当て、Clusters タブでは対応するクラスターを選択します。*F11* はチャンネルを Single に戻します。\n*Shift*：クラスターに属する入力のパラメーターを調整中に押すと、クラスターの他の入力も相対モードで変更されます。変化はクラスターの全入力に適用され、相対的な差は維持されます。*Ctrl/Cmd+Shift* は絶対モードで変更し、クラスターの全入力で値が同一になります。\n*Ctrl/Cmd+Z*：直前の変更を取り消します。*Ctrl/Cmd+Y* または *Ctrl/Cmd+Shift+Z* はやり直します。
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Keyboard Shortcuts
+  - JA: キーボードショートカット
   - [ ] OK    Fix: 
 
 ## `help.snapshotScope`
@@ -1580,6 +1649,16 @@ Walk through each section. For every entry:
   - JA: バックアップから入力設定を読み込みました。
   - [ ] OK    Fix: 
 
+- **`clusterEditAbsolute`**
+  - EN: Ctrl+Shift edit: copying value to {count} other input(s) of Cluster {cluster}
+  - JA: Ctrl+Shift編集: クラスター {cluster} の他の {count} 入力に値をコピー
+  - [ ] OK    Fix: 
+
+- **`clusterEditRelative`**
+  - EN: Shift edit: applying relative change to {count} other input(s) of Cluster {cluster}
+  - JA: Shift編集: クラスター {cluster} の他の {count} 入力に相対変更を適用
+  - [ ] OK    Fix: 
+
 - **`configExported`**
   - EN: Input configuration exported.
   - JA: 入力設定をエクスポートしました。
@@ -1643,6 +1722,11 @@ Walk through each section. For every entry:
 - **`snapshotLoadedWithoutScope`**
   - EN: Snapshot '{name}' loaded (without scope).
   - JA: スナップショット '{name}' を読み込みました（スコープなし）。
+  - [ ] OK    Fix: 
+
+- **`snapshotScopeUpdated`**
+  - EN: Snapshot '{name}' scope updated.
+  - JA: スナップショット '{name}' のスコープを更新しました。
   - [ ] OK    Fix: 
 
 - **`snapshotStored`**
@@ -2144,6 +2228,18 @@ Walk through each section. For every entry:
   - JA: まずSystem Configでプロジェクトフォルダを選択してください。
   - [ ] OK    Fix: 
 
+## `network.remote`
+
+- **`notResponding`**
+  - EN: Remote not responding — the tablet app may be outdated or unreachable
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`protocolMismatch`**
+  - EN: Remote app uses protocol v{remote}, expected v{local} — update the tablet app
+  - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
 ## `networkLog.dialogs`
 
 - **`exportCompleteMessage`**
@@ -2283,8 +2379,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`floorReflections`**
-  - EN: Enable or Disable the Floor Reflections for this Speaker.
-  - JA: このスピーカーのFloor Reflectionsを有効または無効にします。
+  - EN: Allow or exclude this speaker from Floor Reflections.
+  - JA: このスピーカーをFloor Reflectionsに含めるか除外します。
   - [ ] OK    Fix: 
 
 - **`hParallax`**
@@ -2303,8 +2399,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`liveSource`**
-  - EN: Disables Live Source Attenuation for Selected Output. (changes may affect the rest of the array)
-  - JA: 選択した出力のLive Source減衰を無効にします。（変更はアレイの残りに影響する場合があります）
+  - EN: Allow or exclude this speaker from Live Source Attenuation. (may affect the rest of the array)
+  - JA: このスピーカーをLive Source減衰に含めるか除外します。（アレイの残りに影響する場合があります）
   - [ ] OK    Fix: 
 
 - **`mapVisibility`**
@@ -2313,8 +2409,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`minLatency`**
-  - EN: Disables Minimal Latency Mode for Selected Output. (changes may affect the rest of the array)
-  - JA: 選択した出力のMinimal Latencyモードを無効にします。（変更はアレイの残りに影響する場合があります）
+  - EN: Allow or exclude this speaker from Minimal Latency processing. (may affect the rest of the array)
+  - JA: このスピーカーをMinimal Latency処理に含めるか除外します。（アレイの残りに影響する場合があります）
   - [ ] OK    Fix: 
 
 - **`nameEditor`**
@@ -2368,6 +2464,11 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 ## `outputs.messages`
+
+- **`arrayEditSingle`**
+  - EN: Ctrl edit: change applied to this output only (Array {array} not affected)
+  - JA: Ctrl編集: 変更をこの出力のみに適用 (アレイ {array} には影響しません)
+  - [ ] OK    Fix: 
 
 - **`assignedToArray`**
   - EN: Output {num} assigned to Array {array}
@@ -2463,6 +2564,11 @@ Walk through each section. For every entry:
   - JA: FDN（Feedback Delay Network）リバーブアルゴリズムを選択。
   - [ ] OK    Fix: 
 
+- **`algoFDNGpu`**
+  - EN: Run the FDN reverb on the GPU (adds ~20 ms to the wet path only) or on the CPU. Falls back to CPU automatically if the GPU is unavailable.
+  - JA: FDNリバーブをGPUで実行します（ウェット信号のみ約20 ms追加）。GPUが利用できない場合は自動的にCPUに切り替わります。
+  - [ ] OK    Fix: 
+
 - **`algoFDNSize`**
   - EN: FDN delay line size multiplier (0.5 - 2.0x).
   - JA: FDN ディレイライン長の乗数（0.5 - 2.0x）。
@@ -2476,6 +2582,11 @@ Walk through each section. For every entry:
 - **`algoIRFile`**
   - EN: Select or import an impulse response file for convolution.
   - JA: 畳み込み用のインパルス応答ファイルを選択またはインポート。
+  - [ ] OK    Fix: 
+
+- **`algoIRGpu`**
+  - EN: Run the IR convolution on the GPU (adds ~20 ms to the wet path only) or on the CPU. Falls back to CPU automatically if the GPU is unavailable.
+  - JA: IRコンボリューションをGPUで実行します（ウェット信号のみ約20 ms追加）。GPUが利用できない場合は自動的にCPUに切り替わります。
   - [ ] OK    Fix: 
 
 - **`algoIRLength`**
@@ -2513,6 +2624,11 @@ Walk through each section. For every entry:
   - JA: SDN（Scattering Delay Network）リバーブアルゴリズムを選択。
   - [ ] OK    Fix: 
 
+- **`algoSDNGpu`**
+  - EN: Run the SDN reverb on the GPU (adds ~20 ms to the wet path only) or on the CPU. Falls back to CPU automatically if the GPU is unavailable.
+  - JA: SDNリバーブをGPUで実行します（ウェット信号のみ約20 ms追加）。GPUが利用できない場合は自動的にCPUに切り替わります。
+  - [ ] OK    Fix: 
+
 - **`algoSDNScale`**
   - EN: SDN inter-node delay scale factor (0.5 - 4.0x).
   - JA: SDN ノード間遅延スケールファクター（0.5 - 4.0x）。
@@ -2531,6 +2647,11 @@ Walk through each section. For every entry:
 - **`angleOn`**
   - EN: Angle at which amplification starts (1-180 degrees).
   - JA: 増幅が開始する角度（1-180度）。
+  - [ ] OK    Fix: 
+
+- **`applyToAllNodes`**
+  - EN: When ON, parameter edits are applied to every reverb node at once; when OFF, only the selected node. Runtime only - only future edits propagate.
+  - JA: オンの場合、パラメーターの変更がすべてのリバーブノードに同時に適用されます。オフの場合は選択中のノードのみに適用されます。実行時のみ有効で、以降の変更のみが反映されます。
   - [ ] OK    Fix: 
 
 - **`attenuation`**
@@ -2624,8 +2745,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`liveSourceTooltip`**
-  - EN: Enable Live Source attenuation tamer. Reduces level fluctuations from sources close to the array.
-  - JA: Live Source Tamerを有効化。アレイに近いソースのレベル変動を抑えます。
+  - EN: Allow or exclude this reverb feed from Live Source Attenuation.
+  - JA: このリバーブフィードをLive Source減衰に含めるか除外します。
   - [ ] OK    Fix: 
 
 - **`mapVisibility`**
@@ -2634,8 +2755,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`miniLatencyTooltip`**
-  - EN: Enable minimal latency mode for this reverb channel. Reduces processing delay at the cost of higher CPU usage.
-  - JA: このリバーブチャンネルの最小レイテンシーモードを有効化。CPU使用率の上昇と引き換えに処理遅延を低減します。
+  - EN: Allow or exclude this reverb feed from Minimal Latency processing.
+  - JA: このリバーブフィードをMinimal Latency処理に含めるか除外します。
   - [ ] OK    Fix: 
 
 - **`muteButton`**
@@ -3098,6 +3219,11 @@ Walk through each section. For every entry:
 - **`exportSystem`**
   - EN: Export System Configuration to file (with file explorer window).
   - JA: システム設定をファイルにエクスポートします（ファイルエクスプローラー使用）。
+  - [ ] OK    Fix: 
+
+- **`gpuPipelineDepth`**
+  - EN: GPU pipeline depth in audio blocks. Adds depth x buffer/sample-rate of constant latency (pre-subtracted from WFS delays) and absorbs GPU stalls of the same length: deeper = immune to desktop/UI hiccups, shallower = lower latency. Applies live. Default 4.
+  - JA: オーディオブロック単位のGPUパイプラインの深さ。depth x バッファ/サンプルレートの一定のレイテンシーを追加し（WFS遅延から事前に差し引かれます）、同じ長さのGPUストールを吸収します。深いほどデスクトップ/UIの引っかかりに強く、浅いほど低レイテンシーになります。リアルタイムで適用。デフォルトは4。
   - [ ] OK    Fix: 
 
 - **`haasEffect`**
