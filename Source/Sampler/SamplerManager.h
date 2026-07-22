@@ -6,6 +6,7 @@
 #include "SamplerData.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
+#include "../WFSLogger.h"
 
 /**
  * Owns per-channel SamplerEngine instances.
@@ -27,6 +28,9 @@ public:
     {
         currentSampleRate = sampleRate;
         currentBlockSize = maxBlockSize;
+
+        WFSLogger::getInstance().logInfo ("Sampler: prepared " + juce::String (numChannels)
+                                          + " engines @ " + juce::String (sampleRate, 0) + " Hz");
 
         engines.resize (static_cast<size_t> (numChannels));
         channelActive.resize (static_cast<size_t> (numChannels), false);
@@ -76,8 +80,19 @@ public:
     void setChannelActive (int channelIndex, bool active)
     {
         auto idx = static_cast<size_t> (channelIndex);
-        if (idx < channelActive.size())
-            channelActive[idx] = active;
+        if (idx >= channelActive.size())
+        {
+            if (active)
+                WFSLogger::getInstance().logWarning ("Sampler: cannot activate input "
+                    + juce::String (channelIndex + 1) + " - only "
+                    + juce::String ((int) channelActive.size()) + " engines prepared");
+            return;
+        }
+
+        if (channelActive[idx] != active)
+            WFSLogger::getInstance().logInfo ("Sampler: input " + juce::String (channelIndex + 1)
+                                              + (active ? " activated" : " deactivated"));
+        channelActive[idx] = active;
     }
 
     /** Check if sampler is active for a given channel */
@@ -99,6 +114,8 @@ public:
         std::vector<SamplerData::SampleCell> cells;
         cells.resize (WFSParameterDefaults::samplerGridCells);
 
+        int cellsWithFile = 0, cellsLoaded = 0;
+
         for (int i = 0; i < samplerNode.getNumChildren(); ++i)
         {
             auto child = samplerNode.getChild (i);
@@ -110,16 +127,31 @@ public:
                     auto& cell = cells[static_cast<size_t> (id)];
                     cell.loadFromValueTree (child);
 
-                    // Load audio data if a samples folder is provided
-                    if (samplesFolder.isDirectory() && ! cell.relativeFilePath.isEmpty())
+                    // Load audio data (absolute paths load without a samples folder)
+                    if (! cell.relativeFilePath.isEmpty())
                     {
+                        ++cellsWithFile;
                         cell.audioBuffer = fileOps.loadFromProject (
                             samplesFolder, cell.relativeFilePath,
                             cell.sampleRate, cell.numSamples);
+
+                        if (cell.audioBuffer != nullptr)
+                            ++cellsLoaded;
+                        else
+                            WFSLogger::getInstance().logWarning ("Sampler: input "
+                                + juce::String (channelIndex + 1) + " cell " + juce::String (id)
+                                + " failed to load \"" + cell.relativeFilePath + "\" (samples folder: "
+                                + (samplesFolder.isDirectory() ? samplesFolder.getFullPathName()
+                                                               : juce::String ("<none>")) + ")");
                     }
                 }
             }
         }
+
+        if (cellsWithFile > 0)
+            WFSLogger::getInstance().logInfo ("Sampler: input " + juce::String (channelIndex + 1)
+                                              + " loaded audio for " + juce::String (cellsLoaded)
+                                              + "/" + juce::String (cellsWithFile) + " cells");
 
         engines[idx]->loadCells (cells);
     }
@@ -141,12 +173,20 @@ public:
                 {
                     SamplerData::SamplerSet set;
                     set.loadFromValueTree (child);
+                    WFSLogger::getInstance().logInfo ("Sampler: input " + juce::String (channelIndex + 1)
+                                                      + " active set " + juce::String (setIndex)
+                                                      + " (\"" + set.name + "\") has "
+                                                      + juce::String ((int) set.cellIndices.size()) + " cells");
                     engines[idx]->loadSet (set);
                     return;
                 }
                 ++setCount;
             }
         }
+
+        WFSLogger::getInstance().logWarning ("Sampler: input " + juce::String (channelIndex + 1)
+                                             + " has no set at index " + juce::String (setIndex)
+                                             + " - remote/Lightpad triggers will do nothing");
     }
 
     /** Load a set configuration for a channel */
@@ -215,7 +255,12 @@ public:
             return false;
 
         int cellIdx = engines[idx]->getNextCellFromSet();
-        if (cellIdx < 0) return false;
+        if (cellIdx < 0)
+        {
+            WFSLogger::getInstance().logWarning ("Sampler: trigger on input "
+                + juce::String (channelIndex + 1) + " ignored - active set has no cells");
+            return false;
+        }
 
         SamplerEngine::TouchEvent event;
         event.type = SamplerEngine::TouchEvent::NoteOn;

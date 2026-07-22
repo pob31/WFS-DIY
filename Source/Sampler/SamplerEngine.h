@@ -187,6 +187,13 @@ public:
     int   getCurrentCellIndex() const noexcept { return currentCellIndex; }
     bool  hasPositionOverride() const noexcept { return positionOverrideActive.load (std::memory_order_relaxed); }
 
+    /** Number of triggers rejected (empty/invalid cell) since the last call.
+        Written on the audio thread, drained by a message-thread timer for logging. */
+    int fetchAndClearRejectedTriggers() noexcept
+    {
+        return rejectedTriggerCount.exchange (0, std::memory_order_relaxed);
+    }
+
     /** Release position override (called on touch end / finger lift) */
     void releasePositionOverride()
     {
@@ -241,11 +248,17 @@ private:
         juce::SpinLock::ScopedLockType lock (cellLock);
 
         if (cellIndex < 0 || cellIndex >= static_cast<int> (cells.size()))
+        {
+            rejectedTriggerCount.fetch_add (1, std::memory_order_relaxed);
             return;
+        }
 
         auto& cell = cells[static_cast<size_t> (cellIndex)];
         if (! cell.hasAudio())
+        {
+            rejectedTriggerCount.fetch_add (1, std::memory_order_relaxed);
             return;
+        }
 
         currentBuffer = cell.audioBuffer;
         currentCellIndex = cellIndex;
@@ -367,6 +380,9 @@ private:
 
     // HF shelf filter for pressure modulation
     WFSHighShelfFilter hfFilter;
+
+    // Triggers rejected on the audio thread (no audio in cell); drained for logging
+    std::atomic<int> rejectedTriggerCount { 0 };
 
     // Position override (atomics read by 50Hz message-thread timer)
     std::atomic<float> posX { 0.0f };

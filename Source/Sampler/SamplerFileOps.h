@@ -108,7 +108,15 @@ public:
                                                                 double& outSampleRate,
                                                                 int& outNumSamples)
     {
-        if (relativeFilePath.isEmpty() || ! samplesFolder.isDirectory())
+        if (relativeFilePath.isEmpty())
+            return nullptr;
+
+        // Imports made without a valid project folder store absolute paths —
+        // load those directly so the sampler works in unsaved projects too.
+        if (juce::File::isAbsolutePath (relativeFilePath))
+            return loadAudioFile (juce::File (relativeFilePath), outSampleRate, outNumSamples);
+
+        if (! samplesFolder.isDirectory())
             return nullptr;
 
         juce::File file = samplesFolder.getChildFile (relativeFilePath);

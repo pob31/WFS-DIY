@@ -2091,18 +2091,38 @@ MainComponent::MainComponent()
     // Handle remote pad touch events from Android app
     oscManager->onRemotePadTouch = [this] (int zoneId, int touchState, float dx, float dy, float pressure)
     {
+        // Dropped touches are logged on DOWN only (MOVE would spam the log)
+        const bool logDrop = (touchState == 1);
+
         // Check controller mode is Remote
         int ctrlMode = static_cast<int> (parameters.getConfigParam ("SamplerControllerMode"));
-        if (ctrlMode != 2) return;
+        if (ctrlMode != 2)
+        {
+            if (logDrop)
+                WFSLogger::getInstance().logWarning ("Sampler: remote pad touch ignored - controller mode is "
+                                                     + juce::String (ctrlMode) + ", not Remote (2)");
+            return;
+        }
 
         // Look up zone → input
         auto zoneMap = buildZoneToInputMap();
         auto it = zoneMap.find (zoneId);
-        if (it == zoneMap.end()) return;
+        if (it == zoneMap.end())
+        {
+            if (logDrop)
+                WFSLogger::getInstance().logWarning ("Sampler: remote pad touch ignored - zone "
+                                                     + juce::String (zoneId) + " not assigned to any input");
+            return;
+        }
         int inputIdx = it->second;
 
         if (samplerManager == nullptr || ! samplerManager->isChannelActive (inputIdx))
+        {
+            if (logDrop)
+                WFSLogger::getInstance().logWarning ("Sampler: remote pad touch ignored - sampler not active on input "
+                                                     + juce::String (inputIdx + 1));
             return;
+        }
 
         float sensitivity = static_cast<float> (parameters.getConfigParam ("lightpadSensitivity"));
         if (sensitivity <= 0.0f) sensitivity = 0.05f;
@@ -5274,6 +5294,16 @@ void MainComponent::timerCallback()
                         calculationEngine->setSamplerCellOffset (i, sx, sy, sz);
                     else
                         calculationEngine->setSamplerCellOffset (i, 0.0f, 0.0f, 0.0f);
+
+                    // Surface audio-thread trigger rejections (empty/invalid cell)
+                    if (auto* engine = samplerManager->getEngine (i))
+                    {
+                        int rejected = engine->fetchAndClearRejectedTriggers();
+                        if (rejected > 0)
+                            WFSLogger::getInstance().logWarning ("Sampler: input " + juce::String (i + 1)
+                                + " trigger rejected - cell has no audio loaded ("
+                                + juce::String (rejected) + "x)");
+                    }
                 }
             }
 
