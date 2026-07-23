@@ -2,6 +2,11 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit).
 
+## v1.0.0beta38 — 2026-07-23
+
+### Fixed
+- Remote visualisation: the tablet's Visualisation tab could stay on "Waiting for data…" forever (while selection following still worked) when the one-shot connect-time `/remote/vis/config` bundle was lost — it was sent right at the end of the ~70-bundle state-dump burst, the worst moment on congested Wi-Fi or tablets whose OS caps the UDP receive buffer. The config (channel counts + output array assignments) now repeats with every visualisation update (rides the existing ≤10 Hz throttle) and is included in the state dump, so `/remote/requestResync` re-delivers it too. No protocol change; repeats are a no-op on the tablet.
+
 ## v1.0.0beta37 — 2026-07-23
 
 ### Fixed

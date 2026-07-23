@@ -2175,10 +2175,8 @@ MainComponent::MainComponent()
         if (calculationEngine == nullptr || oscManager == nullptr)
             return;
 
-        // Initial /remote/vis/* state for the tablet that just connected:
-        // channel counts + array assignments, then selection and rows.
-        oscManager->sendRemoteVisConfig(parameters.getNumOutputChannels(),
-                                        parameters.getNumReverbChannels(), targetIndex);
+        // Initial /remote/vis/* state for the tablet that just connected
+        // (sendVisualisationToRemotes carries config + selection + rows).
         sendVisualisationToRemotes(targetIndex);
 
         // Get number of input channels
@@ -3126,11 +3124,9 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
         }
 
         // Mirror the new channel counts and fresh matrix to connected tablets
+        // (sendVisualisationToRemotes carries config + selection + rows)
         if (oscManager != nullptr)
-        {
-            oscManager->sendRemoteVisConfig(numOutputChannels, reverbs);
             sendVisualisationToRemotes();
-        }
     }
 
     // Reload patch maps from the (now up-to-date) ValueTree
@@ -3197,6 +3193,10 @@ void MainComponent::sendVisualisationToRemotes(int targetIndex)
         }
     }
 
+    // Config rides every update (≤10 Hz): the one-shot connect-time send can be
+    // lost in the state-dump burst on lossy Wi-Fi, leaving the tablet on
+    // "waiting for data" forever. Repeats are a no-op on the tablet.
+    oscManager->sendRemoteVisConfig(numOutputs, numReverbs, targetIndex);
     oscManager->sendRemoteVisSelection(primary, clusterId, selection, targetIndex);
 
     // Rows straight from the engine matrices (max-channel stride) — independent

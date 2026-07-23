@@ -4676,6 +4676,16 @@ std::vector<juce::OSCMessage> OSCManager::collectStateDumpMessages(int /*targetI
                         std::make_move_iterator(selectedMessages.end()));
     }
 
+    // --- Visualisation config (protocol v3) ---
+    // Channel counts + per-output array assignments for the Visualisation tab.
+    // Also re-sent alongside every visualisation update by MainComponent, but
+    // riding the dump means /remote/requestResync re-delivers it too — the
+    // one-shot connect-time send proved lossy on congested Wi-Fi (the tablet
+    // otherwise sits on "waiting for data" forever).
+    buildRemoteVisConfigMessages(messages,
+                                 state.getIntParameter(WFSParameterIDs::outputChannels),
+                                 state.getIntParameter(WFSParameterIDs::reverbChannels));
+
     // --- End-of-dump marker ---
     // Last message: tells the tablet the dump is finished and how many channels to
     // expect, so it can verify completeness and re-request any channels lost in
@@ -4834,20 +4844,29 @@ void OSCManager::sendRemoteVisBundle(const juce::OSCBundle& bundle, int targetIn
     }
 }
 
-void OSCManager::sendRemoteVisConfig(int numOutputs, int numReverbs, int targetIndex)
+void OSCManager::buildRemoteVisConfigMessages(std::vector<juce::OSCMessage>& out,
+                                              int numOutputs, int numReverbs)
 {
-    juce::OSCBundle bundle;
-
     juce::OSCMessage cfg("/remote/vis/config");
     cfg.addInt32(numOutputs);
     cfg.addInt32(numReverbs);
-    bundle.addElement(cfg);
+    out.push_back(std::move(cfg));
 
     juce::OSCMessage arrays("/remote/vis/outputArrays");
     arrays.addInt32(numOutputs);
     for (int i = 0; i < numOutputs; ++i)
         arrays.addInt32(varToInt(state.getOutputParameter(i, WFSParameterIDs::outputArray)));
-    bundle.addElement(arrays);
+    out.push_back(std::move(arrays));
+}
+
+void OSCManager::sendRemoteVisConfig(int numOutputs, int numReverbs, int targetIndex)
+{
+    std::vector<juce::OSCMessage> messages;
+    buildRemoteVisConfigMessages(messages, numOutputs, numReverbs);
+
+    juce::OSCBundle bundle;
+    for (auto& msg : messages)
+        bundle.addElement(msg);
 
     sendRemoteVisBundle(bundle, targetIndex);
 }

@@ -915,6 +915,12 @@ private:
     // targetIndex == -1), bypassing the rate limiter.
     void sendRemoteVisBundle(const juce::OSCBundle& bundle, int targetIndex);
 
+    // Build the /remote/vis/config + /remote/vis/outputArrays pair (reads the
+    // ValueTree only — safe wherever state reads are). Shared by the direct
+    // send and the state dump so the two can't drift.
+    void buildRemoteVisConfigMessages(std::vector<juce::OSCMessage>& out,
+                                      int numOutputs, int numReverbs);
+
     // Send a list of OSC messages to a single Remote target, packed into juce::OSCBundles
     // sized to stay under typical Ethernet MTU (single UDP datagram, no IP fragmentation).
     // Bypasses the rate limiter and the per-4-msg pacing in sendBatchedMessages — intended

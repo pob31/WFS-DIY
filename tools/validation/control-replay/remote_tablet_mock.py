@@ -524,6 +524,11 @@ def main() -> int:
         check(len(moved) <= int(drag_seconds * 10) + 4,
               f"vis rows throttled to <= ~10 Hz ({len(moved)} in "
               f"{drag_seconds}s)")
+        cfg_repeats = [a for adr, _tt, a in tablet.since(mark)
+                       if adr == "/remote/vis/config"]
+        check(len(cfg_repeats) >= 1,
+              f"vis config repeats with updates ({len(cfg_repeats)} during "
+              "drag) - a tablet that lost the connect-time config recovers")
 
         # 7d. unpin stops pinned-channel rows.
         tablet.tx.send("/remote/vis/pin", [("i", 0)])
