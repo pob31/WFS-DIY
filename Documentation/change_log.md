@@ -2,6 +2,12 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit).
 
+## v1.0.0beta37 — 2026-07-23
+
+### Fixed
+- Remote visualisation: selecting the reference input of a **First Assigned** (or Shared Position / tracked-reference) cluster on the map now mirrors all cluster members to the tablet's Visualisation tab, matching barycenter-selection behaviour — previously only the reference channel itself was shown. The single-input map selection is expanded to the member list (with its cluster id) using the same reference-handle resolution the map's drag logic uses.
+- Companion fixes on the tablet side (WFS Control 1.0-beta_9, no protocol change): a **single** input selected on the desktop map is now followed by the Visualisation tab (previously only multi-selections switched the display), the follow-mode header shows the channel actually displayed, and the tab moved next to Input Parameters (Map | Lock | View | Input Parameters | [XY Pad] | Visualisation | Clusters | Array Adjust | Settings).
+
 ## v1.0.0beta36 — 2026-07-23
 
 ### Added
