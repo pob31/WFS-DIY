@@ -359,6 +359,15 @@ def main() -> int:
             timeout=20.0, mark=mark)
         if dump5:
             last_seq = dump5["seq"]
+            # v3: every full dump must embed the vis config with counts taken
+            # from the actual channel trees (the Config/IO *properties* can
+            # drift in sessions saved by older versions — a dump announcing
+            # 0 outputs wedges the tablet on "waiting for data").
+            dump_cfgs = [a for adr, _tt, a in dump5["body"]
+                         if adr == "/remote/vis/config" and len(a) >= 2]
+            check(bool(dump_cfgs) and dump_cfgs[-1][0] == 16,
+                  f"resync dump embeds vis config with real output count "
+                  f"({dump_cfgs})")
             p1 = last_position(dump5["body"], 1)
             p2 = last_position(dump5["body"], 2)
             coincident = (p1 is not None and p2 is not None and

@@ -4682,9 +4682,15 @@ std::vector<juce::OSCMessage> OSCManager::collectStateDumpMessages(int /*targetI
     // riding the dump means /remote/requestResync re-delivers it too — the
     // one-shot connect-time send proved lossy on congested Wi-Fi (the tablet
     // otherwise sits on "waiting for data" forever).
+    // Counts MUST come from the child-count accessors, not the Config/IO
+    // properties: in sessions saved by older versions the properties drift
+    // from the actual channel trees (see getNumReverbChannels), and a dump
+    // announcing e.g. 0 outputs makes the tablet clear its rows and wedge on
+    // "waiting for data" — while the per-update config (child counts) fights
+    // it back, flip-flopping on every resync.
     buildRemoteVisConfigMessages(messages,
-                                 state.getIntParameter(WFSParameterIDs::outputChannels),
-                                 state.getIntParameter(WFSParameterIDs::reverbChannels));
+                                 state.getNumOutputChannels(),
+                                 state.getNumReverbChannels());
 
     // --- End-of-dump marker ---
     // Last message: tells the tablet the dump is finished and how many channels to

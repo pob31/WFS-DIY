@@ -3561,6 +3561,14 @@ void MainComponent::handleConfigReloaded()
         // Resend full state to connected Remote (Android) targets
         // Ensures input count, positions, and stage config are synchronized after reload
         oscManager->resendStateToRemoteTargets();
+
+        // Mirror the loaded session's visualisation state. The dump above
+        // carries the vis config, but selection and delay/level rows only
+        // travel through this call — without it a session load left the
+        // tablet's Visualisation tab empty until the next selection change
+        // (the load recalculates the matrix directly, so the timer's
+        // dirty-gated trailing send never fires either).
+        sendVisualisationToRemotes();
     }
 }
 
