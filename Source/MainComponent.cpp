@@ -3170,6 +3170,30 @@ void MainComponent::sendVisualisationToRemotes(int targetIndex)
         {
             for (int idx : mapTab->getSelectedInputSet())  // 0-based indices
                 selection.push_back(idx + 1);
+
+            // A single selected input that is a cluster's reference handle
+            // (First Input / Shared Position modes, or the tracked member)
+            // drags the whole cluster on the map, so mirror all members on
+            // the tablet like a barycenter selection does.
+            if (selection.size() == 1)
+            {
+                const int idx0 = selection.front() - 1;
+                juce::var cv = parameters.getValueTreeState()
+                                   .getInputParameter(idx0, WFSParameterIDs::inputCluster);
+                const int cluster = cv.isVoid() ? 0 : static_cast<int>(cv);
+                if (cluster >= 1 && mapTab->getClusterRef(cluster) == idx0)
+                {
+                    clusterId = cluster;
+                    selection.clear();
+                    for (int i = 0; i < numInputs; ++i)
+                    {
+                        juce::var mv = parameters.getValueTreeState()
+                                           .getInputParameter(i, WFSParameterIDs::inputCluster);
+                        if (!mv.isVoid() && static_cast<int>(mv) == cluster)
+                            selection.push_back(i + 1);
+                    }
+                }
+            }
         }
     }
 
