@@ -303,10 +303,28 @@ free for any tap whose geometric delay already exceeds it.
    > without spreading it. A faster clock buys a linear factor and nothing
    > more.
    >
-   > **If you want SDN character at high node counts, use the CPU SDN path**:
-   > it spreads nodes across the `AudioParallelFor` pool (up to 7 workers),
-   > which on a 9950X is a far better match for 32 nodes than one SM. GPU SDN
-   > is only sensible at low node counts.
+   > **FIXED in v1.0.0beta39 — everything above is now history, kept because it
+   > explains the shape of the fix.** `sdn_process_nodes` launches
+   > `grid = numNodes, block = 32`, so the network finally spreads across SMs,
+   > and the incoming vector moved from a per-thread `float[32]` (which the
+   > compiler had to spill to local memory, since a runtime-bounded loop indexes
+   > it) into shared memory. Measured at 32 nodes / 48 kHz / 256-sample blocks,
+   > median/max launch:
+   >
+   > | | before (`grid = 1`) | after | |
+   > |---|---|---|---|
+   > | RTX 5070 (sm_120) | 4.52 / 4.84 ms | **0.319 / 0.421 ms** | 14.2x |
+   > | Tesla T4 (sm_75) | 7.01 / 7.18 ms | **0.426 / 0.565 ms** | 16.4x |
+   >
+   > The T4 goes from **131% of budget to 8%**. Bit-exact — all 15 GPU goldens
+   > unchanged on both architectures. **GPU SDN at 32 nodes is now a supported
+   > configuration on either card**, and on the T4 it is now cheaper than the
+   > CPU path (0.43 ms vs 0.46 ms on 7 workers) while leaving the CPU free.
+   >
+   > The lockstep kernel is retained and still selected automatically whenever
+   > the geometry is too tight for a parallel window — including before any
+   > geometry has arrived, where the delays are still 1. `WFS_SDN_TRACE=1` logs
+   > which mapping is live; `WFS_SDN_NODE_PARALLEL=0` forces the old one.
 5. **Keep the scatter (OutputBuffer) algorithm off the T4** at this shape:
    compute-ceiling-bound at ~87% of budget even with clocks pinned.
 
@@ -332,12 +350,11 @@ occasional dropped-reverb-block warnings.
    | 15 | 801 ms | 1.04 ms | 149 ms | 0.19 ms |
    | 23 | 801 ms | 1.04 ms | 149 ms | 0.19 ms |
 
-   - **SDN does not scale at all, by design.**
-     `ReverbSDNAlgorithm::setParallelFor` is an **empty override**
-     (`ReverbSDNAlgorithm.h:231-235`): SDN runs a synchronous lockstep over
-     all nodes, stepping every node together sample by sample, because the
-     inter-node coupling is what makes it bit-exact with the GPU backend. It
-     never touches the pool, so the cap is irrelevant to it.
+   - **SDN did not scale at all** — `ReverbSDNAlgorithm::setParallelFor` was an
+     **empty override**, so SDN never touched the pool and the cap was
+     irrelevant to it. **Fixed in v1.0.0beta39**: the chunked node-parallel
+     sweep takes 32-node SDN from 0.935 to 0.460 ms/block on 7 workers, and
+     the numbers in the table above are the pre-fix baseline.
    - **FDN scales well and saturates almost exactly at 7** (156 → 149 ms
      going from 7 to 23 workers, ~4%). The existing cap is well chosen, not
      a bottleneck.
@@ -476,13 +493,13 @@ behind a 20 ms cushion where its residual stall tail is invisible.
    block, clean after). Extend to the reverb GPU backends if their engine
    (re)start bursts ever show up in practice; the WFS gather backend showed
    no measurable first-block stall (its graph path also pre-uploads).
-6. **Multi-block SDN kernel** — `sdn_process` is `grid = 1` with a per-sample
-   `__syncthreads()`, so it uses one SM on any GPU and is unusable at 32
-   nodes on both cards in this rig (see the warning above). Restructuring it
-   to spread paths across blocks (with the inter-node coupling handled by a
-   second kernel or cooperative groups) is the only thing that makes GPU SDN
-   scale; until then, high node counts belong on the CPU SDN path. Also a
-   validation event (kernel-hash `--update` + goldens).
+6. **DONE — multi-block SDN kernel** (`sdn_process_nodes`, v1.0.0beta39):
+   `grid = numNodes, block = 32`, the inter-node coupling handled by making a
+   chunk boundary a kernel-launch boundary rather than by cooperative groups
+   (which `CudaSdnKernels.h` cannot use — HIP compiles it verbatim). 14-16x at
+   32 nodes on both cards, bit-exact; see the warning above for the numbers.
+   The Metal and HIP twins are **not** ported yet, so they still carry the
+   `grid = 1` shape and its node-count ceiling.
 7. **Log the reverb backend's device** — the `Reverb GPU pump:` line reports
    peak/budget/underruns but not which GPU it is bound to, which made the
    2026-07-25 SDN episode impossible to attribute (co-tenancy vs host
