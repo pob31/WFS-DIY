@@ -279,8 +279,9 @@ is deliberately unreported wet-path pre-delay.
 
 > **DIVERGENCE — "double buffering."** The GPU path is a **depth-D primed-ring lookahead
 > pipeline**, not a strict 2-buffer flip; the pump performs a **synchronous** blocking launch
-> (`cudaMemcpyAsync` up → kernels → async copy down → `cudaStreamSynchronize`,
-> `CudaWfsBackend.cpp:490-491` **[V]**). Overlap/deadline isolation comes from the depth cushion,
+> (`cudaMemcpyAsync` up → kernels → async copy down → blocking-sync event wait
+> (`cudaEventSynchronize` on a `cudaEventBlockingSync` event — yields, no spin),
+> `CudaWfsBackend.cpp` **[V]**). Overlap/deadline isolation comes from the depth cushion,
 > not from stream ping-pong. The same `GpuAsyncPipelineT` template serves both the direct-WFS and
 > all GPU-reverb paths (`GpuAsyncPipeline.h`, `ReverbSDNAlgorithmGPU.h:180` **[V]**).
 
@@ -423,8 +424,11 @@ FDN, SDN, OB 1×1, OB 1→2). **[V]**
   per-node `inSpectra` ring. **[V]** OB's per-pair accumulator (`pairAcc`, ~1 s per pair) is the
   largest single allocation. **[V/I]**
 - **Transfer:** pinned host staging (`cudaHostAlloc`/`hipHostMalloc`), one private stream per
-  backend, `cudaMemcpyAsync` up → launch → async copy down → `cudaStreamSynchronize`
-  (`CudaWfsBackend.cpp:269-271, 431-433, 490-491`). CUDA uses `cuDevicePrimaryCtxRetain` (shares
+  backend, `cudaMemcpyAsync` up → launch → async copy down → blocking-sync event wait
+  (`cudaEventRecord` + `cudaEventSynchronize`, event created `cudaEventBlockingSync |
+  cudaEventDisableTiming` — yields the pump thread, no spin). With `WFS_GPU_GRAPHS=1` the CUDA
+  WFS backend captures this fixed submission into a CUDA graph at `prepare()` and replays it
+  with one `cuGraphLaunch` per block. CUDA uses `cuDevicePrimaryCtxRetain` (shares
   the runtime's primary context); HIP just `hipSetDevice`; both rebind the device on the pump
   thread each `processBlock` because driver context currency is per-thread
   (`CudaWfsBackend.cpp:201-205, 366-372`, `HipWfsBackend.cpp:334-339`). **[V]**

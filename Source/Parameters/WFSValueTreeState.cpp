@@ -1379,7 +1379,7 @@ void WFSValueTreeState::setNumInputChannels (int numChannels)
     {
         // Add new channels
         for (int i = currentCount; i < numChannels; ++i)
-            inputs.appendChild (createDefaultInputChannel (i), getActiveUndoManager());
+            inputs.appendChild (createDefaultInputChannel (i, numChannels), getActiveUndoManager());
     }
     else if (numChannels < currentCount)
     {
@@ -1402,6 +1402,19 @@ void WFSValueTreeState::setNumInputChannels (int numChannels)
     if (io.isValid())
         io.setProperty (inputChannels, numChannels, getActiveUndoManager());
     inputs.setProperty (count, numChannels, getActiveUndoManager());
+
+    // Re-lay ALL inputs, not just the ones just added. The grid depends on the
+    // total count (rows = ceil(total/8)), so channels created under an earlier
+    // count keep a layout for a different grid: growing 8 -> 64 left the
+    // original eight stranded at the old single-row position, mid-stage and out
+    // of order with the new rows around them. Redistributing the whole set is
+    // what makes the rows contiguous and use the full stage depth.
+    //
+    // Note this DOES discard manual input positions on a count change. That is
+    // the explicit intent here; the reverb-side ownership rule (stop
+    // auto-placing once the user has edited) is not yet wired for inputs.
+    if (currentCount != numChannels)
+        redistributeAllInputPositions();
 }
 
 void WFSValueTreeState::setNumOutputChannels (int numChannels)
@@ -2445,12 +2458,23 @@ void WFSValueTreeState::createAudioPatchSection()
     state.appendChild (audioPatch, nullptr);
 }
 
-juce::ValueTree WFSValueTreeState::createDefaultInputChannel (int index)
+juce::ValueTree WFSValueTreeState::createDefaultInputChannel (int index, int totalInputsIn)
 {
-    int totalInputs = inputChannelsDefault;
-    auto io = getIOState();
-    if (io.isValid())
-        totalInputs = static_cast<int> (io.getProperty (inputChannels));
+    // The caller must pass the TARGET count when it is growing the channel
+    // list. setNumInputChannels creates the new channels first and only writes
+    // the new count afterwards, so reading it from the tree here yielded the
+    // OLD count: growing 8 -> 64 gave every new channel numRows = 1, and
+    // getDefaultInputPosition's fracY = (row+1)/(numRows+1) then ran past 1 —
+    // index 63 landed at fracY = 4, i.e. four stage-depths off the front edge.
+    int totalInputs = totalInputsIn;
+    if (totalInputs <= 0)
+    {
+        totalInputs = inputChannelsDefault;
+        auto io = getIOState();
+        if (io.isValid())
+            totalInputs = static_cast<int> (io.getProperty (inputChannels));
+    }
+    totalInputs = juce::jmax (1, totalInputs, index + 1);
 
     juce::ValueTree input (Input);
     input.setProperty (id, index + 1, nullptr);
@@ -2808,6 +2832,23 @@ juce::ValueTree WFSValueTreeState::createDefaultReverbChannel (int index, int to
     return reverb;
 }
 
+ReverbNodePlacement::Stage WFSValueTreeState::getStageForPlacement()
+{
+    ReverbNodePlacement::Stage s;
+    auto stageTree = getStageState();
+    if (! stageTree.isValid())
+        return s;   // helper falls back to a nominal extent
+
+    s.shape    = static_cast<int>   (stageTree.getProperty (stageShape,    0));
+    s.width    = static_cast<float> (stageTree.getProperty (stageWidth,    stageWidthDefault));
+    s.depth    = static_cast<float> (stageTree.getProperty (stageDepth,    stageDepthDefault));
+    s.height   = static_cast<float> (stageTree.getProperty (stageHeight,   stageHeightDefault));
+    s.diameter = static_cast<float> (stageTree.getProperty (stageDiameter, 0.0f));
+    s.originW  = static_cast<float> (stageTree.getProperty (originWidth,  originWidthDefault));
+    s.originD  = static_cast<float> (stageTree.getProperty (originDepth,  originDepthDefault));
+    return s;
+}
+
 juce::ValueTree WFSValueTreeState::createReverbChannelSection (int index)
 {
     juce::ValueTree channel (Channel);
@@ -2820,10 +2861,22 @@ juce::ValueTree WFSValueTreeState::createReverbChannelSection (int index)
 juce::ValueTree WFSValueTreeState::createReverbPositionSection (int index, int totalCount)
 {
     juce::ValueTree position (Position);
-    float xPos = (static_cast<float>(index) - (static_cast<float>(totalCount) - 1.0f) / 2.0f) * 1.0f;
-    position.setProperty (reverbPositionX, xPos, nullptr);
-    position.setProperty (reverbPositionY, 2.0f, nullptr);
-    position.setProperty (reverbPositionZ, reverbPositionDefault, nullptr);
+
+    // Default layout: a semi-ellipse (box) or ring (cylinder/dome) at 1.5x the
+    // stage, 2 m high, jittered to break symmetry and de-crowded in Z. The old
+    // default put every node on a straight line along X at 1 m spacing with
+    // Z = 0 — collinear, on the floor, and mirror-symmetrical, which also gave
+    // the SDN inter-node delays of a few samples. See ReverbNodePlacement.h.
+    //
+    // Recomputes the whole layout per channel rather than threading it through
+    // the callers: this is a setup path and the node count is <= 32.
+    const auto nodes = ReverbNodePlacement::layout (getStageForPlacement(),
+                                                    juce::jmax (1, totalCount));
+    const auto& n = nodes[(size_t) juce::jlimit (0, (int) nodes.size() - 1, index)];
+
+    position.setProperty (reverbPositionX, n.x, nullptr);
+    position.setProperty (reverbPositionY, n.y, nullptr);
+    position.setProperty (reverbPositionZ, n.z, nullptr);
     position.setProperty (reverbReturnOffsetX, reverbReturnOffsetDefault, nullptr);
     position.setProperty (reverbReturnOffsetY, reverbReturnOffsetDefault, nullptr);
     position.setProperty (reverbReturnOffsetZ, reverbReturnOffsetDefault, nullptr);

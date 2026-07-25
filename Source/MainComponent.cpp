@@ -5313,15 +5313,19 @@ void MainComponent::timerCallback()
         // quiet when comfortably under budget.
         uint32_t ru = 0;
         float rPeak = 0.0f, rBudget = 0.0f;
-        if (reverbEngine != nullptr && reverbEngine->getReverbGpuPumpStats (ru, rPeak, rBudget))
+        juce::String rDevice;
+        if (reverbEngine != nullptr && reverbEngine->getReverbGpuPumpStats (ru, rPeak, rBudget, rDevice))
         {
             const bool moreUnderruns = ru > reverbGpuUnderrunsLogged;
             if (moreUnderruns || (rBudget > 0.0f && rPeak > 0.6f * rBudget))
             {
+                // Device name included so a reverb overrun can be attributed:
+                // the reverb and the direct path may sit on different GPUs.
                 WFSLogger::getInstance().logInfo ("Reverb GPU pump: peak "
                     + juce::String (rPeak, 2) + " / " + juce::String (rBudget, 2)
                     + " ms budget, underruns +" + juce::String (moreUnderruns ? ru - reverbGpuUnderrunsLogged : 0)
-                    + " (total " + juce::String (ru) + ")");
+                    + " (total " + juce::String (ru) + ")"
+                    + (rDevice.isNotEmpty() ? " on " + rDevice : juce::String()));
             }
             reverbGpuUnderrunsLogged = ru; // track total (also re-baselines on re-prepare)
         }

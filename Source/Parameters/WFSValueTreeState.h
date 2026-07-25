@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "WFSParameterIDs.h"
 #include "WFSParameterDefaults.h"
+#include "../Helpers/ReverbNodePlacement.h"
 #include "../../spatcore/control/state/TreeParameterStore.h"
 
 /**
@@ -450,7 +451,10 @@ private:
     void createAudioPatchSection();
 
     /** Create a single default input channel */
-    juce::ValueTree createDefaultInputChannel (int index);
+    /** @param totalInputsIn  target channel count; pass it explicitly while
+        growing the list, since the tree still holds the old count then.
+        <= 0 reads the tree (correct for single-channel resets). */
+    juce::ValueTree createDefaultInputChannel (int index, int totalInputsIn = -1);
 
     /** Create input channel subsections */
     juce::ValueTree createInputChannelSection (int index);
@@ -476,6 +480,10 @@ private:
 
     /** Create a single default reverb channel */
     juce::ValueTree createDefaultReverbChannel (int index, int totalCount);
+
+    /** Stage dimensions in the form the reverb node placement helper wants.
+        Falls back to a nominal extent when no stage section exists yet. */
+    ReverbNodePlacement::Stage getStageForPlacement();
 
     /** Create reverb channel subsections */
     juce::ValueTree createReverbChannelSection (int index);
