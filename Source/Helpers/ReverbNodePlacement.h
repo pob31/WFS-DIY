@@ -34,6 +34,15 @@ namespace ReverbNodePlacement
     /** Standoff from the stage: the arc sits at 1.5x the stage's own extent. */
     inline constexpr float kStandoffFactor = 1.5f;
 
+    /** Upstage depth standoff, applied to the +Y half of the arc only.
+
+        The arc is an egg rather than an ellipse on purpose: upstage has room
+        and benefits from the extra spread, while the downstage ends want to
+        stay just past the front edge where they wrap the corners. Scaling the
+        whole ellipse would have dragged those ends further into the audience
+        along with it. */
+    inline constexpr float kStandoffFactorUpstage = 2.25f;
+
     /** Default working height for a reverb node. */
     inline constexpr float kDefaultHeight = 2.0f;
 
@@ -165,9 +174,14 @@ namespace ReverbNodePlacement
             // Centred on the STAGE, not on the origin. Centring on (0,0) put the
             // arc's focus on the stage's front edge, so it cut up through the
             // stage instead of enclosing it.
+            const float sy = std::sin (angle);
+            const float extentYHalf = (sy >= 0.0f && ! isRound)
+                                        ? extentY * (kStandoffFactorUpstage / kStandoffFactor)
+                                        : extentY;
+
             auto& n = nodes[(size_t) i];
-            n.x = centreX + extentX * std::cos (angle) + ampX * jitterFor (i, 0);
-            n.y = centreY + extentY * std::sin (angle) + ampY * jitterFor (i, 1);
+            n.x = centreX + extentX     * std::cos (angle) + ampX * jitterFor (i, 0);
+            n.y = centreY + extentYHalf * sy               + ampY * jitterFor (i, 1);
             n.z = kDefaultHeight       + ampZ * jitterFor (i, 2);
         }
 
