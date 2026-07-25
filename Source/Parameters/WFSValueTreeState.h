@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "WFSParameterIDs.h"
 #include "WFSParameterDefaults.h"
+#include "../Helpers/ReverbNodePlacement.h"
 #include "../../spatcore/control/state/TreeParameterStore.h"
 
 /**
@@ -476,6 +477,10 @@ private:
 
     /** Create a single default reverb channel */
     juce::ValueTree createDefaultReverbChannel (int index, int totalCount);
+
+    /** Stage dimensions in the form the reverb node placement helper wants.
+        Falls back to a nominal extent when no stage section exists yet. */
+    ReverbNodePlacement::Stage getStageForPlacement();
 
     /** Create reverb channel subsections */
     juce::ValueTree createReverbChannelSection (int index);

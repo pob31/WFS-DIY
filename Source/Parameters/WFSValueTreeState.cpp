@@ -2808,6 +2808,21 @@ juce::ValueTree WFSValueTreeState::createDefaultReverbChannel (int index, int to
     return reverb;
 }
 
+ReverbNodePlacement::Stage WFSValueTreeState::getStageForPlacement()
+{
+    ReverbNodePlacement::Stage s;
+    auto stageTree = getStageState();
+    if (! stageTree.isValid())
+        return s;   // helper falls back to a nominal extent
+
+    s.shape    = static_cast<int>   (stageTree.getProperty (stageShape,    0));
+    s.width    = static_cast<float> (stageTree.getProperty (stageWidth,    stageWidthDefault));
+    s.depth    = static_cast<float> (stageTree.getProperty (stageDepth,    stageDepthDefault));
+    s.height   = static_cast<float> (stageTree.getProperty (stageHeight,   stageHeightDefault));
+    s.diameter = static_cast<float> (stageTree.getProperty (stageDiameter, 0.0f));
+    return s;
+}
+
 juce::ValueTree WFSValueTreeState::createReverbChannelSection (int index)
 {
     juce::ValueTree channel (Channel);
@@ -2820,10 +2835,22 @@ juce::ValueTree WFSValueTreeState::createReverbChannelSection (int index)
 juce::ValueTree WFSValueTreeState::createReverbPositionSection (int index, int totalCount)
 {
     juce::ValueTree position (Position);
-    float xPos = (static_cast<float>(index) - (static_cast<float>(totalCount) - 1.0f) / 2.0f) * 1.0f;
-    position.setProperty (reverbPositionX, xPos, nullptr);
-    position.setProperty (reverbPositionY, 2.0f, nullptr);
-    position.setProperty (reverbPositionZ, reverbPositionDefault, nullptr);
+
+    // Default layout: a semi-ellipse (box) or ring (cylinder/dome) at 1.5x the
+    // stage, 2 m high, jittered to break symmetry and de-crowded in Z. The old
+    // default put every node on a straight line along X at 1 m spacing with
+    // Z = 0 — collinear, on the floor, and mirror-symmetrical, which also gave
+    // the SDN inter-node delays of a few samples. See ReverbNodePlacement.h.
+    //
+    // Recomputes the whole layout per channel rather than threading it through
+    // the callers: this is a setup path and the node count is <= 32.
+    const auto nodes = ReverbNodePlacement::layout (getStageForPlacement(),
+                                                    juce::jmax (1, totalCount));
+    const auto& n = nodes[(size_t) juce::jlimit (0, (int) nodes.size() - 1, index)];
+
+    position.setProperty (reverbPositionX, n.x, nullptr);
+    position.setProperty (reverbPositionY, n.y, nullptr);
+    position.setProperty (reverbPositionZ, n.z, nullptr);
     position.setProperty (reverbReturnOffsetX, reverbReturnOffsetDefault, nullptr);
     position.setProperty (reverbReturnOffsetY, reverbReturnOffsetDefault, nullptr);
     position.setProperty (reverbReturnOffsetZ, reverbReturnOffsetDefault, nullptr);
