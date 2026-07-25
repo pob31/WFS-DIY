@@ -96,6 +96,13 @@ namespace WFSParameterIDs
     //==========================================================================
 
     const juce::Identifier stageShape        ("stageShape");       // 0=box, 1=cylinder, 2=dome
+
+    // One-way ownership latch for channel positions (inputs/outputs/reverbs).
+    // false/absent = engine-owned: stage or count changes silently re-run the
+    // initial placement. true = user-owned: the user has opened the Map tab or
+    // manually edited a position, and nothing repositions automatically again.
+    // Persists with the session, so a saved show stays user-owned on reload.
+    const juce::Identifier positionsUserOwned ("positionsUserOwned");
     const juce::Identifier stageWidth        ("stageWidth");
     const juce::Identifier stageDepth        ("stageDepth");
     const juce::Identifier stageHeight       ("stageHeight");

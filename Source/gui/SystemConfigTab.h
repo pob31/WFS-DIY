@@ -652,7 +652,8 @@ public:
         addAndMakeVisible(originCenterButton);
         originCenterButton.onClick = [this]() { setOriginToCenter(); };
 
-        // Stage reposition buttons (hidden until stage geometry changes after Inputs/Map tab visited)
+        // Stage reposition buttons (hidden until stage geometry changes while
+        // positions are user-owned — Map tab visited or a position edited)
         addChildComponent(stageScaleButton);
         stageScaleButton.onLongPress = [this]() {
             parameters.getValueTreeState().scaleAllInputPositions(
@@ -1783,20 +1784,19 @@ public:
         WfsLookAndFeel::scaleTextEditorFonts(*this, layoutScale);
     }
 
-    void setInputsOrMapTabVisited()
+    /** Opening the Map tab latches position ownership to the user (persisted
+        with the session) — from then on stage/count changes never reposition
+        channels automatically. Replaces the old ephemeral visited-flags, which
+        forgot across app restarts and false-tripped on a mere Inputs-tab visit. */
+    void setMapTabVisited()
     {
-        inputsOrMapTabVisited = true;
+        parameters.getValueTreeState().markPositionsUserOwned();
     }
 
-    void setChannelTabsVisited()
+    /** Session load: drop any reposition prompts that referred to the previous
+        session's geometry. Ownership itself now travels inside the session file. */
+    void onSessionLoaded()
     {
-        channelTabsVisited = true;
-    }
-
-    void resetInputsOrMapTabVisited()
-    {
-        inputsOrMapTabVisited = false;
-        channelTabsVisited = false;
         hideStageRepositionButtons();
         hideAllOriginShiftButtons();
     }
@@ -3164,6 +3164,11 @@ public:
         // Recalculate origin for the new shape using current dimensions
         setOriginToCenterGround();
 
+        // The placement layout is shape-dependent (grid bounds; reverb
+        // semi-ellipse vs full ring), so a shape switch is a placement event
+        // even when no dimension editor was touched.
+        onStageDimensionsChanged();
+
         // Update UI visibility and refresh values
         loadParametersToUI();
     }
@@ -3360,10 +3365,15 @@ public:
 
     void onStageDimensionsChanged()
     {
-        if (! inputsOrMapTabVisited)
+        // Ownership rule: while positions are engine-owned (user has neither
+        // opened the Map tab nor manually edited any position — persisted with
+        // the session), stage changes silently re-run the initial placement for
+        // inputs AND reverb nodes. Once user-owned, nothing moves automatically;
+        // the explicit scale/fit buttons are offered instead.
+        if (! parameters.getValueTreeState().arePositionsUserOwned())
         {
-            // Silently redistribute before user has seen the inputs
             parameters.getValueTreeState().redistributeAllInputPositions();
+            parameters.getValueTreeState().redistributeAllReverbPositions();
             snapshotStageDimensions();
         }
         else if (! stageRepositionButtonsVisible)
@@ -3381,9 +3391,13 @@ public:
         if (std::abs (dw) < 0.0001f && std::abs (dd) < 0.0001f && std::abs (dh) < 0.0001f)
             return;  // No meaningful change
 
-        if (! channelTabsVisited)
+        if (! parameters.getValueTreeState().arePositionsUserOwned())
         {
-            // Silently shift all channel types
+            // Silently shift all channel types. For engine-owned nodes a shift
+            // by the origin delta IS the initial placement re-expressed in the
+            // new coordinates (both the input grid and the reverb arc are
+            // stage-anchored), and outputs are physical so world-position must
+            // be preserved — shifting covers all three uniformly.
             parameters.getValueTreeState().shiftAllInputPositions (-dw, -dd, -dh);
             parameters.getValueTreeState().shiftAllOutputPositions (-dw, -dd, -dh);
             parameters.getValueTreeState().shiftAllReverbPositions (-dw, -dd, -dh);
@@ -4022,14 +4036,12 @@ public:
     StageScaleButton stageScaleButton;
     StageFitButton stageFitButton;
     StageDismissButton stageDismissButton;
-    bool inputsOrMapTabVisited = false;
     bool stageRepositionButtonsVisible = false;
     float prevStageWidth = 0.0f, prevStageDepth = 0.0f, prevStageHeight = 0.0f;
     float prevOriginW = 0.0f, prevOriginD = 0.0f, prevOriginH = 0.0f;
     // Origin shift buttons (next to I/O channel counts)
     OriginShiftButton inputShiftButton, outputShiftButton, reverbShiftButton;
     StageDismissButton inputShiftDismissButton, outputShiftDismissButton, reverbShiftDismissButton;
-    bool channelTabsVisited = false;
     bool inputShiftVisible = false, outputShiftVisible = false, reverbShiftVisible = false;
     juce::Label speedOfSoundLabel;
     juce::TextEditor speedOfSoundEditor;

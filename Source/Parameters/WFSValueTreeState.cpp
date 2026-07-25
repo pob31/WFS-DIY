@@ -417,7 +417,15 @@ void WFSValueTreeState::setInputParameter (int channelIndex, const juce::Identif
             // inputPositionX/Y/Z on a shared-mode cluster member propagates
             // to every other member. No-op for inputs not in Shared mode.
             if (paramId == inputPositionX || paramId == inputPositionY || paramId == inputPositionZ)
+            {
                 propagateSharedClusterPosition (channelIndex);
+
+                // A position write through the user-facing API (UI tabs, Map
+                // tab, OSC, MCP) means the user is positioning things: latch
+                // ownership so auto-placement never fights them. The engine's
+                // own layout helpers write via setProperty and bypass this.
+                markPositionsUserOwned();
+            }
 
             return;
         }
@@ -569,6 +577,12 @@ void WFSValueTreeState::setOutputParameter (int channelIndex, const juce::Identi
         if (child.hasProperty (paramId))
         {
             writeProperty (child, paramId, value, getActiveUndoManager());
+
+            // Speaker positions are never auto-placed, but editing one still
+            // signals the user is positioning things (see the input twin).
+            if (paramId == outputPositionX || paramId == outputPositionY || paramId == outputPositionZ)
+                markPositionsUserOwned();
+
             return;
         }
     }
@@ -932,6 +946,14 @@ void WFSValueTreeState::setReverbParameter (int channelIndex, const juce::Identi
         if (child.hasProperty (paramId))
         {
             writeProperty (child, paramId, value, getActiveUndoManager());
+
+            // Node or return position edits latch user ownership of positions
+            // (see the input twin). Return offsets count: they are where the
+            // reverb is perceived, edited from the same tab.
+            if (paramId == reverbPositionX     || paramId == reverbPositionY     || paramId == reverbPositionZ
+             || paramId == reverbReturnOffsetX || paramId == reverbReturnOffsetY || paramId == reverbReturnOffsetZ)
+                markPositionsUserOwned();
+
             return;
         }
 
@@ -1410,10 +1432,10 @@ void WFSValueTreeState::setNumInputChannels (int numChannels)
     // of order with the new rows around them. Redistributing the whole set is
     // what makes the rows contiguous and use the full stage depth.
     //
-    // Note this DOES discard manual input positions on a count change. That is
-    // the explicit intent here; the reverb-side ownership rule (stop
-    // auto-placing once the user has edited) is not yet wired for inputs.
-    if (currentCount != numChannels)
+    // Gated on ownership: once the user has opened the Map tab or edited any
+    // position, a count change must not discard their layout — the new
+    // channels land on the default grid and the rest stay put.
+    if (currentCount != numChannels && ! arePositionsUserOwned())
         redistributeAllInputPositions();
 }
 
@@ -1486,6 +1508,7 @@ void WFSValueTreeState::setNumReverbChannels (int numChannels)
     for (int i = 0; i < reverbs.getNumChildren(); ++i)
         if (reverbs.getChild (i).hasType (Reverb))
             ++currentCount;
+    const int originalCount = currentCount;   // the removal loop below mutates currentCount
 
     beginUndoTransaction ("Set Reverb Channel Count");
 
@@ -1533,6 +1556,13 @@ void WFSValueTreeState::setNumReverbChannels (int numChannels)
             io.setProperty (reverbChannels, numChannels, getActiveUndoManager());
     }
     reverbs.setProperty (count, numChannels, getActiveUndoManager());
+
+    // The arc layout depends on the total node count, so channels created under
+    // an earlier count sit on the wrong arc — re-lay the whole set. Gated on
+    // ownership: once the user has positioned things, the new nodes land on the
+    // default arc and everything else stays put (same rule as the input grid).
+    if (originalCount != numChannels && ! arePositionsUserOwned())
+        redistributeAllReverbPositions();
 }
 
 namespace
@@ -2830,6 +2860,44 @@ juce::ValueTree WFSValueTreeState::createDefaultReverbChannel (int index, int to
     reverb.appendChild (createReverbReturnSection (getNumOutputChannels()), nullptr);
 
     return reverb;
+}
+
+bool WFSValueTreeState::arePositionsUserOwned()
+{
+    auto stageTree = getStageState();
+    return stageTree.isValid()
+        && (bool) stageTree.getProperty (positionsUserOwned, false);
+}
+
+void WFSValueTreeState::markPositionsUserOwned()
+{
+    auto stageTree = getStageState();
+    if (stageTree.isValid() && ! (bool) stageTree.getProperty (positionsUserOwned, false))
+        stageTree.setProperty (positionsUserOwned, true, nullptr);   // no undo: see header
+}
+
+void WFSValueTreeState::redistributeAllReverbPositions()
+{
+    const int n = getNumReverbChannels();
+    if (n <= 0)
+        return;
+
+    const auto nodes = ReverbNodePlacement::layout (getStageForPlacement(), n);
+
+    beginUndoTransaction ("Redistribute Reverb Positions");
+
+    // Writes go through setProperty directly, like redistributeAllInputPositions:
+    // the engine re-laying its own nodes must not trip the user-ownership latch
+    // that setReverbParameter carries.
+    for (int i = 0; i < n; ++i)
+    {
+        auto pos = getReverbPositionSection (i);
+        if (! pos.isValid()) continue;
+        const auto& node = nodes[(size_t) i];
+        pos.setProperty (reverbPositionX, node.x, getActiveUndoManager());
+        pos.setProperty (reverbPositionY, node.y, getActiveUndoManager());
+        pos.setProperty (reverbPositionZ, node.z, getActiveUndoManager());
+    }
 }
 
 ReverbNodePlacement::Stage WFSValueTreeState::getStageForPlacement()

@@ -686,10 +686,11 @@ MainComponent::MainComponent()
             else
                 streamDeckManager->setMainTab (tabIndex);
         }
-        if ((tabIndex == 4 || tabIndex == 6) && systemConfigTab != nullptr)
-            systemConfigTab->setInputsOrMapTabVisited();
-        if ((tabIndex == 2 || tabIndex == 3 || tabIndex == 4 || tabIndex == 6) && systemConfigTab != nullptr)
-            systemConfigTab->setChannelTabsVisited();
+        // Ownership rule: only the MAP tab latches position ownership — merely
+        // looking at the Inputs/Outputs/Reverb tabs does not (editing a
+        // position there latches it via the parameter setters instead).
+        if (tabIndex == 6 && systemConfigTab != nullptr)
+            systemConfigTab->setMapTabVisited();
         resetHelpCycle();
     };
 
@@ -3370,9 +3371,10 @@ void MainComponent::handleConfigReloaded()
     // Reload audio patches from ValueTree (input/output channel routing)
     loadAudioPatches();
 
-    // Reset the inputs-visited flag so stage changes auto-redistribute until user visits Inputs/Map
+    // Drop reposition prompts from the previous session's geometry. Position
+    // ownership itself now travels inside the session file (positionsUserOwned).
     if (systemConfigTab != nullptr)
-        systemConfigTab->resetInputsOrMapTabVisited();
+        systemConfigTab->onSessionLoaded();
 
     // Refresh all tabs to show newly loaded config data
     if (networkTab != nullptr)

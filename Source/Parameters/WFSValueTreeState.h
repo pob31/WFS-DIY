@@ -378,6 +378,25 @@ public:
     /** Redistribute all input positions evenly within the current stage bounds */
     void redistributeAllInputPositions();
 
+    /** Re-lays ALL reverb nodes on the initial arc for the current stage and
+        node count (the reverb twin of redistributeAllInputPositions). */
+    void redistributeAllReverbPositions();
+
+    //==========================================================================
+    // Position ownership (see positionsUserOwned in WFSParameterIDs.h).
+
+    /** True once the user owns the channel positions: they opened the Map tab
+        or manually edited an input/output/reverb position. One-way, persisted
+        with the session. While false, stage size/shape/origin and channel-count
+        changes silently re-run the initial placement (inputs grid, reverb arc);
+        once true, nothing repositions automatically — only the explicit
+        buttons do. */
+    bool arePositionsUserOwned();
+
+    /** Latches position ownership to the user. Idempotent; not undoable on
+        purpose (Ctrl+Z must not re-arm auto-placement). */
+    void markPositionsUserOwned();
+
     /** Scale all input positions proportionally from old stage bounds to current bounds */
     void scaleAllInputPositions (float oldW, float oldD, float oldH,
                                  float oldOW, float oldOD, float oldOH);
@@ -484,6 +503,7 @@ private:
     /** Stage dimensions in the form the reverb node placement helper wants.
         Falls back to a nominal extent when no stage section exists yet. */
     ReverbNodePlacement::Stage getStageForPlacement();
+
 
     /** Create reverb channel subsections */
     juce::ValueTree createReverbChannelSection (int index);
