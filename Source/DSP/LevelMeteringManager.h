@@ -186,6 +186,20 @@ public:
 #endif
     }
 
+    /** True when ANY pipeline is on a GPU — the direct path, the reverb, or
+        both. This, not isGpuAlgorithmCurrent(), is what governs whether the GPU
+        pipeline strip has anything to say: the two backends are chosen
+        independently, so GPU reverb with a CPU direct path is a normal (and on
+        a second card, recommended) configuration.
+
+        Reads the last sampled revLive, refreshed by updateGpuPipelineStats() at
+        the metering tick rate. isGpuAlgorithmCurrent() remains the right test
+        for whether the PER-CHANNEL CPU thread bars are meaningless. */
+    bool isGpuStripRelevant() const
+    {
+        return isGpuAlgorithmCurrent() || gpuStats.revLive;
+    }
+
     // === Level Updates ===
     // Call this from MainComponent::timerCallback at 20Hz
 
@@ -468,19 +482,18 @@ private:
 
     void updateGpuPipelineStats()
     {
-        if (!isGpuAlgorithmCurrent())
-        {
-            gpuStats = GpuPipelineStats{};   // strip hidden; don't show stale numbers
-            return;
-        }
-
 #if WFS_GPU_NATIVE
         const double nowMs = juce::Time::getMillisecondCounterHiRes();
         GpuPipelineStats s = gpuStats;   // rev* fields carry over when the
                                          // engine's try-lock sample is skipped
-        // Direct-sound pump: whichever GPU algorithm is current. Budget is
-        // recovered exactly from the pipeline's own numbers
-        // (latency = depth * blockMs => blockMs = latency / depth).
+
+        // The direct path and the reverb select their backends INDEPENDENTLY:
+        // GPU reverb alongside a CPU direct path is a normal configuration (and
+        // a recommended one on a second card). So the reverb pump is sampled
+        // unconditionally below, and only the direct-pump sampling is gated on
+        // the direct path actually being on the GPU. Gating the whole function
+        // on isGpuAlgorithmCurrent() is what used to hide GPU reverb telemetry
+        // entirely whenever the main algorithm ran on the CPU.
         s.wfsLive = false;
         if (currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs && gpuWfsAlgorithm != nullptr)
             sampleDirectPump(*gpuWfsAlgorithm, s, nowMs);
@@ -533,7 +546,17 @@ private:
             s.feedLive = false;
         }
 
+        // Nothing on a GPU at all: clear, so the strip never shows stale numbers
+        // after a switch back to a fully-CPU configuration.
+        if (! isGpuAlgorithmCurrent() && ! s.revLive)
+        {
+            gpuStats = GpuPipelineStats{};
+            return;
+        }
+
         gpuStats = s;
+#else
+        gpuStats = GpuPipelineStats{};
 #endif
     }
 

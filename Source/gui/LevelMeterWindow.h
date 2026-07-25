@@ -375,16 +375,24 @@ public:
 
         bounds.removeFromBottom(sc(10));  // Spacing
 
-        // GPU pipeline strip: one perf-bar-height row just above the controls,
-        // carved only while a native GPU algorithm is current (the per-channel
-        // thread bars are meaningless then — single pump thread).
-        if (levelManager.isGpuAlgorithmCurrent())
+        // GPU pipeline strip: shares the controls row, to the RIGHT of the
+        // buttons. It deliberately carves nothing off `bounds` — when it had its
+        // own row above the controls, appearing/disappearing resized the meter
+        // areas under a separator that paint() draws at a FIXED getHeight()/2,
+        // so the output meters rode up over the line.
+        if (levelManager.isGpuStripRelevant())
         {
-            auto strip = bounds.removeFromBottom(sc(14));
-            bounds.removeFromBottom(sc(4));  // Spacing
+            controlsArea.removeFromLeft(sc(10));  // Spacing after the buttons
+            auto strip = controlsArea.withSizeKeepingCentre(controlsArea.getWidth(), sc(14));
 
-            const int statusW = juce::jmax(sc(230), strip.getWidth() / 3);
-            gpuStripStatus.setBounds(strip.removeFromRight(statusW).reduced(sc(4), 0));
+            // The row is much narrower than the old full-width one, so the status
+            // text yields to the bars rather than squeezing them: it only appears
+            // once the four cells have their minimum, and is dropped entirely
+            // below that (empty bounds draw nothing).
+            const int statusW = juce::jmin(sc(230), juce::jmax(0, strip.getWidth() - sc(240)));
+            gpuStripStatus.setBounds(statusW >= sc(80)
+                                         ? strip.removeFromRight(statusW).reduced(sc(4), 0)
+                                         : juce::Rectangle<int>());
 
             juce::Label* stripLabels[] = { &gpuWfsLabel, &gpuRevLabel, &gpuFeedLabel, &gpuEngineLabel };
             ThreadPerformanceBar* stripBars[] = { &gpuWfsBar, &gpuRevBar, &gpuFeedBar, &gpuEngineBar };
@@ -553,14 +561,24 @@ private:
         // Update thread performance bars — or, in GPU mode, the GPU pipeline
         // strip that replaces them (the per-channel bars are meaningless with
         // a single pump thread; LevelMeteringManager clears them).
+        // Two DIFFERENT questions, previously conflated into one:
+        //   stripRelevant — is anything on a GPU (direct path, reverb, or both)?
+        //                   Governs whether the strip has anything to show.
+        //   gpuMode       — is the DIRECT path on a GPU? Only then are the
+        //                   per-channel CPU thread bars meaningless.
+        // GPU reverb with a CPU direct path is a normal configuration, and it
+        // must show the strip while KEEPING the per-channel bars.
+        const bool stripRelevant = levelManager.isGpuStripRelevant();
         const bool gpuMode = levelManager.isGpuAlgorithmCurrent();
-        if (gpuMode != gpuStripVisible)
+        if (stripRelevant != gpuStripVisible)
         {
-            gpuStripVisible = gpuMode;
+            gpuStripVisible = stripRelevant;
             for (auto* c : gpuStripComponents())
-                c->setVisible(gpuMode);
-            resized();   // (un)carve the strip row
+                c->setVisible(stripRelevant);
+            resized();   // (re)place the strip within the controls row
         }
+        if (stripRelevant)
+            updateGpuStrip();
 
         if (gpuMode)
         {
@@ -568,7 +586,6 @@ private:
                 bar->setVisible(false);
             for (auto* bar : outputPerfBars)
                 bar->setVisible(false);
-            updateGpuStrip();
         }
         else
         {
