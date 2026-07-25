@@ -451,7 +451,10 @@ private:
     void createAudioPatchSection();
 
     /** Create a single default input channel */
-    juce::ValueTree createDefaultInputChannel (int index);
+    /** @param totalInputsIn  target channel count; pass it explicitly while
+        growing the list, since the tree still holds the old count then.
+        <= 0 reads the tree (correct for single-channel resets). */
+    juce::ValueTree createDefaultInputChannel (int index, int totalInputsIn = -1);
 
     /** Create input channel subsections */
     juce::ValueTree createInputChannelSection (int index);

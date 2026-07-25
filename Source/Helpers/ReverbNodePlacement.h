@@ -73,6 +73,14 @@ namespace ReverbNodePlacement
         float depth = 0.0f;       // box: Y extent
         float height = 0.0f;      // used only to scale the Z jitter
         float diameter = 0.0f;    // cylinder/dome
+
+        // Stored positions are ORIGIN-relative, and the origin is not the stage
+        // centre — originDepth defaults to -5 ("downstage centre"), putting the
+        // origin on the stage's front edge. The stage centre is therefore at
+        // (-originW, -originD), the same convention as getDefaultInputPosition
+        // and scaleAllInputPositions (minX = -width/2 - originW).
+        float originW = 0.0f;
+        float originD = 0.0f;
     };
 
     struct Node
@@ -131,6 +139,9 @@ namespace ReverbNodePlacement
         const float ampY = kJitterFraction * (jy > 0.01f ? jy : kFallbackExtent);
         const float ampZ = kJitterFraction * (stage.height > 0.01f ? stage.height : kDefaultHeight);
 
+        const float centreX = -stage.originW;
+        const float centreY = -stage.originD;
+
         nodes.resize ((size_t) count);
         for (int i = 0; i < count; ++i)
         {
@@ -140,10 +151,13 @@ namespace ReverbNodePlacement
             const float angle = isRound ? (t * juce::MathConstants<float>::twoPi)
                                         : (t * juce::MathConstants<float>::pi);
 
+            // Centred on the STAGE, not on the origin. Centring on (0,0) put the
+            // arc's focus on the stage's front edge, so it cut up through the
+            // stage instead of enclosing it.
             auto& n = nodes[(size_t) i];
-            n.x = extentX * std::cos (angle) + ampX * jitterFor (i, 0);
-            n.y = extentY * std::sin (angle) + ampY * jitterFor (i, 1);
-            n.z = kDefaultHeight            + ampZ * jitterFor (i, 2);
+            n.x = centreX + extentX * std::cos (angle) + ampX * jitterFor (i, 0);
+            n.y = centreY + extentY * std::sin (angle) + ampY * jitterFor (i, 1);
+            n.z = kDefaultHeight       + ampZ * jitterFor (i, 2);
         }
 
         deCrowdInZ (nodes);

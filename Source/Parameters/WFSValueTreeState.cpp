@@ -1379,7 +1379,7 @@ void WFSValueTreeState::setNumInputChannels (int numChannels)
     {
         // Add new channels
         for (int i = currentCount; i < numChannels; ++i)
-            inputs.appendChild (createDefaultInputChannel (i), getActiveUndoManager());
+            inputs.appendChild (createDefaultInputChannel (i, numChannels), getActiveUndoManager());
     }
     else if (numChannels < currentCount)
     {
@@ -2445,12 +2445,23 @@ void WFSValueTreeState::createAudioPatchSection()
     state.appendChild (audioPatch, nullptr);
 }
 
-juce::ValueTree WFSValueTreeState::createDefaultInputChannel (int index)
+juce::ValueTree WFSValueTreeState::createDefaultInputChannel (int index, int totalInputsIn)
 {
-    int totalInputs = inputChannelsDefault;
-    auto io = getIOState();
-    if (io.isValid())
-        totalInputs = static_cast<int> (io.getProperty (inputChannels));
+    // The caller must pass the TARGET count when it is growing the channel
+    // list. setNumInputChannels creates the new channels first and only writes
+    // the new count afterwards, so reading it from the tree here yielded the
+    // OLD count: growing 8 -> 64 gave every new channel numRows = 1, and
+    // getDefaultInputPosition's fracY = (row+1)/(numRows+1) then ran past 1 —
+    // index 63 landed at fracY = 4, i.e. four stage-depths off the front edge.
+    int totalInputs = totalInputsIn;
+    if (totalInputs <= 0)
+    {
+        totalInputs = inputChannelsDefault;
+        auto io = getIOState();
+        if (io.isValid())
+            totalInputs = static_cast<int> (io.getProperty (inputChannels));
+    }
+    totalInputs = juce::jmax (1, totalInputs, index + 1);
 
     juce::ValueTree input (Input);
     input.setProperty (id, index + 1, nullptr);
@@ -2820,6 +2831,8 @@ ReverbNodePlacement::Stage WFSValueTreeState::getStageForPlacement()
     s.depth    = static_cast<float> (stageTree.getProperty (stageDepth,    stageDepthDefault));
     s.height   = static_cast<float> (stageTree.getProperty (stageHeight,   stageHeightDefault));
     s.diameter = static_cast<float> (stageTree.getProperty (stageDiameter, 0.0f));
+    s.originW  = static_cast<float> (stageTree.getProperty (originWidth,  originWidthDefault));
+    s.originD  = static_cast<float> (stageTree.getProperty (originDepth,  originDepthDefault));
     return s;
 }
 
