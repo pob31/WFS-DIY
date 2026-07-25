@@ -988,7 +988,7 @@ Input Audio → Feed Routing (WFSCalculationEngine)
 All 3 algorithms support parallel per-node processing via a fork-join thread pool:
 - Worker count: `min(hardware_concurrency() - 2, numNodes - 1)`, max 7
 - FDN/IR: trivially parallel (independent per-node processing)
-- SDN: snapshot-based — `readBasePos` frozen at block start decouples readers from writers; minimum delay ~70 samples provides natural temporal separation. At most ~5ms extra latency on short paths.
+- SDN: **chunked** node-parallel. `readBasePos` is frozen at block start, and the block is swept in windows of C samples where C = `min over paths of min(D, MAX_DELAY − D)` using each path's *effective* delay (the shorter tap while crossfading). Within such a window no node can read a cell another node writes, so nodes are independent; C = 1 degenerates to the old per-sample lockstep. Bit-exact and worker-count invariant (verified by the `reverb-sdn` goldens). **The earlier claim that "minimum delay ~70 samples provides natural temporal separation" was wrong** — 70 < the 256-sample internal block, which is exactly why the naive node-parallel sweep was racy and got reverted in `c3e7ae2`; the bound above is what actually makes it safe.
 - Calling thread participates in work (no idle main thread)
 
 **Pre-Processing (ReverbPreProcessor):**
@@ -1992,6 +1992,12 @@ On Windows/Linux the app is **CPU-safe**: it links no GPU runtime and `dlopen`s 
 
 The Linux HIP path is validated end-to-end via `tools/test-gpu-plugin` (see `Documentation/GPU_Plugin_Smoke_Test.md`): all 5 kernel families hipRTC-compile and produce finite, ~correct output on real AMD hardware. Linux CUDA compiles and links but is not runtime-validated (low priority).
 
+### CUDA graph submission (opt-in) & latency tooling
+- **`WFS_GPU_GRAPHS=1`** (env var, read at `prepare()`): the CUDA WFS gather backend captures its constant per-block core (input H2D ×2 → K1 → K2 → output D2H) into a CUDA graph and replays it with one `cuGraphLaunch` per block; the upload-diet/ping-pong matrix logic stays **outside** the graph (graphing the uploads unconditionally was measured 3× worse — don't). Bit-exact vs the legacy path (same kernels, same stream order; verified against the GPU goldens on sm_120 + sm_75). Measured win: Tesla T4 (MCDM) depth-1 underruns 82 → 5 per 30 s at 96k/64 64×128; neutral on the WDDM display GPU → **default off, enable per-device**. HIP port is a planned mechanical follow-up (`hipGraph*` mirrors 1:1); Metal already submits one command buffer per block.
+- **`tools/validation/pipeline-bench`** — real-time harness driving the REAL `GpuAsyncPipelineT` (pump thread, rings, depth cushion, underrun accounting) from a metronomic simulated callback; per-depth underruns, p99/p999 backend-time distributions, wake jitter, timestamped spike log. `offline-render` remains the bit-exactness gate (synchronous, bypasses the pipeline).
+- **`Documentation/Windows_GPU_Latency_Tuning.md`** — measured depth-sweep tables and per-device tuning guidance for the RTX 5070 + Tesla T4 rig, plus the evidence-ranked GPU optimization roadmap. **Pin GPU clocks before tuning anything else**: audio's ~28% duty cycle makes default P-state management churn, and pinning the T4 to max clocks was field-measured to bring it roughly to 5070 parity (the tables in that doc were recorded with free clocks and understate it). Depth 3-4 is the safe operating point on either card.
+- Per-device GPU goldens for this rig: `tools/validation/offline-render/baselines/win-rig-{5070,t4}-gpu.json`. Rebuild `wfs_cuda.dll` (`tools/windows/build-gpu-plugins.ps1`) after pulling GPU-touching commits — the app silently loads a stale plugin DLL.
+
 ### Build (Linux)
 ```bash
 make -C Builds/LinuxMakefile CONFIG=Debug   # CPU-safe app (links no GPU runtime)
@@ -2089,7 +2095,7 @@ When updating these files, preserve the column count and avoid introducing U+FFF
 
 ---
 
-*Last updated: 2026-07-21*
-*Session changes: migrated JUCE 8.0.14 -> 9.0.0 (branch juce9-migration, PR #8): native XInput2 Linux multitouch replaced the canUseTouch patch + evdev backend (both deleted); Windows windows opt back into raw multi-touch via WindowUtils::enableRawMultiTouch; juce_opengl dropped (unused, avoids EGL dep); libxi-dev added to CI + docs. Verified: offline-render 15/15 bit-exact, 5/5 control-replay E2E, 3-OS CI green. Also: content-sized help cards, long-press affordance gating, Live Source Tamer help figures with localized legends.*
+*Last updated: 2026-07-25 (v1.0.0beta39)*
+*Session changes: GPU latency work on the RTX 5070 + Tesla T4 rig — new pipeline-bench harness (first tool to exercise the real GpuAsyncPipelineT pump/rings/underrun path), opt-in CUDA graph submission for the WFS gather backend (WFS_GPU_GRAPHS=1; bit-exact, T4 depth-1 underruns 82→5 per 30 s, neutral on WDDM 5070), Windows_GPU_Latency_Tuning.md runbook with measured depth sweeps + roadmap (OB graphs, HIP port, kernel occupancy split); OB scatter backend got a prepare-time warmup launch (25-85 ms first-block lazy-init stall killed; bit-exact, goldens pass). Found + fixed a stale staged wfs_cuda.dll (predated FR-diffusion + SDN-gain commits); re-recorded per-device GPU goldens; audio-engine-map doc drift (blocking-sync event vs cudaStreamSynchronize) fixed in both mirrors.*
 *JUCE Version: 9.0.0*
 *Build: Visual Studio 2022 / Xcode / Linux Makefile, x64 Debug/Release*

@@ -92,6 +92,7 @@ struct Config
     int blocks = 200;
     int numIn = 8;
     int numOut = 16;
+    int reverbWorkers = 0;   // AudioParallelFor width for the CPU reverb paths
 };
 
 enum class Path
@@ -628,8 +629,17 @@ ChannelData renderReverb (Path path, scenario::Id id, const Config& cfg)
     const int srInt = static_cast<int> (cfg.sr);
     const int nodes = cfg.numIn;
 
+    // Default 0 workers -> sequential fallback (worker-count-invariant by
+    // design, so the baseline hashes are the sequential ones). --reverb-workers
+    // drives the real fork-join pool, both to MEASURE how the algorithms scale
+    // with worker count (ReverbEngine.h clamps its own pool to 7, which is the
+    // binding constraint at high node counts) and to VERIFY that invariance
+    // claim: the hash must not move as the count changes.
     AudioParallelFor pool;
-    pool.prepare (0);   // 0 workers -> sequential fallback (worker-count-invariant anyway)
+    {
+        const double blockMs = cfg.sr > 0.0 ? 1000.0 * cfg.block / cfg.sr : 0.0;
+        pool.prepare (cfg.reverbWorkers, blockMs, blockMs);
+    }
 
     std::unique_ptr<ReverbAlgorithm> algo;
     switch (path)
@@ -1233,6 +1243,7 @@ int main (int argc, char* argv[])
         else if (a == "--sr")       cfg.sr = std::atof (next().c_str());
         else if (a == "--in")       cfg.numIn = std::atoi (next().c_str());
         else if (a == "--out")      cfg.numOut = std::atoi (next().c_str());
+        else if (a == "--reverb-workers") cfg.reverbWorkers = std::atoi (next().c_str());
         else if (a == "--device")   deviceArg = next();
         else if (a == "--plugin-dir") pluginDirArg = next();
         else if (a == "--wav")      wavArg = next();
