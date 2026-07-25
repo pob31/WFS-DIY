@@ -873,6 +873,21 @@ namespace detail
         const int n = static_cast<int> (layout.nodes.size());
 
         // Pass 1: capture before-values.
+        // Minimum-spacing guard. The ring/shell generators place by angle, so a
+        // high node count on a small radius crowds them arbitrarily close —
+        // which for SDN means an inter-node delay of a handful of samples and a
+        // chunk window that collapses to the per-sample lockstep. Reuse the
+        // placement helper's de-crowding so a generated layout obeys the same
+        // guarantee, and on the same axis, as the default one: separate in Z,
+        // leave the operator-visible plan untouched.
+        std::vector<ReverbNodePlacement::Node> guard ((size_t) n);
+        for (int i = 0; i < n; ++i)
+        {
+            const auto& s = layout.nodes[(size_t) i];
+            guard[(size_t) i] = { (float) s.x, (float) s.y, (float) s.z };
+        }
+        ReverbNodePlacement::deCrowdInZ (guard);
+
         struct Write { juce::Identifier paramId; int channelIndex; juce::var value; juce::var before; };
         std::vector<Write> writes;
         writes.reserve ((size_t) n * 5);
@@ -882,7 +897,8 @@ namespace detail
             const auto& node = layout.nodes[(size_t) i];
             writes.push_back ({ WFSParameterIDs::reverbPositionX, i, juce::var (node.x),    {} });
             writes.push_back ({ WFSParameterIDs::reverbPositionY, i, juce::var (node.y),    {} });
-            writes.push_back ({ WFSParameterIDs::reverbPositionZ, i, juce::var (node.z),    {} });
+            writes.push_back ({ WFSParameterIDs::reverbPositionZ, i,
+                                juce::var ((double) guard[(size_t) i].z), {} });
             writes.push_back ({ WFSParameterIDs::reverbOrientation, i,
                                 juce::var (juce::roundToInt (node.orientationDeg)), {} });
             if (node.writePitch)

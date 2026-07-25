@@ -7,6 +7,7 @@
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
 #include "../Parameters/WFSConstraints.h"
+#include "../Helpers/ReverbNodePlacement.h"
 #include "../Network/OSCProtocolTypes.h"
 #include "ColorUtilities.h"
 #include "ColorScheme.h"
@@ -1003,7 +1004,10 @@ public:
                 case TouchInfo::Type::Reverb:
                 {
                     auto currentStagePos = screenToStage (touch.currentPos);
-                    parameters.setReverbParam (touch.targetIndex, "reverbPositionX", currentStagePos.x);
+                    const float ownX = reverbTouchMirrorActive
+                                         ? mirrorClampedReverbX (currentStagePos.x)
+                                         : currentStagePos.x;
+                    parameters.setReverbParam (touch.targetIndex, "reverbPositionX", ownX);
                     parameters.setReverbParam (touch.targetIndex, "reverbPositionY", currentStagePos.y);
 
                     if (reverbTouchMirrorActive)
@@ -1012,7 +1016,7 @@ public:
                         int pairIdx = (touch.targetIndex % 2 == 0) ? touch.targetIndex + 1 : touch.targetIndex - 1;
                         if (pairIdx >= 0 && pairIdx < numReverbs)
                         {
-                            parameters.setReverbParam (pairIdx, "reverbPositionX", -currentStagePos.x);
+                            parameters.setReverbParam (pairIdx, "reverbPositionX", mirroredReverbX (currentStagePos.x));
                             parameters.setReverbParam (pairIdx, "reverbPositionY", currentStagePos.y);
                         }
                     }
@@ -1066,17 +1070,20 @@ public:
         if (isDraggingReverb && selectedReverbNode >= 0)
         {
             auto currentStagePos = screenToStage (e.position);
-            parameters.setReverbParam (selectedReverbNode, "reverbPositionX", currentStagePos.x);
+            bool mirrorPair = e.mods.isCtrlDown() || e.mods.isCommandDown();
+
+            const float ownX = mirrorPair ? mirrorClampedReverbX (currentStagePos.x)
+                                          : currentStagePos.x;
+            parameters.setReverbParam (selectedReverbNode, "reverbPositionX", ownX);
             parameters.setReverbParam (selectedReverbNode, "reverbPositionY", currentStagePos.y);
 
-            bool mirrorPair = e.mods.isCtrlDown() || e.mods.isCommandDown();
             if (mirrorPair)
             {
                 int numReverbs = parameters.getNumReverbChannels();
                 int pairIdx = (selectedReverbNode % 2 == 0) ? selectedReverbNode + 1 : selectedReverbNode - 1;
                 if (pairIdx >= 0 && pairIdx < numReverbs)
                 {
-                    parameters.setReverbParam (pairIdx, "reverbPositionX", -currentStagePos.x);
+                    parameters.setReverbParam (pairIdx, "reverbPositionX", mirroredReverbX (currentStagePos.x));
                     parameters.setReverbParam (pairIdx, "reverbPositionY", currentStagePos.y);
                 }
             }
@@ -2576,6 +2583,13 @@ private:
         float px = static_cast<float>(parameters.getReverbParam (reverbIdx, "reverbPositionX")) + dx;
         float py = static_cast<float>(parameters.getReverbParam (reverbIdx, "reverbPositionY")) + dy;
         float pz = static_cast<float>(parameters.getReverbParam (reverbIdx, "reverbPositionZ")) + dz;
+
+        // Mirror about the stage centre, holding the pair apart near the axis
+        // (see mirroredReverbX) — the old -px reflected about x = 0 and let the
+        // two nodes merge there.
+        if (mirrorPair)
+            px = mirrorClampedReverbX (px);
+
         parameters.setReverbParam (reverbIdx, "reverbPositionX", px);
         parameters.setReverbParam (reverbIdx, "reverbPositionY", py);
         parameters.setReverbParam (reverbIdx, "reverbPositionZ", pz);
@@ -2586,7 +2600,7 @@ private:
             int pairIdx = (reverbIdx % 2 == 0) ? reverbIdx + 1 : reverbIdx - 1;
             if (pairIdx >= 0 && pairIdx < numReverbs)
             {
-                parameters.setReverbParam (pairIdx, "reverbPositionX", -px);
+                parameters.setReverbParam (pairIdx, "reverbPositionX", mirroredReverbX (px));
                 parameters.setReverbParam (pairIdx, "reverbPositionY", py);
                 parameters.setReverbParam (pairIdx, "reverbPositionZ", pz);
             }
@@ -2892,6 +2906,41 @@ private:
             return static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageDepth,
                                       WFSParameterDefaults::stageDepthDefault));
         return WFSParameterDefaults::stageDepthDefault;
+    }
+
+    /** X of a Ctrl-mirrored partner, given the dragged node's X.
+
+        Two corrections over the old `-x`:
+
+        • The mirror axis is the STAGE CENTRE, not x = 0. Stored positions are
+          origin-relative and the origin need not be the stage centre, so with a
+          non-zero originWidth `-x` reflected about the wrong line and threw the
+          partner off to one side.
+        • Near the axis the pair collapsed onto each other — at x = centre both
+          nodes landed on the same point, which for SDN means an inter-node
+          delay of a couple of samples and a chunk window of 1. The offset is
+          held to half the minimum spacing so the pair can approach the centre
+          line but never merge. */
+    float mirroredReverbX (float draggedX) const
+    {
+        const float axis = -getOriginWidth();
+        float offset = draggedX - axis;
+        const float minOffset = 0.5f * ReverbNodePlacement::kMinNodeSpacing;
+        if (std::abs (offset) < minOffset)
+            offset = (offset < 0.0f ? -minOffset : minOffset);
+        return axis - offset;
+    }
+
+    /** The dragged node's own X, clamped off the mirror axis so its partner
+        (above) stays a full kMinNodeSpacing away rather than converging on it. */
+    float mirrorClampedReverbX (float draggedX) const
+    {
+        const float axis = -getOriginWidth();
+        float offset = draggedX - axis;
+        const float minOffset = 0.5f * ReverbNodePlacement::kMinNodeSpacing;
+        if (std::abs (offset) < minOffset)
+            offset = (offset < 0.0f ? -minOffset : minOffset);
+        return axis + offset;
     }
 
     float getOriginWidth() const
