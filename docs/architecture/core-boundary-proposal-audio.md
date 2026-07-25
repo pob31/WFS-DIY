@@ -284,8 +284,15 @@ before vs after extraction.
   (in the app, not CORE): a way to (a) drive `getNextAudioBlock` from a file at a fixed block
   size, and (b) replay the `target*` matrix timeline from a captured log rather than the live
   timer. Neither exists; both are small app-side harnesses.
-- **Reverb parity** is already partly tooled: the CPU SDN runs a synchronous per-sample lockstep
-  *specifically to match the GPU bit-for-bit* (`ReverbSDNAlgorithm.h:126-130`), and
+- **Reverb parity** is already partly tooled, but the bit-for-bit claim is FALSE and was never
+  machine-checked until 2026-07-25. Measured, same scenario and identical arguments, CPU
+  `reverb-sdn` vs CUDA `gpu-reverb-sdn`: **94% of samples differ**, max abs diff **2.8e-7**
+  (**-123 dBFS** re peak), RMS **5.7e-8**. That is float32 epsilon accumulated through a
+  recursive network — the algorithms agree, their floating-point association does not, and no
+  amount of lockstep can change that (NVRTC contracts to FMA, and per-arch codegen differs:
+  sm_120 and sm_75 do not agree with each other either, which is exactly why the GPU goldens are
+  PER-DEVICE). The real contract is *numerically equivalent to within float32 rounding*, not
+  bit-identical. `tools/test-gpu-plugin.cpp` exercises all 5 GPU families, and
   `tools/test-gpu-plugin.cpp` exercises all 5 GPU families. Extend that tool into the CORE
   regression suite.
 - **Practical gate if bit-exact replay isn't stood up first:** (1) run `tools/test-gpu-plugin.cpp`
