@@ -54,6 +54,15 @@ namespace ReverbNodePlacement
     /** Fallback stage extent when a dimension is missing or degenerate. */
     inline constexpr float kFallbackExtent = 10.0f;
 
+    /** How far past a half-turn the box-stage arc wraps, each end, in radians.
+
+        A plain 180 deg semi-ellipse terminates level with the stage's mid-depth
+        line, which leaves the downstage corners uncovered — the reverb sits
+        entirely upstage of the audience. Carrying each end ~45 deg further
+        brings the last nodes down alongside the downstage edges (at 45 deg the
+        end sits 0.53 stage-depths below centre, just past the front edge). */
+    inline constexpr float kArcExtension = 0.7853982f;   // 45 deg
+
     /** Height band the de-crowding may use.
 
         A hard bound matters: on a small stage with many nodes the horizontal
@@ -148,8 +157,10 @@ namespace ReverbNodePlacement
             // Half-step inset keeps a semi-ellipse off its own endpoints, where
             // nodes would sit level with the stage edge.
             const float t = ((float) i + 0.5f) / (float) count;
+            const float arcStart = -kArcExtension;
+            const float arcSpan  = juce::MathConstants<float>::pi + 2.0f * kArcExtension;
             const float angle = isRound ? (t * juce::MathConstants<float>::twoPi)
-                                        : (t * juce::MathConstants<float>::pi);
+                                        : (arcStart + t * arcSpan);
 
             // Centred on the STAGE, not on the origin. Centring on (0,0) put the
             // arc's focus on the stage's front edge, so it cut up through the

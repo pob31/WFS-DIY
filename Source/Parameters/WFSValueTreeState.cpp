@@ -1402,6 +1402,19 @@ void WFSValueTreeState::setNumInputChannels (int numChannels)
     if (io.isValid())
         io.setProperty (inputChannels, numChannels, getActiveUndoManager());
     inputs.setProperty (count, numChannels, getActiveUndoManager());
+
+    // Re-lay ALL inputs, not just the ones just added. The grid depends on the
+    // total count (rows = ceil(total/8)), so channels created under an earlier
+    // count keep a layout for a different grid: growing 8 -> 64 left the
+    // original eight stranded at the old single-row position, mid-stage and out
+    // of order with the new rows around them. Redistributing the whole set is
+    // what makes the rows contiguous and use the full stage depth.
+    //
+    // Note this DOES discard manual input positions on a count change. That is
+    // the explicit intent here; the reverb-side ownership rule (stop
+    // auto-placing once the user has edited) is not yet wired for inputs.
+    if (currentCount != numChannels)
+        redistributeAllInputPositions();
 }
 
 void WFSValueTreeState::setNumOutputChannels (int numChannels)
