@@ -384,7 +384,7 @@ private:
         heightFactorLabel.setText(LOC("setAllInputs.labels.heightFactor"), juce::dontSendNotification);
 
         addAndMakeVisible(heightFactorDial);
-        heightFactorDial.setValue(0.0f);  // Default 0%
+        heightFactorDial.setValue(WFSParameterDefaults::inputHeightFactorDefault / 100.0f);
         heightFactorDial.onValueChanged = [this](float v) {
             int percent = static_cast<int>(v * 100.0f);
             heightFactorValueLabel.setText(juce::String(percent), juce::dontSendNotification);
@@ -392,7 +392,7 @@ private:
         };
 
         addAndMakeVisible(heightFactorValueLabel);
-        heightFactorValueLabel.setText("0", juce::dontSendNotification);
+        heightFactorValueLabel.setText(juce::String(WFSParameterDefaults::inputHeightFactorDefault), juce::dontSendNotification);
         heightFactorValueLabel.setEditable(true, false);
         heightFactorValueLabel.addListener(this);
 
