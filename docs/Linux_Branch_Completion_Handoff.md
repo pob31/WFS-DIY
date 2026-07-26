@@ -199,6 +199,104 @@ Harmless on this box: repeated `warning: startRealtimeThread failed, using
 normal priority` — the renders are offline, so it does not affect the hashes
 (both baselines re-checked identical twice).
 
+## Next up: Windows × HIP rebuild + check (added 2026-07-26)
+
+Linux × HIP is done (see above). The Windows × HIP cell is **not** validated yet,
+and it cannot be until the prebuilt DLL is rebuilt. **Do 4a before 4b** — 4b is
+actively misleading otherwise.
+
+### 4a — rebuild `tools\windows\prebuilt\wfs_hip.dll` (mandatory first)
+
+The committed DLL was built **2026-07-20** from spatcore `b0f35ef`. It predates
+*both* the node-parallel SDN port (`c12f3b6`) and the `WFS_SDN_TRACE` port
+(`3da516a`, merged as `d1e6f66`). The plugin ABI is the seven unchanged
+`extern "C"` entry points, so **a stale DLL loads happily and silently runs the
+older kernel** — you would see zero `[sdn]` lines and wrongly conclude the trace
+port failed.
+
+Needs a Windows box with the **AMD HIP SDK (ROCm 7.x)** — the DLL imports
+`amdhip64_7.dll` + `hiprtc0701.dll`, so the SDK floor is set by whoever rebuilds
+it — **and MSVC**, from a *Developer PowerShell* so `cl.exe` and the SDK are on
+`PATH`.
+
+```powershell
+git pull
+git submodule update --init --recursive     # must land spatcore d1e6f66
+tools\windows\build-gpu-plugins.ps1          # -> Builds\VisualStudio2022\x64\Release\App\
+Copy-Item Builds\VisualStudio2022\x64\Release\App\wfs_hip.dll tools\windows\prebuilt\ -Force
+```
+
+Then update the **"Current binary"** provenance line in
+`tools\windows\prebuilt\README.md` to spatcore `d1e6f66` (noting it now includes
+the node-parallel SDN port and the `WFS_SDN_TRACE` mapping log), and commit both.
+`release.yml` packages this committed DLL as-is, so an un-refreshed one ships.
+
+> **If the HIP build fails to compile**, look at `HipSdnBackend.cpp` first. This TU
+> is built on Windows with the HIP SDK's **clang++ against the MSVC STL** (not
+> `hipcc` — see the comment block in `spatcore/tools/gpu/build-gpu-plugins.ps1`).
+> The explicit `#include <cstdio>` there exists precisely for that path: libstdc++
+> pulls it in transitively and MSVC's headers do not, so a missing `std::fprintf`
+> would break Windows while Linux stays green. CI cannot catch this — the Windows
+> runner has no AMD HIP SDK.
+
+### 4b — validate Windows × HIP
+
+Build the harness from `tools\` (**note the include path** — it is `spatcore\gpu`
+now, not the pre-extraction `Source\DSP\gpu`):
+
+```
+cl /nologo /EHsc /std:c++17 /DWFS_GPU_NATIVE=1 /I..\spatcore\gpu ^
+   test-gpu-plugin.cpp /Fe:test-gpu-plugin.exe
+
+.\test-gpu-plugin.exe ..\Builds\VisualStudio2022\x64\Release\App\wfs_hip.dll 0
+```
+
+Pass = **7/7, exit 0**. Then the mapping trace:
+
+```powershell
+$env:WFS_SDN_TRACE = "1"
+.\test-gpu-plugin.exe ..\Builds\VisualStudio2022\x64\Release\App\wfs_hip.dll 0
+```
+
+Expect **two** lines, matching what Linux × HIP produces:
+
+```
+[sdn] mapping=lockstep      chunk=256/256 minDelay=1
+[sdn] mapping=node-parallel chunk=256/256 minDelay=349
+```
+
+**Zero `[sdn]` lines means the DLL is stale — go back to 4a.** It does not mean
+the port failed.
+
+Linux reference, gfx1103 / ROCm 7.1.1, 2026-07-26, for comparison:
+
+| | SDN peak | launchMs |
+|---|---|---|
+| node-parallel (default) | 0.0633 | 0.90 |
+| lockstep (`WFS_SDN_NODE_PARALLEL=0`) | 0.0633 | 2.19 |
+
+The two mappings agreeing on **peak** is the correctness property; only the timing
+should move. Note 0.0633 supersedes the `0.0897` recorded in
+`docs/Linux_HIP_Validation.md` (2026-07-06) — that shift came from `c12f3b6`
+reshaping the kernel, not from the mapping or the ROCm version (6.4.3 and 7.1.1
+were verified byte-identical across all 7 scenarios).
+
+### 4c — Windows × CUDA sanity check
+
+Not merely a formality on this branch: `ac94932` (node-parallel CUDA SDN kernel,
+14-16× at 32 nodes) and `ab0bd34` (warmup launch for both SDN kernels at
+`prepare()`) are both ancestors of the pinned spatcore, so the CUDA SDN path
+genuinely changed. `wfs_cuda.dll` is built fresh by the same
+`build-gpu-plugins.ps1` (and by `release.yml` in CI), so no prebuilt staleness
+applies. CUDA has always had the trace, so expect the same two `[sdn]` lines.
+
+**Do not false-alarm on SDN GPU-vs-CPU hash differences** — see *"Where the
+original assumptions were wrong"* above: that is nvcc FMA contraction, a CUDA-wide
+trait, and the already-validated `win-dev-nvidia` baselines differ on SDN too. The
+genuine CPU-fallback signal is GPU matching CPU on *every* reverb path including
+FDN and IR; confirm the plugin really loaded via the per-path
+`note: <path> device: NVIDIA … (CUDA)` line.
+
 ## What still remains
 
 1. **Merge the parent.** spatcore is already on `main` (`4aa2a95`); the re-pin
@@ -216,7 +314,9 @@ normal priority` — the renders are offline, so it does not affect the hashes
   (`c12f3b6`). Still stale relative to `main`; not caused by this branch and not
   a gate for this merge. Refreshing it needs **Windows + ROCm 7.x** (`b168345`
   corrected the README: the binary imports `amdhip64_7.dll` + `hiprtc0701.dll`,
-  so the SDK floor is set by whoever rebuilds it).
+  so the SDK floor is set by whoever rebuilds it). **Now also one commit staler
+  still** (the `WFS_SDN_TRACE` port, spatcore `d1e6f66`) — the rebuild procedure
+  is *Next up: Windows × HIP rebuild + check*, step 4a, above.
 - **`Documentation/Linux_GPU_Enablement.md:51`** still presents a
   `WFS_GPU_HIP=1` / ROCm-linked `LINUX_MAKE` config as "the current Linux
   variant". Two architecture generations out of date — the app is plugin-mode.
