@@ -1,0 +1,17 @@
+{
+  "gpu-gather/fr-toggle": "bc3aa83c27499fa07dc9a9fd9ae8119bf9053e9ffc789f103deb3413ba1f27b7",
+  "gpu-gather/moving": "1b8fc9cb924f6aac1e9ad5b5170a360ad4a7ee9f467f7fe52215f69e3157f5bf",
+  "gpu-gather/static": "8c2fcfda2790f180c8c9ab4528d8a58d8ec4f6ed5f801799006b68ab8f360b94",
+  "gpu-reverb-fdn/fr-toggle": "22102a23c5a030cc7d25e2d807775df2251ae23d21a2c8d44ab0f9d438026bf1",
+  "gpu-reverb-fdn/moving": "51717e438292171d997ee2f3b558c2f2bea06a7b6f9736c51a062785e035ac3d",
+  "gpu-reverb-fdn/static": "c96f2a51b7ec21615d596ecb3ad53af47359ed1635a505a06d1df282a1319d9b",
+  "gpu-reverb-ir/fr-toggle": "1d5af8e28f9e68d5e18adbc231d4b5d22df274d6462a469eecca7eab083833cd",
+  "gpu-reverb-ir/moving": "b257e90686ed9b5ba79adc7136793a792967720693faccc0aabde585c09f0bd2",
+  "gpu-reverb-ir/static": "e0b4b087fe2fab8b4d6490145ccf16d8f9a273b278e3a40fa37bafeae07e05e9",
+  "gpu-reverb-sdn/fr-toggle": "b5eebd25c5488b56e22e8ece69f63fa3dd565bc31df04ff1e4726bfb1e9f2be1",
+  "gpu-reverb-sdn/moving": "9b40c82608a3b22c6c7f4d9740f046514506a310b139846c392c529cdf522332",
+  "gpu-reverb-sdn/static": "279e1dc4776b98364bc4a5c4c953d0a1db4da6a7226dc65e13443eec2a741151",
+  "gpu-scatter/fr-toggle": "c01a5aae89e189e47c8eed12ef619ff8cc574412ecbad091885d1ef28214d37e",
+  "gpu-scatter/moving": "c29d780ac6ea9bbb52895f6162890757fc460e05dac6c1c32f1d0a4ed1659adf",
+  "gpu-scatter/static": "8c2fcfda2790f180c8c9ab4528d8a58d8ec4f6ed5f801799006b68ab8f360b94"
+}
