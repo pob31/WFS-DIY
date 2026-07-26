@@ -199,15 +199,28 @@ Harmless on this box: repeated `warning: startRealtimeThread failed, using
 normal priority` — the renders are offline, so it does not affect the hashes
 (both baselines re-checked identical twice).
 
-## Next up: Windows × HIP rebuild + check (added 2026-07-26)
+## Windows × HIP rebuild + check — **4a + 4b done** (added 2026-07-26, run 2026-07-26)
 
-Linux × HIP is done (see above). The Windows × HIP cell is **not** validated yet,
-and it cannot be until the prebuilt DLL is rebuilt. **Do 4a before 4b** — 4b is
-actively misleading otherwise.
+Linux × HIP is done (see above). Windows × HIP is **now validated too** — 4a and 4b
+both pass, results inline below. **4c (Windows × CUDA) remains outstanding** and
+could not run on the box that did 4a/4b.
 
-### 4a — rebuild `tools\windows\prebuilt\wfs_hip.dll` (mandatory first)
+Done in parent `4257f78`, spatcore `d1e6f66`. **Box:** Windows 11 Pro 26200,
+Radeon 780M (gfx1103), ROCm 7.1, VS 18.8 Community / MSVC 14.51.
 
-The committed DLL was built **2026-07-20** from spatcore `b0f35ef`. It predates
+The procedure below is kept as the standing recipe for the next rebuild, including
+the **do 4a before 4b** ordering — that still governs, because 4b is actively
+misleading against a stale DLL.
+
+### 4a — rebuild `tools\windows\prebuilt\wfs_hip.dll` (mandatory first) — ✅ done
+
+> **Run 2026-07-26.** Rebuilt from spatcore `d1e6f66`: 0 errors, both plugins export
+> `wfs_plugin_*`, only the known `nodiscard` / `-Wunused-result` noise on `CK_DRV`.
+> 225792 → 250368 bytes. Imports still `amdhip64_7.dll` + `hiprtc0701.dll`, so the
+> ROCm 7.x floor is unchanged. Committed with the README provenance line in
+> `4257f78`.
+
+The committed DLL had been built **2026-07-20** from spatcore `b0f35ef`, predating
 *both* the node-parallel SDN port (`c12f3b6`) and the `WFS_SDN_TRACE` port
 (`3da516a`, merged as `d1e6f66`). The plugin ABI is the seven unchanged
 `extern "C"` entry points, so **a stale DLL loads happily and silently runs the
@@ -239,7 +252,31 @@ the node-parallel SDN port and the `WFS_SDN_TRACE` mapping log), and commit both
 > would break Windows while Linux stays green. CI cannot catch this — the Windows
 > runner has no AMD HIP SDK.
 
-### 4b — validate Windows × HIP
+### 4b — validate Windows × HIP — ✅ done
+
+> **Run 2026-07-26, all gates pass.** `test-gpu-plugin.exe wfs_hip.dll 0` → **7/7
+> PASS, exit 0**, on `AMD Radeon 780M Graphics (HIP)`. SDN peak **0.0633**, matching
+> the Linux gfx1103 reference exactly. `WFS_SDN_TRACE=1` produced **both** expected
+> lines verbatim (`lockstep minDelay=1` + `node-parallel minDelay=349`), and
+> `WFS_SDN_NODE_PARALLEL=0` correctly collapsed to the lockstep line alone.
+>
+> | mapping | SDN peak | launchMs |
+> |---|---|---|
+> | node-parallel (default) | 0.0633 | 1.199 |
+> | lockstep (`WFS_SDN_NODE_PARALLEL=0`) | 0.0633 | 2.666 |
+>
+> Peak identical, timing 2.2× — the same shape as the Linux gfx1103 numbers below
+> (2.4×). The three lint gates were also re-run green after the re-pin to `d1e6f66`.
+>
+> **Deviation from the order below:** 4b was run against the *freshly built* DLL
+> before copying it into `prebuilt\` and committing, rather than after. Same
+> guarantee — validation never sees a stale binary — but an unvalidated binary
+> never enters history. Recommended for future rebuilds.
+>
+> The harness needs the ROCm `bin` on `PATH` (the Windows analogue of the Linux
+> `LD_LIBRARY_PATH` export): unlike the app, `tools/test-gpu-plugin.cpp` does not
+> call `ensureVendorRuntimeSearchPath`, so `amdhip64_7.dll` / `hiprtc0701.dll` do
+> not otherwise resolve.
 
 Build the harness from `tools\` (**note the include path** — it is `spatcore\gpu`
 now, not the pre-extraction `Source\DSP\gpu`):
@@ -281,7 +318,19 @@ should move. Note 0.0633 supersedes the `0.0897` recorded in
 reshaping the kernel, not from the mapping or the ROCm version (6.4.3 and 7.1.1
 were verified byte-identical across all 7 scenarios).
 
-### 4c — Windows × CUDA sanity check
+### 4c — Windows × CUDA sanity check — ⏳ still outstanding
+
+> **Could not run on the 4a/4b box (2026-07-26): it has no NVIDIA GPU** — Radeon
+> 780M only. This needs the `win-dev-nvidia` machine. `wfs_cuda.dll` *was* rebuilt
+> there by the same `build-gpu-plugins.ps1` and exports `wfs_plugin_*` fine, so
+> only the runtime half is unverified.
+>
+> **New trap worth knowing:** force-loading `wfs_cuda.dll` with no NVIDIA driver
+> **access-violates** in the harness (`0xC0000005`) instead of exiting `6`
+> (GPU/plugin unavailable), which the exit-code table would lead you to expect.
+> The *app* never hits this — `GpuDeviceManager` enumerates first and skips the
+> plugin, the clean no-op — so it is harness robustness on wrong-vendor hardware,
+> not an app defect. Do not read it as a CUDA-path regression.
 
 Not merely a formality on this branch: `ac94932` (node-parallel CUDA SDN kernel,
 14-16× at 32 nodes) and `ab0bd34` (warmup launch for both SDN kernels at
@@ -299,24 +348,25 @@ FDN and IR; confirm the plugin really loaded via the per-path
 
 ## What still remains
 
-1. **Merge the parent.** spatcore is already on `main` (`4aa2a95`); the re-pin
-   and its gate re-run are done. Only step 4 of the original order is left.
+1. **Merge the parent.** spatcore is already on `main` (`4aa2a95`, since re-pinned
+   to `d1e6f66`); the re-pin and its gate re-run are done. Of step 4, **4a and 4b
+   are done** (`4257f78`); only **4c — Windows × CUDA** is left, and it needs the
+   `win-dev-nvidia` box.
 2. **Port control-replay to POSIX**, or explicitly scope it Windows-only. Until
    then `tools/bump-spatcore.ps1` step 6 is unverifiable on Linux.
 3. **`aarch64` is still unvalidated.** `ThirdParty/juce_simpleweb/libs/Linux/`
    ships only `x86_64` and `armv7` static libssl/libcrypto, so an arm64 link
    fails with no `-lssl`/`-lcrypto`. This run was x86-64 only.
 
-## Known-stale things (re-verified 2026-07-26, all still true)
+## Known-stale things (re-verified 2026-07-26; one now RESOLVED, rest still true)
 
-- **`tools/windows/prebuilt/wfs_hip.dll`** — last committed 2026-07-20
-  (`a359e2a`), while `spatcore/gpu/HipSdnBackend.cpp` changed 2026-07-25
-  (`c12f3b6`). Still stale relative to `main`; not caused by this branch and not
-  a gate for this merge. Refreshing it needs **Windows + ROCm 7.x** (`b168345`
-  corrected the README: the binary imports `amdhip64_7.dll` + `hiprtc0701.dll`,
-  so the SDK floor is set by whoever rebuilds it). **Now also one commit staler
-  still** (the `WFS_SDN_TRACE` port, spatcore `d1e6f66`) — the rebuild procedure
-  is *Next up: Windows × HIP rebuild + check*, step 4a, above.
+- ~~**`tools/windows/prebuilt/wfs_hip.dll`**~~ — **RESOLVED 2026-07-26 in
+  `4257f78`.** Was last committed 2026-07-20 (`a359e2a`) and stale against both
+  `c12f3b6` (node-parallel SDN) and `3da516a` (`WFS_SDN_TRACE`). Now rebuilt from
+  spatcore `d1e6f66` on Windows + ROCm 7.1 and validated 7/7 — see *Windows × HIP
+  rebuild + check*, 4a/4b, above. The README correction from `b168345` still
+  stands: the binary imports `amdhip64_7.dll` + `hiprtc0701.dll`, so the SDK floor
+  is set by whoever rebuilds it.
 - **`Documentation/Linux_GPU_Enablement.md:51`** still presents a
   `WFS_GPU_HIP=1` / ROCm-linked `LINUX_MAKE` config as "the current Linux
   variant". Two architecture generations out of date — the app is plugin-mode.
