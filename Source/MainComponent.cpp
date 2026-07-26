@@ -2220,10 +2220,18 @@ MainComponent::MainComponent()
 
     // Make sure you set the size of the component after
     // you add any child components.
-    // Set initial size to 90% of the screen, with minimum bounds
+    // Set initial size to 90% of the screen, with minimum bounds, but never wider
+    // than 16:9. Height drives the clamp: 90% of an ultrawide's width is a letterbox
+    // strip (32:9 gives ~3.5:1) that the tab layouts were never designed for, and it
+    // puts a whole screen-width of mouse travel between controls that belong together.
+    // Only displays wider than 16:9 are affected — on 16:9 and 16:10 the min() never
+    // binds, so their default size is unchanged. The window stays freely resizable, so
+    // anyone who does want the full width can still drag to it.
     auto displayArea = juce::Desktop::getInstance().getDisplays().getPrimaryDisplay()->userBounds.toNearestInt();
-    int windowWidth = juce::jmax(1280, (int)(displayArea.getWidth() * 0.9f));
+    constexpr float maxAspectRatio = 16.0f / 9.0f;
     int windowHeight = juce::jmax(720, (int)(displayArea.getHeight() * 0.9f));
+    int windowWidth  = juce::jmax(1280, juce::jmin((int)(displayArea.getWidth() * 0.9f),
+                                                   (int)(windowHeight * maxAspectRatio)));
     setSize (windowWidth, windowHeight);
 
     // Enable keyboard focus for keyboard shortcuts
