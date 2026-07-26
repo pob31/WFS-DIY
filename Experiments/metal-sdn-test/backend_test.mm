@@ -20,8 +20,12 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <random>
+#include <string>
+#include <utility>
 #include <vector>
 
 static int failures = 0;
@@ -29,6 +33,43 @@ static void check (bool ok, const char* what)
 {
     printf ("%-66s %s\n", what, ok ? "PASS" : "FAIL");
     if (! ok) ++failures;
+}
+
+//==============================================================================
+// Bit-exact output hashing — the A/B gate for a kernel RESHAPE.
+//
+// The err= figures below compare GPU against the CPU reference, and those two
+// are NOT bit-identical by design (spatcore f2ba3c9 / core-boundary-proposal-
+// audio.md: the contract is float32-equivalence, not bit-equality). So an err=
+// check at 2e-4 tolerance passes identically for the lockstep and the
+// node-parallel mapping EVEN IF THE NEW KERNEL NEVER RAN — that is the handoff's
+// trap #1. Hashing the raw float32 bits of every GPU output sample is what
+// actually proves the two mappings agree, and that the new one executed.
+//
+// Compare across runs with:
+//   WFS_SDN_NODE_PARALLEL=0 ./backend_test > lockstep.txt
+//   WFS_SDN_NODE_PARALLEL=1 ./backend_test > nodes.txt
+//   diff <(grep '^hash ' lockstep.txt) <(grep '^hash ' nodes.txt)
+struct Fnv1a
+{
+    uint64_t h = 1469598103934665603ull;   // FNV-1a 64 offset basis
+
+    void add (float f) noexcept
+    {
+        uint32_t bits;
+        std::memcpy (&bits, &f, sizeof (bits));   // hash the BITS, not the value
+        for (int i = 0; i < 4; ++i)
+        {
+            h ^= (uint64_t) ((bits >> (i * 8)) & 0xffu);
+            h *= 1099511628211ull;                // FNV-1a 64 prime
+        }
+    }
+};
+
+static std::vector<std::pair<std::string, uint64_t>> g_hashes;
+static void recordHash (const char* label, uint64_t h)
+{
+    g_hashes.emplace_back (label, h);
 }
 
 //==============================================================================
@@ -73,7 +114,7 @@ struct CpuSdnReference
             const int base = (int) ringWritePos + s;
             for (int n = 0; n < N; ++n)
             {
-                float incoming[16];
+                float incoming[SdnHostConfig::MAX_NODES];   // MAX_NODES is 32
                 float sumIn = 0.0f;
                 int k = 0;
                 for (int i = 0; i < N; ++i)
@@ -233,6 +274,7 @@ static void streamParity (int numNodes, int block, Params pr, float radius, cons
 
     float maxDiff = 0.0f;
     double sumMs = 0.0, maxMs = 0.0;
+    Fnv1a hash;
 
     for (int b = 0; b < blocks; ++b)
     {
@@ -259,13 +301,18 @@ static void streamParity (int numNodes, int block, Params pr, float radius, cons
 
         for (int n = 0; n < numNodes; ++n)
             for (int s = 0; s < block; ++s)
-                maxDiff = std::max (maxDiff, std::abs (refOut[(size_t) n][(size_t) s] - gpuOut[(size_t) n][(size_t) s]));
+            {
+                const float g = gpuOut[(size_t) n][(size_t) s];
+                maxDiff = std::max (maxDiff, std::abs (refOut[(size_t) n][(size_t) s] - g));
+                hash.add (g);
+            }
     }
 
-    char text[180];
+    char text[220];
     snprintf (text, sizeof (text), "%s | err=%.2e, launch avg %.3f / max %.3f ms",
               label, maxDiff, sumMs / blocks, maxMs);
     check (maxDiff < 2e-4f, text);
+    recordHash (label, hash.h);
 }
 
 //==============================================================================
@@ -295,6 +342,7 @@ static void testParamAndGeometryChange()
     { in[(size_t) n].resize ((size_t) block); gOut[(size_t) n].resize ((size_t) block); rOut[(size_t) n].resize ((size_t) block); }
 
     float maxDiff = 0.0f;
+    Fnv1a hash;
     for (int b = 0; b < 120; ++b)
     {
         if (b == 40)  // params change on BOTH
@@ -324,11 +372,16 @@ static void testParamAndGeometryChange()
 
         for (int n = 0; n < numNodes; ++n)
             for (int s = 0; s < block; ++s)
-                maxDiff = std::max (maxDiff, std::abs (rOut[(size_t) n][(size_t) s] - gOut[(size_t) n][(size_t) s]));
+            {
+                const float g = gOut[(size_t) n][(size_t) s];
+                maxDiff = std::max (maxDiff, std::abs (rOut[(size_t) n][(size_t) s] - g));
+                hash.add (g);
+            }
     }
     char text[120];
     snprintf (text, sizeof (text), "mid-stream param + geometry/crossfade stays in parity, err=%.2e", maxDiff);
     check (maxDiff < 2e-4f, text);
+    recordHash ("mid-stream param + geometry/crossfade", hash.h);
 
     // Reset: silence in -> silence out (history cleared).
     gpu.requestReset();
@@ -373,11 +426,22 @@ int main()
     streamParity (16, 256, { 1.5f, 1.3f, 0.5f, 200.0f, 4000.0f, 0.5f, 1.0f }, 4.0f, "16 nodes x 256 (full)");
     streamParity (16, 128, { 0.6f, 0.9f, 0.8f, 180.0f, 5000.0f, 0.3f, 2.0f }, 5.0f, "16 nodes x 128, short RT60, scale 2x");
     streamParity (8,  256, { 3.0f, 2.0f, 0.3f, 220.0f, 4500.0f, 0.0f, 1.0f }, 3.0f, "8 nodes x 256, diffusion OFF");
+    // 32 = MAX_NODES, and the shape the node-parallel reshape exists for (the
+    // config measured at 100% GPU / 0% idle on the lockstep — Metal_Validation.md).
+    streamParity (32, 256, { 1.5f, 1.3f, 0.5f, 200.0f, 4000.0f, 0.5f, 1.0f }, 6.0f, "32 nodes x 256 (MAX_NODES)");
+    streamParity (32, 128, { 1.5f, 1.3f, 0.5f, 200.0f, 4000.0f, 0.5f, 1.0f }, 1.0f, "32 nodes x 128, CLOSE (chunk collapses)");
 
     testParamAndGeometryChange();
     testPassthrough();
 
     printf ("\n%s (%d failure%s)\n", failures == 0 ? "ALL PASS" : "FAILURES",
             failures, failures == 1 ? "" : "s");
+
+    // Bit-exact gate: these lines must be IDENTICAL between
+    // WFS_SDN_NODE_PARALLEL=0 and =1. err= above cannot prove that (see Fnv1a).
+    printf ("\n--- bit-exact GPU output hashes (mapping A/B gate) ---\n");
+    for (const auto& e : g_hashes)
+        printf ("hash %016llx  %s\n", (unsigned long long) e.second, e.first.c_str());
+
     return failures == 0 ? 0 : 1;
 }

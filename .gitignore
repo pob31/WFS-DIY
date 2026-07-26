@@ -15,6 +15,14 @@ Builds/*/release/
 Plugin/Installer/Output/
 Plugin/Builds/
 
+# Release staging — scripts/ci/build-macos-release.sh and release.yml assemble the
+# DMG / Setup.exe / tar.gz (+ .sha256) here before uploading them as GitHub Release
+# assets, and docs/Linux_AMD_Release_Tarball.md writes the ROCm tarball here too.
+# All generated, all published elsewhere, and large enough (~80 MB per ROCm tarball)
+# that one accidental commit would bloat the history permanently. None of the
+# *.exe/*.so/*.dll rules above catch a .tar.gz or a .sha256.
+dist/
+
 # Compiled binaries
 *.exe
 *.dll
@@ -117,3 +125,8 @@ __pycache__/
 .pytest_cache/
 Experiments/metal-wfs-spike/spike
 Experiments/metal-wfs-spike/backend_test
+
+# GPU plugin smoke-test harness — compiled ad hoc by the g++ line in
+# Documentation/GPU_Plugin_Smoke_Test.md, and extensionless on POSIX so none of
+# the *.exe/*.so rules above catch it. The .cpp source stays tracked.
+tools/test-gpu-plugin

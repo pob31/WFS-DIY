@@ -122,7 +122,7 @@ host compiler.
 on `PATH`):
 
 ```
-cl /nologo /EHsc /std:c++17 /DWFS_GPU_NATIVE=1 /I..\Source\DSP\gpu ^
+cl /nologo /EHsc /std:c++17 /DWFS_GPU_NATIVE=1 /I..\spatcore\gpu ^
    test-gpu-plugin.cpp /Fe:test-gpu-plugin.exe
 ```
 

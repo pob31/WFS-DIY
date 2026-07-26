@@ -83,14 +83,21 @@ jobs:
       - uses: actions/checkout@v5
         with:
           submodules: recursive
-      - name: Validation gates (kernel hashes + dependency lint)
+      - name: Validation gates (kernel hashes + dependency lint + experiments paths)
         # Cheap pure-python checks, seconds each: the byte-frozen GPU kernel
         # manifest must match the pinned spatcore submodule, and app→spatcore
         # includes must stay one-way. Catches a submodule bump that skipped the
         # gate ritual (tools/bump-spatcore.ps1) before any compile time is spent.
+        #
+        # The third gate covers the Experiments/ harnesses, which nothing else
+        # in CI compiles: they reference the tree by relative path, so a move
+        # rots them silently (the Phase 2 GPU extraction broke three of them for
+        # weeks). It asserts the paths still RESOLVE rather than grepping for one
+        # known-stale string, so it catches the next move too.
         run: |
           python3 tools/validation/kernel_hashes.py
           python3 tools/validation/spatcore_dep_lint.py
+          python3 tools/validation/experiments_path_lint.py
       - name: Install JUCE build deps + ccache
         # libxi-dev: JUCE 9 native XInput2 multitouch (JUCE_USE_XINPUT).
         run: |

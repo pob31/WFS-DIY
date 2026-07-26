@@ -305,6 +305,12 @@ namespace WFSParameterDefaults
     constexpr float inputPositionMin            = -50.0f;
     constexpr float inputPositionMax            = 50.0f;
 
+    // Default working height for a new input: roughly a standing performer's
+    // head. Absolute, not origin-relative — the same convention as
+    // ReverbNodePlacement::kDefaultHeight, and why getDefaultInputPosition
+    // ignores originH while it does subtract originW/originD from X/Y.
+    constexpr float inputPositionZDefault       = 1.5f;
+
     constexpr float inputOffsetDefault          = 0.0f;
     constexpr float inputOffsetMin              = -50.0f;
     constexpr float inputOffsetMax              = 50.0f;
@@ -332,7 +338,7 @@ namespace WFSParameterDefaults
 
     constexpr int inputPathModeActiveDefault    = 0;  // 0=OFF, 1=ON
 
-    constexpr int inputHeightFactorDefault      = 0;
+    constexpr int inputHeightFactorDefault      = 100;
     constexpr int inputHeightFactorMin          = 0;
     constexpr int inputHeightFactorMax          = 100;
 
@@ -728,7 +734,7 @@ namespace WFSParameterDefaults
         // Position within stage bounds
         x = minX + stageWidth * fracX;
         y = minY + stageDepth * fracY;
-        z = 0.0f;
+        z = inputPositionZDefault;
     }
 
     //==========================================================================

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "c19c4c319ec2b47cf794fa23bc4617f5315a09a4c8119a4065163aad1f003d91",
+  "input_hash": "c0604287af923cb3adfcbef36ae7b5d3792582a59f87a23a3235c25895d45fd6",
   "source_csvs": [
     "WFS-UI_config.csv",
     "WFS-UI_input.csv",
@@ -4749,7 +4749,8 @@
             "type": "number",
             "minimum": -50.0,
             "maximum": 50.0,
-            "description": "Position Z m."
+            "description": "Position Z m.",
+            "default": 1.5
           },
           "transition_seconds": {
             "type": "number",
@@ -6063,7 +6064,7 @@
             "minimum": 0,
             "maximum": 100,
             "description": "Height Factor %.",
-            "default": 0
+            "default": 100
           },
           "transition_seconds": {
             "type": "number",

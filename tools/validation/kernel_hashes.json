@@ -7,6 +7,6 @@
   "spatcore/gpu/MetalFdnKernels.h": "672977b03d67c7a69d08bbe512df78045106266ed4eee4a28e7d3da5d84119e5",
   "spatcore/gpu/MetalIrKernels.h": "57d133f80dbc966e7cbe57733d7454c84ca2c466d11eb297125a26b33cdb7921",
   "spatcore/gpu/MetalObKernels.h": "173b45cf1d56d5a7fba990ec84c4044271062929e8c12ed497fba9790ee0d539",
-  "spatcore/gpu/MetalSdnKernels.h": "252205428ead5d00e7f6677895145587a724e857a8ecfaa2f53a5fb7370c87cb",
+  "spatcore/gpu/MetalSdnKernels.h": "4a6c65a1d0868edd8cde4541118285b579cfe4aa10b02ba657c5a8a2b61f825b",
   "spatcore/gpu/MetalWfsKernels.h": "44f4fccf4f6ee74b5e2fb418af0a01b91c667763bdf971d45813b2722d9800b2"
 }

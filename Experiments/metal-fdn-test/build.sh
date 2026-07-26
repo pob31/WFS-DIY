@@ -4,7 +4,7 @@ cd "$(dirname "$0")"
 clang++ -std=c++17 -O2 -fobjc-arc \
     -DWFS_GPU_NATIVE=1 \
     -framework Metal -framework Foundation \
-    backend_test.mm ../../Source/DSP/gpu/MetalFdnBackend.mm \
-    -I ../../Source/DSP/gpu \
+    backend_test.mm ../../spatcore/gpu/MetalFdnBackend.mm \
+    -I ../../spatcore/gpu \
     -o backend_test
 echo "built: ./backend_test"

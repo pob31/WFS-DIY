@@ -1,6 +1,6 @@
 /*
     Standalone validation harness for the CUDA WFS kernels (wfs_pairs +
-    wfs_reduce in Source/DSP/gpu/CudaWfsKernels.h).
+    wfs_reduce in spatcore/gpu/CudaWfsKernels.h).
 
     NVRTC-compiles the exact kernel string the app ships and runs targeted
     scenarios against a tiny CPU reference model:
