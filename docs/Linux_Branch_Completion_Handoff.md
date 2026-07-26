@@ -199,11 +199,12 @@ Harmless on this box: repeated `warning: startRealtimeThread failed, using
 normal priority` — the renders are offline, so it does not affect the hashes
 (both baselines re-checked identical twice).
 
-## Windows × HIP rebuild + check — **4a + 4b done** (added 2026-07-26, run 2026-07-26)
+## Windows × HIP rebuild + check — **4a + 4b + 4c all done** (added 2026-07-26, run 2026-07-26)
 
 Linux × HIP is done (see above). Windows × HIP is **now validated too** — 4a and 4b
-both pass, results inline below. **4c (Windows × CUDA) remains outstanding** and
-could not run on the box that did 4a/4b.
+both pass, results inline below. **4c (Windows × CUDA) is now done as well**, run on
+`win-dev-nvidia` the same day — see 4c. **Step 4 is complete on every platform**, so
+no platform gate is left between this branch and `main`.
 
 Done in parent `4257f78`, spatcore `d1e6f66`. **Box:** Windows 11 Pro 26200,
 Radeon 780M (gfx1103), ROCm 7.1, VS 18.8 Community / MSVC 14.51.
@@ -318,26 +319,95 @@ should move. Note 0.0633 supersedes the `0.0897` recorded in
 reshaping the kernel, not from the mapping or the ROCm version (6.4.3 and 7.1.1
 were verified byte-identical across all 7 scenarios).
 
-### 4c — Windows × CUDA sanity check — ⏳ still outstanding
+### 4c — Windows × CUDA sanity check — ✅ done
 
-> **Could not run on the 4a/4b box (2026-07-26): it has no NVIDIA GPU** — Radeon
-> 780M only. This needs the `win-dev-nvidia` machine. `wfs_cuda.dll` *was* rebuilt
-> there by the same `build-gpu-plugins.ps1` and exports `wfs_plugin_*` fine, so
-> only the runtime half is unverified.
+> **Run 2026-07-26 on `win-dev-nvidia`, every gate passes.** Parent `a3200d0`,
+> spatcore `d1e6f66`. **Box:** Windows 11 Pro 26200, NVIDIA RTX PRO 2000 Blackwell
+> Laptop GPU (compute cap 12.0), driver 596.72, CUDA toolkit 13.3, VS 18.8
+> Community / MSVC 14.51.
 >
-> **New trap worth knowing:** force-loading `wfs_cuda.dll` with no NVIDIA driver
-> **access-violates** in the harness (`0xC0000005`) instead of exiting `6`
-> (GPU/plugin unavailable), which the exit-code table would lead you to expect.
-> The *app* never hits this — `GpuDeviceManager` enumerates first and skips the
-> plugin, the clean no-op — so it is harness robustness on wrong-vendor hardware,
-> not an app defect. Do not read it as a CUDA-path regression.
+> | Gate | Result |
+> |---|---|
+> | App build (`Debug\|x64`) | Clean — 0 errors, one pre-existing `C4459` in `WFSValueTreeState.cpp:1385` |
+> | `wfs_cuda.dll` rebuild | 0 errors, `exports OK` |
+> | `test-gpu-plugin.exe wfs_cuda.dll 0` | **7/7 PASS, exit 0** |
+> | `WFS_SDN_TRACE=1` | **both** `[sdn]` lines, verbatim |
+> | `WFS_SDN_NODE_PARALLEL=0` | collapses to the lockstep line alone |
+> | `baselines/win-dev-nvidia-gpu.json` | **15/15 match, exit 0** |
+> | `baselines/win-dev-nvidia.json` (CPU) | **15/15 match, exit 0** |
+> | The three lint gates | all OK after the `d1e6f66` re-pin |
+>
+> | mapping | SDN peak | launchMs |
+> |---|---|---|
+> | node-parallel (default) | 0.0633 | 0.534 |
+> | lockstep (`WFS_SDN_NODE_PARALLEL=0`) | 0.0633 | 1.125 |
+>
+> Peak identical, timing 2.1× — the same shape as Windows × HIP (2.2×) and Linux ×
+> HIP (2.4×). **SDN peak 0.0633 matches the gfx1103 reference exactly**, so the two
+> vendors agree on the reshaped kernel.
+>
+> **The node-parallel port is bit-preserving on CUDA, not just on Metal/Linux.**
+> The `win-dev-nvidia-gpu` baselines were recorded **2026-07-20**, predating
+> `c12f3b6` (node-parallel SDN) and `ab0bd34` (warmup launch) — and all 15 combos
+> still match byte-for-byte, `gpu-reverb-sdn/*` included. That independently
+> confirms on CUDA what the Linux run found by comparing the two mappings directly:
+> the mapping changes scheduling, not arithmetic. A re-baseline was **not** needed.
+>
+> **The driver/toolkit skew is a non-issue and here is why.** Driver 596.72 carries
+> a CUDA **13.2** runtime while the toolkit is **13.3** — normally a forward-compat
+> hazard. It does not bite because every `Cuda*Backend.cpp` compiles
+> `--gpu-architecture=sm_<arch>` and loads via `nvrtcGetCUBIN` +
+> `cuModuleLoadDataEx`, i.e. a real cubin for the exact arch, **not** `compute_` PTX
+> left to the driver's JIT. The older driver is never asked to compile anything.
+> Do not "fix" this by switching to `compute_`.
+>
+> **Trap for whoever reruns this here: `build-gpu-plugins.ps1` builds *both* DLLs on
+> this box.** It has the AMD HIP SDK (ROCm 7.1) installed alongside CUDA, and the
+> script detects the SDK **by root, not by GPU**, so it rebuilds `wfs_hip.dll` on a
+> machine with no AMD GPU to validate it against. Harmless as-is — the output lands
+> in the gitignored `Builds\...\Release\App\`, and the *committed* prebuilt at
+> `tools\windows\prebuilt\wfs_hip.dll` (the 4a artifact, validated on the Radeon
+> box) is untouched. **Do not copy this box's `wfs_hip.dll` into `prebuilt\`** — that
+> would replace a validated binary with an unvalidated one and silently undo 4a.
+>
+> **Trap from the 4a/4b box, still worth knowing:** force-loading `wfs_cuda.dll`
+> with no NVIDIA driver **access-violates** in the harness (`0xC0000005`) instead of
+> exiting `6` (GPU/plugin unavailable), which the exit-code table would lead you to
+> expect. The *app* never hits this — `GpuDeviceManager` enumerates first and skips
+> the plugin, the clean no-op — so it is harness robustness on wrong-vendor
+> hardware, not an app defect. Do not read it as a CUDA-path regression.
+
+Reproducing it — the harness build and the two runs, from `tools\`:
+
+```
+cl /nologo /EHsc /std:c++17 /DWFS_GPU_NATIVE=1 /I..\spatcore\gpu ^
+   test-gpu-plugin.cpp /Fe:test-gpu-plugin.exe
+
+.\test-gpu-plugin.exe ..\Builds\VisualStudio2022\x64\Release\App\wfs_cuda.dll 0
+```
+
+Then the baselines. Unlike POSIX, **the co-location symlink step is unnecessary** —
+the harness prints `note: GPU plugin dir: ...\Builds\VisualStudio2022\x64\Release\App`
+and resolves the plugin from there on its own:
+
+```powershell
+cmake -S tools/validation/offline-render -B tools/validation/offline-render/build `
+      -G "Visual Studio 18 2026" -A x64      # NOT -DCMAKE_BUILD_TYPE; multi-config
+cmake --build tools/validation/offline-render/build --config Release
+
+cd tools\validation\offline-render
+$BIN = "build\offline-render_artefacts\Release\offline-render.exe"
+& $BIN --path gpu --scenario all --device cuda:0 --check baselines\win-dev-nvidia-gpu.json
+& $BIN --path cpu --scenario all               --check baselines\win-dev-nvidia.json
+```
 
 Not merely a formality on this branch: `ac94932` (node-parallel CUDA SDN kernel,
 14-16× at 32 nodes) and `ab0bd34` (warmup launch for both SDN kernels at
 `prepare()`) are both ancestors of the pinned spatcore, so the CUDA SDN path
 genuinely changed. `wfs_cuda.dll` is built fresh by the same
 `build-gpu-plugins.ps1` (and by `release.yml` in CI), so no prebuilt staleness
-applies. CUDA has always had the trace, so expect the same two `[sdn]` lines.
+applies. CUDA has always had the trace, and the run confirmed the same two `[sdn]`
+lines — so the change landed and is exercised, it did not silently no-op.
 
 **Do not false-alarm on SDN GPU-vs-CPU hash differences** — see *"Where the
 original assumptions were wrong"* above: that is nvcc FMA contraction, a CUDA-wide
@@ -348,10 +418,11 @@ FDN and IR; confirm the plugin really loaded via the per-path
 
 ## What still remains
 
-1. **Merge the parent.** spatcore is already on `main` (`4aa2a95`, since re-pinned
-   to `d1e6f66`); the re-pin and its gate re-run are done. Of step 4, **4a and 4b
-   are done** (`4257f78`); only **4c — Windows × CUDA** is left, and it needs the
-   `win-dev-nvidia` box.
+1. **Merge the parent — nothing blocks it.** spatcore is already on `main`
+   (`4aa2a95`, since re-pinned to `d1e6f66`); the re-pin and its gate re-run are
+   done. Step 4 is **fully complete**: 4a and 4b on the Radeon box (`4257f78`), 4c
+   on `win-dev-nvidia` 2026-07-26. Every platform × vendor cell — Windows, Linux
+   and macOS across CUDA, HIP and Metal — is signed off.
 2. **Port control-replay to POSIX**, or explicitly scope it Windows-only. Until
    then `tools/bump-spatcore.ps1` step 6 is unverifiable on Linux.
 3. **`aarch64` is still unvalidated.** `ThirdParty/juce_simpleweb/libs/Linux/`
