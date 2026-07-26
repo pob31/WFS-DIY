@@ -15,6 +15,14 @@ Builds/*/release/
 Plugin/Installer/Output/
 Plugin/Builds/
 
+# Release staging — scripts/ci/build-macos-release.sh and release.yml assemble the
+# DMG / Setup.exe / tar.gz (+ .sha256) here before uploading them as GitHub Release
+# assets, and docs/Linux_AMD_Release_Tarball.md writes the ROCm tarball here too.
+# All generated, all published elsewhere, and large enough (~80 MB per ROCm tarball)
+# that one accidental commit would bloat the history permanently. None of the
+# *.exe/*.so/*.dll rules above catch a .tar.gz or a .sha256.
+dist/
+
 # Compiled binaries
 *.exe
 *.dll
