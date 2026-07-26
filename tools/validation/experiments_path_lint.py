@@ -28,9 +28,14 @@ EXPERIMENTS = REPO_ROOT / "Experiments"
 # Build scripts only -- these are what break a build when they rot.
 SCRIPT_GLOBS = ("*.sh", "*.bat", "*.ps1")
 
-# A relative path token: starts with ../ or ./ and runs to the next whitespace,
-# quote, or shell line-continuation. Trailing punctuation is stripped below.
-PATH_RE = re.compile(r"(?<![\w/])\.{1,2}/[^\s\"'`;|)]+")
+# PARENT-relative tokens only ("../"), i.e. references that reach OUT of the
+# harness directory into the shared tree. Those are the ones a tree move breaks.
+#
+# Deliberately NOT "./": every script ends with `echo "built: ./backend_test"`,
+# and ./backend_test is a gitignored build OUTPUT. Matching it made this lint
+# pass on a developer box that had built the harnesses and fail on any clean
+# checkout -- i.e. it would have failed CI while looking green locally.
+PATH_RE = re.compile(r"(?<![\w/])\.\./[^\s\"'`;|)]+")
 
 COMMENT_PREFIXES = ("#", "::", "rem ", "REM ")
 
