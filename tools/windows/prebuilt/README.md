@@ -13,17 +13,24 @@ workflow copies it next to the exe before packaging.
 It is force-tracked via a `!` rule in the repo `.gitignore` (the global `*.dll`
 rule would otherwise ignore it).
 
-**Current binary**: built 2026-07-20 from spatcore `b0f35ef` (v0.1.1-3, Max-prototype
-FR diffusion) with ROCm 7.1 clang++ against the MSVC dynamic UCRT. Includes the SDN
-N-invariant output gain (`c7dad5c`) and the GPU host-path work (M1 blocking event
-waits, M2 upload diet, M3 GpuHostWorkPool). Update this line whenever you recommit
-the DLL.
+**Current binary**: built 2026-07-26 from spatcore `d1e6f66` (v0.1.1-18) with
+ROCm 7.1 clang++ against the MSVC dynamic UCRT. Adds the **node-parallel SDN port**
+(`c12f3b6`) and the **`WFS_SDN_TRACE` mapping log** (`3da516a`) over the previous
+snapshot; still carries the SDN N-invariant output gain (`c7dad5c`) and the GPU
+host-path work (M1 blocking event waits, M2 upload diet, M3 GpuHostWorkPool).
+Update this line whenever you recommit the DLL.
 
-It does **not** yet include the SDN node-parallel port (spatcore `HipSdnBackend.cpp`,
-landed after this build). Nothing warns you about that: the plugin ABI is the seven
-`extern "C"` entry points, which did not change, so an out-of-date DLL loads happily
-and silently runs the older kernel. Rebuild before trusting any HIP-vs-CUDA/Metal
-comparison.
+Validated on gfx1103 (Radeon 780M) / ROCm 7.1 the same day: `test-gpu-plugin.exe`
+7/7 PASS exit 0, SDN peak `0.0633` matching the Linux gfx1103 reference, and both
+mapping lines present under `WFS_SDN_TRACE=1` (`lockstep minDelay=1` +
+`node-parallel minDelay=349`). Node-parallel launch 1.199 ms vs lockstep 2.666 ms,
+identical peak — see `docs/Linux_Branch_Completion_Handoff.md` step 4b.
+
+> **The stale-DLL trap.** The plugin ABI is the seven `extern "C"` entry points and
+> they rarely change, so a DLL older than the spatcore it is paired with **loads
+> happily and silently runs the older kernel** — no error, no warning. Zero `[sdn]`
+> lines under `WFS_SDN_TRACE=1` means this DLL is stale, *not* that the port failed.
+> Rebuild before trusting any HIP-vs-CUDA/Metal comparison.
 
 ### Rebuild + recommit when the HIP backend changes
 
