@@ -1,6 +1,6 @@
 /*
     Standalone validation harness for the CUDA OutputBuffer (scatter) kernels
-    (ob_pairs + ob_reduce in Source/DSP/gpu/CudaObKernels.h). The Windows/NVIDIA
+    (ob_pairs + ob_reduce in spatcore/gpu/CudaObKernels.h). The Windows/NVIDIA
     twin of Experiments/metal-output-buffer-test/backend_test.mm.
 
     NVRTC-compiles the exact kernel string the app ships and runs targeted

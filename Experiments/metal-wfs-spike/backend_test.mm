@@ -6,7 +6,7 @@
 // ramps over each block, -L pre-subtraction, ring history).
 //
 // Build:  clang++ -std=c++17 -O2 -fobjc-arc -framework Metal -framework Foundation \
-//             backend_test.mm ../../Source/DSP/gpu/MetalWfsBackend.mm -I ../../Source/DSP/gpu -o backend_test
+//             backend_test.mm ../../spatcore/gpu/MetalWfsBackend.mm -I ../../spatcore/gpu -o backend_test
 // Run:    ./backend_test
 //
 

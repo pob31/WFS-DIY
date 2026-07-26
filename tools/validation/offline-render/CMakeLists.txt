@@ -18,6 +18,13 @@ cmake_minimum_required(VERSION 3.22)
 
 project(offline-render VERSION 0.1.0 LANGUAGES C CXX)
 
+# macOS compiles the Metal backends straight into the harness (see the APPLE
+# block below), which needs the Objective-C++ toolchain enabled at directory
+# scope before any .mm source is added.
+if(APPLE)
+    enable_language(OBJCXX)
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -50,6 +57,27 @@ if(WFS_OFFLINE_RENDER_GPU)
     target_compile_definitions(offline-render PRIVATE
         WFS_GPU_NATIVE=1
         WFS_GPU_PLUGINS=1)
+endif()
+
+# macOS has no vendor plugin to dlopen: GpuBackendFactory is compiled out on
+# Apple (GpuBackendFactory.h returns nullptr there) and the make*Backend
+# selectors in {Wfs,Ob,Ir,Fdn,Sdn}GpuBackend.h fall through to the compiled-in
+# Metal backend instead - so WFS_GPU_PLUGINS above is inert here. main.cpp
+# instantiates all five selectors, so all five .mm must be linked or the build
+# fails with undefined symbols; -framework Metal is required because no JUCE
+# module pulls Metal in (juce_core covers Foundation).
+if(APPLE AND WFS_OFFLINE_RENDER_GPU)
+    target_sources(offline-render PRIVATE
+        ${REPO_ROOT}/spatcore/gpu/MetalWfsBackend.mm
+        ${REPO_ROOT}/spatcore/gpu/MetalObBackend.mm
+        ${REPO_ROOT}/spatcore/gpu/MetalIrBackend.mm
+        ${REPO_ROOT}/spatcore/gpu/MetalFdnBackend.mm
+        ${REPO_ROOT}/spatcore/gpu/MetalSdnBackend.mm)
+
+    target_include_directories(offline-render PRIVATE
+        ${REPO_ROOT}/spatcore/gpu)
+
+    target_link_libraries(offline-render PRIVATE "-framework Metal")
 endif()
 
 target_link_libraries(offline-render PRIVATE

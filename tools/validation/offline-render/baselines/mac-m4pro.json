@@ -1,0 +1,17 @@
+{
+  "cpu-gather/fr-toggle": "be33681a971fc64fddd248e55bc4b8a7862b0026661aec0a8c67903e9b142d89",
+  "cpu-gather/moving": "0bffbc34fdf427528218293ebdff3203b60c73880f641e67f996a37c4f0afaae",
+  "cpu-gather/static": "ab70f67483ceab26b74add86d435adfb3479045d4e2f1cf3377c5d8c86c00816",
+  "cpu-scatter/fr-toggle": "3aecb7fa449f1c8f9a0224f349043e1118b8e1cf182a0a693fe626765ae2eaff",
+  "cpu-scatter/moving": "83261c35f7f8c64298c663d82ede52f72a20e75567bb0ea36671c468c59501d4",
+  "cpu-scatter/static": "7783f11962dea306cf158a26019b2ba88545e573e499ab1eed0a56fd802ca262",
+  "reverb-fdn/fr-toggle": "62b85a3e7f097e3e3c9303bf6d4016ecba40a9cc88874bc0970d139743c17f5c",
+  "reverb-fdn/moving": "b89228b537503ee73962643125756e0dbdb576a54df7d727799c80fafe04659e",
+  "reverb-fdn/static": "acf47742e712d5bff2616156b47bbc6c3242380ce18c53a40faf5fb571169da3",
+  "reverb-ir/fr-toggle": "3c255aff52e5b96383cc0bec32ac1153efbdc48f786be4dd6b3e58f1653ab67e",
+  "reverb-ir/moving": "d8de856a6ac9113228a3393dfcb33073fb99053133094f51130586251c6bb65b",
+  "reverb-ir/static": "4b687197ee793344406554f326380c1069e401c7b81e47e6c61de6305feea3b8",
+  "reverb-sdn/fr-toggle": "c764db0ffe1c2909dc968fd197b1619ed98f14e7b4834beb2e92aff6862091af",
+  "reverb-sdn/moving": "2aa0a51fa81992879d2d0a89d1427210359697f61017bb621714f8e728e06d15",
+  "reverb-sdn/static": "4b6b207a45ac75eec40cb3fc080ede486d67ae1eb147e65a2fb73ccf0d8308d8"
+}
