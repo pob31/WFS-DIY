@@ -1,34 +1,34 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "../../../spatcore/ui/EQBandToggle.h"
 #include "../ColorScheme.h"
 
 /**
  * EQBandToggle
  *
- * A tiny colored indicator button for toggling individual EQ bands on/off.
- * When ON, displays a filled rounded rectangle in the band's color.
- * When OFF, displays a dark grey rounded rectangle.
+ * Compat shim over the shared spatcore widget: a tiny colored indicator button
+ * for toggling individual EQ bands on/off. When ON, displays a filled rounded
+ * rectangle in the band's color. When OFF, displays a dark grey rounded
+ * rectangle.
+ *
+ * spatcore may never name an app symbol, so the two theme colours the original
+ * read straight from ColorScheme are injected here through the colourProvider
+ * seam. The provider is called at paint time and never cached, which is what
+ * keeps live theme switching working.
  */
-class EQBandToggle : public juce::Button
+class EQBandToggle : public spatcore::ui::EQBandToggle
 {
 public:
-    EQBandToggle() : juce::Button ("") { setClickingTogglesState (true); }
-
-    void setBandColour (juce::Colour c) { bandColour = c; repaint(); }
-
-private:
-    juce::Colour bandColour { juce::Colours::white };
-
-    void paintButton (juce::Graphics& g, bool /*highlighted*/, bool /*down*/) override
+    EQBandToggle()
     {
-        auto bounds = getLocalBounds().toFloat().reduced (1.0f);
-        bool on = getToggleState();
-        g.setColour (on ? bandColour : ColorScheme::get().sliderTrackBg);
-        g.fillRoundedRectangle (bounds, 3.0f);
-        g.setColour (ColorScheme::get().buttonBorder);
-        g.drawRoundedRectangle (bounds, 3.0f, 1.0f);
+        colourProvider = []
+        {
+            return spatcore::ui::EQBandToggleColours { ColorScheme::get().sliderTrackBg,
+                                                       ColorScheme::get().buttonBorder };
+        };
     }
 
+private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EQBandToggle)
 };

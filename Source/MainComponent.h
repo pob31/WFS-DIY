@@ -18,7 +18,7 @@
 #include "DSP/BinauralProcessor.h"
 #include "../spatcore/reverb/ReverbEngine.h"
 #include "../spatcore/reverb/ReverbFeedThread.h"
-#include "DSP/OutputEQProcessor.h"
+#include "../spatcore/dsp/OutputEQProcessor.h"
 #include "../spatcore/rt/SharedInputRingBuffer.h"
 #include "../spatcore/rt/AudioWorkgroupCoordinator.h"
 #include "WfsParameters.h"
