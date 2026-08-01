@@ -134,7 +134,9 @@ NVIDIA GPUs (GTX 9xx/10xx) keep acceleration; developing against newer toolkits
 
 WFS-DIY embeds a [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server so an AI assistant — Claude Desktop, Claude Code, ChatGPT with custom connectors, Cursor, or any MCP-capable client — can read and write the live session: move sources, rename channels, edit arrays, recall snapshots, run guided workflows over the full parameter surface.
 
-The server is enabled by default. It starts automatically with the application and listens on **`http://127.0.0.1:7400/mcp`** (Streamable HTTP transport) bound to loopback only. If port 7400 is busy it falls back to the next three port numbers — the live URL is always shown by the **MCP URL** button in the Network tab.
+The server is enabled by default. It starts automatically with the application and listens on **`http://127.0.0.1:7400/mcp`** (Streamable HTTP transport) bound to loopback only. There is no port fallback: if 7400 is already taken — most often a second copy of WFS-DIY — the MCP server does not start, the **MCP URL** button in the Network tab reads "stopped", and the reason is logged to the Network Log window.
+
+It speaks MCP revisions **2025-06-18** (the default), 2025-03-26 and 2024-11-05, answering with whichever one your client asks for when it is one of those. Clients written against any of the three connect without configuration.
 
 ### Operator controls (Network tab, "AI / MCP Server" row)
 
@@ -169,7 +171,7 @@ With WFS-DIY running, copy the URL shown by the Network tab's **MCP URL** button
 ```bash
 claude mcp add wfs-diy http://127.0.0.1:7400/mcp -t http
 ```
-Replace the URL with whatever the button shows if the server has fallen back to a different port. Verify with `claude mcp list` and ask Claude to "list inputs" to confirm the connection.
+Verify with `claude mcp list` and ask Claude to "list inputs" to confirm the connection.
 
 #### Other MCP-capable clients (ChatGPT custom connectors, Cursor, Continue, etc.)
 
@@ -187,9 +189,9 @@ The server binds to loopback (`127.0.0.1`) by default — only an AI client runn
 
 ### Troubleshooting
 
-- **MCP URL button shows "stopped".** The server failed to bind. Open the Network Log window to see the reason — usually another process is holding port 7400. The server tries the next three ports automatically, so re-copy the URL once it comes up.
+- **MCP URL button shows "stopped".** The server failed to bind and there is no automatic fallback. Open the Network Log window for the reason — nearly always another process holding port 7400, usually a second copy of WFS-DIY. Close whatever owns the port and restart the application.
 - **AI assistant reports "tool call refused".** Check the **AI: ON / OFF** toggle and the **AI critical actions** gate. Tier-3 (destructive) tools require both to be permissive.
-- **Endpoint URL changed.** Switching network interface or hitting a port fallback updates the URL. The MCP URL button always reflects the live value — re-copy it and update your client config.
+- **Endpoint URL changed.** Switching network interface updates the URL. The MCP URL button always reflects the live value — re-copy it and update your client config.
 - **AI looks out of sync after you moved a fader by hand.** Expected. Manual edits take precedence; the AI is notified and re-reads state before its next action.
 
 ## Development

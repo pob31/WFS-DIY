@@ -2,9 +2,10 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit).
 
-## Unreleased
+## v1.0.0beta40 — 2026-08-01
 
 ### Changed
+- Version bumped to 1.0.0beta40 across every generated target: `WFS-DIY.jucer`, the generated `JuceHeader.h`, the vcxproj `JUCE_APP_VERSION`, `resources.rc` (both the string fields and the numeric `FILEVERSION` / `PRODUCTVERSION`), the Linux `Makefile`, and the macOS `Info-App.plist` / `project.pbxproj`. Hand-edited rather than resaved, since this machine has no Projucer binary — the beta39 notes record what happens when only some of those land, so all sixteen occurrences were changed together and verified with a residual grep.
 - **The MCP server now negotiates its protocol revision instead of hard-coding one.** It advertised `2024-11-05` unconditionally and never read the client's requested version — a revision that predates the Streamable HTTP transport it actually speaks. It now accepts `2025-06-18` (the new default), `2025-03-26` and `2024-11-05`, echoing back whatever the client asked for when it can honour it and offering its latest otherwise. All three are handled identically, because this server has no sessions, no SSE and no server-initiated requests, so nothing is kept per connection. Clients on the old revision keep working unchanged.
   - The `MCP-Protocol-Version` request header, which clients have been required to send since `2025-06-18`, is now read and validated: an unsupported value is rejected at the transport with **HTTP 400** before the dispatcher sees it, and an absent header falls back to `2025-03-26` as the spec prescribes. It was also added to `Access-Control-Allow-Headers`, without which a browser client would fail preflight.
   - The handler signature changed from `(body, clientIP, clientPort)` to `(body, RequestContext)` so a future transport-level input (a session id, an auth principal) doesn't churn it a third time.
