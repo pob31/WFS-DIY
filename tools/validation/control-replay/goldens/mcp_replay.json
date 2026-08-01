@@ -17,7 +17,7 @@
           }
         },
         "instructions": "<INSTRUCTIONS>",
-        "protocolVersion": "2024-11-05",
+        "protocolVersion": "2025-06-18",
         "serverInfo": {
           "name": "WFS-DIY",
           "version": "<VERSION>"
@@ -27,28 +27,61 @@
     "step": "initialize"
   },
   {
+    "negotiated": {
+      "1999-01-01": "2025-06-18",
+      "2024-11-05": "2024-11-05",
+      "2025-03-26": "2025-03-26",
+      "2025-06-18": "2025-06-18",
+      "<omitted>": "2025-06-18"
+    },
+    "step": "protocol_negotiation",
+    "unsupported_header_status": 400
+  },
+  {
     "census": {
       "_meta": {
         "ai_enabled": true,
-        "critical_actions_allowed": false
+        "critical_actions_allowed": false,
+        "hidden_tool_count": 382
       },
-      "count_at_least_350": true,
+      "count_in_visible_range": true,
+      "spot_check_hidden": {
+        "input_position_nudge_x": true,
+        "input_position_set_x": true
+      },
       "spot_check_present": {
         "mcp_undo_last_ai_change": true,
         "session_get_state": true,
         "session_save": true,
         "system_i_o_set_input_channels": true,
+        "wfs_nudge_parameter": true,
         "wfs_set_parameter": true,
         "wfs_set_parameter_batch": true
       },
       "tier_counts": {
-        "1": 370,
-        "2": 38,
+        "1": 15,
+        "2": 12,
         "3": 8
       },
       "tier_ordering_ok": true
     },
     "step": "tools_list_census"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "{\"after\": 1.0, \"amount\": 1.0, \"before\": \"0.0\", \"channel_id\": 3, \"direction\": \"inc\", \"variable\": \"inputPositionX\"}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    "step": "hidden_tool_still_callable"
   },
   {
     "envelope": {
@@ -158,7 +191,7 @@
       [
         "inputPositionX",
         3,
-        0.0
+        1.0
       ],
       [
         "inputPositionX",
@@ -257,7 +290,7 @@
       "result": {
         "content": [
           {
-            "text": "{\"applied\": [{\"after\": 0.25, \"before\": -5.0, \"channel_id\": 1, \"variable\": \"inputPositionX\"}, {\"after\": 0.5, \"before\": \"2.0\", \"channel_id\": 2, \"variable\": \"inputPositionX\"}, {\"after\": 0.75, \"before\": \"0.0\", \"channel_id\": 3, \"variable\": \"inputPositionX\"}, {\"after\": 1.0, \"before\": \"-1.111110687255859\", \"channel_id\": 4, \"variable\": \"inputPositionX\"}, {\"after\": 1.25, \"before\": \"1.111111640930176\", \"channel_id\": 5, \"variable\": \"inputPositionX\"}, {\"after\": 1.5, \"before\": 3.333333969116211, \"channel_id\": 6, \"variable\": \"inputPositionX\"}, {\"after\": 1.75, \"before\": 5.55555534362793, \"channel_id\": 7, \"variable\": \"inputPositionX\"}, {\"after\": 2.0, \"before\": 7.777778625488281, \"channel_id\": 8, \"variable\": \"inputPositionX\"}, {\"after\": 0.5, \"before\": \"1.5\", \"channel_id\": 1, \"variable\": \"inputPositionY\"}, {\"after\": 1.0, \"before\": \"1.5\", \"channel_id\": 2, \"variable\": \"inputPositionY\"}, {\"after\": 1.5, \"before\": \"3.0\", \"channel_id\": 3, \"variable\": \"inputPositionY\"}, {\"after\": 2.0, \"before\": 5.0, \"channel_id\": 4, \"variable\": \"inputPositionY\"}, {\"after\": 2.5, \"before\": 5.0, \"channel_id\": 5, \"variable\": \"inputPositionY\"}, {\"after\": 3.0, \"before\": 5.0, \"channel_id\": 6, \"variable\": \"inputPositionY\"}, {\"after\": 3.5, \"before\": 5.0, \"channel_id\": 7, \"variable\": \"inputPositionY\"}, {\"after\": 4.0, \"before\": 5.0, \"channel_id\": 8, \"variable\": \"inputPositionY\"}], \"count\": 16, \"operator_description\": \"Batch: 16 writes (16 Position)\"}",
+            "text": "{\"applied\": [{\"after\": 0.25, \"before\": -5.0, \"channel_id\": 1, \"variable\": \"inputPositionX\"}, {\"after\": 0.5, \"before\": \"2.0\", \"channel_id\": 2, \"variable\": \"inputPositionX\"}, {\"after\": 0.75, \"before\": 1.0, \"channel_id\": 3, \"variable\": \"inputPositionX\"}, {\"after\": 1.0, \"before\": \"-1.111110687255859\", \"channel_id\": 4, \"variable\": \"inputPositionX\"}, {\"after\": 1.25, \"before\": \"1.111111640930176\", \"channel_id\": 5, \"variable\": \"inputPositionX\"}, {\"after\": 1.5, \"before\": 3.333333969116211, \"channel_id\": 6, \"variable\": \"inputPositionX\"}, {\"after\": 1.75, \"before\": 5.55555534362793, \"channel_id\": 7, \"variable\": \"inputPositionX\"}, {\"after\": 2.0, \"before\": 7.777778625488281, \"channel_id\": 8, \"variable\": \"inputPositionX\"}, {\"after\": 0.5, \"before\": \"1.5\", \"channel_id\": 1, \"variable\": \"inputPositionY\"}, {\"after\": 1.0, \"before\": \"1.5\", \"channel_id\": 2, \"variable\": \"inputPositionY\"}, {\"after\": 1.5, \"before\": \"3.0\", \"channel_id\": 3, \"variable\": \"inputPositionY\"}, {\"after\": 2.0, \"before\": 5.0, \"channel_id\": 4, \"variable\": \"inputPositionY\"}, {\"after\": 2.5, \"before\": 5.0, \"channel_id\": 5, \"variable\": \"inputPositionY\"}, {\"after\": 3.0, \"before\": 5.0, \"channel_id\": 6, \"variable\": \"inputPositionY\"}, {\"after\": 3.5, \"before\": 5.0, \"channel_id\": 7, \"variable\": \"inputPositionY\"}, {\"after\": 4.0, \"before\": 5.0, \"channel_id\": 8, \"variable\": \"inputPositionY\"}], \"count\": 16, \"operator_description\": \"Batch: 16 writes (16 Position)\"}",
             "type": "text"
           }
         ],
@@ -383,7 +416,7 @@
       [
         "inputPositionX",
         3,
-        0.0
+        1.0
       ],
       [
         "inputPositionX",
@@ -560,7 +593,7 @@
       "result": {
         "content": [
           {
-            "text": "{\"buffer_capacity\": 100, \"compact\": true, \"count\": 3, \"records\": [{\"index\": 0, \"operator_description\": \"Set inputPositionX for input 1 to -5.0\", \"timestamp_iso\": \"<TIMESTAMP>\"}, {\"index\": 1, \"operator_description\": \"Set input 2 (Input 2) attenuation to -3.0 dB\", \"timestamp_iso\": \"<TIMESTAMP>\"}, {\"index\": 2, \"operator_description\": \"Batch: 16 writes (16 Position)\", \"timestamp_iso\": \"<TIMESTAMP>\"}]}",
+            "text": "{\"buffer_capacity\": 100, \"compact\": true, \"count\": 4, \"records\": [{\"index\": 0, \"operator_description\": \"Nudged inputPositionX for input 3 by +1.000 (now 1.0)\", \"timestamp_iso\": \"<TIMESTAMP>\"}, {\"index\": 1, \"operator_description\": \"Set inputPositionX for input 1 to -5.0\", \"timestamp_iso\": \"<TIMESTAMP>\"}, {\"index\": 2, \"operator_description\": \"Set input 2 (Input 2) attenuation to -3.0 dB\", \"timestamp_iso\": \"<TIMESTAMP>\"}, {\"index\": 3, \"operator_description\": \"Batch: 16 writes (16 Position)\", \"timestamp_iso\": \"<TIMESTAMP>\"}]}",
             "type": "text"
           }
         ],
@@ -568,6 +601,134 @@
       }
     },
     "step": "history_compact"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "Tool error [out_of_range]: value 99999.000000 not in [-50.000000, 50.000000] for inputPositionX",
+            "type": "text"
+          }
+        ],
+        "isError": true
+      }
+    },
+    "step": "generic_set_out_of_range"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "Tool error [invalid_enum_value]: value \"47\" is not a valid stageShape value (expected one of [0, 1, 2], or one of: Box, Cylinder, Dome)",
+            "type": "text"
+          }
+        ],
+        "isError": true
+      }
+    },
+    "step": "generic_set_bad_enum"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "{\"after\": 0.0, \"amount\": 0.5, \"before\": 0.5, \"channel_id\": 1, \"direction\": \"dec\", \"variable\": \"inputPositionY\"}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    "step": "generic_nudge"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "{\"group_count\": 62, \"groups\": [{\"example_variables\": [\"clusterInputOrder\", \"clusterInputsVisible\"], \"group_key\": \"cluster_assigned_inputs\", \"param_count\": 2, \"scope\": \"cluster\"}, {\"example_variables\": [\"clusterLFOactive\", \"clusterLFOamplitudeRot\", \"clusterLFOamplitudeScale\"], \"group_key\": \"cluster_lfo\", \"param_count\": 23, \"scope\": \"cluster\"}, {\"example_variables\": [\"clusterLFOPresetName\"], \"group_key\": \"cluster_lfo_presets\", \"param_count\": 1, \"scope\": \"cluster\"}, {\"example_variables\": [\"clusterReferenceMode\"], \"group_key\": \"cluster_reference\", \"param_count\": 1, \"scope\": \"cluster\"}, {\"example_variables\": [\"inputArrayAtten{array}\"], \"group_key\": \"input_array_attenuation\", \"param_count\": 1, \"scope\": \"input\"}, {\"example_variables\": [\"inputCommonAtten\", \"inputDistanceAttenuation\", \"inputDistanceRatio\"], \"group_key\": \"input_attenuation\", \"param_count\": 5, \"scope\": \"input\"}, {\"example_variables\": [\"inputOtomoAbsoluteRelative\", \"inputOtomoCurve\", \"inputOtomoDuration\"], \"group_key\": \"input_automotion\", \"param_count\": 16, \"scope\": \"input\"}, {\"example_variables\": [\"inputCluster\"], \"group_key\": \"input_cluster\", \"param_count\": 1, \"scope\": \"input\"}, {\"example_variables\": [\"inputConstraintX\", \"inputConstraintY\", \"inputConstraintZ\"], \"group_key\": \"input_constraint\", \"param_count\": 3, \"scope\": \"input\"}, {\"example_variables\": [\"inputDelayLatency\", \"inputMinimalLatency\"], \"group_key\": \"input_delay\", \"param_count\": 2, \"scope\": \"input\"}, {\"example_variables\": [\"inputHFshelf\", \"inputRotation\", \"inputTilt\"], \"group_key\": \"input_directivity\", \"param_count\": 4, \"scope\": \"input\"}, {\"example_variables\": [\"inputFlipX\", \"inputFlipY\", \"inputFlipZ\"], \"group_key\": \"input_flip\", \"param_count\": 3, \"scope\": \"input\"}, {\"example_variables\": [\"inputFRactive\", \"inputFRattenuation\", \"inputFRdiffusion\"], \"group_key\": \"input_floor_reflections\", \"param_count\": 9, \"scope\": \"input\"}, {\"example_variables\": [\"gmLayer0Enabled\", \"gmLayer1Enabled\", \"gmLayer2Enabled\"], \"group_key\": \"input_gradient_map\", \"param_count\": 15, \"scope\": \"input\"}, {\"example_variables\": [\"inputMapLocked\", \"inputMapVisible\"], \"group_key\": \"input_header\", \"param_count\": 2, \"scope\": \"input\"}, {\"example_variables\": [\"inputHeightFactor\"], \"group_key\": \"input_height_factor\", \"param_count\": 1, \"scope\": \"input\"}, {\"example_variables\": [\"inputJitter\"], \"group_key\": \"input_jitter\", \"param_count\": 1, \"scope\": \"input\"}, {\"example_variables\": [\"inputLFOactive\", \"inputLFOamplitudeX\", \"inputLFOamplitudeY\"], \"group_key\": \"input_lfo\", \"param_count\": 16, \"scope\": \"input\"}, {\"example_variables\": [\"inputLSactive\", \"inputLSattenuation\", \"inputLSpeakRatio\"], \"group_key\": \"input_live_source_tamer\", \"param_count\": 8, \"scope\": \"input\"}, {\"example_variables\": [\"inputMaxSpeedActive\", \"inputPathModeActive\", \"inputMaxSpeed\"], \"group_key\": \"input_max_speed\", \"param_count\": 3, \"scope\": \"input\"}, {\"example_variables\": [\"inputMuteMacro\", \"inputMutes\"], \"group_key\": \"input_mutes\", \"param_count\": 2, \"scope\": \"input\"}, {\"example_variables\": [\"inputName\"], \"group_key\": \"input_name\", \"param_count\": 1, \"scope\": \"input\"}, {\"example_variables\": [\"inputConstraintDistance\", \"inputConstraintDistanceMax\", \"inputConstraintDistanceMin\"], \"group_key\": \"input_position\", \"param_count\": 10, \"scope\": \"input\"}, {\"example_variables\": [\"inputMuteReverbSends\"], \"group_key\": \"input_reverb\", \"param_count\": 1, \"scope\": \"input\"}, {\"example_variables\": [\"inputSamplerActive\", \"inputSamplerActiveSet\", \"samplerCellAttenuation\"], \"group_key\": \"input_sampler\", \"param_count\": 28, \"scope\": \"input\"}, {\"example_variables\": [\"inputSidelinesActive\", \"inputSidelinesFringe\"], \"group_key\": \"input_sidelines\", \"param_count\": 2, \"scope\": \"input\"}, {\"example_variables\": [\"inputTrackingActive\", \"inputTrackingID\", \"inputTrackingSmooth\"], \"group_key\": \"input_tracking\", \"param_count\": 3, \"scope\": \"input\"}, {\"example_variables\": [\"networkCurrentIP\", \"networkOscQueryEnabled\", \"networkOscQueryPort\"], \"group_key\": \"network\", \"param_count\": 14, \"scope\": \"global\"}, {\"example_variables\": [\"admCartAxisSwap\", \"admPolarAzimuthFlip\", \"admPolarAzimuthOffset\"], \"group_key\": \"network_adm_osc\", \"param_count\": 16, \"scope\": \"global\"}, {\"example_variables\": [\"trackingEnabled\", \"trackingFlipX\", \"trackingFlipY\"], \"group_key\": \"network_tracking\", \"param_count\": 21, \"scope\": \"global\"}, {\"example_variables\": [\"outputApplyToArray\", \"outputArray\"], \"group_key\": \"output_array\", \"param_count\": 2, \"scope\": \"output\"}, {\"example_variables\": [\"outputDistanceAttenPercent\", \"outputAttenuation\"], \"group_key\": \"output_attenuation\", \"param_count\": 2, \"scope\": \"output\"}, {\"example_variables\": [\"outputDelayLatency\"], \"group_key\": \"output_delay\", \"param_count\": 1, \"scope\": \"output\"}, {\"example_variables\": [\"outputEQenabled\", \"eqFrequency\", \"eqGain\"], \"group_key\": \"output_eq\", \"param_count\": 6, \"scope\": \"output\"}, {\"example_variables\": [\"outputFRenable\"], \"group_key\": \"output_floor_reflections\", \"param_count\": 1, \"scope\": \"output\"}, {\"example_variables\": [\"outputArrayMapVisible\", \"outputMapVisible\"], \"group_key\": \"output_header\", \"param_count\": 2, \"scope\": \"output\"}, {\"example_variables\": [\"outputHFdamping\"], \"group_key\": \"output_hf_damping\", \"param_count\": 1, \"scope\": \"output\"}, {\"example_variables\": [\"outputLSattenEnable\"], \"group_key\": \"output_live_source_attenuation\", \"param_count\": 1, \"scope\": \"output\"}, {\"example_variables\": [\"outputMiniLatencyEnable\"], \"group_key\": \"output_minimal_latency\", \"param_count\": 1, \"scope\": \"output\"}, {\"example_variables\": [\"outputName\"], \"group_key\": \"output_name\", \"param_count\": 1, \"scope\": \"output\"}, {\"example_variables\": [\"outputAngleOff\", \"outputAngleOn\", \"outputPitch\"], \"group_key\": \"output_orientation\", \"param_count\": 4, \"scope\": \"output\"}, {\"example_variables\": [\"outputHparallax\", \"outputVparallax\"], \"group_key\": \"output_parallax_correction\", \"param_count\": 2, \"scope\": \"output\"}, {\"example_variables\": [\"outputCoordinateMode\", \"outputPositionX\", \"outputPositionY\"], \"group_key\": \"output_position\", \"param_count\": 4, \"scope\": \"output\"}, {\"example_variables\": [\"reverbAlgoType\", \"reverbCrossoverHigh\", \"reverbCrossoverLow\"], \"group_key\": \"reverb_algorithm\", \"param_count\": 14, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbCommonAtten\", \"reverbDistanceAttenuation\", \"reverbAttenuation\"], \"group_key\": \"reverb_attenuation\", \"param_count\": 3, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbDelayLatency\"], \"group_key\": \"reverb_delay\", \"param_count\": 1, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbAngleOff\", \"reverbAngleOn\", \"reverbDistanceAttenEnable\"], \"group_key\": \"reverb_feed\", \"param_count\": 8, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbsMapVisible\"], \"group_key\": \"reverb_header\", \"param_count\": 1, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbMuteMacro\", \"reverbMutes\"], \"group_key\": \"reverb_mutes\", \"param_count\": 2, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbName\"], \"group_key\": \"reverb_name\", \"param_count\": 1, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbCoordinateMode\", \"reverbReturnOffsetX\", \"reverbReturnOffsetY\"], \"group_key\": \"reverb_position\", \"param_count\": 7, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbPostEQenable\", \"reverbPostEQfreq\", \"reverbPostEQgain\"], \"group_key\": \"reverb_post_processing_eq\", \"param_count\": 6, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbPostExpAttack\", \"reverbPostExpBypass\", \"reverbPostExpRatio\"], \"group_key\": \"reverb_post_processing_expander\", \"param_count\": 5, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbPreCompAttack\", \"reverbPreCompBypass\", \"reverbPreCompRatio\"], \"group_key\": \"reverb_pre_processing_compressor\", \"param_count\": 5, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbPreEQenable\", \"reverbPreEQfreq\", \"reverbPreEQgain\"], \"group_key\": \"reverb_pre_processing_eq\", \"param_count\": 6, \"scope\": \"reverb\"}, {\"example_variables\": [\"binauralAttenuation\", \"binauralDelay\", \"binauralEnabled\"], \"group_key\": \"system_binaural_renderer\", \"param_count\": 7, \"scope\": \"global\"}, {\"example_variables\": [\"SamplerControllerMode\"], \"group_key\": \"system_controllers\", \"param_count\": 1, \"scope\": \"global\"}, {\"example_variables\": [\"inputChannels\", \"outputChannels\", \"reverbChannels\"], \"group_key\": \"system_i_o\", \"param_count\": 3, \"scope\": \"global\"}, {\"example_variables\": [\"haasEffect\", \"masterLevel\", \"systemLatency\"], \"group_key\": \"system_master_section\", \"param_count\": 3, \"scope\": \"global\"}, {\"example_variables\": [\"showLocation\", \"showName\"], \"group_key\": \"system_show\", \"param_count\": 2, \"scope\": \"global\"}, {\"example_variables\": [\"stageDepth\", \"stageDiameter\", \"domeElevation\"], \"group_key\": \"system_stage\", \"param_count\": 11, \"scope\": \"global\"}, {\"example_variables\": [\"colorScheme\"], \"group_key\": \"system_ui\", \"param_count\": 1, \"scope\": \"global\"}], \"hint\": \"Re-call with group_key, scope, prefix or domain to list parameters. Add mode=\\\"full\\\" for descriptions and OSC paths.\", \"total_parameters\": 330, \"view\": \"groups\"}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    "step": "describe_groups"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "{\"count\": 10, \"matched\": 10, \"mode\": \"summary\", \"parameters\": [{\"enum\": [\"OFF\", \"ON\"], \"group_key\": \"input_position\", \"scope\": \"input\", \"tier\": 1, \"type\": \"string\", \"variable\": \"inputConstraintDistance\"}, {\"group_key\": \"input_position\", \"max\": 50.0, \"min\": 0.0, \"scope\": \"input\", \"tier\": 1, \"type\": \"number\", \"variable\": \"inputConstraintDistanceMax\"}, {\"group_key\": \"input_position\", \"max\": 50.0, \"min\": 0.0, \"scope\": \"input\", \"tier\": 1, \"type\": \"number\", \"variable\": \"inputConstraintDistanceMin\"}, {\"enum\": [\"Cartesian\", \"Cylindrical\", \"Spherical\"], \"group_key\": \"input_position\", \"scope\": \"input\", \"tier\": 1, \"type\": \"string\", \"variable\": \"inputCoordinateMode\"}, {\"group_key\": \"input_position\", \"max\": 50.0, \"min\": -50.0, \"scope\": \"input\", \"tier\": 1, \"type\": \"number\", \"variable\": \"inputOffsetX\"}, {\"group_key\": \"input_position\", \"max\": 50.0, \"min\": -50.0, \"scope\": \"input\", \"tier\": 1, \"type\": \"number\", \"variable\": \"inputOffsetY\"}, {\"group_key\": \"input_position\", \"max\": 50.0, \"min\": -50.0, \"scope\": \"input\", \"tier\": 1, \"type\": \"number\", \"variable\": \"inputOffsetZ\"}, {\"group_key\": \"input_position\", \"max\": 50.0, \"min\": -50.0, \"scope\": \"input\", \"tier\": 1, \"type\": \"number\", \"variable\": \"inputPositionX\"}, {\"group_key\": \"input_position\", \"max\": 50.0, \"min\": -50.0, \"scope\": \"input\", \"tier\": 1, \"type\": \"number\", \"variable\": \"inputPositionY\"}, {\"group_key\": \"input_position\", \"max\": 50.0, \"min\": -50.0, \"scope\": \"input\", \"tier\": 1, \"type\": \"number\", \"variable\": \"inputPositionZ\"}], \"total\": 330}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    "step": "describe_summary"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "{\"project_folder\": \"C:\\\\Users\\\\pierr\\\\AppData\\\\Local\\\\Temp\\\\wfs-control-replay\\\\mcp_replay\\\\golden-project\", \"saved\": true}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    "step": "session_save"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "{\"buffer_capacity\": 100, \"compact\": false, \"count\": 1, \"records\": [{\"affected_groups\": [], \"affected_parameters\": [], \"after_state\": null, \"arguments\": {\"confirm\": \"<TOKEN>\"}, \"before_state\": null, \"is_self_corrected\": false, \"operator_description\": \"Saved session to C:\\\\Users\\\\pierr\\\\AppData\\\\Local\\\\Temp\\\\wfs-control-replay\\\\mcp_replay\\\\golden-project (disk write - not undoable)\", \"origin\": \"MCP\", \"timestamp_iso\": \"<TIMESTAMP>\", \"tool_name\": \"session_save\", \"undoable\": false}]}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    "step": "history_after_save"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "{\"after_applied\": {\"inputPositionY\": 0.5}, \"before_applied\": {\"inputPositionY\": 0.0}, \"operator_description\": \"Undid: Nudged inputPositionY for channel_id 1 by -0.500 (now 0.0)\", \"records_affected\": 1}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    "step": "undo_skips_save_record"
   },
   {
     "envelope": {

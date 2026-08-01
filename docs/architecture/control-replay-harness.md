@@ -56,7 +56,8 @@ App defects surfaced by the harness (fixed: #1; open: #2-#5):
   Reuse `tools/fuzz/osc_codec.py` (encoder), `osc_fuzz.py` `Sender`/`LogTail`/
   `QueryClient`, and `addresses.py` (family inventory) directly.
 - **MCP**: POST `http://127.0.0.1:7400/mcp`, JSON-RPC 2.0, protocol
-  `2024-11-05`, no sessions. Envelope shapes + tier flows per
+  `2025-06-18` (`common.MCP_PROTOCOL_VERSION`; `2025-03-26` and `2024-11-05`
+  also accepted and echoed back), no sessions. Envelope shapes + tier flows per
   `MCPDispatcher.cpp:87-373`; tier-2 confirm token lifetime 30 s, tier-3 gate
   300 s and UI-only. Normalize: `confirmation_token`, `expires_in_seconds`,
   `serverInfo.version`, `instructions`, `_meta.ai_enabled` /

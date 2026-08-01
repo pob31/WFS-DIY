@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "../MCPCompat.h"
 #include "../MCPParameterRegistry.h"
+#include "../MCPParameterValidation.h"
 #include "../../OSCParameterBounds.h"
 #include "../../../Parameters/WFSValueTreeState.h"
 #include "../../../Parameters/WFSParameterIDs.h"
@@ -44,10 +45,9 @@ inline juce::var buildSchema()
     auto confirm = std::make_unique<juce::DynamicObject>();
     confirm->setProperty ("type", "string");
     confirm->setProperty ("description",
-        "Confirmation token returned by the previous call to this tool. "
-        "Tier 2 tools require a two-step handshake: the first call returns a "
-        "confirmation_token in tier_enforcement; re-call with confirm set to "
-        "that token (within 30 seconds) to actually execute. Omit on the first call.");
+        "Tier-2/3 confirm token: the first call returns "
+        "tier_enforcement.confirmation_token; re-call with confirm set to it "
+        "within 30 s. Omit on the first call.");
 
     auto props = std::make_unique<juce::DynamicObject>();
     props->setProperty ("variable",   juce::var (variable.release()));
@@ -165,6 +165,18 @@ inline ToolResult set (WFSValueTreeState& state, const juce::var& args, ChangeRe
                                           "value not numeric for " + variable + ": " + s.quoted());
             value = juce::var (s.getDoubleValue());
         }
+    }
+
+    // Registry-backed validation: enum membership and declared min/max,
+    // matching what the parameter's own generated tool would have enforced.
+    // This runs before the OSCParameterBounds gate below, which stays as a
+    // second check for parameters the registry doesn't describe.
+    {
+        const auto& reg = MCPParameterRegistry::getInstance();
+        auto validation = MCPValidation::validateAgainstRegistry (reg.findByVariable (variable),
+                                                                  variable, value);
+        if (! validation.success)
+            return validation;
     }
 
     int channelIndex = -1;

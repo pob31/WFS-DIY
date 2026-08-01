@@ -17,6 +17,10 @@ namespace detail
         obj->setProperty ("tool_name",            record.toolName);
         obj->setProperty ("arguments",            record.arguments);
         obj->setProperty ("operator_description", record.operatorDescription);
+        // Surfaced only when false, so the common case costs nothing: the
+        // record documents something undo will step over rather than revert.
+        if (! record.undoable)
+            obj->setProperty ("undoable", false);
 
         juce::Array<juce::var> params;
         for (const auto& p : record.affectedParameters)
@@ -179,12 +183,13 @@ inline juce::var buildHistorySchema()
 
     auto compact = std::make_unique<juce::DynamicObject>();
     compact->setProperty ("type", "boolean");
-    compact->setProperty ("default", false);
+    compact->setProperty ("default", true);
     compact->setProperty ("description",
-        "When true, each record is collapsed to {index, timestamp_iso, "
-        "operator_description}. Omits arguments / before_state / after_state / "
-        "affected_parameters / affected_groups. Use this when scanning the "
-        "history for 'what did I just do' rather than reconstructing state.");
+        "Defaults to true: each record is collapsed to {index, timestamp_iso, "
+        "operator_description}, which is what a 'what did I just do' scan "
+        "needs. Pass false for the full records - arguments, before_state, "
+        "after_state, affected_parameters and affected_groups - when you "
+        "actually need to reconstruct state.");
 
     auto props = std::make_unique<juce::DynamicObject>();
     props->setProperty ("limit",   juce::var (limit.release()));
@@ -216,16 +221,19 @@ inline ToolDescriptor describeGetHistory (MCPChangeRecordBuffer& buffer)
     d.description = "Read the AI change-record ring buffer - every state-modifying tool "
                     "call this MCP server has executed in the last 100 entries. Useful "
                     "for explaining 'what did I just do?' in voice flows. Read-only. "
-                    "Pass compact=true to drop the heavy fields (arguments / before / "
-                    "after / affected_parameters) when you just need a list of "
-                    "operator_descriptions.";
+                    "Returns compact records by default (index, timestamp, "
+                    "operator_description); pass compact=false for the full records "
+                    "including arguments and before/after state.";
     d.inputSchema   = buildHistorySchema();
     d.modifiesState = false;
     d.tier        = 1;  // read-only
     d.handler = [&buffer] (const juce::var& args, ChangeRecord*) -> ToolResult
     {
         int limit = -1;
-        bool compact = false;
+        // Must match the schema `default` above: the schema value is only a
+        // hint to the client, this is what actually applies when the caller
+        // omits the argument.
+        bool compact = true;
         if (args.isObject())
         {
             auto* obj = args.getDynamicObject();

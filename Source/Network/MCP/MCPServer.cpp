@@ -12,6 +12,7 @@
 #include "tools/UndoTools.h"
 #include "tools/SetParameterTool.h"
 #include "tools/SetParameterBatchTool.h"
+#include "tools/NudgeParameterTool.h"
 #include "tools/GetParameterTool.h"
 #include "tools/DescribeParametersTool.h"
 #include "tools/StateInspectionTools.h"
@@ -49,41 +50,25 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     // connect, so an AI lands oriented instead of having to discover the
     // surface from scratch. ASCII only.
     identity.instructions =
-        "Welcome to WFS-DIY, a Wave Field Synthesis spatial audio app. "
-        "First reads to orient yourself: "
-        "(1) `mcp_describe_parameters` is the source of truth for every "
-        "writable parameter - filter by `prefix`, `scope` "
-        "(global/input/output/reverb/cluster/eq_band), `group_key`, or "
-        "`domain` (wfs_synthesis / reverb / binaural / adm_osc / "
-        "floor_reflections / live_source / tracking / routing / network / "
-        "visualisation_only / metadata). Always check this before "
-        "guessing a parameter name. "
-        "(2) `session_get_state` for a per-channel id+name+position "
-        "summary; `session_get_global_state` for stage / origin / master "
-        "/ binaural / network globals (use the `sections` filter to keep "
-        "the response small); `session_get_channel_full` for everything "
-        "on one channel. "
-        "(3) `session_get_state_delta` between turns to notice when "
-        "operator UI / OSC / automation changed state under you. "
-        "Writing: prefer `wfs_set_parameter_batch` for multi-write flows "
-        "(up to 100 atomic writes, single undo entry, single "
-        "confirmation handshake). Single writes go through the auto-"
-        "generated `<area>_set_<param>` tools; the `wfs_set_parameter` "
-        "escape hatch covers anything they miss. Channel lifecycle: "
-        "`input_create`/`input_delete`, same for output and reverb. "
-        "Reading: `wfs_get_parameter` and `wfs_get_parameters` for "
-        "ad-hoc reads matching the write API's shape. "
-        "Undo: `mcp_undo_last_ai_change` reverses the latest AI write "
-        "(or batch); `mcp_get_ai_change_history(compact=true)` is the "
-        "cheap scan; `mcp_redo_last_undone_ai_change` for redo. "
-        "Tiers: tier-1 runs immediately; tier-2 needs a confirm token "
-        "OR an open operator window (auto-confirm or safety gate); "
-        "tier-3 needs the safety gate to be open (which also covers "
-        "tier-2 - the gate is the operator's superset trust window). "
-        "Both windows auto-close after 5 minutes, operator-only. "
-        "If you want a guided workflow (session startup, system "
-        "tuning, snapshot management, voice rehearsal, etc.), call "
-        "`prompts/list` and fetch the matching template.";
+        "WFS-DIY, a Wave Field Synthesis spatial audio app. "
+        "Parameters: call `mcp_describe_parameters` with no arguments for a "
+        "group overview, then re-call with a filter to drill in. It is the "
+        "source of truth - check it before guessing a parameter name. "
+        "Writing: `wfs_set_parameter` for one value, "
+        "`wfs_set_parameter_batch` for several (atomic, one undo entry, one "
+        "confirmation), `wfs_nudge_parameter` for relative moves. Values are "
+        "validated against the registry. Per-parameter tools named "
+        "`<area>_set_<param>` also exist and remain callable, but are not "
+        "listed - each parameter record names its `tool_name`. "
+        "Undo: `mcp_undo_last_ai_change`; `mcp_get_ai_change_history` for "
+        "the log. "
+        "Tiers: tier-1 runs immediately; tier-2 needs a confirm token OR an "
+        "open operator window; tier-3 needs the safety gate open (which also "
+        "covers tier-2 - the gate is the operator's superset trust window). "
+        "Both windows auto-close after 5 minutes and are operator-only. "
+        "For the full tool catalog, the scope/domain vocabulary and the "
+        "read-side tools, read resource `wfs://knowledge/tool_catalog`. "
+        "For guided workflows call `prompts/list`.";
 
     dispatcher       = std::make_unique<MCPDispatcher> (std::move (identity),
                                                         *registry, *changeRecords,
@@ -137,6 +122,11 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     // then applies and records as a single ChangeRecord with subWrites.
     registry->registerTool (Tools::SetParameterBatch::describe (state));
 
+    // Relative-adjustment counterpart to wfs_set_parameter. The generated
+    // per-parameter nudge tools are unlisted, so this is the discoverable
+    // route for "a bit louder" style requests.
+    registry->registerTool (Tools::NudgeParameter::describe (state));
+
     // High-level placement: classifies speaker topology and writes reverb
     // positions/orientations/pitch in one atomic batch. SDN-aware (chaotic
     // standoff to avoid metallic ringing). See
@@ -182,10 +172,9 @@ MCPServer::MCPServer (WFSValueTreeState& state,
 
     // Wire the transport's POST /mcp callback to the dispatcher.
     transport->setRequestHandler ([disp = dispatcher.get()] (const juce::String& body,
-                                                             const juce::String& clientIP,
-                                                             int clientPort)
+                                                             const RequestContext& context)
     {
-        return disp->handleRequest (body, clientIP, clientPort);
+        return disp->handleRequest (body, context);
     });
 }
 

@@ -1,6 +1,7 @@
 #include "MCPUndoEngine.h"
 #include "../OSCProtocolTypes.h"
 #include "../../Parameters/WFSValueTreeState.h"
+#include <vector>
 
 namespace WFSNetwork
 {
@@ -301,15 +302,44 @@ UndoResult MCPUndoEngine::checkStalenessOrEmpty (const ChangeRecord& record) con
 //==============================================================================
 UndoResult MCPUndoEngine::undoLast()
 {
+    // Some records document an action that cannot be reversed — session_save
+    // writing the project to disk, for instance. They belong in the history
+    // (the operator should see that it happened) but undo has to step over
+    // them to reach the most recent record it CAN reverse.
+    //
+    // Every exit path below must put the skipped records back. Losing them
+    // here would silently erase entries from the operator's history, so the
+    // restore is factored out rather than repeated at each return.
+    std::vector<ChangeRecord> skipped;
+    auto restoreSkipped = [&]
+    {
+        // Pushed oldest-first so the newest ends up back on top.
+        for (auto it = skipped.rbegin(); it != skipped.rend(); ++it)
+            undoRing.push (std::move (*it));
+        skipped.clear();
+    };
+
     ChangeRecord rec;
-    if (! undoRing.popBack (rec))
-        return UndoResult::fail ("no_history", "No AI-origin changes to undo.");
+    for (;;)
+    {
+        if (! undoRing.popBack (rec))
+        {
+            restoreSkipped();
+            return UndoResult::fail ("no_history", "No AI-origin changes to undo.");
+        }
+
+        if (rec.undoable)
+            break;
+
+        skipped.push_back (std::move (rec));
+    }
 
     // Phase 5b: refuse if a non-MCP origin drifted an affected parameter.
     UndoResult staleness = checkStalenessOrEmpty (rec);
     if (staleness.errorCode == "stale_target")
     {
         undoRing.push (std::move (rec));
+        restoreSkipped();
         return staleness;
     }
 
@@ -319,12 +349,14 @@ UndoResult MCPUndoEngine::undoLast()
         // Restore the record so the caller can retry — undo failure shouldn't
         // silently lose the entry.
         undoRing.push (rec);
+        restoreSkipped();
         return outcome;
     }
 
     // Move the (now-reversed) record onto the redo ring so a subsequent
     // mcp.redo_last_undone_ai_change can re-apply it.
     redoRing->push (std::move (rec));
+    restoreSkipped();
     return outcome;
 }
 
@@ -340,11 +372,18 @@ juce::Array<int> MCPUndoEngine::previewUndo (int recordIndex) const
     if (! undoRing.peekAt (recordIndex, target))
         return indices;
 
+    // A record for an irreversible action can't head a reversal chain.
+    if (! target.undoable)
+        return indices;
+
     indices.add (recordIndex);
     for (int i = recordIndex + 1; i < total; ++i)
     {
         ChangeRecord later;
-        if (undoRing.peekAt (i, later) && groupsIntersect (target, later))
+        // Non-undoable records never join a chain either — they have no
+        // affected parameters to restore, and dragging one along would
+        // remove it from the history for nothing.
+        if (undoRing.peekAt (i, later) && later.undoable && groupsIntersect (target, later))
             indices.add (i);
     }
 
@@ -353,6 +392,17 @@ juce::Array<int> MCPUndoEngine::previewUndo (int recordIndex) const
 
 UndoResult MCPUndoEngine::undoByIndex (int recordIndex)
 {
+    // Distinguish "no such record" from "that record can't be undone", so
+    // the caller gets an accurate reason rather than a misleading range error.
+    {
+        ChangeRecord target;
+        if (undoRing.peekAt (recordIndex, target) && ! target.undoable)
+            return UndoResult::fail ("not_undoable",
+                                     "Record " + juce::String (recordIndex) + " ("
+                                     + target.toolName + ") documents an action that "
+                                     "cannot be reversed.");
+    }
+
     const auto preview = previewUndo (recordIndex);
     if (preview.isEmpty())
         return UndoResult::fail ("invalid_index",

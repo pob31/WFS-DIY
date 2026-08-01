@@ -539,8 +539,14 @@ It is deliberately **stateless request/response**:
   (`SimpleWebSocketServer.cpp:237-241`); `handleHTTPRequest` runs on a worker thread, but **every
   tool handler funnels through the single message thread** (§3.4), so concurrent state writes
   effectively **serialize** — a long tool blocks other clients up to `toolTimeoutMs` (default 5000).
-- **Protocol version** advertised is `2024-11-05` (`MCPDispatcher.h:98` **[V]**) — an older revision
-  that predates the formalized session model, consistent with the stateless posture.
+- **Protocol version** is negotiated, not fixed. Supported revisions are `2025-06-18` (latest),
+  `2025-03-26` and `2024-11-05` (`MCPProtocolVersions.h`); `initialize` echoes the client's
+  requested revision when it is one of those, otherwise answers with the latest
+  (`MCPDispatcher.cpp` `handleInitialize`). Post-initialize requests carrying an unsupported
+  `MCP-Protocol-Version` header are rejected at the transport with **HTTP 400** before reaching the
+  dispatcher; an absent header falls back to `2025-03-26` per spec. All three revisions are handled
+  identically — this server has no sessions, no SSE and no server-initiated requests — so no
+  per-connection negotiation state is kept.
 
 ### 5.2 Bind scope & port
 
@@ -549,11 +555,13 @@ LAN → any-interface + `Allow-Origin: null` (`MCPTransport.cpp:20,42,50` **[V]*
 starts loopback-only (`MainComponent.cpp:830`). **Port is a single config point** — `static
 constexpr int kDefaultPort = 7400` (`MCPServer.h:39`) is the only definition; the only other `7400`
 literals in `Source/**` are two **UI hint strings** in NetworkTab. **There is NO fallback-to-next-3**
-— `MCPTransport::start` binds exactly the passed port and swallows bind failures (reports
-`running=true` on a dead socket, `:44-52` **[V]**). The plumbing already takes a port arg and the
-UI renders `getBoundPort()`, so XOA=7401 / Tight-WFS=7402 is a one-line change at the
-`MainComponent.cpp:830` call site — but **real bind-failure detection would need to be added**
-(currently absent). OSC RX/TX ports are clean named constants; the OSCQuery 5005 and OSC-loopback
+— `MCPTransport::start` binds exactly the passed port. Bind failure **is** now detected: `start`
+probes the port with a throwaway `juce::StreamingSocket` listener before handing it to SimpleWeb,
+and on failure logs, leaves `running=false` and returns false, which `MainComponent` logs and the
+Network tab renders as stopped. (A probe rather than a confirmation: SimpleWeb only reports bind
+errors via a listener callback on its own server thread, and taking that route previously caused a
+teardown crash.) The plumbing already takes a port arg and the UI renders `getBoundPort()`, so
+XOA=7401 / Tight-WFS=7402 remains a one-line change at the `MainComponent.cpp` call site. OSC RX/TX ports are clean named constants; the OSCQuery 5005 and OSC-loopback
 9001 defaults are scattered magic numbers in `NetworkTab.h` that should be centralized first (§6).
 
 ### 5.3 Tool loading & registry
@@ -571,9 +579,16 @@ two-pass, in the `MCPServer` ctor (`MCPServer.cpp:59-127` **[V]**):
    `MCPToolRegistry.cpp:11-21` **[V]**), so exactly one descriptor/tier per name and the hand-written
    variant wins.
 
-`tools/list` copies the vector, **sorts by (tier DESC, name ASC)** so rare tier-3 tools survive
-client truncation, and emits `{name, description, inputSchema, _meta:{tier}}` plus server-state
-`_meta` (`ai_enabled`, `critical_actions_allowed`) (`MCPDispatcher.cpp:172-221` **[V]**). Separately,
+`tools/list` copies the vector, **filters out descriptors with `listable == false`**, then **sorts
+by (tier DESC, name ASC)** so rare tier-3 tools survive client truncation, and emits
+`{name, description, inputSchema, _meta:{tier}}` plus server-state `_meta` (`ai_enabled`,
+`critical_actions_allowed`, `hidden_tool_count`). **Tier-1 and tier-2 generated tools are hidden**
+(`shouldListGeneratedTool` in `MCPGeneratedToolLoader.cpp`): all 393 stay registered and callable by
+name via `tools/call`, but only the 8 tier-3 ones are advertised, because `wfs_set_parameter`
+refuses tier-3 writes and those tools would otherwise be undiscoverable. Net effect: **35 visible
+tools / ~34 KB** instead of 416 / ~240 KB — the difference is roughly 60k tokens of context per
+connection. `mcp_describe_parameters` reports each parameter's owning `tool_name` (in `mode="full"`),
+which is how a hidden tool is found. Separately,
 `MCPParameterRegistry` (singleton) parses the *same* JSON for `mcp_describe_parameters` and the
 `wfs_set_parameter` whitelist, adding hard-coded WFS synonyms (`stageOriginX→originWidth`, `:267-302`).
 

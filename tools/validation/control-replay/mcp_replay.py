@@ -100,19 +100,65 @@ def main() -> int:
         app.wait_for_oscquery()   # project fully loaded
 
         record("initialize", app.mcp("initialize", {
-            "protocolVersion": "2024-11-05",
+            "protocolVersion": common.MCP_PROTOCOL_VERSION,
             "capabilities": {},
             "clientInfo": {"name": "control-replay", "version": "1"},
         }))
 
+        # ---- protocol version negotiation ----
+        # The server accepts three revisions and echoes back whatever the
+        # client asked for when it can honour it, falling back to its latest
+        # otherwise. An unsupported value in the MCP-Protocol-Version header
+        # is rejected at the transport with HTTP 400.
+        negotiation = {}
+        for requested in ("2025-06-18", "2025-03-26", "2024-11-05", "1999-01-01"):
+            got = app.mcp("initialize", {
+                "protocolVersion": requested,
+                "capabilities": {},
+                "clientInfo": {"name": "control-replay", "version": "1"},
+            })["result"]["protocolVersion"]
+            negotiation[requested] = got
+        negotiation["<omitted>"] = app.mcp("initialize", {
+            "capabilities": {},
+            "clientInfo": {"name": "control-replay", "version": "1"},
+        })["result"]["protocolVersion"]
+
+        expected_negotiation = {
+            "2025-06-18": "2025-06-18",
+            "2025-03-26": "2025-03-26",
+            "2024-11-05": "2024-11-05",   # older clients keep working
+            "1999-01-01": common.MCP_PROTOCOL_VERSION,
+            "<omitted>":  common.MCP_PROTOCOL_VERSION,
+        }
+        if negotiation != expected_negotiation:
+            hard_failures.append(f"protocol negotiation wrong: {negotiation}")
+
+        bad_header_status = app.mcp_status_with_header(
+            "MCP-Protocol-Version", "2020-01-01")
+        if bad_header_status != 400:
+            hard_failures.append(
+                f"unsupported MCP-Protocol-Version header returned "
+                f"{bad_header_status}, want 400")
+
+        transcript.append({"step": "protocol_negotiation",
+                           "negotiated": negotiation,
+                           "unsupported_header_status": bad_header_status})
+
         # ---- tools/list census ----
+        # The ~393 auto-generated per-parameter tools are registered but not
+        # advertised (see shouldListGeneratedTool in MCPGeneratedToolLoader):
+        # listing them cost ~240KB per connection. What must stay visible is
+        # the hand-written surface plus every tier-3 generated tool, because
+        # wfs_set_parameter refuses tier-3 writes by design.
         tl = app.mcp("tools/list")
         tools = tl["result"]["tools"]
         tiers = [t["_meta"]["tier"] for t in tools]
         names = [t["name"] for t in tools]
         count = len(tools)
-        if count < 350:
-            hard_failures.append(f"tools/list count {count} < 350")
+        if not (25 <= count <= 60):
+            hard_failures.append(
+                f"tools/list count {count} outside expected visible surface "
+                f"25..60 - did the hide policy change?")
         ordering_ok = all(
             (tiers[i] > tiers[i + 1])
             or (tiers[i] == tiers[i + 1] and names[i] < names[i + 1])
@@ -120,8 +166,16 @@ def main() -> int:
         if not ordering_ok:
             hard_failures.append("tools/list tier ordering contract violated "
                                  "(want tier DESC, name ASC)")
+
+        # Hidden tools must remain callable — that is what makes hiding them
+        # safe. Asserted for real further down (hidden_tool_still_callable).
+        hidden_expected = ("input_position_set_x", "input_position_nudge_x")
+        for n in hidden_expected:
+            if n in names:
+                hard_failures.append(f"{n} should be hidden from tools/list")
+
         census = {
-            "count_at_least_350": count >= 350,
+            "count_in_visible_range": 25 <= count <= 60,
             "tier_ordering_ok": ordering_ok,
             "tier_counts": {str(t): tiers.count(t) for t in sorted(set(tiers))},
             "_meta": common.normalize_envelope(tl["result"].get("_meta", {})),
@@ -129,11 +183,22 @@ def main() -> int:
                 n: (n in names)
                 for n in ("session_save", "session_get_state",
                           "wfs_set_parameter", "wfs_set_parameter_batch",
+                          "wfs_nudge_parameter",
                           "mcp_undo_last_ai_change",
                           "system_i_o_set_input_channels")
             },
+            "spot_check_hidden": {n: (n not in names) for n in hidden_expected},
         }
         transcript.append({"step": "tools_list_census", "census": census})
+
+        # ---- hidden generated tool is still callable by name ----
+        hidden_call = record("hidden_tool_still_callable",
+                             app.tool("input_position_nudge_x",
+                                      {"input_id": 3, "direction": "inc",
+                                       "amount": 1.0}))
+        if common.envelope_result(hidden_call).get("isError"):
+            hard_failures.append(
+                "hidden generated tool was not callable by name")
 
         # ---- tier-1 write + read-back ----
         record("tier1_write",
@@ -199,6 +264,85 @@ def main() -> int:
 
         record("history_compact",
                app.tool("mcp_get_ai_change_history", {"compact": True}))
+
+        # ---- generic tools now carry the validation the named tools had ----
+        # wfs_set_parameter used to range-check only against the permissive
+        # OSCParameterBounds table; it now also honours the registry's
+        # declared min/max and enum membership. Both must be refused.
+        _, oor = app.tool_confirmed(
+            "wfs_set_parameter",
+            {"variable": "inputPositionX", "value": 99999.0, "channel_id": 1})
+        record("generic_set_out_of_range", oor)
+        oor_res = common.envelope_result(oor)
+        if not oor_res.get("isError"):
+            hard_failures.append(
+                "wfs_set_parameter accepted an out-of-registry-range value")
+
+        _, bad_enum = app.tool_confirmed(
+            "wfs_set_parameter", {"variable": "stageShape", "value": 47})
+        record("generic_set_bad_enum", bad_enum)
+        if not common.envelope_result(bad_enum).get("isError"):
+            hard_failures.append(
+                "wfs_set_parameter accepted an out-of-enum value")
+
+        # ---- generic nudge (replaces the now-hidden per-parameter nudges) --
+        nudged = record("generic_nudge",
+                        app.tool("wfs_nudge_parameter",
+                                 {"variable": "inputPositionY",
+                                  "direction": "dec", "amount": 0.5,
+                                  "channel_id": 1}))
+        if common.envelope_result(nudged).get("isError"):
+            hard_failures.append("wfs_nudge_parameter failed on a tier-1 param")
+
+        # ---- describe_parameters: group overview + summary/full modes ------
+        groups = record("describe_groups",
+                        app.tool("mcp_describe_parameters", {}))
+        groups_payload = common.tool_payload(groups)
+        if not (isinstance(groups_payload, dict)
+                and groups_payload.get("view") == "groups"):
+            hard_failures.append(
+                f"unfiltered mcp_describe_parameters did not return the group "
+                f"overview: {str(groups_payload)[:120]}")
+        record("describe_summary",
+               app.tool("mcp_describe_parameters",
+                        {"group_key": "input_position"}))
+
+        # ---- session_save leaves a non-undoable audit record ---------------
+        # The save writes into the per-run temp copy of the fixture, not the
+        # repo, because App() runs against copy_fixture_to_temp().
+        _, saved = app.tool_confirmed("session_save", {})
+        record("session_save", saved)
+        if common.envelope_result(saved).get("isError"):
+            hard_failures.append("session_save failed")
+
+        hist = app.tool("mcp_get_ai_change_history", {"limit": 1,
+                                                      "compact": False})
+        record("history_after_save", hist)
+        hist_payload = common.tool_payload(hist)
+        newest = (hist_payload.get("records") or [{}])[-1] \
+            if isinstance(hist_payload, dict) else {}
+        if newest.get("tool_name") != "session_save":
+            hard_failures.append(
+                f"session_save left no history record (newest={newest.get('tool_name')})")
+        if newest.get("undoable") is not False:
+            hard_failures.append(
+                "session_save record was not flagged non-undoable")
+
+        # Undo must step OVER the save record and revert the nudge instead.
+        y_before_undo = common.tool_payload(
+            app.tool("wfs_get_parameter",
+                     {"variable": "inputPositionY", "channel_id": 1}))
+        undo_after_save = record("undo_skips_save_record",
+                                 app.tool("mcp_undo_last_ai_change", {}))
+        if common.envelope_result(undo_after_save).get("isError"):
+            hard_failures.append("undo after session_save failed")
+        y_after_undo = common.tool_payload(
+            app.tool("wfs_get_parameter",
+                     {"variable": "inputPositionY", "channel_id": 1}))
+        if y_after_undo.get("value") == y_before_undo.get("value"):
+            hard_failures.append(
+                "undo after session_save changed nothing - it should have "
+                "skipped the non-undoable save record and reverted the nudge")
     finally:
         app.close()
 

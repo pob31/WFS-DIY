@@ -38,6 +38,11 @@ GOLDENS_DIR = Path(__file__).resolve().parent / "goldens"
 
 MCP_PORT = 7400
 MCP_URL = f"http://127.0.0.1:{MCP_PORT}/mcp"
+
+# Revision the harness speaks. The server also accepts 2025-03-26 and
+# 2024-11-05 and echoes back whatever it can honour, which mcp_replay
+# exercises explicitly; everything else here uses the current one.
+MCP_PROTOCOL_VERSION = "2025-06-18"
 OSC_UDP_PORT = 8000          # networkRxUDPport in the fixture
 OSCQUERY_HTTP_PORT = 5005    # networkOscQueryPort in the fixture
 
@@ -137,7 +142,7 @@ class App:
                 raise SystemExit(EXIT_APP_START)
             try:
                 self.mcp("initialize", {
-                    "protocolVersion": "2024-11-05",
+                    "protocolVersion": MCP_PROTOCOL_VERSION,
                     "capabilities": {},
                     "clientInfo": {"name": "control-replay", "version": "1"},
                 })
@@ -174,9 +179,30 @@ class App:
         body = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(
             MCP_URL, data=body,
-            headers={"Content-Type": "application/json"})
+            headers={"Content-Type": "application/json",
+                     # Sent on every request from spec revision 2025-06-18
+                     # onwards, so the transport's validation path is
+                     # exercised by the whole harness rather than one step.
+                     "MCP-Protocol-Version": MCP_PROTOCOL_VERSION})
         with urllib.request.urlopen(req, timeout=30.0) as resp:
             return resp.read().decode("utf-8")
+
+    def mcp_status_with_header(self, header: str, value: str) -> int:
+        """POST a trivial request carrying one overridden header, returning
+        the HTTP status. Used to assert that an unsupported
+        MCP-Protocol-Version is rejected at the transport with 400 rather
+        than reaching the dispatcher."""
+        self._rpc_id += 1
+        body = json.dumps({"jsonrpc": "2.0", "id": self._rpc_id,
+                           "method": "tools/list"}).encode("utf-8")
+        req = urllib.request.Request(
+            MCP_URL, data=body,
+            headers={"Content-Type": "application/json", header: value})
+        try:
+            with urllib.request.urlopen(req, timeout=10.0) as resp:
+                return resp.status
+        except urllib.error.HTTPError as exc:
+            return exc.code
 
     def mcp(self, method: str, params: dict | None = None) -> dict:
         self._rpc_id += 1
@@ -313,6 +339,10 @@ def normalize_wfs_manifest(text: str) -> str:
 # JSON envelope fields that are volatile across runs (design doc list).
 _VOLATILE_KEYS = {
     "confirmation_token": "<TOKEN>",
+    # The token echoed back as a tool argument. It surfaces in change-record
+    # `arguments` when the history is read in non-compact mode, so it needs
+    # the same treatment as the token itself.
+    "confirm": "<TOKEN>",
     "expires_in_seconds": "<SECONDS>",
     "timestamp_iso": "<TIMESTAMP>",
 }

@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "../MCPCompat.h"
 #include "../MCPParameterRegistry.h"
+#include "../MCPParameterValidation.h"
 #include "../../OSCParameterBounds.h"
 #include "../../../Parameters/WFSValueTreeState.h"
 #include "../../../Parameters/WFSParameterIDs.h"
@@ -273,6 +274,17 @@ inline ToolResult batch (WFSValueTreeState& state, const juce::var& args, Change
         {
             if (auto resolved = reg.resolveEnumLabel (w.variable, w.value.toString()))
                 w.value = juce::var (*resolved);
+        }
+
+        // Registry-backed validation: enum membership and declared min/max,
+        // matching what the parameter's own generated tool would enforce.
+        // Runs ahead of the OSCParameterBounds gate below, which remains a
+        // second check for parameters the registry doesn't describe.
+        {
+            auto validation = MCPValidation::validateAgainstRegistry (reg.findByVariable (w.variable),
+                                                                      w.variable, w.value);
+            if (! validation.success)
+                return fail (validation.errorCode, i, validation.errorMessage);
         }
 
         // String -> number coercion when the param has numeric bounds.

@@ -208,6 +208,10 @@
                 file="spatcore/control/mcp/MCPDispatcher.h"/>
           <FILE id="mcpDispCpp" name="MCPDispatcher.cpp" compile="1" resource="0"
                 file="spatcore/control/mcp/MCPDispatcher.cpp"/>
+          <FILE id="mcpProtoVerH" name="MCPProtocolVersions.h" compile="0" resource="0"
+                file="spatcore/control/mcp/MCPProtocolVersions.h"/>
+          <FILE id="mcpReqCtxH" name="MCPRequestContext.h" compile="0" resource="0"
+                file="spatcore/control/mcp/MCPRequestContext.h"/>
           <FILE id="mcpTransH" name="MCPTransport.h" compile="0" resource="0"
                 file="spatcore/control/mcp/MCPTransport.h"/>
           <FILE id="mcpTransCpp" name="MCPTransport.cpp" compile="1" resource="0"
@@ -234,6 +238,10 @@
                 file="Source/Network/MCP/MCPParameterRegistry.h"/>
           <FILE id="mcpParamRegCpp" name="MCPParameterRegistry.cpp" compile="1" resource="0"
                 file="Source/Network/MCP/MCPParameterRegistry.cpp"/>
+          <FILE id="mcpParamValidH" name="MCPParameterValidation.h" compile="0" resource="0"
+                file="Source/Network/MCP/MCPParameterValidation.h"/>
+          <FILE id="mcpGenDispH" name="MCPGenericDispatch.h" compile="0" resource="0"
+                file="Source/Network/MCP/MCPGenericDispatch.h"/>
           <GROUP id="{MCPTOOLSGROUP}" name="tools">
             <FILE id="mcpToolsSession" name="SessionTools.h" compile="0" resource="0"
                   file="Source/Network/MCP/tools/SessionTools.h"/>
@@ -251,6 +259,8 @@
                   file="Source/Network/MCP/tools/SetParameterTool.h"/>
             <FILE id="mcpToolsBatch" name="SetParameterBatchTool.h" compile="0" resource="0"
                   file="Source/Network/MCP/tools/SetParameterBatchTool.h"/>
+            <FILE id="mcpToolsNudge" name="NudgeParameterTool.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/NudgeParameterTool.h"/>
             <FILE id="mcpToolsGetParam" name="GetParameterTool.h" compile="0" resource="0"
                   file="Source/Network/MCP/tools/GetParameterTool.h"/>
             <FILE id="mcpToolsDescribe" name="DescribeParametersTool.h" compile="0" resource="0"

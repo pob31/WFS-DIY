@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "c0604287af923cb3adfcbef36ae7b5d3792582a59f87a23a3235c25895d45fd6",
+  "input_hash": "2d49eb1806130dc6d2fea786e38170294b01bcce7b1c71c117058361959781f5",
   "source_csvs": [
     "WFS-UI_config.csv",
     "WFS-UI_input.csv",
@@ -1097,7 +1097,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -1952,7 +1952,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -2313,7 +2313,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -4907,7 +4907,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -5241,7 +5241,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -5892,7 +5892,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -5939,7 +5939,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -6921,7 +6921,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -6953,7 +6953,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -7015,7 +7015,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -7047,7 +7047,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -7315,7 +7315,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -7726,7 +7726,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -7763,7 +7763,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -7949,7 +7949,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -7988,7 +7988,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -8839,7 +8839,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -9438,7 +9438,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -9477,7 +9477,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -9551,7 +9551,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -9660,7 +9660,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -11099,7 +11099,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -11201,7 +11201,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -11263,7 +11263,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -11356,7 +11356,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -11390,7 +11390,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -11455,7 +11455,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -11488,7 +11488,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -11521,7 +11521,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -11582,7 +11582,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           }
         },
         "required": [
@@ -12038,7 +12038,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           },
           "direction": {
             "type": "string",
@@ -12493,7 +12493,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           },
           "direction": {
             "type": "string",
@@ -12661,7 +12661,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           },
           "direction": {
             "type": "string",
@@ -13608,7 +13608,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           },
           "direction": {
             "type": "string",
@@ -14063,7 +14063,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           },
           "direction": {
             "type": "string",
@@ -14319,7 +14319,7 @@
           },
           "confirm": {
             "type": "string",
-            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
           },
           "direction": {
             "type": "string",

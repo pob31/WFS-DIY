@@ -834,7 +834,17 @@ MainComponent::MainComponent()
                                                         oscManager->getLogger(),
                                                         generatedToolsJson,
                                                         knowledgeResourcesDir);
-    mcpServer->start (WFSNetwork::MCPServer::kDefaultPort, /*loopbackOnly*/ true);
+    if (! mcpServer->start (WFSNetwork::MCPServer::kDefaultPort, /*loopbackOnly*/ true))
+    {
+        // Non-fatal: the app runs fine without MCP. But it used to report
+        // success unconditionally, so a port clash left the Network tab
+        // claiming a listening server that no client could ever reach.
+        oscManager->getLogger().logText (
+            "MCP server FAILED to start on port "
+            + juce::String (WFSNetwork::MCPServer::kDefaultPort)
+            + " - the port is in use (another WFS-DIY instance?). "
+              "MCP clients will not be able to connect.");
+    }
 
     // Automation hook (control-replay harnesses): WFS_MCP_AI_ENABLED=1 in the
     // environment flips the MCP AI master toggle on at startup — the exact

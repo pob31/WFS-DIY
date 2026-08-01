@@ -60,6 +60,7 @@ using spatcore::control::mcp::ToolDescriptor;
 using spatcore::control::mcp::MCPToolRegistry;
 
 // MCPTransport.h
+using spatcore::control::mcp::RequestContext;
 using spatcore::control::mcp::MCPTransport;
 
 // MCPUndoHooks.h

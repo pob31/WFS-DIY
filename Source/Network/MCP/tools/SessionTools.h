@@ -111,7 +111,7 @@ inline ToolDescriptor describe (WFSValueTreeState& state)
     (WFSFileManager::saveCompleteConfig → system/network/inputs/outputs/
     reverbs .xml, each with a rolling backup). Tier 2: it overwrites the
     operator's saved show on disk, so it needs the confirm round-trip. */
-inline ToolResult save (WFSFileManager& fileManager)
+inline ToolResult save (WFSFileManager& fileManager, ChangeRecord* record)
 {
     if (! fileManager.hasValidProjectFolder())
         return ToolResult::error ("no_project_folder",
@@ -121,9 +121,23 @@ inline ToolResult save (WFSFileManager& fileManager)
     if (! fileManager.saveCompleteConfig())
         return ToolResult::error ("save_failed", fileManager.getLastError());
 
+    const auto folder = fileManager.getProjectFolder().getFullPathName();
+
+    // Leave an audit entry. Overwriting the operator's show is one of the
+    // most consequential things the AI can do, and until now it was the one
+    // such action that left no trace in the history. Flagged non-undoable:
+    // the record documents the write, it can't reverse it, so the undo
+    // engine steps over it and it doesn't clear redo history.
+    if (record != nullptr)
+    {
+        record->undoable = false;
+        record->operatorDescription = "Saved session to " + folder
+                                    + " (disk write - not undoable)";
+    }
+
     auto result = std::make_unique<juce::DynamicObject>();
     result->setProperty ("saved", true);
-    result->setProperty ("project_folder", fileManager.getProjectFolder().getFullPathName());
+    result->setProperty ("project_folder", folder);
     return ToolResult::ok (juce::var (result.release()));
 }
 
@@ -139,11 +153,14 @@ inline ToolDescriptor describeSave (WFSFileManager& fileManager)
                     "project folder is open."
                   + juce::String (kTier2DescriptionSuffix);
     d.inputSchema   = buildInputSchema();
-    d.modifiesState = false;  // writes disk, not the in-memory session — nothing to undo
+    // True so the dispatcher hands us a ChangeRecord and files it in the
+    // history. The record is marked non-undoable inside save() — this flag
+    // means "produces a record", not "can be reverted".
+    d.modifiesState = true;
     d.tier        = 2;  // overwrites the saved show on disk
-    d.handler = [&fileManager] (const juce::var&, ChangeRecord*) -> ToolResult
+    d.handler = [&fileManager] (const juce::var&, ChangeRecord* record) -> ToolResult
     {
-        return save (fileManager);
+        return save (fileManager, record);
     };
     return d;
 }

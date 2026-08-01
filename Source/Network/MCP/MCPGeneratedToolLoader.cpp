@@ -1,4 +1,5 @@
 #include "MCPGeneratedToolLoader.h"
+#include "MCPGenericDispatch.h"
 #include "MCPCompat.h"
 #include "MCPLogger.h"
 #include "../../Parameters/WFSValueTreeState.h"
@@ -6,33 +7,42 @@
 namespace WFSNetwork::Tools::Generated
 {
 
+// ToolBinding / NudgeBinding and the two dispatch entry points now live in
+// namespace Detail (declared in MCPGenericDispatch.h) so hand-written tools
+// can share them. Everything below in the anonymous namespace remains
+// private to the loader.
+using Detail::ToolBinding;
+using Detail::NudgeBinding;
+using Detail::coerceValue;
+using Detail::channelArgToScopeLabel;
+using Detail::dispatchGenericSet;
+using Detail::dispatchGenericNudge;
+
 namespace
 {
-    /** Per-tool data the generic dispatch handler needs to do its job.
-        Captured by value into the handler lambda for each registered tool.
-        Range fields mirror the schema's `minimum`/`maximum`; populated for
-        numeric-typed value args, used to fail-closed on out-of-range writes
-        (matches OSC ingress behaviour in OSCParameterBounds). */
-    struct ToolBinding
-    {
-        juce::String name;              // "input.position.set_x"
-        juce::String internalVariable;  // canonical ValueTree property name (case-corrected)
-        juce::String csvSection;        // "Position" — used in affected_groups + operatorDescription
-        juce::StringArray enumValues;   // empty if not an enum tool
-        juce::String channelArgName;    // input_id / output_id / reverb_id / cluster_id, or empty for global
-        juce::String valueArgName { "value" };  // self-documenting renames: "name" / "mode" / "shape" / "protocol"
-        bool isEqBand = false;
-        bool hasRange = false;
-        double minValue = 0.0;
-        double maxValue = 0.0;
-        bool isIntegerType = false;     // schema declared type: "integer" → write int, not double
-        bool isNumericType = false;     // schema declared type: "number" / "integer"
-    };
+    /** Catalog policy: which generated tools appear in tools/list.
 
-    /** Extension of ToolBinding for nudge variants. The range fields on
-        ToolBinding feed the clamp; this subtype exists for naming clarity
-        and future divergence (e.g. nudges may grow per-press defaults). */
-    struct NudgeBinding : ToolBinding {};
+        There are ~393 of these, and listing them all made tools/list about
+        240KB — roughly 60-70k tokens loaded into a model's context before
+        it had been asked anything. Tier-1 and tier-2 entries are therefore
+        hidden: `wfs_set_parameter` (and its batch form) covers the same
+        parameters, `wfs_nudge_parameter` covers relative moves, and every
+        hidden tool remains callable by name for a client that knows it —
+        `mcp_describe_parameters` reports the owning `tool_name` for each
+        parameter.
+
+        Tier-3 is the deliberate exception. `wfs_set_parameter` refuses
+        tier-3 parameters outright, so hiding those eight tools would leave
+        the most destructive operations reachable only by guessing an
+        unlisted name. They cost ~5KB and stay visible, sorted first, which
+        is exactly where an operator-gated action belongs.
+
+        To restore the old full catalog, return true unconditionally — the
+        hidden tools are otherwise registered identically. */
+    bool shouldListGeneratedTool (int tier) noexcept
+    {
+        return tier >= 3;
+    }
 
     /** Build a lowercase-keyed lookup of every property name on the live
         ValueTree at startup. Some CSVs declare variables with different
@@ -81,7 +91,14 @@ namespace
                 return c;
         return {};
     }
+}  // anonymous namespace
 
+// ---------------------------------------------------------------------------
+// Shared dispatch — declared in MCPGenericDispatch.h. Kept in this file so the
+// generated-tool path and the hand-written generic tools run identical logic.
+// ---------------------------------------------------------------------------
+namespace Detail
+{
     /** Convert "<scope>_id" → "<scope>" for human-readable descriptions. */
     juce::String channelArgToScopeLabel (const juce::String& argName)
     {
@@ -361,7 +378,10 @@ namespace
         result->setProperty ("value", value);
         return ToolResult::ok (juce::var (result.release()));
     }
+}  // namespace Detail
 
+namespace
+{
     /** Read min/max from a tool entry's `parameters.properties.value` schema.
         Returns false if the schema doesn't declare a numeric range (e.g.
         string-typed values or enums). */
@@ -386,6 +406,10 @@ namespace
         return true;
     }
 
+}  // anonymous namespace
+
+namespace Detail
+{
     /** Nudge dispatcher: read-modify-write with clamping. */
     ToolResult dispatchGenericNudge (WFSValueTreeState& state,
                                      const NudgeBinding& binding,
@@ -477,7 +501,10 @@ namespace
         result->setProperty ("after", afterVar);
         return ToolResult::ok (juce::var (result.release()));
     }
+}  // namespace Detail
 
+namespace
+{
     /** Build the binding metadata for one tool entry. Returns false only on
         truly-malformed entries (missing name or internal_variable). When a
         case-only mismatch with the live ValueTree is detected, the canonical
@@ -631,6 +658,7 @@ LoadStats loadGeneratedTools (MCPToolRegistry& registry,
         // Phase 6: read tier from generated_tools.json (1 default).
         if (toolObj->hasProperty ("tier"))
             d.tier = juce::jlimit (1, 3, static_cast<int> (toolObj->getProperty ("tier")));
+        d.listable = shouldListGeneratedTool (d.tier);
         d.handler = [&state, binding] (const juce::var& args, ChangeRecord* record) -> ToolResult
         {
             return dispatchGenericSet (state, binding, args, record);
@@ -682,6 +710,7 @@ LoadStats loadGeneratedTools (MCPToolRegistry& registry,
             d.modifiesState  = true;
             if (toolObj->hasProperty ("tier"))
                 d.tier = juce::jlimit (1, 3, static_cast<int> (toolObj->getProperty ("tier")));
+            d.listable = shouldListGeneratedTool (d.tier);
             d.handler = [&state, binding] (const juce::var& args, ChangeRecord* record) -> ToolResult
             {
                 return dispatchGenericNudge (state, binding, args, record);
