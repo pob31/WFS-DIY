@@ -1382,11 +1382,11 @@ int WFSValueTreeState::getNumReverbChannels() const
     // session_get_channel_full(reverb, ...) refuse valid IDs because the
     // child lookup ran out of Reverb-typed siblings before the ID range.
     auto reverbs = const_cast<WFSValueTreeState*>(this)->getReverbsState();
-    int count = 0;
+    int reverbCount = 0;
     for (int i = 0; i < reverbs.getNumChildren(); ++i)
         if (reverbs.getChild (i).hasType (Reverb))
-            ++count;
-    return count;
+            ++reverbCount;
+    return reverbCount;
 }
 
 void WFSValueTreeState::setNumInputChannels (int numChannels)
