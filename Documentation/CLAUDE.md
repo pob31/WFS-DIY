@@ -1110,7 +1110,7 @@ Comprehensive audio device configuration and channel patching interface.
 **Core Files:**
 - **AudioInterfaceWindow.h/cpp** - Main window container with device settings
 - **AudioPatchTab.h/cpp** - Input/Output patch tab components with test signal controls
-- **PatchMatrixComponent.h/cpp** - Scrollable patch matrix with visual patching
+- **spatcore/ui/patch/PatchMatrixComponent.{h,cpp}** - Scrollable patch matrix with visual patching. Shared, so XOA/Tight-WFS can build a patch UI without reimplementing the grid; `Source/gui/PatchMatrixComponent.h` + `PatchMatrixShim.cpp` are the app shim (a derived class plus a `PatchMatrixConfig` factory holding this app's schema, ColorScheme, LOC and TTS). The tabs and the window around it are deliberately NOT shared — see the changelog entry for why.
 - **spatcore/io/TestSignalGenerator.h** - Test signal generation (pink noise, tone, sweep, dirac pulse). Lives in spatcore so the sibling apps can share it; `Source/DSP/TestSignalGenerator.h` is a `using`-alias shim. XOA has not adopted it yet — it still ships its own fork with a `SpeakerId` mode the shared class lacks (see XOA's `Documentation/XOA-AUDIO-DEVICE-AND-PATCH-HANDOFF.md`).
 
 **Device layer (spatcore/io/):** the window and the audio callback both sit on `spatcore::io`.
