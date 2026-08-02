@@ -1,6 +1,6 @@
 # Proofreading checklist — French (Français)
 
-Locale: `fr`  |  Total keys: 687  |  Source: `Resources/lang/en.json` vs `Resources/lang/fr.json`
+Locale: `fr`  |  Total keys: 690  |  Source: `Resources/lang/en.json` vs `Resources/lang/fr.json`
 
 ## How to use this file
 
@@ -80,9 +80,19 @@ Walk through each section. For every entry:
 
 ## `audioPatch.messages`
 
+- **`channelNotAvailable`**
+  - EN: Channel {channel} is not open on the current audio device
+  - FR: Le canal {channel} n'est pas ouvert sur le périphérique audio actuel
+  - [ ] OK    Fix: 
+
 - **`chooseTestSignal`**
   - EN: Choose a Test Signal to Enable Testing
   - FR: Choisissez un signal de test pour activer le test
+  - [ ] OK    Fix: 
+
+- **`stopProcessingFirst`**
+  - EN: Stop WFS processing to open the Audio Interface window
+  - FR: Arrêtez le traitement WFS pour ouvrir la fenêtre d'interface audio
   - [ ] OK    Fix: 
 
 ## `clusters.help`
@@ -901,6 +911,11 @@ Walk through each section. For every entry:
 - **`snapshotNameLabel`**
   - EN: Name:
   - FR: Nom :
+  - [ ] OK    Fix: 
+
+- **`snapshotOverwriteWarning`**
+  - EN: A snapshot with this name already exists — it will be overwritten.
+  - FR: Un snapshot portant ce nom existe déjà — il sera écrasé.
   - [ ] OK    Fix: 
 
 - **`storeSnapshotMessage`**

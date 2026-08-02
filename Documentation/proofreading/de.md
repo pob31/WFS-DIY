@@ -1,6 +1,6 @@
 # Proofreading checklist — German (Deutsch)
 
-Locale: `de`  |  Total keys: 687  |  Source: `Resources/lang/en.json` vs `Resources/lang/de.json`
+Locale: `de`  |  Total keys: 690  |  Source: `Resources/lang/en.json` vs `Resources/lang/de.json`
 
 ## How to use this file
 
@@ -80,9 +80,19 @@ Walk through each section. For every entry:
 
 ## `audioPatch.messages`
 
+- **`channelNotAvailable`**
+  - EN: Channel {channel} is not open on the current audio device
+  - DE: Kanal {channel} ist auf dem aktuellen Audiogerät nicht geöffnet
+  - [ ] OK    Fix: 
+
 - **`chooseTestSignal`**
   - EN: Choose a Test Signal to Enable Testing
   - DE: Wählen Sie ein Testsignal zum Aktivieren des Testmodus
+  - [ ] OK    Fix: 
+
+- **`stopProcessingFirst`**
+  - EN: Stop WFS processing to open the Audio Interface window
+  - DE: Beenden Sie die WFS-Verarbeitung, um das Audio-Interface-Fenster zu öffnen
   - [ ] OK    Fix: 
 
 ## `clusters.help`
@@ -901,6 +911,11 @@ Walk through each section. For every entry:
 - **`snapshotNameLabel`**
   - EN: Name:
   - DE: Name:
+  - [ ] OK    Fix: 
+
+- **`snapshotOverwriteWarning`**
+  - EN: A snapshot with this name already exists — it will be overwritten.
+  - DE: Ein Snapshot mit diesem Namen existiert bereits — er wird überschrieben.
   - [ ] OK    Fix: 
 
 - **`storeSnapshotMessage`**
