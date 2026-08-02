@@ -183,6 +183,11 @@ void TestSignalControlPanel::syncFromGenerator()
         case TestSignalGenerator::SignalType::Tone:       comboId = 3; break;
         case TestSignalGenerator::SignalType::Sweep:      comboId = 4; break;
         case TestSignalGenerator::SignalType::DiracPulse: comboId = 5; break;
+
+        // spatcore also offers SpeakerId (a burst walking every output). This
+        // app's combo has no entry for it, so the selection stays on Off;
+        // handled explicitly so a new signal type cannot drift in silently.
+        case TestSignalGenerator::SignalType::SpeakerId:  break;
     }
     signalTypeCombo.setSelectedId(comboId, juce::dontSendNotification);
 
@@ -477,6 +482,12 @@ OutputPatchTab::OutputPatchTab(WFSValueTreeState& valueTreeState,
                 case TestSignalGenerator::SignalType::Tone:       comboId = 3; break;
                 case TestSignalGenerator::SignalType::Sweep:      comboId = 4; break;
                 case TestSignalGenerator::SignalType::DiracPulse: comboId = 5; break;
+
+                // spatcore also offers SpeakerId (a burst walking every
+                // output). This app's combo has no entry for it, so the
+                // selection stays on Off; handled explicitly so a new signal
+                // type cannot drift in silently.
+                case TestSignalGenerator::SignalType::SpeakerId:  break;
             }
             signalTypeCombo.setSelectedId(comboId, juce::dontSendNotification);
             float freq = testSignalGenerator->getFrequency();
@@ -822,6 +833,11 @@ void OutputPatchTab::syncTestControlsFromGenerator()
         case TestSignalGenerator::SignalType::Tone:       comboId = 3; break;
         case TestSignalGenerator::SignalType::Sweep:      comboId = 4; break;
         case TestSignalGenerator::SignalType::DiracPulse: comboId = 5; break;
+
+        // spatcore also offers SpeakerId (a burst walking every output). This
+        // app's combo has no entry for it, so the selection stays on Off;
+        // handled explicitly so a new signal type cannot drift in silently.
+        case TestSignalGenerator::SignalType::SpeakerId:  break;
     }
     signalTypeCombo.setSelectedId(comboId, juce::dontSendNotification);
 
