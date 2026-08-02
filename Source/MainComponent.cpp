@@ -2270,9 +2270,11 @@ MainComponent::MainComponent()
             auto savedStateXml = juce::XmlDocument::parse(savedDeviceStateXml);
             if (savedStateXml != nullptr)
             {
-                // Use initialise() with saved state - this is faster than manual setup
-                // Pass selectDefaultDeviceOnFailure=false to avoid scanning if saved device unavailable
-                auto error = deviceManager.initialise(256, 256, savedStateXml.get(), false);
+                // Restore from the saved state (faster than manual setup), then
+                // open every channel the device actually has.
+                // selectDefaultDeviceOnFailure=false avoids a full rescan when
+                // the saved device is unavailable.
+                auto error = deviceHost.restoreFromXml(savedStateXml.get(), false);
 
                 if (error.isEmpty() && deviceManager.getCurrentAudioDevice() != nullptr)
                 {
@@ -2292,39 +2294,13 @@ MainComponent::MainComponent()
         if (!deviceRestored && savedDeviceType.isNotEmpty() && savedDeviceName.isNotEmpty())
         {
             // This path is slower as it triggers device enumeration
-            deviceManager.setCurrentAudioDeviceType(savedDeviceType, true);
-
-            juce::AudioDeviceManager::AudioDeviceSetup setup;
-            deviceManager.getAudioDeviceSetup(setup);
-            setup.outputDeviceName = savedDeviceName;
-            setup.inputDeviceName = savedDeviceName;
-            setup.useDefaultInputChannels = false;
-            setup.useDefaultOutputChannels = false;
-            setup.inputChannels.setRange(0, 256, true);
-            setup.outputChannels.setRange(0, 256, true);
-
-            auto error = deviceManager.setAudioDeviceSetup(setup, true);
+            auto error = deviceHost.openNamedDevice(savedDeviceType, savedDeviceName);
             deviceRestored = error.isEmpty();
 
             if (deviceRestored)
             {
-                // Enable all available channels from the device
-                auto* device = deviceManager.getCurrentAudioDevice();
-                if (device != nullptr)
-                {
-                    auto inputNames = device->getInputChannelNames();
-                    auto outputNames = device->getOutputChannelNames();
-
-                    deviceManager.getAudioDeviceSetup(setup);
-                    setup.inputChannels.clear();
-                    setup.inputChannels.setRange(0, inputNames.size(), true);
-                    setup.outputChannels.clear();
-                    setup.outputChannels.setRange(0, outputNames.size(), true);
-                    deviceManager.setAudioDeviceSetup(setup, true);
-
-                    lastSavedDeviceType = savedDeviceType;
-                    lastSavedDeviceName = savedDeviceName;
-                }
+                lastSavedDeviceType = savedDeviceType;
+                lastSavedDeviceName = savedDeviceName;
             }
             else
             {
@@ -2441,7 +2417,12 @@ MainComponent::~MainComponent()
     inputAlgorithm.releaseResources();
     outputAlgorithm.releaseResources();
 
-    // Shutdown audio device (stops audio callbacks)
+    // Unregister our callback first: removeAudioCallback blocks until the audio
+    // thread has left it, so nothing can be mid-getNextAudioBlock below.
+    deviceManager.removeAudioCallback (&ioCallback);
+
+    // Shutdown audio device (closes it; the base class's AudioSourcePlayer half
+    // is inert, we never gave it a source)
     shutdownAudio();
 
     // Now safe to destroy processor objects
@@ -2458,15 +2439,17 @@ void MainComponent::attachAudioCallbacksIfNeeded()
     if (deviceManager.getCurrentAudioDevice() == nullptr)
         return;
 
-    auto setup = deviceManager.getAudioDeviceSetup();
-    const int numInputs = setup.inputChannels.countNumberOfSetBits();
-    const int numOutputs = setup.outputChannels.countNumberOfSetBits();
-
-    // Preserve the user's current device and channel selection when wiring callbacks
-    std::unique_ptr<juce::XmlElement> state(deviceManager.createStateXml());
-    setAudioChannels(numInputs, numOutputs, state.get());
+    // Registered once and kept: AudioDeviceManager re-arms every registered
+    // callback across device changes, so there is nothing to re-attach later.
+    //
+    // Deliberately NOT setAudioChannels(): that routes through
+    // AudioAppComponent's AudioSourcePlayer, whose fixed float* channels[128]
+    // caps the callback buffer at 128 channels, and it re-opens the device to
+    // do it — re-deriving the channel counts from the current setup and
+    // freezing them as AudioDeviceManager's "channels needed", which is how
+    // the enable-all masks used to get quietly replaced.
+    deviceManager.addAudioCallback (&ioCallback);
     audioCallbacksAttached = true;
-
 }
 
 void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
@@ -2482,10 +2465,13 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
                                               + " @ " + juce::String (device->getCurrentSampleRate()) + " Hz"
                                               + ", buffer " + juce::String (device->getCurrentBufferSizeSamples()));
 
-            // Update patch matrix hardware channel count from actual device
-            auto hwInputs = device->getInputChannelNames().size();
-            auto hwOutputs = device->getOutputChannelNames().size();
-            parameters.updateHardwareChannelCount (hwInputs, hwOutputs);
+            // Update patch matrix hardware channel count from the channels the
+            // device actually OPENED, not the ones it merely lists: a channel
+            // that was never opened has no slot in the callback buffer, so
+            // metering it or sending a test tone to it is silently impossible
+            // and showing it as available is a lie.
+            parameters.updateHardwareChannelCount (deviceHost.getNumActiveInputs(),
+                                                   deviceHost.getNumActiveOutputs());
 
             // User has successfully selected a device - allow saving from now on
             // This enables saving when user manually selects ASIO after startup failure
@@ -2855,13 +2841,9 @@ void MainComponent::loadAudioPatches()
     // Apply cols policy using current device counts (0/0 when no device).
     // This keeps cols bounded to the device size or to the highest patched
     // channel (whichever is larger), without needing a device-change event.
-    int hwIn = 0, hwOut = 0;
-    if (auto* device = deviceManager.getCurrentAudioDevice())
-    {
-        hwIn = device->getInputChannelNames().size();
-        hwOut = device->getOutputChannelNames().size();
-    }
-    parameters.updateHardwareChannelCount (hwIn, hwOut);
+    // Opened channels, not listed ones — see changeListenerCallback.
+    parameters.updateHardwareChannelCount (deviceHost.getNumActiveInputs(),
+                                           deviceHost.getNumActiveOutputs());
 }
 
 void MainComponent::applyInputPatch(const juce::AudioSourceChannelInfo& bufferToFill)
@@ -2922,6 +2904,13 @@ void MainComponent::applyOutputPatch(const juce::AudioSourceChannelInfo& bufferT
 void MainComponent::handleProcessingChange(bool enabled)
 {
     WFSLogger::getInstance().logInfo (juce::String ("Processing ") + (enabled ? "enabled" : "disabled"));
+
+    // Patching is only editable while stopped, so this is the moment the audio
+    // thread needs the edits. Load them BEFORE the flag flips: the callback
+    // gates patching on processingEnabled, so nothing is reading the maps yet.
+    if (enabled)
+        loadAudioPatches();
+
     processingEnabled = enabled;
 
     // When starting processing, close the audio interface window and stop test signals
@@ -3946,6 +3935,22 @@ void MainComponent::attachMapTab()
 
 void MainComponent::openAudioInterfaceWindow()
 {
+    // Patching a live rig is how speakers get destroyed and how a room gets a
+    // burst of full-level noise, so the window is stopped-only: processing
+    // start closes it (handleProcessingChange), and until processing stops it
+    // cannot be reopened.
+    if (processingEnabled)
+    {
+        const auto message = LOC("audioPatch.messages.stopProcessingFirst");
+
+        if (statusBar != nullptr)
+            statusBar->showTemporaryMessage (message, 3000);
+
+        TTSManager::getInstance().announceImmediate (message,
+            juce::AccessibilityHandler::AnnouncementPriority::medium);
+        return;
+    }
+
     if (audioInterfaceWindow == nullptr)
     {
         audioInterfaceWindow = std::make_unique<AudioInterfaceWindow>(
@@ -4022,6 +4027,18 @@ void MainComponent::openAudioInterfaceWindow()
                 wirePatchAutoSave (inTab->getPatchMatrix());
             if (auto* outTab = content->getOutputPatchTab())
                 wirePatchAutoSave (outTab->getPatchMatrix());
+
+            // The output tab forwards the matrix's status messages, but nothing
+            // was listening, so every one of them (including "choose a test
+            // signal") went nowhere and a rejected test click looked exactly
+            // like a working one that made no sound. Only the output patch has
+            // a testing mode, so only it produces these.
+            if (auto* outTab = content->getOutputPatchTab())
+                outTab->onStatusMessage = [this](const juce::String& message)
+                {
+                    if (statusBar != nullptr)
+                        statusBar->showTemporaryMessage (message, 3000);
+                };
         }
     }
     else

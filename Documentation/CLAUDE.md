@@ -1111,7 +1111,12 @@ Comprehensive audio device configuration and channel patching interface.
 - **AudioInterfaceWindow.h/cpp** - Main window container with device settings
 - **AudioPatchTab.h/cpp** - Input/Output patch tab components with test signal controls
 - **PatchMatrixComponent.h/cpp** - Scrollable patch matrix with visual patching
-- **TestSignalGenerator.h/cpp** - Test signal generation (pink noise, tone, sweep, dirac pulse)
+- **spatcore/io/TestSignalGenerator.h** - Test signal generation (pink noise, tone, sweep, dirac pulse). Lives in spatcore so the sibling apps can share it; `Source/DSP/TestSignalGenerator.h` is a `using`-alias shim. XOA has not adopted it yet — it still ships its own fork with a `SpeakerId` mode the shared class lacks (see XOA's `Documentation/XOA-AUDIO-DEVICE-AND-PATCH-HANDOFF.md`).
+
+**Device layer (spatcore/io/):** the window and the audio callback both sit on `spatcore::io`.
+- **DeviceHost** - device open/restore policy over a non-owned `juce::AudioDeviceManager&`. Every mutation writes an explicit channel mask with `useDefaultInput/OutputChannels` cleared — without which `AudioDeviceManager` silently discards the mask and substitutes `range(0, channelsNeeded)`. Also publishes the *opened* channel counts, which is what the matrix gates on.
+- **DeviceIoCallback** - the audio callback, registered with `deviceManager.addAudioCallback`. Replaces `AudioAppComponent`'s `AudioSourcePlayer`, whose fixed `float* channels[128]` made every hardware channel from 128 up unreachable. Its buffer is indexed by **hardware channel**, which is what `applyInputPatch` / `applyOutputPatch` / the metering / the test tone already assumed.
+- **HardwareIndexMap** - hardware channel → the compacted index the device callback actually uses (the callback arrays hold only enabled channels, packed).
 
 **Window Structure:**
 ```
@@ -1161,26 +1166,37 @@ AudioInterfaceWindow
 - Test signals stop when: switching tabs, closing window, changing mode, starting WFS processing
 - Mode resets to Scrolling when exiting tab or window
 - No auto-configuration when clicking in test mode (user must manually set signal type)
-- 500ms fade-in for Pink Noise and Tone prevents loud bursts
+- 500ms fade-in for Pink Noise and Tone prevents loud bursts. This is hearing protection, not polish — a rig under test can be pointed at someone's head at full system gain — so any new continuous signal type must ramp the same way. Regression-tested in `spatcore/tests/SpatcoreTests.cpp`.
+- **The window is stopped-only.** Starting processing closes it, and while processing runs it cannot be reopened (status-bar message + TTS). Patching a live rig destroys speakers. Patch edits made while stopped are pushed to the audio thread when processing starts.
+- A test click on a channel the device has not opened is refused **with a message naming the channel** — it used to return silently, which was indistinguishable from a tone that played and made no sound.
 
 **Patch Data Storage (ValueTree):**
 ```
 AudioPatch
 ├── InputPatch
 │   ├── rows (WFS input count)
-│   ├── cols (max hardware inputs = 64)
+│   ├── cols (hardware columns shown — see the cols policy below)
+│   ├── activeHardwareInputs (channels the device actually OPENED — gates patching/testing)
 │   └── patchData ("1,0,0,0;0,1,0,0;..." semicolon-separated rows)
 └── OutputPatch
     ├── rows (WFS output count)
-    ├── cols (max hardware outputs = 128)
+    ├── cols / activeHardwareOutputs (same meaning)
     └── patchData (same format)
 ```
 
+`cols` is not a constant: `applyColsPolicy` (`WFSValueTreeState.cpp`) sets it to
+`clamp(64 .. maxHardwarePatchChannels=512)` of `max(64, device channel count, highest patched
+channel + 1)`, so the matrix grows to the interface and never hides an existing patch.
+`activeHardwareInputs/Outputs` are the **opened** counts from `DeviceHost`, not the channel-name
+counts the device advertises — a channel that was never opened has no slot in the callback buffer,
+so metering or testing it is silently impossible and showing it as available is a lie.
+
 **Key Features:**
 - Device settings automatically saved and restored on startup
-- All available hardware channels automatically enabled when device changes
+- All available hardware channels automatically enabled when device changes — enforced by `DeviceHost` (explicit mask + `useDefault*Channels` cleared), which is what makes the request actually stick
 - Patch matrices persist with project save/load
 - Thread-safe test signal injection (after WFS processing in audio callback)
+- Hardware channels are addressable up to 512. Nothing in the path is sized *below* that ceiling — the audio callback's buffer, `inputPatchMap` and the hardware-input peak meter (`LevelMeteringManager::MaxHardwareInputs`) all reach 512 — so raising the ceiling means revisiting those, not just the policy constant
 
 ---
 
@@ -2096,7 +2112,7 @@ When updating these files, preserve the column count and avoid introducing U+FFF
 
 ---
 
-*Last updated: 2026-08-01 (v1.0.0beta40)*
-*Session changes: MCP adopted spec revision 2025-06-18 with real negotiation (accepts 2025-06-18 / 2025-03-26 / 2024-11-05 and echoes back the client's request; `MCP-Protocol-Version` header validated at the transport with HTTP 400 on an unsupported value, 2025-03-26 assumed when absent) -- it had hard-coded 2024-11-05, a revision predating the Streamable HTTP transport it actually speaks. `tools/list` cut from ~240KB to 34.5KB (416 tools to 35): tier-1/2 auto-generated per-parameter tools are now registered but unlisted via `ToolDescriptor::listable`, staying callable by name, while the 8 tier-3 ones remain advertised because `wfs_set_parameter` refuses tier-3 writes by design. That made the generic tools load-bearing, so `wfs_set_parameter`/`_batch` gained registry-backed enum and min/max validation (they had range-checked only against the permissive `OSCParameterBounds` table and never checked enums), and `wfs_nudge_parameter` was added since the 63 generated nudge tools were the only relative-adjustment surface. Also: `mcp_describe_parameters` returns a 62-group map instead of the full registry when unfiltered, with summary mode and a 50-record cap; `mcp_get_ai_change_history` defaults to compact; connect-time instructions trimmed ~1750 to ~1100 chars with the evicted vocabulary moved to a new `wfs://knowledge/tool_catalog` resource. Two footguns fixed: a failed port bind no longer reports success (probe before spawning the server thread -- deliberately not SimpleWeb's listener callback, which fires on the server thread against a non-thread-safe ListenerList and previously crashed at teardown), and `session_save` now leaves a non-undoable history record that undo steps over. spatcore pin bumped to bf96b3c; XOA and Tight-WFS compile spatcore-control but never instantiate MCP, and spatcore-control was verified to build clean at /W4 through XOA's own CMake wiring.*
+*Last updated: 2026-08-02 (v1.0.0beta40 + unreleased)*
+*Session changes: every hardware channel from 128 up was unreachable -- not just for the patch window's diagnostics but for audio. `MainComponent` is a `juce::AudioAppComponent`, so the callback was JUCE's `AudioSourcePlayer` and its `float* channels[128]`; the metering, `applyInputPatch`/`applyOutputPatch`, the binaural direct outs and the test tone all bounds-checked those channels away while the matrix advertised columns to 512. It now drives `spatcore::io::DeviceIoCallback` (uncapped, buffer indexed by hardware channel -- which those call sites already assumed), registered via `addAudioCallback`; `setAudioChannels()` is gone, and with it the device re-open that froze `AudioDeviceManager`'s channel count. Second defect: "enable all channels" never stuck, because the masks were written without clearing `useDefaultInput/OutputChannels`, so JUCE discarded them and reopened at the startup device's count -- and, the flag being set, persisted no mask either, making it self-perpetuating. `spatcore::io::DeviceHost` now owns open/restore and clears both flags on every mutation (it also scans device types first, without which a failed open returns an EMPTY error string -- caught against a real Dante driver). The matrix gates on opened channels rather than advertised ones; a refused test click now names the channel, the patch tabs' `onStatusMessage` is finally wired to the status bar, and `TestSignalGenerator` moved to `spatcore/io/` where `prepare()` now recomputes the phase increment (a Tone was silent until something called `setFrequency`). The Audio Interface window became stopped-only and pending patch edits apply at DSP start. New spatcore target `spatcore-io`; 15/15 offline-render baselines unchanged, so the DSP path did not move. Not yet verified above 128 channels on hardware.*
 *JUCE Version: 9.0.0*
 *Build: Visual Studio 2022 / Xcode / Linux Makefile, x64 Debug/Release*

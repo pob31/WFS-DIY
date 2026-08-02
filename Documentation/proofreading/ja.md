@@ -1,6 +1,6 @@
 # Proofreading checklist — Japanese (日本語)
 
-Locale: `ja`  |  Total keys: 687  |  Source: `Resources/lang/en.json` vs `Resources/lang/ja.json`
+Locale: `ja`  |  Total keys: 690  |  Source: `Resources/lang/en.json` vs `Resources/lang/ja.json`
 
 ## How to use this file
 
@@ -80,9 +80,19 @@ Walk through each section. For every entry:
 
 ## `audioPatch.messages`
 
+- **`channelNotAvailable`**
+  - EN: Channel {channel} is not open on the current audio device
+  - JA: チャンネル {channel} は現在のオーディオデバイスで開いていません
+  - [ ] OK    Fix: 
+
 - **`chooseTestSignal`**
   - EN: Choose a Test Signal to Enable Testing
   - JA: テストを有効にするにはテスト信号を選択してください
+  - [ ] OK    Fix: 
+
+- **`stopProcessingFirst`**
+  - EN: Stop WFS processing to open the Audio Interface window
+  - JA: オーディオインターフェースウィンドウを開くには WFS 処理を停止してください
   - [ ] OK    Fix: 
 
 ## `clusters.help`
@@ -901,6 +911,11 @@ Walk through each section. For every entry:
 - **`snapshotNameLabel`**
   - EN: Name:
   - JA: 名前：
+  - [ ] OK    Fix: 
+
+- **`snapshotOverwriteWarning`**
+  - EN: A snapshot with this name already exists — it will be overwritten.
+  - JA: この名前のスナップショットは既に存在します — 上書きされます。
   - [ ] OK    Fix: 
 
 - **`storeSnapshotMessage`**

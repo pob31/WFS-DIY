@@ -237,7 +237,9 @@
       "unpatchOutputsMessage": "确定要移除所有输出路由吗?"
     },
     "messages": {
-      "chooseTestSignal": "选择测试信号以启用测试模式"
+      "chooseTestSignal": "选择测试信号以启用测试模式",
+      "channelNotAvailable": "当前音频设备未打开通道 {channel}",
+      "stopProcessingFirst": "请先停止 WFS 处理再打开音频接口窗口"
     }
   },
   "networkLog": {

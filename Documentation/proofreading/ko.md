@@ -1,6 +1,6 @@
 # Proofreading checklist — Korean (한국어)
 
-Locale: `ko`  |  Total keys: 687  |  Source: `Resources/lang/en.json` vs `Resources/lang/ko.json`
+Locale: `ko`  |  Total keys: 690  |  Source: `Resources/lang/en.json` vs `Resources/lang/ko.json`
 
 ## How to use this file
 
@@ -80,9 +80,19 @@ Walk through each section. For every entry:
 
 ## `audioPatch.messages`
 
+- **`channelNotAvailable`**
+  - EN: Channel {channel} is not open on the current audio device
+  - KO: 채널 {channel}은(는) 현재 오디오 장치에서 열려 있지 않습니다
+  - [ ] OK    Fix: 
+
 - **`chooseTestSignal`**
   - EN: Choose a Test Signal to Enable Testing
   - KO: 테스트 모드를 활성화하려면 테스트 신호를 선택하세요
+  - [ ] OK    Fix: 
+
+- **`stopProcessingFirst`**
+  - EN: Stop WFS processing to open the Audio Interface window
+  - KO: 오디오 인터페이스 창을 열려면 WFS 처리를 중지하세요
   - [ ] OK    Fix: 
 
 ## `clusters.help`
@@ -901,6 +911,11 @@ Walk through each section. For every entry:
 - **`snapshotNameLabel`**
   - EN: Name:
   - KO: 이름:
+  - [ ] OK    Fix: 
+
+- **`snapshotOverwriteWarning`**
+  - EN: A snapshot with this name already exists — it will be overwritten.
+  - KO: 이 이름의 스냅샷이 이미 있습니다 — 덮어씁니다.
   - [ ] OK    Fix: 
 
 - **`storeSnapshotMessage`**

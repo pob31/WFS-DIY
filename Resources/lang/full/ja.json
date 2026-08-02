@@ -519,7 +519,9 @@
       "unpatchOutputsMessage": "すべての出力パッチを削除してもよろしいですか？"
     },
     "messages": {
-      "chooseTestSignal": "テストを有効にするにはテスト信号を選択してください"
+      "chooseTestSignal": "テストを有効にするにはテスト信号を選択してください",
+      "channelNotAvailable": "チャンネル {channel} は現在のオーディオデバイスで開いていません",
+      "stopProcessingFirst": "オーディオインターフェースウィンドウを開くには WFS 処理を停止してください"
     }
   },
   "networkLog": {

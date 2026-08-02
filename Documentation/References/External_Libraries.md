@@ -198,6 +198,7 @@ This document contains references to external libraries, protocols, and resource
 ### System Specifications
 - **Maximum Inputs**: 64 channels (adjustable based on resources)
 - **Maximum Outputs**: 128 channels (adjustable based on resources)
+- **Maximum hardware (interface) channels**: 512 in either direction (`WFSValueTreeState::maxHardwarePatchChannels`) — the addressing ceiling of the patch matrix, which maps the WFS channel counts above onto hardware channels 0..511. It is a separate limit from those counts, not a restatement of them.
 - **Reverb Channels**: Up to 32 channels for pseudoacoustics (adjustable)
 - **Effects Channels**: Up to 16 channels for sound design (adjustable)
 - **Latency**: Adjustable (target <3ms for acoustic sound reinforcement)

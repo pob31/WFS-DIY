@@ -1,6 +1,6 @@
 # Proofreading checklist — Chinese (中文)
 
-Locale: `zh`  |  Total keys: 687  |  Source: `Resources/lang/en.json` vs `Resources/lang/zh.json`
+Locale: `zh`  |  Total keys: 690  |  Source: `Resources/lang/en.json` vs `Resources/lang/zh.json`
 
 ## How to use this file
 
@@ -80,9 +80,19 @@ Walk through each section. For every entry:
 
 ## `audioPatch.messages`
 
+- **`channelNotAvailable`**
+  - EN: Channel {channel} is not open on the current audio device
+  - ZH: 当前音频设备未打开通道 {channel}
+  - [ ] OK    Fix: 
+
 - **`chooseTestSignal`**
   - EN: Choose a Test Signal to Enable Testing
   - ZH: 选择测试信号以启用测试模式
+  - [ ] OK    Fix: 
+
+- **`stopProcessingFirst`**
+  - EN: Stop WFS processing to open the Audio Interface window
+  - ZH: 请先停止 WFS 处理再打开音频接口窗口
   - [ ] OK    Fix: 
 
 ## `clusters.help`
@@ -901,6 +911,11 @@ Walk through each section. For every entry:
 - **`snapshotNameLabel`**
   - EN: Name:
   - ZH: 名称：
+  - [ ] OK    Fix: 
+
+- **`snapshotOverwriteWarning`**
+  - EN: A snapshot with this name already exists — it will be overwritten.
+  - ZH: 已存在同名快照 — 将被覆盖。
   - [ ] OK    Fix: 
 
 - **`storeSnapshotMessage`**

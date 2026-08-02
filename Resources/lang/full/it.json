@@ -552,7 +552,9 @@
       "unpatchOutputsMessage": "Sei sicuro di voler rimuovere tutti i patch delle uscite?"
     },
     "messages": {
-      "chooseTestSignal": "Scegli un Segnale di Test per Abilitare il Test"
+      "chooseTestSignal": "Scegli un Segnale di Test per Abilitare il Test",
+      "channelNotAvailable": "Il canale {channel} non è aperto sul dispositivo audio corrente",
+      "stopProcessingFirst": "Arresta l'elaborazione WFS per aprire la finestra dell'interfaccia audio"
     }
   },
   "networkLog": {
