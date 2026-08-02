@@ -1090,7 +1090,10 @@
     <ClCompile Include="..\..\Source\gui\AudioInterfaceWindow.cpp">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\gui\PatchMatrixComponent.cpp">
+    <ClCompile Include="..\..\Source\gui\PatchMatrixShim.cpp">
+      <Filter>WFS-DIY\Source\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\spatcore\ui\patch\PatchMatrixComponent.cpp">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Source\gui\AudioPatchTab.cpp">
@@ -4720,6 +4723,12 @@
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\gui\PatchMatrixComponent.h">
+      <Filter>WFS-DIY\Source\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\spatcore\ui\patch\PatchMatrixConfig.h">
+      <Filter>WFS-DIY\Source\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\spatcore\ui\patch\PatchMatrixComponent.h">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\gui\AudioPatchTab.h">
