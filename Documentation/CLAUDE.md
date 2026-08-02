@@ -1152,8 +1152,8 @@ AudioInterfaceWindow
 | Type | Description |
 |------|-------------|
 | Off | No signal |
-| Pink Noise | Continuous pink noise with 500ms fade-in |
-| Tone | Sine wave at selected frequency (20-20kHz) with 500ms fade-in |
+| Pink Noise | Continuous pink noise |
+| Tone | Sine wave at selected frequency (20-20kHz) |
 | Sweep | Logarithmic 20Hz-20kHz sweep over 1s, 3s gap, repeats |
 | Dirac Pulse | Single sample impulse, repeats every 1s |
 
@@ -1166,7 +1166,7 @@ AudioInterfaceWindow
 - Test signals stop when: switching tabs, closing window, changing mode, starting WFS processing
 - Mode resets to Scrolling when exiting tab or window
 - No auto-configuration when clicking in test mode (user must manually set signal type)
-- 500ms fade-in for Pink Noise and Tone prevents loud bursts. This is hearing protection, not polish — a rig under test can be pointed at someone's head at full system gain — so any new continuous signal type must ramp the same way. Regression-tested in `spatcore/tests/SpatcoreTests.cpp`.
+- **Every** signal type ramps up from silence over 500 ms, on start, on restart and on a type change. This is hearing protection, not polish — a rig under test can be pointed at someone's head at full system gain, and the ramp is what gives the operator time to stop a too-loud signal before it hurts. No type is exempt: the transient envelopes (Sweep, Dirac) and SpeakerId's burst declick ride **on top of** the ramp rather than replacing it, and any new type gets the same treatment. Regression-tested in `spatcore/tests/SpatcoreTests.cpp`.
 - **The window is stopped-only.** Starting processing closes it, and while processing runs it cannot be reopened (status-bar message + TTS). Patching a live rig destroys speakers. Patch edits made while stopped are pushed to the audio thread when processing starts.
 - A test click on a channel the device has not opened is refused **with a message naming the channel** — it used to return silently, which was indistinguishable from a tone that played and made no sound.
 
