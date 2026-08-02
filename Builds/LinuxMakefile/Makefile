@@ -81,7 +81,8 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/MCPHistoryWindow_1129207.o \
   $(JUCE_OBJDIR)/OutputArrayHelperWindow_6dcb4bc3.o \
   $(JUCE_OBJDIR)/AudioInterfaceWindow_f176b730.o \
-  $(JUCE_OBJDIR)/PatchMatrixComponent_b17e3fb1.o \
+  $(JUCE_OBJDIR)/PatchMatrixShim_1e35ae8f.o \
+  $(JUCE_OBJDIR)/PatchMatrixComponent_3d54aeb.o \
   $(JUCE_OBJDIR)/AudioPatchTab_4fba5830.o \
   $(JUCE_OBJDIR)/ArrayGeometryCalculator_9da01084.o \
   $(JUCE_OBJDIR)/LocalizationManager_cd7d45c7.o \
@@ -224,7 +225,12 @@ $(JUCE_OBJDIR)/AudioInterfaceWindow_f176b730.o: ../../Source/gui/AudioInterfaceW
 	@echo "Compiling AudioInterfaceWindow.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
-$(JUCE_OBJDIR)/PatchMatrixComponent_b17e3fb1.o: ../../Source/gui/PatchMatrixComponent.cpp
+$(JUCE_OBJDIR)/PatchMatrixShim_1e35ae8f.o: ../../Source/gui/PatchMatrixShim.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling PatchMatrixShim.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/PatchMatrixComponent_3d54aeb.o: ../../spatcore/ui/patch/PatchMatrixComponent.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling PatchMatrixComponent.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"

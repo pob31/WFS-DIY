@@ -81,8 +81,14 @@
               resource="0" file="Source/gui/AudioInterfaceWindow.cpp"/>
         <FILE id="guiPatchMatH" name="PatchMatrixComponent.h" compile="0" resource="0"
               file="Source/gui/PatchMatrixComponent.h"/>
-        <FILE id="guiPatchMatCpp" name="PatchMatrixComponent.cpp" compile="1"
-              resource="0" file="Source/gui/PatchMatrixComponent.cpp"/>
+        <FILE id="guiPatchMatCpp" name="PatchMatrixShim.cpp" compile="1"
+              resource="0" file="Source/gui/PatchMatrixShim.cpp"/>
+        <FILE id="corePatchCfgH" name="PatchMatrixConfig.h" compile="0" resource="0"
+              file="spatcore/ui/patch/PatchMatrixConfig.h"/>
+        <FILE id="corePatchMatH" name="PatchMatrixComponent.h" compile="0" resource="0"
+              file="spatcore/ui/patch/PatchMatrixComponent.h"/>
+        <FILE id="corePatchMatCpp" name="PatchMatrixComponent.cpp" compile="1"
+              resource="0" file="spatcore/ui/patch/PatchMatrixComponent.cpp"/>
         <FILE id="guiAudPatchH" name="AudioPatchTab.h" compile="0" resource="0"
               file="Source/gui/AudioPatchTab.h"/>
         <FILE id="guiAudPatchCpp" name="AudioPatchTab.cpp" compile="1" resource="0"
