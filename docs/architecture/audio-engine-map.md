@@ -34,23 +34,44 @@ flagged here up front, then substantiated in the relevant sections.
 ### 1.1 Process startup and the device callback
 
 WFS-DIY is a **standalone `juce::AudioAppComponent`** (`MainComponent`), not a plugin
-(`Source/MainComponent.h:98` **[V]**). There is **no custom `AudioIODeviceCallback`**; JUCE's
-`AudioSourcePlayer`/device owns the callback thread, wired by `setAudioChannels()` inside
-`attachAudioCallbacksIfNeeded()` (`Source/MainComponent.cpp:2455-2462` **[V]**). The device
-(ASIO on Windows / CoreAudio on macOS / ALSA-JACK on Linux) drives:
+(`Source/MainComponent.h:95` **[V]**). The device (ASIO on Windows / CoreAudio on macOS /
+ALSA-JACK on Linux) drives:
 
 ```
-MainComponent::getNextAudioBlock (Source/MainComponent.cpp:4671)   ← THE audio callback
-MainComponent::prepareToPlay     (Source/MainComponent.cpp:4493)   ← re-prepare on device/SR/buffer change
-MainComponent::releaseResources  (Source/MainComponent.cpp:5041)   ← teardown (joins reverb feed thread, 1000 ms)
+MainComponent::getNextAudioBlock (Source/MainComponent.cpp:4812)   ← THE audio callback
+MainComponent::prepareToPlay     (Source/MainComponent.cpp:4631)   ← re-prepare on device/SR/buffer change
+MainComponent::releaseResources  (Source/MainComponent.cpp:5182)   ← teardown (joins reverb feed thread, 1000 ms)
 ```
-**[V]** all three.
+**[V]** all three (re-verified 2026-08-02 — the device-layer change below moved them).
+
+> **UPDATED 2026-08-02.** This section originally read: *"There is no custom
+> `AudioIODeviceCallback`; JUCE's `AudioSourcePlayer`/device owns the callback thread, wired by
+> `setAudioChannels()` inside `attachAudioCallbacksIfNeeded()`."* That is no longer true, and the
+> arrangement it described was a defect: `AudioSourcePlayer` holds `float* channels[128]` and stops
+> compacting once those arrays are full, so the buffer handed to `getNextAudioBlock` could never
+> exceed 128 channels — every hardware channel from 128 up was silently unreachable for metering,
+> patching, test tones and audio alike, on an app whose patch matrix addresses 512.
+>
+> `MainComponent` still *derives* from `juce::AudioAppComponent`, but only to inherit
+> `deviceManager` and to be the `juce::AudioSource` that gets driven; `setAudioChannels()` is never
+> called, so the base class's `AudioSourcePlayer` stays inert. The callback is now
+> **`spatcore::io::DeviceIoCallback`**, registered once with `deviceManager.addAudioCallback()`
+> (`Source/MainComponent.cpp:2451`) inside `attachAudioCallbacksIfNeeded()` (`:2434`) **[V]**.
+> It has no channel cap and hands the source a buffer indexed by
+> **hardware channel** rather than by compacted device-array position. Device open/restore policy
+> (explicit channel masks with `useDefaultInput/OutputChannels` cleared, so
+> `AudioDeviceManager` cannot silently substitute its own) lives in `spatcore::io::DeviceHost`.
+> The three entry points above are unchanged (their line numbers were refreshed with this edit),
+> and the buffer is byte-identical for a contiguous channel mask. The 15 offline-render baselines
+> were unaffected — note that gate drives the DSP headers directly and never instantiates a device
+> callback, so it evidences the algorithms, not the buffer assembly; the latter is proven by
+> running the app on real hardware.
 
 ### 1.2 Real-time / near-real-time threads
 
 | Thread | Created / elevated | Priority | Affinity | Talks to peers via | RT hazards |
 |---|---|---|---|---|---|
-| **Audio callback** (device-owned) | JUCE `setAudioChannels()` (`MainComponent.cpp:2455-2462`) | OS audio driver RT | none (see §1.4) | SPSC rings + atomics + `notify()` | see §1.3 |
+| **Audio callback** (device-owned) | `deviceManager.addAudioCallback(&ioCallback)` (`MainComponent.cpp:2451`) — see the §1.1 update | OS audio driver RT | none (see §1.4) | SPSC rings + atomics + `notify()` | see §1.3 |
 | **WFS per-channel workers** — 1 `InputBufferProcessor` per *input* **or** 1 `OutputBufferProcessor` per *output* | `startRealtimeThread(RealtimeOptions{}.withApproximateAudioProcessingTime(blockSize, sr))` — `InputBufferAlgorithm.h:72-78`, `OutputBufferAlgorithm.h:239-245` | JUCE realtime | none | `SharedInputRingBuffer` / `LockFreeRingBuffer` + `notify()` | none on the worker loop; lock-free |
 | **ReverbFeedThread** (1) | `MainComponent.cpp:4273-4274` | JUCE realtime | none | reads shared input rings; `SpinLock` snapshot of send matrix (`ReverbFeedThread.h:110-115`); `pushNodeInput` | brief SpinLock (near-RT, not callback); `wait(1)` 1 ms poll (`ReverbFeedThread.h:88-98`) |
 | **ReverbEngine** (1, `juce::Thread`) | `ReverbEngine.h:153-158` | JUCE realtime | none | node SPSC rings; internally the fork-join calling thread | `AudioParallelFor` fork/join uses `std::mutex`+CV (`AudioParallelFor.h:120-136`) on *this* thread, not the callback |
