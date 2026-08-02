@@ -480,29 +480,11 @@ void DeviceSettingsPanel::deviceChanged()
 
     if (index >= 0 && index < deviceNames.size())
     {
-        // Set up the device with all channels enabled
-        juce::AudioDeviceManager::AudioDeviceSetup setup;
-        deviceManager.getAudioDeviceSetup(setup);
+        // Opens the device with every channel enabled, at its own default
+        // sample rate and buffer size.
+        auto error = deviceHost.setDeviceAllChannels(deviceNames[index]);
 
-        setup.inputDeviceName = deviceNames[index];
-        setup.outputDeviceName = deviceNames[index];
-
-        // Enable all available channels
-        setup.inputChannels.setRange(0, 256, true);
-        setup.outputChannels.setRange(0, 256, true);
-
-        // Clear to use default sample rate and buffer size
-        setup.sampleRate = 0;
-        setup.bufferSize = 0;
-
-        auto error = deviceManager.setAudioDeviceSetup(setup, true);
-
-        if (error.isEmpty())
-        {
-            // After device is set up, ensure all channels are enabled
-            enableAllChannels();
-        }
-        else
+        if (error.isNotEmpty())
         {
             DBG("Device setup error: " + error);
         }
@@ -571,31 +553,7 @@ void DeviceSettingsPanel::bufferSizeChanged()
 
 void DeviceSettingsPanel::enableAllChannels()
 {
-    auto* device = deviceManager.getCurrentAudioDevice();
-    if (device == nullptr)
-        return;
-
-    // Get current setup
-    juce::AudioDeviceManager::AudioDeviceSetup setup;
-    deviceManager.getAudioDeviceSetup(setup);
-
-    // Get actual available channel counts from device
-    auto inputChannelNames = device->getInputChannelNames();
-    auto outputChannelNames = device->getOutputChannelNames();
-
-    int numInputs = inputChannelNames.size();
-    int numOutputs = outputChannelNames.size();
-
-    // Enable all available input channels
-    setup.inputChannels.clear();
-    setup.inputChannels.setRange(0, numInputs, true);
-
-    // Enable all available output channels
-    setup.outputChannels.clear();
-    setup.outputChannels.setRange(0, numOutputs, true);
-
-    // Apply the setup
-    auto error = deviceManager.setAudioDeviceSetup(setup, true);
+    auto error = deviceHost.enableAllChannels();
 
     if (error.isNotEmpty())
     {

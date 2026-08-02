@@ -130,7 +130,6 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/HipFdnBackend_e7d30ae5.o \
   $(JUCE_OBJDIR)/CudaSdnBackend_16100fe.o \
   $(JUCE_OBJDIR)/HipSdnBackend_601647f8.o \
-  $(JUCE_OBJDIR)/TestSignalGenerator_c4132b8c.o \
   $(JUCE_OBJDIR)/BinaryData_ce4232d4.o \
   $(JUCE_OBJDIR)/include_juce_audio_basics_8a4e984a.o \
   $(JUCE_OBJDIR)/include_juce_audio_devices_63111d02.o \
@@ -468,11 +467,6 @@ $(JUCE_OBJDIR)/CudaSdnBackend_16100fe.o: ../../spatcore/gpu/CudaSdnBackend.cpp
 $(JUCE_OBJDIR)/HipSdnBackend_601647f8.o: ../../spatcore/gpu/HipSdnBackend.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling HipSdnBackend.cpp"
-	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/TestSignalGenerator_c4132b8c.o: ../../Source/DSP/TestSignalGenerator.cpp
-	-$(V_AT)mkdir -p $(@D)
-	@echo "Compiling TestSignalGenerator.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/BinaryData_ce4232d4.o: ../../JuceLibraryCode/BinaryData.cpp

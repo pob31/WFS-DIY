@@ -1451,7 +1451,12 @@ void PatchMatrixComponent::handleTestClick(int hardwareChannel)
 
     // Testing a channel the device can't play would be silent and misleading.
     if (!isHardwareChannelActive(hardwareChannel))
+    {
+        if (onStatusMessage)
+            onStatusMessage(LOC("audioPatch.messages.channelNotAvailable")
+                                .replace("{channel}", juce::String(hardwareChannel + 1)));
         return;
+    }
 
     // Block testing when signal type is Off - no visual feedback, just status message
     if (testSignalGenerator->getSignalType() == TestSignalGenerator::SignalType::Off)
@@ -1550,6 +1555,17 @@ bool PatchMatrixComponent::keyPressed(const juce::KeyPress& key)
 
             if (isPatchActive(wfsChannel, hwChannel))
             {
+                // Same gate as the mouse path: a channel the device never
+                // opened has no slot in the callback buffer, so the tone would
+                // go nowhere with no way for the operator to tell.
+                if (!isHardwareChannelActive(hwChannel))
+                {
+                    if (onStatusMessage)
+                        onStatusMessage(LOC("audioPatch.messages.channelNotAvailable")
+                                            .replace("{channel}", juce::String(hwChannel + 1)));
+                    return true;
+                }
+
                 // Block if signal type is Off
                 if (testSignalGenerator->getSignalType() == TestSignalGenerator::SignalType::Off)
                 {

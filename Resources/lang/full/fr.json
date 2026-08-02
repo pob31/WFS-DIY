@@ -552,7 +552,9 @@
       "unpatchOutputsMessage": "Êtes-vous sûr de vouloir supprimer tous les routages de sortie ?"
     },
     "messages": {
-      "chooseTestSignal": "Choisissez un signal de test pour activer le test"
+      "chooseTestSignal": "Choisissez un signal de test pour activer le test",
+      "channelNotAvailable": "Le canal {channel} n'est pas ouvert sur le périphérique audio actuel",
+      "stopProcessingFirst": "Arrêtez le traitement WFS pour ouvrir la fenêtre d'interface audio"
     }
   },
   "signalFlow": {

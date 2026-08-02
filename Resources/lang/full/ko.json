@@ -519,7 +519,9 @@
       "unpatchOutputsMessage": "모든 출력 패치를 제거하시겠습니까?"
     },
     "messages": {
-      "chooseTestSignal": "테스트 모드를 활성화하려면 테스트 신호를 선택하세요"
+      "chooseTestSignal": "테스트 모드를 활성화하려면 테스트 신호를 선택하세요",
+      "channelNotAvailable": "채널 {channel}은(는) 현재 오디오 장치에서 열려 있지 않습니다",
+      "stopProcessingFirst": "오디오 인터페이스 창을 열려면 WFS 처리를 중지하세요"
     }
   },
   "networkLog": {

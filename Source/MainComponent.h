@@ -14,6 +14,8 @@
 #include "../spatcore/dsp/InputSpeedLimiter.h"
 #include "DSP/LiveSourceTamerEngine.h"
 #include "DSP/TestSignalGenerator.h"
+#include "../spatcore/io/DeviceHost.h"
+#include "../spatcore/io/DeviceIoCallback.h"
 #include "DSP/BinauralCalculationEngine.h"
 #include "DSP/BinauralProcessor.h"
 #include "../spatcore/reverb/ReverbEngine.h"
@@ -233,6 +235,17 @@ private:
     uint32_t gpuUnderrunsLogged = 0;      // last pipeline underrun total surfaced in the log
     uint32_t reverbGpuUnderrunsLogged = 0; // last reverb-pump underrun total surfaced in the log
 #endif
+    // Device layer. deviceManager comes from AudioAppComponent, but its
+    // AudioSourcePlayer is bypassed entirely: that player caps the callback
+    // buffer at 128 channels, which silently kills every hardware channel above
+    // it — metering, test tones and audio alike. ioCallback drives this
+    // component's AudioSource methods directly instead, with a buffer indexed
+    // by hardware channel so the patch matrix's column numbers are the real
+    // connector numbers. deviceHost owns the open/restore policy that makes
+    // "all channels enabled" actually stick.
+    spatcore::io::DeviceHost deviceHost { deviceManager, WFSValueTreeState::maxHardwarePatchChannels };
+    spatcore::io::DeviceIoCallback ioCallback { *this, WFSValueTreeState::maxHardwarePatchChannels };
+
     bool audioCallbacksAttached = false;
     bool processingEnabled = false;
     std::atomic<bool> audioEngineStarted { false };

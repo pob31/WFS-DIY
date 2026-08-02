@@ -1255,9 +1255,6 @@
     <ClCompile Include="..\..\spatcore\gpu\HipSdnBackend.cpp">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\DSP\TestSignalGenerator.cpp">
-      <Filter>WFS-DIY\Source\DSP</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\ThirdParty\JUCE\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.cpp">
       <Filter>JUCE Modules\juce_audio_basics\audio_play_head</Filter>
     </ClCompile>
@@ -4824,6 +4821,12 @@
     <ClInclude Include="..\..\spatcore\control\mcp\MCPDispatcher.h">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\spatcore\control\mcp\MCPProtocolVersions.h">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\spatcore\control\mcp\MCPRequestContext.h">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\spatcore\control\mcp\MCPTransport.h">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClInclude>
@@ -4843,6 +4846,12 @@
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\MCP\MCPParameterRegistry.h">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPParameterValidation.h">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPGenericDispatch.h">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\MCP\tools\SessionTools.h">
@@ -4867,6 +4876,9 @@
       <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\MCP\tools\SetParameterBatchTool.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\NudgeParameterTool.h">
       <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\MCP\tools\GetParameterTool.h">

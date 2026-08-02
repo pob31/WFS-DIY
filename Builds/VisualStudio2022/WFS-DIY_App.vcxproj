@@ -237,7 +237,6 @@
     <ClCompile Include="..\..\spatcore\gpu\HipFdnBackend.cpp"/>
     <ClCompile Include="..\..\spatcore\gpu\CudaSdnBackend.cpp"/>
     <ClCompile Include="..\..\spatcore\gpu\HipSdnBackend.cpp"/>
-    <ClCompile Include="..\..\Source\DSP\TestSignalGenerator.cpp"/>
     <ClCompile Include="..\..\ThirdParty\JUCE\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
@@ -3468,9 +3467,9 @@
     <ClInclude Include="..\..\Source\Network\MCP\MCPOSCQueryAuditor.h"/>
     <ClInclude Include="..\..\spatcore\control\mcp\MCPToolRegistry.h"/>
     <ClInclude Include="..\..\spatcore\control\mcp\MCPDispatcher.h"/>
-    <ClInclude Include="..\..\spatcore\control\mcp\MCPTransport.h"/>
     <ClInclude Include="..\..\spatcore\control\mcp\MCPProtocolVersions.h"/>
     <ClInclude Include="..\..\spatcore\control\mcp\MCPRequestContext.h"/>
+    <ClInclude Include="..\..\spatcore\control\mcp\MCPTransport.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\MCPCompat.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\MCPServer.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\MCPGeneratedToolLoader.h"/>

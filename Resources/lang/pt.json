@@ -237,7 +237,9 @@
       "unpatchOutputsMessage": "Tem a certeza que deseja remover todos os patches de saída?"
     },
     "messages": {
-      "chooseTestSignal": "Escolha um Sinal de Teste para Ativar o Modo de Teste"
+      "chooseTestSignal": "Escolha um Sinal de Teste para Ativar o Modo de Teste",
+      "channelNotAvailable": "O canal {channel} não está aberto no dispositivo de áudio atual",
+      "stopProcessingFirst": "Pare o processamento WFS para abrir a janela da interface de áudio"
     }
   },
   "networkLog": {

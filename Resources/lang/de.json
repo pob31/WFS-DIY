@@ -237,7 +237,9 @@
       "unpatchOutputsMessage": "Möchten Sie wirklich alle Ausgangs-Patches entfernen?"
     },
     "messages": {
-      "chooseTestSignal": "Wählen Sie ein Testsignal zum Aktivieren des Testmodus"
+      "chooseTestSignal": "Wählen Sie ein Testsignal zum Aktivieren des Testmodus",
+      "channelNotAvailable": "Kanal {channel} ist auf dem aktuellen Audiogerät nicht geöffnet",
+      "stopProcessingFirst": "Beenden Sie die WFS-Verarbeitung, um das Audio-Interface-Fenster zu öffnen"
     }
   },
   "networkLog": {

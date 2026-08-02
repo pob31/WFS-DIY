@@ -593,7 +593,9 @@
     },
 
     "messages": {
-      "chooseTestSignal": "Choose a Test Signal to Enable Testing"
+      "chooseTestSignal": "Choose a Test Signal to Enable Testing",
+      "channelNotAvailable": "Channel {channel} is not open on the current audio device",
+      "stopProcessingFirst": "Stop WFS processing to open the Audio Interface window"
     }
   },
 

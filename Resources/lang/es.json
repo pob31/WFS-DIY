@@ -237,7 +237,9 @@
       "unpatchOutputsMessage": "¿Está seguro de que desea eliminar todos los enrutamientos de salida?"
     },
     "messages": {
-      "chooseTestSignal": "Elija una señal de prueba para activar el test"
+      "chooseTestSignal": "Elija una señal de prueba para activar el test",
+      "channelNotAvailable": "El canal {channel} no está abierto en el dispositivo de audio actual",
+      "stopProcessingFirst": "Detenga el procesamiento WFS para abrir la ventana de interfaz de audio"
     }
   },
   "networkLog": {

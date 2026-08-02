@@ -4,6 +4,7 @@
 #include "AudioPatchTab.h"
 #include "../WfsParameters.h"
 #include "../DSP/TestSignalGenerator.h"
+#include "../../spatcore/io/DeviceHost.h"
 #include "../Localization/LocalizationManager.h"
 #include "HelpCardSVG.h"
 
@@ -76,6 +77,12 @@ private:
     void enableAllChannels();
 
     juce::AudioDeviceManager& deviceManager;
+
+    // Device open policy. Writing a channel mask is not enough on its own:
+    // AudioDeviceManager throws it away and substitutes range(0, channels
+    // needed) unless useDefaultInput/OutputChannels are cleared, which is what
+    // DeviceHost does on every mutation.
+    spatcore::io::DeviceHost deviceHost { deviceManager, WFSValueTreeState::maxHardwarePatchChannels };
 
     // UI Components
     juce::Label deviceTypeLabel;
