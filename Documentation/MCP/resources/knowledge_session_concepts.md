@@ -78,6 +78,7 @@ In addition to the parameter XML files, the project folder contains:
 
 - **Audio samples** — for the sampler feature, accessible via touch surfaces (Roli Lightpad, Android multi-touch tablet app).
 - **Impulse responses** — for the convolution reverb engine.
+- **Scope templates** — for predefined scopes that are selected again and again while storing data.
 
 These are stored in sub-directories of the project folder so they travel with the project.
 

@@ -24,42 +24,43 @@ This means the mixing into the reverb is spatial: an input near the stage-left r
 
 **Reverb returns** — mono inputs from reverb processors, routed back into the WFS system as regular inputs. Each return has a virtual position, so the reverberated signal is diffused through the speaker array as if it were a virtual source in that position.
 
-Returns cannot be routed back into feeds. This is a design decision to prevent accidental feedback loops. 
+Returns cannot be routed back into feeds. This is a design decision to prevent accidental feedback loops.
 
 ## Feed and return positioning
 
 Where should reverb feeds be placed?
 
-- **For small stages**: one or two feeds centered on the stage work fine.
-- **For wide stages or in-the-round**: multiple feeds distributed around the performance area, each picking up nearby sources.
-- **For varying scenes**: use multiple feeds with different characteristics (a dry room feed, a wet hall feed) and route inputs to them based on scene requirements.
+* **For small stages**: one or two feeds centered on the stage work fine.
+* **For wide stages or in-the-round**: multiple feeds distributed around the performance area, each picking up nearby sources.
+* **For varying scenes**: use multiple feeds with different characteristics (a dry room feed, a wet hall feed) and route inputs to them based on scene requirements.
 
 Where should reverb returns be placed?
 
-- **Spread returns widely.** A single centered return fails to take advantage of WFS's spatial capabilities; two returns symmetric left-right give basic spaciousness; four to six distributed around or above the audience produce immersive reverb.
-- **Returns aimed at walls or ceiling**: when returns are routed through speakers aimed at reflective surfaces rather than directly at the audience, the resulting sound is naturally diffuse without any processing doing that work.
+* **Spread returns widely.** A single centered return fails to take advantage of WFS's spatial capabilities; two returns symmetric left-right give basic spaciousness; four to six distributed around or above the audience produce immersive reverb.
+* **Returns aimed at walls or ceiling**: when returns are routed through speakers aimed at reflective surfaces rather than directly at the audience, the resulting sound is naturally diffuse without any processing doing that work.
 
 Feed and return positions are independent; they do NOT have to be co-located, though they can be.
 
-The SDN or Scattered Delay Network algorithm follows different guildlines than the previous ones.
+The SDN or Scattering Delay Network algorithm follows different guidelines than the previous ones.
 
 ## Processing options
 
 There are three different reverb algorithms:
-- **FDN** for Feedback Delay Network: classical reverb processor. Each reverb node is totally independant. A algorithm implements a feedback loop with allpass filters
-- **IR** for Impulse Response: Convolution reverb engine. Each node can share a single IR or each node can have a different IR if it's necessary to have longer reverb tails further fron the stage for instance.
-- **SDN** for Scattered Delay Network: This is a spatial algorithmic reverb unlike the previous two this one bounces the sound between each node and distributes to the peaker outputs. This reverb algorithm works with a slightly higher reverb node count (9 to 13), odd and slightly irregularly placed. An even smaller number of node placed symetrically will cause metallic ringing.
+
+* **FDN** for Feedback Delay Network: classical reverb processor. Each reverb node is totally independent. A algorithm implements a feedback loop with allpass filters
+* **IR** for Impulse Response: Convolution reverb engine. Each node can share a single IR or each node can have a different IR if it's necessary to have longer reverb tails further from the stage for instance.
+* **SDN** for Scattering Delay Network: This is a spatial algorithmic reverb unlike the previous two this one bounces the sound between each node and distributes to the speaker outputs. This reverb algorithm works with a slightly higher reverb node count (9 to 13), odd and slightly irregularly placed. An even smaller number of node placed symmetrically will cause metallic ringing.
 
 ## Feed settings
 
 Reverb feeds share most parameters with outputs:
 
-- **Latency/delay**: usually small. Not normally adjusted unless aligning external processing latency.
-- **Feed attenuation**: overall level sent to the reverb processor.
-- **Position and orientation**: where this virtual "microphone" is in the space.
-- **HF damping**: air absorption model; affects how sources at different distances contribute.
-- **Distance attenuation factor**: scale of the attenuation-with-distance curve.
-- **Minimal latency enable**: whether this feed participates in the minimal-delay pool (usually off for reverbs).
+* **Latency/delay**: usually small. Not normally adjusted unless aligning external processing latency.
+* **Feed attenuation**: overall level sent to the reverb processor.
+* **Position and orientation**: where this virtual "microphone" is in the space.
+* **HF damping**: air absorption model; affects how sources at different distances contribute.
+* **Distance attenuation factor**: scale of the attenuation-with-distance curve.
+* **Minimal latency enable**: whether this feed participates in the minimal-delay pool (usually off for reverbs).
 
 Feeds are automatically in their mute group and cannot be moved out of it. This ensures a single mute group covers all reverb sends, for fast toggling during rehearsals.
 
@@ -67,25 +68,26 @@ Feeds are automatically in their mute group and cannot be moved out of it. This 
 
 Reverb returns behave like regular inputs with a restricted parameter set:
 
-- **Latency/delay, attenuation, position, directivity** — same as input channels.
-- **Height factor, distance attenuation** — same as inputs.
-- **Minimal delay** — optional.
-- **No movement, no LFO, no tracking** — returns are stationary by design.
+* **Latency/delay, attenuation, position, directivity** — same as input channels.
+* **Height factor, distance attenuation** — same as inputs.
+* **Minimal delay** — optional.
+* **No movement, no LFO, no tracking** — returns are stationary by design.
 
 ## Typical reverb setup for theater
 
-- 4 to 6 reverb channels for FDN aand IR
-- 9 to 11 reverb nodes slightly irregularly distributed around the stage for SDN.
-- Returns placed as four surround speakers or distributed on the upper flown array.
-- Reverb processor: either the Scattered Delay Network, Feedback Delay Network, Impulse Response convolution reverb.
-- Return level dialed in to taste.
+* 4 to 6 reverb channels for FDN and IR
+* 9 to 11 reverb nodes slightly irregularly distributed around the stage for SDN.
+* Returns placed as four surround speakers or distributed on the upper flown array.
+* Reverb processor: either the Scattering Delay Network, Feedback Delay Network, Impulse Response convolution reverb.
+* Return level dialed in to taste.
 
 The spatial reverb mix comes for free from the positions; no additional mixing work is required beyond setting the reverb algorithm's parameters.
 
 ## Common pitfalls
 
-- **Reverb returns too loud**: overwhelms the direct WFS image, listeners hear mostly reverb, localization suffers.
-- **Only one reverb return**: defeats the purpose; returns should be spatially distributed.
-- **Feeding stage microphones directly to reverb at equal level across all feeds**: this makes feed positioning pointless. Let the positions do the mixing.
-- **Using WFS feeds as reverb sends when conventional sends would be simpler**: if the spatial aspect doesn't matter (e.g., a single stereo delay on a playback track), just use the console's sends and bypass the WFS reverb architecture.
-- **Placing returns in the same positions as sources**: reverb should feel diffuse and different in position from the sources that caused it. Spread returns to positions sources don't normally occupy.
+* **Reverb returns too loud**: overwhelms the direct WFS image, listeners hear mostly reverb, localization suffers.
+* **Only one reverb return**: defeats the purpose; returns should be spatially distributed.
+* **Feeding stage microphones directly to reverb at equal level across all feeds**: this makes feed positioning pointless. Let the positions do the mixing.
+* **Using WFS feeds as reverb sends when conventional sends would be simpler**: if the spatial aspect doesn't matter (e.g., a single stereo delay on a playback track), just use the console's sends and bypass the WFS reverb architecture.
+* **Placing returns in the same positions as sources**: reverb should feel diffuse and different in position from the sources that caused it. Spread returns to positions sources don't normally occupy.
+

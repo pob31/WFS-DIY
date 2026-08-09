@@ -6,7 +6,7 @@ Gradient maps allow parameters to be modulated automatically based on a source's
 
 A gradient map is an image or gradient painted in a 2D coordinate frame matching the stage. As a source moves through the stage, its x and y coordinates are used to look up a value in the map, and that value is combined with the source's other parameters.
 
-The shapes are drawn directly in the app for ease of use. The user can make rectangles, elipses and polygons, fill them with a grey level or a greyscale gradient (linear or radial). The shapes can be dragged, scaled and rotated. Their points can be edited individually. A point can be deleted by double clicking on it. New point can be added to existing segments by double clicking on the segment. Gradients can be stretched or contracted and their orientation can be adjusted.
+The shapes are drawn directly in the app for ease of use. The user can make rectangles, ellipses and polygons, fill them with a grey level or a greyscale gradient (linear or radial). The shapes can be dragged, scaled and rotated. Their points can be edited individually. A point can be deleted by double clicking on it. New point can be added to existing segments by double clicking on the segment. Gradients can be stretched or contracted and their orientation can be adjusted.
 
 Each input has its own set of maps; they are per-source, not global.
 
@@ -18,9 +18,10 @@ Modulates **audio level** based on position.
 
 White and Black attenuation can be adjusted for the input's layer.
 Defaults:
-- **White = full attenuation (-∞ dB, effectively muted).**
-- **Black = no attenuation (0 dB).**
-- Gradients between white and black produce proportional attenuation.
+
+* **White = full attenuation (-∞ dB, effectively muted).**
+* **Black = no attenuation (0 dB).**
+* Gradients between white and black produce proportional attenuation.
 
 Applied as an additional attenuation on top of the normal distance-based level calculation.
 
@@ -68,12 +69,12 @@ Nothing requires the map to be realistic. A map with sharp bands can cause sourc
 
 WFS-DIY has a built-in editor for creating maps from shape primitives rather than loading image files. Shapes include rectangles, ellipses, diamonds, triangles, hexagons, and stars. Each shape has:
 
-- Position (x, y in normalized coordinates).
-- Rotation, scale.
-- Fill value (0 = black, 1 = white).
-- Fill type (solid, linear gradient, radial gradient).
-- Blur (edge softness).
-- Ordering within a layer.
+* Position (x, y in normalized coordinates).
+* Rotation, scale.
+* Fill value (0 = black, 1 = white).
+* Fill type (solid, linear gradient, radial gradient).
+* Blur (edge softness).
+* Ordering within a layer.
 
 Multiple shapes on a layer combine; multiple layers can be enabled or disabled independently. This lets you build complex maps from simple pieces without leaving the application.
 
@@ -81,12 +82,12 @@ Multiple shapes on a layer combine; multiple layers can be enabled or disabled i
 
 Each map column has:
 
-- **Enable/disable toggle** — the left-most button at the top.
-- **Clear** — removes the loaded image.
-- **Load** — opens a file dialog.
-- **Flip X / Flip Y** — mirrors the image horizontally or vertically.
-- **Invert** — uses the negative of the image values.
-- **Current value display** — shows the instantaneous value at the source's position.
+* **Enable/disable toggle** — the left-most button at the top.
+* **Clear** — removes the loaded image.
+* **Load** — opens a file dialog.
+* **Flip X / Flip Y** — mirrors the image horizontally or vertically.
+* **Invert** — uses the negative of the image values.
+* **Current value display** — shows the instantaneous value at the source's position.
 
 ## Performance notes
 
@@ -96,8 +97,9 @@ Level maps are inexpensive — they add a small lookup per audio block per input
 
 Maps are evaluated in addition to all other position-affecting features:
 
-- **Tracking** sets the source's position from external data; maps apply based on the tracked position.
-- **LFO and Jitter** add periodic or random movement; maps apply based on the instantaneous position including those modulations.
-- **Move commands** (one-shot trajectories) also update the position in real time; maps follow.
+* **Tracking** sets the source's position from external data; maps apply based on the tracked position.
+* **LFO and Jitter** add periodic or random movement; maps apply based on the instantaneous position including those modulations.
+* **Move commands** (one-shot trajectories) also update the position in real time; maps follow.
 
 This means gradient maps can be used alongside tracking: e.g., actor is tracked, level map mutes the mic when they step off-stage.
+
