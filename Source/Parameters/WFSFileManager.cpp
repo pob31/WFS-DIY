@@ -137,6 +137,7 @@ bool WFSFileManager::createProjectFolderStructure()
     getScopeTemplatesFolder().createDirectory();
     getIRFolder().createDirectory();
     getSamplesFolder().createDirectory();
+    getSofaFolder().createDirectory();
 
     // Create .wfs manifest if missing
     if (!getManifestFile().existsAsFile())
@@ -333,6 +334,12 @@ juce::File WFSFileManager::getSamplesFolder() const
 {
     if (! projectFolder.isDirectory()) return {};
     return projectFolder.getChildFile ("samples");
+}
+
+juce::File WFSFileManager::getSofaFolder() const
+{
+    if (! projectFolder.isDirectory()) return {};
+    return projectFolder.getChildFile ("sofa");
 }
 
 //==============================================================================

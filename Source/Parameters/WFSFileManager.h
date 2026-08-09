@@ -114,6 +114,9 @@ public:
     /** Get samples folder (for sampler feature) */
     juce::File getSamplesFolder() const;
 
+    /** Get SOFA (HRTF) files folder (<project>/sofa) */
+    juce::File getSofaFolder() const;
+
     /** Get scope templates folder (<project>/snapshots/scopes) */
     juce::File getScopeTemplatesFolder() const;
 

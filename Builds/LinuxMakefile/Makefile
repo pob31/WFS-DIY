@@ -39,7 +39,7 @@ ifeq ($(CONFIG),Debug)
     TARGET_ARCH := 
   endif
 
-  JUCE_CPPFLAGS := $(DEPFLAGS) "-DLINUX=1" "-DDEBUG=1" "-D_DEBUG=1" "-DJUCE_PROJUCER_VERSION=0x90000" "-DJUCE_MODULE_AVAILABLE_juce_audio_basics=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_devices=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_formats=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_processors=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_utils=1" "-DJUCE_MODULE_AVAILABLE_juce_core=1" "-DJUCE_MODULE_AVAILABLE_juce_data_structures=1" "-DJUCE_MODULE_AVAILABLE_juce_dsp=1" "-DJUCE_MODULE_AVAILABLE_juce_events=1" "-DJUCE_MODULE_AVAILABLE_juce_graphics=1" "-DJUCE_MODULE_AVAILABLE_juce_gui_basics=1" "-DJUCE_MODULE_AVAILABLE_juce_gui_extra=1" "-DJUCE_MODULE_AVAILABLE_juce_osc=1" "-DJUCE_MODULE_AVAILABLE_juce_simpleweb=1" "-DJUCE_MODULE_AVAILABLE_roli_blocks_basics=1" "-DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1" "-DJUCE_ASIO=1" "-DJUCE_ALSA=1" "-DJUCE_JACK=1" "-DJUCE_USE_ANDROID_OBOE=0" "-DJUCE_PLUGINHOST_LV2=0" "-DJUCE_PLUGINHOST_ARA=0" "-DJUCE_STRICT_REFCOUNTEDPOINTER=1" "-DJUCE_STANDALONE_APPLICATION=1" "-DSIMPLEWEB_SECURE_SUPPORTED=0" "-DWFS_GPU_NATIVE=1" "-DWFS_GPU_PLUGINS=1" "-DJUCER_LINUX_MAKE_6D53C8B4=1" "-DJUCE_APP_VERSION=1.0.0beta40" "-DJUCE_APP_VERSION_HEX=0x10000" $(shell $(PKG_CONFIG) --cflags $(shell ($(PKG_CONFIG) --exists webkit2gtk-4.1 && echo webkit2gtk-4.1) || echo webkit2gtk-4.0) alsa freetype2 fontconfig libcurl gtk+-x11-3.0 libudev) -pthread -I../../JuceLibraryCode -I../../ThirdParty/JUCE/modules -I../../ThirdParty -I../../ThirdParty/hidapi -I../../ThirdParty/hidapi/hidapi $(CPPFLAGS)
+  JUCE_CPPFLAGS := $(DEPFLAGS) "-DLINUX=1" "-DDEBUG=1" "-D_DEBUG=1" "-DJUCE_PROJUCER_VERSION=0x90000" "-DJUCE_MODULE_AVAILABLE_juce_audio_basics=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_devices=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_formats=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_processors=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_utils=1" "-DJUCE_MODULE_AVAILABLE_juce_core=1" "-DJUCE_MODULE_AVAILABLE_juce_data_structures=1" "-DJUCE_MODULE_AVAILABLE_juce_dsp=1" "-DJUCE_MODULE_AVAILABLE_juce_events=1" "-DJUCE_MODULE_AVAILABLE_juce_graphics=1" "-DJUCE_MODULE_AVAILABLE_juce_gui_basics=1" "-DJUCE_MODULE_AVAILABLE_juce_gui_extra=1" "-DJUCE_MODULE_AVAILABLE_juce_osc=1" "-DJUCE_MODULE_AVAILABLE_juce_simpleweb=1" "-DJUCE_MODULE_AVAILABLE_roli_blocks_basics=1" "-DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1" "-DJUCE_ASIO=1" "-DJUCE_ALSA=1" "-DJUCE_JACK=1" "-DJUCE_USE_ANDROID_OBOE=0" "-DJUCE_PLUGINHOST_LV2=0" "-DJUCE_PLUGINHOST_ARA=0" "-DJUCE_STRICT_REFCOUNTEDPOINTER=1" "-DJUCE_STANDALONE_APPLICATION=1" "-DSIMPLEWEB_SECURE_SUPPORTED=0" "-DWFS_GPU_NATIVE=1" "-DWFS_GPU_PLUGINS=1" "-DJUCER_LINUX_MAKE_6D53C8B4=1" "-DJUCE_APP_VERSION=1.0.0beta40" "-DJUCE_APP_VERSION_HEX=0x10000" $(shell $(PKG_CONFIG) --cflags $(shell ($(PKG_CONFIG) --exists webkit2gtk-4.1 && echo webkit2gtk-4.1) || echo webkit2gtk-4.0) alsa freetype2 fontconfig libcurl gtk+-x11-3.0 libudev) -pthread -I../../JuceLibraryCode -I../../ThirdParty/JUCE/modules -I../../ThirdParty -I../../ThirdParty/hidapi -I../../ThirdParty/hidapi/hidapi -I../../ThirdParty/libmysofa/src/hrtf -I../../ThirdParty/zlib $(CPPFLAGS)
   JUCE_CPPFLAGS_APP :=  "-DJucePlugin_Build_VST=0" "-DJucePlugin_Build_VST3=0" "-DJucePlugin_Build_AU=0" "-DJucePlugin_Build_AUv3=0" "-DJucePlugin_Build_AAX=0" "-DJucePlugin_Build_Standalone=0" "-DJucePlugin_Build_Unity=0" "-DJucePlugin_Build_LV2=0"
   JUCE_TARGET_APP := WFS-DIY
 
@@ -60,7 +60,7 @@ ifeq ($(CONFIG),Release)
     TARGET_ARCH := 
   endif
 
-  JUCE_CPPFLAGS := $(DEPFLAGS) "-DLINUX=1" "-DNDEBUG=1" "-DJUCE_PROJUCER_VERSION=0x90000" "-DJUCE_MODULE_AVAILABLE_juce_audio_basics=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_devices=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_formats=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_processors=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_utils=1" "-DJUCE_MODULE_AVAILABLE_juce_core=1" "-DJUCE_MODULE_AVAILABLE_juce_data_structures=1" "-DJUCE_MODULE_AVAILABLE_juce_dsp=1" "-DJUCE_MODULE_AVAILABLE_juce_events=1" "-DJUCE_MODULE_AVAILABLE_juce_graphics=1" "-DJUCE_MODULE_AVAILABLE_juce_gui_basics=1" "-DJUCE_MODULE_AVAILABLE_juce_gui_extra=1" "-DJUCE_MODULE_AVAILABLE_juce_osc=1" "-DJUCE_MODULE_AVAILABLE_juce_simpleweb=1" "-DJUCE_MODULE_AVAILABLE_roli_blocks_basics=1" "-DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1" "-DJUCE_ASIO=1" "-DJUCE_ALSA=1" "-DJUCE_JACK=1" "-DJUCE_USE_ANDROID_OBOE=0" "-DJUCE_PLUGINHOST_LV2=0" "-DJUCE_PLUGINHOST_ARA=0" "-DJUCE_STRICT_REFCOUNTEDPOINTER=1" "-DJUCE_STANDALONE_APPLICATION=1" "-DSIMPLEWEB_SECURE_SUPPORTED=0" "-DWFS_GPU_NATIVE=1" "-DWFS_GPU_PLUGINS=1" "-DJUCER_LINUX_MAKE_6D53C8B4=1" "-DJUCE_APP_VERSION=1.0.0beta40" "-DJUCE_APP_VERSION_HEX=0x10000" $(shell $(PKG_CONFIG) --cflags $(shell ($(PKG_CONFIG) --exists webkit2gtk-4.1 && echo webkit2gtk-4.1) || echo webkit2gtk-4.0) alsa freetype2 fontconfig libcurl gtk+-x11-3.0 libudev) -pthread -I../../JuceLibraryCode -I../../ThirdParty/JUCE/modules -I../../ThirdParty -I../../ThirdParty/hidapi -I../../ThirdParty/hidapi/hidapi $(CPPFLAGS)
+  JUCE_CPPFLAGS := $(DEPFLAGS) "-DLINUX=1" "-DNDEBUG=1" "-DJUCE_PROJUCER_VERSION=0x90000" "-DJUCE_MODULE_AVAILABLE_juce_audio_basics=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_devices=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_formats=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_processors=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_utils=1" "-DJUCE_MODULE_AVAILABLE_juce_core=1" "-DJUCE_MODULE_AVAILABLE_juce_data_structures=1" "-DJUCE_MODULE_AVAILABLE_juce_dsp=1" "-DJUCE_MODULE_AVAILABLE_juce_events=1" "-DJUCE_MODULE_AVAILABLE_juce_graphics=1" "-DJUCE_MODULE_AVAILABLE_juce_gui_basics=1" "-DJUCE_MODULE_AVAILABLE_juce_gui_extra=1" "-DJUCE_MODULE_AVAILABLE_juce_osc=1" "-DJUCE_MODULE_AVAILABLE_juce_simpleweb=1" "-DJUCE_MODULE_AVAILABLE_roli_blocks_basics=1" "-DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1" "-DJUCE_ASIO=1" "-DJUCE_ALSA=1" "-DJUCE_JACK=1" "-DJUCE_USE_ANDROID_OBOE=0" "-DJUCE_PLUGINHOST_LV2=0" "-DJUCE_PLUGINHOST_ARA=0" "-DJUCE_STRICT_REFCOUNTEDPOINTER=1" "-DJUCE_STANDALONE_APPLICATION=1" "-DSIMPLEWEB_SECURE_SUPPORTED=0" "-DWFS_GPU_NATIVE=1" "-DWFS_GPU_PLUGINS=1" "-DJUCER_LINUX_MAKE_6D53C8B4=1" "-DJUCE_APP_VERSION=1.0.0beta40" "-DJUCE_APP_VERSION_HEX=0x10000" $(shell $(PKG_CONFIG) --cflags $(shell ($(PKG_CONFIG) --exists webkit2gtk-4.1 && echo webkit2gtk-4.1) || echo webkit2gtk-4.0) alsa freetype2 fontconfig libcurl gtk+-x11-3.0 libudev) -pthread -I../../JuceLibraryCode -I../../ThirdParty/JUCE/modules -I../../ThirdParty -I../../ThirdParty/hidapi -I../../ThirdParty/hidapi/hidapi -I../../ThirdParty/libmysofa/src/hrtf -I../../ThirdParty/zlib $(CPPFLAGS)
   JUCE_CPPFLAGS_APP :=  "-DJucePlugin_Build_VST=0" "-DJucePlugin_Build_VST3=0" "-DJucePlugin_Build_AU=0" "-DJucePlugin_Build_AUv3=0" "-DJucePlugin_Build_AAX=0" "-DJucePlugin_Build_Standalone=0" "-DJucePlugin_Build_Unity=0" "-DJucePlugin_Build_LV2=0"
   JUCE_TARGET_APP := WFS-DIY
 
@@ -117,6 +117,33 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/MCPPromptRegistry_dfc30a9.o \
   $(JUCE_OBJDIR)/MCPParameterRegistry_efa6b86b.o \
   $(JUCE_OBJDIR)/HidApiPlatform_aec62187.o \
+  $(JUCE_OBJDIR)/reader_1d246e69.o \
+  $(JUCE_OBJDIR)/check_f50bc26c.o \
+  $(JUCE_OBJDIR)/spherical_7f9a4701.o \
+  $(JUCE_OBJDIR)/lookup_d7296d60.o \
+  $(JUCE_OBJDIR)/tools_84d8be7f.o \
+  $(JUCE_OBJDIR)/kdtree_3247251d.o \
+  $(JUCE_OBJDIR)/neighbors_5fc26765.o \
+  $(JUCE_OBJDIR)/interpolate_988ce5.o \
+  $(JUCE_OBJDIR)/resample_228bc083.o \
+  $(JUCE_OBJDIR)/loudness_a311b48f.o \
+  $(JUCE_OBJDIR)/minphase_b6ed724f.o \
+  $(JUCE_OBJDIR)/easy_e9ed0e28.o \
+  $(JUCE_OBJDIR)/cache_e8ffd666.o \
+  $(JUCE_OBJDIR)/superblock_73532cee.o \
+  $(JUCE_OBJDIR)/dataobject_a2868ca5.o \
+  $(JUCE_OBJDIR)/btree_c5298f0e.o \
+  $(JUCE_OBJDIR)/fractalhead_d62afd5f.o \
+  $(JUCE_OBJDIR)/gunzip_16abbc9d.o \
+  $(JUCE_OBJDIR)/gcol_2efbd235.o \
+  $(JUCE_OBJDIR)/speex_resampler_b1e9b46a.o \
+  $(JUCE_OBJDIR)/adler32_ee928bf6.o \
+  $(JUCE_OBJDIR)/crc32_aae7e2b4.o \
+  $(JUCE_OBJDIR)/inflate_6d3d0988.o \
+  $(JUCE_OBJDIR)/inftrees_fdc6007d.o \
+  $(JUCE_OBJDIR)/inffast_62ffb9be.o \
+  $(JUCE_OBJDIR)/zutil_71beb4bd.o \
+  $(JUCE_OBJDIR)/uncompr_c7858f0b.o \
   $(JUCE_OBJDIR)/Main_90ebc5c2.o \
   $(JUCE_OBJDIR)/MainComponent_a6ffb4a5.o \
   $(JUCE_OBJDIR)/WFSLogger_60115195.o \
@@ -403,6 +430,141 @@ $(JUCE_OBJDIR)/MCPParameterRegistry_efa6b86b.o: ../../Source/Network/MCP/MCPPara
 $(JUCE_OBJDIR)/HidApiPlatform_aec62187.o: ../../ThirdParty/hidapi/HidApiPlatform.c
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling HidApiPlatform.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/reader_1d246e69.o: ../../ThirdParty/libmysofa/src/hrtf/reader.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling reader.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/check_f50bc26c.o: ../../ThirdParty/libmysofa/src/hrtf/check.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling check.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/spherical_7f9a4701.o: ../../ThirdParty/libmysofa/src/hrtf/spherical.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling spherical.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/lookup_d7296d60.o: ../../ThirdParty/libmysofa/src/hrtf/lookup.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling lookup.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/tools_84d8be7f.o: ../../ThirdParty/libmysofa/src/hrtf/tools.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling tools.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/kdtree_3247251d.o: ../../ThirdParty/libmysofa/src/hrtf/kdtree.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling kdtree.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/neighbors_5fc26765.o: ../../ThirdParty/libmysofa/src/hrtf/neighbors.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling neighbors.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/interpolate_988ce5.o: ../../ThirdParty/libmysofa/src/hrtf/interpolate.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling interpolate.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/resample_228bc083.o: ../../ThirdParty/libmysofa/src/hrtf/resample.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling resample.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/loudness_a311b48f.o: ../../ThirdParty/libmysofa/src/hrtf/loudness.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling loudness.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/minphase_b6ed724f.o: ../../ThirdParty/libmysofa/src/hrtf/minphase.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling minphase.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/easy_e9ed0e28.o: ../../ThirdParty/libmysofa/src/hrtf/easy.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling easy.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/cache_e8ffd666.o: ../../ThirdParty/libmysofa/src/hrtf/cache.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling cache.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/superblock_73532cee.o: ../../ThirdParty/libmysofa/src/hdf/superblock.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling superblock.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/dataobject_a2868ca5.o: ../../ThirdParty/libmysofa/src/hdf/dataobject.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling dataobject.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/btree_c5298f0e.o: ../../ThirdParty/libmysofa/src/hdf/btree.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling btree.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/fractalhead_d62afd5f.o: ../../ThirdParty/libmysofa/src/hdf/fractalhead.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling fractalhead.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/gunzip_16abbc9d.o: ../../ThirdParty/libmysofa/src/hdf/gunzip.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling gunzip.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/gcol_2efbd235.o: ../../ThirdParty/libmysofa/src/hdf/gcol.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling gcol.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/speex_resampler_b1e9b46a.o: ../../ThirdParty/libmysofa/src/resampler/speex_resampler.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling speex_resampler.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/adler32_ee928bf6.o: ../../ThirdParty/zlib/adler32.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling adler32.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/crc32_aae7e2b4.o: ../../ThirdParty/zlib/crc32.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling crc32.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/inflate_6d3d0988.o: ../../ThirdParty/zlib/inflate.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling inflate.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/inftrees_fdc6007d.o: ../../ThirdParty/zlib/inftrees.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling inftrees.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/inffast_62ffb9be.o: ../../ThirdParty/zlib/inffast.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling inffast.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/zutil_71beb4bd.o: ../../ThirdParty/zlib/zutil.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling zutil.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/uncompr_c7858f0b.o: ../../ThirdParty/zlib/uncompr.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling uncompr.c"
 	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/Main_90ebc5c2.o: ../../Source/Main.cpp

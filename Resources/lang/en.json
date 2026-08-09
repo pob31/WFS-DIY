@@ -109,6 +109,13 @@
       "language": "Language:",
       "translationTier": "Translation:",
       "binauralOutput": "Binaural Output:",
+      "binauralMode": "Render Mode:",
+      "binauralSofa": "HRTF File:",
+      "binauralTracker": "Head Tracking:",
+      "binauralListenerX": "Listener X:",
+      "binauralHeight": "Listener Height:",
+      "binauralHeadRadius": "Head Radius:",
+      "binauralOrientation": "Orientation Y/P/R:",
       "binauralDistance": "Listener Distance:",
       "binauralAngle": "Listener Angle:",
       "binauralAtten": "Binaural Level:",
@@ -198,6 +205,22 @@
       "select": "Select..."
     },
 
+    "binauralMode": {
+      "ortf": "ORTF (legacy)",
+      "structural": "Structural HRTF",
+      "sofa": "SOFA file"
+    },
+
+    "binauralSofa": {
+      "builtin": "SADIE II KU100 (built-in)",
+      "import": "Import SOFA...",
+      "noProject": "Open a project first to import SOFA files"
+    },
+
+    "binauralTracker": {
+      "manual": "Manual orientation"
+    },
+
     "help": {
       "gpuPipelineDepth": "GPU pipeline depth in audio blocks. Adds depth x buffer/sample-rate of constant latency (pre-subtracted from WFS delays) and absorbs GPU stalls of the same length: deeper = immune to desktop/UI hiccups, shallower = lower latency. Applies live. Default 4.",
       "showName": "Name of the current show.",
@@ -258,6 +281,13 @@
       "remoteSetup": "Select the number of pads in the Remote's XY Pads tab.",
       "binauralEnable": "Enable or disable the binaural renderer processing.",
       "binauralOutput": "Select output channel pair for binaural monitoring. Off disables binaural output.",
+      "binauralMode": "Binaural rendering algorithm: ORTF (legacy) virtual microphone pair, Structural HRTF (parametric head model), or SOFA file (measured HRTFs).",
+      "binauralListenerX": "Lateral offset of the binaural listener from the axial placement (meters).",
+      "binauralSofa": "HRTF set for the SOFA render mode: the built-in SADIE II KU100 or a custom SOFA file stored in the project's sofa folder.",
+      "binauralTracker": "Head orientation source: manual (yaw/pitch/roll controls) or a connected head tracker. Tracker attitude bypasses parameter damping for immediate response.",
+      "binauralHeight": "Ear height of the binaural listener (meters). HRTF modes only.",
+      "binauralHeadRadius": "Head radius for the structural HRTF model (centimeters). Larger heads produce larger interaural time differences.",
+      "binauralOrientation": "Manual head orientation offsets from facing the origin: yaw, pitch, roll (degrees). Ignored while a head tracker is active.",
       "binauralDistance": "Distance of binaural listener from stage origin (meters).",
       "binauralAngle": "Horizontal rotation of binaural listener view (degrees, 0 = facing stage).",
       "binauralAtten": "Overall level offset for binaural output (dB).",

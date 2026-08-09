@@ -16,6 +16,7 @@
 #include "Controllers/DialsAndButtons/pages/PatchWindowPages.h"
 #include "../spatcore/controllers/spacemouse/SpaceMouseDevice.h"
 #include "../spatcore/controllers/lightpad/LightpadManager.h"
+#include "../spatcore/binaural/SofaLoader.h"
 
 //==============================================================================
 MainComponent::MainComponent()
@@ -1750,6 +1751,16 @@ MainComponent::MainComponent()
         parameters.getValueTreeState(), *calculationEngine);
     binauralProcessor = std::make_unique<BinauralProcessor>(*binauralCalcEngine);
     binauralProcessor->setWorkgroupCoordinator(&workgroupCoordinator);
+    headTrackerManager = std::make_unique<HeadTrackerManager>();
+    if (systemConfigTab != nullptr)
+        systemConfigTab->setHeadTrackerListProvider([this]()
+        {
+            std::vector<std::pair<juce::String, juce::String>> list;
+            if (headTrackerManager != nullptr)
+                for (const auto& s : headTrackerManager->enumerateSources())
+                    list.emplace_back(s.id, s.displayName);
+            return list;
+        });
 
     // Initialize Reverb Engine
     reverbEngine = std::make_unique<ReverbEngine>();
@@ -2344,6 +2355,9 @@ MainComponent::MainComponent()
 MainComponent::~MainComponent()
 {
     WFSLogger::getInstance().logInfo ("Session ending - saving settings");
+
+    // Invalidate in-flight SOFA loader callbacks (they capture this).
+    *sofaLoadAlive = false;
 
     // Sever NetworkTab's reference to mcpServer + its listener registration
     // on MCPTierEnforcement BEFORE mcpServer is destroyed. Member-destruction
@@ -4709,6 +4723,10 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
         binauralProcessor->stopProcessing();
         binauralProcessor->prepareToPlay(sampleRate, samplesPerBlockExpected, numInputChannels);
         binauralProcessor->startProcessing();
+
+        // Sample rate / block size may have changed: the cooked SOFA set is
+        // stale, force the 50 Hz poll to reload/re-cook for the new format.
+        lastPushedSofaKey.clear();
     }
 
     // Prepare reverb engine
@@ -4745,6 +4763,18 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
                 reverbUpsampleBuf.setSize (numReverbs, dsBlockSize);
             }
         }
+
+        // (Re)build the binaural monitor's reverb-return taps and hand them
+        // to the worker (spinlock+generation publish, safe while running).
+        sharedReverbReturnBuffers.clear();
+        for (int i = 0; i < numReverbs; ++i)
+        {
+            auto ring = std::make_unique<SharedInputRingBuffer>();
+            ring->setSize (samplesPerBlockExpected * 4);
+            sharedReverbReturnBuffers.push_back (std::move (ring));
+        }
+        if (binauralProcessor)
+            binauralProcessor->setSharedReverbBuffers (sharedReverbReturnBuffers);
 
         reverbEngine->startProcessing();
 
@@ -5028,6 +5058,13 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
 
                 if (! isPostMuted)
                 {
+                    // Feed the binaural monitor's reverb tap: post node-trim,
+                    // pre speaker-matrix, device rate. Multi-consumer ring —
+                    // never the SPSC engine rings (those are destructive).
+                    if (revIdx < static_cast<int>(sharedReverbReturnBuffers.size())
+                        && sharedReverbReturnBuffers[static_cast<size_t>(revIdx)] != nullptr)
+                        sharedReverbReturnBuffers[static_cast<size_t>(revIdx)]->write(returnData, numSamples);
+
                     // Mix reverb return into WFS outputs using return level matrix
                     for (int outIdx = 0; outIdx < numOutputChannels; ++outIdx)
                     {
@@ -5780,6 +5817,28 @@ void MainComponent::timerCallback()
         // positions and publishes params/solo state for the realtime thread)
         if (binauralCalcEngine != nullptr)
             binauralCalcEngine->refreshRtSnapshot();
+
+        // SOFA HRTF set management: reload/re-cook when the selection or audio
+        // format changes; release sets the render worker retired.
+        if (binauralProcessor != nullptr)
+            updateBinauralSofaSet();
+
+        // Head-orientation source selection (fast-path tracker vs manual).
+        // Unknown/absent device ids resolve to manual; the persisted id is
+        // kept so the tracker re-engages when it reappears.
+        if (binauralProcessor != nullptr && headTrackerManager != nullptr)
+        {
+            auto binauralState = parameters.getValueTreeState().getBinauralState();
+            const juce::String wanted = binauralState.isValid()
+                ? binauralState.getProperty(WFSParameterIDs::binauralHeadTrackerSource, "manual").toString()
+                : juce::String("manual");
+            if (wanted != lastAppliedHeadTrackerSource)
+            {
+                headTrackerManager->setActiveSource(wanted);
+                binauralProcessor->setHeadOrientationSource(headTrackerManager->getActiveSource());
+                lastAppliedHeadTrackerSource = wanted;
+            }
+        }
 
         // Only recalculate WFS matrix if input positions have changed (dirty flag set).
         // LS gains are supplied fresh each call (never cached by the engine).
@@ -7347,5 +7406,98 @@ void MainComponent::rebuildAllGradientMaps()
     updateGradientMapStageBounds();
     for (int i = 0; i < static_cast<int> (gradientMapEvaluators.size()); ++i)
         rebuildGradientMapForInput (i);
+}
+
+//==============================================================================
+// Binaural SOFA (HRTF) set management
+
+juce::File MainComponent::resolveBinauralSofaFile (const juce::String& fileName, double sampleRate) const
+{
+    // User file: relative name inside <project>/sofa (IR/sampler pattern).
+    if (fileName.isNotEmpty())
+        return parameters.getFileManager().getSofaFolder().getChildFile (fileName);
+
+    // Built-in SADIE II KU100 set: one 48 kHz file (repacked float64 +
+    // shuffle + deflate, ~11 MB — see tools/repack_sofa.py); libmysofa
+    // resamples it at load for other device rates. Deployed builds have it
+    // beside the exe (post-build copy of assets/SOFA); dev builds fall back
+    // to the repo's assets/SOFA next to Resources/.
+    juce::ignoreUnused (sampleRate);
+    const char* builtin = "D1_48K_24bit_256tap_FIR_SOFA.sofa";
+
+    auto resourceDir = LocalizationManager::getInstance().getResourceDirectory();
+    auto sofaDir = resourceDir.getChildFile ("SOFA");
+    if (! sofaDir.getChildFile (builtin).existsAsFile())
+        sofaDir = resourceDir.getParentDirectory().getChildFile ("assets").getChildFile ("SOFA");
+    return sofaDir.getChildFile (builtin);
+}
+
+void MainComponent::updateBinauralSofaSet()
+{
+    auto& engine = binauralProcessor->getHrtfEngine();
+
+    // Give back any HRIR sets the render worker retired (release here, never
+    // on the RT thread).
+    engine.collectRetiredSofaSets();
+
+    auto binauralState = parameters.getValueTreeState().getBinauralState();
+    auto* device = deviceManager.getCurrentAudioDevice();
+    const int renderMode = binauralState.isValid()
+        ? juce::jlimit (WFSParameterDefaults::binauralRenderModeMin,
+                        WFSParameterDefaults::binauralRenderModeMax,
+                        (int) binauralState.getProperty (WFSParameterIDs::binauralRenderMode,
+                                                         WFSParameterDefaults::binauralRenderModeDefault))
+        : 0;
+
+    if (renderMode != 2 || device == nullptr)
+    {
+        if (lastPushedSofaKey.isNotEmpty())
+        {
+            engine.publishSofaSet (nullptr);
+            lastPushedSofaKey.clear();
+        }
+        return;
+    }
+
+    const double sampleRate = device->getCurrentSampleRate();
+    const int blockSize = binauralProcessor->getCurrentBlockSize();
+    const juce::String fileName = binauralState.getProperty (WFSParameterIDs::binauralSofaFile, "").toString();
+    const juce::File sofaFile = resolveBinauralSofaFile (fileName, sampleRate);
+    const juce::String key = sofaFile.getFullPathName() + "|" + juce::String (sampleRate, 0)
+                           + "|" + juce::String (blockSize);
+
+    if (key == lastPushedSofaKey || sofaLoadInProgress.load (std::memory_order_acquire))
+        return;
+
+    // Key set before the load starts: a failed load logs and keeps the
+    // previous set rather than retrying every tick.
+    lastPushedSofaKey = key;
+    sofaLoadInProgress.store (true, std::memory_order_release);
+
+    auto alive = sofaLoadAlive;
+    juce::Thread::launch ([this, alive, sofaFile, sampleRate, blockSize]
+    {
+        auto loaded = spatcore::binaural::sofa::loadSofaFile (sofaFile, sampleRate);
+        std::shared_ptr<const spatcore::binaural::CookedHrirSet> cooked;
+        if (loaded.database != nullptr)
+            cooked = spatcore::binaural::cookHrirSet (loaded.database, blockSize);
+
+        juce::MessageManager::callAsync ([this, alive, cooked, status = loaded.status]
+        {
+            if (! *alive)
+                return;
+            sofaLoadInProgress.store (false, std::memory_order_release);
+            if (cooked != nullptr && binauralProcessor != nullptr)
+            {
+                binauralProcessor->getHrtfEngine().publishSofaSet (cooked);
+                WFSLogger::getInstance().logInfo ("Binaural SOFA loaded: " + status);
+            }
+            else
+            {
+                // Keep whatever set was active (or the structural fallback).
+                WFSLogger::getInstance().logWarning ("Binaural SOFA load failed: " + status);
+            }
+        });
+    });
 }
 

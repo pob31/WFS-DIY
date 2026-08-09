@@ -50,6 +50,9 @@
     <Filter Include="WFS-DIY\Source\hidapi">
       <UniqueIdentifier>{32D100D4-D9F1-9555-30BF-5F6C12E44D29}</UniqueIdentifier>
     </Filter>
+    <Filter Include="WFS-DIY\Source\libmysofa">
+      <UniqueIdentifier>{1419E34F-BCDD-0F2F-7173-FA6DE3135C2D}</UniqueIdentifier>
+    </Filter>
     <Filter Include="WFS-DIY\Source\DSP">
       <UniqueIdentifier>{17A0B288-77FA-A44E-2FD6-CD9A8B53854E}</UniqueIdentifier>
     </Filter>
@@ -1197,6 +1200,87 @@
     </ClCompile>
     <ClCompile Include="..\..\ThirdParty\hidapi\HidApiPlatform.c">
       <Filter>WFS-DIY\Source\hidapi</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\reader.c">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\check.c">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\spherical.c">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\lookup.c">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\tools.c">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\kdtree.c">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\neighbors.c">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\interpolate.c">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\resample.c">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\loudness.c">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\minphase.c">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\easy.c">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\cache.c">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hdf\superblock.c">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hdf\dataobject.c">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hdf\btree.c">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hdf\fractalhead.c">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hdf\gunzip.c">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hdf\gcol.c">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\resampler\speex_resampler.c">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\zlib\adler32.c">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\zlib\crc32.c">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\zlib\inflate.c">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\zlib\inftrees.c">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\zlib\inffast.c">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\zlib\zutil.c">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\zlib\uncompr.c">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Source\Main.cpp">
       <Filter>WFS-DIY\Source</Filter>
@@ -4979,6 +5063,9 @@
     </ClInclude>
     <ClInclude Include="..\..\ThirdParty\hidapi\hidapi\hidapi.h">
       <Filter>WFS-DIY\Source\hidapi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\libmysofa\src\hrtf\mysofa.h">
+      <Filter>WFS-DIY\Source\libmysofa</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\MainComponent.h">
       <Filter>WFS-DIY\Source</Filter>

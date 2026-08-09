@@ -18,6 +18,7 @@
 #include "../spatcore/io/DeviceIoCallback.h"
 #include "DSP/BinauralCalculationEngine.h"
 #include "DSP/BinauralProcessor.h"
+#include "DSP/HeadTrackerManager.h"
 #include "../spatcore/reverb/ReverbEngine.h"
 #include "../spatcore/reverb/ReverbFeedThread.h"
 #include "../spatcore/dsp/OutputEQProcessor.h"
@@ -290,8 +291,20 @@ private:
     std::unique_ptr<BinauralCalculationEngine> binauralCalcEngine;
     std::unique_ptr<BinauralProcessor> binauralProcessor;
 
+    // Head-orientation sources for the binaural HRTF modes ("manual" +
+    // future USB trackers). Declared after binauralProcessor: destroyed
+    // first is fine — the processor's worker is stopped in our destructor
+    // before members go away, and sources must outlive the running worker.
+    std::unique_ptr<HeadTrackerManager> headTrackerManager;
+    juce::String lastAppliedHeadTrackerSource;
+
     // Shared input ring buffers (written by audio callback, read by algorithm + reverb thread)
     std::vector<std::unique_ptr<SharedInputRingBuffer>> sharedInputBuffers;
+
+    // Reverb-return taps for the binaural monitor (written by the audio
+    // callback post node-trim, read by the binaural worker with its own
+    // cursors; the engine's SPSC node rings must never be double-read)
+    std::vector<std::unique_ptr<SharedInputRingBuffer>> sharedReverbReturnBuffers;
 
     // Reverb feed thread (computes reverb feeds off the audio callback)
     std::unique_ptr<ReverbFeedThread> reverbFeedThread;
@@ -423,6 +436,15 @@ private:
     juce::String lastPushedIRFile;
     float lastPushedIRTrim = -1.0f;
     float lastPushedIRLength = -1.0f;
+
+    // Binaural SOFA (HRTF) set tracking: the 50 Hz poll reloads/re-cooks when
+    // the file|sampleRate|blockSize key changes; loads run on a detached
+    // thread and publish back through the message thread (alive-guarded).
+    juce::String lastPushedSofaKey;
+    std::atomic<bool> sofaLoadInProgress { false };
+    std::shared_ptr<bool> sofaLoadAlive = std::make_shared<bool> (true);
+    void updateBinauralSofaSet();
+    juce::File resolveBinauralSofaFile (const juce::String& fileName, double sampleRate) const;
 
     // Algorithm type change tracking for session logging
     int lastLoggedAlgoType = -1;

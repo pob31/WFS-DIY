@@ -78,6 +78,38 @@ namespace WFSParameterDefaults
     constexpr float binauralDelayMin                = 0.0f;
     constexpr float binauralDelayMax                = 100.0f;
 
+    constexpr int binauralRenderModeDefault         = 0;      // 0=ORTF legacy, 1=Structural HRTF, 2=SOFA
+    constexpr int binauralRenderModeMin             = 0;
+    constexpr int binauralRenderModeMax             = 2;
+
+    constexpr float binauralHeadRadiusDefault       = 0.0875f; // meters (average adult head)
+    constexpr float binauralHeadRadiusMin           = 0.06f;
+    constexpr float binauralHeadRadiusMax           = 0.12f;
+
+    constexpr float binauralListenerXDefault        = 0.0f;   // meters, lateral offset
+    constexpr float binauralListenerXMin            = -10.0f;
+    constexpr float binauralListenerXMax            = 10.0f;
+
+    constexpr float binauralListenerHeightDefault   = 1.5f;   // meters (matches legacy hardcoded ear height)
+    constexpr float binauralListenerHeightMin       = 0.5f;
+    constexpr float binauralListenerHeightMax       = 3.0f;
+
+    constexpr float binauralListenerYawDefault      = 0.0f;   // degrees, offset from facing-origin
+    constexpr float binauralListenerYawMin          = -180.0f;
+    constexpr float binauralListenerYawMax          = 180.0f;
+
+    constexpr float binauralListenerPitchDefault    = 0.0f;
+    constexpr float binauralListenerPitchMin        = -89.0f;
+    constexpr float binauralListenerPitchMax        = 89.0f;
+
+    constexpr float binauralListenerRollDefault     = 0.0f;
+    constexpr float binauralListenerRollMin         = -90.0f;
+    constexpr float binauralListenerRollMax         = 90.0f;
+
+    constexpr float binauralReverbAttenuationDefault = 0.0f;  // dB, headphone reverb balance
+    constexpr float binauralReverbAttenuationMin    = -40.0f;
+    constexpr float binauralReverbAttenuationMax    = 12.0f;
+
     // Fixed binaural constants (not user-adjustable)
     constexpr float binauralSpeakerSpacing          = 0.20f;  // 20cm total (+-10cm from center)
     constexpr float binauralSpeakerAngle            = 45.0f;  // degrees from front-facing

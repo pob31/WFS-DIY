@@ -65,6 +65,25 @@ public:
         std::uint64_t soloMask = 0;             // bit i set = input i soloed
         int numSoloed = 0;
 
+        // HRTF modes (renderMode != 0). The legacy fields above stay untouched
+        // so mode 0 keeps its exact pre-HRTF behavior.
+        int renderMode = 0;                     // 0=ORTF legacy, 1=Structural, 2=SOFA
+        float headRadius = 0.0875f;             // meters
+        float listenerX = 0.0f;                 // world frame, incl. lateral offset
+        float listenerY = -5.0f;
+        float listenerZ = 1.5f;                 // binauralListenerHeight
+        float baselineAngleRad = 0.0f;          // α for R_baseline (facing-origin)
+        float manualYawRad = 0.0f;              // manual orientation offsets
+        float manualPitchRad = 0.0f;
+        float manualRollRad = 0.0f;
+        float reverbAttenLinear = 1.0f;         // headphone reverb balance (preview mode)
+
+        // Spatialised reverb tap (HRTF modes, preview only): node RETURN
+        // positions, world frame. Fixed-size to keep the snapshot POD.
+        static constexpr int kMaxReverbNodes = 32;
+        int numReverbNodes = 0;
+        float reverbPos[kMaxReverbNodes][3] = {};
+
         bool isSoloed (int inputIndex) const noexcept
         {
             return inputIndex >= 0 && inputIndex < 64
@@ -74,6 +93,8 @@ public:
 
     static_assert (WFSParameterDefaults::maxInputChannels <= 64,
                    "RtParams::soloMask is a 64-bit bitmask");
+    static_assert (WFSParameterDefaults::maxReverbChannels <= RtParams::kMaxReverbNodes,
+                   "RtParams::reverbPos capacity must cover every reverb node");
 
     BinauralCalculationEngine (WFSValueTreeState& params, WFSCalculationEngine& wfsCalc)
         : valueTreeState (params)
@@ -105,6 +126,16 @@ public:
         result.right.level *= rt.attenLinear;
 
         return result;
+    }
+
+    /**
+     * Composite (damped) input position, for the HRTF render modes.
+     * RT-safe passthrough to the positionLock-guarded cache — same cost class
+     * as the calls calculate() already makes from the worker thread.
+     */
+    Position getInputPosition (int inputIndex) const
+    {
+        return wfsCalcEngine.getCompositeInputPosition (inputIndex);
     }
 
     /**
@@ -154,6 +185,51 @@ public:
         auto binaural = valueTreeState.getBinauralState();
         if (binaural.isValid())
         {
+            using namespace WFSParameterDefaults;
+
+            fresh.renderMode = juce::jlimit (binauralRenderModeMin, binauralRenderModeMax,
+                (int) binaural.getProperty (WFSParameterIDs::binauralRenderMode, binauralRenderModeDefault));
+            fresh.headRadius = juce::jlimit (binauralHeadRadiusMin, binauralHeadRadiusMax,
+                (float) binaural.getProperty (WFSParameterIDs::binauralHeadRadius, binauralHeadRadiusDefault));
+
+            // Listener placement for the HRTF modes: axial polar placement
+            // (distance/angle, shared with the legacy mode) + lateral X offset
+            // + adjustable ear height. Legacy mode keeps its hardcoded 1.5 m.
+            const float distance = (float) binaural.getProperty (WFSParameterIDs::binauralListenerDistance,
+                                                                 binauralListenerDistanceDefault);
+            const float angleRad = juce::degreesToRadians ((float) (int) binaural.getProperty (
+                WFSParameterIDs::binauralListenerAngle, binauralListenerAngleDefault));
+            const float lateralX = juce::jlimit (binauralListenerXMin, binauralListenerXMax,
+                (float) binaural.getProperty (WFSParameterIDs::binauralListenerX, binauralListenerXDefault));
+
+            fresh.baselineAngleRad = angleRad;
+            fresh.listenerX = distance * std::sin (angleRad) + lateralX;
+            fresh.listenerY = -distance * std::cos (angleRad);
+            fresh.listenerZ = juce::jlimit (binauralListenerHeightMin, binauralListenerHeightMax,
+                (float) binaural.getProperty (WFSParameterIDs::binauralListenerHeight, binauralListenerHeightDefault));
+
+            fresh.manualYawRad = juce::degreesToRadians (juce::jlimit (binauralListenerYawMin, binauralListenerYawMax,
+                (float) binaural.getProperty (WFSParameterIDs::binauralListenerYaw, binauralListenerYawDefault)));
+            fresh.manualPitchRad = juce::degreesToRadians (juce::jlimit (binauralListenerPitchMin, binauralListenerPitchMax,
+                (float) binaural.getProperty (WFSParameterIDs::binauralListenerPitch, binauralListenerPitchDefault)));
+            fresh.manualRollRad = juce::degreesToRadians (juce::jlimit (binauralListenerRollMin, binauralListenerRollMax,
+                (float) binaural.getProperty (WFSParameterIDs::binauralListenerRoll, binauralListenerRollDefault)));
+
+            fresh.reverbAttenLinear = std::pow (10.0f,
+                juce::jlimit (binauralReverbAttenuationMin, binauralReverbAttenuationMax,
+                    (float) binaural.getProperty (WFSParameterIDs::binauralReverbAttenuation,
+                                                  binauralReverbAttenuationDefault)) / 20.0f);
+
+            // Reverb node RETURN positions for the HRTF-mode reverb tap.
+            fresh.numReverbNodes = juce::jlimit (0, RtParams::kMaxReverbNodes,
+                                                 valueTreeState.getNumReverbChannels());
+            for (int i = 0; i < fresh.numReverbNodes; ++i)
+            {
+                const auto pos = wfsCalcEngine.getReverbReturnPosition (i);
+                fresh.reverbPos[i][0] = pos.x;
+                fresh.reverbPos[i][1] = pos.y;
+                fresh.reverbPos[i][2] = pos.z;
+            }
             outputChannel = (int) binaural.getProperty (WFSParameterIDs::binauralOutputChannel,
                                                         WFSParameterDefaults::binauralOutputChannelDefault);
 

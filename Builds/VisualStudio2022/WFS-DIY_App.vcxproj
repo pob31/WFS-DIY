@@ -69,7 +69,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>..\..\JuceLibraryCode;..\..\ThirdParty\JUCE\modules;..\..\ThirdParty;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\JuceLibraryCode;..\..\ThirdParty\JUCE\modules;..\..\ThirdParty;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;..\..\ThirdParty\libmysofa\src\hrtf;..\..\ThirdParty\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;DEBUG;_DEBUG;JUCE_PROJUCER_VERSION=0x90000;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=1;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;WFS_GPU_PLUGINS=1;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta40;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
@@ -84,7 +84,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>..\..\JuceLibraryCode;..\..\ThirdParty\JUCE\modules;..\..\ThirdParty;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\JuceLibraryCode;..\..\ThirdParty\JUCE\modules;..\..\ThirdParty;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;..\..\ThirdParty\libmysofa\src\hrtf;..\..\ThirdParty\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;DEBUG;_DEBUG;JUCE_PROJUCER_VERSION=0x90000;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=1;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;WFS_GPU_PLUGINS=1;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta40;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
     <Link>
@@ -111,7 +111,7 @@
 </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot;
+      <Command>xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot; &amp; xcopy /D /E /I /Y &quot;$(SolutionDir)..\..\assets\SOFA&quot; &quot;$(OutDir)SOFA&quot;
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -126,7 +126,7 @@
     <ClCompile>
       <Optimization>Full</Optimization>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>..\..\JuceLibraryCode;..\..\ThirdParty\JUCE\modules;..\..\ThirdParty;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\JuceLibraryCode;..\..\ThirdParty\JUCE\modules;..\..\ThirdParty;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;..\..\ThirdParty\libmysofa\src\hrtf;..\..\ThirdParty\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;NDEBUG;JUCE_PROJUCER_VERSION=0x90000;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=1;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;WFS_GPU_PLUGINS=1;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta40;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
@@ -141,7 +141,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>..\..\JuceLibraryCode;..\..\ThirdParty\JUCE\modules;..\..\ThirdParty;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\JuceLibraryCode;..\..\ThirdParty\JUCE\modules;..\..\ThirdParty;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;..\..\ThirdParty\libmysofa\src\hrtf;..\..\ThirdParty\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;NDEBUG;JUCE_PROJUCER_VERSION=0x90000;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=1;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;WFS_GPU_PLUGINS=1;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta40;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
     <Link>
@@ -171,7 +171,7 @@
 </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot;
+      <Command>xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot; &amp; xcopy /D /E /I /Y &quot;$(SolutionDir)..\..\assets\SOFA&quot; &quot;$(OutDir)SOFA&quot;
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -221,6 +221,33 @@
     <ClCompile Include="..\..\spatcore\control\mcp\MCPPromptRegistry.cpp"/>
     <ClCompile Include="..\..\Source\Network\MCP\MCPParameterRegistry.cpp"/>
     <ClCompile Include="..\..\ThirdParty\hidapi\HidApiPlatform.c"/>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\reader.c"/>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\check.c"/>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\spherical.c"/>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\lookup.c"/>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\tools.c"/>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\kdtree.c"/>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\neighbors.c"/>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\interpolate.c"/>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\resample.c"/>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\loudness.c"/>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\minphase.c"/>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\easy.c"/>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\cache.c"/>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hdf\superblock.c"/>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hdf\dataobject.c"/>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hdf\btree.c"/>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hdf\fractalhead.c"/>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hdf\gunzip.c"/>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\hdf\gcol.c"/>
+    <ClCompile Include="..\..\ThirdParty\libmysofa\src\resampler\speex_resampler.c"/>
+    <ClCompile Include="..\..\ThirdParty\zlib\adler32.c"/>
+    <ClCompile Include="..\..\ThirdParty\zlib\crc32.c"/>
+    <ClCompile Include="..\..\ThirdParty\zlib\inflate.c"/>
+    <ClCompile Include="..\..\ThirdParty\zlib\inftrees.c"/>
+    <ClCompile Include="..\..\ThirdParty\zlib\inffast.c"/>
+    <ClCompile Include="..\..\ThirdParty\zlib\zutil.c"/>
+    <ClCompile Include="..\..\ThirdParty\zlib\uncompr.c"/>
     <ClCompile Include="..\..\Source\Main.cpp"/>
     <ClCompile Include="..\..\Source\MainComponent.cpp"/>
     <ClCompile Include="..\..\Source\WFSLogger.cpp"/>
@@ -3520,6 +3547,7 @@
     <ClInclude Include="..\..\Source\GradientMap\GradientMapEvaluator.h"/>
     <ClInclude Include="..\..\Source\GradientMap\GradientMapEditor.h"/>
     <ClInclude Include="..\..\ThirdParty\hidapi\hidapi\hidapi.h"/>
+    <ClInclude Include="..\..\ThirdParty\libmysofa\src\hrtf\mysofa.h"/>
     <ClInclude Include="..\..\Source\MainComponent.h"/>
     <ClInclude Include="..\..\Source\WfsParameters.h"/>
     <ClInclude Include="..\..\Source\WFSLogger.h"/>

@@ -842,7 +842,15 @@ struct ThreadPerformance {
 | > 80% | Red |
 
 ### Binaural Solo Monitoring
-Binaural Solo Monitoring renders soloed inputs through a virtual speaker pair for headphone monitoring, simulating the spatial position of sources.
+Binaural Solo Monitoring renders soloed inputs to headphones, simulating the spatial position of sources. Three render modes (`binauralRenderMode`, Binaural ValueTree node):
+
+| Mode | Algorithm | Engine |
+|------|-----------|--------|
+| 0 — ORTF (legacy) | Virtual speaker pair, delay-and-sum (tables below) | App-side `BinauralProcessor` legacy path, byte-identical to pre-HRTF builds |
+| 1 — Structural HRTF | Woodworth ITD + Brown–Duda head shadow + elevation notch; personalized via `binauralHeadRadius` | `spatcore/binaural/StructuralHrtfRenderer.h` |
+| 2 — SOFA file | Measured HRIRs, partitioned FFT convolution; built-in SADIE II KU100 (`assets/SOFA`, copied beside the exe) or project files in `<project>/sofa/` (`binauralSofaFile`, IR-picker pattern) | `spatcore/binaural/SofaHrtfRenderer.h` + `SofaLoader.h` (vendored libmysofa + zlib subset, Z_PREFIXed) |
+
+HRTF modes add: listener X offset + ear height (`binauralListenerX`/`binauralListenerHeight`), manual head orientation offsets from facing-origin (`binauralListenerYaw/Pitch/Roll`), a head-orientation source dropdown (`binauralHeadTrackerSource`, "manual" + future USB trackers via `Source/DSP/HeadTrackerManager.h` — tracker attitude bypasses the damped 50 Hz path, read per block through `spatcore/binaural/HeadOrientationSource.h`), and **spatialised reverb**: node returns are tapped post node-trim into multi-consumer rings and rendered as extra sources at their return positions, studio-preview only, balanced by `binauralReverbAttenuation`. Head-frame math and the shared engine live in `spatcore/binaural/` (BinauralTypes/HeadFrame/BinauralEngine), unit-tested in `spatcore/tests/SpatcoreTests.cpp`. The legacy mode below is unchanged:
 
 **Studio Preview Mode:**
 When no inputs are soloed, all inputs are rendered through the binaural spatialization, providing a full spatial mix preview on headphones. This enables pre-production work without a full WFS speaker array (home studio, hotel, train, airport).

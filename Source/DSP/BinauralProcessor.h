@@ -6,6 +6,8 @@
 #include "../../spatcore/dsp/WFSHighShelfFilter.h"
 #include "../../spatcore/rt/LockFreeRingBuffer.h"
 #include "../../spatcore/rt/AudioWorkgroupCoordinator.h"
+#include "../../spatcore/binaural/BinauralEngine.h"
+#include "../../spatcore/binaural/HeadOrientationSource.h"
 #include <vector>
 #include <atomic>
 
@@ -108,6 +110,17 @@ public:
         inputBlock.setSize (1, maxBlockSize);
         outputBlockL.setSize (1, maxBlockSize);
         outputBlockR.setSize (1, maxBlockSize);
+
+        // HRTF path (renderMode != 0): engine + per-source scratch, sized here
+        // so the worker never allocates. Sources = inputs + reverb-node
+        // returns (fixed reverb capacity so node-count changes don't force a
+        // re-prepare of the engine).
+        const int maxSources = numInputs + BinauralCalculationEngine::RtParams::kMaxReverbNodes;
+        hrtfEngine.prepare (sampleRate, maxBlockSize, maxSources);
+        hrtfInputBlock.setSize (juce::jmax (1, maxSources), maxBlockSize);
+        hrtfInputPtrs.assign ((size_t) juce::jmax (1, maxSources), nullptr);
+        hrtfPositions.assign ((size_t) juce::jmax (1, maxSources) * 3, 0.0f);
+        hrtfSourceGains.assign ((size_t) juce::jmax (1, maxSources), 1.0f);
     }
 
     /**
@@ -208,11 +221,38 @@ public:
         ++sharedInputsGeneration;
     }
 
+    /** Set the reverb-return taps for the HRTF modes' spatialised reverb
+        (written by the audio callback post node-trim). Message thread; safe
+        while the worker runs (same lock+generation discipline as inputs). */
+    void setSharedReverbBuffers (const std::vector<std::unique_ptr<SharedInputRingBuffer>>& buffers)
+    {
+        const juce::SpinLock::ScopedLockType lock (sharedInputsLock);
+        sharedReverbs.clear();
+        for (auto& buf : buffers)
+            sharedReverbs.push_back (buf.get());
+        sharedReverbReadPositions.assign (sharedReverbs.size(), 0);
+        ++sharedInputsGeneration;
+    }
+
     /** Notify that new input data is available in shared buffers. */
     void notifyInputAvailable()
     {
         notify();
     }
+
+    /** HRTF engine access for the message thread (SOFA set publish/collect). */
+    spatcore::binaural::BinauralEngine& getHrtfEngine() { return hrtfEngine; }
+
+    /** Head-orientation fast path: the active tracker source, or nullptr for
+        manual. Set from the message thread; the source object must outlive
+        the worker (HeadTrackerManager only destroys sources at shutdown). */
+    void setHeadOrientationSource (spatcore::binaural::HeadOrientationSource* src) noexcept
+    {
+        headOrientationSource.store (src, std::memory_order_release);
+    }
+
+    /** Block size the worker was last prepared with (message thread use). */
+    int getCurrentBlockSize() const { return currentBlockSize; }
 
     /**
      * Reset all delay buffers and filters.
@@ -239,6 +279,7 @@ public:
             buf->reset();
         if (outputBufferL) outputBufferL->reset();
         if (outputBufferR) outputBufferR->reset();
+        hrtfEngine.reset();
     }
 
     /**
@@ -276,6 +317,8 @@ private:
         // after the first few iterations.
         std::vector<SharedInputRingBuffer*> sharedInputsSnap;
         std::vector<int> readPositionsSnap;
+        std::vector<SharedInputRingBuffer*> sharedReverbsSnap;
+        std::vector<int> reverbReadPositionsSnap;
 
         // Audio workgroup membership: token lives on (and is destroyed on) this thread.
         juce::WorkgroupToken wgToken;
@@ -297,6 +340,8 @@ private:
                     useSharedSnap = useSharedInputs;
                     sharedInputsSnap = sharedInputs;
                     readPositionsSnap = sharedReadPositions;
+                    sharedReverbsSnap = sharedReverbs;
+                    reverbReadPositionsSnap = sharedReverbReadPositions;
                     snapshotGeneration = sharedInputsGeneration;
                 }
 
@@ -322,7 +367,8 @@ private:
 
                 if (hasData)
                 {
-                    processBlock (useSharedSnap, sharedInputsSnap, readPositionsSnap);
+                    processBlock (useSharedSnap, sharedInputsSnap, readPositionsSnap,
+                                  sharedReverbsSnap, reverbReadPositionsSnap);
 
                     // Write back advanced read positions — but only if the
                     // writer didn't reconfigure us mid-batch. Reconfigure
@@ -332,7 +378,10 @@ private:
                     {
                         const juce::SpinLock::ScopedLockType lock (sharedInputsLock);
                         if (sharedInputsGeneration == snapshotGeneration)
+                        {
                             sharedReadPositions = readPositionsSnap;
+                            sharedReverbReadPositions = reverbReadPositionsSnap;
+                        }
                     }
                 }
                 else
@@ -356,13 +405,26 @@ private:
      */
     void processBlock (bool useSharedSnap,
                        const std::vector<SharedInputRingBuffer*>& sharedInputsSnap,
-                       std::vector<int>& readPositionsSnap)
+                       std::vector<int>& readPositionsSnap,
+                       const std::vector<SharedInputRingBuffer*>& sharedReverbsSnap,
+                       std::vector<int>& reverbReadPositionsSnap)
     {
         int numSamples = currentBlockSize;
 
         // One snapshot copy per block — the RT thread's only parameter source.
         // Never read the ValueTree from here (RT-safety: no locks on the tree, no allocation).
         const auto rt = binauralCalc.getRtParams();
+
+        // HRTF render modes take their own path; the legacy ORTF code below
+        // stays byte-for-byte so mode 0 nulls against pre-HRTF builds.
+        // (The legacy path never consumes the reverb taps; the HRTF path
+        // resyncs their cursors when it takes over.)
+        if (rt.renderMode != 0)
+        {
+            processBlockHrtf (rt, useSharedSnap, sharedInputsSnap, readPositionsSnap,
+                              sharedReverbsSnap, reverbReadPositionsSnap);
+            return;
+        }
 
         // Clear output accumulators
         outputBlockL.clear();
@@ -422,6 +484,146 @@ private:
         }
 
         // Write to output ring buffers
+        outputBufferL->write (outL, numSamples);
+        outputBufferR->write (outR, numSamples);
+    }
+
+    /**
+     * HRTF render path (Structural / SOFA). Consumes exactly one block from
+     * every input ring (same cadence as the legacy path, so switching modes
+     * never desyncs the shared read cursors), builds the listener pose, and
+     * hands the block to the spatcore engine. RT-safe: all scratch was sized
+     * in prepareToPlay().
+     */
+    void processBlockHrtf (const BinauralCalculationEngine::RtParams& rt,
+                           bool useSharedSnap,
+                           const std::vector<SharedInputRingBuffer*>& sharedInputsSnap,
+                           std::vector<int>& readPositionsSnap,
+                           const std::vector<SharedInputRingBuffer*>& sharedReverbsSnap,
+                           std::vector<int>& reverbReadPositionsSnap)
+    {
+        const int numSamples = currentBlockSize;
+
+        outputBlockL.clear();
+        outputBlockR.clear();
+        float* outL = outputBlockL.getWritePointer (0);
+        float* outR = outputBlockR.getWritePointer (0);
+
+        const bool anySoloed = rt.numSoloed > 0;
+
+        // Read every input ring (always consume — cursor discipline), fill
+        // per-source pointers/positions. Solo-gated inputs pass nullptr.
+        for (int i = 0; i < numInputChannels; ++i)
+        {
+            float* dest = hrtfInputBlock.getWritePointer (i);
+            int samplesRead;
+            if (useSharedSnap && i < (int) sharedInputsSnap.size())
+                samplesRead = sharedInputsSnap[(size_t) i]->readWithPosition (readPositionsSnap[(size_t) i], dest, numSamples);
+            else
+                samplesRead = inputBuffers[(size_t) i]->read (dest, numSamples);
+
+            const bool active = samplesRead > 0 && ! (anySoloed && ! rt.isSoloed (i));
+            if (samplesRead > 0 && samplesRead < numSamples)
+                juce::FloatVectorOperations::clear (dest + samplesRead, numSamples - samplesRead);
+
+            hrtfInputPtrs[(size_t) i] = active ? dest : nullptr;
+            hrtfSourceGains[(size_t) i] = 1.0f;
+
+            const auto pos = binauralCalc.getInputPosition (i);
+            hrtfPositions[(size_t) i * 3 + 0] = pos.x;
+            hrtfPositions[(size_t) i * 3 + 1] = pos.y;
+            hrtfPositions[(size_t) i * 3 + 2] = pos.z;
+        }
+
+        // Spatialised reverb: node returns become extra sources at their
+        // return positions — studio-preview only (any solo mutes the tap,
+        // since nodes carry a mix of every input), scaled by the headphone
+        // reverb balance. Best-effort reads: a ring that can't supply a full
+        // block (engine just started, WFS stopped, post-mute) is silent this
+        // block, and a stale cursor (mode just switched) resyncs to the
+        // freshest block instead of replaying old audio.
+        const int numReverb = juce::jmin (rt.numReverbNodes, (int) sharedReverbsSnap.size());
+        const int totalSources = numInputChannels
+                               + BinauralCalculationEngine::RtParams::kMaxReverbNodes;
+        for (int r = 0; r < BinauralCalculationEngine::RtParams::kMaxReverbNodes; ++r)
+        {
+            const int srcIdx = numInputChannels + r;
+            if (srcIdx >= (int) hrtfInputPtrs.size())
+                break;
+            hrtfInputPtrs[(size_t) srcIdx] = nullptr;
+
+            if (r >= numReverb || anySoloed)
+                continue;
+
+            auto* ring = sharedReverbsSnap[(size_t) r];
+            if (ring == nullptr)
+                continue;
+
+            int& cursor = reverbReadPositionsSnap[(size_t) r];
+            int available = ring->getAvailableAt (cursor);
+            if (available > 2 * numSamples)
+            {
+                // Stale cursor: jump to the freshest full block.
+                cursor = (cursor + (available - numSamples)) % ring->getBufferSize();
+                available = numSamples;
+            }
+            if (available < numSamples)
+                continue;
+
+            float* dest = hrtfInputBlock.getWritePointer (srcIdx);
+            const int got = ring->readWithPosition (cursor, dest, numSamples);
+            if (got < numSamples)
+                juce::FloatVectorOperations::clear (dest + got, numSamples - got);
+
+            hrtfInputPtrs[(size_t) srcIdx] = dest;
+            hrtfSourceGains[(size_t) srcIdx] = rt.reverbAttenLinear;
+            hrtfPositions[(size_t) srcIdx * 3 + 0] = rt.reverbPos[r][0];
+            hrtfPositions[(size_t) srcIdx * 3 + 1] = rt.reverbPos[r][1];
+            hrtfPositions[(size_t) srcIdx * 3 + 2] = rt.reverbPos[r][2];
+        }
+
+        // Listener pose: damped position from the 50 Hz snapshot; orientation
+        // offsets from the FAST path when a tracker is active (read fresh
+        // every block, bypassing the damped pipeline entirely — the engine's
+        // per-block slew and delay smoothing absorb the steps), else from the
+        // manual parameters in the snapshot.
+        spatcore::binaural::ListenerPose pose;
+        pose.x = rt.listenerX;
+        pose.y = rt.listenerY;
+        pose.z = rt.listenerZ;
+        {
+            float yaw = rt.manualYawRad, pitch = rt.manualPitchRad, roll = rt.manualRollRad;
+            if (auto* src = headOrientationSource.load (std::memory_order_acquire))
+            {
+                const auto tracked = src->getOrientation();
+                if (tracked.valid)
+                {
+                    yaw = tracked.yawRad;
+                    pitch = tracked.pitchRad;
+                    roll = tracked.rollRad;
+                }
+            }
+
+            float offset[9];
+            spatcore::binaural::headframe::yawPitchRollToMatrix (yaw, pitch, roll, offset);
+            spatcore::binaural::headframe::composeWithBaseline (rt.baselineAngleRad, offset, pose.R);
+        }
+
+        hrtfEngine.setMode (static_cast<spatcore::binaural::RenderMode> (rt.renderMode));
+        hrtfEngine.setHeadRadius (rt.headRadius);
+        hrtfEngine.processBlock (pose,
+                                 reinterpret_cast<const float (*)[3]> (hrtfPositions.data()),
+                                 hrtfInputPtrs.data(), hrtfSourceGains.data(), rt.delayOffsetMs,
+                                 outL, outR, totalSources, numSamples);
+
+        // Master trim at the sum (per-input in the legacy path; here the
+        // engine output is trimmed once).
+        if (rt.attenLinear != 1.0f)
+        {
+            juce::FloatVectorOperations::multiply (outL, rt.attenLinear, numSamples);
+            juce::FloatVectorOperations::multiply (outR, rt.attenLinear, numSamples);
+        }
+
         outputBufferL->write (outL, numSamples);
         outputBufferR->write (outR, numSamples);
     }
@@ -560,4 +762,18 @@ private:
     juce::AudioBuffer<float> inputBlock;
     juce::AudioBuffer<float> outputBlockL;
     juce::AudioBuffer<float> outputBlockR;
+
+    // HRTF path (renderMode != 0): spatcore engine + per-source scratch.
+    // hrtfPositions is a flat [numInputs][3] world-frame array.
+    spatcore::binaural::BinauralEngine hrtfEngine;
+    std::atomic<spatcore::binaural::HeadOrientationSource*> headOrientationSource { nullptr };
+    juce::AudioBuffer<float> hrtfInputBlock;
+    std::vector<const float*> hrtfInputPtrs;
+    std::vector<float> hrtfPositions;
+    std::vector<float> hrtfSourceGains;
+
+    // Reverb-return taps (HRTF modes' spatialised reverb) — same publish
+    // discipline as sharedInputs above.
+    std::vector<SharedInputRingBuffer*> sharedReverbs;
+    std::vector<int> sharedReverbReadPositions;
 };

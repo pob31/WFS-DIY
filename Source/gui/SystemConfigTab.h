@@ -16,6 +16,7 @@
 #include "../../spatcore/controllers/lightpad/LightpadTypes.h"
 #include "HelpCard.h"
 #include "LightpadArrangementOverlay.h"
+#include "RefreshableComboBox.h"
 #if WFS_GPU_NATIVE
  #include "../../spatcore/gpu/GpuDeviceManager.h"
 #endif
@@ -959,6 +960,97 @@ public:
         };
         // binauralOutputSelector.setTooltip(LOC("systemConfig.help.binauralOutput"));
 
+        // Render mode (ORTF legacy / Structural HRTF / SOFA file)
+        addAndMakeVisible(binauralModeLabel);
+        binauralModeLabel.setText(LOC("systemConfig.labels.binauralMode"), juce::dontSendNotification);
+
+        addAndMakeVisible(binauralModeSelector);
+        binauralModeSelector.addItem(LOC("systemConfig.binauralMode.ortf"), 1);
+        binauralModeSelector.addItem(LOC("systemConfig.binauralMode.structural"), 2);
+        binauralModeSelector.addItem(LOC("systemConfig.binauralMode.sofa"), 3);
+        binauralModeSelector.setSelectedId(WFSParameterDefaults::binauralRenderModeDefault + 1, juce::dontSendNotification);
+        binauralModeSelector.onChange = [this]() {
+            if (!isLoadingParameters)
+            {
+                int mode = binauralModeSelector.getSelectedId() - 1;  // combo id 1-3 → mode 0-2
+                auto& vts = parameters.getValueTreeState();
+                vts.getBinauralState().setProperty(WFSParameterIDs::binauralRenderMode, mode, nullptr);
+            }
+            updateBinauralModeControlsVisibility();
+        };
+
+        // SOFA HRTF file picker (visible in SOFA mode only)
+        addChildComponent(binauralSofaLabel);
+        binauralSofaLabel.setText(LOC("systemConfig.labels.binauralSofa"), juce::dontSendNotification);
+        addChildComponent(binauralSofaSelector);
+        refreshBinauralSofaList();
+        binauralSofaSelector.onChange = [this]() { handleBinauralSofaSelection(); };
+
+        // Head-orientation source (manual + trackers), rescans on popup open
+        addChildComponent(binauralTrackerLabel);
+        binauralTrackerLabel.setText(LOC("systemConfig.labels.binauralTracker"), juce::dontSendNotification);
+        addChildComponent(binauralTrackerSelector);
+        binauralTrackerSelector.onPopupAboutToShow = [this]() { rebuildBinauralTrackerList(); };
+        rebuildBinauralTrackerList();
+        binauralTrackerSelector.onChange = [this]() {
+            if (isLoadingParameters)
+                return;
+            const int idx = binauralTrackerSelector.getSelectedId() - 1;
+            if (idx >= 0 && idx < binauralTrackerIds.size())
+                parameters.getValueTreeState().getBinauralState().setProperty(
+                    WFSParameterIDs::binauralHeadTrackerSource, binauralTrackerIds[idx], nullptr);
+        };
+
+        // HRTF-mode listener geometry (visible when render mode != ORTF legacy)
+        addChildComponent(binauralListenerXLabel);
+        binauralListenerXLabel.setText(LOC("systemConfig.labels.binauralListenerX"), juce::dontSendNotification);
+        addChildComponent(binauralListenerXEditor);
+        binauralListenerXEditor.setText(juce::String(WFSParameterDefaults::binauralListenerXDefault, 2), juce::dontSendNotification);
+        binauralListenerXEditor.setJustification(juce::Justification::centred);
+        binauralListenerXEditor.setColour(juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
+        binauralListenerXEditor.setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
+        binauralListenerXEditor.addListener(this);
+        addChildComponent(binauralListenerXUnitLabel);
+        binauralListenerXUnitLabel.setText("m", juce::dontSendNotification);
+
+        addChildComponent(binauralHeightLabel);
+        binauralHeightLabel.setText(LOC("systemConfig.labels.binauralHeight"), juce::dontSendNotification);
+        addChildComponent(binauralHeightEditor);
+        binauralHeightEditor.setText(juce::String(WFSParameterDefaults::binauralListenerHeightDefault, 2), juce::dontSendNotification);
+        binauralHeightEditor.setJustification(juce::Justification::centred);
+        binauralHeightEditor.setColour(juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
+        binauralHeightEditor.setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
+        binauralHeightEditor.addListener(this);
+        addChildComponent(binauralHeightUnitLabel);
+        binauralHeightUnitLabel.setText("m", juce::dontSendNotification);
+
+        // Head radius (structural mode only) — displayed in centimeters
+        addChildComponent(binauralHeadRadiusLabel);
+        binauralHeadRadiusLabel.setText(LOC("systemConfig.labels.binauralHeadRadius"), juce::dontSendNotification);
+        addChildComponent(binauralHeadRadiusEditor);
+        binauralHeadRadiusEditor.setText(juce::String(WFSParameterDefaults::binauralHeadRadiusDefault * 100.0f, 2), juce::dontSendNotification);
+        binauralHeadRadiusEditor.setJustification(juce::Justification::centred);
+        binauralHeadRadiusEditor.setColour(juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
+        binauralHeadRadiusEditor.setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
+        binauralHeadRadiusEditor.addListener(this);
+        addChildComponent(binauralHeadRadiusUnitLabel);
+        binauralHeadRadiusUnitLabel.setText("cm", juce::dontSendNotification);
+
+        // Manual orientation offsets: yaw / pitch / roll (degrees)
+        addChildComponent(binauralOrientationLabel);
+        binauralOrientationLabel.setText(LOC("systemConfig.labels.binauralOrientation"), juce::dontSendNotification);
+        for (auto* ed : { &binauralYawEditor, &binauralPitchEditor, &binauralRollEditor })
+        {
+            addChildComponent(*ed);
+            ed->setText("0", juce::dontSendNotification);
+            ed->setJustification(juce::Justification::centred);
+            ed->setColour(juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
+            ed->setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
+            ed->addListener(this);
+        }
+        addChildComponent(binauralOrientationUnitLabel);
+        binauralOrientationUnitLabel.setText(juce::String::fromUTF8("\xc2\xb0"), juce::dontSendNotification);
+
         // Listener Distance - WfsStandardSlider with TextEditor
         addAndMakeVisible(binauralDistanceLabel);
         binauralDistanceLabel.setText(LOC("systemConfig.labels.binauralDistance"), juce::dontSendNotification);
@@ -1635,6 +1727,60 @@ public:
         binauralOutputSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         y += rowHeight + spacing;
 
+        // Render mode
+        binauralModeLabel.setBounds(x, y, labelWidth, rowHeight);
+        binauralModeSelector.setBounds(x + labelWidth, y, editorWidth * 2, rowHeight);
+        y += rowHeight + spacing;
+
+        // HRTF-mode rows only claim vertical space while visible, so the
+        // legacy layout is unchanged in mode 0.
+        if (binauralSofaLabel.isVisible())
+        {
+            binauralSofaLabel.setBounds(x, y, labelWidth, rowHeight);
+            binauralSofaSelector.setBounds(x + labelWidth, y, binauralFullWidth - labelWidth, rowHeight);
+            y += rowHeight + spacing;
+        }
+
+        if (binauralTrackerLabel.isVisible())
+        {
+            binauralTrackerLabel.setBounds(x, y, labelWidth, rowHeight);
+            binauralTrackerSelector.setBounds(x + labelWidth, y, editorWidth * 2, rowHeight);
+            y += rowHeight + spacing;
+        }
+
+        if (binauralListenerXLabel.isVisible())
+        {
+            binauralListenerXLabel.setBounds(x, y, labelWidth, rowHeight);
+            binauralListenerXEditor.setBounds(x + binauralFullWidth - binauralValueWidth - binauralUnitWidth, y, binauralValueWidth, rowHeight);
+            binauralListenerXUnitLabel.setBounds(x + binauralFullWidth - binauralUnitWidth, y, binauralUnitWidth, rowHeight);
+            y += rowHeight + spacing;
+
+            binauralHeightLabel.setBounds(x, y, labelWidth, rowHeight);
+            binauralHeightEditor.setBounds(x + binauralFullWidth - binauralValueWidth - binauralUnitWidth, y, binauralValueWidth, rowHeight);
+            binauralHeightUnitLabel.setBounds(x + binauralFullWidth - binauralUnitWidth, y, binauralUnitWidth, rowHeight);
+            y += rowHeight + spacing;
+        }
+
+        if (binauralHeadRadiusLabel.isVisible())
+        {
+            binauralHeadRadiusLabel.setBounds(x, y, labelWidth, rowHeight);
+            binauralHeadRadiusEditor.setBounds(x + binauralFullWidth - binauralValueWidth - binauralUnitWidth, y, binauralValueWidth, rowHeight);
+            binauralHeadRadiusUnitLabel.setBounds(x + binauralFullWidth - binauralUnitWidth, y, binauralUnitWidth, rowHeight);
+            y += rowHeight + spacing;
+        }
+
+        if (binauralOrientationLabel.isVisible())
+        {
+            binauralOrientationLabel.setBounds(x, y, labelWidth + scaled(20), rowHeight);
+            const int oriValW = scaled(42);
+            int oriX = x + binauralFullWidth - 3 * oriValW - binauralUnitWidth;
+            binauralYawEditor.setBounds(oriX, y, oriValW, rowHeight);
+            binauralPitchEditor.setBounds(oriX + oriValW, y, oriValW, rowHeight);
+            binauralRollEditor.setBounds(oriX + 2 * oriValW, y, oriValW, rowHeight);
+            binauralOrientationUnitLabel.setBounds(x + binauralFullWidth - binauralUnitWidth, y, binauralUnitWidth, rowHeight);
+            y += rowHeight + spacing;
+        }
+
         // Listener Distance
         binauralDistanceLabel.setBounds(x, y, labelWidth, rowHeight);
         binauralDistanceEditor.setBounds(x + binauralFullWidth - binauralValueWidth - binauralUnitWidth, y, binauralValueWidth, rowHeight);
@@ -1895,6 +2041,15 @@ public:
     void setBinauralCallback(BinauralCallback callback)
     {
         onBinauralChanged = callback;
+    }
+
+    /** Provider for the head-tracker dropdown: list of (stable id, display
+        name) pairs. Set by MainComponent, backed by HeadTrackerManager. */
+    using HeadTrackerListProvider = std::function<std::vector<std::pair<juce::String, juce::String>>()>;
+    void setHeadTrackerListProvider(HeadTrackerListProvider provider)
+    {
+        headTrackerListProvider = std::move(provider);
+        rebuildBinauralTrackerList();
     }
 
     void setGettingStartedCallback(GettingStartedCallback callback)
@@ -2338,6 +2493,28 @@ private:
         int selectedId = (binauralChannel == -1) ? 1 : (binauralChannel / 2 + 2);
         binauralOutputSelector.setSelectedId(selectedId, juce::dontSendNotification);
 
+        // Render mode
+        int renderMode = juce::jlimit(WFSParameterDefaults::binauralRenderModeMin,
+                                      WFSParameterDefaults::binauralRenderModeMax,
+                                      (int)binauralState.getProperty(WFSParameterIDs::binauralRenderMode,
+                                                                     WFSParameterDefaults::binauralRenderModeDefault));
+        binauralModeSelector.setSelectedId(renderMode + 1, juce::dontSendNotification);
+        updateBinauralModeControlsVisibility();
+
+        // HRTF listener geometry + manual orientation
+        binauralListenerXEditor.setText(juce::String((float)binauralState.getProperty(
+            WFSParameterIDs::binauralListenerX, WFSParameterDefaults::binauralListenerXDefault), 2), juce::dontSendNotification);
+        binauralHeightEditor.setText(juce::String((float)binauralState.getProperty(
+            WFSParameterIDs::binauralListenerHeight, WFSParameterDefaults::binauralListenerHeightDefault), 2), juce::dontSendNotification);
+        binauralHeadRadiusEditor.setText(juce::String((float)binauralState.getProperty(
+            WFSParameterIDs::binauralHeadRadius, WFSParameterDefaults::binauralHeadRadiusDefault) * 100.0f, 2), juce::dontSendNotification);
+        binauralYawEditor.setText(juce::String((float)binauralState.getProperty(
+            WFSParameterIDs::binauralListenerYaw, WFSParameterDefaults::binauralListenerYawDefault), 0), juce::dontSendNotification);
+        binauralPitchEditor.setText(juce::String((float)binauralState.getProperty(
+            WFSParameterIDs::binauralListenerPitch, WFSParameterDefaults::binauralListenerPitchDefault), 0), juce::dontSendNotification);
+        binauralRollEditor.setText(juce::String((float)binauralState.getProperty(
+            WFSParameterIDs::binauralListenerRoll, WFSParameterDefaults::binauralListenerRollDefault), 0), juce::dontSendNotification);
+
         // Distance
         float distance = (float)binauralState.getProperty(WFSParameterIDs::binauralListenerDistance,
                                                            WFSParameterDefaults::binauralListenerDistanceDefault);
@@ -2614,6 +2791,24 @@ private:
             vts.getBinauralState().setProperty(WFSParameterIDs::binauralDelay, delayMs, nullptr);
             binauralDelaySlider.setValue(delayMs / WFSParameterDefaults::binauralDelayMax);
         }
+        else if (&editor == &binauralListenerXEditor)
+            parameters.getValueTreeState().getBinauralState().setProperty(
+                WFSParameterIDs::binauralListenerX, text.getFloatValue(), nullptr);
+        else if (&editor == &binauralHeightEditor)
+            parameters.getValueTreeState().getBinauralState().setProperty(
+                WFSParameterIDs::binauralListenerHeight, text.getFloatValue(), nullptr);
+        else if (&editor == &binauralHeadRadiusEditor)
+            parameters.getValueTreeState().getBinauralState().setProperty(
+                WFSParameterIDs::binauralHeadRadius, text.getFloatValue() / 100.0f, nullptr);  // cm → m
+        else if (&editor == &binauralYawEditor)
+            parameters.getValueTreeState().getBinauralState().setProperty(
+                WFSParameterIDs::binauralListenerYaw, text.getFloatValue(), nullptr);
+        else if (&editor == &binauralPitchEditor)
+            parameters.getValueTreeState().getBinauralState().setProperty(
+                WFSParameterIDs::binauralListenerPitch, text.getFloatValue(), nullptr);
+        else if (&editor == &binauralRollEditor)
+            parameters.getValueTreeState().getBinauralState().setProperty(
+                WFSParameterIDs::binauralListenerRoll, text.getFloatValue(), nullptr);
     }
 
     void validateAndClampValue(juce::TextEditor& editor)
@@ -2677,6 +2872,24 @@ private:
         else if (&editor == &binauralDelayEditor)
             value = juce::jlimit(WFSParameterDefaults::binauralDelayMin,
                                  WFSParameterDefaults::binauralDelayMax, std::abs(value));
+        else if (&editor == &binauralListenerXEditor)
+            value = juce::jlimit(WFSParameterDefaults::binauralListenerXMin,
+                                 WFSParameterDefaults::binauralListenerXMax, value);
+        else if (&editor == &binauralHeightEditor)
+            value = juce::jlimit(WFSParameterDefaults::binauralListenerHeightMin,
+                                 WFSParameterDefaults::binauralListenerHeightMax, std::abs(value));
+        else if (&editor == &binauralHeadRadiusEditor)
+            value = juce::jlimit(WFSParameterDefaults::binauralHeadRadiusMin * 100.0f,
+                                 WFSParameterDefaults::binauralHeadRadiusMax * 100.0f, std::abs(value));  // cm
+        else if (&editor == &binauralYawEditor)
+            value = juce::jlimit(WFSParameterDefaults::binauralListenerYawMin,
+                                 WFSParameterDefaults::binauralListenerYawMax, value);
+        else if (&editor == &binauralPitchEditor)
+            value = juce::jlimit(WFSParameterDefaults::binauralListenerPitchMin,
+                                 WFSParameterDefaults::binauralListenerPitchMax, value);
+        else if (&editor == &binauralRollEditor)
+            value = juce::jlimit(WFSParameterDefaults::binauralListenerRollMin,
+                                 WFSParameterDefaults::binauralListenerRollMax, value);
         else if (&editor == &reverbChannelsEditor)
             value = juce::jlimit(0.0f, (float)WFSParameterDefaults::maxReverbChannels, std::abs(value));
 
@@ -2690,6 +2903,11 @@ private:
                  &editor == &binauralDelayEditor)
         {
             editor.setText(juce::String(value, 1), false);  // 1 decimal place for binaural
+        }
+        else if (&editor == &binauralYawEditor || &editor == &binauralPitchEditor ||
+                 &editor == &binauralRollEditor)
+        {
+            editor.setText(juce::String(value, 0), false);  // whole degrees
         }
         else
         {
@@ -3075,6 +3293,175 @@ public:
         }
     }
 
+    /** Rebuild the head-tracker combo from the provider ("Manual orientation"
+        + whatever trackers the receiver currently reports). Selection follows
+        the persisted stable id; a missing device displays as manual without
+        overwriting the stored id, so the tracker re-engages when it returns. */
+    void rebuildBinauralTrackerList()
+    {
+        auto binauralState = parameters.getValueTreeState().getBinauralState();
+        const juce::String persisted = binauralState.isValid()
+            ? binauralState.getProperty(WFSParameterIDs::binauralHeadTrackerSource, "manual").toString()
+            : juce::String("manual");
+
+        binauralTrackerSelector.clear(juce::dontSendNotification);
+        binauralTrackerIds.clear();
+
+        binauralTrackerIds.add("manual");
+        binauralTrackerSelector.addItem(LOC("systemConfig.binauralTracker.manual"), 1);
+        int selectedId = 1;
+
+        if (headTrackerListProvider)
+        {
+            int itemId = 2;
+            for (const auto& [id, name] : headTrackerListProvider())
+            {
+                if (id == "manual")
+                    continue;
+                binauralTrackerIds.add(id);
+                binauralTrackerSelector.addItem(name, itemId);
+                if (id == persisted)
+                    selectedId = itemId;
+                ++itemId;
+            }
+        }
+
+        binauralTrackerSelector.setSelectedId(selectedId, juce::dontSendNotification);
+    }
+
+    /** Rebuild the SOFA file combo: built-in set, project sofa/ files, Import. */
+    void refreshBinauralSofaList()
+    {
+        auto binauralState = parameters.getValueTreeState().getBinauralState();
+        const juce::String currentFile = binauralState.isValid()
+            ? binauralState.getProperty(WFSParameterIDs::binauralSofaFile, "").toString()
+            : juce::String();
+
+        binauralSofaSelector.clear(juce::dontSendNotification);
+        binauralSofaSelector.addItem(LOC("systemConfig.binauralSofa.builtin"), 1);
+
+        int itemId = 2;
+        int selectedId = 1;
+        auto& fileManager = parameters.getFileManager();
+        if (fileManager.hasValidProjectFolder())
+        {
+            auto sofaFolder = fileManager.getSofaFolder();
+            if (sofaFolder.isDirectory())
+            {
+                juce::StringArray sofaFiles;
+                for (const auto& entry : juce::RangedDirectoryIterator(sofaFolder, false, "*.sofa", juce::File::findFiles))
+                    sofaFiles.add(entry.getFile().getFileName());
+                sofaFiles.sort(true);
+                for (const auto& fileName : sofaFiles)
+                {
+                    binauralSofaSelector.addItem(fileName, itemId);
+                    if (fileName == currentFile)
+                        selectedId = itemId;
+                    ++itemId;
+                }
+            }
+        }
+
+        binauralSofaSelector.addSeparator();
+        binauralSofaSelector.addItem(LOC("systemConfig.binauralSofa.import"), itemId);
+        binauralSofaSelector.setSelectedId(selectedId, juce::dontSendNotification);
+    }
+
+    void handleBinauralSofaSelection()
+    {
+        if (isLoadingParameters)
+            return;
+
+        const int selectedId = binauralSofaSelector.getSelectedId();
+        const int numItems = binauralSofaSelector.getNumItems();
+
+        if (selectedId == binauralSofaSelector.getItemId(numItems - 1))   // "Import SOFA..."
+        {
+            importBinauralSofaFile();
+            return;
+        }
+
+        auto& vts = parameters.getValueTreeState();
+        vts.getBinauralState().setProperty(WFSParameterIDs::binauralSofaFile,
+            selectedId == 1 ? juce::String() : binauralSofaSelector.getText(), nullptr);
+    }
+
+    void importBinauralSofaFile()
+    {
+        auto& fileManager = parameters.getFileManager();
+        if (!fileManager.hasValidProjectFolder())
+        {
+            refreshBinauralSofaList();   // reset combobox selection
+            return;
+        }
+
+        sofaFileChooser = std::make_shared<juce::FileChooser>(
+            LOC("systemConfig.binauralSofa.import"),
+            AppSettings::getLastFolder("lastSofaFolder"),
+            "*.sofa");
+
+        sofaFileChooser->launchAsync(
+            juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+            [this](const juce::FileChooser& fc)
+            {
+                auto result = fc.getResult();
+                if (!result.existsAsFile())
+                {
+                    refreshBinauralSofaList();
+                    return;
+                }
+
+                AppSettings::setLastFolder("lastSofaFolder", result.getParentDirectory());
+                auto sofaFolder = parameters.getFileManager().getSofaFolder();
+                sofaFolder.createDirectory();
+
+                auto destFile = sofaFolder.getChildFile(result.getFileName());
+                if (!destFile.existsAsFile())
+                    result.copyFileTo(destFile);
+
+                parameters.getValueTreeState().getBinauralState().setProperty(
+                    WFSParameterIDs::binauralSofaFile, destFile.getFileName(), nullptr);
+                refreshBinauralSofaList();
+            });
+    }
+
+    /** Show/hide the HRTF-mode rows (listener X/height, head radius, manual
+        orientation) based on the render-mode selection, then relayout. */
+    void updateBinauralModeControlsVisibility()
+    {
+        const int mode = binauralModeSelector.getSelectedId() - 1;
+        const bool hrtf = mode != 0;
+        const bool structural = mode == 1;
+        const bool sofaMode = mode == 2;
+
+        binauralSofaLabel.setVisible(sofaMode);
+        binauralSofaSelector.setVisible(sofaMode);
+        if (sofaMode)
+            refreshBinauralSofaList();
+
+        binauralTrackerLabel.setVisible(hrtf);
+        binauralTrackerSelector.setVisible(hrtf);
+        if (hrtf)
+            rebuildBinauralTrackerList();
+
+        binauralListenerXLabel.setVisible(hrtf);
+        binauralListenerXEditor.setVisible(hrtf);
+        binauralListenerXUnitLabel.setVisible(hrtf);
+        binauralHeightLabel.setVisible(hrtf);
+        binauralHeightEditor.setVisible(hrtf);
+        binauralHeightUnitLabel.setVisible(hrtf);
+        binauralHeadRadiusLabel.setVisible(structural);
+        binauralHeadRadiusEditor.setVisible(structural);
+        binauralHeadRadiusUnitLabel.setVisible(structural);
+        binauralOrientationLabel.setVisible(hrtf);
+        binauralYawEditor.setVisible(hrtf);
+        binauralPitchEditor.setVisible(hrtf);
+        binauralRollEditor.setVisible(hrtf);
+        binauralOrientationUnitLabel.setVisible(hrtf);
+
+        resized();
+    }
+
     void updateBinauralControlsEnabledState()
     {
         // When binaural output is not selected (selectedId == 1), disable/dim all binaural controls
@@ -3102,6 +3489,7 @@ public:
         auto disabledColour = ColorScheme::get().textDisabled;
         auto enabledColour = ColorScheme::get().textPrimary;
         // Labels
+        binauralModeLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
         binauralDistanceLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
         binauralDistanceUnitLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
         binauralAngleLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
@@ -3117,7 +3505,22 @@ public:
         binauralAttenEditor.setColour(juce::TextEditor::textColourId, binauralActive ? enabledColour : disabledColour);
         binauralDelayEditor.setColour(juce::TextEditor::textColourId, binauralActive ? enabledColour : disabledColour);
 
+        // HRTF-mode rows
+        for (auto* lbl : { &binauralListenerXLabel, &binauralListenerXUnitLabel,
+                           &binauralHeightLabel, &binauralHeightUnitLabel,
+                           &binauralHeadRadiusLabel, &binauralHeadRadiusUnitLabel,
+                           &binauralOrientationLabel, &binauralOrientationUnitLabel })
+            lbl->setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
+        for (auto* ed : { &binauralListenerXEditor, &binauralHeightEditor, &binauralHeadRadiusEditor,
+                          &binauralYawEditor, &binauralPitchEditor, &binauralRollEditor })
+            ed->setColour(juce::TextEditor::textColourId, binauralActive ? enabledColour : disabledColour);
+
         // Sliders - setEnabled drives the isEnabled() check in paintSlider
+        binauralModeSelector.setEnabled(binauralActive);
+        binauralSofaSelector.setEnabled(binauralActive);
+        binauralSofaLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
+        binauralTrackerSelector.setEnabled(binauralActive);
+        binauralTrackerLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
         binauralDistanceSlider.setEnabled(binauralActive);
         binauralAttenSlider.setEnabled(binauralActive);
         binauralDelaySlider.setEnabled(binauralActive);
@@ -3858,6 +4261,15 @@ public:
         helpTextMap[&controllerModeSelector] = LOC("systemConfig.help.sampler");
         helpTextMap[&binauralEnableButton] = LOC("systemConfig.help.binauralEnable");
         helpTextMap[&binauralOutputSelector] = LOC("systemConfig.help.binauralOutput");
+        helpTextMap[&binauralModeSelector] = LOC("systemConfig.help.binauralMode");
+        helpTextMap[&binauralSofaSelector] = LOC("systemConfig.help.binauralSofa");
+        helpTextMap[&binauralTrackerSelector] = LOC("systemConfig.help.binauralTracker");
+        helpTextMap[&binauralListenerXEditor] = LOC("systemConfig.help.binauralListenerX");
+        helpTextMap[&binauralHeightEditor] = LOC("systemConfig.help.binauralHeight");
+        helpTextMap[&binauralHeadRadiusEditor] = LOC("systemConfig.help.binauralHeadRadius");
+        helpTextMap[&binauralYawEditor] = LOC("systemConfig.help.binauralOrientation");
+        helpTextMap[&binauralPitchEditor] = LOC("systemConfig.help.binauralOrientation");
+        helpTextMap[&binauralRollEditor] = LOC("systemConfig.help.binauralOrientation");
         helpTextMap[&binauralDistanceSlider] = LOC("systemConfig.help.binauralDistance");
         helpTextMap[&binauralDistanceEditor] = LOC("systemConfig.help.binauralDistance");
         helpTextMap[&binauralAngleDial] = LOC("systemConfig.help.binauralAngle");
@@ -4102,6 +4514,29 @@ public:
     LongPressButton binauralEnableButton { 800 };
     juce::Label binauralOutputLabel;
     juce::ComboBox binauralOutputSelector;
+    juce::Label binauralModeLabel;
+    juce::ComboBox binauralModeSelector;
+    juce::Label binauralSofaLabel;
+    juce::ComboBox binauralSofaSelector;
+    std::shared_ptr<juce::FileChooser> sofaFileChooser;
+    juce::Label binauralTrackerLabel;
+    RefreshableComboBox binauralTrackerSelector;
+    juce::StringArray binauralTrackerIds;   // combo item index → stable source id
+    HeadTrackerListProvider headTrackerListProvider;
+    juce::Label binauralListenerXLabel;
+    juce::TextEditor binauralListenerXEditor;
+    juce::Label binauralListenerXUnitLabel;
+    juce::Label binauralHeightLabel;
+    juce::TextEditor binauralHeightEditor;
+    juce::Label binauralHeightUnitLabel;
+    juce::Label binauralHeadRadiusLabel;
+    juce::TextEditor binauralHeadRadiusEditor;
+    juce::Label binauralHeadRadiusUnitLabel;
+    juce::Label binauralOrientationLabel;
+    juce::TextEditor binauralYawEditor;
+    juce::TextEditor binauralPitchEditor;
+    juce::TextEditor binauralRollEditor;
+    juce::Label binauralOrientationUnitLabel;
     juce::ValueTree outputPatchTree;  // For listening to patch changes
     juce::Label binauralDistanceLabel;
     WfsStandardSlider binauralDistanceSlider;

@@ -90,6 +90,16 @@ namespace WFSParameterIDs
     const juce::Identifier binauralAttenuation   ("binauralAttenuation");   // dB
     const juce::Identifier binauralDelay         ("binauralDelay");         // ms
     const juce::Identifier inputSoloStates       ("inputSoloStates");       // comma-separated 0/1
+    const juce::Identifier binauralRenderMode    ("binauralRenderMode");    // 0=ORTF legacy, 1=Structural HRTF, 2=SOFA
+    const juce::Identifier binauralSofaFile      ("binauralSofaFile");      // relative to <project>/sofa, ""=built-in set
+    const juce::Identifier binauralHeadRadius    ("binauralHeadRadius");    // meters (structural model personalization)
+    const juce::Identifier binauralListenerX     ("binauralListenerX");     // meters, lateral offset from axial placement
+    const juce::Identifier binauralListenerHeight ("binauralListenerHeight"); // meters (ear height, new modes only)
+    const juce::Identifier binauralListenerYaw   ("binauralListenerYaw");   // degrees, offset from facing-origin
+    const juce::Identifier binauralListenerPitch ("binauralListenerPitch"); // degrees
+    const juce::Identifier binauralListenerRoll  ("binauralListenerRoll");  // degrees
+    const juce::Identifier binauralHeadTrackerSource ("binauralHeadTrackerSource"); // "manual" or stable device id
+    const juce::Identifier binauralReverbAttenuation ("binauralReverbAttenuation"); // dB, headphone reverb balance
 
     //==========================================================================
     // Config > Stage Section
