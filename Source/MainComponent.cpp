@@ -1762,6 +1762,13 @@ MainComponent::MainComponent()
             return list;
         });
 
+    if (systemConfigTab != nullptr)
+        systemConfigTab->setHeadTrackerSetZeroCallback([this]()
+        {
+            if (headTrackerManager != nullptr)
+                headTrackerManager->setZeroOnActiveSource();
+        });
+
     // Initialize Reverb Engine
     reverbEngine = std::make_unique<ReverbEngine>();
     reverbEngine->setWorkgroupCoordinator(&workgroupCoordinator);

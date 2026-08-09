@@ -50,6 +50,22 @@ struct AppSettings
         props.saveIfNeeded();
     }
 
+    /** Camera index for the webcam head tracker (machine-local, like all
+        settings here — which camera exists is a property of this computer,
+        not of the show file). No UI yet: edit WFS-DIY.settings directly. */
+    static int getHeadtrackCameraIndex()
+    {
+        juce::PropertiesFile props (getOptions());
+        return props.getIntValue ("headtrackCameraIndex", 0);
+    }
+
+    static void setHeadtrackCameraIndex (int index)
+    {
+        juce::PropertiesFile props (getOptions());
+        props.setValue ("headtrackCameraIndex", index);
+        props.saveIfNeeded();
+    }
+
     static bool getCleanShutdown()
     {
         juce::PropertiesFile props (getOptions());

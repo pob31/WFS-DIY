@@ -74,6 +74,15 @@ Source: "..\Builds\VisualStudio2022\x64\Release\App\cudart64_*.dll";         Des
 Source: "..\Builds\VisualStudio2022\x64\Release\App\nvrtc64_*.dll";          DestDir: "{app}"; Excludes: "*.alt.dll"; Flags: ignoreversion skipifsourcedoesntexist
 Source: "..\Builds\VisualStudio2022\x64\Release\App\nvrtc-builtins64_*.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 
+; Webcam head-tracker plugin (binaural renderer) + its OpenCV runtime and the
+; YuNet face-detection model, staged next to the app by
+; tools\headtrack\build-headtrack-plugin.ps1. Optional like the GPU plugins:
+; without them the app logs the absence and head tracking stays on manual.
+Source: "..\Builds\VisualStudio2022\x64\Release\App\wfs_headtrack.dll";                 DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "..\Builds\VisualStudio2022\x64\Release\App\opencv_world4100.dll";              DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "..\Builds\VisualStudio2022\x64\Release\App\opencv_videoio_msmf4100_64.dll";    DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "..\Builds\VisualStudio2022\x64\Release\App\face_detection_yunet_2023mar.onnx"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+
 ; Language files
 Source: "..\Resources\lang\*.json"; DestDir: "{app}\lang"; Flags: ignoreversion recursesubdirs
 

@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "../../spatcore/binaural/HeadOrientationSource.h"
+#include "CameraHeadTrackerSource.h"
 #include <vector>
 #include <memory>
 #include <atomic>
@@ -42,7 +43,15 @@ public:
         bool connected = false;
     };
 
-    HeadTrackerManager() = default;
+    HeadTrackerManager()
+    {
+        // Webcam tracking via the wfs_headtrack plugin DLL. Always listed:
+        // whether the plugin/camera actually works is only knowable by trying,
+        // and a failed selection logs its reason and falls back to manual.
+        auto camera = std::make_unique<CameraHeadTrackerSource>();
+        cameraSource = camera.get();
+        sources.push_back (std::move (camera));
+    }
 
     /** All selectable sources, "Manual orientation" first. Message thread. */
     std::vector<SourceInfo> enumerateSources() const
@@ -63,7 +72,29 @@ public:
         for (const auto& s : sources)
             if (s->getSourceId() == sourceId)
                 next = s.get();
+
+        // Sources that own hardware only run while selected: start the camera
+        // when it becomes active (failure → manual fallback, reason logged by
+        // the source), release it when anything else takes over.
+        if (next == cameraSource && cameraSource != nullptr)
+        {
+            if (! cameraSource->start())
+                next = nullptr;
+        }
+        else if (cameraSource != nullptr)
+        {
+            cameraSource->stop();
+        }
+
         activeSource.store (next, std::memory_order_release);
+    }
+
+    /** "Set zero while looking at the stage" for whatever tracker is active.
+        No-op in manual mode. Message thread. */
+    void setZeroOnActiveSource()
+    {
+        if (auto* source = getActiveSource())
+            source->setZero();
     }
 
     /** Render worker: nullptr = manual orientation. */
@@ -92,4 +123,5 @@ private:
 
     std::vector<std::unique_ptr<spatcore::binaural::HeadOrientationSource>> sources;
     std::atomic<spatcore::binaural::HeadOrientationSource*> activeSource { nullptr };
+    CameraHeadTrackerSource* cameraSource = nullptr;   // owned by `sources`
 };

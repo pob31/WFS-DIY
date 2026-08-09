@@ -999,6 +999,17 @@ public:
             if (idx >= 0 && idx < binauralTrackerIds.size())
                 parameters.getValueTreeState().getBinauralState().setProperty(
                     WFSParameterIDs::binauralHeadTrackerSource, binauralTrackerIds[idx], nullptr);
+            updateBinauralSetZeroVisibility();
+        };
+
+        // "Set zero while looking at the stage" — calibrates the ACTIVE
+        // tracker (camera or future IMU); hidden in manual mode where the
+        // yaw/pitch/roll fields are the orientation.
+        addChildComponent(binauralSetZeroButton);
+        binauralSetZeroButton.setButtonText(LOC("systemConfig.buttons.binauralSetZero"));
+        binauralSetZeroButton.onClick = [this]() {
+            if (onHeadTrackerSetZero)
+                onHeadTrackerSetZero();
         };
 
         // HRTF-mode listener geometry (visible when render mode != ORTF legacy)
@@ -1745,6 +1756,9 @@ public:
         {
             binauralTrackerLabel.setBounds(x, y, labelWidth, rowHeight);
             binauralTrackerSelector.setBounds(x + labelWidth, y, editorWidth * 2, rowHeight);
+            // Set Zero takes the residual width right of the selector
+            const int zeroX = x + labelWidth + editorWidth * 2 + spacing;
+            binauralSetZeroButton.setBounds(zeroX, y, x + binauralFullWidth - zeroX, rowHeight);
             y += rowHeight + spacing;
         }
 
@@ -2050,6 +2064,13 @@ public:
     {
         headTrackerListProvider = std::move(provider);
         rebuildBinauralTrackerList();
+    }
+
+    /** "Set Zero" button action: calibrate the active head tracker while the
+        user looks at the stage. Set by MainComponent → HeadTrackerManager. */
+    void setHeadTrackerSetZeroCallback(std::function<void()> callback)
+    {
+        onHeadTrackerSetZero = std::move(callback);
     }
 
     void setGettingStartedCallback(GettingStartedCallback callback)
@@ -3327,6 +3348,17 @@ public:
         }
 
         binauralTrackerSelector.setSelectedId(selectedId, juce::dontSendNotification);
+        updateBinauralSetZeroVisibility();
+    }
+
+    /** Set Zero only makes sense when a real tracker is selected AND the
+        tracker row itself is showing (HRTF modes). */
+    void updateBinauralSetZeroVisibility()
+    {
+        const int idx = binauralTrackerSelector.getSelectedId() - 1;
+        const bool trackerActive = idx >= 0 && idx < binauralTrackerIds.size()
+                                && binauralTrackerIds[idx] != "manual";
+        binauralSetZeroButton.setVisible(binauralTrackerSelector.isVisible() && trackerActive);
     }
 
     /** Rebuild the SOFA file combo: built-in set, project sofa/ files, Import. */
@@ -3442,7 +3474,9 @@ public:
         binauralTrackerLabel.setVisible(hrtf);
         binauralTrackerSelector.setVisible(hrtf);
         if (hrtf)
-            rebuildBinauralTrackerList();
+            rebuildBinauralTrackerList();       // also updates Set Zero visibility
+        else
+            binauralSetZeroButton.setVisible(false);
 
         binauralListenerXLabel.setVisible(hrtf);
         binauralListenerXEditor.setVisible(hrtf);
@@ -3488,8 +3522,7 @@ public:
         // Visual feedback - dim disabled controls using theme colors
         auto disabledColour = ColorScheme::get().textDisabled;
         auto enabledColour = ColorScheme::get().textPrimary;
-        // Labels
-        binauralModeLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
+        // Labels (mode/SOFA/tracker labels handled below — always enabled)
         binauralDistanceLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
         binauralDistanceUnitLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
         binauralAngleLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
@@ -3515,12 +3548,20 @@ public:
                           &binauralYawEditor, &binauralPitchEditor, &binauralRollEditor })
             ed->setColour(juce::TextEditor::textColourId, binauralActive ? enabledColour : disabledColour);
 
+        // Configuration selectors (render mode, SOFA set, head-tracking source,
+        // Set Zero) stay ENABLED while binaural is off: the model and tracker
+        // are meant to be chosen — and the tracker zeroed — before activating
+        // the rendering. Selecting the webcam source starts the camera right
+        // away, so tracking can be verified silently first.
+        binauralModeSelector.setEnabled(true);
+        binauralSofaSelector.setEnabled(true);
+        binauralTrackerSelector.setEnabled(true);
+        binauralSetZeroButton.setEnabled(true);
+        binauralModeLabel.setColour(juce::Label::textColourId, enabledColour);
+        binauralSofaLabel.setColour(juce::Label::textColourId, enabledColour);
+        binauralTrackerLabel.setColour(juce::Label::textColourId, enabledColour);
+
         // Sliders - setEnabled drives the isEnabled() check in paintSlider
-        binauralModeSelector.setEnabled(binauralActive);
-        binauralSofaSelector.setEnabled(binauralActive);
-        binauralSofaLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
-        binauralTrackerSelector.setEnabled(binauralActive);
-        binauralTrackerLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
         binauralDistanceSlider.setEnabled(binauralActive);
         binauralAttenSlider.setEnabled(binauralActive);
         binauralDelaySlider.setEnabled(binauralActive);
@@ -4264,6 +4305,7 @@ public:
         helpTextMap[&binauralModeSelector] = LOC("systemConfig.help.binauralMode");
         helpTextMap[&binauralSofaSelector] = LOC("systemConfig.help.binauralSofa");
         helpTextMap[&binauralTrackerSelector] = LOC("systemConfig.help.binauralTracker");
+        helpTextMap[&binauralSetZeroButton] = LOC("systemConfig.help.binauralSetZero");
         helpTextMap[&binauralListenerXEditor] = LOC("systemConfig.help.binauralListenerX");
         helpTextMap[&binauralHeightEditor] = LOC("systemConfig.help.binauralHeight");
         helpTextMap[&binauralHeadRadiusEditor] = LOC("systemConfig.help.binauralHeadRadius");
@@ -4523,6 +4565,8 @@ public:
     RefreshableComboBox binauralTrackerSelector;
     juce::StringArray binauralTrackerIds;   // combo item index → stable source id
     HeadTrackerListProvider headTrackerListProvider;
+    juce::TextButton binauralSetZeroButton;
+    std::function<void()> onHeadTrackerSetZero;
     juce::Label binauralListenerXLabel;
     juce::TextEditor binauralListenerXEditor;
     juce::Label binauralListenerXUnitLabel;

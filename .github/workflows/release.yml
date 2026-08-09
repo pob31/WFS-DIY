@@ -123,6 +123,22 @@ jobs:
           Copy-Item tools\windows\prebuilt\wfs_hip.dll $app -Force
           if (-not (Test-Path "$app\wfs_cuda.dll")) { throw 'wfs_cuda.dll was not built -- GPU would silently fall back to CPU' }
           Get-ChildItem $app -Filter '*.dll' | Where-Object { $_.Name -match 'wfs_|cudart|nvrtc' } | Format-Table Name,Length
+      - name: Cache OpenCV prebuilt (head-tracker plugin)
+        uses: actions/cache@v5
+        with:
+          path: tools/headtrack/.opencv
+          key: opencv-win-4.10.0
+      - name: Build head-tracker plugin (wfs_headtrack.dll)
+        shell: pwsh
+        run: |
+          # Webcam head tracking for the binaural renderer: standalone CMake
+          # build (OpenCV prebuilt, cached above), staged next to the app like
+          # the GPU plugins. Hard-fail if missing -- the installer would
+          # silently ship without webcam tracking.
+          tools\headtrack\build-headtrack-plugin.ps1 -Config Release
+          $app = 'Builds\VisualStudio2022\x64\Release\App'
+          if (-not (Test-Path "$app\wfs_headtrack.dll")) { throw 'wfs_headtrack.dll was not staged' }
+          if (-not (Test-Path "$app\face_detection_yunet_2023mar.onnx")) { throw 'YuNet model was not staged' }
       - name: Build installer (Inno Setup)
         shell: pwsh
         run: |
