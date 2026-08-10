@@ -1032,6 +1032,12 @@ public:
             updateBinauralModeControlsVisibility();
         };
         addChildComponent(binauralAdvancedCard);
+        binauralAdvancedCard.addAndMakeVisible(binauralAdvancedCloseButton);
+        binauralAdvancedCloseButton.setButtonText(juce::String::fromUTF8("\xc3\x97"));
+        binauralAdvancedCloseButton.onClick = [this]() {
+            binauralAdvancedOpen = false;
+            updateBinauralModeControlsVisibility();
+        };
 
         // HRTF-mode listener geometry (visible when render mode != ORTF legacy)
         addChildComponent(binauralListenerXLabel);
@@ -1759,9 +1765,15 @@ public:
         binauralOutputSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         y += rowHeight + spacing;
 
-        // Render mode
+        // Render mode, with the Listener Geometry panel toggle in the residual
+        // width (no extra row for it)
         binauralModeLabel.setBounds(x, y, labelWidth, rowHeight);
         binauralModeSelector.setBounds(x + labelWidth, y, editorWidth * 2, rowHeight);
+        if (binauralAdvancedButton.isVisible())
+        {
+            const int advX = x + labelWidth + editorWidth * 2 + spacing;
+            binauralAdvancedButton.setBounds(advX, y, x + binauralFullWidth - advX, rowHeight);
+        }
         y += rowHeight + spacing;
 
         // HRTF-mode rows only claim vertical space while visible, so the
@@ -1789,24 +1801,21 @@ public:
             y += rowHeight + spacing;
         }
 
-        if (binauralAdvancedButton.isVisible())
-        {
-            binauralAdvancedButton.setBounds(x, y, binauralFullWidth, rowHeight);
-            y += rowHeight + spacing;
-        }
-
         // Advanced listener-geometry overlay: a card floating over the column,
         // its rows laid out inside (the controls stay children of this tab —
         // updateBinauralModeControlsVisibility brings them above the card).
+        const int panelDialSize = juce::jmax(60, static_cast<int>(90.0f * layoutScale));
         if (binauralAdvancedCard.isVisible())
         {
             const int cardW = layout.colWidth + scaled(20);
             const int rows = binauralHeadRadiusLabel.isVisible() ? 4 : 3;
             const int pad = scaled(12);
-            const int cardH = scaled(30) + rows * (rowHeight + spacing) + pad;
+            const int angleBlockH = rowHeight + panelDialSize + rowHeight + spacing;
+            const int cardH = scaled(30) + rows * (rowHeight + spacing) + angleBlockH + pad;
             const int cardX = layout.col3X - scaled(10);
             const int cardY = scaled(260);
             binauralAdvancedCard.setBounds(cardX, cardY, cardW, cardH);
+            binauralAdvancedCloseButton.setBounds(cardW - scaled(26), scaled(4), scaled(22), scaled(22));
 
             int ax = cardX + pad;
             int ay = cardY + scaled(30);
@@ -1837,6 +1846,21 @@ public:
             binauralPitchEditor.setBounds(oriX + oriValW, ay, oriValW, rowHeight);
             binauralRollEditor.setBounds(oriX + 2 * oriValW, ay, oriValW, rowHeight);
             binauralOrientationUnitLabel.setBounds(ax + aw - binauralUnitWidth, ay, binauralUnitWidth, rowHeight);
+            ay += rowHeight + spacing;
+
+            // Listener angle (position on the circle — a placement parameter,
+            // so it lives here in the HRTF modes; the tracker only supplies
+            // attitude and never replaces it)
+            const int panelDialCenterX = ax + aw / 2;
+            binauralAngleLabel.setBounds(ax, ay, aw, rowHeight);
+            binauralAngleLabel.setJustificationType(juce::Justification::centred);
+            ay += rowHeight;
+            binauralAngleDial.setBounds(panelDialCenterX - panelDialSize / 2, ay, panelDialSize, panelDialSize);
+            ay += panelDialSize;
+            const int pAngleValW = scaled(40), pAngleUnitW = scaled(20), pOverlap = scaled(5);
+            int pAngleStartX = panelDialCenterX - (pAngleValW + pAngleUnitW - pOverlap) / 2;
+            binauralAngleEditor.setBounds(pAngleStartX, ay, pAngleValW, rowHeight);
+            binauralAngleUnitLabel.setBounds(pAngleStartX + pAngleValW - pOverlap, ay, pAngleUnitW, rowHeight);
         }
 
         // Listener Distance
@@ -1847,19 +1871,23 @@ public:
         binauralDistanceSlider.setBounds(x, y, binauralFullWidth, sliderHeight);
         y += sliderHeight + spacing;
 
-        // Listener Angle
-        const int dialSize = juce::jmax(60, static_cast<int>(100.0f * layoutScale));
-        int dialCenterX = x + binauralFullWidth / 2;
-        binauralAngleLabel.setBounds(x, y, binauralFullWidth, rowHeight);
-        binauralAngleLabel.setJustificationType(juce::Justification::centred);
-        y += rowHeight;
-        binauralAngleDial.setBounds(dialCenterX - dialSize / 2, y, dialSize, dialSize);
-        y += dialSize;
-        const int angleValW = scaled(40), angleUnitW = scaled(20), overlap = scaled(5);
-        int angleStartX = dialCenterX - (angleValW + angleUnitW - overlap) / 2;
-        binauralAngleEditor.setBounds(angleStartX, y, angleValW, rowHeight);
-        binauralAngleUnitLabel.setBounds(angleStartX + angleValW - overlap, y, angleUnitW, rowHeight);
-        y += rowHeight + spacing;
+        // Listener Angle — in the main column only for the legacy mode;
+        // HRTF modes host it inside the Listener Geometry panel (above).
+        if (binauralModeSelector.getSelectedId() - 1 == 0)
+        {
+            const int dialSize = juce::jmax(60, static_cast<int>(100.0f * layoutScale));
+            int dialCenterX = x + binauralFullWidth / 2;
+            binauralAngleLabel.setBounds(x, y, binauralFullWidth, rowHeight);
+            binauralAngleLabel.setJustificationType(juce::Justification::centred);
+            y += rowHeight;
+            binauralAngleDial.setBounds(dialCenterX - dialSize / 2, y, dialSize, dialSize);
+            y += dialSize;
+            const int angleValW = scaled(40), angleUnitW = scaled(20), overlap = scaled(5);
+            int angleStartX = dialCenterX - (angleValW + angleUnitW - overlap) / 2;
+            binauralAngleEditor.setBounds(angleStartX, y, angleValW, rowHeight);
+            binauralAngleUnitLabel.setBounds(angleStartX + angleValW - overlap, y, angleUnitW, rowHeight);
+            y += rowHeight + spacing;
+        }
 
         // Binaural Level
         binauralAttenLabel.setBounds(x, y, labelWidth, rowHeight);
@@ -3589,6 +3617,14 @@ public:
         binauralRollEditor.setVisible(panel);
         binauralOrientationUnitLabel.setVisible(panel);
 
+        // Listener angle: a placement parameter — main column in legacy mode,
+        // inside the geometry panel in the HRTF modes.
+        const bool angleVisible = ! hrtf || panel;
+        binauralAngleLabel.setVisible(angleVisible);
+        binauralAngleDial.setVisible(angleVisible);
+        binauralAngleEditor.setVisible(angleVisible);
+        binauralAngleUnitLabel.setVisible(angleVisible);
+
         if (panel)
         {
             // Draw the card above the section, and the controls above the card.
@@ -3598,7 +3634,9 @@ public:
                      &binauralHeightLabel, &binauralHeightEditor, &binauralHeightUnitLabel,
                      &binauralHeadRadiusLabel, &binauralHeadRadiusEditor, &binauralHeadRadiusUnitLabel,
                      &binauralOrientationLabel, &binauralYawEditor, &binauralPitchEditor,
-                     &binauralRollEditor, &binauralOrientationUnitLabel })
+                     &binauralRollEditor, &binauralOrientationUnitLabel,
+                     &binauralAngleLabel, &binauralAngleDial,
+                     &binauralAngleEditor, &binauralAngleUnitLabel })
                 c->toFront(false);
         }
 
@@ -4681,6 +4719,7 @@ public:
     juce::Label binauralAttitudeLabel;                    // live tracker readout (timerCallback)
     HeadTrackerAttitudeProvider headTrackerAttitudeProvider;
     juce::TextButton binauralAdvancedButton;
+    juce::TextButton binauralAdvancedCloseButton;   // child of the card
     bool binauralAdvancedOpen = false;
 
     /** Card behind the Advanced listener-geometry rows (which remain children
