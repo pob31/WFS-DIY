@@ -1026,6 +1026,9 @@ public:
         // radius / manual orientation): rarely-touched settings live behind
         // one button so the binaural section fits above the file buttons.
         addChildComponent(binauralAdvancedButton);
+        // The button LnF overrides left/right padding to 7 px for text
+        // alignment; give the glyph the same breathing room internally.
+        binauralAdvancedButton.setEdgeIndent(7);
         refreshBinauralAdvancedGlyph();
         binauralAdvancedButton.onClick = [this]() {
             binauralAdvancedOpen = ! binauralAdvancedOpen;
@@ -1778,29 +1781,58 @@ public:
         }
         y += rowHeight + spacing;
 
-        // HRTF-mode rows only claim vertical space while visible, so the
-        // legacy layout is unchanged in mode 0.
-        if (binauralSofaLabel.isVisible())
+        // Fixed-height flex region so the controls below (distance, level,
+        // delay, solo) sit at the SAME position in every render mode — no
+        // expanding/contracting column. Legacy mode fills it with the angle
+        // dial; the HRTF modes use it for their extra rows (SOFA set,
+        // tracking + Set Zero, live attitude), which fit within the dial's
+        // footprint.
         {
-            binauralSofaLabel.setBounds(x, y, labelWidth, rowHeight);
-            binauralSofaSelector.setBounds(x + labelWidth, y, binauralFullWidth - labelWidth, rowHeight);
-            y += rowHeight + spacing;
-        }
+            const int dialSize = juce::jmax(60, static_cast<int>(100.0f * layoutScale));
+            const int flexTop = y;
+            const int flexHeight = rowHeight + dialSize + rowHeight + spacing;
 
-        if (binauralTrackerLabel.isVisible())
-        {
-            binauralTrackerLabel.setBounds(x, y, labelWidth, rowHeight);
-            binauralTrackerSelector.setBounds(x + labelWidth, y, editorWidth * 2, rowHeight);
-            // Set Zero takes the residual width right of the selector
-            const int zeroX = x + labelWidth + editorWidth * 2 + spacing;
-            binauralSetZeroButton.setBounds(zeroX, y, x + binauralFullWidth - zeroX, rowHeight);
-            y += rowHeight + spacing;
-        }
+            if (binauralModeSelector.getSelectedId() - 1 == 0)
+            {
+                // Legacy: listener angle dial block
+                int dialCenterX = x + binauralFullWidth / 2;
+                int ay = flexTop;
+                binauralAngleLabel.setBounds(x, ay, binauralFullWidth, rowHeight);
+                binauralAngleLabel.setJustificationType(juce::Justification::centred);
+                ay += rowHeight;
+                binauralAngleDial.setBounds(dialCenterX - dialSize / 2, ay, dialSize, dialSize);
+                ay += dialSize;
+                const int angleValW = scaled(40), angleUnitW = scaled(20), overlap = scaled(5);
+                int angleStartX = dialCenterX - (angleValW + angleUnitW - overlap) / 2;
+                binauralAngleEditor.setBounds(angleStartX, ay, angleValW, rowHeight);
+                binauralAngleUnitLabel.setBounds(angleStartX + angleValW - overlap, ay, angleUnitW, rowHeight);
+            }
+            else
+            {
+                int fy = flexTop;
+                if (binauralSofaLabel.isVisible())
+                {
+                    binauralSofaLabel.setBounds(x, fy, labelWidth, rowHeight);
+                    binauralSofaSelector.setBounds(x + labelWidth, fy, binauralFullWidth - labelWidth, rowHeight);
+                    fy += rowHeight + spacing;
+                }
+                if (binauralTrackerLabel.isVisible())
+                {
+                    binauralTrackerLabel.setBounds(x, fy, labelWidth, rowHeight);
+                    binauralTrackerSelector.setBounds(x + labelWidth, fy, editorWidth * 2, rowHeight);
+                    // Set Zero takes the residual width right of the selector
+                    const int zeroX = x + labelWidth + editorWidth * 2 + spacing;
+                    binauralSetZeroButton.setBounds(zeroX, fy, x + binauralFullWidth - zeroX, rowHeight);
+                    fy += rowHeight + spacing;
+                }
+                if (binauralAttitudeLabel.isVisible())
+                {
+                    binauralAttitudeLabel.setBounds(x + labelWidth, fy, binauralFullWidth - labelWidth, rowHeight);
+                    fy += rowHeight + spacing;
+                }
+            }
 
-        if (binauralAttitudeLabel.isVisible())
-        {
-            binauralAttitudeLabel.setBounds(x + labelWidth, y, binauralFullWidth - labelWidth, rowHeight);
-            y += rowHeight + spacing;
+            y = flexTop + flexHeight;
         }
 
         // Advanced listener-geometry overlay: a card floating over the column,
@@ -1872,24 +1904,6 @@ public:
         y += rowHeight;
         binauralDistanceSlider.setBounds(x, y, binauralFullWidth, sliderHeight);
         y += sliderHeight + spacing;
-
-        // Listener Angle — in the main column only for the legacy mode;
-        // HRTF modes host it inside the Listener Geometry panel (above).
-        if (binauralModeSelector.getSelectedId() - 1 == 0)
-        {
-            const int dialSize = juce::jmax(60, static_cast<int>(100.0f * layoutScale));
-            int dialCenterX = x + binauralFullWidth / 2;
-            binauralAngleLabel.setBounds(x, y, binauralFullWidth, rowHeight);
-            binauralAngleLabel.setJustificationType(juce::Justification::centred);
-            y += rowHeight;
-            binauralAngleDial.setBounds(dialCenterX - dialSize / 2, y, dialSize, dialSize);
-            y += dialSize;
-            const int angleValW = scaled(40), angleUnitW = scaled(20), overlap = scaled(5);
-            int angleStartX = dialCenterX - (angleValW + angleUnitW - overlap) / 2;
-            binauralAngleEditor.setBounds(angleStartX, y, angleValW, rowHeight);
-            binauralAngleUnitLabel.setBounds(angleStartX + angleValW - overlap, y, angleUnitW, rowHeight);
-            y += rowHeight + spacing;
-        }
 
         // Binaural Level
         binauralAttenLabel.setBounds(x, y, labelWidth, rowHeight);
