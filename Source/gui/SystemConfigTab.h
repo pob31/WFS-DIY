@@ -1026,7 +1026,7 @@ public:
         // radius / manual orientation): rarely-touched settings live behind
         // one button so the binaural section fits above the file buttons.
         addChildComponent(binauralAdvancedButton);
-        binauralAdvancedButton.setButtonText(LOC("systemConfig.buttons.binauralAdvanced"));
+        refreshBinauralAdvancedGlyph();
         binauralAdvancedButton.onClick = [this]() {
             binauralAdvancedOpen = ! binauralAdvancedOpen;
             updateBinauralModeControlsVisibility();
@@ -1392,6 +1392,7 @@ public:
     void colorSchemeChanged() override
     {
         // Re-apply enabled/disabled colors with current theme colors
+        refreshBinauralAdvancedGlyph();
         updateIOControlsEnabledState();
         updateBinauralControlsEnabledState();
 
@@ -1771,8 +1772,9 @@ public:
         binauralModeSelector.setBounds(x + labelWidth, y, editorWidth * 2, rowHeight);
         if (binauralAdvancedButton.isVisible())
         {
+            // Square glyph button right of the mode selector
             const int advX = x + labelWidth + editorWidth * 2 + spacing;
-            binauralAdvancedButton.setBounds(advX, y, x + binauralFullWidth - advX, rowHeight);
+            binauralAdvancedButton.setBounds(advX, y, rowHeight, rowHeight);
         }
         y += rowHeight + spacing;
 
@@ -4718,9 +4720,29 @@ public:
     std::function<void()> onHeadTrackerSetZero;
     juce::Label binauralAttitudeLabel;                    // live tracker readout (timerCallback)
     HeadTrackerAttitudeProvider headTrackerAttitudeProvider;
-    juce::TextButton binauralAdvancedButton;
+    // Head-silhouette glyph button opening the listener-geometry panel
+    // (a square icon fits the mode row where a text label would truncate)
+    juce::DrawableButton binauralAdvancedButton { "listenerGeometry",
+                                                  juce::DrawableButton::ImageOnButtonBackground };
     juce::TextButton binauralAdvancedCloseButton;   // child of the card
     bool binauralAdvancedOpen = false;
+
+    /** (Re)build the head glyph in the current theme color — called at
+        construction and from colorSchemeChanged(). */
+    void refreshBinauralAdvancedGlyph()
+    {
+        // Bust silhouette in a unit box: head circle over shoulder arc.
+        juce::Path glyph;
+        glyph.addEllipse(0.34f, 0.10f, 0.32f, 0.32f);
+        glyph.addPieSegment(0.18f, 0.52f, 0.64f, 0.80f,
+                            -juce::MathConstants<float>::halfPi,
+                            juce::MathConstants<float>::halfPi, 0.0f);
+
+        juce::DrawablePath drawable;
+        drawable.setPath(glyph);
+        drawable.setFill(ColorScheme::get().textPrimary);
+        binauralAdvancedButton.setImages(&drawable);
+    }
 
     /** Card behind the Advanced listener-geometry rows (which remain children
         of the tab, brought in front of this). */
