@@ -1769,6 +1769,19 @@ MainComponent::MainComponent()
                 headTrackerManager->setZeroOnActiveSource();
         });
 
+    if (systemConfigTab != nullptr)
+        systemConfigTab->setHeadTrackerAttitudeProvider([this](float& yaw, float& pitch, float& roll)
+        {
+            if (headTrackerManager == nullptr)
+                return false;
+            auto* source = headTrackerManager->getActiveSource();
+            if (source == nullptr)
+                return false;
+            const auto o = source->getOrientation();   // POD snapshot copy, message-thread safe
+            yaw = o.yawRad; pitch = o.pitchRad; roll = o.rollRad;
+            return o.valid;
+        });
+
     // Initialize Reverb Engine
     reverbEngine = std::make_unique<ReverbEngine>();
     reverbEngine->setWorkgroupCoordinator(&workgroupCoordinator);

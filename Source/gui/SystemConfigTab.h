@@ -462,6 +462,7 @@ private:
 class SystemConfigTab : public juce::Component,
                         private juce::ValueTree::Listener,
                         private juce::TextEditor::Listener,
+                        private juce::Timer,   // live head-tracker attitude readout
                         public ColorScheme::Manager::Listener,
                         public HelpCardProvider
 {
@@ -1011,6 +1012,26 @@ public:
             if (onHeadTrackerSetZero)
                 onHeadTrackerSetZero();
         };
+
+        // Live tracker attitude readout — the only place tracking is VISIBLE.
+        // Tracker orientation bypasses the parameter system (fast path), so
+        // the manual yaw/pitch/roll fields deliberately never move with it;
+        // without this line users conclude tracking is dead.
+        addChildComponent(binauralAttitudeLabel);
+        binauralAttitudeLabel.setFont(juce::FontOptions(12.0f));
+        binauralAttitudeLabel.setJustificationType(juce::Justification::centredLeft);
+        startTimerHz(4);   // refresh the readout; no-op while it is hidden
+
+        // Advanced listener-geometry panel (listener X / ear height / head
+        // radius / manual orientation): rarely-touched settings live behind
+        // one button so the binaural section fits above the file buttons.
+        addChildComponent(binauralAdvancedButton);
+        binauralAdvancedButton.setButtonText(LOC("systemConfig.buttons.binauralAdvanced"));
+        binauralAdvancedButton.onClick = [this]() {
+            binauralAdvancedOpen = ! binauralAdvancedOpen;
+            updateBinauralModeControlsVisibility();
+        };
+        addChildComponent(binauralAdvancedCard);
 
         // HRTF-mode listener geometry (visible when render mode != ORTF legacy)
         addChildComponent(binauralListenerXLabel);
@@ -1762,37 +1783,60 @@ public:
             y += rowHeight + spacing;
         }
 
-        if (binauralListenerXLabel.isVisible())
+        if (binauralAttitudeLabel.isVisible())
         {
-            binauralListenerXLabel.setBounds(x, y, labelWidth, rowHeight);
-            binauralListenerXEditor.setBounds(x + binauralFullWidth - binauralValueWidth - binauralUnitWidth, y, binauralValueWidth, rowHeight);
-            binauralListenerXUnitLabel.setBounds(x + binauralFullWidth - binauralUnitWidth, y, binauralUnitWidth, rowHeight);
-            y += rowHeight + spacing;
-
-            binauralHeightLabel.setBounds(x, y, labelWidth, rowHeight);
-            binauralHeightEditor.setBounds(x + binauralFullWidth - binauralValueWidth - binauralUnitWidth, y, binauralValueWidth, rowHeight);
-            binauralHeightUnitLabel.setBounds(x + binauralFullWidth - binauralUnitWidth, y, binauralUnitWidth, rowHeight);
+            binauralAttitudeLabel.setBounds(x + labelWidth, y, binauralFullWidth - labelWidth, rowHeight);
             y += rowHeight + spacing;
         }
 
-        if (binauralHeadRadiusLabel.isVisible())
+        if (binauralAdvancedButton.isVisible())
         {
-            binauralHeadRadiusLabel.setBounds(x, y, labelWidth, rowHeight);
-            binauralHeadRadiusEditor.setBounds(x + binauralFullWidth - binauralValueWidth - binauralUnitWidth, y, binauralValueWidth, rowHeight);
-            binauralHeadRadiusUnitLabel.setBounds(x + binauralFullWidth - binauralUnitWidth, y, binauralUnitWidth, rowHeight);
+            binauralAdvancedButton.setBounds(x, y, binauralFullWidth, rowHeight);
             y += rowHeight + spacing;
         }
 
-        if (binauralOrientationLabel.isVisible())
+        // Advanced listener-geometry overlay: a card floating over the column,
+        // its rows laid out inside (the controls stay children of this tab —
+        // updateBinauralModeControlsVisibility brings them above the card).
+        if (binauralAdvancedCard.isVisible())
         {
-            binauralOrientationLabel.setBounds(x, y, labelWidth + scaled(20), rowHeight);
+            const int cardW = layout.colWidth + scaled(20);
+            const int rows = binauralHeadRadiusLabel.isVisible() ? 4 : 3;
+            const int pad = scaled(12);
+            const int cardH = scaled(30) + rows * (rowHeight + spacing) + pad;
+            const int cardX = layout.col3X - scaled(10);
+            const int cardY = scaled(260);
+            binauralAdvancedCard.setBounds(cardX, cardY, cardW, cardH);
+
+            int ax = cardX + pad;
+            int ay = cardY + scaled(30);
+            const int aw = cardW - 2 * pad;
+
+            binauralListenerXLabel.setBounds(ax, ay, labelWidth, rowHeight);
+            binauralListenerXEditor.setBounds(ax + aw - binauralValueWidth - binauralUnitWidth, ay, binauralValueWidth, rowHeight);
+            binauralListenerXUnitLabel.setBounds(ax + aw - binauralUnitWidth, ay, binauralUnitWidth, rowHeight);
+            ay += rowHeight + spacing;
+
+            binauralHeightLabel.setBounds(ax, ay, labelWidth, rowHeight);
+            binauralHeightEditor.setBounds(ax + aw - binauralValueWidth - binauralUnitWidth, ay, binauralValueWidth, rowHeight);
+            binauralHeightUnitLabel.setBounds(ax + aw - binauralUnitWidth, ay, binauralUnitWidth, rowHeight);
+            ay += rowHeight + spacing;
+
+            if (binauralHeadRadiusLabel.isVisible())
+            {
+                binauralHeadRadiusLabel.setBounds(ax, ay, labelWidth, rowHeight);
+                binauralHeadRadiusEditor.setBounds(ax + aw - binauralValueWidth - binauralUnitWidth, ay, binauralValueWidth, rowHeight);
+                binauralHeadRadiusUnitLabel.setBounds(ax + aw - binauralUnitWidth, ay, binauralUnitWidth, rowHeight);
+                ay += rowHeight + spacing;
+            }
+
+            binauralOrientationLabel.setBounds(ax, ay, labelWidth + scaled(20), rowHeight);
             const int oriValW = scaled(42);
-            int oriX = x + binauralFullWidth - 3 * oriValW - binauralUnitWidth;
-            binauralYawEditor.setBounds(oriX, y, oriValW, rowHeight);
-            binauralPitchEditor.setBounds(oriX + oriValW, y, oriValW, rowHeight);
-            binauralRollEditor.setBounds(oriX + 2 * oriValW, y, oriValW, rowHeight);
-            binauralOrientationUnitLabel.setBounds(x + binauralFullWidth - binauralUnitWidth, y, binauralUnitWidth, rowHeight);
-            y += rowHeight + spacing;
+            int oriX = ax + aw - 3 * oriValW - binauralUnitWidth;
+            binauralYawEditor.setBounds(oriX, ay, oriValW, rowHeight);
+            binauralPitchEditor.setBounds(oriX + oriValW, ay, oriValW, rowHeight);
+            binauralRollEditor.setBounds(oriX + 2 * oriValW, ay, oriValW, rowHeight);
+            binauralOrientationUnitLabel.setBounds(ax + aw - binauralUnitWidth, ay, binauralUnitWidth, rowHeight);
         }
 
         // Listener Distance
@@ -2071,6 +2115,15 @@ public:
     void setHeadTrackerSetZeroCallback(std::function<void()> callback)
     {
         onHeadTrackerSetZero = std::move(callback);
+    }
+
+    /** Live attitude for the tracker readout: fills yaw/pitch/roll (radians)
+        and returns whether the tracker currently sees anything. Set by
+        MainComponent, backed by the active HeadOrientationSource. */
+    using HeadTrackerAttitudeProvider = std::function<bool(float&, float&, float&)>;
+    void setHeadTrackerAttitudeProvider(HeadTrackerAttitudeProvider provider)
+    {
+        headTrackerAttitudeProvider = std::move(provider);
     }
 
     void setGettingStartedCallback(GettingStartedCallback callback)
@@ -3351,14 +3404,45 @@ public:
         updateBinauralSetZeroVisibility();
     }
 
-    /** Set Zero only makes sense when a real tracker is selected AND the
-        tracker row itself is showing (HRTF modes). */
+    /** Low-rate UI refresh of the live tracker attitude. The readout is the
+        only visual proof head tracking is alive — tracker attitude bypasses
+        the parameter system, so no other control ever moves with it. */
+    void timerCallback() override
+    {
+        if (! binauralAttitudeLabel.isVisible() || ! headTrackerAttitudeProvider)
+            return;
+
+        float yaw = 0, pitch = 0, roll = 0;
+        juce::String text;
+        if (headTrackerAttitudeProvider(yaw, pitch, roll))
+        {
+            constexpr float toDeg = 180.0f / juce::MathConstants<float>::pi;
+            text = "yaw " + juce::String(juce::roundToInt(yaw * toDeg))
+                 + juce::String::fromUTF8("\xc2\xb0   pitch ") + juce::String(juce::roundToInt(pitch * toDeg))
+                 + juce::String::fromUTF8("\xc2\xb0   roll ") + juce::String(juce::roundToInt(roll * toDeg))
+                 + juce::String::fromUTF8("\xc2\xb0");
+        }
+        else
+        {
+            text = LOC("systemConfig.labels.binauralNoTracking");
+        }
+        binauralAttitudeLabel.setText(text, juce::dontSendNotification);
+    }
+
+    /** Set Zero and the live attitude readout only make sense when a real
+        tracker is selected AND the tracker row itself is showing (HRTF modes). */
     void updateBinauralSetZeroVisibility()
     {
         const int idx = binauralTrackerSelector.getSelectedId() - 1;
         const bool trackerActive = idx >= 0 && idx < binauralTrackerIds.size()
                                 && binauralTrackerIds[idx] != "manual";
-        binauralSetZeroButton.setVisible(binauralTrackerSelector.isVisible() && trackerActive);
+        const bool show = binauralTrackerSelector.isVisible() && trackerActive;
+        binauralSetZeroButton.setVisible(show);
+        if (binauralAttitudeLabel.isVisible() != show)
+        {
+            binauralAttitudeLabel.setVisible(show);
+            resized();
+        }
     }
 
     /** Rebuild the SOFA file combo: built-in set, project sofa/ files, Import. */
@@ -3476,22 +3560,47 @@ public:
         if (hrtf)
             rebuildBinauralTrackerList();       // also updates Set Zero visibility
         else
+        {
             binauralSetZeroButton.setVisible(false);
+            binauralAttitudeLabel.setVisible(false);
+        }
 
-        binauralListenerXLabel.setVisible(hrtf);
-        binauralListenerXEditor.setVisible(hrtf);
-        binauralListenerXUnitLabel.setVisible(hrtf);
-        binauralHeightLabel.setVisible(hrtf);
-        binauralHeightEditor.setVisible(hrtf);
-        binauralHeightUnitLabel.setVisible(hrtf);
-        binauralHeadRadiusLabel.setVisible(structural);
-        binauralHeadRadiusEditor.setVisible(structural);
-        binauralHeadRadiusUnitLabel.setVisible(structural);
-        binauralOrientationLabel.setVisible(hrtf);
-        binauralYawEditor.setVisible(hrtf);
-        binauralPitchEditor.setVisible(hrtf);
-        binauralRollEditor.setVisible(hrtf);
-        binauralOrientationUnitLabel.setVisible(hrtf);
+        // The listener-geometry extras live in the Advanced overlay so the
+        // main column keeps its legacy height (they used to overflow into
+        // the file buttons). Visible only while the panel is open.
+        binauralAdvancedButton.setVisible(hrtf);
+        if (! hrtf)
+            binauralAdvancedOpen = false;
+
+        const bool panel = hrtf && binauralAdvancedOpen;
+        binauralAdvancedCard.setVisible(panel);
+        binauralListenerXLabel.setVisible(panel);
+        binauralListenerXEditor.setVisible(panel);
+        binauralListenerXUnitLabel.setVisible(panel);
+        binauralHeightLabel.setVisible(panel);
+        binauralHeightEditor.setVisible(panel);
+        binauralHeightUnitLabel.setVisible(panel);
+        binauralHeadRadiusLabel.setVisible(panel && structural);
+        binauralHeadRadiusEditor.setVisible(panel && structural);
+        binauralHeadRadiusUnitLabel.setVisible(panel && structural);
+        binauralOrientationLabel.setVisible(panel);
+        binauralYawEditor.setVisible(panel);
+        binauralPitchEditor.setVisible(panel);
+        binauralRollEditor.setVisible(panel);
+        binauralOrientationUnitLabel.setVisible(panel);
+
+        if (panel)
+        {
+            // Draw the card above the section, and the controls above the card.
+            binauralAdvancedCard.toFront(false);
+            for (auto* c : std::initializer_list<juce::Component*> {
+                     &binauralListenerXLabel, &binauralListenerXEditor, &binauralListenerXUnitLabel,
+                     &binauralHeightLabel, &binauralHeightEditor, &binauralHeightUnitLabel,
+                     &binauralHeadRadiusLabel, &binauralHeadRadiusEditor, &binauralHeadRadiusUnitLabel,
+                     &binauralOrientationLabel, &binauralYawEditor, &binauralPitchEditor,
+                     &binauralRollEditor, &binauralOrientationUnitLabel })
+                c->toFront(false);
+        }
 
         resized();
     }
@@ -3557,6 +3666,7 @@ public:
         binauralSofaSelector.setEnabled(true);
         binauralTrackerSelector.setEnabled(true);
         binauralSetZeroButton.setEnabled(true);
+        binauralAdvancedButton.setEnabled(true);
         binauralModeLabel.setColour(juce::Label::textColourId, enabledColour);
         binauralSofaLabel.setColour(juce::Label::textColourId, enabledColour);
         binauralTrackerLabel.setColour(juce::Label::textColourId, enabledColour);
@@ -4306,6 +4416,7 @@ public:
         helpTextMap[&binauralSofaSelector] = LOC("systemConfig.help.binauralSofa");
         helpTextMap[&binauralTrackerSelector] = LOC("systemConfig.help.binauralTracker");
         helpTextMap[&binauralSetZeroButton] = LOC("systemConfig.help.binauralSetZero");
+        helpTextMap[&binauralAdvancedButton] = LOC("systemConfig.help.binauralAdvanced");
         helpTextMap[&binauralListenerXEditor] = LOC("systemConfig.help.binauralListenerX");
         helpTextMap[&binauralHeightEditor] = LOC("systemConfig.help.binauralHeight");
         helpTextMap[&binauralHeadRadiusEditor] = LOC("systemConfig.help.binauralHeadRadius");
@@ -4567,6 +4678,28 @@ public:
     HeadTrackerListProvider headTrackerListProvider;
     juce::TextButton binauralSetZeroButton;
     std::function<void()> onHeadTrackerSetZero;
+    juce::Label binauralAttitudeLabel;                    // live tracker readout (timerCallback)
+    HeadTrackerAttitudeProvider headTrackerAttitudeProvider;
+    juce::TextButton binauralAdvancedButton;
+    bool binauralAdvancedOpen = false;
+
+    /** Card behind the Advanced listener-geometry rows (which remain children
+        of the tab, brought in front of this). */
+    struct BinauralAdvancedCard : public juce::Component
+    {
+        void paint(juce::Graphics& g) override
+        {
+            auto area = getLocalBounds().toFloat();
+            g.setColour(ColorScheme::get().surfaceCard);
+            g.fillRoundedRectangle(area, 8.0f);
+            g.setColour(ColorScheme::get().buttonBorder);
+            g.drawRoundedRectangle(area.reduced(0.5f), 8.0f, 1.0f);
+            g.setColour(ColorScheme::get().textPrimary);
+            g.setFont(juce::FontOptions(13.0f));
+            g.drawText(LOC("systemConfig.labels.binauralAdvancedTitle"),
+                       getLocalBounds().removeFromTop(28), juce::Justification::centred);
+        }
+    } binauralAdvancedCard;
     juce::Label binauralListenerXLabel;
     juce::TextEditor binauralListenerXEditor;
     juce::Label binauralListenerXUnitLabel;
