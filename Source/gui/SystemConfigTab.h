@@ -4731,12 +4731,20 @@ public:
         construction and from colorSchemeChanged(). */
     void refreshBinauralAdvancedGlyph()
     {
-        // Bust silhouette in a unit box: head circle over shoulder arc.
+        // Head in side profile (facing right — nose and chin make it read as
+        // a head, not a pawn), in a unit box.
         juce::Path glyph;
-        glyph.addEllipse(0.34f, 0.10f, 0.32f, 0.32f);
-        glyph.addPieSegment(0.18f, 0.52f, 0.64f, 0.80f,
-                            -juce::MathConstants<float>::halfPi,
-                            juce::MathConstants<float>::halfPi, 0.0f);
+        glyph.startNewSubPath(0.38f, 0.96f);                              // nape, bottom
+        glyph.lineTo(0.36f, 0.70f);                                       // back of neck
+        glyph.cubicTo(0.22f, 0.62f, 0.20f, 0.38f, 0.32f, 0.22f);         // back of skull
+        glyph.cubicTo(0.42f, 0.08f, 0.62f, 0.05f, 0.71f, 0.16f);         // crown
+        glyph.cubicTo(0.76f, 0.23f, 0.77f, 0.31f, 0.74f, 0.40f);         // forehead
+        glyph.lineTo(0.84f, 0.52f);                                       // nose tip
+        glyph.lineTo(0.72f, 0.55f);                                       // under the nose
+        glyph.cubicTo(0.77f, 0.60f, 0.77f, 0.63f, 0.71f, 0.66f);         // lips
+        glyph.cubicTo(0.77f, 0.71f, 0.75f, 0.79f, 0.66f, 0.81f);         // chin
+        glyph.cubicTo(0.62f, 0.87f, 0.58f, 0.92f, 0.57f, 0.96f);         // jaw to throat
+        glyph.closeSubPath();
 
         juce::DrawablePath drawable;
         drawable.setPath(glyph);
