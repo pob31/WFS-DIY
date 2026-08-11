@@ -1026,9 +1026,6 @@ public:
         // radius / manual orientation): rarely-touched settings live behind
         // one button so the binaural section fits above the file buttons.
         addChildComponent(binauralAdvancedButton);
-        // The button LnF overrides left/right padding to 7 px for text
-        // alignment; give the glyph the same breathing room internally.
-        binauralAdvancedButton.setEdgeIndent(7);
         refreshBinauralAdvancedGlyph();
         binauralAdvancedButton.onClick = [this]() {
             binauralAdvancedOpen = ! binauralAdvancedOpen;
@@ -1813,7 +1810,7 @@ public:
                 if (binauralSofaLabel.isVisible())
                 {
                     binauralSofaLabel.setBounds(x, fy, labelWidth, rowHeight);
-                    binauralSofaSelector.setBounds(x + labelWidth, fy, binauralFullWidth - labelWidth, rowHeight);
+                    binauralSofaSelector.setBounds(x + labelWidth, fy, editorWidth * 2, rowHeight);
                     fy += rowHeight + spacing;
                 }
                 if (binauralTrackerLabel.isVisible())
@@ -4759,6 +4756,11 @@ public:
         glyph.cubicTo(0.77f, 0.71f, 0.75f, 0.79f, 0.66f, 0.81f);         // chin
         glyph.cubicTo(0.62f, 0.87f, 0.58f, 0.92f, 0.57f, 0.96f);         // jaw to throat
         glyph.closeSubPath();
+
+        // Padding baked into the path (the LnF's custom button drawing does
+        // not honour DrawableButton::setEdgeIndent): inset the unit box so the
+        // silhouette gets ~7 px of air at the button's ~36 px size.
+        glyph.applyTransform(juce::AffineTransform::scale(0.62f).translated(0.19f, 0.19f));
 
         juce::DrawablePath drawable;
         drawable.setPath(glyph);
