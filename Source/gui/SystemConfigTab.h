@@ -1026,7 +1026,6 @@ public:
         // radius / manual orientation): rarely-touched settings live behind
         // one button so the binaural section fits above the file buttons.
         addChildComponent(binauralAdvancedButton);
-        refreshBinauralAdvancedGlyph();
         binauralAdvancedButton.onClick = [this]() {
             binauralAdvancedOpen = ! binauralAdvancedOpen;
             updateBinauralModeControlsVisibility();
@@ -1392,7 +1391,7 @@ public:
     void colorSchemeChanged() override
     {
         // Re-apply enabled/disabled colors with current theme colors
-        refreshBinauralAdvancedGlyph();
+        binauralAdvancedButton.repaint();   // glyph color reads the theme at paint time
         updateIOControlsEnabledState();
         updateBinauralControlsEnabledState();
 
@@ -1772,9 +1771,11 @@ public:
         binauralModeSelector.setBounds(x + labelWidth, y, editorWidth * 2, rowHeight);
         if (binauralAdvancedButton.isVisible())
         {
-            // Square glyph button right of the mode selector
+            // Glyph button right of the mode selector; 12 px wider than
+            // square because the LnF background trims 6 px off each side —
+            // the VISIBLE surface ends up square.
             const int advX = x + labelWidth + editorWidth * 2 + spacing;
-            binauralAdvancedButton.setBounds(advX, y, rowHeight, rowHeight);
+            binauralAdvancedButton.setBounds(advX, y, rowHeight + scaled(12), rowHeight);
         }
         y += rowHeight + spacing;
 
@@ -4731,42 +4732,52 @@ public:
     std::function<void()> onHeadTrackerSetZero;
     juce::Label binauralAttitudeLabel;                    // live tracker readout (timerCallback)
     HeadTrackerAttitudeProvider headTrackerAttitudeProvider;
-    // Head-silhouette glyph button opening the listener-geometry panel
-    // (a square icon fits the mode row where a text label would truncate)
-    juce::DrawableButton binauralAdvancedButton { "listenerGeometry",
-                                                  juce::DrawableButton::ImageOnButtonBackground };
+    /** Head-silhouette glyph button opening the listener-geometry panel.
+        Same approach as the app's text buttons: the LnF background (which
+        trims cornerSize=6 px off each side), then the content laid out
+        against that same trimmed rect with breathing room — DrawableButton
+        can't do this because it re-fits the drawable's bounding box. */
+    struct HeadGlyphButton : public juce::Button
+    {
+        HeadGlyphButton() : juce::Button("listenerGeometry")
+        {
+            // Head in side profile (facing right — nose and chin make it
+            // read as a head, not a pawn), in a unit box.
+            glyph.startNewSubPath(0.38f, 0.96f);                          // nape, bottom
+            glyph.lineTo(0.36f, 0.70f);                                   // back of neck
+            glyph.cubicTo(0.22f, 0.62f, 0.20f, 0.38f, 0.32f, 0.22f);     // back of skull
+            glyph.cubicTo(0.42f, 0.08f, 0.62f, 0.05f, 0.71f, 0.16f);     // crown
+            glyph.cubicTo(0.76f, 0.23f, 0.77f, 0.31f, 0.74f, 0.40f);     // forehead
+            glyph.lineTo(0.84f, 0.52f);                                   // nose tip
+            glyph.lineTo(0.72f, 0.55f);                                   // under the nose
+            glyph.cubicTo(0.77f, 0.60f, 0.77f, 0.63f, 0.71f, 0.66f);     // lips
+            glyph.cubicTo(0.77f, 0.71f, 0.75f, 0.79f, 0.66f, 0.81f);     // chin
+            glyph.cubicTo(0.62f, 0.87f, 0.58f, 0.92f, 0.57f, 0.96f);     // jaw to throat
+            glyph.closeSubPath();
+        }
+
+        void paintButton(juce::Graphics& g, bool highlighted, bool down) override
+        {
+            getLookAndFeel().drawButtonBackground(g, *this,
+                findColour(juce::TextButton::buttonColourId), highlighted, down);
+
+            // Mirror drawButtonBackground's geometry (cornerSize = 6 trimmed
+            // left/right), then pad the glyph inside the visible surface.
+            auto r = getLocalBounds().toFloat();
+            r.removeFromLeft(6.0f);
+            r.removeFromRight(6.0f);
+            r = r.reduced(4.0f);
+
+            g.setColour(ColorScheme::get().textPrimary
+                            .withAlpha(isEnabled() ? 1.0f : 0.5f));
+            g.fillPath(glyph, glyph.getTransformToScaleToFit(r, true));
+        }
+
+        juce::Path glyph;
+    } binauralAdvancedButton;
+
     juce::TextButton binauralAdvancedCloseButton;   // child of the card
     bool binauralAdvancedOpen = false;
-
-    /** (Re)build the head glyph in the current theme color — called at
-        construction and from colorSchemeChanged(). */
-    void refreshBinauralAdvancedGlyph()
-    {
-        // Head in side profile (facing right — nose and chin make it read as
-        // a head, not a pawn), in a unit box.
-        juce::Path glyph;
-        glyph.startNewSubPath(0.38f, 0.96f);                              // nape, bottom
-        glyph.lineTo(0.36f, 0.70f);                                       // back of neck
-        glyph.cubicTo(0.22f, 0.62f, 0.20f, 0.38f, 0.32f, 0.22f);         // back of skull
-        glyph.cubicTo(0.42f, 0.08f, 0.62f, 0.05f, 0.71f, 0.16f);         // crown
-        glyph.cubicTo(0.76f, 0.23f, 0.77f, 0.31f, 0.74f, 0.40f);         // forehead
-        glyph.lineTo(0.84f, 0.52f);                                       // nose tip
-        glyph.lineTo(0.72f, 0.55f);                                       // under the nose
-        glyph.cubicTo(0.77f, 0.60f, 0.77f, 0.63f, 0.71f, 0.66f);         // lips
-        glyph.cubicTo(0.77f, 0.71f, 0.75f, 0.79f, 0.66f, 0.81f);         // chin
-        glyph.cubicTo(0.62f, 0.87f, 0.58f, 0.92f, 0.57f, 0.96f);         // jaw to throat
-        glyph.closeSubPath();
-
-        // Padding baked into the path (the LnF's custom button drawing does
-        // not honour DrawableButton::setEdgeIndent): inset the unit box so the
-        // silhouette gets ~7 px of air at the button's ~36 px size.
-        glyph.applyTransform(juce::AffineTransform::scale(0.62f).translated(0.19f, 0.19f));
-
-        juce::DrawablePath drawable;
-        drawable.setPath(glyph);
-        drawable.setFill(ColorScheme::get().textPrimary);
-        binauralAdvancedButton.setImages(&drawable);
-    }
 
     /** Card behind the Advanced listener-geometry rows (which remain children
         of the tab, brought in front of this). */
