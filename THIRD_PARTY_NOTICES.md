@@ -159,9 +159,10 @@ damages arising from the use of this software.
 
 Used by the optional `wfs_headtrack` webcam head-tracking plugin
 (`tools/headtrack/`) for camera capture, DNN inference and face detection.
-OpenCV is not linked into the application itself; its runtime library is
-redistributed alongside the plugin on Windows (`opencv_world*.dll`).
-License text: https://github.com/opencv/opencv/blob/master/LICENSE
+OpenCV is not linked into the application itself: on Windows its runtime
+library is redistributed alongside the plugin (`opencv_world*.dll`); on
+macOS and Linux a minimal OpenCV build is statically linked into the
+plugin. License text: https://github.com/opencv/opencv/blob/master/LICENSE
 
 ---
 

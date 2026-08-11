@@ -246,6 +246,42 @@ case "$BUNDLE_GPU" in
     *) echo "ERROR: BUNDLE_GPU must be auto|on|off (got '$BUNDLE_GPU')" >&2; exit 1;;
 esac
 
+# ----------------------------------------------------------------------------
+# Webcam head-tracker plugin (binaural renderer): libwfs_headtrack.so + the
+# YuNet model, loaded from beside the binary like the GPU plugins. Built with
+# BUNDLED_OPENCV=1 — a minimal static OpenCV compiled into the plugin — so the
+# tarball carries no OpenCV runtime and no distro OpenCV dependency. Needs
+# cmake + network on the build box (FetchContent pulls the pinned OpenCV
+# sources, ~10 min cold). BUNDLE_HEADTRACK: auto skips with a notice when the
+# build fails (e.g. no network); on fails the release instead.
+# ----------------------------------------------------------------------------
+BUNDLE_HEADTRACK="${BUNDLE_HEADTRACK:-auto}"
+HEADTRACK_BUNDLED=0
+bundle_headtrack() {
+    echo "==> Building head-tracker plugin (static OpenCV)"
+    if BUNDLED_OPENCV=1 "$REPO_ROOT/tools/headtrack/build-headtrack-plugin.sh" Release "$STAGE_DIR"; then
+        # The build script stages the .so + model when given a stage dir, but
+        # be explicit + verify: a silent miss here ships a tarball without
+        # webcam tracking and nobody notices until a user does.
+        local out="$REPO_ROOT/tools/headtrack/build-bundled"
+        [[ -f "$STAGE_DIR/libwfs_headtrack.so" ]] || cp "$out/libwfs_headtrack.so" "$STAGE_DIR/"
+        [[ -f "$STAGE_DIR/face_detection_yunet_2023mar.onnx" ]] \
+            || cp "$out/face_detection_yunet_2023mar.onnx" "$STAGE_DIR/"
+        HEADTRACK_BUNDLED=1
+        echo "==> Head tracker bundled: libwfs_headtrack.so ($(du -h "$STAGE_DIR/libwfs_headtrack.so" | cut -f1))"
+    else
+        if [[ "$BUNDLE_HEADTRACK" == on ]]; then
+            echo "ERROR: BUNDLE_HEADTRACK=on but the plugin build failed." >&2; exit 1
+        fi
+        echo "==> Head-tracker plugin build failed — tarball ships without webcam tracking." >&2
+    fi
+}
+case "$BUNDLE_HEADTRACK" in
+    off) echo "==> Head-tracker bundling disabled (BUNDLE_HEADTRACK=off)";;
+    on|auto) bundle_headtrack;;
+    *) echo "ERROR: BUNDLE_HEADTRACK must be auto|on|off (got '$BUNDLE_HEADTRACK')" >&2; exit 1;;
+esac
+
 # udev rules and the JUCE patch infrastructure.
 mkdir -p "$STAGE_DIR/share"
 cp "$REPO_ROOT/assets/linux/70-wfs-diy.rules" "$STAGE_DIR/share/"
@@ -303,11 +339,18 @@ if [[ -f "$HERE/WFS-DIY.bin" ]]; then
     # the launcher that wires up the bundled GPU libs.
     $SUDO install -m 0755 "$HERE/WFS-DIY.bin"             "$APP_DIR/WFS-DIY.bin"
     $SUDO install -m 0755 "$HERE/WFS-DIY"                 "$BIN_DIR/WFS-DIY"
-    for so in "$HERE"/libwfs_*.so; do [[ -e "$so" ]] && $SUDO install -m 0755 "$so" "$APP_DIR/"; done
     $SUDO cp -a          "$HERE/gpu"                      "$APP_DIR/gpu"
 else
-    $SUDO install -m 0755 "$HERE/WFS-DIY"                 "$BIN_DIR/WFS-DIY"
+    # CPU-only build: the binary itself lives in APP_DIR so runtime-loaded
+    # plugins (head tracker) and data resolve beside it; bin/ gets a symlink.
+    $SUDO install -m 0755 "$HERE/WFS-DIY"                 "$APP_DIR/WFS-DIY"
+    $SUDO ln -sf          "$APP_DIR/WFS-DIY"              "$BIN_DIR/WFS-DIY"
 fi
+# Runtime-loaded plugins (GPU + head tracker) and the head tracker's face
+# model — all found relative to the binary.
+for so in "$HERE"/libwfs_*.so; do [[ -e "$so" ]] && $SUDO install -m 0755 "$so" "$APP_DIR/"; done
+[[ -f "$HERE/face_detection_yunet_2023mar.onnx" ]] \
+    && $SUDO install -m 0644 "$HERE/face_detection_yunet_2023mar.onnx" "$APP_DIR/"
 $SUDO cp -R          "$HERE/lang"                      "$APP_DIR/lang"
 $SUDO cp -R          "$HERE/MCP"                       "$APP_DIR/MCP"
 $SUDO install -m 0644 "$HERE/share/WFS-DIY_logo.png"   "$APP_DIR/WFS-DIY_logo.png"
@@ -383,6 +426,17 @@ UNINSTALL_EOF
 chmod +x "$STAGE_DIR/uninstall.sh"
 
 # README for the tarball
+HEADTRACK_README=""
+if [[ "$HEADTRACK_BUNDLED" == 1 ]]; then
+    HEADTRACK_README="
+Webcam head tracking
+    libwfs_headtrack.so (self-contained, static OpenCV) provides webcam head
+    tracking for the binaural renderer. Select \"Webcam\" under System Config >
+    Binaural Renderer > Head Tracking. Camera access uses V4L2 (/dev/video*);
+    the app needs read access to the camera device (the 'video' group on most
+    distros).
+"
+fi
 GPU_README=""
 if [[ "$GPU_BUNDLED" == 1 ]]; then
     GPU_README="
@@ -411,7 +465,7 @@ in this archive. udev rules under share/70-wfs-diy.rules grant non-root
 access to Stream Deck, 3Dconnexion SpaceMouse and
 USB touchscreens. The installer offers to drop them in /etc/udev/rules.d
 on request.
-${GPU_README}
+${HEADTRACK_README}${GPU_README}
 Source: https://github.com/pob31/WFS-DIY
 EOF
 

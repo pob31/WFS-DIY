@@ -27,17 +27,75 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 # Modules used: core (Mat), imgproc, videoio (capture), dnn (runs the YuNet
-# ONNX model), objdetect (cv::FaceDetectorYN — anchors/NMS/landmarks), calib3d
-# (cv::solvePnP). No COMPONENTS request: the official Windows prebuilt ships a
-# single opencv_world target and would fail a per-component check, while
-# distro/brew builds expose them individually. We verify by compiling instead.
-find_package(OpenCV REQUIRED)
-message(STATUS "wfs_headtrack: OpenCV ${OpenCV_VERSION} from ${OpenCV_DIR}")
+# ONNX model), objdetect (cv::FaceDetectorYN — anchors/NMS/landmarks).
+#
+# Two ways to get OpenCV:
+#  - default: find_package against a prebuilt/system OpenCV (Windows official
+#    prebuilt = single opencv_world target, hence no COMPONENTS request —
+#    a per-component check would fail there while distro/brew builds pass).
+#  - WFS_HEADTRACK_BUNDLED_OPENCV=ON: FetchContent the OpenCV sources and build
+#    a minimal STATIC OpenCV into the plugin. This is the release-packaging
+#    path for Linux/macOS: the result is one self-contained shared library with
+#    no OpenCV runtime to bundle, fix up (macOS install names) or codesign
+#    separately. Camera backends only (V4L2 / AVFoundation / MSMF) — ffmpeg,
+#    GTK/Qt and IPP are disabled: this plugin reads a webcam, not video files.
+option(WFS_HEADTRACK_BUNDLED_OPENCV
+       "Build a minimal static OpenCV from source into the plugin (release packaging)" OFF)
+
+if(WFS_HEADTRACK_BUNDLED_OPENCV)
+    include(FetchContent)
+    set(BUILD_SHARED_LIBS OFF)
+    # BUILD_LIST resolves module dependencies itself (core/imgproc/flann/... are
+    # pulled in as needed by the listed leaves).
+    set(BUILD_LIST "videoio,dnn,objdetect" CACHE STRING "" FORCE)
+    set(BUILD_opencv_apps OFF CACHE BOOL "" FORCE)
+    set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(BUILD_PERF_TESTS OFF CACHE BOOL "" FORCE)
+    set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(BUILD_JAVA OFF CACHE BOOL "" FORCE)
+    set(BUILD_opencv_python3 OFF CACHE BOOL "" FORCE)
+    # OpenCV static defaults to the static CRT (/MT) on MSVC, which conflicts
+    # with this plugin's /MD (LNK2038 RuntimeLibrary mismatch). Keep everything
+    # on the dynamic CRT — the repo-wide convention.
+    set(BUILD_WITH_STATIC_CRT OFF CACHE BOOL "" FORCE)
+    set(WITH_FFMPEG OFF CACHE BOOL "" FORCE)
+    set(WITH_GSTREAMER OFF CACHE BOOL "" FORCE)
+    set(WITH_GTK OFF CACHE BOOL "" FORCE)
+    set(WITH_QT OFF CACHE BOOL "" FORCE)
+    set(WITH_IPP OFF CACHE BOOL "" FORCE)
+    set(WITH_OPENEXR OFF CACHE BOOL "" FORCE)
+    set(WITH_TIFF OFF CACHE BOOL "" FORCE)
+    set(WITH_WEBP OFF CACHE BOOL "" FORCE)
+    set(WITH_OPENJPEG OFF CACHE BOOL "" FORCE)
+    set(WITH_JASPER OFF CACHE BOOL "" FORCE)
+    set(OPENCV_ENABLE_NONFREE OFF CACHE BOOL "" FORCE)
+
+    FetchContent_Declare(opencv
+        URL https://github.com/opencv/opencv/archive/refs/tags/4.10.0.tar.gz
+        URL_HASH SHA256=b2171af5be6b26f7a06b1229948bbb2bdaa74fcf5cd097e0af6378fce50a6eb9)
+    FetchContent_MakeAvailable(opencv)
+
+    set(OpenCV_LIBS opencv_core opencv_imgproc opencv_videoio opencv_dnn opencv_objdetect)
+    set(OpenCV_VERSION "4.10.0-static")
+
+    # In-tree module targets do not export their include dirs to outside
+    # consumers; collect them plus the generated config headers explicitly.
+    set(WFS_HEADTRACK_OPENCV_INCLUDES "${OPENCV_CONFIG_FILE_INCLUDE_DIR}")
+    foreach(m core imgproc videoio dnn objdetect)
+        list(APPEND WFS_HEADTRACK_OPENCV_INCLUDES "${OPENCV_MODULE_opencv_${m}_LOCATION}/include")
+    endforeach()
+else()
+    find_package(OpenCV REQUIRED)
+endif()
+message(STATUS "wfs_headtrack: OpenCV ${OpenCV_VERSION}")
 
 add_library(wfs_headtrack SHARED src/HeadTrackPlugin.cpp)
 
 target_include_directories(wfs_headtrack PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/../../spatcore/binaural/plugin")
+if(WFS_HEADTRACK_BUNDLED_OPENCV)
+    target_include_directories(wfs_headtrack PRIVATE ${WFS_HEADTRACK_OPENCV_INCLUDES})
+endif()
 
 target_link_libraries(wfs_headtrack PRIVATE ${OpenCV_LIBS})
 

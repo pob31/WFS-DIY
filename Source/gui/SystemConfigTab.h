@@ -4471,7 +4471,9 @@ public:
         helpTextMap[&binauralSofaSelector] = LOC("systemConfig.help.binauralSofa");
         helpTextMap[&binauralTrackerSelector] = LOC("systemConfig.help.binauralTracker");
         helpTextMap[&binauralSetZeroButton] = LOC("systemConfig.help.binauralSetZero");
+        helpTextMap[&binauralAttitudeLabel] = LOC("systemConfig.help.binauralAttitude");
         helpTextMap[&binauralAdvancedButton] = LOC("systemConfig.help.binauralAdvanced");
+        helpTextMap[&binauralAdvancedCloseButton] = LOC("systemConfig.help.binauralAdvancedClose");
         helpTextMap[&binauralListenerXEditor] = LOC("systemConfig.help.binauralListenerX");
         helpTextMap[&binauralHeightEditor] = LOC("systemConfig.help.binauralHeight");
         helpTextMap[&binauralHeadRadiusEditor] = LOC("systemConfig.help.binauralHeadRadius");

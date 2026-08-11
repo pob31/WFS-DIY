@@ -5,6 +5,8 @@
   <dict>
     <key>NSMicrophoneUsageDescription</key>
     <string>WFS-DIY needs audio input access for Wave Field Synthesis processing.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>WFS-DIY uses the camera for webcam head tracking in the binaural renderer.</string>
     <key>NSDocumentsFolderUsageDescription</key>
     <string>WFS-DIY saves session data (project files, snapshots, configuration) to your Documents folder.</string>
     <key>CFBundleDocumentTypes</key>

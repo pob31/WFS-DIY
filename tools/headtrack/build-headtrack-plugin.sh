@@ -3,17 +3,26 @@
 # it next to the app. OpenCV comes from the system package manager:
 #   Linux:  sudo apt install libopencv-dev
 #   macOS:  brew install opencv
+# or, for release packaging, set BUNDLED_OPENCV=1 to build a minimal STATIC
+# OpenCV from source into the plugin (self-contained .so/.dylib — nothing to
+# bundle or codesign besides the plugin itself; ~10 min extra on first build).
 #
-# Usage: tools/headtrack/build-headtrack-plugin.sh [Release|Debug] [stageDir]
+# Usage: [BUNDLED_OPENCV=1] tools/headtrack/build-headtrack-plugin.sh [Release|Debug] [stageDir]
 
 set -euo pipefail
 
 CONFIG="${1:-Release}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-BUILD="$SCRIPT_DIR/build"
 
-cmake -S "$SCRIPT_DIR" -B "$BUILD" -DCMAKE_BUILD_TYPE="$CONFIG"
+EXTRA_DEFS=()
+BUILD="$SCRIPT_DIR/build"
+if [[ "${BUNDLED_OPENCV:-0}" == "1" ]]; then
+    EXTRA_DEFS+=(-DWFS_HEADTRACK_BUNDLED_OPENCV=ON)
+    BUILD="$SCRIPT_DIR/build-bundled"   # keep system-OpenCV and static caches apart
+fi
+
+cmake -S "$SCRIPT_DIR" -B "$BUILD" -DCMAKE_BUILD_TYPE="$CONFIG" "${EXTRA_DEFS[@]}"
 cmake --build "$BUILD" --parallel
 
 if [[ "$(uname)" == "Darwin" ]]; then

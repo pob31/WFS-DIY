@@ -65,6 +65,29 @@ if [ "${SKIP_BUILD:-0}" != "1" ]; then
 fi
 [ -d "$APP" ] || { echo "error: app not found at $APP" >&2; exit 1; }
 
+# ── Webcam head-tracker plugin (binaural renderer) ────────────────────────
+# Built with a minimal STATIC OpenCV (BUNDLED_OPENCV=1) so the result is one
+# self-contained dylib — no OpenCV dylib closure to relocate with
+# install_name_tool or to codesign piecewise. It goes into Contents/MacOS:
+# the app's loader looks for libwfs_headtrack.dylib beside the executable
+# (spatcore PlatformDynLib exeDir()), and the plugin loads its model from
+# beside itself. Both are signed below BEFORE the bundle re-sign, which then
+# seals them into the bundle signature. SKIP_HEADTRACK=1 skips (the app then
+# logs the plugin's absence and head tracking stays on manual orientation).
+if [ "${SKIP_HEADTRACK:-0}" != "1" ]; then
+    echo "==> Building head-tracker plugin (static OpenCV — ~10 min cold)"
+    if BUNDLED_OPENCV=1 tools/headtrack/build-headtrack-plugin.sh Release "$APP/Contents/MacOS"; then
+        HT_LIB="$APP/Contents/MacOS/libwfs_headtrack.dylib"
+        HT_MODEL="$APP/Contents/MacOS/face_detection_yunet_2023mar.onnx"
+        [ -f "$HT_LIB" ]   || cp tools/headtrack/build-bundled/libwfs_headtrack.dylib "$HT_LIB"
+        [ -f "$HT_MODEL" ] || cp tools/headtrack/models/face_detection_yunet_2023mar.onnx "$HT_MODEL"
+        echo "==> Signing head-tracker plugin"
+        codesign --force --options runtime --timestamp --sign "$DEVELOPER_ID" "$HT_LIB"
+    else
+        echo "warning: head-tracker plugin build failed — DMG ships without webcam tracking" >&2
+    fi
+fi
+
 # ── Re-sign with notarization entitlements (the get-task-allow=false fix) ──
 echo "==> Re-signing with $ENTITLEMENTS"
 codesign --force --options runtime --timestamp \
