@@ -4741,19 +4741,22 @@ public:
     {
         HeadGlyphButton() : juce::Button("listenerGeometry")
         {
-            // Head in side profile (facing right — nose and chin make it
-            // read as a head, not a pawn), in a unit box.
+            // Head in side profile, facing right, drawn as an OUTLINE
+            // (strokePath below) in a unit box. Second open subpath = ear.
             glyph.startNewSubPath(0.38f, 0.96f);                          // nape, bottom
             glyph.lineTo(0.36f, 0.70f);                                   // back of neck
             glyph.cubicTo(0.22f, 0.62f, 0.20f, 0.38f, 0.32f, 0.22f);     // back of skull
             glyph.cubicTo(0.42f, 0.08f, 0.62f, 0.05f, 0.71f, 0.16f);     // crown
             glyph.cubicTo(0.76f, 0.23f, 0.77f, 0.31f, 0.74f, 0.40f);     // forehead
-            glyph.lineTo(0.84f, 0.52f);                                   // nose tip
-            glyph.lineTo(0.72f, 0.55f);                                   // under the nose
+            glyph.lineTo(0.87f, 0.51f);                                   // nose tip (pointy)
+            glyph.lineTo(0.71f, 0.55f);                                   // under the nose
             glyph.cubicTo(0.77f, 0.60f, 0.77f, 0.63f, 0.71f, 0.66f);     // lips
             glyph.cubicTo(0.77f, 0.71f, 0.75f, 0.79f, 0.66f, 0.81f);     // chin
             glyph.cubicTo(0.62f, 0.87f, 0.58f, 0.92f, 0.57f, 0.96f);     // jaw to throat
             glyph.closeSubPath();
+
+            glyph.startNewSubPath(0.52f, 0.44f);                          // stylised ear
+            glyph.cubicTo(0.60f, 0.42f, 0.62f, 0.55f, 0.52f, 0.58f);
         }
 
         void paintButton(juce::Graphics& g, bool highlighted, bool down) override
@@ -4770,7 +4773,11 @@ public:
 
             g.setColour(ColorScheme::get().textPrimary
                             .withAlpha(isEnabled() ? 1.0f : 0.5f));
-            g.fillPath(glyph, glyph.getTransformToScaleToFit(r, true));
+            juce::Path scaled(glyph);
+            scaled.applyTransform(glyph.getTransformToScaleToFit(r, true));
+            g.strokePath(scaled, juce::PathStrokeType(juce::jmax(1.2f, r.getHeight() * 0.06f),
+                                                      juce::PathStrokeType::curved,
+                                                      juce::PathStrokeType::rounded));
         }
 
         juce::Path glyph;
