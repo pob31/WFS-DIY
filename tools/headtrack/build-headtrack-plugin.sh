@@ -15,14 +15,18 @@ CONFIG="${1:-Release}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-EXTRA_DEFS=()
+# Plain string, not an array: macOS ships bash 3.2, where expanding an EMPTY
+# array under `set -u` is an "unbound variable" error (broke CI). The value is
+# a single space-free token, so unquoted expansion is safe.
+EXTRA_DEFS=""
 BUILD="$SCRIPT_DIR/build"
 if [[ "${BUNDLED_OPENCV:-0}" == "1" ]]; then
-    EXTRA_DEFS+=(-DWFS_HEADTRACK_BUNDLED_OPENCV=ON)
+    EXTRA_DEFS="-DWFS_HEADTRACK_BUNDLED_OPENCV=ON"
     BUILD="$SCRIPT_DIR/build-bundled"   # keep system-OpenCV and static caches apart
 fi
 
-cmake -S "$SCRIPT_DIR" -B "$BUILD" -DCMAKE_BUILD_TYPE="$CONFIG" "${EXTRA_DEFS[@]}"
+# shellcheck disable=SC2086  # intentional word splitting of the single define
+cmake -S "$SCRIPT_DIR" -B "$BUILD" -DCMAKE_BUILD_TYPE="$CONFIG" $EXTRA_DEFS
 cmake --build "$BUILD" --parallel
 
 if [[ "$(uname)" == "Darwin" ]]; then
