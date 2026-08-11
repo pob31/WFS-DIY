@@ -119,6 +119,87 @@ Boost Software License 1.0.
 
 ---
 
+## libmysofa
+
+- **Website**: https://github.com/hoene/libmysofa
+- **License**: BSD-3-Clause
+- **Copyright**: (c) 2016-2017, Symonics GmbH, Christian Hoene
+
+SOFA (Spatially Oriented Format for Acoustics) file reader used by the
+binaural renderer's HRTF loading. A source subset (HDF5 reader + HRTF
+lookup/resampling) is vendored at `ThirdParty/libmysofa`; the full license
+text is reproduced at `ThirdParty/libmysofa/LICENSE`.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the conditions of the
+BSD-3-Clause license are met. THIS SOFTWARE IS PROVIDED BY THE AUTHOR
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES ARE DISCLAIMED.
+
+---
+
+## zlib (inflate subset)
+
+- **Website**: https://zlib.net
+- **License**: zlib License
+- **Copyright**: (c) 1995-2024 Jean-loup Gailly and Mark Adler
+
+A minimal inflate-only subset is vendored at `ThirdParty/zlib` for
+libmysofa's compressed-HDF5 reading (symbol-prefixed to coexist with the
+zlib JUCE embeds). This software is provided 'as-is', without any express
+or implied warranty. In no event will the authors be held liable for any
+damages arising from the use of this software.
+
+---
+
+## OpenCV
+
+- **Website**: https://opencv.org
+- **License**: Apache License 2.0
+- **Copyright**: (c) OpenCV team and contributors
+
+Used by the optional `wfs_headtrack` webcam head-tracking plugin
+(`tools/headtrack/`) for camera capture, DNN inference and face detection.
+OpenCV is not linked into the application itself; its runtime library is
+redistributed alongside the plugin on Windows (`opencv_world*.dll`).
+License text: https://github.com/opencv/opencv/blob/master/LICENSE
+
+---
+
+## YuNet face detection model
+
+- **Website**: https://github.com/opencv/opencv_zoo (models/face_detection_yunet)
+- **License**: MIT
+- **Authors**: Wei Wu, Hanyang Peng, Shiqi Yu
+
+The `face_detection_yunet_2023mar.onnx` model (~230 KB) ships with the
+webcam head-tracking plugin and is vendored at `tools/headtrack/models/`.
+Reference: W. Wu, H. Peng, S. Yu, *YuNet: A Tiny Millisecond-level Face
+Detector*, Machine Intelligence Research, 2023.
+
+---
+
+# Bundled Data
+
+## SADIE II KU100 HRTF set
+
+- **Website**: https://www.york.ac.uk/sadie-project/database.html
+- **License**: Apache License 2.0
+- **Source**: The Audio Lab, Department of Electronic Engineering,
+  University of York — Cal Armstrong, Lewis Thresh and Gavin Kearney
+
+The binaural renderer's built-in HRTF set (`assets/SOFA/`) is the SADIE II
+database's Neumann KU100 dummy-head measurement (subject D1, 48 kHz,
+8802 directions), repacked losslessly for size (see `tools/repack_sofa.py`;
+the impulse-response data is bit-identical to the original). Per the
+database's terms, the original dataset is referenced here in accordance
+with its Apache-2.0 license:
+
+> C. Armstrong, L. Thresh, D. Murphy, G. Kearney, *A Perceptual Evaluation
+> of Individual and Non-Individual HRTFs: A Case Study of the SADIE II
+> Database*, Applied Sciences, 2018.
+
+---
+
 # Standards & Protocols
 
 ## OSCQuery
