@@ -27,7 +27,11 @@ fi
 
 # shellcheck disable=SC2086  # intentional word splitting of the single define
 cmake -S "$SCRIPT_DIR" -B "$BUILD" -DCMAKE_BUILD_TYPE="$CONFIG" $EXTRA_DEFS
-cmake --build "$BUILD" --parallel
+
+# --parallel with no count means unbounded `make -j` under the Makefiles
+# generator; the static-OpenCV build then OOMs 16 GB CI runners (exit 143).
+NJOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)"
+cmake --build "$BUILD" --parallel "$NJOBS"
 
 if [[ "$(uname)" == "Darwin" ]]; then
     LIB="libwfs_headtrack.dylib"
