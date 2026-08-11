@@ -297,6 +297,7 @@ private:
     // before members go away, and sources must outlive the running worker.
     std::unique_ptr<HeadTrackerManager> headTrackerManager;
     juce::String lastAppliedHeadTrackerSource;
+    bool binauralNoDeviceWarned = false;   // one warning per enable attempt without a device
 
     // Shared input ring buffers (written by audio callback, read by algorithm + reverb thread)
     std::vector<std::unique_ptr<SharedInputRingBuffer>> sharedInputBuffers;

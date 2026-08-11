@@ -1847,7 +1847,10 @@ public:
             const int cardX = layout.col3X - scaled(10);
             const int cardY = scaled(260);
             binauralAdvancedCard.setBounds(cardX, cardY, cardW, cardH);
-            binauralAdvancedCloseButton.setBounds(cardW - scaled(26), scaled(4), scaled(22), scaled(22));
+            // 12 px wider than square: the LnF background trims cornerSize=6
+            // off each side, so this leaves a square visible surface with the
+            // x centred instead of clipped.
+            binauralAdvancedCloseButton.setBounds(cardW - scaled(38), scaled(4), scaled(34), scaled(22));
 
             int ax = cardX + pad;
             int ay = cardY + scaled(30);
@@ -4747,7 +4750,7 @@ public:
             glyph.lineTo(0.36f, 0.70f);                                   // back of neck
             glyph.cubicTo(0.22f, 0.62f, 0.20f, 0.38f, 0.32f, 0.22f);     // back of skull
             glyph.cubicTo(0.42f, 0.08f, 0.62f, 0.05f, 0.71f, 0.16f);     // crown
-            glyph.cubicTo(0.76f, 0.23f, 0.77f, 0.31f, 0.74f, 0.40f);     // forehead
+            glyph.cubicTo(0.77f, 0.24f, 0.79f, 0.34f, 0.79f, 0.42f);     // forehead, high nose bridge
             glyph.lineTo(0.87f, 0.51f);                                   // nose tip (pointy)
             glyph.lineTo(0.71f, 0.55f);                                   // under the nose
             glyph.cubicTo(0.77f, 0.60f, 0.77f, 0.63f, 0.71f, 0.66f);     // lips
@@ -4755,8 +4758,10 @@ public:
             glyph.cubicTo(0.62f, 0.87f, 0.58f, 0.92f, 0.57f, 0.96f);     // jaw to throat
             glyph.closeSubPath();
 
-            glyph.startNewSubPath(0.52f, 0.44f);                          // stylised ear
-            glyph.cubicTo(0.60f, 0.42f, 0.62f, 0.55f, 0.52f, 0.58f);
+            // Stylised ear: helix bulges toward the back of the head,
+            // opening toward the face.
+            glyph.startNewSubPath(0.60f, 0.44f);
+            glyph.cubicTo(0.52f, 0.42f, 0.50f, 0.55f, 0.60f, 0.58f);
         }
 
         void paintButton(juce::Graphics& g, bool highlighted, bool down) override

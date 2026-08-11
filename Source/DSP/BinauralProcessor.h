@@ -121,6 +121,8 @@ public:
         hrtfInputPtrs.assign ((size_t) juce::jmax (1, maxSources), nullptr);
         hrtfPositions.assign ((size_t) juce::jmax (1, maxSources) * 3, 0.0f);
         hrtfSourceGains.assign ((size_t) juce::jmax (1, maxSources), 1.0f);
+
+        prepared.store (true, std::memory_order_release);
     }
 
     /**
@@ -128,6 +130,7 @@ public:
      */
     void releaseResources()
     {
+        prepared.store (false, std::memory_order_release);
         stopThread (1000);
         delayBuffersL.clear();
         delayBuffersR.clear();
@@ -326,7 +329,12 @@ private:
 
         while (!threadShouldExit())
         {
-            if (processingEnabled.load (std::memory_order_acquire))
+            // The prepared guard is what makes an out-of-order enable merely
+            // silent instead of fatal: enabled-but-never-prepared used to run
+            // the block loop into null output rings (field crash: binaural
+            // enabled while no audio device was open).
+            if (processingEnabled.load (std::memory_order_acquire)
+                && prepared.load (std::memory_order_acquire))
             {
                 if (workgroupCoordinator != nullptr)
                     workgroupCoordinator->joinIfChanged (wgToken, wgSeenGeneration);
@@ -722,6 +730,7 @@ private:
     int delayBufferLength = 0;
 
     std::atomic<bool> processingEnabled {false};
+    std::atomic<bool> prepared {false};   // set by prepareToPlay, cleared by releaseResources
 
     // Shared input buffers (read from these when available, bypasses pushInput).
     // The (sharedInputs, sharedReadPositions, useSharedInputs) triplet is published

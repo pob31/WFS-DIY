@@ -5814,17 +5814,33 @@ void MainComponent::timerCallback()
 
             if (enabled && !wasEnabled)
             {
-                binauralProcessor->stopProcessing();   // quiesce before reconfiguring
-                if (auto* device = deviceManager.getCurrentAudioDevice())
+                // No audio device = nothing to prepare against and nowhere for
+                // the output to go. Starting the worker unprepared crashed on
+                // its null output rings (first field report: enabling binaural
+                // with the device closed), so refuse instead — the enable is
+                // retried every tick and succeeds once a device is running.
+                auto* device = deviceManager.getCurrentAudioDevice();
+                if (device == nullptr)
                 {
+                    if (!binauralNoDeviceWarned)
+                    {
+                        WFSLogger::getInstance().logWarning(
+                            "Binaural: not starting - no audio device is running");
+                        binauralNoDeviceWarned = true;
+                    }
+                }
+                else
+                {
+                    binauralNoDeviceWarned = false;
+                    binauralProcessor->stopProcessing();   // quiesce before reconfiguring
                     binauralProcessor->prepareToPlay(device->getCurrentSampleRate(),
                                                      device->getCurrentBufferSizeSamples(),
                                                      numInputChannels);
+                    if (binauralCalcEngine != nullptr)
+                        binauralCalcEngine->refreshRtSnapshot();  // publish before un-gating
+                    binauralProcessor->setEnabled(true);
+                    binauralProcessor->startProcessing();
                 }
-                if (binauralCalcEngine != nullptr)
-                    binauralCalcEngine->refreshRtSnapshot();  // publish before un-gating
-                binauralProcessor->setEnabled(true);
-                binauralProcessor->startProcessing();
             }
             else if (!enabled && wasEnabled)
             {
