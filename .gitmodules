@@ -5,3 +5,6 @@
 	path = spatcore
 	url = https://github.com/pob31/spatcore.git
 	ignore = untracked
+[submodule "ThirdParty/headtracker"]
+	path = ThirdParty/headtracker
+	url = https://github.com/pob31/headtracker_v1

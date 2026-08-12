@@ -111,7 +111,7 @@
       "binauralOutput": "Binaural Output:",
       "binauralMode": "Render Mode:",
       "binauralAdvancedTitle": "Listener Geometry",
-      "binauralNoTracking": "no face tracked",
+      "binauralNoTracking": "no tracking",
       "binauralSofa": "HRTF File:",
       "binauralTracker": "Head Tracking:",
       "binauralListenerX": "Listener X:",

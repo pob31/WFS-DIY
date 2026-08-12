@@ -5868,7 +5868,27 @@ void MainComponent::timerCallback()
             const juce::String wanted = binauralState.isValid()
                 ? binauralState.getProperty(WFSParameterIDs::binauralHeadTrackerSource, "manual").toString()
                 : juce::String("manual");
-            if (wanted != lastAppliedHeadTrackerSource)
+            // Re-resolve on a selection change, and also when a device is
+            // wanted but nothing is bound — a persisted "usb:1234" chosen
+            // while the dongle was unplugged has to engage when it returns.
+            bool rebind = (wanted != lastAppliedHeadTrackerSource);
+
+            if (! rebind && wanted != "manual"
+                && headTrackerManager->getActiveSource() == nullptr)
+            {
+                // This tick runs at 200 Hz (startTimer(5)) and hasSource()
+                // compares juce::Strings returned BY VALUE, which allocate.
+                // The atomic null-check above is free and covers the normal
+                // case; the rate limit covers the waiting-for-a-device case.
+                const auto now = juce::Time::getMillisecondCounter();
+                if (now - lastHeadTrackerRebindMs > 500)
+                {
+                    lastHeadTrackerRebindMs = now;
+                    rebind = headTrackerManager->hasSource(wanted);
+                }
+            }
+
+            if (rebind)
             {
                 headTrackerManager->setActiveSource(wanted);
                 binauralProcessor->setHeadOrientationSource(headTrackerManager->getActiveSource());

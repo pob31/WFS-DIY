@@ -3,9 +3,9 @@
 #include <JuceHeader.h>
 #include "../../spatcore/binaural/HeadOrientationSource.h"
 #include "../../spatcore/binaural/HeadFrame.h"
+#include "../../spatcore/binaural/HeadAttitudePipeline.h"
 #include "../../spatcore/binaural/plugin/HeadTrackPluginApi.h"
 #include "../../spatcore/gpu/PlatformDynLib.h"
-#include "../../spatcore/dsp/OneEuroFilter.h"
 #include "../WFSLogger.h"
 #include "../AppSettings.h"
 #include <atomic>
@@ -26,11 +26,16 @@
  * publish path owns the two refinements the plugin deliberately doesn't:
  *
  *  - Zero calibration: setZero() (message thread) flags a request; the next
- *    pose stores R_zeroInv and every report is pre-multiplied by it (matrix
+ *    pose stores R_zeroInv and every report is PRE-multiplied by it (matrix
  *    composition via spatcore::binaural::headframe — never per-angle
- *    subtraction, rotations don't commute).
- *  - 1-Euro filtering per angle (radian-scaled: minCutoff 1.5 Hz, beta 3.0),
- *    yaw unwrap-aware, so landmark jitter dies at rest while fast head turns
+ *    subtraction, rotations don't commute). Pre-multiplying is the right side
+ *    for a camera: what the calibration cancels is the CAMERA's placement
+ *    relative to the stage, which is a world-side rotation. A head-mounted
+ *    sensor's mounting offset is body-side and tares on the other side —
+ *    see HeadAttitudePipeline.h, which is why the tare is NOT shared.
+ *  - Yaw unwrap and 1-Euro filtering, via the shared
+ *    spatcore::binaural::HeadAttitudePipeline (radian-scaled: minCutoff
+ *    1.5 Hz, beta 3.0), so landmark jitter dies at rest while fast head turns
  *    pass essentially unfiltered.
  *
  * Staleness: getOrientation() reports valid=false when no pose arrived for
@@ -73,6 +78,11 @@ public:
     {
         zeroRequested.store (true, std::memory_order_release);
     }
+
+    /** The camera is an EXCLUSIVE device: it is held only while selected, so
+        deselecting hands it straight back to any other application. */
+    bool activate() override { return start(); }
+    void deactivate() override { stop(); }
 
     /** Message thread. Loads the plugin (first time), opens the camera and
         starts the pose stream. Returns false with the reason logged. */
@@ -247,7 +257,7 @@ private:
         {
             hf::transpose (rRaw, rZeroInv);
             hasZero = true;
-            resetFilters();
+            pipeline.reset();
         }
 
         float corrected[9];
@@ -259,78 +269,26 @@ private:
         float yaw, pitch, roll;
         hf::matrixToYawPitchRoll (corrected, yaw, pitch, roll);
 
-        // Unwrap yaw against the previous sample so the 1-Euro filter never
-        // sees the ±π seam as a full-circle jump.
-        if (hasPrevYaw)
-        {
-            constexpr float twoPi = juce::MathConstants<float>::twoPi;
-            float delta = yaw - std::fmod (prevUnwrappedYaw, twoPi);
-            if (delta >  juce::MathConstants<float>::pi) delta -= twoPi;
-            if (delta < -juce::MathConstants<float>::pi) delta += twoPi;
-            yaw = prevUnwrappedYaw + delta;
-        }
-        prevUnwrappedYaw = yaw;
-        hasPrevYaw = true;
-
-        const double now = juce::Time::getMillisecondCounterHiRes() * 0.001;
-
-        spatcore::binaural::HeadOrientation out;
-        out.yawRad   = wrapPi (filterYaw.filter   (yaw,   now, kMinCutoffHz, kBeta, kDerivCutoffHz));
-        out.pitchRad = filterPitch.filter (pitch, now, kMinCutoffHz, kBeta, kDerivCutoffHz);
-        out.rollRad  = filterRoll.filter  (roll,  now, kMinCutoffHz, kBeta, kDerivCutoffHz);
-        out.valid    = true;
-
-        // Belt and braces: a pathological timestamp (clock jump → dt) could
-        // still make the filter produce a non-finite value from finite input.
-        // Never publish one, and drop the poisoned history with it.
-        if (! spatcore::binaural::isFiniteAttitude (out))
-        {
-            resetFilters();
-            publishOrientation ({});
-            return;
-        }
-
-        publishOrientation (out);
-    }
-
-    /** Drop the smoothing history and the yaw-unwrap anchor. */
-    void resetFilters()
-    {
-        filterYaw.reset();
-        filterPitch.reset();
-        filterRoll.reset();
-        prevUnwrappedYaw = 0.0f;
-        hasPrevYaw = false;
+        publishOrientation (pipeline.process (yaw, pitch, roll,
+                                              juce::Time::getMillisecondCounterHiRes() * 0.001));
     }
 
     void resetPublishState()
     {
         hasZero = false;
-        resetFilters();
+        pipeline.reset();
         zeroRequested.store (false, std::memory_order_release);
         lastPoseMs.store (0, std::memory_order_release);
         publishOrientation ({});
-    }
-
-    static float wrapPi (float a) noexcept
-    {
-        constexpr float pi = juce::MathConstants<float>::pi;
-        constexpr float twoPi = juce::MathConstants<float>::twoPi;
-        // fmod, not a subtract-until loop: the unwrapped yaw accumulates
-        // without bound (a listener turning the same way for a whole show),
-        // which would make the loop count grow with it on the tracker's
-        // callback thread. O(1) regardless of magnitude.
-        a = std::fmod (a + pi, twoPi);
-        if (a < 0.0f)
-            a += twoPi;
-        return a - pi;
     }
 
     //==========================================================================
 
     // 1-Euro tuning, radian-scaled (beta multiplies rad/s — head turns reach
     // a few rad/s, so 3.0 fully opens the cutoff during real motion while
-    // 1.5 Hz at rest kills sub-degree landmark jitter).
+    // 1.5 Hz at rest kills sub-degree landmark jitter). The ~106 ms of at-rest
+    // group delay this buys is invisible next to the webcam's own pipeline;
+    // a hardware IMU tunes far higher (see UsbHeadTrackerSource).
     static constexpr float kMinCutoffHz   = 1.5f;
     static constexpr float kBeta          = 3.0f;
     static constexpr float kDerivCutoffHz = 1.0f;
@@ -346,7 +304,6 @@ private:
     // per start/stop pair, and start/stop bracket its lifetime).
     float rZeroInv[9] = {};
     bool hasZero = false;
-    float prevUnwrappedYaw = 0.0f;
-    bool hasPrevYaw = false;
-    spatcore::dsp::OneEuroFilter filterYaw, filterPitch, filterRoll;
+    spatcore::binaural::HeadAttitudePipeline pipeline {
+        spatcore::binaural::HeadAttitudeTuning { kMinCutoffHz, kBeta, kDerivCutoffHz } };
 };

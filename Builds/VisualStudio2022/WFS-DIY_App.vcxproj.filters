@@ -50,6 +50,9 @@
     <Filter Include="WFS-DIY\Source\hidapi">
       <UniqueIdentifier>{32D100D4-D9F1-9555-30BF-5F6C12E44D29}</UniqueIdentifier>
     </Filter>
+    <Filter Include="WFS-DIY\Source\headtracker">
+      <UniqueIdentifier>{FFFED7A9-EBA3-116D-AF43-7AC9428FBAA0}</UniqueIdentifier>
+    </Filter>
     <Filter Include="WFS-DIY\Source\libmysofa">
       <UniqueIdentifier>{1419E34F-BCDD-0F2F-7173-FA6DE3135C2D}</UniqueIdentifier>
     </Filter>
@@ -1206,6 +1209,30 @@
     </ClCompile>
     <ClCompile Include="..\..\ThirdParty\hidapi\HidApiPlatform.c">
       <Filter>WFS-DIY\Source\hidapi</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\headtracker\firmware\common\protocol\htk_crc16.c">
+      <Filter>WFS-DIY\Source\headtracker</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\headtracker\firmware\common\protocol\htk_cobs.c">
+      <Filter>WFS-DIY\Source\headtracker</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\headtracker\firmware\common\protocol\htk_frame.c">
+      <Filter>WFS-DIY\Source\headtracker</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\headtracker\host\libheadtracker\src\parser.cpp">
+      <Filter>WFS-DIY\Source\headtracker</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\headtracker\host\libheadtracker\src\orientation.cpp">
+      <Filter>WFS-DIY\Source\headtracker</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\headtracker\host\libheadtracker\src\commands.cpp">
+      <Filter>WFS-DIY\Source\headtracker</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\headtracker\host\libheadtracker\src\transport.cpp">
+      <Filter>WFS-DIY\Source\headtracker</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\headtracker\host\libheadtracker\src\client.cpp">
+      <Filter>WFS-DIY\Source\headtracker</Filter>
     </ClCompile>
     <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\reader.c">
       <Filter>WFS-DIY\Source\libmysofa</Filter>
@@ -5069,6 +5096,24 @@
     </ClInclude>
     <ClInclude Include="..\..\ThirdParty\hidapi\hidapi\hidapi.h">
       <Filter>WFS-DIY\Source\hidapi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\headtracker\firmware\common\protocol\htk_protocol.h">
+      <Filter>WFS-DIY\Source\headtracker</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\headtracker\host\libheadtracker\include\headtracker\parser.hpp">
+      <Filter>WFS-DIY\Source\headtracker</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\headtracker\host\libheadtracker\include\headtracker\orientation.hpp">
+      <Filter>WFS-DIY\Source\headtracker</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\headtracker\host\libheadtracker\include\headtracker\commands.hpp">
+      <Filter>WFS-DIY\Source\headtracker</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\headtracker\host\libheadtracker\include\headtracker\transport.hpp">
+      <Filter>WFS-DIY\Source\headtracker</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\headtracker\host\libheadtracker\include\headtracker\client.hpp">
+      <Filter>WFS-DIY\Source\headtracker</Filter>
     </ClInclude>
     <ClInclude Include="..\..\ThirdParty\libmysofa\src\hrtf\mysofa.h">
       <Filter>WFS-DIY\Source\libmysofa</Filter>

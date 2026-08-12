@@ -345,6 +345,36 @@
         <FILE id="hidapiPlatC" name="HidApiPlatform.c" compile="1" resource="0"
               file="ThirdParty/hidapi/HidApiPlatform.c"/>
       </GROUP>
+      <GROUP id="{HEADTRACKERGROUP}" name="headtracker">
+        <FILE id="htkProtoH" name="htk_protocol.h" compile="0" resource="0"
+              file="ThirdParty/headtracker/firmware/common/protocol/htk_protocol.h"/>
+        <FILE id="htkCrc16C" name="htk_crc16.c" compile="1" resource="0"
+              file="ThirdParty/headtracker/firmware/common/protocol/htk_crc16.c"/>
+        <FILE id="htkCobsC" name="htk_cobs.c" compile="1" resource="0"
+              file="ThirdParty/headtracker/firmware/common/protocol/htk_cobs.c"/>
+        <FILE id="htkFrameC" name="htk_frame.c" compile="1" resource="0"
+              file="ThirdParty/headtracker/firmware/common/protocol/htk_frame.c"/>
+        <FILE id="htkParserH" name="parser.hpp" compile="0" resource="0"
+              file="ThirdParty/headtracker/host/libheadtracker/include/headtracker/parser.hpp"/>
+        <FILE id="htkOrientH" name="orientation.hpp" compile="0" resource="0"
+              file="ThirdParty/headtracker/host/libheadtracker/include/headtracker/orientation.hpp"/>
+        <FILE id="htkCmdH" name="commands.hpp" compile="0" resource="0"
+              file="ThirdParty/headtracker/host/libheadtracker/include/headtracker/commands.hpp"/>
+        <FILE id="htkTransH" name="transport.hpp" compile="0" resource="0"
+              file="ThirdParty/headtracker/host/libheadtracker/include/headtracker/transport.hpp"/>
+        <FILE id="htkClientH" name="client.hpp" compile="0" resource="0"
+              file="ThirdParty/headtracker/host/libheadtracker/include/headtracker/client.hpp"/>
+        <FILE id="htkParserCpp" name="parser.cpp" compile="1" resource="0"
+              file="ThirdParty/headtracker/host/libheadtracker/src/parser.cpp"/>
+        <FILE id="htkOrientCpp" name="orientation.cpp" compile="1" resource="0"
+              file="ThirdParty/headtracker/host/libheadtracker/src/orientation.cpp"/>
+        <FILE id="htkCmdCpp" name="commands.cpp" compile="1" resource="0"
+              file="ThirdParty/headtracker/host/libheadtracker/src/commands.cpp"/>
+        <FILE id="htkTransCpp" name="transport.cpp" compile="1" resource="0"
+              file="ThirdParty/headtracker/host/libheadtracker/src/transport.cpp"/>
+        <FILE id="htkClientCpp" name="client.cpp" compile="1" resource="0"
+              file="ThirdParty/headtracker/host/libheadtracker/src/client.cpp"/>
+      </GROUP>
       <GROUP id="{MYSOFAGROUP}" name="libmysofa">
         <FILE id="msofaHdr" name="mysofa.h" compile="0" resource="0" file="ThirdParty/libmysofa/src/hrtf/mysofa.h"/>
         <FILE id="msofaReader" name="reader.c" compile="1" resource="0" file="ThirdParty/libmysofa/src/hrtf/reader.c"/>
@@ -559,10 +589,10 @@
                 linuxExtraPkgConfig="libudev">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY"
-                       headerPath="../../ThirdParty/hidapi;../../ThirdParty/hidapi/hidapi;../../ThirdParty/libmysofa/src/hrtf;../../ThirdParty/zlib"
+                       headerPath="../../ThirdParty/headtracker/host/libheadtracker/include;../../ThirdParty/headtracker/firmware/common/protocol;../../ThirdParty/hidapi;../../ThirdParty/hidapi/hidapi;../../ThirdParty/libmysofa/src/hrtf;../../ThirdParty/zlib"
                        defines="SIMPLEWEB_SECURE_SUPPORTED=0 JUCE_JACK=1 WFS_GPU_NATIVE=1 WFS_GPU_PLUGINS=1"/>
         <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY"
-                       headerPath="../../ThirdParty/hidapi;../../ThirdParty/hidapi/hidapi;../../ThirdParty/libmysofa/src/hrtf;../../ThirdParty/zlib"
+                       headerPath="../../ThirdParty/headtracker/host/libheadtracker/include;../../ThirdParty/headtracker/firmware/common/protocol;../../ThirdParty/hidapi;../../ThirdParty/hidapi/hidapi;../../ThirdParty/libmysofa/src/hrtf;../../ThirdParty/zlib"
                        defines="SIMPLEWEB_SECURE_SUPPORTED=0 JUCE_JACK=1 WFS_GPU_NATIVE=1 WFS_GPU_PLUGINS=1"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
@@ -587,12 +617,12 @@
     <VS2022 targetFolder="Builds/VisualStudio2022" smallIcon="SCj321" bigIcon="SCj321"
             toolset="v145">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY" headerPath="..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;..\..\ThirdParty\libmysofa\src\hrtf;..\..\ThirdParty\zlib"
+        <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY" headerPath="..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\headtracker\host\libheadtracker\include;..\..\ThirdParty\headtracker\firmware\common\protocol;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;..\..\ThirdParty\libmysofa\src\hrtf;..\..\ThirdParty\zlib"
                        externalLibraries="setupapi.lib"
                        extraCompilerFlags="/bigobj" defines="SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;WFS_GPU_PLUGINS=1"
                        prebuildCommand="cd /d &quot;$(SolutionDir)..\..&quot; &amp;&amp; (where python &gt;nul 2&gt;&amp;1 &amp;&amp; python -B tools\generate_mcp_tools.py) &amp; exit /b 0"
                        postbuildCommand="xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot; &amp; xcopy /D /E /I /Y &quot;$(SolutionDir)..\..\assets\SOFA&quot; &quot;$(OutDir)SOFA&quot;"/>
-        <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" headerPath="..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;..\..\ThirdParty\libmysofa\src\hrtf;..\..\ThirdParty\zlib"
+        <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" headerPath="..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\headtracker\host\libheadtracker\include;..\..\ThirdParty\headtracker\firmware\common\protocol;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;..\..\ThirdParty\libmysofa\src\hrtf;..\..\ThirdParty\zlib"
                        externalLibraries="setupapi.lib"
                        extraCompilerFlags="/bigobj" defines="SIMPLEWEB_SECURE_SUPPORTED=0;WFS_GPU_NATIVE=1;WFS_GPU_PLUGINS=1"
                        prebuildCommand="cd /d &quot;$(SolutionDir)..\..&quot; &amp;&amp; (where python &gt;nul 2&gt;&amp;1 &amp;&amp; python -B tools\generate_mcp_tools.py) &amp; exit /b 0"
@@ -622,10 +652,10 @@
                smallIcon="SCj321" bigIcon="SCj321">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY" extraLinkerFlags="-framework SystemConfiguration -framework CoreFoundation -framework IOKit -framework Metal"
-                       headerPath="../../ThirdParty/hidapi;../../ThirdParty/hidapi/hidapi;../../ThirdParty/libmysofa/src/hrtf;../../ThirdParty/zlib"
+                       headerPath="../../ThirdParty/headtracker/host/libheadtracker/include;../../ThirdParty/headtracker/firmware/common/protocol;../../ThirdParty/hidapi;../../ThirdParty/hidapi/hidapi;../../ThirdParty/libmysofa/src/hrtf;../../ThirdParty/zlib"
                        defines="SIMPLEWEB_SECURE_SUPPORTED=0&#10;WFS_GPU_NATIVE=1"/>
         <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" extraLinkerFlags="-framework SystemConfiguration -framework CoreFoundation -framework IOKit -framework Metal"
-                       headerPath="../../ThirdParty/hidapi;../../ThirdParty/hidapi/hidapi;../../ThirdParty/libmysofa/src/hrtf;../../ThirdParty/zlib"
+                       headerPath="../../ThirdParty/headtracker/host/libheadtracker/include;../../ThirdParty/headtracker/firmware/common/protocol;../../ThirdParty/hidapi;../../ThirdParty/hidapi/hidapi;../../ThirdParty/libmysofa/src/hrtf;../../ThirdParty/zlib"
                        defines="SIMPLEWEB_SECURE_SUPPORTED=0&#10;WFS_GPU_NATIVE=1"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
