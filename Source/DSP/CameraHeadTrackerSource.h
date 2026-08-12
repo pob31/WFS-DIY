@@ -224,6 +224,20 @@ private:
             return;
         }
 
+        // The ABI hands over RAW attitude, so this is untrusted input: a
+        // degenerate face box makes the estimator divide by a vanishing eye
+        // distance and emit inf/NaN. Reject it HERE, before the zero capture
+        // and the smoothing filters — publishOrientation would keep it off the
+        // render thread either way, but by then rZeroInv and the 1-Euro state
+        // would be latched non-finite and tracking would never come back
+        // (the filters carry prevFiltered forward forever).
+        if (! (std::isfinite (pose.yawRad) && std::isfinite (pose.pitchRad)
+               && std::isfinite (pose.rollRad)))
+        {
+            publishOrientation ({});
+            return;
+        }
+
         namespace hf = spatcore::binaural::headframe;
 
         float rRaw[9];
@@ -233,11 +247,7 @@ private:
         {
             hf::transpose (rRaw, rZeroInv);
             hasZero = true;
-            filterYaw.reset();
-            filterPitch.reset();
-            filterRoll.reset();
-            prevUnwrappedYaw = 0.0f;
-            hasPrevYaw = false;
+            resetFilters();
         }
 
         float corrected[9];
@@ -269,17 +279,34 @@ private:
         out.pitchRad = filterPitch.filter (pitch, now, kMinCutoffHz, kBeta, kDerivCutoffHz);
         out.rollRad  = filterRoll.filter  (roll,  now, kMinCutoffHz, kBeta, kDerivCutoffHz);
         out.valid    = true;
+
+        // Belt and braces: a pathological timestamp (clock jump → dt) could
+        // still make the filter produce a non-finite value from finite input.
+        // Never publish one, and drop the poisoned history with it.
+        if (! spatcore::binaural::isFiniteAttitude (out))
+        {
+            resetFilters();
+            publishOrientation ({});
+            return;
+        }
+
         publishOrientation (out);
+    }
+
+    /** Drop the smoothing history and the yaw-unwrap anchor. */
+    void resetFilters()
+    {
+        filterYaw.reset();
+        filterPitch.reset();
+        filterRoll.reset();
+        prevUnwrappedYaw = 0.0f;
+        hasPrevYaw = false;
     }
 
     void resetPublishState()
     {
         hasZero = false;
-        hasPrevYaw = false;
-        prevUnwrappedYaw = 0.0f;
-        filterYaw.reset();
-        filterPitch.reset();
-        filterRoll.reset();
+        resetFilters();
         zeroRequested.store (false, std::memory_order_release);
         lastPoseMs.store (0, std::memory_order_release);
         publishOrientation ({});
@@ -289,9 +316,14 @@ private:
     {
         constexpr float pi = juce::MathConstants<float>::pi;
         constexpr float twoPi = juce::MathConstants<float>::twoPi;
-        while (a >  pi) a -= twoPi;
-        while (a < -pi) a += twoPi;
-        return a;
+        // fmod, not a subtract-until loop: the unwrapped yaw accumulates
+        // without bound (a listener turning the same way for a whole show),
+        // which would make the loop count grow with it on the tracker's
+        // callback thread. O(1) regardless of magnitude.
+        a = std::fmod (a + pi, twoPi);
+        if (a < 0.0f)
+            a += twoPi;
+        return a - pi;
     }
 
     //==========================================================================

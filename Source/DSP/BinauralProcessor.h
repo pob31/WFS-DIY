@@ -10,6 +10,7 @@
 #include "../../spatcore/binaural/HeadOrientationSource.h"
 #include <vector>
 #include <atomic>
+#include <cmath>
 
 /**
  * BinauralProcessor
@@ -595,16 +596,27 @@ private:
         // every block, bypassing the damped pipeline entirely — the engine's
         // per-block slew and delay smoothing absorb the steps), else from the
         // manual parameters in the snapshot.
+        // Nothing non-finite may reach the renderers. A NaN attitude builds a
+        // non-orthonormal rotation, and from there NaN spreads into the ITD
+        // delay lines (where the read index is derived from the delay — a
+        // float→int conversion of NaN is undefined), the shadow/notch biquad
+        // state and the SOFA convolution history, none of which recover on
+        // their own. The RT stage does not get to trust its sources: the
+        // tracker hands over raw plugin data, and the manual angles come from
+        // a project file (juce::jlimit passes NaN straight through, since
+        // every comparison with NaN is false).
         spatcore::binaural::ListenerPose pose;
         pose.x = rt.listenerX;
         pose.y = rt.listenerY;
         pose.z = rt.listenerZ;
+        if (! (std::isfinite (pose.x) && std::isfinite (pose.y) && std::isfinite (pose.z)))
+            pose.x = pose.y = pose.z = 0.0f;
         {
             float yaw = rt.manualYawRad, pitch = rt.manualPitchRad, roll = rt.manualRollRad;
             if (auto* src = headOrientationSource.load (std::memory_order_acquire))
             {
                 const auto tracked = src->getOrientation();
-                if (tracked.valid)
+                if (tracked.valid && spatcore::binaural::isFiniteAttitude (tracked))
                 {
                     yaw = tracked.yawRad;
                     pitch = tracked.pitchRad;
@@ -612,9 +624,15 @@ private:
                 }
             }
 
+            // Manual angles (or a source that bypassed the publish guard):
+            // fall back to facing the origin rather than rendering NaN.
+            if (! (std::isfinite (yaw) && std::isfinite (pitch) && std::isfinite (roll)))
+                yaw = pitch = roll = 0.0f;
+
             float offset[9];
             spatcore::binaural::headframe::yawPitchRollToMatrix (yaw, pitch, roll, offset);
-            spatcore::binaural::headframe::composeWithBaseline (rt.baselineAngleRad, offset, pose.R);
+            spatcore::binaural::headframe::composeWithBaseline (
+                std::isfinite (rt.baselineAngleRad) ? rt.baselineAngleRad : 0.0f, offset, pose.R);
         }
 
         hrtfEngine.setMode (static_cast<spatcore::binaural::RenderMode> (rt.renderMode));

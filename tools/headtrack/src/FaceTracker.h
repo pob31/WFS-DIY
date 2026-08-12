@@ -82,8 +82,10 @@ public:
             const cv::Point2f nose     { row[8], row[9] };
             pose.confidence = row[14];
 
-            anglesFromLandmarks (rightEye, leftEye, nose, pose);
-            pose.valid = true;
+            // valid follows the estimate: a degenerate frame used to leave the
+            // angles at their defaults and still report valid, snapping the
+            // listener's head to "straight ahead" instead of saying no face.
+            pose.valid = anglesFromLandmarks (rightEye, leftEye, nose, pose);
         }
         catch (const cv::Exception&)
         {
@@ -128,13 +130,23 @@ private:
         drivers — validated with the smoke host (shake / nod / tilt), and the
         only thing to flip if a camera reports mirrored.
     */
-    void anglesFromLandmarks (const cv::Point2f& rightEye, const cv::Point2f& leftEye,
+    bool anglesFromLandmarks (const cv::Point2f& rightEye, const cv::Point2f& leftEye,
                               const cv::Point2f& nose, Pose& pose) const
     {
+        // Landmarks are model output: treat them as untrusted. Note the
+        // positive-logic tests throughout — `x < limit` is useless against
+        // NaN (every comparison with NaN is false), so a degenerate box would
+        // sail past a `< ` guard and emit NaN angles, which downstream become
+        // a non-orthonormal rotation and then permanent NaN in the renderer's
+        // delay lines and filter state.
+        for (const auto& p : { rightEye, leftEye, nose })
+            if (! (std::isfinite (p.x) && std::isfinite (p.y)))
+                return false;
+
         const cv::Point2f eyeVec = leftEye - rightEye;      // toward image right when frontal
         const float eyeDist = std::sqrt (eyeVec.x * eyeVec.x + eyeVec.y * eyeVec.y);
-        if (eyeDist < 1.0f)
-            return;                                          // degenerate detection
+        if (! (eyeDist >= kMinEyeDistPx))
+            return false;                                    // degenerate detection (or NaN)
 
         // Roll: eye-line slope. Image y grows downward; right-ear-down tips
         // the subject's right eye (image left) lower → eyeVec.y < 0 → the
@@ -158,15 +170,29 @@ private:
         const float pitch = std::asin (clampUnit ((kNoseDrop - yOff) / kNoseRatio));
         const float roll  = -rollAngle;
 
+        // The guards above make this unreachable in practice; keep it so the
+        // ABI's "angles are finite" promise holds by construction rather than
+        // by argument. Reporting no face beats reporting a fabricated one.
+        if (! (std::isfinite (yaw) && std::isfinite (pitch) && std::isfinite (roll)))
+            return false;
+
         pose.yawRad   = kSignYaw   * yaw;
         pose.pitchRad = kSignPitch * pitch;
         pose.rollRad  = kSignRoll  * roll;
+        return true;
     }
 
+    /** Clamp to asin's domain. NaN deliberately passes through rather than
+        being mapped to a value: the caller's finite check then reports "no
+        face", instead of this silently inventing an angle. */
     static float clampUnit (float v) noexcept
     {
         return v < -1.0f ? -1.0f : (v > 1.0f ? 1.0f : v);
     }
+
+    // Below this interocular distance (pixels) the landmark geometry is too
+    // small for the ratios to mean anything.
+    static constexpr float kMinEyeDistPx = 1.0f;
 
     // Anthropometric ratios (relative to interocular distance): nose-tip
     // protrusion and its frontal drop below the eye line. Averages; per-face
