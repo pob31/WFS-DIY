@@ -1,0 +1,81 @@
+name: Head-tracker plugin
+
+# Compile-check the webcam head-tracker plugin (tools/headtrack) on all three
+# desktop OSes.
+#
+# This is a SEPARATE workflow, path-filtered, rather than three more steps in
+# ci.yml, because the plugin is built out of tree against OpenCV: installing
+# that dependency dominates the job (measured 122 s of a 290 s macOS job — it
+# roughly doubled it), and it was being paid on every push including ones that
+# cannot possibly affect the plugin.
+#
+# Path filtering is SOUND here, not just a speed hack: the plugin's compile
+# inputs are a closed set. It includes its own sources plus one header — the
+# C ABI in spatcore/binaural/plugin — and nothing from the app. A submodule
+# bump shows up as a change to the `spatcore` gitlink, which is listed below,
+# so an ABI edit still triggers a rebuild.
+#
+# The release workflow builds this plugin for real (and ships it); that path is
+# unaffected by this filter.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/headtrack/**'
+      - 'spatcore'
+      - '.github/workflows/headtrack-plugin.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tools/headtrack/**'
+      - 'spatcore'
+      - '.github/workflows/headtrack-plugin.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: headtrack-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    name: plugin (Windows)
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - name: Cache OpenCV prebuilt
+        uses: actions/cache@v5
+        with:
+          path: tools/headtrack/.opencv
+          key: opencv-win-4.10.0
+      - name: Build plugin
+        shell: pwsh
+        run: tools\headtrack\build-headtrack-plugin.ps1 -Config Release
+
+  macos:
+    name: plugin (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - name: Install OpenCV
+        run: brew install opencv
+      - name: Build plugin
+        run: bash tools/headtrack/build-headtrack-plugin.sh Release
+
+  linux:
+    name: plugin (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - name: Install OpenCV
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libopencv-dev
+      - name: Build plugin
+        run: bash tools/headtrack/build-headtrack-plugin.sh Release

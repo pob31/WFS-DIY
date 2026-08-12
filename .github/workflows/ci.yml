@@ -53,10 +53,6 @@ jobs:
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO \
             build
-      - name: Compile-check head-tracker plugin
-        run: |
-          brew install opencv
-          bash tools/headtrack/build-headtrack-plugin.sh Release
 
   windows:
     name: build (Windows)
@@ -77,17 +73,6 @@ jobs:
         uses: microsoft/setup-msbuild@v3
       - name: Build (Debug x64)
         run: msbuild Builds\VisualStudio2022\WFS-DIY.sln -p:Configuration=Debug -p:Platform=x64 -m
-      - name: Cache OpenCV prebuilt (head-tracker plugin)
-        uses: actions/cache@v5
-        with:
-          path: tools/headtrack/.opencv
-          key: opencv-win-4.10.0
-      - name: Compile-check head-tracker plugin
-        # Release even in CI-Debug: the plugin ships Release regardless of the
-        # app config (C ABI, no shared CRT state). This is a compile check --
-        # runtime behaviour needs a camera and is validated on dev machines.
-        shell: pwsh
-        run: tools\headtrack\build-headtrack-plugin.ps1 -Config Release
 
   linux:
     name: build (Linux)
@@ -133,7 +118,3 @@ jobs:
             ccache-linux-
       - name: Build (Debug)
         run: make -C Builds/LinuxMakefile CONFIG=Debug CXX="ccache g++" -j"$(nproc)"
-      - name: Compile-check head-tracker plugin
-        run: |
-          sudo apt-get install -y libopencv-dev
-          bash tools/headtrack/build-headtrack-plugin.sh Release
