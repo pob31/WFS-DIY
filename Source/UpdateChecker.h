@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include <thread>
 #include <atomic>
+#include <limits>
 #include <memory>
 #include "AppSettings.h"
 #include "WFSLogger.h"
@@ -152,6 +153,19 @@ private:
         return info;
     }
 
+    /** Order a segment's beta suffix. A release carries the sentinel -1 and must
+        sort ABOVE every beta, so it ranks as the maximum rather than being
+        compared as the raw sentinel: -1 > 41 is false, which made 1.0.0 look
+        OLDER than the 1.0.0betaN that preceded it. That never showed up while
+        every release was a beta (beta-to-beta compares correctly), but it would
+        have meant no beta user was ever told the first stable release existed —
+        and, in the other direction, that a release user was offered a beta as
+        an upgrade. */
+    static int betaRank (int beta) noexcept
+    {
+        return beta < 0 ? std::numeric_limits<int>::max() : beta;
+    }
+
     static bool isNewerVersion (const juce::String& remote, const juce::String& local)
     {
         auto remoteParts = juce::StringArray::fromTokens (remote, ".", "");
@@ -166,9 +180,9 @@ private:
                 return r.number > l.number;
 
             // Same numeric part — compare beta status.
-            // -1 (release) beats any beta number, higher beta beats lower beta.
-            if (r.beta != l.beta)
-                return r.beta > l.beta;
+            // A release beats any beta number, higher beta beats lower beta.
+            if (betaRank (r.beta) != betaRank (l.beta))
+                return betaRank (r.beta) > betaRank (l.beta);
         }
 
         return false;
