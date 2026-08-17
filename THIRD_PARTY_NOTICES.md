@@ -119,6 +119,21 @@ Boost Software License 1.0.
 
 ---
 
+## headtracker_v1 (host client library)
+
+- **Website**: https://github.com/pob31/headtracker_v1
+- **License**: GPLv3
+- **Copyright**: (c) Pierre-Olivier Boulant
+
+First-party sibling project, vendored as the submodule
+`ThirdParty/headtracker`. Its host client library (serial transport, COBS/CRC
+framing, protocol parser, orientation recentering) is compiled directly into
+the application to talk to the USB head-tracker dongle — no runtime plugin,
+as the library is dependency-free C++17. The firmware and hardware
+documentation live in the same repository but are not built or shipped here.
+
+---
+
 ## libmysofa
 
 - **Website**: https://github.com/hoene/libmysofa

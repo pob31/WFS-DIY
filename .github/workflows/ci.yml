@@ -118,3 +118,55 @@ jobs:
             ccache-linux-
       - name: Build (Debug)
         run: make -C Builds/LinuxMakefile CONFIG=Debug CXX="ccache g++" -j"$(nproc)"
+
+  spatcore-tests:
+    name: spatcore unit tests
+    # The spatcore suite (head-frame math, ITD/DC, rotation continuity, zero
+    # composition, the non-finite-attitude regressions, SOFA loader/renderer,
+    # delay smoothing, ...) ran NOWHERE in CI until this job: spatcore's own CI
+    # builds only its minimal-app example, and the tests cannot run there
+    # anyway — the standalone project takes JUCE, hidapi, libmysofa, zlib AND
+    # the SOFA fixture from the CONSUMER repo, which is this one. A regression
+    # test nothing executes protects nothing.
+    #
+    # Linux because it is the cheapest runner and this is platform-independent
+    # DSP; the fixture makes the SOFA cases run rather than compile-and-skip.
+    runs-on: ubuntu-latest
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - name: Install JUCE build deps + ccache
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential pkg-config ccache cmake \
+            libasound2-dev libjack-jackd2-dev \
+            libfreetype-dev libfontconfig1-dev \
+            libgl1-mesa-dev libcurl4-openssl-dev \
+            libgtk-3-dev libwebkit2gtk-4.1-dev \
+            libudev-dev libxi-dev
+      - name: Cache ccache
+        uses: actions/cache@v5
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-spatcore-tests-${{ github.sha }}
+          restore-keys: |
+            ccache-spatcore-tests-
+      - name: Configure
+        run: >
+          cmake -S spatcore/tests/standalone -B build-spatcore-tests
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+      - name: Build
+        run: cmake --build build-spatcore-tests --parallel "$(nproc)"
+      - name: Run
+        # Locate rather than hardcode: the artefact path differs between
+        # single- and multi-config generators.
+        run: |
+          BIN=$(find build-spatcore-tests -type f -name spatcore-tests -perm -u+x | head -1)
+          test -n "$BIN" || { echo "spatcore-tests binary not found"; exit 1; }
+          echo "running $BIN"
+          "$BIN"
