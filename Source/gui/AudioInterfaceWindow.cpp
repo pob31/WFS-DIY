@@ -3,6 +3,7 @@
 #include "WfsLookAndFeel.h"
 #include "WindowUtils.h"
 #include "../Localization/LocalizationManager.h"
+#include "../MidiSnapshotTrigger.h"
 
 //==============================================================================
 // DeviceInfoBar Implementation
@@ -84,8 +85,9 @@ void DeviceInfoBar::updateDeviceInfo()
 // DeviceSettingsPanel Implementation
 //==============================================================================
 
-DeviceSettingsPanel::DeviceSettingsPanel(juce::AudioDeviceManager& devManager)
-    : deviceManager(devManager)
+DeviceSettingsPanel::DeviceSettingsPanel(juce::AudioDeviceManager& devManager,
+                                         MidiSnapshotTrigger* trigger)
+    : deviceManager(devManager), midiTrigger(trigger)
 {
     // Setup labels with localized text
     addAndMakeVisible(deviceTypeLabel);
@@ -116,6 +118,18 @@ DeviceSettingsPanel::DeviceSettingsPanel(juce::AudioDeviceManager& devManager)
 
     addAndMakeVisible(bufferSizeCombo);
     bufferSizeCombo.onChange = [this]() { bufferSizeChanged(); };
+
+    addAndMakeVisible(midiInputLabel);
+    midiInputLabel.setText(LOC("audioPatch.deviceSettings.labels.midiInput"), juce::dontSendNotification);
+    midiInputLabel.setJustificationType(juce::Justification::centredRight);
+
+    addAndMakeVisible(midiInputCombo);
+    midiInputCombo.setTooltip(LOC("audioPatch.deviceSettings.midiTooltip"));
+    midiInputCombo.onChange = [this]() { midiInputChanged(); };
+
+    // We own the MIDI port (not AudioDeviceManager), so this panel needs its own
+    // device-list notification. JUCE delivers it on the message thread.
+    midiListConnection = juce::MidiDeviceListConnection::make([this]() { updateMidiInputs(); });
 
     // Setup buttons with localized text
     addAndMakeVisible(controlPanelButton);
@@ -218,6 +232,14 @@ void DeviceSettingsPanel::resized()
     row.removeFromLeft(spacing);
     bufferSizeCombo.setBounds(row.removeFromLeft(comboWidth));
 
+    bounds.removeFromTop(spacing);
+
+    // MIDI input row (source for snapshot note recall)
+    row = bounds.removeFromTop(rowHeight);
+    midiInputLabel.setBounds(row.removeFromLeft(labelWidth));
+    row.removeFromLeft(spacing);
+    midiInputCombo.setBounds(row.removeFromLeft(comboWidth));
+
     bounds.removeFromTop(spacing * 2);
 
     // Buttons row
@@ -273,6 +295,14 @@ void DeviceSettingsPanel::setEnabled(bool shouldBeEnabled)
     bufferSizeCombo.setEnabled(shouldBeEnabled);
     controlPanelButton.setEnabled(shouldBeEnabled);
     resetDeviceButton.setEnabled(shouldBeEnabled);
+
+    // midiInputCombo is deliberately NOT gated: choosing a control surface
+    // reopens no audio device and cannot damage a rig, so it is not part of the
+    // stopped-only interlock. (Moot today since the window is hidden while
+    // processing runs, but the intent should be explicit if that ever changes.)
+    //
+    // NOTE: this method HIDES the non-virtual Component::setEnabled, so a call
+    // through a Component* will not reach it.
 }
 
 void DeviceSettingsPanel::changeListenerCallback(juce::ChangeBroadcaster* source)
@@ -426,12 +456,84 @@ void DeviceSettingsPanel::updateBufferSizes()
     isUpdating = false;
 }
 
+void DeviceSettingsPanel::updateMidiInputs()
+{
+    if (isUpdating || midiTrigger == nullptr)
+        return;
+
+    isUpdating = true;
+
+    midiInputCombo.clear(juce::dontSendNotification);
+    midiDeviceIds.clear();
+    midiDeviceNames.clear();
+
+    midiInputCombo.addItem(LOC("audioPatch.deviceSettings.midiOff"), 1);
+    midiDeviceIds.add("");
+    midiDeviceNames.add("");
+
+    const auto wantedId   = midiTrigger->getSelectedIdentifier();
+    const auto wantedName = midiTrigger->getSelectedName();
+
+    int selectedId = 1;
+    int id = 2;
+    bool wantedPresent = false;
+
+    for (const auto& d : MidiSnapshotTrigger::getAvailableDevices())
+    {
+        midiInputCombo.addItem(d.name, id);
+        midiDeviceIds.add(d.identifier);
+        midiDeviceNames.add(d.name);
+
+        if (wantedId.isNotEmpty() && (d.identifier == wantedId || d.name == wantedName))
+        {
+            selectedId = id;
+            wantedPresent = true;
+        }
+
+        ++id;
+    }
+
+    // A remembered device that is not plugged in stays LISTED and SELECTED.
+    // Silently showing "Off" would make the operator re-bind a port that is
+    // already bound and will come back on its own. The suffix is display-only:
+    // midiDeviceNames keeps the clean name, which is what gets persisted.
+    if (!wantedPresent && wantedId.isNotEmpty())
+    {
+        midiInputCombo.addItem(wantedName + " " + LOC("audioPatch.deviceSettings.midiNotConnected"), id);
+        midiDeviceIds.add(wantedId);
+        midiDeviceNames.add(wantedName);
+        selectedId = id;
+    }
+
+    midiInputCombo.setSelectedId(selectedId, juce::dontSendNotification);
+
+    isUpdating = false;
+}
+
+void DeviceSettingsPanel::midiInputChanged()
+{
+    if (isUpdating || midiTrigger == nullptr)
+        return;
+
+    const int index = midiInputCombo.getSelectedId() - 1;
+    if (index < 0 || index >= midiDeviceIds.size())
+        return;
+
+    // Persist from the parallel name array, NEVER from getText(): the
+    // "(not connected)" entry's text carries a suffix, and storing that would
+    // break the name fallback for good.
+    // selectDevice() writes to WFS-DIY.settings immediately, so this selection
+    // is not subject to saveSettings()'s flush gap.
+    midiTrigger->selectDevice(midiDeviceIds[index], midiDeviceNames[index]);
+}
+
 void DeviceSettingsPanel::updateAllControls()
 {
     updateDeviceTypes();
     updateDevices();
     updateSampleRates();
     updateBufferSizes();
+    updateMidiInputs();
 
     // Show/hide control panel button based on device type (ASIO has control panel)
     bool hasControlPanel = false;
@@ -567,7 +669,8 @@ void DeviceSettingsPanel::enableAllChannels()
 
 AudioInterfaceContent::AudioInterfaceContent(juce::AudioDeviceManager& devManager,
                                              WFSValueTreeState& valueTreeState,
-                                             TestSignalGenerator* testSignalGen)
+                                             TestSignalGenerator* testSignalGen,
+                                             MidiSnapshotTrigger* midiTrigger)
     : deviceManager(devManager),
       parameters(valueTreeState),
       testSignalGenerator(testSignalGen)
@@ -582,7 +685,7 @@ AudioInterfaceContent::AudioInterfaceContent(juce::AudioDeviceManager& devManage
     tabbedComponent.setOutline(0);
 
     // Create custom device settings panel (replaces AudioDeviceSelectorComponent)
-    deviceSettingsPanel = std::make_unique<DeviceSettingsPanel>(deviceManager);
+    deviceSettingsPanel = std::make_unique<DeviceSettingsPanel>(deviceManager, midiTrigger);
 
     // Create patch tabs
     inputPatchTab = new InputPatchTab(parameters);
@@ -672,7 +775,8 @@ void AudioInterfaceContent::resetAllModes()
 
 AudioInterfaceWindow::AudioInterfaceWindow(juce::AudioDeviceManager& deviceManager,
                                            WFSValueTreeState& valueTreeState,
-                                           TestSignalGenerator* testSignalGen)
+                                           TestSignalGenerator* testSignalGen,
+                                           MidiSnapshotTrigger* midiTrigger)
     : DocumentWindow(LOC("audioPatch.windowTitle"),
                      ColorScheme::get().background,
                      DocumentWindow::allButtons),
@@ -682,7 +786,7 @@ AudioInterfaceWindow::AudioInterfaceWindow(juce::AudioDeviceManager& deviceManag
     setResizable(true, true);
 
     // Create content
-    auto* newContent = new AudioInterfaceContent(deviceManager, valueTreeState, testSignalGen);
+    auto* newContent = new AudioInterfaceContent(deviceManager, valueTreeState, testSignalGen, midiTrigger);
     setContentOwned(newContent, false);
     content = newContent;
 

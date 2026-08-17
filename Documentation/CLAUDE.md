@@ -1585,12 +1585,12 @@ auto state = scope.getChannelState(channelIndex);  // AllIncluded/AllExcluded/Pa
 
 **Snapshot file structure:**
 ```xml
-<InputSnapshot version="1.0" name="MySnapshot">
-  <ExtendedScope applyMode="1">  <!-- 0=OnSave, 1=OnRecall -->
-    <Item id="position_0" included="0"/>
-    <Item id="lfoEnable_0" included="0"/>
-    <Item id="lfoEnable_1" included="0"/>
-    <!-- Only stores excluded items (default is included) -->
+<InputSnapshot version="2.0" name="MySnapshot" midiChannel="1" midiNote="60">
+  <ExtendedScope applyMode="OnRecall"           <!-- "OnSave" | "OnRecall" -->
+                 fullChannels="1,2"             <!-- 1-based, fully included -->
+                 excludedChannels="3,4">        <!-- 1-based, fully excluded -->
+    <PartialChannel index="2" excludedItems="position,lfoEnable"/>
+    <!-- Channels absent from all three are fully included by default -->
   </ExtendedScope>
   <Inputs>
     <Input id="1">
@@ -1601,6 +1601,45 @@ auto state = scope.getChannelState(channelIndex);  // AllIncluded/AllExcluded/Pa
   </Inputs>
 </InputSnapshot>
 ```
+
+> `version` is written but read nowhere in `Source/`, so it cannot be used as a format switch.
+> `fullChannels` is **write-only** — the deserializer relies on "absent = included" and never reads
+> it back. Do not assume a written attribute round-trips.
+
+**MIDI snapshot recall** (since 1.0.0beta42)
+
+`midiChannel` (1–16) and `midiNote` (0–127) on the **root** element bind a snapshot to a MIDI note.
+Absence of either attribute means unbound, which is how every pre-beta42 file reads back.
+
+- **Root, not `<ExtendedScope>`**, for two reasons: `WFSFileManager::scanSnapshotMidiBindings()` can then
+  build the whole-project index with `juce::XmlDocument::getDocumentElement(true)` — an outer-element-only
+  parse, a few hundred bytes per file regardless of snapshot size — and scope **templates**, which share
+  `serializeExtendedScope`, can never carry a note.
+- **Trigger rule:** a note-on with velocity **strictly above 64** on a bound (channel, note) recalls the
+  snapshot through the same scope-aware path as the *Reload Snapshot* button. Velocity ≤ 64, note-offs and
+  velocity-0 note-ons are ignored outright. The same key is locked out for 250 ms.
+- **Threading:** `MidiSnapshotTrigger::handleIncomingMidiMessage` (OS MIDI thread) only does a velocity
+  test, one relaxed load from a 16×128 atomic table and one release-store of a packed `(ch<<8)|note` key.
+  `MainComponent::timerCallback` (5 ms) polls `takePendingRecall()` and performs the recall on the message
+  thread. Deliberately no `callAsync`: a recall costs tens of ms, so the single-slot park gives latest-wins
+  coalescing instead of queueing reloads the operator has already moved past.
+- **Device selection** is machine-local (`AppSettings::getMidiSnapshotInputId/Name`, stored in
+  `WFS-DIY.settings`), chosen in *Audio Interface ▸ Device Settings* under the label
+  **"MIDI snapshot recall:"**. Both identifier and name are stored because
+  `juce::MidiDeviceInfo::identifier` is OS-formatted and not promised stable across reboots.
+- **Scope of the connection:** this port is **snapshot recall only**. It is opened for *input* alone
+  (`juce::MidiInput`, no `MidiOutput` anywhere in the path), the app never sends to it, and
+  `handleIncomingMidiMessage` acts on nothing but qualifying note-ons — every other message type falls
+  through untouched. ROLI Lightpad Blocks open their own ports independently via
+  `roli_blocks_basics` and are unaffected; a Lightpad's port appears in this selector but must not be
+  chosen, since on Windows a MIDI port cannot be opened twice.
+- **Duplicates:** the scope editor refuses to save a binding another snapshot already claims (the
+  *Update Snapshot Scope* button is hidden and a red label names the owner). A collision arriving on disk
+  — copied file, hand-edited XML, restored backup — is resolved first-wins in file-name order with a
+  logged warning.
+- **Undo:** externally triggered recalls (MIDI and OSC) run under
+  `TreeParameterStore::ScopedUndoSuppression` and create no undo entry, so a cue-driven show does not bury
+  the operator's own edits. The *Reload Snapshot* button keeps its undo entry.
 
 ### QLab Export
 

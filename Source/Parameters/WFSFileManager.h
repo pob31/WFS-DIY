@@ -281,6 +281,31 @@ public:
          */
         std::map<juce::String, bool> itemChannelStates;
 
+        /** MIDI note trigger. A note-on above the velocity threshold on
+            (midiChannel, midiNote) recalls this snapshot.
+
+            Channel is 1..16, exactly as juce::MidiMessage::getChannel() reports
+            it; 0 = unbound, which is also what every pre-beta42 snapshot reads
+            back as (absent attribute -> "" -> getIntValue() == 0).
+
+            Deliberately NOT a scope item: a trigger is a property of the
+            snapshot, not of an input channel, so it stays out of
+            itemChannelStates and out of the channel-count-dependent machinery
+            in deserializeExtendedScope(). It is also serialised on the
+            <InputSnapshot> ROOT, not inside <ExtendedScope> -- see
+            writeMidiBindingToRoot(). That keeps a scope TEMPLATE, which shares
+            the scope serializer, from carrying a note. */
+        int midiChannel = 0;    // 0 = unbound, else 1..16
+        int midiNote    = 0;    // 0..127, meaningful only when midiChannel > 0
+
+        bool hasMidiBinding() const noexcept
+        {
+            return midiChannel >= 1 && midiChannel <= 16
+                && midiNote    >= 0 && midiNote    <= 127;
+        }
+
+        void clearMidiBinding() noexcept { midiChannel = 0; midiNote = 0; }
+
         //----------------------------------------------------------------------
         // Static scope item definitions
         //----------------------------------------------------------------------
@@ -374,6 +399,26 @@ public:
 
     /** Get default snapshot name (timestamp) */
     static juce::String getDefaultSnapshotName();
+
+    /** One snapshot's MIDI trigger binding. */
+    struct MidiBinding
+    {
+        int channel = 0;
+        int note = 0;
+        juce::String snapshotName;
+    };
+
+    /** Every bound snapshot in the project, in file-name order (which makes the
+        winner of a duplicate deterministic and identical on every machine).
+
+        Reads only the OUTER document element of each file -- which is exactly
+        why the binding lives on the root rather than inside <ExtendedScope>.
+        Cheap enough to call on every scope-editor keystroke. */
+    std::vector<MidiBinding> scanSnapshotMidiBindings() const;
+
+    /** Fired at the end of setProjectFolder(). One choke point for every call
+        site so MIDI binding-index invalidation is not duplicated. */
+    std::function<void()> onProjectFolderChanged;
 
     //==========================================================================
     // Snapshot Scope Operations
@@ -534,6 +579,12 @@ private:
 
     /** Deserialize extended scope from ValueTree */
     ExtendedSnapshotScope deserializeExtendedScope (const juce::ValueTree& scopeTree) const;
+
+    /** Write / read the MIDI trigger binding on the <InputSnapshot> ROOT element
+        (not inside <ExtendedScope>, so the whole-folder index can find it with
+        an outer-element-only XML parse, and so scope templates never carry it). */
+    static void writeMidiBindingToRoot (juce::ValueTree& snapshot, const ExtendedSnapshotScope& scope);
+    static void readMidiBindingFromRoot (const juce::ValueTree& snapshot, ExtendedSnapshotScope& scope);
 
     /** Set error message */
     void setError (const juce::String& error);

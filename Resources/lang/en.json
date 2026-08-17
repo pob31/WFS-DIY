@@ -585,14 +585,18 @@
         "deviceType": "Audio device type:",
         "device": "Device:",
         "sampleRate": "Sample rate:",
-        "bufferSize": "Audio buffer size:"
+        "bufferSize": "Audio buffer size:",
+        "midiInput": "MIDI snapshot recall:"
       },
       "buttons": {
         "controlPanel": "Control Panel",
         "resetDevice": "Reset Device"
       },
       "noDevice": "No Device",
-      "notConfigured": "Not configured"
+      "notConfigured": "Not configured",
+      "midiOff": "Off — no MIDI recall",
+      "midiNotConnected": "(not connected)",
+      "midiTooltip": "Snapshot recall only. This port is opened for input alone and is used for nothing else: WFS-DIY sends it no MIDI, and the only messages it acts on are note-ons that recall an input snapshot. Bind a channel and note to a snapshot in the Inputs tab's Edit Scope window; a note-on above velocity 64 recalls it."
     },
 
     "modes": {
@@ -1692,6 +1696,9 @@
       "scopeSaved": "Snapshot scope saved.",
       "scopeConfigured": "Scope configured for next snapshot.",
       "snapshotScopeUpdated": "Snapshot '{name}' scope updated.",
+      "snapshotNotFound": "Snapshot '{name}' not found.",
+      "snapshotLoadedByMidi": "Snapshot '{name}' recalled by MIDI.",
+      "midiBindingConflict": "MIDI ch {ch} note {note} is claimed by both '{first}' and '{other}' — '{first}' wins.",
       "trackingDisabled": "Tracking disabled for Input {channel}",
       "trackingSwitched": "Tracking switched from Input {from} to Input {to}",
       "clusterEditRelative": "Shift edit: applying relative change to {count} other input(s) of Cluster {cluster}",
@@ -1888,6 +1895,12 @@
       "nameLabel": "Template name",
       "errorTitle": "Scope Template Error",
       "overwriteWarning": "A template with this name already exists — it will be overwritten."
+    },
+    "midi": {
+      "label": "MIDI:",
+      "enable": "Recall on MIDI note",
+      "tooltip": "A note-on above velocity 64 on this channel and note recalls this snapshot. Note-offs and softer notes are ignored. Choose the MIDI input in Audio Interface ▸ Device Settings.",
+      "conflict": "MIDI ch {ch} note {note} is already used by '{name}' — pick another note to save."
     }
   },
 

@@ -135,6 +135,41 @@ struct AppSettings
         props.saveIfNeeded();
     }
 
+    /** MIDI input feeding snapshot note triggers. Machine-local like everything
+        here -- which MIDI interface is plugged into this computer is a property
+        of the computer, not of the show file. (The note bindings themselves are
+        show data and live in the snapshot files.)
+
+        Both halves are stored because juce::MidiDeviceInfo::identifier is
+        OS-formatted and is NOT documented as stable across reboots; the
+        identifier is tried first and the name is the fallback, mirroring JUCE's
+        own openLastRequestedMidiDevices. Empty identifier = recall off. */
+    static juce::String getMidiSnapshotInputId()
+    {
+        juce::PropertiesFile props (getOptions());
+        return props.getValue ("midiSnapshotInputId", "");
+    }
+
+    static void setMidiSnapshotInputId (const juce::String& identifier)
+    {
+        juce::PropertiesFile props (getOptions());
+        props.setValue ("midiSnapshotInputId", identifier);
+        props.saveIfNeeded();
+    }
+
+    static juce::String getMidiSnapshotInputName()
+    {
+        juce::PropertiesFile props (getOptions());
+        return props.getValue ("midiSnapshotInputName", "");
+    }
+
+    static void setMidiSnapshotInputName (const juce::String& deviceName)
+    {
+        juce::PropertiesFile props (getOptions());
+        props.setValue ("midiSnapshotInputName", deviceName);
+        props.saveIfNeeded();
+    }
+
     static bool getCleanShutdown()
     {
         juce::PropertiesFile props (getOptions());

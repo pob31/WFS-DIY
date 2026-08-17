@@ -610,6 +610,23 @@ public:
     /** Callback when input config is reloaded - for triggering DSP recalculation */
     std::function<void()> onConfigReloaded;
 
+    /** Recall a snapshot through MainComponent's single recall seam, shared with
+        the OSC address /wfs/input/snapshot/load and the MIDI note trigger. */
+    std::function<void(const juce::String& snapshotName)> onSnapshotRecallRequested;
+
+    /** Fired after any snapshot is created, updated, deleted, or has its scope
+        rewritten -- the MIDI binding index rebuilds from this. */
+    std::function<void()> onSnapshotsChanged;
+
+    /** Mirror an externally-triggered recall in the dropdown, so the operator
+        can see which cue is live. */
+    void selectSnapshotInSelector (const juce::String& snapshotName)
+    {
+        refreshSnapshotList();
+        snapshotSelector.setText (snapshotName, juce::dontSendNotification);
+        updateSnapshotButtonStates();
+    }
+
     /** Callback when Level Meter window is requested */
     std::function<void()> onLevelMeterWindowRequested;
 
@@ -6548,11 +6565,28 @@ private:
                         if (currentScopeInitialized)
                         {
                             scope = currentScope;
+                            // The grid is the reusable part of a scope; a MIDI
+                            // binding names ONE snapshot. Belt-and-braces —
+                            // editSnapshotScope already clears it on the way in.
+                            scope.clearMidiBinding();
                         }
                         else
                         {
                             scope.initializeDefaults(parameters.getNumInputChannels());
                         }
+
+                        // Storing over an EXISTING name is a content replace, not
+                        // a re-bind: keep whatever note that snapshot already had,
+                        // otherwise "Store" silently disarms a live cue.
+                        // (The enclosing fileManager reference is not captured by
+                        // this lambda, so go through parameters.)
+                        if (parameters.getFileManager().getInputSnapshotNames().contains(name))
+                        {
+                            auto existing = parameters.getFileManager().getExtendedSnapshotScope(name);
+                            scope.midiChannel = existing.midiChannel;
+                            scope.midiNote    = existing.midiNote;
+                        }
+
                         snapshotScopes[name] = scope;
 
                         if (writeToQLabEnabled)
@@ -6564,6 +6598,8 @@ private:
                                 refreshSnapshotList();
                                 snapshotSelector.setText(name, juce::dontSendNotification);
                                 updateSnapshotButtonStates();
+                                if (onSnapshotsChanged)
+                                    onSnapshotsChanged();
                             }
                             if (onQLabExportRequested)
                                 onQLabExportRequested(name, scope);
@@ -6579,6 +6615,9 @@ private:
                                 snapshotSelector.setText(name, juce::dontSendNotification);
                                 updateSnapshotButtonStates();
                                 showStatusMessage(LOC("inputs.messages.snapshotStored").replace("{name}", name));
+
+                                if (onSnapshotsChanged)
+                                    onSnapshotsChanged();
 
                                 if (writeSnapshotLoadCueEnabled && onQLabSnapshotLoadCueRequested)
                                     onQLabSnapshotLoadCueRequested (name);
@@ -6598,37 +6637,18 @@ private:
     void reloadSnapshot()
     {
         auto selectedSnapshot = snapshotSelector.getText();
-        if (selectedSnapshot.isEmpty() || selectedSnapshot == "Select Snapshot...")
+        if (snapshotSelector.getSelectedId() <= 1)
         {
             showStatusMessage(LOC("inputs.messages.noSnapshotSelected"));
             return;
         }
 
-        auto& fileManager = parameters.getFileManager();
-
-        // Load scope if not cached
-        if (snapshotScopes.find(selectedSnapshot) == snapshotScopes.end())
-        {
-            snapshotScopes[selectedSnapshot] = fileManager.getExtendedSnapshotScope(selectedSnapshot);
-        }
-
-        auto& scope = snapshotScopes[selectedSnapshot];
-
-        parameters.getDirtyTracker().beginSuppression();
-
-        if (fileManager.loadInputSnapshotWithExtendedScope(selectedSnapshot, scope))
-        {
-            loadChannelParameters(currentChannel);
-            showStatusMessage(LOC("inputs.messages.snapshotLoaded").replace("{name}", selectedSnapshot));
-            if (onConfigReloaded)
-                onConfigReloaded();
-        }
-        else
-        {
-            showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
-        }
-
-        parameters.getDirtyTracker().endSuppressionAndClear();
+        // One recall path for UI, OSC and MIDI. The seam re-reads the scope from
+        // disk instead of using the snapshotScopes cache -- the safer of the two,
+        // since the cache goes stale if the file is edited outside this tab, and
+        // one extra XML parse on an explicit long-press costs nothing.
+        if (onSnapshotRecallRequested)
+            onSnapshotRecallRequested (selectedSnapshot);
     }
 
     void reloadSnapshotWithoutScope()
@@ -6690,7 +6710,7 @@ private:
     void updateSnapshot()
     {
         auto selectedSnapshot = snapshotSelector.getText();
-        if (selectedSnapshot.isEmpty() || selectedSnapshot == "Select Snapshot...")
+        if (snapshotSelector.getSelectedId() <= 1)
         {
             showStatusMessage(LOC("inputs.messages.noSnapshotSelected"));
             return;
@@ -6725,6 +6745,9 @@ private:
                 parameters.getDirtyTracker().clearAll();
                 showStatusMessage(LOC("inputs.messages.snapshotUpdated").replace("{name}", selectedSnapshot));
 
+                if (onSnapshotsChanged)
+                    onSnapshotsChanged();
+
                 if (writeSnapshotLoadCueEnabled && onQLabSnapshotLoadCueRequested)
                     onQLabSnapshotLoadCueRequested (selectedSnapshot);
             }
@@ -6736,7 +6759,7 @@ private:
     void editSnapshotScope()
     {
         auto selectedSnapshot = snapshotSelector.getText();
-        bool hasSelectedSnapshot = !selectedSnapshot.isEmpty() && selectedSnapshot != "Select Snapshot...";
+        bool hasSelectedSnapshot = snapshotSelector.getSelectedId() > 1;
 
         auto& fileManager = parameters.getFileManager();
 
@@ -6801,6 +6824,10 @@ private:
                     // next "Create Snapshot"; the selected snapshot's file and cached
                     // scope stay untouched (the long-press button handles those).
                     currentScope = *working;
+                    // The grid is the reusable part of a scope; a MIDI binding
+                    // names ONE snapshot. Carrying it into the session default
+                    // would hand the next created snapshot the same note.
+                    currentScope.clearMidiBinding();
                     currentScopeInitialized = true;
                     showStatusMessage(LOC("inputs.messages.scopeConfigured"));
                 }
@@ -6814,6 +6841,11 @@ private:
                         snapshotScopes[selectedSnapshot] = *working;
                         showStatusMessage(LOC("inputs.messages.snapshotScopeUpdated").replace("{name}", selectedSnapshot));
                         updateSnapshotButtonStates();  // applyMode drives "Reload w/o Scope" enablement
+
+                        // The scope carries the MIDI binding, so this is the
+                        // normal way a note is armed or cleared.
+                        if (onSnapshotsChanged)
+                            onSnapshotsChanged();
                     }
                     else
                     {
@@ -6842,7 +6874,7 @@ private:
     void deleteSnapshot()
     {
         auto selectedSnapshot = snapshotSelector.getText();
-        if (selectedSnapshot.isEmpty() || selectedSnapshot == "Select Snapshot...")
+        if (snapshotSelector.getSelectedId() <= 1)
         {
             showStatusMessage(LOC("inputs.messages.noSnapshotSelected"));
             return;
@@ -6854,6 +6886,9 @@ private:
             snapshotScopes.erase(selectedSnapshot);
             refreshSnapshotList();
             updateSnapshotButtonStates();
+
+            if (onSnapshotsChanged)
+                onSnapshotsChanged();
             showStatusMessage(LOC("inputs.messages.snapshotDeleted").replace("{name}", selectedSnapshot));
         }
         else
@@ -6864,6 +6899,12 @@ private:
 
     void refreshSnapshotList()
     {
+        // Remember the current selection so a rebuild does not silently clear it.
+        // Read it from the id, not the text: item 1 is the placeholder, and
+        // latching that as a name would make it look like a real snapshot.
+        auto previousSelection = snapshotSelector.getSelectedId() > 1
+                                   ? snapshotSelector.getText() : juce::String();
+
         auto& fileManager = parameters.getFileManager();
         auto names = fileManager.getInputSnapshotNames();
 
@@ -6875,6 +6916,17 @@ private:
         {
             snapshotSelector.addItem(name, id++);
         }
+
+        // Keep the current selection if that snapshot still exists, otherwise
+        // fall back to the placeholder so the box is never blank. ComboBox::clear
+        // leaves the selection at -1, which is what used to blank the selector
+        // (and disable every snapshot button) after a recall or a config reload.
+        if (previousSelection.isNotEmpty() && names.contains(previousSelection))
+            snapshotSelector.setText(previousSelection, juce::dontSendNotification);
+        else
+            snapshotSelector.setSelectedId(1, juce::dontSendNotification);
+
+        updateSnapshotButtonStates();
     }
 
     //==============================================================================

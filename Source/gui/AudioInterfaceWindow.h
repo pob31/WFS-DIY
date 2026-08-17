@@ -8,6 +8,8 @@
 #include "../Localization/LocalizationManager.h"
 #include "HelpCardSVG.h"
 
+class MidiSnapshotTrigger;
+
 /**
  * DeviceInfoBar
  *
@@ -51,7 +53,8 @@ class DeviceSettingsPanel : public juce::Component,
                             private ColorScheme::Manager::Listener
 {
 public:
-    DeviceSettingsPanel(juce::AudioDeviceManager& deviceManager);
+    DeviceSettingsPanel(juce::AudioDeviceManager& deviceManager,
+                        MidiSnapshotTrigger* midiTrigger = nullptr);
     ~DeviceSettingsPanel() override;
 
     void resized() override;
@@ -67,12 +70,14 @@ private:
     void updateDevices();
     void updateSampleRates();
     void updateBufferSizes();
+    void updateMidiInputs();
     void updateAllControls();
 
     void deviceTypeChanged();
     void deviceChanged();
     void sampleRateChanged();
     void bufferSizeChanged();
+    void midiInputChanged();
 
     void enableAllChannels();
 
@@ -96,6 +101,18 @@ private:
 
     juce::Label bufferSizeLabel;
     juce::ComboBox bufferSizeCombo;
+
+    // MIDI input feeding snapshot note recall. The port itself is owned by
+    // MainComponent's MidiSnapshotTrigger (this window is stopped-only and
+    // lazily constructed, so a listener living here would be absent in a show);
+    // this panel only picks the device.
+    juce::Label midiInputLabel;
+    juce::ComboBox midiInputCombo;
+    juce::StringArray midiDeviceIds;      // parallel to combo ids (index = id - 1)
+    juce::StringArray midiDeviceNames;    // ditto -- NEVER persist getText(), which
+                                          // may carry the "(not connected)" suffix
+    juce::MidiDeviceListConnection midiListConnection;
+    MidiSnapshotTrigger* midiTrigger = nullptr;   // owned by MainComponent, outlives this window
 
     juce::TextButton controlPanelButton;
     juce::TextButton resetDeviceButton;
@@ -144,7 +161,8 @@ class AudioInterfaceContent : public juce::Component
 public:
     AudioInterfaceContent(juce::AudioDeviceManager& deviceManager,
                           WFSValueTreeState& valueTreeState,
-                          TestSignalGenerator* testSignalGen);
+                          TestSignalGenerator* testSignalGen,
+                          MidiSnapshotTrigger* midiTrigger = nullptr);
     ~AudioInterfaceContent() override;
 
     void resized() override;
@@ -205,7 +223,8 @@ class AudioInterfaceWindow : public juce::DocumentWindow
 public:
     AudioInterfaceWindow(juce::AudioDeviceManager& deviceManager,
                          WFSValueTreeState& valueTreeState,
-                         TestSignalGenerator* testSignalGen);
+                         TestSignalGenerator* testSignalGen,
+                         MidiSnapshotTrigger* midiTrigger = nullptr);
 
     ~AudioInterfaceWindow() override = default;
 

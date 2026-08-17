@@ -56,6 +56,13 @@ namespace WFSParameterIDs
     const juce::Identifier rows              ("rows");
     const juce::Identifier cols              ("cols");
 
+    // <InputSnapshot> root attributes: MIDI note trigger binding.
+    // On the ROOT, not inside <ExtendedScope>, so the binding index can be built
+    // with an outer-element-only XML parse and so scope templates (which share
+    // the scope serializer) never carry a note. Absent = unbound.
+    const juce::Identifier midiChannel       ("midiChannel");   // 1..16
+    const juce::Identifier midiNote          ("midiNote");      // 0..127
+
     //==========================================================================
     // Config > Show Section
     //==========================================================================

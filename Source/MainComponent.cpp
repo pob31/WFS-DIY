@@ -257,6 +257,14 @@ MainComponent::MainComponent()
     updateBanner->onDismiss = [this]() { resized(); };
     addChildComponent (updateBanner.get());
 
+    // A different project means a different snapshot folder, so every armed
+    // MIDI note belongs to the previous project. Wired before the restore below
+    // so later folder changes are covered; the initial index build happens
+    // explicitly once midiSnapshotTrigger exists (this fires before that).
+    parameters.getFileManager().onProjectFolderChanged = [this]() {
+        refreshMidiSnapshotBindings();
+    };
+
     // Restore project folder from AppSettings (persists across sessions)
     {
         auto folder = AppSettings::getLastFolder ("lastProjectFolder", juce::File());
@@ -454,6 +462,17 @@ MainComponent::MainComponent()
 
     inputsTab->onConfigReloaded = [this]() {
         handleConfigReloaded();
+    };
+
+    // The Inputs "Reload Snapshot" long-press goes through the same seam as OSC
+    // and MIDI, so the recall logic exists in exactly one place.
+    inputsTab->onSnapshotRecallRequested = [this](const juce::String& snapshotName) {
+        recallSnapshotByName (snapshotName);
+    };
+
+    // Any snapshot created / updated / deleted / re-scoped can change a binding.
+    inputsTab->onSnapshotsChanged = [this]() {
+        refreshMidiSnapshotBindings();
     };
 
     inputsTab->isQLabAvailable = [this]() {
@@ -2004,44 +2023,37 @@ MainComponent::MainComponent()
             streamDeckManager->setSubTab (subTabIndex);
     };
 
+    // MIDI note -> snapshot recall. Created before the snapshot OSC callbacks so
+    // both external trigger paths are wired next to each other.
+    midiSnapshotTrigger = std::make_unique<MidiSnapshotTrigger>();
+
+    // REQUIRED, not belt-and-braces: FileManager::onProjectFolderChanged fires
+    // during the project restore earlier in this constructor, before the trigger
+    // exists, and handleConfigReloaded() is never called on a plain launch (only
+    // openProjectFromFile calls it). Without this the index stays empty until the
+    // operator re-picks the project folder or stores a snapshot.
+    refreshMidiSnapshotBindings();
+
+    midiSnapshotTrigger->onDuplicateBinding =
+        [this] (int ch, int note, const juce::String& winner, const juce::String& loser)
+    {
+        const auto msg = LOC("inputs.messages.midiBindingConflict")
+                            .replace ("{ch}",    juce::String (ch))
+                            .replace ("{note}",  juce::String (note))
+                            .replace ("{first}", winner)
+                            .replace ("{other}", loser);
+
+        WFSLogger::getInstance().logWarning (msg);
+
+        if (statusBar != nullptr)
+            statusBar->showTemporaryMessage (msg, 5000);
+    };
+
     // Snapshot OSC command callbacks
+    // Both external trigger paths and the Inputs long-press funnel through the
+    // one seam, so the recall logic cannot drift into three copies again.
     oscManager->onSnapshotLoadRequested = [this](const juce::String& snapshotName) {
-        auto& fileManager = parameters.getFileManager();
-        if (!fileManager.hasValidProjectFolder())
-        {
-            DBG ("OSC snapshot/load: no project folder configured");
-            return;
-        }
-
-        auto names = fileManager.getInputSnapshotNames();
-        if (!names.contains (snapshotName))
-        {
-            DBG ("OSC snapshot/load: snapshot not found: " << snapshotName);
-            if (inputsTab != nullptr)
-                inputsTab->showStatusMessage ("Snapshot not found: " + snapshotName);
-            return;
-        }
-
-        auto scope = fileManager.getExtendedSnapshotScope (snapshotName);
-
-        parameters.getDirtyTracker().beginSuppression();
-
-        if (fileManager.loadInputSnapshotWithExtendedScope (snapshotName, scope))
-        {
-            if (inputsTab != nullptr)
-            {
-                inputsTab->refreshFromState();
-                inputsTab->showStatusMessage (
-                    LOC("inputs.messages.snapshotLoaded").replace ("{name}", snapshotName));
-            }
-            handleConfigReloaded();
-        }
-        else
-        {
-            DBG ("OSC snapshot/load: failed to load: " << fileManager.getLastError());
-        }
-
-        parameters.getDirtyTracker().endSuppressionAndClear();
+        recallSnapshotByName (snapshotName, /*fromMidi*/ false, /*fromOsc*/ true);
     };
 
     oscManager->onSnapshotStoreRequested = [this](const juce::String& snapshotName) {
@@ -2064,6 +2076,10 @@ MainComponent::MainComponent()
                 inputsTab->showStatusMessage (
                     LOC("inputs.messages.snapshotUpdated").replace ("{name}", snapshotName));
             }
+
+            // An OSC-stored snapshot carries whatever binding getExtendedSnapshotScope
+            // just read back from the file, so the index may have changed.
+            refreshMidiSnapshotBindings();
         }
         else
         {
@@ -2378,6 +2394,11 @@ MainComponent::~MainComponent()
 
     // Invalidate in-flight SOFA loader callbacks (they capture this).
     *sofaLoadAlive = false;
+
+    // Close the MIDI port before UI teardown. Strictly defensive -- the trigger
+    // parks values in atomics and is polled, so it never calls back into this
+    // object -- but it keeps the shutdown ordering obvious.
+    midiSnapshotTrigger.reset();
 
     // Sever NetworkTab's reference to mcpServer + its listener registration
     // on MCPTierEnforcement BEFORE mcpServer is destroyed. Member-destruction
@@ -3373,6 +3394,98 @@ void MainComponent::openProjectFromFile (const juce::File& folder)
     }
 }
 
+bool MainComponent::recallSnapshotByName (const juce::String& snapshotName, bool fromMidi, bool fromOsc)
+{
+    JUCE_ASSERT_MESSAGE_THREAD
+
+    // Not re-entrant: handleConfigReloaded is very heavy, and the dirty
+    // tracker's suppression flag has no nesting counter -- an inner
+    // endSuppressionAndClear() would un-suppress while the outer load is still
+    // writing, marking the outer recall's remaining writes as operator edits.
+    if (snapshotRecallInProgress)
+        return false;
+
+    auto& fileManager = parameters.getFileManager();
+
+    if (! fileManager.hasValidProjectFolder())
+    {
+        DBG ("snapshot recall: no project folder configured");
+        return false;
+    }
+
+    if (! fileManager.getInputSnapshotNames().contains (snapshotName))
+    {
+        DBG ("snapshot recall: snapshot not found: " << snapshotName);
+        if (inputsTab != nullptr)
+            inputsTab->showStatusMessage (
+                LOC("inputs.messages.snapshotNotFound").replace ("{name}", snapshotName));
+        return false;
+    }
+
+    const juce::ScopedValueSetter<bool> reentryGuard (snapshotRecallInProgress, true);
+
+    // Read the scope from the file every time rather than from InputsTab's
+    // lazily-populated cache: the cache only covers snapshots the user has
+    // touched, and MIDI/OSC can name any of them.
+    auto scope = fileManager.getExtendedSnapshotScope (snapshotName);
+
+    // Externally triggered recalls create no undo entry, so a cue-driven show
+    // does not bury the operator's own edits under one entry per cue. Scoped
+    // tightly around the load so a user Ctrl+Z can never see the suppression.
+    const bool external = fromMidi || fromOsc;
+    std::optional<WFSValueTreeState::ScopedUndoSuppression> noUndo;
+    if (external)
+        noUndo.emplace (parameters.getValueTreeState());
+
+    parameters.getDirtyTracker().beginSuppression();
+
+    const bool ok = fileManager.loadInputSnapshotWithExtendedScope (snapshotName, scope);
+
+    if (ok)
+    {
+        // handleConfigReloaded() calls inputsTab->refreshFromValueTree(), which
+        // reloads the channel parameters, so the OSC path's old extra
+        // refreshFromState() was a duplicate and is deliberately not carried over.
+        handleConfigReloaded();
+
+        if (inputsTab != nullptr)
+        {
+            // AFTER handleConfigReloaded: that rebuilds the snapshot dropdown, so
+            // selecting first would be overwritten by the rebuild.
+            inputsTab->selectSnapshotInSelector (snapshotName);
+            inputsTab->showStatusMessage (
+                LOC(fromMidi ? "inputs.messages.snapshotLoadedByMidi"
+                             : "inputs.messages.snapshotLoaded")
+                    .replace ("{name}", snapshotName));
+        }
+
+        // A hardware-triggered state change has no visual focus, so announce it.
+        if (fromMidi)
+            TTSManager::getInstance().announceImmediate (
+                LOC("inputs.messages.snapshotLoadedByMidi").replace ("{name}", snapshotName));
+    }
+    else
+    {
+        DBG ("snapshot recall failed: " << fileManager.getLastError());
+    }
+
+    parameters.getDirtyTracker().endSuppressionAndClear();
+    return ok;
+}
+
+void MainComponent::refreshMidiSnapshotBindings()
+{
+    if (midiSnapshotTrigger == nullptr)
+        return;
+
+    std::vector<std::tuple<int, int, juce::String>> rows;
+
+    for (const auto& b : parameters.getFileManager().scanSnapshotMidiBindings())
+        rows.emplace_back (b.channel, b.note, b.snapshotName);
+
+    midiSnapshotTrigger->setBindings (rows);
+}
+
 void MainComponent::handleConfigReloaded()
 {
     WFSLogger::getInstance().logInfo ("Configuration reloaded");
@@ -3613,6 +3726,11 @@ void MainComponent::handleConfigReloaded()
         // dirty-gated trailing send never fires either).
         sendVisualisationToRemotes();
     }
+
+    // Outside the oscManager block on purpose: the MIDI binding index must be
+    // rebuilt on every config reload whether or not OSC was constructed.
+    // One directory scan of outer XML elements -- cheap enough to run here.
+    refreshMidiSnapshotBindings();
 }
 
 void MainComponent::setupPatchWindowStreamDeck (PatchWindowPages::PatchCallbacks& cb,
@@ -3990,7 +4108,8 @@ void MainComponent::openAudioInterfaceWindow()
         audioInterfaceWindow = std::make_unique<AudioInterfaceWindow>(
             deviceManager,
             parameters.getValueTreeState(),
-            testSignalGenerator.get()
+            testSignalGenerator.get(),
+            midiSnapshotTrigger.get()
         );
 
         // Wire Stream Deck+ focus callbacks
@@ -5375,6 +5494,21 @@ void MainComponent::saveSettings()
 
 void MainComponent::timerCallback()
 {
+    // MIDI-triggered recall. The MIDI thread only parked a packed (ch<<8)|note;
+    // the recall itself (XML read + whole-ValueTree write + handleConfigReloaded)
+    // runs here, on the message thread. One slot = latest-wins coalescing at
+    // 5 ms, which is far shorter than a recall takes anyway.
+    if (midiSnapshotTrigger != nullptr)
+    {
+        const int key = midiSnapshotTrigger->takePendingRecall();
+        if (key >= 0)
+        {
+            const auto pending = midiSnapshotTrigger->resolve (key);
+            if (pending.isNotEmpty())
+                recallSnapshotByName (pending, /*fromMidi*/ true);
+        }
+    }
+
 #if WFS_GPU_NATIVE
     // Once per second: surface GPU pipeline underruns (silence-filled blocks).
     // They never trip the device xrun counter (the callback doesn't wait on

@@ -108,6 +108,11 @@ void WFSFileManager::setProjectFolder (const juce::File& folder)
         systemConfigSynced = false;
 
     projectFolder = folder;
+
+    // Single choke point for MIDI binding-index invalidation: the snapshot
+    // folder just changed, so every armed note belongs to the previous project.
+    if (onProjectFolderChanged)
+        onProjectFolderChanged();
 }
 
 bool WFSFileManager::hasValidProjectFolder() const
@@ -1064,6 +1069,47 @@ juce::String WFSFileManager::getDefaultSnapshotName()
     return juce::Time::getCurrentTime().formatted ("%Y%m%d_%H%M%S");
 }
 
+std::vector<WFSFileManager::MidiBinding> WFSFileManager::scanSnapshotMidiBindings() const
+{
+    std::vector<MidiBinding> result;
+
+    auto folder = getInputSnapshotsFolder();
+    if (! folder.isDirectory())
+        return result;
+
+    auto files = folder.findChildFiles (juce::File::findFiles, false,
+                                        "*" + juce::String (snapshotExtension));
+
+    // findChildFiles order is filesystem-dependent; sorting makes the winner of
+    // a duplicate binding deterministic and identical on every machine.
+    files.sort();
+
+    for (const auto& file : files)
+    {
+        // Outer element only: root tag + attributes, a few hundred bytes, no
+        // matter how many megabytes of <Inputs> follow. This is the entire
+        // reason the binding lives on the root and not inside <ExtendedScope>.
+        juce::XmlDocument doc (file);
+        auto root = doc.getDocumentElement (true);
+
+        if (root == nullptr || ! root->hasTagName ("InputSnapshot"))
+            continue;
+
+        MidiBinding binding;
+        binding.channel = root->getStringAttribute (midiChannel.toString()).getIntValue();
+        binding.note    = root->getStringAttribute (midiNote.toString()).getIntValue();
+
+        if (binding.channel < 1 || binding.channel > 16
+            || binding.note < 0 || binding.note > 127)
+            continue;  // absent or garbage attributes = unbound
+
+        binding.snapshotName = file.getFileNameWithoutExtension();
+        result.push_back (std::move (binding));
+    }
+
+    return result;
+}
+
 //==============================================================================
 // Snapshot Scope - Static Definitions
 //==============================================================================
@@ -1193,6 +1239,13 @@ bool WFSFileManager::ExtendedSnapshotScope::isParameterIncluded (const juce::Ide
 bool WFSFileManager::ExtendedSnapshotScope::isEquivalentTo (const ExtendedSnapshotScope& other, int numChannels) const
 {
     if (applyMode != other.applyMode)
+        return false;
+
+    // The MIDI trigger is part of the scope object, so a binding-only edit must
+    // register as a difference -- this is the sole gate on the scope window's
+    // "Update Snapshot Scope" button, and without it such an edit is silently
+    // discarded when the window closes.
+    if (midiChannel != other.midiChannel || midiNote != other.midiNote)
         return false;
 
     for (const auto& item : getScopeItems())
@@ -1349,6 +1402,7 @@ void WFSFileManager::ExtendedSnapshotScope::initializeDefaults (int numChannels)
     juce::ignoreUnused (numChannels);
     itemChannelStates.clear();
     applyMode = ApplyMode::OnRecall;
+    clearMidiBinding();  // a fresh scope must never inherit another snapshot's note
     // All scope items default to included (missing = included convention)
 }
 
@@ -1378,6 +1432,12 @@ bool WFSFileManager::saveInputSnapshotWithExtendedScope (const juce::String& sna
     juce::ValueTree snapshot ("InputSnapshot");
     snapshot.setProperty (version, "2.0", nullptr);  // Version 2.0 for extended scope
     snapshot.setProperty (name, snapshotName, nullptr);
+
+    // This function builds a BRAND-NEW tree and overwrites the file, so both
+    // "Store Snapshot" and "Update Snapshot" would otherwise destroy an
+    // existing MIDI binding. The caller is responsible for having carried the
+    // previous binding into `scope` when storing over an existing name.
+    writeMidiBindingToRoot (snapshot, scope);
 
     int numInputs = valueTreeState.getNumInputChannels();
 
@@ -1453,6 +1513,10 @@ WFSFileManager::ExtendedSnapshotScope WFSFileManager::getExtendedSnapshotScope (
         auto scopeTree = snapshot.getChildWithName ("ExtendedScope");
         if (scopeTree.isValid())
             scope = const_cast<WFSFileManager*>(this)->deserializeExtendedScope (scopeTree);
+
+        // Read AFTER the scope tree: deserializeExtendedScope returns a fresh
+        // scope object, which would otherwise overwrite the binding.
+        readMidiBindingFromRoot (snapshot, scope);
     }
 
     return scope;
@@ -1477,6 +1541,10 @@ bool WFSFileManager::setExtendedSnapshotScope (const juce::String& snapshotName,
     int numInputs = valueTreeState.getNumInputChannels();
     snapshot.appendChild (serializeExtendedScope (scope, numInputs), nullptr);
 
+    // Read-modify-write of the existing root, so this overwrites the attributes
+    // (or removes them when the binding was cleared).
+    writeMidiBindingToRoot (snapshot, scope);
+
     return writeToXmlFile (snapshot, file);
 }
 
@@ -1500,6 +1568,9 @@ bool WFSFileManager::updateInputSnapshotScope (const juce::String& snapshotName,
 
     int numInputs = valueTreeState.getNumInputChannels();
     snapshot.appendChild (serializeExtendedScope (scope, numInputs), nullptr);
+
+    // The normal write path for a binding edit made in the scope window.
+    writeMidiBindingToRoot (snapshot, scope);
 
     // OnSave: the stored data is what recall applies, so trim it to the new
     // scope (removal only). OnRecall files keep their full data so the scope
@@ -1668,6 +1739,36 @@ void WFSFileManager::trimSnapshotInputToScope (juce::ValueTree& inputData, const
     }
 
     // ADMMapping items have no stored snapshot data — nothing to trim.
+}
+
+void WFSFileManager::writeMidiBindingToRoot (juce::ValueTree& snapshot, const ExtendedSnapshotScope& scope)
+{
+    if (scope.hasMidiBinding())
+    {
+        snapshot.setProperty (midiChannel, scope.midiChannel, nullptr);
+        snapshot.setProperty (midiNote,    scope.midiNote,    nullptr);
+    }
+    else
+    {
+        // Absence IS the unbound representation. A leftover midiChannel="0"
+        // would read back identically but would make every snapshot look bound
+        // to a grep, and would lose the "no attribute until bound" property
+        // that makes the backward-compatibility story checkable by eye.
+        snapshot.removeProperty (midiChannel, nullptr);
+        snapshot.removeProperty (midiNote,    nullptr);
+    }
+}
+
+void WFSFileManager::readMidiBindingFromRoot (const juce::ValueTree& snapshot, ExtendedSnapshotScope& scope)
+{
+    // juce::ValueTree::fromXml returns EVERY property as a STRING var, so read
+    // through getIntValue() rather than an isInt()-guarded cast -- that is this
+    // codebase's documented "works new, broken saved" trap.
+    scope.midiChannel = snapshot.getProperty (midiChannel).toString().getIntValue();
+    scope.midiNote    = snapshot.getProperty (midiNote).toString().getIntValue();
+
+    if (! scope.hasMidiBinding())
+        scope.clearMidiBinding();  // normalise garbage / out-of-range to "unbound"
 }
 
 juce::ValueTree WFSFileManager::serializeExtendedScope (const ExtendedSnapshotScope& scope, int numChannels) const

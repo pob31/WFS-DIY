@@ -349,6 +349,12 @@ public:
         return TreeParameterStore::getUndoManagerForDomain (static_cast<int> (domain));
     }
 
+    /** RAII helper: writes made while alive bypass the UndoManager entirely.
+        Used for externally triggered snapshot recalls (MIDI note, OSC) so a
+        cue-driven show does not bury the operator's own edits under one undo
+        entry per cue. See TreeParameterStore::ScopedUndoSuppression. */
+    using ScopedUndoSuppression = TreeParameterStore::ScopedUndoSuppression;
+
     /** RAII helper: temporarily switch the active undo domain, restoring on destruction */
     struct ScopedUndoDomain
     {

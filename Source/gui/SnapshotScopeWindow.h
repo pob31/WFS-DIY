@@ -760,6 +760,61 @@ public:
 
         refreshTemplateList();
 
+        // MIDI note trigger. Per-snapshot binding; the input DEVICE is chosen in
+        // Audio Interface > Device Settings and is machine-local.
+        addAndMakeVisible (midiTriggerLabel);
+        midiTriggerLabel.setText (LOC("snapshotScope.midi.label"), juce::dontSendNotification);
+
+        addAndMakeVisible (midiTriggerEnable);
+        midiTriggerEnable.setButtonText (LOC("snapshotScope.midi.enable"));
+        midiTriggerEnable.setTooltip (LOC("snapshotScope.midi.tooltip"));
+        midiTriggerEnable.onClick = [this]()
+        {
+            if (midiTriggerEnable.getToggleState())
+            {
+                scope.midiChannel = midiChannelCombo.getSelectedId();
+                scope.midiNote    = midiNoteCombo.getSelectedId() - 1;
+            }
+            else
+            {
+                scope.clearMidiBinding();
+            }
+
+            refreshMidiRow();
+        };
+
+        addAndMakeVisible (midiChannelCombo);
+        for (int ch = 1; ch <= 16; ++ch)
+            midiChannelCombo.addItem (juce::String (ch), ch);
+        midiChannelCombo.onChange = [this]() { commitMidiBinding(); };
+
+        addAndMakeVisible (midiNoteCombo);
+        // Bare note numbers: the trigger source is a DAW or a console, which
+        // speak note numbers, and it sidesteps the C3-vs-C4 convention split.
+        for (int n = 0; n <= 127; ++n)
+            midiNoteCombo.addItem (juce::String (n), n + 1);
+        midiNoteCombo.onChange = [this]() { commitMidiBinding(); };
+
+        addAndMakeVisible (midiConflictLabel);
+        midiConflictLabel.setJustificationType (juce::Justification::centredLeft);
+
+        midiTriggerEnable.setToggleState (scope.hasMidiBinding(), juce::dontSendNotification);
+        midiChannelCombo.setSelectedId (scope.hasMidiBinding() ? scope.midiChannel : 1,
+                                        juce::dontSendNotification);
+        midiNoteCombo.setSelectedId ((scope.hasMidiBinding() ? scope.midiNote : 60) + 1,
+                                     juce::dontSendNotification);
+
+        // A binding names a snapshot, so there is nothing to bind while the
+        // window is editing the session scope for a not-yet-created snapshot.
+        for (juce::Component* c : { (juce::Component*) &midiTriggerLabel,
+                                    (juce::Component*) &midiTriggerEnable,
+                                    (juce::Component*) &midiChannelCombo,
+                                    (juce::Component*) &midiNoteCombo,
+                                    (juce::Component*) &midiConflictLabel })
+            c->setVisible (hasSelectedSnapshot);
+
+        refreshMidiRow();
+
         // Action buttons
         addAndMakeVisible (saveButton);
         saveButton.setButtonText (LOC("snapshotScope.buttons.ok"));
@@ -837,6 +892,10 @@ public:
 
         clearChangesButton.setColour (juce::TextButton::buttonColourId, colors.buttonNormal);
         clearChangesButton.setColour (juce::TextButton::textColourOffId, colors.textPrimary);
+
+        midiTriggerLabel.setColour (juce::Label::textColourId, colors.textPrimary);
+        midiTriggerEnable.setColour (juce::ToggleButton::textColourId, colors.textPrimary);
+        midiConflictLabel.setColour (juce::Label::textColourId, colors.accentRed);
     }
 
     void paint (juce::Graphics& g) override
@@ -846,7 +905,9 @@ public:
 
     void resized() override
     {
-        float ls = static_cast<float>(getHeight()) / 635.0f;
+        // 668 = 635 + the 33 px MIDI trigger row (28 + 5). Must stay in step with
+        // the default height in the window constructor or the scale reference drifts.
+        float ls = static_cast<float>(getHeight()) / 668.0f;
         auto sc = [ls](int ref) { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * ls)); };
 
         auto bounds = getLocalBounds().reduced (sc(10));
@@ -909,6 +970,22 @@ public:
             tplRow.removeFromLeft (sc(6));
         }
         bounds.removeFromTop (sc(5));
+
+        // MIDI trigger row (hidden when no snapshot is selected — the height
+        // reserved below is then simply given to the grid viewport)
+        if (midiChannelCombo.isVisible())
+        {
+            auto midiRow = bounds.removeFromTop (sc(28));
+            midiTriggerLabel.setBounds (midiRow.removeFromLeft (sc(90)));
+            midiTriggerEnable.setBounds (midiRow.removeFromLeft (sc(170)));
+            midiRow.removeFromLeft (sc(10));
+            midiChannelCombo.setBounds (midiRow.removeFromLeft (sc(70)).reduced (0, sc(2)));
+            midiRow.removeFromLeft (sc(8));
+            midiNoteCombo.setBounds (midiRow.removeFromLeft (sc(80)).reduced (0, sc(2)));
+            midiRow.removeFromLeft (sc(10));
+            midiConflictLabel.setBounds (midiRow);
+            bounds.removeFromTop (sc(5));
+        }
 
         // Action buttons at bottom
         auto buttonRow = bounds.removeFromBottom (sc(35));
@@ -989,6 +1066,16 @@ private:
     juce::TextButton reloadTemplateButton;
     juce::TextButton updateTemplateButton;
     juce::TextButton deleteTemplateButton;
+
+    // MIDI note trigger row. Per-snapshot binding; the input DEVICE is chosen in
+    // Audio Interface > Device Settings and is machine-local.
+    juce::Label        midiTriggerLabel;
+    juce::ToggleButton midiTriggerEnable;
+    juce::ComboBox     midiChannelCombo;   // ids 1..16 == MIDI channels 1..16
+    juce::ComboBox     midiNoteCombo;      // id = note + 1 (ComboBox id 0 means "none")
+    juce::Label        midiConflictLabel;
+    bool               hasMidiConflict = false;
+
     juce::TextButton saveButton;
     juce::TextButton cancelButton;
     LongPressButton updateScopeButton;
@@ -1021,7 +1108,58 @@ private:
 
     void refreshUpdateScopeButtonVisibility()
     {
-        updateScopeButton.setVisible (hasSelectedSnapshot && !scope.isEquivalentTo (originalScope, numChannels));
+        // A colliding MIDI binding must not be writable: this button is the only
+        // path that writes the scope into the snapshot file, so hiding it is how
+        // "refuse to save a collision" is enforced. midiConflictLabel says why.
+        updateScopeButton.setVisible (hasSelectedSnapshot
+                                      && !scope.isEquivalentTo (originalScope, numChannels)
+                                      && !hasMidiConflict);
+    }
+
+    void commitMidiBinding()
+    {
+        if (! midiTriggerEnable.getToggleState())
+            return;   // combos are disabled, but a programmatic set must not bind
+
+        scope.midiChannel = midiChannelCombo.getSelectedId();
+        scope.midiNote    = midiNoteCombo.getSelectedId() - 1;
+
+        refreshMidiRow();
+    }
+
+    void refreshMidiRow()
+    {
+        const bool on = scope.hasMidiBinding();
+        midiChannelCombo.setEnabled (on);
+        midiNoteCombo.setEnabled (on);
+
+        // Live duplicate check. Cheap enough to run on every edit: it parses only
+        // the outer element of each snapshot file (scanSnapshotMidiBindings).
+        juce::String owner;
+        if (on && hasSelectedSnapshot)
+        {
+            for (const auto& b : parameters.getFileManager().scanSnapshotMidiBindings())
+            {
+                if (b.channel == scope.midiChannel && b.note == scope.midiNote
+                    && b.snapshotName != snapshotName)
+                {
+                    owner = b.snapshotName;
+                    break;
+                }
+            }
+        }
+
+        hasMidiConflict = owner.isNotEmpty();
+
+        midiConflictLabel.setText (hasMidiConflict
+                                     ? LOC("snapshotScope.midi.conflict")
+                                         .replace ("{ch}",   juce::String (scope.midiChannel))
+                                         .replace ("{note}", juce::String (scope.midiNote))
+                                         .replace ("{name}", owner)
+                                     : juce::String(),
+                                   juce::dontSendNotification);
+
+        refreshUpdateScopeButtonVisibility();
     }
 
     void refreshTemplateList()
@@ -1220,7 +1358,7 @@ public:
         int scaledParamLabelWidth = juce::jmax(90, static_cast<int>(140.0f * ds));
         int gridWidth = scaledParamLabelWidth + numChannels * scaledCellSize + dsc(50);
         int width = juce::jmax (dsc(600), juce::jmin (dsc(1200), gridWidth));
-        int height = dsc(635);
+        int height = dsc(668);   // 635 + the 33 px MIDI trigger row; keep in step with resized()
         centreWithSize (width, height);
         setVisible (true);
         WindowUtils::enableDarkTitleBar (this);

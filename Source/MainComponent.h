@@ -19,6 +19,7 @@
 #include "DSP/BinauralCalculationEngine.h"
 #include "DSP/BinauralProcessor.h"
 #include "DSP/HeadTrackerManager.h"
+#include "MidiSnapshotTrigger.h"
 #include "../spatcore/reverb/ReverbEngine.h"
 #include "../spatcore/reverb/ReverbFeedThread.h"
 #include "../spatcore/dsp/OutputEQProcessor.h"
@@ -135,6 +136,22 @@ public:
 
     // Open a project from a .wfs manifest file (auto-loads config)
     void openProjectFromFile (const juce::File& projectFolder);
+
+    /** The single recall-by-name seam: the Inputs tab long-press, the OSC
+        address /wfs/input/snapshot/load and a MIDI note all land here.
+
+        Message thread only. Non-reentrant -- a recall requested while one is
+        running is dropped, which is what protects ParameterDirtyTracker's
+        begin/endSuppression pair (a plain non-nesting bool).
+
+        External triggers (fromMidi / fromOsc) create no undo entry, so a
+        cue-driven show does not bury the operator's own edits. */
+    bool recallSnapshotByName (const juce::String& snapshotName,
+                               bool fromMidi = false,
+                               bool fromOsc = false);
+
+    /** Rebuild and republish the (channel, note) -> snapshot binding index. */
+    void refreshMidiSnapshotBindings();
 
     // Audio Interface Window
     void openAudioInterfaceWindow();
@@ -283,6 +300,12 @@ private:
 
     // ROLI Lightpad Block controllers
     std::unique_ptr<LightpadManager> lightpadManager;
+
+    // MIDI note -> snapshot recall. Owned here, next to the other controller
+    // managers, NOT by AudioInterfaceWindow (which is stopped-only and lazily
+    // constructed, so a listener living there would be absent during a show).
+    std::unique_ptr<MidiSnapshotTrigger> midiSnapshotTrigger;
+    bool snapshotRecallInProgress = false;   // message thread only
 
     // WFS calculation engine (computes delays, levels, HF attenuation)
     std::unique_ptr<WFSCalculationEngine> calculationEngine;
