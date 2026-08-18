@@ -1234,6 +1234,9 @@
     <ClCompile Include="..\..\ThirdParty\headtracker\host\libheadtracker\src\client.cpp">
       <Filter>WFS-DIY\Source\headtracker</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\headtracker\host\libheadtracker\src\stabilizer.cpp">
+      <Filter>WFS-DIY\Source\headtracker</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\reader.c">
       <Filter>WFS-DIY\Source\libmysofa</Filter>
     </ClCompile>
@@ -5113,6 +5116,9 @@
       <Filter>WFS-DIY\Source\headtracker</Filter>
     </ClInclude>
     <ClInclude Include="..\..\ThirdParty\headtracker\host\libheadtracker\include\headtracker\client.hpp">
+      <Filter>WFS-DIY\Source\headtracker</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\headtracker\host\libheadtracker\include\headtracker\stabilizer.hpp">
       <Filter>WFS-DIY\Source\headtracker</Filter>
     </ClInclude>
     <ClInclude Include="..\..\ThirdParty\libmysofa\src\hrtf\mysofa.h">

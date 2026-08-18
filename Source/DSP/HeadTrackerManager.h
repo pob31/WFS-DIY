@@ -169,7 +169,18 @@ private:
         tuning.beta = 1.0f;
         tuning.derivCutoffHz = 1.0f;
 
-        auto source = std::make_unique<UsbHeadTrackerSource> (id, tuning);
+        // Reference-frame automation (headtracker PROTOCOL.md 1.6). Auto-level
+        // replaces the capture-instant boresight; auto-center stays OFF because
+        // a WFS scene must not rotate unless the listener asked it to.
+        htk::StabilizerConfig stab;
+        stab.level.enabled = true;
+        stab.center.enabled = false;
+        stab.tap.tap_recenters = true;
+        // The one constant the library ships explicitly unvalidated - see
+        // AppSettings::getHeadtrackUsbWearThresholdDeg.
+        stab.wear.alive_min_deg = (float) AppSettings::getHeadtrackUsbWearThresholdDeg();
+
+        auto source = std::make_unique<UsbHeadTrackerSource> (id, tuning, stab);
         auto* raw = source.get();
         sources.push_back (std::move (source));
         return raw;

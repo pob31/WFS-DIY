@@ -25,6 +25,7 @@
 		1D8099373F6399B76409B2AB /* orientation.cpp */ = {isa = PBXBuildFile; fileRef = 12E15F6ACBDA94EC636A4A31; };
 		1F5D8744096EE66DCA407400 /* CudaFdnBackend.cpp */ = {isa = PBXBuildFile; fileRef = D3A8CABA675EF62A342616BB; };
 		231970F32BADB567EB15F753 /* include_juce_data_structures.mm */ = {isa = PBXBuildFile; fileRef = A355E1801ECBDBE86E2A9382; };
+		23CB50B5DA0A1EE2F2B8F557 /* stabilizer.cpp */ = {isa = PBXBuildFile; fileRef = 55796A709740F26550004E22; };
 		269DDC13DCCC582F13358897 /* resample.c */ = {isa = PBXBuildFile; fileRef = 403AF38C7EF863D5C2F6E15D; };
 		29ED6760F0ABC4DD32B62EA4 /* MetalFdnBackend.mm */ = {isa = PBXBuildFile; fileRef = 2F0AEF01382622E2313D95F5; };
 		2A10DF854F4DF8895DD6E6B1 /* include_juce_core.mm */ = {isa = PBXBuildFile; fileRef = 015EA0280AE439D59E4A3D5E; };
@@ -193,6 +194,7 @@
 		146629AFF4548F822BD1EAB9 /* orientation.hpp */ /* orientation.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = orientation.hpp; path = ../../ThirdParty/headtracker/host/libheadtracker/include/headtracker/orientation.hpp; sourceTree = SOURCE_ROOT; };
 		1557615117698279AF4F8AE9 /* OSCReceiverWithSenderIP.cpp */ /* OSCReceiverWithSenderIP.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCReceiverWithSenderIP.cpp; path = ../../spatcore/control/osc/OSCReceiverWithSenderIP.cpp; sourceTree = SOURCE_ROOT; };
 		16A918666FE95AAB720D7269 /* TestSignalGenerator.h */ /* TestSignalGenerator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TestSignalGenerator.h; path = ../../Source/DSP/TestSignalGenerator.h; sourceTree = SOURCE_ROOT; };
+		16BBB7E52A92DE15A5351D7E /* stabilizer.hpp */ /* stabilizer.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = stabilizer.hpp; path = ../../ThirdParty/headtracker/host/libheadtracker/include/headtracker/stabilizer.hpp; sourceTree = SOURCE_ROOT; };
 		171BF0A1860119D949CADBEE /* ReverbFDNAlgorithmGPU.h */ /* ReverbFDNAlgorithmGPU.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ReverbFDNAlgorithmGPU.h; path = ../../spatcore/reverb/ReverbFDNAlgorithmGPU.h; sourceTree = SOURCE_ROOT; };
 		180E7A156998A0F9908403E9 /* superblock.c */ /* superblock.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = superblock.c; path = ../../ThirdParty/libmysofa/src/hdf/superblock.c; sourceTree = SOURCE_ROOT; };
 		1852742AC74CE662EF91C229 /* include_juce_core_CompilationTime.cpp */ /* include_juce_core_CompilationTime.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_core_CompilationTime.cpp; path = ../../JuceLibraryCode/include_juce_core_CompilationTime.cpp; sourceTree = SOURCE_ROOT; };
@@ -285,6 +287,7 @@
 		53A6762DF42601763B3AF752 /* cache.c */ /* cache.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = cache.c; path = ../../ThirdParty/libmysofa/src/hrtf/cache.c; sourceTree = SOURCE_ROOT; };
 		54B2A0562D44FAFD14948BD4 /* Accelerate.framework */ /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		554578EEC863D3A58E2DC1DC /* ObGpuBackend.h */ /* ObGpuBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ObGpuBackend.h; path = ../../spatcore/gpu/ObGpuBackend.h; sourceTree = SOURCE_ROOT; };
+		55796A709740F26550004E22 /* stabilizer.cpp */ /* stabilizer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = stabilizer.cpp; path = ../../ThirdParty/headtracker/host/libheadtracker/src/stabilizer.cpp; sourceTree = SOURCE_ROOT; };
 		557EA9893EE5EE1977D74E63 /* MetalObBackend.mm */ /* MetalObBackend.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = MetalObBackend.mm; path = ../../spatcore/gpu/MetalObBackend.mm; sourceTree = SOURCE_ROOT; };
 		561908FA927ABC8DC0BB0A10 /* juce_simpleweb */ /* juce_simpleweb */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_simpleweb; path = ../../ThirdParty/juce_simpleweb; sourceTree = SOURCE_ROOT; };
 		5666A72E13A6F246D954D91A /* WfsFrHostState.h */ /* WfsFrHostState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WfsFrHostState.h; path = ../../spatcore/gpu/WfsFrHostState.h; sourceTree = SOURCE_ROOT; };
@@ -1084,6 +1087,8 @@
 				804E6FAA96E98800D5B3A07B,
 				E03BFBED1B3A6DBAC7DA300D,
 				474234C18319B374F756A190,
+				16BBB7E52A92DE15A5351D7E,
+				55796A709740F26550004E22,
 			);
 			name = headtracker;
 			sourceTree = "<group>";
@@ -1274,6 +1279,7 @@
 				8A91A55D62DD389446BD9E7F,
 				3E7B7B561E9084B4A9893314,
 				F4F71FEACF37E32845A465B5,
+				23CB50B5DA0A1EE2F2B8F557,
 				305776F6357D7FAD1FBB0ACE,
 				80D766CB701639E994BA7E9F,
 				F20E30E12BDD3C861C65C476,

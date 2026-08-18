@@ -135,6 +135,29 @@ struct AppSettings
         props.saveIfNeeded();
     }
 
+    /** Wear-detection threshold for the tracker's auto-level, in degrees of
+        gravity micro-motion. Auto-level only learns the mounting tilt while
+        the unit is judged WORN, which is what stops headphones parked at an
+        angle on a desk from teaching a wrong level.
+
+        This is the one constant the library ships explicitly unvalidated: a
+        desk reads around 1e-3 deg and a worn head 0.05-0.5 deg, so 0.02 sits
+        between them by estimate rather than by measurement. Too high and
+        auto-level never engages; too low and a desk looks worn. Exposed here
+        so it can be calibrated against real captures without a rebuild. */
+    static double getHeadtrackUsbWearThresholdDeg()
+    {
+        juce::PropertiesFile props (getOptions());
+        return props.getDoubleValue ("headtrackUsbWearThresholdDeg", 0.02);
+    }
+
+    static void setHeadtrackUsbWearThresholdDeg (double deg)
+    {
+        juce::PropertiesFile props (getOptions());
+        props.setValue ("headtrackUsbWearThresholdDeg", deg);
+        props.saveIfNeeded();
+    }
+
     /** MIDI input feeding snapshot note triggers. Machine-local like everything
         here -- which MIDI interface is plugged into this computer is a property
         of the computer, not of the show file. (The note bindings themselves are

@@ -125,6 +125,7 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/commands_610626e4.o \
   $(JUCE_OBJDIR)/transport_2b9c2497.o \
   $(JUCE_OBJDIR)/client_a7a5f467.o \
+  $(JUCE_OBJDIR)/stabilizer_8e603b1f.o \
   $(JUCE_OBJDIR)/reader_1d246e69.o \
   $(JUCE_OBJDIR)/check_f50bc26c.o \
   $(JUCE_OBJDIR)/spherical_7f9a4701.o \
@@ -478,6 +479,11 @@ $(JUCE_OBJDIR)/transport_2b9c2497.o: ../../ThirdParty/headtracker/host/libheadtr
 $(JUCE_OBJDIR)/client_a7a5f467.o: ../../ThirdParty/headtracker/host/libheadtracker/src/client.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling client.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/stabilizer_8e603b1f.o: ../../ThirdParty/headtracker/host/libheadtracker/src/stabilizer.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling stabilizer.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/reader_1d246e69.o: ../../ThirdParty/libmysofa/src/hrtf/reader.c

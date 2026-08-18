@@ -237,6 +237,39 @@ private:
                     "Head tracker: " + s->getDisplayName()
                     + (streaming ? " streaming" : " stopped streaming"));
             }
+
+            // Reference-frame automation state. This is the readout the wear
+            // threshold is calibrated against: auto-level only learns while
+            // the unit reads as WORN, so "never worn" and "worn while sitting
+            // on the desk" are the two failure modes to watch for.
+            const auto st = s->getStabilizerStatus();
+            if (st.worn != wasWorn[i])
+            {
+                wasWorn[i] = st.worn;
+                WFSLogger::getInstance().logInfo (
+                    "Head tracker: " + s->getDisplayName()
+                    + (st.worn ? " worn" : " not worn"));
+            }
+            if (st.level_ready != wasLevelReady[i])
+            {
+                wasLevelReady[i] = st.level_ready;
+                if (st.level_ready)
+                    WFSLogger::getInstance().logInfo (
+                        "Head tracker: " + s->getDisplayName() + " auto-level engaged (mount tilt "
+                        + juce::String (st.tilt_deg, 1) + juce::String::fromUTF8 ("Â°")
+                        + ", confidence " + juce::String (st.level_confidence, 2) + ")");
+            }
+
+            // A tap is a deliberate user action on the head unit itself, so
+            // confirming it landed matters more than most telemetry: there is
+            // no on-device feedback beyond the LED blip.
+            const auto taps = s->getTapCount();
+            if (taps != lastTaps[i])
+            {
+                lastTaps[i] = taps;
+                WFSLogger::getInstance().logInfo (
+                    "Head tracker: " + s->getDisplayName() + " double-tap - recentred");
+            }
         }
     }
 
@@ -258,7 +291,10 @@ private:
 
     std::atomic<UsbHeadTrackerSource*> slots[kMaxTrackers] {};
     std::atomic<int> slotCount { 0 };
-    bool wasStreaming[kMaxTrackers] {};   // message thread only
+    bool wasStreaming[kMaxTrackers] {};    // all message thread only
+    bool wasWorn[kMaxTrackers] {};
+    bool wasLevelReady[kMaxTrackers] {};
+    uint32_t lastTaps[kMaxTrackers] {};
 
     // Shared with in-flight callAsync lambdas; cleared in shutdown().
     std::shared_ptr<bool> alive { std::make_shared<bool> (true) };

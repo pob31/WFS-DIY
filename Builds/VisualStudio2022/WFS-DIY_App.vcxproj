@@ -229,6 +229,7 @@
     <ClCompile Include="..\..\ThirdParty\headtracker\host\libheadtracker\src\commands.cpp"/>
     <ClCompile Include="..\..\ThirdParty\headtracker\host\libheadtracker\src\transport.cpp"/>
     <ClCompile Include="..\..\ThirdParty\headtracker\host\libheadtracker\src\client.cpp"/>
+    <ClCompile Include="..\..\ThirdParty\headtracker\host\libheadtracker\src\stabilizer.cpp"/>
     <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\reader.c"/>
     <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\check.c"/>
     <ClCompile Include="..\..\ThirdParty\libmysofa\src\hrtf\spherical.c"/>
@@ -3561,6 +3562,7 @@
     <ClInclude Include="..\..\ThirdParty\headtracker\host\libheadtracker\include\headtracker\commands.hpp"/>
     <ClInclude Include="..\..\ThirdParty\headtracker\host\libheadtracker\include\headtracker\transport.hpp"/>
     <ClInclude Include="..\..\ThirdParty\headtracker\host\libheadtracker\include\headtracker\client.hpp"/>
+    <ClInclude Include="..\..\ThirdParty\headtracker\host\libheadtracker\include\headtracker\stabilizer.hpp"/>
     <ClInclude Include="..\..\ThirdParty\libmysofa\src\hrtf\mysofa.h"/>
     <ClInclude Include="..\..\Source\MainComponent.h"/>
     <ClInclude Include="..\..\Source\WfsParameters.h"/>

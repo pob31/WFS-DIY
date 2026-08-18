@@ -374,6 +374,10 @@
               file="ThirdParty/headtracker/host/libheadtracker/src/transport.cpp"/>
         <FILE id="htkClientCpp" name="client.cpp" compile="1" resource="0"
               file="ThirdParty/headtracker/host/libheadtracker/src/client.cpp"/>
+        <FILE id="htkStabH" name="stabilizer.hpp" compile="0" resource="0"
+              file="ThirdParty/headtracker/host/libheadtracker/include/headtracker/stabilizer.hpp"/>
+        <FILE id="htkStabCpp" name="stabilizer.cpp" compile="1" resource="0"
+              file="ThirdParty/headtracker/host/libheadtracker/src/stabilizer.cpp"/>
       </GROUP>
       <GROUP id="{MYSOFAGROUP}" name="libmysofa">
         <FILE id="msofaHdr" name="mysofa.h" compile="0" resource="0" file="ThirdParty/libmysofa/src/hrtf/mysofa.h"/>
