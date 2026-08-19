@@ -1195,8 +1195,9 @@ void usage()
         "\n"
         "--stereo-null renders the Phase-0 null pair on the WFS paths (gather/scatter)\n"
         "and compares the two hashes against EACH OTHER instead of a baseline: a\n"
-        "width-0 stereo channel (6 sources, slots 2..5 claimed-and-silent) must be\n"
-        "bit-identical to two mono channels at the same position. exit 1 on mismatch.\n"
+        "width-0 stereo channel (silent centre on slot 0, L/R on 1/2, 3..5 claimed-\n"
+        "and-silent) must be bit-identical to two mono channels at the same position.\n"
+        "exit 1 on mismatch.\n"
         "\n"
         "--bench reports blocks / wall ms / xRealtime / budget ms per combo (plus the\n"
         "launchMs min/med/p99/max/mean distribution on GPU paths), excluding the first\n"
@@ -1390,8 +1391,9 @@ int main (int argc, char* argv[])
 
     //==========================================================================
     // Phase-0 stereo null test (handoff doc §8): a width-0 stereo channel —
-    // six render sources, L/R on slots 0/1, slots 2..5 claimed-and-silent —
-    // must render BIT-IDENTICAL to two mono channels at the same position.
+    // six render sources: silent centre on slot 0, L/R on slots 1/2, slots
+    // 3..5 claimed-and-silent — must render BIT-IDENTICAL to two mono
+    // channels at the same position.
     // Self-referential (hash vs hash), no baseline file involved. Runs on the
     // WFS render paths only: the reverb paths have no per-source slot
     // semantics of their own.

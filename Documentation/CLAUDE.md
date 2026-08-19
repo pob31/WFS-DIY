@@ -796,9 +796,12 @@ config-time only (type changes are stopped-only; `MainComponent::recomputeRender
 **Audio path:** `applyInputPatch` splits stereo rows into `stereoRawBuffer`; the decomposition
 stage (`Source/DSP/StereoChannelManager.h`, sole writer of the channel's six `patchedInputBuffer`
 slots) runs between the AutomOtion fade and the shared-ring publish, in both the WFS and
-binaural-only paths. Phase 0 backend is `spatcore::dsp::PassThroughStereoDecomposer` (slice 0 = L,
-slice 1 = R, zero latency); Phase 1 swaps in the STFT panning decomposition behind the same
-interface. **Hard contract:** Σ slices ≡ L+R within −120 dBFS; inactive slots cleared every block.
+binaural-only paths. Slot convention: **slice 0 is the centre/anchor feed** — it renders at the
+channel's own position, so its row doubles as the channel's reference row (Visualisation shows it).
+Phase 0 backend is `spatcore::dsp::PassThroughStereoDecomposer` (slice 0 centre, active but silent;
+slice 1 = L, slice 2 = R; zero latency); Phase 1 puts the crossover bass + centre content on
+slice 0 behind the same interface. **Hard contract:** Σ slices ≡ L+R within −120 dBFS; inactive
+slots cleared every block.
 
 **Engine:** derived rows are computed inside the owning channel's iteration and SHARE its
 `minDelay`, `commonAttenAdjustment` and mode/common-atten ramps — per-slice recompute of those

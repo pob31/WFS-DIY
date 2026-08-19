@@ -55,7 +55,7 @@ enum class Id
     // Null-test pair (--stereo-null): NOT baselined, not reachable from
     // --scenario. Both draw bit-identical L/R streams; the runner compares
     // their output hashes against each other instead of a baseline file.
-    StereoNull,     // config A: width-0 stereo — 6 sources, slots 2..5 claimed-and-silent
+    StereoNull,     // config A: width-0 stereo — 6 sources: silent centre on 0, L/R on 1/2, 3..5 claimed-and-silent
     StereoNullMono, // config B: two mono channels at the same position
 };
 
@@ -95,18 +95,28 @@ inline const std::vector<Id>& allScenarios()
 //==============================================================================
 inline float inputSample (Id id, int channel, int64_t sampleIndex, double sampleRate)
 {
-    // Stereo scenario: sources 2..5 are one stereo channel's claimed-and-
-    // silent slice slots — the Phase-0 pass-through backend clears them every
-    // block, so their streams are exact zeros.
-    if (id == Id::Stereo && channel >= 2 && channel < 6)
+    // Stereo scenario: source 0 is the stereo channel's CENTRE slot (active
+    // but silent in the pass-through backend), sources 1/2 carry L/R, and
+    // sources 3..5 are claimed-and-silent slice slots — exact zeros.
+    if (id == Id::Stereo && (channel == 0 || (channel >= 3 && channel < 6)))
         return 0.0f;
 
-    // Null pair: BOTH configs must feed bit-identical L/R (channels 0/1), so
-    // they share one scenario key; config A's slots 2..5 are exact zeros.
+    // Null pair: BOTH configs must feed bit-identical L/R, so they share one
+    // scenario key and remap onto the same stream indices. Config A
+    // (StereoNull): slot 0 = silent centre, slots 1/2 = L/R, 3..5 zeros.
+    // Config B (StereoNullMono): slots 0/1 = L/R directly.
     if (id == Id::StereoNull || id == Id::StereoNullMono)
     {
-        if (channel >= 2)
+        if (id == Id::StereoNull)
+        {
+            if (channel == 0 || channel >= 3)
+                return 0.0f;
+            channel -= 1;   // slots 1/2 -> streams 0/1
+        }
+        else if (channel >= 2)
+        {
             return 0.0f;
+        }
         id = Id::StereoNull;
     }
 
@@ -234,13 +244,15 @@ inline void applyWfsTick (Id id, int tick, int numIn, int numOut, WfsMatrices& m
                 case Id::Stereo:
                 {
                     // Sources 0..5 = the six slice slots of ONE stereo-pair
-                    // channel; sources >= 6 are ordinary mono channels. The
-                    // two live slices share the channel's anchor values (per-
-                    // channel terms are shared by contract) and separate along
-                    // a width timeline — a live inputStereoWidth edit. Slots
-                    // 2..5 are claimed-and-silent: zero rows. FR is N/A for
+                    // channel; sources >= 6 are ordinary mono channels.
+                    // Slot 0 is the CENTRE (anchor row, silent audio in the
+                    // pass-through backend), slots 1/2 the live L/R slices —
+                    // they share the channel's anchor values (per-channel
+                    // terms are shared by contract) and separate along a
+                    // width timeline, a live inputStereoWidth edit. Slots
+                    // 3..5 are claimed-and-silent: zero rows. FR is N/A for
                     // stereo channels: zero for every slice slot.
-                    if (in >= 2 && in < 6)
+                    if (in >= 3 && in < 6)
                     {
                         m.delayMs[idx] = 0.0f;
                         m.levels[idx]  = 0.0f;
@@ -251,18 +263,19 @@ inline void applyWfsTick (Id id, int tick, int numIn, int numOut, WfsMatrices& m
                         break;
                     }
 
-                    if (in < 2)
+                    if (in < 3)
                     {
                         // Anchor row = the Static formula evaluated at in = 0
                         const float anchorDelay = 2.0f + 0.5f * static_cast<float> ((out * 3) % 40);
                         const float anchorLevel = 0.25f + 0.05f * static_cast<float> ((2 * out) % 10);
                         const float anchorHf    = -1.0f * static_cast<float> (out % 6);
 
-                        // Width 0..1 over 10 s; slice 0 = azimuth -1, slice 1 = +1.
-                        // The per-output scale models the slice's distance to
-                        // each speaker changing as it moves off the anchor.
+                        // Width 0..1 over 10 s; centre at azimuth 0, slices
+                        // 1/2 at -1/+1. The per-output scale models the
+                        // slice's distance to each speaker changing as it
+                        // moves off the anchor.
                         const float width   = 0.5f + 0.5f * static_cast<float> (std::sin (twoPi * 0.1 * t));
-                        const float azimuth = (in == 0) ? -1.0f : 1.0f;
+                        const float azimuth = (in == 0) ? 0.0f : (in == 1 ? -1.0f : 1.0f);
 
                         m.delayMs[idx] = anchorDelay
                                        + azimuth * width * (0.4f + 0.05f * static_cast<float> (out % 5));
@@ -289,10 +302,10 @@ inline void applyWfsTick (Id id, int tick, int numIn, int numOut, WfsMatrices& m
                 {
                     // The null condition (handoff doc §8): every LIVE source
                     // renders through the IDENTICAL anchor row — a width-0
-                    // stereo channel and two mono channels at the same
-                    // position must be indistinguishable. Config A's slots
-                    // 2..5 are zero rows.
-                    if (id == Id::StereoNull && in >= 2)
+                    // stereo channel (centre + L + R, centre silent) and two
+                    // mono channels at the same position must be
+                    // indistinguishable. Config A's slots 3..5 are zero rows.
+                    if (id == Id::StereoNull && in >= 3)
                     {
                         m.delayMs[idx] = 0.0f;
                         m.levels[idx]  = 0.0f;

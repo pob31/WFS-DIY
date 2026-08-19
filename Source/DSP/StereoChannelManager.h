@@ -22,9 +22,9 @@
         its documented direction, which is mechanically identical (the lock
         window is one POD copy) — the publisher is simply the audio thread.
 
-    Phase 0 ships PassThroughStereoDecomposer (slice 0 = L, slice 1 = R, zero
-    latency); Phase 1 swaps the backend behind the same interface and this
-    class does not change.
+    Phase 0 ships PassThroughStereoDecomposer (slice 0 = centre, active but
+    silent; slice 1 = L, slice 2 = R; zero latency); Phase 1 swaps the backend
+    behind the same interface and this class does not change.
 
     RT contract: processChannel() is noexcept, allocation- and log-free; all
     state is preallocated here and in prepare().
