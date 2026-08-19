@@ -2342,6 +2342,12 @@ bool WFSFileManager::applyInputsSection (const juce::ValueTree& inputsTree)
         for (int i = 0; i < actualCount; ++i)
             valueTreeState.ensureInputGradientMapsSection (i);
 
+        // Stable-number model migration: repair/sort ids and stamp per-channel
+        // types on file children the merge brought in (setNumInputChannels
+        // above already dual-writes types, so this mainly enforces the
+        // ascending-id invariant on hand-edited files).
+        valueTreeState.migrateInputChannelModel();
+
         return true;
     }
     return false;

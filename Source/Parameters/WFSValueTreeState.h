@@ -318,6 +318,41 @@ public:
         to mono + stereo, then stamps the split. The single entry point the
         GUI uses so no listener ever observes a half-applied pair. */
     void setInputChannelCounts (int numMono, int numStereo);
+
+    //==========================================================================
+    // Stable channel numbers + per-channel type (stable-number rework)
+    //==========================================================================
+    // Every <Input> carries a permanent 1-based number (its `id` property) and
+    // a type (`inputChannelType`: "mono"/"stereo"). The number is the external
+    // address (OSC, snapshots, QLab cues, DAW plugin, MCP); the child index
+    // ("slot") stays the internal dense key (patch row, render-source slot,
+    // meter row). Invariant: children are strictly ascending by id.
+
+    /** Permanent channel number of the channel at a slot (0-based child
+        index); 0 if the slot is invalid. */
+    int getInputChannelNumber (int slot) const;
+
+    /** Slot holding a permanent channel number; -1 if no live channel has it. */
+    int getSlotForChannelNumber (int number) const;
+
+    /** Type of the channel at a slot (reads inputChannelType; absent = mono). */
+    bool isInputChannelStereo (int slot) const;
+
+    /** Highest live channel number (0 when the list is empty). */
+    int getHighestChannelNumber() const;
+
+    /** Number the next added channel gets (highest live + 1). */
+    int getNextChannelNumber() const;
+
+    /** One-time model migration for loaded states: repairs missing/duplicate
+        ids (one dense renumber — the last renumbering that can ever happen to
+        a file), sorts children ascending by id, and stamps inputChannelType
+        from the legacy tail split when the whole list lacks it. Idempotent,
+        not undoable. Must run BEFORE ensureCompleteSchema on wholesale-replace
+        loads: the schema template stamps mono, which would otherwise preempt
+        the tail-split stamp. */
+    void migrateInputChannelModel();
+
     void setNumOutputChannels (int numChannels);
     void setNumReverbChannels (int numChannels);
 
@@ -550,6 +585,12 @@ private:
     /** Enforce cluster tracking constraint: only one tracked input per cluster
      *  Called when inputTrackingActive or inputCluster changes */
     void enforceClusterTrackingConstraint (int changedInputIndex);
+
+    /** Re-stamp every input's inputChannelType from the legacy tail split
+        (the last getNumStereoInputChannels() channels are stereo). Keeps the
+        per-channel property ≡ the count-based semantics while both exist
+        (dual-write); removed together with the count-based API. */
+    void stampChannelTypesFromLegacySplit (juce::UndoManager* um);
 
     /** Clamp a value to the valid range for a given output parameter */
     static float clampOutputParamToRange (const juce::Identifier& paramId, float value);

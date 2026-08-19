@@ -337,6 +337,10 @@ namespace WFSParameterDefaults
     constexpr float inputAttenuationMin         = -92.0f;
     constexpr float inputAttenuationMax         = 0.0f;
 
+    // Per-channel input type values (Input node property `inputChannelType`).
+    constexpr const char* inputChannelTypeMono   = "mono";
+    constexpr const char* inputChannelTypeStereo = "stereo";
+
     // Stereo input count (config-level, System Config): the LAST
     // stereoInputChannels of the input list are stereo pairs, the rest mono.
     // A config-level split (not a per-channel type) so a stereo channel's two

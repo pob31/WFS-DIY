@@ -1390,6 +1390,148 @@ void WFSValueTreeState::setNumStereoInputChannels (int numStereo)
         io.setProperty (WFSParameterIDs::stereoInputChannels, numStereo, getActiveUndoManager());
 }
 
+int WFSValueTreeState::getInputChannelNumber (int slot) const
+{
+    auto inputs = getInputsState();
+    if (slot < 0 || slot >= inputs.getNumChildren())
+        return 0;
+    return static_cast<int> (inputs.getChild (slot).getProperty (id, 0));
+}
+
+int WFSValueTreeState::getSlotForChannelNumber (int number) const
+{
+    auto inputs = getInputsState();
+    const int n = inputs.getNumChildren();
+    if (number <= 0 || n == 0)
+        return -1;
+
+    // Fast path: dense list (no deletions yet) — slot is number - 1.
+    if (number <= n
+        && static_cast<int> (inputs.getChild (number - 1).getProperty (id, 0)) == number)
+        return number - 1;
+
+    // Children are strictly ascending by id (append-only + migration sort),
+    // so a binary search covers gapped lists without a cache to invalidate —
+    // this runs on the OSC/tracking ingress path.
+    int lo = 0, hi = n - 1;
+    while (lo <= hi)
+    {
+        const int mid = (lo + hi) / 2;
+        const int midNumber = static_cast<int> (inputs.getChild (mid).getProperty (id, 0));
+        if (midNumber == number)
+            return mid;
+        if (midNumber < number)
+            lo = mid + 1;
+        else
+            hi = mid - 1;
+    }
+    return -1;
+}
+
+bool WFSValueTreeState::isInputChannelStereo (int slot) const
+{
+    auto inputs = getInputsState();
+    if (slot < 0 || slot >= inputs.getNumChildren())
+        return false;
+    return inputs.getChild (slot).getProperty (inputChannelType).toString()
+             == inputChannelTypeStereo;
+}
+
+int WFSValueTreeState::getHighestChannelNumber() const
+{
+    // Ascending-id invariant: the last child carries the highest number.
+    auto inputs = getInputsState();
+    const int n = inputs.getNumChildren();
+    return n > 0 ? static_cast<int> (inputs.getChild (n - 1).getProperty (id, 0)) : 0;
+}
+
+int WFSValueTreeState::getNextChannelNumber() const
+{
+    return getHighestChannelNumber() + 1;
+}
+
+void WFSValueTreeState::stampChannelTypesFromLegacySplit (juce::UndoManager* um)
+{
+    auto inputs = getInputsState();
+    const int total  = inputs.getNumChildren();
+    const int stereo = getNumStereoInputChannels();
+
+    for (int i = 0; i < total; ++i)
+    {
+        auto input = inputs.getChild (i);
+        const juce::String wanted = (i >= total - stereo) ? inputChannelTypeStereo
+                                                          : inputChannelTypeMono;
+        if (input.getProperty (inputChannelType).toString() != wanted)
+            input.setProperty (inputChannelType, wanted, um);
+    }
+}
+
+void WFSValueTreeState::migrateInputChannelModel()
+{
+    auto inputs = getInputsState();
+    if (! inputs.isValid())
+        return;
+
+    const int total = inputs.getNumChildren();
+    if (total == 0)
+        return;
+
+    // 1. Repair ids: every channel must carry a unique positive number.
+    //    Well-formed files are dense 1..N in order; a hand-edited file with
+    //    missing or duplicate ids gets one dense renumber here — the last
+    //    renumbering that can ever happen to it.
+    {
+        juce::SortedSet<int> seen;
+        bool idsValid = true;
+        for (int i = 0; i < total && idsValid; ++i)
+        {
+            const int number = static_cast<int> (inputs.getChild (i).getProperty (id, 0));
+            if (number <= 0 || seen.contains (number))
+                idsValid = false;
+            else
+                seen.add (number);
+        }
+        if (! idsValid)
+            for (int i = 0; i < total; ++i)
+                inputs.getChild (i).setProperty (id, i + 1, nullptr);
+    }
+
+    // 2. Sort children ascending by id (no-op for well-formed files). The
+    //    ascending-id invariant is what keeps slot<->number lookups trivial.
+    for (int i = 1; i < total; ++i)
+    {
+        int j = i;
+        while (j > 0
+               && static_cast<int> (inputs.getChild (j - 1).getProperty (id, 0))
+                    > static_cast<int> (inputs.getChild (j).getProperty (id, 0)))
+        {
+            inputs.moveChild (j, j - 1, nullptr);
+            --j;
+        }
+    }
+
+    // 3. Stamp types for files that predate the per-channel property — but
+    //    only when the WHOLE list lacks it: a partially-typed list is
+    //    post-rework data whose missing entries default to mono.
+    bool anyTyped = false;
+    for (int i = 0; i < total && ! anyTyped; ++i)
+        anyTyped = inputs.getChild (i).hasProperty (inputChannelType);
+
+    if (! anyTyped)
+    {
+        stampChannelTypesFromLegacySplit (nullptr);
+    }
+    else
+    {
+        for (int i = 0; i < total; ++i)
+        {
+            auto input = inputs.getChild (i);
+            if (! input.hasProperty (inputChannelType))
+                input.setProperty (inputChannelType, inputChannelTypeMono, nullptr);
+        }
+    }
+}
+
 void WFSValueTreeState::setInputChannelCounts (int numMono, int numStereo)
 {
     numStereo = juce::jlimit (0, WFSParameterDefaults::maxStereoChannels, numStereo);
@@ -1466,6 +1608,10 @@ void WFSValueTreeState::setInputChannelCounts (int numMono, int numStereo)
     inputs.setProperty (count, newTotal, getActiveUndoManager());
     setNumStereoInputChannels (numStereo);
 
+    // Dual-write: keep the per-channel type property in step with the tail
+    // split while both representations exist.
+    stampChannelTypesFromLegacySplit (getActiveUndoManager());
+
     if (oldTotal != newTotal && ! arePositionsUserOwned())
         redistributeAllInputPositions();
 }
@@ -1528,6 +1674,11 @@ void WFSValueTreeState::setNumInputChannels (int numChannels)
     if (io.isValid())
         io.setProperty (inputChannels, numChannels, getActiveUndoManager());
     inputs.setProperty (count, numChannels, getActiveUndoManager());
+
+    // Dual-write: the tail split may have been clamped by the resize (the
+    // effective stereo count shrinks when the list shrinks into the stereo
+    // block), so re-stamp the per-channel type property to match.
+    stampChannelTypesFromLegacySplit (getActiveUndoManager());
 
     // Re-lay ALL inputs, not just the ones just added. The grid depends on the
     // total count (rows = ceil(total/8)), so channels created under an earlier
@@ -1982,6 +2133,10 @@ void WFSValueTreeState::replaceState (const juce::ValueTree& newState)
         state.copyPropertiesAndChildrenFrom (newState, nullptr);
         migrateADMOSCSection();
         ensureInputAdmMappingProperty();
+        // Stable-number model migration MUST precede ensureCompleteSchema: the
+        // schema template stamps inputChannelType=mono, which would otherwise
+        // preempt the legacy tail-split stamp for pre-rework files.
+        migrateInputChannelModel();
         // Back-fill anything the loaded state omitted (incomplete / scope-filtered
         // files) so no parameter is left absent on this wholesale-replace path.
         ensureCompleteSchema();
@@ -2612,6 +2767,7 @@ juce::ValueTree WFSValueTreeState::createDefaultInputChannel (int index, int tot
 
     juce::ValueTree input (Input);
     input.setProperty (id, index + 1, nullptr);
+    input.setProperty (inputChannelType, inputChannelTypeMono, nullptr);
 
     input.appendChild (createInputChannelSection (index), nullptr);
     input.appendChild (createInputPositionSection (index, totalInputs), nullptr);

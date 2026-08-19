@@ -289,6 +289,12 @@ namespace WFSParameterIDs
     // Input Channel Parameters
     //==========================================================================
 
+    // Input node (structural property on <Input> itself, beside `id`):
+    // "mono" | "stereo"; absent = mono. Source of truth for a channel's type
+    // under the stable-number model. While the legacy count-based API still
+    // exists it is kept in sync with the tail split (stereoInputChannels).
+    const juce::Identifier inputChannelType      ("inputChannelType");
+
     // Input > Channel
     const juce::Identifier inputName             ("inputName");
     const juce::Identifier inputStereoWidth      ("inputStereoWidth");      // 0-100%, stereo pairs only
