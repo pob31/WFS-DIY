@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <vector>
 #include "ColorUtilities.h"
 #include "ColorScheme.h"
 #include "WfsLookAndFeel.h"
@@ -75,44 +76,54 @@ public:
     ChannelSelectorOverlay(int numChannels, int currentChannel, std::function<void(int)> onChannelSelected,
                           std::function<juce::Colour(int)> channelColorProvider = nullptr,
                           std::function<juce::String(int)> channelNameProvider = nullptr,
-                          std::function<juce::Colour(int)> textColorProvider = nullptr)
+                          std::function<juce::Colour(int)> textColorProvider = nullptr,
+                          std::vector<int> channelIdsIn = {})
         : totalChannels(numChannels),
           selectedChannel(currentChannel),
           onSelect(std::move(onChannelSelected)),
           getChannelColor(std::move(channelColorProvider)),
           getChannelName(std::move(channelNameProvider)),
-          getTextColor(std::move(textColorProvider))
+          getTextColor(std::move(textColorProvider)),
+          channelIds(std::move(channelIdsIn))
     {
         setOpaque(false);
         setAlwaysOnTop(true);
+
+        // Dense fallback: ids are 1..numChannels. Inputs pass their explicit
+        // live channel-number list instead (stable numbers, gaps possible) —
+        // the grid shows one tile per LIVE channel labeled by its number.
+        if (channelIds.empty())
+            for (int i = 1; i <= totalChannels; ++i)
+                channelIds.push_back(i);
+        totalChannels = static_cast<int>(channelIds.size());
 
         // Calculate adaptive grid dimensions - favor rows over columns
         // since buttons are wider (60) than tall (40)
         calculateGridDimensions(totalChannels);
 
         // Create channel buttons
-        for (int i = 1; i <= totalChannels; ++i)
+        for (int channelId : channelIds)
         {
             // Get button text - show name if available, otherwise just number
             juce::String buttonText;
             if (getChannelName)
             {
-                juce::String name = getChannelName(i);
+                juce::String name = getChannelName(channelId);
                 if (name.isNotEmpty())
-                    buttonText = juce::String(i) + "\n" + name;
+                    buttonText = juce::String(channelId) + "\n" + name;
                 else
-                    buttonText = juce::String(i);
+                    buttonText = juce::String(channelId);
             }
             else
             {
-                buttonText = juce::String(i);
+                buttonText = juce::String(channelId);
             }
 
             auto* btn = new juce::TextButton(buttonText);
             btn->setClickingTogglesState(false);
-            btn->onClick = [this, i]() {
+            btn->onClick = [this, channelId]() {
                 if (onSelect)
-                    onSelect(i);
+                    onSelect(channelId);
             };
             channelButtons.add(btn);
             addAndMakeVisible(btn);
@@ -171,21 +182,23 @@ public:
 
             channelButtons[i]->setBounds(x, y, buttonWidth, buttonHeight);
 
+            const int channelId = channelIds[static_cast<size_t>(i)];
+
             // Get color for this channel
             juce::Colour buttonColor;
             if (getChannelColor)
             {
                 // Use custom color from provider
-                buttonColor = getChannelColor(i + 1);
+                buttonColor = getChannelColor(channelId);
 
                 // If this is the selected channel, brighten it slightly
-                if (i + 1 == selectedChannel)
+                if (channelId == selectedChannel)
                     buttonColor = buttonColor.brighter(0.3f);
             }
             else
             {
                 // Default color scheme
-                if (i + 1 == selectedChannel)
+                if (channelId == selectedChannel)
                     buttonColor = juce::Colour(0xFF4080FF);
                 else
                     buttonColor = juce::Colour(0xFF3A3A3A);
@@ -194,7 +207,7 @@ public:
             // Get text color for this channel
             juce::Colour textColor = juce::Colours::white;  // Default to white for dark buttons
             if (getTextColor)
-                textColor = getTextColor(i + 1);
+                textColor = getTextColor(channelId);
 
             channelButtons[i]->setColour(juce::TextButton::buttonColourId, buttonColor);
             channelButtons[i]->setColour(juce::TextButton::textColourOffId, textColor);
@@ -283,6 +296,7 @@ private:
     std::function<juce::Colour(int)> getChannelColor;
     std::function<juce::String(int)> getChannelName;
     std::function<juce::Colour(int)> getTextColor;
+    std::vector<int> channelIds;   // ids in display order (dense 1..N or live numbers)
 
     juce::OwnedArray<juce::TextButton> channelButtons;
     CircularCloseButton closeButton;
@@ -332,14 +346,30 @@ public:
 
     void setNumChannels(int num)
     {
+        channelIds.clear();  // dense 1..N mode
         numChannels = juce::jmax(1, num);
         if (currentChannel > numChannels)
             setSelectedChannel(numChannels);
     }
 
+    /** Restrict the selector to an explicit id list (stable channel numbers
+        in display order; gaps possible). Tiles are labeled by id, selection
+        snaps to the nearest live id. An empty list restores dense 1..N. */
+    void setChannelIds(std::vector<int> ids)
+    {
+        channelIds = std::move(ids);
+        if (channelIds.empty())
+            return;
+        numChannels = static_cast<int>(channelIds.size());
+        if (! isLiveId(currentChannel))
+            setSelectedChannel(nearestLiveId(currentChannel));
+        else
+            updateButtonText();
+    }
+
     void setSelectedChannel(int channel)
     {
-        currentChannel = juce::jlimit(1, numChannels, channel);
+        currentChannel = snapToValid(channel);
         updateButtonText();
         if (onChannelChanged)
             onChannelChanged(currentChannel);
@@ -351,7 +381,7 @@ public:
      */
     void setSelectedChannelProgrammatically(int channel)
     {
-        currentChannel = juce::jlimit(1, numChannels, channel);
+        currentChannel = snapToValid(channel);
         updateButtonText();
         // Remove focus from the internal button to prevent Enter key from triggering overlay
         selectorButton.setWantsKeyboardFocus(false);
@@ -364,6 +394,26 @@ public:
     int getSelectedChannel() const { return currentChannel; }
 
     int getNumChannels() const { return numChannels; }
+
+    /** Neighbour of the current selection in display order, wrapping.
+        With an id list this walks the LIST (numbers may have gaps). */
+    int adjacentChannel(int delta) const
+    {
+        if (channelIds.empty())
+        {
+            if (numChannels <= 1)
+                return currentChannel;
+            return ((currentChannel - 1 + delta % numChannels + numChannels) % numChannels) + 1;
+        }
+
+        const int n = static_cast<int>(channelIds.size());
+        int idx = 0;
+        for (int i = 0; i < n; ++i)
+            if (channelIds[static_cast<size_t>(i)] == currentChannel)
+                { idx = i; break; }
+        idx = ((idx + delta) % n + n) % n;
+        return channelIds[static_cast<size_t>(idx)];
+    }
 
     void resized() override
     {
@@ -433,7 +483,8 @@ private:
                 removeOverlayComponents,
                 channelColorProvider,
                 channelNameProvider,
-                textColorProvider
+                textColorProvider,
+                channelIds
             );
 
             // Get required size for the popup
@@ -470,10 +521,35 @@ private:
         }
     }
 
+    bool isLiveId(int id) const
+    {
+        if (channelIds.empty())
+            return id >= 1 && id <= numChannels;
+        return std::find(channelIds.begin(), channelIds.end(), id) != channelIds.end();
+    }
+
+    int nearestLiveId(int id) const
+    {
+        if (channelIds.empty())
+            return juce::jlimit(1, numChannels, id);
+        int best = channelIds.front();
+        for (int candidate : channelIds)
+            if (std::abs(candidate - id) < std::abs(best - id))
+                best = candidate;
+        return best;
+    }
+
+    int snapToValid(int channel) const
+    {
+        return channelIds.empty() ? juce::jlimit(1, numChannels, channel)
+                                  : nearestLiveId(channel);
+    }
+
     juce::String labelPrefix;
     juce::TextButton selectorButton;
     int numChannels = 64;
     int currentChannel = 1;
+    std::vector<int> channelIds;   // explicit id list (stable numbers); empty = dense 1..N
     std::function<juce::Colour(int)> channelColorProvider;
     std::function<juce::String(int)> channelNameProvider;
     std::function<juce::Colour(int)> textColorProvider;

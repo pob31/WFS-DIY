@@ -212,9 +212,13 @@ public:
             };
 
         // ==================== HEADER SECTION ====================
-        // Channel Selector - use configured input count
+        // Channel Selector — tiles are the LIVE channel numbers (stable
+        // numbering; the list may have gaps after deletions)
         int numInputs = parameters.getNumInputChannels();
-        channelSelector.setNumChannels(numInputs > 0 ? numInputs : 8);  // Default to 8 if not set
+        if (numInputs > 0)
+            channelSelector.setChannelIds(liveChannelNumbers());
+        else
+            channelSelector.setNumChannels(8);  // Default to 8 if not set
         channelSelector.onChannelChanged = [this](int channel) {
             loadChannelParameters(channel);
             // Notify external listeners (e.g., OSCManager for REMOTE protocol)
@@ -231,8 +235,10 @@ public:
             return WfsColorUtilities::getContrastingTextColor(bgColor);
         });
         // Set name provider to show input names on selector tiles
+        // (channelId is a permanent number — resolve to the slot)
         channelSelector.setChannelNameProvider([this](int channelId) -> juce::String {
-            juce::String name = parameters.getInputParam(channelId - 1, "inputName").toString();
+            const int slot = parameters.getValueTreeState().getSlotForChannelNumber(channelId);
+            juce::String name = parameters.getInputParam(slot, "inputName").toString();
             return name.isEmpty() ? juce::String() : name;
         });
         addAndMakeVisible(channelSelector);
@@ -254,7 +260,7 @@ public:
         clusterSelector.setSelectedId(1, juce::dontSendNotification);
         clusterSelector.onChange = [this]() {
             int newCluster = clusterSelector.getSelectedId() - 1;
-            int previousCluster = static_cast<int>(parameters.getInputParam(currentChannel - 1, "inputCluster"));
+            int previousCluster = static_cast<int>(parameters.getInputParam(channelSlot(), "inputCluster"));
 
             if (newCluster > 0)
             {
@@ -549,8 +555,8 @@ public:
     {
         if (! otomoTriggerButton.getToggleState()) return;
 
-        float thresholdDb = static_cast<float> (parameters.getInputParam (currentChannel - 1, "inputOtomoThreshold"));
-        float resetDb = static_cast<float> (parameters.getInputParam (currentChannel - 1, "inputOtomoReset"));
+        float thresholdDb = static_cast<float> (parameters.getInputParam (channelSlot(), "inputOtomoThreshold"));
+        float resetDb = static_cast<float> (parameters.getInputParam (channelSlot(), "inputOtomoReset"));
 
         if (shortPeakDb > thresholdDb)
             otomoTriggerIndicator.setActive (true);
@@ -602,13 +608,13 @@ public:
                 outputsTree.addListener(this);
         }
 
-        // Update channel selector count
+        // Update channel selector tiles (live numbers; snaps the selection to
+        // the nearest live number if the current one was deleted)
         int numInputs = parameters.getNumInputChannels();
         if (numInputs > 0)
         {
-            channelSelector.setNumChannels(numInputs);
-            if (currentChannel > numInputs)
-                currentChannel = 1;
+            channelSelector.setChannelIds(liveChannelNumbers());
+            currentChannel = channelSelector.getSelectedChannel();
         }
 
         // Restore persisted QLab toggle states
@@ -679,8 +685,13 @@ public:
     int getNumChannels() const { return channelSelector.getSelectedChannel() > 0 ?
                                          parameters.getNumInputChannels() : 1; }
 
-    /** Get the currently selected input channel (0-indexed) */
-    int getSelectedInputIndex() const { return channelSelector.getSelectedChannel() - 1; }
+    /** Get the currently selected input channel's SLOT (0-indexed dense
+        child index; the selector holds the permanent number). */
+    int getSelectedInputIndex() const
+    {
+        return parameters.getValueTreeState().getSlotForChannelNumber(
+            channelSelector.getSelectedChannel());
+    }
 
     /** Set the joystick/slider positions from an external controller (visual only). */
     void setControllerDeflection (float x, float y, float z)
@@ -689,17 +700,12 @@ public:
         positionZSlider.setThumbDeflection (z);
     }
 
-    /** Cycle to next/previous channel. delta=1 for next, delta=-1 for previous. Wraps around. */
+    /** Cycle to next/previous channel. delta=1 for next, delta=-1 for previous. Wraps around.
+        Walks the LIVE-number list (numbers may have gaps). */
     void cycleChannel(int delta)
     {
-        int numChannels = parameters.getNumInputChannels();
-        if (numChannels <= 0) return;
-
-        int newChannel = currentChannel + delta;
-        if (newChannel > numChannels) newChannel = 1;
-        else if (newChannel < 1) newChannel = numChannels;
-
-        selectChannel(newChannel);
+        if (parameters.getNumInputChannels() <= 0) return;
+        selectChannel(channelSelector.adjacentChannel(delta));
     }
 
     /** Set cluster assignment for current input. 0=Single, 1-10=Cluster 1-10. */
@@ -867,7 +873,7 @@ public:
     void configureVisualisation(int numOutputs, int numReverbs)
     {
         visualisationComponent.configure(numOutputs, numReverbs, &parameters);
-        visualisationComponent.setSelectedInput(currentChannel - 1);
+        visualisationComponent.setSelectedInput(channelSlot());
     }
 
     /**
@@ -933,15 +939,12 @@ public:
     {
         if (originatingComponent == &nameEditor && key.getKeyCode() == juce::KeyPress::tabKey)
         {
-            int current = channelSelector.getSelectedChannel();
-            int total = channelSelector.getNumChannels();
-            if (total <= 1) return true;
+            if (channelSelector.getNumChannels() <= 1) return true;
 
             textEditorFocusLost(nameEditor);  // Save current name before switching
 
-            int next = key.getModifiers().isShiftDown()
-                ? ((current - 2 + total) % total) + 1
-                : (current % total) + 1;
+            // Walk the live-number list (numbers may have gaps)
+            int next = channelSelector.adjacentChannel(key.getModifiers().isShiftDown() ? -1 : 1);
             channelSelector.setSelectedChannelProgrammatically(next);
             nameEditor.grabKeyboardFocus();
             nameEditor.selectAll();
@@ -1192,7 +1195,7 @@ private:
             if (isLoadingParameters) return;
             int selectedId = admMappingSelector.getSelectedId();
             int newMapping = selectedId - 2;  // 1=None→-1, 2-5=Cart0-3, 6-9=Polar4-7
-            auto posTree = parameters.getValueTreeState().getInputPositionSection(currentChannel - 1);
+            auto posTree = parameters.getValueTreeState().getInputPositionSection(channelSlot());
             posTree.setProperty(WFSParameterIDs::inputAdmMapping, newMapping, nullptr);
         };
         updateAdmSelectorAppearance();
@@ -1570,7 +1573,7 @@ private:
             bool globalTrackingOn = (int)parameters.getConfigParam("trackingEnabled") != 0;
             bool protocolEnabled = (int)parameters.getConfigParam("trackingProtocol") != 0;
             bool localTracking = trackingActiveButton.getToggleState();
-            bool motionActive = isAutoMotionActive && isAutoMotionActive (currentChannel - 1);
+            bool motionActive = isAutoMotionActive && isAutoMotionActive (channelSlot());
             bool useOffset = (globalTrackingOn && protocolEnabled && localTracking) || motionActive;
 
             // Apply flip inversion when modifying position directly (not offset)
@@ -1584,7 +1587,7 @@ private:
             bool constrainX = constraintXButton.getToggleState();
             bool constrainY = constraintYButton.getToggleState();
             bool constrainDist = constraintDistanceButton.getToggleState();
-            int coordMode = static_cast<int>(parameters.getInputParam(currentChannel - 1, "inputCoordinateMode"));
+            int coordMode = static_cast<int>(parameters.getInputParam(channelSlot(), "inputCoordinateMode"));
             bool useDistanceConstraint = (coordMode == 1 || coordMode == 2) && constrainDist;
 
             if (useOffset)
@@ -1598,16 +1601,16 @@ private:
                 // Get base position for constraint calculation
                 // IMPORTANT: Read Cartesian from storage, not from display editors
                 // (In cylindrical/spherical modes, editors show radius/theta/phi, not X/Y/Z)
-                float posX = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionX"));
-                float posY = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionY"));
+                float posX = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionX"));
+                float posY = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionY"));
                 float totalX = posX + newOffsetX;
                 float totalY = posY + newOffsetY;
 
                 if (useDistanceConstraint)
                 {
                     // Apply distance constraint (circular/spherical bounds)
-                    float minDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMin"));
-                    float maxDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMax"));
+                    float minDist = static_cast<float>(parameters.getInputParam(channelSlot(), "inputConstraintDistanceMin"));
+                    float maxDist = static_cast<float>(parameters.getInputParam(channelSlot(), "inputConstraintDistanceMax"));
                     float currentDist = std::sqrt(totalX * totalX + totalY * totalY);
                     if (currentDist < 0.0001f) currentDist = 0.0001f;
                     float targetDist = juce::jlimit(minDist, maxDist, currentDist);
@@ -1645,16 +1648,16 @@ private:
                 // Update Position X/Y when tracking is disabled
                 // IMPORTANT: Always read from storage (Cartesian), not from display editors
                 // (In cylindrical/spherical modes, editors show radius/theta/phi, not X/Y/Z)
-                float currentX = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionX"));
-                float currentY = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionY"));
+                float currentX = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionX"));
+                float currentY = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionY"));
                 float newX = currentX + deltaX;
                 float newY = currentY + deltaY;
 
                 if (useDistanceConstraint)
                 {
                     // Apply distance constraint (circular/spherical bounds)
-                    float minDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMin"));
-                    float maxDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMax"));
+                    float minDist = static_cast<float>(parameters.getInputParam(channelSlot(), "inputConstraintDistanceMin"));
+                    float maxDist = static_cast<float>(parameters.getInputParam(channelSlot(), "inputConstraintDistanceMax"));
                     float currentDist = std::sqrt(newX * newX + newY * newY);
                     if (currentDist < 0.0001f) currentDist = 0.0001f;
                     float targetDist = juce::jlimit(minDist, maxDist, currentDist);
@@ -1679,7 +1682,7 @@ private:
                 saveInputParam(WFSParameterIDs::inputPositionY, newY);
 
                 // Update display editors with proper coordinate conversion
-                float z = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionZ"));
+                float z = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionZ"));
                 float v1, v2, v3;
                 WFSCoordinates::cartesianToDisplay(static_cast<WFSCoordinates::Mode>(coordMode), newX, newY, z, v1, v2, v3);
                 posXEditor.setText(juce::String(v1, 2), juce::dontSendNotification);
@@ -1713,7 +1716,7 @@ private:
             bool globalTrackingOn = (int)parameters.getConfigParam("trackingEnabled") != 0;
             bool protocolEnabled = (int)parameters.getConfigParam("trackingProtocol") != 0;
             bool localTracking = trackingActiveButton.getToggleState();
-            bool motionActive = isAutoMotionActive && isAutoMotionActive (currentChannel - 1);
+            bool motionActive = isAutoMotionActive && isAutoMotionActive (channelSlot());
             bool useOffset = (globalTrackingOn && protocolEnabled && localTracking) || motionActive;
 
             // Apply flip inversion when modifying position directly (not offset)
@@ -1723,7 +1726,7 @@ private:
             // Check constraint states
             bool constrainZ = constraintZButton.getToggleState();
             bool constrainDist = constraintDistanceButton.getToggleState();
-            int coordMode = static_cast<int>(parameters.getInputParam(currentChannel - 1, "inputCoordinateMode"));
+            int coordMode = static_cast<int>(parameters.getInputParam(channelSlot(), "inputCoordinateMode"));
             bool useDistanceConstraint = (coordMode == 2) && constrainDist;  // Only spherical for Z
 
             if (useOffset)
@@ -1736,17 +1739,17 @@ private:
                 {
                     // Spherical mode: Z affects total distance, so apply distance constraint
                     // IMPORTANT: Read Cartesian from storage, not from display editors
-                    float posX = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionX"));
-                    float posY = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionY"));
-                    float posZ = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionZ"));
+                    float posX = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionX"));
+                    float posY = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionY"));
+                    float posZ = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionZ"));
                     float offsetX = offsetXEditor.getText().getFloatValue();
                     float offsetY = offsetYEditor.getText().getFloatValue();
                     float totalX = posX + offsetX;
                     float totalY = posY + offsetY;
                     float totalZ = posZ + newOffsetZ;
 
-                    float minDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMin"));
-                    float maxDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMax"));
+                    float minDist = static_cast<float>(parameters.getInputParam(channelSlot(), "inputConstraintDistanceMin"));
+                    float maxDist = static_cast<float>(parameters.getInputParam(channelSlot(), "inputConstraintDistanceMax"));
                     float currentDist = std::sqrt(totalX * totalX + totalY * totalY + totalZ * totalZ);
                     if (currentDist < 0.0001f) currentDist = 0.0001f;
                     float targetDist = juce::jlimit(minDist, maxDist, currentDist);
@@ -1767,7 +1770,7 @@ private:
                 else if (constrainZ)
                 {
                     // Rectangular Z constraint
-                    float posZ = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionZ"));
+                    float posZ = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionZ"));
                     float totalZ = posZ + newOffsetZ;
                     totalZ = juce::jlimit(getStageMinZ(), getStageMaxZ(), totalZ);
                     newOffsetZ = totalZ - posZ;
@@ -1780,17 +1783,17 @@ private:
             {
                 // Update Position Z when tracking is disabled
                 // IMPORTANT: Read Cartesian from storage, not from display editors
-                float currentZ = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionZ"));
+                float currentZ = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionZ"));
                 float newZ = currentZ + deltaZ;
 
                 if (useDistanceConstraint)
                 {
                     // Spherical mode: Z affects total distance, so apply distance constraint
-                    float posX = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionX"));
-                    float posY = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionY"));
+                    float posX = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionX"));
+                    float posY = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionY"));
 
-                    float minDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMin"));
-                    float maxDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMax"));
+                    float minDist = static_cast<float>(parameters.getInputParam(channelSlot(), "inputConstraintDistanceMin"));
+                    float maxDist = static_cast<float>(parameters.getInputParam(channelSlot(), "inputConstraintDistanceMax"));
                     float currentDist = std::sqrt(posX * posX + posY * posY + newZ * newZ);
                     if (currentDist < 0.0001f) currentDist = 0.0001f;
                     float targetDist = juce::jlimit(minDist, maxDist, currentDist);
@@ -1819,8 +1822,8 @@ private:
                 // Save Z and update display
                 saveInputParam(WFSParameterIDs::inputPositionZ, newZ);
                 // For Z editor: in spherical mode it shows phi (elevation angle), in others it shows Z directly
-                float posX = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionX"));
-                float posY = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionY"));
+                float posX = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionX"));
+                float posY = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionY"));
                 float v1, v2, v3;
                 WFSCoordinates::cartesianToDisplay(static_cast<WFSCoordinates::Mode>(coordMode), posX, posY, newZ, v1, v2, v3);
                 posZEditor.setText(juce::String(coordMode == 2 ? v3 : newZ, coordMode == 2 ? 1 : 2), juce::dontSendNotification);
@@ -2121,7 +2124,7 @@ private:
             }
         }
         bool inputOffFloor = currentChannel > 0
-            && static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionZ")) > 0.0f;
+            && static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionZ")) > 0.0f;
 
         bool frWarn = (tab == InputSubTab::LiveSourceHackoustics) && frActiveButton.getToggleState() && !(anyFRspeaker && inputOffFloor);
         if (frWarn)
@@ -3056,13 +3059,13 @@ private:
         addAndMakeVisible(otomoStartButton);
         otomoStartButton.onClick = [this]() {
             if (automOtionProcessor != nullptr && currentChannel > 0)
-                automOtionProcessor->startClusterMotion(currentChannel - 1);
+                automOtionProcessor->startClusterMotion(channelSlot());
         };
 
         addAndMakeVisible(otomoStopButton);
         otomoStopButton.onClick = [this]() {
             if (automOtionProcessor != nullptr && currentChannel > 0)
-                automOtionProcessor->stopClusterMotion(currentChannel - 1);
+                automOtionProcessor->stopClusterMotion(channelSlot());
         };
 
         addAndMakeVisible(otomoPauseButton);
@@ -3072,9 +3075,9 @@ private:
             {
                 bool isPaused = otomoPauseButton.getToggleState();
                 if (isPaused)
-                    automOtionProcessor->pauseClusterMotion(currentChannel - 1);
+                    automOtionProcessor->pauseClusterMotion(channelSlot());
                 else
-                    automOtionProcessor->resumeClusterMotion(currentChannel - 1);
+                    automOtionProcessor->resumeClusterMotion(channelSlot());
             }
             saveInputParam(WFSParameterIDs::inputOtomoPauseResume, otomoPauseButton.getToggleState() ? 0 : 1);
         };
@@ -5369,7 +5372,7 @@ private:
         currentChannel = channel;
 
         auto getParam = [this](const juce::Identifier& id) -> juce::var {
-            return parameters.getInputParam(currentChannel - 1, id.toString());
+            return parameters.getInputParam(channelSlot(), id.toString());
         };
 
         auto getFloatParam = [&getParam](const juce::Identifier& id, float defaultVal = 0.0f) -> float {
@@ -5426,7 +5429,7 @@ private:
 
         // ADM-OSC mapping selector
         {
-            auto posTree = parameters.getValueTreeState().getInputPositionSection(currentChannel - 1);
+            auto posTree = parameters.getValueTreeState().getInputPositionSection(channelSlot());
             int mapping = (int)posTree.getProperty(WFSParameterIDs::inputAdmMapping, -1);
             admMappingSelector.setSelectedId(mapping + 2, juce::dontSendNotification);
         }
@@ -5950,11 +5953,11 @@ private:
         sidelinesFringeValueLabel.setText(juce::String(sidelinesFringe, 2) + " m", juce::dontSendNotification);
 
         // Update visualisation component's selected input
-        visualisationComponent.setSelectedInput(currentChannel - 1);
+        visualisationComponent.setSelectedInput(channelSlot());
 
         // Update gradient map editor with current channel's data
         {
-            auto gmTree = parameters.getValueTreeState().getInputGradientMapsSection(currentChannel - 1);
+            auto gmTree = parameters.getValueTreeState().getInputGradientMapsSection(channelSlot());
             gradientMapEditor.setGradientMapsTree(gmTree);
 
             int stShape = static_cast<int>(parameters.getConfigParam("StageShape"));
@@ -5971,7 +5974,7 @@ private:
             // Pass input position for marker display
             float posX = getFloatParam(WFSParameterIDs::inputPositionX, 0.0f);
             float posY = getFloatParam(WFSParameterIDs::inputPositionY, 0.0f);
-            gradientMapEditor.setInputPosition(posX, posY, currentChannel - 1);
+            gradientMapEditor.setInputPosition(posX, posY, channelSlot());
         }
 
         isLoadingParameters = false;
@@ -5981,7 +5984,7 @@ private:
         updateSamplerButtonState();
         updateStereoControls();
         updateSubTabSet();
-        samplerSubTab.setCurrentChannel(currentChannel - 1);
+        samplerSubTab.setCurrentChannel(channelSlot());
         updateFeatureWarnings();  // refresh for the newly selected input (toggle states + off-floor)
     }
 
@@ -5997,15 +6000,15 @@ private:
     {
         // Revert to stored value and release focus
         if (&editor == &nameEditor)
-            editor.setText(parameters.getInputParam(currentChannel - 1, "inputName").toString(), false);
+            editor.setText(parameters.getInputParam(channelSlot(), "inputName").toString(), false);
         else if (&editor == &posXEditor || &editor == &posYEditor || &editor == &posZEditor)
             updatePositionLabelsAndValues();  // Revert all position editors to stored values
         else if (&editor == &offsetXEditor)
-            editor.setText(juce::String((float)parameters.getInputParam(currentChannel - 1, "inputOffsetX"), 2), false);
+            editor.setText(juce::String((float)parameters.getInputParam(channelSlot(), "inputOffsetX"), 2), false);
         else if (&editor == &offsetYEditor)
-            editor.setText(juce::String((float)parameters.getInputParam(currentChannel - 1, "inputOffsetY"), 2), false);
+            editor.setText(juce::String((float)parameters.getInputParam(channelSlot(), "inputOffsetY"), 2), false);
         else if (&editor == &offsetZEditor)
-            editor.setText(juce::String((float)parameters.getInputParam(currentChannel - 1, "inputOffsetZ"), 2), false);
+            editor.setText(juce::String((float)parameters.getInputParam(channelSlot(), "inputOffsetZ"), 2), false);
         else if (&editor == &otomoDestXEditor || &editor == &otomoDestYEditor || &editor == &otomoDestZEditor)
             updateOtomoDestinationEditors();  // Revert all destination editors to stored values
 
@@ -6031,12 +6034,12 @@ private:
             float v3 = posZEditor.getText().getFloatValue();
 
             // Get coordinate mode and convert to Cartesian
-            int mode = static_cast<int>(parameters.getInputParam(currentChannel - 1, "inputCoordinateMode"));
+            int mode = static_cast<int>(parameters.getInputParam(channelSlot(), "inputCoordinateMode"));
             auto coordMode = static_cast<WFSCoordinates::Mode>(mode);
             auto cart = WFSCoordinates::displayToCartesian(coordMode, v1, v2, v3);
 
             // Apply constraints (shared utility reads constraint flags from parameters)
-            WFSConstraints::constrainPosition (parameters.getValueTreeState(), currentChannel - 1,
+            WFSConstraints::constrainPosition (parameters.getValueTreeState(), channelSlot(),
                                                 cart.x, cart.y, cart.z);
 
             // Save Cartesian values
@@ -6056,7 +6059,7 @@ private:
             float offsetZ = offsetZEditor.getText().getFloatValue();
 
             // Apply constraints (shared utility reads position and constraint flags from parameters)
-            WFSConstraints::constrainOffset (parameters.getValueTreeState(), currentChannel - 1,
+            WFSConstraints::constrainOffset (parameters.getValueTreeState(), channelSlot(),
                                               offsetX, offsetY, offsetZ);
 
             // Update displays and save all offset values
@@ -7128,7 +7131,7 @@ private:
     void updatePositionLabelsAndValues()
     {
         // Get current coordinate mode
-        int mode = static_cast<int>(parameters.getInputParam(currentChannel - 1, "inputCoordinateMode"));
+        int mode = static_cast<int>(parameters.getInputParam(channelSlot(), "inputCoordinateMode"));
         auto coordMode = static_cast<WFSCoordinates::Mode>(mode);
 
         // Update selector to match (in case called from loadChannelParameters)
@@ -7159,9 +7162,9 @@ private:
         helpTextMap[&offsetZEditor] = LOC("inputs.help.offset3").replace("{name}", n3).replace("{unit}", unit3);
 
         // Get Cartesian values from storage
-        float x = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionX"));
-        float y = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionY"));
-        float z = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionZ"));
+        float x = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionX"));
+        float y = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionY"));
+        float z = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionZ"));
 
         // Convert to display coordinates
         float v1, v2, v3;
@@ -7228,9 +7231,9 @@ private:
         // Load values based on coordinate mode
         if (mode == 0)  // Cartesian
         {
-            v1 = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoX"));
-            v2 = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoY"));
-            v3 = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoZ"));
+            v1 = static_cast<float>(parameters.getInputParam(channelSlot(), "inputOtomoX"));
+            v2 = static_cast<float>(parameters.getInputParam(channelSlot(), "inputOtomoY"));
+            v3 = static_cast<float>(parameters.getInputParam(channelSlot(), "inputOtomoZ"));
 
             otomoDestXEditor.setText(juce::String(v1, 2), juce::dontSendNotification);
             otomoDestYEditor.setText(juce::String(v2, 2), juce::dontSendNotification);
@@ -7238,9 +7241,9 @@ private:
         }
         else if (mode == 1)  // Cylindrical
         {
-            v1 = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoR"));
-            v2 = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoTheta"));
-            v3 = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoZ"));
+            v1 = static_cast<float>(parameters.getInputParam(channelSlot(), "inputOtomoR"));
+            v2 = static_cast<float>(parameters.getInputParam(channelSlot(), "inputOtomoTheta"));
+            v3 = static_cast<float>(parameters.getInputParam(channelSlot(), "inputOtomoZ"));
 
             otomoDestXEditor.setText(juce::String(v1, 2), juce::dontSendNotification);  // radius
             otomoDestYEditor.setText(juce::String(v2, 1), juce::dontSendNotification);  // theta
@@ -7248,9 +7251,9 @@ private:
         }
         else  // Spherical (mode == 2)
         {
-            v1 = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoRsph"));
-            v2 = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoTheta"));
-            v3 = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoPhi"));
+            v1 = static_cast<float>(parameters.getInputParam(channelSlot(), "inputOtomoRsph"));
+            v2 = static_cast<float>(parameters.getInputParam(channelSlot(), "inputOtomoTheta"));
+            v3 = static_cast<float>(parameters.getInputParam(channelSlot(), "inputOtomoPhi"));
 
             otomoDestXEditor.setText(juce::String(v1, 2), juce::dontSendNotification);  // radius
             otomoDestYEditor.setText(juce::String(v2, 1), juce::dontSendNotification);  // theta
@@ -7366,9 +7369,9 @@ private:
         float maxDist = distanceRangeSlider.getMaxValue();
 
         // Get Cartesian values from storage
-        float x = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionX"));
-        float y = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionY"));
-        float z = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionZ"));
+        float x = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionX"));
+        float y = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionY"));
+        float z = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionZ"));
 
         applyDistanceConstraint(x, y, z, coordMode, minDist, maxDist);
 
@@ -7671,9 +7674,9 @@ private:
         {
             juce::MessageManager::callAsync ([this]()
             {
-                float posX = static_cast<float> (parameters.getInputParam (currentChannel - 1, "inputPositionX"));
-                float posY = static_cast<float> (parameters.getInputParam (currentChannel - 1, "inputPositionY"));
-                gradientMapEditor.setInputPosition (posX, posY, currentChannel - 1);
+                float posX = static_cast<float> (parameters.getInputParam (channelSlot(), "inputPositionX"));
+                float posY = static_cast<float> (parameters.getInputParam (channelSlot(), "inputPositionY"));
+                gradientMapEditor.setInputPosition (posX, posY, channelSlot());
             });
         }
 
@@ -7734,13 +7737,12 @@ private:
         // Check if input channel count changed (stored in IO tree)
         if (tree == ioTree && property == WFSParameterIDs::inputChannels)
         {
-            int numInputs = parameters.getNumInputChannels();
-            if (numInputs > 0)
+            if (parameters.getNumInputChannels() > 0)
             {
-                channelSelector.setNumChannels(numInputs);
-                // If current selection is beyond new limit, reset to 1
-                if (channelSelector.getSelectedChannel() > numInputs)
-                    channelSelector.setSelectedChannel(1);
+                // Rebuild the live-number tiles; the selection snaps to the
+                // nearest live number if the current one was deleted.
+                channelSelector.setChannelIds(liveChannelNumbers());
+                currentChannel = channelSelector.getSelectedChannel();
             }
         }
 
@@ -7780,7 +7782,7 @@ private:
                             juce::MessageManager::callAsync ([this]()
                             {
                                 if (currentChannel <= 0) return;
-                                int idx = currentChannel - 1;
+                                int idx = channelSlot();
 
                                 // Update position editors (with coordinate conversion)
                                 updatePositionLabelsAndValues();
@@ -7866,11 +7868,31 @@ private:
         admMappingSelector.setAlpha (alpha);
     }
 
+    /** Slot (dense child index) of the currently edited channel; -1 if the
+        number is not live. currentChannel is a permanent NUMBER — with gaps
+        in the list, number - 1 is NOT the slot. */
+    int channelSlot() const
+    {
+        return parameters.getValueTreeState().getSlotForChannelNumber (currentChannel);
+    }
+
+    /** Live channel numbers in display (slot) order, for the selector grid. */
+    std::vector<int> liveChannelNumbers() const
+    {
+        std::vector<int> ids;
+        auto& vts = parameters.getValueTreeState();
+        const int n = parameters.getNumInputChannels();
+        ids.reserve (static_cast<size_t> (n));
+        for (int slot = 0; slot < n; ++slot)
+            ids.push_back (vts.getInputChannelNumber (slot));
+        return ids;
+    }
+
     /** True when the currently edited channel is a stereo pair (per-channel
         inputChannelType on its <Input> node). */
     bool currentChannelIsStereo() const
     {
-        return parameters.getValueTreeState().isInputChannelStereo (currentChannel - 1);
+        return parameters.getValueTreeState().isInputChannelStereo (channelSlot());
     }
 
     /** Stereo-dependent control state: the width dial only exists for stereo
@@ -7900,12 +7922,12 @@ private:
         // synchronously inside it): the editing control has already updated
         // itself, and one reload per drag event floods the message queue.
         const juce::ScopedValueSetter<bool> selfWriteScope(isSelfWriting, true);
-        parameters.getClusterEdit().write(currentChannel - 1, paramId, value);
+        parameters.getClusterEdit().write(channelSlot(), paramId, value);
     }
 
     void toggleMapLock()
     {
-        auto currentVal = parameters.getInputParam(currentChannel - 1, "inputMapLocked");
+        auto currentVal = parameters.getInputParam(channelSlot(), "inputMapLocked");
         bool currentlyLocked = !currentVal.isVoid() && static_cast<int>(currentVal) != 0;
         bool newLocked = !currentlyLocked;
 
@@ -7915,7 +7937,7 @@ private:
 
     void toggleMapVisibility()
     {
-        auto currentVal = parameters.getInputParam(currentChannel - 1, "inputMapVisible");
+        auto currentVal = parameters.getInputParam(channelSlot(), "inputMapVisible");
         bool currentlyVisible = currentVal.isVoid() || static_cast<int>(currentVal) != 0;
         bool newVisible = !currentlyVisible;
 
@@ -7928,7 +7950,7 @@ private:
         if (currentChannelIsStereo())
             return;   // sampler is N/A for stereo-pair channels (doc §5)
 
-        auto currentVal = parameters.getInputParam(currentChannel - 1, "inputSamplerActive");
+        auto currentVal = parameters.getInputParam(channelSlot(), "inputSamplerActive");
         bool isActive = !currentVal.isVoid() && static_cast<int>(currentVal) != 0;
         bool newState = !isActive;
 
@@ -7937,12 +7959,12 @@ private:
         updateSubTabSet();
 
         if (onSamplerActiveChanged)
-            onSamplerActiveChanged (currentChannel - 1, newState);
+            onSamplerActiveChanged (channelSlot(), newState);
     }
 
     void updateSamplerButtonState()
     {
-        auto currentVal = parameters.getInputParam(currentChannel - 1, "inputSamplerActive");
+        auto currentVal = parameters.getInputParam(channelSlot(), "inputSamplerActive");
         bool isActive = !currentVal.isVoid() && static_cast<int>(currentVal) != 0;
 
         samplerToggleButton.setButtonText(isActive ? LOC("inputs.buttons.samplerOn")
@@ -7962,7 +7984,7 @@ private:
     void updateSubTabSet()
     {
         const bool stereo = currentChannelIsStereo();
-        auto samplerVal = parameters.getInputParam(currentChannel - 1, "inputSamplerActive");
+        auto samplerVal = parameters.getInputParam(channelSlot(), "inputSamplerActive");
         const bool samplerOn = ! stereo && samplerMasterEnabled
                             && ! samplerVal.isVoid() && static_cast<int>(samplerVal) != 0;
 
@@ -7998,15 +8020,15 @@ private:
     void toggleSolo()
     {
         auto& vts = parameters.getValueTreeState();
-        bool currentSoloed = vts.isInputSoloed(currentChannel - 1);
-        vts.setInputSoloed(currentChannel - 1, !currentSoloed);
+        bool currentSoloed = vts.isInputSoloed(channelSlot());
+        vts.setInputSoloed(channelSlot(), !currentSoloed);
         updateSoloButtonState();
     }
 
     void updateSoloButtonState()
     {
         auto& vts = parameters.getValueTreeState();
-        bool isSoloed = vts.isInputSoloed(currentChannel - 1);
+        bool isSoloed = vts.isInputSoloed(channelSlot());
         soloButton.setToggleState(isSoloed, juce::dontSendNotification);
 
         // Yellow in Single mode, Orange in Multi mode
@@ -8075,14 +8097,14 @@ private:
     void updateMapButtonStates()
     {
         // Lock button - show lock icon and state
-        auto lockedVal = parameters.getInputParam(currentChannel - 1, "inputMapLocked");
+        auto lockedVal = parameters.getInputParam(channelSlot(), "inputMapLocked");
         bool isLocked = !lockedVal.isVoid() && static_cast<int>(lockedVal) != 0;
         // Use Unicode lock symbols
         juce::String lockIcon = isLocked ? juce::String::fromUTF8("\xf0\x9f\x94\x92") : juce::String::fromUTF8("\xf0\x9f\x94\x93");
         mapLockButton.setButtonText(lockIcon + " " + LOC("inputs.buttons.lockOnMap"));
 
         // Visibility button
-        auto visibleVal = parameters.getInputParam(currentChannel - 1, "inputMapVisible");
+        auto visibleVal = parameters.getInputParam(channelSlot(), "inputMapVisible");
         bool isVisible = visibleVal.isVoid() || static_cast<int>(visibleVal) != 0;
         mapVisibilityButton.setButtonText(isVisible ? LOC("inputs.buttons.visibleOnMap") : LOC("inputs.buttons.hiddenOnMap"));
     }
@@ -8097,7 +8119,7 @@ private:
         // Check if current input has tracking enabled
         int globalTracking = static_cast<int>(parameters.getConfigParam("trackingEnabled"));
         int protocolEnabled = static_cast<int>(parameters.getConfigParam("trackingProtocol"));
-        int localTracking = static_cast<int>(parameters.getInputParam(currentChannel - 1, "inputTrackingActive"));
+        int localTracking = static_cast<int>(parameters.getInputParam(channelSlot(), "inputTrackingActive"));
 
         bool inputHasTracking = (globalTracking != 0) && (protocolEnabled != 0) && (localTracking != 0);
 
@@ -8114,7 +8136,7 @@ private:
 
         for (int i = 0; i < numInputs; ++i)
         {
-            if (i == currentChannel - 1)
+            if (i == channelSlot())
                 continue;  // Skip current input
 
             int cluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
@@ -8173,7 +8195,7 @@ private:
     void checkLocalTrackingConstraintAsync()
     {
         // Check what cluster this input belongs to
-        int inputCluster = static_cast<int>(parameters.getInputParam(currentChannel - 1, "inputCluster"));
+        int inputCluster = static_cast<int>(parameters.getInputParam(channelSlot(), "inputCluster"));
 
         if (inputCluster == 0)
         {
@@ -8201,7 +8223,7 @@ private:
 
         for (int i = 0; i < numInputs; ++i)
         {
-            if (i == currentChannel - 1)
+            if (i == channelSlot())
                 continue;  // Skip current input
 
             int cluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
@@ -8264,7 +8286,7 @@ private:
         // Through the cluster-edit engine so Shift-clicking a mute copies the
         // whole mute state to the other inputs of the cluster.
         const juce::ScopedValueSetter<bool> selfWriteScope(isSelfWriting, true);
-        parameters.getClusterEdit().write(currentChannel - 1, WFSParameterIDs::inputMutes, muteValues.joinIntoString(","));
+        parameters.getClusterEdit().write(channelSlot(), WFSParameterIDs::inputMutes, muteValues.joinIntoString(","));
     }
 
     // ==================== MEMBER VARIABLES ====================
@@ -8283,7 +8305,7 @@ private:
     AutomOtionProcessor* automOtionProcessor = nullptr;
     std::map<juce::Component*, juce::String> helpTextMap;
     std::map<juce::Component*, juce::String> oscMethodMap;
-    int currentChannel = 1;
+    int currentChannel = 1;   // permanent channel NUMBER (not a slot; the list may have gaps)
 
     int headerHeight = 60;
     int footerHeight = 90;

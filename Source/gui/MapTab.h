@@ -3605,7 +3605,7 @@ private:
             int lsShape = static_cast<int>(parameters.getInputParam(inputIndex, "inputLSshape"));
 
             // Get input marker color for the gradient
-            juce::Colour inputColor = WfsColorUtilities::getInputColor(inputIndex + 1);
+            juce::Colour inputColor = WfsColorUtilities::getInputColor(parameters.getValueTreeState().getInputChannelNumber(inputIndex));
             const float baseAlpha = 0.25f;
 
             // Create radial gradient with shape-dependent color stops
@@ -3711,7 +3711,7 @@ private:
                     auto leftEnd  = stageToScreen({ greyDotX - halfWidthM * axisX, greyDotY - halfWidthM * axisY });
                     auto rightEnd = stageToScreen({ greyDotX + halfWidthM * axisX, greyDotY + halfWidthM * axisY });
 
-                    juce::Colour spreadColor = WfsColorUtilities::getInputColor(inputIndex + 1);
+                    juce::Colour spreadColor = WfsColorUtilities::getInputColor(parameters.getValueTreeState().getInputChannelNumber(inputIndex));
                     g.setColour(spreadColor.withAlpha(0.55f));
                     g.drawLine(leftEnd.x, leftEnd.y, rightEnd.x, rightEnd.y, 2.0f);
                     g.fillEllipse(leftEnd.x - 3.0f, leftEnd.y - 3.0f, 6.0f, 6.0f);
@@ -3767,7 +3767,7 @@ private:
                 g.setFont(juce::FontOptions().withHeight(juce::jmax(8.0f, 11.0f * us)).withStyle("Bold"));
                 const int tw = static_cast<int>(juce::jmax(14.0f, 20.0f * us));
                 const int th = static_cast<int>(juce::jmax(8.0f, 11.0f * us));
-                g.drawText(juce::String(inputIndex + 1),
+                g.drawText(juce::String(parameters.getValueTreeState().getInputChannelNumber(inputIndex)),
                            static_cast<int>(compositePos.x) - tw / 2,
                            static_cast<int>(compositePos.y) - th / 2,
                            tw, th, juce::Justification::centred);
@@ -3803,7 +3803,7 @@ private:
         }
         else
         {
-            outerColor = WfsColorUtilities::getInputColor(inputIndex + 1);  // 1-based for color
+            outerColor = WfsColorUtilities::getInputColor(parameters.getValueTreeState().getInputChannelNumber(inputIndex));  // 1-based for color
 
             // Label color based on tracking/reference state
             if (isTracked && isReference)
@@ -3833,7 +3833,7 @@ private:
             const int th = static_cast<int>(juce::jmax(8.0f, 12.0f * us));
             g.setColour(labelColor);
             g.setFont(juce::FontOptions().withHeight(juce::jmax(8.0f, 12.0f * us)).withStyle("Bold"));
-            g.drawText(juce::String(inputIndex + 1),
+            g.drawText(juce::String(parameters.getValueTreeState().getInputChannelNumber(inputIndex)),
                        static_cast<int>(screenPos.x) - static_cast<int>(markerRadius),
                        static_cast<int>(screenPos.y) - th / 2,
                        static_cast<int>(markerRadius * 2), th,
@@ -3937,7 +3937,7 @@ private:
         // Draw input name beneath marker
         juce::String inputName = parameters.getInputParam(inputIndex, "inputName").toString();
         if (inputName.isEmpty())
-            inputName = "Input " + juce::String(inputIndex + 1);
+            inputName = "Input " + juce::String(parameters.getValueTreeState().getInputChannelNumber(inputIndex));
 
         {
             const float us = WfsLookAndFeel::uiScale;

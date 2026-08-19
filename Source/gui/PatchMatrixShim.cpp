@@ -91,10 +91,20 @@ PatchMatrixComponent::makeConfig (WFSValueTreeState& parameters, bool isInputPat
                                                      : WFSParameterIDs::outputName).toString();
     };
 
+    // Input rows are labeled by the PERMANENT channel number (the list may
+    // have gaps after deletions); outputs stay dense row + 1.
+    if (isInputPatch)
+    {
+        config.rowIdProvider = [&parameters] (int row) -> int
+        {
+            return parameters.getInputChannelNumber (row);
+        };
+    }
+
     config.rowColourProvider = [&parameters, isInputPatch] (int channel) -> juce::Colour
     {
         if (isInputPatch)
-            return WfsColorUtilities::getInputColor (channel + 1);
+            return WfsColorUtilities::getInputColor (parameters.getInputChannelNumber (channel));
 
         // Outputs are coloured by the array they belong to. Note the lookup is
         // by NAME ("Output7"), not by index — the two differ once outputs have
