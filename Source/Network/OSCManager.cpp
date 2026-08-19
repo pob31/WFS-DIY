@@ -2380,8 +2380,13 @@ void OSCManager::handleRemotePositionDelta(const OSCMessageRouter::ParsedRemoteI
         WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
         state.beginUndoTransaction ("OSC Input");
 
+        // Remote uses 1-based channel IDs, but internal API uses 0-based
+        const int channelIndex = parsed.channelId - 1;
+        if (channelIndex < 0)
+            return;
+
         // Check if tracking is active for this channel
-        bool trackingActive = state.getInputParameter(parsed.channelId,
+        bool trackingActive = state.getInputParameter(channelIndex,
                                                        WFSParameterIDs::inputTrackingActive);
 
         // Determine which parameter to modify
@@ -2408,7 +2413,7 @@ void OSCManager::handleRemotePositionDelta(const OSCMessageRouter::ParsedRemoteI
         }
 
         // Get current value and apply delta
-        float currentValue = static_cast<float>(state.getInputParameter(parsed.channelId, paramId));
+        float currentValue = static_cast<float>(state.getInputParameter(channelIndex, paramId));
 
         float delta = parsed.deltaValue;
         if (parsed.direction == DeltaDirection::Decrement)
@@ -2417,7 +2422,7 @@ void OSCManager::handleRemotePositionDelta(const OSCMessageRouter::ParsedRemoteI
         float newValue = currentValue + delta;
 
         // Set the new value
-        state.setInputParameter(parsed.channelId, paramId, newValue);
+        state.setInputParameter(channelIndex, paramId, newValue);
     });
 }
 
