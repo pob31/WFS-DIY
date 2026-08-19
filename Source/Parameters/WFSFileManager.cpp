@@ -1120,9 +1120,9 @@ const std::vector<WFSFileManager::ScopeItem>& WFSFileManager::ExtendedSnapshotSc
         // Input Section
         { "inputAttenuation", "Attenuation", Channel, { inputAttenuation } },
         { "inputDelay", "Delay/Latency", Channel, { inputDelayLatency, inputMinimalLatency } },
-        // Stereo pairs: width only. inputChannelType intentionally has no scope
-        // item — changing the type resizes the renderer (stopped-only), so
-        // snapshots must never carry it.
+        // Stereo pairs: width only. Which channels ARE stereo is config-level
+        // (stereoInputChannels in System Config), never per-channel state, so
+        // snapshots cannot carry or change it.
         { "stereo", "Stereo Width", Channel, { inputStereoWidth } },
 
         // Position Section
@@ -1686,9 +1686,6 @@ void WFSFileManager::trimSnapshotInputToScope (juce::ValueTree& inputData, const
             channelTree.removeProperty (inputStereoWidth, nullptr);
         if (!scope.isIncluded ("sampler", channelIndex))
             channelTree.removeProperty (inputSamplerActive, nullptr);
-
-        // Channel type is configuration, not show state: never snapshot-carried.
-        channelTree.removeProperty (inputChannelType, nullptr);
     }
 
     // Property-based sections: drop excluded items' parameters
@@ -2077,7 +2074,6 @@ bool WFSFileManager::applyInputWithExtendedScope (int channelIndex, const juce::
             if (scope.isIncluded ("sampler", channelIndex) && loadedChannel.hasProperty (inputSamplerActive))
                 existingChannel.setProperty (inputSamplerActive, loadedChannel.getProperty (inputSamplerActive), undoManager);
 
-            // inputChannelType is deliberately never applied from a snapshot.
         }
     }
 

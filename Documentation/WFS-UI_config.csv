@@ -1,7 +1,8 @@
 Section	Label	Variable	UI	Type	Min	Max	Default	Tier	Unit	enum	Notes	Hover help text in the status bar
 Show	Name	showName	editable text box	STRING			My Show	1			Locked when DSP is running.	Name of the current show.
 Show	Location	showLocation	editable text box	STRING				1			Locked when DSP is running.	Location of the current show.
-I/O	Input Channels	inputChannels	number box	INT	0	64	8	3			Locked when DSP is running. Reducing the count prompts a confirmation before removing channel settings.	Number of Input Channels.
+I/O	Mono Inputs	inputChannels	number box	INT	0	64	8	3			Locked when DSP is running. Reducing the count prompts a confirmation before removing channel settings.	Number of mono input channels (stereo pairs are counted separately).
+I/O	Stereo Inputs	stereoInputChannels	number box	INT	0	8	0	3			Locked when DSP is running. The LAST N input channels become stereo pairs; each claims two hardware inputs (L and R) in the patch. Reducing prompts a confirmation.	Number of stereo pair inputs (the last channels of the input list).
 I/O	Output Channels	outputChannels	number box	INT	0	64	16	3			Locked when DSP is running. Reducing the count prompts a confirmation before removing channel settings.	Number of Output Channels.
 I/O	Reverb Channels	reverbChannels	number box	INT	0	16	0	3			Locked when DSP is running. Reducing the count prompts a confirmation before removing channel settings.	Number of Reverb Channels.
 I/O	Getting Started		text button				Getting Started				Visible only when DSP is not running. Opens the Getting Started wizard.	Open the Getting Started wizard.

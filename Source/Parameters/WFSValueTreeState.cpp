@@ -1366,6 +1366,30 @@ int WFSValueTreeState::getNumInputChannels() const
     return const_cast<WFSValueTreeState*>(this)->getInputsState().getNumChildren();
 }
 
+int WFSValueTreeState::getNumStereoInputChannels() const
+{
+    auto io = const_cast<WFSValueTreeState*>(this)->getIOState();
+    const int stereo = io.isValid()
+        ? (int) io.getProperty (WFSParameterIDs::stereoInputChannels,
+                                WFSParameterDefaults::stereoInputChannelsDefault)
+        : WFSParameterDefaults::stereoInputChannelsDefault;
+
+    // The LAST `stereo` channels of the input list are stereo pairs; clamp to
+    // what the list can actually hold so a hand-edited config cannot claim
+    // more stereo channels than inputs (or than the slice-slot budget).
+    return juce::jlimit (0, juce::jmin (WFSParameterDefaults::maxStereoChannels,
+                                        getNumInputChannels()),
+                         stereo);
+}
+
+void WFSValueTreeState::setNumStereoInputChannels (int numStereo)
+{
+    numStereo = juce::jlimit (0, WFSParameterDefaults::maxStereoChannels, numStereo);
+    auto io = getIOState();
+    if (io.isValid())
+        io.setProperty (WFSParameterIDs::stereoInputChannels, numStereo, getActiveUndoManager());
+}
+
 int WFSValueTreeState::getNumOutputChannels() const
 {
     return const_cast<WFSValueTreeState*>(this)->getOutputsState().getNumChildren();
@@ -2528,7 +2552,6 @@ juce::ValueTree WFSValueTreeState::createInputChannelSection (int index)
 {
     juce::ValueTree channel (Channel);
     channel.setProperty (inputName, getDefaultInputName (index), nullptr);
-    channel.setProperty (inputChannelType, inputChannelTypeDefault, nullptr);
     channel.setProperty (inputStereoWidth, inputStereoWidthDefault, nullptr);
     channel.setProperty (inputAttenuation, inputAttenuationDefault, nullptr);
     channel.setProperty (inputDelayLatency, inputDelayLatencyDefault, nullptr);

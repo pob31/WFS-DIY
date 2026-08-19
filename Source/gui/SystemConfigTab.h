@@ -507,6 +507,11 @@ public:
         inputChannelsLabel.setText(LOC("systemConfig.labels.inputChannels"), juce::dontSendNotification);
         addAndMakeVisible(inputChannelsEditor);
         // (inputChannelsEditor uses default border)
+        // Stereo pairs: the LAST N input channels render as stereo pairs
+        // (config-level split; each claims two patch columns from the start)
+        addAndMakeVisible(stereoChannelsLabel);
+        stereoChannelsLabel.setText(LOC("systemConfig.labels.stereoInputs"), juce::dontSendNotification);
+        addAndMakeVisible(stereoChannelsEditor);
         // Render-source total: visible only when stereo-pair channels claim
         // derived slice slots, so the renderer budget consumption is visible
         // (handoff doc §6). Fed by MainComponent::recomputeRenderSourceCount().
@@ -1357,6 +1362,7 @@ public:
         showNameEditor.addListener(this);
         showLocationEditor.addListener(this);
         inputChannelsEditor.addListener(this);
+        stereoChannelsEditor.addListener(this);
         outputChannelsEditor.addListener(this);
         reverbChannelsEditor.addListener(this);
         stageWidthEditor.addListener(this);
@@ -1522,14 +1528,25 @@ public:
             int shiftBtnSize = rowHeight;  // Square buttons
             int shiftBtnX = x + labelWidth + editorWidth + spacing;
 
+            // Mono + stereo counts share the input row (the LAST stereo
+            // channels of the list are the pairs). Total = mono + stereo.
             inputChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
-            inputChannelsEditor.setBounds(x + labelWidth + ei, y, editorWidth - ei * 2, rowHeight);
-            inputShiftButton.setBounds(shiftBtnX, y, shiftBtnSize, rowHeight);
-            inputShiftDismissButton.setBounds(shiftBtnX + shiftBtnSize + spacing, y, shiftBtnSize, rowHeight);
             {
-                int totalX = shiftBtnX + shiftBtnSize * 2 + spacing * 2;
-                renderSourceTotalLabel.setBounds(totalX, y, scaled(150), rowHeight);
+                int cx = x + labelWidth + ei;
+                const int numW = scaled(42);
+                inputChannelsEditor.setBounds(cx, y, numW, rowHeight);
+                cx += numW + spacing;
+                stereoChannelsLabel.setBounds(cx, y, scaled(58), rowHeight);
+                cx += scaled(58);
+                stereoChannelsEditor.setBounds(cx, y, numW, rowHeight);
+                cx += numW + spacing;
+                // This row's shift buttons sit after the stereo field (the
+                // shared shiftBtnX column would overlap it)
+                inputShiftButton.setBounds(cx, y, shiftBtnSize, rowHeight);
+                inputShiftDismissButton.setBounds(cx + shiftBtnSize + spacing, y, shiftBtnSize, rowHeight);
             }
+            // Render-source total in the slack under the I/O rows
+            renderSourceTotalLabel.setBounds(x, scaled(266), labelWidth + editorWidth, scaled(22));
             y += rowHeight + spacing;
 
             outputChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
@@ -2337,7 +2354,7 @@ public:
             // Column 1: Show
             { &showNameEditor, &showLocationEditor },
             // Column 2: I/O
-            { &inputChannelsEditor, &outputChannelsEditor, &reverbChannelsEditor },
+            { &inputChannelsEditor, &stereoChannelsEditor, &outputChannelsEditor, &reverbChannelsEditor },
             // Column 3: Stage (invisible fields skipped automatically per shape)
             { &stageWidthEditor, &stageDepthEditor,
               &stageDiameterEditor, &domeElevationEditor, &stageHeightEditor,
@@ -2402,6 +2419,7 @@ private:
 
         // I/O Section - integers only
         setupNumericEditor(inputChannelsEditor, false, false);
+        setupNumericEditor(stereoChannelsEditor, false, false);
         setupNumericEditor(outputChannelsEditor, false, false);
         setupNumericEditor(reverbChannelsEditor, false, false);
 
@@ -2437,7 +2455,10 @@ private:
         else if (&editor == &showLocationEditor)
             editor.setText(parameters.getConfigParam("ShowLocation").toString(), false);
         else if (&editor == &inputChannelsEditor)
-            editor.setText(juce::String(parameters.getNumInputChannels()), false);
+            editor.setText(juce::String(parameters.getNumInputChannels()
+                                        - parameters.getValueTreeState().getNumStereoInputChannels()), false);
+        else if (&editor == &stereoChannelsEditor)
+            editor.setText(juce::String(parameters.getValueTreeState().getNumStereoInputChannels()), false);
         else if (&editor == &outputChannelsEditor)
             editor.setText(juce::String(parameters.getNumOutputChannels()), false);
         else if (&editor == &reverbChannelsEditor)
@@ -2532,8 +2553,15 @@ private:
         showNameEditor.setText(parameters.getConfigParam("ShowName").toString(), false);
         showLocationEditor.setText(parameters.getConfigParam("ShowLocation").toString(), false);
 
-        // Channel counts - use dedicated getters for reliable values
-        inputChannelsEditor.setText(juce::String(parameters.getNumInputChannels()), false);
+        // Channel counts - use dedicated getters for reliable values.
+        // The input field shows the MONO count; the stereo field the pairs
+        // (total = mono + stereo, stereo channels are the LAST of the list).
+        {
+            const int totalIn  = parameters.getNumInputChannels();
+            const int stereoIn = parameters.getValueTreeState().getNumStereoInputChannels();
+            inputChannelsEditor.setText(juce::String(totalIn - stereoIn), false);
+            stereoChannelsEditor.setText(juce::String(stereoIn), false);
+        }
         outputChannelsEditor.setText(juce::String(parameters.getNumOutputChannels()), false);
         reverbChannelsEditor.setText(juce::String(parameters.getNumReverbChannels()), false);
 
@@ -2700,16 +2728,42 @@ private:
             parameters.setConfigParam("ShowName", text);
         else if (&editor == &showLocationEditor)
             parameters.setConfigParam("ShowLocation", text);
-        else if (&editor == &inputChannelsEditor)
+        else if (&editor == &inputChannelsEditor || &editor == &stereoChannelsEditor)
         {
-            int newInputs = text.getIntValue();
-            int currentInputs = parameters.getNumInputChannels();
-            if (newInputs < currentInputs)
+            // Total = mono + stereo; the stereo channels are the LAST of the
+            // list. Editing either field recomputes the total; reductions of
+            // the total prompt before removing channel settings.
+            const bool editingStereo = (&editor == &stereoChannelsEditor);
+            const int currentTotal  = parameters.getNumInputChannels();
+            const int currentStereo = parameters.getValueTreeState().getNumStereoInputChannels();
+            const int currentMono   = currentTotal - currentStereo;
+
+            int newMono   = currentMono;
+            int newStereo = currentStereo;
+            if (editingStereo)
+                newStereo = juce::jlimit(0, juce::jmin(WFSParameterDefaults::maxStereoChannels,
+                                                       WFSParameterDefaults::maxInputChannels - currentMono),
+                                         text.getIntValue());
+            else
+                newMono = juce::jlimit(1, WFSParameterDefaults::maxInputChannels - currentStereo,
+                                       text.getIntValue());
+
+            const int newTotal = newMono + newStereo;
+
+            auto apply = [this, newStereo, newTotal]()
+            {
+                parameters.getValueTreeState().setNumStereoInputChannels(newStereo);
+                parameters.setNumInputChannels(newTotal);
+                notifyChannelCountChanged();
+                loadParametersToUI();   // both fields re-read (clamps may have adjusted the entry)
+            };
+
+            if (newTotal < currentTotal)
             {
                 // Prevent multiple dialogs from appearing
                 if (isShowingChannelReductionDialog)
                 {
-                    inputChannelsEditor.setText(juce::String(currentInputs), false);
+                    editor.setText(juce::String(editingStereo ? currentStereo : currentMono), false);
                     return;
                 }
                 isShowingChannelReductionDialog = true;
@@ -2720,31 +2774,30 @@ private:
                     .withTitle(LOC("systemConfig.dialogs.reduceInputChannels.title"))
                     .withMessage(LocalizationManager::getInstance().get(
                         "systemConfig.dialogs.reduceInputChannels.message",
-                        {{"current", juce::String(currentInputs)},
-                         {"new", juce::String(newInputs)},
-                         {"start", juce::String(newInputs + 1)},
-                         {"end", juce::String(currentInputs)}}))
+                        {{"current", juce::String(currentTotal)},
+                         {"new", juce::String(newTotal)},
+                         {"start", juce::String(newTotal + 1)},
+                         {"end", juce::String(currentTotal)}}))
                     .withButton(LOC("systemConfig.dialogs.reduce"))
                     .withButton(LOC("common.cancel"))
                     .withAssociatedComponent(this);
 
-                juce::AlertWindow::showAsync(options, [this, newInputs, currentInputs](int result) {
+                juce::AlertWindow::showAsync(options,
+                    [this, apply, editingStereo, currentMono, currentStereo](int result) {
                     isShowingChannelReductionDialog = false;
                     if (result == 1)  // Reduce pressed
-                    {
-                        parameters.setNumInputChannels(newInputs);
-                        notifyChannelCountChanged();
-                    }
+                        apply();
                     else  // Cancel pressed - restore original value
                     {
-                        inputChannelsEditor.setText(juce::String(currentInputs), false);
+                        inputChannelsEditor.setText(juce::String(currentMono), false);
+                        stereoChannelsEditor.setText(juce::String(currentStereo), false);
+                        juce::ignoreUnused(editingStereo);
                     }
                 });
             }
             else
             {
-                parameters.setNumInputChannels(newInputs);
-                notifyChannelCountChanged();
+                apply();
             }
         }
         else if (&editor == &outputChannelsEditor)
@@ -3378,6 +3431,7 @@ public:
         bool enabled = !processingEnabled;
 
         inputChannelsEditor.setEnabled(enabled);
+        stereoChannelsEditor.setEnabled(enabled);
         outputChannelsEditor.setEnabled(enabled);
         reverbChannelsEditor.setEnabled(enabled);
         audioPatchingButton.setEnabled(enabled);
@@ -3391,6 +3445,7 @@ public:
         auto enabledColour = ColorScheme::get().textPrimary;
 
         inputChannelsEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
+        stereoChannelsEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
         outputChannelsEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
         reverbChannelsEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
     }
@@ -4444,6 +4499,7 @@ public:
         helpTextMap[&showNameEditor] = LOC("systemConfig.help.showName");
         helpTextMap[&showLocationEditor] = LOC("systemConfig.help.showLocation");
         helpTextMap[&inputChannelsEditor] = LOC("systemConfig.help.inputChannels");
+        helpTextMap[&stereoChannelsEditor] = LOC("systemConfig.help.stereoInputChannels");
         helpTextMap[&outputChannelsEditor] = LOC("systemConfig.help.outputChannels");
         helpTextMap[&reverbChannelsEditor] = LOC("systemConfig.help.reverbChannels");
         helpTextMap[&gettingStartedButton] = LOC("wizard.buttons.gettingStartedHelp");
@@ -4634,6 +4690,8 @@ public:
     juce::Label inputChannelsLabel;
     juce::Label renderSourceTotalLabel;
     juce::TextEditor inputChannelsEditor;
+    juce::Label stereoChannelsLabel;
+    juce::TextEditor stereoChannelsEditor;
     juce::Label outputChannelsLabel;
     juce::TextEditor outputChannelsEditor;
     juce::Label reverbChannelsLabel;

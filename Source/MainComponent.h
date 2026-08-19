@@ -522,14 +522,9 @@ private:
         may never drift from the channel dimension it derives from. */
     void recomputeRenderSourceCount();
 
-    /** A channel's inputChannelType changed (combo, MCP or config merge):
-        stop processing, drop stray second patch columns on mono rows, and
-        rebuild the render-source map, matrices and patch maps. */
-    void handleChannelTypeChange();
-
     /** A mono row may hold at most one hardware column. Clears any extra
-        columns (keeping the lowest = L) left behind by a stereo→mono
-        revert. */
+        columns (keeping the lowest = L) left behind when a count change
+        moves the mono/stereo boundary. */
     void sanitizeMonoPatchRows();
 
     /** Audio thread. Runs every stereo-pair channel's decomposition backend:

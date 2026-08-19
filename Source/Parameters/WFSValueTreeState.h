@@ -307,6 +307,12 @@ public:
 
     /** Set channel counts (creates/removes channel ValueTrees) */
     void setNumInputChannels (int numChannels);
+
+    /** How many of the LAST input channels are stereo pairs (config-level
+        split; mono count = getNumInputChannels() − this). Clamped to the
+        input count and the slice-slot budget. */
+    int getNumStereoInputChannels() const;
+    void setNumStereoInputChannels (int numStereo);
     void setNumOutputChannels (int numChannels);
     void setNumReverbChannels (int numChannels);
 

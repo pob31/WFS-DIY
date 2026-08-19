@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "fc4883c2449e33f40590e9d8b54bfaf4dc41965a748daec567086f41fabdb4b6",
+  "input_hash": "42fdddc277984d2bca83651a26468b05da977469988bf05c571f685fd8c7bbec",
   "groups": {
     "cluster_assigned_inputs": [
       "cluster_assigned_inputs_set_input_order",
@@ -216,7 +216,6 @@
       "input_sidelines_set_fringe"
     ],
     "input_stereo": [
-      "input_stereo_set_channel_type",
       "input_stereo_set_width"
     ],
     "input_tracking": [
@@ -433,7 +432,8 @@
     "system_i_o": [
       "system_i_o_set_input_channels",
       "system_i_o_set_output_channels",
-      "system_i_o_set_reverb_channels"
+      "system_i_o_set_reverb_channels",
+      "system_i_o_set_stereo_input_channels"
     ],
     "system_master_section": [
       "system_master_section_set_haas_effect",

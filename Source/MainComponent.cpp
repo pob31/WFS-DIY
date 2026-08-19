@@ -1970,11 +1970,6 @@ MainComponent::MainComponent()
     };
 
     // Activate/deactivate sampler channel in the audio engine
-    inputsTab->onChannelTypeChanged = [this]()
-    {
-        handleChannelTypeChange();
-    };
-
     // The two ctor-time recomputes ran before the tabs existed — publish the
     // current render-source total now that SystemConfigTab is wired
     systemConfigTab->setRenderSourceTotal (numInputChannels, numRenderSources);
@@ -2628,28 +2623,21 @@ void MainComponent::recomputeRenderSourceCount()
 {
     using Map = spatcore::wfs::RenderSourceMap;
 
-    // Build the slot map from the channel-type vector. Only a channel-type
-    // change (stopped-only) or a channel-count change can alter the result,
-    // so the audio callback may read renderSourceMap unsynchronized.
+    // Build the slot map from the config-level mono/stereo split: the LAST
+    // stereoInputChannels of the input list are stereo pairs. Only a count
+    // change (stopped-only) can alter the result, so the audio callback may
+    // read renderSourceMap unsynchronized. The getter clamps to the budget,
+    // so build() cannot fail on the stereo count.
     std::array<uint8_t, Map::kMaxInputChannels> channelTypes {};
     const int numTypes = juce::jlimit (0, (int) Map::kMaxInputChannels, numInputChannels);
-    for (int i = 0; i < numTypes; ++i)
-    {
-        auto channelSection = parameters.getValueTreeState().getInputChannelSection (i);
-        channelTypes[static_cast<size_t> (i)] = static_cast<uint8_t> (juce::jlimit (0, 1,
-            (int) channelSection.getProperty (WFSParameterIDs::inputChannelType,
-                                              WFSParameterDefaults::inputChannelTypeDefault)));
-    }
+    const int numStereo = juce::jlimit (0, numTypes,
+                                        parameters.getValueTreeState().getNumStereoInputChannels());
+    for (int i = numTypes - numStereo; i < numTypes; ++i)
+        channelTypes[static_cast<size_t> (i)] = Map::Stereo;
 
     if (! Map::build (channelTypes.data(), numTypes, renderSourceMap))
     {
-        // Over budget (a loaded config with more than kMaxStereoChannels
-        // stereo channels): surface it and fall back to all-mono — never
-        // silently truncate which channels get their slices.
-        WFSLogger::getInstance().logWarning (
-            "Stereo channel budget exceeded (max "
-            + juce::String ((int) Map::kMaxStereoChannels)
-            + " stereo pairs) — treating every channel as mono for rendering");
+        WFSLogger::getInstance().logWarning ("Render-source map build failed — treating every channel as mono");
         const bool ok = Map::buildIdentity (numTypes, renderSourceMap);
         jassert (ok);
         juce::ignoreUnused (ok);
@@ -2682,21 +2670,6 @@ void MainComponent::recomputeRenderSourceCount()
     }
 }
 
-void MainComponent::handleChannelTypeChange()
-{
-    WFSLogger::getInstance().logInfo ("Input channel type changed — rebuilding the render-source map");
-
-    // Stopped-only in the UI; stopping here as well covers writes from other
-    // sources (MCP tier-3, config merge) and makes the rebuild safe even if
-    // one slipped through while running.
-    stopProcessingForConfigurationChange();
-
-    sanitizeMonoPatchRows();
-    recomputeRenderSourceCount();
-    resizeRoutingMatrices();
-    loadAudioPatches();
-}
-
 void MainComponent::sanitizeMonoPatchRows()
 {
     auto audioPatchTree = parameters.getValueTreeState().getState().getChildWithName(WFSParameterIDs::AudioPatch);
@@ -2707,14 +2680,14 @@ void MainComponent::sanitizeMonoPatchRows()
     juce::String patchDataStr = inputPatchTree.getProperty(WFSParameterIDs::patchData).toString();
     juce::StringArray rows = juce::StringArray::fromTokens(patchDataStr, ";", "");
 
+    const int numStereo = parameters.getValueTreeState().getNumStereoInputChannels();
+    const int firstStereoRow = numInputChannels - numStereo;
+
     bool changed = false;
     for (int row = 0; row < rows.size() && row < numInputChannels; ++row)
     {
-        auto channelSection = parameters.getValueTreeState().getInputChannelSection(row);
-        const int type = static_cast<int>(channelSection.getProperty(WFSParameterIDs::inputChannelType,
-                                                                     WFSParameterDefaults::inputChannelTypeDefault));
-        if (type != 0)
-            continue;
+        if (row >= firstStereoRow)
+            continue;   // stereo rows keep both columns
 
         juce::StringArray cols = juce::StringArray::fromTokens(rows[row], ",", "");
         int kept = 0;
@@ -3378,6 +3351,12 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
         growPatchData(inputPatchTree, inputs, hwInCols);
         growPatchData(outputPatchTree, outputs, hwOutCols);
     }
+
+    // Count changes can move the mono/stereo boundary: rows that became mono
+    // may hold a leftover second column — drop it (lower column = L is kept),
+    // then rebuild the runtime patch maps for the new shape.
+    sanitizeMonoPatchRows();
+    loadAudioPatches();
 
     // Update reverb engine node count and resize MainComponent's reverb buffers
     if (reverbEngine)

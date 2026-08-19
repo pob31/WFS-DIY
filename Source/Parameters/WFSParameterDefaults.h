@@ -337,12 +337,16 @@ namespace WFSParameterDefaults
     constexpr float inputAttenuationMin         = -92.0f;
     constexpr float inputAttenuationMax         = 0.0f;
 
-    // Channel type: 0 = Mono (every pre-stereo project), 1 = Stereo pair.
-    // Changing it changes the renderer's source count, so the control is
-    // stopped-only and the parameter is excluded from snapshot recall.
-    constexpr int inputChannelTypeDefault       = 0;
-    constexpr int inputChannelTypeMin           = 0;
-    constexpr int inputChannelTypeMax           = 1;
+    // Stereo input count (config-level, System Config): the LAST
+    // stereoInputChannels of the input list are stereo pairs, the rest mono.
+    // A config-level split (not a per-channel type) so a stereo channel's two
+    // patch columns are reserved from the start — no stealing a neighbouring
+    // channel's hardware feed mid-project. Pre-stereo configs read as all-mono
+    // (default 0). Changing it resizes the renderer: stopped-only, never in
+    // snapshots (configuration, not show state).
+    constexpr int stereoInputChannelsDefault    = 0;
+    constexpr int stereoInputChannelsMin        = 0;
+    constexpr int stereoInputChannelsMax        = maxStereoChannels;
 
     // Stereo width factor (%): scales slice azimuth toward the anchor.
     // 0% collapses the pair to a point source (the null-test condition).

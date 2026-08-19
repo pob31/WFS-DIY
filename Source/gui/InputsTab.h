@@ -542,11 +542,6 @@ public:
     std::function<void(int channelId)> onChannelSelected;
     std::function<void(int subTabIndex)> onSubTabChanged;
     std::function<void(int channelIndex, bool active)> onSamplerActiveChanged;
-
-    /** Fired (async) whenever any channel's inputChannelType changes — from
-        this tab's combo, MCP, or a config merge. MainComponent rebuilds the
-        render-source map, matrices and patch maps. */
-    std::function<void()> onChannelTypeChanged;
     std::function<bool(int channelIndex)> isAutoMotionActive;
 
     /** Update trigger/reset indicators from audio levels (called at 50Hz from MainComponent) */
@@ -1140,39 +1135,6 @@ private:
             minimalLatencyButton.setButtonText(minLat ? LOC("inputs.toggles.minimalLatency") : LOC("inputs.toggles.acousticPrecedence"));
             saveInputParam(WFSParameterIDs::inputMinimalLatency, minLat ? 1 : 0);
             updateFeatureWarnings();
-        };
-
-        // Channel type (Mono / Stereo pair). Stopped-only: enabled state is
-        // managed by updateStereoControls() from the ProcessingEnabled flag.
-        addAndMakeVisible(channelTypeLabel);
-        channelTypeLabel.setText(LOC("inputs.labels.channelType"), juce::dontSendNotification);
-        addAndMakeVisible(channelTypeSelector);
-        channelTypeSelector.addItem(LOC("inputs.channelTypes.mono"), 1);
-        channelTypeSelector.addItem(LOC("inputs.channelTypes.stereo"), 2);
-        channelTypeSelector.setSelectedId(1, juce::dontSendNotification);
-        channelTypeSelector.onChange = [this]() {
-            if (isLoadingParameters || currentChannel <= 0) return;
-            const int newType = channelTypeSelector.getSelectedId() == 2 ? 1 : 0;
-            const int oldType = static_cast<int>(parameters.getInputParam(currentChannel - 1, "inputChannelType"));
-            if (newType == oldType) return;
-
-            // Belt-and-braces: the combo is disabled while processing runs,
-            // but revert if a change slips through (e.g. a race with start)
-            if (static_cast<int>(parameters.getConfigParam("ProcessingEnabled")) != 0)
-            {
-                channelTypeSelector.setSelectedId(oldType == 1 ? 2 : 1, juce::dontSendNotification);
-                return;
-            }
-
-            parameters.getValueTreeState().beginUndoTransaction("Input Channel Type");
-            saveInputParam(WFSParameterIDs::inputChannelType, newType);
-            // MainComponent is notified via the inputChannelType branch in
-            // valueTreePropertyChanged (covers MCP/config writes on the same
-            // path); here only the local UI updates.
-            updateStereoControls();
-            updateSubTabSet();
-            resized();
-            TTSManager::getInstance().announceValueChange("Channel Type", channelTypeSelector.getText());
         };
 
         // Feature warnings (hidden until updateFeatureWarnings() decides otherwise).
@@ -3470,8 +3432,6 @@ private:
         delayLatencySlider.setVisible(v);
         delayLatencyValueLabel.setVisible(v);
         minimalLatencyButton.setVisible(v);
-        channelTypeLabel.setVisible(v);
-        channelTypeSelector.setVisible(v);
         admMappingLabel.setVisible(v);
         admMappingSelector.setVisible(v);
     }
@@ -4281,14 +4241,10 @@ private:
         delayLatencySlider.setBounds(col1.removeFromTop(sliderHeight));
         col1.removeFromTop(spacing * 2);  // Extra padding before toggle
 
-        // Minimal Latency button - centered beneath slider; channel type
-        // combo uses the free gap to its left
+        // Minimal Latency button - centered beneath slider
         row = col1.removeFromTop(rowHeight);
         const int buttonWidth = scaled(150);
         const int buttonX = (row.getWidth() - buttonWidth) / 2;
-        channelTypeLabel.setBounds(row.getX(), row.getY(), scaled(40), rowHeight);
-        channelTypeSelector.setBounds(row.getX() + scaled(40), row.getY(),
-                                      juce::jmin(scaled(110), juce::jmax(0, buttonX - scaled(46))), rowHeight);
         minimalLatencyButton.setBounds(row.getX() + buttonX, row.getY(), buttonWidth, rowHeight);
         // Warning in the gap to the right of the centred button
         {
@@ -5457,9 +5413,8 @@ private:
         minimalLatencyButton.setToggleState(minLatency, juce::dontSendNotification);
         minimalLatencyButton.setButtonText(minLatency ? LOC("inputs.toggles.minimalLatency") : LOC("inputs.toggles.acousticPrecedence"));
 
-        // Channel type + stereo width
-        const int channelType = getIntParam(WFSParameterIDs::inputChannelType, 0);
-        channelTypeSelector.setSelectedId(channelType == 1 ? 2 : 1, juce::dontSendNotification);
+        // Stereo width (stereo-pair channels only; the mono/stereo split is
+        // config-level — System Config, stereoInputChannels)
         float stereoWidthPct = getFloatParam(WFSParameterIDs::inputStereoWidth, 100.0f);
         stereoWidthPct = juce::jlimit(0.0f, 100.0f, stereoWidthPct);
         stereoWidthDial.setValue(stereoWidthPct / 100.0f);
@@ -7467,7 +7422,6 @@ private:
         helpTextMap[&distanceAttenDial] = LOC("inputs.help.distanceAttenDial");
         helpTextMap[&distanceRatioDial] = LOC("inputs.help.distanceRatioDial");
         helpTextMap[&commonAttenDial] = LOC("inputs.help.commonAttenDial");
-        helpTextMap[&channelTypeSelector] = LOC("inputs.help.channelTypeSelector");
         helpTextMap[&stereoWidthDial] = LOC("inputs.help.stereoWidthDial");
         helpTextMap[&directivitySlider] = LOC("inputs.help.directivitySlider");
         helpTextMap[&inputDirectivityDial] = LOC("inputs.help.inputDirectivityDial");
@@ -7734,25 +7688,16 @@ private:
             return;
         }
 
-        // A channel-type change re-shapes the renderer (slot map, matrix
-        // rows, patch semantics) — notify MainComponent whatever the source
-        // (our combo, MCP tier-3, config merge). Deliberately NOT gated on
-        // isSelfWriting: the combo's own write must rebuild too.
-        if (property == WFSParameterIDs::inputChannelType)
+        // The mono/stereo split moved (config-level, System Config): the
+        // current channel's role may have changed — refresh the stereo
+        // controls and the sub-tab set.
+        if (property == WFSParameterIDs::stereoInputChannels)
         {
             juce::MessageManager::callAsync([this]()
             {
-                if (onChannelTypeChanged)
-                    onChannelTypeChanged();
                 updateStereoControls();
                 updateSubTabSet();
             });
-        }
-
-        // Processing started/stopped — the channel-type combo is stopped-only
-        if (property == juce::Identifier("ProcessingEnabled"))
-        {
-            juce::MessageManager::callAsync([this]() { updateStereoControls(); });
         }
 
         // Check if network target protocol/enable changed — update ADM selector dimming
@@ -7920,25 +7865,23 @@ private:
         admMappingSelector.setAlpha (alpha);
     }
 
-    /** True when the currently edited channel is a stereo pair. */
+    /** True when the currently edited channel is a stereo pair: the LAST
+        stereoInputChannels of the input list are stereo (config-level split,
+        System Config). */
     bool currentChannelIsStereo() const
     {
         if (currentChannel <= 0)
             return false;
-        auto v = parameters.getInputParam(currentChannel - 1, "inputChannelType");
-        return ! v.isVoid() && static_cast<int>(v) == 1;
+        const int total  = parameters.getNumInputChannels();
+        const int stereo = parameters.getValueTreeState().getNumStereoInputChannels();
+        return currentChannel - 1 >= total - stereo;
     }
 
-    /** Stereo-dependent control state: the type combo is stopped-only, the
-        width dial only exists for stereo channels, and the sampler header
-        button is N/A for stereo. Called on channel load, type change, and
-        whenever ProcessingEnabled flips. */
+    /** Stereo-dependent control state: the width dial only exists for stereo
+        channels, and the sampler header button is N/A for stereo. Called on
+        channel load and when the mono/stereo split moves. */
     void updateStereoControls()
     {
-        const bool processing = static_cast<int>(parameters.getConfigParam("ProcessingEnabled")) != 0;
-        channelTypeSelector.setEnabled(! processing);
-        channelTypeLabel.setAlpha(processing ? 0.4f : 1.0f);
-
         const bool stereo = currentChannelIsStereo();
         const bool soundVisible = commonAttenDial.isVisible();
         stereoWidthLabel.setVisible(soundVisible && stereo);
@@ -8397,8 +8340,6 @@ private:
     WfsBidirectionalSlider delayLatencySlider;
     juce::Label delayLatencyValueLabel;
     juce::TextButton minimalLatencyButton;
-    juce::Label channelTypeLabel;
-    juce::ComboBox channelTypeSelector;
 
     // Warnings shown when an input feature is enabled but no speaker supports it
     // (or, for floor reflections, the geometry can't produce them).

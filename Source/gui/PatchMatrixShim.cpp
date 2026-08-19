@@ -63,24 +63,20 @@ PatchMatrixComponent::makeConfig (WFSValueTreeState& parameters, bool isInputPat
 
     config.recomputeColumns = [&parameters] { parameters.recomputePatchCols(); };
 
-    // A stereo-pair input row holds two hardware columns (lower = L). Read live
-    // from the tree so a type change reshapes the matrix on the next repaint.
-    // Output rows stay strict 1:1 (provider omitted -> capacity 1).
+    // A stereo-pair input row holds two hardware columns (lower = L). The
+    // split is config-level (System Config): the LAST stereoInputChannels
+    // rows are stereo pairs, the rest strict 1:1. Read live so a count change
+    // reshapes the matrix on the next repaint. Output rows stay strict 1:1
+    // (provider omitted -> capacity 1).
     if (isInputPatch)
     {
         config.rowCapacityProvider = [&parameters] (int channel) -> int
         {
-            auto listTree = parameters.getState().getChildWithName (WFSParameterIDs::Inputs);
-            if (channel < 0 || channel >= listTree.getNumChildren())
+            const int total  = parameters.getNumInputChannels();
+            const int stereo = parameters.getNumStereoInputChannels();
+            if (channel < 0 || channel >= total)
                 return 1;
-
-            auto channelTree = listTree.getChild (channel).getChildWithName (WFSParameterIDs::Channel);
-            if (! channelTree.isValid())
-                return 1;
-
-            const int type = channelTree.getProperty (WFSParameterIDs::inputChannelType,
-                                                      WFSParameterDefaults::inputChannelTypeDefault);
-            return type == 1 ? 2 : 1;
+            return channel >= total - stereo ? 2 : 1;
         };
     }
 
