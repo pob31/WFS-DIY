@@ -111,6 +111,19 @@ only then), and the `--stereo-null` harness gate.
 
 The sections below were the working notes for commits 7–11; kept for line-level context.
 
+**2026-08-19 addendum (post-review rework, commits b442660..58624d5):** three design
+changes after the first UI review. (1) The per-channel `inputChannelType` was REPLACED
+by a config-level split — System Config "Mono Inputs" + "Stereo Inputs" (`ioTree
+stereoInputChannels`); the LAST stereo channels of the list are pairs, their two patch
+columns reserved upfront (per-channel flipping had to steal a neighbour's patch column
+mid-project — DiGiCo-style adjacent-pair desks made that untenable). The per-channel
+parameter is gone end-to-end (never released, no migration). (2) Slice 0 is now the
+CENTRE/anchor feed in every backend (pass-through: slice 0 silent-but-active, 1 = L,
+2 = R) — per-channel terms are genuinely anchor-computed, the Visualisation tab shows
+the centre row, and the layout already matches Phase 1's. (3) The width axis is
+perpendicular to the origin→anchor bearing in XY (tangential); flip mirrors the image
+automatically (no explicit azimuth negation — it would double-mirror).
+
 ### Landed (commits 1–6 of 11, every gate green)
 
 Parent `979a263 → 6f5d764`, spatcore branch `feat/stereo-input-channel` at `8c50e28`
