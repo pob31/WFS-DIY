@@ -77,14 +77,6 @@
       "files": "Files"
     },
 
-    "channelTypes": {
-
-      "mono": "Mono",
-
-      "stereo": "Stereo pair"
-
-    },
-
     "labels": {
       "version": "Version {version}",
       "updateAvailable": "Update {version} available",
@@ -233,8 +225,6 @@
     },
 
     "help": {
-      "channelTypeSelector": "Channel type. A stereo pair uses two hardware inputs (L and R) and renders the mix across the array. Changing the type requires processing to be stopped.",
-      "stereoWidthDial": "Stereo width. Scales the spread of the stereo image across the array; 0% collapses the pair to a point source.",
       "gpuPipelineDepth": "GPU pipeline depth in audio blocks. Adds depth x buffer/sample-rate of constant latency (pre-subtracted from WFS delays) and absorbs GPU stalls of the same length: deeper = immune to desktop/UI hiccups, shallower = lower latency. Applies live. Default 4.",
       "showName": "Name of the current show.",
       "showLocation": "Location of the current show.",
@@ -970,8 +960,6 @@
     },
     "labels": {
       "name": "Name:",
-      "channelType": "Type:",
-      "stereoWidth": "Width:",
       "array": "Array:",
       "applyToArray": "Apply to Array:",
       "attenuation": "Attenuation:",
@@ -1386,6 +1374,10 @@
     }
   },
   "inputs": {
+    "channelTypes": {
+      "mono": "Mono",
+      "stereo": "Stereo pair"
+    },
     "sections": {
       "channel": "Channel",
       "position": "Position",
@@ -1491,6 +1483,8 @@
       "cluster": "Cluster:",
       "attenuation": "Attenuation:",
       "delayLatency": "Delay/Latency:",
+      "channelType": "Type:",
+      "stereoWidth": "Width:",
       "coord": "Coord:",
       "positionX": "Position X:",
       "positionY": "Position Y:",
@@ -1765,6 +1759,8 @@
       "maxSpeedDial": "Maximum Speed Limit for Object.",
       "pathModeButton": "Enable Path Mode to Follow Drawn Movement Paths Instead of Direct Lines.",
       "heightFactorDial": "Take Elevation of Object into Account Fully, Partially or Not.",
+      "channelTypeSelector": "Channel type. A stereo pair uses two hardware inputs (L and R) and renders the mix across the array. Changing the type requires processing to be stopped.",
+      "stereoWidthDial": "Stereo width. Scales the spread of the stereo image across the array; 0% collapses the pair to a point source.",
       "coordModeSelector": "Coordinate display mode: Cartesian (X/Y/Z), Cylindrical (radius/azimuth/height), or Spherical (radius/azimuth/elevation).",
       "positionJoystick": "Drag to adjust X/Y position in real-time. Returns to center on release.",
       "positionZSlider": "Drag to adjust Z (height) position in real-time. Returns to center on release.",

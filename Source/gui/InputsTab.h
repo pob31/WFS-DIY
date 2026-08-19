@@ -542,6 +542,11 @@ public:
     std::function<void(int channelId)> onChannelSelected;
     std::function<void(int subTabIndex)> onSubTabChanged;
     std::function<void(int channelIndex, bool active)> onSamplerActiveChanged;
+
+    /** Fired (async) whenever any channel's inputChannelType changes — from
+        this tab's combo, MCP, or a config merge. MainComponent rebuilds the
+        render-source map, matrices and patch maps. */
+    std::function<void()> onChannelTypeChanged;
     std::function<bool(int channelIndex)> isAutoMotionActive;
 
     /** Update trigger/reset indicators from audio levels (called at 50Hz from MainComponent) */
@@ -965,9 +970,8 @@ public:
         samplerMasterEnabled = enabled;
         samplerToggleButton.setVisible(enabled);
 
-        // If master disabled, remove sampler tab if it exists
-        if (!enabled)
-            removeSamplerTab();
+        // Master flag feeds the desired sub-tab set
+        updateSubTabSet();
 
         resized();
     }
@@ -1136,6 +1140,39 @@ private:
             minimalLatencyButton.setButtonText(minLat ? LOC("inputs.toggles.minimalLatency") : LOC("inputs.toggles.acousticPrecedence"));
             saveInputParam(WFSParameterIDs::inputMinimalLatency, minLat ? 1 : 0);
             updateFeatureWarnings();
+        };
+
+        // Channel type (Mono / Stereo pair). Stopped-only: enabled state is
+        // managed by updateStereoControls() from the ProcessingEnabled flag.
+        addAndMakeVisible(channelTypeLabel);
+        channelTypeLabel.setText(LOC("inputs.labels.channelType"), juce::dontSendNotification);
+        addAndMakeVisible(channelTypeSelector);
+        channelTypeSelector.addItem(LOC("inputs.channelTypes.mono"), 1);
+        channelTypeSelector.addItem(LOC("inputs.channelTypes.stereo"), 2);
+        channelTypeSelector.setSelectedId(1, juce::dontSendNotification);
+        channelTypeSelector.onChange = [this]() {
+            if (isLoadingParameters || currentChannel <= 0) return;
+            const int newType = channelTypeSelector.getSelectedId() == 2 ? 1 : 0;
+            const int oldType = static_cast<int>(parameters.getInputParam(currentChannel - 1, "inputChannelType"));
+            if (newType == oldType) return;
+
+            // Belt-and-braces: the combo is disabled while processing runs,
+            // but revert if a change slips through (e.g. a race with start)
+            if (static_cast<int>(parameters.getConfigParam("ProcessingEnabled")) != 0)
+            {
+                channelTypeSelector.setSelectedId(oldType == 1 ? 2 : 1, juce::dontSendNotification);
+                return;
+            }
+
+            parameters.getValueTreeState().beginUndoTransaction("Input Channel Type");
+            saveInputParam(WFSParameterIDs::inputChannelType, newType);
+            // MainComponent is notified via the inputChannelType branch in
+            // valueTreePropertyChanged (covers MCP/config writes on the same
+            // path); here only the local UI updates.
+            updateStereoControls();
+            updateSubTabSet();
+            resized();
+            TTSManager::getInstance().announceValueChange("Channel Type", channelTypeSelector.getText());
         };
 
         // Feature warnings (hidden until updateFeatureWarnings() decides otherwise).
@@ -1940,6 +1977,32 @@ private:
         commonAttenUnitLabel.setText("%", juce::dontSendNotification);
         commonAttenUnitLabel.setJustificationType(juce::Justification::left);
         commonAttenUnitLabel.setMinimumHorizontalScale(1.0f);
+
+        // Stereo Width dial (stereo-pair channels only; visibility follows
+        // the channel type in setSoundVisible / updateStereoControls)
+        addAndMakeVisible(stereoWidthLabel);
+        stereoWidthLabel.setText(LOC("inputs.labels.stereoWidth"), juce::dontSendNotification);
+        stereoWidthLabel.setJustificationType(juce::Justification::centred);
+        stereoWidthDial.setColours(juce::Colours::black, juce::Colour(0xFF4A90D9), juce::Colours::grey);
+        stereoWidthDial.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF4A90D9));
+        stereoWidthDial.setValue(1.0f);
+        stereoWidthDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input Stereo Width");
+        };
+        stereoWidthDial.onValueChanged = [this](float v) {
+            int percent = static_cast<int>(v * 100.0f);
+            stereoWidthValueLabel.setText(juce::String(percent), juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputStereoWidth, percent);
+        };
+        addAndMakeVisible(stereoWidthDial);
+        addAndMakeVisible(stereoWidthValueLabel);
+        stereoWidthValueLabel.setText("100", juce::dontSendNotification);
+        stereoWidthValueLabel.setJustificationType(juce::Justification::right);
+        setupEditableValueLabel(stereoWidthValueLabel);
+        addAndMakeVisible(stereoWidthUnitLabel);
+        stereoWidthUnitLabel.setText("%", juce::dontSendNotification);
+        stereoWidthUnitLabel.setJustificationType(juce::Justification::left);
+        stereoWidthUnitLabel.setMinimumHorizontalScale(1.0f);
 
         // Directivity slider
         addAndMakeVisible(directivityLabel);
@@ -3407,6 +3470,8 @@ private:
         delayLatencySlider.setVisible(v);
         delayLatencyValueLabel.setVisible(v);
         minimalLatencyButton.setVisible(v);
+        channelTypeLabel.setVisible(v);
+        channelTypeSelector.setVisible(v);
         admMappingLabel.setVisible(v);
         admMappingSelector.setVisible(v);
     }
@@ -3463,6 +3528,11 @@ private:
         distanceRatioValueLabel.setVisible(v && is1OverD);
         distanceRatioUnitLabel.setVisible(v && is1OverD);
         commonAttenLabel.setVisible(v); commonAttenDial.setVisible(v); commonAttenValueLabel.setVisible(v); commonAttenUnitLabel.setVisible(v);
+        {
+            const bool stereoV = v && currentChannelIsStereo();
+            stereoWidthLabel.setVisible(stereoV); stereoWidthDial.setVisible(stereoV);
+            stereoWidthValueLabel.setVisible(stereoV); stereoWidthUnitLabel.setVisible(stereoV);
+        }
         directivityLabel.setVisible(v); directivitySlider.setVisible(v); directivityValueLabel.setVisible(v);
         rotationLabel.setVisible(v); inputDirectivityDial.setVisible(v); rotationValueLabel.setVisible(v); rotationUnitLabel.setVisible(v);
         tiltLabel.setVisible(v); tiltSlider.setVisible(v); tiltValueLabel.setVisible(v);
@@ -4211,10 +4281,14 @@ private:
         delayLatencySlider.setBounds(col1.removeFromTop(sliderHeight));
         col1.removeFromTop(spacing * 2);  // Extra padding before toggle
 
-        // Minimal Latency button - centered beneath slider
+        // Minimal Latency button - centered beneath slider; channel type
+        // combo uses the free gap to its left
         row = col1.removeFromTop(rowHeight);
         const int buttonWidth = scaled(150);
         const int buttonX = (row.getWidth() - buttonWidth) / 2;
+        channelTypeLabel.setBounds(row.getX(), row.getY(), scaled(40), rowHeight);
+        channelTypeSelector.setBounds(row.getX() + scaled(40), row.getY(),
+                                      juce::jmin(scaled(110), juce::jmax(0, buttonX - scaled(46))), rowHeight);
         minimalLatencyButton.setBounds(row.getX() + buttonX, row.getY(), buttonWidth, rowHeight);
         // Warning in the gap to the right of the centred button
         {
@@ -4454,11 +4528,14 @@ private:
         const int topBlockHeight = dialSize + rowHeight * 2;
         auto topBlock = col2.removeFromTop(topBlockHeight);
 
-        // Calculate item widths and total needed width
+        // Calculate item widths and total needed width. Stereo-pair channels
+        // add a fourth column (the width dial); mono layout is unchanged.
+        const bool showStereoWidth = currentChannelIsStereo();
         const int attenLawWidth = scaled(140);  // Label/button width
         const int dialSectionWidth = scaled(110);  // Label width for dial sections
         const int itemSpacing = spacing * 4;  // Spacing between items
-        const int totalTopRowWidth = attenLawWidth + dialSectionWidth * 2 + itemSpacing * 2;
+        const int totalTopRowWidth = attenLawWidth + dialSectionWidth * 2 + itemSpacing * 2
+                                   + (showStereoWidth ? itemSpacing + dialSectionWidth : 0);
 
         // Center the group within topBlock
         int topRowStartX = topBlock.getX() + (topBlock.getWidth() - totalTopRowWidth) / 2;
@@ -4486,6 +4563,12 @@ private:
         commonAttenLabel.setBounds(commonCenterX - dialSectionWidth / 2, topRowY, dialSectionWidth, rowHeight);
         commonAttenDial.setBounds(commonCenterX - dialSize / 2, topRowY + rowHeight, dialSize, dialSize);
         layoutDialValueUnit(commonAttenValueLabel, commonAttenUnitLabel, commonCenterX, topRowY + rowHeight + dialSize, rowHeight);
+
+        // Column 4: Stereo Width dial (stereo-pair channels only; hidden for mono)
+        int stereoWidthCenterX = commonCenterX + dialSectionWidth / 2 + itemSpacing + dialSectionWidth / 2;
+        stereoWidthLabel.setBounds(stereoWidthCenterX - dialSectionWidth / 2, topRowY, dialSectionWidth, rowHeight);
+        stereoWidthDial.setBounds(stereoWidthCenterX - dialSize / 2, topRowY + rowHeight, dialSize, dialSize);
+        layoutDialValueUnit(stereoWidthValueLabel, stereoWidthUnitLabel, stereoWidthCenterX, topRowY + rowHeight + dialSize, rowHeight);
 
         // Reduced padding before sliders section
         col2.removeFromTop(spacing);
@@ -5374,6 +5457,14 @@ private:
         minimalLatencyButton.setToggleState(minLatency, juce::dontSendNotification);
         minimalLatencyButton.setButtonText(minLatency ? LOC("inputs.toggles.minimalLatency") : LOC("inputs.toggles.acousticPrecedence"));
 
+        // Channel type + stereo width
+        const int channelType = getIntParam(WFSParameterIDs::inputChannelType, 0);
+        channelTypeSelector.setSelectedId(channelType == 1 ? 2 : 1, juce::dontSendNotification);
+        float stereoWidthPct = getFloatParam(WFSParameterIDs::inputStereoWidth, 100.0f);
+        stereoWidthPct = juce::jlimit(0.0f, 100.0f, stereoWidthPct);
+        stereoWidthDial.setValue(stereoWidthPct / 100.0f);
+        stereoWidthValueLabel.setText(juce::String(static_cast<int>(stereoWidthPct)), juce::dontSendNotification);
+
         // ==================== POSITION TAB ====================
         // Update coordinate mode selector and position editors (handles coordinate conversion)
         updatePositionLabelsAndValues();
@@ -5933,7 +6024,8 @@ private:
         updateSoloButtonState();
         updateSoloModeButtonText();
         updateSamplerButtonState();
-        updateSamplerSubTab();
+        updateStereoControls();
+        updateSubTabSet();
         samplerSubTab.setCurrentChannel(currentChannel - 1);
         updateFeatureWarnings();  // refresh for the newly selected input (toggle states + off-floor)
     }
@@ -6162,6 +6254,13 @@ private:
             commonAttenDial.setValue(percent / 100.0f);
             // Force label update (unit label is separate)
             commonAttenValueLabel.setText(juce::String(percent), juce::dontSendNotification);
+        }
+        else if (label == &stereoWidthValueLabel)
+        {
+            int percent = juce::jlimit(0, 100, static_cast<int>(value));
+            stereoWidthDial.setValue(percent / 100.0f);
+            // Force label update (unit label is separate)
+            stereoWidthValueLabel.setText(juce::String(percent), juce::dontSendNotification);
         }
         else if (label == &directivityValueLabel)
         {
@@ -7368,6 +7467,8 @@ private:
         helpTextMap[&distanceAttenDial] = LOC("inputs.help.distanceAttenDial");
         helpTextMap[&distanceRatioDial] = LOC("inputs.help.distanceRatioDial");
         helpTextMap[&commonAttenDial] = LOC("inputs.help.commonAttenDial");
+        helpTextMap[&channelTypeSelector] = LOC("inputs.help.channelTypeSelector");
+        helpTextMap[&stereoWidthDial] = LOC("inputs.help.stereoWidthDial");
         helpTextMap[&directivitySlider] = LOC("inputs.help.directivitySlider");
         helpTextMap[&inputDirectivityDial] = LOC("inputs.help.inputDirectivityDial");
         helpTextMap[&tiltSlider] = LOC("inputs.help.tiltSlider");
@@ -7490,6 +7591,7 @@ private:
         oscMethodMap[&distanceAttenDial] = "/wfs/input/distanceAttenuation <ID> <value>";
         oscMethodMap[&distanceRatioDial] = "/wfs/input/distanceRatio <ID> <value>";
         oscMethodMap[&commonAttenDial] = "/wfs/input/commonAtten <ID> <value>";
+        oscMethodMap[&stereoWidthDial] = "/wfs/input/stereoWidth <ID> <value>";
         oscMethodMap[&directivitySlider] = "/wfs/input/directivity <ID> <value>";
         oscMethodMap[&inputDirectivityDial] = "/wfs/input/rotation <ID> <value>";
         oscMethodMap[&tiltSlider] = "/wfs/input/tilt <ID> <value>";
@@ -7630,6 +7732,27 @@ private:
                 updateSnapshotButtonStates();
             });
             return;
+        }
+
+        // A channel-type change re-shapes the renderer (slot map, matrix
+        // rows, patch semantics) — notify MainComponent whatever the source
+        // (our combo, MCP tier-3, config merge). Deliberately NOT gated on
+        // isSelfWriting: the combo's own write must rebuild too.
+        if (property == WFSParameterIDs::inputChannelType)
+        {
+            juce::MessageManager::callAsync([this]()
+            {
+                if (onChannelTypeChanged)
+                    onChannelTypeChanged();
+                updateStereoControls();
+                updateSubTabSet();
+            });
+        }
+
+        // Processing started/stopped — the channel-type combo is stopped-only
+        if (property == juce::Identifier("ProcessingEnabled"))
+        {
+            juce::MessageManager::callAsync([this]() { updateStereoControls(); });
         }
 
         // Check if network target protocol/enable changed — update ADM selector dimming
@@ -7797,6 +7920,36 @@ private:
         admMappingSelector.setAlpha (alpha);
     }
 
+    /** True when the currently edited channel is a stereo pair. */
+    bool currentChannelIsStereo() const
+    {
+        if (currentChannel <= 0)
+            return false;
+        auto v = parameters.getInputParam(currentChannel - 1, "inputChannelType");
+        return ! v.isVoid() && static_cast<int>(v) == 1;
+    }
+
+    /** Stereo-dependent control state: the type combo is stopped-only, the
+        width dial only exists for stereo channels, and the sampler header
+        button is N/A for stereo. Called on channel load, type change, and
+        whenever ProcessingEnabled flips. */
+    void updateStereoControls()
+    {
+        const bool processing = static_cast<int>(parameters.getConfigParam("ProcessingEnabled")) != 0;
+        channelTypeSelector.setEnabled(! processing);
+        channelTypeLabel.setAlpha(processing ? 0.4f : 1.0f);
+
+        const bool stereo = currentChannelIsStereo();
+        const bool soundVisible = commonAttenDial.isVisible();
+        stereoWidthLabel.setVisible(soundVisible && stereo);
+        stereoWidthDial.setVisible(soundVisible && stereo);
+        stereoWidthValueLabel.setVisible(soundVisible && stereo);
+        stereoWidthUnitLabel.setVisible(soundVisible && stereo);
+
+        samplerToggleButton.setEnabled(! stereo);
+        samplerToggleButton.setAlpha(stereo ? 0.4f : 1.0f);
+    }
+
     void saveInputParam(const juce::Identifier& paramId, const juce::var& value)
     {
         if (isLoadingParameters) return;
@@ -7833,13 +7986,16 @@ private:
 
     void toggleSamplerMode()
     {
+        if (currentChannelIsStereo())
+            return;   // sampler is N/A for stereo-pair channels (doc §5)
+
         auto currentVal = parameters.getInputParam(currentChannel - 1, "inputSamplerActive");
         bool isActive = !currentVal.isVoid() && static_cast<int>(currentVal) != 0;
         bool newState = !isActive;
 
         saveInputParam(WFSParameterIDs::inputSamplerActive, newState ? 1 : 0);
         updateSamplerButtonState();
-        updateSamplerSubTab();
+        updateSubTabSet();
 
         if (onSamplerActiveChanged)
             onSamplerActiveChanged (currentChannel - 1, newState);
@@ -7858,26 +8014,46 @@ private:
             samplerToggleButton.setBaseColour(juce::Colour());  // Default
     }
 
-    void updateSamplerSubTab()
+    /** The sub-tab set is a function of (channel type, sampler state):
+        stereo-pair channels drop Live Source & Hackoustics, Gradient Maps and
+        Sampler (handoff doc §5 rules those features out for stereo). The bar
+        is rebuilt from scratch in canonical order only when the desired set
+        actually differs, preserving the current selection when it survives
+        (falling back to Params otherwise). */
+    void updateSubTabSet()
     {
-        auto currentVal = parameters.getInputParam(currentChannel - 1, "inputSamplerActive");
-        bool isActive = !currentVal.isVoid() && static_cast<int>(currentVal) != 0;
+        const bool stereo = currentChannelIsStereo();
+        auto samplerVal = parameters.getInputParam(currentChannel - 1, "inputSamplerActive");
+        const bool samplerOn = ! stereo && samplerMasterEnabled
+                            && ! samplerVal.isVoid() && static_cast<int>(samplerVal) != 0;
 
-        if (isActive && samplerMasterEnabled)
-            addSamplerTab();
-        else
-            removeSamplerTab();
-    }
+        std::vector<std::pair<InputSubTab, const char*>> desired;
+        desired.push_back({ InputSubTab::Params, "inputs.tabs.inputParams" });
+        if (! stereo)
+            desired.push_back({ InputSubTab::LiveSourceHackoustics, "inputs.tabs.liveSourceHackoustics" });
+        desired.push_back({ InputSubTab::Movements, "inputs.tabs.movements" });
+        if (! stereo)
+            desired.push_back({ InputSubTab::GradientMaps, "inputs.tabs.gradientMaps" });
+        desired.push_back({ InputSubTab::Visualisation, "inputs.tabs.visualisation" });
+        if (samplerOn)
+            desired.push_back({ InputSubTab::Sampler, "inputs.tabs.sampler" });
 
-    void addSamplerTab()
-    {
-        if (indexOfSubTab (InputSubTab::Sampler) >= 0) return;  // Already present
-        appendSubTab (InputSubTab::Sampler, "inputs.tabs.sampler");
-    }
+        bool same = desired.size() == subTabIds.size();
+        for (size_t i = 0; same && i < desired.size(); ++i)
+            same = desired[i].first == subTabIds[i];
+        if (same)
+            return;
 
-    void removeSamplerTab()
-    {
-        removeSubTab (InputSubTab::Sampler);
+        const InputSubTab previous = getCurrentSubTabId();
+        subTabBar.clearTabs();
+        subTabIds.clear();
+        for (const auto& d : desired)
+            appendSubTab(d.first, d.second);
+
+        const int restored = indexOfSubTab(previous);
+        subTabBar.setCurrentTabIndex(restored >= 0 ? restored : 0);
+        layoutCurrentSubTab();
+        repaint();
     }
 
     void toggleSolo()
@@ -8221,6 +8397,8 @@ private:
     WfsBidirectionalSlider delayLatencySlider;
     juce::Label delayLatencyValueLabel;
     juce::TextButton minimalLatencyButton;
+    juce::Label channelTypeLabel;
+    juce::ComboBox channelTypeSelector;
 
     // Warnings shown when an input feature is enabled but no speaker supports it
     // (or, for floor reflections, the geometry can't produce them).
@@ -8284,6 +8462,10 @@ private:
     WfsBasicDial commonAttenDial;
     juce::Label commonAttenValueLabel;
     juce::Label commonAttenUnitLabel;
+    juce::Label stereoWidthLabel;
+    WfsBasicDial stereoWidthDial;
+    juce::Label stereoWidthValueLabel;
+    juce::Label stereoWidthUnitLabel;
     juce::Label directivityLabel;
     WfsWidthExpansionSlider directivitySlider;
     juce::Label directivityValueLabel;

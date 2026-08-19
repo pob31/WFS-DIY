@@ -1970,6 +1970,11 @@ MainComponent::MainComponent()
     };
 
     // Activate/deactivate sampler channel in the audio engine
+    inputsTab->onChannelTypeChanged = [this]()
+    {
+        handleChannelTypeChange();
+    };
+
     inputsTab->onSamplerActiveChanged = [this] (int channelIndex, bool active)
     {
         if (samplerManager != nullptr)
@@ -2667,6 +2672,62 @@ void MainComponent::recomputeRenderSourceCount()
         }
         levelMeteringManager->setSourceMap (std::move (aggregation));
     }
+}
+
+void MainComponent::handleChannelTypeChange()
+{
+    WFSLogger::getInstance().logInfo ("Input channel type changed — rebuilding the render-source map");
+
+    // Stopped-only in the UI; stopping here as well covers writes from other
+    // sources (MCP tier-3, config merge) and makes the rebuild safe even if
+    // one slipped through while running.
+    stopProcessingForConfigurationChange();
+
+    sanitizeMonoPatchRows();
+    recomputeRenderSourceCount();
+    resizeRoutingMatrices();
+    loadAudioPatches();
+}
+
+void MainComponent::sanitizeMonoPatchRows()
+{
+    auto audioPatchTree = parameters.getValueTreeState().getState().getChildWithName(WFSParameterIDs::AudioPatch);
+    auto inputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::InputPatch);
+    if (! inputPatchTree.isValid())
+        return;
+
+    juce::String patchDataStr = inputPatchTree.getProperty(WFSParameterIDs::patchData).toString();
+    juce::StringArray rows = juce::StringArray::fromTokens(patchDataStr, ";", "");
+
+    bool changed = false;
+    for (int row = 0; row < rows.size() && row < numInputChannels; ++row)
+    {
+        auto channelSection = parameters.getValueTreeState().getInputChannelSection(row);
+        const int type = static_cast<int>(channelSection.getProperty(WFSParameterIDs::inputChannelType,
+                                                                     WFSParameterDefaults::inputChannelTypeDefault));
+        if (type != 0)
+            continue;
+
+        juce::StringArray cols = juce::StringArray::fromTokens(rows[row], ",", "");
+        int kept = 0;
+        bool rowChanged = false;
+        for (int c = 0; c < cols.size(); ++c)
+        {
+            if (cols[c].getIntValue() == 1 && kept++ > 0)
+            {
+                cols.set(c, "0");
+                rowChanged = true;
+            }
+        }
+        if (rowChanged)
+        {
+            rows.set(row, cols.joinIntoString(","));
+            changed = true;
+        }
+    }
+
+    if (changed)
+        inputPatchTree.setProperty(WFSParameterIDs::patchData, rows.joinIntoString(";"), nullptr);
 }
 
 void MainComponent::resizeRoutingMatrices()

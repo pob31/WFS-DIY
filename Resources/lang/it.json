@@ -487,8 +487,6 @@
   "inputs": {
     "gradientMap": {
       "help": {
-        "channelTypeSelector": "Tipo di canale. Una coppia stereo usa due ingressi hardware (L e R) e rende il mix sull’array. Cambiare tipo richiede l’arresto dell’elaborazione.",
-        "stereoWidthDial": "Larghezza stereo. Scala l’estensione dell’immagine stereo sull’array; 0 % riduce la coppia a una sorgente puntiforme.",
         "layerSelect": "Seleziona questo livello per la modifica",
         "layerEnable": "Attiva/disattiva livello (influisce su uscita e OSC)",
         "layerVisible": "Mostra/nascondi anteprima livello sul canvas",
@@ -589,6 +587,8 @@
       "maxSpeedDial": "Limite di velocità massima per l'oggetto.",
       "pathModeButton": "Attivare la modalità Percorso per seguire i tracciati di movimento disegnati anziché linee dirette.",
       "heightFactorDial": "Considerare l'elevazione dell'oggetto totalmente, parzialmente o per nulla.",
+      "channelTypeSelector": "Tipo di canale. Una coppia stereo usa due ingressi hardware (L e R) e rende il mix sull’array. Cambiare tipo richiede l’arresto dell’elaborazione.",
+      "stereoWidthDial": "Larghezza stereo. Scala l’estensione dell’immagine stereo sull’array; 0 % riduce la coppia a una sorgente puntiforme.",
       "coordModeSelector": "Modalità di visualizzazione delle coordinate: Cartesiana (X/Y/Z), Cilindrica (raggio/azimut/altezza) o Sferica (raggio/azimut/elevazione).",
       "positionJoystick": "Trascinare per regolare la posizione X/Y in tempo reale. Torna al centro al rilascio.",
       "positionZSlider": "Trascinare per regolare la posizione Z (altezza) in tempo reale. Torna al centro al rilascio.",

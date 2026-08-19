@@ -487,8 +487,6 @@
   "inputs": {
     "gradientMap": {
       "help": {
-        "channelTypeSelector": "Tipo de canal. Um par estéreo usa duas entradas de hardware (L e R) e reproduz a mistura no array. Mudar o tipo exige o processamento parado.",
-        "stereoWidthDial": "Largura estéreo. Escala a extensão da imagem estéreo no array; 0% colapsa o par numa fonte pontual.",
         "layerSelect": "Selecionar esta camada para edição",
         "layerEnable": "Ativar/desativar camada (afeta saída e OSC)",
         "layerVisible": "Mostrar/ocultar pré-visualização da camada no canvas",
@@ -589,6 +587,8 @@
       "maxSpeedDial": "Limite de velocidade máxima para o objeto.",
       "pathModeButton": "Ativar o modo Trajetória para seguir caminhos de movimento desenhados em vez de linhas diretas.",
       "heightFactorDial": "Considerar a elevação do objeto totalmente, parcialmente ou nada.",
+      "channelTypeSelector": "Tipo de canal. Um par estéreo usa duas entradas de hardware (L e R) e reproduz a mistura no array. Mudar o tipo exige o processamento parado.",
+      "stereoWidthDial": "Largura estéreo. Escala a extensão da imagem estéreo no array; 0% colapsa o par numa fonte pontual.",
       "coordModeSelector": "Modo de exibição de coordenadas: Cartesiano (X/Y/Z), Cilíndrico (raio/azimute/altura) ou Esférico (raio/azimute/elevação).",
       "positionJoystick": "Arrastar para ajustar a posição X/Y em tempo real. Volta ao centro ao soltar.",
       "positionZSlider": "Arrastar para ajustar a posição Z (altura) em tempo real. Volta ao centro ao soltar.",
