@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "a880d475a741896564e2f1ed146af4a27d921fbe5ecd714ec28164169d252890",
+  "input_hash": "fc4883c2449e33f40590e9d8b54bfaf4dc41965a748daec567086f41fabdb4b6",
   "source_csvs": [
     "WFS-UI_config.csv",
     "WFS-UI_input.csv",
@@ -6316,6 +6316,86 @@
       ],
       "internal_osc_path": "/wfs/input/sidelinesFringe",
       "internal_variable": "inputSidelinesFringe"
+    },
+    {
+      "name": "input_stereo_set_channel_type",
+      "description": "Channel type: Mono, or Stereo pair (uses two hardware inputs, L and R). Enum: Mono ; Stereo pair. Use `session_get_state()` first if unsure which channels exist. [TIER 3: destructive - refused unless the operator's safety gate is open; with the gate open, executes immediately.]",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "input_id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 64,
+            "description": "Input channel number (1-based)."
+          },
+          "value": {
+            "type": "string",
+            "enum": [
+              "Mono",
+              "Stereopair"
+            ],
+            "description": "Channel Type (enum).",
+            "default": "Mono"
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
+          }
+        },
+        "required": [
+          "input_id",
+          "value"
+        ]
+      },
+      "tier": 3,
+      "csv_section": "Stereo",
+      "group_key": "input_stereo",
+      "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
+      "internal_osc_path": "",
+      "internal_variable": "inputChannelType"
+    },
+    {
+      "name": "input_stereo_set_width",
+      "description": "Stereo image width across the array; 0% collapses the pair to a point source. Value in %. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "input_id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 64,
+            "description": "Input channel number (1-based)."
+          },
+          "value": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Width %.",
+            "default": 100
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
+          }
+        },
+        "required": [
+          "input_id",
+          "value"
+        ]
+      },
+      "tier": 2,
+      "csv_section": "Stereo",
+      "group_key": "input_stereo",
+      "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
+      "internal_osc_path": "/wfs/input/stereoWidth",
+      "internal_variable": "inputStereoWidth"
     },
     {
       "name": "input_tracking_set_active",

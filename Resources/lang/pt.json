@@ -487,6 +487,8 @@
   "inputs": {
     "gradientMap": {
       "help": {
+        "channelTypeSelector": "Tipo de canal. Um par estéreo usa duas entradas de hardware (L e R) e reproduz a mistura no array. Mudar o tipo exige o processamento parado.",
+        "stereoWidthDial": "Largura estéreo. Escala a extensão da imagem estéreo no array; 0% colapsa o par numa fonte pontual.",
         "layerSelect": "Selecionar esta camada para edição",
         "layerEnable": "Ativar/desativar camada (afeta saída e OSC)",
         "layerVisible": "Mostrar/ocultar pré-visualização da camada no canvas",

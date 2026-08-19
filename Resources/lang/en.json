@@ -77,6 +77,14 @@
       "files": "Files"
     },
 
+    "channelTypes": {
+
+      "mono": "Mono",
+
+      "stereo": "Stereo pair"
+
+    },
+
     "labels": {
       "version": "Version {version}",
       "updateAvailable": "Update {version} available",
@@ -225,6 +233,8 @@
     },
 
     "help": {
+      "channelTypeSelector": "Channel type. A stereo pair uses two hardware inputs (L and R) and renders the mix across the array. Changing the type requires processing to be stopped.",
+      "stereoWidthDial": "Stereo width. Scales the spread of the stereo image across the array; 0% collapses the pair to a point source.",
       "gpuPipelineDepth": "GPU pipeline depth in audio blocks. Adds depth x buffer/sample-rate of constant latency (pre-subtracted from WFS delays) and absorbs GPU stalls of the same length: deeper = immune to desktop/UI hiccups, shallower = lower latency. Applies live. Default 4.",
       "showName": "Name of the current show.",
       "showLocation": "Location of the current show.",
@@ -960,6 +970,8 @@
     },
     "labels": {
       "name": "Name:",
+      "channelType": "Type:",
+      "stereoWidth": "Width:",
       "array": "Array:",
       "applyToArray": "Apply to Array:",
       "attenuation": "Attenuation:",

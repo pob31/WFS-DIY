@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "a880d475a741896564e2f1ed146af4a27d921fbe5ecd714ec28164169d252890",
+  "input_hash": "fc4883c2449e33f40590e9d8b54bfaf4dc41965a748daec567086f41fabdb4b6",
   "groups": {
     "cluster_assigned_inputs": [
       "cluster_assigned_inputs_set_input_order",
@@ -214,6 +214,10 @@
     "input_sidelines": [
       "input_sidelines_set_active",
       "input_sidelines_set_fringe"
+    ],
+    "input_stereo": [
+      "input_stereo_set_channel_type",
+      "input_stereo_set_width"
     ],
     "input_tracking": [
       "input_tracking_set_active",

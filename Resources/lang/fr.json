@@ -492,6 +492,8 @@
   "inputs": {
     "gradientMap": {
       "help": {
+        "channelTypeSelector": "Type de canal. Une paire stéréo utilise deux entrées matérielles (L et R) et restitue le mixage sur le réseau de haut-parleurs. Le changement de type nécessite l’arrêt du traitement.",
+        "stereoWidthDial": "Largeur stéréo. Ajuste l’étalement de l’image stéréo sur le réseau ; 0 % réduit la paire à une source ponctuelle.",
         "layerSelect": "Sélectionner cette couche pour l'édition",
         "layerEnable": "Activer/désactiver la couche (affecte la sortie et OSC)",
         "layerVisible": "Afficher/masquer l'aperçu de la couche sur le canevas",

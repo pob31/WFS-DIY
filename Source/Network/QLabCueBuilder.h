@@ -350,6 +350,7 @@ private:
             { WFSParameterIDs::inputAttenuation,          { "Attenuation",          "dB",  false } },
             { WFSParameterIDs::inputDelayLatency,         { "Delay",                "ms",  false } },
             { WFSParameterIDs::inputMinimalLatency,       { "Min Latency",          "",    false } },
+            { WFSParameterIDs::inputStereoWidth,          { "Stereo Width",         "%",   false } },
 
             // Position
             { WFSParameterIDs::inputPositionX,            { "Position X",           "m",   false } },

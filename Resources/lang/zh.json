@@ -487,6 +487,8 @@
   "inputs": {
     "gradientMap": {
       "help": {
+        "channelTypeSelector": "通道类型。立体声对使用两个硬件输入（左和右），并将混音渲染到整个阵列。更改类型需要先停止处理。",
+        "stereoWidthDial": "立体声宽度。调整立体声声像在阵列上的展开范围；0% 时立体声对塌缩为点声源。",
         "layerSelect": "选择此图层进行编辑",
         "layerEnable": "启用/禁用图层（影响输出和OSC）",
         "layerVisible": "在画布上显示/隐藏图层预览",

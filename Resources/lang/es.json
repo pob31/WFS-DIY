@@ -487,6 +487,8 @@
   "inputs": {
     "gradientMap": {
       "help": {
+        "channelTypeSelector": "Tipo de canal. Un par estéreo usa dos entradas de hardware (L y R) y reproduce la mezcla en el array. Cambiar el tipo requiere detener el procesado.",
+        "stereoWidthDial": "Anchura estéreo. Escala la extensión de la imagen estéreo en el array; 0 % colapsa el par en una fuente puntual.",
         "layerSelect": "Seleccionar esta capa para editar",
         "layerEnable": "Activar/desactivar capa (afecta salida y OSC)",
         "layerVisible": "Mostrar/ocultar vista previa de la capa en el lienzo",

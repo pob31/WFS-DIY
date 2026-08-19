@@ -290,6 +290,8 @@ namespace WFSParameterIDs
 
     // Input > Channel
     const juce::Identifier inputName             ("inputName");
+    const juce::Identifier inputChannelType      ("inputChannelType");      // 0=Mono, 1=Stereo pair
+    const juce::Identifier inputStereoWidth      ("inputStereoWidth");      // 0-100%, stereo pairs only
     const juce::Identifier inputAttenuation      ("inputAttenuation");
     const juce::Identifier inputDelayLatency     ("inputDelayLatency");
     const juce::Identifier inputMinimalLatency   ("inputMinimalLatency");

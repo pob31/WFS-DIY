@@ -1120,6 +1120,10 @@ const std::vector<WFSFileManager::ScopeItem>& WFSFileManager::ExtendedSnapshotSc
         // Input Section
         { "inputAttenuation", "Attenuation", Channel, { inputAttenuation } },
         { "inputDelay", "Delay/Latency", Channel, { inputDelayLatency, inputMinimalLatency } },
+        // Stereo pairs: width only. inputChannelType intentionally has no scope
+        // item — changing the type resizes the renderer (stopped-only), so
+        // snapshots must never carry it.
+        { "stereo", "Stereo Width", Channel, { inputStereoWidth } },
 
         // Position Section
         { "position", "Position (XYZ)", Position, { inputPositionX, inputPositionY, inputPositionZ, inputCoordinateMode } },
@@ -1678,8 +1682,13 @@ void WFSFileManager::trimSnapshotInputToScope (juce::ValueTree& inputData, const
             channelTree.removeProperty (inputDelayLatency, nullptr);
             channelTree.removeProperty (inputMinimalLatency, nullptr);
         }
+        if (!scope.isIncluded ("stereo", channelIndex))
+            channelTree.removeProperty (inputStereoWidth, nullptr);
         if (!scope.isIncluded ("sampler", channelIndex))
             channelTree.removeProperty (inputSamplerActive, nullptr);
+
+        // Channel type is configuration, not show state: never snapshot-carried.
+        channelTree.removeProperty (inputChannelType, nullptr);
     }
 
     // Property-based sections: drop excluded items' parameters
@@ -1917,6 +1926,8 @@ juce::ValueTree WFSFileManager::extractInputWithExtendedScope (int channelIndex,
             filteredChannel.setProperty (inputDelayLatency, channelTree.getProperty (inputDelayLatency), nullptr);
             filteredChannel.setProperty (inputMinimalLatency, channelTree.getProperty (inputMinimalLatency), nullptr);
         }
+        if (scope.isIncluded ("stereo", channelIndex) && channelTree.hasProperty (inputStereoWidth))
+            filteredChannel.setProperty (inputStereoWidth, channelTree.getProperty (inputStereoWidth), nullptr);
         if (scope.isIncluded ("sampler", channelIndex) && channelTree.hasProperty (inputSamplerActive))
             filteredChannel.setProperty (inputSamplerActive, channelTree.getProperty (inputSamplerActive), nullptr);
 
@@ -2061,8 +2072,12 @@ bool WFSFileManager::applyInputWithExtendedScope (int channelIndex, const juce::
                 if (loadedChannel.hasProperty (inputMinimalLatency))
                     existingChannel.setProperty (inputMinimalLatency, loadedChannel.getProperty (inputMinimalLatency), undoManager);
             }
+            if (scope.isIncluded ("stereo", channelIndex) && loadedChannel.hasProperty (inputStereoWidth))
+                existingChannel.setProperty (inputStereoWidth, loadedChannel.getProperty (inputStereoWidth), undoManager);
             if (scope.isIncluded ("sampler", channelIndex) && loadedChannel.hasProperty (inputSamplerActive))
                 existingChannel.setProperty (inputSamplerActive, loadedChannel.getProperty (inputSamplerActive), undoManager);
+
+            // inputChannelType is deliberately never applied from a snapshot.
         }
     }
 

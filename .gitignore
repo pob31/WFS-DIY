@@ -139,3 +139,5 @@ tools/test-gpu-plugin
 tools/headtrack/build/
 tools/headtrack/build-bundled/
 tools/headtrack/.opencv/
+build-spatcore-tests/
+tools/validation/control-replay/wfs-control-replay/

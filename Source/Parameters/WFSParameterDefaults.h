@@ -337,6 +337,19 @@ namespace WFSParameterDefaults
     constexpr float inputAttenuationMin         = -92.0f;
     constexpr float inputAttenuationMax         = 0.0f;
 
+    // Channel type: 0 = Mono (every pre-stereo project), 1 = Stereo pair.
+    // Changing it changes the renderer's source count, so the control is
+    // stopped-only and the parameter is excluded from snapshot recall.
+    constexpr int inputChannelTypeDefault       = 0;
+    constexpr int inputChannelTypeMin           = 0;
+    constexpr int inputChannelTypeMax           = 1;
+
+    // Stereo width factor (%): scales slice azimuth toward the anchor.
+    // 0% collapses the pair to a point source (the null-test condition).
+    constexpr int inputStereoWidthDefault       = 100;
+    constexpr int inputStereoWidthMin           = 0;
+    constexpr int inputStereoWidthMax           = 100;
+
     constexpr float inputDelayLatencyDefault    = 0.0f;
     constexpr float inputDelayLatencyMin        = -100.0f;
     constexpr float inputDelayLatencyMax        = 100.0f;

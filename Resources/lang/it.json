@@ -487,6 +487,8 @@
   "inputs": {
     "gradientMap": {
       "help": {
+        "channelTypeSelector": "Tipo di canale. Una coppia stereo usa due ingressi hardware (L e R) e rende il mix sull’array. Cambiare tipo richiede l’arresto dell’elaborazione.",
+        "stereoWidthDial": "Larghezza stereo. Scala l’estensione dell’immagine stereo sull’array; 0 % riduce la coppia a una sorgente puntiforme.",
         "layerSelect": "Seleziona questo livello per la modifica",
         "layerEnable": "Attiva/disattiva livello (influisce su uscita e OSC)",
         "layerVisible": "Mostra/nascondi anteprima livello sul canvas",
