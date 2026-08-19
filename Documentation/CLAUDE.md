@@ -776,6 +776,44 @@ totalFRDelay = directDelay + frExtraDelay + noiseState;
 - Both InputBufferAlgorithm and OutputBufferAlgorithm support FR
 - FR and direct signals summed per output
 
+### Stereo Pair Input Channels (Phase 0)
+A per-channel `inputChannelType` (0 = Mono, 1 = Stereo pair) turns one input channel into a
+stereo-pair channel: two hardware inputs (patch matrix row capacity 2, lower column = L) rendered
+as **six render sources** — the channel's primary slot (slice 0) plus 5 derived slice slots
+appended past the visible inputs. Spec: `Documentation/stereo-channel-handoff.md` (Appendix A holds
+the implementation state).
+
+**Two index spaces** (never conflate):
+| Space | Range | Owns |
+|---|---|---|
+| `inputChannel` | `[0, numInputChannels)`, max 64 | ValueTree, OSC, snapshots, patch rows, Map markers, meters |
+| `renderSource` | `[0, numRenderSources)`, max 104 | WFS matrix rows, `patchedInputBuffer` channels, shared rings, GPU `numInputs` |
+
+Slot layout is a pure function of the channel-type vector (`spatcore/wfs/RenderSourceMap.h`):
+derived slices of stereo ordinal k live at `numInputChannels + 5*k + (slice-1)`. Rebuild is
+config-time only (type changes are stopped-only; `MainComponent::recomputeRenderSourceCount()`).
+
+**Audio path:** `applyInputPatch` splits stereo rows into `stereoRawBuffer`; the decomposition
+stage (`Source/DSP/StereoChannelManager.h`, sole writer of the channel's six `patchedInputBuffer`
+slots) runs between the AutomOtion fade and the shared-ring publish, in both the WFS and
+binaural-only paths. Phase 0 backend is `spatcore::dsp::PassThroughStereoDecomposer` (slice 0 = L,
+slice 1 = R, zero latency); Phase 1 swaps in the STFT panning decomposition behind the same
+interface. **Hard contract:** Σ slices ≡ L+R within −120 dBFS; inactive slots cleared every block.
+
+**Engine:** derived rows are computed inside the owning channel's iteration and SHARE its
+`minDelay`, `commonAttenAdjustment` and mode/common-atten ramps — per-slice recompute of those
+terms comb-filters. Slice geometry (azimuth ±1 × `inputStereoWidth` × usable array X half-span)
+is pushed at 50 Hz via `setSliceGeometry()`. A render-latency reference
+(`setChannelIntrinsicLatency`, max-across-channels, term always ≥ 0) pre-aligns for the Phase-1
+STFT latency and is provably zero in Phase 0. FR / Live Source Tamer / Gradient Maps / Sampler are
+N/A for stereo channels (sub-tabs removed, engine rows forced off).
+
+**Validation:** `offline-render --stereo-null` (width-0 stereo must hash bit-identical to two mono
+channels at the same position) + the baselined `stereo` scenario; reconstruction-invariant tests in
+`spatcore/tests/SpatcoreTests.cpp`. `inputChannelType` has deliberately NO OSC address and is never
+carried by snapshots (configuration, not show state); `inputStereoWidth` is fully live
+(`/wfs/input/stereoWidth`).
+
 ### Level Metering System
 The Level Metering System provides real-time audio level visualization for input and output channels, with thread performance monitoring.
 

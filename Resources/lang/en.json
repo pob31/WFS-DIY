@@ -85,6 +85,7 @@
       "showName": "Name:",
       "showLocation": "Location:",
       "inputChannels": "Input Channels:",
+      "renderSourceTotal": "({count} render sources)",
       "outputChannels": "Output Channels:",
       "reverbChannels": "Reverb Channels:",
       "algorithm": "Algorithm:",

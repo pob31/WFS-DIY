@@ -1975,6 +1975,10 @@ MainComponent::MainComponent()
         handleChannelTypeChange();
     };
 
+    // The two ctor-time recomputes ran before the tabs existed — publish the
+    // current render-source total now that SystemConfigTab is wired
+    systemConfigTab->setRenderSourceTotal (numInputChannels, numRenderSources);
+
     inputsTab->onSamplerActiveChanged = [this] (int channelIndex, bool active)
     {
         if (samplerManager != nullptr)
@@ -2656,6 +2660,10 @@ void MainComponent::recomputeRenderSourceCount()
     // The engine renders from the same map (derived rows, slice geometry)
     if (calculationEngine)
         calculationEngine->setRenderSourceMap (renderSourceMap);
+
+    // Budget display: SystemConfigTab shows the derived source total
+    if (systemConfigTab)
+        systemConfigTab->setRenderSourceTotal (numInputChannels, numRenderSources);
 
     // Meter aggregation: one meter per visible channel, fed by all of the
     // channel's render sources

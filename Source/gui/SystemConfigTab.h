@@ -507,6 +507,11 @@ public:
         inputChannelsLabel.setText(LOC("systemConfig.labels.inputChannels"), juce::dontSendNotification);
         addAndMakeVisible(inputChannelsEditor);
         // (inputChannelsEditor uses default border)
+        // Render-source total: visible only when stereo-pair channels claim
+        // derived slice slots, so the renderer budget consumption is visible
+        // (handoff doc §6). Fed by MainComponent::recomputeRenderSourceCount().
+        addAndMakeVisible(renderSourceTotalLabel);
+        renderSourceTotalLabel.setAlpha(0.7f);
 
         addAndMakeVisible(outputChannelsLabel);
         outputChannelsLabel.setText(LOC("systemConfig.labels.outputChannels"), juce::dontSendNotification);
@@ -1521,6 +1526,10 @@ public:
             inputChannelsEditor.setBounds(x + labelWidth + ei, y, editorWidth - ei * 2, rowHeight);
             inputShiftButton.setBounds(shiftBtnX, y, shiftBtnSize, rowHeight);
             inputShiftDismissButton.setBounds(shiftBtnX + shiftBtnSize + spacing, y, shiftBtnSize, rowHeight);
+            {
+                int totalX = shiftBtnX + shiftBtnSize * 2 + spacing * 2;
+                renderSourceTotalLabel.setBounds(totalX, y, scaled(150), rowHeight);
+            }
             y += rowHeight + spacing;
 
             outputChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
@@ -2065,6 +2074,20 @@ public:
     void setChannelCountCallback(ChannelCountCallback callback)
     {
         onChannelCountChanged = callback;
+    }
+
+    /** Show the renderer's source total next to the input-channel count when
+        stereo-pair channels claim derived slice slots (doc §6). Called by
+        MainComponent whenever the render-source map is rebuilt. */
+    void setRenderSourceTotal(int visibleChannels, int totalRenderSources)
+    {
+        if (totalRenderSources > visibleChannels)
+            renderSourceTotalLabel.setText(
+                LocalizationManager::getInstance().get("systemConfig.labels.renderSourceTotal",
+                    {{"count", juce::String(totalRenderSources)}}),
+                juce::dontSendNotification);
+        else
+            renderSourceTotalLabel.setText({}, juce::dontSendNotification);
     }
 
     void setAlgorithmChangedCallback(AlgorithmCallback callback)
@@ -4609,6 +4632,7 @@ public:
 
     // I/O Section
     juce::Label inputChannelsLabel;
+    juce::Label renderSourceTotalLabel;
     juce::TextEditor inputChannelsEditor;
     juce::Label outputChannelsLabel;
     juce::TextEditor outputChannelsEditor;

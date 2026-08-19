@@ -93,11 +93,23 @@ Slice inspection lives in the **level-meter detached window**, extending the exi
 
 ---
 
-## Appendix A — Phase 0 implementation state (2026-08-19, feat/stereo-input-channel)
+## Appendix A — Phase 0 implementation state (feat/stereo-input-channel)
 
-Written mid-implementation as working notes for the remaining commits. The approved plan
-is at `~/.claude/plans/documentation-stereo-channel-handoff-md-staged-bird.md`; project
-memory has the commit-by-commit summary. This appendix holds the line-level knowledge.
+**STATUS 2026-08-19: Phase 0 is CODE-COMPLETE — all 11 commits landed, every gate green.**
+Remaining before merge (Windows box + hardware): regenerate control-replay goldens and the
+Windows offline-render baselines for the new `stereo` scenario keys, run pipeline-bench at
+104 sources, spot-check StreamDeck sub-tab routing on hardware, and an in-app listening
+pass (stereo channel patched L/R → two plane waves; binaural studio preview).
+
+**What Phase 1 inherits unchanged:** the `StereoDecomposer` interface (swap the pass-through
+for the STFT backend, nothing else moves), the reconstruction-invariant tests (written
+against the base class), the slot map, the RtSnapshot pair (config carries width/crossover/
+stagger already), the azimuth→metres mapping (app-side, `refreshStereoSliceGeometry()` —
+add the confidence-collapse curve there), the render-latency reference hook (backend
+reports its real latency and alignment engages automatically — add the mode-1 UI toggle
+only then), and the `--stereo-null` harness gate.
+
+The sections below were the working notes for commits 7–11; kept for line-level context.
 
 ### Landed (commits 1–6 of 11, every gate green)
 
