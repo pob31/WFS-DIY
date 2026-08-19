@@ -2617,15 +2617,56 @@ void MainComponent::resizeReverbAttenuation(int numReverbs, double sampleRate)
 
 void MainComponent::recomputeRenderSourceCount()
 {
-    // Phase 0 scaffold: no stereo channel type exists yet, so the map is the
-    // identity and numRenderSources == numInputChannels. When inputChannelType
-    // lands, this becomes RenderSourceMap::build() over the channel-type vector
-    // (and its failure — over-budget stereo count — must be surfaced, not
-    // silently truncated).
-    spatcore::wfs::RenderSourceMap map;
-    const bool ok = spatcore::wfs::RenderSourceMap::buildIdentity (numInputChannels, map);
-    jassert (ok);
-    numRenderSources = ok ? map.count : numInputChannels;
+    using Map = spatcore::wfs::RenderSourceMap;
+
+    // Build the slot map from the channel-type vector. Only a channel-type
+    // change (stopped-only) or a channel-count change can alter the result,
+    // so the audio callback may read renderSourceMap unsynchronized.
+    std::array<uint8_t, Map::kMaxInputChannels> channelTypes {};
+    const int numTypes = juce::jlimit (0, (int) Map::kMaxInputChannels, numInputChannels);
+    for (int i = 0; i < numTypes; ++i)
+    {
+        auto channelSection = parameters.getValueTreeState().getInputChannelSection (i);
+        channelTypes[static_cast<size_t> (i)] = static_cast<uint8_t> (juce::jlimit (0, 1,
+            (int) channelSection.getProperty (WFSParameterIDs::inputChannelType,
+                                              WFSParameterDefaults::inputChannelTypeDefault)));
+    }
+
+    if (! Map::build (channelTypes.data(), numTypes, renderSourceMap))
+    {
+        // Over budget (a loaded config with more than kMaxStereoChannels
+        // stereo channels): surface it and fall back to all-mono — never
+        // silently truncate which channels get their slices.
+        WFSLogger::getInstance().logWarning (
+            "Stereo channel budget exceeded (max "
+            + juce::String ((int) Map::kMaxStereoChannels)
+            + " stereo pairs) — treating every channel as mono for rendering");
+        const bool ok = Map::buildIdentity (numTypes, renderSourceMap);
+        jassert (ok);
+        juce::ignoreUnused (ok);
+    }
+
+    numRenderSources = renderSourceMap.count > 0 ? renderSourceMap.count : numInputChannels;
+
+    // The engine renders from the same map (derived rows, slice geometry)
+    if (calculationEngine)
+        calculationEngine->setRenderSourceMap (renderSourceMap);
+
+    // Meter aggregation: one meter per visible channel, fed by all of the
+    // channel's render sources
+    if (levelMeteringManager)
+    {
+        std::vector<std::vector<int>> aggregation (static_cast<size_t> (numTypes));
+        for (int ch = 0; ch < numTypes; ++ch)
+        {
+            auto& sources = aggregation[static_cast<size_t> (ch)];
+            sources.push_back (ch);
+            const int firstDerived = renderSourceMap.firstDerivedSlot[static_cast<size_t> (ch)];
+            for (int sliceRow = 0; firstDerived >= 0 && sliceRow < Map::kDerivedPerStereo; ++sliceRow)
+                sources.push_back (firstDerived + sliceRow);
+        }
+        levelMeteringManager->setSourceMap (std::move (aggregation));
+    }
 }
 
 void MainComponent::resizeRoutingMatrices()
@@ -2871,6 +2912,8 @@ void MainComponent::loadAudioPatches()
     // Reset patch maps to "unmapped" (-1)
     inputPatchMap.assign(LevelMeteringManager::MaxHardwareInputs, -1);  // Max hardware inputs
     outputPatchMap.assign(WFSParameterDefaults::maxOutputChannels, -1); // Max WFS outputs
+    inputPatchPrimaryHw.assign(WFSParameterDefaults::maxInputChannels, -1);
+    inputPatchSecondaryHw.assign(WFSParameterDefaults::maxInputChannels, -1);
 
     // Load input patches: hardware channel → WFS channel
     if (inputPatchTree.isValid())
@@ -2887,6 +2930,16 @@ void MainComponent::loadAudioPatches()
                 {
                     if (hwChannel < (int) inputPatchMap.size())
                         inputPatchMap[hwChannel] = wfsChannel;
+
+                    // Row-keyed columns, ascending: the LOWER column of a
+                    // stereo-pair row is the left channel by convention
+                    if (wfsChannel < (int) inputPatchPrimaryHw.size())
+                    {
+                        if (inputPatchPrimaryHw[wfsChannel] < 0)
+                            inputPatchPrimaryHw[wfsChannel] = hwChannel;
+                        else if (inputPatchSecondaryHw[wfsChannel] < 0)
+                            inputPatchSecondaryHw[wfsChannel] = hwChannel;
+                    }
                 }
             }
         }
@@ -2932,13 +2985,26 @@ void MainComponent::applyInputPatch(const juce::AudioSourceChannelInfo& bufferTo
         patchedInputBuffer.setSize(numRenderSources, bufferToFill.numSamples, false, false, true);
     }
 
+    // Shape-change safety net for the stereo raw buffer (preallocated in
+    // prepareToPlay, like patchedInputBuffer above)
+    const int stereoRawChannels = 2 * StereoChannelManager::kMaxStereoChannels;
+    if (stereoRawBuffer.getNumChannels() != stereoRawChannels ||
+        stereoRawBuffer.getNumSamples() < bufferToFill.numSamples)
+    {
+        stereoRawBuffer.setSize(stereoRawChannels, bufferToFill.numSamples, false, false, true);
+    }
+
     patchedInputBuffer.clear();
 
-    // Copy audio according to input patch map
+    // Copy audio according to input patch map. Stereo-pair rows are skipped:
+    // their raw L/R goes into stereoRawBuffer below, and the decomposition
+    // stage is the sole writer of their patchedInputBuffer slots (so no
+    // read/write aliasing is possible inside the decomposer).
     for (int hwChannel = 0; hwChannel < totalBufferChannels && hwChannel < (int)inputPatchMap.size(); ++hwChannel)
     {
         int wfsChannel = inputPatchMap[hwChannel];
-        if (wfsChannel >= 0 && wfsChannel < numInputChannels)
+        if (wfsChannel >= 0 && wfsChannel < numInputChannels
+            && renderSourceMap.firstDerivedSlot[static_cast<size_t> (wfsChannel)] < 0)
         {
             patchedInputBuffer.copyFrom(wfsChannel, bufferToFill.startSample,
                                         *bufferToFill.buffer, hwChannel,
@@ -2946,7 +3012,152 @@ void MainComponent::applyInputPatch(const juce::AudioSourceChannelInfo& bufferTo
         }
     }
 
+    // Stereo-pair rows: raw L/R per stereo ordinal (2k = L, 2k+1 = R),
+    // ordinals counted in ascending channel order to match RenderSourceMap
+    {
+        int ordinal = 0;
+        for (int ch = 0; ch < numInputChannels
+                         && ch < (int) renderSourceMap.firstDerivedSlot.size(); ++ch)
+        {
+            if (renderSourceMap.firstDerivedSlot[static_cast<size_t> (ch)] < 0)
+                continue;
+
+            const int rawL = 2 * ordinal;
+            const int rawR = rawL + 1;
+            ++ordinal;
+            if (rawR >= stereoRawBuffer.getNumChannels())
+                break;
+
+            const int hwPair[2] = { ch < (int) inputPatchPrimaryHw.size() ? inputPatchPrimaryHw[ch] : -1,
+                                    ch < (int) inputPatchSecondaryHw.size() ? inputPatchSecondaryHw[ch] : -1 };
+            const int rawPair[2] = { rawL, rawR };
+            for (int side = 0; side < 2; ++side)
+            {
+                const int hw = hwPair[side];
+                if (hw >= 0 && hw < totalBufferChannels)
+                    stereoRawBuffer.copyFrom(rawPair[side], bufferToFill.startSample,
+                                             *bufferToFill.buffer, hw,
+                                             bufferToFill.startSample, bufferToFill.numSamples);
+                else
+                    stereoRawBuffer.clear(rawPair[side], bufferToFill.startSample,
+                                          bufferToFill.numSamples);
+            }
+        }
+    }
+
     // No copy-back: downstream consumers read directly from patchedInputBuffer
+}
+
+void MainComponent::runStereoDecompositionStage (int startSample, int numSamples) noexcept
+{
+    // RT-safe: reads only stereoRawBuffer, the retained render-source map
+    // (stable while audio runs — type changes are stopped-only) and one
+    // RtSnapshot per channel inside processChannel(). No allocation, no locks
+    // beyond the snapshot POD copies, no logging.
+    if (stereoChannelManager == nullptr || numSamples <= 0)
+        return;
+
+    int ordinal = 0;
+    const int maxCh = juce::jmin (numInputChannels,
+                                  (int) renderSourceMap.firstDerivedSlot.size(),
+                                  patchedInputBuffer.getNumChannels());
+    for (int ch = 0; ch < maxCh; ++ch)
+    {
+        const int firstDerived = renderSourceMap.firstDerivedSlot[static_cast<size_t> (ch)];
+        if (firstDerived < 0)
+            continue;
+
+        const int k = ordinal++;
+        const int rawL = 2 * k;
+        const int rawR = rawL + 1;
+        const int lastSlot = firstDerived + StereoChannelManager::kMaxSlices - 2;
+
+        if (rawR >= stereoRawBuffer.getNumChannels()
+            || lastSlot >= patchedInputBuffer.getNumChannels())
+            continue;
+
+        float* slicePtrs[StereoChannelManager::kMaxSlices];
+        slicePtrs[0] = patchedInputBuffer.getWritePointer (ch, startSample);
+        for (int slice = 1; slice < StereoChannelManager::kMaxSlices; ++slice)
+            slicePtrs[slice] = patchedInputBuffer.getWritePointer (firstDerived + (slice - 1), startSample);
+
+        stereoChannelManager->processChannel (k,
+                                              stereoRawBuffer.getReadPointer (rawL, startSample),
+                                              stereoRawBuffer.getReadPointer (rawR, startSample),
+                                              slicePtrs, numSamples);
+    }
+}
+
+void MainComponent::refreshStereoSliceGeometry()
+{
+    if (calculationEngine == nullptr || stereoChannelManager == nullptr)
+        return;
+
+    // Nothing to place when no stereo channels exist (the common case)
+    if (renderSourceMap.count == renderSourceMap.numInputChannels)
+        return;
+
+    // Usable array half-span: half the X extent of the configured speakers.
+    // Azimuth ±1 maps to ±(width/100)·halfSpan — doc §4: the decomposition
+    // extremes map to the usable array span, never beyond it. The
+    // confidence-collapse curve is Phase 1; Phase 0 slices carry full
+    // confidence.
+    float minX = std::numeric_limits<float>::max();
+    float maxX = std::numeric_limits<float>::lowest();
+    for (int outIdx = 0; outIdx < numOutputChannels; ++outIdx)
+    {
+        const auto pos = calculationEngine->getSpeakerPosition (outIdx);
+        minX = juce::jmin (minX, pos.x);
+        maxX = juce::jmax (maxX, pos.x);
+    }
+    const float halfSpanX = (numOutputChannels > 0 && maxX > minX) ? (maxX - minX) * 0.5f : 0.0f;
+
+    int ordinal = 0;
+    for (int ch = 0; ch < numInputChannels
+                     && ch < (int) renderSourceMap.firstDerivedSlot.size(); ++ch)
+    {
+        if (renderSourceMap.firstDerivedSlot[static_cast<size_t> (ch)] < 0)
+            continue;
+
+        const int k = ordinal++;
+
+        auto channelSection = parameters.getValueTreeState().getInputChannelSection (ch);
+        const float width = juce::jlimit (0.0f, 100.0f,
+            (float) (double) channelSection.getProperty (WFSParameterIDs::inputStereoWidth,
+                                                         WFSParameterDefaults::inputStereoWidthDefault)) / 100.0f;
+
+        auto posSection = parameters.getValueTreeState().getInputPositionSection (ch);
+        const bool flipX = ((int) posSection.getProperty (WFSParameterIDs::inputFlipX, 0)) != 0;
+
+        // Config down (audio side). The pass-through backend ignores width,
+        // but Phase 1 reads it live; stagger keeps multi-channel STFT work
+        // off the same callback (doc §6).
+        spatcore::dsp::StereoDecomposerConfig cfg;
+        cfg.widthFactor = width;
+        cfg.staggerIndex = k;
+        cfg.staggerCount = StereoChannelManager::kMaxStereoChannels;
+        stereoChannelManager->publishConfig (k, cfg);
+
+        // Slice state up (audio side) → metre offsets for the engine
+        const auto states = stereoChannelManager->getSliceStates (k);
+
+        float offsets[StereoChannelManager::kMaxSlices * 3] = {};
+        float gains[StereoChannelManager::kMaxSlices] = {};
+        bool active[StereoChannelManager::kMaxSlices] = {};
+        for (int slice = 0; slice < StereoChannelManager::kMaxSlices; ++slice)
+        {
+            const auto& st = states.slices[slice];
+            float azimuth = juce::jlimit (-1.0f, 1.0f, st.azimuth);
+            if (flipX)
+                azimuth = -azimuth;   // the stereo image mirrors with the channel
+
+            offsets[slice * 3 + 0] = azimuth * width * halfSpanX;
+            gains[slice] = st.gainLinear;
+            active[slice] = st.active;
+        }
+
+        calculationEngine->setSliceGeometry (ch, offsets, gains, active);
+    }
 }
 
 void MainComponent::applyOutputPatch(const juce::AudioSourceChannelInfo& bufferToFill,
@@ -4814,8 +5025,20 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
     // conditional setSize in applyInputPatch() remains only as a shape-change
     // safety net (avoidReallocating=true) and should never fire in steady state.
     if (samplesPerBlockExpected > 0)
+    {
         patchedInputBuffer.setSize (juce::jmax (1, numRenderSources),
                                     samplesPerBlockExpected, false, false, true);
+        stereoRawBuffer.setSize (2 * StereoChannelManager::kMaxStereoChannels,
+                                 samplesPerBlockExpected, false, false, true);
+        stereoRawBuffer.clear();
+    }
+
+    // Stereo decomposition backends: prepared for every ordinal so a channel
+    // configured stereo while stopped needs no re-prepare on start
+    if (stereoChannelManager == nullptr)
+        stereoChannelManager = std::make_unique<StereoChannelManager>();
+    if (sampleRate > 0.0 && samplesPerBlockExpected > 0)
+        stereoChannelManager->prepare (sampleRate, samplesPerBlockExpected);
 
     // This function will be called when the audio device is started, or when
     // its settings (i.e. sample rate, block size, etc) are changed.
@@ -5059,17 +5282,42 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
             }
         }
 
-        // Apply AutomOtion return fade gain (50ms fade out/in during position snap-back)
+        // Apply AutomOtion return fade gain (50ms fade out/in during position snap-back).
+        // For a stereo-pair row the gain goes onto BOTH raw channels before
+        // decomposition — a per-channel linear gain commutes with the
+        // decomposition by the reconstruction identity, and the channel's
+        // patchedInputBuffer slot has not been written yet at this point.
         if (automOtionProcessor != nullptr)
         {
+            int stereoOrdinal = 0;
             for (int ch = 0; ch < numInputChannels && ch < patchedInputBuffer.getNumChannels(); ++ch)
             {
+                const bool stereoRow = ch < (int) renderSourceMap.firstDerivedSlot.size()
+                                    && renderSourceMap.firstDerivedSlot[static_cast<size_t> (ch)] >= 0;
                 float gain = automOtionProcessor->getReturnGain (ch);
-                if (gain < 1.0f)
+                if (stereoRow)
+                {
+                    const int rawL = 2 * stereoOrdinal;
+                    ++stereoOrdinal;
+                    if (gain < 1.0f && rawL + 1 < stereoRawBuffer.getNumChannels())
+                    {
+                        stereoRawBuffer.applyGain (rawL, bufferToFill.startSample,
+                                                   bufferToFill.numSamples, gain);
+                        stereoRawBuffer.applyGain (rawL + 1, bufferToFill.startSample,
+                                                   bufferToFill.numSamples, gain);
+                    }
+                }
+                else if (gain < 1.0f)
+                {
                     patchedInputBuffer.applyGain (ch, bufferToFill.startSample,
                                                    bufferToFill.numSamples, gain);
+                }
             }
         }
+
+        // Stereo decomposition: raw L/R → the channels' six render-source
+        // slots, before anything downstream reads patchedInputBuffer
+        runStereoDecompositionStage (bufferToFill.startSample, bufferToFill.numSamples);
 
         // Write patched input to shared buffers + notify consumers (only when needed)
         {
@@ -5342,6 +5590,10 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
                         }
                     }
                 }
+
+                // Stereo decomposition (the binaural-only path renders the
+                // same render sources the WFS path would)
+                runStereoDecompositionStage (bufferToFill.startSample, bufferToFill.numSamples);
 
                 // Push input data to binaural processor from patchedInputBuffer
                 int safeInputCount = juce::jmin(numRenderSources, patchedInputBuffer.getNumChannels());
@@ -6058,6 +6310,11 @@ void MainComponent::timerCallback()
             }
         }
 
+        // Stereo slice geometry: publish config down / slice states up and
+        // hand the engine fresh per-slice offsets (marks channels dirty only
+        // on an actual change, so this adds no recalc work for mono shows)
+        refreshStereoSliceGeometry();
+
         // Only recalculate WFS matrix if input positions have changed (dirty flag set).
         // LS gains are supplied fresh each call (never cached by the engine).
         if (calculationEngine->recalculateMatrixIfDirty(lsTamerEngine ? lsTamerEngine->getLSGains() : nullptr))
@@ -6097,19 +6354,34 @@ void MainComponent::timerCallback()
                 }
             }
 
-            // Update FR filter parameters for each input
+            // Update FR filter parameters for each render source. Derived
+            // slice slots have no Hackoustics section and floor reflections
+            // are N/A for stereo channels — force their filters off (their FR
+            // matrix rows are zero anyway).
             for (int i = 0; i < numRenderSources; ++i)
             {
                 using namespace WFSParameterIDs;
-                auto frSection = parameters.getValueTreeState().getInputHackousticsSection(i);
 
-                bool lowCutActive = static_cast<int>(frSection.getProperty(inputFRlowCutActive, 0)) != 0;
-                float lowCutFreq = frSection.getProperty(inputFRlowCutFreq, 100.0f);
-                bool highShelfActive = static_cast<int>(frSection.getProperty(inputFRhighShelfActive, 0)) != 0;
-                float highShelfFreq = frSection.getProperty(inputFRhighShelfFreq, 3000.0f);
-                float highShelfGain = frSection.getProperty(inputFRhighShelfGain, -2.0f);
-                float highShelfSlope = frSection.getProperty(inputFRhighShelfSlope, 0.4f);
-                float diffusion = frSection.getProperty(inputFRdiffusion, 20.0f);
+                bool lowCutActive = false;
+                float lowCutFreq = 100.0f;
+                bool highShelfActive = false;
+                float highShelfFreq = 3000.0f;
+                float highShelfGain = -2.0f;
+                float highShelfSlope = 0.4f;
+                float diffusion = 0.0f;
+
+                if (i < numInputChannels)
+                {
+                    auto frSection = parameters.getValueTreeState().getInputHackousticsSection(i);
+
+                    lowCutActive = static_cast<int>(frSection.getProperty(inputFRlowCutActive, 0)) != 0;
+                    lowCutFreq = frSection.getProperty(inputFRlowCutFreq, 100.0f);
+                    highShelfActive = static_cast<int>(frSection.getProperty(inputFRhighShelfActive, 0)) != 0;
+                    highShelfFreq = frSection.getProperty(inputFRhighShelfFreq, 3000.0f);
+                    highShelfGain = frSection.getProperty(inputFRhighShelfGain, -2.0f);
+                    highShelfSlope = frSection.getProperty(inputFRhighShelfSlope, 0.4f);
+                    diffusion = frSection.getProperty(inputFRdiffusion, 20.0f);
+                }
 
                 if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
                 {

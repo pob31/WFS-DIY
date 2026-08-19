@@ -445,11 +445,17 @@ private:
         // Check if any inputs are soloed
         bool anySoloed = rt.numSoloed > 0;
 
-        // Process each input
+        // Process each render source. Solo is per CHANNEL: a stereo slice
+        // follows its owning channel's solo state. Slice gain is 1 for mono
+        // sources, 0 for inactive slice slots (whose buffers are silent
+        // anyway) — the multiply below is skipped at exactly 1, keeping the
+        // mono-only path byte-identical to pre-stereo builds.
         for (int inputIdx = 0; inputIdx < numInputChannels; ++inputIdx)
         {
-            // Skip if soloed mode and this input isn't soloed
-            if (anySoloed && !rt.isSoloed (inputIdx))
+            const float sourceGain = binauralCalc.getRenderSourceGain (inputIdx);
+
+            // Skip if soloed mode and this source's channel isn't soloed
+            if (anySoloed && !rt.isSoloed (binauralCalc.getOwningInputChannel (inputIdx)))
             {
                 // Still need to consume input data to keep buffers in sync
                 if (useSharedSnap && inputIdx < (int)sharedInputsSnap.size())
@@ -470,6 +476,12 @@ private:
 
             // Get binaural parameters for this input (tree-free, snapshot-driven)
             auto binauralPair = binauralCalc.calculate (inputIdx, rt);
+
+            if (sourceGain != 1.0f)
+            {
+                binauralPair.left.level  *= sourceGain;
+                binauralPair.right.level *= sourceGain;
+            }
 
             const float* inputData = inputBlock.getReadPointer (0);
 
@@ -531,12 +543,16 @@ private:
             else
                 samplesRead = inputBuffers[(size_t) i]->read (dest, numSamples);
 
-            const bool active = samplesRead > 0 && ! (anySoloed && ! rt.isSoloed (i));
+            // Solo is per CHANNEL (a stereo slice follows its owning channel);
+            // slice gain mutes inactive slots and carries Phase-1 confidence
+            // trims. Mono sources: owning == i and gain == 1, unchanged.
+            const bool active = samplesRead > 0
+                             && ! (anySoloed && ! rt.isSoloed (binauralCalc.getOwningInputChannel (i)));
             if (samplesRead > 0 && samplesRead < numSamples)
                 juce::FloatVectorOperations::clear (dest + samplesRead, numSamples - samplesRead);
 
             hrtfInputPtrs[(size_t) i] = active ? dest : nullptr;
-            hrtfSourceGains[(size_t) i] = 1.0f;
+            hrtfSourceGains[(size_t) i] = binauralCalc.getRenderSourceGain (i);
 
             const auto pos = binauralCalc.getInputPosition (i);
             hrtfPositions[(size_t) i * 3 + 0] = pos.x;

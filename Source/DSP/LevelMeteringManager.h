@@ -210,12 +210,11 @@ public:
 
         if (currentAlgorithm == ProcessingAlgorithm::InputBuffer && inputAlgorithm != nullptr)
         {
-            // Get input levels from InputBufferAlgorithm
-            for (int i = 0; i < numInputChannels && i < (int)inputLevels.size(); ++i)
-            {
-                inputLevels[i].peakDb = inputAlgorithm->getInputPeakLevelDb(i);
-                inputLevels[i].rmsDb = inputAlgorithm->getInputRmsLevelDb(i);
-            }
+            // Get input levels from InputBufferAlgorithm (aggregated across a
+            // stereo channel's render sources)
+            fillAggregatedInputLevels(
+                [this](int s) { return inputAlgorithm->getInputPeakLevelDb(s); },
+                [this](int s) { return inputAlgorithm->getInputRmsLevelDb(s); });
 
             // Get output levels from InputBufferAlgorithm
             for (int i = 0; i < numOutputChannels && i < (int)outputLevels.size(); ++i)
@@ -233,12 +232,11 @@ public:
         }
         else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer && outputAlgorithm != nullptr)
         {
-            // Get input levels from OutputBufferAlgorithm
-            for (int i = 0; i < numInputChannels && i < (int)inputLevels.size(); ++i)
-            {
-                inputLevels[i].peakDb = outputAlgorithm->getInputPeakLevelDb(i);
-                inputLevels[i].rmsDb = outputAlgorithm->getInputRmsLevelDb(i);
-            }
+            // Get input levels from OutputBufferAlgorithm (aggregated across a
+            // stereo channel's render sources)
+            fillAggregatedInputLevels(
+                [this](int s) { return outputAlgorithm->getInputPeakLevelDb(s); },
+                [this](int s) { return outputAlgorithm->getInputRmsLevelDb(s); });
 
             // Get output levels from OutputBufferAlgorithm
             for (int i = 0; i < numOutputChannels && i < (int)outputLevels.size(); ++i)
@@ -356,6 +354,16 @@ public:
 
     // === Channel Count Updates ===
 
+    /** Render sources feeding each visible channel's meter (index = channel,
+        values = render-source indices). Absent or single-entry rows read the
+        channel's own index directly. A stereo-pair channel lists its primary
+        slot plus its 5 derived slice slots so the meter shows the whole
+        channel, not slice 0. Message thread, config-time. */
+    void setSourceMap(std::vector<std::vector<int>> aggregation)
+    {
+        sourceAggregation = std::move(aggregation);
+    }
+
     void setChannelCounts(int inputs, int outputs)
     {
         numInputChannels = inputs;
@@ -431,6 +439,34 @@ private:
 #endif
     }
 
+    // Fill inputLevels per visible channel, aggregating across the channel's
+    // render sources when it has more than one (max peak, energy-sum RMS).
+    template <typename PeakFn, typename RmsFn>
+    void fillAggregatedInputLevels(PeakFn&& getPeakDb, RmsFn&& getRmsDb)
+    {
+        for (int ch = 0; ch < numInputChannels && ch < (int)inputLevels.size(); ++ch)
+        {
+            if (ch < (int)sourceAggregation.size() && sourceAggregation[ch].size() > 1)
+            {
+                float peakDb = -100.0f;
+                double rmsEnergy = 0.0;
+                for (int src : sourceAggregation[ch])
+                {
+                    peakDb = juce::jmax(peakDb, getPeakDb(src));
+                    rmsEnergy += std::pow(10.0, (double)getRmsDb(src) / 10.0);
+                }
+                inputLevels[ch].peakDb = peakDb;
+                inputLevels[ch].rmsDb = rmsEnergy > 0.0
+                    ? (float)(10.0 * std::log10(rmsEnergy)) : -100.0f;
+            }
+            else
+            {
+                inputLevels[ch].peakDb = getPeakDb(ch);
+                inputLevels[ch].rmsDb = getRmsDb(ch);
+            }
+        }
+    }
+
 #if WFS_GPU_NATIVE
     // Both native GPU algorithms expose the same host-side metering interface
     // (getInputPeakLevelDb / getInputRmsLevelDb / getOutputPeakLevelDb /
@@ -439,11 +475,9 @@ private:
     template <typename GpuAlgorithm>
     void updateLevelsFromGpu(const GpuAlgorithm& algorithm)
     {
-        for (int i = 0; i < numInputChannels && i < (int)inputLevels.size(); ++i)
-        {
-            inputLevels[i].peakDb = algorithm.getInputPeakLevelDb(static_cast<size_t>(i));
-            inputLevels[i].rmsDb  = algorithm.getInputRmsLevelDb(static_cast<size_t>(i));
-        }
+        fillAggregatedInputLevels(
+            [&algorithm](int s) { return algorithm.getInputPeakLevelDb(static_cast<size_t>(s)); },
+            [&algorithm](int s) { return algorithm.getInputRmsLevelDb(static_cast<size_t>(s)); });
 
         for (int i = 0; i < numOutputChannels && i < (int)outputLevels.size(); ++i)
         {
@@ -608,6 +642,7 @@ private:
 
     // Cached level data (updated at 20Hz from timer thread)
     std::vector<LevelData> inputLevels;
+    std::vector<std::vector<int>> sourceAggregation;  // per-channel render sources (see setSourceMap)
     std::vector<LevelData> outputLevels;
     std::vector<ThreadPerformance> threadPerformance;
 

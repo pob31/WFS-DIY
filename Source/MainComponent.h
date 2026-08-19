@@ -16,6 +16,7 @@
 #include "DSP/TestSignalGenerator.h"
 #include "../spatcore/io/DeviceHost.h"
 #include "../spatcore/io/DeviceIoCallback.h"
+#include "DSP/StereoChannelManager.h"
 #include "DSP/BinauralCalculationEngine.h"
 #include "DSP/BinauralProcessor.h"
 #include "DSP/HeadTrackerManager.h"
@@ -251,6 +252,18 @@ private:
     // numInputChannels; equal to it while no stereo channels exist.
     int numRenderSources = 4;
 
+    // The retained slot map behind numRenderSources. Rebuilt only by
+    // recomputeRenderSourceCount() (channel-type changes are stopped-only),
+    // so the audio callback may read it without synchronization. Initialized
+    // to a valid EMPTY map: a default-constructed RenderSourceMap zero-fills
+    // firstDerivedSlot, which would read as "derived slots at row 0".
+    spatcore::wfs::RenderSourceMap renderSourceMap = []
+    {
+        spatcore::wfs::RenderSourceMap m;
+        spatcore::wfs::RenderSourceMap::buildIdentity (0, m);
+        return m;
+    }();
+
     int numOutputChannels = 4;
     // Declared before the thread-owning members so it is destroyed AFTER them
     // (members destruct in reverse order) — workers may touch it while stopping.
@@ -404,8 +417,20 @@ private:
     std::vector<int> inputPatchMap;
     // outputPatchMap[wfsChannel] = hardwareChannel (-1 if unmapped)
     std::vector<int> outputPatchMap;
+    // Row-keyed hardware columns for stereo-pair rows: the two patched
+    // columns sorted ascending (lower = L), -1 when unpatched. Rebuilt by
+    // loadAudioPatches() alongside inputPatchMap.
+    std::vector<int> inputPatchPrimaryHw;
+    std::vector<int> inputPatchSecondaryHw;
     // Temporary buffers for patch application
     juce::AudioBuffer<float> patchedInputBuffer;
+    // Raw L/R of stereo-pair channels, 2 channels per stereo ordinal
+    // (2k = L, 2k+1 = R). Written only by applyInputPatch(); the
+    // decomposition stage is the sole writer of the channels' slots in
+    // patchedInputBuffer, so no aliasing is possible inside process().
+    juce::AudioBuffer<float> stereoRawBuffer;
+    // Stereo-pair decomposition backends (pass-through in Phase 0)
+    std::unique_ptr<StereoChannelManager> stereoChannelManager;
     juce::AudioBuffer<float> patchedOutputBuffer;
     juce::AudioBuffer<float> wfsOutputBuffer;  // Algorithm writes here, then single remap to HW outputs
 
@@ -496,6 +521,17 @@ private:
         Must run whenever numInputChannels is assigned — the renderer dimension
         may never drift from the channel dimension it derives from. */
     void recomputeRenderSourceCount();
+
+    /** Audio thread. Runs every stereo-pair channel's decomposition backend:
+        stereoRawBuffer L/R → the channel's 6 slots of patchedInputBuffer.
+        Called from BOTH audio paths (WFS processing and binaural-only),
+        after the AutomOtion fade and before the shared-ring publish. */
+    void runStereoDecompositionStage (int startSample, int numSamples) noexcept;
+
+    /** 50 Hz. Maps each stereo channel's published slice states (azimuth,
+        normalized ±1) through inputStereoWidth and the usable array span to
+        metre offsets, and pushes them into the calculation engine. */
+    void refreshStereoSliceGeometry();
     void resizeOutputAttenuation(int numOut, double sampleRate);
     void resizeReverbAttenuation(int numReverbs, double sampleRate);
     void stopProcessingForConfigurationChange();

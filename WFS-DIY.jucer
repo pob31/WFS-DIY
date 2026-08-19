@@ -436,6 +436,8 @@
               file="spatcore/wfs/RenderSourceMap.h"/>
         <FILE id="stDeco" name="StereoDecomposer.h" compile="0" resource="0"
               file="spatcore/dsp/StereoDecomposer.h"/>
+        <FILE id="stChMgr" name="StereoChannelManager.h" compile="0" resource="0"
+              file="Source/DSP/StereoChannelManager.h"/>
         <FILE id="outAlg" name="OutputBufferAlgorithm.h" compile="0" resource="0"
               file="spatcore/wfs/OutputBufferAlgorithm.h"/>
         <FILE id="ngpuPipe" name="GpuAsyncPipeline.h" compile="0" resource="0"

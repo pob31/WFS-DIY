@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "../../spatcore/wfs/RenderSourceMap.h"
 #include "../Parameters/WFSValueTreeState.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
@@ -57,6 +58,38 @@ public:
     /** Get composite input position (speed-limited + flip + offset + LFO).
         This is the final position used for all calculations including Live Source Tamer. */
     Position getCompositeInputPosition (int inputIndex) const;
+
+    //==========================================================================
+    // Render sources (stereo-pair slice slots)
+    //==========================================================================
+
+    /** Install the render-source slot map. Config-time only (a channel-type
+        change, which is stopped-only) — never 50 Hz: it redefines which matrix
+        rows exist. Marks everything dirty. */
+    void setRenderSourceMap (const spatcore::wfs::RenderSourceMap& map);
+
+    /** 50 Hz slice geometry for one stereo-pair channel: position offsets from
+        the anchor, per-slice gains and active flags for all 6 slices (slice 0
+        is the channel's primary slot). Arrays are slice-major: offsetsXYZ has
+        6*3 floats, gainsLinear and active have 6 entries. No-op for a mono
+        channel. Marks the channel dirty only when a value actually changed. */
+    void setSliceGeometry (int inputChannel,
+                           const float* offsetsXYZ,
+                           const float* gainsLinear,
+                           const bool* active);
+
+    /** Composite position of a render source: the owning channel's composite
+        position plus the slice offset (zero for mono sources, so this is
+        bit-identical to getCompositeInputPosition there). Thread-safe. */
+    Position getRenderSourcePosition (int sourceIndex) const;
+
+    /** Owning input channel of a render source (identity for mono sources and
+        stereo primaries), or -1 out of range. Thread-safe. */
+    int getOwningInputChannel (int sourceIndex) const;
+
+    /** Slice gain for a render source: 1 for mono sources, the slice
+        gainLinear for stereo slices, 0 for an inactive slot. Thread-safe. */
+    float getRenderSourceGain (int sourceIndex) const;
 
     /** Force recalculation of all listener positions */
     void recalculateAllListenerPositions();
@@ -310,6 +343,12 @@ private:
     std::vector<Position> speedLimitedPositions;   // [inputIndex] - Speed-limited interpolated positions
     std::vector<Position> compositeInputPositions; // [inputIndex] - Final positions (speed-limited + flip + offset + LFO)
     std::vector<Position> reverbFeedPositions;     // [reverbIndex]
+
+    // Render-source slot map + slice geometry (protected by positionLock).
+    // desc[] offsets/gains are the 50 Hz half; the slot layout itself only
+    // changes with the channel-type vector (stopped-only).
+    spatcore::wfs::RenderSourceMap sourceMap;
+
     std::vector<Position> reverbReturnPositions;   // [reverbIndex]
     std::vector<Position> lfoOffsets;              // [inputIndex] - LFO position offsets
     std::vector<Position> samplerCellOffsets;       // [inputIndex] - Transient sampler cell offsets

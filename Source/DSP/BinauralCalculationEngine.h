@@ -112,8 +112,11 @@ public:
     {
         BinauralPair result;
 
-        // Get input position from WFS engine (positionLock-guarded cache, tree-free)
-        auto inputPos = wfsCalcEngine.getCompositeInputPosition (inputIndex);
+        // Get the render source's position from the WFS engine (positionLock-
+        // guarded cache, tree-free). For mono sources this is bit-identical to
+        // the composite input position; for a stereo slice it is the owning
+        // channel's anchor plus the slice offset.
+        auto inputPos = wfsCalcEngine.getRenderSourcePosition (inputIndex);
 
         // Calculate for left speaker
         result.left = calculateForSpeaker (inputPos, rt.leftSpeakerPos, rt.leftSpeakerOrientation);
@@ -135,7 +138,22 @@ public:
      */
     Position getInputPosition (int inputIndex) const
     {
-        return wfsCalcEngine.getCompositeInputPosition (inputIndex);
+        return wfsCalcEngine.getRenderSourcePosition (inputIndex);
+    }
+
+    /** Owning input channel of a render source (identity for mono sources).
+        Solo state is per CHANNEL, so a soloed stereo channel solos all six of
+        its slices. RT-safe passthrough, same cost class as getInputPosition. */
+    int getOwningInputChannel (int sourceIndex) const
+    {
+        return wfsCalcEngine.getOwningInputChannel (sourceIndex);
+    }
+
+    /** Slice gain of a render source: 1 for mono sources, 0 for an inactive
+        slice slot. RT-safe passthrough. */
+    float getRenderSourceGain (int sourceIndex) const
+    {
+        return wfsCalcEngine.getRenderSourceGain (sourceIndex);
     }
 
     /**
