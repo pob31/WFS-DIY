@@ -90,3 +90,112 @@ Slice inspection lives in the **level-meter detached window**, extending the exi
 - Anti-correlated widener content (Haas, all-pass) reads as outside ±1; clamp to the extremes or route to ambient.
 - Joint-stereo lossy sources degrade the HF inter-channel detail the estimator relies on.
 - Summing several stereo programs into one stereo channel breaks the one-source-per-bin assumption — hence multiple stereo channels are first-class, and crossfaded decks belong on separate channels.
+
+---
+
+## Appendix A — Phase 0 implementation state (2026-08-19, feat/stereo-input-channel)
+
+Written mid-implementation as working notes for the remaining commits. The approved plan
+is at `~/.claude/plans/documentation-stereo-channel-handoff-md-staged-bird.md`; project
+memory has the commit-by-commit summary. This appendix holds the line-level knowledge.
+
+### Landed (commits 1–6 of 11, every gate green)
+
+Parent `979a263 → 6f5d764`, spatcore branch `feat/stereo-input-channel` at `8c50e28`
+(commit spatcore first, then bump the pointer in the parent; spatcore git identity is
+configured locally).
+
+1. `InputSubTab` logical ids — enum values ARE the historical bar indices and are the
+   wire contract to `StreamDeckManager::setSubTab`. Use `removeSubTab(InputSubTab::…)`,
+   `isCurrentSubTab(…)`; never compare `getCurrentTabIndex()` to a literal again.
+2. Reverb-sends mute now lives on the Mute-Macros row (Input Parameters ▸ Mutes column).
+3. **Render-source split.** `MainComponent::numRenderSources` (renderer dimension) vs
+   `numInputChannels` (channel identity). `recomputeRenderSourceCount()`
+   (MainComponent.cpp:2618) is called at all four `numInputChannels` assignment sites
+   and currently builds the **identity** map — C7 flips exactly this one function to
+   `RenderSourceMap::build()` over the channel-type vector.
+   `WFSCalculationEngine` matrix ROWS are already `maxRenderSources` (104); per-channel
+   arrays stay 64. `LiveSourceTamerEngine` rows already 104 (lockstep, was a latent OOB).
+   Baselines: 30/30 byte-identical after this refactor.
+4. `inputChannelType` / `inputStereoWidth` exist end-to-end (tree, snapshots policy,
+   OSC for width only, MCP tier 3/2, langs, CSV, dirty predicate). Nothing *writes*
+   the type yet — no UI (C8), no OSC (by design), MCP tier-3 gated.
+5. Patch matrix: `rowCapacityProvider` wired from `inputChannelType` in
+   `PatchMatrixShim.cpp` (input patch only). Lower column = L. Row header shows
+   `[L3 R?]` yellow when half-patched.
+6. `spatcore/dsp/StereoDecomposer.h` + `PassThroughStereoDecomposer` + contract tests
+   (`checkStereoReconstruction` is written against the base class — reuse it for the
+   Phase 1 backend unchanged).
+
+### C7 design decisions (settled during analysis — do not re-derive)
+
+**Audio callback seam** (MainComponent.cpp, current line anchors):
+`applyInputPatch` :5037-region → sampler :5040s → AutomOtion fade :5069 → **stage goes
+here** → shared-ring publish :5077-5090 → smoothing → processBlock :5136+.
+- `applyInputPatch` writes stereo rows ONLY into a new `stereoRawBuffer`
+  (2 ch per stereo ordinal, preallocated in `prepareToPlay` next to the
+  `patchedInputBuffer.setSize` added there), never into `patchedInputBuffer` — the
+  decomposition stage is the sole writer of a stereo channel's 6 slots, so no
+  aliasing inside `process()`. Build `inputPatchSecondaryHw[row]` (the higher column)
+  in `loadAudioPatches` (~:2880); `inputPatchMap[hw]=row` itself needs no change.
+- AutomOtion fade: apply the channel gain to BOTH `stereoRawBuffer` channels for a
+  stereo row (linear gain pre-decomposition ≡ post, by the reconstruction identity).
+- The stage also writes `L+R` … no — superseded: rings carry **per-source** audio
+  (slices render individually in binaural, user decision). Ring count follows
+  `numRenderSources` (already flipped at :5077/:5084 loop bounds); the reverb feed
+  matrix input axis is already source-dimensioned end-to-end.
+- Publish per stereo channel one `RtSnapshot<StereoSliceState[6]>` (audio→UI) and
+  acquire one `RtSnapshot<StereoDecomposerConfig>` (UI→audio). Owner: new
+  `Source/DSP/StereoChannelManager.h` (`unique_ptr<StereoDecomposer>` per stereo
+  ordinal, scratch, both snapshots; prepared from `startAudioEngine`/`prepareToPlay`).
+
+**Engine derived rows** (WFSCalculationEngine.cpp): the main loop is ALREADY
+per-channel-scoped — `minDelay` (:1384 block), `commonAttenAdjustment` (:1493 block,
+stored per input at :1562, reused by the reverb feed at :1811), mode-change ramps —
+all computed once per `inIdx`. The C7 change: inside the same `inIdx` iteration, after
+the primary row, compute the channel's derived rows (slice positions = anchor +
+offset from `RenderSourceMap` desc, refreshed at 50 Hz from azimuth × width) using the
+SAME per-channel terms. Never recompute minDelay/commonAtten per slice — per-slice
+values break Σslices≡input at the array (comb filtering). Derived-row matrixIdx =
+`firstDerivedSlot[inIdx] + (slice-1)` … times numOutputs stride. FR rows for derived
+sources: forced off (push "off" in the :6076-region FR loop — already iterates
+numRenderSources). `getCompositeInputPosition` is bounds-guarded (returns {} ≥
+numInputs) — derived sources need a separate `sourcePositions[]` keyed by render
+source, NOT an extension of compositeInputPositions (Map/clusters/ADM read that one).
+Dirty flags are per channel; a channel dirty ⇒ recompute all its rows.
+
+**Binaural:** `BinauralProcessor.h` — reverb-return base index is already
+`numRenderSources + r` (flipped in commit 3, :559-region). Per-source positions and
+gains flow through the same arrays the reverb-return append uses
+(`hrtfPositions`/`hrtfSourceGains`, sized `maxSources` in prepareToPlay — grow to
+`maxRenderSources + kMaxReverbNodes`).
+
+**Meters:** `LevelMeteringManager::setSourceMap()` — per-channel aggregate over the
+channel's sources: max peak, energy-sum RMS. Meter window stays one meter per channel.
+
+**Null test (the C7 gate):** width=0 stereo channel at P fed L,R must hash
+bit-identical to two mono channels at P fed L,R. Plus: baselines unchanged with no
+stereo channel configured.
+
+### C8/C9 anchors
+- UI strings already shipped: `inputs.labels.channelType|stereoWidth`,
+  `inputs.channelTypes.mono|stereo`, `inputs.help.channelTypeSelector|stereoWidthDial`.
+- Stopped-only enforcement for the type combo: mirror the Audio Interface window
+  policy; also drop a stereo row's second patch on stereo→mono revert.
+- C9: `renderLatencyReference = max(sourceIntrinsicLatencyMs)` added in BOTH delay
+  branches — including mode 1 (:1438-region), which today applies no latency terms
+  (needs an explicit comment) — and the reverb-feed duplicate (:1959-region).
+  Provably zero in Phase 0 ⇒ baselines gate it.
+
+### Gotchas (cost time once already)
+- Lang JSONs: never `json.dump` round-trip (reformats, un-escapes `°`); insert
+  surgically with string ops and validate with `json.loads`.
+- `git add -A` sweeps `build-spatcore-tests/` and control-replay temp dirs — both now
+  gitignored.
+- pbxproj: headers are added manually (PBXFileReference + one group children line);
+  do NOT re-export from Projucer (manual fixes would be lost).
+- Windows-box follow-ups before merge: regenerate control-replay goldens
+  (hidden_tool_count 382→384 + total_parameters census; harness is taskkill/windll),
+  and run pipeline-bench at 104 sources (`kMaxStereoChannels` in RenderSourceMap.h +
+  WFSParameterDefaults.h is the one knob; 4 pairs = 84 sources if the T4 budget
+  doesn't fit).
