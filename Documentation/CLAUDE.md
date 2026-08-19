@@ -776,27 +776,41 @@ totalFRDelay = directDelay + frExtraDelay + noiseState;
 - Both InputBufferAlgorithm and OutputBufferAlgorithm support FR
 - FR and direct signals summed per output
 
-### Stereo Pair Input Channels (Phase 0)
-The mono/stereo split is **config-level**: System Config has "Mono Inputs" + "Stereo Inputs"
-fields (ioTree `stereoInputChannels`; total = mono + stereo, max 8 pairs), and the LAST stereo
-channels of the input list are stereo pairs. Each pair claims two hardware inputs from the start
-(patch matrix row capacity 2, lower column = L) and renders as **six render sources** — the
-channel's primary slot (slice 0) plus 5 derived slice slots appended past the visible inputs.
-There is deliberately NO per-channel type parameter: flipping a channel's type mid-project would
-have to steal a neighbouring channel's patch column (the patch is rightly outside snapshots), so
-the split is configuration, changed stopped-only through the channel-count flow. Spec:
-`Documentation/stereo-channel-handoff.md` (Appendix A holds the implementation state).
+### Stereo Pair Input Channels + Stable Channel Numbers
+Every `<Input>` node carries a **permanent 1-based number** (its `id` property — NEVER
+renumbered) and a **per-channel type** (`inputChannelType`: `"mono"`/`"stereo"`, absent = mono;
+max 8 stereo). The number is the external address (OSC `/wfs/input/{N}`, snapshots, QLab cues,
+DAW plug-in `inputId`, MCP `input_id`, ADM object id); the child index ("slot") is the internal
+dense key. **Tree order = the user's display order**: mono and stereo channels interleave freely.
+Composition is edited through the System Config "Mono Inputs" / "Stereo Inputs" counts (raising
+a count APPENDS channels after the last one with number = highest+1; lowering it removes the
+HIGHEST-NUMBERED channels of that type — their numbers retire as permanent gaps), and
+arrangement through drag in the "Arrange…" dialog (`WFSValueTreeState::moveInputChannel` moves
+the node AND its patch row together). There is deliberately NO user-facing type flip: the
+channel's data (patch columns, width, decomposition) cannot meaningfully follow a type change.
+Structural edits are stopped-only and NOT undoable (tree + patchData edit atomically; undo
+history is cleared). Number→slot resolution: `WFSValueTreeState::getSlotForChannelNumber`
+(linear scan; every wire/file boundary resolves through it — never `number - 1`). Legacy files:
+`migrateInputChannelModel()` stamps types from the old `stereoInputChannels` tail split, then
+removes the property; snapshot entries/scope are keyed by number on disk, ghost entries for
+deleted numbers are kept across re-saves and apply again if the number is re-created. Each
+stereo pair claims two hardware inputs (patch row capacity 2, lower column = L) and renders as
+**six render sources** — the channel's primary slot (slice 0) plus 5 derived slice slots
+appended past the visible inputs. Spec: `Documentation/stereo-channel-handoff.md`.
 
-**Two index spaces** (never conflate):
+**Three id spaces** (never conflate):
 | Space | Range | Owns |
 |---|---|---|
-| `inputChannel` | `[0, numInputChannels)`, max 64 | ValueTree, OSC, snapshots, patch rows, Map markers, meters |
+| channel NUMBER | 1..64, permanent, gaps possible | OSC, QLab, DAW plugin, MCP, ADM, snapshots, UI labels |
+| `inputChannel` slot | `[0, numInputChannels)`, dense | ValueTree child index, patch rows, engine per-channel arrays, Map iteration, meters |
 | `renderSource` | `[0, numRenderSources)`, max 104 | WFS matrix rows, `patchedInputBuffer` channels, shared rings, GPU `numInputs` |
 
-Slot layout is a pure function of the channel-type vector (`spatcore/wfs/RenderSourceMap.h`),
-which is derived from the two counts: derived slices of stereo ordinal k live at
-`numInputChannels + 5*k + (slice-1)`. Rebuild is config-time only
-(`MainComponent::recomputeRenderSourceCount()`, from the channel-count change flow).
+Slot layout is a pure function of the per-channel type vector (`spatcore/wfs/RenderSourceMap.h`),
+read from the nodes in slot order: derived slices of stereo ordinal k (k-th stereo channel in
+slot order) live at `numInputChannels + 5*k + (slice-1)`. Rebuild is config-time only
+(`MainComponent::recomputeRenderSourceCount()`, from the channel-list change flow). The stereo
+ordinal is valid precisely because structural edits are stopped-only and decomposer history
+resets on prepare.
 
 **Audio path:** `applyInputPatch` splits stereo rows into `stereoRawBuffer`; the decomposition
 stage (`Source/DSP/StereoChannelManager.h`, sole writer of the channel's six `patchedInputBuffer`
@@ -820,9 +834,11 @@ N/A for stereo channels (sub-tabs removed, engine rows forced off).
 
 **Validation:** `offline-render --stereo-null` (width-0 stereo must hash bit-identical to two mono
 channels at the same position) + the baselined `stereo` scenario; reconstruction-invariant tests in
-`spatcore/tests/SpatcoreTests.cpp`. The stereo count has deliberately NO OSC address and is never
-carried by snapshots (configuration, not show state); `inputStereoWidth` is fully live
-(`/wfs/input/stereoWidth`).
+`spatcore/tests/SpatcoreTests.cpp`; in-app structural self-test `WFS_TEST_CHANNEL_LIST=1`
+(scripted append/delete-with-gap/reorder/budget sequence, PASS/FAIL lines in the session log,
+must end "SELF-TEST RESULT: ALL PASS"). A channel's type has deliberately NO OSC address and is
+never carried by snapshots (configuration, not show state; the obsolete `stereoInputChannels`
+parameter is rejected on write); `inputStereoWidth` is fully live (`/wfs/input/stereoWidth`).
 
 ### Level Metering System
 The Level Metering System provides real-time audio level visualization for input and output channels, with thread performance monitoring.

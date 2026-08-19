@@ -32,12 +32,24 @@
     "none": "无"
   },
   "systemConfig": {
+    "channelList": {
+      "edit": "排列...",
+      "title": "排列输入通道",
+      "status": "单声道 {mono} + 立体声 {stereo}",
+      "dragHint": "拖动通道以更改顺序。",
+      "mono": "单声道",
+      "stereo": "立体声",
+      "deleteTitle": "移除输入通道",
+      "deleteMessage": "移除输入通道 {number}？其设置将被丢弃，编号作为空缺保留：其余通道保留各自编号，因此跳线、快照、QLab提示和DAW映射仍然有效。",
+      "deleteConfirm": "移除"
+    },
     "help": {
       "gpuPipelineDepth": "以音频块为单位的 GPU 管线深度。增加 depth x 缓冲/采样率的恒定延迟（已预先从 WFS 延迟中扣除），并吸收相同长度的 GPU 停顿：越深 = 越不受桌面/界面卡顿影响，越浅 = 延迟越低。实时生效。默认 4。",
       "showName": "当前演出的名称。",
       "showLocation": "当前演出的地点。",
-      "inputChannels": "Input Channels数量。",
-      "stereoInputChannels": "立体声对输入的数量。它们是输入列表中最后的通道；每对在跳线中占用两个硬件输入（L和R）。DSP运行时锁定。",
+      "inputChannels": "单声道输入通道数。增加时在最后一个通道之后追加；减少时从编号最大的单声道通道开始移除（其编号作为空缺保留）。DSP运行时锁定。",
+      "stereoInputChannels": "立体声对输入的数量。每对保留一个通道编号，并在跳线中占用两个硬件输入（L和R）。增加时在最后一个通道之后追加；减少时从编号最大的立体声通道开始移除。DSP运行时锁定。",
+      "editChannels": "排列输入通道：拖动可以任意顺序交错单声道与立体声通道，或移除某个通道（其编号作为空缺保留）。通道无论拖到哪里都保留其永久编号 — 跳线、快照、QLab提示和DAW插件映射永不失效。DSP运行时锁定。",
       "outputChannels": "Output Channels数量。",
       "reverbChannels": "Reverb Channels数量。",
       "audioPatch": "打开音频接口和路由窗口。",
@@ -129,7 +141,8 @@
     "dialogs": {
       "reduceInputChannels": {
         "title": "减少Input Channels?",
-        "message": "从 {current} 减少到 {new} 个输入通道将删除通道 {start} 到 {end} 的设置。\n\n此操作无法撤销。"
+        "message": "从 {current} 减少到 {new} 个输入通道将删除通道 {start} 到 {end} 的设置。\n\n此操作无法撤销。",
+        "messageNumbers": "这将移除输入通道 {numbers} 及其设置。其编号作为空缺保留（其余通道保留各自编号，跳线、快照和提示仍然有效）。\n\n此操作无法撤销。"
       },
       "reduceOutputChannels": {
         "title": "减少Output Channels?",

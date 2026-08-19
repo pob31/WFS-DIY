@@ -131,7 +131,13 @@ private:
                                   const juce::Identifier& property) override;
     void valueTreeChildAdded(juce::ValueTree& parent, juce::ValueTree& child) override;
     void valueTreeChildRemoved(juce::ValueTree& parent, juce::ValueTree& child, int index) override;
-    void valueTreeChildOrderChanged(juce::ValueTree&, int, int) override {}
+    void valueTreeChildOrderChanged(juce::ValueTree& parent, int, int) override
+    {
+        // Drag-to-reorder moves an Input node — the namespace listing order
+        // changed even though no node appeared or vanished.
+        juce::ValueTree dummy;
+        valueTreeChildAdded(parent, dummy);
+    }
     void valueTreeParentChanged(juce::ValueTree&) override {}
 
     // --- State ---

@@ -2,6 +2,16 @@
 
 **Project:** WFS-DIY (JUCE/C++, GPL-3.0)
 **Status:** Design settled at the level described here; parameter-level decisions deferred to implementation discussion.
+
+> **2026-08-19 — superseded in part by the stable-channel-numbers rework.** The
+> config-level "the LAST `stereoInputChannels` channels are stereo" split described in
+> this document was replaced: every `<Input>` now carries a per-channel
+> `inputChannelType` and a PERMANENT channel number (`id`, never renumbered); tree
+> order is the user's display order (drag-to-reorder moves node + patch row together);
+> count edits append after the last channel / remove the highest-numbered of that type,
+> and deletions leave permanent number gaps. The DSP-side content of this document
+> (slice layout, decomposition contract, Phase 1 plan) still applies unchanged. See
+> "Stereo Pair Input Channels + Stable Channel Numbers" in `Documentation/CLAUDE.md`.
 **Scope:** New *stereo pair* input channel type that internally decomposes a stereo signal into several spatial slice feeds rendered across the array. The split is invisible to the user: one channel object in, N derived renderer sources out.
 
 ---

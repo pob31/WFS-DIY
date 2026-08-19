@@ -32,12 +32,24 @@
     "none": "Aucun"
   },
   "systemConfig": {
+    "channelList": {
+      "edit": "Organiser...",
+      "title": "Organiser les canaux d’entrée",
+      "status": "{mono} mono + {stereo} stéréo",
+      "dragHint": "Glissez un canal pour changer l’ordre.",
+      "mono": "Mono",
+      "stereo": "Stéréo",
+      "deleteTitle": "Supprimer le canal d’entrée",
+      "deleteMessage": "Supprimer le canal d’entrée {number} ? Ses réglages sont perdus et son numéro reste retiré : les autres canaux gardent leurs numéros, donc le patch, les snapshots, les cues QLab et les affectations DAW restent valides.",
+      "deleteConfirm": "Supprimer"
+    },
     "help": {
       "gpuPipelineDepth": "Profondeur du pipeline GPU en blocs audio. Ajoute depth x buffer/fréquence d'échantillonnage de latence constante (pré-soustraite des délais WFS) et absorbe les interruptions GPU de même durée : plus profond = immunisé contre les à-coups du bureau/de l'interface, moins profond = latence plus faible. Application en direct. Défaut 4.",
       "showName": "Nom du spectacle actuel.",
       "showLocation": "Lieu du spectacle actuel.",
-      "inputChannels": "Nombre d'Input Channels.",
-      "stereoInputChannels": "Nombre d’entrées stéréo (paires). Ce sont les derniers canaux de la liste ; chacune utilise deux entrées matérielles (L et R) dans le patch. Verrouillé quand le DSP tourne.",
+      "inputChannels": "Nombre d’entrées mono. Augmenter ajoute des canaux après le dernier ; réduire supprime les canaux mono aux numéros les plus élevés (leurs numéros restent retirés, en laissant des trous). Verrouillé quand le DSP tourne.",
+      "stereoInputChannels": "Nombre d’entrées stéréo (paires). Chaque paire garde un seul numéro de canal et occupe deux entrées matérielles (L et R) dans le patch. Augmenter ajoute après le dernier canal ; réduire supprime les stéréo aux numéros les plus élevés. Verrouillé quand le DSP tourne.",
+      "editChannels": "Organiser les canaux d’entrée : glissez pour entrelacer mono et stéréo dans n’importe quel ordre, ou supprimez un canal précis (son numéro reste retiré, en laissant un trou). Un canal garde son numéro permanent où que vous le glissiez — patch, snapshots, cues QLab et affectations du plug-in DAW ne cassent jamais. Verrouillé quand le DSP tourne.",
       "outputChannels": "Nombre d'Output Channels.",
       "reverbChannels": "Nombre de Reverb Channels.",
       "audioPatch": "Ouvre la fenêtre d'interface audio et de routage.",
@@ -129,7 +141,8 @@
     "dialogs": {
       "reduceInputChannels": {
         "title": "Réduire les Input Channels ?",
-        "message": "Réduire de {current} à {new} canaux d'entrée supprimera les paramètres des canaux {start} à {end}.\n\nCette action est irréversible."
+        "message": "Réduire de {current} à {new} canaux d'entrée supprimera les paramètres des canaux {start} à {end}.\n\nCette action est irréversible.",
+        "messageNumbers": "Ceci supprimera le(s) canal/canaux d’entrée {numbers} et leurs réglages. Leurs numéros restent retirés (les autres canaux gardent les leurs ; patch, snapshots et cues restent valides).\n\nCette action est irréversible."
       },
       "reduceOutputChannels": {
         "title": "Réduire les Output Channels ?",
