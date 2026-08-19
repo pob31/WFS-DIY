@@ -1403,26 +1403,17 @@ int WFSValueTreeState::getSlotForChannelNumber (int number) const
     if (number <= 0 || n == 0)
         return -1;
 
-    // Fast path: dense list (no deletions yet) — slot is number - 1.
+    // Fast path: dense, un-reordered list — slot is number - 1.
     if (number <= n
         && static_cast<int> (inputs.getChild (number - 1).getProperty (id, 0)) == number)
         return number - 1;
 
-    // Children are strictly ascending by id (append-only + migration sort),
-    // so a binary search covers gapped lists without a cache to invalidate —
-    // this runs on the OSC/tracking ingress path.
-    int lo = 0, hi = n - 1;
-    while (lo <= hi)
-    {
-        const int mid = (lo + hi) / 2;
-        const int midNumber = static_cast<int> (inputs.getChild (mid).getProperty (id, 0));
-        if (midNumber == number)
-            return mid;
-        if (midNumber < number)
-            lo = mid + 1;
-        else
-            hi = mid - 1;
-    }
+    // Tree order is the user's DISPLAY order (drag-to-reorder moves nodes),
+    // so numbers carry no ordering guarantee — linear scan (n <= 64; runs on
+    // the OSC/tracking ingress path, still trivially cheap).
+    for (int i = 0; i < n; ++i)
+        if (static_cast<int> (inputs.getChild (i).getProperty (id, 0)) == number)
+            return i;
     return -1;
 }
 
@@ -1437,10 +1428,13 @@ bool WFSValueTreeState::isInputChannelStereo (int slot) const
 
 int WFSValueTreeState::getHighestChannelNumber() const
 {
-    // Ascending-id invariant: the last child carries the highest number.
+    // Tree order is display order (drag-to-reorder), so scan for the max.
     auto inputs = getInputsState();
-    const int n = inputs.getNumChildren();
-    return n > 0 ? static_cast<int> (inputs.getChild (n - 1).getProperty (id, 0)) : 0;
+    int highest = 0;
+    for (int i = 0; i < inputs.getNumChildren(); ++i)
+        highest = juce::jmax (highest,
+                              static_cast<int> (inputs.getChild (i).getProperty (id, 0)));
+    return highest;
 }
 
 int WFSValueTreeState::getNextChannelNumber() const
@@ -1500,21 +1494,10 @@ void WFSValueTreeState::migrateInputChannelModel()
                 inputs.getChild (i).setProperty (id, i + 1, nullptr);
     }
 
-    // 2. Sort children ascending by id (no-op for well-formed files). The
-    //    ascending-id invariant is what keeps slot<->number lookups trivial.
-    for (int i = 1; i < total; ++i)
-    {
-        int j = i;
-        while (j > 0
-               && static_cast<int> (inputs.getChild (j - 1).getProperty (id, 0))
-                    > static_cast<int> (inputs.getChild (j).getProperty (id, 0)))
-        {
-            inputs.moveChild (j, j - 1, nullptr);
-            --j;
-        }
-    }
+    // (Tree order is preserved as-is: it is the user's saved display order —
+    // drag-to-reorder moves nodes, numbers stay put.)
 
-    // 3. Stamp types for files that predate the per-channel property — but
+    // 2. Stamp types for files that predate the per-channel property — but
     //    only when the WHOLE list lacks it: a partially-typed list is
     //    post-rework data whose missing entries default to mono.
     bool anyTyped = false;
@@ -1540,7 +1523,7 @@ void WFSValueTreeState::migrateInputChannelModel()
         }
     }
 
-    // 4. The legacy tail-split property is consumed; drop it so nothing can
+    // 3. The legacy tail-split property is consumed; drop it so nothing can
     //    resurrect the count-based semantics from a stale file value.
     if (io.isValid() && io.hasProperty (WFSParameterIDs::stereoInputChannels))
         io.removeProperty (WFSParameterIDs::stereoInputChannels, nullptr);
@@ -1620,17 +1603,10 @@ juce::Result WFSValueTreeState::addInputChannel (bool stereo, int explicitNumber
             return juce::Result::fail ("channel number " + juce::String (number) + " is already live");
     }
 
-    // Ascending-id invariant: insert before the first higher number
-    // (append when the number is the highest).
-    int slot = total;
-    for (int i = 0; i < total; ++i)
-    {
-        if (static_cast<int> (inputs.getChild (i).getProperty (id, 0)) > number)
-        {
-            slot = i;
-            break;
-        }
-    }
+    // New channels always land at the END of the display order (append-only);
+    // the user drags them into place afterwards. This holds for gap-reuse
+    // creation too — the recycled NUMBER does not dictate a position.
+    const int slot = total;
 
     auto node = createDefaultInputChannel (slot, total + 1, number);
     node.setProperty (inputChannelType,
@@ -1702,6 +1678,44 @@ juce::Result WFSValueTreeState::setInputChannelType (int channelNumber, bool ste
 
     clearAllUndoHistories();
     return juce::Result::ok();
+}
+
+juce::Result WFSValueTreeState::moveInputChannel (int channelNumber, int targetSlot)
+{
+    auto inputs = getInputsState();
+    const int fromSlot = getSlotForChannelNumber (channelNumber);
+    if (fromSlot < 0)
+        return juce::Result::fail ("channel " + juce::String (channelNumber) + " is not live");
+
+    targetSlot = juce::jlimit (0, inputs.getNumChildren() - 1, targetSlot);
+    if (targetSlot == fromSlot)
+        return juce::Result::ok();
+
+    // Drag-to-reorder: the channel node and its patch row move TOGETHER, so
+    // the patch matrix, map, picker and engine slots all follow the new
+    // display order while the permanent number (and every external
+    // reference) stays put.
+    inputs.moveChild (fromSlot, targetSlot, nullptr);
+    moveInputPatchRow (fromSlot, targetSlot);
+
+    clearAllUndoHistories();
+    return juce::Result::ok();
+}
+
+void WFSValueTreeState::moveInputPatchRow (int fromSlot, int toSlot)
+{
+    auto patch = getAudioPatchState().getChildWithName (InputPatch);
+    if (! patch.isValid())
+        return;
+
+    juce::StringArray rowsArr = juce::StringArray::fromTokens (
+        patch.getProperty (patchData).toString(), ";", "");
+    if (fromSlot < 0 || fromSlot >= rowsArr.size()
+        || toSlot < 0 || toSlot >= rowsArr.size())
+        return;
+
+    rowsArr.move (fromSlot, toSlot);   // same semantics as ValueTree::moveChild
+    patch.setProperty (patchData, rowsArr.joinIntoString (";"), nullptr);
 }
 
 void WFSValueTreeState::insertInputPatchRow (int slot, bool stereo)

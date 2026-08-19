@@ -329,7 +329,9 @@ public:
     // a type (`inputChannelType`: "mono"/"stereo"). The number is the external
     // address (OSC, snapshots, QLab cues, DAW plugin, MCP); the child index
     // ("slot") stays the internal dense key (patch row, render-source slot,
-    // meter row). Invariant: children are strictly ascending by id.
+    // meter row). Tree order is the user's DISPLAY order: new channels append
+    // at the end, drag-to-reorder moves a node (and its patch row) to a new
+    // slot — numbers never change, so no external reference can break.
 
     /** Permanent channel number of the channel at a slot (0-based child
         index); 0 if the slot is invalid. */
@@ -371,11 +373,16 @@ public:
         (gap); every other channel keeps its number, slot and patch row. */
     juce::Result removeInputChannel (int channelNumber);
 
-    /** Flip a live channel's type in place; number, name and parameters are
-        kept. Patch columns are adjusted by the caller's reconfiguration pass
-        (sanitize drops the R column on stereo→mono; auto-patch assigns a
-        free R on mono→stereo). */
+    /** Flip a live channel's type in place. NOT exposed in the UI or MCP —
+        the channel's data (patch columns, width, decomposition) cannot
+        meaningfully follow a type change, so composition is edited through
+        the counts instead. Kept for the self-test and internal use. */
     juce::Result setInputChannelType (int channelNumber, bool stereo);
+
+    /** Move a live channel to a new display slot (drag-to-reorder). The
+        channel node and its patch row move together; the permanent number is
+        untouched. Stopped-only, like every structural edit. */
+    juce::Result moveInputChannel (int channelNumber, int targetSlot);
 
     /** Reconcile the input-patch row count to the channel list after a
         wholesale patchData rewrite (config load): truncate extras, append
@@ -384,11 +391,11 @@ public:
 
     /** One-time model migration for loaded states: repairs missing/duplicate
         ids (one dense renumber — the last renumbering that can ever happen to
-        a file), sorts children ascending by id, and stamps inputChannelType
-        from the legacy tail split when the whole list lacks it. Idempotent,
-        not undoable. Must run BEFORE ensureCompleteSchema on wholesale-replace
-        loads: the schema template stamps mono, which would otherwise preempt
-        the tail-split stamp. */
+        a file) and stamps inputChannelType from the legacy tail split when
+        the whole list lacks it. Tree order is preserved (it is the user's
+        display order). Idempotent, not undoable. Must run BEFORE
+        ensureCompleteSchema on wholesale-replace loads: the schema template
+        stamps mono, which would otherwise preempt the tail-split stamp. */
     void migrateInputChannelModel();
 
     void setNumOutputChannels (int numChannels);
@@ -637,6 +644,7 @@ private:
         tree edit in the same op. */
     void insertInputPatchRow (int slot, bool stereo);
     void removeInputPatchRow (int slot);
+    void moveInputPatchRow (int fromSlot, int toSlot);
 
     /** Clamp a value to the valid range for a given output parameter */
     static float clampOutputParamToRange (const juce::Identifier& paramId, float value);

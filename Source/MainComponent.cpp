@@ -869,6 +869,16 @@ MainComponent::MainComponent()
               "MCP clients will not be able to connect.");
     }
 
+    // Structural channel edits from MCP (create/delete/type flip) run the
+    // same reconfiguration pass as the System Config editor. Handlers run on
+    // the message thread (the dispatcher hops there), so this is direct.
+    mcpServer->setChannelTopologyChangedCallback ([this]
+    {
+        handleChannelCountChange (parameters.getNumInputChannels(),
+                                  parameters.getNumOutputChannels(),
+                                  parameters.getNumReverbChannels());
+    });
+
     // Automation hook (control-replay harnesses): WFS_MCP_AI_ENABLED=1 in the
     // environment flips the MCP AI master toggle on at startup — the exact
     // equivalent of the operator clicking the Network-tab "AI" button. MCP
@@ -2447,26 +2457,26 @@ void MainComponent::runChannelListSelfTest()
         logLine(juce::String("SELF-TEST ") + (ok ? "PASS " : "FAIL ") + what);
     };
 
-    // One line per step: "number(type):patched-cols" in slot order.
+    // One line per step: "number(type):patched-cols" in slot (display) order.
     auto verify = [&](const char* label)
     {
         const int n = vts.getNumInputChannels();
         auto rows = patchRows();
 
-        bool ascending = true;
-        int prev = 0;
+        bool numbersUnique = true;
+        juce::SortedSet<int> seen;
         juce::String summary;
         for (int slot = 0; slot < n; ++slot)
         {
             const int number = vts.getInputChannelNumber(slot);
-            if (number <= prev) ascending = false;
-            prev = number;
+            if (number <= 0 || seen.contains(number)) numbersUnique = false;
+            seen.add(number);
             summary += juce::String(number) + (vts.isInputChannelStereo(slot) ? "s" : "m") + ":"
                        + (slot < rows.size() ? colsOfRow(rows[slot]) : juce::String("?")) + " ";
         }
         logLine(juce::String("SELF-TEST ") + label + " [" + summary.trim() + "]");
 
-        check(ascending, juce::String(label) + ": numbers strictly ascending");
+        check(numbersUnique, juce::String(label) + ": numbers unique and positive");
         check(rows.size() == n, juce::String(label) + ": patch rows == live channels");
         check(renderSourceMap.count == n + 5 * vts.getNumStereoInputChannels(),
               juce::String(label) + ": render sources = N + 5*stereo");
@@ -2520,7 +2530,19 @@ void MainComponent::runChannelListSelfTest()
     check(vts.addInputChannel(false, 2).wasOk(), "J: explicit re-create of retired number 2");
     reconfig();
     verify("J");
-    check(vts.getSlotForChannelNumber(2) == 1, "J: number 2 re-created at its sorted slot");
+    check(vts.getSlotForChannelNumber(2) == vts.getNumInputChannels() - 1,
+          "J: re-created number 2 appended at the END of the display order");
+
+    // Drag-to-reorder: move stereo channel 6 to display slot 1 — its patch
+    // columns must travel with it, and every number must stay put.
+    {
+        const auto p6before = patchOfNumber(6);
+        check(vts.moveInputChannel(6, 1).wasOk(), "L: drag channel 6 to display slot 1");
+        reconfig();
+        verify("L");
+        check(vts.getSlotForChannelNumber(6) == 1, "L: channel 6 now at slot 1");
+        check(patchOfNumber(6) == p6before, "L: channel 6 kept its patch columns through the move");
+    }
 
     int added = 0;
     while (added <= 10 && vts.addInputChannel(true).wasOk())

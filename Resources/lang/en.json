@@ -84,7 +84,7 @@
       "gpuPipelineBlocks": "blocks",
       "showName": "Name:",
       "showLocation": "Location:",
-      "inputChannels": "Input Channels:",
+      "inputChannels": "Mono Inputs:",
       "stereoInputs": "Stereo Inputs:",
       "renderSourceTotal": "({count} render sources)",
       "outputChannels": "Output Channels:",
@@ -227,28 +227,23 @@
     },
 
     "channelList": {
-      "edit": "Edit Channels...",
-      "title": "Input Channels",
-      "summary": "{total} ({mono} mono + {stereo} stereo)",
+      "edit": "Arrange...",
+      "title": "Arrange Input Channels",
       "status": "{mono} mono + {stereo} stereo",
-      "addMono": "Add Mono",
-      "addStereo": "Add Stereo",
+      "dragHint": "Drag a channel to change the order.",
       "mono": "Mono",
       "stereo": "Stereo",
       "deleteTitle": "Remove Input Channel",
-      "deleteMessage": "Remove input channel {number}? Its settings are discarded and its number is retired: the remaining channels keep their numbers, so the patch, snapshots, QLab cues and DAW plug-in mappings stay valid. The number stays free unless you explicitly re-create it.",
-      "deleteConfirm": "Remove",
-      "reuseTitle": "All 64 Numbers Used",
-      "reuseMessage": "Every channel number up to 64 has been used at least once. Reuse the lowest free number {number}? Snapshots and cues that referenced channel {number} will affect the new channel.",
-      "reuse": "Reuse Number"
+      "deleteMessage": "Remove input channel {number}? Its settings are discarded and its number is retired: the remaining channels keep their numbers, so the patch, snapshots, QLab cues and DAW plug-in mappings stay valid.",
+      "deleteConfirm": "Remove"
     },
     "help": {
       "gpuPipelineDepth": "GPU pipeline depth in audio blocks. Adds depth x buffer/sample-rate of constant latency (pre-subtracted from WFS delays) and absorbs GPU stalls of the same length: deeper = immune to desktop/UI hiccups, shallower = lower latency. Applies live. Default 4.",
       "showName": "Name of the current show.",
       "showLocation": "Location of the current show.",
-      "inputChannels": "Live input channels: total (mono + stereo split). Channels keep their number forever; edit the list with the Edit Channels button.",
-      "editChannels": "Open the input channel list: add mono or stereo channels (appended after the last channel), flip a channel's type in place, or remove channels. Numbers never shift - removed numbers leave gaps so the patch, snapshots, QLab cues and DAW plug-in mappings never break. Locked when DSP is running.",
-      "stereoInputChannels": "Number of stereo pair inputs. Each claims two hardware inputs (L and R) in the patch. Locked when DSP is running.",
+      "inputChannels": "Number of mono input channels. Raising the count appends channels after the last one; lowering it removes the highest-numbered mono channels (their numbers stay retired). Locked when DSP is running.",
+      "editChannels": "Arrange the input channels: drag to interleave mono and stereo channels in any order, or remove a specific channel (its number is retired as a gap). A channel keeps its permanent number wherever you drag it, so the patch, snapshots, QLab cues and DAW plug-in mappings never break. Locked when DSP is running.",
+      "stereoInputChannels": "Number of stereo pair inputs. Each keeps one channel number and claims two hardware inputs (L and R) in the patch. Raising the count appends after the last channel; lowering it removes the highest-numbered stereo channels. Locked when DSP is running.",
       "outputChannels": "Number of Output Channels.",
       "reverbChannels": "Number of Reverb Channels.",
       "audioPatch": "Opens the Audio Interface and Patching Window.",
@@ -355,7 +350,8 @@
     "dialogs": {
       "reduceInputChannels": {
         "title": "Reduce Input Channels?",
-        "message": "Reducing from {current} to {new} input channels will remove settings for channels {start} to {end}.\n\nThis cannot be undone."
+        "message": "Reducing from {current} to {new} input channels will remove settings for channels {start} to {end}.\n\nThis cannot be undone.",
+        "messageNumbers": "This will remove input channel(s) {numbers} and their settings. Their numbers are retired (the remaining channels keep theirs, so the patch, snapshots and cues stay valid).\n\nThis cannot be undone."
       },
       "reduceOutputChannels": {
         "title": "Reduce Output Channels?",

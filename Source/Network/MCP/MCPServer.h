@@ -86,7 +86,18 @@ public:
         empty URL to disable / cancel. */
     void runOSCQueryAudit (const juce::String& url);
 
+    /** Called (message thread) after a channel-lifecycle tool changes the
+        channel topology (create/delete/type flip). MainComponent wires this
+        to its full reconfiguration pass (handleChannelCountChange) — without
+        it, MCP structural edits changed the tree but never re-prepared the
+        renderer/patch runtime. */
+    void setChannelTopologyChangedCallback (std::function<void()> cb)
+    {
+        channelTopologyChanged = std::move (cb);
+    }
+
 private:
+    std::function<void()> channelTopologyChanged;
     WFSValueTreeState& valueTreeState;
     WFSFileManager& fileManager;
     std::unique_ptr<MCPLogger> mcpLogger;

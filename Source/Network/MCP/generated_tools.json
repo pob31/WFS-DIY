@@ -1079,7 +1079,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "integer",
@@ -1126,7 +1126,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -1169,7 +1169,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -1212,7 +1212,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -1249,7 +1249,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -1286,7 +1286,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "integer",
@@ -1322,7 +1322,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -1358,7 +1358,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "integer",
@@ -1393,7 +1393,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -1428,7 +1428,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -1463,7 +1463,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -1498,7 +1498,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -1533,7 +1533,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "integer",
@@ -1569,7 +1569,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -1606,7 +1606,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -1641,7 +1641,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -1677,7 +1677,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -1715,7 +1715,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -1751,7 +1751,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -1787,7 +1787,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -1823,7 +1823,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -1860,7 +1860,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -1897,7 +1897,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -1934,7 +1934,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -1981,7 +1981,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -2018,7 +2018,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -2061,7 +2061,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "integer",
@@ -2104,7 +2104,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "integer",
@@ -2147,7 +2147,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -2184,7 +2184,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -2221,7 +2221,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -2258,7 +2258,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -2295,7 +2295,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -2342,7 +2342,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "integer",
@@ -2385,7 +2385,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -2422,7 +2422,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "integer",
@@ -2465,7 +2465,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -2508,7 +2508,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -2551,7 +2551,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -2588,7 +2588,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "integer",
@@ -2631,7 +2631,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "integer",
@@ -2666,7 +2666,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "integer",
@@ -2701,7 +2701,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "integer",
@@ -2736,7 +2736,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -2771,7 +2771,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -2806,7 +2806,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -2841,7 +2841,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -2876,7 +2876,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "integer",
@@ -2911,7 +2911,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -2946,7 +2946,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -2981,7 +2981,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -3016,7 +3016,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -3051,7 +3051,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -3086,7 +3086,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -3121,7 +3121,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "integer",
@@ -3156,7 +3156,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -3193,7 +3193,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -3230,7 +3230,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -3267,7 +3267,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -3310,7 +3310,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -3353,7 +3353,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -3396,7 +3396,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -3434,7 +3434,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -3477,7 +3477,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "integer",
@@ -3520,7 +3520,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "integer",
@@ -3563,7 +3563,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "integer",
@@ -3606,7 +3606,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "integer",
@@ -3649,7 +3649,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -3692,7 +3692,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -3735,7 +3735,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -3778,7 +3778,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "shape": {
             "type": "string",
@@ -3823,7 +3823,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "shape": {
             "type": "string",
@@ -3868,7 +3868,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "shape": {
             "type": "string",
@@ -3913,7 +3913,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -3950,7 +3950,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -3993,7 +3993,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -4036,7 +4036,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -4079,7 +4079,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -4122,7 +4122,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "shape": {
             "type": "string",
@@ -4162,7 +4162,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -4205,7 +4205,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -4248,7 +4248,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -4285,7 +4285,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "mode": {
             "type": "string",
@@ -4323,7 +4323,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -4384,7 +4384,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -4421,7 +4421,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -4456,7 +4456,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -4491,7 +4491,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "mode": {
             "type": "string",
@@ -4530,7 +4530,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -4573,7 +4573,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -4616,7 +4616,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -4659,7 +4659,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -4701,7 +4701,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -4743,7 +4743,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -4786,7 +4786,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -4823,7 +4823,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -4861,7 +4861,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "integer",
@@ -4896,7 +4896,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -4937,7 +4937,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -4970,7 +4970,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -5007,7 +5007,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "name": {
             "type": "string",
@@ -5041,7 +5041,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -5078,7 +5078,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -5115,7 +5115,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -5152,7 +5152,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -5189,7 +5189,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -5230,7 +5230,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -5271,7 +5271,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "name": {
             "type": "string",
@@ -5304,7 +5304,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "mode": {
             "type": "string",
@@ -5343,7 +5343,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -5380,7 +5380,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -5417,7 +5417,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -5454,7 +5454,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -5491,7 +5491,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -5529,7 +5529,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -5567,7 +5567,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -5604,7 +5604,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -5642,7 +5642,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -5680,7 +5680,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -5718,7 +5718,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -5755,7 +5755,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -5792,7 +5792,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -5830,7 +5830,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -5868,7 +5868,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "array": {
             "type": "integer",
@@ -5921,7 +5921,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -5968,7 +5968,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -6014,7 +6014,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "integer",
@@ -6057,7 +6057,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "integer",
@@ -6100,7 +6100,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -6143,7 +6143,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -6186,7 +6186,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -6222,7 +6222,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "name": {
             "type": "string",
@@ -6255,7 +6255,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "string",
@@ -6292,7 +6292,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "number",
@@ -6327,7 +6327,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "integer",
@@ -6366,7 +6366,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "integer",
@@ -6401,7 +6401,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "integer",
@@ -6435,7 +6435,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
             "type": "integer",
@@ -12106,7 +12106,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "confirm": {
             "type": "string",
@@ -12151,7 +12151,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -12192,7 +12192,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -12233,7 +12233,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -12274,7 +12274,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -12315,7 +12315,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -12356,7 +12356,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -12397,7 +12397,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -12438,7 +12438,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -12479,7 +12479,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -12520,7 +12520,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -12561,7 +12561,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "confirm": {
             "type": "string",
@@ -12606,7 +12606,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -12647,7 +12647,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -12688,7 +12688,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -12729,7 +12729,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "confirm": {
             "type": "string",
@@ -12774,7 +12774,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -12815,7 +12815,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -12856,7 +12856,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -12897,7 +12897,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -12938,7 +12938,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -12979,7 +12979,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -13020,7 +13020,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -13061,7 +13061,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -13102,7 +13102,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -13143,7 +13143,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -13184,7 +13184,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -13225,7 +13225,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -13266,7 +13266,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -13307,7 +13307,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -13348,7 +13348,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -13389,7 +13389,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -13430,7 +13430,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -13471,7 +13471,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -13512,7 +13512,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -13553,7 +13553,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -13594,7 +13594,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -13635,7 +13635,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -13676,7 +13676,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "confirm": {
             "type": "string",
@@ -13721,7 +13721,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -13762,7 +13762,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -13803,7 +13803,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -13844,7 +13844,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -13885,7 +13885,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -13926,7 +13926,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -13967,7 +13967,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -14008,7 +14008,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -14049,7 +14049,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -14090,7 +14090,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -14131,7 +14131,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "confirm": {
             "type": "string",
@@ -14177,7 +14177,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -14219,7 +14219,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -14261,7 +14261,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -14303,7 +14303,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -14345,7 +14345,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -14387,7 +14387,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "confirm": {
             "type": "string",
@@ -14433,7 +14433,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -14475,7 +14475,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -14517,7 +14517,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -14559,7 +14559,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -14601,7 +14601,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -14643,7 +14643,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",
@@ -14685,7 +14685,7 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 64,
-            "description": "Input channel number (1-based)."
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "direction": {
             "type": "string",

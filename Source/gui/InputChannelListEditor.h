@@ -8,16 +8,19 @@
 #include "../WFSLogger.h"
 
 /**
- * Input channel list editor (stable-number model).
+ * Input channel ORDER editor (stable-number model).
  *
- * One row per LIVE channel, in slot order (== number order): permanent
- * number, name, mono/stereo type selector, delete. "Add Mono" / "Add Stereo"
- * append after the last channel — numbers never shift, deleted numbers leave
- * permanent gaps. Shown from System Config (stopped-only, like every
- * structural edit); every action funnels through the WFSValueTreeState
- * structural ops and then the owner's reconfiguration callback.
+ * One row per LIVE channel in display order: permanent number, name, type
+ * (read-only — a channel's type is fixed at creation; composition is edited
+ * through the System Config mono/stereo counts), delete. DRAG a row to
+ * rearrange the mono/stereo interleaving: the channel node and its patch row
+ * move together, and the permanent number travels with the channel, so the
+ * patch, snapshots, QLab cues and DAW mappings never break. Deleting retires
+ * the number (permanent gap). Stopped-only, like every structural edit.
  */
 class InputChannelListEditor : public juce::Component,
+                               public juce::DragAndDropContainer,
+                               public juce::DragAndDropTarget,
                                private juce::ListBoxModel
 {
 public:
@@ -29,15 +32,12 @@ public:
         listBox.setRowHeight (30);
         addAndMakeVisible (listBox);
 
-        addMonoButton.setButtonText (LOC ("systemConfig.channelList.addMono"));
-        addMonoButton.onClick = [this] { addChannel (false); };
-        addAndMakeVisible (addMonoButton);
+        hintLabel.setText (LOC ("systemConfig.channelList.dragHint"), juce::dontSendNotification);
+        hintLabel.setJustificationType (juce::Justification::centredLeft);
+        hintLabel.setAlpha (0.7f);
+        addAndMakeVisible (hintLabel);
 
-        addStereoButton.setButtonText (LOC ("systemConfig.channelList.addStereo"));
-        addStereoButton.onClick = [this] { addChannel (true); };
-        addAndMakeVisible (addStereoButton);
-
-        statusLabel.setJustificationType (juce::Justification::centredLeft);
+        statusLabel.setJustificationType (juce::Justification::centredRight);
         statusLabel.setInterceptsMouseClicks (false, false);
         addAndMakeVisible (statusLabel);
 
@@ -48,14 +48,36 @@ public:
     void resized() override
     {
         auto area = getLocalBounds().reduced (10);
-        auto bottom = area.removeFromBottom (34);
+        auto bottom = area.removeFromBottom (28);
         listBox.setBounds (area.withTrimmedBottom (6));
+        statusLabel.setBounds (bottom.removeFromRight (170));
+        hintLabel.setBounds (bottom);
+    }
 
-        addMonoButton.setBounds (bottom.removeFromLeft (110));
-        bottom.removeFromLeft (8);
-        addStereoButton.setBounds (bottom.removeFromLeft (110));
-        bottom.removeFromLeft (12);
-        statusLabel.setBounds (bottom);
+    //==========================================================================
+    // DragAndDropTarget — rows are dropped back onto the editor
+    //==========================================================================
+
+    bool isInterestedInDragSource (const SourceDetails& details) override
+    {
+        return details.description.isInt();
+    }
+
+    void itemDropped (const SourceDetails& details) override
+    {
+        const int channelNumber = static_cast<int> (details.description);
+        auto posInList = listBox.getLocalPoint (this, details.localPosition);
+        int insertIndex = listBox.getInsertionIndexForPosition (posInList.x, posInList.y);
+        if (insertIndex < 0)
+            insertIndex = state.getNumInputChannels() - 1;
+
+        // Insertion index is "before which row"; moving down needs -1 since
+        // the dragged row leaves its old slot first.
+        const int fromSlot = state.getSlotForChannelNumber (channelNumber);
+        int targetSlot = insertIndex > fromSlot ? insertIndex - 1 : insertIndex;
+
+        if (fromSlot >= 0 && state.moveInputChannel (channelNumber, targetSlot).wasOk())
+            structureChanged();
     }
 
 private:
@@ -86,36 +108,40 @@ private:
     }
 
     //==========================================================================
-    // Row component
+    // Row component (draggable)
     //==========================================================================
 
     struct Row : public juce::Component
     {
         explicit Row (InputChannelListEditor& ownerIn) : owner (ownerIn)
         {
+            gripLabel.setText (juce::String::fromUTF8 ("\xe2\x89\xa1"), juce::dontSendNotification); // ≡
+            gripLabel.setJustificationType (juce::Justification::centred);
+            gripLabel.setInterceptsMouseClicks (false, false);
+            addAndMakeVisible (gripLabel);
+
             numberLabel.setJustificationType (juce::Justification::centredRight);
+            numberLabel.setInterceptsMouseClicks (false, false);
             addAndMakeVisible (numberLabel);
 
             nameLabel.setJustificationType (juce::Justification::centredLeft);
+            nameLabel.setInterceptsMouseClicks (false, false);
             addAndMakeVisible (nameLabel);
 
-            typeBox.addItem (LOC ("systemConfig.channelList.mono"),   1);
-            typeBox.addItem (LOC ("systemConfig.channelList.stereo"), 2);
-            typeBox.onChange = [this]
-            {
-                if (! updating)
-                    owner.flipType (channelNumber, typeBox.getSelectedId() == 2);
-            };
-            addAndMakeVisible (typeBox);
+            typeLabel.setJustificationType (juce::Justification::centredLeft);
+            typeLabel.setInterceptsMouseClicks (false, false);
+            typeLabel.setAlpha (0.8f);
+            addAndMakeVisible (typeLabel);
 
             deleteButton.setButtonText ("x");
             deleteButton.onClick = [this] { owner.confirmDelete (channelNumber); };
             addAndMakeVisible (deleteButton);
+
+            setMouseCursor (juce::MouseCursor::DraggingHandCursor);
         }
 
         void setSlot (int slot)
         {
-            updating = true;
             channelNumber = owner.state.getInputChannelNumber (slot);
             numberLabel.setText (juce::String (channelNumber), juce::dontSendNotification);
 
@@ -126,80 +152,47 @@ private:
                                    : juce::String(),
                                juce::dontSendNotification);
 
-            const bool stereo = owner.state.isInputChannelStereo (slot);
-            typeBox.setSelectedId (stereo ? 2 : 1, juce::dontSendNotification);
-            // A mono channel can only become stereo while the budget has room
-            typeBox.setItemEnabled (2, stereo
-                || owner.state.getNumStereoInputChannels() < WFSParameterDefaults::maxStereoChannels);
+            typeLabel.setText (owner.state.isInputChannelStereo (slot)
+                                   ? LOC ("systemConfig.channelList.stereo")
+                                   : LOC ("systemConfig.channelList.mono"),
+                               juce::dontSendNotification);
             deleteButton.setEnabled (owner.state.getNumInputChannels() > 1);
-            updating = false;
         }
+
+        void mouseDrag (const juce::MouseEvent& e) override
+        {
+            if (! dragging && e.getDistanceFromDragStart() > 5)
+            {
+                dragging = true;
+                owner.startDragging (juce::var (channelNumber), this);
+            }
+        }
+
+        void mouseUp (const juce::MouseEvent&) override { dragging = false; }
 
         void resized() override
         {
             auto area = getLocalBounds().reduced (2);
-            numberLabel.setBounds (area.removeFromLeft (36));
+            gripLabel.setBounds (area.removeFromLeft (20));
+            numberLabel.setBounds (area.removeFromLeft (32));
             area.removeFromLeft (6);
             deleteButton.setBounds (area.removeFromRight (26).reduced (0, 2));
             area.removeFromRight (6);
-            typeBox.setBounds (area.removeFromRight (96).reduced (0, 2));
+            typeLabel.setBounds (area.removeFromRight (70));
             area.removeFromRight (6);
             nameLabel.setBounds (area);
         }
 
         InputChannelListEditor& owner;
         int channelNumber = 0;
-        bool updating = false;
-        juce::Label numberLabel, nameLabel;
-        juce::ComboBox typeBox;
+        bool dragging = false;
+        juce::Label gripLabel, numberLabel, nameLabel, typeLabel;
         juce::TextButton deleteButton;
     };
 
     //==========================================================================
     // Actions (all funnel through the structural ops)
     //==========================================================================
-
-    void addChannel (bool stereo)
-    {
-        auto result = state.addInputChannel (stereo);
-        if (result.wasOk())
-        {
-            structureChanged();
-            return;
-        }
-
-        // Number space exhausted with gaps available: offer explicit reuse of
-        // the lowest retired number (snapshots/cues addressed to it will
-        // affect the new channel — hence the confirmation).
-        const int freeNumber = state.getLowestFreeChannelNumber();
-        if (state.getNextChannelNumber() > WFSParameterDefaults::maxInputChannels
-            && state.getNumInputChannels() < WFSParameterDefaults::maxInputChannels
-            && freeNumber > 0)
-        {
-            auto options = juce::MessageBoxOptions()
-                .withIconType (juce::MessageBoxIconType::QuestionIcon)
-                .withTitle (LOC ("systemConfig.channelList.reuseTitle"))
-                .withMessage (LocalizationManager::getInstance().get (
-                    "systemConfig.channelList.reuseMessage",
-                    {{ "number", juce::String (freeNumber) }}))
-                .withButton (LOC ("systemConfig.channelList.reuse"))
-                .withButton (LOC ("common.cancel"))
-                .withAssociatedComponent (this);
-
-            juce::AlertWindow::showAsync (options,
-                [safeThis = juce::Component::SafePointer<InputChannelListEditor> (this),
-                 stereo, freeNumber] (int choice)
-                {
-                    if (safeThis == nullptr || choice != 1)
-                        return;
-                    if (safeThis->state.addInputChannel (stereo, freeNumber).wasOk())
-                        safeThis->structureChanged();
-                });
-            return;
-        }
-
-        WFSLogger::getInstance().logWarning ("Add input channel refused: " + result.getErrorMessage());
-    }
 
     void confirmDelete (int channelNumber)
     {
@@ -224,14 +217,6 @@ private:
             });
     }
 
-    void flipType (int channelNumber, bool stereo)
-    {
-        if (state.setInputChannelType (channelNumber, stereo).wasOk())
-            structureChanged();
-        else
-            refresh();  // restore the combo (budget refusal)
-    }
-
     void structureChanged()
     {
         if (onStructureChanged)
@@ -251,18 +236,13 @@ private:
                                  {{ "mono",   juce::String (total - stereo) },
                                   { "stereo", juce::String (stereo) }}),
                              juce::dontSendNotification);
-
-        addStereoButton.setEnabled (stereo < WFSParameterDefaults::maxStereoChannels
-                                    && total < WFSParameterDefaults::maxInputChannels);
-        addMonoButton.setEnabled (total < WFSParameterDefaults::maxInputChannels);
     }
 
     WFSValueTreeState& state;
     std::function<void()> onStructureChanged;
 
     juce::ListBox listBox;
-    juce::TextButton addMonoButton, addStereoButton;
-    juce::Label statusLabel;
+    juce::Label hintLabel, statusLabel;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (InputChannelListEditor)
 };
