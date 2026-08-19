@@ -50,15 +50,25 @@ enum class Id
     Static = 0,     // fixed matrices, FR off
     Moving,         // source sweep: delay/level ramps stepped at 50 Hz ticks
     FrToggle,       // floor reflections on, diffusion nonzero, toggled mid-run
+    Stereo,         // one stereo-pair channel (6 slice slots, width timeline) + mono channels
+
+    // Null-test pair (--stereo-null): NOT baselined, not reachable from
+    // --scenario. Both draw bit-identical L/R streams; the runner compares
+    // their output hashes against each other instead of a baseline file.
+    StereoNull,     // config A: width-0 stereo — 6 sources, slots 2..5 claimed-and-silent
+    StereoNullMono, // config B: two mono channels at the same position
 };
 
 inline const char* name (Id id)
 {
     switch (id)
     {
-        case Id::Static:   return "static";
-        case Id::Moving:   return "moving";
-        case Id::FrToggle: return "fr-toggle";
+        case Id::Static:         return "static";
+        case Id::Moving:         return "moving";
+        case Id::FrToggle:       return "fr-toggle";
+        case Id::Stereo:         return "stereo";
+        case Id::StereoNull:     return "stereo-null";
+        case Id::StereoNullMono: return "stereo-null-mono";
     }
     return "?";
 }
@@ -68,12 +78,13 @@ inline bool fromName (const std::string& s, Id& out)
     if (s == "static")    { out = Id::Static;   return true; }
     if (s == "moving")    { out = Id::Moving;   return true; }
     if (s == "fr-toggle") { out = Id::FrToggle; return true; }
+    if (s == "stereo")    { out = Id::Stereo;   return true; }
     return false;
 }
 
 inline const std::vector<Id>& allScenarios()
 {
-    static const std::vector<Id> all { Id::Static, Id::Moving, Id::FrToggle };
+    static const std::vector<Id> all { Id::Static, Id::Moving, Id::FrToggle, Id::Stereo };
     return all;
 }
 
@@ -84,6 +95,21 @@ inline const std::vector<Id>& allScenarios()
 //==============================================================================
 inline float inputSample (Id id, int channel, int64_t sampleIndex, double sampleRate)
 {
+    // Stereo scenario: sources 2..5 are one stereo channel's claimed-and-
+    // silent slice slots — the Phase-0 pass-through backend clears them every
+    // block, so their streams are exact zeros.
+    if (id == Id::Stereo && channel >= 2 && channel < 6)
+        return 0.0f;
+
+    // Null pair: BOTH configs must feed bit-identical L/R (channels 0/1), so
+    // they share one scenario key; config A's slots 2..5 are exact zeros.
+    if (id == Id::StereoNull || id == Id::StereoNullMono)
+    {
+        if (channel >= 2)
+            return 0.0f;
+        id = Id::StereoNull;
+    }
+
     const int sid = static_cast<int> (id);
     const double freq = 110.0 + 97.0 * static_cast<double> (channel % 8)
                       + 13.0 * static_cast<double> (sid);
@@ -204,6 +230,85 @@ inline void applyWfsTick (Id id, int tick, int numIn, int numOut, WfsMatrices& m
                     m.frHfDb[idx]    = -3.0f;
                     break;
                 }
+
+                case Id::Stereo:
+                {
+                    // Sources 0..5 = the six slice slots of ONE stereo-pair
+                    // channel; sources >= 6 are ordinary mono channels. The
+                    // two live slices share the channel's anchor values (per-
+                    // channel terms are shared by contract) and separate along
+                    // a width timeline — a live inputStereoWidth edit. Slots
+                    // 2..5 are claimed-and-silent: zero rows. FR is N/A for
+                    // stereo channels: zero for every slice slot.
+                    if (in >= 2 && in < 6)
+                    {
+                        m.delayMs[idx] = 0.0f;
+                        m.levels[idx]  = 0.0f;
+                        m.hfDb[idx]    = 0.0f;
+                        m.frDelayMs[idx] = 0.0f;
+                        m.frLevels[idx]  = 0.0f;
+                        m.frHfDb[idx]    = 0.0f;
+                        break;
+                    }
+
+                    if (in < 2)
+                    {
+                        // Anchor row = the Static formula evaluated at in = 0
+                        const float anchorDelay = 2.0f + 0.5f * static_cast<float> ((out * 3) % 40);
+                        const float anchorLevel = 0.25f + 0.05f * static_cast<float> ((2 * out) % 10);
+                        const float anchorHf    = -1.0f * static_cast<float> (out % 6);
+
+                        // Width 0..1 over 10 s; slice 0 = azimuth -1, slice 1 = +1.
+                        // The per-output scale models the slice's distance to
+                        // each speaker changing as it moves off the anchor.
+                        const float width   = 0.5f + 0.5f * static_cast<float> (std::sin (twoPi * 0.1 * t));
+                        const float azimuth = (in == 0) ? -1.0f : 1.0f;
+
+                        m.delayMs[idx] = anchorDelay
+                                       + azimuth * width * (0.4f + 0.05f * static_cast<float> (out % 5));
+                        m.levels[idx]  = anchorLevel;
+                        m.hfDb[idx]    = anchorHf;
+                        m.frDelayMs[idx] = 0.0f;
+                        m.frLevels[idx]  = 0.0f;
+                        m.frHfDb[idx]    = 0.0f;
+                        break;
+                    }
+
+                    // Mono channels: Static values, FR off
+                    m.delayMs[idx] = staticDelay;
+                    m.levels[idx]  = staticLevel;
+                    m.hfDb[idx]    = staticHf;
+                    m.frDelayMs[idx] = 0.0f;
+                    m.frLevels[idx]  = 0.0f;
+                    m.frHfDb[idx]    = 0.0f;
+                    break;
+                }
+
+                case Id::StereoNull:
+                case Id::StereoNullMono:
+                {
+                    // The null condition (handoff doc §8): every LIVE source
+                    // renders through the IDENTICAL anchor row — a width-0
+                    // stereo channel and two mono channels at the same
+                    // position must be indistinguishable. Config A's slots
+                    // 2..5 are zero rows.
+                    if (id == Id::StereoNull && in >= 2)
+                    {
+                        m.delayMs[idx] = 0.0f;
+                        m.levels[idx]  = 0.0f;
+                        m.hfDb[idx]    = 0.0f;
+                    }
+                    else
+                    {
+                        m.delayMs[idx] = 2.0f + 0.5f * static_cast<float> ((out * 3) % 40);
+                        m.levels[idx]  = 0.25f + 0.05f * static_cast<float> ((2 * out) % 10);
+                        m.hfDb[idx]    = -1.0f * static_cast<float> (out % 6);
+                    }
+                    m.frDelayMs[idx] = 0.0f;
+                    m.frLevels[idx]  = 0.0f;
+                    m.frHfDb[idx]    = 0.0f;
+                    break;
+                }
             }
         }
     }
@@ -236,6 +341,11 @@ inline AlgorithmParameters reverbParams (Id id, int tick)
             p.diffusion = (((tick / 50) % 2) == 0) ? 0.7f : 0.2f;
             p.rt60      = (((tick / 50) % 2) == 0) ? 1.8f : 1.2f;
             break;
+
+        case Id::Stereo:
+        case Id::StereoNull:
+        case Id::StereoNullMono:
+            break;   // fixed defaults — the stereo content is in the input set
     }
     return p;
 }
