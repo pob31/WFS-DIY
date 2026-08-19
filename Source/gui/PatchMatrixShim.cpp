@@ -92,9 +92,12 @@ PatchMatrixComponent::makeConfig (WFSValueTreeState& parameters, bool isInputPat
     };
 
     // Input rows are labeled by the PERMANENT channel number (the list may
-    // have gaps after deletions); outputs stay dense row + 1.
+    // have gaps after deletions); outputs stay dense row + 1. The host's
+    // structural ops (add/remove/drag) edit the input rows atomically with
+    // the channel list, so the matrix must only mirror, never write back.
     if (isInputPatch)
     {
+        config.hostManagesRows = true;
         config.rowIdProvider = [&parameters] (int row) -> int
         {
             return parameters.getInputChannelNumber (row);

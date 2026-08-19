@@ -1534,18 +1534,19 @@ public:
             int shiftBtnSize = rowHeight;  // Square buttons
             int shiftBtnX = x + labelWidth + editorWidth + spacing;
 
+            // Mono count row: the arrange-channels button sits after the
+            // shift buttons so the stereo row below keeps room for the
+            // render-source total.
             inputChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
             inputChannelsEditor.setBounds(x + labelWidth + ei, y, editorWidth - ei * 2, rowHeight);
             inputShiftButton.setBounds(shiftBtnX, y, shiftBtnSize, rowHeight);
             inputShiftDismissButton.setBounds(shiftBtnX + shiftBtnSize + spacing, y, shiftBtnSize, rowHeight);
+            editChannelsButton.setBounds(shiftBtnX + (shiftBtnSize + spacing) * 2, y, scaled(110), rowHeight);
             y += rowHeight + spacing;
 
-            // Stereo count row; the arrange-channels button and render-source
-            // total sit where the other rows keep their shift buttons.
             stereoChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
             stereoChannelsEditor.setBounds(x + labelWidth + ei, y, editorWidth - ei * 2, rowHeight);
-            editChannelsButton.setBounds(shiftBtnX, y, scaled(110), rowHeight);
-            renderSourceTotalLabel.setBounds(shiftBtnX + scaled(110) + spacing, y, scaled(170), rowHeight);
+            renderSourceTotalLabel.setBounds(shiftBtnX, y, scaled(170), rowHeight);
             y += rowHeight + spacing;
 
             outputChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
