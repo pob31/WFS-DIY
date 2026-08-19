@@ -1395,11 +1395,79 @@ void WFSValueTreeState::setInputChannelCounts (int numMono, int numStereo)
     numStereo = juce::jlimit (0, WFSParameterDefaults::maxStereoChannels, numStereo);
     numMono   = juce::jlimit (1, WFSParameterDefaults::maxInputChannels - numStereo, numMono);
 
-    // Resize the channel list first, then stamp the stereo split: readers
-    // clamp the split by the list size, so every intermediate state a
-    // synchronous ValueTree listener can observe reads consistently.
-    setNumInputChannels (numMono + numStereo);
+    auto inputs = getInputsState();
+    const int oldTotal  = inputs.getNumChildren();
+    const int oldStereo = getNumStereoInputChannels();
+    const int oldMono   = oldTotal - oldStereo;
+    const int newTotal  = numMono + numStereo;
+
+    if (numMono == oldMono && numStereo == oldStereo)
+        return;
+
+    beginUndoTransaction ("Set Input Channel Counts");
+
+    // The two pools are edited structurally: mono changes happen AT THE
+    // BOUNDARY (before the stereo block), so the stereo channels keep their
+    // subtrees — settings, width, custom names — and simply shift index.
+    // Stereo changes happen at the end of the list.
+    if (numMono > oldMono)
+    {
+        for (int i = 0; i < numMono - oldMono; ++i)
+            inputs.addChild (createDefaultInputChannel (oldMono + i, newTotal),
+                             oldMono + i, getActiveUndoManager());
+    }
+    else if (numMono < oldMono)
+    {
+        for (int i = oldMono; --i >= numMono;)
+            inputs.removeChild (i, getActiveUndoManager());
+    }
+
+    if (numStereo > oldStereo)
+    {
+        for (int i = inputs.getNumChildren(); i < newTotal; ++i)
+            inputs.appendChild (createDefaultInputChannel (i, newTotal), getActiveUndoManager());
+    }
+    else if (numStereo < oldStereo)
+    {
+        while (inputs.getNumChildren() > newTotal)
+            inputs.removeChild (inputs.getNumChildren() - 1, getActiveUndoManager());
+    }
+
+    // Middle edits shift channel indices: renumber ids, and keep DEFAULT
+    // names ("Input N") in step — custom names are never touched.
+    for (int i = 0; i < inputs.getNumChildren(); ++i)
+    {
+        auto input = inputs.getChild (i);
+        const int oldId = static_cast<int> (input.getProperty (id, 0));
+        if (oldId == i + 1)
+            continue;
+
+        input.setProperty (id, i + 1, getActiveUndoManager());
+
+        auto channel = input.getChildWithName (Channel);
+        if (channel.isValid()
+            && channel.getProperty (inputName).toString() == getDefaultInputName (oldId - 1))
+            channel.setProperty (inputName, getDefaultInputName (i), getActiveUndoManager());
+    }
+
+    // Migration sections for every channel (mirrors setNumInputChannels)
+    for (int i = 0; i < newTotal; ++i)
+    {
+        ensureInputGradientMapsSection (i);
+        ensureInputSamplerSection (i);
+    }
+
+    // Count properties + the stereo stamp (property last: readers clamp the
+    // split by the list size, so every intermediate state a synchronous
+    // listener can observe reads consistently)
+    auto io = getIOState();
+    if (io.isValid())
+        io.setProperty (inputChannels, newTotal, getActiveUndoManager());
+    inputs.setProperty (count, newTotal, getActiveUndoManager());
     setNumStereoInputChannels (numStereo);
+
+    if (oldTotal != newTotal && ! arePositionsUserOwned())
+        redistributeAllInputPositions();
 }
 
 int WFSValueTreeState::getNumOutputChannels() const

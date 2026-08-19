@@ -562,6 +562,17 @@ private:
     void growPatchData(juce::ValueTree& patchTree, int newChannelCount, int numHardwareCols,
                        int numStereoRows = 0);
 
+    /** Structural input-patch edit mirroring setInputChannelCounts: mono rows
+        are inserted/removed AT THE BOUNDARY (the stereo block's rows move
+        with their channels), stereo rows at the end. New mono rows come
+        unpatched; new stereo rows continue the two-wide diagonal. Falls back
+        to growPatchData when the stored rows don't match the old shape
+        (config load). */
+    void restructureInputPatchRows(juce::ValueTree& patchTree,
+                                   int oldMono, int oldStereo,
+                                   int newMono, int newStereo,
+                                   int numHardwareCols);
+
     /** Auto-diagonal companion for stereo pairs: rows with a patched L and no
         R get the next hardware column when it is free everywhere. Heuristic,
         never steals a claimed column, leaves fully unpatched rows alone. */

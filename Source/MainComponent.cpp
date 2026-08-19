@@ -2986,6 +2986,95 @@ void MainComponent::growPatchData(juce::ValueTree& patchTree, int newChannelCoun
     patchTree.setProperty(WFSParameterIDs::rows, newChannelCount, nullptr);
 }
 
+void MainComponent::restructureInputPatchRows(juce::ValueTree& patchTree,
+                                              int oldMono, int oldStereo,
+                                              int newMono, int newStereo,
+                                              int numHardwareCols)
+{
+    if (! patchTree.isValid())
+        return;
+
+    juce::String patchDataStr = patchTree.getProperty(WFSParameterIDs::patchData).toString();
+    juce::StringArray rows = juce::StringArray::fromTokens(patchDataStr, ";", "");
+
+    const int newTotal = newMono + newStereo;
+
+    // With no stereo rows in play, keep the historical behaviour exactly:
+    // plain 1:1 diagonal growth / end truncation.
+    if (oldStereo == 0 && newStereo == 0)
+    {
+        growPatchData(patchTree, newTotal, numHardwareCols, 0);
+        return;
+    }
+
+    // The structural diff only applies when the stored rows still describe
+    // the OLD shape. A config load rewrites patchData wholesale before this
+    // runs — then just normalize the row count (append-style, stereo-aware).
+    if (rows.size() != oldMono + oldStereo)
+    {
+        growPatchData(patchTree, newTotal, numHardwareCols, newStereo);
+        return;
+    }
+
+    // Mono pool edits at the boundary: the stereo block's rows move WITH
+    // their channels. New mono rows come UNPATCHED — the diagonal columns
+    // past the mono block belong to the stereo pairs, so auto-patching them
+    // would collide (the operator patches them deliberately).
+    if (newMono > oldMono)
+    {
+        juce::StringArray emptyCols;
+        for (int c = 0; c < numHardwareCols; ++c)
+            emptyCols.add("0");
+        const juce::String emptyRow = emptyCols.joinIntoString(",");
+
+        for (int i = 0; i < newMono - oldMono; ++i)
+            rows.insert(oldMono + i, emptyRow);
+    }
+    else if (newMono < oldMono)
+    {
+        for (int i = oldMono; --i >= newMono;)
+            rows.remove(i);
+    }
+
+    // Stereo pool edits at the end: new pairs continue the two-wide diagonal
+    // past everything already patched; removals truncate.
+    if (newStereo > oldStereo)
+    {
+        int cursor = 0;
+        for (int r = 0; r < rows.size(); ++r)
+        {
+            juce::StringArray cols = juce::StringArray::fromTokens(rows[r], ",", "");
+            for (int c = cols.size(); --c >= 0;)
+            {
+                if (cols[c].getIntValue() == 1)
+                {
+                    cursor = juce::jmax(cursor, c + 1);
+                    break;
+                }
+            }
+        }
+
+        while (rows.size() < newTotal)
+        {
+            const int lastCol = juce::jmin(WFSValueTreeState::maxHardwarePatchChannels - 1, cursor + 1);
+            juce::StringArray cols;
+            const int rowLen = juce::jmax(numHardwareCols, lastCol + 1);
+            for (int c = 0; c < rowLen; ++c)
+                cols.add(c >= cursor && c <= lastCol ? "1" : "0");
+            rows.add(cols.joinIntoString(","));
+            cursor = lastCol + 1;
+        }
+    }
+    else if (newStereo < oldStereo)
+    {
+        while (rows.size() > newTotal)
+            rows.remove(rows.size() - 1);
+    }
+
+    patchTree.setProperty(WFSParameterIDs::patchData, rows.joinIntoString(";"), nullptr);
+    patchTree.setProperty(WFSParameterIDs::rows, newTotal, nullptr);
+}
+
 void MainComponent::autoPatchStereoRightColumns()
 {
     // Auto-diagonal companion for stereo rows: a pair whose L is patched but
@@ -3453,6 +3542,11 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
     WFSLogger::getInstance().logInfo ("Channel count changed: " + juce::String (inputs) + " inputs, "
                                       + juce::String (outputs) + " outputs, "
                                       + juce::String (reverbs) + " reverbs");
+    // Old mono/stereo split, for the structural patch-row edit below (the
+    // retained map still describes the pre-change shape at this point)
+    const int oldTotalInputs  = numInputChannels;
+    const int oldStereoInputs = (renderSourceMap.count - renderSourceMap.numInputChannels)
+                                    / spatcore::wfs::RenderSourceMap::kDerivedPerStereo;
     numInputChannels = inputs;
     numOutputChannels = outputs;
     recomputeRenderSourceCount();  // keep the renderer dimension in lockstep
@@ -3474,8 +3568,12 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
         auto outputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::OutputPatch);
         int hwInCols = inputPatchTree.isValid() ? (int) inputPatchTree.getProperty(WFSParameterIDs::cols, 64) : 64;
         int hwOutCols = outputPatchTree.isValid() ? (int) outputPatchTree.getProperty(WFSParameterIDs::cols, WFSParameterDefaults::maxOutputChannels) : WFSParameterDefaults::maxOutputChannels;
-        growPatchData(inputPatchTree, inputs, hwInCols,
-                      parameters.getValueTreeState().getNumStereoInputChannels());
+        {
+            const int newStereo = parameters.getValueTreeState().getNumStereoInputChannels();
+            restructureInputPatchRows(inputPatchTree,
+                                      oldTotalInputs - oldStereoInputs, oldStereoInputs,
+                                      inputs - newStereo, newStereo, hwInCols);
+        }
         growPatchData(outputPatchTree, outputs, hwOutCols);
     }
 
