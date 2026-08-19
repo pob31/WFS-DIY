@@ -1479,8 +1479,8 @@ public:
         g.setFont(juce::FontOptions().withHeight(juce::jmax(10.0f, 14.0f * layoutScale)).withStyle("Bold"));
         g.drawText(LOC("systemConfig.sections.show"), layout.col1X, scaled(10), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.io"), layout.col1X, scaled(130), layout.colWidth, headerH, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.ui"), layout.col1X, scaled(290), layout.colWidth, headerH, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.controllers"), layout.col1X, scaled(465), layout.colWidth, headerH, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.ui"), layout.col1X, scaled(328), layout.colWidth, headerH, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.controllers"), layout.col1X, scaled(503), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.stage"), layout.col2X, scaled(10), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.master"), layout.col2X, scaled(400), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.wfsProcessor"), layout.col3X, scaled(10), layout.colWidth, headerH, juce::Justification::left);
@@ -1528,25 +1528,18 @@ public:
             int shiftBtnSize = rowHeight;  // Square buttons
             int shiftBtnX = x + labelWidth + editorWidth + spacing;
 
-            // Mono + stereo counts share the input row (the LAST stereo
-            // channels of the list are the pairs). Total = mono + stereo.
             inputChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
-            {
-                int cx = x + labelWidth + ei;
-                const int numW = scaled(42);
-                inputChannelsEditor.setBounds(cx, y, numW, rowHeight);
-                cx += numW + spacing;
-                stereoChannelsLabel.setBounds(cx, y, scaled(58), rowHeight);
-                cx += scaled(58);
-                stereoChannelsEditor.setBounds(cx, y, numW, rowHeight);
-                cx += numW + spacing;
-                // This row's shift buttons sit after the stereo field (the
-                // shared shiftBtnX column would overlap it)
-                inputShiftButton.setBounds(cx, y, shiftBtnSize, rowHeight);
-                inputShiftDismissButton.setBounds(cx + shiftBtnSize + spacing, y, shiftBtnSize, rowHeight);
-            }
-            // Render-source total in the slack under the I/O rows
-            renderSourceTotalLabel.setBounds(x, scaled(266), labelWidth + editorWidth, scaled(22));
+            inputChannelsEditor.setBounds(x + labelWidth + ei, y, editorWidth - ei * 2, rowHeight);
+            inputShiftButton.setBounds(shiftBtnX, y, shiftBtnSize, rowHeight);
+            inputShiftDismissButton.setBounds(shiftBtnX + shiftBtnSize + spacing, y, shiftBtnSize, rowHeight);
+            y += rowHeight + spacing;
+
+            // Stereo pairs: the LAST N input channels (total = mono + stereo).
+            // The render-source total sits where the other rows keep their
+            // shift buttons.
+            stereoChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
+            stereoChannelsEditor.setBounds(x + labelWidth + ei, y, editorWidth - ei * 2, rowHeight);
+            renderSourceTotalLabel.setBounds(shiftBtnX, y, scaled(170), rowHeight);
             y += rowHeight + spacing;
 
             outputChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
@@ -1562,7 +1555,7 @@ public:
         }
 
         // UI Section
-        y = scaled(320); // Start after "UI" header
+        y = scaled(358); // Start after "UI" header (I/O grew a stereo row)
         colorSchemeLabel.setBounds(x, y, labelWidth, rowHeight);
         colorSchemeSelector.setBounds(x + labelWidth, y, editorWidth * 2, rowHeight);  // Wider for dropdown text
         y += rowHeight + spacing;
@@ -1586,7 +1579,7 @@ public:
         }
 
         // Controllers Section
-        y = scaled(495); // Start after "Controllers" header (shifted down for extra UI rows)
+        y = scaled(533); // Start after "Controllers" header (shifted down for extra UI rows)
         dialsAndButtonsLabel.setBounds (x, y, labelWidth, rowHeight);
         dialsAndButtonsSelector.setBounds (x + labelWidth, y, editorWidth * 2, rowHeight);
         y += rowHeight + spacing;
@@ -1983,9 +1976,9 @@ public:
 
             // Keyboard Shortcuts help button — same right-aligned column as the
             // overview "?", but up on the "UI" section header line (painted at
-            // scaled(290) with a scaled(20) row, see paint()).
+            // scaled(328) with a scaled(20) row, see paint()).
             shortcutsHelpButton.setBounds (layout.col1X + layout.colWidth - btnSize,
-                                           scaled(290) + (scaled(20) - btnSize) / 2,
+                                           scaled(328) + (scaled(20) - btnSize) / 2,
                                            btnSize, btnSize);
 
             // Keyboard Shortcuts card — large, centered; scrolls if it overflows

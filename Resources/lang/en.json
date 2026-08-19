@@ -85,7 +85,7 @@
       "showName": "Name:",
       "showLocation": "Location:",
       "inputChannels": "Mono Inputs:",
-      "stereoInputs": "Stereo:",
+      "stereoInputs": "Stereo Inputs:",
       "renderSourceTotal": "({count} render sources)",
       "outputChannels": "Output Channels:",
       "reverbChannels": "Reverb Channels:",
