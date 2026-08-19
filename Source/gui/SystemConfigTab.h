@@ -15,6 +15,7 @@
 #include "../WFSLogger.h"
 #include "../../spatcore/controllers/lightpad/LightpadTypes.h"
 #include "HelpCard.h"
+#include "InputChannelListEditor.h"
 #include "LightpadArrangementOverlay.h"
 #include "RefreshableComboBox.h"
 #if WFS_GPU_NATIVE
@@ -502,16 +503,16 @@ public:
         addAndMakeVisible(showLocationEditor);
         // (showLocationEditor uses default border)
 
-        // I/O Section
+        // I/O Section — inputs are managed through the channel LIST editor
+        // (stable-number model: append-only numbers, per-channel mono/stereo
+        // type, deletions leave gaps); the row shows a read-only summary.
         addAndMakeVisible(inputChannelsLabel);
         inputChannelsLabel.setText(LOC("systemConfig.labels.inputChannels"), juce::dontSendNotification);
-        addAndMakeVisible(inputChannelsEditor);
-        // (inputChannelsEditor uses default border)
-        // Stereo pairs: the LAST N input channels render as stereo pairs
-        // (config-level split; each claims two patch columns from the start)
-        addAndMakeVisible(stereoChannelsLabel);
-        stereoChannelsLabel.setText(LOC("systemConfig.labels.stereoInputs"), juce::dontSendNotification);
-        addAndMakeVisible(stereoChannelsEditor);
+        addAndMakeVisible(channelSummaryLabel);
+        channelSummaryLabel.setJustificationType(juce::Justification::centredLeft);
+        addAndMakeVisible(editChannelsButton);
+        editChannelsButton.setButtonText(LOC("systemConfig.channelList.edit"));
+        editChannelsButton.onClick = [this] { openChannelListEditor(); };
         // Render-source total: visible only when stereo-pair channels claim
         // derived slice slots, so the renderer budget consumption is visible
         // (handoff doc §6). Fed by MainComponent::recomputeRenderSourceCount().
@@ -1361,8 +1362,6 @@ public:
         // Add text editor listeners
         showNameEditor.addListener(this);
         showLocationEditor.addListener(this);
-        inputChannelsEditor.addListener(this);
-        stereoChannelsEditor.addListener(this);
         outputChannelsEditor.addListener(this);
         reverbChannelsEditor.addListener(this);
         stageWidthEditor.addListener(this);
@@ -1529,16 +1528,14 @@ public:
             int shiftBtnX = x + labelWidth + editorWidth + spacing;
 
             inputChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
-            inputChannelsEditor.setBounds(x + labelWidth + ei, y, editorWidth - ei * 2, rowHeight);
+            channelSummaryLabel.setBounds(x + labelWidth + ei, y, editorWidth - ei * 2, rowHeight);
             inputShiftButton.setBounds(shiftBtnX, y, shiftBtnSize, rowHeight);
             inputShiftDismissButton.setBounds(shiftBtnX + shiftBtnSize + spacing, y, shiftBtnSize, rowHeight);
             y += rowHeight + spacing;
 
-            // Stereo pairs: the LAST N input channels (total = mono + stereo).
-            // The render-source total sits where the other rows keep their
-            // shift buttons.
-            stereoChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
-            stereoChannelsEditor.setBounds(x + labelWidth + ei, y, editorWidth - ei * 2, rowHeight);
+            // Channel list editor button; the render-source total sits where
+            // the other rows keep their shift buttons.
+            editChannelsButton.setBounds(x + labelWidth + ei, y, editorWidth - ei * 2, rowHeight);
             renderSourceTotalLabel.setBounds(shiftBtnX, y, scaled(170), rowHeight);
             y += rowHeight + spacing;
 
@@ -2240,7 +2237,7 @@ public:
 
     juce::Rectangle<int> getInputChannelsBounds() const
     {
-        return inputChannelsLabel.getBounds().getUnion(inputChannelsEditor.getBounds());
+        return inputChannelsLabel.getBounds().getUnion(channelSummaryLabel.getBounds());
     }
 
     juce::Rectangle<int> getOutputChannelsBounds() const
@@ -2347,7 +2344,7 @@ public:
             // Column 1: Show
             { &showNameEditor, &showLocationEditor },
             // Column 2: I/O
-            { &inputChannelsEditor, &stereoChannelsEditor, &outputChannelsEditor, &reverbChannelsEditor },
+            { &outputChannelsEditor, &reverbChannelsEditor },
             // Column 3: Stage (invisible fields skipped automatically per shape)
             { &stageWidthEditor, &stageDepthEditor,
               &stageDiameterEditor, &domeElevationEditor, &stageHeightEditor,
@@ -2411,8 +2408,6 @@ private:
         setupNumericEditor(haasEffectEditor, false, true);  // 0.0 to 10.0 (no negative)
 
         // I/O Section - integers only
-        setupNumericEditor(inputChannelsEditor, false, false);
-        setupNumericEditor(stereoChannelsEditor, false, false);
         setupNumericEditor(outputChannelsEditor, false, false);
         setupNumericEditor(reverbChannelsEditor, false, false);
 
@@ -2447,11 +2442,6 @@ private:
             editor.setText(parameters.getConfigParam("ShowName").toString(), false);
         else if (&editor == &showLocationEditor)
             editor.setText(parameters.getConfigParam("ShowLocation").toString(), false);
-        else if (&editor == &inputChannelsEditor)
-            editor.setText(juce::String(parameters.getNumInputChannels()
-                                        - parameters.getValueTreeState().getNumStereoInputChannels()), false);
-        else if (&editor == &stereoChannelsEditor)
-            editor.setText(juce::String(parameters.getValueTreeState().getNumStereoInputChannels()), false);
         else if (&editor == &outputChannelsEditor)
             editor.setText(juce::String(parameters.getNumOutputChannels()), false);
         else if (&editor == &reverbChannelsEditor)
@@ -2546,15 +2536,10 @@ private:
         showNameEditor.setText(parameters.getConfigParam("ShowName").toString(), false);
         showLocationEditor.setText(parameters.getConfigParam("ShowLocation").toString(), false);
 
-        // Channel counts - use dedicated getters for reliable values.
-        // The input field shows the MONO count; the stereo field the pairs
-        // (total = mono + stereo, stereo channels are the LAST of the list).
-        {
-            const int totalIn  = parameters.getNumInputChannels();
-            const int stereoIn = parameters.getValueTreeState().getNumStereoInputChannels();
-            inputChannelsEditor.setText(juce::String(totalIn - stereoIn), false);
-            stereoChannelsEditor.setText(juce::String(stereoIn), false);
-        }
+        // Channel counts - use dedicated getters for reliable values. The
+        // input row is a read-only summary; edits go through the channel
+        // list editor (stable-number model).
+        updateChannelSummary();
         outputChannelsEditor.setText(juce::String(parameters.getNumOutputChannels()), false);
         reverbChannelsEditor.setText(juce::String(parameters.getNumReverbChannels()), false);
 
@@ -2721,79 +2706,6 @@ private:
             parameters.setConfigParam("ShowName", text);
         else if (&editor == &showLocationEditor)
             parameters.setConfigParam("ShowLocation", text);
-        else if (&editor == &inputChannelsEditor || &editor == &stereoChannelsEditor)
-        {
-            // Total = mono + stereo; the stereo channels are the LAST of the
-            // list. Editing either field recomputes the total; reductions of
-            // the total prompt before removing channel settings.
-            const bool editingStereo = (&editor == &stereoChannelsEditor);
-            const int currentTotal  = parameters.getNumInputChannels();
-            const int currentStereo = parameters.getValueTreeState().getNumStereoInputChannels();
-            const int currentMono   = currentTotal - currentStereo;
-
-            int newMono   = currentMono;
-            int newStereo = currentStereo;
-            if (editingStereo)
-                newStereo = juce::jlimit(0, juce::jmin(WFSParameterDefaults::maxStereoChannels,
-                                                       WFSParameterDefaults::maxInputChannels - currentMono),
-                                         text.getIntValue());
-            else
-                newMono = juce::jlimit(1, WFSParameterDefaults::maxInputChannels - currentStereo,
-                                       text.getIntValue());
-
-            const int newTotal = newMono + newStereo;
-
-            auto apply = [this, newMono, newStereo]()
-            {
-                WFSLogger::getInstance().logInfo("Input counts applied: "
-                    + juce::String(newMono) + " mono + " + juce::String(newStereo) + " stereo");
-                parameters.getValueTreeState().setInputChannelCounts(newMono, newStereo);
-                notifyChannelCountChanged();
-                loadParametersToUI();   // both fields re-read (clamps may have adjusted the entry)
-            };
-
-            if (newTotal < currentTotal)
-            {
-                // Prevent multiple dialogs from appearing
-                if (isShowingChannelReductionDialog)
-                {
-                    editor.setText(juce::String(editingStereo ? currentStereo : currentMono), false);
-                    return;
-                }
-                isShowingChannelReductionDialog = true;
-
-                // Show JUCE AlertWindow confirmation dialog for reducing channels
-                auto options = juce::MessageBoxOptions()
-                    .withIconType(juce::MessageBoxIconType::WarningIcon)
-                    .withTitle(LOC("systemConfig.dialogs.reduceInputChannels.title"))
-                    .withMessage(LocalizationManager::getInstance().get(
-                        "systemConfig.dialogs.reduceInputChannels.message",
-                        {{"current", juce::String(currentTotal)},
-                         {"new", juce::String(newTotal)},
-                         {"start", juce::String(newTotal + 1)},
-                         {"end", juce::String(currentTotal)}}))
-                    .withButton(LOC("systemConfig.dialogs.reduce"))
-                    .withButton(LOC("common.cancel"))
-                    .withAssociatedComponent(this);
-
-                juce::AlertWindow::showAsync(options,
-                    [this, apply, editingStereo, currentMono, currentStereo](int result) {
-                    isShowingChannelReductionDialog = false;
-                    if (result == 1)  // Reduce pressed
-                        apply();
-                    else  // Cancel pressed - restore original value
-                    {
-                        inputChannelsEditor.setText(juce::String(currentMono), false);
-                        stereoChannelsEditor.setText(juce::String(currentStereo), false);
-                        juce::ignoreUnused(editingStereo);
-                    }
-                });
-            }
-            else
-            {
-                apply();
-            }
-        }
         else if (&editor == &outputChannelsEditor)
         {
             int newOutputs = text.getIntValue();
@@ -3088,12 +3000,9 @@ private:
                                  WFSParameterDefaults::binauralListenerRollMax, value);
         else if (&editor == &reverbChannelsEditor)
             value = juce::jlimit(0.0f, (float)WFSParameterDefaults::maxReverbChannels, std::abs(value));
-        else if (&editor == &stereoChannelsEditor)
-            value = juce::jlimit(0.0f, (float)WFSParameterDefaults::maxStereoChannels, std::abs(value));
 
         // Update display with clamped value
-        if (&editor == &inputChannelsEditor || &editor == &stereoChannelsEditor ||
-            &editor == &outputChannelsEditor ||
+        if (&editor == &outputChannelsEditor ||
             &editor == &reverbChannelsEditor || &editor == &binauralAngleEditor)
         {
             editor.setText(juce::String((int)value), false);
@@ -3434,8 +3343,7 @@ public:
         // When processing is ON, disable I/O controls to prevent changes
         bool enabled = !processingEnabled;
 
-        inputChannelsEditor.setEnabled(enabled);
-        stereoChannelsEditor.setEnabled(enabled);
+        editChannelsButton.setEnabled(enabled);
         outputChannelsEditor.setEnabled(enabled);
         reverbChannelsEditor.setEnabled(enabled);
         audioPatchingButton.setEnabled(enabled);
@@ -3448,8 +3356,6 @@ public:
         auto disabledColour = ColorScheme::get().textDisabled;
         auto enabledColour = ColorScheme::get().textPrimary;
 
-        inputChannelsEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
-        stereoChannelsEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
         outputChannelsEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
         reverbChannelsEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
     }
@@ -4502,8 +4408,8 @@ public:
         // Help text from localization
         helpTextMap[&showNameEditor] = LOC("systemConfig.help.showName");
         helpTextMap[&showLocationEditor] = LOC("systemConfig.help.showLocation");
-        helpTextMap[&inputChannelsEditor] = LOC("systemConfig.help.inputChannels");
-        helpTextMap[&stereoChannelsEditor] = LOC("systemConfig.help.stereoInputChannels");
+        helpTextMap[&channelSummaryLabel] = LOC("systemConfig.help.inputChannels");
+        helpTextMap[&editChannelsButton] = LOC("systemConfig.help.editChannels");
         helpTextMap[&outputChannelsEditor] = LOC("systemConfig.help.outputChannels");
         helpTextMap[&reverbChannelsEditor] = LOC("systemConfig.help.reverbChannels");
         helpTextMap[&gettingStartedButton] = LOC("wizard.buttons.gettingStartedHelp");
@@ -4690,12 +4596,12 @@ public:
     juce::Label showLocationLabel;
     juce::TextEditor showLocationEditor;
 
-    // I/O Section
+    // I/O Section — input row is a summary + list-editor button (stable
+    // channel numbers; see InputChannelListEditor)
     juce::Label inputChannelsLabel;
     juce::Label renderSourceTotalLabel;
-    juce::TextEditor inputChannelsEditor;
-    juce::Label stereoChannelsLabel;
-    juce::TextEditor stereoChannelsEditor;
+    juce::Label channelSummaryLabel;
+    juce::TextButton editChannelsButton;
     juce::Label outputChannelsLabel;
     juce::TextEditor outputChannelsEditor;
     juce::Label reverbChannelsLabel;
@@ -4972,6 +4878,41 @@ public:
         bool on = quickLongPressToggle.getToggleState();
         quickLongPressToggle.setButtonText(on ? LOC("systemConfig.buttons.quickLongPressOn")
                                                : LOC("systemConfig.buttons.quickLongPressOff"));
+    }
+
+    // Input row summary: "N (M mono + S stereo)"
+    void updateChannelSummary()
+    {
+        const int total  = parameters.getNumInputChannels();
+        const int stereo = parameters.getValueTreeState().getNumStereoInputChannels();
+        channelSummaryLabel.setText(LocalizationManager::getInstance().get(
+            "systemConfig.channelList.summary",
+            {{"total",  juce::String(total)},
+             {"mono",   juce::String(total - stereo)},
+             {"stereo", juce::String(stereo)}}), juce::dontSendNotification);
+    }
+
+    // Channel list editor dialog (stable-number model): add mono/stereo
+    // appends after the last channel, per-row type flip and delete. Stopped-
+    // only via editChannelsButton's enable state (same gate as the old count
+    // fields).
+    void openChannelListEditor()
+    {
+        auto* content = new InputChannelListEditor(parameters.getValueTreeState(),
+            [this]
+            {
+                notifyChannelCountChanged();
+                loadParametersToUI();
+            });
+
+        juce::DialogWindow::LaunchOptions options;
+        options.content.setOwned(content);
+        options.dialogTitle = LOC("systemConfig.channelList.title");
+        options.dialogBackgroundColour = getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId);
+        options.escapeKeyTriggersCloseButton = true;
+        options.useNativeTitleBar = false;
+        options.resizable = false;
+        options.launchAsync();
     }
 
     // Helper to notify MainComponent of any channel count change
