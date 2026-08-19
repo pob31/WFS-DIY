@@ -3496,7 +3496,6 @@ private:
         frHighShelfFreqLabel.setVisible(v); frHighShelfFreqSlider.setVisible(v); frHighShelfFreqValueLabel.setVisible(v);
         frHighShelfGainLabel.setVisible(v); frHighShelfGainSlider.setVisible(v); frHighShelfGainValueLabel.setVisible(v);
         frHighShelfSlopeLabel.setVisible(v); frHighShelfSlopeSlider.setVisible(v); frHighShelfSlopeValueLabel.setVisible(v);
-        muteReverbSendsButton.setVisible(v);
         frHelpButton.setVisible(v);
         if (!v) frHelpCard.hide();
     }
@@ -4555,10 +4554,14 @@ private:
         }
         col2.removeFromTop(spacing);
 
-        // --- Mute Macros selector ---
+        // --- Mute Macros selector + reverb-sends mute ---
+        // The reverb-sends mute shares this row: it is a routing mute like the
+        // macros, and this keeps it reachable for channel types without the
+        // Hackoustics sub-tab (where it used to live).
         row = col2.removeFromTop(rowHeight);
         muteMacrosLabel.setBounds(row.removeFromLeft(scaled(90)));
         muteMacrosSelector.setBounds(row.removeFromLeft(scaled(150)));
+        muteReverbSendsButton.setBounds(row.removeFromRight(scaled(200)));
         col2.removeFromTop(spacing);
 
         // --- Mutes section (scrollable; fill column width, max 16 per row, visually square) ---
@@ -4836,14 +4839,6 @@ private:
         int eqHeight = rowHeight + spacing + rowHeight + sliderHeight + spacing
                       + (rowHeight + sliderHeight + spacing) * 2 + rowHeight + sliderHeight;
         col2.removeFromTop(eqHeight);
-
-        // Mute Sends to Reverbs (vertically centered in remaining space)
-        int sendsTopPad = (col2.getHeight() - rowHeight) / 2;
-        col2.removeFromTop(sendsTopPad);
-        auto reverbSendsRow = col2.removeFromTop(rowHeight);
-        int buttonCenterX = reverbSendsRow.getX() + reverbSendsRow.getWidth() / 2;
-        const int sendsBtnW = scaled(200);
-        muteReverbSendsButton.setBounds(buttonCenterX - sendsBtnW / 2, reverbSendsRow.getY(), sendsBtnW, rowHeight);
 
         // Help cards — Live Source at bottom of left column, Floor Reflections at bottom of right column
         {
@@ -5234,6 +5229,11 @@ private:
             arrayAttenDials[i].setAlpha(alpha);
             arrayAttenValueLabels[i].setAlpha(alpha);
         }
+
+        // Reverb sends mute. Lives with the other mute controls: it is a routing
+        // mute, not a floor-reflection parameter, and it must stay reachable for
+        // channel types that hide the Hackoustics sub-tab.
+        muteReverbSendsButton.setVisible(v);
 
         // Sidelines controls
         sidelinesActiveButton.setVisible(v);
