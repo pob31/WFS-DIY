@@ -7723,8 +7723,8 @@ private:
             juce::MessageManager::callAsync ([this]() { updateFeatureWarnings(); });
         }
 
-        // Check if solo states changed (stored in binaural tree)
-        if (tree == binauralTree && property == WFSParameterIDs::inputSoloStates)
+        // Check if a solo state changed (per-channel Channel.inputSolo)
+        if (property == WFSParameterIDs::inputSolo)
         {
             juce::MessageManager::callAsync([this]()
             {

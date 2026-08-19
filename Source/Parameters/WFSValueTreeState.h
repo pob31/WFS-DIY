@@ -646,6 +646,11 @@ private:
     void removeInputPatchRow (int slot);
     void moveInputPatchRow (int fromSlot, int toSlot);
 
+    /** clusterInputOrder csvs hold 0-based slot indices; remap them whenever
+        a structural edit shifts slots (delete/reorder). Returning -1 from the
+        mapper drops the entry. */
+    void remapClusterInputOrders (const std::function<int (int)>& oldSlotToNewSlot);
+
     /** Clamp a value to the valid range for a given output parameter */
     static float clampOutputParamToRange (const juce::Identifier& paramId, float value);
 

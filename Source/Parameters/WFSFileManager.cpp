@@ -1458,6 +1458,24 @@ bool WFSFileManager::saveInputSnapshotWithExtendedScope (const juce::String& sna
         else
             inputsData.appendChild (extractInputWithExtendedScope (i, ExtendedSnapshotScope()), nullptr);  // All included
     }
+
+    // Ghost entries: keep data saved for channel numbers that are currently
+    // deleted. Recall skips them, but nothing is silently destroyed — they
+    // apply again if the number is ever re-created. Carried over from the
+    // existing file before it is overwritten.
+    if (file.existsAsFile())
+    {
+        auto existing = readFromXmlFile (file);
+        auto oldInputs = existing.getChildWithName (Inputs);
+        for (int i = 0; i < oldInputs.getNumChildren(); ++i)
+        {
+            auto entry = oldInputs.getChild (i);
+            const int number = static_cast<int> (entry.getProperty (id, 0));
+            if (number > 0 && valueTreeState.getSlotForChannelNumber (number) < 0)
+                inputsData.appendChild (entry.createCopy(), nullptr);
+        }
+    }
+
     snapshot.appendChild (inputsData, nullptr);
     stripTransientToggles (snapshot);
 
@@ -1801,12 +1819,15 @@ juce::ValueTree WFSFileManager::serializeExtendedScope (const ExtendedSnapshotSc
             partialChannels.push_back (ch);
     }
 
+    // On disk, channels are identified by their PERMANENT number (identical
+    // to slot + 1 for legacy dense files, so old snapshots parse unchanged);
+    // in memory the scope stays slot-keyed.
     // Serialize full channels
     if (!fullChannels.empty())
     {
         juce::StringArray indices;
         for (int ch : fullChannels)
-            indices.add (juce::String (ch + 1));  // 1-based for user display
+            indices.add (juce::String (valueTreeState.getInputChannelNumber (ch)));
         scopeTree.setProperty ("fullChannels", indices.joinIntoString (","), nullptr);
     }
 
@@ -1815,7 +1836,7 @@ juce::ValueTree WFSFileManager::serializeExtendedScope (const ExtendedSnapshotSc
     {
         juce::StringArray indices;
         for (int ch : excludedChannels)
-            indices.add (juce::String (ch + 1));
+            indices.add (juce::String (valueTreeState.getInputChannelNumber (ch)));
         scopeTree.setProperty ("excludedChannels", indices.joinIntoString (","), nullptr);
     }
 
@@ -1823,7 +1844,7 @@ juce::ValueTree WFSFileManager::serializeExtendedScope (const ExtendedSnapshotSc
     for (int ch : partialChannels)
     {
         juce::ValueTree partialTree ("PartialChannel");
-        partialTree.setProperty ("index", ch + 1, nullptr);
+        partialTree.setProperty ("index", valueTreeState.getInputChannelNumber (ch), nullptr);
 
         // Collect excluded items for this channel (store whichever list is shorter)
         juce::StringArray excludedItems;
@@ -1854,7 +1875,8 @@ WFSFileManager::ExtendedSnapshotScope WFSFileManager::deserializeExtendedScope (
 
     int numChannels = valueTreeState.getNumInputChannels();
 
-    // Parse excluded channels
+    // Parse excluded channels (stored as permanent numbers; entries whose
+    // number has no live channel are dropped)
     auto excludedStr = scopeTree.getProperty ("excludedChannels").toString();
     if (excludedStr.isNotEmpty())
     {
@@ -1862,7 +1884,7 @@ WFSFileManager::ExtendedSnapshotScope WFSFileManager::deserializeExtendedScope (
         indices.addTokens (excludedStr, ",", "");
         for (const auto& idx : indices)
         {
-            int ch = idx.getIntValue() - 1;  // Convert from 1-based
+            int ch = valueTreeState.getSlotForChannelNumber (idx.getIntValue());
             if (ch >= 0 && ch < numChannels)
                 scope.setAllItemsForChannel (ch, false);
         }
@@ -1874,7 +1896,8 @@ WFSFileManager::ExtendedSnapshotScope WFSFileManager::deserializeExtendedScope (
         auto partialTree = scopeTree.getChild (i);
         if (partialTree.getType().toString() == "PartialChannel")
         {
-            int ch = static_cast<int> (partialTree.getProperty ("index")) - 1;
+            int ch = valueTreeState.getSlotForChannelNumber (
+                         static_cast<int> (partialTree.getProperty ("index")));
             if (ch >= 0 && ch < numChannels)
             {
                 auto excludedItems = partialTree.getProperty ("excludedItems").toString();

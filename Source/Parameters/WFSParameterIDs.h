@@ -297,6 +297,7 @@ namespace WFSParameterIDs
 
     // Input > Channel
     const juce::Identifier inputName             ("inputName");
+    const juce::Identifier inputSolo             ("inputSolo");             // 0/1, binaural solo — per channel so it travels with the node (reorder/delete safe); replaces the Binaural inputSoloStates csv
     const juce::Identifier inputStereoWidth      ("inputStereoWidth");      // 0-100%, stereo pairs only
     const juce::Identifier inputAttenuation      ("inputAttenuation");
     const juce::Identifier inputDelayLatency     ("inputDelayLatency");

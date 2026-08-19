@@ -415,8 +415,10 @@ public:
     using ExtendedScope = WFSFileManager::ExtendedSnapshotScope;
     using InclusionState = ExtendedScope::InclusionState;
 
-    ScopeChannelHeader (ExtendedScope& scopeRef, int numChannelsValue)
-        : scope (scopeRef), numChannels (numChannelsValue)
+    ScopeChannelHeader (ExtendedScope& scopeRef, int numChannelsValue,
+                        std::vector<int> channelNumbersIn = {})
+        : scope (scopeRef), numChannels (numChannelsValue),
+          channelNumbers (std::move (channelNumbersIn))
     {
     }
 
@@ -464,7 +466,11 @@ public:
 
             g.setColour (colors.textPrimary);
             g.setFont (juce::Font (juce::FontOptions (juce::jmax(7.0f, 10.0f * WfsLookAndFeel::uiScale))));
-            g.drawText (juce::String (ch + 1), cellBounds.toNearestInt(), juce::Justification::centred);
+            // Columns are slots; the label is the channel's PERMANENT number
+            g.drawText (juce::String (ch < static_cast<int> (channelNumbers.size())
+                                          ? channelNumbers[static_cast<size_t> (ch)]
+                                          : ch + 1),
+                        cellBounds.toNearestInt(), juce::Justification::centred);
         }
     }
 
@@ -511,6 +517,7 @@ public:
 private:
     ExtendedScope& scope;
     int numChannels;
+    std::vector<int> channelNumbers;   // per-slot permanent numbers (empty = dense ch+1)
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ScopeChannelHeader)
 };
@@ -573,7 +580,14 @@ public:
             applyRecallingButton.setToggleState (true, juce::dontSendNotification);
 
         // Channel header (fixed at top)
-        channelHeader = std::make_unique<ScopeChannelHeader> (scope, numChannels);
+        {
+            std::vector<int> channelNumbers;
+            auto& vts = parameters.getValueTreeState();
+            for (int slot = 0; slot < numChannels; ++slot)
+                channelNumbers.push_back (vts.getInputChannelNumber (slot));
+            channelHeader = std::make_unique<ScopeChannelHeader> (scope, numChannels,
+                                                                  std::move (channelNumbers));
+        }
         addAndMakeVisible (channelHeader.get());
         channelHeader->onScopeChanged = [this]() {
             gridComponent->repaint();

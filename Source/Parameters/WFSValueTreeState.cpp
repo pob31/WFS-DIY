@@ -1234,85 +1234,51 @@ void WFSValueTreeState::setBinauralSoloMode (int mode)
         binaural.setProperty (binauralSoloMode, mode, getActiveUndoManager());
 }
 
+// Solo lives ON the channel (Channel.inputSolo) so it travels with the node:
+// the legacy Binaural.inputSoloStates csv was positional and silently followed
+// the wrong channels across insertions/reorders/deletions.
+
 bool WFSValueTreeState::isInputSoloed (int inputIndex) const
 {
-    JUCE_ASSERT_MESSAGE_THREAD  // parses a String — never call from RT threads; see getBinauralEnabled()
-    auto binaural = getBinauralState();
-    if (!binaural.isValid())
-        return false;
-
-    juce::String soloStates = binaural.getProperty (inputSoloStates, "").toString();
-    if (soloStates.isEmpty())
-        return false;
-
-    juce::StringArray states;
-    states.addTokens (soloStates, ",", "");
-
-    if (inputIndex >= 0 && inputIndex < states.size())
-        return states[inputIndex] == "1";
-
-    return false;
+    JUCE_ASSERT_MESSAGE_THREAD  // ValueTree read — message thread only
+    auto input = const_cast<WFSValueTreeState*> (this)->getInputState (inputIndex);
+    auto channel = input.getChildWithName (Channel);
+    return channel.isValid() && static_cast<int> (channel.getProperty (inputSolo, 0)) != 0;
 }
 
 void WFSValueTreeState::setInputSoloed (int inputIndex, bool soloed)
 {
-    auto binaural = getBinauralState();
-    if (!binaural.isValid() || inputIndex < 0)
+    auto input = getInputState (inputIndex);
+    auto channel = input.getChildWithName (Channel);
+    if (! channel.isValid())
         return;
-
-    int numInputs = getNumInputChannels();
-    if (inputIndex >= numInputs)
-        return;
-
-    // Get current solo states
-    juce::String soloStates = binaural.getProperty (inputSoloStates, "").toString();
-    juce::StringArray states;
-    states.addTokens (soloStates, ",", "");
-
-    // Ensure array is large enough
-    while (states.size() < numInputs)
-        states.add ("0");
 
     // In Single mode, clear all other solos first
     if (soloed && getBinauralSoloMode() == 0)
-    {
-        for (int i = 0; i < states.size(); ++i)
-            states.set (i, "0");
-    }
+        clearAllSoloStates();
 
-    // Set the requested input's solo state
-    states.set (inputIndex, soloed ? "1" : "0");
-
-    // Save back
-    binaural.setProperty (inputSoloStates, states.joinIntoString (","), getActiveUndoManager());
+    channel.setProperty (inputSolo, soloed ? 1 : 0, getActiveUndoManager());
 }
 
 void WFSValueTreeState::clearAllSoloStates()
 {
-    auto binaural = getBinauralState();
-    if (binaural.isValid())
-        binaural.setProperty (inputSoloStates, "", getActiveUndoManager());
+    auto inputs = getInputsState();
+    for (int i = 0; i < inputs.getNumChildren(); ++i)
+    {
+        auto channel = inputs.getChild (i).getChildWithName (Channel);
+        if (channel.isValid()
+            && static_cast<int> (channel.getProperty (inputSolo, 0)) != 0)
+            channel.setProperty (inputSolo, 0, getActiveUndoManager());
+    }
 }
 
 int WFSValueTreeState::getNumSoloedInputs() const
 {
-    JUCE_ASSERT_MESSAGE_THREAD  // parses a String — never call from RT threads; see getBinauralEnabled()
-    auto binaural = getBinauralState();
-    if (!binaural.isValid())
-        return 0;
-
-    juce::String soloStates = binaural.getProperty (inputSoloStates, "").toString();
-    if (soloStates.isEmpty())
-        return 0;
-
-    juce::StringArray states;
-    states.addTokens (soloStates, ",", "");
-
+    JUCE_ASSERT_MESSAGE_THREAD  // ValueTree read — message thread only
     int soloCount = 0;
-    for (const auto& s : states)
-        if (s == "1")
+    for (int i = 0; i < getNumInputChannels(); ++i)
+        if (isInputSoloed (i))
             ++soloCount;
-
     return soloCount;
 }
 
@@ -1527,6 +1493,23 @@ void WFSValueTreeState::migrateInputChannelModel()
     //    resurrect the count-based semantics from a stale file value.
     if (io.isValid() && io.hasProperty (WFSParameterIDs::stereoInputChannels))
         io.removeProperty (WFSParameterIDs::stereoInputChannels, nullptr);
+
+    // 4. Solo: the legacy Binaural.inputSoloStates csv is positional (index =
+    //    slot); convert to the per-channel Channel.inputSolo property so the
+    //    state travels with the node, then drop the csv.
+    auto binaural = getBinauralState();
+    if (binaural.isValid() && binaural.hasProperty (WFSParameterIDs::inputSoloStates))
+    {
+        juce::StringArray states;
+        states.addTokens (binaural.getProperty (WFSParameterIDs::inputSoloStates, "").toString(), ",", "");
+        for (int i = 0; i < juce::jmin (states.size(), total); ++i)
+        {
+            auto channel = inputs.getChild (i).getChildWithName (Channel);
+            if (channel.isValid() && states[i] == "1")
+                channel.setProperty (inputSolo, 1, nullptr);
+        }
+        binaural.removeProperty (WFSParameterIDs::inputSoloStates, nullptr);
+    }
 }
 
 void WFSValueTreeState::setInputChannelCounts (int numMono, int numStereo)
@@ -1644,6 +1627,12 @@ juce::Result WFSValueTreeState::removeInputChannel (int channelNumber)
     inputs.removeChild (slot, nullptr);
     removeInputPatchRow (slot);
 
+    // Slot-keyed side state: drop the deleted slot, shift the ones above
+    remapClusterInputOrders ([slot] (int s)
+    {
+        return s == slot ? -1 : (s > slot ? s - 1 : s);
+    });
+
     auto io = getIOState();
     if (io.isValid())
         io.setProperty (inputChannels, inputs.getNumChildren(), nullptr);
@@ -1680,6 +1669,36 @@ juce::Result WFSValueTreeState::setInputChannelType (int channelNumber, bool ste
     return juce::Result::ok();
 }
 
+void WFSValueTreeState::remapClusterInputOrders (const std::function<int (int)>& oldSlotToNewSlot)
+{
+    // clusterInputOrder is a csv of 0-based SLOT indices; structural edits
+    // (delete/reorder) shift slots, so every cluster's order must be remapped
+    // in the same operation or the ordering silently migrates to the wrong
+    // channels.
+    auto clusters = getClustersState();
+    for (int c = 0; c < clusters.getNumChildren(); ++c)
+    {
+        auto cluster = clusters.getChild (c);
+        const juce::String order = cluster.getProperty (clusterInputOrder, "").toString();
+        if (order.isEmpty())
+            continue;
+
+        juce::StringArray tokens;
+        tokens.addTokens (order, ",", "");
+        juce::StringArray remapped;
+        for (const auto& tok : tokens)
+        {
+            const int newSlot = oldSlotToNewSlot (tok.getIntValue());
+            if (newSlot >= 0)
+                remapped.add (juce::String (newSlot));
+        }
+
+        const juce::String newOrder = remapped.joinIntoString (",");
+        if (newOrder != order)
+            cluster.setProperty (clusterInputOrder, newOrder, nullptr);
+    }
+}
+
 juce::Result WFSValueTreeState::moveInputChannel (int channelNumber, int targetSlot)
 {
     auto inputs = getInputsState();
@@ -1697,6 +1716,15 @@ juce::Result WFSValueTreeState::moveInputChannel (int channelNumber, int targetS
     // reference) stays put.
     inputs.moveChild (fromSlot, targetSlot, nullptr);
     moveInputPatchRow (fromSlot, targetSlot);
+
+    // Slot-keyed side state follows the move
+    const int from = fromSlot, to = targetSlot;
+    remapClusterInputOrders ([from, to] (int s)
+    {
+        if (s == from) return to;
+        if (from < to) return (s > from && s <= to) ? s - 1 : s;
+        return (s >= to && s < from) ? s + 1 : s;
+    });
 
     clearAllUndoHistories();
     return juce::Result::ok();
@@ -2817,7 +2845,7 @@ void WFSValueTreeState::createBinauralSection (juce::ValueTree& config)
     binaural.setProperty (binauralListenerAngle, binauralListenerAngleDefault, nullptr);
     binaural.setProperty (binauralAttenuation, binauralAttenuationDefault, nullptr);
     binaural.setProperty (binauralDelay, binauralDelayDefault, nullptr);
-    binaural.setProperty (inputSoloStates, "", nullptr);  // Empty = no solos
+    // (solo is per-channel: Channel.inputSolo — no csv here anymore)
     config.appendChild (binaural, nullptr);
 }
 
@@ -2977,6 +3005,7 @@ juce::ValueTree WFSValueTreeState::createInputChannelSection (int index)
 {
     juce::ValueTree channel (Channel);
     channel.setProperty (inputName, getDefaultInputName (index), nullptr);
+    channel.setProperty (inputSolo, 0, nullptr);
     channel.setProperty (inputStereoWidth, inputStereoWidthDefault, nullptr);
     channel.setProperty (inputAttenuation, inputAttenuationDefault, nullptr);
     channel.setProperty (inputDelayLatency, inputDelayLatencyDefault, nullptr);

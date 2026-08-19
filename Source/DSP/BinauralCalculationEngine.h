@@ -251,17 +251,14 @@ public:
             outputChannel = (int) binaural.getProperty (WFSParameterIDs::binauralOutputChannel,
                                                         WFSParameterDefaults::binauralOutputChannelDefault);
 
-            // Parse the solo CSV here, on the message thread, so the RT thread
-            // never touches Strings. Matches WFSValueTreeState::isInputSoloed semantics.
-            juce::String soloStates = binaural.getProperty (WFSParameterIDs::inputSoloStates,
-                                                            juce::String()).toString();
-            juce::StringArray states;
-            states.addTokens (soloStates, ",", "");
-
-            const int numStates = juce::jmin (states.size(), 64);
-            for (int i = 0; i < numStates; ++i)
+            // Build the solo mask here, on the message thread, so the RT
+            // thread never touches the ValueTree. Solo is per-channel
+            // (Channel.inputSolo) — the mask stays slot-indexed to match the
+            // engine rows.
+            const int numCh = juce::jmin (64, valueTreeState.getNumInputChannels());
+            for (int i = 0; i < numCh; ++i)
             {
-                if (states[i] == "1")
+                if (valueTreeState.isInputSoloed (i))
                 {
                     fresh.soloMask |= (1ull << i);
                     ++fresh.numSoloed;
