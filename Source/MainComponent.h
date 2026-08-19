@@ -239,7 +239,18 @@ private:
 
     ProcessingAlgorithm currentAlgorithm = ProcessingAlgorithm::InputBuffer;
     std::string currentDeviceId = "cpu";   // compute device for the GPU algorithm paths ("cpu"/"hip:0"/...)
+    // User-visible input channel count: the parameter/addressing identity
+    // (ValueTree, OSC, snapshots, patch rows, Map markers, meters).
     int numInputChannels = 4;
+
+    // Renderer source count: rows of the WFS matrices, channels of
+    // patchedInputBuffer, the count every algorithm/GPU backend is prepared
+    // with. A mono channel is one render source; a stereo-pair channel is six
+    // (primary slot + 5 derived slices appended past the visible inputs), per
+    // spatcore::wfs::RenderSourceMap. Always recomputed alongside
+    // numInputChannels; equal to it while no stereo channels exist.
+    int numRenderSources = 4;
+
     int numOutputChannels = 4;
     // Declared before the thread-owning members so it is destroyed AFTER them
     // (members destruct in reverse order) — workers may touch it while stopping.
@@ -480,6 +491,11 @@ private:
 
     void attachAudioCallbacksIfNeeded();
     void resizeRoutingMatrices();
+
+    /** Recompute numRenderSources from numInputChannels and the channel types.
+        Must run whenever numInputChannels is assigned — the renderer dimension
+        may never drift from the channel dimension it derives from. */
+    void recomputeRenderSourceCount();
     void resizeOutputAttenuation(int numOut, double sampleRate);
     void resizeReverbAttenuation(int numReverbs, double sampleRate);
     void stopProcessingForConfigurationChange();

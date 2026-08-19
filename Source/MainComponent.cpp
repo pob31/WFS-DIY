@@ -1,4 +1,5 @@
 #include "MainComponent.h"
+#include "../spatcore/wfs/RenderSourceMap.h"
 #include "WFSLogger.h"
 #include "AppSettings.h"
 #include "Parameters/WFSParameterIDs.h"
@@ -114,6 +115,7 @@ MainComponent::MainComponent()
     numOutputChannels = juce::jlimit(2, WFSParameterDefaults::maxOutputChannels, numOutputChannels);
     if (numInputChannels == 0)
         numInputChannels = 2; // Default to a sensible input count to avoid silent processing
+    recomputeRenderSourceCount();  // keep the renderer dimension in lockstep
 
     // Initialize routing matrices with default values
     resizeRoutingMatrices();
@@ -157,6 +159,7 @@ MainComponent::MainComponent()
     // Load initial channel counts from parameters
     numInputChannels = (int)parameters.getConfigParam("InputChannels");
     numOutputChannels = (int)parameters.getConfigParam("OutputChannels");
+    recomputeRenderSourceCount();  // keep the renderer dimension in lockstep
     resizeRoutingMatrices();
 
     // Algorithm selector moved to System Config tab
@@ -1820,12 +1823,15 @@ MainComponent::MainComponent()
     if (inputsTab != nullptr)
         inputsTab->setAutoMotionProcessor(automOtionProcessor.get());
 
-    // Initialize Live Source Tamer engine for per-speaker gain reduction
-    // Uses max channel counts to match calculationEngine matrix dimensions
+    // Initialize Live Source Tamer engine for per-speaker gain reduction.
+    // Row dimension is maxRenderSources, NOT maxInputChannels: lsGains is indexed
+    // with the calculation engine's matrixIdx, whose rows cover derived stereo
+    // slice sources too. Sizing this smaller than the engine's matrix is an
+    // out-of-bounds read on the 50 Hz path.
     lsTamerEngine = std::make_unique<LiveSourceTamerEngine>(
         parameters.getValueTreeState(),
         *calculationEngine,
-        WFSParameterDefaults::maxInputChannels,
+        WFSParameterDefaults::maxRenderSources,
         WFSParameterDefaults::maxOutputChannels);
 
     // Initialize Test Signal Generator for audio interface testing
@@ -2609,9 +2615,22 @@ void MainComponent::resizeReverbAttenuation(int numReverbs, double sampleRate)
     }
 }
 
+void MainComponent::recomputeRenderSourceCount()
+{
+    // Phase 0 scaffold: no stereo channel type exists yet, so the map is the
+    // identity and numRenderSources == numInputChannels. When inputChannelType
+    // lands, this becomes RenderSourceMap::build() over the channel-type vector
+    // (and its failure — over-budget stereo count — must be surfaced, not
+    // silently truncated).
+    spatcore::wfs::RenderSourceMap map;
+    const bool ok = spatcore::wfs::RenderSourceMap::buildIdentity (numInputChannels, map);
+    jassert (ok);
+    numRenderSources = ok ? map.count : numInputChannels;
+}
+
 void MainComponent::resizeRoutingMatrices()
 {
-    const int matrixSize = numInputChannels * numOutputChannels;
+    const int matrixSize = numRenderSources * numOutputChannels;
 
     delayTimesMs.assign(matrixSize, 0.0f);
     levels.assign(matrixSize, 0.0f);
@@ -2907,10 +2926,10 @@ void MainComponent::applyInputPatch(const juce::AudioSourceChannelInfo& bufferTo
     int totalBufferChannels = bufferToFill.buffer->getNumChannels();
 
     // Prepare patched buffer if needed
-    if (patchedInputBuffer.getNumChannels() != numInputChannels ||
+    if (patchedInputBuffer.getNumChannels() != numRenderSources ||
         patchedInputBuffer.getNumSamples() < bufferToFill.numSamples)
     {
-        patchedInputBuffer.setSize(numInputChannels, bufferToFill.numSamples, false, false, true);
+        patchedInputBuffer.setSize(numRenderSources, bufferToFill.numSamples, false, false, true);
     }
 
     patchedInputBuffer.clear();
@@ -3053,6 +3072,7 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
                                       + juce::String (reverbs) + " reverbs");
     numInputChannels = inputs;
     numOutputChannels = outputs;
+    recomputeRenderSourceCount();  // keep the renderer dimension in lockstep
     stopProcessingForConfigurationChange();
     resizeRoutingMatrices();
 
@@ -3127,7 +3147,7 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
         auto* device = deviceManager.getCurrentAudioDevice();
         double sr = device ? device->getCurrentSampleRate() : 48000.0;
         int bs = device ? device->getCurrentBufferSizeSamples() : 512;
-        binauralProcessor->prepareToPlay(sr, bs, numInputChannels);
+        binauralProcessor->prepareToPlay(sr, bs, numRenderSources);
         if (binauralProcessor->isEnabled())
             binauralProcessor->startProcessing();
     }
@@ -3146,7 +3166,7 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
         const float* calcHF = calculationEngine->getHFAttenuationDb();
         const int calcStride = calculationEngine->getNumOutputs();
 
-        for (int inIdx = 0; inIdx < numInputChannels; ++inIdx)
+        for (int inIdx = 0; inIdx < numRenderSources; ++inIdx)
         {
             for (int outIdx = 0; outIdx < numOutputChannels; ++outIdx)
             {
@@ -3163,11 +3183,11 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
         const float* calcReverbHF = calculationEngine->getInputReverbHFAttenuationDb();
         const int calcReverbStride = calculationEngine->getNumReverbs();
 
-        std::vector<float> reverbDelays(numInputChannels * reverbs);
-        std::vector<float> reverbLevelsVec(numInputChannels * reverbs);
-        std::vector<float> reverbHF(numInputChannels * reverbs);
+        std::vector<float> reverbDelays(numRenderSources * reverbs);
+        std::vector<float> reverbLevelsVec(numRenderSources * reverbs);
+        std::vector<float> reverbHF(numRenderSources * reverbs);
 
-        for (int inIdx = 0; inIdx < numInputChannels; ++inIdx)
+        for (int inIdx = 0; inIdx < numRenderSources; ++inIdx)
         {
             for (int revIdx = 0; revIdx < reverbs; ++revIdx)
             {
@@ -3501,6 +3521,7 @@ void MainComponent::handleConfigReloaded()
     bool reverbCountChanged = (newReverbChannels != reverbAttenuationTargetsCount);
     numInputChannels = newInputChannels;
     numOutputChannels = newOutputChannels;
+    recomputeRenderSourceCount();  // keep the renderer dimension in lockstep
     if (countsChanged)
     {
         resizeRoutingMatrices();
@@ -3656,7 +3677,7 @@ void MainComponent::handleConfigReloaded()
             }
 
             // Copy to local arrays with correct stride
-            for (int inIdx = 0; inIdx < numInputChannels; ++inIdx)
+            for (int inIdx = 0; inIdx < numRenderSources; ++inIdx)
             {
                 for (int outIdx = 0; outIdx < numOutputChannels; ++outIdx)
                 {
@@ -3675,11 +3696,11 @@ void MainComponent::handleConfigReloaded()
             const int calcReverbStride = calculationEngine->getNumReverbs();
             int numReverbs = parameters.getNumReverbChannels();
 
-            std::vector<float> reverbDelays(numInputChannels * numReverbs);
-            std::vector<float> reverbLevels(numInputChannels * numReverbs);
-            std::vector<float> reverbHF(numInputChannels * numReverbs);
+            std::vector<float> reverbDelays(numRenderSources * numReverbs);
+            std::vector<float> reverbLevels(numRenderSources * numReverbs);
+            std::vector<float> reverbHF(numRenderSources * numReverbs);
 
-            for (int inIdx = 0; inIdx < numInputChannels; ++inIdx)
+            for (int inIdx = 0; inIdx < numRenderSources; ++inIdx)
             {
                 for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
                 {
@@ -4533,7 +4554,7 @@ void MainComponent::setupSharedInputFeed (int blockSize, double sampleRate)
 
     // Create shared input buffers (used by reverb feed thread and binaural)
     sharedInputBuffers.clear();
-    for (int i = 0; i < numInputChannels; ++i)
+    for (int i = 0; i < numRenderSources; ++i)
     {
         auto buf = std::make_unique<SharedInputRingBuffer>();
         buf->setSize (blockSize * 4);
@@ -4550,7 +4571,7 @@ void MainComponent::setupSharedInputFeed (int blockSize, double sampleRate)
             reverbFeedThread->prepare (sharedInputBuffers, reverbEngine.get(),
                                        calculationEngine->getInputReverbLevels(),
                                        calculationEngine->getNumReverbs(),
-                                       numInputChannels, numReverbs,
+                                       numRenderSources, numReverbs,
                                        blockSize, reverbSRRatio);
             reverbFeedThread->setWorkgroupCoordinator (&workgroupCoordinator);
             reverbFeedThread->startRealtimeThread (juce::Thread::RealtimeOptions{}
@@ -4599,10 +4620,10 @@ void MainComponent::startAudioEngine()
     WFSLogger::getInstance().logInfo ("Starting audio engine: " + device->getName()
                                       + " @ " + juce::String (sampleRate) + " Hz"
                                       + ", buffer " + juce::String (blockSize)
-                                      + ", " + juce::String (numInputChannels) + " in / "
+                                      + ", " + juce::String (numRenderSources) + " in / "
                                       + juce::String (numOutputChannels) + " out");
 
-    DBG("startAudioEngine: numInputChannels=" + juce::String(numInputChannels) +
+    DBG("startAudioEngine: numRenderSources=" + juce::String(numRenderSources) +
         " numOutputChannels=" + juce::String(numOutputChannels) +
         " sampleRate=" + juce::String(sampleRate) + " blockSize=" + juce::String(blockSize));
 
@@ -4634,7 +4655,7 @@ void MainComponent::startAudioEngine()
 
     if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
     {
-        inputAlgorithm.prepare(numInputChannels, numOutputChannels,
+        inputAlgorithm.prepare(numRenderSources, numOutputChannels,
                               sampleRate, blockSize,
                               delayTimesMs.data(), levels.data(),
                               processingEnabled,
@@ -4646,7 +4667,7 @@ void MainComponent::startAudioEngine()
     }
     else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer)
     {
-        outputAlgorithm.prepare(numInputChannels, numOutputChannels,
+        outputAlgorithm.prepare(numRenderSources, numOutputChannels,
                                sampleRate, blockSize,
                                delayTimesMs.data(), levels.data(),
                                processingEnabled,
@@ -4664,7 +4685,7 @@ void MainComponent::startAudioEngine()
             || gpuDepth > WFSParameterDefaults::gpuPipelineDepthMax)
             gpuDepth = WFSParameterDefaults::gpuPipelineDepthDefault;
 
-        prepared = nativeGpuAlgorithm.prepare(numInputChannels, numOutputChannels,
+        prepared = nativeGpuAlgorithm.prepare(numRenderSources, numOutputChannels,
                                               sampleRate, blockSize,
                                               delayTimesMs.data(), levels.data(),
                                               processingEnabled,
@@ -4688,7 +4709,7 @@ void MainComponent::startAudioEngine()
             currentAlgorithm = ProcessingAlgorithm::InputBuffer;
             parameters.setConfigParam("ProcessingAlgorithm", 1);
 
-            inputAlgorithm.prepare(numInputChannels, numOutputChannels,
+            inputAlgorithm.prepare(numRenderSources, numOutputChannels,
                                    sampleRate, blockSize,
                                    delayTimesMs.data(), levels.data(),
                                    processingEnabled,
@@ -4701,7 +4722,7 @@ void MainComponent::startAudioEngine()
         else
         {
             WFSLogger::getInstance().logInfo ("Native GPU WFS active: "
-                + juce::String (numInputChannels) + " in x "
+                + juce::String (numRenderSources) + " in x "
                 + juce::String (numOutputChannels) + " out on "
                 + nativeGpuAlgorithm.getDeviceName()
                 + ", async pipeline depth " + juce::String (nativeGpuAlgorithm.getPipelineDepthBlocks())
@@ -4716,7 +4737,7 @@ void MainComponent::startAudioEngine()
             || gpuDepth > WFSParameterDefaults::gpuPipelineDepthMax)
             gpuDepth = WFSParameterDefaults::gpuPipelineDepthDefault;
 
-        prepared = nativeGpuOutputAlgorithm.prepare(numInputChannels, numOutputChannels,
+        prepared = nativeGpuOutputAlgorithm.prepare(numRenderSources, numOutputChannels,
                                                     sampleRate, blockSize,
                                                     delayTimesMs.data(), levels.data(),
                                                     processingEnabled,
@@ -4741,7 +4762,7 @@ void MainComponent::startAudioEngine()
             currentAlgorithm = ProcessingAlgorithm::OutputBuffer;
             parameters.setConfigParam("ProcessingAlgorithm", 2);
 
-            outputAlgorithm.prepare(numInputChannels, numOutputChannels,
+            outputAlgorithm.prepare(numRenderSources, numOutputChannels,
                                     sampleRate, blockSize,
                                     delayTimesMs.data(), levels.data(),
                                     processingEnabled,
@@ -4754,7 +4775,7 @@ void MainComponent::startAudioEngine()
         else
         {
             WFSLogger::getInstance().logInfo ("Native GPU OutputBuffer active: "
-                + juce::String (numInputChannels) + " in x "
+                + juce::String (numRenderSources) + " in x "
                 + juce::String (numOutputChannels) + " out on "
                 + nativeGpuOutputAlgorithm.getDeviceName()
                 + ", async pipeline depth " + juce::String (nativeGpuOutputAlgorithm.getPipelineDepthBlocks())
@@ -4789,6 +4810,13 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
     currentDeviceSampleRate.store (sampleRate > 0.0 ? sampleRate : 48000.0,
                                    std::memory_order_relaxed);
 
+    // Preallocate the patched input buffer here, off the audio thread. The
+    // conditional setSize in applyInputPatch() remains only as a shape-change
+    // safety net (avoidReallocating=true) and should never fire in steady state.
+    if (samplesPerBlockExpected > 0)
+        patchedInputBuffer.setSize (juce::jmax (1, numRenderSources),
+                                    samplesPerBlockExpected, false, false, true);
+
     // This function will be called when the audio device is started, or when
     // its settings (i.e. sample rate, block size, etc) are changed.
 
@@ -4817,7 +4845,7 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
                 || gpuDepth > WFSParameterDefaults::gpuPipelineDepthMax)
                 gpuDepth = WFSParameterDefaults::gpuPipelineDepthDefault;
 
-            nativeGpuAlgorithm.prepare(numInputChannels, numOutputChannels,
+            nativeGpuAlgorithm.prepare(numRenderSources, numOutputChannels,
                                        sampleRate, samplesPerBlockExpected,
                                        delayTimesMs.data(), levels.data(),
                                        processingEnabled,
@@ -4835,7 +4863,7 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
                 || gpuDepth > WFSParameterDefaults::gpuPipelineDepthMax)
                 gpuDepth = WFSParameterDefaults::gpuPipelineDepthDefault;
 
-            nativeGpuOutputAlgorithm.prepare(numInputChannels, numOutputChannels,
+            nativeGpuOutputAlgorithm.prepare(numRenderSources, numOutputChannels,
                                              sampleRate, samplesPerBlockExpected,
                                              delayTimesMs.data(), levels.data(),
                                              processingEnabled,
@@ -4860,7 +4888,7 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
     if (binauralProcessor)
     {
         binauralProcessor->stopProcessing();
-        binauralProcessor->prepareToPlay(sampleRate, samplesPerBlockExpected, numInputChannels);
+        binauralProcessor->prepareToPlay(sampleRate, samplesPerBlockExpected, numRenderSources);
         binauralProcessor->startProcessing();
 
         // Sample rate / block size may have changed: the cooked SOFA set is
@@ -5050,7 +5078,7 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
 
             if (needSharedBuffers && !sharedInputBuffers.empty())
             {
-                int safeInputCount = juce::jmin(numInputChannels, patchedInputBuffer.getNumChannels(), (int)sharedInputBuffers.size());
+                int safeInputCount = juce::jmin(numRenderSources, patchedInputBuffer.getNumChannels(), (int)sharedInputBuffers.size());
                 for (int ch = 0; ch < safeInputCount; ++ch)
                 {
                     if (sharedInputBuffers[ch] == nullptr)
@@ -5074,7 +5102,7 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         // throttling when the window is minimized)
         if (processingEnabled)
         {
-            int matrixSize = numInputChannels * numOutputChannels;
+            int matrixSize = numRenderSources * numOutputChannels;
             for (int i = 0; i < matrixSize; ++i)
             {
                 delayTimesMs[i] += (targetDelayTimesMs[i] - delayTimesMs[i]) * delaySmoothingFactor;
@@ -5112,20 +5140,20 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         // Process WFS audio — algorithms read from patchedInputBuffer, write to wfsOutputBuffer
         if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
         {
-            inputAlgorithm.processBlock(wfsOut, patchedInputBuffer, numInputChannels, numOutputChannels);
+            inputAlgorithm.processBlock(wfsOut, patchedInputBuffer, numRenderSources, numOutputChannels);
         }
         else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer)
         {
-            outputAlgorithm.processBlock(wfsOut, patchedInputBuffer, numInputChannels, numOutputChannels);
+            outputAlgorithm.processBlock(wfsOut, patchedInputBuffer, numRenderSources, numOutputChannels);
         }
 #if WFS_GPU_NATIVE
         else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs)
         {
-            nativeGpuAlgorithm.processBlock(wfsOut, patchedInputBuffer, numInputChannels, numOutputChannels);
+            nativeGpuAlgorithm.processBlock(wfsOut, patchedInputBuffer, numRenderSources, numOutputChannels);
         }
         else // ProcessingAlgorithm::NativeGpuOutputBuffer
         {
-            nativeGpuOutputAlgorithm.processBlock(wfsOut, patchedInputBuffer, numInputChannels, numOutputChannels);
+            nativeGpuOutputAlgorithm.processBlock(wfsOut, patchedInputBuffer, numRenderSources, numOutputChannels);
         }
 #endif
 
@@ -5316,7 +5344,7 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
                 }
 
                 // Push input data to binaural processor from patchedInputBuffer
-                int safeInputCount = juce::jmin(numInputChannels, patchedInputBuffer.getNumChannels());
+                int safeInputCount = juce::jmin(numRenderSources, patchedInputBuffer.getNumChannels());
                 for (int i = 0; i < safeInputCount; ++i)
                 {
                     const float* inputData = patchedInputBuffer.getReadPointer(i, bufferToFill.startSample);
@@ -5969,7 +5997,7 @@ void MainComponent::timerCallback()
                     binauralProcessor->stopProcessing();   // quiesce before reconfiguring
                     binauralProcessor->prepareToPlay(device->getCurrentSampleRate(),
                                                      device->getCurrentBufferSizeSamples(),
-                                                     numInputChannels);
+                                                     numRenderSources);
                     if (binauralCalcEngine != nullptr)
                         binauralCalcEngine->refreshRtSnapshot();  // publish before un-gating
                     binauralProcessor->setEnabled(true);
@@ -6048,7 +6076,7 @@ void MainComponent::timerCallback()
             const float* calcFRLevels = calculationEngine->getFRLevels();
             const float* calcFRHF = calculationEngine->getFRHFAttenuationDb();
 
-            for (int inIdx = 0; inIdx < numInputChannels; ++inIdx)
+            for (int inIdx = 0; inIdx < numRenderSources; ++inIdx)
             {
                 for (int outIdx = 0; outIdx < numOutputChannels; ++outIdx)
                 {
@@ -6070,7 +6098,7 @@ void MainComponent::timerCallback()
             }
 
             // Update FR filter parameters for each input
-            for (int i = 0; i < numInputChannels; ++i)
+            for (int i = 0; i < numRenderSources; ++i)
             {
                 using namespace WFSParameterIDs;
                 auto frSection = parameters.getValueTreeState().getInputHackousticsSection(i);
@@ -6128,11 +6156,11 @@ void MainComponent::timerCallback()
                 int numReverbs = parameters.getNumReverbChannels();
 
                 // Reindex reverb data with user-configured stride
-                std::vector<float> reverbDelays(numInputChannels * numReverbs);
-                std::vector<float> reverbLevels(numInputChannels * numReverbs);
-                std::vector<float> reverbHF(numInputChannels * numReverbs);
+                std::vector<float> reverbDelays(numRenderSources * numReverbs);
+                std::vector<float> reverbLevels(numRenderSources * numReverbs);
+                std::vector<float> reverbHF(numRenderSources * numReverbs);
 
-                for (int inIdx = 0; inIdx < numInputChannels; ++inIdx)
+                for (int inIdx = 0; inIdx < numRenderSources; ++inIdx)
                 {
                     for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
                     {

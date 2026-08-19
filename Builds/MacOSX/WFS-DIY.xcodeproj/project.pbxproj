@@ -303,6 +303,7 @@
 		5DCF6592130A5D09FC39EB71 /* AudioInterfaceWindow.cpp */ /* AudioInterfaceWindow.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioInterfaceWindow.cpp; path = ../../Source/gui/AudioInterfaceWindow.cpp; sourceTree = SOURCE_ROOT; };
 		5EAAD8FC61C4D28235C79867 /* htk_frame.c */ /* htk_frame.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = htk_frame.c; path = ../../ThirdParty/headtracker/firmware/common/protocol/htk_frame.c; sourceTree = SOURCE_ROOT; };
 		5F29AE3042C22D68310A37B5 /* InputBufferAlgorithm.h */ /* InputBufferAlgorithm.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = InputBufferAlgorithm.h; path = ../../spatcore/wfs/InputBufferAlgorithm.h; sourceTree = SOURCE_ROOT; };
+		2BEF860D9B9C44CB9FD920C8 /* RenderSourceMap.h */ /* RenderSourceMap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = RenderSourceMap.h; path = ../../spatcore/wfs/RenderSourceMap.h; sourceTree = SOURCE_ROOT; };
 		5FCE45D2144A43E8AFA8F60A /* ReverbSDNAlgorithmGPU.h */ /* ReverbSDNAlgorithmGPU.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ReverbSDNAlgorithmGPU.h; path = ../../spatcore/reverb/ReverbSDNAlgorithmGPU.h; sourceTree = SOURCE_ROOT; };
 		601124A6913C54CD5AC91469 /* OSCMessageRouter.h */ /* OSCMessageRouter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCMessageRouter.h; path = ../../Source/Network/OSCMessageRouter.h; sourceTree = SOURCE_ROOT; };
 		642B404DC1044240DDD7FD3A /* PatchMatrixShim.cpp */ /* PatchMatrixShim.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = PatchMatrixShim.cpp; path = ../../Source/gui/PatchMatrixShim.cpp; sourceTree = SOURCE_ROOT; };
@@ -904,6 +905,7 @@
 				950C27503B80272B29402F00,
 				D58538C0D4D28062E527FEC4,
 				5F29AE3042C22D68310A37B5,
+				2BEF860D9B9C44CB9FD920C8,
 				0039FC83EB5F584546AC52D0,
 				A43A175CA1FA862F3071E4B5,
 				1F9D94046CD304F5B29D772D,

@@ -1,7 +1,21 @@
 #include "WFSCalculationEngine.h"
 #include "../../spatcore/dsp/NumericGuards.h"
+#include "../../spatcore/wfs/RenderSourceMap.h"
 #include <array>
 #include <limits>
+
+// The slot allocator lives in spatcore (which may not include app headers), so
+// the source-budget constants exist twice. Fail the build the moment they drift.
+static_assert (spatcore::wfs::RenderSourceMap::kMaxInputChannels
+                   == WFSParameterDefaults::maxInputChannels,
+               "RenderSourceMap and WFSParameterDefaults disagree on the input-channel budget");
+static_assert (spatcore::wfs::RenderSourceMap::kDerivedPerStereo
+                   == WFSParameterDefaults::derivedSlicesPerStereo
+            && spatcore::wfs::RenderSourceMap::kMaxStereoChannels
+                   == WFSParameterDefaults::maxStereoChannels
+            && spatcore::wfs::RenderSourceMap::kMaxRenderSources
+                   == WFSParameterDefaults::maxRenderSources,
+               "RenderSourceMap and WFSParameterDefaults disagree on the render-source budget");
 
 using namespace WFSParameterIDs;
 using namespace WFSParameterDefaults;
@@ -33,7 +47,14 @@ WFSCalculationEngine::WFSCalculationEngine (WFSValueTreeState& state)
     commonAttenRampTimeRemaining.resize (static_cast<size_t> (numInputs), 0.0f);  // No active ramps
 
     // Reserve space for Input → Output matrix results
-    const size_t matrixSize = static_cast<size_t> (numInputs * numOutputs);
+    // Matrix ROW capacity is the render-source budget, not the input-channel
+    // budget: a stereo-pair channel occupies its primary row plus 5 derived
+    // slice rows appended past the visible inputs. Rows beyond the channels'
+    // stay zero until the decomposition stage drives them; every consumer
+    // restrides and reads only the rows it was told exist. All per-CHANNEL
+    // state above stays at numInputs — derived rows share their owning
+    // channel's parameters, ramps and dirty flags.
+    const size_t matrixSize = static_cast<size_t> (maxRenderSources * numOutputs);
     delayTimesMs.resize (matrixSize, 0.0f);
     levels.resize (matrixSize, 0.0f);
     hfAttenuationDb.resize (matrixSize, 0.0f);
@@ -43,8 +64,8 @@ WFSCalculationEngine::WFSCalculationEngine (WFSValueTreeState& state)
     frLevels.resize (matrixSize, 0.0f);
     frHFAttenuationDb.resize (matrixSize, 0.0f);
 
-    // Reserve space for Input → Reverb Feed matrix results
-    const size_t inputReverbSize = static_cast<size_t> (numInputs * numReverbs);
+    // Reserve space for Input → Reverb Feed matrix results (same row budget)
+    const size_t inputReverbSize = static_cast<size_t> (maxRenderSources * numReverbs);
     inputReverbDelayTimesMs.resize (inputReverbSize, 0.0f);
     inputReverbLevels.resize (inputReverbSize, 0.0f);
     inputReverbHFAttenuationDb.resize (inputReverbSize, 0.0f);

@@ -16,6 +16,16 @@ namespace WFSParameterDefaults
 
     constexpr int maxInputChannels     = 64;
     constexpr int maxOutputChannels    = 128;
+
+    // Renderer source dimension. A stereo-pair input channel renders as 6 WFS
+    // sources (its primary slot + 5 derived slices appended past the visible
+    // inputs), so the matrix row budget exceeds the input-channel budget. These
+    // mirror spatcore::wfs::RenderSourceMap's constants; WFSCalculationEngine.cpp
+    // static_asserts the two sets are equal.
+    constexpr int maxStereoChannels       = 8;
+    constexpr int derivedSlicesPerStereo  = 5;
+    constexpr int maxRenderSources        = maxInputChannels
+                                          + maxStereoChannels * derivedSlicesPerStereo;  // 104
     constexpr int maxReverbChannels    = 32;
     constexpr int maxNetworkTargets    = 6;
     constexpr int maxClusters          = 10;

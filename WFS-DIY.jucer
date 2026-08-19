@@ -432,6 +432,8 @@
               file="spatcore/wfs/OutputBufferProcessor.h"/>
         <FILE id="inpAlg" name="InputBufferAlgorithm.h" compile="0" resource="0"
               file="spatcore/wfs/InputBufferAlgorithm.h"/>
+        <FILE id="rndSrc" name="RenderSourceMap.h" compile="0" resource="0"
+              file="spatcore/wfs/RenderSourceMap.h"/>
         <FILE id="outAlg" name="OutputBufferAlgorithm.h" compile="0" resource="0"
               file="spatcore/wfs/OutputBufferAlgorithm.h"/>
         <FILE id="ngpuPipe" name="GpuAsyncPipeline.h" compile="0" resource="0"
