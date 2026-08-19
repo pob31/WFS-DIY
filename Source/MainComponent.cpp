@@ -3168,8 +3168,26 @@ void MainComponent::refreshStereoSliceGeometry()
             (float) (double) channelSection.getProperty (WFSParameterIDs::inputStereoWidth,
                                                          WFSParameterDefaults::inputStereoWidthDefault)) / 100.0f;
 
-        auto posSection = parameters.getValueTreeState().getInputPositionSection (ch);
-        const bool flipX = ((int) posSection.getProperty (WFSParameterIDs::inputFlipX, 0)) != 0;
+        // Spread axis: perpendicular to the origin→anchor bearing in the XY
+        // plane (tangential), so the image reads correctly from the house
+        // wherever the pair sits — a pair at stage right spreads along Y, not
+        // X. Handedness falls out of the geometry: a flipped channel
+        // (inputFlipX/Y) mirrors its anchor, the mirrored bearing flips the
+        // perpendicular with it, and the image mirrors automatically — no
+        // explicit azimuth negation. Falls back to the X axis for an anchor
+        // at the origin (bearing undefined).
+        const auto anchor = calculationEngine->getCompositeInputPosition (ch);
+        float axisX = 1.0f, axisY = 0.0f;
+        {
+            const float bearingLen = std::sqrt (anchor.x * anchor.x + anchor.y * anchor.y);
+            if (bearingLen > 1.0e-3f)
+            {
+                // Azimuth +1 lands audience-right: an upstage anchor
+                // (bearing (0,1)) maps it to +X
+                axisX = anchor.y / bearingLen;
+                axisY = -anchor.x / bearingLen;
+            }
+        }
 
         // Config down (audio side). The pass-through backend ignores width,
         // but Phase 1 reads it live; stagger keeps multi-channel STFT work
@@ -3189,11 +3207,11 @@ void MainComponent::refreshStereoSliceGeometry()
         for (int slice = 0; slice < StereoChannelManager::kMaxSlices; ++slice)
         {
             const auto& st = states.slices[slice];
-            float azimuth = juce::jlimit (-1.0f, 1.0f, st.azimuth);
-            if (flipX)
-                azimuth = -azimuth;   // the stereo image mirrors with the channel
+            const float azimuth = juce::jlimit (-1.0f, 1.0f, st.azimuth);
+            const float spread = azimuth * width * halfSpanX;
 
-            offsets[slice * 3 + 0] = azimuth * width * halfSpanX;
+            offsets[slice * 3 + 0] = spread * axisX;
+            offsets[slice * 3 + 1] = spread * axisY;
             gains[slice] = st.gainLinear;
             active[slice] = st.active;
         }
