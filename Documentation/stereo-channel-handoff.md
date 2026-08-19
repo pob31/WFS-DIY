@@ -1,0 +1,92 @@
+# Handoff — Stereo Channel Type with Panning-Based Decomposition
+
+**Project:** WFS-DIY (JUCE/C++, GPL-3.0)
+**Status:** Design settled at the level described here; parameter-level decisions deferred to implementation discussion.
+**Scope:** New *stereo pair* input channel type that internally decomposes a stereo signal into several spatial slice feeds rendered across the array. The split is invisible to the user: one channel object in, N derived renderer sources out.
+
+---
+
+## 1. Motivation
+
+Stereo program material (playback tracks in theatre/dance, DJ decks, music cues) currently enters as two unrelated mono inputs or a position-clustered pair. Neither uses the spatial information already encoded in the mix. Amplitude-panned sources have a per-bin inter-channel magnitude ratio equal to their pan law; time-frequency sparsity of music means most bins are dominated by one source. The mix can therefore be *unfolded* into an azimuth decomposition deterministically — no ML, no trained weights, no licensing questions — and mapped onto the array as several virtual sources plus an ambience bed.
+
+Reference lineage (for orientation, not required reading): Avendano & Jot (JAES 2004, panning index + coherence), Faller (JAES 2006, multi-loudspeaker playback of stereo), Barry et al. ADRess (DAFx-04), Merimaa/Goodwin/Jot (AES 2007, ambience extraction).
+
+## 2. Phasing — build order is part of the design
+
+**Phase 0 — pass-through stereo channel.** N = 2, slice 1 = L, slice 2 = R. No STFT, no added latency, no DSP beyond routing. Purpose: land the channel-type plumbing (channel-count field, snapshots, OSC address space, cluster behaviour, level meter) against a trivial and easily verified backend, and provide the permanent A/B control condition. This phase is independently useful in live shows and ships on its own.
+
+**Phase 1 — panning decomposition.** The DSP described in §3, behind the same channel interface. The front end must stay abstracted so a future separation backend (e.g. ML stem separation) can replace it without touching the channel type, snapshots, or render mapping. Design for that swap; do **not** ship a backend selector UI.
+
+**Phase 2 (not in scope, listed so interfaces anticipate it):** per-slice structural refinements (HPSS on the centre slice, transient/steady-state split), separator-informed placement.
+
+## 3. DSP — Phase 1 backend
+
+Per stereo channel, on the **CPU**. Estimated cost is ~100 Mflop/s per channel at the parameters below; three to four channels total expected (owner's stated ceiling: 3–4 stereo pairs even for music-heavy theatre shows). No GPU involvement and no per-channel CPU/GPU choice — the analysis is three orders of magnitude below the scatter stage and does not justify a PCIe round trip or a settings row.
+
+Pipeline per frame:
+
+1. **STFT**, WOLA, 75% overlap. Suggested starting point 21.3 ms window (2048 @ 96 kHz / 1024 @ 48 kHz — window size in *samples* must derive from sample rate to hold constant time/frequency behaviour; see §7).
+2. **Crossover**: below ~100–120 Hz the signal bypasses decomposition entirely and sums to the channel's anchor feed (mono). Frequency resolution at practical window lengths is useless there and the band is spatially inert on the array.
+3. **Coherence estimate** L↔R per bin → soft primary/ambient split. Not optional: decorrelated content (reverb, wide synths, chorus) has no defined pan position and must not pollute the azimuth slices.
+4. **Panning index** on the primary part from the inter-channel magnitude ratio. Gate on inter-channel phase difference ≈ 0 as a per-bin confidence measure; bins failing the gate drift toward the anchor/ambient rather than getting a bogus intermediate position.
+5. **Azimuth binning** into N slices with overlapping raised-cosine weights forming a **partition of unity** across azimuth. Same real magnitude weight applied to both channels, original phase preserved. Consequence: Σ slices + ambient ≡ input, structurally, bit-exact up to float. This reconstruction identity is a hard invariant — it is what makes the whole feature safe to put in front of an audience — and it gets a test (§8).
+6. **ISTFT** per slice + ambient → N+1 feeds into the renderer as derived sources.
+
+Slice-count guidance: default **5 + ambience** (hard L, mid L, centre, mid R, hard R). Kernel *width* is the selectivity control, set by estimator variance; N samples that continuous function (~2 slices per kernel width). Centre slice is anchored; non-uniform spacing (denser toward the sides) suits centre-heavy program. Over-slicing splits one source into coherent copies at different positions → comb filtering; more slices is *not* conservative.
+
+## 4. Channel model — derived, not ganged
+
+The snapshot stores **one** channel object: position, width, and the (few) stereo-specific parameters. Slice positions and gains are **computed at render time** from the decomposition state — slices are not persistent inputs, do not appear in the input list, and are not individually addressable via OSC/MCP for editing. This deliberately avoids re-introducing the persisted-gang complexity previously rejected for input clusters.
+
+Mapping: decomposition extremes map to the **usable array span**, not beyond it — the low-density algorithm produces no focused sources, so nothing may land in front of the array. Default width should be derived from array density (aliasing frequency), scaled by a global per-channel width factor.
+
+Confidence-driven placement: each slice carries a running confidence (coherence + phase-gate statistics). Low confidence collapses that slice's rendered spread toward the channel anchor; high confidence lets it sit at the estimated position. This replaces manual per-slice offsets as the default behaviour — no per-slice offset UI in the first iteration.
+
+ADM-OSC: the channel maps to a single object with position + width. No address-space extension required.
+
+## 5. Parameters
+
+**Ruled out for this channel type** (settled — do not carry over): floor reflections, live source damping, gradient maps, sampler.
+
+**Everything else per-channel is TBD at implementation** — do not enumerate or decide the remaining existing parameters in this document's scope; bring them to discussion with a proposed applicability table (applies to whole channel / applies per-slice / not applicable).
+
+**New, stereo-specific (expected set, exact list to be settled):**
+- slice count N (with the 5+ambience default)
+- global width factor
+- crossover frequency
+- ambient-bed handling (global envelopment layer vs per-slice send — open question)
+- centre-anchor behaviour
+- confidence→collapse response (probably a fixed curve first, parameter later if needed)
+
+Bias strongly toward *fewer* visible parameters. The GUI is considered cluttered already, and counteracting-parameter pairs have a track record of reading as double negations to operators learning the system.
+
+## 6. Real-time integration
+
+- **Latency bookkeeping.** The STFT adds ~21.3 ms to this channel type *only*. Mono channels are unaffected. The delay-alignment reference must therefore become channel-type-aware, or stereo playback and live mics will sit ~21 ms apart. Treat this like the existing GPU pipeline-depth pre-subtraction: known, constant, compensated in the WFS delays.
+- **Hop staggering.** At 512-sample hop, analysis fires every 8th audio callback. Multiple stereo channels landing their FFT work on the same block produce a periodic spike against the 0.667 ms budget — the exact spike-tail pattern pipeline-bench flags. Stagger STFT phase per channel by hop/N_channels from the first commit.
+- **Renderer load.** Slices are real renderer sources hitting the scatter stage (measured at 0.58 ms of the 0.667 ms budget on the T4). 4 pairs × 6 feeds = 24 derived sources. The channel-count field must display the derived source total, not only the pair count, so the budget consumption is visible.
+- All analysis state per channel is preallocated; no allocation, locks, or logging on the audio thread (house RT rules apply).
+
+## 7. Sample-rate note
+
+Window/hop are specified in **time**, derived in samples per rate. At 96 kHz the FFT costs double for identical latency and frequency resolution versus 48 kHz — the usual higher-rate latency argument does not apply inside this stage. Do not hard-code 2048.
+
+## 8. Validation
+
+- **Reconstruction invariant:** Σ slices + ambient − input ≤ −120 dBFS over a test corpus, per block, as an automated test. Any DSP change that breaks this is wrong by definition.
+- **Null test vs Phase 0:** with N=2 and decomposition bypassed, output must be identical to the pass-through channel.
+- **Adjacent-slice correlation:** offline tool (or pipeline-bench-style harness) reporting normalised cross-correlation between adjacent slice outputs over a track; >~0.8 sustained indicates over-slicing for that material.
+- **Spike behaviour:** pipeline-bench run with 4 stereo channels active, staggered vs unstaggered, before/after comparison.
+- **Listening control:** the Phase 0 pass-through (two plane waves) is the standing reference. The decomposition must beat it audibly on real program material or it doesn't ship on by default.
+
+## 9. Diagnostics
+
+Slice inspection lives in the **level-meter detached window**, extending the existing solo/single mode: for a soloed stereo channel, show per-slice levels and confidence alongside the output contributions. Nothing decomposition-related is added to the main GUI. Without this view a bad decomposition is undebuggable in situ.
+
+## 10. Known limits (documented behaviour, not bugs)
+
+- Centre-heavy masters put most energy in the centre slice; the method exposes the spatial intent the mix contains and cannot invent separation that isn't there.
+- Anti-correlated widener content (Haas, all-pass) reads as outside ±1; clamp to the extremes or route to ambient.
+- Joint-stereo lossy sources degrade the HF inter-channel detail the estimator relies on.
+- Summing several stereo programs into one stereo channel breaks the one-source-per-bin assumption — hence multiple stereo channels are first-class, and crossfaded decks belong on separate channels.
