@@ -276,7 +276,9 @@ NON_PARAMETER_VARIABLES_PREFIXES = (
 # Per-CSV channel-id argument: (arg_name, min, max, schema description).
 CHANNEL_ID_RANGE = {
     "WFS-UI_input.csv":   ("input_id", 1, 64,
-                           "Input channel number (1-based)."),
+                           "Permanent input channel number (1-based). Must be a "
+                           "LIVE channel: the list may have gaps after deletions, "
+                           "so a number within 1..64 can still be rejected."),
     "WFS-UI_output.csv":  ("output_id", 1, 128,
                            "Output channel number (1-based)."),
     "WFS-UI_reverb.csv":  ("reverb_id", 1, 32,
