@@ -91,6 +91,14 @@ public:
         gainLinear for stereo slices, 0 for an inactive slot. Thread-safe. */
     float getRenderSourceGain (int sourceIndex) const;
 
+    /** Intrinsic processing latency of one channel's decomposition backend
+        (ms; 0 for mono channels and the Phase-0 pass-through). All render
+        sources of a channel share it. The engine aligns every channel to the
+        MAXIMUM across channels by ADDING (max − own) to its delays — the term
+        is never negative, so it cannot fight the delay clamp at zero. Marks
+        everything dirty on change (the reference is global). */
+    void setChannelIntrinsicLatency (int inputChannel, float latencyMs);
+
     /** Force recalculation of all listener positions */
     void recalculateAllListenerPositions();
 
@@ -348,6 +356,10 @@ private:
     // desc[] offsets/gains are the 50 Hz half; the slot layout itself only
     // changes with the channel-type vector (stopped-only).
     spatcore::wfs::RenderSourceMap sourceMap;
+
+    // Per-channel backend latency for the render-latency reference hook
+    // (protected by positionLock). Identically zero in Phase 0.
+    std::vector<float> channelIntrinsicLatencyMs;
 
     std::vector<Position> reverbReturnPositions;   // [reverbIndex]
     std::vector<Position> lfoOffsets;              // [inputIndex] - LFO position offsets

@@ -3218,6 +3218,10 @@ void MainComponent::refreshStereoSliceGeometry()
         }
 
         calculationEngine->setSliceGeometry (ch, offsets, gains, active);
+
+        // Backend intrinsic latency → the render-latency reference hook
+        // (0 for the Phase-0 pass-through, ~21 ms for the Phase-1 STFT)
+        calculationEngine->setChannelIntrinsicLatency (ch, stereoChannelManager->getLatencyMs (k));
     }
 }
 

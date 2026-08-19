@@ -32,6 +32,7 @@ WFSCalculationEngine::WFSCalculationEngine (WFSValueTreeState& state)
     // member default-constructed: a zero-filled firstDerivedSlot would claim
     // derived slots at row 0.
     spatcore::wfs::RenderSourceMap::buildIdentity (numInputs, sourceMap);
+    channelIntrinsicLatencyMs.resize (static_cast<size_t> (numInputs), 0.0f);
 
     // Reserve space for positions
     listenerPositions.resize (static_cast<size_t> (numOutputs));
@@ -150,7 +151,29 @@ void WFSCalculationEngine::setRenderSourceMap (const spatcore::wfs::RenderSource
     {
         const juce::ScopedLock sl (positionLock);
         sourceMap = map;
+
+        // A channel that stopped being stereo has no backend any more: its
+        // intrinsic latency must not linger in the max-reference search.
+        for (int i = 0; i < numInputs && i < (int) channelIntrinsicLatencyMs.size(); ++i)
+            if (! sourceMap.desc[static_cast<size_t> (i)].isStereoSlice)
+                channelIntrinsicLatencyMs[static_cast<size_t> (i)] = 0.0f;
     }
+    markAllInputsDirty();
+}
+
+void WFSCalculationEngine::setChannelIntrinsicLatency (int inputChannel, float latencyMs)
+{
+    if (inputChannel < 0 || inputChannel >= numInputs)
+        return;
+
+    latencyMs = juce::jmax (0.0f, latencyMs);
+    {
+        const juce::ScopedLock sl (positionLock);
+        if (channelIntrinsicLatencyMs[static_cast<size_t> (inputChannel)] == latencyMs)
+            return;
+        channelIntrinsicLatencyMs[static_cast<size_t> (inputChannel)] = latencyMs;
+    }
+    // The reference is the max across channels: one change re-times everyone.
     markAllInputsDirty();
 }
 
@@ -1032,6 +1055,7 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
     // Render-source slot map + slice geometry (copied under the lock so the
     // whole recalc sees one consistent set of slice offsets/gains)
     spatcore::wfs::RenderSourceMap localSourceMap;
+    std::vector<float> localChannelLatencyMs;
 
     // Capture dirty state and clear flags
     bool needOutputRecalc = outputsDirty.exchange(false);
@@ -1100,6 +1124,7 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
 
         // Copy the render-source map (slot layout + 50 Hz slice geometry)
         localSourceMap = sourceMap;
+        localChannelLatencyMs = channelIntrinsicLatencyMs;
 
         // Copy gradient map offsets
         localGradientMapOffsets = gradientMapOffsets;
@@ -1122,6 +1147,13 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
             inputDirtyFlags[static_cast<size_t>(i)] = false;
         }
     }
+
+    // Render-latency reference (doc §6): the maximum backend latency across
+    // channels. 0 when no stereo channel exists — and identically 0 in
+    // Phase 0, where every backend reports zero.
+    float renderLatencyReferenceMs = 0.0f;
+    for (float channelLatency : localChannelLatencyMs)
+        renderLatencyReferenceMs = juce::jmax (renderLatencyReferenceMs, channelLatency);
 
     // Get global config parameters
     auto masterState = valueTreeState.getMasterState();
@@ -1228,6 +1260,13 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
             inputPos.y += primaryDesc.offsetY;
             inputPos.z += primaryDesc.offsetZ;
         }
+
+        // Align this channel to the render-latency reference by ADDING
+        // (max − own) — never negative, so it cannot fight the jmax(0, …)
+        // delay clamp near the array. Shared by all of the channel's rows.
+        const float latencyCompensationMs = renderLatencyReferenceMs
+            - (static_cast<size_t> (inIdx) < localChannelLatencyMs.size()
+                   ? localChannelLatencyMs[static_cast<size_t> (inIdx)] : 0.0f);
 
         // Get input attenuation parameters. inputAttenuation lives in the Channel
         // section - that is where the GUI, OSC and snapshot system all read/write it -
@@ -1579,7 +1618,7 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
                 float outputDelayLat = outputChannelSection.getProperty (outputDelayLatency, 0.0f);
 
                 float finalDelay = newDelays[matrixIdx] + globalHaasEffect - globalSystemLatency
-                                   + inputDelayLat + outputDelayLat;
+                                   + inputDelayLat + outputDelayLat + latencyCompensationMs;
 
                 newDelays[matrixIdx] = juce::jmax (0.0f, finalDelay);
             }
@@ -1587,7 +1626,13 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
         else
         {
             // Mode 1: Minimal Latency
-            // Subtract minimum from all delays (if we found valid outputs)
+            // Subtract minimum from all delays (if we found valid outputs).
+            // Mode 1 deliberately applies NO other latency terms (no Haas, no
+            // system latency, no delay trims) — but the render-latency
+            // reference DOES apply: without it a minimal-latency channel
+            // would run (reference) ms AHEAD of every latency-aligned stereo
+            // channel, which is worse than the misalignment being corrected.
+            // Identically zero in Phase 0.
             if (foundValidOutput)
             {
                 for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
@@ -1598,11 +1643,20 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
                     if (newLevels[matrixIdx] <= 0.0f)
                         continue;
 
-                    float finalDelay = newDelays[matrixIdx] - minDelay;
+                    float finalDelay = newDelays[matrixIdx] - minDelay + latencyCompensationMs;
                     newDelays[matrixIdx] = juce::jmax (0.0f, finalDelay);
                 }
             }
-            // If no valid outputs found, leave delays as calculated (no subtraction)
+            else if (latencyCompensationMs > 0.0f)
+            {
+                // No valid min-latency outputs: still hold the reference
+                for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+                {
+                    const size_t matrixIdx = static_cast<size_t> (inIdx * numOutputs + outIdx);
+                    if (newLevels[matrixIdx] > 0.0f)
+                        newDelays[matrixIdx] = juce::jmax (0.0f, newDelays[matrixIdx] + latencyCompensationMs);
+                }
+            }
         }
 
         // Apply ramp offset for smooth mode transitions
@@ -1821,12 +1875,16 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
                     float outputDelayLat = outputChannelSection.getProperty (outputDelayLatency, 0.0f);
 
                     float finalDelay = delayMs + globalHaasEffect - globalSystemLatency
-                                       + inputDelayLat + outputDelayLat;
+                                       + inputDelayLat + outputDelayLat + latencyCompensationMs;
                     delayMs = juce::jmax (0.0f, finalDelay);
                 }
                 else if (foundValidOutput)
                 {
-                    delayMs = juce::jmax (0.0f, delayMs - minDelay);
+                    delayMs = juce::jmax (0.0f, delayMs - minDelay + latencyCompensationMs);
+                }
+                else if (latencyCompensationMs > 0.0f)
+                {
+                    delayMs = juce::jmax (0.0f, delayMs + latencyCompensationMs);
                 }
 
                 if (std::abs (rampOffset) > 0.001f)
@@ -2098,6 +2156,12 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
         }
         const int channelFirstDerivedSlot = localSourceMap.firstDerivedSlot[static_cast<size_t> (inIdx)];
 
+        // Render-latency reference, duplicated for the reverb feeds (the
+        // reverb path is a separate delay computation with the same contract)
+        const float latencyCompensationMs = renderLatencyReferenceMs
+            - (static_cast<size_t> (inIdx) < localChannelLatencyMs.size()
+                   ? localChannelLatencyMs[static_cast<size_t> (inIdx)] : 0.0f);
+
         // Check if this input has reverb sends muted
         if (isInputReverbMuted (inIdx))
         {
@@ -2318,9 +2382,20 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
                     const size_t matrixIdx = static_cast<size_t> (inIdx * numReverbs + revIdx);
                     if (newInputReverbLevels[matrixIdx] > 0.0f)
                     {
-                        float finalDelay = newInputReverbDelays[matrixIdx] - reverbMinDelay;
+                        // Mode 1 carries no other latency terms, but the
+                        // render-latency reference applies (see the main loop)
+                        float finalDelay = newInputReverbDelays[matrixIdx] - reverbMinDelay + latencyCompensationMs;
                         newInputReverbDelays[matrixIdx] = juce::jmax (0.0f, finalDelay);
                     }
+                }
+            }
+            else if (latencyCompensationMs > 0.0f)
+            {
+                for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
+                {
+                    const size_t matrixIdx = static_cast<size_t> (inIdx * numReverbs + revIdx);
+                    if (newInputReverbLevels[matrixIdx] > 0.0f)
+                        newInputReverbDelays[matrixIdx] = juce::jmax (0.0f, newInputReverbDelays[matrixIdx] + latencyCompensationMs);
                 }
             }
         }
@@ -2336,7 +2411,7 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
                     float reverbDelayLat = channelSection.getProperty (reverbDelayLatency, reverbDelayLatencyDefault);
 
                     float finalDelay = newInputReverbDelays[matrixIdx] + globalHaasEffect - globalSystemLatency
-                                       + inputDelayLat + reverbDelayLat;
+                                       + inputDelayLat + reverbDelayLat + latencyCompensationMs;
                     newInputReverbDelays[matrixIdx] = juce::jmax (0.0f, finalDelay);
                 }
             }
@@ -2430,7 +2505,9 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
                 if (minimalLatencyMode == 1)
                 {
                     if (reverbFoundValid)
-                        delayMs = juce::jmax (0.0f, delayMs - reverbMinDelay);
+                        delayMs = juce::jmax (0.0f, delayMs - reverbMinDelay + latencyCompensationMs);
+                    else if (latencyCompensationMs > 0.0f)
+                        delayMs = juce::jmax (0.0f, delayMs + latencyCompensationMs);
                 }
                 else
                 {
@@ -2438,7 +2515,7 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
                     float reverbDelayLat = channelSection.getProperty (reverbDelayLatency, reverbDelayLatencyDefault);
 
                     float finalDelay = delayMs + globalHaasEffect - globalSystemLatency
-                                       + inputDelayLat + reverbDelayLat;
+                                       + inputDelayLat + reverbDelayLat + latencyCompensationMs;
                     delayMs = juce::jmax (0.0f, finalDelay);
                 }
 
