@@ -261,14 +261,23 @@ private:
             }
 
             // A tap is a deliberate user action on the head unit itself, so
-            // confirming it landed matters more than most telemetry: there is
-            // no on-device feedback beyond the LED blip.
+            // confirming it registered matters more than most telemetry: there
+            // is no on-device feedback beyond the LED blip.
+            //
+            // Reported as DETECTED rather than as recentred, because the two
+            // are no longer the same event. on_tap fires on every detected tap
+            // for observability, but the library honours the action only for a
+            // wearer who has been settled for a couple of seconds (donning
+            // headphones is a wear transition full of tap-like jostles), and
+            // even then defers the recenter until the head stops moving, so
+            // "front" is not captured mid-swing.
             const auto taps = s->getTapCount();
             if (taps != lastTaps[i])
             {
                 lastTaps[i] = taps;
                 WFSLogger::getInstance().logInfo (
-                    "Head tracker: " + s->getDisplayName() + " double-tap - recentred");
+                    "Head tracker: " + s->getDisplayName() + " double-tap detected"
+                    + juce::String (st.worn ? "" : " - ignored, not worn"));
             }
         }
     }
