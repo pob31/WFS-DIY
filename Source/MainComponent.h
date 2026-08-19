@@ -522,9 +522,11 @@ private:
         may never drift from the channel dimension it derives from. */
     void recomputeRenderSourceCount();
 
-    /** Hidden diagnostic (WFS_TEST_STEREO_COUNTS=1): drives the mono/stereo
-        count flow and logs the input patch after each step. */
-    void runStereoCountSelfTest();
+    /** Hidden diagnostic (WFS_TEST_CHANNEL_LIST=1): drives the structural
+        channel ops (append, delete-with-gap, type flip, gap reuse, budgets),
+        asserts the stable-number invariants after every step and logs
+        PASS/FAIL lines to the session log. */
+    void runChannelListSelfTest();
 
     /** A mono row may hold at most one hardware column. Clears any extra
         columns (keeping the lowest = L) left behind when a count change
@@ -563,19 +565,10 @@ private:
     void applySamplerControllerMode (int mode);
     std::map<int, int> buildZoneToInputMap() const;
     void resendRemotePadConfig();
-    void growPatchData(juce::ValueTree& patchTree, int newChannelCount, int numHardwareCols,
-                       int numStereoRows = 0);
-
-    /** Structural input-patch edit mirroring setInputChannelCounts: mono rows
-        are inserted/removed AT THE BOUNDARY (the stereo block's rows move
-        with their channels), stereo rows at the end. New mono rows come
-        unpatched; new stereo rows continue the two-wide diagonal. Falls back
-        to growPatchData when the stored rows don't match the old shape
-        (config load). */
-    void restructureInputPatchRows(juce::ValueTree& patchTree,
-                                   int oldMono, int oldStereo,
-                                   int newMono, int newStereo,
-                                   int numHardwareCols);
+    /** Output-patch grow/truncate (1:1 diagonal). Input rows are mirrored
+        per-op by the WFSValueTreeState structural channel ops (+ its
+        normalizeInputPatchRows for the config-load rewrite). */
+    void growPatchData(juce::ValueTree& patchTree, int newChannelCount, int numHardwareCols);
 
     /** Auto-diagonal companion for stereo pairs: rows with a patched L and no
         R get the next hardware column when it is free everywhere. Heuristic,

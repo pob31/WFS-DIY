@@ -360,6 +360,15 @@ void WFSValueTreeState::setParameter (const juce::Identifier& paramId, const juc
         setNumReverbChannels (static_cast<int> (value));
         return;
     }
+    if (paramId == stereoInputChannels)
+    {
+        // Obsolete under the stable-number model: a channel's type lives on
+        // the channel (inputChannelType) and changes through
+        // setInputChannelType. Ignore so a stale file value or remote write
+        // cannot resurrect the count-based tail semantics.
+        juce::Logger::writeToLog ("Ignoring write to obsolete stereoInputChannels parameter");
+        return;
+    }
 
     TreeParameterStore::setParameter (paramId, value, channelIndex);
 }
@@ -375,6 +384,7 @@ void WFSValueTreeState::setParameterWithoutUndo (const juce::Identifier& paramId
     if (paramId == inputChannels)  { setNumInputChannels  (static_cast<int> (value)); return; }
     if (paramId == outputChannels) { setNumOutputChannels (static_cast<int> (value)); return; }
     if (paramId == reverbChannels) { setNumReverbChannels (static_cast<int> (value)); return; }
+    if (paramId == stereoInputChannels) { return; }  // obsolete — see setParameter
 
     TreeParameterStore::setParameterWithoutUndo (paramId, value, channelIndex);
 }
@@ -1368,26 +1378,14 @@ int WFSValueTreeState::getNumInputChannels() const
 
 int WFSValueTreeState::getNumStereoInputChannels() const
 {
-    auto io = const_cast<WFSValueTreeState*>(this)->getIOState();
-    const int stereo = io.isValid()
-        ? (int) io.getProperty (WFSParameterIDs::stereoInputChannels,
-                                WFSParameterDefaults::stereoInputChannelsDefault)
-        : WFSParameterDefaults::stereoInputChannelsDefault;
-
-    // The LAST `stereo` channels of the input list are stereo pairs; clamp to
-    // what the list can actually hold so a hand-edited config cannot claim
-    // more stereo channels than inputs (or than the slice-slot budget).
-    return juce::jlimit (0, juce::jmin (WFSParameterDefaults::maxStereoChannels,
-                                        getNumInputChannels()),
-                         stereo);
-}
-
-void WFSValueTreeState::setNumStereoInputChannels (int numStereo)
-{
-    numStereo = juce::jlimit (0, WFSParameterDefaults::maxStereoChannels, numStereo);
-    auto io = getIOState();
-    if (io.isValid())
-        io.setProperty (WFSParameterIDs::stereoInputChannels, numStereo, getActiveUndoManager());
+    // Derived from the per-channel type — the legacy IO property is read only
+    // by migration (and removed from the tree afterwards).
+    auto inputs = getInputsState();
+    int stereo = 0;
+    for (int i = 0; i < inputs.getNumChildren(); ++i)
+        if (isInputChannelStereo (i))
+            ++stereo;
+    return stereo;
 }
 
 int WFSValueTreeState::getInputChannelNumber (int slot) const
@@ -1452,11 +1450,15 @@ int WFSValueTreeState::getNextChannelNumber() const
 
 void WFSValueTreeState::stampChannelTypesFromLegacySplit (juce::UndoManager* um, int stereoCountOverride)
 {
+    // Migration-only: stamps the pre-rework tail split ("the LAST N channels
+    // are stereo") onto the per-channel property. The caller reads N from the
+    // legacy IO property — getNumStereoInputChannels() is derived from the
+    // types and cannot be used here.
+    jassert (stereoCountOverride >= 0);
+
     auto inputs = getInputsState();
     const int total  = inputs.getNumChildren();
-    const int stereo = stereoCountOverride >= 0
-        ? juce::jmin (stereoCountOverride, total)
-        : getNumStereoInputChannels();
+    const int stereo = juce::jmin (juce::jmax (0, stereoCountOverride), total);
 
     for (int i = 0; i < total; ++i)
     {
@@ -1519,9 +1521,14 @@ void WFSValueTreeState::migrateInputChannelModel()
     for (int i = 0; i < total && ! anyTyped; ++i)
         anyTyped = inputs.getChild (i).hasProperty (inputChannelType);
 
+    auto io = getIOState();
     if (! anyTyped)
     {
-        stampChannelTypesFromLegacySplit (nullptr);
+        const int legacyStereo = io.isValid()
+            ? juce::jlimit (0, WFSParameterDefaults::maxStereoChannels,
+                            (int) io.getProperty (WFSParameterIDs::stereoInputChannels, 0))
+            : 0;
+        stampChannelTypesFromLegacySplit (nullptr, legacyStereo);
     }
     else
     {
@@ -1532,90 +1539,256 @@ void WFSValueTreeState::migrateInputChannelModel()
                 input.setProperty (inputChannelType, inputChannelTypeMono, nullptr);
         }
     }
+
+    // 4. The legacy tail-split property is consumed; drop it so nothing can
+    //    resurrect the count-based semantics from a stale file value.
+    if (io.isValid() && io.hasProperty (WFSParameterIDs::stereoInputChannels))
+        io.removeProperty (WFSParameterIDs::stereoInputChannels, nullptr);
 }
 
 void WFSValueTreeState::setInputChannelCounts (int numMono, int numStereo)
 {
+    // Legacy two-count entry point (System Config fields, load shim). Under
+    // the stable-number model it is a thin loop over the structural ops:
+    // additions APPEND after the last channel — numbers never shift and mono
+    // and stereo channels may interleave — and reductions remove the
+    // HIGHEST-NUMBERED channel of that type. Not undoable (the ops clear the
+    // undo history; a half-undone tree/patch pair would silently desync).
     numStereo = juce::jlimit (0, WFSParameterDefaults::maxStereoChannels, numStereo);
     numMono   = juce::jlimit (1, WFSParameterDefaults::maxInputChannels - numStereo, numMono);
 
+    auto removeHighestOfType = [this] (bool stereo) -> bool
+    {
+        auto inputs = getInputsState();
+        for (int i = inputs.getNumChildren(); --i >= 0;)
+            if (isInputChannelStereo (i) == stereo)
+                return removeInputChannel (getInputChannelNumber (i)).wasOk();
+        return false;
+    };
+
+    // Reductions first so the 64-live budget is free before additions.
+    while (getNumStereoInputChannels() > numStereo)
+        if (! removeHighestOfType (true)) break;
+    while (getNumInputChannels() - getNumStereoInputChannels() > numMono)
+        if (! removeHighestOfType (false)) break;
+    while (getNumStereoInputChannels() < numStereo)
+        if (! addInputChannel (true).wasOk()) break;
+    while (getNumInputChannels() - getNumStereoInputChannels() < numMono)
+        if (! addInputChannel (false).wasOk()) break;
+}
+
+int WFSValueTreeState::getLowestFreeChannelNumber() const
+{
+    for (int n = 1; n <= WFSParameterDefaults::maxInputChannels; ++n)
+        if (getSlotForChannelNumber (n) < 0)
+            return n;
+    return 0;
+}
+
+juce::Result WFSValueTreeState::addInputChannel (bool stereo, int explicitNumber)
+{
     auto inputs = getInputsState();
-    const int oldTotal  = inputs.getNumChildren();
-    const int oldStereo = getNumStereoInputChannels();
-    const int oldMono   = oldTotal - oldStereo;
-    const int newTotal  = numMono + numStereo;
+    const int total = inputs.getNumChildren();
 
-    if (numMono == oldMono && numStereo == oldStereo)
-        return;
+    if (total >= WFSParameterDefaults::maxInputChannels)
+        return juce::Result::fail ("input list is full ("
+                                   + juce::String (WFSParameterDefaults::maxInputChannels)
+                                   + " live channels)");
+    if (stereo && getNumStereoInputChannels() >= WFSParameterDefaults::maxStereoChannels)
+        return juce::Result::fail ("stereo budget reached ("
+                                   + juce::String (WFSParameterDefaults::maxStereoChannels)
+                                   + " stereo channels)");
 
-    beginUndoTransaction ("Set Input Channel Counts");
-
-    // The two pools are edited structurally: mono changes happen AT THE
-    // BOUNDARY (before the stereo block), so the stereo channels keep their
-    // subtrees — settings, width, custom names — and simply shift index.
-    // Stereo changes happen at the end of the list.
-    if (numMono > oldMono)
+    int number = explicitNumber;
+    if (number <= 0)
     {
-        for (int i = 0; i < numMono - oldMono; ++i)
-            inputs.addChild (createDefaultInputChannel (oldMono + i, newTotal),
-                             oldMono + i, getActiveUndoManager());
+        // Append-only: the next number is highest + 1. Once 64 has been used,
+        // the caller must explicitly pick a free (retired) number — the UI
+        // confirms with the user first, because snapshots/cues addressed to
+        // that number will affect the new channel.
+        number = getNextChannelNumber();
+        if (number > WFSParameterDefaults::maxInputChannels)
+            return juce::Result::fail ("channel number space exhausted; reuse a free number (lowest free: "
+                                       + juce::String (getLowestFreeChannelNumber()) + ")");
     }
-    else if (numMono < oldMono)
+    else
     {
-        for (int i = oldMono; --i >= numMono;)
-            inputs.removeChild (i, getActiveUndoManager());
-    }
-
-    if (numStereo > oldStereo)
-    {
-        for (int i = inputs.getNumChildren(); i < newTotal; ++i)
-            inputs.appendChild (createDefaultInputChannel (i, newTotal), getActiveUndoManager());
-    }
-    else if (numStereo < oldStereo)
-    {
-        while (inputs.getNumChildren() > newTotal)
-            inputs.removeChild (inputs.getNumChildren() - 1, getActiveUndoManager());
+        if (number > WFSParameterDefaults::maxInputChannels)
+            return juce::Result::fail ("channel number above "
+                                       + juce::String (WFSParameterDefaults::maxInputChannels));
+        if (getSlotForChannelNumber (number) >= 0)
+            return juce::Result::fail ("channel number " + juce::String (number) + " is already live");
     }
 
-    // Middle edits shift channel indices: renumber ids, and keep DEFAULT
-    // names ("Input N") in step — custom names are never touched.
-    for (int i = 0; i < inputs.getNumChildren(); ++i)
+    // Ascending-id invariant: insert before the first higher number
+    // (append when the number is the highest).
+    int slot = total;
+    for (int i = 0; i < total; ++i)
     {
-        auto input = inputs.getChild (i);
-        const int oldId = static_cast<int> (input.getProperty (id, 0));
-        if (oldId == i + 1)
-            continue;
-
-        input.setProperty (id, i + 1, getActiveUndoManager());
-
-        auto channel = input.getChildWithName (Channel);
-        if (channel.isValid()
-            && channel.getProperty (inputName).toString() == getDefaultInputName (oldId - 1))
-            channel.setProperty (inputName, getDefaultInputName (i), getActiveUndoManager());
+        if (static_cast<int> (inputs.getChild (i).getProperty (id, 0)) > number)
+        {
+            slot = i;
+            break;
+        }
     }
 
-    // Migration sections for every channel (mirrors setNumInputChannels)
-    for (int i = 0; i < newTotal; ++i)
-    {
-        ensureInputGradientMapsSection (i);
-        ensureInputSamplerSection (i);
-    }
+    auto node = createDefaultInputChannel (slot, total + 1, number);
+    node.setProperty (inputChannelType,
+                      stereo ? juce::String (inputChannelTypeStereo)
+                             : juce::String (inputChannelTypeMono), nullptr);
+    inputs.addChild (node, slot, nullptr);
 
-    // Count properties + the stereo stamp (property last: readers clamp the
-    // split by the list size, so every intermediate state a synchronous
-    // listener can observe reads consistently)
-    // Dual-write FIRST: the count/split property writes below fire listeners
-    // (InputsTab sub-tab rebuild) that read the per-channel types.
-    stampChannelTypesFromLegacySplit (getActiveUndoManager(), numStereo);
+    insertInputPatchRow (slot, stereo);
 
     auto io = getIOState();
     if (io.isValid())
-        io.setProperty (inputChannels, newTotal, getActiveUndoManager());
-    inputs.setProperty (count, newTotal, getActiveUndoManager());
-    setNumStereoInputChannels (numStereo);
+        io.setProperty (inputChannels, inputs.getNumChildren(), nullptr);
+    inputs.setProperty (count, inputs.getNumChildren(), nullptr);
 
-    if (oldTotal != newTotal && ! arePositionsUserOwned())
+    if (! arePositionsUserOwned())
         redistributeAllInputPositions();
+
+    // Structural edits are not undoable: the channel node and its patch row
+    // must live and die together, and ValueTree undo cannot span the flat
+    // patchData string edit safely.
+    clearAllUndoHistories();
+    return juce::Result::ok();
+}
+
+juce::Result WFSValueTreeState::removeInputChannel (int channelNumber)
+{
+    const int slot = getSlotForChannelNumber (channelNumber);
+    if (slot < 0)
+        return juce::Result::fail ("channel " + juce::String (channelNumber) + " is not live");
+
+    auto inputs = getInputsState();
+    if (inputs.getNumChildren() <= 1)
+        return juce::Result::fail ("at least one input channel is required");
+
+    inputs.removeChild (slot, nullptr);
+    removeInputPatchRow (slot);
+
+    auto io = getIOState();
+    if (io.isValid())
+        io.setProperty (inputChannels, inputs.getNumChildren(), nullptr);
+    inputs.setProperty (count, inputs.getNumChildren(), nullptr);
+
+    if (! arePositionsUserOwned())
+        redistributeAllInputPositions();
+
+    clearAllUndoHistories();
+    return juce::Result::ok();
+}
+
+juce::Result WFSValueTreeState::setInputChannelType (int channelNumber, bool stereo)
+{
+    const int slot = getSlotForChannelNumber (channelNumber);
+    if (slot < 0)
+        return juce::Result::fail ("channel " + juce::String (channelNumber) + " is not live");
+    if (isInputChannelStereo (slot) == stereo)
+        return juce::Result::ok();
+    if (stereo && getNumStereoInputChannels() >= WFSParameterDefaults::maxStereoChannels)
+        return juce::Result::fail ("stereo budget reached ("
+                                   + juce::String (WFSParameterDefaults::maxStereoChannels)
+                                   + " stereo channels)");
+
+    // The patch row keeps its columns here; the caller's reconfiguration pass
+    // (sanitizeMonoPatchRows / autoPatchStereoRightColumns) drops the R
+    // column on stereo→mono and auto-assigns a free R on mono→stereo.
+    getInputsState().getChild (slot).setProperty (
+        inputChannelType,
+        stereo ? juce::String (inputChannelTypeStereo)
+               : juce::String (inputChannelTypeMono), nullptr);
+
+    clearAllUndoHistories();
+    return juce::Result::ok();
+}
+
+void WFSValueTreeState::insertInputPatchRow (int slot, bool stereo)
+{
+    auto patch = getAudioPatchState().getChildWithName (InputPatch);
+    if (! patch.isValid())
+        return;
+
+    juce::StringArray rowsArr = juce::StringArray::fromTokens (
+        patch.getProperty (patchData).toString(), ";", "");
+
+    // Diagonal-continue: the new row takes the next hardware column(s) past
+    // everything already patched (two consecutive for stereo, lower = L).
+    int cursor = 0;
+    for (int r = 0; r < rowsArr.size(); ++r)
+    {
+        juce::StringArray rowCols = juce::StringArray::fromTokens (rowsArr[r], ",", "");
+        for (int c = rowCols.size(); --c >= 0;)
+        {
+            if (rowCols[c].getIntValue() == 1)
+            {
+                cursor = juce::jmax (cursor, c + 1);
+                break;
+            }
+        }
+    }
+
+    const int capacity = stereo ? 2 : 1;
+    const int lastCol  = juce::jmin (maxHardwarePatchChannels - 1, cursor + capacity - 1);
+    const int hwCols   = static_cast<int> (patch.getProperty (cols, 64));
+    const int rowLen   = juce::jmax (hwCols, lastCol + 1);
+
+    juce::StringArray rowCols;
+    for (int c = 0; c < rowLen; ++c)
+        rowCols.add (c >= cursor && c <= lastCol ? "1" : "0");
+
+    rowsArr.insert (slot, rowCols.joinIntoString (","));
+
+    patch.setProperty (patchData, rowsArr.joinIntoString (";"), nullptr);
+    patch.setProperty (rows, rowsArr.size(), nullptr);
+    recomputePatchCols();
+}
+
+void WFSValueTreeState::removeInputPatchRow (int slot)
+{
+    auto patch = getAudioPatchState().getChildWithName (InputPatch);
+    if (! patch.isValid())
+        return;
+
+    juce::StringArray rowsArr = juce::StringArray::fromTokens (
+        patch.getProperty (patchData).toString(), ";", "");
+    if (slot < 0 || slot >= rowsArr.size())
+        return;
+
+    rowsArr.remove (slot);
+    patch.setProperty (patchData, rowsArr.joinIntoString (";"), nullptr);
+    patch.setProperty (rows, rowsArr.size(), nullptr);
+    recomputePatchCols();
+}
+
+void WFSValueTreeState::normalizeInputPatchRows()
+{
+    // Config load rewrites patchData wholesale, so the stored rows may not
+    // match the channel list: truncate extras, append diagonal-continue rows
+    // (capacity from the channel's type) for the missing tail. Idempotent.
+    auto patch = getAudioPatchState().getChildWithName (InputPatch);
+    if (! patch.isValid())
+        return;
+
+    const int total = getNumInputChannels();
+    juce::StringArray rowsArr = juce::StringArray::fromTokens (
+        patch.getProperty (patchData).toString(), ";", "");
+
+    if (rowsArr.size() > total)
+    {
+        rowsArr.removeRange (total, rowsArr.size() - total);
+        patch.setProperty (patchData, rowsArr.joinIntoString (";"), nullptr);
+        patch.setProperty (rows, rowsArr.size(), nullptr);
+        recomputePatchCols();
+    }
+
+    while (rowsArr.size() < total)
+    {
+        insertInputPatchRow (rowsArr.size(), isInputChannelStereo (rowsArr.size()));
+        rowsArr = juce::StringArray::fromTokens (
+            patch.getProperty (patchData).toString(), ";", "");
+    }
 }
 
 int WFSValueTreeState::getNumOutputChannels() const
@@ -1643,58 +1816,34 @@ int WFSValueTreeState::getNumReverbChannels() const
 
 void WFSValueTreeState::setNumInputChannels (int numChannels)
 {
+    // Blunt count entry point (config-load sync, OSC/MCP inputChannels
+    // writes). Under the stable-number model: growth APPENDS default mono
+    // channels after the last channel (numbers never shift), reduction
+    // removes the HIGHEST-NUMBERED channels — nothing in the middle ever
+    // moves. Patch rows are mirrored by the ops. Not undoable (the ops clear
+    // the undo history).
     numChannels = juce::jlimit (1, maxInputChannels, numChannels);
     auto inputs = getInputsState();
-    int currentCount = inputs.getNumChildren();
 
-    beginUndoTransaction ("Set Input Channel Count");
-
-    if (numChannels > currentCount)
-    {
-        // Add new channels
-        for (int i = currentCount; i < numChannels; ++i)
-            inputs.appendChild (createDefaultInputChannel (i, numChannels), getActiveUndoManager());
-    }
-    else if (numChannels < currentCount)
-    {
-        // Remove excess channels
-        while (inputs.getNumChildren() > numChannels)
-            inputs.removeChild (inputs.getNumChildren() - 1, getActiveUndoManager());
-    }
+    while (inputs.getNumChildren() > numChannels)
+        if (! removeInputChannel (getHighestChannelNumber()).wasOk()) break;
+    while (inputs.getNumChildren() < numChannels)
+        if (! addInputChannel (false).wasOk()) break;
 
     // Ensure GradientMaps and Sampler sections exist for all inputs (migration for old configs)
-    for (int i = 0; i < numChannels; ++i)
+    for (int i = 0; i < inputs.getNumChildren(); ++i)
     {
         ensureInputGradientMapsSection (i);
         ensureInputSamplerSection (i);
     }
 
-    // Update the count property directly (NOT via setParameter) so the
-    // setParameter -> setNumInputChannels routing in setParameter doesn't
-    // recurse into us.
-    // Dual-write BEFORE the count writes (their listeners read the types).
-    // The tail split may have been clamped by the resize — the effective
-    // stereo count shrinks when the list shrinks into the stereo block — so
-    // re-stamp the per-channel type property to match.
-    stampChannelTypesFromLegacySplit (getActiveUndoManager());
-
+    // Keep the count properties honest even when no structural change was
+    // needed (the ops already stamp them on every add/remove). Direct writes,
+    // NOT via setParameter — its routing would recurse into us.
     auto io = getIOState();
     if (io.isValid())
-        io.setProperty (inputChannels, numChannels, getActiveUndoManager());
-    inputs.setProperty (count, numChannels, getActiveUndoManager());
-
-    // Re-lay ALL inputs, not just the ones just added. The grid depends on the
-    // total count (rows = ceil(total/8)), so channels created under an earlier
-    // count keep a layout for a different grid: growing 8 -> 64 left the
-    // original eight stranded at the old single-row position, mid-stage and out
-    // of order with the new rows around them. Redistributing the whole set is
-    // what makes the rows contiguous and use the full stage depth.
-    //
-    // Gated on ownership: once the user has opened the Map tab or edited any
-    // position, a count change must not discard their layout — the new
-    // channels land on the default grid and the rest stay put.
-    if (currentCount != numChannels && ! arePositionsUserOwned())
-        redistributeAllInputPositions();
+        io.setProperty (inputChannels, inputs.getNumChildren(), nullptr);
+    inputs.setProperty (count, inputs.getNumChildren(), nullptr);
 }
 
 void WFSValueTreeState::setNumOutputChannels (int numChannels)
@@ -2750,7 +2899,7 @@ void WFSValueTreeState::createAudioPatchSection()
     state.appendChild (audioPatch, nullptr);
 }
 
-juce::ValueTree WFSValueTreeState::createDefaultInputChannel (int index, int totalInputsIn)
+juce::ValueTree WFSValueTreeState::createDefaultInputChannel (int index, int totalInputsIn, int channelNumber)
 {
     // The caller must pass the TARGET count when it is growing the channel
     // list. setNumInputChannels creates the new channels first and only writes
@@ -2768,11 +2917,17 @@ juce::ValueTree WFSValueTreeState::createDefaultInputChannel (int index, int tot
     }
     totalInputs = juce::jmax (1, totalInputs, index + 1);
 
+    // The permanent channel number defaults to index + 1 (dense creation);
+    // addInputChannel passes it explicitly, since with gaps in the list the
+    // number and the slot no longer coincide. Name, id and tracking id all
+    // follow the NUMBER; the position default follows the SLOT (grid layout).
+    const int number = channelNumber > 0 ? channelNumber : index + 1;
+
     juce::ValueTree input (Input);
-    input.setProperty (id, index + 1, nullptr);
+    input.setProperty (id, number, nullptr);
     input.setProperty (inputChannelType, inputChannelTypeMono, nullptr);
 
-    input.appendChild (createInputChannelSection (index), nullptr);
+    input.appendChild (createInputChannelSection (number - 1), nullptr);
     input.appendChild (createInputPositionSection (index, totalInputs), nullptr);
     input.appendChild (createInputAttenuationSection(), nullptr);
     input.appendChild (createInputDirectivitySection(), nullptr);
@@ -2783,6 +2938,12 @@ juce::ValueTree WFSValueTreeState::createDefaultInputChannel (int index, int tot
     input.appendChild (createInputMutesSection (getNumOutputChannels()), nullptr);
     input.appendChild (createInputGradientMapsSection(), nullptr);
     input.appendChild (createInputSamplerSection(), nullptr);
+
+    // Tracking id follows the permanent number, not the slot (the position
+    // section builder only knows the slot).
+    auto position = input.getChildWithName (Position);
+    if (position.isValid())
+        position.setProperty (inputTrackingID, number, nullptr);
 
     return input;
 }

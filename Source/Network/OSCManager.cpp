@@ -1798,7 +1798,9 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
         {
             int channelId = OSCMessageRouter::extractInt(message[0]);
             float newValue = OSCMessageRouter::extractFloat(message[1]);
-            int channelIndex = channelId - 1;
+            // channelId is a permanent channel NUMBER; the list may have gaps
+            // after deletions, so resolve through the state (never id - 1).
+            int channelIndex = state.getSlotForChannelNumber(channelId);
 
             if (channelIndex >= 0)
             {
@@ -1906,7 +1908,9 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
         {
             int channelId = OSCMessageRouter::extractInt(message[0]);
             float newValue = OSCMessageRouter::extractFloat(message[1]);
-            int channelIndex = channelId - 1;
+            // channelId is a permanent channel NUMBER; the list may have gaps
+            // after deletions, so resolve through the state (never id - 1).
+            int channelIndex = state.getSlotForChannelNumber(channelId);
 
             if (channelIndex >= 0)
             {
@@ -1988,7 +1992,8 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
         auto parsed = OSCMessageRouter::parseInputMessage(message);
         if (parsed.valid)
         {
-            int channelIndex = parsed.channelId - 1;
+            // Permanent channel number → slot (gaps possible after deletions)
+            int channelIndex = state.getSlotForChannelNumber(parsed.channelId);
 
             // Ramp path: parsed.rampTimeSec is only non-zero when the param is in
             // OSCMessageRouter::isInputParamRampCapable() and the caller sent a 3rd
@@ -2380,8 +2385,9 @@ void OSCManager::handleRemotePositionDelta(const OSCMessageRouter::ParsedRemoteI
         WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
         state.beginUndoTransaction ("OSC Input");
 
-        // Remote uses 1-based channel IDs, but internal API uses 0-based
-        const int channelIndex = parsed.channelId - 1;
+        // Remote sends permanent channel NUMBERS; resolve to the slot (the
+        // list may have gaps after deletions — never number - 1).
+        const int channelIndex = state.getSlotForChannelNumber(parsed.channelId);
         if (channelIndex < 0)
             return;
 
@@ -2435,8 +2441,9 @@ void OSCManager::handleRemoteParameterSet(const OSCMessageRouter::ParsedRemoteIn
         WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
         state.beginUndoTransaction ("OSC Input");
 
-        // Remote uses 1-based channel IDs, but internal API uses 0-based
-        int channelIndex = parsed.channelId - 1;
+        // Remote sends permanent channel NUMBERS; resolve to the slot (the
+        // list may have gaps after deletions — never number - 1).
+        int channelIndex = state.getSlotForChannelNumber(parsed.channelId);
         if (channelIndex >= 0)
         {
             juce::var valueToSet = parsed.value;
@@ -2548,8 +2555,9 @@ void OSCManager::handleRemoteParameterDelta(const OSCMessageRouter::ParsedRemote
         WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
         state.beginUndoTransaction ("OSC Input");
 
-        // Remote uses 1-based channel IDs, but internal API uses 0-based
-        int channelIndex = parsed.channelId - 1;
+        // Remote sends permanent channel NUMBERS; resolve to the slot (the
+        // list may have gaps after deletions — never number - 1).
+        int channelIndex = state.getSlotForChannelNumber(parsed.channelId);
         if (channelIndex >= 0)
         {
             // Get current value
@@ -2680,8 +2688,9 @@ void OSCManager::handleRemotePositionXY(const OSCMessageRouter::ParsedRemoteInpu
         WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
         state.beginUndoTransaction ("OSC Input");
 
-        // Remote uses 1-based channel IDs, but internal API uses 0-based
-        int channelIndex = parsed.channelId - 1;
+        // Remote sends permanent channel NUMBERS; resolve to the slot (the
+        // list may have gaps after deletions — never number - 1).
+        int channelIndex = state.getSlotForChannelNumber(parsed.channelId);
         if (channelIndex >= 0)
         {
             float posX = parsed.posX;
@@ -3395,8 +3404,9 @@ void OSCManager::handleClusterLFOMessage(const juce::OSCMessage& message)
 
 std::vector<juce::OSCMessage> OSCManager::collectRemoteChannelDumpMessages(int channelId)
 {
-    // Convert 1-based channelId to 0-based index for internal API
-    int channelIndex = channelId - 1;
+    // channelId is a permanent channel NUMBER; resolve to the slot (the list
+    // may have gaps after deletions)
+    int channelIndex = state.getSlotForChannelNumber(channelId);
     if (channelIndex < 0)
         return {};
 
@@ -4435,15 +4445,12 @@ std::vector<juce::OSCMessage> OSCManager::collectChannelDumpMessages(const std::
 {
     std::vector<juce::OSCMessage> messages;
 
-    auto ioTree = state.getIOState();
-    int numInputs = ioTree.isValid()
-        ? static_cast<int>(ioTree.getProperty(WFSParameterIDs::inputChannels))
-        : 8;
-
     for (int channelId : channelIds)
     {
-        const int ch = channelId - 1; // channelIds are 1-based
-        if (ch < 0 || ch >= numInputs)
+        // channelIds are permanent channel numbers from the remote's resend
+        // request; resolve each to its slot (gaps possible after deletions)
+        const int ch = state.getSlotForChannelNumber(channelId);
+        if (ch < 0)
             continue;
         appendInputMessages(messages, ch);
     }
@@ -5372,9 +5379,10 @@ void OSCManager::handleADMOSCMessage (const juce::OSCMessage& message)
     if (!parsed.valid)
         return;
 
-    int channelIndex = parsed.objectId - 1;  // 1-based to 0-based
-    int numInputs = state.getIntParameter (WFSParameterIDs::inputChannels);
-    if (channelIndex < 0 || channelIndex >= numInputs)
+    // ADM object ids are permanent channel numbers; resolve to the slot (the
+    // list may have gaps after deletions)
+    int channelIndex = state.getSlotForChannelNumber (parsed.objectId);
+    if (channelIndex < 0)
         return;
 
     // Handle gain (no mapping needed)

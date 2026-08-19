@@ -1488,7 +1488,12 @@ bool WFSFileManager::loadInputSnapshotWithExtendedScope (const juce::String& sna
     for (int i = 0; i < inputsData.getNumChildren(); ++i)
     {
         auto inputData = inputsData.getChild (i);
-        int channelIndex = static_cast<int> (inputData.getProperty (id)) - 1;
+        // Snapshot entries are keyed by permanent channel number. Entries for
+        // numbers with no live channel ("ghosts" of deleted channels) are
+        // skipped — and deliberately kept in the file: they apply again if
+        // the number is ever re-created.
+        int channelIndex = valueTreeState.getSlotForChannelNumber (
+                               static_cast<int> (inputData.getProperty (id)));
 
         if (channelIndex >= 0)
         {
@@ -1906,7 +1911,9 @@ juce::ValueTree WFSFileManager::extractInputWithExtendedScope (int channelIndex,
     const auto scope = scopeIn.withGlobals (samplerMasterOn, valueTreeState.getNumInputChannels());
 
     juce::ValueTree filtered (Input);
-    filtered.setProperty (id, channelIndex + 1, nullptr);
+    // Snapshots are keyed by the PERMANENT channel number, not the slot —
+    // after deletions the list has gaps and slot + 1 would mis-key entries.
+    filtered.setProperty (id, valueTreeState.getInputChannelNumber (channelIndex), nullptr);
 
     // Always include input name
     auto channelTree = input.getChildWithName (Channel);

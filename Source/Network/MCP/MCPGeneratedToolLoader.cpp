@@ -144,7 +144,9 @@ namespace Detail
 
         auto* argsObj = asObject (args);
 
-        // Resolve channel index (1-based MCP arg → 0-based ValueTree index)
+        // Resolve channel index (1-based MCP arg → 0-based ValueTree index).
+        // input_id is a permanent channel number — the input list may have
+        // gaps after deletions, so it resolves through the state lookup.
         int channelIndex = -1;
         int displayId = 0;  // 1-based for descriptions and affected_groups
         if (binding.channelArgName.isNotEmpty())
@@ -153,10 +155,12 @@ namespace Detail
                 return ToolResult::error ("invalid_args",
                                           "Missing required arg: " + binding.channelArgName);
             displayId = static_cast<int> (argsObj->getProperty (binding.channelArgName));
-            channelIndex = displayId - 1;
+            channelIndex = binding.channelArgName == "input_id"
+                ? state.getSlotForChannelNumber (displayId)
+                : displayId - 1;
             if (channelIndex < 0)
                 return ToolResult::error ("invalid_args",
-                                          binding.channelArgName + " out of range: " + juce::String (displayId));
+                                          binding.channelArgName + " not a live channel: " + juce::String (displayId));
         }
 
         // Resolve EQ band sub-index (1-based → 0-based)
@@ -421,7 +425,8 @@ namespace Detail
 
         auto* argsObj = asObject (args);
 
-        // Resolve channel index
+        // Resolve channel index (input_id is a permanent channel number —
+        // the input list may have gaps after deletions)
         int channelIndex = -1;
         int displayId = 0;
         if (binding.channelArgName.isNotEmpty())
@@ -430,10 +435,12 @@ namespace Detail
                 return ToolResult::error ("invalid_args",
                                           "Missing required arg: " + binding.channelArgName);
             displayId = static_cast<int> (argsObj->getProperty (binding.channelArgName));
-            channelIndex = displayId - 1;
+            channelIndex = binding.channelArgName == "input_id"
+                ? state.getSlotForChannelNumber (displayId)
+                : displayId - 1;
             if (channelIndex < 0)
                 return ToolResult::error ("invalid_args",
-                                          binding.channelArgName + " out of range: " + juce::String (displayId));
+                                          binding.channelArgName + " not a live channel: " + juce::String (displayId));
         }
 
         // Resolve direction

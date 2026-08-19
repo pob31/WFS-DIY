@@ -2397,58 +2397,142 @@ MainComponent::MainComponent()
     // Listen for device manager changes to re-attach audio callbacks when device changes
     deviceManager.addChangeListener(this);
 
-    // Hidden diagnostic: WFS_TEST_STEREO_COUNTS=1 drives the mono/stereo count
-    // flow exactly like the System Config editors and logs the input patch
-    // after each step, so the structural patch-move can be verified from the
-    // session log without touching the GUI.
-    if (std::getenv("WFS_TEST_STEREO_COUNTS") != nullptr)
-        runStereoCountSelfTest();
+    // Hidden diagnostic: WFS_TEST_CHANNEL_LIST=1 drives the structural
+    // channel ops (append mono/stereo, delete-with-gap, in-place type flip,
+    // gap reuse, budget enforcement) exactly like the UI will, asserts the
+    // stable-number invariants after every step, and logs PASS/FAIL lines to
+    // the session log — no GUI needed.
+    if (std::getenv("WFS_TEST_CHANNEL_LIST") != nullptr)
+        runChannelListSelfTest();
+    else if (std::getenv("WFS_TEST_STEREO_COUNTS") != nullptr)
+        WFSLogger::getInstance().logInfo("SELF-TEST: WFS_TEST_STEREO_COUNTS is superseded by WFS_TEST_CHANNEL_LIST");
 }
 
-void MainComponent::runStereoCountSelfTest()
+void MainComponent::runChannelListSelfTest()
 {
-    auto logPatch = [this](const char* label)
+    auto& vts = parameters.getValueTreeState();
+    int failures = 0;
+
+    auto logLine = [](const juce::String& s) { WFSLogger::getInstance().logInfo(s); };
+
+    auto patchRows = [this]() -> juce::StringArray
     {
         auto audioPatchTree = parameters.getValueTreeState().getState().getChildWithName(WFSParameterIDs::AudioPatch);
         auto inputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::InputPatch);
-        juce::StringArray rows = juce::StringArray::fromTokens(
+        return juce::StringArray::fromTokens(
             inputPatchTree.getProperty(WFSParameterIDs::patchData).toString(), ";", "");
-
-        juce::String summary;
-        for (int r = 0; r < rows.size(); ++r)
-        {
-            juce::StringArray cols = juce::StringArray::fromTokens(rows[r], ",", "");
-            juce::String patched;
-            for (int c = 0; c < cols.size(); ++c)
-                if (cols[c].getIntValue() == 1)
-                    patched += (patched.isEmpty() ? "" : "+") + juce::String(c + 1);
-            summary += juce::String(r + 1) + ":" + (patched.isEmpty() ? "-" : patched) + " ";
-        }
-        WFSLogger::getInstance().logInfo(juce::String("SELF-TEST ") + label + " rows=" + juce::String(rows.size())
-                                         + " [" + summary.trim() + "]");
     };
 
+    auto colsOfRow = [](const juce::String& row) -> juce::String
+    {
+        juce::StringArray cols = juce::StringArray::fromTokens(row, ",", "");
+        juce::String patched;
+        for (int c = 0; c < cols.size(); ++c)
+            if (cols[c].getIntValue() == 1)
+                patched += (patched.isEmpty() ? "" : "+") + juce::String(c + 1);
+        return patched.isEmpty() ? "-" : patched;
+    };
+
+    auto patchOfNumber = [&](int number) -> juce::String
+    {
+        const int slot = vts.getSlotForChannelNumber(number);
+        auto rows = patchRows();
+        return (slot >= 0 && slot < rows.size()) ? colsOfRow(rows[slot]) : juce::String("?");
+    };
+
+    auto check = [&](bool ok, const juce::String& what)
+    {
+        if (! ok) ++failures;
+        logLine(juce::String("SELF-TEST ") + (ok ? "PASS " : "FAIL ") + what);
+    };
+
+    // One line per step: "number(type):patched-cols" in slot order.
+    auto verify = [&](const char* label)
+    {
+        const int n = vts.getNumInputChannels();
+        auto rows = patchRows();
+
+        bool ascending = true;
+        int prev = 0;
+        juce::String summary;
+        for (int slot = 0; slot < n; ++slot)
+        {
+            const int number = vts.getInputChannelNumber(slot);
+            if (number <= prev) ascending = false;
+            prev = number;
+            summary += juce::String(number) + (vts.isInputChannelStereo(slot) ? "s" : "m") + ":"
+                       + (slot < rows.size() ? colsOfRow(rows[slot]) : juce::String("?")) + " ";
+        }
+        logLine(juce::String("SELF-TEST ") + label + " [" + summary.trim() + "]");
+
+        check(ascending, juce::String(label) + ": numbers strictly ascending");
+        check(rows.size() == n, juce::String(label) + ": patch rows == live channels");
+        check(renderSourceMap.count == n + 5 * vts.getNumStereoInputChannels(),
+              juce::String(label) + ": render sources = N + 5*stereo");
+    };
+
+    logLine("SELF-TEST begin (channel list flow)");
     const int reverbs = parameters.getNumReverbChannels();
-    WFSLogger::getInstance().logInfo("SELF-TEST begin (stereo count flow)");
-    logPatch("initial");
+    auto reconfig = [&]() { handleChannelCountChange(vts.getNumInputChannels(), numOutputChannels, reverbs); };
 
-    parameters.getValueTreeState().setInputChannelCounts(8, 0);
-    handleChannelCountChange(8, numOutputChannels, reverbs);
-    logPatch("after 8 mono + 0 stereo");
+    vts.setInputChannelCounts(3, 0);
+    reconfig();
+    verify("A: 3 mono");
 
-    parameters.getValueTreeState().setInputChannelCounts(8, 2);
-    handleChannelCountChange(10, numOutputChannels, reverbs);
-    logPatch("after 8 mono + 2 stereo");
+    check(vts.addInputChannel(true).wasOk(), "B: add stereo (number 4)");
+    reconfig();
+    verify("B");
 
-    parameters.getValueTreeState().setInputChannelCounts(10, 2);
-    handleChannelCountChange(12, numOutputChannels, reverbs);
-    logPatch("after 10 mono + 2 stereo (mono added)");
+    check(vts.addInputChannel(false).wasOk(), "C: add mono AFTER the stereo (number 5, interleaved)");
+    reconfig();
+    verify("C");
 
-    parameters.getValueTreeState().setInputChannelCounts(8, 2);
-    handleChannelCountChange(10, numOutputChannels, reverbs);
-    logPatch("after 8 mono + 2 stereo (mono removed)");
+    check(vts.addInputChannel(true).wasOk(), "D: add stereo (number 6)");
+    reconfig();
+    verify("D");
 
-    WFSLogger::getInstance().logInfo("SELF-TEST end");
+    const auto p3 = patchOfNumber(3), p4 = patchOfNumber(4), p6 = patchOfNumber(6);
+    check(vts.removeInputChannel(2).wasOk(), "E: remove channel 2 (leaves a gap)");
+    reconfig();
+    verify("E");
+    check(vts.getSlotForChannelNumber(2) < 0, "E: number 2 retired");
+    check(patchOfNumber(3) == p3 && patchOfNumber(4) == p4 && patchOfNumber(6) == p6,
+          "E: surviving channels keep their patch columns");
+
+    check(vts.addInputChannel(false).wasOk(), "F: add appends number 7 (gap NOT reused)");
+    reconfig();
+    verify("F");
+    check(vts.getHighestChannelNumber() == 7 && vts.getSlotForChannelNumber(2) < 0,
+          "F: numbering is append-only");
+
+    check(vts.setInputChannelType(5, true).wasOk(), "G: flip channel 5 mono->stereo in place");
+    reconfig();
+    verify("G");
+    check(vts.isInputChannelStereo(vts.getSlotForChannelNumber(5)), "G: type persisted");
+
+    check(vts.setInputChannelType(5, false).wasOk(), "H: flip channel 5 back to mono");
+    reconfig();
+    verify("H");
+
+    check(! vts.setInputChannelType(2, true).wasOk(), "I: type flip on a dead number is rejected");
+
+    check(vts.addInputChannel(false, 2).wasOk(), "J: explicit re-create of retired number 2");
+    reconfig();
+    verify("J");
+    check(vts.getSlotForChannelNumber(2) == 1, "J: number 2 re-created at its sorted slot");
+
+    int added = 0;
+    while (added <= 10 && vts.addInputChannel(true).wasOk())
+    {
+        reconfig();
+        ++added;
+    }
+    check(added == 6 && vts.getNumStereoInputChannels() == 8, "K: stereo budget enforced at 8");
+    check(! vts.setInputChannelType(5, true).wasOk(), "K: type flip beyond the stereo budget is rejected");
+    verify("K");
+
+    logLine(failures == 0 ? juce::String("SELF-TEST RESULT: ALL PASS")
+                          : "SELF-TEST RESULT: " + juce::String(failures) + " FAILURES");
 }
 
 MainComponent::~MainComponent()
@@ -2959,8 +3043,7 @@ void MainComponent::resendRemotePadConfig()
     oscManager->sendRemotePadConfig (true, cols, rows, sensitivity, zoneMap);
 }
 
-void MainComponent::growPatchData(juce::ValueTree& patchTree, int newChannelCount, int numHardwareCols,
-                                  int numStereoRows)
+void MainComponent::growPatchData(juce::ValueTree& patchTree, int newChannelCount, int numHardwareCols)
 {
     if (! patchTree.isValid())
         return;
@@ -2983,147 +3066,19 @@ void MainComponent::growPatchData(juce::ValueTree& patchTree, int newChannelCoun
         return;
     }
 
-    if (numStereoRows <= 0)
+    // Grow: append new rows with 1:1 diagonal mapping (output patch only —
+    // input rows are mirrored per-op by the WFSValueTreeState structural
+    // channel ops and normalizeInputPatchRows).
+    for (int ch = existingRows; ch < newChannelCount; ++ch)
     {
-        // Grow: append new rows with 1:1 diagonal mapping
-        for (int ch = existingRows; ch < newChannelCount; ++ch)
-        {
-            juce::StringArray cols;
-            for (int c = 0; c < numHardwareCols; ++c)
-                cols.add(c == ch ? "1" : "0");
-            rows.add(cols.joinIntoString(","));
-        }
-    }
-    else
-    {
-        // Stereo-aware growth (input patch): appended rows continue the
-        // diagonal from the first hardware column past everything already
-        // patched, advancing by the row's capacity — a stereo row (the LAST
-        // numStereoRows of the list) takes two consecutive columns, lower =
-        // L. With no stereo rows patched yet this reduces to the plain
-        // diagonal above.
-        int cursor = 0;
-        for (int r = 0; r < existingRows; ++r)
-        {
-            juce::StringArray cols = juce::StringArray::fromTokens(rows[r], ",", "");
-            for (int c = cols.size(); --c >= 0;)
-            {
-                if (cols[c].getIntValue() == 1)
-                {
-                    cursor = juce::jmax(cursor, c + 1);
-                    break;
-                }
-            }
-        }
-
-        const int firstStereoRow = newChannelCount - numStereoRows;
-        for (int ch = existingRows; ch < newChannelCount; ++ch)
-        {
-            const int capacity = (ch >= firstStereoRow) ? 2 : 1;
-            const int lastCol = juce::jmin(WFSValueTreeState::maxHardwarePatchChannels - 1,
-                                           cursor + capacity - 1);
-
-            juce::StringArray cols;
-            const int rowLen = juce::jmax(numHardwareCols, lastCol + 1);
-            for (int c = 0; c < rowLen; ++c)
-                cols.add(c >= cursor && c <= lastCol ? "1" : "0");
-            rows.add(cols.joinIntoString(","));
-
-            cursor = lastCol + 1;
-        }
+        juce::StringArray cols;
+        for (int c = 0; c < numHardwareCols; ++c)
+            cols.add(c == ch ? "1" : "0");
+        rows.add(cols.joinIntoString(","));
     }
 
     patchTree.setProperty(WFSParameterIDs::patchData, rows.joinIntoString(";"), nullptr);
     patchTree.setProperty(WFSParameterIDs::rows, newChannelCount, nullptr);
-}
-
-void MainComponent::restructureInputPatchRows(juce::ValueTree& patchTree,
-                                              int oldMono, int oldStereo,
-                                              int newMono, int newStereo,
-                                              int numHardwareCols)
-{
-    if (! patchTree.isValid())
-        return;
-
-    juce::String patchDataStr = patchTree.getProperty(WFSParameterIDs::patchData).toString();
-    juce::StringArray rows = juce::StringArray::fromTokens(patchDataStr, ";", "");
-
-    const int newTotal = newMono + newStereo;
-
-    // With no stereo rows in play, keep the historical behaviour exactly:
-    // plain 1:1 diagonal growth / end truncation.
-    if (oldStereo == 0 && newStereo == 0)
-    {
-        growPatchData(patchTree, newTotal, numHardwareCols, 0);
-        return;
-    }
-
-    // The structural diff only applies when the stored rows still describe
-    // the OLD shape. A config load rewrites patchData wholesale before this
-    // runs — then just normalize the row count (append-style, stereo-aware).
-    if (rows.size() != oldMono + oldStereo)
-    {
-        growPatchData(patchTree, newTotal, numHardwareCols, newStereo);
-        return;
-    }
-
-    // Mono pool edits at the boundary: the stereo block's rows move WITH
-    // their channels. New mono rows come UNPATCHED — the diagonal columns
-    // past the mono block belong to the stereo pairs, so auto-patching them
-    // would collide (the operator patches them deliberately).
-    if (newMono > oldMono)
-    {
-        juce::StringArray emptyCols;
-        for (int c = 0; c < numHardwareCols; ++c)
-            emptyCols.add("0");
-        const juce::String emptyRow = emptyCols.joinIntoString(",");
-
-        for (int i = 0; i < newMono - oldMono; ++i)
-            rows.insert(oldMono + i, emptyRow);
-    }
-    else if (newMono < oldMono)
-    {
-        for (int i = oldMono; --i >= newMono;)
-            rows.remove(i);
-    }
-
-    // Stereo pool edits at the end: new pairs continue the two-wide diagonal
-    // past everything already patched; removals truncate.
-    if (newStereo > oldStereo)
-    {
-        int cursor = 0;
-        for (int r = 0; r < rows.size(); ++r)
-        {
-            juce::StringArray cols = juce::StringArray::fromTokens(rows[r], ",", "");
-            for (int c = cols.size(); --c >= 0;)
-            {
-                if (cols[c].getIntValue() == 1)
-                {
-                    cursor = juce::jmax(cursor, c + 1);
-                    break;
-                }
-            }
-        }
-
-        while (rows.size() < newTotal)
-        {
-            const int lastCol = juce::jmin(WFSValueTreeState::maxHardwarePatchChannels - 1, cursor + 1);
-            juce::StringArray cols;
-            const int rowLen = juce::jmax(numHardwareCols, lastCol + 1);
-            for (int c = 0; c < rowLen; ++c)
-                cols.add(c >= cursor && c <= lastCol ? "1" : "0");
-            rows.add(cols.joinIntoString(","));
-            cursor = lastCol + 1;
-        }
-    }
-    else if (newStereo < oldStereo)
-    {
-        while (rows.size() > newTotal)
-            rows.remove(rows.size() - 1);
-    }
-
-    patchTree.setProperty(WFSParameterIDs::patchData, rows.joinIntoString(";"), nullptr);
-    patchTree.setProperty(WFSParameterIDs::rows, newTotal, nullptr);
 }
 
 void MainComponent::autoPatchStereoRightColumns()
@@ -3590,11 +3545,6 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
     WFSLogger::getInstance().logInfo ("Channel count changed: " + juce::String (inputs) + " inputs, "
                                       + juce::String (outputs) + " outputs, "
                                       + juce::String (reverbs) + " reverbs");
-    // Old mono/stereo split, for the structural patch-row edit below (the
-    // retained map still describes the pre-change shape at this point)
-    const int oldTotalInputs  = numInputChannels;
-    const int oldStereoInputs = (renderSourceMap.count - renderSourceMap.numInputChannels)
-                                    / spatcore::wfs::RenderSourceMap::kDerivedPerStereo;
     numInputChannels = inputs;
     numOutputChannels = outputs;
     recomputeRenderSourceCount();  // keep the renderer dimension in lockstep
@@ -3608,20 +3558,16 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
         resizeReverbAttenuation(reverbs, sr);
     }
 
-    // Grow/shrink patch data in ValueTree so new channels get 1:1 mapping
-    // (PatchMatrixComponent may not exist if Audio Interface window was never opened)
+    // Patch rows: the structural channel ops already mirror input rows 1:1
+    // (row = slot); this normalize only reconciles after a wholesale
+    // patchData rewrite (config load). Output rows keep the count-driven
+    // grow/truncate. (PatchMatrixComponent may not exist if the Audio
+    // Interface window was never opened.)
     {
         auto audioPatchTree = parameters.getValueTreeState().getState().getChildWithName(WFSParameterIDs::AudioPatch);
-        auto inputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::InputPatch);
         auto outputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::OutputPatch);
-        int hwInCols = inputPatchTree.isValid() ? (int) inputPatchTree.getProperty(WFSParameterIDs::cols, 64) : 64;
         int hwOutCols = outputPatchTree.isValid() ? (int) outputPatchTree.getProperty(WFSParameterIDs::cols, WFSParameterDefaults::maxOutputChannels) : WFSParameterDefaults::maxOutputChannels;
-        {
-            const int newStereo = parameters.getValueTreeState().getNumStereoInputChannels();
-            restructureInputPatchRows(inputPatchTree,
-                                      oldTotalInputs - oldStereoInputs, oldStereoInputs,
-                                      inputs - newStereo, newStereo, hwInCols);
-        }
+        parameters.getValueTreeState().normalizeInputPatchRows();
         growPatchData(outputPatchTree, outputs, hwOutCols);
     }
 

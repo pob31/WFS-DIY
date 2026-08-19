@@ -305,18 +305,21 @@ public:
     int getNumOutputChannels() const;
     int getNumReverbChannels() const;
 
-    /** Set channel counts (creates/removes channel ValueTrees) */
+    /** Set channel counts. For inputs this is the blunt legacy entry point
+        (config-load sync, OSC/MCP inputChannels writes): growth appends
+        default mono channels, reduction removes the highest-numbered
+        channels; nothing in the middle ever moves. Not undoable. */
     void setNumInputChannels (int numChannels);
 
-    /** How many of the LAST input channels are stereo pairs (config-level
-        split; mono count = getNumInputChannels() − this). Clamped to the
-        input count and the slice-slot budget. */
+    /** Number of live stereo channels — derived from the per-channel type
+        (inputChannelType), NOT positional. Mono count =
+        getNumInputChannels() − this. */
     int getNumStereoInputChannels() const;
-    void setNumStereoInputChannels (int numStereo);
 
-    /** Atomic mono/stereo update: clamps both counts, resizes the input list
-        to mono + stereo, then stamps the split. The single entry point the
-        GUI uses so no listener ever observes a half-applied pair. */
+    /** Legacy two-count entry point (System Config count fields until the
+        list editor lands): a thin loop over the structural ops. Additions
+        append after the last channel; reductions remove the highest-numbered
+        channel of that type. Not undoable. */
     void setInputChannelCounts (int numMono, int numStereo);
 
     //==========================================================================
@@ -343,6 +346,41 @@ public:
 
     /** Number the next added channel gets (highest live + 1). */
     int getNextChannelNumber() const;
+
+    /** Lowest number in 1..maxInputChannels with no live channel (0 if the
+        list is full). Used by the number-exhaustion gap-reuse dialog. */
+    int getLowestFreeChannelNumber() const;
+
+    //==========================================================================
+    // Structural channel ops (stable-number model)
+    //==========================================================================
+    // Each op edits the channel tree AND its input-patch row together, keeps
+    // the count properties in step, and clears the undo history (structural
+    // edits are deliberately not undoable: ValueTree undo cannot span the
+    // flat patchData string safely). The caller runs the reconfiguration
+    // pass afterwards (MainComponent::handleChannelCountChange tail:
+    // recompute render sources, sanitize/auto-patch, reload patches).
+
+    /** Append a channel (number = highest + 1) or, with explicitNumber > 0,
+        re-create a retired number in its sorted slot (the UI confirms gap
+        reuse with the user first). New channel's patch row continues the
+        diagonal past everything already patched (two columns for stereo). */
+    juce::Result addInputChannel (bool stereo, int explicitNumber = 0);
+
+    /** Remove a live channel by permanent number. Its number is retired
+        (gap); every other channel keeps its number, slot and patch row. */
+    juce::Result removeInputChannel (int channelNumber);
+
+    /** Flip a live channel's type in place; number, name and parameters are
+        kept. Patch columns are adjusted by the caller's reconfiguration pass
+        (sanitize drops the R column on stereo→mono; auto-patch assigns a
+        free R on mono→stereo). */
+    juce::Result setInputChannelType (int channelNumber, bool stereo);
+
+    /** Reconcile the input-patch row count to the channel list after a
+        wholesale patchData rewrite (config load): truncate extras, append
+        diagonal-continue rows (capacity from the channel type). Idempotent. */
+    void normalizeInputPatchRows();
 
     /** One-time model migration for loaded states: repairs missing/duplicate
         ids (one dense renumber — the last renumbering that can ever happen to
@@ -525,7 +563,9 @@ private:
     /** @param totalInputsIn  target channel count; pass it explicitly while
         growing the list, since the tree still holds the old count then.
         <= 0 reads the tree (correct for single-channel resets). */
-    juce::ValueTree createDefaultInputChannel (int index, int totalInputsIn = -1);
+    /** @param channelNumber  permanent channel number; <= 0 derives it from
+        the slot (index + 1, dense creation). */
+    juce::ValueTree createDefaultInputChannel (int index, int totalInputsIn = -1, int channelNumber = -1);
 
     /** Create input channel subsections */
     juce::ValueTree createInputChannelSection (int index);
@@ -586,14 +626,17 @@ private:
      *  Called when inputTrackingActive or inputCluster changes */
     void enforceClusterTrackingConstraint (int changedInputIndex);
 
-    /** Re-stamp every input's inputChannelType from the legacy tail split
-        (the last N channels are stereo; N = stereoCountOverride, or the
-        stored stereoInputChannels when < 0). Keeps the per-channel property
-        ≡ the count-based semantics while both exist (dual-write); removed
-        together with the count-based API. Must run BEFORE the count/split
-        property writes: their listeners (InputsTab sub-tab rebuild) read the
-        per-channel types synchronously. */
-    void stampChannelTypesFromLegacySplit (juce::UndoManager* um, int stereoCountOverride = -1);
+    /** Migration-only: stamp the pre-rework tail split ("the LAST
+        stereoCountOverride channels are stereo") onto the per-channel type
+        property. The caller reads the count from the legacy IO property. */
+    void stampChannelTypesFromLegacySplit (juce::UndoManager* um, int stereoCountOverride);
+
+    /** Patch-row halves of the structural ops: insert a diagonal-continue
+        row for a new channel at its slot / remove a deleted channel's row.
+        Rows are positional (row = slot), so they must mirror every channel
+        tree edit in the same op. */
+    void insertInputPatchRow (int slot, bool stereo);
+    void removeInputPatchRow (int slot);
 
     /** Clamp a value to the valid range for a given output parameter */
     static float clampOutputParamToRange (const juce::Identifier& paramId, float value);

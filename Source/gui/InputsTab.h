@@ -7688,10 +7688,11 @@ private:
             return;
         }
 
-        // The mono/stereo split moved (config-level, System Config): the
+        // A channel's mono/stereo type changed (per-channel property, set by
+        // the structural ops from ANY source — UI, MCP, config load): the
         // current channel's role may have changed — refresh the stereo
         // controls and the sub-tab set.
-        if (property == WFSParameterIDs::stereoInputChannels)
+        if (property == WFSParameterIDs::inputChannelType)
         {
             juce::MessageManager::callAsync([this]()
             {
