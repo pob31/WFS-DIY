@@ -522,6 +522,10 @@ private:
         may never drift from the channel dimension it derives from. */
     void recomputeRenderSourceCount();
 
+    /** Hidden diagnostic (WFS_TEST_STEREO_COUNTS=1): drives the mono/stereo
+        count flow and logs the input patch after each step. */
+    void runStereoCountSelfTest();
+
     /** A mono row may hold at most one hardware column. Clears any extra
         columns (keeping the lowest = L) left behind when a count change
         moves the mono/stereo boundary. */

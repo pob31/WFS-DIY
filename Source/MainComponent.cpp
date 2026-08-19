@@ -2396,6 +2396,59 @@ MainComponent::MainComponent()
 
     // Listen for device manager changes to re-attach audio callbacks when device changes
     deviceManager.addChangeListener(this);
+
+    // Hidden diagnostic: WFS_TEST_STEREO_COUNTS=1 drives the mono/stereo count
+    // flow exactly like the System Config editors and logs the input patch
+    // after each step, so the structural patch-move can be verified from the
+    // session log without touching the GUI.
+    if (std::getenv("WFS_TEST_STEREO_COUNTS") != nullptr)
+        runStereoCountSelfTest();
+}
+
+void MainComponent::runStereoCountSelfTest()
+{
+    auto logPatch = [this](const char* label)
+    {
+        auto audioPatchTree = parameters.getValueTreeState().getState().getChildWithName(WFSParameterIDs::AudioPatch);
+        auto inputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::InputPatch);
+        juce::StringArray rows = juce::StringArray::fromTokens(
+            inputPatchTree.getProperty(WFSParameterIDs::patchData).toString(), ";", "");
+
+        juce::String summary;
+        for (int r = 0; r < rows.size(); ++r)
+        {
+            juce::StringArray cols = juce::StringArray::fromTokens(rows[r], ",", "");
+            juce::String patched;
+            for (int c = 0; c < cols.size(); ++c)
+                if (cols[c].getIntValue() == 1)
+                    patched += (patched.isEmpty() ? "" : "+") + juce::String(c + 1);
+            summary += juce::String(r + 1) + ":" + (patched.isEmpty() ? "-" : patched) + " ";
+        }
+        WFSLogger::getInstance().logInfo(juce::String("SELF-TEST ") + label + " rows=" + juce::String(rows.size())
+                                         + " [" + summary.trim() + "]");
+    };
+
+    const int reverbs = parameters.getNumReverbChannels();
+    WFSLogger::getInstance().logInfo("SELF-TEST begin (stereo count flow)");
+    logPatch("initial");
+
+    parameters.getValueTreeState().setInputChannelCounts(8, 0);
+    handleChannelCountChange(8, numOutputChannels, reverbs);
+    logPatch("after 8 mono + 0 stereo");
+
+    parameters.getValueTreeState().setInputChannelCounts(8, 2);
+    handleChannelCountChange(10, numOutputChannels, reverbs);
+    logPatch("after 8 mono + 2 stereo");
+
+    parameters.getValueTreeState().setInputChannelCounts(10, 2);
+    handleChannelCountChange(12, numOutputChannels, reverbs);
+    logPatch("after 10 mono + 2 stereo (mono added)");
+
+    parameters.getValueTreeState().setInputChannelCounts(8, 2);
+    handleChannelCountChange(10, numOutputChannels, reverbs);
+    logPatch("after 8 mono + 2 stereo (mono removed)");
+
+    WFSLogger::getInstance().logInfo("SELF-TEST end");
 }
 
 MainComponent::~MainComponent()
