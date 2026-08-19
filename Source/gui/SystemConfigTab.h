@@ -2743,10 +2743,11 @@ private:
 
             const int newTotal = newMono + newStereo;
 
-            auto apply = [this, newStereo, newTotal]()
+            auto apply = [this, newMono, newStereo]()
             {
-                parameters.getValueTreeState().setNumStereoInputChannels(newStereo);
-                parameters.setNumInputChannels(newTotal);
+                WFSLogger::getInstance().logInfo("Input counts applied: "
+                    + juce::String(newMono) + " mono + " + juce::String(newStereo) + " stereo");
+                parameters.getValueTreeState().setInputChannelCounts(newMono, newStereo);
                 notifyChannelCountChanged();
                 loadParametersToUI();   // both fields re-read (clamps may have adjusted the entry)
             };
@@ -3001,6 +3002,13 @@ private:
 
     void validateAndClampValue(juce::TextEditor& editor)
     {
+        // A focus/return event arriving while loadParametersToUI() is
+        // rewriting the editors (ValueTree listeners fire synchronously
+        // during channel-count writes) must not re-enter the write path with
+        // half-updated state.
+        if (isLoadingParameters)
+            return;
+
         auto text = editor.getText();
 
         // String fields - just update parameter, no validation needed
@@ -3080,9 +3088,12 @@ private:
                                  WFSParameterDefaults::binauralListenerRollMax, value);
         else if (&editor == &reverbChannelsEditor)
             value = juce::jlimit(0.0f, (float)WFSParameterDefaults::maxReverbChannels, std::abs(value));
+        else if (&editor == &stereoChannelsEditor)
+            value = juce::jlimit(0.0f, (float)WFSParameterDefaults::maxStereoChannels, std::abs(value));
 
         // Update display with clamped value
-        if (&editor == &inputChannelsEditor || &editor == &outputChannelsEditor ||
+        if (&editor == &inputChannelsEditor || &editor == &stereoChannelsEditor ||
+            &editor == &outputChannelsEditor ||
             &editor == &reverbChannelsEditor || &editor == &binauralAngleEditor)
         {
             editor.setText(juce::String((int)value), false);

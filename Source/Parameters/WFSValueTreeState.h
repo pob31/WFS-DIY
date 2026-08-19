@@ -313,6 +313,11 @@ public:
         input count and the slice-slot budget. */
     int getNumStereoInputChannels() const;
     void setNumStereoInputChannels (int numStereo);
+
+    /** Atomic mono/stereo update: clamps both counts, resizes the input list
+        to mono + stereo, then stamps the split. The single entry point the
+        GUI uses so no listener ever observes a half-applied pair. */
+    void setInputChannelCounts (int numMono, int numStereo);
     void setNumOutputChannels (int numChannels);
     void setNumReverbChannels (int numChannels);
 

@@ -1390,6 +1390,18 @@ void WFSValueTreeState::setNumStereoInputChannels (int numStereo)
         io.setProperty (WFSParameterIDs::stereoInputChannels, numStereo, getActiveUndoManager());
 }
 
+void WFSValueTreeState::setInputChannelCounts (int numMono, int numStereo)
+{
+    numStereo = juce::jlimit (0, WFSParameterDefaults::maxStereoChannels, numStereo);
+    numMono   = juce::jlimit (1, WFSParameterDefaults::maxInputChannels - numStereo, numMono);
+
+    // Resize the channel list first, then stamp the stereo split: readers
+    // clamp the split by the list size, so every intermediate state a
+    // synchronous ValueTree listener can observe reads consistently.
+    setNumInputChannels (numMono + numStereo);
+    setNumStereoInputChannels (numStereo);
+}
+
 int WFSValueTreeState::getNumOutputChannels() const
 {
     return const_cast<WFSValueTreeState*>(this)->getOutputsState().getNumChildren();
