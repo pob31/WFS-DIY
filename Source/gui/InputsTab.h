@@ -142,6 +142,27 @@ public:
  * - Sub-tabs: Input Properties, Position, Sound, Live Source, Effects (more to be added)
  * - Footer: Store/Reload buttons (always visible)
  */
+/** Logical identity of an Inputs sub-tab.
+
+    The bar's *positional* index is not a stable identity: the Sampler tab is added
+    and removed at runtime, and the stereo channel type removes tabs from the middle
+    of the bar. Every site that needs to know "which sub-tab is this" must go through
+    these ids and the getCurrentSubTabId()/indexOfSubTab() helpers, never through a
+    raw juce::TabbedButtonBar index.
+
+    The numeric values intentionally match the historical fixed tab order, because
+    they are the wire format for onSubTabChanged -> StreamDeckManager::setSubTab ->
+    InputsTabPages::createPage. Do not renumber them. */
+enum class InputSubTab : int
+{
+    Params               = 0,
+    LiveSourceHackoustics = 1,
+    Movements            = 2,
+    GradientMaps         = 3,
+    Visualisation        = 4,
+    Sampler              = 5
+};
+
 class InputsTab : public juce::Component,
                   private juce::TextEditor::Listener,
                   private juce::ChangeListener,
@@ -300,11 +321,11 @@ public:
 
         // ==================== SUB-TABS ====================
         addAndMakeVisible(subTabBar);
-        subTabBar.addTab(LOC("inputs.tabs.inputParams"), juce::Colour(0xFF2A2A2A), -1);
-        subTabBar.addTab(LOC("inputs.tabs.liveSourceHackoustics"), juce::Colour(0xFF2A2A2A), -1);
-        subTabBar.addTab(LOC("inputs.tabs.movements"), juce::Colour(0xFF2A2A2A), -1);
-        subTabBar.addTab(LOC("inputs.tabs.gradientMaps"), juce::Colour(0xFF2A2A2A), -1);
-        subTabBar.addTab(LOC("inputs.tabs.visualisation"), juce::Colour(0xFF2A2A2A), -1);
+        appendSubTab(InputSubTab::Params,                "inputs.tabs.inputParams");
+        appendSubTab(InputSubTab::LiveSourceHackoustics, "inputs.tabs.liveSourceHackoustics");
+        appendSubTab(InputSubTab::Movements,             "inputs.tabs.movements");
+        appendSubTab(InputSubTab::GradientMaps,          "inputs.tabs.gradientMaps");
+        appendSubTab(InputSubTab::Visualisation,         "inputs.tabs.visualisation");
         subTabBar.setMinimumTabScaleFactor(1.0);  // Prevent tab shrinking - maintain full text width
         subTabBar.setCurrentTabIndex(0);
         subTabBar.addChangeListener(static_cast<juce::ChangeListener*>(this));
@@ -968,16 +989,71 @@ public:
 
     std::vector<HelpCardButton*> getVisibleHelpButtons() override
     {
-        int tab = subTabBar.getCurrentTabIndex();
-        if (tab == 0) return { &inputBasicHelpButton, &inputAdvancedHelpButton, &inputLevelHelpButton, &inputHFHelpButton, &inputMutesHelpButton };
-        if (tab == 1) return { &lsHelpButton, &frHelpButton };
-        if (tab == 2) return { &lfoHelpButton, &otomoHelpButton };
-        if (tab == 3) return { &gradientMapEditor.getHelpButton() };
-        if (tab == samplerTabIndex && samplerTabIndex >= 0) return { &samplerSubTab.getHelpButton() };
+        switch (getCurrentSubTabId())
+        {
+            case InputSubTab::Params:                return { &inputBasicHelpButton, &inputAdvancedHelpButton, &inputLevelHelpButton, &inputHFHelpButton, &inputMutesHelpButton };
+            case InputSubTab::LiveSourceHackoustics: return { &lsHelpButton, &frHelpButton };
+            case InputSubTab::Movements:             return { &lfoHelpButton, &otomoHelpButton };
+            case InputSubTab::GradientMaps:          return { &gradientMapEditor.getHelpButton() };
+            case InputSubTab::Visualisation:         return {};
+            case InputSubTab::Sampler:               return { &samplerSubTab.getHelpButton() };
+        }
         return {};
     }
 
 private:
+    // ==================== SUB-TAB IDENTITY ====================
+    //
+    // The bar's positional index is not a stable identity (the Sampler tab is
+    // added/removed at runtime). These four helpers are the only sanctioned way
+    // to relate a bar position to a logical sub-tab.
+
+    /** Append a sub-tab to the bar and record its logical id. */
+    void appendSubTab (InputSubTab id, const char* locKey)
+    {
+        subTabBar.addTab (LOC (locKey), juce::Colour (0xFF2A2A2A), -1);
+        subTabIds.push_back (id);
+    }
+
+    /** Remove a sub-tab by logical id, if present. Moves the selection to Params
+        first when the tab being removed is the active one, so the bar never lands
+        on a stale position. */
+    void removeSubTab (InputSubTab id)
+    {
+        const int index = indexOfSubTab (id);
+        if (index < 0) return;
+
+        if (subTabBar.getCurrentTabIndex() == index)
+        {
+            const int paramsIndex = indexOfSubTab (InputSubTab::Params);
+            subTabBar.setCurrentTabIndex (paramsIndex >= 0 ? paramsIndex : 0);
+        }
+
+        subTabBar.removeTab (index);
+        subTabIds.erase (subTabIds.begin() + index);
+    }
+
+    /** Bar position of a logical sub-tab, or -1 when it is not currently shown. */
+    int indexOfSubTab (InputSubTab id) const noexcept
+    {
+        for (size_t i = 0; i < subTabIds.size(); ++i)
+            if (subTabIds[i] == id)
+                return static_cast<int> (i);
+        return -1;
+    }
+
+    /** Logical id of the active sub-tab. Falls back to Params when the bar has no
+        valid selection, which keeps every caller total. */
+    InputSubTab getCurrentSubTabId() const noexcept
+    {
+        const int i = subTabBar.getCurrentTabIndex();
+        if (i >= 0 && i < static_cast<int> (subTabIds.size()))
+            return subTabIds[static_cast<size_t> (i)];
+        return InputSubTab::Params;
+    }
+
+    bool isCurrentSubTab (InputSubTab id) const noexcept { return getCurrentSubTabId() == id; }
+
     // ==================== CHANGE LISTENER ====================
 
     void changeListenerCallback(juce::ChangeBroadcaster*) override
@@ -987,9 +1063,11 @@ private:
 
         int tabIndex = subTabBar.getCurrentTabIndex();
 
-        // Notify StreamDeck of subtab change
+        // Notify StreamDeck of subtab change. This carries the LOGICAL id, not the
+        // bar position, so the page mapping stays correct once tabs are added or
+        // removed from the middle of the bar.
         if (onSubTabChanged)
-            onSubTabChanged (tabIndex);
+            onSubTabChanged (static_cast<int> (getCurrentSubTabId()));
 
         // TTS: Announce subtab change for accessibility
         if (tabIndex >= 0 && tabIndex < subTabBar.getNumTabs())
@@ -1771,14 +1849,15 @@ private:
             bool is1OverD = attenuationLawButton.getToggleState();
             attenuationLawButton.setButtonText(is1OverD ? "1/d" : "Log");
             // Show/hide Distance Atten vs Distance Ratio based on law (now in Input Parameters tab)
-            distanceAttenLabel.setVisible(!is1OverD && subTabBar.getCurrentTabIndex() == 0);
-            distanceAttenDial.setVisible(!is1OverD && subTabBar.getCurrentTabIndex() == 0);
-            distanceAttenValueLabel.setVisible(!is1OverD && subTabBar.getCurrentTabIndex() == 0);
-            distanceAttenUnitLabel.setVisible(!is1OverD && subTabBar.getCurrentTabIndex() == 0);
-            distanceRatioLabel.setVisible(is1OverD && subTabBar.getCurrentTabIndex() == 0);
-            distanceRatioDial.setVisible(is1OverD && subTabBar.getCurrentTabIndex() == 0);
-            distanceRatioValueLabel.setVisible(is1OverD && subTabBar.getCurrentTabIndex() == 0);
-            distanceRatioUnitLabel.setVisible(is1OverD && subTabBar.getCurrentTabIndex() == 0);
+            const bool onParams = isCurrentSubTab (InputSubTab::Params);
+            distanceAttenLabel.setVisible(!is1OverD && onParams);
+            distanceAttenDial.setVisible(!is1OverD && onParams);
+            distanceAttenValueLabel.setVisible(!is1OverD && onParams);
+            distanceAttenUnitLabel.setVisible(!is1OverD && onParams);
+            distanceRatioLabel.setVisible(is1OverD && onParams);
+            distanceRatioDial.setVisible(is1OverD && onParams);
+            distanceRatioValueLabel.setVisible(is1OverD && onParams);
+            distanceRatioUnitLabel.setVisible(is1OverD && onParams);
             saveInputParam(WFSParameterIDs::inputAttenuationLaw, is1OverD ? 1 : 0);
         };
 
@@ -1981,7 +2060,7 @@ private:
         detail text, so it is cheap to call from toggles and tree listeners. */
     void updateFeatureWarnings()
     {
-        const int tab = subTabBar.getCurrentTabIndex();
+        const InputSubTab tab = getCurrentSubTabId();
         const int numOutputs = parameters.getNumOutputChannels();
 
         auto anySpeakerHas = [this, numOutputs](const char* paramName)
@@ -1993,13 +2072,13 @@ private:
         };
 
         // Minimal latency — Input Parameters tab (index 0)
-        bool minLatWarn = (tab == 0)
+        bool minLatWarn = (tab == InputSubTab::Params)
                        && minimalLatencyButton.getToggleState()
                        && !anySpeakerHas("outputMiniLatencyEnable");
         minLatencyWarning.setVisible(minLatWarn);
 
         // Live source tamer — Live Source & Hackoustics tab (index 1)
-        bool lsWarn = (tab == 1)
+        bool lsWarn = (tab == InputSubTab::LiveSourceHackoustics)
                    && lsActiveButton.getToggleState()
                    && !anySpeakerHas("outputLSattenEnable");
         lsWarning.setVisible(lsWarn);
@@ -2019,7 +2098,7 @@ private:
         bool inputOffFloor = currentChannel > 0
             && static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionZ")) > 0.0f;
 
-        bool frWarn = (tab == 1) && frActiveButton.getToggleState() && !(anyFRspeaker && inputOffFloor);
+        bool frWarn = (tab == InputSubTab::LiveSourceHackoustics) && frActiveButton.getToggleState() && !(anyFRspeaker && inputOffFloor);
         if (frWarn)
         {
             juce::String detail = LOC("inputs.warnings.floorReflections.base");
@@ -3242,7 +3321,7 @@ private:
 
     void layoutCurrentSubTab()
     {
-        int tabIndex = subTabBar.getCurrentTabIndex();
+        const InputSubTab tabId = getCurrentSubTabId();
         showColumnDivider = false;
 
         // Hide all
@@ -3263,8 +3342,9 @@ private:
         inputHFHelpButton.setVisible(false); inputHFHelpCard.hide();
         inputMutesHelpButton.setVisible(false); inputMutesHelpCard.hide();
 
-        // Show current - new 5-tab structure (tab 5 = Sampler, dynamically added)
-        if (tabIndex == 0)
+        // Show current. The tab set is dynamic (Sampler is added/removed at runtime),
+        // so dispatch on the logical id rather than the bar position.
+        if (tabId == InputSubTab::Params)
         {
             // Input Parameters: Column 1 (Input+Position), Column 2 (Sound+Mutes)
             setInputPropertiesVisible(true);
@@ -3279,33 +3359,33 @@ private:
             inputMutesHelpButton.setVisible(true);
             layoutInputParametersTab();
         }
-        else if (tabIndex == 1)
+        else if (tabId == InputSubTab::LiveSourceHackoustics)
         {
             // Live Source & Hackoustics: Column 1 (Live Source), Column 2 (Hackoustics)
             setLiveSourceVisible(true);
             setEffectsVisible(true);
             layoutLiveSourceHackousticsTab();
         }
-        else if (tabIndex == 2)
+        else if (tabId == InputSubTab::Movements)
         {
             // Movements: Column 1 (LFO), Column 2 (AutomOtion)
             setLfoVisible(true);
             setAutomotionVisible(true);
             layoutMovementsTab();
         }
-        else if (tabIndex == 3)
+        else if (tabId == InputSubTab::GradientMaps)
         {
             // Gradient Maps
             setGradientMapsVisible(true);
             layoutGradientMapsTab();
         }
-        else if (tabIndex == 4)
+        else if (tabId == InputSubTab::Visualisation)
         {
             // Visualisation
             setVisualisationVisible(true);
             layoutVisualisationTab();
         }
-        else if (tabIndex == samplerTabIndex && samplerTabIndex >= 0)
+        else if (tabId == InputSubTab::Sampler)
         {
             // Sampler
             samplerSubTab.setVisible(true);
@@ -5388,7 +5468,7 @@ private:
         attenuationLawButton.setToggleState(attenLaw, juce::dontSendNotification);
         attenuationLawButton.setButtonText(attenLaw ? "1/d" : LOC("inputs.toggles.attenuationLawLog"));
         // Update dial visibility based on attenuation law (Log shows dB/m, 1/d shows ratio)
-        bool showInputParams = subTabBar.getCurrentTabIndex() == 0;
+        bool showInputParams = isCurrentSubTab (InputSubTab::Params);
         distanceAttenLabel.setVisible(!attenLaw && showInputParams);
         distanceAttenDial.setVisible(!attenLaw && showInputParams);
         distanceAttenValueLabel.setVisible(!attenLaw && showInputParams);
@@ -7145,8 +7225,8 @@ private:
     /** Update AutomOtion curve visibility based on coordinate mode and current tab */
     void updateOtomoCurveVisibility()
     {
-        // Only show curve dial on Movements tab (index 2) when in Cartesian mode
-        bool isMovementsTab = (subTabBar.getCurrentTabIndex() == 2);
+        // Only show curve dial on the Movements sub-tab when in Cartesian mode
+        bool isMovementsTab = isCurrentSubTab (InputSubTab::Movements);
         bool isCartesian = (otomoCoordModeSelector.getSelectedId() == 1);  // 1 = Cartesian
         bool showCurve = isMovementsTab && isCartesian;
         otomoCurveLabel.setVisible(showCurve);
@@ -7599,7 +7679,7 @@ private:
         if (tree == ioTree && property == WFSParameterIDs::outputChannels)
         {
             // Update mute button visibility and layout if Input Parameters tab is visible (contains mutes)
-            if (subTabBar.getCurrentTabIndex() == 0)
+            if (isCurrentSubTab (InputSubTab::Params))
             {
                 setMutesVisible(true);
                 layoutInputParametersTab();
@@ -7791,21 +7871,13 @@ private:
 
     void addSamplerTab()
     {
-        if (samplerTabIndex >= 0) return;  // Already added
-        samplerTabIndex = subTabBar.getNumTabs();
-        subTabBar.addTab(LOC("inputs.tabs.sampler"), juce::Colour(0xFF2A2A2A), -1);
+        if (indexOfSubTab (InputSubTab::Sampler) >= 0) return;  // Already present
+        appendSubTab (InputSubTab::Sampler, "inputs.tabs.sampler");
     }
 
     void removeSamplerTab()
     {
-        if (samplerTabIndex < 0) return;  // Not present
-
-        // If currently on the sampler tab, switch away first
-        if (subTabBar.getCurrentTabIndex() == samplerTabIndex)
-            subTabBar.setCurrentTabIndex(0);
-
-        subTabBar.removeTab(samplerTabIndex);
-        samplerTabIndex = -1;
+        removeSubTab (InputSubTab::Sampler);
     }
 
     void toggleSolo()
@@ -8119,7 +8191,10 @@ private:
     LongPressButton samplerToggleButton { 800 };
     SamplerSubTab samplerSubTab;
     bool samplerMasterEnabled = false;
-    int samplerTabIndex = -1;  // -1 = not present
+    // Logical ids of the sub-tabs currently in the bar, in bar order. This is the
+    // single source of truth for "which tab is at which position"; the bar itself
+    // only knows about positions.
+    std::vector<InputSubTab> subTabIds;
     juce::TextButton levelMeterButton;
     juce::TextButton clearSoloButton;
     juce::TextButton soloButton;
