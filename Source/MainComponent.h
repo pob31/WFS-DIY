@@ -559,7 +559,13 @@ private:
     void applySamplerControllerMode (int mode);
     std::map<int, int> buildZoneToInputMap() const;
     void resendRemotePadConfig();
-    void growPatchData(juce::ValueTree& patchTree, int newChannelCount, int numHardwareCols);
+    void growPatchData(juce::ValueTree& patchTree, int newChannelCount, int numHardwareCols,
+                       int numStereoRows = 0);
+
+    /** Auto-diagonal companion for stereo pairs: rows with a patched L and no
+        R get the next hardware column when it is free everywhere. Heuristic,
+        never steals a claimed column, leaves fully unpatched rows alone. */
+    void autoPatchStereoRightColumns();
     void repaintActiveTab();
 
     // Keyboard handling helpers

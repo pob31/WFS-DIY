@@ -2908,7 +2908,8 @@ void MainComponent::resendRemotePadConfig()
     oscManager->sendRemotePadConfig (true, cols, rows, sensitivity, zoneMap);
 }
 
-void MainComponent::growPatchData(juce::ValueTree& patchTree, int newChannelCount, int numHardwareCols)
+void MainComponent::growPatchData(juce::ValueTree& patchTree, int newChannelCount, int numHardwareCols,
+                                  int numStereoRows)
 {
     if (! patchTree.isValid())
         return;
@@ -2931,17 +2932,124 @@ void MainComponent::growPatchData(juce::ValueTree& patchTree, int newChannelCoun
         return;
     }
 
-    // Grow: append new rows with 1:1 diagonal mapping
-    for (int ch = existingRows; ch < newChannelCount; ++ch)
+    if (numStereoRows <= 0)
     {
-        juce::StringArray cols;
-        for (int c = 0; c < numHardwareCols; ++c)
-            cols.add(c == ch ? "1" : "0");
-        rows.add(cols.joinIntoString(","));
+        // Grow: append new rows with 1:1 diagonal mapping
+        for (int ch = existingRows; ch < newChannelCount; ++ch)
+        {
+            juce::StringArray cols;
+            for (int c = 0; c < numHardwareCols; ++c)
+                cols.add(c == ch ? "1" : "0");
+            rows.add(cols.joinIntoString(","));
+        }
+    }
+    else
+    {
+        // Stereo-aware growth (input patch): appended rows continue the
+        // diagonal from the first hardware column past everything already
+        // patched, advancing by the row's capacity — a stereo row (the LAST
+        // numStereoRows of the list) takes two consecutive columns, lower =
+        // L. With no stereo rows patched yet this reduces to the plain
+        // diagonal above.
+        int cursor = 0;
+        for (int r = 0; r < existingRows; ++r)
+        {
+            juce::StringArray cols = juce::StringArray::fromTokens(rows[r], ",", "");
+            for (int c = cols.size(); --c >= 0;)
+            {
+                if (cols[c].getIntValue() == 1)
+                {
+                    cursor = juce::jmax(cursor, c + 1);
+                    break;
+                }
+            }
+        }
+
+        const int firstStereoRow = newChannelCount - numStereoRows;
+        for (int ch = existingRows; ch < newChannelCount; ++ch)
+        {
+            const int capacity = (ch >= firstStereoRow) ? 2 : 1;
+            const int lastCol = juce::jmin(WFSValueTreeState::maxHardwarePatchChannels - 1,
+                                           cursor + capacity - 1);
+
+            juce::StringArray cols;
+            const int rowLen = juce::jmax(numHardwareCols, lastCol + 1);
+            for (int c = 0; c < rowLen; ++c)
+                cols.add(c >= cursor && c <= lastCol ? "1" : "0");
+            rows.add(cols.joinIntoString(","));
+
+            cursor = lastCol + 1;
+        }
     }
 
     patchTree.setProperty(WFSParameterIDs::patchData, rows.joinIntoString(";"), nullptr);
     patchTree.setProperty(WFSParameterIDs::rows, newChannelCount, nullptr);
+}
+
+void MainComponent::autoPatchStereoRightColumns()
+{
+    // Auto-diagonal companion for stereo rows: a pair whose L is patched but
+    // whose R is not gets the next hardware column — IF that column is free
+    // everywhere (the column side of the invariant is never stolen from).
+    // Deliberately a heuristic, not an invariant: a fully unpatched stereo
+    // row is left alone, and a claimed next column just leaves R unpatched.
+    auto audioPatchTree = parameters.getValueTreeState().getState().getChildWithName(WFSParameterIDs::AudioPatch);
+    auto inputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::InputPatch);
+    if (! inputPatchTree.isValid())
+        return;
+
+    juce::String patchDataStr = inputPatchTree.getProperty(WFSParameterIDs::patchData).toString();
+    juce::StringArray rows = juce::StringArray::fromTokens(patchDataStr, ";", "");
+
+    const int numStereo = parameters.getValueTreeState().getNumStereoInputChannels();
+    const int firstStereoRow = numInputChannels - numStereo;
+
+    // Column claims across ALL rows
+    std::vector<bool> columnClaimed(static_cast<size_t>(WFSValueTreeState::maxHardwarePatchChannels), false);
+    for (int r = 0; r < rows.size(); ++r)
+    {
+        juce::StringArray cols = juce::StringArray::fromTokens(rows[r], ",", "");
+        for (int c = 0; c < cols.size() && c < (int) columnClaimed.size(); ++c)
+            if (cols[c].getIntValue() == 1)
+                columnClaimed[static_cast<size_t>(c)] = true;
+    }
+
+    bool changed = false;
+    for (int r = firstStereoRow; r < rows.size() && r < numInputChannels; ++r)
+    {
+        if (r < 0)
+            continue;
+
+        juce::StringArray cols = juce::StringArray::fromTokens(rows[r], ",", "");
+        int patchedCount = 0;
+        int leftCol = -1;
+        for (int c = 0; c < cols.size(); ++c)
+        {
+            if (cols[c].getIntValue() == 1)
+            {
+                if (patchedCount++ == 0)
+                    leftCol = c;
+            }
+        }
+
+        if (patchedCount != 1 || leftCol < 0)
+            continue;   // fully unpatched or already a pair
+
+        const int rightCol = leftCol + 1;
+        if (rightCol >= WFSValueTreeState::maxHardwarePatchChannels
+            || (rightCol < (int) columnClaimed.size() && columnClaimed[static_cast<size_t>(rightCol)]))
+            continue;
+
+        while (cols.size() <= rightCol)
+            cols.add("0");
+        cols.set(rightCol, "1");
+        columnClaimed[static_cast<size_t>(rightCol)] = true;
+        rows.set(r, cols.joinIntoString(","));
+        changed = true;
+    }
+
+    if (changed)
+        inputPatchTree.setProperty(WFSParameterIDs::patchData, rows.joinIntoString(";"), nullptr);
 }
 
 void MainComponent::loadAudioPatches()
@@ -3366,14 +3474,17 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
         auto outputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::OutputPatch);
         int hwInCols = inputPatchTree.isValid() ? (int) inputPatchTree.getProperty(WFSParameterIDs::cols, 64) : 64;
         int hwOutCols = outputPatchTree.isValid() ? (int) outputPatchTree.getProperty(WFSParameterIDs::cols, WFSParameterDefaults::maxOutputChannels) : WFSParameterDefaults::maxOutputChannels;
-        growPatchData(inputPatchTree, inputs, hwInCols);
+        growPatchData(inputPatchTree, inputs, hwInCols,
+                      parameters.getValueTreeState().getNumStereoInputChannels());
         growPatchData(outputPatchTree, outputs, hwOutCols);
     }
 
     // Count changes can move the mono/stereo boundary: rows that became mono
-    // may hold a leftover second column — drop it (lower column = L is kept),
-    // then rebuild the runtime patch maps for the new shape.
+    // may hold a leftover second column — drop it (lower column = L is kept);
+    // stereo rows with an L but no R get the next free column (auto-diagonal
+    // companion); then rebuild the runtime patch maps for the new shape.
     sanitizeMonoPatchRows();
+    autoPatchStereoRightColumns();
     loadAudioPatches();
 
     // Update reverb engine node count and resize MainComponent's reverb buffers
