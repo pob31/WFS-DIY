@@ -3675,6 +3675,53 @@ private:
         float greyDotX = actualPosX + totalOffsetX;
         float greyDotY = actualPosY + totalOffsetY;
 
+        // Stereo pair: draw the image spread — a bar through the DSP anchor
+        // along the tangential axis (perpendicular to the origin→anchor
+        // bearing), endpoints where the hard-L/R slices land. Same mapping as
+        // MainComponent::refreshStereoSliceGeometry: width% × usable array
+        // half-span, X-axis fallback at the origin.
+        {
+            const int totalIn  = parameters.getNumInputChannels();
+            const int stereoIn = parameters.getValueTreeState().getNumStereoInputChannels();
+            if (inputIndex >= totalIn - stereoIn)
+            {
+                float widthPct = static_cast<float>(parameters.getInputParam(inputIndex, "inputStereoWidth"));
+                widthPct = juce::jlimit(0.0f, 100.0f, widthPct);
+
+                float minSpX = std::numeric_limits<float>::max();
+                float maxSpX = std::numeric_limits<float>::lowest();
+                const int numOutputs = parameters.getNumOutputChannels();
+                for (int o = 0; o < numOutputs; ++o)
+                {
+                    const float ox = static_cast<float>(parameters.getOutputParam(o, "outputPositionX"));
+                    minSpX = juce::jmin(minSpX, ox);
+                    maxSpX = juce::jmax(maxSpX, ox);
+                }
+                const float halfSpan = (numOutputs > 0 && maxSpX > minSpX) ? (maxSpX - minSpX) * 0.5f : 0.0f;
+                const float halfWidthM = (widthPct / 100.0f) * halfSpan;
+
+                if (halfWidthM > 0.01f)
+                {
+                    float axisX = 1.0f, axisY = 0.0f;
+                    const float bearingLen = std::sqrt(greyDotX * greyDotX + greyDotY * greyDotY);
+                    if (bearingLen > 1.0e-3f)
+                    {
+                        axisX = greyDotY / bearingLen;
+                        axisY = -greyDotX / bearingLen;
+                    }
+
+                    auto leftEnd  = stageToScreen({ greyDotX - halfWidthM * axisX, greyDotY - halfWidthM * axisY });
+                    auto rightEnd = stageToScreen({ greyDotX + halfWidthM * axisX, greyDotY + halfWidthM * axisY });
+
+                    juce::Colour spreadColor = WfsColorUtilities::getInputColor(inputIndex + 1);
+                    g.setColour(spreadColor.withAlpha(0.55f));
+                    g.drawLine(leftEnd.x, leftEnd.y, rightEnd.x, rightEnd.y, 2.0f);
+                    g.fillEllipse(leftEnd.x - 3.0f, leftEnd.y - 3.0f, 6.0f, 6.0f);
+                    g.fillEllipse(rightEnd.x - 3.0f, rightEnd.y - 3.0f, 6.0f, 6.0f);
+                }
+            }
+        }
+
         // Check if there's a reason to show the grey dot:
         // - Flip is active (DSP position is mirrored from control position)
         // - Speed limiting is active
