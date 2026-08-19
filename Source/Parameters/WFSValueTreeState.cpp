@@ -2528,18 +2528,29 @@ void WFSValueTreeState::copyStateFrom (const WFSValueTreeState& other)
 
 int WFSValueTreeState::resolveChannelIndex (const juce::ValueTree& changedNode) const
 {
-    // Determine channel index if this is an input/output/reverb parameter
+    // Determine channel index if this is an input/output/reverb parameter.
+    // The notified index is the SLOT (dense child index): for inputs the id
+    // is the permanent channel number and the list may have gaps, so it must
+    // go through the number->slot lookup — id - 1 would point at the wrong
+    // channel. Outputs/reverbs stay dense (id == index + 1).
+    auto slotOf = [this] (const juce::ValueTree& node) -> int
+    {
+        if (node.getType() == Input)
+            return getSlotForChannelNumber (static_cast<int> (node.getProperty (id)));
+        return static_cast<int> (node.getProperty (id)) - 1;
+    };
+
     int channelIndex = -1;
     auto parent = changedNode.getParent();
 
     if (parent.isValid())
     {
         if (parent.getType() == Input || parent.getType() == Output || parent.getType() == Reverb)
-            channelIndex = static_cast<int> (parent.getProperty (id)) - 1;
+            channelIndex = slotOf (parent);
         else if (parent.getParent().isValid() &&
                  (parent.getParent().getType() == Input || parent.getParent().getType() == Output ||
                   parent.getParent().getType() == Reverb))
-            channelIndex = static_cast<int> (parent.getParent().getProperty (id)) - 1;
+            channelIndex = slotOf (parent.getParent());
     }
 
     return channelIndex;

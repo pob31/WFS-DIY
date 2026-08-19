@@ -425,8 +425,12 @@ juce::String OSCQueryServer::resolveOSCPath(const juce::ValueTree& tree,
         juce::String parentType = parent.getType().toString();
         if (parentType == "Inputs" || parentType == "Outputs" || parentType == "Reverbs")
         {
-            int channelIndex = parent.indexOf(current);
-            return "/wfs/" + entry.category + "/" + juce::String(channelIndex + 1) + "/" + entry.oscName;
+            // Inputs are addressed by their PERMANENT number (the node's id;
+            // the list may have gaps). Outputs/reverbs stay dense positional.
+            const int channelNumber = parentType == "Inputs"
+                ? static_cast<int>(current.getProperty(WFSParameterIDs::id))
+                : parent.indexOf(current) + 1;
+            return "/wfs/" + entry.category + "/" + juce::String(channelNumber) + "/" + entry.oscName;
         }
 
         current = parent;
@@ -878,13 +882,15 @@ juce::DynamicObject* OSCQueryServer::buildFullTree()
 
     auto* wfsContents = new juce::DynamicObject();
 
-    // /wfs/input (1-based channel numbers, matching standard OSC convention)
+    // /wfs/input — nodes are named by the PERMANENT channel number (the list
+    // may have gaps after deletions)
     {
         auto* container = makeContainerNode("/wfs/input", "Input Channels");
         auto* contents = container->getProperties()["CONTENTS"].getDynamicObject();
         int count = state.getNumInputChannels();
         for (int i = 0; i < count; ++i)
-            contents->setProperty(juce::String(i + 1), juce::var(buildInputChannelJson(i)));
+            contents->setProperty(juce::String(state.getInputChannelNumber(i)),
+                                  juce::var(buildInputChannelJson(i)));
         wfsContents->setProperty("input", juce::var(container));
     }
 
@@ -922,8 +928,9 @@ juce::DynamicObject* OSCQueryServer::buildFullTree()
 
 juce::DynamicObject* OSCQueryServer::buildInputChannelJson(int channelIndex)
 {
-    juce::String basePath = "/wfs/input/" + juce::String(channelIndex + 1);
-    auto* channel = makeContainerNode(basePath, "Input " + juce::String(channelIndex + 1));
+    const int number = state.getInputChannelNumber(channelIndex);
+    juce::String basePath = "/wfs/input/" + juce::String(number);
+    auto* channel = makeContainerNode(basePath, "Input " + juce::String(number));
     auto* contents = channel->getProperties()["CONTENTS"].getDynamicObject();
 
     const auto& addrMap = OSCMessageRouter::getInputAddressMap();

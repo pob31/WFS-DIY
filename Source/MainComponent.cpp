@@ -2222,7 +2222,8 @@ MainComponent::MainComponent()
     {
         if (calculationEngine == nullptr || oscManager == nullptr)
             return;
-        if (channelId < 1 || channelId > parameters.getNumInputChannels())
+        // channelId is a permanent channel number — dead numbers are dropped
+        if (parameters.getValueTreeState().getSlotForChannelNumber(channelId) < 0)
             return;
 
         oscManager->sendRemoteVisRows(channelId,
@@ -3712,7 +3713,12 @@ void MainComponent::sendVisualisationToRemotes(int targetIndex)
     // Current desktop selection: the InputsTab channel is always valid; the map
     // contributes either a temporary multi-selection or the members of the
     // selected cluster/barycenter.
-    int primary = inputsTab != nullptr ? inputsTab->getSelectedInputIndex() + 1 : 1;
+    // Wire ids are permanent channel numbers; the tab/map selections are
+    // slots, so convert at the boundary.
+    auto& vtsVis = parameters.getValueTreeState();
+    int primary = inputsTab != nullptr
+                      ? vtsVis.getInputChannelNumber(inputsTab->getSelectedInputIndex())
+                      : vtsVis.getInputChannelNumber(0);
 
     int clusterId = 0;
     std::vector<int> selection;
@@ -3726,13 +3732,13 @@ void MainComponent::sendVisualisationToRemotes(int targetIndex)
                 juce::var cv = parameters.getValueTreeState()
                                    .getInputParameter(i, WFSParameterIDs::inputCluster);
                 if (!cv.isVoid() && static_cast<int>(cv) == clusterId)
-                    selection.push_back(i + 1);
+                    selection.push_back(vtsVis.getInputChannelNumber(i));
             }
         }
         else
         {
-            for (int idx : mapTab->getSelectedInputSet())  // 0-based indices
-                selection.push_back(idx + 1);
+            for (int idx : mapTab->getSelectedInputSet())  // 0-based slots
+                selection.push_back(vtsVis.getInputChannelNumber(idx));
 
             // A single selected input that is a cluster's reference handle
             // (First Input / Shared Position modes, or the tracked member)
@@ -3740,7 +3746,7 @@ void MainComponent::sendVisualisationToRemotes(int targetIndex)
             // the tablet like a barycenter selection does.
             if (selection.size() == 1)
             {
-                const int idx0 = selection.front() - 1;
+                const int idx0 = vtsVis.getSlotForChannelNumber(selection.front());
                 juce::var cv = parameters.getValueTreeState()
                                    .getInputParameter(idx0, WFSParameterIDs::inputCluster);
                 const int cluster = cv.isVoid() ? 0 : static_cast<int>(cv);
@@ -3753,7 +3759,7 @@ void MainComponent::sendVisualisationToRemotes(int targetIndex)
                         juce::var mv = parameters.getValueTreeState()
                                            .getInputParameter(i, WFSParameterIDs::inputCluster);
                         if (!mv.isVoid() && static_cast<int>(mv) == cluster)
-                            selection.push_back(i + 1);
+                            selection.push_back(vtsVis.getInputChannelNumber(i));
                     }
                 }
             }
@@ -3778,8 +3784,10 @@ void MainComponent::sendVisualisationToRemotes(int targetIndex)
     std::set<int> channels(selection.begin(), selection.end());
     channels.insert(primary);
 
+    // Entries are permanent channel numbers; sendRemoteVisRows resolves each
+    // to its engine-matrix slot and drops dead numbers itself.
     for (int ch : channels)
-        if (ch >= 1 && ch <= numInputs)
+        if (ch >= 1)
             oscManager->sendRemoteVisRows(ch, delays, levels, stride, numOutputs,
                                           rDelays, rLevels, rStride, numReverbs, targetIndex);
 
@@ -3788,7 +3796,7 @@ void MainComponent::sendVisualisationToRemotes(int targetIndex)
     {
         if (targetIndex >= 0 && pinTarget != targetIndex)
             continue;
-        if (channels.count(pinChannel) > 0 || pinChannel < 1 || pinChannel > numInputs)
+        if (channels.count(pinChannel) > 0 || pinChannel < 1)
             continue;
         oscManager->sendRemoteVisRows(pinChannel, delays, levels, stride, numOutputs,
                                       rDelays, rLevels, rStride, numReverbs, pinTarget);

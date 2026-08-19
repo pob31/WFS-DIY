@@ -1197,8 +1197,10 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
 
         if (hasConnectedRemote)
         {
-            // Get the channel index (0-based)
-            int channelIndex = channelId - 1;
+            // channelId is the node's permanent number — resolve to the slot
+            int channelIndex = state.getSlotForChannelNumber(channelId);
+            if (channelIndex < 0)
+                return;
 
             // Read BOTH current position values from state
             juce::var posXVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionX);
@@ -1236,7 +1238,7 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
                     property == WFSParameterIDs::inputPositionY ||
                     property == WFSParameterIDs::inputPositionZ))
     {
-        int channelIndex = channelId - 1;
+        int channelIndex = state.getSlotForChannelNumber(channelId);
         sendADMOSCPosition (channelIndex);
 
         // MapTab deliberately doesn't auto-repaint on ValueTree property
@@ -1250,10 +1252,10 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
 
     // ADM-OSC transmit: gain and name
     if (isInput && property == WFSParameterIDs::inputAttenuation)
-        sendADMOSCGain (channelId - 1);
+        sendADMOSCGain (state.getSlotForChannelNumber(channelId));
 
     if (isInput && property == WFSParameterIDs::inputName)
-        sendADMOSCName (channelId - 1);
+        sendADMOSCName (state.getSlotForChannelNumber(channelId));
 
     // If inputTrackingActive changed, also send the computed fully tracked state
     if (isInput && property == WFSParameterIDs::inputTrackingActive)
@@ -2933,7 +2935,7 @@ void OSCManager::applyPendingClusterMove()
             state.setInputParameter(firstMember, inputPositionY, newY);
 
             for (int m : members)
-                updatedPositions.emplace_back(m + 1, newX, newY);
+                updatedPositions.emplace_back(state.getInputChannelNumber(m), newX, newY);
         }
     }
     else
@@ -2951,7 +2953,7 @@ void OSCManager::applyPendingClusterMove()
                 state.setInputParameter(inputIndex, inputPositionX, newX);
                 state.setInputParameter(inputIndex, inputPositionY, newY);
 
-                updatedPositions.emplace_back(inputIndex + 1, newX, newY);
+                updatedPositions.emplace_back(state.getInputChannelNumber(inputIndex), newX, newY);
             }
         }
     }
@@ -3081,7 +3083,7 @@ void OSCManager::handleClusterScaleRotationMessage(const juce::OSCMessage& messa
                 state.setInputParameter(inputIndex, WFSParameterIDs::inputPositionX, newX);
                 state.setInputParameter(inputIndex, WFSParameterIDs::inputPositionY, newY);
 
-                updatedPositions.emplace_back(inputIndex + 1, newX, newY);
+                updatedPositions.emplace_back(state.getInputChannelNumber(inputIndex), newX, newY);
             }
         }
         else // Rotation
@@ -3109,7 +3111,7 @@ void OSCManager::handleClusterScaleRotationMessage(const juce::OSCMessage& messa
                 state.setInputParameter(inputIndex, WFSParameterIDs::inputPositionX, newX);
                 state.setInputParameter(inputIndex, WFSParameterIDs::inputPositionY, newY);
 
-                updatedPositions.emplace_back(inputIndex + 1, newX, newY);
+                updatedPositions.emplace_back(state.getInputChannelNumber(inputIndex), newX, newY);
             }
         }
 
@@ -3571,7 +3573,8 @@ bool OSCManager::isInputFullyTracked(int channelIndex) const
 
 void OSCManager::sendInputFullyTrackedState(int channelId)
 {
-    int channelIndex = channelId - 1;
+    // channelId is the permanent channel number (wire convention)
+    int channelIndex = state.getSlotForChannelNumber(channelId);
     if (channelIndex < 0)
         return;
 
@@ -4229,7 +4232,7 @@ void OSCManager::sendAllInputPositionsToRemote(int targetIndex)
     // Send data for each input channel
     for (int channelIndex = 0; channelIndex < numInputs; ++channelIndex)
     {
-        int channelId = channelIndex + 1;  // 1-based for OSC messages
+        int channelId = state.getInputChannelNumber(channelIndex);  // permanent number on the wire
 
         // Get and send input name
         juce::var nameVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputName);
@@ -4330,7 +4333,7 @@ void OSCManager::sendAllInputParametersToRemote(int targetIndex)
 
     for (int ch = 0; ch < numInputs; ++ch)
     {
-        int channelId = ch + 1;  // 1-based for OSC
+        int channelId = state.getInputChannelNumber(ch);  // permanent number on the wire
 
         for (const auto& [paramName, paramId] : remoteMap)
         {
@@ -4371,7 +4374,7 @@ void OSCManager::sendAllInputParametersToRemote(int targetIndex)
 
 void OSCManager::appendInputMessages(std::vector<juce::OSCMessage>& messages, int ch)
 {
-    const int channelId = ch + 1;
+    const int channelId = state.getInputChannelNumber(ch);  // permanent number on the wire
 
     // Name
     juce::var nameVar = state.getInputParameter(ch, WFSParameterIDs::inputName);
@@ -4654,7 +4657,7 @@ std::vector<juce::OSCMessage> OSCManager::collectStateDumpMessages(int /*targetI
                 {
                     float hue = std::fmod (static_cast<float> (it->second) * 0.13f, 1.0f);
                     auto colour = juce::Colour::fromHSV (hue, 0.7f, 0.9f, 1.0f);
-                    cfg.addInt32 (it->second + 1);
+                    cfg.addInt32 (state.getInputChannelNumber (it->second));  // permanent number on the wire
                     cfg.addInt32 (static_cast<int> (colour.getRed()));
                     cfg.addInt32 (static_cast<int> (colour.getGreen()));
                     cfg.addInt32 (static_cast<int> (colour.getBlue()));
@@ -4915,7 +4918,11 @@ void OSCManager::sendRemoteVisRows(int channelId,
     if (channelId < 1 || delaysMs == nullptr || levelsLinear == nullptr)
         return;
 
-    const int row = channelId - 1;
+    // channelId is the permanent number (wire); the engine matrices are
+    // slot-indexed, so resolve the row through the state.
+    const int row = state.getSlotForChannelNumber(channelId);
+    if (row < 0)
+        return;
 
     juce::OSCMessage delays("/remote/vis/delays");
     delays.addInt32(channelId);
@@ -5555,7 +5562,7 @@ void OSCManager::sendADMOSCPosition (int channelIndex)
     float y = static_cast<float> (state.getInputParameter (channelIndex, WFSParameterIDs::inputPositionY));
     float z = static_cast<float> (state.getInputParameter (channelIndex, WFSParameterIDs::inputPositionZ));
 
-    int objId = channelIndex + 1;
+    int objId = state.getInputChannelNumber (channelIndex);  // permanent number on the wire
     juce::String oscAddress;
     juce::OSCMessage msg ("/placeholder");
 
@@ -5673,7 +5680,7 @@ void OSCManager::sendADMOSCGain (int channelIndex)
     float gainLinear = (dB <= -92.0f) ? 0.0f : std::pow (10.0f, dB / 20.0f);
     gainLinear = juce::jlimit (0.0f, 1.0f, gainLinear);
 
-    int objId = channelIndex + 1;
+    int objId = state.getInputChannelNumber (channelIndex);  // permanent number on the wire
     juce::OSCMessage msg ("/adm/obj/" + juce::String (objId) + "/gain");
     msg.addFloat32 (gainLinear);
 
@@ -5697,7 +5704,7 @@ void OSCManager::sendADMOSCName (int channelIndex)
     juce::var nameVar = state.getInputParameter (channelIndex, WFSParameterIDs::inputName);
     juce::String name = nameVar.toString();
 
-    int objId = channelIndex + 1;
+    int objId = state.getInputChannelNumber (channelIndex);  // permanent number on the wire
     juce::OSCMessage msg ("/adm/obj/" + juce::String (objId) + "/name");
     msg.addString (name);
 
@@ -5757,7 +5764,7 @@ void OSCManager::sendRemotePadConfig (bool enabled, int gridCols, int gridRows,
                 int inputChannel = it->second;
                 float hue = std::fmod (static_cast<float> (inputChannel) * 0.13f, 1.0f);
                 auto colour = juce::Colour::fromHSV (hue, 0.7f, 0.9f, 1.0f);
-                msg.addInt32 (inputChannel + 1);  // 1-based for display
+                msg.addInt32 (state.getInputChannelNumber (inputChannel));  // permanent number on the wire
                 msg.addInt32 (static_cast<int> (colour.getRed()));
                 msg.addInt32 (static_cast<int> (colour.getGreen()));
                 msg.addInt32 (static_cast<int> (colour.getBlue()));
