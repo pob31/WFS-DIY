@@ -64,19 +64,14 @@ PatchMatrixComponent::makeConfig (WFSValueTreeState& parameters, bool isInputPat
     config.recomputeColumns = [&parameters] { parameters.recomputePatchCols(); };
 
     // A stereo-pair input row holds two hardware columns (lower = L). The
-    // split is config-level (System Config): the LAST stereoInputChannels
-    // rows are stereo pairs, the rest strict 1:1. Read live so a count change
-    // reshapes the matrix on the next repaint. Output rows stay strict 1:1
-    // (provider omitted -> capacity 1).
+    // type is per-channel (inputChannelType on the row's <Input>), read live
+    // so a structural/type change reshapes the matrix on the next repaint.
+    // Output rows stay strict 1:1 (provider omitted -> capacity 1).
     if (isInputPatch)
     {
         config.rowCapacityProvider = [&parameters] (int channel) -> int
         {
-            const int total  = parameters.getNumInputChannels();
-            const int stereo = parameters.getNumStereoInputChannels();
-            if (channel < 0 || channel >= total)
-                return 1;
-            return channel >= total - stereo ? 2 : 1;
+            return parameters.isInputChannelStereo (channel) ? 2 : 1;
         };
     }
 

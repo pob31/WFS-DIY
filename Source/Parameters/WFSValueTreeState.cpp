@@ -1450,11 +1450,13 @@ int WFSValueTreeState::getNextChannelNumber() const
     return getHighestChannelNumber() + 1;
 }
 
-void WFSValueTreeState::stampChannelTypesFromLegacySplit (juce::UndoManager* um)
+void WFSValueTreeState::stampChannelTypesFromLegacySplit (juce::UndoManager* um, int stereoCountOverride)
 {
     auto inputs = getInputsState();
     const int total  = inputs.getNumChildren();
-    const int stereo = getNumStereoInputChannels();
+    const int stereo = stereoCountOverride >= 0
+        ? juce::jmin (stereoCountOverride, total)
+        : getNumStereoInputChannels();
 
     for (int i = 0; i < total; ++i)
     {
@@ -1602,15 +1604,15 @@ void WFSValueTreeState::setInputChannelCounts (int numMono, int numStereo)
     // Count properties + the stereo stamp (property last: readers clamp the
     // split by the list size, so every intermediate state a synchronous
     // listener can observe reads consistently)
+    // Dual-write FIRST: the count/split property writes below fire listeners
+    // (InputsTab sub-tab rebuild) that read the per-channel types.
+    stampChannelTypesFromLegacySplit (getActiveUndoManager(), numStereo);
+
     auto io = getIOState();
     if (io.isValid())
         io.setProperty (inputChannels, newTotal, getActiveUndoManager());
     inputs.setProperty (count, newTotal, getActiveUndoManager());
     setNumStereoInputChannels (numStereo);
-
-    // Dual-write: keep the per-channel type property in step with the tail
-    // split while both representations exist.
-    stampChannelTypesFromLegacySplit (getActiveUndoManager());
 
     if (oldTotal != newTotal && ! arePositionsUserOwned())
         redistributeAllInputPositions();
@@ -1670,15 +1672,16 @@ void WFSValueTreeState::setNumInputChannels (int numChannels)
     // Update the count property directly (NOT via setParameter) so the
     // setParameter -> setNumInputChannels routing in setParameter doesn't
     // recurse into us.
+    // Dual-write BEFORE the count writes (their listeners read the types).
+    // The tail split may have been clamped by the resize — the effective
+    // stereo count shrinks when the list shrinks into the stereo block — so
+    // re-stamp the per-channel type property to match.
+    stampChannelTypesFromLegacySplit (getActiveUndoManager());
+
     auto io = getIOState();
     if (io.isValid())
         io.setProperty (inputChannels, numChannels, getActiveUndoManager());
     inputs.setProperty (count, numChannels, getActiveUndoManager());
-
-    // Dual-write: the tail split may have been clamped by the resize (the
-    // effective stereo count shrinks when the list shrinks into the stereo
-    // block), so re-stamp the per-channel type property to match.
-    stampChannelTypesFromLegacySplit (getActiveUndoManager());
 
     // Re-lay ALL inputs, not just the ones just added. The grid depends on the
     // total count (rows = ceil(total/8)), so channels created under an earlier

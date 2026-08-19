@@ -587,10 +587,13 @@ private:
     void enforceClusterTrackingConstraint (int changedInputIndex);
 
     /** Re-stamp every input's inputChannelType from the legacy tail split
-        (the last getNumStereoInputChannels() channels are stereo). Keeps the
-        per-channel property ≡ the count-based semantics while both exist
-        (dual-write); removed together with the count-based API. */
-    void stampChannelTypesFromLegacySplit (juce::UndoManager* um);
+        (the last N channels are stereo; N = stereoCountOverride, or the
+        stored stereoInputChannels when < 0). Keeps the per-channel property
+        ≡ the count-based semantics while both exist (dual-write); removed
+        together with the count-based API. Must run BEFORE the count/split
+        property writes: their listeners (InputsTab sub-tab rebuild) read the
+        per-channel types synchronously. */
+    void stampChannelTypesFromLegacySplit (juce::UndoManager* um, int stereoCountOverride = -1);
 
     /** Clamp a value to the valid range for a given output parameter */
     static float clampOutputParamToRange (const juce::Identifier& paramId, float value);

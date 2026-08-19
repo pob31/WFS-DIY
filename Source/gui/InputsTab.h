@@ -7865,16 +7865,11 @@ private:
         admMappingSelector.setAlpha (alpha);
     }
 
-    /** True when the currently edited channel is a stereo pair: the LAST
-        stereoInputChannels of the input list are stereo (config-level split,
-        System Config). */
+    /** True when the currently edited channel is a stereo pair (per-channel
+        inputChannelType on its <Input> node). */
     bool currentChannelIsStereo() const
     {
-        if (currentChannel <= 0)
-            return false;
-        const int total  = parameters.getNumInputChannels();
-        const int stereo = parameters.getValueTreeState().getNumStereoInputChannels();
-        return currentChannel - 1 >= total - stereo;
+        return parameters.getValueTreeState().isInputChannelStereo (currentChannel - 1);
     }
 
     /** Stereo-dependent control state: the width dial only exists for stereo

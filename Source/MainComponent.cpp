@@ -2676,17 +2676,18 @@ void MainComponent::recomputeRenderSourceCount()
 {
     using Map = spatcore::wfs::RenderSourceMap;
 
-    // Build the slot map from the config-level mono/stereo split: the LAST
-    // stereoInputChannels of the input list are stereo pairs. Only a count
-    // change (stopped-only) can alter the result, so the audio callback may
-    // read renderSourceMap unsynchronized. The getter clamps to the budget,
-    // so build() cannot fail on the stereo count.
+    // Build the slot map from the per-channel type (inputChannelType on each
+    // <Input>): mono and stereo channels may interleave freely. Only a
+    // structural/type change (stopped-only) can alter the result, so the
+    // audio callback may read renderSourceMap unsynchronized. build() fails
+    // only if more than kMaxStereoChannels are stamped stereo (hand-edited
+    // file) — the UI refuses to create a 9th.
     std::array<uint8_t, Map::kMaxInputChannels> channelTypes {};
     const int numTypes = juce::jlimit (0, (int) Map::kMaxInputChannels, numInputChannels);
-    const int numStereo = juce::jlimit (0, numTypes,
-                                        parameters.getValueTreeState().getNumStereoInputChannels());
-    for (int i = numTypes - numStereo; i < numTypes; ++i)
-        channelTypes[static_cast<size_t> (i)] = Map::Stereo;
+    auto& vts = parameters.getValueTreeState();
+    for (int i = 0; i < numTypes; ++i)
+        if (vts.isInputChannelStereo (i))
+            channelTypes[static_cast<size_t> (i)] = Map::Stereo;
 
     if (! Map::build (channelTypes.data(), numTypes, renderSourceMap))
     {
@@ -2733,13 +2734,10 @@ void MainComponent::sanitizeMonoPatchRows()
     juce::String patchDataStr = inputPatchTree.getProperty(WFSParameterIDs::patchData).toString();
     juce::StringArray rows = juce::StringArray::fromTokens(patchDataStr, ";", "");
 
-    const int numStereo = parameters.getValueTreeState().getNumStereoInputChannels();
-    const int firstStereoRow = numInputChannels - numStereo;
-
     bool changed = false;
     for (int row = 0; row < rows.size() && row < numInputChannels; ++row)
     {
-        if (row >= firstStereoRow)
+        if (parameters.getValueTreeState().isInputChannelStereo (row))
             continue;   // stereo rows keep both columns
 
         juce::StringArray cols = juce::StringArray::fromTokens(rows[row], ",", "");
@@ -3143,9 +3141,6 @@ void MainComponent::autoPatchStereoRightColumns()
     juce::String patchDataStr = inputPatchTree.getProperty(WFSParameterIDs::patchData).toString();
     juce::StringArray rows = juce::StringArray::fromTokens(patchDataStr, ";", "");
 
-    const int numStereo = parameters.getValueTreeState().getNumStereoInputChannels();
-    const int firstStereoRow = numInputChannels - numStereo;
-
     // Column claims across ALL rows
     std::vector<bool> columnClaimed(static_cast<size_t>(WFSValueTreeState::maxHardwarePatchChannels), false);
     for (int r = 0; r < rows.size(); ++r)
@@ -3157,9 +3152,9 @@ void MainComponent::autoPatchStereoRightColumns()
     }
 
     bool changed = false;
-    for (int r = firstStereoRow; r < rows.size() && r < numInputChannels; ++r)
+    for (int r = 0; r < rows.size() && r < numInputChannels; ++r)
     {
-        if (r < 0)
+        if (! parameters.getValueTreeState().isInputChannelStereo (r))
             continue;
 
         juce::StringArray cols = juce::StringArray::fromTokens(rows[r], ",", "");

@@ -3681,9 +3681,7 @@ private:
         // MainComponent::refreshStereoSliceGeometry: width% × usable array
         // half-span, X-axis fallback at the origin.
         {
-            const int totalIn  = parameters.getNumInputChannels();
-            const int stereoIn = parameters.getValueTreeState().getNumStereoInputChannels();
-            if (inputIndex >= totalIn - stereoIn)
+            if (parameters.getValueTreeState().isInputChannelStereo (inputIndex))
             {
                 float widthPct = static_cast<float>(parameters.getInputParam(inputIndex, "inputStereoWidth"));
                 widthPct = juce::jlimit(0.0f, 100.0f, widthPct);
