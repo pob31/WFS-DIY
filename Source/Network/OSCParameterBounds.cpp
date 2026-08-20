@@ -141,7 +141,8 @@ namespace
             BIND_F (inputAttenuation);
             BIND_F (inputDelayLatency);
             BIND_BOOL (inputMinimalLatency);
-            BIND_I (inputStereoWidth);
+            BIND_F (inputStereoWidth);
+            BIND_I (inputStereoAxisOffset);
 
             //------------------------------------------------------------------
             // Input / Position (X/Y/Z share one Min/Max pair)

@@ -40,16 +40,16 @@
       "mono": "Mono",
       "stereo": "Stéréo",
       "deleteTitle": "Supprimer le canal d’entrée",
-      "deleteMessage": "Supprimer le canal d’entrée {number} ? Ses réglages sont perdus et son numéro reste retiré : les autres canaux gardent leurs numéros, donc le patch, les snapshots, les cues QLab et les affectations DAW restent valides.",
+      "deleteMessage": "Supprimer le canal d’entrée {number} ? Ses réglages sont perdus. Sur une session neuve, les canaux restants sont renumérotés selon l’ordre d’affichage ; dès que la session est utilisée, son numéro reste retiré en laissant un trou et les autres gardent les leurs, donc le patch, les snapshots, les cues QLab et les affectations DAW restent valides.",
       "deleteConfirm": "Supprimer"
     },
     "help": {
       "gpuPipelineDepth": "Profondeur du pipeline GPU en blocs audio. Ajoute depth x buffer/fréquence d'échantillonnage de latence constante (pré-soustraite des délais WFS) et absorbe les interruptions GPU de même durée : plus profond = immunisé contre les à-coups du bureau/de l'interface, moins profond = latence plus faible. Application en direct. Défaut 4.",
       "showName": "Nom du spectacle actuel.",
       "showLocation": "Lieu du spectacle actuel.",
-      "inputChannels": "Nombre d’entrées mono. Augmenter ajoute des canaux après le dernier ; réduire supprime les canaux mono aux numéros les plus élevés (leurs numéros restent retirés, en laissant des trous). Verrouillé quand le DSP tourne.",
+      "inputChannels": "Nombre d’entrées mono. Augmenter ajoute des canaux après le dernier ; réduire supprime les canaux mono aux numéros les plus élevés. Verrouillé quand le DSP tourne.",
       "stereoInputChannels": "Nombre d’entrées stéréo (paires). Chaque paire garde un seul numéro de canal et occupe deux entrées matérielles (L et R) dans le patch. Augmenter ajoute après le dernier canal ; réduire supprime les stéréo aux numéros les plus élevés. Verrouillé quand le DSP tourne.",
-      "editChannels": "Organiser les canaux d’entrée : glissez pour entrelacer mono et stéréo dans n’importe quel ordre, ou supprimez un canal précis (son numéro reste retiré, en laissant un trou). Un canal garde son numéro permanent où que vous le glissiez — patch, snapshots, cues QLab et affectations du plug-in DAW ne cassent jamais. Verrouillé quand le DSP tourne.",
+      "editChannels": "Organiser les canaux d’entrée : glissez pour entrelacer mono et stéréo dans n’importe quel ordre, ou supprimez un canal précis. Sur une session neuve, les numéros suivent l’ordre d’affichage ; ils deviennent permanents dès que la session est utilisée — projet chargé, onglet Inputs ou Map ouvert, fenêtre de patch ouverte, snapshot enregistré ou contrôle externe connecté. À partir de là, un canal garde son numéro où que vous le glissiez et un numéro supprimé reste retiré en laissant un trou — patch, snapshots, cues QLab et affectations du plug-in DAW ne cassent jamais. Verrouillé quand le DSP tourne.",
       "outputChannels": "Nombre d'Output Channels.",
       "reverbChannels": "Nombre de Reverb Channels.",
       "audioPatch": "Ouvre la fenêtre d'interface audio et de routage.",
@@ -142,7 +142,7 @@
       "reduceInputChannels": {
         "title": "Réduire les Input Channels ?",
         "message": "Réduire de {current} à {new} canaux d'entrée supprimera les paramètres des canaux {start} à {end}.\n\nCette action est irréversible.",
-        "messageNumbers": "Ceci supprimera le(s) canal/canaux d’entrée {numbers} et leurs réglages. Leurs numéros restent retirés (les autres canaux gardent les leurs ; patch, snapshots et cues restent valides).\n\nCette action est irréversible."
+        "messageNumbers": "Ceci supprimera le(s) canal/canaux d’entrée {numbers} et leurs réglages. Dès que la session est utilisée, leurs numéros restent retirés et les autres canaux gardent les leurs ; patch, snapshots et cues restent valides.\n\nCette action est irréversible."
       },
       "reduceOutputChannels": {
         "title": "Réduire les Output Channels ?",
@@ -606,7 +606,8 @@
       "maxSpeedDial": "Limite de vitesse maximale pour l'objet.",
       "pathModeButton": "Activer le mode Path pour suivre les trajectoires de mouvement dessinées au lieu de lignes directes.",
       "heightFactorDial": "Prendre en compte l'élévation de l'objet entièrement, partiellement ou pas du tout.",
-      "stereoWidthDial": "Largeur stéréo. Ajuste l’étalement de l’image stéréo sur le réseau ; 0 % réduit la paire à une source ponctuelle.",
+      "stereoWidthDial": "Largeur de l'image stéréo en mètres : la distance physique entre les branches gauche et droite de la paire. La position du canal reste le centre de la paire. Comportement identique sur les réseaux droits, courbes, circulaires et latéraux. 0 m réduit la paire à une source ponctuelle.",
+      "stereoAxisDial": "Fait pivoter l'axe stéréo, positif dans le sens antihoraire vu de dessus. 0 = automatique : la paire s'étale perpendiculairement à la ligne allant de l'origine à la source. Permet d'orienter une paire placée au centre d'un dispositif circulaire. ±180° échange la gauche et la droite.",
       "coordModeSelector": "Mode d'affichage des coordonnées : Cartésien (X/Y/Z), Cylindrique (rayon/azimut/hauteur) ou Sphérique (rayon/azimut/élévation).",
       "positionJoystick": "Glisser pour ajuster la position X/Y en temps réel. Revient au centre au relâchement.",
       "positionZSlider": "Glisser pour ajuster la position Z (hauteur) en temps réel. Revient au centre au relâchement.",

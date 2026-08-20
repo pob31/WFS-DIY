@@ -459,6 +459,14 @@ bool WFSFileManager::loadCompleteConfig()
     if (!success)
         setError (errors.joinIntoString ("; "));
 
+    // Only when something was actually read back: pointing at a NEW or empty
+    // project folder loads nothing, and that session has to stay fresh — dense
+    // display-order numbering while no external reference can exist yet is the
+    // whole reason the latch exists. Saving is deliberately not a trigger; a
+    // fresh session that is saved and reopened latches here, on the reload.
+    if (success)
+        valueTreeState.markChannelNumbersUserOwned();
+
     return success;
 }
 
@@ -505,6 +513,11 @@ bool WFSFileManager::loadCompleteConfigBackup (int backupIndex)
 
     if (!success)
         setError (errors.joinIntoString ("; "));
+
+    // Same success-only rule as loadCompleteConfig: a backup set that restored
+    // nothing must leave a fresh session's numbering alone.
+    if (success)
+        valueTreeState.markChannelNumbersUserOwned();
 
     return success;
 }
@@ -1120,10 +1133,12 @@ const std::vector<WFSFileManager::ScopeItem>& WFSFileManager::ExtendedSnapshotSc
         // Input Section
         { "inputAttenuation", "Attenuation", Channel, { inputAttenuation } },
         { "inputDelay", "Delay/Latency", Channel, { inputDelayLatency, inputMinimalLatency } },
-        // Stereo pairs: width only. Which channels ARE stereo is config-level
-        // (stereoInputChannels in System Config), never per-channel state, so
-        // snapshots cannot carry or change it.
-        { "stereo", "Stereo Width", Channel, { inputStereoWidth } },
+        // Stereo pairs: the image (how wide, along which axis). Which channels
+        // ARE stereo is config-level (stereoInputChannels in System Config),
+        // never per-channel state, so snapshots cannot carry or change it.
+        // The itemId is the key stored in saved scope templates — it stays
+        // "stereo" whatever the group grows to cover.
+        { "stereo", "Stereo Image", Channel, { inputStereoWidth, inputStereoAxisOffset } },
 
         // Position Section
         { "position", "Position (XYZ)", Position, { inputPositionX, inputPositionY, inputPositionZ, inputCoordinateMode } },
@@ -1428,6 +1443,13 @@ WFSFileManager::ExtendedSnapshotScope::withGlobals (bool samplerMasterOn, int nu
 
 bool WFSFileManager::saveInputSnapshotWithExtendedScope (const juce::String& snapshotName, const ExtendedSnapshotScope& scope)
 {
+    // The one choke point for the Inputs-tab store button, the auto-store paths
+    // and OSC /wfs/input/snapshot/store. Every entry below goes to disk as
+    // <Input id="NUMBER"> and recall resolves it through getSlotForChannelNumber,
+    // so the moment a single snapshot file exists those numbers are durable and
+    // renumbering them would silently repoint every stored channel.
+    valueTreeState.markChannelNumbersUserOwned();
+
     auto folder = getInputSnapshotsFolder();
     folder.createDirectory();
 
@@ -1485,6 +1507,11 @@ bool WFSFileManager::saveInputSnapshotWithExtendedScope (const juce::String& sna
 bool WFSFileManager::loadInputSnapshotWithExtendedScope (const juce::String& snapshotName, const ExtendedSnapshotScope& scope)
 {
     OriginTagScope originScope { OriginTag::Snapshot };
+
+    // A recall normally implies an earlier store or load that already latched,
+    // but a snapshots folder can also arrive with the project folder (copied
+    // show, shared template) without either having run this session.
+    valueTreeState.markChannelNumbersUserOwned();
 
     auto file = getInputSnapshotsFolder().getChildFile (snapshotName + snapshotExtension);
     auto snapshot = readFromXmlFile (file);
@@ -1706,7 +1733,10 @@ void WFSFileManager::trimSnapshotInputToScope (juce::ValueTree& inputData, const
             channelTree.removeProperty (inputMinimalLatency, nullptr);
         }
         if (!scope.isIncluded ("stereo", channelIndex))
+        {
             channelTree.removeProperty (inputStereoWidth, nullptr);
+            channelTree.removeProperty (inputStereoAxisOffset, nullptr);
+        }
         if (!scope.isIncluded ("sampler", channelIndex))
             channelTree.removeProperty (inputSamplerActive, nullptr);
     }
@@ -1953,8 +1983,13 @@ juce::ValueTree WFSFileManager::extractInputWithExtendedScope (int channelIndex,
             filteredChannel.setProperty (inputDelayLatency, channelTree.getProperty (inputDelayLatency), nullptr);
             filteredChannel.setProperty (inputMinimalLatency, channelTree.getProperty (inputMinimalLatency), nullptr);
         }
-        if (scope.isIncluded ("stereo", channelIndex) && channelTree.hasProperty (inputStereoWidth))
-            filteredChannel.setProperty (inputStereoWidth, channelTree.getProperty (inputStereoWidth), nullptr);
+        if (scope.isIncluded ("stereo", channelIndex))
+        {
+            if (channelTree.hasProperty (inputStereoWidth))
+                filteredChannel.setProperty (inputStereoWidth, channelTree.getProperty (inputStereoWidth), nullptr);
+            if (channelTree.hasProperty (inputStereoAxisOffset))
+                filteredChannel.setProperty (inputStereoAxisOffset, channelTree.getProperty (inputStereoAxisOffset), nullptr);
+        }
         if (scope.isIncluded ("sampler", channelIndex) && channelTree.hasProperty (inputSamplerActive))
             filteredChannel.setProperty (inputSamplerActive, channelTree.getProperty (inputSamplerActive), nullptr);
 
@@ -2099,8 +2134,13 @@ bool WFSFileManager::applyInputWithExtendedScope (int channelIndex, const juce::
                 if (loadedChannel.hasProperty (inputMinimalLatency))
                     existingChannel.setProperty (inputMinimalLatency, loadedChannel.getProperty (inputMinimalLatency), undoManager);
             }
-            if (scope.isIncluded ("stereo", channelIndex) && loadedChannel.hasProperty (inputStereoWidth))
-                existingChannel.setProperty (inputStereoWidth, loadedChannel.getProperty (inputStereoWidth), undoManager);
+            if (scope.isIncluded ("stereo", channelIndex))
+            {
+                if (loadedChannel.hasProperty (inputStereoWidth))
+                    existingChannel.setProperty (inputStereoWidth, loadedChannel.getProperty (inputStereoWidth), undoManager);
+                if (loadedChannel.hasProperty (inputStereoAxisOffset))
+                    existingChannel.setProperty (inputStereoAxisOffset, loadedChannel.getProperty (inputStereoAxisOffset), undoManager);
+            }
             if (scope.isIncluded ("sampler", channelIndex) && loadedChannel.hasProperty (inputSamplerActive))
                 existingChannel.setProperty (inputSamplerActive, loadedChannel.getProperty (inputSamplerActive), undoManager);
 
@@ -2332,6 +2372,11 @@ bool WFSFileManager::applyConfigSection (const juce::ValueTree& configTree)
     if (!existingConfig.isValid())
         return false;
 
+    // A system config is a load like any other, even when it carries no <Inputs>:
+    // it restores an inputChannels count from a show whose snapshots and external
+    // cues already name channels by number.
+    valueTreeState.markChannelNumbersUserOwned();
+
     auto* undoManager = valueTreeState.getUndoManager();
 
     // Merge properties and children from loaded config (preserves missing properties/children)
@@ -2360,6 +2405,14 @@ bool WFSFileManager::applyInputsSection (const juce::ValueTree& inputsTree)
     auto existingInputs = valueTreeState.getInputsState();
     if (existingInputs.isValid())
     {
+        // Latched before the merge, not after it: the numbers about to come out
+        // of the file are the ones OSC, ADM, snapshots, QLab, the plug-in and MCP
+        // already point at, and any structural op running while still unlatched
+        // would renumber them to display order. A file written by a build that
+        // predates the latch carries no such property, which is why every load
+        // path has to say so on its own.
+        valueTreeState.markChannelNumbersUserOwned();
+
         mergeTreeRecursive (existingInputs, inputsTree, valueTreeState.getUndoManager());
 
         // Sync inputChannels count with actual number of input children.

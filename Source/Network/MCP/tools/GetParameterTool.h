@@ -141,6 +141,11 @@ namespace detail
                 // lookup instead of bounds-checking the dense index.
                 if (rec->scope == "input")
                 {
+                    // A read by number is as much an external reference as a
+                    // write: the client caches what it read back and quotes it
+                    // on the next call. Freeze the numbering here or a reorder
+                    // between the two calls answers about a different channel.
+                    state.markChannelNumbersUserOwned();
                     out.value.channelIndex = state.getSlotForChannelNumber (out.value.displayId);
                     if (out.value.channelIndex < 0)
                     {

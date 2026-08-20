@@ -40,16 +40,16 @@
       "mono": "Mono",
       "stereo": "Estéreo",
       "deleteTitle": "Remover canal de entrada",
-      "deleteMessage": "Remover o canal de entrada {number}? As suas definições são descartadas e o seu número fica retirado: os restantes canais mantêm os seus números, pelo que o patch, os snapshots, os cues do QLab e os mapeamentos DAW continuam válidos.",
+      "deleteMessage": "Remover o canal de entrada {number}? As suas definições são descartadas. Numa sessão nova, os restantes canais são renumerados segundo a ordem de apresentação; assim que a sessão está em uso, o seu número fica retirado como lacuna e os restantes mantêm os seus, pelo que o patch, os snapshots, os cues do QLab e os mapeamentos DAW continuam válidos.",
       "deleteConfirm": "Remover"
     },
     "help": {
       "gpuPipelineDepth": "Profundidade do pipeline GPU em blocos de áudio. Adiciona depth x buffer/taxa de amostragem de latência constante (pré-subtraída dos atrasos WFS) e absorve interrupções da GPU da mesma duração: mais profundo = imune a engasgos do ambiente de trabalho/IU, menos profundo = menor latência. Aplicado em tempo real. Predefinição 4.",
       "showName": "Nome do espetáculo atual.",
       "showLocation": "Local do espetáculo atual.",
-      "inputChannels": "Número de canais de entrada mono. Aumentar acrescenta canais depois do último; reduzir remove os canais mono com os números mais altos (os seus números ficam retirados como lacunas). Bloqueado enquanto o DSP está em execução.",
+      "inputChannels": "Número de canais de entrada mono. Aumentar acrescenta canais depois do último; reduzir remove os canais mono com os números mais altos. Bloqueado enquanto o DSP está em execução.",
       "stereoInputChannels": "Número de entradas estéreo (pares). Cada par mantém um número de canal e ocupa duas entradas de hardware (L e R) no patch. Aumentar acrescenta depois do último canal; reduzir remove os estéreo com os números mais altos. Bloqueado enquanto o DSP está em execução.",
-      "editChannels": "Organizar os canais de entrada: arraste para intercalar mono e estéreo em qualquer ordem, ou remova um canal específico (o seu número fica retirado como lacuna). Um canal mantém o seu número permanente para onde quer que o arraste — patch, snapshots, cues do QLab e mapeamentos do plug-in DAW nunca quebram. Bloqueado enquanto o DSP está em execução.",
+      "editChannels": "Organizar os canais de entrada: arraste para intercalar mono e estéreo em qualquer ordem, ou remova um canal específico. Numa sessão nova os números seguem a ordem de apresentação; tornam-se permanentes assim que a sessão está em uso — um projeto carregado, o separador Inputs ou Map aberto, a janela de patch aberta, um snapshot guardado ou um controlo externo ligado. A partir daí um canal mantém o seu número para onde quer que o arraste e um número removido fica retirado como lacuna — patch, snapshots, cues do QLab e mapeamentos do plug-in DAW nunca quebram. Bloqueado enquanto o DSP está em execução.",
       "outputChannels": "Número de Output Channels.",
       "reverbChannels": "Número de Reverb Channels.",
       "audioPatch": "Abre a janela de Interface de Áudio e Patch.",
@@ -142,7 +142,7 @@
       "reduceInputChannels": {
         "title": "Reduzir Input Channels?",
         "message": "Reduzir de {current} para {new} canais de entrada irá remover as configurações dos canais {start} a {end}.\n\nEsta ação não pode ser desfeita.",
-        "messageNumbers": "Isto removerá o(s) canal(is) de entrada {numbers} e as suas definições. Os seus números ficam retirados (os restantes canais mantêm os seus; patch, snapshots e cues continuam válidos).\n\nIsto não pode ser desfeito."
+        "messageNumbers": "Isto removerá o(s) canal(is) de entrada {numbers} e as suas definições. Assim que a sessão está em uso, os seus números ficam retirados e os restantes canais mantêm os seus; patch, snapshots e cues continuam válidos.\n\nIsto não pode ser desfeito."
       },
       "reduceOutputChannels": {
         "title": "Reduzir Output Channels?",
@@ -601,7 +601,8 @@
       "maxSpeedDial": "Limite de velocidade máxima para o objeto.",
       "pathModeButton": "Ativar o modo Trajetória para seguir caminhos de movimento desenhados em vez de linhas diretas.",
       "heightFactorDial": "Considerar a elevação do objeto totalmente, parcialmente ou nada.",
-      "stereoWidthDial": "Largura estéreo. Escala a extensão da imagem estéreo no array; 0% colapsa o par numa fonte pontual.",
+      "stereoWidthDial": "Largura da imagem estéreo em metros: a distância física entre os braços esquerdo e direito do par. A posição do canal continua a ser o centro do par. Comporta-se da mesma forma em arrays retos, curvos, circulares e laterais. 0 m colapsa o par numa fonte pontual.",
+      "stereoAxisDial": "Roda o eixo estéreo, positivo no sentido anti-horário visto de cima. 0 = automático: o par abre-se perpendicularmente à linha da origem até à fonte. Serve para orientar um par colocado no centro de uma montagem circular. ±180° troca a esquerda com a direita.",
       "coordModeSelector": "Modo de exibição de coordenadas: Cartesiano (X/Y/Z), Cilíndrico (raio/azimute/altura) ou Esférico (raio/azimute/elevação).",
       "positionJoystick": "Arrastar para ajustar a posição X/Y em tempo real. Volta ao centro ao soltar.",
       "positionZSlider": "Arrastar para ajustar a posição Z (altura) em tempo real. Volta ao centro ao soltar.",

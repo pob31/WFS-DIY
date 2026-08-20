@@ -10,13 +10,22 @@
 /**
  * Input channel ORDER editor (stable-number model).
  *
- * One row per LIVE channel in display order: permanent number, name, type
+ * One row per LIVE channel in display order: channel number, name, type
  * (read-only — a channel's type is fixed at creation; composition is edited
  * through the System Config mono/stereo counts), delete. DRAG a row to
  * rearrange the mono/stereo interleaving: the channel node and its patch row
- * move together, and the permanent number travels with the channel, so the
- * patch, snapshots, QLab cues and DAW mappings never break. Deleting retires
- * the number (permanent gap). Stopped-only, like every structural edit.
+ * move together. Stopped-only, like every structural edit.
+ *
+ * Numbers are permanent only once channelNumbersUserOwned has latched: a drag
+ * then leaves every number untouched and a delete retires one as a gap, so the
+ * patch, snapshots, QLab cues and DAW mappings never break. On a session still
+ * fresh enough that no load, tab, patch window, snapshot or external controller
+ * has observed a number, the structural ops renumber the whole list to display
+ * order instead — so a single drag or delete can change the number of rows the
+ * op never touched. Row::channelNumber is a cache read by the delete button and
+ * the drag source; every op must therefore go through structureChanged(), which
+ * refreshes it. Acting on a stale cached number deletes or moves the wrong
+ * channel.
  */
 class InputChannelListEditor : public juce::Component,
                                public juce::DragAndDropContainer,

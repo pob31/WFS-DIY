@@ -6,10 +6,14 @@
 > **2026-08-19 — superseded in part by the stable-channel-numbers rework.** The
 > config-level "the LAST `stereoInputChannels` channels are stereo" split described in
 > this document was replaced: every `<Input>` now carries a per-channel
-> `inputChannelType` and a PERMANENT channel number (`id`, never renumbered); tree
-> order is the user's display order (drag-to-reorder moves node + patch row together);
-> count edits append after the last channel / remove the highest-numbered of that type,
-> and deletions leave permanent number gaps. The DSP-side content of this document
+> `inputChannelType` and a channel number (`id`) that is PERMANENT from the moment the
+> session is in use; tree order is the user's display order (drag-to-reorder moves node
+> + patch row together); count edits append after the last channel / remove the
+> highest-numbered of that type, and deletions leave permanent number gaps. While the
+> session is still fresh — nothing loaded, and no tab, patch window, snapshot or
+> external controller having yet observed a number — every structural edit instead
+> renumbers the list to display order; the `channelNumbersUserOwned` latch on the `<IO>`
+> node separates the two regimes and is one-way. The DSP-side content of this document
 > (slice layout, decomposition contract, Phase 1 plan) still applies unchanged. See
 > "Stereo Pair Input Channels + Stable Channel Numbers" in `Documentation/CLAUDE.md`.
 **Scope:** New *stereo pair* input channel type that internally decomposes a stereo signal into several spatial slice feeds rendered across the array. The split is invisible to the user: one channel object in, N derived renderer sources out.
@@ -49,7 +53,11 @@ Slice-count guidance: default **5 + ambience** (hard L, mid L, centre, mid R, ha
 
 The snapshot stores **one** channel object: position, width, and the (few) stereo-specific parameters. Slice positions and gains are **computed at render time** from the decomposition state — slices are not persistent inputs, do not appear in the input list, and are not individually addressable via OSC/MCP for editing. This deliberately avoids re-introducing the persisted-gang complexity previously rejected for input clusters.
 
-Mapping: decomposition extremes map to the **usable array span**, not beyond it — the low-density algorithm produces no focused sources, so nothing may land in front of the array. Default width should be derived from array density (aliasing frequency), scaled by a global per-channel width factor.
+Mapping: ~~decomposition extremes map to the **usable array span**, not beyond it~~ — **SUPERSEDED.** Extremes map to an absolute distance in **metres**: `inputStereoWidth` (0.0–50.0 m, default 4.0) is the full L↔R distance between the pair's legs, azimuth ±1 sits `width × 0.5` from the anchor, and the channel's stored position is the **centre** of the pair. `inputStereoAxisOffset` (−179..180°, 0 = automatic) rotates the spread axis away from its automatic tangential orientation. No speaker position is read anywhere in the mapping.
+
+The array-span reference went because it is one-dimensional and the app's rigs are not. It was the array's X extent: on a circular array of radius R that extent is 2R, so 100% spread ±R wherever the source stood; on side/surround arrays running along Y it referenced an axis those arrays barely extend along; and on a straight array with every speaker at the same X the half-span is 0, so the width dial did nothing at any setting — a silent total failure with no error path. Metres mean the same thing on straight, curved, circular and side rigs.
+
+The legs are deliberately **not clamped** to the array. A width wider than the rig puts legs outside it where the low-density array produces no focused source; that is documented behaviour stated in the parameter's help text, not a case to correct silently. Clamping would put the rig's geometry back into the dial's law, which is exactly what was removed. A default derived from array density (aliasing frequency) is likewise off the table for the same reason — 4 m is a fixed, rig-independent default.
 
 Confidence-driven placement: each slice carries a running confidence (coherence + phase-gate statistics). Low confidence collapses that slice's rendered spread toward the channel anchor; high confidence lets it sit at the estimated position. This replaces manual per-slice offsets as the default behaviour — no per-slice offset UI in the first iteration.
 
@@ -63,7 +71,8 @@ ADM-OSC: the channel maps to a single object with position + width. No address-s
 
 **New, stereo-specific (expected set, exact list to be settled):**
 - slice count N (with the 5+ambience default)
-- global width factor
+- `inputStereoWidth` — FLOAT, 0.0–50.0 m, default 4.0. Full L↔R distance between the pair's legs; per-leg offset is `width × 0.5`. Live on `/wfs/input/stereoWidth` (+ `/remoteInput/` twin). **Settled, shipped in Phase 0** — this is what "global width factor" resolved to, and it is a distance, not a factor.
+- `inputStereoAxisOffset` — INT, −179..180°, default 0. Rotation applied to the automatic tangential axis (0 = automatic), positive counter-clockwise viewed from above, the same convention as `inputRotation`; ±180 is an explicit L/R swap. Applied in the world frame and NOT mirrored by `inputFlipX/Y` (the flips already mirror the anchor, and the automatic axis follows it — mirroring the offset too would double-mirror). Live on `/wfs/input/stereoAxisOffset` (+ `/remoteInput/` twin). **Settled, shipped in Phase 0.**
 - crossover frequency
 - ambient-bed handling (global envelopment layer vs per-slice send — open question)
 - centre-anchor behaviour
@@ -113,11 +122,20 @@ pass (stereo channel patched L/R → two plane waves; binaural studio preview).
 
 **What Phase 1 inherits unchanged:** the `StereoDecomposer` interface (swap the pass-through
 for the STFT backend, nothing else moves), the reconstruction-invariant tests (written
-against the base class), the slot map, the RtSnapshot pair (config carries width/crossover/
-stagger already), the azimuth→metres mapping (app-side, `refreshStereoSliceGeometry()` —
-add the confidence-collapse curve there), the render-latency reference hook (backend
+against the base class), the slot map, the RtSnapshot pair (config carries crossover +
+stagger), the azimuth→metres mapping (app-side, `Source/Helpers/StereoImageGeometry.h`),
+the render-latency reference hook (backend
 reports its real latency and alignment engages automatically — add the mode-1 UI toggle
 only then), and the `--stereo-null` harness gate.
+
+**Two Phase-1 anchors moved with the metre rework.** `StereoDecomposerConfig` no longer carries
+a `widthFactor`: width is a distance in metres, which has no 0..1 form a backend could act on,
+and azimuth is normalised by contract, so no backend needs it — a field pinned at 1.0 would only
+invite a Phase 1 implementer to re-derive the retired percentage-of-array semantics from it.
+And the **confidence-collapse curve hooks into the CALLER of `WFSStereoImage::sliceOffset`**
+(`MainComponent::refreshStereoSliceGeometry()`), not into the helper: scale the slice's azimuth
+toward 0 before the call. The helper is shared with the Map tab's leg markers and must stay a
+pure azimuth→metres function, or the Map would draw an image the renderer is not producing.
 
 The sections below were the working notes for commits 7–11; kept for line-level context.
 
@@ -133,6 +151,14 @@ CENTRE/anchor feed in every backend (pass-through: slice 0 silent-but-active, 1 
 the centre row, and the layout already matches Phase 1's. (3) The width axis is
 perpendicular to the origin→anchor bearing in XY (tangential); flip mirrors the image
 automatically (no explicit azimuth negation — it would double-mirror).
+
+**Later addendum — width magnitude.** The tangential *direction* of (3) survived; only the
+magnitude reference changed. Width became metres (see §4) and `inputStereoAxisOffset` was added
+to rotate the axis, so the axis is no longer purely automatic. The axis is latched within
+`WFSStereoImage::kAxisFreezeRadius` (1 m) of the origin: the automatic bearing sweeps 180° over a
+few centimetres there, which would whip a source crossing the middle of an in-the-round rig from
+left to right; holding the axis it arrived with is the fix, and no hysteresis band is wanted
+(at exactly r == the radius the held value IS what the live branch computes).
 
 ### Landed (commits 1–6 of 11, every gate green)
 

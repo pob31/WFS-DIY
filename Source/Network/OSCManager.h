@@ -629,6 +629,12 @@ private:
     void handleClusterLFOMessage(const juce::OSCMessage& message);
     void handleADMOSCMessage(const juce::OSCMessage& message);
 
+    /** Resolve an input channel NUMBER that arrived from outside the app to its slot.
+     *  Inbound resolution only: the transmit side must keep calling
+     *  getSlotForChannelNumber directly — see the implementation.
+     *  Message thread only; the ownership latch writes the ValueTree. */
+    int resolveExternalInputSlot(int channelNumber);
+
     /** Send ADM-OSC position for an input to all ADM-OSC targets (transmit). */
     void sendADMOSCPosition(int channelIndex);
 

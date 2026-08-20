@@ -77,17 +77,25 @@ public:
                           std::function<juce::Colour(int)> channelColorProvider = nullptr,
                           std::function<juce::String(int)> channelNameProvider = nullptr,
                           std::function<juce::Colour(int)> textColorProvider = nullptr,
-                          std::vector<int> channelIdsIn = {})
+                          std::vector<int> channelIdsIn = {},
+                          std::function<bool(int)> channelStereoProvider = nullptr)
         : totalChannels(numChannels),
           selectedChannel(currentChannel),
           onSelect(std::move(onChannelSelected)),
           getChannelColor(std::move(channelColorProvider)),
           getChannelName(std::move(channelNameProvider)),
           getTextColor(std::move(textColorProvider)),
-          channelIds(std::move(channelIdsIn))
+          channelIds(std::move(channelIdsIn)),
+          getChannelStereo(std::move(channelStereoProvider))
     {
         setOpaque(false);
         setAlwaysOnTop(true);
+
+        // Classical stereo mark in unit space: circles of radius 1 centred at
+        // (1, 1) and (2.5, 1) — centre separation 1.5 x radius. Stroked in
+        // paintOverChildren, never filled: a filled pair reads as a meter.
+        stereoGlyph.addEllipse(0.0f, 0.0f, 2.0f, 2.0f);
+        stereoGlyph.addEllipse(1.5f, 0.0f, 2.0f, 2.0f);
 
         // Dense fallback: ids are 1..numChannels. Inputs pass their explicit
         // live channel-number list instead (stable numbers, gaps possible) —
@@ -121,6 +129,13 @@ public:
 
             auto* btn = new juce::TextButton(buttonText);
             btn->setClickingTogglesState(false);
+
+            // The badge is painted over the tile, so it never reaches the
+            // accessible name (which JUCE derives from the button text) —
+            // without this a screen reader cannot tell stereo from mono.
+            if (getChannelStereo && getChannelStereo(channelId))
+                btn->setDescription(LOC("systemConfig.channelList.stereo"));
+
             btn->onClick = [this, channelId]() {
                 if (onSelect)
                     onSelect(channelId);
@@ -212,6 +227,33 @@ public:
             channelButtons[i]->setColour(juce::TextButton::buttonColourId, buttonColor);
             channelButtons[i]->setColour(juce::TextButton::textColourOffId, textColor);
         }
+
+        updateStereoBadges();
+    }
+
+    /** Stereo mark, stamped over the tiles rather than baked into their text:
+        the number is drawn centred by drawButtonText and must stay exactly
+        where it is, so the mark can only live beside it. With no stereo
+        provider updateStereoBadges() leaves the list empty and nothing is
+        drawn, which is what leaves the Outputs and Reverb selectors untouched. */
+    void paintOverChildren(juce::Graphics& g) override
+    {
+        for (size_t i = 0; i < stereoBadgeBounds.size(); ++i)
+        {
+            const auto badge = stereoBadgeBounds[i];
+            if (badge.isEmpty())
+                continue;
+
+            const int channelId = channelIds[i];
+            g.setColour(getTextColor ? getTextColor(channelId)
+                                     : juce::Colours::white);
+
+            juce::Path scaled(stereoGlyph);
+            scaled.applyTransform(stereoGlyph.getTransformToScaleToFit(badge, true));
+            g.strokePath(scaled, juce::PathStrokeType(juce::jmax(1.0f, badge.getHeight() * 0.10f),
+                                                      juce::PathStrokeType::curved,
+                                                      juce::PathStrokeType::rounded));
+        }
     }
 
     // Get the required size for this overlay based on channel count
@@ -223,6 +265,122 @@ public:
     }
 
 private:
+    /** Where each tile's stereo mark goes, in overlay coordinates; an empty
+        rectangle means no mark. Measured here and not in paintOverChildren
+        because it depends only on tile size and text, both settled by the
+        time layout ends — measuring per repaint would re-shape every tile's
+        text on every hover. */
+    void updateStereoBadges()
+    {
+        stereoBadgeBounds.assign(static_cast<size_t>(channelButtons.size()), {});
+
+        const auto unitBounds = stereoGlyph.getBounds();
+        if (!getChannelStereo || unitBounds.getHeight() <= 0.0f)
+            return;
+
+        const float aspect = unitBounds.getWidth() / unitBounds.getHeight();
+
+        for (int i = 0; i < channelButtons.size(); ++i)
+        {
+            if (!getChannelStereo(channelIds[static_cast<size_t>(i)]))
+                continue;
+
+            auto* btn = channelButtons[i];
+            juce::Rectangle<float> number;
+            if (!getTopLineInkBounds(*btn, number))
+                continue;
+
+            // WfsLookAndFeel::drawButtonBackground trims cornerSize = 6 px off
+            // each side, and half the stroke bleeds outside the path bounds —
+            // past this the mark would sit on the overlay, not on the tile.
+            const float surfaceRight = static_cast<float>(btn->getWidth()) - 7.0f;
+            const float gap = juce::jmax(2.0f, number.getHeight() * 0.30f);
+            const float room = surfaceRight - (number.getRight() + gap);
+
+            // A tile too narrow for both loses the mark, never the number: the
+            // accessible description still reports the channel as stereo.
+            if (room <= 1.0f)
+                continue;
+
+            float badgeH = number.getHeight();
+            float badgeW = badgeH * aspect;
+            if (badgeW > room)
+            {
+                badgeW = room;
+                badgeH = badgeW / aspect;
+            }
+
+            juce::Rectangle<float> badge(number.getRight() + gap,
+                                         number.getCentreY() - badgeH * 0.5f,
+                                         badgeW, badgeH);
+            badge.translate(static_cast<float>(btn->getX()), static_cast<float>(btn->getY()));
+            stereoBadgeBounds[static_cast<size_t>(i)] = badge;
+        }
+    }
+
+    /** Ink bounds of the tile's FIRST text line (the channel number), in the
+        button's own coordinates. Reproduces LookAndFeel_V2::drawButtonText —
+        same font, same yIndent / leftIndent / rightIndent, same two-line
+        centred fit — so the badge tracks where JUCE actually put the number,
+        including the horizontal squash drawFittedText applies when a long
+        name shares the tile. Measured from the glyph outlines rather than the
+        font metrics: ascent and descent would drag the badge off the digits.
+        Returns false when the top line has no outline to measure. */
+    static bool getTopLineInkBounds(juce::TextButton& btn, juce::Rectangle<float>& bounds)
+    {
+        const juce::Font font = btn.getLookAndFeel().getTextButtonFont(btn, btn.getHeight());
+
+        const int yIndent = juce::jmin(4, btn.proportionOfHeight(0.3f));
+        const int cornerSize = juce::jmin(btn.getHeight(), btn.getWidth()) / 2;
+        const int fontHeight = juce::roundToInt(font.getHeight() * 0.6f);
+        const int leftIndent  = juce::jmin(fontHeight, 2 + cornerSize / (btn.isConnectedOnLeft() ? 4 : 2));
+        const int rightIndent = juce::jmin(fontHeight, 2 + cornerSize / (btn.isConnectedOnRight() ? 4 : 2));
+        const int textWidth = btn.getWidth() - leftIndent - rightIndent;
+
+        if (textWidth <= 0)
+            return false;
+
+        juce::GlyphArrangement arrangement;
+        arrangement.addFittedText(font, btn.getButtonText(),
+                                  static_cast<float>(leftIndent), static_cast<float>(yIndent),
+                                  static_cast<float>(textWidth),
+                                  static_cast<float>(btn.getHeight() - yIndent * 2),
+                                  juce::Justification::centred, 2);
+
+        // The top line is the one sitting on the highest baseline; everything
+        // below it is the channel name, which the badge must clear.
+        float topBaseline = 0.0f;
+        bool found = false;
+        for (int i = 0; i < arrangement.getNumGlyphs(); ++i)
+        {
+            const auto& glyph = arrangement.getGlyph(i);
+            if (glyph.isWhitespace())
+                continue;
+            if (!found || glyph.getBaselineY() < topBaseline)
+            {
+                topBaseline = glyph.getBaselineY();
+                found = true;
+            }
+        }
+
+        if (!found)
+            return false;
+
+        juce::Path ink;
+        for (int i = 0; i < arrangement.getNumGlyphs(); ++i)
+        {
+            const auto& glyph = arrangement.getGlyph(i);
+            if (glyph.getBaselineY() <= topBaseline + 0.5f)
+                glyph.createPath(ink);
+        }
+
+        if (ink.isEmpty())
+            return false;
+
+        bounds = ink.getBounds();
+        return true;
+    }
+
     void calculateGridDimensions(int total)
     {
         // Adaptive grid: favor rows over columns since buttons are wider than tall
@@ -297,6 +455,9 @@ private:
     std::function<juce::String(int)> getChannelName;
     std::function<juce::Colour(int)> getTextColor;
     std::vector<int> channelIds;   // ids in display order (dense 1..N or live numbers)
+    std::function<bool(int)> getChannelStereo;   // null = no marks anywhere
+    juce::Path stereoGlyph;        // unit-space mark, fitted per tile
+    std::vector<juce::Rectangle<float>> stereoBadgeBounds;   // parallel to channelButtons
 
     juce::OwnedArray<juce::TextButton> channelButtons;
     CircularCloseButton closeButton;
@@ -342,6 +503,17 @@ public:
     void setTextColorProvider(std::function<juce::Colour(int)> provider)
     {
         textColorProvider = std::move(provider);
+    }
+
+    /** Set an optional stereo predicate for channel tiles.
+     *  The function receives a channel number (1-based) and returns true when
+     *  that channel is a stereo pair; those tiles get the stereo mark beside
+     *  their number. Leaving it null draws no marks at all, so selectors that
+     *  have no mono/stereo distinction render exactly as before.
+     */
+    void setChannelStereoProvider(std::function<bool(int)> provider)
+    {
+        channelStereoProvider = std::move(provider);
     }
 
     void setNumChannels(int num)
@@ -484,7 +656,8 @@ private:
                 channelColorProvider,
                 channelNameProvider,
                 textColorProvider,
-                channelIds
+                channelIds,
+                channelStereoProvider
             );
 
             // Get required size for the popup
@@ -553,6 +726,7 @@ private:
     std::function<juce::Colour(int)> channelColorProvider;
     std::function<juce::String(int)> channelNameProvider;
     std::function<juce::Colour(int)> textColorProvider;
+    std::function<bool(int)> channelStereoProvider;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChannelSelectorButton)
 };

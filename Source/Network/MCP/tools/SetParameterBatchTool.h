@@ -114,6 +114,7 @@ namespace detail
         int channelIndex = -1;           // -1 for global; 0-based otherwise
         int bandIndex    = -1;           // -1 for non-EQ
         int displayId    = 0;            // 1-based for affectedGroups
+        bool inputScope  = false;        // displayId is a permanent number, not a slot
         juce::String groupName;          // CSV section, used in affectedGroups
         EqFamily eqFamily = EqFamily::None;
         int tier = 1;
@@ -258,6 +259,30 @@ inline ToolResult batch (WFSValueTreeState& state, const juce::var& args, Change
             if (w.channelIndex < 0)
                 return fail ("invalid_args", i,
                     "channel_id out of range: " + juce::String (w.displayId));
+
+            // Naming an input by number makes that number an external
+            // reference the client quotes back, so it stops reflowing before
+            // pass 2 writes anything. Scope-gated: output / reverb / cluster
+            // ids are dense slot positions and must not freeze input
+            // numbering.
+            if (const auto* rec = reg.findByVariable (w.variable))
+                if (rec->scope == "input")
+                {
+                    w.inputScope = true;
+                    state.markChannelNumbersUserOwned();
+
+                    // Permanent input numbers may have gaps and stop following
+                    // slot order after a drag-reorder, so displayId - 1 would
+                    // address a different channel than the caller named. The
+                    // resolved slot is what passes 2-4 read and write through,
+                    // and it is copied into the undo record's sub-writes, so a
+                    // wrong slot here also misdirects every later undo/redo.
+                    w.channelIndex = state.getSlotForChannelNumber (w.displayId);
+                    if (w.channelIndex < 0)
+                        return fail ("invalid_args", i,
+                            "channel_id is not a live input channel: "
+                            + juce::String (w.displayId));
+                }
         }
         w.eqFamily = classifyEq (w.variable);
         if (entryObj->hasProperty ("band"))
@@ -390,6 +415,10 @@ inline ToolResult batch (WFSValueTreeState& state, const juce::var& args, Change
 
             ChangeSubWrite sw;
             sw.channelIndex = w.channelIndex;
+            // The slot above is only valid until the channel list moves. Carry
+            // the permanent number so undo/redo re-resolves it; output / reverb
+            // / cluster ids are dense slots and leave this 0 on purpose.
+            sw.channelNumber = w.inputScope ? w.displayId : 0;
             sw.bandIndex    = w.bandIndex;
 
             auto subBefore = std::make_unique<juce::DynamicObject>();

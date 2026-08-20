@@ -640,6 +640,7 @@ OSCQueryServer::ParamRange OSCQueryServer::getParamRange(const juce::Identifier&
     if (paramId == inputDelayLatency)        return { inputDelayLatencyMin, inputDelayLatencyMax, true };
     if (paramId == inputMinimalLatency)      return { 0, 1, true };
     if (paramId == inputStereoWidth)         return { inputStereoWidthMin, inputStereoWidthMax, true };
+    if (paramId == inputStereoAxisOffset)    return { (float)inputStereoAxisOffsetMin, (float)inputStereoAxisOffsetMax, true };
     if (paramId == inputPositionX || paramId == inputPositionY || paramId == inputPositionZ)
         return { inputPositionMin, inputPositionMax, true };
     if (paramId == inputOffsetX || paramId == inputOffsetY || paramId == inputOffsetZ)

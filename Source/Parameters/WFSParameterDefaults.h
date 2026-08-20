@@ -331,7 +331,23 @@ namespace WFSParameterDefaults
     //==========================================================================
 
     // Input > Channel
+    // Both default names are hard-coded English on purpose. They are persisted
+    // into the ValueTree and into project files, so a localised default would
+    // silently rewrite a stored name when the user switches language, and the
+    // "is this name still a default?" test (resequenceDefaultInputNames) would
+    // stop recognising names written under another language.
+
+    /** Legacy default name (0-based index). Kept because stored sessions still
+        carry "Input N" names that must be recognised as untouched defaults. */
     inline juce::String getDefaultInputName (int index) { return "Input " + juce::String (index + 1); }
+
+    /** Default name of a channel of a given type. `ordinal` is 1-BASED and
+        counts within that type only: monos 1,2,3... and stereos 1,2...
+        independently, in display order. */
+    inline juce::String getDefaultInputNameForType (bool stereo, int ordinal)
+    {
+        return (stereo ? "Stereo " : "Mono ") + juce::String (ordinal);
+    }
 
     constexpr float inputAttenuationDefault     = 0.0f;
     constexpr float inputAttenuationMin         = -92.0f;
@@ -352,11 +368,22 @@ namespace WFSParameterDefaults
     constexpr int stereoInputChannelsMin        = 0;
     constexpr int stereoInputChannelsMax        = maxStereoChannels;
 
-    // Stereo width factor (%): scales slice azimuth toward the anchor.
-    // 0% collapses the pair to a point source (the null-test condition).
-    constexpr int inputStereoWidthDefault       = 100;
-    constexpr int inputStereoWidthMin           = 0;
-    constexpr int inputStereoWidthMax           = 100;
+    // Stereo image, per stereo pair. Width is the FULL left-to-right distance in
+    // METRES, so each leg sits at half of it either side of the stored centre.
+    // Absolute rather than a fraction of the array's extent: an extent-relative
+    // reference is X-only, so it spreads ±R everywhere on a circular array and
+    // does nothing at any setting on an array running along Y. 0 m collapses the
+    // pair to a point source (the null-test condition).
+    constexpr float inputStereoWidthDefault      = 4.0f;
+    constexpr float inputStereoWidthMin          = 0.0f;
+    constexpr float inputStereoWidthMax          = 50.0f;
+
+    // Rotation applied to the automatic tangential axis, in degrees, positive
+    // counter-clockwise viewed from above (the inputRotation convention).
+    // 0 = automatic; ±180 is an explicit L/R swap.
+    constexpr int inputStereoAxisOffsetDefault   = 0;
+    constexpr int inputStereoAxisOffsetMin       = -179;
+    constexpr int inputStereoAxisOffsetMax       = 180;
 
     constexpr float inputDelayLatencyDefault    = 0.0f;
     constexpr float inputDelayLatencyMin        = -100.0f;

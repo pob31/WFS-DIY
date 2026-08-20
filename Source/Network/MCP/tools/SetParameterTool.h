@@ -184,10 +184,37 @@ inline ToolResult set (WFSValueTreeState& state, const juce::var& args, ChangeRe
     if (obj->hasProperty ("channel_id"))
     {
         displayId = static_cast<int> (obj->getProperty ("channel_id"));
+        // Holds for output / reverb / cluster only: their ids ARE dense slot
+        // positions. The input scope re-resolves below.
         channelIndex = displayId - 1;
         if (channelIndex < 0)
             return ToolResult::error ("invalid_args",
                                       "channel_id out of range: " + juce::String (displayId));
+
+        // The generated per-parameter tools are unlisted, so this escape hatch
+        // is the front door an MCP client actually writes through: naming an
+        // input by number here is the common case, and the number becomes an
+        // external reference the client quotes back. Scope-gated rather than
+        // unconditional — output / reverb / cluster ids are dense slot
+        // positions and must not freeze input numbering.
+        if (const auto* rec = MCPParameterRegistry::getInstance().findByVariable (variable))
+        {
+            if (rec->scope == "input")
+            {
+                state.markChannelNumbersUserOwned();
+
+                // An input channel_id is a permanent number, while everything
+                // downstream consumes channelIndex as a slot. Numbers carry
+                // gaps after a deletion and stop following slot order after a
+                // drag-reorder, so displayId - 1 would address a different
+                // channel than the caller named — silently, and with the
+                // caller's own number echoed back in the result.
+                channelIndex = state.getSlotForChannelNumber (displayId);
+                if (channelIndex < 0)
+                    return ToolResult::error ("invalid_args",
+                                              "channel_id is not a live input channel: " + juce::String (displayId));
+            }
+        }
     }
 
     int bandIndex = -1;

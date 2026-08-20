@@ -73,6 +73,11 @@ PatchMatrixComponent::makeConfig (WFSValueTreeState& parameters, bool isInputPat
         {
             return parameters.isInputChannelStereo (channel) ? 2 : 1;
         };
+
+        // Only input rows can ever hold a pair. On the output patch the badge
+        // gutter would widen the row header and narrow the visible column area
+        // for a state that cannot occur there.
+        config.showRowCapacityBadge = true;
     }
 
     config.channelNameProvider = [&parameters, isInputPatch] (int channel) -> juce::String

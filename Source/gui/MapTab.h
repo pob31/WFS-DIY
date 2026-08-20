@@ -2312,6 +2312,24 @@ public:
     }
 
     //==========================================================================
+    // Stereo Image Callback
+    //==========================================================================
+
+    /** Set callback reporting the resolved left and right legs of a stereo
+        pair's image, as absolute stage meters. Returns true for a stereo
+        channel whose image has been resolved, false otherwise.
+
+        The legs are read back rather than derived here: the width-to-metres
+        mapping and its inputs live in exactly one place, because a Map drawing
+        an image the renderer is not producing is worse than no drawing at all. */
+    void setStereoImageCallback (std::function<bool (int inputSlot,
+                                                     juce::Point<float>& outLeft,
+                                                     juce::Point<float>& outRight)> cb)
+    {
+        stereoImageCallback = std::move (cb);
+    }
+
+    //==========================================================================
     // Speed-Limited Position Callback
     //==========================================================================
 
@@ -2402,6 +2420,9 @@ private:
 
     // Sampler-playing state + pad XY offset (meters) for compound marker
     std::function<bool(int, float&, float&)> samplerStateCallback;
+
+    // Resolved stereo-image legs (absolute stage meters) for the spread bar
+    std::function<bool(int, juce::Point<float>&, juce::Point<float>&)> stereoImageCallback;
 
     // Speed-limited position callback for visualization
     std::function<void(int, float&, float&, float&)> speedLimitedPositionCallback;
@@ -3675,48 +3696,31 @@ private:
         float greyDotX = actualPosX + totalOffsetX;
         float greyDotY = actualPosY + totalOffsetY;
 
-        // Stereo pair: draw the image spread — a bar through the DSP anchor
-        // along the tangential axis (perpendicular to the origin→anchor
-        // bearing), endpoints where the hard-L/R slices land. Same mapping as
-        // MainComponent::refreshStereoSliceGeometry: width% × usable array
-        // half-span, X-axis fallback at the origin.
+        // Stereo pair: the image spread, a bar drawn between the legs the
+        // engine resolved. Width, axis and anchor are never re-derived here —
+        // a second copy of that mapping would drift from the renderer's, and a
+        // bar showing an image nobody is producing is worse than no bar.
+        if (stereoImageCallback)
         {
-            if (parameters.getValueTreeState().isInputChannelStereo (inputIndex))
+            juce::Point<float> legLeft, legRight;
+
+            // Below a centimetre the two markers overlap into a blob that reads
+            // as a defect rather than as a collapsed image.
+            if (stereoImageCallback(inputIndex, legLeft, legRight)
+                && legLeft.getDistanceFrom(legRight) > 0.01f)
             {
-                float widthPct = static_cast<float>(parameters.getInputParam(inputIndex, "inputStereoWidth"));
-                widthPct = juce::jlimit(0.0f, 100.0f, widthPct);
+                auto leftEnd  = stageToScreen(legLeft);
+                auto rightEnd = stageToScreen(legRight);
 
-                float minSpX = std::numeric_limits<float>::max();
-                float maxSpX = std::numeric_limits<float>::lowest();
-                const int numOutputs = parameters.getNumOutputChannels();
-                for (int o = 0; o < numOutputs; ++o)
-                {
-                    const float ox = static_cast<float>(parameters.getOutputParam(o, "outputPositionX"));
-                    minSpX = juce::jmin(minSpX, ox);
-                    maxSpX = juce::jmax(maxSpX, ox);
-                }
-                const float halfSpan = (numOutputs > 0 && maxSpX > minSpX) ? (maxSpX - minSpX) * 0.5f : 0.0f;
-                const float halfWidthM = (widthPct / 100.0f) * halfSpan;
+                juce::Colour spreadColor = WfsColorUtilities::getInputColor(parameters.getValueTreeState().getInputChannelNumber(inputIndex));
+                g.setColour(spreadColor.withAlpha(0.55f));
+                g.drawLine(leftEnd.x, leftEnd.y, rightEnd.x, rightEnd.y, 2.0f);
 
-                if (halfWidthM > 0.01f)
-                {
-                    float axisX = 1.0f, axisY = 0.0f;
-                    const float bearingLen = std::sqrt(greyDotX * greyDotX + greyDotY * greyDotY);
-                    if (bearingLen > 1.0e-3f)
-                    {
-                        axisX = greyDotY / bearingLen;
-                        axisY = -greyDotX / bearingLen;
-                    }
-
-                    auto leftEnd  = stageToScreen({ greyDotX - halfWidthM * axisX, greyDotY - halfWidthM * axisY });
-                    auto rightEnd = stageToScreen({ greyDotX + halfWidthM * axisX, greyDotY + halfWidthM * axisY });
-
-                    juce::Colour spreadColor = WfsColorUtilities::getInputColor(parameters.getValueTreeState().getInputChannelNumber(inputIndex));
-                    g.setColour(spreadColor.withAlpha(0.55f));
-                    g.drawLine(leftEnd.x, leftEnd.y, rightEnd.x, rightEnd.y, 2.0f);
-                    g.fillEllipse(leftEnd.x - 3.0f, leftEnd.y - 3.0f, 6.0f, 6.0f);
-                    g.fillEllipse(rightEnd.x - 3.0f, rightEnd.y - 3.0f, 6.0f, 6.0f);
-                }
+                // Filled right, hollow left: an axis offset of ±180° swaps the
+                // legs, and between two identical end markers that swap would
+                // be invisible.
+                g.fillEllipse(rightEnd.x - 3.0f, rightEnd.y - 3.0f, 6.0f, 6.0f);
+                g.drawEllipse(leftEnd.x - 3.0f, leftEnd.y - 3.0f, 6.0f, 6.0f, 1.5f);
             }
         }
 

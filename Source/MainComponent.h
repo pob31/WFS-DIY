@@ -17,6 +17,7 @@
 #include "../spatcore/io/DeviceHost.h"
 #include "../spatcore/io/DeviceIoCallback.h"
 #include "DSP/StereoChannelManager.h"
+#include "Helpers/StereoImageGeometry.h"
 #include "DSP/BinauralCalculationEngine.h"
 #include "DSP/BinauralProcessor.h"
 #include "DSP/HeadTrackerManager.h"
@@ -431,6 +432,27 @@ private:
     juce::AudioBuffer<float> stereoRawBuffer;
     // Stereo-pair decomposition backends (pass-through in Phase 0)
     std::unique_ptr<StereoChannelManager> stereoChannelManager;
+
+    // Both arrays below are message-thread state: refreshStereoSliceGeometry()
+    // on the 50 Hz timer is the only writer and the MapTab callback the only
+    // reader, both on that same thread, so neither carries synchronization —
+    // the discipline the LFO/sampler Map callbacks already follow. They are
+    // indexed by channel SLOT, so recomputeRenderSourceCount() must clear them
+    // whenever the slots are rebuilt.
+
+    // Per-channel automatic spread axis, held while the pair sits inside
+    // WFSStereoImage::kAxisFreezeRadius. Retaining it across ticks is the whole
+    // point: it is what stops a source crossing the middle of an in-the-round
+    // rig from whipping its legs around and swapping left for right.
+    std::array<WFSStereoImage::Axis, WFSParameterDefaults::maxInputChannels> stereoAxisLatch {};
+
+    // Absolute stage-metre leg positions, cached from the very offsets the
+    // engine was handed on the same tick. The Map reads these instead of
+    // recomputing, so it cannot draw an image the renderer is not producing.
+    // Stays invalid for mono channels and for a stereo channel not yet placed.
+    struct StereoImageLegs { bool valid = false; juce::Point<float> left, right; };
+    std::array<StereoImageLegs, WFSParameterDefaults::maxInputChannels> stereoImageLegs {};
+
     juce::AudioBuffer<float> patchedOutputBuffer;
     juce::AudioBuffer<float> wfsOutputBuffer;  // Algorithm writes here, then single remap to HW outputs
 
@@ -524,9 +546,18 @@ private:
 
     /** Hidden diagnostic (WFS_TEST_CHANNEL_LIST=1): drives the structural
         channel ops (append, delete-with-gap, type flip, gap reuse, budgets),
-        asserts the stable-number invariants after every step and logs
-        PASS/FAIL lines to the session log. */
+        asserts the fresh-session renumbering and then the stable-number
+        invariants after every step and logs PASS/FAIL lines to the session
+        log. */
     void runChannelListSelfTest();
+
+    /** Hidden diagnostic (WFS_TEST_STEREO_GEOMETRY=1): drives the pure
+        WFSStereoImage mapping — no audio device, no GUI, no ValueTree — and
+        asserts the invariants the stereo image is sold on: a width that means
+        the same distance at every bearing, an exactly null image at width 0, a
+        latch that holds through the origin, and the axis-offset sign and
+        composition rules. Logs PASS/FAIL lines to the session log. */
+    void runStereoGeometrySelfTest();
 
     /** A mono row may hold at most one hardware column. Clears any extra
         columns (keeping the lowest = L) left behind when a count change
@@ -540,8 +571,10 @@ private:
     void runStereoDecompositionStage (int startSample, int numSamples) noexcept;
 
     /** 50 Hz. Maps each stereo channel's published slice states (azimuth,
-        normalized ±1) through inputStereoWidth and the usable array span to
-        metre offsets, and pushes them into the calculation engine. */
+        normalized ±1) through inputStereoWidth in METRES and the channel's
+        spread axis to metre offsets, pushes them into the calculation engine
+        and caches the pair's legs for the Map. Reads no speaker position, so
+        the result means the same thing on every array shape. */
     void refreshStereoSliceGeometry();
     void resizeOutputAttenuation(int numOut, double sampleRate);
     void resizeReverbAttenuation(int numReverbs, double sampleRate);

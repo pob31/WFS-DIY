@@ -5017,7 +5017,34 @@ public:
         options.escapeKeyTriggersCloseButton = true;
         options.useNativeTitleBar = false;
         options.resizable = false;
-        options.launchAsync();
+
+        auto* dialog = options.launchAsync();
+
+        if (dialog != nullptr)
+        {
+            // Arranging is itself the act that renumbers a fresh session, so the
+            // per-type default names are resequenced once, when the user is done
+            // dragging — not on every intermediate drop. Ownership is NOT
+            // latched here; that would freeze the very numbers this dialog
+            // exists to rearrange. The tab outlives the dialog in practice, but
+            // the callback fires from the modal manager, so it must survive a
+            // teardown that closes the dialog on the way out.
+            juce::Component::SafePointer<SystemConfigTab> safeThis (this);
+            juce::ModalComponentManager::getInstance()->attachCallback (dialog,
+                juce::ModalCallbackFunction::create ([safeThis] (int)
+                {
+                    if (safeThis == nullptr)
+                        return;
+
+                    auto& vts = safeThis->parameters.getValueTreeState();
+                    if (vts.areChannelNumbersUserOwned())
+                        return;
+
+                    vts.resequenceDefaultInputNames();
+                    safeThis->notifyChannelCountChanged();
+                    safeThis->loadParametersToUI();
+                }));
+        }
     }
 
     // Helper to notify MainComponent of any channel count change

@@ -13,7 +13,10 @@ namespace WFSNetwork::Tools::Session
 inline juce::var summarizeInputChannel (WFSValueTreeState& state, int channelIndex)
 {
     auto obj = std::make_unique<juce::DynamicObject>();
-    obj->setProperty ("id",   channelIndex + 1);  // 1-based for the AI
+    // The AI quotes this id straight back as input_id, so it has to be the
+    // permanent channel number, not the slot: input numbers may have gaps and
+    // are no longer in slot order once channels are reordered or deleted.
+    obj->setProperty ("id",   state.getInputChannelNumber (channelIndex));
     obj->setProperty ("name", state.getInputParameter (channelIndex, WFSParameterIDs::inputName).toString());
     obj->setProperty ("x",    state.getInputParameter (channelIndex, WFSParameterIDs::inputPositionX));
     obj->setProperty ("y",    state.getInputParameter (channelIndex, WFSParameterIDs::inputPositionY));
@@ -48,6 +51,13 @@ inline juce::var summarizeReverbChannel (WFSValueTreeState& state, int channelIn
     channel counts. Read-only; does not produce a change record. */
 inline ToolResult getState (WFSValueTreeState& state)
 {
+    // Handing out input numbers commits to them: this is the tool the client
+    // orients with, and it quotes the ids back as input_id on every later call.
+    // Without the latch an operator reordering or deleting a channel in between
+    // renumbers the very channels the client is holding. Output and reverb ids
+    // are dense slot positions and are unaffected either way.
+    state.markChannelNumbersUserOwned();
+
     juce::Array<juce::var> inputs;
     for (int i = 0; i < state.getNumInputChannels(); ++i)
         inputs.add (summarizeInputChannel (state, i));

@@ -16,6 +16,12 @@ namespace detail
         must go through the state lookup, never inputId - 1. */
     inline int resolveChannelIndex (WFSValueTreeState& state, int inputId)
     {
+        // An MCP client is an external agent: it caches the numbers it was
+        // handed and quotes them back on later calls, so naming one here turns
+        // it into a live external reference. Freeze the numbering before the
+        // lookup — otherwise a drag-reorder in the GUI between two tool calls
+        // renumbers the channels the client is still holding.
+        state.markChannelNumbersUserOwned();
         return state.getSlotForChannelNumber (inputId);
     }
 

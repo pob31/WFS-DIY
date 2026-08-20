@@ -777,16 +777,21 @@ totalFRDelay = directDelay + frExtraDelay + noiseState;
 - FR and direct signals summed per output
 
 ### Stereo Pair Input Channels + Stable Channel Numbers
-Every `<Input>` node carries a **permanent 1-based number** (its `id` property — NEVER
-renumbered) and a **per-channel type** (`inputChannelType`: `"mono"`/`"stereo"`, absent = mono;
-max 8 stereo). The number is the external address (OSC `/wfs/input/{N}`, snapshots, QLab cues,
-DAW plug-in `inputId`, MCP `input_id`, ADM object id); the child index ("slot") is the internal
-dense key. **Tree order = the user's display order**: mono and stereo channels interleave freely.
+Every `<Input>` node carries a **1-based channel number** (its `id` property) and a **per-channel
+type** (`inputChannelType`: `"mono"`/`"stereo"`, absent = mono; max 8 stereo). The number is the
+external address (OSC `/wfs/input/{N}`, snapshots, QLab cues, DAW plug-in `inputId`, MCP
+`input_id`, ADM object id); the child index ("slot") is the internal dense key. **Tree order =
+the user's display order**: mono and stereo channels interleave freely. The number becomes
+**permanent — never renumbered again — the instant anything outside the channel list could have
+observed it**; before that it is recompacted to `slot + 1` after every structural edit, so a
+brand-new project cannot end up showing "#21" wedged between "#1" and "#2". See *Fresh-session
+compaction* below for the latch that separates the two regimes.
 Composition is edited through the System Config "Mono Inputs" / "Stereo Inputs" counts (raising
 a count APPENDS channels after the last one with number = highest+1; lowering it removes the
-HIGHEST-NUMBERED channels of that type — their numbers retire as permanent gaps), and
-arrangement through drag in the "Arrange…" dialog (`WFSValueTreeState::moveInputChannel` moves
-the node AND its patch row together). There is deliberately NO user-facing type flip: the
+HIGHEST-NUMBERED channels of that type — once latched, their numbers retire as permanent gaps),
+and arrangement through drag in the "Arrange…" dialog (`WFSValueTreeState::moveInputChannel`
+moves the node AND its patch row together, and while unlatched the whole patch is then re-flowed
+into a gapless diagonal in display order). There is deliberately NO user-facing type flip: the
 channel's data (patch columns, width, decomposition) cannot meaningfully follow a type change.
 Structural edits are stopped-only and NOT undoable (tree + patchData edit atomically; undo
 history is cleared). Number→slot resolution: `WFSValueTreeState::getSlotForChannelNumber`
@@ -794,14 +799,16 @@ history is cleared). Number→slot resolution: `WFSValueTreeState::getSlotForCha
 `migrateInputChannelModel()` stamps types from the old `stereoInputChannels` tail split, then
 removes the property; snapshot entries/scope are keyed by number on disk, ghost entries for
 deleted numbers are kept across re-saves and apply again if the number is re-created. Each
-stereo pair claims two hardware inputs (patch row capacity 2, lower column = L) and renders as
-**six render sources** — the channel's primary slot (slice 0) plus 5 derived slice slots
+stereo pair claims two CONSECUTIVE hardware inputs (patch row capacity 2, lower column = L),
+deliberately NOT aligned to the interface's odd/even pairs — a pair may legitimately start on
+hardware input 11, and forcing alignment would leave holes an operator has no way to fill — and
+renders as **six render sources** — the channel's primary slot (slice 0) plus 5 derived slice slots
 appended past the visible inputs. Spec: `Documentation/stereo-channel-handoff.md`.
 
 **Three id spaces** (never conflate):
 | Space | Range | Owns |
 |---|---|---|
-| channel NUMBER | 1..64, permanent, gaps possible | OSC, QLab, DAW plugin, MCP, ADM, snapshots, UI labels |
+| channel NUMBER | 1..64; dense while unlatched, permanent with gaps once latched | OSC, QLab, DAW plugin, MCP, ADM, snapshots, UI labels |
 | `inputChannel` slot | `[0, numInputChannels)`, dense | ValueTree child index, patch rows, engine per-channel arrays, Map iteration, meters |
 | `renderSource` | `[0, numRenderSources)`, max 104 | WFS matrix rows, `patchedInputBuffer` channels, shared rings, GPU `numInputs` |
 
@@ -811,6 +818,118 @@ slot order) live at `numInputChannels + 5*k + (slice-1)`. Rebuild is config-time
 (`MainComponent::recomputeRenderSourceCount()`, from the channel-list change flow). The stereo
 ordinal is valid precisely because structural edits are stopped-only and decomposer history
 resets on prepare.
+
+**Fresh-session compaction — `channelNumbersUserOwned`.** A persisted **one-way latch** on the
+**`<IO>` node** (`WFSValueTreeState::getIOState()`; the identifier is declared in the
+*Config > I/O Section* block of `WFSParameterIDs.h`, **not** the Stage block), modelled on the
+`positionsUserOwned` precedent. Accessors `areChannelNumbersUserOwned()` /
+`markChannelNumbersUserOwned()` are **non-const** (`getIOState()` is non-const, so a const
+overload is impossible) and **message-thread only**; the marker is idempotent and cheap.
+Compaction is `WFSValueTreeState::compactChannelNumbersToDisplayOrder()`.
+
+- **Unlatched** — a brand-new session that has never been loaded, opened or addressed:
+  `addInputChannel`, `removeInputChannel` and `moveInputChannel` each end with
+  `if (! areChannelNumbersUserOwned()) compactChannelNumbersToDisplayOrder();`, renumbering every
+  live channel to `slot + 1`. Nothing outside the list can hold a reference yet, so nothing can
+  break, and the list reads 1..N in display order. Default names do **not** follow the number and
+  the compaction never writes `inputName` — see *Default names* below.
+  `setNumInputChannels` / `setInputChannelCounts` are pure loops over add/remove and therefore
+  self-compact; `setInputChannelType` is deliberately not hooked *for numbers* — the patch re-flow
+  below is.
+- **Unlatched, the input patch re-flows too — `compactInputPatchToDisplayOrder()`.** It runs in the
+  same `if (! areChannelNumbersUserOwned())` block as the number compaction at the tail of
+  `addInputChannel` / `removeInputChannel` / `moveInputChannel`, **plus** at `setInputChannelType`.
+  It walks the rows top to bottom handing out **consecutive** hardware input columns — two adjacent
+  columns for a stereo row (lower = L), one for a mono row — so the patch is a strictly packed
+  diagonal in display order with **no gaps and no odd/even alignment** to the interface's pairs. A
+  pair may legitimately start on hardware input 11; N mono + M stereo channels always fit in exactly
+  N + 2M inputs. It shares `channelNumbersUserOwned`: there is deliberately **no second,
+  patch-specific ownership flag**, because a patch is fresh precisely when the numbers are, and two
+  latches would let the pair disagree with no rule to resolve which one wins. Without the re-flow the
+  numbers renumber cleanly while the patch keeps whatever columns creation order handed out — 8 monos,
+  two stereo pairs, four more monos, then one of the new monos dragged between the pairs leaves Mono 9
+  on hardware input 15 and Stereo 2 on 11+12, with holes at 11-14 that no operator action can close.
+  The compaction **rebuilds `patchData` from the channel list and discards the stored rows entirely**.
+  That is licensed by a call-graph property, not by luck: while unlatched, no operator click and no
+  wire message has ever reached `patchData`. The only interactive writer is
+  `PatchMatrixComponent::savePatchesToValueTree`, reachable only via
+  `MainComponent::openAudioInterfaceWindow()`, which calls `markChannelNumbersUserOwned()` **before**
+  constructing the window; every load path latches on success; MCP lists `patchData` under
+  `ignored_parameters`; OSC has no patch address. **Anything future that authors a patch must latch
+  first or the re-flow will eat it.** Rebuilding is also self-repairing and idempotent by construction: it
+  fixes a stale row count and the ragged row lengths `insertInputPatchRow` leaves behind. The
+  `setInputChannelType` asymmetry — patch hooked, numbers not — is deliberate: a type flip changes no
+  channel's display position, so the number compaction there is a provable no-op, but it *does* change
+  that row's capacity by one column, which shifts every column after it, so the patch is not invariant
+  under it. The diagonal may legitimately run **past `activeHardwareInputs`**; `applyColsPolicy` widens
+  `cols` and the matrix dims those columns. Clamping to the opened device would make the patch depend
+  on which interface happened to be plugged in at edit time — the exact non-determinism the re-flow
+  exists to remove. `insertInputPatchRow` / `moveInputPatchRow` / `removeInputPatchRow` are unchanged
+  and still run: their result is deliberately overwritten while unlatched, and is the whole story once
+  latched.
+- **The re-flowed diagonal is a fixed point of the reconfiguration tail**, so the tail can neither
+  perturb it nor emit a redundant write: `normalizeInputPatchRows` no-ops (both branches key on
+  `rows.size() != total`, and the rebuild has already made those equal), `sanitizeMonoPatchRows`
+  no-ops (its guard is `cols[c] == 1 && kept++ > 0` — post-increment, so a row's single 1 compares
+  `0 > 0` = false) and `autoPatchStereoRightColumns` no-ops (guard `patchedCount != 1 -> continue`;
+  a full pair is 2). Any change to one of those three guards must be re-checked against the diagonal,
+  or the tail starts fighting the compaction on every structural edit.
+- **Latched** — today's append-only permanent-number regime, unchanged in every detail.
+- **Default names — per-type ordinals, independent of the number.**
+  `getDefaultInputNameForType (stereo, ordinal)` gives "Mono n" / "Stereo n", counting monos and
+  stereos separately in display order. Both shapes are **hard-coded English**: the name is
+  persisted into the tree and into project files, so a localised default would silently rewrite a
+  stored name on a language switch and the "is this still a default?" test would stop recognising
+  names written under another language. `addInputChannel` stamps the new channel's name from the
+  highest ordinal any live name of that **shape** already claims, +1 — never from the count of
+  channels of that type, which after a latched delete (no resequence ever runs latched) or a
+  `setInputChannelType` flip (which renames nothing) would reissue a name a live channel still
+  carries. On a dense list of untouched defaults the two are the same value.
+  `resequenceDefaultInputNames()` renumbers the defaults to match display order. A name counts as
+  still-default only if it is "Input n" (legacy), "Mono n" or "Stereo n" with **any** n — testing
+  against the one name a channel *would* have had would freeze every default the reorder displaced
+  — so an operator-typed name is never touched. Its only production caller is the **Arrange…
+  dialog's modal close callback** (`SystemConfigTab::openChannelListEditor`, which returns early
+  when `areChannelNumbersUserOwned()`), deliberately once per arranging session rather than per
+  structural edit: running it inside the compaction would clobber the names mid-drag. Legacy
+  `getDefaultInputName` ("Input {index+1}", 0-based) has no live caller and survives only so that
+  stored legacy names are still recognised as untouched defaults.
+- **Latch triggers**, all one-way: any project/config **load**; opening the **input patch
+  window** (`AudioInterfaceWindow`); selecting the **Inputs tab** (index 4) or the **Map tab**
+  (index 6); **storing or recalling an input snapshot**; any incoming **OSC / ADM / Remote**
+  message that addresses an input channel by number; a **Remote client completing its
+  handshake**; **sending QLab cues**; any **MCP tool** addressing an input channel by number,
+  including channel create/delete. Network-thread ingress must latch at its existing
+  message-thread handoff, never inline: the marker and the compaction both write ValueTree
+  properties, which fire synchronous `valueTreePropertyChanged` dispatch through
+  `TreeParameterStore`'s listener registry.
+- **Backward compatibility — absent == false == fresh, and every load latches.** A session
+  written by an older build has no such property; `replaceState` calls
+  `markChannelNumbersUserOwned()` **after** `ensureCompleteSchema()` (which is what guarantees the
+  `<IO>` node exists on an incomplete or scope-filtered load) and before `clearAllUndoHistories()`,
+  so every pre-existing file behaves exactly as it did before this feature.
+- **The property is deliberately absent from the schema template** (`createIOSection`).
+  `ensureCompleteSchema()` back-fills template properties into every loaded tree, so a templated
+  default would stamp `false` — "fresh, renumber at will" — onto a legacy file whose numbers OSC,
+  QLab and the DAW plug-in already reference, and that file's correctness would then rest on the
+  load path *also* latching a few lines later. Keeping it out of the template makes absence
+  unambiguous and leaves `markChannelNumbersUserOwned()` the only writer. Same mechanism, same
+  hazard, as the "`migrateInputChannelModel()` MUST precede `ensureCompleteSchema()`" ordering
+  note in `replaceState`.
+- **Inverted invalid-tree fallback (deliberate, differs from the precedent):**
+  `areChannelNumbersUserOwned()` returns **true** when `getIOState()` is invalid, where
+  `arePositionsUserOwned()` returns false. "Unowned" licenses rewriting every channel id, so
+  malformed or half-built state must fall back to the permanent regime. Do not "fix" this.
+- The compaction writes exactly two properties per channel and no others: the node's `id`, then
+  the `inputTrackingID` on its `Position` child — and that one only while it still matches the old
+  number, so a tracker mapping the user has pointed elsewhere stays put. The order is load-bearing:
+  walking ascending, the list can transiently hold the same number twice, and writing the `id`
+  first means the synchronous `valueTreePropertyChanged` that the tracking-id write fires resolves
+  through `getSlotForChannelNumber`'s fast path onto the node just renumbered. Both are raw
+  `setProperty`, never `setParameter`/`setInputParam`: a renumber is bookkeeping and must not carry
+  undo entries, dirty-tracking or ownership latches, and the raw write also bypasses the ctor's
+  numeric write-interceptor, whose `OSCParameterBounds` clamp would truncate tracking ids above 32
+  on channels 33-64.
 
 **Audio path:** `applyInputPatch` splits stereo rows into `stereoRawBuffer`; the decomposition
 stage (`Source/DSP/StereoChannelManager.h`, sole writer of the channel's six `patchedInputBuffer`
@@ -824,10 +943,42 @@ slots cleared every block.
 
 **Engine:** derived rows are computed inside the owning channel's iteration and SHARE its
 `minDelay`, `commonAttenAdjustment` and mode/common-atten ramps — per-slice recompute of those
-terms comb-filters. Slice geometry is pushed at 50 Hz via `setSliceGeometry()`: azimuth ±1 ×
-`inputStereoWidth` × usable array X half-span, spread **perpendicular to the origin→anchor
-bearing** in XY (tangential; X-axis fallback at the origin; a flipped anchor mirrors the image
-automatically). A render-latency reference
+terms comb-filters. Slice geometry is pushed at 50 Hz via `setSliceGeometry()` and computed by the
+header-only `Source/Helpers/StereoImageGeometry.h` (namespace `WFSStereoImage`), which the engine
+feed and the Map's leg markers both call so the two can never disagree about where a leg is.
+
+- **`inputStereoWidth` is METRES** — 0.0 to 50.0, default 4.0, the full L↔R distance between the
+  pair's legs, so a slice at azimuth ±1 sits `width × 0.5` from the anchor. The channel's stored
+  position (`inputPositionX/Y/Z`) is the **centre** of the pair; the legs are recomputed at 50 Hz
+  and never persisted.
+- **Spread direction** is still tangential — perpendicular to the origin→anchor bearing in XY —
+  with `inputStereoAxisOffset` (INT, −179 to 180°, default 0 = automatic) rotating that axis.
+  Positive is counter-clockwise viewed from above, the same convention as `inputRotation`; ±180 is
+  an explicit L/R swap. The rotation is applied in the **world frame** and is deliberately NOT
+  mirrored by `inputFlipX/Y`: a flip moves the anchor, the automatic axis already follows the moved
+  anchor, and mirroring the offset on top of that would double-mirror.
+- **Axis freeze latch.** The origin→anchor bearing is undefined at the origin and violently
+  unstable near it, so within `kAxisFreezeRadius` (1 m) the last axis computed outside that radius
+  is latched and reused; +X is the fallback for a channel that has never been outside it. The latch
+  is per channel and message-thread only (`MainComponent::stereoAxisLatch`, no locks — same
+  discipline as `lfoOffsetCallback`).
+- **Legs are deliberately NOT clamped** to the array, the stage or the position constraints. A wide
+  pair on a small rig puts its legs outside the array, where the low-density array produces no
+  focused source — documented behaviour the hover text states, not a case to silently correct.
+  Clamping would make the dial's law depend on the rig, which is the coupling removed below.
+- **The mapping reads no speaker positions at all.** The rule it replaces was `azimuth ±1 ×
+  inputStereoWidth% × usable array X half-span`, and that proxy is one-dimensional: on a circular
+  array of radius R the X extent is 2R, so 100% spread ±R regardless of where the source sat; on
+  side/surround arrays running along Y it referenced an axis the arrays barely extend along; and on
+  a straight array with every speaker at the same X the half-span is 0, so the width dial did
+  nothing at any setting — a silent total failure with no error path. Metres have no such failure
+  mode and behave identically on straight, curved, circular and side rigs.
+- **No migration path exists or is wanted.** `inputStereoWidth` was introduced on this branch and
+  has never shipped (no tag, no saved show, snapshot, scope template, QLab cue, MCP client or
+  Android remote carries it), so the unit, type, range and default changed in place. Do not add a
+  percent→metre converter or a version check.
+
+A render-latency reference
 (`setChannelIntrinsicLatency`, max-across-channels, term always ≥ 0) pre-aligns for the Phase-1
 STFT latency and is provably zero in Phase 0. FR / Live Source Tamer / Gradient Maps / Sampler are
 N/A for stereo channels (sub-tabs removed, engine rows forced off).
@@ -838,7 +989,8 @@ channels at the same position) + the baselined `stereo` scenario; reconstruction
 (scripted append/delete-with-gap/reorder/budget sequence, PASS/FAIL lines in the session log,
 must end "SELF-TEST RESULT: ALL PASS"). A channel's type has deliberately NO OSC address and is
 never carried by snapshots (configuration, not show state; the obsolete `stereoInputChannels`
-parameter is rejected on write); `inputStereoWidth` is fully live (`/wfs/input/stereoWidth`).
+parameter is rejected on write); `inputStereoWidth` and `inputStereoAxisOffset` are fully live
+(`/wfs/input/stereoWidth`, `/wfs/input/stereoAxisOffset`, plus the `/remoteInput/…` twins).
 
 ### Level Metering System
 The Level Metering System provides real-time audio level visualization for input and output channels, with thread performance monitoring.
@@ -1257,6 +1409,14 @@ AudioPatch
     ├── cols / activeHardwareOutputs (same meaning)
     └── patchData (same format)
 ```
+
+In `patchData` the **row index is the input SLOT** — the 0-based child index of the `<Input>` node,
+**not** its permanent channel number, which once latched is neither dense nor in display order; the
+**column index is a hardware input**, 0-based, displayed to the operator as `col + 1`. Rows are
+uniform length immediately after a fresh-session re-flow, but rows written by older builds — and by
+`insertInputPatchRow`, which leaves the row it inserts ragged against its neighbours — are not, so
+every consumer must iterate `c < cols.size()` over the row it actually holds and never treat the
+`cols` property as the length of any given row.
 
 `cols` is not a constant: `applyColsPolicy` (`WFSValueTreeState.cpp`) sets it to
 `clamp(64 .. maxHardwarePatchChannels=512)` of `max(64, device channel count, highest patched
@@ -2202,7 +2362,7 @@ These files are the canonical reference for every user-facing parameter, control
 **Tab-by-tab control surface (CSV, 18 or 19 columns):**
 - `Documentation/WFS-UI_config.csv` — SystemConfigTab
 - `Documentation/WFS-UI_network.csv` — NetworkTab (176 rows, includes full ADM-OSC mapping exhaustive enumeration)
-- `Documentation/WFS-UI_input.csv` — InputsTab (189 rows, includes Sampler subsystem)
+- `Documentation/WFS-UI_input.csv` — InputsTab (191 rows, includes Sampler subsystem)
 - `Documentation/WFS-UI_output.csv` — OutputsTab
 - `Documentation/WFS-UI_reverb.csv` — ReverbTab
 - `Documentation/WFS-UI_clusters.csv` — ClustersTab

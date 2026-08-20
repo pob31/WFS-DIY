@@ -156,27 +156,33 @@ public:
         // If movement is already in progress, ignore (must complete before restart)
         if (state.state == State::Playing || state.state == State::Paused || state.state == State::Returning)
         {
-            DBG ("AutomOtion: Cannot start motion on input " << (inputIndex + 1) << " - movement in progress");
+            DBG ("AutomOtion: Cannot start motion on slot " << inputIndex << " - movement in progress");
+            // inputIndex is a slot; these messages go to the status bar verbatim,
+            // and slot + 1 would send the operator to a different live channel
+            // once the list has a gap or has been reordered.
             if (onMotionBlocked && ! suppressBlockedFeedback)
-                onMotionBlocked (inputIndex, "Motion already in progress on input " + juce::String (inputIndex + 1));
+                onMotionBlocked (inputIndex, "Motion already in progress on input "
+                                             + juce::String (valueTreeState.getInputChannelNumber (inputIndex)));
             return false;
         }
 
         // Check if tracking is enabled - reject if so
         if (isTrackingActive (inputIndex))
         {
-            DBG ("AutomOtion: Cannot start motion on input " << (inputIndex + 1) << " - tracking is active");
+            DBG ("AutomOtion: Cannot start motion on slot " << inputIndex << " - tracking is active");
             if (onMotionBlocked && ! suppressBlockedFeedback)
-                onMotionBlocked (inputIndex, "Tracking is active on input " + juce::String (inputIndex + 1));
+                onMotionBlocked (inputIndex, "Tracking is active on input "
+                                             + juce::String (valueTreeState.getInputChannelNumber (inputIndex)));
             return false;
         }
 
         // Check if sampler is active - reject if so
         if (isSamplerActive (inputIndex))
         {
-            DBG ("AutomOtion: Cannot start motion on input " << (inputIndex + 1) << " - sampler is active");
+            DBG ("AutomOtion: Cannot start motion on slot " << inputIndex << " - sampler is active");
             if (onMotionBlocked && ! suppressBlockedFeedback)
-                onMotionBlocked (inputIndex, "Sampler is active on input " + juce::String (inputIndex + 1));
+                onMotionBlocked (inputIndex, "Sampler is active on input "
+                                             + juce::String (valueTreeState.getInputChannelNumber (inputIndex)));
             return false;
         }
 
@@ -319,10 +325,11 @@ public:
             std::abs (state.targetY - baseY) < epsilon &&
             std::abs (state.targetZ - baseZ) < epsilon)
         {
-            DBG ("AutomOtion: No meaningful movement on input " << (inputIndex + 1) << " - already at destination");
+            DBG ("AutomOtion: No meaningful movement on slot " << inputIndex << " - already at destination");
             if (onMotionBlocked && ! suppressBlockedFeedback)
                 onMotionBlocked (inputIndex, isAbsolute
-                    ? "Input " + juce::String (inputIndex + 1) + " is already at destination"
+                    ? "Input " + juce::String (valueTreeState.getInputChannelNumber (inputIndex))
+                        + " is already at destination"
                     : "Relative destination is (0, 0, 0)");
             return false;
         }

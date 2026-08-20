@@ -1,6 +1,8 @@
 #include "MCPUndoEngine.h"
+#include "MCPParameterRegistry.h"
 #include "../OSCProtocolTypes.h"
 #include "../../Parameters/WFSValueTreeState.h"
+#include <optional>
 #include <vector>
 
 namespace WFSNetwork
@@ -11,14 +13,46 @@ namespace
     /** Resolve the 0-based ValueTree channel index from a record's first
         affected_groups entry. Records produced by the Phase 1 hand-written
         tools and the Phase 2 generic dispatcher always carry exactly one
-        entry; the channelId is 1-based for per-channel tools and 0 for
-        globals. Returns -1 (= global) when no group or channelId is 0. */
-    int resolveChannelIndex (const ChangeRecord& record)
+        entry; the channelId is the channel's external id for per-channel
+        tools and 0 for globals. Returns -1 (= global) when there is no
+        group or the channelId is 0, and nullopt when the record names an
+        input channel number that no longer belongs to a live channel.
+
+        Scope decides how that id maps to an index. Output / reverb / cluster
+        ids ARE dense slot positions, but an input id is a permanent number:
+        it keeps gaps after a delete and stops following slot order after a
+        drag-reorder, so `displayId - 1` would reverse the write on a
+        different channel than the record touched — silently. The payload's
+        parameter name is the only scope evidence a record carries, and every
+        producer of the legacy single-channel path writes that payload with
+        the canonical variable name the registry is keyed on. An empty
+        registry (unit tests) falls through to the dense mapping. */
+    std::optional<int> resolveChannelIndex (const ChangeRecord& record,
+                                             WFSValueTreeState& state,
+                                             juce::DynamicObject* payloadObj)
     {
         if (record.affectedGroups.empty())
             return -1;
         const int displayId = record.affectedGroups.front().channelId;
-        return displayId > 0 ? displayId - 1 : -1;
+        if (displayId <= 0)
+            return -1;
+
+        if (payloadObj != nullptr && payloadObj->getProperties().size() > 0)
+        {
+            const auto paramName = payloadObj->getProperties().getName (0).toString();
+            if (const auto* rec = MCPParameterRegistry::getInstance().findByVariable (paramName))
+            {
+                if (rec->scope == "input")
+                {
+                    const int slot = state.getSlotForChannelNumber (displayId);
+                    if (slot < 0)
+                        return std::nullopt;
+                    return slot;
+                }
+            }
+        }
+
+        return displayId - 1;
     }
 
     /** Detect EQ-band records by group name. The Phase 2 generic dispatcher
@@ -643,11 +677,37 @@ juce::String MCPUndoEngine::writePayloadHere (const ChangeRecord& record,
     {
         if (! record.subWrites.empty())
         {
-            // Batch path. Walk in REVERSE order on undo so two writes that
-            // hit the same paramId on the same channel settle on the
-            // earliest captured before-value; in chronological order on
-            // redo so the latest after-value wins.
             const int n = static_cast<int> (record.subWrites.size());
+
+            // A sub-write's channelIndex is the slot the batch resolved when it
+            // ran; a reorder or a delete since then has moved that channel, so
+            // any sub-write carrying a permanent number is re-resolved from the
+            // number instead. Resolving the whole batch BEFORE writing anything
+            // keeps a since-deleted channel from leaving the reversal applied to
+            // half the batch. A channelNumber of 0 means the scope addresses
+            // channels by dense slot (output / reverb / cluster) or the write is
+            // global, and the stored index stands.
+            std::vector<int> indices (static_cast<size_t> (n));
+            for (int i = 0; i < n; ++i)
+            {
+                const auto& sw = record.subWrites[(size_t) i];
+                if (sw.channelNumber <= 0)
+                {
+                    indices[(size_t) i] = sw.channelIndex;
+                    continue;
+                }
+
+                const int slot = state.getSlotForChannelNumber (sw.channelNumber);
+                if (slot < 0)
+                    return "Input channel " + juce::String (sw.channelNumber)
+                           + " is no longer live";
+                indices[(size_t) i] = slot;
+            }
+
+            // Walk in REVERSE order on undo so two writes that hit the same
+            // paramId on the same channel settle on the earliest captured
+            // before-value; in chronological order on redo so the latest
+            // after-value wins.
             if (isUndo)
             {
                 for (int i = n - 1; i >= 0; --i)
@@ -655,7 +715,7 @@ juce::String MCPUndoEngine::writePayloadHere (const ChangeRecord& record,
                     const auto& sw = record.subWrites[(size_t) i];
                     auto* payloadObj = sw.beforeState.isObject()
                                          ? sw.beforeState.getDynamicObject() : nullptr;
-                    const auto err = applyOne (sw.channelIndex, sw.bandIndex, payloadObj);
+                    const auto err = applyOne (indices[(size_t) i], sw.bandIndex, payloadObj);
                     if (err.isNotEmpty())
                         return "Sub-write " + juce::String (i) + " (undo): " + err;
                 }
@@ -667,7 +727,7 @@ juce::String MCPUndoEngine::writePayloadHere (const ChangeRecord& record,
                     const auto& sw = record.subWrites[(size_t) i];
                     auto* payloadObj = sw.afterState.isObject()
                                          ? sw.afterState.getDynamicObject() : nullptr;
-                    const auto err = applyOne (sw.channelIndex, sw.bandIndex, payloadObj);
+                    const auto err = applyOne (indices[(size_t) i], sw.bandIndex, payloadObj);
                     if (err.isNotEmpty())
                         return "Sub-write " + juce::String (i) + " (redo): " + err;
                 }
@@ -681,11 +741,21 @@ juce::String MCPUndoEngine::writePayloadHere (const ChangeRecord& record,
         if (payloadObj == nullptr)
             return "Record's payload (before/after state) is not an object";
 
-        const int channelIndex = resolveChannelIndex (record);
+        const int recordChannelId = record.affectedGroups.empty()
+                                      ? 0
+                                      : record.affectedGroups.front().channelId;
+
+        // An unresolvable input number means the channel was deleted after the
+        // record was captured. Reversing at -1 would write the payload to the
+        // global scope instead, so abort and let the caller surface it.
+        const auto channelIndex = resolveChannelIndex (record, state, payloadObj);
+        if (! channelIndex.has_value())
+            return "Input channel " + juce::String (recordChannelId) + " is no longer live";
+
         const bool isEqBand = isEqBandRecord (record);
         const int bandIndex = isEqBand ? extractBandIndex (record) : -1;
 
-        return applyOne (channelIndex, bandIndex, payloadObj);
+        return applyOne (*channelIndex, bandIndex, payloadObj);
     }
     catch (const std::exception& e)
     {

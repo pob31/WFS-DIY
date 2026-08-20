@@ -331,7 +331,10 @@ public:
     // ("slot") stays the internal dense key (patch row, render-source slot,
     // meter row). Tree order is the user's DISPLAY order: new channels append
     // at the end, drag-to-reorder moves a node (and its patch row) to a new
-    // slot — numbers never change, so no external reference can break.
+    // slot — numbers never change once the session has latched them, so no
+    // external reference can break. Before the latch (a fresh session) the
+    // structural ops renumber to dense display order instead — see
+    // `channelNumbersUserOwned` in WFSParameterIDs.h.
 
     /** Permanent channel number of the channel at a slot (0-based child
         index); 0 if the slot is invalid. */
@@ -366,11 +369,20 @@ public:
     /** Append a channel (number = highest + 1) or, with explicitNumber > 0,
         re-create a retired number in its sorted slot (the UI confirms gap
         reuse with the user first). New channel's patch row continues the
-        diagonal past everything already patched (two columns for stereo). */
+        diagonal past everything already patched (two columns for stereo) —
+        that is the LATCHED behaviour, and it follows CREATION order. Until the
+        session latches channel numbers, the list is renumbered to display order
+        afterwards and the whole patch is re-flowed with it, into a gapless
+        diagonal in DISPLAY order. Its default name is one past the highest
+        "Mono n" / "Stereo n" ordinal any live name already claims, so a latched
+        session — which never resequences — cannot end up with two channels
+        sharing a default name. */
     juce::Result addInputChannel (bool stereo, int explicitNumber = 0);
 
     /** Remove a live channel by permanent number. Its number is retired
-        (gap); every other channel keeps its number, slot and patch row. */
+        (gap); every other channel keeps its number, slot and patch row. Until
+        the session latches channel numbers, the gap is closed by a renumber to
+        display order instead. */
     juce::Result removeInputChannel (int channelNumber);
 
     /** Flip a live channel's type in place. NOT exposed in the UI or MCP —
@@ -381,12 +393,18 @@ public:
 
     /** Move a live channel to a new display slot (drag-to-reorder). The
         channel node and its patch row move together; the permanent number is
-        untouched. Stopped-only, like every structural edit. */
+        untouched once the session is latched — before that the list is
+        renumbered so the numbers follow the new display order. Stopped-only,
+        like every structural edit. */
     juce::Result moveInputChannel (int channelNumber, int targetSlot);
 
-    /** Reconcile the input-patch row count to the channel list after a
+    /** Reconcile the input-patch row COUNT to the channel list after a
         wholesale patchData rewrite (config load): truncate extras, append
-        diagonal-continue rows (capacity from the channel type). Idempotent. */
+        diagonal-continue rows (capacity from the channel type). The count only —
+        an existing row is never re-columned, so a loaded patch is never
+        rewritten under the operator. A no-op on a re-flowed patch
+        (compactInputPatchToDisplayOrder already emits exactly one row per live
+        channel). Idempotent. */
     void normalizeInputPatchRows();
 
     /** One-time model migration for loaded states: repairs missing/duplicate
@@ -397,6 +415,36 @@ public:
         ensureCompleteSchema on wholesale-replace loads: the schema template
         stamps mono, which would otherwise preempt the tail-split stamp. */
     void migrateInputChannelModel();
+
+    /** Renumber every input channel to its display slot + 1 (dense 1..N). The
+        tracking id, stamped FROM the number, follows it; anything the user
+        changed stays. Names do NOT follow the number: a default name is a
+        per-type ordinal maintained by resequenceDefaultInputNames(). Only ever
+        called while the session has not latched channel numbers. Idempotent. */
+    void compactChannelNumbersToDisplayOrder();
+
+    /** Re-flow the whole input patch into a gapless diagonal in DISPLAY order:
+        walk the slots top to bottom handing out consecutive hardware input
+        columns — two ADJACENT columns for a stereo row (lower = L), one for a
+        mono row. Strict packing: no gaps, and no alignment to the interface's
+        odd/even pairs, so N mono + M stereo always fit in N + 2M inputs.
+        Rebuilt FROM the channel list, so the stored rows are discarded outright
+        and a wrong row count is repaired rather than reconciled. The diagonal
+        may legitimately run past activeHardwareInputs — cols widens and the
+        matrix dims those columns, deliberately, so the patch does not depend on
+        which interface happened to be plugged in at edit time. Shares the
+        `channelNumbersUserOwned` latch with compactChannelNumbersToDisplayOrder()
+        (there is no second, patch-specific ownership flag) and is only ever
+        called while the session has not latched. Idempotent. */
+    void compactInputPatchToDisplayOrder();
+
+    /** Renumber the DEFAULT input names to "Mono n" / "Stereo n", counting each
+        type independently in display order. A name the user typed is left
+        alone: only the three shapes the app itself stamps — "Input n" (legacy),
+        "Mono n", "Stereo n", with any n — count as still-default. Called when
+        the arrange dialog closes on a session that has not latched channel
+        numbers; latching is not implied by it. Idempotent. */
+    void resequenceDefaultInputNames();
 
     void setNumOutputChannels (int numChannels);
     void setNumReverbChannels (int numChannels);
@@ -494,6 +542,22 @@ public:
         purpose (Ctrl+Z must not re-arm auto-placement). */
     void markPositionsUserOwned();
 
+    //==========================================================================
+    // Channel-number ownership (see channelNumbersUserOwned in WFSParameterIDs.h).
+
+    /** True once the input channel numbers are permanent. While false — a
+        fresh session nothing has ever exposed a number from — every structural
+        edit renumbers the list to dense display order. Returns TRUE when the IO
+        tree is invalid: renumbering rewrites ids across the whole list, so
+        half-built or malformed state must fall back to the permanent regime
+        rather than be mistaken for "fresh". (arePositionsUserOwned returns
+        false there; the destructive direction is the opposite one.) */
+    bool areChannelNumbersUserOwned();
+
+    /** Latches the channel numbers as permanent. Idempotent; not undoable on
+        purpose (Ctrl+Z must not re-arm renumbering). */
+    void markChannelNumbersUserOwned();
+
     /** Scale all input positions proportionally from old stage bounds to current bounds */
     void scaleAllInputPositions (float oldW, float oldD, float oldH,
                                  float oldOW, float oldOD, float oldOH);
@@ -575,7 +639,9 @@ private:
     juce::ValueTree createDefaultInputChannel (int index, int totalInputsIn = -1, int channelNumber = -1);
 
     /** Create input channel subsections */
-    juce::ValueTree createInputChannelSection (int index);
+    /** @param ordinal  1-based position among the channels of that type; it is
+        the counter behind the "Mono n" / "Stereo n" default name. */
+    juce::ValueTree createInputChannelSection (bool stereo, int ordinal);
     juce::ValueTree createInputPositionSection (int index, int totalInputs);
     juce::ValueTree createInputAttenuationSection();
     juce::ValueTree createInputDirectivitySection();
@@ -641,7 +707,17 @@ private:
     /** Patch-row halves of the structural ops: insert a diagonal-continue
         row for a new channel at its slot / remove a deleted channel's row.
         Rows are positional (row = slot), so they must mirror every channel
-        tree edit in the same op. */
+        tree edit in the same op.
+
+        Once the session has latched, these three ARE the whole story. Unlatched
+        their result is immediately overwritten by
+        compactInputPatchToDisplayOrder(), and that redundancy is deliberate:
+        doing the row bookkeeping here keeps the row count in step with the
+        channel list at every instant (a synchronous listener can never observe a
+        tree whose row count disagrees with the channel count), it keeps the
+        re-flow a pure function of the channel list rather than a repair step it
+        is required to perform, and it stops the latched regime resting on the
+        unlatched one's correctness. */
     void insertInputPatchRow (int slot, bool stereo);
     void removeInputPatchRow (int slot);
     void moveInputPatchRow (int fromSlot, int toSlot);

@@ -14,20 +14,23 @@ namespace detail
     /** Flat path → value map. Stable, sorted iteration; cheap to diff. */
     using Snapshot = std::map<juce::String, juce::var>;
 
-    inline juce::String pathFor (const juce::String& section, int oneBasedId,
+    /** `displayId` is the channel's external address, the one a client
+        quotes back at us: an input's permanent channel number, or a
+        slot+1 for outputs / reverbs, which have no separate numbering. */
+    inline juce::String pathFor (const juce::String& section, int displayId,
                                    const juce::String& field)
     {
-        return section + "." + juce::String (oneBasedId) + "." + field;
+        return section + "." + juce::String (displayId) + "." + field;
     }
 
     inline void addChannel (Snapshot& s, const juce::String& section,
-                              int oneBasedId, const juce::String& name,
+                              int displayId, const juce::String& name,
                               float x, float y, float z)
     {
-        s[pathFor (section, oneBasedId, "name")] = name;
-        s[pathFor (section, oneBasedId, "x")]    = x;
-        s[pathFor (section, oneBasedId, "y")]    = y;
-        s[pathFor (section, oneBasedId, "z")]    = z;
+        s[pathFor (section, displayId, "name")] = name;
+        s[pathFor (section, displayId, "x")]    = x;
+        s[pathFor (section, displayId, "y")]    = y;
+        s[pathFor (section, displayId, "z")]    = z;
     }
 
     /** Build the flat snapshot of "what's worth diffing across calls".
@@ -68,7 +71,10 @@ namespace detail
 
         for (int i = 0; i < state.getNumInputChannels(); ++i)
         {
-            addChannel (s, "inputs", i + 1,
+            // Input numbers may have gaps and are not slot order after a
+            // reorder, so keying on slot+1 would both name the wrong channel
+            // and shift every key below a delete, faking a diff on each.
+            addChannel (s, "inputs", state.getInputChannelNumber (i),
                 state.getInputParameter (i, WFSParameterIDs::inputName).toString(),
                 state.getInputParameter (i, WFSParameterIDs::inputPositionX),
                 state.getInputParameter (i, WFSParameterIDs::inputPositionY),
@@ -157,6 +163,12 @@ inline ToolResult getDelta (WFSValueTreeState& state, const juce::var& args)
     if (auto* obj = args.getDynamicObject())
         if (obj->hasProperty ("reset"))
             reset = static_cast<bool> (obj->getProperty ("reset"));
+
+    // Every "inputs.N.*" path handed back names a channel by its permanent
+    // number, and the client addresses that number in its next call, so the
+    // numbers stop reflowing here for the same reason session_get_state latches
+    // them. Output and reverb paths are dense slot positions, unaffected.
+    state.markChannelNumbersUserOwned();
 
     auto& c = cache();
     const juce::ScopedLock sl (c.lock);
@@ -248,7 +260,9 @@ inline ToolDescriptor describe (WFSValueTreeState& state)
                     "drifted under you. Snapshot covers channel counts, "
                     "stage + origin, master / binaural globals, and per-"
                     "channel id+name+position (outputs also carry "
-                    "orientation, pitch, array assignment). Heavier params "
+                    "orientation, pitch, array assignment). Input paths are "
+                    "keyed by permanent input number (the same N as "
+                    "/wfs/input/N), not by list position. Heavier params "
                     "(EQ, LFO, etc.) are out of scope - pull them via "
                     "session_get_channel_full if a delta hints at trouble.";
     d.inputSchema   = schema();

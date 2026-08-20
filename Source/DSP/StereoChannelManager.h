@@ -44,13 +44,25 @@ public:
     StereoChannelManager()
     {
         for (auto& ch : channels)
+        {
             ch.decomposer = std::make_unique<spatcore::dsp::PassThroughStereoDecomposer>();
+
+            // The 50 Hz geometry refresh runs whether or not an audio device
+            // ever opens, and a default-constructed SliceStates reads as an
+            // inactive zero-width image — the Map would draw a stereo pair with
+            // no spread on a machine with no interface. getSliceState() does not
+            // depend on prepare(), so the backend's resting image is publishable
+            // from here.
+            SliceStates st {};
+            ch.decomposer->getSliceState (st.slices);
+            ch.stateSnapshot.publish (st);
+        }
     }
 
     /** Non-RT (prepareToPlay). Prepares every ordinal — cheap for the
         pass-through backend, and it means a stereo channel configured while
-        stopped needs no re-prepare on start. Publishes the initial slice
-        states so the 50 Hz geometry refresh is valid before audio runs. */
+        stopped needs no re-prepare on start. Republishes the slice states the
+        constructor seeded, now from the prepared backend. */
     void prepare (double sampleRate, int maxBlockSize)
     {
         for (int k = 0; k < kMaxStereoChannels; ++k)

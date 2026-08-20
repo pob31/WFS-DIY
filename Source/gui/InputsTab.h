@@ -241,6 +241,14 @@ public:
             juce::String name = parameters.getInputParam(slot, "inputName").toString();
             return name.isEmpty() ? juce::String() : name;
         });
+        // Mark stereo pairs on the selector tiles
+        // (channelId is a permanent number — resolve to the slot; a number no
+        // longer live has no type at all)
+        channelSelector.setChannelStereoProvider([this](int channelId) -> bool {
+            auto& state = parameters.getValueTreeState();
+            const int slot = state.getSlotForChannelNumber(channelId);
+            return slot >= 0 && state.isInputChannelStereo(slot);
+        });
         addAndMakeVisible(channelSelector);
 
         // Input Name
@@ -1950,24 +1958,52 @@ private:
         stereoWidthLabel.setJustificationType(juce::Justification::centred);
         stereoWidthDial.setColours(juce::Colours::black, juce::Colour(0xFF4A90D9), juce::Colours::grey);
         stereoWidthDial.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF4A90D9));
-        stereoWidthDial.setValue(1.0f);
+        stereoWidthDial.setValue(stereoWidthDialValue(WFSParameterDefaults::inputStereoWidthDefault));
         stereoWidthDial.onGestureStart = [this]() {
             parameters.getValueTreeState().beginUndoTransaction ("Input Stereo Width");
         };
         stereoWidthDial.onValueChanged = [this](float v) {
-            int percent = static_cast<int>(v * 100.0f);
-            stereoWidthValueLabel.setText(juce::String(percent), juce::dontSendNotification);
-            saveInputParam(WFSParameterIDs::inputStereoWidth, percent);
+            float metres = stereoWidthMetres(v);
+            stereoWidthValueLabel.setText(juce::String(metres, 2), juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputStereoWidth, metres);
         };
         addAndMakeVisible(stereoWidthDial);
         addAndMakeVisible(stereoWidthValueLabel);
-        stereoWidthValueLabel.setText("100", juce::dontSendNotification);
+        stereoWidthValueLabel.setText(juce::String(WFSParameterDefaults::inputStereoWidthDefault, 2), juce::dontSendNotification);
         stereoWidthValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(stereoWidthValueLabel);
         addAndMakeVisible(stereoWidthUnitLabel);
-        stereoWidthUnitLabel.setText("%", juce::dontSendNotification);
+        stereoWidthUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
         stereoWidthUnitLabel.setJustificationType(juce::Justification::left);
         stereoWidthUnitLabel.setMinimumHorizontalScale(1.0f);
+
+        // Stereo Axis dial: rotates the automatic tangential spread axis, so it
+        // is centred (0) rather than zero-based; same stereo-only gating as the
+        // width dial
+        addAndMakeVisible(stereoAxisLabel);
+        stereoAxisLabel.setText(LOC("inputs.labels.stereoAxis"), juce::dontSendNotification);
+        stereoAxisLabel.setJustificationType(juce::Justification::centred);
+        stereoAxisDial.setColours(juce::Colours::black, juce::Colour(0xFF4A90D9), juce::Colours::grey);
+        stereoAxisDial.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF4A90D9));
+        stereoAxisDial.setBipolar(true);  // 0° centre — arc grows from 12 o'clock
+        stereoAxisDial.setValue(stereoAxisDialValue(WFSParameterDefaults::inputStereoAxisOffsetDefault));
+        stereoAxisDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input Stereo Axis");
+        };
+        stereoAxisDial.onValueChanged = [this](float v) {
+            int degrees = stereoAxisDegrees(v);
+            stereoAxisValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputStereoAxisOffset, degrees);
+        };
+        addAndMakeVisible(stereoAxisDial);
+        addAndMakeVisible(stereoAxisValueLabel);
+        stereoAxisValueLabel.setText(juce::String(WFSParameterDefaults::inputStereoAxisOffsetDefault), juce::dontSendNotification);
+        stereoAxisValueLabel.setJustificationType(juce::Justification::right);
+        setupEditableValueLabel(stereoAxisValueLabel);
+        addAndMakeVisible(stereoAxisUnitLabel);
+        stereoAxisUnitLabel.setText(juce::String::fromUTF8("°"), juce::dontSendNotification);
+        stereoAxisUnitLabel.setJustificationType(juce::Justification::left);
+        stereoAxisUnitLabel.setMinimumHorizontalScale(1.0f);
 
         // Directivity slider
         addAndMakeVisible(directivityLabel);
@@ -3327,6 +3363,36 @@ private:
         return juce::String(seconds, 2);
     }
 
+    // Stereo width dial law. Squared, because a linear 0..50 m sweep gives half
+    // a metre per percent of travel and no usable resolution around the 4 m
+    // default; squaring puts 0-10 m in the first ~45 % of the dial.
+    // Forward: metres = v * v * 50. Inverse: v = sqrt(metres / 50).
+    static float stereoWidthMetres(float v)
+    {
+        return v * v * WFSParameterDefaults::inputStereoWidthMax;
+    }
+
+    static float stereoWidthDialValue(float metres)
+    {
+        const float clamped = juce::jlimit(WFSParameterDefaults::inputStereoWidthMin,
+                                           WFSParameterDefaults::inputStereoWidthMax, metres);
+        return std::sqrt(clamped / WFSParameterDefaults::inputStereoWidthMax);
+    }
+
+    // Stereo axis dial law (bipolar, 0 = the automatic tangential axis).
+    // Forward: degrees = v * 360 - 180. Inverse: v = (degrees + 180) / 360.
+    static int stereoAxisDegrees(float v)
+    {
+        return juce::jlimit(WFSParameterDefaults::inputStereoAxisOffsetMin,
+                            WFSParameterDefaults::inputStereoAxisOffsetMax,
+                            static_cast<int>(std::round(v * 360.0f - 180.0f)));
+    }
+
+    static float stereoAxisDialValue(int degrees)
+    {
+        return juce::jlimit(0.0f, 1.0f, (static_cast<float>(degrees) + 180.0f) / 360.0f);
+    }
+
     // Helper to layout dial value and unit labels under dial
     // Places value and unit adjacent, centered as a pair under the dial
     // Uses slight overlap to compensate for JUCE font padding
@@ -3495,6 +3561,8 @@ private:
             const bool stereoV = v && currentChannelIsStereo();
             stereoWidthLabel.setVisible(stereoV); stereoWidthDial.setVisible(stereoV);
             stereoWidthValueLabel.setVisible(stereoV); stereoWidthUnitLabel.setVisible(stereoV);
+            stereoAxisLabel.setVisible(stereoV); stereoAxisDial.setVisible(stereoV);
+            stereoAxisValueLabel.setVisible(stereoV); stereoAxisUnitLabel.setVisible(stereoV);
         }
         directivityLabel.setVisible(v); directivitySlider.setVisible(v); directivityValueLabel.setVisible(v);
         rotationLabel.setVisible(v); inputDirectivityDial.setVisible(v); rotationValueLabel.setVisible(v); rotationUnitLabel.setVisible(v);
@@ -4488,16 +4556,37 @@ private:
         auto topBlock = col2.removeFromTop(topBlockHeight);
 
         // Calculate item widths and total needed width. Stereo-pair channels
-        // add a fourth column (the width dial); mono layout is unchanged.
-        const bool showStereoWidth = currentChannelIsStereo();
+        // add a fourth and fifth column (width + axis dials); mono layout is
+        // unchanged. Five columns at the reference pitch overflow col2 on a
+        // 1280 px window once layoutScale passes ~0.9 (a 1280x1024 desktop
+        // needs 724 px in a 610 px column), so the stereo case tightens the
+        // inter-item spacing first and then the column pitch, never below the
+        // dial itself. A group still wider than the column is left-aligned
+        // rather than centred, so it cannot slide off the left edge and hide
+        // the attenuation law button.
+        const bool showStereoControls = currentChannelIsStereo();
         const int attenLawWidth = scaled(140);  // Label/button width
-        const int dialSectionWidth = scaled(110);  // Label width for dial sections
-        const int itemSpacing = spacing * 4;  // Spacing between items
-        const int totalTopRowWidth = attenLawWidth + dialSectionWidth * 2 + itemSpacing * 2
-                                   + (showStereoWidth ? itemSpacing + dialSectionWidth : 0);
+        const int dialColumns = showStereoControls ? 4 : 2;
+        int dialSectionWidth = scaled(110);  // Label width for dial sections
+        int itemSpacing = spacing * 4;  // Spacing between items
+        auto topRowWidthFor = [attenLawWidth, dialColumns](int sectionWidth, int itemSpace)
+        {
+            return attenLawWidth + (sectionWidth + itemSpace) * dialColumns;
+        };
+        if (topRowWidthFor(dialSectionWidth, itemSpacing) > topBlock.getWidth())
+        {
+            itemSpacing = spacing * 2;
+            if (topRowWidthFor(dialSectionWidth, itemSpacing) > topBlock.getWidth())
+            {
+                const int slack = topBlock.getWidth() - attenLawWidth - itemSpacing * dialColumns;
+                dialSectionWidth = juce::jlimit(dialSize + spacing, dialSectionWidth, slack / dialColumns);
+            }
+        }
+        const int totalTopRowWidth = topRowWidthFor(dialSectionWidth, itemSpacing);
 
         // Center the group within topBlock
-        int topRowStartX = topBlock.getX() + (topBlock.getWidth() - totalTopRowWidth) / 2;
+        int topRowStartX = juce::jmax(topBlock.getX(),
+                                      topBlock.getX() + (topBlock.getWidth() - totalTopRowWidth) / 2);
         int topRowY = topBlock.getY();
 
         // Column 1: Attenuation Law - label aligned with dial labels, button centered with dials
@@ -4528,6 +4617,12 @@ private:
         stereoWidthLabel.setBounds(stereoWidthCenterX - dialSectionWidth / 2, topRowY, dialSectionWidth, rowHeight);
         stereoWidthDial.setBounds(stereoWidthCenterX - dialSize / 2, topRowY + rowHeight, dialSize, dialSize);
         layoutDialValueUnit(stereoWidthValueLabel, stereoWidthUnitLabel, stereoWidthCenterX, topRowY + rowHeight + dialSize, rowHeight);
+
+        // Column 5: Stereo Axis dial (stereo-pair channels only; hidden for mono)
+        int stereoAxisCenterX = stereoWidthCenterX + dialSectionWidth + itemSpacing;
+        stereoAxisLabel.setBounds(stereoAxisCenterX - dialSectionWidth / 2, topRowY, dialSectionWidth, rowHeight);
+        stereoAxisDial.setBounds(stereoAxisCenterX - dialSize / 2, topRowY + rowHeight, dialSize, dialSize);
+        layoutDialValueUnit(stereoAxisValueLabel, stereoAxisUnitLabel, stereoAxisCenterX, topRowY + rowHeight + dialSize, rowHeight, scaled(40), scaled(25));
 
         // Reduced padding before sliders section
         col2.removeFromTop(spacing);
@@ -5416,12 +5511,24 @@ private:
         minimalLatencyButton.setToggleState(minLatency, juce::dontSendNotification);
         minimalLatencyButton.setButtonText(minLatency ? LOC("inputs.toggles.minimalLatency") : LOC("inputs.toggles.acousticPrecedence"));
 
-        // Stereo width (stereo-pair channels only; the mono/stereo split is
-        // config-level — System Config, stereoInputChannels)
-        float stereoWidthPct = getFloatParam(WFSParameterIDs::inputStereoWidth, 100.0f);
-        stereoWidthPct = juce::jlimit(0.0f, 100.0f, stereoWidthPct);
-        stereoWidthDial.setValue(stereoWidthPct / 100.0f);
-        stereoWidthValueLabel.setText(juce::String(static_cast<int>(stereoWidthPct)), juce::dontSendNotification);
+        // Stereo width and axis offset (stereo-pair channels only; the
+        // mono/stereo split is config-level — System Config,
+        // stereoInputChannels). The fallbacks have to be the real defaults: a
+        // channel that has never been stamped would otherwise load as whatever
+        // literal is written here.
+        float widthMetres = getFloatParam(WFSParameterIDs::inputStereoWidth,
+                                          WFSParameterDefaults::inputStereoWidthDefault);
+        widthMetres = juce::jlimit(WFSParameterDefaults::inputStereoWidthMin,
+                                   WFSParameterDefaults::inputStereoWidthMax, widthMetres);
+        stereoWidthDial.setValue(stereoWidthDialValue(widthMetres));
+        stereoWidthValueLabel.setText(juce::String(widthMetres, 2), juce::dontSendNotification);
+
+        int axisOffsetDeg = getIntParam(WFSParameterIDs::inputStereoAxisOffset,
+                                        WFSParameterDefaults::inputStereoAxisOffsetDefault);
+        axisOffsetDeg = juce::jlimit(WFSParameterDefaults::inputStereoAxisOffsetMin,
+                                     WFSParameterDefaults::inputStereoAxisOffsetMax, axisOffsetDeg);
+        stereoAxisDial.setValue(stereoAxisDialValue(axisOffsetDeg));
+        stereoAxisValueLabel.setText(juce::String(axisOffsetDeg), juce::dontSendNotification);
 
         // ==================== POSITION TAB ====================
         // Update coordinate mode selector and position editors (handles coordinate conversion)
@@ -6215,10 +6322,20 @@ private:
         }
         else if (label == &stereoWidthValueLabel)
         {
-            int percent = juce::jlimit(0, 100, static_cast<int>(value));
-            stereoWidthDial.setValue(percent / 100.0f);
+            float metres = juce::jlimit(WFSParameterDefaults::inputStereoWidthMin,
+                                        WFSParameterDefaults::inputStereoWidthMax, value);
+            stereoWidthDial.setValue(stereoWidthDialValue(metres));
             // Force label update (unit label is separate)
-            stereoWidthValueLabel.setText(juce::String(percent), juce::dontSendNotification);
+            stereoWidthValueLabel.setText(juce::String(metres, 2), juce::dontSendNotification);
+        }
+        else if (label == &stereoAxisValueLabel)
+        {
+            int degrees = juce::jlimit(WFSParameterDefaults::inputStereoAxisOffsetMin,
+                                       WFSParameterDefaults::inputStereoAxisOffsetMax,
+                                       static_cast<int>(value));
+            stereoAxisDial.setValue(stereoAxisDialValue(degrees));
+            // Force label update (unit label is separate)
+            stereoAxisValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
         }
         else if (label == &directivityValueLabel)
         {
@@ -7426,6 +7543,7 @@ private:
         helpTextMap[&distanceRatioDial] = LOC("inputs.help.distanceRatioDial");
         helpTextMap[&commonAttenDial] = LOC("inputs.help.commonAttenDial");
         helpTextMap[&stereoWidthDial] = LOC("inputs.help.stereoWidthDial");
+        helpTextMap[&stereoAxisDial] = LOC("inputs.help.stereoAxisDial");
         helpTextMap[&directivitySlider] = LOC("inputs.help.directivitySlider");
         helpTextMap[&inputDirectivityDial] = LOC("inputs.help.inputDirectivityDial");
         helpTextMap[&tiltSlider] = LOC("inputs.help.tiltSlider");
@@ -7549,6 +7667,7 @@ private:
         oscMethodMap[&distanceRatioDial] = "/wfs/input/distanceRatio <ID> <value>";
         oscMethodMap[&commonAttenDial] = "/wfs/input/commonAtten <ID> <value>";
         oscMethodMap[&stereoWidthDial] = "/wfs/input/stereoWidth <ID> <value>";
+        oscMethodMap[&stereoAxisDial] = "/wfs/input/stereoAxisOffset <ID> <value>";
         oscMethodMap[&directivitySlider] = "/wfs/input/directivity <ID> <value>";
         oscMethodMap[&inputDirectivityDial] = "/wfs/input/rotation <ID> <value>";
         oscMethodMap[&tiltSlider] = "/wfs/input/tilt <ID> <value>";
@@ -7895,9 +8014,9 @@ private:
         return parameters.getValueTreeState().isInputChannelStereo (channelSlot());
     }
 
-    /** Stereo-dependent control state: the width dial only exists for stereo
-        channels, and the sampler header button is N/A for stereo. Called on
-        channel load and when the mono/stereo split moves. */
+    /** Stereo-dependent control state: the width and axis dials only exist for
+        stereo channels, and the sampler header button is N/A for stereo. Called
+        on channel load and when the mono/stereo split moves. */
     void updateStereoControls()
     {
         const bool stereo = currentChannelIsStereo();
@@ -7906,6 +8025,10 @@ private:
         stereoWidthDial.setVisible(soundVisible && stereo);
         stereoWidthValueLabel.setVisible(soundVisible && stereo);
         stereoWidthUnitLabel.setVisible(soundVisible && stereo);
+        stereoAxisLabel.setVisible(soundVisible && stereo);
+        stereoAxisDial.setVisible(soundVisible && stereo);
+        stereoAxisValueLabel.setVisible(soundVisible && stereo);
+        stereoAxisUnitLabel.setVisible(soundVisible && stereo);
 
         samplerToggleButton.setEnabled(! stereo);
         samplerToggleButton.setAlpha(stereo ? 0.4f : 1.0f);
@@ -8162,9 +8285,12 @@ private:
         juce::AlertWindow::showOkCancelBox(
             juce::MessageBoxIconType::WarningIcon,
             LOC("inputs.dialogs.trackingConflictTitle"),
+            // existingTrackedInput is a slot, {current} is a permanent number:
+            // numbers may have gaps and are not slot order after a reorder, so
+            // slot + 1 would name a live but unrelated channel in the sentence.
             LOC("inputs.dialogs.trackingConflictCluster")
                 .replace("{current}", juce::String(currentChannel))
-                .replace("{existing}", juce::String(existingTrackedInput + 1))
+                .replace("{existing}", juce::String(parameters.getValueTreeState().getInputChannelNumber(existingTrackedInput)))
                 .replace("{cluster}", juce::String(targetCluster)),
             LOC("inputs.dialogs.trackingConflictContinue"),
             LOC("common.cancel"),
@@ -8250,8 +8376,10 @@ private:
         juce::AlertWindow::showOkCancelBox(
             juce::MessageBoxIconType::WarningIcon,
             LOC("inputs.dialogs.trackingConflictTitle"),
+            // Same id-space split as above: {to} is a permanent number, so the
+            // channel being switched away from has to be named by number too.
             LOC("inputs.dialogs.trackingConflictSwitch")
-                .replace("{existing}", juce::String(existingTrackedInput + 1))
+                .replace("{existing}", juce::String(parameters.getValueTreeState().getInputChannelNumber(existingTrackedInput)))
                 .replace("{cluster}", juce::String(inputCluster))
                 .replace("{to}", juce::String(currentChannel)),
             LOC("inputs.dialogs.trackingConflictYes"),
@@ -8265,7 +8393,7 @@ private:
                     // Enable tracking on current input
                     trackingActiveButton.setButtonText(LOC("inputs.toggles.trackingOn"));
                     saveInputParam(WFSParameterIDs::inputTrackingActive, 1);
-                    showStatusMessage(LOC("inputs.messages.trackingSwitched").replace("{from}", juce::String(existingTrackedInput + 1)).replace("{to}", juce::String(currentChannel)));
+                    showStatusMessage(LOC("inputs.messages.trackingSwitched").replace("{from}", juce::String(parameters.getValueTreeState().getInputChannelNumber(existingTrackedInput))).replace("{to}", juce::String(currentChannel)));
                 }
                 else  // Cancel
                 {
@@ -8425,6 +8553,10 @@ private:
     WfsBasicDial stereoWidthDial;
     juce::Label stereoWidthValueLabel;
     juce::Label stereoWidthUnitLabel;
+    juce::Label stereoAxisLabel;
+    WfsBasicDial stereoAxisDial;
+    juce::Label stereoAxisValueLabel;
+    juce::Label stereoAxisUnitLabel;
     juce::Label directivityLabel;
     WfsWidthExpansionSlider directivitySlider;
     juce::Label directivityValueLabel;

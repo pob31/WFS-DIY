@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "42fdddc277984d2bca83651a26468b05da977469988bf05c571f685fd8c7bbec",
+  "input_hash": "2e423519f2f372565d6ac36ccf32d39a8a369a18a49a800889c85b1e07766b54",
   "source_csvs": [
     "WFS-UI_config.csv",
     "WFS-UI_input.csv",
@@ -6318,8 +6318,8 @@
       "internal_variable": "inputSidelinesFringe"
     },
     {
-      "name": "input_stereo_set_width",
-      "description": "Stereo image width across the array; 0% collapses the pair to a point source. Value in %. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
+      "name": "input_stereo_set_axis_offset",
+      "description": "Rotate the stereo axis away from its automatic orientation. 0 = automatic (perpendicular to the origin-to-source line), +/-180 swaps left and right. Positive = counter-clockwise viewed from above. Value in °. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -6331,10 +6331,49 @@
           },
           "value": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 100,
-            "description": "Width %.",
-            "default": 100
+            "minimum": -179,
+            "maximum": 180,
+            "description": "Axis °.",
+            "default": 0
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
+          }
+        },
+        "required": [
+          "input_id",
+          "value"
+        ]
+      },
+      "tier": 2,
+      "csv_section": "Stereo",
+      "group_key": "input_stereo",
+      "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
+      "internal_osc_path": "/wfs/input/stereoAxisOffset",
+      "internal_variable": "inputStereoAxisOffset"
+    },
+    {
+      "name": "input_stereo_set_width",
+      "description": "Physical distance in metres between the pair's left and right legs; the channel position stays the centre. 0 m collapses the pair to a point source. Legs placed outside the array will not focus. Value in m. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "input_id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 64,
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
+          },
+          "value": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 50.0,
+            "description": "Width m.",
+            "default": 4.0
           },
           "confirm": {
             "type": "string",

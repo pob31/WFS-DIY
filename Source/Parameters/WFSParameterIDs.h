@@ -85,6 +85,21 @@ namespace WFSParameterIDs
     const juce::Identifier algorithmDeviceId ("algorithmDeviceId");   // compute device for the GPU algorithm paths ("cpu"/"hip:0"/...)
     const juce::Identifier runDSP            ("runDSP");
 
+    // One-way ownership latch for the input channel numbers.
+    // false/absent = fresh session: numbers track display order — every
+    // structural edit renumbers the whole list dense 1..N, so a channel dragged
+    // to display position 2 reads "#2". true = user-owned: numbers are
+    // permanent (creation appends highest + 1, deletion retires a number and
+    // leaves a gap). Latched by anything that makes a number observable or
+    // depended-upon: any project/config load, opening the input patch window or
+    // the level meter window, selecting the Inputs or Map tab, storing or
+    // recalling an input snapshot, an incoming OSC/ADM/Remote message
+    // addressing an input by number, a Remote client handshake, sending QLab
+    // cues, and any MCP tool addressing an input by number. Persists with the
+    // session; its absence in a file written by an older build is harmless,
+    // because every load latches.
+    const juce::Identifier channelNumbersUserOwned ("channelNumbersUserOwned");
+
     //==========================================================================
     // Config > Binaural Section
     //==========================================================================
@@ -298,7 +313,14 @@ namespace WFSParameterIDs
     // Input > Channel
     const juce::Identifier inputName             ("inputName");
     const juce::Identifier inputSolo             ("inputSolo");             // 0/1, binaural solo — per channel so it travels with the node (reorder/delete safe); replaces the Binaural inputSoloStates csv
-    const juce::Identifier inputStereoWidth      ("inputStereoWidth");      // 0-100%, stereo pairs only
+    const juce::Identifier inputStereoWidth      ("inputStereoWidth");      // metres, stereo pairs only — the FULL left-to-right distance, so each leg sits at half of it. Absolute: no speaker position is read, so it means the same thing on a bar, a circle or a Y-running array
+    // Degrees, stereo pairs only: a rotation APPLIED TO the automatic tangential
+    // axis, so 0 means automatic rather than "spread along +X". Positive
+    // counter-clockwise viewed from above, the same convention as inputRotation;
+    // ±180 is an explicit L/R swap. Applied in the world frame — inputFlipX/Y
+    // already mirror the anchor and the automatic axis follows it, so mirroring
+    // this offset too would undo the flip it is riding on.
+    const juce::Identifier inputStereoAxisOffset ("inputStereoAxisOffset");
     const juce::Identifier inputAttenuation      ("inputAttenuation");
     const juce::Identifier inputDelayLatency     ("inputDelayLatency");
     const juce::Identifier inputMinimalLatency   ("inputMinimalLatency");

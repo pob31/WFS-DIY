@@ -149,7 +149,11 @@ public:
                 juce::String name = sets[static_cast<size_t> (activeSetIndex)].name;
                 if (name.isEmpty())
                     name = LOC ("sampler.set.default") + " " + juce::String (activeSetIndex + 1);
-                onQLabSetCueRequested (currentChannel + 1, activeSetIndex + 1, name);
+                // The cue carries the external address /wfs/input/samplerSet <number>, so it
+                // needs the permanent channel number: numbers may have gaps and stop matching
+                // slot order once channels are reordered or deleted.
+                onQLabSetCueRequested (parameters.getValueTreeState().getInputChannelNumber (currentChannel),
+                                       activeSetIndex + 1, name);
             }
         };
         addChildComponent (qlabSetButton);

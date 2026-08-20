@@ -234,15 +234,15 @@
       "mono": "Mono",
       "stereo": "Stereo",
       "deleteTitle": "Remove Input Channel",
-      "deleteMessage": "Remove input channel {number}? Its settings are discarded and its number is retired: the remaining channels keep their numbers, so the patch, snapshots, QLab cues and DAW plug-in mappings stay valid.",
+      "deleteMessage": "Remove input channel {number}? Its settings are discarded. On a fresh session the remaining channels renumber to follow the display order; once the session is in use its number is retired as a gap and the others keep theirs, so the patch, snapshots, QLab cues and DAW plug-in mappings stay valid.",
       "deleteConfirm": "Remove"
     },
     "help": {
       "gpuPipelineDepth": "GPU pipeline depth in audio blocks. Adds depth x buffer/sample-rate of constant latency (pre-subtracted from WFS delays) and absorbs GPU stalls of the same length: deeper = immune to desktop/UI hiccups, shallower = lower latency. Applies live. Default 4.",
       "showName": "Name of the current show.",
       "showLocation": "Location of the current show.",
-      "inputChannels": "Number of mono input channels. Raising the count appends channels after the last one; lowering it removes the highest-numbered mono channels (their numbers stay retired). Locked when DSP is running.",
-      "editChannels": "Arrange the input channels: drag to interleave mono and stereo channels in any order, or remove a specific channel (its number is retired as a gap). A channel keeps its permanent number wherever you drag it, so the patch, snapshots, QLab cues and DAW plug-in mappings never break. Locked when DSP is running.",
+      "inputChannels": "Number of mono input channels. Raising the count appends channels after the last one; lowering it removes the highest-numbered mono channels. Locked when DSP is running.",
+      "editChannels": "Arrange the input channels: drag to interleave mono and stereo channels in any order, or remove a specific channel. On a fresh session the numbers follow the display order; they become permanent once the session is in use — a project loaded, the Inputs or Map tab opened, the patch window opened, a snapshot stored, or external control connected. From then on a channel keeps its number wherever you drag it and a removed number is retired as a gap, so the patch, snapshots, QLab cues and DAW plug-in mappings never break. Locked when DSP is running.",
       "stereoInputChannels": "Number of stereo pair inputs. Each keeps one channel number and claims two hardware inputs (L and R) in the patch. Raising the count appends after the last channel; lowering it removes the highest-numbered stereo channels. Locked when DSP is running.",
       "outputChannels": "Number of Output Channels.",
       "reverbChannels": "Number of Reverb Channels.",
@@ -351,7 +351,7 @@
       "reduceInputChannels": {
         "title": "Reduce Input Channels?",
         "message": "Reducing from {current} to {new} input channels will remove settings for channels {start} to {end}.\n\nThis cannot be undone.",
-        "messageNumbers": "This will remove input channel(s) {numbers} and their settings. Their numbers are retired (the remaining channels keep theirs, so the patch, snapshots and cues stay valid).\n\nThis cannot be undone."
+        "messageNumbers": "This will remove input channel(s) {numbers} and their settings. Once the session is in use their numbers are retired and the remaining channels keep theirs, so the patch, snapshots and cues stay valid.\n\nThis cannot be undone."
       },
       "reduceOutputChannels": {
         "title": "Reduce Output Channels?",
@@ -1496,6 +1496,7 @@
       "attenuation": "Attenuation:",
       "delayLatency": "Delay/Latency:",
       "stereoWidth": "Width:",
+      "stereoAxis": "Axis:",
       "coord": "Coord:",
       "positionX": "Position X:",
       "positionY": "Position Y:",
@@ -1770,7 +1771,8 @@
       "maxSpeedDial": "Maximum Speed Limit for Object.",
       "pathModeButton": "Enable Path Mode to Follow Drawn Movement Paths Instead of Direct Lines.",
       "heightFactorDial": "Take Elevation of Object into Account Fully, Partially or Not.",
-      "stereoWidthDial": "Stereo width. Scales the spread of the stereo image across the array; 0% collapses the pair to a point source.",
+      "stereoWidthDial": "Stereo image width in metres: the physical distance between the pair's left and right legs. The channel position stays the centre of the pair. Behaves the same on straight, curved, circular and side arrays. 0 m collapses the pair to a point source.",
+      "stereoAxisDial": "Rotates the stereo axis, positive counter-clockwise seen from above. 0 = automatic: the pair spreads perpendicular to the line from the origin to the source. Use it to aim a pair sitting at the centre of a circular rig. \u00b1180\u00b0 swaps left and right.",
       "coordModeSelector": "Coordinate display mode: Cartesian (X/Y/Z), Cylindrical (radius/azimuth/height), or Spherical (radius/azimuth/elevation).",
       "positionJoystick": "Drag to adjust X/Y position in real-time. Returns to center on release.",
       "positionZSlider": "Drag to adjust Z (height) position in real-time. Returns to center on release.",

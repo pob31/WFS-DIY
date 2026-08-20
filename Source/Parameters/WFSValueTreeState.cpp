@@ -1512,6 +1512,103 @@ void WFSValueTreeState::migrateInputChannelModel()
     }
 }
 
+void WFSValueTreeState::compactChannelNumbersToDisplayOrder()
+{
+    auto inputs = getInputsState();
+    if (! inputs.isValid())
+        return;
+
+    // Ascending, id written BEFORE the tracking id: mid-walk the list can
+    // briefly hold the same number twice (slot s takes s + 1 while the node that
+    // still owns s + 1 has not been visited yet). Harmless —
+    // getSlotForChannelNumber's fast path resolves a NEW number to the node just
+    // renumbered, so the synchronous valueTreePropertyChanged fired by the
+    // tracking-id write below still reports the right slot.
+    const int total = inputs.getNumChildren();
+    for (int slot = 0; slot < total; ++slot)
+    {
+        const int oldNumber = getInputChannelNumber (slot);
+        const int newNumber = slot + 1;
+        if (oldNumber == newNumber)
+            continue;
+
+        // Direct setProperty throughout, never setParameter/setInputParam: a
+        // renumber is bookkeeping, and those wrappers carry undo entries,
+        // dirty-tracking and ownership latches that must not fire for it.
+        auto input = inputs.getChild (slot);
+        input.setProperty (id, newNumber, nullptr);
+
+        // The tracking id, which createDefaultInputChannel stamps from the
+        // number, follows it only while it still matches — a tracker mapping the
+        // user has pointed elsewhere stays put. (The name is NOT the number's to
+        // move: resequenceDefaultInputNames owns it.)
+        auto position = input.getChildWithName (Position);
+        if (position.isValid()
+            && static_cast<int> (position.getProperty (inputTrackingID, 0)) == oldNumber)
+            position.setProperty (inputTrackingID, newNumber, nullptr);
+    }
+}
+
+namespace
+{
+    // 1-based ordinal a default input name of the given shape carries ("Mono 3"
+    // against "Mono" -> 3), or 0 when the name is not that shape. "Mono 0" and
+    // "Mono 007" read as 0 and 7: the ordinal is what the name says, and only a
+    // positive one is a name the app could have stamped.
+    int defaultInputNameOrdinal (const juce::String& candidate, juce::StringRef word)
+    {
+        const int space = candidate.lastIndexOfChar (' ');
+        if (space <= 0 || candidate.substring (0, space) != word)
+            return 0;
+
+        const juce::String tail = candidate.substring (space + 1);
+        if (tail.isEmpty() || ! tail.containsOnly ("0123456789"))
+            return 0;
+        return tail.getIntValue();
+    }
+}
+
+void WFSValueTreeState::resequenceDefaultInputNames()
+{
+    auto inputs = getInputsState();
+    if (! inputs.isValid())
+        return;
+
+    // Any n, not the one this channel happens to carry now: by the time this
+    // runs the ordinals have already shifted under the names, so testing
+    // against the single name a channel *would* have had would freeze every
+    // default the reorder displaced.
+    auto isDefaultName = [] (const juce::String& candidate) -> bool
+    {
+        return defaultInputNameOrdinal (candidate, "Input") > 0
+            || defaultInputNameOrdinal (candidate, "Mono") > 0
+            || defaultInputNameOrdinal (candidate, "Stereo") > 0;
+    };
+
+    int monoCount = 0, stereoCount = 0;
+    const int total = inputs.getNumChildren();
+    for (int slot = 0; slot < total; ++slot)
+    {
+        const bool stereo = isInputChannelStereo (slot);
+        const int ordinal = stereo ? ++stereoCount : ++monoCount;
+
+        auto channel = inputs.getChild (slot).getChildWithName (Channel);
+        if (! channel.isValid())
+            continue;
+
+        const juce::String current = channel.getProperty (inputName).toString();
+        if (! isDefaultName (current))
+            continue;
+
+        // Direct setProperty, never setInputParam: the app renaming its own
+        // defaults must not push an undo entry, mark the project dirty or trip
+        // an ownership latch.
+        const juce::String renamed = getDefaultInputNameForType (stereo, ordinal);
+        if (current != renamed)
+            channel.setProperty (inputName, renamed, nullptr);
+    }
+}
+
 void WFSValueTreeState::setInputChannelCounts (int numMono, int numStereo)
 {
     // Legacy two-count entry point (System Config fields, load shim). Under
@@ -1571,7 +1668,8 @@ juce::Result WFSValueTreeState::addInputChannel (bool stereo, int explicitNumber
         // Append-only: the next number is highest + 1. Once 64 has been used,
         // the caller must explicitly pick a free (retired) number — the UI
         // confirms with the user first, because snapshots/cues addressed to
-        // that number will affect the new channel.
+        // that number will affect the new channel. (An unlatched session never
+        // reaches exhaustion with gaps: the tail renumber keeps the list dense.)
         number = getNextChannelNumber();
         if (number > WFSParameterDefaults::maxInputChannels)
             return juce::Result::fail ("channel number space exhausted; reuse a free number (lowest free: "
@@ -1589,12 +1687,40 @@ juce::Result WFSValueTreeState::addInputChannel (bool stereo, int explicitNumber
     // New channels always land at the END of the display order (append-only);
     // the user drags them into place afterwards. This holds for gap-reuse
     // creation too — the recycled NUMBER does not dictate a position.
+    // (Unlatched, the tail renumber then gives it the number of that display
+    // position.)
     const int slot = total;
 
     auto node = createDefaultInputChannel (slot, total + 1, number);
     node.setProperty (inputChannelType,
                       stereo ? juce::String (inputChannelTypeStereo)
                              : juce::String (inputChannelTypeMono), nullptr);
+
+    // The default name can only be built once the real type is known:
+    // createDefaultInputChannel stamps mono. The ordinal is the highest one any
+    // live name of that shape already claims, never the count of channels of
+    // that type: a latched session never resequences, so after a delete — or
+    // after a setInputChannelType flip, which renames nothing — count + 1 would
+    // hand out a name a live channel still carries, permanently. On a dense list
+    // of untouched defaults the two are the same value. Shape, not type, drives
+    // the scan: a flipped channel keeps the name of the type it was born as.
+    const juce::StringRef word = stereo ? "Stereo" : "Mono";
+    int ordinal = stereo ? getNumStereoInputChannels()
+                         : total - getNumStereoInputChannels();
+    for (int i = 0; i < total; ++i)
+    {
+        auto channel = inputs.getChild (i).getChildWithName (Channel);
+        if (channel.isValid())
+            ordinal = juce::jmax (ordinal,
+                                  defaultInputNameOrdinal (channel.getProperty (inputName).toString(),
+                                                           word));
+    }
+
+    auto newChannel = node.getChildWithName (Channel);
+    if (newChannel.isValid())
+        newChannel.setProperty (inputName,
+                                getDefaultInputNameForType (stereo, ordinal + 1), nullptr);
+
     inputs.addChild (node, slot, nullptr);
 
     insertInputPatchRow (slot, stereo);
@@ -1606,6 +1732,24 @@ juce::Result WFSValueTreeState::addInputChannel (bool stereo, int explicitNumber
 
     if (! arePositionsUserOwned())
         redistributeAllInputPositions();
+
+    // Fresh session: nothing outside the app can reference these numbers yet,
+    // so the appended channel must read as its display position, not as
+    // highest + 1 past an earlier gap. The patch has to read the same way — a
+    // gapless diagonal in DISPLAY order, which the diagonal-continue row
+    // inserted above cannot give: it appends past the globally highest patched
+    // column, i.e. in creation order.
+    //
+    // The ORDER of the two calls does not matter; do not "fix" it later. The
+    // patch re-flow is slot-keyed and reads only tree SHAPE
+    // (getNumInputChannels, isInputChannelStereo), writing only patchData/rows;
+    // the number compaction writes only `id` and `inputTrackingID` on <Input>
+    // nodes and moves no child. They commute.
+    if (! areChannelNumbersUserOwned())
+    {
+        compactChannelNumbersToDisplayOrder();
+        compactInputPatchToDisplayOrder();
+    }
 
     // Structural edits are not undoable: the channel node and its patch row
     // must live and die together, and ValueTree undo cannot span the flat
@@ -1641,6 +1785,16 @@ juce::Result WFSValueTreeState::removeInputChannel (int channelNumber)
     if (! arePositionsUserOwned())
         redistributeAllInputPositions();
 
+    // Fresh session: close the gap the removal just opened, so the list keeps
+    // reading 1..N. The columns the deleted row held are handed back out by the
+    // re-flow, so the diagonal closes up instead of leaving a hole no later
+    // channel can ever reach.
+    if (! areChannelNumbersUserOwned())
+    {
+        compactChannelNumbersToDisplayOrder();
+        compactInputPatchToDisplayOrder();
+    }
+
     clearAllUndoHistories();
     return juce::Result::ok();
 }
@@ -1657,13 +1811,27 @@ juce::Result WFSValueTreeState::setInputChannelType (int channelNumber, bool ste
                                    + juce::String (WFSParameterDefaults::maxStereoChannels)
                                    + " stereo channels)");
 
-    // The patch row keeps its columns here; the caller's reconfiguration pass
-    // (sanitizeMonoPatchRows / autoPatchStereoRightColumns) drops the R
-    // column on stereo→mono and auto-assigns a free R on mono→stereo.
+    // Latched, the patch row keeps its columns here and the caller's
+    // reconfiguration pass (sanitizeMonoPatchRows / autoPatchStereoRightColumns)
+    // drops the R column on stereo→mono and auto-assigns a free R on
+    // mono→stereo. Unlatched, the re-flow below replaces both.
     getInputsState().getChild (slot).setProperty (
         inputChannelType,
         stereo ? juce::String (inputChannelTypeStereo)
                : juce::String (inputChannelTypeMono), nullptr);
+
+    // PATCH only, deliberately NOT the numbers — the asymmetry with the other
+    // three structural ops is the point, not an oversight. A type flip moves no
+    // channel's display position, so compactChannelNumbersToDisplayOrder() here
+    // would be a provable no-op. The patch is NOT invariant under it: the row's
+    // capacity changes by one column, which shifts every column after it.
+    // Today's substitute is the caller's autoPatchStereoRightColumns, a
+    // heuristic that refuses when leftCol + 1 is already claimed — and under
+    // strict packing the next column is ALWAYS claimed by the following row, so
+    // mono→stereo would essentially never get its R. The "already this type"
+    // early return above sits before this, so a no-op flip does not re-flow.
+    if (! areChannelNumbersUserOwned())
+        compactInputPatchToDisplayOrder();
 
     clearAllUndoHistories();
     return juce::Result::ok();
@@ -1713,7 +1881,8 @@ juce::Result WFSValueTreeState::moveInputChannel (int channelNumber, int targetS
     // Drag-to-reorder: the channel node and its patch row move TOGETHER, so
     // the patch matrix, map, picker and engine slots all follow the new
     // display order while the permanent number (and every external
-    // reference) stays put.
+    // reference) stays put once the session is latched; before that the
+    // renumber below makes the numbers follow the display order.
     inputs.moveChild (fromSlot, targetSlot, nullptr);
     moveInputPatchRow (fromSlot, targetSlot);
 
@@ -1725,6 +1894,17 @@ juce::Result WFSValueTreeState::moveInputChannel (int channelNumber, int targetS
         if (from < to) return (s > from && s <= to) ? s - 1 : s;
         return (s >= to && s < from) ? s + 1 : s;
     });
+
+    // Fresh session: the dragged channel takes the number of its new display
+    // position — the whole point of the unlatched regime. moveInputPatchRow
+    // above carries the columns WITH the row, which is the latched behaviour and
+    // is exactly what decouples the patch from display order; unlatched, the
+    // re-flow overwrites it.
+    if (! areChannelNumbersUserOwned())
+    {
+        compactChannelNumbersToDisplayOrder();
+        compactInputPatchToDisplayOrder();
+    }
 
     clearAllUndoHistories();
     return juce::Result::ok();
@@ -1831,6 +2011,71 @@ void WFSValueTreeState::normalizeInputPatchRows()
         rowsArr = juce::StringArray::fromTokens (
             patch.getProperty (patchData).toString(), ";", "");
     }
+}
+
+void WFSValueTreeState::compactInputPatchToDisplayOrder()
+{
+    auto patch = getAudioPatchState().getChildWithName (InputPatch);
+    if (! patch.isValid())
+        return;
+
+    const int total = getNumInputChannels();
+    if (total <= 0)
+        return;
+
+    // Rebuilt from the channel list, discarding the stored rows wholesale. That
+    // is safe on a call-graph property, not on anything in this code: while the
+    // numbers are unlatched, no operator click and no wire message has ever
+    // reached patchData. The only interactive writer is
+    // PatchMatrixComponent::savePatchesToValueTree, reachable only through
+    // MainComponent::openAudioInterfaceWindow(), which calls
+    // markChannelNumbersUserOwned() BEFORE it constructs the window; every load
+    // path latches on success; MCP lists patchData under ignored_parameters and
+    // OSC has no patch address. WARNING: anything future that lets a patch be
+    // authored must latch first, or this will eat it.
+    //
+    // Rebuilding is also what makes the re-flow self-repairing: it drops a stale
+    // row count and the ragged row lengths insertInputPatchRow leaves behind (it
+    // sizes only the row it inserts), and it makes the result a pure function of
+    // the channel list — hence idempotent by construction.
+    //
+    // Strict packing: consecutive columns, no gaps, and NO alignment to the
+    // interface's odd/even input pairs, so N mono + M stereo always fit in
+    // N + 2M hardware inputs. A stereo pair may therefore legitimately start on
+    // hardware input 11.
+    const int demand = total + getNumStereoInputChannels();
+    const int hwCols = static_cast<int> (patch.getProperty (cols, 64));
+    const int rowLen = juce::jmax (hwCols, juce::jmin (maxHardwarePatchChannels, demand));
+
+    juce::StringArray rowsArr;
+    int cursor = 0;
+    for (int slot = 0; slot < total; ++slot)
+    {
+        const int capacity = isInputChannelStereo (slot) ? 2 : 1;
+        const int first    = cursor;
+
+        // The clamp mirrors insertInputPatchRow's literally. At the exact
+        // boundary a stereo row would come out with a single column — 64 live
+        // channels with at most 8 stereo demand 72 of 512 columns, so that is
+        // structurally unreachable. It is a guard, not a policy: nobody should
+        // read a rule out of it and "unify" the two functions on its strength.
+        const int last = juce::jmin (maxHardwarePatchChannels - 1, cursor + capacity - 1);
+        cursor += capacity;
+
+        juce::StringArray rowCols;
+        for (int c = 0; c < rowLen; ++c)
+            rowCols.add (c >= first && c <= last ? "1" : "0");
+
+        rowsArr.add (rowCols.joinIntoString (","));
+    }
+
+    // Direct setProperty throughout, never setParameter: re-flowing the app's
+    // own default patch must not push an undo entry, mark the project dirty or
+    // trip an ownership latch. Same rule compactChannelNumbersToDisplayOrder and
+    // resequenceDefaultInputNames follow.
+    patch.setProperty (patchData, rowsArr.joinIntoString (";"), nullptr);
+    patch.setProperty (rows, rowsArr.size(), nullptr);
+    recomputePatchCols();
 }
 
 int WFSValueTreeState::getNumOutputChannels() const
@@ -2334,6 +2579,13 @@ void WFSValueTreeState::replaceState (const juce::ValueTree& newState)
         // Back-fill anything the loaded state omitted (incomplete / scope-filtered
         // files) so no parameter is left absent on this wholesale-replace path.
         ensureCompleteSchema();
+        // A wholesale replace IS a project load: the numbers in the file are
+        // already in use (cues, snapshots, plug-in automation, external
+        // controllers), and a file written before this latch existed carries no
+        // property at all. Both must land on the permanent-number regime — this
+        // is the whole backward-compatibility story, and it must run after
+        // ensureCompleteSchema so the IO node exists to hold the flag.
+        markChannelNumbersUserOwned();
         clearAllUndoHistories();
     }
 }
@@ -2972,15 +3224,18 @@ juce::ValueTree WFSValueTreeState::createDefaultInputChannel (int index, int tot
 
     // The permanent channel number defaults to index + 1 (dense creation);
     // addInputChannel passes it explicitly, since with gaps in the list the
-    // number and the slot no longer coincide. Name, id and tracking id all
-    // follow the NUMBER; the position default follows the SLOT (grid layout).
+    // number and the slot no longer coincide. Id and tracking id follow the
+    // NUMBER; the position default follows the SLOT (grid layout).
     const int number = channelNumber > 0 ? channelNumber : index + 1;
 
     juce::ValueTree input (Input);
     input.setProperty (id, number, nullptr);
     input.setProperty (inputChannelType, inputChannelTypeMono, nullptr);
 
-    input.appendChild (createInputChannelSection (number - 1), nullptr);
+    // Born mono, so the number doubles as the mono ordinal — exact for the dense
+    // all-mono list initializeDefaultState builds. A caller creating anything
+    // else (addInputChannel) overwrites the type and the name together.
+    input.appendChild (createInputChannelSection (false, number), nullptr);
     input.appendChild (createInputPositionSection (index, totalInputs), nullptr);
     input.appendChild (createInputAttenuationSection(), nullptr);
     input.appendChild (createInputDirectivitySection(), nullptr);
@@ -3001,12 +3256,13 @@ juce::ValueTree WFSValueTreeState::createDefaultInputChannel (int index, int tot
     return input;
 }
 
-juce::ValueTree WFSValueTreeState::createInputChannelSection (int index)
+juce::ValueTree WFSValueTreeState::createInputChannelSection (bool stereo, int ordinal)
 {
     juce::ValueTree channel (Channel);
-    channel.setProperty (inputName, getDefaultInputName (index), nullptr);
+    channel.setProperty (inputName, getDefaultInputNameForType (stereo, ordinal), nullptr);
     channel.setProperty (inputSolo, 0, nullptr);
     channel.setProperty (inputStereoWidth, inputStereoWidthDefault, nullptr);
+    channel.setProperty (inputStereoAxisOffset, inputStereoAxisOffsetDefault, nullptr);
     channel.setProperty (inputAttenuation, inputAttenuationDefault, nullptr);
     channel.setProperty (inputDelayLatency, inputDelayLatencyDefault, nullptr);
     channel.setProperty (inputMinimalLatency, inputMinimalLatencyDefault, nullptr);
@@ -3353,6 +3609,24 @@ void WFSValueTreeState::markPositionsUserOwned()
     auto stageTree = getStageState();
     if (stageTree.isValid() && ! (bool) stageTree.getProperty (positionsUserOwned, false))
         stageTree.setProperty (positionsUserOwned, true, nullptr);   // no undo: see header
+}
+
+bool WFSValueTreeState::areChannelNumbersUserOwned()
+{
+    // An invalid IO tree reads as OWNED — the opposite fallback to
+    // arePositionsUserOwned. Being "unowned" here licenses a rewrite of every
+    // channel id, so malformed or half-built state must land on the permanent
+    // regime; a wrong "fresh" verdict would renumber a real show.
+    auto io = getIOState();
+    return (! io.isValid())
+        || (bool) io.getProperty (channelNumbersUserOwned, false);
+}
+
+void WFSValueTreeState::markChannelNumbersUserOwned()
+{
+    auto io = getIOState();
+    if (io.isValid() && ! (bool) io.getProperty (channelNumbersUserOwned, false))
+        io.setProperty (channelNumbersUserOwned, true, nullptr);   // no undo: see header
 }
 
 void WFSValueTreeState::redistributeAllReverbPositions()

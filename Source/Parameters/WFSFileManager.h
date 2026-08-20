@@ -424,7 +424,9 @@ public:
     // Snapshot Scope Operations
     //==========================================================================
 
-    /** Save a new input snapshot with extended scope */
+    /** Save a new input snapshot with extended scope. Also latches channel-number
+        ownership: the file keys its entries by permanent channel number, so those
+        numbers stop being reassignable the moment it is written. */
     bool saveInputSnapshotWithExtendedScope (const juce::String& snapshotName, const ExtendedSnapshotScope& scope);
 
     /** Load an input snapshot with extended scope */

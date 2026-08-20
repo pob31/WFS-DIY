@@ -166,6 +166,16 @@ inline ToolResult create (WFSValueTreeState& state,
             }
             createdNumbers.add (state.getHighestChannelNumber());
         }
+
+        // The numbers about to leave in created_channel_ids are what an
+        // external agent will quote in every later call, so they stop being
+        // reflowable the moment they are handed out: without this, a human
+        // reordering the list afterwards renumbers the very channels the
+        // client is holding. This is the non-obvious trigger — creating a
+        // channel does not itself read a number, but publishing one commits
+        // to it. Output and reverb ids are dense slot positions and stay
+        // outside this branch on purpose.
+        state.markChannelNumbersUserOwned();
     }
     else
     {
@@ -247,6 +257,15 @@ inline ToolResult del (WFSValueTreeState& state,
 
     if (cfg.kindLabel == "input")
     {
+        // Freeze BEFORE the removal, not after: while unlatched
+        // removeInputChannel reflows every number to slot+1, which would
+        // renumber the channels the client still holds and break this tool's
+        // own promise that the deleted number is retired as a permanent gap
+        // while everything else keeps its number, slot and patch columns.
+        // Output and reverb deletes are dense-count decrements and must not
+        // freeze input numbering.
+        state.markChannelNumbersUserOwned();
+
         // Delete by permanent number; the number is retired (gap), everything
         // else keeps its number, slot and patch columns.
         deletedId = requestedNumber > 0 ? requestedNumber
