@@ -2415,6 +2415,34 @@ bool WFSFileManager::applyInputsSection (const juce::ValueTree& inputsTree)
 
         mergeTreeRecursive (existingInputs, inputsTree, valueTreeState.getUndoManager());
 
+        // The merge matches children by type + id and never applies the FILE's
+        // child ORDER, so without this a saved drag-reorder comes back in
+        // whatever order the pre-existing tree had — ascending, for the default
+        // session a load starts from. That is not merely cosmetic: patchData
+        // rows are positional (row = slot) and DO load in file order, so a tree
+        // left ascending against file-ordered rows hands every reordered
+        // channel a different channel's hardware patch.
+        {
+            int target = 0;
+            for (int i = 0; i < inputsTree.getNumChildren(); ++i)
+            {
+                const int number = static_cast<int> (
+                    inputsTree.getChild (i).getProperty (WFSParameterIDs::id, 0));
+                if (number <= 0)
+                    continue;
+
+                // Resolved against the live tree each time: earlier moves in
+                // this loop have already shifted the slots underneath us.
+                const int from = valueTreeState.getSlotForChannelNumber (number);
+                if (from < 0)
+                    continue;   // in the file but not merged in — leave it out
+
+                if (from != target)
+                    existingInputs.moveChild (from, target, nullptr);   // no undo: structural
+                ++target;
+            }
+        }
+
         // Sync inputChannels count with actual number of input children.
         // The inputs file may have more entries than the system config's inputChannels property,
         // which was set earlier during loadSystemConfig.
@@ -2427,7 +2455,7 @@ bool WFSFileManager::applyInputsSection (const juce::ValueTree& inputsTree)
 
         // Stable-number model migration: repair ids and stamp per-channel
         // types on file children the merge brought in (tree order is kept —
-        // it is the user's display order).
+        // it is the user's display order, restored above).
         valueTreeState.migrateInputChannelModel();
 
         return true;
