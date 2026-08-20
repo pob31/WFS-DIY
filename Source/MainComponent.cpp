@@ -2784,12 +2784,33 @@ void MainComponent::runChannelListSelfTest()
     // Drag-to-reorder: move stereo channel 6 to display slot 1 — its patch
     // columns must travel with it, and every number must stay put.
     {
+        // The tablet reads its display order out of the /remote/channelList
+        // payload, so the payload must follow TREE order and not numeric order:
+        // built from a sort (or from 1..N) it would come out identical across a
+        // reorder, and every channel below the moved one would then be drawn,
+        // picked and pinned at the wrong position on the tablet with nothing on
+        // the wire looking wrong. No socket involved — this reads the builder.
+        auto sortedNumbers = [](const std::vector<int>& payload)
+        {
+            std::vector<int> numbers;
+            for (size_t i = 1; i + 1 < payload.size(); i += 2)
+                numbers.push_back(payload[i]);
+            std::sort(numbers.begin(), numbers.end());
+            return numbers;
+        };
+
         const auto p6before = patchOfNumber(6);
+        const auto inventoryBefore = oscManager->buildRemoteChannelListPayload();
         check(vts.moveInputChannel(6, 1).wasOk(), "L: drag channel 6 to display slot 1");
         reconfig();
         verify("L");
         check(vts.getSlotForChannelNumber(6) == 1, "L: channel 6 now at slot 1");
         check(patchOfNumber(6) == p6before, "L: channel 6 kept its patch columns through the move");
+
+        const auto inventoryAfter = oscManager->buildRemoteChannelListPayload();
+        check(inventoryAfter != inventoryBefore
+                  && sortedNumbers(inventoryAfter) == sortedNumbers(inventoryBefore),
+              "L: the remote channel inventory re-ordered with the move and kept the same set of numbers");
     }
 
     int added = 0;
@@ -4097,6 +4118,18 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
                                       + juce::String (reverbs) + " reverbs");
     numInputChannels = inputs;
     numOutputChannels = outputs;
+
+    // Channel inventory to the tablets first, before the reconfiguration pass
+    // below spends milliseconds on it. This is the funnel every structural edit
+    // reaches — add, remove, move, type flip, config load — so it is the only
+    // place that catches a drag-reorder: a reorder changes no count, so the
+    // inputChannels ValueTree hook in OSCManager never fires for one, and the
+    // tablet would keep drawing the old display order. sendRemoteChannelList
+    // skips an unchanged payload, which is what keeps the add/remove loop behind
+    // setInputChannelCounts from sending one inventory per step.
+    if (oscManager != nullptr)
+        oscManager->sendRemoteChannelList();
+
     recomputeRenderSourceCount();  // keep the renderer dimension in lockstep
     stopProcessingForConfigurationChange();
     resizeRoutingMatrices();
@@ -4562,7 +4595,18 @@ void MainComponent::handleConfigReloaded()
     bool reverbCountChanged = (newReverbChannels != reverbAttenuationTargetsCount);
     numInputChannels = newInputChannels;
     numOutputChannels = newOutputChannels;
+    const int previousRenderSources = numRenderSources;
     recomputeRenderSourceCount();  // keep the renderer dimension in lockstep
+
+    // Every routing matrix is numRenderSources x numOutputChannels, and a stereo
+    // channel contributes TWO render sources — so a loaded project can change that
+    // dimension without changing either count: 8 mono channels replaced by 7 mono
+    // plus 1 stereo is still 8 channels and 16 outputs. Without this the matrices
+    // keep the previous session's row count while the copy loops below (and every
+    // per-render-source loop in timerCallback) walk the new one, writing past the
+    // end of the vectors.
+    countsChanged = countsChanged || (numRenderSources != previousRenderSources);
+
     if (countsChanged)
     {
         resizeRoutingMatrices();

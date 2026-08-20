@@ -4199,6 +4199,9 @@ void OSCManager::resendStateToRemoteTargets()
     // Collect and send the full state dump to all connected Remote targets, packed
     // into OSC bundles (single UDP datagram each, under MTU). Background thread
     // keeps the message thread responsive while bundles stream out.
+    // The dump opens with /remote/channelList, so the config reload that brings us
+    // here re-seeds the tablet's channel inventory along with everything else —
+    // this path must not depend on the de-spam guard in sendRemoteChannelList.
     for (int i = 0; i < MAX_TARGETS; ++i)
     {
         if (targetConfigs[static_cast<size_t>(i)].protocol == Protocol::Remote &&
@@ -4517,6 +4520,28 @@ std::vector<juce::OSCMessage> OSCManager::collectStateDumpMessages(int /*targetI
     }
 
     messages.push_back(OSCMessageBuilder::buildConfigIntMessage("/inputs", numInputs));
+
+    // --- Channel inventory (protocol v4) ---
+    // Third message, ahead of everything per-channel: the count above says how
+    // many channels exist but not WHICH, and the per-channel messages that follow
+    // are addressed by permanent number. A tablet that enumerated 1..count would
+    // spend this dump asking for numbers that were deleted and discarding the
+    // ones numbered above the count. Sent unconditionally — a v3 tablet drops the
+    // unknown address at its catch-all.
+    {
+        auto payload = buildRemoteChannelListPayload();
+
+        // Re-seeding the de-spam cache is what keeps its invariant true: it may
+        // only ever suppress a repeat of what the remotes already hold, and this
+        // dump is what they will hold. Project load and snapshot recall reach the
+        // remotes through here alone (handleConfigReloaded never runs the count-
+        // change path), so without this write the cache would keep asserting the
+        // pre-load inventory and silently swallow the next structural edit that
+        // happened to land on that same shape.
+        lastChannelListPayload = payload;
+
+        buildRemoteChannelListMessages(messages, payload);
+    }
 
     // --- Stage config ---
     auto stageTree = state.getStageState();
@@ -4918,6 +4943,72 @@ void OSCManager::buildRemoteVisConfigMessages(std::vector<juce::OSCMessage>& out
     for (int i = 0; i < numOutputs; ++i)
         arrays.addInt32(varToInt(state.getOutputParameter(i, WFSParameterIDs::outputArray)));
     out.push_back(std::move(arrays));
+}
+
+std::vector<int> OSCManager::buildRemoteChannelListPayload() const
+{
+    const int n = state.getNumInputChannels();
+
+    std::vector<int> payload;
+    payload.reserve(static_cast<size_t>(1 + 2 * n));
+    payload.push_back(n);
+
+    // Slot order IS display order (drag-to-reorder moves the node), and the
+    // permanent number is decoupled from the slot, so the walk must be over
+    // slots and must not sort: the array index is what tells the tablet where
+    // to draw the channel.
+    for (int slot = 0; slot < n; ++slot)
+    {
+        payload.push_back(state.getInputChannelNumber(slot));
+        payload.push_back(state.isInputChannelStereo(slot) ? 1 : 0);
+    }
+
+    return payload;
+}
+
+void OSCManager::buildRemoteChannelListMessages(std::vector<juce::OSCMessage>& out,
+                                                const std::vector<int>& payload)
+{
+    juce::OSCMessage list("/remote/channelList");
+    for (int v : payload)
+        list.addInt32(v);
+    out.push_back(std::move(list));
+}
+
+void OSCManager::sendRemoteChannelList()
+{
+    auto payload = buildRemoteChannelListPayload();
+
+    // De-spam. Skipping an identical payload cannot starve a tablet of the
+    // inventory, because the cache only ever suppresses a repeat of what the
+    // connected remotes already hold — every path that hands them a different one
+    // (connect dump, project load, snapshot recall) writes the cache too, in
+    // collectStateDumpMessages.
+    if (payload == lastChannelListPayload)
+        return;
+
+    lastChannelListPayload = payload;
+
+    std::vector<juce::OSCMessage> messages;
+    buildRemoteChannelListMessages(messages, payload);
+
+    // Deliberately NOT gated on the remote's reported protocol version: a v3
+    // tablet drops an unknown address at its catch-all with no side effect, so
+    // branching would leave it no better off while adding a failure mode (and a
+    // version we mis-read would then cost a v4 tablet its inventory).
+    // Sent direct rather than through the rate limiter: the inventory has to be
+    // in place before the tablet acts on the per-channel messages that a
+    // structural edit is already spraying at it.
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        if (targetConfigs[static_cast<size_t>(i)].protocol == Protocol::Remote &&
+            targetConfigs[static_cast<size_t>(i)].txEnabled &&
+            remoteStates[static_cast<size_t>(i)].phase == RemoteConnectionState::Phase::Connected)
+        {
+            for (const auto& msg : messages)
+                sendMessageDirect(i, msg);
+        }
+    }
 }
 
 void OSCManager::sendRemoteVisConfig(int numOutputs, int numReverbs, int targetIndex)

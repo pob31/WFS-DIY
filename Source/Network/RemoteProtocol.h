@@ -16,6 +16,12 @@ namespace WFSNetwork
 //       sequence number appended to /remote/stateComplete
 //   3 — /remote/vis/* visualisation mirroring (config, outputArrays, selection,
 //       delays/levels rows) and tablet-side /remote/vis/pin
-constexpr int kRemoteProtocolVersion = 3;
+//   4 — /remote/channelList: the live channel numbers in display order, each
+//       paired with its mono/stereo flag. It replaces the channel count as the
+//       tablet's enumeration source, because a permanent channel number is no
+//       longer an index: deletes leave gaps and a drag-reorder puts the numbers
+//       out of ascending order, so enumerating 1..count both demands channels
+//       that do not exist and hides ones that do.
+constexpr int kRemoteProtocolVersion = 4;
 
 } // namespace WFSNetwork
