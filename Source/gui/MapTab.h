@@ -43,6 +43,10 @@ public:
         reverbsTree.addListener(this);
         configTree.addListener(this);
 
+        // Skipped while the Map is off screen — becoming visible repaints it
+        // anyway, so a hidden Map never pays for edits made while it was away.
+        repaintCoalescer.onFlush = [this]() { if (isShowing()) repaint(); };
+
         // Home button to reset view to stage
         addAndMakeVisible(homeButton);
         homeButton.setButtonText(LOC("map.buttons.fitStage"));
@@ -2457,6 +2461,21 @@ private:
     std::set<int> selectedInputs;  // Multi-selection set (0-based input indices)
     bool isDraggingInput = false;
 
+    // Coalescing clock for ValueTree-driven repaints. It runs ONLY while a
+    // repaint is pending — armed by the first change, fires once 50 ms later,
+    // then stops itself. An idle Map therefore has no timer running at all, and
+    // a stream of changes is capped at 20 Hz however fast the writes arrive.
+    // (MapTab's own timer cannot do this: it is started by a pan/zoom gesture
+    // and stopped the moment no mouse button is held.)
+    struct PendingRepaintTimer : private juce::Timer
+    {
+        std::function<void()> onFlush;
+        void arm() { if (! isTimerRunning()) startTimer(50); }
+    private:
+        void timerCallback() override { stopTimer(); if (onFlush) onFlush(); }
+    };
+    PendingRepaintTimer repaintCoalescer;
+
     // Rubber-band selection state
     bool isRubberBanding = false;
     juce::Point<float> rubberBandStart, rubberBandEnd;
@@ -4291,34 +4310,59 @@ private:
                                   const juce::Identifier& property) override
     {
         juce::ignoreUnused(treeWhosePropertyHasChanged, property);
-        // Don't auto-repaint for high-frequency origins (UI drags, LFO/Move
-        // 50Hz updates, tracking) — they would spike CPU on 64-channel
-        // setups, and they all have their own existing repaint paths.
-        // Phase 5 origins MCP and Snapshot are episodic and don't have
-        // an alternative path — Map writes from MCP previously waited for
-        // the next mouse interaction to surface. Repaint selectively here.
-        const auto origin = WFSNetwork::getCurrentOriginTag();
-        if (origin == WFSNetwork::OriginTag::MCP
-         || origin == WFSNetwork::OriginTag::Snapshot)
-            repaint();
+        // Raise a flag; timerCallback paints at most once per tick. This used to
+        // filter by ORIGIN, repainting only for MCP and Snapshot, on the premise
+        // that the high-frequency origins "all have their own existing repaint
+        // paths". They do not: the compensating repaints in MainComponent's timer
+        // are each gated on something ANIMATING (speed limiter, AutomOtion, LFO,
+        // level overlay), so an ordinary edit — a dial, an OSC write, a tablet
+        // message, enabling Live Source Tamer — repainted the Map zero times, and
+        // the operator had to nudge something before it would show.
+        //
+        // Filtering by origin was the wrong lever for the right worry. Coalescing
+        // costs less than the old gate ever did: the four listened trees already
+        // scope this to inputs/outputs/reverbs/config, a burst of 64 position
+        // writes now costs ONE paint instead of 64, and an idle Map costs none.
+        repaintCoalescer.arm();
     }
 
     void valueTreeChildAdded(juce::ValueTree& parentTree, juce::ValueTree& child) override
     {
         juce::ignoreUnused(parentTree, child);
-        repaint();
+        repaintCoalescer.arm();
     }
 
     void valueTreeChildRemoved(juce::ValueTree& parentTree, juce::ValueTree& child, int index) override
     {
         juce::ignoreUnused(parentTree, child, index);
         clearSelection();  // Clear selection if channel removed
-        repaint();
+        repaintCoalescer.arm();
     }
 
     void valueTreeChildOrderChanged(juce::ValueTree& parentTree, int oldIndex, int newIndex) override
     {
-        juce::ignoreUnused(parentTree, oldIndex, newIndex);
+        // The selection is a set of SLOTS and a drag-to-reorder changes which
+        // channel occupies each one, so without remapping the ring stays on the
+        // slot and silently adopts whichever channel moved into it — the same
+        // slot-vs-number trap the rest of the reorder work exists to close. The
+        // shift mirrors ValueTree::moveChild's own, so it matches the tree edit
+        // that provoked it.
+        if (parentTree == inputsTree && oldIndex != newIndex && !selectedInputs.empty())
+        {
+            std::set<int> remapped;
+            for (int slot : selectedInputs)
+            {
+                if (slot == oldIndex)
+                    remapped.insert(newIndex);
+                else if (oldIndex < newIndex)
+                    remapped.insert((slot > oldIndex && slot <= newIndex) ? slot - 1 : slot);
+                else
+                    remapped.insert((slot >= newIndex && slot < oldIndex) ? slot + 1 : slot);
+            }
+            selectedInputs = std::move(remapped);
+            selectedInput = (selectedInputs.size() == 1) ? *selectedInputs.begin() : -1;
+        }
+        repaintCoalescer.arm();
     }
 
     void valueTreeParentChanged(juce::ValueTree& tree) override
