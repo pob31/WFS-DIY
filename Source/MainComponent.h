@@ -453,6 +453,12 @@ private:
     struct StereoImageLegs { bool valid = false; juce::Point<float> left, right; };
     std::array<StereoImageLegs, WFSParameterDefaults::maxInputChannels> stereoImageLegs {};
 
+    // Set when a slot rebuild throws away legs that were valid, and consumed by
+    // the next refreshStereoSliceGeometry(). Without it, retiring the LAST
+    // stereo channel is invisible to the refresh — it early-outs on a mono-only
+    // show — and the Map would keep the bar it last painted for ever.
+    bool stereoImageLegsDirty = false;
+
     juce::AudioBuffer<float> patchedOutputBuffer;
     juce::AudioBuffer<float> wfsOutputBuffer;  // Algorithm writes here, then single remap to HW outputs
 
@@ -574,8 +580,12 @@ private:
         normalized ±1) through inputStereoWidth in METRES and the channel's
         spread axis to metre offsets, pushes them into the calculation engine
         and caches the pair's legs for the Map. Reads no speaker position, so
-        the result means the same thing on every array shape. */
-    void refreshStereoSliceGeometry();
+        the result means the same thing on every array shape.
+
+        Returns true when the cached legs the Map draws from actually changed
+        this pass (including a channel gaining or losing them), which is the
+        only signal that asks the Map to repaint for a stereo image edit. */
+    bool refreshStereoSliceGeometry();
     void resizeOutputAttenuation(int numOut, double sampleRate);
     void resizeReverbAttenuation(int numReverbs, double sampleRate);
     void stopProcessingForConfigurationChange();

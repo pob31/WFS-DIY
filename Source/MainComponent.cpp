@@ -3352,7 +3352,14 @@ void MainComponent::recomputeRenderSourceCount()
     // an image bar on a channel that has stopped being stereo. The next refresh
     // repopulates every channel that still is one.
     stereoAxisLatch.fill (WFSStereoImage::Axis {});
-    stereoImageLegs.fill (StereoImageLegs {});
+    for (auto& legs : stereoImageLegs)
+    {
+        // Discarding a valid pair is a Map change the refresh cannot detect on
+        // its own: nothing repopulates a slot that has stopped being stereo, so
+        // the erase has to be flagged here or the bar is never painted out.
+        stereoImageLegsDirty = stereoImageLegsDirty || legs.valid;
+        legs = StereoImageLegs {};
+    }
 
     // The engine renders from the same map (derived rows, slice geometry)
     if (calculationEngine)
@@ -3901,14 +3908,19 @@ void MainComponent::runStereoDecompositionStage (int startSample, int numSamples
     }
 }
 
-void MainComponent::refreshStereoSliceGeometry()
+bool MainComponent::refreshStereoSliceGeometry()
 {
+    // Consumed on every pass, including the ones that bail out below: a rebuild
+    // that retired the last stereo channel still owes the Map one repaint.
+    bool legsChanged = stereoImageLegsDirty;
+    stereoImageLegsDirty = false;
+
     if (calculationEngine == nullptr || stereoChannelManager == nullptr)
-        return;
+        return legsChanged;
 
     // Nothing to place when no stereo channels exist (the common case)
     if (renderSourceMap.count == renderSourceMap.numInputChannels)
-        return;
+        return legsChanged;
 
     // No speaker position is read anywhere below, and that is the point: the
     // width is an absolute distance, so it means the same thing on a frontal
@@ -3984,15 +3996,35 @@ void MainComponent::refreshStereoSliceGeometry()
 
         // Map read-back: the legs the engine was just handed, in absolute stage
         // metres, so the drawing and the render can never disagree.
+        const juce::Point<float> newLeft  { anchor.x + offsets[1 * 3 + 0],
+                                            anchor.y + offsets[1 * 3 + 1] };
+        const juce::Point<float> newRight { anchor.x + offsets[2 * 3 + 0],
+                                            anchor.y + offsets[2 * 3 + 1] };
+
         auto& legs = stereoImageLegs[static_cast<size_t> (ch)];
-        legs.left  = { anchor.x + offsets[1 * 3 + 0], anchor.y + offsets[1 * 3 + 1] };
-        legs.right = { anchor.x + offsets[2 * 3 + 0], anchor.y + offsets[2 * 3 + 1] };
+
+        // The threshold is a quarter pixel at the Map's maximum zoom (500 px/m),
+        // so a backend whose azimuths never settle to the same float twice
+        // cannot pin the Map at a 50 Hz repaint for motion nobody can see. A
+        // channel gaining its legs counts on its own — the bar has to appear.
+        constexpr float legMoveEpsilonM = 0.0005f;
+        if (! legs.valid
+            || std::abs (newLeft.x  - legs.left.x)  > legMoveEpsilonM
+            || std::abs (newLeft.y  - legs.left.y)  > legMoveEpsilonM
+            || std::abs (newRight.x - legs.right.x) > legMoveEpsilonM
+            || std::abs (newRight.y - legs.right.y) > legMoveEpsilonM)
+            legsChanged = true;
+
+        legs.left  = newLeft;
+        legs.right = newRight;
         legs.valid = true;
 
         // Backend intrinsic latency → the render-latency reference hook
         // (0 for the Phase-0 pass-through, ~21 ms for the Phase-1 STFT)
         calculationEngine->setChannelIntrinsicLatency (ch, stereoChannelManager->getLatencyMs (k));
     }
+
+    return legsChanged;
 }
 
 void MainComponent::applyOutputPatch(const juce::AudioSourceChannelInfo& bufferToFill,
@@ -7216,7 +7248,19 @@ void MainComponent::timerCallback()
         // Stereo slice geometry: publish config down / slice states up and
         // hand the engine fresh per-slice offsets (marks channels dirty only
         // on an actual change, so this adds no recalc work for mono shows)
-        refreshStereoSliceGeometry();
+        const bool stereoLegsChanged = refreshStereoSliceGeometry();
+
+        // The Map draws its spread bar out of the cache the call above fills,
+        // and nothing else asks it to repaint when a width/axis dial or an
+        // anchor move changes it — every neighbouring repaint here is gated on
+        // something animating, and MapTab drops non-MCP property changes. The
+        // frames that DO get painted (a drag, an arrow-key nudge) run before
+        // this tick refills the cache, so they draw the previous legs; driving
+        // the repaint from the change is what stops the bar lagging a gesture
+        // behind the dot. Gated on the change so a static show with a stereo
+        // channel does not repaint the Map 50 times a second.
+        if (stereoLegsChanged && mapVisible && mapTab != nullptr)
+            mapTab->repaint();
 
         // Only recalculate WFS matrix if input positions have changed (dirty flag set).
         // LS gains are supplied fresh each call (never cached by the engine).
