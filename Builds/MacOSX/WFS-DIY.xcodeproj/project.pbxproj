@@ -303,9 +303,6 @@
 		5DCF6592130A5D09FC39EB71 /* AudioInterfaceWindow.cpp */ /* AudioInterfaceWindow.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioInterfaceWindow.cpp; path = ../../Source/gui/AudioInterfaceWindow.cpp; sourceTree = SOURCE_ROOT; };
 		5EAAD8FC61C4D28235C79867 /* htk_frame.c */ /* htk_frame.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = htk_frame.c; path = ../../ThirdParty/headtracker/firmware/common/protocol/htk_frame.c; sourceTree = SOURCE_ROOT; };
 		5F29AE3042C22D68310A37B5 /* InputBufferAlgorithm.h */ /* InputBufferAlgorithm.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = InputBufferAlgorithm.h; path = ../../spatcore/wfs/InputBufferAlgorithm.h; sourceTree = SOURCE_ROOT; };
-		2BEF860D9B9C44CB9FD920C8 /* RenderSourceMap.h */ /* RenderSourceMap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = RenderSourceMap.h; path = ../../spatcore/wfs/RenderSourceMap.h; sourceTree = SOURCE_ROOT; };
-		556626EDEB2747B5B8D166C2 /* StereoDecomposer.h */ /* StereoDecomposer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StereoDecomposer.h; path = ../../spatcore/dsp/StereoDecomposer.h; sourceTree = SOURCE_ROOT; };
-		FC06F0B05FCA40AC85192447 /* StereoChannelManager.h */ /* StereoChannelManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StereoChannelManager.h; path = ../../Source/DSP/StereoChannelManager.h; sourceTree = SOURCE_ROOT; };
 		5FCE45D2144A43E8AFA8F60A /* ReverbSDNAlgorithmGPU.h */ /* ReverbSDNAlgorithmGPU.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ReverbSDNAlgorithmGPU.h; path = ../../spatcore/reverb/ReverbSDNAlgorithmGPU.h; sourceTree = SOURCE_ROOT; };
 		601124A6913C54CD5AC91469 /* OSCMessageRouter.h */ /* OSCMessageRouter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCMessageRouter.h; path = ../../Source/Network/OSCMessageRouter.h; sourceTree = SOURCE_ROOT; };
 		642B404DC1044240DDD7FD3A /* PatchMatrixShim.cpp */ /* PatchMatrixShim.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = PatchMatrixShim.cpp; path = ../../Source/gui/PatchMatrixShim.cpp; sourceTree = SOURCE_ROOT; };
@@ -316,6 +313,7 @@
 		69C917578578859B1CE878B8 /* GradientMapEditor.h */ /* GradientMapEditor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GradientMapEditor.h; path = ../../Source/GradientMap/GradientMapEditor.h; sourceTree = SOURCE_ROOT; };
 		6A24677DF371FEEAE8B9B546 /* OSCReceiverWithSenderIP.h */ /* OSCReceiverWithSenderIP.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCReceiverWithSenderIP.h; path = ../../spatcore/control/osc/OSCReceiverWithSenderIP.h; sourceTree = SOURCE_ROOT; };
 		6BABB0D22DF0B0DEF97EC39A /* Foundation.framework */ /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		6C197DB268211A0714D027CE /* StereoDecomposer.h */ /* StereoDecomposer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StereoDecomposer.h; path = ../../spatcore/dsp/StereoDecomposer.h; sourceTree = SOURCE_ROOT; };
 		6E10D0FC4C9B6E6575A85044 /* include_juce_dsp.mm */ /* include_juce_dsp.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_dsp.mm; path = ../../JuceLibraryCode/include_juce_dsp.mm; sourceTree = SOURCE_ROOT; };
 		6E1AA48ECD4D30039C5386AE /* speex_resampler.c */ /* speex_resampler.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = speex_resampler.c; path = ../../ThirdParty/libmysofa/src/resampler/speex_resampler.c; sourceTree = SOURCE_ROOT; };
 		6EDCA6152CCF68F79BC3E7F4 /* OSCLogger.cpp */ /* OSCLogger.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCLogger.cpp; path = ../../Source/Network/OSCLogger.cpp; sourceTree = SOURCE_ROOT; };
@@ -385,6 +383,7 @@
 		981B4FDA4C849575BA2BA462 /* HipWfsBackend.cpp */ /* HipWfsBackend.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = HipWfsBackend.cpp; path = ../../spatcore/gpu/HipWfsBackend.cpp; sourceTree = SOURCE_ROOT; };
 		985483A84729EE26DE85D575 /* TrackingRTTrPReceiver.h */ /* TrackingRTTrPReceiver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TrackingRTTrPReceiver.h; path = ../../Source/Network/TrackingRTTrPReceiver.h; sourceTree = SOURCE_ROOT; };
 		99189007A033AABBA19BF2E8 /* include_juce_audio_formats_flac_2.c */ /* include_juce_audio_formats_flac_2.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = include_juce_audio_formats_flac_2.c; path = ../../JuceLibraryCode/include_juce_audio_formats_flac_2.c; sourceTree = SOURCE_ROOT; };
+		99AE1FAA30FD5B63D542E1D6 /* StereoChannelManager.h */ /* StereoChannelManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StereoChannelManager.h; path = ../../Source/DSP/StereoChannelManager.h; sourceTree = SOURCE_ROOT; };
 		9D694DF0A6065B72BB8A4A10 /* StreamDeckManager.h */ /* StreamDeckManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StreamDeckManager.h; path = ../../spatcore/controllers/streamdeck/StreamDeckManager.h; sourceTree = SOURCE_ROOT; };
 		9F2BD03DF373651E39BEDFE5 /* TrackingMQTTReceiver.h */ /* TrackingMQTTReceiver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TrackingMQTTReceiver.h; path = ../../Source/Network/TrackingMQTTReceiver.h; sourceTree = SOURCE_ROOT; };
 		9F333764A6A1446DF0903EC4 /* MetalSdnBackend.mm */ /* MetalSdnBackend.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = MetalSdnBackend.mm; path = ../../spatcore/gpu/MetalSdnBackend.mm; sourceTree = SOURCE_ROOT; };
@@ -489,6 +488,7 @@
 		E0ED792E850ECE52872FBCAD /* ReverbAutoLayoutTool.h */ /* ReverbAutoLayoutTool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ReverbAutoLayoutTool.h; path = ../../Source/Network/MCP/tools/ReverbAutoLayoutTool.h; sourceTree = SOURCE_ROOT; };
 		E1C3671AD66E2F1E72F8C5A8 /* XmlPersistence.h */ /* XmlPersistence.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = XmlPersistence.h; path = ../../spatcore/control/state/XmlPersistence.h; sourceTree = SOURCE_ROOT; };
 		E1C619E4C45F73A1C1F29851 /* include_juce_gui_basics_2.cpp */ /* include_juce_gui_basics_2.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_gui_basics_2.cpp; path = ../../JuceLibraryCode/include_juce_gui_basics_2.cpp; sourceTree = SOURCE_ROOT; };
+		E2664AA4F56CB3F14CCE76AB /* RenderSourceMap.h */ /* RenderSourceMap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = RenderSourceMap.h; path = ../../spatcore/wfs/RenderSourceMap.h; sourceTree = SOURCE_ROOT; };
 		E2916F92933CBD02E725B173 /* PatchMatrixComponent.h */ /* PatchMatrixComponent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PatchMatrixComponent.h; path = ../../spatcore/ui/patch/PatchMatrixComponent.h; sourceTree = SOURCE_ROOT; };
 		E3BBC26EC616B8996F69FB3E /* StateDeltaTool.h */ /* StateDeltaTool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StateDeltaTool.h; path = ../../Source/Network/MCP/tools/StateDeltaTool.h; sourceTree = SOURCE_ROOT; };
 		E57F5553F6F16A1DD0E9D41A /* MetalIrKernels.h */ /* MetalIrKernels.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MetalIrKernels.h; path = ../../spatcore/gpu/MetalIrKernels.h; sourceTree = SOURCE_ROOT; };
@@ -907,9 +907,9 @@
 				950C27503B80272B29402F00,
 				D58538C0D4D28062E527FEC4,
 				5F29AE3042C22D68310A37B5,
-				2BEF860D9B9C44CB9FD920C8,
-				556626EDEB2747B5B8D166C2,
-				FC06F0B05FCA40AC85192447,
+				E2664AA4F56CB3F14CCE76AB,
+				6C197DB268211A0714D027CE,
+				99AE1FAA30FD5B63D542E1D6,
 				0039FC83EB5F584546AC52D0,
 				A43A175CA1FA862F3071E4B5,
 				1F9D94046CD304F5B29D772D,
@@ -1471,7 +1471,7 @@
 					"SIMPLEWEB_SECURE_SUPPORTED=0",
 					"WFS_GPU_NATIVE=1",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
-					"JUCE_APP_VERSION=1.0.0beta42",
+					"JUCE_APP_VERSION=1.0.0beta43",
 					"JUCE_APP_VERSION_HEX=0x10000",
 					"JucePlugin_Build_VST=0",
 					"JucePlugin_Build_VST3=0",
@@ -1564,7 +1564,7 @@
 					"SIMPLEWEB_SECURE_SUPPORTED=0",
 					"WFS_GPU_NATIVE=1",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
-					"JUCE_APP_VERSION=1.0.0beta42",
+					"JUCE_APP_VERSION=1.0.0beta43",
 					"JUCE_APP_VERSION_HEX=0x10000",
 					"JucePlugin_Build_VST=0",
 					"JucePlugin_Build_VST3=0",
