@@ -1978,20 +1978,21 @@ private:
         stereoWidthUnitLabel.setMinimumHorizontalScale(1.0f);
 
         // Stereo Axis dial: rotates the automatic tangential spread axis, so it
-        // is centred (0) rather than zero-based; same stereo-only gating as the
-        // width dial
+        // is a full-circle rotation dial rather than a bounded arc — 0 at the
+        // bottom, negatives running clockwise onto the left half (see
+        // stereoAxisDialAngle); same stereo-only gating as the width dial.
+        // setAngle runs before onAngleChanged is attached so seeding the default
+        // cannot write it back to the parameter tree.
         addAndMakeVisible(stereoAxisLabel);
         stereoAxisLabel.setText(LOC("inputs.labels.stereoAxis"), juce::dontSendNotification);
         stereoAxisLabel.setJustificationType(juce::Justification::centred);
         stereoAxisDial.setColours(juce::Colours::black, juce::Colour(0xFF4A90D9), juce::Colours::grey);
-        stereoAxisDial.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF4A90D9));
-        stereoAxisDial.setBipolar(true);  // 0° centre — arc grows from 12 o'clock
-        stereoAxisDial.setValue(stereoAxisDialValue(WFSParameterDefaults::inputStereoAxisOffsetDefault));
+        stereoAxisDial.setAngle(stereoAxisDialAngle(WFSParameterDefaults::inputStereoAxisOffsetDefault));
         stereoAxisDial.onGestureStart = [this]() {
             parameters.getValueTreeState().beginUndoTransaction ("Input Stereo Axis");
         };
-        stereoAxisDial.onValueChanged = [this](float v) {
-            int degrees = stereoAxisDegrees(v);
+        stereoAxisDial.onAngleChanged = [this](float angle) {
+            int degrees = stereoAxisDegrees(angle);
             stereoAxisValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputStereoAxisOffset, degrees);
         };
@@ -3363,34 +3364,44 @@ private:
         return juce::String(seconds, 2);
     }
 
-    // Stereo width dial law. Squared, because a linear 0..50 m sweep gives half
-    // a metre per percent of travel and no usable resolution around the 4 m
-    // default; squaring puts 0-10 m in the first ~45 % of the dial.
-    // Forward: metres = v * v * 50. Inverse: v = sqrt(metres / 50).
+    // Stereo width dial law. Cubed, because a linear 0..50 m sweep gives half a
+    // metre per percent of travel and no usable resolution around the 4 m
+    // default, and squaring still bunches the useful range at the bottom of the
+    // sweep; cubing puts 0-10 m in the first ~58 % of the dial and lands the
+    // 4 m default at ~43 % of travel, so the range that gets edited sits under
+    // the middle of the dial.
+    // Forward: metres = v * v * v * 50. Inverse: v = cbrt(metres / 50).
     static float stereoWidthMetres(float v)
     {
-        return v * v * WFSParameterDefaults::inputStereoWidthMax;
+        return v * v * v * WFSParameterDefaults::inputStereoWidthMax;
     }
 
     static float stereoWidthDialValue(float metres)
     {
         const float clamped = juce::jlimit(WFSParameterDefaults::inputStereoWidthMin,
                                            WFSParameterDefaults::inputStereoWidthMax, metres);
-        return std::sqrt(clamped / WFSParameterDefaults::inputStereoWidthMax);
+        return std::cbrt(clamped / WFSParameterDefaults::inputStereoWidthMax);
     }
 
-    // Stereo axis dial law (bipolar, 0 = the automatic tangential axis).
-    // Forward: degrees = v * 360 - 180. Inverse: v = (degrees + 180) / 360.
-    static int stereoAxisDegrees(float v)
+    // Stereo axis dial orientation (0 = the automatic tangential axis).
+    // The stored value reads as a compass with 0 at the BOTTOM of the dial and
+    // negatives running clockwise onto the left half, but WfsRotationDial paints
+    // its dot at (angle - 90) degrees in screen coordinates, i.e. 0 at the top
+    // with positives clockwise. Reflecting through 180 maps one onto the other
+    // (0 -> bottom, -90 -> left, +90 -> right, 180 -> top); the reflection is
+    // its own inverse, so both directions are the same expression.
+    static float stereoAxisDialAngle(int degrees)
     {
-        return juce::jlimit(WFSParameterDefaults::inputStereoAxisOffsetMin,
-                            WFSParameterDefaults::inputStereoAxisOffsetMax,
-                            static_cast<int>(std::round(v * 360.0f - 180.0f)));
+        return 180.0f - static_cast<float>(degrees);
     }
 
-    static float stereoAxisDialValue(int degrees)
+    static int stereoAxisDegrees(float dialAngle)
     {
-        return juce::jlimit(0.0f, 1.0f, (static_cast<float>(degrees) + 180.0f) / 360.0f);
+        // WfsRotationDial hands back an angle already wrapped into [-180, 180],
+        // so the reflection lands in [0, 360] and wrapPhaseDegrees folds it back
+        // onto the stored -179..180 range (360 -> 0, 181 -> -179). It cannot
+        // return -180 here: 180 short-circuits ahead of the modulo.
+        return WFSParameterDefaults::wrapPhaseDegrees(juce::roundToInt(180.0f - dialAngle));
     }
 
     // Helper to layout dial value and unit labels under dial
@@ -5527,7 +5538,7 @@ private:
                                         WFSParameterDefaults::inputStereoAxisOffsetDefault);
         axisOffsetDeg = juce::jlimit(WFSParameterDefaults::inputStereoAxisOffsetMin,
                                      WFSParameterDefaults::inputStereoAxisOffsetMax, axisOffsetDeg);
-        stereoAxisDial.setValue(stereoAxisDialValue(axisOffsetDeg));
+        stereoAxisDial.setAngle(stereoAxisDialAngle(axisOffsetDeg));
         stereoAxisValueLabel.setText(juce::String(axisOffsetDeg), juce::dontSendNotification);
 
         // ==================== POSITION TAB ====================
@@ -6333,7 +6344,7 @@ private:
             int degrees = juce::jlimit(WFSParameterDefaults::inputStereoAxisOffsetMin,
                                        WFSParameterDefaults::inputStereoAxisOffsetMax,
                                        static_cast<int>(value));
-            stereoAxisDial.setValue(stereoAxisDialValue(degrees));
+            stereoAxisDial.setAngle(stereoAxisDialAngle(degrees));
             // Force label update (unit label is separate)
             stereoAxisValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
         }
@@ -8554,7 +8565,7 @@ private:
     juce::Label stereoWidthValueLabel;
     juce::Label stereoWidthUnitLabel;
     juce::Label stereoAxisLabel;
-    WfsBasicDial stereoAxisDial;
+    WfsRotationDial stereoAxisDial;
     juce::Label stereoAxisValueLabel;
     juce::Label stereoAxisUnitLabel;
     juce::Label directivityLabel;

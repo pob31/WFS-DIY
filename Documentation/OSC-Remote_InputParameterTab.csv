@@ -15,7 +15,7 @@ Input	Attenuation Law	attenuationLaw	/remoteInput/attenuationLaw	YES	YES	Text bu
 Input	Distance Attenuation	distanceAttenuation	/remoteInput/distanceAttenuation	YES	YES	Dial	FLOAT	-6.0	0.0	(x*6.0)-6.0	dB/m		visible if AttenuationLaw == 0 (shares the same position as Dial distanceRatio)
 Input	Distance Ratio	distanceRatio	/remoteInput/distanceRatio	YES	YES	Dial	FLOAT	0.1	10.0	pow(10.0,(x*2.0)-1.0)	x		visible if AttenuationLaw == 1 (shares the same position as Dial distanceAttenuation)
 Input	Common Attenuation	commonAtten	/remoteInput/commonAtten	YES	YES	Dial	INT	0	100	x*100	%		
-Stereo	Width	stereoWidth	/remoteInput/stereoWidth	YES	YES	Dial	FLOAT	0.0	50.0	x*x*50.0	m		visible only on stereo channels (isStereo == 1 in /remote/channelList); default 4.0; 0 collapses the pair to a point source
+Stereo	Width	stereoWidth	/remoteInput/stereoWidth	YES	YES	Dial	FLOAT	0.0	50.0	x*x*x*50.0	m		visible only on stereo channels (isStereo == 1 in /remote/channelList); default 4.0; 0 collapses the pair to a point source
 Stereo	Axis Offset	stereoAxisOffset	/remoteInput/stereoAxisOffset	YES	YES	Direction dial	INT	-179	180	(x*360)-180	�		visible only on stereo channels (isStereo == 1 in /remote/channelList); default 0 = automatic axis, perpendicular to the origin-to-source line; +/-180 swaps left and right
 Directivity	Directivity	directivity	/remoteInput/directivity	YES	YES	H range Slider	INT	2	360	(x*358)+2	�		
 Directivity	Rotation	rotation	/remoteInput/rotation	YES	YES	Direction dial	INT	-179	180	(x*360)-180	�		
