@@ -173,7 +173,7 @@ inline ToolResult nudge (WFSValueTreeState& state,
         // Naming an input by number makes that number an external reference the
         // client quotes back, and it must stop reflowing before the
         // read-modify-write lands.
-        state.markChannelNumbersUserOwned();
+        state.markChannelNumbersUserOwned ("MCP nudge_parameter on an input");
 
         // Resolved here as well as in the dispatcher so the failure names the
         // arg the caller actually sent rather than the renamed one.

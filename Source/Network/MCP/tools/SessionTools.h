@@ -56,7 +56,7 @@ inline ToolResult getState (WFSValueTreeState& state)
     // Without the latch an operator reordering or deleting a channel in between
     // renumbers the very channels the client is holding. Output and reverb ids
     // are dense slot positions and are unaffected either way.
-    state.markChannelNumbersUserOwned();
+    state.markChannelNumbersUserOwned ("MCP session.get_state");
 
     juce::Array<juce::var> inputs;
     for (int i = 0; i < state.getNumInputChannels(); ++i)

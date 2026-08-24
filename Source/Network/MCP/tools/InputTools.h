@@ -21,7 +21,7 @@ namespace detail
         // it into a live external reference. Freeze the numbering before the
         // lookup — otherwise a drag-reorder in the GUI between two tool calls
         // renumbers the channels the client is still holding.
-        state.markChannelNumbersUserOwned();
+        state.markChannelNumbersUserOwned ("MCP input tool");
         return state.getSlotForChannelNumber (inputId);
     }
 

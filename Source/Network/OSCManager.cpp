@@ -1744,7 +1744,7 @@ int OSCManager::resolveExternalInputSlot(int channelNumber)
     // every property echo, several hundred times a second on a busy show, so
     // latching there would burn the latch within milliseconds of any OSC-enabled
     // session starting — before the operator has addressed anything at all.
-    state.markChannelNumbersUserOwned();
+    state.markChannelNumbersUserOwned("inbound network message naming an input by number");
     return state.getSlotForChannelNumber(channelNumber);
 }
 
@@ -2361,7 +2361,7 @@ void OSCManager::handleRemoteInputMessage(const juce::OSCMessage& message,
             {
                 // The tablet addressed this channel by number and the dump we send
                 // back is keyed by it, so the numbering is now externally observed.
-                state.markChannelNumbersUserOwned();
+                state.markChannelNumbersUserOwned("Remote channel select");
 
                 setRemoteSelectedChannel(channelId);
 
@@ -4148,7 +4148,7 @@ void OSCManager::onRemoteConnected(int targetIndex, bool /*isReconnection*/)
     // the session, and the protocol has no "the channels were renumbered" message
     // to correct it — every control on the tablet would keep writing to whatever
     // channel used to hold that number.
-    state.markChannelNumbersUserOwned();
+    state.markChannelNumbersUserOwned("Remote client handshake");
 
     // Any pin belongs to the previous session; the tablet re-sends it on reconnect.
     remoteStates[static_cast<size_t>(targetIndex)].pinnedVisChannel = 0;
@@ -5318,7 +5318,7 @@ void OSCManager::sendToQLab (const QLabCueSequence& sequence,
     // QLab writes these cues into its own workspace file, so the channel numbers
     // in them outlive this session and this application; nothing here can reach
     // back into that file to fix them up if the inputs were renumbered later.
-    state.markChannelNumbersUserOwned();
+    state.markChannelNumbersUserOwned("QLab cue send");
 
     // Log the targets being used
     for (int idx : qlabTargets)

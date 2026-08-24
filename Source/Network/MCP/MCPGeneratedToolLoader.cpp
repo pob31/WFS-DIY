@@ -109,7 +109,7 @@ namespace
         if (channelArgName != "input_id")
             return displayId - 1;
 
-        state.markChannelNumbersUserOwned();
+        state.markChannelNumbersUserOwned ("MCP tool addressing an input by number");
         return state.getSlotForChannelNumber (displayId);
     }
 }  // anonymous namespace

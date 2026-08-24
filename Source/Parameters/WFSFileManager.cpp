@@ -462,10 +462,10 @@ bool WFSFileManager::loadCompleteConfig()
     // Only when something was actually read back: pointing at a NEW or empty
     // project folder loads nothing, and that session has to stay fresh — dense
     // display-order numbering while no external reference can exist yet is the
-    // whole reason the latch exists. Saving is deliberately not a trigger; a
-    // fresh session that is saved and reopened latches here, on the reload.
+    // whole reason the latch exists. (Saving latches too, at the store funnels,
+    // so a fresh session ends at its first save OR its first load.)
     if (success)
-        valueTreeState.markChannelNumbersUserOwned();
+        valueTreeState.markChannelNumbersUserOwned ("complete config load");
 
     return success;
 }
@@ -517,7 +517,7 @@ bool WFSFileManager::loadCompleteConfigBackup (int backupIndex)
     // Same success-only rule as loadCompleteConfig: a backup set that restored
     // nothing must leave a fresh session's numbering alone.
     if (success)
-        valueTreeState.markChannelNumbersUserOwned();
+        valueTreeState.markChannelNumbersUserOwned ("complete config backup load");
 
     return success;
 }
@@ -559,6 +559,14 @@ bool WFSFileManager::saveSystemConfig()
     }
 
     WFSLogger::getInstance().logInfo ("Saving system config");
+
+    // The first save ends the fresh session: this file records the channel
+    // counts, the patch and the channel inventory, so the numbers it writes are
+    // durable the moment it exists — a later reload restores exactly them.
+    // Latched BEFORE extraction so the property lands in this very file, and so
+    // covering the session-exit auto-save, which funnels through here.
+    valueTreeState.markChannelNumbersUserOwned ("system config save");
+
     auto file = getSystemConfigFile();
 
     if (file.existsAsFile())
@@ -785,6 +793,11 @@ bool WFSFileManager::saveInputConfig()
     }
 
     WFSLogger::getInstance().logInfo ("Saving input config");
+
+    // Same first-save rule as saveSystemConfig: inputs.xml persists every
+    // channel's number (<Input id=...>), which makes them durable on disk.
+    valueTreeState.markChannelNumbersUserOwned ("input config save");
+
     auto file = getInputConfigFile();
 
     if (file.existsAsFile())
@@ -1448,7 +1461,7 @@ bool WFSFileManager::saveInputSnapshotWithExtendedScope (const juce::String& sna
     // <Input id="NUMBER"> and recall resolves it through getSlotForChannelNumber,
     // so the moment a single snapshot file exists those numbers are durable and
     // renumbering them would silently repoint every stored channel.
-    valueTreeState.markChannelNumbersUserOwned();
+    valueTreeState.markChannelNumbersUserOwned ("input snapshot store");
 
     auto folder = getInputSnapshotsFolder();
     folder.createDirectory();
@@ -1511,7 +1524,7 @@ bool WFSFileManager::loadInputSnapshotWithExtendedScope (const juce::String& sna
     // A recall normally implies an earlier store or load that already latched,
     // but a snapshots folder can also arrive with the project folder (copied
     // show, shared template) without either having run this session.
-    valueTreeState.markChannelNumbersUserOwned();
+    valueTreeState.markChannelNumbersUserOwned ("input snapshot recall");
 
     auto file = getInputSnapshotsFolder().getChildFile (snapshotName + snapshotExtension);
     auto snapshot = readFromXmlFile (file);
@@ -2389,7 +2402,7 @@ bool WFSFileManager::applyConfigSection (const juce::ValueTree& configTree)
     // A system config is a load like any other, even when it carries no <Inputs>:
     // it restores an inputChannels count from a show whose snapshots and external
     // cues already name channels by number.
-    valueTreeState.markChannelNumbersUserOwned();
+    valueTreeState.markChannelNumbersUserOwned ("system config load");
 
     auto* undoManager = valueTreeState.getUndoManager();
 
@@ -2468,7 +2481,7 @@ bool WFSFileManager::applyInputsSection (const juce::ValueTree& inputsTree)
         // would renumber them to display order. A file written by a build that
         // predates the latch carries no such property, which is why every load
         // path has to say so on its own.
-        valueTreeState.markChannelNumbersUserOwned();
+        valueTreeState.markChannelNumbersUserOwned ("inputs config load");
 
         mergeTreeRecursive (existingInputs, inputsTree, valueTreeState.getUndoManager());
 

@@ -582,8 +582,11 @@ public:
     bool areChannelNumbersUserOwned();
 
     /** Latches the channel numbers as permanent. Idempotent; not undoable on
-        purpose (Ctrl+Z must not re-arm renumbering). */
-    void markChannelNumbersUserOwned();
+        purpose (Ctrl+Z must not re-arm renumbering). The reason names the
+        trigger and is logged once, on the actual fresh->owned transition —
+        the latch is otherwise invisible and a spent one is indistinguishable
+        from a broken re-flow. */
+    void markChannelNumbersUserOwned (const juce::String& reason);
 
     /** Scale all input positions proportionally from old stage bounds to current bounds */
     void scaleAllInputPositions (float oldW, float oldD, float oldH,

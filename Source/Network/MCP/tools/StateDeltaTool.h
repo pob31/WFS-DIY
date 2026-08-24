@@ -168,7 +168,7 @@ inline ToolResult getDelta (WFSValueTreeState& state, const juce::var& args)
     // number, and the client addresses that number in its next call, so the
     // numbers stop reflowing here for the same reason session_get_state latches
     // them. Output and reverb paths are dense slot positions, unaffected.
-    state.markChannelNumbersUserOwned();
+    state.markChannelNumbersUserOwned ("MCP state delta");
 
     auto& c = cache();
     const juce::ScopedLock sl (c.lock);

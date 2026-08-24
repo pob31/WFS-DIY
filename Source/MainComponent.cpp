@@ -727,14 +727,12 @@ MainComponent::MainComponent()
         // Ownership rule: only the MAP tab latches position ownership — merely
         // looking at the Inputs/Outputs/Reverb tabs does not (editing a
         // position there latches it via the parameter setters instead).
-        // Channel NUMBER ownership deliberately latches on a wider set: the
-        // Inputs tab and the Map tab both put the permanent numbers on screen,
-        // and that is the moment they start being copied onto cue sheets and
-        // patch labels, so a later drag must not renumber underneath them.
+        // Channel NUMBER ownership deliberately does NOT latch on tab visits:
+        // merely looking at the numbers keeps the session fresh. It is spent by
+        // the acts that commit them — a project save/load, an actual patch
+        // edit, snapshots, or any wire message naming a channel by number.
         if (tabIndex == 6 && systemConfigTab != nullptr)
             systemConfigTab->setMapTabVisited();
-        if (tabIndex == 4 || tabIndex == 6)
-            parameters.getValueTreeState().markChannelNumbersUserOwned();
         resetHelpCycle();
     };
 
@@ -2324,7 +2322,7 @@ MainComponent::MainComponent()
         // number turns out to be dead below, because the tablet is addressing
         // this list by number either way. OSCManager fires this through
         // callAsync, so the tree write here is already on the message thread.
-        parameters.getValueTreeState().markChannelNumbersUserOwned();
+        parameters.getValueTreeState().markChannelNumbersUserOwned ("Remote visualisation pin request");
         // channelId is a permanent channel number — dead numbers are dropped
         if (parameters.getValueTreeState().getSlotForChannelNumber(channelId) < 0)
             return;
@@ -2735,9 +2733,33 @@ void MainComponent::runChannelListSelfTest()
               "U5: the delete left no gap");
         check(patchInSlotOrder() == "1,2,3", "U5: the delete closed the hardware-input gap too");
 
+        // U7: the FIRST project save ends the fresh session — saveSystemConfig
+        // persists the counts, the patch and the channel inventory, so the
+        // numbers it writes are durable the moment the file exists. Saved into
+        // a scratch folder; the real project folder (restored from settings at
+        // startup) is put back afterwards, and setProjectFolder's synced reset
+        // re-arms the auto-save guard for it.
+        {
+            auto& fm = parameters.getFileManager();
+            const auto previousFolder = fm.getProjectFolder();
+            auto scratchFolder = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                                     .getChildFile("wfs-selftest-firstsave");
+            scratchFolder.deleteRecursively();
+            scratchFolder.createDirectory();
+
+            fm.setProjectFolder(scratchFolder);
+            check(! vts.areChannelNumbersUserOwned(), "U7: still fresh before the first save");
+            check(fm.saveSystemConfig(), "U7: first system-config save succeeded");
+            check(vts.areChannelNumbersUserOwned(), "U7: the first save latched the numbers");
+
+            fm.setProjectFolder(previousFolder);
+            scratchFolder.deleteRecursively();
+        }
+
         // Latching is what hands the numbers to the outside world; everything
         // below it is the append-only regime the rest of this test asserts.
-        vts.markChannelNumbersUserOwned();
+        // (U7's save latched already; this mark is the idempotent no-op case.)
+        vts.markChannelNumbersUserOwned ("self-test U6");
         check(vts.areChannelNumbersUserOwned(), "U6: numbers latched");
         check(vts.moveInputChannel(3, 0).wasOk(), "U6: drag channel 3 to display slot 0");
         reconfig();
@@ -5532,12 +5554,11 @@ void MainComponent::openAudioInterfaceWindow()
         return;
     }
 
-    // The patch matrix labels its rows with the permanent channel numbers and
-    // the operator wires the physical rig against them, so once this window has
-    // actually opened, a later drag-to-reorder must not renumber under the
-    // patch. Past the refusal above on purpose: an open that was denied showed
-    // the user nothing, so it must not spend the latch.
-    parameters.getValueTreeState().markChannelNumbersUserOwned();
+    // Opening this window no longer spends the latch — merely LOOKING at the
+    // default patch must leave a fresh session fresh. The latch moved to the
+    // first actual patch edit (AudioPatchTab's onBeforePatchEdit, wired below),
+    // which still fires before the write lands, preserving the re-flow's
+    // call-graph contract: anything that authors a patch latches first.
 
     if (audioInterfaceWindow == nullptr)
     {
@@ -5617,6 +5638,21 @@ void MainComponent::openAudioInterfaceWindow()
             if (auto* outTab = content->getOutputPatchTab())
                 wirePatchAutoSave (outTab->getPatchMatrix());
 
+            // The INPUT patch is where the fresh-session latch is spent now that
+            // opening this window no longer does: the first hand edit is the act
+            // that authors the patch, and it must latch BEFORE the write lands so
+            // the next structural edit's re-flow cannot eat it (the re-flow
+            // contract). User edits only — the matrix's programmatic saves that
+            // react to channel-count changes do not fire this. The OUTPUT patch
+            // never latches input numbering.
+            if (auto* inTab = content->getInputPatchTab())
+                if (auto* matrix = inTab->getPatchMatrix())
+                    matrix->onBeforeUserPatchEdit = [this]()
+                    {
+                        parameters.getValueTreeState()
+                            .markChannelNumbersUserOwned ("input patch edit");
+                    };
+
             // The output tab forwards the matrix's status messages, but nothing
             // was listening, so every one of them (including "choose a test
             // signal") went nowhere and a rejected test click looked exactly
@@ -5693,11 +5729,9 @@ void MainComponent::openLevelMeterWindow()
     if (levelMeteringManager == nullptr)
         return;
 
-    // Every meter row is labelled with its permanent channel number, and this
-    // window is one click from the Outputs tab, which is not itself a latch
-    // point. Numbers read off a live meter go straight onto patch sheets, so a
-    // later drag-to-reorder must not renumber underneath them.
-    parameters.getValueTreeState().markChannelNumbersUserOwned();
+    // Opening the meters no longer spends the latch: it is a display-only
+    // window, and a fresh-session renumber reaches it anyway — every structural
+    // edit runs handleChannelCountChange, which rebuilds the meter labels.
 
     if (levelMeterWindow == nullptr)
     {

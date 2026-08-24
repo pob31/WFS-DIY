@@ -1,5 +1,13 @@
 # Handoff — fresh-session channel numbering, per-type names, stereo glyph, slot/number sweep, input patch re-flow
 
+> **2026-08-24 addendum — the latch-trigger set described below changed.** Display-only acts
+> (Inputs/Map tab selection, Level Meter open, patch-window open) no longer latch; the first
+> **project save** (`saveSystemConfig`/`saveInputConfig`) and the first **actual patch edit**
+> (`PatchMatrixComponent::onBeforeUserPatchEdit`) now do, and every latch logs
+> `"Channel numbers latched: <reason>"` on the fresh→owned transition. The current trigger list
+> lives in `Documentation/CLAUDE.md` (*Fresh-session compaction* → *Latch triggers*); this file is
+> otherwise historical.
+
 Written 2026-08-20. Branch `feat/stereo-input-channel` in **both** repos (app + `spatcore`).
 App HEAD `793b614`, spatcore HEAD `63e24a7`. **Everything below is UNCOMMITTED working-tree state.**
 

@@ -145,7 +145,7 @@ namespace detail
                     // write: the client caches what it read back and quotes it
                     // on the next call. Freeze the numbering here or a reorder
                     // between the two calls answers about a different channel.
-                    state.markChannelNumbersUserOwned();
+                    state.markChannelNumbersUserOwned ("MCP get_parameter on an input");
                     out.value.channelIndex = state.getSlotForChannelNumber (out.value.displayId);
                     if (out.value.channelIndex < 0)
                     {

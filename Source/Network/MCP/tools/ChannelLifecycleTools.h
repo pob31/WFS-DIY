@@ -175,7 +175,7 @@ inline ToolResult create (WFSValueTreeState& state,
         // channel does not itself read a number, but publishing one commits
         // to it. Output and reverb ids are dense slot positions and stay
         // outside this branch on purpose.
-        state.markChannelNumbersUserOwned();
+        state.markChannelNumbersUserOwned ("MCP channel create");
     }
     else
     {
@@ -264,7 +264,7 @@ inline ToolResult del (WFSValueTreeState& state,
         // while everything else keeps its number, slot and patch columns.
         // Output and reverb deletes are dense-count decrements and must not
         // freeze input numbering.
-        state.markChannelNumbersUserOwned();
+        state.markChannelNumbersUserOwned ("MCP channel delete");
 
         // Delete by permanent number; the number is retired (gap), everything
         // else keeps its number, slot and patch columns.

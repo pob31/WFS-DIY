@@ -1,5 +1,6 @@
 #include "WFSValueTreeState.h"
 #include "../Network/OSCParameterBounds.h"
+#include "../WFSLogger.h"
 
 #include <algorithm>
 #include <vector>
@@ -2735,7 +2736,7 @@ void WFSValueTreeState::replaceState (const juce::ValueTree& newState)
         // property at all. Both must land on the permanent-number regime — this
         // is the whole backward-compatibility story, and it must run after
         // ensureCompleteSchema so the IO node exists to hold the flag.
-        markChannelNumbersUserOwned();
+        markChannelNumbersUserOwned ("project load (state replace)");
         clearAllUndoHistories();
     }
 }
@@ -3772,11 +3773,15 @@ bool WFSValueTreeState::areChannelNumbersUserOwned()
         || (bool) io.getProperty (channelNumbersUserOwned, false);
 }
 
-void WFSValueTreeState::markChannelNumbersUserOwned()
+void WFSValueTreeState::markChannelNumbersUserOwned (const juce::String& reason)
 {
     auto io = getIOState();
     if (io.isValid() && ! (bool) io.getProperty (channelNumbersUserOwned, false))
+    {
         io.setProperty (channelNumbersUserOwned, true, nullptr);   // no undo: see header
+        WFSLogger::getInstance().logInfo ("Channel numbers latched: " + reason
+                                          + " (structural edits keep permanent numbers from here on)");
+    }
 }
 
 void WFSValueTreeState::redistributeAllReverbPositions()

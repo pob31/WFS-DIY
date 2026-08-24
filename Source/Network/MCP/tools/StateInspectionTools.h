@@ -247,7 +247,7 @@ inline ToolResult getChannelFull (WFSValueTreeState& state, const juce::var& arg
     // and reverb ids are dense slot positions and must not freeze input
     // numbering.
     if (channelType == "input")
-        state.markChannelNumbersUserOwned();
+        state.markChannelNumbersUserOwned ("MCP channel inspection");
 
     // Input ids are permanent channel numbers (list may have gaps after
     // deletions); output/reverb ids stay dense 1..N.

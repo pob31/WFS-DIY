@@ -201,7 +201,7 @@ inline ToolResult set (WFSValueTreeState& state, const juce::var& args, ChangeRe
         {
             if (rec->scope == "input")
             {
-                state.markChannelNumbersUserOwned();
+                state.markChannelNumbersUserOwned ("MCP set_parameter on an input");
 
                 // An input channel_id is a permanent number, while everything
                 // downstream consumes channelIndex as a slot. Numbers carry

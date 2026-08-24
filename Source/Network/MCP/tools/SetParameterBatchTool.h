@@ -269,7 +269,7 @@ inline ToolResult batch (WFSValueTreeState& state, const juce::var& args, Change
                 if (rec->scope == "input")
                 {
                     w.inputScope = true;
-                    state.markChannelNumbersUserOwned();
+                    state.markChannelNumbersUserOwned ("MCP set_parameter_batch on an input");
 
                     // Permanent input numbers may have gaps and stop following
                     // slot order after a drag-reorder, so displayId - 1 would

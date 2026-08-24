@@ -877,11 +877,16 @@ Compaction is `WFSValueTreeState::compactChannelNumbersToDisplayOrder()`.
   The compaction **rebuilds `patchData` from the channel list and discards the stored rows entirely**.
   That is licensed by a call-graph property, not by luck: while unlatched, no operator click and no
   wire message has ever reached `patchData`. The only interactive writer is
-  `PatchMatrixComponent::savePatchesToValueTree`, reachable only via
-  `MainComponent::openAudioInterfaceWindow()`, which calls `markChannelNumbersUserOwned()` **before**
-  constructing the window; every load path latches on success; MCP lists `patchData` under
-  `ignored_parameters`; OSC has no patch address. **Anything future that authors a patch must latch
-  first or the re-flow will eat it.** Rebuilding is also self-repairing and idempotent by construction: it
+  `PatchMatrixComponent::savePatchesToValueTree`, and every USER route into it (cell click, drag
+  commit, keyboard/controller cell toggle, Unpatch All) first fires the matrix's
+  `onBeforeUserPatchEdit` hook, which the app wires (input matrix only, in
+  `MainComponent::openAudioInterfaceWindow()`) to `markChannelNumbersUserOwned ("input patch
+  edit")` — so the latch lands **before** the write does, and merely *opening* the window no longer
+  spends it. The matrix's programmatic saves (its reactions to channel-count changes) do not fire
+  the hook: they re-derive rows the re-flow is about to overwrite anyway, and latching there would
+  spend the latch on a refresh no operator authored. Every load path latches on success; MCP lists
+  `patchData` under `ignored_parameters`; OSC has no patch address. **Anything future that authors
+  a patch must latch first or the re-flow will eat it.** Rebuilding is also self-repairing and idempotent by construction: it
   fixes a stale row count and the ragged row lengths `insertInputPatchRow` leaves behind. The
   `setInputChannelType` asymmetry — patch hooked, numbers not — is deliberate: a type flip changes no
   channel's display position, so the number compaction there is a provable no-op, but it *does* change
@@ -919,12 +924,21 @@ Compaction is `WFSValueTreeState::compactChannelNumbersToDisplayOrder()`.
   structural edit: running it inside the compaction would clobber the names mid-drag. Legacy
   `getDefaultInputName` ("Input {index+1}", 0-based) has no live caller and survives only so that
   stored legacy names are still recognised as untouched defaults.
-- **Latch triggers**, all one-way: any project/config **load**; opening the **input patch
-  window** (`AudioInterfaceWindow`); selecting the **Inputs tab** (index 4) or the **Map tab**
-  (index 6); **storing or recalling an input snapshot**; any incoming **OSC / ADM / Remote**
-  message that addresses an input channel by number; a **Remote client completing its
-  handshake**; **sending QLab cues**; any **MCP tool** addressing an input channel by number,
-  including channel create/delete. Network-thread ingress must latch at its existing
+- **Latch triggers**, all one-way — the rule is *fresh until the numbers become durable or
+  externally observed, never spent by merely looking*: any project/config **load**; any
+  **project save** that persists numbering (`saveSystemConfig` — which the session-exit auto-save
+  funnels through — and `saveInputConfig`); the **first actual input patch edit** (the matrix's
+  `onBeforeUserPatchEdit`, see above — opening the patch window does NOT latch); **storing or
+  recalling an input snapshot**; any incoming **OSC / ADM / Remote** message that addresses an
+  input channel by number; a **Remote client completing its handshake**; **sending QLab cues**;
+  any **MCP tool** addressing an input channel by number, including channel create/delete.
+  Deliberately NOT triggers (changed 2026-08-24; they were before): selecting the **Inputs or
+  Map tab**, opening the **Level Meter window**, and opening the **patch window** — display-only
+  acts, and every structural edit refreshes their views through `handleChannelCountChange`.
+  `markChannelNumbersUserOwned (reason)` takes a reason string and logs
+  `"Channel numbers latched: <reason>"` once, on the actual fresh→owned transition — the latch
+  used to be invisible, and a spent latch is indistinguishable from a broken re-flow without it.
+  Network-thread ingress must latch at its existing
   message-thread handoff, never inline: the marker and the compaction both write ValueTree
   properties, which fire synchronous `valueTreePropertyChanged` dispatch through
   `TreeParameterStore`'s listener registry.
