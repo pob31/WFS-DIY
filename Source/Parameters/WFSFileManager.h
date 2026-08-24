@@ -518,6 +518,22 @@ private:
     // so background saves can't clobber a config the user hasn't loaded yet.
     bool systemConfigSynced = false;
 
+    // Whether the last system config applied carried an <InputChannelList>.
+    //
+    // It decides who owns the channel list when system.xml and inputs.xml
+    // disagree. WITH an inventory the config section rebuilt the exact set —
+    // numbers, types, gaps — so a channel inputs.xml does not mention means the
+    // two files are out of sync, and the richer, explicitly-recorded list wins.
+    // WITHOUT one it could only guess a dense 1..N from the sum, so a channel
+    // inputs.xml does not mention is that guess's leftover: mergeTreeRecursive
+    // never removes a target child, so it would otherwise survive as a ghost
+    // (save 6 channels numbered 1,2,3,4,5,7 -> the guess makes 1..6, the merge
+    // appends 7, and nothing ever deletes 6) and shift every patch row after it.
+    //
+    // Deliberately not reset by applyInputsSection: a standalone Reload Input
+    // Config after a system load must honour that load's answer.
+    bool channelListFromInventory = false;
+
     //==========================================================================
     // Internal Methods
     //==========================================================================

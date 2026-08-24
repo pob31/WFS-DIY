@@ -805,6 +805,31 @@ hardware input 11, and forcing alignment would leave holes an operator has no wa
 renders as **six render sources** — the channel's primary slot (slice 0) plus 5 derived slice slots
 appended past the visible inputs. Spec: `Documentation/stereo-channel-handoff.md`.
 
+**The system config carries an explicit channel inventory** — `<IO><InputChannelList><Ch n= type=/>`,
+one entry per live channel in DISPLAY order, built by
+`WFSValueTreeState::buildInputChannelInventory()` and consumed by `applyInputChannelInventory()`.
+`inputChannels` is only a SUM: the mono/stereo split and the display order live on the `<Input>`
+nodes, which are saved to `inputs.xml`, not `system.xml`. Without the inventory,
+`applyConfigSection`'s `setNumInputChannels(sum)` rebuilt every channel as **mono** — and since
+`patchData` rows are positional and DO load in file order, a stereo row's two hardware columns
+landed on a mono channel. *Reload System Config* on its own was permanently wrong that way, and so
+was any project whose `inputs.xml` was missing or unparseable (`loadCompleteConfig` continues past
+that failure). Two counts would not have sufficed: mono and stereo interleave freely, so the
+arrangement has to be recorded per channel, not tallied. The inventory is a **file artifact** —
+derived at save time in `extractConfigSection()`, evicted from the live tree on load — so it cannot
+desync from the nodes it describes; and like `channelNumbersUserOwned` it is **deliberately absent
+from `createIOSection`**, because `ensureCompleteSchema` would otherwise back-fill an empty one onto
+a legacy file and make absence ambiguous. Absent = legacy = fall back to the sum.
+
+`mergeTreeRecursive` never removes a target child the source lacks, so the legacy sum path could
+also leave a **ghost**: save 6 channels numbered 1,2,3,4,5,7, the dense guess makes 1..6, the merge
+appends 7, and 6 survives as a default channel eating a render source and shifting every patch row
+after it. `applyInputsSection` prunes those, under two guards — only when the config section had
+**no** inventory, and only when the file's channel count **equals** what that section left behind.
+That equality is the ghost's signature; unequal counts mean the two files disagree about the size of
+the show (a system config saved on its own, say), and there the shorter file must not silently
+delete the operator's channels.
+
 **Three id spaces** (never conflate):
 | Space | Range | Owns |
 |---|---|---|
@@ -1417,6 +1442,26 @@ uniform length immediately after a fresh-session re-flow, but rows written by ol
 `insertInputPatchRow`, which leaves the row it inserts ragged against its neighbours — are not, so
 every consumer must iterate `c < cols.size()` over the row it actually holds and never treat the
 `cols` property as the length of any given row.
+
+**A loaded patch is repaired before it reaches the audio path.**
+`applyAudioPatchSection` is a bare `mergeTreeRecursive`: the file's `patchData` string replaces the
+live one with no parse, no row-count check, no per-row capacity check and no column-uniqueness
+check. `MainComponent::repairInputPatchAfterLoad()` is the fix-up pass, and the single definition of
+its order — `normalizeInputPatchRows()` (row count vs the channel list) → `sanitizeMonoPatchRows()`
+(a mono row keeps its lowest column) → `dedupeInputPatchColumns()` (one owner per hardware input,
+lowest row wins) → `autoPatchStereoRightColumns()` (a stereo L with no R takes a free R). It runs
+from **both** funnels: `handleChannelCountChange` and — this is the one that was missing —
+`handleConfigReloaded`, immediately before `loadAudioPatches()`, which covers project open, snapshot
+recall and the config-reloaded callback alike. Every step is idempotent and a provable no-op on a
+re-flowed diagonal, so both call sites run it unconditionally.
+
+Without that pass `loadAudioPatches` swallowed the damage silently: a duplicate column resolved
+last-writer-wins into `inputPatchMap` while **both** rows kept it in `inputPatchPrimaryHw`, a row
+past the live channel count was written and only filtered later in `applyInputPatch`, and a third
+column on a row was dropped without trace. `dedupeInputPatchColumns` and `sanitizeMonoPatchRows` log
+a warning naming the channel for every column they take away — a show's patch must never change
+under the operator without a record of it. A half-patched stereo row is left half-patched (it is a
+legal, displayed state — the yellow `[L3 R?]` badge) rather than stealing a column from a neighbour.
 
 `cols` is not a constant: `applyColsPolicy` (`WFSValueTreeState.cpp`) sets it to
 `clamp(64 .. maxHardwarePatchChannels=512)` of `max(64, device channel count, highest patched

@@ -100,6 +100,34 @@ namespace WFSParameterIDs
     // because every load latches.
     const juce::Identifier channelNumbersUserOwned ("channelNumbersUserOwned");
 
+    // Input channel inventory — a FILE artifact only, written into <IO> by the
+    // system-config save and consumed by the load. It never lives in the runtime
+    // tree: the <Input> nodes are the single source of truth, and a live copy
+    // could only desync from them.
+    //
+    // inputChannels is a SUM, and the mono/stereo split plus the display order
+    // live solely in each <Input>'s inputChannelType and child position — which
+    // are written to inputs.xml, not system.xml. Without this a system config
+    // reloaded on its own rebuilds every channel as mono (setNumInputChannels
+    // appends default-mono channels), and the positional patch rows then land on
+    // the wrong channels: a stereo row's two hardware columns end up on a mono
+    // channel. Two counts would not do — mono and stereo interleave freely, so
+    // the arrangement has to be recorded per channel, not tallied.
+    //
+    // Deliberately NOT stamped by createIOSection: ensureCompleteSchema
+    // back-fills template content into loaded trees, so a templated default
+    // would write an empty inventory onto a legacy file and make absence
+    // ambiguous. Absent = "legacy file, fall back to the sum". Same rule, and
+    // the same hazard, as channelNumbersUserOwned above.
+    const juce::Identifier InputChannelList  ("InputChannelList");  // <IO> child, display order
+    const juce::Identifier Ch                ("Ch");                // one per live channel
+    // Short attribute names, deliberately long C++ names: this header is pulled
+    // in under `using namespace WFSParameterIDs`, where a bare `n` or `type`
+    // would shadow (and be shadowed by) ordinary locals — WFSValueTreeState.cpp
+    // alone has a `for (int n = 1; ...)` loop.
+    const juce::Identifier chNumber          ("n");                 // permanent channel number
+    const juce::Identifier chType            ("type");              // "mono" / "stereo"
+
     //==========================================================================
     // Config > Binaural Section
     //==========================================================================

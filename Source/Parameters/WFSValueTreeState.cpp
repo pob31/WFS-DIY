@@ -1,6 +1,9 @@
 #include "WFSValueTreeState.h"
 #include "../Network/OSCParameterBounds.h"
 
+#include <algorithm>
+#include <vector>
+
 using namespace WFSParameterIDs;
 using namespace WFSParameterDefaults;
 
@@ -1835,6 +1838,153 @@ juce::Result WFSValueTreeState::setInputChannelType (int channelNumber, bool ste
 
     clearAllUndoHistories();
     return juce::Result::ok();
+}
+
+juce::ValueTree WFSValueTreeState::buildInputChannelInventory() const
+{
+    // Display order, because that is the half of the model `inputChannels`
+    // cannot express: the sum says 22, it does not say that slots 0 and 21 are
+    // the stereo pairs. Patch rows are positional, so losing this ordering
+    // silently re-patches the show.
+    juce::ValueTree inventory (InputChannelList);
+
+    const int total = getNumInputChannels();
+    for (int slot = 0; slot < total; ++slot)
+    {
+        const int number = getInputChannelNumber (slot);
+        if (number <= 0)
+            continue;   // migrateInputChannelModel repairs these; never write one out
+
+        juce::ValueTree ch (Ch);
+        ch.setProperty (chNumber, number, nullptr);
+        ch.setProperty (chType, isInputChannelStereo (slot)
+                                    ? juce::String (inputChannelTypeStereo)
+                                    : juce::String (inputChannelTypeMono), nullptr);
+        inventory.appendChild (ch, nullptr);
+    }
+
+    return inventory;
+}
+
+void WFSValueTreeState::applyInputChannelInventory (const juce::ValueTree& inventory)
+{
+    if (! inventory.isValid())
+        return;
+
+    // Parse first, act second: a malformed entry must not leave the list
+    // half-reconciled. First occurrence of a number wins — a file listing one
+    // twice is corrupt, and picking one reading beats creating a duplicate.
+    struct Entry { int number; bool stereo; };
+    std::vector<Entry> wanted;
+    for (int i = 0; i < inventory.getNumChildren(); ++i)
+    {
+        auto ch = inventory.getChild (i);
+        if (! ch.hasType (Ch))
+            continue;
+
+        const int number = static_cast<int> (ch.getProperty (chNumber, 0));
+        if (number <= 0 || number > WFSParameterDefaults::maxInputChannels)
+            continue;
+
+        const bool duplicate = std::any_of (wanted.begin(), wanted.end(),
+                                            [number] (const Entry& e) { return e.number == number; });
+        if (duplicate)
+        {
+            juce::Logger::writeToLog ("Channel inventory lists channel " + juce::String (number)
+                                      + " twice; keeping the first");
+            continue;
+        }
+
+        wanted.push_back ({ number,
+                            ch.getProperty (chType).toString() == inputChannelTypeStereo });
+    }
+
+    if (wanted.empty())
+        return;   // nothing usable — the caller's sum fallback is the better answer
+
+    auto isWanted = [&wanted] (int number)
+    {
+        return std::any_of (wanted.begin(), wanted.end(),
+                            [number] (const Entry& e) { return e.number == number; });
+    };
+
+    // Extras first, so both the 64-channel and the 8-stereo budgets are free
+    // before anything is created — the same ordering setInputChannelCounts uses.
+    // removeInputChannel refuses to empty the list, so a wholesale replacement
+    // needs a second pass after the additions have raised the count; that is
+    // what the `again` sweep below is for, not a retry loop.
+    auto removeExtras = [this, &isWanted]
+    {
+        auto inputs = getInputsState();
+        for (int slot = inputs.getNumChildren(); --slot >= 0;)
+        {
+            const int number = getInputChannelNumber (slot);
+            if (number > 0 && ! isWanted (number))
+                removeInputChannel (number);   // may legitimately refuse on the last channel
+        }
+    };
+    removeExtras();
+
+    // Create what the file lists and the tree lacks, with the recorded type, so
+    // no channel is ever born mono and flipped afterwards (a flip would have to
+    // find a free patch column, which strict packing rarely leaves).
+    for (const auto& e : wanted)
+    {
+        if (getSlotForChannelNumber (e.number) >= 0)
+            continue;
+
+        const auto r = addInputChannel (e.stereo, e.number);
+        if (r.failed())
+            juce::Logger::writeToLog ("Channel inventory: could not create channel "
+                                      + juce::String (e.number) + " - " + r.getErrorMessage());
+    }
+
+    removeExtras();   // the channel the "at least one" floor protected, if any
+
+    // Type corrections for channels that already existed. Stereo->mono first:
+    // it frees stereo budget that a mono->stereo correction in the same pass
+    // may need, and the reverse order would fail on a full-budget swap.
+    for (int pass = 0; pass < 2; ++pass)
+    {
+        const bool toStereo = (pass == 1);
+        for (const auto& e : wanted)
+        {
+            if (e.stereo != toStereo)
+                continue;
+
+            const int slot = getSlotForChannelNumber (e.number);
+            if (slot < 0 || isInputChannelStereo (slot) == e.stereo)
+                continue;
+
+            const auto r = setInputChannelType (e.number, e.stereo);
+            if (r.failed())
+                juce::Logger::writeToLog ("Channel inventory: could not set channel "
+                                          + juce::String (e.number) + " to "
+                                          + (e.stereo ? "stereo" : "mono")
+                                          + " - " + r.getErrorMessage());
+        }
+    }
+
+    // Display order last. Moved directly rather than through moveInputChannel:
+    // that one drags the patch row with it, which is right for a user drag but
+    // wrong here — the rows are about to be overwritten wholesale by the file's
+    // own patchData, and moving them first would shuffle rows that are already
+    // in the file's order. Resolve the source slot against the live tree on
+    // every iteration, since earlier moves shift the ones after them.
+    auto inputs = getInputsState();
+    int target = 0;
+    for (const auto& e : wanted)
+    {
+        const int from = getSlotForChannelNumber (e.number);
+        if (from < 0)
+            continue;   // creation failed above; already logged
+
+        if (from != target)
+            inputs.moveChild (from, target, nullptr);
+        ++target;
+    }
+
+    clearAllUndoHistories();
 }
 
 void WFSValueTreeState::remapClusterInputOrders (const std::function<int (int)>& oldSlotToNewSlot)

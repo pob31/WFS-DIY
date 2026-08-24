@@ -398,6 +398,33 @@ public:
         like every structural edit. */
     juce::Result moveInputChannel (int channelNumber, int targetSlot);
 
+    //==========================================================================
+    // Channel inventory (system-config persistence)
+    //==========================================================================
+
+    /** Build the <InputChannelList> node the system config carries: one <Ch>
+        per live channel, in DISPLAY order, with its permanent number and type.
+
+        `inputChannels` is only a sum, and the mono/stereo split and the display
+        order live solely on the <Input> nodes — which are saved to inputs.xml,
+        not system.xml. So a system config reloaded on its own rebuilt every
+        channel as mono, and the positional patch rows then landed on the wrong
+        channels (a stereo row's two hardware columns on a mono channel). This
+        node is what closes that hole. It is a FILE artifact: derived at save
+        time, consumed at load time, never stored in the runtime tree, so it
+        cannot desync from the nodes it describes. */
+    juce::ValueTree buildInputChannelInventory() const;
+
+    /** Reconcile the live channel list to an inventory read from a file:
+        remove channels it does not list, create the ones it does with their
+        recorded number and type, correct any type that disagrees, then order
+        the list to match. Numbers, types, display order and permanent-number
+        gaps all survive. Structural and not undoable, like the ops it calls.
+
+        Caller must have latched channel numbers first — otherwise the ops'
+        fresh-session tail renumbers the very list this is restoring. */
+    void applyInputChannelInventory (const juce::ValueTree& inventory);
+
     /** Reconcile the input-patch row COUNT to the channel list after a
         wholesale patchData rewrite (config load): truncate extras, append
         diagonal-continue rows (capacity from the channel type). The count only —

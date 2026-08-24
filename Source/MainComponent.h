@@ -632,6 +632,21 @@ private:
         R get the next hardware column when it is free everywhere. Heuristic,
         never steals a claimed column, leaves fully unpatched rows alone. */
     void autoPatchStereoRightColumns();
+
+    /** A hardware input feeds at most one channel. Clears later claims on a
+        column an earlier row already holds (lowest row wins, matching
+        sanitizeMonoPatchRows' within-row rule) and logs each one. The
+        interactive editor upholds this; a patchData string merged in from a
+        file does not, and loadAudioPatches would resolve it last-writer-wins
+        with one channel silently fed by two. */
+    void dedupeInputPatchColumns();
+
+    /** The full patch repair pass, in the one order both callers use:
+        row count → mono capacity → column uniqueness → stereo R companion.
+        Every step is idempotent and no-ops on a well-formed patch, so the
+        load path and the channel-count path can both run it unconditionally. */
+    void repairInputPatchAfterLoad();
+
     void repaintActiveTab();
 
     // Keyboard handling helpers

@@ -2318,6 +2318,20 @@ juce::ValueTree WFSFileManager::extractConfigSection() const
             filtered.appendChild (child.createCopy(), nullptr);
     }
 
+    // <IO> carries only a channel TOTAL, and the mono/stereo split plus the
+    // display order live on the <Input> nodes, which go to inputs.xml. Without
+    // the inventory a system config reloaded on its own rebuilds every channel
+    // as mono, and the positional patch rows in this very file then land on the
+    // wrong channels — a stereo row's two hardware columns on a mono channel.
+    // Stamped into the COPY: the runtime tree keeps the <Input> nodes as its
+    // single source of truth, so this cannot go stale behind them.
+    auto io = filtered.getChildWithName (IO);
+    if (io.isValid())
+    {
+        io.removeChild (io.getChildWithName (InputChannelList), nullptr);   // never two
+        io.appendChild (valueTreeState.buildInputChannelInventory(), nullptr);
+    }
+
     return filtered;
 }
 
@@ -2379,6 +2393,22 @@ bool WFSFileManager::applyConfigSection (const juce::ValueTree& configTree)
 
     auto* undoManager = valueTreeState.getUndoManager();
 
+    // Lift the channel inventory off the LOADED tree before the merge. It is a
+    // file artifact: the <Input> nodes are the runtime source of truth, and a
+    // live second description of them could only drift. Copied because
+    // `configTree` is const and the merge below is free to outlive it; the
+    // node the merge drags into the live tree is evicted after it.
+    juce::ValueTree inventory;
+    {
+        auto loadedIO = configTree.getChildWithName (IO);
+        if (loadedIO.isValid())
+        {
+            auto stored = loadedIO.getChildWithName (InputChannelList);
+            if (stored.isValid())
+                inventory = stored.createCopy();
+        }
+    }
+
     // Merge properties and children from loaded config (preserves missing properties/children)
     // Network, ADMOSC, and Tracking are automatically preserved if not in configTree
     mergeTreeRecursive (existingConfig, configTree, undoManager);
@@ -2392,7 +2422,29 @@ bool WFSFileManager::applyConfigSection (const juce::ValueTree& configTree)
         int outputCount = ioSection.getProperty (outputChannels, 0);
         int reverbCount = ioSection.getProperty (reverbChannels, 0);
 
-        valueTreeState.setNumInputChannels (inputCount);
+        // The merge copies children too, so the inventory rode in with it —
+        // evict it again. Runtime state is the <Input> nodes; keeping a second
+        // description of them around invites the two to disagree.
+        ioSection.removeChild (ioSection.getChildWithName (InputChannelList), nullptr);
+
+        channelListFromInventory = (inventory.isValid() && inventory.getNumChildren() > 0);
+
+        if (channelListFromInventory)
+        {
+            // Numbers, types, display order and permanent-number gaps all in
+            // one go. markChannelNumbersUserOwned() above is what makes this
+            // safe: unlatched, the structural ops' tail would renumber the very
+            // list being restored.
+            valueTreeState.applyInputChannelInventory (inventory);
+        }
+        else
+        {
+            // Written before the inventory existed: the sum is all there is, so
+            // every channel comes back mono. The patch repair on the load tail
+            // is what keeps that from leaving two hardware inputs on a mono row.
+            valueTreeState.setNumInputChannels (inputCount);
+        }
+
         valueTreeState.setNumOutputChannels (outputCount);
         valueTreeState.setNumReverbChannels (reverbCount);
     }
@@ -2405,6 +2457,11 @@ bool WFSFileManager::applyInputsSection (const juce::ValueTree& inputsTree)
     auto existingInputs = valueTreeState.getInputsState();
     if (existingInputs.isValid())
     {
+        // Captured before the merge: how many channels the config section left
+        // in the tree. Compared against the file's own child count below to tell
+        // a ghost apart from two files that are simply out of sync.
+        const int liveCountBeforeMerge = existingInputs.getNumChildren();
+
         // Latched before the merge, not after it: the numbers about to come out
         // of the file are the ones OSC, ADM, snapshots, QLab, the plug-in and MCP
         // already point at, and any structural op running while still unlatched
@@ -2414,6 +2471,58 @@ bool WFSFileManager::applyInputsSection (const juce::ValueTree& inputsTree)
         valueTreeState.markChannelNumbersUserOwned();
 
         mergeTreeRecursive (existingInputs, inputsTree, valueTreeState.getUndoManager());
+
+        // mergeTreeRecursive appends unmatched source children but NEVER removes
+        // a target child the source lacks, so anything the config section
+        // invented survives the merge. When that section had no inventory to go
+        // on it invented a dense 1..N from the sum, and a saved list with a
+        // permanent-number gap then comes back one channel too long: save
+        // 1,2,3,4,5,7 (inputChannels="6"), the guess makes 1..6, the merge
+        // appends 7, and 6 is a ghost — a default channel that eats a render
+        // source and, because patch rows are positional, shifts every row after
+        // it. Drop those here.
+        //
+        // Two guards, because the cost of over-pruning is losing channels the
+        // operator configured:
+        //
+        //  - Skipped when the config section HAD an inventory: it rebuilt the
+        //    exact set, so a channel missing here means the two files are out of
+        //    step, not that the channel was deleted.
+        //  - Skipped unless the file's channel count MATCHES what the config
+        //    section left behind. That equality is the ghost's signature: the
+        //    guess produced the right number of channels and the wrong set, so
+        //    every channel the file omits is one the merge replaced with an
+        //    appended sibling. Different counts mean the two files disagree
+        //    about the size of the show — a system config saved on its own,
+        //    say — and there the file with fewer channels must not silently
+        //    delete the operator's others.
+        if (! channelListFromInventory
+            && inputsTree.getNumChildren() == liveCountBeforeMerge)
+        {
+            juce::SortedSet<int> inFile;
+            for (int i = 0; i < inputsTree.getNumChildren(); ++i)
+            {
+                const int number = static_cast<int> (
+                    inputsTree.getChild (i).getProperty (WFSParameterIDs::id, 0));
+                if (number > 0)
+                    inFile.add (number);
+            }
+
+            if (! inFile.isEmpty())
+            {
+                for (int slot = existingInputs.getNumChildren(); --slot >= 0;)
+                {
+                    const int number = valueTreeState.getInputChannelNumber (slot);
+                    if (number > 0 && ! inFile.contains (number))
+                    {
+                        WFSLogger::getInstance().logInfo (
+                            "Load: dropping input channel " + juce::String (number)
+                            + " - not present in the loaded channel list");
+                        valueTreeState.removeInputChannel (number);
+                    }
+                }
+            }
+        }
 
         // The merge matches children by type + id and never applies the FILE's
         // child ORDER, so without this a saved drag-reorder comes back in

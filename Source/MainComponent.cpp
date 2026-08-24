@@ -2840,6 +2840,120 @@ void MainComponent::runChannelListSelfTest()
     check(! vts.setInputChannelType(5, true).wasOk(), "K: type flip beyond the stereo budget is rejected");
     verify("K");
 
+    // ---- R: system-config round trip -------------------------------------
+    // The regression this phase exists for: <IO inputChannels> is a SUM, and the
+    // mono/stereo split and the display order live on the <Input> nodes, which
+    // go to inputs.xml. So reloading a system config on its own rebuilt every
+    // channel as mono — and because patch rows are positional and DID load in
+    // file order, a stereo row's two hardware columns landed on a mono channel.
+    // Export/import take an explicit file, so this needs no project folder.
+    {
+        auto typesInSlotOrder = [&]() -> juce::String
+        {
+            juce::String t;
+            for (int slot = 0; slot < vts.getNumInputChannels(); ++slot)
+                t += (slot == 0 ? "" : ",") + juce::String(vts.isInputChannelStereo(slot) ? "s" : "m");
+            return t;
+        };
+
+        auto& fm = parameters.getFileManager();
+        auto roundTripFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                                 .getChildFile("wfs-selftest-system.xml");
+        roundTripFile.deleteFile();
+
+        // A deliberately awkward shape: stereo at BOTH ends with monos between,
+        // which is exactly what two counts (or a "last N are stereo" tail split)
+        // cannot describe and only a per-channel inventory can.
+        vts.setInputChannelCounts(4, 0);
+        reconfig();
+        check(vts.addInputChannel(true).wasOk(), "R0: add a stereo pair");
+        reconfig();
+        check(vts.moveInputChannel(vts.getInputChannelNumber(vts.getNumInputChannels() - 1), 0).wasOk(),
+              "R0: drag it to the top of the display order");
+        reconfig();
+        check(vts.addInputChannel(true).wasOk(), "R0: add a second stereo pair at the bottom");
+        reconfig();
+        verify("R0: stereo at both ends");
+
+        const auto numbersBefore = numbersInSlotOrder();
+        const auto typesBefore   = typesInSlotOrder();
+        const auto patchBefore   = patchInSlotOrder();
+        const int  countBefore   = vts.getNumInputChannels();
+        const int  stereoBefore  = vts.getNumStereoInputChannels();
+
+        check(fm.exportSystemConfig(roundTripFile), "R1: export the system config");
+        check(roundTripFile.loadFileAsString().contains("InputChannelList"),
+              "R1: the file carries an explicit channel inventory, not just a count");
+
+        // Mutate hard enough that a load which only honours the SUM cannot
+        // accidentally look correct: different count AND all-mono.
+        vts.setInputChannelCounts(9, 0);
+        reconfig();
+        check(vts.getNumStereoInputChannels() == 0, "R2: scrambled to 9 mono, 0 stereo");
+
+        check(fm.importSystemConfig(roundTripFile), "R3: reload the system config alone");
+        reconfig();
+        verify("R3: after reloading the system config alone");
+
+        check(vts.getNumInputChannels() == countBefore,
+              "R3: the channel count came back");
+        check(vts.getNumStereoInputChannels() == stereoBefore,
+              "R3: the stereo channels came back as stereo, not as mono");
+        check(typesInSlotOrder() == typesBefore,
+              "R3: the mono/stereo arrangement came back in the same slots");
+        check(numbersInSlotOrder() == numbersBefore,
+              "R3: permanent channel numbers and display order survived");
+        check(patchInSlotOrder() == patchBefore,
+              "R3: every channel got its own hardware inputs back");
+
+        // The reported symptom, stated as its own check: a mono channel must
+        // never end up holding a stereo row's two hardware inputs.
+        {
+            bool monoRowOverPatched = false;
+            auto rows = patchRows();
+            for (int slot = 0; slot < vts.getNumInputChannels() && slot < rows.size(); ++slot)
+            {
+                if (vts.isInputChannelStereo(slot))
+                    continue;
+                juce::StringArray cols = juce::StringArray::fromTokens(rows[slot], ",", "");
+                int patched = 0;
+                for (int c = 0; c < cols.size(); ++c)
+                    patched += (cols[c].getIntValue() == 1) ? 1 : 0;
+                if (patched > 1)
+                    monoRowOverPatched = true;
+            }
+            check(! monoRowOverPatched, "R3: no mono channel holds two hardware inputs");
+        }
+
+        // One hardware input feeds one channel. This is the invariant the
+        // interactive editor upholds and a merged-in patchData string does not.
+        {
+            juce::SortedSet<int> claimed;
+            bool duplicateColumn = false;
+            auto rows = patchRows();
+            for (int slot = 0; slot < vts.getNumInputChannels() && slot < rows.size(); ++slot)
+            {
+                juce::StringArray cols = juce::StringArray::fromTokens(rows[slot], ",", "");
+                for (int c = 0; c < cols.size(); ++c)
+                    if (cols[c].getIntValue() == 1)
+                    {
+                        if (claimed.contains(c)) duplicateColumn = true;
+                        claimed.add(c);
+                    }
+            }
+            check(! duplicateColumn, "R3: no hardware input is claimed by two channels");
+        }
+
+        // Idempotence: a second load of the same file must not drift.
+        check(fm.importSystemConfig(roundTripFile), "R4: load the same file again");
+        reconfig();
+        check(numbersInSlotOrder() == numbersBefore && typesInSlotOrder() == typesBefore
+                  && patchInSlotOrder() == patchBefore,
+              "R4: reloading the same file twice is a fixed point");
+
+        roundTripFile.deleteFile();
+    }
+
     logLine(failures == 0 ? juce::String("SELF-TEST RESULT: ALL PASS")
                           : "SELF-TEST RESULT: " + juce::String(failures) + " FAILURES");
 }
@@ -3428,6 +3542,17 @@ void MainComponent::sanitizeMonoPatchRows()
             {
                 cols.set(c, "0");
                 rowChanged = true;
+
+                // Logged because this rewrites the operator's patch: on the load
+                // path it is how a stereo row saved by a session whose channel
+                // list came back all-mono gets its second hardware input taken
+                // away, and a silent change to a show's patch is not findable
+                // afterwards.
+                WFSLogger::getInstance().logWarning(
+                    "Patch repair: mono channel "
+                    + juce::String(parameters.getValueTreeState().getInputChannelNumber(row))
+                    + " held hardware input " + juce::String(c + 1)
+                    + " as a second patch point; dropped it");
             }
         }
         if (rowChanged)
@@ -3737,6 +3862,88 @@ void MainComponent::autoPatchStereoRightColumns()
 
     if (changed)
         inputPatchTree.setProperty(WFSParameterIDs::patchData, rows.joinIntoString(";"), nullptr);
+}
+
+void MainComponent::dedupeInputPatchColumns()
+{
+    // A hardware input feeds at most ONE channel. That invariant is enforced
+    // interactively (commitPatchOperation clears the target column first), but
+    // a loaded patchData string is merged in raw, and nothing downstream repairs
+    // a violation: loadAudioPatches resolves it by last-writer-wins into
+    // inputPatchMap while BOTH rows keep the column in inputPatchPrimaryHw, so
+    // one channel silently feeds two.
+    //
+    // First claimant (lowest row) keeps it — the same "lower wins" rule
+    // sanitizeMonoPatchRows uses within a row, so the two agree about which
+    // hardware input a half-repaired patch keeps.
+    auto audioPatchTree = parameters.getValueTreeState().getState().getChildWithName(WFSParameterIDs::AudioPatch);
+    auto inputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::InputPatch);
+    if (! inputPatchTree.isValid())
+        return;
+
+    juce::String patchDataStr = inputPatchTree.getProperty(WFSParameterIDs::patchData).toString();
+    juce::StringArray rows = juce::StringArray::fromTokens(patchDataStr, ";", "");
+
+    std::vector<int> claimedBy(static_cast<size_t>(WFSValueTreeState::maxHardwarePatchChannels), -1);
+    bool changed = false;
+
+    for (int r = 0; r < rows.size(); ++r)
+    {
+        juce::StringArray cols = juce::StringArray::fromTokens(rows[r], ",", "");
+        bool rowChanged = false;
+
+        for (int c = 0; c < cols.size() && c < (int) claimedBy.size(); ++c)
+        {
+            if (cols[c].getIntValue() != 1)
+                continue;
+
+            auto& owner = claimedBy[static_cast<size_t>(c)];
+            if (owner < 0)
+            {
+                owner = r;
+                continue;
+            }
+
+            cols.set(c, "0");
+            rowChanged = true;
+
+            auto& vts = parameters.getValueTreeState();
+            WFSLogger::getInstance().logWarning(
+                "Patch repair: hardware input " + juce::String(c + 1)
+                + " was claimed by channels " + juce::String(vts.getInputChannelNumber(owner))
+                + " and " + juce::String(vts.getInputChannelNumber(r))
+                + "; kept it on channel " + juce::String(vts.getInputChannelNumber(owner)));
+        }
+
+        if (rowChanged)
+        {
+            rows.set(r, cols.joinIntoString(","));
+            changed = true;
+        }
+    }
+
+    if (changed)
+        inputPatchTree.setProperty(WFSParameterIDs::patchData, rows.joinIntoString(";"), nullptr);
+}
+
+void MainComponent::repairInputPatchAfterLoad()
+{
+    // The one definition of the repair order, so the load path and the
+    // channel-count path cannot drift apart.
+    //
+    // A loaded patch reaches the tree through a bare mergeTreeRecursive: no row
+    // count check, no per-row capacity check, no column-uniqueness check. Until
+    // this ran on the load path, only a channel COUNT change triggered any of
+    // it — so reopening a show whose channel list came back differently (every
+    // stereo pair rebuilt as mono, before the channel inventory existed) left
+    // two hardware inputs sitting on a mono channel, exactly as saved.
+    //
+    // Every step is idempotent and a no-op on a well-formed patch, which is what
+    // lets both call sites run it without checking whether the other already did.
+    parameters.getValueTreeState().normalizeInputPatchRows();  // row count vs channel list
+    sanitizeMonoPatchRows();                                   // mono row keeps its lowest column
+    dedupeInputPatchColumns();                                 // one owner per hardware input
+    autoPatchStereoRightColumns();                             // stereo L with no R gets a free R
 }
 
 void MainComponent::loadAudioPatches()
@@ -4264,8 +4471,8 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
     // may hold a leftover second column — drop it (lower column = L is kept);
     // stereo rows with an L but no R get the next free column (auto-diagonal
     // companion); then rebuild the runtime patch maps for the new shape.
-    sanitizeMonoPatchRows();
-    autoPatchStereoRightColumns();
+    // (normalizeInputPatchRows already ran above; the pass is idempotent.)
+    repairInputPatchAfterLoad();
     loadAudioPatches();
 
     // Update reverb engine node count and resize MainComponent's reverb buffers
@@ -4734,7 +4941,13 @@ void MainComponent::handleConfigReloaded()
         resizeReverbAttenuation(newReverbChannels, sr);
     }
 
-    // Reload audio patches from ValueTree (input/output channel routing)
+    // Reload audio patches from ValueTree (input/output channel routing).
+    // Repair FIRST: the patch arrived through a bare mergeTreeRecursive with no
+    // validation of row count, per-row capacity or column uniqueness, and
+    // loadAudioPatches would bake the damage into the runtime maps rather than
+    // report it. This is the funnel every load reaches — project open, snapshot
+    // recall, config-reloaded callback — so one call here covers them all.
+    repairInputPatchAfterLoad();
     loadAudioPatches();
 
     // Drop reposition prompts from the previous session's geometry. Position
