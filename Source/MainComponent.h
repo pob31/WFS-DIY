@@ -576,6 +576,21 @@ private:
         after the AutomOtion fade and before the shared-ring publish. */
     void runStereoDecompositionStage (int startSample, int numSamples) noexcept;
 
+    /** Audio thread. The input level meters: peak + RMS per render source,
+        measured on patchedInputBuffer once the decomposition above has filled
+        it. Called from BOTH audio paths, immediately after that stage.
+
+        Here rather than inside a WFS algorithm because an input level is a
+        property of the input, not of anything downstream — and the binaural-only
+        path runs no algorithm at all, so anything that asked one for input
+        levels read silence while audio was flowing. */
+    void meterRenderSourceInputs (int startSample, int numSamples) noexcept;
+
+    /** Audio-thread-private: how many render sources the previous block metered,
+        so slots retired by a channel-count change get silenced instead of
+        holding their last reading. */
+    int lastMeteredRenderSources = 0;
+
     /** 50 Hz. Maps each stereo channel's published slice states (azimuth,
         normalized ±1) through inputStereoWidth in METRES and the channel's
         spread axis to metre offsets, pushes them into the calculation engine

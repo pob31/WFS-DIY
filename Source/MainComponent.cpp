@@ -3802,12 +3802,6 @@ void MainComponent::loadAudioPatches()
         }
     }
 
-    // Hand the metering manager the same WFS->hardware mapping, so its
-    // always-on hardware meter can stand in for the WFS algorithms' input
-    // meters when no algorithm is running (binaural-only monitoring).
-    if (levelMeteringManager != nullptr)
-        levelMeteringManager->setInputPatchHardwareMap (inputPatchPrimaryHw, inputPatchSecondaryHw);
-
     // Apply cols policy using current device counts (0/0 when no device).
     // This keeps cols bounded to the device size or to the highest patched
     // channel (whichever is larger), without needing a device-change event.
@@ -3889,6 +3883,63 @@ void MainComponent::applyInputPatch(const juce::AudioSourceChannelInfo& bufferTo
     }
 
     // No copy-back: downstream consumers read directly from patchedInputBuffer
+}
+
+void MainComponent::meterRenderSourceInputs (int startSample, int numSamples) noexcept
+{
+    // RT-safe: one pass per render source over patchedInputBuffer, then two
+    // relaxed atomic stores. No allocation, no locks, no logging, and no
+    // transcendentals in the loop — the decay coefficient is computed once
+    // below and the dB conversion happens on the message thread.
+    //
+    // Ungated on purpose. The obvious optimisation is to skip this when no
+    // meter is on screen, but AutomOtion's audio trigger reads the same levels
+    // with every meter closed, and the pre-gate hardware feed above already
+    // walks up to 512 channels unconditionally — this walks at most as many
+    // render sources as the session has, and is strictly cheaper.
+    if (levelMeteringManager == nullptr || numSamples <= 0)
+        return;
+
+    const double sr = currentDeviceSampleRate.load (std::memory_order_relaxed);
+    if (sr <= 0.0)
+        return;
+
+    const float decay = LevelMeteringManager::blockDecayCoef (
+        numSamples, sr, LevelMeteringManager::kInputMeterTauSeconds);
+
+    const int numSources = juce::jmin (numRenderSources,
+                                       patchedInputBuffer.getNumChannels(),
+                                       LevelMeteringManager::MaxRenderSources);
+
+    for (int src = 0; src < numSources; ++src)
+    {
+        // Peak and energy in ONE pass. getMagnitude() + getRMSLevel() read
+        // every sample twice for the same two numbers, and getRMSLevel is a
+        // scalar double loop ending in a sqrt we would immediately undo.
+        const float* data = patchedInputBuffer.getReadPointer (src, startSample);
+        float maxAbs = 0.0f;
+        float sumSquares = 0.0f;
+
+        for (int i = 0; i < numSamples; ++i)
+        {
+            const float v = data[i];
+            maxAbs = juce::jmax (maxAbs, std::abs (v));
+            sumSquares += v * v;
+        }
+
+        levelMeteringManager->pushRenderSourceBlockLevels (
+            src, maxAbs, sumSquares / (float) numSamples, decay);
+    }
+
+    // Slots retired by a channel-count or mono/stereo change are no longer
+    // written, so without this they would hold their last value forever. The
+    // per-block stamp below covers "nothing is rendering", not "this particular
+    // slot stopped being rendered".
+    for (int src = numSources; src < lastMeteredRenderSources; ++src)
+        levelMeteringManager->pushRenderSourceBlockLevels (src, 0.0f, 0.0f, 0.0f);
+    lastMeteredRenderSources = numSources;
+
+    levelMeteringManager->markRenderSourceMeterBlock();
 }
 
 void MainComponent::runStereoDecompositionStage (int startSample, int numSamples) noexcept
@@ -6200,26 +6251,17 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         const int activeInputs = juce::jmin (hwChannels,
                                              LevelMeteringManager::MaxHardwareInputs);
         const double sr = currentDeviceSampleRate.load (std::memory_order_relaxed);
-
-        // RMS costs a second pass over every hardware channel, and the Input
-        // Patch tint this loop was built for only needs the peak. It is only
-        // read when a meter is on screen, so only compute it then.
-        const bool wantRms = levelMeteringManager->isMeteringActive();
+        const float decay = LevelMeteringManager::blockDecayCoef (
+            bufferToFill.numSamples, sr, LevelMeteringManager::kInputMeterTauSeconds);
 
         for (int ch = 0; ch < activeInputs; ++ch)
         {
             const float mag = bufferToFill.buffer->getMagnitude (ch,
                                                                  bufferToFill.startSample,
                                                                  bufferToFill.numSamples);
-            levelMeteringManager->pushHardwareInputBlockPeak (ch, mag,
-                                                              bufferToFill.numSamples, sr);
-            if (wantRms)
-                levelMeteringManager->pushHardwareInputBlockRms (
-                    ch,
-                    bufferToFill.buffer->getRMSLevel (ch, bufferToFill.startSample,
-                                                      bufferToFill.numSamples),
-                    bufferToFill.numSamples, sr);
+            levelMeteringManager->pushHardwareInputBlockPeak (ch, mag, decay);
         }
+        levelMeteringManager->markHardwareMeterBlock();
     }
 
     // Process WFS audio if engine is started AND processing is enabled
@@ -6279,6 +6321,10 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         // Stereo decomposition: raw L/R → the channels' six render-source
         // slots, before anything downstream reads patchedInputBuffer
         runStereoDecompositionStage (bufferToFill.startSample, bufferToFill.numSamples);
+
+        // Input meters, measured on the finished render sources (see the
+        // binaural-only branch for the twin call — these are the only two).
+        meterRenderSourceInputs (bufferToFill.startSample, bufferToFill.numSamples);
 
         // Write patched input to shared buffers + notify consumers (only when needed)
         {
@@ -6555,6 +6601,12 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
                 // Stereo decomposition (the binaural-only path renders the
                 // same render sources the WFS path would)
                 runStereoDecompositionStage (bufferToFill.startSample, bufferToFill.numSamples);
+
+                // ...and meters them the same way. This is the whole point of
+                // metering here rather than inside a WFS algorithm: no algorithm
+                // runs on this path, so anything that asked one for input levels
+                // got silence while audio was plainly flowing.
+                meterRenderSourceInputs (bufferToFill.startSample, bufferToFill.numSamples);
 
                 // Push input data to binaural processor from patchedInputBuffer
                 int safeInputCount = juce::jmin(numRenderSources, patchedInputBuffer.getNumChannels());
@@ -6953,6 +7005,13 @@ void MainComponent::timerCallback()
             lfoProcessor->process(0.02f);  // 20ms delta time (50Hz)
         }
 
+        // Collapse the render-source input meters onto channels. Must run
+        // BEFORE the AutomOtion block below, which reads the result, and is
+        // deliberately not gated on isMeteringActive() — the audio trigger
+        // needs these levels with every meter closed.
+        if (levelMeteringManager != nullptr)
+            levelMeteringManager->refreshInputLevels();
+
         // Collect audio levels for AutomOtion triggering
         if (automOtionProcessor != nullptr)
         {
@@ -6964,31 +7023,18 @@ void MainComponent::timerCallback()
                 : -1;
             for (int i = 0; i < numInputChannels; ++i)
             {
-                // Read the live-source input level from whichever algorithm is
-                // actually processing. The native GPU paths compute these
-                // host-side too, so AutomOtion's audio trigger works on GPU.
-                float shortPeakDb = -200.0f, rmsDb = -200.0f;
-                switch (currentAlgorithm)
-                {
-                    case ProcessingAlgorithm::InputBuffer:
-                        shortPeakDb = inputAlgorithm.getShortPeakLevelDb(static_cast<size_t>(i));
-                        rmsDb = inputAlgorithm.getRmsLevelDb(static_cast<size_t>(i));
-                        break;
-                    case ProcessingAlgorithm::OutputBuffer:
-                        shortPeakDb = outputAlgorithm.getShortPeakLevelDb(static_cast<size_t>(i));
-                        rmsDb = outputAlgorithm.getRmsLevelDb(static_cast<size_t>(i));
-                        break;
-#if WFS_GPU_NATIVE
-                    case ProcessingAlgorithm::NativeGpuWfs:
-                        shortPeakDb = nativeGpuAlgorithm.getShortPeakLevelDb(static_cast<size_t>(i));
-                        rmsDb = nativeGpuAlgorithm.getRmsLevelDb(static_cast<size_t>(i));
-                        break;
-                    case ProcessingAlgorithm::NativeGpuOutputBuffer:
-                        shortPeakDb = nativeGpuOutputAlgorithm.getShortPeakLevelDb(static_cast<size_t>(i));
-                        rmsDb = nativeGpuOutputAlgorithm.getRmsLevelDb(static_cast<size_t>(i));
-                        break;
-#endif
-                }
+                // Same input levels the meters show. This used to switch on
+                // whichever WFS algorithm was CONFIGURED and read its detector,
+                // which meant the audio trigger was dead whenever that algorithm
+                // was not running — binaural-only monitoring most of all. The
+                // ballistics differ slightly from that detector's (it is the
+                // Live Source Tamer's compressor envelope, not a meter's), so
+                // triggers may fire a touch differently.
+                const auto level = levelMeteringManager != nullptr
+                    ? levelMeteringManager->getInputLevel (i)
+                    : LevelMeteringManager::LevelData{};
+                const float shortPeakDb = level.peakDb;
+                const float rmsDb = level.rmsDb;
                 automOtionProcessor->setInputLevels(i, shortPeakDb, rmsDb);
 
                 // Update trigger/reset indicators for the currently selected input
@@ -7030,6 +7076,10 @@ void MainComponent::timerCallback()
 #endif
             }
             levelMeteringManager->setCurrentAlgorithm(meteringAlg);
+            // Outputs and thread performance come from the algorithm, so they
+            // need to know whether one is actually running — the algorithm enum
+            // only says which is configured.
+            levelMeteringManager->setWfsProcessingActive(audioEngineStarted && processingEnabled);
             levelMeteringManager->updateLevels();
 
             // Repaint map if level overlay is enabled

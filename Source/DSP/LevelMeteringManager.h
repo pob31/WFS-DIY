@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "../Parameters/WFSParameterDefaults.h"
 #include "../../spatcore/wfs/InputBufferAlgorithm.h"
 #include "../../spatcore/wfs/OutputBufferAlgorithm.h"
 #if WFS_GPU_NATIVE
@@ -94,10 +95,12 @@ public:
         outputLevels.resize(numOutputs);
         threadPerformance.resize(juce::jmax(numInputs, numOutputs));
 
-        for (auto& a : hardwareInputPeakDb)
-            a.store(-200.0f, std::memory_order_relaxed);
-        for (auto& a : hardwareInputRmsDb)
-            a.store(-200.0f, std::memory_order_relaxed);
+        for (auto& a : hardwareInputPeakLin)
+            a.store(0.0f, std::memory_order_relaxed);
+        for (auto& a : renderSourcePeakLin)
+            a.store(0.0f, std::memory_order_relaxed);
+        for (auto& a : renderSourceMeanSq)
+            a.store(0.0f, std::memory_order_relaxed);
     }
 
     // === Enable/Disable Control ===
@@ -210,14 +213,28 @@ public:
         if (!isMeteringActive())
             return;
 
+        // NOTE: input levels are NOT read here. They come from the render-source
+        // meter (refreshInputLevels), because the branches below are selected by
+        // which algorithm is CONFIGURED, never by whether one is running — so
+        // sourcing input levels from them made the meters die, or freeze at
+        // their last reading, whenever the WFS engine was stopped.
+        //
+        // Outputs and thread performance genuinely ARE per-algorithm, so they
+        // keep the switch — but they need the same not-running guard, or they
+        // hold their last pre-stop reading for the same reason.
+        if (! wfsProcessingActive)
+        {
+            for (auto& o : outputLevels)
+                o = LevelData{};
+            for (auto& t : threadPerformance)
+                t = ThreadPerformance{};
+
+            updateGpuPipelineStats();
+            return;
+        }
+
         if (currentAlgorithm == ProcessingAlgorithm::InputBuffer && inputAlgorithm != nullptr)
         {
-            // Get input levels from InputBufferAlgorithm (aggregated across a
-            // stereo channel's render sources)
-            fillAggregatedInputLevels(
-                [this](int s) { return inputAlgorithm->getInputPeakLevelDb(s); },
-                [this](int s) { return inputAlgorithm->getInputRmsLevelDb(s); });
-
             // Get output levels from InputBufferAlgorithm
             for (int i = 0; i < numOutputChannels && i < (int)outputLevels.size(); ++i)
             {
@@ -234,12 +251,6 @@ public:
         }
         else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer && outputAlgorithm != nullptr)
         {
-            // Get input levels from OutputBufferAlgorithm (aggregated across a
-            // stereo channel's render sources)
-            fillAggregatedInputLevels(
-                [this](int s) { return outputAlgorithm->getInputPeakLevelDb(s); },
-                [this](int s) { return outputAlgorithm->getInputRmsLevelDb(s); });
-
             // Get output levels from OutputBufferAlgorithm
             for (int i = 0; i < numOutputChannels && i < (int)outputLevels.size(); ++i)
             {
@@ -264,21 +275,6 @@ public:
             updateLevelsFromGpu(*gpuObAlgorithm);
         }
 #endif
-        else
-        {
-            // No WFS algorithm is producing levels. That is not an idle state:
-            // it is what binaural-only monitoring looks like, where audio is
-            // very much flowing (MainComponent's getNextAudioBlock feeds
-            // BinauralProcessor directly from its else-branch) but no
-            // LiveSourceLevelDetector ever sees a sample. Falling through here
-            // left every input pinned at -200 dB, which the Map cannot tell
-            // apart from silence, so the rings simply never appeared.
-            fillInputLevelsFromHardware();
-
-            // Outputs genuinely have nothing to show — nothing is feeding them.
-            for (auto& o : outputLevels)
-                o = LevelData{};
-        }
 
         updateGpuPipelineStats();
     }
@@ -401,88 +397,193 @@ public:
     static constexpr int MaxHardwareInputs = 512;
 
     /** Audio-thread writer. Pushes one block's peak for a single hardware
-     *  input. Instantaneous rise, ~150 ms exponential release. Lock-free. */
-    void pushHardwareInputBlockPeak(int ch, float blockMaxAbs,
-                                    int numSamples, double sampleRate) noexcept
-    {
-        if (ch < 0 || ch >= MaxHardwareInputs || numSamples <= 0 || sampleRate <= 0.0)
-            return;
-
-        const float newDb = (blockMaxAbs > 1.0e-10f)
-                                ? 20.0f * std::log10(blockMaxAbs)
-                                : -200.0f;
-
-        const float cur = hardwareInputPeakDb[ch].load(std::memory_order_relaxed);
-        float out;
-        if (newDb >= cur)
-        {
-            out = newDb;
-        }
-        else
-        {
-            const double releaseSeconds = 0.150;
-            const float coef = (float) std::exp(-(double) numSamples / (sampleRate * releaseSeconds));
-            out = newDb + (cur - newDb) * coef;
-        }
-
-        hardwareInputPeakDb[ch].store(out, std::memory_order_relaxed);
-    }
-
-    /** Audio-thread writer, RMS companion to the peak above. Same envelope.
-     *  Only worth calling while isMeteringActive() — the Input Patch tint that
-     *  the peak feed was built for does not need it, and computing a block RMS
-     *  is a second pass over every hardware channel. */
-    void pushHardwareInputBlockRms(int ch, float blockRms,
-                                   int numSamples, double sampleRate) noexcept
-    {
-        if (ch < 0 || ch >= MaxHardwareInputs || numSamples <= 0 || sampleRate <= 0.0)
-            return;
-
-        const float newDb = (blockRms > 1.0e-10f)
-                                ? 20.0f * std::log10(blockRms)
-                                : -200.0f;
-
-        const float cur = hardwareInputRmsDb[ch].load(std::memory_order_relaxed);
-        float out;
-        if (newDb >= cur)
-        {
-            out = newDb;
-        }
-        else
-        {
-            const double releaseSeconds = 0.150;
-            const float coef = (float) std::exp(-(double) numSamples / (sampleRate * releaseSeconds));
-            out = newDb + (cur - newDb) * coef;
-        }
-
-        hardwareInputRmsDb[ch].store(out, std::memory_order_relaxed);
-    }
-
-    /** GUI-thread reader. Returns -200 dB when channel is out of range. */
-    float getHardwareInputPeakDb(int ch) const noexcept
+     *  input. Instantaneous rise, exponential release by `decayCoef`.
+     *  Lock-free.
+     *
+     *  `decayCoef` is passed in rather than derived here: this runs once per
+     *  hardware channel per block, and on a 512-channel interface computing it
+     *  inline meant 512 std::exp plus 512 std::log10 every block for a value
+     *  that depends only on the block size. Now: one exp in the caller, and the
+     *  dB conversion deferred to the reader. */
+    void pushHardwareInputBlockPeak(int ch, float blockMaxAbs, float decayCoef) noexcept
     {
         if (ch < 0 || ch >= MaxHardwareInputs)
-            return -200.0f;
-        return hardwareInputPeakDb[ch].load(std::memory_order_relaxed);
+            return;
+
+        const float cur = hardwareInputPeakLin[ch].load(std::memory_order_relaxed);
+        hardwareInputPeakLin[ch].store(
+            blockMaxAbs >= cur ? blockMaxAbs
+                               : blockMaxAbs + (cur - blockMaxAbs) * decayCoef,
+            std::memory_order_relaxed);
     }
 
-    /** Message thread: which hardware channel(s) each WFS input is patched from.
-     *  Both vectors are indexed by WFS input channel; -1 means unpatched, and
-     *  the secondary entry is the right leg of a stereo input.
-     *
-     *  This is what lets the always-on hardware meter stand in for the WFS
-     *  algorithms' input meters. Those algorithms are the ONLY source of input
-     *  levels today, so with the WFS engine stopped — binaural-only monitoring,
-     *  the exact case the binaural renderer exists for — every input read
-     *  -200 dB and the Map drew nothing, indistinguishable from silence. */
-    void setInputPatchHardwareMap(const std::vector<int>& primaryHw,
-                                  const std::vector<int>& secondaryHw)
+    /** Audio thread, once per block after the hardware loop. */
+    void markHardwareMeterBlock() noexcept
     {
-        inputPrimaryHw = primaryHw;
-        inputSecondaryHw = secondaryHw;
+        hardwareMeterMs.store(juce::Time::getMillisecondCounter(),
+                              std::memory_order_release);
+    }
+
+    /** GUI-thread reader. Returns -200 dB when channel is out of range.
+     *
+     *  Reports silence once the feed goes stale. Nothing ever reset these
+     *  atomics, and only the audio callback writes them — so closing the audio
+     *  device used to leave the Input Patch header tint lit at whatever the
+     *  last block held, permanently. */
+    float getHardwareInputPeakDb(int ch) const noexcept
+    {
+        if (ch < 0 || ch >= MaxHardwareInputs || ! isMeterFresh(hardwareMeterMs))
+            return -200.0f;
+        return linearToDb(hardwareInputPeakLin[ch].load(std::memory_order_relaxed));
+    }
+
+    // === Render-Source Input Meter ===
+    // The display meter for the WFS inputs, fed from the audio thread at the
+    // one point both engine paths share.
+    //
+    // Input levels used to come from whichever WFS ALGORITHM was configured,
+    // which meant they died whenever that algorithm was not running — most
+    // visibly in binaural-only monitoring, where audio is plainly flowing but
+    // no LiveSourceLevelDetector ever sees a sample. Worse, the algorithm's
+    // detectors kept their last pre-stop reading, so the meters froze rather
+    // than falling, and silence and no-feed looked identical.
+    //
+    // An input level is a property of the INPUT, not of anything downstream, so
+    // it is measured on patchedInputBuffer — post-patch, post-sampler,
+    // post-stereo-decomposition — which is populated whether the WFS engine,
+    // the binaural renderer, or both are running. Same samples the algorithms'
+    // detectors see, one stage earlier; what differs is the envelope, since
+    // those detectors exist for the Live Source Tamer and carry a compressor's
+    // ballistics rather than a display meter's.
+
+    static constexpr int MaxRenderSources = WFSParameterDefaults::maxRenderSources;
+
+    /** Coefficient for one block of exponential decay toward a target.
+     *  Depends only on (numSamples, sampleRate, tau) — compute it ONCE per
+     *  block in the caller, not once per channel: this is the only
+     *  transcendental on the metering path. */
+    static float blockDecayCoef(int numSamples, double sampleRate, double tauSeconds) noexcept
+    {
+        if (numSamples <= 0 || sampleRate <= 0.0 || tauSeconds <= 0.0)
+            return 0.0f;
+        return (float) std::exp(-(double) numSamples / (sampleRate * tauSeconds));
+    }
+
+    /** Time constant for both input-meter paths, chosen to match what the
+     *  algorithms' detectors used to show:
+     *   - peak had a 100 ms release, so the peak path uses the same;
+     *   - RMS was a true 200 ms sliding rectangular window. A one-pole matches
+     *     a rectangular window of length T in smoothing at tau = T/2, and
+     *     converges to the identical steady-state value, so 100 ms it is. */
+    static constexpr double kInputMeterTauSeconds = 0.100;
+
+    /** Audio-thread writer, once per render source per block.
+     *
+     *  Publishes LINEAR peak and LINEAR mean-square; dB conversion happens on
+     *  the message thread in refreshInputLevels(). Same split GpuLevelMeters
+     *  uses, and for the same reason: no logarithms on the audio thread.
+     *
+     *  Peak rises instantly and decays by `decayCoef` — a meter's ballistics.
+     *  Mean-square uses the SAME coefficient in BOTH directions. That symmetry
+     *  is the point: an instant-attack RMS would leap to near the peak value on
+     *  every transient (a snare inside a 64-sample block can measure 20 dB above
+     *  its 200 ms window RMS), which is exactly the calm-RMS regression this is
+     *  replacing a sliding window to avoid. */
+    void pushRenderSourceBlockLevels(int src, float blockMaxAbs, float blockMeanSquare,
+                                     float decayCoef) noexcept
+    {
+        if (src < 0 || src >= MaxRenderSources)
+            return;
+
+        const float curPeak = renderSourcePeakLin[src].load(std::memory_order_relaxed);
+        renderSourcePeakLin[src].store(
+            blockMaxAbs >= curPeak ? blockMaxAbs
+                                   : blockMaxAbs + (curPeak - blockMaxAbs) * decayCoef,
+            std::memory_order_relaxed);
+
+        const float curMs = renderSourceMeanSq[src].load(std::memory_order_relaxed);
+        renderSourceMeanSq[src].store(
+            blockMeanSquare + (curMs - blockMeanSquare) * decayCoef,
+            std::memory_order_relaxed);
+    }
+
+    /** Audio thread, once per block AFTER the render-source loop. One stamp for
+     *  the whole tap — the loop writes every source together, so per-source
+     *  stamps would carry no extra information and cost 104 more stores. */
+    void markRenderSourceMeterBlock() noexcept
+    {
+        renderSourceMeterMs.store(juce::Time::getMillisecondCounter(),
+                                  std::memory_order_release);
+    }
+
+    /** Message thread, every tick: collapse the render-source meters onto the
+     *  visible channels.
+     *
+     *  Deliberately NOT gated on isMeteringActive(): AutomOtion's audio trigger
+     *  reads these levels too, and it has to keep working with every meter
+     *  closed. The work is a handful of atomic loads per channel. */
+    void refreshInputLevels()
+    {
+        // Nothing has pushed recently: no audio device, or nothing rendering.
+        // Report silence rather than holding the last reading — a frozen meter
+        // is what made a stopped engine look like a running one, and it is the
+        // half of this bug that does not announce itself.
+        //
+        // Substituted at READ time, never by decaying the atomics from here:
+        // the audio thread owns that state and a second writer could swallow an
+        // attack or resurrect a stale value.
+        if (! isMeterFresh(renderSourceMeterMs))
+        {
+            for (auto& l : inputLevels)
+                l = LevelData{};
+            return;
+        }
+
+        fillAggregatedInputLevels(
+            [this](int s) { return s >= 0 && s < MaxRenderSources
+                ? linearToDb(renderSourcePeakLin[s].load(std::memory_order_relaxed))
+                : -200.0f; },
+            [this](int s) { return s >= 0 && s < MaxRenderSources
+                ? meanSquareToDb(renderSourceMeanSq[s].load(std::memory_order_relaxed))
+                : -200.0f; });
+    }
+
+    /** Message thread: is the WFS engine actually rendering?
+     *
+     *  Only OUTPUT levels and thread performance need this. Input levels do
+     *  not — they come from the render-source tap, which runs on both audio
+     *  paths. Outputs genuinely have no source when no algorithm runs, and
+     *  without this they would freeze at their last pre-stop reading. */
+    void setWfsProcessingActive(bool active) noexcept
+    {
+        wfsProcessingActive = active;
     }
 
 private:
+    // Long enough that even an 8192-frame buffer at 44.1 kHz (186 ms) never
+    // trips it, short enough that a stopped engine reads as silence before
+    // anyone notices the meters sticking.
+    static constexpr juce::uint32 kMeterStaleMs = 250;
+
+    bool isMeterFresh(const std::atomic<juce::uint32>& stampMs) const noexcept
+    {
+        return juce::Time::getMillisecondCounter()
+                 - stampMs.load(std::memory_order_acquire) < kMeterStaleMs;
+    }
+
+    /** dB from a linear amplitude, with a floor instead of -inf. */
+    static float linearToDb(float amplitude) noexcept
+    {
+        return amplitude > 1.0e-10f ? 20.0f * std::log10(amplitude) : -200.0f;
+    }
+
+    /** dB from a mean of squares. 10*log10(ms) == 20*log10(sqrt(ms)) without
+     *  the square root. */
+    static float meanSquareToDb(float meanSquare) noexcept
+    {
+        return meanSquare > 1.0e-20f ? 10.0f * std::log10(meanSquare) : -200.0f;
+    }
+
     void updateAlgorithmMeteringFlags()
     {
         bool active = isMeteringActive();
@@ -502,36 +603,6 @@ private:
 #endif
     }
 
-    /** Input levels from the pre-gate hardware feed, for when no WFS algorithm
-     *  is producing any. A stereo input takes the louder of its two legs.
-     *
-     *  This reads the signal BEFORE input patching gain, sampler substitution
-     *  and the WFS per-input processing, so it answers "is this input getting
-     *  audio", not "what is this input contributing" — which is exactly the
-     *  question the Map's rings are asked when the WFS engine is stopped. The
-     *  algorithm path stays preferred whenever it is running. */
-    void fillInputLevelsFromHardware()
-    {
-        for (int ch = 0; ch < numInputChannels && ch < (int)inputLevels.size(); ++ch)
-        {
-            float peakDb = -200.0f, rmsDb = -200.0f;
-
-            for (const auto* map : { &inputPrimaryHw, &inputSecondaryHw })
-            {
-                if (ch >= (int) map->size())
-                    continue;
-                const int hw = (*map)[(size_t) ch];
-                if (hw < 0)
-                    continue;
-                peakDb = juce::jmax(peakDb, getHardwareInputPeakDb(hw));
-                rmsDb  = juce::jmax(rmsDb,  hardwareInputRmsDb[hw].load(std::memory_order_relaxed));
-            }
-
-            inputLevels[ch].peakDb = peakDb;
-            inputLevels[ch].rmsDb = rmsDb;
-        }
-    }
-
     // Fill inputLevels per visible channel, aggregating across the channel's
     // render sources when it has more than one (max peak, energy-sum RMS).
     template <typename PeakFn, typename RmsFn>
@@ -541,7 +612,11 @@ private:
         {
             if (ch < (int)sourceAggregation.size() && sourceAggregation[ch].size() > 1)
             {
-                float peakDb = -100.0f;
+                // -200, not -100: the single-source branch below passes the
+                // accessor's own floor straight through, and a stereo channel
+                // that could never read below -100 while a mono one reads -200
+                // is two different scales under one glyph.
+                float peakDb = -200.0f;
                 double rmsEnergy = 0.0;
                 for (int src : sourceAggregation[ch])
                 {
@@ -550,7 +625,7 @@ private:
                 }
                 inputLevels[ch].peakDb = peakDb;
                 inputLevels[ch].rmsDb = rmsEnergy > 0.0
-                    ? (float)(10.0 * std::log10(rmsEnergy)) : -100.0f;
+                    ? (float)(10.0 * std::log10(rmsEnergy)) : -200.0f;
             }
             else
             {
@@ -568,10 +643,7 @@ private:
     template <typename GpuAlgorithm>
     void updateLevelsFromGpu(const GpuAlgorithm& algorithm)
     {
-        fillAggregatedInputLevels(
-            [&algorithm](int s) { return algorithm.getInputPeakLevelDb(static_cast<size_t>(s)); },
-            [&algorithm](int s) { return algorithm.getInputRmsLevelDb(static_cast<size_t>(s)); });
-
+        // Outputs only — input levels come from the render-source meter.
         for (int i = 0; i < numOutputChannels && i < (int)outputLevels.size(); ++i)
         {
             outputLevels[i].peakDb = algorithm.getOutputPeakLevelDb(static_cast<size_t>(i));
@@ -742,14 +814,23 @@ private:
     // Visual solo
     std::atomic<int> visualSoloInput{-1};
 
-    // Per-hardware-input peak/RMS dB, written by audio thread pre-DSP-gate,
-    // read by Input Patch header paint and by fillInputLevelsFromHardware.
-    // Fixed capacity avoids any resize (std::atomic is not movable).
-    std::array<std::atomic<float>, MaxHardwareInputs> hardwareInputPeakDb;
-    std::array<std::atomic<float>, MaxHardwareInputs> hardwareInputRmsDb;
+    // Per-hardware-input LINEAR peak, written by audio thread pre-DSP-gate,
+    // read (and converted to dB) by Input Patch header paint. Fixed capacity
+    // avoids any resize (std::atomic is not movable).
+    std::array<std::atomic<float>, MaxHardwareInputs> hardwareInputPeakLin;
 
-    // WFS input channel -> hardware channel(s), from the input patch matrix.
-    // Message thread only, both here and at the single write in
-    // setInputPatchHardwareMap; updateLevels reads them on the same thread.
-    std::vector<int> inputPrimaryHw, inputSecondaryHw;
+    // Per-render-source LINEAR peak and mean-square — the input meters proper.
+    // Written by the audio thread from patchedInputBuffer, converted to dB and
+    // collapsed onto channels by refreshInputLevels(). Same no-resize reasoning
+    // as above.
+    std::array<std::atomic<float>, MaxRenderSources> renderSourcePeakLin;
+    std::array<std::atomic<float>, MaxRenderSources> renderSourceMeanSq;
+
+    // Freshness stamps, one per tap, written once per block by the audio thread.
+    std::atomic<juce::uint32> renderSourceMeterMs { 0 };
+    std::atomic<juce::uint32> hardwareMeterMs { 0 };
+
+    // Message thread only: gates OUTPUT levels and thread performance, which
+    // have no source when no algorithm is running.
+    bool wfsProcessingActive = false;
 };
