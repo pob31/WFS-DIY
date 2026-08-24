@@ -284,6 +284,8 @@ public:
         if (outputBufferL) outputBufferL->reset();
         if (outputBufferR) outputBufferR->reset();
         hrtfEngine.reset();
+        lastOrientationSource = nullptr;
+        haveLastGood = false;
     }
 
     /**
@@ -424,8 +426,14 @@ private:
         // Never read the ValueTree from here (RT-safety: no locks on the tree, no allocation).
         const auto rt = binauralCalc.getRtParams();
 
-        // HRTF render modes take their own path; the legacy ORTF code below
-        // stays byte-for-byte so mode 0 nulls against pre-HRTF builds.
+        // HRTF render modes take their own path; the legacy ORTF code below is
+        // otherwise untouched, so mode 0 keeps its pre-HRTF behaviour.
+        //
+        // That null is now exact only at Orbit 0 and 180. The capsule facings
+        // in BinauralCalculationEngine::recalculatePositions counter-rotated
+        // against the seat, which was a plain sign error, not a behaviour worth
+        // preserving: at Orbit ±90 the pair aimed away from the stage and the
+        // keystone pattern took ~8 dB off it, lopsidedly. Corrected there.
         // (The legacy path never consumes the reverb taps; the HRTF path
         // resyncs their cursors when it takes over.)
         if (rt.renderMode != 0)
@@ -612,6 +620,16 @@ private:
         // every block, bypassing the damped pipeline entirely — the engine's
         // per-block slew and delay smoothing absorb the steps), else from the
         // manual parameters in the snapshot.
+        //
+        // A SELECTED tracker that goes momentarily quiet (webcam blinks, face
+        // briefly lost, a dropped USB frame) holds its last good attitude
+        // instead of reverting to the manual angles. Reverting was a step in
+        // the wrong DIRECTION, not a click — the smoothing below absorbs the
+        // step either way — but with a non-zero manual yaw it swung the whole
+        // room to a different heading and back every time tracking hiccuped.
+        // The manual angles are the fallback for "no tracker selected", which
+        // is what they mean; they are not a stand-in for a tracker that is
+        // simply between samples.
         // Nothing non-finite may reach the renderers. A NaN attitude builds a
         // non-orthonormal rotation, and from there NaN spreads into the ITD
         // delay lines (where the read index is derived from the delay — a
@@ -629,7 +647,17 @@ private:
             pose.x = pose.y = pose.z = 0.0f;
         {
             float yaw = rt.manualYawRad, pitch = rt.manualPitchRad, roll = rt.manualRollRad;
-            if (auto* src = headOrientationSource.load (std::memory_order_acquire))
+
+            auto* src = headOrientationSource.load (std::memory_order_acquire);
+            if (src != lastOrientationSource)
+            {
+                // Selection changed (including to manual): whatever we were
+                // holding belonged to the previous source and means nothing now.
+                lastOrientationSource = src;
+                haveLastGood = false;
+            }
+
+            if (src != nullptr)
             {
                 const auto tracked = src->getOrientation();
                 if (tracked.valid && spatcore::binaural::isFiniteAttitude (tracked))
@@ -637,7 +665,21 @@ private:
                     yaw = tracked.yawRad;
                     pitch = tracked.pitchRad;
                     roll = tracked.rollRad;
+                    lastGoodYaw = yaw;
+                    lastGoodPitch = pitch;
+                    lastGoodRoll = roll;
+                    haveLastGood = true;
                 }
+                else if (haveLastGood)
+                {
+                    yaw = lastGoodYaw;
+                    pitch = lastGoodPitch;
+                    roll = lastGoodRoll;
+                }
+                // else: tracker selected but has never delivered a good sample
+                // (just selected, camera still opening) — the manual angles are
+                // the only thing we have, and facing the origin is the right
+                // place to start from.
             }
 
             // Manual angles (or a source that bypassed the publish guard):
@@ -810,6 +852,15 @@ private:
     // hrtfPositions is a flat [numInputs][3] world-frame array.
     spatcore::binaural::BinauralEngine hrtfEngine;
     std::atomic<spatcore::binaural::HeadOrientationSource*> headOrientationSource { nullptr };
+
+    // Last attitude a SELECTED tracker actually delivered, so a momentary
+    // dropout holds the heading instead of reverting to the manual angles.
+    // Worker-thread-private: written and read only by processBlockHrtf (and
+    // cleared by reset(), which runs with the worker stopped). lastOrientationSource
+    // is compared, never dereferenced — it only detects a selection change.
+    const spatcore::binaural::HeadOrientationSource* lastOrientationSource = nullptr;
+    float lastGoodYaw = 0.0f, lastGoodPitch = 0.0f, lastGoodRoll = 0.0f;
+    bool haveLastGood = false;
     juce::AudioBuffer<float> hrtfInputBlock;
     std::vector<const float*> hrtfInputPtrs;
     std::vector<float> hrtfPositions;

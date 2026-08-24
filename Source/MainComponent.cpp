@@ -2006,6 +2006,23 @@ MainComponent::MainComponent()
         return -200.0f;
     });
 
+    // Binaural listener glyph: the seat comes from the ValueTree, but the head's
+    // facing needs the TRACKED yaw, which only exists on the RT fast path.
+    mapTab->setBinauralTrackedAttitudeProvider([this](float& yaw, float& pitch, float& roll) {
+        if (headTrackerManager == nullptr)
+            return false;
+        auto* source = headTrackerManager->getActiveSource();
+        if (source == nullptr)
+            return false;
+        const auto o = source->getOrientation();
+        if (! o.valid || ! spatcore::binaural::isFiniteAttitude(o))
+            return false;
+        yaw = o.yawRad;
+        pitch = o.pitchRad;
+        roll = o.rollRad;
+        return true;
+    });
+
     // Configure OSC Manager with initial network settings from parameters
     WFSNetwork::GlobalConfig oscGlobalConfig;
     oscGlobalConfig.udpReceivePort = (int)parameters.getConfigParam("NetworkRxUDPport");
@@ -3784,6 +3801,12 @@ void MainComponent::loadAudioPatches()
             }
         }
     }
+
+    // Hand the metering manager the same WFS->hardware mapping, so its
+    // always-on hardware meter can stand in for the WFS algorithms' input
+    // meters when no algorithm is running (binaural-only monitoring).
+    if (levelMeteringManager != nullptr)
+        levelMeteringManager->setInputPatchHardwareMap (inputPatchPrimaryHw, inputPatchSecondaryHw);
 
     // Apply cols policy using current device counts (0/0 when no device).
     // This keeps cols bounded to the device size or to the highest patched
@@ -6177,6 +6200,12 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         const int activeInputs = juce::jmin (hwChannels,
                                              LevelMeteringManager::MaxHardwareInputs);
         const double sr = currentDeviceSampleRate.load (std::memory_order_relaxed);
+
+        // RMS costs a second pass over every hardware channel, and the Input
+        // Patch tint this loop was built for only needs the peak. It is only
+        // read when a meter is on screen, so only compute it then.
+        const bool wantRms = levelMeteringManager->isMeteringActive();
+
         for (int ch = 0; ch < activeInputs; ++ch)
         {
             const float mag = bufferToFill.buffer->getMagnitude (ch,
@@ -6184,6 +6213,12 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
                                                                  bufferToFill.numSamples);
             levelMeteringManager->pushHardwareInputBlockPeak (ch, mag,
                                                               bufferToFill.numSamples, sr);
+            if (wantRms)
+                levelMeteringManager->pushHardwareInputBlockRms (
+                    ch,
+                    bufferToFill.buffer->getRMSLevel (ch, bufferToFill.startSample,
+                                                      bufferToFill.numSamples),
+                    bufferToFill.numSamples, sr);
         }
     }
 
@@ -7002,6 +7037,18 @@ void MainComponent::timerCallback()
                 mapTab->repaint();
         }
 
+        // The binaural listener glyph's FACING follows the tracker, and tracker
+        // attitude never reaches the ValueTree — so MapTab's property-change
+        // coalescer, which covers every other part of the glyph, cannot see it
+        // move. 12.5 Hz is enough to read a head turn and cheap enough to leave
+        // on; everything else about the glyph still repaints on change.
+        if (mapVisible && mapTab != nullptr && (timerTicksSinceLastRandom % 16) == 0
+            && headTrackerManager != nullptr && headTrackerManager->getActiveSource() != nullptr
+            && parameters.getValueTreeState().getBinauralEnabled())
+        {
+            mapTab->repaint();
+        }
+
         // Pass combined LFO + AutomOtion offsets and gyrophone offsets to calculation engine for DSP
         for (int i = 0; i < numInputChannels; ++i)
         {
@@ -7214,7 +7261,22 @@ void MainComponent::timerCallback()
         if (binauralProcessor != nullptr && headTrackerManager != nullptr)
         {
             auto binauralState = parameters.getValueTreeState().getBinauralState();
-            const juce::String wanted = binauralState.isValid()
+
+            // ORTF legacy (renderMode 0) never reads head orientation at all —
+            // BinauralProcessor::processBlock returns before the pose is built.
+            // Resolve to manual there so an exclusive device is not held for
+            // nothing: selecting the webcam and switching to legacy used to
+            // leave the camera open, LED on, unavailable to anything else,
+            // with zero effect on the audio. The PERSISTED id is untouched, so
+            // the tracker re-engages on the way back to an HRTF mode, exactly
+            // like the existing absent-device path.
+            const bool orientationUsed = binauralState.isValid()
+                && juce::jlimit(WFSParameterDefaults::binauralRenderModeMin,
+                                WFSParameterDefaults::binauralRenderModeMax,
+                                (int) binauralState.getProperty(WFSParameterIDs::binauralRenderMode,
+                                                                WFSParameterDefaults::binauralRenderModeDefault)) != 0;
+
+            const juce::String wanted = (binauralState.isValid() && orientationUsed)
                 ? binauralState.getProperty(WFSParameterIDs::binauralHeadTrackerSource, "manual").toString()
                 : juce::String("manual");
             // Re-resolve on a selection change, and also when a device is

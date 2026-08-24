@@ -121,7 +121,8 @@
       "binauralHeadRadius": "Head Radius:",
       "binauralOrientation": "Orientation Y/P/R:",
       "binauralDistance": "Listener Distance:",
-      "binauralAngle": "Listener Angle:",
+      "binauralAngle": "Orbit:",
+      "binauralYaw": "Head Yaw:",
       "binauralAtten": "Binaural Level:",
       "binauralDelay": "Binaural Delay:",
       "lightpadSensitivity": "Sensitivity:",
@@ -300,7 +301,7 @@
       "binauralEnable": "Enable or disable the binaural renderer processing.",
       "binauralOutput": "Select output channel pair for binaural monitoring. Off disables binaural output.",
       "binauralMode": "Binaural rendering algorithm: ORTF (legacy) virtual microphone pair, Structural HRTF (parametric head model), or SOFA file (measured HRTFs).",
-      "binauralListenerX": "Lateral offset of the binaural listener from the axial placement (meters).",
+      "binauralListenerX": "Sideways offset of the binaural listener from the seat Orbit and Distance place them at (meters, positive = to the listener’s right). HRTF modes only.",
       "binauralSofa": "HRTF set for the SOFA render mode: the built-in SADIE II KU100 or a custom SOFA file stored in the project's sofa folder.",
       "binauralTracker": "Head orientation source: manual (yaw/pitch/roll controls) or a connected head tracker. Tracker attitude bypasses parameter damping for immediate response.",
       "binauralSetZero": "Look at the stage center, then click to calibrate the head tracker's zero orientation. Webcam tracking takes a moment to start after selecting it.",
@@ -309,9 +310,10 @@
       "binauralAdvancedClose": "Close the listener geometry panel.",
       "binauralHeight": "Ear height of the binaural listener (meters). HRTF modes only.",
       "binauralHeadRadius": "Head radius for the structural HRTF model (centimeters). Larger heads produce larger interaural time differences.",
-      "binauralOrientation": "Manual head orientation offsets from facing the origin: yaw, pitch, roll (degrees). Ignored while a head tracker is active.",
+      "binauralOrientation": "Manual head orientation offsets from facing the origin: yaw, pitch, roll (degrees). These turn the head on the spot — unlike Orbit, which moves the seat. Ignored while a head tracker is active.",
       "binauralDistance": "Distance of binaural listener from stage origin (meters).",
-      "binauralAngle": "Horizontal rotation of binaural listener view (degrees, 0 = facing stage).",
+      "binauralYaw": "Turns the listener’s head on the spot, without moving the seat (degrees, 0 = facing the stage origin, positive = turning right). Mirrors the live tracked yaw and is locked while a head tracker is active. HRTF modes only.",
+      "binauralAngle": "Where the listener SITS on a circle around the stage origin (degrees, 0 = the audience side, straight in front of the stage). They always face the origin, so this does not turn the head — it walks the listener around the room, changing the distance to every source. To turn the head, use Head Yaw (or Orientation Y/P/R in the Listener Geometry panel). Yaw is measured from this seat, so changing Orbit also re-aims a head tracker’s zero.",
       "binauralAtten": "Overall level offset for binaural output (dB).",
       "binauralDelay": "Additional delay for binaural output (milliseconds).",
       "diagnosticsToggle": "Long-press to show or hide the diagnostic tools (export logs, open log folder, copy system info, report issue).",
@@ -2413,7 +2415,7 @@
     },
     "binaural": {
       "title": "Binaural Renderer",
-      "body": "The Binaural renderer is used for:\n- listening to a rough spatial mix on headphones,\n- creating a mix for stereo output,\n- listening to a single soloed track through the spatial processing.\nThis may take the place of your master mix if it's only feeding headphones and media mix.\n\nRender Mode selects the algorithm: ORTF (legacy) emulates a virtual microphone pair; Structural HRTF is a parametric head model (adjust Head Radius to your head); SOFA file renders measured HRTFs — the built-in SADIE II KU100 set or your own SOFA files imported into the project.\n\nHead Tracking rotates the scene with your head so it stays anchored to the stage. Select Webcam (camera-based, no extra hardware) or, when a USB receiver is connected, a head tracker itself — every tracker in range appears as its own entry. Look at the stage center and press Set Zero to calibrate; the live readout below the selector shows the tracked yaw/pitch/roll. Manual orientation uses the yaw/pitch/roll values from the Listener Geometry panel (head glyph button) instead.\n\nIn the HRTF modes the spatialised reverb is also rendered at the node positions (studio preview only, balanced by the reverb level); the listener placement (angle, lateral offset, ear height) lives in the Listener Geometry panel. Delay and level settings allow you to eventually match the sound at the FOH position."
+      "body": "The Binaural renderer is used for:\n- listening to a rough spatial mix on headphones,\n- creating a mix for stereo output,\n- listening to a single soloed track through the spatial processing.\nThis may take the place of your master mix if it's only feeding headphones and media mix.\n\nRender Mode selects the algorithm: ORTF (legacy) emulates a virtual microphone pair; Structural HRTF is a parametric head model (adjust Head Radius to your head); SOFA file renders measured HRTFs — the built-in SADIE II KU100 set or your own SOFA files imported into the project.\n\nOrbit and Head Yaw are two different things, and it matters. Orbit is WHERE YOU SIT: it moves the listener around a circle of Listener Distance about the stage origin, always facing the origin. It does not turn your head — it walks you around the room, so every source changes distance and gets louder or quieter. Head Yaw turns you on the spot from that seat. The Map shows the listener as a head glyph so you can see which one you moved.\n\nHead Tracking rotates the scene with your head so it stays anchored to the stage. Select Webcam (camera-based, no extra hardware) or, when a USB receiver is connected, a head tracker itself — every tracker in range appears as its own entry. Look at the stage center and press Set Zero to calibrate; the Head Yaw dial and the live readout below the selector both follow the tracker. Yaw is measured from your seat, so zero always means facing the origin and changing Orbit re-aims the tracker's zero with you. Manual orientation uses the yaw/pitch/roll values from the Listener Geometry panel (head glyph button) instead.\n\nIn the HRTF modes the spatialised reverb is also rendered at the node positions (studio preview only, balanced by the reverb level); the listener placement (orbit, sideways offset, ear height) lives in the Listener Geometry panel. Note ORTF (legacy) ignores the sideways offset and ear height and always uses 1.5 m, so switching between it and an HRTF mode can move the listener. Delay and level settings allow you to eventually match the sound at the FOH position."
     },
     "map": {
       "title": "Map",

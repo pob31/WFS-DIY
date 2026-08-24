@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "64b97ac193fcf508c3e3b065c5781780a16076f9c6fe13099f81b7689b5e6801",
+  "input_hash": "8c73dc0accd5925a23c622f1440d630b1a4c934476c89dd607c54f2c106b059e",
   "source_csvs": [
     "WFS-UI_config.csv",
     "WFS-UI_input.csv",
@@ -11374,16 +11374,16 @@
     },
     {
       "name": "system_binaural_renderer_set_binaural_listener_angle",
-      "description": "Binaural listener horizontal rotation in degrees. 0 = facing stage origin (looking +Y, upstage), positive = counter-clockwise viewed from above (matches the inputRotation / outputOrientation convention). Range -180 to 180. Fractional degrees supported. Value in degrees.",
+      "description": "Where the binaural listener SITS, as a bearing on a circle around the stage origin (degrees, 0 = the audience side, straight in front of the stage; positive = counter-clockwise viewed from above, matching the inputRotation / outputOrientation convention). The listener always faces the origin, so this does NOT turn the head - it moves the seat, changing the distance to every source and therefore how loud each one is. To turn the head use binauralListenerYaw. Whole degrees, range -180 to 180. Value in degrees.",
       "parameters": {
         "type": "object",
         "properties": {
           "value": {
-            "type": "number",
-            "minimum": -180.0,
-            "maximum": 180.0,
-            "description": "Listener Angle degrees.",
-            "default": 0.0
+            "type": "integer",
+            "minimum": -180,
+            "maximum": 180,
+            "description": "Orbit degrees.",
+            "default": 0
           }
         },
         "required": [

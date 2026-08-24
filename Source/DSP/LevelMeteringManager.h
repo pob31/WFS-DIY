@@ -96,6 +96,8 @@ public:
 
         for (auto& a : hardwareInputPeakDb)
             a.store(-200.0f, std::memory_order_relaxed);
+        for (auto& a : hardwareInputRmsDb)
+            a.store(-200.0f, std::memory_order_relaxed);
     }
 
     // === Enable/Disable Control ===
@@ -262,6 +264,21 @@ public:
             updateLevelsFromGpu(*gpuObAlgorithm);
         }
 #endif
+        else
+        {
+            // No WFS algorithm is producing levels. That is not an idle state:
+            // it is what binaural-only monitoring looks like, where audio is
+            // very much flowing (MainComponent's getNextAudioBlock feeds
+            // BinauralProcessor directly from its else-branch) but no
+            // LiveSourceLevelDetector ever sees a sample. Falling through here
+            // left every input pinned at -200 dB, which the Map cannot tell
+            // apart from silence, so the rings simply never appeared.
+            fillInputLevelsFromHardware();
+
+            // Outputs genuinely have nothing to show — nothing is feeding them.
+            for (auto& o : outputLevels)
+                o = LevelData{};
+        }
 
         updateGpuPipelineStats();
     }
@@ -411,12 +428,58 @@ public:
         hardwareInputPeakDb[ch].store(out, std::memory_order_relaxed);
     }
 
+    /** Audio-thread writer, RMS companion to the peak above. Same envelope.
+     *  Only worth calling while isMeteringActive() — the Input Patch tint that
+     *  the peak feed was built for does not need it, and computing a block RMS
+     *  is a second pass over every hardware channel. */
+    void pushHardwareInputBlockRms(int ch, float blockRms,
+                                   int numSamples, double sampleRate) noexcept
+    {
+        if (ch < 0 || ch >= MaxHardwareInputs || numSamples <= 0 || sampleRate <= 0.0)
+            return;
+
+        const float newDb = (blockRms > 1.0e-10f)
+                                ? 20.0f * std::log10(blockRms)
+                                : -200.0f;
+
+        const float cur = hardwareInputRmsDb[ch].load(std::memory_order_relaxed);
+        float out;
+        if (newDb >= cur)
+        {
+            out = newDb;
+        }
+        else
+        {
+            const double releaseSeconds = 0.150;
+            const float coef = (float) std::exp(-(double) numSamples / (sampleRate * releaseSeconds));
+            out = newDb + (cur - newDb) * coef;
+        }
+
+        hardwareInputRmsDb[ch].store(out, std::memory_order_relaxed);
+    }
+
     /** GUI-thread reader. Returns -200 dB when channel is out of range. */
     float getHardwareInputPeakDb(int ch) const noexcept
     {
         if (ch < 0 || ch >= MaxHardwareInputs)
             return -200.0f;
         return hardwareInputPeakDb[ch].load(std::memory_order_relaxed);
+    }
+
+    /** Message thread: which hardware channel(s) each WFS input is patched from.
+     *  Both vectors are indexed by WFS input channel; -1 means unpatched, and
+     *  the secondary entry is the right leg of a stereo input.
+     *
+     *  This is what lets the always-on hardware meter stand in for the WFS
+     *  algorithms' input meters. Those algorithms are the ONLY source of input
+     *  levels today, so with the WFS engine stopped — binaural-only monitoring,
+     *  the exact case the binaural renderer exists for — every input read
+     *  -200 dB and the Map drew nothing, indistinguishable from silence. */
+    void setInputPatchHardwareMap(const std::vector<int>& primaryHw,
+                                  const std::vector<int>& secondaryHw)
+    {
+        inputPrimaryHw = primaryHw;
+        inputSecondaryHw = secondaryHw;
     }
 
 private:
@@ -437,6 +500,36 @@ private:
         if (gpuObAlgorithm != nullptr)
             gpuObAlgorithm->setOutputMeteringEnabled(active);
 #endif
+    }
+
+    /** Input levels from the pre-gate hardware feed, for when no WFS algorithm
+     *  is producing any. A stereo input takes the louder of its two legs.
+     *
+     *  This reads the signal BEFORE input patching gain, sampler substitution
+     *  and the WFS per-input processing, so it answers "is this input getting
+     *  audio", not "what is this input contributing" — which is exactly the
+     *  question the Map's rings are asked when the WFS engine is stopped. The
+     *  algorithm path stays preferred whenever it is running. */
+    void fillInputLevelsFromHardware()
+    {
+        for (int ch = 0; ch < numInputChannels && ch < (int)inputLevels.size(); ++ch)
+        {
+            float peakDb = -200.0f, rmsDb = -200.0f;
+
+            for (const auto* map : { &inputPrimaryHw, &inputSecondaryHw })
+            {
+                if (ch >= (int) map->size())
+                    continue;
+                const int hw = (*map)[(size_t) ch];
+                if (hw < 0)
+                    continue;
+                peakDb = juce::jmax(peakDb, getHardwareInputPeakDb(hw));
+                rmsDb  = juce::jmax(rmsDb,  hardwareInputRmsDb[hw].load(std::memory_order_relaxed));
+            }
+
+            inputLevels[ch].peakDb = peakDb;
+            inputLevels[ch].rmsDb = rmsDb;
+        }
     }
 
     // Fill inputLevels per visible channel, aggregating across the channel's
@@ -649,8 +742,14 @@ private:
     // Visual solo
     std::atomic<int> visualSoloInput{-1};
 
-    // Per-hardware-input peak dB, written by audio thread pre-DSP-gate,
-    // read by Input Patch header paint. Fixed capacity avoids any resize
-    // (std::atomic is not movable).
+    // Per-hardware-input peak/RMS dB, written by audio thread pre-DSP-gate,
+    // read by Input Patch header paint and by fillInputLevelsFromHardware.
+    // Fixed capacity avoids any resize (std::atomic is not movable).
     std::array<std::atomic<float>, MaxHardwareInputs> hardwareInputPeakDb;
+    std::array<std::atomic<float>, MaxHardwareInputs> hardwareInputRmsDb;
+
+    // WFS input channel -> hardware channel(s), from the input patch matrix.
+    // Message thread only, both here and at the single write in
+    // setInputPatchHardwareMap; updateLevels reads them on the same thread.
+    std::vector<int> inputPrimaryHw, inputSecondaryHw;
 };

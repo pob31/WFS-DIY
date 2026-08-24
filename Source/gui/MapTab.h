@@ -8,6 +8,7 @@
 #include "../Parameters/WFSParameterDefaults.h"
 #include "../Parameters/WFSConstraints.h"
 #include "../Helpers/ReverbNodePlacement.h"
+#include "../Helpers/BinauralListenerGeometry.h"
 #include "../Network/OSCProtocolTypes.h"
 #include "ColorUtilities.h"
 #include "ColorScheme.h"
@@ -400,6 +401,7 @@ public:
         drawOriginMarker(g);
         drawOutputs(g);
         drawReverbs(g);
+        drawBinauralListener(g);
         drawClusters(g);
         drawInputs(g);
         drawRubberBand(g);
@@ -2390,6 +2392,18 @@ public:
         getInputLevelDb = std::move(callback);
     }
 
+    /** Live head-tracker attitude (yaw/pitch/roll in radians), for the binaural
+        listener glyph's facing. Returns false when nothing is tracking.
+
+        Needed because tracker attitude deliberately bypasses the parameter
+        system — it is read per block on the RT fast path and never reaches the
+        ValueTree — so the glyph cannot find it any other way. Same provider
+        MainComponent gives SystemConfigTab for its attitude readout. */
+    void setBinauralTrackedAttitudeProvider(std::function<bool(float&, float&, float&)> provider)
+    {
+        getBinauralTrackedAttitude = std::move(provider);
+    }
+
     /** Set callback to get output peak level in dB for visualization */
     void setOutputLevelCallback(std::function<float(int)> callback)
     {
@@ -2539,6 +2553,7 @@ private:
     // Level overlay callbacks
     std::function<void(bool)> onLevelOverlayChanged;
     std::function<float(int)> getInputLevelDb;   // Returns peak dB for input index
+    std::function<bool(float&, float&, float&)> getBinauralTrackedAttitude;  // live tracker yaw/pitch/roll (rad)
     std::function<float(int)> getOutputLevelDb;  // Returns peak dB for output index
 
     // Status bar and help text
@@ -3357,6 +3372,100 @@ private:
             }
         }
     }
+    /** The binaural listener: where they sit and which way they are looking.
+
+        This exists because the Orbit control is a SEAT PLACEMENT, not a head
+        rotation, and nothing on screen used to say so. Turning it walks the
+        listener around a circle about the origin, which changes the distance
+        to every source and so changes the loudness of everything — an effect
+        that reads as the renderer misbehaving when the only feedback is your
+        ears. Drawn here, it reads as what it is: you moved.
+
+        Position and facing come from WFSBinauralListener so this can never
+        disagree with what BinauralCalculationEngine actually renders. */
+    void drawBinauralListener(juce::Graphics& g)
+    {
+        auto binaural = parameters.getValueTreeState().getBinauralState();
+        if (! binaural.isValid())
+            return;
+
+        using namespace WFSParameterDefaults;
+
+        const int renderMode = juce::jlimit(binauralRenderModeMin, binauralRenderModeMax,
+            (int) binaural.getProperty(WFSParameterIDs::binauralRenderMode, binauralRenderModeDefault));
+
+        const float distance = (float) binaural.getProperty(
+            WFSParameterIDs::binauralListenerDistance, binauralListenerDistanceDefault);
+        const float orbitDeg = (float) (int) binaural.getProperty(
+            WFSParameterIDs::binauralListenerAngle, binauralListenerAngleDefault);
+
+        // ORTF legacy ignores the lateral offset (BinauralCalculationEngine::
+        // recalculatePositions pins it to 0), so the glyph must ignore it too —
+        // otherwise the Map would show a seat the renderer is not using, and
+        // the legacy/HRTF switch would look like it does nothing when in fact
+        // it moves the listener.
+        const float lateralX = renderMode == 0 ? 0.0f
+            : juce::jlimit(binauralListenerXMin, binauralListenerXMax,
+                (float) binaural.getProperty(WFSParameterIDs::binauralListenerX, binauralListenerXDefault));
+
+        // Head orientation: the tracked yaw when a tracker is driving it (it
+        // never reaches the ValueTree — the renderer reads it on the fast path),
+        // otherwise the manual value. Legacy reads neither.
+        float yawDeg = 0.0f;
+        if (renderMode != 0)
+        {
+            yawDeg = juce::jlimit(binauralListenerYawMin, binauralListenerYawMax,
+                (float) binaural.getProperty(WFSParameterIDs::binauralListenerYaw, binauralListenerYawDefault));
+
+            float ty = 0.0f, tp = 0.0f, tr = 0.0f;
+            if (getBinauralTrackedAttitude && getBinauralTrackedAttitude(ty, tp, tr))
+                yawDeg = juce::radiansToDegrees(ty);
+        }
+
+        const auto seat = WFSBinauralListener::seatPosition(distance, orbitDeg, lateralX);
+        const auto facing = WFSBinauralListener::facingVector(orbitDeg, yawDeg);
+        const auto centre = stageToScreen({ seat.x, seat.y });
+
+        // Dimmed but still drawn when the renderer is off: the seat is part of
+        // the scene whether or not it is currently being listened through.
+        const bool active = parameters.getValueTreeState().getBinauralEnabled();
+        const float alpha = active ? 0.9f : 0.35f;
+        const auto colour = juce::Colour(0xFF26A69A).withAlpha(alpha);   // teal, as the binaural controls
+
+        const float headR = juce::jmax(7.0f, markerRadius * 0.62f);
+
+        // Plan-view head: a circle for the skull and a nose wedge for the
+        // facing. A bare arrow would read as a source's directivity; the nose
+        // says "this is a person, and this is where they are looking".
+        const juce::Point<float> f(facing.x, -facing.y);        // stage +Y is screen up
+        const juce::Point<float> side(-f.y, f.x);
+
+        juce::Path nose;
+        nose.startNewSubPath(centre + f * (headR * 1.85f));
+        nose.lineTo(centre + side * (headR * 0.46f) + f * (headR * 0.72f));
+        nose.lineTo(centre - side * (headR * 0.46f) + f * (headR * 0.72f));
+        nose.closeSubPath();
+
+        g.setColour(colour.withMultipliedAlpha(0.30f));
+        g.fillEllipse(centre.x - headR, centre.y - headR, headR * 2.0f, headR * 2.0f);
+        g.fillPath(nose);
+
+        g.setColour(colour);
+        g.drawEllipse(centre.x - headR, centre.y - headR, headR * 2.0f, headR * 2.0f, 1.6f);
+        g.strokePath(nose, juce::PathStrokeType(1.6f, juce::PathStrokeType::curved,
+                                                       juce::PathStrokeType::rounded));
+
+        // Ears, so the head reads as a head at small sizes and the left/right
+        // of the binaural image is unambiguous on screen.
+        const float earR = headR * 0.26f;
+        for (float s : { -1.0f, 1.0f })
+        {
+            const auto e = centre + side * (headR * s);
+            g.fillEllipse(e.x - earR, e.y - earR, earR * 2.0f, earR * 2.0f);
+        }
+    }
+
+
 
     void drawReverbs(juce::Graphics& g)
     {

@@ -1130,28 +1130,75 @@ public:
         addAndMakeVisible(binauralDistanceUnitLabel);
         binauralDistanceUnitLabel.setText("m", juce::dontSendNotification);
 
-        // Listener Angle - WfsRotationDial with TextEditor
-        addAndMakeVisible(binauralAngleLabel);
-        binauralAngleLabel.setText(LOC("systemConfig.labels.binauralAngle"), juce::dontSendNotification);
+        // Orbit (binauralListenerAngle) - WfsRotationDial with TextEditor.
+        // This is a SEAT PLACEMENT control, not a head rotation: it moves the
+        // listener around a circle of Listener Distance about the origin, and
+        // they face the origin from wherever it lands. Head rotation is the
+        // Head Yaw dial below.
+        addAndMakeVisible(binauralOrbitLabel);
+        binauralOrbitLabel.setText(LOC("systemConfig.labels.binauralAngle"), juce::dontSendNotification);
 
-        addAndMakeVisible(binauralAngleDial);
-        binauralAngleDial.setAngle((float)WFSParameterDefaults::binauralListenerAngleDefault);
-        binauralAngleDial.onAngleChanged = [this](float angle) {
-            binauralAngleEditor.setText(juce::String((int)angle), juce::dontSendNotification);
+        addAndMakeVisible(binauralOrbitDial);
+        // Because the value IS a position on the Map, the dial reads like the
+        // Map: 0 at the bottom (audience side), positive counter-clockwise.
+        binauralOrbitDial.setPlanViewMapping(true);
+        binauralOrbitDial.setAngle((float)WFSParameterDefaults::binauralListenerAngleDefault);
+        binauralOrbitDial.onAngleChanged = [this](float angle) {
+            // setAngle() fires this from inside the setter, so loadParametersToUI()
+            // reaches it too — every other binaural control checks this flag and
+            // this one did not.
+            if (isLoadingParameters)
+                return;
+            // roundToInt, not a truncating cast: (int) rounds toward zero, so
+            // the dial lost up to a degree on every write and had a 2-degree
+            // dead band across 0 where the dot moved but nothing changed. The
+            // Stream Deck mirror of this parameter already rounds.
+            const int deg = juce::roundToInt(angle);
+            binauralOrbitEditor.setText(juce::String(deg), juce::dontSendNotification);
             auto& vts = parameters.getValueTreeState();
-            vts.getBinauralState().setProperty(WFSParameterIDs::binauralListenerAngle, (int)angle, nullptr);
+            vts.getBinauralState().setProperty(WFSParameterIDs::binauralListenerAngle, deg, nullptr);
         };
-        // binauralAngleDial.setTooltip(LOC("systemConfig.help.binauralAngle"));
 
-        addAndMakeVisible(binauralAngleEditor);
-        binauralAngleEditor.setText(juce::String(WFSParameterDefaults::binauralListenerAngleDefault), juce::dontSendNotification);
-        binauralAngleEditor.setJustification(juce::Justification::centred);
-        binauralAngleEditor.setColour(juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
-        binauralAngleEditor.setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
-        binauralAngleEditor.addListener(this);
+        addAndMakeVisible(binauralOrbitEditor);
+        binauralOrbitEditor.setText(juce::String(WFSParameterDefaults::binauralListenerAngleDefault), juce::dontSendNotification);
+        binauralOrbitEditor.setJustification(juce::Justification::centred);
+        binauralOrbitEditor.setColour(juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
+        binauralOrbitEditor.setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
+        binauralOrbitEditor.addListener(this);
 
-        addAndMakeVisible(binauralAngleUnitLabel);
-        binauralAngleUnitLabel.setText(juce::String::fromUTF8("\xc2\xb0"), juce::dontSendNotification);
+        addAndMakeVisible(binauralOrbitUnitLabel);
+        binauralOrbitUnitLabel.setText(juce::String::fromUTF8("\xc2\xb0"), juce::dontSendNotification);
+
+        // Head Yaw (binauralListenerYaw) - turns the head on the spot from the
+        // seat Orbit chose. Keeps the DEFAULT dial mapping (0 at the top =
+        // straight ahead, positive clockwise = turning right): this is a
+        // head-relative angle, not a plan-view position, so it must NOT read
+        // like the Map the way the Orbit dial does.
+        addChildComponent(binauralYawLabel);
+        binauralYawLabel.setText(LOC("systemConfig.labels.binauralYaw"), juce::dontSendNotification);
+
+        addChildComponent(binauralYawDial);
+        binauralYawDial.setAngle(WFSParameterDefaults::binauralListenerYawDefault);
+        binauralYawDial.onAngleChanged = [this](float angle) {
+            // isSuppressingYawWrite covers the tracker mirror in timerCallback,
+            // which drives this dial for DISPLAY only. Without it the mirror
+            // would write the tracked yaw into binauralListenerYaw four times a
+            // second and destroy whatever the user had set manually.
+            if (isLoadingParameters || isSuppressingYawWrite)
+                return;
+            binauralYawEditor.setText(juce::String(angle, 0), juce::dontSendNotification);
+            binauralYawValueLabel.setText(juce::String(juce::roundToInt(angle)), juce::dontSendNotification);
+            auto& vts = parameters.getValueTreeState();
+            vts.getBinauralState().setProperty(WFSParameterIDs::binauralListenerYaw, angle, nullptr);
+        };
+
+        addChildComponent(binauralYawValueLabel);
+        binauralYawValueLabel.setText("0", juce::dontSendNotification);
+        binauralYawValueLabel.setJustificationType(juce::Justification::centredRight);
+
+        addChildComponent(binauralYawUnitLabel);
+        binauralYawUnitLabel.setText(binauralOrbitUnitLabel.getText(), juce::dontSendNotification);
+
 
         // Binaural Level - WfsStandardSlider with TextEditor
         addAndMakeVisible(binauralAttenLabel);
@@ -1446,7 +1493,7 @@ public:
             editor.applyFontToAllText(editor.getFont(), true);
         };
         updateBinauralEditor(binauralDistanceEditor);
-        updateBinauralEditor(binauralAngleEditor);
+        updateBinauralEditor(binauralOrbitEditor);
         updateBinauralEditor(binauralAttenEditor);
         updateBinauralEditor(binauralDelayEditor);
 
@@ -1821,15 +1868,15 @@ public:
                 // Legacy: listener angle dial block
                 int dialCenterX = x + binauralFullWidth / 2;
                 int ay = flexTop;
-                binauralAngleLabel.setBounds(x, ay, binauralFullWidth, rowHeight);
-                binauralAngleLabel.setJustificationType(juce::Justification::centred);
+                binauralOrbitLabel.setBounds(x, ay, binauralFullWidth, rowHeight);
+                binauralOrbitLabel.setJustificationType(juce::Justification::centred);
                 ay += rowHeight;
-                binauralAngleDial.setBounds(dialCenterX - dialSize / 2, ay, dialSize, dialSize);
+                binauralOrbitDial.setBounds(dialCenterX - dialSize / 2, ay, dialSize, dialSize);
                 ay += dialSize;
                 const int angleValW = scaled(40), angleUnitW = scaled(20), overlap = scaled(5);
                 int angleStartX = dialCenterX - (angleValW + angleUnitW - overlap) / 2;
-                binauralAngleEditor.setBounds(angleStartX, ay, angleValW, rowHeight);
-                binauralAngleUnitLabel.setBounds(angleStartX + angleValW - overlap, ay, angleUnitW, rowHeight);
+                binauralOrbitEditor.setBounds(angleStartX, ay, angleValW, rowHeight);
+                binauralOrbitUnitLabel.setBounds(angleStartX + angleValW - overlap, ay, angleUnitW, rowHeight);
             }
             else
             {
@@ -1909,19 +1956,40 @@ public:
             binauralOrientationUnitLabel.setBounds(ax + aw - binauralUnitWidth, ay, binauralUnitWidth, rowHeight);
             ay += rowHeight + spacing;
 
-            // Listener angle (position on the circle — a placement parameter,
-            // so it lives here in the HRTF modes; the tracker only supplies
-            // attitude and never replaces it)
-            const int panelDialCenterX = ax + aw / 2;
-            binauralAngleLabel.setBounds(ax, ay, aw, rowHeight);
-            binauralAngleLabel.setJustificationType(juce::Justification::centred);
+            // The two dials, side by side, because the whole point is that
+            // they are DIFFERENT things: Orbit moves the seat around the stage
+            // (a placement parameter — the tracker only supplies attitude and
+            // never replaces it), Head Yaw turns the head on that seat. Seeing
+            // them together is what stops Orbit being read as a rotation.
+            const int halfW = (aw - spacing) / 2;
+            const int dualDialSize = juce::jmin(panelDialSize, halfW);
+            const int orbitCentreX = ax + halfW / 2;
+            const int yawCentreX = ax + aw - halfW / 2;
+
+            binauralOrbitLabel.setBounds(ax, ay, halfW, rowHeight);
+            binauralOrbitLabel.setJustificationType(juce::Justification::centred);
+            binauralYawLabel.setBounds(ax + aw - halfW, ay, halfW, rowHeight);
+            binauralYawLabel.setJustificationType(juce::Justification::centred);
             ay += rowHeight;
-            binauralAngleDial.setBounds(panelDialCenterX - panelDialSize / 2, ay, panelDialSize, panelDialSize);
+
+            // Both dial blocks stay panelDialSize tall so the card height
+            // (angleBlockH above) is unchanged whether one or two are shown.
+            const int dialY = ay + (panelDialSize - dualDialSize) / 2;
+            binauralOrbitDial.setBounds(orbitCentreX - dualDialSize / 2, dialY, dualDialSize, dualDialSize);
+            binauralYawDial.setBounds(yawCentreX - dualDialSize / 2, dialY, dualDialSize, dualDialSize);
             ay += panelDialSize;
+
             const int pAngleValW = scaled(40), pAngleUnitW = scaled(20), pOverlap = scaled(5);
-            int pAngleStartX = panelDialCenterX - (pAngleValW + pAngleUnitW - pOverlap) / 2;
-            binauralAngleEditor.setBounds(pAngleStartX, ay, pAngleValW, rowHeight);
-            binauralAngleUnitLabel.setBounds(pAngleStartX + pAngleValW - pOverlap, ay, pAngleUnitW, rowHeight);
+            const int pAngleStartX = orbitCentreX - (pAngleValW + pAngleUnitW - pOverlap) / 2;
+            binauralOrbitEditor.setBounds(pAngleStartX, ay, pAngleValW, rowHeight);
+            binauralOrbitUnitLabel.setBounds(pAngleStartX + pAngleValW - pOverlap, ay, pAngleUnitW, rowHeight);
+
+            // Yaw's readout is a LABEL, not an editor: the yaw value is already
+            // typeable in the Orientation Y/P/R row above, and a second editable
+            // field for the same parameter is two places to fix a typo.
+            const int pYawStartX = yawCentreX - (pAngleValW + pAngleUnitW - pOverlap) / 2;
+            binauralYawValueLabel.setBounds(pYawStartX, ay, pAngleValW, rowHeight);
+            binauralYawUnitLabel.setBounds(pYawStartX + pAngleValW - pOverlap, ay, pAngleUnitW, rowHeight);
         }
 
         // Listener Distance
@@ -2363,7 +2431,7 @@ public:
             // Column 4: Master
             { &masterLevelEditor, &systemLatencyEditor, &haasEffectEditor },
             // Column 5: Binaural Renderer
-            { &binauralDistanceEditor, &binauralAngleEditor,
+            { &binauralDistanceEditor, &binauralOrbitEditor,
               &binauralAttenEditor, &binauralDelayEditor }
         });
     }
@@ -2425,9 +2493,20 @@ private:
 
         // Binaural Section
         setupNumericEditor(binauralDistanceEditor, false, true);  // 0.0 to 10.0
-        setupNumericEditor(binauralAngleEditor, true, false);     // -180 to 180 (integer)
+        setupNumericEditor(binauralOrbitEditor, true, false);     // -180 to 180 (integer)
         setupNumericEditor(binauralAttenEditor, true, true);      // -40.0 to 0.0
         setupNumericEditor(binauralDelayEditor, false, true);     // 0.0 to 100.0
+
+        // The Listener Geometry panel's editors were never given this treatment,
+        // so they had no input filter and no select-all-on-focus: clicking a
+        // Yaw field showing "0" and typing "45" produced "450", which then
+        // clamped to 180 — a half-turn from a keystroke that looked correct.
+        setupNumericEditor(binauralListenerXEditor, true, true);  // -10.0 to 10.0
+        setupNumericEditor(binauralHeightEditor, false, true);    // 0.5 to 3.0
+        setupNumericEditor(binauralHeadRadiusEditor, false, true);// 6.0 to 12.0 cm
+        setupNumericEditor(binauralYawEditor, true, false);       // -180 to 180
+        setupNumericEditor(binauralPitchEditor, true, false);     // -89 to 89
+        setupNumericEditor(binauralRollEditor, true, false);      // -90 to 90
     }
 
     //==============================================================================
@@ -2497,7 +2576,7 @@ private:
                                                                WFSParameterDefaults::binauralListenerDistanceDefault);
             editor.setText(juce::String(distance, 1), false);
         }
-        else if (&editor == &binauralAngleEditor)
+        else if (&editor == &binauralOrbitEditor)
         {
             auto binauralState = parameters.getValueTreeState().getBinauralState();
             int angle = (int)binauralState.getProperty(WFSParameterIDs::binauralListenerAngle,
@@ -2678,8 +2757,15 @@ private:
             WFSParameterIDs::binauralListenerHeight, WFSParameterDefaults::binauralListenerHeightDefault), 2), juce::dontSendNotification);
         binauralHeadRadiusEditor.setText(juce::String((float)binauralState.getProperty(
             WFSParameterIDs::binauralHeadRadius, WFSParameterDefaults::binauralHeadRadiusDefault) * 100.0f, 2), juce::dontSendNotification);
-        binauralYawEditor.setText(juce::String((float)binauralState.getProperty(
-            WFSParameterIDs::binauralListenerYaw, WFSParameterDefaults::binauralListenerYawDefault), 0), juce::dontSendNotification);
+        {
+            const float yawDeg = juce::jlimit(WFSParameterDefaults::binauralListenerYawMin,
+                                              WFSParameterDefaults::binauralListenerYawMax,
+                                              (float)binauralState.getProperty(
+                WFSParameterIDs::binauralListenerYaw, WFSParameterDefaults::binauralListenerYawDefault));
+            binauralYawEditor.setText(juce::String(yawDeg, 0), juce::dontSendNotification);
+            binauralYawValueLabel.setText(juce::String(juce::roundToInt(yawDeg)), juce::dontSendNotification);
+            binauralYawDial.setAngle(yawDeg);   // isLoadingParameters gates the write-back
+        }
         binauralPitchEditor.setText(juce::String((float)binauralState.getProperty(
             WFSParameterIDs::binauralListenerPitch, WFSParameterDefaults::binauralListenerPitchDefault), 0), juce::dontSendNotification);
         binauralRollEditor.setText(juce::String((float)binauralState.getProperty(
@@ -2694,8 +2780,8 @@ private:
         // Angle
         int angle = (int)binauralState.getProperty(WFSParameterIDs::binauralListenerAngle,
                                                     WFSParameterDefaults::binauralListenerAngleDefault);
-        binauralAngleDial.setAngle((float)angle);
-        binauralAngleEditor.setText(juce::String(angle), juce::dontSendNotification);
+        binauralOrbitDial.setAngle((float)angle);
+        binauralOrbitEditor.setText(juce::String(angle), juce::dontSendNotification);
 
         // Attenuation
         float attenDb = (float)binauralState.getProperty(WFSParameterIDs::binauralAttenuation,
@@ -2978,12 +3064,12 @@ private:
             vts.getBinauralState().setProperty(WFSParameterIDs::binauralListenerDistance, distance, nullptr);
             binauralDistanceSlider.setValue(distance / WFSParameterDefaults::binauralListenerDistanceMax);
         }
-        else if (&editor == &binauralAngleEditor)
+        else if (&editor == &binauralOrbitEditor)
         {
             int angle = text.getIntValue();
             auto& vts = parameters.getValueTreeState();
             vts.getBinauralState().setProperty(WFSParameterIDs::binauralListenerAngle, angle, nullptr);
-            binauralAngleDial.setAngle((float)angle);
+            binauralOrbitDial.setAngle((float)angle);
         }
         else if (&editor == &binauralAttenEditor)
         {
@@ -3011,8 +3097,17 @@ private:
             parameters.getValueTreeState().getBinauralState().setProperty(
                 WFSParameterIDs::binauralHeadRadius, text.getFloatValue() / 100.0f, nullptr);  // cm → m
         else if (&editor == &binauralYawEditor)
+        {
+            const float yawDeg = text.getFloatValue();
             parameters.getValueTreeState().getBinauralState().setProperty(
-                WFSParameterIDs::binauralListenerYaw, text.getFloatValue(), nullptr);
+                WFSParameterIDs::binauralListenerYaw, yawDeg, nullptr);
+            // Same parameter, two views: keep the dial and its readout with the
+            // typed value. Suppressed so the dial's in-setter callback does not
+            // write the value straight back.
+            const juce::ScopedValueSetter<bool> guard(isSuppressingYawWrite, true);
+            binauralYawDial.setAngle(yawDeg);
+            binauralYawValueLabel.setText(juce::String(juce::roundToInt(yawDeg)), juce::dontSendNotification);
+        }
         else if (&editor == &binauralPitchEditor)
             parameters.getValueTreeState().getBinauralState().setProperty(
                 WFSParameterIDs::binauralListenerPitch, text.getFloatValue(), nullptr);
@@ -3080,7 +3175,7 @@ private:
         else if (&editor == &binauralDistanceEditor)
             value = juce::jlimit(WFSParameterDefaults::binauralListenerDistanceMin,
                                  WFSParameterDefaults::binauralListenerDistanceMax, std::abs(value));
-        else if (&editor == &binauralAngleEditor)
+        else if (&editor == &binauralOrbitEditor)
             value = juce::jlimit((float)WFSParameterDefaults::binauralListenerAngleMin,
                                  (float)WFSParameterDefaults::binauralListenerAngleMax, value);
         else if (&editor == &binauralAttenEditor)
@@ -3115,7 +3210,7 @@ private:
         // Update display with clamped value
         if (&editor == &inputChannelsEditor || &editor == &stereoChannelsEditor ||
             &editor == &outputChannelsEditor ||
-            &editor == &reverbChannelsEditor || &editor == &binauralAngleEditor)
+            &editor == &reverbChannelsEditor || &editor == &binauralOrbitEditor)
         {
             editor.setText(juce::String((int)value), false);
         }
@@ -3552,8 +3647,9 @@ public:
     }
 
     /** Low-rate UI refresh of the live tracker attitude. The readout is the
-        only visual proof head tracking is alive — tracker attitude bypasses
-        the parameter system, so no other control ever moves with it. */
+        only visual proof head tracking is alive, and it drives the Head Yaw
+        dial's needle so the panel shows tracking at a glance. Tracker attitude
+        bypasses the parameter system, so nothing here may write it back. */
     void timerCallback() override
     {
         if (! binauralAttitudeLabel.isVisible() || ! headTrackerAttitudeProvider)
@@ -3561,7 +3657,8 @@ public:
 
         float yaw = 0, pitch = 0, roll = 0;
         juce::String text;
-        if (headTrackerAttitudeProvider(yaw, pitch, roll))
+        const bool tracking = headTrackerAttitudeProvider(yaw, pitch, roll);
+        if (tracking)
         {
             constexpr float toDeg = 180.0f / juce::MathConstants<float>::pi;
             text = "yaw " + juce::String(juce::roundToInt(yaw * toDeg))
@@ -3574,6 +3671,22 @@ public:
             text = LOC("systemConfig.labels.binauralNoTracking");
         }
         binauralAttitudeLabel.setText(text, juce::dontSendNotification);
+
+        // Mirror the tracked yaw onto the dial. DISPLAY ONLY: setAngle fires
+        // onAngleChanged from inside the setter, so without the suppression
+        // flag this would overwrite the user's manual yaw four times a second.
+        //
+        // Only while tracking is LIVE. On a dropout the dial holds its last
+        // reading, which is exactly what the renderer does with the attitude
+        // itself (BinauralProcessor's lastGood hold) — the needle should not
+        // claim a movement the ears are not getting.
+        if (tracking && binauralYawDial.isVisible())
+        {
+            const juce::ScopedValueSetter<bool> guard(isSuppressingYawWrite, true);
+            binauralYawDial.setAngle(juce::radiansToDegrees(yaw));
+            binauralYawValueLabel.setText(juce::String(juce::roundToInt(juce::radiansToDegrees(yaw))),
+                                          juce::dontSendNotification);
+        }
     }
 
     /** Set Zero and the live attitude readout only make sense when a real
@@ -3585,6 +3698,12 @@ public:
                                 && binauralTrackerIds[idx] != "manual";
         const bool show = binauralTrackerSelector.isVisible() && trackerActive;
         binauralSetZeroButton.setVisible(show);
+
+        // A tracker REPLACES the manual yaw rather than offsetting it, so the
+        // Head Yaw dial becomes a readout while one is selected. Leaving it
+        // draggable would let the user fight a control that cannot win — every
+        // drag would be overwritten by the next tracker sample.
+        binauralYawDial.setEnabled(! trackerActive);
         if (binauralAttitudeLabel.isVisible() != show)
         {
             binauralAttitudeLabel.setVisible(show);
@@ -3736,13 +3855,22 @@ public:
         binauralRollEditor.setVisible(panel);
         binauralOrientationUnitLabel.setVisible(panel);
 
-        // Listener angle: a placement parameter — main column in legacy mode,
-        // inside the geometry panel in the HRTF modes.
+        // Head Yaw sits beside Orbit in the overlay. Hidden in ORTF legacy for
+        // the same reason the rest of the orientation controls are: that mode's
+        // renderer never reads head orientation at all.
+        binauralYawLabel.setVisible(panel);
+        binauralYawDial.setVisible(panel);
+        binauralYawValueLabel.setVisible(panel);
+        binauralYawUnitLabel.setVisible(panel);
+
+        // Orbit: a placement parameter — main column in legacy mode (where it
+        // is the only binaural geometry there is), inside the geometry panel
+        // beside Head Yaw in the HRTF modes.
         const bool angleVisible = ! hrtf || panel;
-        binauralAngleLabel.setVisible(angleVisible);
-        binauralAngleDial.setVisible(angleVisible);
-        binauralAngleEditor.setVisible(angleVisible);
-        binauralAngleUnitLabel.setVisible(angleVisible);
+        binauralOrbitLabel.setVisible(angleVisible);
+        binauralOrbitDial.setVisible(angleVisible);
+        binauralOrbitEditor.setVisible(angleVisible);
+        binauralOrbitUnitLabel.setVisible(angleVisible);
 
         if (panel)
         {
@@ -3754,8 +3882,10 @@ public:
                      &binauralHeadRadiusLabel, &binauralHeadRadiusEditor, &binauralHeadRadiusUnitLabel,
                      &binauralOrientationLabel, &binauralYawEditor, &binauralPitchEditor,
                      &binauralRollEditor, &binauralOrientationUnitLabel,
-                     &binauralAngleLabel, &binauralAngleDial,
-                     &binauralAngleEditor, &binauralAngleUnitLabel })
+                     &binauralOrbitLabel, &binauralOrbitDial,
+                     &binauralOrbitEditor, &binauralOrbitUnitLabel,
+                     &binauralYawLabel, &binauralYawDial,
+                     &binauralYawValueLabel, &binauralYawUnitLabel })
                 c->toFront(false);
         }
 
@@ -3791,8 +3921,8 @@ public:
         // Labels (mode/SOFA/tracker labels handled below — always enabled)
         binauralDistanceLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
         binauralDistanceUnitLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
-        binauralAngleLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
-        binauralAngleUnitLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
+        binauralOrbitLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
+        binauralOrbitUnitLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
         binauralAttenLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
         binauralAttenUnitLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
         binauralDelayLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
@@ -3800,7 +3930,7 @@ public:
 
         // Text editors
         binauralDistanceEditor.setColour(juce::TextEditor::textColourId, binauralActive ? enabledColour : disabledColour);
-        binauralAngleEditor.setColour(juce::TextEditor::textColourId, binauralActive ? enabledColour : disabledColour);
+        binauralOrbitEditor.setColour(juce::TextEditor::textColourId, binauralActive ? enabledColour : disabledColour);
         binauralAttenEditor.setColour(juce::TextEditor::textColourId, binauralActive ? enabledColour : disabledColour);
         binauralDelayEditor.setColour(juce::TextEditor::textColourId, binauralActive ? enabledColour : disabledColour);
 
@@ -3832,7 +3962,7 @@ public:
         binauralDistanceSlider.setEnabled(binauralActive);
         binauralAttenSlider.setEnabled(binauralActive);
         binauralDelaySlider.setEnabled(binauralActive);
-        binauralAngleDial.setEnabled(binauralActive);
+        binauralOrbitDial.setEnabled(binauralActive);
 
         // Solo mode button - visually dim when binaural inactive
         soloModeButton.setColour(juce::TextButton::textColourOffId, binauralActive ? enabledColour : disabledColour);
@@ -4586,8 +4716,8 @@ public:
         helpTextMap[&binauralRollEditor] = LOC("systemConfig.help.binauralOrientation");
         helpTextMap[&binauralDistanceSlider] = LOC("systemConfig.help.binauralDistance");
         helpTextMap[&binauralDistanceEditor] = LOC("systemConfig.help.binauralDistance");
-        helpTextMap[&binauralAngleDial] = LOC("systemConfig.help.binauralAngle");
-        helpTextMap[&binauralAngleEditor] = LOC("systemConfig.help.binauralAngle");
+        helpTextMap[&binauralOrbitDial] = LOC("systemConfig.help.binauralAngle");
+        helpTextMap[&binauralOrbitEditor] = LOC("systemConfig.help.binauralAngle");
         helpTextMap[&binauralAttenSlider] = LOC("systemConfig.help.binauralAtten");
         helpTextMap[&binauralAttenEditor] = LOC("systemConfig.help.binauralAtten");
         helpTextMap[&binauralDelaySlider] = LOC("systemConfig.help.binauralDelay");
@@ -4702,6 +4832,11 @@ public:
     std::map<juce::Component*, juce::String> helpTextMap;
     bool processingEnabled = false;
     bool isLoadingParameters = false;
+
+    /** Set while the tracker readout drives binauralYawDial for display, so
+        WfsRotationDial::setAngle's in-setter callback cannot write the tracked
+        yaw back into the parameter. */
+    bool isSuppressingYawWrite = false;
     bool isValidatingFromReturnKey = false;  // Prevents double validation when Enter triggers both ReturnKey and FocusLost
     bool isShowingChannelReductionDialog = false;  // Prevents multiple dialogs from appearing
 
@@ -4938,10 +5073,17 @@ public:
     WfsStandardSlider binauralDistanceSlider;
     juce::TextEditor binauralDistanceEditor;
     juce::Label binauralDistanceUnitLabel;
-    juce::Label binauralAngleLabel;
-    WfsRotationDial binauralAngleDial;
-    juce::TextEditor binauralAngleEditor;
-    juce::Label binauralAngleUnitLabel;
+    juce::Label binauralOrbitLabel;
+    WfsRotationDial binauralOrbitDial;
+    juce::TextEditor binauralOrbitEditor;
+    juce::Label binauralOrbitUnitLabel;
+
+    // Head Yaw: the head-rotation counterpart to Orbit's seat placement.
+    // Read-only while a tracker is active, where it mirrors the tracked yaw.
+    juce::Label binauralYawLabel;
+    WfsRotationDial binauralYawDial;
+    juce::Label binauralYawValueLabel;
+    juce::Label binauralYawUnitLabel;
     juce::Label binauralAttenLabel;
     WfsStandardSlider binauralAttenSlider;
     juce::TextEditor binauralAttenEditor;
