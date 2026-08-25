@@ -3159,6 +3159,71 @@ void MainComponent::runChannelListSelfTest()
         roundTripFile.deleteFile();
     }
 
+    // ---- T: every per-input property is either snapshotted or explicitly not --
+    // The AutomOtion polar destination sat in no scope item for the whole life of
+    // the feature and nothing noticed, because save and recall consult the SAME
+    // tables: an omission is symmetric, so a store/recall round trip of it comes
+    // back perfectly green. Only a structural check catches that class. Any
+    // property added to an <Input> child node from now on must either be carried
+    // by a scope item or be named here with a reason.
+    {
+        struct Excluded { const char* name; const char* why; };
+        static const Excluded kNotSnapshotted[] = {
+            { "inputName",               "always captured, outside the scope system by design" },
+            { "inputSolo",               "transient monitoring state, not show state" },
+            { "inputOtomoPauseResume",   "run-state of a motion in flight, not a destination" },
+            { "inputHiddenByCluster",    "cache of (inputCluster, clusterInputsVisible); ClustersTab "
+                                         "recomputes it for every channel in a callAsync after a recall, "
+                                         "so a restored value would be overwritten a tick later" },
+            { "samplerMidiZoneQuadrant", "declared and defaulted but read by nothing; snapshotting it "
+                                         "would be a no-op" },
+        };
+
+        // The nodes the snapshot walks as PROPERTY sections. GradientMaps and
+        // Sampler are copied as subtrees and are deliberately not in this list.
+        const juce::Identifier sections[] = {
+            WFSParameterIDs::Channel, WFSParameterIDs::Position, WFSParameterIDs::Attenuation,
+            WFSParameterIDs::Directivity, WFSParameterIDs::LiveSourceTamer, WFSParameterIDs::Hackoustics,
+            WFSParameterIDs::LFO, WFSParameterIDs::AutomOtion, WFSParameterIDs::Mutes
+        };
+
+        auto input = vts.getInputState(0);
+        int uncovered = 0;
+        for (const auto& sectionId : sections)
+        {
+            auto section = input.getChildWithName(sectionId);
+            if (! section.isValid())
+                continue;
+
+            for (int i = 0; i < section.getNumProperties(); ++i)
+            {
+                const auto prop = section.getPropertyName(i);
+                if (WFSFileManager::isPropertyCoveredBySnapshotScope(prop))
+                    continue;
+
+                bool listed = false;
+                for (const auto& e : kNotSnapshotted)
+                    if (prop.toString() == e.name) { listed = true; break; }
+
+                if (! listed)
+                {
+                    ++uncovered;
+                    logLine("SELF-TEST FAIL T: <" + sectionId.toString() + "> property '"
+                            + prop.toString() + "' is in no scope item and is not on the "
+                            "deliberately-not-snapshotted list - it will be silently absent "
+                            "from every snapshot");
+                }
+            }
+        }
+        check(uncovered == 0, "T: every per-input property is either snapshotted or explicitly excluded");
+
+        // The other direction: an exclusion that is no longer real is a stale
+        // comment claiming a decision that nothing enforces.
+        for (const auto& e : kNotSnapshotted)
+            check(! WFSFileManager::isPropertyCoveredBySnapshotScope(juce::Identifier(e.name)),
+                  juce::String("T: '") + e.name + "' is still deliberately excluded");
+    }
+
     logLine(failures == 0 ? juce::String("SELF-TEST RESULT: ALL PASS")
                           : "SELF-TEST RESULT: " + juce::String(failures) + " FAILURES");
 }

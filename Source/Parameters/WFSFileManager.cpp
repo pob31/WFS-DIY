@@ -1204,7 +1204,19 @@ const std::vector<WFSFileManager::ScopeItem>& WFSFileManager::ExtendedSnapshotSc
         { "jitter", "Jitter", LFO, { inputJitter } },
 
         // AutomOtion Section
-        { "otomoDestination", "Destination", AutomOtion, { inputOtomoX, inputOtomoY, inputOtomoZ, inputOtomoAbsoluteRelative } },
+        // The destination is whatever the coordinate mode says it is, so all three
+        // representations belong to ONE item. Carrying only the Cartesian triplet
+        // was not merely lossy, it half-applied: inputOtomoZ is shared with the
+        // cylindrical form, so recalling in cylindrical mode restored the height
+        // while leaving R and Theta live, producing a destination matching neither
+        // the snapshot nor the pre-recall state. AutomOtionProcessor reads the mode
+        // and the polar targets at trigger time, so this is live motion, not a
+        // display convenience.
+        // inputOtomoPauseResume is deliberately absent: it is the run-state of a
+        // motion in flight, like inputSolo, not show state.
+        { "otomoDestination", "Destination", AutomOtion, { inputOtomoX, inputOtomoY, inputOtomoZ, inputOtomoAbsoluteRelative,
+                                                            inputOtomoCoordinateMode, inputOtomoR, inputOtomoTheta,
+                                                            inputOtomoRsph, inputOtomoPhi } },
         { "otomoMovement", "Movement", AutomOtion, { inputOtomoStayReturn, inputOtomoDuration, inputOtomoCurve, inputOtomoSpeedProfile } },
         { "otomoAudioTrigger", "Audio Trigger", AutomOtion, { inputOtomoTrigger, inputOtomoThreshold, inputOtomoReset } },
 
@@ -1790,6 +1802,20 @@ namespace
         };
         return props;
     }
+}
+
+bool WFSFileManager::isPropertyCoveredBySnapshotScope (const juce::Identifier& propertyId)
+{
+    for (const auto& item : ExtendedSnapshotScope::getScopeItems())
+        for (const auto& paramId : item.parameterIds)
+            if (paramId == propertyId)
+                return true;
+
+    for (const auto& prop : channelSnapshotProperties())
+        if (prop.propertyId == propertyId)
+            return true;
+
+    return false;
 }
 
 void WFSFileManager::trimSnapshotInputToScope (juce::ValueTree& inputData, const ExtendedSnapshotScope& scope, int channelIndex)

@@ -427,6 +427,16 @@ public:
     /** Save a new input snapshot with extended scope. Also latches channel-number
         ownership: the file keys its entries by permanent channel number, so those
         numbers stop being reassignable the moment it is written. */
+    /** True if `propertyId` is carried by an input snapshot — i.e. it appears in
+        some ScopeItem's parameterIds, or in the <Channel> table.
+
+        Exists for the coverage self-test. A property that lives on an <Input>
+        child node and is in NEITHER place is silently absent from every
+        snapshot, and because save and recall consult the same tables the
+        omission is symmetric and a round-trip test stays green. That is exactly
+        how the AutomOtion polar destination went unnoticed. */
+    static bool isPropertyCoveredBySnapshotScope (const juce::Identifier& propertyId);
+
     bool saveInputSnapshotWithExtendedScope (const juce::String& snapshotName, const ExtendedSnapshotScope& scope);
 
     /** Load an input snapshot with extended scope */
