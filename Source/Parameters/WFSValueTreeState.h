@@ -434,6 +434,24 @@ public:
         channel). Idempotent. */
     void normalizeInputPatchRows();
 
+    /** Convert every cluster's `clusterInputOrder` between the SLOT keying used
+        in memory and the permanent-channel-NUMBER keying used on disk.
+
+        Slots are defined by the channel list; the CSV is persisted in
+        system.xml while that list comes from inputs.xml, so a slot-keyed CSV
+        crossing the file boundary is only valid while the two agree. They do
+        not agree mid-load: the channel-list reconciliation deletes and reorders
+        underneath a CSV the merge has already brought in. Number keying removes
+        the dependency entirely — the same boundary conversion
+        serializeExtendedScope/deserializeExtendedScope already use for snapshot
+        scope, which is proven correct across a reorder.
+
+        Tokens that cannot be resolved are dropped (a number with no live
+        channel, a slot past the end). Both are message-thread only and write
+        with no undo manager: this is bookkeeping, not an operator edit. */
+    void convertClusterOrdersSlotsToNumbers();
+    void convertClusterOrdersNumbersToSlots();
+
     /** One-time model migration for loaded states: repairs missing/duplicate
         ids (one dense renumber — the last renumbering that can ever happen to
         a file) and stamps inputChannelType from the legacy tail split when

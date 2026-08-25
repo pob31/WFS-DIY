@@ -555,6 +555,8 @@
       "findMyRemoteTitle": "Find My Remote",
       "findMyRemoteMessage": "Enter the password for your remote device:",
       "findMyRemotePassword": "Password:",
+      "trackingConflictsHeader": "The following clusters have multiple inputs with tracking enabled:",
+      "trackingConflictsCluster": "Cluster {cluster}: Inputs",
       "trackingConflictsTitle": "Tracking Conflicts Detected",
       "trackingConflictsMessage": "\nOnly one tracked input per cluster is allowed. If you continue, tracking will be kept only for the first input in each cluster.",
       "trackingConflictsContinue": "Continue"

@@ -6,31 +6,21 @@
 #include "../../spatcore/dsp/NumericGuards.h"
 #include "../Parameters/WFSConstraints.h"
 #include "../WFSLogger.h"
+#include "../Parameters/VarCoercion.h"
+#include "OSCParameterBounds.h"
 #include <thread>
 #include <chrono>
 
 namespace WFSNetwork
 {
 
-// Helper: convert juce::var to float, handling both int and double types.
-// XML loading may store numeric values as int (e.g. "3" -> var(int)),
-// so var::isDouble() returns false even for valid numeric values.
-static float varToFloat (const juce::var& v, float defaultVal = 0.0f)
-{
-    if (v.isVoid()) return defaultVal;
-    return static_cast<float> (static_cast<double> (v));
-}
-
-// Helper: convert juce::var to int, tolerant of the var's underlying type.
-// ValueTree::fromXml loads every property as a STRING var, so guarding reads
-// with isInt() silently yields the fallback for freshly loaded projects —
-// cluster ids, reference modes and constraint flags must convert, not
-// type-check. (This exact pattern made tablet cluster drags no-op after load.)
-static int varToInt (const juce::var& v, int defaultVal = 0)
-{
-    if (v.isVoid()) return defaultVal;
-    return static_cast<int> (v);
-}
+// These were local to this file until the same trap turned up in six more
+// places (the reverb array-mute macros, remote waypoint capture, the OSCQuery
+// type tags). They now live in Source/Parameters/VarCoercion.h. Thin forwarders
+// rather than aliases, so this file's existing call sites are unchanged and the
+// default arguments survive (a function POINTER cannot carry them).
+static float varToFloat (const juce::var& v, float defaultVal = 0.0f) { return WFSVar::toFloat (v, defaultVal); }
+static int   varToInt   (const juce::var& v, int   defaultVal = 0)    { return WFSVar::toInt   (v, defaultVal); }
 
 //==============================================================================
 // Construction / Destruction
@@ -1101,8 +1091,13 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
             // Standard OSC protocol
             std::optional<juce::OSCMessage> msg;
 
-            // Check for numeric values (both int and double)
-            bool isNumeric = value.isDouble() || value.isInt() || value.isInt64();
+            // Numeric INCLUDING a numeric string. Snapshot recall writes the
+            // snapshot's string-typed vars straight into the tree, so a strict
+            // type test made every recalled parameter fail this check and the
+            // plain-OSC branch emitted nothing at all for a recalled cue. (The
+            // Remote branch below already had a string fallback, which is why
+            // only OSC targets showed it.)
+            bool isNumeric = WFSVar::isNumeric (value);
 
             if (isInput && isNumeric)
             {
@@ -2581,13 +2576,13 @@ void OSCManager::handleRemoteParameterDelta(const OSCMessageRouter::ParsedRemote
         if (channelIndex >= 0)
         {
             // Get current value
+            // The STORED value, so it must convert rather than type-check: after
+            // a load it is a string var and both old guards missed, leaving
+            // currentValue at 0 so an incremental nudge JUMPED the parameter to
+            // the delta. (parsed.value below is a wire value carrying a real OSC
+            // type tag — that one is correctly type-checked.)
             juce::var currentVar = state.getInputParameter(channelIndex, parsed.paramId);
-            float currentValue = 0.0f;
-
-            if (currentVar.isDouble())
-                currentValue = static_cast<float>(static_cast<double>(currentVar));
-            else if (currentVar.isInt())
-                currentValue = static_cast<float>(static_cast<int>(currentVar));
+            float currentValue = WFSVar::toFloat (currentVar);
 
             // Calculate delta
             float delta = 0.0f;
@@ -4382,8 +4377,12 @@ void OSCManager::sendAllInputParametersToRemote(int targetIndex)
             juce::OSCMessage msg("/remoteInput/" + paramName);
             msg.addInt32(channelId);
 
-            if (value.isInt() || value.isBool())
-                msg.addInt32(static_cast<int>(value));
+            // Int-ness comes from the PARAMETER, not from the var: after a load
+            // every stored value is a string, so this flipped the OSC type tag
+            // from 'i' to 'f' for every integer parameter in the dump.
+            const auto bounds = WFSNetwork::getBounds (paramId);
+            if (bounds && bounds->isInt)
+                msg.addInt32(varToInt(value));
             else
                 msg.addFloat32(varToFloat(value));
 
@@ -4470,8 +4469,12 @@ void OSCManager::appendInputMessages(std::vector<juce::OSCMessage>& messages, in
         juce::OSCMessage msg("/remoteInput/" + paramName);
         msg.addInt32(channelId);
 
-        if (value.isInt() || value.isBool())
-            msg.addInt32(static_cast<int>(value));
+        // Int-ness comes from the PARAMETER, not from the var: after a load
+        // every stored value is a string, so this flipped the OSC type tag
+        // from 'i' to 'f' for every integer parameter in the dump.
+        const auto bounds = WFSNetwork::getBounds (paramId);
+        if (bounds && bounds->isInt)
+            msg.addInt32(varToInt(value));
         else
             msg.addFloat32(varToFloat(value));
 

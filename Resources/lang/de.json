@@ -222,6 +222,8 @@
       "findMyRemoteTitle": "Fernbedienung finden",
       "findMyRemoteMessage": "Passwort für die Fernbedienung eingeben:",
       "findMyRemotePassword": "Passwort:",
+      "trackingConflictsHeader": "Die folgenden Cluster haben mehrere Eingänge mit aktiviertem Tracking:",
+      "trackingConflictsCluster": "Cluster {cluster}: Eingänge",
       "trackingConflictsTitle": "Tracking-Konflikte erkannt",
       "trackingConflictsMessage": "\nNur ein getrackter Eingang pro Cluster ist erlaubt. Wenn Sie fortfahren, wird das Tracking nur für den ersten Eingang in jedem Cluster beibehalten.",
       "trackingConflictsContinue": "Fortfahren"

@@ -289,6 +289,34 @@ namespace WFSParameterIDs
     const juce::Identifier Cluster           ("Cluster");
     const juce::Identifier clusterReferenceMode ("clusterReferenceMode");
     const juce::Identifier clusterInputOrder    ("clusterInputOrder");
+
+    // How the clusterInputOrder CSVs in THIS FILE are keyed. Written on the
+    // <Clusters> node by the system-config save, read by the load, and never
+    // present in the runtime tree.
+    //
+    // In memory clusterInputOrder is a CSV of 0-based SLOT indices, which is the
+    // right key for everything that consumes it live. On disk it is not: slots
+    // are defined by inputs.xml while the CSV is persisted in system.xml, so a
+    // load that reconciles the channel list shifts the slot space out from under
+    // a CSV that was written against the file's. The load-time remaps then
+    // half-corrupted it — deletions shifted tokens, the display-order restore
+    // (a raw moveChild) did not — and the first token picks the pivot for cluster
+    // drag and rotate in "First Input" mode, so the cluster silently pivoted
+    // around the wrong source.
+    //
+    // Absent = a file written before this existed = the CSVs are slots. Those
+    // still load correctly, because the live slot space at flush time equals the
+    // file's; they are simply protected from the intermediate remaps and are
+    // rewritten as numbers on the next save.
+    //
+    // Deliberately NOT written by createClustersSection: ensureCompleteSchema
+    // back-fills template content into loaded trees, so a templated value would
+    // be stamped onto legacy files and destroy the discriminator. Same rule, and
+    // the same hazard, as channelNumbersUserOwned and InputChannelList. Do not
+    // try to discriminate on "does a token equal 0" instead — slot 0 is a
+    // legitimate legacy token, and "3,1,2" is valid under both readings.
+    const juce::Identifier inputOrderKey        ("inputOrderKey");
+    const juce::String     inputOrderKeyNumber  ("number");
     const juce::Identifier clusterInputsVisible ("clusterInputsVisible");
 
     // Config > Clusters > Cluster > LFO

@@ -208,6 +208,8 @@
       "findMyRemoteTitle": "リモートを探す",
       "findMyRemoteMessage": "リモートデバイスのパスワードを入力してください:",
       "findMyRemotePassword": "パスワード:",
+      "trackingConflictsHeader": "次のクラスターで複数の入力のトラッキングが有効になっています:",
+      "trackingConflictsCluster": "クラスター {cluster}: 入力",
       "trackingConflictsTitle": "トラッキングの競合が検出されました",
       "trackingConflictsMessage": "\nクラスターごとに1つのトラッキング入力のみが許可されています。続行すると、各クラスターの最初の入力のみトラッキングが保持されます。",
       "trackingConflictsContinue": "続行"

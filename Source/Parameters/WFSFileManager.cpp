@@ -1152,6 +1152,15 @@ const std::vector<WFSFileManager::ScopeItem>& WFSFileManager::ExtendedSnapshotSc
         // The itemId is the key stored in saved scope templates — it stays
         // "stereo" whatever the group grows to cover.
         { "stereo", "Stereo Image", Channel, { inputStereoWidth, inputStereoAxisOffset } },
+        // Map display state. Not show state in the DSP sense, but it is state the
+        // operator sets by hand and would otherwise have to redo after every
+        // recall. inputSolo is deliberately NOT here: it is transient monitoring.
+        // inputHiddenByCluster is deliberately NOT here either — it is a cache of
+        // (inputCluster, clusterInputsVisible) that ClustersTab recomputes for
+        // every channel in a callAsync after any inputCluster write, so a recalled
+        // value is overwritten a message-loop tick later. Snapshotting the cluster
+        // toggle itself is the fix, and that is a separate change.
+        { "mapDisplay", "Map Lock/Visibility", Channel, { inputMapLocked, inputMapVisible } },
 
         // Position Section
         { "position", "Position (XYZ)", Position, { inputPositionX, inputPositionY, inputPositionZ, inputCoordinateMode } },
@@ -1210,7 +1219,12 @@ const std::vector<WFSFileManager::ScopeItem>& WFSFileManager::ExtendedSnapshotSc
         { "gmLayer3", "Layer 3", GradientMaps, { gmLayerEnabled, gmLayerParam, gmLayerWhite, gmLayerBlack, gmLayerCurve, gmLayerVisible } },
 
         // Sampler Section (subtree-based — cells and sets are children, not properties)
-        { "sampler", "Sampler", Sampler, { inputSamplerActive, inputSamplerActiveSet } },
+        // lightpadZoneId rides the existing "sampler" item deliberately, rather
+        // than getting an id of its own: withGlobals force-excludes the literal
+        // "sampler" when the sampler master is off, and the grid hides the whole
+        // Sampler section in the same condition — a separate id would stay active
+        // while being invisible, so the operator could not turn it off.
+        { "sampler", "Sampler", Sampler, { inputSamplerActive, inputSamplerActiveSet, lightpadZoneId } },
 
         // ADM-OSC Section
         { "admMapping", "ADM Mapping", ADMMapping, { inputAdmMapping } }
@@ -1727,6 +1741,57 @@ bool WFSFileManager::deleteScopeTemplate (const juce::String& templateName)
     return false;
 }
 
+namespace
+{
+    /** The <Channel> node's snapshot contract, in one place.
+
+        <Channel> is the only one of the nine input sections that cannot use the
+        generic copySection/applySection/trim loops: those iterate ScopeItems and
+        match on the node's own properties, but three items whose parameters live
+        on <Channel> are filed under other display sections (`sampler`), and one
+        property must always be written whatever the scope says (`inputName`).
+
+        It used to be three hand-written allowlists — extract, apply and trim —
+        with no coupling whatsoever, so a property added to one and forgotten in
+        another failed silently and differently in each direction: missing from
+        extract meant never stored, missing from apply meant stored but never
+        recalled, missing from trim meant an excluded item's value survived on
+        disk and got applied anyway. This table is the single source all three
+        now read.
+
+        `inputName` is deliberately absent: it is always captured and always
+        applied, and is handled explicitly at each site. `inputSolo` is
+        deliberately absent too — it is transient monitoring state, not show
+        state, and must never be carried by a snapshot. Anything else added to
+        the <Channel> node should be added HERE, not at a call site. */
+    struct ChannelSnapshotProperty
+    {
+        const char* itemId;                 // ScopeItem that gates it
+        const juce::Identifier& propertyId; // property on the <Channel> node
+    };
+
+    const std::vector<ChannelSnapshotProperty>& channelSnapshotProperties()
+    {
+        using namespace WFSParameterIDs;
+        static const std::vector<ChannelSnapshotProperty> props = {
+            { "inputAttenuation", inputAttenuation },
+            { "inputDelay",       inputDelayLatency },
+            { "inputDelay",       inputMinimalLatency },
+            { "stereo",           inputStereoWidth },
+            { "stereo",           inputStereoAxisOffset },
+            { "sampler",          inputSamplerActive },
+            // Map display state: an operator who has hidden or locked channels
+            // on the Map should not have to redo it after every recall.
+            { "mapDisplay",       inputMapLocked },
+            { "mapDisplay",       inputMapVisible },
+            // Pad-zone assignment is real setup work. See resolveLightpadZoneCollisions
+            // for what happens when a partial recall makes two channels claim one zone.
+            { "sampler",          lightpadZoneId },
+        };
+        return props;
+    }
+}
+
 void WFSFileManager::trimSnapshotInputToScope (juce::ValueTree& inputData, const ExtendedSnapshotScope& scope, int channelIndex)
 {
     // Removal only, in place: anything the scope excludes is deleted; everything
@@ -1738,20 +1803,9 @@ void WFSFileManager::trimSnapshotInputToScope (juce::ValueTree& inputData, const
     auto channelTree = inputData.getChildWithName (Channel);
     if (channelTree.isValid())
     {
-        if (!scope.isIncluded ("inputAttenuation", channelIndex))
-            channelTree.removeProperty (inputAttenuation, nullptr);
-        if (!scope.isIncluded ("inputDelay", channelIndex))
-        {
-            channelTree.removeProperty (inputDelayLatency, nullptr);
-            channelTree.removeProperty (inputMinimalLatency, nullptr);
-        }
-        if (!scope.isIncluded ("stereo", channelIndex))
-        {
-            channelTree.removeProperty (inputStereoWidth, nullptr);
-            channelTree.removeProperty (inputStereoAxisOffset, nullptr);
-        }
-        if (!scope.isIncluded ("sampler", channelIndex))
-            channelTree.removeProperty (inputSamplerActive, nullptr);
+        for (const auto& prop : channelSnapshotProperties())
+            if (! scope.isIncluded (prop.itemId, channelIndex))
+                channelTree.removeProperty (prop.propertyId, nullptr);
     }
 
     // Property-based sections: drop excluded items' parameters
@@ -1768,7 +1822,20 @@ void WFSFileManager::trimSnapshotInputToScope (juce::ValueTree& inputData, const
 
         for (const auto& item : ExtendedSnapshotScope::getScopeItems())
         {
-            if (item.sectionId == sectionId && !scope.isIncluded (item.itemId, channelIndex))
+            // NOT filtered on item.sectionId. A ScopeItem's sectionId is a
+            // DISPLAY grouping — the scope grid is built from it and it mirrors
+            // the GUI tab layout, not the ValueTree. Three items are filed under
+            // the tab the operator finds them on rather than the node they live
+            // on (jitter: Position/shown under LFO; reverbSends: Mutes/shown
+            // under Hackoustics; admMapping: Position/shown under its own
+            // pseudo-section), and matching on it silently skipped them on BOTH
+            // save and recall — symmetrically, so no round-trip test could see
+            // it. hasProperty is the exact discriminator anyway: no paramId
+            // exists on two different <Input> child nodes, so a param can match
+            // at most one section. (The gmLayer* ids repeat across gmLayer1/2/3
+            // but live in the GradientMaps subtree, which is copied whole and
+            // never reaches these eight property sections.)
+            if (! scope.isIncluded (item.itemId, channelIndex))
                 for (const auto& paramId : item.parameterIds)
                     sectionTree.removeProperty (paramId, nullptr);
         }
@@ -1810,7 +1877,10 @@ void WFSFileManager::trimSnapshotInputToScope (juce::ValueTree& inputData, const
             inputData.removeChild (samplerTree, nullptr);
     }
 
-    // ADMMapping items have no stored snapshot data — nothing to trim.
+    // admMapping is trimmed by the <Position> pass above (inputAdmMapping lives
+    // on <Position>; ADMMapping is a display-only pseudo-section with no node
+    // of its own). Before the sectionId filter was dropped it was never
+    // captured at all, which is what "nothing to trim" used to mean here.
 }
 
 void WFSFileManager::writeMidiBindingToRoot (juce::ValueTree& snapshot, const ExtendedSnapshotScope& scope)
@@ -1988,23 +2058,13 @@ juce::ValueTree WFSFileManager::extractInputWithExtendedScope (int channelIndex,
         juce::ValueTree filteredChannel (Channel);
         filteredChannel.setProperty (inputName, channelTree.getProperty (inputName), nullptr);
 
-        // Add other Channel properties based on scope
-        if (scope.isIncluded ("inputAttenuation", channelIndex))
-            filteredChannel.setProperty (inputAttenuation, channelTree.getProperty (inputAttenuation), nullptr);
-        if (scope.isIncluded ("inputDelay", channelIndex))
-        {
-            filteredChannel.setProperty (inputDelayLatency, channelTree.getProperty (inputDelayLatency), nullptr);
-            filteredChannel.setProperty (inputMinimalLatency, channelTree.getProperty (inputMinimalLatency), nullptr);
-        }
-        if (scope.isIncluded ("stereo", channelIndex))
-        {
-            if (channelTree.hasProperty (inputStereoWidth))
-                filteredChannel.setProperty (inputStereoWidth, channelTree.getProperty (inputStereoWidth), nullptr);
-            if (channelTree.hasProperty (inputStereoAxisOffset))
-                filteredChannel.setProperty (inputStereoAxisOffset, channelTree.getProperty (inputStereoAxisOffset), nullptr);
-        }
-        if (scope.isIncluded ("sampler", channelIndex) && channelTree.hasProperty (inputSamplerActive))
-            filteredChannel.setProperty (inputSamplerActive, channelTree.getProperty (inputSamplerActive), nullptr);
+        // Everything else on <Channel> comes from the one table. hasProperty is
+        // checked on every property, not just some: the old hand-written version
+        // guarded stereo and sampler but not attenuation or delay, so a channel
+        // node missing one of those wrote a void var into the snapshot.
+        for (const auto& prop : channelSnapshotProperties())
+            if (scope.isIncluded (prop.itemId, channelIndex) && channelTree.hasProperty (prop.propertyId))
+                filteredChannel.setProperty (prop.propertyId, channelTree.getProperty (prop.propertyId), nullptr);
 
         filtered.appendChild (filteredChannel, nullptr);
     }
@@ -2020,7 +2080,20 @@ juce::ValueTree WFSFileManager::extractInputWithExtendedScope (int channelIndex,
 
         for (const auto& item : ExtendedSnapshotScope::getScopeItems())
         {
-            if (item.sectionId == sectionId && scope.isIncluded (item.itemId, channelIndex))
+            // NOT filtered on item.sectionId. A ScopeItem's sectionId is a
+            // DISPLAY grouping — the scope grid is built from it and it mirrors
+            // the GUI tab layout, not the ValueTree. Three items are filed under
+            // the tab the operator finds them on rather than the node they live
+            // on (jitter: Position/shown under LFO; reverbSends: Mutes/shown
+            // under Hackoustics; admMapping: Position/shown under its own
+            // pseudo-section), and matching on it silently skipped them on BOTH
+            // save and recall — symmetrically, so no round-trip test could see
+            // it. hasProperty is the exact discriminator anyway: no paramId
+            // exists on two different <Input> child nodes, so a param can match
+            // at most one section. (The gmLayer* ids repeat across gmLayer1/2/3
+            // but live in the GradientMaps subtree, which is copied whole and
+            // never reaches these eight property sections.)
+            if (scope.isIncluded (item.itemId, channelIndex))
             {
                 for (const auto& paramId : item.parameterIds)
                 {
@@ -2115,7 +2188,20 @@ bool WFSFileManager::applyInputWithExtendedScope (int channelIndex, const juce::
 
         for (const auto& item : ExtendedSnapshotScope::getScopeItems())
         {
-            if (item.sectionId == sectionId && scope.isIncluded (item.itemId, channelIndex))
+            // NOT filtered on item.sectionId. A ScopeItem's sectionId is a
+            // DISPLAY grouping — the scope grid is built from it and it mirrors
+            // the GUI tab layout, not the ValueTree. Three items are filed under
+            // the tab the operator finds them on rather than the node they live
+            // on (jitter: Position/shown under LFO; reverbSends: Mutes/shown
+            // under Hackoustics; admMapping: Position/shown under its own
+            // pseudo-section), and matching on it silently skipped them on BOTH
+            // save and recall — symmetrically, so no round-trip test could see
+            // it. hasProperty is the exact discriminator anyway: no paramId
+            // exists on two different <Input> child nodes, so a param can match
+            // at most one section. (The gmLayer* ids repeat across gmLayer1/2/3
+            // but live in the GradientMaps subtree, which is copied whole and
+            // never reaches these eight property sections.)
+            if (scope.isIncluded (item.itemId, channelIndex))
             {
                 for (const auto& paramId : item.parameterIds)
                 {
@@ -2137,25 +2223,10 @@ bool WFSFileManager::applyInputWithExtendedScope (int channelIndex, const juce::
             if (loadedChannel.hasProperty (inputName))
                 existingChannel.setProperty (inputName, loadedChannel.getProperty (inputName), undoManager);
 
-            if (scope.isIncluded ("inputAttenuation", channelIndex) && loadedChannel.hasProperty (inputAttenuation))
-                existingChannel.setProperty (inputAttenuation, loadedChannel.getProperty (inputAttenuation), undoManager);
-
-            if (scope.isIncluded ("inputDelay", channelIndex))
-            {
-                if (loadedChannel.hasProperty (inputDelayLatency))
-                    existingChannel.setProperty (inputDelayLatency, loadedChannel.getProperty (inputDelayLatency), undoManager);
-                if (loadedChannel.hasProperty (inputMinimalLatency))
-                    existingChannel.setProperty (inputMinimalLatency, loadedChannel.getProperty (inputMinimalLatency), undoManager);
-            }
-            if (scope.isIncluded ("stereo", channelIndex))
-            {
-                if (loadedChannel.hasProperty (inputStereoWidth))
-                    existingChannel.setProperty (inputStereoWidth, loadedChannel.getProperty (inputStereoWidth), undoManager);
-                if (loadedChannel.hasProperty (inputStereoAxisOffset))
-                    existingChannel.setProperty (inputStereoAxisOffset, loadedChannel.getProperty (inputStereoAxisOffset), undoManager);
-            }
-            if (scope.isIncluded ("sampler", channelIndex) && loadedChannel.hasProperty (inputSamplerActive))
-                existingChannel.setProperty (inputSamplerActive, loadedChannel.getProperty (inputSamplerActive), undoManager);
+            // Same table as extract and trim, so the three can no longer disagree.
+            for (const auto& prop : channelSnapshotProperties())
+                if (scope.isIncluded (prop.itemId, channelIndex) && loadedChannel.hasProperty (prop.propertyId))
+                    existingChannel.setProperty (prop.propertyId, loadedChannel.getProperty (prop.propertyId), undoManager);
 
         }
     }
@@ -2345,6 +2416,38 @@ juce::ValueTree WFSFileManager::extractConfigSection() const
         io.appendChild (valueTreeState.buildInputChannelInventory(), nullptr);
     }
 
+    // clusterInputOrder is slot-keyed in memory and must not be written that way:
+    // slots are defined by inputs.xml, this file is system.xml, and a load that
+    // reconciles the channel list moves the slot space out from under the CSV.
+    // Convert the COPY to permanent channel numbers and say so on the node — the
+    // runtime tree stays slot-keyed, which is what every live consumer wants.
+    auto clusters = filtered.getChildWithName (Clusters);
+    if (clusters.isValid())
+    {
+        for (int c = 0; c < clusters.getNumChildren(); ++c)
+        {
+            auto cluster = clusters.getChild (c);
+            const juce::String order = cluster.getProperty (clusterInputOrder, "").toString();
+            if (order.isEmpty())
+                continue;
+
+            juce::StringArray tokens;
+            tokens.addTokens (order, ",", "");
+            juce::StringArray numbers;
+            for (const auto& tok : tokens)
+            {
+                // 0 is never a valid channel number, so an unresolvable slot is
+                // dropped rather than written out as one.
+                const int number = valueTreeState.getInputChannelNumber (tok.trim().getIntValue());
+                if (number > 0)
+                    numbers.add (juce::String (number));
+            }
+            cluster.setProperty (clusterInputOrder, numbers.joinIntoString (","), nullptr);
+        }
+
+        clusters.setProperty (inputOrderKey, inputOrderKeyNumber, nullptr);
+    }
+
     return filtered;
 }
 
@@ -2393,6 +2496,37 @@ juce::ValueTree WFSFileManager::extractNetworkSection() const
     return networkContainer;
 }
 
+void WFSFileManager::flushPendingClusterOrders()
+{
+    if (! pendingClusterOrders.valid)
+        return;
+
+    auto clusters = valueTreeState.getClustersState();
+    if (! clusters.isValid())
+        return;
+
+    // Restore the file's own values, discarding whatever the merge and the
+    // load-time remaps left behind. For a number-keyed file the conversion to
+    // slots happens below; for a pre-marker file the CSVs are already slots and
+    // are correct as written, because by now the live slot space is the one the
+    // file was saved against.
+    for (int c = 0; c < clusters.getNumChildren(); ++c)
+    {
+        auto cluster = clusters.getChild (c);
+        const int clusterId = static_cast<int> (cluster.getProperty (WFSParameterIDs::id, 0));
+
+        auto stored = pendingClusterOrders.byClusterId.find (clusterId);
+        if (stored == pendingClusterOrders.byClusterId.end())
+            continue;
+
+        if (cluster.getProperty (clusterInputOrder, "").toString() != stored->second)
+            cluster.setProperty (clusterInputOrder, stored->second, nullptr);
+    }
+
+    if (pendingClusterOrders.numberKeyed)
+        valueTreeState.convertClusterOrdersNumbersToSlots();
+}
+
 bool WFSFileManager::applyConfigSection (const juce::ValueTree& configTree)
 {
     auto existingConfig = valueTreeState.getConfigState();
@@ -2422,6 +2556,33 @@ bool WFSFileManager::applyConfigSection (const juce::ValueTree& configTree)
         }
     }
 
+    // Same reason, same timing: lift the cluster orders off the FILE before the
+    // merge. They are positional and the channel list is about to be rebuilt
+    // underneath them, so whatever the merge and the reconciliation's remaps
+    // leave in the live tree is not trustworthy — the file's own values are.
+    // Pre-merge is mandatory: the live tree always has clusterInputOrder="" on
+    // all ten clusters, so afterwards an absent value and an empty one look
+    // identical.
+    pendingClusterOrders = {};
+    {
+        auto loadedClusters = configTree.getChildWithName (Clusters);
+        if (loadedClusters.isValid())
+        {
+            pendingClusterOrders.valid = true;
+            pendingClusterOrders.numberKeyed =
+                loadedClusters.getProperty (inputOrderKey).toString() == inputOrderKeyNumber;
+
+            for (int c = 0; c < loadedClusters.getNumChildren(); ++c)
+            {
+                auto cluster = loadedClusters.getChild (c);
+                const int clusterId = static_cast<int> (cluster.getProperty (WFSParameterIDs::id, 0));
+                if (clusterId > 0)
+                    pendingClusterOrders.byClusterId[clusterId] =
+                        cluster.getProperty (clusterInputOrder, "").toString();
+            }
+        }
+    }
+
     // Merge properties and children from loaded config (preserves missing properties/children)
     // Network, ADMOSC, and Tracking are automatically preserved if not in configTree
     mergeTreeRecursive (existingConfig, configTree, undoManager);
@@ -2439,6 +2600,12 @@ bool WFSFileManager::applyConfigSection (const juce::ValueTree& configTree)
         // evict it again. Runtime state is the <Input> nodes; keeping a second
         // description of them around invites the two to disagree.
         ioSection.removeChild (ioSection.getChildWithName (InputChannelList), nullptr);
+
+        // The marker rode in with the merge too. It describes a file, not a
+        // runtime tree — leaving it would claim the in-memory CSVs are numbers,
+        // which they are not.
+        if (auto liveClusters = existingConfig.getChildWithName (Clusters); liveClusters.isValid())
+            liveClusters.removeProperty (inputOrderKey, nullptr);
 
         channelListFromInventory = (inventory.isValid() && inventory.getNumChildren() > 0);
 
@@ -2461,6 +2628,12 @@ bool WFSFileManager::applyConfigSection (const juce::ValueTree& configTree)
         valueTreeState.setNumOutputChannels (outputCount);
         valueTreeState.setNumReverbChannels (reverbCount);
     }
+
+    // The channel list has settled, so slots mean what the file meant. This
+    // covers a system config loaded on its own; a complete load reaches
+    // applyInputsSection afterwards, whose prune can shift slots again, and
+    // which therefore flushes a second time. The flush is idempotent by design.
+    flushPendingClusterOrders();
 
     return true;
 }
@@ -2579,6 +2752,14 @@ bool WFSFileManager::applyInputsSection (const juce::ValueTree& inputsTree)
         // types on file children the merge brought in (tree order is kept —
         // it is the user's display order, restored above).
         valueTreeState.migrateInputChannelModel();
+
+        // Last, because this is the point at which slots finally mean what the
+        // system config meant by them: the prune above deletes channels (which
+        // remaps the CSVs) and the restore reorders them (which does not), so
+        // anything materialised earlier would be wrong again by here. Must also
+        // precede importInputConfig's enforceAllSharedClusterInvariants(), which
+        // reads the order to pick each shared cluster's reference member.
+        flushPendingClusterOrders();
 
         return true;
     }

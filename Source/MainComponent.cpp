@@ -1,6 +1,7 @@
 #include "MainComponent.h"
 #include "../spatcore/wfs/RenderSourceMap.h"
 #include "WFSLogger.h"
+#include "Parameters/VarCoercion.h"
 #include "AppSettings.h"
 #include "Parameters/WFSParameterIDs.h"
 #include "Localization/LocalizationManager.h"
@@ -2275,8 +2276,11 @@ MainComponent::MainComponent()
         juce::var maxSpeedActiveVar = vts.getInputParameter(channelIndex, WFSParameterIDs::inputMaxSpeedActive);
         juce::var pathModeActiveVar = vts.getInputParameter(channelIndex, WFSParameterIDs::inputPathModeActive);
 
-        bool maxSpeedActive = maxSpeedActiveVar.isInt() ? (static_cast<int>(maxSpeedActiveVar) != 0) : false;
-        bool pathModeActive = pathModeActiveVar.isInt() ? (static_cast<int>(pathModeActiveVar) != 0) : false;
+        // NOT isInt()-guarded: after any load these are STRING vars, so both
+        // read false and remote/OSC path-mode waypoint capture was dead until
+        // the operator toggled one of the two controls by hand.
+        bool maxSpeedActive = WFSVar::toBool (maxSpeedActiveVar);
+        bool pathModeActive = WFSVar::toBool (pathModeActiveVar);
 
         if (maxSpeedActive && pathModeActive)
         {
@@ -3031,6 +3035,126 @@ void MainComponent::runChannelListSelfTest()
         check(numbersInSlotOrder() == numbersBefore && typesInSlotOrder() == typesBefore
                   && patchInSlotOrder() == patchBefore,
               "R4: reloading the same file twice is a fixed point");
+
+        roundTripFile.deleteFile();
+    }
+
+    // ---- S: cluster order across a load that deletes a LOW slot -------------
+    // clusterInputOrder is slot-keyed in memory but lives in system.xml while
+    // the slot space is defined by inputs.xml. The load-time channel-list
+    // reconciliation used to shift it: deletions ran remapClusterInputOrders
+    // (against a CSV already in the FILE's slot space) and the display-order
+    // restore, a raw moveChild, did not remap at all. Number keying on disk
+    // removes the dependency; this phase is the gate on that.
+    //
+    // The deletion must be of a LOW slot. Removing the highest shifts nothing
+    // below it, which is why the old setNumInputChannels path never showed this
+    // and why an ascending, prefix-shaped test would pass while broken.
+    {
+        auto& fm = parameters.getFileManager();
+        auto roundTripFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                                 .getChildFile("wfs-selftest-clusters.xml");
+        roundTripFile.deleteFile();
+
+        auto orderOfCluster = [&](int cluster) -> juce::String
+        {
+            // Rendered as NUMBERS, so the assertion is about which channels are
+            // in which order — not about which slots they happen to occupy.
+            juce::StringArray tokens;
+            tokens.addTokens(vts.getClusterParameter(cluster, WFSParameterIDs::clusterInputOrder).toString(), ",", "");
+            juce::String out;
+            for (const auto& tok : tokens)
+            {
+                const int number = vts.getInputChannelNumber(tok.trim().getIntValue());
+                out += (out.isEmpty() ? "" : ",") + juce::String(number);
+            }
+            return out;
+        };
+
+        vts.setInputChannelCounts(6, 0);
+        reconfig();
+
+        // Cluster 1 gets the last three channels, in a deliberately
+        // non-ascending order so a lost ordering cannot pass by accident.
+        const int chA = vts.getInputChannelNumber(3);
+        const int chB = vts.getInputChannelNumber(4);
+        const int chC = vts.getInputChannelNumber(5);
+        for (int n : { chA, chB, chC })
+            vts.setInputParameter(vts.getSlotForChannelNumber(n), WFSParameterIDs::inputCluster, 1);
+        const juce::String slotCsv =
+            juce::String(vts.getSlotForChannelNumber(chC)) + ","
+          + juce::String(vts.getSlotForChannelNumber(chA)) + ","
+          + juce::String(vts.getSlotForChannelNumber(chB));
+        vts.setClusterParameter(1, WFSParameterIDs::clusterInputOrder, slotCsv);
+
+        const juce::String orderBefore = orderOfCluster(1);
+        check(orderBefore == juce::String(chC) + "," + juce::String(chA) + "," + juce::String(chB),
+              "S0: cluster order set to a non-ascending arrangement");
+
+        check(fm.exportSystemConfig(roundTripFile), "S1: export the system config");
+        check(roundTripFile.loadFileAsString().contains("inputOrderKey"),
+              "S1: the file marks its cluster orders as number-keyed");
+
+        // Delete a LOW-slot channel that is NOT in the cluster, so every cluster
+        // member's slot shifts down by one while its NUMBER does not.
+        const int doomed = vts.getInputChannelNumber(0);
+        check(vts.removeInputChannel(doomed).wasOk(), "S2: delete the lowest-slot channel");
+        reconfig();
+        check(orderOfCluster(1) == orderBefore,
+              "S2: the live edit remapped the order, so it still names the same channels");
+
+        // Scramble. The added channel is then dragged to slot 0, and THAT is the
+        // point of this step, not the count: the reload must delete a channel the
+        // file does not list from a LOW slot. Deleting a high slot shifts nothing
+        // beneath it, which is exactly why the old setNumInputChannels path
+        // (remove-the-highest) never exposed this and why a naive grow-then-reload
+        // test passes on broken code.
+        vts.setClusterParameter(1, WFSParameterIDs::clusterInputOrder, "");
+        check(vts.addInputChannel(false).wasOk(), "S2b: add a channel the saved file does not list");
+        reconfig();
+        const int intruder = vts.getInputChannelNumber(vts.getNumInputChannels() - 1);
+        check(vts.moveInputChannel(intruder, 0).wasOk(), "S2b: drag it to the lowest slot");
+        reconfig();
+        check(vts.getSlotForChannelNumber(intruder) == 0,
+              "S2b: the unlisted channel sits below every cluster member");
+
+        check(fm.importSystemConfig(roundTripFile), "S3: reload the system config");
+        reconfig();
+        check(orderOfCluster(1) == orderBefore,
+              "S3: the cluster order came back naming the same channels in the same order");
+
+        check(fm.importSystemConfig(roundTripFile), "S4: load the same file again");
+        reconfig();
+        check(orderOfCluster(1) == orderBefore, "S4: loading twice is a fixed point");
+
+        // S5: a file written before the marker existed. Its CSVs are SLOTS, and
+        // they must still load correctly — by flush time the live slot space is
+        // the one the file was saved against, so the values are restored
+        // verbatim rather than converted. Built by rewriting the exported file
+        // rather than by keeping an old fixture, so it cannot drift from the
+        // real format.
+        {
+            auto legacyFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                                  .getChildFile("wfs-selftest-clusters-legacy.xml");
+            legacyFile.deleteFile();
+
+            juce::String xml = roundTripFile.loadFileAsString();
+            xml = xml.replace(" inputOrderKey=\"number\"", "");                 // no marker == legacy
+            xml = xml.replace("clusterInputOrder=\"" + orderOfCluster(1) + "\"",
+                              "clusterInputOrder=\"" + slotCsv + "\"");          // numbers -> slots
+            check(! xml.contains("inputOrderKey"), "S5: the legacy fixture carries no marker");
+            check(xml.contains("clusterInputOrder=\"" + slotCsv + "\""),
+                  "S5: the legacy fixture holds slot indices");
+            legacyFile.replaceWithText(xml);
+
+            vts.setClusterParameter(1, WFSParameterIDs::clusterInputOrder, "");
+            check(fm.importSystemConfig(legacyFile), "S5: load the legacy-shaped file");
+            reconfig();
+            check(orderOfCluster(1) == orderBefore,
+                  "S5: a pre-marker slot-keyed file still restores the same channels in order");
+
+            legacyFile.deleteFile();
+        }
 
         roundTripFile.deleteFile();
     }
@@ -3807,6 +3931,54 @@ void MainComponent::applySamplerControllerMode (int mode)
         {
             oscManager->sendRemotePadConfig (false, 3, 2, 0.05f, {});
         }
+    }
+}
+
+void MainComponent::resolveLightpadZoneCollisions()
+{
+    // A Lightpad zone feeds exactly ONE input. Nothing in the model enforced
+    // that — the UI shows existing assignments in the picker and operators
+    // simply do not double-book, so the invariant held by convention. A snapshot
+    // recall can break it without anyone doing anything wrong: recall channel 3's
+    // stored zone 2 while live channel 7 already holds zone 2, and both now claim
+    // it. buildZoneToInputMap resolves that with zoneMap[zoneId] = i, so the
+    // HIGHEST slot silently wins and the other channel's pad goes dead with no
+    // message anywhere.
+    //
+    // Lowest slot keeps the zone, later claimants are cleared to -1 and logged —
+    // the same rule and the same reasoning as dedupeInputPatchColumns: an
+    // arbitrary but STABLE choice beats a silent one, and the two agree so a
+    // half-repaired session does not contradict itself.
+    auto inputs = parameters.getValueTreeState().getInputsState();
+    std::map<int, int> firstClaimant;   // zoneId -> slot
+
+    for (int slot = 0; slot < inputs.getNumChildren(); ++slot)
+    {
+        auto channelSection = inputs.getChild (slot).getChildWithName (WFSParameterIDs::Channel);
+        if (! channelSection.isValid())
+            continue;
+
+        const int zoneId = static_cast<int> (channelSection.getProperty (WFSParameterIDs::lightpadZoneId, -1));
+        if (zoneId < 0)
+            continue;
+
+        auto existing = firstClaimant.find (zoneId);
+        if (existing == firstClaimant.end())
+        {
+            firstClaimant[zoneId] = slot;
+            continue;
+        }
+
+        auto& vts = parameters.getValueTreeState();
+        WFSLogger::getInstance().logWarning (
+            "Lightpad zone repair: zone " + juce::String (zoneId)
+            + " was claimed by input channels " + juce::String (vts.getInputChannelNumber (existing->second))
+            + " and " + juce::String (vts.getInputChannelNumber (slot))
+            + "; kept it on channel " + juce::String (vts.getInputChannelNumber (existing->second)));
+
+        // Raw setProperty: this is bookkeeping, not an operator edit — it must
+        // carry no undo entry and must not mark the project dirty.
+        channelSection.setProperty (WFSParameterIDs::lightpadZoneId, -1, nullptr);
     }
 }
 
@@ -5030,6 +5202,28 @@ void MainComponent::handleConfigReloaded()
     // recall, config-reloaded callback — so one call here covers them all.
     repairInputPatchAfterLoad();
     loadAudioPatches();
+
+    // Same reasoning, different resource: a snapshot recall can now restore
+    // lightpadZoneId, and a PARTIALLY scoped recall can therefore leave two
+    // channels claiming one pad zone. Repair before anything reads the map, then
+    // push the corrected assignment to the pads — neither LightpadManager rebuild
+    // path is triggered by a recall, so without this the hardware would keep the
+    // pre-recall mapping while the tree says otherwise.
+    resolveLightpadZoneCollisions();
+    if (lightpadManager != nullptr)
+    {
+        auto inputs = parameters.getValueTreeState().getInputsState();
+        for (int i = 0; i < inputs.getNumChildren(); ++i)
+        {
+            auto channelSection = inputs.getChild (i).getChildWithName (WFSParameterIDs::Channel);
+            if (! channelSection.isValid())
+                continue;
+            const int zoneId = static_cast<int> (channelSection.getProperty (WFSParameterIDs::lightpadZoneId, -1));
+            if (zoneId >= 0)
+                lightpadManager->assignZoneToInput (zoneId, i);
+        }
+    }
+    resendRemotePadConfig();
 
     // Drop reposition prompts from the previous session's geometry. Position
     // ownership itself now travels inside the session file (positionsUserOwned).

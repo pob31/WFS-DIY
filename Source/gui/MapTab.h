@@ -811,7 +811,8 @@ public:
                     isInViewGesture = false;
 
                     // Begin undo transaction for this map drag gesture
-                    parameters.getValueTreeState().beginUndoTransaction ("Map Drag Input " + juce::String (hitInput + 1));
+                    parameters.getValueTreeState().beginUndoTransaction ("Map Drag Input " + juce::String (
+                        parameters.getValueTreeState().getInputChannelNumber (hitInput)));
 
                     // Snapshot all selected inputs' positions and offsets for multi-drag
                     multiDragSnapshots.clear();
@@ -860,7 +861,8 @@ public:
                 isDraggingBarycenter = false;
                 isInViewGesture = false;
 
-                parameters.getValueTreeState().beginUndoTransaction ("Map Drag Input " + juce::String (hitRefInput + 1));
+                parameters.getValueTreeState().beginUndoTransaction ("Map Drag Input " + juce::String (
+                        parameters.getValueTreeState().getInputChannelNumber (hitRefInput)));
 
                 auto rawPos = getInputPosition(hitRefInput);
                 bool flipX = static_cast<int>(parameters.getInputParam(hitRefInput, "inputFlipX")) != 0;

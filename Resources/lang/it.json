@@ -222,6 +222,8 @@
       "findMyRemoteTitle": "Trova il mio telecomando",
       "findMyRemoteMessage": "Inserisci la password per il tuo telecomando:",
       "findMyRemotePassword": "Password telecomando:",
+      "trackingConflictsHeader": "I seguenti cluster hanno più ingressi con il tracciamento attivo:",
+      "trackingConflictsCluster": "Cluster {cluster}: Ingressi",
       "trackingConflictsTitle": "Conflitti di tracking rilevati",
       "trackingConflictsMessage": "\nÈ consentito solo un ingresso tracciato per cluster. Se continui, il tracking verrà mantenuto solo per il primo ingresso di ciascun cluster.",
       "trackingConflictsContinue": "Continua"

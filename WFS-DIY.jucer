@@ -23,6 +23,8 @@
               file="spatcore/control/state/XmlPersistence.cpp"/>
         <FILE id="wfsParamIDs" name="WFSParameterIDs.h" compile="0" resource="0"
               file="Source/Parameters/WFSParameterIDs.h"/>
+        <FILE id="wfsVarCoerce" name="VarCoercion.h" compile="0" resource="0"
+              file="Source/Parameters/VarCoercion.h"/>
         <FILE id="wfsParamDef" name="WFSParameterDefaults.h" compile="0" resource="0"
               file="Source/Parameters/WFSParameterDefaults.h"/>
         <FILE id="wfsVTSH" name="WFSValueTreeState.h" compile="0" resource="0"

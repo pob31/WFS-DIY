@@ -222,6 +222,8 @@
       "findMyRemoteTitle": "查找遥控器",
       "findMyRemoteMessage": "输入遥控设备的密码：",
       "findMyRemotePassword": "密码：",
+      "trackingConflictsHeader": "以下集群有多个输入启用了跟踪:",
+      "trackingConflictsCluster": "集群 {cluster}: 输入",
       "trackingConflictsTitle": "检测到追踪冲突",
       "trackingConflictsMessage": "\n每个集群仅允许一个追踪输入。如果继续，每个集群将仅保留第一个输入的追踪。",
       "trackingConflictsContinue": "继续"

@@ -208,6 +208,8 @@
       "findMyRemoteTitle": "리모컨 찾기",
       "findMyRemoteMessage": "리모컨 장치의 비밀번호를 입력하세요:",
       "findMyRemotePassword": "비밀번호:",
+      "trackingConflictsHeader": "다음 클러스터에 트래킹이 활성화된 입력이 여러 개 있습니다:",
+      "trackingConflictsCluster": "클러스터 {cluster}: 입력",
       "trackingConflictsTitle": "트래킹 충돌 감지됨",
       "trackingConflictsMessage": "\n클러스터당 하나의 트래킹 입력만 허용됩니다. 계속하면 각 클러스터의 첫 번째 입력에 대해서만 트래킹이 유지됩니다.",
       "trackingConflictsContinue": "계속"

@@ -626,6 +626,14 @@ private:
     void applySamplerSetPosition (int channelIndex, const juce::ValueTree& samplerNode, int setIndex);
     void applySamplerControllerMode (int mode);
     std::map<int, int> buildZoneToInputMap() const;
+
+    /** One Lightpad zone feeds one input. A partially scoped snapshot recall can
+        restore a zone onto a channel while another still holds it, and
+        buildZoneToInputMap would then silently keep the highest slot. Lowest slot
+        keeps the zone; later claimants are cleared and logged — the same rule as
+        dedupeInputPatchColumns, so a half-repaired session cannot contradict
+        itself. */
+    void resolveLightpadZoneCollisions();
     void resendRemotePadConfig();
     /** Output-patch grow/truncate (1:1 diagonal). Input rows are mirrored
         per-op by the WFSValueTreeState structural channel ops (+ its

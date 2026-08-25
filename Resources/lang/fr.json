@@ -227,6 +227,8 @@
       "findMyRemoteTitle": "Trouver ma télécommande",
       "findMyRemoteMessage": "Entrez le mot de passe de votre télécommande :",
       "findMyRemotePassword": "Mot de passe :",
+      "trackingConflictsHeader": "Les clusters suivants ont plusieurs entrées avec le suivi activé :",
+      "trackingConflictsCluster": "Cluster {cluster} : Entrées",
       "trackingConflictsTitle": "Conflits de tracking détectés",
       "trackingConflictsMessage": "\nUn seul tracking actif par cluster est autorisé. Si vous continuez, le tracking ne sera conservé que pour la première entrée de chaque cluster.",
       "trackingConflictsContinue": "Continuer"

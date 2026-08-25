@@ -1988,12 +1988,17 @@ void WFSValueTreeState::applyInputChannelInventory (const juce::ValueTree& inven
     clearAllUndoHistories();
 }
 
-void WFSValueTreeState::remapClusterInputOrders (const std::function<int (int)>& oldSlotToNewSlot)
+void WFSValueTreeState::remapClusterInputOrders (const std::function<int (int)>& oldToNew)
 {
-    // clusterInputOrder is a csv of 0-based SLOT indices; structural edits
-    // (delete/reorder) shift slots, so every cluster's order must be remapped
-    // in the same operation or the ordering silently migrates to the wrong
-    // channels.
+    // clusterInputOrder is a csv of 0-based SLOT indices in memory; structural
+    // edits (delete/reorder) shift slots, so every cluster's order must be
+    // remapped in the same operation or the ordering silently migrates to the
+    // wrong channels.
+    //
+    // The shape — split, map each token, drop on negative, rejoin, write only if
+    // changed — is also exactly what the FILE boundary needs, so the two
+    // converters below reuse it with slot<->number lambdas. Hence the parameter
+    // is named for the transform, not for slots: it is not always slot->slot.
     auto clusters = getClustersState();
     for (int c = 0; c < clusters.getNumChildren(); ++c)
     {
@@ -2007,7 +2012,7 @@ void WFSValueTreeState::remapClusterInputOrders (const std::function<int (int)>&
         juce::StringArray remapped;
         for (const auto& tok : tokens)
         {
-            const int newSlot = oldSlotToNewSlot (tok.getIntValue());
+            const int newSlot = oldToNew (tok.trim().getIntValue());
             if (newSlot >= 0)
                 remapped.add (juce::String (newSlot));
         }
@@ -2016,6 +2021,32 @@ void WFSValueTreeState::remapClusterInputOrders (const std::function<int (int)>&
         if (newOrder != order)
             cluster.setProperty (clusterInputOrder, newOrder, nullptr);
     }
+}
+
+void WFSValueTreeState::convertClusterOrdersSlotsToNumbers()
+{
+    // Save direction. NOTE the guard: getInputChannelNumber returns 0 — not -1 —
+    // for an out-of-range slot, and remapClusterInputOrders keeps any token >= 0,
+    // so returning it raw would write a bogus "0" into the file. 0 is never a
+    // valid channel number, and it is exactly the token a reader might mistake
+    // for a legacy slot, so it must never be emitted.
+    remapClusterInputOrders ([this] (int slot)
+    {
+        const int number = getInputChannelNumber (slot);
+        return number > 0 ? number : -1;
+    });
+}
+
+void WFSValueTreeState::convertClusterOrdersNumbersToSlots()
+{
+    // Load direction. getSlotForChannelNumber returns -1 for a number with no
+    // live channel, which remapClusterInputOrders drops — the same
+    // drop-what-no-longer-exists semantics deserializeExtendedScope uses for
+    // snapshot scope entries.
+    remapClusterInputOrders ([this] (int number)
+    {
+        return getSlotForChannelNumber (number);
+    });
 }
 
 juce::Result WFSValueTreeState::moveInputChannel (int channelNumber, int targetSlot)
@@ -2737,6 +2768,20 @@ void WFSValueTreeState::replaceState (const juce::ValueTree& newState)
         // is the whole backward-compatibility story, and it must run after
         // ensureCompleteSchema so the IO node exists to hold the flag.
         markChannelNumbersUserOwned ("project load (state replace)");
+
+        // A wholesale replace brings <Clusters> and <Inputs> in together, so a
+        // slot-keyed clusterInputOrder is internally consistent and needs nothing
+        // — which is why exportCompleteConfig, writing the live tree verbatim,
+        // stays slot-keyed and carries no marker. Honour the marker anyway if one
+        // is present, so a number-keyed file loaded through this path is not
+        // silently read as slots.
+        if (auto clusters = getClustersState();
+            clusters.isValid() && clusters.getProperty (inputOrderKey).toString() == inputOrderKeyNumber)
+        {
+            convertClusterOrdersNumbersToSlots();
+            clusters.removeProperty (inputOrderKey, nullptr);   // file artifact, not runtime state
+        }
+
         clearAllUndoHistories();
     }
 }

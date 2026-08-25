@@ -1764,6 +1764,35 @@ struct ExtendedSnapshotScope {
 ### Scope Items
 Parameters are grouped into logical items for easier management. Each scope item contains related parameters:
 
+> **A ScopeItem's `sectionId` is a DISPLAY grouping, not a data one.** The scope
+> grid is built from it and it deliberately mirrors the **GUI tab layout**, not the
+> ValueTree: `jitter` lives on `<Position>` but is shown under LFO, `reverbSends`
+> lives on `<Mutes>` but is shown under Hackoustics, and `admMapping` lives on
+> `<Position>` under a pseudo-section with no node of its own. The save/recall/trim
+> loops therefore **do not filter on it** — `hasProperty` is the exact
+> discriminator, because no paramId exists on two different `<Input>` child nodes.
+> They used to match on `sectionId`, which silently skipped those three on *both*
+> save and recall; being symmetric, no round-trip test could see it. If you add a
+> paramId that lives on two nodes, this breaks — don't.
+
+> **`<Channel>` is table-driven** (`channelSnapshotProperties()` in
+> `WFSFileManager.cpp`). It is the only section that cannot use the generic loops:
+> `inputName` must always be written whatever the scope says, and `inputSamplerActive`
+> / `lightpadZoneId` are gated by an item filed under a different display section.
+> It used to be three unrelated hand-written allowlists — extract, apply, trim —
+> which failed differently in each direction when they drifted. Add a `<Channel>`
+> property to the table, not to a call site. `inputSolo` is deliberately excluded
+> (transient monitoring state), and so is `inputHiddenByCluster`: it is a cache of
+> `(inputCluster, clusterInputsVisible)` that `ClustersTab` recomputes for every
+> channel in a `callAsync` after any `inputCluster` write, so a recalled value is
+> overwritten a message-loop tick later. Snapshotting the cluster toggle is the
+> real fix and has not been done.
+
+> **Old snapshots are inert w.r.t. new items.** The apply loop is guarded by
+> `hasProperty`, so a snapshot stored before a property joined the table restores
+> nothing for it. Only re-stored snapshots carry it. (`isIncluded` does default to
+> `true` for an unknown item id, but that only affects what a *store* captures.)
+
 | Section | Item ID | Display Name | Parameters |
 |---------|---------|--------------|------------|
 | **Channel** | `inputAttenuation` | Attenuation | `inputAttenuation` |
@@ -1983,6 +2012,49 @@ Manages groups of inputs with collective transformations:
 - **Plane selector** - XY, XZ, or YZ plane for rotation/scale operations
 
 All controls use 50Hz timer-based updates with auto-centering behavior.
+
+### `clusterInputOrder` — slot-keyed in memory, NUMBER-keyed on disk
+
+The CSV that gives each cluster its member ordering is 0-based **slot** indices at
+runtime, which is right for every live consumer (it indexes `<Inputs>` children
+directly). It is **not** right on disk: the CSV is persisted in `system.xml` while
+the slot space is defined by `inputs.xml`, so a load that reconciles the channel
+list moves the slot space out from under a CSV written against the file's own.
+
+That is not theoretical. `applyConfigSection` merges `<Clusters>` and only then
+reconciles the inventory, so the CSV was half-rewritten: deletions ran
+`remapClusterInputOrders` (against the wrong frame of reference) and the
+display-order restore, a raw `moveChild`, did not remap at all. With Reference
+Mode = *First Input* — the default — the first token picks the pivot for cluster
+drag and rotate from the Map, OSC and the Remote, so a reloaded show pivoted
+silently around the wrong source and re-saved the damage.
+
+The file therefore carries permanent channel **numbers**, marked by
+`<Clusters inputOrderKey="number">`, converted at the boundary by
+`WFSValueTreeState::convertClusterOrders{SlotsToNumbers,NumbersToSlots}` — the
+same shape as `serializeExtendedScope`/`deserializeExtendedScope`, which is proven
+correct across a reorder. Load order matters and is load-bearing:
+
+1. **Lift the CSVs off the file BEFORE the merge** (`applyConfigSection`). The live
+   tree always carries `clusterInputOrder=""` on all ten clusters, so afterwards
+   "the file had none" and "the file had empty" are indistinguishable.
+2. **Materialise LAST**, at the tail of `applyInputsSection` — after its prune
+   (which remaps) and its display-order restore (which does not) — and before
+   `importInputConfig`'s `enforceAllSharedClusterInvariants()`, which reads the
+   order. A system config loaded on its own flushes at the tail of
+   `applyConfigSection` instead; the flush is idempotent so both may run.
+3. `inputOrderKey` is **deliberately absent from `createClustersSection`**:
+   `ensureCompleteSchema` back-fills template content into loaded trees and would
+   stamp it onto legacy files, destroying the discriminator. Same rule, same
+   hazard, as `channelNumbersUserOwned` and `InputChannelList`. Absent = legacy =
+   slots, restored verbatim (correct, because by flush time the live slot space is
+   the file's) and rewritten as numbers on the next save.
+
+Do **not** try to discriminate legacy files on "does a token equal 0" — slot 0 is
+a legitimate legacy token, and `"3,1,2"` is valid under both readings.
+`exportCompleteConfig` writes the live tree verbatim and so stays slot-keyed with
+no marker; that is self-consistent because `replaceState` swaps `<Clusters>` and
+`<Inputs>` together, and it honours the marker if one is present anyway.
 
 ### Stage Bounds Constraint Enforcement
 Both InputsTab and ClustersTab joystick/slider controls enforce stage bounds when constraint buttons are enabled:

@@ -222,6 +222,8 @@
       "findMyRemoteTitle": "Encontrar o meu comando",
       "findMyRemoteMessage": "Introduza a palavra-passe do seu comando:",
       "findMyRemotePassword": "Palavra-passe:",
+      "trackingConflictsHeader": "Os seguintes clusters têm várias entradas com rastreamento ativado:",
+      "trackingConflictsCluster": "Cluster {cluster}: Entradas",
       "trackingConflictsTitle": "Conflitos de tracking detetados",
       "trackingConflictsMessage": "\nApenas é permitida uma entrada com tracking por cluster. Se continuar, o tracking será mantido apenas para a primeira entrada de cada cluster.",
       "trackingConflictsContinue": "Continuar"

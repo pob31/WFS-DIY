@@ -534,6 +534,40 @@ private:
     // Config after a system load must honour that load's answer.
     bool channelListFromInventory = false;
 
+    /** The `clusterInputOrder` CSVs exactly as the last-loaded system config
+        wrote them, lifted off the file BEFORE the merge.
+
+        They cannot be applied when they arrive. The merge puts them into the live
+        tree while the channel list is still the pre-load one; the reconciliation
+        that follows then deletes channels (which runs remapClusterInputOrders and
+        shifts tokens) and reorders them (a raw moveChild, which does not) — so the
+        CSV is half-rewritten against a slot space it was never expressed in. The
+        fix is to ignore whatever the merge and the remaps leave behind and write
+        the file's own values back once the channel list has settled.
+
+        Lifting must happen pre-merge: the live tree always carries
+        clusterInputOrder="" on all ten clusters, so afterwards "the file had none"
+        and "the file had empty" are indistinguishable.
+
+        `numberKeyed` mirrors the file's <Clusters inputOrderKey> marker. Absent
+        means a pre-marker file whose CSVs are slots — still correct to restore
+        verbatim, because by flush time the live slot space equals the file's.
+
+        Deliberately NOT consumed by the flush: flushing is idempotent and runs at
+        both the system-config-alone tail and the end of applyInputsSection, so a
+        prune in the latter cannot leave a damaged CSV behind. */
+    struct PendingClusterOrders
+    {
+        bool valid = false;
+        bool numberKeyed = false;
+        std::map<int, juce::String> byClusterId;
+    };
+    PendingClusterOrders pendingClusterOrders;
+
+    /** Write the lifted cluster orders back, converting numbers->slots when the
+        file was number-keyed. Safe to call more than once per load. */
+    void flushPendingClusterOrders();
+
     //==========================================================================
     // Internal Methods
     //==========================================================================
