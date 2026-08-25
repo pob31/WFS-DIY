@@ -22,6 +22,30 @@ namespace WFSNetwork
 static float varToFloat (const juce::var& v, float defaultVal = 0.0f) { return WFSVar::toFloat (v, defaultVal); }
 static int   varToInt   (const juce::var& v, int   defaultVal = 0)    { return WFSVar::toInt   (v, defaultVal); }
 
+// clusterInputOrder is slot-keyed in the tree, but SLOTS ARE NOT AN ADDRESS on
+// the wire: every other per-channel id this app emits is the permanent channel
+// number, /cluster/trackedInput in these very loops included. Shipping raw slots
+// meant a client matching this list against the /remoteInput/* ids it already
+// holds found nothing, and one that did not notice would draw the wrong channels
+// after any reorder. Nothing consumes it today, which is why it was free to be
+// wrong -- and why it is worth fixing before something starts to.
+static juce::String clusterOrderAsChannelNumbers (WFSValueTreeState& state, const juce::String& slotCsv)
+{
+    if (slotCsv.isEmpty())
+        return {};
+
+    juce::StringArray tokens;
+    tokens.addTokens (slotCsv, ",", "");
+    juce::StringArray numbers;
+    for (const auto& tok : tokens)
+    {
+        const int number = state.getInputChannelNumber (tok.trim().getIntValue());
+        if (number > 0)                      // 0 == no such slot; never emit it
+            numbers.add (juce::String (number));
+    }
+    return numbers.joinIntoString (",");
+}
+
 //==============================================================================
 // Construction / Destruction
 //==============================================================================
@@ -879,7 +903,8 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
     if (property == WFSParameterIDs::clusterInputOrder)
     {
         int clusterId = static_cast<int>(tree.getProperty(WFSParameterIDs::id));
-        juce::String order = tree.getProperty(property).toString();
+        juce::String order = clusterOrderAsChannelNumbers (
+            state, tree.getProperty(property).toString());
 
         juce::OSCMessage msg("/cluster/inputOrder");
         msg.addInt32(clusterId);
@@ -3717,7 +3742,8 @@ void OSCManager::sendAllClusterConfigsToRemote(int targetIndex)
         sendDirect(msgTracked);
 
         // Send input order
-        juce::String inputOrder = state.getClusterParameter(c, clusterInputOrder).toString();
+        juce::String inputOrder = clusterOrderAsChannelNumbers (
+            state, state.getClusterParameter(c, clusterInputOrder).toString());
         if (inputOrder.isNotEmpty())
         {
             juce::OSCMessage orderMsg("/cluster/inputOrder");
@@ -4606,7 +4632,8 @@ std::vector<juce::OSCMessage> OSCManager::collectStateDumpMessages(int /*targetI
             msgTracked.addInt32(trackedInputId);
             messages.push_back(std::move(msgTracked));
 
-            juce::String inputOrder = state.getClusterParameter(c, clusterInputOrder).toString();
+            juce::String inputOrder = clusterOrderAsChannelNumbers (
+                state, state.getClusterParameter(c, clusterInputOrder).toString());
             if (inputOrder.isNotEmpty())
             {
                 juce::OSCMessage orderMsg("/cluster/inputOrder");
