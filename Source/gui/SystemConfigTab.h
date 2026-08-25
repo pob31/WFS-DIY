@@ -16,6 +16,8 @@
 #include "../../spatcore/controllers/lightpad/LightpadTypes.h"
 #include "HelpCard.h"
 #include "InputChannelListEditor.h"
+#include "ChannelIdentityGate.h"
+#include "../Parameters/InputChannelDescription.h"
 #include "LightpadArrangementOverlay.h"
 #include "RefreshableComboBox.h"
 #if WFS_GPU_NATIVE
@@ -2818,10 +2820,11 @@ private:
         {
             // Global composition counts (stable-number model): raising a
             // count APPENDS channels after the last one; lowering it removes
-            // the HIGHEST-NUMBERED channel(s) of that type — numbers never
-            // shift and removals leave permanent gaps. Arrangement
-            // (mono/stereo interleaving) is done by drag in the channel-order
-            // dialog; a channel's type is fixed at creation.
+            // the LAST channel(s) of that type in DISPLAY order — the bottom of
+            // the Arrange list, which the operator can see. Numbers never shift
+            // and removals leave permanent gaps. Arrangement (mono/stereo
+            // interleaving) is done by drag in the channel-order dialog; a
+            // channel's type is fixed at creation.
             const bool editingStereo = (&editor == &stereoChannelsEditor);
             auto& vts = parameters.getValueTreeState();
             const int currentTotal  = parameters.getNumInputChannels();
@@ -2859,27 +2862,22 @@ private:
                 }
                 isShowingChannelReductionDialog = true;
 
-                // List the numbers that will go: repeatedly the
-                // highest-numbered channel of the reduced type (mirrors
-                // setInputChannelCounts).
-                juce::StringArray goingNumbers;
-                {
-                    juce::SortedSet<int> monoNums, stereoNums;
-                    for (int slot = 0; slot < currentTotal; ++slot)
-                        (vts.isInputChannelStereo(slot) ? stereoNums : monoNums)
-                            .add(vts.getInputChannelNumber(slot));
-                    for (int i = 0; i < currentStereo - newStereo; ++i)
-                        goingNumbers.add(juce::String(stereoNums[stereoNums.size() - 1 - i]));
-                    for (int i = 0; i < currentMono - newMono; ++i)
-                        goingNumbers.add(juce::String(monoNums[monoNums.size() - 1 - i]));
-                }
+                // Name what will go — by name, number and type — captured by
+                // SLOT before anything mutates, from the very walk
+                // setInputChannelCounts runs: the last of that type in display
+                // order. This used to predict by highest NUMBER, which on a
+                // latched list that has been dragged is a different channel:
+                // the dialog promised #12 and the code removed #9.
+                juce::StringArray rows;
+                for (const auto& victim : vts.predictInputChannelReduction(newMono, newStereo))
+                    rows.add(LOC("systemConfig.dialogs.reduceInputChannels.row")
+                                 .replace("{channel}", describeInputChannel(victim)));
 
                 auto options = juce::MessageBoxOptions()
                     .withIconType(juce::MessageBoxIconType::WarningIcon)
                     .withTitle(LOC("systemConfig.dialogs.reduceInputChannels.title"))
-                    .withMessage(LocalizationManager::getInstance().get(
-                        "systemConfig.dialogs.reduceInputChannels.messageNumbers",
-                        {{"numbers", goingNumbers.joinIntoString(", ")}}))
+                    .withMessage(LOC("systemConfig.dialogs.reduceInputChannels.messageList")
+                                     .replace("{rows}", rows.joinIntoString("\n")))
                     .withButton(LOC("systemConfig.dialogs.reduce"))
                     .withButton(LOC("common.cancel"))
                     .withAssociatedComponent(this);
@@ -4293,6 +4291,28 @@ public:
             showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.error", {{"error", fileManager.getLastError()}}));
     }
 
+    /** The identity gate's view of this tab. Every lambda goes through a
+        SafePointer: the dialogs are async and the modal manager may fire them
+        after a teardown that closed the dialog on the way out. */
+    ChannelIdentityGate::Context makeChannelIdentityContext()
+    {
+        juce::Component::SafePointer<SystemConfigTab> safe (this);
+        ChannelIdentityGate::Context ctx;
+        ctx.parent     = this;
+        ctx.parameters = &parameters;
+        ctx.afterStructuralChange = [safe]
+        {
+            if (safe == nullptr) return;
+            safe->notifyChannelCountChanged();
+            safe->loadParametersToUI();
+        };
+        ctx.showStatus = [safe] (const juce::String& text)
+        {
+            if (safe != nullptr) safe->showStatusMessage (text);
+        };
+        return ctx;
+    }
+
     void reloadCompleteConfiguration()
     {
         auto& fileManager = parameters.getFileManager();
@@ -4303,28 +4323,33 @@ public:
             return;
         }
 
-        // Load complete config from individual files (system.xml, network.xml, inputs.xml, outputs.xml, reverbs.xml)
-        parameters.getDirtyTracker().beginSuppression();
-        bool success = fileManager.loadCompleteConfig();
+        // The pair (system.xml vs inputs.xml) is checked BEFORE anything is
+        // applied. The dirty-tracker suppression lives inside the load so it
+        // can never stay armed across the async dialog.
+        ChannelIdentityGate::confirmThenLoadProject (makeChannelIdentityContext(),
+            fileManager.getSystemConfigFile(), fileManager.getInputConfigFile(),
+            [safe = juce::Component::SafePointer<SystemConfigTab> (this)]
+            {
+                if (safe == nullptr) return;
+                auto& fm = safe->parameters.getFileManager();
 
-        if (success)
-            showStatusMessage(LOC("systemConfig.messages.configLoaded"));
-        else
-            showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.partialLoad", {{"error", fileManager.getLastError()}}));
+                // Load complete config from individual files (system.xml, network.xml, inputs.xml, outputs.xml, reverbs.xml)
+                safe->parameters.getDirtyTracker().beginSuppression();
+                bool success = fm.loadCompleteConfig();
 
-        // Always refresh UI and trigger recalculation, even on partial load
-        // Some files may have loaded successfully (e.g., system and outputs but not reverbs)
+                if (success)
+                    safe->showStatusMessage(LOC("systemConfig.messages.configLoaded"));
+                else
+                    safe->showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.partialLoad", {{"error", fm.getLastError()}}));
 
-        // Notify MainComponent of channel count changes to refresh UI
-        notifyChannelCountChanged();
-
-        // Refresh the UI to show loaded values
-        loadParametersToUI();
-
-        // Notify MainComponent to refresh all tabs
-        if (onConfigReloaded)
-            onConfigReloaded();
-        parameters.getDirtyTracker().endSuppressionAndClear();
+                // Always refresh UI and trigger recalculation, even on partial load
+                // Some files may have loaded successfully (e.g., system and outputs but not reverbs)
+                safe->notifyChannelCountChanged();
+                safe->loadParametersToUI();
+                if (safe->onConfigReloaded)
+                    safe->onConfigReloaded();
+                safe->parameters.getDirtyTracker().endSuppressionAndClear();
+            });
     }
 
     void reloadCompleteConfigBackup()
@@ -4344,26 +4369,34 @@ public:
             return;
         }
 
-        parameters.getDirtyTracker().beginSuppression();
-        bool success = fileManager.loadCompleteConfigBackup(0);
+        // The backup set's own pair; an inputs backup that is missing makes
+        // the preflight fall back to system-vs-session on its own.
+        const auto sysBackups = fileManager.getBackups("system");
+        const auto insBackups = fileManager.getBackups("inputs");
+        const juce::File sysFile = sysBackups.isEmpty() ? juce::File() : sysBackups[0];
+        const juce::File insFile = insBackups.isEmpty() ? juce::File() : insBackups[0];
 
-        if (success)
-            showStatusMessage(LOC("systemConfig.messages.configLoadedFromBackup"));
-        else
-            showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.partialLoadFromBackup", {{"error", fileManager.getLastError()}}));
+        ChannelIdentityGate::confirmThenLoadProject (makeChannelIdentityContext(), sysFile, insFile,
+            [safe = juce::Component::SafePointer<SystemConfigTab> (this)]
+            {
+                if (safe == nullptr) return;
+                auto& fm = safe->parameters.getFileManager();
 
-        // Always refresh UI and trigger recalculation, even on partial load
+                safe->parameters.getDirtyTracker().beginSuppression();
+                bool success = fm.loadCompleteConfigBackup(0);
 
-        // Notify MainComponent of channel count changes to refresh UI
-        notifyChannelCountChanged();
+                if (success)
+                    safe->showStatusMessage(LOC("systemConfig.messages.configLoadedFromBackup"));
+                else
+                    safe->showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.partialLoadFromBackup", {{"error", fm.getLastError()}}));
 
-        // Refresh the UI to show loaded values
-        loadParametersToUI();
-
-        // Notify MainComponent to refresh all tabs
-        if (onConfigReloaded)
-            onConfigReloaded();
-        parameters.getDirtyTracker().endSuppressionAndClear();
+                // Always refresh UI and trigger recalculation, even on partial load
+                safe->notifyChannelCountChanged();
+                safe->loadParametersToUI();
+                if (safe->onConfigReloaded)
+                    safe->onConfigReloaded();
+                safe->parameters.getDirtyTracker().endSuppressionAndClear();
+            });
     }
 
     void storeSystemConfiguration()
@@ -4400,21 +4433,24 @@ public:
             return;
         }
 
-        if (fileManager.loadSystemConfig())
-        {
-            showStatusMessage(LOC("systemConfig.messages.systemConfigLoaded"));
-
-            // Update UI from ValueTree
-            loadParametersToUI();
-
-            // Notify MainComponent to refresh all tabs
-            if (onConfigReloaded)
-                onConfigReloaded();
-        }
-        else
-        {
-            showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.error", {{"error", fileManager.getLastError()}}));
-        }
+        // This is the load that crossed a hand-rebuilt arrangement: a system
+        // config on its own rebuilds the channel list BY NUMBER. Ask first.
+        ChannelIdentityGate::confirmThenLoad (makeChannelIdentityContext(), configFile,
+            WFSFileManager::LoadKind::systemConfig,
+            [safe = juce::Component::SafePointer<SystemConfigTab> (this)]
+            {
+                if (safe == nullptr) return;
+                auto& fm = safe->parameters.getFileManager();
+                if (fm.loadSystemConfig())
+                {
+                    safe->showStatusMessage(LOC("systemConfig.messages.systemConfigLoaded"));
+                    safe->loadParametersToUI();
+                    if (safe->onConfigReloaded)
+                        safe->onConfigReloaded();
+                }
+                else
+                    safe->showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.error", {{"error", fm.getLastError()}}));
+            });
     }
 
     void reloadSystemConfigBackup()
@@ -4434,21 +4470,22 @@ public:
             return;
         }
 
-        if (fileManager.loadSystemConfigBackup(0))
-        {
-            showStatusMessage(LOC("systemConfig.messages.systemConfigLoadedFromBackup"));
-
-            // Update UI from ValueTree
-            loadParametersToUI();
-
-            // Notify MainComponent to refresh all tabs
-            if (onConfigReloaded)
-                onConfigReloaded();
-        }
-        else
-        {
-            showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.error", {{"error", fileManager.getLastError()}}));
-        }
+        ChannelIdentityGate::confirmThenLoad (makeChannelIdentityContext(), backups[0],
+            WFSFileManager::LoadKind::systemConfig,
+            [safe = juce::Component::SafePointer<SystemConfigTab> (this)]
+            {
+                if (safe == nullptr) return;
+                auto& fm = safe->parameters.getFileManager();
+                if (fm.loadSystemConfigBackup(0))
+                {
+                    safe->showStatusMessage(LOC("systemConfig.messages.systemConfigLoadedFromBackup"));
+                    safe->loadParametersToUI();
+                    if (safe->onConfigReloaded)
+                        safe->onConfigReloaded();
+                }
+                else
+                    safe->showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.error", {{"error", fm.getLastError()}}));
+            });
     }
 
     void importSystemConfiguration()
@@ -4464,22 +4501,30 @@ public:
             if (result.existsAsFile())
             {
                 AppSettings::setLastFolder("lastXmlFolder", result.getParentDirectory());
-                auto& fileManager = parameters.getFileManager();
-                if (fileManager.importSystemConfig(result))
-                {
-                    showStatusMessage(LOC("systemConfig.messages.systemConfigImported"));
 
-                    // Update UI from ValueTree
-                    loadParametersToUI();
-
-                    // Notify MainComponent to refresh all tabs
-                    if (onConfigReloaded)
-                        onConfigReloaded();
-                }
-                else
-                {
-                    showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.error", {{"error", fileManager.getLastError()}}));
-                }
+                // An arbitrary file from anywhere on disk: no sibling inputs.xml
+                // is trusted for it, so a pre-inventory file reads as "no
+                // identity" and gets the count-only warning.
+                // Named local, not an init-capture: inside a lambda nested in the
+                // chooser callback MSVC binds `this` in an init-capture to the
+                // enclosing closure, not to the tab.
+                juce::Component::SafePointer<SystemConfigTab> safe (this);
+                ChannelIdentityGate::confirmThenLoad (makeChannelIdentityContext(), result,
+                    WFSFileManager::LoadKind::systemConfig,
+                    [safe, result]
+                    {
+                        if (safe == nullptr) return;
+                        auto& fm = safe->parameters.getFileManager();
+                        if (fm.importSystemConfig(result))
+                        {
+                            safe->showStatusMessage(LOC("systemConfig.messages.systemConfigImported"));
+                            safe->loadParametersToUI();
+                            if (safe->onConfigReloaded)
+                                safe->onConfigReloaded();
+                        }
+                        else
+                            safe->showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.error", {{"error", fm.getLastError()}}));
+                    });
             }
         });
     }
@@ -5145,7 +5190,7 @@ public:
     // editChannelsButton's enable state (same gate as the count fields).
     void openChannelListEditor()
     {
-        auto* content = new InputChannelListEditor(parameters.getValueTreeState(),
+        auto* content = new InputChannelListEditor(parameters,
             [this]
             {
                 notifyChannelCountChanged();

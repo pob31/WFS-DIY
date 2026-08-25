@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "WFSValueTreeState.h"
+#include "InputChannelIdentity.h"
 #include "../../spatcore/control/state/XmlPersistence.h"
 
 #if JUCE_MAC
@@ -513,6 +514,71 @@ public:
     static constexpr const char* audioPatchExtension = ".xml";
     static constexpr const char* snapshotExtension = ".xml";
 
+    //==========================================================================
+    // Channel identity gate (pre-load check)
+    //==========================================================================
+    // Position is not identity. mergeTreeRecursive matches <Input> children by
+    // permanent NUMBER, applyInputChannelInventory rebuilds the list by NUMBER
+    // (retyping a live channel to whatever type the file's same-numbered channel
+    // has), and patchData rows land by POSITION. So loading a file whose
+    // (position <-> number <-> type) relation differs from the session's crosses
+    // parameter sets by number and hardware inputs by slot, in opposite
+    // directions at once - and a hand-rebuilt arrangement that LOOKS identical
+    // is no protection, because the merge never looks at position. These read a
+    // file's channel identity WITHOUT applying it and say, before the load,
+    // whether that would happen.
+    //
+    // Three layers. The preflights are pure (const, no setError, no latch) and
+    // are what the GUI asks before deciding to show a dialog. The gate inside
+    // the three import primitives is the safety net no caller can bypass: an
+    // unsafe load with neither a bypass nor a one-shot clearance for that exact
+    // file is REFUSED, loudly, rather than applied. Complete project loads
+    // check the pair (system.xml against inputs.xml - the only thing that can
+    // go wrong there) and run their inner loads under a bypass.
+
+    enum class LoadKind { systemConfig, inputConfig, completeConfig, projectPair };
+
+    /** The live session compared with what `file` describes. */
+    InputChannelIdentityDiff preflightChannelIdentity (const juce::File& file, LoadKind kind) const;
+
+    /** system.xml's inventory compared with inputs.xml's <Input> nodes - a
+        complete load of a consistent pair is safe whatever the session looks
+        like, so the pair is the only thing to check. Falls back to system vs
+        session when inputs.xml is unreadable (the load then degenerates to a
+        system-only one). */
+    InputChannelIdentityDiff preflightProjectChannelIdentity (const juce::File& systemFile,
+                                                              const juce::File& inputsFile) const;
+
+    /** The live session compared with a snapshot's entries: which numbers have
+        no live channel (they will be skipped) and whose hardware-input
+        fingerprint disagrees with the live patch (a different configuration, or
+        a re-cable). */
+    InputChannelIdentityDiff preflightSnapshotChannelIdentity (const juce::String& snapshotName) const;
+
+    /** The one rule for "may this proceed without the operator's say-so". */
+    bool isChannelIdentitySafe (const InputChannelIdentityDiff& diff, LoadKind kind) const;
+
+    /** One-shot permission for the next primitive call on exactly `file`,
+        granted by the GUI once the operator confirmed. Consumed by that call. */
+    void grantChannelIdentityClearance (const juce::File& file);
+
+    /** RAII: every primitive called inside passes the gate. Complete loads hold
+        one around their inner per-file loads; the self-test holds one around the
+        phases that load deliberately mismatching files. */
+    struct ScopedChannelIdentityBypass
+    {
+        explicit ScopedChannelIdentityBypass (WFSFileManager& fm) : owner (fm) { ++owner.channelIdentityBypassDepth; }
+        ~ScopedChannelIdentityBypass()                                           { --owner.channelIdentityBypassDepth; }
+        WFSFileManager& owner;
+    };
+
+    /** One line for the log / status bar. */
+    static juce::String summariseChannelIdentityDiff (const InputChannelIdentityDiff& diff);
+
+    /** After loadInputSnapshotWithExtendedScope: the entry numbers that had no
+        live channel and were skipped. Recall used to be silent about them. */
+    const std::vector<int>& getLastRecallSkippedNumbers() const { return lastRecallSkippedNumbers; }
+
 private:
     //==========================================================================
     // Private Members
@@ -577,6 +643,28 @@ private:
     /** Write the lifted cluster orders back, converting numbers->slots when the
         file was number-keyed. Safe to call more than once per load. */
     void flushPendingClusterOrders();
+
+    // Channel identity gate state. `channelIdentityClearance` is a one-shot: the
+    // GUI grants it for one file after the operator confirmed, and the next
+    // primitive call on that file consumes it. Keyed on the exact File so a
+    // confirmation for one path can never license a load of another.
+    int channelIdentityBypassDepth = 0;
+    juce::File channelIdentityClearance;
+    std::vector<int> lastRecallSkippedNumbers;
+
+    /** The gate itself. True = proceed. False = refused; lastError and the log
+        say why. Takes the already-parsed root so the primitive parses once. */
+    bool passChannelIdentityGate (const juce::File& file, LoadKind kind, const juce::ValueTree& parsedRoot);
+
+    /** What a parsed file says about its channel list, for `kind`. For a
+        system config without an inventory, the project's own inputs.xml is
+        consulted - but ONLY for the project's own system.xml: a backup or an
+        imported file has no trustworthy sibling. */
+    InputChannelIdentity readFileChannelIdentity (const juce::ValueTree& parsedRoot, LoadKind kind,
+                                                  const juce::File& file) const;
+
+    /** Stamp each <Input> in a saved COPY with its hardware-input fingerprint. */
+    void stampHardwareFingerprints (juce::ValueTree& inputsCopy) const;
 
     //==========================================================================
     // Internal Methods

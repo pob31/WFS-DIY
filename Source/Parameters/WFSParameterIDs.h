@@ -128,6 +128,22 @@ namespace WFSParameterIDs
     const juce::Identifier chNumber          ("n");                 // permanent channel number
     const juce::Identifier chType            ("type");              // "mono" / "stereo"
 
+    // Hardware-input FINGERPRINT on an <Input> node in inputs.xml and on a
+    // snapshot's <Input> entry: the 1-based hardware inputs the channel's patch
+    // row held when the file was written, e.g. "15" or "15,16".
+    //
+    // A guard, never a source. Nothing repatches from it: the patch lives in
+    // system.xml's <AudioPatch> and is applied from there alone. It exists so a
+    // file written under one configuration can be RECOGNISED as such before it
+    // is applied to another - inputs.xml and snapshots otherwise carry no
+    // channel<->hardware relation at all, so a stale one loaded by number had
+    // nothing to trip over. Keyed by number (it sits on the <Input>), so it is
+    // immune to the position problem that defeats everything positional. It is
+    // stamped into the saved COPY and evicted from the live tree after a load,
+    // like InputChannelList; a live copy could only go stale on the next
+    // re-patch.
+    const juce::Identifier hwInputs          ("hwInputs");
+
     //==========================================================================
     // Config > Binaural Section
     //==========================================================================

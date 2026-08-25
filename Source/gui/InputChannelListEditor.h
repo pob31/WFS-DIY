@@ -6,6 +6,9 @@
 #include "../Parameters/WFSParameterDefaults.h"
 #include "../Localization/LocalizationManager.h"
 #include "../WFSLogger.h"
+#include "../WfsParameters.h"
+#include "../AppSettings.h"
+#include "ChannelIdentityGate.h"
 
 /**
  * Input channel ORDER editor (stable-number model).
@@ -26,6 +29,18 @@
  * the drag source; every op must therefore go through structureChanged(), which
  * refreshes it. Acting on a stale cached number deletes or moves the wrong
  * channel.
+ *
+ * The hint above the list SAYS which regime the session is in, because the two
+ * feel like the same gesture and are not. Fresh: this order becomes the
+ * numbering and the patch is re-flowed to match. In use: a drag moves the node
+ * AND its patch row together, so every channel keeps its hardware inputs, and
+ * snapshots, cues and remotes keep pointing at the same channel — the only
+ * visible change is that the patch matrix stops reading as a diagonal. The
+ * operator's own model had patching needing manual repair and snapshots
+ * "making a mess" after a latched drag; neither is true, and the mess they saw
+ * came from loading a file across an identity mismatch, which the identity
+ * gate now catches. "From file..." pulls a saved channel list onto the session
+ * without loading anything else (see ChannelIdentityGate::reconcileFromFile).
  */
 class InputChannelListEditor : public juce::Component,
                                public juce::DragAndDropContainer,
@@ -33,34 +48,51 @@ class InputChannelListEditor : public juce::Component,
                                private juce::ListBoxModel
 {
 public:
-    InputChannelListEditor (WFSValueTreeState& stateIn,
+    InputChannelListEditor (WfsParameters& parametersIn,
                             std::function<void()> onStructureChangedIn)
-        : state (stateIn), onStructureChanged (std::move (onStructureChangedIn))
+        : parameters (parametersIn),
+          state (parametersIn.getValueTreeState()),
+          onStructureChanged (std::move (onStructureChangedIn))
     {
         listBox.setModel (this);
         listBox.setRowHeight (30);
         addAndMakeVisible (listBox);
 
-        hintLabel.setText (LOC ("systemConfig.channelList.dragHint"), juce::dontSendNotification);
-        hintLabel.setJustificationType (juce::Justification::centredLeft);
-        hintLabel.setAlpha (0.7f);
+        // Multi-line: drawFittedText wraps to as many lines as the bounds hold.
+        hintLabel.setJustificationType (juce::Justification::topLeft);
+        hintLabel.setMinimumHorizontalScale (1.0f);
+        hintLabel.setAlpha (0.8f);
         addAndMakeVisible (hintLabel);
+
+        fromFileButton.setButtonText (LOC ("systemConfig.channelList.fromFile"));
+        fromFileButton.setTooltip (LOC ("systemConfig.channelList.fromFileHelp"));
+        fromFileButton.onClick = [this] { chooseFileToReconcile(); };
+        addAndMakeVisible (fromFileButton);
+
+        feedbackLabel.setJustificationType (juce::Justification::centredLeft);
+        feedbackLabel.setInterceptsMouseClicks (false, false);
+        feedbackLabel.setAlpha (0.8f);
+        addAndMakeVisible (feedbackLabel);
 
         statusLabel.setJustificationType (juce::Justification::centredRight);
         statusLabel.setInterceptsMouseClicks (false, false);
         addAndMakeVisible (statusLabel);
 
         refresh();
-        setSize (460, 430);
+        setSize (500, 520);
     }
 
     void resized() override
     {
         auto area = getLocalBounds().reduced (10);
+        hintLabel.setBounds (area.removeFromTop (74));
+        area.removeFromTop (4);
         auto bottom = area.removeFromBottom (28);
         listBox.setBounds (area.withTrimmedBottom (6));
-        statusLabel.setBounds (bottom.removeFromRight (170));
-        hintLabel.setBounds (bottom);
+        fromFileButton.setBounds (bottom.removeFromLeft (110));
+        bottom.removeFromLeft (8);
+        statusLabel.setBounds (bottom.removeFromRight (150));
+        feedbackLabel.setBounds (bottom);
     }
 
     //==========================================================================
@@ -233,10 +265,51 @@ private:
         refresh();
     }
 
+    /** "From file...": adopt a saved channel list (numbers, or order) onto this
+        session without loading the file's parameters or patch. */
+    void chooseFileToReconcile()
+    {
+        auto& fm = parameters.getFileManager();
+        const juce::File start = fm.hasValidProjectFolder()
+                                     ? fm.getSystemConfigFile().getParentDirectory()
+                                     : AppSettings::getLastFolder ("lastXmlFolder");
+
+        auto chooser = std::make_shared<juce::FileChooser> (LOC ("systemConfig.channelList.fromFileTitle"), start, "*.xml");
+        chooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+            [safe = juce::Component::SafePointer<InputChannelListEditor> (this), chooser] (const juce::FileChooser& fc)
+            {
+                if (safe == nullptr) return;
+                const auto file = fc.getResult();
+                if (! file.existsAsFile()) return;
+                ChannelIdentityGate::reconcileFromFile (safe->makeContext(), file);
+            });
+    }
+
+    ChannelIdentityGate::Context makeContext()
+    {
+        juce::Component::SafePointer<InputChannelListEditor> safe (this);
+        ChannelIdentityGate::Context ctx;
+        ctx.parent     = this;
+        ctx.parameters = &parameters;
+        ctx.afterStructuralChange = [safe] { if (safe != nullptr) safe->structureChanged(); };
+        ctx.showStatus = [safe] (const juce::String& text)
+        {
+            if (safe != nullptr) safe->feedbackLabel.setText (text, juce::dontSendNotification);
+        };
+        return ctx;
+    }
+
     void refresh()
     {
         listBox.updateContent();
         listBox.repaint();
+
+        // The regime, stated: reordering means two different things either
+        // side of the latch, and the operator cannot tell which from the list.
+        hintLabel.setText (LOC (state.areChannelNumbersUserOwned()
+                                    ? "systemConfig.channelList.dragHintInUse"
+                                    : "systemConfig.channelList.dragHintFresh"),
+                           juce::dontSendNotification);
 
         const int total  = state.getNumInputChannels();
         const int stereo = state.getNumStereoInputChannels();
@@ -247,11 +320,13 @@ private:
                              juce::dontSendNotification);
     }
 
+    WfsParameters& parameters;
     WFSValueTreeState& state;
     std::function<void()> onStructureChanged;
 
     juce::ListBox listBox;
-    juce::Label hintLabel, statusLabel;
+    juce::Label hintLabel, feedbackLabel, statusLabel;
+    juce::TextButton fromFileButton;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (InputChannelListEditor)
 };

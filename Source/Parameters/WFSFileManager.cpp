@@ -415,6 +415,33 @@ bool WFSFileManager::loadCompleteConfig()
     // Clear any previous errors
     lastError = juce::String();
 
+    // Checked as a PAIR: a consistent system.xml + inputs.xml is safe whatever
+    // the session looks like (inputs.xml overwrites everything by number after
+    // the inventory rebuilt the list by number), so the only hazard is the two
+    // files disagreeing with each other - which "Store System Config" on its
+    // own produces trivially. The inner loads then run under a bypass: the
+    // per-file gate inside importSystemConfig cannot know that a consistent
+    // inputs.xml is about to follow, and would refuse a pristine session
+    // opening any project at all.
+    if (channelIdentityBypassDepth == 0)
+    {
+        if (channelIdentityClearance == getSystemConfigFile())
+            channelIdentityClearance = juce::File();
+        else
+        {
+            const auto pair = preflightProjectChannelIdentity (getSystemConfigFile(), getInputConfigFile());
+            if (! isChannelIdentitySafe (pair, LoadKind::projectPair))
+            {
+                setError (LOC ("fileManager.errors.channelListMismatchNotConfirmed")
+                              .replace ("{path}", getSystemConfigFile().getFullPathName()));
+                WFSLogger::getInstance().logWarning ("Load refused: system.xml and inputs.xml disagree about the channel list ("
+                                                     + summariseChannelIdentityDiff (pair) + ") and the load was not confirmed");
+                return false;
+            }
+        }
+    }
+    ScopedChannelIdentityBypass innerLoadsBypass (*this);
+
     // Load all individual configuration files
     bool success = true;
     juce::StringArray errors;
@@ -474,6 +501,34 @@ bool WFSFileManager::loadCompleteConfigBackup (int backupIndex)
 {
     // Clear any previous errors
     lastError = juce::String();
+
+    // Same pair rule as loadCompleteConfig, against the backup set. A backup set
+    // with no inputs file degenerates to a system-only load and is checked as
+    // one against the live session.
+    if (channelIdentityBypassDepth == 0)
+    {
+        const auto sysBackups = getBackups ("system");
+        const auto insBackups = getBackups ("inputs");
+        const juce::File sysFile = backupIndex < sysBackups.size() ? sysBackups[backupIndex] : juce::File();
+        const juce::File insFile = backupIndex < insBackups.size() ? insBackups[backupIndex] : juce::File();
+
+        if (sysFile != juce::File() && channelIdentityClearance == sysFile)
+            channelIdentityClearance = juce::File();
+        else if (sysFile != juce::File())
+        {
+            const bool havePair = insFile.existsAsFile();
+            const auto diff = havePair ? preflightProjectChannelIdentity (sysFile, insFile)
+                                       : preflightChannelIdentity (sysFile, LoadKind::systemConfig);
+            if (! isChannelIdentitySafe (diff, havePair ? LoadKind::projectPair : LoadKind::systemConfig))
+            {
+                setError (LOC ("fileManager.errors.channelListMismatchNotConfirmed").replace ("{path}", sysFile.getFullPathName()));
+                WFSLogger::getInstance().logWarning ("Backup load refused: channel list mismatch ("
+                                                     + summariseChannelIdentityDiff (diff) + ") and not confirmed");
+                return false;
+            }
+        }
+    }
+    ScopedChannelIdentityBypass innerLoadsBypass (*this);
 
     // Load most recent backups for each file type
     bool success = true;
@@ -539,6 +594,12 @@ bool WFSFileManager::importCompleteConfig (const juce::File& file)
         setError (LOC ("fileManager.errors.invalidConfigStructure"));
         return false;
     }
+
+    // A wholesale replace brings channels and their data in together, so this
+    // always passes - it is here so that "every import primitive gates" stays a
+    // property of the code rather than a convention.
+    if (! passChannelIdentityGate (file, LoadKind::completeConfig, loadedState))
+        return false;
 
     // Note: No undo transaction needed for config import - changes are intentional and don't need undo
     valueTreeState.replaceState (loadedState);
@@ -657,6 +718,10 @@ bool WFSFileManager::importSystemConfig (const juce::File& file)
     bool appliedSomething = false;
 
     stripTransientToggles (loadedState);
+
+    // Before anything is applied: refused unless safe, cleared, or bypassed.
+    if (! passChannelIdentityGate (file, LoadKind::systemConfig, loadedState))
+        return false;
 
     auto configTree = loadedState.getChildWithName (Config);
     if (configTree.isValid())
@@ -806,6 +871,12 @@ bool WFSFileManager::saveInputConfig()
     juce::ValueTree inputState ("InputConfig");
     inputState.setProperty (WFSParameterIDs::version, "1.0", nullptr);
     inputState.appendChild (extractInputsSection().createCopy(), nullptr);
+    {
+        // Hardware-input fingerprint per channel, stamped into the COPY: a guard
+        // for the next load, never a source to repatch from (see hwInputs).
+        auto inputsCopy = inputState.getChildWithName (Inputs);
+        stampHardwareFingerprints (inputsCopy);
+    }
     stripTransientToggles (inputState);
 
     return writeToXmlFile (inputState, file);
@@ -838,6 +909,12 @@ bool WFSFileManager::exportInputConfig (const juce::File& file)
     juce::ValueTree inputState ("InputConfig");
     inputState.setProperty (WFSParameterIDs::version, "1.0", nullptr);
     inputState.appendChild (extractInputsSection().createCopy(), nullptr);
+    {
+        // Hardware-input fingerprint per channel, stamped into the COPY: a guard
+        // for the next load, never a source to repatch from (see hwInputs).
+        auto inputsCopy = inputState.getChildWithName (Inputs);
+        stampHardwareFingerprints (inputsCopy);
+    }
     stripTransientToggles (inputState);
 
     return writeToXmlFile (inputState, file);
@@ -859,6 +936,9 @@ bool WFSFileManager::importInputConfig (const juce::File& file)
         setError (LOC ("fileManager.errors.noInputDataInFile"));
         return false;
     }
+
+    if (! passChannelIdentityGate (file, LoadKind::inputConfig, loadedState))
+        return false;
 
     bool result = applyInputsSection (inputsTree);
     if (result)
@@ -1568,6 +1648,7 @@ bool WFSFileManager::loadInputSnapshotWithExtendedScope (const juce::String& sna
     }
 
     valueTreeState.beginUndoTransaction ("Load Input Snapshot: " + snapshotName);
+    lastRecallSkippedNumbers.clear();
 
     for (int i = 0; i < inputsData.getNumChildren(); ++i)
     {
@@ -1575,9 +1656,13 @@ bool WFSFileManager::loadInputSnapshotWithExtendedScope (const juce::String& sna
         // Snapshot entries are keyed by permanent channel number. Entries for
         // numbers with no live channel ("ghosts" of deleted channels) are
         // skipped — and deliberately kept in the file: they apply again if
-        // the number is ever re-created.
-        int channelIndex = valueTreeState.getSlotForChannelNumber (
-                               static_cast<int> (inputData.getProperty (id)));
+        // the number is ever re-created. Skips are recorded so the recall can
+        // say so; it used to be silent about them.
+        const int number = static_cast<int> (inputData.getProperty (id));
+        int channelIndex = valueTreeState.getSlotForChannelNumber (number);
+
+        if (channelIndex < 0)
+            lastRecallSkippedNumbers.push_back (number);
 
         if (channelIndex >= 0)
         {
@@ -2076,6 +2161,11 @@ juce::ValueTree WFSFileManager::extractInputWithExtendedScope (int channelIndex,
     // Snapshots are keyed by the PERMANENT channel number, not the slot —
     // after deletions the list has gaps and slot + 1 would mis-key entries.
     filtered.setProperty (id, valueTreeState.getInputChannelNumber (channelIndex), nullptr);
+    // Hardware-input fingerprint, so a recall can tell a snapshot stored under a
+    // different configuration from one stored under this. Never applied.
+    filtered.setProperty (hwInputs,
+                          InputChannelIdentityDetail::hwInputsToString (valueTreeState.getInputPatchHardwareInputs (channelIndex)),
+                          nullptr);
 
     // Always include input name
     auto channelTree = input.getChildWithName (Channel);
@@ -2522,6 +2612,209 @@ juce::ValueTree WFSFileManager::extractNetworkSection() const
     return networkContainer;
 }
 
+//==============================================================================
+// Channel identity gate
+//==============================================================================
+
+juce::String WFSFileManager::summariseChannelIdentityDiff (const InputChannelIdentityDiff& diff)
+{
+    using R = InputChannelIdentityDiff::Relation;
+    juce::String rel;
+    switch (diff.relation)
+    {
+        case R::identical:            rel = "identical"; break;
+        case R::orderOnly:            rel = "same channels, different order"; break;
+        case R::positionalTypesMatch: rel = "arrangement matches by position, numbers differ"; break;
+        case R::conflicting:          rel = "conflicting"; break;
+        case R::fileHasNoIdentity:    rel = "file carries no channel list (count " + juce::String (diff.fileLegacyCount) + ")"; break;
+    }
+    return rel + "; retyped " + juce::String ((int) diff.retyped.size())
+               + ", removed " + juce::String ((int) diff.removed.size())
+               + ", added "   + juce::String ((int) diff.added.size())
+               + ", patch differs on " + juce::String ((int) diff.patchDiffers.size());
+}
+
+InputChannelIdentity WFSFileManager::readFileChannelIdentity (const juce::ValueTree& root, LoadKind kind,
+                                                               const juce::File& file) const
+{
+    InputChannelIdentity none;
+    if (! root.isValid())
+        return none;
+
+    if (kind == LoadKind::inputConfig)
+    {
+        // Same legacy-tail source migrateInputChannelModel reads.
+        auto io = const_cast<WFSValueTreeState&> (valueTreeState).getIOState();
+        const int tail = io.isValid() ? static_cast<int> (io.getProperty (stereoInputChannels, 0)) : 0;
+        return InputChannelIdentity::fromInputNodes (root.getChildWithName (Inputs), tail);
+    }
+
+    if (kind == LoadKind::systemConfig)
+    {
+        auto io = root.getChildWithName (Config).getChildWithName (IO);
+        if (! io.isValid())
+            return none;
+
+        auto inv = InputChannelIdentity::fromInventory (io.getChildWithName (InputChannelList));
+        if (inv.hasIdentity())
+            return inv;
+
+        // Pre-inventory file. The project's own inputs.xml is the next best
+        // witness - and only the project's own: a backup or an imported file
+        // has no sibling that is known to belong with it.
+        if (file == getSystemConfigFile())
+        {
+            auto ins = persistence.readTreeFromFile (getInputConfigFile()).tree.getChildWithName (Inputs);
+            auto fromNodes = InputChannelIdentity::fromInputNodes (
+                ins, static_cast<int> (io.getProperty (stereoInputChannels, 0)));
+            if (fromNodes.hasIdentity())
+                return fromNodes;
+        }
+        none.legacyCount = static_cast<int> (io.getProperty (inputChannels, 0));
+    }
+    return none;
+}
+
+InputChannelIdentityDiff WFSFileManager::preflightChannelIdentity (const juce::File& file, LoadKind kind) const
+{
+    // persistence.readTreeFromFile, NOT readFromXmlFile: the latter is the
+    // real load's reader and writes lastError on failure, so a failed peek
+    // would poison the message the operator sees for the load that follows.
+    auto root = persistence.readTreeFromFile (file).tree;
+    return compareInputChannelIdentity (valueTreeState.getInputChannelIdentity(),
+                                        readFileChannelIdentity (root, kind, file));
+}
+
+InputChannelIdentityDiff WFSFileManager::preflightProjectChannelIdentity (const juce::File& systemFile,
+                                                                          const juce::File& inputsFile) const
+{
+    auto sysRoot = persistence.readTreeFromFile (systemFile).tree;
+    auto insRoot = persistence.readTreeFromFile (inputsFile).tree;
+
+    auto io  = sysRoot.getChildWithName (Config).getChildWithName (IO);
+    auto inv = io.isValid() ? InputChannelIdentity::fromInventory (io.getChildWithName (InputChannelList))
+                            : InputChannelIdentity();
+    auto ins = InputChannelIdentity::fromInputNodes (
+        insRoot.getChildWithName (Inputs),
+        io.isValid() ? static_cast<int> (io.getProperty (stereoInputChannels, 0)) : 0);
+
+    if (inv.hasIdentity() && ins.hasIdentity())
+        return compareInputChannelIdentity (inv, ins);   // file against file
+
+    if (! ins.hasIdentity())
+        return compareInputChannelIdentity (valueTreeState.getInputChannelIdentity(),
+                                            readFileChannelIdentity (sysRoot, LoadKind::systemConfig, systemFile));
+
+    // Legacy system.xml with a readable inputs.xml: nothing to cross-check.
+    InputChannelIdentityDiff same;
+    return same;
+}
+
+InputChannelIdentityDiff WFSFileManager::preflightSnapshotChannelIdentity (const juce::String& snapshotName) const
+{
+    auto file = getInputSnapshotsFolder().getChildFile (snapshotName + snapshotExtension);
+    auto root = persistence.readTreeFromFile (file).tree;
+    return compareInputChannelIdentity (valueTreeState.getInputChannelIdentity(),
+                                        InputChannelIdentity::fromSnapshot (root.getChildWithName (Inputs)));
+}
+
+bool WFSFileManager::isChannelIdentitySafe (const InputChannelIdentityDiff& diff, LoadKind kind) const
+{
+    using R = InputChannelIdentityDiff::Relation;
+
+    if (kind == LoadKind::completeConfig)
+        return true;   // wholesale replace: channels and their data arrive together
+
+    if (kind == LoadKind::projectPair)
+        return diff.relation == R::identical || diff.relation == R::orderOnly;
+
+    // A fingerprint disagreement means "this file came from a differently
+    // patched configuration"; even with identical numbers that is the
+    // operator's call, not ours.
+    if (! diff.patchDiffers.empty())
+        return false;
+
+    switch (diff.relation)
+    {
+        case R::identical:
+            return true;
+
+        case R::orderOnly:
+            // A system config's own patch lands in file order after the nodes
+            // are re-ordered, so order never crosses anything there. An inputs
+            // config loads no patch: rows follow their nodes only when the rows
+            // are known to be aligned with them (a prior inventory load); the
+            // legacy path raw-moves nodes and would leave the rows behind.
+            return kind == LoadKind::systemConfig || channelListFromInventory;
+
+        case R::fileHasNoIdentity:
+        {
+            // The load will rebuild dense 1..N mono from the sum and apply the
+            // patch by row. That reproduces the session exactly when the
+            // session already IS dense, ascending and of that size.
+            if (kind != LoadKind::systemConfig)
+                return false;
+            const auto live = valueTreeState.getInputChannelIdentity();
+            if ((int) live.slots.size() != diff.fileLegacyCount)
+                return false;
+            for (const auto& r : live.slots)
+                if (r.number != r.slot + 1)
+                    return false;
+            return true;
+        }
+
+        case R::positionalTypesMatch:
+        case R::conflicting:
+        default:
+            return false;
+    }
+}
+
+void WFSFileManager::grantChannelIdentityClearance (const juce::File& file)
+{
+    channelIdentityClearance = file;
+}
+
+bool WFSFileManager::passChannelIdentityGate (const juce::File& file, LoadKind kind, const juce::ValueTree& parsedRoot)
+{
+    if (channelIdentityBypassDepth > 0)
+        return true;
+
+    if (file != juce::File() && channelIdentityClearance == file)
+    {
+        channelIdentityClearance = juce::File();   // one shot
+        return true;
+    }
+
+    const auto diff = compareInputChannelIdentity (valueTreeState.getInputChannelIdentity(),
+                                                   readFileChannelIdentity (parsedRoot, kind, file));
+    if (isChannelIdentitySafe (diff, kind))
+        return true;
+
+    // Refused, and loudly: the status bar gets lastError, the log gets the
+    // shape of the disagreement. Silently applying it is the bug this exists
+    // to prevent; silently refusing it would be a new one.
+    setError (LOC ("fileManager.errors.channelListMismatchNotConfirmed").replace ("{path}", file.getFullPathName()));
+    WFSLogger::getInstance().logWarning ("Load refused: the channel list in " + file.getFileName()
+                                         + " differs from this session (" + summariseChannelIdentityDiff (diff)
+                                         + ") and the load was not confirmed");
+    return false;
+}
+
+void WFSFileManager::stampHardwareFingerprints (juce::ValueTree& inputsCopy) const
+{
+    if (! inputsCopy.isValid())
+        return;
+    for (int i = 0; i < inputsCopy.getNumChildren(); ++i)
+    {
+        auto child = inputsCopy.getChild (i);
+        if (child.hasType (Input))
+            child.setProperty (hwInputs,
+                               InputChannelIdentityDetail::hwInputsToString (valueTreeState.getInputPatchHardwareInputs (i)),
+                               nullptr);
+    }
+}
+
 void WFSFileManager::flushPendingClusterOrders()
 {
     if (! pendingClusterOrders.valid)
@@ -2684,6 +2977,11 @@ bool WFSFileManager::applyInputsSection (const juce::ValueTree& inputsTree)
 
         mergeTreeRecursive (existingInputs, inputsTree, valueTreeState.getUndoManager());
 
+        // The fingerprints rode in with the merge. They describe the file's
+        // patching, not the live one, and would go stale on the next re-patch.
+        for (int i = 0; i < existingInputs.getNumChildren(); ++i)
+            existingInputs.getChild (i).removeProperty (hwInputs, nullptr);
+
         // mergeTreeRecursive appends unmatched source children but NEVER removes
         // a target child the source lacks, so anything the config section
         // invented survives the merge. When that section had no inventory to go
@@ -2759,7 +3057,24 @@ bool WFSFileManager::applyInputsSection (const juce::ValueTree& inputsTree)
                     continue;   // in the file but not merged in — leave it out
 
                 if (from != target)
-                    existingInputs.moveChild (from, target, nullptr);   // no undo: structural
+                {
+                    // Rows follow their nodes when the rows are known to be
+                    // aligned with them - true after any inventory load, and
+                    // kept true by every live op. Then this is a plain
+                    // rearrangement and the live patch must travel with the
+                    // channels, exactly as a drag would move it; raw-moving the
+                    // node alone left the rows behind whenever inputs.xml was
+                    // reloaded on its own, silently mis-patching every moved
+                    // channel. On the legacy path the rows arrived in the
+                    // FILE's order from the system config that preceded this,
+                    // and the loop's job is to bring the nodes to them - so
+                    // there the node moves alone. (No undo either way:
+                    // structural.)
+                    if (channelListFromInventory)
+                        valueTreeState.moveInputChannelNodeAndRow (from, target);
+                    else
+                        existingInputs.moveChild (from, target, nullptr);
+                }
                 ++target;
             }
         }

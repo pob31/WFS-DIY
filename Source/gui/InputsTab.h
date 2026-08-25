@@ -32,6 +32,7 @@
 #include "SamplerSubTab.h"
 #include "HelpCard.h"
 #include "InlineWarning.h"
+#include "ChannelIdentityGate.h"
 
 //==============================================================================
 // Custom Transport Button - Play (right-pointing triangle)
@@ -648,6 +649,12 @@ public:
     /** Recall a snapshot through MainComponent's single recall seam, shared with
         the OSC address /wfs/input/snapshot/load and the MIDI note trigger. */
     std::function<void(const juce::String& snapshotName)> onSnapshotRecallRequested;
+
+    /** Fired after this tab changed the channel list STRUCTURALLY (a relabel or
+        rearrangement done from an identity dialog). Wired by MainComponent to
+        handleChannelCountChange, the one funnel that also re-sends the remote
+        channel inventory - onConfigReloaded does not. */
+    std::function<void()> onStructureChanged;
 
     /** Fired after any snapshot is created, updated, deleted, or has its scope
         rewritten -- the MIDI binding index rebuilds from this. */
@@ -6695,6 +6702,25 @@ private:
             showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
     }
 
+    /** The identity gate's view of this tab; SafePointer throughout because the
+        dialogs are async. */
+    ChannelIdentityGate::Context makeChannelIdentityContext()
+    {
+        juce::Component::SafePointer<InputsTab> safe (this);
+        ChannelIdentityGate::Context ctx;
+        ctx.parent     = this;
+        ctx.parameters = &parameters;
+        ctx.afterStructuralChange = [safe]
+        {
+            if (safe != nullptr && safe->onStructureChanged) safe->onStructureChanged();
+        };
+        ctx.showStatus = [safe] (const juce::String& text)
+        {
+            if (safe != nullptr) safe->showStatusMessage (text);
+        };
+        return ctx;
+    }
+
     void reloadInputConfiguration()
     {
         auto& fileManager = parameters.getFileManager();
@@ -6703,37 +6729,54 @@ private:
             showStatusMessage(LOC("inputs.messages.selectFolderFirst"));
             return;
         }
-        parameters.getDirtyTracker().beginSuppression();
-        if (fileManager.loadInputConfig())
-        {
-            loadChannelParameters(currentChannel);
-            showStatusMessage(LOC("inputs.messages.configLoaded"));
 
-            // Trigger DSP recalculation via callback to MainComponent
-            if (onConfigReloaded)
-                onConfigReloaded();
-        }
-        else
-            showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
-        parameters.getDirtyTracker().endSuppressionAndClear();
+        // Ask first: an inputs config merges BY NUMBER onto whatever is live,
+        // and it carries the hardware fingerprint that says whether it was
+        // saved under this patching at all. Suppression lives inside the load.
+        ChannelIdentityGate::confirmThenLoad (makeChannelIdentityContext(), fileManager.getInputConfigFile(),
+            WFSFileManager::LoadKind::inputConfig,
+            [safe = juce::Component::SafePointer<InputsTab> (this)]
+            {
+                if (safe == nullptr) return;
+                auto& fm = safe->parameters.getFileManager();
+                safe->parameters.getDirtyTracker().beginSuppression();
+                if (fm.loadInputConfig())
+                {
+                    safe->loadChannelParameters(safe->currentChannel);
+                    safe->showStatusMessage(LOC("inputs.messages.configLoaded"));
+                    if (safe->onConfigReloaded)
+                        safe->onConfigReloaded();
+                }
+                else
+                    safe->showStatusMessage(LOC("inputs.messages.error").replace("{error}", fm.getLastError()));
+                safe->parameters.getDirtyTracker().endSuppressionAndClear();
+            });
     }
 
     void reloadInputConfigBackup()
     {
         auto& fileManager = parameters.getFileManager();
-        parameters.getDirtyTracker().beginSuppression();
-        if (fileManager.loadInputConfigBackup(0))
-        {
-            loadChannelParameters(currentChannel);
-            showStatusMessage(LOC("inputs.messages.backupLoaded"));
+        const auto backups = fileManager.getBackups("inputs");
+        const juce::File backupFile = backups.isEmpty() ? juce::File() : backups[0];
 
-            // Trigger DSP recalculation via callback to MainComponent
-            if (onConfigReloaded)
-                onConfigReloaded();
-        }
-        else
-            showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
-        parameters.getDirtyTracker().endSuppressionAndClear();
+        ChannelIdentityGate::confirmThenLoad (makeChannelIdentityContext(), backupFile,
+            WFSFileManager::LoadKind::inputConfig,
+            [safe = juce::Component::SafePointer<InputsTab> (this)]
+            {
+                if (safe == nullptr) return;
+                auto& fm = safe->parameters.getFileManager();
+                safe->parameters.getDirtyTracker().beginSuppression();
+                if (fm.loadInputConfigBackup(0))
+                {
+                    safe->loadChannelParameters(safe->currentChannel);
+                    safe->showStatusMessage(LOC("inputs.messages.backupLoaded"));
+                    if (safe->onConfigReloaded)
+                        safe->onConfigReloaded();
+                }
+                else
+                    safe->showStatusMessage(LOC("inputs.messages.error").replace("{error}", fm.getLastError()));
+                safe->parameters.getDirtyTracker().endSuppressionAndClear();
+            });
     }
 
     void importInputConfiguration()
@@ -6749,20 +6792,29 @@ private:
             if (result.existsAsFile())
             {
                 AppSettings::setLastFolder("lastXmlFolder", result.getParentDirectory());
-                parameters.getDirtyTracker().beginSuppression();
-                auto& fileManager = parameters.getFileManager();
-                if (fileManager.importInputConfig(result))
-                {
-                    loadChannelParameters(currentChannel);
-                    showStatusMessage(LOC("inputs.messages.configImported"));
 
-                    // Trigger DSP recalculation via callback to MainComponent
-                    if (onConfigReloaded)
-                        onConfigReloaded();
-                }
-                else
-                    showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
-                parameters.getDirtyTracker().endSuppressionAndClear();
+                // Named local, not an init-capture: inside a lambda nested in the
+                // chooser callback MSVC binds `this` in an init-capture to the
+                // enclosing closure, not to the tab.
+                juce::Component::SafePointer<InputsTab> safe (this);
+                ChannelIdentityGate::confirmThenLoad (makeChannelIdentityContext(), result,
+                    WFSFileManager::LoadKind::inputConfig,
+                    [safe, result]
+                    {
+                        if (safe == nullptr) return;
+                        auto& fm = safe->parameters.getFileManager();
+                        safe->parameters.getDirtyTracker().beginSuppression();
+                        if (fm.importInputConfig(result))
+                        {
+                            safe->loadChannelParameters(safe->currentChannel);
+                            safe->showStatusMessage(LOC("inputs.messages.configImported"));
+                            if (safe->onConfigReloaded)
+                                safe->onConfigReloaded();
+                        }
+                        else
+                            safe->showStatusMessage(LOC("inputs.messages.error").replace("{error}", fm.getLastError()));
+                        safe->parameters.getDirtyTracker().endSuppressionAndClear();
+                    });
             }
         });
     }
@@ -6912,8 +6964,18 @@ private:
         // disk instead of using the snapshotScopes cache -- the safer of the two,
         // since the cache goes stale if the file is edited outside this tab, and
         // one extra XML parse on an explicit long-press costs nothing.
-        if (onSnapshotRecallRequested)
-            onSnapshotRecallRequested (selectedSnapshot);
+        //
+        // This is the MANUAL path, so it may ask: a snapshot whose hardware
+        // fingerprint disagrees with the live patch was stored under a
+        // different configuration (or the rig was re-cabled), and the operator
+        // gets to fix the numbers, proceed on purpose, or stop. Cue-driven
+        // recalls reach onSnapshotRecallRequested directly and never block.
+        ChannelIdentityGate::confirmThenRecall (makeChannelIdentityContext(), selectedSnapshot,
+            [safe = juce::Component::SafePointer<InputsTab> (this), selectedSnapshot]
+            {
+                if (safe != nullptr && safe->onSnapshotRecallRequested)
+                    safe->onSnapshotRecallRequested (selectedSnapshot);
+            });
     }
 
     void reloadSnapshotWithoutScope()
@@ -6925,26 +6987,42 @@ private:
             return;
         }
 
-        auto& fileManager = parameters.getFileManager();
+        ChannelIdentityGate::confirmThenRecall (makeChannelIdentityContext(), selectedSnapshot,
+            [safe = juce::Component::SafePointer<InputsTab> (this), selectedSnapshot]
+            {
+                if (safe == nullptr) return;
+                auto& fm = safe->parameters.getFileManager();
 
-        // Use a default scope (all included) to bypass any scope filtering
-        WFSFileManager::ExtendedSnapshotScope noScope;
+                // Use a default scope (all included) to bypass any scope filtering
+                WFSFileManager::ExtendedSnapshotScope noScope;
 
-        parameters.getDirtyTracker().beginSuppression();
+                safe->parameters.getDirtyTracker().beginSuppression();
 
-        if (fileManager.loadInputSnapshotWithExtendedScope(selectedSnapshot, noScope))
-        {
-            loadChannelParameters(currentChannel);
-            showStatusMessage(LOC("inputs.messages.snapshotLoadedWithoutScope").replace("{name}", selectedSnapshot));
-            if (onConfigReloaded)
-                onConfigReloaded();
-        }
-        else
-        {
-            showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
-        }
+                if (fm.loadInputSnapshotWithExtendedScope(selectedSnapshot, noScope))
+                {
+                    safe->loadChannelParameters(safe->currentChannel);
+                    safe->showStatusMessage(LOC("inputs.messages.snapshotLoadedWithoutScope").replace("{name}", selectedSnapshot));
 
-        parameters.getDirtyTracker().endSuppressionAndClear();
+                    // Entries with no live channel used to vanish silently.
+                    const auto& skipped = fm.getLastRecallSkippedNumbers();
+                    if (! skipped.empty())
+                    {
+                        juce::StringArray nums;
+                        for (int n : skipped) nums.add ("#" + juce::String (n));
+                        safe->showStatusMessage(LOC("inputs.messages.snapshotEntriesSkipped")
+                                                    .replace("{name}", selectedSnapshot)
+                                                    .replace("{n}", juce::String((int) skipped.size()))
+                                                    .replace("{numbers}", nums.joinIntoString(", ")));
+                    }
+
+                    if (safe->onConfigReloaded)
+                        safe->onConfigReloaded();
+                }
+                else
+                    safe->showStatusMessage(LOC("inputs.messages.error").replace("{error}", fm.getLastError()));
+
+                safe->parameters.getDirtyTracker().endSuppressionAndClear();
+            });
     }
 
     void updateSnapshotButtonStates()

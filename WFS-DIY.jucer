@@ -25,6 +25,10 @@
               file="Source/Parameters/WFSParameterIDs.h"/>
         <FILE id="wfsVarCoerce" name="VarCoercion.h" compile="0" resource="0"
               file="Source/Parameters/VarCoercion.h"/>
+        <FILE id="wfsChIdent" name="InputChannelIdentity.h" compile="0" resource="0"
+              file="Source/Parameters/InputChannelIdentity.h"/>
+        <FILE id="wfsChDescr" name="InputChannelDescription.h" compile="0" resource="0"
+              file="Source/Parameters/InputChannelDescription.h"/>
         <FILE id="wfsParamDef" name="WFSParameterDefaults.h" compile="0" resource="0"
               file="Source/Parameters/WFSParameterDefaults.h"/>
         <FILE id="wfsVTSH" name="WFSValueTreeState.h" compile="0" resource="0"
@@ -48,6 +52,8 @@
               file="Source/gui/RefreshableComboBox.h"/>
         <FILE id="guiSysCfg" name="SystemConfigTab.h" compile="0" resource="0"
               file="Source/gui/SystemConfigTab.h"/>
+        <FILE id="guiChGate" name="ChannelIdentityGate.h" compile="0" resource="0"
+              file="Source/gui/ChannelIdentityGate.h"/>
         <FILE id="guiOutTab" name="OutputsTab.h" compile="0" resource="0" file="Source/gui/OutputsTab.h"/>
         <FILE id="guiInpTab" name="InputsTab.h" compile="0" resource="0" file="Source/gui/InputsTab.h"/>
         <FILE id="guiCluTab" name="ClustersTab.h" compile="0" resource="0"

@@ -787,8 +787,7 @@ observed it**; before that it is recompacted to `slot + 1` after every structura
 brand-new project cannot end up showing "#21" wedged between "#1" and "#2". See *Fresh-session
 compaction* below for the latch that separates the two regimes.
 Composition is edited through the System Config "Mono Inputs" / "Stereo Inputs" counts (raising
-a count APPENDS channels after the last one with number = highest+1; lowering it removes the
-HIGHEST-NUMBERED channels of that type — once latched, their numbers retire as permanent gaps),
+a count APPENDS channels after the last one with number = highest+1; lowering it removes the LAST channels of that type in DISPLAY order — the bottom of the Arrange list, which the operator can see; `setNumInputChannels`, the one-count OSC/MCP path, removes by highest number instead and says so — once latched, their numbers retire as permanent gaps),
 and arrangement through drag in the "Arrange…" dialog (`WFSValueTreeState::moveInputChannel`
 moves the node AND its patch row together, and while unlatched the whole patch is then re-flowed
 into a gapless diagonal in display order). There is deliberately NO user-facing type flip: the
@@ -829,6 +828,65 @@ after it. `applyInputsSection` prunes those, under two guards — only when the 
 That equality is the ghost's signature; unequal counts mean the two files disagree about the size of
 the show (a system config saved on its own, say), and there the shorter file must not silently
 delete the operator's channels.
+
+**Position is not identity, and a load is refused when it would cross them.**
+`mergeTreeRecursive` matches `<Input>` children by permanent **number**,
+`applyInputChannelInventory` rebuilds the list by number (retyping a live channel to
+whatever type the file's same-numbered channel has), and `patchData` rows land by
+**position**. So loading a file whose (position ↔ number ↔ type) relation differs from
+the session's crosses parameter sets by number and hardware inputs by slot, in opposite
+directions at once — and a hand-rebuilt arrangement that looks identical is no protection,
+because the merge never looks at position. That is what produced "mono channels with
+stereo parameter sets" after a careful manual rebuild. It happens whatever the latch says:
+a fresh session with dense numbers is exactly the reported case.
+
+The **channel identity gate** answers it in three layers (`Source/Parameters/InputChannelIdentity.h`
+is the pure model; `WFSFileManager` owns the preflights and the gate; `Source/gui/ChannelIdentityGate.h`
+is the dialog side):
+- `preflightChannelIdentity` / `preflightProjectChannelIdentity` / `preflightSnapshotChannelIdentity`
+  read a file's channel identity **without applying it** (via the const, stateless
+  `persistence.readTreeFromFile` — never `readFromXmlFile`, which poisons `lastError`) and
+  classify the difference: identical → order only → *arrangement matches by position, numbers
+  differ* → conflicting → no identity (pre-inventory file). `hardwareRelabel` is derived when
+  the fingerprints (below) give a clean one-to-one match.
+- **The gate inside the three import primitives** (`importSystemConfig`, `importInputConfig`,
+  `importCompleteConfig` — every load path reaches one of them) **refuses** an unsafe load
+  unless a `ScopedChannelIdentityBypass` is held or the GUI granted a one-shot
+  `channelIdentityClearance` for that exact file. Refusal is loud: `lastError` and the log.
+  Complete project loads check the **pair** (`system.xml` inventory vs `inputs.xml` nodes —
+  the only thing that can go wrong there, and what "Store System Config" alone produces) and
+  run their inner loads under a bypass. Order-only is safe for a system config (its own patch
+  lands in file order) and for an inputs config only when rows are known to be aligned
+  (`channelListFromInventory`); the `applyInputsSection` reorder loop then moves **row with
+  node** (`moveInputChannelNodeAndRow`) instead of raw-moving the node — the raw move was
+  right for a complete load and silently mis-patched every *Reload Input Config* after a drag.
+- **The dialog** names every channel (`describeInputChannel`: `#12 "Kick" (mono)` — number
+  first because it is the address, name quoted because "Mono 7" carries a per-type ordinal,
+  not the number) and offers the fix that fits: **Take the file's numbers** (`assignInputChannelNumbersBySlot`,
+  by position or by hardware fingerprint), **Rearrange first** (`reorderInputChannelsToNumbers`,
+  latches first or the moves would recompact under it), **Load anyway** with the retype /
+  remove / create / cross list, or Cancel. "Partial load of this order" means exactly: apply
+  only the channel identity, never the file's parameters or patch. The Arrange window's
+  **From file…** does the same standalone. Cue-driven snapshot recalls never block: a
+  fingerprint mismatch is applied and reported (log, status bar, TTS from MIDI); the manual
+  *Reload Snapshot* button gets the dialog.
+
+**The hardware-input fingerprint** (`hwInputs="15,16"` on each `<Input>` in `inputs.xml` and
+on each snapshot entry, from `getInputPatchHardwareInputs`) is a **guard, never a repatch
+source**: it lets a file saved under one patching be recognised before it is applied to
+another, and it is what the hardware-derived relabel matches on. Stamped into the saved copy,
+evicted from the live tree after a load. Recall also stops being silent about ghost entries.
+
+**The Arrange window states the regime.** Its hint switches on `areChannelNumbersUserOwned()`:
+fresh — this order becomes the numbering and the patch is re-flowed to match; in use — numbers
+are permanent, a drag moves node **and** patch row together so every channel keeps its
+hardware inputs, and snapshots/cues/remotes keep pointing at the same channel. Reorder and
+load felt like the same gesture and were not; the mess came from loading across a mismatch.
+
+Self-test phases **I** (identity: identical / order-only / conflict refused / relabel by
+position / inputs order-only keeps its row / pair mismatch / fingerprint / hardware relabel)
+and **V** (a count reduction names the channel it removes) gate all of this; V was verified to
+fail under the old highest-number prediction.
 
 **Three id spaces** (never conflate):
 | Space | Range | Owns |

@@ -188,7 +188,13 @@ public:
     juce::ValueTree getReverbTree() { return valueTreeState.getReverbsState(); }
 
     //==============================================================================
-    // Save/Load (backward compatible API)
+    // Save (backward compatible API)
+    //==============================================================================
+    // The matching load wrappers were deleted: they had no callers, and they
+    // reached WFSFileManager's import primitives from outside the GUI layer that
+    // now preflights channel identity before every load. The primitives gate on
+    // their own too, so a future caller would be refused rather than mis-map -
+    // but a wrapper nobody uses is only a way to bypass the dialog by accident.
     //==============================================================================
 
     bool saveCompleteConfig (const juce::File& file)
@@ -196,19 +202,9 @@ public:
         return fileManager.exportCompleteConfig (file);
     }
 
-    bool loadCompleteConfig (const juce::File& file)
-    {
-        return fileManager.importCompleteConfig (file);
-    }
-
     bool saveSystemConfig (const juce::File& file)
     {
         return fileManager.exportSystemConfig (file);
-    }
-
-    bool loadSystemConfig (const juce::File& file)
-    {
-        return fileManager.importSystemConfig (file);
     }
 
     bool saveSnapshot (const juce::File& file, bool includeInput, bool includeOutput, bool includeConfig)
@@ -227,23 +223,6 @@ public:
             return fileManager.exportOutputConfig (file);
         }
         return fileManager.exportCompleteConfig (file);
-    }
-
-    bool loadSnapshot (const juce::File& file, bool includeInput, bool includeOutput, bool includeConfig)
-    {
-        if (!includeInput && !includeOutput && includeConfig)
-        {
-            return fileManager.importSystemConfig (file);
-        }
-        if (includeInput && !includeOutput && !includeConfig)
-        {
-            return fileManager.importInputConfig (file);
-        }
-        if (includeOutput && !includeInput && !includeConfig)
-        {
-            return fileManager.importOutputConfig (file);
-        }
-        return fileManager.importCompleteConfig (file);
     }
 
     //==============================================================================

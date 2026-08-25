@@ -2,6 +2,7 @@
 #include "../spatcore/wfs/RenderSourceMap.h"
 #include "WFSLogger.h"
 #include "Parameters/VarCoercion.h"
+#include "gui/ChannelIdentityGate.h"
 #include "AppSettings.h"
 #include "Parameters/WFSParameterIDs.h"
 #include "Localization/LocalizationManager.h"
@@ -462,6 +463,13 @@ MainComponent::MainComponent()
     // Set up callbacks for individual tab config reloads
     outputsTab->onConfigReloaded = [this]() {
         handleConfigReloaded();
+    };
+
+    // A relabel or rearrangement done from an identity dialog on the Inputs
+    // tab: the one funnel that also re-sends the remote channel inventory.
+    inputsTab->onStructureChanged = [this]() {
+        handleChannelCountChange (parameters.getNumInputChannels(), numOutputChannels,
+                                  parameters.getNumReverbChannels());
     };
 
     inputsTab->onConfigReloaded = [this]() {
@@ -2925,6 +2933,12 @@ void MainComponent::runChannelListSelfTest()
     check(! vts.setInputChannelType(5, true).wasOk(), "K: type flip beyond the stereo budget is rejected");
     verify("K");
 
+    // Phases R and S load files that deliberately do NOT match the session -
+    // that is what they test - so they run under an identity-gate bypass. The
+    // identity phases that follow (I, V) run without one.
+    {
+    WFSFileManager::ScopedChannelIdentityBypass identityBypassForRS (parameters.getFileManager());
+
     // ---- R: system-config round trip -------------------------------------
     // The regression this phase exists for: <IO inputChannels> is a SUM, and the
     // mono/stereo split and the display order live on the <Input> nodes, which
@@ -3159,6 +3173,8 @@ void MainComponent::runChannelListSelfTest()
         roundTripFile.deleteFile();
     }
 
+    }   // end of the R/S bypass
+
     // ---- T: every per-input property is either snapshotted or explicitly not --
     // The AutomOtion polar destination sat in no scope item for the whole life of
     // the feature and nothing noticed, because save and recall consult the SAME
@@ -3222,6 +3238,266 @@ void MainComponent::runChannelListSelfTest()
         for (const auto& e : kNotSnapshotted)
             check(! WFSFileManager::isPropertyCoveredBySnapshotScope(juce::Identifier(e.name)),
                   juce::String("T: '") + e.name + "' is still deliberately excluded");
+    }
+
+    // ---- I: channel identity gate --------------------------------------------
+    // Position is not identity: a file's <Input> entries merge BY NUMBER, the
+    // inventory rebuilds the list BY NUMBER, and patch rows land BY POSITION.
+    // These phases pin down what the gate must see, refuse, and repair.
+    {
+        using Rel  = InputChannelIdentityDiff::Relation;
+        using Kind = WFSFileManager::LoadKind;
+        auto& fm = parameters.getFileManager();
+        auto tmp = [] (const char* name)
+        {
+            return juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile(name);
+        };
+        auto F = tmp("wfs-selftest-identity-system.xml");
+        auto G = tmp("wfs-selftest-identity-inputs.xml");
+        F.deleteFile(); G.deleteFile();
+
+        // A latched, mixed, reordered list.
+        vts.setInputChannelCounts(5, 0);
+        reconfig();
+        check(vts.addInputChannel(true).wasOk(), "I0: add a stereo pair");
+        reconfig();
+        const int stereoNum = vts.getInputChannelNumber(vts.getNumInputChannels() - 1);
+        check(vts.moveInputChannel(stereoNum, 1).wasOk(), "I0: drag it to slot 1");
+        reconfig();
+        check(vts.areChannelNumbersUserOwned(), "I0: the session is latched");
+
+        check(fm.exportSystemConfig(F), "I1: export the system config");
+        check(fm.exportInputConfig(G), "I1: export the input config");
+        check(fm.preflightChannelIdentity(F, Kind::systemConfig).relation == Rel::identical,
+              "I1: the system file is identical to the session");
+        {
+            const auto d = fm.preflightChannelIdentity(G, Kind::inputConfig);
+            check(d.relation == Rel::identical && d.patchDiffers.empty(),
+                  "I1: the input file is identical and its fingerprints match the live patch");
+        }
+        check(G.loadFileAsString().contains("hwInputs="), "I1: the input file carries hardware fingerprints");
+
+        // I2: same channels, different order - safe for a system config.
+        const int firstNum = vts.getInputChannelNumber(0);
+        check(vts.moveInputChannel(firstNum, vts.getNumInputChannels() - 1).wasOk(), "I2: move the first channel to the end");
+        reconfig();
+        {
+            const auto d = fm.preflightChannelIdentity(F, Kind::systemConfig);
+            check(d.relation == Rel::orderOnly, "I2: the system file now differs by order only");
+            check(fm.isChannelIdentitySafe(d, Kind::systemConfig), "I2: order-only is safe for a system config");
+        }
+        check(fm.importSystemConfig(F), "I2: it loads without clearance");
+        reconfig();
+        check(vts.getInputChannelNumber(0) == firstNum, "I2: the file's order came back");
+
+        // I5: inputs config, order only: the patch row must follow its channel.
+        check(vts.moveInputChannel(firstNum, vts.getNumInputChannels() - 1).wasOk(), "I5: move it to the end again");
+        reconfig();
+        const auto p5 = patchOfNumber(firstNum);
+        {
+            const auto d = fm.preflightChannelIdentity(G, Kind::inputConfig);
+            check(d.relation == Rel::orderOnly && d.patchDiffers.empty(), "I5: the input file differs by order only");
+            check(fm.isChannelIdentitySafe(d, Kind::inputConfig), "I5: safe, because the rows are aligned with the nodes");
+        }
+        check(fm.importInputConfig(G), "I5: reload the input config");
+        reconfig();
+        check(vts.getInputChannelNumber(0) == firstNum, "I5: the file's order came back");
+        check(patchOfNumber(firstNum) == p5, "I5: the moved channel kept its hardware inputs - the row followed the node");
+
+        // I3: a type conflict is refused by the primitive itself.
+        int monoNum = -1;
+        for (int slot = 0; slot < vts.getNumInputChannels(); ++slot)
+            if (! vts.isInputChannelStereo(slot)) { monoNum = vts.getInputChannelNumber(slot); break; }
+        check(monoNum > 0, "I3: found a mono channel");
+        check(vts.setInputChannelType(monoNum, true).wasOk(), "I3: flip it to stereo");
+        reconfig();
+        {
+            const auto d = fm.preflightChannelIdentity(F, Kind::systemConfig);
+            check(d.relation == Rel::conflicting && d.retyped.size() == 1 && d.retyped[0].live.number == monoNum,
+                  "I3: the system file now conflicts on exactly that channel");
+            check(! fm.isChannelIdentitySafe(d, Kind::systemConfig), "I3: a type conflict is not safe");
+        }
+        check(! fm.importSystemConfig(F), "I3: the primitive REFUSES the load");
+        check(fm.getLastError().isNotEmpty(), "I3: ...and says why");
+        check(vts.isInputChannelStereo(vts.getSlotForChannelNumber(monoNum)), "I3: nothing was applied");
+        {
+            WFSFileManager::ScopedChannelIdentityBypass bypass(fm);
+            check(fm.importSystemConfig(F), "I3: under a bypass it loads");
+        }
+        reconfig();
+        check(! vts.isInputChannelStereo(vts.getSlotForChannelNumber(monoNum)),
+              "I3: the bypassed load applied the file's type by number (the crossing, on purpose)");
+
+        // I4: the reported case - arrangement matches by position, numbers differ.
+        {
+            std::vector<int> shifted;
+            for (int slot = 0; slot < vts.getNumInputChannels(); ++slot)
+                shifted.push_back(vts.getInputChannelNumber(slot) + 20);
+            const auto namesBefore = namesInSlotOrder();
+            const auto patchBefore = patchInSlotOrder();
+            check(vts.assignInputChannelNumbersBySlot(shifted, "self-test I4").wasOk(), "I4: relabel every channel (+20)");
+            reconfig();
+            const auto d = fm.preflightChannelIdentity(F, Kind::systemConfig);
+            check(d.relation == Rel::positionalTypesMatch, "I4: the arrangement matches position by position, numbers differ");
+            check(! fm.isChannelIdentitySafe(d, Kind::systemConfig), "I4: ...and that is NOT safe - the reported bug");
+            check(! fm.importSystemConfig(F), "I4: refused");
+            check(vts.assignInputChannelNumbersBySlot(d.fileNumbersBySlot, "self-test I4 take file numbers").wasOk(),
+                  "I4: take the file's numbers");
+            reconfig();
+            check(fm.preflightChannelIdentity(F, Kind::systemConfig).relation == Rel::identical, "I4: now identical");
+            check(namesInSlotOrder() == namesBefore && patchInSlotOrder() == patchBefore,
+                  "I4: names and patch stayed with their positions through the relabel");
+            check(fm.importSystemConfig(F), "I4: the load passes without clearance");
+            reconfig();
+        }
+
+        // I6: a project's own pair.
+        {
+            check(fm.exportSystemConfig(F) && fm.exportInputConfig(G), "I6: export a consistent pair");
+            check(fm.preflightProjectChannelIdentity(F, G).relation == Rel::identical, "I6: the pair is consistent");
+            check(fm.isChannelIdentitySafe(fm.preflightProjectChannelIdentity(F, G), Kind::projectPair),
+                  "I6: a consistent pair is a safe project load");
+
+            const int last = vts.getInputChannelNumber(vts.getNumInputChannels() - 1);
+            check(vts.moveInputChannel(last, 0).wasOk(), "I6: move a channel");
+            reconfig();
+            auto G2 = tmp("wfs-selftest-identity-inputs2.xml");
+            G2.deleteFile();
+            check(fm.exportInputConfig(G2), "I6: export inputs again");
+            const auto d = fm.preflightProjectChannelIdentity(F, G2);
+            check(d.relation == Rel::orderOnly, "I6: system.xml and the newer inputs.xml differ by order");
+            check(fm.isChannelIdentitySafe(d, Kind::projectPair), "I6: an order-only pair is still a safe project load");
+
+            int m = -1;
+            for (int slot = 0; slot < vts.getNumInputChannels(); ++slot)
+                if (! vts.isInputChannelStereo(slot)) { m = vts.getInputChannelNumber(slot); break; }
+            check(vts.setInputChannelType(m, true).wasOk(), "I6: flip a type in the session only");
+            reconfig();
+            auto G3 = tmp("wfs-selftest-identity-inputs3.xml");
+            G3.deleteFile();
+            check(fm.exportInputConfig(G3), "I6: export inputs with the flipped type");
+            const auto d3 = fm.preflightProjectChannelIdentity(F, G3);
+            check(d3.relation == Rel::conflicting && d3.retyped.size() == 1 && d3.retyped[0].live.number == m,
+                  "I6: the pair now conflicts on exactly the flipped channel");
+            check(! fm.isChannelIdentitySafe(d3, Kind::projectPair), "I6: a conflicting pair is not a safe project load");
+            check(vts.setInputChannelType(m, false).wasOk(), "I6: flip it back");
+            reconfig();
+            G2.deleteFile(); G3.deleteFile();
+        }
+
+        // I7: the hardware fingerprint.
+        {
+            check(fm.exportInputConfig(G), "I7: export inputs with fingerprints that match the live patch");
+            // Re-patch slot 0 onto a column nothing else uses.
+            auto patchTree = vts.getAudioPatchState().getChildWithName(WFSParameterIDs::InputPatch);
+            auto rows = patchRows();
+            juce::StringArray cols = juce::StringArray::fromTokens(rows[0], ",", "");
+            for (int c = 0; c < cols.size(); ++c) cols.set(c, "0");
+            while (cols.size() < 62) cols.add("0");
+            cols.set(60, "1");
+            if (vts.isInputChannelStereo(0)) cols.set(61, "1");
+            rows.set(0, cols.joinIntoString(","));
+            patchTree.setProperty(WFSParameterIDs::patchData, rows.joinIntoString(";"), nullptr);
+            reconfig();
+
+            const auto d = fm.preflightChannelIdentity(G, Kind::inputConfig);
+            check(d.relation == Rel::identical, "I7: same channel list");
+            check(d.patchDiffers.size() == 1 && d.patchDiffers[0].live.number == vts.getInputChannelNumber(0),
+                  "I7: the re-patched channel is the one fingerprint that differs");
+            check(! fm.isChannelIdentitySafe(d, Kind::inputConfig), "I7: a fingerprint mismatch is the operator's call, not safe");
+            check(! fm.importInputConfig(G), "I7: refused without clearance");
+            fm.grantChannelIdentityClearance(G);
+            check(fm.importInputConfig(G), "I7: passes with a one-shot clearance");
+            reconfig();
+            check(! fm.importInputConfig(G), "I7: the clearance was consumed by that one load");
+            check(fm.exportInputConfig(G), "I7: re-export so the fingerprints match again");
+        }
+
+        // I8: the hardware-derived relabel.
+        {
+            std::vector<int> nums;
+            for (int slot = 0; slot < vts.getNumInputChannels(); ++slot)
+                nums.push_back(vts.getInputChannelNumber(slot));
+            std::vector<int> orig = nums;
+            std::swap(nums[0], nums[1]);
+            check(vts.assignInputChannelNumbersBySlot(nums, "self-test I8 swap").wasOk(), "I8: swap two channels' numbers");
+            reconfig();
+            const auto d = fm.preflightChannelIdentity(G, Kind::inputConfig);
+            check(d.hardwareRelabel.has_value(), "I8: a hardware-derived relabel is offered");
+            check(d.hardwareRelabel && *d.hardwareRelabel == orig, "I8: ...and it is exactly the inverse swap");
+            check(vts.assignInputChannelNumbersBySlot(*d.hardwareRelabel, "self-test I8 apply").wasOk(), "I8: apply it");
+            reconfig();
+            check(fm.preflightChannelIdentity(G, Kind::inputConfig).relation == Rel::identical, "I8: identical again");
+
+            // An unpatched channel withholds the suggestion rather than guessing.
+            auto patchTree = vts.getAudioPatchState().getChildWithName(WFSParameterIDs::InputPatch);
+            auto rows = patchRows();
+            juce::StringArray cols = juce::StringArray::fromTokens(rows[0], ",", "");
+            for (int c = 0; c < cols.size(); ++c) cols.set(c, "0");
+            rows.set(0, cols.joinIntoString(","));
+            patchTree.setProperty(WFSParameterIDs::patchData, rows.joinIntoString(";"), nullptr);
+            reconfig();
+            check(vts.assignInputChannelNumbersBySlot(nums, "self-test I8 swap again").wasOk(), "I8: swap again");
+            reconfig();
+            check(! fm.preflightChannelIdentity(G, Kind::inputConfig).hardwareRelabel.has_value(),
+                  "I8: with an unpatched channel no suggestion is made");
+            check(vts.assignInputChannelNumbersBySlot(orig, "self-test I8 restore").wasOk(), "I8: restore the numbers");
+            reconfig();
+        }
+
+        F.deleteFile(); G.deleteFile();
+    }
+
+    // ---- V: a count reduction names the channel it removes ------------------
+    // The dialog used to predict by HIGHEST NUMBER while the code removed the
+    // LAST IN DISPLAY ORDER; identical until a latched list is dragged.
+    {
+        vts.setInputChannelCounts(4, 2);
+        reconfig();
+
+        auto highestNumberedOfType = [&](bool stereo)
+        {
+            int best = -1;
+            for (int slot = 0; slot < vts.getNumInputChannels(); ++slot)
+                if (vts.isInputChannelStereo(slot) == stereo)
+                    best = juce::jmax(best, vts.getInputChannelNumber(slot));
+            return best;
+        };
+        auto lastInDisplayOrderOfType = [&](bool stereo)
+        {
+            for (int slot = vts.getNumInputChannels(); --slot >= 0;)
+                if (vts.isInputChannelStereo(slot) == stereo)
+                    return vts.getInputChannelNumber(slot);
+            return -1;
+        };
+
+        const int hiStereo = highestNumberedOfType(true);
+        check(vts.moveInputChannel(hiStereo, 0).wasOk(), "V0: drag the highest-numbered stereo to slot 0");
+        reconfig();
+        const int lastStereo = lastInDisplayOrderOfType(true);
+        check(lastStereo > 0 && lastStereo != hiStereo, "V0: a lower-numbered stereo is now last in display order");
+
+        const auto predictedS = vts.predictInputChannelReduction(4, 1);
+        check(predictedS.size() == 1 && predictedS[0].stereo && predictedS[0].number == lastStereo,
+              "V1: the prediction names the LAST stereo in display order, not the highest-numbered");
+        vts.setInputChannelCounts(4, 1);
+        reconfig();
+        check(vts.getSlotForChannelNumber(lastStereo) < 0, "V1: that channel is the one that went");
+        check(vts.getSlotForChannelNumber(hiStereo) >= 0, "V1: the highest-numbered stereo is still live");
+
+        const int hiMono = highestNumberedOfType(false);
+        check(vts.moveInputChannel(hiMono, 0).wasOk(), "V2: drag the highest-numbered mono to slot 0");
+        reconfig();
+        const int lastMono = lastInDisplayOrderOfType(false);
+        check(lastMono > 0 && lastMono != hiMono, "V2: a lower-numbered mono is now last in display order");
+
+        const auto predictedM = vts.predictInputChannelReduction(3, 1);
+        check(predictedM.size() == 1 && ! predictedM[0].stereo && predictedM[0].number == lastMono,
+              "V3: the prediction names the LAST mono in display order");
+        vts.setInputChannelCounts(3, 1);
+        reconfig();
+        check(vts.getSlotForChannelNumber(lastMono) < 0, "V3: that channel is the one that went");
+        check(vts.getSlotForChannelNumber(hiMono) >= 0, "V3: the highest-numbered mono is still live");
     }
 
     logLine(failures == 0 ? juce::String("SELF-TEST RESULT: ALL PASS")
@@ -5104,19 +5380,40 @@ void MainComponent::openProjectFromFile (const juce::File& folder)
     fileManager.createProjectFolderStructure();
     AppSettings::setLastFolder ("lastProjectFolder", folder);
 
-    // Load all configuration files
-    if (fileManager.loadCompleteConfig())
+    // The pair (system.xml vs inputs.xml) is checked before anything is
+    // applied. This runs after the message loop is up (Main.cpp defers it
+    // through callAsync), so a dialog here is fine.
+    ChannelIdentityGate::Context ctx;
+    ctx.parent     = this;
+    ctx.parameters = &parameters;
+    ctx.afterStructuralChange = [this]
     {
-        handleConfigReloaded();
+        handleChannelCountChange (parameters.getNumInputChannels(), numOutputChannels,
+                                  parameters.getNumReverbChannels());
+    };
+    ctx.showStatus = [this] (const juce::String& text)
+    {
+        WFSLogger::getInstance().logInfo (text);
+        if (inputsTab != nullptr) inputsTab->showStatusMessage (text);
+    };
 
-        // Update window title with project name
-        if (auto* window = findParentComponentOfClass<juce::DocumentWindow>())
-            window->setName (ProjectInfo::projectName + juce::String (" - ") + folder.getFileName());
-    }
-    else
-    {
-        WFSLogger::getInstance().logWarning ("openProjectFromFile: no config files found in " + folder.getFullPathName());
-    }
+    ChannelIdentityGate::confirmThenLoadProject (ctx, fileManager.getSystemConfigFile(), fileManager.getInputConfigFile(),
+        [this, folder]
+        {
+            auto& fm = parameters.getFileManager();
+            if (fm.loadCompleteConfig())
+            {
+                handleConfigReloaded();
+
+                // Update window title with project name
+                if (auto* window = findParentComponentOfClass<juce::DocumentWindow>())
+                    window->setName (ProjectInfo::projectName + juce::String (" - ") + folder.getFileName());
+            }
+            else
+            {
+                WFSLogger::getInstance().logWarning ("openProjectFromFile: no config files found in " + folder.getFullPathName());
+            }
+        });
 }
 
 bool MainComponent::recallSnapshotByName (const juce::String& snapshotName, bool fromMidi, bool fromOsc)
@@ -5162,6 +5459,25 @@ bool MainComponent::recallSnapshotByName (const juce::String& snapshotName, bool
     if (external)
         noUndo.emplace (parameters.getValueTreeState());
 
+    // A cue must never block, so a hardware-input fingerprint mismatch on a
+    // cue-driven recall is reported loudly and the cue is applied anyway: the
+    // show goes on, and the operator was told at the manual test (the Inputs
+    // tab's button goes through a dialog instead - see InputsTab::reloadSnapshot).
+    juce::String patchWarning;
+    if (external)
+    {
+        const auto diff = fileManager.preflightSnapshotChannelIdentity (snapshotName);
+        if (! diff.patchDiffers.empty())
+        {
+            patchWarning = LOC("inputs.messages.snapshotPatchMismatchApplied")
+                               .replace ("{name}", snapshotName)
+                               .replace ("{n}", juce::String ((int) diff.patchDiffers.size()));
+            WFSLogger::getInstance().logWarning ("Cue recall of '" + snapshotName
+                                                 + "' applied despite a hardware-input fingerprint mismatch ("
+                                                 + WFSFileManager::summariseChannelIdentityDiff (diff) + ")");
+        }
+    }
+
     parameters.getDirtyTracker().beginSuppression();
 
     const bool ok = fileManager.loadInputSnapshotWithExtendedScope (snapshotName, scope);
@@ -5173,21 +5489,38 @@ bool MainComponent::recallSnapshotByName (const juce::String& snapshotName, bool
         // refreshFromState() was a duplicate and is deliberately not carried over.
         handleConfigReloaded();
 
+        juce::String statusText = LOC(fromMidi ? "inputs.messages.snapshotLoadedByMidi"
+                                               : "inputs.messages.snapshotLoaded")
+                                      .replace ("{name}", snapshotName);
+
+        // Entries with no live channel used to vanish silently.
+        const auto& skipped = fileManager.getLastRecallSkippedNumbers();
+        if (! skipped.empty())
+        {
+            juce::StringArray nums;
+            for (int n : skipped) nums.add ("#" + juce::String (n));
+            statusText = LOC("inputs.messages.snapshotEntriesSkipped")
+                             .replace ("{name}", snapshotName)
+                             .replace ("{n}", juce::String ((int) skipped.size()))
+                             .replace ("{numbers}", nums.joinIntoString (", "));
+            WFSLogger::getInstance().logInfo (statusText);
+        }
+        if (patchWarning.isNotEmpty())
+            statusText = patchWarning;   // the most important line wins the status bar
+
         if (inputsTab != nullptr)
         {
             // AFTER handleConfigReloaded: that rebuilds the snapshot dropdown, so
             // selecting first would be overwritten by the rebuild.
             inputsTab->selectSnapshotInSelector (snapshotName);
-            inputsTab->showStatusMessage (
-                LOC(fromMidi ? "inputs.messages.snapshotLoadedByMidi"
-                             : "inputs.messages.snapshotLoaded")
-                    .replace ("{name}", snapshotName));
+            inputsTab->showStatusMessage (statusText);
         }
 
         // A hardware-triggered state change has no visual focus, so announce it.
         if (fromMidi)
             TTSManager::getInstance().announceImmediate (
-                LOC("inputs.messages.snapshotLoadedByMidi").replace ("{name}", snapshotName));
+                patchWarning.isNotEmpty() ? patchWarning
+                                          : LOC("inputs.messages.snapshotLoadedByMidi").replace ("{name}", snapshotName));
     }
     else
     {

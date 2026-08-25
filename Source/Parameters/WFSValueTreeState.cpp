@@ -1531,26 +1531,33 @@ void WFSValueTreeState::compactChannelNumbersToDisplayOrder()
     const int total = inputs.getNumChildren();
     for (int slot = 0; slot < total; ++slot)
     {
-        const int oldNumber = getInputChannelNumber (slot);
-        const int newNumber = slot + 1;
-        if (oldNumber == newNumber)
-            continue;
-
-        // Direct setProperty throughout, never setParameter/setInputParam: a
-        // renumber is bookkeeping, and those wrappers carry undo entries,
-        // dirty-tracking and ownership latches that must not fire for it.
-        auto input = inputs.getChild (slot);
-        input.setProperty (id, newNumber, nullptr);
-
-        // The tracking id, which createDefaultInputChannel stamps from the
-        // number, follows it only while it still matches — a tracker mapping the
-        // user has pointed elsewhere stays put. (The name is NOT the number's to
-        // move: resequenceDefaultInputNames owns it.)
-        auto position = input.getChildWithName (Position);
-        if (position.isValid()
-            && static_cast<int> (position.getProperty (inputTrackingID, 0)) == oldNumber)
-            position.setProperty (inputTrackingID, newNumber, nullptr);
+        if (getInputChannelNumber (slot) != slot + 1)
+            setInputChannelNumberAtSlot (slot, slot + 1);
     }
+}
+
+void WFSValueTreeState::setInputChannelNumberAtSlot (int slot, int newNumber)
+{
+    auto input = getInputsState().getChild (slot);
+    if (! input.isValid())
+        return;
+    const int oldNumber = getInputChannelNumber (slot);
+    if (oldNumber == newNumber)
+        return;
+
+    // Direct setProperty throughout, never setParameter/setInputParam: a
+    // renumber is bookkeeping, and those wrappers carry undo entries,
+    // dirty-tracking and ownership latches that must not fire for it.
+    input.setProperty (id, newNumber, nullptr);
+
+    // The tracking id, which createDefaultInputChannel stamps from the
+    // number, follows it only while it still matches — a tracker mapping the
+    // user has pointed elsewhere stays put. (The name is NOT the number's to
+    // move: resequenceDefaultInputNames owns it.)
+    auto position = input.getChildWithName (Position);
+    if (position.isValid()
+        && static_cast<int> (position.getProperty (inputTrackingID, 0)) == oldNumber)
+        position.setProperty (inputTrackingID, newNumber, nullptr);
 }
 
 namespace
@@ -1615,16 +1622,19 @@ void WFSValueTreeState::resequenceDefaultInputNames()
 
 void WFSValueTreeState::setInputChannelCounts (int numMono, int numStereo)
 {
-    // Legacy two-count entry point (System Config fields, load shim). Under
-    // the stable-number model it is a thin loop over the structural ops:
-    // additions APPEND after the last channel — numbers never shift and mono
-    // and stereo channels may interleave — and reductions remove the
-    // HIGHEST-NUMBERED channel of that type. Not undoable (the ops clear the
-    // undo history; a half-undone tree/patch pair would silently desync).
-    numStereo = juce::jlimit (0, WFSParameterDefaults::maxStereoChannels, numStereo);
-    numMono   = juce::jlimit (1, WFSParameterDefaults::maxInputChannels - numStereo, numMono);
+    // Two-count entry point (System Config fields, load shim). Under the
+    // stable-number model it is a thin loop over the structural ops: additions
+    // APPEND after the last channel — numbers never shift and mono and stereo
+    // channels may interleave — and reductions remove the LAST channel of that
+    // type in DISPLAY order. Not "the highest-numbered": the lambda walks slots
+    // descending, and on a latched list that has been dragged those are
+    // different channels. The bottom of the Arrange list is what the operator
+    // can see, so it is the rule; predictInputChannelReduction mirrors it and
+    // the dialog shows exactly that. Not undoable (the ops clear the undo
+    // history; a half-undone tree/patch pair would silently desync).
+    clampInputChannelCounts (numMono, numStereo);
 
-    auto removeHighestOfType = [this] (bool stereo) -> bool
+    auto removeLastOfTypeInDisplayOrder = [this] (bool stereo) -> bool
     {
         auto inputs = getInputsState();
         for (int i = inputs.getNumChildren(); --i >= 0;)
@@ -1635,9 +1645,9 @@ void WFSValueTreeState::setInputChannelCounts (int numMono, int numStereo)
 
     // Reductions first so the 64-live budget is free before additions.
     while (getNumStereoInputChannels() > numStereo)
-        if (! removeHighestOfType (true)) break;
+        if (! removeLastOfTypeInDisplayOrder (true)) break;
     while (getNumInputChannels() - getNumStereoInputChannels() > numMono)
-        if (! removeHighestOfType (false)) break;
+        if (! removeLastOfTypeInDisplayOrder (false)) break;
     while (getNumStereoInputChannels() < numStereo)
         if (! addInputChannel (true).wasOk()) break;
     while (getNumInputChannels() - getNumStereoInputChannels() < numMono)
@@ -2049,6 +2059,22 @@ void WFSValueTreeState::convertClusterOrdersNumbersToSlots()
     });
 }
 
+void WFSValueTreeState::moveInputChannelNodeAndRow (int fromSlot, int toSlot)
+{
+    auto inputs = getInputsState();
+    inputs.moveChild (fromSlot, toSlot, nullptr);
+    moveInputPatchRow (fromSlot, toSlot);
+
+    // Slot-keyed side state follows the move
+    const int from = fromSlot, to = toSlot;
+    remapClusterInputOrders ([from, to] (int s)
+    {
+        if (s == from) return to;
+        if (from < to) return (s > from && s <= to) ? s - 1 : s;
+        return (s >= to && s < from) ? s + 1 : s;
+    });
+}
+
 juce::Result WFSValueTreeState::moveInputChannel (int channelNumber, int targetSlot)
 {
     auto inputs = getInputsState();
@@ -2065,17 +2091,7 @@ juce::Result WFSValueTreeState::moveInputChannel (int channelNumber, int targetS
     // display order while the permanent number (and every external
     // reference) stays put once the session is latched; before that the
     // renumber below makes the numbers follow the display order.
-    inputs.moveChild (fromSlot, targetSlot, nullptr);
-    moveInputPatchRow (fromSlot, targetSlot);
-
-    // Slot-keyed side state follows the move
-    const int from = fromSlot, to = targetSlot;
-    remapClusterInputOrders ([from, to] (int s)
-    {
-        if (s == from) return to;
-        if (from < to) return (s > from && s <= to) ? s - 1 : s;
-        return (s >= to && s < from) ? s + 1 : s;
-    });
+    moveInputChannelNodeAndRow (fromSlot, targetSlot);
 
     // Fresh session: the dragged channel takes the number of its new display
     // position — the whole point of the unlatched regime. moveInputPatchRow
@@ -2089,6 +2105,160 @@ juce::Result WFSValueTreeState::moveInputChannel (int channelNumber, int targetS
     }
 
     clearAllUndoHistories();
+    return juce::Result::ok();
+}
+
+void WFSValueTreeState::clampInputChannelCounts (int& numMono, int& numStereo)
+{
+    numStereo = juce::jlimit (0, WFSParameterDefaults::maxStereoChannels, numStereo);
+    numMono   = juce::jlimit (1, WFSParameterDefaults::maxInputChannels - numStereo, numMono);
+}
+
+std::vector<InputChannelRef> WFSValueTreeState::predictInputChannelReduction (int numMono, int numStereo) const
+{
+    clampInputChannelCounts (numMono, numStereo);
+
+    const int total = getNumInputChannels();
+    int stereoLeft  = getNumStereoInputChannels();
+    int monoLeft    = total - stereoLeft;
+
+    // Same walk, same order, as setInputChannelCounts: stereo victims first,
+    // each type from the bottom of the display order up. Everything about a
+    // victim is captured HERE, before any removal, because an unlatched session
+    // renumbers the survivors after each one.
+    std::vector<InputChannelRef> victims;
+    auto capture = [this] (int slot)
+    {
+        InputChannelRef ref;
+        ref.slot     = slot;
+        ref.number   = getInputChannelNumber (slot);
+        ref.stereo   = isInputChannelStereo (slot);
+        ref.hwInputs = getInputPatchHardwareInputs (slot);
+        auto channel = getInputsState().getChild (slot).getChildWithName (Channel);
+        if (channel.isValid())
+            ref.name = channel.getProperty (inputName).toString();
+        return ref;
+    };
+
+    for (int slot = total; --slot >= 0 && stereoLeft > numStereo;)
+        if (isInputChannelStereo (slot)) { victims.push_back (capture (slot)); --stereoLeft; }
+    for (int slot = total; --slot >= 0 && monoLeft > numMono;)
+        if (! isInputChannelStereo (slot)) { victims.push_back (capture (slot)); --monoLeft; }
+
+    return victims;
+}
+
+std::vector<int> WFSValueTreeState::getInputPatchHardwareInputs (int slot) const
+{
+    std::vector<int> out;
+    // getAudioPatchState has no const overload; this only reads. Same precedent
+    // as WFSFileManager's const_cast around getInputState.
+    auto patch = const_cast<WFSValueTreeState*> (this)->getAudioPatchState().getChildWithName (InputPatch);
+    if (! patch.isValid() || slot < 0)
+        return out;
+
+    juce::StringArray rows = juce::StringArray::fromTokens (patch.getProperty (patchData).toString(), ";", "");
+    if (slot >= rows.size())
+        return out;
+
+    juce::StringArray cols = juce::StringArray::fromTokens (rows[slot], ",", "");
+    for (int c = 0; c < cols.size(); ++c)
+        if (cols[c].getIntValue() == 1)
+            out.push_back (c + 1);   // 1-based, as the operator sees it
+    return out;
+}
+
+InputChannelIdentity WFSValueTreeState::getInputChannelIdentity() const
+{
+    InputChannelIdentity live;
+    auto inputs = getInputsState();
+    const int total = inputs.getNumChildren();
+    for (int slot = 0; slot < total; ++slot)
+    {
+        InputChannelRef ref;
+        ref.slot     = slot;
+        ref.number   = getInputChannelNumber (slot);
+        ref.stereo   = isInputChannelStereo (slot);
+        ref.hwInputs = getInputPatchHardwareInputs (slot);
+        auto channel = inputs.getChild (slot).getChildWithName (Channel);
+        if (channel.isValid())
+            ref.name = channel.getProperty (inputName).toString();
+        live.slots.push_back (std::move (ref));
+    }
+    if (! live.slots.empty())
+    {
+        live.source     = InputChannelIdentity::Source::liveTree;
+        live.typesKnown = true;
+        live.orderKnown = true;
+        live.hwKnown    = true;
+    }
+    return live;
+}
+
+juce::Result WFSValueTreeState::assignInputChannelNumbersBySlot (const std::vector<int>& numbersBySlot,
+                                                                 const juce::String& reason)
+{
+    const int total = getNumInputChannels();
+    if ((int) numbersBySlot.size() != total)
+        return juce::Result::fail ("relabel: " + juce::String ((int) numbersBySlot.size())
+                                   + " numbers for " + juce::String (total) + " channels");
+
+    // Everything validated before the first write, so a bad list changes nothing.
+    std::vector<int> seen;
+    for (int n : numbersBySlot)
+    {
+        if (n <= 0 || n > WFSParameterDefaults::maxInputChannels)
+            return juce::Result::fail ("relabel: channel number " + juce::String (n) + " is out of range");
+        if (std::find (seen.begin(), seen.end(), n) != seen.end())
+            return juce::Result::fail ("relabel: channel number " + juce::String (n) + " appears twice");
+        seen.push_back (n);
+    }
+
+    juce::StringArray changes;
+    for (int slot = 0; slot < total; ++slot)
+    {
+        const int oldNumber = getInputChannelNumber (slot);
+        const int newNumber = numbersBySlot[(size_t) slot];
+        if (oldNumber != newNumber)
+        {
+            changes.add ("#" + juce::String (oldNumber) + "->#" + juce::String (newNumber));
+            setInputChannelNumberAtSlot (slot, newNumber);
+        }
+    }
+
+    // The numbers are now an external contract, whatever they were before.
+    markChannelNumbersUserOwned (reason);
+    clearAllUndoHistories();
+
+    WFSLogger::getInstance().logInfo ("Channel numbers relabelled (" + reason + "): "
+                                      + (changes.isEmpty() ? juce::String ("no change")
+                                                           : changes.joinIntoString (", ")));
+    return juce::Result::ok();
+}
+
+juce::Result WFSValueTreeState::reorderInputChannelsToNumbers (const std::vector<int>& numbersInDisplayOrder,
+                                                               const juce::String& reason)
+{
+    // FIRST, before any move: unlatched, moveInputChannel's tail recompacts the
+    // numbers to display order, and the targets would drift under the loop.
+    markChannelNumbersUserOwned (reason);
+
+    int target = 0;
+    for (int number : numbersInDisplayOrder)
+    {
+        const int from = getSlotForChannelNumber (number);
+        if (from < 0)
+            continue;
+        if (from != target)
+        {
+            const auto r = moveInputChannel (number, target);
+            if (r.failed())
+                return r;
+        }
+        ++target;
+    }
+
+    WFSLogger::getInstance().logInfo ("Channel order rearranged (" + reason + ")");
     return juce::Result::ok();
 }
 
