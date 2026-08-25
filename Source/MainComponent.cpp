@@ -1446,22 +1446,28 @@ MainComponent::MainComponent()
             });
         };
 
-        controllerManager->callbacks.rotateSelected = [this] (float deltaDeg)
+        // Inputs a Space Mouse twist / Shift gesture applies to: the map
+        // selection, else the Inputs tab's current channel.
+        auto resolveControllerTargets = [this]()
         {
-            juce::MessageManager::callAsync ([this, deltaDeg]()
-            {
-                // Determine which inputs to rotate
-                std::set<int> targets;
-                if (mapTab)
-                    targets = mapTab->getSelectedInputSet();
+            std::set<int> targets;
+            if (mapTab)
+                targets = mapTab->getSelectedInputSet();
 
-                // On Inputs tab with no map selection, rotate the current channel
-                if (targets.empty() && inputsTab)
-                {
-                    int ch = inputsTab->getSelectedInputIndex();
-                    if (ch >= 0 && ch < parameters.getNumInputChannels())
-                        targets.insert (ch);
-                }
+            if (targets.empty() && inputsTab)
+            {
+                int ch = inputsTab->getSelectedInputIndex();
+                if (ch >= 0 && ch < parameters.getNumInputChannels())
+                    targets.insert (ch);
+            }
+            return targets;
+        };
+
+        controllerManager->callbacks.rotateSelected = [this, resolveControllerTargets] (float deltaDeg)
+        {
+            juce::MessageManager::callAsync ([this, resolveControllerTargets, deltaDeg]()
+            {
+                const auto targets = resolveControllerTargets();
 
                 for (int idx : targets)
                 {
@@ -1472,6 +1478,59 @@ MainComponent::MainComponent()
                     parameters.setInputParam (idx, "inputRotation", newRot);
                 }
                 if (mapTab) mapTab->repaint();
+            });
+        };
+
+        // Shift layer: push/pull widens or narrows the stereo image of every
+        // stereo target. Mono targets are left alone - Shift is the stereo
+        // layer, not a second name for height.
+        controllerManager->callbacks.adjustStereoWidth = [this, resolveControllerTargets] (float deltaMetres)
+        {
+            juce::MessageManager::callAsync ([this, resolveControllerTargets, deltaMetres]()
+            {
+                auto& vts = parameters.getValueTreeState();
+                bool changed = false;
+                for (int idx : resolveControllerTargets())
+                {
+                    if (! vts.isInputChannelStereo (idx))
+                        continue;
+                    float current = static_cast<float> (parameters.getInputParam (idx, WFSParameterIDs::inputStereoWidth.toString()));
+                    float next = juce::jlimit (WFSParameterDefaults::inputStereoWidthMin,
+                                               WFSParameterDefaults::inputStereoWidthMax,
+                                               current + deltaMetres);
+                    parameters.setInputParam (idx, WFSParameterIDs::inputStereoWidth.toString(), next);
+                    changed = true;
+                }
+                if (changed && mapTab) mapTab->repaint();
+            });
+        };
+
+        // Shift layer: twist rotates the stereo image axis. The axis is an
+        // integer in degrees but a 50 Hz tick at partial deflection is well
+        // under 1 degree, so carry the sub-degree remainder between ticks
+        // instead of rounding each one to zero.
+        controllerManager->callbacks.adjustStereoAxis = [this, resolveControllerTargets] (float deltaDeg)
+        {
+            juce::MessageManager::callAsync ([this, resolveControllerTargets, deltaDeg]()
+            {
+                stereoAxisControllerAccum += deltaDeg;
+                const int step = static_cast<int> (stereoAxisControllerAccum);  // truncates toward zero
+                if (step == 0)
+                    return;
+                stereoAxisControllerAccum -= static_cast<float> (step);
+
+                auto& vts = parameters.getValueTreeState();
+                bool changed = false;
+                for (int idx : resolveControllerTargets())
+                {
+                    if (! vts.isInputChannelStereo (idx))
+                        continue;
+                    int current = static_cast<int> (parameters.getInputParam (idx, WFSParameterIDs::inputStereoAxisOffset.toString()));
+                    parameters.setInputParam (idx, WFSParameterIDs::inputStereoAxisOffset.toString(),
+                                              WFSParameterDefaults::wrapPhaseDegrees (current + step));
+                    changed = true;
+                }
+                if (changed && mapTab) mapTab->repaint();
             });
         };
 
@@ -4245,11 +4304,11 @@ bool MainComponent::refreshStereoSliceGeometry()
         auto channelSection = parameters.getValueTreeState().getInputChannelSection (ch);
         const float widthM = juce::jlimit (WFSParameterDefaults::inputStereoWidthMin,
                                            WFSParameterDefaults::inputStereoWidthMax,
-            (float) (double) channelSection.getProperty (WFSParameterIDs::inputStereoWidth,
+            (float) (double) channelSection.getProperty (WFSParameterIDs::inputStereoWidth.toString(),
                                                          WFSParameterDefaults::inputStereoWidthDefault));
         const int axisOffsetDeg = juce::jlimit (WFSParameterDefaults::inputStereoAxisOffsetMin,
                                                 WFSParameterDefaults::inputStereoAxisOffsetMax,
-            (int) channelSection.getProperty (WFSParameterIDs::inputStereoAxisOffset,
+            (int) channelSection.getProperty (WFSParameterIDs::inputStereoAxisOffset.toString(),
                                               WFSParameterDefaults::inputStereoAxisOffsetDefault));
 
         // The offset rotates the automatic tangential axis in the WORLD frame,

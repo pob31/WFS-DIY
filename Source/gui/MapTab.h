@@ -435,9 +435,11 @@ public:
         {
             const int btnSize = juce::jmax(20, static_cast<int>(24.0f * us));
             mapHelpButton.setBounds(getWidth() - margin - btnSize, margin + btnH + margin / 2, btnSize, btnSize);
-            // Help card — centered on map
-            int cardW = juce::jmin(getWidth() - 80, 580);
-            int cardH = mapHelpCard.getIdealHeight(cardW);
+            // Help card — centered on map. Wide enough for the full body
+            // (Shift / stereo image bullets included) and clamped to the map
+            // height so a small window can't push it off screen.
+            int cardW = juce::jmin(getWidth() - 80, 800);
+            int cardH = juce::jmin(getHeight() - 40, mapHelpCard.getIdealHeight(cardW));
             mapHelpCard.setBounds(getWidth() / 2 - cardW / 2, getHeight() / 2 - cardH / 2, cardW, cardH);
         }
 
@@ -1550,7 +1552,7 @@ public:
     // Secondary touch tracking (for two-finger gestures on inputs/clusters)
     struct SecondaryTouchInfo
     {
-        enum class TargetType { None, InputZ, InputRotation, ClusterScaleRotation };
+        enum class TargetType { None, InputZ, InputRotation, ClusterScaleRotation, StereoImage };
         TargetType targetType = TargetType::None;
         int targetIndex = -1;           // Input index or cluster number
         int primaryTouchSourceIndex = -1;  // Source index of the primary touch this is associated with
@@ -1562,6 +1564,9 @@ public:
         float startRotation = 0.0f;      // Initial rotation value (inputRotation or cluster rotation)
         float startScaleX = 1.0f;        // For cluster scale (not used for inputs)
         float startScaleY = 1.0f;        // For cluster scale (not used for inputs)
+        float startWidth = 0.0f;         // StereoImage: inputStereoWidth at the last mode switch (metres)
+        int startAxis = 0;               // StereoImage: inputStereoAxisOffset at the last mode switch (degrees)
+        TargetType plainType = TargetType::None;  // Stereo inputs: the type used while Shift is up (InputZ / InputRotation)
     };
 
     //==========================================================================
@@ -1931,7 +1936,52 @@ public:
             secTouch.startRotation = static_cast<float>(parameters.getInputParam(inputIdx, "inputRotation"));
         }
 
+        // Shift is the stereo image layer: on a stereo input the second finger
+        // rotates the image axis and pinches the width instead of rotation /
+        // height. Remember the plain type so the gesture can flip between the
+        // two layers as Shift goes down and up (see syncSecondaryTouchLayer).
+        if ((secTouch.targetType == SecondaryTouchInfo::TargetType::InputZ
+             || secTouch.targetType == SecondaryTouchInfo::TargetType::InputRotation)
+            && parameters.getValueTreeState().isInputChannelStereo(inputIdx))
+        {
+            secTouch.plainType = secTouch.targetType;
+            syncSecondaryTouchLayer(secTouch, secTouch.initialDistance, secTouch.initialAngle);
+        }
+
         return secTouch;
+    }
+
+    // Stereo inputs: follow the live Shift state like the Space Mouse does.
+    // Each switch re-baselines the gesture on the CURRENT finger geometry and
+    // parameter values, so height -> width -> height within one touch never
+    // jumps: every layer resumes from where it was left.
+    void syncSecondaryTouchLayer(SecondaryTouchInfo& secTouch, float currentDistance, float currentAngle)
+    {
+        if (secTouch.plainType == SecondaryTouchInfo::TargetType::None)
+            return;  // not a stereo input gesture
+
+        // Realtime rather than e.mods: touch events don't reliably carry keyboard modifiers.
+        const bool shiftHeld = juce::ModifierKeys::getCurrentModifiersRealtime().isShiftDown();
+        const auto wanted = shiftHeld ? SecondaryTouchInfo::TargetType::StereoImage : secTouch.plainType;
+        if (wanted == secTouch.targetType)
+            return;
+
+        const int inputIdx = secTouch.targetIndex;
+        secTouch.targetType = wanted;
+        secTouch.initialDistance = currentDistance;
+        secTouch.initialAngle = currentAngle;
+
+        if (wanted == SecondaryTouchInfo::TargetType::StereoImage)
+        {
+            secTouch.startWidth = static_cast<float>(parameters.getInputParam(inputIdx, WFSParameterIDs::inputStereoWidth.toString()));
+            secTouch.startAxis = static_cast<int>(parameters.getInputParam(inputIdx, WFSParameterIDs::inputStereoAxisOffset.toString()));
+        }
+        else
+        {
+            const char* zParam = (wanted == SecondaryTouchInfo::TargetType::InputZ) ? "inputOffsetZ" : "inputPositionZ";
+            secTouch.startZ = static_cast<float>(parameters.getInputParam(inputIdx, zParam));
+            secTouch.startRotation = static_cast<float>(parameters.getInputParam(inputIdx, "inputRotation"));
+        }
     }
 
     // Initialize a secondary touch for a barycenter (cluster)
@@ -1981,6 +2031,9 @@ public:
         auto delta = currentTouchPos - currentMarkerScreen;
         float currentDistance = delta.getDistanceFromOrigin();
         float currentAngle = std::atan2(delta.y, delta.x);
+
+        // Stereo inputs: switch layer if Shift changed since the last frame
+        syncSecondaryTouchLayer(secTouch, currentDistance, currentAngle);
 
         // Calculate ratio and rotation delta
         float distanceRatio = (secTouch.initialDistance > 10.0f) ? currentDistance / secTouch.initialDistance : 1.0f;
@@ -2077,6 +2130,33 @@ public:
                 while (newRotation > 180.0f) newRotation -= 360.0f;
                 while (newRotation < -179.0f) newRotation += 360.0f;
                 parameters.setInputParam(inputIdx, "inputRotation", static_cast<int>(newRotation));
+                break;
+            }
+
+            case SecondaryTouchInfo::TargetType::StereoImage:
+            {
+                // Stereo input + Shift: pinch scales the image width, rotation turns the image axis
+                int inputIdx = secTouch.targetIndex;
+
+                // Width: same law as Z - additive from (near) zero, ratio otherwise
+                float newWidth;
+                if (secTouch.startWidth < 0.1f)
+                {
+                    float distanceChange = currentDistance - secTouch.initialDistance;
+                    newWidth = secTouch.startWidth + distanceChange / 50.0f;
+                }
+                else
+                {
+                    newWidth = secTouch.startWidth * distanceRatio;
+                }
+                newWidth = juce::jlimit(WFSParameterDefaults::inputStereoWidthMin,
+                                        WFSParameterDefaults::inputStereoWidthMax, newWidth);
+                parameters.setInputParam(inputIdx, WFSParameterIDs::inputStereoWidth.toString(), newWidth);
+
+                // Axis: same sign as inputRotation (both CCW-positive; screen Y is down)
+                float angleDeg = -juce::radiansToDegrees(angleDelta);
+                int newAxis = WFSParameterDefaults::wrapPhaseDegrees(secTouch.startAxis + juce::roundToInt(angleDeg));
+                parameters.setInputParam(inputIdx, WFSParameterIDs::inputStereoAxisOffset.toString(), newAxis);
                 break;
             }
 

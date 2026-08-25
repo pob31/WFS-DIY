@@ -446,6 +446,10 @@ private:
     // rig from whipping its legs around and swapping left for right.
     std::array<WFSStereoImage::Axis, WFSParameterDefaults::maxInputChannels> stereoAxisLatch {};
 
+    // Sub-degree remainder of Space Mouse Shift+twist on the stereo axis
+    // (the axis offset is an integer; a 50 Hz tick is often < 1 degree).
+    float stereoAxisControllerAccum = 0.0f;
+
     // Absolute stage-metre leg positions, cached from the very offsets the
     // engine was handed on the same tick. The Map reads these instead of
     // recomputing, so it cannot draw an image the renderer is not producing.
