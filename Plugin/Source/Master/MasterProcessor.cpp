@@ -19,7 +19,14 @@ namespace wfs::plugin
             "/wfs/input/rotation",
             "/wfs/input/tilt",
             "/wfs/input/HFshelf",
-            "/wfs/input/LFOactive"
+            "/wfs/input/LFOactive",
+            // Stereo image. Subscribed for every channel, mono included: the nodes
+            // exist on both (the app publishes its whole input address map per
+            // channel) and it is the Track, not the subscription, that decides
+            // whether they apply. Width is METRES (0-50, default 4) since the app
+            // dropped the old 0-100% law; axis is degrees, -179..180.
+            "/wfs/input/stereoWidth",
+            "/wfs/input/stereoAxisOffset"
         };
         return paths;
     }
@@ -129,11 +136,18 @@ namespace wfs::plugin
         {
             onQueryOscPush (path, value);
         });
+        query.setStructureCallback ([this] (const juce::String& containerPath)
+        {
+            onQueryStructureChanged (containerPath);
+        });
     }
 
     MasterProcessor::~MasterProcessor()
     {
         disconnectFromApp();
+        // Belt and braces: disconnectFromApp already stops it, but the worker
+        // holds a reference to *this and must be joined before any member dies.
+        inventoryWorker.stopThread (4000);
     }
 
     void MasterProcessor::prepareToPlay (double, int)
@@ -219,6 +233,13 @@ namespace wfs::plugin
                 transport.disconnect();
                 return false;
             }
+
+            // Seed the inventory now. connect() has already proved HTTP works
+            // (it fetched HOST_INFO over it), and fetchNamespace is HTTP too, so
+            // this does not have to wait for the WebSocket to finish opening.
+            // Thereafter PATH_CHANGED keeps it current, via the worker.
+            inventoryWorker.startThread();
+            inventoryWorker.trigger();
         }
         else
         {
@@ -274,8 +295,21 @@ namespace wfs::plugin
             admReceiver.disconnect();
             admReceiverOpen = false;
         }
+        // Stopped before the inventory is cleared, so a fetch in flight cannot
+        // repopulate what we are about to discard.
+        inventoryWorker.stopThread (4000);
+
         query.disconnect();
         transport.disconnect();
+
+        // Forget the inventory rather than let it go stale: reconnecting may be to
+        // a different session entirely. Tracks are told nothing until the next
+        // fetch, which is how publishChannelInfo reports "we don't know yet".
+        {
+            std::lock_guard<std::mutex> sl (lock);
+            channelInventory.clear();
+            inventoryKnown = false;
+        }
     }
 
     bool MasterProcessor::isConnected() const
@@ -366,10 +400,142 @@ namespace wfs::plugin
             unsubscribe (base);
     }
 
+    void MasterProcessor::onQueryStructureChanged (const juce::String& containerPath)
+    {
+        // A channel was added, removed, dragged to a new display position or
+        // retyped. Only the input container matters to us; outputs and reverbs
+        // are addressed positionally and no Track points at them.
+        if (containerPath == "/wfs/input")
+            inventoryWorker.trigger();
+    }
+
+    void MasterProcessor::InventoryWorker::run()
+    {
+        while (! threadShouldExit())
+        {
+            if (pending.exchange (false))
+                owner.refreshChannelInventory();
+
+            // Coalesces a second notification that lands mid-fetch: the flag is
+            // set again and this returns immediately rather than waiting.
+            wait (-1);
+        }
+    }
+
+    void MasterProcessor::refreshChannelInventory()
+    {
+        // HTTP, not the WebSocket — so this works from the moment connect()
+        // succeeds, without waiting for the socket to open. One request for the
+        // whole subtree rather than one per leaf.
+        juce::var tree;
+        if (! query.fetchNamespace ("/wfs/input", tree))
+        {
+            // Leave the last known inventory in place rather than declaring every
+            // channel missing on a transient HTTP failure: a Track reporting "no
+            // such channel" because a fetch timed out would be a worse lie than a
+            // slightly stale name.
+            diagLog.add ("Channel inventory fetch failed - keeping last known list");
+            return;
+        }
+
+        const auto contents = tree.getProperty ("CONTENTS", juce::var());
+        if (! contents.isObject())
+            return;
+
+        std::map<int, ChannelInfo> fresh;
+        const auto* channels = contents.getDynamicObject();
+        for (const auto& entry : channels->getProperties())
+        {
+            // The key IS the permanent channel number — the app names these nodes
+            // by number, not by position, so gaps and non-ascending order are both
+            // normal and neither needs handling here.
+            const int number = entry.name.toString().getIntValue();
+            if (number <= 0)
+                continue;
+
+            const auto channelContents = entry.value.getProperty ("CONTENTS", juce::var());
+            if (! channelContents.isObject())
+                continue;
+
+            const auto firstValue = [&] (const char* leaf) -> juce::String
+            {
+                const auto node = channelContents.getProperty (leaf, juce::var());
+                const auto value = node.getProperty ("VALUE", juce::var());
+                if (! value.isArray() || value.getArray()->isEmpty())
+                    return {};
+                return value.getArray()->getReference (0).toString();
+            };
+
+            ChannelInfo info;
+            info.name   = firstValue ("name");
+            info.stereo = (firstValue ("channelType") == "stereo");
+            fresh[number] = info;
+        }
+
+        {
+            std::lock_guard<std::mutex> sl (lock);
+            channelInventory.swap (fresh);
+            inventoryKnown = true;
+        }
+
+        publishChannelInfoToAllTracks();
+    }
+
+    void MasterProcessor::publishChannelInfo (int inputId)
+    {
+        bool known = false;
+        bool exists = false;
+        ChannelInfo info;
+        {
+            std::lock_guard<std::mutex> sl (lock);
+            known = inventoryKnown;
+            auto it = channelInventory.find (inputId);
+            exists = (it != channelInventory.end());
+            if (exists)
+                info = it->second;
+        }
+
+        // Until the first successful fetch we know nothing, and silence is the
+        // honest answer: a Track that has not heard otherwise shows no verdict
+        // rather than accusing a perfectly good channel of not existing.
+        if (! known)
+            return;
+
+        auto& loader = BridgeLoader::getInstance();
+        if (loader.masterDispatch == nullptr || bridgeHandle == nullptr)
+            return;
+
+        loader.masterDispatch (bridgeHandle, inputId, "/wfs/input/channelExists", exists ? 1.0 : 0.0);
+        loader.masterDispatch (bridgeHandle, inputId, "/wfs/input/channelType",
+                               (exists && info.stereo) ? 1.0 : 0.0);
+
+        if (loader.masterDispatchText != nullptr)
+            loader.masterDispatchText (bridgeHandle, inputId, "/wfs/input/name",
+                                       exists ? info.name.toRawUTF8() : "");
+    }
+
+    void MasterProcessor::publishChannelInfoToAllTracks()
+    {
+        std::vector<int> ids;
+        {
+            std::lock_guard<std::mutex> sl (lock);
+            ids.reserve (subscribedInputs.size());
+            for (const auto& [id, tag] : subscribedInputs)
+                ids.push_back (id);
+        }
+        for (const int id : ids)
+            publishChannelInfo (id);
+    }
+
     void MasterProcessor::onTrackRegistered (int inputId, const juce::String& variantTag)
     {
         translator.setVariantTag (inputId, variantTag);
         subscribeInput (inputId, variantTag);
+
+        // A Track that appears — or changes its Input ID, which re-registers —
+        // gets the current verdict straight away rather than waiting for the next
+        // structural change in the app.
+        publishChannelInfo (inputId);
     }
 
     void MasterProcessor::onTrackUnregistered (int inputId)

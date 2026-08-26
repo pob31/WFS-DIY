@@ -16,8 +16,9 @@ namespace
         int inputId = 0;
         std::string variantTag;
         void* user = nullptr;
-        WfsBridgeInboundFn   onInbound   = nullptr;
-        WfsBridgeInbound3fFn onInbound3f = nullptr;
+        WfsBridgeInboundFn     onInbound     = nullptr;
+        WfsBridgeInbound3fFn   onInbound3f   = nullptr;
+        WfsBridgeInboundTextFn onInboundText = nullptr;
     };
 
     struct MasterEntry
@@ -289,6 +290,38 @@ void wfs_bridge_track_send_outbound_3f (WfsBridgeTrackHandle* handle,
     auto masterCopy = snapshotMaster (r);
     if (masterCopy.onOutbound3f)
         masterCopy.onOutbound3f (masterCopy.user, oscPath, v1, v2, v3);
+}
+
+void wfs_bridge_master_dispatch_inbound_text (WfsBridgeMasterHandle* /*handle*/,
+                                              int inputId,
+                                              const char* oscPath,
+                                              const char* text)
+{
+    auto& r = getRegistry();
+    std::vector<TrackEntry> targets;
+    {
+        std::lock_guard<std::mutex> sl (r.lock);
+        for (auto& [id, entry] : r.tracks)
+            if (entry.inputId == inputId)
+                targets.push_back (entry);
+    }
+    // The callee copies before returning — the pointer belongs to the caller's
+    // frame, exactly as oscPath already does on every other dispatch here.
+    for (auto& entry : targets)
+        if (entry.onInboundText)
+            entry.onInboundText (entry.user, oscPath, inputId, text != nullptr ? text : "");
+}
+
+void wfs_bridge_track_set_inbound_text (WfsBridgeTrackHandle* handle,
+                                        WfsBridgeInboundTextFn onInboundText)
+{
+    if (handle == nullptr)
+        return;
+    auto& r = getRegistry();
+    std::lock_guard<std::mutex> sl (r.lock);
+    auto it = r.tracks.find (handle->id);
+    if (it != r.tracks.end())
+        it->second.onInboundText = onInboundText;
 }
 
 }

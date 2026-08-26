@@ -62,9 +62,9 @@ That's the only DAW-automatable parameter. All other Master state is persisted v
 
 ## 3. Track Plugins (all five variants)
 
-### 3.1 Shared non-position parameters (9) — `getSharedTrackParams()` in `Plugin/Source/Track/TrackProcessor.cpp:11-34`
+### 3.1 Shared non-position parameters (12) — `getSharedTrackParams()` in `Plugin/Source/Track/TrackProcessor.cpp`
 
-All five variants expose the same 9 parameters in addition to their 3 position parameters. paramID strings below are what shows up in the DAW's automation lane.
+All five variants expose the same 12 parameters in addition to their 3 position parameters. paramID strings below are what shows up in the DAW's automation lane.
 
 | paramID | Label | OSC path | Type | Min | Max | Default | Unit | Widget | Log skew midpoint |
 |---|---|---|---|---|---|---|---|---|---|
@@ -77,12 +77,56 @@ All five variants expose the same 9 parameters in addition to their 3 position p
 | `tilt` | Tilt | `/wfs/input/tilt` | int | −90 | 90 | 0 | ° | Bidirectional bar | — |
 | `hfShelf` | HF Shelf | `/wfs/input/HFshelf` | float | −24 | 0 | −6 | dB | H slider (log) | −6 |
 | `lfoActive` | LFO Active | `/wfs/input/LFOactive` | int | 0 | 1 | 0 | — | Toggle | — |
+| `commonAtten` | Common Atten. | `/wfs/input/commonAtten` | int | 0 | 100 | 100 | % | H slider (linear) | — |
+| `stereoWidth` | Stereo Width | `/wfs/input/stereoWidth` | float | 0 | 50 | 4.0 | m | H slider | 4.0 |
+| `stereoAxisOffset` | Stereo Axis | `/wfs/input/stereoAxisOffset` | int | −179 | 180 | 0 | ° | Rotary dial | — |
+
+The last two are the **stereo image**, and they exist only on a stereo input
+channel. Width is the full L-to-R distance in **metres** — not the 0–100 % of the
+array's X extent it was before the app's stereo rework. Axis rotates the automatic
+tangential axis; ±180 swaps L and R.
+
+On a mono channel the Track hides both controls (and shrinks by the height of the
+section) and, more importantly, **stops transmitting them**. Hiding alone would
+not be enough: a host automation lane goes on writing whatever the editor happens
+to be showing, and the app would then store a stereo image on a channel that has
+no stereo legs. The Track learns the channel's type from the Master; see §3.3.
 
 Plus a routing parameter present on every Track regardless of variant:
 
 | paramID | Label | Type | Min | Max | Default | Notes |
 |---|---|---|---|---|---|---|
-| `inputId` | Input ID | int | 1 | 64 | 1 | Which WFS-DIY input channel this Track controls. Must be unique per Track in the session (two Tracks on the same ID would fight each other). |
+| `inputId` | Input ID | int | 1 | 64 | 1 | The **permanent channel number**, not an index — see §3.3. Must be unique per Track in the session (two Tracks on the same ID would fight each other). |
+
+### 3.3 Input ID is a permanent channel number
+
+The app numbers input channels permanently. A number is assigned once and stays
+with its channel: **deleting a channel leaves its number as a permanent gap, and
+dragging the channel list into a new order does not renumber anything.** So the
+live numbers are not `1..count`, they need not be contiguous, and their order in
+the app's channel list is unrelated to their numeric order.
+
+For a Track this is good news and needs no action: `inputId` has always been the
+number, so a saved DAW session keeps pointing at the same channel after the
+operator reorders the app's list. Two consequences are worth knowing:
+
+- A Track can be pointed at a number that names nothing — a retired gap, or a
+  channel not created yet. The app drops such writes silently. The Track shows
+  `#7 - no such channel` under its Input ID so this is visible rather than a
+  mystery. When the channel is present the same line reads `#12 "Kick" (stereo)`.
+- **Any Track output latches the app's channel numbering.** The app re-flows
+  numbers, names and the input patch to match display order only while a session
+  is "fresh"; the first external message naming a channel by number ends that,
+  permanently, for that session. This is deliberate — the plugin holds numbers, and
+  re-flowing them underneath it would silently re-point every Track — but it means
+  a session a DAW has talked to never re-flows again. Nothing is lost by it.
+
+The identity line and the mono/stereo verdict come from the Master, which reads
+the app's input namespace over OSCQuery (`GET /wfs/input`, refetched whenever the
+app reports `PATH_CHANGED`) and forwards the result to each Track over the bridge.
+Until the Master has actually read that list, the line is blank: a Track that has
+not been told anything says nothing rather than accusing a good channel of being
+absent.
 
 ### 3.2 Position parameters (per variant)
 
@@ -166,8 +210,8 @@ This is the happy-path sequence to get a new DAW project driving a running WFS-D
 1. **Insert a Track variant** on each audio track whose input you want to control. Pick a coordinate system per track:
    - *Cartesian / Cylindrical / Spherical* — native WFS-DIY OSC. Use these unless you specifically need ADM.
    - *ADM Cartesian / ADM Polar* — only when driving ADM-OSC mappings configured in §4.1 step 3.
-2. In each Track editor, set **Input ID** to the WFS-DIY input channel you want this track to control (1..64). **Unique per session** — two Tracks on the same ID will fight each other.
-3. Automate or manually move the 3 position parameters + any of the 9 non-position parameters. The Master's *Registered Tracks* count should increase as each Track loads.
+2. In each Track editor, set **Input ID** to the WFS-DIY input channel you want this track to control. This is the channel's permanent number (§3.3), not its position in the app's list; the line under the field confirms which channel you landed on. **Unique per session** — two Tracks on the same ID will fight each other.
+3. Automate or manually move the 3 position parameters + any of the 12 non-position parameters. The Master's *Registered Tracks* count should increase as each Track loads.
 4. Change a parameter in the app (e.g. drag the input on the Map tab). The OSCQuery WebSocket push should update the corresponding Track's plugin parameter in near-real-time.
 
 ### 4.4 Troubleshooting
@@ -176,7 +220,8 @@ This is the happy-path sequence to get a new DAW project driving a running WFS-D
 |---|---|
 | Master shows "No WFS-DIY Master found" on a Track | Bridge singleton unreachable — DAW is running Master and Track in separate processes (Reaper "Run as separate process", Bitwig per-plugin sandbox). Disable sandboxing for Master + Tracks in the same project. |
 | Master stays "Disconnected" after Connect | Host/port mismatch with the app's Network tab. Also check firewall rules for both UDP (send port) and TCP (OSCQuery HTTP port). |
-| Track parameters move but the app doesn't react | Input ID on the Track doesn't exist in the app (check System Config → Input Channels), or the app's OSC Source Filter is set to *Registered Only* without the DAW's IP registered as a target. |
+| Track parameters move but the app doesn't react | Input ID on the Track doesn't exist in the app — the line under the field reads *no such channel*. Numbers are permanent and deletions leave gaps, so a number below the channel count can still name nothing (check System Config → Input Channels). Otherwise the app's OSC Source Filter is set to *Registered Only* without the DAW's IP registered as a target. |
+| Stereo Width / Stereo Axis are missing from the Track | That channel is mono. The two controls appear only when the app reports the channel as stereo; the identity line under Input ID says which it is. If it is blank, the Master has not read the app's channel list yet — check the Master is connected. |
 | App moves on the Map tab, plugin doesn't follow | OSCQuery connection dropped (check Status label). Reconnect. |
 | ADM Track moves but the app doesn't | No ADM-OSC target configured on the app side, or no ADM mapping has the relevant input assigned. See §4.1 step 3. |
 | ADM app changes don't update the ADM Track | ADM-OSC Rx port on Master is 0 or blocked by firewall, or the app's ADM target isn't configured to send to that port. |

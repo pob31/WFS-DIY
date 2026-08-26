@@ -177,14 +177,34 @@ parameters vary per variant (defined in each phase's section).
 | 9 | HF Shelf     | `/wfs/input/HFshelf`          | FLOAT | -24.0..0.0  | dB   | Yes         |
 |10 | LFO Active   | `/wfs/input/LFOactive`        | BOOL  | 0..1        | —    | Yes         |
 
-Nine DAW-automatable parameters. Input ID is plugin-state (chosen
+|11 | Common Atten.| `/wfs/input/commonAtten`      | INT   | 0..100      | %    | Yes         |
+|12 | Stereo Width | `/wfs/input/stereoWidth`      | FLOAT | 0..50       | m    | Yes         |
+|13 | Stereo Axis  | `/wfs/input/stereoAxisOffset` | INT   | -179..180   | deg  | Yes         |
+
+Twelve DAW-automatable parameters. Input ID is plugin-state (chosen
 per instance, saved with project).
 
-### Read-only display state (subscribed via OSC Query)
+Parameters 12 and 13 are the **stereo image** and exist only on a
+stereo input channel. The Track hides both and stops transmitting
+them on a mono one — hiding alone is insufficient, because a host
+automation lane keeps writing regardless of what the editor shows.
 
-- **Input Name** — `/wfs/input/name` — shown in plugin title bar
+### Read-only display state (via OSC Query)
+
+- **Channel identity** — the Master reads the app's input namespace
+  (`GET /wfs/input`, refetched on `PATH_CHANGED`) and forwards each
+  Track its channel's **name**, **type** (mono/stereo) and whether
+  the number exists at all. Shown under Input ID as
+  `#12 "Kick" (stereo)`, or `#7 - no such channel`.
+  The type is what gates the stereo image parameters above.
 - **Coordinate Mode** — `/wfs/input/coordinateMode` — informational
-  only; does not affect plugin behavior
+  only; does not affect plugin behavior. Not implemented.
+
+Input ID is the app's **permanent channel number**, not a position:
+deletions leave permanent gaps and reordering the app's channel list
+renumbers nothing. A Track therefore keeps pointing at the same
+channel across a reorder, and may legitimately point at a number that
+names nothing.
 
 ---
 
@@ -481,8 +501,10 @@ non-goals.
 - Automation curve translation between coordinate systems (VST3/AU
   APIs do not expose this; design works around the limitation via
   multi-variant stacking)
-- Auto-discovery of input channel additions/removals — manual
-  dual-side operation by design
+- Auto-*creation* of input channels from the plugin side — manual
+  dual-side operation by design. (The plugin does *read* the app's
+  channel list, so it can say what a number refers to and whether it
+  exists; it never creates, deletes or retypes a channel.)
 
 ---
 
@@ -513,6 +535,17 @@ non-goals.
 5. **Adding/removing input channels is dual-side manual.** Adding
    an input in WFS-DIY does not create a Track plugin. Adding a
    Track plugin does not create an input in WFS-DIY. Intentional.
+   The plugin reads the app's channel list for display and for
+   gating the stereo parameters, but Input ID stays a number the
+   operator types — there is no channel picker.
+
+6. **Channel name requires a current PluginBridge.** The name is the
+   only string on an otherwise all-double bridge interface, so it
+   travels over two entry points added after the fact. They are
+   optional resolves and the bridge ABI version is unchanged (an
+   exact-match check makes a bump reject old bridges outright rather
+   than degrade), so an older installed bridge yields no name while
+   everything else — including the mono/stereo gate — still works.
 
 ---
 

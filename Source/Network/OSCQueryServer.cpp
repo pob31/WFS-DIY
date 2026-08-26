@@ -454,6 +454,21 @@ void OSCQueryServer::timerCallback()
     if (!running.load() || !wsServer)
         return;
 
+    // Structure first, and before the pendingPushes early-return: a client that
+    // learns the namespace changed wants that news before the values that follow.
+    std::set<juce::String> structureToDrain;
+    {
+        const juce::ScopedLock sl(pendingPushLock);
+        structureToDrain.swap(pendingStructurePaths);
+    }
+    for (const auto& path : structureToDrain)
+    {
+        auto* cmd = new juce::DynamicObject();
+        cmd->setProperty("COMMAND", "PATH_CHANGED");
+        cmd->setProperty("DATA", path);
+        wsServer->send(juce::JSON::toString(juce::var(cmd), false));
+    }
+
     // Drain all pending pushes
     std::map<juce::String, PendingPush> toDrain;
     {
@@ -472,6 +487,20 @@ void OSCQueryServer::valueTreePropertyChanged(juce::ValueTree& tree,
 {
     if (!running.load() || !wsServer)
         return;
+
+    // A mono<->stereo flip changes no node's existence and no mapped parameter, so
+    // it would fall out at the reverse-map lookup below and reach nobody. It is a
+    // structural change all the same — /wfs/input/<n>/channelType is republished
+    // and the stereo image parameters start or stop applying to that channel — so
+    // it rides the same notification as an add, a remove or a drag-reorder. This is
+    // the network-side twin of the onChannelTypeChanged refresh the Stream Deck got.
+    // Deliberately ahead of the subscription check: channelType is read-only and so
+    // is never in `subscriptions`, and structure notifications are broadcast anyway.
+    if (property == WFSParameterIDs::inputChannelType)
+    {
+        queueStructureChange("/wfs/input");
+        return;
+    }
 
     // Quick check: any subscriptions at all?
     {
@@ -503,45 +532,38 @@ void OSCQueryServer::valueTreePropertyChanged(juce::ValueTree& tree,
     }
 }
 
-void OSCQueryServer::valueTreeChildAdded(juce::ValueTree& parent, juce::ValueTree& /*child*/)
+void OSCQueryServer::queueStructureChange(const juce::String& oscPath)
 {
-    if (!running.load() || !wsServer)
+    if (!running.load() || !wsServer || oscPath.isEmpty())
         return;
 
-    // Notify all WebSocket clients of structure change
-    juce::String parentType = parent.getType().toString();
-    juce::String pathChanged;
-    if (parentType == "Inputs")       pathChanged = "/wfs/input";
-    else if (parentType == "Outputs") pathChanged = "/wfs/output";
-    else if (parentType == "Reverbs") pathChanged = "/wfs/reverb";
+    // Coalesced onto the 30 ms flush rather than sent here, because every
+    // structural edit arrives one channel at a time: setInputChannelCounts is a
+    // loop over add/remove, and inputChannelType is written per channel by
+    // applyStereoSplit and by the inventory apply path. A client that refetches
+    // the namespace on this notification — which is the point of it — would
+    // otherwise pay one full fetch per channel on a count change or a config load.
+    const juce::ScopedLock sl(pendingPushLock);
+    pendingStructurePaths.insert(oscPath);
+}
 
-    if (pathChanged.isNotEmpty())
-    {
-        auto* cmd = new juce::DynamicObject();
-        cmd->setProperty("COMMAND", "PATH_CHANGED");
-        cmd->setProperty("DATA", pathChanged);
-        wsServer->send(juce::JSON::toString(juce::var(cmd), false));
-    }
+juce::String OSCQueryServer::structurePathForContainer(const juce::ValueTree& parent)
+{
+    const juce::String parentType = parent.getType().toString();
+    if (parentType == "Inputs")  return "/wfs/input";
+    if (parentType == "Outputs") return "/wfs/output";
+    if (parentType == "Reverbs") return "/wfs/reverb";
+    return {};
+}
+
+void OSCQueryServer::valueTreeChildAdded(juce::ValueTree& parent, juce::ValueTree& /*child*/)
+{
+    queueStructureChange(structurePathForContainer(parent));
 }
 
 void OSCQueryServer::valueTreeChildRemoved(juce::ValueTree& parent, juce::ValueTree& /*child*/, int /*index*/)
 {
-    if (!running.load() || !wsServer)
-        return;
-
-    juce::String parentType = parent.getType().toString();
-    juce::String pathChanged;
-    if (parentType == "Inputs")       pathChanged = "/wfs/input";
-    else if (parentType == "Outputs") pathChanged = "/wfs/output";
-    else if (parentType == "Reverbs") pathChanged = "/wfs/reverb";
-
-    if (pathChanged.isNotEmpty())
-    {
-        auto* cmd = new juce::DynamicObject();
-        cmd->setProperty("COMMAND", "PATH_CHANGED");
-        cmd->setProperty("DATA", pathChanged);
-        wsServer->send(juce::JSON::toString(juce::var(cmd), false));
-    }
+    queueStructureChange(structurePathForContainer(parent));
 }
 
 //==============================================================================
@@ -965,6 +987,23 @@ juce::DynamicObject* OSCQueryServer::buildInputChannelJson(int channelIndex)
             contents->setProperty(oscName, juce::var(makeParamNode(fullPath, typeTag, value, range.min, range.max, oscName)));
         else
             contents->setProperty(oscName, juce::var(makeParamNode(fullPath, typeTag, value, 0, 0, oscName)));
+    }
+
+    // channelType is NOT in getInputAddressMap and must not be: inputChannelType
+    // lives on the <Input> node itself, not in a subsection, so getParameter would
+    // return an empty var (getTreeForParameter's Input case only searches children),
+    // and a map entry would advertise a structural property as writable. Changing a
+    // channel's type resizes patch rows and render sources; it belongs to
+    // setInputChannelType, never to a parameter write. So it is published by hand,
+    // read-only, for surfaces that need to know whether the stereo image parameters
+    // apply to this channel at all.
+    {
+        auto* typeNode = makeParamNode(basePath + "/channelType", "s",
+                                       juce::var(state.isInputChannelStereo(channelIndex)
+                                                     ? "stereo" : "mono"),
+                                       0, 0, "channelType");
+        typeNode->setProperty("ACCESS", 1);   // read-only
+        contents->setProperty("channelType", juce::var(typeNode));
     }
 
     return channel;

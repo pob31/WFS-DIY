@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include <juce_simpleweb/juce_simpleweb.h>
 #include "../Parameters/WFSValueTreeState.h"
+#include <set>
 
 namespace WFSNetwork
 {
@@ -118,6 +119,13 @@ private:
     juce::CriticalSection pendingPushLock;
     void timerCallback() override;
 
+    // --- Structure notifications (PATH_CHANGED) ---
+    // Set, not queue: N edits to the same container collapse to one notification.
+    // Shares pendingPushLock with the value pushes — same flush, same 30 ms.
+    std::set<juce::String> pendingStructurePaths;
+    void queueStructureChange(const juce::String& oscPath);
+    static juce::String structurePathForContainer(const juce::ValueTree& parent);
+
     // --- Value Change Push ---
     void pushValueChange(const juce::String& oscPath, const juce::var& value,
                          const juce::String& skipIP, const juce::Identifier& paramId = {});
@@ -138,8 +146,7 @@ private:
     {
         // Drag-to-reorder moves an Input node — the namespace listing order
         // changed even though no node appeared or vanished.
-        juce::ValueTree dummy;
-        valueTreeChildAdded(parent, dummy);
+        queueStructureChange(structurePathForContainer(parent));
     }
     void valueTreeParentChanged(juce::ValueTree&) override {}
 

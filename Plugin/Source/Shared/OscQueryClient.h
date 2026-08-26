@@ -18,10 +18,17 @@ namespace wfs::plugin
         using OscCallback = std::function<void (const juce::String& /*oscPath*/,
                                                 float /*value*/)>;
 
+        /** Fired when the server reports that a container's contents changed
+            (OSCQuery PATH_CHANGED) — a channel added, removed, dragged to a new
+            display position, or retyped mono<->stereo. The path is the container,
+            e.g. "/wfs/input"; refetch it to see what it now holds. */
+        using StructureCallback = std::function<void (const juce::String& /*oscPath*/)>;
+
         OscQueryClient();
         ~OscQueryClient() override;
 
         void setOscCallback (OscCallback cb);
+        void setStructureCallback (StructureCallback cb);
 
         bool connect (const juce::String& host, int httpPort);
         void disconnect();
@@ -33,6 +40,11 @@ namespace wfs::plugin
             current value, fire the regular oscCallback with it. Useful to
             populate fresh state immediately after subscribe. */
         bool fetchCurrentValue (const juce::String& oscPath);
+
+        /** HTTP-GET a whole container and return its parsed OSCQuery JSON —
+            FULL_PATH/CONTENTS/VALUE and the rest. One request for a subtree, as
+            against fetchCurrentValue's one request per leaf. */
+        bool fetchNamespace (const juce::String& oscPath, juce::var& outJson);
 
         State         getState() const        { return state.load(); }
         juce::String  getLastHostInfo() const;
@@ -53,7 +65,8 @@ namespace wfs::plugin
         void setState (State s);
 
         std::atomic<State> state { State::Idle };
-        OscCallback   oscCallback;
+        OscCallback       oscCallback;
+        StructureCallback structureCallback;
 
         std::mutex lock;
         juce::String currentHost;

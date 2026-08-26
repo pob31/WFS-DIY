@@ -1,6 +1,8 @@
 #pragma once
 
 #include <atomic>
+#include <functional>
+#include <mutex>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "../Shared/BridgeLoader.h"
 #include "../Shared/VariantConfig.h"
@@ -32,7 +34,12 @@ namespace wfs::plugin
         float skewMidpoint;   // 0 = linear; only applied for float params
     };
 
-    const std::array<NonPositionParamSpec, 10>& getSharedTrackParams();
+    const std::array<NonPositionParamSpec, 12>& getSharedTrackParams();
+
+    /** The two stereo-image parameters, which apply only to a stereo input
+        channel. Named here so the editor and the outbound guard agree on the
+        set without either restating it. */
+    bool isStereoImageParam (const juce::String& paramID) noexcept;
 
     class TrackProcessor  : public juce::AudioProcessor,
                             private juce::AudioProcessorValueTreeState::Listener
@@ -68,6 +75,20 @@ namespace wfs::plugin
 
         int  getInputId() const;
         int  getAttenuationLaw() const;
+
+        // --- What the app says about the channel this Track is pointed at ---
+        // A permanent channel number is not an index: it may name a channel that
+        // was deleted (a gap), and whether it is mono or stereo is the app's to
+        // say. All three start "unknown" and stay that way until the Master has
+        // actually read the app's channel list.
+        enum class ChannelPresence { Unknown, Missing, Present };
+        ChannelPresence getChannelPresence() const noexcept;
+        bool         isChannelStereo() const noexcept  { return channelIsStereo.load(); }
+        juce::String getChannelName() const;
+
+        /** Fired on the message thread when presence, type or name changed, so an
+            open editor can re-gate its controls. */
+        std::function<void()> onChannelInfoChanged;
 
         const DiagnosticLog& getDiagnosticLog() const noexcept { return diagLog; }
         static juce::String  getBuildStamp();
@@ -114,14 +135,25 @@ namespace wfs::plugin
         void parameterChanged (const juce::String& paramID, float newValue) override;
 
         static void inboundCallback (void* user, const char* oscPath, int channelId, double value);
+        static void inboundTextCallback (void* user, const char* oscPath, int channelId, const char* text);
         juce::AudioProcessorValueTreeState::ParameterLayout buildLayout() const;
+
+        void resetChannelInfo();
+        void notifyChannelInfoChanged();
 
         VariantConfig variant;
         juce::AudioProcessorValueTreeState state;
         WfsBridgeTrackHandle* bridgeHandle = nullptr;
         std::atomic<bool> isApplyingRemoteChange { false };
+
+        std::atomic<int>  channelPresence { 0 };   // 0 unknown, 1 missing, 2 present
+        std::atomic<bool> channelIsStereo { false };
+        mutable std::mutex channelNameLock;
+        juce::String       channelName;
+
         DiagnosticLog diagLog;
 
+        JUCE_DECLARE_WEAK_REFERENCEABLE (TrackProcessor)
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TrackProcessor)
     };
 }

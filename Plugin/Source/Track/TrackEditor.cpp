@@ -46,7 +46,7 @@ namespace wfs::plugin
         setLookAndFeel (&lookAndFeel);
         logoImage = juce::ImageCache::getFromMemory (BinaryData::WFSDIY_logo_png,
                                                      BinaryData::WFSDIY_logo_pngSize);
-        setSize (500, 774);
+        setSize (500, kBaseHeight);
 
         // Title
         titleLabel.setText ("WFS-DIY Track", juce::dontSendNotification);
@@ -61,7 +61,7 @@ namespace wfs::plugin
         addAndMakeVisible (variantLabel);
 
         // Section headers
-        for (auto* h : { &channelHeader, &positionHeader, &dirHeader, &lfoHeader })
+        for (auto* h : { &channelHeader, &stereoHeader, &positionHeader, &dirHeader, &lfoHeader })
         {
             styleSectionHeader (*h);
             addAndMakeVisible (*h);
@@ -76,6 +76,10 @@ namespace wfs::plugin
         addAndMakeVisible (inputIdSlider);
         inputIdAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
             p.getState(), "inputId", inputIdSlider);
+
+        channelInfoLabel.setJustificationType (juce::Justification::centredLeft);
+        channelInfoLabel.setFont (juce::FontOptions (12.0f));
+        addAndMakeVisible (channelInfoLabel);
 
         setupRowLabel (attenuationLabel, "Attenuation");
         setupValueLabel (attenuationValueLabel);
@@ -196,6 +200,21 @@ namespace wfs::plugin
         if (auto* param = p.getState().getParameter ("hfShelf"))
             hfShelfAttachment = std::make_unique<WfsSliderNormalisedAttachment> (*param, hfShelfSlider);
 
+        // ── Stereo Image ────────────────────────────────────────────────
+        setupRowLabel   (stereoWidthLabel, "Width");
+        setupValueLabel (stereoWidthValueLabel);
+        stereoWidthSlider.setTrackColours (juce::Colour (DarkPalette::sliderTrackBg),
+                                           juce::Colour (DarkPalette::accentBlueBright));
+        addAndMakeVisible (stereoWidthSlider);
+        if (auto* param = p.getState().getParameter ("stereoWidth"))
+            stereoWidthAttachment = std::make_unique<WfsSliderNormalisedAttachment> (*param, stereoWidthSlider);
+
+        setupRowLabel   (stereoAxisLabel, "Axis");
+        setupValueLabel (stereoAxisValueLabel);
+        addAndMakeVisible (stereoAxisDial);
+        if (auto* param = p.getState().getParameter ("stereoAxisOffset"))
+            stereoAxisAttachment = std::make_unique<WfsRotationDialAttachment> (*param, stereoAxisDial);
+
         // ── LFO ─────────────────────────────────────────────────────────
         setupRowLabel (lfoActiveLabel, "Active");
         lfoActiveButton.setButtonText ("");
@@ -232,6 +251,9 @@ namespace wfs::plugin
                         [] (float v) { return juce::String (v, 2) + " x"; });
         wireValueLabel ("commonAtten",         commonAttenValueLabel,
                         [] (float v) { return juce::String (juce::roundToInt (v)) + " %"; });
+        wireValueLabel ("stereoWidth",         stereoWidthValueLabel,
+                        [] (float v) { return juce::String (v, 2) + " m"; });
+        wireValueLabel ("stereoAxisOffset",    stereoAxisValueLabel,          formatDegreesInt);
 
         // Make the value labels editable: double-click to type a value,
         // Enter to commit. Parses out any unit suffix (" dB", "°", etc.).
@@ -266,6 +288,8 @@ namespace wfs::plugin
         wireEditable (distanceAttenuationValueLabel, "distanceAttenuation");
         wireEditable (distanceRatioValueLabel,       "distanceRatio");
         wireEditable (commonAttenValueLabel,         "commonAtten");
+        wireEditable (stereoWidthValueLabel,         "stereoWidth");
+        wireEditable (stereoAxisValueLabel,          "stereoAxisOffset");
 
         buildLabel.setText ("Build: " + TrackProcessor::getBuildStamp(), juce::dontSendNotification);
         buildLabel.setFont (juce::FontOptions (11.0f));
@@ -274,11 +298,79 @@ namespace wfs::plugin
 
         statusLog = std::make_unique<StatusLogView> (p.getDiagnosticLog());
         addAndMakeVisible (*statusLog);
+
+        processor.onChannelInfoChanged = [this] { refreshChannelInfo(); };
+        refreshChannelInfo();
     }
 
     TrackEditor::~TrackEditor()
     {
+        processor.onChannelInfoChanged = nullptr;
         setLookAndFeel (nullptr);
+    }
+
+    void TrackEditor::refreshChannelInfo()
+    {
+        const auto presence = processor.getChannelPresence();
+        const bool stereo   = processor.isChannelStereo();
+        const auto name     = processor.getChannelName();
+        const int  id       = processor.getInputId();
+
+        // Same shape the app uses everywhere for a channel: number first, because
+        // the number is the address; name quoted, because a default name carries a
+        // per-type ordinal that is not the number.
+        juce::String text;
+        juce::Colour colour { DarkPalette::textSecondary };
+        switch (presence)
+        {
+            case TrackProcessor::ChannelPresence::Present:
+                text = "#" + juce::String (id);
+                if (name.isNotEmpty())
+                    text += " \"" + name + "\"";
+                text += stereo ? " (stereo)" : " (mono)";
+                colour = juce::Colour (DarkPalette::textSecondary);
+                break;
+
+            case TrackProcessor::ChannelPresence::Missing:
+                // Channel numbers are permanent and deletions leave gaps, so a
+                // number that names nothing is an ordinary state, not a typo. The
+                // app drops writes to it silently; say so here instead.
+                text = "#" + juce::String (id) + " - no such channel";
+                colour = juce::Colour (DarkPalette::accentRed).brighter (0.6f);
+                break;
+
+            case TrackProcessor::ChannelPresence::Unknown:
+            default:
+                // Not connected, or connected and not yet told. Claiming the
+                // channel is missing would be a guess.
+                text = {};
+                break;
+        }
+        channelInfoLabel.setText (text, juce::dontSendNotification);
+        channelInfoLabel.setColour (juce::Label::textColourId, colour);
+
+        // The stereo image exists only on a stereo channel, so on a mono one the
+        // section is not merely disabled but absent — and the editor shrinks back,
+        // rather than every mono user carrying 146 px of dead space. The outbound
+        // guard in the processor is what actually protects a retyped channel; this
+        // is only what the operator sees.
+        const bool wantStereo = (presence == TrackProcessor::ChannelPresence::Present) && stereo;
+        for (auto* c : { (juce::Component*) &stereoHeader,
+                         (juce::Component*) &stereoWidthLabel,
+                         (juce::Component*) &stereoWidthValueLabel,
+                         (juce::Component*) &stereoWidthSlider,
+                         (juce::Component*) &stereoAxisLabel,
+                         (juce::Component*) &stereoAxisValueLabel,
+                         (juce::Component*) &stereoAxisDial })
+            c->setVisible (wantStereo);
+
+        if (wantStereo != stereoSectionVisible)
+        {
+            stereoSectionVisible = wantStereo;
+            setSize (getWidth(), kBaseHeight + (wantStereo ? kStereoSectionHeight : 0));
+        }
+        resized();
+        repaint();
     }
 
     void TrackEditor::paint (juce::Graphics& g)
@@ -368,6 +460,12 @@ namespace wfs::plugin
         // ── Channel ───────────────────────────────
         layoutSectionHeader (channelHeader, area);
         layoutLabelControl        (inputIdLabel, inputIdSlider);
+        {
+            auto r = area.removeFromTop (24);
+            r.removeFromLeft (labelWidth);
+            channelInfoLabel.setBounds (r.reduced (2, 0));
+            area.removeFromTop (4);
+        }
         layoutLabelSliderValue    (attenuationLabel, attenuationSlider, attenuationValueLabel);
         layoutLabelControl        (attenuationLawLabel, attenuationLawCombo);
         if (distanceAttenuationSlider.isVisible())
@@ -380,6 +478,23 @@ namespace wfs::plugin
                                     distanceRatioValueLabel);
         layoutLabelSliderValue (commonAttenLabel, commonAttenSlider, commonAttenValueLabel);
         area.removeFromTop (6);
+
+        // ── Stereo Image ──────────────────────────
+        // Laid out only when the app says this channel is stereo; the editor is
+        // sized to match, so the section costs a mono channel nothing.
+        if (stereoSectionVisible)
+        {
+            layoutSectionHeader (stereoHeader, area);
+            layoutLabelSliderValue (stereoWidthLabel, stereoWidthSlider, stereoWidthValueLabel);
+            {
+                auto r = area.removeFromTop (72);
+                stereoAxisLabel.setBounds      (r.removeFromLeft  (labelWidth));
+                stereoAxisValueLabel.setBounds (r.removeFromRight (valueWidth));
+                stereoAxisDial.setBounds       (r.withSizeKeepingCentre (juce::jmin (r.getWidth(), 64), 64));
+                area.removeFromTop (rowSpacing);
+            }
+            area.removeFromTop (6);
+        }
 
         // ── Position ──────────────────────────────
         layoutSectionHeader (positionHeader, area);

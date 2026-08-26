@@ -46,6 +46,15 @@ extern "C" {
                                          int channelId,
                                          double v1, double v2, double v3);
 
+    // Text inbound variant. Everything else on this bridge is a double, which is
+    // enough for every automatable parameter; the app's channel NAME is not one of
+    // those — it is display state a Track shows next to its Input ID so an operator
+    // can tell which channel a permanent number now refers to.
+    typedef void (*WfsBridgeInboundTextFn)(void* trackUser,
+                                           const char* oscPath,
+                                           int channelId,
+                                           const char* text);
+
     WFS_BRIDGE_API int                     wfs_bridge_abi_version();
 
     WFS_BRIDGE_API WfsBridgeMasterHandle*  wfs_bridge_master_register (void* user,
@@ -85,9 +94,22 @@ extern "C" {
     WFS_BRIDGE_API void                    wfs_bridge_track_send_outbound_3f (WfsBridgeTrackHandle* handle,
                                                                                const char* oscPath,
                                                                                double v1, double v2, double v3);
+
+    // -- Text variant (channel name) --
+    WFS_BRIDGE_API void                    wfs_bridge_master_dispatch_inbound_text (WfsBridgeMasterHandle* handle,
+                                                                                     int inputId,
+                                                                                     const char* oscPath,
+                                                                                     const char* text);
+    WFS_BRIDGE_API void                    wfs_bridge_track_set_inbound_text (WfsBridgeTrackHandle* handle,
+                                                                               WfsBridgeInboundTextFn onInboundText);
 }
 
 namespace wfs::plugin
 {
+    // Still 1, and deliberately. BridgeLoader requires an EXACT match, so a bump
+    // would reject every previously installed bridge outright rather than degrade.
+    // Purely additive symbols are resolved optionally instead — the pattern the ADM
+    // 3f entry points already established. Bump this only if an existing signature
+    // or the meaning of an existing call changes.
     static constexpr int kBridgeAbiVersion = 1;
 }

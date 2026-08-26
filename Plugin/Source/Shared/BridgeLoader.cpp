@@ -120,6 +120,8 @@ namespace wfs::plugin
         WFS_RESOLVE_OPTIONAL ("wfs_bridge_master_dispatch_inbound_3f", masterDispatch3f)
         WFS_RESOLVE_OPTIONAL ("wfs_bridge_track_set_inbound_3f",       trackSetInbound3f)
         WFS_RESOLVE_OPTIONAL ("wfs_bridge_track_send_outbound_3f",     trackSendOutbound3f)
+        WFS_RESOLVE_OPTIONAL ("wfs_bridge_master_dispatch_inbound_text", masterDispatchText)
+        WFS_RESOLVE_OPTIONAL ("wfs_bridge_track_set_inbound_text",       trackSetInboundText)
        #undef WFS_RESOLVE
        #undef WFS_RESOLVE_OPTIONAL
 

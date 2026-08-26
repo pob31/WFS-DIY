@@ -37,6 +37,7 @@ namespace wfs::plugin
 
         // Section headers
         juce::Label channelHeader  { {}, "Channel" };
+        juce::Label stereoHeader   { {}, "Stereo Image" };
         juce::Label positionHeader { {}, "Position" };
         juce::Label dirHeader      { {}, "Directivity" };
         juce::Label lfoHeader      { {}, "LFO" };
@@ -45,6 +46,11 @@ namespace wfs::plugin
         juce::Label  inputIdLabel;
         juce::Slider inputIdSlider;
         std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> inputIdAttachment;
+
+        // What the app says the Input ID above currently refers to. A permanent
+        // channel number is not a position, so the number alone does not identify
+        // a channel to an operator once the list has been reordered.
+        juce::Label channelInfoLabel;
 
         juce::Label         attenuationLabel;
         juce::Label         attenuationValueLabel;
@@ -71,6 +77,28 @@ namespace wfs::plugin
         juce::Label         commonAttenValueLabel;
         WfsStandardSlider   commonAttenSlider { WfsSliderBase::Orientation::horizontal };
         std::unique_ptr<WfsSliderNormalisedAttachment> commonAttenAttachment;
+
+        // Stereo image — only meaningful on a stereo input channel.
+        juce::Label         stereoWidthLabel;
+        juce::Label         stereoWidthValueLabel;
+        WfsStandardSlider   stereoWidthSlider { WfsSliderBase::Orientation::horizontal };
+        std::unique_ptr<WfsSliderNormalisedAttachment> stereoWidthAttachment;
+
+        juce::Label         stereoAxisLabel;
+        juce::Label         stereoAxisValueLabel;
+        WfsRotationDial     stereoAxisDial;
+        std::unique_ptr<WfsRotationDialAttachment> stereoAxisAttachment;
+
+        // Applies what the processor last heard from the app: the identity line,
+        // and whether the stereo section is shown at all.
+        void refreshChannelInfo();
+        bool stereoSectionVisible = false;
+
+        // 774 as it always was, plus one 24 px identity line under Input ID.
+        static constexpr int kBaseHeight = 774 + 28;
+        // Section header (24 + 6), width row (30 + 4), axis dial row (72 + 4),
+        // trailing gap (6) — the same metrics resized() lays the section out with.
+        static constexpr int kStereoSectionHeight = 146;
 
         // Position: X/Y/Z number boxes
         struct NumberBoxRow

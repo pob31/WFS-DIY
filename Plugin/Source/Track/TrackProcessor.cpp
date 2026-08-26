@@ -16,9 +16,14 @@ namespace wfs::plugin
         return juce::String (__DATE__) + " " + juce::String (__TIME__);
     }
 
-    const std::array<NonPositionParamSpec, 10>& getSharedTrackParams()
+    bool isStereoImageParam (const juce::String& paramID) noexcept
     {
-        static const std::array<NonPositionParamSpec, 10> params = {{
+        return paramID == "stereoWidth" || paramID == "stereoAxisOffset";
+    }
+
+    const std::array<NonPositionParamSpec, 12>& getSharedTrackParams()
+    {
+        static const std::array<NonPositionParamSpec, 12> params = {{
             { "attenuation",         "Attenuation",         "/wfs/input/attenuation",         false, -92.0f,   0.0f,   0.0f, "dB",
               TrackWidget::LogSlider,       -12.0f },
             { "attenuationLaw",      "Attenuation Law",     "/wfs/input/attenuationLaw",      true,    0.0f,   1.0f,   0.0f, "",
@@ -38,7 +43,16 @@ namespace wfs::plugin
             { "hfShelf",             "HF Shelf",            "/wfs/input/HFshelf",             false,  -24.0f,   0.0f,  -6.0f, "dB",
               TrackWidget::LogSlider,        -6.0f },
             { "lfoActive",           "LFO Active",          "/wfs/input/LFOactive",           true,     0.0f,   1.0f,   0.0f, "",
-              TrackWidget::Toggle,            0.0f }
+              TrackWidget::Toggle,            0.0f },
+            // Stereo image — live only on a stereo input channel. Width is the full
+            // L-to-R distance in METRES (the app dropped the old 0-100% law, which
+            // was a fraction of the array's X extent); the skew midpoint puts the
+            // 4 m default mid-travel and approximates the app knob's cubic taper.
+            { "stereoWidth",         "Stereo Width",        "/wfs/input/stereoWidth",         false,   0.0f,  50.0f,   4.0f, "m",
+              TrackWidget::LinearSlider,      4.0f },
+            // Same range and shape as Rotation above, so it gets the same dial.
+            { "stereoAxisOffset",    "Stereo Axis",         "/wfs/input/stereoAxisOffset",    true,  -179.0f, 180.0f,   0.0f, juce::CharPointer_UTF8 ("\xc2\xb0"),
+              TrackWidget::RotaryDial,        0.0f }
         }};
         return params;
     }
@@ -144,6 +158,8 @@ namespace wfs::plugin
                                                  &inboundCallback);
             if (bridgeHandle != nullptr && loader.trackSetInbound3f != nullptr)
                 loader.trackSetInbound3f (bridgeHandle, &inbound3fCallback);
+            if (bridgeHandle != nullptr && loader.trackSetInboundText != nullptr)
+                loader.trackSetInboundText (bridgeHandle, &inboundTextCallback);
         }
     }
 
@@ -435,6 +451,11 @@ namespace wfs::plugin
                 loader.trackUnregister (bridgeHandle);
                 bridgeHandle = nullptr;
             }
+            // Everything we knew described the old number. Clear before
+            // re-registering, so a stale name or type cannot be read as
+            // describing the channel we are about to point at.
+            resetChannelInfo();
+
             const int newId = static_cast<int> (std::round (newValue));
             bridgeHandle = loader.trackRegister (newId,
                                                  variant.coordinateTag.toRawUTF8(),
@@ -442,6 +463,8 @@ namespace wfs::plugin
                                                  &inboundCallback);
             if (bridgeHandle != nullptr && loader.trackSetInbound3f != nullptr)
                 loader.trackSetInbound3f (bridgeHandle, &inbound3fCallback);
+            if (bridgeHandle != nullptr && loader.trackSetInboundText != nullptr)
+                loader.trackSetInboundText (bridgeHandle, &inboundTextCallback);
             return;
         }
 
@@ -465,6 +488,15 @@ namespace wfs::plugin
         if (paramID == "distanceAttenuation" && getAttenuationLaw() != 0)
             return;
         if (paramID == "distanceRatio" && getAttenuationLaw() != 1)
+            return;
+
+        // The stereo image does not exist on a mono channel, and writing it there
+        // is not merely useless: the app would store width and axis on a <Input>
+        // node that has no stereo legs, which is the defect the Stream Deck hit
+        // when a displayed channel was retyped underneath it. Greying the control
+        // is not enough on its own — a host automation lane keeps writing whatever
+        // the editor looks like — so the guard lives here, on the send.
+        if (isStereoImageParam (paramID) && ! channelIsStereo.load())
             return;
 
         for (const auto& spec : getSharedTrackParams())
@@ -527,6 +559,23 @@ namespace wfs::plugin
         auto* self = static_cast<TrackProcessor*> (user);
         const auto path = juce::String::fromUTF8 (oscPath);
 
+        // Not parameters and never automatable: these are the Master telling us
+        // what the app's channel list says about the number we point at. They are
+        // synthetic paths on the existing dispatch rather than new bridge entry
+        // points, because the Track already routes purely on the address suffix.
+        if (path == "/wfs/input/channelExists")
+        {
+            self->channelPresence.store (value != 0.0 ? 2 : 1);
+            self->notifyChannelInfoChanged();
+            return;
+        }
+        if (path == "/wfs/input/channelType")
+        {
+            self->channelIsStereo.store (value != 0.0);
+            self->notifyChannelInfoChanged();
+            return;
+        }
+
         auto applyParam = [self] (const juce::String& paramID, double value)
         {
             if (auto* param = self->state.getParameter (paramID))
@@ -565,5 +614,64 @@ namespace wfs::plugin
             if (path == "/wfs/input/positionY") { updateAxis (self->cachedY, value); return; }
             if (path == "/wfs/input/positionZ") { updateAxis (self->cachedZ, value); return; }
         }
+    }
+
+    void TrackProcessor::inboundTextCallback (void* user, const char* oscPath,
+                                              int /*channelId*/, const char* text)
+    {
+        if (user == nullptr)
+            return;
+        auto* self = static_cast<TrackProcessor*> (user);
+
+        if (juce::String::fromUTF8 (oscPath) != "/wfs/input/name")
+            return;
+
+        {
+            // Copied here and now: the pointer belongs to the caller's frame.
+            std::lock_guard<std::mutex> sl (self->channelNameLock);
+            self->channelName = juce::String::fromUTF8 (text != nullptr ? text : "");
+        }
+        self->notifyChannelInfoChanged();
+    }
+
+    TrackProcessor::ChannelPresence TrackProcessor::getChannelPresence() const noexcept
+    {
+        switch (channelPresence.load())
+        {
+            case 1:  return ChannelPresence::Missing;
+            case 2:  return ChannelPresence::Present;
+            default: return ChannelPresence::Unknown;
+        }
+    }
+
+    juce::String TrackProcessor::getChannelName() const
+    {
+        std::lock_guard<std::mutex> sl (channelNameLock);
+        return channelName;
+    }
+
+    void TrackProcessor::resetChannelInfo()
+    {
+        // Called when the Input ID changes or the Track unregisters: what we knew
+        // described the OLD number and says nothing about the new one. Back to
+        // Unknown rather than to Missing — we have not been told it is absent.
+        channelPresence.store (0);
+        channelIsStereo.store (false);
+        {
+            std::lock_guard<std::mutex> sl (channelNameLock);
+            channelName = {};
+        }
+        notifyChannelInfoChanged();
+    }
+
+    void TrackProcessor::notifyChannelInfoChanged()
+    {
+        // Bridge dispatches arrive on whichever thread the Master's OSCQuery
+        // client is using; the editor must be touched on the message thread.
+        juce::MessageManager::callAsync ([safe = juce::WeakReference<TrackProcessor> (this)]
+        {
+            if (safe != nullptr && safe->onChannelInfoChanged)
+                safe->onChannelInfoChanged();
+        });
     }
 }

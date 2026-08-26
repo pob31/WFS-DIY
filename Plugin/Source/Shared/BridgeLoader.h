@@ -18,6 +18,8 @@ namespace wfs::plugin
         decltype(&wfs_bridge_master_unregister)          masterUnregister    = nullptr;
         decltype(&wfs_bridge_master_dispatch_inbound)    masterDispatch      = nullptr;
         decltype(&wfs_bridge_master_snapshot_input_ids)  masterSnapshotIds   = nullptr;
+        decltype(&wfs_bridge_master_dispatch_inbound_text) masterDispatchText = nullptr;
+        decltype(&wfs_bridge_track_set_inbound_text)     trackSetInboundText = nullptr;
         decltype(&wfs_bridge_track_register)             trackRegister       = nullptr;
         decltype(&wfs_bridge_track_unregister)           trackUnregister     = nullptr;
         decltype(&wfs_bridge_track_send_outbound)        trackSendOutbound   = nullptr;

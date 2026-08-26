@@ -11,6 +11,8 @@ namespace wfs::plugin
 
     void OscQueryClient::setOscCallback (OscCallback cb) { oscCallback = std::move (cb); }
 
+    void OscQueryClient::setStructureCallback (StructureCallback cb) { structureCallback = std::move (cb); }
+
     juce::String OscQueryClient::getLastHostInfo() const
     {
         return cachedHostInfo;
@@ -203,6 +205,16 @@ namespace wfs::plugin
         return true;
     }
 
+    bool OscQueryClient::fetchNamespace (const juce::String& oscPath, juce::var& outJson)
+    {
+        juce::String body;
+        if (! httpGet (oscPath, body))
+            return false;
+
+        outJson = juce::JSON::parse (body);
+        return outJson.isObject();
+    }
+
     void OscQueryClient::connectionOpened()
     {
         setState (State::Ready);
@@ -221,9 +233,20 @@ namespace wfs::plugin
             fetchCurrentValue (path);
     }
 
-    void OscQueryClient::messageReceived (const juce::String& /*message*/)
+    void OscQueryClient::messageReceived (const juce::String& message)
     {
-        // Server may send status JSON on the WebSocket; currently unused.
+        // The only JSON command the server sends us is PATH_CHANGED. Anything
+        // else on this socket is status chatter and is ignored, as it always was.
+        const auto parsed = juce::JSON::parse (message);
+        if (! parsed.isObject())
+            return;
+
+        if (parsed.getProperty ("COMMAND", juce::var()).toString() != "PATH_CHANGED")
+            return;
+
+        const auto path = parsed.getProperty ("DATA", juce::var()).toString();
+        if (path.isNotEmpty() && structureCallback)
+            structureCallback (path);
     }
 
     void OscQueryClient::dataReceived (const juce::MemoryBlock& data)
