@@ -2240,6 +2240,7 @@
       "buttons": {
         "minimalDelay": "Minimal\nDelay",
         "attenuationLaw": "Attenuation\nLaw",
+        "stereoParameters": "Stereo\nParameters",
         "constraint": "Constraint",
         "flip": "Flip",
         "constraintX": "Constraint X",
@@ -2276,6 +2277,8 @@
         "distanceAttenuation": "Distance\nAttenuation",
         "ratio": "Ratio",
         "commonAttenuation": "Common\nAttenuation",
+        "stereoWidth": "Stereo\nWidth",
+        "stereoAxis": "Stereo\nAxis",
         "directivity": "Directivity",
         "rotation": "Rotation",
         "tilt": "Tilt",

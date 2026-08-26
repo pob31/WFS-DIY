@@ -965,6 +965,7 @@ MainComponent::MainComponent()
     {
         auto& vts = parameters.getValueTreeState();
         auto flipModeState    = std::make_shared<bool> (false);
+        auto stereoParamsState = std::make_shared<bool> (false);
         auto lfoSubModeState  = std::make_shared<int> (0);
         auto outputEqBandState = std::make_shared<int> (0);
 
@@ -993,7 +994,7 @@ MainComponent::MainComponent()
             {
                 streamDeckManager->registerPage (
                     InputsTabPages::INPUTS_MAIN_TAB_INDEX, subTab,
-                    InputsTabPages::createPage (subTab, vts, parameters.getClusterEdit(), 0, flipModeState, lfoSubModeState, movCB));
+                    InputsTabPages::createPage (subTab, vts, parameters.getClusterEdit(), 0, flipModeState, stereoParamsState, lfoSubModeState, movCB));
             }
         }
 
@@ -1321,7 +1322,7 @@ MainComponent::MainComponent()
         };
 
         // Set page rebuild callback for channel changes and binding swaps
-        streamDeckManager->onPageNeedsRebuild = [this, flipModeState, lfoSubModeState, movCB, outputEqBandState, onEqBandSelectedGui, netCB, sysCB, mapCB, mapQ, mapPosOffsetMode, reverbPreEqBandState, reverbPreDynMode, reverbPostEqBandState, reverbPostDynMode, reverbSoloState, reverbMutePreState, reverbMutePostState, reverbEditOnMapState, reverbAlgoSubMode, reverbIRDuration, onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD, clusterLfoSubMode, presetCol, presetRow, clusterCB](int mainTab, int subTab, int channel)
+        streamDeckManager->onPageNeedsRebuild = [this, flipModeState, stereoParamsState, lfoSubModeState, movCB, outputEqBandState, onEqBandSelectedGui, netCB, sysCB, mapCB, mapQ, mapPosOffsetMode, reverbPreEqBandState, reverbPreDynMode, reverbPostEqBandState, reverbPostDynMode, reverbSoloState, reverbMutePreState, reverbMutePostState, reverbEditOnMapState, reverbAlgoSubMode, reverbIRDuration, onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD, clusterLfoSubMode, presetCol, presetRow, clusterCB](int mainTab, int subTab, int channel)
         {
             if (mainTab == InputsTabPages::INPUTS_MAIN_TAB_INDEX)
             {
@@ -1347,7 +1348,7 @@ MainComponent::MainComponent()
                     if (inputSlot < 0)
                         return;
                     streamDeckManager->registerPage (mainTab, subTab,
-                        InputsTabPages::createPage (subTab, vts, parameters.getClusterEdit(), inputSlot, flipModeState, lfoSubModeState, movCB));
+                        InputsTabPages::createPage (subTab, vts, parameters.getClusterEdit(), inputSlot, flipModeState, stereoParamsState, lfoSubModeState, movCB));
                 }
             }
             else if (mainTab == OutputsTabPages::OUTPUTS_MAIN_TAB_INDEX)
@@ -2164,6 +2165,22 @@ MainComponent::MainComponent()
     {
         if (streamDeckManager)
             streamDeckManager->setSubTab (subTabIndex);
+    };
+
+    // A channel retyped mono <-> stereo in place: setChannel() early-returns when
+    // the selected number has not moved, so nothing else rebuilds the Stream Deck
+    // page -- and its Inputs > Parameters dials bind different parameters either
+    // side of the split. Guarded three ways because inputChannelType is written one
+    // channel at a time in a loop (applyStereoSplit, the inventory apply path): only
+    // the channel actually on the surface refreshes, and never while the Patch
+    // window owns it, since refreshCurrentPage() short-circuits to the override page.
+    inputsTab->onChannelTypeChanged = [this](int changedChannelNumber)
+    {
+        if (streamDeckManager
+            && ! streamDeckManager->hasOverride()
+            && streamDeckManager->getCurrentMainTab() == InputsTabPages::INPUTS_MAIN_TAB_INDEX
+            && streamDeckManager->getChannel() == changedChannelNumber)
+            streamDeckManager->refreshCurrentPage();
     };
 
     // Sync StreamDeck to InputsTab's initial channel (1-indexed)

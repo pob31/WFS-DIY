@@ -656,6 +656,17 @@ public:
         channel inventory - onConfigReloaded does not. */
     std::function<void()> onStructureChanged;
 
+    /** Fired when any channel's mono/stereo type changed, carrying that channel's
+        permanent NUMBER. Wired by MainComponent to refresh the Stream Deck, whose
+        Inputs page binds different dials either side of the split and whose
+        setChannel() early-returns when the selected number has not moved -- so a
+        retype in place would otherwise leave dials bound to the stereo parameters
+        of a channel that is now mono. The number lets the consumer ignore the
+        channels it is not showing: the property is written one channel at a time
+        in a loop, so an unfiltered refresh would rebuild the page once per channel
+        on a stereo-count change or a config load. */
+    std::function<void(int changedChannelNumber)> onChannelTypeChanged;
+
     /** Fired after any snapshot is created, updated, deleted, or has its scope
         rewritten -- the MIDI binding index rebuilds from this. */
     std::function<void()> onSnapshotsChanged;
@@ -7905,10 +7916,18 @@ private:
         // controls and the sub-tab set.
         if (property == WFSParameterIDs::inputChannelType)
         {
-            juce::MessageManager::callAsync([this]()
+            // Captured before the async hop: `tree` is the <Input> node that
+            // changed, and by the time the lambda runs the slot it sits at may
+            // have moved.
+            const int changedNumber = static_cast<int> (tree.getProperty (WFSParameterIDs::id, 0));
+
+            juce::MessageManager::callAsync([this, changedNumber]()
             {
                 updateStereoControls();
                 updateSubTabSet();
+
+                if (onChannelTypeChanged && changedNumber > 0)
+                    onChannelTypeChanged (changedNumber);
             });
         }
 

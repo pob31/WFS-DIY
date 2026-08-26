@@ -139,7 +139,8 @@ inline DialBinding makeIntDial (const juce::String& name,
 inline StreamDeckPage createInputParametersPage (WFSValueTreeState& state,
                                                   ClusterParamEdit& clusterEdit,
                                                   int ch,
-                                                  std::shared_ptr<bool> flipMode)
+                                                  std::shared_ptr<bool> flipMode,
+                                                  std::shared_ptr<bool> stereoParamsMode)
 {
     using namespace WFSParameterIDs;
     using namespace WFSParameterDefaults;
@@ -152,16 +153,47 @@ inline StreamDeckPage createInputParametersPage (WFSValueTreeState& state,
         sec.sectionName = LOC ("streamDeck.inputs.sections.attenuationAndDelay");
         sec.sectionColour = juce::Colour (0xFF4A90D9);  // Blue
 
-        // Bottom buttons: [empty] | Minimal Delay | Atten Law | [empty]
+        // `ch` is a 0-based SLOT here (the number -> slot conversion happens in
+        // MainComponent's onPageNeedsRebuild), which is what this takes.
+        const bool isStereo   = state.isInputChannelStereo (ch);
+        const bool showStereo = isStereo && stereoParamsMode && *stereoParamsMode;
+
+        // Bottom buttons: [empty] | Minimal Delay | Atten Law | Stereo Params (stereo pairs only)
         sec.buttons[1] = makeToggleButton (LOC ("streamDeck.inputs.buttons.minimalDelay"),
                                             juce::Colour (0xFF3A3A3A), juce::Colour (0xFF4A90D9),
                                             state, clusterEdit, ch, inputMinimalLatency);
 
+        // Stays live while Stereo Parameters is on, even though dial 2 is then
+        // showing Stereo Width rather than the law's own parameter: hiding a real
+        // parameter behind a display mode would be worse than a momentarily
+        // opaque key.
         sec.buttons[2] = makeToggleButton (LOC ("streamDeck.inputs.buttons.attenuationLaw"),
                                             juce::Colour (0xFF3A3A3A), juce::Colour (0xFFC9A94E),
                                             state, clusterEdit, ch, inputAttenuationLaw, true);  // rebuilds page
 
-        // Dials: Attenuation | Delay/Latency | DistAtten or Ratio | Common Atten
+        // Stereo Parameters: a display mode, not a parameter, so it is written
+        // inline rather than through makeToggleButton. Left unset on mono, where
+        // an unfilled ButtonBinding is inert on every path (isValid() false: the
+        // key paints flat black, presses early-return, the refresh poll skips it)
+        // -- so a mono channel's layout is exactly what it was before.
+        if (isStereo)
+        {
+            auto& btn = sec.buttons[3];
+            btn.label = LOC ("streamDeck.inputs.buttons.stereoParameters");
+            btn.colour = juce::Colour (0xFF3A3A3A);
+            btn.activeColour = juce::Colour (0xFF4A90D9);  // Blue, as the GUI stereo dials
+            btn.type = ButtonBinding::Toggle;
+            btn.requestsPageRebuild = true;
+
+            btn.getState = [stereoParamsMode]() { return stereoParamsMode && *stereoParamsMode; };
+            btn.onPress = [stereoParamsMode]()
+            {
+                if (stereoParamsMode)
+                    *stereoParamsMode = ! *stereoParamsMode;
+            };
+        }
+
+        // Dials: Attenuation | Delay/Latency | DistAtten or Ratio or Stereo Width | Common Atten or Stereo Axis
         sec.dials[0] = makeFloatDial (LOC ("streamDeck.inputs.dials.attenuation"), LOC ("units.decibels"),
                                        inputAttenuationMin, inputAttenuationMax,
                                        1.0f, 0.25f, 1, false,
@@ -181,9 +213,21 @@ inline StreamDeckPage createInputParametersPage (WFSValueTreeState& state,
             return v >= 0.0f ? LOC ("streamDeck.inputs.dials.delay") : LOC ("streamDeck.inputs.dials.latency");
         };
 
-        // Dial 2: depends on attenuation law
+        // Dial 2: Stereo Width when the stereo mode is on, otherwise the
+        // attenuation law's own parameter.
         bool is1OverD = static_cast<int> (state.getInputParameter (ch, inputAttenuationLaw)) != 0;
-        if (is1OverD)
+        if (showStereo)
+        {
+            // Full 0..50 m: the LCD bar reads low around the 4 m default, but every
+            // legal width stays reachable from the surface. An exponential taper is
+            // not an option -- applyStep guards it on minValue > 0, and this min is 0.
+            sec.dials[2] = makeFloatDial (LOC ("streamDeck.inputs.dials.stereoWidth"), LOC ("units.meters"),
+                                           inputStereoWidthMin, inputStereoWidthMax,
+                                           0.5f, 0.1f, 2, false,
+                                           state, clusterEdit, ch, inputStereoWidth);
+            sec.dials[2].barColour = juce::Colour (0xFF4A90D9);  // Blue, as the GUI width dial
+        }
+        else if (is1OverD)
         {
             sec.dials[2] = makeFloatDial (LOC ("streamDeck.inputs.dials.ratio"), "x",
                                            inputDistanceRatioMin, inputDistanceRatioMax,
@@ -200,11 +244,25 @@ inline StreamDeckPage createInputParametersPage (WFSValueTreeState& state,
             sec.dials[2].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
         }
 
-        sec.dials[3] = makeIntDial (LOC ("streamDeck.inputs.dials.commonAttenuation"), LOC ("units.percent"),
-                                     inputCommonAttenMin, inputCommonAttenMax,
-                                     2, 1,
-                                     state, clusterEdit, ch, inputCommonAtten);
-        sec.dials[3].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
+        if (showStereo)
+        {
+            // Clamps at -179 / +180 rather than wrapping, as the LFO Phase dial with
+            // the identical step shape does: DialBinding::applyStep ends in jlimit and
+            // the struct has no wrap mode. Every other surface wraps via wrapPhaseDegrees.
+            sec.dials[3] = makeIntDial (LOC ("streamDeck.inputs.dials.stereoAxis"), LOC ("units.degrees"),
+                                         inputStereoAxisOffsetMin, inputStereoAxisOffsetMax,
+                                         5, 1,
+                                         state, clusterEdit, ch, inputStereoAxisOffset);
+            sec.dials[3].barColour = juce::Colour (0xFF4A90D9);  // Blue, as the GUI axis dial
+        }
+        else
+        {
+            sec.dials[3] = makeIntDial (LOC ("streamDeck.inputs.dials.commonAttenuation"), LOC ("units.percent"),
+                                         inputCommonAttenMin, inputCommonAttenMax,
+                                         2, 1,
+                                         state, clusterEdit, ch, inputCommonAtten);
+            sec.dials[3].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
+        }
     }
 
     // --- Section 1: Position & Directivity ---
@@ -1102,20 +1160,25 @@ static constexpr int INPUTS_MAIN_TAB_INDEX = 4;
 
 /** Build the page for a given subtab and register it with the manager.
     Call this whenever the channel changes to rebind getValue/setValue callbacks.
-    @param flipMode     Shared state for Constraint/Flip toggle (subtab 0 only)
-    @param lfoSubMode   Shared state for LFO sub-mode selector (subtab 2 only)
-    @param movementCB   Transport callbacks for AutomOtion (subtab 2 only) */
+    @param flipMode         Shared state for Constraint/Flip toggle (subtab 0 only)
+    @param stereoParamsMode Shared state for the Stereo Parameters toggle (subtab 0,
+                            stereo pairs only). Deliberately has no default: a call
+                            site that forgets it should fail to compile rather than
+                            silently pass nullptr and lose the toggle.
+    @param lfoSubMode       Shared state for LFO sub-mode selector (subtab 2 only)
+    @param movementCB       Transport callbacks for AutomOtion (subtab 2 only) */
 inline StreamDeckPage createPage (int subTabIndex,
                                    WFSValueTreeState& state,
                                    ClusterParamEdit& clusterEdit,
                                    int channelIndex,
-                                   std::shared_ptr<bool> flipMode = nullptr,
+                                   std::shared_ptr<bool> flipMode,
+                                   std::shared_ptr<bool> stereoParamsMode,
                                    std::shared_ptr<int> lfoSubMode = nullptr,
                                    MovementCallbacks movementCB = {})
 {
     switch (subTabIndex)
     {
-        case 0:  return createInputParametersPage (state, clusterEdit, channelIndex, flipMode);
+        case 0:  return createInputParametersPage (state, clusterEdit, channelIndex, flipMode, stereoParamsMode);
         case 1:  return createLiveSourcePage (state, clusterEdit, channelIndex);
         case 2:  return createMovementsPage (state, clusterEdit, channelIndex, lfoSubMode, movementCB);
         case 3:  return StreamDeckPage ("Gradient Map");  // Handled separately via GradientMapPages
