@@ -829,7 +829,7 @@ private:
     juce::ValueTree getTreeForParameter (const juce::Identifier& id, int channelIndex) const override;
 
     /** Determine if a parameter belongs to input, output, reverb, or config */
-    enum class ParameterScope { Config, Input, Output, Reverb, AudioPatch, Unknown };
+    enum class ParameterScope { Config, Input, Output, Reverb, Cluster, AudioPatch, Unknown };
     ParameterScope getParameterScope (const juce::Identifier& id) const;
 
     /** Enforce cluster tracking constraint: only one tracked input per cluster

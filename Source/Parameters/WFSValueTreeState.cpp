@@ -4286,6 +4286,59 @@ juce::ValueTree WFSValueTreeState::getTreeForParameter (const juce::Identifier& 
             if (tracking.hasProperty (paramId))
                 return tracking;
 
+            // Binaural section. Its seven parameters have their own typed setters,
+            // which the GUI uses; every generic caller — MCP, and config-scope OSC
+            // ingress — landed here and fell off the end of this list, so those
+            // writes were dropped in silence.
+            auto binaural = config.getChildWithName (Binaural);
+            if (binaural.hasProperty (paramId))
+                return binaural;
+
+            // UI section (Stream Deck / Sampler / Lightpad toggles).
+            auto ui = config.getChildWithName (UI);
+            if (ui.hasProperty (paramId))
+                return ui;
+
+            return {};
+        }
+
+        case ParameterScope::Cluster:
+        {
+            if (channelIndex < 0)
+                return {};
+
+            // These accessors are non-const and may materialise a missing node
+            // (old files). Same const_cast idiom this function already uses for
+            // the tree itself, a few lines up.
+            auto* self = const_cast<WFSValueTreeState*> (this);
+
+            // Preset names are the ONE property unique to the preset list. Every
+            // other clusterLFO* name appears on both a live cluster's <ClusterLFO>
+            // and on each stored preset, so order matters here: resolve the live
+            // cluster first, or a period write would land in a preset slot.
+            if (paramId == clusterLFOPresetName)
+            {
+                auto presets = self->getClusterLFOPresetsSection();
+                if (! presets.isValid() || channelIndex >= presets.getNumChildren())
+                    return {};
+                return presets.getChild (channelIndex);
+            }
+
+            // getClusterState and getClusterLFOSection take a ONE-based cluster
+            // index (they subtract 1 internally), while channelIndex arrives
+            // zero-based — resolveChannelSlot turns cluster_id into displayId - 1.
+            // Convert here rather than at either end, so both conventions stay
+            // true where they are documented.
+            const int oneBasedCluster = channelIndex + 1;
+
+            auto cluster = self->getClusterState (oneBasedCluster);
+            if (cluster.isValid() && cluster.hasProperty (paramId))
+                return cluster;
+
+            auto lfo = self->getClusterLFOSection (oneBasedCluster);
+            if (lfo.isValid() && lfo.hasProperty (paramId))
+                return lfo;
+
             return {};
         }
 
@@ -4621,10 +4674,31 @@ WFSValueTreeState::ParameterScope WFSValueTreeState::getParameterScope (const ju
     if (paramId == inputChannels || paramId == outputChannels || paramId == reverbChannels)
         return ParameterScope::Config;
 
+    // reverbsMapVisible is a Master-section display toggle, not a per-reverb
+    // parameter. It only LOOKS like one: the prefix test below would send it to
+    // the Reverb branch, which searches <Reverb> channel nodes and never finds
+    // it, so the write vanished. Named here for the same reason the channel
+    // counts are — the prefix lies about where the property lives.
+    if (paramId == reverbsMapVisible)
+        return ParameterScope::Config;
+
     // Check if it's an input parameter
     juce::String paramName = paramId.toString();
     if (paramName.startsWith ("input"))
         return ParameterScope::Input;
+
+    // Sampler parameters hang off an <Input>, but are named for the feature
+    // rather than the scope, so they never matched the "input" prefix and
+    // defaulted to Config — where nothing could find them. The ones on <Channel>
+    // (a direct child) resolve from here; cell and set properties live on
+    // grandchildren and still need the sub-index path.
+    if (paramName.startsWith ("sampler"))
+        return ParameterScope::Input;
+
+    // Cluster parameters carry their index as cluster_id, which arrives as the
+    // channelIndex argument — the plumbing was always there, the scope was not.
+    if (paramName.startsWith ("cluster"))
+        return ParameterScope::Cluster;
 
     // Check if it's a reverb parameter
     if (paramName.startsWith ("reverb"))
