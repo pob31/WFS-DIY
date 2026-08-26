@@ -37,7 +37,13 @@ public:
           numInputs(numInputChannels),
           numOutputs(numOutputChannels)
     {
-        // Allocate LS gains array (one per input-output routing)
+        // Allocate LS gains array (one per matrix routing). numInputs here is the
+        // RENDER-SOURCE row budget (WFSParameterDefaults::maxRenderSources), not the
+        // input-channel count: lsGains is indexed with WFSCalculationEngine's
+        // matrixIdx, so the two dimensions must move in lockstep or the 50 Hz level
+        // loop reads out of bounds. Rows without a ValueTree Input section (derived
+        // stereo slices, unused slots) read lsActive=false and stay at unity, which
+        // is exactly the contract: the Live Source Tamer never applies to slices.
         lsGains.resize(static_cast<size_t>(numInputs * numOutputs), 1.0f);
 
         // Initialize ramp state per input (start at 0 = inactive)

@@ -15,6 +15,9 @@
 #include "../WFSLogger.h"
 #include "../../spatcore/controllers/lightpad/LightpadTypes.h"
 #include "HelpCard.h"
+#include "InputChannelListEditor.h"
+#include "ChannelIdentityGate.h"
+#include "../Parameters/InputChannelDescription.h"
 #include "LightpadArrangementOverlay.h"
 #include "RefreshableComboBox.h"
 #if WFS_GPU_NATIVE
@@ -502,11 +505,26 @@ public:
         addAndMakeVisible(showLocationEditor);
         // (showLocationEditor uses default border)
 
-        // I/O Section
+        // I/O Section — global mono/stereo counts (stable-number model:
+        // raising a count APPENDS channels after the last one, lowering it
+        // removes the HIGHEST-NUMBERED channel of that type; numbers never
+        // shift). Arrangement (interleaving) is done by drag in the channel
+        // order dialog; a channel's type is fixed at creation.
         addAndMakeVisible(inputChannelsLabel);
         inputChannelsLabel.setText(LOC("systemConfig.labels.inputChannels"), juce::dontSendNotification);
         addAndMakeVisible(inputChannelsEditor);
         // (inputChannelsEditor uses default border)
+        addAndMakeVisible(stereoChannelsLabel);
+        stereoChannelsLabel.setText(LOC("systemConfig.labels.stereoInputs"), juce::dontSendNotification);
+        addAndMakeVisible(stereoChannelsEditor);
+        addAndMakeVisible(editChannelsButton);
+        editChannelsButton.setButtonText(LOC("systemConfig.channelList.edit"));
+        editChannelsButton.onClick = [this] { openChannelListEditor(); };
+        // Render-source total: visible only when stereo-pair channels claim
+        // derived slice slots, so the renderer budget consumption is visible
+        // (handoff doc §6). Fed by MainComponent::recomputeRenderSourceCount().
+        addAndMakeVisible(renderSourceTotalLabel);
+        renderSourceTotalLabel.setAlpha(0.7f);
 
         addAndMakeVisible(outputChannelsLabel);
         outputChannelsLabel.setText(LOC("systemConfig.labels.outputChannels"), juce::dontSendNotification);
@@ -1114,28 +1132,75 @@ public:
         addAndMakeVisible(binauralDistanceUnitLabel);
         binauralDistanceUnitLabel.setText("m", juce::dontSendNotification);
 
-        // Listener Angle - WfsRotationDial with TextEditor
-        addAndMakeVisible(binauralAngleLabel);
-        binauralAngleLabel.setText(LOC("systemConfig.labels.binauralAngle"), juce::dontSendNotification);
+        // Orbit (binauralListenerAngle) - WfsRotationDial with TextEditor.
+        // This is a SEAT PLACEMENT control, not a head rotation: it moves the
+        // listener around a circle of Listener Distance about the origin, and
+        // they face the origin from wherever it lands. Head rotation is the
+        // Head Yaw dial below.
+        addAndMakeVisible(binauralOrbitLabel);
+        binauralOrbitLabel.setText(LOC("systemConfig.labels.binauralAngle"), juce::dontSendNotification);
 
-        addAndMakeVisible(binauralAngleDial);
-        binauralAngleDial.setAngle((float)WFSParameterDefaults::binauralListenerAngleDefault);
-        binauralAngleDial.onAngleChanged = [this](float angle) {
-            binauralAngleEditor.setText(juce::String((int)angle), juce::dontSendNotification);
+        addAndMakeVisible(binauralOrbitDial);
+        // Because the value IS a position on the Map, the dial reads like the
+        // Map: 0 at the bottom (audience side), positive counter-clockwise.
+        binauralOrbitDial.setPlanViewMapping(true);
+        binauralOrbitDial.setAngle((float)WFSParameterDefaults::binauralListenerAngleDefault);
+        binauralOrbitDial.onAngleChanged = [this](float angle) {
+            // setAngle() fires this from inside the setter, so loadParametersToUI()
+            // reaches it too — every other binaural control checks this flag and
+            // this one did not.
+            if (isLoadingParameters)
+                return;
+            // roundToInt, not a truncating cast: (int) rounds toward zero, so
+            // the dial lost up to a degree on every write and had a 2-degree
+            // dead band across 0 where the dot moved but nothing changed. The
+            // Stream Deck mirror of this parameter already rounds.
+            const int deg = juce::roundToInt(angle);
+            binauralOrbitEditor.setText(juce::String(deg), juce::dontSendNotification);
             auto& vts = parameters.getValueTreeState();
-            vts.getBinauralState().setProperty(WFSParameterIDs::binauralListenerAngle, (int)angle, nullptr);
+            vts.getBinauralState().setProperty(WFSParameterIDs::binauralListenerAngle, deg, nullptr);
         };
-        // binauralAngleDial.setTooltip(LOC("systemConfig.help.binauralAngle"));
 
-        addAndMakeVisible(binauralAngleEditor);
-        binauralAngleEditor.setText(juce::String(WFSParameterDefaults::binauralListenerAngleDefault), juce::dontSendNotification);
-        binauralAngleEditor.setJustification(juce::Justification::centred);
-        binauralAngleEditor.setColour(juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
-        binauralAngleEditor.setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
-        binauralAngleEditor.addListener(this);
+        addAndMakeVisible(binauralOrbitEditor);
+        binauralOrbitEditor.setText(juce::String(WFSParameterDefaults::binauralListenerAngleDefault), juce::dontSendNotification);
+        binauralOrbitEditor.setJustification(juce::Justification::centred);
+        binauralOrbitEditor.setColour(juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
+        binauralOrbitEditor.setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
+        binauralOrbitEditor.addListener(this);
 
-        addAndMakeVisible(binauralAngleUnitLabel);
-        binauralAngleUnitLabel.setText(juce::String::fromUTF8("\xc2\xb0"), juce::dontSendNotification);
+        addAndMakeVisible(binauralOrbitUnitLabel);
+        binauralOrbitUnitLabel.setText(juce::String::fromUTF8("\xc2\xb0"), juce::dontSendNotification);
+
+        // Head Yaw (binauralListenerYaw) - turns the head on the spot from the
+        // seat Orbit chose. Keeps the DEFAULT dial mapping (0 at the top =
+        // straight ahead, positive clockwise = turning right): this is a
+        // head-relative angle, not a plan-view position, so it must NOT read
+        // like the Map the way the Orbit dial does.
+        addChildComponent(binauralYawLabel);
+        binauralYawLabel.setText(LOC("systemConfig.labels.binauralYaw"), juce::dontSendNotification);
+
+        addChildComponent(binauralYawDial);
+        binauralYawDial.setAngle(WFSParameterDefaults::binauralListenerYawDefault);
+        binauralYawDial.onAngleChanged = [this](float angle) {
+            // isSuppressingYawWrite covers the tracker mirror in timerCallback,
+            // which drives this dial for DISPLAY only. Without it the mirror
+            // would write the tracked yaw into binauralListenerYaw four times a
+            // second and destroy whatever the user had set manually.
+            if (isLoadingParameters || isSuppressingYawWrite)
+                return;
+            binauralYawEditor.setText(juce::String(angle, 0), juce::dontSendNotification);
+            binauralYawValueLabel.setText(juce::String(juce::roundToInt(angle)), juce::dontSendNotification);
+            auto& vts = parameters.getValueTreeState();
+            vts.getBinauralState().setProperty(WFSParameterIDs::binauralListenerYaw, angle, nullptr);
+        };
+
+        addChildComponent(binauralYawValueLabel);
+        binauralYawValueLabel.setText("0", juce::dontSendNotification);
+        binauralYawValueLabel.setJustificationType(juce::Justification::centredRight);
+
+        addChildComponent(binauralYawUnitLabel);
+        binauralYawUnitLabel.setText(binauralOrbitUnitLabel.getText(), juce::dontSendNotification);
+
 
         // Binaural Level - WfsStandardSlider with TextEditor
         addAndMakeVisible(binauralAttenLabel);
@@ -1352,6 +1417,7 @@ public:
         showNameEditor.addListener(this);
         showLocationEditor.addListener(this);
         inputChannelsEditor.addListener(this);
+        stereoChannelsEditor.addListener(this);
         outputChannelsEditor.addListener(this);
         reverbChannelsEditor.addListener(this);
         stageWidthEditor.addListener(this);
@@ -1429,7 +1495,7 @@ public:
             editor.applyFontToAllText(editor.getFont(), true);
         };
         updateBinauralEditor(binauralDistanceEditor);
-        updateBinauralEditor(binauralAngleEditor);
+        updateBinauralEditor(binauralOrbitEditor);
         updateBinauralEditor(binauralAttenEditor);
         updateBinauralEditor(binauralDelayEditor);
 
@@ -1468,8 +1534,8 @@ public:
         g.setFont(juce::FontOptions().withHeight(juce::jmax(10.0f, 14.0f * layoutScale)).withStyle("Bold"));
         g.drawText(LOC("systemConfig.sections.show"), layout.col1X, scaled(10), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.io"), layout.col1X, scaled(130), layout.colWidth, headerH, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.ui"), layout.col1X, scaled(290), layout.colWidth, headerH, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.controllers"), layout.col1X, scaled(465), layout.colWidth, headerH, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.ui"), layout.col1X, scaled(328), layout.colWidth, headerH, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.controllers"), layout.col1X, scaled(503), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.stage"), layout.col2X, scaled(10), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.master"), layout.col2X, scaled(400), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.wfsProcessor"), layout.col3X, scaled(10), layout.colWidth, headerH, juce::Justification::left);
@@ -1517,10 +1583,19 @@ public:
             int shiftBtnSize = rowHeight;  // Square buttons
             int shiftBtnX = x + labelWidth + editorWidth + spacing;
 
+            // Mono count row: the arrange-channels button sits after the
+            // shift buttons so the stereo row below keeps room for the
+            // render-source total.
             inputChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
             inputChannelsEditor.setBounds(x + labelWidth + ei, y, editorWidth - ei * 2, rowHeight);
             inputShiftButton.setBounds(shiftBtnX, y, shiftBtnSize, rowHeight);
             inputShiftDismissButton.setBounds(shiftBtnX + shiftBtnSize + spacing, y, shiftBtnSize, rowHeight);
+            editChannelsButton.setBounds(shiftBtnX + (shiftBtnSize + spacing) * 2, y, scaled(110), rowHeight);
+            y += rowHeight + spacing;
+
+            stereoChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
+            stereoChannelsEditor.setBounds(x + labelWidth + ei, y, editorWidth - ei * 2, rowHeight);
+            renderSourceTotalLabel.setBounds(shiftBtnX, y, scaled(170), rowHeight);
             y += rowHeight + spacing;
 
             outputChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
@@ -1536,7 +1611,7 @@ public:
         }
 
         // UI Section
-        y = scaled(320); // Start after "UI" header
+        y = scaled(358); // Start after "UI" header (I/O grew a stereo row)
         colorSchemeLabel.setBounds(x, y, labelWidth, rowHeight);
         colorSchemeSelector.setBounds(x + labelWidth, y, editorWidth * 2, rowHeight);  // Wider for dropdown text
         y += rowHeight + spacing;
@@ -1560,7 +1635,7 @@ public:
         }
 
         // Controllers Section
-        y = scaled(495); // Start after "Controllers" header (shifted down for extra UI rows)
+        y = scaled(533); // Start after "Controllers" header (shifted down for extra UI rows)
         dialsAndButtonsLabel.setBounds (x, y, labelWidth, rowHeight);
         dialsAndButtonsSelector.setBounds (x + labelWidth, y, editorWidth * 2, rowHeight);
         y += rowHeight + spacing;
@@ -1795,15 +1870,15 @@ public:
                 // Legacy: listener angle dial block
                 int dialCenterX = x + binauralFullWidth / 2;
                 int ay = flexTop;
-                binauralAngleLabel.setBounds(x, ay, binauralFullWidth, rowHeight);
-                binauralAngleLabel.setJustificationType(juce::Justification::centred);
+                binauralOrbitLabel.setBounds(x, ay, binauralFullWidth, rowHeight);
+                binauralOrbitLabel.setJustificationType(juce::Justification::centred);
                 ay += rowHeight;
-                binauralAngleDial.setBounds(dialCenterX - dialSize / 2, ay, dialSize, dialSize);
+                binauralOrbitDial.setBounds(dialCenterX - dialSize / 2, ay, dialSize, dialSize);
                 ay += dialSize;
                 const int angleValW = scaled(40), angleUnitW = scaled(20), overlap = scaled(5);
                 int angleStartX = dialCenterX - (angleValW + angleUnitW - overlap) / 2;
-                binauralAngleEditor.setBounds(angleStartX, ay, angleValW, rowHeight);
-                binauralAngleUnitLabel.setBounds(angleStartX + angleValW - overlap, ay, angleUnitW, rowHeight);
+                binauralOrbitEditor.setBounds(angleStartX, ay, angleValW, rowHeight);
+                binauralOrbitUnitLabel.setBounds(angleStartX + angleValW - overlap, ay, angleUnitW, rowHeight);
             }
             else
             {
@@ -1883,19 +1958,40 @@ public:
             binauralOrientationUnitLabel.setBounds(ax + aw - binauralUnitWidth, ay, binauralUnitWidth, rowHeight);
             ay += rowHeight + spacing;
 
-            // Listener angle (position on the circle — a placement parameter,
-            // so it lives here in the HRTF modes; the tracker only supplies
-            // attitude and never replaces it)
-            const int panelDialCenterX = ax + aw / 2;
-            binauralAngleLabel.setBounds(ax, ay, aw, rowHeight);
-            binauralAngleLabel.setJustificationType(juce::Justification::centred);
+            // The two dials, side by side, because the whole point is that
+            // they are DIFFERENT things: Orbit moves the seat around the stage
+            // (a placement parameter — the tracker only supplies attitude and
+            // never replaces it), Head Yaw turns the head on that seat. Seeing
+            // them together is what stops Orbit being read as a rotation.
+            const int halfW = (aw - spacing) / 2;
+            const int dualDialSize = juce::jmin(panelDialSize, halfW);
+            const int orbitCentreX = ax + halfW / 2;
+            const int yawCentreX = ax + aw - halfW / 2;
+
+            binauralOrbitLabel.setBounds(ax, ay, halfW, rowHeight);
+            binauralOrbitLabel.setJustificationType(juce::Justification::centred);
+            binauralYawLabel.setBounds(ax + aw - halfW, ay, halfW, rowHeight);
+            binauralYawLabel.setJustificationType(juce::Justification::centred);
             ay += rowHeight;
-            binauralAngleDial.setBounds(panelDialCenterX - panelDialSize / 2, ay, panelDialSize, panelDialSize);
+
+            // Both dial blocks stay panelDialSize tall so the card height
+            // (angleBlockH above) is unchanged whether one or two are shown.
+            const int dialY = ay + (panelDialSize - dualDialSize) / 2;
+            binauralOrbitDial.setBounds(orbitCentreX - dualDialSize / 2, dialY, dualDialSize, dualDialSize);
+            binauralYawDial.setBounds(yawCentreX - dualDialSize / 2, dialY, dualDialSize, dualDialSize);
             ay += panelDialSize;
+
             const int pAngleValW = scaled(40), pAngleUnitW = scaled(20), pOverlap = scaled(5);
-            int pAngleStartX = panelDialCenterX - (pAngleValW + pAngleUnitW - pOverlap) / 2;
-            binauralAngleEditor.setBounds(pAngleStartX, ay, pAngleValW, rowHeight);
-            binauralAngleUnitLabel.setBounds(pAngleStartX + pAngleValW - pOverlap, ay, pAngleUnitW, rowHeight);
+            const int pAngleStartX = orbitCentreX - (pAngleValW + pAngleUnitW - pOverlap) / 2;
+            binauralOrbitEditor.setBounds(pAngleStartX, ay, pAngleValW, rowHeight);
+            binauralOrbitUnitLabel.setBounds(pAngleStartX + pAngleValW - pOverlap, ay, pAngleUnitW, rowHeight);
+
+            // Yaw's readout is a LABEL, not an editor: the yaw value is already
+            // typeable in the Orientation Y/P/R row above, and a second editable
+            // field for the same parameter is two places to fix a typo.
+            const int pYawStartX = yawCentreX - (pAngleValW + pAngleUnitW - pOverlap) / 2;
+            binauralYawValueLabel.setBounds(pYawStartX, ay, pAngleValW, rowHeight);
+            binauralYawUnitLabel.setBounds(pYawStartX + pAngleValW - pOverlap, ay, pAngleUnitW, rowHeight);
         }
 
         // Listener Distance
@@ -1957,9 +2053,9 @@ public:
 
             // Keyboard Shortcuts help button — same right-aligned column as the
             // overview "?", but up on the "UI" section header line (painted at
-            // scaled(290) with a scaled(20) row, see paint()).
+            // scaled(328) with a scaled(20) row, see paint()).
             shortcutsHelpButton.setBounds (layout.col1X + layout.colWidth - btnSize,
-                                           scaled(290) + (scaled(20) - btnSize) / 2,
+                                           scaled(328) + (scaled(20) - btnSize) / 2,
                                            btnSize, btnSize);
 
             // Keyboard Shortcuts card — large, centered; scrolls if it overflows
@@ -2065,6 +2161,20 @@ public:
     void setChannelCountCallback(ChannelCountCallback callback)
     {
         onChannelCountChanged = callback;
+    }
+
+    /** Show the renderer's source total next to the input-channel count when
+        stereo-pair channels claim derived slice slots (doc §6). Called by
+        MainComponent whenever the render-source map is rebuilt. */
+    void setRenderSourceTotal(int visibleChannels, int totalRenderSources)
+    {
+        if (totalRenderSources > visibleChannels)
+            renderSourceTotalLabel.setText(
+                LocalizationManager::getInstance().get("systemConfig.labels.renderSourceTotal",
+                    {{"count", juce::String(totalRenderSources)}}),
+                juce::dontSendNotification);
+        else
+            renderSourceTotalLabel.setText({}, juce::dontSendNotification);
     }
 
     void setAlgorithmChangedCallback(AlgorithmCallback callback)
@@ -2314,7 +2424,7 @@ public:
             // Column 1: Show
             { &showNameEditor, &showLocationEditor },
             // Column 2: I/O
-            { &inputChannelsEditor, &outputChannelsEditor, &reverbChannelsEditor },
+            { &inputChannelsEditor, &stereoChannelsEditor, &outputChannelsEditor, &reverbChannelsEditor },
             // Column 3: Stage (invisible fields skipped automatically per shape)
             { &stageWidthEditor, &stageDepthEditor,
               &stageDiameterEditor, &domeElevationEditor, &stageHeightEditor,
@@ -2323,7 +2433,7 @@ public:
             // Column 4: Master
             { &masterLevelEditor, &systemLatencyEditor, &haasEffectEditor },
             // Column 5: Binaural Renderer
-            { &binauralDistanceEditor, &binauralAngleEditor,
+            { &binauralDistanceEditor, &binauralOrbitEditor,
               &binauralAttenEditor, &binauralDelayEditor }
         });
     }
@@ -2379,14 +2489,26 @@ private:
 
         // I/O Section - integers only
         setupNumericEditor(inputChannelsEditor, false, false);
+        setupNumericEditor(stereoChannelsEditor, false, false);
         setupNumericEditor(outputChannelsEditor, false, false);
         setupNumericEditor(reverbChannelsEditor, false, false);
 
         // Binaural Section
         setupNumericEditor(binauralDistanceEditor, false, true);  // 0.0 to 10.0
-        setupNumericEditor(binauralAngleEditor, true, false);     // -180 to 180 (integer)
+        setupNumericEditor(binauralOrbitEditor, true, false);     // -180 to 180 (integer)
         setupNumericEditor(binauralAttenEditor, true, true);      // -40.0 to 0.0
         setupNumericEditor(binauralDelayEditor, false, true);     // 0.0 to 100.0
+
+        // The Listener Geometry panel's editors were never given this treatment,
+        // so they had no input filter and no select-all-on-focus: clicking a
+        // Yaw field showing "0" and typing "45" produced "450", which then
+        // clamped to 180 — a half-turn from a keystroke that looked correct.
+        setupNumericEditor(binauralListenerXEditor, true, true);  // -10.0 to 10.0
+        setupNumericEditor(binauralHeightEditor, false, true);    // 0.5 to 3.0
+        setupNumericEditor(binauralHeadRadiusEditor, false, true);// 6.0 to 12.0 cm
+        setupNumericEditor(binauralYawEditor, true, false);       // -180 to 180
+        setupNumericEditor(binauralPitchEditor, true, false);     // -89 to 89
+        setupNumericEditor(binauralRollEditor, true, false);      // -90 to 90
     }
 
     //==============================================================================
@@ -2414,7 +2536,10 @@ private:
         else if (&editor == &showLocationEditor)
             editor.setText(parameters.getConfigParam("ShowLocation").toString(), false);
         else if (&editor == &inputChannelsEditor)
-            editor.setText(juce::String(parameters.getNumInputChannels()), false);
+            editor.setText(juce::String(parameters.getNumInputChannels()
+                                        - parameters.getValueTreeState().getNumStereoInputChannels()), false);
+        else if (&editor == &stereoChannelsEditor)
+            editor.setText(juce::String(parameters.getValueTreeState().getNumStereoInputChannels()), false);
         else if (&editor == &outputChannelsEditor)
             editor.setText(juce::String(parameters.getNumOutputChannels()), false);
         else if (&editor == &reverbChannelsEditor)
@@ -2453,7 +2578,7 @@ private:
                                                                WFSParameterDefaults::binauralListenerDistanceDefault);
             editor.setText(juce::String(distance, 1), false);
         }
-        else if (&editor == &binauralAngleEditor)
+        else if (&editor == &binauralOrbitEditor)
         {
             auto binauralState = parameters.getValueTreeState().getBinauralState();
             int angle = (int)binauralState.getProperty(WFSParameterIDs::binauralListenerAngle,
@@ -2509,8 +2634,15 @@ private:
         showNameEditor.setText(parameters.getConfigParam("ShowName").toString(), false);
         showLocationEditor.setText(parameters.getConfigParam("ShowLocation").toString(), false);
 
-        // Channel counts - use dedicated getters for reliable values
-        inputChannelsEditor.setText(juce::String(parameters.getNumInputChannels()), false);
+        // Channel counts - use dedicated getters for reliable values. The
+        // input field shows the MONO count; the stereo field the pairs
+        // (both derived from the per-channel types; order is free).
+        {
+            const int totalIn  = parameters.getNumInputChannels();
+            const int stereoIn = parameters.getValueTreeState().getNumStereoInputChannels();
+            inputChannelsEditor.setText(juce::String(totalIn - stereoIn), false);
+            stereoChannelsEditor.setText(juce::String(stereoIn), false);
+        }
         outputChannelsEditor.setText(juce::String(parameters.getNumOutputChannels()), false);
         reverbChannelsEditor.setText(juce::String(parameters.getNumReverbChannels()), false);
 
@@ -2627,8 +2759,15 @@ private:
             WFSParameterIDs::binauralListenerHeight, WFSParameterDefaults::binauralListenerHeightDefault), 2), juce::dontSendNotification);
         binauralHeadRadiusEditor.setText(juce::String((float)binauralState.getProperty(
             WFSParameterIDs::binauralHeadRadius, WFSParameterDefaults::binauralHeadRadiusDefault) * 100.0f, 2), juce::dontSendNotification);
-        binauralYawEditor.setText(juce::String((float)binauralState.getProperty(
-            WFSParameterIDs::binauralListenerYaw, WFSParameterDefaults::binauralListenerYawDefault), 0), juce::dontSendNotification);
+        {
+            const float yawDeg = juce::jlimit(WFSParameterDefaults::binauralListenerYawMin,
+                                              WFSParameterDefaults::binauralListenerYawMax,
+                                              (float)binauralState.getProperty(
+                WFSParameterIDs::binauralListenerYaw, WFSParameterDefaults::binauralListenerYawDefault));
+            binauralYawEditor.setText(juce::String(yawDeg, 0), juce::dontSendNotification);
+            binauralYawValueLabel.setText(juce::String(juce::roundToInt(yawDeg)), juce::dontSendNotification);
+            binauralYawDial.setAngle(yawDeg);   // isLoadingParameters gates the write-back
+        }
         binauralPitchEditor.setText(juce::String((float)binauralState.getProperty(
             WFSParameterIDs::binauralListenerPitch, WFSParameterDefaults::binauralListenerPitchDefault), 0), juce::dontSendNotification);
         binauralRollEditor.setText(juce::String((float)binauralState.getProperty(
@@ -2643,8 +2782,8 @@ private:
         // Angle
         int angle = (int)binauralState.getProperty(WFSParameterIDs::binauralListenerAngle,
                                                     WFSParameterDefaults::binauralListenerAngleDefault);
-        binauralAngleDial.setAngle((float)angle);
-        binauralAngleEditor.setText(juce::String(angle), juce::dontSendNotification);
+        binauralOrbitDial.setAngle((float)angle);
+        binauralOrbitEditor.setText(juce::String(angle), juce::dontSendNotification);
 
         // Attenuation
         float attenDb = (float)binauralState.getProperty(WFSParameterIDs::binauralAttenuation,
@@ -2677,51 +2816,87 @@ private:
             parameters.setConfigParam("ShowName", text);
         else if (&editor == &showLocationEditor)
             parameters.setConfigParam("ShowLocation", text);
-        else if (&editor == &inputChannelsEditor)
+        else if (&editor == &inputChannelsEditor || &editor == &stereoChannelsEditor)
         {
-            int newInputs = text.getIntValue();
-            int currentInputs = parameters.getNumInputChannels();
-            if (newInputs < currentInputs)
+            // Global composition counts (stable-number model): raising a
+            // count APPENDS channels after the last one; lowering it removes
+            // the LAST channel(s) of that type in DISPLAY order — the bottom of
+            // the Arrange list, which the operator can see. Numbers never shift
+            // and removals leave permanent gaps. Arrangement (mono/stereo
+            // interleaving) is done by drag in the channel-order dialog; a
+            // channel's type is fixed at creation.
+            const bool editingStereo = (&editor == &stereoChannelsEditor);
+            auto& vts = parameters.getValueTreeState();
+            const int currentTotal  = parameters.getNumInputChannels();
+            const int currentStereo = vts.getNumStereoInputChannels();
+            const int currentMono   = currentTotal - currentStereo;
+
+            int newMono   = currentMono;
+            int newStereo = currentStereo;
+            if (editingStereo)
+                newStereo = juce::jlimit(0, juce::jmin(WFSParameterDefaults::maxStereoChannels,
+                                                       WFSParameterDefaults::maxInputChannels - currentMono),
+                                         text.getIntValue());
+            else
+                newMono = juce::jlimit(1, WFSParameterDefaults::maxInputChannels - currentStereo,
+                                       text.getIntValue());
+
+            const int newTotal = newMono + newStereo;
+
+            auto apply = [this, newMono, newStereo]()
+            {
+                WFSLogger::getInstance().logInfo("Input counts applied: "
+                    + juce::String(newMono) + " mono + " + juce::String(newStereo) + " stereo");
+                parameters.getValueTreeState().setInputChannelCounts(newMono, newStereo);
+                notifyChannelCountChanged();
+                loadParametersToUI();   // both fields re-read (clamps may have adjusted the entry)
+            };
+
+            if (newTotal < currentTotal)
             {
                 // Prevent multiple dialogs from appearing
                 if (isShowingChannelReductionDialog)
                 {
-                    inputChannelsEditor.setText(juce::String(currentInputs), false);
+                    editor.setText(juce::String(editingStereo ? currentStereo : currentMono), false);
                     return;
                 }
                 isShowingChannelReductionDialog = true;
 
-                // Show JUCE AlertWindow confirmation dialog for reducing channels
+                // Name what will go — by name, number and type — captured by
+                // SLOT before anything mutates, from the very walk
+                // setInputChannelCounts runs: the last of that type in display
+                // order. This used to predict by highest NUMBER, which on a
+                // latched list that has been dragged is a different channel:
+                // the dialog promised #12 and the code removed #9.
+                juce::StringArray rows;
+                for (const auto& victim : vts.predictInputChannelReduction(newMono, newStereo))
+                    rows.add(LOC("systemConfig.dialogs.reduceInputChannels.row")
+                                 .replace("{channel}", describeInputChannel(victim)));
+
                 auto options = juce::MessageBoxOptions()
                     .withIconType(juce::MessageBoxIconType::WarningIcon)
                     .withTitle(LOC("systemConfig.dialogs.reduceInputChannels.title"))
-                    .withMessage(LocalizationManager::getInstance().get(
-                        "systemConfig.dialogs.reduceInputChannels.message",
-                        {{"current", juce::String(currentInputs)},
-                         {"new", juce::String(newInputs)},
-                         {"start", juce::String(newInputs + 1)},
-                         {"end", juce::String(currentInputs)}}))
+                    .withMessage(LOC("systemConfig.dialogs.reduceInputChannels.messageList")
+                                     .replace("{rows}", rows.joinIntoString("\n")))
                     .withButton(LOC("systemConfig.dialogs.reduce"))
                     .withButton(LOC("common.cancel"))
                     .withAssociatedComponent(this);
 
-                juce::AlertWindow::showAsync(options, [this, newInputs, currentInputs](int result) {
+                juce::AlertWindow::showAsync(options,
+                    [this, apply, currentMono, currentStereo](int result) {
                     isShowingChannelReductionDialog = false;
                     if (result == 1)  // Reduce pressed
+                        apply();
+                    else  // Cancel pressed - restore original values
                     {
-                        parameters.setNumInputChannels(newInputs);
-                        notifyChannelCountChanged();
-                    }
-                    else  // Cancel pressed - restore original value
-                    {
-                        inputChannelsEditor.setText(juce::String(currentInputs), false);
+                        inputChannelsEditor.setText(juce::String(currentMono), false);
+                        stereoChannelsEditor.setText(juce::String(currentStereo), false);
                     }
                 });
             }
             else
             {
-                parameters.setNumInputChannels(newInputs);
-                notifyChannelCountChanged();
+                apply();
             }
         }
         else if (&editor == &outputChannelsEditor)
@@ -2887,12 +3062,12 @@ private:
             vts.getBinauralState().setProperty(WFSParameterIDs::binauralListenerDistance, distance, nullptr);
             binauralDistanceSlider.setValue(distance / WFSParameterDefaults::binauralListenerDistanceMax);
         }
-        else if (&editor == &binauralAngleEditor)
+        else if (&editor == &binauralOrbitEditor)
         {
             int angle = text.getIntValue();
             auto& vts = parameters.getValueTreeState();
             vts.getBinauralState().setProperty(WFSParameterIDs::binauralListenerAngle, angle, nullptr);
-            binauralAngleDial.setAngle((float)angle);
+            binauralOrbitDial.setAngle((float)angle);
         }
         else if (&editor == &binauralAttenEditor)
         {
@@ -2920,8 +3095,17 @@ private:
             parameters.getValueTreeState().getBinauralState().setProperty(
                 WFSParameterIDs::binauralHeadRadius, text.getFloatValue() / 100.0f, nullptr);  // cm → m
         else if (&editor == &binauralYawEditor)
+        {
+            const float yawDeg = text.getFloatValue();
             parameters.getValueTreeState().getBinauralState().setProperty(
-                WFSParameterIDs::binauralListenerYaw, text.getFloatValue(), nullptr);
+                WFSParameterIDs::binauralListenerYaw, yawDeg, nullptr);
+            // Same parameter, two views: keep the dial and its readout with the
+            // typed value. Suppressed so the dial's in-setter callback does not
+            // write the value straight back.
+            const juce::ScopedValueSetter<bool> guard(isSuppressingYawWrite, true);
+            binauralYawDial.setAngle(yawDeg);
+            binauralYawValueLabel.setText(juce::String(juce::roundToInt(yawDeg)), juce::dontSendNotification);
+        }
         else if (&editor == &binauralPitchEditor)
             parameters.getValueTreeState().getBinauralState().setProperty(
                 WFSParameterIDs::binauralListenerPitch, text.getFloatValue(), nullptr);
@@ -2932,6 +3116,13 @@ private:
 
     void validateAndClampValue(juce::TextEditor& editor)
     {
+        // A focus/return event arriving while loadParametersToUI() is
+        // rewriting the editors (ValueTree listeners fire synchronously
+        // during channel-count writes) must not re-enter the write path with
+        // half-updated state.
+        if (isLoadingParameters)
+            return;
+
         auto text = editor.getText();
 
         // String fields - just update parameter, no validation needed
@@ -2982,7 +3173,7 @@ private:
         else if (&editor == &binauralDistanceEditor)
             value = juce::jlimit(WFSParameterDefaults::binauralListenerDistanceMin,
                                  WFSParameterDefaults::binauralListenerDistanceMax, std::abs(value));
-        else if (&editor == &binauralAngleEditor)
+        else if (&editor == &binauralOrbitEditor)
             value = juce::jlimit((float)WFSParameterDefaults::binauralListenerAngleMin,
                                  (float)WFSParameterDefaults::binauralListenerAngleMax, value);
         else if (&editor == &binauralAttenEditor)
@@ -3011,10 +3202,13 @@ private:
                                  WFSParameterDefaults::binauralListenerRollMax, value);
         else if (&editor == &reverbChannelsEditor)
             value = juce::jlimit(0.0f, (float)WFSParameterDefaults::maxReverbChannels, std::abs(value));
+        else if (&editor == &stereoChannelsEditor)
+            value = juce::jlimit(0.0f, (float)WFSParameterDefaults::maxStereoChannels, std::abs(value));
 
         // Update display with clamped value
-        if (&editor == &inputChannelsEditor || &editor == &outputChannelsEditor ||
-            &editor == &reverbChannelsEditor || &editor == &binauralAngleEditor)
+        if (&editor == &inputChannelsEditor || &editor == &stereoChannelsEditor ||
+            &editor == &outputChannelsEditor ||
+            &editor == &reverbChannelsEditor || &editor == &binauralOrbitEditor)
         {
             editor.setText(juce::String((int)value), false);
         }
@@ -3355,6 +3549,8 @@ public:
         bool enabled = !processingEnabled;
 
         inputChannelsEditor.setEnabled(enabled);
+        stereoChannelsEditor.setEnabled(enabled);
+        editChannelsButton.setEnabled(enabled);
         outputChannelsEditor.setEnabled(enabled);
         reverbChannelsEditor.setEnabled(enabled);
         audioPatchingButton.setEnabled(enabled);
@@ -3367,7 +3563,6 @@ public:
         auto disabledColour = ColorScheme::get().textDisabled;
         auto enabledColour = ColorScheme::get().textPrimary;
 
-        inputChannelsEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
         outputChannelsEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
         reverbChannelsEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
     }
@@ -3450,8 +3645,9 @@ public:
     }
 
     /** Low-rate UI refresh of the live tracker attitude. The readout is the
-        only visual proof head tracking is alive — tracker attitude bypasses
-        the parameter system, so no other control ever moves with it. */
+        only visual proof head tracking is alive, and it drives the Head Yaw
+        dial's needle so the panel shows tracking at a glance. Tracker attitude
+        bypasses the parameter system, so nothing here may write it back. */
     void timerCallback() override
     {
         if (! binauralAttitudeLabel.isVisible() || ! headTrackerAttitudeProvider)
@@ -3459,7 +3655,8 @@ public:
 
         float yaw = 0, pitch = 0, roll = 0;
         juce::String text;
-        if (headTrackerAttitudeProvider(yaw, pitch, roll))
+        const bool tracking = headTrackerAttitudeProvider(yaw, pitch, roll);
+        if (tracking)
         {
             constexpr float toDeg = 180.0f / juce::MathConstants<float>::pi;
             text = "yaw " + juce::String(juce::roundToInt(yaw * toDeg))
@@ -3472,6 +3669,22 @@ public:
             text = LOC("systemConfig.labels.binauralNoTracking");
         }
         binauralAttitudeLabel.setText(text, juce::dontSendNotification);
+
+        // Mirror the tracked yaw onto the dial. DISPLAY ONLY: setAngle fires
+        // onAngleChanged from inside the setter, so without the suppression
+        // flag this would overwrite the user's manual yaw four times a second.
+        //
+        // Only while tracking is LIVE. On a dropout the dial holds its last
+        // reading, which is exactly what the renderer does with the attitude
+        // itself (BinauralProcessor's lastGood hold) — the needle should not
+        // claim a movement the ears are not getting.
+        if (tracking && binauralYawDial.isVisible())
+        {
+            const juce::ScopedValueSetter<bool> guard(isSuppressingYawWrite, true);
+            binauralYawDial.setAngle(juce::radiansToDegrees(yaw));
+            binauralYawValueLabel.setText(juce::String(juce::roundToInt(juce::radiansToDegrees(yaw))),
+                                          juce::dontSendNotification);
+        }
     }
 
     /** Set Zero and the live attitude readout only make sense when a real
@@ -3483,6 +3696,12 @@ public:
                                 && binauralTrackerIds[idx] != "manual";
         const bool show = binauralTrackerSelector.isVisible() && trackerActive;
         binauralSetZeroButton.setVisible(show);
+
+        // A tracker REPLACES the manual yaw rather than offsetting it, so the
+        // Head Yaw dial becomes a readout while one is selected. Leaving it
+        // draggable would let the user fight a control that cannot win — every
+        // drag would be overwritten by the next tracker sample.
+        binauralYawDial.setEnabled(! trackerActive);
         if (binauralAttitudeLabel.isVisible() != show)
         {
             binauralAttitudeLabel.setVisible(show);
@@ -3634,13 +3853,22 @@ public:
         binauralRollEditor.setVisible(panel);
         binauralOrientationUnitLabel.setVisible(panel);
 
-        // Listener angle: a placement parameter — main column in legacy mode,
-        // inside the geometry panel in the HRTF modes.
+        // Head Yaw sits beside Orbit in the overlay. Hidden in ORTF legacy for
+        // the same reason the rest of the orientation controls are: that mode's
+        // renderer never reads head orientation at all.
+        binauralYawLabel.setVisible(panel);
+        binauralYawDial.setVisible(panel);
+        binauralYawValueLabel.setVisible(panel);
+        binauralYawUnitLabel.setVisible(panel);
+
+        // Orbit: a placement parameter — main column in legacy mode (where it
+        // is the only binaural geometry there is), inside the geometry panel
+        // beside Head Yaw in the HRTF modes.
         const bool angleVisible = ! hrtf || panel;
-        binauralAngleLabel.setVisible(angleVisible);
-        binauralAngleDial.setVisible(angleVisible);
-        binauralAngleEditor.setVisible(angleVisible);
-        binauralAngleUnitLabel.setVisible(angleVisible);
+        binauralOrbitLabel.setVisible(angleVisible);
+        binauralOrbitDial.setVisible(angleVisible);
+        binauralOrbitEditor.setVisible(angleVisible);
+        binauralOrbitUnitLabel.setVisible(angleVisible);
 
         if (panel)
         {
@@ -3652,8 +3880,10 @@ public:
                      &binauralHeadRadiusLabel, &binauralHeadRadiusEditor, &binauralHeadRadiusUnitLabel,
                      &binauralOrientationLabel, &binauralYawEditor, &binauralPitchEditor,
                      &binauralRollEditor, &binauralOrientationUnitLabel,
-                     &binauralAngleLabel, &binauralAngleDial,
-                     &binauralAngleEditor, &binauralAngleUnitLabel })
+                     &binauralOrbitLabel, &binauralOrbitDial,
+                     &binauralOrbitEditor, &binauralOrbitUnitLabel,
+                     &binauralYawLabel, &binauralYawDial,
+                     &binauralYawValueLabel, &binauralYawUnitLabel })
                 c->toFront(false);
         }
 
@@ -3689,8 +3919,8 @@ public:
         // Labels (mode/SOFA/tracker labels handled below — always enabled)
         binauralDistanceLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
         binauralDistanceUnitLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
-        binauralAngleLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
-        binauralAngleUnitLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
+        binauralOrbitLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
+        binauralOrbitUnitLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
         binauralAttenLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
         binauralAttenUnitLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
         binauralDelayLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
@@ -3698,7 +3928,7 @@ public:
 
         // Text editors
         binauralDistanceEditor.setColour(juce::TextEditor::textColourId, binauralActive ? enabledColour : disabledColour);
-        binauralAngleEditor.setColour(juce::TextEditor::textColourId, binauralActive ? enabledColour : disabledColour);
+        binauralOrbitEditor.setColour(juce::TextEditor::textColourId, binauralActive ? enabledColour : disabledColour);
         binauralAttenEditor.setColour(juce::TextEditor::textColourId, binauralActive ? enabledColour : disabledColour);
         binauralDelayEditor.setColour(juce::TextEditor::textColourId, binauralActive ? enabledColour : disabledColour);
 
@@ -3730,7 +3960,7 @@ public:
         binauralDistanceSlider.setEnabled(binauralActive);
         binauralAttenSlider.setEnabled(binauralActive);
         binauralDelaySlider.setEnabled(binauralActive);
-        binauralAngleDial.setEnabled(binauralActive);
+        binauralOrbitDial.setEnabled(binauralActive);
 
         // Solo mode button - visually dim when binaural inactive
         soloModeButton.setColour(juce::TextButton::textColourOffId, binauralActive ? enabledColour : disabledColour);
@@ -4061,6 +4291,28 @@ public:
             showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.error", {{"error", fileManager.getLastError()}}));
     }
 
+    /** The identity gate's view of this tab. Every lambda goes through a
+        SafePointer: the dialogs are async and the modal manager may fire them
+        after a teardown that closed the dialog on the way out. */
+    ChannelIdentityGate::Context makeChannelIdentityContext()
+    {
+        juce::Component::SafePointer<SystemConfigTab> safe (this);
+        ChannelIdentityGate::Context ctx;
+        ctx.parent     = this;
+        ctx.parameters = &parameters;
+        ctx.afterStructuralChange = [safe]
+        {
+            if (safe == nullptr) return;
+            safe->notifyChannelCountChanged();
+            safe->loadParametersToUI();
+        };
+        ctx.showStatus = [safe] (const juce::String& text)
+        {
+            if (safe != nullptr) safe->showStatusMessage (text);
+        };
+        return ctx;
+    }
+
     void reloadCompleteConfiguration()
     {
         auto& fileManager = parameters.getFileManager();
@@ -4071,28 +4323,33 @@ public:
             return;
         }
 
-        // Load complete config from individual files (system.xml, network.xml, inputs.xml, outputs.xml, reverbs.xml)
-        parameters.getDirtyTracker().beginSuppression();
-        bool success = fileManager.loadCompleteConfig();
+        // The pair (system.xml vs inputs.xml) is checked BEFORE anything is
+        // applied. The dirty-tracker suppression lives inside the load so it
+        // can never stay armed across the async dialog.
+        ChannelIdentityGate::confirmThenLoadProject (makeChannelIdentityContext(),
+            fileManager.getSystemConfigFile(), fileManager.getInputConfigFile(),
+            [safe = juce::Component::SafePointer<SystemConfigTab> (this)]
+            {
+                if (safe == nullptr) return;
+                auto& fm = safe->parameters.getFileManager();
 
-        if (success)
-            showStatusMessage(LOC("systemConfig.messages.configLoaded"));
-        else
-            showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.partialLoad", {{"error", fileManager.getLastError()}}));
+                // Load complete config from individual files (system.xml, network.xml, inputs.xml, outputs.xml, reverbs.xml)
+                safe->parameters.getDirtyTracker().beginSuppression();
+                bool success = fm.loadCompleteConfig();
 
-        // Always refresh UI and trigger recalculation, even on partial load
-        // Some files may have loaded successfully (e.g., system and outputs but not reverbs)
+                if (success)
+                    safe->showStatusMessage(LOC("systemConfig.messages.configLoaded"));
+                else
+                    safe->showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.partialLoad", {{"error", fm.getLastError()}}));
 
-        // Notify MainComponent of channel count changes to refresh UI
-        notifyChannelCountChanged();
-
-        // Refresh the UI to show loaded values
-        loadParametersToUI();
-
-        // Notify MainComponent to refresh all tabs
-        if (onConfigReloaded)
-            onConfigReloaded();
-        parameters.getDirtyTracker().endSuppressionAndClear();
+                // Always refresh UI and trigger recalculation, even on partial load
+                // Some files may have loaded successfully (e.g., system and outputs but not reverbs)
+                safe->notifyChannelCountChanged();
+                safe->loadParametersToUI();
+                if (safe->onConfigReloaded)
+                    safe->onConfigReloaded();
+                safe->parameters.getDirtyTracker().endSuppressionAndClear();
+            });
     }
 
     void reloadCompleteConfigBackup()
@@ -4112,26 +4369,34 @@ public:
             return;
         }
 
-        parameters.getDirtyTracker().beginSuppression();
-        bool success = fileManager.loadCompleteConfigBackup(0);
+        // The backup set's own pair; an inputs backup that is missing makes
+        // the preflight fall back to system-vs-session on its own.
+        const auto sysBackups = fileManager.getBackups("system");
+        const auto insBackups = fileManager.getBackups("inputs");
+        const juce::File sysFile = sysBackups.isEmpty() ? juce::File() : sysBackups[0];
+        const juce::File insFile = insBackups.isEmpty() ? juce::File() : insBackups[0];
 
-        if (success)
-            showStatusMessage(LOC("systemConfig.messages.configLoadedFromBackup"));
-        else
-            showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.partialLoadFromBackup", {{"error", fileManager.getLastError()}}));
+        ChannelIdentityGate::confirmThenLoadProject (makeChannelIdentityContext(), sysFile, insFile,
+            [safe = juce::Component::SafePointer<SystemConfigTab> (this)]
+            {
+                if (safe == nullptr) return;
+                auto& fm = safe->parameters.getFileManager();
 
-        // Always refresh UI and trigger recalculation, even on partial load
+                safe->parameters.getDirtyTracker().beginSuppression();
+                bool success = fm.loadCompleteConfigBackup(0);
 
-        // Notify MainComponent of channel count changes to refresh UI
-        notifyChannelCountChanged();
+                if (success)
+                    safe->showStatusMessage(LOC("systemConfig.messages.configLoadedFromBackup"));
+                else
+                    safe->showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.partialLoadFromBackup", {{"error", fm.getLastError()}}));
 
-        // Refresh the UI to show loaded values
-        loadParametersToUI();
-
-        // Notify MainComponent to refresh all tabs
-        if (onConfigReloaded)
-            onConfigReloaded();
-        parameters.getDirtyTracker().endSuppressionAndClear();
+                // Always refresh UI and trigger recalculation, even on partial load
+                safe->notifyChannelCountChanged();
+                safe->loadParametersToUI();
+                if (safe->onConfigReloaded)
+                    safe->onConfigReloaded();
+                safe->parameters.getDirtyTracker().endSuppressionAndClear();
+            });
     }
 
     void storeSystemConfiguration()
@@ -4168,21 +4433,24 @@ public:
             return;
         }
 
-        if (fileManager.loadSystemConfig())
-        {
-            showStatusMessage(LOC("systemConfig.messages.systemConfigLoaded"));
-
-            // Update UI from ValueTree
-            loadParametersToUI();
-
-            // Notify MainComponent to refresh all tabs
-            if (onConfigReloaded)
-                onConfigReloaded();
-        }
-        else
-        {
-            showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.error", {{"error", fileManager.getLastError()}}));
-        }
+        // This is the load that crossed a hand-rebuilt arrangement: a system
+        // config on its own rebuilds the channel list BY NUMBER. Ask first.
+        ChannelIdentityGate::confirmThenLoad (makeChannelIdentityContext(), configFile,
+            WFSFileManager::LoadKind::systemConfig,
+            [safe = juce::Component::SafePointer<SystemConfigTab> (this)]
+            {
+                if (safe == nullptr) return;
+                auto& fm = safe->parameters.getFileManager();
+                if (fm.loadSystemConfig())
+                {
+                    safe->showStatusMessage(LOC("systemConfig.messages.systemConfigLoaded"));
+                    safe->loadParametersToUI();
+                    if (safe->onConfigReloaded)
+                        safe->onConfigReloaded();
+                }
+                else
+                    safe->showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.error", {{"error", fm.getLastError()}}));
+            });
     }
 
     void reloadSystemConfigBackup()
@@ -4202,21 +4470,22 @@ public:
             return;
         }
 
-        if (fileManager.loadSystemConfigBackup(0))
-        {
-            showStatusMessage(LOC("systemConfig.messages.systemConfigLoadedFromBackup"));
-
-            // Update UI from ValueTree
-            loadParametersToUI();
-
-            // Notify MainComponent to refresh all tabs
-            if (onConfigReloaded)
-                onConfigReloaded();
-        }
-        else
-        {
-            showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.error", {{"error", fileManager.getLastError()}}));
-        }
+        ChannelIdentityGate::confirmThenLoad (makeChannelIdentityContext(), backups[0],
+            WFSFileManager::LoadKind::systemConfig,
+            [safe = juce::Component::SafePointer<SystemConfigTab> (this)]
+            {
+                if (safe == nullptr) return;
+                auto& fm = safe->parameters.getFileManager();
+                if (fm.loadSystemConfigBackup(0))
+                {
+                    safe->showStatusMessage(LOC("systemConfig.messages.systemConfigLoadedFromBackup"));
+                    safe->loadParametersToUI();
+                    if (safe->onConfigReloaded)
+                        safe->onConfigReloaded();
+                }
+                else
+                    safe->showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.error", {{"error", fm.getLastError()}}));
+            });
     }
 
     void importSystemConfiguration()
@@ -4232,22 +4501,30 @@ public:
             if (result.existsAsFile())
             {
                 AppSettings::setLastFolder("lastXmlFolder", result.getParentDirectory());
-                auto& fileManager = parameters.getFileManager();
-                if (fileManager.importSystemConfig(result))
-                {
-                    showStatusMessage(LOC("systemConfig.messages.systemConfigImported"));
 
-                    // Update UI from ValueTree
-                    loadParametersToUI();
-
-                    // Notify MainComponent to refresh all tabs
-                    if (onConfigReloaded)
-                        onConfigReloaded();
-                }
-                else
-                {
-                    showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.error", {{"error", fileManager.getLastError()}}));
-                }
+                // An arbitrary file from anywhere on disk: no sibling inputs.xml
+                // is trusted for it, so a pre-inventory file reads as "no
+                // identity" and gets the count-only warning.
+                // Named local, not an init-capture: inside a lambda nested in the
+                // chooser callback MSVC binds `this` in an init-capture to the
+                // enclosing closure, not to the tab.
+                juce::Component::SafePointer<SystemConfigTab> safe (this);
+                ChannelIdentityGate::confirmThenLoad (makeChannelIdentityContext(), result,
+                    WFSFileManager::LoadKind::systemConfig,
+                    [safe, result]
+                    {
+                        if (safe == nullptr) return;
+                        auto& fm = safe->parameters.getFileManager();
+                        if (fm.importSystemConfig(result))
+                        {
+                            safe->showStatusMessage(LOC("systemConfig.messages.systemConfigImported"));
+                            safe->loadParametersToUI();
+                            if (safe->onConfigReloaded)
+                                safe->onConfigReloaded();
+                        }
+                        else
+                            safe->showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.error", {{"error", fm.getLastError()}}));
+                    });
             }
         });
     }
@@ -4421,6 +4698,8 @@ public:
         helpTextMap[&showNameEditor] = LOC("systemConfig.help.showName");
         helpTextMap[&showLocationEditor] = LOC("systemConfig.help.showLocation");
         helpTextMap[&inputChannelsEditor] = LOC("systemConfig.help.inputChannels");
+        helpTextMap[&stereoChannelsEditor] = LOC("systemConfig.help.stereoInputChannels");
+        helpTextMap[&editChannelsButton] = LOC("systemConfig.help.editChannels");
         helpTextMap[&outputChannelsEditor] = LOC("systemConfig.help.outputChannels");
         helpTextMap[&reverbChannelsEditor] = LOC("systemConfig.help.reverbChannels");
         helpTextMap[&gettingStartedButton] = LOC("wizard.buttons.gettingStartedHelp");
@@ -4482,8 +4761,8 @@ public:
         helpTextMap[&binauralRollEditor] = LOC("systemConfig.help.binauralOrientation");
         helpTextMap[&binauralDistanceSlider] = LOC("systemConfig.help.binauralDistance");
         helpTextMap[&binauralDistanceEditor] = LOC("systemConfig.help.binauralDistance");
-        helpTextMap[&binauralAngleDial] = LOC("systemConfig.help.binauralAngle");
-        helpTextMap[&binauralAngleEditor] = LOC("systemConfig.help.binauralAngle");
+        helpTextMap[&binauralOrbitDial] = LOC("systemConfig.help.binauralAngle");
+        helpTextMap[&binauralOrbitEditor] = LOC("systemConfig.help.binauralAngle");
         helpTextMap[&binauralAttenSlider] = LOC("systemConfig.help.binauralAtten");
         helpTextMap[&binauralAttenEditor] = LOC("systemConfig.help.binauralAtten");
         helpTextMap[&binauralDelaySlider] = LOC("systemConfig.help.binauralDelay");
@@ -4598,6 +4877,11 @@ public:
     std::map<juce::Component*, juce::String> helpTextMap;
     bool processingEnabled = false;
     bool isLoadingParameters = false;
+
+    /** Set while the tracker readout drives binauralYawDial for display, so
+        WfsRotationDial::setAngle's in-setter callback cannot write the tracked
+        yaw back into the parameter. */
+    bool isSuppressingYawWrite = false;
     bool isValidatingFromReturnKey = false;  // Prevents double validation when Enter triggers both ReturnKey and FocusLost
     bool isShowingChannelReductionDialog = false;  // Prevents multiple dialogs from appearing
 
@@ -4607,9 +4891,14 @@ public:
     juce::Label showLocationLabel;
     juce::TextEditor showLocationEditor;
 
-    // I/O Section
+    // I/O Section — mono/stereo counts (composition) + arrange dialog button
+    // (order/removal; stable channel numbers, see InputChannelListEditor)
     juce::Label inputChannelsLabel;
+    juce::Label renderSourceTotalLabel;
     juce::TextEditor inputChannelsEditor;
+    juce::Label stereoChannelsLabel;
+    juce::TextEditor stereoChannelsEditor;
+    juce::TextButton editChannelsButton;
     juce::Label outputChannelsLabel;
     juce::TextEditor outputChannelsEditor;
     juce::Label reverbChannelsLabel;
@@ -4829,10 +5118,17 @@ public:
     WfsStandardSlider binauralDistanceSlider;
     juce::TextEditor binauralDistanceEditor;
     juce::Label binauralDistanceUnitLabel;
-    juce::Label binauralAngleLabel;
-    WfsRotationDial binauralAngleDial;
-    juce::TextEditor binauralAngleEditor;
-    juce::Label binauralAngleUnitLabel;
+    juce::Label binauralOrbitLabel;
+    WfsRotationDial binauralOrbitDial;
+    juce::TextEditor binauralOrbitEditor;
+    juce::Label binauralOrbitUnitLabel;
+
+    // Head Yaw: the head-rotation counterpart to Orbit's seat placement.
+    // Read-only while a tracker is active, where it mirrors the tracked yaw.
+    juce::Label binauralYawLabel;
+    WfsRotationDial binauralYawDial;
+    juce::Label binauralYawValueLabel;
+    juce::Label binauralYawUnitLabel;
     juce::Label binauralAttenLabel;
     WfsStandardSlider binauralAttenSlider;
     juce::TextEditor binauralAttenEditor;
@@ -4886,6 +5182,56 @@ public:
         bool on = quickLongPressToggle.getToggleState();
         quickLongPressToggle.setButtonText(on ? LOC("systemConfig.buttons.quickLongPressOn")
                                                : LOC("systemConfig.buttons.quickLongPressOff"));
+    }
+
+    // Channel order dialog (stable-number model): drag to arrange the
+    // mono/stereo interleaving, per-row delete (number retires as a gap).
+    // Composition is edited through the count fields. Stopped-only via
+    // editChannelsButton's enable state (same gate as the count fields).
+    void openChannelListEditor()
+    {
+        auto* content = new InputChannelListEditor(parameters,
+            [this]
+            {
+                notifyChannelCountChanged();
+                loadParametersToUI();
+            });
+
+        juce::DialogWindow::LaunchOptions options;
+        options.content.setOwned(content);
+        options.dialogTitle = LOC("systemConfig.channelList.title");
+        options.dialogBackgroundColour = getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId);
+        options.escapeKeyTriggersCloseButton = true;
+        options.useNativeTitleBar = false;
+        options.resizable = false;
+
+        auto* dialog = options.launchAsync();
+
+        if (dialog != nullptr)
+        {
+            // Arranging is itself the act that renumbers a fresh session, so the
+            // per-type default names are resequenced once, when the user is done
+            // dragging — not on every intermediate drop. Ownership is NOT
+            // latched here; that would freeze the very numbers this dialog
+            // exists to rearrange. The tab outlives the dialog in practice, but
+            // the callback fires from the modal manager, so it must survive a
+            // teardown that closes the dialog on the way out.
+            juce::Component::SafePointer<SystemConfigTab> safeThis (this);
+            juce::ModalComponentManager::getInstance()->attachCallback (dialog,
+                juce::ModalCallbackFunction::create ([safeThis] (int)
+                {
+                    if (safeThis == nullptr)
+                        return;
+
+                    auto& vts = safeThis->parameters.getValueTreeState();
+                    if (vts.areChannelNumbersUserOwned())
+                        return;
+
+                    vts.resequenceDefaultInputNames();
+                    safeThis->notifyChannelCountChanged();
+                    safeThis->loadParametersToUI();
+                }));
+        }
     }
 
     // Helper to notify MainComponent of any channel count change

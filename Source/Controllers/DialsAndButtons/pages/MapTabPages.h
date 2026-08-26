@@ -92,6 +92,12 @@ inline StreamDeckPage createMapPage (WFSValueTreeState& state,
     const int numInputs     = queries.getNumInputs          ? queries.getNumInputs()           : 0;
     const int multiSelCount = queries.getMultiSelectionCount ? queries.getMultiSelectionCount() : 0;
 
+    // The map selection is a SLOT; every label below names the channel to the
+    // operator, who quotes that number into cues and OSC addresses, so it has to
+    // be the permanent number. Slot + 1 only agrees with it while the list is
+    // gapless and in number order, which a delete or a drag-reorder ends.
+    const int selInputNumber = selInput >= 0 ? state.getInputChannelNumber (selInput) : 0;
+
     //======================================================================
     // Top row: navigation buttons
     //======================================================================
@@ -110,7 +116,7 @@ inline StreamDeckPage createMapPage (WFSValueTreeState& state,
     page.topRowNavigateToTab[2]     = 4;
     if (selInput >= 0)
     {
-        page.topRowOverrideLabel[2]    = LOC ("tabs.inputs") + "\n(Ch " + juce::String (selInput + 1) + ")";
+        page.topRowOverrideLabel[2]    = LOC ("tabs.inputs") + "\n(Ch " + juce::String (selInputNumber) + ")";
         page.topRowNavigateToItem[2]   = selInput;
     }
     else
@@ -124,7 +130,7 @@ inline StreamDeckPage createMapPage (WFSValueTreeState& state,
         if (multiSelCount > 1)
             btn.label = juce::String (multiSelCount) + " " + LOC ("streamDeck.map.labels.inputs") + "\n" + LOC ("streamDeck.map.labels.deselect");
         else if (selInput >= 0)
-            btn.label = LOC ("streamDeck.map.labels.inputN").replace ("%d", juce::String (selInput + 1)) + "\n" + LOC ("streamDeck.map.labels.deselect");
+            btn.label = LOC ("streamDeck.map.labels.inputN").replace ("%d", juce::String (selInputNumber)) + "\n" + LOC ("streamDeck.map.labels.deselect");
         else
             btn.label = LOC ("streamDeck.map.labels.clusterN").replace ("%d", juce::String (selCluster)) + "\n" + LOC ("streamDeck.map.labels.deselect");
         btn.colour = juce::Colour (0xFF666666);
@@ -667,11 +673,14 @@ inline StreamDeckPage createMapPage (WFSValueTreeState& state,
                 d.paramName = LOC ("streamDeck.map.dials.selectInput");
                 d.type      = DialBinding::ComboBox;
 
+                // Option order stays slot order — setValue below hands the combo
+                // index back as a slot — but the text names the channel by its
+                // permanent number, which is what the operator recognises.
                 for (int i = 0; i < numInputs; ++i)
                 {
                     float px = static_cast<float> (state.getInputParameter (i, inputPositionX));
                     float py = static_cast<float> (state.getInputParameter (i, inputPositionY));
-                    d.comboOptions.add ("Input " + juce::String (i + 1)
+                    d.comboOptions.add ("Input " + juce::String (state.getInputChannelNumber (i))
                                         + " (" + juce::String (px, 1)
                                         + ", " + juce::String (py, 1) + ")");
                 }

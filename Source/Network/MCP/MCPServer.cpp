@@ -160,9 +160,12 @@ MCPServer::MCPServer (WFSValueTreeState& state,
                                juce::String ("output"),
                                juce::String ("reverb") })
     {
-        registry->registerTool (Tools::ChannelLifecycle::describeCreate (state, kind));
-        registry->registerTool (Tools::ChannelLifecycle::describeDelete (state, kind));
+        registry->registerTool (Tools::ChannelLifecycle::describeCreate (state, kind, &channelTopologyChanged));
+        registry->registerTool (Tools::ChannelLifecycle::describeDelete (state, kind, &channelTopologyChanged));
     }
+    // NOTE: no in-place mono/stereo flip tool — a channel's data (patch
+    // columns, width, decomposition) cannot meaningfully follow a type
+    // change, so composition is edited through counts / create+delete.
 
     // Undo / redo tools — Phase 5a wires the first two to the real engine.
     // mcp.get_ai_change_history remains a read-only query over the ring buffer.

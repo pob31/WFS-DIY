@@ -212,15 +212,20 @@ private:
     /** Reverse lookup: paramId string -> scope itemId */
     std::unordered_map<juce::String, juce::String> paramToItemMap;
 
-    /** Extract 0-based channel index from a ValueTree node.
-     *  Walks up the tree to find the Input node and reads its "id" property (1-based). */
+    /** Extract 0-based channel SLOT from a ValueTree node.
+     *  Walks up to the Input node and returns its child index — NOT id - 1:
+     *  the id is the permanent channel number, and with gaps/reordering it no
+     *  longer coincides with the slot the scope machinery works in. */
     int extractChannelIndex (const juce::ValueTree& tree) const
     {
         auto node = tree;
         while (node.isValid())
         {
             if (node.getType() == WFSParameterIDs::Input)
-                return static_cast<int> (node.getProperty (WFSParameterIDs::id)) - 1;
+            {
+                auto parent = node.getParent();
+                return parent.isValid() ? parent.indexOf (node) : -1;
+            }
             node = node.getParent();
         }
         return -1;

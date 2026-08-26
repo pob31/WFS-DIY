@@ -57,11 +57,14 @@ class ClusterInputRowComponent : public juce::Component
 public:
     ClusterInputRowComponent (ClustersTab& ownerTab) : owner (ownerTab) {}
 
-    void update (int row, int idx, bool tracked, bool first, bool selected, int refMode,
+    /** @param idx     dense slot of the input, the key every action on this row uses
+        @param number  its permanent channel number, the only id fit to display */
+    void update (int row, int idx, int number, bool tracked, bool first, bool selected, int refMode,
                  const juce::String& name, bool beingDragged)
     {
         rowNumber = row;
         inputIdx  = idx;
+        inputNumber = number;
         isTracked = tracked;
         isFirst   = first;
         isSelected = selected;
@@ -108,9 +111,11 @@ public:
 
         // Text
         g.setColour (isTracked ? juce::Colour (0xFFFF9800) : ColorScheme::get().textPrimary);
-        juce::String text = LOC ("clusters.labels.inputPrefix") + " " + juce::String (inputIdx + 1);
-        juce::String defaultName = LOC ("clusters.labels.inputPrefix") + " " + juce::String (inputIdx + 1);
-        if (inputName.isNotEmpty() && inputName != defaultName)
+        // The operator transcribes this number into cues and OSC addresses, so
+        // it must be the permanent channel number: slot + 1 names a different
+        // channel as soon as the list has a gap or has been reordered.
+        juce::String text = LOC ("clusters.labels.inputPrefix") + " " + juce::String (inputNumber);
+        if (inputName.isNotEmpty() && ! isAppStampedDefaultName (inputName))
             text += " - " + inputName;
         if (isTracked)
             text += " " + LOC ("clusters.status.trackedMarker");
@@ -136,9 +141,31 @@ public:
 private:
     bool isLocked() const { return isTracked && rowNumber == 0; }
 
+    /** The app stamps its own default names un-localised — "Mono n" / "Stereo n",
+        or legacy "Input n" — so a default built from the localised row prefix
+        matches none of them and every row appends a name it already shows. Worse,
+        that ordinal counts within a type and is NOT the channel number, so the row
+        would carry a second number that addresses nothing. Shapes kept in step with
+        WFSValueTreeState::resequenceDefaultInputNames(). */
+    static bool isAppStampedDefaultName (const juce::String& name)
+    {
+        const int space = name.lastIndexOfChar (' ');
+        if (space <= 0)
+            return false;
+
+        const juce::String word = name.substring (0, space);
+        if (word != "Mono" && word != "Stereo" && word != "Input")
+            return false;
+
+        const juce::String ordinal = name.substring (space + 1);
+        return ordinal.isNotEmpty() && ordinal.containsOnly ("0123456789")
+            && ordinal.getIntValue() > 0;
+    }
+
     ClustersTab& owner;
     int rowNumber  = 0;
     int inputIdx   = 0;
+    int inputNumber = 0;
     bool isTracked = false;
     bool isFirst   = false;
     bool isSelected = false;
@@ -700,7 +727,8 @@ public:
         int refMode  = referenceModeSelector.getSelectedId();
         juce::String name = parameters.getInputParam(idx, "inputName").toString();
         bool beingDragged = (draggingInputIdx == idx);
-        row->update(rowNumber, idx, tracked, first, isRowSelected, refMode, name, beingDragged);
+        int number = parameters.getValueTreeState().getInputChannelNumber(idx);
+        row->update(rowNumber, idx, number, tracked, first, isRowSelected, refMode, name, beingDragged);
 
         return row;
     }
@@ -2469,7 +2497,10 @@ private:
         {
             if (isInputFullyTracked(inputIdx))
             {
-                statusLabel.setText(LOC("clusters.status.tracking").replace("{num}", juce::String(inputIdx + 1)),
+                // assignedInputs holds slots; the label names the channel to the
+                // operator, so it has to carry the permanent number.
+                statusLabel.setText(LOC("clusters.status.tracking").replace("{num}",
+                                        juce::String(parameters.getValueTreeState().getInputChannelNumber(inputIdx))),
                                     juce::dontSendNotification);
                 return;
             }

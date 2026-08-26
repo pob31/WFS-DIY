@@ -10,13 +10,19 @@ namespace WFSNetwork::Tools::Input
 
 namespace detail
 {
-    /** Resolve a 1-based input id to a 0-based channel index, returning -1
-        when out of range so the handler can return a structured error. */
+    /** Resolve a permanent input channel number to a 0-based slot, returning
+        -1 when it is not a live channel so the handler can return a
+        structured error. The list may have gaps after deletions, so this
+        must go through the state lookup, never inputId - 1. */
     inline int resolveChannelIndex (WFSValueTreeState& state, int inputId)
     {
-        if (inputId < 1 || inputId > state.getNumInputChannels())
-            return -1;
-        return inputId - 1;
+        // An MCP client is an external agent: it caches the numbers it was
+        // handed and quotes them back on later calls, so naming one here turns
+        // it into a live external reference. Freeze the numbering before the
+        // lookup — otherwise a drag-reorder in the GUI between two tool calls
+        // renumbers the channels the client is still holding.
+        state.markChannelNumbersUserOwned ("MCP input tool");
+        return state.getSlotForChannelNumber (inputId);
     }
 
     inline juce::var positionRangeSchema()

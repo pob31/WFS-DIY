@@ -16,6 +16,19 @@ public:
         setMouseClickGrabsKeyboardFocus(false);
     }
     
+    /** juce::Component::setEnabled(false) does NOT stop a plain Component from
+        receiving mouse events — Component::hitTest never consults isEnabled()
+        — and a Component with no LookAndFeel drawing does not dim either. So a
+        disabled dial used to stay bright and fully draggable, which is worse
+        than no disabling at all: the operator drags the one control that still
+        looks live in a dead section and nothing happens. Wire both here so
+        setEnabled() means what every caller already assumed it meant. */
+    void enablementChanged() override
+    {
+        setInterceptsMouseClicks(isEnabled(), false);
+        repaint();
+    }
+
     void mouseEnter(const juce::MouseEvent&) override
     {
         // Override to prevent hover effects - do nothing
@@ -75,8 +88,30 @@ public:
     /** Configure TTS - unit is automatically "degrees" for rotation dials */
     void setTTSInfo(const juce::String& name) { ttsParameterName = name; }
 
-    /** Set alpha for disabled state (used for visual dimming) */
-    void setDisabledAlpha(float alpha) noexcept { disabledAlpha = juce::jlimit(0.0f, 1.0f, alpha); }
+    /** Alpha the dial paints at once setEnabled(false) has been called.
+        Defaults to a visible dim; callers rarely need to change it. */
+    void setDisabledAlpha(float alpha) noexcept
+    {
+        disabledAlpha = juce::jlimit(0.0f, 1.0f, alpha);
+        repaint();
+    }
+
+    /** Opt in to the Map's plan-view reading: 0 degrees at the BOTTOM, positive
+        counter-clockwise, so the indicator sits where the thing it controls
+        sits on the Map.
+
+        The default (0 at the top, positive clockwise) is what the phase and
+        axis dials want — a phase dial has no plan view to agree with, and
+        several of them reason about the default in their own layout code. Only
+        a dial whose value IS a position on the Map should turn this on. */
+    void setPlanViewMapping(bool shouldUsePlanView) noexcept
+    {
+        if (planViewMapping != shouldUsePlanView)
+        {
+            planViewMapping = shouldUsePlanView;
+            repaint();
+        }
+    }
 
 private:
     void paint(juce::Graphics& g) override
@@ -91,19 +126,28 @@ private:
         // Draw full circle track - use theme color with disabled alpha
         auto trackRadius = radius * 0.8f;
         auto trackWidth = radius * 0.12f;
-        g.setColour(ColorScheme::get().buttonBorder.withAlpha(disabledAlpha));
+        const float alpha = isEnabled() ? 1.0f : disabledAlpha;
+        g.setColour(ColorScheme::get().buttonBorder.withAlpha(alpha));
         g.drawEllipse(juce::Rectangle<float>(
             centre.x - trackRadius, centre.y - trackRadius,
             trackRadius * 2.0f, trackRadius * 2.0f), trackWidth);
 
         // Draw indicator dot on the track (Android app style) - use theme color with disabled alpha
-        auto angleRad = juce::degreesToRadians(angleDegrees - 90.0f);
         auto dotRadius = trackWidth * 0.8f;
-        juce::Point<float> dotPosition(
-            centre.x + trackRadius * std::cos(angleRad),
-            centre.y + trackRadius * std::sin(angleRad));
 
-        g.setColour(ColorScheme::get().sliderThumb.withAlpha(disabledAlpha));
+        // Plan view: (sin, +cos) with screen y growing downward puts 0 at the
+        // bottom and +90 to the right — the same place the Map's stageToScreen
+        // puts a bearing of 0 and 90 (audience at the bottom, stage right to
+        // the right). Default: (cos, sin) of (angle - 90), i.e. 0 at the top
+        // running clockwise.
+        const auto t = juce::degreesToRadians(angleDegrees);
+        juce::Point<float> dotPosition = planViewMapping
+            ? juce::Point<float>(centre.x + trackRadius * std::sin(t),
+                                 centre.y + trackRadius * std::cos(t))
+            : juce::Point<float>(centre.x + trackRadius * std::cos(t - juce::MathConstants<float>::halfPi),
+                                 centre.y + trackRadius * std::sin(t - juce::MathConstants<float>::halfPi));
+
+        g.setColour(ColorScheme::get().sliderThumb.withAlpha(alpha));
         g.fillEllipse(dotPosition.x - dotRadius, dotPosition.y - dotRadius,
                       dotRadius * 2.0f, dotRadius * 2.0f);
     }
@@ -133,8 +177,11 @@ private:
         else if (angleDelta < -juce::MathConstants<float>::pi)
             angleDelta += 2.0f * juce::MathConstants<float>::pi;
         
-        // Accumulate angle change (convert radians to degrees)
-        accumulatedAngleChange += juce::radiansToDegrees(angleDelta);
+        // Accumulate angle change (convert radians to degrees). Screen atan2
+        // grows clockwise; in plan view a growing ANGLE moves the dot
+        // counter-clockwise, so the sign flips for the dot to keep following
+        // the pointer.
+        accumulatedAngleChange += (planViewMapping ? -1.0f : 1.0f) * juce::radiansToDegrees(angleDelta);
         dragStartAngle = currentAngle; // Update for next drag
         
         setAngle(dragStartAngleDegrees + accumulatedAngleChange);
@@ -159,7 +206,8 @@ private:
     }
 
     float angleDegrees = 0.0f;
-    float disabledAlpha = 1.0f;  // Alpha for disabled state visual dimming
+    float disabledAlpha = 0.45f;  // painted alpha while !isEnabled()
+    bool planViewMapping = false;  // see setPlanViewMapping
 
     // TTS accessibility
     juce::String ttsParameterName;

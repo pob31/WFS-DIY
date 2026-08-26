@@ -50,7 +50,10 @@ inline juce::var buildSchema()
     channelId->setProperty ("type", "integer");
     channelId->setProperty ("minimum", 1);
     channelId->setProperty ("description",
-        "Channel number (1-based) for per-channel parameters. Omit for globals.");
+        "Channel number (1-based) for per-channel parameters. For input "
+        "parameters this is the permanent input number shown in the UI, which "
+        "can have gaps and need not match the channel's position in the list. "
+        "Omit for globals.");
 
     auto props = std::make_unique<juce::DynamicObject>();
     props->setProperty ("variable",   juce::var (variable.release()));
@@ -151,7 +154,41 @@ inline ToolResult nudge (WFSValueTreeState& state,
         binding.maxValue = *rec->maxValue;
     }
 
-    return Generated::Detail::dispatchGenericNudge (state, binding, args, record);
+    // The shared resolver keys the permanent-number lookup off the arg *name*
+    // "input_id"; under the public name "channel_id" it would resolve an input
+    // as channel_id - 1. Input numbers may have gaps and are not in slot order
+    // after a reorder, so that arithmetic addresses a different channel than
+    // the caller named, silently. Renaming the arg on a private copy puts the
+    // dispatch back on the lookup path without adding a second name to the
+    // schema. Output / reverb / cluster ids really are dense slot positions,
+    // so they keep channel_id and its - 1.
+    juce::var dispatchArgs = args;
+    if (rec->scope == "input")
+    {
+        if (! obj->hasProperty ("channel_id"))
+            return ToolResult::error ("invalid_args", "Missing required arg: channel_id");
+
+        const int displayId = static_cast<int> (obj->getProperty ("channel_id"));
+
+        // Naming an input by number makes that number an external reference the
+        // client quotes back, and it must stop reflowing before the
+        // read-modify-write lands.
+        state.markChannelNumbersUserOwned ("MCP nudge_parameter on an input");
+
+        // Resolved here as well as in the dispatcher so the failure names the
+        // arg the caller actually sent rather than the renamed one.
+        if (state.getSlotForChannelNumber (displayId) < 0)
+            return ToolResult::error ("invalid_args",
+                                      "channel_id not a live channel: " + juce::String (displayId));
+
+        auto renamedArgs = obj->clone();
+        renamedArgs->removeProperty ("channel_id");
+        renamedArgs->setProperty ("input_id", displayId);
+        dispatchArgs = juce::var (renamedArgs.release());
+        binding.channelArgName = "input_id";
+    }
+
+    return Generated::Detail::dispatchGenericNudge (state, binding, dispatchArgs, record);
 }
 
 inline ToolDescriptor describe (WFSValueTreeState& state)

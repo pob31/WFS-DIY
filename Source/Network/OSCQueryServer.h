@@ -81,7 +81,8 @@ private:
                                                const juce::String& description);
     static juce::DynamicObject* makeContainerNode(const juce::String& fullPath,
                                                     const juce::String& description);
-    static juce::String getOSCTypeTag(const juce::var& value);
+    static juce::String getOSCTypeTag(const juce::var& value,
+                                      const juce::Identifier& paramId = {});
 
     struct ParamRange { float min; float max; bool hasRange; };
     static ParamRange getParamRange(const juce::Identifier& paramId);
@@ -110,14 +111,16 @@ private:
 
     // --- Throttled Push ---
     // Accumulate dirty paths, flush every ~30ms to avoid flooding the message queue
-    struct PendingPush { juce::String oscPath; juce::var value; juce::String skipIP; };
+    // paramId rides along so the flush can type the OSC packet from the
+    // PARAMETER rather than from the var, which after a load is always a string.
+    struct PendingPush { juce::String oscPath; juce::var value; juce::String skipIP; juce::Identifier paramId; };
     std::map<juce::String, PendingPush> pendingPushes;  // key = oscPath, latest value + origin win
     juce::CriticalSection pendingPushLock;
     void timerCallback() override;
 
     // --- Value Change Push ---
     void pushValueChange(const juce::String& oscPath, const juce::var& value,
-                         const juce::String& skipIP);
+                         const juce::String& skipIP, const juce::Identifier& paramId = {});
 
     // Reverse lookup: paramId -> OSC address name (built lazily)
     struct ReverseEntry { juce::String oscName; juce::String category; /* "input","output","reverb" */ };
@@ -131,7 +134,13 @@ private:
                                   const juce::Identifier& property) override;
     void valueTreeChildAdded(juce::ValueTree& parent, juce::ValueTree& child) override;
     void valueTreeChildRemoved(juce::ValueTree& parent, juce::ValueTree& child, int index) override;
-    void valueTreeChildOrderChanged(juce::ValueTree&, int, int) override {}
+    void valueTreeChildOrderChanged(juce::ValueTree& parent, int, int) override
+    {
+        // Drag-to-reorder moves an Input node — the namespace listing order
+        // changed even though no node appeared or vanished.
+        juce::ValueTree dummy;
+        valueTreeChildAdded(parent, dummy);
+    }
     void valueTreeParentChanged(juce::ValueTree&) override {}
 
     // --- State ---

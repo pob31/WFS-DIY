@@ -91,6 +91,27 @@ namespace
                 return c;
         return {};
     }
+
+    /** Resolve a per-channel tool's 1-based id arg to a 0-based slot.
+
+        input_id is a permanent channel number, so the list can carry gaps after
+        deletions and it has to go through the state lookup rather than id - 1.
+        Naming a channel by number also makes that number an external reference
+        an MCP client will quote back later, so the numbering is frozen first —
+        without that, a drag-reorder in the GUI between two tool calls would
+        silently retarget the cached id. output_id / reverb_id / cluster_id are
+        dense slot positions rather than permanent numbers, and must leave input
+        numbering alone. */
+    int resolveChannelSlot (WFSValueTreeState& state,
+                            const juce::String& channelArgName,
+                            int displayId)
+    {
+        if (channelArgName != "input_id")
+            return displayId - 1;
+
+        state.markChannelNumbersUserOwned ("MCP tool addressing an input by number");
+        return state.getSlotForChannelNumber (displayId);
+    }
 }  // anonymous namespace
 
 // ---------------------------------------------------------------------------
@@ -144,7 +165,9 @@ namespace Detail
 
         auto* argsObj = asObject (args);
 
-        // Resolve channel index (1-based MCP arg → 0-based ValueTree index)
+        // Resolve channel index (1-based MCP arg → 0-based ValueTree index).
+        // input_id is a permanent channel number — the input list may have
+        // gaps after deletions, so it resolves through the state lookup.
         int channelIndex = -1;
         int displayId = 0;  // 1-based for descriptions and affected_groups
         if (binding.channelArgName.isNotEmpty())
@@ -153,10 +176,10 @@ namespace Detail
                 return ToolResult::error ("invalid_args",
                                           "Missing required arg: " + binding.channelArgName);
             displayId = static_cast<int> (argsObj->getProperty (binding.channelArgName));
-            channelIndex = displayId - 1;
+            channelIndex = resolveChannelSlot (state, binding.channelArgName, displayId);
             if (channelIndex < 0)
                 return ToolResult::error ("invalid_args",
-                                          binding.channelArgName + " out of range: " + juce::String (displayId));
+                                          binding.channelArgName + " not a live channel: " + juce::String (displayId));
         }
 
         // Resolve EQ band sub-index (1-based → 0-based)
@@ -421,7 +444,8 @@ namespace Detail
 
         auto* argsObj = asObject (args);
 
-        // Resolve channel index
+        // Resolve channel index (input_id is a permanent channel number —
+        // the input list may have gaps after deletions)
         int channelIndex = -1;
         int displayId = 0;
         if (binding.channelArgName.isNotEmpty())
@@ -430,10 +454,10 @@ namespace Detail
                 return ToolResult::error ("invalid_args",
                                           "Missing required arg: " + binding.channelArgName);
             displayId = static_cast<int> (argsObj->getProperty (binding.channelArgName));
-            channelIndex = displayId - 1;
+            channelIndex = resolveChannelSlot (state, binding.channelArgName, displayId);
             if (channelIndex < 0)
                 return ToolResult::error ("invalid_args",
-                                          binding.channelArgName + " out of range: " + juce::String (displayId));
+                                          binding.channelArgName + " not a live channel: " + juce::String (displayId));
         }
 
         // Resolve direction

@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "../Parameters/WFSValueTreeState.h"
 #include "../Parameters/WFSParameterDefaults.h"
+#include "../Helpers/BinauralListenerGeometry.h"
 #include "../../spatcore/rt/RtSnapshot.h"
 #include "WFSCalculationEngine.h"
 #include <atomic>
@@ -16,12 +17,13 @@
  * Uses the composite input positions from WFSCalculationEngine and renders through
  * a pair of virtual speakers positioned relative to the listener.
  *
- * Virtual Speaker Configuration:
- * - Two speakers at ±10cm from listener center (20cm apart total)
- * - Angled 45° left/right from listener's front-facing direction
- * - On Angle: 135° (full coverage behind speaker)
- * - Off Angle: 30° (mute zone in front of speaker)
- * - HF Shelf: -0.3 dB/m
+ * Virtual Speaker Configuration (the numbers live in WFSParameterDefaults —
+ * quoting them here once drifted already, so they are named, not repeated):
+ * - Two capsules at ±binauralSpeakerSpacing/2 from listener center (20cm apart)
+ * - Aimed ±binauralSpeakerAngle (45°) off the listener's facing direction
+ * - binauralOnAngle (70°): full coverage, measured from the capsule's REAR axis
+ * - binauralOffAngle (1°): mute zone, measured back from dead in front
+ * - HF Shelf: binauralHFShelfPerMeter (-0.3 dB/m)
  *
  * Threading model:
  * - The message thread publishes an RtParams snapshot via refreshRtSnapshot()
@@ -112,8 +114,11 @@ public:
     {
         BinauralPair result;
 
-        // Get input position from WFS engine (positionLock-guarded cache, tree-free)
-        auto inputPos = wfsCalcEngine.getCompositeInputPosition (inputIndex);
+        // Get the render source's position from the WFS engine (positionLock-
+        // guarded cache, tree-free). For mono sources this is bit-identical to
+        // the composite input position; for a stereo slice it is the owning
+        // channel's anchor plus the slice offset.
+        auto inputPos = wfsCalcEngine.getRenderSourcePosition (inputIndex);
 
         // Calculate for left speaker
         result.left = calculateForSpeaker (inputPos, rt.leftSpeakerPos, rt.leftSpeakerOrientation);
@@ -135,7 +140,22 @@ public:
      */
     Position getInputPosition (int inputIndex) const
     {
-        return wfsCalcEngine.getCompositeInputPosition (inputIndex);
+        return wfsCalcEngine.getRenderSourcePosition (inputIndex);
+    }
+
+    /** Owning input channel of a render source (identity for mono sources).
+        Solo state is per CHANNEL, so a soloed stereo channel solos all six of
+        its slices. RT-safe passthrough, same cost class as getInputPosition. */
+    int getOwningInputChannel (int sourceIndex) const
+    {
+        return wfsCalcEngine.getOwningInputChannel (sourceIndex);
+    }
+
+    /** Slice gain of a render source: 1 for mono sources, 0 for an inactive
+        slice slot. RT-safe passthrough. */
+    float getRenderSourceGain (int sourceIndex) const
+    {
+        return wfsCalcEngine.getRenderSourceGain (sourceIndex);
     }
 
     /**
@@ -202,9 +222,14 @@ public:
             const float lateralX = juce::jlimit (binauralListenerXMin, binauralListenerXMax,
                 (float) binaural.getProperty (WFSParameterIDs::binauralListenerX, binauralListenerXDefault));
 
+            // Seat placement, shared with the Map's listener glyph. lateralX
+            // rides the listener's own right-ear axis, so it stays lateral at
+            // every Orbit setting instead of only at 0.
             fresh.baselineAngleRad = angleRad;
-            fresh.listenerX = distance * std::sin (angleRad) + lateralX;
-            fresh.listenerY = -distance * std::cos (angleRad);
+            const auto seat = WFSBinauralListener::seatPosition (
+                distance, (float) juce::radiansToDegrees (angleRad), lateralX);
+            fresh.listenerX = seat.x;
+            fresh.listenerY = seat.y;
             fresh.listenerZ = juce::jlimit (binauralListenerHeightMin, binauralListenerHeightMax,
                 (float) binaural.getProperty (WFSParameterIDs::binauralListenerHeight, binauralListenerHeightDefault));
 
@@ -233,17 +258,14 @@ public:
             outputChannel = (int) binaural.getProperty (WFSParameterIDs::binauralOutputChannel,
                                                         WFSParameterDefaults::binauralOutputChannelDefault);
 
-            // Parse the solo CSV here, on the message thread, so the RT thread
-            // never touches Strings. Matches WFSValueTreeState::isInputSoloed semantics.
-            juce::String soloStates = binaural.getProperty (WFSParameterIDs::inputSoloStates,
-                                                            juce::String()).toString();
-            juce::StringArray states;
-            states.addTokens (soloStates, ",", "");
-
-            const int numStates = juce::jmin (states.size(), 64);
-            for (int i = 0; i < numStates; ++i)
+            // Build the solo mask here, on the message thread, so the RT
+            // thread never touches the ValueTree. Solo is per-channel
+            // (Channel.inputSolo) — the mask stays slot-indexed to match the
+            // engine rows.
+            const int numCh = juce::jmin (64, valueTreeState.getNumInputChannels());
+            for (int i = 0; i < numCh; ++i)
             {
-                if (states[i] == "1")
+                if (valueTreeState.isInputSoloed (i))
                 {
                     fresh.soloMask |= (1ull << i);
                     ++fresh.numSoloed;
@@ -302,22 +324,39 @@ private:
         int angleDeg = (int) binaural.getProperty (WFSParameterIDs::binauralListenerAngle,
                                                     binauralListenerAngleDefault);
 
-        // Convert angle to radians (0° = facing origin/stage, positive = clockwise)
         float angleRad = juce::degreesToRadians ((float) angleDeg);
 
-        // Calculate listener position (at distance from origin, facing origin)
-        // Listener looks toward origin, so position is on the negative Y axis (audience side)
-        listenerPosition.x = distance * std::sin (angleRad);
-        listenerPosition.y = -distance * std::cos (angleRad);  // Negative = audience side
-        listenerPosition.z = 1.5f;  // Ear height
+        // Same polar placement as the HRTF path, through the shared helper —
+        // but with NO lateral offset and a pinned 1.5 m ear height, because
+        // this mode has always ignored binauralListenerX and
+        // binauralListenerHeight. Left as-is deliberately: honouring them here
+        // would move the listener in existing legacy projects that carry
+        // values set while they were in an HRTF mode. It does mean a legacy →
+        // HRTF switch can translate the listener, which the Map now shows.
+        const auto seat = WFSBinauralListener::seatPosition (distance, (float) angleDeg, 0.0f);
+        listenerPosition.x = seat.x;
+        listenerPosition.y = seat.y;   // negative at Orbit 0 = audience side
+        listenerPosition.z = 1.5f;     // ear height
 
         // Calculate virtual speaker positions (±10cm from listener center, angled 45°)
         float halfSpacing = binauralSpeakerSpacing / 2.0f;  // 0.10m
         float speakerAngleRad = juce::degreesToRadians (binauralSpeakerAngle);  // 45°
 
-        // Speaker orientations: -listenerAngle ± 45° (stereo pair always covers the stage)
-        leftSpeakerOrientation = -angleRad + speakerAngleRad;   // -listenerAngle + 45°
-        rightSpeakerOrientation = -angleRad - speakerAngleRad;  // -listenerAngle - 45°
+        // Capsule facings rotate WITH the seat, like the positions below.
+        //
+        // calculateAngularAttenuation centres the pickup lobe on the capsule's
+        // REAR axis, so a capsule stored at orientation θ picks up along
+        // (-sin θ, cos θ). The left capsule must aim 45° to the left of the
+        // listener's facing f = (-sin α, cos α), i.e. at
+        // cos45·f + sin45·left = 0.7071·(-sin α - cos α, cos α - sin α),
+        // which is exactly what θ = α + 45° produces.
+        //
+        // This used to read -angleRad ± 45°, which counter-rotated the pair
+        // against the seat: correct at α = 0° and 180°, off by 2α everywhere
+        // else, and at ±90° aimed the pair directly AWAY from the origin, where
+        // the keystone pattern then attenuated the stage by ~8 dB, lopsidedly.
+        leftSpeakerOrientation = angleRad + speakerAngleRad;    // listenerAngle + 45°
+        rightSpeakerOrientation = angleRad - speakerAngleRad;   // listenerAngle - 45°
 
         // Speaker positions: perpendicular to facing direction
         // Listener's right direction in WFS convention at angle α is (cos(α), sin(α))

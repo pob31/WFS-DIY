@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "WFSValueTreeState.h"
+#include "InputChannelIdentity.h"
 #include "../../spatcore/control/state/XmlPersistence.h"
 
 #if JUCE_MAC
@@ -424,7 +425,19 @@ public:
     // Snapshot Scope Operations
     //==========================================================================
 
-    /** Save a new input snapshot with extended scope */
+    /** Save a new input snapshot with extended scope. Also latches channel-number
+        ownership: the file keys its entries by permanent channel number, so those
+        numbers stop being reassignable the moment it is written. */
+    /** True if `propertyId` is carried by an input snapshot — i.e. it appears in
+        some ScopeItem's parameterIds, or in the <Channel> table.
+
+        Exists for the coverage self-test. A property that lives on an <Input>
+        child node and is in NEITHER place is silently absent from every
+        snapshot, and because save and recall consult the same tables the
+        omission is symmetric and a round-trip test stays green. That is exactly
+        how the AutomOtion polar destination went unnoticed. */
+    static bool isPropertyCoveredBySnapshotScope (const juce::Identifier& propertyId);
+
     bool saveInputSnapshotWithExtendedScope (const juce::String& snapshotName, const ExtendedSnapshotScope& scope);
 
     /** Load an input snapshot with extended scope */
@@ -501,6 +514,71 @@ public:
     static constexpr const char* audioPatchExtension = ".xml";
     static constexpr const char* snapshotExtension = ".xml";
 
+    //==========================================================================
+    // Channel identity gate (pre-load check)
+    //==========================================================================
+    // Position is not identity. mergeTreeRecursive matches <Input> children by
+    // permanent NUMBER, applyInputChannelInventory rebuilds the list by NUMBER
+    // (retyping a live channel to whatever type the file's same-numbered channel
+    // has), and patchData rows land by POSITION. So loading a file whose
+    // (position <-> number <-> type) relation differs from the session's crosses
+    // parameter sets by number and hardware inputs by slot, in opposite
+    // directions at once - and a hand-rebuilt arrangement that LOOKS identical
+    // is no protection, because the merge never looks at position. These read a
+    // file's channel identity WITHOUT applying it and say, before the load,
+    // whether that would happen.
+    //
+    // Three layers. The preflights are pure (const, no setError, no latch) and
+    // are what the GUI asks before deciding to show a dialog. The gate inside
+    // the three import primitives is the safety net no caller can bypass: an
+    // unsafe load with neither a bypass nor a one-shot clearance for that exact
+    // file is REFUSED, loudly, rather than applied. Complete project loads
+    // check the pair (system.xml against inputs.xml - the only thing that can
+    // go wrong there) and run their inner loads under a bypass.
+
+    enum class LoadKind { systemConfig, inputConfig, completeConfig, projectPair };
+
+    /** The live session compared with what `file` describes. */
+    InputChannelIdentityDiff preflightChannelIdentity (const juce::File& file, LoadKind kind) const;
+
+    /** system.xml's inventory compared with inputs.xml's <Input> nodes - a
+        complete load of a consistent pair is safe whatever the session looks
+        like, so the pair is the only thing to check. Falls back to system vs
+        session when inputs.xml is unreadable (the load then degenerates to a
+        system-only one). */
+    InputChannelIdentityDiff preflightProjectChannelIdentity (const juce::File& systemFile,
+                                                              const juce::File& inputsFile) const;
+
+    /** The live session compared with a snapshot's entries: which numbers have
+        no live channel (they will be skipped) and whose hardware-input
+        fingerprint disagrees with the live patch (a different configuration, or
+        a re-cable). */
+    InputChannelIdentityDiff preflightSnapshotChannelIdentity (const juce::String& snapshotName) const;
+
+    /** The one rule for "may this proceed without the operator's say-so". */
+    bool isChannelIdentitySafe (const InputChannelIdentityDiff& diff, LoadKind kind) const;
+
+    /** One-shot permission for the next primitive call on exactly `file`,
+        granted by the GUI once the operator confirmed. Consumed by that call. */
+    void grantChannelIdentityClearance (const juce::File& file);
+
+    /** RAII: every primitive called inside passes the gate. Complete loads hold
+        one around their inner per-file loads; the self-test holds one around the
+        phases that load deliberately mismatching files. */
+    struct ScopedChannelIdentityBypass
+    {
+        explicit ScopedChannelIdentityBypass (WFSFileManager& fm) : owner (fm) { ++owner.channelIdentityBypassDepth; }
+        ~ScopedChannelIdentityBypass()                                           { --owner.channelIdentityBypassDepth; }
+        WFSFileManager& owner;
+    };
+
+    /** One line for the log / status bar. */
+    static juce::String summariseChannelIdentityDiff (const InputChannelIdentityDiff& diff);
+
+    /** After loadInputSnapshotWithExtendedScope: the entry numbers that had no
+        live channel and were skipped. Recall used to be silent about them. */
+    const std::vector<int>& getLastRecallSkippedNumbers() const { return lastRecallSkippedNumbers; }
+
 private:
     //==========================================================================
     // Private Members
@@ -515,6 +593,78 @@ private:
     // folder (loaded from it, or explicitly saved to it). Gates autoSaveSystemConfig
     // so background saves can't clobber a config the user hasn't loaded yet.
     bool systemConfigSynced = false;
+
+    // Whether the last system config applied carried an <InputChannelList>.
+    //
+    // It decides who owns the channel list when system.xml and inputs.xml
+    // disagree. WITH an inventory the config section rebuilt the exact set —
+    // numbers, types, gaps — so a channel inputs.xml does not mention means the
+    // two files are out of sync, and the richer, explicitly-recorded list wins.
+    // WITHOUT one it could only guess a dense 1..N from the sum, so a channel
+    // inputs.xml does not mention is that guess's leftover: mergeTreeRecursive
+    // never removes a target child, so it would otherwise survive as a ghost
+    // (save 6 channels numbered 1,2,3,4,5,7 -> the guess makes 1..6, the merge
+    // appends 7, and nothing ever deletes 6) and shift every patch row after it.
+    //
+    // Deliberately not reset by applyInputsSection: a standalone Reload Input
+    // Config after a system load must honour that load's answer.
+    bool channelListFromInventory = false;
+
+    /** The `clusterInputOrder` CSVs exactly as the last-loaded system config
+        wrote them, lifted off the file BEFORE the merge.
+
+        They cannot be applied when they arrive. The merge puts them into the live
+        tree while the channel list is still the pre-load one; the reconciliation
+        that follows then deletes channels (which runs remapClusterInputOrders and
+        shifts tokens) and reorders them (a raw moveChild, which does not) — so the
+        CSV is half-rewritten against a slot space it was never expressed in. The
+        fix is to ignore whatever the merge and the remaps leave behind and write
+        the file's own values back once the channel list has settled.
+
+        Lifting must happen pre-merge: the live tree always carries
+        clusterInputOrder="" on all ten clusters, so afterwards "the file had none"
+        and "the file had empty" are indistinguishable.
+
+        `numberKeyed` mirrors the file's <Clusters inputOrderKey> marker. Absent
+        means a pre-marker file whose CSVs are slots — still correct to restore
+        verbatim, because by flush time the live slot space equals the file's.
+
+        Deliberately NOT consumed by the flush: flushing is idempotent and runs at
+        both the system-config-alone tail and the end of applyInputsSection, so a
+        prune in the latter cannot leave a damaged CSV behind. */
+    struct PendingClusterOrders
+    {
+        bool valid = false;
+        bool numberKeyed = false;
+        std::map<int, juce::String> byClusterId;
+    };
+    PendingClusterOrders pendingClusterOrders;
+
+    /** Write the lifted cluster orders back, converting numbers->slots when the
+        file was number-keyed. Safe to call more than once per load. */
+    void flushPendingClusterOrders();
+
+    // Channel identity gate state. `channelIdentityClearance` is a one-shot: the
+    // GUI grants it for one file after the operator confirmed, and the next
+    // primitive call on that file consumes it. Keyed on the exact File so a
+    // confirmation for one path can never license a load of another.
+    int channelIdentityBypassDepth = 0;
+    juce::File channelIdentityClearance;
+    std::vector<int> lastRecallSkippedNumbers;
+
+    /** The gate itself. True = proceed. False = refused; lastError and the log
+        say why. Takes the already-parsed root so the primitive parses once. */
+    bool passChannelIdentityGate (const juce::File& file, LoadKind kind, const juce::ValueTree& parsedRoot);
+
+    /** What a parsed file says about its channel list, for `kind`. For a
+        system config without an inventory, the project's own inputs.xml is
+        consulted - but ONLY for the project's own system.xml: a backup or an
+        imported file has no trustworthy sibling. */
+    InputChannelIdentity readFileChannelIdentity (const juce::ValueTree& parsedRoot, LoadKind kind,
+                                                  const juce::File& file) const;
+
+    /** Stamp each <Input> in a saved COPY with its hardware-input fingerprint. */
+    void stampHardwareFingerprints (juce::ValueTree& inputsCopy) const;
 
     //==========================================================================
     // Internal Methods

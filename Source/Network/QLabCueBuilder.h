@@ -47,6 +47,9 @@ public:
      * @param scope            Extended scope filtering
      * @param numChannels      Total number of input channels
      * @param qlabPatchNumber  QLab network patch to assign to created cues
+     * @param numberToSlot     Resolves a permanent input channel number to the slot it
+     *                         currently occupies, negative when no live channel carries
+     *                         it (WFSValueTreeState::getSlotForChannelNumber)
      * @return QLabCueSequence with group messages and per-cue messages
      */
     static QLabCueSequence buildSnapshotCues (
@@ -54,7 +57,8 @@ public:
         const juce::ValueTree& snapshotData,
         const WFSFileManager::ExtendedSnapshotScope& scope,
         int numChannels,
-        int qlabPatchNumber)
+        int qlabPatchNumber,
+        const std::function<int (int)>& numberToSlot = {})
     {
         QLabCueSequence sequence;
 
@@ -74,24 +78,30 @@ public:
         for (int i = 0; i < snapshotData.getNumChildren(); ++i)
         {
             auto inputData = snapshotData.getChild (i);
-            int channelId = static_cast<int> (inputData.getProperty (WFSParameterIDs::id, 0));
-            int channelIndex = channelId - 1;
 
-            if (channelIndex >= 0 && channelIndex < numChannels)
-            {
-                appendChannelCues (sequence.networkCues, inputData, channelIndex, channelId,
-                                   scope, qlabPatchNumber, cueCounter);
-            }
+            // channelId is the permanent number: it stays the OSC address of the cue.
+            // The scope mask is keyed by slot, so it needs the separate lookup below.
+            int channelId = static_cast<int> (inputData.getProperty (WFSParameterIDs::id, 0));
+            const int channelIndex = resolveSlot (channelId, numberToSlot, numChannels);
+
+            if (channelIndex < 0)
+                continue;
+
+            appendChannelCues (sequence.networkCues, inputData, channelIndex, channelId,
+                               scope, qlabPatchNumber, cueCounter);
         }
 
         return sequence;
     }
 
-    /** Get the count of network cues that would be created (for progress display) */
+    /** Get the count of network cues that would be created (for progress display).
+        Takes the same number-to-slot resolver as buildSnapshotCues: the two must
+        select the same channels or the progress total disagrees with the cues sent. */
     static int countCues (
         const juce::ValueTree& snapshotData,
         const WFSFileManager::ExtendedSnapshotScope& scope,
-        int numChannels)
+        int numChannels,
+        const std::function<int (int)>& numberToSlot = {})
     {
         int count = 0;
         const auto& inputMappings = OSCMessageBuilder::getInputMappings();
@@ -99,9 +109,14 @@ public:
         for (int i = 0; i < snapshotData.getNumChildren(); ++i)
         {
             auto inputData = snapshotData.getChild (i);
-            int channelIndex = static_cast<int> (inputData.getProperty (WFSParameterIDs::id, 0)) - 1;
 
-            if (channelIndex < 0 || channelIndex >= numChannels)
+            // The id property is the permanent number; the scope mask below is
+            // keyed by slot.
+            const int channelIndex = resolveSlot (
+                static_cast<int> (inputData.getProperty (WFSParameterIDs::id, 0)),
+                numberToSlot, numChannels);
+
+            if (channelIndex < 0)
                 continue;
 
             for (int s = 0; s < inputData.getNumChildren(); ++s)
@@ -252,6 +267,24 @@ public:
     }
 
 private:
+    /** Snapshot entries are keyed by the permanent channel NUMBER, while the scope
+        mask is built over live SLOTS. Numbers may have gaps and stop following slot
+        order once channels are reordered or deleted, so only the live state can pair
+        the two. Returns a negative value for a number no live channel carries — the
+        ghost entry of a deleted channel, which recall skips and which gets no cue.
+        Without a resolver the caller has no live state to consult and all that is
+        left is the dense assumption; it cannot survive a reorder. */
+    static int resolveSlot (int channelNumber,
+                            const std::function<int (int)>& numberToSlot,
+                            int numChannels)
+    {
+        if (numberToSlot != nullptr)
+            return numberToSlot (channelNumber);
+
+        const int denseSlot = channelNumber - 1;
+        return denseSlot < numChannels ? denseSlot : -1;
+    }
+
     /** Append QLab network cue entries for all in-scope parameters of one channel */
     static void appendChannelCues (
         std::vector<QLabCueSequence::NetworkCue>& networkCues,
@@ -350,6 +383,8 @@ private:
             { WFSParameterIDs::inputAttenuation,          { "Attenuation",          "dB",  false } },
             { WFSParameterIDs::inputDelayLatency,         { "Delay",                "ms",  false } },
             { WFSParameterIDs::inputMinimalLatency,       { "Min Latency",          "",    false } },
+            { WFSParameterIDs::inputStereoWidth,          { "Stereo Width",         "m",   false } },
+            { WFSParameterIDs::inputStereoAxisOffset,     { "Stereo Axis",          "deg", false } },
 
             // Position
             { WFSParameterIDs::inputPositionX,            { "Position X",           "m",   false } },

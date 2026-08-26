@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "../WfsParameters.h"
 #include "../Parameters/WFSParameterIDs.h"
+#include "../Parameters/VarCoercion.h"
 #include "../Parameters/WFSParameterDefaults.h"
 #include "../Accessibility/TTSManager.h"
 #include "../Localization/LocalizationManager.h"
@@ -4612,7 +4613,11 @@ private:
                     for (int i = 0; i < numOutputs; ++i)
                     {
                         juce::var arrayVar = vts.getOutputParameter (i, WFSParameterIDs::outputArray);
-                        int outputArrayNum = arrayVar.isInt() ? static_cast<int> (arrayVar) : 0;
+                        // NOT isInt()-guarded: after any load outputArray is a
+                        // STRING var, so the guard read 0 for every output while
+                        // targetArray is 1-10 — nothing matched and all twenty
+                        // per-array mute macros silently did nothing.
+                        int outputArrayNum = WFSVar::toInt (arrayVar);
 
                         if (outputArrayNum == targetArray)
                             muteButtons[i].setToggleState (mute, juce::dontSendNotification);

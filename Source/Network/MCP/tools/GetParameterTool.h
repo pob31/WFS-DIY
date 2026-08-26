@@ -135,7 +135,28 @@ namespace detail
                                        + "-scope parameter '" + out.value.variable + "'";
                     return out;
                 }
-                if (out.value.channelIndex >= maxChannels)
+
+                // Input channel_ids are permanent numbers — the list may have
+                // gaps after deletions, so re-resolve through the state
+                // lookup instead of bounds-checking the dense index.
+                if (rec->scope == "input")
+                {
+                    // A read by number is as much an external reference as a
+                    // write: the client caches what it read back and quotes it
+                    // on the next call. Freeze the numbering here or a reorder
+                    // between the two calls answers about a different channel.
+                    state.markChannelNumbersUserOwned ("MCP get_parameter on an input");
+                    out.value.channelIndex = state.getSlotForChannelNumber (out.value.displayId);
+                    if (out.value.channelIndex < 0)
+                    {
+                        out.errorCode    = "invalid_args";
+                        out.errorMessage = "channel_id "
+                                           + juce::String (out.value.displayId)
+                                           + " is not a live input channel";
+                        return out;
+                    }
+                }
+                else if (out.value.channelIndex >= maxChannels)
                 {
                     out.errorCode    = "invalid_args";
                     out.errorMessage = "channel_id "

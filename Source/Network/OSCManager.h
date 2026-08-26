@@ -179,6 +179,23 @@ public:
      */
     void sendCompositeDeltaToRemote(int inputId, float deltaX, float deltaY);
 
+    /**
+     * Build the /remote/channelList payload (protocol v4): element 0 is the live
+     * channel count N, then one (permanent number, isStereo) pair per channel in
+     * slot order — slot order IS the tablet's display order. 1 + 2N elements.
+     * Public so the channel-list self-test can assert the payload without a socket.
+     * Must be called on the message thread (reads ValueTree state).
+     */
+    std::vector<int> buildRemoteChannelListPayload() const;
+
+    /**
+     * Push /remote/channelList to every connected Remote target after a structural
+     * channel edit (add, remove, move, type flip, config load). A full-replacement
+     * snapshot with no sequence number, so repeats are harmless — but an identical
+     * payload is skipped, see the de-spam guard at the definition.
+     */
+    void sendRemoteChannelList();
+
     //==========================================================================
     // REMOTE Visualisation mirroring (protocol v3, /remote/vis/*)
     //==========================================================================
@@ -629,6 +646,12 @@ private:
     void handleClusterLFOMessage(const juce::OSCMessage& message);
     void handleADMOSCMessage(const juce::OSCMessage& message);
 
+    /** Resolve an input channel NUMBER that arrived from outside the app to its slot.
+     *  Inbound resolution only: the transmit side must keep calling
+     *  getSlotForChannelNumber directly — see the implementation.
+     *  Message thread only; the ownership latch writes the ValueTree. */
+    int resolveExternalInputSlot(int channelNumber);
+
     /** Send ADM-OSC position for an input to all ADM-OSC targets (transmit). */
     void sendADMOSCPosition(int channelIndex);
 
@@ -822,6 +845,15 @@ private:
     // a lost dumpBegin. Only touched on the message thread (collectStateDumpMessages).
     int nextDumpSequence = 1;
 
+    // Last /remote/channelList payload the remotes were given, kept only to skip
+    // an identical repeat: setInputChannelCounts is a loop over single add/remove
+    // ops, so one 8 -> 64 count change funnels 56 structural edits through the
+    // push. Every path that hands the remotes an inventory must write it —
+    // sendRemoteChannelList and collectStateDumpMessages both do — or the guard
+    // suppresses an edit the remotes never heard about. Only touched on the
+    // message thread (both writers run there).
+    std::vector<int> lastChannelListPayload;
+
     // Cached pad config for state dump replay
     struct CachedPadConfig
     {
@@ -920,6 +952,13 @@ private:
     // send and the state dump so the two can't drift.
     void buildRemoteVisConfigMessages(std::vector<juce::OSCMessage>& out,
                                       int numOutputs, int numReverbs);
+
+    // Build /remote/channelList from an already-collected payload (1 + 2N ints).
+    // Takes the payload rather than reading the tree so the push can compare it
+    // against the last one sent before deciding to build anything, and so the
+    // direct push and the state dump can't drift into two different encodings.
+    static void buildRemoteChannelListMessages(std::vector<juce::OSCMessage>& out,
+                                               const std::vector<int>& payload);
 
     // Send a list of OSC messages to a single Remote target, packed into juce::OSCBundles
     // sized to stay under typical Ethernet MTU (single UDP datagram, no IP fragmentation).

@@ -127,6 +127,17 @@ Default SpaceMouse mapping:
 | Button 0 | Previous input | — | — | |
 | Button 1 | Next input | — | — | |
 
+**Shift layer (keyboard Shift held, Map and Inputs tabs).** Shift is the stereo
+image layer: TransZ and RotZ are redirected to the stereo image of the selected
+stereo inputs while TransX/TransY keep moving the source. Mono targets ignore
+the two redirected axes; the Clusters tab and the Map's cluster-reference
+path are unaffected.
+
+| Axis + Shift | Action | Sensitivity | Notes |
+|---|---|---|---|
+| TransZ (2) | `inputStereoWidth` | 2.0 m/s | Push down = wider, pull up = narrower (opposite sign to height) |
+| RotZ (5) | `inputStereoAxisOffset` | 90 °/s | Sub-degree remainder carried between ticks; wraps at ±180° |
+
 ### Velocity integration
 
 Axis values represent deflection, not position. Integrate as velocity:

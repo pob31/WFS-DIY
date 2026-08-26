@@ -16,6 +16,8 @@
 #include "DSP/TestSignalGenerator.h"
 #include "../spatcore/io/DeviceHost.h"
 #include "../spatcore/io/DeviceIoCallback.h"
+#include "DSP/StereoChannelManager.h"
+#include "Helpers/StereoImageGeometry.h"
 #include "DSP/BinauralCalculationEngine.h"
 #include "DSP/BinauralProcessor.h"
 #include "DSP/HeadTrackerManager.h"
@@ -239,7 +241,30 @@ private:
 
     ProcessingAlgorithm currentAlgorithm = ProcessingAlgorithm::InputBuffer;
     std::string currentDeviceId = "cpu";   // compute device for the GPU algorithm paths ("cpu"/"hip:0"/...)
+    // User-visible input channel count: the parameter/addressing identity
+    // (ValueTree, OSC, snapshots, patch rows, Map markers, meters).
     int numInputChannels = 4;
+
+    // Renderer source count: rows of the WFS matrices, channels of
+    // patchedInputBuffer, the count every algorithm/GPU backend is prepared
+    // with. A mono channel is one render source; a stereo-pair channel is six
+    // (primary slot + 5 derived slices appended past the visible inputs), per
+    // spatcore::wfs::RenderSourceMap. Always recomputed alongside
+    // numInputChannels; equal to it while no stereo channels exist.
+    int numRenderSources = 4;
+
+    // The retained slot map behind numRenderSources. Rebuilt only by
+    // recomputeRenderSourceCount() (channel-type changes are stopped-only),
+    // so the audio callback may read it without synchronization. Initialized
+    // to a valid EMPTY map: a default-constructed RenderSourceMap zero-fills
+    // firstDerivedSlot, which would read as "derived slots at row 0".
+    spatcore::wfs::RenderSourceMap renderSourceMap = []
+    {
+        spatcore::wfs::RenderSourceMap m;
+        spatcore::wfs::RenderSourceMap::buildIdentity (0, m);
+        return m;
+    }();
+
     int numOutputChannels = 4;
     // Declared before the thread-owning members so it is destroyed AFTER them
     // (members destruct in reverse order) — workers may touch it while stopping.
@@ -393,8 +418,51 @@ private:
     std::vector<int> inputPatchMap;
     // outputPatchMap[wfsChannel] = hardwareChannel (-1 if unmapped)
     std::vector<int> outputPatchMap;
+    // Row-keyed hardware columns for stereo-pair rows: the two patched
+    // columns sorted ascending (lower = L), -1 when unpatched. Rebuilt by
+    // loadAudioPatches() alongside inputPatchMap.
+    std::vector<int> inputPatchPrimaryHw;
+    std::vector<int> inputPatchSecondaryHw;
     // Temporary buffers for patch application
     juce::AudioBuffer<float> patchedInputBuffer;
+    // Raw L/R of stereo-pair channels, 2 channels per stereo ordinal
+    // (2k = L, 2k+1 = R). Written only by applyInputPatch(); the
+    // decomposition stage is the sole writer of the channels' slots in
+    // patchedInputBuffer, so no aliasing is possible inside process().
+    juce::AudioBuffer<float> stereoRawBuffer;
+    // Stereo-pair decomposition backends (pass-through in Phase 0)
+    std::unique_ptr<StereoChannelManager> stereoChannelManager;
+
+    // Both arrays below are message-thread state: refreshStereoSliceGeometry()
+    // on the 50 Hz timer is the only writer and the MapTab callback the only
+    // reader, both on that same thread, so neither carries synchronization —
+    // the discipline the LFO/sampler Map callbacks already follow. They are
+    // indexed by channel SLOT, so recomputeRenderSourceCount() must clear them
+    // whenever the slots are rebuilt.
+
+    // Per-channel automatic spread axis, held while the pair sits inside
+    // WFSStereoImage::kAxisFreezeRadius. Retaining it across ticks is the whole
+    // point: it is what stops a source crossing the middle of an in-the-round
+    // rig from whipping its legs around and swapping left for right.
+    std::array<WFSStereoImage::Axis, WFSParameterDefaults::maxInputChannels> stereoAxisLatch {};
+
+    // Sub-degree remainder of Space Mouse Shift+twist on the stereo axis
+    // (the axis offset is an integer; a 50 Hz tick is often < 1 degree).
+    float stereoAxisControllerAccum = 0.0f;
+
+    // Absolute stage-metre leg positions, cached from the very offsets the
+    // engine was handed on the same tick. The Map reads these instead of
+    // recomputing, so it cannot draw an image the renderer is not producing.
+    // Stays invalid for mono channels and for a stereo channel not yet placed.
+    struct StereoImageLegs { bool valid = false; juce::Point<float> left, right; };
+    std::array<StereoImageLegs, WFSParameterDefaults::maxInputChannels> stereoImageLegs {};
+
+    // Set when a slot rebuild throws away legs that were valid, and consumed by
+    // the next refreshStereoSliceGeometry(). Without it, retiring the LAST
+    // stereo channel is invisible to the refresh — it early-outs on a mono-only
+    // show — and the Map would keep the bar it last painted for ever.
+    bool stereoImageLegsDirty = false;
+
     juce::AudioBuffer<float> patchedOutputBuffer;
     juce::AudioBuffer<float> wfsOutputBuffer;  // Algorithm writes here, then single remap to HW outputs
 
@@ -480,6 +548,63 @@ private:
 
     void attachAudioCallbacksIfNeeded();
     void resizeRoutingMatrices();
+
+    /** Recompute numRenderSources from numInputChannels and the channel types.
+        Must run whenever numInputChannels is assigned — the renderer dimension
+        may never drift from the channel dimension it derives from. */
+    void recomputeRenderSourceCount();
+
+    /** Hidden diagnostic (WFS_TEST_CHANNEL_LIST=1): drives the structural
+        channel ops (append, delete-with-gap, type flip, gap reuse, budgets),
+        asserts the fresh-session renumbering and then the stable-number
+        invariants after every step and logs PASS/FAIL lines to the session
+        log. */
+    void runChannelListSelfTest();
+
+    /** Hidden diagnostic (WFS_TEST_STEREO_GEOMETRY=1): drives the pure
+        WFSStereoImage mapping — no audio device, no GUI, no ValueTree — and
+        asserts the invariants the stereo image is sold on: a width that means
+        the same distance at every bearing, an exactly null image at width 0, a
+        latch that holds through the origin, and the axis-offset sign and
+        composition rules. Logs PASS/FAIL lines to the session log. */
+    void runStereoGeometrySelfTest();
+
+    /** A mono row may hold at most one hardware column. Clears any extra
+        columns (keeping the lowest = L) left behind when a count change
+        moves the mono/stereo boundary. */
+    void sanitizeMonoPatchRows();
+
+    /** Audio thread. Runs every stereo-pair channel's decomposition backend:
+        stereoRawBuffer L/R → the channel's 6 slots of patchedInputBuffer.
+        Called from BOTH audio paths (WFS processing and binaural-only),
+        after the AutomOtion fade and before the shared-ring publish. */
+    void runStereoDecompositionStage (int startSample, int numSamples) noexcept;
+
+    /** Audio thread. The input level meters: peak + RMS per render source,
+        measured on patchedInputBuffer once the decomposition above has filled
+        it. Called from BOTH audio paths, immediately after that stage.
+
+        Here rather than inside a WFS algorithm because an input level is a
+        property of the input, not of anything downstream — and the binaural-only
+        path runs no algorithm at all, so anything that asked one for input
+        levels read silence while audio was flowing. */
+    void meterRenderSourceInputs (int startSample, int numSamples) noexcept;
+
+    /** Audio-thread-private: how many render sources the previous block metered,
+        so slots retired by a channel-count change get silenced instead of
+        holding their last reading. */
+    int lastMeteredRenderSources = 0;
+
+    /** 50 Hz. Maps each stereo channel's published slice states (azimuth,
+        normalized ±1) through inputStereoWidth in METRES and the channel's
+        spread axis to metre offsets, pushes them into the calculation engine
+        and caches the pair's legs for the Map. Reads no speaker position, so
+        the result means the same thing on every array shape.
+
+        Returns true when the cached legs the Map draws from actually changed
+        this pass (including a channel gaining or losing them), which is the
+        only signal that asks the Map to repaint for a stereo image edit. */
+    bool refreshStereoSliceGeometry();
     void resizeOutputAttenuation(int numOut, double sampleRate);
     void resizeReverbAttenuation(int numReverbs, double sampleRate);
     void stopProcessingForConfigurationChange();
@@ -501,8 +626,39 @@ private:
     void applySamplerSetPosition (int channelIndex, const juce::ValueTree& samplerNode, int setIndex);
     void applySamplerControllerMode (int mode);
     std::map<int, int> buildZoneToInputMap() const;
+
+    /** One Lightpad zone feeds one input. A partially scoped snapshot recall can
+        restore a zone onto a channel while another still holds it, and
+        buildZoneToInputMap would then silently keep the highest slot. Lowest slot
+        keeps the zone; later claimants are cleared and logged — the same rule as
+        dedupeInputPatchColumns, so a half-repaired session cannot contradict
+        itself. */
+    void resolveLightpadZoneCollisions();
     void resendRemotePadConfig();
+    /** Output-patch grow/truncate (1:1 diagonal). Input rows are mirrored
+        per-op by the WFSValueTreeState structural channel ops (+ its
+        normalizeInputPatchRows for the config-load rewrite). */
     void growPatchData(juce::ValueTree& patchTree, int newChannelCount, int numHardwareCols);
+
+    /** Auto-diagonal companion for stereo pairs: rows with a patched L and no
+        R get the next hardware column when it is free everywhere. Heuristic,
+        never steals a claimed column, leaves fully unpatched rows alone. */
+    void autoPatchStereoRightColumns();
+
+    /** A hardware input feeds at most one channel. Clears later claims on a
+        column an earlier row already holds (lowest row wins, matching
+        sanitizeMonoPatchRows' within-row rule) and logs each one. The
+        interactive editor upholds this; a patchData string merged in from a
+        file does not, and loadAudioPatches would resolve it last-writer-wins
+        with one channel silently fed by two. */
+    void dedupeInputPatchColumns();
+
+    /** The full patch repair pass, in the one order both callers use:
+        row count → mono capacity → column uniqueness → stereo R companion.
+        Every step is idempotent and no-ops on a well-formed patch, so the
+        load path and the channel-count path can both run it unconditionally. */
+    void repairInputPatchAfterLoad();
+
     void repaintActiveTab();
 
     // Keyboard handling helpers

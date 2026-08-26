@@ -5,6 +5,8 @@
 #include "WFSParameterDefaults.h"
 #include "../Helpers/ReverbNodePlacement.h"
 #include "../../spatcore/control/state/TreeParameterStore.h"
+#include "InputChannelIdentity.h"
+#include <vector>
 
 /**
  * Undo domain — each tab has its own undo history.
@@ -305,8 +307,252 @@ public:
     int getNumOutputChannels() const;
     int getNumReverbChannels() const;
 
-    /** Set channel counts (creates/removes channel ValueTrees) */
+    /** Set channel counts. For inputs this is the blunt legacy entry point
+        (config-load sync, OSC/MCP inputChannels writes): growth appends
+        default mono channels, reduction removes the highest-numbered
+        channels; nothing in the middle ever moves. Not undoable. */
     void setNumInputChannels (int numChannels);
+
+    /** Number of live stereo channels — derived from the per-channel type
+        (inputChannelType), NOT positional. Mono count =
+        getNumInputChannels() − this. */
+    int getNumStereoInputChannels() const;
+
+    /** Two-count entry point (System Config count fields): a thin loop over the
+        structural ops. Additions append after the last channel; reductions
+        remove the LAST channel of that type in DISPLAY order - the bottom of the
+        Arrange list, which the operator can see - never the highest-numbered
+        one, which after a drag on a latched list may sit anywhere. (The
+        one-count setNumInputChannels, the OSC/MCP path, does remove by number;
+        the asymmetry is noted there.) Not undoable. */
+    void setInputChannelCounts (int numMono, int numStereo);
+
+    //==========================================================================
+    // Stable channel numbers + per-channel type (stable-number rework)
+    //==========================================================================
+    // Every <Input> carries a permanent 1-based number (its `id` property) and
+    // a type (`inputChannelType`: "mono"/"stereo"). The number is the external
+    // address (OSC, snapshots, QLab cues, DAW plugin, MCP); the child index
+    // ("slot") stays the internal dense key (patch row, render-source slot,
+    // meter row). Tree order is the user's DISPLAY order: new channels append
+    // at the end, drag-to-reorder moves a node (and its patch row) to a new
+    // slot — numbers never change once the session has latched them, so no
+    // external reference can break. Before the latch (a fresh session) the
+    // structural ops renumber to dense display order instead — see
+    // `channelNumbersUserOwned` in WFSParameterIDs.h.
+
+    /** Permanent channel number of the channel at a slot (0-based child
+        index); 0 if the slot is invalid. */
+    int getInputChannelNumber (int slot) const;
+
+    /** Slot holding a permanent channel number; -1 if no live channel has it. */
+    int getSlotForChannelNumber (int number) const;
+
+    /** Type of the channel at a slot (reads inputChannelType; absent = mono). */
+    bool isInputChannelStereo (int slot) const;
+
+    /** Highest live channel number (0 when the list is empty). */
+    int getHighestChannelNumber() const;
+
+    /** Number the next added channel gets (highest live + 1). */
+    int getNextChannelNumber() const;
+
+    /** Lowest number in 1..maxInputChannels with no live channel (0 if the
+        list is full). Used by the number-exhaustion gap-reuse dialog. */
+    int getLowestFreeChannelNumber() const;
+
+    //==========================================================================
+    // Structural channel ops (stable-number model)
+    //==========================================================================
+    // Each op edits the channel tree AND its input-patch row together, keeps
+    // the count properties in step, and clears the undo history (structural
+    // edits are deliberately not undoable: ValueTree undo cannot span the
+    // flat patchData string safely). The caller runs the reconfiguration
+    // pass afterwards (MainComponent::handleChannelCountChange tail:
+    // recompute render sources, sanitize/auto-patch, reload patches).
+
+    /** Append a channel (number = highest + 1) or, with explicitNumber > 0,
+        re-create a retired number in its sorted slot (the UI confirms gap
+        reuse with the user first). New channel's patch row continues the
+        diagonal past everything already patched (two columns for stereo) —
+        that is the LATCHED behaviour, and it follows CREATION order. Until the
+        session latches channel numbers, the list is renumbered to display order
+        afterwards and the whole patch is re-flowed with it, into a gapless
+        diagonal in DISPLAY order. Its default name is one past the highest
+        "Mono n" / "Stereo n" ordinal any live name already claims, so a latched
+        session — which never resequences — cannot end up with two channels
+        sharing a default name. */
+    juce::Result addInputChannel (bool stereo, int explicitNumber = 0);
+
+    /** Remove a live channel by permanent number. Its number is retired
+        (gap); every other channel keeps its number, slot and patch row. Until
+        the session latches channel numbers, the gap is closed by a renumber to
+        display order instead. */
+    juce::Result removeInputChannel (int channelNumber);
+
+    /** Flip a live channel's type in place. NOT exposed in the UI or MCP —
+        the channel's data (patch columns, width, decomposition) cannot
+        meaningfully follow a type change, so composition is edited through
+        the counts instead. Kept for the self-test and internal use. */
+    juce::Result setInputChannelType (int channelNumber, bool stereo);
+
+    /** Move a live channel to a new display slot (drag-to-reorder). The
+        channel node and its patch row move together; the permanent number is
+        untouched once the session is latched — before that the list is
+        renumbered so the numbers follow the new display order. Stopped-only,
+        like every structural edit. */
+    juce::Result moveInputChannel (int channelNumber, int targetSlot);
+
+    /** Move a channel node TOGETHER with its patch row and remap the slot-keyed
+        cluster orders - the live-drag contract. Shared by moveInputChannel and
+        by the display-order restore in WFSFileManager::applyInputsSection, which
+        used to raw-move the node alone: correct for a complete load, where the
+        file's own patch overwrites every row afterwards, and silently wrong for
+        Reload Input Config on its own, which loads no patch and left the live
+        rows behind. No latch, no undo bookkeeping - callers own both. */
+    void moveInputChannelNodeAndRow (int fromSlot, int toSlot);
+
+    //==========================================================================
+    // Channel identity (pre-load check + reconciliation)
+    //==========================================================================
+
+    /** 1-based hardware inputs the channel at `slot` holds in its patch row,
+        ascending (lower = L for a stereo pair); 0..2 entries. Nothing at tree
+        level answered this before - MainComponent derived it at runtime - and
+        the saved fingerprint needs it. */
+    std::vector<int> getInputPatchHardwareInputs (int slot) const;
+
+    /** The live session's identity: every channel's (slot, number, name, type,
+        hardware inputs) in display order. A superset of
+        buildInputChannelInventory, which stays the file format. Pure. */
+    InputChannelIdentity getInputChannelIdentity() const;
+
+    /** RELABEL - give the channel at each slot the number numbersBySlot[slot].
+        The operator's "one-time reorder of the internal channel ID", by
+        position: every channel keeps its place, settings, name and hardware
+        inputs; only its NUMBER changes, so snapshots, cues and OSC written
+        against the file's numbers reach the right channels afterwards.
+        Validates completely first (size, range, uniqueness) and touches
+        nothing on failure. Patch rows, cluster orders and names are positional
+        and untouched. Latches ownership - the numbers just became an external
+        contract - and clears every undo history. */
+    juce::Result assignInputChannelNumbersBySlot (const std::vector<int>& numbersBySlot,
+                                                  const juce::String& reason);
+
+    /** REORDER - arrange the live channels so their numbers read
+        numbersInDisplayOrder top to bottom. Numbers, settings and hardware
+        inputs travel with their channel (moveInputChannel). Unknown numbers
+        are skipped; unlisted live channels end up after the listed ones with
+        their relative order kept. Latches FIRST: unlatched, every move would
+        recompact the numbers underneath the loop. */
+    juce::Result reorderInputChannelsToNumbers (const std::vector<int>& numbersInDisplayOrder,
+                                                const juce::String& reason);
+
+    /** The clamp setInputChannelCounts applies, so a prediction clamps identically. */
+    static void clampInputChannelCounts (int& numMono, int& numStereo);
+
+    /** Which channels setInputChannelCounts (numMono, numStereo) WOULD remove,
+        captured before anything mutates: the last channels of each type in
+        DISPLAY order, stereo victims first. By SLOT, never by number - on an
+        unlatched session removeInputChannel renumbers after every removal, so a
+        by-number prediction is stale by the second one. The dialog that shows
+        this used to predict by highest number, which is a different channel
+        the moment a latched list has been dragged. */
+    std::vector<InputChannelRef> predictInputChannelReduction (int numMono, int numStereo) const;
+
+    //==========================================================================
+    // Channel inventory (system-config persistence)
+    //==========================================================================
+
+    /** Build the <InputChannelList> node the system config carries: one <Ch>
+        per live channel, in DISPLAY order, with its permanent number and type.
+
+        `inputChannels` is only a sum, and the mono/stereo split and the display
+        order live solely on the <Input> nodes — which are saved to inputs.xml,
+        not system.xml. So a system config reloaded on its own rebuilt every
+        channel as mono, and the positional patch rows then landed on the wrong
+        channels (a stereo row's two hardware columns on a mono channel). This
+        node is what closes that hole. It is a FILE artifact: derived at save
+        time, consumed at load time, never stored in the runtime tree, so it
+        cannot desync from the nodes it describes. */
+    juce::ValueTree buildInputChannelInventory() const;
+
+    /** Reconcile the live channel list to an inventory read from a file:
+        remove channels it does not list, create the ones it does with their
+        recorded number and type, correct any type that disagrees, then order
+        the list to match. Numbers, types, display order and permanent-number
+        gaps all survive. Structural and not undoable, like the ops it calls.
+
+        Caller must have latched channel numbers first — otherwise the ops'
+        fresh-session tail renumbers the very list this is restoring. */
+    void applyInputChannelInventory (const juce::ValueTree& inventory);
+
+    /** Reconcile the input-patch row COUNT to the channel list after a
+        wholesale patchData rewrite (config load): truncate extras, append
+        diagonal-continue rows (capacity from the channel type). The count only —
+        an existing row is never re-columned, so a loaded patch is never
+        rewritten under the operator. A no-op on a re-flowed patch
+        (compactInputPatchToDisplayOrder already emits exactly one row per live
+        channel). Idempotent. */
+    void normalizeInputPatchRows();
+
+    /** Convert every cluster's `clusterInputOrder` between the SLOT keying used
+        in memory and the permanent-channel-NUMBER keying used on disk.
+
+        Slots are defined by the channel list; the CSV is persisted in
+        system.xml while that list comes from inputs.xml, so a slot-keyed CSV
+        crossing the file boundary is only valid while the two agree. They do
+        not agree mid-load: the channel-list reconciliation deletes and reorders
+        underneath a CSV the merge has already brought in. Number keying removes
+        the dependency entirely — the same boundary conversion
+        serializeExtendedScope/deserializeExtendedScope already use for snapshot
+        scope, which is proven correct across a reorder.
+
+        Tokens that cannot be resolved are dropped (a number with no live
+        channel, a slot past the end). Both are message-thread only and write
+        with no undo manager: this is bookkeeping, not an operator edit. */
+    void convertClusterOrdersSlotsToNumbers();
+    void convertClusterOrdersNumbersToSlots();
+
+    /** One-time model migration for loaded states: repairs missing/duplicate
+        ids (one dense renumber — the last renumbering that can ever happen to
+        a file) and stamps inputChannelType from the legacy tail split when
+        the whole list lacks it. Tree order is preserved (it is the user's
+        display order). Idempotent, not undoable. Must run BEFORE
+        ensureCompleteSchema on wholesale-replace loads: the schema template
+        stamps mono, which would otherwise preempt the tail-split stamp. */
+    void migrateInputChannelModel();
+
+    /** Renumber every input channel to its display slot + 1 (dense 1..N). The
+        tracking id, stamped FROM the number, follows it; anything the user
+        changed stays. Names do NOT follow the number: a default name is a
+        per-type ordinal maintained by resequenceDefaultInputNames(). Only ever
+        called while the session has not latched channel numbers. Idempotent. */
+    void compactChannelNumbersToDisplayOrder();
+
+    /** Re-flow the whole input patch into a gapless diagonal in DISPLAY order:
+        walk the slots top to bottom handing out consecutive hardware input
+        columns — two ADJACENT columns for a stereo row (lower = L), one for a
+        mono row. Strict packing: no gaps, and no alignment to the interface's
+        odd/even pairs, so N mono + M stereo always fit in N + 2M inputs.
+        Rebuilt FROM the channel list, so the stored rows are discarded outright
+        and a wrong row count is repaired rather than reconciled. The diagonal
+        may legitimately run past activeHardwareInputs — cols widens and the
+        matrix dims those columns, deliberately, so the patch does not depend on
+        which interface happened to be plugged in at edit time. Shares the
+        `channelNumbersUserOwned` latch with compactChannelNumbersToDisplayOrder()
+        (there is no second, patch-specific ownership flag) and is only ever
+        called while the session has not latched. Idempotent. */
+    void compactInputPatchToDisplayOrder();
+
+    /** Renumber the DEFAULT input names to "Mono n" / "Stereo n", counting each
+        type independently in display order. A name the user typed is left
+        alone: only the three shapes the app itself stamps — "Input n" (legacy),
+        "Mono n", "Stereo n", with any n — count as still-default. Called when
+        the arrange dialog closes on a session that has not latched channel
+        numbers; latching is not implied by it. Idempotent. */
+    void resequenceDefaultInputNames();
+
     void setNumOutputChannels (int numChannels);
     void setNumReverbChannels (int numChannels);
 
@@ -403,6 +649,25 @@ public:
         purpose (Ctrl+Z must not re-arm auto-placement). */
     void markPositionsUserOwned();
 
+    //==========================================================================
+    // Channel-number ownership (see channelNumbersUserOwned in WFSParameterIDs.h).
+
+    /** True once the input channel numbers are permanent. While false — a
+        fresh session nothing has ever exposed a number from — every structural
+        edit renumbers the list to dense display order. Returns TRUE when the IO
+        tree is invalid: renumbering rewrites ids across the whole list, so
+        half-built or malformed state must fall back to the permanent regime
+        rather than be mistaken for "fresh". (arePositionsUserOwned returns
+        false there; the destructive direction is the opposite one.) */
+    bool areChannelNumbersUserOwned();
+
+    /** Latches the channel numbers as permanent. Idempotent; not undoable on
+        purpose (Ctrl+Z must not re-arm renumbering). The reason names the
+        trigger and is logged once, on the actual fresh->owned transition —
+        the latch is otherwise invisible and a spent one is indistinguishable
+        from a broken re-flow. */
+    void markChannelNumbersUserOwned (const juce::String& reason);
+
     /** Scale all input positions proportionally from old stage bounds to current bounds */
     void scaleAllInputPositions (float oldW, float oldD, float oldH,
                                  float oldOW, float oldOD, float oldOH);
@@ -454,6 +719,11 @@ protected:
                           const juce::var& value, int channelIndex) override;
 
 private:
+    /** Set one channel's permanent number, dragging its tracking id along only
+        while that still matched the old number. Raw setProperty: a renumber is
+        bookkeeping and must carry no undo entry, dirty mark or ownership latch.
+        Shared by the fresh-session compaction and the relabel. */
+    void setInputChannelNumberAtSlot (int slot, int newNumber);
     //==========================================================================
     // Initialization
     //==========================================================================
@@ -479,10 +749,14 @@ private:
     /** @param totalInputsIn  target channel count; pass it explicitly while
         growing the list, since the tree still holds the old count then.
         <= 0 reads the tree (correct for single-channel resets). */
-    juce::ValueTree createDefaultInputChannel (int index, int totalInputsIn = -1);
+    /** @param channelNumber  permanent channel number; <= 0 derives it from
+        the slot (index + 1, dense creation). */
+    juce::ValueTree createDefaultInputChannel (int index, int totalInputsIn = -1, int channelNumber = -1);
 
     /** Create input channel subsections */
-    juce::ValueTree createInputChannelSection (int index);
+    /** @param ordinal  1-based position among the channels of that type; it is
+        the counter behind the "Mono n" / "Stereo n" default name. */
+    juce::ValueTree createInputChannelSection (bool stereo, int ordinal);
     juce::ValueTree createInputPositionSection (int index, int totalInputs);
     juce::ValueTree createInputAttenuationSection();
     juce::ValueTree createInputDirectivitySection();
@@ -539,6 +813,34 @@ private:
     /** Enforce cluster tracking constraint: only one tracked input per cluster
      *  Called when inputTrackingActive or inputCluster changes */
     void enforceClusterTrackingConstraint (int changedInputIndex);
+
+    /** Migration-only: stamp the pre-rework tail split ("the LAST
+        stereoCountOverride channels are stereo") onto the per-channel type
+        property. The caller reads the count from the legacy IO property. */
+    void stampChannelTypesFromLegacySplit (juce::UndoManager* um, int stereoCountOverride);
+
+    /** Patch-row halves of the structural ops: insert a diagonal-continue
+        row for a new channel at its slot / remove a deleted channel's row.
+        Rows are positional (row = slot), so they must mirror every channel
+        tree edit in the same op.
+
+        Once the session has latched, these three ARE the whole story. Unlatched
+        their result is immediately overwritten by
+        compactInputPatchToDisplayOrder(), and that redundancy is deliberate:
+        doing the row bookkeeping here keeps the row count in step with the
+        channel list at every instant (a synchronous listener can never observe a
+        tree whose row count disagrees with the channel count), it keeps the
+        re-flow a pure function of the channel list rather than a repair step it
+        is required to perform, and it stops the latched regime resting on the
+        unlatched one's correctness. */
+    void insertInputPatchRow (int slot, bool stereo);
+    void removeInputPatchRow (int slot);
+    void moveInputPatchRow (int fromSlot, int toSlot);
+
+    /** clusterInputOrder csvs hold 0-based slot indices; remap them whenever
+        a structural edit shifts slots (delete/reorder). Returning -1 from the
+        mapper drops the entry. */
+    void remapClusterInputOrders (const std::function<int (int)>& oldSlotToNewSlot);
 
     /** Clamp a value to the valid range for a given output parameter */
     static float clampOutputParamToRange (const juce::Identifier& paramId, float value);

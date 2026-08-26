@@ -63,6 +63,23 @@ PatchMatrixComponent::makeConfig (WFSValueTreeState& parameters, bool isInputPat
 
     config.recomputeColumns = [&parameters] { parameters.recomputePatchCols(); };
 
+    // A stereo-pair input row holds two hardware columns (lower = L). The
+    // type is per-channel (inputChannelType on the row's <Input>), read live
+    // so a structural/type change reshapes the matrix on the next repaint.
+    // Output rows stay strict 1:1 (provider omitted -> capacity 1).
+    if (isInputPatch)
+    {
+        config.rowCapacityProvider = [&parameters] (int channel) -> int
+        {
+            return parameters.isInputChannelStereo (channel) ? 2 : 1;
+        };
+
+        // Only input rows can ever hold a pair. On the output patch the badge
+        // gutter would widen the row header and narrow the visible column area
+        // for a state that cannot occur there.
+        config.showRowCapacityBadge = true;
+    }
+
     config.channelNameProvider = [&parameters, isInputPatch] (int channel) -> juce::String
     {
         auto listTree = parameters.getState().getChildWithName (isInputPatch ? WFSParameterIDs::Inputs
@@ -79,10 +96,23 @@ PatchMatrixComponent::makeConfig (WFSValueTreeState& parameters, bool isInputPat
                                                      : WFSParameterIDs::outputName).toString();
     };
 
+    // Input rows are labeled by the PERMANENT channel number (the list may
+    // have gaps after deletions); outputs stay dense row + 1. The host's
+    // structural ops (add/remove/drag) edit the input rows atomically with
+    // the channel list, so the matrix must only mirror, never write back.
+    if (isInputPatch)
+    {
+        config.hostManagesRows = true;
+        config.rowIdProvider = [&parameters] (int row) -> int
+        {
+            return parameters.getInputChannelNumber (row);
+        };
+    }
+
     config.rowColourProvider = [&parameters, isInputPatch] (int channel) -> juce::Colour
     {
         if (isInputPatch)
-            return WfsColorUtilities::getInputColor (channel + 1);
+            return WfsColorUtilities::getInputColor (parameters.getInputChannelNumber (channel));
 
         // Outputs are coloured by the array they belong to. Note the lookup is
         // by NAME ("Output7"), not by index — the two differ once outputs have

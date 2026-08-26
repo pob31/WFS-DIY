@@ -240,9 +240,24 @@ inline ToolResult getChannelFull (WFSValueTreeState& state, const juce::var& arg
     if (! obj->hasProperty ("channel_id"))
         return ToolResult::error ("invalid_args", "Missing required arg: channel_id");
     const int displayId = static_cast<int> (obj->getProperty ("channel_id"));
-    const int channelIndex = displayId - 1;
+
+    // A client that asked about input 7 will quote 7 again next call, so the
+    // number has to stop reflowing before the lookup — otherwise a reorder
+    // between the two calls describes a different channel. Only inputs: output
+    // and reverb ids are dense slot positions and must not freeze input
+    // numbering.
+    if (channelType == "input")
+        state.markChannelNumbersUserOwned ("MCP channel inspection");
+
+    // Input ids are permanent channel numbers (list may have gaps after
+    // deletions); output/reverb ids stay dense 1..N.
+    const int channelIndex = channelType == "input"
+        ? state.getSlotForChannelNumber (displayId)
+        : displayId - 1;
     if (channelIndex < 0)
-        return ToolResult::error ("invalid_args", "channel_id must be >= 1");
+        return ToolResult::error ("invalid_args",
+            channelType == "input" ? "channel_id is not a live input channel"
+                                   : "channel_id must be >= 1");
 
     juce::ValueTree section;
     int maxIndex = 0;

@@ -2,6 +2,20 @@
 
 **Project:** WFS-DIY (JUCE/C++, GPL-3.0)
 **Status:** Design settled at the level described here; parameter-level decisions deferred to implementation discussion.
+
+> **2026-08-19 — superseded in part by the stable-channel-numbers rework.** The
+> config-level "the LAST `stereoInputChannels` channels are stereo" split described in
+> this document was replaced: every `<Input>` now carries a per-channel
+> `inputChannelType` and a channel number (`id`) that is PERMANENT from the moment the
+> session is in use; tree order is the user's display order (drag-to-reorder moves node
+> + patch row together); count edits append after the last channel / remove the
+> highest-numbered of that type, and deletions leave permanent number gaps. While the
+> session is still fresh — nothing loaded, and no tab, patch window, snapshot or
+> external controller having yet observed a number — every structural edit instead
+> renumbers the list to display order; the `channelNumbersUserOwned` latch on the `<IO>`
+> node separates the two regimes and is one-way. The DSP-side content of this document
+> (slice layout, decomposition contract, Phase 1 plan) still applies unchanged. See
+> "Stereo Pair Input Channels + Stable Channel Numbers" in `Documentation/CLAUDE.md`.
 **Scope:** New *stereo pair* input channel type that internally decomposes a stereo signal into several spatial slice feeds rendered across the array. The split is invisible to the user: one channel object in, N derived renderer sources out.
 
 ---
@@ -39,7 +53,11 @@ Slice-count guidance: default **5 + ambience** (hard L, mid L, centre, mid R, ha
 
 The snapshot stores **one** channel object: position, width, and the (few) stereo-specific parameters. Slice positions and gains are **computed at render time** from the decomposition state — slices are not persistent inputs, do not appear in the input list, and are not individually addressable via OSC/MCP for editing. This deliberately avoids re-introducing the persisted-gang complexity previously rejected for input clusters.
 
-Mapping: decomposition extremes map to the **usable array span**, not beyond it — the low-density algorithm produces no focused sources, so nothing may land in front of the array. Default width should be derived from array density (aliasing frequency), scaled by a global per-channel width factor.
+Mapping: ~~decomposition extremes map to the **usable array span**, not beyond it~~ — **SUPERSEDED.** Extremes map to an absolute distance in **metres**: `inputStereoWidth` (0.0–50.0 m, default 4.0) is the full L↔R distance between the pair's legs, azimuth ±1 sits `width × 0.5` from the anchor, and the channel's stored position is the **centre** of the pair. `inputStereoAxisOffset` (−179..180°, 0 = automatic) rotates the spread axis away from its automatic tangential orientation. No speaker position is read anywhere in the mapping.
+
+The array-span reference went because it is one-dimensional and the app's rigs are not. It was the array's X extent: on a circular array of radius R that extent is 2R, so 100% spread ±R wherever the source stood; on side/surround arrays running along Y it referenced an axis those arrays barely extend along; and on a straight array with every speaker at the same X the half-span is 0, so the width dial did nothing at any setting — a silent total failure with no error path. Metres mean the same thing on straight, curved, circular and side rigs.
+
+The legs are deliberately **not clamped** to the array. A width wider than the rig puts legs outside it where the low-density array produces no focused source; that is documented behaviour stated in the parameter's help text, not a case to correct silently. Clamping would put the rig's geometry back into the dial's law, which is exactly what was removed. A default derived from array density (aliasing frequency) is likewise off the table for the same reason — 4 m is a fixed, rig-independent default.
 
 Confidence-driven placement: each slice carries a running confidence (coherence + phase-gate statistics). Low confidence collapses that slice's rendered spread toward the channel anchor; high confidence lets it sit at the estimated position. This replaces manual per-slice offsets as the default behaviour — no per-slice offset UI in the first iteration.
 
@@ -53,7 +71,8 @@ ADM-OSC: the channel maps to a single object with position + width. No address-s
 
 **New, stereo-specific (expected set, exact list to be settled):**
 - slice count N (with the 5+ambience default)
-- global width factor
+- `inputStereoWidth` — FLOAT, 0.0–50.0 m, default 4.0. Full L↔R distance between the pair's legs; per-leg offset is `width × 0.5`. Live on `/wfs/input/stereoWidth` (+ `/remoteInput/` twin). **Settled, shipped in Phase 0** — this is what "global width factor" resolved to, and it is a distance, not a factor.
+- `inputStereoAxisOffset` — INT, −179..180°, default 0. Rotation applied to the automatic tangential axis (0 = automatic), positive counter-clockwise viewed from above, the same convention as `inputRotation`; ±180 is an explicit L/R swap. Applied in the world frame and NOT mirrored by `inputFlipX/Y` (the flips already mirror the anchor, and the automatic axis follows it — mirroring the offset too would double-mirror). Live on `/wfs/input/stereoAxisOffset` (+ `/remoteInput/` twin). **Settled, shipped in Phase 0.**
 - crossover frequency
 - ambient-bed handling (global envelopment layer vs per-slice send — open question)
 - centre-anchor behaviour
@@ -90,3 +109,154 @@ Slice inspection lives in the **level-meter detached window**, extending the exi
 - Anti-correlated widener content (Haas, all-pass) reads as outside ±1; clamp to the extremes or route to ambient.
 - Joint-stereo lossy sources degrade the HF inter-channel detail the estimator relies on.
 - Summing several stereo programs into one stereo channel breaks the one-source-per-bin assumption — hence multiple stereo channels are first-class, and crossfaded decks belong on separate channels.
+
+---
+
+## Appendix A — Phase 0 implementation state (feat/stereo-input-channel)
+
+**STATUS 2026-08-19: Phase 0 is CODE-COMPLETE — all 11 commits landed, every gate green.**
+Remaining before merge (Windows box + hardware): regenerate control-replay goldens and the
+Windows offline-render baselines for the new `stereo` scenario keys, run pipeline-bench at
+104 sources, spot-check StreamDeck sub-tab routing on hardware, and an in-app listening
+pass (stereo channel patched L/R → two plane waves; binaural studio preview).
+
+**What Phase 1 inherits unchanged:** the `StereoDecomposer` interface (swap the pass-through
+for the STFT backend, nothing else moves), the reconstruction-invariant tests (written
+against the base class), the slot map, the RtSnapshot pair (config carries crossover +
+stagger), the azimuth→metres mapping (app-side, `Source/Helpers/StereoImageGeometry.h`),
+the render-latency reference hook (backend
+reports its real latency and alignment engages automatically — add the mode-1 UI toggle
+only then), and the `--stereo-null` harness gate.
+
+**Two Phase-1 anchors moved with the metre rework.** `StereoDecomposerConfig` no longer carries
+a `widthFactor`: width is a distance in metres, which has no 0..1 form a backend could act on,
+and azimuth is normalised by contract, so no backend needs it — a field pinned at 1.0 would only
+invite a Phase 1 implementer to re-derive the retired percentage-of-array semantics from it.
+And the **confidence-collapse curve hooks into the CALLER of `WFSStereoImage::sliceOffset`**
+(`MainComponent::refreshStereoSliceGeometry()`), not into the helper: scale the slice's azimuth
+toward 0 before the call. The helper is shared with the Map tab's leg markers and must stay a
+pure azimuth→metres function, or the Map would draw an image the renderer is not producing.
+
+The sections below were the working notes for commits 7–11; kept for line-level context.
+
+**2026-08-19 addendum (post-review rework, commits b442660..58624d5):** three design
+changes after the first UI review. (1) The per-channel `inputChannelType` was REPLACED
+by a config-level split — System Config "Mono Inputs" + "Stereo Inputs" (`ioTree
+stereoInputChannels`); the LAST stereo channels of the list are pairs, their two patch
+columns reserved upfront (per-channel flipping had to steal a neighbour's patch column
+mid-project — DiGiCo-style adjacent-pair desks made that untenable). The per-channel
+parameter is gone end-to-end (never released, no migration). (2) Slice 0 is now the
+CENTRE/anchor feed in every backend (pass-through: slice 0 silent-but-active, 1 = L,
+2 = R) — per-channel terms are genuinely anchor-computed, the Visualisation tab shows
+the centre row, and the layout already matches Phase 1's. (3) The width axis is
+perpendicular to the origin→anchor bearing in XY (tangential); flip mirrors the image
+automatically (no explicit azimuth negation — it would double-mirror).
+
+**Later addendum — width magnitude.** The tangential *direction* of (3) survived; only the
+magnitude reference changed. Width became metres (see §4) and `inputStereoAxisOffset` was added
+to rotate the axis, so the axis is no longer purely automatic. The axis is latched within
+`WFSStereoImage::kAxisFreezeRadius` (1 m) of the origin: the automatic bearing sweeps 180° over a
+few centimetres there, which would whip a source crossing the middle of an in-the-round rig from
+left to right; holding the axis it arrived with is the fix, and no hysteresis band is wanted
+(at exactly r == the radius the held value IS what the live branch computes).
+
+### Landed (commits 1–6 of 11, every gate green)
+
+Parent `979a263 → 6f5d764`, spatcore branch `feat/stereo-input-channel` at `8c50e28`
+(commit spatcore first, then bump the pointer in the parent; spatcore git identity is
+configured locally).
+
+1. `InputSubTab` logical ids — enum values ARE the historical bar indices and are the
+   wire contract to `StreamDeckManager::setSubTab`. Use `removeSubTab(InputSubTab::…)`,
+   `isCurrentSubTab(…)`; never compare `getCurrentTabIndex()` to a literal again.
+2. Reverb-sends mute now lives on the Mute-Macros row (Input Parameters ▸ Mutes column).
+3. **Render-source split.** `MainComponent::numRenderSources` (renderer dimension) vs
+   `numInputChannels` (channel identity). `recomputeRenderSourceCount()`
+   (MainComponent.cpp:2618) is called at all four `numInputChannels` assignment sites
+   and currently builds the **identity** map — C7 flips exactly this one function to
+   `RenderSourceMap::build()` over the channel-type vector.
+   `WFSCalculationEngine` matrix ROWS are already `maxRenderSources` (104); per-channel
+   arrays stay 64. `LiveSourceTamerEngine` rows already 104 (lockstep, was a latent OOB).
+   Baselines: 30/30 byte-identical after this refactor.
+4. `inputChannelType` / `inputStereoWidth` exist end-to-end (tree, snapshots policy,
+   OSC for width only, MCP tier 3/2, langs, CSV, dirty predicate). Nothing *writes*
+   the type yet — no UI (C8), no OSC (by design), MCP tier-3 gated.
+5. Patch matrix: `rowCapacityProvider` wired from `inputChannelType` in
+   `PatchMatrixShim.cpp` (input patch only). Lower column = L. Row header shows
+   `[L3 R?]` yellow when half-patched.
+6. `spatcore/dsp/StereoDecomposer.h` + `PassThroughStereoDecomposer` + contract tests
+   (`checkStereoReconstruction` is written against the base class — reuse it for the
+   Phase 1 backend unchanged).
+
+### C7 design decisions (settled during analysis — do not re-derive)
+
+**Audio callback seam** (MainComponent.cpp, current line anchors):
+`applyInputPatch` :5037-region → sampler :5040s → AutomOtion fade :5069 → **stage goes
+here** → shared-ring publish :5077-5090 → smoothing → processBlock :5136+.
+- `applyInputPatch` writes stereo rows ONLY into a new `stereoRawBuffer`
+  (2 ch per stereo ordinal, preallocated in `prepareToPlay` next to the
+  `patchedInputBuffer.setSize` added there), never into `patchedInputBuffer` — the
+  decomposition stage is the sole writer of a stereo channel's 6 slots, so no
+  aliasing inside `process()`. Build `inputPatchSecondaryHw[row]` (the higher column)
+  in `loadAudioPatches` (~:2880); `inputPatchMap[hw]=row` itself needs no change.
+- AutomOtion fade: apply the channel gain to BOTH `stereoRawBuffer` channels for a
+  stereo row (linear gain pre-decomposition ≡ post, by the reconstruction identity).
+- The stage also writes `L+R` … no — superseded: rings carry **per-source** audio
+  (slices render individually in binaural, user decision). Ring count follows
+  `numRenderSources` (already flipped at :5077/:5084 loop bounds); the reverb feed
+  matrix input axis is already source-dimensioned end-to-end.
+- Publish per stereo channel one `RtSnapshot<StereoSliceState[6]>` (audio→UI) and
+  acquire one `RtSnapshot<StereoDecomposerConfig>` (UI→audio). Owner: new
+  `Source/DSP/StereoChannelManager.h` (`unique_ptr<StereoDecomposer>` per stereo
+  ordinal, scratch, both snapshots; prepared from `startAudioEngine`/`prepareToPlay`).
+
+**Engine derived rows** (WFSCalculationEngine.cpp): the main loop is ALREADY
+per-channel-scoped — `minDelay` (:1384 block), `commonAttenAdjustment` (:1493 block,
+stored per input at :1562, reused by the reverb feed at :1811), mode-change ramps —
+all computed once per `inIdx`. The C7 change: inside the same `inIdx` iteration, after
+the primary row, compute the channel's derived rows (slice positions = anchor +
+offset from `RenderSourceMap` desc, refreshed at 50 Hz from azimuth × width) using the
+SAME per-channel terms. Never recompute minDelay/commonAtten per slice — per-slice
+values break Σslices≡input at the array (comb filtering). Derived-row matrixIdx =
+`firstDerivedSlot[inIdx] + (slice-1)` … times numOutputs stride. FR rows for derived
+sources: forced off (push "off" in the :6076-region FR loop — already iterates
+numRenderSources). `getCompositeInputPosition` is bounds-guarded (returns {} ≥
+numInputs) — derived sources need a separate `sourcePositions[]` keyed by render
+source, NOT an extension of compositeInputPositions (Map/clusters/ADM read that one).
+Dirty flags are per channel; a channel dirty ⇒ recompute all its rows.
+
+**Binaural:** `BinauralProcessor.h` — reverb-return base index is already
+`numRenderSources + r` (flipped in commit 3, :559-region). Per-source positions and
+gains flow through the same arrays the reverb-return append uses
+(`hrtfPositions`/`hrtfSourceGains`, sized `maxSources` in prepareToPlay — grow to
+`maxRenderSources + kMaxReverbNodes`).
+
+**Meters:** `LevelMeteringManager::setSourceMap()` — per-channel aggregate over the
+channel's sources: max peak, energy-sum RMS. Meter window stays one meter per channel.
+
+**Null test (the C7 gate):** width=0 stereo channel at P fed L,R must hash
+bit-identical to two mono channels at P fed L,R. Plus: baselines unchanged with no
+stereo channel configured.
+
+### C8/C9 anchors
+- UI strings already shipped: `inputs.labels.channelType|stereoWidth`,
+  `inputs.channelTypes.mono|stereo`, `inputs.help.channelTypeSelector|stereoWidthDial`.
+- Stopped-only enforcement for the type combo: mirror the Audio Interface window
+  policy; also drop a stereo row's second patch on stereo→mono revert.
+- C9: `renderLatencyReference = max(sourceIntrinsicLatencyMs)` added in BOTH delay
+  branches — including mode 1 (:1438-region), which today applies no latency terms
+  (needs an explicit comment) — and the reverb-feed duplicate (:1959-region).
+  Provably zero in Phase 0 ⇒ baselines gate it.
+
+### Gotchas (cost time once already)
+- Lang JSONs: never `json.dump` round-trip (reformats, un-escapes `°`); insert
+  surgically with string ops and validate with `json.loads`.
+- `git add -A` sweeps `build-spatcore-tests/` and control-replay temp dirs — both now
+  gitignored.
+- pbxproj: headers are added manually (PBXFileReference + one group children line);
+  do NOT re-export from Projucer (manual fixes would be lost).
+- Windows-box follow-ups before merge: regenerate control-replay goldens
+  (hidden_tool_count 382→384 + total_parameters census; harness is taskkill/windll),
+  and run pipeline-bench at 104 sources (`kMaxStereoChannels` in RenderSourceMap.h +
+  WFSParameterDefaults.h is the one knob; 4 pairs = 84 sources if the T4 budget
+  doesn't fit).

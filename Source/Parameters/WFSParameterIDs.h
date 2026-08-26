@@ -78,11 +78,74 @@ namespace WFSParameterIDs
     //==========================================================================
 
     const juce::Identifier inputChannels     ("inputChannels");
+    const juce::Identifier stereoInputChannels ("stereoInputChannels");  // how many of the LAST input channels are stereo pairs
     const juce::Identifier outputChannels    ("outputChannels");
     const juce::Identifier reverbChannels    ("reverbChannels");
     const juce::Identifier algorithmDSP      ("algorithmDSP");
     const juce::Identifier algorithmDeviceId ("algorithmDeviceId");   // compute device for the GPU algorithm paths ("cpu"/"hip:0"/...)
     const juce::Identifier runDSP            ("runDSP");
+
+    // One-way ownership latch for the input channel numbers.
+    // false/absent = fresh session: numbers track display order — every
+    // structural edit renumbers the whole list dense 1..N, so a channel dragged
+    // to display position 2 reads "#2". true = user-owned: numbers are
+    // permanent (creation appends highest + 1, deletion retires a number and
+    // leaves a gap). Latched by anything that makes a number observable or
+    // depended-upon: any project/config load, opening the input patch window or
+    // the level meter window, selecting the Inputs or Map tab, storing or
+    // recalling an input snapshot, an incoming OSC/ADM/Remote message
+    // addressing an input by number, a Remote client handshake, sending QLab
+    // cues, and any MCP tool addressing an input by number. Persists with the
+    // session; its absence in a file written by an older build is harmless,
+    // because every load latches.
+    const juce::Identifier channelNumbersUserOwned ("channelNumbersUserOwned");
+
+    // Input channel inventory — a FILE artifact only, written into <IO> by the
+    // system-config save and consumed by the load. It never lives in the runtime
+    // tree: the <Input> nodes are the single source of truth, and a live copy
+    // could only desync from them.
+    //
+    // inputChannels is a SUM, and the mono/stereo split plus the display order
+    // live solely in each <Input>'s inputChannelType and child position — which
+    // are written to inputs.xml, not system.xml. Without this a system config
+    // reloaded on its own rebuilds every channel as mono (setNumInputChannels
+    // appends default-mono channels), and the positional patch rows then land on
+    // the wrong channels: a stereo row's two hardware columns end up on a mono
+    // channel. Two counts would not do — mono and stereo interleave freely, so
+    // the arrangement has to be recorded per channel, not tallied.
+    //
+    // Deliberately NOT stamped by createIOSection: ensureCompleteSchema
+    // back-fills template content into loaded trees, so a templated default
+    // would write an empty inventory onto a legacy file and make absence
+    // ambiguous. Absent = "legacy file, fall back to the sum". Same rule, and
+    // the same hazard, as channelNumbersUserOwned above.
+    const juce::Identifier InputChannelList  ("InputChannelList");  // <IO> child, display order
+    const juce::Identifier Ch                ("Ch");                // one per live channel
+    // Short attribute names, deliberately long C++ names: this header is pulled
+    // in under `using namespace WFSParameterIDs`, where a bare `n` or `type`
+    // would shadow (and be shadowed by) ordinary locals — WFSValueTreeState.cpp
+    // alone has a `for (int n = 1; ...)` loop.
+    const juce::Identifier chNumber          ("n");                 // permanent channel number
+    const juce::Identifier chType            ("type");              // "mono" / "stereo"
+
+    // Hardware-input FINGERPRINT on an <Input> node in inputs.xml and on a
+    // snapshot's <Input> entry: the 1-based hardware inputs the channel's patch
+    // row held when the file was written, e.g. "15" or "15,16".
+    //
+    // A guard, never a source. Nothing repatches from it: the patch lives in
+    // system.xml's <AudioPatch> and is applied from there alone. It exists so a
+    // file written under one configuration can be RECOGNISED as such before it
+    // is applied to another - inputs.xml and snapshots otherwise carry no
+    // channel<->hardware relation at all, so a stale one loaded by number had
+    // nothing to trip over. Keyed by number (it sits on the <Input>), so it is
+    // immune to the position problem that defeats everything positional. It is
+    // stamped into the saved COPY and evicted from the live tree after a load,
+    // like InputChannelList; a live copy could only go stale on the next
+    // re-patch.
+    // Named hwInputsFingerprint in C++ (the attribute is still "hwInputs"): this
+    // header is pulled in under `using namespace WFSParameterIDs`, where a bare
+    // hwInputs shadows updateHardwareChannelCount's parameter of that name.
+    const juce::Identifier hwInputsFingerprint ("hwInputs");
 
     //==========================================================================
     // Config > Binaural Section
@@ -245,6 +308,34 @@ namespace WFSParameterIDs
     const juce::Identifier Cluster           ("Cluster");
     const juce::Identifier clusterReferenceMode ("clusterReferenceMode");
     const juce::Identifier clusterInputOrder    ("clusterInputOrder");
+
+    // How the clusterInputOrder CSVs in THIS FILE are keyed. Written on the
+    // <Clusters> node by the system-config save, read by the load, and never
+    // present in the runtime tree.
+    //
+    // In memory clusterInputOrder is a CSV of 0-based SLOT indices, which is the
+    // right key for everything that consumes it live. On disk it is not: slots
+    // are defined by inputs.xml while the CSV is persisted in system.xml, so a
+    // load that reconciles the channel list shifts the slot space out from under
+    // a CSV that was written against the file's. The load-time remaps then
+    // half-corrupted it — deletions shifted tokens, the display-order restore
+    // (a raw moveChild) did not — and the first token picks the pivot for cluster
+    // drag and rotate in "First Input" mode, so the cluster silently pivoted
+    // around the wrong source.
+    //
+    // Absent = a file written before this existed = the CSVs are slots. Those
+    // still load correctly, because the live slot space at flush time equals the
+    // file's; they are simply protected from the intermediate remaps and are
+    // rewritten as numbers on the next save.
+    //
+    // Deliberately NOT written by createClustersSection: ensureCompleteSchema
+    // back-fills template content into loaded trees, so a templated value would
+    // be stamped onto legacy files and destroy the discriminator. Same rule, and
+    // the same hazard, as channelNumbersUserOwned and InputChannelList. Do not
+    // try to discriminate on "does a token equal 0" instead — slot 0 is a
+    // legitimate legacy token, and "3,1,2" is valid under both readings.
+    const juce::Identifier inputOrderKey        ("inputOrderKey");
+    const juce::String     inputOrderKeyNumber  ("number");
     const juce::Identifier clusterInputsVisible ("clusterInputsVisible");
 
     // Config > Clusters > Cluster > LFO
@@ -288,8 +379,23 @@ namespace WFSParameterIDs
     // Input Channel Parameters
     //==========================================================================
 
+    // Input node (structural property on <Input> itself, beside `id`):
+    // "mono" | "stereo"; absent = mono. Source of truth for a channel's type
+    // under the stable-number model. While the legacy count-based API still
+    // exists it is kept in sync with the tail split (stereoInputChannels).
+    const juce::Identifier inputChannelType      ("inputChannelType");
+
     // Input > Channel
     const juce::Identifier inputName             ("inputName");
+    const juce::Identifier inputSolo             ("inputSolo");             // 0/1, binaural solo — per channel so it travels with the node (reorder/delete safe); replaces the Binaural inputSoloStates csv
+    const juce::Identifier inputStereoWidth      ("inputStereoWidth");      // metres, stereo pairs only — the FULL left-to-right distance, so each leg sits at half of it. Absolute: no speaker position is read, so it means the same thing on a bar, a circle or a Y-running array
+    // Degrees, stereo pairs only: a rotation APPLIED TO the automatic tangential
+    // axis, so 0 means automatic rather than "spread along +X". Positive
+    // counter-clockwise viewed from above, the same convention as inputRotation;
+    // ±180 is an explicit L/R swap. Applied in the world frame — inputFlipX/Y
+    // already mirror the anchor and the automatic axis follows it, so mirroring
+    // this offset too would undo the flip it is riding on.
+    const juce::Identifier inputStereoAxisOffset ("inputStereoAxisOffset");
     const juce::Identifier inputAttenuation      ("inputAttenuation");
     const juce::Identifier inputDelayLatency     ("inputDelayLatency");
     const juce::Identifier inputMinimalLatency   ("inputMinimalLatency");

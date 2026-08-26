@@ -8,6 +8,7 @@
 #include "../Parameters/WFSParameterDefaults.h"
 #include "../Parameters/WFSConstraints.h"
 #include "../Helpers/ReverbNodePlacement.h"
+#include "../Helpers/BinauralListenerGeometry.h"
 #include "../Network/OSCProtocolTypes.h"
 #include "ColorUtilities.h"
 #include "ColorScheme.h"
@@ -42,6 +43,10 @@ public:
         outputsTree.addListener(this);
         reverbsTree.addListener(this);
         configTree.addListener(this);
+
+        // Skipped while the Map is off screen — becoming visible repaints it
+        // anyway, so a hidden Map never pays for edits made while it was away.
+        repaintCoalescer.onFlush = [this]() { if (isShowing()) repaint(); };
 
         // Home button to reset view to stage
         addAndMakeVisible(homeButton);
@@ -396,6 +401,7 @@ public:
         drawOriginMarker(g);
         drawOutputs(g);
         drawReverbs(g);
+        drawBinauralListener(g);
         drawClusters(g);
         drawInputs(g);
         drawRubberBand(g);
@@ -429,9 +435,11 @@ public:
         {
             const int btnSize = juce::jmax(20, static_cast<int>(24.0f * us));
             mapHelpButton.setBounds(getWidth() - margin - btnSize, margin + btnH + margin / 2, btnSize, btnSize);
-            // Help card — centered on map
-            int cardW = juce::jmin(getWidth() - 80, 580);
-            int cardH = mapHelpCard.getIdealHeight(cardW);
+            // Help card — centered on map. Wide enough for the full body
+            // (Shift / stereo image bullets included) and clamped to the map
+            // height so a small window can't push it off screen.
+            int cardW = juce::jmin(getWidth() - 80, 800);
+            int cardH = juce::jmin(getHeight() - 40, mapHelpCard.getIdealHeight(cardW));
             mapHelpCard.setBounds(getWidth() / 2 - cardW / 2, getHeight() / 2 - cardH / 2, cardW, cardH);
         }
 
@@ -803,7 +811,8 @@ public:
                     isInViewGesture = false;
 
                     // Begin undo transaction for this map drag gesture
-                    parameters.getValueTreeState().beginUndoTransaction ("Map Drag Input " + juce::String (hitInput + 1));
+                    parameters.getValueTreeState().beginUndoTransaction ("Map Drag Input " + juce::String (
+                        parameters.getValueTreeState().getInputChannelNumber (hitInput)));
 
                     // Snapshot all selected inputs' positions and offsets for multi-drag
                     multiDragSnapshots.clear();
@@ -852,7 +861,8 @@ public:
                 isDraggingBarycenter = false;
                 isInViewGesture = false;
 
-                parameters.getValueTreeState().beginUndoTransaction ("Map Drag Input " + juce::String (hitRefInput + 1));
+                parameters.getValueTreeState().beginUndoTransaction ("Map Drag Input " + juce::String (
+                        parameters.getValueTreeState().getInputChannelNumber (hitRefInput)));
 
                 auto rawPos = getInputPosition(hitRefInput);
                 bool flipX = static_cast<int>(parameters.getInputParam(hitRefInput, "inputFlipX")) != 0;
@@ -1544,7 +1554,7 @@ public:
     // Secondary touch tracking (for two-finger gestures on inputs/clusters)
     struct SecondaryTouchInfo
     {
-        enum class TargetType { None, InputZ, InputRotation, ClusterScaleRotation };
+        enum class TargetType { None, InputZ, InputRotation, ClusterScaleRotation, StereoImage };
         TargetType targetType = TargetType::None;
         int targetIndex = -1;           // Input index or cluster number
         int primaryTouchSourceIndex = -1;  // Source index of the primary touch this is associated with
@@ -1556,6 +1566,9 @@ public:
         float startRotation = 0.0f;      // Initial rotation value (inputRotation or cluster rotation)
         float startScaleX = 1.0f;        // For cluster scale (not used for inputs)
         float startScaleY = 1.0f;        // For cluster scale (not used for inputs)
+        float startWidth = 0.0f;         // StereoImage: inputStereoWidth at the last mode switch (metres)
+        int startAxis = 0;               // StereoImage: inputStereoAxisOffset at the last mode switch (degrees)
+        TargetType plainType = TargetType::None;  // Stereo inputs: the type used while Shift is up (InputZ / InputRotation)
     };
 
     //==========================================================================
@@ -1925,7 +1938,52 @@ public:
             secTouch.startRotation = static_cast<float>(parameters.getInputParam(inputIdx, "inputRotation"));
         }
 
+        // Shift is the stereo image layer: on a stereo input the second finger
+        // rotates the image axis and pinches the width instead of rotation /
+        // height. Remember the plain type so the gesture can flip between the
+        // two layers as Shift goes down and up (see syncSecondaryTouchLayer).
+        if ((secTouch.targetType == SecondaryTouchInfo::TargetType::InputZ
+             || secTouch.targetType == SecondaryTouchInfo::TargetType::InputRotation)
+            && parameters.getValueTreeState().isInputChannelStereo(inputIdx))
+        {
+            secTouch.plainType = secTouch.targetType;
+            syncSecondaryTouchLayer(secTouch, secTouch.initialDistance, secTouch.initialAngle);
+        }
+
         return secTouch;
+    }
+
+    // Stereo inputs: follow the live Shift state like the Space Mouse does.
+    // Each switch re-baselines the gesture on the CURRENT finger geometry and
+    // parameter values, so height -> width -> height within one touch never
+    // jumps: every layer resumes from where it was left.
+    void syncSecondaryTouchLayer(SecondaryTouchInfo& secTouch, float currentDistance, float currentAngle)
+    {
+        if (secTouch.plainType == SecondaryTouchInfo::TargetType::None)
+            return;  // not a stereo input gesture
+
+        // Realtime rather than e.mods: touch events don't reliably carry keyboard modifiers.
+        const bool shiftHeld = juce::ModifierKeys::getCurrentModifiersRealtime().isShiftDown();
+        const auto wanted = shiftHeld ? SecondaryTouchInfo::TargetType::StereoImage : secTouch.plainType;
+        if (wanted == secTouch.targetType)
+            return;
+
+        const int inputIdx = secTouch.targetIndex;
+        secTouch.targetType = wanted;
+        secTouch.initialDistance = currentDistance;
+        secTouch.initialAngle = currentAngle;
+
+        if (wanted == SecondaryTouchInfo::TargetType::StereoImage)
+        {
+            secTouch.startWidth = static_cast<float>(parameters.getInputParam(inputIdx, WFSParameterIDs::inputStereoWidth.toString()));
+            secTouch.startAxis = static_cast<int>(parameters.getInputParam(inputIdx, WFSParameterIDs::inputStereoAxisOffset.toString()));
+        }
+        else
+        {
+            const char* zParam = (wanted == SecondaryTouchInfo::TargetType::InputZ) ? "inputOffsetZ" : "inputPositionZ";
+            secTouch.startZ = static_cast<float>(parameters.getInputParam(inputIdx, zParam));
+            secTouch.startRotation = static_cast<float>(parameters.getInputParam(inputIdx, "inputRotation"));
+        }
     }
 
     // Initialize a secondary touch for a barycenter (cluster)
@@ -1975,6 +2033,9 @@ public:
         auto delta = currentTouchPos - currentMarkerScreen;
         float currentDistance = delta.getDistanceFromOrigin();
         float currentAngle = std::atan2(delta.y, delta.x);
+
+        // Stereo inputs: switch layer if Shift changed since the last frame
+        syncSecondaryTouchLayer(secTouch, currentDistance, currentAngle);
 
         // Calculate ratio and rotation delta
         float distanceRatio = (secTouch.initialDistance > 10.0f) ? currentDistance / secTouch.initialDistance : 1.0f;
@@ -2071,6 +2132,33 @@ public:
                 while (newRotation > 180.0f) newRotation -= 360.0f;
                 while (newRotation < -179.0f) newRotation += 360.0f;
                 parameters.setInputParam(inputIdx, "inputRotation", static_cast<int>(newRotation));
+                break;
+            }
+
+            case SecondaryTouchInfo::TargetType::StereoImage:
+            {
+                // Stereo input + Shift: pinch scales the image width, rotation turns the image axis
+                int inputIdx = secTouch.targetIndex;
+
+                // Width: same law as Z - additive from (near) zero, ratio otherwise
+                float newWidth;
+                if (secTouch.startWidth < 0.1f)
+                {
+                    float distanceChange = currentDistance - secTouch.initialDistance;
+                    newWidth = secTouch.startWidth + distanceChange / 50.0f;
+                }
+                else
+                {
+                    newWidth = secTouch.startWidth * distanceRatio;
+                }
+                newWidth = juce::jlimit(WFSParameterDefaults::inputStereoWidthMin,
+                                        WFSParameterDefaults::inputStereoWidthMax, newWidth);
+                parameters.setInputParam(inputIdx, WFSParameterIDs::inputStereoWidth.toString(), newWidth);
+
+                // Axis: same sign as inputRotation (both CCW-positive; screen Y is down)
+                float angleDeg = -juce::radiansToDegrees(angleDelta);
+                int newAxis = WFSParameterDefaults::wrapPhaseDegrees(secTouch.startAxis + juce::roundToInt(angleDeg));
+                parameters.setInputParam(inputIdx, WFSParameterIDs::inputStereoAxisOffset.toString(), newAxis);
                 break;
             }
 
@@ -2312,6 +2400,24 @@ public:
     }
 
     //==========================================================================
+    // Stereo Image Callback
+    //==========================================================================
+
+    /** Set callback reporting the resolved left and right legs of a stereo
+        pair's image, as absolute stage meters. Returns true for a stereo
+        channel whose image has been resolved, false otherwise.
+
+        The legs are read back rather than derived here: the width-to-metres
+        mapping and its inputs live in exactly one place, because a Map drawing
+        an image the renderer is not producing is worse than no drawing at all. */
+    void setStereoImageCallback (std::function<bool (int inputSlot,
+                                                     juce::Point<float>& outLeft,
+                                                     juce::Point<float>& outRight)> cb)
+    {
+        stereoImageCallback = std::move (cb);
+    }
+
+    //==========================================================================
     // Speed-Limited Position Callback
     //==========================================================================
 
@@ -2368,6 +2474,18 @@ public:
         getInputLevelDb = std::move(callback);
     }
 
+    /** Live head-tracker attitude (yaw/pitch/roll in radians), for the binaural
+        listener glyph's facing. Returns false when nothing is tracking.
+
+        Needed because tracker attitude deliberately bypasses the parameter
+        system — it is read per block on the RT fast path and never reaches the
+        ValueTree — so the glyph cannot find it any other way. Same provider
+        MainComponent gives SystemConfigTab for its attitude readout. */
+    void setBinauralTrackedAttitudeProvider(std::function<bool(float&, float&, float&)> provider)
+    {
+        getBinauralTrackedAttitude = std::move(provider);
+    }
+
     /** Set callback to get output peak level in dB for visualization */
     void setOutputLevelCallback(std::function<float(int)> callback)
     {
@@ -2403,6 +2521,9 @@ private:
     // Sampler-playing state + pad XY offset (meters) for compound marker
     std::function<bool(int, float&, float&)> samplerStateCallback;
 
+    // Resolved stereo-image legs (absolute stage meters) for the spread bar
+    std::function<bool(int, juce::Point<float>&, juce::Point<float>&)> stereoImageCallback;
+
     // Speed-limited position callback for visualization
     std::function<void(int, float&, float&, float&)> speedLimitedPositionCallback;
 
@@ -2435,6 +2556,21 @@ private:
     int selectedInput = -1;  // Derived cache: == single element of selectedInputs when size==1, else -1
     std::set<int> selectedInputs;  // Multi-selection set (0-based input indices)
     bool isDraggingInput = false;
+
+    // Coalescing clock for ValueTree-driven repaints. It runs ONLY while a
+    // repaint is pending — armed by the first change, fires once 50 ms later,
+    // then stops itself. An idle Map therefore has no timer running at all, and
+    // a stream of changes is capped at 20 Hz however fast the writes arrive.
+    // (MapTab's own timer cannot do this: it is started by a pan/zoom gesture
+    // and stopped the moment no mouse button is held.)
+    struct PendingRepaintTimer : private juce::Timer
+    {
+        std::function<void()> onFlush;
+        void arm() { if (! isTimerRunning()) startTimer(50); }
+    private:
+        void timerCallback() override { stopTimer(); if (onFlush) onFlush(); }
+    };
+    PendingRepaintTimer repaintCoalescer;
 
     // Rubber-band selection state
     bool isRubberBanding = false;
@@ -2499,6 +2635,7 @@ private:
     // Level overlay callbacks
     std::function<void(bool)> onLevelOverlayChanged;
     std::function<float(int)> getInputLevelDb;   // Returns peak dB for input index
+    std::function<bool(float&, float&, float&)> getBinauralTrackedAttitude;  // live tracker yaw/pitch/roll (rad)
     std::function<float(int)> getOutputLevelDb;  // Returns peak dB for output index
 
     // Status bar and help text
@@ -3317,6 +3454,100 @@ private:
             }
         }
     }
+    /** The binaural listener: where they sit and which way they are looking.
+
+        This exists because the Orbit control is a SEAT PLACEMENT, not a head
+        rotation, and nothing on screen used to say so. Turning it walks the
+        listener around a circle about the origin, which changes the distance
+        to every source and so changes the loudness of everything — an effect
+        that reads as the renderer misbehaving when the only feedback is your
+        ears. Drawn here, it reads as what it is: you moved.
+
+        Position and facing come from WFSBinauralListener so this can never
+        disagree with what BinauralCalculationEngine actually renders. */
+    void drawBinauralListener(juce::Graphics& g)
+    {
+        auto binaural = parameters.getValueTreeState().getBinauralState();
+        if (! binaural.isValid())
+            return;
+
+        using namespace WFSParameterDefaults;
+
+        const int renderMode = juce::jlimit(binauralRenderModeMin, binauralRenderModeMax,
+            (int) binaural.getProperty(WFSParameterIDs::binauralRenderMode, binauralRenderModeDefault));
+
+        const float distance = (float) binaural.getProperty(
+            WFSParameterIDs::binauralListenerDistance, binauralListenerDistanceDefault);
+        const float orbitDeg = (float) (int) binaural.getProperty(
+            WFSParameterIDs::binauralListenerAngle, binauralListenerAngleDefault);
+
+        // ORTF legacy ignores the lateral offset (BinauralCalculationEngine::
+        // recalculatePositions pins it to 0), so the glyph must ignore it too —
+        // otherwise the Map would show a seat the renderer is not using, and
+        // the legacy/HRTF switch would look like it does nothing when in fact
+        // it moves the listener.
+        const float lateralX = renderMode == 0 ? 0.0f
+            : juce::jlimit(binauralListenerXMin, binauralListenerXMax,
+                (float) binaural.getProperty(WFSParameterIDs::binauralListenerX, binauralListenerXDefault));
+
+        // Head orientation: the tracked yaw when a tracker is driving it (it
+        // never reaches the ValueTree — the renderer reads it on the fast path),
+        // otherwise the manual value. Legacy reads neither.
+        float yawDeg = 0.0f;
+        if (renderMode != 0)
+        {
+            yawDeg = juce::jlimit(binauralListenerYawMin, binauralListenerYawMax,
+                (float) binaural.getProperty(WFSParameterIDs::binauralListenerYaw, binauralListenerYawDefault));
+
+            float ty = 0.0f, tp = 0.0f, tr = 0.0f;
+            if (getBinauralTrackedAttitude && getBinauralTrackedAttitude(ty, tp, tr))
+                yawDeg = juce::radiansToDegrees(ty);
+        }
+
+        const auto seat = WFSBinauralListener::seatPosition(distance, orbitDeg, lateralX);
+        const auto facing = WFSBinauralListener::facingVector(orbitDeg, yawDeg);
+        const auto centre = stageToScreen({ seat.x, seat.y });
+
+        // Dimmed but still drawn when the renderer is off: the seat is part of
+        // the scene whether or not it is currently being listened through.
+        const bool active = parameters.getValueTreeState().getBinauralEnabled();
+        const float alpha = active ? 0.9f : 0.35f;
+        const auto colour = juce::Colour(0xFF26A69A).withAlpha(alpha);   // teal, as the binaural controls
+
+        const float headR = juce::jmax(7.0f, markerRadius * 0.62f);
+
+        // Plan-view head: a circle for the skull and a nose wedge for the
+        // facing. A bare arrow would read as a source's directivity; the nose
+        // says "this is a person, and this is where they are looking".
+        const juce::Point<float> f(facing.x, -facing.y);        // stage +Y is screen up
+        const juce::Point<float> side(-f.y, f.x);
+
+        juce::Path nose;
+        nose.startNewSubPath(centre + f * (headR * 1.85f));
+        nose.lineTo(centre + side * (headR * 0.46f) + f * (headR * 0.72f));
+        nose.lineTo(centre - side * (headR * 0.46f) + f * (headR * 0.72f));
+        nose.closeSubPath();
+
+        g.setColour(colour.withMultipliedAlpha(0.30f));
+        g.fillEllipse(centre.x - headR, centre.y - headR, headR * 2.0f, headR * 2.0f);
+        g.fillPath(nose);
+
+        g.setColour(colour);
+        g.drawEllipse(centre.x - headR, centre.y - headR, headR * 2.0f, headR * 2.0f, 1.6f);
+        g.strokePath(nose, juce::PathStrokeType(1.6f, juce::PathStrokeType::curved,
+                                                       juce::PathStrokeType::rounded));
+
+        // Ears, so the head reads as a head at small sizes and the left/right
+        // of the binaural image is unambiguous on screen.
+        const float earR = headR * 0.26f;
+        for (float s : { -1.0f, 1.0f })
+        {
+            const auto e = centre + side * (headR * s);
+            g.fillEllipse(e.x - earR, e.y - earR, earR * 2.0f, earR * 2.0f);
+        }
+    }
+
+
 
     void drawReverbs(juce::Graphics& g)
     {
@@ -3605,7 +3836,7 @@ private:
             int lsShape = static_cast<int>(parameters.getInputParam(inputIndex, "inputLSshape"));
 
             // Get input marker color for the gradient
-            juce::Colour inputColor = WfsColorUtilities::getInputColor(inputIndex + 1);
+            juce::Colour inputColor = WfsColorUtilities::getInputColor(parameters.getValueTreeState().getInputChannelNumber(inputIndex));
             const float baseAlpha = 0.25f;
 
             // Create radial gradient with shape-dependent color stops
@@ -3675,6 +3906,34 @@ private:
         float greyDotX = actualPosX + totalOffsetX;
         float greyDotY = actualPosY + totalOffsetY;
 
+        // Stereo pair: the image spread, a bar drawn between the legs the
+        // engine resolved. Width, axis and anchor are never re-derived here —
+        // a second copy of that mapping would drift from the renderer's, and a
+        // bar showing an image nobody is producing is worse than no bar.
+        if (stereoImageCallback)
+        {
+            juce::Point<float> legLeft, legRight;
+
+            // Below a centimetre the two markers overlap into a blob that reads
+            // as a defect rather than as a collapsed image.
+            if (stereoImageCallback(inputIndex, legLeft, legRight)
+                && legLeft.getDistanceFrom(legRight) > 0.01f)
+            {
+                auto leftEnd  = stageToScreen(legLeft);
+                auto rightEnd = stageToScreen(legRight);
+
+                juce::Colour spreadColor = WfsColorUtilities::getInputColor(parameters.getValueTreeState().getInputChannelNumber(inputIndex));
+                g.setColour(spreadColor.withAlpha(0.55f));
+                g.drawLine(leftEnd.x, leftEnd.y, rightEnd.x, rightEnd.y, 2.0f);
+
+                // Filled right, hollow left: an axis offset of ±180° swaps the
+                // legs, and between two identical end markers that swap would
+                // be invisible.
+                g.fillEllipse(rightEnd.x - 3.0f, rightEnd.y - 3.0f, 6.0f, 6.0f);
+                g.drawEllipse(leftEnd.x - 3.0f, leftEnd.y - 3.0f, 6.0f, 6.0f, 1.5f);
+            }
+        }
+
         // Check if there's a reason to show the grey dot:
         // - Flip is active (DSP position is mirrored from control position)
         // - Speed limiting is active
@@ -3722,7 +3981,7 @@ private:
                 g.setFont(juce::FontOptions().withHeight(juce::jmax(8.0f, 11.0f * us)).withStyle("Bold"));
                 const int tw = static_cast<int>(juce::jmax(14.0f, 20.0f * us));
                 const int th = static_cast<int>(juce::jmax(8.0f, 11.0f * us));
-                g.drawText(juce::String(inputIndex + 1),
+                g.drawText(juce::String(parameters.getValueTreeState().getInputChannelNumber(inputIndex)),
                            static_cast<int>(compositePos.x) - tw / 2,
                            static_cast<int>(compositePos.y) - th / 2,
                            tw, th, juce::Justification::centred);
@@ -3758,7 +4017,7 @@ private:
         }
         else
         {
-            outerColor = WfsColorUtilities::getInputColor(inputIndex + 1);  // 1-based for color
+            outerColor = WfsColorUtilities::getInputColor(parameters.getValueTreeState().getInputChannelNumber(inputIndex));  // 1-based for color
 
             // Label color based on tracking/reference state
             if (isTracked && isReference)
@@ -3788,7 +4047,7 @@ private:
             const int th = static_cast<int>(juce::jmax(8.0f, 12.0f * us));
             g.setColour(labelColor);
             g.setFont(juce::FontOptions().withHeight(juce::jmax(8.0f, 12.0f * us)).withStyle("Bold"));
-            g.drawText(juce::String(inputIndex + 1),
+            g.drawText(juce::String(parameters.getValueTreeState().getInputChannelNumber(inputIndex)),
                        static_cast<int>(screenPos.x) - static_cast<int>(markerRadius),
                        static_cast<int>(screenPos.y) - th / 2,
                        static_cast<int>(markerRadius * 2), th,
@@ -3892,7 +4151,7 @@ private:
         // Draw input name beneath marker
         juce::String inputName = parameters.getInputParam(inputIndex, "inputName").toString();
         if (inputName.isEmpty())
-            inputName = "Input " + juce::String(inputIndex + 1);
+            inputName = "Input " + juce::String(parameters.getValueTreeState().getInputChannelNumber(inputIndex));
 
         {
             const float us = WfsLookAndFeel::uiScale;
@@ -4242,34 +4501,59 @@ private:
                                   const juce::Identifier& property) override
     {
         juce::ignoreUnused(treeWhosePropertyHasChanged, property);
-        // Don't auto-repaint for high-frequency origins (UI drags, LFO/Move
-        // 50Hz updates, tracking) — they would spike CPU on 64-channel
-        // setups, and they all have their own existing repaint paths.
-        // Phase 5 origins MCP and Snapshot are episodic and don't have
-        // an alternative path — Map writes from MCP previously waited for
-        // the next mouse interaction to surface. Repaint selectively here.
-        const auto origin = WFSNetwork::getCurrentOriginTag();
-        if (origin == WFSNetwork::OriginTag::MCP
-         || origin == WFSNetwork::OriginTag::Snapshot)
-            repaint();
+        // Raise a flag; timerCallback paints at most once per tick. This used to
+        // filter by ORIGIN, repainting only for MCP and Snapshot, on the premise
+        // that the high-frequency origins "all have their own existing repaint
+        // paths". They do not: the compensating repaints in MainComponent's timer
+        // are each gated on something ANIMATING (speed limiter, AutomOtion, LFO,
+        // level overlay), so an ordinary edit — a dial, an OSC write, a tablet
+        // message, enabling Live Source Tamer — repainted the Map zero times, and
+        // the operator had to nudge something before it would show.
+        //
+        // Filtering by origin was the wrong lever for the right worry. Coalescing
+        // costs less than the old gate ever did: the four listened trees already
+        // scope this to inputs/outputs/reverbs/config, a burst of 64 position
+        // writes now costs ONE paint instead of 64, and an idle Map costs none.
+        repaintCoalescer.arm();
     }
 
     void valueTreeChildAdded(juce::ValueTree& parentTree, juce::ValueTree& child) override
     {
         juce::ignoreUnused(parentTree, child);
-        repaint();
+        repaintCoalescer.arm();
     }
 
     void valueTreeChildRemoved(juce::ValueTree& parentTree, juce::ValueTree& child, int index) override
     {
         juce::ignoreUnused(parentTree, child, index);
         clearSelection();  // Clear selection if channel removed
-        repaint();
+        repaintCoalescer.arm();
     }
 
     void valueTreeChildOrderChanged(juce::ValueTree& parentTree, int oldIndex, int newIndex) override
     {
-        juce::ignoreUnused(parentTree, oldIndex, newIndex);
+        // The selection is a set of SLOTS and a drag-to-reorder changes which
+        // channel occupies each one, so without remapping the ring stays on the
+        // slot and silently adopts whichever channel moved into it — the same
+        // slot-vs-number trap the rest of the reorder work exists to close. The
+        // shift mirrors ValueTree::moveChild's own, so it matches the tree edit
+        // that provoked it.
+        if (parentTree == inputsTree && oldIndex != newIndex && !selectedInputs.empty())
+        {
+            std::set<int> remapped;
+            for (int slot : selectedInputs)
+            {
+                if (slot == oldIndex)
+                    remapped.insert(newIndex);
+                else if (oldIndex < newIndex)
+                    remapped.insert((slot > oldIndex && slot <= newIndex) ? slot - 1 : slot);
+                else
+                    remapped.insert((slot >= newIndex && slot < oldIndex) ? slot + 1 : slot);
+            }
+            selectedInputs = std::move(remapped);
+            selectedInput = (selectedInputs.size() == 1) ? *selectedInputs.begin() : -1;
+        }
+        repaintCoalescer.arm();
     }
 
     void valueTreeParentChanged(juce::ValueTree& tree) override

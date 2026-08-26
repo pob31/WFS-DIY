@@ -32,6 +32,7 @@
 #include "SamplerSubTab.h"
 #include "HelpCard.h"
 #include "InlineWarning.h"
+#include "ChannelIdentityGate.h"
 
 //==============================================================================
 // Custom Transport Button - Play (right-pointing triangle)
@@ -142,6 +143,27 @@ public:
  * - Sub-tabs: Input Properties, Position, Sound, Live Source, Effects (more to be added)
  * - Footer: Store/Reload buttons (always visible)
  */
+/** Logical identity of an Inputs sub-tab.
+
+    The bar's *positional* index is not a stable identity: the Sampler tab is added
+    and removed at runtime, and the stereo channel type removes tabs from the middle
+    of the bar. Every site that needs to know "which sub-tab is this" must go through
+    these ids and the getCurrentSubTabId()/indexOfSubTab() helpers, never through a
+    raw juce::TabbedButtonBar index.
+
+    The numeric values intentionally match the historical fixed tab order, because
+    they are the wire format for onSubTabChanged -> StreamDeckManager::setSubTab ->
+    InputsTabPages::createPage. Do not renumber them. */
+enum class InputSubTab : int
+{
+    Params               = 0,
+    LiveSourceHackoustics = 1,
+    Movements            = 2,
+    GradientMaps         = 3,
+    Visualisation        = 4,
+    Sampler              = 5
+};
+
 class InputsTab : public juce::Component,
                   private juce::TextEditor::Listener,
                   private juce::ChangeListener,
@@ -191,9 +213,13 @@ public:
             };
 
         // ==================== HEADER SECTION ====================
-        // Channel Selector - use configured input count
+        // Channel Selector — tiles are the LIVE channel numbers (stable
+        // numbering; the list may have gaps after deletions)
         int numInputs = parameters.getNumInputChannels();
-        channelSelector.setNumChannels(numInputs > 0 ? numInputs : 8);  // Default to 8 if not set
+        if (numInputs > 0)
+            channelSelector.setChannelIds(liveChannelNumbers());
+        else
+            channelSelector.setNumChannels(8);  // Default to 8 if not set
         channelSelector.onChannelChanged = [this](int channel) {
             loadChannelParameters(channel);
             // Notify external listeners (e.g., OSCManager for REMOTE protocol)
@@ -210,9 +236,19 @@ public:
             return WfsColorUtilities::getContrastingTextColor(bgColor);
         });
         // Set name provider to show input names on selector tiles
+        // (channelId is a permanent number — resolve to the slot)
         channelSelector.setChannelNameProvider([this](int channelId) -> juce::String {
-            juce::String name = parameters.getInputParam(channelId - 1, "inputName").toString();
+            const int slot = parameters.getValueTreeState().getSlotForChannelNumber(channelId);
+            juce::String name = parameters.getInputParam(slot, "inputName").toString();
             return name.isEmpty() ? juce::String() : name;
+        });
+        // Mark stereo pairs on the selector tiles
+        // (channelId is a permanent number — resolve to the slot; a number no
+        // longer live has no type at all)
+        channelSelector.setChannelStereoProvider([this](int channelId) -> bool {
+            auto& state = parameters.getValueTreeState();
+            const int slot = state.getSlotForChannelNumber(channelId);
+            return slot >= 0 && state.isInputChannelStereo(slot);
         });
         addAndMakeVisible(channelSelector);
 
@@ -233,7 +269,7 @@ public:
         clusterSelector.setSelectedId(1, juce::dontSendNotification);
         clusterSelector.onChange = [this]() {
             int newCluster = clusterSelector.getSelectedId() - 1;
-            int previousCluster = static_cast<int>(parameters.getInputParam(currentChannel - 1, "inputCluster"));
+            int previousCluster = static_cast<int>(parameters.getInputParam(channelSlot(), "inputCluster"));
 
             if (newCluster > 0)
             {
@@ -300,11 +336,11 @@ public:
 
         // ==================== SUB-TABS ====================
         addAndMakeVisible(subTabBar);
-        subTabBar.addTab(LOC("inputs.tabs.inputParams"), juce::Colour(0xFF2A2A2A), -1);
-        subTabBar.addTab(LOC("inputs.tabs.liveSourceHackoustics"), juce::Colour(0xFF2A2A2A), -1);
-        subTabBar.addTab(LOC("inputs.tabs.movements"), juce::Colour(0xFF2A2A2A), -1);
-        subTabBar.addTab(LOC("inputs.tabs.gradientMaps"), juce::Colour(0xFF2A2A2A), -1);
-        subTabBar.addTab(LOC("inputs.tabs.visualisation"), juce::Colour(0xFF2A2A2A), -1);
+        appendSubTab(InputSubTab::Params,                "inputs.tabs.inputParams");
+        appendSubTab(InputSubTab::LiveSourceHackoustics, "inputs.tabs.liveSourceHackoustics");
+        appendSubTab(InputSubTab::Movements,             "inputs.tabs.movements");
+        appendSubTab(InputSubTab::GradientMaps,          "inputs.tabs.gradientMaps");
+        appendSubTab(InputSubTab::Visualisation,         "inputs.tabs.visualisation");
         subTabBar.setMinimumTabScaleFactor(1.0);  // Prevent tab shrinking - maintain full text width
         subTabBar.setCurrentTabIndex(0);
         subTabBar.addChangeListener(static_cast<juce::ChangeListener*>(this));
@@ -528,8 +564,8 @@ public:
     {
         if (! otomoTriggerButton.getToggleState()) return;
 
-        float thresholdDb = static_cast<float> (parameters.getInputParam (currentChannel - 1, "inputOtomoThreshold"));
-        float resetDb = static_cast<float> (parameters.getInputParam (currentChannel - 1, "inputOtomoReset"));
+        float thresholdDb = static_cast<float> (parameters.getInputParam (channelSlot(), "inputOtomoThreshold"));
+        float resetDb = static_cast<float> (parameters.getInputParam (channelSlot(), "inputOtomoReset"));
 
         if (shortPeakDb > thresholdDb)
             otomoTriggerIndicator.setActive (true);
@@ -581,13 +617,13 @@ public:
                 outputsTree.addListener(this);
         }
 
-        // Update channel selector count
+        // Update channel selector tiles (live numbers; snaps the selection to
+        // the nearest live number if the current one was deleted)
         int numInputs = parameters.getNumInputChannels();
         if (numInputs > 0)
         {
-            channelSelector.setNumChannels(numInputs);
-            if (currentChannel > numInputs)
-                currentChannel = 1;
+            channelSelector.setChannelIds(liveChannelNumbers());
+            currentChannel = channelSelector.getSelectedChannel();
         }
 
         // Restore persisted QLab toggle states
@@ -613,6 +649,23 @@ public:
     /** Recall a snapshot through MainComponent's single recall seam, shared with
         the OSC address /wfs/input/snapshot/load and the MIDI note trigger. */
     std::function<void(const juce::String& snapshotName)> onSnapshotRecallRequested;
+
+    /** Fired after this tab changed the channel list STRUCTURALLY (a relabel or
+        rearrangement done from an identity dialog). Wired by MainComponent to
+        handleChannelCountChange, the one funnel that also re-sends the remote
+        channel inventory - onConfigReloaded does not. */
+    std::function<void()> onStructureChanged;
+
+    /** Fired when any channel's mono/stereo type changed, carrying that channel's
+        permanent NUMBER. Wired by MainComponent to refresh the Stream Deck, whose
+        Inputs page binds different dials either side of the split and whose
+        setChannel() early-returns when the selected number has not moved -- so a
+        retype in place would otherwise leave dials bound to the stereo parameters
+        of a channel that is now mono. The number lets the consumer ignore the
+        channels it is not showing: the property is written one channel at a time
+        in a loop, so an unfiltered refresh would rebuild the page once per channel
+        on a stereo-count change or a config load. */
+    std::function<void(int changedChannelNumber)> onChannelTypeChanged;
 
     /** Fired after any snapshot is created, updated, deleted, or has its scope
         rewritten -- the MIDI binding index rebuilds from this. */
@@ -658,8 +711,13 @@ public:
     int getNumChannels() const { return channelSelector.getSelectedChannel() > 0 ?
                                          parameters.getNumInputChannels() : 1; }
 
-    /** Get the currently selected input channel (0-indexed) */
-    int getSelectedInputIndex() const { return channelSelector.getSelectedChannel() - 1; }
+    /** Get the currently selected input channel's SLOT (0-indexed dense
+        child index; the selector holds the permanent number). */
+    int getSelectedInputIndex() const
+    {
+        return parameters.getValueTreeState().getSlotForChannelNumber(
+            channelSelector.getSelectedChannel());
+    }
 
     /** Set the joystick/slider positions from an external controller (visual only). */
     void setControllerDeflection (float x, float y, float z)
@@ -668,17 +726,12 @@ public:
         positionZSlider.setThumbDeflection (z);
     }
 
-    /** Cycle to next/previous channel. delta=1 for next, delta=-1 for previous. Wraps around. */
+    /** Cycle to next/previous channel. delta=1 for next, delta=-1 for previous. Wraps around.
+        Walks the LIVE-number list (numbers may have gaps). */
     void cycleChannel(int delta)
     {
-        int numChannels = parameters.getNumInputChannels();
-        if (numChannels <= 0) return;
-
-        int newChannel = currentChannel + delta;
-        if (newChannel > numChannels) newChannel = 1;
-        else if (newChannel < 1) newChannel = numChannels;
-
-        selectChannel(newChannel);
+        if (parameters.getNumInputChannels() <= 0) return;
+        selectChannel(channelSelector.adjacentChannel(delta));
     }
 
     /** Set cluster assignment for current input. 0=Single, 1-10=Cluster 1-10. */
@@ -846,7 +899,7 @@ public:
     void configureVisualisation(int numOutputs, int numReverbs)
     {
         visualisationComponent.configure(numOutputs, numReverbs, &parameters);
-        visualisationComponent.setSelectedInput(currentChannel - 1);
+        visualisationComponent.setSelectedInput(channelSlot());
     }
 
     /**
@@ -912,15 +965,12 @@ public:
     {
         if (originatingComponent == &nameEditor && key.getKeyCode() == juce::KeyPress::tabKey)
         {
-            int current = channelSelector.getSelectedChannel();
-            int total = channelSelector.getNumChannels();
-            if (total <= 1) return true;
+            if (channelSelector.getNumChannels() <= 1) return true;
 
             textEditorFocusLost(nameEditor);  // Save current name before switching
 
-            int next = key.getModifiers().isShiftDown()
-                ? ((current - 2 + total) % total) + 1
-                : (current % total) + 1;
+            // Walk the live-number list (numbers may have gaps)
+            int next = channelSelector.adjacentChannel(key.getModifiers().isShiftDown() ? -1 : 1);
             channelSelector.setSelectedChannelProgrammatically(next);
             nameEditor.grabKeyboardFocus();
             nameEditor.selectAll();
@@ -944,9 +994,8 @@ public:
         samplerMasterEnabled = enabled;
         samplerToggleButton.setVisible(enabled);
 
-        // If master disabled, remove sampler tab if it exists
-        if (!enabled)
-            removeSamplerTab();
+        // Master flag feeds the desired sub-tab set
+        updateSubTabSet();
 
         resized();
     }
@@ -968,16 +1017,71 @@ public:
 
     std::vector<HelpCardButton*> getVisibleHelpButtons() override
     {
-        int tab = subTabBar.getCurrentTabIndex();
-        if (tab == 0) return { &inputBasicHelpButton, &inputAdvancedHelpButton, &inputLevelHelpButton, &inputHFHelpButton, &inputMutesHelpButton };
-        if (tab == 1) return { &lsHelpButton, &frHelpButton };
-        if (tab == 2) return { &lfoHelpButton, &otomoHelpButton };
-        if (tab == 3) return { &gradientMapEditor.getHelpButton() };
-        if (tab == samplerTabIndex && samplerTabIndex >= 0) return { &samplerSubTab.getHelpButton() };
+        switch (getCurrentSubTabId())
+        {
+            case InputSubTab::Params:                return { &inputBasicHelpButton, &inputAdvancedHelpButton, &inputLevelHelpButton, &inputHFHelpButton, &inputMutesHelpButton };
+            case InputSubTab::LiveSourceHackoustics: return { &lsHelpButton, &frHelpButton };
+            case InputSubTab::Movements:             return { &lfoHelpButton, &otomoHelpButton };
+            case InputSubTab::GradientMaps:          return { &gradientMapEditor.getHelpButton() };
+            case InputSubTab::Visualisation:         return {};
+            case InputSubTab::Sampler:               return { &samplerSubTab.getHelpButton() };
+        }
         return {};
     }
 
 private:
+    // ==================== SUB-TAB IDENTITY ====================
+    //
+    // The bar's positional index is not a stable identity (the Sampler tab is
+    // added/removed at runtime). These four helpers are the only sanctioned way
+    // to relate a bar position to a logical sub-tab.
+
+    /** Append a sub-tab to the bar and record its logical id. */
+    void appendSubTab (InputSubTab id, const char* locKey)
+    {
+        subTabBar.addTab (LOC (locKey), juce::Colour (0xFF2A2A2A), -1);
+        subTabIds.push_back (id);
+    }
+
+    /** Remove a sub-tab by logical id, if present. Moves the selection to Params
+        first when the tab being removed is the active one, so the bar never lands
+        on a stale position. */
+    void removeSubTab (InputSubTab id)
+    {
+        const int index = indexOfSubTab (id);
+        if (index < 0) return;
+
+        if (subTabBar.getCurrentTabIndex() == index)
+        {
+            const int paramsIndex = indexOfSubTab (InputSubTab::Params);
+            subTabBar.setCurrentTabIndex (paramsIndex >= 0 ? paramsIndex : 0);
+        }
+
+        subTabBar.removeTab (index);
+        subTabIds.erase (subTabIds.begin() + index);
+    }
+
+    /** Bar position of a logical sub-tab, or -1 when it is not currently shown. */
+    int indexOfSubTab (InputSubTab id) const noexcept
+    {
+        for (size_t i = 0; i < subTabIds.size(); ++i)
+            if (subTabIds[i] == id)
+                return static_cast<int> (i);
+        return -1;
+    }
+
+    /** Logical id of the active sub-tab. Falls back to Params when the bar has no
+        valid selection, which keeps every caller total. */
+    InputSubTab getCurrentSubTabId() const noexcept
+    {
+        const int i = subTabBar.getCurrentTabIndex();
+        if (i >= 0 && i < static_cast<int> (subTabIds.size()))
+            return subTabIds[static_cast<size_t> (i)];
+        return InputSubTab::Params;
+    }
+
+    bool isCurrentSubTab (InputSubTab id) const noexcept { return getCurrentSubTabId() == id; }
+
     // ==================== CHANGE LISTENER ====================
 
     void changeListenerCallback(juce::ChangeBroadcaster*) override
@@ -987,9 +1091,11 @@ private:
 
         int tabIndex = subTabBar.getCurrentTabIndex();
 
-        // Notify StreamDeck of subtab change
+        // Notify StreamDeck of subtab change. This carries the LOGICAL id, not the
+        // bar position, so the page mapping stays correct once tabs are added or
+        // removed from the middle of the bar.
         if (onSubTabChanged)
-            onSubTabChanged (tabIndex);
+            onSubTabChanged (static_cast<int> (getCurrentSubTabId()));
 
         // TTS: Announce subtab change for accessibility
         if (tabIndex >= 0 && tabIndex < subTabBar.getNumTabs())
@@ -1115,7 +1221,7 @@ private:
             if (isLoadingParameters) return;
             int selectedId = admMappingSelector.getSelectedId();
             int newMapping = selectedId - 2;  // 1=None→-1, 2-5=Cart0-3, 6-9=Polar4-7
-            auto posTree = parameters.getValueTreeState().getInputPositionSection(currentChannel - 1);
+            auto posTree = parameters.getValueTreeState().getInputPositionSection(channelSlot());
             posTree.setProperty(WFSParameterIDs::inputAdmMapping, newMapping, nullptr);
         };
         updateAdmSelectorAppearance();
@@ -1493,7 +1599,7 @@ private:
             bool globalTrackingOn = (int)parameters.getConfigParam("trackingEnabled") != 0;
             bool protocolEnabled = (int)parameters.getConfigParam("trackingProtocol") != 0;
             bool localTracking = trackingActiveButton.getToggleState();
-            bool motionActive = isAutoMotionActive && isAutoMotionActive (currentChannel - 1);
+            bool motionActive = isAutoMotionActive && isAutoMotionActive (channelSlot());
             bool useOffset = (globalTrackingOn && protocolEnabled && localTracking) || motionActive;
 
             // Apply flip inversion when modifying position directly (not offset)
@@ -1507,7 +1613,7 @@ private:
             bool constrainX = constraintXButton.getToggleState();
             bool constrainY = constraintYButton.getToggleState();
             bool constrainDist = constraintDistanceButton.getToggleState();
-            int coordMode = static_cast<int>(parameters.getInputParam(currentChannel - 1, "inputCoordinateMode"));
+            int coordMode = static_cast<int>(parameters.getInputParam(channelSlot(), "inputCoordinateMode"));
             bool useDistanceConstraint = (coordMode == 1 || coordMode == 2) && constrainDist;
 
             if (useOffset)
@@ -1521,16 +1627,16 @@ private:
                 // Get base position for constraint calculation
                 // IMPORTANT: Read Cartesian from storage, not from display editors
                 // (In cylindrical/spherical modes, editors show radius/theta/phi, not X/Y/Z)
-                float posX = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionX"));
-                float posY = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionY"));
+                float posX = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionX"));
+                float posY = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionY"));
                 float totalX = posX + newOffsetX;
                 float totalY = posY + newOffsetY;
 
                 if (useDistanceConstraint)
                 {
                     // Apply distance constraint (circular/spherical bounds)
-                    float minDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMin"));
-                    float maxDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMax"));
+                    float minDist = static_cast<float>(parameters.getInputParam(channelSlot(), "inputConstraintDistanceMin"));
+                    float maxDist = static_cast<float>(parameters.getInputParam(channelSlot(), "inputConstraintDistanceMax"));
                     float currentDist = std::sqrt(totalX * totalX + totalY * totalY);
                     if (currentDist < 0.0001f) currentDist = 0.0001f;
                     float targetDist = juce::jlimit(minDist, maxDist, currentDist);
@@ -1568,16 +1674,16 @@ private:
                 // Update Position X/Y when tracking is disabled
                 // IMPORTANT: Always read from storage (Cartesian), not from display editors
                 // (In cylindrical/spherical modes, editors show radius/theta/phi, not X/Y/Z)
-                float currentX = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionX"));
-                float currentY = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionY"));
+                float currentX = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionX"));
+                float currentY = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionY"));
                 float newX = currentX + deltaX;
                 float newY = currentY + deltaY;
 
                 if (useDistanceConstraint)
                 {
                     // Apply distance constraint (circular/spherical bounds)
-                    float minDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMin"));
-                    float maxDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMax"));
+                    float minDist = static_cast<float>(parameters.getInputParam(channelSlot(), "inputConstraintDistanceMin"));
+                    float maxDist = static_cast<float>(parameters.getInputParam(channelSlot(), "inputConstraintDistanceMax"));
                     float currentDist = std::sqrt(newX * newX + newY * newY);
                     if (currentDist < 0.0001f) currentDist = 0.0001f;
                     float targetDist = juce::jlimit(minDist, maxDist, currentDist);
@@ -1602,7 +1708,7 @@ private:
                 saveInputParam(WFSParameterIDs::inputPositionY, newY);
 
                 // Update display editors with proper coordinate conversion
-                float z = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionZ"));
+                float z = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionZ"));
                 float v1, v2, v3;
                 WFSCoordinates::cartesianToDisplay(static_cast<WFSCoordinates::Mode>(coordMode), newX, newY, z, v1, v2, v3);
                 posXEditor.setText(juce::String(v1, 2), juce::dontSendNotification);
@@ -1636,7 +1742,7 @@ private:
             bool globalTrackingOn = (int)parameters.getConfigParam("trackingEnabled") != 0;
             bool protocolEnabled = (int)parameters.getConfigParam("trackingProtocol") != 0;
             bool localTracking = trackingActiveButton.getToggleState();
-            bool motionActive = isAutoMotionActive && isAutoMotionActive (currentChannel - 1);
+            bool motionActive = isAutoMotionActive && isAutoMotionActive (channelSlot());
             bool useOffset = (globalTrackingOn && protocolEnabled && localTracking) || motionActive;
 
             // Apply flip inversion when modifying position directly (not offset)
@@ -1646,7 +1752,7 @@ private:
             // Check constraint states
             bool constrainZ = constraintZButton.getToggleState();
             bool constrainDist = constraintDistanceButton.getToggleState();
-            int coordMode = static_cast<int>(parameters.getInputParam(currentChannel - 1, "inputCoordinateMode"));
+            int coordMode = static_cast<int>(parameters.getInputParam(channelSlot(), "inputCoordinateMode"));
             bool useDistanceConstraint = (coordMode == 2) && constrainDist;  // Only spherical for Z
 
             if (useOffset)
@@ -1659,17 +1765,17 @@ private:
                 {
                     // Spherical mode: Z affects total distance, so apply distance constraint
                     // IMPORTANT: Read Cartesian from storage, not from display editors
-                    float posX = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionX"));
-                    float posY = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionY"));
-                    float posZ = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionZ"));
+                    float posX = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionX"));
+                    float posY = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionY"));
+                    float posZ = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionZ"));
                     float offsetX = offsetXEditor.getText().getFloatValue();
                     float offsetY = offsetYEditor.getText().getFloatValue();
                     float totalX = posX + offsetX;
                     float totalY = posY + offsetY;
                     float totalZ = posZ + newOffsetZ;
 
-                    float minDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMin"));
-                    float maxDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMax"));
+                    float minDist = static_cast<float>(parameters.getInputParam(channelSlot(), "inputConstraintDistanceMin"));
+                    float maxDist = static_cast<float>(parameters.getInputParam(channelSlot(), "inputConstraintDistanceMax"));
                     float currentDist = std::sqrt(totalX * totalX + totalY * totalY + totalZ * totalZ);
                     if (currentDist < 0.0001f) currentDist = 0.0001f;
                     float targetDist = juce::jlimit(minDist, maxDist, currentDist);
@@ -1690,7 +1796,7 @@ private:
                 else if (constrainZ)
                 {
                     // Rectangular Z constraint
-                    float posZ = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionZ"));
+                    float posZ = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionZ"));
                     float totalZ = posZ + newOffsetZ;
                     totalZ = juce::jlimit(getStageMinZ(), getStageMaxZ(), totalZ);
                     newOffsetZ = totalZ - posZ;
@@ -1703,17 +1809,17 @@ private:
             {
                 // Update Position Z when tracking is disabled
                 // IMPORTANT: Read Cartesian from storage, not from display editors
-                float currentZ = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionZ"));
+                float currentZ = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionZ"));
                 float newZ = currentZ + deltaZ;
 
                 if (useDistanceConstraint)
                 {
                     // Spherical mode: Z affects total distance, so apply distance constraint
-                    float posX = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionX"));
-                    float posY = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionY"));
+                    float posX = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionX"));
+                    float posY = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionY"));
 
-                    float minDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMin"));
-                    float maxDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMax"));
+                    float minDist = static_cast<float>(parameters.getInputParam(channelSlot(), "inputConstraintDistanceMin"));
+                    float maxDist = static_cast<float>(parameters.getInputParam(channelSlot(), "inputConstraintDistanceMax"));
                     float currentDist = std::sqrt(posX * posX + posY * posY + newZ * newZ);
                     if (currentDist < 0.0001f) currentDist = 0.0001f;
                     float targetDist = juce::jlimit(minDist, maxDist, currentDist);
@@ -1742,8 +1848,8 @@ private:
                 // Save Z and update display
                 saveInputParam(WFSParameterIDs::inputPositionZ, newZ);
                 // For Z editor: in spherical mode it shows phi (elevation angle), in others it shows Z directly
-                float posX = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionX"));
-                float posY = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionY"));
+                float posX = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionX"));
+                float posY = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionY"));
                 float v1, v2, v3;
                 WFSCoordinates::cartesianToDisplay(static_cast<WFSCoordinates::Mode>(coordMode), posX, posY, newZ, v1, v2, v3);
                 posZEditor.setText(juce::String(coordMode == 2 ? v3 : newZ, coordMode == 2 ? 1 : 2), juce::dontSendNotification);
@@ -1771,14 +1877,15 @@ private:
             bool is1OverD = attenuationLawButton.getToggleState();
             attenuationLawButton.setButtonText(is1OverD ? "1/d" : "Log");
             // Show/hide Distance Atten vs Distance Ratio based on law (now in Input Parameters tab)
-            distanceAttenLabel.setVisible(!is1OverD && subTabBar.getCurrentTabIndex() == 0);
-            distanceAttenDial.setVisible(!is1OverD && subTabBar.getCurrentTabIndex() == 0);
-            distanceAttenValueLabel.setVisible(!is1OverD && subTabBar.getCurrentTabIndex() == 0);
-            distanceAttenUnitLabel.setVisible(!is1OverD && subTabBar.getCurrentTabIndex() == 0);
-            distanceRatioLabel.setVisible(is1OverD && subTabBar.getCurrentTabIndex() == 0);
-            distanceRatioDial.setVisible(is1OverD && subTabBar.getCurrentTabIndex() == 0);
-            distanceRatioValueLabel.setVisible(is1OverD && subTabBar.getCurrentTabIndex() == 0);
-            distanceRatioUnitLabel.setVisible(is1OverD && subTabBar.getCurrentTabIndex() == 0);
+            const bool onParams = isCurrentSubTab (InputSubTab::Params);
+            distanceAttenLabel.setVisible(!is1OverD && onParams);
+            distanceAttenDial.setVisible(!is1OverD && onParams);
+            distanceAttenValueLabel.setVisible(!is1OverD && onParams);
+            distanceAttenUnitLabel.setVisible(!is1OverD && onParams);
+            distanceRatioLabel.setVisible(is1OverD && onParams);
+            distanceRatioDial.setVisible(is1OverD && onParams);
+            distanceRatioValueLabel.setVisible(is1OverD && onParams);
+            distanceRatioUnitLabel.setVisible(is1OverD && onParams);
             saveInputParam(WFSParameterIDs::inputAttenuationLaw, is1OverD ? 1 : 0);
         };
 
@@ -1861,6 +1968,61 @@ private:
         commonAttenUnitLabel.setText("%", juce::dontSendNotification);
         commonAttenUnitLabel.setJustificationType(juce::Justification::left);
         commonAttenUnitLabel.setMinimumHorizontalScale(1.0f);
+
+        // Stereo Width dial (stereo-pair channels only; visibility follows
+        // the channel type in setSoundVisible / updateStereoControls)
+        addAndMakeVisible(stereoWidthLabel);
+        stereoWidthLabel.setText(LOC("inputs.labels.stereoWidth"), juce::dontSendNotification);
+        stereoWidthLabel.setJustificationType(juce::Justification::centred);
+        stereoWidthDial.setColours(juce::Colours::black, juce::Colour(0xFF4A90D9), juce::Colours::grey);
+        stereoWidthDial.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF4A90D9));
+        stereoWidthDial.setValue(stereoWidthDialValue(WFSParameterDefaults::inputStereoWidthDefault));
+        stereoWidthDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input Stereo Width");
+        };
+        stereoWidthDial.onValueChanged = [this](float v) {
+            float metres = stereoWidthMetres(v);
+            stereoWidthValueLabel.setText(juce::String(metres, 2), juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputStereoWidth, metres);
+        };
+        addAndMakeVisible(stereoWidthDial);
+        addAndMakeVisible(stereoWidthValueLabel);
+        stereoWidthValueLabel.setText(juce::String(WFSParameterDefaults::inputStereoWidthDefault, 2), juce::dontSendNotification);
+        stereoWidthValueLabel.setJustificationType(juce::Justification::right);
+        setupEditableValueLabel(stereoWidthValueLabel);
+        addAndMakeVisible(stereoWidthUnitLabel);
+        stereoWidthUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
+        stereoWidthUnitLabel.setJustificationType(juce::Justification::left);
+        stereoWidthUnitLabel.setMinimumHorizontalScale(1.0f);
+
+        // Stereo Axis dial: rotates the automatic tangential spread axis, so it
+        // is a full-circle rotation dial rather than a bounded arc — 0 at the
+        // bottom, negatives running clockwise onto the left half (see
+        // stereoAxisDialAngle); same stereo-only gating as the width dial.
+        // setAngle runs before onAngleChanged is attached so seeding the default
+        // cannot write it back to the parameter tree.
+        addAndMakeVisible(stereoAxisLabel);
+        stereoAxisLabel.setText(LOC("inputs.labels.stereoAxis"), juce::dontSendNotification);
+        stereoAxisLabel.setJustificationType(juce::Justification::centred);
+        stereoAxisDial.setColours(juce::Colours::black, juce::Colour(0xFF4A90D9), juce::Colours::grey);
+        stereoAxisDial.setAngle(stereoAxisDialAngle(WFSParameterDefaults::inputStereoAxisOffsetDefault));
+        stereoAxisDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input Stereo Axis");
+        };
+        stereoAxisDial.onAngleChanged = [this](float angle) {
+            int degrees = stereoAxisDegrees(angle);
+            stereoAxisValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputStereoAxisOffset, degrees);
+        };
+        addAndMakeVisible(stereoAxisDial);
+        addAndMakeVisible(stereoAxisValueLabel);
+        stereoAxisValueLabel.setText(juce::String(WFSParameterDefaults::inputStereoAxisOffsetDefault), juce::dontSendNotification);
+        stereoAxisValueLabel.setJustificationType(juce::Justification::right);
+        setupEditableValueLabel(stereoAxisValueLabel);
+        addAndMakeVisible(stereoAxisUnitLabel);
+        stereoAxisUnitLabel.setText(juce::String::fromUTF8("°"), juce::dontSendNotification);
+        stereoAxisUnitLabel.setJustificationType(juce::Justification::left);
+        stereoAxisUnitLabel.setMinimumHorizontalScale(1.0f);
 
         // Directivity slider
         addAndMakeVisible(directivityLabel);
@@ -1981,7 +2143,7 @@ private:
         detail text, so it is cheap to call from toggles and tree listeners. */
     void updateFeatureWarnings()
     {
-        const int tab = subTabBar.getCurrentTabIndex();
+        const InputSubTab tab = getCurrentSubTabId();
         const int numOutputs = parameters.getNumOutputChannels();
 
         auto anySpeakerHas = [this, numOutputs](const char* paramName)
@@ -1993,13 +2155,13 @@ private:
         };
 
         // Minimal latency — Input Parameters tab (index 0)
-        bool minLatWarn = (tab == 0)
+        bool minLatWarn = (tab == InputSubTab::Params)
                        && minimalLatencyButton.getToggleState()
                        && !anySpeakerHas("outputMiniLatencyEnable");
         minLatencyWarning.setVisible(minLatWarn);
 
         // Live source tamer — Live Source & Hackoustics tab (index 1)
-        bool lsWarn = (tab == 1)
+        bool lsWarn = (tab == InputSubTab::LiveSourceHackoustics)
                    && lsActiveButton.getToggleState()
                    && !anySpeakerHas("outputLSattenEnable");
         lsWarning.setVisible(lsWarn);
@@ -2017,9 +2179,9 @@ private:
             }
         }
         bool inputOffFloor = currentChannel > 0
-            && static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionZ")) > 0.0f;
+            && static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionZ")) > 0.0f;
 
-        bool frWarn = (tab == 1) && frActiveButton.getToggleState() && !(anyFRspeaker && inputOffFloor);
+        bool frWarn = (tab == InputSubTab::LiveSourceHackoustics) && frActiveButton.getToggleState() && !(anyFRspeaker && inputOffFloor);
         if (frWarn)
         {
             juce::String detail = LOC("inputs.warnings.floorReflections.base");
@@ -2952,13 +3114,13 @@ private:
         addAndMakeVisible(otomoStartButton);
         otomoStartButton.onClick = [this]() {
             if (automOtionProcessor != nullptr && currentChannel > 0)
-                automOtionProcessor->startClusterMotion(currentChannel - 1);
+                automOtionProcessor->startClusterMotion(channelSlot());
         };
 
         addAndMakeVisible(otomoStopButton);
         otomoStopButton.onClick = [this]() {
             if (automOtionProcessor != nullptr && currentChannel > 0)
-                automOtionProcessor->stopClusterMotion(currentChannel - 1);
+                automOtionProcessor->stopClusterMotion(channelSlot());
         };
 
         addAndMakeVisible(otomoPauseButton);
@@ -2968,9 +3130,9 @@ private:
             {
                 bool isPaused = otomoPauseButton.getToggleState();
                 if (isPaused)
-                    automOtionProcessor->pauseClusterMotion(currentChannel - 1);
+                    automOtionProcessor->pauseClusterMotion(channelSlot());
                 else
-                    automOtionProcessor->resumeClusterMotion(currentChannel - 1);
+                    automOtionProcessor->resumeClusterMotion(channelSlot());
             }
             saveInputParam(WFSParameterIDs::inputOtomoPauseResume, otomoPauseButton.getToggleState() ? 0 : 1);
         };
@@ -3220,6 +3382,46 @@ private:
         return juce::String(seconds, 2);
     }
 
+    // Stereo width dial law. Cubed, because a linear 0..50 m sweep gives half a
+    // metre per percent of travel and no usable resolution around the 4 m
+    // default, and squaring still bunches the useful range at the bottom of the
+    // sweep; cubing puts 0-10 m in the first ~58 % of the dial and lands the
+    // 4 m default at ~43 % of travel, so the range that gets edited sits under
+    // the middle of the dial.
+    // Forward: metres = v * v * v * 50. Inverse: v = cbrt(metres / 50).
+    static float stereoWidthMetres(float v)
+    {
+        return v * v * v * WFSParameterDefaults::inputStereoWidthMax;
+    }
+
+    static float stereoWidthDialValue(float metres)
+    {
+        const float clamped = juce::jlimit(WFSParameterDefaults::inputStereoWidthMin,
+                                           WFSParameterDefaults::inputStereoWidthMax, metres);
+        return std::cbrt(clamped / WFSParameterDefaults::inputStereoWidthMax);
+    }
+
+    // Stereo axis dial orientation (0 = the automatic tangential axis).
+    // The stored value reads as a compass with 0 at the BOTTOM of the dial and
+    // negatives running clockwise onto the left half, but WfsRotationDial paints
+    // its dot at (angle - 90) degrees in screen coordinates, i.e. 0 at the top
+    // with positives clockwise. Reflecting through 180 maps one onto the other
+    // (0 -> bottom, -90 -> left, +90 -> right, 180 -> top); the reflection is
+    // its own inverse, so both directions are the same expression.
+    static float stereoAxisDialAngle(int degrees)
+    {
+        return 180.0f - static_cast<float>(degrees);
+    }
+
+    static int stereoAxisDegrees(float dialAngle)
+    {
+        // WfsRotationDial hands back an angle already wrapped into [-180, 180],
+        // so the reflection lands in [0, 360] and wrapPhaseDegrees folds it back
+        // onto the stored -179..180 range (360 -> 0, 181 -> -179). It cannot
+        // return -180 here: 180 short-circuits ahead of the modulo.
+        return WFSParameterDefaults::wrapPhaseDegrees(juce::roundToInt(180.0f - dialAngle));
+    }
+
     // Helper to layout dial value and unit labels under dial
     // Places value and unit adjacent, centered as a pair under the dial
     // Uses slight overlap to compensate for JUCE font padding
@@ -3242,7 +3444,7 @@ private:
 
     void layoutCurrentSubTab()
     {
-        int tabIndex = subTabBar.getCurrentTabIndex();
+        const InputSubTab tabId = getCurrentSubTabId();
         showColumnDivider = false;
 
         // Hide all
@@ -3263,8 +3465,9 @@ private:
         inputHFHelpButton.setVisible(false); inputHFHelpCard.hide();
         inputMutesHelpButton.setVisible(false); inputMutesHelpCard.hide();
 
-        // Show current - new 5-tab structure (tab 5 = Sampler, dynamically added)
-        if (tabIndex == 0)
+        // Show current. The tab set is dynamic (Sampler is added/removed at runtime),
+        // so dispatch on the logical id rather than the bar position.
+        if (tabId == InputSubTab::Params)
         {
             // Input Parameters: Column 1 (Input+Position), Column 2 (Sound+Mutes)
             setInputPropertiesVisible(true);
@@ -3279,33 +3482,33 @@ private:
             inputMutesHelpButton.setVisible(true);
             layoutInputParametersTab();
         }
-        else if (tabIndex == 1)
+        else if (tabId == InputSubTab::LiveSourceHackoustics)
         {
             // Live Source & Hackoustics: Column 1 (Live Source), Column 2 (Hackoustics)
             setLiveSourceVisible(true);
             setEffectsVisible(true);
             layoutLiveSourceHackousticsTab();
         }
-        else if (tabIndex == 2)
+        else if (tabId == InputSubTab::Movements)
         {
             // Movements: Column 1 (LFO), Column 2 (AutomOtion)
             setLfoVisible(true);
             setAutomotionVisible(true);
             layoutMovementsTab();
         }
-        else if (tabIndex == 3)
+        else if (tabId == InputSubTab::GradientMaps)
         {
             // Gradient Maps
             setGradientMapsVisible(true);
             layoutGradientMapsTab();
         }
-        else if (tabIndex == 4)
+        else if (tabId == InputSubTab::Visualisation)
         {
             // Visualisation
             setVisualisationVisible(true);
             layoutVisualisationTab();
         }
-        else if (tabIndex == samplerTabIndex && samplerTabIndex >= 0)
+        else if (tabId == InputSubTab::Sampler)
         {
             // Sampler
             samplerSubTab.setVisible(true);
@@ -3383,6 +3586,13 @@ private:
         distanceRatioValueLabel.setVisible(v && is1OverD);
         distanceRatioUnitLabel.setVisible(v && is1OverD);
         commonAttenLabel.setVisible(v); commonAttenDial.setVisible(v); commonAttenValueLabel.setVisible(v); commonAttenUnitLabel.setVisible(v);
+        {
+            const bool stereoV = v && currentChannelIsStereo();
+            stereoWidthLabel.setVisible(stereoV); stereoWidthDial.setVisible(stereoV);
+            stereoWidthValueLabel.setVisible(stereoV); stereoWidthUnitLabel.setVisible(stereoV);
+            stereoAxisLabel.setVisible(stereoV); stereoAxisDial.setVisible(stereoV);
+            stereoAxisValueLabel.setVisible(stereoV); stereoAxisUnitLabel.setVisible(stereoV);
+        }
         directivityLabel.setVisible(v); directivitySlider.setVisible(v); directivityValueLabel.setVisible(v);
         rotationLabel.setVisible(v); inputDirectivityDial.setVisible(v); rotationValueLabel.setVisible(v); rotationUnitLabel.setVisible(v);
         tiltLabel.setVisible(v); tiltSlider.setVisible(v); tiltValueLabel.setVisible(v);
@@ -3416,7 +3626,6 @@ private:
         frHighShelfFreqLabel.setVisible(v); frHighShelfFreqSlider.setVisible(v); frHighShelfFreqValueLabel.setVisible(v);
         frHighShelfGainLabel.setVisible(v); frHighShelfGainSlider.setVisible(v); frHighShelfGainValueLabel.setVisible(v);
         frHighShelfSlopeLabel.setVisible(v); frHighShelfSlopeSlider.setVisible(v); frHighShelfSlopeValueLabel.setVisible(v);
-        muteReverbSendsButton.setVisible(v);
         frHelpButton.setVisible(v);
         if (!v) frHelpCard.hide();
     }
@@ -4375,14 +4584,38 @@ private:
         const int topBlockHeight = dialSize + rowHeight * 2;
         auto topBlock = col2.removeFromTop(topBlockHeight);
 
-        // Calculate item widths and total needed width
+        // Calculate item widths and total needed width. Stereo-pair channels
+        // add a fourth and fifth column (width + axis dials); mono layout is
+        // unchanged. Five columns at the reference pitch overflow col2 on a
+        // 1280 px window once layoutScale passes ~0.9 (a 1280x1024 desktop
+        // needs 724 px in a 610 px column), so the stereo case tightens the
+        // inter-item spacing first and then the column pitch, never below the
+        // dial itself. A group still wider than the column is left-aligned
+        // rather than centred, so it cannot slide off the left edge and hide
+        // the attenuation law button.
+        const bool showStereoControls = currentChannelIsStereo();
         const int attenLawWidth = scaled(140);  // Label/button width
-        const int dialSectionWidth = scaled(110);  // Label width for dial sections
-        const int itemSpacing = spacing * 4;  // Spacing between items
-        const int totalTopRowWidth = attenLawWidth + dialSectionWidth * 2 + itemSpacing * 2;
+        const int dialColumns = showStereoControls ? 4 : 2;
+        int dialSectionWidth = scaled(110);  // Label width for dial sections
+        int itemSpacing = spacing * 4;  // Spacing between items
+        auto topRowWidthFor = [attenLawWidth, dialColumns](int sectionWidth, int itemSpace)
+        {
+            return attenLawWidth + (sectionWidth + itemSpace) * dialColumns;
+        };
+        if (topRowWidthFor(dialSectionWidth, itemSpacing) > topBlock.getWidth())
+        {
+            itemSpacing = spacing * 2;
+            if (topRowWidthFor(dialSectionWidth, itemSpacing) > topBlock.getWidth())
+            {
+                const int slack = topBlock.getWidth() - attenLawWidth - itemSpacing * dialColumns;
+                dialSectionWidth = juce::jlimit(dialSize + spacing, dialSectionWidth, slack / dialColumns);
+            }
+        }
+        const int totalTopRowWidth = topRowWidthFor(dialSectionWidth, itemSpacing);
 
         // Center the group within topBlock
-        int topRowStartX = topBlock.getX() + (topBlock.getWidth() - totalTopRowWidth) / 2;
+        int topRowStartX = juce::jmax(topBlock.getX(),
+                                      topBlock.getX() + (topBlock.getWidth() - totalTopRowWidth) / 2);
         int topRowY = topBlock.getY();
 
         // Column 1: Attenuation Law - label aligned with dial labels, button centered with dials
@@ -4407,6 +4640,18 @@ private:
         commonAttenLabel.setBounds(commonCenterX - dialSectionWidth / 2, topRowY, dialSectionWidth, rowHeight);
         commonAttenDial.setBounds(commonCenterX - dialSize / 2, topRowY + rowHeight, dialSize, dialSize);
         layoutDialValueUnit(commonAttenValueLabel, commonAttenUnitLabel, commonCenterX, topRowY + rowHeight + dialSize, rowHeight);
+
+        // Column 4: Stereo Width dial (stereo-pair channels only; hidden for mono)
+        int stereoWidthCenterX = commonCenterX + dialSectionWidth / 2 + itemSpacing + dialSectionWidth / 2;
+        stereoWidthLabel.setBounds(stereoWidthCenterX - dialSectionWidth / 2, topRowY, dialSectionWidth, rowHeight);
+        stereoWidthDial.setBounds(stereoWidthCenterX - dialSize / 2, topRowY + rowHeight, dialSize, dialSize);
+        layoutDialValueUnit(stereoWidthValueLabel, stereoWidthUnitLabel, stereoWidthCenterX, topRowY + rowHeight + dialSize, rowHeight);
+
+        // Column 5: Stereo Axis dial (stereo-pair channels only; hidden for mono)
+        int stereoAxisCenterX = stereoWidthCenterX + dialSectionWidth + itemSpacing;
+        stereoAxisLabel.setBounds(stereoAxisCenterX - dialSectionWidth / 2, topRowY, dialSectionWidth, rowHeight);
+        stereoAxisDial.setBounds(stereoAxisCenterX - dialSize / 2, topRowY + rowHeight, dialSize, dialSize);
+        layoutDialValueUnit(stereoAxisValueLabel, stereoAxisUnitLabel, stereoAxisCenterX, topRowY + rowHeight + dialSize, rowHeight, scaled(40), scaled(25));
 
         // Reduced padding before sliders section
         col2.removeFromTop(spacing);
@@ -4475,10 +4720,14 @@ private:
         }
         col2.removeFromTop(spacing);
 
-        // --- Mute Macros selector ---
+        // --- Mute Macros selector + reverb-sends mute ---
+        // The reverb-sends mute shares this row: it is a routing mute like the
+        // macros, and this keeps it reachable for channel types without the
+        // Hackoustics sub-tab (where it used to live).
         row = col2.removeFromTop(rowHeight);
         muteMacrosLabel.setBounds(row.removeFromLeft(scaled(90)));
         muteMacrosSelector.setBounds(row.removeFromLeft(scaled(150)));
+        muteReverbSendsButton.setBounds(row.removeFromRight(scaled(200)));
         col2.removeFromTop(spacing);
 
         // --- Mutes section (scrollable; fill column width, max 16 per row, visually square) ---
@@ -4756,14 +5005,6 @@ private:
         int eqHeight = rowHeight + spacing + rowHeight + sliderHeight + spacing
                       + (rowHeight + sliderHeight + spacing) * 2 + rowHeight + sliderHeight;
         col2.removeFromTop(eqHeight);
-
-        // Mute Sends to Reverbs (vertically centered in remaining space)
-        int sendsTopPad = (col2.getHeight() - rowHeight) / 2;
-        col2.removeFromTop(sendsTopPad);
-        auto reverbSendsRow = col2.removeFromTop(rowHeight);
-        int buttonCenterX = reverbSendsRow.getX() + reverbSendsRow.getWidth() / 2;
-        const int sendsBtnW = scaled(200);
-        muteReverbSendsButton.setBounds(buttonCenterX - sendsBtnW / 2, reverbSendsRow.getY(), sendsBtnW, rowHeight);
 
         // Help cards — Live Source at bottom of left column, Floor Reflections at bottom of right column
         {
@@ -5155,6 +5396,11 @@ private:
             arrayAttenValueLabels[i].setAlpha(alpha);
         }
 
+        // Reverb sends mute. Lives with the other mute controls: it is a routing
+        // mute, not a floor-reflection parameter, and it must stay reachable for
+        // channel types that hide the Hackoustics sub-tab.
+        muteReverbSendsButton.setVisible(v);
+
         // Sidelines controls
         sidelinesActiveButton.setVisible(v);
         sidelinesFringeLabel.setVisible(v);
@@ -5250,7 +5496,7 @@ private:
         currentChannel = channel;
 
         auto getParam = [this](const juce::Identifier& id) -> juce::var {
-            return parameters.getInputParam(currentChannel - 1, id.toString());
+            return parameters.getInputParam(channelSlot(), id.toString());
         };
 
         auto getFloatParam = [&getParam](const juce::Identifier& id, float defaultVal = 0.0f) -> float {
@@ -5294,13 +5540,32 @@ private:
         minimalLatencyButton.setToggleState(minLatency, juce::dontSendNotification);
         minimalLatencyButton.setButtonText(minLatency ? LOC("inputs.toggles.minimalLatency") : LOC("inputs.toggles.acousticPrecedence"));
 
+        // Stereo width and axis offset (stereo-pair channels only; the
+        // mono/stereo split is config-level — System Config,
+        // stereoInputChannels). The fallbacks have to be the real defaults: a
+        // channel that has never been stamped would otherwise load as whatever
+        // literal is written here.
+        float widthMetres = getFloatParam(WFSParameterIDs::inputStereoWidth,
+                                          WFSParameterDefaults::inputStereoWidthDefault);
+        widthMetres = juce::jlimit(WFSParameterDefaults::inputStereoWidthMin,
+                                   WFSParameterDefaults::inputStereoWidthMax, widthMetres);
+        stereoWidthDial.setValue(stereoWidthDialValue(widthMetres));
+        stereoWidthValueLabel.setText(juce::String(widthMetres, 2), juce::dontSendNotification);
+
+        int axisOffsetDeg = getIntParam(WFSParameterIDs::inputStereoAxisOffset,
+                                        WFSParameterDefaults::inputStereoAxisOffsetDefault);
+        axisOffsetDeg = juce::jlimit(WFSParameterDefaults::inputStereoAxisOffsetMin,
+                                     WFSParameterDefaults::inputStereoAxisOffsetMax, axisOffsetDeg);
+        stereoAxisDial.setAngle(stereoAxisDialAngle(axisOffsetDeg));
+        stereoAxisValueLabel.setText(juce::String(axisOffsetDeg), juce::dontSendNotification);
+
         // ==================== POSITION TAB ====================
         // Update coordinate mode selector and position editors (handles coordinate conversion)
         updatePositionLabelsAndValues();
 
         // ADM-OSC mapping selector
         {
-            auto posTree = parameters.getValueTreeState().getInputPositionSection(currentChannel - 1);
+            auto posTree = parameters.getValueTreeState().getInputPositionSection(channelSlot());
             int mapping = (int)posTree.getProperty(WFSParameterIDs::inputAdmMapping, -1);
             admMappingSelector.setSelectedId(mapping + 2, juce::dontSendNotification);
         }
@@ -5388,7 +5653,7 @@ private:
         attenuationLawButton.setToggleState(attenLaw, juce::dontSendNotification);
         attenuationLawButton.setButtonText(attenLaw ? "1/d" : LOC("inputs.toggles.attenuationLawLog"));
         // Update dial visibility based on attenuation law (Log shows dB/m, 1/d shows ratio)
-        bool showInputParams = subTabBar.getCurrentTabIndex() == 0;
+        bool showInputParams = isCurrentSubTab (InputSubTab::Params);
         distanceAttenLabel.setVisible(!attenLaw && showInputParams);
         distanceAttenDial.setVisible(!attenLaw && showInputParams);
         distanceAttenValueLabel.setVisible(!attenLaw && showInputParams);
@@ -5824,11 +6089,11 @@ private:
         sidelinesFringeValueLabel.setText(juce::String(sidelinesFringe, 2) + " m", juce::dontSendNotification);
 
         // Update visualisation component's selected input
-        visualisationComponent.setSelectedInput(currentChannel - 1);
+        visualisationComponent.setSelectedInput(channelSlot());
 
         // Update gradient map editor with current channel's data
         {
-            auto gmTree = parameters.getValueTreeState().getInputGradientMapsSection(currentChannel - 1);
+            auto gmTree = parameters.getValueTreeState().getInputGradientMapsSection(channelSlot());
             gradientMapEditor.setGradientMapsTree(gmTree);
 
             int stShape = static_cast<int>(parameters.getConfigParam("StageShape"));
@@ -5845,7 +6110,7 @@ private:
             // Pass input position for marker display
             float posX = getFloatParam(WFSParameterIDs::inputPositionX, 0.0f);
             float posY = getFloatParam(WFSParameterIDs::inputPositionY, 0.0f);
-            gradientMapEditor.setInputPosition(posX, posY, currentChannel - 1);
+            gradientMapEditor.setInputPosition(posX, posY, channelSlot());
         }
 
         isLoadingParameters = false;
@@ -5853,8 +6118,9 @@ private:
         updateSoloButtonState();
         updateSoloModeButtonText();
         updateSamplerButtonState();
-        updateSamplerSubTab();
-        samplerSubTab.setCurrentChannel(currentChannel - 1);
+        updateStereoControls();
+        updateSubTabSet();
+        samplerSubTab.setCurrentChannel(channelSlot());
         updateFeatureWarnings();  // refresh for the newly selected input (toggle states + off-floor)
     }
 
@@ -5870,15 +6136,15 @@ private:
     {
         // Revert to stored value and release focus
         if (&editor == &nameEditor)
-            editor.setText(parameters.getInputParam(currentChannel - 1, "inputName").toString(), false);
+            editor.setText(parameters.getInputParam(channelSlot(), "inputName").toString(), false);
         else if (&editor == &posXEditor || &editor == &posYEditor || &editor == &posZEditor)
             updatePositionLabelsAndValues();  // Revert all position editors to stored values
         else if (&editor == &offsetXEditor)
-            editor.setText(juce::String((float)parameters.getInputParam(currentChannel - 1, "inputOffsetX"), 2), false);
+            editor.setText(juce::String((float)parameters.getInputParam(channelSlot(), "inputOffsetX"), 2), false);
         else if (&editor == &offsetYEditor)
-            editor.setText(juce::String((float)parameters.getInputParam(currentChannel - 1, "inputOffsetY"), 2), false);
+            editor.setText(juce::String((float)parameters.getInputParam(channelSlot(), "inputOffsetY"), 2), false);
         else if (&editor == &offsetZEditor)
-            editor.setText(juce::String((float)parameters.getInputParam(currentChannel - 1, "inputOffsetZ"), 2), false);
+            editor.setText(juce::String((float)parameters.getInputParam(channelSlot(), "inputOffsetZ"), 2), false);
         else if (&editor == &otomoDestXEditor || &editor == &otomoDestYEditor || &editor == &otomoDestZEditor)
             updateOtomoDestinationEditors();  // Revert all destination editors to stored values
 
@@ -5904,12 +6170,12 @@ private:
             float v3 = posZEditor.getText().getFloatValue();
 
             // Get coordinate mode and convert to Cartesian
-            int mode = static_cast<int>(parameters.getInputParam(currentChannel - 1, "inputCoordinateMode"));
+            int mode = static_cast<int>(parameters.getInputParam(channelSlot(), "inputCoordinateMode"));
             auto coordMode = static_cast<WFSCoordinates::Mode>(mode);
             auto cart = WFSCoordinates::displayToCartesian(coordMode, v1, v2, v3);
 
             // Apply constraints (shared utility reads constraint flags from parameters)
-            WFSConstraints::constrainPosition (parameters.getValueTreeState(), currentChannel - 1,
+            WFSConstraints::constrainPosition (parameters.getValueTreeState(), channelSlot(),
                                                 cart.x, cart.y, cart.z);
 
             // Save Cartesian values
@@ -5929,7 +6195,7 @@ private:
             float offsetZ = offsetZEditor.getText().getFloatValue();
 
             // Apply constraints (shared utility reads position and constraint flags from parameters)
-            WFSConstraints::constrainOffset (parameters.getValueTreeState(), currentChannel - 1,
+            WFSConstraints::constrainOffset (parameters.getValueTreeState(), channelSlot(),
                                               offsetX, offsetY, offsetZ);
 
             // Update displays and save all offset values
@@ -6082,6 +6348,23 @@ private:
             commonAttenDial.setValue(percent / 100.0f);
             // Force label update (unit label is separate)
             commonAttenValueLabel.setText(juce::String(percent), juce::dontSendNotification);
+        }
+        else if (label == &stereoWidthValueLabel)
+        {
+            float metres = juce::jlimit(WFSParameterDefaults::inputStereoWidthMin,
+                                        WFSParameterDefaults::inputStereoWidthMax, value);
+            stereoWidthDial.setValue(stereoWidthDialValue(metres));
+            // Force label update (unit label is separate)
+            stereoWidthValueLabel.setText(juce::String(metres, 2), juce::dontSendNotification);
+        }
+        else if (label == &stereoAxisValueLabel)
+        {
+            int degrees = juce::jlimit(WFSParameterDefaults::inputStereoAxisOffsetMin,
+                                       WFSParameterDefaults::inputStereoAxisOffsetMax,
+                                       static_cast<int>(value));
+            stereoAxisDial.setAngle(stereoAxisDialAngle(degrees));
+            // Force label update (unit label is separate)
+            stereoAxisValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
         }
         else if (label == &directivityValueLabel)
         {
@@ -6430,6 +6713,25 @@ private:
             showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
     }
 
+    /** The identity gate's view of this tab; SafePointer throughout because the
+        dialogs are async. */
+    ChannelIdentityGate::Context makeChannelIdentityContext()
+    {
+        juce::Component::SafePointer<InputsTab> safe (this);
+        ChannelIdentityGate::Context ctx;
+        ctx.parent     = this;
+        ctx.parameters = &parameters;
+        ctx.afterStructuralChange = [safe]
+        {
+            if (safe != nullptr && safe->onStructureChanged) safe->onStructureChanged();
+        };
+        ctx.showStatus = [safe] (const juce::String& text)
+        {
+            if (safe != nullptr) safe->showStatusMessage (text);
+        };
+        return ctx;
+    }
+
     void reloadInputConfiguration()
     {
         auto& fileManager = parameters.getFileManager();
@@ -6438,37 +6740,54 @@ private:
             showStatusMessage(LOC("inputs.messages.selectFolderFirst"));
             return;
         }
-        parameters.getDirtyTracker().beginSuppression();
-        if (fileManager.loadInputConfig())
-        {
-            loadChannelParameters(currentChannel);
-            showStatusMessage(LOC("inputs.messages.configLoaded"));
 
-            // Trigger DSP recalculation via callback to MainComponent
-            if (onConfigReloaded)
-                onConfigReloaded();
-        }
-        else
-            showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
-        parameters.getDirtyTracker().endSuppressionAndClear();
+        // Ask first: an inputs config merges BY NUMBER onto whatever is live,
+        // and it carries the hardware fingerprint that says whether it was
+        // saved under this patching at all. Suppression lives inside the load.
+        ChannelIdentityGate::confirmThenLoad (makeChannelIdentityContext(), fileManager.getInputConfigFile(),
+            WFSFileManager::LoadKind::inputConfig,
+            [safe = juce::Component::SafePointer<InputsTab> (this)]
+            {
+                if (safe == nullptr) return;
+                auto& fm = safe->parameters.getFileManager();
+                safe->parameters.getDirtyTracker().beginSuppression();
+                if (fm.loadInputConfig())
+                {
+                    safe->loadChannelParameters(safe->currentChannel);
+                    safe->showStatusMessage(LOC("inputs.messages.configLoaded"));
+                    if (safe->onConfigReloaded)
+                        safe->onConfigReloaded();
+                }
+                else
+                    safe->showStatusMessage(LOC("inputs.messages.error").replace("{error}", fm.getLastError()));
+                safe->parameters.getDirtyTracker().endSuppressionAndClear();
+            });
     }
 
     void reloadInputConfigBackup()
     {
         auto& fileManager = parameters.getFileManager();
-        parameters.getDirtyTracker().beginSuppression();
-        if (fileManager.loadInputConfigBackup(0))
-        {
-            loadChannelParameters(currentChannel);
-            showStatusMessage(LOC("inputs.messages.backupLoaded"));
+        const auto backups = fileManager.getBackups("inputs");
+        const juce::File backupFile = backups.isEmpty() ? juce::File() : backups[0];
 
-            // Trigger DSP recalculation via callback to MainComponent
-            if (onConfigReloaded)
-                onConfigReloaded();
-        }
-        else
-            showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
-        parameters.getDirtyTracker().endSuppressionAndClear();
+        ChannelIdentityGate::confirmThenLoad (makeChannelIdentityContext(), backupFile,
+            WFSFileManager::LoadKind::inputConfig,
+            [safe = juce::Component::SafePointer<InputsTab> (this)]
+            {
+                if (safe == nullptr) return;
+                auto& fm = safe->parameters.getFileManager();
+                safe->parameters.getDirtyTracker().beginSuppression();
+                if (fm.loadInputConfigBackup(0))
+                {
+                    safe->loadChannelParameters(safe->currentChannel);
+                    safe->showStatusMessage(LOC("inputs.messages.backupLoaded"));
+                    if (safe->onConfigReloaded)
+                        safe->onConfigReloaded();
+                }
+                else
+                    safe->showStatusMessage(LOC("inputs.messages.error").replace("{error}", fm.getLastError()));
+                safe->parameters.getDirtyTracker().endSuppressionAndClear();
+            });
     }
 
     void importInputConfiguration()
@@ -6484,20 +6803,29 @@ private:
             if (result.existsAsFile())
             {
                 AppSettings::setLastFolder("lastXmlFolder", result.getParentDirectory());
-                parameters.getDirtyTracker().beginSuppression();
-                auto& fileManager = parameters.getFileManager();
-                if (fileManager.importInputConfig(result))
-                {
-                    loadChannelParameters(currentChannel);
-                    showStatusMessage(LOC("inputs.messages.configImported"));
 
-                    // Trigger DSP recalculation via callback to MainComponent
-                    if (onConfigReloaded)
-                        onConfigReloaded();
-                }
-                else
-                    showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
-                parameters.getDirtyTracker().endSuppressionAndClear();
+                // Named local, not an init-capture: inside a lambda nested in the
+                // chooser callback MSVC binds `this` in an init-capture to the
+                // enclosing closure, not to the tab.
+                juce::Component::SafePointer<InputsTab> safe (this);
+                ChannelIdentityGate::confirmThenLoad (makeChannelIdentityContext(), result,
+                    WFSFileManager::LoadKind::inputConfig,
+                    [safe, result]
+                    {
+                        if (safe == nullptr) return;
+                        auto& fm = safe->parameters.getFileManager();
+                        safe->parameters.getDirtyTracker().beginSuppression();
+                        if (fm.importInputConfig(result))
+                        {
+                            safe->loadChannelParameters(safe->currentChannel);
+                            safe->showStatusMessage(LOC("inputs.messages.configImported"));
+                            if (safe->onConfigReloaded)
+                                safe->onConfigReloaded();
+                        }
+                        else
+                            safe->showStatusMessage(LOC("inputs.messages.error").replace("{error}", fm.getLastError()));
+                        safe->parameters.getDirtyTracker().endSuppressionAndClear();
+                    });
             }
         });
     }
@@ -6647,8 +6975,18 @@ private:
         // disk instead of using the snapshotScopes cache -- the safer of the two,
         // since the cache goes stale if the file is edited outside this tab, and
         // one extra XML parse on an explicit long-press costs nothing.
-        if (onSnapshotRecallRequested)
-            onSnapshotRecallRequested (selectedSnapshot);
+        //
+        // This is the MANUAL path, so it may ask: a snapshot whose hardware
+        // fingerprint disagrees with the live patch was stored under a
+        // different configuration (or the rig was re-cabled), and the operator
+        // gets to fix the numbers, proceed on purpose, or stop. Cue-driven
+        // recalls reach onSnapshotRecallRequested directly and never block.
+        ChannelIdentityGate::confirmThenRecall (makeChannelIdentityContext(), selectedSnapshot,
+            [safe = juce::Component::SafePointer<InputsTab> (this), selectedSnapshot]
+            {
+                if (safe != nullptr && safe->onSnapshotRecallRequested)
+                    safe->onSnapshotRecallRequested (selectedSnapshot);
+            });
     }
 
     void reloadSnapshotWithoutScope()
@@ -6660,26 +6998,42 @@ private:
             return;
         }
 
-        auto& fileManager = parameters.getFileManager();
+        ChannelIdentityGate::confirmThenRecall (makeChannelIdentityContext(), selectedSnapshot,
+            [safe = juce::Component::SafePointer<InputsTab> (this), selectedSnapshot]
+            {
+                if (safe == nullptr) return;
+                auto& fm = safe->parameters.getFileManager();
 
-        // Use a default scope (all included) to bypass any scope filtering
-        WFSFileManager::ExtendedSnapshotScope noScope;
+                // Use a default scope (all included) to bypass any scope filtering
+                WFSFileManager::ExtendedSnapshotScope noScope;
 
-        parameters.getDirtyTracker().beginSuppression();
+                safe->parameters.getDirtyTracker().beginSuppression();
 
-        if (fileManager.loadInputSnapshotWithExtendedScope(selectedSnapshot, noScope))
-        {
-            loadChannelParameters(currentChannel);
-            showStatusMessage(LOC("inputs.messages.snapshotLoadedWithoutScope").replace("{name}", selectedSnapshot));
-            if (onConfigReloaded)
-                onConfigReloaded();
-        }
-        else
-        {
-            showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
-        }
+                if (fm.loadInputSnapshotWithExtendedScope(selectedSnapshot, noScope))
+                {
+                    safe->loadChannelParameters(safe->currentChannel);
+                    safe->showStatusMessage(LOC("inputs.messages.snapshotLoadedWithoutScope").replace("{name}", selectedSnapshot));
 
-        parameters.getDirtyTracker().endSuppressionAndClear();
+                    // Entries with no live channel used to vanish silently.
+                    const auto& skipped = fm.getLastRecallSkippedNumbers();
+                    if (! skipped.empty())
+                    {
+                        juce::StringArray nums;
+                        for (int n : skipped) nums.add ("#" + juce::String (n));
+                        safe->showStatusMessage(LOC("inputs.messages.snapshotEntriesSkipped")
+                                                    .replace("{name}", selectedSnapshot)
+                                                    .replace("{n}", juce::String((int) skipped.size()))
+                                                    .replace("{numbers}", nums.joinIntoString(", ")));
+                    }
+
+                    if (safe->onConfigReloaded)
+                        safe->onConfigReloaded();
+                }
+                else
+                    safe->showStatusMessage(LOC("inputs.messages.error").replace("{error}", fm.getLastError()));
+
+                safe->parameters.getDirtyTracker().endSuppressionAndClear();
+            });
     }
 
     void updateSnapshotButtonStates()
@@ -6994,7 +7348,7 @@ private:
     void updatePositionLabelsAndValues()
     {
         // Get current coordinate mode
-        int mode = static_cast<int>(parameters.getInputParam(currentChannel - 1, "inputCoordinateMode"));
+        int mode = static_cast<int>(parameters.getInputParam(channelSlot(), "inputCoordinateMode"));
         auto coordMode = static_cast<WFSCoordinates::Mode>(mode);
 
         // Update selector to match (in case called from loadChannelParameters)
@@ -7025,9 +7379,9 @@ private:
         helpTextMap[&offsetZEditor] = LOC("inputs.help.offset3").replace("{name}", n3).replace("{unit}", unit3);
 
         // Get Cartesian values from storage
-        float x = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionX"));
-        float y = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionY"));
-        float z = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionZ"));
+        float x = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionX"));
+        float y = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionY"));
+        float z = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionZ"));
 
         // Convert to display coordinates
         float v1, v2, v3;
@@ -7094,9 +7448,9 @@ private:
         // Load values based on coordinate mode
         if (mode == 0)  // Cartesian
         {
-            v1 = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoX"));
-            v2 = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoY"));
-            v3 = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoZ"));
+            v1 = static_cast<float>(parameters.getInputParam(channelSlot(), "inputOtomoX"));
+            v2 = static_cast<float>(parameters.getInputParam(channelSlot(), "inputOtomoY"));
+            v3 = static_cast<float>(parameters.getInputParam(channelSlot(), "inputOtomoZ"));
 
             otomoDestXEditor.setText(juce::String(v1, 2), juce::dontSendNotification);
             otomoDestYEditor.setText(juce::String(v2, 2), juce::dontSendNotification);
@@ -7104,9 +7458,9 @@ private:
         }
         else if (mode == 1)  // Cylindrical
         {
-            v1 = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoR"));
-            v2 = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoTheta"));
-            v3 = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoZ"));
+            v1 = static_cast<float>(parameters.getInputParam(channelSlot(), "inputOtomoR"));
+            v2 = static_cast<float>(parameters.getInputParam(channelSlot(), "inputOtomoTheta"));
+            v3 = static_cast<float>(parameters.getInputParam(channelSlot(), "inputOtomoZ"));
 
             otomoDestXEditor.setText(juce::String(v1, 2), juce::dontSendNotification);  // radius
             otomoDestYEditor.setText(juce::String(v2, 1), juce::dontSendNotification);  // theta
@@ -7114,9 +7468,9 @@ private:
         }
         else  // Spherical (mode == 2)
         {
-            v1 = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoRsph"));
-            v2 = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoTheta"));
-            v3 = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoPhi"));
+            v1 = static_cast<float>(parameters.getInputParam(channelSlot(), "inputOtomoRsph"));
+            v2 = static_cast<float>(parameters.getInputParam(channelSlot(), "inputOtomoTheta"));
+            v3 = static_cast<float>(parameters.getInputParam(channelSlot(), "inputOtomoPhi"));
 
             otomoDestXEditor.setText(juce::String(v1, 2), juce::dontSendNotification);  // radius
             otomoDestYEditor.setText(juce::String(v2, 1), juce::dontSendNotification);  // theta
@@ -7145,8 +7499,8 @@ private:
     /** Update AutomOtion curve visibility based on coordinate mode and current tab */
     void updateOtomoCurveVisibility()
     {
-        // Only show curve dial on Movements tab (index 2) when in Cartesian mode
-        bool isMovementsTab = (subTabBar.getCurrentTabIndex() == 2);
+        // Only show curve dial on the Movements sub-tab when in Cartesian mode
+        bool isMovementsTab = isCurrentSubTab (InputSubTab::Movements);
         bool isCartesian = (otomoCoordModeSelector.getSelectedId() == 1);  // 1 = Cartesian
         bool showCurve = isMovementsTab && isCartesian;
         otomoCurveLabel.setVisible(showCurve);
@@ -7232,9 +7586,9 @@ private:
         float maxDist = distanceRangeSlider.getMaxValue();
 
         // Get Cartesian values from storage
-        float x = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionX"));
-        float y = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionY"));
-        float z = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionZ"));
+        float x = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionX"));
+        float y = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionY"));
+        float z = static_cast<float>(parameters.getInputParam(channelSlot(), "inputPositionZ"));
 
         applyDistanceConstraint(x, y, z, coordMode, minDist, maxDist);
 
@@ -7288,6 +7642,8 @@ private:
         helpTextMap[&distanceAttenDial] = LOC("inputs.help.distanceAttenDial");
         helpTextMap[&distanceRatioDial] = LOC("inputs.help.distanceRatioDial");
         helpTextMap[&commonAttenDial] = LOC("inputs.help.commonAttenDial");
+        helpTextMap[&stereoWidthDial] = LOC("inputs.help.stereoWidthDial");
+        helpTextMap[&stereoAxisDial] = LOC("inputs.help.stereoAxisDial");
         helpTextMap[&directivitySlider] = LOC("inputs.help.directivitySlider");
         helpTextMap[&inputDirectivityDial] = LOC("inputs.help.inputDirectivityDial");
         helpTextMap[&tiltSlider] = LOC("inputs.help.tiltSlider");
@@ -7410,6 +7766,8 @@ private:
         oscMethodMap[&distanceAttenDial] = "/wfs/input/distanceAttenuation <ID> <value>";
         oscMethodMap[&distanceRatioDial] = "/wfs/input/distanceRatio <ID> <value>";
         oscMethodMap[&commonAttenDial] = "/wfs/input/commonAtten <ID> <value>";
+        oscMethodMap[&stereoWidthDial] = "/wfs/input/stereoWidth <ID> <value>";
+        oscMethodMap[&stereoAxisDial] = "/wfs/input/stereoAxisOffset <ID> <value>";
         oscMethodMap[&directivitySlider] = "/wfs/input/directivity <ID> <value>";
         oscMethodMap[&inputDirectivityDial] = "/wfs/input/rotation <ID> <value>";
         oscMethodMap[&tiltSlider] = "/wfs/input/tilt <ID> <value>";
@@ -7535,9 +7893,9 @@ private:
         {
             juce::MessageManager::callAsync ([this]()
             {
-                float posX = static_cast<float> (parameters.getInputParam (currentChannel - 1, "inputPositionX"));
-                float posY = static_cast<float> (parameters.getInputParam (currentChannel - 1, "inputPositionY"));
-                gradientMapEditor.setInputPosition (posX, posY, currentChannel - 1);
+                float posX = static_cast<float> (parameters.getInputParam (channelSlot(), "inputPositionX"));
+                float posY = static_cast<float> (parameters.getInputParam (channelSlot(), "inputPositionY"));
+                gradientMapEditor.setInputPosition (posX, posY, channelSlot());
             });
         }
 
@@ -7550,6 +7908,27 @@ private:
                 updateSnapshotButtonStates();
             });
             return;
+        }
+
+        // A channel's mono/stereo type changed (per-channel property, set by
+        // the structural ops from ANY source — UI, MCP, config load): the
+        // current channel's role may have changed — refresh the stereo
+        // controls and the sub-tab set.
+        if (property == WFSParameterIDs::inputChannelType)
+        {
+            // Captured before the async hop: `tree` is the <Input> node that
+            // changed, and by the time the lambda runs the slot it sits at may
+            // have moved.
+            const int changedNumber = static_cast<int> (tree.getProperty (WFSParameterIDs::id, 0));
+
+            juce::MessageManager::callAsync([this, changedNumber]()
+            {
+                updateStereoControls();
+                updateSubTabSet();
+
+                if (onChannelTypeChanged && changedNumber > 0)
+                    onChannelTypeChanged (changedNumber);
+            });
         }
 
         // Check if network target protocol/enable changed — update ADM selector dimming
@@ -7571,8 +7950,8 @@ private:
             juce::MessageManager::callAsync ([this]() { updateFeatureWarnings(); });
         }
 
-        // Check if solo states changed (stored in binaural tree)
-        if (tree == binauralTree && property == WFSParameterIDs::inputSoloStates)
+        // Check if a solo state changed (per-channel Channel.inputSolo)
+        if (property == WFSParameterIDs::inputSolo)
         {
             juce::MessageManager::callAsync([this]()
             {
@@ -7585,13 +7964,12 @@ private:
         // Check if input channel count changed (stored in IO tree)
         if (tree == ioTree && property == WFSParameterIDs::inputChannels)
         {
-            int numInputs = parameters.getNumInputChannels();
-            if (numInputs > 0)
+            if (parameters.getNumInputChannels() > 0)
             {
-                channelSelector.setNumChannels(numInputs);
-                // If current selection is beyond new limit, reset to 1
-                if (channelSelector.getSelectedChannel() > numInputs)
-                    channelSelector.setSelectedChannel(1);
+                // Rebuild the live-number tiles; the selection snaps to the
+                // nearest live number if the current one was deleted.
+                channelSelector.setChannelIds(liveChannelNumbers());
+                currentChannel = channelSelector.getSelectedChannel();
             }
         }
 
@@ -7599,7 +7977,7 @@ private:
         if (tree == ioTree && property == WFSParameterIDs::outputChannels)
         {
             // Update mute button visibility and layout if Input Parameters tab is visible (contains mutes)
-            if (subTabBar.getCurrentTabIndex() == 0)
+            if (isCurrentSubTab (InputSubTab::Params))
             {
                 setMutesVisible(true);
                 layoutInputParametersTab();
@@ -7631,7 +8009,7 @@ private:
                             juce::MessageManager::callAsync ([this]()
                             {
                                 if (currentChannel <= 0) return;
-                                int idx = currentChannel - 1;
+                                int idx = channelSlot();
 
                                 // Update position editors (with coordinate conversion)
                                 updatePositionLabelsAndValues();
@@ -7717,6 +8095,53 @@ private:
         admMappingSelector.setAlpha (alpha);
     }
 
+    /** Slot (dense child index) of the currently edited channel; -1 if the
+        number is not live. currentChannel is a permanent NUMBER — with gaps
+        in the list, number - 1 is NOT the slot. */
+    int channelSlot() const
+    {
+        return parameters.getValueTreeState().getSlotForChannelNumber (currentChannel);
+    }
+
+    /** Live channel numbers in display (slot) order, for the selector grid. */
+    std::vector<int> liveChannelNumbers() const
+    {
+        std::vector<int> ids;
+        auto& vts = parameters.getValueTreeState();
+        const int n = parameters.getNumInputChannels();
+        ids.reserve (static_cast<size_t> (n));
+        for (int slot = 0; slot < n; ++slot)
+            ids.push_back (vts.getInputChannelNumber (slot));
+        return ids;
+    }
+
+    /** True when the currently edited channel is a stereo pair (per-channel
+        inputChannelType on its <Input> node). */
+    bool currentChannelIsStereo() const
+    {
+        return parameters.getValueTreeState().isInputChannelStereo (channelSlot());
+    }
+
+    /** Stereo-dependent control state: the width and axis dials only exist for
+        stereo channels, and the sampler header button is N/A for stereo. Called
+        on channel load and when the mono/stereo split moves. */
+    void updateStereoControls()
+    {
+        const bool stereo = currentChannelIsStereo();
+        const bool soundVisible = commonAttenDial.isVisible();
+        stereoWidthLabel.setVisible(soundVisible && stereo);
+        stereoWidthDial.setVisible(soundVisible && stereo);
+        stereoWidthValueLabel.setVisible(soundVisible && stereo);
+        stereoWidthUnitLabel.setVisible(soundVisible && stereo);
+        stereoAxisLabel.setVisible(soundVisible && stereo);
+        stereoAxisDial.setVisible(soundVisible && stereo);
+        stereoAxisValueLabel.setVisible(soundVisible && stereo);
+        stereoAxisUnitLabel.setVisible(soundVisible && stereo);
+
+        samplerToggleButton.setEnabled(! stereo);
+        samplerToggleButton.setAlpha(stereo ? 0.4f : 1.0f);
+    }
+
     void saveInputParam(const juce::Identifier& paramId, const juce::var& value)
     {
         if (isLoadingParameters) return;
@@ -7728,12 +8153,12 @@ private:
         // synchronously inside it): the editing control has already updated
         // itself, and one reload per drag event floods the message queue.
         const juce::ScopedValueSetter<bool> selfWriteScope(isSelfWriting, true);
-        parameters.getClusterEdit().write(currentChannel - 1, paramId, value);
+        parameters.getClusterEdit().write(channelSlot(), paramId, value);
     }
 
     void toggleMapLock()
     {
-        auto currentVal = parameters.getInputParam(currentChannel - 1, "inputMapLocked");
+        auto currentVal = parameters.getInputParam(channelSlot(), "inputMapLocked");
         bool currentlyLocked = !currentVal.isVoid() && static_cast<int>(currentVal) != 0;
         bool newLocked = !currentlyLocked;
 
@@ -7743,7 +8168,7 @@ private:
 
     void toggleMapVisibility()
     {
-        auto currentVal = parameters.getInputParam(currentChannel - 1, "inputMapVisible");
+        auto currentVal = parameters.getInputParam(channelSlot(), "inputMapVisible");
         bool currentlyVisible = currentVal.isVoid() || static_cast<int>(currentVal) != 0;
         bool newVisible = !currentlyVisible;
 
@@ -7753,21 +8178,24 @@ private:
 
     void toggleSamplerMode()
     {
-        auto currentVal = parameters.getInputParam(currentChannel - 1, "inputSamplerActive");
+        if (currentChannelIsStereo())
+            return;   // sampler is N/A for stereo-pair channels (doc §5)
+
+        auto currentVal = parameters.getInputParam(channelSlot(), "inputSamplerActive");
         bool isActive = !currentVal.isVoid() && static_cast<int>(currentVal) != 0;
         bool newState = !isActive;
 
         saveInputParam(WFSParameterIDs::inputSamplerActive, newState ? 1 : 0);
         updateSamplerButtonState();
-        updateSamplerSubTab();
+        updateSubTabSet();
 
         if (onSamplerActiveChanged)
-            onSamplerActiveChanged (currentChannel - 1, newState);
+            onSamplerActiveChanged (channelSlot(), newState);
     }
 
     void updateSamplerButtonState()
     {
-        auto currentVal = parameters.getInputParam(currentChannel - 1, "inputSamplerActive");
+        auto currentVal = parameters.getInputParam(channelSlot(), "inputSamplerActive");
         bool isActive = !currentVal.isVoid() && static_cast<int>(currentVal) != 0;
 
         samplerToggleButton.setButtonText(isActive ? LOC("inputs.buttons.samplerOn")
@@ -7778,48 +8206,60 @@ private:
             samplerToggleButton.setBaseColour(juce::Colour());  // Default
     }
 
-    void updateSamplerSubTab()
+    /** The sub-tab set is a function of (channel type, sampler state):
+        stereo-pair channels drop Live Source & Hackoustics, Gradient Maps and
+        Sampler (handoff doc §5 rules those features out for stereo). The bar
+        is rebuilt from scratch in canonical order only when the desired set
+        actually differs, preserving the current selection when it survives
+        (falling back to Params otherwise). */
+    void updateSubTabSet()
     {
-        auto currentVal = parameters.getInputParam(currentChannel - 1, "inputSamplerActive");
-        bool isActive = !currentVal.isVoid() && static_cast<int>(currentVal) != 0;
+        const bool stereo = currentChannelIsStereo();
+        auto samplerVal = parameters.getInputParam(channelSlot(), "inputSamplerActive");
+        const bool samplerOn = ! stereo && samplerMasterEnabled
+                            && ! samplerVal.isVoid() && static_cast<int>(samplerVal) != 0;
 
-        if (isActive && samplerMasterEnabled)
-            addSamplerTab();
-        else
-            removeSamplerTab();
-    }
+        std::vector<std::pair<InputSubTab, const char*>> desired;
+        desired.push_back({ InputSubTab::Params, "inputs.tabs.inputParams" });
+        if (! stereo)
+            desired.push_back({ InputSubTab::LiveSourceHackoustics, "inputs.tabs.liveSourceHackoustics" });
+        desired.push_back({ InputSubTab::Movements, "inputs.tabs.movements" });
+        if (! stereo)
+            desired.push_back({ InputSubTab::GradientMaps, "inputs.tabs.gradientMaps" });
+        desired.push_back({ InputSubTab::Visualisation, "inputs.tabs.visualisation" });
+        if (samplerOn)
+            desired.push_back({ InputSubTab::Sampler, "inputs.tabs.sampler" });
 
-    void addSamplerTab()
-    {
-        if (samplerTabIndex >= 0) return;  // Already added
-        samplerTabIndex = subTabBar.getNumTabs();
-        subTabBar.addTab(LOC("inputs.tabs.sampler"), juce::Colour(0xFF2A2A2A), -1);
-    }
+        bool same = desired.size() == subTabIds.size();
+        for (size_t i = 0; same && i < desired.size(); ++i)
+            same = desired[i].first == subTabIds[i];
+        if (same)
+            return;
 
-    void removeSamplerTab()
-    {
-        if (samplerTabIndex < 0) return;  // Not present
+        const InputSubTab previous = getCurrentSubTabId();
+        subTabBar.clearTabs();
+        subTabIds.clear();
+        for (const auto& d : desired)
+            appendSubTab(d.first, d.second);
 
-        // If currently on the sampler tab, switch away first
-        if (subTabBar.getCurrentTabIndex() == samplerTabIndex)
-            subTabBar.setCurrentTabIndex(0);
-
-        subTabBar.removeTab(samplerTabIndex);
-        samplerTabIndex = -1;
+        const int restored = indexOfSubTab(previous);
+        subTabBar.setCurrentTabIndex(restored >= 0 ? restored : 0);
+        layoutCurrentSubTab();
+        repaint();
     }
 
     void toggleSolo()
     {
         auto& vts = parameters.getValueTreeState();
-        bool currentSoloed = vts.isInputSoloed(currentChannel - 1);
-        vts.setInputSoloed(currentChannel - 1, !currentSoloed);
+        bool currentSoloed = vts.isInputSoloed(channelSlot());
+        vts.setInputSoloed(channelSlot(), !currentSoloed);
         updateSoloButtonState();
     }
 
     void updateSoloButtonState()
     {
         auto& vts = parameters.getValueTreeState();
-        bool isSoloed = vts.isInputSoloed(currentChannel - 1);
+        bool isSoloed = vts.isInputSoloed(channelSlot());
         soloButton.setToggleState(isSoloed, juce::dontSendNotification);
 
         // Yellow in Single mode, Orange in Multi mode
@@ -7888,14 +8328,14 @@ private:
     void updateMapButtonStates()
     {
         // Lock button - show lock icon and state
-        auto lockedVal = parameters.getInputParam(currentChannel - 1, "inputMapLocked");
+        auto lockedVal = parameters.getInputParam(channelSlot(), "inputMapLocked");
         bool isLocked = !lockedVal.isVoid() && static_cast<int>(lockedVal) != 0;
         // Use Unicode lock symbols
         juce::String lockIcon = isLocked ? juce::String::fromUTF8("\xf0\x9f\x94\x92") : juce::String::fromUTF8("\xf0\x9f\x94\x93");
         mapLockButton.setButtonText(lockIcon + " " + LOC("inputs.buttons.lockOnMap"));
 
         // Visibility button
-        auto visibleVal = parameters.getInputParam(currentChannel - 1, "inputMapVisible");
+        auto visibleVal = parameters.getInputParam(channelSlot(), "inputMapVisible");
         bool isVisible = visibleVal.isVoid() || static_cast<int>(visibleVal) != 0;
         mapVisibilityButton.setButtonText(isVisible ? LOC("inputs.buttons.visibleOnMap") : LOC("inputs.buttons.hiddenOnMap"));
     }
@@ -7910,7 +8350,7 @@ private:
         // Check if current input has tracking enabled
         int globalTracking = static_cast<int>(parameters.getConfigParam("trackingEnabled"));
         int protocolEnabled = static_cast<int>(parameters.getConfigParam("trackingProtocol"));
-        int localTracking = static_cast<int>(parameters.getInputParam(currentChannel - 1, "inputTrackingActive"));
+        int localTracking = static_cast<int>(parameters.getInputParam(channelSlot(), "inputTrackingActive"));
 
         bool inputHasTracking = (globalTracking != 0) && (protocolEnabled != 0) && (localTracking != 0);
 
@@ -7927,7 +8367,7 @@ private:
 
         for (int i = 0; i < numInputs; ++i)
         {
-            if (i == currentChannel - 1)
+            if (i == channelSlot())
                 continue;  // Skip current input
 
             int cluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
@@ -7953,9 +8393,12 @@ private:
         juce::AlertWindow::showOkCancelBox(
             juce::MessageBoxIconType::WarningIcon,
             LOC("inputs.dialogs.trackingConflictTitle"),
+            // existingTrackedInput is a slot, {current} is a permanent number:
+            // numbers may have gaps and are not slot order after a reorder, so
+            // slot + 1 would name a live but unrelated channel in the sentence.
             LOC("inputs.dialogs.trackingConflictCluster")
                 .replace("{current}", juce::String(currentChannel))
-                .replace("{existing}", juce::String(existingTrackedInput + 1))
+                .replace("{existing}", juce::String(parameters.getValueTreeState().getInputChannelNumber(existingTrackedInput)))
                 .replace("{cluster}", juce::String(targetCluster)),
             LOC("inputs.dialogs.trackingConflictContinue"),
             LOC("common.cancel"),
@@ -7986,7 +8429,7 @@ private:
     void checkLocalTrackingConstraintAsync()
     {
         // Check what cluster this input belongs to
-        int inputCluster = static_cast<int>(parameters.getInputParam(currentChannel - 1, "inputCluster"));
+        int inputCluster = static_cast<int>(parameters.getInputParam(channelSlot(), "inputCluster"));
 
         if (inputCluster == 0)
         {
@@ -8014,7 +8457,7 @@ private:
 
         for (int i = 0; i < numInputs; ++i)
         {
-            if (i == currentChannel - 1)
+            if (i == channelSlot())
                 continue;  // Skip current input
 
             int cluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
@@ -8041,8 +8484,10 @@ private:
         juce::AlertWindow::showOkCancelBox(
             juce::MessageBoxIconType::WarningIcon,
             LOC("inputs.dialogs.trackingConflictTitle"),
+            // Same id-space split as above: {to} is a permanent number, so the
+            // channel being switched away from has to be named by number too.
             LOC("inputs.dialogs.trackingConflictSwitch")
-                .replace("{existing}", juce::String(existingTrackedInput + 1))
+                .replace("{existing}", juce::String(parameters.getValueTreeState().getInputChannelNumber(existingTrackedInput)))
                 .replace("{cluster}", juce::String(inputCluster))
                 .replace("{to}", juce::String(currentChannel)),
             LOC("inputs.dialogs.trackingConflictYes"),
@@ -8056,7 +8501,7 @@ private:
                     // Enable tracking on current input
                     trackingActiveButton.setButtonText(LOC("inputs.toggles.trackingOn"));
                     saveInputParam(WFSParameterIDs::inputTrackingActive, 1);
-                    showStatusMessage(LOC("inputs.messages.trackingSwitched").replace("{from}", juce::String(existingTrackedInput + 1)).replace("{to}", juce::String(currentChannel)));
+                    showStatusMessage(LOC("inputs.messages.trackingSwitched").replace("{from}", juce::String(parameters.getValueTreeState().getInputChannelNumber(existingTrackedInput))).replace("{to}", juce::String(currentChannel)));
                 }
                 else  // Cancel
                 {
@@ -8077,7 +8522,7 @@ private:
         // Through the cluster-edit engine so Shift-clicking a mute copies the
         // whole mute state to the other inputs of the cluster.
         const juce::ScopedValueSetter<bool> selfWriteScope(isSelfWriting, true);
-        parameters.getClusterEdit().write(currentChannel - 1, WFSParameterIDs::inputMutes, muteValues.joinIntoString(","));
+        parameters.getClusterEdit().write(channelSlot(), WFSParameterIDs::inputMutes, muteValues.joinIntoString(","));
     }
 
     // ==================== MEMBER VARIABLES ====================
@@ -8096,7 +8541,7 @@ private:
     AutomOtionProcessor* automOtionProcessor = nullptr;
     std::map<juce::Component*, juce::String> helpTextMap;
     std::map<juce::Component*, juce::String> oscMethodMap;
-    int currentChannel = 1;
+    int currentChannel = 1;   // permanent channel NUMBER (not a slot; the list may have gaps)
 
     int headerHeight = 60;
     int footerHeight = 90;
@@ -8119,7 +8564,10 @@ private:
     LongPressButton samplerToggleButton { 800 };
     SamplerSubTab samplerSubTab;
     bool samplerMasterEnabled = false;
-    int samplerTabIndex = -1;  // -1 = not present
+    // Logical ids of the sub-tabs currently in the bar, in bar order. This is the
+    // single source of truth for "which tab is at which position"; the bar itself
+    // only knows about positions.
+    std::vector<InputSubTab> subTabIds;
     juce::TextButton levelMeterButton;
     juce::TextButton clearSoloButton;
     juce::TextButton soloButton;
@@ -8209,6 +8657,14 @@ private:
     WfsBasicDial commonAttenDial;
     juce::Label commonAttenValueLabel;
     juce::Label commonAttenUnitLabel;
+    juce::Label stereoWidthLabel;
+    WfsBasicDial stereoWidthDial;
+    juce::Label stereoWidthValueLabel;
+    juce::Label stereoWidthUnitLabel;
+    juce::Label stereoAxisLabel;
+    WfsRotationDial stereoAxisDial;
+    juce::Label stereoAxisValueLabel;
+    juce::Label stereoAxisUnitLabel;
     juce::Label directivityLabel;
     WfsWidthExpansionSlider directivitySlider;
     juce::Label directivityValueLabel;

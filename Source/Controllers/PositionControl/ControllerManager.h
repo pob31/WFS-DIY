@@ -31,6 +31,14 @@ public:
         /** Rotate selected input orientation by deltaDeg degrees. */
         std::function<void (float deltaDeg)> rotateSelected;
 
+        /** Shift layer: widen (+) or narrow (-) the stereo image of the
+            selected stereo inputs by deltaMetres. Mono targets are ignored. */
+        std::function<void (float deltaMetres)> adjustStereoWidth;
+
+        /** Shift layer: rotate the stereo image axis of the selected stereo
+            inputs by deltaDeg degrees. Mono targets are ignored. */
+        std::function<void (float deltaDeg)> adjustStereoAxis;
+
         /** Cycle input selection: +1 = next, -1 = prev. */
         std::function<void (int delta)> cycleInput;
 
@@ -292,6 +300,12 @@ private:
 
         constexpr float dt = 0.02f;  // 50 Hz → 20ms per tick
 
+        // Shift is the "stereo image" layer: while held, push/pull and twist
+        // are redirected from height / orientation to the stereo width /
+        // axis of the selected stereo inputs (XY keeps moving the source).
+        // Read realtime so the state is right even without keyboard focus.
+        const bool shiftHeld = juce::ModifierKeys::getCurrentModifiersRealtime().isShiftDown();
+
         float totalDx = 0.0f, totalDy = 0.0f, totalDz = 0.0f;
         float totalRotation = 0.0f;
 
@@ -401,15 +415,29 @@ private:
 
                 if (hasSelection)
                 {
-                    // Input selected: move + rotate
-                    if ((std::abs (totalDx) > 0.0001f || std::abs (totalDy) > 0.0001f || std::abs (totalDz) > 0.0001f)
-                        && callbacks.moveSelectedDelta)
+                    if (shiftHeld)
                     {
-                        callbacks.moveSelectedDelta (totalDx, totalDy, totalDz);
-                    }
+                        // Shift: XY still moves, Z and twist go to the stereo image
+                        if ((std::abs (totalDx) > 0.0001f || std::abs (totalDy) > 0.0001f)
+                            && callbacks.moveSelectedDelta)
+                        {
+                            callbacks.moveSelectedDelta (totalDx, totalDy, 0.0f);
+                        }
 
-                    if (std::abs (totalRotation) > 0.01f && callbacks.rotateSelected)
-                        callbacks.rotateSelected (totalRotation);
+                        dispatchStereoImage (totalDz, totalRotation);
+                    }
+                    else
+                    {
+                        // Input selected: move + rotate
+                        if ((std::abs (totalDx) > 0.0001f || std::abs (totalDy) > 0.0001f || std::abs (totalDz) > 0.0001f)
+                            && callbacks.moveSelectedDelta)
+                        {
+                            callbacks.moveSelectedDelta (totalDx, totalDy, totalDz);
+                        }
+
+                        if (std::abs (totalRotation) > 0.01f && callbacks.rotateSelected)
+                            callbacks.rotateSelected (totalRotation);
+                    }
                 }
                 else
                 {
@@ -448,17 +476,44 @@ private:
         }
         else if (activeTab == 4)
         {
-            // Inputs tab: move the current channel
-            if ((std::abs (totalDx) > 0.0001f || std::abs (totalDy) > 0.0001f || std::abs (totalDz) > 0.0001f)
-                && callbacks.moveCurrentChannel)
+            if (shiftHeld)
             {
-                callbacks.moveCurrentChannel (totalDx, totalDy, totalDz);
-            }
+                // Shift: XY still moves, Z and twist go to the stereo image
+                if ((std::abs (totalDx) > 0.0001f || std::abs (totalDy) > 0.0001f)
+                    && callbacks.moveCurrentChannel)
+                {
+                    callbacks.moveCurrentChannel (totalDx, totalDy, 0.0f);
+                }
 
-            if (std::abs (totalRotation) > 0.01f && callbacks.rotateSelected)
-                callbacks.rotateSelected (totalRotation);
+                dispatchStereoImage (totalDz, totalRotation);
+            }
+            else
+            {
+                // Inputs tab: move the current channel
+                if ((std::abs (totalDx) > 0.0001f || std::abs (totalDy) > 0.0001f || std::abs (totalDz) > 0.0001f)
+                    && callbacks.moveCurrentChannel)
+                {
+                    callbacks.moveCurrentChannel (totalDx, totalDy, totalDz);
+                }
+
+                if (std::abs (totalRotation) > 0.01f && callbacks.rotateSelected)
+                    callbacks.rotateSelected (totalRotation);
+            }
         }
         // Other tabs (0-3): no movement
+    }
+
+    /** Shift layer dispatch shared by the Map and Inputs tabs. The moveZ
+        mapping is inverted so that lifting the puck is +Z; the width takes
+        the opposite sign so that pushing down spreads the pair and pulling
+        up narrows it. */
+    void dispatchStereoImage (float totalDz, float totalRotation)
+    {
+        if (std::abs (totalDz) > 0.0001f && callbacks.adjustStereoWidth)
+            callbacks.adjustStereoWidth (-totalDz);
+
+        if (std::abs (totalRotation) > 0.01f && callbacks.adjustStereoAxis)
+            callbacks.adjustStereoAxis (totalRotation);
     }
 
     //==========================================================================

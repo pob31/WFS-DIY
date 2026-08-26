@@ -6,30 +6,44 @@
 #include "../../spatcore/dsp/NumericGuards.h"
 #include "../Parameters/WFSConstraints.h"
 #include "../WFSLogger.h"
+#include "../Parameters/VarCoercion.h"
+#include "OSCParameterBounds.h"
 #include <thread>
 #include <chrono>
 
 namespace WFSNetwork
 {
 
-// Helper: convert juce::var to float, handling both int and double types.
-// XML loading may store numeric values as int (e.g. "3" -> var(int)),
-// so var::isDouble() returns false even for valid numeric values.
-static float varToFloat (const juce::var& v, float defaultVal = 0.0f)
-{
-    if (v.isVoid()) return defaultVal;
-    return static_cast<float> (static_cast<double> (v));
-}
+// These were local to this file until the same trap turned up in six more
+// places (the reverb array-mute macros, remote waypoint capture, the OSCQuery
+// type tags). They now live in Source/Parameters/VarCoercion.h. Thin forwarders
+// rather than aliases, so this file's existing call sites are unchanged and the
+// default arguments survive (a function POINTER cannot carry them).
+static float varToFloat (const juce::var& v, float defaultVal = 0.0f) { return WFSVar::toFloat (v, defaultVal); }
+static int   varToInt   (const juce::var& v, int   defaultVal = 0)    { return WFSVar::toInt   (v, defaultVal); }
 
-// Helper: convert juce::var to int, tolerant of the var's underlying type.
-// ValueTree::fromXml loads every property as a STRING var, so guarding reads
-// with isInt() silently yields the fallback for freshly loaded projects —
-// cluster ids, reference modes and constraint flags must convert, not
-// type-check. (This exact pattern made tablet cluster drags no-op after load.)
-static int varToInt (const juce::var& v, int defaultVal = 0)
+// clusterInputOrder is slot-keyed in the tree, but SLOTS ARE NOT AN ADDRESS on
+// the wire: every other per-channel id this app emits is the permanent channel
+// number, /cluster/trackedInput in these very loops included. Shipping raw slots
+// meant a client matching this list against the /remoteInput/* ids it already
+// holds found nothing, and one that did not notice would draw the wrong channels
+// after any reorder. Nothing consumes it today, which is why it was free to be
+// wrong -- and why it is worth fixing before something starts to.
+static juce::String clusterOrderAsChannelNumbers (WFSValueTreeState& state, const juce::String& slotCsv)
 {
-    if (v.isVoid()) return defaultVal;
-    return static_cast<int> (v);
+    if (slotCsv.isEmpty())
+        return {};
+
+    juce::StringArray tokens;
+    tokens.addTokens (slotCsv, ",", "");
+    juce::StringArray numbers;
+    for (const auto& tok : tokens)
+    {
+        const int number = state.getInputChannelNumber (tok.trim().getIntValue());
+        if (number > 0)                      // 0 == no such slot; never emit it
+            numbers.add (juce::String (number));
+    }
+    return numbers.joinIntoString (",");
 }
 
 //==============================================================================
@@ -889,7 +903,8 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
     if (property == WFSParameterIDs::clusterInputOrder)
     {
         int clusterId = static_cast<int>(tree.getProperty(WFSParameterIDs::id));
-        juce::String order = tree.getProperty(property).toString();
+        juce::String order = clusterOrderAsChannelNumbers (
+            state, tree.getProperty(property).toString());
 
         juce::OSCMessage msg("/cluster/inputOrder");
         msg.addInt32(clusterId);
@@ -1101,8 +1116,13 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
             // Standard OSC protocol
             std::optional<juce::OSCMessage> msg;
 
-            // Check for numeric values (both int and double)
-            bool isNumeric = value.isDouble() || value.isInt() || value.isInt64();
+            // Numeric INCLUDING a numeric string. Snapshot recall writes the
+            // snapshot's string-typed vars straight into the tree, so a strict
+            // type test made every recalled parameter fail this check and the
+            // plain-OSC branch emitted nothing at all for a recalled cue. (The
+            // Remote branch below already had a string fallback, which is why
+            // only OSC targets showed it.)
+            bool isNumeric = WFSVar::isNumeric (value);
 
             if (isInput && isNumeric)
             {
@@ -1197,8 +1217,10 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
 
         if (hasConnectedRemote)
         {
-            // Get the channel index (0-based)
-            int channelIndex = channelId - 1;
+            // channelId is the node's permanent number — resolve to the slot
+            int channelIndex = state.getSlotForChannelNumber(channelId);
+            if (channelIndex < 0)
+                return;
 
             // Read BOTH current position values from state
             juce::var posXVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionX);
@@ -1236,7 +1258,7 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
                     property == WFSParameterIDs::inputPositionY ||
                     property == WFSParameterIDs::inputPositionZ))
     {
-        int channelIndex = channelId - 1;
+        int channelIndex = state.getSlotForChannelNumber(channelId);
         sendADMOSCPosition (channelIndex);
 
         // MapTab deliberately doesn't auto-repaint on ValueTree property
@@ -1250,10 +1272,10 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
 
     // ADM-OSC transmit: gain and name
     if (isInput && property == WFSParameterIDs::inputAttenuation)
-        sendADMOSCGain (channelId - 1);
+        sendADMOSCGain (state.getSlotForChannelNumber(channelId));
 
     if (isInput && property == WFSParameterIDs::inputName)
-        sendADMOSCName (channelId - 1);
+        sendADMOSCName (state.getSlotForChannelNumber(channelId));
 
     // If inputTrackingActive changed, also send the computed fully tracked state
     if (isInput && property == WFSParameterIDs::inputTrackingActive)
@@ -1732,6 +1754,20 @@ void OSCManager::drainPendingParamUpdates()
     incomingGuard.release();
 }
 
+int OSCManager::resolveExternalInputSlot(int channelNumber)
+{
+    // Something outside this app has now named a channel by its number, so the
+    // numbering can never be re-flowed again: renumbering would silently re-point
+    // every cue, macro and control surface that already holds this number, with no
+    // message on any protocol to tell the far end its references moved.
+    // Only INBOUND resolution latches. The transmit side resolves the same way on
+    // every property echo, several hundred times a second on a busy show, so
+    // latching there would burn the latch within milliseconds of any OSC-enabled
+    // session starting — before the operator has addressed anything at all.
+    state.markChannelNumbersUserOwned("inbound network message naming an input by number");
+    return state.getSlotForChannelNumber(channelNumber);
+}
+
 void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
                                           const juce::String& senderIP,
                                           int port,
@@ -1798,7 +1834,9 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
         {
             int channelId = OSCMessageRouter::extractInt(message[0]);
             float newValue = OSCMessageRouter::extractFloat(message[1]);
-            int channelIndex = channelId - 1;
+            // channelId is a permanent channel NUMBER; the list may have gaps
+            // after deletions, so resolve through the state (never id - 1).
+            int channelIndex = resolveExternalInputSlot(channelId);
 
             if (channelIndex >= 0)
             {
@@ -1906,7 +1944,9 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
         {
             int channelId = OSCMessageRouter::extractInt(message[0]);
             float newValue = OSCMessageRouter::extractFloat(message[1]);
-            int channelIndex = channelId - 1;
+            // channelId is a permanent channel NUMBER; the list may have gaps
+            // after deletions, so resolve through the state (never id - 1).
+            int channelIndex = resolveExternalInputSlot(channelId);
 
             if (channelIndex >= 0)
             {
@@ -1988,7 +2028,8 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
         auto parsed = OSCMessageRouter::parseInputMessage(message);
         if (parsed.valid)
         {
-            int channelIndex = parsed.channelId - 1;
+            // Permanent channel number → slot (gaps possible after deletions)
+            int channelIndex = resolveExternalInputSlot(parsed.channelId);
 
             // Ramp path: parsed.rampTimeSec is only non-zero when the param is in
             // OSCMessageRouter::isInputParamRampCapable() and the caller sent a 3rd
@@ -2338,6 +2379,10 @@ void OSCManager::handleRemoteInputMessage(const juce::OSCMessage& message,
             // Channel selection from Android app - send all params back
             juce::MessageManager::callAsync([this, channelId = parsed.channelId]()
             {
+                // The tablet addressed this channel by number and the dump we send
+                // back is keyed by it, so the numbering is now externally observed.
+                state.markChannelNumbersUserOwned("Remote channel select");
+
                 setRemoteSelectedChannel(channelId);
 
                 if (onRemoteChannelSelect)
@@ -2380,8 +2425,14 @@ void OSCManager::handleRemotePositionDelta(const OSCMessageRouter::ParsedRemoteI
         WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
         state.beginUndoTransaction ("OSC Input");
 
+        // Remote sends permanent channel NUMBERS; resolve to the slot (the
+        // list may have gaps after deletions — never number - 1).
+        const int channelIndex = resolveExternalInputSlot(parsed.channelId);
+        if (channelIndex < 0)
+            return;
+
         // Check if tracking is active for this channel
-        bool trackingActive = state.getInputParameter(parsed.channelId,
+        bool trackingActive = state.getInputParameter(channelIndex,
                                                        WFSParameterIDs::inputTrackingActive);
 
         // Determine which parameter to modify
@@ -2408,7 +2459,7 @@ void OSCManager::handleRemotePositionDelta(const OSCMessageRouter::ParsedRemoteI
         }
 
         // Get current value and apply delta
-        float currentValue = static_cast<float>(state.getInputParameter(parsed.channelId, paramId));
+        float currentValue = static_cast<float>(state.getInputParameter(channelIndex, paramId));
 
         float delta = parsed.deltaValue;
         if (parsed.direction == DeltaDirection::Decrement)
@@ -2417,7 +2468,7 @@ void OSCManager::handleRemotePositionDelta(const OSCMessageRouter::ParsedRemoteI
         float newValue = currentValue + delta;
 
         // Set the new value
-        state.setInputParameter(parsed.channelId, paramId, newValue);
+        state.setInputParameter(channelIndex, paramId, newValue);
     });
 }
 
@@ -2430,8 +2481,9 @@ void OSCManager::handleRemoteParameterSet(const OSCMessageRouter::ParsedRemoteIn
         WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
         state.beginUndoTransaction ("OSC Input");
 
-        // Remote uses 1-based channel IDs, but internal API uses 0-based
-        int channelIndex = parsed.channelId - 1;
+        // Remote sends permanent channel NUMBERS; resolve to the slot (the
+        // list may have gaps after deletions — never number - 1).
+        int channelIndex = resolveExternalInputSlot(parsed.channelId);
         if (channelIndex >= 0)
         {
             juce::var valueToSet = parsed.value;
@@ -2543,18 +2595,19 @@ void OSCManager::handleRemoteParameterDelta(const OSCMessageRouter::ParsedRemote
         WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
         state.beginUndoTransaction ("OSC Input");
 
-        // Remote uses 1-based channel IDs, but internal API uses 0-based
-        int channelIndex = parsed.channelId - 1;
+        // Remote sends permanent channel NUMBERS; resolve to the slot (the
+        // list may have gaps after deletions — never number - 1).
+        int channelIndex = resolveExternalInputSlot(parsed.channelId);
         if (channelIndex >= 0)
         {
             // Get current value
+            // The STORED value, so it must convert rather than type-check: after
+            // a load it is a string var and both old guards missed, leaving
+            // currentValue at 0 so an incremental nudge JUMPED the parameter to
+            // the delta. (parsed.value below is a wire value carrying a real OSC
+            // type tag — that one is correctly type-checked.)
             juce::var currentVar = state.getInputParameter(channelIndex, parsed.paramId);
-            float currentValue = 0.0f;
-
-            if (currentVar.isDouble())
-                currentValue = static_cast<float>(static_cast<double>(currentVar));
-            else if (currentVar.isInt())
-                currentValue = static_cast<float>(static_cast<int>(currentVar));
+            float currentValue = WFSVar::toFloat (currentVar);
 
             // Calculate delta
             float delta = 0.0f;
@@ -2675,8 +2728,9 @@ void OSCManager::handleRemotePositionXY(const OSCMessageRouter::ParsedRemoteInpu
         WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
         state.beginUndoTransaction ("OSC Input");
 
-        // Remote uses 1-based channel IDs, but internal API uses 0-based
-        int channelIndex = parsed.channelId - 1;
+        // Remote sends permanent channel NUMBERS; resolve to the slot (the
+        // list may have gaps after deletions — never number - 1).
+        int channelIndex = resolveExternalInputSlot(parsed.channelId);
         if (channelIndex >= 0)
         {
             float posX = parsed.posX;
@@ -2919,7 +2973,7 @@ void OSCManager::applyPendingClusterMove()
             state.setInputParameter(firstMember, inputPositionY, newY);
 
             for (int m : members)
-                updatedPositions.emplace_back(m + 1, newX, newY);
+                updatedPositions.emplace_back(state.getInputChannelNumber(m), newX, newY);
         }
     }
     else
@@ -2937,7 +2991,7 @@ void OSCManager::applyPendingClusterMove()
                 state.setInputParameter(inputIndex, inputPositionX, newX);
                 state.setInputParameter(inputIndex, inputPositionY, newY);
 
-                updatedPositions.emplace_back(inputIndex + 1, newX, newY);
+                updatedPositions.emplace_back(state.getInputChannelNumber(inputIndex), newX, newY);
             }
         }
     }
@@ -3067,7 +3121,7 @@ void OSCManager::handleClusterScaleRotationMessage(const juce::OSCMessage& messa
                 state.setInputParameter(inputIndex, WFSParameterIDs::inputPositionX, newX);
                 state.setInputParameter(inputIndex, WFSParameterIDs::inputPositionY, newY);
 
-                updatedPositions.emplace_back(inputIndex + 1, newX, newY);
+                updatedPositions.emplace_back(state.getInputChannelNumber(inputIndex), newX, newY);
             }
         }
         else // Rotation
@@ -3095,7 +3149,7 @@ void OSCManager::handleClusterScaleRotationMessage(const juce::OSCMessage& messa
                 state.setInputParameter(inputIndex, WFSParameterIDs::inputPositionX, newX);
                 state.setInputParameter(inputIndex, WFSParameterIDs::inputPositionY, newY);
 
-                updatedPositions.emplace_back(inputIndex + 1, newX, newY);
+                updatedPositions.emplace_back(state.getInputChannelNumber(inputIndex), newX, newY);
             }
         }
 
@@ -3390,8 +3444,9 @@ void OSCManager::handleClusterLFOMessage(const juce::OSCMessage& message)
 
 std::vector<juce::OSCMessage> OSCManager::collectRemoteChannelDumpMessages(int channelId)
 {
-    // Convert 1-based channelId to 0-based index for internal API
-    int channelIndex = channelId - 1;
+    // channelId is a permanent channel NUMBER; resolve to the slot (the list
+    // may have gaps after deletions)
+    int channelIndex = state.getSlotForChannelNumber(channelId);
     if (channelIndex < 0)
         return {};
 
@@ -3419,6 +3474,8 @@ std::vector<juce::OSCMessage> OSCManager::collectRemoteChannelDumpMessages(int c
     paramValues[WFSParameterIDs::inputAttenuation] = getParam(WFSParameterIDs::inputAttenuation);
     paramValues[WFSParameterIDs::inputDelayLatency] = getParam(WFSParameterIDs::inputDelayLatency);
     paramValues[WFSParameterIDs::inputMinimalLatency] = getParam(WFSParameterIDs::inputMinimalLatency);
+    paramValues[WFSParameterIDs::inputStereoWidth] = getParam(WFSParameterIDs::inputStereoWidth);
+    paramValues[WFSParameterIDs::inputStereoAxisOffset] = getParam(WFSParameterIDs::inputStereoAxisOffset);
 
     // Position parameters
     paramValues[WFSParameterIDs::inputPositionX] = getParam(WFSParameterIDs::inputPositionX);
@@ -3555,7 +3612,8 @@ bool OSCManager::isInputFullyTracked(int channelIndex) const
 
 void OSCManager::sendInputFullyTrackedState(int channelId)
 {
-    int channelIndex = channelId - 1;
+    // channelId is the permanent channel number (wire convention)
+    int channelIndex = state.getSlotForChannelNumber(channelId);
     if (channelIndex < 0)
         return;
 
@@ -3590,7 +3648,10 @@ void OSCManager::sendAllTrackingStatesToRemote()
 
     for (int i = 0; i < numInputs; ++i)
     {
-        int channelId = i + 1;  // 1-based
+        // /remoteInput/isFullyTracked carries the permanent number, as the
+        // single-channel sendInputFullyTrackedState does; i is only the slot,
+        // and numbers have gaps and are out of slot order after a reorder.
+        int channelId = state.getInputChannelNumber(i);
         bool fullyTracked = isInputFullyTracked(i);
 
         juce::OSCMessage msg("/remoteInput/isFullyTracked");
@@ -3666,7 +3727,11 @@ void OSCManager::sendAllClusterConfigsToRemote(int targetIndex)
 
             if (inputClusterIdx == c && isInputFullyTracked(i))
             {
-                trackedInputId = i + 1;  // 1-based
+                // The tablet matches this id against the ones it received on
+                // /remoteInput/*, which are permanent numbers; i is only the
+                // slot. The 0 "none" sentinel stays unambiguous because a live
+                // slot never yields number 0.
+                trackedInputId = state.getInputChannelNumber(i);
                 break;
             }
         }
@@ -3677,7 +3742,8 @@ void OSCManager::sendAllClusterConfigsToRemote(int targetIndex)
         sendDirect(msgTracked);
 
         // Send input order
-        juce::String inputOrder = state.getClusterParameter(c, clusterInputOrder).toString();
+        juce::String inputOrder = clusterOrderAsChannelNumbers (
+            state, state.getClusterParameter(c, clusterInputOrder).toString());
         if (inputOrder.isNotEmpty())
         {
             juce::OSCMessage orderMsg("/cluster/inputOrder");
@@ -4099,6 +4165,12 @@ void OSCManager::onRemoteConnected(int targetIndex, bool /*isReconnection*/)
 {
     DBG("OSCManager: Remote target " << targetIndex << " connected");
 
+    // The state dump below hands the tablet a number-keyed snapshot it caches for
+    // the session, and the protocol has no "the channels were renumbered" message
+    // to correct it — every control on the tablet would keep writing to whatever
+    // channel used to hold that number.
+    state.markChannelNumbersUserOwned("Remote client handshake");
+
     // Any pin belongs to the previous session; the tablet re-sends it on reconnect.
     remoteStates[static_cast<size_t>(targetIndex)].pinnedVisChannel = 0;
 
@@ -4148,6 +4220,9 @@ void OSCManager::resendStateToRemoteTargets()
     // Collect and send the full state dump to all connected Remote targets, packed
     // into OSC bundles (single UDP datagram each, under MTU). Background thread
     // keeps the message thread responsive while bundles stream out.
+    // The dump opens with /remote/channelList, so the config reload that brings us
+    // here re-seeds the tablet's channel inventory along with everything else —
+    // this path must not depend on the de-spam guard in sendRemoteChannelList.
     for (int i = 0; i < MAX_TARGETS; ++i)
     {
         if (targetConfigs[static_cast<size_t>(i)].protocol == Protocol::Remote &&
@@ -4213,7 +4288,7 @@ void OSCManager::sendAllInputPositionsToRemote(int targetIndex)
     // Send data for each input channel
     for (int channelIndex = 0; channelIndex < numInputs; ++channelIndex)
     {
-        int channelId = channelIndex + 1;  // 1-based for OSC messages
+        int channelId = state.getInputChannelNumber(channelIndex);  // permanent number on the wire
 
         // Get and send input name
         juce::var nameVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputName);
@@ -4314,7 +4389,7 @@ void OSCManager::sendAllInputParametersToRemote(int targetIndex)
 
     for (int ch = 0; ch < numInputs; ++ch)
     {
-        int channelId = ch + 1;  // 1-based for OSC
+        int channelId = state.getInputChannelNumber(ch);  // permanent number on the wire
 
         for (const auto& [paramName, paramId] : remoteMap)
         {
@@ -4328,8 +4403,12 @@ void OSCManager::sendAllInputParametersToRemote(int targetIndex)
             juce::OSCMessage msg("/remoteInput/" + paramName);
             msg.addInt32(channelId);
 
-            if (value.isInt() || value.isBool())
-                msg.addInt32(static_cast<int>(value));
+            // Int-ness comes from the PARAMETER, not from the var: after a load
+            // every stored value is a string, so this flipped the OSC type tag
+            // from 'i' to 'f' for every integer parameter in the dump.
+            const auto bounds = WFSNetwork::getBounds (paramId);
+            if (bounds && bounds->isInt)
+                msg.addInt32(varToInt(value));
             else
                 msg.addFloat32(varToFloat(value));
 
@@ -4355,7 +4434,7 @@ void OSCManager::sendAllInputParametersToRemote(int targetIndex)
 
 void OSCManager::appendInputMessages(std::vector<juce::OSCMessage>& messages, int ch)
 {
-    const int channelId = ch + 1;
+    const int channelId = state.getInputChannelNumber(ch);  // permanent number on the wire
 
     // Name
     juce::var nameVar = state.getInputParameter(ch, WFSParameterIDs::inputName);
@@ -4416,8 +4495,12 @@ void OSCManager::appendInputMessages(std::vector<juce::OSCMessage>& messages, in
         juce::OSCMessage msg("/remoteInput/" + paramName);
         msg.addInt32(channelId);
 
-        if (value.isInt() || value.isBool())
-            msg.addInt32(static_cast<int>(value));
+        // Int-ness comes from the PARAMETER, not from the var: after a load
+        // every stored value is a string, so this flipped the OSC type tag
+        // from 'i' to 'f' for every integer parameter in the dump.
+        const auto bounds = WFSNetwork::getBounds (paramId);
+        if (bounds && bounds->isInt)
+            msg.addInt32(varToInt(value));
         else
             msg.addFloat32(varToFloat(value));
 
@@ -4429,15 +4512,12 @@ std::vector<juce::OSCMessage> OSCManager::collectChannelDumpMessages(const std::
 {
     std::vector<juce::OSCMessage> messages;
 
-    auto ioTree = state.getIOState();
-    int numInputs = ioTree.isValid()
-        ? static_cast<int>(ioTree.getProperty(WFSParameterIDs::inputChannels))
-        : 8;
-
     for (int channelId : channelIds)
     {
-        const int ch = channelId - 1; // channelIds are 1-based
-        if (ch < 0 || ch >= numInputs)
+        // channelIds are permanent channel numbers from the remote's resend
+        // request; resolve each to its slot (gaps possible after deletions)
+        const int ch = state.getSlotForChannelNumber(channelId);
+        if (ch < 0)
             continue;
         appendInputMessages(messages, ch);
     }
@@ -4469,6 +4549,28 @@ std::vector<juce::OSCMessage> OSCManager::collectStateDumpMessages(int /*targetI
     }
 
     messages.push_back(OSCMessageBuilder::buildConfigIntMessage("/inputs", numInputs));
+
+    // --- Channel inventory (protocol v4) ---
+    // Third message, ahead of everything per-channel: the count above says how
+    // many channels exist but not WHICH, and the per-channel messages that follow
+    // are addressed by permanent number. A tablet that enumerated 1..count would
+    // spend this dump asking for numbers that were deleted and discarding the
+    // ones numbered above the count. Sent unconditionally — a v3 tablet drops the
+    // unknown address at its catch-all.
+    {
+        auto payload = buildRemoteChannelListPayload();
+
+        // Re-seeding the de-spam cache is what keeps its invariant true: it may
+        // only ever suppress a repeat of what the remotes already hold, and this
+        // dump is what they will hold. Project load and snapshot recall reach the
+        // remotes through here alone (handleConfigReloaded never runs the count-
+        // change path), so without this write the cache would keep asserting the
+        // pre-load inventory and silently swallow the next structural edit that
+        // happened to land on that same shape.
+        lastChannelListPayload = payload;
+
+        buildRemoteChannelListMessages(messages, payload);
+    }
 
     // --- Stage config ---
     auto stageTree = state.getStageState();
@@ -4516,7 +4618,11 @@ std::vector<juce::OSCMessage> OSCManager::collectStateDumpMessages(int /*targetI
                 int inputClusterIdx = clusterVar.isVoid() ? 0 : static_cast<int>(clusterVar);
                 if (inputClusterIdx == c && isInputFullyTracked(i))
                 {
-                    trackedInputId = i + 1;
+                    // Must agree with the live path in
+                    // sendAllClusterConfigsToRemote: /cluster/trackedInput
+                    // carries the permanent number the tablet also sees on
+                    // /remoteInput/*, not the slot.
+                    trackedInputId = state.getInputChannelNumber(i);
                     break;
                 }
             }
@@ -4526,7 +4632,8 @@ std::vector<juce::OSCMessage> OSCManager::collectStateDumpMessages(int /*targetI
             msgTracked.addInt32(trackedInputId);
             messages.push_back(std::move(msgTracked));
 
-            juce::String inputOrder = state.getClusterParameter(c, clusterInputOrder).toString();
+            juce::String inputOrder = clusterOrderAsChannelNumbers (
+                state, state.getClusterParameter(c, clusterInputOrder).toString());
             if (inputOrder.isNotEmpty())
             {
                 juce::OSCMessage orderMsg("/cluster/inputOrder");
@@ -4641,7 +4748,7 @@ std::vector<juce::OSCMessage> OSCManager::collectStateDumpMessages(int /*targetI
                 {
                     float hue = std::fmod (static_cast<float> (it->second) * 0.13f, 1.0f);
                     auto colour = juce::Colour::fromHSV (hue, 0.7f, 0.9f, 1.0f);
-                    cfg.addInt32 (it->second + 1);
+                    cfg.addInt32 (state.getInputChannelNumber (it->second));  // permanent number on the wire
                     cfg.addInt32 (static_cast<int> (colour.getRed()));
                     cfg.addInt32 (static_cast<int> (colour.getGreen()));
                     cfg.addInt32 (static_cast<int> (colour.getBlue()));
@@ -4777,7 +4884,10 @@ void OSCManager::sendClusterMembersBundle(int clusterId)
         float posY = varToFloat(state.getInputParameter(i, WFSParameterIDs::inputPositionY));
 
         juce::OSCMessage msg("/remoteInput/positionXY");
-        msg.addInt32(i + 1);
+        // Same address as the single-channel sendInputPositionXYToRemote, whose
+        // caller passes a permanent number; i is only the slot, and the two
+        // coincide only while the list is dense and unreordered.
+        msg.addInt32(state.getInputChannelNumber(i));
         msg.addFloat32(posX);
         msg.addFloat32(posY);
         bundle.addElement(msg);
@@ -4865,6 +4975,72 @@ void OSCManager::buildRemoteVisConfigMessages(std::vector<juce::OSCMessage>& out
     out.push_back(std::move(arrays));
 }
 
+std::vector<int> OSCManager::buildRemoteChannelListPayload() const
+{
+    const int n = state.getNumInputChannels();
+
+    std::vector<int> payload;
+    payload.reserve(static_cast<size_t>(1 + 2 * n));
+    payload.push_back(n);
+
+    // Slot order IS display order (drag-to-reorder moves the node), and the
+    // permanent number is decoupled from the slot, so the walk must be over
+    // slots and must not sort: the array index is what tells the tablet where
+    // to draw the channel.
+    for (int slot = 0; slot < n; ++slot)
+    {
+        payload.push_back(state.getInputChannelNumber(slot));
+        payload.push_back(state.isInputChannelStereo(slot) ? 1 : 0);
+    }
+
+    return payload;
+}
+
+void OSCManager::buildRemoteChannelListMessages(std::vector<juce::OSCMessage>& out,
+                                                const std::vector<int>& payload)
+{
+    juce::OSCMessage list("/remote/channelList");
+    for (int v : payload)
+        list.addInt32(v);
+    out.push_back(std::move(list));
+}
+
+void OSCManager::sendRemoteChannelList()
+{
+    auto payload = buildRemoteChannelListPayload();
+
+    // De-spam. Skipping an identical payload cannot starve a tablet of the
+    // inventory, because the cache only ever suppresses a repeat of what the
+    // connected remotes already hold — every path that hands them a different one
+    // (connect dump, project load, snapshot recall) writes the cache too, in
+    // collectStateDumpMessages.
+    if (payload == lastChannelListPayload)
+        return;
+
+    lastChannelListPayload = payload;
+
+    std::vector<juce::OSCMessage> messages;
+    buildRemoteChannelListMessages(messages, payload);
+
+    // Deliberately NOT gated on the remote's reported protocol version: a v3
+    // tablet drops an unknown address at its catch-all with no side effect, so
+    // branching would leave it no better off while adding a failure mode (and a
+    // version we mis-read would then cost a v4 tablet its inventory).
+    // Sent direct rather than through the rate limiter: the inventory has to be
+    // in place before the tablet acts on the per-channel messages that a
+    // structural edit is already spraying at it.
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        if (targetConfigs[static_cast<size_t>(i)].protocol == Protocol::Remote &&
+            targetConfigs[static_cast<size_t>(i)].txEnabled &&
+            remoteStates[static_cast<size_t>(i)].phase == RemoteConnectionState::Phase::Connected)
+        {
+            for (const auto& msg : messages)
+                sendMessageDirect(i, msg);
+        }
+    }
+}
+
 void OSCManager::sendRemoteVisConfig(int numOutputs, int numReverbs, int targetIndex)
 {
     std::vector<juce::OSCMessage> messages;
@@ -4902,7 +5078,11 @@ void OSCManager::sendRemoteVisRows(int channelId,
     if (channelId < 1 || delaysMs == nullptr || levelsLinear == nullptr)
         return;
 
-    const int row = channelId - 1;
+    // channelId is the permanent number (wire); the engine matrices are
+    // slot-indexed, so resolve the row through the state.
+    const int row = state.getSlotForChannelNumber(channelId);
+    if (row < 0)
+        return;
 
     juce::OSCMessage delays("/remote/vis/delays");
     delays.addInt32(channelId);
@@ -5165,6 +5345,11 @@ void OSCManager::sendToQLab (const QLabCueSequence& sequence,
         return;
     }
 
+    // QLab writes these cues into its own workspace file, so the channel numbers
+    // in them outlive this session and this application; nothing here can reach
+    // back into that file to fix them up if the inputs were renumbered later.
+    state.markChannelNumbersUserOwned("QLab cue send");
+
     // Log the targets being used
     for (int idx : qlabTargets)
     {
@@ -5366,9 +5551,10 @@ void OSCManager::handleADMOSCMessage (const juce::OSCMessage& message)
     if (!parsed.valid)
         return;
 
-    int channelIndex = parsed.objectId - 1;  // 1-based to 0-based
-    int numInputs = state.getIntParameter (WFSParameterIDs::inputChannels);
-    if (channelIndex < 0 || channelIndex >= numInputs)
+    // ADM object ids are permanent channel numbers; resolve to the slot (the
+    // list may have gaps after deletions)
+    int channelIndex = resolveExternalInputSlot (parsed.objectId);
+    if (channelIndex < 0)
         return;
 
     // Handle gain (no mapping needed)
@@ -5541,7 +5727,7 @@ void OSCManager::sendADMOSCPosition (int channelIndex)
     float y = static_cast<float> (state.getInputParameter (channelIndex, WFSParameterIDs::inputPositionY));
     float z = static_cast<float> (state.getInputParameter (channelIndex, WFSParameterIDs::inputPositionZ));
 
-    int objId = channelIndex + 1;
+    int objId = state.getInputChannelNumber (channelIndex);  // permanent number on the wire
     juce::String oscAddress;
     juce::OSCMessage msg ("/placeholder");
 
@@ -5659,7 +5845,7 @@ void OSCManager::sendADMOSCGain (int channelIndex)
     float gainLinear = (dB <= -92.0f) ? 0.0f : std::pow (10.0f, dB / 20.0f);
     gainLinear = juce::jlimit (0.0f, 1.0f, gainLinear);
 
-    int objId = channelIndex + 1;
+    int objId = state.getInputChannelNumber (channelIndex);  // permanent number on the wire
     juce::OSCMessage msg ("/adm/obj/" + juce::String (objId) + "/gain");
     msg.addFloat32 (gainLinear);
 
@@ -5683,7 +5869,7 @@ void OSCManager::sendADMOSCName (int channelIndex)
     juce::var nameVar = state.getInputParameter (channelIndex, WFSParameterIDs::inputName);
     juce::String name = nameVar.toString();
 
-    int objId = channelIndex + 1;
+    int objId = state.getInputChannelNumber (channelIndex);  // permanent number on the wire
     juce::OSCMessage msg ("/adm/obj/" + juce::String (objId) + "/name");
     msg.addString (name);
 
@@ -5743,7 +5929,7 @@ void OSCManager::sendRemotePadConfig (bool enabled, int gridCols, int gridRows,
                 int inputChannel = it->second;
                 float hue = std::fmod (static_cast<float> (inputChannel) * 0.13f, 1.0f);
                 auto colour = juce::Colour::fromHSV (hue, 0.7f, 0.9f, 1.0f);
-                msg.addInt32 (inputChannel + 1);  // 1-based for display
+                msg.addInt32 (state.getInputChannelNumber (inputChannel));  // permanent number on the wire
                 msg.addInt32 (static_cast<int> (colour.getRed()));
                 msg.addInt32 (static_cast<int> (colour.getGreen()));
                 msg.addInt32 (static_cast<int> (colour.getBlue()));

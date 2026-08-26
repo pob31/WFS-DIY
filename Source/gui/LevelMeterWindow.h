@@ -441,7 +441,8 @@ public:
             inputMetersHolder.addAndMakeVisible(meter);
 
             auto* label = inputLabels.add(new juce::Label());
-            label->setText(juce::String(i + 1), juce::dontSendNotification);
+            // Meter rows are slots; the label shows the PERMANENT number
+            label->setText(juce::String(valueTreeState.getInputChannelNumber(i)), juce::dontSendNotification);
             label->setJustificationType(juce::Justification::centred);
             label->setFont(juce::FontOptions().withHeight(10.0f));
             inputMetersHolder.addAndMakeVisible(label);

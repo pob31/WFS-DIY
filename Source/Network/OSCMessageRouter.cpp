@@ -19,6 +19,8 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getInputAddres
         { "attenuation",      WFSParameterIDs::inputAttenuation },
         { "delayLatency",     WFSParameterIDs::inputDelayLatency },
         { "minimalLatency",   WFSParameterIDs::inputMinimalLatency },
+        { "stereoWidth",      WFSParameterIDs::inputStereoWidth },
+        { "stereoAxisOffset", WFSParameterIDs::inputStereoAxisOffset },
 
         // Position
         { "positionX",        WFSParameterIDs::inputPositionX },
@@ -251,6 +253,8 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getRemoteAddre
         { "attenuation",      WFSParameterIDs::inputAttenuation },
         { "delayLatency",     WFSParameterIDs::inputDelayLatency },
         { "minimalLatency",   WFSParameterIDs::inputMinimalLatency },
+        { "stereoWidth",      WFSParameterIDs::inputStereoWidth },
+        { "stereoAxisOffset", WFSParameterIDs::inputStereoAxisOffset },
 
         // Position
         { "positionX",        WFSParameterIDs::inputPositionX },
@@ -754,6 +758,14 @@ bool OSCMessageRouter::isInputParamRampCapable(const juce::Identifier& paramId)
         WFSParameterIDs::inputArrayAtten9,
         WFSParameterIDs::inputArrayAtten10,
         WFSParameterIDs::inputDelayLatency,
+        // The stereo image is a geometric quantity like a position, so a cue
+        // that widens or rotates a pair wants the same transition time an
+        // OSC-driven move gets. The axis ramps linearly through its own
+        // wrap, exactly as inputRotation above already does: a cue crossing
+        // ±180 sweeps the long way round rather than the short one, which is
+        // why a cue that needs the short arc should be split in two.
+        WFSParameterIDs::inputStereoWidth,
+        WFSParameterIDs::inputStereoAxisOffset,
         WFSParameterIDs::inputPositionX,
         WFSParameterIDs::inputPositionY,
         WFSParameterIDs::inputPositionZ,

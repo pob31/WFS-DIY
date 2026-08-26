@@ -8,6 +8,8 @@
   "common": {
     "ok": "OK",
     "cancel": "Cancelar",
+    "channelDescription": "#{number} «{name}» ({type})",
+    "channelDescriptionUnnamed": "#{number} ({type})",
     "apply": "Aplicar",
     "reset": "Restablecer",
     "save": "Guardar",
@@ -32,11 +34,29 @@
     "none": "Ninguno"
   },
   "systemConfig": {
+    "channelList": {
+      "edit": "Organizar...",
+      "title": "Organizar canales de entrada",
+      "status": "{mono} mono + {stereo} estéreo",
+      "dragHint": "Arrastra un canal para cambiar el orden.",
+      "dragHintFresh": "Sesión nueva: este orden se convierte en la numeración de canales y el patch se dispone a juego. Coloque ahora los canales estéreo y mono, antes de guardar o patchear nada.",
+      "dragHintInUse": "Sesión en uso: los números son permanentes. Reordenar solo cambia lo que se ve — cada canal conserva sus entradas de hardware, y los snapshots, cues y remotos siguen apuntando al mismo canal. La matriz de patch dejará de leerse como una diagonal.",
+      "fromFile": "Desde archivo...",
+      "fromFileTitle": "Tomar la lista de canales de una config guardada",
+      "fromFileHelp": "Adoptar los números o el orden de canales de una config de sistema o de entradas guardada, sin cargar nada más.",
+      "mono": "Mono",
+      "stereo": "Estéreo",
+      "deleteTitle": "Eliminar canal de entrada",
+      "deleteMessage": "¿Eliminar el canal de entrada {number}? Sus ajustes se descartan. En una sesión nueva los canales restantes se renumeran siguiendo el orden de visualización; en cuanto la sesión está en uso, su número queda retirado como hueco y los demás conservan los suyos, así que el patch, los snapshots, los cues de QLab y las asignaciones DAW siguen siendo válidos.",
+      "deleteConfirm": "Eliminar"
+    },
     "help": {
       "gpuPipelineDepth": "Profundidad del pipeline GPU en bloques de audio. Añade depth x búfer/frecuencia de muestreo de latencia constante (pre-restada de los retardos WFS) y absorbe pausas de la GPU de la misma duración: más profundo = inmune a tirones del escritorio/IU, menos profundo = menor latencia. Se aplica en directo. Predeterminado 4.",
       "showName": "Nombre del show actual.",
       "showLocation": "Ubicación del show actual.",
-      "inputChannels": "Número de Input Channels.",
+      "inputChannels": "Número de canales de entrada mono. Aumentar añade canales después del último; reducir elimina los canales mono con los números más altos. Bloqueado mientras el DSP está en marcha.",
+      "stereoInputChannels": "Número de entradas estéreo (pares). Cada par conserva un número de canal y ocupa dos entradas de hardware (L y R) en el patch. Aumentar añade después del último canal; reducir elimina los estéreo con los números más altos. Bloqueado mientras el DSP está en marcha.",
+      "editChannels": "Organizar los canales de entrada: arrastra para intercalar mono y estéreo en cualquier orden, o elimina un canal concreto. En una sesión nueva los números siguen el orden de visualización; se vuelven permanentes en cuanto la sesión está en uso — un proyecto cargado, la pestaña Inputs o Map abierta, la ventana de patch abierta, un snapshot guardado o un control externo conectado. A partir de ahí un canal conserva su número allá donde lo arrastres y un número eliminado queda retirado como hueco — el patch, los snapshots, los cues de QLab y las asignaciones del plug-in DAW nunca se rompen. Bloqueado mientras el DSP está en marcha.",
       "outputChannels": "Número de Output Channels.",
       "reverbChannels": "Número de Reverb Channels.",
       "audioPatch": "Abre la ventana de interfaz de audio y enrutamiento.",
@@ -85,7 +105,7 @@
       "exportSystem": "Exporta la configuración del sistema a un archivo (con explorador de archivos).",
       "language": "Seleccione el idioma de la interfaz de usuario. Los cambios tienen efecto completo después de reiniciar la aplicación.",
       "dialsAndButtons": "Seleccionar el controlador hardware para diales y botones: Stream Deck+.",
-      "positionControl": "Seleccionar el controlador hardware para el control de posición: Space Mouse, Joystick o gamepad.",
+      "positionControl": "Seleccionar el controlador hardware para el control de posición: Space Mouse, Joystick o gamepad. Con un Space Mouse, mantener Shift en una entrada estéreo convierte el giro en el eje estéreo y empujar/tirar en la anchura estéreo.",
       "sampler": "Activar o desactivar la función Sampler para los canales de entrada. Seleccionar el controlador: Lightpad o Mando.",
       "lightpadSetup": "Mostrar los Roli Lightpads conectados y permitir dividirlos en 4 pads más pequeños.",
       "remoteSetup": "Seleccionar el número de pads en la pestaña XY Pads del Remote.",
@@ -128,7 +148,44 @@
     "dialogs": {
       "reduceInputChannels": {
         "title": "¿Reducir Input Channels?",
-        "message": "Reducir de {current} a {new} canales de entrada eliminará la configuración de los canales {start} a {end}.\n\nEsta acción no se puede deshacer."
+        "messageList": "Se eliminarán los últimos canales de ese tipo en el orden de visualización, con sus ajustes:\n\n{rows}\n\nUna vez la sesión está en uso, sus números se retiran y los demás canales conservan los suyos, para que el patch, los snapshots y los cues sigan siendo válidos.\n\nEsto no se puede deshacer y borra el historial de deshacer de todas las pestañas.",
+        "row": "  {channel}"
+      },
+      "channelIdentity": {
+        "title": "La lista de canales difiere del archivo",
+        "intro": "{file} describe una lista de canales distinta de esta sesión.",
+        "relabelOffer": "La disposición coincide posición por posición — los mismos canales mono y estéreo en los mismos lugares — pero los números difieren.\n\nTomar los números del archivo: cada canal conserva su lugar, sus ajustes y sus entradas de hardware, y recibe el número del archivo para esa posición:",
+        "relabelOfferHw": "Por sus entradas de hardware, estos canales parecen ser los mismos con otros números.\n\nTomar los números del archivo: cada canal conserva su lugar, sus ajustes y sus entradas de hardware; solo cambia su número, para que los snapshots, cues y OSC que usan los números del archivo lleguen a los canales correctos:",
+        "pairLine": "  {channel} pasa a ser #{newNumber}",
+        "reorderOffer": "Los mismos canales en distinto orden.\n\nReordenar primero: los canales se colocan en el orden del archivo y conservan sus números, ajustes y entradas de hardware.",
+        "loadAnyway": "Cargar de todos modos aplica la lista del archivo por NÚMERO de canal:",
+        "patchOnly": "Misma lista de canales, pero guardada con otro patch:",
+        "lineRetyped": "  {channel} pasa a ser {newType} y conserva sus ajustes actuales",
+        "lineRemoved": "  {channel} se elimina con sus ajustes",
+        "lineAdded": "  #{number} ({type}) se crea con ajustes por defecto",
+        "lineRowsCross": "  las entradas de hardware se quedan en su posición de fila, así que cada canal movido recibe las entradas de otro",
+        "linePatch": "  {channel}: guardado en la entrada {file}, ahora en {live}",
+        "lineMore": "  ... y {n} más",
+        "noIdentity": "{file} fue guardado por una versión anterior y solo contiene un número de canales ({count}); esta sesión tiene {liveCount}. Se conserva la lista actual y el patch del archivo se aplica por posición de fila; {delta}.",
+        "noIdentityRemove": "se eliminan los {n} canales de número más alto: {channels}",
+        "noIdentityAppend": "se añaden {n} canales mono",
+        "noIdentityKeep": "no se añade ni elimina ningún canal",
+        "noIdentityShort": "{file} no contiene una lista de canales que adoptar (versión anterior).",
+        "pairMismatch": "system.xml e inputs.xml de este proyecto no coinciden en la lista de canales. system.xml decide números, tipos y patch; inputs.xml decide después ajustes, tipos y orden:",
+        "pairAdvice": "Esto ocurre cuando uno de los dos se guardó por separado. Cancele y guarde una vez la configuración completa para volver a sincronizarlos.",
+        "notUndoable": "Nada de esto se puede deshacer, y se borra el historial de deshacer de todas las pestañas.",
+        "takeNumbers": "Tomar los números del archivo",
+        "takeNumbersHw": "Tomar los números del archivo (por entrada de hardware)",
+        "rearrangeFirst": "Reordenar primero",
+        "loadAnywayButton": "Cargar de todos modos",
+        "proceed": "Continuar",
+        "cancelled": "Carga cancelada: lista de canales sin reconciliar.",
+        "alreadyMatches": "La lista de canales ya coincide con {file}.",
+        "notAConfig": "{file} no es un archivo de config de sistema o de entradas.",
+        "conflictOnly": "Las listas están en conflicto, no se puede adoptar nada con seguridad. Cargar este archivo haría lo siguiente:",
+        "fixed": "La lista de canales ahora coincide con {file}.",
+        "fixFailed": "No se pudo reconciliar la lista de canales: {error}",
+        "stillDiffers": "La lista de canales sigue difiriendo de {file} tras reconciliar; carga cancelada."
       },
       "reduceOutputChannels": {
         "title": "¿Reducir Output Channels?",
@@ -208,6 +265,8 @@
       "findMyRemoteTitle": "Encontrar mi mando",
       "findMyRemoteMessage": "Introduzca la contraseña de su mando:",
       "findMyRemotePassword": "Contraseña:",
+      "trackingConflictsHeader": "Los siguientes clústeres tienen varias entradas con seguimiento activado:",
+      "trackingConflictsCluster": "Clúster {cluster}: Entradas",
       "trackingConflictsTitle": "Conflictos de tracking detectados",
       "trackingConflictsMessage": "\nSolo se permite una entrada con tracking por cluster. Si continúa, el tracking se mantendrá solo para la primera entrada de cada cluster.",
       "trackingConflictsContinue": "Continuar"
@@ -510,6 +569,13 @@
       }
     },
     "dialogs": {
+      "snapshotIdentity": {
+        "title": "Snapshot guardado con otro patch",
+        "intro": "El snapshot «{name}» se guardó cuando estos canales estaban en otras entradas de hardware:",
+        "noFix": "No se encontró una correspondencia de hardware uno a uno, así que no se ofrece renumeración automática. Si se recableó a propósito, continúe; si no, cancele y revise la lista de canales.",
+        "proceedNote": "Continuar aplica el snapshot por número de canal tal cual. Cancelar no cambia nada.",
+        "fixNumbers": "Corregir números primero"
+      },
       "importConfig": "Importar configuración entradas",
       "exportConfig": "Exportar configuración entradas",
       "storeSnapshotTitle": "Guardar nuevo snapshot",
@@ -536,6 +602,8 @@
       "noSnapshotSelected": "Ningún snapshot seleccionado.",
       "snapshotStored": "Snapshot '{name}' guardado.",
       "snapshotLoaded": "Snapshot '{name}' cargado.",
+      "snapshotEntriesSkipped": "Snapshot «{name}» cargado; {n} entradas omitidas, no existe el canal {numbers}",
+      "snapshotPatchMismatchApplied": "Snapshot «{name}» aplicado, pero se guardó con otro patch ({n} canal(es) difieren) — revise la lista de canales",
       "snapshotLoadedWithoutScope": "Snapshot '{name}' cargado (sin alcance).",
       "snapshotUpdated": "Snapshot '{name}' actualizado.",
       "snapshotDeleted": "Snapshot '{name}' eliminado.",
@@ -587,6 +655,8 @@
       "maxSpeedDial": "Límite de velocidad máxima para el objeto.",
       "pathModeButton": "Activar el modo Trayectoria para seguir caminos de movimiento dibujados en lugar de líneas directas.",
       "heightFactorDial": "Tener en cuenta la elevación del objeto totalmente, parcialmente o nada.",
+      "stereoWidthDial": "Anchura de la imagen estéreo en metros: la distancia física entre el brazo izquierdo y el derecho del par. La posición del canal sigue siendo el centro del par. Se comporta igual en arrays rectos, curvos, circulares y laterales. 0 m colapsa el par en una fuente puntual. También la cambia un Space Mouse con Shift pulsado (empujar/tirar) o un segundo dedo con Shift en el mapa (pellizco).",
+      "stereoAxisDial": "Gira el eje estéreo, positivo en sentido antihorario visto desde arriba. 0 = automático: el par se abre perpendicular a la línea del origen a la fuente. Sirve para orientar un par situado en el centro de un montaje circular. ±180° intercambia izquierda y derecha. También lo cambia un Space Mouse con Shift pulsado (giro) o un segundo dedo con Shift en el mapa (rotación).",
       "coordModeSelector": "Modo de visualización de coordenadas: Cartesiano (X/Y/Z), Cilíndrico (radio/azimut/altura) o Esférico (radio/azimut/elevación).",
       "positionJoystick": "Arrastrar para ajustar la posición X/Y en tiempo real. Vuelve al centro al soltar.",
       "positionZSlider": "Arrastrar para ajustar la posición Z (altura) en tiempo real. Vuelve al centro al soltar.",
@@ -720,7 +790,7 @@
     },
     "map": {
       "title": "Mapa",
-      "body": "- Clic izquierdo en una entrada o cluster permite moverlo arrastrando.\n- Clic izquierdo con Mayús añade o quita entradas de la selección.\n- Clic izquierdo arrastrado dibuja un rectángulo de selección.\n- Doble clic restablece el desplazamiento de posición.\n- Clic largo sin movimiento cambia a la pestaña de la entrada seleccionada.\n- Clic fuera de cualquier entrada limpia la selección.\n- Clic derecho arrastrado desplaza la vista del mapa. Arrastre con dos dedos también.\n- La rueda del ratón hace zoom. Pellizco con dos dedos también.\n- Clic del botón central restablece la vista.\n- Las flechas mueven X/Y, RePág/AvPág la altura.\n- Un segundo dedo puede rotar la directividad y ajustar la altura.\n- En clusters, un segundo dedo puede rotar y escalar.\n- Las entradas, arrays de salida y nodos de reverberación pueden ocultarse.\n- Las entradas pueden bloquearse.\n- Los nodos de reverberación pueden moverse. Ctrl/Cmd mueve pares en simetría.\n- El radio del Live Source Tamer se muestra cuando está activado.\n- Los niveles de audio pueden mostrarse en el mapa."
+      "body": "- Clic izquierdo en una entrada o cluster permite moverlo arrastrando.\n- Clic izquierdo con Mayús añade o quita entradas de la selección.\n- Clic izquierdo arrastrado dibuja un rectángulo de selección.\n- Doble clic restablece el desplazamiento de posición.\n- Clic largo sin movimiento cambia a la pestaña de la entrada seleccionada.\n- Clic fuera de cualquier entrada limpia la selección.\n- Clic derecho arrastrado desplaza la vista del mapa. Arrastre con dos dedos también.\n- La rueda del ratón hace zoom. Pellizco con dos dedos también.\n- Clic del botón central restablece la vista.\n- Las flechas mueven X/Y, RePág/AvPág la altura.\n- Un segundo dedo puede rotar la directividad y ajustar la altura.\n- En clusters, un segundo dedo puede rotar y escalar.\n- En una entrada estéreo tocada, con Shift pulsado el segundo dedo actúa sobre la imagen estéreo: rotar cambia el eje de la imagen y pellizcar cambia la anchura.\n- Con un Space Mouse, manteniendo Shift con una entrada estéreo seleccionada, el giro cambia el eje de la imagen y empujar/tirar cambia la anchura (empujar amplía, tirar estrecha). Shift con XY sigue moviendo la entrada.\n- Las entradas, arrays de salida y nodos de reverberación pueden ocultarse.\n- Las entradas pueden bloquearse.\n- Los nodos de reverberación pueden moverse. Ctrl/Cmd mueve pares en simetría.\n- El radio del Live Source Tamer se muestra cuando está activado.\n- Los niveles de audio pueden mostrarse en el mapa."
     },
     "clusters": {
       "title": "Clusters",

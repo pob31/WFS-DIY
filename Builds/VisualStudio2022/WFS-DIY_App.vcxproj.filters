@@ -5151,6 +5151,15 @@
     <ClInclude Include="..\..\spatcore\wfs\InputBufferAlgorithm.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\spatcore\wfs\RenderSourceMap.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\spatcore\dsp\StereoDecomposer.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\DSP\StereoChannelManager.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\spatcore\wfs\OutputBufferAlgorithm.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>

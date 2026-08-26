@@ -8,6 +8,8 @@
   "common": {
     "ok": "确定",
     "cancel": "取消",
+    "channelDescription": "#{number}“{name}”({type})",
+    "channelDescriptionUnnamed": "#{number}（{type}）",
     "apply": "应用",
     "reset": "重置",
     "save": "保存",
@@ -32,11 +34,29 @@
     "none": "无"
   },
   "systemConfig": {
+    "channelList": {
+      "edit": "排列...",
+      "title": "排列输入通道",
+      "status": "单声道 {mono} + 立体声 {stereo}",
+      "dragHint": "拖动通道以更改顺序。",
+      "dragHintFresh": "新会话: 此顺序将成为通道编号，跳线也会据此排列。请在保存或跳线之前，现在就排好立体声和单声道通道。",
+      "dragHintInUse": "会话使用中: 编号已固定。重排只改变显示 — 每个通道保留其硬件输入，快照、提示和遥控仍指向同一通道。跳线矩阵将不再是一条直对角线。",
+      "fromFile": "从文件...",
+      "fromFileTitle": "从已保存的配置获取通道列表",
+      "fromFileHelp": "从已保存的系统或输入配置采用通道编号或顺序，不加载其他内容。",
+      "mono": "单声道",
+      "stereo": "立体声",
+      "deleteTitle": "移除输入通道",
+      "deleteMessage": "移除输入通道 {number}？其设置将被丢弃。在全新会话中，其余通道会按显示顺序重新编号；会话一旦开始使用，该编号即作为空缺保留，其余通道保留各自编号，因此跳线、快照、QLab提示和DAW映射仍然有效。",
+      "deleteConfirm": "移除"
+    },
     "help": {
       "gpuPipelineDepth": "以音频块为单位的 GPU 管线深度。增加 depth x 缓冲/采样率的恒定延迟（已预先从 WFS 延迟中扣除），并吸收相同长度的 GPU 停顿：越深 = 越不受桌面/界面卡顿影响，越浅 = 延迟越低。实时生效。默认 4。",
       "showName": "当前演出的名称。",
       "showLocation": "当前演出的地点。",
-      "inputChannels": "Input Channels数量。",
+      "inputChannels": "单声道输入通道数。增加时在最后一个通道之后追加；减少时从编号最大的单声道通道开始移除。DSP运行时锁定。",
+      "stereoInputChannels": "立体声对输入的数量。每对保留一个通道编号，并在跳线中占用两个硬件输入（L和R）。增加时在最后一个通道之后追加；减少时从编号最大的立体声通道开始移除。DSP运行时锁定。",
+      "editChannels": "排列输入通道：拖动可以任意顺序交错单声道与立体声通道，或移除某个通道。在全新会话中，编号跟随显示顺序；会话一旦开始使用，编号即固定为永久 — 载入工程、打开 Inputs 或 Map 标签页、打开跳线窗口、保存快照，或连接外部控制。此后通道无论拖到哪里都保留其编号，被移除的编号作为空缺保留，因此跳线、快照、QLab提示和DAW插件映射永不失效。DSP运行时锁定。",
       "outputChannels": "Output Channels数量。",
       "reverbChannels": "Reverb Channels数量。",
       "audioPatch": "打开音频接口和路由窗口。",
@@ -85,7 +105,7 @@
       "exportSystem": "将系统配置导出到文件 (使用文件浏览器)。",
       "language": "选择用户界面语言。重启应用程序后更改将完全生效。",
       "dialsAndButtons": "为旋钮和按钮选择硬件控制器: Stream Deck+。",
-      "positionControl": "为位置控制选择硬件控制器: Space Mouse、操纵杆或游戏手柄。",
+      "positionControl": "为位置控制选择硬件控制器: Space Mouse、操纵杆或游戏手柄。 使用Space Mouse时，在立体声输入上按住Shift，扭转变为立体声轴，按压/上提变为立体声宽度。",
       "sampler": "启用或禁用输入通道的采样器功能。选择控制器: Lightpad 或遥控器。",
       "lightpadSetup": "显示已连接的Roli Lightpad并允许将其分成4个较小的触控板。",
       "remoteSetup": "选择Remote XY Pads选项卡中的触控板数量。",
@@ -128,7 +148,44 @@
     "dialogs": {
       "reduceInputChannels": {
         "title": "减少Input Channels?",
-        "message": "从 {current} 减少到 {new} 个输入通道将删除通道 {start} 到 {end} 的设置。\n\n此操作无法撤销。"
+        "messageList": "显示顺序中该类型的最后几个通道将连同其设置一起被移除:\n\n{rows}\n\n会话使用后，它们的编号将被退役，其余通道保留各自编号，因此跳线、快照和提示仍然有效。\n\n此操作无法撤销，并会清除所有选项卡的撤销历史。",
+        "row": "  {channel}"
+      },
+      "channelIdentity": {
+        "title": "通道列表与文件不同",
+        "intro": "{file} 描述的通道列表与此会话不同。",
+        "relabelOffer": "排列逐位置一致 — 相同的单声道和立体声通道在相同位置 — 但通道编号不同。\n\n采用文件的编号: 每个通道保留其位置、设置和硬件输入，并改为文件中该位置的编号:",
+        "relabelOfferHw": "按硬件输入匹配，这些通道似乎是同一些通道但编号不同。\n\n采用文件的编号: 每个通道保留其位置、设置和硬件输入，仅编号改变:",
+        "pairLine": "  {channel} 变为 #{newNumber}",
+        "reorderOffer": "相同的通道，顺序不同。\n\n先重排: 通道将按文件的顺序移动，并保留编号、设置和硬件输入。",
+        "loadAnyway": "仍然加载将按通道编号应用文件的列表:",
+        "patchOnly": "通道列表相同，但保存时的跳线不同:",
+        "lineRetyped": "  {channel} 变为 {newType}，并保留当前设置",
+        "lineRemoved": "  {channel} 连同其设置被移除",
+        "lineAdded": "  #{number}（{type}）以默认设置创建",
+        "lineRowsCross": "  硬件输入留在其行位置，因此每个移动的通道都会得到另一个通道的输入",
+        "linePatch": "  {channel}: 保存时在输入 {file}，现在在 {live}",
+        "lineMore": "  ... 还有 {n} 个",
+        "noIdentity": "{file} 由旧版本保存，仅包含通道数（{count}）；此会话有 {liveCount} 个。当前通道列表将保留，文件的跳线按行位置应用；{delta}。",
+        "noIdentityRemove": "编号最大的 {n} 个通道将被移除: {channels}",
+        "noIdentityAppend": "将追加 {n} 个单声道通道",
+        "noIdentityKeep": "不添加也不移除通道",
+        "noIdentityShort": "{file} 不包含可采用的通道列表（旧版本）。",
+        "pairMismatch": "此项目的 system.xml 和 inputs.xml 在通道列表上不一致。system.xml 决定编号、类型和跳线；inputs.xml 随后决定设置、类型和顺序:",
+        "pairAdvice": "当其中一个被单独保存时会发生此情况。请取消并保存一次完整配置，以使两者重新一致。",
+        "notUndoable": "这些都无法撤销，并会清除所有选项卡的撤销历史。",
+        "takeNumbers": "采用文件的编号",
+        "takeNumbersHw": "采用文件的编号（按硬件输入）",
+        "rearrangeFirst": "先重排",
+        "loadAnywayButton": "仍然加载",
+        "proceed": "继续",
+        "cancelled": "加载已取消: 通道列表未调和。",
+        "alreadyMatches": "通道列表已与 {file} 一致。",
+        "notAConfig": "{file} 不是系统或输入配置文件。",
+        "conflictOnly": "列表存在冲突，无法安全采用任何内容。加载此文件将执行以下操作:",
+        "fixed": "通道列表现已与 {file} 一致。",
+        "fixFailed": "无法调和通道列表: {error}",
+        "stillDiffers": "调和后通道列表仍与 {file} 不同；加载已取消。"
       },
       "reduceOutputChannels": {
         "title": "减少Output Channels?",
@@ -208,6 +265,8 @@
       "findMyRemoteTitle": "查找遥控器",
       "findMyRemoteMessage": "输入遥控设备的密码：",
       "findMyRemotePassword": "密码：",
+      "trackingConflictsHeader": "以下集群有多个输入启用了跟踪:",
+      "trackingConflictsCluster": "集群 {cluster}: 输入",
       "trackingConflictsTitle": "检测到追踪冲突",
       "trackingConflictsMessage": "\n每个集群仅允许一个追踪输入。如果继续，每个集群将仅保留第一个输入的追踪。",
       "trackingConflictsContinue": "继续"
@@ -510,6 +569,13 @@
       }
     },
     "dialogs": {
+      "snapshotIdentity": {
+        "title": "快照保存时的跳线不同",
+        "intro": "快照“{name}”保存时，这些通道在其他硬件输入上:",
+        "noFix": "未找到一对一的硬件匹配，因此不提供自动重新编号。如果是有意重新布线，请继续；否则请取消并检查通道列表。",
+        "proceedNote": "继续将按通道编号原样应用快照。取消则不作任何更改。",
+        "fixNumbers": "先修正编号"
+      },
       "importConfig": "导入输入配置",
       "exportConfig": "导出输入配置",
       "storeSnapshotTitle": "保存新快照",
@@ -536,6 +602,8 @@
       "noSnapshotSelected": "未选择快照。",
       "snapshotStored": "快照 '{name}' 已保存。",
       "snapshotLoaded": "快照 '{name}' 已加载。",
+      "snapshotEntriesSkipped": "快照“{name}”已加载；跳过 {n} 项，没有通道 {numbers}",
+      "snapshotPatchMismatchApplied": "快照“{name}”已应用，但其保存时的跳线不同（{n} 个通道不同）— 请检查通道列表",
       "snapshotLoadedWithoutScope": "快照 '{name}' 已加载（无范围）。",
       "snapshotUpdated": "快照 '{name}' 已更新。",
       "snapshotDeleted": "快照 '{name}' 已删除。",
@@ -587,6 +655,8 @@
       "maxSpeedDial": "对象的最大速度限制。",
       "pathModeButton": "启用路径模式以跟随绘制的运动路径而不是直线。",
       "heightFactorDial": "完全、部分或不考虑对象的高度。",
+      "stereoWidthDial": "立体声声像宽度（米）：立体声对左右两个分支之间的实际距离。通道位置始终是该对的中心。在直线、弧形、环形和侧向阵列上表现一致。0 m 时该对塌缩为点声源。 按住Shift的Space Mouse按压/上提，或地图上按住Shift的第二根手指捏合，也可以改变它。",
+      "stereoAxisDial": "旋转立体声轴（从上方看，正值为逆时针）。0 = 自动：立体声对垂直于原点到声源的连线展开。可用于为位于环形阵列中心的立体声对指定朝向。±180° 交换左右。 按住Shift的Space Mouse扭转，或地图上按住Shift的第二根手指旋转，也可以改变它。",
       "coordModeSelector": "坐标显示模式：笛卡尔坐标 (X/Y/Z)、柱坐标 (半径/方位角/高度) 或球坐标 (半径/方位角/仰角)。",
       "positionJoystick": "拖动调整 X/Y 实时位置。松开后回到中心。",
       "positionZSlider": "拖动调整 Z（高度）实时位置。松开后回到中心。",
@@ -720,7 +790,7 @@
     },
     "map": {
       "title": "地图",
-      "body": "- 左键点击输入或集群可拖动移动。\n- Shift+左键点击可添加或移除选择中的输入。\n- 左键拖动绘制选择矩形。\n- 双击重置位置偏移。\n- 长按无移动将切换到所选输入的标签页。\n- 点击输入以外的区域清除选择。\n- 右键拖动平移地图视图。两指拖动也可以。\n- 滚轮缩放。两指捏合也可以。\n- 中键点击重置视图。\n- 方向键移动X/Y，PageUp/Down调整高度。\n- 第二根手指可以旋转指向性和调整高度。\n- 集群上的第二根手指可以旋转和缩放。\n- 输入、输出阵列和混响节点可以隐藏。\n- 输入可以锁定以防止选择和移动。\n- 混响节点可以移动。Ctrl/Cmd对称移动节点对。\n- 启用时显示Live Source Tamer半径。\n- 可以在地图上显示音频电平。"
+      "body": "- 左键点击输入或集群可拖动移动。\n- Shift+左键点击可添加或移除选择中的输入。\n- 左键拖动绘制选择矩形。\n- 双击重置位置偏移。\n- 长按无移动将切换到所选输入的标签页。\n- 点击输入以外的区域清除选择。\n- 右键拖动平移地图视图。两指拖动也可以。\n- 滚轮缩放。两指捏合也可以。\n- 中键点击重置视图。\n- 方向键移动X/Y，PageUp/Down调整高度。\n- 第二根手指可以旋转指向性和调整高度。\n- 集群上的第二根手指可以旋转和缩放。\n- 触摸立体声输入时，按住Shift可让第二根手指操作立体声像：旋转改变声像轴，捏合改变宽度。\n- 使用Space Mouse时，选中立体声输入并按住Shift，扭转改变声像轴，按压/上提改变宽度（按压展宽，上提收窄）。Shift加XY仍然移动输入。\n- 输入、输出阵列和混响节点可以隐藏。\n- 输入可以锁定以防止选择和移动。\n- 混响节点可以移动。Ctrl/Cmd对称移动节点对。\n- 启用时显示Live Source Tamer半径。\n- 可以在地图上显示音频电平。"
     },
     "clusters": {
       "title": "集群",

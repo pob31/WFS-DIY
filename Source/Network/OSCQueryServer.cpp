@@ -3,6 +3,7 @@
 #include "OSCProtocolTypes.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
+#include "OSCParameterBounds.h"
 
 namespace WFSNetwork
 {
@@ -293,7 +294,7 @@ void OSCQueryServer::removeAllSubscriptions(const juce::String& connectionId)
 //==============================================================================
 
 void OSCQueryServer::pushValueChange(const juce::String& oscPath, const juce::var& value,
-                                     const juce::String& skipIP)
+                                     const juce::String& skipIP, const juce::Identifier& paramId)
 {
     if (!wsServer || !running.load())
         return;
@@ -308,8 +309,13 @@ void OSCQueryServer::pushValueChange(const juce::String& oscPath, const juce::va
     while (stream.getDataSize() % 4 != 0)
         stream.writeByte(0);
 
-    // Type tag
-    if (value.isInt() || value.isInt64())
+    // Type tag. Same hazard as the descriptor above: a recalled or freshly loaded
+    // value is a string var, so without the parameter-derived check the WS push
+    // emits ",s" for a numeric parameter and clients reject or mis-read it.
+    const bool paramIsInt = paramId.isValid()
+                            && [&] { const auto b = WFSNetwork::getBounds (paramId);
+                                     return b && b->isInt; } ();
+    if (paramIsInt || ((! paramId.isValid()) && (value.isInt() || value.isInt64())))
     {
         stream.write(",i\0\0", 4);
         // Write int32 big-endian
@@ -425,8 +431,12 @@ juce::String OSCQueryServer::resolveOSCPath(const juce::ValueTree& tree,
         juce::String parentType = parent.getType().toString();
         if (parentType == "Inputs" || parentType == "Outputs" || parentType == "Reverbs")
         {
-            int channelIndex = parent.indexOf(current);
-            return "/wfs/" + entry.category + "/" + juce::String(channelIndex + 1) + "/" + entry.oscName;
+            // Inputs are addressed by their PERMANENT number (the node's id;
+            // the list may have gaps). Outputs/reverbs stay dense positional.
+            const int channelNumber = parentType == "Inputs"
+                ? static_cast<int>(current.getProperty(WFSParameterIDs::id))
+                : parent.indexOf(current) + 1;
+            return "/wfs/" + entry.category + "/" + juce::String(channelNumber) + "/" + entry.oscName;
         }
 
         current = parent;
@@ -454,7 +464,7 @@ void OSCQueryServer::timerCallback()
     }
 
     for (const auto& [path, pending] : toDrain)
-        pushValueChange(pending.oscPath, pending.value, pending.skipIP);
+        pushValueChange(pending.oscPath, pending.value, pending.skipIP, pending.paramId);
 }
 
 void OSCQueryServer::valueTreePropertyChanged(juce::ValueTree& tree,
@@ -489,7 +499,7 @@ void OSCQueryServer::valueTreePropertyChanged(juce::ValueTree& tree,
     juce::var value = tree.getProperty(property);
     {
         const juce::ScopedLock sl(pendingPushLock);
-        pendingPushes[oscPath] = { oscPath, value, getCurrentOriginIP() };
+        pendingPushes[oscPath] = { oscPath, value, getCurrentOriginIP(), property };
     }
 }
 
@@ -607,8 +617,20 @@ juce::DynamicObject* OSCQueryServer::makeParamNode(const juce::String& fullPath,
     return node;
 }
 
-juce::String OSCQueryServer::getOSCTypeTag(const juce::var& value)
+juce::String OSCQueryServer::getOSCTypeTag(const juce::var& value, const juce::Identifier& paramId)
 {
+    // The PARAMETER decides the type, not the var. ValueTree::fromXml types every
+    // property as a string, so on any loaded project the var-only test below
+    // reported "s" for every numeric parameter in the whole descriptor — clients
+    // that trust TYPE then send strings to a float parameter.
+    if (paramId.isValid())
+        if (const auto bounds = WFSNetwork::getBounds (paramId))
+            return bounds->isInt ? "i" : "f";
+
+    // No bounds entry: genuinely free-form (names, mute lists, file paths) or a
+    // parameter the table does not cover yet. Fall back to the var's own type,
+    // which is right for a freshly-built tree and no worse than before for a
+    // loaded one.
     if (value.isInt() || value.isInt64())
         return "i";
     if (value.isString())
@@ -635,6 +657,8 @@ OSCQueryServer::ParamRange OSCQueryServer::getParamRange(const juce::Identifier&
     if (paramId == inputAttenuation)         return { inputAttenuationMin, inputAttenuationMax, true };
     if (paramId == inputDelayLatency)        return { inputDelayLatencyMin, inputDelayLatencyMax, true };
     if (paramId == inputMinimalLatency)      return { 0, 1, true };
+    if (paramId == inputStereoWidth)         return { inputStereoWidthMin, inputStereoWidthMax, true };
+    if (paramId == inputStereoAxisOffset)    return { (float)inputStereoAxisOffsetMin, (float)inputStereoAxisOffsetMax, true };
     if (paramId == inputPositionX || paramId == inputPositionY || paramId == inputPositionZ)
         return { inputPositionMin, inputPositionMax, true };
     if (paramId == inputOffsetX || paramId == inputOffsetY || paramId == inputOffsetZ)
@@ -877,13 +901,15 @@ juce::DynamicObject* OSCQueryServer::buildFullTree()
 
     auto* wfsContents = new juce::DynamicObject();
 
-    // /wfs/input (1-based channel numbers, matching standard OSC convention)
+    // /wfs/input — nodes are named by the PERMANENT channel number (the list
+    // may have gaps after deletions)
     {
         auto* container = makeContainerNode("/wfs/input", "Input Channels");
         auto* contents = container->getProperties()["CONTENTS"].getDynamicObject();
         int count = state.getNumInputChannels();
         for (int i = 0; i < count; ++i)
-            contents->setProperty(juce::String(i + 1), juce::var(buildInputChannelJson(i)));
+            contents->setProperty(juce::String(state.getInputChannelNumber(i)),
+                                  juce::var(buildInputChannelJson(i)));
         wfsContents->setProperty("input", juce::var(container));
     }
 
@@ -921,8 +947,9 @@ juce::DynamicObject* OSCQueryServer::buildFullTree()
 
 juce::DynamicObject* OSCQueryServer::buildInputChannelJson(int channelIndex)
 {
-    juce::String basePath = "/wfs/input/" + juce::String(channelIndex + 1);
-    auto* channel = makeContainerNode(basePath, "Input " + juce::String(channelIndex + 1));
+    const int number = state.getInputChannelNumber(channelIndex);
+    juce::String basePath = "/wfs/input/" + juce::String(number);
+    auto* channel = makeContainerNode(basePath, "Input " + juce::String(number));
     auto* contents = channel->getProperties()["CONTENTS"].getDynamicObject();
 
     const auto& addrMap = OSCMessageRouter::getInputAddressMap();
@@ -931,7 +958,7 @@ juce::DynamicObject* OSCQueryServer::buildInputChannelJson(int channelIndex)
     {
         juce::String fullPath = basePath + "/" + oscName;
         juce::var value = state.getParameter(paramId, channelIndex);
-        juce::String typeTag = getOSCTypeTag(value);
+        juce::String typeTag = getOSCTypeTag(value, paramId);
         auto range = getParamRange(paramId);
 
         if (range.hasRange)
@@ -981,7 +1008,7 @@ juce::DynamicObject* OSCQueryServer::buildOutputChannelJson(int channelIndex)
         else
         {
             juce::var value = state.getParameter(paramId, channelIndex);
-            juce::String typeTag = getOSCTypeTag(value);
+            juce::String typeTag = getOSCTypeTag(value, paramId);
             auto range = getParamRange(paramId);
 
             if (range.hasRange)
@@ -1032,7 +1059,7 @@ juce::DynamicObject* OSCQueryServer::buildReverbChannelJson(int channelIndex)
         else
         {
             juce::var value = state.getParameter(paramId, channelIndex);
-            juce::String typeTag = getOSCTypeTag(value);
+            juce::String typeTag = getOSCTypeTag(value, paramId);
             auto range = getParamRange(paramId);
 
             if (range.hasRange)
@@ -1074,7 +1101,7 @@ juce::DynamicObject* OSCQueryServer::buildConfigJson()
         auto* subContents = subObj->getProperties()["CONTENTS"].getDynamicObject();
 
         juce::var value = state.getParameter(paramId, -1);
-        juce::String typeTag = getOSCTypeTag(value);
+        juce::String typeTag = getOSCTypeTag(value, paramId);
         auto range = getParamRange(paramId);
 
         bool isBandParam = paramName.startsWith("postEQ") && paramName != "postEQenable";

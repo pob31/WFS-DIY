@@ -222,7 +222,7 @@
       "exportSystem": "Exporta la configuración del sistema a un archivo (con explorador de archivos).",
       "language": "Seleccione el idioma de la interfaz de usuario. Los cambios tienen efecto completo después de reiniciar la aplicación.",
       "dialsAndButtons": "Seleccionar el controlador hardware para diales y botones: Stream Deck+.",
-      "positionControl": "Seleccionar el controlador hardware para el control de posición: Space Mouse, Joystick o gamepad.",
+      "positionControl": "Seleccionar el controlador hardware para el control de posición: Space Mouse, Joystick o gamepad. Con un Space Mouse, mantener Shift en una entrada estéreo convierte el giro en el eje estéreo y empujar/tirar en la anchura estéreo.",
       "sampler": "Activar o desactivar la función Sampler para los canales de entrada. Seleccionar el controlador: Lightpad o Mando.",
       "lightpadSetup": "Mostrar los Roli Lightpads conectados y permitir dividirlos en 4 pads más pequeños.",
       "remoteSetup": "Seleccionar el número de pads en la pestaña XY Pads del Remote.",
@@ -1332,6 +1332,8 @@
       "cluster": "Grupo:",
       "attenuation": "Atenuación:",
       "delayLatency": "Retardo/Latencia:",
+      "stereoWidth": "Anchura:",
+      "stereoAxis": "Eje:",
       "coord": "Coord:",
       "positionX": "Posición X:",
       "positionY": "Posición Y:",
@@ -1594,6 +1596,8 @@
       "maxSpeedDial": "Límite de velocidad máxima para el objeto.",
       "pathModeButton": "Activar el modo Trayectoria para seguir caminos de movimiento dibujados en lugar de líneas directas.",
       "heightFactorDial": "Tener en cuenta la elevación del objeto totalmente, parcialmente o nada.",
+      "stereoWidthDial": "Anchura de la imagen estéreo en metros: la distancia física entre el brazo izquierdo y el derecho del par. La posición del canal sigue siendo el centro del par. Se comporta igual en arrays rectos, curvos, circulares y laterales. 0 m colapsa el par en una fuente puntual. También la cambia un Space Mouse con Shift pulsado (empujar/tirar) o un segundo dedo con Shift en el mapa (pellizco).",
+      "stereoAxisDial": "Gira el eje estéreo, positivo en sentido antihorario visto desde arriba. 0 = automático: el par se abre perpendicular a la línea del origen a la fuente. Sirve para orientar un par situado en el centro de un montaje circular. ±180° intercambia izquierda y derecha. También lo cambia un Space Mouse con Shift pulsado (giro) o un segundo dedo con Shift en el mapa (rotación).",
       "coordModeSelector": "Modo de visualización de coordenadas: Cartesiano (X/Y/Z), Cilíndrico (radio/azimut/altura) o Esférico (radio/azimut/elevación).",
       "positionJoystick": "Arrastrar para ajustar la posición X/Y en tiempo real. Vuelve al centro al soltar.",
       "positionZSlider": "Arrastrar para ajustar la posición Z (altura) en tiempo real. Vuelve al centro al soltar.",
@@ -2195,7 +2199,7 @@
     },
     "map": {
       "title": "Mapa",
-      "body": "- Clic izquierdo en una entrada o cluster permite moverlo arrastrando.\n- Clic izquierdo con Mayús añade o quita entradas de la selección.\n- Clic izquierdo arrastrado dibuja un rectángulo de selección.\n- Doble clic restablece el desplazamiento de posición.\n- Clic largo sin movimiento cambia a la pestaña de la entrada seleccionada.\n- Clic fuera de cualquier entrada limpia la selección.\n- Clic derecho arrastrado desplaza la vista del mapa. Arrastre con dos dedos también.\n- La rueda del ratón hace zoom. Pellizco con dos dedos también.\n- Clic del botón central restablece la vista.\n- Las flechas mueven X/Y, RePág/AvPág la altura.\n- Un segundo dedo puede rotar la directividad y ajustar la altura.\n- En clusters, un segundo dedo puede rotar y escalar.\n- Las entradas, arrays de salida y nodos de reverberación pueden ocultarse.\n- Las entradas pueden bloquearse.\n- Los nodos de reverberación pueden moverse. Ctrl/Cmd mueve pares en simetría.\n- El radio del Live Source Tamer se muestra cuando está activado.\n- Los niveles de audio pueden mostrarse en el mapa."
+      "body": "- Clic izquierdo en una entrada o cluster permite moverlo arrastrando.\n- Clic izquierdo con Mayús añade o quita entradas de la selección.\n- Clic izquierdo arrastrado dibuja un rectángulo de selección.\n- Doble clic restablece el desplazamiento de posición.\n- Clic largo sin movimiento cambia a la pestaña de la entrada seleccionada.\n- Clic fuera de cualquier entrada limpia la selección.\n- Clic derecho arrastrado desplaza la vista del mapa. Arrastre con dos dedos también.\n- La rueda del ratón hace zoom. Pellizco con dos dedos también.\n- Clic del botón central restablece la vista.\n- Las flechas mueven X/Y, RePág/AvPág la altura.\n- Un segundo dedo puede rotar la directividad y ajustar la altura.\n- En clusters, un segundo dedo puede rotar y escalar.\n- En una entrada estéreo tocada, con Shift pulsado el segundo dedo actúa sobre la imagen estéreo: rotar cambia el eje de la imagen y pellizcar cambia la anchura.\n- Con un Space Mouse, manteniendo Shift con una entrada estéreo seleccionada, el giro cambia el eje de la imagen y empujar/tirar cambia la anchura (empujar amplía, tirar estrecha). Shift con XY sigue moviendo la entrada.\n- Las entradas, arrays de salida y nodos de reverberación pueden ocultarse.\n- Las entradas pueden bloquearse.\n- Los nodos de reverberación pueden moverse. Ctrl/Cmd mueve pares en simetría.\n- El radio del Live Source Tamer se muestra cuando está activado.\n- Los niveles de audio pueden mostrarse en el mapa."
     },
     "clusters": {
       "title": "Clusters",

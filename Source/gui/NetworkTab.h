@@ -5835,14 +5835,20 @@ private:
         }
 
         // Build conflict message
-        juce::String conflictMsg = "The following clusters have multiple inputs with tracking enabled:\n\n";
+        juce::String conflictMsg = LOC("network.dialogs.trackingConflictsHeader") + "\n\n";
         for (const auto& [cluster, inputs] : conflicts)
         {
-            conflictMsg += "Cluster " + juce::String(cluster) + ": Inputs ";
+            conflictMsg += LOC("network.dialogs.trackingConflictsCluster")
+                               .replace("{cluster}", juce::String(cluster)) + " ";
             for (size_t j = 0; j < inputs.size(); ++j)
             {
                 if (j > 0) conflictMsg += ", ";
-                conflictMsg += juce::String(inputs[j] + 1);
+                // `inputs` holds SLOTS and the repair below stays slot-keyed.
+                // Only the TEXT needs the permanent number: after a deletion or
+                // a reorder, slot + 1 names a live but unrelated channel, so the
+                // operator was told to go and check the wrong input.
+                conflictMsg += juce::String(
+                    parameters.getValueTreeState().getInputChannelNumber(inputs[j]));
             }
             conflictMsg += "\n";
         }

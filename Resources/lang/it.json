@@ -8,6 +8,8 @@
   "common": {
     "ok": "OK",
     "cancel": "Annulla",
+    "channelDescription": "#{number} “{name}” ({type})",
+    "channelDescriptionUnnamed": "#{number} ({type})",
     "apply": "Applica",
     "reset": "Ripristina",
     "save": "Salva",
@@ -32,11 +34,29 @@
     "none": "Nessuno"
   },
   "systemConfig": {
+    "channelList": {
+      "edit": "Organizza...",
+      "title": "Organizza canali d’ingresso",
+      "status": "{mono} mono + {stereo} stereo",
+      "dragHint": "Trascina un canale per cambiare l’ordine.",
+      "dragHintFresh": "Sessione nuova: quest'ordine diventa la numerazione dei canali e il patch viene disposto di conseguenza. Sistemate ora i canali stereo e mono, prima di salvare o patchare qualsiasi cosa.",
+      "dragHintInUse": "Sessione in uso: i numeri sono permanenti. Riordinare cambia solo la visualizzazione — ogni canale mantiene i suoi ingressi hardware, e snapshot, cue e remoti continuano a puntare allo stesso canale. La matrice di patch non si leggerà più come una diagonale.",
+      "fromFile": "Da file...",
+      "fromFileTitle": "Prendere la lista dei canali da una config salvata",
+      "fromFileHelp": "Adottare i numeri o l'ordine dei canali da una config di sistema o degli ingressi salvata, senza caricare altro.",
+      "mono": "Mono",
+      "stereo": "Stereo",
+      "deleteTitle": "Rimuovi canale d’ingresso",
+      "deleteMessage": "Rimuovere il canale d’ingresso {number}? Le sue impostazioni vengono scartate. In una sessione nuova gli altri canali vengono rinumerati secondo l’ordine di visualizzazione; appena la sessione è in uso il suo numero resta ritirato come vuoto e gli altri mantengono i propri, quindi patch, snapshot, cue QLab e mappature DAW restano validi.",
+      "deleteConfirm": "Rimuovi"
+    },
     "help": {
       "gpuPipelineDepth": "Profondità della pipeline GPU in blocchi audio. Aggiunge depth x buffer/frequenza di campionamento di latenza costante (pre-sottratta dai ritardi WFS) e assorbe gli stalli della GPU della stessa durata: più profonda = immune agli scatti del desktop/interfaccia, meno profonda = latenza inferiore. Si applica in tempo reale. Predefinito 4.",
       "showName": "Nome dello spettacolo corrente.",
       "showLocation": "Luogo dello spettacolo corrente.",
-      "inputChannels": "Numero di Input Channels.",
+      "inputChannels": "Numero di ingressi mono. Aumentare aggiunge canali dopo l’ultimo; ridurre rimuove i canali mono con i numeri più alti. Bloccato mentre il DSP è in funzione.",
+      "stereoInputChannels": "Numero di ingressi stereo (coppie). Ogni coppia mantiene un solo numero di canale e occupa due ingressi hardware (L e R) nel patch. Aumentare aggiunge dopo l’ultimo canale; ridurre rimuove gli stereo con i numeri più alti. Bloccato mentre il DSP è in funzione.",
+      "editChannels": "Organizza i canali d’ingresso: trascina per alternare mono e stereo in qualsiasi ordine, o rimuovi un canale specifico. In una sessione nuova i numeri seguono l’ordine di visualizzazione; diventano permanenti appena la sessione è in uso — un progetto caricato, la scheda Inputs o Map aperta, la finestra di patch aperta, uno snapshot salvato o un controllo esterno collegato. Da quel momento un canale mantiene il suo numero ovunque lo trascini e un numero rimosso resta ritirato come vuoto — patch, snapshot, cue QLab e mappature del plug-in DAW non si rompono mai. Bloccato mentre il DSP è in funzione.",
       "outputChannels": "Numero di Output Channels.",
       "reverbChannels": "Numero di Reverb Channels.",
       "audioPatch": "Apre la finestra dell'interfaccia audio e routing.",
@@ -85,7 +105,7 @@
       "exportSystem": "Esporta la configurazione di sistema su file (con finestra esplora file).",
       "language": "Seleziona la lingua dell'interfaccia utente. Le modifiche avranno pieno effetto dopo il riavvio dell'applicazione.",
       "dialsAndButtons": "Selezionare il controller hardware per manopole e tasti: Stream Deck+.",
-      "positionControl": "Selezionare il controller hardware per il controllo di posizione: Space Mouse, Joystick o gamepad.",
+      "positionControl": "Selezionare il controller hardware per il controllo di posizione: Space Mouse, Joystick o gamepad. Con uno Space Mouse, tenere premuto Shift su un ingresso stereo trasforma la torsione nell'asse stereo e spingere/tirare nella larghezza stereo.",
       "sampler": "Attivare o disattivare la funzione Sampler per i canali di ingresso. Selezionare il controller: Lightpad o Telecomando.",
       "lightpadSetup": "Visualizzare i Roli Lightpad collegati e consentire di dividerli in 4 pad più piccoli.",
       "remoteSetup": "Selezionare il numero di pad nella scheda XY Pads del Remote.",
@@ -128,7 +148,44 @@
     "dialogs": {
       "reduceInputChannels": {
         "title": "Ridurre i Input Channels?",
-        "message": "Riducendo da {current} a {new} canali di ingresso verranno rimosse le impostazioni per i canali da {start} a {end}.\n\nQuesta operazione non può essere annullata."
+        "messageList": "Verranno rimossi gli ultimi canali di quel tipo nell'ordine di visualizzazione, con le loro impostazioni:\n\n{rows}\n\nUna volta che la sessione è in uso, i loro numeri vengono ritirati e gli altri canali mantengono i propri, così patch, snapshot e cue restano validi.\n\nNon si può annullare e cancella la cronologia di annullamento di tutte le schede.",
+        "row": "  {channel}"
+      },
+      "channelIdentity": {
+        "title": "La lista dei canali differisce dal file",
+        "intro": "{file} descrive una lista di canali diversa da questa sessione.",
+        "relabelOffer": "La disposizione corrisponde posizione per posizione — gli stessi canali mono e stereo negli stessi posti — ma i numeri differiscono.\n\nPrendere i numeri del file: ogni canale mantiene posto, impostazioni e ingressi hardware, e riceve il numero del file per quella posizione:",
+        "relabelOfferHw": "In base agli ingressi hardware, questi canali sembrano gli stessi con numeri diversi.\n\nPrendere i numeri del file: ogni canale mantiene posto, impostazioni e ingressi hardware; cambia solo il numero, così snapshot, cue e OSC che usano i numeri del file raggiungono i canali giusti:",
+        "pairLine": "  {channel} diventa #{newNumber}",
+        "reorderOffer": "Gli stessi canali in un ordine diverso.\n\nRiordinare prima: i canali vengono messi nell'ordine del file e mantengono numeri, impostazioni e ingressi hardware.",
+        "loadAnyway": "Carica comunque applica la lista del file per NUMERO di canale:",
+        "patchOnly": "Stessa lista di canali, ma salvata con un altro patch:",
+        "lineRetyped": "  {channel} diventa {newType} e mantiene le impostazioni attuali",
+        "lineRemoved": "  {channel} viene rimosso con le sue impostazioni",
+        "lineAdded": "  #{number} ({type}) viene creato con impostazioni predefinite",
+        "lineRowsCross": "  gli ingressi hardware restano alla loro posizione di riga, quindi ogni canale spostato riceve gli ingressi di un altro",
+        "linePatch": "  {channel}: salvato sull'ingresso {file}, ora su {live}",
+        "lineMore": "  ... e altri {n}",
+        "noIdentity": "{file} è stato salvato da una versione precedente e contiene solo un numero di canali ({count}); questa sessione ne ha {liveCount}. La lista attuale viene mantenuta e il patch del file applicato per posizione di riga; {delta}.",
+        "noIdentityRemove": "i {n} canali con i numeri più alti vengono rimossi: {channels}",
+        "noIdentityAppend": "vengono aggiunti {n} canali mono",
+        "noIdentityKeep": "nessun canale viene aggiunto o rimosso",
+        "noIdentityShort": "{file} non contiene una lista di canali da adottare (versione precedente).",
+        "pairMismatch": "system.xml e inputs.xml di questo progetto non concordano sulla lista dei canali. system.xml decide numeri, tipi e patch; inputs.xml decide poi impostazioni, tipi e ordine:",
+        "pairAdvice": "Succede quando uno dei due è stato salvato da solo. Annullate e salvate una volta la configurazione completa per riallinearli.",
+        "notUndoable": "Niente di tutto ciò è annullabile, e la cronologia di annullamento di tutte le schede viene cancellata.",
+        "takeNumbers": "Prendere i numeri del file",
+        "takeNumbersHw": "Prendere i numeri del file (per ingresso hardware)",
+        "rearrangeFirst": "Riordinare prima",
+        "loadAnywayButton": "Carica comunque",
+        "proceed": "Procedi",
+        "cancelled": "Caricamento annullato: lista dei canali non riconciliata.",
+        "alreadyMatches": "La lista dei canali corrisponde già a {file}.",
+        "notAConfig": "{file} non è un file di config di sistema o degli ingressi.",
+        "conflictOnly": "Le liste sono in conflitto, nulla può essere adottato in sicurezza. Caricare questo file farebbe quanto segue:",
+        "fixed": "La lista dei canali ora corrisponde a {file}.",
+        "fixFailed": "Impossibile riconciliare la lista dei canali: {error}",
+        "stillDiffers": "La lista dei canali differisce ancora da {file} dopo la riconciliazione; caricamento annullato."
       },
       "reduceOutputChannels": {
         "title": "Ridurre i Output Channels?",
@@ -208,6 +265,8 @@
       "findMyRemoteTitle": "Trova il mio telecomando",
       "findMyRemoteMessage": "Inserisci la password per il tuo telecomando:",
       "findMyRemotePassword": "Password telecomando:",
+      "trackingConflictsHeader": "I seguenti cluster hanno più ingressi con il tracciamento attivo:",
+      "trackingConflictsCluster": "Cluster {cluster}: Ingressi",
       "trackingConflictsTitle": "Conflitti di tracking rilevati",
       "trackingConflictsMessage": "\nÈ consentito solo un ingresso tracciato per cluster. Se continui, il tracking verrà mantenuto solo per il primo ingresso di ciascun cluster.",
       "trackingConflictsContinue": "Continua"
@@ -510,6 +569,13 @@
       }
     },
     "dialogs": {
+      "snapshotIdentity": {
+        "title": "Snapshot salvato con un altro patch",
+        "intro": "Lo snapshot “{name}” è stato salvato quando questi canali erano su altri ingressi hardware:",
+        "noFix": "Nessuna corrispondenza hardware uno-a-uno trovata, quindi non viene proposta alcuna rinumerazione automatica. Se il cablaggio è stato cambiato di proposito, procedete; altrimenti annullate e controllate la lista dei canali.",
+        "proceedNote": "Procedi applica lo snapshot per numero di canale così com'è. Annulla non cambia nulla.",
+        "fixNumbers": "Prima correggi i numeri"
+      },
       "importConfig": "Importa Configurazione Ingressi",
       "exportConfig": "Esporta Configurazione Ingressi",
       "storeSnapshotTitle": "Memorizza nuovo snapshot",
@@ -536,6 +602,8 @@
       "noSnapshotSelected": "Nessun snapshot selezionato.",
       "snapshotStored": "Snapshot '{name}' memorizzato.",
       "snapshotLoaded": "Snapshot '{name}' caricato.",
+      "snapshotEntriesSkipped": "Snapshot “{name}” caricato; {n} voci saltate, nessun canale {numbers}",
+      "snapshotPatchMismatchApplied": "Snapshot “{name}” applicato, ma era stato salvato con un altro patch ({n} canali differiscono) — controllate la lista dei canali",
       "snapshotLoadedWithoutScope": "Snapshot '{name}' caricato (senza ambito).",
       "snapshotUpdated": "Snapshot '{name}' aggiornato.",
       "snapshotDeleted": "Snapshot '{name}' eliminato.",
@@ -587,6 +655,8 @@
       "maxSpeedDial": "Limite di velocità massima per l'oggetto.",
       "pathModeButton": "Attivare la modalità Percorso per seguire i tracciati di movimento disegnati anziché linee dirette.",
       "heightFactorDial": "Considerare l'elevazione dell'oggetto totalmente, parzialmente o per nulla.",
+      "stereoWidthDial": "Larghezza dell'immagine stereo in metri: la distanza fisica tra il braccio sinistro e quello destro della coppia. La posizione del canale resta il centro della coppia. Si comporta allo stesso modo su array dritti, curvi, circolari e laterali. 0 m riduce la coppia a una sorgente puntiforme. La cambia anche uno Space Mouse con Shift premuto (spingere/tirare) o un secondo dito con Shift sulla mappa (pizzico).",
+      "stereoAxisDial": "Ruota l'asse stereo, positivo in senso antiorario visto dall'alto. 0 = automatico: la coppia si apre perpendicolarmente alla linea dall'origine alla sorgente. Serve a orientare una coppia posta al centro di un impianto circolare. ±180° scambia sinistra e destra. Lo cambia anche uno Space Mouse con Shift premuto (torsione) o un secondo dito con Shift sulla mappa (rotazione).",
       "coordModeSelector": "Modalità di visualizzazione delle coordinate: Cartesiana (X/Y/Z), Cilindrica (raggio/azimut/altezza) o Sferica (raggio/azimut/elevazione).",
       "positionJoystick": "Trascinare per regolare la posizione X/Y in tempo reale. Torna al centro al rilascio.",
       "positionZSlider": "Trascinare per regolare la posizione Z (altezza) in tempo reale. Torna al centro al rilascio.",
@@ -720,7 +790,7 @@
     },
     "map": {
       "title": "Mappa",
-      "body": "- Clic sinistro su un ingresso o cluster per spostarlo trascinando.\n- Clic sinistro con Maiusc aggiunge o rimuove ingressi dalla selezione.\n- Clic sinistro trascinato disegna un rettangolo di selezione.\n- Doppio clic ripristina l'offset di posizione.\n- Clic lungo senza movimento passa alla scheda dell'ingresso selezionato.\n- Clic fuori da qualsiasi ingresso cancella la selezione.\n- Clic destro trascinato sposta la vista della mappa. Trascinamento a due dita anche.\n- La rotella del mouse fa zoom. Pizzico a due dita anche.\n- Clic centrale ripristina la vista.\n- I tasti freccia spostano X/Y, PagSu/Giù l'altezza.\n- Un secondo dito può ruotare la direttività e regolare l'altezza.\n- Nei cluster, un secondo dito può ruotare e scalare.\n- Gli ingressi, array di uscita e nodi di riverbero possono essere nascosti.\n- Gli ingressi possono essere bloccati.\n- I nodi di riverbero possono essere spostati. Ctrl/Cmd sposta le coppie in simmetria.\n- Il raggio del Live Source Tamer viene visualizzato quando attivato.\n- I livelli audio possono essere visualizzati sulla mappa."
+      "body": "- Clic sinistro su un ingresso o cluster per spostarlo trascinando.\n- Clic sinistro con Maiusc aggiunge o rimuove ingressi dalla selezione.\n- Clic sinistro trascinato disegna un rettangolo di selezione.\n- Doppio clic ripristina l'offset di posizione.\n- Clic lungo senza movimento passa alla scheda dell'ingresso selezionato.\n- Clic fuori da qualsiasi ingresso cancella la selezione.\n- Clic destro trascinato sposta la vista della mappa. Trascinamento a due dita anche.\n- La rotella del mouse fa zoom. Pizzico a due dita anche.\n- Clic centrale ripristina la vista.\n- I tasti freccia spostano X/Y, PagSu/Giù l'altezza.\n- Un secondo dito può ruotare la direttività e regolare l'altezza.\n- Nei cluster, un secondo dito può ruotare e scalare.\n- Su un ingresso stereo toccato, tenendo premuto Shift il secondo dito agisce sull'immagine stereo: la rotazione cambia l'asse dell'immagine e il pizzico cambia la larghezza.\n- Con uno Space Mouse, tenendo premuto Shift con un ingresso stereo selezionato, la torsione cambia l'asse dell'immagine e spingere/tirare cambia la larghezza (spingere allarga, tirare restringe). Shift con XY sposta comunque l'ingresso.\n- Gli ingressi, array di uscita e nodi di riverbero possono essere nascosti.\n- Gli ingressi possono essere bloccati.\n- I nodi di riverbero possono essere spostati. Ctrl/Cmd sposta le coppie in simmetria.\n- Il raggio del Live Source Tamer viene visualizzato quando attivato.\n- I livelli audio possono essere visualizzati sulla mappa."
     },
     "clusters": {
       "title": "Cluster",

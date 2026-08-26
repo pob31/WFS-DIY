@@ -1,7 +1,21 @@
 #include "WFSCalculationEngine.h"
 #include "../../spatcore/dsp/NumericGuards.h"
+#include "../../spatcore/wfs/RenderSourceMap.h"
 #include <array>
 #include <limits>
+
+// The slot allocator lives in spatcore (which may not include app headers), so
+// the source-budget constants exist twice. Fail the build the moment they drift.
+static_assert (spatcore::wfs::RenderSourceMap::kMaxInputChannels
+                   == WFSParameterDefaults::maxInputChannels,
+               "RenderSourceMap and WFSParameterDefaults disagree on the input-channel budget");
+static_assert (spatcore::wfs::RenderSourceMap::kDerivedPerStereo
+                   == WFSParameterDefaults::derivedSlicesPerStereo
+            && spatcore::wfs::RenderSourceMap::kMaxStereoChannels
+                   == WFSParameterDefaults::maxStereoChannels
+            && spatcore::wfs::RenderSourceMap::kMaxRenderSources
+                   == WFSParameterDefaults::maxRenderSources,
+               "RenderSourceMap and WFSParameterDefaults disagree on the render-source budget");
 
 using namespace WFSParameterIDs;
 using namespace WFSParameterDefaults;
@@ -13,6 +27,12 @@ WFSCalculationEngine::WFSCalculationEngine (WFSValueTreeState& state)
     numInputs = maxInputChannels;
     numOutputs = maxOutputChannels;
     numReverbs = maxReverbChannels;
+
+    // Identity slot map until the app installs the real one. Never leave the
+    // member default-constructed: a zero-filled firstDerivedSlot would claim
+    // derived slots at row 0.
+    spatcore::wfs::RenderSourceMap::buildIdentity (numInputs, sourceMap);
+    channelIntrinsicLatencyMs.resize (static_cast<size_t> (numInputs), 0.0f);
 
     // Reserve space for positions
     listenerPositions.resize (static_cast<size_t> (numOutputs));
@@ -33,7 +53,14 @@ WFSCalculationEngine::WFSCalculationEngine (WFSValueTreeState& state)
     commonAttenRampTimeRemaining.resize (static_cast<size_t> (numInputs), 0.0f);  // No active ramps
 
     // Reserve space for Input → Output matrix results
-    const size_t matrixSize = static_cast<size_t> (numInputs * numOutputs);
+    // Matrix ROW capacity is the render-source budget, not the input-channel
+    // budget: a stereo-pair channel occupies its primary row plus 5 derived
+    // slice rows appended past the visible inputs. Rows beyond the channels'
+    // stay zero until the decomposition stage drives them; every consumer
+    // restrides and reads only the rows it was told exist. All per-CHANNEL
+    // state above stays at numInputs — derived rows share their owning
+    // channel's parameters, ramps and dirty flags.
+    const size_t matrixSize = static_cast<size_t> (maxRenderSources * numOutputs);
     delayTimesMs.resize (matrixSize, 0.0f);
     levels.resize (matrixSize, 0.0f);
     hfAttenuationDb.resize (matrixSize, 0.0f);
@@ -43,8 +70,8 @@ WFSCalculationEngine::WFSCalculationEngine (WFSValueTreeState& state)
     frLevels.resize (matrixSize, 0.0f);
     frHFAttenuationDb.resize (matrixSize, 0.0f);
 
-    // Reserve space for Input → Reverb Feed matrix results
-    const size_t inputReverbSize = static_cast<size_t> (numInputs * numReverbs);
+    // Reserve space for Input → Reverb Feed matrix results (same row budget)
+    const size_t inputReverbSize = static_cast<size_t> (maxRenderSources * numReverbs);
     inputReverbDelayTimesMs.resize (inputReverbSize, 0.0f);
     inputReverbLevels.resize (inputReverbSize, 0.0f);
     inputReverbHFAttenuationDb.resize (inputReverbSize, 0.0f);
@@ -113,6 +140,128 @@ WFSCalculationEngine::Position WFSCalculationEngine::getCompositeInputPosition (
 
     const juce::ScopedLock sl (positionLock);
     return compositeInputPositions[static_cast<size_t> (inputIndex)];
+}
+
+//==============================================================================
+// Render sources (stereo-pair slice slots)
+//==============================================================================
+
+void WFSCalculationEngine::setRenderSourceMap (const spatcore::wfs::RenderSourceMap& map)
+{
+    {
+        const juce::ScopedLock sl (positionLock);
+        sourceMap = map;
+
+        // A channel that stopped being stereo has no backend any more: its
+        // intrinsic latency must not linger in the max-reference search.
+        for (int i = 0; i < numInputs && i < (int) channelIntrinsicLatencyMs.size(); ++i)
+            if (! sourceMap.desc[static_cast<size_t> (i)].isStereoSlice)
+                channelIntrinsicLatencyMs[static_cast<size_t> (i)] = 0.0f;
+    }
+    markAllInputsDirty();
+}
+
+void WFSCalculationEngine::setChannelIntrinsicLatency (int inputChannel, float latencyMs)
+{
+    if (inputChannel < 0 || inputChannel >= numInputs)
+        return;
+
+    latencyMs = juce::jmax (0.0f, latencyMs);
+    {
+        const juce::ScopedLock sl (positionLock);
+        if (channelIntrinsicLatencyMs[static_cast<size_t> (inputChannel)] == latencyMs)
+            return;
+        channelIntrinsicLatencyMs[static_cast<size_t> (inputChannel)] = latencyMs;
+    }
+    // The reference is the max across channels: one change re-times everyone.
+    markAllInputsDirty();
+}
+
+void WFSCalculationEngine::setSliceGeometry (int inputChannel,
+                                             const float* offsetsXYZ,
+                                             const float* gainsLinear,
+                                             const bool* active)
+{
+    using Map = spatcore::wfs::RenderSourceMap;
+
+    if (inputChannel < 0 || inputChannel >= numInputs
+        || offsetsXYZ == nullptr || gainsLinear == nullptr || active == nullptr)
+        return;
+
+    bool changed = false;
+    {
+        const juce::ScopedLock sl (positionLock);
+        const int firstDerived = sourceMap.firstDerivedSlot[static_cast<size_t> (inputChannel)];
+        if (firstDerived < 0)
+            return;   // mono channel — nothing to place
+
+        for (int slice = 0; slice < Map::kSlicesPerStereo; ++slice)
+        {
+            const int slot = (slice == 0) ? inputChannel : firstDerived + (slice - 1);
+            auto& d = sourceMap.desc[static_cast<size_t> (slot)];
+
+            const float ox = offsetsXYZ[slice * 3 + 0];
+            const float oy = offsetsXYZ[slice * 3 + 1];
+            const float oz = offsetsXYZ[slice * 3 + 2];
+
+            if (d.offsetX != ox || d.offsetY != oy || d.offsetZ != oz
+                || d.gainLinear != gainsLinear[slice] || d.active != active[slice])
+            {
+                d.offsetX = ox;
+                d.offsetY = oy;
+                d.offsetZ = oz;
+                d.gainLinear = gainsLinear[slice];
+                d.active = active[slice];
+                changed = true;
+            }
+        }
+    }
+
+    if (changed)
+        markInputDirty (inputChannel);
+}
+
+WFSCalculationEngine::Position WFSCalculationEngine::getRenderSourcePosition (int sourceIndex) const
+{
+    const juce::ScopedLock sl (positionLock);
+
+    if (sourceIndex < 0 || sourceIndex >= sourceMap.count)
+        return {};
+
+    const auto& d = sourceMap.desc[static_cast<size_t> (sourceIndex)];
+    const int owning = d.owningInputChannel;
+    if (owning < 0 || owning >= static_cast<int> (compositeInputPositions.size()))
+        return {};
+
+    Position p = compositeInputPositions[static_cast<size_t> (owning)];
+    p.x += d.offsetX;
+    p.y += d.offsetY;
+    p.z += d.offsetZ;
+    return p;
+}
+
+int WFSCalculationEngine::getOwningInputChannel (int sourceIndex) const
+{
+    const juce::ScopedLock sl (positionLock);
+
+    if (sourceIndex < 0 || sourceIndex >= sourceMap.count)
+        return -1;
+
+    return sourceMap.desc[static_cast<size_t> (sourceIndex)].owningInputChannel;
+}
+
+float WFSCalculationEngine::getRenderSourceGain (int sourceIndex) const
+{
+    const juce::ScopedLock sl (positionLock);
+
+    if (sourceIndex < 0 || sourceIndex >= sourceMap.count)
+        return 0.0f;
+
+    const auto& d = sourceMap.desc[static_cast<size_t> (sourceIndex)];
+    if (! d.active)
+        return 0.0f;
+
+    return d.isStereoSlice ? d.gainLinear : 1.0f;
 }
 
 //==============================================================================
@@ -903,6 +1052,11 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
     std::vector<float> localCommonAttenRampOffsetDb;
     std::vector<float> localCommonAttenRampTimeRemaining;
 
+    // Render-source slot map + slice geometry (copied under the lock so the
+    // whole recalc sees one consistent set of slice offsets/gains)
+    spatcore::wfs::RenderSourceMap localSourceMap;
+    std::vector<float> localChannelLatencyMs;
+
     // Capture dirty state and clear flags
     bool needOutputRecalc = outputsDirty.exchange(false);
     bool needReverbRecalc = reverbsDirty.exchange(false);
@@ -968,6 +1122,10 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
         // Copy gyrophone rotation offsets
         localGyrophoneOffsets = gyrophoneOffsets;
 
+        // Copy the render-source map (slot layout + 50 Hz slice geometry)
+        localSourceMap = sourceMap;
+        localChannelLatencyMs = channelIntrinsicLatencyMs;
+
         // Copy gradient map offsets
         localGradientMapOffsets = gradientMapOffsets;
 
@@ -989,6 +1147,13 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
             inputDirtyFlags[static_cast<size_t>(i)] = false;
         }
     }
+
+    // Render-latency reference (doc §6): the maximum backend latency across
+    // channels. 0 when no stereo channel exists — and identically 0 in
+    // Phase 0, where every backend reports zero.
+    float renderLatencyReferenceMs = 0.0f;
+    for (float channelLatency : localChannelLatencyMs)
+        renderLatencyReferenceMs = juce::jmax (renderLatencyReferenceMs, channelLatency);
 
     // Get global config parameters
     auto masterState = valueTreeState.getMasterState();
@@ -1072,11 +1237,36 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
     // Calculate for each input->output pair
     for (int inIdx = 0; inIdx < numInputs; ++inIdx)
     {
+        // Matrix rows past the app's visible channel count are derived-slice
+        // slots (or unclaimed budget), never mono channels — computing them
+        // here would collide with the derived rows written below.
+        if (inIdx >= localSourceMap.numInputChannels)
+            break;
+
         // Skip inputs that don't need recalculation (existing values preserved from copy)
         if (!inputsToRecalc[static_cast<size_t>(inIdx)])
             continue;
 
-        const Position& inputPos = localInputPositions[static_cast<size_t> (inIdx)];
+        // A stereo-pair channel's primary slot carries slice 0, so its row is
+        // evaluated at anchor + slice-0 offset (and the per-channel terms
+        // derived from it are shared with the derived rows below). Mono
+        // offsets are zero by construction, keeping this path bit-identical
+        // for mono channels.
+        Position inputPos = localInputPositions[static_cast<size_t> (inIdx)];
+        const auto& primaryDesc = localSourceMap.desc[static_cast<size_t> (inIdx)];
+        if (primaryDesc.isStereoSlice)
+        {
+            inputPos.x += primaryDesc.offsetX;
+            inputPos.y += primaryDesc.offsetY;
+            inputPos.z += primaryDesc.offsetZ;
+        }
+
+        // Align this channel to the render-latency reference by ADDING
+        // (max − own) — never negative, so it cannot fight the jmax(0, …)
+        // delay clamp near the array. Shared by all of the channel's rows.
+        const float latencyCompensationMs = renderLatencyReferenceMs
+            - (static_cast<size_t> (inIdx) < localChannelLatencyMs.size()
+                   ? localChannelLatencyMs[static_cast<size_t> (inIdx)] : 0.0f);
 
         // Get input attenuation parameters. inputAttenuation lives in the Channel
         // section - that is where the GUI, OSC and snapshot system all read/write it -
@@ -1428,7 +1618,7 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
                 float outputDelayLat = outputChannelSection.getProperty (outputDelayLatency, 0.0f);
 
                 float finalDelay = newDelays[matrixIdx] + globalHaasEffect - globalSystemLatency
-                                   + inputDelayLat + outputDelayLat;
+                                   + inputDelayLat + outputDelayLat + latencyCompensationMs;
 
                 newDelays[matrixIdx] = juce::jmax (0.0f, finalDelay);
             }
@@ -1436,7 +1626,13 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
         else
         {
             // Mode 1: Minimal Latency
-            // Subtract minimum from all delays (if we found valid outputs)
+            // Subtract minimum from all delays (if we found valid outputs).
+            // Mode 1 deliberately applies NO other latency terms (no Haas, no
+            // system latency, no delay trims) — but the render-latency
+            // reference DOES apply: without it a minimal-latency channel
+            // would run (reference) ms AHEAD of every latency-aligned stereo
+            // channel, which is worse than the misalignment being corrected.
+            // Identically zero in Phase 0.
             if (foundValidOutput)
             {
                 for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
@@ -1447,11 +1643,20 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
                     if (newLevels[matrixIdx] <= 0.0f)
                         continue;
 
-                    float finalDelay = newDelays[matrixIdx] - minDelay;
+                    float finalDelay = newDelays[matrixIdx] - minDelay + latencyCompensationMs;
                     newDelays[matrixIdx] = juce::jmax (0.0f, finalDelay);
                 }
             }
-            // If no valid outputs found, leave delays as calculated (no subtraction)
+            else if (latencyCompensationMs > 0.0f)
+            {
+                // No valid min-latency outputs: still hold the reference
+                for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+                {
+                    const size_t matrixIdx = static_cast<size_t> (inIdx * numOutputs + outIdx);
+                    if (newLevels[matrixIdx] > 0.0f)
+                        newDelays[matrixIdx] = juce::jmax (0.0f, newDelays[matrixIdx] + latencyCompensationMs);
+                }
+            }
         }
 
         // Apply ramp offset for smooth mode transitions
@@ -1573,15 +1778,207 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
             // Apply angular attenuation (linear multiplier 0.0-1.0)
             linearLevel *= angularAtten;
 
-            // Apply Live Source Tamer gain (linear multiplier 0.0-1.0)
-            if (lsGains != nullptr)
+            // Apply Live Source Tamer gain (linear multiplier 0.0-1.0).
+            // N/A for stereo-pair channels: applying it to slice 0 only would
+            // break the slices-sum-to-input identity at the array.
+            if (lsGains != nullptr && ! primaryDesc.isStereoSlice)
                 linearLevel *= lsGains[matrixIdx];
 
             // Apply Sideline attenuation (linear multiplier 0.0-1.0)
             float sidelineAtten = calculateSidelineAttenuation (inIdx, inputPos);
             linearLevel *= sidelineAtten;
 
+            // Slice-0 gain for a stereo primary (1 for mono channels)
+            if (primaryDesc.isStereoSlice)
+                linearLevel *= primaryDesc.gainLinear;
+
             newLevels[matrixIdx] = linearLevel;
+        }
+
+        // ==========================================
+        // DERIVED SLICE ROWS (stereo-pair channels)
+        // ==========================================
+        // Slices 1..5 of a stereo channel render at anchor + slice offset but
+        // SHARE the channel's minDelay, common-attenuation adjustment and mode
+        // ramps computed above from the primary (slice 0) row. Recomputing
+        // those per slice would give every slice a different level lift and a
+        // different latency zero, so the six feeds would stop summing to the
+        // input at the array (comb filtering). The arithmetic below mirrors
+        // the primary path operation-for-operation so a zero-offset slice is
+        // bit-equal to a mono channel at the same position (the Phase-0 null
+        // test).
+        const int channelFirstDerivedSlot = localSourceMap.firstDerivedSlot[static_cast<size_t> (inIdx)];
+        for (int slice = 1; channelFirstDerivedSlot >= 0
+                            && slice <= spatcore::wfs::RenderSourceMap::kDerivedPerStereo; ++slice)
+        {
+            const int slot = channelFirstDerivedSlot + (slice - 1);
+            const auto& sliceDesc = localSourceMap.desc[static_cast<size_t> (slot)];
+
+            Position slicePos = localInputPositions[static_cast<size_t> (inIdx)];
+            slicePos.x += sliceDesc.offsetX;
+            slicePos.y += sliceDesc.offsetY;
+            slicePos.z += sliceDesc.offsetZ;
+
+            for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+            {
+                const size_t matrixIdx = static_cast<size_t> (slot * numOutputs + outIdx);
+
+                const bool routingMuted = outIdx >= 0
+                                       && outIdx < inputMutesPerOutput.size()
+                                       && inputMutesPerOutput[outIdx].getIntValue() != 0;
+                if (! sliceDesc.active || routingMuted)
+                {
+                    newDelays[matrixIdx] = 0.0f;
+                    newLevels[matrixIdx] = 0.0f;
+                    newHF[matrixIdx] = 0.0f;
+                    continue;
+                }
+
+                const Position& speakerPos = localSpeakerPositions[static_cast<size_t> (outIdx)];
+                const Position& listenerPos = localListenerPositions[static_cast<size_t> (outIdx)];
+
+                float angularAtten = calculateAngularAttenuation (inIdx, outIdx, slicePos, speakerPos);
+                if (angularAtten <= 0.0f)
+                {
+                    newDelays[matrixIdx] = 0.0f;
+                    newLevels[matrixIdx] = 0.0f;
+                    newHF[matrixIdx] = 0.0f;
+                    continue;
+                }
+
+                auto outputOptionsSection = valueTreeState.getOutputOptionsSection (outIdx);
+                auto outputPositionSection = valueTreeState.getOutputPositionSection (outIdx);
+                float outputDistAttenPercent = outputOptionsSection.getProperty (outputDistanceAttenPercent, 100.0f);
+                float outputHFdamp = outputPositionSection.getProperty (outputHFdamping, outputHFdampingDefault);
+
+                auto distanceWithHeightFactor = [heightFactor] (const Position& a, const Position& b) -> float
+                {
+                    float dx = b.x - a.x;
+                    float dy = b.y - a.y;
+                    float dz = (b.z - a.z) * heightFactor;
+                    return std::sqrt (dx * dx + dy * dy + dz * dz);
+                };
+
+                float inputToListener = distanceWithHeightFactor (slicePos, listenerPos);
+                float inputToSpeaker = distanceWithHeightFactor (slicePos, speakerPos);
+                float speakerToListener = distance3D (speakerPos, listenerPos);
+
+                float delayMeters = inputToListener - speakerToListener;
+                float delayMs = (delayMeters / speedOfSound) * 1000.0f;
+                delayMs = juce::jmax (0.0f, delayMs);
+
+                // Shared per-channel delay post-processing (same terms, same
+                // operation order as the primary row)
+                if (minimalLatencyMode == 0)
+                {
+                    auto outputChannelSection = valueTreeState.getOutputChannelSection (outIdx);
+                    float outputDelayLat = outputChannelSection.getProperty (outputDelayLatency, 0.0f);
+
+                    float finalDelay = delayMs + globalHaasEffect - globalSystemLatency
+                                       + inputDelayLat + outputDelayLat + latencyCompensationMs;
+                    delayMs = juce::jmax (0.0f, finalDelay);
+                }
+                else if (foundValidOutput)
+                {
+                    delayMs = juce::jmax (0.0f, delayMs - minDelay + latencyCompensationMs);
+                }
+                else if (latencyCompensationMs > 0.0f)
+                {
+                    delayMs = juce::jmax (0.0f, delayMs + latencyCompensationMs);
+                }
+
+                if (std::abs (rampOffset) > 0.001f)
+                    delayMs = juce::jmax (0.0f, delayMs + rampOffset);
+
+                newDelays[matrixIdx] = delayMs;
+
+                // Level: same law at the slice position, then the shared
+                // common-attenuation terms
+                float distanceAttenDb = 0.0f;
+                if (attenLaw == 0)
+                {
+                    distanceAttenDb = inputDistAtten * inputToSpeaker;
+                }
+                else
+                {
+                    float effectiveDistance = inputToSpeaker / juce::jmax (0.001f, distRatio);
+                    if (effectiveDistance < 1.0f)
+                        distanceAttenDb = 0.0f;
+                    else
+                        distanceAttenDb = -20.0f * std::log10 (effectiveDistance);
+                }
+
+                float scaledDistanceAttenDb = distanceAttenDb * (outputDistAttenPercent / 100.0f);
+                float attenuationDb = inputAtten + scaledDistanceAttenDb;
+                attenuationDb = juce::jlimit (-92.0f, 0.0f, attenuationDb);
+
+                attenuationDb += commonAttenAdjustment + commonAttenRampOffset;
+
+                int outputArrayNum = outputArrayAssignments[static_cast<size_t> (outIdx)];
+                if (outputArrayNum >= 1 && outputArrayNum <= 10)
+                    attenuationDb += arrayAttenDb[static_cast<size_t> (outputArrayNum - 1)];
+
+                attenuationDb = juce::jlimit (-92.0f, 0.0f, attenuationDb);
+
+                float linearLevel = std::pow (10.0f, attenuationDb / 20.0f);
+                linearLevel *= angularAtten;
+
+                // Live Source Tamer is N/A for slices (lsGains rows here stay
+                // unity by contract and are deliberately not applied)
+
+                float sidelineAtten = calculateSidelineAttenuation (inIdx, slicePos);
+                linearLevel *= sidelineAtten;
+
+                linearLevel *= sliceDesc.gainLinear;
+
+                newLevels[matrixIdx] = linearLevel;
+
+                // HF attenuation: same formula at the slice position
+                float hfAttenOutput = outputHFdamp * inputToSpeaker;
+
+                float hfAttenDirectivity = 0.0f;
+                if (directivityDeg < 360 && hfShelfDb < 0.0f)
+                {
+                    float dx = speakerPos.x - slicePos.x;
+                    float dy = speakerPos.y - slicePos.y;
+                    float dz = speakerPos.z - slicePos.z;
+                    float rawDistance = std::sqrt (dx * dx + dy * dy + dz * dz);
+
+                    if (rawDistance > 0.001f)
+                    {
+                        float invDist = 1.0f / rawDistance;
+                        float toSpeakerX = dx * invDist;
+                        float toSpeakerY = dy * invDist;
+                        float toSpeakerZ = dz * invDist;
+
+                        float dotProduct = facingX * toSpeakerX + facingY * toSpeakerY + facingZ * toSpeakerZ;
+                        dotProduct = juce::jlimit (-1.0f, 1.0f, dotProduct);
+
+                        float angleToSpeaker = std::acos (dotProduct);
+                        float halfDirectivity = directivityRad * 0.5f;
+
+                        if (angleToSpeaker > halfDirectivity)
+                        {
+                            float transitionRange = juce::MathConstants<float>::pi - halfDirectivity;
+                            if (transitionRange > 0.001f)
+                            {
+                                float progress = (angleToSpeaker - halfDirectivity) / transitionRange;
+                                progress = juce::jmin (1.0f, progress);
+                                float sinArg = progress * juce::MathConstants<float>::halfPi;
+                                hfAttenDirectivity = hfShelfDb * std::sqrt (std::sin (sinArg));
+                            }
+                        }
+                    }
+                }
+
+                float gmHfOffset = (static_cast<size_t> (inIdx) < localGradientMapOffsets.size())
+                                       ? localGradientMapOffsets[static_cast<size_t> (inIdx)].hfShelfDb
+                                       : 0.0f;
+                float hfAtten = hfAttenOutput + hfAttenDirectivity + gmHfOffset;
+                hfAtten = juce::jlimit (-60.0f, 0.0f, hfAtten);
+
+                newHF[matrixIdx] = hfAtten;
+            }
         }
     }
 
@@ -1594,6 +1991,11 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
 
     for (int inIdx = 0; inIdx < numInputs; ++inIdx)
     {
+        // Rows past the visible channel count are derived-slice slots — FR is
+        // N/A for those and they must never be computed as mono channels
+        if (inIdx >= localSourceMap.numInputChannels)
+            break;
+
         // Skip inputs that don't need recalculation
         if (!inputsToRecalc[static_cast<size_t>(inIdx)])
             continue;
@@ -1603,6 +2005,13 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
         // Get FR parameters from Hackoustics section
         auto hackousticsSection = valueTreeState.getInputHackousticsSection(inIdx);
         int frActive = hackousticsSection.getProperty(inputFRactive, 0);
+
+        // Floor reflections are N/A for stereo-pair channels (handoff doc §5):
+        // force the primary row off regardless of the stored parameter, so a
+        // mono→stereo type change cannot leave a live FR row behind. Derived
+        // rows are never written and stay zero.
+        if (localSourceMap.desc[static_cast<size_t> (inIdx)].isStereoSlice)
+            frActive = 0;
 
         // If FR not active for this input, zero all FR entries
         if (frActive == 0)
@@ -1726,22 +2135,55 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
 
     for (int inIdx = 0; inIdx < numInputs; ++inIdx)
     {
+        // Rows past the visible channel count are derived-slice slots, whose
+        // reverb feeds are computed with their owning channel below
+        if (inIdx >= localSourceMap.numInputChannels)
+            break;
+
         // Skip inputs that don't need recalculation (existing values preserved from copy)
         if (!inputsToRecalc[static_cast<size_t>(inIdx)])
             continue;
 
-        const Position& inputPos = localInputPositions[static_cast<size_t> (inIdx)];
+        // Stereo primary slot = slice 0 at anchor + slice-0 offset (zero for
+        // mono channels), mirroring the main input→output loop
+        Position inputPos = localInputPositions[static_cast<size_t> (inIdx)];
+        const auto& primaryDesc = localSourceMap.desc[static_cast<size_t> (inIdx)];
+        if (primaryDesc.isStereoSlice)
+        {
+            inputPos.x += primaryDesc.offsetX;
+            inputPos.y += primaryDesc.offsetY;
+            inputPos.z += primaryDesc.offsetZ;
+        }
+        const int channelFirstDerivedSlot = localSourceMap.firstDerivedSlot[static_cast<size_t> (inIdx)];
+
+        // Render-latency reference, duplicated for the reverb feeds (the
+        // reverb path is a separate delay computation with the same contract)
+        const float latencyCompensationMs = renderLatencyReferenceMs
+            - (static_cast<size_t> (inIdx) < localChannelLatencyMs.size()
+                   ? localChannelLatencyMs[static_cast<size_t> (inIdx)] : 0.0f);
 
         // Check if this input has reverb sends muted
         if (isInputReverbMuted (inIdx))
         {
-            // Zero out all reverb sends for this input
+            // Zero out all reverb sends for this input, derived slice rows included
             for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
             {
                 const size_t matrixIdx = static_cast<size_t> (inIdx * numReverbs + revIdx);
                 newInputReverbDelays[matrixIdx] = 0.0f;
                 newInputReverbLevels[matrixIdx] = 0.0f;
                 newInputReverbHF[matrixIdx] = 0.0f;
+            }
+            for (int slice = 1; channelFirstDerivedSlot >= 0
+                                && slice <= spatcore::wfs::RenderSourceMap::kDerivedPerStereo; ++slice)
+            {
+                const int slot = channelFirstDerivedSlot + (slice - 1);
+                for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
+                {
+                    const size_t matrixIdx = static_cast<size_t> (slot * numReverbs + revIdx);
+                    newInputReverbDelays[matrixIdx] = 0.0f;
+                    newInputReverbLevels[matrixIdx] = 0.0f;
+                    newInputReverbHF[matrixIdx] = 0.0f;
+                }
             }
             continue;
         }
@@ -1912,36 +2354,48 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
             newInputReverbHF[matrixIdx] = juce::jlimit (-60.0f, 0.0f, hfAtten);
         }
 
-        // Delay post-processing for reverb feeds
+        // Delay post-processing for reverb feeds. The min-delay terms live at
+        // channel scope so the derived slice rows below share them (per-slice
+        // recompute would break the slices-sum-to-input identity).
+        float reverbMinDelay = std::numeric_limits<float>::max();
+        bool reverbFoundValid = false;
         if (minimalLatencyMode == 1)
         {
             // Minimal Latency Mode: find minimum delay among valid reverbs
-            float minDelay = std::numeric_limits<float>::max();
-            bool foundValid = false;
-
             for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
             {
                 if (validReverbForMinLatency[static_cast<size_t> (revIdx)])
                 {
                     const size_t matrixIdx = static_cast<size_t> (inIdx * numReverbs + revIdx);
-                    if (newInputReverbDelays[matrixIdx] < minDelay)
+                    if (newInputReverbDelays[matrixIdx] < reverbMinDelay)
                     {
-                        minDelay = newInputReverbDelays[matrixIdx];
-                        foundValid = true;
+                        reverbMinDelay = newInputReverbDelays[matrixIdx];
+                        reverbFoundValid = true;
                     }
                 }
             }
 
-            if (foundValid)
+            if (reverbFoundValid)
             {
                 for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
                 {
                     const size_t matrixIdx = static_cast<size_t> (inIdx * numReverbs + revIdx);
                     if (newInputReverbLevels[matrixIdx] > 0.0f)
                     {
-                        float finalDelay = newInputReverbDelays[matrixIdx] - minDelay;
+                        // Mode 1 carries no other latency terms, but the
+                        // render-latency reference applies (see the main loop)
+                        float finalDelay = newInputReverbDelays[matrixIdx] - reverbMinDelay + latencyCompensationMs;
                         newInputReverbDelays[matrixIdx] = juce::jmax (0.0f, finalDelay);
                     }
+                }
+            }
+            else if (latencyCompensationMs > 0.0f)
+            {
+                for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
+                {
+                    const size_t matrixIdx = static_cast<size_t> (inIdx * numReverbs + revIdx);
+                    if (newInputReverbLevels[matrixIdx] > 0.0f)
+                        newInputReverbDelays[matrixIdx] = juce::jmax (0.0f, newInputReverbDelays[matrixIdx] + latencyCompensationMs);
                 }
             }
         }
@@ -1957,7 +2411,7 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
                     float reverbDelayLat = channelSection.getProperty (reverbDelayLatency, reverbDelayLatencyDefault);
 
                     float finalDelay = newInputReverbDelays[matrixIdx] + globalHaasEffect - globalSystemLatency
-                                       + inputDelayLat + reverbDelayLat;
+                                       + inputDelayLat + reverbDelayLat + latencyCompensationMs;
                     newInputReverbDelays[matrixIdx] = juce::jmax (0.0f, finalDelay);
                 }
             }
@@ -1981,7 +2435,163 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
             float linearLevel = std::pow (10.0f, attenuationDb / 20.0f);
             linearLevel *= angularAtten;
 
+            // Slice-0 gain for a stereo primary (1 for mono channels)
+            if (primaryDesc.isStereoSlice)
+                linearLevel *= primaryDesc.gainLinear;
+
             newInputReverbLevels[matrixIdx] = linearLevel;
+        }
+
+        // ==========================================
+        // DERIVED SLICE REVERB FEEDS (stereo-pair channels)
+        // ==========================================
+        // Slices feed the reverb individually at their own positions so the
+        // feeds sum to what the whole channel would have sent. Shared terms
+        // (commonAttenAdjustment, reverbMinDelay, mode offsets) come from the
+        // primary row above; the arithmetic mirrors it operation-for-operation
+        // so a zero-offset slice is bit-equal to a mono channel at the anchor.
+        for (int slice = 1; channelFirstDerivedSlot >= 0
+                            && slice <= spatcore::wfs::RenderSourceMap::kDerivedPerStereo; ++slice)
+        {
+            const int slot = channelFirstDerivedSlot + (slice - 1);
+            const auto& sliceDesc = localSourceMap.desc[static_cast<size_t> (slot)];
+
+            Position slicePos = localInputPositions[static_cast<size_t> (inIdx)];
+            slicePos.x += sliceDesc.offsetX;
+            slicePos.y += sliceDesc.offsetY;
+            slicePos.z += sliceDesc.offsetZ;
+
+            for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
+            {
+                const size_t matrixIdx = static_cast<size_t> (slot * numReverbs + revIdx);
+
+                if (! sliceDesc.active)
+                {
+                    newInputReverbDelays[matrixIdx] = 0.0f;
+                    newInputReverbLevels[matrixIdx] = 0.0f;
+                    newInputReverbHF[matrixIdx] = 0.0f;
+                    continue;
+                }
+
+                const Position& reverbFeedPos = localReverbFeedPositions[static_cast<size_t> (revIdx)];
+
+                auto feedSection = valueTreeState.getReverbFeedSection (revIdx);
+                int reverbDistAttenPercent = feedSection.getProperty (reverbDistanceAttenEnable, reverbDistanceAttenEnableDefault);
+                float reverbHFdamp = feedSection.getProperty (reverbHFdamping, reverbHFdampingDefault);
+
+                float angularAtten = calculateReverbFeedAngularAttenuation (inIdx, revIdx, slicePos, reverbFeedPos);
+                if (angularAtten <= 0.0f)
+                {
+                    newInputReverbDelays[matrixIdx] = 0.0f;
+                    newInputReverbLevels[matrixIdx] = 0.0f;
+                    newInputReverbHF[matrixIdx] = 0.0f;
+                    continue;
+                }
+
+                auto distanceWithHeightFactor = [heightFactor] (const Position& a, const Position& b) -> float
+                {
+                    float dx = b.x - a.x;
+                    float dy = b.y - a.y;
+                    float dz = (b.z - a.z) * heightFactor;
+                    return std::sqrt (dx * dx + dy * dy + dz * dz);
+                };
+
+                float inputToReverbFeed = distanceWithHeightFactor (slicePos, reverbFeedPos);
+
+                float delayMs = (inputToReverbFeed / speedOfSound) * 1000.0f;
+                delayMs = juce::jmax (0.0f, delayMs);
+
+                // Shared per-channel delay post-processing
+                if (minimalLatencyMode == 1)
+                {
+                    if (reverbFoundValid)
+                        delayMs = juce::jmax (0.0f, delayMs - reverbMinDelay + latencyCompensationMs);
+                    else if (latencyCompensationMs > 0.0f)
+                        delayMs = juce::jmax (0.0f, delayMs + latencyCompensationMs);
+                }
+                else
+                {
+                    auto channelSection = valueTreeState.getReverbChannelSection (revIdx);
+                    float reverbDelayLat = channelSection.getProperty (reverbDelayLatency, reverbDelayLatencyDefault);
+
+                    float finalDelay = delayMs + globalHaasEffect - globalSystemLatency
+                                       + inputDelayLat + reverbDelayLat + latencyCompensationMs;
+                    delayMs = juce::jmax (0.0f, finalDelay);
+                }
+
+                newInputReverbDelays[matrixIdx] = delayMs;
+
+                // Level: same law at the slice position, shared common atten
+                float distanceAttenDb = 0.0f;
+                if (attenLaw == 0)
+                {
+                    distanceAttenDb = inputDistAtten * inputToReverbFeed;
+                }
+                else
+                {
+                    float effectiveDistance = inputToReverbFeed / juce::jmax (0.001f, distRatio);
+                    if (effectiveDistance < 1.0f)
+                        distanceAttenDb = 0.0f;
+                    else
+                        distanceAttenDb = -20.0f * std::log10 (effectiveDistance);
+                }
+
+                float attenuationDb = inputAtten + distanceAttenDb * (static_cast<float> (reverbDistAttenPercent) / 100.0f);
+                attenuationDb = juce::jlimit (-92.0f, 0.0f, attenuationDb);
+
+                attenuationDb += commonAttenAdjustment;
+                attenuationDb = juce::jlimit (-92.0f, 0.0f, attenuationDb);
+
+                float linearLevel = std::pow (10.0f, attenuationDb / 20.0f);
+                linearLevel *= angularAtten;
+                linearLevel *= sliceDesc.gainLinear;
+
+                newInputReverbLevels[matrixIdx] = linearLevel;
+
+                // HF attenuation at the slice position
+                float hfAttenReverb = reverbHFdamp * inputToReverbFeed;
+
+                float hfAttenDirectivity = 0.0f;
+                if (directivityDeg < 360 && hfShelfDb < 0.0f)
+                {
+                    float dx = reverbFeedPos.x - slicePos.x;
+                    float dy = reverbFeedPos.y - slicePos.y;
+                    float dz = reverbFeedPos.z - slicePos.z;
+                    float rawDistance = std::sqrt (dx * dx + dy * dy + dz * dz);
+
+                    if (rawDistance > 0.001f)
+                    {
+                        float invDist = 1.0f / rawDistance;
+                        float toReverbX = dx * invDist;
+                        float toReverbY = dy * invDist;
+                        float toReverbZ = dz * invDist;
+
+                        float dotProduct = facingX * toReverbX + facingY * toReverbY + facingZ * toReverbZ;
+                        dotProduct = juce::jlimit (-1.0f, 1.0f, dotProduct);
+
+                        float angleToReverb = std::acos (dotProduct);
+                        float halfDirectivity = directivityRad * 0.5f;
+
+                        if (angleToReverb > halfDirectivity)
+                        {
+                            float transitionRange = juce::MathConstants<float>::pi - halfDirectivity;
+                            if (transitionRange > 0.001f)
+                            {
+                                float progress = (angleToReverb - halfDirectivity) / transitionRange;
+                                progress = juce::jmin (1.0f, progress);
+                                float sinArg = progress * juce::MathConstants<float>::halfPi;
+                                hfAttenDirectivity = hfShelfDb * std::sqrt (std::sin (sinArg));
+                            }
+                        }
+                    }
+                }
+
+                float gmHfOffset = (static_cast<size_t> (inIdx) < localGradientMapOffsets.size())
+                                       ? localGradientMapOffsets[static_cast<size_t> (inIdx)].hfShelfDb
+                                       : 0.0f;
+                float hfAtten = hfAttenReverb + hfAttenDirectivity + gmHfOffset;
+                newInputReverbHF[matrixIdx] = juce::jlimit (-60.0f, 0.0f, hfAtten);
+            }
         }
     }
 
@@ -2414,9 +3024,15 @@ void WFSCalculationEngine::valueTreePropertyChanged (juce::ValueTree& tree,
                                  property == inputDistanceRatio ||
                                  property == inputCommonAtten);
 
-    // Input channel parameters
+    // Input channel parameters. inputStereoWidth and inputStereoAxisOffset move
+    // the derived legs — one how far apart, the other along which axis — so
+    // either edit must re-fire the 50 Hz recalc; a channel's mono/stereo type
+    // (per-channel inputChannelType) is structural and takes effect through a
+    // full renderer re-prepare, not through this path.
     bool isInputChannelProperty = (property == inputMinimalLatency ||
-                                   property == inputDelayLatency);
+                                   property == inputDelayLatency ||
+                                   property == inputStereoWidth ||
+                                   property == inputStereoAxisOffset);
 
     // Input height factor
     bool isInputHeightProperty = (property == inputHeightFactor);

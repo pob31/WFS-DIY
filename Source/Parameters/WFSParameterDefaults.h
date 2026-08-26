@@ -16,6 +16,16 @@ namespace WFSParameterDefaults
 
     constexpr int maxInputChannels     = 64;
     constexpr int maxOutputChannels    = 128;
+
+    // Renderer source dimension. A stereo-pair input channel renders as 6 WFS
+    // sources (its primary slot + 5 derived slices appended past the visible
+    // inputs), so the matrix row budget exceeds the input-channel budget. These
+    // mirror spatcore::wfs::RenderSourceMap's constants; WFSCalculationEngine.cpp
+    // static_asserts the two sets are equal.
+    constexpr int maxStereoChannels       = 8;
+    constexpr int derivedSlicesPerStereo  = 5;
+    constexpr int maxRenderSources        = maxInputChannels
+                                          + maxStereoChannels * derivedSlicesPerStereo;  // 104
     constexpr int maxReverbChannels    = 32;
     constexpr int maxNetworkTargets    = 6;
     constexpr int maxClusters          = 10;
@@ -321,11 +331,59 @@ namespace WFSParameterDefaults
     //==========================================================================
 
     // Input > Channel
+    // Both default names are hard-coded English on purpose. They are persisted
+    // into the ValueTree and into project files, so a localised default would
+    // silently rewrite a stored name when the user switches language, and the
+    // "is this name still a default?" test (resequenceDefaultInputNames) would
+    // stop recognising names written under another language.
+
+    /** Legacy default name (0-based index). Kept because stored sessions still
+        carry "Input N" names that must be recognised as untouched defaults. */
     inline juce::String getDefaultInputName (int index) { return "Input " + juce::String (index + 1); }
+
+    /** Default name of a channel of a given type. `ordinal` is 1-BASED and
+        counts within that type only: monos 1,2,3... and stereos 1,2...
+        independently, in display order. */
+    inline juce::String getDefaultInputNameForType (bool stereo, int ordinal)
+    {
+        return (stereo ? "Stereo " : "Mono ") + juce::String (ordinal);
+    }
 
     constexpr float inputAttenuationDefault     = 0.0f;
     constexpr float inputAttenuationMin         = -92.0f;
     constexpr float inputAttenuationMax         = 0.0f;
+
+    // Per-channel input type values (Input node property `inputChannelType`).
+    constexpr const char* inputChannelTypeMono   = "mono";
+    constexpr const char* inputChannelTypeStereo = "stereo";
+
+    // Stereo input count (config-level, System Config): the LAST
+    // stereoInputChannels of the input list are stereo pairs, the rest mono.
+    // A config-level split (not a per-channel type) so a stereo channel's two
+    // patch columns are reserved from the start — no stealing a neighbouring
+    // channel's hardware feed mid-project. Pre-stereo configs read as all-mono
+    // (default 0). Changing it resizes the renderer: stopped-only, never in
+    // snapshots (configuration, not show state).
+    constexpr int stereoInputChannelsDefault    = 0;
+    constexpr int stereoInputChannelsMin        = 0;
+    constexpr int stereoInputChannelsMax        = maxStereoChannels;
+
+    // Stereo image, per stereo pair. Width is the FULL left-to-right distance in
+    // METRES, so each leg sits at half of it either side of the stored centre.
+    // Absolute rather than a fraction of the array's extent: an extent-relative
+    // reference is X-only, so it spreads ±R everywhere on a circular array and
+    // does nothing at any setting on an array running along Y. 0 m collapses the
+    // pair to a point source (the null-test condition).
+    constexpr float inputStereoWidthDefault      = 4.0f;
+    constexpr float inputStereoWidthMin          = 0.0f;
+    constexpr float inputStereoWidthMax          = 50.0f;
+
+    // Rotation applied to the automatic tangential axis, in degrees, positive
+    // counter-clockwise viewed from above (the inputRotation convention).
+    // 0 = automatic; ±180 is an explicit L/R swap.
+    constexpr int inputStereoAxisOffsetDefault   = 0;
+    constexpr int inputStereoAxisOffsetMin       = -179;
+    constexpr int inputStereoAxisOffsetMax       = 180;
 
     constexpr float inputDelayLatencyDefault    = 0.0f;
     constexpr float inputDelayLatencyMin        = -100.0f;

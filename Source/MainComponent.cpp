@@ -1,5 +1,8 @@
 #include "MainComponent.h"
+#include "../spatcore/wfs/RenderSourceMap.h"
 #include "WFSLogger.h"
+#include "Parameters/VarCoercion.h"
+#include "gui/ChannelIdentityGate.h"
 #include "AppSettings.h"
 #include "Parameters/WFSParameterIDs.h"
 #include "Localization/LocalizationManager.h"
@@ -114,6 +117,7 @@ MainComponent::MainComponent()
     numOutputChannels = juce::jlimit(2, WFSParameterDefaults::maxOutputChannels, numOutputChannels);
     if (numInputChannels == 0)
         numInputChannels = 2; // Default to a sensible input count to avoid silent processing
+    recomputeRenderSourceCount();  // keep the renderer dimension in lockstep
 
     // Initialize routing matrices with default values
     resizeRoutingMatrices();
@@ -157,6 +161,7 @@ MainComponent::MainComponent()
     // Load initial channel counts from parameters
     numInputChannels = (int)parameters.getConfigParam("InputChannels");
     numOutputChannels = (int)parameters.getConfigParam("OutputChannels");
+    recomputeRenderSourceCount();  // keep the renderer dimension in lockstep
     resizeRoutingMatrices();
 
     // Algorithm selector moved to System Config tab
@@ -460,6 +465,13 @@ MainComponent::MainComponent()
         handleConfigReloaded();
     };
 
+    // A relabel or rearrangement done from an identity dialog on the Inputs
+    // tab: the one funnel that also re-sends the remote channel inventory.
+    inputsTab->onStructureChanged = [this]() {
+        handleChannelCountChange (parameters.getNumInputChannels(), numOutputChannels,
+                                  parameters.getNumReverbChannels());
+    };
+
     inputsTab->onConfigReloaded = [this]() {
         handleConfigReloaded();
     };
@@ -517,7 +529,15 @@ MainComponent::MainComponent()
         // same rule as the file-manager save/recall paths.
         const auto effScope = scope.withGlobals (fileManager.isSamplerMasterOn(), numChannels);
 
-        int cueCount = WFSNetwork::QLabCueBuilder::countCues (inputsData, effScope, numChannels);
+        // The snapshot file keys its <Input> nodes by permanent number while the
+        // scope mask is keyed by slot. Only live state can pair the two: without
+        // this resolver the builder falls back to number - 1, which drops a
+        // channel whose number exceeds the count and filters every other channel
+        // through a neighbour's scope column once the list is reordered.
+        auto& vts = parameters.getValueTreeState();
+        const auto numberToSlot = [&vts] (int number) { return vts.getSlotForChannelNumber (number); };
+
+        int cueCount = WFSNetwork::QLabCueBuilder::countCues (inputsData, effScope, numChannels, numberToSlot);
 
         if (cueCount == 0)
         {
@@ -527,7 +547,7 @@ MainComponent::MainComponent()
         }
 
         auto sequence = WFSNetwork::QLabCueBuilder::buildSnapshotCues (
-            snapshotName, inputsData, effScope, numChannels, patchNumber);
+            snapshotName, inputsData, effScope, numChannels, patchNumber, numberToSlot);
 
         oscManager->sendToQLab (sequence, [this, cueCount](int /*sentCount*/) {
             if (inputsTab != nullptr)
@@ -578,7 +598,10 @@ MainComponent::MainComponent()
 
     // Gradient map editor change callback — re-rasterize for current channel
     inputsTab->getGradientMapEditor().onGradientMapsChanged = [this]() {
-        int ch = inputsTab->getCurrentChannel() - 1;  // 1-based → 0-based
+        // getCurrentChannel() is the permanent channel NUMBER; the evaluator
+        // array is slot-indexed, and numbers have gaps and are not in slot
+        // order after a reorder. rebuildGradientMapForInput ignores -1.
+        int ch = parameters.getValueTreeState().getSlotForChannelNumber (inputsTab->getCurrentChannel());
         rebuildGradientMapForInput (ch);
     };
 
@@ -603,7 +626,11 @@ MainComponent::MainComponent()
     // Sampler subtab change callback — push updated data to SamplerManager
     inputsTab->getSamplerSubTab().onSamplerDataChanged = [this]() {
         if (samplerManager == nullptr) return;
-        int ch = inputsTab->getCurrentChannel() - 1;
+        // getCurrentChannel() is the permanent channel NUMBER; the sampler
+        // tree section and the SamplerManager arrays below are slot-indexed,
+        // and numbers have gaps and are not in slot order after a reorder.
+        int ch = parameters.getValueTreeState().getSlotForChannelNumber (inputsTab->getCurrentChannel());
+        if (ch < 0) return;
         auto samplerTree = parameters.getValueTreeState().getInputSamplerSection (ch);
         if (samplerTree.isValid())
         {
@@ -709,6 +736,10 @@ MainComponent::MainComponent()
         // Ownership rule: only the MAP tab latches position ownership — merely
         // looking at the Inputs/Outputs/Reverb tabs does not (editing a
         // position there latches it via the parameter setters instead).
+        // Channel NUMBER ownership deliberately does NOT latch on tab visits:
+        // merely looking at the numbers keeps the session fresh. It is spent by
+        // the acts that commit them — a project save/load, an actual patch
+        // edit, snapshots, or any wire message naming a channel by number.
         if (tabIndex == 6 && systemConfigTab != nullptr)
             systemConfigTab->setMapTabVisited();
         resetHelpCycle();
@@ -746,7 +777,11 @@ MainComponent::MainComponent()
         {
             case 0:  // Input
                 tabbedComponent.setCurrentTabIndex(4);  // Inputs tab
-                inputsTab->selectChannel(index + 1);    // Convert 0-based to 1-based
+                // The Map hands out a SLOT; the selector holds permanent
+                // channel NUMBERS, which have gaps and are not in slot order
+                // after a reorder. Cluster/output/reverb ids below ARE dense
+                // slot positions, so their + 1 stays.
+                inputsTab->selectChannel (parameters.getValueTreeState().getInputChannelNumber (index));
                 break;
             case 1:  // Cluster
                 tabbedComponent.setCurrentTabIndex(5);  // Clusters tab
@@ -866,6 +901,16 @@ MainComponent::MainComponent()
               "MCP clients will not be able to connect.");
     }
 
+    // Structural channel edits from MCP (create/delete/type flip) run the
+    // same reconfiguration pass as the System Config editor. Handlers run on
+    // the message thread (the dispatcher hops there), so this is direct.
+    mcpServer->setChannelTopologyChangedCallback ([this]
+    {
+        handleChannelCountChange (parameters.getNumInputChannels(),
+                                  parameters.getNumOutputChannels(),
+                                  parameters.getNumReverbChannels());
+    });
+
     // Automation hook (control-replay harnesses): WFS_MCP_AI_ENABLED=1 in the
     // environment flips the MCP AI master toggle on at startup — the exact
     // equivalent of the operator clicking the Network-tab "AI" button. MCP
@@ -920,6 +965,7 @@ MainComponent::MainComponent()
     {
         auto& vts = parameters.getValueTreeState();
         auto flipModeState    = std::make_shared<bool> (false);
+        auto stereoParamsState = std::make_shared<bool> (false);
         auto lfoSubModeState  = std::make_shared<int> (0);
         auto outputEqBandState = std::make_shared<int> (0);
 
@@ -948,7 +994,7 @@ MainComponent::MainComponent()
             {
                 streamDeckManager->registerPage (
                     InputsTabPages::INPUTS_MAIN_TAB_INDEX, subTab,
-                    InputsTabPages::createPage (subTab, vts, parameters.getClusterEdit(), 0, flipModeState, lfoSubModeState, movCB));
+                    InputsTabPages::createPage (subTab, vts, parameters.getClusterEdit(), 0, flipModeState, stereoParamsState, lfoSubModeState, movCB));
             }
         }
 
@@ -1276,7 +1322,7 @@ MainComponent::MainComponent()
         };
 
         // Set page rebuild callback for channel changes and binding swaps
-        streamDeckManager->onPageNeedsRebuild = [this, flipModeState, lfoSubModeState, movCB, outputEqBandState, onEqBandSelectedGui, netCB, sysCB, mapCB, mapQ, mapPosOffsetMode, reverbPreEqBandState, reverbPreDynMode, reverbPostEqBandState, reverbPostDynMode, reverbSoloState, reverbMutePreState, reverbMutePostState, reverbEditOnMapState, reverbAlgoSubMode, reverbIRDuration, onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD, clusterLfoSubMode, presetCol, presetRow, clusterCB](int mainTab, int subTab, int channel)
+        streamDeckManager->onPageNeedsRebuild = [this, flipModeState, stereoParamsState, lfoSubModeState, movCB, outputEqBandState, onEqBandSelectedGui, netCB, sysCB, mapCB, mapQ, mapPosOffsetMode, reverbPreEqBandState, reverbPreDynMode, reverbPostEqBandState, reverbPostDynMode, reverbSoloState, reverbMutePreState, reverbMutePostState, reverbEditOnMapState, reverbAlgoSubMode, reverbIRDuration, onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD, clusterLfoSubMode, presetCol, presetRow, clusterCB](int mainTab, int subTab, int channel)
         {
             if (mainTab == InputsTabPages::INPUTS_MAIN_TAB_INDEX)
             {
@@ -1294,8 +1340,15 @@ MainComponent::MainComponent()
                 else
                 {
                     auto& vts = parameters.getValueTreeState();
+                    // `channel` arrives as the permanent channel NUMBER (fed
+                    // from InputsTab), while InputsTabPages indexes by SLOT;
+                    // numbers have gaps and are not in slot order after a
+                    // reorder. A dead number has no page to build.
+                    const int inputSlot = vts.getSlotForChannelNumber (channel);
+                    if (inputSlot < 0)
+                        return;
                     streamDeckManager->registerPage (mainTab, subTab,
-                        InputsTabPages::createPage (subTab, vts, parameters.getClusterEdit(), channel - 1, flipModeState, lfoSubModeState, movCB));
+                        InputsTabPages::createPage (subTab, vts, parameters.getClusterEdit(), inputSlot, flipModeState, stereoParamsState, lfoSubModeState, movCB));
                 }
             }
             else if (mainTab == OutputsTabPages::OUTPUTS_MAIN_TAB_INDEX)
@@ -1358,10 +1411,18 @@ MainComponent::MainComponent()
         {
             juce::MessageManager::callAsync ([this, tabIndex, itemIndex]()
             {
-                int channel = itemIndex + 1;  // Convert 0-based to 1-based
+                // Output and reverb ids ARE dense slot positions, so + 1 is
+                // their identity. The input case cannot share it: itemIndex is
+                // a SLOT there and the selector holds permanent channel
+                // NUMBERS, which have gaps and are not in slot order after a
+                // reorder.
+                int channel = itemIndex + 1;
                 switch (tabIndex)
                 {
-                    case 4:  if (inputsTab)   inputsTab->selectChannel (channel);   break;
+                    case 4:
+                        if (inputsTab)
+                            inputsTab->selectChannel (parameters.getValueTreeState().getInputChannelNumber (itemIndex));
+                        break;
                     case 2:  if (outputsTab)  outputsTab->selectChannel (channel);  break;
                     case 3:  if (reverbTab)   reverbTab->selectChannel (channel);   break;
                     default: break;
@@ -1395,22 +1456,28 @@ MainComponent::MainComponent()
             });
         };
 
-        controllerManager->callbacks.rotateSelected = [this] (float deltaDeg)
+        // Inputs a Space Mouse twist / Shift gesture applies to: the map
+        // selection, else the Inputs tab's current channel.
+        auto resolveControllerTargets = [this]()
         {
-            juce::MessageManager::callAsync ([this, deltaDeg]()
-            {
-                // Determine which inputs to rotate
-                std::set<int> targets;
-                if (mapTab)
-                    targets = mapTab->getSelectedInputSet();
+            std::set<int> targets;
+            if (mapTab)
+                targets = mapTab->getSelectedInputSet();
 
-                // On Inputs tab with no map selection, rotate the current channel
-                if (targets.empty() && inputsTab)
-                {
-                    int ch = inputsTab->getSelectedInputIndex();
-                    if (ch >= 0 && ch < parameters.getNumInputChannels())
-                        targets.insert (ch);
-                }
+            if (targets.empty() && inputsTab)
+            {
+                int ch = inputsTab->getSelectedInputIndex();
+                if (ch >= 0 && ch < parameters.getNumInputChannels())
+                    targets.insert (ch);
+            }
+            return targets;
+        };
+
+        controllerManager->callbacks.rotateSelected = [this, resolveControllerTargets] (float deltaDeg)
+        {
+            juce::MessageManager::callAsync ([this, resolveControllerTargets, deltaDeg]()
+            {
+                const auto targets = resolveControllerTargets();
 
                 for (int idx : targets)
                 {
@@ -1421,6 +1488,59 @@ MainComponent::MainComponent()
                     parameters.setInputParam (idx, "inputRotation", newRot);
                 }
                 if (mapTab) mapTab->repaint();
+            });
+        };
+
+        // Shift layer: push/pull widens or narrows the stereo image of every
+        // stereo target. Mono targets are left alone - Shift is the stereo
+        // layer, not a second name for height.
+        controllerManager->callbacks.adjustStereoWidth = [this, resolveControllerTargets] (float deltaMetres)
+        {
+            juce::MessageManager::callAsync ([this, resolveControllerTargets, deltaMetres]()
+            {
+                auto& vts = parameters.getValueTreeState();
+                bool changed = false;
+                for (int idx : resolveControllerTargets())
+                {
+                    if (! vts.isInputChannelStereo (idx))
+                        continue;
+                    float current = static_cast<float> (parameters.getInputParam (idx, WFSParameterIDs::inputStereoWidth.toString()));
+                    float next = juce::jlimit (WFSParameterDefaults::inputStereoWidthMin,
+                                               WFSParameterDefaults::inputStereoWidthMax,
+                                               current + deltaMetres);
+                    parameters.setInputParam (idx, WFSParameterIDs::inputStereoWidth.toString(), next);
+                    changed = true;
+                }
+                if (changed && mapTab) mapTab->repaint();
+            });
+        };
+
+        // Shift layer: twist rotates the stereo image axis. The axis is an
+        // integer in degrees but a 50 Hz tick at partial deflection is well
+        // under 1 degree, so carry the sub-degree remainder between ticks
+        // instead of rounding each one to zero.
+        controllerManager->callbacks.adjustStereoAxis = [this, resolveControllerTargets] (float deltaDeg)
+        {
+            juce::MessageManager::callAsync ([this, resolveControllerTargets, deltaDeg]()
+            {
+                stereoAxisControllerAccum += deltaDeg;
+                const int step = static_cast<int> (stereoAxisControllerAccum);  // truncates toward zero
+                if (step == 0)
+                    return;
+                stereoAxisControllerAccum -= static_cast<float> (step);
+
+                auto& vts = parameters.getValueTreeState();
+                bool changed = false;
+                for (int idx : resolveControllerTargets())
+                {
+                    if (! vts.isInputChannelStereo (idx))
+                        continue;
+                    int current = static_cast<int> (parameters.getInputParam (idx, WFSParameterIDs::inputStereoAxisOffset.toString()));
+                    parameters.setInputParam (idx, WFSParameterIDs::inputStereoAxisOffset.toString(),
+                                              WFSParameterDefaults::wrapPhaseDegrees (current + step));
+                    changed = true;
+                }
+                if (changed && mapTab) mapTab->repaint();
             });
         };
 
@@ -1440,9 +1560,12 @@ MainComponent::MainComponent()
 
                 mapTab->selectInputProgrammatically (next);
 
-                // Also sync InputsTab channel selector
+                // Also sync InputsTab channel selector. `next` is a SLOT (as
+                // passed to selectInputProgrammatically above); the selector
+                // holds permanent channel NUMBERS, which have gaps and are not
+                // in slot order after a reorder.
                 if (inputsTab)
-                    inputsTab->selectChannel (next + 1);  // 1-based
+                    inputsTab->selectChannel (parameters.getValueTreeState().getInputChannelNumber (next));
             });
         };
 
@@ -1765,6 +1888,14 @@ MainComponent::MainComponent()
     // Initialize WFS Calculation Engine for DSP parameter generation
     calculationEngine = std::make_unique<WFSCalculationEngine>(parameters.getValueTreeState());
 
+    // Constructed here rather than in prepareToPlay() because the stereo image
+    // the Map draws is read back from the slice states this owns: an operator
+    // plotting a show with no interface attached — first launch, or the
+    // "no audio device is running" path — never reaches prepareToPlay(), and a
+    // null manager would leave every pair drawn with no spread bar and no
+    // explanation. prepareToPlay() still prepares it once a device opens.
+    stereoChannelManager = std::make_unique<StereoChannelManager>();
+
     // Initialize Binaural Solo Monitoring
     binauralCalcEngine = std::make_unique<BinauralCalculationEngine>(
         parameters.getValueTreeState(), *calculationEngine);
@@ -1820,12 +1951,15 @@ MainComponent::MainComponent()
     if (inputsTab != nullptr)
         inputsTab->setAutoMotionProcessor(automOtionProcessor.get());
 
-    // Initialize Live Source Tamer engine for per-speaker gain reduction
-    // Uses max channel counts to match calculationEngine matrix dimensions
+    // Initialize Live Source Tamer engine for per-speaker gain reduction.
+    // Row dimension is maxRenderSources, NOT maxInputChannels: lsGains is indexed
+    // with the calculation engine's matrixIdx, whose rows cover derived stereo
+    // slice sources too. Sizing this smaller than the engine's matrix is an
+    // out-of-bounds read on the 50 Hz path.
     lsTamerEngine = std::make_unique<LiveSourceTamerEngine>(
         parameters.getValueTreeState(),
         *calculationEngine,
-        WFSParameterDefaults::maxInputChannels,
+        WFSParameterDefaults::maxRenderSources,
         WFSParameterDefaults::maxOutputChannels);
 
     // Initialize Test Signal Generator for audio interface testing
@@ -1864,6 +1998,25 @@ MainComponent::MainComponent()
             samplerManager->getPositionOverride(inputIndex, sx, sy, sz);
             offX = sx;
             offY = sy;
+            return true;
+        });
+
+        // Stereo image legs for the pair marker. Handing back the cache the
+        // geometry refresh filled — rather than recomputing from the width and
+        // the anchor here — is what guarantees the drawn image is the one being
+        // rendered; false for every mono channel and until the first refresh.
+        mapTab->setStereoImageCallback([this](int inputSlot,
+                                              juce::Point<float>& outLeft,
+                                              juce::Point<float>& outRight) -> bool {
+            if (inputSlot < 0 || inputSlot >= (int) stereoImageLegs.size())
+                return false;
+
+            const auto& legs = stereoImageLegs[static_cast<size_t>(inputSlot)];
+            if (! legs.valid)
+                return false;
+
+            outLeft = legs.left;
+            outRight = legs.right;
             return true;
         });
 
@@ -1920,6 +2073,23 @@ MainComponent::MainComponent()
         return -200.0f;
     });
 
+    // Binaural listener glyph: the seat comes from the ValueTree, but the head's
+    // facing needs the TRACKED yaw, which only exists on the RT fast path.
+    mapTab->setBinauralTrackedAttitudeProvider([this](float& yaw, float& pitch, float& roll) {
+        if (headTrackerManager == nullptr)
+            return false;
+        auto* source = headTrackerManager->getActiveSource();
+        if (source == nullptr)
+            return false;
+        const auto o = source->getOrientation();
+        if (! o.valid || ! spatcore::binaural::isFiniteAttitude(o))
+            return false;
+        yaw = o.yawRad;
+        pitch = o.pitchRad;
+        roll = o.rollRad;
+        return true;
+    });
+
     // Configure OSC Manager with initial network settings from parameters
     WFSNetwork::GlobalConfig oscGlobalConfig;
     oscGlobalConfig.udpReceivePort = (int)parameters.getConfigParam("NetworkRxUDPport");
@@ -1964,6 +2134,10 @@ MainComponent::MainComponent()
     };
 
     // Activate/deactivate sampler channel in the audio engine
+    // The two ctor-time recomputes ran before the tabs existed — publish the
+    // current render-source total now that SystemConfigTab is wired
+    systemConfigTab->setRenderSourceTotal (numInputChannels, numRenderSources);
+
     inputsTab->onSamplerActiveChanged = [this] (int channelIndex, bool active)
     {
         if (samplerManager != nullptr)
@@ -1991,6 +2165,22 @@ MainComponent::MainComponent()
     {
         if (streamDeckManager)
             streamDeckManager->setSubTab (subTabIndex);
+    };
+
+    // A channel retyped mono <-> stereo in place: setChannel() early-returns when
+    // the selected number has not moved, so nothing else rebuilds the Stream Deck
+    // page -- and its Inputs > Parameters dials bind different parameters either
+    // side of the split. Guarded three ways because inputChannelType is written one
+    // channel at a time in a loop (applyStereoSplit, the inventory apply path): only
+    // the channel actually on the surface refreshes, and never while the Patch
+    // window owns it, since refreshCurrentPage() short-circuits to the override page.
+    inputsTab->onChannelTypeChanged = [this](int changedChannelNumber)
+    {
+        if (streamDeckManager
+            && ! streamDeckManager->hasOverride()
+            && streamDeckManager->getCurrentMainTab() == InputsTabPages::INPUTS_MAIN_TAB_INDEX
+            && streamDeckManager->getChannel() == changedChannelNumber)
+            streamDeckManager->refreshCurrentPage();
     };
 
     // Sync StreamDeck to InputsTab's initial channel (1-indexed)
@@ -2111,8 +2301,11 @@ MainComponent::MainComponent()
         juce::var maxSpeedActiveVar = vts.getInputParameter(channelIndex, WFSParameterIDs::inputMaxSpeedActive);
         juce::var pathModeActiveVar = vts.getInputParameter(channelIndex, WFSParameterIDs::inputPathModeActive);
 
-        bool maxSpeedActive = maxSpeedActiveVar.isInt() ? (static_cast<int>(maxSpeedActiveVar) != 0) : false;
-        bool pathModeActive = pathModeActiveVar.isInt() ? (static_cast<int>(pathModeActiveVar) != 0) : false;
+        // NOT isInt()-guarded: after any load these are STRING vars, so both
+        // read false and remote/OSC path-mode waypoint capture was dead until
+        // the operator toggled one of the two controls by hand.
+        bool maxSpeedActive = WFSVar::toBool (maxSpeedActiveVar);
+        bool pathModeActive = WFSVar::toBool (pathModeActiveVar);
 
         if (maxSpeedActive && pathModeActive)
         {
@@ -2212,7 +2405,14 @@ MainComponent::MainComponent()
     {
         if (calculationEngine == nullptr || oscManager == nullptr)
             return;
-        if (channelId < 1 || channelId > parameters.getNumInputChannels())
+        // A tablet naming a channel BY NUMBER is an external reference to that
+        // number, so latch before the number is resolved — including when the
+        // number turns out to be dead below, because the tablet is addressing
+        // this list by number either way. OSCManager fires this through
+        // callAsync, so the tree write here is already on the message thread.
+        parameters.getValueTreeState().markChannelNumbersUserOwned ("Remote visualisation pin request");
+        // channelId is a permanent channel number — dead numbers are dropped
+        if (parameters.getValueTreeState().getSlotForChannelNumber(channelId) < 0)
             return;
 
         oscManager->sendRemoteVisRows(channelId,
@@ -2245,7 +2445,10 @@ MainComponent::MainComponent()
         // Send composite delta for each input
         for (int i = 0; i < numInputChannels; ++i)
         {
-            int channelId = i + 1;  // 1-based for OSC messages
+            // The wire addresses inputs by permanent channel NUMBER; `i` is a
+            // SLOT, and numbers have gaps and are not in slot order after a
+            // reorder.
+            int channelId = parameters.getValueTreeState().getInputChannelNumber (i);
 
             // Get target position (raw user-controlled position)
             auto posSection = parameters.getValueTreeState().getInputPositionSection(i);
@@ -2386,6 +2589,1206 @@ MainComponent::MainComponent()
 
     // Listen for device manager changes to re-attach audio callbacks when device changes
     deviceManager.addChangeListener(this);
+
+    // Hidden diagnostic: WFS_TEST_CHANNEL_LIST=1 drives the structural
+    // channel ops (append mono/stereo, delete-with-gap, in-place type flip,
+    // gap reuse, budget enforcement) exactly like the UI will, first under the
+    // fresh-session regime where every op renumbers to display order and then
+    // under the latched permanent-number regime, asserts the invariants of each
+    // after every step, and logs PASS/FAIL lines to the session log — no GUI
+    // needed.
+    if (std::getenv("WFS_TEST_CHANNEL_LIST") != nullptr)
+        runChannelListSelfTest();
+    else if (std::getenv("WFS_TEST_STEREO_COUNTS") != nullptr)
+        WFSLogger::getInstance().logInfo("SELF-TEST: WFS_TEST_STEREO_COUNTS is superseded by WFS_TEST_CHANNEL_LIST");
+
+    // Hidden diagnostic: WFS_TEST_STEREO_GEOMETRY=1 exercises the stereo image
+    // mapping on its own. Kept out of the chain above because it shares nothing
+    // with the channel-list test — that one must stay purely structural, and
+    // this one touches no session state at all, so both may run in one launch.
+    if (std::getenv("WFS_TEST_STEREO_GEOMETRY") != nullptr)
+        runStereoGeometrySelfTest();
+}
+
+void MainComponent::runChannelListSelfTest()
+{
+    auto& vts = parameters.getValueTreeState();
+    int failures = 0;
+
+    auto logLine = [](const juce::String& s) { WFSLogger::getInstance().logInfo(s); };
+
+    auto patchRows = [this]() -> juce::StringArray
+    {
+        auto audioPatchTree = parameters.getValueTreeState().getState().getChildWithName(WFSParameterIDs::AudioPatch);
+        auto inputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::InputPatch);
+        return juce::StringArray::fromTokens(
+            inputPatchTree.getProperty(WFSParameterIDs::patchData).toString(), ";", "");
+    };
+
+    auto colsOfRow = [](const juce::String& row) -> juce::String
+    {
+        juce::StringArray cols = juce::StringArray::fromTokens(row, ",", "");
+        juce::String patched;
+        for (int c = 0; c < cols.size(); ++c)
+            if (cols[c].getIntValue() == 1)
+                patched += (patched.isEmpty() ? "" : "+") + juce::String(c + 1);
+        return patched.isEmpty() ? "-" : patched;
+    };
+
+    auto patchOfNumber = [&](int number) -> juce::String
+    {
+        const int slot = vts.getSlotForChannelNumber(number);
+        auto rows = patchRows();
+        return (slot >= 0 && slot < rows.size()) ? colsOfRow(rows[slot]) : juce::String("?");
+    };
+
+    auto check = [&](bool ok, const juce::String& what)
+    {
+        if (! ok) ++failures;
+        logLine(juce::String("SELF-TEST ") + (ok ? "PASS " : "FAIL ") + what);
+    };
+
+    // One line per step: "number(type):patched-cols" in slot (display) order.
+    auto verify = [&](const char* label)
+    {
+        const int n = vts.getNumInputChannels();
+        auto rows = patchRows();
+
+        bool numbersUnique = true;
+        juce::SortedSet<int> seen;
+        juce::String summary;
+        for (int slot = 0; slot < n; ++slot)
+        {
+            const int number = vts.getInputChannelNumber(slot);
+            if (number <= 0 || seen.contains(number)) numbersUnique = false;
+            seen.add(number);
+            summary += juce::String(number) + (vts.isInputChannelStereo(slot) ? "s" : "m") + ":"
+                       + (slot < rows.size() ? colsOfRow(rows[slot]) : juce::String("?")) + " ";
+        }
+        logLine(juce::String("SELF-TEST ") + label + " [" + summary.trim() + "]");
+
+        check(numbersUnique, juce::String(label) + ": numbers unique and positive");
+        check(rows.size() == n, juce::String(label) + ": patch rows == live channels");
+        check(renderSourceMap.count == n + 5 * vts.getNumStereoInputChannels(),
+              juce::String(label) + ": render sources = N + 5*stereo");
+    };
+
+    logLine("SELF-TEST begin (channel list flow)");
+    const int reverbs = parameters.getNumReverbChannels();
+    auto reconfig = [&]() { handleChannelCountChange(vts.getNumInputChannels(), numOutputChannels, reverbs); };
+
+    auto numbersInSlotOrder = [&]() -> juce::String
+    {
+        juce::String s;
+        for (int slot = 0; slot < vts.getNumInputChannels(); ++slot)
+            s += (slot == 0 ? "" : ",") + juce::String(vts.getInputChannelNumber(slot));
+        return s;
+    };
+
+    auto nameOfSlot = [&](int slot) -> juce::String
+    {
+        return vts.getInputChannelSection(slot).getProperty(WFSParameterIDs::inputName).toString();
+    };
+
+    auto namesInSlotOrder = [&]() -> juce::String
+    {
+        juce::String s;
+        for (int slot = 0; slot < vts.getNumInputChannels(); ++slot)
+            s += (slot == 0 ? "" : ",") + nameOfSlot(slot);
+        return s;
+    };
+
+    auto patchInSlotOrder = [&]() -> juce::String
+    {
+        auto rows = patchRows();
+        juce::String s;
+        for (int slot = 0; slot < vts.getNumInputChannels(); ++slot)
+            s += (slot == 0 ? "" : ",")
+                 + (slot < rows.size() ? colsOfRow(rows[slot]) : juce::String("?"));
+        return s;
+    };
+
+    auto trackingIdOfSlot = [&](int slot) -> int
+    {
+        return (int) vts.getInputPositionSection(slot).getProperty(WFSParameterIDs::inputTrackingID, 0);
+    };
+
+    // Unlatched phase: on a session nothing has ever exposed a number from, every
+    // structural op renumbers the list to display order, so the numbers read 1..N
+    // top to bottom. Unreachable once anything has latched — a project loaded at
+    // startup already has — so that case skips instead of failing.
+    if (vts.areChannelNumbersUserOwned())
+    {
+        logLine("SELF-TEST SKIP U: channel numbers already user-owned (a project was loaded "
+                "at startup), so the fresh-session renumbering cannot be exercised");
+    }
+    else
+    {
+        // The operator's repro, verbatim: the default 8 monos, two stereo pairs
+        // added, four more monos added, then one of the new monos dragged in
+        // between the two pairs. U0b pins the hardware inputs to the display
+        // order — 9+10,11,12+13 — which is the whole point of the patch re-flow:
+        // insertInputPatchRow allocates from the GLOBAL highest patched column,
+        // so its columns follow creation order, and moveInputPatchRow carries
+        // them with the row, together yielding 9+10,13,11+12 unless the tail
+        // re-flow runs. U1's setInputChannelCounts below is the restore, so
+        // nothing under it sees this shape.
+        vts.setInputChannelCounts(8, 0);
+        reconfig();
+        vts.setInputChannelCounts(8, 2);
+        reconfig();
+        vts.setInputChannelCounts(12, 2);
+        reconfig();
+        verify("U0a: 8 mono + 2 stereo + 4 mono");
+        check(numbersInSlotOrder() == "1,2,3,4,5,6,7,8,9,10,11,12,13,14",
+              "U0a: the grown list numbers 1..14 in display order");
+        check(patchInSlotOrder() == "1,2,3,4,5,6,7,8,9+10,11+12,13,14,15,16",
+              "U0a: appending in display order leaves a strictly packed diagonal");
+
+        // Slots after U0a: 0..7 mono, 8 = Stereo 1, 9 = Stereo 2, 10..13 mono.
+        check(vts.moveInputChannel(vts.getInputChannelNumber(10), 9).wasOk(),
+              "U0b: drag the first of the new monos between the two stereo pairs");
+        reconfig();
+        verify("U0b");
+        check(numbersInSlotOrder() == "1,2,3,4,5,6,7,8,9,10,11,12,13,14",
+              "U0b: the move renumbered the list back to display order");
+        check(patchInSlotOrder() == "1,2,3,4,5,6,7,8,9+10,11,12+13,14,15,16",
+              "U0b: the move re-flowed the patch into a packed diagonal, two adjacent columns per stereo row");
+
+        vts.setInputChannelCounts(3, 0);
+        reconfig();
+        verify("U1: 3 mono, unlatched");
+        check(numbersInSlotOrder() == "1,2,3", "U1: fresh list numbers 1..3");
+        check(namesInSlotOrder() == "Mono 1,Mono 2,Mono 3",
+              "U1: default names count within their type, not from the number");
+        check(patchInSlotOrder() == "1,2,3", "U1: three monos take hardware inputs 1..3");
+
+        check(vts.addInputChannel(true).wasOk(), "U2: add stereo");
+        reconfig();
+        verify("U2");
+        check(vts.getInputChannelNumber(3) == 4, "U2: the appended stereo is number 4");
+        check(nameOfSlot(3) == "Stereo 1", "U2: the appended stereo is born on the stereo counter");
+        check(patchInSlotOrder() == "1,2,3,4+5",
+              "U2: the appended stereo takes the next two adjacent columns");
+
+        // Captured before the drag: a default name belongs to its CHANNEL, so
+        // both of these must survive a move that changes the numbers under them.
+        const juce::String draggedName = nameOfSlot(3);
+        const juce::String tailMonoName = nameOfSlot(2);
+        check(vts.moveInputChannel(4, 1).wasOk(), "U3: drag the stereo to display slot 1");
+        reconfig();
+        verify("U3");
+        check(numbersInSlotOrder() == "1,2,3,4", "U3: numbers follow the new display order");
+        check(patchInSlotOrder() == "1,2+3,4,5", "U3: the patch follows the new display order too");
+        check(vts.isInputChannelStereo(1) && vts.getInputChannelNumber(1) == 2,
+              "U3: the dragged stereo is now number 2 at slot 1");
+        check(nameOfSlot(1) == draggedName && nameOfSlot(3) == tailMonoName,
+              "U3: the names stayed with their channels while the numbers moved");
+        check(trackingIdOfSlot(1) == 2, "U3: the tracking id followed the number");
+
+        // A name the operator typed is not derived from the number, so the
+        // renumber must leave it alone while the number under it changes.
+        vts.setInputParameter(1, WFSParameterIDs::inputName, "Grand Piano");
+        check(vts.moveInputChannel(2, 0).wasOk(), "U4: drag the renamed stereo to display slot 0");
+        reconfig();
+        verify("U4");
+        check(numbersInSlotOrder() == "1,2,3,4", "U4: numbers still dense after the second move");
+        check(patchInSlotOrder() == "1+2,3,4,5",
+              "U4: the patch is still a packed diagonal after the second move");
+        check(vts.getInputChannelNumber(0) == 1 && nameOfSlot(0) == "Grand Piano",
+              "U4: the custom name survived the number change (2 -> 1)");
+
+        // The per-type ordinal is a property of the DISPLAY order, so a mono
+        // that jumps its siblings only takes its new name at the resequence —
+        // the pass the arrange dialog runs when it closes.
+        check(vts.moveInputChannel(vts.getInputChannelNumber(3), 1).wasOk(),
+              "U4b: drag the last mono to display slot 1");
+        reconfig();
+        verify("U4b");
+        check(namesInSlotOrder() == "Grand Piano,Mono 3,Mono 1,Mono 2",
+              "U4b: the move alone renamed nothing");
+        check(patchInSlotOrder() == "1+2,3,4,5",
+              "U4b: the patch re-flowed at the move, without waiting for the resequence");
+        vts.resequenceDefaultInputNames();
+        check(namesInSlotOrder() == "Grand Piano,Mono 1,Mono 2,Mono 3",
+              "U4b: the resequence renumbers the mono defaults in display order and spares the custom name");
+
+        check(vts.removeInputChannel(vts.getInputChannelNumber(0)).wasOk(),
+              "U5: delete the channel at slot 0");
+        reconfig();
+        verify("U5");
+        check(numbersInSlotOrder() == "1,2,3" && vts.getHighestChannelNumber() == 3,
+              "U5: the delete left no gap");
+        check(patchInSlotOrder() == "1,2,3", "U5: the delete closed the hardware-input gap too");
+
+        // U7: the FIRST project save ends the fresh session — saveSystemConfig
+        // persists the counts, the patch and the channel inventory, so the
+        // numbers it writes are durable the moment the file exists. Saved into
+        // a scratch folder; the real project folder (restored from settings at
+        // startup) is put back afterwards, and setProjectFolder's synced reset
+        // re-arms the auto-save guard for it.
+        {
+            auto& fm = parameters.getFileManager();
+            const auto previousFolder = fm.getProjectFolder();
+            auto scratchFolder = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                                     .getChildFile("wfs-selftest-firstsave");
+            scratchFolder.deleteRecursively();
+            scratchFolder.createDirectory();
+
+            fm.setProjectFolder(scratchFolder);
+            check(! vts.areChannelNumbersUserOwned(), "U7: still fresh before the first save");
+            check(fm.saveSystemConfig(), "U7: first system-config save succeeded");
+            check(vts.areChannelNumbersUserOwned(), "U7: the first save latched the numbers");
+
+            fm.setProjectFolder(previousFolder);
+            scratchFolder.deleteRecursively();
+        }
+
+        // Latching is what hands the numbers to the outside world; everything
+        // below it is the append-only regime the rest of this test asserts.
+        // (U7's save latched already; this mark is the idempotent no-op case.)
+        vts.markChannelNumbersUserOwned ("self-test U6");
+        check(vts.areChannelNumbersUserOwned(), "U6: numbers latched");
+        check(vts.moveInputChannel(3, 0).wasOk(), "U6: drag channel 3 to display slot 0");
+        reconfig();
+        verify("U6");
+        check(numbersInSlotOrder() == "3,1,2", "U6: a latched move does NOT renumber");
+        check(patchInSlotOrder() == "3,1,2",
+              "U6: a latched move carries the columns WITH the rows and does NOT re-flow");
+    }
+
+    // The numbers are latched from here (the branch above either latched them or
+    // found them latched): steps E, F and J only mean anything under the
+    // permanent-number regime. The counts below already match, so this is a
+    // no-op that just re-states the starting shape.
+    vts.setInputChannelCounts(3, 0);
+    reconfig();
+    verify("A: 3 mono");
+
+    check(vts.addInputChannel(true).wasOk(), "B: add stereo (number 4)");
+    reconfig();
+    verify("B");
+
+    check(vts.addInputChannel(false).wasOk(), "C: add mono AFTER the stereo (number 5, interleaved)");
+    reconfig();
+    verify("C");
+
+    check(vts.addInputChannel(true).wasOk(), "D: add stereo (number 6)");
+    reconfig();
+    verify("D");
+
+    const auto p3 = patchOfNumber(3), p4 = patchOfNumber(4), p6 = patchOfNumber(6);
+    check(vts.removeInputChannel(2).wasOk(), "E: remove channel 2 (leaves a gap)");
+    reconfig();
+    verify("E");
+    check(vts.getSlotForChannelNumber(2) < 0, "E: number 2 retired");
+    check(patchOfNumber(3) == p3 && patchOfNumber(4) == p4 && patchOfNumber(6) == p6,
+          "E: surviving channels keep their patch columns");
+
+    check(vts.addInputChannel(false).wasOk(), "F: add appends number 7 (gap NOT reused)");
+    reconfig();
+    verify("F");
+    check(vts.getHighestChannelNumber() == 7 && vts.getSlotForChannelNumber(2) < 0,
+          "F: numbering is append-only");
+
+    check(vts.setInputChannelType(5, true).wasOk(), "G: flip channel 5 mono->stereo in place");
+    reconfig();
+    verify("G");
+    check(vts.isInputChannelStereo(vts.getSlotForChannelNumber(5)), "G: type persisted");
+
+    check(vts.setInputChannelType(5, false).wasOk(), "H: flip channel 5 back to mono");
+    reconfig();
+    verify("H");
+
+    check(! vts.setInputChannelType(2, true).wasOk(), "I: type flip on a dead number is rejected");
+
+    check(vts.addInputChannel(false, 2).wasOk(), "J: explicit re-create of retired number 2");
+    reconfig();
+    verify("J");
+    check(vts.getSlotForChannelNumber(2) == vts.getNumInputChannels() - 1,
+          "J: re-created number 2 appended at the END of the display order");
+
+    // Drag-to-reorder: move stereo channel 6 to display slot 1 — its patch
+    // columns must travel with it, and every number must stay put.
+    {
+        // The tablet reads its display order out of the /remote/channelList
+        // payload, so the payload must follow TREE order and not numeric order:
+        // built from a sort (or from 1..N) it would come out identical across a
+        // reorder, and every channel below the moved one would then be drawn,
+        // picked and pinned at the wrong position on the tablet with nothing on
+        // the wire looking wrong. No socket involved — this reads the builder.
+        auto sortedNumbers = [](const std::vector<int>& payload)
+        {
+            std::vector<int> numbers;
+            for (size_t i = 1; i + 1 < payload.size(); i += 2)
+                numbers.push_back(payload[i]);
+            std::sort(numbers.begin(), numbers.end());
+            return numbers;
+        };
+
+        const auto p6before = patchOfNumber(6);
+        const auto inventoryBefore = oscManager->buildRemoteChannelListPayload();
+        check(vts.moveInputChannel(6, 1).wasOk(), "L: drag channel 6 to display slot 1");
+        reconfig();
+        verify("L");
+        check(vts.getSlotForChannelNumber(6) == 1, "L: channel 6 now at slot 1");
+        check(patchOfNumber(6) == p6before, "L: channel 6 kept its patch columns through the move");
+
+        const auto inventoryAfter = oscManager->buildRemoteChannelListPayload();
+        check(inventoryAfter != inventoryBefore
+                  && sortedNumbers(inventoryAfter) == sortedNumbers(inventoryBefore),
+              "L: the remote channel inventory re-ordered with the move and kept the same set of numbers");
+    }
+
+    int added = 0;
+    while (added <= 10 && vts.addInputChannel(true).wasOk())
+    {
+        reconfig();
+        ++added;
+    }
+    check(added == 6 && vts.getNumStereoInputChannels() == 8, "K: stereo budget enforced at 8");
+    check(! vts.setInputChannelType(5, true).wasOk(), "K: type flip beyond the stereo budget is rejected");
+    verify("K");
+
+    // Phases R and S load files that deliberately do NOT match the session -
+    // that is what they test - so they run under an identity-gate bypass. The
+    // identity phases that follow (I, V) run without one.
+    {
+    WFSFileManager::ScopedChannelIdentityBypass identityBypassForRS (parameters.getFileManager());
+
+    // ---- R: system-config round trip -------------------------------------
+    // The regression this phase exists for: <IO inputChannels> is a SUM, and the
+    // mono/stereo split and the display order live on the <Input> nodes, which
+    // go to inputs.xml. So reloading a system config on its own rebuilt every
+    // channel as mono — and because patch rows are positional and DID load in
+    // file order, a stereo row's two hardware columns landed on a mono channel.
+    // Export/import take an explicit file, so this needs no project folder.
+    {
+        auto typesInSlotOrder = [&]() -> juce::String
+        {
+            juce::String t;
+            for (int slot = 0; slot < vts.getNumInputChannels(); ++slot)
+                t += (slot == 0 ? "" : ",") + juce::String(vts.isInputChannelStereo(slot) ? "s" : "m");
+            return t;
+        };
+
+        auto& fm = parameters.getFileManager();
+        auto roundTripFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                                 .getChildFile("wfs-selftest-system.xml");
+        roundTripFile.deleteFile();
+
+        // A deliberately awkward shape: stereo at BOTH ends with monos between,
+        // which is exactly what two counts (or a "last N are stereo" tail split)
+        // cannot describe and only a per-channel inventory can.
+        vts.setInputChannelCounts(4, 0);
+        reconfig();
+        check(vts.addInputChannel(true).wasOk(), "R0: add a stereo pair");
+        reconfig();
+        check(vts.moveInputChannel(vts.getInputChannelNumber(vts.getNumInputChannels() - 1), 0).wasOk(),
+              "R0: drag it to the top of the display order");
+        reconfig();
+        check(vts.addInputChannel(true).wasOk(), "R0: add a second stereo pair at the bottom");
+        reconfig();
+        verify("R0: stereo at both ends");
+
+        const auto numbersBefore = numbersInSlotOrder();
+        const auto typesBefore   = typesInSlotOrder();
+        const auto patchBefore   = patchInSlotOrder();
+        const int  countBefore   = vts.getNumInputChannels();
+        const int  stereoBefore  = vts.getNumStereoInputChannels();
+
+        check(fm.exportSystemConfig(roundTripFile), "R1: export the system config");
+        check(roundTripFile.loadFileAsString().contains("InputChannelList"),
+              "R1: the file carries an explicit channel inventory, not just a count");
+
+        // Mutate hard enough that a load which only honours the SUM cannot
+        // accidentally look correct: different count AND all-mono.
+        vts.setInputChannelCounts(9, 0);
+        reconfig();
+        check(vts.getNumStereoInputChannels() == 0, "R2: scrambled to 9 mono, 0 stereo");
+
+        check(fm.importSystemConfig(roundTripFile), "R3: reload the system config alone");
+        reconfig();
+        verify("R3: after reloading the system config alone");
+
+        check(vts.getNumInputChannels() == countBefore,
+              "R3: the channel count came back");
+        check(vts.getNumStereoInputChannels() == stereoBefore,
+              "R3: the stereo channels came back as stereo, not as mono");
+        check(typesInSlotOrder() == typesBefore,
+              "R3: the mono/stereo arrangement came back in the same slots");
+        check(numbersInSlotOrder() == numbersBefore,
+              "R3: permanent channel numbers and display order survived");
+        check(patchInSlotOrder() == patchBefore,
+              "R3: every channel got its own hardware inputs back");
+
+        // The reported symptom, stated as its own check: a mono channel must
+        // never end up holding a stereo row's two hardware inputs.
+        {
+            bool monoRowOverPatched = false;
+            auto rows = patchRows();
+            for (int slot = 0; slot < vts.getNumInputChannels() && slot < rows.size(); ++slot)
+            {
+                if (vts.isInputChannelStereo(slot))
+                    continue;
+                juce::StringArray cols = juce::StringArray::fromTokens(rows[slot], ",", "");
+                int patched = 0;
+                for (int c = 0; c < cols.size(); ++c)
+                    patched += (cols[c].getIntValue() == 1) ? 1 : 0;
+                if (patched > 1)
+                    monoRowOverPatched = true;
+            }
+            check(! monoRowOverPatched, "R3: no mono channel holds two hardware inputs");
+        }
+
+        // One hardware input feeds one channel. This is the invariant the
+        // interactive editor upholds and a merged-in patchData string does not.
+        {
+            juce::SortedSet<int> claimed;
+            bool duplicateColumn = false;
+            auto rows = patchRows();
+            for (int slot = 0; slot < vts.getNumInputChannels() && slot < rows.size(); ++slot)
+            {
+                juce::StringArray cols = juce::StringArray::fromTokens(rows[slot], ",", "");
+                for (int c = 0; c < cols.size(); ++c)
+                    if (cols[c].getIntValue() == 1)
+                    {
+                        if (claimed.contains(c)) duplicateColumn = true;
+                        claimed.add(c);
+                    }
+            }
+            check(! duplicateColumn, "R3: no hardware input is claimed by two channels");
+        }
+
+        // Idempotence: a second load of the same file must not drift.
+        check(fm.importSystemConfig(roundTripFile), "R4: load the same file again");
+        reconfig();
+        check(numbersInSlotOrder() == numbersBefore && typesInSlotOrder() == typesBefore
+                  && patchInSlotOrder() == patchBefore,
+              "R4: reloading the same file twice is a fixed point");
+
+        roundTripFile.deleteFile();
+    }
+
+    // ---- S: cluster order across a load that deletes a LOW slot -------------
+    // clusterInputOrder is slot-keyed in memory but lives in system.xml while
+    // the slot space is defined by inputs.xml. The load-time channel-list
+    // reconciliation used to shift it: deletions ran remapClusterInputOrders
+    // (against a CSV already in the FILE's slot space) and the display-order
+    // restore, a raw moveChild, did not remap at all. Number keying on disk
+    // removes the dependency; this phase is the gate on that.
+    //
+    // The deletion must be of a LOW slot. Removing the highest shifts nothing
+    // below it, which is why the old setNumInputChannels path never showed this
+    // and why an ascending, prefix-shaped test would pass while broken.
+    {
+        auto& fm = parameters.getFileManager();
+        auto roundTripFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                                 .getChildFile("wfs-selftest-clusters.xml");
+        roundTripFile.deleteFile();
+
+        auto orderOfCluster = [&](int cluster) -> juce::String
+        {
+            // Rendered as NUMBERS, so the assertion is about which channels are
+            // in which order — not about which slots they happen to occupy.
+            juce::StringArray tokens;
+            tokens.addTokens(vts.getClusterParameter(cluster, WFSParameterIDs::clusterInputOrder).toString(), ",", "");
+            juce::String out;
+            for (const auto& tok : tokens)
+            {
+                const int number = vts.getInputChannelNumber(tok.trim().getIntValue());
+                out += (out.isEmpty() ? "" : ",") + juce::String(number);
+            }
+            return out;
+        };
+
+        vts.setInputChannelCounts(6, 0);
+        reconfig();
+
+        // Cluster 1 gets the last three channels, in a deliberately
+        // non-ascending order so a lost ordering cannot pass by accident.
+        const int chA = vts.getInputChannelNumber(3);
+        const int chB = vts.getInputChannelNumber(4);
+        const int chC = vts.getInputChannelNumber(5);
+        for (int n : { chA, chB, chC })
+            vts.setInputParameter(vts.getSlotForChannelNumber(n), WFSParameterIDs::inputCluster, 1);
+        const juce::String slotCsv =
+            juce::String(vts.getSlotForChannelNumber(chC)) + ","
+          + juce::String(vts.getSlotForChannelNumber(chA)) + ","
+          + juce::String(vts.getSlotForChannelNumber(chB));
+        vts.setClusterParameter(1, WFSParameterIDs::clusterInputOrder, slotCsv);
+
+        const juce::String orderBefore = orderOfCluster(1);
+        check(orderBefore == juce::String(chC) + "," + juce::String(chA) + "," + juce::String(chB),
+              "S0: cluster order set to a non-ascending arrangement");
+
+        check(fm.exportSystemConfig(roundTripFile), "S1: export the system config");
+        check(roundTripFile.loadFileAsString().contains("inputOrderKey"),
+              "S1: the file marks its cluster orders as number-keyed");
+
+        // Delete a LOW-slot channel that is NOT in the cluster, so every cluster
+        // member's slot shifts down by one while its NUMBER does not.
+        const int doomed = vts.getInputChannelNumber(0);
+        check(vts.removeInputChannel(doomed).wasOk(), "S2: delete the lowest-slot channel");
+        reconfig();
+        check(orderOfCluster(1) == orderBefore,
+              "S2: the live edit remapped the order, so it still names the same channels");
+
+        // Scramble. The added channel is then dragged to slot 0, and THAT is the
+        // point of this step, not the count: the reload must delete a channel the
+        // file does not list from a LOW slot. Deleting a high slot shifts nothing
+        // beneath it, which is exactly why the old setNumInputChannels path
+        // (remove-the-highest) never exposed this and why a naive grow-then-reload
+        // test passes on broken code.
+        vts.setClusterParameter(1, WFSParameterIDs::clusterInputOrder, "");
+        check(vts.addInputChannel(false).wasOk(), "S2b: add a channel the saved file does not list");
+        reconfig();
+        const int intruder = vts.getInputChannelNumber(vts.getNumInputChannels() - 1);
+        check(vts.moveInputChannel(intruder, 0).wasOk(), "S2b: drag it to the lowest slot");
+        reconfig();
+        check(vts.getSlotForChannelNumber(intruder) == 0,
+              "S2b: the unlisted channel sits below every cluster member");
+
+        check(fm.importSystemConfig(roundTripFile), "S3: reload the system config");
+        reconfig();
+        check(orderOfCluster(1) == orderBefore,
+              "S3: the cluster order came back naming the same channels in the same order");
+
+        check(fm.importSystemConfig(roundTripFile), "S4: load the same file again");
+        reconfig();
+        check(orderOfCluster(1) == orderBefore, "S4: loading twice is a fixed point");
+
+        // S5: a file written before the marker existed. Its CSVs are SLOTS, and
+        // they must still load correctly — by flush time the live slot space is
+        // the one the file was saved against, so the values are restored
+        // verbatim rather than converted. Built by rewriting the exported file
+        // rather than by keeping an old fixture, so it cannot drift from the
+        // real format.
+        {
+            auto legacyFile = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                                  .getChildFile("wfs-selftest-clusters-legacy.xml");
+            legacyFile.deleteFile();
+
+            juce::String xml = roundTripFile.loadFileAsString();
+            xml = xml.replace(" inputOrderKey=\"number\"", "");                 // no marker == legacy
+            xml = xml.replace("clusterInputOrder=\"" + orderOfCluster(1) + "\"",
+                              "clusterInputOrder=\"" + slotCsv + "\"");          // numbers -> slots
+            check(! xml.contains("inputOrderKey"), "S5: the legacy fixture carries no marker");
+            check(xml.contains("clusterInputOrder=\"" + slotCsv + "\""),
+                  "S5: the legacy fixture holds slot indices");
+            legacyFile.replaceWithText(xml);
+
+            vts.setClusterParameter(1, WFSParameterIDs::clusterInputOrder, "");
+            check(fm.importSystemConfig(legacyFile), "S5: load the legacy-shaped file");
+            reconfig();
+            check(orderOfCluster(1) == orderBefore,
+                  "S5: a pre-marker slot-keyed file still restores the same channels in order");
+
+            legacyFile.deleteFile();
+        }
+
+        roundTripFile.deleteFile();
+    }
+
+    }   // end of the R/S bypass
+
+    // ---- T: every per-input property is either snapshotted or explicitly not --
+    // The AutomOtion polar destination sat in no scope item for the whole life of
+    // the feature and nothing noticed, because save and recall consult the SAME
+    // tables: an omission is symmetric, so a store/recall round trip of it comes
+    // back perfectly green. Only a structural check catches that class. Any
+    // property added to an <Input> child node from now on must either be carried
+    // by a scope item or be named here with a reason.
+    {
+        struct Excluded { const char* name; const char* why; };
+        static const Excluded kNotSnapshotted[] = {
+            { "inputName",               "always captured, outside the scope system by design" },
+            { "inputSolo",               "transient monitoring state, not show state" },
+            { "inputOtomoPauseResume",   "run-state of a motion in flight, not a destination" },
+            { "inputHiddenByCluster",    "cache of (inputCluster, clusterInputsVisible); ClustersTab "
+                                         "recomputes it for every channel in a callAsync after a recall, "
+                                         "so a restored value would be overwritten a tick later" },
+            { "samplerMidiZoneQuadrant", "declared and defaulted but read by nothing; snapshotting it "
+                                         "would be a no-op" },
+        };
+
+        // The nodes the snapshot walks as PROPERTY sections. GradientMaps and
+        // Sampler are copied as subtrees and are deliberately not in this list.
+        const juce::Identifier sections[] = {
+            WFSParameterIDs::Channel, WFSParameterIDs::Position, WFSParameterIDs::Attenuation,
+            WFSParameterIDs::Directivity, WFSParameterIDs::LiveSourceTamer, WFSParameterIDs::Hackoustics,
+            WFSParameterIDs::LFO, WFSParameterIDs::AutomOtion, WFSParameterIDs::Mutes
+        };
+
+        auto input = vts.getInputState(0);
+        int uncovered = 0;
+        for (const auto& sectionId : sections)
+        {
+            auto section = input.getChildWithName(sectionId);
+            if (! section.isValid())
+                continue;
+
+            for (int i = 0; i < section.getNumProperties(); ++i)
+            {
+                const auto prop = section.getPropertyName(i);
+                if (WFSFileManager::isPropertyCoveredBySnapshotScope(prop))
+                    continue;
+
+                bool listed = false;
+                for (const auto& e : kNotSnapshotted)
+                    if (prop.toString() == e.name) { listed = true; break; }
+
+                if (! listed)
+                {
+                    ++uncovered;
+                    logLine("SELF-TEST FAIL T: <" + sectionId.toString() + "> property '"
+                            + prop.toString() + "' is in no scope item and is not on the "
+                            "deliberately-not-snapshotted list - it will be silently absent "
+                            "from every snapshot");
+                }
+            }
+        }
+        check(uncovered == 0, "T: every per-input property is either snapshotted or explicitly excluded");
+
+        // The other direction: an exclusion that is no longer real is a stale
+        // comment claiming a decision that nothing enforces.
+        for (const auto& e : kNotSnapshotted)
+            check(! WFSFileManager::isPropertyCoveredBySnapshotScope(juce::Identifier(e.name)),
+                  juce::String("T: '") + e.name + "' is still deliberately excluded");
+    }
+
+    // ---- I: channel identity gate --------------------------------------------
+    // Position is not identity: a file's <Input> entries merge BY NUMBER, the
+    // inventory rebuilds the list BY NUMBER, and patch rows land BY POSITION.
+    // These phases pin down what the gate must see, refuse, and repair.
+    {
+        using Rel  = InputChannelIdentityDiff::Relation;
+        using Kind = WFSFileManager::LoadKind;
+        auto& fm = parameters.getFileManager();
+        auto tmp = [] (const char* name)
+        {
+            return juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile(name);
+        };
+        auto F = tmp("wfs-selftest-identity-system.xml");
+        auto G = tmp("wfs-selftest-identity-inputs.xml");
+        F.deleteFile(); G.deleteFile();
+
+        // A latched, mixed, reordered list.
+        vts.setInputChannelCounts(5, 0);
+        reconfig();
+        check(vts.addInputChannel(true).wasOk(), "I0: add a stereo pair");
+        reconfig();
+        const int stereoNum = vts.getInputChannelNumber(vts.getNumInputChannels() - 1);
+        check(vts.moveInputChannel(stereoNum, 1).wasOk(), "I0: drag it to slot 1");
+        reconfig();
+        check(vts.areChannelNumbersUserOwned(), "I0: the session is latched");
+
+        check(fm.exportSystemConfig(F), "I1: export the system config");
+        check(fm.exportInputConfig(G), "I1: export the input config");
+        check(fm.preflightChannelIdentity(F, Kind::systemConfig).relation == Rel::identical,
+              "I1: the system file is identical to the session");
+        {
+            const auto d = fm.preflightChannelIdentity(G, Kind::inputConfig);
+            check(d.relation == Rel::identical && d.patchDiffers.empty(),
+                  "I1: the input file is identical and its fingerprints match the live patch");
+        }
+        check(G.loadFileAsString().contains("hwInputs="), "I1: the input file carries hardware fingerprints");
+
+        // I2: same channels, different order - safe for a system config.
+        const int firstNum = vts.getInputChannelNumber(0);
+        check(vts.moveInputChannel(firstNum, vts.getNumInputChannels() - 1).wasOk(), "I2: move the first channel to the end");
+        reconfig();
+        {
+            const auto d = fm.preflightChannelIdentity(F, Kind::systemConfig);
+            check(d.relation == Rel::orderOnly, "I2: the system file now differs by order only");
+            check(fm.isChannelIdentitySafe(d, Kind::systemConfig), "I2: order-only is safe for a system config");
+        }
+        check(fm.importSystemConfig(F), "I2: it loads without clearance");
+        reconfig();
+        check(vts.getInputChannelNumber(0) == firstNum, "I2: the file's order came back");
+
+        // I5: inputs config, order only: the patch row must follow its channel.
+        check(vts.moveInputChannel(firstNum, vts.getNumInputChannels() - 1).wasOk(), "I5: move it to the end again");
+        reconfig();
+        const auto p5 = patchOfNumber(firstNum);
+        {
+            const auto d = fm.preflightChannelIdentity(G, Kind::inputConfig);
+            check(d.relation == Rel::orderOnly && d.patchDiffers.empty(), "I5: the input file differs by order only");
+            check(fm.isChannelIdentitySafe(d, Kind::inputConfig), "I5: safe, because the rows are aligned with the nodes");
+        }
+        check(fm.importInputConfig(G), "I5: reload the input config");
+        reconfig();
+        check(vts.getInputChannelNumber(0) == firstNum, "I5: the file's order came back");
+        check(patchOfNumber(firstNum) == p5, "I5: the moved channel kept its hardware inputs - the row followed the node");
+
+        // I3: a type conflict is refused by the primitive itself.
+        int monoNum = -1;
+        for (int slot = 0; slot < vts.getNumInputChannels(); ++slot)
+            if (! vts.isInputChannelStereo(slot)) { monoNum = vts.getInputChannelNumber(slot); break; }
+        check(monoNum > 0, "I3: found a mono channel");
+        check(vts.setInputChannelType(monoNum, true).wasOk(), "I3: flip it to stereo");
+        reconfig();
+        {
+            const auto d = fm.preflightChannelIdentity(F, Kind::systemConfig);
+            check(d.relation == Rel::conflicting && d.retyped.size() == 1 && d.retyped[0].live.number == monoNum,
+                  "I3: the system file now conflicts on exactly that channel");
+            check(! fm.isChannelIdentitySafe(d, Kind::systemConfig), "I3: a type conflict is not safe");
+        }
+        check(! fm.importSystemConfig(F), "I3: the primitive REFUSES the load");
+        check(fm.getLastError().isNotEmpty(), "I3: ...and says why");
+        check(vts.isInputChannelStereo(vts.getSlotForChannelNumber(monoNum)), "I3: nothing was applied");
+        {
+            WFSFileManager::ScopedChannelIdentityBypass bypass(fm);
+            check(fm.importSystemConfig(F), "I3: under a bypass it loads");
+        }
+        reconfig();
+        check(! vts.isInputChannelStereo(vts.getSlotForChannelNumber(monoNum)),
+              "I3: the bypassed load applied the file's type by number (the crossing, on purpose)");
+
+        // I4: the reported case - arrangement matches by position, numbers differ.
+        {
+            std::vector<int> shifted;
+            for (int slot = 0; slot < vts.getNumInputChannels(); ++slot)
+                shifted.push_back(vts.getInputChannelNumber(slot) + 20);
+            const auto namesBefore = namesInSlotOrder();
+            const auto patchBefore = patchInSlotOrder();
+            check(vts.assignInputChannelNumbersBySlot(shifted, "self-test I4").wasOk(), "I4: relabel every channel (+20)");
+            reconfig();
+            const auto d = fm.preflightChannelIdentity(F, Kind::systemConfig);
+            check(d.relation == Rel::positionalTypesMatch, "I4: the arrangement matches position by position, numbers differ");
+            check(! fm.isChannelIdentitySafe(d, Kind::systemConfig), "I4: ...and that is NOT safe - the reported bug");
+            check(! fm.importSystemConfig(F), "I4: refused");
+            check(vts.assignInputChannelNumbersBySlot(d.fileNumbersBySlot, "self-test I4 take file numbers").wasOk(),
+                  "I4: take the file's numbers");
+            reconfig();
+            check(fm.preflightChannelIdentity(F, Kind::systemConfig).relation == Rel::identical, "I4: now identical");
+            check(namesInSlotOrder() == namesBefore && patchInSlotOrder() == patchBefore,
+                  "I4: names and patch stayed with their positions through the relabel");
+            check(fm.importSystemConfig(F), "I4: the load passes without clearance");
+            reconfig();
+        }
+
+        // I6: a project's own pair.
+        {
+            check(fm.exportSystemConfig(F) && fm.exportInputConfig(G), "I6: export a consistent pair");
+            check(fm.preflightProjectChannelIdentity(F, G).relation == Rel::identical, "I6: the pair is consistent");
+            check(fm.isChannelIdentitySafe(fm.preflightProjectChannelIdentity(F, G), Kind::projectPair),
+                  "I6: a consistent pair is a safe project load");
+
+            const int last = vts.getInputChannelNumber(vts.getNumInputChannels() - 1);
+            check(vts.moveInputChannel(last, 0).wasOk(), "I6: move a channel");
+            reconfig();
+            auto G2 = tmp("wfs-selftest-identity-inputs2.xml");
+            G2.deleteFile();
+            check(fm.exportInputConfig(G2), "I6: export inputs again");
+            const auto d = fm.preflightProjectChannelIdentity(F, G2);
+            check(d.relation == Rel::orderOnly, "I6: system.xml and the newer inputs.xml differ by order");
+            check(fm.isChannelIdentitySafe(d, Kind::projectPair), "I6: an order-only pair is still a safe project load");
+
+            int m = -1;
+            for (int slot = 0; slot < vts.getNumInputChannels(); ++slot)
+                if (! vts.isInputChannelStereo(slot)) { m = vts.getInputChannelNumber(slot); break; }
+            check(vts.setInputChannelType(m, true).wasOk(), "I6: flip a type in the session only");
+            reconfig();
+            auto G3 = tmp("wfs-selftest-identity-inputs3.xml");
+            G3.deleteFile();
+            check(fm.exportInputConfig(G3), "I6: export inputs with the flipped type");
+            const auto d3 = fm.preflightProjectChannelIdentity(F, G3);
+            check(d3.relation == Rel::conflicting && d3.retyped.size() == 1 && d3.retyped[0].live.number == m,
+                  "I6: the pair now conflicts on exactly the flipped channel");
+            check(! fm.isChannelIdentitySafe(d3, Kind::projectPair), "I6: a conflicting pair is not a safe project load");
+            check(vts.setInputChannelType(m, false).wasOk(), "I6: flip it back");
+            reconfig();
+            G2.deleteFile(); G3.deleteFile();
+        }
+
+        // I7: the hardware fingerprint.
+        {
+            check(fm.exportInputConfig(G), "I7: export inputs with fingerprints that match the live patch");
+            // Re-patch slot 0 onto a column nothing else uses.
+            auto patchTree = vts.getAudioPatchState().getChildWithName(WFSParameterIDs::InputPatch);
+            auto rows = patchRows();
+            juce::StringArray cols = juce::StringArray::fromTokens(rows[0], ",", "");
+            for (int c = 0; c < cols.size(); ++c) cols.set(c, "0");
+            while (cols.size() < 62) cols.add("0");
+            cols.set(60, "1");
+            if (vts.isInputChannelStereo(0)) cols.set(61, "1");
+            rows.set(0, cols.joinIntoString(","));
+            patchTree.setProperty(WFSParameterIDs::patchData, rows.joinIntoString(";"), nullptr);
+            reconfig();
+
+            const auto d = fm.preflightChannelIdentity(G, Kind::inputConfig);
+            check(d.relation == Rel::identical, "I7: same channel list");
+            check(d.patchDiffers.size() == 1 && d.patchDiffers[0].live.number == vts.getInputChannelNumber(0),
+                  "I7: the re-patched channel is the one fingerprint that differs");
+            check(! fm.isChannelIdentitySafe(d, Kind::inputConfig), "I7: a fingerprint mismatch is the operator's call, not safe");
+            check(! fm.importInputConfig(G), "I7: refused without clearance");
+            fm.grantChannelIdentityClearance(G);
+            check(fm.importInputConfig(G), "I7: passes with a one-shot clearance");
+            reconfig();
+            check(! fm.importInputConfig(G), "I7: the clearance was consumed by that one load");
+            check(fm.exportInputConfig(G), "I7: re-export so the fingerprints match again");
+        }
+
+        // I8: the hardware-derived relabel.
+        {
+            std::vector<int> nums;
+            for (int slot = 0; slot < vts.getNumInputChannels(); ++slot)
+                nums.push_back(vts.getInputChannelNumber(slot));
+            std::vector<int> orig = nums;
+            std::swap(nums[0], nums[1]);
+            check(vts.assignInputChannelNumbersBySlot(nums, "self-test I8 swap").wasOk(), "I8: swap two channels' numbers");
+            reconfig();
+            const auto d = fm.preflightChannelIdentity(G, Kind::inputConfig);
+            check(d.hardwareRelabel.has_value(), "I8: a hardware-derived relabel is offered");
+            check(d.hardwareRelabel && *d.hardwareRelabel == orig, "I8: ...and it is exactly the inverse swap");
+            check(vts.assignInputChannelNumbersBySlot(*d.hardwareRelabel, "self-test I8 apply").wasOk(), "I8: apply it");
+            reconfig();
+            check(fm.preflightChannelIdentity(G, Kind::inputConfig).relation == Rel::identical, "I8: identical again");
+
+            // An unpatched channel withholds the suggestion rather than guessing.
+            auto patchTree = vts.getAudioPatchState().getChildWithName(WFSParameterIDs::InputPatch);
+            auto rows = patchRows();
+            juce::StringArray cols = juce::StringArray::fromTokens(rows[0], ",", "");
+            for (int c = 0; c < cols.size(); ++c) cols.set(c, "0");
+            rows.set(0, cols.joinIntoString(","));
+            patchTree.setProperty(WFSParameterIDs::patchData, rows.joinIntoString(";"), nullptr);
+            reconfig();
+            check(vts.assignInputChannelNumbersBySlot(nums, "self-test I8 swap again").wasOk(), "I8: swap again");
+            reconfig();
+            check(! fm.preflightChannelIdentity(G, Kind::inputConfig).hardwareRelabel.has_value(),
+                  "I8: with an unpatched channel no suggestion is made");
+            check(vts.assignInputChannelNumbersBySlot(orig, "self-test I8 restore").wasOk(), "I8: restore the numbers");
+            reconfig();
+        }
+
+        F.deleteFile(); G.deleteFile();
+    }
+
+    // ---- V: a count reduction names the channel it removes ------------------
+    // The dialog used to predict by HIGHEST NUMBER while the code removed the
+    // LAST IN DISPLAY ORDER; identical until a latched list is dragged.
+    {
+        vts.setInputChannelCounts(4, 2);
+        reconfig();
+
+        auto highestNumberedOfType = [&](bool stereo)
+        {
+            int best = -1;
+            for (int slot = 0; slot < vts.getNumInputChannels(); ++slot)
+                if (vts.isInputChannelStereo(slot) == stereo)
+                    best = juce::jmax(best, vts.getInputChannelNumber(slot));
+            return best;
+        };
+        auto lastInDisplayOrderOfType = [&](bool stereo)
+        {
+            for (int slot = vts.getNumInputChannels(); --slot >= 0;)
+                if (vts.isInputChannelStereo(slot) == stereo)
+                    return vts.getInputChannelNumber(slot);
+            return -1;
+        };
+
+        const int hiStereo = highestNumberedOfType(true);
+        check(vts.moveInputChannel(hiStereo, 0).wasOk(), "V0: drag the highest-numbered stereo to slot 0");
+        reconfig();
+        const int lastStereo = lastInDisplayOrderOfType(true);
+        check(lastStereo > 0 && lastStereo != hiStereo, "V0: a lower-numbered stereo is now last in display order");
+
+        const auto predictedS = vts.predictInputChannelReduction(4, 1);
+        check(predictedS.size() == 1 && predictedS[0].stereo && predictedS[0].number == lastStereo,
+              "V1: the prediction names the LAST stereo in display order, not the highest-numbered");
+        vts.setInputChannelCounts(4, 1);
+        reconfig();
+        check(vts.getSlotForChannelNumber(lastStereo) < 0, "V1: that channel is the one that went");
+        check(vts.getSlotForChannelNumber(hiStereo) >= 0, "V1: the highest-numbered stereo is still live");
+
+        const int hiMono = highestNumberedOfType(false);
+        check(vts.moveInputChannel(hiMono, 0).wasOk(), "V2: drag the highest-numbered mono to slot 0");
+        reconfig();
+        const int lastMono = lastInDisplayOrderOfType(false);
+        check(lastMono > 0 && lastMono != hiMono, "V2: a lower-numbered mono is now last in display order");
+
+        const auto predictedM = vts.predictInputChannelReduction(3, 1);
+        check(predictedM.size() == 1 && ! predictedM[0].stereo && predictedM[0].number == lastMono,
+              "V3: the prediction names the LAST mono in display order");
+        vts.setInputChannelCounts(3, 1);
+        reconfig();
+        check(vts.getSlotForChannelNumber(lastMono) < 0, "V3: that channel is the one that went");
+        check(vts.getSlotForChannelNumber(hiMono) >= 0, "V3: the highest-numbered mono is still live");
+    }
+
+    logLine(failures == 0 ? juce::String("SELF-TEST RESULT: ALL PASS")
+                          : "SELF-TEST RESULT: " + juce::String(failures) + " FAILURES");
+}
+
+void MainComponent::runStereoGeometrySelfTest()
+{
+    using WFSStereoImage::Axis;
+
+    int failures = 0;
+
+    auto logLine = [](const juce::String& s) { WFSLogger::getInstance().logInfo(s); };
+
+    auto check = [&](bool ok, const juce::String& what)
+    {
+        if (! ok) ++failures;
+        logLine(juce::String("SELF-TEST ") + (ok ? "PASS " : "FAIL ") + what);
+    };
+
+    auto approx = [](float a, float b, float tol) { return std::fabs(a - b) <= tol; };
+
+    // The three calls refreshStereoSliceGeometry() makes per channel, on the
+    // azimuths the pass-through backend publishes: slice 0 = 0 (the anchor),
+    // slice 1 = -1 (left), slice 2 = +1 (right).
+    struct Image { juce::Point<float> centre, left, right; };
+
+    auto imageAt = [](float anchorX, float anchorY, float widthM,
+                      float offsetDeg, Axis& latch) -> Image
+    {
+        const auto axis = WFSStereoImage::rotate(
+            WFSStereoImage::autoAxis(anchorX, anchorY, latch), offsetDeg);
+
+        Image img;
+        float dx = 0.0f, dy = 0.0f;
+
+        WFSStereoImage::sliceOffset(0.0f, widthM, axis, dx, dy);
+        img.centre = { anchorX + dx, anchorY + dy };
+
+        WFSStereoImage::sliceOffset(-1.0f, widthM, axis, dx, dy);
+        img.left = { anchorX + dx, anchorY + dy };
+
+        WFSStereoImage::sliceOffset(1.0f, widthM, axis, dx, dy);
+        img.right = { anchorX + dx, anchorY + dy };
+
+        return img;
+    };
+
+    logLine("SELF-TEST begin (stereo image geometry)");
+
+    // A: the dial is the FULL left-to-right distance, so each leg travels half.
+    // H rides along: the handedness the whole feature is read against.
+    {
+        Axis latch;
+        const auto img = imageAt(0.0f, 8.0f, 4.0f, 0.0f, latch);
+
+        check(approx(img.left.x, -2.0f, 1.0e-5f) && approx(img.left.y, 8.0f, 1.0e-5f),
+              "A: 4 m at (0,8) puts the left leg at (-2,8)");
+        check(approx(img.right.x, 2.0f, 1.0e-5f) && approx(img.right.y, 8.0f, 1.0e-5f),
+              "A: 4 m at (0,8) puts the right leg at (2,8)");
+        check(approx(std::hypot(img.left.x - img.right.x, img.left.y - img.right.y), 4.0f, 1.0e-5f),
+              "A: the legs sit exactly the dialled 4 m apart");
+        check(img.centre.x == 0.0f && img.centre.y == 8.0f,
+              "A: the anchor row stays exactly where the operator put it");
+        check(img.right.x > 0.0f,
+              "H: azimuth +1 lands audience-right (+X) for an upstage anchor");
+    }
+
+    // B: the headline invariant. A metre is a metre wherever the pair stands —
+    // the retired fraction-of-the-X-extent reference spread ±R on a circle of
+    // radius R at every setting and nothing at all on an array running along Y,
+    // so it could not pass this sweep at any tolerance.
+    {
+        bool allHold = true;
+        float worst = 0.0f;
+
+        for (int deg = 0; deg < 360; ++deg)
+        {
+            const float a = juce::degreesToRadians((float) deg);
+            Axis latch;
+            const auto img = imageAt(8.0f * std::cos(a), 8.0f * std::sin(a), 4.0f, 0.0f, latch);
+            const float span = std::hypot(img.left.x - img.right.x, img.left.y - img.right.y);
+
+            worst = juce::jmax(worst, std::fabs(span - 4.0f));
+            allHold = allHold && approx(span, 4.0f, 1.0e-4f);
+        }
+
+        check(allHold, "B: 4 m stays 4 m at all 360 bearings on an r=8 circle (worst error "
+                       + juce::String(worst, 8) + " m)");
+    }
+
+    // C: exactness, not closeness. A width-0 pair must be bit-identical to a
+    // point source or the engine's change detection sees a moving source, and
+    // the anchor row must not creep at any width the operator can dial.
+    {
+        bool zeroExact = true;
+        bool centreExact = true;
+        const float widths[] = { 0.0f, 0.001f, 4.0f, 12.5f, 50.0f };
+        const float axisOffsets[] = { 0.0f, 37.0f, -90.0f, 180.0f };
+
+        for (float w : widths)
+            for (float off : axisOffsets)
+                for (int deg = 0; deg < 360; deg += 15)
+                {
+                    const float a = juce::degreesToRadians((float) deg);
+                    Axis latch;
+                    const auto axis = WFSStereoImage::rotate(
+                        WFSStereoImage::autoAxis(6.0f * std::cos(a), 6.0f * std::sin(a), latch), off);
+
+                    float dx = 1.0f, dy = 1.0f;
+
+                    WFSStereoImage::sliceOffset(0.0f, w, axis, dx, dy);
+                    centreExact = centreExact && dx == 0.0f && dy == 0.0f;
+
+                    if (w == 0.0f)
+                    {
+                        WFSStereoImage::sliceOffset(-1.0f, w, axis, dx, dy);
+                        zeroExact = zeroExact && dx == 0.0f && dy == 0.0f;
+
+                        WFSStereoImage::sliceOffset(1.0f, w, axis, dx, dy);
+                        zeroExact = zeroExact && dx == 0.0f && dy == 0.0f;
+                    }
+                }
+
+        check(zeroExact, "C: width 0 gives offsets comparing exactly == 0");
+        check(centreExact, "C: slice 0 offset is exactly == 0 at every width and axis");
+    }
+
+    // D: the latch. Inside the freeze radius the axis must be held bit-exactly
+    // and must be the one the pair arrived with — a recomputed bearing sweeps
+    // 180° over a few centimetres near the origin, which is a left/right swap
+    // in front of an audience.
+    {
+        Axis latch;
+        Axis lastLive {};
+        Axis firstFrozen {};
+        bool haveFrozen = false;
+        bool heldConstant = true;
+
+        for (int step = 5000; step >= 1; --step)
+        {
+            const float y = (float) step * 0.001f;
+            const auto axis = WFSStereoImage::autoAxis(0.0f, y, latch);
+
+            if (std::hypot(0.0f, y) >= WFSStereoImage::kAxisFreezeRadius)
+            {
+                lastLive = axis;
+                continue;
+            }
+
+            if (! haveFrozen)
+            {
+                firstFrozen = axis;
+                haveFrozen = true;
+            }
+
+            heldConstant = heldConstant && axis.x == firstFrozen.x && axis.y == firstFrozen.y;
+        }
+
+        check(haveFrozen && heldConstant,
+              "D: (0,5)->(0,0.001) holds one bit-exact axis below the freeze radius");
+        check(haveFrozen && firstFrozen.x == lastLive.x && firstFrozen.y == lastLive.y,
+              "D: the held axis is the last live one before the crossing");
+    }
+
+    // D2: a radial walk keeps its bearing all the way in, so it cannot tell a
+    // held axis from a recomputed one. This traverse passes 0.4 m from the
+    // origin, where the live bearing swings through nearly 180°, so only the
+    // hold can keep the image still. Nothing is asserted about LEAVING the
+    // radius: the pair is far enough out there for the live bearing to be
+    // trustworthy again, and it deliberately resumes.
+    {
+        Axis latch;
+        Axis lastLive {};
+        Axis frozen {};
+        bool haveFrozen = false;
+        bool heldConstant = true;
+
+        for (int step = 0; step <= 10000; ++step)
+        {
+            const float x = -5.0f + (float) step * 0.001f;
+            const float y = 0.4f;
+            const auto axis = WFSStereoImage::autoAxis(x, y, latch);
+
+            if (std::hypot(x, y) >= WFSStereoImage::kAxisFreezeRadius)
+            {
+                if (! haveFrozen)
+                    lastLive = axis;
+                continue;
+            }
+
+            if (! haveFrozen)
+            {
+                frozen = axis;
+                haveFrozen = true;
+                continue;
+            }
+
+            heldConstant = heldConstant && axis.x == frozen.x && axis.y == frozen.y;
+        }
+
+        check(haveFrozen && heldConstant,
+              "D2: a traverse 0.4 m off the origin holds one bit-exact axis across the middle");
+        check(haveFrozen && frozen.x == lastLive.x && frozen.y == lastLive.y,
+              "D2: the held axis is the arrival axis, not a mid-traverse recompute");
+        check(haveFrozen && std::fabs(frozen.y) > 0.5f,
+              "D2: the hold did real work (a live axis at closest approach would be near +/-X)");
+    }
+
+    // E: a pair parked dead centre has no bearing to derive an axis from, so
+    // the offset dial is the only thing that can orient it. It must still work,
+    // or an in-the-round show loses control of the image exactly where it needs
+    // it most.
+    {
+        Axis latch;
+        const auto img = imageAt(0.0f, 0.0f, 4.0f, 0.0f, latch);
+        check(approx(img.left.x, -2.0f, 1.0e-5f) && approx(img.left.y, 0.0f, 1.0e-5f)
+              && approx(img.right.x, 2.0f, 1.0e-5f) && approx(img.right.y, 0.0f, 1.0e-5f),
+              "E: offset 0 at the origin spreads along +/-X");
+    }
+    {
+        Axis latch;
+        const auto img = imageAt(0.0f, 0.0f, 4.0f, 90.0f, latch);
+        check(approx(img.left.x, 0.0f, 1.0e-5f) && approx(img.left.y, -2.0f, 1.0e-5f)
+              && approx(img.right.x, 0.0f, 1.0e-5f) && approx(img.right.y, 2.0f, 1.0e-5f),
+              "E: offset 90 at the origin spreads along +/-Y");
+    }
+    {
+        Axis latch;
+        const float d = 2.0f * std::sqrt(0.5f);
+        const auto img = imageAt(0.0f, 0.0f, 4.0f, 45.0f, latch);
+        check(approx(img.left.x, -d, 1.0e-5f) && approx(img.left.y, -d, 1.0e-5f)
+              && approx(img.right.x, d, 1.0e-5f) && approx(img.right.y, d, 1.0e-5f),
+              "E: offset 45 at the origin spreads along the diagonal");
+    }
+
+    // F: the offset is a plain rotation, so two applied in turn equal their sum.
+    // The bit-exact early-out at 0 is the thing most likely to break this.
+    {
+        const float angles[] = { -179.0f, -90.0f, -45.0f, 0.0f, 30.0f, 45.0f, 90.0f, 137.0f, 180.0f };
+        const Axis seeds[] = { { 1.0f, 0.0f }, { 0.0f, 1.0f }, { 0.6f, 0.8f }, { -0.28f, -0.96f } };
+
+        bool composes = true;
+
+        for (const auto& seed : seeds)
+            for (float t : angles)
+                for (float u : angles)
+                {
+                    const auto twice = WFSStereoImage::rotate(WFSStereoImage::rotate(seed, t), u);
+                    const auto once = WFSStereoImage::rotate(seed, t + u);
+
+                    composes = composes && approx(twice.x, once.x, 1.0e-5f)
+                                        && approx(twice.y, once.y, 1.0e-5f);
+                }
+
+        check(composes, "F: rotate(rotate(a,t),u) == rotate(a,t+u)");
+    }
+
+    // G: ±180 is the explicit L/R swap the operator reaches for when a pair is
+    // patched or hung backwards.
+    {
+        Axis plainLatch, flippedLatch;
+        const auto plain = imageAt(0.0f, 8.0f, 4.0f, 0.0f, plainLatch);
+        const auto flipped = imageAt(0.0f, 8.0f, 4.0f, 180.0f, flippedLatch);
+
+        check(approx(flipped.left.x, plain.right.x, 1.0e-5f)
+              && approx(flipped.left.y, plain.right.y, 1.0e-5f)
+              && approx(flipped.right.x, plain.left.x, 1.0e-5f)
+              && approx(flipped.right.y, plain.left.y, 1.0e-5f),
+              "G: offset 180 swaps left and right");
+    }
+
+    logLine(failures == 0 ? juce::String("SELF-TEST RESULT: ALL PASS")
+                          : "SELF-TEST RESULT: " + juce::String(failures) + " FAILURES");
 }
 
 MainComponent::~MainComponent()
@@ -2609,9 +4012,126 @@ void MainComponent::resizeReverbAttenuation(int numReverbs, double sampleRate)
     }
 }
 
+void MainComponent::recomputeRenderSourceCount()
+{
+    using Map = spatcore::wfs::RenderSourceMap;
+
+    // Build the slot map from the per-channel type (inputChannelType on each
+    // <Input>): mono and stereo channels may interleave freely. Only a
+    // structural/type change (stopped-only) can alter the result, so the
+    // audio callback may read renderSourceMap unsynchronized. build() fails
+    // only if more than kMaxStereoChannels are stamped stereo (hand-edited
+    // file) — the UI refuses to create a 9th.
+    std::array<uint8_t, Map::kMaxInputChannels> channelTypes {};
+    const int numTypes = juce::jlimit (0, (int) Map::kMaxInputChannels, numInputChannels);
+    auto& vts = parameters.getValueTreeState();
+    for (int i = 0; i < numTypes; ++i)
+        if (vts.isInputChannelStereo (i))
+            channelTypes[static_cast<size_t> (i)] = Map::Stereo;
+
+    if (! Map::build (channelTypes.data(), numTypes, renderSourceMap))
+    {
+        WFSLogger::getInstance().logWarning ("Render-source map build failed — treating every channel as mono");
+        const bool ok = Map::buildIdentity (numTypes, renderSourceMap);
+        jassert (ok);
+        juce::ignoreUnused (ok);
+    }
+
+    numRenderSources = renderSourceMap.count > 0 ? renderSourceMap.count : numInputChannels;
+
+    // Both stereo image arrays are keyed by channel SLOT, and a rebuild is
+    // exactly the moment a slot can change identity — reorder, delete, type
+    // flip, project load. A stale axis latch would hand a pair the previous
+    // occupant's orientation, and a stale leg cache would leave the Map drawing
+    // an image bar on a channel that has stopped being stereo. The next refresh
+    // repopulates every channel that still is one.
+    stereoAxisLatch.fill (WFSStereoImage::Axis {});
+    for (auto& legs : stereoImageLegs)
+    {
+        // Discarding a valid pair is a Map change the refresh cannot detect on
+        // its own: nothing repopulates a slot that has stopped being stereo, so
+        // the erase has to be flagged here or the bar is never painted out.
+        stereoImageLegsDirty = stereoImageLegsDirty || legs.valid;
+        legs = StereoImageLegs {};
+    }
+
+    // The engine renders from the same map (derived rows, slice geometry)
+    if (calculationEngine)
+        calculationEngine->setRenderSourceMap (renderSourceMap);
+
+    // Budget display: SystemConfigTab shows the derived source total
+    if (systemConfigTab)
+        systemConfigTab->setRenderSourceTotal (numInputChannels, numRenderSources);
+
+    // Meter aggregation: one meter per visible channel, fed by all of the
+    // channel's render sources
+    if (levelMeteringManager)
+    {
+        std::vector<std::vector<int>> aggregation (static_cast<size_t> (numTypes));
+        for (int ch = 0; ch < numTypes; ++ch)
+        {
+            auto& sources = aggregation[static_cast<size_t> (ch)];
+            sources.push_back (ch);
+            const int firstDerived = renderSourceMap.firstDerivedSlot[static_cast<size_t> (ch)];
+            for (int sliceRow = 0; firstDerived >= 0 && sliceRow < Map::kDerivedPerStereo; ++sliceRow)
+                sources.push_back (firstDerived + sliceRow);
+        }
+        levelMeteringManager->setSourceMap (std::move (aggregation));
+    }
+}
+
+void MainComponent::sanitizeMonoPatchRows()
+{
+    auto audioPatchTree = parameters.getValueTreeState().getState().getChildWithName(WFSParameterIDs::AudioPatch);
+    auto inputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::InputPatch);
+    if (! inputPatchTree.isValid())
+        return;
+
+    juce::String patchDataStr = inputPatchTree.getProperty(WFSParameterIDs::patchData).toString();
+    juce::StringArray rows = juce::StringArray::fromTokens(patchDataStr, ";", "");
+
+    bool changed = false;
+    for (int row = 0; row < rows.size() && row < numInputChannels; ++row)
+    {
+        if (parameters.getValueTreeState().isInputChannelStereo (row))
+            continue;   // stereo rows keep both columns
+
+        juce::StringArray cols = juce::StringArray::fromTokens(rows[row], ",", "");
+        int kept = 0;
+        bool rowChanged = false;
+        for (int c = 0; c < cols.size(); ++c)
+        {
+            if (cols[c].getIntValue() == 1 && kept++ > 0)
+            {
+                cols.set(c, "0");
+                rowChanged = true;
+
+                // Logged because this rewrites the operator's patch: on the load
+                // path it is how a stereo row saved by a session whose channel
+                // list came back all-mono gets its second hardware input taken
+                // away, and a silent change to a show's patch is not findable
+                // afterwards.
+                WFSLogger::getInstance().logWarning(
+                    "Patch repair: mono channel "
+                    + juce::String(parameters.getValueTreeState().getInputChannelNumber(row))
+                    + " held hardware input " + juce::String(c + 1)
+                    + " as a second patch point; dropped it");
+            }
+        }
+        if (rowChanged)
+        {
+            rows.set(row, cols.joinIntoString(","));
+            changed = true;
+        }
+    }
+
+    if (changed)
+        inputPatchTree.setProperty(WFSParameterIDs::patchData, rows.joinIntoString(";"), nullptr);
+}
+
 void MainComponent::resizeRoutingMatrices()
 {
-    const int matrixSize = numInputChannels * numOutputChannels;
+    const int matrixSize = numRenderSources * numOutputChannels;
 
     delayTimesMs.assign(matrixSize, 0.0f);
     levels.assign(matrixSize, 0.0f);
@@ -2772,6 +4292,54 @@ void MainComponent::applySamplerControllerMode (int mode)
     }
 }
 
+void MainComponent::resolveLightpadZoneCollisions()
+{
+    // A Lightpad zone feeds exactly ONE input. Nothing in the model enforced
+    // that — the UI shows existing assignments in the picker and operators
+    // simply do not double-book, so the invariant held by convention. A snapshot
+    // recall can break it without anyone doing anything wrong: recall channel 3's
+    // stored zone 2 while live channel 7 already holds zone 2, and both now claim
+    // it. buildZoneToInputMap resolves that with zoneMap[zoneId] = i, so the
+    // HIGHEST slot silently wins and the other channel's pad goes dead with no
+    // message anywhere.
+    //
+    // Lowest slot keeps the zone, later claimants are cleared to -1 and logged —
+    // the same rule and the same reasoning as dedupeInputPatchColumns: an
+    // arbitrary but STABLE choice beats a silent one, and the two agree so a
+    // half-repaired session does not contradict itself.
+    auto inputs = parameters.getValueTreeState().getInputsState();
+    std::map<int, int> firstClaimant;   // zoneId -> slot
+
+    for (int slot = 0; slot < inputs.getNumChildren(); ++slot)
+    {
+        auto channelSection = inputs.getChild (slot).getChildWithName (WFSParameterIDs::Channel);
+        if (! channelSection.isValid())
+            continue;
+
+        const int zoneId = static_cast<int> (channelSection.getProperty (WFSParameterIDs::lightpadZoneId, -1));
+        if (zoneId < 0)
+            continue;
+
+        auto existing = firstClaimant.find (zoneId);
+        if (existing == firstClaimant.end())
+        {
+            firstClaimant[zoneId] = slot;
+            continue;
+        }
+
+        auto& vts = parameters.getValueTreeState();
+        WFSLogger::getInstance().logWarning (
+            "Lightpad zone repair: zone " + juce::String (zoneId)
+            + " was claimed by input channels " + juce::String (vts.getInputChannelNumber (existing->second))
+            + " and " + juce::String (vts.getInputChannelNumber (slot))
+            + "; kept it on channel " + juce::String (vts.getInputChannelNumber (existing->second)));
+
+        // Raw setProperty: this is bookkeeping, not an operator edit — it must
+        // carry no undo entry and must not mark the project dirty.
+        channelSection.setProperty (WFSParameterIDs::lightpadZoneId, -1, nullptr);
+    }
+}
+
 std::map<int, int> MainComponent::buildZoneToInputMap() const
 {
     std::map<int, int> zoneMap;
@@ -2829,7 +4397,9 @@ void MainComponent::growPatchData(juce::ValueTree& patchTree, int newChannelCoun
         return;
     }
 
-    // Grow: append new rows with 1:1 diagonal mapping
+    // Grow: append new rows with 1:1 diagonal mapping (output patch only —
+    // input rows are mirrored per-op by the WFSValueTreeState structural
+    // channel ops and normalizeInputPatchRows).
     for (int ch = existingRows; ch < newChannelCount; ++ch)
     {
         juce::StringArray cols;
@@ -2842,6 +4412,151 @@ void MainComponent::growPatchData(juce::ValueTree& patchTree, int newChannelCoun
     patchTree.setProperty(WFSParameterIDs::rows, newChannelCount, nullptr);
 }
 
+void MainComponent::autoPatchStereoRightColumns()
+{
+    // Auto-diagonal companion for stereo rows: a pair whose L is patched but
+    // whose R is not gets the next hardware column — IF that column is free
+    // everywhere (the column side of the invariant is never stolen from).
+    // Deliberately a heuristic, not an invariant: a fully unpatched stereo
+    // row is left alone, and a claimed next column just leaves R unpatched.
+    auto audioPatchTree = parameters.getValueTreeState().getState().getChildWithName(WFSParameterIDs::AudioPatch);
+    auto inputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::InputPatch);
+    if (! inputPatchTree.isValid())
+        return;
+
+    juce::String patchDataStr = inputPatchTree.getProperty(WFSParameterIDs::patchData).toString();
+    juce::StringArray rows = juce::StringArray::fromTokens(patchDataStr, ";", "");
+
+    // Column claims across ALL rows
+    std::vector<bool> columnClaimed(static_cast<size_t>(WFSValueTreeState::maxHardwarePatchChannels), false);
+    for (int r = 0; r < rows.size(); ++r)
+    {
+        juce::StringArray cols = juce::StringArray::fromTokens(rows[r], ",", "");
+        for (int c = 0; c < cols.size() && c < (int) columnClaimed.size(); ++c)
+            if (cols[c].getIntValue() == 1)
+                columnClaimed[static_cast<size_t>(c)] = true;
+    }
+
+    bool changed = false;
+    for (int r = 0; r < rows.size() && r < numInputChannels; ++r)
+    {
+        if (! parameters.getValueTreeState().isInputChannelStereo (r))
+            continue;
+
+        juce::StringArray cols = juce::StringArray::fromTokens(rows[r], ",", "");
+        int patchedCount = 0;
+        int leftCol = -1;
+        for (int c = 0; c < cols.size(); ++c)
+        {
+            if (cols[c].getIntValue() == 1)
+            {
+                if (patchedCount++ == 0)
+                    leftCol = c;
+            }
+        }
+
+        if (patchedCount != 1 || leftCol < 0)
+            continue;   // fully unpatched or already a pair
+
+        const int rightCol = leftCol + 1;
+        if (rightCol >= WFSValueTreeState::maxHardwarePatchChannels
+            || (rightCol < (int) columnClaimed.size() && columnClaimed[static_cast<size_t>(rightCol)]))
+            continue;
+
+        while (cols.size() <= rightCol)
+            cols.add("0");
+        cols.set(rightCol, "1");
+        columnClaimed[static_cast<size_t>(rightCol)] = true;
+        rows.set(r, cols.joinIntoString(","));
+        changed = true;
+    }
+
+    if (changed)
+        inputPatchTree.setProperty(WFSParameterIDs::patchData, rows.joinIntoString(";"), nullptr);
+}
+
+void MainComponent::dedupeInputPatchColumns()
+{
+    // A hardware input feeds at most ONE channel. That invariant is enforced
+    // interactively (commitPatchOperation clears the target column first), but
+    // a loaded patchData string is merged in raw, and nothing downstream repairs
+    // a violation: loadAudioPatches resolves it by last-writer-wins into
+    // inputPatchMap while BOTH rows keep the column in inputPatchPrimaryHw, so
+    // one channel silently feeds two.
+    //
+    // First claimant (lowest row) keeps it — the same "lower wins" rule
+    // sanitizeMonoPatchRows uses within a row, so the two agree about which
+    // hardware input a half-repaired patch keeps.
+    auto audioPatchTree = parameters.getValueTreeState().getState().getChildWithName(WFSParameterIDs::AudioPatch);
+    auto inputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::InputPatch);
+    if (! inputPatchTree.isValid())
+        return;
+
+    juce::String patchDataStr = inputPatchTree.getProperty(WFSParameterIDs::patchData).toString();
+    juce::StringArray rows = juce::StringArray::fromTokens(patchDataStr, ";", "");
+
+    std::vector<int> claimedBy(static_cast<size_t>(WFSValueTreeState::maxHardwarePatchChannels), -1);
+    bool changed = false;
+
+    for (int r = 0; r < rows.size(); ++r)
+    {
+        juce::StringArray cols = juce::StringArray::fromTokens(rows[r], ",", "");
+        bool rowChanged = false;
+
+        for (int c = 0; c < cols.size() && c < (int) claimedBy.size(); ++c)
+        {
+            if (cols[c].getIntValue() != 1)
+                continue;
+
+            auto& owner = claimedBy[static_cast<size_t>(c)];
+            if (owner < 0)
+            {
+                owner = r;
+                continue;
+            }
+
+            cols.set(c, "0");
+            rowChanged = true;
+
+            auto& vts = parameters.getValueTreeState();
+            WFSLogger::getInstance().logWarning(
+                "Patch repair: hardware input " + juce::String(c + 1)
+                + " was claimed by channels " + juce::String(vts.getInputChannelNumber(owner))
+                + " and " + juce::String(vts.getInputChannelNumber(r))
+                + "; kept it on channel " + juce::String(vts.getInputChannelNumber(owner)));
+        }
+
+        if (rowChanged)
+        {
+            rows.set(r, cols.joinIntoString(","));
+            changed = true;
+        }
+    }
+
+    if (changed)
+        inputPatchTree.setProperty(WFSParameterIDs::patchData, rows.joinIntoString(";"), nullptr);
+}
+
+void MainComponent::repairInputPatchAfterLoad()
+{
+    // The one definition of the repair order, so the load path and the
+    // channel-count path cannot drift apart.
+    //
+    // A loaded patch reaches the tree through a bare mergeTreeRecursive: no row
+    // count check, no per-row capacity check, no column-uniqueness check. Until
+    // this ran on the load path, only a channel COUNT change triggered any of
+    // it — so reopening a show whose channel list came back differently (every
+    // stereo pair rebuilt as mono, before the channel inventory existed) left
+    // two hardware inputs sitting on a mono channel, exactly as saved.
+    //
+    // Every step is idempotent and a no-op on a well-formed patch, which is what
+    // lets both call sites run it without checking whether the other already did.
+    parameters.getValueTreeState().normalizeInputPatchRows();  // row count vs channel list
+    sanitizeMonoPatchRows();                                   // mono row keeps its lowest column
+    dedupeInputPatchColumns();                                 // one owner per hardware input
+    autoPatchStereoRightColumns();                             // stereo L with no R gets a free R
+}
+
 void MainComponent::loadAudioPatches()
 {
     // Load input patch matrix from ValueTree
@@ -2852,6 +4567,8 @@ void MainComponent::loadAudioPatches()
     // Reset patch maps to "unmapped" (-1)
     inputPatchMap.assign(LevelMeteringManager::MaxHardwareInputs, -1);  // Max hardware inputs
     outputPatchMap.assign(WFSParameterDefaults::maxOutputChannels, -1); // Max WFS outputs
+    inputPatchPrimaryHw.assign(WFSParameterDefaults::maxInputChannels, -1);
+    inputPatchSecondaryHw.assign(WFSParameterDefaults::maxInputChannels, -1);
 
     // Load input patches: hardware channel → WFS channel
     if (inputPatchTree.isValid())
@@ -2868,6 +4585,16 @@ void MainComponent::loadAudioPatches()
                 {
                     if (hwChannel < (int) inputPatchMap.size())
                         inputPatchMap[hwChannel] = wfsChannel;
+
+                    // Row-keyed columns, ascending: the LOWER column of a
+                    // stereo-pair row is the left channel by convention
+                    if (wfsChannel < (int) inputPatchPrimaryHw.size())
+                    {
+                        if (inputPatchPrimaryHw[wfsChannel] < 0)
+                            inputPatchPrimaryHw[wfsChannel] = hwChannel;
+                        else if (inputPatchSecondaryHw[wfsChannel] < 0)
+                            inputPatchSecondaryHw[wfsChannel] = hwChannel;
+                    }
                 }
             }
         }
@@ -2907,19 +4634,32 @@ void MainComponent::applyInputPatch(const juce::AudioSourceChannelInfo& bufferTo
     int totalBufferChannels = bufferToFill.buffer->getNumChannels();
 
     // Prepare patched buffer if needed
-    if (patchedInputBuffer.getNumChannels() != numInputChannels ||
+    if (patchedInputBuffer.getNumChannels() != numRenderSources ||
         patchedInputBuffer.getNumSamples() < bufferToFill.numSamples)
     {
-        patchedInputBuffer.setSize(numInputChannels, bufferToFill.numSamples, false, false, true);
+        patchedInputBuffer.setSize(numRenderSources, bufferToFill.numSamples, false, false, true);
+    }
+
+    // Shape-change safety net for the stereo raw buffer (preallocated in
+    // prepareToPlay, like patchedInputBuffer above)
+    const int stereoRawChannels = 2 * StereoChannelManager::kMaxStereoChannels;
+    if (stereoRawBuffer.getNumChannels() != stereoRawChannels ||
+        stereoRawBuffer.getNumSamples() < bufferToFill.numSamples)
+    {
+        stereoRawBuffer.setSize(stereoRawChannels, bufferToFill.numSamples, false, false, true);
     }
 
     patchedInputBuffer.clear();
 
-    // Copy audio according to input patch map
+    // Copy audio according to input patch map. Stereo-pair rows are skipped:
+    // their raw L/R goes into stereoRawBuffer below, and the decomposition
+    // stage is the sole writer of their patchedInputBuffer slots (so no
+    // read/write aliasing is possible inside the decomposer).
     for (int hwChannel = 0; hwChannel < totalBufferChannels && hwChannel < (int)inputPatchMap.size(); ++hwChannel)
     {
         int wfsChannel = inputPatchMap[hwChannel];
-        if (wfsChannel >= 0 && wfsChannel < numInputChannels)
+        if (wfsChannel >= 0 && wfsChannel < numInputChannels
+            && renderSourceMap.firstDerivedSlot[static_cast<size_t> (wfsChannel)] < 0)
         {
             patchedInputBuffer.copyFrom(wfsChannel, bufferToFill.startSample,
                                         *bufferToFill.buffer, hwChannel,
@@ -2927,7 +4667,256 @@ void MainComponent::applyInputPatch(const juce::AudioSourceChannelInfo& bufferTo
         }
     }
 
+    // Stereo-pair rows: raw L/R per stereo ordinal (2k = L, 2k+1 = R),
+    // ordinals counted in ascending channel order to match RenderSourceMap
+    {
+        int ordinal = 0;
+        for (int ch = 0; ch < numInputChannels
+                         && ch < (int) renderSourceMap.firstDerivedSlot.size(); ++ch)
+        {
+            if (renderSourceMap.firstDerivedSlot[static_cast<size_t> (ch)] < 0)
+                continue;
+
+            const int rawL = 2 * ordinal;
+            const int rawR = rawL + 1;
+            ++ordinal;
+            if (rawR >= stereoRawBuffer.getNumChannels())
+                break;
+
+            const int hwPair[2] = { ch < (int) inputPatchPrimaryHw.size() ? inputPatchPrimaryHw[ch] : -1,
+                                    ch < (int) inputPatchSecondaryHw.size() ? inputPatchSecondaryHw[ch] : -1 };
+            const int rawPair[2] = { rawL, rawR };
+            for (int side = 0; side < 2; ++side)
+            {
+                const int hw = hwPair[side];
+                if (hw >= 0 && hw < totalBufferChannels)
+                    stereoRawBuffer.copyFrom(rawPair[side], bufferToFill.startSample,
+                                             *bufferToFill.buffer, hw,
+                                             bufferToFill.startSample, bufferToFill.numSamples);
+                else
+                    stereoRawBuffer.clear(rawPair[side], bufferToFill.startSample,
+                                          bufferToFill.numSamples);
+            }
+        }
+    }
+
     // No copy-back: downstream consumers read directly from patchedInputBuffer
+}
+
+void MainComponent::meterRenderSourceInputs (int startSample, int numSamples) noexcept
+{
+    // RT-safe: one pass per render source over patchedInputBuffer, then two
+    // relaxed atomic stores. No allocation, no locks, no logging, and no
+    // transcendentals in the loop — the decay coefficient is computed once
+    // below and the dB conversion happens on the message thread.
+    //
+    // Ungated on purpose. The obvious optimisation is to skip this when no
+    // meter is on screen, but AutomOtion's audio trigger reads the same levels
+    // with every meter closed, and the pre-gate hardware feed above already
+    // walks up to 512 channels unconditionally — this walks at most as many
+    // render sources as the session has, and is strictly cheaper.
+    if (levelMeteringManager == nullptr || numSamples <= 0)
+        return;
+
+    const double sr = currentDeviceSampleRate.load (std::memory_order_relaxed);
+    if (sr <= 0.0)
+        return;
+
+    const float decay = LevelMeteringManager::blockDecayCoef (
+        numSamples, sr, LevelMeteringManager::kInputMeterTauSeconds);
+
+    const int numSources = juce::jmin (numRenderSources,
+                                       patchedInputBuffer.getNumChannels(),
+                                       LevelMeteringManager::MaxRenderSources);
+
+    for (int src = 0; src < numSources; ++src)
+    {
+        // Peak and energy in ONE pass. getMagnitude() + getRMSLevel() read
+        // every sample twice for the same two numbers, and getRMSLevel is a
+        // scalar double loop ending in a sqrt we would immediately undo.
+        const float* data = patchedInputBuffer.getReadPointer (src, startSample);
+        float maxAbs = 0.0f;
+        float sumSquares = 0.0f;
+
+        for (int i = 0; i < numSamples; ++i)
+        {
+            const float v = data[i];
+            maxAbs = juce::jmax (maxAbs, std::abs (v));
+            sumSquares += v * v;
+        }
+
+        levelMeteringManager->pushRenderSourceBlockLevels (
+            src, maxAbs, sumSquares / (float) numSamples, decay);
+    }
+
+    // Slots retired by a channel-count or mono/stereo change are no longer
+    // written, so without this they would hold their last value forever. The
+    // per-block stamp below covers "nothing is rendering", not "this particular
+    // slot stopped being rendered".
+    for (int src = numSources; src < lastMeteredRenderSources; ++src)
+        levelMeteringManager->pushRenderSourceBlockLevels (src, 0.0f, 0.0f, 0.0f);
+    lastMeteredRenderSources = numSources;
+
+    levelMeteringManager->markRenderSourceMeterBlock();
+}
+
+void MainComponent::runStereoDecompositionStage (int startSample, int numSamples) noexcept
+{
+    // RT-safe: reads only stereoRawBuffer, the retained render-source map
+    // (stable while audio runs — type changes are stopped-only) and one
+    // RtSnapshot per channel inside processChannel(). No allocation, no locks
+    // beyond the snapshot POD copies, no logging.
+    if (stereoChannelManager == nullptr || numSamples <= 0)
+        return;
+
+    int ordinal = 0;
+    const int maxCh = juce::jmin (numInputChannels,
+                                  (int) renderSourceMap.firstDerivedSlot.size(),
+                                  patchedInputBuffer.getNumChannels());
+    for (int ch = 0; ch < maxCh; ++ch)
+    {
+        const int firstDerived = renderSourceMap.firstDerivedSlot[static_cast<size_t> (ch)];
+        if (firstDerived < 0)
+            continue;
+
+        const int k = ordinal++;
+        const int rawL = 2 * k;
+        const int rawR = rawL + 1;
+        const int lastSlot = firstDerived + StereoChannelManager::kMaxSlices - 2;
+
+        if (rawR >= stereoRawBuffer.getNumChannels()
+            || lastSlot >= patchedInputBuffer.getNumChannels())
+            continue;
+
+        float* slicePtrs[StereoChannelManager::kMaxSlices];
+        slicePtrs[0] = patchedInputBuffer.getWritePointer (ch, startSample);
+        for (int slice = 1; slice < StereoChannelManager::kMaxSlices; ++slice)
+            slicePtrs[slice] = patchedInputBuffer.getWritePointer (firstDerived + (slice - 1), startSample);
+
+        stereoChannelManager->processChannel (k,
+                                              stereoRawBuffer.getReadPointer (rawL, startSample),
+                                              stereoRawBuffer.getReadPointer (rawR, startSample),
+                                              slicePtrs, numSamples);
+    }
+}
+
+bool MainComponent::refreshStereoSliceGeometry()
+{
+    // Consumed on every pass, including the ones that bail out below: a rebuild
+    // that retired the last stereo channel still owes the Map one repaint.
+    bool legsChanged = stereoImageLegsDirty;
+    stereoImageLegsDirty = false;
+
+    if (calculationEngine == nullptr || stereoChannelManager == nullptr)
+        return legsChanged;
+
+    // Nothing to place when no stereo channels exist (the common case)
+    if (renderSourceMap.count == renderSourceMap.numInputChannels)
+        return legsChanged;
+
+    // No speaker position is read anywhere below, and that is the point: the
+    // width is an absolute distance, so it means the same thing on a frontal
+    // bar, a circle and an array running along Y — the last of which had zero X
+    // extent and so silently disabled the width dial entirely under the old
+    // fraction-of-the-array reference. It also retires a per-frame
+    // numOutputChannels loop from the 50 Hz path. The confidence-collapse curve
+    // is Phase 1; Phase 0 slices carry full confidence.
+
+    int ordinal = 0;
+    for (int ch = 0; ch < numInputChannels
+                     && ch < (int) renderSourceMap.firstDerivedSlot.size(); ++ch)
+    {
+        if (renderSourceMap.firstDerivedSlot[static_cast<size_t> (ch)] < 0)
+            continue;
+
+        const int k = ordinal++;
+
+        auto channelSection = parameters.getValueTreeState().getInputChannelSection (ch);
+        const float widthM = juce::jlimit (WFSParameterDefaults::inputStereoWidthMin,
+                                           WFSParameterDefaults::inputStereoWidthMax,
+            (float) (double) channelSection.getProperty (WFSParameterIDs::inputStereoWidth.toString(),
+                                                         WFSParameterDefaults::inputStereoWidthDefault));
+        const int axisOffsetDeg = juce::jlimit (WFSParameterDefaults::inputStereoAxisOffsetMin,
+                                                WFSParameterDefaults::inputStereoAxisOffsetMax,
+            (int) channelSection.getProperty (WFSParameterIDs::inputStereoAxisOffset.toString(),
+                                              WFSParameterDefaults::inputStereoAxisOffsetDefault));
+
+        // The offset rotates the automatic tangential axis in the WORLD frame,
+        // so it is NOT mirrored by inputFlipX/Y: the flip already mirrors the
+        // anchor, and the automatic axis follows the mirrored bearing on its
+        // own. Applying the operator's dialled rotation to the mirror as well
+        // would turn it the wrong way on every flipped channel.
+        const auto anchor = calculationEngine->getCompositeInputPosition (ch);
+        const auto axis = WFSStereoImage::rotate (
+            WFSStereoImage::autoAxis (anchor.x, anchor.y,
+                                      stereoAxisLatch[static_cast<size_t> (ch)]),
+            (float) axisOffsetDeg);
+
+        // Config down (audio side). Width is deliberately absent from the
+        // backend config — azimuth is normalized by contract and the metre
+        // scaling happens here. Stagger keeps multi-channel STFT work off the
+        // same callback (doc §6).
+        spatcore::dsp::StereoDecomposerConfig cfg;
+        cfg.staggerIndex = k;
+        cfg.staggerCount = StereoChannelManager::kMaxStereoChannels;
+        stereoChannelManager->publishConfig (k, cfg);
+
+        // Slice state up (audio side) → metre offsets for the engine
+        const auto states = stereoChannelManager->getSliceStates (k);
+
+        float offsets[StereoChannelManager::kMaxSlices * 3] = {};
+        float gains[StereoChannelManager::kMaxSlices] = {};
+        bool active[StereoChannelManager::kMaxSlices] = {};
+        for (int slice = 0; slice < StereoChannelManager::kMaxSlices; ++slice)
+        {
+            const auto& st = states.slices[slice];
+
+            // Z is never written: the image is planar, and a slice must not
+            // drift off the height the operator set.
+            WFSStereoImage::sliceOffset (juce::jlimit (-1.0f, 1.0f, st.azimuth), widthM, axis,
+                                         offsets[slice * 3 + 0], offsets[slice * 3 + 1]);
+            gains[slice] = st.gainLinear;
+            active[slice] = st.active;
+        }
+
+        // Slice 0 is the channel's reference row and renders AT the anchor. A
+        // future backend publishing a nonzero azimuth there would silently walk
+        // the position the operator placed out from under them.
+        jassert (offsets[0] == 0.0f && offsets[1] == 0.0f && offsets[2] == 0.0f);
+
+        calculationEngine->setSliceGeometry (ch, offsets, gains, active);
+
+        // Map read-back: the legs the engine was just handed, in absolute stage
+        // metres, so the drawing and the render can never disagree.
+        const juce::Point<float> newLeft  { anchor.x + offsets[1 * 3 + 0],
+                                            anchor.y + offsets[1 * 3 + 1] };
+        const juce::Point<float> newRight { anchor.x + offsets[2 * 3 + 0],
+                                            anchor.y + offsets[2 * 3 + 1] };
+
+        auto& legs = stereoImageLegs[static_cast<size_t> (ch)];
+
+        // The threshold is a quarter pixel at the Map's maximum zoom (500 px/m),
+        // so a backend whose azimuths never settle to the same float twice
+        // cannot pin the Map at a 50 Hz repaint for motion nobody can see. A
+        // channel gaining its legs counts on its own — the bar has to appear.
+        constexpr float legMoveEpsilonM = 0.0005f;
+        if (! legs.valid
+            || std::abs (newLeft.x  - legs.left.x)  > legMoveEpsilonM
+            || std::abs (newLeft.y  - legs.left.y)  > legMoveEpsilonM
+            || std::abs (newRight.x - legs.right.x) > legMoveEpsilonM
+            || std::abs (newRight.y - legs.right.y) > legMoveEpsilonM)
+            legsChanged = true;
+
+        legs.left  = newLeft;
+        legs.right = newRight;
+        legs.valid = true;
+
+        // Backend intrinsic latency → the render-latency reference hook
+        // (0 for the Phase-0 pass-through, ~21 ms for the Phase-1 STFT)
+        calculationEngine->setChannelIntrinsicLatency (ch, stereoChannelManager->getLatencyMs (k));
+    }
+
+    return legsChanged;
 }
 
 void MainComponent::applyOutputPatch(const juce::AudioSourceChannelInfo& bufferToFill,
@@ -3053,6 +5042,19 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
                                       + juce::String (reverbs) + " reverbs");
     numInputChannels = inputs;
     numOutputChannels = outputs;
+
+    // Channel inventory to the tablets first, before the reconfiguration pass
+    // below spends milliseconds on it. This is the funnel every structural edit
+    // reaches — add, remove, move, type flip, config load — so it is the only
+    // place that catches a drag-reorder: a reorder changes no count, so the
+    // inputChannels ValueTree hook in OSCManager never fires for one, and the
+    // tablet would keep drawing the old display order. sendRemoteChannelList
+    // skips an unchanged payload, which is what keeps the add/remove loop behind
+    // setInputChannelCounts from sending one inventory per step.
+    if (oscManager != nullptr)
+        oscManager->sendRemoteChannelList();
+
+    recomputeRenderSourceCount();  // keep the renderer dimension in lockstep
     stopProcessingForConfigurationChange();
     resizeRoutingMatrices();
 
@@ -3063,17 +5065,26 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
         resizeReverbAttenuation(reverbs, sr);
     }
 
-    // Grow/shrink patch data in ValueTree so new channels get 1:1 mapping
-    // (PatchMatrixComponent may not exist if Audio Interface window was never opened)
+    // Patch rows: the structural channel ops already mirror input rows 1:1
+    // (row = slot); this normalize only reconciles after a wholesale
+    // patchData rewrite (config load). Output rows keep the count-driven
+    // grow/truncate. (PatchMatrixComponent may not exist if the Audio
+    // Interface window was never opened.)
     {
         auto audioPatchTree = parameters.getValueTreeState().getState().getChildWithName(WFSParameterIDs::AudioPatch);
-        auto inputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::InputPatch);
         auto outputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::OutputPatch);
-        int hwInCols = inputPatchTree.isValid() ? (int) inputPatchTree.getProperty(WFSParameterIDs::cols, 64) : 64;
         int hwOutCols = outputPatchTree.isValid() ? (int) outputPatchTree.getProperty(WFSParameterIDs::cols, WFSParameterDefaults::maxOutputChannels) : WFSParameterDefaults::maxOutputChannels;
-        growPatchData(inputPatchTree, inputs, hwInCols);
+        parameters.getValueTreeState().normalizeInputPatchRows();
         growPatchData(outputPatchTree, outputs, hwOutCols);
     }
+
+    // Count changes can move the mono/stereo boundary: rows that became mono
+    // may hold a leftover second column — drop it (lower column = L is kept);
+    // stereo rows with an L but no R get the next free column (auto-diagonal
+    // companion); then rebuild the runtime patch maps for the new shape.
+    // (normalizeInputPatchRows already ran above; the pass is idempotent.)
+    repairInputPatchAfterLoad();
+    loadAudioPatches();
 
     // Update reverb engine node count and resize MainComponent's reverb buffers
     if (reverbEngine)
@@ -3127,7 +5138,7 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
         auto* device = deviceManager.getCurrentAudioDevice();
         double sr = device ? device->getCurrentSampleRate() : 48000.0;
         int bs = device ? device->getCurrentBufferSizeSamples() : 512;
-        binauralProcessor->prepareToPlay(sr, bs, numInputChannels);
+        binauralProcessor->prepareToPlay(sr, bs, numRenderSources);
         if (binauralProcessor->isEnabled())
             binauralProcessor->startProcessing();
     }
@@ -3146,7 +5157,7 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
         const float* calcHF = calculationEngine->getHFAttenuationDb();
         const int calcStride = calculationEngine->getNumOutputs();
 
-        for (int inIdx = 0; inIdx < numInputChannels; ++inIdx)
+        for (int inIdx = 0; inIdx < numRenderSources; ++inIdx)
         {
             for (int outIdx = 0; outIdx < numOutputChannels; ++outIdx)
             {
@@ -3163,11 +5174,11 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
         const float* calcReverbHF = calculationEngine->getInputReverbHFAttenuationDb();
         const int calcReverbStride = calculationEngine->getNumReverbs();
 
-        std::vector<float> reverbDelays(numInputChannels * reverbs);
-        std::vector<float> reverbLevelsVec(numInputChannels * reverbs);
-        std::vector<float> reverbHF(numInputChannels * reverbs);
+        std::vector<float> reverbDelays(numRenderSources * reverbs);
+        std::vector<float> reverbLevelsVec(numRenderSources * reverbs);
+        std::vector<float> reverbHF(numRenderSources * reverbs);
 
-        for (int inIdx = 0; inIdx < numInputChannels; ++inIdx)
+        for (int inIdx = 0; inIdx < numRenderSources; ++inIdx)
         {
             for (int revIdx = 0; revIdx < reverbs; ++revIdx)
             {
@@ -3208,7 +5219,12 @@ void MainComponent::sendVisualisationToRemotes(int targetIndex)
     // Current desktop selection: the InputsTab channel is always valid; the map
     // contributes either a temporary multi-selection or the members of the
     // selected cluster/barycenter.
-    int primary = inputsTab != nullptr ? inputsTab->getSelectedInputIndex() + 1 : 1;
+    // Wire ids are permanent channel numbers; the tab/map selections are
+    // slots, so convert at the boundary.
+    auto& vtsVis = parameters.getValueTreeState();
+    int primary = inputsTab != nullptr
+                      ? vtsVis.getInputChannelNumber(inputsTab->getSelectedInputIndex())
+                      : vtsVis.getInputChannelNumber(0);
 
     int clusterId = 0;
     std::vector<int> selection;
@@ -3222,13 +5238,13 @@ void MainComponent::sendVisualisationToRemotes(int targetIndex)
                 juce::var cv = parameters.getValueTreeState()
                                    .getInputParameter(i, WFSParameterIDs::inputCluster);
                 if (!cv.isVoid() && static_cast<int>(cv) == clusterId)
-                    selection.push_back(i + 1);
+                    selection.push_back(vtsVis.getInputChannelNumber(i));
             }
         }
         else
         {
-            for (int idx : mapTab->getSelectedInputSet())  // 0-based indices
-                selection.push_back(idx + 1);
+            for (int idx : mapTab->getSelectedInputSet())  // 0-based slots
+                selection.push_back(vtsVis.getInputChannelNumber(idx));
 
             // A single selected input that is a cluster's reference handle
             // (First Input / Shared Position modes, or the tracked member)
@@ -3236,7 +5252,7 @@ void MainComponent::sendVisualisationToRemotes(int targetIndex)
             // the tablet like a barycenter selection does.
             if (selection.size() == 1)
             {
-                const int idx0 = selection.front() - 1;
+                const int idx0 = vtsVis.getSlotForChannelNumber(selection.front());
                 juce::var cv = parameters.getValueTreeState()
                                    .getInputParameter(idx0, WFSParameterIDs::inputCluster);
                 const int cluster = cv.isVoid() ? 0 : static_cast<int>(cv);
@@ -3249,7 +5265,7 @@ void MainComponent::sendVisualisationToRemotes(int targetIndex)
                         juce::var mv = parameters.getValueTreeState()
                                            .getInputParameter(i, WFSParameterIDs::inputCluster);
                         if (!mv.isVoid() && static_cast<int>(mv) == cluster)
-                            selection.push_back(i + 1);
+                            selection.push_back(vtsVis.getInputChannelNumber(i));
                     }
                 }
             }
@@ -3274,8 +5290,10 @@ void MainComponent::sendVisualisationToRemotes(int targetIndex)
     std::set<int> channels(selection.begin(), selection.end());
     channels.insert(primary);
 
+    // Entries are permanent channel numbers; sendRemoteVisRows resolves each
+    // to its engine-matrix slot and drops dead numbers itself.
     for (int ch : channels)
-        if (ch >= 1 && ch <= numInputs)
+        if (ch >= 1)
             oscManager->sendRemoteVisRows(ch, delays, levels, stride, numOutputs,
                                           rDelays, rLevels, rStride, numReverbs, targetIndex);
 
@@ -3284,7 +5302,7 @@ void MainComponent::sendVisualisationToRemotes(int targetIndex)
     {
         if (targetIndex >= 0 && pinTarget != targetIndex)
             continue;
-        if (channels.count(pinChannel) > 0 || pinChannel < 1 || pinChannel > numInputs)
+        if (channels.count(pinChannel) > 0 || pinChannel < 1)
             continue;
         oscManager->sendRemoteVisRows(pinChannel, delays, levels, stride, numOutputs,
                                       rDelays, rLevels, rStride, numReverbs, pinTarget);
@@ -3379,19 +5397,40 @@ void MainComponent::openProjectFromFile (const juce::File& folder)
     fileManager.createProjectFolderStructure();
     AppSettings::setLastFolder ("lastProjectFolder", folder);
 
-    // Load all configuration files
-    if (fileManager.loadCompleteConfig())
+    // The pair (system.xml vs inputs.xml) is checked before anything is
+    // applied. This runs after the message loop is up (Main.cpp defers it
+    // through callAsync), so a dialog here is fine.
+    ChannelIdentityGate::Context ctx;
+    ctx.parent     = this;
+    ctx.parameters = &parameters;
+    ctx.afterStructuralChange = [this]
     {
-        handleConfigReloaded();
+        handleChannelCountChange (parameters.getNumInputChannels(), numOutputChannels,
+                                  parameters.getNumReverbChannels());
+    };
+    ctx.showStatus = [this] (const juce::String& text)
+    {
+        WFSLogger::getInstance().logInfo (text);
+        if (inputsTab != nullptr) inputsTab->showStatusMessage (text);
+    };
 
-        // Update window title with project name
-        if (auto* window = findParentComponentOfClass<juce::DocumentWindow>())
-            window->setName (ProjectInfo::projectName + juce::String (" - ") + folder.getFileName());
-    }
-    else
-    {
-        WFSLogger::getInstance().logWarning ("openProjectFromFile: no config files found in " + folder.getFullPathName());
-    }
+    ChannelIdentityGate::confirmThenLoadProject (ctx, fileManager.getSystemConfigFile(), fileManager.getInputConfigFile(),
+        [this, folder]
+        {
+            auto& fm = parameters.getFileManager();
+            if (fm.loadCompleteConfig())
+            {
+                handleConfigReloaded();
+
+                // Update window title with project name
+                if (auto* window = findParentComponentOfClass<juce::DocumentWindow>())
+                    window->setName (ProjectInfo::projectName + juce::String (" - ") + folder.getFileName());
+            }
+            else
+            {
+                WFSLogger::getInstance().logWarning ("openProjectFromFile: no config files found in " + folder.getFullPathName());
+            }
+        });
 }
 
 bool MainComponent::recallSnapshotByName (const juce::String& snapshotName, bool fromMidi, bool fromOsc)
@@ -3437,6 +5476,25 @@ bool MainComponent::recallSnapshotByName (const juce::String& snapshotName, bool
     if (external)
         noUndo.emplace (parameters.getValueTreeState());
 
+    // A cue must never block, so a hardware-input fingerprint mismatch on a
+    // cue-driven recall is reported loudly and the cue is applied anyway: the
+    // show goes on, and the operator was told at the manual test (the Inputs
+    // tab's button goes through a dialog instead - see InputsTab::reloadSnapshot).
+    juce::String patchWarning;
+    if (external)
+    {
+        const auto diff = fileManager.preflightSnapshotChannelIdentity (snapshotName);
+        if (! diff.patchDiffers.empty())
+        {
+            patchWarning = LOC("inputs.messages.snapshotPatchMismatchApplied")
+                               .replace ("{name}", snapshotName)
+                               .replace ("{n}", juce::String ((int) diff.patchDiffers.size()));
+            WFSLogger::getInstance().logWarning ("Cue recall of '" + snapshotName
+                                                 + "' applied despite a hardware-input fingerprint mismatch ("
+                                                 + WFSFileManager::summariseChannelIdentityDiff (diff) + ")");
+        }
+    }
+
     parameters.getDirtyTracker().beginSuppression();
 
     const bool ok = fileManager.loadInputSnapshotWithExtendedScope (snapshotName, scope);
@@ -3448,21 +5506,38 @@ bool MainComponent::recallSnapshotByName (const juce::String& snapshotName, bool
         // refreshFromState() was a duplicate and is deliberately not carried over.
         handleConfigReloaded();
 
+        juce::String statusText = LOC(fromMidi ? "inputs.messages.snapshotLoadedByMidi"
+                                               : "inputs.messages.snapshotLoaded")
+                                      .replace ("{name}", snapshotName);
+
+        // Entries with no live channel used to vanish silently.
+        const auto& skipped = fileManager.getLastRecallSkippedNumbers();
+        if (! skipped.empty())
+        {
+            juce::StringArray nums;
+            for (int n : skipped) nums.add ("#" + juce::String (n));
+            statusText = LOC("inputs.messages.snapshotEntriesSkipped")
+                             .replace ("{name}", snapshotName)
+                             .replace ("{n}", juce::String ((int) skipped.size()))
+                             .replace ("{numbers}", nums.joinIntoString (", "));
+            WFSLogger::getInstance().logInfo (statusText);
+        }
+        if (patchWarning.isNotEmpty())
+            statusText = patchWarning;   // the most important line wins the status bar
+
         if (inputsTab != nullptr)
         {
             // AFTER handleConfigReloaded: that rebuilds the snapshot dropdown, so
             // selecting first would be overwritten by the rebuild.
             inputsTab->selectSnapshotInSelector (snapshotName);
-            inputsTab->showStatusMessage (
-                LOC(fromMidi ? "inputs.messages.snapshotLoadedByMidi"
-                             : "inputs.messages.snapshotLoaded")
-                    .replace ("{name}", snapshotName));
+            inputsTab->showStatusMessage (statusText);
         }
 
         // A hardware-triggered state change has no visual focus, so announce it.
         if (fromMidi)
             TTSManager::getInstance().announceImmediate (
-                LOC("inputs.messages.snapshotLoadedByMidi").replace ("{name}", snapshotName));
+                patchWarning.isNotEmpty() ? patchWarning
+                                          : LOC("inputs.messages.snapshotLoadedByMidi").replace ("{name}", snapshotName));
     }
     else
     {
@@ -3501,6 +5576,18 @@ void MainComponent::handleConfigReloaded()
     bool reverbCountChanged = (newReverbChannels != reverbAttenuationTargetsCount);
     numInputChannels = newInputChannels;
     numOutputChannels = newOutputChannels;
+    const int previousRenderSources = numRenderSources;
+    recomputeRenderSourceCount();  // keep the renderer dimension in lockstep
+
+    // Every routing matrix is numRenderSources x numOutputChannels, and a stereo
+    // channel contributes TWO render sources — so a loaded project can change that
+    // dimension without changing either count: 8 mono channels replaced by 7 mono
+    // plus 1 stereo is still 8 channels and 16 outputs. Without this the matrices
+    // keep the previous session's row count while the copy loops below (and every
+    // per-render-source loop in timerCallback) walk the new one, writing past the
+    // end of the vectors.
+    countsChanged = countsChanged || (numRenderSources != previousRenderSources);
+
     if (countsChanged)
     {
         resizeRoutingMatrices();
@@ -3522,8 +5609,36 @@ void MainComponent::handleConfigReloaded()
         resizeReverbAttenuation(newReverbChannels, sr);
     }
 
-    // Reload audio patches from ValueTree (input/output channel routing)
+    // Reload audio patches from ValueTree (input/output channel routing).
+    // Repair FIRST: the patch arrived through a bare mergeTreeRecursive with no
+    // validation of row count, per-row capacity or column uniqueness, and
+    // loadAudioPatches would bake the damage into the runtime maps rather than
+    // report it. This is the funnel every load reaches — project open, snapshot
+    // recall, config-reloaded callback — so one call here covers them all.
+    repairInputPatchAfterLoad();
     loadAudioPatches();
+
+    // Same reasoning, different resource: a snapshot recall can now restore
+    // lightpadZoneId, and a PARTIALLY scoped recall can therefore leave two
+    // channels claiming one pad zone. Repair before anything reads the map, then
+    // push the corrected assignment to the pads — neither LightpadManager rebuild
+    // path is triggered by a recall, so without this the hardware would keep the
+    // pre-recall mapping while the tree says otherwise.
+    resolveLightpadZoneCollisions();
+    if (lightpadManager != nullptr)
+    {
+        auto inputs = parameters.getValueTreeState().getInputsState();
+        for (int i = 0; i < inputs.getNumChildren(); ++i)
+        {
+            auto channelSection = inputs.getChild (i).getChildWithName (WFSParameterIDs::Channel);
+            if (! channelSection.isValid())
+                continue;
+            const int zoneId = static_cast<int> (channelSection.getProperty (WFSParameterIDs::lightpadZoneId, -1));
+            if (zoneId >= 0)
+                lightpadManager->assignZoneToInput (zoneId, i);
+        }
+    }
+    resendRemotePadConfig();
 
     // Drop reposition prompts from the previous session's geometry. Position
     // ownership itself now travels inside the session file (positionsUserOwned).
@@ -3552,11 +5667,15 @@ void MainComponent::handleConfigReloaded()
     // Reconfigure visualization with potentially changed channel counts
     if (inputsTab != nullptr)
     {
-        // Ensure the selected channel is valid for the new input count
+        // Ensure the selected channel is still live. currentChannel is a
+        // permanent NUMBER: with gaps it can legitimately exceed the channel
+        // COUNT, so the count is not a bound. The fallback is the first live
+        // channel's number, since number 1 may have been deleted.
+        auto& vts = parameters.getValueTreeState();
         int currentChannel = inputsTab->getCurrentChannel();
-        if (currentChannel < 1 || currentChannel > numInputChannels)
+        if (vts.getSlotForChannelNumber (currentChannel) < 0)
         {
-            inputsTab->selectChannel(1);  // Reset to channel 1 if out of range
+            inputsTab->selectChannel (vts.getInputChannelNumber (0));
         }
 
         inputsTab->configureVisualisation(parameters.getNumOutputChannels(),
@@ -3656,7 +5775,7 @@ void MainComponent::handleConfigReloaded()
             }
 
             // Copy to local arrays with correct stride
-            for (int inIdx = 0; inIdx < numInputChannels; ++inIdx)
+            for (int inIdx = 0; inIdx < numRenderSources; ++inIdx)
             {
                 for (int outIdx = 0; outIdx < numOutputChannels; ++outIdx)
                 {
@@ -3675,11 +5794,11 @@ void MainComponent::handleConfigReloaded()
             const int calcReverbStride = calculationEngine->getNumReverbs();
             int numReverbs = parameters.getNumReverbChannels();
 
-            std::vector<float> reverbDelays(numInputChannels * numReverbs);
-            std::vector<float> reverbLevels(numInputChannels * numReverbs);
-            std::vector<float> reverbHF(numInputChannels * numReverbs);
+            std::vector<float> reverbDelays(numRenderSources * numReverbs);
+            std::vector<float> reverbLevels(numRenderSources * numReverbs);
+            std::vector<float> reverbHF(numRenderSources * numReverbs);
 
-            for (int inIdx = 0; inIdx < numInputChannels; ++inIdx)
+            for (int inIdx = 0; inIdx < numRenderSources; ++inIdx)
             {
                 for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
                 {
@@ -4103,6 +6222,12 @@ void MainComponent::openAudioInterfaceWindow()
         return;
     }
 
+    // Opening this window no longer spends the latch — merely LOOKING at the
+    // default patch must leave a fresh session fresh. The latch moved to the
+    // first actual patch edit (AudioPatchTab's onBeforePatchEdit, wired below),
+    // which still fires before the write lands, preserving the re-flow's
+    // call-graph contract: anything that authors a patch latches first.
+
     if (audioInterfaceWindow == nullptr)
     {
         audioInterfaceWindow = std::make_unique<AudioInterfaceWindow>(
@@ -4181,6 +6306,21 @@ void MainComponent::openAudioInterfaceWindow()
             if (auto* outTab = content->getOutputPatchTab())
                 wirePatchAutoSave (outTab->getPatchMatrix());
 
+            // The INPUT patch is where the fresh-session latch is spent now that
+            // opening this window no longer does: the first hand edit is the act
+            // that authors the patch, and it must latch BEFORE the write lands so
+            // the next structural edit's re-flow cannot eat it (the re-flow
+            // contract). User edits only — the matrix's programmatic saves that
+            // react to channel-count changes do not fire this. The OUTPUT patch
+            // never latches input numbering.
+            if (auto* inTab = content->getInputPatchTab())
+                if (auto* matrix = inTab->getPatchMatrix())
+                    matrix->onBeforeUserPatchEdit = [this]()
+                    {
+                        parameters.getValueTreeState()
+                            .markChannelNumbersUserOwned ("input patch edit");
+                    };
+
             // The output tab forwards the matrix's status messages, but nothing
             // was listening, so every one of them (including "choose a test
             // signal") went nowhere and a rejected test click looked exactly
@@ -4251,11 +6391,18 @@ void MainComponent::openMCPHistoryWindow()
 
 void MainComponent::openLevelMeterWindow()
 {
+    // Guard hoisted out of the creation branch: without a metering manager there
+    // is no window to show, and an open that shows nothing must not spend the
+    // latch below.
+    if (levelMeteringManager == nullptr)
+        return;
+
+    // Opening the meters no longer spends the latch: it is a display-only
+    // window, and a fresh-session renumber reaches it anyway — every structural
+    // edit runs handleChannelCountChange, which rebuilds the meter labels.
+
     if (levelMeterWindow == nullptr)
     {
-        if (levelMeteringManager == nullptr)
-            return;
-
         levelMeterWindow = std::make_unique<LevelMeterWindow>(*levelMeteringManager,
                                                                  parameters.getValueTreeState(),
                                                                  calculationEngine.get());
@@ -4533,7 +6680,7 @@ void MainComponent::setupSharedInputFeed (int blockSize, double sampleRate)
 
     // Create shared input buffers (used by reverb feed thread and binaural)
     sharedInputBuffers.clear();
-    for (int i = 0; i < numInputChannels; ++i)
+    for (int i = 0; i < numRenderSources; ++i)
     {
         auto buf = std::make_unique<SharedInputRingBuffer>();
         buf->setSize (blockSize * 4);
@@ -4550,7 +6697,7 @@ void MainComponent::setupSharedInputFeed (int blockSize, double sampleRate)
             reverbFeedThread->prepare (sharedInputBuffers, reverbEngine.get(),
                                        calculationEngine->getInputReverbLevels(),
                                        calculationEngine->getNumReverbs(),
-                                       numInputChannels, numReverbs,
+                                       numRenderSources, numReverbs,
                                        blockSize, reverbSRRatio);
             reverbFeedThread->setWorkgroupCoordinator (&workgroupCoordinator);
             reverbFeedThread->startRealtimeThread (juce::Thread::RealtimeOptions{}
@@ -4599,10 +6746,10 @@ void MainComponent::startAudioEngine()
     WFSLogger::getInstance().logInfo ("Starting audio engine: " + device->getName()
                                       + " @ " + juce::String (sampleRate) + " Hz"
                                       + ", buffer " + juce::String (blockSize)
-                                      + ", " + juce::String (numInputChannels) + " in / "
+                                      + ", " + juce::String (numRenderSources) + " in / "
                                       + juce::String (numOutputChannels) + " out");
 
-    DBG("startAudioEngine: numInputChannels=" + juce::String(numInputChannels) +
+    DBG("startAudioEngine: numRenderSources=" + juce::String(numRenderSources) +
         " numOutputChannels=" + juce::String(numOutputChannels) +
         " sampleRate=" + juce::String(sampleRate) + " blockSize=" + juce::String(blockSize));
 
@@ -4634,7 +6781,7 @@ void MainComponent::startAudioEngine()
 
     if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
     {
-        inputAlgorithm.prepare(numInputChannels, numOutputChannels,
+        inputAlgorithm.prepare(numRenderSources, numOutputChannels,
                               sampleRate, blockSize,
                               delayTimesMs.data(), levels.data(),
                               processingEnabled,
@@ -4646,7 +6793,7 @@ void MainComponent::startAudioEngine()
     }
     else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer)
     {
-        outputAlgorithm.prepare(numInputChannels, numOutputChannels,
+        outputAlgorithm.prepare(numRenderSources, numOutputChannels,
                                sampleRate, blockSize,
                                delayTimesMs.data(), levels.data(),
                                processingEnabled,
@@ -4664,7 +6811,7 @@ void MainComponent::startAudioEngine()
             || gpuDepth > WFSParameterDefaults::gpuPipelineDepthMax)
             gpuDepth = WFSParameterDefaults::gpuPipelineDepthDefault;
 
-        prepared = nativeGpuAlgorithm.prepare(numInputChannels, numOutputChannels,
+        prepared = nativeGpuAlgorithm.prepare(numRenderSources, numOutputChannels,
                                               sampleRate, blockSize,
                                               delayTimesMs.data(), levels.data(),
                                               processingEnabled,
@@ -4688,7 +6835,7 @@ void MainComponent::startAudioEngine()
             currentAlgorithm = ProcessingAlgorithm::InputBuffer;
             parameters.setConfigParam("ProcessingAlgorithm", 1);
 
-            inputAlgorithm.prepare(numInputChannels, numOutputChannels,
+            inputAlgorithm.prepare(numRenderSources, numOutputChannels,
                                    sampleRate, blockSize,
                                    delayTimesMs.data(), levels.data(),
                                    processingEnabled,
@@ -4701,7 +6848,7 @@ void MainComponent::startAudioEngine()
         else
         {
             WFSLogger::getInstance().logInfo ("Native GPU WFS active: "
-                + juce::String (numInputChannels) + " in x "
+                + juce::String (numRenderSources) + " in x "
                 + juce::String (numOutputChannels) + " out on "
                 + nativeGpuAlgorithm.getDeviceName()
                 + ", async pipeline depth " + juce::String (nativeGpuAlgorithm.getPipelineDepthBlocks())
@@ -4716,7 +6863,7 @@ void MainComponent::startAudioEngine()
             || gpuDepth > WFSParameterDefaults::gpuPipelineDepthMax)
             gpuDepth = WFSParameterDefaults::gpuPipelineDepthDefault;
 
-        prepared = nativeGpuOutputAlgorithm.prepare(numInputChannels, numOutputChannels,
+        prepared = nativeGpuOutputAlgorithm.prepare(numRenderSources, numOutputChannels,
                                                     sampleRate, blockSize,
                                                     delayTimesMs.data(), levels.data(),
                                                     processingEnabled,
@@ -4741,7 +6888,7 @@ void MainComponent::startAudioEngine()
             currentAlgorithm = ProcessingAlgorithm::OutputBuffer;
             parameters.setConfigParam("ProcessingAlgorithm", 2);
 
-            outputAlgorithm.prepare(numInputChannels, numOutputChannels,
+            outputAlgorithm.prepare(numRenderSources, numOutputChannels,
                                     sampleRate, blockSize,
                                     delayTimesMs.data(), levels.data(),
                                     processingEnabled,
@@ -4754,7 +6901,7 @@ void MainComponent::startAudioEngine()
         else
         {
             WFSLogger::getInstance().logInfo ("Native GPU OutputBuffer active: "
-                + juce::String (numInputChannels) + " in x "
+                + juce::String (numRenderSources) + " in x "
                 + juce::String (numOutputChannels) + " out on "
                 + nativeGpuOutputAlgorithm.getDeviceName()
                 + ", async pipeline depth " + juce::String (nativeGpuOutputAlgorithm.getPipelineDepthBlocks())
@@ -4789,6 +6936,25 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
     currentDeviceSampleRate.store (sampleRate > 0.0 ? sampleRate : 48000.0,
                                    std::memory_order_relaxed);
 
+    // Preallocate the patched input buffer here, off the audio thread. The
+    // conditional setSize in applyInputPatch() remains only as a shape-change
+    // safety net (avoidReallocating=true) and should never fire in steady state.
+    if (samplesPerBlockExpected > 0)
+    {
+        patchedInputBuffer.setSize (juce::jmax (1, numRenderSources),
+                                    samplesPerBlockExpected, false, false, true);
+        stereoRawBuffer.setSize (2 * StereoChannelManager::kMaxStereoChannels,
+                                 samplesPerBlockExpected, false, false, true);
+        stereoRawBuffer.clear();
+    }
+
+    // Stereo decomposition backends: prepared for every ordinal so a channel
+    // configured stereo while stopped needs no re-prepare on start (the manager
+    // itself is constructed with the component, so the Map's image read-back
+    // does not wait on a device)
+    if (stereoChannelManager != nullptr && sampleRate > 0.0 && samplesPerBlockExpected > 0)
+        stereoChannelManager->prepare (sampleRate, samplesPerBlockExpected);
+
     // This function will be called when the audio device is started, or when
     // its settings (i.e. sample rate, block size, etc) are changed.
 
@@ -4817,7 +6983,7 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
                 || gpuDepth > WFSParameterDefaults::gpuPipelineDepthMax)
                 gpuDepth = WFSParameterDefaults::gpuPipelineDepthDefault;
 
-            nativeGpuAlgorithm.prepare(numInputChannels, numOutputChannels,
+            nativeGpuAlgorithm.prepare(numRenderSources, numOutputChannels,
                                        sampleRate, samplesPerBlockExpected,
                                        delayTimesMs.data(), levels.data(),
                                        processingEnabled,
@@ -4835,7 +7001,7 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
                 || gpuDepth > WFSParameterDefaults::gpuPipelineDepthMax)
                 gpuDepth = WFSParameterDefaults::gpuPipelineDepthDefault;
 
-            nativeGpuOutputAlgorithm.prepare(numInputChannels, numOutputChannels,
+            nativeGpuOutputAlgorithm.prepare(numRenderSources, numOutputChannels,
                                              sampleRate, samplesPerBlockExpected,
                                              delayTimesMs.data(), levels.data(),
                                              processingEnabled,
@@ -4860,7 +7026,7 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
     if (binauralProcessor)
     {
         binauralProcessor->stopProcessing();
-        binauralProcessor->prepareToPlay(sampleRate, samplesPerBlockExpected, numInputChannels);
+        binauralProcessor->prepareToPlay(sampleRate, samplesPerBlockExpected, numRenderSources);
         binauralProcessor->startProcessing();
 
         // Sample rate / block size may have changed: the cooked SOFA set is
@@ -5000,14 +7166,17 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         const int activeInputs = juce::jmin (hwChannels,
                                              LevelMeteringManager::MaxHardwareInputs);
         const double sr = currentDeviceSampleRate.load (std::memory_order_relaxed);
+        const float decay = LevelMeteringManager::blockDecayCoef (
+            bufferToFill.numSamples, sr, LevelMeteringManager::kInputMeterTauSeconds);
+
         for (int ch = 0; ch < activeInputs; ++ch)
         {
             const float mag = bufferToFill.buffer->getMagnitude (ch,
                                                                  bufferToFill.startSample,
                                                                  bufferToFill.numSamples);
-            levelMeteringManager->pushHardwareInputBlockPeak (ch, mag,
-                                                              bufferToFill.numSamples, sr);
+            levelMeteringManager->pushHardwareInputBlockPeak (ch, mag, decay);
         }
+        levelMeteringManager->markHardwareMeterBlock();
     }
 
     // Process WFS audio if engine is started AND processing is enabled
@@ -5031,17 +7200,46 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
             }
         }
 
-        // Apply AutomOtion return fade gain (50ms fade out/in during position snap-back)
+        // Apply AutomOtion return fade gain (50ms fade out/in during position snap-back).
+        // For a stereo-pair row the gain goes onto BOTH raw channels before
+        // decomposition — a per-channel linear gain commutes with the
+        // decomposition by the reconstruction identity, and the channel's
+        // patchedInputBuffer slot has not been written yet at this point.
         if (automOtionProcessor != nullptr)
         {
+            int stereoOrdinal = 0;
             for (int ch = 0; ch < numInputChannels && ch < patchedInputBuffer.getNumChannels(); ++ch)
             {
+                const bool stereoRow = ch < (int) renderSourceMap.firstDerivedSlot.size()
+                                    && renderSourceMap.firstDerivedSlot[static_cast<size_t> (ch)] >= 0;
                 float gain = automOtionProcessor->getReturnGain (ch);
-                if (gain < 1.0f)
+                if (stereoRow)
+                {
+                    const int rawL = 2 * stereoOrdinal;
+                    ++stereoOrdinal;
+                    if (gain < 1.0f && rawL + 1 < stereoRawBuffer.getNumChannels())
+                    {
+                        stereoRawBuffer.applyGain (rawL, bufferToFill.startSample,
+                                                   bufferToFill.numSamples, gain);
+                        stereoRawBuffer.applyGain (rawL + 1, bufferToFill.startSample,
+                                                   bufferToFill.numSamples, gain);
+                    }
+                }
+                else if (gain < 1.0f)
+                {
                     patchedInputBuffer.applyGain (ch, bufferToFill.startSample,
                                                    bufferToFill.numSamples, gain);
+                }
             }
         }
+
+        // Stereo decomposition: raw L/R → the channels' six render-source
+        // slots, before anything downstream reads patchedInputBuffer
+        runStereoDecompositionStage (bufferToFill.startSample, bufferToFill.numSamples);
+
+        // Input meters, measured on the finished render sources (see the
+        // binaural-only branch for the twin call — these are the only two).
+        meterRenderSourceInputs (bufferToFill.startSample, bufferToFill.numSamples);
 
         // Write patched input to shared buffers + notify consumers (only when needed)
         {
@@ -5050,7 +7248,7 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
 
             if (needSharedBuffers && !sharedInputBuffers.empty())
             {
-                int safeInputCount = juce::jmin(numInputChannels, patchedInputBuffer.getNumChannels(), (int)sharedInputBuffers.size());
+                int safeInputCount = juce::jmin(numRenderSources, patchedInputBuffer.getNumChannels(), (int)sharedInputBuffers.size());
                 for (int ch = 0; ch < safeInputCount; ++ch)
                 {
                     if (sharedInputBuffers[ch] == nullptr)
@@ -5074,7 +7272,7 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         // throttling when the window is minimized)
         if (processingEnabled)
         {
-            int matrixSize = numInputChannels * numOutputChannels;
+            int matrixSize = numRenderSources * numOutputChannels;
             for (int i = 0; i < matrixSize; ++i)
             {
                 delayTimesMs[i] += (targetDelayTimesMs[i] - delayTimesMs[i]) * delaySmoothingFactor;
@@ -5112,20 +7310,20 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         // Process WFS audio — algorithms read from patchedInputBuffer, write to wfsOutputBuffer
         if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
         {
-            inputAlgorithm.processBlock(wfsOut, patchedInputBuffer, numInputChannels, numOutputChannels);
+            inputAlgorithm.processBlock(wfsOut, patchedInputBuffer, numRenderSources, numOutputChannels);
         }
         else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer)
         {
-            outputAlgorithm.processBlock(wfsOut, patchedInputBuffer, numInputChannels, numOutputChannels);
+            outputAlgorithm.processBlock(wfsOut, patchedInputBuffer, numRenderSources, numOutputChannels);
         }
 #if WFS_GPU_NATIVE
         else if (currentAlgorithm == ProcessingAlgorithm::NativeGpuWfs)
         {
-            nativeGpuAlgorithm.processBlock(wfsOut, patchedInputBuffer, numInputChannels, numOutputChannels);
+            nativeGpuAlgorithm.processBlock(wfsOut, patchedInputBuffer, numRenderSources, numOutputChannels);
         }
         else // ProcessingAlgorithm::NativeGpuOutputBuffer
         {
-            nativeGpuOutputAlgorithm.processBlock(wfsOut, patchedInputBuffer, numInputChannels, numOutputChannels);
+            nativeGpuOutputAlgorithm.processBlock(wfsOut, patchedInputBuffer, numRenderSources, numOutputChannels);
         }
 #endif
 
@@ -5315,8 +7513,18 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
                     }
                 }
 
+                // Stereo decomposition (the binaural-only path renders the
+                // same render sources the WFS path would)
+                runStereoDecompositionStage (bufferToFill.startSample, bufferToFill.numSamples);
+
+                // ...and meters them the same way. This is the whole point of
+                // metering here rather than inside a WFS algorithm: no algorithm
+                // runs on this path, so anything that asked one for input levels
+                // got silence while audio was plainly flowing.
+                meterRenderSourceInputs (bufferToFill.startSample, bufferToFill.numSamples);
+
                 // Push input data to binaural processor from patchedInputBuffer
-                int safeInputCount = juce::jmin(numInputChannels, patchedInputBuffer.getNumChannels());
+                int safeInputCount = juce::jmin(numRenderSources, patchedInputBuffer.getNumChannels());
                 for (int i = 0; i < safeInputCount; ++i)
                 {
                     const float* inputData = patchedInputBuffer.getReadPointer(i, bufferToFill.startSample);
@@ -5712,40 +7920,40 @@ void MainComponent::timerCallback()
             lfoProcessor->process(0.02f);  // 20ms delta time (50Hz)
         }
 
+        // Collapse the render-source input meters onto channels. Must run
+        // BEFORE the AutomOtion block below, which reads the result, and is
+        // deliberately not gated on isMeteringActive() — the audio trigger
+        // needs these levels with every meter closed.
+        if (levelMeteringManager != nullptr)
+            levelMeteringManager->refreshInputLevels();
+
         // Collect audio levels for AutomOtion triggering
         if (automOtionProcessor != nullptr)
         {
+            // getCurrentChannel() is the permanent NUMBER; `i` below is a
+            // SLOT, and numbers have gaps and are not in slot order after a
+            // reorder. -1 when nothing live is selected, matching no slot.
+            const int selSlot = (inputsTab != nullptr)
+                ? parameters.getValueTreeState().getSlotForChannelNumber (inputsTab->getCurrentChannel())
+                : -1;
             for (int i = 0; i < numInputChannels; ++i)
             {
-                // Read the live-source input level from whichever algorithm is
-                // actually processing. The native GPU paths compute these
-                // host-side too, so AutomOtion's audio trigger works on GPU.
-                float shortPeakDb = -200.0f, rmsDb = -200.0f;
-                switch (currentAlgorithm)
-                {
-                    case ProcessingAlgorithm::InputBuffer:
-                        shortPeakDb = inputAlgorithm.getShortPeakLevelDb(static_cast<size_t>(i));
-                        rmsDb = inputAlgorithm.getRmsLevelDb(static_cast<size_t>(i));
-                        break;
-                    case ProcessingAlgorithm::OutputBuffer:
-                        shortPeakDb = outputAlgorithm.getShortPeakLevelDb(static_cast<size_t>(i));
-                        rmsDb = outputAlgorithm.getRmsLevelDb(static_cast<size_t>(i));
-                        break;
-#if WFS_GPU_NATIVE
-                    case ProcessingAlgorithm::NativeGpuWfs:
-                        shortPeakDb = nativeGpuAlgorithm.getShortPeakLevelDb(static_cast<size_t>(i));
-                        rmsDb = nativeGpuAlgorithm.getRmsLevelDb(static_cast<size_t>(i));
-                        break;
-                    case ProcessingAlgorithm::NativeGpuOutputBuffer:
-                        shortPeakDb = nativeGpuOutputAlgorithm.getShortPeakLevelDb(static_cast<size_t>(i));
-                        rmsDb = nativeGpuOutputAlgorithm.getRmsLevelDb(static_cast<size_t>(i));
-                        break;
-#endif
-                }
+                // Same input levels the meters show. This used to switch on
+                // whichever WFS algorithm was CONFIGURED and read its detector,
+                // which meant the audio trigger was dead whenever that algorithm
+                // was not running — binaural-only monitoring most of all. The
+                // ballistics differ slightly from that detector's (it is the
+                // Live Source Tamer's compressor envelope, not a meter's), so
+                // triggers may fire a touch differently.
+                const auto level = levelMeteringManager != nullptr
+                    ? levelMeteringManager->getInputLevel (i)
+                    : LevelMeteringManager::LevelData{};
+                const float shortPeakDb = level.peakDb;
+                const float rmsDb = level.rmsDb;
                 automOtionProcessor->setInputLevels(i, shortPeakDb, rmsDb);
 
                 // Update trigger/reset indicators for the currently selected input
-                if (inputsTab && (i == inputsTab->getCurrentChannel() - 1))
+                if (inputsTab && i == selSlot)
                     inputsTab->updateOtomoLevelIndicators (shortPeakDb, rmsDb);
             }
         }
@@ -5783,11 +7991,27 @@ void MainComponent::timerCallback()
 #endif
             }
             levelMeteringManager->setCurrentAlgorithm(meteringAlg);
+            // Outputs and thread performance come from the algorithm, so they
+            // need to know whether one is actually running — the algorithm enum
+            // only says which is configured.
+            levelMeteringManager->setWfsProcessingActive(audioEngineStarted && processingEnabled);
             levelMeteringManager->updateLevels();
 
             // Repaint map if level overlay is enabled
             if (mapVisible && levelMeteringManager->isMapOverlayEnabled() && mapTab != nullptr)
                 mapTab->repaint();
+        }
+
+        // The binaural listener glyph's FACING follows the tracker, and tracker
+        // attitude never reaches the ValueTree — so MapTab's property-change
+        // coalescer, which covers every other part of the glyph, cannot see it
+        // move. 12.5 Hz is enough to read a head turn and cheap enough to leave
+        // on; everything else about the glyph still repaints on change.
+        if (mapVisible && mapTab != nullptr && (timerTicksSinceLastRandom % 16) == 0
+            && headTrackerManager != nullptr && headTrackerManager->getActiveSource() != nullptr
+            && parameters.getValueTreeState().getBinauralEnabled())
+        {
+            mapTab->repaint();
         }
 
         // Pass combined LFO + AutomOtion offsets and gyrophone offsets to calculation engine for DSP
@@ -5913,7 +8137,10 @@ void MainComponent::timerCallback()
             // Push LS GR to InputsTab meter display (gated on enable flags)
             if (windowVisible && inputsTab != nullptr)
             {
-                int ch = inputsTab->getCurrentChannel() - 1;  // Convert 1-based to 0-based
+                // getCurrentChannel() is the permanent NUMBER; the LS tree
+                // section and the peakGRs/slowGRs arrays are slot-indexed, and
+                // numbers have gaps and are not in slot order after a reorder.
+                int ch = parameters.getValueTreeState().getSlotForChannelNumber (inputsTab->getCurrentChannel());
                 if (ch >= 0 && ch < numInputChannels)
                 {
                     auto lsSection = parameters.getValueTreeState().getInputLiveSourceSection(ch);
@@ -5969,7 +8196,7 @@ void MainComponent::timerCallback()
                     binauralProcessor->stopProcessing();   // quiesce before reconfiguring
                     binauralProcessor->prepareToPlay(device->getCurrentSampleRate(),
                                                      device->getCurrentBufferSizeSamples(),
-                                                     numInputChannels);
+                                                     numRenderSources);
                     if (binauralCalcEngine != nullptr)
                         binauralCalcEngine->refreshRtSnapshot();  // publish before un-gating
                     binauralProcessor->setEnabled(true);
@@ -5999,7 +8226,22 @@ void MainComponent::timerCallback()
         if (binauralProcessor != nullptr && headTrackerManager != nullptr)
         {
             auto binauralState = parameters.getValueTreeState().getBinauralState();
-            const juce::String wanted = binauralState.isValid()
+
+            // ORTF legacy (renderMode 0) never reads head orientation at all —
+            // BinauralProcessor::processBlock returns before the pose is built.
+            // Resolve to manual there so an exclusive device is not held for
+            // nothing: selecting the webcam and switching to legacy used to
+            // leave the camera open, LED on, unavailable to anything else,
+            // with zero effect on the audio. The PERSISTED id is untouched, so
+            // the tracker re-engages on the way back to an HRTF mode, exactly
+            // like the existing absent-device path.
+            const bool orientationUsed = binauralState.isValid()
+                && juce::jlimit(WFSParameterDefaults::binauralRenderModeMin,
+                                WFSParameterDefaults::binauralRenderModeMax,
+                                (int) binauralState.getProperty(WFSParameterIDs::binauralRenderMode,
+                                                                WFSParameterDefaults::binauralRenderModeDefault)) != 0;
+
+            const juce::String wanted = (binauralState.isValid() && orientationUsed)
                 ? binauralState.getProperty(WFSParameterIDs::binauralHeadTrackerSource, "manual").toString()
                 : juce::String("manual");
             // Re-resolve on a selection change, and also when a device is
@@ -6030,6 +8272,23 @@ void MainComponent::timerCallback()
             }
         }
 
+        // Stereo slice geometry: publish config down / slice states up and
+        // hand the engine fresh per-slice offsets (marks channels dirty only
+        // on an actual change, so this adds no recalc work for mono shows)
+        const bool stereoLegsChanged = refreshStereoSliceGeometry();
+
+        // The Map draws its spread bar out of the cache the call above fills,
+        // and nothing else asks it to repaint when a width/axis dial or an
+        // anchor move changes it — every neighbouring repaint here is gated on
+        // something animating, and MapTab drops non-MCP property changes. The
+        // frames that DO get painted (a drag, an arrow-key nudge) run before
+        // this tick refills the cache, so they draw the previous legs; driving
+        // the repaint from the change is what stops the bar lagging a gesture
+        // behind the dot. Gated on the change so a static show with a stereo
+        // channel does not repaint the Map 50 times a second.
+        if (stereoLegsChanged && mapVisible && mapTab != nullptr)
+            mapTab->repaint();
+
         // Only recalculate WFS matrix if input positions have changed (dirty flag set).
         // LS gains are supplied fresh each call (never cached by the engine).
         if (calculationEngine->recalculateMatrixIfDirty(lsTamerEngine ? lsTamerEngine->getLSGains() : nullptr))
@@ -6048,7 +8307,7 @@ void MainComponent::timerCallback()
             const float* calcFRLevels = calculationEngine->getFRLevels();
             const float* calcFRHF = calculationEngine->getFRHFAttenuationDb();
 
-            for (int inIdx = 0; inIdx < numInputChannels; ++inIdx)
+            for (int inIdx = 0; inIdx < numRenderSources; ++inIdx)
             {
                 for (int outIdx = 0; outIdx < numOutputChannels; ++outIdx)
                 {
@@ -6069,19 +8328,34 @@ void MainComponent::timerCallback()
                 }
             }
 
-            // Update FR filter parameters for each input
-            for (int i = 0; i < numInputChannels; ++i)
+            // Update FR filter parameters for each render source. Derived
+            // slice slots have no Hackoustics section and floor reflections
+            // are N/A for stereo channels — force their filters off (their FR
+            // matrix rows are zero anyway).
+            for (int i = 0; i < numRenderSources; ++i)
             {
                 using namespace WFSParameterIDs;
-                auto frSection = parameters.getValueTreeState().getInputHackousticsSection(i);
 
-                bool lowCutActive = static_cast<int>(frSection.getProperty(inputFRlowCutActive, 0)) != 0;
-                float lowCutFreq = frSection.getProperty(inputFRlowCutFreq, 100.0f);
-                bool highShelfActive = static_cast<int>(frSection.getProperty(inputFRhighShelfActive, 0)) != 0;
-                float highShelfFreq = frSection.getProperty(inputFRhighShelfFreq, 3000.0f);
-                float highShelfGain = frSection.getProperty(inputFRhighShelfGain, -2.0f);
-                float highShelfSlope = frSection.getProperty(inputFRhighShelfSlope, 0.4f);
-                float diffusion = frSection.getProperty(inputFRdiffusion, 20.0f);
+                bool lowCutActive = false;
+                float lowCutFreq = 100.0f;
+                bool highShelfActive = false;
+                float highShelfFreq = 3000.0f;
+                float highShelfGain = -2.0f;
+                float highShelfSlope = 0.4f;
+                float diffusion = 0.0f;
+
+                if (i < numInputChannels)
+                {
+                    auto frSection = parameters.getValueTreeState().getInputHackousticsSection(i);
+
+                    lowCutActive = static_cast<int>(frSection.getProperty(inputFRlowCutActive, 0)) != 0;
+                    lowCutFreq = frSection.getProperty(inputFRlowCutFreq, 100.0f);
+                    highShelfActive = static_cast<int>(frSection.getProperty(inputFRhighShelfActive, 0)) != 0;
+                    highShelfFreq = frSection.getProperty(inputFRhighShelfFreq, 3000.0f);
+                    highShelfGain = frSection.getProperty(inputFRhighShelfGain, -2.0f);
+                    highShelfSlope = frSection.getProperty(inputFRhighShelfSlope, 0.4f);
+                    diffusion = frSection.getProperty(inputFRdiffusion, 20.0f);
+                }
 
                 if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
                 {
@@ -6128,11 +8402,11 @@ void MainComponent::timerCallback()
                 int numReverbs = parameters.getNumReverbChannels();
 
                 // Reindex reverb data with user-configured stride
-                std::vector<float> reverbDelays(numInputChannels * numReverbs);
-                std::vector<float> reverbLevels(numInputChannels * numReverbs);
-                std::vector<float> reverbHF(numInputChannels * numReverbs);
+                std::vector<float> reverbDelays(numRenderSources * numReverbs);
+                std::vector<float> reverbLevels(numRenderSources * numReverbs);
+                std::vector<float> reverbHF(numRenderSources * numReverbs);
 
-                for (int inIdx = 0; inIdx < numInputChannels; ++inIdx)
+                for (int inIdx = 0; inIdx < numRenderSources; ++inIdx)
                 {
                     for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
                     {
@@ -6471,7 +8745,11 @@ void MainComponent::timerCallback()
                 bool playingPrev = prevSamplerPlaying[(size_t) i] != 0u;
                 if (playingNow != playingPrev)
                 {
-                    oscManager->sendInputSamplerPlayingState(i + 1, playingNow);
+                    // The wire addresses inputs by permanent channel NUMBER;
+                    // `i` is a SLOT, and numbers have gaps and are not in slot
+                    // order after a reorder.
+                    oscManager->sendInputSamplerPlayingState(
+                        parameters.getValueTreeState().getInputChannelNumber (i), playingNow);
                     prevSamplerPlaying[(size_t) i] = playingNow ? 1u : 0u;
                 }
             }
@@ -6513,7 +8791,10 @@ void MainComponent::timerCallback()
                     bool lastWasSignificant = (std::abs(lastDeltaX) > deltaThreshold || std::abs(lastDeltaY) > deltaThreshold);
                     if (deltaIsSignificant || lastWasSignificant)
                     {
-                        int inputId = i + 1;  // 1-based for OSC messages
+                        // The wire addresses inputs by permanent channel
+                        // NUMBER; numbers have gaps and are not in slot order
+                        // after a reorder. The cache stays keyed by SLOT.
+                        int inputId = parameters.getValueTreeState().getInputChannelNumber (i);
                         oscManager->sendCompositeDeltaToRemote(inputId, deltaX, deltaY);
                         lastSentCompositeDeltas[i] = std::make_pair(deltaX, deltaY);
                     }
@@ -6660,7 +8941,12 @@ void MainComponent::confirmChannelSelection()
         switch (channelSelectionMode)
         {
             case ChannelSelectionMode::Input:
-                if (inputsTab != nullptr && channelNum <= inputsTab->getNumChannels())
+                // The operator types a permanent channel NUMBER, which may
+                // exceed the channel COUNT once the list has gaps — so the
+                // number must be tested for liveness, not bounded by the
+                // count. Output/reverb ids below ARE dense slot positions.
+                if (inputsTab != nullptr
+                    && parameters.getValueTreeState().getSlotForChannelNumber (channelNum) >= 0)
                     inputsTab->selectChannel(channelNum);
                 break;
             case ChannelSelectionMode::Output:
@@ -6796,12 +9082,17 @@ void MainComponent::cycleChannel(int delta)
 
 void MainComponent::nudgeInputPosition(int axis, float delta, int inputOverride)
 {
-    // Use override if provided, otherwise get from InputsTab
-    int channel = (inputOverride >= 0) ? inputOverride : (inputsTab != nullptr ? inputsTab->getCurrentChannel() - 1 : -1);
+    auto& state = parameters.getValueTreeState();
+
+    // Everything below indexes by SLOT. The override already is one (callers
+    // pass the Map's selected input), but getCurrentChannel() is a permanent
+    // NUMBER, and numbers have gaps and are not in slot order after a reorder.
+    int channel = (inputOverride >= 0) ? inputOverride
+                                       : (inputsTab != nullptr
+                                              ? state.getSlotForChannelNumber (inputsTab->getCurrentChannel())
+                                              : -1);
     if (channel < 0)
         return;
-
-    auto& state = parameters.getValueTreeState();
 
     // Check if constraint is enabled for this axis
     juce::Identifier constraintId;

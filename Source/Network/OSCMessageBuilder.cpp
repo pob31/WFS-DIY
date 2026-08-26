@@ -15,6 +15,8 @@ const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBui
         { WFSParameterIDs::inputAttenuation,      { "/wfs/input/attenuation",      "/remoteInput/attenuation" } },
         { WFSParameterIDs::inputDelayLatency,     { "/wfs/input/delayLatency",     "/remoteInput/delayLatency" } },
         { WFSParameterIDs::inputMinimalLatency,   { "/wfs/input/minimalLatency",   "/remoteInput/minimalLatency" } },
+        { WFSParameterIDs::inputStereoWidth,      { "/wfs/input/stereoWidth",      "/remoteInput/stereoWidth" } },
+        { WFSParameterIDs::inputStereoAxisOffset, { "/wfs/input/stereoAxisOffset", "/remoteInput/stereoAxisOffset" } },
 
         // Position
         { WFSParameterIDs::inputPositionX,        { "/wfs/input/positionX",        "/remoteInput/positionX" } },

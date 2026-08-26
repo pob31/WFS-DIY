@@ -1180,7 +1180,8 @@ void usage()
         "usage: offline-render --path <cpu-gather|cpu-scatter|reverb-sdn|reverb-fdn|reverb-ir\n"
         "                              |gpu-gather|gpu-scatter|gpu-reverb-sdn|gpu-reverb-fdn\n"
         "                              |gpu-reverb-ir|cpu|gpu|all>\n"
-        "                      --scenario <static|moving|fr-toggle|all>\n"
+        "                      --scenario <static|moving|fr-toggle|stereo|all>\n"
+        "                      [--stereo-null]\n"
         "                      [--blocks N] [--block 512] [--sr 48000] [--in 8] [--out 16]\n"
         "                      [--device cuda:0] [--plugin-dir <dir with wfs_cuda.dll>]\n"
         "                      [--wav out.wav] [--raw out.f32]\n"
@@ -1191,6 +1192,12 @@ void usage()
         "them in a separate invocation, e.g.\n"
         "  offline-render --path cpu --check baselines/<machine>.json\n"
         "  offline-render --path gpu --check baselines/<machine>-gpu.json\n"
+        "\n"
+        "--stereo-null renders the Phase-0 null pair on the WFS paths (gather/scatter)\n"
+        "and compares the two hashes against EACH OTHER instead of a baseline: a\n"
+        "width-0 stereo channel (silent centre on slot 0, L/R on 1/2, 3..5 claimed-\n"
+        "and-silent) must be bit-identical to two mono channels at the same position.\n"
+        "exit 1 on mismatch.\n"
         "\n"
         "--bench reports blocks / wall ms / xRealtime / budget ms per combo (plus the\n"
         "launchMs min/med/p99/max/mean distribution on GPU paths), excluding the first\n"
@@ -1221,6 +1228,7 @@ int main (int argc, char* argv[])
     std::string pathArg = "all", scenarioArg = "all";
     std::string wavArg, rawArg, checkArg, deviceArg, pluginDirArg, benchJsonArg;
     bool update = false;
+    bool stereoNull = false;
 
     for (int i = 1; i < argc; ++i)
     {
@@ -1250,6 +1258,7 @@ int main (int argc, char* argv[])
         else if (a == "--raw")      rawArg = next();
         else if (a == "--check")    checkArg = next();
         else if (a == "--update")   update = true;
+        else if (a == "--stereo-null") stereoNull = true;
         else if (a == "--bench")    gBench.enabled = true;
         else if (a == "--warmup")   gBench.warmup = std::atoi (next().c_str());
         else if (a == "--bench-json") { benchJsonArg = next(); gBench.enabled = true; }
@@ -1378,6 +1387,57 @@ int main (int argc, char* argv[])
                 return 6;
             }
         }
+    }
+
+    //==========================================================================
+    // Phase-0 stereo null test (handoff doc §8): a width-0 stereo channel —
+    // six render sources: silent centre on slot 0, L/R on slots 1/2, slots
+    // 3..5 claimed-and-silent — must render BIT-IDENTICAL to two mono
+    // channels at the same position.
+    // Self-referential (hash vs hash), no baseline file involved. Runs on the
+    // WFS render paths only: the reverb paths have no per-source slot
+    // semantics of their own.
+    //==========================================================================
+    if (stereoNull)
+    {
+        std::vector<Path> nullPaths;
+        for (const Path p : paths)
+            if (p == Path::CpuGather || p == Path::CpuScatter
+                || p == Path::GpuGather || p == Path::GpuScatter)
+                nullPaths.push_back (p);
+
+        if (nullPaths.empty())
+        {
+            std::fprintf (stderr, "error: --stereo-null needs at least one WFS path "
+                                  "(cpu-gather/cpu-scatter/gpu-gather/gpu-scatter)\n");
+            return 2;
+        }
+
+        bool allMatch = true;
+        for (const Path p : nullPaths)
+        {
+            Config cfgStereo = cfg;
+            cfgStereo.numIn = 6;
+            Config cfgMono = cfg;
+            cfgMono.numIn = 2;
+
+            const std::string hashStereo =
+                hashChannels (renderOne (p, scenario::Id::StereoNull, cfgStereo, gpuDeviceId));
+            const std::string hashMono =
+                hashChannels (renderOne (p, scenario::Id::StereoNullMono, cfgMono, gpuDeviceId));
+
+            const bool match = hashStereo == hashMono;
+            std::printf ("%s stereo-null %s\n  stereo    sha256=%s\n  dual-mono sha256=%s\n",
+                         pathName (p), match ? "OK" : "MISMATCH",
+                         hashStereo.c_str(), hashMono.c_str());
+            std::fflush (stdout);
+            allMatch = allMatch && match;
+        }
+
+        if (allMatch)
+            std::printf ("stereo-null check OK (%d path%s)\n",
+                         (int) nullPaths.size(), nullPaths.size() == 1 ? "" : "s");
+        return allMatch ? 0 : 1;
     }
 
     const bool multiCombo = paths.size() * scenarios.size() > 1;
