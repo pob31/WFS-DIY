@@ -45,7 +45,8 @@ LoadStats loadGeneratedTools (MCPToolRegistry& registry,
                               WFSValueTreeState& state,
                               const juce::File& jsonPath,
                               MCPLogger& mcpLogger,
-                              const std::function<void()>* onTopologyChanged = nullptr);
+                              const std::function<void()>* onTopologyChanged = nullptr,
+                              const std::function<void (int)>* onGradientMapChanged = nullptr);
 
 } // namespace Tools::Generated
 } // namespace WFSNetwork

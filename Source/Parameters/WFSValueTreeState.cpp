@@ -538,6 +538,29 @@ juce::ValueTree WFSValueTreeState::getInputGradientMapsSection (int channelIndex
     return getInputState (channelIndex).getChildWithName (GradientMaps);
 }
 
+juce::ValueTree WFSValueTreeState::getInputGradientShape (int channelIndex, int layerIndex, int shapeIndex)
+{
+    auto layer = getInputGradientLayer (channelIndex, layerIndex);
+    if (! layer.isValid() || shapeIndex < 0)
+        return {};
+
+    // Shapes are identified by position, not by an id property: GradientShape
+    // carries no id, and the editor re-sorts by gmShapeOrder when it loads a
+    // layer. Count only GradientShape children, so a layer that ever grows
+    // another kind of child does not shift the numbering.
+    int seen = 0;
+    for (int i = 0; i < layer.getNumChildren(); ++i)
+    {
+        auto child = layer.getChild (i);
+        if (! child.hasType (GradientShape))
+            continue;
+        if (seen == shapeIndex)
+            return child;
+        ++seen;
+    }
+    return {};
+}
+
 juce::ValueTree WFSValueTreeState::getInputGradientLayer (int channelIndex, int layerIndex)
 {
     auto gm = getInputGradientMapsSection (channelIndex);

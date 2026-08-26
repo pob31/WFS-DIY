@@ -914,6 +914,14 @@ MainComponent::MainComponent()
     // Structural channel edits from MCP (create/delete/type flip) run the
     // same reconfiguration pass as the System Config editor. Handlers run on
     // the message thread (the dispatcher hops there), so this is direct.
+    mcpServer->setGradientMapChangedCallback ([this] (int slot)
+    {
+        // Rebuild the channel that CHANGED. The editor's own callback rebuilds
+        // whichever channel the Inputs tab is showing, which is the right answer
+        // for an operator edit and the wrong one for a remote write.
+        rebuildGradientMapForInput (slot);
+    });
+
     mcpServer->setChannelTopologyChangedCallback ([this]
     {
         handleChannelCountChange (parameters.getNumInputChannels(),
@@ -2701,21 +2709,43 @@ void MainComponent::runMcpSurfaceSelfTest()
                 continue;
             }
 
-            // Which argument carries the channel, and does it have an EQ band?
+            // Which argument carries the channel, and does the tool address
+            // something below it?
             juce::String channelArg;
             bool isEqBand = false;
+            bool hasSubIndex = false;
             if (auto* params = obj->getProperty ("parameters").getDynamicObject())
                 if (auto* props = params->getProperty ("properties").getDynamicObject())
                 {
                     isEqBand = props->hasProperty ("band");
+
+                    // A sub-index means the parameter lives deeper than one
+                    // channel index reaches, so the tool resolves the node itself
+                    // and writes it directly - setParameter is not on that path,
+                    // and asking canWriteParameter about it would be asking the
+                    // wrong question. These are covered by driving them over live
+                    // MCP instead; this counter is here so that is visible rather
+                    // than quietly assumed.
+                    for (const char* sub : { "band", "layer", "shape", "cell_id",
+                                             "set_id", "mapping", "axis", "target_id" })
+                        if (props->hasProperty (sub))
+                            { hasSubIndex = true; break; }
+
+                    // gmLayer0/1/2Enabled carry no index ARGUMENT because the
+                    // layer is baked into the name, but they are sub-tree routed
+                    // all the same - and they are not stored properties at all,
+                    // so canWriteParameter is doubly the wrong question.
+                    if (variable == "gmLayer0Enabled" || variable == "gmLayer1Enabled"
+                        || variable == "gmLayer2Enabled")
+                        hasSubIndex = true;
                     for (const char* candidate : { "input_id", "output_id", "reverb_id", "cluster_id" })
                         if (props->hasProperty (candidate))
                             { channelArg = candidate; break; }
                 }
 
-            // EQ-band tools write their subtree directly and never consult the
-            // generic resolver, so asking about them would be meaningless.
-            if (isEqBand)
+            // Sub-tree tools (EQ bands, gradient layers and shapes, and the
+            // families still to come) write their node directly.
+            if (isEqBand || hasSubIndex)
             {
                 ++skippedEq;
                 continue;
@@ -2756,7 +2786,7 @@ void MainComponent::runMcpSurfaceSelfTest()
     logLine ("SELF-TEST M: " + juce::String (checked) + " registrations checked, "
              + juce::String (dead) + " unwritable ("
              + juce::String (deadVariables.size()) + " distinct parameters); skipped: "
-             + juce::String (skippedEq) + " EQ-band, "
+             + juce::String (skippedEq) + " sub-tree routed, "
              + juce::String (skippedTemplate) + " templated, "
              + juce::String (skippedOverridden) + " hand-written override, "
              + juce::String (skippedNoChannel) + " no live channel"

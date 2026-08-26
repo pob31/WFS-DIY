@@ -194,6 +194,74 @@ namespace Detail
                 return ToolResult::error ("invalid_args", "band out of range");
         }
 
+
+        // Resolve sub-tree indices. These are zero-based on the wire, unlike the
+        // EQ band above, because they index positions the operator sees numbered
+        // from zero (layer 0, shape 0) rather than a musician-facing "band 1".
+        int subA = -1, subB = -1;
+        if (binding.subIndexArgA.isNotEmpty())
+        {
+            if (! argsObj->hasProperty (binding.subIndexArgA))
+                return ToolResult::error ("invalid_args",
+                                          "Missing required arg: " + binding.subIndexArgA);
+            subA = static_cast<int> (argsObj->getProperty (binding.subIndexArgA));
+        }
+        if (binding.subIndexArgB.isNotEmpty())
+        {
+            if (! argsObj->hasProperty (binding.subIndexArgB))
+                return ToolResult::error ("invalid_args",
+                                          "Missing required arg: " + binding.subIndexArgB);
+            subB = static_cast<int> (argsObj->getProperty (binding.subIndexArgB));
+        }
+
+        // The node the write actually lands on, when it is not the one
+        // getTreeForParameter would pick. Invalid means "that index names
+        // nothing", which is a caller error rather than an app defect - a fresh
+        // gradient layer genuinely has no shapes until someone draws one.
+        juce::ValueTree subTreeNode;
+        juce::Identifier subTreeProperty (binding.internalVariable);
+
+        switch (binding.subTree)
+        {
+            case ToolBinding::SubTree::GradientLayer:
+                subTreeNode = state.getInputGradientLayer (channelIndex, subA);
+                if (! subTreeNode.isValid())
+                    return ToolResult::error ("invalid_args",
+                                              "No gradient-map layer " + juce::String (subA)
+                                                + " on that input (layers are 0-2).");
+                break;
+
+            case ToolBinding::SubTree::GradientShape:
+                subTreeNode = state.getInputGradientShape (channelIndex, subA, subB);
+                if (! subTreeNode.isValid())
+                    return ToolResult::error ("invalid_args",
+                                              "No shape " + juce::String (subB) + " on gradient-map layer "
+                                                + juce::String (subA)
+                                                + ". A layer starts with no shapes; they are created in "
+                                                  "the gradient-map editor.");
+                break;
+
+            case ToolBinding::SubTree::GradientAlias:
+                // gmLayer0Enabled and friends are routing tokens, not stored
+                // properties: the layer is in the name and the property written
+                // is gmLayerEnabled. OSC ingress has done this translation by
+                // hand since the aliases were introduced; this is the same
+                // translation, in the place every other surface goes through.
+                subTreeNode = state.getInputGradientLayer (channelIndex, binding.aliasIndex);
+                subTreeProperty = binding.aliasProperty;
+                if (! subTreeNode.isValid())
+                    return ToolResult::error ("invalid_args",
+                                              "No gradient-map layer " + juce::String (binding.aliasIndex)
+                                                + " on that input.");
+                break;
+
+            case ToolBinding::SubTree::None:
+            default:
+                break;
+        }
+
+        const bool writesSubTree = subTreeNode.isValid();
+
         // Resolve and coerce value. The arg name is "value" for most tools
         // but renamed for self-documenting cases ("name" for renames, "mode"
         // for coordinate-mode dropdowns, etc.) — driven by `value_arg_name`
@@ -331,7 +399,7 @@ namespace Detail
         // why whole families of them were dead for a long time without anyone
         // noticing. EQ bands write their subtree directly and are checked by
         // getBandTree() below, so they are exempt.
-        if (! binding.isEqBand && ! state.canWriteParameter (paramId, channelIndex))
+        if (! binding.isEqBand && ! writesSubTree && ! state.canWriteParameter (paramId, channelIndex))
         {
             return ToolResult::error ("unwritable_parameter",
                                       "Parameter '" + binding.internalVariable
@@ -347,6 +415,10 @@ namespace Detail
             auto band = getBandTree();
             if (band.isValid())
                 beforeValue = band.getProperty (paramId);
+        }
+        else if (writesSubTree)
+        {
+            beforeValue = subTreeNode.getProperty (subTreeProperty);
         }
         else
         {
@@ -367,6 +439,10 @@ namespace Detail
                     band.setProperty (paramId, value, state.getActiveUndoManager());
             }
         }
+        else if (writesSubTree)
+        {
+            subTreeNode.setProperty (subTreeProperty, value, state.getActiveUndoManager());
+        }
         else
         {
             state.setParameter (paramId, value, channelIndex);
@@ -379,6 +455,10 @@ namespace Detail
             auto band = getBandTree();
             if (band.isValid())
                 afterValue = band.getProperty (paramId);
+        }
+        else if (writesSubTree)
+        {
+            afterValue = subTreeNode.getProperty (subTreeProperty);
         }
         else
         {
@@ -611,6 +691,35 @@ namespace
             {
                 outBinding.isEqBand = propsObj->hasProperty ("band");
 
+                // Sub-tree detection, from the schema rather than a name test,
+                // so the codegen stays the single source of truth about which
+                // parameters need an extra index. The three gmLayerNEnabled
+                // aliases are the exception: they carry no index argument
+                // because the layer is baked into the name, and they are not
+                // stored properties at all - the OSC path has translated them
+                // to (layer N, gmLayerEnabled) by hand for years.
+                if (outBinding.internalVariable.startsWith ("gmShape"))
+                {
+                    outBinding.subTree      = ToolBinding::SubTree::GradientShape;
+                    outBinding.subIndexArgA = "layer";
+                    outBinding.subIndexArgB = "shape";
+                }
+                else if (outBinding.internalVariable.startsWith ("gmLayer"))
+                {
+                    const auto suffix = outBinding.internalVariable.substring (7);
+                    if (suffix.startsWith ("0") || suffix.startsWith ("1") || suffix.startsWith ("2"))
+                    {
+                        outBinding.subTree      = ToolBinding::SubTree::GradientAlias;
+                        outBinding.aliasIndex   = suffix.substring (0, 1).getIntValue();
+                        outBinding.aliasProperty = WFSParameterIDs::gmLayerEnabled;
+                    }
+                    else
+                    {
+                        outBinding.subTree      = ToolBinding::SubTree::GradientLayer;
+                        outBinding.subIndexArgA = "layer";
+                    }
+                }
+
                 // Look up the enum on the actual value-arg (which may have
                 // been renamed to "name"/"mode"/"shape"/"protocol").
                 const auto valueProp = propsObj->getProperty (outBinding.valueArgName);
@@ -648,7 +757,8 @@ LoadStats loadGeneratedTools (MCPToolRegistry& registry,
                               WFSValueTreeState& state,
                               const juce::File& jsonPath,
                               MCPLogger& mcpLogger,
-                              const std::function<void()>* onTopologyChanged)
+                              const std::function<void()>* onTopologyChanged,
+                              const std::function<void (int)>* onGradientMapChanged)
 {
     LoadStats stats;
 
@@ -724,12 +834,21 @@ LoadStats loadGeneratedTools (MCPToolRegistry& registry,
         // value change the engine already follows. Deciding here, from the bound
         // variable, keeps the knowledge in one place rather than in a name test
         // inside the dispatcher.
+        // A gradient write changes the tree; the rasterised map that actually
+        // feeds the audio offsets is a cache and has to be rebuilt for the
+        // channel that changed - not for whichever one the GUI happens to show.
+        const bool isGradientWrite =
+               binding.subTree == ToolBinding::SubTree::GradientLayer
+            || binding.subTree == ToolBinding::SubTree::GradientShape
+            || binding.subTree == ToolBinding::SubTree::GradientAlias;
+
         const bool isChannelCount =
                binding.internalVariable == WFSParameterIDs::inputChannels.toString()
             || binding.internalVariable == WFSParameterIDs::outputChannels.toString()
             || binding.internalVariable == WFSParameterIDs::reverbChannels.toString();
 
-        d.handler = [&state, binding, isChannelCount, onTopologyChanged]
+        d.handler = [&state, binding, isChannelCount, isGradientWrite,
+                     onTopologyChanged, onGradientMapChanged]
                     (const juce::var& args, ChangeRecord* record) -> ToolResult
         {
             // Channel structure is stopped-only. The GUI enforces that by greying
@@ -746,6 +865,23 @@ LoadStats loadGeneratedTools (MCPToolRegistry& registry,
             if (result.success && isChannelCount
                 && onTopologyChanged != nullptr && *onTopologyChanged)
                 (*onTopologyChanged)();
+
+            if (result.success && isGradientWrite
+                && onGradientMapChanged != nullptr && *onGradientMapChanged)
+            {
+                if (auto* argsObj = args.getDynamicObject())
+                    if (argsObj->hasProperty (binding.channelArgName))
+                    {
+                        // Same resolution the write used, so the rebuild lands on
+                        // the slot that changed. resolveChannelSlot latches input
+                        // numbering, which the dispatch above has already done.
+                        const int slot = resolveChannelSlot (
+                            state, binding.channelArgName,
+                            static_cast<int> (argsObj->getProperty (binding.channelArgName)));
+                        if (slot >= 0)
+                            (*onGradientMapChanged) (slot);
+                    }
+            }
             return result;
         };
 

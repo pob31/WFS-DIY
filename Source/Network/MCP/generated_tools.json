@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "461acf40e44a0b828bd5c0f9bef669529a1c3c30807a44aed80efac2de144ecd",
+  "input_hash": "127d92fc9a75da48300fc28fe1d96792c12b6aef6c68c62854a7337db2ac6d6d",
   "source_csvs": [
     "WFS-UI_config.csv",
     "WFS-UI_input.csv",
@@ -2738,6 +2738,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "layer": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Gradient-map layer index (0-2)."
+          },
           "value": {
             "type": "number",
             "minimum": 0.0,
@@ -2748,6 +2754,7 @@
         },
         "required": [
           "input_id",
+          "layer",
           "value"
         ]
       },
@@ -2773,6 +2780,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "layer": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Gradient-map layer index (0-2)."
+          },
           "value": {
             "type": "number",
             "minimum": -1.0,
@@ -2783,6 +2796,7 @@
         },
         "required": [
           "input_id",
+          "layer",
           "value"
         ]
       },
@@ -2808,6 +2822,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "layer": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Gradient-map layer index (0-2)."
+          },
           "value": {
             "type": "number",
             "minimum": 0.0,
@@ -2818,6 +2838,7 @@
         },
         "required": [
           "input_id",
+          "layer",
           "value"
         ]
       },
@@ -2843,6 +2864,18 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "layer": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Gradient-map layer index (0-2)."
+          },
+          "shape": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 63,
+            "description": "Shape index within the layer (0-based, in draw order). A layer starts with no shapes; they are created in the gradient-map editor."
+          },
           "value": {
             "type": "number",
             "minimum": 0.0,
@@ -2853,6 +2886,8 @@
         },
         "required": [
           "input_id",
+          "layer",
+          "shape",
           "value"
         ]
       },
@@ -2878,6 +2913,18 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "layer": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Gradient-map layer index (0-2)."
+          },
+          "shape": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 63,
+            "description": "Shape index within the layer (0-based, in draw order). A layer starts with no shapes; they are created in the gradient-map editor."
+          },
           "value": {
             "type": "integer",
             "minimum": 0,
@@ -2888,6 +2935,8 @@
         },
         "required": [
           "input_id",
+          "layer",
+          "shape",
           "value"
         ]
       },
@@ -2913,6 +2962,18 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "layer": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Gradient-map layer index (0-2)."
+          },
+          "shape": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 63,
+            "description": "Shape index within the layer (0-based, in draw order). A layer starts with no shapes; they are created in the gradient-map editor."
+          },
           "value": {
             "type": "number",
             "minimum": 0.0,
@@ -2923,6 +2984,8 @@
         },
         "required": [
           "input_id",
+          "layer",
+          "shape",
           "value"
         ]
       },
@@ -2948,6 +3011,18 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "layer": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Gradient-map layer index (0-2)."
+          },
+          "shape": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 63,
+            "description": "Shape index within the layer (0-based, in draw order). A layer starts with no shapes; they are created in the gradient-map editor."
+          },
           "value": {
             "type": "number",
             "minimum": -1.0,
@@ -2958,6 +3033,8 @@
         },
         "required": [
           "input_id",
+          "layer",
+          "shape",
           "value"
         ]
       },
@@ -2983,6 +3060,18 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "layer": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Gradient-map layer index (0-2)."
+          },
+          "shape": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 63,
+            "description": "Shape index within the layer (0-based, in draw order). A layer starts with no shapes; they are created in the gradient-map editor."
+          },
           "value": {
             "type": "number",
             "minimum": -1.0,
@@ -2993,6 +3082,8 @@
         },
         "required": [
           "input_id",
+          "layer",
+          "shape",
           "value"
         ]
       },
@@ -3018,6 +3109,18 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "layer": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Gradient-map layer index (0-2)."
+          },
+          "shape": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 63,
+            "description": "Shape index within the layer (0-based, in draw order). A layer starts with no shapes; they are created in the gradient-map editor."
+          },
           "value": {
             "type": "number",
             "minimum": 0.0,
@@ -3028,6 +3131,8 @@
         },
         "required": [
           "input_id",
+          "layer",
+          "shape",
           "value"
         ]
       },
@@ -3053,6 +3158,18 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "layer": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Gradient-map layer index (0-2)."
+          },
+          "shape": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 63,
+            "description": "Shape index within the layer (0-based, in draw order). A layer starts with no shapes; they are created in the gradient-map editor."
+          },
           "value": {
             "type": "number",
             "minimum": 0.01,
@@ -3063,6 +3180,8 @@
         },
         "required": [
           "input_id",
+          "layer",
+          "shape",
           "value"
         ]
       },
@@ -3088,6 +3207,18 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "layer": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Gradient-map layer index (0-2)."
+          },
+          "shape": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 63,
+            "description": "Shape index within the layer (0-based, in draw order). A layer starts with no shapes; they are created in the gradient-map editor."
+          },
           "value": {
             "type": "number",
             "minimum": 0.01,
@@ -3098,6 +3229,8 @@
         },
         "required": [
           "input_id",
+          "layer",
+          "shape",
           "value"
         ]
       },
@@ -3123,6 +3256,18 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "layer": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Gradient-map layer index (0-2)."
+          },
+          "shape": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 63,
+            "description": "Shape index within the layer (0-based, in draw order). A layer starts with no shapes; they are created in the gradient-map editor."
+          },
           "value": {
             "type": "integer",
             "minimum": 0,
@@ -3133,6 +3278,8 @@
         },
         "required": [
           "input_id",
+          "layer",
+          "shape",
           "value"
         ]
       },

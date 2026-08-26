@@ -143,6 +143,11 @@ public:
     juce::ValueTree getInputGradientMapsSection (int channelIndex);
     juce::ValueTree getInputGradientLayer (int channelIndex, int layerIndex);
 
+    /** One shape within a gradient-map layer, by position in draw order. A layer
+        starts with none — they are created in the gradient-map editor — so an
+        invalid tree here means "no such shape", not "no such layer". */
+    juce::ValueTree getInputGradientShape (int channelIndex, int layerIndex, int shapeIndex);
+
     /** Ensure a GradientMaps section exists for a given input (migration helper) */
     juce::ValueTree ensureInputGradientMapsSection (int channelIndex);
 

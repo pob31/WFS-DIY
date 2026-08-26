@@ -38,6 +38,28 @@ struct ToolBinding
     juce::String channelArgName;    // input_id / output_id / reverb_id / cluster_id, or empty for global
     juce::String valueArgName { "value" };  // self-documenting renames: "name" / "mode" / "shape" / "protocol"
     bool isEqBand = false;
+
+    /** Where a parameter lives below its channel, when one index is not enough.
+
+        EQ bands were the first of these and were hardcoded; the same shape then
+        turned up in the sampler (36 cells and N sets per input), the gradient map
+        (3 layers, each with a list of shapes) and ADM-OSC (4 mappings, 3 axes
+        each). Those families were generated with no index argument at all, so
+        every tool named a parameter it had no way to point at. */
+    enum class SubTree
+    {
+        None,
+        GradientLayer,   // input_id + layer
+        GradientShape,   // input_id + layer + shape
+        GradientAlias,   // input_id; the layer is baked into the variable name
+    };
+
+    SubTree subTree = SubTree::None;
+    juce::String subIndexArgA;      // first extra index arg ("layer"), empty if none
+    juce::String subIndexArgB;      // second ("shape"), empty if none
+    int aliasIndex = -1;            // GradientAlias: the layer the name encodes
+    juce::Identifier aliasProperty; // GradientAlias: the property actually stored
+
     bool hasRange = false;
     double minValue = 0.0;
     double maxValue = 0.0;

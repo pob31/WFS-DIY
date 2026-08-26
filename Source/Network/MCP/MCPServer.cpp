@@ -95,7 +95,7 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     // (input.set_attenuation today), the hand-written version wins
     // (preserves its richer operator description).
     Tools::Generated::loadGeneratedTools (*registry, state, generatedToolsJson, *mcpLogger,
-                                          &channelTopologyChanged);
+                                          &channelTopologyChanged, &gradientMapChanged);
 
     // Phase 1 hand-written tools — registered after the generated set so
     // that any name collision keeps the hand-written variant.

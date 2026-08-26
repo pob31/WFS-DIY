@@ -96,8 +96,20 @@ public:
         channelTopologyChanged = std::move (cb);
     }
 
+    /** Called (message thread) with a 0-based input SLOT after a gradient-map
+        write. The rasterised map is a cache: changing the tree changes what the
+        editor draws, but the audio offsets keep coming from the old raster until
+        something rebuilds it. The only existing caller is the editor's own save
+        callback, and it rebuilds whichever channel the Inputs tab is showing —
+        not the one that changed. */
+    void setGradientMapChangedCallback (std::function<void (int)> cb)
+    {
+        gradientMapChanged = std::move (cb);
+    }
+
 private:
     std::function<void()> channelTopologyChanged;
+    std::function<void (int)> gradientMapChanged;
     WFSValueTreeState& valueTreeState;
     WFSFileManager& fileManager;
     std::unique_ptr<MCPLogger> mcpLogger;

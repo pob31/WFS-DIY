@@ -325,6 +325,48 @@ CELL_INDEX_RULES = [
     },
 ]
 
+
+# Extra index arguments for parameters that live deeper in the tree than a
+# channel index can address. One <Input> owns 3 gradient-map layers, and each
+# layer owns a list of shapes; without these the generated tool names a
+# parameter it has no way to point at, which is how these families ended up
+# writing nowhere at all while reporting success.
+#
+# Matched on csv_file + an explicit `variables` list rather than a prefix,
+# because the sets are small, stable, and full of near-misses: gmLayer0Enabled
+# carries its layer in the NAME and must not take an argument, while
+# gmLayerBlack must.
+SUB_INDEX_RULES = [
+    # --- Gradient map: per-layer properties (3 layers, fixed) --------------
+    {
+        "csv_file": "WFS-UI_input.csv",
+        "variables": ["gmLayerBlack", "gmLayerCurve", "gmLayerWhite"],
+        "args": [
+            {"name": "layer", "min": 0, "max": 2,
+             "description": "Gradient-map layer index (0-2)."},
+        ],
+    },
+    # --- Gradient map: per-shape properties (layer + shape) ----------------
+    # Shapes are created by the operator in the gradient-map editor; a fresh
+    # layer has none, and the index is the shape's position within its layer.
+    {
+        "csv_file": "WFS-UI_input.csv",
+        "variables": [
+            "gmShapeType", "gmShapePosX", "gmShapePosY", "gmShapeRotation",
+            "gmShapeScaleX", "gmShapeScaleY", "gmShapeFillType",
+            "gmShapeFillValue", "gmShapeBlur",
+        ],
+        "args": [
+            {"name": "layer", "min": 0, "max": 2,
+             "description": "Gradient-map layer index (0-2)."},
+            {"name": "shape", "min": 0, "max": 63,
+             "description": "Shape index within the layer (0-based, in draw "
+                            "order). A layer starts with no shapes; they are "
+                            "created in the gradient-map editor."},
+        ],
+    },
+]
+
 # Coordinate-system suffixes stripped from Section before computing
 # group_key / tool names ("Position (Cylindrical)" -> "Position").
 COORDINATE_SECTION_SUFFIXES = ("Cylindrical", "Spherical", "Cartesian")
