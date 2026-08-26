@@ -377,6 +377,14 @@ void WFSValueTreeState::setParameter (const juce::Identifier& paramId, const juc
     TreeParameterStore::setParameter (paramId, value, channelIndex);
 }
 
+bool WFSValueTreeState::isProcessingEnabled() const
+{
+    // Read through the tree rather than getIOState(), which is non-const.
+    // Absent means a tree that has not been built yet, which is not "running".
+    const auto io = state.getChildWithName (Config).getChildWithName (IO);
+    return io.isValid() && static_cast<bool> (io.getProperty (runDSP, false));
+}
+
 bool WFSValueTreeState::canWriteParameter (const juce::Identifier& paramId, int channelIndex) const
 {
     // The three live channel counts never reach getTreeForParameter: setParameter

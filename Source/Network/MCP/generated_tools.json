@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "8c73dc0accd5925a23c622f1440d630b1a4c934476c89dd607c54f2c106b059e",
+  "input_hash": "21ad776af4a556f6432dc53b4a4ad21cb964ce154c6e875b51329b4085ed92bf",
   "source_csvs": [
     "WFS-UI_config.csv",
     "WFS-UI_input.csv",
@@ -11633,7 +11633,7 @@
     },
     {
       "name": "system_i_o_set_stereo_input_channels",
-      "description": "Number of stereo pair inputs (the last channels of the input list). [TIER 3: destructive - refused unless the operator's safety gate is open; with the gate open, executes immediately.]",
+      "description": "Number of stereo pair input channels. [TIER 3: destructive - refused unless the operator's safety gate is open; with the gate open, executes immediately.]",
       "parameters": {
         "type": "object",
         "properties": {

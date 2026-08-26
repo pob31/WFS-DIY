@@ -8,6 +8,7 @@
 #include "Localization/LocalizationManager.h"
 #include "Accessibility/TTSManager.h"
 #include "Network/QLabCueBuilder.h"
+#include "Network/MCP/tools/ChannelLifecycleTools.h"
 #include "Controllers/DialsAndButtons/pages/InputsTabPages.h"
 #include "Controllers/DialsAndButtons/pages/GradientMapPages.h"
 #include "Controllers/DialsAndButtons/pages/NetworkTabPages.h"
@@ -3663,6 +3664,153 @@ void MainComponent::runChannelListSelfTest()
         reconfig();
         check(vts.getSlotForChannelNumber(lastMono) < 0, "V3: that channel is the one that went");
         check(vts.getSlotForChannelNumber(hiMono) >= 0, "V3: the highest-numbered mono is still live");
+    }
+
+    // ---- W: the MCP input-count tools -------------------------------------
+    // The two tools are tier 3, and the safety gate is deliberately UI-only, so
+    // they cannot be driven from the headless harness. What CAN be driven is the
+    // logic underneath them, which is where all the behaviour lives: substitute
+    // one axis, clamp exactly as the GUI clamps, and report what went.
+    {
+        using namespace WFSNetwork::Tools::ChannelLifecycle;
+
+        auto payloadInt = [] (const WFSNetwork::ToolResult& r, const char* key) -> int
+        {
+            if (auto* obj = r.value.getDynamicObject())
+                return static_cast<int> (obj->getProperty (key));
+            return -1;
+        };
+        auto payloadHas = [] (const WFSNetwork::ToolResult& r, const char* key) -> bool
+        {
+            auto* obj = r.value.getDynamicObject();
+            return obj != nullptr && obj->hasProperty (key);
+        };
+
+        vts.setInputChannelCounts(6, 2);
+        reconfig();
+        const int monoBefore   = vts.getNumInputChannels() - vts.getNumStereoInputChannels();
+        const int stereoBefore = vts.getNumStereoInputChannels();
+        check(monoBefore == 6 && stereoBefore == 2, "W0: fixture is 6 mono + 2 stereo");
+
+        // W1: setting the stereo axis leaves mono untouched. This is the whole
+        // point of the pair — the generated tool it replaces set the TOTAL.
+        auto r1 = setCounts(vts, true, 3, nullptr);
+        reconfig();
+        check(r1.success, "W1: setting the stereo count succeeds");
+        check(payloadInt(r1, "stereo") == 3, "W1: stereo became 3");
+        check(payloadInt(r1, "mono") == monoBefore, "W1: mono is untouched");
+        check(vts.getNumStereoInputChannels() == 3, "W1: and the tree agrees");
+
+        // W2: setting the mono axis leaves stereo untouched.
+        auto r2 = setCounts(vts, false, 9, nullptr);
+        reconfig();
+        check(r2.success, "W2: setting the mono count succeeds");
+        check(payloadInt(r2, "mono") == 9, "W2: mono became 9");
+        check(payloadInt(r2, "stereo") == 3, "W2: stereo is untouched");
+        check(vts.getNumInputChannels() == 12, "W2: total is mono + stereo, not the mono value");
+
+        // W3: a reduction names its victims, and they are the ones that go.
+        int lastMonoW = 0;
+        for (int slot = vts.getNumInputChannels(); --slot >= 0;)
+            if (! vts.isInputChannelStereo(slot)) { lastMonoW = vts.getInputChannelNumber(slot); break; }
+        auto r3 = setCounts(vts, false, 8, nullptr);
+        reconfig();
+        check(r3.success && payloadHas(r3, "removed_channels"),
+              "W3: a reduction reports removed_channels");
+        check(vts.getSlotForChannelNumber(lastMonoW) < 0,
+              "W3: the last mono in display order is the one that went");
+
+        // W4: a no-op says so rather than pretending to have done something.
+        auto r4 = setCounts(vts, false, 8, nullptr);
+        check(r4.success && payloadInt(r4, "mono") == 8, "W4: asking for the current count succeeds");
+        if (auto* obj = r4.value.getDynamicObject())
+            check(! static_cast<bool>(obj->getProperty("changed")), "W4: and reports changed=false");
+
+        // W5: the clamp is the GUI clamp, from the same function. 64 mono cannot
+        // coexist with 3 stereo, so the request is cut down rather than refused,
+        // and the payload says what was asked for.
+        auto r5 = setCounts(vts, false, WFSParameterDefaults::maxInputChannels, nullptr);
+        reconfig();
+        const int clampedMono = payloadInt(r5, "mono");
+        check(r5.success, "W5: an over-large mono request succeeds");
+        check(clampedMono < WFSParameterDefaults::maxInputChannels,
+              "W5: it was clamped rather than granted");
+        check(vts.getNumInputChannels() <= WFSParameterDefaults::maxInputChannels,
+              "W5: the 64-channel budget still holds");
+        check(payloadHas(r5, "requested"), "W5: the clamp is visible as `requested`");
+
+        // W6: the stopped-only guard reads the same flag the GUI greys its
+        // controls on. The tool asks isProcessingEnabled(); this is that answer.
+        auto io = vts.getIOState();
+        const bool runWas = static_cast<bool>(io.getProperty(WFSParameterIDs::runDSP, false));
+        io.setProperty(WFSParameterIDs::runDSP, true, nullptr);
+        check(vts.isProcessingEnabled(), "W6: engine-running is visible to the guard");
+        io.setProperty(WFSParameterIDs::runDSP, false, nullptr);
+        check(! vts.isProcessingEnabled(), "W6: and clears again");
+        io.setProperty(WFSParameterIDs::runDSP, runWas, nullptr);
+
+        // W7: the stopped-only guard, through the REAL tool handler rather than
+        // the logic underneath it. The handler cannot be reached from the headless
+        // MCP harness (tier 3, and the safety gate is deliberately UI-only), and it
+        // cannot be reached from a project fixture either, because runDSP is a
+        // transient toggle that WFSFileManager::stripTransientToggles removes on
+        // save — a project can never load with DSP flagged running, by design. So
+        // build the descriptor and call its handler directly.
+        {
+            auto descriptor = describeSetCount(vts, false, nullptr);
+            auto argsObj = std::make_unique<juce::DynamicObject>();
+            argsObj->setProperty("value", 4);
+            const juce::var handlerArgs (argsObj.release());
+
+            auto ioW = vts.getIOState();
+            const bool runWas7 = static_cast<bool>(ioW.getProperty(WFSParameterIDs::runDSP, false));
+            const int monoAtGuard = vts.getNumInputChannels() - vts.getNumStereoInputChannels();
+
+            ioW.setProperty(WFSParameterIDs::runDSP, true, nullptr);
+            auto refused = descriptor.handler(handlerArgs, nullptr);
+            check(! refused.success, "W7: the tool refuses while the engine is running");
+            check(refused.errorCode == "engine_running", "W7: and says why");
+            check(vts.getNumInputChannels() - vts.getNumStereoInputChannels() == monoAtGuard,
+                  "W7: a refused call changes nothing");
+
+            ioW.setProperty(WFSParameterIDs::runDSP, false, nullptr);
+            auto allowed = descriptor.handler(handlerArgs, nullptr);
+            reconfig();
+            check(allowed.success, "W7: and goes through once the engine is stopped");
+            check(vts.getNumInputChannels() - vts.getNumStereoInputChannels() == 4,
+                  "W7: with the mono count actually applied");
+
+            ioW.setProperty(WFSParameterIDs::runDSP, runWas7, nullptr);
+        }
+
+        // W8: the topology callback fires on success and NOT on a refusal. This is
+        // the half of the defect that was invisible: the generated count tools
+        // changed the tree and never re-prepared the renderer, routing matrices,
+        // patch rows or meters, so they looked like they worked and left the engine
+        // describing a channel list that no longer existed.
+        {
+            int topologyCalls = 0;
+            std::function<void()> onTopology = [&topologyCalls] { ++topologyCalls; };
+            auto descriptor = describeSetCount(vts, true, &onTopology);
+
+            auto argsObj = std::make_unique<juce::DynamicObject>();
+            argsObj->setProperty("value", 2);
+            const juce::var handlerArgs (argsObj.release());
+
+            auto ioW8 = vts.getIOState();
+            const bool runWas8 = static_cast<bool>(ioW8.getProperty(WFSParameterIDs::runDSP, false));
+
+            ioW8.setProperty(WFSParameterIDs::runDSP, true, nullptr);
+            (void) descriptor.handler(handlerArgs, nullptr);
+            check(topologyCalls == 0, "W8: a refused call does not re-prepare the engine");
+
+            ioW8.setProperty(WFSParameterIDs::runDSP, false, nullptr);
+            auto ok8 = descriptor.handler(handlerArgs, nullptr);
+            reconfig();
+            check(ok8.success && topologyCalls == 1, "W8: a successful call re-prepares it exactly once");
+
+            ioW8.setProperty(WFSParameterIDs::runDSP, runWas8, nullptr);
+        }
     }
 
     logLine(failures == 0 ? juce::String("SELF-TEST RESULT: ALL PASS")

@@ -33,11 +33,19 @@ struct LoadStats
     the auto-generated surface is missing in that case.
 
     Phase 2 Block 1 implements the `tools[]` pass; Block 2 will add the
-    `nudge_tools[]` pass on top. This signature is stable for both. */
+    `nudge_tools[]` pass on top. This signature is stable for both.
+
+    `onTopologyChanged` is invoked after a successful write to one of the channel
+    COUNT parameters. Without it the tree changed and nothing re-prepared the
+    renderer, routing matrices, patch rows or meters — the tool appeared to work
+    and left the engine describing a channel list that no longer existed. The
+    hand-written create/delete tools have always fired it; the generated count
+    tools never did. Pass nullptr where there is nothing to notify. */
 LoadStats loadGeneratedTools (MCPToolRegistry& registry,
                               WFSValueTreeState& state,
                               const juce::File& jsonPath,
-                              MCPLogger& mcpLogger);
+                              MCPLogger& mcpLogger,
+                              const std::function<void()>* onTopologyChanged = nullptr);
 
 } // namespace Tools::Generated
 } // namespace WFSNetwork

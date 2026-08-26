@@ -4,6 +4,7 @@
 #include "../MCPCompat.h"
 #include "../../../Parameters/WFSValueTreeState.h"
 #include "../../../Parameters/WFSParameterIDs.h"
+#include "../../../Parameters/InputChannelDescription.h"
 
 namespace WFSNetwork::Tools::ChannelLifecycle
 {
@@ -312,6 +313,206 @@ inline void notifyTopology (const std::function<void()>* topologyChanged)
         (*topologyChanged)();
 }
 
+/** Structural channel edits are stopped-only. The GUI enforces that by greying its
+    I/O controls while processing runs (SystemConfigTab::updateIOControlsEnabledState);
+    nothing enforced it for any other caller, so MCP could restructure the channel
+    list mid-show — resizing routing matrices and releasing the algorithm underneath
+    a live audio callback. Same flag the GUI reads, so the two cannot disagree.
+
+    Deliberately at this layer and not inside WFSValueTreeState: the config-load path
+    calls setNumInputChannels directly, and a guard down there would refuse to load a
+    project whenever the engine happened to be running. */
+inline bool refuseWhileProcessing (WFSValueTreeState& state,
+                                   const juce::String& what,
+                                   ToolResult& out)
+{
+    if (! state.isProcessingEnabled())
+        return false;
+
+    out = ToolResult::error ("engine_running",
+                             juce::String ("Cannot ") + what
+                               + " while the audio engine is running. Channel structure "
+                                 "is stopped-only: stop processing first (System Config "
+                                 "> Run DSP), then retry.");
+    return true;
+}
+
+//==============================================================================
+// Input channel COUNTS
+//
+// These two shadow the generated system_i_o_set_input_channels /
+// system_i_o_set_stereo_input_channels by name (hand-written tools are registered
+// after the generated set and overwrite by name - see MCPServer). They exist
+// because the generated pair could not do what they said:
+//
+//   * the stereo one wrote `stereoInputChannels`, which setParameter has ignored
+//     outright since the stable-number rework made a channel's type per-channel.
+//     It burned the operator's safety gate and changed nothing.
+//   * the mono one is LABELLED "Mono Inputs" but routed to setNumInputChannels,
+//     which sets the TOTAL and removes by highest NUMBER - while the field of the
+//     same name in System Config means the mono count and removes the last channel
+//     of that type in DISPLAY order. On a dragged list those are different channels.
+//   * neither fired the topology callback, so the tree changed and the renderer,
+//     routing matrices, patch rows and meters were never rebuilt.
+//
+// Both now do exactly what the two GUI count fields do: clamp identically, call
+// setInputChannelCounts, and re-prepare the engine.
+//==============================================================================
+
+/** Schema for the two count tools: the new count, plus the tier-3 confirm token. */
+inline juce::var countSchema (int maxValue, const juce::String& description)
+{
+    auto props = std::make_unique<juce::DynamicObject>();
+
+    auto value = std::make_unique<juce::DynamicObject>();
+    value->setProperty ("type",        "integer");
+    value->setProperty ("minimum",     0);
+    value->setProperty ("maximum",     maxValue);
+    value->setProperty ("description", description);
+    props->setProperty ("value", juce::var (value.release()));
+
+    auto confirm = std::make_unique<juce::DynamicObject>();
+    confirm->setProperty ("type", "string");
+    confirm->setProperty ("description",
+        "Confirmation token from the previous call's tier_enforcement envelope.");
+    props->setProperty ("confirm", juce::var (confirm.release()));
+
+    auto schema = std::make_unique<juce::DynamicObject>();
+    schema->setProperty ("type", "object");
+    schema->setProperty ("properties", juce::var (props.release()));
+    schema->setProperty ("required", juce::var (juce::Array<juce::var> { juce::var ("value") }));
+    schema->setProperty ("additionalProperties", false);
+    return juce::var (schema.release());
+}
+
+/** Apply one axis of the mono/stereo composition, leaving the other as it is. */
+inline ToolResult setCounts (WFSValueTreeState& state,
+                             bool settingStereo,
+                             int requested,
+                             ChangeRecord* record)
+{
+    const int liveTotal  = state.getNumInputChannels();
+    const int liveStereo = state.getNumStereoInputChannels();
+    const int liveMono   = liveTotal - liveStereo;
+
+    int wantMono   = settingStereo ? liveMono  : requested;
+    int wantStereo = settingStereo ? requested : liveStereo;
+
+    // The same clamp the GUI applies, from the same function, so a value MCP
+    // accepts and a value typed into the field land on identical compositions.
+    WFSValueTreeState::clampInputChannelCounts (wantMono, wantStereo);
+
+    if (wantMono == liveMono && wantStereo == liveStereo)
+    {
+        auto unchanged = std::make_unique<juce::DynamicObject>();
+        unchanged->setProperty ("mono",    liveMono);
+        unchanged->setProperty ("stereo",  liveStereo);
+        unchanged->setProperty ("total",   liveTotal);
+        unchanged->setProperty ("changed", false);
+        return ToolResult::ok (juce::var (unchanged.release()));
+    }
+
+    // Captured BEFORE the mutation: removeInputChannel renumbers on an unlatched
+    // session, so asking afterwards describes channels that no longer exist under
+    // the numbers they had. This is the same list the GUI confirmation dialog
+    // shows, from the same prediction.
+    juce::Array<juce::var> removedDescriptions;
+    for (const auto& victim : state.predictInputChannelReduction (wantMono, wantStereo))
+        removedDescriptions.add (juce::var (describeInputChannel (victim)));
+
+    state.setInputChannelCounts (wantMono, wantStereo);
+
+    const int newTotal  = state.getNumInputChannels();
+    const int newStereo = state.getNumStereoInputChannels();
+    const int newMono   = newTotal - newStereo;
+
+    if (record != nullptr)
+    {
+        record->affectedParameters.add (WFSParameterIDs::inputChannels.toString());
+        record->affectedGroups.push_back ({ 0, juce::String ("I/O") });
+
+        auto before = std::make_unique<juce::DynamicObject>();
+        before->setProperty ("mono",   liveMono);
+        before->setProperty ("stereo", liveStereo);
+        record->beforeState = juce::var (before.release());
+
+        auto after = std::make_unique<juce::DynamicObject>();
+        after->setProperty ("mono",   newMono);
+        after->setProperty ("stereo", newStereo);
+        record->afterState = juce::var (after.release());
+
+        record->operatorDescription =
+            juce::String ("Set input channels to ") + juce::String (newMono)
+            + " mono + " + juce::String (newStereo) + " stereo (was "
+            + juce::String (liveMono) + " + " + juce::String (liveStereo) + ")";
+    }
+
+    auto result = std::make_unique<juce::DynamicObject>();
+    result->setProperty ("mono",    newMono);
+    result->setProperty ("stereo",  newStereo);
+    result->setProperty ("total",   newTotal);
+    result->setProperty ("changed", true);
+    if (requested != (settingStereo ? newStereo : newMono))
+        result->setProperty ("requested", requested);   // clamped: say so
+    if (! removedDescriptions.isEmpty())
+        result->setProperty ("removed_channels", juce::var (removedDescriptions));
+    return ToolResult::ok (juce::var (result.release()));
+}
+
+inline ToolDescriptor describeSetCount (WFSValueTreeState& state,
+                                        bool settingStereo,
+                                        const std::function<void()>* topologyChanged)
+{
+    ToolDescriptor d;
+    d.name = settingStereo ? "system_i_o_set_stereo_input_channels"
+                           : "system_i_o_set_input_channels";
+    d.description = (settingStereo
+        ? juce::String (
+            "Set how many input channels are STEREO pairs, leaving the mono count as "
+            "it is. Raising it appends stereo channels after the last channel; "
+            "lowering it removes the last stereo channel(s) in DISPLAY order - the "
+            "bottom of the Arrange list - and retires their numbers as permanent "
+            "gaps. Each stereo channel claims two hardware inputs in the patch. "
+            "Returns the resulting mono/stereo/total and, on a reduction, "
+            "removed_channels naming exactly what went. Clears every tab undo "
+            "history and re-prepares the engine.")
+        : juce::String (
+            "Set how many input channels are MONO, leaving the stereo count as it is. "
+            "Raising it appends mono channels after the last channel; lowering it "
+            "removes the last mono channel(s) in DISPLAY order - the bottom of the "
+            "Arrange list - and retires their numbers as permanent gaps. This is the "
+            "mono count, NOT the total: the total is mono + stereo. Returns the "
+            "resulting mono/stereo/total and, on a reduction, removed_channels "
+            "naming exactly what went. Clears every tab undo history and "
+            "re-prepares the engine."))
+        + " Refused while the audio engine is running."
+        + juce::String (kTier3DescriptionSuffix);
+    d.inputSchema = countSchema (settingStereo ? WFSParameterDefaults::maxStereoChannels
+                                               : WFSParameterDefaults::maxInputChannels,
+                                 settingStereo ? "Number of stereo pair input channels."
+                                               : "Number of mono input channels.");
+    d.modifiesState = true;
+    d.tier          = 3;   // removes channels; same gate the generated pair carried
+    d.handler = [&state, settingStereo, topologyChanged] (const juce::var& args,
+                                                          ChangeRecord* record) -> ToolResult
+    {
+        auto* obj = args.getDynamicObject();
+        if (obj == nullptr || ! obj->hasProperty ("value"))
+            return ToolResult::error ("invalid_args", "Missing required arg: value");
+
+        ToolResult refusal;
+        if (refuseWhileProcessing (state, "change the input channel composition", refusal))
+            return refusal;
+
+        auto result = setCounts (state, settingStereo,
+                                 static_cast<int> (obj->getProperty ("value")), record);
+        if (result.success)
+            notifyTopology (topologyChanged);
+        return result;
+    };
+    return d;
+}
+
 inline ToolDescriptor describeCreate (WFSValueTreeState& state,
                                         const juce::String& kindLabel,
                                         const std::function<void()>* topologyChanged)
@@ -361,6 +562,10 @@ inline ToolDescriptor describeCreate (WFSValueTreeState& state,
                     stereoType = obj->getProperty ("type").toString() == "stereo";
             }
         }
+        ToolResult refusal;
+        if (refuseWhileProcessing (state, "create a " + cfg.kindLabel + " channel", refusal))
+            return refusal;
+
         auto result = create (state, cfg, count, stereoType, record);
         if (result.success)
             notifyTopology (topologyChanged);
@@ -401,6 +606,10 @@ inline ToolDescriptor describeDelete (WFSValueTreeState& state,
             if (auto* obj = args.getDynamicObject())
                 if (obj->hasProperty ("input_id"))
                     requestedNumber = static_cast<int> (obj->getProperty ("input_id"));
+        ToolResult refusal;
+        if (refuseWhileProcessing (state, "delete a " + cfg.kindLabel + " channel", refusal))
+            return refusal;
+
         auto result = del (state, cfg, requestedNumber, record);
         if (result.success)
             notifyTopology (topologyChanged);

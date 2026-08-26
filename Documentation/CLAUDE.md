@@ -787,7 +787,7 @@ observed it**; before that it is recompacted to `slot + 1` after every structura
 brand-new project cannot end up showing "#21" wedged between "#1" and "#2". See *Fresh-session
 compaction* below for the latch that separates the two regimes.
 Composition is edited through the System Config "Mono Inputs" / "Stereo Inputs" counts (raising
-a count APPENDS channels after the last one with number = highest+1; lowering it removes the LAST channels of that type in DISPLAY order — the bottom of the Arrange list, which the operator can see; `setNumInputChannels`, the one-count OSC/MCP path, removes by highest number instead and says so — once latched, their numbers retire as permanent gaps),
+a count APPENDS channels after the last one with number = highest+1; lowering it removes the LAST channels of that type in DISPLAY order — the bottom of the Arrange list, which the operator can see; `setNumInputChannels`, the blunt one-count entry point, removes by highest number instead and says so - it is the CONFIG-LOAD path now; MCP goes through the two hand-written count tools, which call setInputChannelCounts and so match the GUI exactly — once latched, their numbers retire as permanent gaps),
 and arrangement through drag in the "Arrange…" dialog (`WFSValueTreeState::moveInputChannel`
 moves the node AND its patch row together, and while unlatched the whole patch is then re-flowed
 into a gapless diagonal in display order). There is deliberately NO user-facing type flip: the

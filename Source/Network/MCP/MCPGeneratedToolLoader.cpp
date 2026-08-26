@@ -3,6 +3,7 @@
 #include "MCPCompat.h"
 #include "MCPLogger.h"
 #include "../../Parameters/WFSValueTreeState.h"
+#include "../../Parameters/WFSParameterIDs.h"
 
 namespace WFSNetwork::Tools::Generated
 {
@@ -646,7 +647,8 @@ namespace
 LoadStats loadGeneratedTools (MCPToolRegistry& registry,
                               WFSValueTreeState& state,
                               const juce::File& jsonPath,
-                              MCPLogger& mcpLogger)
+                              MCPLogger& mcpLogger,
+                              const std::function<void()>* onTopologyChanged)
 {
     LoadStats stats;
 
@@ -718,9 +720,33 @@ LoadStats loadGeneratedTools (MCPToolRegistry& registry,
         if (toolObj->hasProperty ("tier"))
             d.tier = juce::jlimit (1, 3, static_cast<int> (toolObj->getProperty ("tier")));
         d.listable = shouldListGeneratedTool (d.tier);
-        d.handler = [&state, binding] (const juce::var& args, ChangeRecord* record) -> ToolResult
+        // A channel-count write restructures the session; everything else is a
+        // value change the engine already follows. Deciding here, from the bound
+        // variable, keeps the knowledge in one place rather than in a name test
+        // inside the dispatcher.
+        const bool isChannelCount =
+               binding.internalVariable == WFSParameterIDs::inputChannels.toString()
+            || binding.internalVariable == WFSParameterIDs::outputChannels.toString()
+            || binding.internalVariable == WFSParameterIDs::reverbChannels.toString();
+
+        d.handler = [&state, binding, isChannelCount, onTopologyChanged]
+                    (const juce::var& args, ChangeRecord* record) -> ToolResult
         {
-            return dispatchGenericSet (state, binding, args, record);
+            // Channel structure is stopped-only. The GUI enforces that by greying
+            // its I/O controls; nothing enforced it here, so a remote caller could
+            // resize the routing matrices under a live audio callback.
+            if (isChannelCount && state.isProcessingEnabled())
+                return ToolResult::error ("engine_running",
+                                          "Cannot change the channel count while the audio "
+                                          "engine is running. Channel structure is "
+                                          "stopped-only: stop processing first (System "
+                                          "Config > Run DSP), then retry.");
+
+            auto result = dispatchGenericSet (state, binding, args, record);
+            if (result.success && isChannelCount
+                && onTopologyChanged != nullptr && *onTopologyChanged)
+                (*onTopologyChanged)();
+            return result;
         };
 
         registry.registerTool (std::move (d));

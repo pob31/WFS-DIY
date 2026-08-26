@@ -114,6 +114,12 @@ public:
         write a subtree directly (EQ bands today) never consult this. */
     bool canWriteParameter (const juce::Identifier& id, int channelIndex = -1) const;
 
+    /** Is the audio engine running? (`runDSP` on <IO>, what the GUI calls
+        "ProcessingEnabled".) Structural channel edits are stopped-only, and until
+        now that rule was enforced nowhere but by greying the System Config fields —
+        so any remote surface could restructure channels mid-show. */
+    bool isProcessingEnabled() const;
+
     //==========================================================================
     // Input Channel Access
     //==========================================================================
@@ -317,10 +323,16 @@ public:
     int getNumOutputChannels() const;
     int getNumReverbChannels() const;
 
-    /** Set channel counts. For inputs this is the blunt legacy entry point
-        (config-load sync, OSC/MCP inputChannels writes): growth appends
-        default mono channels, reduction removes the highest-numbered
-        channels; nothing in the middle ever moves. Not undoable. */
+    /** Set channel counts. For inputs this is the blunt legacy entry point:
+        growth appends default mono channels, reduction removes the
+        highest-numbered channels; nothing in the middle ever moves. Not
+        undoable.
+
+        Its only remaining caller is the CONFIG LOAD path (WFSFileManager, for
+        files written before the channel inventory existed). MCP used to land
+        here too, via a setParameter(inputChannels) re-route, which is why its
+        removal rule disagreed with the GUI's; the two hand-written count tools
+        now call setInputChannelCounts instead. */
     void setNumInputChannels (int numChannels);
 
     /** Number of live stereo channels — derived from the per-channel type
@@ -333,8 +345,8 @@ public:
         remove the LAST channel of that type in DISPLAY order - the bottom of the
         Arrange list, which the operator can see - never the highest-numbered
         one, which after a drag on a latched list may sit anywhere. (The
-        one-count setNumInputChannels, the OSC/MCP path, does remove by number;
-        the asymmetry is noted there.) Not undoable. */
+        one-count setNumInputChannels, now the config-load path only, does
+        remove by number; the asymmetry is noted there.) Not undoable. */
     void setInputChannelCounts (int numMono, int numStereo);
 
     //==========================================================================

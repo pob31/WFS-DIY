@@ -94,7 +94,8 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     // so when a Phase-1 hand-written tool collides with a generated one
     // (input.set_attenuation today), the hand-written version wins
     // (preserves its richer operator description).
-    Tools::Generated::loadGeneratedTools (*registry, state, generatedToolsJson, *mcpLogger);
+    Tools::Generated::loadGeneratedTools (*registry, state, generatedToolsJson, *mcpLogger,
+                                          &channelTopologyChanged);
 
     // Phase 1 hand-written tools — registered after the generated set so
     // that any name collision keeps the hand-written variant.
@@ -166,6 +167,15 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     // NOTE: no in-place mono/stereo flip tool — a channel's data (patch
     // columns, width, decomposition) cannot meaningfully follow a type
     // change, so composition is edited through counts / create+delete.
+
+    // The two input COUNT tools, shadowing the generated pair of the same names
+    // (registered above, so these win). The generated stereo one wrote a
+    // parameter setParameter ignores and changed nothing; the generated mono one
+    // was labelled "Mono Inputs" but set the TOTAL, removed by highest number
+    // rather than by display order, and never re-prepared the engine. See the
+    // block comment in ChannelLifecycleTools.h.
+    registry->registerTool (Tools::ChannelLifecycle::describeSetCount (state, false, &channelTopologyChanged));
+    registry->registerTool (Tools::ChannelLifecycle::describeSetCount (state, true,  &channelTopologyChanged));
 
     // Undo / redo tools — Phase 5a wires the first two to the real engine.
     // mcp.get_ai_change_history remains a read-only query over the ring buffer.
