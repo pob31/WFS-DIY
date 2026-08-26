@@ -2661,6 +2661,7 @@ void MainComponent::runMcpSurfaceSelfTest()
     const int numClusters      = WFSParameterDefaults::maxClusters;
 
     int checked = 0, dead = 0, skippedEq = 0, skippedTemplate = 0, skippedNoChannel = 0;
+    int skippedOverridden = 0;
     juce::StringArray deadVariables;
     juce::StringArray skippedKinds;
 
@@ -2687,6 +2688,18 @@ void MainComponent::runMcpSurfaceSelfTest()
             }
 
             const auto toolName = obj->getProperty ("name").toString();
+
+            // A manifest entry whose behaviour is supplied by a hand-written tool
+            // of the same name: the generated handler is overwritten at
+            // registration, so asking whether setParameter could carry the write
+            // is asking about code that never runs. The two input count tools call
+            // setInputChannelCounts directly, which is the whole reason they exist.
+            if (toolName == "system_i_o_set_input_channels"
+                || toolName == "system_i_o_set_stereo_input_channels")
+            {
+                ++skippedOverridden;
+                continue;
+            }
 
             // Which argument carries the channel, and does it have an EQ band?
             juce::String channelArg;
@@ -2745,6 +2758,7 @@ void MainComponent::runMcpSurfaceSelfTest()
              + juce::String (deadVariables.size()) + " distinct parameters); skipped: "
              + juce::String (skippedEq) + " EQ-band, "
              + juce::String (skippedTemplate) + " templated, "
+             + juce::String (skippedOverridden) + " hand-written override, "
              + juce::String (skippedNoChannel) + " no live channel"
              + (skippedKinds.isEmpty() ? juce::String()
                                        : " (" + skippedKinds.joinIntoString (", ") + ")"));

@@ -335,6 +335,10 @@ private:
         if (paramName == "SamplerEnabled") return WFSParameterIDs::samplerEnabled;
         if (paramName == "SamplerBlockSerial") return WFSParameterIDs::samplerBlockSerial;
         if (paramName == "LightpadSensitivity") return WFSParameterIDs::lightpadSensitivity;
+        // Was unmapped, so it became Identifier("ColorScheme") and landed in <IO>,
+        // while the MCP surface advertised the real id, "colorScheme". Two
+        // properties, two homes, one of them read by nobody.
+        if (paramName == "ColorScheme") return WFSParameterIDs::colorScheme;
 
         // Default: use the parameter name directly as identifier
         return juce::Identifier (paramName);

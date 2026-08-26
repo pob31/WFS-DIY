@@ -757,6 +757,10 @@ private:
     void createStageSection (juce::ValueTree& config);
     void createMasterSection (juce::ValueTree& config);
     void createNetworkSection (juce::ValueTree& config);
+
+    /** Move config properties older files kept in <IO> into the sections that now
+        stamp them, so no value is left duplicated across two homes. */
+    void migrateStrayConfigProperties();
     void createADMOSCSection (juce::ValueTree& config);
     void createTrackingSection (juce::ValueTree& config);
     void createClustersSection (juce::ValueTree& config);

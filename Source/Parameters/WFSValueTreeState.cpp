@@ -2952,6 +2952,10 @@ void WFSValueTreeState::replaceState (const juce::ValueTree& newState)
         // schema template stamps inputChannelType=mono, which would otherwise
         // preempt the legacy tail-split stamp for pre-rework files.
         migrateInputChannelModel();
+        // Strays that older files carry in <IO> because nothing stamped them
+        // anywhere. Must precede ensureCompleteSchema, or the backfill stamps a
+        // default in the proper section and the real value stays orphaned.
+        migrateStrayConfigProperties();
         // Back-fill anything the loaded state omitted (incomplete / scope-filtered
         // files) so no parameter is left absent on this wholesale-replace path.
         ensureCompleteSchema();
@@ -3353,6 +3357,70 @@ void WFSValueTreeState::createMasterSection (juce::ValueTree& config)
     config.appendChild (master, nullptr);
 }
 
+void WFSValueTreeState::migrateStrayConfigProperties()
+{
+    // A handful of config parameters were never stamped by any createXSection.
+    // They came into being the first time the GUI wrote one, and
+    // WfsParameters::setConfigParamBySection put them wherever its prefix tests
+    // led - which for a lowercase name like "trackingMqttHost" is none of them,
+    // so they landed in <IO>, the fallback. They worked, because getConfigParam
+    // searches every section and takes the first hit.
+    //
+    // They are stamped in their proper sections now, which means a file written
+    // before this change would carry the real value in <IO> AND a fresh default
+    // in the right section. Both lookups take the first hit in the same order, so
+    // nothing would break - but the duplicate is the kind of thing that bites
+    // later, when someone edits the one nobody reads. Move the value across and
+    // drop the stray.
+    //
+    // Runs BEFORE ensureCompleteSchema, so the value is already in place when the
+    // backfill looks, and no default is stamped over it.
+    auto config = getConfigState();
+    if (! config.isValid())
+        return;
+
+    auto io = config.getChildWithName (IO);
+    if (! io.isValid())
+        return;
+
+    struct Stray { juce::Identifier property; juce::Identifier section; };
+    static const Stray strays[] = {
+        { networkOscQueryEnabled, Network },  { networkOscQueryPort,  Network },
+        { networkOscSourceFilter, Network },  { trackingOscPath,      Tracking },
+        { trackingPsnInterface,   Tracking }, { trackingMqttHost,     Tracking },
+        { trackingMqttTopic,      Tracking }, { trackingMqttTagIds,   Tracking },
+        { trackingMqttJsonX,      Tracking }, { trackingMqttJsonY,    Tracking },
+        { trackingMqttJsonZ,      Tracking }, { trackingMqttJsonQ,    Tracking },
+        { samplerControllerMode,  UI },
+    };
+
+    for (const auto& stray : strays)
+    {
+        if (! io.hasProperty (stray.property))
+            continue;
+
+        auto target = config.getChildWithName (stray.section);
+        if (! target.isValid())
+            continue;   // section missing: leave the value where it is rather than lose it
+
+        target.setProperty (stray.property, io.getProperty (stray.property), nullptr);
+        io.removeProperty (stray.property, nullptr);
+    }
+
+    // colorScheme is the same story with a rename on top: the GUI wrote it under
+    // the unmapped name "ColorScheme", so older files carry that spelling on <IO>
+    // while the MCP surface has always advertised "colorScheme". Carry the value
+    // across to the real identifier so an operator's chosen theme survives.
+    static const juce::Identifier legacyColorScheme ("ColorScheme");
+    if (io.hasProperty (legacyColorScheme))
+    {
+        auto ui = config.getChildWithName (UI);
+        if (ui.isValid())
+            ui.setProperty (colorScheme, io.getProperty (legacyColorScheme), nullptr);
+        io.removeProperty (legacyColorScheme, nullptr);
+    }
+}
+
 void WFSValueTreeState::createNetworkSection (juce::ValueTree& config)
 {
     juce::ValueTree network (Network);
@@ -3361,6 +3429,12 @@ void WFSValueTreeState::createNetworkSection (juce::ValueTree& config)
     network.setProperty (networkRxUDPport, networkRxUDPportDefault, nullptr);
     network.setProperty (networkRxTCPport, networkRxTCPportDefault, nullptr);
     network.setProperty (findDevicePassword, findDevicePasswordDefault, nullptr);
+    // Stamped so they exist from the start. Until now these came into being only
+    // when the GUI first wrote one, which left every generic reader and writer -
+    // MCP among them - addressing a property that was not there yet.
+    network.setProperty (networkOscQueryEnabled, 0,    nullptr);
+    network.setProperty (networkOscQueryPort,    5005, nullptr);
+    network.setProperty (networkOscSourceFilter, 0,    nullptr);
     config.appendChild (network, nullptr);
 }
 
@@ -3427,6 +3501,18 @@ void WFSValueTreeState::createTrackingSection (juce::ValueTree& config)
     tracking.setProperty (trackingFlipX, trackingFlipDefault, nullptr);
     tracking.setProperty (trackingFlipY, trackingFlipDefault, nullptr);
     tracking.setProperty (trackingFlipZ, trackingFlipDefault, nullptr);
+    // Same story as the OSCQuery trio above. Defaults match what the GUI falls
+    // back to when the property is absent, so stamping them changes nothing an
+    // operator can see.
+    tracking.setProperty (trackingOscPath,      "/wfs/tracking <ID> <x> <y> <z>", nullptr);
+    tracking.setProperty (trackingPsnInterface, "",                               nullptr);
+    tracking.setProperty (trackingMqttHost,     "192.168.1.1",                    nullptr);
+    tracking.setProperty (trackingMqttTopic,    "dwm/node/+/uplink/location",     nullptr);
+    tracking.setProperty (trackingMqttTagIds,   "",                               nullptr);
+    tracking.setProperty (trackingMqttJsonX,    "x",                              nullptr);
+    tracking.setProperty (trackingMqttJsonY,    "y",                              nullptr);
+    tracking.setProperty (trackingMqttJsonZ,    "z",                              nullptr);
+    tracking.setProperty (trackingMqttJsonQ,    "quality",                        nullptr);
     config.appendChild (tracking, nullptr);
 }
 
@@ -3504,6 +3590,8 @@ void WFSValueTreeState::createUISection (juce::ValueTree& config)
     ui.setProperty (lightpadPad1DeviceId, "", nullptr);
     ui.setProperty (lightpadPad2DeviceId, "", nullptr);
     ui.setProperty (lightpadSensitivity, lightpadSensitivityDefault, nullptr);
+    ui.setProperty (samplerControllerMode, 0, nullptr);
+    ui.setProperty (colorScheme, 0, nullptr);
     config.appendChild (ui, nullptr);
 }
 

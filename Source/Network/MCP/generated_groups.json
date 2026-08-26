@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "21ad776af4a556f6432dc53b4a4ad21cb964ce154c6e875b51329b4085ed92bf",
+  "input_hash": "461acf40e44a0b828bd5c0f9bef669529a1c3c30807a44aed80efac2de144ecd",
   "groups": {
     "cluster_assigned_inputs": [
       "cluster_assigned_inputs_set_input_order",
@@ -160,7 +160,6 @@
       "input_set_max_speed"
     ],
     "input_mutes": [
-      "input_mutes_set_mute_macro",
       "input_set_mutes"
     ],
     "input_name": [

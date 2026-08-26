@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "21ad776af4a556f6432dc53b4a4ad21cb964ce154c6e875b51329b4085ed92bf",
+  "input_hash": "461acf40e44a0b828bd5c0f9bef669529a1c3c30807a44aed80efac2de144ecd",
   "source_csvs": [
     "WFS-UI_config.csv",
     "WFS-UI_input.csv",
@@ -4312,67 +4312,6 @@
       "internal_osc_path": "/wfs/input/pathModeActive",
       "internal_variable": "inputPathModeActive",
       "value_arg_name": "mode"
-    },
-    {
-      "name": "input_mutes_set_mute_macro",
-      "description": "Mute Macros for Fast Muting and Unmuting of Arrays. Enum: Mute Macro Select; MUTE ALL; UNMUTE ALL; INVERT MUTES; MUTE ODD; MUTE EVEN; MUTE ARRAY 1; UNMUTE ARRAY 1; MUTE ARRAY 2; UNMUTE ARRAY 2; MUTE ARRAY 3; UNMUTE ARRAY 3; MUTE ARRAY 4; UNMUTE ARRAY 4; MUTE ARRAY 5; UNMUTE ARRAY 5; MUTE ARRAY 6; UNMUTE ARRAY 6; MUTE ARRAY 7; UNMUTE ARRAY 7; MUTE ARRAY 8; UNMUTE ARRAY 8; MUTE ARRAY 9; UNMUTE ARRAY 9; MUTE ARRAY 10; UNMUTE ARRAY 10. Use `session_get_state()` first if unsure which channels exist.",
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "input_id": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 64,
-            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
-          },
-          "value": {
-            "type": "string",
-            "enum": [
-              "MuteMacroSelect",
-              "MUTEALL",
-              "UNMUTEALL",
-              "INVERTMUTES",
-              "MUTEODD",
-              "MUTEEVEN",
-              "MUTEARRAY1",
-              "UNMUTEARRAY1",
-              "MUTEARRAY2",
-              "UNMUTEARRAY2",
-              "MUTEARRAY3",
-              "UNMUTEARRAY3",
-              "MUTEARRAY4",
-              "UNMUTEARRAY4",
-              "MUTEARRAY5",
-              "UNMUTEARRAY5",
-              "MUTEARRAY6",
-              "UNMUTEARRAY6",
-              "MUTEARRAY7",
-              "UNMUTEARRAY7",
-              "MUTEARRAY8",
-              "UNMUTEARRAY8",
-              "MUTEARRAY9",
-              "UNMUTEARRAY9",
-              "MUTEARRAY10",
-              "UNMUTEARRAY10"
-            ],
-            "description": "Mute Macros (enum).",
-            "default": "MuteMacroSelect"
-          }
-        },
-        "required": [
-          "input_id",
-          "value"
-        ]
-      },
-      "tier": 1,
-      "csv_section": "Mutes",
-      "group_key": "input_mutes",
-      "supports_relative": false,
-      "domains": [
-        "routing"
-      ],
-      "internal_osc_path": "",
-      "internal_variable": "inputMuteMacro"
     },
     {
       "name": "input_position_set_constraint_distance",
@@ -14860,6 +14799,11 @@
     {
       "variable": "gmShapeOrder",
       "reason": "UI-state only",
+      "csv_file": "WFS-UI_input.csv"
+    },
+    {
+      "variable": "inputMuteMacro",
+      "reason": "Action trigger, not stored state. The macro is applied by InputsTab::applyMuteMacro and the selector resets immediately; the parameter write records which macro ran and is read by nobody (it is not stamped on <Mutes>, so even the GUI's own write is dropped). Applying a macro has no non-GUI implementation, so a tool here would set a number and change no mutes.",
       "csv_file": "WFS-UI_input.csv"
     },
     {
