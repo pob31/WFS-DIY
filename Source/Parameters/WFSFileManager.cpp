@@ -2163,7 +2163,7 @@ juce::ValueTree WFSFileManager::extractInputWithExtendedScope (int channelIndex,
     filtered.setProperty (id, valueTreeState.getInputChannelNumber (channelIndex), nullptr);
     // Hardware-input fingerprint, so a recall can tell a snapshot stored under a
     // different configuration from one stored under this. Never applied.
-    filtered.setProperty (hwInputs,
+    filtered.setProperty (hwInputsFingerprint,
                           InputChannelIdentityDetail::hwInputsToString (valueTreeState.getInputPatchHardwareInputs (channelIndex)),
                           nullptr);
 
@@ -2809,7 +2809,7 @@ void WFSFileManager::stampHardwareFingerprints (juce::ValueTree& inputsCopy) con
     {
         auto child = inputsCopy.getChild (i);
         if (child.hasType (Input))
-            child.setProperty (hwInputs,
+            child.setProperty (hwInputsFingerprint,
                                InputChannelIdentityDetail::hwInputsToString (valueTreeState.getInputPatchHardwareInputs (i)),
                                nullptr);
     }
@@ -2980,7 +2980,7 @@ bool WFSFileManager::applyInputsSection (const juce::ValueTree& inputsTree)
         // The fingerprints rode in with the merge. They describe the file's
         // patching, not the live one, and would go stale on the next re-patch.
         for (int i = 0; i < existingInputs.getNumChildren(); ++i)
-            existingInputs.getChild (i).removeProperty (hwInputs, nullptr);
+            existingInputs.getChild (i).removeProperty (hwInputsFingerprint, nullptr);
 
         // mergeTreeRecursive appends unmatched source children but NEVER removes
         // a target child the source lacks, so anything the config section

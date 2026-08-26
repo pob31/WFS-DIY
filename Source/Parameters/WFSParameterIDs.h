@@ -142,7 +142,10 @@ namespace WFSParameterIDs
     // stamped into the saved COPY and evicted from the live tree after a load,
     // like InputChannelList; a live copy could only go stale on the next
     // re-patch.
-    const juce::Identifier hwInputs          ("hwInputs");
+    // Named hwInputsFingerprint in C++ (the attribute is still "hwInputs"): this
+    // header is pulled in under `using namespace WFSParameterIDs`, where a bare
+    // hwInputs shadows updateHardwareChannelCount's parameter of that name.
+    const juce::Identifier hwInputsFingerprint ("hwInputs");
 
     //==========================================================================
     // Config > Binaural Section

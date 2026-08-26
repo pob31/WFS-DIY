@@ -2157,13 +2157,13 @@ std::vector<int> WFSValueTreeState::getInputPatchHardwareInputs (int slot) const
     if (! patch.isValid() || slot < 0)
         return out;
 
-    juce::StringArray rows = juce::StringArray::fromTokens (patch.getProperty (patchData).toString(), ";", "");
-    if (slot >= rows.size())
+    juce::StringArray rowStrings = juce::StringArray::fromTokens (patch.getProperty (patchData).toString(), ";", "");
+    if (slot >= rowStrings.size())
         return out;
 
-    juce::StringArray cols = juce::StringArray::fromTokens (rows[slot], ",", "");
-    for (int c = 0; c < cols.size(); ++c)
-        if (cols[c].getIntValue() == 1)
+    juce::StringArray colStrings = juce::StringArray::fromTokens (rowStrings[slot], ",", "");
+    for (int c = 0; c < colStrings.size(); ++c)
+        if (colStrings[c].getIntValue() == 1)
             out.push_back (c + 1);   // 1-based, as the operator sees it
     return out;
 }

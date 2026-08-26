@@ -223,9 +223,9 @@ inline InputChannelIdentity InputChannelIdentity::fromInputNodes (const juce::Va
         auto channel = n.getChildWithName (Channel);
         if (channel.isValid())
             ref.name = channel.getProperty (inputName).toString();
-        if (n.hasProperty (hwInputs))
+        if (n.hasProperty (hwInputsFingerprint))
         {
-            ref.hwInputs = InputChannelIdentityDetail::parseHwInputs (n.getProperty (hwInputs));
+            ref.hwInputs = InputChannelIdentityDetail::parseHwInputs (n.getProperty (hwInputsFingerprint));
             out.hwKnown = true;
         }
         out.slots.push_back (std::move (ref));
@@ -259,9 +259,9 @@ inline InputChannelIdentity InputChannelIdentity::fromSnapshot (const juce::Valu
         auto channel = n.getChildWithName (Channel);
         if (channel.isValid())
             ref.name = channel.getProperty (inputName).toString();
-        if (n.hasProperty (hwInputs))
+        if (n.hasProperty (hwInputsFingerprint))
         {
-            ref.hwInputs = InputChannelIdentityDetail::parseHwInputs (n.getProperty (hwInputs));
+            ref.hwInputs = InputChannelIdentityDetail::parseHwInputs (n.getProperty (hwInputsFingerprint));
             out.hwKnown = true;
         }
         out.slots.push_back (std::move (ref));
