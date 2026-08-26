@@ -365,6 +365,91 @@ SUB_INDEX_RULES = [
                             "created in the gradient-map editor."},
         ],
     },
+    # --- ADM-OSC: Cartesian mapping + axis ---------------------------------
+    # Four Cartesian mappings, each with three axes. The CSV enumerates all 96
+    # combinations as separate rows; the generator collapses them to one tool per
+    # Variable, so the instance has to come back as arguments.
+    {
+        "csv_file": "WFS-UI_network.csv",
+        "variables": [
+            "admCartAxisSwap", "admCartSignFlip", "admCartCenterOffset",
+            "admCartBreakpoint", "admCartPosInnerWidth", "admCartPosOuterWidth",
+            "admCartNegInnerWidth", "admCartNegOuterWidth",
+        ],
+        "args": [
+            {"name": "mapping", "min": 0, "max": 3,
+             "description": "ADM Cartesian mapping index (0-3). An input selects "
+                            "one through inputAdmMapping, where 0-3 are the "
+                            "Cartesian mappings and 4-7 the Polar ones."},
+            {"name": "axis", "min": 0, "max": 2,
+             "description": "Which axis of that mapping: 0=X, 1=Y, 2=Z."},
+        ],
+    },
+    # --- ADM-OSC: Polar mapping (no axis; these sit on the mapping) ---------
+    {
+        "csv_file": "WFS-UI_network.csv",
+        "variables": [
+            "admPolarAzimuthOffset", "admPolarAzimuthFlip", "admPolarElevationFlip",
+            "admPolarDistBreakpoint", "admPolarDistCenter", "admPolarDistInner",
+            "admPolarDistOuter", "admPolarDistMin",
+        ],
+        "args": [
+            {"name": "mapping", "min": 0, "max": 3,
+             "description": "ADM Polar mapping index (0-3). An input selects one "
+                            "through inputAdmMapping, where 4-7 are the Polar "
+                            "mappings - subtract 4 for this argument."},
+        ],
+    },
+    # --- Sampler: per-cell properties (6x6 grid, fixed at 36) --------------
+    {
+        "csv_file": "WFS-UI_input.csv",
+        "variables": [
+            "samplerCellName", "samplerCellFile", "samplerCellInTime",
+            "samplerCellOutTime", "samplerCellOffsetX", "samplerCellOffsetY",
+            "samplerCellOffsetZ", "samplerCellAttenuation",
+        ],
+        "args": [
+            {"name": "cell_id", "min": 0, "max": 35,
+             "description": "Sampler cell index (0-35, the 6x6 grid read in "
+                            "rows). Cells always exist; they are never added or "
+                            "removed."},
+        ],
+    },
+    # --- Sampler: per-set properties (created by the operator; may be none) --
+    {
+        "csv_file": "WFS-UI_input.csv",
+        "variables": [
+            "samplerSetName", "samplerSetPlayMode", "samplerSetLevel",
+            "samplerSetPosX", "samplerSetPosY", "samplerSetPosZ",
+            "samplerSetPressLevelEnabled", "samplerSetPressLevelDir",
+            "samplerSetPressLevelCurve", "samplerSetPressZEnabled",
+            "samplerSetPressZDir", "samplerSetPressZCurve",
+            "samplerSetPressHFEnabled", "samplerSetPressHFDir",
+            "samplerSetPressHFCurve", "samplerSetPressXYEnabled",
+            "samplerSetPressXYScale",
+        ],
+        "args": [
+            {"name": "set_id", "min": 0, "max": 15,
+             "description": "Sampler set index (0-based, in the order the sets "
+                            "appear). An input starts with NO sets - they are "
+                            "created in the Sampler tab - so this fails until "
+                            "one exists."},
+        ],
+    },
+    # --- Network targets: 6 slots, each a <Target> child of <Network> -------
+    {
+        "csv_file": "WFS-UI_network.csv",
+        "variables": [
+            "networkTSname", "networkTSip", "networkTSport", "networkTSProtocol",
+            "networkTSdataMode", "networkTSrxEnable", "networkTStxEnable",
+            "networkTSqlabPatch",
+        ],
+        "args": [
+            {"name": "target_id", "min": 1, "max": 6,
+             "description": "Network target slot (1-6), as numbered in the "
+                            "Network tab."},
+        ],
+    },
 ]
 
 # Coordinate-system suffixes stripped from Section before computing

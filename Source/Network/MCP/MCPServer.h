@@ -107,9 +107,21 @@ public:
         gradientMapChanged = std::move (cb);
     }
 
+    /** Called (message thread) with a 0-based input SLOT after a sampler write.
+        SamplerManager holds its own copy of the cells and the active set; the
+        tree is not what the audio thread reads. The existing reload path is the
+        Sampler tab's own callback, which reloads whichever channel that tab is
+        showing - the wrong one for a remote write. samplerCellFile in particular
+        needs this, or the WAV is never read. */
+    void setSamplerChangedCallback (std::function<void (int)> cb)
+    {
+        samplerChanged = std::move (cb);
+    }
+
 private:
     std::function<void()> channelTopologyChanged;
     std::function<void (int)> gradientMapChanged;
+    std::function<void (int)> samplerChanged;
     WFSValueTreeState& valueTreeState;
     WFSFileManager& fileManager;
     std::unique_ptr<MCPLogger> mcpLogger;

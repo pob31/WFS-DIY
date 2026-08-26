@@ -4984,6 +4984,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "cell_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 35,
+            "description": "Sampler cell index (0-35, the 6x6 grid read in rows). Cells always exist; they are never added or removed."
+          },
           "value": {
             "type": "number",
             "minimum": -60.0,
@@ -4998,6 +5004,7 @@
         },
         "required": [
           "input_id",
+          "cell_id",
           "value"
         ]
       },
@@ -5025,6 +5032,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "cell_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 35,
+            "description": "Sampler cell index (0-35, the 6x6 grid read in rows). Cells always exist; they are never added or removed."
+          },
           "value": {
             "type": "string",
             "description": "Cell File."
@@ -5032,6 +5045,7 @@
         },
         "required": [
           "input_id",
+          "cell_id",
           "value"
         ]
       },
@@ -5058,6 +5072,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "cell_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 35,
+            "description": "Sampler cell index (0-35, the 6x6 grid read in rows). Cells always exist; they are never added or removed."
+          },
           "value": {
             "type": "number",
             "minimum": 0.0,
@@ -5068,6 +5088,7 @@
         },
         "required": [
           "input_id",
+          "cell_id",
           "value"
         ]
       },
@@ -5095,6 +5116,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "cell_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 35,
+            "description": "Sampler cell index (0-35, the 6x6 grid read in rows). Cells always exist; they are never added or removed."
+          },
           "name": {
             "type": "string",
             "description": "Cell Name."
@@ -5102,6 +5129,7 @@
         },
         "required": [
           "input_id",
+          "cell_id",
           "name"
         ]
       },
@@ -5129,6 +5157,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "cell_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 35,
+            "description": "Sampler cell index (0-35, the 6x6 grid read in rows). Cells always exist; they are never added or removed."
+          },
           "value": {
             "type": "number",
             "minimum": -50.0,
@@ -5139,6 +5173,7 @@
         },
         "required": [
           "input_id",
+          "cell_id",
           "value"
         ]
       },
@@ -5166,6 +5201,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "cell_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 35,
+            "description": "Sampler cell index (0-35, the 6x6 grid read in rows). Cells always exist; they are never added or removed."
+          },
           "value": {
             "type": "number",
             "minimum": -50.0,
@@ -5176,6 +5217,7 @@
         },
         "required": [
           "input_id",
+          "cell_id",
           "value"
         ]
       },
@@ -5203,6 +5245,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "cell_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 35,
+            "description": "Sampler cell index (0-35, the 6x6 grid read in rows). Cells always exist; they are never added or removed."
+          },
           "value": {
             "type": "number",
             "minimum": -50.0,
@@ -5213,6 +5261,7 @@
         },
         "required": [
           "input_id",
+          "cell_id",
           "value"
         ]
       },
@@ -5240,6 +5289,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "cell_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 35,
+            "description": "Sampler cell index (0-35, the 6x6 grid read in rows). Cells always exist; they are never added or removed."
+          },
           "value": {
             "type": "number",
             "minimum": 1.0,
@@ -5250,6 +5305,7 @@
         },
         "required": [
           "input_id",
+          "cell_id",
           "value"
         ]
       },
@@ -5318,6 +5374,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "set_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15,
+            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+          },
           "value": {
             "type": "number",
             "minimum": -60.0,
@@ -5332,6 +5394,7 @@
         },
         "required": [
           "input_id",
+          "set_id",
           "value"
         ]
       },
@@ -5359,6 +5422,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "set_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15,
+            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+          },
           "name": {
             "type": "string",
             "description": "Set Name."
@@ -5366,6 +5435,7 @@
         },
         "required": [
           "input_id",
+          "set_id",
           "name"
         ]
       },
@@ -5392,6 +5462,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "set_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15,
+            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+          },
           "mode": {
             "type": "string",
             "enum": [
@@ -5404,6 +5480,7 @@
         },
         "required": [
           "input_id",
+          "set_id",
           "mode"
         ]
       },
@@ -5431,6 +5508,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "set_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15,
+            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+          },
           "value": {
             "type": "number",
             "minimum": -50.0,
@@ -5441,6 +5524,7 @@
         },
         "required": [
           "input_id",
+          "set_id",
           "value"
         ]
       },
@@ -5468,6 +5552,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "set_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15,
+            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+          },
           "value": {
             "type": "number",
             "minimum": -50.0,
@@ -5478,6 +5568,7 @@
         },
         "required": [
           "input_id",
+          "set_id",
           "value"
         ]
       },
@@ -5505,6 +5596,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "set_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15,
+            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+          },
           "value": {
             "type": "number",
             "minimum": -50.0,
@@ -5515,6 +5612,7 @@
         },
         "required": [
           "input_id",
+          "set_id",
           "value"
         ]
       },
@@ -5542,6 +5640,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "set_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15,
+            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+          },
           "value": {
             "type": "number",
             "minimum": 0.0,
@@ -5552,6 +5656,7 @@
         },
         "required": [
           "input_id",
+          "set_id",
           "value"
         ]
       },
@@ -5579,6 +5684,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "set_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15,
+            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+          },
           "value": {
             "type": "string",
             "enum": [
@@ -5591,6 +5702,7 @@
         },
         "required": [
           "input_id",
+          "set_id",
           "value"
         ]
       },
@@ -5617,6 +5729,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "set_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15,
+            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+          },
           "value": {
             "type": "string",
             "enum": [
@@ -5629,6 +5747,7 @@
         },
         "required": [
           "input_id",
+          "set_id",
           "value"
         ]
       },
@@ -5655,6 +5774,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "set_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15,
+            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+          },
           "value": {
             "type": "number",
             "minimum": 0.0,
@@ -5665,6 +5790,7 @@
         },
         "required": [
           "input_id",
+          "set_id",
           "value"
         ]
       },
@@ -5692,6 +5818,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "set_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15,
+            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+          },
           "value": {
             "type": "string",
             "enum": [
@@ -5704,6 +5836,7 @@
         },
         "required": [
           "input_id",
+          "set_id",
           "value"
         ]
       },
@@ -5730,6 +5863,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "set_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15,
+            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+          },
           "value": {
             "type": "string",
             "enum": [
@@ -5742,6 +5881,7 @@
         },
         "required": [
           "input_id",
+          "set_id",
           "value"
         ]
       },
@@ -5768,6 +5908,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "set_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15,
+            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+          },
           "value": {
             "type": "string",
             "enum": [
@@ -5780,6 +5926,7 @@
         },
         "required": [
           "input_id",
+          "set_id",
           "value"
         ]
       },
@@ -5806,6 +5953,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "set_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15,
+            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+          },
           "value": {
             "type": "number",
             "minimum": 0.01,
@@ -5816,6 +5969,7 @@
         },
         "required": [
           "input_id",
+          "set_id",
           "value"
         ]
       },
@@ -5843,6 +5997,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "set_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15,
+            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+          },
           "value": {
             "type": "number",
             "minimum": 0.0,
@@ -5853,6 +6013,7 @@
         },
         "required": [
           "input_id",
+          "set_id",
           "value"
         ]
       },
@@ -5880,6 +6041,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "set_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15,
+            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+          },
           "value": {
             "type": "string",
             "enum": [
@@ -5892,6 +6059,7 @@
         },
         "required": [
           "input_id",
+          "set_id",
           "value"
         ]
       },
@@ -5918,6 +6086,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "set_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15,
+            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+          },
           "value": {
             "type": "string",
             "enum": [
@@ -5930,6 +6104,7 @@
         },
         "required": [
           "input_id",
+          "set_id",
           "value"
         ]
       },
@@ -6605,6 +6780,18 @@
       "parameters": {
         "type": "object",
         "properties": {
+          "mapping": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3,
+            "description": "ADM Cartesian mapping index (0-3). An input selects one through inputAdmMapping, where 0-3 are the Cartesian mappings and 4-7 the Polar ones."
+          },
+          "axis": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Which axis of that mapping: 0=X, 1=Y, 2=Z."
+          },
           "value": {
             "type": "string",
             "enum": [
@@ -6616,6 +6803,8 @@
           }
         },
         "required": [
+          "mapping",
+          "axis",
           "value"
         ]
       },
@@ -6635,6 +6824,12 @@
       "parameters": {
         "type": "object",
         "properties": {
+          "mapping": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3,
+            "description": "ADM Polar mapping index (0-3). An input selects one through inputAdmMapping, where 4-7 are the Polar mappings - subtract 4 for this argument."
+          },
           "value": {
             "type": "string",
             "enum": [
@@ -6646,6 +6841,7 @@
           }
         },
         "required": [
+          "mapping",
           "value"
         ]
       },
@@ -6665,6 +6861,12 @@
       "parameters": {
         "type": "object",
         "properties": {
+          "mapping": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3,
+            "description": "ADM Polar mapping index (0-3). An input selects one through inputAdmMapping, where 4-7 are the Polar mappings - subtract 4 for this argument."
+          },
           "value": {
             "type": "number",
             "minimum": -180.0,
@@ -6674,6 +6876,7 @@
           }
         },
         "required": [
+          "mapping",
           "value"
         ]
       },
@@ -6693,6 +6896,18 @@
       "parameters": {
         "type": "object",
         "properties": {
+          "mapping": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3,
+            "description": "ADM Cartesian mapping index (0-3). An input selects one through inputAdmMapping, where 0-3 are the Cartesian mappings and 4-7 the Polar ones."
+          },
+          "axis": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Which axis of that mapping: 0=X, 1=Y, 2=Z."
+          },
           "value": {
             "type": "number",
             "minimum": 0.01,
@@ -6702,6 +6917,8 @@
           }
         },
         "required": [
+          "mapping",
+          "axis",
           "value"
         ]
       },
@@ -6721,6 +6938,18 @@
       "parameters": {
         "type": "object",
         "properties": {
+          "mapping": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3,
+            "description": "ADM Cartesian mapping index (0-3). An input selects one through inputAdmMapping, where 0-3 are the Cartesian mappings and 4-7 the Polar ones."
+          },
+          "axis": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Which axis of that mapping: 0=X, 1=Y, 2=Z."
+          },
           "value": {
             "type": "number",
             "minimum": -50.0,
@@ -6730,6 +6959,8 @@
           }
         },
         "required": [
+          "mapping",
+          "axis",
           "value"
         ]
       },
@@ -6749,6 +6980,12 @@
       "parameters": {
         "type": "object",
         "properties": {
+          "mapping": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3,
+            "description": "ADM Polar mapping index (0-3). An input selects one through inputAdmMapping, where 4-7 are the Polar mappings - subtract 4 for this argument."
+          },
           "value": {
             "type": "number",
             "minimum": 0.01,
@@ -6758,6 +6995,7 @@
           }
         },
         "required": [
+          "mapping",
           "value"
         ]
       },
@@ -6777,6 +7015,12 @@
       "parameters": {
         "type": "object",
         "properties": {
+          "mapping": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3,
+            "description": "ADM Polar mapping index (0-3). An input selects one through inputAdmMapping, where 4-7 are the Polar mappings - subtract 4 for this argument."
+          },
           "value": {
             "type": "number",
             "minimum": -50.0,
@@ -6786,6 +7030,7 @@
           }
         },
         "required": [
+          "mapping",
           "value"
         ]
       },
@@ -6805,6 +7050,12 @@
       "parameters": {
         "type": "object",
         "properties": {
+          "mapping": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3,
+            "description": "ADM Polar mapping index (0-3). An input selects one through inputAdmMapping, where 4-7 are the Polar mappings - subtract 4 for this argument."
+          },
           "value": {
             "type": "number",
             "minimum": 0.1,
@@ -6814,6 +7065,7 @@
           }
         },
         "required": [
+          "mapping",
           "value"
         ]
       },
@@ -6833,6 +7085,12 @@
       "parameters": {
         "type": "object",
         "properties": {
+          "mapping": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3,
+            "description": "ADM Polar mapping index (0-3). An input selects one through inputAdmMapping, where 4-7 are the Polar mappings - subtract 4 for this argument."
+          },
           "value": {
             "type": "number",
             "minimum": 0.0,
@@ -6842,6 +7100,7 @@
           }
         },
         "required": [
+          "mapping",
           "value"
         ]
       },
@@ -6861,6 +7120,12 @@
       "parameters": {
         "type": "object",
         "properties": {
+          "mapping": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3,
+            "description": "ADM Polar mapping index (0-3). An input selects one through inputAdmMapping, where 4-7 are the Polar mappings - subtract 4 for this argument."
+          },
           "value": {
             "type": "number",
             "minimum": 0.1,
@@ -6870,6 +7135,7 @@
           }
         },
         "required": [
+          "mapping",
           "value"
         ]
       },
@@ -6889,6 +7155,12 @@
       "parameters": {
         "type": "object",
         "properties": {
+          "mapping": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3,
+            "description": "ADM Polar mapping index (0-3). An input selects one through inputAdmMapping, where 4-7 are the Polar mappings - subtract 4 for this argument."
+          },
           "value": {
             "type": "string",
             "enum": [
@@ -6900,6 +7172,7 @@
           }
         },
         "required": [
+          "mapping",
           "value"
         ]
       },
@@ -6919,6 +7192,18 @@
       "parameters": {
         "type": "object",
         "properties": {
+          "mapping": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3,
+            "description": "ADM Cartesian mapping index (0-3). An input selects one through inputAdmMapping, where 0-3 are the Cartesian mappings and 4-7 the Polar ones."
+          },
+          "axis": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Which axis of that mapping: 0=X, 1=Y, 2=Z."
+          },
           "value": {
             "type": "number",
             "minimum": 0.1,
@@ -6928,6 +7213,8 @@
           }
         },
         "required": [
+          "mapping",
+          "axis",
           "value"
         ]
       },
@@ -6947,6 +7234,18 @@
       "parameters": {
         "type": "object",
         "properties": {
+          "mapping": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3,
+            "description": "ADM Cartesian mapping index (0-3). An input selects one through inputAdmMapping, where 0-3 are the Cartesian mappings and 4-7 the Polar ones."
+          },
+          "axis": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Which axis of that mapping: 0=X, 1=Y, 2=Z."
+          },
           "value": {
             "type": "number",
             "minimum": 0.1,
@@ -6956,6 +7255,8 @@
           }
         },
         "required": [
+          "mapping",
+          "axis",
           "value"
         ]
       },
@@ -6975,6 +7276,18 @@
       "parameters": {
         "type": "object",
         "properties": {
+          "mapping": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3,
+            "description": "ADM Cartesian mapping index (0-3). An input selects one through inputAdmMapping, where 0-3 are the Cartesian mappings and 4-7 the Polar ones."
+          },
+          "axis": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Which axis of that mapping: 0=X, 1=Y, 2=Z."
+          },
           "value": {
             "type": "number",
             "minimum": 0.1,
@@ -6984,6 +7297,8 @@
           }
         },
         "required": [
+          "mapping",
+          "axis",
           "value"
         ]
       },
@@ -7003,6 +7318,18 @@
       "parameters": {
         "type": "object",
         "properties": {
+          "mapping": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3,
+            "description": "ADM Cartesian mapping index (0-3). An input selects one through inputAdmMapping, where 0-3 are the Cartesian mappings and 4-7 the Polar ones."
+          },
+          "axis": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Which axis of that mapping: 0=X, 1=Y, 2=Z."
+          },
           "value": {
             "type": "number",
             "minimum": 0.1,
@@ -7012,6 +7339,8 @@
           }
         },
         "required": [
+          "mapping",
+          "axis",
           "value"
         ]
       },
@@ -7031,6 +7360,18 @@
       "parameters": {
         "type": "object",
         "properties": {
+          "mapping": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3,
+            "description": "ADM Cartesian mapping index (0-3). An input selects one through inputAdmMapping, where 0-3 are the Cartesian mappings and 4-7 the Polar ones."
+          },
+          "axis": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Which axis of that mapping: 0=X, 1=Y, 2=Z."
+          },
           "value": {
             "type": "string",
             "enum": [
@@ -7042,6 +7383,8 @@
           }
         },
         "required": [
+          "mapping",
+          "axis",
           "value"
         ]
       },
@@ -7248,6 +7591,12 @@
       "parameters": {
         "type": "object",
         "properties": {
+          "target_id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6,
+            "description": "Network target slot (1-6), as numbered in the Network tab."
+          },
           "mode": {
             "type": "string",
             "enum": [
@@ -7259,6 +7608,7 @@
           }
         },
         "required": [
+          "target_id",
           "mode"
         ]
       },
@@ -7279,6 +7629,12 @@
       "parameters": {
         "type": "object",
         "properties": {
+          "target_id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6,
+            "description": "Network target slot (1-6), as numbered in the Network tab."
+          },
           "value": {
             "type": "string",
             "pattern": "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$",
@@ -7287,6 +7643,7 @@
           }
         },
         "required": [
+          "target_id",
           "value"
         ]
       },
@@ -7306,6 +7663,12 @@
       "parameters": {
         "type": "object",
         "properties": {
+          "target_id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6,
+            "description": "Network target slot (1-6), as numbered in the Network tab."
+          },
           "value": {
             "type": "string",
             "description": "Target/Server Name.",
@@ -7313,6 +7676,7 @@
           }
         },
         "required": [
+          "target_id",
           "value"
         ]
       },
@@ -7332,6 +7696,12 @@
       "parameters": {
         "type": "object",
         "properties": {
+          "target_id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6,
+            "description": "Network target slot (1-6), as numbered in the Network tab."
+          },
           "value": {
             "type": "integer",
             "minimum": 1,
@@ -7341,6 +7711,7 @@
           }
         },
         "required": [
+          "target_id",
           "value"
         ]
       },
@@ -7360,6 +7731,12 @@
       "parameters": {
         "type": "object",
         "properties": {
+          "target_id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6,
+            "description": "Network target slot (1-6), as numbered in the Network tab."
+          },
           "value": {
             "type": "integer",
             "minimum": 1,
@@ -7369,6 +7746,7 @@
           }
         },
         "required": [
+          "target_id",
           "value"
         ]
       },
@@ -7388,6 +7766,12 @@
       "parameters": {
         "type": "object",
         "properties": {
+          "target_id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6,
+            "description": "Network target slot (1-6), as numbered in the Network tab."
+          },
           "value": {
             "type": "string",
             "enum": [
@@ -7399,6 +7783,7 @@
           }
         },
         "required": [
+          "target_id",
           "value"
         ]
       },
@@ -7418,6 +7803,12 @@
       "parameters": {
         "type": "object",
         "properties": {
+          "target_id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6,
+            "description": "Network target slot (1-6), as numbered in the Network tab."
+          },
           "value": {
             "type": "string",
             "enum": [
@@ -7429,6 +7820,7 @@
           }
         },
         "required": [
+          "target_id",
           "value"
         ]
       },
@@ -7448,6 +7840,12 @@
       "parameters": {
         "type": "object",
         "properties": {
+          "target_id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6,
+            "description": "Network target slot (1-6), as numbered in the Network tab."
+          },
           "protocol": {
             "type": "string",
             "enum": [
@@ -7462,6 +7860,7 @@
           }
         },
         "required": [
+          "target_id",
           "protocol"
         ]
       },
@@ -14272,6 +14671,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "cell_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 35,
+            "description": "Sampler cell index (0-35, the 6x6 grid read in rows). Cells always exist; they are never added or removed."
+          },
           "confirm": {
             "type": "string",
             "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
@@ -14292,6 +14697,7 @@
         },
         "required": [
           "input_id",
+          "cell_id",
           "direction"
         ]
       },
@@ -14318,6 +14724,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "cell_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 35,
+            "description": "Sampler cell index (0-35, the 6x6 grid read in rows). Cells always exist; they are never added or removed."
+          },
           "direction": {
             "type": "string",
             "enum": [
@@ -14334,6 +14746,7 @@
         },
         "required": [
           "input_id",
+          "cell_id",
           "direction"
         ]
       },
@@ -14360,6 +14773,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "cell_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 35,
+            "description": "Sampler cell index (0-35, the 6x6 grid read in rows). Cells always exist; they are never added or removed."
+          },
           "direction": {
             "type": "string",
             "enum": [
@@ -14376,6 +14795,7 @@
         },
         "required": [
           "input_id",
+          "cell_id",
           "direction"
         ]
       },
@@ -14402,6 +14822,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "cell_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 35,
+            "description": "Sampler cell index (0-35, the 6x6 grid read in rows). Cells always exist; they are never added or removed."
+          },
           "direction": {
             "type": "string",
             "enum": [
@@ -14418,6 +14844,7 @@
         },
         "required": [
           "input_id",
+          "cell_id",
           "direction"
         ]
       },
@@ -14444,6 +14871,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "cell_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 35,
+            "description": "Sampler cell index (0-35, the 6x6 grid read in rows). Cells always exist; they are never added or removed."
+          },
           "direction": {
             "type": "string",
             "enum": [
@@ -14460,6 +14893,7 @@
         },
         "required": [
           "input_id",
+          "cell_id",
           "direction"
         ]
       },
@@ -14486,6 +14920,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "cell_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 35,
+            "description": "Sampler cell index (0-35, the 6x6 grid read in rows). Cells always exist; they are never added or removed."
+          },
           "direction": {
             "type": "string",
             "enum": [
@@ -14502,6 +14942,7 @@
         },
         "required": [
           "input_id",
+          "cell_id",
           "direction"
         ]
       },
@@ -14528,6 +14969,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "set_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15,
+            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+          },
           "confirm": {
             "type": "string",
             "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
@@ -14548,6 +14995,7 @@
         },
         "required": [
           "input_id",
+          "set_id",
           "direction"
         ]
       },
@@ -14574,6 +15022,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "set_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15,
+            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+          },
           "direction": {
             "type": "string",
             "enum": [
@@ -14590,6 +15044,7 @@
         },
         "required": [
           "input_id",
+          "set_id",
           "direction"
         ]
       },
@@ -14616,6 +15071,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "set_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15,
+            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+          },
           "direction": {
             "type": "string",
             "enum": [
@@ -14632,6 +15093,7 @@
         },
         "required": [
           "input_id",
+          "set_id",
           "direction"
         ]
       },
@@ -14658,6 +15120,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "set_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15,
+            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+          },
           "direction": {
             "type": "string",
             "enum": [
@@ -14674,6 +15142,7 @@
         },
         "required": [
           "input_id",
+          "set_id",
           "direction"
         ]
       },
@@ -14700,6 +15169,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "set_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15,
+            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+          },
           "direction": {
             "type": "string",
             "enum": [
@@ -14716,6 +15191,7 @@
         },
         "required": [
           "input_id",
+          "set_id",
           "direction"
         ]
       },
@@ -14742,6 +15218,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "set_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15,
+            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+          },
           "direction": {
             "type": "string",
             "enum": [
@@ -14758,6 +15240,7 @@
         },
         "required": [
           "input_id",
+          "set_id",
           "direction"
         ]
       },
@@ -14784,6 +15267,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "set_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15,
+            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+          },
           "direction": {
             "type": "string",
             "enum": [
@@ -14800,6 +15289,7 @@
         },
         "required": [
           "input_id",
+          "set_id",
           "direction"
         ]
       },
@@ -14826,6 +15316,12 @@
             "maximum": 64,
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
+          "set_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15,
+            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+          },
           "direction": {
             "type": "string",
             "enum": [
@@ -14842,6 +15338,7 @@
         },
         "required": [
           "input_id",
+          "set_id",
           "direction"
         ]
       },

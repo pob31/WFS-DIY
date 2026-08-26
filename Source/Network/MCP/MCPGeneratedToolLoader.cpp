@@ -255,6 +255,50 @@ namespace Detail
                                                 + " on that input.");
                 break;
 
+            case ToolBinding::SubTree::AdmCartAxis:
+                subTreeNode = state.getADMCartAxis (subA, subB);
+                if (! subTreeNode.isValid())
+                    return ToolResult::error ("invalid_args",
+                                              "No ADM Cartesian mapping " + juce::String (subA)
+                                                + " axis " + juce::String (subB)
+                                                + " (mappings are 0-3, axes 0=X 1=Y 2=Z).");
+                break;
+
+            case ToolBinding::SubTree::AdmPolarMapping:
+                subTreeNode = state.getADMPolarMapping (subA);
+                if (! subTreeNode.isValid())
+                    return ToolResult::error ("invalid_args",
+                                              "No ADM Polar mapping " + juce::String (subA)
+                                                + " (mappings are 0-3).");
+                break;
+
+            case ToolBinding::SubTree::SamplerCell:
+                subTreeNode = state.getInputSamplerCell (channelIndex, subA);
+                if (! subTreeNode.isValid())
+                    return ToolResult::error ("invalid_args",
+                                              "No sampler cell " + juce::String (subA)
+                                                + " on that input (cells are 0-35).");
+                break;
+
+            case ToolBinding::SubTree::SamplerSet:
+                subTreeNode = state.getInputSamplerSet (channelIndex, subA);
+                if (! subTreeNode.isValid())
+                    return ToolResult::error ("invalid_args",
+                                              "No sampler set " + juce::String (subA)
+                                                + " on that input. An input starts with no sets; "
+                                                  "they are created in the Sampler tab.");
+                break;
+
+            case ToolBinding::SubTree::NetworkTarget:
+                // Slots are 1-6 as the Network tab numbers them; the tree stores
+                // them as children from 0.
+                subTreeNode = state.getNetworkTargetState (subA - 1);
+                if (! subTreeNode.isValid())
+                    return ToolResult::error ("invalid_args",
+                                              "No network target " + juce::String (subA)
+                                                + " (slots are 1-6, and only configured ones exist).");
+                break;
+
             case ToolBinding::SubTree::None:
             default:
                 break;
@@ -579,10 +623,40 @@ namespace Detail
 
         const juce::Identifier paramId (binding.internalVariable);
 
+        // A nudge on a sub-tree parameter needs the same node resolution the
+        // setter does. Only the sampler families have nudge variants today (the
+        // codegen copies every setter argument into them), so this handles those
+        // two and refuses anything else that grows one without being wired here,
+        // rather than silently nudging a value read as 0 into a node nobody owns.
+        juce::ValueTree nudgeNode;
+        if (binding.subTree == ToolBinding::SubTree::SamplerCell
+            || binding.subTree == ToolBinding::SubTree::SamplerSet)
+        {
+            if (! argsObj->hasProperty (binding.subIndexArgA))
+                return ToolResult::error ("invalid_args",
+                                          "Missing required arg: " + binding.subIndexArgA);
+            const int subIdx = static_cast<int> (argsObj->getProperty (binding.subIndexArgA));
+            nudgeNode = (binding.subTree == ToolBinding::SubTree::SamplerCell)
+                          ? state.getInputSamplerCell (channelIndex, subIdx)
+                          : state.getInputSamplerSet  (channelIndex, subIdx);
+            if (! nudgeNode.isValid())
+                return ToolResult::error ("invalid_args",
+                                          "No sampler " + juce::String (
+                                              binding.subTree == ToolBinding::SubTree::SamplerCell
+                                                  ? "cell " : "set ")
+                                            + juce::String (subIdx) + " on that input.");
+        }
+        else if (binding.subTree != ToolBinding::SubTree::None)
+        {
+            return ToolResult::error ("unsupported",
+                                      "Relative adjustment is not wired for this parameter's "
+                                      "storage. Use the matching set tool.");
+        }
+
         // Same refusal as the setter path: a nudge on an unresolvable parameter
         // reads void as 0, adds the delta and writes nowhere, so the reported
         // before/after are both null and the caller has no idea why.
-        if (! state.canWriteParameter (paramId, channelIndex))
+        if (! nudgeNode.isValid() && ! state.canWriteParameter (paramId, channelIndex))
         {
             return ToolResult::error ("unwritable_parameter",
                                       "Parameter '" + binding.internalVariable
@@ -592,7 +666,8 @@ namespace Detail
         }
 
         // Read current — coerce to double for arithmetic.
-        const auto beforeVar = state.getParameter (paramId, channelIndex);
+        const auto beforeVar = nudgeNode.isValid() ? nudgeNode.getProperty (paramId)
+                                                   : state.getParameter (paramId, channelIndex);
         const double beforeValue = static_cast<double> (beforeVar);
 
         // Apply delta, clamp if range known.
@@ -607,8 +682,13 @@ namespace Detail
         else
             writeValue = juce::var (newValue);
 
-        state.setParameter (paramId, writeValue, channelIndex);
-        const auto afterVar = state.getParameter (paramId, channelIndex);
+        if (nudgeNode.isValid())
+            nudgeNode.setProperty (paramId, writeValue, state.getActiveUndoManager());
+        else
+            state.setParameter (paramId, writeValue, channelIndex);
+
+        const auto afterVar = nudgeNode.isValid() ? nudgeNode.getProperty (paramId)
+                                                  : state.getParameter (paramId, channelIndex);
 
         if (record != nullptr)
         {
@@ -698,7 +778,33 @@ namespace
                 // because the layer is baked into the name, and they are not
                 // stored properties at all - the OSC path has translated them
                 // to (layer N, gmLayerEnabled) by hand for years.
-                if (outBinding.internalVariable.startsWith ("gmShape"))
+                if (outBinding.internalVariable.startsWith ("samplerCell"))
+                {
+                    outBinding.subTree      = ToolBinding::SubTree::SamplerCell;
+                    outBinding.subIndexArgA = "cell_id";
+                }
+                else if (outBinding.internalVariable.startsWith ("samplerSet"))
+                {
+                    outBinding.subTree      = ToolBinding::SubTree::SamplerSet;
+                    outBinding.subIndexArgA = "set_id";
+                }
+                else if (outBinding.internalVariable.startsWith ("networkTS"))
+                {
+                    outBinding.subTree      = ToolBinding::SubTree::NetworkTarget;
+                    outBinding.subIndexArgA = "target_id";
+                }
+                else if (outBinding.internalVariable.startsWith ("admCart"))
+                {
+                    outBinding.subTree      = ToolBinding::SubTree::AdmCartAxis;
+                    outBinding.subIndexArgA = "mapping";
+                    outBinding.subIndexArgB = "axis";
+                }
+                else if (outBinding.internalVariable.startsWith ("admPolar"))
+                {
+                    outBinding.subTree      = ToolBinding::SubTree::AdmPolarMapping;
+                    outBinding.subIndexArgA = "mapping";
+                }
+                else if (outBinding.internalVariable.startsWith ("gmShape"))
                 {
                     outBinding.subTree      = ToolBinding::SubTree::GradientShape;
                     outBinding.subIndexArgA = "layer";
@@ -758,7 +864,8 @@ LoadStats loadGeneratedTools (MCPToolRegistry& registry,
                               const juce::File& jsonPath,
                               MCPLogger& mcpLogger,
                               const std::function<void()>* onTopologyChanged,
-                              const std::function<void (int)>* onGradientMapChanged)
+                              const std::function<void (int)>* onGradientMapChanged,
+                              const std::function<void (int)>* onSamplerChanged)
 {
     LoadStats stats;
 
@@ -842,13 +949,20 @@ LoadStats loadGeneratedTools (MCPToolRegistry& registry,
             || binding.subTree == ToolBinding::SubTree::GradientShape
             || binding.subTree == ToolBinding::SubTree::GradientAlias;
 
+        // Sampler writes have the same shape of problem as gradient writes:
+        // SamplerManager keeps its own copy, and the tree is not what the audio
+        // thread reads.
+        const bool isSamplerWrite =
+               binding.subTree == ToolBinding::SubTree::SamplerCell
+            || binding.subTree == ToolBinding::SubTree::SamplerSet;
+
         const bool isChannelCount =
                binding.internalVariable == WFSParameterIDs::inputChannels.toString()
             || binding.internalVariable == WFSParameterIDs::outputChannels.toString()
             || binding.internalVariable == WFSParameterIDs::reverbChannels.toString();
 
-        d.handler = [&state, binding, isChannelCount, isGradientWrite,
-                     onTopologyChanged, onGradientMapChanged]
+        d.handler = [&state, binding, isChannelCount, isGradientWrite, isSamplerWrite,
+                     onTopologyChanged, onGradientMapChanged, onSamplerChanged]
                     (const juce::var& args, ChangeRecord* record) -> ToolResult
         {
             // Channel structure is stopped-only. The GUI enforces that by greying
@@ -865,6 +979,20 @@ LoadStats loadGeneratedTools (MCPToolRegistry& registry,
             if (result.success && isChannelCount
                 && onTopologyChanged != nullptr && *onTopologyChanged)
                 (*onTopologyChanged)();
+
+            if (result.success && isSamplerWrite
+                && onSamplerChanged != nullptr && *onSamplerChanged)
+            {
+                if (auto* argsObj = args.getDynamicObject())
+                    if (argsObj->hasProperty (binding.channelArgName))
+                    {
+                        const int slot = resolveChannelSlot (
+                            state, binding.channelArgName,
+                            static_cast<int> (argsObj->getProperty (binding.channelArgName)));
+                        if (slot >= 0)
+                            (*onSamplerChanged) (slot);
+                    }
+            }
 
             if (result.success && isGradientWrite
                 && onGradientMapChanged != nullptr && *onGradientMapChanged)

@@ -52,6 +52,11 @@ struct ToolBinding
         GradientLayer,   // input_id + layer
         GradientShape,   // input_id + layer + shape
         GradientAlias,   // input_id; the layer is baked into the variable name
+        AdmCartAxis,     // mapping + axis, global (no channel)
+        AdmPolarMapping, // mapping, global (no channel)
+        SamplerCell,     // input_id + cell_id
+        SamplerSet,      // input_id + set_id
+        NetworkTarget,   // target_id, global (no channel)
     };
 
     SubTree subTree = SubTree::None;

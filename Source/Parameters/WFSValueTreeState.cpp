@@ -6,6 +6,28 @@
 #include <vector>
 
 using namespace WFSParameterIDs;
+
+namespace
+{
+    /** Find the child of `parent` with `type` whose `property` equals `wanted`.
+        ADM identity is carried in a property, never in child position: the
+        mappings of both kinds are siblings under <ADMOSC>, and the GUI's own
+        lookups match on the id for the same reason. */
+    juce::ValueTree findChildByIntProperty (const juce::ValueTree& parent,
+                                            const juce::Identifier& type,
+                                            const juce::Identifier& property,
+                                            int wanted)
+    {
+        for (int i = 0; i < parent.getNumChildren(); ++i)
+        {
+            auto child = parent.getChild (i);
+            if (child.hasType (type) && static_cast<int> (child.getProperty (property, -1)) == wanted)
+                return child;
+        }
+        return {};
+    }
+}
+
 using namespace WFSParameterDefaults;
 
 //==============================================================================
@@ -536,6 +558,35 @@ juce::ValueTree WFSValueTreeState::getInputMutesSection (int channelIndex)
 juce::ValueTree WFSValueTreeState::getInputGradientMapsSection (int channelIndex)
 {
     return getInputState (channelIndex).getChildWithName (GradientMaps);
+}
+
+juce::ValueTree WFSValueTreeState::getInputSamplerCell (int channelIndex, int cellIndex)
+{
+    auto sampler = getInputSamplerSection (channelIndex);
+    if (! sampler.isValid() || cellIndex < 0)
+        return {};
+    return findChildByIntProperty (sampler, SamplerCell, id, cellIndex);
+}
+
+juce::ValueTree WFSValueTreeState::getInputSamplerSet (int channelIndex, int setIndex)
+{
+    auto sampler = getInputSamplerSection (channelIndex);
+    if (! sampler.isValid() || setIndex < 0)
+        return {};
+
+    // Ordinal, not id: SamplerSubTab::onDeleteSet removes a child without
+    // renumbering the rest, so the id property goes stale on the survivors.
+    int seen = 0;
+    for (int i = 0; i < sampler.getNumChildren(); ++i)
+    {
+        auto child = sampler.getChild (i);
+        if (! child.hasType (SamplerSet))
+            continue;
+        if (seen == setIndex)
+            return child;
+        ++seen;
+    }
+    return {};
 }
 
 juce::ValueTree WFSValueTreeState::getInputGradientShape (int channelIndex, int layerIndex, int shapeIndex)
@@ -3980,6 +4031,31 @@ juce::ValueTree WFSValueTreeState::createInputGradientMapsSection()
     }
 
     return gm;
+}
+
+juce::ValueTree WFSValueTreeState::getADMCartMapping (int mappingIndex)
+{
+    return findChildByIntProperty (getADMOSCState(), ADMCartMapping, id, mappingIndex);
+}
+
+/** NOTE: admPolarDistBreakpoint/Inner/Outer/Center are deliberately NOT stamped by
+    createADMOSCSection, unlike the stray config properties fixed elsewhere in this
+    series. ADMOSCMapping::loadPolarConfig uses the ABSENCE of admPolarDistInner to
+    decide whether to migrate a legacy admPolarDistMin/Max pair; stamping defaults
+    would send every pre-existing file down the new-style branch with default
+    widths and quietly discard its real polar mapping. A write through this
+    accessor creates the property, which is exactly the intended transition. */
+juce::ValueTree WFSValueTreeState::getADMPolarMapping (int mappingIndex)
+{
+    return findChildByIntProperty (getADMOSCState(), ADMPolarMapping, id, mappingIndex);
+}
+
+juce::ValueTree WFSValueTreeState::getADMCartAxis (int mappingIndex, int axisIndex)
+{
+    auto mapping = getADMCartMapping (mappingIndex);
+    if (! mapping.isValid())
+        return {};
+    return findChildByIntProperty (mapping, ADMCartAxis, admCartAxisId, axisIndex);
 }
 
 juce::ValueTree WFSValueTreeState::createInputSamplerSection()

@@ -61,6 +61,16 @@ public:
     juce::ValueTree getMasterState();
     juce::ValueTree getNetworkState();
     juce::ValueTree getADMOSCState();
+
+    /** One ADM-OSC mapping, by its `id` property rather than child position —
+        Cartesian and Polar mappings are siblings under <ADMOSC>, so an ordinal
+        would run off the end of one kind into the other. Both are numbered 0-3
+        within their own kind. */
+    juce::ValueTree getADMCartMapping (int mappingIndex);
+    juce::ValueTree getADMPolarMapping (int mappingIndex);
+
+    /** One axis of a Cartesian mapping, by `admCartAxisId` (0=X, 1=Y, 2=Z). */
+    juce::ValueTree getADMCartAxis (int mappingIndex, int axisIndex);
     juce::ValueTree getTrackingState();
     juce::ValueTree getClustersState();
     juce::ValueTree getClustersState() const;
@@ -156,6 +166,17 @@ public:
 
     /** Ensure a Sampler section exists for a given input (migration helper) */
     juce::ValueTree ensureInputSamplerSection (int channelIndex);
+
+    /** One sampler cell of the 6x6 grid, matched on its `id` property (0-35).
+        Cells are pre-created and never added or removed, so the id is stable. */
+    juce::ValueTree getInputSamplerCell (int channelIndex, int cellIndex);
+
+    /** One sampler set, by ORDINAL among the SamplerSet children — deliberately
+        not by its `id`, because deleting a set does not renumber the survivors,
+        so ids go stale while positions do not. Every existing consumer counts
+        the nth SamplerSet child; this is that walk, once. A fresh input has no
+        sets at all, so an invalid tree here means "no set at that index". */
+    juce::ValueTree getInputSamplerSet (int channelIndex, int setIndex);
 
     //==========================================================================
     // Output Channel Access

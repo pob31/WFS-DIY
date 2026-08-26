@@ -914,6 +914,24 @@ MainComponent::MainComponent()
     // Structural channel edits from MCP (create/delete/type flip) run the
     // same reconfiguration pass as the System Config editor. Handlers run on
     // the message thread (the dispatcher hops there), so this is direct.
+    mcpServer->setSamplerChangedCallback ([this] (int slot)
+    {
+        // Same shape as the gradient callback: reload the channel that CHANGED,
+        // not the one the Sampler tab happens to be showing. samplerCellFile is
+        // the one that matters most - without loadChannelCells running again the
+        // audio file named by the write is never actually read.
+        if (samplerManager == nullptr || slot < 0)
+            return;
+        auto samplerTree = parameters.getValueTreeState().getInputSamplerSection (slot);
+        if (! samplerTree.isValid())
+            return;
+        auto samplesFolder = parameters.getFileManager().getSamplesFolder();
+        samplerManager->loadChannelCells (slot, samplerTree, samplesFolder);
+        const int setIdx = WFSVar::toInt (samplerTree.getProperty (WFSParameterIDs::inputSamplerActiveSet), 0);
+        samplerManager->loadChannelSetFromTree (slot, samplerTree, setIdx);
+        applySamplerSetPosition (slot, samplerTree, setIdx);
+    });
+
     mcpServer->setGradientMapChangedCallback ([this] (int slot)
     {
         // Rebuild the channel that CHANGED. The editor's own callback rebuilds
