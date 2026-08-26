@@ -377,6 +377,22 @@ void WFSValueTreeState::setParameter (const juce::Identifier& paramId, const juc
     TreeParameterStore::setParameter (paramId, value, channelIndex);
 }
 
+bool WFSValueTreeState::canWriteParameter (const juce::Identifier& paramId, int channelIndex) const
+{
+    // The three live channel counts never reach getTreeForParameter: setParameter
+    // re-routes them to the setNumXChannels helpers above. They resolve to nothing
+    // and are writable anyway, so answer for the routing, not for the tree.
+    if (paramId == inputChannels || paramId == outputChannels || paramId == reverbChannels)
+        return true;
+
+    // Deliberately dropped — see the comment in setParameter. Saying so here is the
+    // whole point: a caller that asks gets told, instead of being handed a success.
+    if (paramId == stereoInputChannels)
+        return false;
+
+    return getTreeForParameter (paramId, channelIndex).isValid();
+}
+
 void WFSValueTreeState::setParameterWithoutUndo (const juce::Identifier& paramId, const juce::var& value, int channelIndex)
 {
     // Same channel-count routing as setParameter — but setNumXChannels

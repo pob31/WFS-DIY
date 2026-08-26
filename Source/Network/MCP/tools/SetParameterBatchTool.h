@@ -314,6 +314,20 @@ inline ToolResult batch (WFSValueTreeState& state, const juce::var& args, Change
 
         // String -> number coercion when the param has numeric bounds.
         const juce::Identifier paramId (w.variable);
+
+        // Writability, in PASS 1 so the whole batch fails before anything is
+        // applied — a partially-applied batch whose remainder vanished silently
+        // would be the worst version of this bug. EQ-band entries write their
+        // subtree directly and are exempt.
+        if (w.eqFamily == EqFamily::None
+            && ! state.canWriteParameter (paramId, w.channelIndex))
+        {
+            return fail ("unwritable_parameter", i,
+                         "Parameter '" + w.variable
+                           + "' is advertised but cannot be written: the app has no "
+                             "resolvable home for it. This is an app defect, not a bad "
+                             "argument - please report it.");
+        }
         const auto bounds = WFSNetwork::getBounds (paramId);
         if (bounds.has_value() && w.value.isString())
         {

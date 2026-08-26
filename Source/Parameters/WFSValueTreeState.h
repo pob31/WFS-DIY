@@ -104,6 +104,16 @@ public:
     /** Set a parameter value without undo */
     void setParameterWithoutUndo (const juce::Identifier& id, const juce::var& value, int channelIndex = -1) override;
 
+    /** Would a setParameter write with these arguments actually land anywhere?
+
+        TreeParameterStore::setParameter is `if (tree.isValid()) write(...)` with no
+        else and a void return, so a parameter this class cannot resolve is dropped
+        in silence — the caller sees nothing at all. Every remote surface needs to
+        be able to ask BEFORE writing, so it can report an error instead of a
+        success it did not earn. Answers for the generic path only: callers that
+        write a subtree directly (EQ bands today) never consult this. */
+    bool canWriteParameter (const juce::Identifier& id, int channelIndex = -1) const;
+
     //==========================================================================
     // Input Channel Access
     //==========================================================================

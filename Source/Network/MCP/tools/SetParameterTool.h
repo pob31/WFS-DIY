@@ -278,6 +278,18 @@ inline ToolResult set (WFSValueTreeState& state, const juce::var& args, ChangeRe
         }
     };
 
+    // Refuse before writing. This tool already returns honest before/after, so a
+    // dropped write shows as null/null — visible, but only to someone looking, and
+    // indistinguishable from "the parameter exists but was unset". Say it outright.
+    if (! isEqBand && ! state.canWriteParameter (paramId, channelIndex))
+    {
+        return ToolResult::error ("unwritable_parameter",
+                                  "Parameter '" + variable
+                                    + "' is advertised but cannot be written: the app has "
+                                      "no resolvable home for it. This is an app defect, "
+                                      "not a bad argument - please report it.");
+    }
+
     juce::var beforeValue;
     if (isEqBand)
     {

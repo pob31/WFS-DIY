@@ -569,6 +569,12 @@ private:
         composition rules. Logs PASS/FAIL lines to the session log. */
     void runStereoGeometrySelfTest();
 
+    /** WFS_TEST_MCP_SURFACE=1 — walk the generated MCP manifest and report every
+        advertised parameter the state cannot actually write. Exists because the
+        write seam has no failure channel of its own: a tool whose parameter does
+        not resolve used to answer ok and change nothing. */
+    void runMcpSurfaceSelfTest();
+
     /** A mono row may hold at most one hardware column. Clears any extra
         columns (keeping the lowest = L) left behind when a count change
         moves the mono/stereo boundary. */

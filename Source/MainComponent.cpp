@@ -21,6 +21,47 @@
 #include "../spatcore/controllers/lightpad/LightpadManager.h"
 #include "../spatcore/binaural/SofaLoader.h"
 
+namespace
+{
+    /** Where the generated MCP tool manifest lives, across the four layouts this
+        app is run from. Shared by the MCP server and the surface self-test so the
+        two can never disagree about which manifest they are talking about. */
+    juce::File findGeneratedToolsJson()
+    {
+        auto exeDir = juce::File::getSpecialLocation (juce::File::currentExecutableFile).getParentDirectory();
+
+        auto candidate = exeDir.getChildFile ("MCP/generated_tools.json");
+        if (candidate.existsAsFile())
+            return candidate;
+
+        // macOS bundle: exe is at Contents/MacOS/, postbuild stages this at
+        // Contents/Resources/MCP/ (same convention as lang/).
+        candidate = exeDir.getParentDirectory().getChildFile ("Resources/MCP/generated_tools.json");
+        if (candidate.existsAsFile())
+            return candidate;
+
+        // Windows VS dev: exe at Builds/VisualStudio2022/x64/Debug/App/
+        candidate = exeDir.getParentDirectory()   // x64/Debug
+                          .getParentDirectory()   // x64
+                          .getParentDirectory()   // VisualStudio2022
+                          .getParentDirectory()   // Builds
+                          .getParentDirectory()   // project root
+                          .getChildFile ("Source/Network/MCP/generated_tools.json");
+        if (candidate.existsAsFile())
+            return candidate;
+
+        // macOS dev: exe at Builds/MacOSX/build/Debug/WFS-DIY.app/Contents/MacOS/
+        return exeDir.getParentDirectory()   // Contents
+                     .getParentDirectory()   // .app
+                     .getParentDirectory()   // Debug
+                     .getParentDirectory()   // build
+                     .getParentDirectory()   // MacOSX
+                     .getParentDirectory()   // Builds
+                     .getParentDirectory()   // project root
+                     .getChildFile ("Source/Network/MCP/generated_tools.json");
+    }
+}
+
 //==============================================================================
 MainComponent::MainComponent()
 {
@@ -809,39 +850,7 @@ MainComponent::MainComponent()
     //   2. <exeDir>/../Resources/MCP/generated_tools.json (macOS bundle production)
     //   3. <projectRoot>/Source/Network/MCP/...       (Windows VS2022 dev)
     //   4. <projectRoot>/Source/Network/MCP/...       (macOS dev)
-    juce::File generatedToolsJson;
-    {
-        auto exeDir = juce::File::getSpecialLocation(juce::File::currentExecutableFile).getParentDirectory();
-        generatedToolsJson = exeDir.getChildFile("MCP/generated_tools.json");
-        if (! generatedToolsJson.existsAsFile())
-        {
-            // macOS bundle: exe is at Contents/MacOS/, postbuild stages this at
-            // Contents/Resources/MCP/ (same convention as lang/, see resourceDir above).
-            generatedToolsJson = exeDir.getParentDirectory().getChildFile("Resources/MCP/generated_tools.json");
-        }
-        if (! generatedToolsJson.existsAsFile())
-        {
-            // Windows VS2022 dev: exe at Builds/VisualStudio2022/x64/Debug/App/
-            auto projectRoot = exeDir.getParentDirectory()  // x64/Debug
-                                     .getParentDirectory()  // x64
-                                     .getParentDirectory()  // VisualStudio2022
-                                     .getParentDirectory()  // Builds
-                                     .getParentDirectory(); // Project root
-            generatedToolsJson = projectRoot.getChildFile("Source/Network/MCP/generated_tools.json");
-        }
-        if (! generatedToolsJson.existsAsFile())
-        {
-            // macOS dev: exe at Builds/MacOSX/build/Debug/WFS-DIY.app/Contents/MacOS/
-            auto projectRoot = exeDir.getParentDirectory()  // Contents
-                                     .getParentDirectory()  // .app
-                                     .getParentDirectory()  // Debug
-                                     .getParentDirectory()  // build
-                                     .getParentDirectory()  // MacOSX
-                                     .getParentDirectory()  // Builds
-                                     .getParentDirectory(); // Project root
-            generatedToolsJson = projectRoot.getChildFile("Source/Network/MCP/generated_tools.json");
-        }
-    }
+    juce::File generatedToolsJson = findGeneratedToolsJson();
 
     // Phase 3 — knowledge-resource directory. Same fallback chain as
     // generated_tools.json but pointing at MCP/resources/.
@@ -2608,6 +2617,145 @@ MainComponent::MainComponent()
     // this one touches no session state at all, so both may run in one launch.
     if (std::getenv("WFS_TEST_STEREO_GEOMETRY") != nullptr)
         runStereoGeometrySelfTest();
+
+    // Hidden diagnostic: WFS_TEST_MCP_SURFACE=1 checks the generated MCP tool
+    // manifest against what this state can actually write. Independent of the two
+    // above — it mutates nothing at all, it only asks questions.
+    if (std::getenv("WFS_TEST_MCP_SURFACE") != nullptr)
+        runMcpSurfaceSelfTest();
+}
+
+void MainComponent::runMcpSurfaceSelfTest()
+{
+    auto& vts = parameters.getValueTreeState();
+    auto& log = WFSLogger::getInstance();
+
+    auto logLine = [&log] (const juce::String& s) { log.logInfo (s); };
+
+    logLine ("SELF-TEST begin (MCP surface writability)");
+
+    const auto manifest = findGeneratedToolsJson();
+    if (! manifest.existsAsFile())
+    {
+        logLine ("SELF-TEST SKIP M: generated_tools.json not found at " + manifest.getFullPathName());
+        logLine ("SELF-TEST RESULT: SKIPPED");
+        return;
+    }
+
+    const auto parsed = juce::JSON::parse (manifest);
+    auto* root = parsed.getDynamicObject();
+    if (root == nullptr)
+    {
+        logLine ("SELF-TEST FAIL M: manifest is not a JSON object");
+        logLine ("SELF-TEST RESULT: FAIL");
+        return;
+    }
+
+    // A per-channel tool must be asked about a channel that actually EXISTS, or the
+    // answer is about the index rather than the parameter. A default session has no
+    // reverb channels at all, so asking about reverb slot 0 would indict every
+    // reverb parameter in the app. Where a kind has no live channels we skip and say
+    // so, rather than reporting a result the session cannot support.
+    const int firstInputNumber = vts.getNumInputChannels() > 0 ? vts.getInputChannelNumber (0) : 0;
+    const int numClusters      = WFSParameterDefaults::maxClusters;
+
+    int checked = 0, dead = 0, skippedEq = 0, skippedTemplate = 0, skippedNoChannel = 0;
+    juce::StringArray deadVariables;
+    juce::StringArray skippedKinds;
+
+    auto walk = [&] (const juce::var& arr, const juce::String& label)
+    {
+        if (! arr.isArray())
+            return;
+
+        for (const auto& entry : *arr.getArray())
+        {
+            auto* obj = entry.getDynamicObject();
+            if (obj == nullptr)
+                continue;
+
+            const auto variable = obj->getProperty ("internal_variable").toString();
+            if (variable.isEmpty())
+            {
+                // Numeric-suffix families (inputArrayAtten1..10) are advertised under a
+                // "{array}" template that is not a property name; the concrete member is
+                // resolved at call time. Nothing to ask about here.
+                if (obj->getProperty ("internal_variable_template").toString().isNotEmpty())
+                    ++skippedTemplate;
+                continue;
+            }
+
+            const auto toolName = obj->getProperty ("name").toString();
+
+            // Which argument carries the channel, and does it have an EQ band?
+            juce::String channelArg;
+            bool isEqBand = false;
+            if (auto* params = obj->getProperty ("parameters").getDynamicObject())
+                if (auto* props = params->getProperty ("properties").getDynamicObject())
+                {
+                    isEqBand = props->hasProperty ("band");
+                    for (const char* candidate : { "input_id", "output_id", "reverb_id", "cluster_id" })
+                        if (props->hasProperty (candidate))
+                            { channelArg = candidate; break; }
+                }
+
+            // EQ-band tools write their subtree directly and never consult the
+            // generic resolver, so asking about them would be meaningless.
+            if (isEqBand)
+            {
+                ++skippedEq;
+                continue;
+            }
+
+            // How many channels of this kind does the session actually have?
+            const int liveOfKind = channelArg.isEmpty()      ? 1   // global: always askable
+                                 : channelArg == "input_id"  ? vts.getNumInputChannels()
+                                 : channelArg == "output_id" ? vts.getNumOutputChannels()
+                                 : channelArg == "reverb_id" ? vts.getNumReverbChannels()
+                                                             : numClusters;
+            if (liveOfKind <= 0)
+            {
+                ++skippedNoChannel;
+                skippedKinds.addIfNotAlreadyThere (channelArg);
+                continue;
+            }
+
+            const int channelIndex = channelArg.isEmpty() ? -1
+                                   : channelArg == "input_id"
+                                        ? vts.getSlotForChannelNumber (firstInputNumber)
+                                        : 0;
+
+            ++checked;
+            if (! vts.canWriteParameter (juce::Identifier (variable), channelIndex))
+            {
+                ++dead;
+                deadVariables.addIfNotAlreadyThere (variable);
+                logLine ("SELF-TEST FAIL M [" + label + "]: '" + toolName
+                         + "' advertises '" + variable + "' but no write can land");
+            }
+        }
+    };
+
+    walk (root->getProperty ("tools"),       "set");
+    walk (root->getProperty ("nudge_tools"), "nudge");
+
+    logLine ("SELF-TEST M: " + juce::String (checked) + " registrations checked, "
+             + juce::String (dead) + " unwritable ("
+             + juce::String (deadVariables.size()) + " distinct parameters); skipped: "
+             + juce::String (skippedEq) + " EQ-band, "
+             + juce::String (skippedTemplate) + " templated, "
+             + juce::String (skippedNoChannel) + " no live channel"
+             + (skippedKinds.isEmpty() ? juce::String()
+                                       : " (" + skippedKinds.joinIntoString (", ") + ")"));
+
+    if (skippedNoChannel > 0)
+        logLine ("SELF-TEST M: NOTE - this session has no channels of some kinds, so those "
+                 "parameters were not judged. Re-run with a project that has them.");
+
+    if (dead > 0)
+        logLine ("SELF-TEST M: distinct unwritable parameters: " + deadVariables.joinIntoString (", "));
+
+    logLine (dead == 0 ? "SELF-TEST RESULT: ALL PASS" : "SELF-TEST RESULT: FAIL");
 }
 
 void MainComponent::runChannelListSelfTest()

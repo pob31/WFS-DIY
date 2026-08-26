@@ -322,6 +322,23 @@ namespace Detail
             }
         };
 
+        // Refuse before writing, rather than reporting a success we did not earn.
+        // The generic path bottoms out in TreeParameterStore::setParameter, which is
+        // `if (tree.isValid()) write(...)` with no else and a void return — so a
+        // parameter this state cannot resolve is dropped in total silence. Every
+        // such tool used to answer ok with the REQUESTED value echoed back, which is
+        // why whole families of them were dead for a long time without anyone
+        // noticing. EQ bands write their subtree directly and are checked by
+        // getBandTree() below, so they are exempt.
+        if (! binding.isEqBand && ! state.canWriteParameter (paramId, channelIndex))
+        {
+            return ToolResult::error ("unwritable_parameter",
+                                      "Parameter '" + binding.internalVariable
+                                        + "' is advertised but cannot be written: the app "
+                                          "has no resolvable home for it. This is an app "
+                                          "defect, not a bad argument - please report it.");
+        }
+
         // Capture before-state
         juce::var beforeValue;
         if (binding.isEqBand)
@@ -398,7 +415,13 @@ namespace Detail
             result->setProperty ("channel_id", displayId);
         if (binding.isEqBand)
             result->setProperty ("band", bandIndex + 1);
-        result->setProperty ("value", value);
+        // The value that LANDED, not the one that was asked for. They differ whenever
+        // the state clamps or re-routes, and reporting the request hid exactly that.
+        // `requested` stays alongside so a clamp is visible rather than merely implied.
+        result->setProperty ("value", afterValue);
+        if (afterValue != value)
+            result->setProperty ("requested", value);
+        result->setProperty ("before", beforeValue);
         return ToolResult::ok (juce::var (result.release()));
     }
 }  // namespace Detail
@@ -474,6 +497,18 @@ namespace Detail
         const double signedDelta = (direction == "dec") ? -amount : amount;
 
         const juce::Identifier paramId (binding.internalVariable);
+
+        // Same refusal as the setter path: a nudge on an unresolvable parameter
+        // reads void as 0, adds the delta and writes nowhere, so the reported
+        // before/after are both null and the caller has no idea why.
+        if (! state.canWriteParameter (paramId, channelIndex))
+        {
+            return ToolResult::error ("unwritable_parameter",
+                                      "Parameter '" + binding.internalVariable
+                                        + "' is advertised but cannot be written: the app "
+                                          "has no resolvable home for it. This is an app "
+                                          "defect, not a bad argument - please report it.");
+        }
 
         // Read current — coerce to double for arithmetic.
         const auto beforeVar = state.getParameter (paramId, channelIndex);
