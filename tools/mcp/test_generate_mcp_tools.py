@@ -407,6 +407,185 @@ def test_group_key_strips_coordinate_suffix():
                                "input") == "input_position"
 
 
+
+# ----------------------------------------------------------------- golden F
+# The three optional config keys added when the dead-tool families were
+# revived. Each test pins the exact near-miss the rule was designed around,
+# so a future edit that widens a match will fail here rather than in the app.
+
+def test_goldenF_sub_index_args_attach_to_listed_variables_only():
+    """SUB_INDEX_RULES attaches extra index args to rows it names explicitly.
+
+    gmLayerBlack must gain `layer`; gmLayer0Enabled must NOT, because its
+    layer is baked into the name and it is a routing alias rather than a
+    stored property. A prefix match would get this wrong, which is why the
+    rule matches on an explicit variables list."""
+    layered = make_row(
+        "WFS-UI_input.csv",
+        section="Gradient Map",
+        label="Layer Black Point",
+        variable="gmLayerBlack",
+        ui="H slider",
+        type="FLOAT",
+        min="0.0",
+        max="1.0",
+        default="0.0",
+        osc_path="/wfs/input/gmLayerBlack",
+        hover="Black point of the layer.",
+    )
+    tool = run_process(layered, tier_overrides={"gmLayerBlack": 1})
+    props = tool["parameters"]["properties"]
+    assert "layer" in props
+    assert props["layer"]["minimum"] == 0
+    assert props["layer"]["maximum"] == 2
+    # channel id first, then the sub-index, then the value
+    assert tool["parameters"]["required"] == ["input_id", "layer", "value"]
+
+    alias = make_row(
+        "WFS-UI_input.csv",
+        section="Gradient Map",
+        label="Layer 0 Enabled",
+        variable="gmLayer0Enabled",
+        ui="Toggle",
+        type="INT",
+        min="0",
+        max="1",
+        default="0",
+        osc_path="/wfs/input/gmLayer0Enabled",
+        hover="Layer 0 on/off.",
+    )
+    tool = run_process(alias, tier_overrides={"gmLayer0Enabled": 1})
+    props = tool["parameters"]["properties"]
+    assert "layer" not in props
+    assert tool["parameters"]["required"] == ["input_id", "value"]
+
+
+def test_goldenF_two_sub_index_args_in_declared_order():
+    """A shape row gains both `layer` and `shape`, in the order the rule lists
+    them, and the nudge variant inherits them."""
+    row = make_row(
+        "WFS-UI_input.csv",
+        section="Gradient Map",
+        label="Shape Blur",
+        variable="gmShapeBlur",
+        ui="H slider",
+        type="FLOAT",
+        min="0.0",
+        max="10.0",
+        default="0.0",
+        osc_path="/wfs/input/gmShapeBlur",
+        osc_inc_dec="y",
+        hover="Edge blur.",
+    )
+    warnings: list[dict] = []
+    tool, nudge, ignored = g.process_row(
+        row, ignore_map={}, tier_overrides={"gmShapeBlur": 1}, warnings=warnings)
+    assert not ignored and tool is not None
+    assert tool["parameters"]["required"] == ["input_id", "layer", "shape", "value"]
+    assert tool["parameters"]["properties"]["shape"]["maximum"] == 63
+    # the nudge variant carries every setter arg except the value
+    assert nudge is not None
+    nprops = nudge["parameters"]["properties"]
+    assert "layer" in nprops and "shape" in nprops and "value" not in nprops
+
+
+def test_goldenF_global_row_in_channel_csv_gets_no_channel_arg():
+    """GLOBAL_ROWS_IN_CHANNEL_CSVS: reverbsMapVisible lives in the reverb CSV
+    but is one global toggle on Config/Master. It must not be handed a
+    reverb_id it would then ignore."""
+    row = make_row(
+        "WFS-UI_reverb.csv",
+        section="Header",
+        label="Map Visibility",
+        variable="reverbsMapVisible",
+        ui="Toggle",
+        type="INT",
+        min="0",
+        max="1",
+        default="1",
+        osc_path="/wfs/reverb/reverbsMapVisible",
+        hover="Show reverbs on the map.",
+    )
+    tool = run_process(row, tier_overrides={"reverbsMapVisible": 1})
+    props = tool["parameters"]["properties"]
+    assert "reverb_id" not in props
+    assert tool["parameters"]["required"] == ["value"]
+
+    # and a genuinely per-reverb row in the same CSV still gets its channel arg
+    sibling = make_row(
+        "WFS-UI_reverb.csv",
+        section="Reverb",
+        label="Attenuation",
+        variable="reverbAttenuation",
+        ui="H slider",
+        type="FLOAT",
+        min="-92.0",
+        max="0.0",
+        default="0.0",
+        osc_path="/wfs/reverb/attenuation",
+        hover="Reverb channel attenuation.",
+    )
+    tool = run_process(sibling, tier_overrides={"reverbAttenuation": 1})
+    assert "reverb_id" in tool["parameters"]["properties"]
+
+
+def test_goldenF_transition_seconds_is_not_advertised():
+    """EMIT_TRANSITION_SECONDS=False: a row whose OSC address takes a ramp
+    time must not put `transition_seconds` on the MCP tool, nor promise
+    interpolation in its description. The MCP dispatch has no ramper."""
+    row = make_row(
+        "WFS-UI_input.csv",
+        section="Position",
+        label="Position X",
+        variable="inputPositionX",
+        ui="Number box",
+        type="FLOAT",
+        min="-100.0",
+        max="100.0",
+        default="0.0",
+        osc_path="/wfs/input/positionX",
+        osc_optional_value="transition time (s)",
+        hover="Source X position.",
+    )
+    tool = run_process(row, tier_overrides={"inputPositionX": 1})
+    assert "transition_seconds" not in tool["parameters"]["properties"]
+    assert "transition_seconds" not in tool["description"]
+    assert "interpolation" not in tool["description"]
+
+
+def test_goldenF_optional_keys_default_when_config_lacks_them():
+    """The three keys are optional so a config written against an older core
+    still loads. A bare config object without them must configure cleanly and
+    behave as before: no sub-index args, all rows per-channel, ramp arg on."""
+    import types
+    bare = types.SimpleNamespace(**{k: getattr(g, k) for k in g._CONFIG_KEYS})
+    saved = {k: getattr(g, k) for k in
+             ("SUB_INDEX_RULES", "GLOBAL_ROWS_IN_CHANNEL_CSVS", "EMIT_TRANSITION_SECONDS")}
+    try:
+        g.configure(bare)
+        assert g.SUB_INDEX_RULES == []
+        assert g.GLOBAL_ROWS_IN_CHANNEL_CSVS == []
+        assert g.EMIT_TRANSITION_SECONDS is True
+
+        row = make_row(
+            "WFS-UI_input.csv",
+            section="Gradient Map",
+            label="Layer Black Point",
+            variable="gmLayerBlack",
+            ui="H slider", type="FLOAT", min="0.0", max="1.0", default="0.0",
+            osc_path="/wfs/input/gmLayerBlack",
+            osc_optional_value="transition time (s)",
+            hover="Black point.",
+        )
+        tool = run_process(row, tier_overrides={"gmLayerBlack": 1})
+        props = tool["parameters"]["properties"]
+        assert "layer" not in props                 # no rules -> no sub-index
+        assert "transition_seconds" in props        # default is the old behaviour
+    finally:
+        # restore the app config so later tests see the real rules
+        for k, v in saved.items():
+            setattr(g, k, v)
+
 # ----------------------------------------------------------------- determinism / fast-path
 
 def test_integration_runs_against_live_csvs(tmp_path):
