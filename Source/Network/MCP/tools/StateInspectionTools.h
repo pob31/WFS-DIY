@@ -73,7 +73,7 @@ static const juce::StringArray& kGlobalStateAllSections()
 {
     static const juce::StringArray all {
         "stage", "master", "io", "show", "binaural",
-        "network", "tracking",
+        "network", "tracking", "ui",
         "admosc", "clusters"
     };
     return all;
@@ -83,7 +83,7 @@ static const juce::StringArray& kGlobalStateDefaultSections()
 {
     static const juce::StringArray def {
         "stage", "master", "io", "show", "binaural",
-        "network", "tracking"
+        "network", "tracking", "ui"
     };
     return def;
 }
@@ -100,8 +100,9 @@ inline juce::var globalStateSchema()
     items->setProperty ("enum", juce::var (enumArr));
     sectionsArg->setProperty ("items", juce::var (items.release()));
     sectionsArg->setProperty ("description",
+
         "Optional list of section keys to include. Default is the everyday "
-        "set (stage, master, io, show, binaural, network, tracking). Pass "
+        "set (stage, master, io, show, binaural, network, tracking, ui). Pass "
         "`admosc` to add the 4+4 ADM-OSC mapping tables and `clusters` to "
         "add the per-cluster LFO state - both are voluminous and excluded "
         "by default. Channel counts are always included.");
@@ -152,6 +153,7 @@ inline ToolResult getGlobalState (WFSValueTreeState& state, const juce::var& arg
     addIfWanted ("binaural", state.getBinauralState());
     addIfWanted ("network",  state.getNetworkState());
     addIfWanted ("tracking", state.getTrackingState());
+    addIfWanted ("ui",       state.getUIState());
     addIfWanted ("admosc",   state.getADMOSCState());
     addIfWanted ("clusters", state.getClustersState());
 

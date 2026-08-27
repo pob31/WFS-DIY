@@ -281,12 +281,18 @@ namespace Detail
                 break;
 
             case ToolBinding::SubTree::SamplerSet:
-                subTreeNode = state.getInputSamplerSet (channelIndex, subA);
+                // set_id is ONE-based on the wire, matching the Sampler tab
+                // dropdown, the OSC samplerSet address and QLab cues; the tree
+                // stores sets from 0. MCP was the only surface counting from
+                // zero, which made "set 1" mean different things depending on
+                // which door you came through.
+                subTreeNode = state.getInputSamplerSet (channelIndex, subA - 1);
                 if (! subTreeNode.isValid())
                     return ToolResult::error ("invalid_args",
                                               "No sampler set " + juce::String (subA)
-                                                + " on that input. An input starts with no sets; "
-                                                  "they are created in the Sampler tab.");
+                                                + " on that input (sets are numbered from 1). An "
+                                                  "input starts with no sets; they are created in "
+                                                  "the Sampler tab.");
                 break;
 
             case ToolBinding::SubTree::NetworkTarget:
@@ -434,6 +440,22 @@ namespace Detail
                 default:                   return state.getOutputEQBand (channelIndex, bandIndex);
             }
         };
+
+        // inputSamplerActiveSet is a parameter whose VALUE is a set number, not
+        // an index argument, so the sub-index machinery above does not reach it.
+        // It is presented one-based like every other reference to a sampler set -
+        // the tab dropdown, the OSC samplerSet address, QLab cues - and stored
+        // zero-based. OSC ingress does the identical subtraction (OSCManager,
+        // where /wfs/input/samplerSet is handled); this is the MCP twin of it.
+        if (paramId == WFSParameterIDs::inputSamplerActiveSet
+            && (value.isInt() || value.isDouble() || value.isInt64()))
+        {
+            const int oneBased = static_cast<int> (value);
+            if (oneBased < 1)
+                return ToolResult::error ("invalid_args",
+                                          "Sampler sets are numbered from 1.");
+            value = juce::var (oneBased - 1);
+        }
 
         // Refuse before writing, rather than reporting a success we did not earn.
         // The generic path bottoms out in TreeParameterStore::setParameter, which is

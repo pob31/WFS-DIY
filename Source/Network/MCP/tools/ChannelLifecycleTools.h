@@ -618,4 +618,197 @@ inline ToolDescriptor describeDelete (WFSValueTreeState& state,
     return d;
 }
 
+//==============================================================================
+// Sampler SETS
+//
+// The 17 generated input_sampler_set_set_* tools address a set by number, but
+// there was no way to make one: onAddSet is a GUI button, so on a fresh input
+// every one of those tools failed with "no set at that index" and stayed failed.
+// A capability the operator has and MCP does not is the same class of gap as a
+// tool that silently does nothing - it just fails honestly instead.
+//==============================================================================
+
+inline juce::var samplerSetCreateSchema()
+{
+    auto props = std::make_unique<juce::DynamicObject>();
+
+    auto inputId = std::make_unique<juce::DynamicObject>();
+    inputId->setProperty ("type",    "integer");
+    inputId->setProperty ("minimum", 1);
+    inputId->setProperty ("maximum", WFSParameterDefaults::maxInputChannels);
+    inputId->setProperty ("description",
+        "Permanent number of the input channel to add the set to.");
+    props->setProperty ("input_id", juce::var (inputId.release()));
+
+    auto name = std::make_unique<juce::DynamicObject>();
+    name->setProperty ("type", "string");
+    name->setProperty ("description",
+        "Optional name. Omitted: \"Set N\" for the next number.");
+    props->setProperty ("name", juce::var (name.release()));
+
+    auto confirm = std::make_unique<juce::DynamicObject>();
+    confirm->setProperty ("type", "string");
+    confirm->setProperty ("description",
+        "Confirmation token from the previous call's tier_enforcement envelope.");
+    props->setProperty ("confirm", juce::var (confirm.release()));
+
+    auto schema = std::make_unique<juce::DynamicObject>();
+    schema->setProperty ("type", "object");
+    schema->setProperty ("properties", juce::var (props.release()));
+    schema->setProperty ("required", juce::var (juce::Array<juce::var> { juce::var ("input_id") }));
+    schema->setProperty ("additionalProperties", false);
+    return juce::var (schema.release());
+}
+
+inline juce::var samplerSetDeleteSchema()
+{
+    auto props = std::make_unique<juce::DynamicObject>();
+
+    auto inputId = std::make_unique<juce::DynamicObject>();
+    inputId->setProperty ("type",    "integer");
+    inputId->setProperty ("minimum", 1);
+    inputId->setProperty ("maximum", WFSParameterDefaults::maxInputChannels);
+    inputId->setProperty ("description", "Permanent number of the input channel.");
+    props->setProperty ("input_id", juce::var (inputId.release()));
+
+    auto setId = std::make_unique<juce::DynamicObject>();
+    setId->setProperty ("type",    "integer");
+    setId->setProperty ("minimum", 1);
+    setId->setProperty ("maximum", WFSParameterDefaults::maxSamplerSets);
+    setId->setProperty ("description",
+        "Set number to remove (1-based, as the Sampler tab numbers them). "
+        "Sets after it KEEP their positions, so the numbers of later sets shift "
+        "down by one - the same as deleting from the tab.");
+    props->setProperty ("set_id", juce::var (setId.release()));
+
+    auto confirm = std::make_unique<juce::DynamicObject>();
+    confirm->setProperty ("type", "string");
+    confirm->setProperty ("description",
+        "Confirmation token from the previous call's tier_enforcement envelope.");
+    props->setProperty ("confirm", juce::var (confirm.release()));
+
+    auto schema = std::make_unique<juce::DynamicObject>();
+    schema->setProperty ("type", "object");
+    schema->setProperty ("properties", juce::var (props.release()));
+    schema->setProperty ("required",
+                         juce::var (juce::Array<juce::var> { juce::var ("input_id"),
+                                                             juce::var ("set_id") }));
+    schema->setProperty ("additionalProperties", false);
+    return juce::var (schema.release());
+}
+
+inline ToolDescriptor describeSamplerSetCreate (WFSValueTreeState& state,
+                                                const std::function<void (int)>* onSamplerChanged)
+{
+    ToolDescriptor d;
+    d.name        = "input_sampler_create_set";
+    d.description = juce::String (
+        "Add a sampler set to an input channel and return its 1-based number. "
+        "A set groups cells for playback and carries its own position, level and "
+        "pressure mappings; an input starts with none, which is why every "
+        "input_sampler_set_set_* tool fails until one exists. Capped at "
+        + juce::String (WFSParameterDefaults::maxSamplerSets) + " sets per input.")
+        + juce::String (kTier2DescriptionSuffix);
+    d.inputSchema   = samplerSetCreateSchema();
+    d.modifiesState = true;
+    d.tier          = 2;
+    d.handler = [&state, onSamplerChanged] (const juce::var& args, ChangeRecord* record) -> ToolResult
+    {
+        auto* obj = args.getDynamicObject();
+        if (obj == nullptr || ! obj->hasProperty ("input_id"))
+            return ToolResult::error ("invalid_args", "Missing required arg: input_id");
+
+        const int number = static_cast<int> (obj->getProperty ("input_id"));
+        const int slot   = state.getSlotForChannelNumber (number);
+        if (slot < 0)
+            return ToolResult::error ("invalid_args",
+                                      "input_id not a live channel: " + juce::String (number));
+
+        const juce::String name = obj->hasProperty ("name")
+                                    ? obj->getProperty ("name").toString() : juce::String();
+
+        auto created = state.addInputSamplerSet (slot, name);
+        if (! created.isValid())
+            return ToolResult::error ("at_capacity",
+                                      "That input already has the maximum of "
+                                        + juce::String (WFSParameterDefaults::maxSamplerSets)
+                                        + " sampler sets.");
+
+        const int total = state.getNumInputSamplerSets (slot);
+
+        if (record != nullptr)
+        {
+            record->affectedParameters.add (WFSParameterIDs::samplerSetName.toString());
+            record->affectedGroups.push_back ({ number, juce::String ("Sampler") });
+            record->operatorDescription = "Created sampler set " + juce::String (total)
+                                            + " on input " + juce::String (number);
+        }
+
+        if (onSamplerChanged != nullptr && *onSamplerChanged)
+            (*onSamplerChanged) (slot);
+
+        auto result = std::make_unique<juce::DynamicObject>();
+        result->setProperty ("input_id", number);
+        result->setProperty ("set_id",   total);   // 1-based: the new set is the last
+        result->setProperty ("name",     created.getProperty (WFSParameterIDs::samplerSetName));
+        result->setProperty ("total",    total);
+        return ToolResult::ok (juce::var (result.release()));
+    };
+    return d;
+}
+
+inline ToolDescriptor describeSamplerSetDelete (WFSValueTreeState& state,
+                                                const std::function<void (int)>* onSamplerChanged)
+{
+    ToolDescriptor d;
+    d.name        = "input_sampler_delete_set";
+    d.description = juce::String (
+        "Remove a sampler set from an input channel by its 1-based number. Later "
+        "sets shift down by one, exactly as they do when a set is deleted from the "
+        "Sampler tab - their stored ids were never reliable for this, which is why "
+        "every consumer counts positions instead.")
+        + juce::String (kTier2DescriptionSuffix);
+    d.inputSchema   = samplerSetDeleteSchema();
+    d.modifiesState = true;
+    d.tier          = 2;
+    d.handler = [&state, onSamplerChanged] (const juce::var& args, ChangeRecord* record) -> ToolResult
+    {
+        auto* obj = args.getDynamicObject();
+        if (obj == nullptr || ! obj->hasProperty ("input_id") || ! obj->hasProperty ("set_id"))
+            return ToolResult::error ("invalid_args", "Missing required arg: input_id and set_id");
+
+        const int number = static_cast<int> (obj->getProperty ("input_id"));
+        const int slot   = state.getSlotForChannelNumber (number);
+        if (slot < 0)
+            return ToolResult::error ("invalid_args",
+                                      "input_id not a live channel: " + juce::String (number));
+
+        const int oneBased = static_cast<int> (obj->getProperty ("set_id"));
+        if (! state.removeInputSamplerSet (slot, oneBased - 1))
+            return ToolResult::error ("invalid_args",
+                                      "No sampler set " + juce::String (oneBased)
+                                        + " on that input (sets are numbered from 1).");
+
+        const int total = state.getNumInputSamplerSets (slot);
+
+        if (record != nullptr)
+        {
+            record->affectedParameters.add (WFSParameterIDs::samplerSetName.toString());
+            record->affectedGroups.push_back ({ number, juce::String ("Sampler") });
+            record->operatorDescription = "Deleted sampler set " + juce::String (oneBased)
+                                            + " on input " + juce::String (number);
+        }
+
+        if (onSamplerChanged != nullptr && *onSamplerChanged)
+            (*onSamplerChanged) (slot);
+
+        auto result = std::make_unique<juce::DynamicObject>();
+        result->setProperty ("input_id",       number);
+        result->setProperty ("deleted_set_id", oneBased);
+        result->setProperty ("total",          total);
+        return ToolResult::ok (juce::var (result.release()));
+    };
+    return d;
+}
+
 } // namespace WFSNetwork::Tools::ChannelLifecycle

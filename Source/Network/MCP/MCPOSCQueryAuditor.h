@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "MCPLogger.h"
+#include "MCPSurfaceAudit.h"
 
 namespace WFSNetwork
 {
@@ -24,11 +25,25 @@ namespace WFSNetwork
     tool whose `internal_osc_path` (or `internal_osc_path_template`
     stripped of `{...}`) is missing from the live tree. Drift is logged
     via `MCPLogger` so it surfaces in the Network Log under
-    Protocol::MCP. Capped at 20 error lines to avoid log spam. */
+    Protocol::MCP. Capped at 20 error lines to avoid log spam.
+
+    Two conventions have to be reconciled for the path check to mean anything.
+    Tools declare a channel-LESS path (`/wfs/input/attenuation`) while OSCQuery
+    publishes channel-INDEXED ones (`/wfs/input/1/attenuation`), so a naive
+    set-membership test called every per-channel tool drift: 354 of 383 paths
+    "missing", the 20-line cap filled with false positives, and the handful of
+    real ones never printed. The live set is therefore also indexed by its
+    channel-stripped form.
+
+    It also runs a second, independent check that path presence cannot answer:
+    whether the app can actually STORE each advertised parameter. A path can be
+    published and the write still be dropped. See MCPSurfaceAudit.h, shared with
+    the WFS_TEST_MCP_SURFACE self-test. */
 class MCPOSCQueryAuditor : private juce::Thread
 {
 public:
     MCPOSCQueryAuditor (MCPLogger& logger,
+                        WFSValueTreeState& state,
                         juce::File generatedToolsJson,
                         juce::String oscQueryUrl);
 
@@ -48,7 +63,12 @@ private:
 
     static juce::String stripPlaceholder (const juce::String& templatePath);
 
-    MCPLogger&    mcpLogger;
+    /** Add each live path's channel-stripped form, so a tool's channel-less
+        declaration can match a channel-indexed node. */
+    static void addChannelStrippedForms (std::set<juce::String>& paths);
+
+    MCPLogger&          mcpLogger;
+    WFSValueTreeState&  valueTreeState;
     juce::File    generatedToolsJson;
     juce::String  oscQueryUrl;
 

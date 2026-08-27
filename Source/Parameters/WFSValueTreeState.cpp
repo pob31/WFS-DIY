@@ -1,6 +1,7 @@
 #include "WFSValueTreeState.h"
 #include "../Network/OSCParameterBounds.h"
 #include "../WFSLogger.h"
+#include "../Sampler/SamplerData.h"
 
 #include <algorithm>
 #include <vector>
@@ -121,6 +122,11 @@ juce::ValueTree WFSValueTreeState::getMasterState()
 juce::ValueTree WFSValueTreeState::getNetworkState()
 {
     return getConfigState().getChildWithName (Network);
+}
+
+juce::ValueTree WFSValueTreeState::getUIState()
+{
+    return getConfigState().getChildWithName (UI);
 }
 
 juce::ValueTree WFSValueTreeState::getADMOSCState()
@@ -587,6 +593,75 @@ juce::ValueTree WFSValueTreeState::getInputSamplerSet (int channelIndex, int set
         ++seen;
     }
     return {};
+}
+
+int WFSValueTreeState::getNumInputSamplerSets (int channelIndex)
+{
+    auto sampler = getInputSamplerSection (channelIndex);
+    if (! sampler.isValid())
+        return 0;
+
+    int setCount = 0;
+    for (int i = 0; i < sampler.getNumChildren(); ++i)
+        if (sampler.getChild (i).hasType (SamplerSet))
+            ++setCount;
+    return setCount;
+}
+
+juce::ValueTree WFSValueTreeState::addInputSamplerSet (int channelIndex, const juce::String& setName)
+{
+    auto sampler = ensureInputSamplerSection (channelIndex);
+    if (! sampler.isValid())
+        return {};
+
+    const int existing = getNumInputSamplerSets (channelIndex);
+    if (existing >= maxSamplerSets)
+        return {};
+
+    // Defaults read off a default-constructed SamplerSet rather than written out
+    // here, so this and SamplerSubTab::saveSetToValueTree cannot disagree about
+    // what a new set looks like.
+    const SamplerData::SamplerSet defaults;
+
+    juce::ValueTree set (SamplerSet);
+    set.setProperty (id, existing, nullptr);
+    set.setProperty (samplerSetName, setName.isNotEmpty() ? setName
+                                                          : "Set " + juce::String (existing + 1), nullptr);
+    set.setProperty (samplerSetPlayMode, defaults.playMode, nullptr);
+    set.setProperty (samplerSetCells,    juce::String(), nullptr);
+    set.setProperty (samplerSetPosX,     defaults.posX, nullptr);
+    set.setProperty (samplerSetPosY,     defaults.posY, nullptr);
+    set.setProperty (samplerSetPosZ,     defaults.posZ, nullptr);
+    set.setProperty (samplerSetLevel,    defaults.level, nullptr);
+
+    set.setProperty (samplerSetPressLevelEnabled, defaults.pressLevel.enabled ? 1 : 0, nullptr);
+    set.setProperty (samplerSetPressLevelDir,     defaults.pressLevel.direction, nullptr);
+    set.setProperty (samplerSetPressLevelCurve,   defaults.pressLevel.curve, nullptr);
+
+    set.setProperty (samplerSetPressZEnabled, defaults.pressZ.enabled ? 1 : 0, nullptr);
+    set.setProperty (samplerSetPressZDir,     defaults.pressZ.direction, nullptr);
+    set.setProperty (samplerSetPressZCurve,   defaults.pressZ.curve, nullptr);
+
+    set.setProperty (samplerSetPressHFEnabled, defaults.pressHF.enabled ? 1 : 0, nullptr);
+    set.setProperty (samplerSetPressHFDir,     defaults.pressHF.direction, nullptr);
+    set.setProperty (samplerSetPressHFCurve,   defaults.pressHF.curve, nullptr);
+
+    set.setProperty (samplerSetPressXYEnabled, defaults.pressXYEnabled ? 1 : 0, nullptr);
+    set.setProperty (samplerSetPressXYScale,   defaults.pressXYScale, nullptr);
+
+    sampler.appendChild (set, nullptr);
+    return set;
+}
+
+bool WFSValueTreeState::removeInputSamplerSet (int channelIndex, int setIndex)
+{
+    auto set = getInputSamplerSet (channelIndex, setIndex);
+    if (! set.isValid())
+        return false;
+
+    auto sampler = getInputSamplerSection (channelIndex);
+    sampler.removeChild (set, nullptr);
+    return true;
 }
 
 juce::ValueTree WFSValueTreeState::getInputGradientShape (int channelIndex, int layerIndex, int shapeIndex)

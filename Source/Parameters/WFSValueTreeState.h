@@ -60,6 +60,10 @@ public:
     juce::ValueTree getStageState();
     juce::ValueTree getMasterState();
     juce::ValueTree getNetworkState();
+    /** The <UI> section: Stream Deck / Sampler / Lightpad toggles, the colour
+        scheme and the sampler controller mode. */
+    juce::ValueTree getUIState();
+
     juce::ValueTree getADMOSCState();
 
     /** One ADM-OSC mapping, by its `id` property rather than child position —
@@ -177,6 +181,20 @@ public:
         the nth SamplerSet child; this is that walk, once. A fresh input has no
         sets at all, so an invalid tree here means "no set at that index". */
     juce::ValueTree getInputSamplerSet (int channelIndex, int setIndex);
+
+    /** Append a sampler set to an input and return it, or an invalid tree when
+        the input has none or the 16-set ceiling is reached. Defaults come from
+        SamplerData::SamplerSet's own member initialisers, so this cannot drift
+        from what the Sampler tab creates. */
+    juce::ValueTree addInputSamplerSet (int channelIndex, const juce::String& setName);
+
+    /** Remove a sampler set by ORDINAL. Survivors are NOT renumbered — the id
+        property is already unreliable for that reason, and every consumer counts
+        positions. Returns false when there is no set at that index. */
+    bool removeInputSamplerSet (int channelIndex, int setIndex);
+
+    /** How many sampler sets an input currently has. */
+    int getNumInputSamplerSets (int channelIndex);
 
     //==========================================================================
     // Output Channel Access

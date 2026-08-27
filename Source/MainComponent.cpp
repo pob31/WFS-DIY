@@ -9,6 +9,7 @@
 #include "Accessibility/TTSManager.h"
 #include "Network/QLabCueBuilder.h"
 #include "Network/MCP/tools/ChannelLifecycleTools.h"
+#include "Network/MCP/MCPSurfaceAudit.h"
 #include "Controllers/DialsAndButtons/pages/InputsTabPages.h"
 #include "Controllers/DialsAndButtons/pages/GradientMapPages.h"
 #include "Controllers/DialsAndButtons/pages/NetworkTabPages.h"
@@ -2656,169 +2657,49 @@ void MainComponent::runMcpSurfaceSelfTest()
 {
     auto& vts = parameters.getValueTreeState();
     auto& log = WFSLogger::getInstance();
-
     auto logLine = [&log] (const juce::String& s) { log.logInfo (s); };
 
     logLine ("SELF-TEST begin (MCP surface writability)");
 
-    const auto manifest = findGeneratedToolsJson();
-    if (! manifest.existsAsFile())
+    const auto manifestFile = findGeneratedToolsJson();
+    if (! manifestFile.existsAsFile())
     {
-        logLine ("SELF-TEST SKIP M: generated_tools.json not found at " + manifest.getFullPathName());
+        logLine ("SELF-TEST SKIP M: generated_tools.json not found at "
+                 + manifestFile.getFullPathName());
         logLine ("SELF-TEST RESULT: SKIPPED");
         return;
     }
 
-    const auto parsed = juce::JSON::parse (manifest);
-    auto* root = parsed.getDynamicObject();
-    if (root == nullptr)
+    const auto parsed = juce::JSON::parse (manifestFile);
+    if (parsed.getDynamicObject() == nullptr)
     {
         logLine ("SELF-TEST FAIL M: manifest is not a JSON object");
         logLine ("SELF-TEST RESULT: FAIL");
         return;
     }
 
-    // A per-channel tool must be asked about a channel that actually EXISTS, or the
-    // answer is about the index rather than the parameter. A default session has no
-    // reverb channels at all, so asking about reverb slot 0 would indict every
-    // reverb parameter in the app. Where a kind has no live channels we skip and say
-    // so, rather than reporting a result the session cannot support.
-    const int firstInputNumber = vts.getNumInputChannels() > 0 ? vts.getInputChannelNumber (0) : 0;
-    const int numClusters      = WFSParameterDefaults::maxClusters;
+    // The audit itself lives in MCPSurfaceAudit.h, shared with the startup
+    // auditor so the two cannot drift apart about what counts as dead.
+    const auto result = WFSNetwork::SurfaceAudit::run (parsed, vts);
 
-    int checked = 0, dead = 0, skippedEq = 0, skippedTemplate = 0, skippedNoChannel = 0;
-    int skippedOverridden = 0;
-    juce::StringArray deadVariables;
-    juce::StringArray skippedKinds;
+    for (const auto& line : result.deadDetails)
+        logLine ("SELF-TEST FAIL M " + line);
 
-    auto walk = [&] (const juce::var& arr, const juce::String& label)
-    {
-        if (! arr.isArray())
-            return;
+    logLine ("SELF-TEST M: " + WFSNetwork::SurfaceAudit::summarise (result));
 
-        for (const auto& entry : *arr.getArray())
-        {
-            auto* obj = entry.getDynamicObject();
-            if (obj == nullptr)
-                continue;
-
-            const auto variable = obj->getProperty ("internal_variable").toString();
-            if (variable.isEmpty())
-            {
-                // Numeric-suffix families (inputArrayAtten1..10) are advertised under a
-                // "{array}" template that is not a property name; the concrete member is
-                // resolved at call time. Nothing to ask about here.
-                if (obj->getProperty ("internal_variable_template").toString().isNotEmpty())
-                    ++skippedTemplate;
-                continue;
-            }
-
-            const auto toolName = obj->getProperty ("name").toString();
-
-            // A manifest entry whose behaviour is supplied by a hand-written tool
-            // of the same name: the generated handler is overwritten at
-            // registration, so asking whether setParameter could carry the write
-            // is asking about code that never runs. The two input count tools call
-            // setInputChannelCounts directly, which is the whole reason they exist.
-            if (toolName == "system_i_o_set_input_channels"
-                || toolName == "system_i_o_set_stereo_input_channels")
-            {
-                ++skippedOverridden;
-                continue;
-            }
-
-            // Which argument carries the channel, and does the tool address
-            // something below it?
-            juce::String channelArg;
-            bool isEqBand = false;
-            bool hasSubIndex = false;
-            if (auto* params = obj->getProperty ("parameters").getDynamicObject())
-                if (auto* props = params->getProperty ("properties").getDynamicObject())
-                {
-                    isEqBand = props->hasProperty ("band");
-
-                    // A sub-index means the parameter lives deeper than one
-                    // channel index reaches, so the tool resolves the node itself
-                    // and writes it directly - setParameter is not on that path,
-                    // and asking canWriteParameter about it would be asking the
-                    // wrong question. These are covered by driving them over live
-                    // MCP instead; this counter is here so that is visible rather
-                    // than quietly assumed.
-                    for (const char* sub : { "band", "layer", "shape", "cell_id",
-                                             "set_id", "mapping", "axis", "target_id" })
-                        if (props->hasProperty (sub))
-                            { hasSubIndex = true; break; }
-
-                    // gmLayer0/1/2Enabled carry no index ARGUMENT because the
-                    // layer is baked into the name, but they are sub-tree routed
-                    // all the same - and they are not stored properties at all,
-                    // so canWriteParameter is doubly the wrong question.
-                    if (variable == "gmLayer0Enabled" || variable == "gmLayer1Enabled"
-                        || variable == "gmLayer2Enabled")
-                        hasSubIndex = true;
-                    for (const char* candidate : { "input_id", "output_id", "reverb_id", "cluster_id" })
-                        if (props->hasProperty (candidate))
-                            { channelArg = candidate; break; }
-                }
-
-            // Sub-tree tools (EQ bands, gradient layers and shapes, and the
-            // families still to come) write their node directly.
-            if (isEqBand || hasSubIndex)
-            {
-                ++skippedEq;
-                continue;
-            }
-
-            // How many channels of this kind does the session actually have?
-            const int liveOfKind = channelArg.isEmpty()      ? 1   // global: always askable
-                                 : channelArg == "input_id"  ? vts.getNumInputChannels()
-                                 : channelArg == "output_id" ? vts.getNumOutputChannels()
-                                 : channelArg == "reverb_id" ? vts.getNumReverbChannels()
-                                                             : numClusters;
-            if (liveOfKind <= 0)
-            {
-                ++skippedNoChannel;
-                skippedKinds.addIfNotAlreadyThere (channelArg);
-                continue;
-            }
-
-            const int channelIndex = channelArg.isEmpty() ? -1
-                                   : channelArg == "input_id"
-                                        ? vts.getSlotForChannelNumber (firstInputNumber)
-                                        : 0;
-
-            ++checked;
-            if (! vts.canWriteParameter (juce::Identifier (variable), channelIndex))
-            {
-                ++dead;
-                deadVariables.addIfNotAlreadyThere (variable);
-                logLine ("SELF-TEST FAIL M [" + label + "]: '" + toolName
-                         + "' advertises '" + variable + "' but no write can land");
-            }
-        }
-    };
-
-    walk (root->getProperty ("tools"),       "set");
-    walk (root->getProperty ("nudge_tools"), "nudge");
-
-    logLine ("SELF-TEST M: " + juce::String (checked) + " registrations checked, "
-             + juce::String (dead) + " unwritable ("
-             + juce::String (deadVariables.size()) + " distinct parameters); skipped: "
-             + juce::String (skippedEq) + " sub-tree routed, "
-             + juce::String (skippedTemplate) + " templated, "
-             + juce::String (skippedOverridden) + " hand-written override, "
-             + juce::String (skippedNoChannel) + " no live channel"
-             + (skippedKinds.isEmpty() ? juce::String()
-                                       : " (" + skippedKinds.joinIntoString (", ") + ")"));
-
-    if (skippedNoChannel > 0)
+    if (result.skippedNoChannel > 0)
         logLine ("SELF-TEST M: NOTE - this session has no channels of some kinds, so those "
                  "parameters were not judged. Re-run with a project that has them.");
+    if (result.skippedSubTree > 0)
+        logLine ("SELF-TEST M: NOTE - sub-tree routed tools resolve their own node, so this "
+                 "check cannot speak for them. They are covered by driving them over MCP.");
 
-    if (dead > 0)
-        logLine ("SELF-TEST M: distinct unwritable parameters: " + deadVariables.joinIntoString (", "));
+    if (result.deadCount() > 0)
+        logLine ("SELF-TEST M: distinct unwritable parameters: "
+                 + result.deadVariables.joinIntoString (", "));
 
-    logLine (dead == 0 ? "SELF-TEST RESULT: ALL PASS" : "SELF-TEST RESULT: FAIL");
+    logLine (result.deadCount() == 0 ? "SELF-TEST RESULT: ALL PASS"
+                                     : "SELF-TEST RESULT: FAIL");
 }
 
 void MainComponent::runChannelListSelfTest()

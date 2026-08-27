@@ -4,13 +4,45 @@ namespace WFSNetwork
 {
 
 MCPOSCQueryAuditor::MCPOSCQueryAuditor (MCPLogger& logger,
+                                        WFSValueTreeState& state,
                                         juce::File generatedJson,
                                         juce::String url)
     : juce::Thread ("MCPOSCQueryAuditor"),
       mcpLogger (logger),
+      valueTreeState (state),
       generatedToolsJson (std::move (generatedJson)),
       oscQueryUrl (std::move (url))
 {
+}
+
+void MCPOSCQueryAuditor::addChannelStrippedForms (std::set<juce::String>& paths)
+{
+    // OSCQuery publishes /wfs/input/1/attenuation; the manifest declares
+    // /wfs/input/attenuation, because the channel is an ARGUMENT there rather
+    // than part of the address. Index the live set both ways so the comparison
+    // is between like and like - without this every per-channel tool reads as
+    // drift, and the real drift drowns.
+    std::set<juce::String> extra;
+    for (const auto& path : paths)
+    {
+        auto parts = juce::StringArray::fromTokens (path, "/", "");
+        parts.removeEmptyStrings();
+        if (parts.size() < 3)
+            continue;
+
+        // Drop a purely numeric segment anywhere in the path.
+        juce::StringArray kept;
+        bool dropped = false;
+        for (const auto& part : parts)
+        {
+            if (! dropped && part.containsOnly ("0123456789") && part.isNotEmpty())
+                { dropped = true; continue; }
+            kept.add (part);
+        }
+        if (dropped && ! kept.isEmpty())
+            extra.insert ("/" + kept.joinIntoString ("/"));
+    }
+    paths.insert (extra.begin(), extra.end());
 }
 
 MCPOSCQueryAuditor::~MCPOSCQueryAuditor()
@@ -106,6 +138,7 @@ void MCPOSCQueryAuditor::run()
 
     std::set<juce::String> liveTreePaths;
     collectPaths (tree, "/", liveTreePaths);
+    addChannelStrippedForms (liveTreePaths);
 
     if (liveTreePaths.empty())
     {
@@ -158,9 +191,9 @@ void MCPOSCQueryAuditor::run()
             if (loggedMissing < kMaxDriftLogsPerRun)
             {
                 const auto toolName = entryObj->getProperty ("name").toString();
-                mcpLogger.logError ("OSCQuery drift: tool '" + toolName
-                                     + "' declares " + path
-                                     + " but no OSCQuery node exists");
+                mcpLogger.logInfo ("OSCQuery: tool '" + toolName
+                                    + "' declares " + path
+                                    + " but no OSCQuery node exists");
                 ++loggedMissing;
             }
         }
@@ -169,18 +202,41 @@ void MCPOSCQueryAuditor::run()
     checkArray (generatedObj->getProperty ("tools"));
     checkArray (generatedObj->getProperty ("nudge_tools"));
 
-    if (totalMissing == 0)
+    // Informational, not an error, and that is a correction rather than a
+    // softening. `internal_osc_path` is a convention string the generator
+    // synthesises; it is never validated against OSCMessageRouter, and whole
+    // namespaces (/wfs/cluster, /wfs/network) have no OSCQuery subtree at all.
+    // More to the point, an MCP call sends no OSC packet - it writes the
+    // ValueTree directly - so a missing path has never been the reason an MCP
+    // tool failed. What it does tell you is that the parameter has no OSC or
+    // OSCQuery route, which matters to an OSC client and not to this one. The
+    // writability check below is the one that finds broken tools.
+    mcpLogger.logInfo ("OSCQuery audit: " + juce::String (totalChecked)
+                        + " tool paths checked, " + juce::String (totalMissing)
+                        + " with no OSCQuery node (informational: these are "
+                          "MCP-reachable but have no OSC route; showed first "
+                        + juce::String (loggedMissing) + ")");
+
+    // Second, independent check. Path presence says nothing about whether the
+    // app can STORE the parameter: a node can be published and the write still
+    // dropped, which is exactly how a quarter of this surface went inert. Shared
+    // with the WFS_TEST_MCP_SURFACE self-test so the two cannot disagree.
+    const auto surface = SurfaceAudit::run (generated, valueTreeState);
+
+    int loggedDead = 0;
+    for (const auto& line : surface.deadDetails)
     {
-        mcpLogger.logInfo ("OSCQuery audit: " + juce::String (totalChecked)
-                            + " tool paths checked, 0 missing");
+        if (loggedDead >= kMaxDriftLogsPerRun)
+            break;
+        mcpLogger.logError ("MCP surface: " + line);
+        ++loggedDead;
     }
+
+    if (surface.deadCount() == 0)
+        mcpLogger.logInfo ("MCP surface: " + SurfaceAudit::summarise (surface));
     else
-    {
-        mcpLogger.logInfo ("OSCQuery audit: " + juce::String (totalChecked)
-                            + " tool paths checked, " + juce::String (totalMissing)
-                            + " missing in live tree (showed first "
-                            + juce::String (loggedMissing) + ")");
-    }
+        mcpLogger.logError ("MCP surface: " + SurfaceAudit::summarise (surface)
+                             + " (showed first " + juce::String (loggedDead) + ")");
 }
 
 } // namespace WFSNetwork

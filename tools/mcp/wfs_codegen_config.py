@@ -429,11 +429,12 @@ SUB_INDEX_RULES = [
             "samplerSetPressXYScale",
         ],
         "args": [
-            {"name": "set_id", "min": 0, "max": 15,
-             "description": "Sampler set index (0-based, in the order the sets "
-                            "appear). An input starts with NO sets - they are "
-                            "created in the Sampler tab - so this fails until "
-                            "one exists."},
+            {"name": "set_id", "min": 1, "max": 16,
+             "description": "Sampler set number (1-16, in the order the sets "
+                            "appear) - the same numbering as the Sampler tab "
+                            "dropdown, the OSC samplerSet address and QLab cues. "
+                            "An input starts with NO sets - they are created in "
+                            "the Sampler tab - so this fails until one exists."},
         ],
     },
     # --- Network targets: 6 slots, each a <Target> child of <Network> -------
@@ -451,6 +452,25 @@ SUB_INDEX_RULES = [
         ],
     },
 ]
+
+# Rows that sit in a per-channel CSV for editorial reasons but describe ONE
+# global value. reverbsMapVisible is a Header-section display toggle stored on
+# Config/Master; being in WFS-UI_reverb.csv earned it a reverb_id argument that
+# the write then ignores, so a caller had to pass an index that meant nothing.
+GLOBAL_ROWS_IN_CHANNEL_CSVS = [
+    {
+        "csv_file": "WFS-UI_reverb.csv",
+        "variables": ["reverbsMapVisible"],
+    },
+]
+
+# Ramping is an OSC capability. The CSV's OSC-optional-value column describes
+# what the OSC ADDRESS accepts, and the generator used to copy that promise onto
+# the MCP tool - 44 of them advertised `transition_seconds` and documented
+# "smooth interpolation", while the MCP dispatch has no ramper at all and jumped
+# instantly. MCP round-trips are not timed tightly enough for a fade to mean
+# much anyway, so the honest answer is not to offer one.
+EMIT_TRANSITION_SECONDS = False
 
 # Coordinate-system suffixes stripped from Section before computing
 # group_key / tool names ("Position (Cylindrical)" -> "Position").

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "127d92fc9a75da48300fc28fe1d96792c12b6aef6c68c62854a7337db2ac6d6d",
+  "input_hash": "77aeb681587fff7132f61a8f59752e28551c978a5cd87fac1e95d019c80fef48",
   "source_csvs": [
     "WFS-UI_config.csv",
     "WFS-UI_input.csv",
@@ -1071,7 +1071,7 @@
     },
     {
       "name": "input_attenuation_set_common_attenuation",
-      "description": "Percentage of the Common Part of the Attenuation for selected Object Relative to All Outputs. Value in %. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
+      "description": "Percentage of the Common Part of the Attenuation for selected Object Relative to All Outputs. Value in %. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -1087,13 +1087,6 @@
             "maximum": 100,
             "description": "Common Attenuation %.",
             "default": 100
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           },
           "confirm": {
             "type": "string",
@@ -1118,7 +1111,7 @@
     },
     {
       "name": "input_attenuation_set_distance_attenuation",
-      "description": "Attenuation per Meter Between Object and Speaker. Value in dB/m. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Attenuation per Meter Between Object and Speaker. Value in dB/m. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -1134,13 +1127,6 @@
             "maximum": 0.0,
             "description": "Distance Attenuation dB/m.",
             "default": -0.7
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -1161,7 +1147,7 @@
     },
     {
       "name": "input_attenuation_set_distance_ratio",
-      "description": "Attenuation Ratio for Squared Model. Value in x. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Attenuation Ratio for Squared Model. Value in x. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -1177,13 +1163,6 @@
             "maximum": 10.0,
             "description": "Distance Ratio x.",
             "default": 1.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -1926,7 +1905,7 @@
     },
     {
       "name": "input_delay_set_latency",
-      "description": "Input Channel Delay (positive values) or Latency Compensation (negative values). Value in ms. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
+      "description": "Input Channel Delay (positive values) or Latency Compensation (negative values). Value in ms. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -1942,13 +1921,6 @@
             "maximum": 100.0,
             "description": "Delay/Latency comp. ms.",
             "default": 0.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           },
           "confirm": {
             "type": "string",
@@ -2010,7 +1982,7 @@
     },
     {
       "name": "input_directivity_set_hf_shelf",
-      "description": "How Much Brightness is lost in the Back of the Object, Out of its Brightness Cone. Value in dB. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "How Much Brightness is lost in the Back of the Object, Out of its Brightness Cone. Value in dB. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -2026,13 +1998,6 @@
             "maximum": 0.0,
             "description": "HF Shelf dB.",
             "default": -6.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -2053,7 +2018,7 @@
     },
     {
       "name": "input_directivity_set_rotation",
-      "description": "Source horizontal facing direction in degrees (integer). 0 = facing audience (-Y), 90 = facing stage right (+X), 180 = facing upstage (+Y), -179 = facing stage left (-X). Positive = counter-clockwise viewed from above. Range -179 to 180. Drives the source's directivity / brightness cone. Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Source horizontal facing direction in degrees (integer). 0 = facing audience (-Y), 90 = facing stage right (+X), 180 = facing upstage (+Y), -179 = facing stage left (-X). Positive = counter-clockwise viewed from above. Range -179 to 180. Drives the source's directivity / brightness cone. Value in °. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -2069,13 +2034,6 @@
             "maximum": 180,
             "description": "Rotation °.",
             "default": 0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -2096,7 +2054,7 @@
     },
     {
       "name": "input_directivity_set_tilt",
-      "description": "Source vertical facing direction in degrees (integer). 0 = horizontal, +90 = pointing straight up (+Z), -90 = pointing straight down (-Z). Positive = upward tilt. Range -90 to 90. Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Source vertical facing direction in degrees (integer). 0 = horizontal, +90 = pointing straight up (+Z), -90 = pointing straight down (-Z). Positive = upward tilt. Range -90 to 90. Value in °. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -2112,13 +2070,6 @@
             "maximum": 90,
             "description": "Tilt °.",
             "default": 0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -2287,7 +2238,7 @@
     },
     {
       "name": "input_floor_reflections_set_attenuation",
-      "description": "Attenuation of the Simulated Floor Reflections for the Object. Value in dB. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
+      "description": "Attenuation of the Simulated Floor Reflections for the Object. Value in dB. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -2303,13 +2254,6 @@
             "maximum": 0.0,
             "description": "Attenuation dB.",
             "default": -3.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           },
           "confirm": {
             "type": "string",
@@ -2334,7 +2278,7 @@
     },
     {
       "name": "input_floor_reflections_set_diffusion",
-      "description": "Diffusion Effect of the Simulated Floor Reflections for the Object. Value in %. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Diffusion Effect of the Simulated Floor Reflections for the Object. Value in %. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -2350,13 +2294,6 @@
             "maximum": 100,
             "description": "Diffusion %.",
             "default": 20
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -2414,7 +2351,7 @@
     },
     {
       "name": "input_floor_reflections_set_high_shelf_frequency",
-      "description": "Frequency of the High Shelf Filter on the Simulated Floor Reflections for the Object. Value in Hz. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Frequency of the High Shelf Filter on the Simulated Floor Reflections for the Object. Value in Hz. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -2430,13 +2367,6 @@
             "maximum": 20000,
             "description": "High Shelf Freq Hz.",
             "default": 3000
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -2457,7 +2387,7 @@
     },
     {
       "name": "input_floor_reflections_set_high_shelf_gain",
-      "description": "Attenuation of the High Shelf Filter on the Simulated Floor Reflections for the Object. Value in dB. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Attenuation of the High Shelf Filter on the Simulated Floor Reflections for the Object. Value in dB. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -2473,13 +2403,6 @@
             "maximum": 0.0,
             "description": "High Shelf Gain dB.",
             "default": -2.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -2500,7 +2423,7 @@
     },
     {
       "name": "input_floor_reflections_set_high_shelf_slope",
-      "description": "Slope of the High Shelf Filter on the Simulated Floor Reflections for the Object. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Slope of the High Shelf Filter on the Simulated Floor Reflections for the Object. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -2516,13 +2439,6 @@
             "maximum": 0.9,
             "description": "High Shelf Slope.",
             "default": 0.4
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -2580,7 +2496,7 @@
     },
     {
       "name": "input_floor_reflections_set_low_cut_frequency",
-      "description": "Frequency of the Low Cut Filter on the Simulated Floor Reflections for the Object. Value in Hz. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Frequency of the Low Cut Filter on the Simulated Floor Reflections for the Object. Value in Hz. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -2596,13 +2512,6 @@
             "maximum": 20000,
             "description": "Low Cut Freq Hz.",
             "default": 100
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -3406,7 +3315,7 @@
     },
     {
       "name": "input_lfo_set_amplitude_x",
-      "description": "Width of Movement in Relation to Base Position of the Object. Value in m. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Width of Movement in Relation to Base Position of the Object. Value in m. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -3422,13 +3331,6 @@
             "maximum": 50.0,
             "description": "Amplitude X m.",
             "default": 1.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -3449,7 +3351,7 @@
     },
     {
       "name": "input_lfo_set_amplitude_y",
-      "description": "Depth of Movement in Relation to Base Position of the Object. Value in m. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Depth of Movement in Relation to Base Position of the Object. Value in m. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -3465,13 +3367,6 @@
             "maximum": 50.0,
             "description": "Amplitude Y m.",
             "default": 1.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -3492,7 +3387,7 @@
     },
     {
       "name": "input_lfo_set_amplitude_z",
-      "description": "Height of Movement in Relation to Base Position of the Object. Value in m. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Height of Movement in Relation to Base Position of the Object. Value in m. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -3508,13 +3403,6 @@
             "maximum": 50.0,
             "description": "Amplitude Z m.",
             "default": 1.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -3573,7 +3461,7 @@
     },
     {
       "name": "input_lfo_set_period",
-      "description": "Base Period of the Movement of the Object. Value in s. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Base Period of the Movement of the Object. Value in s. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -3589,13 +3477,6 @@
             "maximum": 100.0,
             "description": "Period s.",
             "default": 5.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -3616,7 +3497,7 @@
     },
     {
       "name": "input_lfo_set_phase",
-      "description": "Global LFO phase offset for this source in degrees, range -180 to 180. 0 = start of cycle, 90 = quarter-cycle in. Combined additively with the per-axis phase (LFOphaseX/Y/Z). Values sent in the legacy 0-360 convention are wrapped to the equivalent angle. Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Global LFO phase offset for this source in degrees, range -180 to 180. 0 = start of cycle, 90 = quarter-cycle in. Combined additively with the per-axis phase (LFOphaseX/Y/Z). Values sent in the legacy 0-360 convention are wrapped to the equivalent angle. Value in °. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -3632,13 +3513,6 @@
             "maximum": 180,
             "description": "Phase °.",
             "default": 0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -3659,7 +3533,7 @@
     },
     {
       "name": "input_lfo_set_phase_x",
-      "description": "X-axis (width) LFO phase offset for this source in degrees, range -180 to 180. Stacks on top of the global LFOphase. Use to desync axes. Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "X-axis (width) LFO phase offset for this source in degrees, range -180 to 180. Stacks on top of the global LFOphase. Use to desync axes. Value in °. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -3675,13 +3549,6 @@
             "maximum": 180,
             "description": "Phase X °.",
             "default": 0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -3702,7 +3569,7 @@
     },
     {
       "name": "input_lfo_set_phase_y",
-      "description": "Y-axis (depth) LFO phase offset for this source in degrees, range -180 to 180. Stacks on top of the global LFOphase. Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Y-axis (depth) LFO phase offset for this source in degrees, range -180 to 180. Stacks on top of the global LFOphase. Value in °. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -3718,13 +3585,6 @@
             "maximum": 180,
             "description": "Phase Y °.",
             "default": 0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -3745,7 +3605,7 @@
     },
     {
       "name": "input_lfo_set_phase_z",
-      "description": "Z-axis (height) LFO phase offset for this source in degrees, range -180 to 180. Stacks on top of the global LFOphase. Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Z-axis (height) LFO phase offset for this source in degrees, range -180 to 180. Stacks on top of the global LFOphase. Value in °. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -3761,13 +3621,6 @@
             "maximum": 180,
             "description": "Phase Z °.",
             "default": 0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -3788,7 +3641,7 @@
     },
     {
       "name": "input_lfo_set_rate_x",
-      "description": "Faster or Slower Movement in Relation to Base Period in Width. Value in x. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Faster or Slower Movement in Relation to Base Period in Width. Value in x. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -3804,13 +3657,6 @@
             "maximum": 100.0,
             "description": "Rate X x.",
             "default": 1.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -3831,7 +3677,7 @@
     },
     {
       "name": "input_lfo_set_rate_y",
-      "description": "Faster or Slower Movement in Relation to Base Period in Depth. Value in x. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Faster or Slower Movement in Relation to Base Period in Depth. Value in x. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -3847,13 +3693,6 @@
             "maximum": 100.0,
             "description": "Rate Y x.",
             "default": 1.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -3874,7 +3713,7 @@
     },
     {
       "name": "input_lfo_set_rate_z",
-      "description": "Faster or Slower Movement in Relation to Base Period in Height. Value in x. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Faster or Slower Movement in Relation to Base Period in Height. Value in x. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -3890,13 +3729,6 @@
             "maximum": 100.0,
             "description": "Rate Z x.",
             "default": 1.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -4089,7 +3921,7 @@
     },
     {
       "name": "input_live_source_tamer_set_live_source_attenuation",
-      "description": "Constant Attenuation of Speakers Around the Object. Value in dB. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Constant Attenuation of Speakers Around the Object. Value in dB. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -4105,13 +3937,6 @@
             "maximum": 0.0,
             "description": "Attenuation dB.",
             "default": 0.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -4132,7 +3957,7 @@
     },
     {
       "name": "input_live_source_tamer_set_live_source_peak_ratio",
-      "description": "Ratio to Apply the the Fast Compression for Speakers Around the Object to Control Transients. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Ratio to Apply the the Fast Compression for Speakers Around the Object to Control Transients. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -4148,13 +3973,6 @@
             "maximum": 10.0,
             "description": "Peak Ratio.",
             "default": 2.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -4175,7 +3993,7 @@
     },
     {
       "name": "input_live_source_tamer_set_live_source_peak_threshold",
-      "description": "Fast Compression Threshold for Speakers Around the Object to Control Transients. Value in dB. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Fast Compression Threshold for Speakers Around the Object to Control Transients. Value in dB. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -4191,13 +4009,6 @@
             "maximum": 0.0,
             "description": "Peak Threshold dB.",
             "default": -20.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -4218,7 +4029,7 @@
     },
     {
       "name": "input_live_source_tamer_set_live_source_radius",
-      "description": "How Far does the Attenuation Affect The Speakers. Value in m. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "How Far does the Attenuation Affect The Speakers. Value in m. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -4234,13 +4045,6 @@
             "maximum": 50.0,
             "description": "Radius m.",
             "default": 3.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -4301,7 +4105,7 @@
     },
     {
       "name": "input_live_source_tamer_set_live_source_slow_ratio",
-      "description": "Ratio to Apply the the Slow Compression for Speakers Around the Object to Control Sustained Level. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Ratio to Apply the the Slow Compression for Speakers Around the Object to Control Sustained Level. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -4317,13 +4121,6 @@
             "maximum": 10.0,
             "description": "Slow Ratio.",
             "default": 2.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -4344,7 +4141,7 @@
     },
     {
       "name": "input_live_source_tamer_set_live_source_slow_threshold",
-      "description": "Slow Compression Threshold for Speakers Around the Object to Control Sustained Level. Value in dB. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Slow Compression Threshold for Speakers Around the Object to Control Sustained Level. Value in dB. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -4360,13 +4157,6 @@
             "maximum": 0.0,
             "description": "Slow Threshold dB.",
             "default": -20.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -4608,7 +4398,7 @@
     },
     {
       "name": "input_position_set_offset_x",
-      "description": "Object Position Offset in Width. Adjusted when Tracking is Enabled. Value in m. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Object Position Offset in Width. Adjusted when Tracking is Enabled. Value in m. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -4624,13 +4414,6 @@
             "maximum": 50.0,
             "description": "Offset X m.",
             "default": 0.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -4651,7 +4434,7 @@
     },
     {
       "name": "input_position_set_offset_y",
-      "description": "Object Position Offset in Depth. Adjusted when Tracking is Enabled. Value in m. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Object Position Offset in Depth. Adjusted when Tracking is Enabled. Value in m. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -4667,13 +4450,6 @@
             "maximum": 50.0,
             "description": "Offset Y m.",
             "default": 0.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -4694,7 +4470,7 @@
     },
     {
       "name": "input_position_set_offset_z",
-      "description": "Object Position Offset in Height. Adjusted when Tracking is Enabled. Value in m. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Object Position Offset in Height. Adjusted when Tracking is Enabled. Value in m. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -4710,13 +4486,6 @@
             "maximum": 50.0,
             "description": "Offset Z m.",
             "default": 0.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -4737,7 +4506,7 @@
     },
     {
       "name": "input_position_set_x",
-      "description": "Object Position in Width. Nudge with Left and Right Arrow Keys. Value in m. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Object Position in Width. Nudge with Left and Right Arrow Keys. Value in m. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -4752,13 +4521,6 @@
             "minimum": -50.0,
             "maximum": 50.0,
             "description": "Position X m."
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -4779,7 +4541,7 @@
     },
     {
       "name": "input_position_set_y",
-      "description": "Object Position in Depth. Nudge with Up and Down Arrow Keys. Value in m. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Object Position in Depth. Nudge with Up and Down Arrow Keys. Value in m. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -4794,13 +4556,6 @@
             "minimum": -50.0,
             "maximum": 50.0,
             "description": "Position Y m."
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -4821,7 +4576,7 @@
     },
     {
       "name": "input_position_set_z",
-      "description": "Object Position in Height. Nudge with Page Up and Page Down Keys. Value in m. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Object Position in Height. Nudge with Page Up and Page Down Keys. Value in m. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -4837,13 +4592,6 @@
             "maximum": 50.0,
             "description": "Position Z m.",
             "default": 1.5
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -4939,7 +4687,7 @@
     },
     {
       "name": "input_sampler_set_active_set",
-      "description": "Select the active Sampler Set for this input. Enum: (dynamic: list of user-created sets). Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Select the active Sampler Set for this input. Enum: Which of the input's sampler sets is active. ONE-BASED, matching the Sampler tab dropdown, the OSC /wfs/input/samplerSet address and QLab cues; stored zero-based internally. (dynamic: list of user-created sets). Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -4950,10 +4698,13 @@
             "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
           },
           "value": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "Active Set.",
-            "default": 0
+            "type": "string",
+            "enum": [
+              "WhichoftheinputssamplersetsisactiveONEBASEDmatchingtheSamplertabdropdowntheOSCwfsinputsamplerSetaddressandQLabcues",
+              "storedzerobasedinternallydynamiclistofusercreatedsets"
+            ],
+            "description": "Active Set (enum).",
+            "default": "storedzerobasedinternallydynamiclistofusercreatedsets"
           }
         },
         "required": [
@@ -5376,9 +5127,9 @@
           },
           "set_id": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 15,
-            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Sampler set number (1-16, in the order the sets appear) - the same numbering as the Sampler tab dropdown, the OSC samplerSet address and QLab cues. An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
           },
           "value": {
             "type": "number",
@@ -5424,9 +5175,9 @@
           },
           "set_id": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 15,
-            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Sampler set number (1-16, in the order the sets appear) - the same numbering as the Sampler tab dropdown, the OSC samplerSet address and QLab cues. An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
           },
           "name": {
             "type": "string",
@@ -5464,9 +5215,9 @@
           },
           "set_id": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 15,
-            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Sampler set number (1-16, in the order the sets appear) - the same numbering as the Sampler tab dropdown, the OSC samplerSet address and QLab cues. An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
           },
           "mode": {
             "type": "string",
@@ -5510,9 +5261,9 @@
           },
           "set_id": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 15,
-            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Sampler set number (1-16, in the order the sets appear) - the same numbering as the Sampler tab dropdown, the OSC samplerSet address and QLab cues. An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
           },
           "value": {
             "type": "number",
@@ -5554,9 +5305,9 @@
           },
           "set_id": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 15,
-            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Sampler set number (1-16, in the order the sets appear) - the same numbering as the Sampler tab dropdown, the OSC samplerSet address and QLab cues. An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
           },
           "value": {
             "type": "number",
@@ -5598,9 +5349,9 @@
           },
           "set_id": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 15,
-            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Sampler set number (1-16, in the order the sets appear) - the same numbering as the Sampler tab dropdown, the OSC samplerSet address and QLab cues. An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
           },
           "value": {
             "type": "number",
@@ -5642,9 +5393,9 @@
           },
           "set_id": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 15,
-            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Sampler set number (1-16, in the order the sets appear) - the same numbering as the Sampler tab dropdown, the OSC samplerSet address and QLab cues. An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
           },
           "value": {
             "type": "number",
@@ -5686,9 +5437,9 @@
           },
           "set_id": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 15,
-            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Sampler set number (1-16, in the order the sets appear) - the same numbering as the Sampler tab dropdown, the OSC samplerSet address and QLab cues. An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
           },
           "value": {
             "type": "string",
@@ -5731,9 +5482,9 @@
           },
           "set_id": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 15,
-            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Sampler set number (1-16, in the order the sets appear) - the same numbering as the Sampler tab dropdown, the OSC samplerSet address and QLab cues. An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
           },
           "value": {
             "type": "string",
@@ -5776,9 +5527,9 @@
           },
           "set_id": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 15,
-            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Sampler set number (1-16, in the order the sets appear) - the same numbering as the Sampler tab dropdown, the OSC samplerSet address and QLab cues. An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
           },
           "value": {
             "type": "number",
@@ -5820,9 +5571,9 @@
           },
           "set_id": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 15,
-            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Sampler set number (1-16, in the order the sets appear) - the same numbering as the Sampler tab dropdown, the OSC samplerSet address and QLab cues. An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
           },
           "value": {
             "type": "string",
@@ -5865,9 +5616,9 @@
           },
           "set_id": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 15,
-            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Sampler set number (1-16, in the order the sets appear) - the same numbering as the Sampler tab dropdown, the OSC samplerSet address and QLab cues. An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
           },
           "value": {
             "type": "string",
@@ -5910,9 +5661,9 @@
           },
           "set_id": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 15,
-            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Sampler set number (1-16, in the order the sets appear) - the same numbering as the Sampler tab dropdown, the OSC samplerSet address and QLab cues. An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
           },
           "value": {
             "type": "string",
@@ -5955,9 +5706,9 @@
           },
           "set_id": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 15,
-            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Sampler set number (1-16, in the order the sets appear) - the same numbering as the Sampler tab dropdown, the OSC samplerSet address and QLab cues. An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
           },
           "value": {
             "type": "number",
@@ -5999,9 +5750,9 @@
           },
           "set_id": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 15,
-            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Sampler set number (1-16, in the order the sets appear) - the same numbering as the Sampler tab dropdown, the OSC samplerSet address and QLab cues. An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
           },
           "value": {
             "type": "number",
@@ -6043,9 +5794,9 @@
           },
           "set_id": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 15,
-            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Sampler set number (1-16, in the order the sets appear) - the same numbering as the Sampler tab dropdown, the OSC samplerSet address and QLab cues. An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
           },
           "value": {
             "type": "string",
@@ -6088,9 +5839,9 @@
           },
           "set_id": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 15,
-            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Sampler set number (1-16, in the order the sets appear) - the same numbering as the Sampler tab dropdown, the OSC samplerSet address and QLab cues. An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
           },
           "value": {
             "type": "string",
@@ -6121,7 +5872,7 @@
     },
     {
       "name": "input_set_array_attenuation",
-      "description": "Per-Array Attenuation for Array 1. Dimmed if Array has No Outputs Assigned. Value in dB. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
+      "description": "Per-Array Attenuation for Array 1. Dimmed if Array has No Outputs Assigned. Value in dB. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -6143,13 +5894,6 @@
             "maximum": 0.0,
             "description": "Array 1 Attenuation dB.",
             "default": 0.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           },
           "confirm": {
             "type": "string",
@@ -6174,7 +5918,7 @@
     },
     {
       "name": "input_set_attenuation",
-      "description": "Input Channel Attenuation. Value in dB. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
+      "description": "Input Channel Attenuation. Value in dB. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -6190,13 +5934,6 @@
             "maximum": 0.0,
             "description": "Attenuation dB.",
             "default": 0.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           },
           "confirm": {
             "type": "string",
@@ -6267,7 +6004,7 @@
     },
     {
       "name": "input_set_directivity",
-      "description": "How Wide is the Brightness of The Object. Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "How Wide is the Brightness of The Object. Value in °. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -6283,13 +6020,6 @@
             "maximum": 360,
             "description": "Directivity °.",
             "default": 360
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -6310,7 +6040,7 @@
     },
     {
       "name": "input_set_height_factor",
-      "description": "Take Elevation of Object into Account Fully, Partially or Not. Value in %. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Take Elevation of Object into Account Fully, Partially or Not. Value in %. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -6326,13 +6056,6 @@
             "maximum": 100,
             "description": "Height Factor %.",
             "default": 100
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -6353,7 +6076,7 @@
     },
     {
       "name": "input_set_jitter",
-      "description": "Sphere of Rapid Movements of the Object. Value in m. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Sphere of Rapid Movements of the Object. Value in m. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -6369,13 +6092,6 @@
             "maximum": 10.0,
             "description": "Jitter m.",
             "default": 0.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -6396,7 +6112,7 @@
     },
     {
       "name": "input_set_max_speed",
-      "description": "Maximum Speed Limit for Object. Value in m/s. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Maximum Speed Limit for Object. Value in m/s. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -6412,13 +6128,6 @@
             "maximum": 20.0,
             "description": "Max Speed m/s.",
             "default": 1.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           }
         },
         "required": [
@@ -6580,7 +6289,7 @@
     },
     {
       "name": "input_stereo_set_axis_offset",
-      "description": "Rotate the stereo axis away from its automatic orientation. 0 = automatic (perpendicular to the origin-to-source line), +/-180 swaps left and right. Positive = counter-clockwise viewed from above. On the dial, 0° points to the bottom and negative values rotate clockwise onto the left half. Value in °. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
+      "description": "Rotate the stereo axis away from its automatic orientation. 0 = automatic (perpendicular to the origin-to-source line), +/-180 swaps left and right. Positive = counter-clockwise viewed from above. On the dial, 0° points to the bottom and negative values rotate clockwise onto the left half. Value in °. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -6596,13 +6305,6 @@
             "maximum": 180,
             "description": "Axis °.",
             "default": 0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           },
           "confirm": {
             "type": "string",
@@ -6626,7 +6328,7 @@
     },
     {
       "name": "input_stereo_set_width",
-      "description": "Physical distance in metres between the pair's left and right legs; the channel position stays the centre. 0 m collapses the pair to a point source. Legs placed outside the array will not focus. Value in m. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
+      "description": "Physical distance in metres between the pair's left and right legs; the channel position stays the centre. 0 m collapses the pair to a point source. Legs placed outside the array will not focus. Value in m. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -6642,13 +6344,6 @@
             "maximum": 50.0,
             "description": "Width m.",
             "default": 4.0
-          },
-          "transition_seconds": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 600.0,
-            "default": 0.0,
-            "description": "Time to transition to the new value. 0 means instant."
           },
           "confirm": {
             "type": "string",
@@ -10436,16 +10131,10 @@
     },
     {
       "name": "reverb_header_set_reverbs_map_visible",
-      "description": "Show or hide reverb markers on the Map tab. Enum: OFF ; ON. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Show or hide reverb markers on the Map tab. Enum: OFF ; ON.",
       "parameters": {
         "type": "object",
         "properties": {
-          "reverb_id": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 32,
-            "description": "Reverb channel number (1-based)."
-          },
           "value": {
             "type": "string",
             "enum": [
@@ -10457,7 +10146,6 @@
           }
         },
         "required": [
-          "reverb_id",
           "value"
         ]
       },
@@ -14971,9 +14659,9 @@
           },
           "set_id": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 15,
-            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Sampler set number (1-16, in the order the sets appear) - the same numbering as the Sampler tab dropdown, the OSC samplerSet address and QLab cues. An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
           },
           "confirm": {
             "type": "string",
@@ -15024,9 +14712,9 @@
           },
           "set_id": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 15,
-            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Sampler set number (1-16, in the order the sets appear) - the same numbering as the Sampler tab dropdown, the OSC samplerSet address and QLab cues. An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
           },
           "direction": {
             "type": "string",
@@ -15073,9 +14761,9 @@
           },
           "set_id": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 15,
-            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Sampler set number (1-16, in the order the sets appear) - the same numbering as the Sampler tab dropdown, the OSC samplerSet address and QLab cues. An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
           },
           "direction": {
             "type": "string",
@@ -15122,9 +14810,9 @@
           },
           "set_id": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 15,
-            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Sampler set number (1-16, in the order the sets appear) - the same numbering as the Sampler tab dropdown, the OSC samplerSet address and QLab cues. An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
           },
           "direction": {
             "type": "string",
@@ -15171,9 +14859,9 @@
           },
           "set_id": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 15,
-            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Sampler set number (1-16, in the order the sets appear) - the same numbering as the Sampler tab dropdown, the OSC samplerSet address and QLab cues. An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
           },
           "direction": {
             "type": "string",
@@ -15220,9 +14908,9 @@
           },
           "set_id": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 15,
-            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Sampler set number (1-16, in the order the sets appear) - the same numbering as the Sampler tab dropdown, the OSC samplerSet address and QLab cues. An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
           },
           "direction": {
             "type": "string",
@@ -15269,9 +14957,9 @@
           },
           "set_id": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 15,
-            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Sampler set number (1-16, in the order the sets appear) - the same numbering as the Sampler tab dropdown, the OSC samplerSet address and QLab cues. An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
           },
           "direction": {
             "type": "string",
@@ -15318,9 +15006,9 @@
           },
           "set_id": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 15,
-            "description": "Sampler set index (0-based, in the order the sets appear). An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Sampler set number (1-16, in the order the sets appear) - the same numbering as the Sampler tab dropdown, the OSC samplerSet address and QLab cues. An input starts with NO sets - they are created in the Sampler tab - so this fails until one exists."
           },
           "direction": {
             "type": "string",

@@ -178,6 +178,12 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     registry->registerTool (Tools::ChannelLifecycle::describeSetCount (state, false, &channelTopologyChanged));
     registry->registerTool (Tools::ChannelLifecycle::describeSetCount (state, true,  &channelTopologyChanged));
 
+    // Sampler set create/delete. The 17 generated input_sampler_set_set_* tools
+    // address a set by number and there was no way to make one - onAddSet is a
+    // GUI button - so on a fresh input every one of them failed and stayed failed.
+    registry->registerTool (Tools::ChannelLifecycle::describeSamplerSetCreate (state, &samplerChanged));
+    registry->registerTool (Tools::ChannelLifecycle::describeSamplerSetDelete (state, &samplerChanged));
+
     // Undo / redo tools — Phase 5a wires the first two to the real engine.
     // mcp.get_ai_change_history remains a read-only query over the ring buffer.
     registry->registerTool (Tools::Undo::describeUndo (*undoEngine));
@@ -227,6 +233,7 @@ void MCPServer::runOSCQueryAudit (const juce::String& url)
     // audit is still in flight — uncommon, since one audit is ~1.5 s end
     // to end.
     oscQueryAuditor = std::make_unique<MCPOSCQueryAuditor>(*mcpLogger,
+                                                            valueTreeState,
                                                             generatedToolsJsonPath,
                                                             url);
     oscQueryAuditor->runAudit();

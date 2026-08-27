@@ -1067,6 +1067,10 @@ namespace WFSParameterDefaults
     // Grid
     constexpr int samplerGridRows                     = 6;
     constexpr int samplerGridCols                     = 6;
+    // Sets are created by the operator and were previously unbounded. The only
+    // ceiling stated anywhere was the OSCQuery range on inputSamplerActiveSet
+    // (0-16); this makes that the actual limit, so every surface agrees.
+    constexpr int maxSamplerSets       = 16;
     constexpr int samplerGridCells                    = 36;     // 6x6
 
     // Cell defaults
