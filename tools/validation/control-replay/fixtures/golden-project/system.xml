@@ -5,12 +5,24 @@
 <SystemConfig version="1.0">
   <Config>
     <Show showName="My Show" showLocation="" autoPreselectDirty="0"/>
-    <IO inputChannels="8" outputChannels="16" reverbChannels="1" algorithmDSP="0"/>
+    <IO inputChannels="8" outputChannels="16" reverbChannels="1" algorithmDSP="0"
+        channelNumbersUserOwned="1">
+      <InputChannelList>
+        <Ch n="1" type="mono"/>
+        <Ch n="2" type="mono"/>
+        <Ch n="3" type="mono"/>
+        <Ch n="4" type="mono"/>
+        <Ch n="5" type="mono"/>
+        <Ch n="6" type="mono"/>
+        <Ch n="7" type="mono"/>
+        <Ch n="8" type="mono"/>
+      </InputChannelList>
+    </IO>
     <Stage stageShape="0" stageWidth="12.0" stageDepth="10.0" stageHeight="8.0"
            stageDiameter="20.0" domeElevation="180.0" originWidth="0.0"
            originDepth="-5.0" originHeight="0.0" speedOfSound="343.0" temperature="20.0"/>
     <Master masterLevel="0.0" systemLatency="0.0" haasEffect="0.0" reverbsMapVisible="1"/>
-    <Clusters count="10">
+    <Clusters count="10" inputOrderKey="number">
       <Cluster id="1" clusterReferenceMode="0" clusterInputOrder="" clusterInputsVisible="1">
         <ClusterLFO clusterLFOactive="0" clusterLFOperiod="5.0" clusterLFOphase="0"
                     clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
@@ -113,12 +125,12 @@
       </Cluster>
     </Clusters>
     <Binaural binauralSoloMode="0" binauralOutputChannel="-1" binauralListenerDistance="5.0"
-              binauralListenerAngle="0" binauralAttenuation="0.0" binauralDelay="0.0"
-              inputSoloStates=""/>
+              binauralListenerAngle="0" binauralAttenuation="0.0" binauralDelay="0.0"/>
     <UI streamDeckEnabled="1" samplerEnabled="0" samplerBlockSerial=""
         lightpadPad0Split="0" lightpadPad1Split="0" lightpadPad2Split="0"
         lightpadPad0DeviceId="" lightpadPad1DeviceId="" lightpadPad2DeviceId=""
-        lightpadSensitivity="0.05000000074505806"/>
+        lightpadSensitivity="0.05000000074505806" SamplerControllerMode="0"
+        colorScheme="0"/>
     <ClusterLFOPresets>
       <ClusterLFOPreset clusterLFOPresetName="" clusterLFOperiod="5.0" clusterLFOphase="0"
                         clusterLFOshapeX="0" clusterLFOshapeY="0" clusterLFOshapeZ="0"
