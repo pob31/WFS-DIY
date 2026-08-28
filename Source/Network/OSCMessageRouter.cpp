@@ -144,7 +144,6 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getInputAddres
         { "sidelinesFringe", WFSParameterIDs::inputSidelinesFringe },
 
         // Reverb
-        { "reverbSend",      WFSParameterIDs::inputReverbSend },
 
         // Sampler
         { "samplerActive",   WFSParameterIDs::inputSamplerActive },
@@ -222,7 +221,6 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getReverbAddre
         { "pitch",              WFSParameterIDs::reverbPitch },
         { "HFdamping",          WFSParameterIDs::reverbHFdamping },
         { "miniLatencyEnable",  WFSParameterIDs::reverbMiniLatencyEnable },
-        { "LSenable",           WFSParameterIDs::reverbLSenable },
         { "DistanceAttenPercent", WFSParameterIDs::reverbDistanceAttenEnable },
 
         // Pre-Processing EQ

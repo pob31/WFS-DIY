@@ -24,6 +24,7 @@
 #include "MidiSnapshotTrigger.h"
 #include "../spatcore/reverb/ReverbEngine.h"
 #include "../spatcore/reverb/ReverbFeedThread.h"
+#include "../spatcore/reverb/ReverbReturnProcessor.h"
 #include "../spatcore/dsp/OutputEQProcessor.h"
 #include "../spatcore/rt/SharedInputRingBuffer.h"
 #include "../spatcore/rt/AudioWorkgroupCoordinator.h"
@@ -358,6 +359,10 @@ private:
 
     // Reverb feed thread (computes reverb feeds off the audio callback)
     std::unique_ptr<ReverbFeedThread> reverbFeedThread;
+
+    // Reverb return -> speaker distribution (delay + air absorption + level,
+    // consuming the return matrices the calculation engine already produced)
+    ReverbReturnProcessor reverbReturnProcessor;
 
     // Reverb engine (thread-based DSP processing)
     std::unique_ptr<ReverbEngine> reverbEngine;

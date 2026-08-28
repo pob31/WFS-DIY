@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "77aeb681587fff7132f61a8f59752e28551c978a5cd87fac1e95d019c80fef48",
+  "input_hash": "0d624c320021b758a12ed657a945ed73603549f9500c887f16e52949e96146e2",
   "groups": {
     "cluster_assigned_inputs": [
       "cluster_assigned_inputs_set_input_order",
@@ -363,7 +363,6 @@
       "reverb_feed_set_angle_on",
       "reverb_feed_set_distance_attenuation_enable",
       "reverb_feed_set_hf_damping",
-      "reverb_feed_set_live_source_enable",
       "reverb_feed_set_mini_latency_enable",
       "reverb_feed_set_orientation",
       "reverb_feed_set_pitch"

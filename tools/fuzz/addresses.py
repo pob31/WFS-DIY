@@ -60,8 +60,6 @@ ENTRIES: list[AddrEntry] = [
               notes="no clamp at OSCManager.cpp:2241"),
     AddrEntry("/wfs/input/delayLatency", "channel-float", "time",
               read_back="/wfs/input/{ch}/delayLatency"),
-    AddrEntry("/wfs/input/reverbSend", "channel-float", "norm",
-              read_back="/wfs/input/{ch}/reverbSend"),
     AddrEntry("/wfs/input/jitter", "channel-float", "norm",
               read_back="/wfs/input/{ch}/jitter"),
 

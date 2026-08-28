@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "77aeb681587fff7132f61a8f59752e28551c978a5cd87fac1e95d019c80fef48",
+  "input_hash": "0d624c320021b758a12ed657a945ed73603549f9500c887f16e52949e96146e2",
   "source_csvs": [
     "WFS-UI_config.csv",
     "WFS-UI_input.csv",
@@ -9984,43 +9984,6 @@
       ],
       "internal_osc_path": "/wfs/reverb/HFdamping",
       "internal_variable": "reverbHFdamping"
-    },
-    {
-      "name": "reverb_feed_set_live_source_enable",
-      "description": "Disables Live Source Attenuation for Selected Reverb. Enum: DISABLE ; ENABLE. Use `session_get_state()` first if unsure which channels exist.",
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "reverb_id": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 32,
-            "description": "Reverb channel number (1-based)."
-          },
-          "value": {
-            "type": "string",
-            "enum": [
-              "DISABLE",
-              "ENABLE"
-            ],
-            "description": "Live Source Attenuation Enable (enum).",
-            "default": "ENABLE"
-          }
-        },
-        "required": [
-          "reverb_id",
-          "value"
-        ]
-      },
-      "tier": 1,
-      "csv_section": "Reverb Feed",
-      "group_key": "reverb_feed",
-      "supports_relative": false,
-      "domains": [
-        "reverb"
-      ],
-      "internal_osc_path": "/wfs/reverb/LSenable",
-      "internal_variable": "reverbLSenable"
     },
     {
       "name": "reverb_feed_set_mini_latency_enable",

@@ -3105,6 +3105,7 @@ void WFSValueTreeState::replaceState (const juce::ValueTree& newState)
         // anywhere. Must precede ensureCompleteSchema, or the backfill stamps a
         // default in the proper section and the real value stays orphaned.
         migrateStrayConfigProperties();
+        stripObsoleteReverbProperties();
         // Back-fill anything the loaded state omitted (incomplete / scope-filtered
         // files) so no parameter is left absent on this wholesale-replace path.
         ensureCompleteSchema();
@@ -3567,6 +3568,26 @@ void WFSValueTreeState::migrateStrayConfigProperties()
         if (ui.isValid())
             ui.setProperty (colorScheme, io.getProperty (legacyColorScheme), nullptr);
         io.removeProperty (legacyColorScheme, nullptr);
+    }
+}
+
+void WFSValueTreeState::stripObsoleteReverbProperties()
+{
+    // reverbLSenable (Live Source attenuation on reverb feeds) was removed on
+    // 2026-08-28 without ever having been wired: the Tamer computes gains per
+    // (input, speaker) and the feed matrix never read them. Files written
+    // before that carry the attribute on every <Feed>; mergeTreeRecursive
+    // never removes a property, so without this it would ride along in the
+    // live tree and be re-saved forever. Same shape as legacyColorScheme
+    // above: a local identifier, because the real one no longer exists.
+    static const juce::Identifier legacyReverbLSenable ("reverbLSenable");
+
+    const int n = getNumReverbChannels();
+    for (int i = 0; i < n; ++i)
+    {
+        auto feed = getReverbFeedSection (i);
+        if (feed.isValid() && feed.hasProperty (legacyReverbLSenable))
+            feed.removeProperty (legacyReverbLSenable, nullptr);
     }
 }
 
@@ -4370,7 +4391,6 @@ juce::ValueTree WFSValueTreeState::createReverbFeedSection()
     feed.setProperty (reverbPitch, reverbPitchDefault, nullptr);
     feed.setProperty (reverbHFdamping, reverbHFdampingDefault, nullptr);
     feed.setProperty (reverbMiniLatencyEnable, reverbMiniLatencyEnableDefault, nullptr);
-    feed.setProperty (reverbLSenable, reverbLSenableDefault, nullptr);
     feed.setProperty (reverbDistanceAttenEnable, reverbDistanceAttenEnableDefault, nullptr);
     return feed;
 }

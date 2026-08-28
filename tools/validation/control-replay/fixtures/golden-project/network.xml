@@ -6,7 +6,7 @@
   <NetworkSettings>
     <Network networkInterface="Wi-Fi" networkCurrentIP="127.0.0.1" networkRxUDPport="8000"
              networkRxTCPport="8001" findDevicePassword="" networkOscQueryEnabled="1"
-             networkOscQueryPort="5005">
+             networkOscQueryPort="5005" networkOscSourceFilter="0">
       <Target id="0" networkTSname="replay-target" networkTSdataMode="0" networkTSip="127.0.0.1"
               networkTSport="9010" networkTSrxEnable="1" networkTStxEnable="1"
               networkTSProtocol="1" networkTSqlabPatch="1"/>
@@ -68,6 +68,9 @@
     <Tracking trackingEnabled="0" trackingProtocol="0" trackingPort="7000"
               trackingOffsetX="0.0" trackingOffsetY="0.0" trackingOffsetZ="0.0"
               trackingScaleX="1.0" trackingScaleY="1.0" trackingScaleZ="1.0"
-              trackingFlipX="0" trackingFlipY="0" trackingFlipZ="0"/>
+              trackingFlipX="0" trackingFlipY="0" trackingFlipZ="0" trackingOscPath="/wfs/tracking &lt;ID&gt; &lt;x&gt; &lt;y&gt; &lt;z&gt;"
+              trackingPsnInterface="" trackingMqttHost="192.168.1.1" trackingMqttTopic="dwm/node/+/uplink/location"
+              trackingMqttTagIds="" trackingMqttJsonX="x" trackingMqttJsonY="y"
+              trackingMqttJsonZ="z" trackingMqttJsonQ="quality"/>
   </NetworkSettings>
 </NetworkConfig>

@@ -1033,9 +1033,7 @@
     },
     "toggles": {
       "minLatencyOn": "최소 레이턴시 허용",
-      "minLatencyOff": "최소 레이턴시 제외",
-      "liveSourceOn": "라이브 소스 감쇠 허용",
-      "liveSourceOff": "라이브 소스 감쇠 제외"
+      "minLatencyOff": "최소 레이턴시 제외"
     },
     "coordModes": {
       "xyz": "XYZ"
@@ -1185,7 +1183,6 @@
       "postExpAttack": "포스트 익스팬더 어택 시간 (0.1 - 50 ms).",
       "postExpRelease": "포스트 익스팬더 릴리스 시간 (50 - 2000 ms).",
       "miniLatencyTooltip": "이 리버브 피드를 Minimal Latency 처리에 포함하거나 제외합니다.",
-      "liveSourceTooltip": "이 리버브 피드를 Live Source 감쇠에 포함하거나 제외합니다.",
       "muteButton": "이 출력 채널의 리버브 리턴 음소거를 전환합니다.",
       "position1": "리버브 가상 소스 {name} ({unit}).",
       "position2": "리버브 가상 소스 {name} ({unit}).",

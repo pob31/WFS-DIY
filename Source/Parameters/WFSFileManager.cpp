@@ -3129,6 +3129,9 @@ bool WFSFileManager::applyReverbsSection (const juce::ValueTree& reverbsTree)
     if (existingReverbs.isValid())
     {
         mergeTreeRecursive (existingReverbs, reverbsTree, valueTreeState.getUndoManager());
+        // The merge carries every attribute the file has, including ones the
+        // schema no longer knows; drop those rather than re-save them.
+        valueTreeState.stripObsoleteReverbProperties();
         return true;
     }
     return false;

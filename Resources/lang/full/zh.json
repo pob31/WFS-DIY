@@ -1066,9 +1066,7 @@
     },
     "toggles": {
       "minLatencyOn": "最小延时 允许",
-      "minLatencyOff": "最小延时 排除",
-      "liveSourceOn": "现场声源衰减 允许",
-      "liveSourceOff": "现场声源衰减 排除"
+      "minLatencyOff": "最小延时 排除"
     },
     "coordModes": {
       "xyz": "XYZ"
@@ -1218,7 +1216,6 @@
       "postExpAttack": "后扩展器起音时间（0.1 - 50 ms）。",
       "postExpRelease": "后扩展器释放时间（50 - 2000 ms）。",
       "miniLatencyTooltip": "允许或排除此混响馈送参与Minimal Latency处理。",
-      "liveSourceTooltip": "允许或排除此混响馈送参与Live Source衰减。",
       "muteButton": "切换此输出通道的混响返回静音。",
       "position1": "混响虚拟声源{name}（{unit}）。",
       "position2": "混响虚拟声源{name}（{unit}）。",

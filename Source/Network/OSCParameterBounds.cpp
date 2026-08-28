@@ -342,7 +342,6 @@ namespace
             BIND_I (reverbPitch);
             BIND_F (reverbHFdamping);
             BIND_BOOL (reverbMiniLatencyEnable);
-            BIND_BOOL (reverbLSenable);
             BIND_I (reverbDistanceAttenEnable);
 
             //------------------------------------------------------------------

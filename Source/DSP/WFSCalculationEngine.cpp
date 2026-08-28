@@ -2244,7 +2244,6 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
             // Get reverb feed parameters
             auto feedSection = valueTreeState.getReverbFeedSection (revIdx);
             int reverbMiniLatEnable = feedSection.getProperty (reverbMiniLatencyEnable, reverbMiniLatencyEnableDefault);
-            // Note: reverbLSenable (Live Source attenuation enable) reserved for future use
             int reverbDistAttenPercent = feedSection.getProperty (reverbDistanceAttenEnable, reverbDistanceAttenEnableDefault);
             float reverbHFdamp = feedSection.getProperty (reverbHFdamping, reverbHFdampingDefault);
 
