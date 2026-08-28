@@ -141,3 +141,6 @@ tools/headtrack/build-bundled/
 tools/headtrack/.opencv/
 build-spatcore-tests/
 tools/validation/control-replay/wfs-control-replay/
+
+# Max/MSP gen~ prototypes for the effects channels (user-provided reference files, kept local)
+Documentation/effects/
