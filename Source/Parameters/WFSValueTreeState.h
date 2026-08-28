@@ -258,6 +258,11 @@ public:
     juce::ValueTree getReverbChannelSection (int channelIndex);
     juce::ValueTree getReverbPositionSection (int channelIndex);
     juce::ValueTree getReverbFeedSection (int channelIndex);
+
+    /** Drop attributes the reverb schema no longer has (reverbLSenable) after a
+        file merge, which carries everything the file holds and removes nothing.
+        Public because WFSFileManager::applyReverbsSection is a merge path too. */
+    void stripObsoleteReverbProperties();
     juce::ValueTree getReverbEQSection (int channelIndex);
     juce::ValueTree ensureReverbEQSection (int channelIndex);  // Creates if missing
     juce::ValueTree getReverbEQBand (int channelIndex, int bandIndex);

@@ -489,7 +489,6 @@ private:
             { WFSParameterIDs::inputSidelinesFringe,      { "Sidelines Fringe",     "m",   false } },
 
             // Reverb Sends
-            { WFSParameterIDs::inputReverbSend,           { "Reverb Send",          "dB",  false } },
 
             // Array Attenuation
             { WFSParameterIDs::inputArrayAtten1,          { "Array 1 Atten",        "dB",  false } },

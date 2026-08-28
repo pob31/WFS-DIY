@@ -1007,21 +1007,6 @@ private:
             saveReverbParam (WFSParameterIDs::reverbMiniLatencyEnable, enabled ? 1 : 0);
         };
 
-        addAndMakeVisible (lsEnableButton);
-        lsEnableButton.setButtonText (LOC("reverbs.toggles.liveSourceOff"));
-        lsEnableButton.setColour (juce::TextButton::buttonColourId, ColorScheme::get().sliderTrackBg);
-        lsEnableButton.setColour (juce::TextButton::buttonOnColourId, ColorScheme::get().sliderTrackBg);
-        lsEnableButton.onClick = [this]
-        {
-            bool enabled = !lsEnableButton.getToggleState();
-            lsEnableButton.setToggleState (enabled, juce::dontSendNotification);
-            lsEnableButton.setButtonText (enabled ? LOC("reverbs.toggles.liveSourceOn") : LOC("reverbs.toggles.liveSourceOff"));
-            juce::Colour btnColour = enabled ? juce::Colour (0xFF4A90D9) : ColorScheme::get().sliderTrackBg;
-            lsEnableButton.setColour (juce::TextButton::buttonColourId, btnColour);
-            lsEnableButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
-            saveReverbParam (WFSParameterIDs::reverbLSenable, enabled ? 1 : 0);
-        };
-
         // Distance Attenuation Enable slider
         addAndMakeVisible (distanceAttenEnableLabel);
         distanceAttenEnableLabel.setText (LOC("reverbs.labels.distanceAttenPercent"), juce::dontSendNotification);
@@ -2049,7 +2034,6 @@ private:
         helpTextMap[&hfDampingSlider] = LOC("reverbs.help.hfDamping");
         helpTextMap[&distanceAttenEnableSlider] = LOC("reverbs.help.distanceAttenEnable");
         helpTextMap[&miniLatencyEnableButton] = LOC("reverbs.help.miniLatencyTooltip");
-        helpTextMap[&lsEnableButton] = LOC("reverbs.help.liveSourceTooltip");
         helpTextMap[&coordModeSelector] = LOC("reverbs.help.coordMode");
         // Position/offset help text set dynamically in updatePositionLabelsAndValues()
         helpTextMap[&eqEnableButton] = LOC("reverbs.help.eqEnable");
@@ -2911,12 +2895,8 @@ private:
         distanceAttenEnableSlider.setBounds (col2.removeFromTop (sliderHeight));
         col2.removeFromTop (spacing);
 
-        // Buttons - side by side on same row
-        int buttonWidth = (col2.getWidth() - spacing) / 2;
-        auto buttonRow = col2.removeFromTop (rowHeight);
-        miniLatencyEnableButton.setBounds (buttonRow.removeFromLeft (buttonWidth));
-        buttonRow.removeFromLeft (spacing);
-        lsEnableButton.setBounds (buttonRow.removeFromLeft (buttonWidth));
+        // Minimal Latency toggle, full row
+        miniLatencyEnableButton.setBounds (col2.removeFromTop (rowHeight));
 
         // =====================================================================
         // Column 3: Reverb Return
@@ -3363,7 +3343,6 @@ private:
         pitchLabel.setVisible (visible); pitchSlider.setVisible (visible); pitchValueLabel.setVisible (visible);
         hfDampingLabel.setVisible (visible); hfDampingSlider.setVisible (visible); hfDampingValueLabel.setVisible (visible);
         miniLatencyEnableButton.setVisible (visible);
-        lsEnableButton.setVisible (visible);
         distanceAttenEnableLabel.setVisible (visible);
         distanceAttenEnableSlider.setVisible (visible);
         distanceAttenEnableValueLabel.setVisible (visible);
@@ -3536,15 +3515,6 @@ private:
             miniLatencyEnableButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
         }
 
-        int lsEnable = getIntParam (WFSParameterIDs::reverbLSenable, 1);
-        lsEnableButton.setToggleState (lsEnable != 0, juce::dontSendNotification);
-        lsEnableButton.setButtonText (lsEnable != 0 ? LOC("reverbs.toggles.liveSourceOn") : LOC("reverbs.toggles.liveSourceOff"));
-        {
-            juce::Colour btnColour = lsEnable != 0 ? juce::Colour (0xFF4A90D9) : ColorScheme::get().sliderTrackBg;
-            lsEnableButton.setColour (juce::TextButton::buttonColourId, btnColour);
-            lsEnableButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
-        }
-
         int distanceAttenEnable = getIntParam (WFSParameterIDs::reverbDistanceAttenEnable, 100);
         distanceAttenEnableSlider.setValue ((distanceAttenEnable - 100.0f) / 100.0f);  // v = (percent - 100) / 100 (bidirectional -1 to 1)
         distanceAttenEnableValueLabel.setText (juce::String (distanceAttenEnable) + "%", juce::dontSendNotification);
@@ -3680,7 +3650,6 @@ private:
             paramId == WFSParameterIDs::reverbPitch ||
             paramId == WFSParameterIDs::reverbHFdamping ||
             paramId == WFSParameterIDs::reverbMiniLatencyEnable ||
-            paramId == WFSParameterIDs::reverbLSenable ||
             paramId == WFSParameterIDs::reverbDistanceAttenEnable)
             return vts.getReverbFeedSection (channelIndex);
 
@@ -5442,7 +5411,6 @@ private:
         hfDampingSlider.setVisible (hasChannels);
         hfDampingValueLabel.setVisible (hasChannels);
         miniLatencyEnableButton.setVisible (hasChannels);
-        lsEnableButton.setVisible (hasChannels);
         distanceAttenEnableLabel.setVisible (hasChannels);
         distanceAttenEnableSlider.setVisible (hasChannels);
         distanceAttenEnableValueLabel.setVisible (hasChannels);
@@ -5625,7 +5593,6 @@ private:
     WfsStandardSlider hfDampingSlider;
     juce::Label hfDampingValueLabel;
     juce::TextButton miniLatencyEnableButton;
-    juce::TextButton lsEnableButton;
     juce::Label distanceAttenEnableLabel;
     WfsBidirectionalSlider distanceAttenEnableSlider;
     juce::Label distanceAttenEnableValueLabel;

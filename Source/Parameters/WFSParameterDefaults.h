@@ -878,7 +878,6 @@ namespace WFSParameterDefaults
     constexpr float reverbHFdampingMax           = 0.0f;
 
     constexpr int reverbMiniLatencyEnableDefault = 1;   // 0=DISABLE, 1=ENABLE
-    constexpr int reverbLSenableDefault          = 1;   // 0=DISABLE, 1=ENABLE
 
     constexpr int reverbDistanceAttenEnableDefault = 100;
     constexpr int reverbDistanceAttenEnableMin   = 0;

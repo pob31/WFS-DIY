@@ -52,7 +52,6 @@ All other Channel Parameters, all Reverb EQ settings, all Algorithm settings:
 | HF Damping (dB/m)                      | Channel Parameters |
 | Distance Atten %                       | Channel Parameters |
 | Minimal Latency toggle                 | Channel Parameters |
-| Live Source Atten toggle               | Channel Parameters |
 | Distance Atten (dB/m) — return         | Channel Parameters |
 | Common Atten (%) — return              | Channel Parameters |
 | Mute Macro — return                    | Channel Parameters |

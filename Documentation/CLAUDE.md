@@ -1314,9 +1314,13 @@ call sites while the input-side twins were read only by the Visualisation
 sub-tab and the tablet mirror. So `reverbHFdamping`, `reverbDelayLatency` and
 `reverbMiniLatencyEnable` were live in the GUI, OSC, OSCQuery, Stream Deck and
 MCP and did nothing to audio, and the Visualisation reverb delay/HF bars drew
-values the engine never applied. `reverbLSenable` is still in that state — it is
-a distinct unimplemented feature (Live Source attenuation on reverb feeds), not
-a wiring gap.
+values the engine never applied. `reverbLSenable` (Live Source attenuation on
+reverb feeds) was in the same state and was **removed** rather than wired: the
+Tamer's gains are per (input, speaker) and never reached the feed matrix, and a
+node near a live mic is a placement problem, not a gain problem. Per-output
+`outputLSattenEnable` is untouched. `inputReverbSend` — an OSC-addressable dB
+level with no ValueTree writer, superseded by the `inputMuteReverbSends` toggle
+— went with it; every input feeds every node, shaped only by geometry.
 
 ### Reverb System (Complete — GUI, Parameters & DSP)
 The reverb system is fully implemented across 4 sub-tabs with complete DSP processing, including 3 algorithm types, pre/post processing, and parallel per-node computation.

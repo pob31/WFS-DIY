@@ -1273,8 +1273,6 @@
     "toggles": {
       "minLatencyOn": "Minimal Latency Allowed",
       "minLatencyOff": "Minimal Latency Excluded",
-      "liveSourceOn": "Live Source Atten Allowed",
-      "liveSourceOff": "Live Source Atten Excluded",
       "applyToAllOn": "Apply to all nodes: ON",
       "applyToAllOff": "Apply to all nodes: OFF"
     },
@@ -1426,7 +1424,6 @@
       "postExpAttack": "Post-expander attack time (0.1 - 50 ms).",
       "postExpRelease": "Post-expander release time (50 - 2000 ms).",
       "miniLatencyTooltip": "Allow or exclude this reverb feed from Minimal Latency processing.",
-      "liveSourceTooltip": "Allow or exclude this reverb feed from Live Source Attenuation.",
       "position1": "Reverb virtual source {name} ({unit}).",
       "position2": "Reverb virtual source {name} ({unit}).",
       "position3": "Reverb virtual source {name} ({unit}).",

@@ -31,7 +31,7 @@
                 reverbCoordinateMode="0"/>
       <Feed reverbOrientation="0" reverbAngleOn="86" reverbAngleOff="90"
             reverbPitch="0" reverbHFdamping="0.0" reverbMiniLatencyEnable="1"
-            reverbLSenable="1" reverbDistanceAttenEnable="100"/>
+            reverbDistanceAttenEnable="100"/>
       <EQ reverbPreEQenable="1">
         <Band id="1" reverbPreEQshape="0" reverbPreEQfreq="200" reverbPreEQgain="0.0"
               reverbPreEQq="0.699999988079071" reverbPreEQslope="0.699999988079071"/>

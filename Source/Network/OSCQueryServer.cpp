@@ -766,7 +766,6 @@ OSCQueryServer::ParamRange OSCQueryServer::getParamRange(const juce::Identifier&
     if (paramId == inputMuteMacro)           return { 0, 4, true };
     if (paramId == inputSidelinesActive)     return { 0, 1, true };
     if (paramId == inputSidelinesFringe)     return { inputSidelinesFringeMin, inputSidelinesFringeMax, true };
-    if (paramId == inputReverbSend)          return { -92.0f, 0.0f, true };
     if (paramId == inputSamplerActive)       return { 0, 1, true };
     if (paramId == inputSamplerActiveSet)    return { 0, 16, true };
     if (paramId == gmLayer0Enabled || paramId == gmLayer1Enabled || paramId == gmLayer2Enabled)
@@ -812,7 +811,6 @@ OSCQueryServer::ParamRange OSCQueryServer::getParamRange(const juce::Identifier&
     if (paramId == reverbPitch)              return { (float)reverbPitchMin, (float)reverbPitchMax, true };
     if (paramId == reverbHFdamping)          return { reverbHFdampingMin, reverbHFdampingMax, true };
     if (paramId == reverbMiniLatencyEnable)  return { 0, 1, true };
-    if (paramId == reverbLSenable)           return { 0, 1, true };
     if (paramId == reverbDistanceAttenEnable) return { (float)reverbDistanceAttenEnableMin, (float)reverbDistanceAttenEnableMax, true };
     if (paramId == reverbPreEQenable)        return { 0, 1, true };
     if (paramId == reverbPreEQshape)         return { (float)reverbPreEQshapeMin, (float)reverbPreEQshapeMax, true };

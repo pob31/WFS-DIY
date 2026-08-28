@@ -123,7 +123,6 @@ const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBui
         { WFSParameterIDs::inputSidelinesFringe, { "/wfs/input/sidelinesFringe",  "/remoteInput/sidelinesFringe" } },
 
         // Reverb Sends
-        { WFSParameterIDs::inputReverbSend,      { "/wfs/input/reverbSend",       "/remoteInput/reverbSend" } },
 
         // Sampler
         { WFSParameterIDs::inputSamplerActive,    { "/wfs/input/samplerActive",   "" } },
@@ -252,7 +251,6 @@ const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBui
         { WFSParameterIDs::reverbPitch,              { "/wfs/reverb/pitch",             "/remoteInput/reverb/pitch" } },
         { WFSParameterIDs::reverbHFdamping,          { "/wfs/reverb/HFdamping",         "/remoteInput/reverb/HFdamping" } },
         { WFSParameterIDs::reverbMiniLatencyEnable,  { "/wfs/reverb/miniLatencyEnable", "/remoteInput/reverb/miniLatencyEnable" } },
-        { WFSParameterIDs::reverbLSenable,           { "/wfs/reverb/LSenable",          "/remoteInput/reverb/LSenable" } },
         { WFSParameterIDs::reverbDistanceAttenEnable, { "/wfs/reverb/DistanceAttenPercent", "/remoteInput/reverb/DistanceAttenPercent" } },
 
         // Pre-Processing EQ

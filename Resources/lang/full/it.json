@@ -1066,9 +1066,7 @@
     },
     "toggles": {
       "minLatencyOn": "Latenza Minima Consentito",
-      "minLatencyOff": "Latenza Minima Escluso",
-      "liveSourceOn": "Atten Live Source Consentito",
-      "liveSourceOff": "Atten Live Source Escluso"
+      "minLatencyOff": "Latenza Minima Escluso"
     },
     "coordModes": {
       "xyz": "XYZ"
@@ -1218,7 +1216,6 @@
       "postExpAttack": "Tempo di attacco del post-espansore (0.1 - 50 ms).",
       "postExpRelease": "Tempo di rilascio del post-espansore (50 - 2000 ms).",
       "miniLatencyTooltip": "Consentire o escludere questa mandata di riverbero dall'elaborazione Minimal Latency.",
-      "liveSourceTooltip": "Consentire o escludere questa mandata di riverbero dall'attenuazione Live Source.",
       "muteButton": "Attiva/disattiva il mute del ritorno di riverbero per questa uscita.",
       "position1": "Sorgente virtuale riverbero {name} ({unit}).",
       "position2": "Sorgente virtuale riverbero {name} ({unit}).",

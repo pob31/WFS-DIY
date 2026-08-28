@@ -178,12 +178,8 @@ inline StreamDeckPage createChannelParametersPage (
                                                    grey, juce::Colour (0xFF4A90D9),
                                                    state, ch, reverbMiniLatencyEnable);
 
-        // Button 2: Toggle Live Source
-        sec.buttons[2] = makeReverbToggleButton (LOC ("streamDeck.outputs.buttons.liveSourceAtten"),
-                                                   grey, juce::Colour (0xFF4A90D9),
-                                                   state, ch, reverbLSenable);
-
-        // Button 3: unassigned
+        // Buttons 2-3: unassigned (Live Source attenuation does not apply to
+        // reverb feeds - place nodes further from live sources instead)
 
         // Dial 0: Attenuation (-92 to 0 dB)
         sec.dials[0] = makeReverbFloatDial (LOC ("streamDeck.outputs.dials.attenuation"),

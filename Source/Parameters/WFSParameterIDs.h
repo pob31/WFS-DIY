@@ -628,7 +628,6 @@ namespace WFSParameterIDs
     //==========================================================================
 
     // Input reverb send (array of sends per input)
-    const juce::Identifier inputReverbSend       ("inputReverbSend");
 
     // Reverb Section Identifiers
     const juce::Identifier Reverbs               ("Reverbs");
@@ -657,7 +656,6 @@ namespace WFSParameterIDs
     const juce::Identifier reverbPitch           ("reverbPitch");
     const juce::Identifier reverbHFdamping       ("reverbHFdamping");
     const juce::Identifier reverbMiniLatencyEnable ("reverbMiniLatencyEnable");
-    const juce::Identifier reverbLSenable        ("reverbLSenable");
     const juce::Identifier reverbDistanceAttenEnable ("reverbDistanceAttenEnable");
 
     // Reverb > Pre-Processing EQ (4 bands, per-channel)

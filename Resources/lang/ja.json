@@ -519,7 +519,6 @@
       "postExpAttack": "ポストエキスパンダーのアタック時間（0.1 - 50 ms）。",
       "postExpRelease": "ポストエキスパンダーのリリース時間（50 - 2000 ms）。",
       "miniLatencyTooltip": "このリバーブフィードをMinimal Latency処理に含めるか除外します。",
-      "liveSourceTooltip": "このリバーブフィードをLive Source減衰に含めるか除外します。",
       "muteButton": "この出力チャンネルのリバーブリターンのミュートを切り替えます。",
       "position1": "リバーブ仮想音源の{name}（{unit}）。",
       "position2": "リバーブ仮想音源の{name}（{unit}）。",

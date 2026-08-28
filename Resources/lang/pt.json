@@ -533,7 +533,6 @@
       "postExpAttack": "Tempo de ataque do pós-expansor (0.1 - 50 ms).",
       "postExpRelease": "Tempo de libertação do pós-expansor (50 - 2000 ms).",
       "miniLatencyTooltip": "Permitir ou excluir este envio de reverberação do processamento Minimal Latency.",
-      "liveSourceTooltip": "Permitir ou excluir este envio de reverberação da atenuação Live Source.",
       "muteButton": "Ativar/desativar mudo do retorno de reverberação para esta saída.",
       "position1": "Fonte virtual de reverberação {name} ({unit}).",
       "position2": "Fonte virtual de reverberação {name} ({unit}).",

@@ -538,7 +538,6 @@
       "postExpAttack": "Temps d'attaque du post-expanseur (0.1 - 50 ms).",
       "postExpRelease": "Temps de relâchement du post-expanseur (50 - 2000 ms).",
       "miniLatencyTooltip": "Autoriser ou exclure ce départ de réverbération du traitement Minimal Latency.",
-      "liveSourceTooltip": "Autoriser ou exclure ce départ de réverbération de l'atténuation Live Source.",
       "muteButton": "Activer/désactiver le mute du retour de réverbération pour cette sortie.",
       "position1": "Source virtuelle de réverbération {name} ({unit}).",
       "position2": "Source virtuelle de réverbération {name} ({unit}).",

@@ -86,8 +86,6 @@ CASES: list[Case] = [
          [("i", CH), ("f", PINF)], expect="may-leak-nan"),
     Case("huge-nonpos", "/wfs/input/attenuation",
          [("i", CH), ("f", FLT_HUGE)], expect="silent-wrong"),
-    Case("huge-nonpos", "/wfs/input/reverbSend",
-         [("i", CH), ("f", -FLT_HUGE)], expect="silent-wrong"),
     Case("huge-nonpos", "/wfs/input/LSradius",
          [("i", CH), ("f", FLT_HUGE)], expect="silent-wrong"),
     Case("huge-nonpos", "/wfs/input/jitter",

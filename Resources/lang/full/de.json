@@ -1086,9 +1086,7 @@
     },
     "toggles": {
       "minLatencyOn": "Minimale Latenz Erlaubt",
-      "minLatencyOff": "Minimale Latenz Ausgeschlossen",
-      "liveSourceOn": "Live-Quelle Dämpf. Erlaubt",
-      "liveSourceOff": "Live-Quelle Dämpf. Ausgeschlossen"
+      "minLatencyOff": "Minimale Latenz Ausgeschlossen"
     },
     "coordModes": {
       "xyz": "XYZ"
@@ -1238,7 +1236,6 @@
       "postExpAttack": "Attack-Zeit des Nachexpanders (0.1 - 50 ms).",
       "postExpRelease": "Release-Zeit des Nachexpanders (50 - 2000 ms).",
       "miniLatencyTooltip": "Diesen Reverb-Feed für die Minimal-Latency-Verarbeitung zulassen oder ausschließen.",
-      "liveSourceTooltip": "Diesen Reverb-Feed für die Live-Source-Dämpfung zulassen oder ausschließen.",
       "muteButton": "Mute für den Reverb-Rückkanal dieses Ausgangs umschalten.",
       "position1": "Reverb-Quellposition {name} ({unit}).",
       "position2": "Reverb-Quellposition {name} ({unit}).",
