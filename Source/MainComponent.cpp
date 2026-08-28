@@ -5351,6 +5351,13 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
             reverbFeedBuffer.setSize(1, blockSize);
             reverbReturnBuffer.setSize(1, blockSize);
         }
+
+        // The return distribution is sized by (nodes x outputs), so both counts
+        // move it. prepareToPlay covers a device restart; this covers a channel
+        // count edit that does not force one.
+        reverbReturnProcessor.prepare (device ? device->getCurrentSampleRate() : 48000.0,
+                                       blockSize, reverbs, outputs,
+                                       &workgroupCoordinator);
     }
 
     // Refresh all tabs to update channel selectors
@@ -6933,12 +6940,19 @@ void MainComponent::setupSharedInputFeed (int blockSize, double sampleRate)
         if (numReverbs > 0 && ! sharedInputBuffers.empty())
         {
             reverbFeedThread = std::make_unique<ReverbFeedThread>();
+            // Coordinator first: prepare() creates the send-path worker pool,
+            // whose threads join the same audio workgroup.
+            reverbFeedThread->setWorkgroupCoordinator (&workgroupCoordinator);
+            // All three send matrices, not just the levels. The engine has
+            // always computed the delay and HF ones; the send path applies
+            // them now instead of only the GUI drawing them.
             reverbFeedThread->prepare (sharedInputBuffers, reverbEngine.get(),
                                        calculationEngine->getInputReverbLevels(),
+                                       calculationEngine->getInputReverbDelayTimesMs(),
+                                       calculationEngine->getInputReverbHFAttenuationDb(),
                                        calculationEngine->getNumReverbs(),
                                        numRenderSources, numReverbs,
-                                       blockSize, reverbSRRatio);
-            reverbFeedThread->setWorkgroupCoordinator (&workgroupCoordinator);
+                                       blockSize, reverbSRRatio, sampleRate);
             reverbFeedThread->startRealtimeThread (juce::Thread::RealtimeOptions{}
                                                        .withApproximateAudioProcessingTime (blockSize, sampleRate));
         }
@@ -7308,6 +7322,14 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
             }
         }
 
+        // Return distribution runs at DEVICE rate, after the SR-ratio upsample,
+        // so its delay lines are sized from sampleRate rather than reverbSR.
+        // The matrix stride it will be handed is the engine's max reverb count,
+        // but the cell arrays only need the live channel count.
+        reverbReturnProcessor.prepare (sampleRate, samplesPerBlockExpected,
+                                       numReverbs, parameters.getNumOutputChannels(),
+                                       &workgroupCoordinator);
+
         // (Re)build the binaural monitor's reverb-return taps and hand them
         // to the worker (spinlock+generation publish, safe while running).
         sharedReverbReturnBuffers.clear();
@@ -7578,7 +7600,12 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
 
             // Pull wet reverb output and mix into WFS outputs
             // Index: [reverbIndex * calcOutputStride + outputIndex]
+            // All three return matrices: a node return is an ambient source at
+            // its return position, so it reaches each speaker with a real
+            // propagation delay and real air absorption, not just a level.
             const float* reverbOutputLevelsPtr = calculationEngine->getReverbOutputLevels();
+            const float* reverbOutputDelaysPtr = calculationEngine->getReverbOutputDelayTimesMs();
+            const float* reverbOutputHFPtr = calculationEngine->getReverbOutputHFAttenuationDb();
             const int calcOutputStride = calculationEngine->getNumOutputs();
             bool isPostMuted = muteReverbPost.load (std::memory_order_relaxed);
 
@@ -7641,18 +7668,26 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
                         && sharedReverbReturnBuffers[static_cast<size_t>(revIdx)] != nullptr)
                         sharedReverbReturnBuffers[static_cast<size_t>(revIdx)]->write(returnData, numSamples);
 
-                    // Mix reverb return into WFS outputs using return level matrix
-                    for (int outIdx = 0; outIdx < numOutputChannels; ++outIdx)
-                    {
-                        float returnLevel = reverbOutputLevelsPtr[revIdx * calcOutputStride + outIdx];
-
-                        if (returnLevel > 0.0001f)
-                        {
-                            float* outputData = wfsOutputBuffer.getWritePointer(outIdx, startSample);
-                            juce::FloatVectorOperations::addWithMultiply(outputData, returnData, returnLevel, numSamples);
-                        }
-                    }
+                    // Publish into the return delay lines. The speaker mix runs
+                    // once, after every node has been pushed (below).
+                    reverbReturnProcessor.pushNodeReturn (revIdx, returnData, numSamples);
                 }
+            }
+
+            // Distribute every node to the speakers: delay tap + air-absorption
+            // shelf + return level, parallelised across output channels.
+            if (! isPostMuted)
+            {
+                reverbReturnProcessor.mixToOutputs (wfsOutputBuffer, startSample, numSamples,
+                                                    numReverbs, numOutputChannels,
+                                                    reverbOutputLevelsPtr, reverbOutputDelaysPtr,
+                                                    reverbOutputHFPtr, calcOutputStride);
+            }
+            else
+            {
+                // Muted: keep the delay lines running on silence so lifting the
+                // mute cannot tap stale wet audio at a non-zero return delay.
+                reverbReturnProcessor.skipBlock (numSamples);
             }
         }
 
@@ -7857,6 +7892,10 @@ void MainComponent::releaseResources()
 #endif
     if (reverbEngine)
         reverbEngine->releaseResources();
+
+    // Return distribution: clear the delay lines and filter state so a restart
+    // at a different rate or block size cannot tap the previous session.
+    reverbReturnProcessor.reset();
 }
 
 //==============================================================================
