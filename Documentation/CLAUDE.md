@@ -1268,36 +1268,68 @@ int getBinauralSoloMode();  // 0=Single, 1=Multi
 ---
 
 ### Reverb Channel Calculations
-WFSCalculationEngine handles two additional matrix paths for reverb:
+WFSCalculationEngine handles two additional matrix paths for reverb. Each is a
+**full acoustic path** — delay, level and HF attenuation — exactly like the
+direct input→output path, and **all three are applied to audio**.
 
 **Input → Reverb Feed** (numInputs × numReverbs):
 - Reverb feeds act like simplified outputs (spatial microphones)
 - No parallax: `delayMs = inputToReverbFeed / speedOfSound * 1000.0f`
 - Uses input's attenuation law (linear or inverse square)
 - Receives common attenuation adjustment from outputs (but not included in minimum search)
+- HF = `reverbHFdamping × distance` + input directivity shelf + gradient-map offset
 - Muted when `inputMuteReverbSends = 1`
 
 **Reverb Return → Output** (numReverbs × numOutputs):
 - Reverb returns act like simplified inputs (ambient sources)
 - Uses parallax: `delayMs = (returnToListener - speakerToListener) / speedOfSound * 1000.0f`
 - Simple dB/m attenuation (no law switching)
+- HF = `outputHFdamping × returnToSpeaker` (the speaker's damping; returns carry no directivity)
 - Has its own `reverbCommonAtten` parameter (same 0-100% interpretation)
 - Per-output mutes via `reverbMutes` array
 
 **Return Position**: `returnPos = feedPos + returnOffset`
+
+**Who consumes them.** Both legs run `spatcore/dsp/AcousticTap.h` — the same
+(smoothed fractional delay-line read → 800 Hz/Q 0.3 air-absorption shelf → level,
+accumulated) cell the direct path runs per (input, output) pair, factored out of
+`InputBufferProcessor`'s inner loop so all three sites share one implementation.
+
+| Leg | Consumer | Thread | Parallelism |
+|---|---|---|---|
+| input → feed | `spatcore/reverb/ReverbFeedThread.h` | its own realtime thread | across NODES (each worker owns one feed row + its cell column) |
+| return → output | `spatcore/reverb/ReverbReturnProcessor.h` | audio callback | across OUTPUT CHANNELS (no scratch buffer, no shared-sample race) |
+
+The feed taps at **device rate, before** the SR-ratio decimation, so fractional
+delay resolution is full; the return taps **after** the upsample, for the same
+reason. Delay lines are 1 s per source / per node. A cell whose HF damping is
+effectively 0 dB skips the biquad rather than running it at unity — which keeps
+the default case cheap AND keeps it bit-exact against the plain gain matrix this
+replaced (`testAcousticTapNullIdentity` in `spatcore/tests/SpatcoreTests.cpp`).
+
+Until 2026-08-28 **only the levels were consumed**: `ReverbFeedThread` summed a
+flat gain, the return was one scalar `addWithMultiply` per (node, speaker), and
+`getReverbOutputDelayTimesMs()` / `getReverbOutputHFAttenuationDb()` had zero
+call sites while the input-side twins were read only by the Visualisation
+sub-tab and the tablet mirror. So `reverbHFdamping`, `reverbDelayLatency` and
+`reverbMiniLatencyEnable` were live in the GUI, OSC, OSCQuery, Stream Deck and
+MCP and did nothing to audio, and the Visualisation reverb delay/HF bars drew
+values the engine never applied. `reverbLSenable` is still in that state — it is
+a distinct unimplemented feature (Live Source attenuation on reverb feeds), not
+a wiring gap.
 
 ### Reverb System (Complete — GUI, Parameters & DSP)
 The reverb system is fully implemented across 4 sub-tabs with complete DSP processing, including 3 algorithm types, pre/post processing, and parallel per-node computation.
 
 **Signal Flow:**
 ```
-Input Audio → Feed Routing (WFSCalculationEngine)
+Input Audio → Feed Routing (delay + air absorption + level, ReverbFeedThread)
   → Pre-EQ (per-channel, 4-band parametric)
   → Pre-Compressor (global, ReverbPreProcessor)
   → Algorithm (SDN/FDN/IR — parallel per-node via AudioParallelFor)
   → Post-EQ (global, 4-band parametric)
   → Post-Expander (global, sidechain-keyed, ReverbPostProcessor)
-  → Return Routing → Output Mix
+  → Return Routing (delay + air absorption + level, ReverbReturnProcessor) → Output Mix
 ```
 
 **ReverbEngine** owns the full chain: PreProcessor → Algorithm → PostProcessor. It runs on the audio thread, called from MainComponent's `getNextAudioBlock()`. Algorithm switching uses a fade-out → swap → fade-in crossfade (~50ms each) to avoid clicks.

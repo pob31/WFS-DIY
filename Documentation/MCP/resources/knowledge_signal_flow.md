@@ -66,7 +66,7 @@ For each reverb channel the engine maintains an independent processing node. Aud
 
 The chain, in order, is:
 
-1. **Reverb feeds in** — for every reverb node, the WFSCalculationEngine computes per-input feed delay, level, and high-frequency attenuation (the same calculation it does for outputs, just with the reverb's *feed position* in place of a speaker position). The N inputs are summed into the corresponding node's input bus. Per-input *Mute Reverb Sends* zeros that input's contribution to all reverb feeds.
+1. **Reverb feeds in** — for every reverb node, the WFSCalculationEngine computes per-input feed delay, level, and high-frequency attenuation (the same calculation it does for outputs, just with the reverb's *feed position* in place of a speaker position). All three are applied: each source reaches the node through its own delay line at the propagation delay for that distance, through an 800 Hz air-absorption shelf set by *HF Damping* × distance, and at the computed level. The N inputs are then summed into the node's input bus. So a distant source arrives at the reverb later and darker, not merely quieter. Per-input *Mute Reverb Sends* zeros that input's contribution to all reverb feeds.
 
 2. **Pre-EQ — per-channel, four bands.** Each reverb node has its own four-band parametric EQ (LowCut / LowShelf / Peak / HighShelf / HighCut, with the OFF state handled by a separate band toggle). Useful for sculpting what each reverb "hears" — for example rolling off bass on a hall reverb but keeping it on a floor reverb.
 
@@ -85,7 +85,7 @@ The chain, in order, is:
 
 7. **Wet level.** A single dB scalar applied uniformly to every node before the engine returns audio to the audio callback.
 
-8. **Reverb returns out — back to outputs.** For every reverb node and every output speaker, the WFSCalculationEngine computes a return delay, level, and HF attenuation based on the reverb's *return position* and the speaker's location. The wet output is then mixed into each speaker's bus exactly like an additional virtual source. Per-reverb-per-output mute is supported via the `reverbMutes` array.
+8. **Reverb returns out — back to outputs.** For every reverb node and every output speaker, the WFSCalculationEngine computes a return delay, level, and HF attenuation based on the reverb's *return position* and the speaker's location. All three are applied, so the wet output really is mixed into each speaker's bus like an additional virtual source: delayed by the parallax-corrected node→speaker path, shelved by that speaker's *HF Damping* × distance, and scaled by the return level. Per-reverb-per-output mute is supported via the `reverbMutes` array.
 
 ### Tab-level controls that affect the chain
 

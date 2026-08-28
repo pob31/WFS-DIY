@@ -244,8 +244,8 @@ component. It is a `juce::ValueTree::Listener` that, on a ~50 Hz timer, turns so
 | `getLevels()` | in×out | `in*numOut+out` | linear gain (distance law −20·log₁₀ or dB/m; ×Live-Source-Tamer gain) (`:1261-1262`) |
 | `getHFAttenuationDb()` | in×out | `in*numOut+out` | air-damping dB → 800 Hz shelf gain (`:1290-1291`) |
 | `getFRDelayTimesMs/FRLevels/FRHFAttenuationDb()` | in×out | `in*numOut+out` | Floor-Reflection parallel path (`WFSCalculationEngine.h:180-188`) |
-| `getReverbOutputLevels()` | rev×out | `rev*numOut+out` | reverb-return mix matrix (used at `MainComponent.cpp:4834-4835,4893`) |
-| (input→reverb send) | in×rev | `in*numRev+rev` | consumed by `ReverbFeedThread` (`ReverbFeedThread.h:154-162`) |
+| `getReverbOutputLevels/ReverbOutputDelayTimesMs/ReverbOutputHFAttenuationDb()` | rev×out | `rev*numOut+out` | reverb-return path — all three consumed by `ReverbReturnProcessor` |
+| `getInputReverbLevels/InputReverbDelayTimesMs/InputReverbHFAttenuationDb()` | in×rev | `in*numRev+rev` | reverb-send path — all three consumed by `ReverbFeedThread` |
 
 **[V]** for all. The engine computes into member arrays under `matrixLock`; the 50 Hz timer
 copies them into `MainComponent`'s `target*` arrays; the audio thread one-pole-smooths those
@@ -292,6 +292,13 @@ silence (`GpuAsyncPipeline.h:100-103`); rings are sized `blockSize·(D+8)` (`:72
 | GPU reverb pump | ~20 ms (`kCushionMs`) | exposed via `getPipelineLatencyMs()` for UI status (`ReverbEngine.h:945-955`), not host-reported |
 | Reverb SR decimation (48 kHz) | box-avg down + linear-interp up | not reported |
 | Master / output stages | 0 | n/a |
+
+Since 2026-08-28 the reverb legs also carry their **geometric** delay: the send
+applies source→node propagation and the return applies node→speaker propagation
+(parallax-corrected, min-delay aligned), both via `spatcore/dsp/AcousticTap.h`.
+That is signal-path delay the geometry asks for, not pipeline latency, and it is
+computed by the same engine pass and with the same Haas / system-latency /
+render-latency terms as the direct path, so wet and dry stay coherent.
 
 **No `setLatencySamples` / host latency reporting exists** — it is a standalone
 `AudioAppComponent`, not a hosted plugin (`MainComponent.h:98` **[V]**; grep for
