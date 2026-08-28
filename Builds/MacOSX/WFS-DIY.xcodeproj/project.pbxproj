@@ -280,6 +280,7 @@
 		4B6A4F6DF6F5F747DA7F9572 /* PatchMatrixConfig.h */ /* PatchMatrixConfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PatchMatrixConfig.h; path = ../../spatcore/ui/patch/PatchMatrixConfig.h; sourceTree = SOURCE_ROOT; };
 		4BAE219BEA140C849F862D6A /* HipIrBackend.cpp */ /* HipIrBackend.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = HipIrBackend.cpp; path = ../../spatcore/gpu/HipIrBackend.cpp; sourceTree = SOURCE_ROOT; };
 		4C334641BCD17BEF2B52C9EF /* MCPGeneratedToolLoader.cpp */ /* MCPGeneratedToolLoader.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPGeneratedToolLoader.cpp; path = ../../Source/Network/MCP/MCPGeneratedToolLoader.cpp; sourceTree = SOURCE_ROOT; };
+		4C9492EFADED32085FE9ECF8 /* VarCoercion.h */ /* VarCoercion.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = VarCoercion.h; path = ../../Source/Parameters/VarCoercion.h; sourceTree = SOURCE_ROOT; };
 		4E47CBDA2F72471CB13EF459 /* MCPOSCQueryAuditor.cpp */ /* MCPOSCQueryAuditor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPOSCQueryAuditor.cpp; path = ../../Source/Network/MCP/MCPOSCQueryAuditor.cpp; sourceTree = SOURCE_ROOT; };
 		4E8151BD7996DAFDF5833EEF /* MCPChangeRecords.h */ /* MCPChangeRecords.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPChangeRecords.h; path = ../../spatcore/control/mcp/MCPChangeRecords.h; sourceTree = SOURCE_ROOT; };
 		52195E18FE0EE1007ED6D692 /* TrackingPositionFilter.h */ /* TrackingPositionFilter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TrackingPositionFilter.h; path = ../../spatcore/dsp/TrackingPositionFilter.h; sourceTree = SOURCE_ROOT; };
@@ -320,6 +321,7 @@
 		6F5935FBCE18DA243BF1DAAB /* inftrees.c */ /* inftrees.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = inftrees.c; path = ../../ThirdParty/zlib/inftrees.c; sourceTree = SOURCE_ROOT; };
 		6FEDBAFEF6FC82D102F18212 /* MCPParameterRegistry.cpp */ /* MCPParameterRegistry.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPParameterRegistry.cpp; path = ../../Source/Network/MCP/MCPParameterRegistry.cpp; sourceTree = SOURCE_ROOT; };
 		706AFD4C25B7DB970B86308E /* HipObBackend.cpp */ /* HipObBackend.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = HipObBackend.cpp; path = ../../spatcore/gpu/HipObBackend.cpp; sourceTree = SOURCE_ROOT; };
+		70B4C8C7CC9933187C8F2500 /* InputChannelDescription.h */ /* InputChannelDescription.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = InputChannelDescription.h; path = ../../Source/Parameters/InputChannelDescription.h; sourceTree = SOURCE_ROOT; };
 		70F11209DC36A15E41B6C52D /* PlatformDynLib.h */ /* PlatformDynLib.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PlatformDynLib.h; path = ../../spatcore/gpu/PlatformDynLib.h; sourceTree = SOURCE_ROOT; };
 		7103A555C0CD955901478B54 /* MetalIrBackend.h */ /* MetalIrBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MetalIrBackend.h; path = ../../spatcore/gpu/MetalIrBackend.h; sourceTree = SOURCE_ROOT; };
 		7199DB67785B6EC37029964D /* include_juce_gui_basics_4.cpp */ /* include_juce_gui_basics_4.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_gui_basics_4.cpp; path = ../../JuceLibraryCode/include_juce_gui_basics_4.cpp; sourceTree = SOURCE_ROOT; };
@@ -490,12 +492,14 @@
 		E1C619E4C45F73A1C1F29851 /* include_juce_gui_basics_2.cpp */ /* include_juce_gui_basics_2.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_gui_basics_2.cpp; path = ../../JuceLibraryCode/include_juce_gui_basics_2.cpp; sourceTree = SOURCE_ROOT; };
 		E2664AA4F56CB3F14CCE76AB /* RenderSourceMap.h */ /* RenderSourceMap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = RenderSourceMap.h; path = ../../spatcore/wfs/RenderSourceMap.h; sourceTree = SOURCE_ROOT; };
 		E2916F92933CBD02E725B173 /* PatchMatrixComponent.h */ /* PatchMatrixComponent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PatchMatrixComponent.h; path = ../../spatcore/ui/patch/PatchMatrixComponent.h; sourceTree = SOURCE_ROOT; };
+		E2E68A30C508D09CAE19BE7C /* InputChannelIdentity.h */ /* InputChannelIdentity.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = InputChannelIdentity.h; path = ../../Source/Parameters/InputChannelIdentity.h; sourceTree = SOURCE_ROOT; };
 		E3BBC26EC616B8996F69FB3E /* StateDeltaTool.h */ /* StateDeltaTool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StateDeltaTool.h; path = ../../Source/Network/MCP/tools/StateDeltaTool.h; sourceTree = SOURCE_ROOT; };
 		E57F5553F6F16A1DD0E9D41A /* MetalIrKernels.h */ /* MetalIrKernels.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MetalIrKernels.h; path = ../../spatcore/gpu/MetalIrKernels.h; sourceTree = SOURCE_ROOT; };
 		E6905818F38D144E669AABE1 /* TrackingPSNReceiver.h */ /* TrackingPSNReceiver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TrackingPSNReceiver.h; path = ../../Source/Network/TrackingPSNReceiver.h; sourceTree = SOURCE_ROOT; };
 		E8AB1DE6C5E638E6D7A21684 /* HipWfsBackend.h */ /* HipWfsBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = HipWfsBackend.h; path = ../../spatcore/gpu/HipWfsBackend.h; sourceTree = SOURCE_ROOT; };
 		E97481F8824DC37128396502 /* CudaSdnKernels.h */ /* CudaSdnKernels.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CudaSdnKernels.h; path = ../../spatcore/gpu/CudaSdnKernels.h; sourceTree = SOURCE_ROOT; };
 		EBA5BE067B398524DFCFEAD8 /* client.hpp */ /* client.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = client.hpp; path = ../../ThirdParty/headtracker/host/libheadtracker/include/headtracker/client.hpp; sourceTree = SOURCE_ROOT; };
+		EC9A59D40083106D8E8E3F3D /* ChannelIdentityGate.h */ /* ChannelIdentityGate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ChannelIdentityGate.h; path = ../../Source/gui/ChannelIdentityGate.h; sourceTree = SOURCE_ROOT; };
 		EDDE31343809F8387DA7A6AD /* SdnGpuBackend.h */ /* SdnGpuBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SdnGpuBackend.h; path = ../../spatcore/gpu/SdnGpuBackend.h; sourceTree = SOURCE_ROOT; };
 		EE3AAA7F4BDC53F0808AD4D0 /* include_juce_audio_processors.mm */ /* include_juce_audio_processors.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_processors.mm; path = ../../JuceLibraryCode/include_juce_audio_processors.mm; sourceTree = SOURCE_ROOT; };
 		EF8F5550038C576E96ECCBC3 /* include_juce_audio_basics.mm */ /* include_juce_audio_basics.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_basics.mm; path = ../../JuceLibraryCode/include_juce_audio_basics.mm; sourceTree = SOURCE_ROOT; };
@@ -841,6 +845,7 @@
 				00959BF07328BFC4DAE09086,
 				D2BE5A9B615D964AA8EA32C9,
 				344E94DE75CE8AD15E5DF4F7,
+				EC9A59D40083106D8E8E3F3D,
 				23EC5C0EFA931E9866518795,
 				0724D2EC3F7252162C616AE8,
 				A39360C75305D0F857DC9FEE,
@@ -1107,6 +1112,9 @@
 				E1C3671AD66E2F1E72F8C5A8,
 				78499000C7DBA493077EBC37,
 				D2F96573DB7A8C68446E361C,
+				4C9492EFADED32085FE9ECF8,
+				E2E68A30C508D09CAE19BE7C,
+				70B4C8C7CC9933187C8F2500,
 				A96E05E0B144008AE500DBAE,
 				35A75BE8F742B3CF106ACE1B,
 				BB85096D700BC19EC7EEF516,
@@ -1471,7 +1479,7 @@
 					"SIMPLEWEB_SECURE_SUPPORTED=0",
 					"WFS_GPU_NATIVE=1",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
-					"JUCE_APP_VERSION=1.0.0beta43",
+					"JUCE_APP_VERSION=1.0.0beta44",
 					"JUCE_APP_VERSION_HEX=0x10000",
 					"JucePlugin_Build_VST=0",
 					"JucePlugin_Build_VST3=0",
@@ -1564,7 +1572,7 @@
 					"SIMPLEWEB_SECURE_SUPPORTED=0",
 					"WFS_GPU_NATIVE=1",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
-					"JUCE_APP_VERSION=1.0.0beta43",
+					"JUCE_APP_VERSION=1.0.0beta44",
 					"JUCE_APP_VERSION_HEX=0x10000",
 					"JucePlugin_Build_VST=0",
 					"JucePlugin_Build_VST3=0",

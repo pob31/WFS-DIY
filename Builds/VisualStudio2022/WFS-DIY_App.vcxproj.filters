@@ -4773,6 +4773,15 @@
     <ClInclude Include="..\..\Source\Parameters\WFSParameterIDs.h">
       <Filter>WFS-DIY\Source\Parameters</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Parameters\VarCoercion.h">
+      <Filter>WFS-DIY\Source\Parameters</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Parameters\InputChannelIdentity.h">
+      <Filter>WFS-DIY\Source\Parameters</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Parameters\InputChannelDescription.h">
+      <Filter>WFS-DIY\Source\Parameters</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\Parameters\WFSParameterDefaults.h">
       <Filter>WFS-DIY\Source\Parameters</Filter>
     </ClInclude>
@@ -4801,6 +4810,9 @@
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\gui\SystemConfigTab.h">
+      <Filter>WFS-DIY\Source\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\gui\ChannelIdentityGate.h">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\gui\OutputsTab.h">
