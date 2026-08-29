@@ -2,7 +2,7 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
-## Unreleased
+## v1.0.0beta44 — 2026-08-28
 
 ### Removed
 - **Live Source attenuation on reverb feeds (`reverbLSenable`), and the vestigial `inputReverbSend`.** The feed toggle had a button on the Reverb tab's Channel Parameters, a Stream Deck key, an OSC address, an OSCQuery node and an MCP tool — and did nothing: the Live Source Tamer computes its gains per (input, *speaker*) from speaker positions, and the reverb feed matrix never read them (the engine's own comment said "reserved for future use"). Rather than extend the Tamer to nodes, it is dropped: a reverb node close enough to a live microphone to feed back is placed wrong, and the fix is to move it. The per-output `outputLSattenEnable` and everything on the input→output path are untouched. `inputReverbSend` was a dB send level with a `/wfs/input/reverbSend` address, OSCQuery bounds, a QLab label and a fuzz case, and no ValueTree writer — the send became a per-input toggle (`inputMuteReverbSends`) in July and every input feeds every node, shaped only by geometry. An old `reverbs.xml` carrying `reverbLSenable` loads cleanly: the attribute is stripped on load rather than carried along and re-saved.
