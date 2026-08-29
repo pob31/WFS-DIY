@@ -8,6 +8,9 @@
 #include "ChannelSelector.h"
 #include "ColorScheme.h"
 #include "ColorUtilities.h"
+#include "ColouredIndexComboBox.h"
+#include "InputColour.h"
+#include "InputColourPicker.h"
 #include "SliderUIComponents.h"
 #include "DialUIComponents.h"
 #include "StatusBar.h"
@@ -226,15 +229,37 @@ public:
             if (onChannelSelected)
                 onChannelSelected(channel);
         };
-        // Set color provider to match input marker colors from Map tab
-        channelSelector.setChannelColorProvider([](int channelId) -> juce::Colour {
-            return WfsColorUtilities::getInputColor(channelId);
+        // Set color provider to match input marker colors from Map tab.
+        // Captures `this` so it can read a picked colour; without a capture it could only
+        // ever answer with the derived hue.
+        channelSelector.setChannelColorProvider([this](int channelId) -> juce::Colour {
+            return WfsInputColour::resolve(parameters.getValueTreeState(), channelId);
         });
         // Set text color provider for readable text on light/dark backgrounds
-        channelSelector.setTextColorProvider([](int channelId) -> juce::Colour {
-            auto bgColor = WfsColorUtilities::getInputColor(channelId);
+        channelSelector.setTextColorProvider([this](int channelId) -> juce::Colour {
+            auto bgColor = WfsInputColour::resolve(parameters.getValueTreeState(), channelId);
             return WfsColorUtilities::getContrastingTextColor(bgColor);
         });
+        // Colour editing lives INSIDE the channel-selector popup — a round swatch in its
+        // title bar — rather than beside the collapsed button, which already paints itself
+        // in the channel's colour. The grid is also where the other channels' colours are
+        // visible to choose against.
+        channelSelector.setColourEditor([this](int channelNumber, juce::Component& anchor) {
+            auto& vts = parameters.getValueTreeState();
+            WfsInputColourPicker::show(
+                anchor,
+                WfsInputColour::resolve(vts, channelNumber),
+                [this, channelNumber](juce::Colour c) {
+                    saveInputColour(channelNumber, WfsInputColour::toStoredValue(c));
+                },
+                [this, channelNumber]() {
+                    saveInputColour(channelNumber, WfsInputColour::autoValue());
+                },
+                // One transaction for the whole popup: ColourSelector broadcasts on every
+                // mouse move across the wheel.
+                [&vts]() { vts.beginUndoTransaction("Input Colour"); });
+        });
+
         // Set name provider to show input names on selector tiles
         // (channelId is a permanent number — resolve to the slot)
         channelSelector.setChannelNameProvider([this](int channelId) -> juce::String {
@@ -263,9 +288,11 @@ public:
         addAndMakeVisible(clusterLabel);
         clusterLabel.setText(LOC("inputs.labels.cluster"), juce::dontSendNotification);
         addAndMakeVisible(clusterSelector);
-        clusterSelector.addItem(LOC("inputs.clusters.single"), 1);
-        for (int i = 1; i <= 10; ++i)
-            clusterSelector.addItem(LOC("inputs.clusters.clusterPrefix") + " " + juce::String(i), i + 1);
+        // Clusters share the ten array hues (getArrayColor IS getMarkerColor(n, true)),
+        // which is what the map's cluster markers and the Clusters tab already use.
+        WfsColouredCombo::populate(clusterSelector,
+                                   LOC("inputs.clusters.single"),
+                                   LOC("inputs.clusters.clusterPrefix"));
         clusterSelector.setSelectedId(1, juce::dontSendNotification);
         clusterSelector.onChange = [this]() {
             int newCluster = clusterSelector.getSelectedId() - 1;
@@ -280,6 +307,7 @@ public:
             {
                 saveInputParam(WFSParameterIDs::inputCluster, newCluster);
             }
+            updateClusterColour();
             // TTS: Announce selection change
             TTSManager::getInstance().announceValueChange("Cluster", clusterSelector.getText());
         };
@@ -666,6 +694,13 @@ public:
         in a loop, so an unfiltered refresh would rebuild the page once per channel
         on a stereo-count change or a config load. */
     std::function<void(int changedChannelNumber)> onChannelTypeChanged;
+
+    /** Fired when an input's colour changes. The patch matrix reads its row colours through
+        a provider evaluated at paint time, but its own ValueTree listener only branches on
+        the patch data itself, so a colour change reaches it with nothing to trigger a
+        repaint. Everything else that shows an input colour either repaints itself (the map
+        coalesces one from the tree listener) or is rebuilt on open (the selector tiles). */
+    std::function<void()> onInputColourChanged;
 
     /** Fired after any snapshot is created, updated, deleted, or has its scope
         rewritten -- the MIDI binding index rebuilds from this. */
@@ -5534,6 +5569,7 @@ private:
         // ==================== HEADER ====================
         nameEditor.setText(getStringParam(WFSParameterIDs::inputName, "Input " + juce::String(channel)), juce::dontSendNotification);
         clusterSelector.setSelectedId(getIntParam(WFSParameterIDs::inputCluster, 0) + 1, juce::dontSendNotification);
+        updateClusterColour();
 
         // ==================== INPUT PROPERTIES TAB ====================
         // Attenuation stored as dB (-92 to 0), default 0dB
@@ -8174,6 +8210,43 @@ private:
         samplerToggleButton.setAlpha(stereo ? 0.4f : 1.0f);
     }
 
+    /** Repaints the Cluster selector in the selected cluster's colour ("single"
+        clears it back to the theme). Called from the load path, from the user's
+        own pick, and from the tracking-conflict revert - that revert uses
+        dontSendNotification, so onChange does not fire and the box would
+        otherwise keep the colour of a cluster it was not allowed to join.
+    */
+    void updateClusterColour()
+    {
+        WfsColouredCombo::applyTint(clusterSelector, clusterSelector.getSelectedId() - 1);
+    }
+
+    /** Repaints everything showing THIS input's colour that does not repaint itself.
+
+        The map arms its own coalesced repaint from the tree listener, and the selector's
+        popup tiles are rebuilt on every open — but the swatch and the collapsed selector
+        button are painted from cached colours, so they need telling.
+    */
+    /** Writes one input's colour and repaints everything showing it that does not repaint
+        itself: the collapsed selector button, the grid tiles if it happens to be open, and
+        the patch matrix. The map arms its own coalesced repaint from the tree listener. */
+    void saveInputColour(int channelNumber, int storedValue)
+    {
+        if (isLoadingParameters) return;
+
+        const int slot = parameters.getValueTreeState().getSlotForChannelNumber(channelNumber);
+        if (slot < 0) return;
+
+        {
+            const juce::ScopedValueSetter<bool> selfWriteScope(isSelfWriting, true);
+            parameters.getClusterEdit().write(slot, WFSParameterIDs::inputColour, storedValue);
+        }
+
+        channelSelector.refreshChannelColours();
+        if (onInputColourChanged)
+            onInputColourChanged();
+    }
+
     void saveInputParam(const juce::Identifier& paramId, const juce::var& value)
     {
         if (isLoadingParameters) return;
@@ -8449,6 +8522,7 @@ private:
                 {
                     // Revert cluster selector to previous value
                     clusterSelector.setSelectedId(previousCluster + 1, juce::dontSendNotification);
+                    updateClusterColour();
                 }
             })
         );

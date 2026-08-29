@@ -38,6 +38,7 @@ WRITES = [
     ("input2.attenuation", "/wfs/input/attenuation", [("i", 2), ("f", -12.5)]),
     ("input3.name",        "/wfs/input/name",        [("i", 3), ("s", "OSC Renamed")]),
     ("input4.cluster",     "/wfs/input/cluster",     [("i", 4), ("i", 1)]),
+    ("input5.colour",      "/wfs/input/colour",      [("i", 5), ("i", 3435973)]),
     ("output1.positionX",  "/wfs/output/positionX",  [("i", 1), ("f", -4.5)]),
     ("reverb1.positionX",  "/wfs/reverb/positionX",  [("i", 1), ("f", 2.25)]),
     # config-global family

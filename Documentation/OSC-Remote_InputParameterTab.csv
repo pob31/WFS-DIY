@@ -1,6 +1,7 @@
 Variable group	Label	Variable	OSC path	Incoming	Outgoing	UI	Type	Min	Max	Formula (x from 0.0 to 1.0)	Unit	enum	Note
 Input	Input Number	inputNumber	/remoteInput/inputNumber	no	YES	??	INT	1	64				permanent channel number, not an index: gaps and numbers above the channel count are normal; the live set and its display order come from /remote/channelList
 Input	Input Name	inputName	/remoteInput/inputName	YES	YES	Text box	STRING						
+Input	Input Colour	inputColour	/remoteInput/inputColour	YES	YES	Colour picker	INT	-1	16777215				24-bit RGB (0xRRGGBB) as a positive int; -1 = auto, meaning the tablet should keep deriving the hue from the channel number as it does today.
 Input	Attenuation	attenuation	/remoteInput/attenuation	YES	YES	V Slider	FLOAT	-92.0	0.0	20*log10(pow(10,-92./20.)+((1-pow(10,-92./20.))*pow(x,2)))	dB		
 Input	Delay/Latency comp.	delayLatency	/remoteInput/delayLatency	YES	YES	H Bidirectional slider	FLOAT	-100.0	100.0	(x*200.0)-100.0	ms		
 Input	Minimal Latency	minimalLatency	/remoteInput/minimalLatency	YES	YES	Text button	INT	0	1			Acoustic Precedence�; Minimal Latency	

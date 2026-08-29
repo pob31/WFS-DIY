@@ -2211,6 +2211,21 @@ MainComponent::MainComponent()
     // channel at a time in a loop (applyStereoSplit, the inventory apply path): only
     // the channel actually on the surface refreshes, and never while the Patch
     // window owns it, since refreshCurrentPage() short-circuits to the override page.
+    // The patch matrix colours its rows through a provider evaluated at paint time, but its
+    // own ValueTree listener only branches on the patch data, so a colour change reaches it
+    // with nothing to trigger a repaint. Everything else that shows an input colour either
+    // coalesces its own repaint (the map) or is rebuilt on open (the selector tiles).
+    inputsTab->onInputColourChanged = [this]()
+    {
+        if (audioInterfaceWindow == nullptr)
+            return;   // window is created on demand; nothing to repaint until it exists
+
+        if (auto* content = audioInterfaceWindow->getContent())
+            if (auto* inTab = content->getInputPatchTab())
+                if (auto* matrix = inTab->getPatchMatrix())
+                    matrix->repaint();
+    };
+
     inputsTab->onChannelTypeChanged = [this](int changedChannelNumber)
     {
         if (streamDeckManager
@@ -3295,6 +3310,9 @@ void MainComponent::runChannelListSelfTest()
         struct Excluded { const char* name; const char* why; };
         static const Excluded kNotSnapshotted[] = {
             { "inputName",               "always captured, outside the scope system by design" },
+            { "inputColour",             "per-channel identity like inputName: it travels with the "
+                                         "channel and belongs to the operator's labelling of the rig, "
+                                         "not to show state, so recalling a cue must never repaint it" },
             { "inputSolo",               "transient monitoring state, not show state" },
             { "inputOtomoPauseResume",   "run-state of a motion in flight, not a destination" },
             { "inputHiddenByCluster",    "cache of (inputCluster, clusterInputsVisible); ClustersTab "

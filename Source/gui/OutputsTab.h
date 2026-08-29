@@ -12,6 +12,7 @@
 #include "StatusBar.h"
 #include "OutputArrayHelperWindow.h"
 #include "EQDisplayComponent.h"
+#include "ColouredIndexComboBox.h"
 #include "../Helpers/CoordinateConverter.h"
 #include "../Localization/LocalizationManager.h"
 #include "buttons/LongPressButton.h"
@@ -179,9 +180,11 @@ public:
         addAndMakeVisible(arrayLabel);
         arrayLabel.setText(LOC("outputs.labels.array"), juce::dontSendNotification);
         addAndMakeVisible(arraySelector);
-        arraySelector.addItem(LOC("outputs.arrayModes.single"), 1);
-        for (int i = 1; i <= 10; ++i)
-            arraySelector.addItem(LOC("outputs.arrayModes.array") + " " + juce::String(i), i + 1);
+        // Same ten hues the output tiles and the map's speaker membranes use, so the
+        // selector says which colour the assignment will paint this output.
+        WfsColouredCombo::populate(arraySelector,
+                                   LOC("outputs.arrayModes.single"),
+                                   LOC("outputs.arrayModes.array"));
         arraySelector.setSelectedId(1, juce::dontSendNotification);
         arraySelector.onChange = [this]() {
             updateArrayParameter();
@@ -1926,6 +1929,7 @@ private:
         updateApplyToArrayEnabledState();
         updateMapVisibilityButtonState();
         updateArrayLinkIndicators();
+        updateArrayColours();
     }
 
     void saveOutputParam(const juce::Identifier& paramId, const juce::var& value)
@@ -2006,6 +2010,29 @@ private:
         updateMapVisibilityButtonState();
         updateArrayLinkIndicators();
         saveOutputParam(WFSParameterIDs::outputArray, arraySelector.getSelectedId() - 1);
+        // AFTER the write, not before: the channel button's colour provider reads
+        // outputArray back out of the tree, so colouring first would repaint the
+        // button from the value we are about to replace — leaving the button on the
+        // old array's colour beside a combobox already showing the new one.
+        updateArrayColours();
+    }
+
+    /** Repaints the Array selector and the collapsed channel button in the current
+        output's array colour ("Single" clears both back to the theme).
+
+        Called from BOTH edit paths on purpose: saveOutputParam writes under the
+        isSelfWriting gate, which suppresses the listener reload, so the tab's own
+        combobox edit would otherwise not refresh its own tint. External writes
+        (OSC, MCP, the Array Helper, a project load, undo) arrive through
+        valueTreePropertyChanged -> loadChannelParameters, which also lands here.
+        "Apply to array" is NOT among them: outputArray is not an array-linked
+        parameter (WFSValueTreeState::isArrayLinkedParameter), so no other output
+        can ever reassign this one's array.
+    */
+    void updateArrayColours()
+    {
+        WfsColouredCombo::applyTint(arraySelector, arraySelector.getSelectedId() - 1);
+        channelSelector.refreshChannelColour();
     }
 
     void updateApplyToArrayParameter()

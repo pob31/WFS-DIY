@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "0d624c320021b758a12ed657a945ed73603549f9500c887f16e52949e96146e2",
+  "input_hash": "f20d0bf75469339b0957e13acaeb300b6f831a8ce41bc466d5e0b35279e4df6b",
   "source_csvs": [
     "WFS-UI_config.csv",
     "WFS-UI_input.csv",
@@ -4249,6 +4249,41 @@
       "internal_osc_path": "/wfs/input/pathModeActive",
       "internal_variable": "inputPathModeActive",
       "value_arg_name": "mode"
+    },
+    {
+      "name": "input_name_set_colour",
+      "description": "Input marker colour on the map, tiles and patch matrix. -1 = automatic. Use `session_get_state()` first if unsure which channels exist.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "input_id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 64,
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
+          },
+          "value": {
+            "type": "integer",
+            "minimum": -1,
+            "maximum": 16777215,
+            "description": "Input Colour.",
+            "default": -1
+          }
+        },
+        "required": [
+          "input_id",
+          "value"
+        ]
+      },
+      "tier": 1,
+      "csv_section": "Name",
+      "group_key": "input_name",
+      "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
+      "internal_osc_path": "/wfs/input/colour",
+      "internal_variable": "inputColour"
     },
     {
       "name": "input_position_set_constraint_distance",

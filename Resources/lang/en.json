@@ -1608,6 +1608,7 @@
     },
     "buttons": {
       "solo": "Solo",
+      "colourAuto": "Auto",
       "setAllInputs": "Set all Inputs...",
       "storeConfig": "Store Input Config",
       "reloadConfig": "Reload Input Config",
@@ -1740,6 +1741,7 @@
       "snapshotNameLabel": "Name:",
       "snapshotOverwriteWarning": "A snapshot with this name already exists — it will be overwritten.",
       "selectChannel": "Select Channel",
+      "selectColour": "Input Colour",
       "trackingConflictTitle": "Tracking Conflict",
       "trackingConflictCluster": "Input {current} has tracking enabled, but Input {existing} in Cluster {cluster} is already tracked.\n\nOnly one tracked input per cluster is allowed.",
       "trackingConflictContinue": "Continue (disable tracking)",
@@ -1793,6 +1795,7 @@
       "channelSelector": "Input Channel Number and Selection.",
       "nameEditor": "Displayed Input Channel Name (editable).",
       "clusterSelector": "Object is Part of a Cluster.",
+      "colourSwatch": "Input Colour: the colour identifying this input on the map, the channel tiles and the patch matrix. Auto derives it from the channel number.",
       "mapLockButton": "Prevent Interaction on the Map Tab",
       "mapVisibilityButton": "Make Visible or Hide The Selected Input on the Map",
       "attenuationSlider": "Input Channel Attenuation.",

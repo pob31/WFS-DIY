@@ -16,6 +16,7 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getInputAddres
     static const std::map<juce::String, juce::Identifier> addressMap = {
         // Channel
         { "name",             WFSParameterIDs::inputName },
+        { "colour",           WFSParameterIDs::inputColour },
         { "attenuation",      WFSParameterIDs::inputAttenuation },
         { "delayLatency",     WFSParameterIDs::inputDelayLatency },
         { "minimalLatency",   WFSParameterIDs::inputMinimalLatency },
@@ -248,6 +249,7 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getRemoteAddre
     static const std::map<juce::String, juce::Identifier> addressMap = {
         // Channel
         { "inputName",        WFSParameterIDs::inputName },
+        { "inputColour",      WFSParameterIDs::inputColour },
         { "attenuation",      WFSParameterIDs::inputAttenuation },
         { "delayLatency",     WFSParameterIDs::inputDelayLatency },
         { "minimalLatency",   WFSParameterIDs::inputMinimalLatency },

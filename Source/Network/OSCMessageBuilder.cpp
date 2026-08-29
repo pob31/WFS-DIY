@@ -12,6 +12,7 @@ const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBui
     static const std::map<juce::Identifier, ParamMapping> mappings = {
         // Channel
         { WFSParameterIDs::inputName,             { "/wfs/input/name",             "/remoteInput/inputName" } },
+        { WFSParameterIDs::inputColour,           { "/wfs/input/colour",           "/remoteInput/inputColour" } },
         { WFSParameterIDs::inputAttenuation,      { "/wfs/input/attenuation",      "/remoteInput/attenuation" } },
         { WFSParameterIDs::inputDelayLatency,     { "/wfs/input/delayLatency",     "/remoteInput/delayLatency" } },
         { WFSParameterIDs::inputMinimalLatency,   { "/wfs/input/minimalLatency",   "/remoteInput/minimalLatency" } },

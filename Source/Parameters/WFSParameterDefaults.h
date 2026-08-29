@@ -353,6 +353,14 @@ namespace WFSParameterDefaults
     constexpr float inputAttenuationMin         = -92.0f;
     constexpr float inputAttenuationMax         = 0.0f;
 
+    // Per-channel marker colour: 24-bit RGB as a positive int, or -1 = auto (derive from the
+    // channel number). See WFSParameterIDs::inputColour for why alpha is not stored. The
+    // Default/Min/Max suffixes are load-bearing: OSCParameterBounds' BIND_I macro token-pastes
+    // inputColourMin / inputColourMax onto the identifier name.
+    constexpr int inputColourDefault            = -1;
+    constexpr int inputColourMin                = -1;
+    constexpr int inputColourMax                = 0xFFFFFF;   // 16777215
+
     // Per-channel input type values (Input node property `inputChannelType`).
     constexpr const char* inputChannelTypeMono   = "mono";
     constexpr const char* inputChannelTypeStereo = "stereo";

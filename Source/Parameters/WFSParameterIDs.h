@@ -387,6 +387,12 @@ namespace WFSParameterIDs
 
     // Input > Channel
     const juce::Identifier inputName             ("inputName");
+    // 24-bit RGB (0x000000..0xFFFFFF) as a POSITIVE int, or -1 meaning "auto" — derive the
+    // colour from the channel number as WfsColorUtilities::getInputColor always has.
+    // Not a full ARGB on purpose: fromXml types every property as a string and WFSVar::toInt
+    // resolves it through String::getIntValue(), a SIGNED 32-bit parse, so 0xFF...... would
+    // not survive a save. Alpha is always opaque for a channel colour, so 24 bits is enough.
+    const juce::Identifier inputColour           ("inputColour");
     const juce::Identifier inputSolo             ("inputSolo");             // 0/1, binaural solo — per channel so it travels with the node (reorder/delete safe); replaces the Binaural inputSoloStates csv
     const juce::Identifier inputStereoWidth      ("inputStereoWidth");      // metres, stereo pairs only — the FULL left-to-right distance, so each leg sits at half of it. Absolute: no speaker position is read, so it means the same thing on a bar, a circle or a Y-running array
     // Degrees, stereo pairs only: a rotation APPLIED TO the automatic tangential

@@ -102,6 +102,8 @@ ENTRIES: list[AddrEntry] = [
               read_back="/wfs/input/{ch}/LFOactive"),
     AddrEntry("/wfs/input/cluster", "channel-int", "count",
               read_back="/wfs/input/{ch}/cluster"),
+    AddrEntry("/wfs/input/colour", "channel-int", "count",
+              read_back="/wfs/input/{ch}/colour"),
     AddrEntry("/wfs/input/trackingID", "channel-int", "count",
               read_back="/wfs/input/{ch}/trackingID"),
 

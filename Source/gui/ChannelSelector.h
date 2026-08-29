@@ -41,6 +41,42 @@ public:
 };
 
 /**
+ * Round colour swatch shown in the overlay's title bar, left of the close button.
+ *
+ * Only appears when the owner installs a colour editor — so the Outputs and Reverb
+ * selectors, which do not, are untouched. It is deliberately in the popup rather than
+ * beside the collapsed button: the collapsed button already shows the same colour, and
+ * inside the grid you can see every other channel's colour while choosing.
+ */
+class ChannelColourButton : public juce::Button
+{
+public:
+    ChannelColourButton() : juce::Button("colour") {}
+
+    /** Colour to paint — asked for on every repaint, so it cannot go stale. */
+    std::function<juce::Colour()> getColour;
+
+    void paintButton(juce::Graphics& g, bool isMouseOver, bool isButtonDown) override
+    {
+        auto bounds = getLocalBounds().toFloat().reduced(1.0f);
+        const float cx = bounds.getCentreX();
+        const float cy = bounds.getCentreY();
+        const float r  = juce::jmin(bounds.getWidth(), bounds.getHeight()) * 0.5f;
+
+        juce::Colour fill = getColour ? getColour() : juce::Colour(0xFF808080);
+        if (isButtonDown)      fill = fill.darker(0.2f);
+        else if (isMouseOver)  fill = fill.brighter(0.2f);
+
+        g.setColour(fill);
+        g.fillEllipse(cx - r, cy - r, r * 2.0f, r * 2.0f);
+
+        // Ring, so a swatch whose colour matches the card behind it is still findable.
+        g.setColour(isMouseOver ? juce::Colours::white : juce::Colour(0xFF909090));
+        g.drawEllipse(cx - r + 0.75f, cy - r + 0.75f, r * 2.0f - 1.5f, r * 2.0f - 1.5f, 1.5f);
+    }
+};
+
+/**
  * Transparent backdrop for click-outside-to-dismiss behavior
  */
 class ChannelSelectorBackdrop : public juce::Component
@@ -78,7 +114,8 @@ public:
                           std::function<juce::String(int)> channelNameProvider = nullptr,
                           std::function<juce::Colour(int)> textColorProvider = nullptr,
                           std::vector<int> channelIdsIn = {},
-                          std::function<bool(int)> channelStereoProvider = nullptr)
+                          std::function<bool(int)> channelStereoProvider = nullptr,
+                          std::function<void(int, juce::Component&)> colourEditor = nullptr)
         : totalChannels(numChannels),
           selectedChannel(currentChannel),
           onSelect(std::move(onChannelSelected)),
@@ -86,10 +123,30 @@ public:
           getChannelName(std::move(channelNameProvider)),
           getTextColor(std::move(textColorProvider)),
           channelIds(std::move(channelIdsIn)),
-          getChannelStereo(std::move(channelStereoProvider))
+          getChannelStereo(std::move(channelStereoProvider)),
+          onEditColour(std::move(colourEditor))
     {
         setOpaque(false);
         setAlwaysOnTop(true);
+
+        // Only present when the owner installs an editor, so selectors that have no
+        // per-channel colour to edit (Outputs, Reverb) render exactly as before.
+        addChildComponent(colourButton);
+        if (onEditColour)
+        {
+            colourButton.getColour = [this]() -> juce::Colour {
+                return getChannelColor ? getChannelColor(selectedChannel) : juce::Colour(0xFF808080);
+            };
+            colourButton.onClick = [this]() {
+                if (onEditColour)
+                    onEditColour(selectedChannel, colourButton);
+            };
+            // The tab's helpTextMap only covers components inside the tab, and this one lives
+            // in a popup parented to the window — so it explains itself with a tooltip
+            // instead, through the app-wide TooltipWindow.
+            colourButton.setTooltip(LOC("inputs.help.colourSwatch"));
+            colourButton.setVisible(true);
+        }
 
         // Classical stereo mark in unit space: circles of radius 1 centred at
         // (1, 1) and (2.5, 1) — centre separation 1.5 x radius. Stroked in
@@ -171,7 +228,9 @@ public:
         // Draw title
         g.setColour(ColorScheme::get().textPrimary);
         g.setFont(juce::FontOptions().withHeight(juce::jmax(10.0f, 14.0f * WfsLookAndFeel::uiScale)).withStyle("Bold"));
-        g.drawText(LOC("inputs.dialogs.selectChannel"), padding, padding, getWidth() - padding * 2 - sc(30), titleHeight - padding,
+        const int titleReserve = sc(30) + (colourButton.isVisible() ? sc(28) : 0);
+        g.drawText(LOC("inputs.dialogs.selectChannel"), padding, padding,
+                   getWidth() - padding * 2 - titleReserve, titleHeight - padding,
                    juce::Justification::centredLeft);
     }
 
@@ -183,6 +242,12 @@ public:
         closeButton.setBounds(getWidth() - padding - closeSize,
                               juce::jmax(closeY, padding),
                               closeSize, closeSize);
+
+        // Colour swatch immediately left of it, same size and baseline.
+        if (colourButton.isVisible())
+            colourButton.setBounds(getWidth() - padding - closeSize - sc(8) - closeSize,
+                                   juce::jmax(closeY, padding),
+                                   closeSize, closeSize);
 
         // Position buttons in grid below title
         const int startX = padding;
@@ -229,6 +294,41 @@ public:
         }
 
         updateStereoBadges();
+    }
+
+    /** Re-asks the colour providers for every tile, without re-laying anything out.
+
+        Needed because a colour can now be changed while the grid is open: the tiles are
+        coloured in resized(), which does not run again on its own. */
+    void refreshTileColours()
+    {
+        for (int i = 0; i < channelButtons.size(); ++i)
+        {
+            const int channelId = channelIds[static_cast<size_t>(i)];
+
+            juce::Colour buttonColor;
+            if (getChannelColor)
+            {
+                buttonColor = getChannelColor(channelId);
+                if (channelId == selectedChannel)
+                    buttonColor = buttonColor.brighter(0.3f);
+            }
+            else
+            {
+                buttonColor = (channelId == selectedChannel) ? juce::Colour(0xFF4080FF)
+                                                             : juce::Colour(0xFF3A3A3A);
+            }
+
+            juce::Colour textColor = juce::Colours::white;
+            if (getTextColor)
+                textColor = getTextColor(channelId);
+
+            channelButtons[i]->setColour(juce::TextButton::buttonColourId, buttonColor);
+            channelButtons[i]->setColour(juce::TextButton::textColourOffId, textColor);
+        }
+
+        colourButton.repaint();
+        repaint();
     }
 
     /** Stereo mark, stamped over the tiles rather than baked into their text:
@@ -461,6 +561,8 @@ private:
 
     juce::OwnedArray<juce::TextButton> channelButtons;
     CircularCloseButton closeButton;
+    ChannelColourButton colourButton;
+    std::function<void(int, juce::Component&)> onEditColour;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChannelSelectorOverlay)
 };
@@ -487,6 +589,7 @@ public:
     void setChannelColorProvider(std::function<juce::Colour(int)> provider)
     {
         channelColorProvider = std::move(provider);
+        applyTint();
     }
 
     /** Set a custom name provider function for channel buttons.
@@ -503,6 +606,7 @@ public:
     void setTextColorProvider(std::function<juce::Colour(int)> provider)
     {
         textColorProvider = std::move(provider);
+        applyTint();
     }
 
     /** Set an optional stereo predicate for channel tiles.
@@ -565,6 +669,37 @@ public:
 
     int getSelectedChannel() const { return currentChannel; }
 
+    /** Re-reads the colour providers for the CURRENT selection.
+
+        Needed when the data behind the colour moves without the selection
+        moving — an output's array reassigned from the Outputs tab, from OSC,
+        by "apply to array" or by a project load. Selection changes need no
+        call: they already funnel through updateButtonText().
+    */
+    void refreshChannelColour() { applyTint(); }
+
+    /** Installs a per-channel colour editor. When set, the popup grows a round colour
+        swatch in its title bar, left of the close button; pressing it calls this with the
+        selected channel and the swatch itself, so the caller can anchor a picker to it.
+
+        Leaving it null (Outputs, Reverb) means no button and no behaviour change at all.
+    */
+    void setColourEditor(std::function<void(int, juce::Component&)> editor)
+    {
+        colourEditor = std::move(editor);
+    }
+
+    /** Repaints the collapsed button AND, if the grid happens to be open, its tiles.
+
+        A colour can now be changed from inside the grid, and tiles are coloured in the
+        overlay's resized(), which does not run again by itself. */
+    void refreshChannelColours()
+    {
+        applyTint();
+        if (auto* o = openOverlay.getComponent())
+            o->refreshTileColours();
+    }
+
     int getNumChannels() const { return numChannels; }
 
     /** Neighbour of the current selection in display order, wrapping.
@@ -598,6 +733,34 @@ private:
     void updateButtonText()
     {
         selectorButton.setButtonText(labelPrefix + " " + juce::String(currentChannel) + juce::String::fromUTF8(" ▼"));
+        applyTint();
+    }
+
+    /** Paints the collapsed button in the selected channel's own colour, so the
+        colour identifying a channel on its tile and its map marker survives the
+        tile grid closing.
+
+        Uses the SAME providers the popup tiles use, so each tab's existing rule
+        carries over untouched — and a selector that installs no colour provider
+        (the Reverb tab) clears the overrides and renders exactly as before.
+    */
+    void applyTint()
+    {
+        if (! channelColorProvider)
+        {
+            selectorButton.removeColour(juce::TextButton::buttonColourId);
+            selectorButton.removeColour(juce::TextButton::textColourOffId);
+            selectorButton.removeColour(juce::TextButton::textColourOnId);
+            return;
+        }
+
+        const auto bg = channelColorProvider(currentChannel);
+        const auto fg = textColorProvider ? textColorProvider(currentChannel)
+                                          : WfsColorUtilities::getContrastingTextColor(bg);
+
+        selectorButton.setColour(juce::TextButton::buttonColourId, bg);
+        selectorButton.setColour(juce::TextButton::textColourOffId, fg);
+        selectorButton.setColour(juce::TextButton::textColourOnId, fg);
     }
 
     void showOverlay()
@@ -657,8 +820,11 @@ private:
                 channelNameProvider,
                 textColorProvider,
                 channelIds,
-                channelStereoProvider
+                channelStereoProvider,
+                colourEditor
             );
+
+            openOverlay = overlay.get();
 
             // Get required size for the popup
             auto requiredSize = overlay->getRequiredSize();
@@ -727,6 +893,8 @@ private:
     std::function<juce::String(int)> channelNameProvider;
     std::function<juce::Colour(int)> textColorProvider;
     std::function<bool(int)> channelStereoProvider;
+    std::function<void(int, juce::Component&)> colourEditor;
+    juce::Component::SafePointer<ChannelSelectorOverlay> openOverlay;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChannelSelectorButton)
 };

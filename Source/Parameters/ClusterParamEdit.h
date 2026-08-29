@@ -117,7 +117,7 @@ public:
     {
         using namespace WFSParameterIDs;
         static const juce::Identifier list[] = {
-            inputName,
+            inputName,      inputColour,
             inputPositionX, inputPositionY, inputPositionZ,
             inputOffsetX,   inputOffsetY,   inputOffsetZ,
             inputCluster,   inputHiddenByCluster,

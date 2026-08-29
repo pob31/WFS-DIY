@@ -3,6 +3,7 @@
 #include "../Parameters/WFSParameterDefaults.h"
 #include "ColorScheme.h"
 #include "ColorUtilities.h"
+#include "InputColour.h"
 #include "WfsLookAndFeel.h"
 #include "../Accessibility/TTSManager.h"
 #include "../Localization/LocalizationManager.h"
@@ -112,7 +113,7 @@ PatchMatrixComponent::makeConfig (WFSValueTreeState& parameters, bool isInputPat
     config.rowColourProvider = [&parameters, isInputPatch] (int channel) -> juce::Colour
     {
         if (isInputPatch)
-            return WfsColorUtilities::getInputColor (parameters.getInputChannelNumber (channel));
+            return WfsInputColour::resolveForSlot (parameters, channel);
 
         // Outputs are coloured by the array they belong to. Note the lookup is
         // by NAME ("Output7"), not by index — the two differ once outputs have

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "0d624c320021b758a12ed657a945ed73603549f9500c887f16e52949e96146e2",
+  "input_hash": "f20d0bf75469339b0957e13acaeb300b6f831a8ce41bc466d5e0b35279e4df6b",
   "groups": {
     "cluster_assigned_inputs": [
       "cluster_assigned_inputs_set_input_order",
@@ -163,6 +163,7 @@
       "input_set_mutes"
     ],
     "input_name": [
+      "input_name_set_colour",
       "input_set_name"
     ],
     "input_position": [

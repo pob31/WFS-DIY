@@ -143,6 +143,7 @@ namespace
             BIND_BOOL (inputMinimalLatency);
             BIND_F (inputStereoWidth);
             BIND_I (inputStereoAxisOffset);
+            BIND_I (inputColour);
 
             //------------------------------------------------------------------
             // Input / Position (X/Y/Z share one Min/Max pair)

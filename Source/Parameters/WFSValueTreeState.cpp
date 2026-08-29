@@ -3908,6 +3908,7 @@ juce::ValueTree WFSValueTreeState::createInputChannelSection (bool stereo, int o
 {
     juce::ValueTree channel (Channel);
     channel.setProperty (inputName, getDefaultInputNameForType (stereo, ordinal), nullptr);
+    channel.setProperty (inputColour, inputColourDefault, nullptr);   // Default: -1 = auto
     channel.setProperty (inputSolo, 0, nullptr);
     channel.setProperty (inputStereoWidth, inputStereoWidthDefault, nullptr);
     channel.setProperty (inputStereoAxisOffset, inputStereoAxisOffsetDefault, nullptr);

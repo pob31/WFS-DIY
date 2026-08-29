@@ -72,7 +72,12 @@ namespace WfsColorUtilities
 
         float luminance = 0.2126f * r + 0.7152f * g + 0.0722f * b;
 
-        // Use black text for light backgrounds (luminance > 0.4)
-        return luminance > 0.4f ? juce::Colours::black : juce::Colours::white;
+        // Switch where black and white contrast EQUALLY against this background.
+        // WCAG contrast is (L+0.05)/0.05 against black and 1.05/(L+0.05) against white;
+        // setting them equal gives (L+0.05)^2 = 0.0525, i.e. L = 0.179 — not the 0.4 this
+        // used to use, which handed white to every mid-tone background at around 2.4:1
+        // where black would have given about 8.6:1. It matters more now that an input's
+        // colour can be picked freely rather than only ever being one of 32 known hues.
+        return luminance > 0.179f ? juce::Colours::black : juce::Colours::white;
     }
 }

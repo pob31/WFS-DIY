@@ -11,6 +11,7 @@
 #include "../Helpers/BinauralListenerGeometry.h"
 #include "../Network/OSCProtocolTypes.h"
 #include "ColorUtilities.h"
+#include "InputColour.h"
 #include "ColorScheme.h"
 #include "WfsLookAndFeel.h"
 #include "StatusBar.h"
@@ -3836,7 +3837,7 @@ private:
             int lsShape = static_cast<int>(parameters.getInputParam(inputIndex, "inputLSshape"));
 
             // Get input marker color for the gradient
-            juce::Colour inputColor = WfsColorUtilities::getInputColor(parameters.getValueTreeState().getInputChannelNumber(inputIndex));
+            juce::Colour inputColor = WfsInputColour::resolveForSlot(parameters.getValueTreeState(), inputIndex);
             const float baseAlpha = 0.25f;
 
             // Create radial gradient with shape-dependent color stops
@@ -3922,7 +3923,7 @@ private:
                 auto leftEnd  = stageToScreen(legLeft);
                 auto rightEnd = stageToScreen(legRight);
 
-                juce::Colour spreadColor = WfsColorUtilities::getInputColor(parameters.getValueTreeState().getInputChannelNumber(inputIndex));
+                juce::Colour spreadColor = WfsInputColour::resolveForSlot(parameters.getValueTreeState(), inputIndex);
                 g.setColour(spreadColor.withAlpha(0.55f));
                 g.drawLine(leftEnd.x, leftEnd.y, rightEnd.x, rightEnd.y, 2.0f);
 
@@ -4017,7 +4018,7 @@ private:
         }
         else
         {
-            outerColor = WfsColorUtilities::getInputColor(parameters.getValueTreeState().getInputChannelNumber(inputIndex));  // 1-based for color
+            outerColor = WfsInputColour::resolveForSlot(parameters.getValueTreeState(), inputIndex);  // 1-based for color
 
             // Label color based on tracking/reference state
             if (isTracked && isReference)
