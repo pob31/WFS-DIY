@@ -2,6 +2,12 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
+## Unreleased
+
+### Fixed
+- **The Outputs EQ's dials, sliders and value labels stopped following the EQ graph.** Dragging a band marker on the output EQ display moved the curve and the audio, but that band's frequency slider, gain and Q dials, shape box, toggle and its three value labels stayed where they were until the channel was reselected — so the numbers under the graph disagreed with the graph, and with what was being rendered. The reverb pre- and post-EQ displays were never affected. The cause was `ownerPersistsValue`, set on the output display in beta22 so that graph edits would route through `saveEqBandParam` and so reach the rest of an output array in relative mode — correct, but that write happens inside the `isSelfWriting` scope, which is precisely what tells `valueTreePropertyChanged` to skip the reload that refreshes the controls. The graph became the one edit path that persisted without ever announcing itself to the tab. The reverb displays leave `ownerPersistsValue` at its default, so `EQDisplayComponent` writes the band tree itself *before* any self-write scope exists and their reload still fires; that asymmetry is why only one of the three EQs showed it.
+  - The per-band control update is now a named `refreshEqBandControls()` rather than a loop body inside `loadChannelParameters`, so the graph callback and a channel load cannot drift apart about what a band's controls should read. The graph refreshes **only the band that moved**, instead of queueing a full channel reload per drag event, and it reads the band back out of the ValueTree rather than trusting the value it was handed — so a relative array write displays the value that actually landed. It runs under `isLoadingParameters` for the same reason the load loop does: `WfsSliderBase::setValue` and `WfsBasicDial::setValue` both fire `onValueChanged`, and without the guard the refresh would write straight back into the tree it just read.
+
 ## v1.0.0beta44 — 2026-08-28
 
 ### Removed

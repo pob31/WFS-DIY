@@ -1880,34 +1880,7 @@ private:
         if (eqTree.isValid())
         {
             for (int i = 0; i < numEqBands; ++i)
-            {
-                auto band = eqTree.getChild(i);
-                if (!band.isValid()) continue;
-
-                int shape = band.getProperty(WFSParameterIDs::eqShape, 0);
-                bool bandOn = (shape != 0);
-                eqBandToggle[i].setToggleState(bandOn, juce::dontSendNotification);
-
-                // Combobox: only update when band is on (preserve user's selection when off)
-                if (bandOn)
-                    eqBandShapeSelector[i].setSelectedId(shape, juce::dontSendNotification);
-
-                int freq = band.getProperty(WFSParameterIDs::eqFrequency, 1000);
-                float freqSlider = std::log10(freq / 20.0f) / 3.0f;
-                eqBandFreqSlider[i].setValue(juce::jlimit(0.0f, 1.0f, freqSlider));
-                eqBandFreqValueLabel[i].setText(formatFrequency(freq), juce::dontSendNotification);
-
-                float gain = band.getProperty(WFSParameterIDs::eqGain, 0.0f);
-                eqBandGainDial[i].setValue((gain + 24.0f) / 48.0f);
-                eqBandGainValueLabel[i].setText(juce::String(gain, 1) + " dB", juce::dontSendNotification);
-
-                float q = band.getProperty(WFSParameterIDs::eqQ, 0.7f);
-                float qSlider = std::log((q - 0.1f) / 0.099f + 1.0f) / std::log(100.0f);
-                eqBandQDial[i].setValue(juce::jlimit(0.0f, 1.0f, qSlider));
-                eqBandQValueLabel[i].setText(juce::String(q, 2), juce::dontSendNotification);
-
-                updateEqBandAppearance(i);
-            }
+                refreshEqBandControls(i);
 
             // Create EQ display component only if channel changed or doesn't exist
             // This prevents destroying the component mid-drag when ValueTree changes trigger reload
@@ -1920,8 +1893,14 @@ private:
 
                 // Set up callback for array propagation when interacting with the EQ graph
                 eqDisplay->onParameterChanged = [this](int bandIndex, const juce::Identifier& paramId, const juce::var& value) {
-                    if (!isLoadingParameters)
-                        saveEqBandParam(bandIndex, paramId, value);
+                    if (isLoadingParameters)
+                        return;
+                    saveEqBandParam(bandIndex, paramId, value);
+                    // saveEqBandParam writes under the isSelfWriting gate, so
+                    // valueTreePropertyChanged skips the reload that normally
+                    // refreshes the band controls — push this band's new state
+                    // onto its dials, sliders and labels here instead.
+                    refreshEqBandControls(bandIndex);
                 };
                 // Persist EQ-graph edits through saveEqBandParam (which does array
                 // propagation) instead of EQDisplayComponent writing the ValueTree
@@ -1967,6 +1946,50 @@ private:
         if (isLoadingParameters) return;
         const juce::ScopedValueSetter<bool> selfWriteScope(isSelfWriting, true);
         parameters.getArrayEdit().writeEQ(currentChannel - 1, bandIndex, paramId, value);
+    }
+
+    /** Pushes one EQ band's stored state onto its toggle, shape box, sliders,
+        dials and value labels. Reads the ValueTree rather than trusting a
+        caller-supplied value so array-relative writes are reflected exactly.
+        Runs under isLoadingParameters so the controls' own change callbacks
+        don't write straight back.
+    */
+    void refreshEqBandControls(int bandIndex)
+    {
+        if (bandIndex < 0 || bandIndex >= numEqBands || currentChannel <= 0)
+            return;
+
+        auto eqTree = parameters.getValueTreeState().getOutputEQSection(currentChannel - 1);
+        if (!eqTree.isValid()) return;
+
+        auto band = eqTree.getChild(bandIndex);
+        if (!band.isValid()) return;
+
+        const juce::ScopedValueSetter<bool> loadScope(isLoadingParameters, true);
+
+        int shape = band.getProperty(WFSParameterIDs::eqShape, 0);
+        bool bandOn = (shape != 0);
+        eqBandToggle[bandIndex].setToggleState(bandOn, juce::dontSendNotification);
+
+        // Combobox: only update when band is on (preserve user's selection when off)
+        if (bandOn)
+            eqBandShapeSelector[bandIndex].setSelectedId(shape, juce::dontSendNotification);
+
+        int freq = band.getProperty(WFSParameterIDs::eqFrequency, 1000);
+        float freqSlider = std::log10(freq / 20.0f) / 3.0f;
+        eqBandFreqSlider[bandIndex].setValue(juce::jlimit(0.0f, 1.0f, freqSlider));
+        eqBandFreqValueLabel[bandIndex].setText(formatFrequency(freq), juce::dontSendNotification);
+
+        float gain = band.getProperty(WFSParameterIDs::eqGain, 0.0f);
+        eqBandGainDial[bandIndex].setValue((gain + 24.0f) / 48.0f);
+        eqBandGainValueLabel[bandIndex].setText(juce::String(gain, 1) + " dB", juce::dontSendNotification);
+
+        float q = band.getProperty(WFSParameterIDs::eqQ, 0.7f);
+        float qSlider = std::log((q - 0.1f) / 0.099f + 1.0f) / std::log(100.0f);
+        eqBandQDial[bandIndex].setValue(juce::jlimit(0.0f, 1.0f, qSlider));
+        eqBandQValueLabel[bandIndex].setText(juce::String(q, 2), juce::dontSendNotification);
+
+        updateEqBandAppearance(bandIndex);
     }
 
     juce::String formatFrequency(int freq)
