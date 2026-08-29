@@ -5358,6 +5358,36 @@ private:
         }
     }
 
+    /** Dims the array-attenuation dials for arrays no output belongs to.
+
+        Split out of setMutesVisible because outputArray is edited on the
+        OUTPUTS tab: without a listener path of its own the dimming only
+        caught up the next time an input was selected, which rebuilt the
+        whole sub-tab. Cheap and idempotent, so it runs whether or not the
+        Parameters sub-tab is showing.
+    */
+    void updateArrayAttenDimming()
+    {
+        const int numOutputs = parameters.getNumOutputChannels();
+
+        std::array<bool, 10> arrayHasOutputs = {false};
+        for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+        {
+            int arrayNum = static_cast<int>(parameters.getOutputParam(outIdx, "outputArray"));
+            if (arrayNum >= 1 && arrayNum <= 10)
+                arrayHasOutputs[static_cast<size_t>(arrayNum - 1)] = true;
+        }
+
+        for (int i = 0; i < 10; ++i)
+        {
+            // Dim controls for empty arrays (alpha = 0.3 for empty, 1.0 for populated)
+            float alpha = arrayHasOutputs[static_cast<size_t>(i)] ? 1.0f : 0.3f;
+            arrayAttenDialLabels[i].setAlpha(alpha);
+            arrayAttenDials[i].setAlpha(alpha);
+            arrayAttenValueLabels[i].setAlpha(alpha);
+        }
+    }
+
     void setMutesVisible(bool v)
     {
         int numOutputs = parameters.getNumOutputChannels();
@@ -5374,27 +5404,14 @@ private:
         // Array attenuation controls
         arrayAttenLabel.setVisible(v);
 
-        // Check which arrays have outputs assigned
-        std::array<bool, 10> arrayHasOutputs = {false};
-        for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
-        {
-            int arrayNum = static_cast<int>(parameters.getOutputParam(outIdx, "outputArray"));
-            if (arrayNum >= 1 && arrayNum <= 10)
-                arrayHasOutputs[static_cast<size_t>(arrayNum - 1)] = true;
-        }
-
         for (int i = 0; i < 10; ++i)
         {
             arrayAttenDialLabels[i].setVisible(v);
             arrayAttenDials[i].setVisible(v);
             arrayAttenValueLabels[i].setVisible(v);
-
-            // Dim controls for empty arrays (alpha = 0.3 for empty, 1.0 for populated)
-            float alpha = arrayHasOutputs[static_cast<size_t>(i)] ? 1.0f : 0.3f;
-            arrayAttenDialLabels[i].setAlpha(alpha);
-            arrayAttenDials[i].setAlpha(alpha);
-            arrayAttenValueLabels[i].setAlpha(alpha);
         }
+
+        updateArrayAttenDimming();
 
         // Reverb sends mute. Lives with the other mute controls: it is a routing
         // mute, not a floor-reflection parameter, and it must stay reachable for
@@ -7939,6 +7956,21 @@ private:
             juce::MessageManager::callAsync ([this]() { updateAdmSelectorAppearance(); });
         }
 
+        // An output was assigned to (or removed from) an array on the Outputs
+        // tab. The array-attenuation dials dim by whether any output belongs
+        // to the array, so they have to re-evaluate here. Coalesced: "apply to
+        // array" and a config load rewrite outputArray once per output, and
+        // one async pass covers the whole burst.
+        if (property == WFSParameterIDs::outputArray && !arrayAttenDimmingPending)
+        {
+            arrayAttenDimmingPending = true;
+            juce::MessageManager::callAsync ([this]()
+            {
+                arrayAttenDimmingPending = false;
+                updateArrayAttenDimming();
+            });
+        }
+
         // A speaker capability (or its parallax) changed on the Outputs tab — the
         // per-input feature warnings depend on these, so re-evaluate them.
         if (property == WFSParameterIDs::outputMiniLatencyEnable ||
@@ -8537,6 +8569,7 @@ private:
     bool suppressParameterReload = false;  // Prevent feedback loop during joystick/Z slider continuous updates
     bool isSelfWriting = false;            // True while this tab writes the tree itself (controls already up to date, skip reload)
     bool channelReloadPending = false;     // At most one queued loadChannelParameters at a time (external writes are coalesced)
+    bool arrayAttenDimmingPending = false; // At most one queued updateArrayAttenDimming (outputArray bursts are coalesced)
     StatusBar* statusBar = nullptr;
     AutomOtionProcessor* automOtionProcessor = nullptr;
     std::map<juce::Component*, juce::String> helpTextMap;
