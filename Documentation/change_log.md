@@ -2,7 +2,7 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
-## Unreleased
+## v1.0.0beta45 — 2026-09-04
 
 ### Added
 - **A stereo pair's image orientation can be locked, and the mouse wheel now aims it.** Two ways of shaping a stereo image that were missing on a machine with no touch screen and no Space Mouse.
