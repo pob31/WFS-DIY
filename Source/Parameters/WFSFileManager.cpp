@@ -1231,7 +1231,7 @@ const std::vector<WFSFileManager::ScopeItem>& WFSFileManager::ExtendedSnapshotSc
         // never per-channel state, so snapshots cannot carry or change it.
         // The itemId is the key stored in saved scope templates — it stays
         // "stereo" whatever the group grows to cover.
-        { "stereo", "Stereo Image", Channel, { inputStereoWidth, inputStereoAxisOffset } },
+        { "stereo", "Stereo Image", Channel, { inputStereoWidth, inputStereoAxisOffset, inputStereoAxisLock } },
         // Map display state. Not show state in the DSP sense, but it is state the
         // operator sets by hand and would otherwise have to redo after every
         // recall. inputSolo is deliberately NOT here: it is transient monitoring.
@@ -1876,6 +1876,7 @@ namespace
             { "inputDelay",       inputMinimalLatency },
             { "stereo",           inputStereoWidth },
             { "stereo",           inputStereoAxisOffset },
+            { "stereo",           inputStereoAxisLock },
             { "sampler",          inputSamplerActive },
             // Map display state: an operator who has hidden or locked channels
             // on the Map should not have to redo it after every recall.

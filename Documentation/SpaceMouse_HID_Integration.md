@@ -136,7 +136,7 @@ path are unaffected.
 | Axis + Shift | Action | Sensitivity | Notes |
 |---|---|---|---|
 | TransZ (2) | `inputStereoWidth` | 2.0 m/s | Push down = wider, pull up = narrower (opposite sign to height) |
-| RotZ (5) | `inputStereoAxisOffset` | 90 °/s | Sub-degree remainder carried between ticks; wraps at ±180° |
+| RotZ (5) | `inputStereoAxisOffset` | 90 °/s | Sub-degree remainder carried between ticks; wraps at ±180° through `wrapAxisDegrees` — `wrapPhaseDegrees` returns −180, which the parameter's −179 floor clamps back, so a 1° step stuck at the boundary |
 
 ### Velocity integration
 

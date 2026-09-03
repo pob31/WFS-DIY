@@ -2059,6 +2059,20 @@ private:
         stereoAxisUnitLabel.setJustificationType(juce::Justification::left);
         stereoAxisUnitLabel.setMinimumHorizontalScale(1.0f);
 
+        // Stereo Axis Lock: drops the automatic tangential term, so the dial
+        // above stops being a rotation applied to a reference that moves with
+        // the source and becomes an absolute bearing off house left/right.
+        addAndMakeVisible(stereoAxisLockButton);
+        stereoAxisLockButton.setButtonText(LOC("inputs.toggles.stereoAxisLockOff"));
+        stereoAxisLockButton.setClickingTogglesState(true);
+        stereoAxisLockButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFF4A90D9));  // Blue, as the two stereo dials
+        stereoAxisLockButton.onClick = [this]() {
+            bool locked = stereoAxisLockButton.getToggleState();
+            stereoAxisLockButton.setButtonText(locked ? LOC("inputs.toggles.stereoAxisLockOn")
+                                                      : LOC("inputs.toggles.stereoAxisLockOff"));
+            saveInputParam(WFSParameterIDs::inputStereoAxisLock, locked ? 1 : 0);
+        };
+
         // Directivity slider
         addAndMakeVisible(directivityLabel);
         directivityLabel.setText(LOC("inputs.labels.directivity"), juce::dontSendNotification);
@@ -3627,6 +3641,7 @@ private:
             stereoWidthValueLabel.setVisible(stereoV); stereoWidthUnitLabel.setVisible(stereoV);
             stereoAxisLabel.setVisible(stereoV); stereoAxisDial.setVisible(stereoV);
             stereoAxisValueLabel.setVisible(stereoV); stereoAxisUnitLabel.setVisible(stereoV);
+            stereoAxisLockButton.setVisible(stereoV);
         }
         directivityLabel.setVisible(v); directivitySlider.setVisible(v); directivityValueLabel.setVisible(v);
         rotationLabel.setVisible(v); inputDirectivityDial.setVisible(v); rotationValueLabel.setVisible(v); rotationUnitLabel.setVisible(v);
@@ -4616,7 +4631,12 @@ private:
         // ========== COLUMN 2: Sound + Mutes ==========
 
         // --- Top row: Attenuation Law, Distance Atten, Common Atten (tighter layout) ---
-        const int topBlockHeight = dialSize + rowHeight * 2;
+        // Stereo channels carry one more row than mono: the axis lock toggle sits
+        // under the axis dial's value/unit line. Growing the block rather than
+        // adding a fifth column keeps the toggle beside the dial it modifies and
+        // leaves the already-tight horizontal budget alone.
+        const bool stereoTopRow = currentChannelIsStereo();
+        const int topBlockHeight = dialSize + rowHeight * (stereoTopRow ? 3 : 2);
         auto topBlock = col2.removeFromTop(topBlockHeight);
 
         // Calculate item widths and total needed width. Stereo-pair channels
@@ -4628,7 +4648,7 @@ private:
         // dial itself. A group still wider than the column is left-aligned
         // rather than centred, so it cannot slide off the left edge and hide
         // the attenuation law button.
-        const bool showStereoControls = currentChannelIsStereo();
+        const bool showStereoControls = stereoTopRow;
         const int attenLawWidth = scaled(140);  // Label/button width
         const int dialColumns = showStereoControls ? 4 : 2;
         int dialSectionWidth = scaled(110);  // Label width for dial sections
@@ -4687,6 +4707,12 @@ private:
         stereoAxisLabel.setBounds(stereoAxisCenterX - dialSectionWidth / 2, topRowY, dialSectionWidth, rowHeight);
         stereoAxisDial.setBounds(stereoAxisCenterX - dialSize / 2, topRowY + rowHeight, dialSize, dialSize);
         layoutDialValueUnit(stereoAxisValueLabel, stereoAxisUnitLabel, stereoAxisCenterX, topRowY + rowHeight + dialSize, rowHeight, scaled(40), scaled(25));
+
+        // Axis lock, directly under the axis readout it governs
+        const int stereoLockWidth = juce::jmin(dialSectionWidth, scaled(110));
+        stereoAxisLockButton.setBounds(stereoAxisCenterX - stereoLockWidth / 2,
+                                       topRowY + rowHeight * 2 + dialSize,
+                                       stereoLockWidth, rowHeight);
 
         // Reduced padding before sliders section
         col2.removeFromTop(spacing);
@@ -5611,6 +5637,12 @@ private:
                                      WFSParameterDefaults::inputStereoAxisOffsetMax, axisOffsetDeg);
         stereoAxisDial.setAngle(stereoAxisDialAngle(axisOffsetDeg));
         stereoAxisValueLabel.setText(juce::String(axisOffsetDeg), juce::dontSendNotification);
+
+        bool axisLocked = getIntParam(WFSParameterIDs::inputStereoAxisLock,
+                                      WFSParameterDefaults::inputStereoAxisLockDefault) != 0;
+        stereoAxisLockButton.setToggleState(axisLocked, juce::dontSendNotification);
+        stereoAxisLockButton.setButtonText(axisLocked ? LOC("inputs.toggles.stereoAxisLockOn")
+                                                      : LOC("inputs.toggles.stereoAxisLockOff"));
 
         // ==================== POSITION TAB ====================
         // Update coordinate mode selector and position editors (handles coordinate conversion)
@@ -7697,6 +7729,7 @@ private:
         helpTextMap[&commonAttenDial] = LOC("inputs.help.commonAttenDial");
         helpTextMap[&stereoWidthDial] = LOC("inputs.help.stereoWidthDial");
         helpTextMap[&stereoAxisDial] = LOC("inputs.help.stereoAxisDial");
+        helpTextMap[&stereoAxisLockButton] = LOC("inputs.help.stereoAxisLockButton");
         helpTextMap[&directivitySlider] = LOC("inputs.help.directivitySlider");
         helpTextMap[&inputDirectivityDial] = LOC("inputs.help.inputDirectivityDial");
         helpTextMap[&tiltSlider] = LOC("inputs.help.tiltSlider");
@@ -7821,6 +7854,7 @@ private:
         oscMethodMap[&commonAttenDial] = "/wfs/input/commonAtten <ID> <value>";
         oscMethodMap[&stereoWidthDial] = "/wfs/input/stereoWidth <ID> <value>";
         oscMethodMap[&stereoAxisDial] = "/wfs/input/stereoAxisOffset <ID> <value>";
+        oscMethodMap[&stereoAxisLockButton] = "/wfs/input/stereoAxisLock <ID> <value>";
         oscMethodMap[&directivitySlider] = "/wfs/input/directivity <ID> <value>";
         oscMethodMap[&inputDirectivityDial] = "/wfs/input/rotation <ID> <value>";
         oscMethodMap[&tiltSlider] = "/wfs/input/tilt <ID> <value>";
@@ -8205,6 +8239,7 @@ private:
         stereoAxisDial.setVisible(soundVisible && stereo);
         stereoAxisValueLabel.setVisible(soundVisible && stereo);
         stereoAxisUnitLabel.setVisible(soundVisible && stereo);
+        stereoAxisLockButton.setVisible(soundVisible && stereo);
 
         samplerToggleButton.setEnabled(! stereo);
         samplerToggleButton.setAlpha(stereo ? 0.4f : 1.0f);
@@ -8772,6 +8807,7 @@ private:
     WfsRotationDial stereoAxisDial;
     juce::Label stereoAxisValueLabel;
     juce::Label stereoAxisUnitLabel;
+    juce::TextButton stereoAxisLockButton;
     juce::Label directivityLabel;
     WfsWidthExpansionSlider directivitySlider;
     juce::Label directivityValueLabel;

@@ -143,6 +143,7 @@ namespace
             BIND_BOOL (inputMinimalLatency);
             BIND_F (inputStereoWidth);
             BIND_I (inputStereoAxisOffset);
+            BIND_BOOL (inputStereoAxisLock);
             BIND_I (inputColour);
 
             //------------------------------------------------------------------

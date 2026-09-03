@@ -22,6 +22,7 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getInputAddres
         { "minimalLatency",   WFSParameterIDs::inputMinimalLatency },
         { "stereoWidth",      WFSParameterIDs::inputStereoWidth },
         { "stereoAxisOffset", WFSParameterIDs::inputStereoAxisOffset },
+        { "stereoAxisLock",   WFSParameterIDs::inputStereoAxisLock },
 
         // Position
         { "positionX",        WFSParameterIDs::inputPositionX },
@@ -255,6 +256,7 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getRemoteAddre
         { "minimalLatency",   WFSParameterIDs::inputMinimalLatency },
         { "stereoWidth",      WFSParameterIDs::inputStereoWidth },
         { "stereoAxisOffset", WFSParameterIDs::inputStereoAxisOffset },
+        { "stereoAxisLock",   WFSParameterIDs::inputStereoAxisLock },
 
         // Position
         { "positionX",        WFSParameterIDs::inputPositionX },

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "f20d0bf75469339b0957e13acaeb300b6f831a8ce41bc466d5e0b35279e4df6b",
+  "input_hash": "552858e529d4f04f1567d61540f5f3c8a231e1348410140a4f59e2a996340127",
   "source_csvs": [
     "WFS-UI_config.csv",
     "WFS-UI_input.csv",
@@ -6321,6 +6321,47 @@
       ],
       "internal_osc_path": "/wfs/input/sidelinesFringe",
       "internal_variable": "inputSidelinesFringe"
+    },
+    {
+      "name": "input_stereo_set_axis_lock",
+      "description": "Lock the stereo image orientation: the pair spreads house left/right turned by the Axis value alone, instead of following the origin-to-source line. Enum: OFF ; ON. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "input_id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 64,
+            "description": "Permanent input channel number (1-based). Must be a LIVE channel: the list may have gaps after deletions, so a number within 1..64 can still be rejected."
+          },
+          "value": {
+            "type": "string",
+            "enum": [
+              "OFF",
+              "ON"
+            ],
+            "description": "Axis Lock (enum).",
+            "default": "OFF"
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Tier-2/3 confirm token: the first call returns tier_enforcement.confirmation_token; re-call with confirm set to it within 30 s. Omit on the first call."
+          }
+        },
+        "required": [
+          "input_id",
+          "value"
+        ]
+      },
+      "tier": 2,
+      "csv_section": "Stereo",
+      "group_key": "input_stereo",
+      "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
+      "internal_osc_path": "/wfs/input/stereoAxisLock",
+      "internal_variable": "inputStereoAxisLock"
     },
     {
       "name": "input_stereo_set_axis_offset",

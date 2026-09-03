@@ -445,11 +445,18 @@ private:
     // indexed by channel SLOT, so recomputeRenderSourceCount() must clear them
     // whenever the slots are rebuilt.
 
-    // Per-channel automatic spread axis, held while the pair sits inside
-    // WFSStereoImage::kAxisFreezeRadius. Retaining it across ticks is the whole
-    // point: it is what stops a source crossing the middle of an in-the-round
-    // rig from whipping its legs around and swapping left for right.
-    std::array<WFSStereoImage::Axis, WFSParameterDefaults::maxInputChannels> stereoAxisLatch {};
+    // Per-channel automatic spread axis, carried across ticks so
+    // WFSStereoImage::followAxis() can rate-limit how fast it turns. Retaining
+    // it is the whole point: it is what stops a source crossing the middle of an
+    // in-the-round rig from whipping its legs around and swapping left for
+    // right, without the exit snap the old hold-inside-a-disc version had.
+    std::array<WFSStereoImage::AxisFollower, WFSParameterDefaults::maxInputChannels> stereoAxisState {};
+
+    // Timestamp of the last refreshStereoSliceGeometry() pass, so the axis rate
+    // limit runs on measured time. A hardcoded 20 ms would under-rotate exactly
+    // when the message thread has stalled, which is when the anchor has moved
+    // furthest. Negative until the first pass.
+    double lastStereoAxisTickMs = -1.0;
 
     // Sub-degree remainder of Space Mouse Shift+twist on the stereo axis
     // (the axis offset is an integer; a 50 Hz tick is often < 1 degree).

@@ -73,6 +73,7 @@ ADM-OSC: the channel maps to a single object with position + width. No address-s
 - slice count N (with the 5+ambience default)
 - `inputStereoWidth` — FLOAT, 0.0–50.0 m, default 4.0. Full L↔R distance between the pair's legs; per-leg offset is `width × 0.5`. Live on `/wfs/input/stereoWidth` (+ `/remoteInput/` twin). **Settled, shipped in Phase 0** — this is what "global width factor" resolved to, and it is a distance, not a factor.
 - `inputStereoAxisOffset` — INT, −179..180°, default 0. Rotation applied to the automatic tangential axis (0 = automatic), positive counter-clockwise viewed from above, the same convention as `inputRotation`; ±180 is an explicit L/R swap. Applied in the world frame and NOT mirrored by `inputFlipX/Y` (the flips already mirror the anchor, and the automatic axis follows it — mirroring the offset too would double-mirror). Live on `/wfs/input/stereoAxisOffset` (+ `/remoteInput/` twin). **Settled, shipped in Phase 0.**
+- `inputStereoAxisLock` — INT 0/1, default 0. Drops the automatic tangential term: the pair spreads along the fixed world axis turned by `inputStereoAxisOffset`, so the offset becomes an absolute bearing off house left/right rather than a rotation applied to a reference that moves with the source. Live on `/wfs/input/stereoAxisLock` (+ `/remoteInput/` twin), in the `stereo` scope group, and on **L** on the Map for the selected pairs.
 - crossover frequency
 - ambient-bed handling (global envelopment layer vs per-slice send — open question)
 - centre-anchor behaviour
@@ -154,11 +155,15 @@ automatically (no explicit azimuth negation — it would double-mirror).
 
 **Later addendum — width magnitude.** The tangential *direction* of (3) survived; only the
 magnitude reference changed. Width became metres (see §4) and `inputStereoAxisOffset` was added
-to rotate the axis, so the axis is no longer purely automatic. The axis is latched within
-`WFSStereoImage::kAxisFreezeRadius` (1 m) of the origin: the automatic bearing sweeps 180° over a
-few centimetres there, which would whip a source crossing the middle of an in-the-round rig from
-left to right; holding the axis it arrived with is the fix, and no hysteresis band is wanted
-(at exactly r == the radius the held value IS what the live branch computes).
+to rotate the axis, so the axis is no longer purely automatic. The automatic bearing sweeps 180°
+over a few centimetres near the origin, which would whip a source crossing the middle of an
+in-the-round rig from left to right. That was first handled by latching the axis inside a 1 m
+`kAxisFreezeRadius`; the latch is **gone**, because it only relocated the problem — a source
+crossing the disc entered at one bearing and left at the opposite one, so the image stopped
+following on the way in and snapped through the whole sweep at the exit, at the downstage edge on
+any rig using the default origin. `WFSStereoImage::followAxis()` now rate-limits the axis to
+`kAxisMaxRateDegPerSec` instead, assigning the live axis bit-exactly whenever it is within one
+step. `inputStereoAxisLock` turns the automatic term off altogether.
 
 ### Landed (commits 1–6 of 11, every gate green)
 

@@ -1054,11 +1054,26 @@ feed and the Map's leg markers both call so the two can never disagree about whe
   an explicit L/R swap. The rotation is applied in the **world frame** and is deliberately NOT
   mirrored by `inputFlipX/Y`: a flip moves the anchor, the automatic axis already follows the moved
   anchor, and mirroring the offset on top of that would double-mirror.
-- **Axis freeze latch.** The origin→anchor bearing is undefined at the origin and violently
-  unstable near it, so within `kAxisFreezeRadius` (1 m) the last axis computed outside that radius
-  is latched and reused; +X is the fallback for a channel that has never been outside it. The latch
-  is per channel and message-thread only (`MainComponent::stereoAxisLatch`, no locks — same
-  discipline as `lfoOffsetCallback`).
+- **Axis rate limit.** The origin→anchor bearing turns at `v/r`, so it is undefined at the origin
+  and sweeps 180° over a few centimetres near it. `WFSStereoImage::followAxis()` chases the live
+  bearing at no more than `kAxisMaxRateDegPerSec` (360 °/s, 7.2° per 50 Hz tick) on a **measured**
+  interval, and assigns the target *exactly* whenever it is within one step — which is every tick
+  at stage distances, so the axis is bit-identical to a build with no limiter and the width-0 null
+  survives. An unprimed follower, and an anchor that moved more than `kAxisTeleportMetres` (1 m)
+  in one tick, snap instead of gliding: a recall or a load did not travel there.
+  **This replaced a hard freeze inside a 1 m disc**, which did not follow at all inside the disc
+  and then snapped through the whole sweep at the exit. That was not the corner case it read as:
+  `originDepthDefault` is `-stageDepth/2`, so on a default stage the disc — and the snap — sat at
+  the downstage edge, where sources walk. Do not reintroduce a hold: a held axis is a
+  discontinuity waiting for an exit. State is per channel and message-thread only
+  (`MainComponent::stereoAxisState`, no locks — same discipline as `lfoOffsetCallback`).
+- **`inputStereoAxisLock`** (INT 0/1, default 0) drops the automatic term entirely: the pair
+  spreads along the fixed world axis turned by `inputStereoAxisOffset`, so the offset reads as an
+  absolute bearing off house left/right and the image holds still while the source walks. Live on
+  `/wfs/input/stereoAxisLock` (+ `/remoteInput/` twin), in the `stereo` snapshot scope group, on
+  the Inputs tab beside the Axis dial, and on **L** on the Map for the selected pairs. While it is
+  on the follower is pinned to the locked axis, so unlocking glides back under the rate limit
+  instead of snapping. Not on the DAW plugin — that needs a `plugins-v*` release of its own.
 - **Legs are deliberately NOT clamped** to the array, the stage or the position constraints. A wide
   pair on a small rig puts its legs outside the array, where the low-density array produces no
   focused source — documented behaviour the hover text states, not a case to silently correct.

@@ -31,15 +31,40 @@
 namespace WFSStereoImage
 {
     /** Unit vector the pair spreads along. Defaults to +X so a caller's
-        freshly constructed latch already describes a house-left/right pair. */
+        freshly constructed follower already describes a house-left/right pair. */
     struct Axis
     {
         float x = 1.0f, y = 0.0f;
     };
 
-    /** Anchor distance from the origin inside which the automatic axis is held
-        instead of recomputed. */
-    inline constexpr float kAxisFreezeRadius = 1.0f;   // metres
+    /** Per-channel state followAxis() carries between ticks. The caller owns one
+        of these per stereo channel and default-initialises it; a default-built
+        follower is unprimed, so its first evaluation snaps rather than glides. */
+    struct AxisFollower
+    {
+        Axis  axis {};                        // current axis, always unit length
+        float lastX = 0.0f, lastY = 0.0f;     // anchor the state was last evaluated at
+        bool  primed = false;                 // false => next evaluation snaps
+    };
+
+    /** Anchor distance below which there is no bearing to derive an axis from.
+        Not a freeze band: at 1 cm the bearing is still meaningful, it is only
+        AT the origin that it does not exist, and the rate limiter below is what
+        keeps the approach sane. */
+    inline constexpr float kAxisMinRadius = 0.01f;   // metres
+
+    /** How fast the automatic axis may turn: 360 °/s, which is 7.2° per 50 Hz
+        tick. The tangential bearing turns at v/r rad/s, so at a stage-realistic
+        1 m/s this only engages inside about 16 cm of the origin — everywhere
+        else followAxis() assigns the live axis bit-exactly and the limiter
+        costs nothing. */
+    inline constexpr float kAxisMaxRateDegPerSec = 360.0f;
+
+    /** Per-tick anchor movement above which the source is treated as having
+        teleported (project load, snapshot recall, a flung drag at minimum zoom)
+        and the axis snaps instead of gliding. 1 m at 50 Hz is 50 m/s, far above
+        anything a moving source does. */
+    inline constexpr float kAxisTeleportMetres = 1.0f;
 
     /** The automatic spread axis for an anchor at (anchorX, anchorY):
         perpendicular to the origin→anchor bearing, oriented so azimuth +1 lands
@@ -50,31 +75,103 @@ namespace WFSStereoImage
         bearing carries the perpendicular with it, and the image mirrors along
         with no explicit azimuth negation anywhere.
 
-        LATCH — the reason this function takes a reference. Within
-        kAxisFreezeRadius of the origin the last axis computed outside it is
-        returned and the latch is left alone. The bearing is perfectly well
-        defined at 10 cm out; the problem is that it sweeps 180° over a few
-        centimetres, so a source crossing the middle of an in-the-round rig —
-        routine there, not a corner case — would whip its legs around and swap
-        left for right. Holding the axis the source arrived with is the fix.
+        RATE LIMIT — the reason this function takes a reference and a dt. The
+        bearing sweeps 180° over a few centimetres near the origin, so a source
+        crossing the middle of an in-the-round rig would whip its legs around
+        and swap left for right. This used to be handled by holding the last
+        axis computed outside a 1 m disc, which traded the whip for something
+        worse: a source that drove THROUGH the disc entered at one bearing and
+        left at the opposite one, so the axis stopped following on the way in
+        and snapped through up to 180° at the exit boundary. The old comment
+        claimed the handover was continuous by construction; that only held for
+        a radial approach and retreat, and the default stage origin sits at
+        downstage centre (originDepth = -stageDepth/2), which put the disc — and
+        so the snap — right at the front edge of the stage.
 
-        No hysteresis band is wanted and none should be added later: at exactly
-        r == kAxisFreezeRadius the held value IS what the live branch computes,
-        so the handover is continuous in both directions by construction, and a
-        second threshold would only introduce a discontinuity to guard against.
-
-        The caller owns the latch and default-initialises it to {1,0}, so a pair
-        that has never been outside the freeze radius still spreads
-        house-left/right and stays re-orientable through rotate(). */
-    inline Axis autoAxis (float anchorX, float anchorY, Axis& latch) noexcept
+        Capping the angular rate removes the discontinuity instead of relocating
+        it. Outside the pathological radius the target is reached in one step and
+        assigned exactly, so the axis is bit-identical to a build with no limiter
+        at all; near the origin it sweeps at kAxisMaxRateDegPerSec instead of
+        jumping. Do not reintroduce a freeze band on top of this: a held axis is
+        a discontinuity waiting for an exit. */
+    inline Axis followAxis (float anchorX, float anchorY,
+                            AxisFollower& state, float dtSeconds) noexcept
     {
         const float r = std::hypot (anchorX, anchorY);
 
-        if (r < kAxisFreezeRadius)
-            return latch;
+        if (r < kAxisMinRadius)
+            return state.axis;      // no bearing exists — hold, do not re-baseline
 
-        latch = { anchorY / r, -anchorX / r };
-        return latch;
+        const Axis target { anchorY / r, -anchorX / r };
+
+        const float moved = std::hypot (anchorX - state.lastX, anchorY - state.lastY);
+
+        state.lastX = anchorX;
+        state.lastY = anchorY;
+
+        // Snap: nothing to glide from, or the source did not travel here.
+        if (! state.primed || moved > kAxisTeleportMetres)
+        {
+            state.axis   = target;
+            state.primed = true;
+            return state.axis;
+        }
+
+        // Shortest signed rotation from the current axis to the target. atan2 of
+        // (cross, dot) is already wrapped into ±pi, so there is no unwrap
+        // bookkeeping and no ±180° boundary to cross.
+        const float dot   = state.axis.x * target.x + state.axis.y * target.y;
+        const float cross = state.axis.x * target.y - state.axis.y * target.x;
+        const float delta = std::atan2 (cross, dot);
+
+        const float maxStep = juce::degreesToRadians (kAxisMaxRateDegPerSec)
+                              * juce::jlimit (0.0f, 0.1f, dtSeconds);
+
+        if (std::abs (delta) <= maxStep)
+        {
+            // The common case, and it must assign rather than rotate: routing an
+            // already-reached target through a cos/sin pair would leave the axis
+            // a few ULPs off the value a build without the limiter computes, and
+            // the width-0 null and the width-invariance test both depend on it
+            // being the same float.
+            state.axis   = target;
+            state.primed = true;
+            return state.axis;
+        }
+
+        const float step = std::copysign (maxStep, delta);
+        const float c    = std::cos (step);
+        const float s    = std::sin (step);
+
+        Axis turned { state.axis.x * c - state.axis.y * s,
+                      state.axis.x * s + state.axis.y * c };
+
+        // Renormalise: this branch runs tick after tick while a source crosses
+        // the origin, and chained rotations drift off unit length.
+        const float len = std::hypot (turned.x, turned.y);
+        if (len > 0.0f)
+            turned = { turned.x / len, turned.y / len };
+
+        state.axis   = turned;
+        state.primed = true;
+        return state.axis;
+    }
+
+    /** The axis for a channel whose orientation is locked (inputStereoAxisLock):
+        the fixed world axis, house-left/right, with no tangential term at all,
+        so inputStereoAxisOffset reads as an absolute bearing rather than a
+        rotation applied to something that moves.
+
+        The follower is pinned to the same value rather than left to go stale,
+        so unlocking glides back onto the live tangential axis under the rate
+        limit instead of snapping to wherever the source has since travelled. */
+    inline Axis lockedAxis (float anchorX, float anchorY, AxisFollower& state) noexcept
+    {
+        state.axis   = Axis {};     // {1, 0}
+        state.lastX  = anchorX;
+        state.lastY  = anchorY;
+        state.primed = true;
+        return state.axis;
     }
 
     /** Rotates an axis by offsetDegrees, positive counter-clockwise viewed from

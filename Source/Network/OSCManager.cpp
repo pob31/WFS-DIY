@@ -3476,6 +3476,7 @@ std::vector<juce::OSCMessage> OSCManager::collectRemoteChannelDumpMessages(int c
     paramValues[WFSParameterIDs::inputMinimalLatency] = getParam(WFSParameterIDs::inputMinimalLatency);
     paramValues[WFSParameterIDs::inputStereoWidth] = getParam(WFSParameterIDs::inputStereoWidth);
     paramValues[WFSParameterIDs::inputStereoAxisOffset] = getParam(WFSParameterIDs::inputStereoAxisOffset);
+    paramValues[WFSParameterIDs::inputStereoAxisLock] = getParam(WFSParameterIDs::inputStereoAxisLock);
 
     // Position parameters
     paramValues[WFSParameterIDs::inputPositionX] = getParam(WFSParameterIDs::inputPositionX);

@@ -1574,7 +1574,7 @@ MainComponent::MainComponent()
                         continue;
                     int current = static_cast<int> (parameters.getInputParam (idx, WFSParameterIDs::inputStereoAxisOffset.toString()));
                     parameters.setInputParam (idx, WFSParameterIDs::inputStereoAxisOffset.toString(),
-                                              WFSParameterDefaults::wrapPhaseDegrees (current + step));
+                                              WFSParameterDefaults::wrapAxisDegrees (current + step));
                     changed = true;
                 }
                 if (changed && mapTab) mapTab->repaint();
@@ -3781,6 +3781,13 @@ void MainComponent::runChannelListSelfTest()
 void MainComponent::runStereoGeometrySelfTest()
 {
     using WFSStereoImage::Axis;
+    using WFSStereoImage::AxisFollower;
+
+    // Every geometric assertion below wants the axis the bearing says, not a
+    // rate-limited approach to it, so imageAt() is handed a whole second of
+    // travel: 360 deg/s over 1 s can reach any target in one step. The limiter
+    // gets its own tests (D, D2, D3) where the interval is the point.
+    constexpr float kUnlimitedDt = 1.0f;
 
     int failures = 0;
 
@@ -3799,11 +3806,11 @@ void MainComponent::runStereoGeometrySelfTest()
     // slice 1 = -1 (left), slice 2 = +1 (right).
     struct Image { juce::Point<float> centre, left, right; };
 
-    auto imageAt = [](float anchorX, float anchorY, float widthM,
-                      float offsetDeg, Axis& latch) -> Image
+    auto imageAt = [kUnlimitedDt](float anchorX, float anchorY, float widthM,
+                                 float offsetDeg, AxisFollower& state) -> Image
     {
         const auto axis = WFSStereoImage::rotate(
-            WFSStereoImage::autoAxis(anchorX, anchorY, latch), offsetDeg);
+            WFSStereoImage::followAxis(anchorX, anchorY, state, kUnlimitedDt), offsetDeg);
 
         Image img;
         float dx = 0.0f, dy = 0.0f;
@@ -3825,7 +3832,7 @@ void MainComponent::runStereoGeometrySelfTest()
     // A: the dial is the FULL left-to-right distance, so each leg travels half.
     // H rides along: the handedness the whole feature is read against.
     {
-        Axis latch;
+        AxisFollower latch;
         const auto img = imageAt(0.0f, 8.0f, 4.0f, 0.0f, latch);
 
         check(approx(img.left.x, -2.0f, 1.0e-5f) && approx(img.left.y, 8.0f, 1.0e-5f),
@@ -3851,7 +3858,7 @@ void MainComponent::runStereoGeometrySelfTest()
         for (int deg = 0; deg < 360; ++deg)
         {
             const float a = juce::degreesToRadians((float) deg);
-            Axis latch;
+            AxisFollower latch;
             const auto img = imageAt(8.0f * std::cos(a), 8.0f * std::sin(a), 4.0f, 0.0f, latch);
             const float span = std::hypot(img.left.x - img.right.x, img.left.y - img.right.y);
 
@@ -3877,9 +3884,10 @@ void MainComponent::runStereoGeometrySelfTest()
                 for (int deg = 0; deg < 360; deg += 15)
                 {
                     const float a = juce::degreesToRadians((float) deg);
-                    Axis latch;
+                    AxisFollower latch;
                     const auto axis = WFSStereoImage::rotate(
-                        WFSStereoImage::autoAxis(6.0f * std::cos(a), 6.0f * std::sin(a), latch), off);
+                        WFSStereoImage::followAxis(6.0f * std::cos(a), 6.0f * std::sin(a),
+                                                   latch, kUnlimitedDt), off);
 
                     float dx = 1.0f, dy = 1.0f;
 
@@ -3900,85 +3908,127 @@ void MainComponent::runStereoGeometrySelfTest()
         check(centreExact, "C: slice 0 offset is exactly == 0 at every width and axis");
     }
 
-    // D: the latch. Inside the freeze radius the axis must be held bit-exactly
-    // and must be the one the pair arrived with — a recomputed bearing sweeps
-    // 180° over a few centimetres near the origin, which is a left/right swap
-    // in front of an audience.
+    // D: the rate limit. A source driving straight through the origin makes the
+    // tangential bearing sweep 180° over a few centimetres. The axis must never
+    // turn faster than kAxisMaxRateDegPerSec asks for, and it must come out the
+    // far side ON the live bearing rather than holding an old one — the hold
+    // this replaced did not follow inside a 1 m disc and then snapped through
+    // the whole sweep at the exit, which on the default stage (origin at
+    // downstage centre) put that snap at the front edge of the stage.
     {
-        Axis latch;
-        Axis lastLive {};
-        Axis firstFrozen {};
-        bool haveFrozen = false;
-        bool heldConstant = true;
+        AxisFollower state;
+        constexpr float dt = 0.02f;                 // the 50 Hz tick
+        const float maxStepDeg = WFSStereoImage::kAxisMaxRateDegPerSec * dt;
 
-        for (int step = 5000; step >= 1; --step)
+        // Prime well clear of the origin, then walk in 1 cm steps along y = 0.
+        WFSStereoImage::followAxis(-5.0f, 0.0f, state, dt);
+
+        Axis previous = state.axis;
+        float worstStepDeg = 0.0f;
+        bool unitLength = true;
+
+        for (int step = 1; step <= 1000; ++step)
         {
-            const float y = (float) step * 0.001f;
-            const auto axis = WFSStereoImage::autoAxis(0.0f, y, latch);
+            const float x = -5.0f + (float) step * 0.01f;
+            const auto axis = WFSStereoImage::followAxis(x, 0.0f, state, dt);
 
-            if (std::hypot(0.0f, y) >= WFSStereoImage::kAxisFreezeRadius)
-            {
-                lastLive = axis;
-                continue;
-            }
-
-            if (! haveFrozen)
-            {
-                firstFrozen = axis;
-                haveFrozen = true;
-            }
-
-            heldConstant = heldConstant && axis.x == firstFrozen.x && axis.y == firstFrozen.y;
+            const float dot = juce::jlimit(-1.0f, 1.0f, previous.x * axis.x + previous.y * axis.y);
+            worstStepDeg = juce::jmax(worstStepDeg, juce::radiansToDegrees(std::acos(dot)));
+            unitLength = unitLength && approx(std::hypot(axis.x, axis.y), 1.0f, 1.0e-4f);
+            previous = axis;
         }
 
-        check(haveFrozen && heldConstant,
-              "D: (0,5)->(0,0.001) holds one bit-exact axis below the freeze radius");
-        check(haveFrozen && firstFrozen.x == lastLive.x && firstFrozen.y == lastLive.y,
-              "D: the held axis is the last live one before the crossing");
+        // Float slop on acos near dot == 1 is worth a hair of headroom; the
+        // failure this guards is a 180° snap, not a hundredth of a degree.
+        check(worstStepDeg <= maxStepDeg + 0.01f,
+              "D: a traverse through the origin never turns the axis more than the rate allows");
+        check(unitLength, "D: the axis stays unit length across a limited traverse");
+
+        // 5 m out on the far side the bearing is trustworthy again and the
+        // limiter must have caught up exactly, not left a residue behind.
+        const auto settled = WFSStereoImage::followAxis(5.0f, 0.0f, state, 1.0f);
+        check(settled.x == 0.0f && settled.y == -1.0f,
+              "D: the axis settles bit-exactly on the live bearing once clear");
     }
 
-    // D2: a radial walk keeps its bearing all the way in, so it cannot tell a
-    // held axis from a recomputed one. This traverse passes 0.4 m from the
-    // origin, where the live bearing swings through nearly 180°, so only the
-    // hold can keep the image still. Nothing is asserted about LEAVING the
-    // radius: the pair is far enough out there for the live bearing to be
-    // trustworthy again, and it deliberately resumes.
+    // D2: the limiter must be invisible at stage distances. A pair 5 m out moving
+    // at a brisk 3 m/s turns its bearing at 34°/s, well inside the cap, so every
+    // tick has to land on the live axis as a plain assignment — the width-0 null
+    // and A's width invariance both rest on that float being the same float a
+    // build with no limiter at all would produce.
     {
-        Axis latch;
-        Axis lastLive {};
-        Axis frozen {};
-        bool haveFrozen = false;
-        bool heldConstant = true;
+        AxisFollower limited, reference;
+        constexpr float dt = 0.02f;
+        bool identical = true;
 
-        for (int step = 0; step <= 10000; ++step)
+        WFSStereoImage::followAxis(-3.0f, 5.0f, limited, dt);
+
+        for (int step = 1; step <= 100; ++step)
         {
-            const float x = -5.0f + (float) step * 0.001f;
-            const float y = 0.4f;
-            const auto axis = WFSStereoImage::autoAxis(x, y, latch);
+            const float x = -3.0f + (float) step * (3.0f * dt);
+            const auto a = WFSStereoImage::followAxis(x, 5.0f, limited, dt);
 
-            if (std::hypot(x, y) >= WFSStereoImage::kAxisFreezeRadius)
-            {
-                if (! haveFrozen)
-                    lastLive = axis;
-                continue;
-            }
+            // What an unlimited build computes: the same expression, freshly primed.
+            reference = AxisFollower {};
+            const auto b = WFSStereoImage::followAxis(x, 5.0f, reference, dt);
 
-            if (! haveFrozen)
-            {
-                frozen = axis;
-                haveFrozen = true;
-                continue;
-            }
-
-            heldConstant = heldConstant && axis.x == frozen.x && axis.y == frozen.y;
+            identical = identical && a.x == b.x && a.y == b.y;
         }
 
-        check(haveFrozen && heldConstant,
-              "D2: a traverse 0.4 m off the origin holds one bit-exact axis across the middle");
-        check(haveFrozen && frozen.x == lastLive.x && frozen.y == lastLive.y,
-              "D2: the held axis is the arrival axis, not a mid-traverse recompute");
-        check(haveFrozen && std::fabs(frozen.y) > 0.5f,
-              "D2: the hold did real work (a live axis at closest approach would be near +/-X)");
+        check(identical, "D2: at stage distances every tick lands bit-exactly on the live axis");
+    }
+
+    // D3: the two paths that must snap rather than glide. An unprimed follower
+    // has nothing to glide FROM, and an anchor that jumped further than any
+    // source travels in a tick did not travel — it was recalled, loaded or
+    // flung — so gliding would sweep the image through an orientation the
+    // operator never asked for.
+    {
+        AxisFollower fresh;
+        const auto first = WFSStereoImage::followAxis(0.0f, 5.0f, fresh, 0.02f);
+        check(first.x == 1.0f && first.y == 0.0f,
+              "D3: an unprimed follower snaps to the live axis on its first tick");
+
+        AxisFollower jumped;
+        WFSStereoImage::followAxis(0.0f, 5.0f, jumped, 0.02f);          // upstage
+        const auto teleported = WFSStereoImage::followAxis(0.0f, -5.0f, jumped, 0.02f);
+        check(teleported.x == -1.0f && teleported.y == 0.0f,
+              "D3: an anchor jump beyond kAxisTeleportMetres snaps instead of gliding");
+
+        // A step just under the teleport threshold is real travel and must be
+        // rate limited, not waved through.
+        AxisFollower walked;
+        WFSStereoImage::followAxis(0.0f, 0.5f, walked, 0.02f);
+        const auto crept = WFSStereoImage::followAxis(0.0f, -0.4f, walked, 0.02f);
+        check(! (crept.x == -1.0f && crept.y == 0.0f),
+              "D3: a sub-threshold step across the origin is limited, not snapped");
+    }
+
+    // D4: the lock. It has to drop the tangential term completely — the same
+    // axis for every anchor — because "hold the image still while the source
+    // walks" is the whole reason the operator reached for it.
+    {
+        const float anchors[][2] = { { 0.0f, 8.0f }, { 8.0f, 0.0f }, { -3.0f, -7.0f },
+                                     { 0.05f, 0.05f }, { 0.0f, 0.0f } };
+        bool constant = true;
+
+        for (const auto& a : anchors)
+        {
+            AxisFollower state;
+            WFSStereoImage::followAxis(0.0f, 8.0f, state, 1.0f);   // prime somewhere else first
+            const auto axis = WFSStereoImage::lockedAxis(a[0], a[1], state);
+            constant = constant && axis.x == 1.0f && axis.y == 0.0f;
+        }
+
+        check(constant, "D4: a locked axis is house left/right at every anchor");
+
+        // Unlocking must glide out of the locked orientation, not out of a
+        // follower that went stale while the lock was on.
+        AxisFollower state;
+        WFSStereoImage::lockedAxis(0.0f, -5.0f, state);
+        const auto next = WFSStereoImage::followAxis(0.0f, -5.0f, state, 0.02f);
+        check(approx(std::hypot(next.x - 1.0f, next.y), 0.0f, 0.2f),
+              "D4: unlocking leaves from the locked axis under the rate limit");
     }
 
     // E: a pair parked dead centre has no bearing to derive an axis from, so
@@ -3986,21 +4036,21 @@ void MainComponent::runStereoGeometrySelfTest()
     // or an in-the-round show loses control of the image exactly where it needs
     // it most.
     {
-        Axis latch;
+        AxisFollower latch;
         const auto img = imageAt(0.0f, 0.0f, 4.0f, 0.0f, latch);
         check(approx(img.left.x, -2.0f, 1.0e-5f) && approx(img.left.y, 0.0f, 1.0e-5f)
               && approx(img.right.x, 2.0f, 1.0e-5f) && approx(img.right.y, 0.0f, 1.0e-5f),
               "E: offset 0 at the origin spreads along +/-X");
     }
     {
-        Axis latch;
+        AxisFollower latch;
         const auto img = imageAt(0.0f, 0.0f, 4.0f, 90.0f, latch);
         check(approx(img.left.x, 0.0f, 1.0e-5f) && approx(img.left.y, -2.0f, 1.0e-5f)
               && approx(img.right.x, 0.0f, 1.0e-5f) && approx(img.right.y, 2.0f, 1.0e-5f),
               "E: offset 90 at the origin spreads along +/-Y");
     }
     {
-        Axis latch;
+        AxisFollower latch;
         const float d = 2.0f * std::sqrt(0.5f);
         const auto img = imageAt(0.0f, 0.0f, 4.0f, 45.0f, latch);
         check(approx(img.left.x, -d, 1.0e-5f) && approx(img.left.y, -d, 1.0e-5f)
@@ -4033,7 +4083,7 @@ void MainComponent::runStereoGeometrySelfTest()
     // G: ±180 is the explicit L/R swap the operator reaches for when a pair is
     // patched or hung backwards.
     {
-        Axis plainLatch, flippedLatch;
+        AxisFollower plainLatch, flippedLatch;
         const auto plain = imageAt(0.0f, 8.0f, 4.0f, 0.0f, plainLatch);
         const auto flipped = imageAt(0.0f, 8.0f, 4.0f, 180.0f, flippedLatch);
 
@@ -4298,11 +4348,14 @@ void MainComponent::recomputeRenderSourceCount()
 
     // Both stereo image arrays are keyed by channel SLOT, and a rebuild is
     // exactly the moment a slot can change identity — reorder, delete, type
-    // flip, project load. A stale axis latch would hand a pair the previous
-    // occupant's orientation, and a stale leg cache would leave the Map drawing
-    // an image bar on a channel that has stopped being stereo. The next refresh
-    // repopulates every channel that still is one.
-    stereoAxisLatch.fill (WFSStereoImage::Axis {});
+    // flip, project load. A stale axis follower would hand a pair the previous
+    // occupant's orientation and then GLIDE away from it under the rate limit,
+    // and a stale leg cache would leave the Map drawing an image bar on a
+    // channel that has stopped being stereo. Clearing the follower leaves it
+    // unprimed, so the next refresh snaps each surviving pair onto its own
+    // axis instead of sweeping there. The next refresh repopulates every
+    // channel that still is one.
+    stereoAxisState.fill (WFSStereoImage::AxisFollower {});
     for (auto& legs : stereoImageLegs)
     {
         // Discarding a valid pair is a Map change the refresh cannot detect on
@@ -5069,7 +5122,25 @@ bool MainComponent::refreshStereoSliceGeometry()
 
     // Nothing to place when no stereo channels exist (the common case)
     if (renderSourceMap.count == renderSourceMap.numInputChannels)
+    {
+        // A show with no stereo channels never reaches the axis follower, so the
+        // clock it rate-limits against must not keep running either: the first
+        // pass after a mono-only stretch would otherwise see a huge dt and let
+        // the axis turn as far as it likes in one tick.
+        lastStereoAxisTickMs = -1.0;
         return legsChanged;
+    }
+
+    // Measured tick interval for the axis rate limit. The timer nominally runs
+    // at 50 Hz, but hardcoding 20 ms would under-rotate exactly when the message
+    // thread has stalled — which is when the anchor has moved furthest. The
+    // first pass, and the first after a mono-only stretch, gets 0 so the
+    // follower holds rather than sweeping on an interval nobody measured.
+    const double nowMs = juce::Time::getMillisecondCounterHiRes();
+    const float axisDt = (lastStereoAxisTickMs < 0.0)
+                       ? 0.0f
+                       : (float) ((nowMs - lastStereoAxisTickMs) * 0.001);
+    lastStereoAxisTickMs = nowMs;
 
     // No speaker position is read anywhere below, and that is the point: the
     // width is an absolute distance, so it means the same thing on a frontal
@@ -5098,16 +5169,25 @@ bool MainComponent::refreshStereoSliceGeometry()
             (int) channelSection.getProperty (WFSParameterIDs::inputStereoAxisOffset.toString(),
                                               WFSParameterDefaults::inputStereoAxisOffsetDefault));
 
-        // The offset rotates the automatic tangential axis in the WORLD frame,
-        // so it is NOT mirrored by inputFlipX/Y: the flip already mirrors the
-        // anchor, and the automatic axis follows the mirrored bearing on its
-        // own. Applying the operator's dialled rotation to the mirror as well
-        // would turn it the wrong way on every flipped channel.
+        const bool axisLocked = static_cast<int> (channelSection.getProperty (
+                                    WFSParameterIDs::inputStereoAxisLock.toString(),
+                                    WFSParameterDefaults::inputStereoAxisLockDefault)) != 0;
+
+        // The offset rotates the spread axis in the WORLD frame, so it is NOT
+        // mirrored by inputFlipX/Y: the flip already mirrors the anchor, and the
+        // automatic axis follows the mirrored bearing on its own. Applying the
+        // operator's dialled rotation to the mirror as well would turn it the
+        // wrong way on every flipped channel.
+        //
+        // Locked, the automatic term is gone entirely and the offset becomes an
+        // absolute bearing off house left/right; unlocked, followAxis() tracks
+        // the tangential bearing under a rate limit so it can never snap.
         const auto anchor = calculationEngine->getCompositeInputPosition (ch);
-        const auto axis = WFSStereoImage::rotate (
-            WFSStereoImage::autoAxis (anchor.x, anchor.y,
-                                      stereoAxisLatch[static_cast<size_t> (ch)]),
-            (float) axisOffsetDeg);
+        auto& axisState = stereoAxisState[static_cast<size_t> (ch)];
+        const auto baseAxis = axisLocked
+            ? WFSStereoImage::lockedAxis (anchor.x, anchor.y, axisState)
+            : WFSStereoImage::followAxis (anchor.x, anchor.y, axisState, axisDt);
+        const auto axis = WFSStereoImage::rotate (baseAxis, (float) axisOffsetDeg);
 
         // Config down (audio side). Width is deliberately absent from the
         // backend config — azimuth is normalized by contract and the metre

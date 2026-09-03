@@ -464,6 +464,14 @@ public:
             return true;
         }
 
+        // L: lock or unlock the stereo image axis of the selected pairs. Falls
+        // through to MainComponent when nothing stereo is selected, which owns
+        // no L of its own, so the key stays free for the rest of the app.
+        if (key.getKeyCode() == 'L' && ! key.getModifiers().isCommandDown()
+            && ! key.getModifiers().isCtrlDown() && ! key.getModifiers().isAltDown()
+            && toggleSelectedStereoAxisLock())
+            return true;
+
         // Arrow keys and Page Up/Down: move selected reverb node
         if (selectedReverbNode >= 0)
         {
@@ -1461,6 +1469,17 @@ public:
 
     void mouseWheelMove(const juce::MouseEvent& e, const juce::MouseWheelDetails& wheel) override
     {
+        // Stereo image axis on the wheel. With stereo inputs selected the wheel
+        // turns the image instead of zooming: it is the only way to aim a pair
+        // from the map on a machine with no touch screen and no Space Mouse,
+        // and Shift+two-finger already means "stereo image layer" everywhere
+        // else. Ctrl/Cmd forces the zoom through, because a selection that
+        // outlives the edit must not cost the wheel entirely; Ctrl is otherwise
+        // only read on reverb drags, so nothing collides.
+        if (! e.mods.isCtrlDown() && ! e.mods.isCommandDown()
+            && rotateSelectedStereoAxis(wheel, e.mods.isShiftDown()))
+            return;
+
         // Zoom centered on mouse position
         auto mouseStagePos = screenToStage(e.position);
 
@@ -1473,6 +1492,87 @@ public:
         viewOffset += e.position - newScreenPos;
 
         repaint();
+    }
+
+    /** Turns inputStereoAxisOffset on every selected stereo input. Returns false
+        when there is nothing stereo selected, which is the caller's signal to
+        zoom instead.
+
+        5 degrees a notch matches WfsRotationDial's own wheel step; Shift drops
+        it to 1, the same "Shift is the fine step" rule the arrow keys use above.
+        The remainder is carried between events because the parameter is an
+        integer and a trackpad delivers a small fraction of a notch at a time —
+        rounding each one on its own would throw a slow scroll away entirely.
+        Same reasoning as the Space Mouse's stereoAxisControllerAccum. */
+    bool rotateSelectedStereoAxis(const juce::MouseWheelDetails& wheel, bool fineStep)
+    {
+        if (selectedInputs.empty())
+            return false;
+
+        auto& vts = parameters.getValueTreeState();
+
+        std::vector<int> targets;
+        for (int idx : selectedInputs)
+            if (vts.isInputChannelStereo(idx))
+                targets.push_back(idx);
+
+        if (targets.empty())
+            return false;
+
+        float notches = wheel.deltaY;
+        if (notches == 0.0f)
+            return false;   // horizontal-only scroll: not ours, and not a zoom either
+        if (wheel.isReversed)
+            notches = -notches;
+
+        wheelAxisAccum += notches * (fineStep ? 1.0f : 5.0f);
+
+        const int step = static_cast<int>(wheelAxisAccum);   // truncates toward zero
+        if (step == 0)
+            return true;    // consumed: the motion is banked, not dropped into a zoom
+
+        wheelAxisAccum -= static_cast<float>(step);
+
+        vts.beginUndoTransaction("Stereo Axis Wheel");
+        for (int idx : targets)
+        {
+            int current = static_cast<int>(parameters.getInputParam(idx, WFSParameterIDs::inputStereoAxisOffset.toString()));
+            parameters.setInputParam(idx, WFSParameterIDs::inputStereoAxisOffset.toString(),
+                                     WFSParameterDefaults::wrapAxisDegrees(current + step));
+        }
+
+        repaint();
+        return true;
+    }
+
+    /** Toggles inputStereoAxisLock on every selected stereo input, off the L
+        key. The target state is the inverse of the first one found, so a mixed
+        selection converges instead of flipping each channel past the others. */
+    bool toggleSelectedStereoAxisLock()
+    {
+        if (selectedInputs.empty())
+            return false;
+
+        auto& vts = parameters.getValueTreeState();
+
+        std::vector<int> targets;
+        for (int idx : selectedInputs)
+            if (vts.isInputChannelStereo(idx))
+                targets.push_back(idx);
+
+        if (targets.empty())
+            return false;
+
+        const bool wasLocked = static_cast<int>(
+            parameters.getInputParam(targets.front(), WFSParameterIDs::inputStereoAxisLock.toString())) != 0;
+        const int target = wasLocked ? 0 : 1;
+
+        vts.beginUndoTransaction("Stereo Axis Lock");
+        for (int idx : targets)
+            parameters.setInputParam(idx, WFSParameterIDs::inputStereoAxisLock.toString(), target);
+
+        repaint();
+        return true;
     }
 
     //==========================================================================
@@ -2158,7 +2258,7 @@ public:
 
                 // Axis: same sign as inputRotation (both CCW-positive; screen Y is down)
                 float angleDeg = -juce::radiansToDegrees(angleDelta);
-                int newAxis = WFSParameterDefaults::wrapPhaseDegrees(secTouch.startAxis + juce::roundToInt(angleDeg));
+                int newAxis = WFSParameterDefaults::wrapAxisDegrees(secTouch.startAxis + juce::roundToInt(angleDeg));
                 parameters.setInputParam(inputIdx, WFSParameterIDs::inputStereoAxisOffset.toString(), newAxis);
                 break;
             }
@@ -2554,6 +2654,10 @@ private:
     juce::Point<float> viewOffset { 0.0f, 0.0f };
 
     // Interaction state
+    // Sub-degree remainder of a wheel turn on the stereo image axis: the
+    // parameter is an integer and a trackpad notch is a fraction of one.
+    float wheelAxisAccum = 0.0f;
+
     int selectedInput = -1;  // Derived cache: == single element of selectedInputs when size==1, else -1
     std::set<int> selectedInputs;  // Multi-selection set (0-based input indices)
     bool isDraggingInput = false;
@@ -2665,10 +2769,12 @@ private:
     void syncSelectedInputFromSet()
     {
         selectedInput = (selectedInputs.size() == 1) ? *selectedInputs.begin() : -1;
+        wheelAxisAccum = 0.0f;   // a banked part-notch belongs to the old target
     }
 
     void clearSelection()
     {
+        wheelAxisAccum = 0.0f;
         selectedInputs.clear();
         selectedInput = -1;
         selectedBarycenter = -1;

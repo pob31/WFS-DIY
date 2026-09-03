@@ -5,10 +5,11 @@
 <InputConfig version="1.0">
   <Inputs count="8">
     <Input id="1" inputChannelType="mono" hwInputs="1">
-      <Channel inputName="Vocal" inputSolo="0" inputStereoWidth="4.0" inputStereoAxisOffset="0"
-               inputAttenuation="-6.0" inputDelayLatency="0.0" inputMinimalLatency="0"
-               inputMapLocked="0" inputMapVisible="1" inputHiddenByCluster="0"
-               inputSamplerActive="0" samplerMidiZoneQuadrant="0" lightpadZoneId="-1"/>
+      <Channel inputName="Vocal" inputColour="-1" inputSolo="0" inputStereoWidth="4.0"
+               inputStereoAxisOffset="0" inputStereoAxisLock="0" inputAttenuation="-6.0"
+               inputDelayLatency="0.0" inputMinimalLatency="0" inputMapLocked="0"
+               inputMapVisible="1" inputHiddenByCluster="0" inputSamplerActive="0"
+               samplerMidiZoneQuadrant="0" lightpadZoneId="-1"/>
       <Position inputPositionX="-2.0" inputPositionY="1.5" inputPositionZ="0.0"
                 inputOffsetX="0.0" inputOffsetY="0.0" inputOffsetZ="0.0" inputConstraintX="1"
                 inputConstraintY="1" inputConstraintZ="1" inputConstraintDistance="0"
@@ -164,10 +165,11 @@
       </Sampler>
     </Input>
     <Input id="2" inputChannelType="mono" hwInputs="2">
-      <Channel inputName="Input 2" inputSolo="0" inputStereoWidth="4.0" inputStereoAxisOffset="0"
-               inputAttenuation="0.0" inputDelayLatency="0.0" inputMinimalLatency="0"
-               inputMapLocked="0" inputMapVisible="1" inputHiddenByCluster="0"
-               inputSamplerActive="0" samplerMidiZoneQuadrant="0" lightpadZoneId="-1"/>
+      <Channel inputName="Input 2" inputColour="-1" inputSolo="0" inputStereoWidth="4.0"
+               inputStereoAxisOffset="0" inputStereoAxisLock="0" inputAttenuation="0.0"
+               inputDelayLatency="0.0" inputMinimalLatency="0" inputMapLocked="0"
+               inputMapVisible="1" inputHiddenByCluster="0" inputSamplerActive="0"
+               samplerMidiZoneQuadrant="0" lightpadZoneId="-1"/>
       <Position inputPositionX="2.0" inputPositionY="1.5" inputPositionZ="0.0"
                 inputOffsetX="0.0" inputOffsetY="0.0" inputOffsetZ="0.0" inputConstraintX="1"
                 inputConstraintY="1" inputConstraintZ="1" inputConstraintDistance="0"
@@ -323,10 +325,11 @@
       </Sampler>
     </Input>
     <Input id="3" inputChannelType="mono" hwInputs="3">
-      <Channel inputName="Input 3" inputSolo="0" inputStereoWidth="4.0" inputStereoAxisOffset="0"
-               inputAttenuation="0.0" inputDelayLatency="0.0" inputMinimalLatency="0"
-               inputMapLocked="0" inputMapVisible="1" inputHiddenByCluster="0"
-               inputSamplerActive="0" samplerMidiZoneQuadrant="0" lightpadZoneId="-1"/>
+      <Channel inputName="Input 3" inputColour="-1" inputSolo="0" inputStereoWidth="4.0"
+               inputStereoAxisOffset="0" inputStereoAxisLock="0" inputAttenuation="0.0"
+               inputDelayLatency="0.0" inputMinimalLatency="0" inputMapLocked="0"
+               inputMapVisible="1" inputHiddenByCluster="0" inputSamplerActive="0"
+               samplerMidiZoneQuadrant="0" lightpadZoneId="-1"/>
       <Position inputPositionX="0.0" inputPositionY="3.0" inputPositionZ="0.0"
                 inputOffsetX="0.0" inputOffsetY="0.0" inputOffsetZ="0.0" inputConstraintX="1"
                 inputConstraintY="1" inputConstraintZ="1" inputConstraintDistance="0"
@@ -482,10 +485,11 @@
       </Sampler>
     </Input>
     <Input id="4" inputChannelType="mono" hwInputs="4">
-      <Channel inputName="Input 4" inputSolo="0" inputStereoWidth="4.0" inputStereoAxisOffset="0"
-               inputAttenuation="0.0" inputDelayLatency="0.0" inputMinimalLatency="0"
-               inputMapLocked="0" inputMapVisible="1" inputHiddenByCluster="0"
-               inputSamplerActive="0" samplerMidiZoneQuadrant="0" lightpadZoneId="-1"/>
+      <Channel inputName="Input 4" inputColour="-1" inputSolo="0" inputStereoWidth="4.0"
+               inputStereoAxisOffset="0" inputStereoAxisLock="0" inputAttenuation="0.0"
+               inputDelayLatency="0.0" inputMinimalLatency="0" inputMapLocked="0"
+               inputMapVisible="1" inputHiddenByCluster="0" inputSamplerActive="0"
+               samplerMidiZoneQuadrant="0" lightpadZoneId="-1"/>
       <Position inputPositionX="-1.111110687255859" inputPositionY="5.0" inputPositionZ="0.0"
                 inputOffsetX="0.0" inputOffsetY="0.0" inputOffsetZ="0.0" inputConstraintX="1"
                 inputConstraintY="1" inputConstraintZ="1" inputConstraintDistance="0"
@@ -641,10 +645,11 @@
       </Sampler>
     </Input>
     <Input id="5" inputChannelType="mono" hwInputs="5">
-      <Channel inputName="Input 5" inputSolo="0" inputStereoWidth="4.0" inputStereoAxisOffset="0"
-               inputAttenuation="0.0" inputDelayLatency="0.0" inputMinimalLatency="0"
-               inputMapLocked="0" inputMapVisible="1" inputHiddenByCluster="0"
-               inputSamplerActive="0" samplerMidiZoneQuadrant="0" lightpadZoneId="-1"/>
+      <Channel inputName="Input 5" inputColour="-1" inputSolo="0" inputStereoWidth="4.0"
+               inputStereoAxisOffset="0" inputStereoAxisLock="0" inputAttenuation="0.0"
+               inputDelayLatency="0.0" inputMinimalLatency="0" inputMapLocked="0"
+               inputMapVisible="1" inputHiddenByCluster="0" inputSamplerActive="0"
+               samplerMidiZoneQuadrant="0" lightpadZoneId="-1"/>
       <Position inputPositionX="1.111111640930176" inputPositionY="5.0" inputPositionZ="0.0"
                 inputOffsetX="0.0" inputOffsetY="0.0" inputOffsetZ="0.0" inputConstraintX="1"
                 inputConstraintY="1" inputConstraintZ="1" inputConstraintDistance="0"
@@ -800,10 +805,11 @@
       </Sampler>
     </Input>
     <Input id="6" inputChannelType="mono" hwInputs="6">
-      <Channel inputName="Input 6" inputSolo="0" inputStereoWidth="4.0" inputStereoAxisOffset="0"
-               inputAttenuation="0.0" inputDelayLatency="0.0" inputMinimalLatency="0"
-               inputMapLocked="0" inputMapVisible="1" inputHiddenByCluster="0"
-               inputSamplerActive="0" samplerMidiZoneQuadrant="0" lightpadZoneId="-1"/>
+      <Channel inputName="Input 6" inputColour="-1" inputSolo="0" inputStereoWidth="4.0"
+               inputStereoAxisOffset="0" inputStereoAxisLock="0" inputAttenuation="0.0"
+               inputDelayLatency="0.0" inputMinimalLatency="0" inputMapLocked="0"
+               inputMapVisible="1" inputHiddenByCluster="0" inputSamplerActive="0"
+               samplerMidiZoneQuadrant="0" lightpadZoneId="-1"/>
       <Position inputPositionX="3.333333969116211" inputPositionY="5.0" inputPositionZ="0.0"
                 inputOffsetX="0.0" inputOffsetY="0.0" inputOffsetZ="0.0" inputConstraintX="1"
                 inputConstraintY="1" inputConstraintZ="1" inputConstraintDistance="0"
@@ -959,10 +965,11 @@
       </Sampler>
     </Input>
     <Input id="7" inputChannelType="mono" hwInputs="7">
-      <Channel inputName="Input 7" inputSolo="0" inputStereoWidth="4.0" inputStereoAxisOffset="0"
-               inputAttenuation="0.0" inputDelayLatency="0.0" inputMinimalLatency="0"
-               inputMapLocked="0" inputMapVisible="1" inputHiddenByCluster="0"
-               inputSamplerActive="0" samplerMidiZoneQuadrant="0" lightpadZoneId="-1"/>
+      <Channel inputName="Input 7" inputColour="-1" inputSolo="0" inputStereoWidth="4.0"
+               inputStereoAxisOffset="0" inputStereoAxisLock="0" inputAttenuation="0.0"
+               inputDelayLatency="0.0" inputMinimalLatency="0" inputMapLocked="0"
+               inputMapVisible="1" inputHiddenByCluster="0" inputSamplerActive="0"
+               samplerMidiZoneQuadrant="0" lightpadZoneId="-1"/>
       <Position inputPositionX="5.55555534362793" inputPositionY="5.0" inputPositionZ="0.0"
                 inputOffsetX="0.0" inputOffsetY="0.0" inputOffsetZ="0.0" inputConstraintX="1"
                 inputConstraintY="1" inputConstraintZ="1" inputConstraintDistance="0"
@@ -1118,10 +1125,11 @@
       </Sampler>
     </Input>
     <Input id="8" inputChannelType="mono" hwInputs="8">
-      <Channel inputName="Input 8" inputSolo="0" inputStereoWidth="4.0" inputStereoAxisOffset="0"
-               inputAttenuation="0.0" inputDelayLatency="0.0" inputMinimalLatency="0"
-               inputMapLocked="0" inputMapVisible="1" inputHiddenByCluster="0"
-               inputSamplerActive="0" samplerMidiZoneQuadrant="0" lightpadZoneId="-1"/>
+      <Channel inputName="Input 8" inputColour="-1" inputSolo="0" inputStereoWidth="4.0"
+               inputStereoAxisOffset="0" inputStereoAxisLock="0" inputAttenuation="0.0"
+               inputDelayLatency="0.0" inputMinimalLatency="0" inputMapLocked="0"
+               inputMapVisible="1" inputHiddenByCluster="0" inputSamplerActive="0"
+               samplerMidiZoneQuadrant="0" lightpadZoneId="-1"/>
       <Position inputPositionX="7.777778625488281" inputPositionY="5.0" inputPositionZ="0.0"
                 inputOffsetX="0.0" inputOffsetY="0.0" inputOffsetZ="0.0" inputConstraintX="1"
                 inputConstraintY="1" inputConstraintZ="1" inputConstraintDistance="0"

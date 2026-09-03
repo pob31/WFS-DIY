@@ -385,6 +385,7 @@ private:
             { WFSParameterIDs::inputMinimalLatency,       { "Min Latency",          "",    false } },
             { WFSParameterIDs::inputStereoWidth,          { "Stereo Width",         "m",   false } },
             { WFSParameterIDs::inputStereoAxisOffset,     { "Stereo Axis",          "deg", false } },
+            { WFSParameterIDs::inputStereoAxisLock,       { "Stereo Axis Lock",     "",    false } },
 
             // Position
             { WFSParameterIDs::inputPositionX,            { "Position X",           "m",   false } },

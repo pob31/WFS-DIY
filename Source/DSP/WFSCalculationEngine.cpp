@@ -3023,15 +3023,17 @@ void WFSCalculationEngine::valueTreePropertyChanged (juce::ValueTree& tree,
                                  property == inputDistanceRatio ||
                                  property == inputCommonAtten);
 
-    // Input channel parameters. inputStereoWidth and inputStereoAxisOffset move
-    // the derived legs — one how far apart, the other along which axis — so
-    // either edit must re-fire the 50 Hz recalc; a channel's mono/stereo type
+    // Input channel parameters. inputStereoWidth, inputStereoAxisOffset and
+    // inputStereoAxisLock move the derived legs — how far apart, along which
+    // axis, and whether that axis follows the source at all — so any of the
+    // three must re-fire the 50 Hz recalc; a channel's mono/stereo type
     // (per-channel inputChannelType) is structural and takes effect through a
     // full renderer re-prepare, not through this path.
     bool isInputChannelProperty = (property == inputMinimalLatency ||
                                    property == inputDelayLatency ||
                                    property == inputStereoWidth ||
-                                   property == inputStereoAxisOffset);
+                                   property == inputStereoAxisOffset ||
+                                   property == inputStereoAxisLock);
 
     // Input height factor
     bool isInputHeightProperty = (property == inputHeightFactor);

@@ -43,6 +43,22 @@ namespace WFSParameterDefaults
         return ((deg + 180) % 360 + 360) % 360 - 180;
     }
 
+    /** Wrap a bearing (degrees) into the (-179, 180] range the axis and rotation
+        parameters actually accept.
+
+        wrapPhaseDegrees keeps both typed endpoints because an LFO phase of -180
+        is a legitimate value; inputStereoAxisOffset's range starts at -179, so
+        the same helper hands the ValueTree a -180 that gets clamped straight
+        back to -179. A 1 degree decrement from -179 then never crosses into
+        +180, it sticks, which is what a Space Mouse twist at the boundary felt
+        like. -180 and +180 name the same bearing, so folding one onto the other
+        loses nothing. */
+    constexpr int wrapAxisDegrees (int deg)
+    {
+        const int wrapped = wrapPhaseDegrees (deg);
+        return wrapped == -180 ? 180 : wrapped;
+    }
+
     //==========================================================================
     // Config > Show Section
     //==========================================================================
@@ -392,6 +408,14 @@ namespace WFSParameterDefaults
     constexpr int inputStereoAxisOffsetDefault   = 0;
     constexpr int inputStereoAxisOffsetMin       = -179;
     constexpr int inputStereoAxisOffsetMax       = 180;
+
+    // Drops the automatic tangential term entirely: with the lock on, the pair
+    // spreads along the fixed world axis (house left/right) turned by
+    // inputStereoAxisOffset, so the offset reads as an absolute bearing instead
+    // of a rotation applied to something that moves with the source.
+    constexpr int inputStereoAxisLockDefault     = 0;
+    constexpr int inputStereoAxisLockMin         = 0;
+    constexpr int inputStereoAxisLockMax         = 1;
 
     constexpr float inputDelayLatencyDefault    = 0.0f;
     constexpr float inputDelayLatencyMin        = -100.0f;

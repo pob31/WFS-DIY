@@ -402,6 +402,13 @@ namespace WFSParameterIDs
     // already mirror the anchor and the automatic axis follows it, so mirroring
     // this offset too would undo the flip it is riding on.
     const juce::Identifier inputStereoAxisOffset ("inputStereoAxisOffset");
+    // 0/1, stereo pairs only: drops the automatic tangential term and spreads along
+    // the fixed world axis instead, so inputStereoAxisOffset above stops being a
+    // rotation applied to a moving reference and becomes an absolute bearing
+    // (0 = house left/right). The automatic axis is derived from the origin->anchor
+    // direction, which is exactly what an operator wants gone when the image has to
+    // hold still while the source walks.
+    const juce::Identifier inputStereoAxisLock   ("inputStereoAxisLock");
     const juce::Identifier inputAttenuation      ("inputAttenuation");
     const juce::Identifier inputDelayLatency     ("inputDelayLatency");
     const juce::Identifier inputMinimalLatency   ("inputMinimalLatency");
