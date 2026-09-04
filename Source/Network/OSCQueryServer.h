@@ -61,7 +61,7 @@ private:
     void connectionOpened(const juce::String& id) override;
     void messageReceived(const juce::String& id, const juce::String& message) override;
     void connectionClosed(const juce::String& id, int status, const juce::String& reason) override;
-    void connectionError(const juce::String& id, const juce::String& message) override;
+    void connectionError(const juce::String& id, int status, const juce::String& message) override;
 
     // --- HTTP Response Helpers ---
     void sendJsonResponse(std::shared_ptr<HttpServer::Response> response,

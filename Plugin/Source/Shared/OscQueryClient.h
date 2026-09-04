@@ -54,7 +54,7 @@ namespace wfs::plugin
         void messageReceived (const juce::String&) override;
         void dataReceived    (const juce::MemoryBlock&) override;
         void connectionClosed (int status, const juce::String& reason) override;
-        void connectionError  (const juce::String& message) override;
+        void connectionError  (int status, const juce::String& message) override;
 
         bool httpGet (const juce::String& pathAndQuery, juce::String& outBody);
         void sendCommand (const juce::String& command, const juce::String& path);

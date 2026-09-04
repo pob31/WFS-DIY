@@ -264,7 +264,7 @@ namespace wfs::plugin
         setState (State::Idle);
     }
 
-    void OscQueryClient::connectionError (const juce::String& /*message*/)
+    void OscQueryClient::connectionError (int /*status*/, const juce::String& /*message*/)
     {
         setState (State::Error);
     }

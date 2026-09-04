@@ -239,9 +239,14 @@ void OSCQueryServer::connectionClosed(const juce::String& id, int /*status*/, co
     removeAllSubscriptions(id);
 }
 
-void OSCQueryServer::connectionError(const juce::String& id, const juce::String& errorMsg)
+void OSCQueryServer::connectionError(const juce::String& id, int status, const juce::String& errorMsg)
 {
-    DBG("OSCQueryServer: WebSocket error for " << id << ": " << errorMsg);
+    // The status is the transport error code the connection failed with. Logged
+    // rather than acted on: every error on a WebSocket connection ends the same
+    // way here - the client is gone, so its subscriptions go with it - but the
+    // number is what tells "they closed the tab" apart from "something on the
+    // network ate the connection" when reading a log after a show.
+    DBG("OSCQueryServer: WebSocket error for " << id << " (status " << status << "): " << errorMsg);
     removeAllSubscriptions(id);
 }
 

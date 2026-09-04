@@ -12,9 +12,10 @@ SimpleWebSocketClientBase::~SimpleWebSocketClientBase()
 	stop();
 }
 
-void SimpleWebSocketClientBase::start(const String& _serverPath)
+void SimpleWebSocketClientBase::start(const String& _serverPath, int timeOutInSeconds)
 {
 	this->serverPath = _serverPath;
+	this->requestTimeOut = timeOutInSeconds;
 	startThread();
 }
 
@@ -36,7 +37,6 @@ void SimpleWebSocketClientBase::stop()
 void SimpleWebSocketClientBase::run()
 {
 	this->isConnected = false;
-	String s = this->serverPath;
 
 	initWS();
 
@@ -56,10 +56,10 @@ void SimpleWebSocketClientBase::handleConnectionClosedCallback(int status, const
 	this->webSocketListeners.call(&Listener::connectionClosed, status, reason);
 }
 
-void SimpleWebSocketClientBase::handleErrorCallback(const String& message)
+void SimpleWebSocketClientBase::handleErrorCallback(int status, const String& message)
 {
 	this->isConnected = false;
-	if (!this->isClosing) this->webSocketListeners.call(&Listener::connectionError, message);
+	if (!this->isClosing) this->webSocketListeners.call(&Listener::connectionError, status, message);
 }
 
 
@@ -100,7 +100,7 @@ void SimpleWebSocketClient::initWS()
 {
 	ws.reset(new WsClient(serverPath.toStdString()));
 
-	ws->config.timeout_request = 1000;
+	ws->config.timeout_request = requestTimeOut;
 	ws->config.timeout_idle = 1000;
 
 	ws->on_message = std::bind(&SimpleWebSocketClient::onMessageCallback, this, std::placeholders::_1, std::placeholders::_2);
@@ -142,7 +142,7 @@ void SimpleWebSocketClient::onConnectionCloseCallback(std::shared_ptr<WsClient::
 
 void SimpleWebSocketClient::onErrorCallback(std::shared_ptr<WsClient::Connection>, const SimpleWeb::error_code& ec)
 {
-	handleErrorCallback(ec.message());
+	handleErrorCallback(ec.value(), ec.message());
 }
 
 
@@ -183,7 +183,7 @@ void SecureWebSocketClient::initWS()
 {
 	ws.reset(new WssClient(serverPath.toStdString(), false));
 
-	ws->config.timeout_request = 1000;
+	ws->config.timeout_request = requestTimeOut;
 	ws->config.timeout_idle = 1000;
 
 	ws->on_message = std::bind(&SecureWebSocketClient::onMessageCallback, this, std::placeholders::_1, std::placeholders::_2);
@@ -217,6 +217,6 @@ void SecureWebSocketClient::onConnectionCloseCallback(std::shared_ptr<WssClient:
 
 void SecureWebSocketClient::onErrorCallback(std::shared_ptr<WssClient::Connection>, const SimpleWeb::error_code& ec)
 {
-	handleErrorCallback(ec.message());
+	handleErrorCallback(ec.value(), ec.message());
 }
 #endif

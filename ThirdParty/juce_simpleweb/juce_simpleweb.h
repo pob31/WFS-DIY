@@ -43,10 +43,15 @@
 
 
 #define USE_STANDALONE_ASIO 1
-// Note: NOGDI intentionally NOT defined — JUCE GUI modules need GDI types (LOGFONTW, RGBQUAD)
+// NOGDI is deliberately NOT defined: it hides LOGFONTW, RGBQUAD and the rest
+// of wingdi.h, which juce_graphics and juce_gui_basics need. Any consumer that
+// links a JUCE GUI module alongside this one fails to compile with it set.
 #define ASIO_DISABLE_SERIAL_PORT 1
 
 #ifdef _WIN32
+  // asio wants a Windows version before <winsock2.h> reaches it, and picks a
+  // very old default if nobody says. 0x0A00 is Windows 10. _WIN32_WINDOWS is
+  // the Win9x-era spelling and does not do this job.
   #ifndef _WIN32_WINNT
     #define _WIN32_WINNT 0x0A00
   #endif
@@ -56,6 +61,15 @@
 #include <juce_core/juce_core.h>
 #include <juce_cryptography/juce_cryptography.h>
 
+// Let the build choose. Defining SIMPLEWEB_SECURE_SUPPORTED=0 on the compile
+// line drops the TLS paths and, with them, the OpenSSL dependency; anything
+// that does not define it keeps the previous behaviour, TLS on.
+//
+// The guard is what makes that possible: an unconditional #define here
+// silently overrides whatever the build asked for, so a consumer passing 0
+// gets a macro redefinition and TLS anyway. Wanted by hosts that speak plain
+// http:// and ws:// - a DAW plugin in particular often cannot resolve
+// libcrypto at load time.
 #ifndef SIMPLEWEB_SECURE_SUPPORTED
 #define SIMPLEWEB_SECURE_SUPPORTED 1
 #endif
