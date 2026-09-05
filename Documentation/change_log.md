@@ -2,6 +2,17 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
+## v1.0.0beta46 — 2026-09-05
+
+### Fixed
+- **The OSCQuery WebSocket server could hang while shutting down, and some clients had their handshake refused.** Both arrive from upstream `juce_simpleweb`, whose fixes the vendored copy had been missing (see *Chore / Internal*). The deadlock is the one that mattered: stopping the server while it waited on the MessageManager lock hung the app at exactly the moment everything is being torn down, which in a theatre is during get-out. The handshake bug was an unnecessary string conversion that sometimes computed the WebSocket accept key wrong, so a client that verified it walked away — the DAW plugins reach the app through this server. Two smaller ones come with them: the transport's error code is now passed to `connectionError`, and `SimpleWebSocketClient::start` takes an optional request timeout.
+  - The error code changed a virtual's signature, so `OSCQueryServer::connectionError` and the plugins' `OscQueryClient` moved with it. Both log or ignore the status rather than acting on it — every error on a WebSocket ends the same way, the client is gone — but the number is what separates "they closed the tab" from "the network ate the connection" when reading a log after a show. Both were marked `override`, so the mismatch was a compile error rather than a silently orphaned callback, which is how the two of them were found.
+
+### Chore / Internal
+- **`juce_simpleweb` stopped being a fork of a fork with no repository behind it.** The vendored copy was old upstream plus three local Windows/TLS patches that existed in no git repository anywhere, while `benkuper/juce_simpleweb` had moved nine commits ahead with fixes we did not have — neither tree a superset of the other, and XOA carrying a byte-identical copy of the same private lineage. Both now track `pob31/juce_simpleweb` master (`b953ada`), which is upstream master plus those three patches, this time committed and pushed rather than living only in a copied directory. The local diff is gone, so the next update is a copy rather than an archaeology exercise.
+- **spatcore has a licence.** Its README said the core "follows the consumer projects' licensing", which reads as a sensible deferral and is not one: a repository with no licence file grants nobody any rights. It now says GPL-3.0-or-later and ships the text, matching where the code came from and every project that consumes it. The submodule bump carries that commit and no code change.
+- **The Fontana parametrized SDN paper joins the reference set**, next to `ENSLL_SON_GUESNEY_2020.pdf` in `Documentation/` as a plain blob — reference reading for the SDN reverb algorithm, alongside the geometric reverb path.
+
 ## v1.0.0beta45 — 2026-09-04
 
 ### Added
