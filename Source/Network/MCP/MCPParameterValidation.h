@@ -26,11 +26,34 @@
 
 #include <juce_core/juce_core.h>
 #include <cmath>
+#include <limits>
 #include "MCPCompat.h"
 #include "MCPParameterRegistry.h"
 
 namespace WFSNetwork::MCPValidation
 {
+
+/** True when `d` names an exact `int`: finite, whole, and inside int's range.
+
+    The range half is the part that isn't pedantry. A `static_cast<int>` of a
+    double that doesn't fit is undefined behaviour, not a clamp and not even a
+    wrong-but-bounded answer, and every `d` tested here arrives off the wire
+    from an MCP client. `1e300` and `1e999` both clear a bare
+    `d == std::floor (d)` gate — the first because it is already whole, the
+    second because the floor of an infinity is that infinity — and either one
+    then reaches the cast.
+
+    Shared with the mirrored enum gate in MCPGeneratedToolLoader.cpp, where
+    the same two branches had the same hole, so they cannot drift apart on it.
+    int's bounds are exactly representable as doubles, so the comparisons
+    below do not round. */
+inline bool isExactInt (double d) noexcept
+{
+    return std::isfinite (d)
+        && d == std::floor (d)
+        && d >= static_cast<double> (std::numeric_limits<int>::min())
+        && d <= static_cast<double> (std::numeric_limits<int>::max());
+}
 
 /** Validate (and where needed coerce) `value` for `variable`.
 
@@ -85,14 +108,14 @@ inline ToolResult validateAgainstRegistry (const ParameterRegistryRecord* rec,
             if (s.isEmpty() || ! s.containsOnly ("0123456789.+-eE"))
                 return reject (s);
             const double d = s.getDoubleValue();
-            if (d != std::floor (d))
+            if (! isExactInt (d))
                 return reject (s);
             value = juce::var (static_cast<int> (d));
         }
         else if (value.isDouble())
         {
             const double d = static_cast<double> (value);
-            if (d != std::floor (d))
+            if (! isExactInt (d))
                 return reject (juce::String (d));
             value = juce::var (static_cast<int> (d));
         }

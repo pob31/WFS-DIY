@@ -1,5 +1,6 @@
 #include "MCPGeneratedToolLoader.h"
 #include "MCPGenericDispatch.h"
+#include "MCPParameterValidation.h"
 #include "MCPCompat.h"
 #include "MCPLogger.h"
 #include "../../Parameters/WFSValueTreeState.h"
@@ -347,14 +348,14 @@ namespace Detail
                 if (s.isEmpty() || ! s.containsOnly ("0123456789.+-eE"))
                     return rejectValue (s);
                 const double d = s.getDoubleValue();
-                if (d != std::floor (d))
+                if (! MCPValidation::isExactInt (d))
                     return rejectValue (s);
                 value = juce::var (static_cast<int> (d));
             }
             else if (value.isDouble())
             {
                 const double d = static_cast<double> (value);
-                if (d != std::floor (d))
+                if (! MCPValidation::isExactInt (d))
                     return rejectValue (juce::String (d));
                 value = juce::var (static_cast<int> (d));
             }
