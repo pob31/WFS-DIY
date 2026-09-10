@@ -2,6 +2,20 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
+## v1.0.0beta47 — 2026-09-11
+
+### Fixed
+- **A session saved with the Live Source Tamer on now reloads with it on.** It used to come back off, and not just on screen: the audio was off too. The tamer's three toggles — **Active**, **Peak Comp** and **Slow Comp** (`inputLSactive`, `inputLSpeakEnable`, `inputLSslowEnable`) — were on the same never-persisted list as `runDSP` and `binauralEnabled`, so no save ever wrote them and no load ever read them. They were put there in March to avoid a toggle showing on while the DSP was off. That can no longer happen: the tamer reads its enable from the state on every 50 Hz tick, every reader parses the string value a loaded file hands back, and nothing is switched on from the button alone that a load would skip. The toggles now persist in `inputs.xml` and in input snapshots.
+  - **Snapshots respect scope.** The **Live Source Tamer › Enable** scope item was always on offer and did nothing; it now recalls the tamer's on/off state, and the **Peak Comp** / **Slow Comp** items recall their enables alongside threshold and ratio.
+  - **Processing and Binaural still always start off.** A project must never boot making noise, so `runDSP` and `binauralEnabled` stay unsaved.
+  - Projects saved since March carry no tamer toggles, so loading one leaves them as they are — off in a fresh session, exactly as before. Older projects that still carry them start applying them again.
+- **Peak Comp and Slow Comp OFF now really bypass the compressor.** Their buttons only gated the gain-reduction meters: with the tamer on, both reductions were always multiplied in, so an input compressed at the default −20 dB, 2:1 while both compressors read OFF. Each reduction now fades in and out with its enable over the same 500 ms as the tamer's own switch, so turning a compressor off mid-reduction does not click. One change covers every algorithm, CPU and GPU, since the reduction reaches all of them through the shared level matrix.
+  - **Sessions that relied on the hidden compression will sound less compressed** until Peak Comp or Slow Comp is switched on — both default to off.
+- **MCP refuses enum values that do not fit in an int.** The enum check on both MCP write paths only tested that a number was whole before converting it, and `1e300` or an infinity passes that test. The conversion is undefined behaviour for them, not a clamp. Both paths now share one `MCPValidation::isExactInt`, which also requires the number to be finite and within int range, so the named tools and the generic setter fail the same way. Nothing legitimate is refused: enum values are ints by construction.
+
+### Chore / Internal
+- **`WFS_TEST_LS_PERSIST=1`** exports the input config with the three tamer toggles on, checks they are in the file, clears them, imports the file back, and checks they return — so they cannot drift back onto the never-persisted list unnoticed.
+
 ## v1.0.0beta46 — 2026-09-05
 
 ### Fixed
