@@ -4265,7 +4265,8 @@ juce::ValueTree WFSValueTreeState::createDefaultReverbChannel (int index, int to
 
     reverb.appendChild (createReverbChannelSection (index), nullptr);
     reverb.appendChild (createReverbPositionSection (index, totalCount), nullptr);
-    reverb.appendChild (createReverbFeedSection(), nullptr);
+    reverb.appendChild (createReverbFeedSection (
+                            getDefaultReverbNode (index, totalCount).orientationDeg), nullptr);
     reverb.appendChild (createReverbEQSection(), nullptr);
     reverb.appendChild (createReverbReturnSection (getNumOutputChannels()), nullptr);
 
@@ -4329,6 +4330,14 @@ void WFSValueTreeState::redistributeAllReverbPositions()
         pos.setProperty (reverbPositionX, node.x, getActiveUndoManager());
         pos.setProperty (reverbPositionY, node.y, getActiveUndoManager());
         pos.setProperty (reverbPositionZ, node.z, getActiveUndoManager());
+
+        // The feed direction is part of the placement, not a separate setting:
+        // a node moved without its orientation keeps facing wherever it used to
+        // be, and the angular attenuation can then mute the feed outright. Same
+        // rule the Map tab follows when the user drags a node.
+        auto feed = getReverbFeedSection (i);
+        if (feed.isValid())
+            feed.setProperty (reverbOrientation, node.orientationDeg, getActiveUndoManager());
     }
 }
 
@@ -4347,6 +4356,15 @@ ReverbNodePlacement::Stage WFSValueTreeState::getStageForPlacement()
     s.originW  = static_cast<float> (stageTree.getProperty (originWidth,  originWidthDefault));
     s.originD  = static_cast<float> (stageTree.getProperty (originDepth,  originDepthDefault));
     return s;
+}
+
+ReverbNodePlacement::Node WFSValueTreeState::getDefaultReverbNode (int index, int totalCount)
+{
+    // Recomputes the whole layout per channel rather than threading it through
+    // the callers: this is a setup path and the node count is <= 32.
+    const auto nodes = ReverbNodePlacement::layout (getStageForPlacement(),
+                                                    juce::jmax (1, totalCount));
+    return nodes[(size_t) juce::jlimit (0, (int) nodes.size() - 1, index)];
 }
 
 juce::ValueTree WFSValueTreeState::createReverbChannelSection (int index)
@@ -4368,11 +4386,7 @@ juce::ValueTree WFSValueTreeState::createReverbPositionSection (int index, int t
     // Z = 0 — collinear, on the floor, and mirror-symmetrical, which also gave
     // the SDN inter-node delays of a few samples. See ReverbNodePlacement.h.
     //
-    // Recomputes the whole layout per channel rather than threading it through
-    // the callers: this is a setup path and the node count is <= 32.
-    const auto nodes = ReverbNodePlacement::layout (getStageForPlacement(),
-                                                    juce::jmax (1, totalCount));
-    const auto& n = nodes[(size_t) juce::jlimit (0, (int) nodes.size() - 1, index)];
+    const auto n = getDefaultReverbNode (index, totalCount);
 
     position.setProperty (reverbPositionX, n.x, nullptr);
     position.setProperty (reverbPositionY, n.y, nullptr);
@@ -4384,10 +4398,16 @@ juce::ValueTree WFSValueTreeState::createReverbPositionSection (int index, int t
     return position;
 }
 
-juce::ValueTree WFSValueTreeState::createReverbFeedSection()
+juce::ValueTree WFSValueTreeState::createReverbFeedSection (int orientationDeg)
 {
     juce::ValueTree feed (Feed);
-    feed.setProperty (reverbOrientation, reverbOrientationDefault, nullptr);
+
+    // Not reverbOrientationDefault: a fresh session laid its nodes on an arc
+    // around the stage, and leaving every one of them facing 0 deg pointed the
+    // upstage half of the arc away from the stage. The default layout supplies
+    // the matching bearing so the nodes face outwards from the origin and show
+    // their green side to the stage, exactly as they do when placed by hand.
+    feed.setProperty (reverbOrientation, orientationDeg, nullptr);
     feed.setProperty (reverbAngleOn, reverbAngleOnDefault, nullptr);
     feed.setProperty (reverbAngleOff, reverbAngleOffDefault, nullptr);
     feed.setProperty (reverbPitch, reverbPitchDefault, nullptr);

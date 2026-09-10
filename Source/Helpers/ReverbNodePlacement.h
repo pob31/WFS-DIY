@@ -104,7 +104,32 @@ namespace ReverbNodePlacement
     struct Node
     {
         float x = 0.0f, y = 0.0f, z = kDefaultHeight;
+        int   orientationDeg = 0;   // feed direction, see orientationAwayFromOrigin
     };
+
+    /** Feed orientation for a node at (x, y): the bearing of the node as seen
+        FROM the world origin, i.e. the node faces away from the origin and
+        turns its green (feed) side back towards the stage.
+
+        This is the same expression the Map tab applies when the user drags a
+        node (MapTab::orientReverbTowardsOrigin) and the same one the MCP
+        auto-layout uses, so a node placed automatically and a node placed by
+        hand end up pointing the same way. Reference is the world origin, not
+        the stage centre: the origin is what the operator sees the node point
+        away from on the map.
+
+        A node sitting on the origin has no bearing, so it keeps the parameter
+        default of 0. */
+    inline int orientationAwayFromOrigin (float x, float y) noexcept
+    {
+        if (std::sqrt (x * x + y * y) < 0.001f)
+            return 0;
+
+        int deg = (int) std::lround (juce::radiansToDegrees (std::atan2 (x, -y)));
+        while (deg >  180) deg -= 360;
+        while (deg < -179) deg += 360;
+        return deg;
+    }
 
     inline void deCrowdInZ (std::vector<Node>& nodes, int maxPasses = 8);
 
@@ -183,6 +208,7 @@ namespace ReverbNodePlacement
             n.x = centreX + extentX     * std::cos (angle) + ampX * jitterFor (i, 0);
             n.y = centreY + extentYHalf * sy               + ampY * jitterFor (i, 1);
             n.z = kDefaultHeight       + ampZ * jitterFor (i, 2);
+            n.orientationDeg = orientationAwayFromOrigin (n.x, n.y);
         }
 
         deCrowdInZ (nodes);

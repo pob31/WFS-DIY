@@ -859,11 +859,17 @@ private:
         Falls back to a nominal extent when no stage section exists yet. */
     ReverbNodePlacement::Stage getStageForPlacement();
 
+    /** The default layout node for one reverb channel — position AND the feed
+        orientation that goes with it. Both sections need the same node, and the
+        orientation is only meaningful next to the position it was derived from,
+        so they come from one call rather than being recomputed apart. */
+    ReverbNodePlacement::Node getDefaultReverbNode (int index, int totalCount);
+
 
     /** Create reverb channel subsections */
     juce::ValueTree createReverbChannelSection (int index);
     juce::ValueTree createReverbPositionSection (int index, int totalCount);
-    juce::ValueTree createReverbFeedSection();
+    juce::ValueTree createReverbFeedSection (int orientationDeg);
     juce::ValueTree createReverbEQSection();
     juce::ValueTree createReverbReturnSection (int numOutputs);
     juce::ValueTree createReverbAlgorithmSection();
