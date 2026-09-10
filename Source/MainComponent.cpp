@@ -2666,6 +2666,84 @@ MainComponent::MainComponent()
     // above — it mutates nothing at all, it only asks questions.
     if (std::getenv("WFS_TEST_MCP_SURFACE") != nullptr)
         runMcpSurfaceSelfTest();
+
+    // Hidden diagnostic: WFS_TEST_LS_PERSIST=1 round-trips the Live Source
+    // Tamer toggles through an exported input config. Restores what it touched.
+    if (std::getenv("WFS_TEST_LS_PERSIST") != nullptr)
+        runLiveSourcePersistSelfTest();
+}
+
+void MainComponent::runLiveSourcePersistSelfTest()
+{
+    using namespace WFSParameterIDs;
+    auto& vts = parameters.getValueTreeState();
+    auto& fm = parameters.getFileManager();
+    int failures = 0;
+
+    auto logLine = [](const juce::String& s) { WFSLogger::getInstance().logInfo(s); };
+    auto check = [&](bool ok, const juce::String& what)
+    {
+        if (! ok) ++failures;
+        logLine(juce::String("SELF-TEST ") + (ok ? "PASS " : "FAIL ") + what);
+    };
+
+    logLine("SELF-TEST begin (Live Source Tamer toggle persistence)");
+
+    if (vts.getNumInputChannels() < 1)
+    {
+        logLine("SELF-TEST SKIP L: this session has no input channel");
+        logLine("SELF-TEST RESULT: SKIPPED");
+        return;
+    }
+
+    const juce::Identifier toggles[] = { inputLSactive, inputLSpeakEnable, inputLSslowEnable };
+    auto ls = vts.getInputLiveSourceSection(0);
+    juce::var original[3];
+    for (int i = 0; i < 3; ++i)
+        original[i] = ls.getProperty(toggles[i]);
+
+    auto setAll = [&](int v)
+    {
+        for (const auto& toggle : toggles)
+            ls.setProperty(toggle, v, nullptr);
+    };
+    auto allRead = [&](int v)
+    {
+        for (const auto& toggle : toggles)
+            if ((static_cast<int>(ls.getProperty(toggle, -1)) != 0) != (v != 0))
+                return false;
+        return true;
+    };
+
+    auto file = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                    .getChildFile("wfs-selftest-ls-persist-inputs.xml");
+    file.deleteFile();
+
+    setAll(1);
+    check(fm.exportInputConfig(file), "L1: export the input config with every tamer toggle on");
+    {
+        const auto text = file.loadFileAsString();
+        check(text.contains("inputLSactive=\"1\""), "L1: the file carries inputLSactive=1");
+        check(text.contains("inputLSpeakEnable=\"1\""), "L1: the file carries inputLSpeakEnable=1");
+        check(text.contains("inputLSslowEnable=\"1\""), "L1: the file carries inputLSslowEnable=1");
+    }
+
+    setAll(0);
+    check(fm.importInputConfig(file), "L2: import it back with the toggles cleared");
+    ls = vts.getInputLiveSourceSection(0);
+    check(allRead(1), "L2: every tamer toggle came back on");
+
+    for (int i = 0; i < 3; ++i)
+    {
+        if (original[i].isVoid())
+            ls.removeProperty(toggles[i], nullptr);
+        else
+            ls.setProperty(toggles[i], original[i], nullptr);
+    }
+    file.deleteFile();
+
+    logLine(failures == 0 ? "SELF-TEST RESULT: ALL PASS"
+                          : "SELF-TEST RESULT: FAIL (" + juce::String(failures) + ")");
 }
 
 void MainComponent::runMcpSurfaceSelfTest()

@@ -587,6 +587,12 @@ private:
         not resolve used to answer ok and change nothing. */
     void runMcpSurfaceSelfTest();
 
+    /** WFS_TEST_LS_PERSIST=1 — export the input config with the Live Source Tamer
+        toggles on, clear them, import it back, and check they return. Guards the
+        toggles against being put back on the never-persisted list, which once
+        made a saved session reload with the tamer silently off. */
+    void runLiveSourcePersistSelfTest();
+
     /** A mono row may hold at most one hardware column. Clears any extra
         columns (keeping the lowest = L) left behind when a count change
         moves the mono/stereo boundary. */

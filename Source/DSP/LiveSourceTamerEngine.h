@@ -24,6 +24,10 @@
  * - inputLSactive must be true (master enable per input)
  * - Output must be within inputLSradius of input
  * - outputLSattenEnable must be non-zero (per-output bypass)
+ *
+ * The peak and slow gain reductions only count while inputLSpeakEnable /
+ * inputLSslowEnable are on; each fades in and out over the same 500ms ramp as
+ * the master enable, so toggling a compressor mid-reduction does not click.
  */
 class LiveSourceTamerEngine
 {
@@ -48,6 +52,8 @@ public:
 
         // Initialize ramp state per input (start at 0 = inactive)
         rampProgress.resize(static_cast<size_t>(numInputs), 0.0f);
+        peakRamp.resize(static_cast<size_t>(numInputs), 0.0f);
+        slowRamp.resize(static_cast<size_t>(numInputs), 0.0f);
 
         // Initialize per-input tracking for dirty flag optimization
         wasActiveBeforeProcess.resize(static_cast<size_t>(numInputs), false);
@@ -80,30 +86,20 @@ public:
 
             // Check master enable
             bool lsActive = static_cast<int>(lsSection.getProperty(inputLSactive, 0)) != 0;
+            bool peakOn = static_cast<int>(lsSection.getProperty(inputLSpeakEnable, 0)) != 0;
+            bool slowOn = static_cast<int>(lsSection.getProperty(inputLSslowEnable, 0)) != 0;
 
             // Update ramp progress based on active state
             // Ramp towards 1.0 when active, towards 0.0 when inactive
             float& ramp = rampProgress[static_cast<size_t>(inIdx)];
-            if (lsActive)
-            {
-                // Ramping in
-                if (ramp < 1.0f)
-                {
-                    ramp += rampIncrement;
-                    if (ramp > 1.0f)
-                        ramp = 1.0f;
-                }
-            }
-            else
-            {
-                // Ramping out
-                if (ramp > 0.0f)
-                {
-                    ramp -= rampIncrement;
-                    if (ramp < 0.0f)
-                        ramp = 0.0f;
-                }
-            }
+            stepRamp(ramp, lsActive, rampIncrement);
+
+            // Compressor ramps advance even while the master ramp is at 0, so
+            // they are already settled the moment the tamer is switched on.
+            float& peakMix = peakRamp[static_cast<size_t>(inIdx)];
+            float& slowMix = slowRamp[static_cast<size_t>(inIdx)];
+            stepRamp(peakMix, peakOn, rampIncrement);
+            stepRamp(slowMix, slowOn, rampIncrement);
 
             // If ramp is 0, no LS effect at all - skip calculations
             if (ramp <= 0.0f)
@@ -127,9 +123,12 @@ public:
             // Get composite input position (includes speed-limiting, flip, offset, LFO)
             auto inputPos = calculationEngine.getCompositeInputPosition(inIdx);
 
-            // Get dynamic gain reductions
+            // Get dynamic gain reductions, each faded by its compressor's enable
+            // ramp: a disabled compressor contributes unity, whatever it detects.
             float peakGR = (inIdx < static_cast<int>(peakGRs.size())) ? peakGRs[inIdx] : 1.0f;
             float slowGR = (inIdx < static_cast<int>(slowGRs.size())) ? slowGRs[inIdx] : 1.0f;
+            peakGR = 1.0f + peakMix * (peakGR - 1.0f);
+            slowGR = 1.0f + slowMix * (slowGR - 1.0f);
 
             // Process each output
             for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
@@ -264,6 +263,13 @@ public:
     }
 
 private:
+    /** Move an enable ramp one step towards 1 (on) or 0 (off), clamped. */
+    static void stepRamp(float& ramp, bool on, float increment)
+    {
+        ramp = on ? juce::jmin(1.0f, ramp + increment)
+                  : juce::jmax(0.0f, ramp - increment);
+    }
+
     /**
      * Calculate shape factor based on normalized distance and shape type.
      *
@@ -304,6 +310,11 @@ private:
     // Ramp state for smooth enable/disable transition (500ms)
     // 0.0 = fully inactive, 1.0 = fully active
     std::vector<float> rampProgress;
+
+    // Same 500ms ramps for the peak and slow compressor enables:
+    // 0.0 = compressor ignored (unity), 1.0 = its gain reduction fully applied
+    std::vector<float> peakRamp;
+    std::vector<float> slowRamp;
 
     // Track which inputs were active at START of last process() call
     // Used to ensure correct dirty marking (including final ramp-out tick)

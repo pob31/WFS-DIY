@@ -21,13 +21,14 @@ using WFSNetwork::OriginTagScope;
 // Transient toggle stripping
 //==============================================================================
 
+// The Live Source Tamer toggles (inputLSactive, inputLSpeakEnable,
+// inputLSslowEnable) are deliberately NOT stripped: they are show settings, and
+// LiveSourceTamerEngine reads them from the tree on every tick, so a loaded value
+// engages the DSP exactly as the GUI shows it.
 static void stripTransientToggles (juce::ValueTree& tree)
 {
     tree.removeProperty (runDSP, nullptr);
     tree.removeProperty (binauralEnabled, nullptr);
-    tree.removeProperty (inputLSactive, nullptr);
-    tree.removeProperty (inputLSpeakEnable, nullptr);
-    tree.removeProperty (inputLSslowEnable, nullptr);
 
     for (int i = 0; i < tree.getNumChildren(); ++i)
     {
