@@ -491,7 +491,10 @@ public:
         if (key.getKeyCode() == 'L' && ! key.getModifiers().isCommandDown()
             && ! key.getModifiers().isCtrlDown() && ! key.getModifiers().isAltDown()
             && toggleSelectedStereoAxisLock())
+        {
+            noteMarkerEdited();
             return true;
+        }
 
         // Arrow keys and Page Up/Down: move selected reverb node
         if (selectedReverbNode >= 0)
@@ -519,6 +522,7 @@ public:
                 if (pairIdx >= 0 && pairIdx < numReverbs)
                     orientReverbTowardsOrigin (pairIdx);
             }
+            noteMarkerEdited();
             repaint();
             return true;
         }
@@ -540,6 +544,7 @@ public:
 
             parameters.getValueTreeState().beginUndoTransaction ("Arrow Key Move");
             moveSelectedInputsByDelta (dx, dy, dz);
+            noteMarkerEdited();
             return true;
         }
 
@@ -560,6 +565,7 @@ public:
 
             parameters.getValueTreeState().beginUndoTransaction ("Arrow Key Cluster Move");
             moveClusterDelta (selectedBarycenter, dx, dy, dz);
+            noteMarkerEdited();
             return true;
         }
 
@@ -1420,6 +1426,7 @@ public:
             parameters.setInputParam(hitInput, "inputOffsetX", 0.0f);
             parameters.setInputParam(hitInput, "inputOffsetY", 0.0f);
             parameters.setInputParam(hitInput, "inputOffsetZ", 0.0f);
+            noteMarkerEdited();
             repaint();
             return;
         }
@@ -1439,6 +1446,7 @@ public:
                     parameters.setInputParam(i, "inputOffsetZ", 0.0f);
                 }
             }
+            noteMarkerEdited();
             repaint();
         }
     }
@@ -1522,6 +1530,7 @@ public:
                                      WFSParameterDefaults::wrapAxisDegrees(current + step));
         }
 
+        noteMarkerEdited();
         repaint();
         return true;
     }
@@ -2638,7 +2647,7 @@ private:
     static constexpr double longPressMinMs = 700.0;
     static constexpr double longPressMaxMs = 1200.0;
     static constexpr double longPressCooldownMs = 3000.0;
-    double lastMarkerEditMs = -longPressCooldownMs;  // HiRes ms of the last marker drag or second-finger edit
+    double lastMarkerEditMs = -longPressCooldownMs;  // HiRes ms of the last marker edit (see noteMarkerEdited)
 
     // Per-pointer press record, keyed by pointerKey(). `travelled` latches the first
     // time the pointer is further than pressTolerance() from where it went down, and
@@ -2663,7 +2672,14 @@ private:
         return e.source.isTouch() ? juce::jmax(10.0f, 10.0f * WfsLookAndFeel::uiScale) : 5.0f;
     }
 
-    void noteMarkerEdited() { lastMarkerEditMs = juce::Time::getMillisecondCounterHiRes(); }
+    // Every map edit of a marker lands here - a drag, a second finger, a double-click
+    // offset reset, a wheel or arrow-key edit of the selection - so it starts the
+    // cooldown, and one made while a press is held cancels that press too.
+    void noteMarkerEdited()
+    {
+        lastMarkerEditMs = juce::Time::getMillisecondCounterHiRes();
+        longPressState.active = false;
+    }
 
     void armLongPress(LongPressState::TargetType type, int index, const juce::MouseEvent& e)
     {
