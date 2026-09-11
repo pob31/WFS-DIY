@@ -30,6 +30,7 @@
 #include "HelpCardSVG.h"
 #include "buttons/LongPressButton.h"
 #include "buttons/WrappingTextButton.h"
+#include "buttons/PadlockTextButton.h"
 #include "../Localization/LocalizationManager.h"
 #include "ColumnFocusTraverser.h"
 #include "SamplerSubTab.h"
@@ -8467,12 +8468,11 @@ private:
 
     void updateMapButtonStates()
     {
-        // Lock button - show lock icon and state
+        // Lock button - the drawn padlock shows the state (yellow open / red closed)
         auto lockedVal = parameters.getInputParam(channelSlot(), "inputMapLocked");
         bool isLocked = !lockedVal.isVoid() && static_cast<int>(lockedVal) != 0;
-        // Use Unicode lock symbols
-        juce::String lockIcon = isLocked ? juce::String::fromUTF8("\xf0\x9f\x94\x92") : juce::String::fromUTF8("\xf0\x9f\x94\x93");
-        mapLockButton.setButtonText(lockIcon + " " + LOC("inputs.buttons.lockOnMap"));
+        mapLockButton.setLocked(isLocked);
+        mapLockButton.setButtonText(LOC("inputs.buttons.lockOnMap"));
 
         // Visibility button
         auto visibleVal = parameters.getInputParam(channelSlot(), "inputMapVisible");
@@ -8701,7 +8701,7 @@ private:
     juce::TextEditor nameEditor;
     juce::Label clusterLabel;
     juce::ComboBox clusterSelector;
-    juce::TextButton mapLockButton;
+    PadlockTextButton mapLockButton;
     juce::TextButton mapVisibilityButton;
     LongPressButton samplerToggleButton { 800 };
     SamplerSubTab samplerSubTab;
