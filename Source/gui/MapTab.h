@@ -87,6 +87,11 @@ public:
                 onDetachRequested();
         };
 
+        // The overlay buttons never take keyboard focus, so the arrow keys,
+        // PageUp/Down, L and Escape keep reaching the map after a click on one.
+        for (auto* button : { &homeButton, &fitInputsButton, &levelOverlayButton, &detachButton })
+            button->setWantsKeyboardFocus(false);
+
         // Map help card
         addAndMakeVisible(mapHelpButton);
         addChildComponent(mapHelpCard);
@@ -551,7 +556,16 @@ public:
 
     void mouseDown(const juce::MouseEvent& e) override
     {
+        // MapTab listens to its overlay buttons for the status-bar help, so JUCE
+        // also hands it their presses, in BUTTON coordinates. They are not map
+        // gestures: they used to clear the selection, start rubber bands, arm
+        // long presses, feed stray second fingers and zero offsets on a
+        // double-click. Same guard in mouseDrag/Up/DoubleClick/WheelMove.
+        if (e.eventComponent != this)
+            return;
+
         int sourceIndex = e.source.getIndex();
+        pointerPresses[pointerKey(e.source)] = { e.position, false };
 
         // Handle touch input
         if (e.source.isTouch())
@@ -584,11 +598,7 @@ public:
                 activeTouches[sourceIndex] = touch;
 
                 // Set up long-press state for navigation
-                longPressState.active = true;
-                longPressState.targetType = LongPressState::TargetType::Input;
-                longPressState.targetIndex = hitInput;
-                longPressState.startPos = e.position;
-                longPressState.startTime = juce::Time::getCurrentTime();
+                armLongPress(LongPressState::TargetType::Input, hitInput, e);
 
                 // Notify path mode waypoint recording
                 if (onDragStartCallback)
@@ -617,11 +627,7 @@ public:
                 activeTouches[sourceIndex] = touch;
 
                 // Set up long-press state for navigation to cluster
-                longPressState.active = true;
-                longPressState.targetType = LongPressState::TargetType::Cluster;
-                longPressState.targetIndex = hitCluster;
-                longPressState.startPos = e.position;
-                longPressState.startTime = juce::Time::getCurrentTime();
+                armLongPress(LongPressState::TargetType::Cluster, hitCluster, e);
 
                 if (onDragStartCallback)
                     onDragStartCallback(hitRefInput);
@@ -639,11 +645,7 @@ public:
                 activeTouches[sourceIndex] = touch;
 
                 // Set up long-press state for navigation
-                longPressState.active = true;
-                longPressState.targetType = LongPressState::TargetType::Cluster;
-                longPressState.targetIndex = hitBarycenter;
-                longPressState.startPos = e.position;
-                longPressState.startTime = juce::Time::getCurrentTime();
+                armLongPress(LongPressState::TargetType::Cluster, hitBarycenter, e);
 
                 repaint();
                 return;
@@ -653,11 +655,7 @@ public:
             int hitOutput = getOutputAtPosition(e.position);
             if (hitOutput >= 0)
             {
-                longPressState.active = true;
-                longPressState.targetType = LongPressState::TargetType::Output;
-                longPressState.targetIndex = hitOutput;
-                longPressState.startPos = e.position;
-                longPressState.startTime = juce::Time::getCurrentTime();
+                armLongPress(LongPressState::TargetType::Output, hitOutput, e);
                 repaint();
                 return;
             }
@@ -684,11 +682,7 @@ public:
                 }
                 else
                 {
-                    longPressState.active = true;
-                    longPressState.targetType = LongPressState::TargetType::Reverb;
-                    longPressState.targetIndex = hitReverb;
-                    longPressState.startPos = e.position;
-                    longPressState.startTime = juce::Time::getCurrentTime();
+                    armLongPress(LongPressState::TargetType::Reverb, hitReverb, e);
                 }
                 repaint();
                 return;
@@ -743,18 +737,18 @@ public:
                     activeTouches[sourceIndex] = touch;
 
                     // Initialize secondary touch info
+                    int primarySource = findPrimaryTouchForTarget(closestTarget, isClusterTarget);
                     if (isClusterTarget)
-                    {
-                        int primarySource = findPrimaryTouchForTarget(closestTarget, true);
                         activeSecondaryTouches[sourceIndex] = initSecondaryTouchForBarycenter(
                             closestTarget, primarySource, e.position);
-                    }
                     else
-                    {
-                        int primarySource = findPrimaryTouchForTarget(closestTarget, false);
                         activeSecondaryTouches[sourceIndex] = initSecondaryTouchForInput(
                             closestTarget, primarySource, e.position);
-                    }
+
+                    // The finger holding the marker now carries an edit too: its
+                    // release restarts the long-press cooldown even if it never moved.
+                    if (auto primary = activeTouches.find(primarySource); primary != activeTouches.end())
+                        primary->second.hostedSecondaryTouch = true;
 
                     repaint();
                 }
@@ -849,11 +843,7 @@ public:
                 }
 
                 // Set up long-press state for navigation
-                longPressState.active = true;
-                longPressState.targetType = LongPressState::TargetType::Input;
-                longPressState.targetIndex = hitInput;
-                longPressState.startPos = e.position;
-                longPressState.startTime = juce::Time::getCurrentTime();
+                armLongPress(LongPressState::TargetType::Input, hitInput, e);
 
                 if (onMapSelectionChanged) onMapSelectionChanged();
                 grabKeyboardFocus();
@@ -891,11 +881,7 @@ public:
                 multiDragSnapshots[hitRefInput] = snap;
 
                 // Set up long-press state for navigation to cluster
-                longPressState.active = true;
-                longPressState.targetType = LongPressState::TargetType::Cluster;
-                longPressState.targetIndex = hitCluster;
-                longPressState.startPos = e.position;
-                longPressState.startTime = juce::Time::getCurrentTime();
+                armLongPress(LongPressState::TargetType::Cluster, hitCluster, e);
 
                 if (onDragStartCallback)
                     onDragStartCallback(hitRefInput);
@@ -919,11 +905,7 @@ public:
                 parameters.getValueTreeState().beginUndoTransaction ("Map Drag Cluster " + juce::String (hitBarycenter));
 
                 // Set up long-press state for navigation
-                longPressState.active = true;
-                longPressState.targetType = LongPressState::TargetType::Cluster;
-                longPressState.targetIndex = hitBarycenter;
-                longPressState.startPos = e.position;
-                longPressState.startTime = juce::Time::getCurrentTime();
+                armLongPress(LongPressState::TargetType::Cluster, hitBarycenter, e);
 
                 if (onMapSelectionChanged) onMapSelectionChanged();
                 grabKeyboardFocus();
@@ -935,11 +917,7 @@ public:
             int hitOutput = getOutputAtPosition(e.position);
             if (hitOutput >= 0)
             {
-                longPressState.active = true;
-                longPressState.targetType = LongPressState::TargetType::Output;
-                longPressState.targetIndex = hitOutput;
-                longPressState.startPos = e.position;
-                longPressState.startTime = juce::Time::getCurrentTime();
+                armLongPress(LongPressState::TargetType::Output, hitOutput, e);
                 repaint();
                 return;
             }
@@ -965,11 +943,7 @@ public:
                 }
                 else
                 {
-                    longPressState.active = true;
-                    longPressState.targetType = LongPressState::TargetType::Reverb;
-                    longPressState.targetIndex = hitReverb;
-                    longPressState.startPos = e.position;
-                    longPressState.startTime = juce::Time::getCurrentTime();
+                    armLongPress(LongPressState::TargetType::Reverb, hitReverb, e);
                 }
                 repaint();
                 return;
@@ -996,7 +970,18 @@ public:
 
     void mouseDrag(const juce::MouseEvent& e) override
     {
+        if (e.eventComponent != this)   // an overlay button's press, see mouseDown
+            return;
+
         int sourceIndex = e.source.getIndex();
+
+        // Latch "this press travelled" before the touch early return below: output
+        // and plain-reverb presses are not in activeTouches, but their long press
+        // must still see the pointer leave.
+        if (auto press = pointerPresses.find(pointerKey(e.source));
+            press != pointerPresses.end()
+            && e.position.getDistanceFrom(press->second.startPos) > pressTolerance(e))
+            press->second.travelled = true;
 
         // Handle touch input
         if (e.source.isTouch())
@@ -1285,39 +1270,18 @@ public:
 
     void mouseUp(const juce::MouseEvent& e) override
     {
+        if (e.eventComponent != this)   // an overlay button's press, see mouseDown
+            return;
+
         int sourceIndex = e.source.getIndex();
+        const bool travelled = finishPointerPress(e);
 
         // Handle touch input
         if (e.source.isTouch())
         {
             // Check for long-press gesture (navigation)
             // Note: Short double-tap (clear offsets) is handled immediately in mouseDoubleClick
-            if (longPressState.active)
-            {
-                auto holdDuration = juce::Time::getCurrentTime() - longPressState.startTime;
-                float movement = e.position.getDistanceFrom(longPressState.startPos);
-
-                // Long hold (700-1200ms) with minimal movement (< 5px): navigate to tab
-                if (holdDuration.inMilliseconds() >= 700 && holdDuration.inMilliseconds() <= 1200 && movement < 5.0f)
-                {
-                    if (navigateToItemCallback)
-                    {
-                        int tabType = -1;
-                        switch (longPressState.targetType)
-                        {
-                            case LongPressState::TargetType::Input:   tabType = 0; break;
-                            case LongPressState::TargetType::Cluster: tabType = 1; break;
-                            case LongPressState::TargetType::Output:  tabType = 2; break;
-                            case LongPressState::TargetType::Reverb:  tabType = 3; break;
-                            default: break;
-                        }
-                        if (tabType >= 0)
-                            navigateToItemCallback(tabType, longPressState.targetIndex);
-                    }
-                }
-
-                longPressState.active = false;
-            }
+            finishLongPress(e, travelled);
 
             auto it = activeTouches.find(sourceIndex);
             if (it != activeTouches.end())
@@ -1325,8 +1289,16 @@ public:
                 bool wasViewGesture = (it->second.type == TouchInfo::Type::ViewGesture);
                 bool wasSecondaryTouch = (it->second.type == TouchInfo::Type::SecondaryTouch);
                 bool wasInputDrag = (it->second.type == TouchInfo::Type::Input);
+                bool wasBarycenterDrag = (it->second.type == TouchInfo::Type::Barycenter);
                 bool wasReverbDrag = (it->second.type == TouchInfo::Type::Reverb);
                 int draggedInputIndex = it->second.targetIndex;
+
+                // A marker that really moved, a second finger that really turned or
+                // pinched, or a finger that held a marker for one: the long-press
+                // cooldown starts now.
+                if ((travelled && (wasInputDrag || wasBarycenterDrag || wasReverbDrag || wasSecondaryTouch))
+                    || it->second.hostedSecondaryTouch)
+                    noteMarkerEdited();
 
                 // Notify path mode that drag ended (before erasing touch)
                 if (wasInputDrag && draggedInputIndex >= 0 && onDragEndCallback)
@@ -1366,6 +1338,11 @@ public:
         }
 
         // Mouse input
+        // A marker drag that left the tolerance, even one that came back, starts
+        // the long-press cooldown. Read the drag flags before they are reset below.
+        if (travelled && (isDraggingInput || isDraggingBarycenter || isDraggingReverb))
+            noteMarkerEdited();
+
         // Handle rubber-band end
         if (isRubberBanding)
         {
@@ -1407,36 +1384,14 @@ public:
             onMapSelectionChanged();
 
         // Check for long-press navigation gesture
-        if (longPressState.active)
-        {
-            auto holdDuration = juce::Time::getCurrentTime() - longPressState.startTime;
-            float movement = e.position.getDistanceFrom(longPressState.startPos);
-
-            // Long hold (700-1200ms) with minimal movement (< 5px): navigate to tab
-            if (holdDuration.inMilliseconds() >= 700 && holdDuration.inMilliseconds() <= 1200 && movement < 5.0f)
-            {
-                if (navigateToItemCallback)
-                {
-                    int tabType = -1;
-                    switch (longPressState.targetType)
-                    {
-                        case LongPressState::TargetType::Input:   tabType = 0; break;
-                        case LongPressState::TargetType::Cluster: tabType = 1; break;
-                        case LongPressState::TargetType::Output:  tabType = 2; break;
-                        case LongPressState::TargetType::Reverb:  tabType = 3; break;
-                        default: break;
-                    }
-                    if (tabType >= 0)
-                        navigateToItemCallback(tabType, longPressState.targetIndex);
-                }
-            }
-
-            longPressState.active = false;
-        }
+        finishLongPress(e, travelled);
     }
 
     void mouseDoubleClick(const juce::MouseEvent& e) override
     {
+        if (e.eventComponent != this)   // an overlay button's double-click, see mouseDown
+            return;
+
         // Double-tap/click on input marker: clear position offsets
         int hitInput = getInputAtPosition(e.position);
         if (hitInput >= 0)
@@ -1469,6 +1424,11 @@ public:
 
     void mouseWheelMove(const juce::MouseEvent& e, const juce::MouseWheelDetails& wheel) override
     {
+        // Over an overlay button the wheel arrives twice: forwarded up by the button
+        // (eventComponent == this) and again as our listener copy. Keep the first.
+        if (e.eventComponent != this)
+            return;
+
         // Stereo image axis on the wheel. With stereo inputs selected the wheel
         // turns the image instead of zooming: it is the only way to aim a pair
         // from the map on a machine with no touch screen and no Space Mouse,
@@ -1650,6 +1610,7 @@ public:
         juce::Point<float> currentPos;  // Current screen position
         juce::Point<float> startStagePos;  // Stage position at touch start (for inputs)
         juce::Point<float> startOffset;  // Initial offset (for tracked inputs)
+        bool hostedSecondaryTouch = false;  // a second finger edited through this touch's marker
     };
 
     // Secondary touch tracking (for two-finger gestures on inputs/clusters)
@@ -2644,10 +2605,109 @@ private:
         enum class TargetType { None, Input, Cluster, Output, Reverb };
         TargetType targetType = TargetType::None;
         int targetIndex = -1;
-        juce::Point<float> startPos;
-        juce::Time startTime;
+        int sourceKey = -1;      // pointerKey() of the press that armed it: only its release navigates
+        int clickCounter = 0;    // Desktop::getMouseButtonClickCounter() when armed
+        double startMs = 0.0;    // Time::getMillisecondCounterHiRes() when armed
     };
     LongPressState longPressState;
+
+    // A long press navigates when released 700-1200 ms after it began, and only if
+    // no marker was moved or edited in the 3 s before it began: grabbing a marker
+    // again to fine-tune it is not a request to leave the map.
+    static constexpr double longPressMinMs = 700.0;
+    static constexpr double longPressMaxMs = 1200.0;
+    static constexpr double longPressCooldownMs = 3000.0;
+    double lastMarkerEditMs = -longPressCooldownMs;  // HiRes ms of the last marker drag or second-finger edit
+
+    // Per-pointer press record, keyed by pointerKey(). `travelled` latches the first
+    // time the pointer is further than pressTolerance() from where it went down, and
+    // stays set for the rest of the press: a drag away and back is still a drag.
+    struct PointerPress
+    {
+        juce::Point<float> startPos;
+        bool travelled = false;
+    };
+    std::map<int, PointerPress> pointerPresses;
+
+    // The mouse, a pen and the first finger all have source index 0.
+    static int pointerKey(const juce::MouseInputSource& source) noexcept
+    {
+        return static_cast<int>(source.getType()) * 1000 + source.getIndex();
+    }
+
+    // Mouse: the old 5 px release test, now held for the whole press. Touch: a
+    // resting fingertip rolls a few pixels on its own, so it gets a little more.
+    static float pressTolerance(const juce::MouseEvent& e)
+    {
+        return e.source.isTouch() ? juce::jmax(10.0f, 10.0f * WfsLookAndFeel::uiScale) : 5.0f;
+    }
+
+    void noteMarkerEdited() { lastMarkerEditMs = juce::Time::getMillisecondCounterHiRes(); }
+
+    void armLongPress(LongPressState::TargetType type, int index, const juce::MouseEvent& e)
+    {
+        const double now = juce::Time::getMillisecondCounterHiRes();
+        auto& desktop = juce::Desktop::getInstance();
+
+        // Another pointer already down, or a marker edited moments ago: this press
+        // is part of an edit, not a request to navigate. Drop a pending one too.
+        if (desktop.getNumDraggingMouseSources() > 1 || now - lastMarkerEditMs < longPressCooldownMs)
+        {
+            longPressState.active = false;
+            return;
+        }
+
+        longPressState.active = true;
+        longPressState.targetType = type;
+        longPressState.targetIndex = index;
+        longPressState.sourceKey = pointerKey(e.source);
+        longPressState.clickCounter = desktop.getMouseButtonClickCounter();
+        longPressState.startMs = now;
+    }
+
+    // Ends this pointer's press record. True if it ever left the tolerance, the
+    // release point included (no drag event carries the last move). A press with
+    // no record counts as travelled.
+    bool finishPointerPress(const juce::MouseEvent& e)
+    {
+        auto it = pointerPresses.find(pointerKey(e.source));
+        if (it == pointerPresses.end())
+            return true;
+
+        const bool travelled = it->second.travelled
+                            || e.position.getDistanceFrom(it->second.startPos) > pressTolerance(e);
+        pointerPresses.erase(it);
+        return travelled;
+    }
+
+    // Navigates to the item's tab on the arming pointer's own release, if it never
+    // strayed, no other pointer went down meanwhile (a mouse, a finger, or a tap on
+    // one of the map's buttons) and it was held 700-1200 ms.
+    void finishLongPress(const juce::MouseEvent& e, bool travelled)
+    {
+        if (! longPressState.active || pointerKey(e.source) != longPressState.sourceKey)
+            return;
+
+        longPressState.active = false;
+
+        const double heldMs = juce::Time::getMillisecondCounterHiRes() - longPressState.startMs;
+        if (travelled || heldMs < longPressMinMs || heldMs > longPressMaxMs
+            || juce::Desktop::getInstance().getMouseButtonClickCounter() != longPressState.clickCounter
+            || ! navigateToItemCallback)
+            return;
+
+        int tabType = -1;
+        switch (longPressState.targetType)
+        {
+            case LongPressState::TargetType::Input:   tabType = 0; break;
+            case LongPressState::TargetType::Cluster: tabType = 1; break;
+            case LongPressState::TargetType::Output:  tabType = 2; break;
+            case LongPressState::TargetType::Reverb:  tabType = 3; break;
+            default: break;
+        }
+        if (tabType >= 0)
+            navigateToItemCallback(tabType, longPressState.targetIndex);
+    }
 
     // View state
     float viewScale = 30.0f;  // pixels per meter

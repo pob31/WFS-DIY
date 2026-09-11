@@ -230,7 +230,7 @@ All input clusters share the same set of LFO presets.
 - A left click with the shift key pressed will add or remove inputs to the selection. A double tap and drag will act the same way.
 - A left click drag will draw a selection rectangle to select multiple inputs and clusters at the same time.
 - A left double-click or tap will reset the position offset of the input.
-- A long left click or press with no movement will switch to the input tab with the focus on the selected input on release.
+- A long left click or press (0.7 to 1.2 s) with no movement will switch to the input tab with the focus on the selected input on release. Moving away cancels it even if you come back, and it is ignored for 3 s after moving or editing a marker.
 - A left click away from any input will clear the selection.
 - A right click and drag will pan the view of the map. A two finger drag with no selected input or cluster will do the same if your operating system supports multitouch.
 - The mouse wheel will zoom in and out. A two finger pinch with no selected input or cluster will also zoom on and out.

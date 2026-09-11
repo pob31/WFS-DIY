@@ -2,6 +2,15 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
+## Unreleased
+
+### Fixed
+- **A long press on a map marker no longer jumps to its tab after the marker was dragged away and back.** The long press — releasing 0.7 to 1.2 s after touching an input, cluster, output or reverb marker — only compared where the pointer went down with where it came up, so a quick drag that ended near its start opened the item's tab as if the marker had been held still. A press now counts as a drag as soon as the pointer has strayed, even if it comes back.
+  - **Tolerance.** 5 px with the mouse, as before; about 10 px with a finger, so a resting fingertip's roll does not cancel a real long press.
+  - **3 s cooldown.** No long press navigates within 3 s of moving a marker or editing one with a second finger, so grabbing a marker again to fine-tune it keeps you on the map.
+  - **One pointer.** Another pointer going down during the hold — a second finger, the mouse, or a tap on one of the map's buttons — cancels it.
+- **The map's buttons no longer act on the map itself.** The map listens to its overlay buttons to show their status-bar help, and so also received their presses, in the button's own coordinates: a click on **Fit Stage to Screen**, **Show Levels** and the others cleared the selection, a double-click could reset the offsets of an input near the map's top-left corner, a second finger on a button while holding a marker started a rotation/height edit, and the wheel zoomed twice over a button. The buttons also no longer take keyboard focus, so the arrow keys keep moving the selection after a click on one.
+
 ## v1.0.0beta47 — 2026-09-11
 
 ### Fixed

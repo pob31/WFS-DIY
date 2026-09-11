@@ -2237,7 +2237,14 @@ Long-press on any marker (without moving) navigates to the corresponding tab and
 - **Output marker** - Opens Outputs tab, selects that output channel
 - **Reverb marker** - Opens Reverb tab, selects that reverb channel
 
-Requirements: Hold 700-1200ms with less than 5px movement. Holding longer than 1.2s cancels the action.
+Requirements: release 700-1200 ms after the press (`longPressMinMs` / `longPressMaxMs`); holding longer cancels the action.
+- **Movement** - the press must never leave `pressTolerance()` (5 px mouse, `max(10, 10 * uiScale)` px touch) from where it went down. `pointerPresses` latches `travelled` in `mouseDrag` (before the touch early return, so output and plain-reverb presses are covered) and checks the release point too, so a drag away and back still counts as a drag.
+- **One pointer** - only the press that armed it (`pointerKey()` = source type + index; the mouse, a pen and the first finger all have index 0) can resolve it. It is refused when another pointer is already down (`Desktop::getNumDraggingMouseSources() > 1`) and cancelled when any pointer goes down during the hold (`Desktop::getMouseButtonClickCounter()` changed), a tap on one of the map's buttons included.
+- **Cooldown** - no long press can arm within 3 s (`longPressCooldownMs`) of the last marker edit (`lastMarkerEditMs`): a drag that left the tolerance, a second-finger edit, or the release of the finger that held the marker for one. Grabbing a marker again to fine-tune it never leaves the map.
+- `armLongPress()` / `finishLongPress()` are the only places that arm and resolve it (touch and mouse share them).
+
+### Overlay Button Events
+MapTab registers itself as a mouse listener on its overlay buttons (for the status-bar help in `mouseEnter`), so JUCE also hands it the buttons' presses, in button coordinates. `mouseDown`, `mouseDrag`, `mouseUp`, `mouseDoubleClick` and `mouseWheelMove` therefore start with `if (e.eventComponent != this) return;`; `mouseEnter`/`mouseExit` must keep accepting them. The overlay buttons also have `setWantsKeyboardFocus(false)`, so the arrow keys, PageUp/Down, L and Escape keep reaching the map after a click on one.
 
 ### Coordinate System
 - Stage coordinates in meters, origin at (originWidth, originDepth)
