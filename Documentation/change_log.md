@@ -2,6 +2,11 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
+## v1.0.0beta50 — 2026-09-11
+
+### Changed
+- **The Lock on Map padlock turns red when the input is locked.** The padlock in front of **Lock on Map** at the top of the Inputs tab was an emoji, which the system always draws in its own yellow, so a locked input looked almost the same as an unlocked one. It is now drawn by the app: open and yellow when unlocked, closed and red when locked, so a locked input stands out at a glance. Screen readers announce the button as a locked / unlocked toggle.
+
 ## v1.0.0beta49 — 2026-09-11
 
 ### Added
