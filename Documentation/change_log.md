@@ -4,6 +4,13 @@ All notable changes to WFS DIY are documented in this file, organized by release
 
 ## Unreleased
 
+### Added
+- **A "2nd Finger" button on the Map suspends every second-finger edit.** With a marker held, a second finger nearby turns the input's directivity and pinches its height, turns and widens a stereo image with Shift, or rotates and scales a cluster — handy, but easy to trigger by accident on a busy touch screen. The new button under **Show Levels** switches all of those off (it lights up orange and reads **2nd Finger: OFF**) and back on; two-finger pan and zoom on an empty map, reverb pair mirroring and the mouse wheel keep working.
+  - **Session-only.** It is not saved in the project or the preferences, so every launch starts with the second finger live.
+  - **Mid-gesture.** Switching it off while a second finger is already turning something stops the edit at once.
+  - **Status bar.** Hovering the button explains what it suspends, and the Map help card has a line about it.
+  - **WFS Control 2** gets the same toggle on its map: a button next to the fit buttons, and the header line turns amber while the second finger is off.
+
 ### Fixed
 - **A long press on a map marker no longer jumps to its tab after the marker was dragged away and back.** The long press — releasing 0.7 to 1.2 s after touching an input, cluster, output or reverb marker — only compared where the pointer went down with where it came up, so a quick drag that ended near its start opened the item's tab as if the marker had been held still. A press now counts as a drag as soon as the pointer has strayed, even if it comes back.
   - **Tolerance.** 5 px with the mouse, as before; about 10 px with a finger, so a resting fingertip's roll does not cancel a real long press.

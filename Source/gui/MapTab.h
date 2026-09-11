@@ -78,6 +78,18 @@ public:
             repaint();
         };
 
+        // Second-finger edits toggle. Session-only: nothing saves it, so every
+        // launch starts with the second finger live. The toggled ("on") state is
+        // the SUSPENDED one, so the reduced mode is the one that lights up.
+        addAndMakeVisible(secondaryTouchButton);
+        secondaryTouchButton.setClickingTogglesState(true);
+        secondaryTouchButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFFF5722));  // the "suppressed" orange of the mute buttons
+        secondaryTouchButton.setButtonText(LOC("map.buttons.secondaryTouchOn"));
+        secondaryTouchButton.onClick = [this]()
+        {
+            setSecondaryTouchSuspended(secondaryTouchButton.getToggleState());
+        };
+
         // Detach button — pop out map into its own window
         addAndMakeVisible(detachButton);
         detachButton.setButtonText(juce::String::charToString(0x21F1));  // ⇱ (NW arrow to corner)
@@ -89,7 +101,7 @@ public:
 
         // The overlay buttons never take keyboard focus, so the arrow keys,
         // PageUp/Down, L and Escape keep reaching the map after a click on one.
-        for (auto* button : { &homeButton, &fitInputsButton, &levelOverlayButton, &detachButton })
+        for (auto* button : { &homeButton, &fitInputsButton, &levelOverlayButton, &secondaryTouchButton, &detachButton })
             button->setWantsKeyboardFocus(false);
 
         // Map help card
@@ -422,7 +434,11 @@ public:
         // Position Show Levels button in top-left corner
         const int btnH = juce::jmax(24, static_cast<int>(30.0f * us));
         const int margin = juce::jmax(6, static_cast<int>(10.0f * us));
-        levelOverlayButton.setBounds(margin, margin, juce::jmax(90, static_cast<int>(130.0f * us)), btnH);
+        const int leftBtnW = juce::jmax(90, static_cast<int>(130.0f * us));
+        levelOverlayButton.setBounds(margin, margin, leftBtnW, btnH);
+
+        // Second-finger toggle right under it, on the help button's row
+        secondaryTouchButton.setBounds(margin, margin + btnH + margin / 2, leftBtnW, btnH);
 
         // Position fit buttons in top-right corner
         const int fitW = juce::jmax(120, static_cast<int>(170.0f * us));
@@ -725,6 +741,11 @@ public:
                     repaint();
                     return;
                 }
+
+                // Second-finger edits suspended ("2nd Finger: OFF"): leave the finger
+                // untracked, exactly like one that finds no target below.
+                if (secondaryTouchSuspended)
+                    return;
 
                 // Items being dragged - this could be a secondary touch
                 auto [closestTarget, isClusterTarget] = findClosestSecondaryTouchTarget(e.position);
@@ -2789,10 +2810,14 @@ private:
     juce::TextButton homeButton;
     juce::TextButton fitInputsButton;
     juce::TextButton levelOverlayButton;
+    juce::TextButton secondaryTouchButton;
     juce::TextButton detachButton;
 
     // Level overlay state
     bool levelOverlayEnabled = false;
+
+    // "2nd Finger: OFF" - every second-finger edit suspended. Session-only, never saved.
+    bool secondaryTouchSuspended = false;
 
     // Map selection change callback (for Stream Deck rebuild)
     std::function<void()> onMapSelectionChanged;
@@ -2813,7 +2838,22 @@ private:
         helpTextMap[&homeButton] = LOC("map.tooltips.fitStage");
         helpTextMap[&fitInputsButton] = LOC("map.tooltips.fitInputs");
         helpTextMap[&levelOverlayButton] = LOC("map.tooltips.levels");
+        helpTextMap[&secondaryTouchButton] = LOC("map.tooltips.secondaryTouch");
         helpTextMap[&detachButton] = LOC("map.tooltips.detach");
+    }
+
+    // "2nd Finger" toggle. Suspending mid-gesture drops the live secondary touches:
+    // the finger keeps its SecondaryTouch TouchInfo but applySecondaryTouch finds
+    // nothing, so it is inert until lifted, and its feedback lines vanish.
+    void setSecondaryTouchSuspended(bool suspended)
+    {
+        secondaryTouchSuspended = suspended;
+        secondaryTouchButton.setToggleState(suspended, juce::dontSendNotification);
+        secondaryTouchButton.setButtonText(suspended ? LOC("map.buttons.secondaryTouchOff")
+                                                     : LOC("map.buttons.secondaryTouchOn"));
+        if (suspended)
+            activeSecondaryTouches.clear();
+        repaint();
     }
 
     void setupMouseListeners()

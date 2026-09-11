@@ -2217,6 +2217,8 @@ When dragging an input with one finger, a second finger on empty space creates a
 
 Z constraint checking: When `inputConstraintZ` is ON, Z is limited to [0, stageHeight].
 
+**Suspend toggle ("2nd Finger: ON/OFF")** - `secondaryTouchButton`, under Show Levels, sets `secondaryTouchSuspended`. The gate is in the touch `mouseDown` empty-area branch, after the reverb-mirror check and before `findClosestSecondaryTouchTarget` - the only place secondary touches are created - so it suspends every row of the table above plus the Shift stereo-image layer, while two-finger pan/zoom and reverb pair mirroring keep working. Suspending clears `activeSecondaryTouches`: a finger already down stays a `SecondaryTouch` TouchInfo but `applySecondaryTouch` finds nothing, so it is inert until lifted. Session-only (a plain member, never saved); the toggled state is the suspended one, drawn in the mute buttons' orange. WFS Control 2 has the same toggle on its map (a FAB that gates vector-control creation).
+
 ### Input Drag Behavior
 Based on input state:
 - **Normal input** - Updates Position X/Y

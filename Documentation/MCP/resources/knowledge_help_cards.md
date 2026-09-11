@@ -238,6 +238,7 @@ All input clusters share the same set of LFO presets.
 - Selected inputs and clusters can also be moved with the arrow keys for X and Y and with the PageUp and PageDown keys for height. Hardware controllers can be used too.
 - When an input is touched, a second finger nearby can rotate the input directivity and adjust the height by pinching if your operating system allows multitouch interaction.
 - When a cluster is touched, a second finger nearby can rotate the cluster and scale it by pinching.
+- The button under the levels toggle suspends every second-finger edit on inputs and clusters. Pan, zoom and reverb pair mirroring keep working. It is not saved.
 - Inputs, output arrays and the reverb nodes can be hidden on the map.
 - Inputs can also be locked to prevent selecting and moving them on the map. They will still be moved by clusters, network commands, tracking and hardware controllers.
 - All reverb nodes can be moved on the map if this is enabled on the reverb tab. Holding the Ctrl/Cmd key will move each pair of reverb nodes in symmetry.
