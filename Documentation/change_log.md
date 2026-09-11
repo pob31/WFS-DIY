@@ -2,7 +2,7 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
-## Unreleased
+## v1.0.0beta49 — 2026-09-11
 
 ### Added
 - **A "2nd Finger" button on the Map suspends every second-finger edit.** With a marker held, a second finger nearby turns the input's directivity and pinches its height, turns and widens a stereo image with Shift, or rotates and scales a cluster — handy, but easy to trigger by accident on a busy touch screen. The new button under **Show Levels** switches all of those off (it lights up orange and reads **2nd Finger: OFF**) and back on; two-finger pan and zoom on an empty map, reverb pair mirroring and the mouse wheel keep working.
@@ -14,9 +14,17 @@ All notable changes to WFS DIY are documented in this file, organized by release
 ### Fixed
 - **A long press on a map marker no longer jumps to its tab after the marker was dragged away and back.** The long press — releasing 0.7 to 1.2 s after touching an input, cluster, output or reverb marker — only compared where the pointer went down with where it came up, so a quick drag that ended near its start opened the item's tab as if the marker had been held still. A press now counts as a drag as soon as the pointer has strayed, even if it comes back.
   - **Tolerance.** 5 px with the mouse, as before; about 10 px with a finger, so a resting fingertip's roll does not cancel a real long press.
-  - **3 s cooldown.** No long press navigates within 3 s of moving a marker or editing one with a second finger, so grabbing a marker again to fine-tune it keeps you on the map.
+  - **3 s cooldown.** No long press navigates within 3 s of editing a marker on the map — dragging it, a second-finger edit, a double-click offset reset, or a wheel or arrow-key edit of the selection — so grabbing a marker again to fine-tune it keeps you on the map. An edit made while the press is held (the wheel or the arrow keys with the button down) cancels it.
   - **One pointer.** Another pointer going down during the hold — a second finger, the mouse, or a tap on one of the map's buttons — cancels it.
 - **The map's buttons no longer act on the map itself.** The map listens to its overlay buttons to show their status-bar help, and so also received their presses, in the button's own coordinates: a click on **Fit Stage to Screen**, **Show Levels** and the others cleared the selection, a double-click could reset the offsets of an input near the map's top-left corner, a second finger on a button while holding a marker started a rotation/height edit, and the wheel zoomed twice over a button. The buttons also no longer take keyboard focus, so the arrow keys keep moving the selection after a click on one.
+
+### Chore / Internal
+- **JUCE 9.0.2.** A patch bump of the vendored JUCE: the projects are resaved with its Projucer, and spatcore is re-pinned so its minimal app builds against the same JUCE. Nothing changes on screen — JUCE now builds MP3 decoding into its basic audio formats, but the sampler and IR file choosers keep their own extension lists, so no new file type is offered. Verified with app Debug and Release, the plugin suite, spatcore's standalone tests and bit-exact offline renders on both the CPU and GPU paths.
+
+## v1.0.0beta48 — 2026-09-11
+
+### Fixed
+- **Reverb nodes placed automatically now face away from the origin, like the ones you drag.** The default layout put every node on an arc around the stage but left its feed orientation at 0°, so on a fresh session the upstage half of the nodes had their feed side turned away from the stage. Dragging a node on the Map already turned it to face away from the origin; the automatic layout now applies the same bearing, both when a reverb channel is created and when the nodes are laid out again.
 
 ## v1.0.0beta47 — 2026-09-11
 
