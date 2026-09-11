@@ -40,7 +40,7 @@ Plugin is its own CMake subproject — independent of the main app's Projucer fl
 Requirements:
 - CMake 3.22+
 - A C++17 toolchain (MSVC 2022, Xcode 14+, or Clang/GCC on Linux)
-- JUCE 9.0.0 and `juce_simpleweb` pulled in via the repo's `ThirdParty/` (git submodules, see main repo README)
+- JUCE 9.0.2 and `juce_simpleweb` pulled in via the repo's `ThirdParty/` (git submodules, see main repo README)
 - Windows: [Inno Setup 6](https://jrsoftware.org/isdl.php) to build the installer
 - macOS: standard command-line tools for `pkgbuild`/`productbuild`
 
