@@ -309,6 +309,18 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getRemoteAddre
         // Jitter
         { "jitter",               WFSParameterIDs::inputJitter },
 
+        // Array Attenuation (per-input send level to each output array)
+        { "arrayAtten1",      WFSParameterIDs::inputArrayAtten1 },
+        { "arrayAtten2",      WFSParameterIDs::inputArrayAtten2 },
+        { "arrayAtten3",      WFSParameterIDs::inputArrayAtten3 },
+        { "arrayAtten4",      WFSParameterIDs::inputArrayAtten4 },
+        { "arrayAtten5",      WFSParameterIDs::inputArrayAtten5 },
+        { "arrayAtten6",      WFSParameterIDs::inputArrayAtten6 },
+        { "arrayAtten7",      WFSParameterIDs::inputArrayAtten7 },
+        { "arrayAtten8",      WFSParameterIDs::inputArrayAtten8 },
+        { "arrayAtten9",      WFSParameterIDs::inputArrayAtten9 },
+        { "arrayAtten10",     WFSParameterIDs::inputArrayAtten10 },
+
         // LFO
         { "LFOactive",        WFSParameterIDs::inputLFOactive },
         { "LFOperiod",        WFSParameterIDs::inputLFOperiod },

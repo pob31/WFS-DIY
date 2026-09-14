@@ -733,7 +733,7 @@ private:
 
     void sendRemoteChannelDump(int channelId);
 
-    /** Build the ~95-message detailed parameter dump for one channel (1-based).
+    /** Build the ~80-message detailed parameter dump for one channel (1-based).
      *  Shared by sendRemoteChannelDump and collectStateDumpMessages so the full
      *  dump and the channel-select dump can't drift apart.
      *  Must be called on the message thread (reads ValueTree state). */

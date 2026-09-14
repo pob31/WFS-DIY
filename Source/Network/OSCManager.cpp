@@ -3635,6 +3635,14 @@ std::vector<juce::OSCMessage> OSCManager::collectRemoteChannelDumpMessages(int c
     // Jitter
     paramValues[WFSParameterIDs::inputJitter] = getParam(WFSParameterIDs::inputJitter);
 
+    // Array attenuation (one level per output array)
+    for (const auto& arrayAtten : { WFSParameterIDs::inputArrayAtten1, WFSParameterIDs::inputArrayAtten2,
+                                    WFSParameterIDs::inputArrayAtten3, WFSParameterIDs::inputArrayAtten4,
+                                    WFSParameterIDs::inputArrayAtten5, WFSParameterIDs::inputArrayAtten6,
+                                    WFSParameterIDs::inputArrayAtten7, WFSParameterIDs::inputArrayAtten8,
+                                    WFSParameterIDs::inputArrayAtten9, WFSParameterIDs::inputArrayAtten10 })
+        paramValues[arrayAtten] = getParam(arrayAtten);
+
     // LFO parameters
     paramValues[WFSParameterIDs::inputLFOactive] = getParam(WFSParameterIDs::inputLFOactive);
     paramValues[WFSParameterIDs::inputLFOperiod] = getParam(WFSParameterIDs::inputLFOperiod);
@@ -4899,7 +4907,7 @@ std::vector<juce::OSCMessage> OSCManager::collectStateDumpMessages(int /*targetI
 
     // --- Selected-channel detailed dump ---
     // The per-input block above carries names/positions plus the remote address-map
-    // params; finish with the full ~95-message detailed dump of the currently
+    // params; finish with the full ~80-message detailed dump of the currently
     // selected channel. Both sides default their selection to channel 1 and the
     // tablet only re-requests a channel when the operator taps it — which never
     // happens for the already-selected default — so without this, channel 1 is the

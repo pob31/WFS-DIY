@@ -51,6 +51,10 @@ namespace WFSNetwork
 //         a load, a snapshot recall or an undo left as text goes out typed by
 //         the parameter (",ii" / ",if"). Only unbounded text (inputName, the
 //         mute list) is still ",is".
+//       - /remoteInput/arrayAtten1..10 ",if" (channel, dB -60..0): an input's
+//         level to each output array, both ways - set and inc/dec from the
+//         tablet, and in the full dump, the per-channel resync, the
+//         selected-channel dump and the selected channel's echo.
 constexpr int kRemoteProtocolVersion = 4;
 
 } // namespace WFSNetwork
