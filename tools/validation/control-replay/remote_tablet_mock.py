@@ -33,9 +33,10 @@ asserts the remote-protocol contract:
                    rows) with no dump and no selection change; and a full
                    resync (checked in 5) is followed by the selection and a
                    row pair within ~300 ms of its /remote/stateComplete.
-                   On a quiet scene the state also repeats every 2 s; the
-                   answer checks use windows too short for that repeat to
-                   pass them. A desktop edit of a channel the tablet has
+                   On a quiet scene the state also repeats every 2 s
+                   (checked in 5); each answer check starts just after a
+                   repeat or a drain, so its window closes before the next
+                   repeat. A desktop edit of a channel the tablet has
                    NOT selected still reaches it for the state its map
                    draws for every channel — stereo width, axis offset,
                    axis lock and colour — typed by the parameter (",if" /
@@ -92,6 +93,7 @@ MAX_CHANNEL_NUMBER = 64        # WFSParameterDefaults::maxInputChannels
 MAX_OUTPUTS = 128              # WFSParameterDefaults::maxOutputChannels
 MAX_REVERBS = 32               # WFSParameterDefaults::maxReverbChannels
 UDP_PAYLOAD_MAX = 1472         # 1500 B Ethernet MTU - 20 B IPv4 - 8 B UDP
+VIS_KEEPALIVE_S = 2.0          # MainComponent::visKeepaliveIntervalMs
 
 # Fixture channels swapped on disk to make the display order non-ascending,
 # the one typed stereo, and the channel deleted at the end. The swap may not
@@ -249,6 +251,28 @@ class MockTablet:
                 return result
             time.sleep(0.1)
         return None
+
+    def wait_for_vis_repeat(self, timeout: float) -> float | None:
+        """Wait for the next whole vis state — /remote/vis/config followed by
+        a selection and a delays/levels pair — and return the config's
+        receive time; None on timeout. On a quiet scene with no request
+        pending that is the desktop's repeat, which restarts its keepalive,
+        so the next one is VIS_KEEPALIVE_S away: a request sent at once gets
+        an answer window the repeat cannot reach."""
+        mark = self.mark()
+        wanted = {"/remote/vis/selection", "/remote/vis/delays",
+                  "/remote/vis/levels"}
+
+        def repeat(_msgs):
+            timed = self.timed_since(mark)
+            start = next((k for k, (_t, adr, _tt, _a) in enumerate(timed)
+                          if adr == "/remote/vis/config"), None)
+            if start is None or not wanted <= {adr for _t, adr, _tt, _a
+                                               in timed[start + 1:]}:
+                return None
+            return {"t": timed[start][0]}
+        got = self.wait_for(repeat, timeout=timeout, mark=mark)
+        return got["t"] if got else None
 
     def close(self) -> None:
         self._stop.set()
@@ -612,6 +636,13 @@ def main() -> int:
 
         eps = 1e-3
         time.sleep(1.5)  # let any post-load re-dump drain first
+        # The resync goes out right after a quiet-scene repeat, so the next
+        # one is a full keepalive interval away and cannot be what passes the
+        # vis check below. Seeing the repeat at all checks the keepalive.
+        repeat_t = tablet.wait_for_vis_repeat(timeout=VIS_KEEPALIVE_S + 0.5)
+        check(repeat_t is not None,
+              f"a quiet scene repeats the vis config, selection and a row "
+              f"pair (every {VIS_KEEPALIVE_S:.0f} s)")
         mark = tablet.mark()
         tablet.tx.send("/remote/requestResync", [])
         dump5 = tablet.wait_for(
@@ -641,10 +672,11 @@ def main() -> int:
             # The dump carries only the vis config, so a tablet that lost the
             # connect-time vis burst kept blank bars through every resync; a
             # full resync must now be followed by the selection and a row
-            # pair. Timed from this dump's own /remote/stateComplete, so a
-            # >= 2 s quiet-scene repeat cannot be what satisfies it.
+            # pair. Timed from this dump's own /remote/stateComplete, and the
+            # window also closes before the repeat after repeat_t is due, so
+            # that repeat cannot be what satisfies it.
             def vis_after_dump(_msgs, since=mark, seq=dump5["seq"],
-                               window=0.3):
+                               window=0.3, repeat_t=repeat_t):
                 timed = tablet.timed_since(since)
                 end = next((k for k, (_t, adr, _tt, a) in enumerate(timed)
                             if adr == "/remote/stateComplete"
@@ -652,20 +684,30 @@ def main() -> int:
                 if end is None:
                     return None
                 t_end = timed[end][0]
+                limit = t_end + window
+                if repeat_t is not None:
+                    limit = min(limit, repeat_t + VIS_KEEPALIVE_S - 0.05)
                 first: dict[str, float] = {}
                 for t, adr, _tt, _a in timed[end + 1:]:
-                    if t - t_end <= window and adr in (
+                    if t <= limit and adr in (
                             "/remote/vis/selection", "/remote/vis/delays",
                             "/remote/vis/levels"):
                         first.setdefault(adr, t - t_end)
                 # A dict, not the bare delay: 0.0 would read as "not yet".
-                return {"s": max(first.values())} if len(first) == 3 else None
+                return ({"s": max(first.values()), "end": t_end}
+                        if len(first) == 3 else None)
             tail = tablet.wait_for(vis_after_dump, timeout=1.0, mark=mark)
+            timing = "not seen"
+            if tail:
+                timing = f"{tail['s'] * 1000:.0f} ms"
+                if repeat_t is not None:
+                    timing += (f"; stateComplete "
+                               f"{(tail['end'] - repeat_t) * 1000:.0f} ms "
+                               f"after the repeat")
             check(tail is not None,
                   "full resync is followed by vis selection + a row pair "
-                  "within 300 ms of its stateComplete ("
-                  + (f"{tail['s'] * 1000:.0f} ms" if tail else "not seen")
-                  + ")")
+                  "within 300 ms of its stateComplete, before the next "
+                  f"quiet-scene repeat ({timing})")
         else:
             check(False, "shared-cluster load check: no quiescent dump")
 
@@ -866,8 +908,11 @@ def main() -> int:
 
         # The optional int restates the tablet's pin — the repair for a pin a
         # re-handshake cleared without the tablet noticing — so [i 5] answers
-        # with channel 5's rows too. The first request is >= 0.5 s old, well
-        # clear of the 250 ms per-tablet rate limit.
+        # with channel 5's rows too. Every repeat carries a restated pin's
+        # rows as well, so the request goes out right after one, and the 1 s
+        # window closes long before the next. That also leaves the first
+        # request well clear of the 250 ms per-tablet rate limit.
+        tablet.wait_for_vis_repeat(timeout=VIS_KEEPALIVE_S + 0.5)
         mark = tablet.mark()
         tablet.tx.send("/remote/vis/request", [("i", 5)])
         check(tablet.wait_for(pinned_rows, timeout=1.0, mark=mark) is not None,
