@@ -27,6 +27,29 @@ namespace
         }
         return {};
     }
+
+    /** The <Input> child a property belongs in when no child carries it yet. A
+        channel the merge could not match by number is appended whole from the
+        file, with no backfill, so one from an inputs.xml older than a property has
+        none of it, and a write that only searches the children finds no section
+        and is dropped. Only properties younger than existing files need an entry;
+        everything older is on every node. */
+    juce::Identifier sectionForMissingInputProperty (const juce::Identifier& paramId)
+    {
+        if (paramId == inputCoordinateMode)
+            return Position;
+
+        static const juce::Identifier mutesIds[] = {
+            inputMuteReverbSends,
+            inputArrayAtten1, inputArrayAtten2, inputArrayAtten3, inputArrayAtten4, inputArrayAtten5,
+            inputArrayAtten6, inputArrayAtten7, inputArrayAtten8, inputArrayAtten9, inputArrayAtten10
+        };
+        for (const auto& mutesId : mutesIds)
+            if (paramId == mutesId)
+                return Mutes;
+
+        return {};
+    }
 }
 
 using namespace WFSParameterDefaults;
@@ -499,17 +522,11 @@ void WFSValueTreeState::setInputParameter (int channelIndex, const juce::Identif
 
     // Property not found - add it to the appropriate section if we know where it belongs
     // This handles old config files that may be missing newer properties
-    if (paramId == inputCoordinateMode)
+    if (const auto sectionId = sectionForMissingInputProperty (paramId); sectionId.isValid())
     {
-        auto position = getInputPositionSection (channelIndex);
-        if (position.isValid())
-            writeProperty (position, paramId, value, getActiveUndoManager());
-    }
-    else if (paramId == inputMuteReverbSends)
-    {
-        auto mutes = getInputMutesSection (channelIndex);
-        if (mutes.isValid())
-            writeProperty (mutes, paramId, value, getActiveUndoManager());
+        auto section = input.getChildWithName (sectionId);
+        if (section.isValid())
+            writeProperty (section, paramId, value, getActiveUndoManager());
     }
     // Note: inputAttenuation always exists in the Channel section (created by
     // createInputChannelSection), so the search loop above always finds it - no
@@ -4664,6 +4681,12 @@ juce::ValueTree WFSValueTreeState::getTreeForParameter (const juce::Identifier& 
                 if (child.hasProperty (paramId))
                     return child;
             }
+
+            // A property younger than the file this channel came from: the section
+            // it belongs in, so the write creates it (setInputParameter does the same)
+            if (const auto sectionId = sectionForMissingInputProperty (paramId); sectionId.isValid())
+                return input.getChildWithName (sectionId);
+
             return {};
         }
 
