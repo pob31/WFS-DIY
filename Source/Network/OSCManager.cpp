@@ -1504,6 +1504,41 @@ void OSCManager::timerCallback()
     // Adjust mute column wrong until the next dump. Kept out of the Network Log.
     if (juce::Time::getMillisecondCounter() - lastArrayMuteSendMs >= arrayMuteRepeatIntervalMs)
         sendRemoteArrayMutes (true);
+
+    // Channel inventory repeat, for the same reason: the push after a structural
+    // edit is one datagram, and a tablet that lost it kept its old inventory —
+    // a channel added meanwhile never appeared on it until a reconnect.
+    if (juce::Time::getMillisecondCounter() - lastChannelListSendMs >= channelListRepeatIntervalMs)
+        repeatRemoteChannelList();
+}
+
+void OSCManager::repeatRemoteChannelList()
+{
+    lastChannelListSendMs = juce::Time::getMillisecondCounter();
+
+    // The de-spam cache is exactly the inventory the tablets should hold (every
+    // path that gives them one writes it). Empty until the first dump or push,
+    // when no tablet has been given anything to repeat. A full-replacement
+    // snapshot, so a repeat is a no-op on a tablet that already has it; kept out
+    // of the Network Log like the array mute repeat.
+    if (lastChannelListPayload.empty())
+        return;
+
+    std::vector<juce::OSCMessage> messages;
+    buildRemoteChannelListMessages(messages, lastChannelListPayload);
+
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        const auto& config = targetConfigs[static_cast<size_t>(i)];
+        if (config.protocol != Protocol::Remote || ! config.txEnabled
+            || remoteStates[static_cast<size_t>(i)].phase != RemoteConnectionState::Phase::Connected
+            || ! connections[static_cast<size_t>(i)])
+            continue;
+
+        for (const auto& msg : messages)
+            if (connections[static_cast<size_t>(i)]->send(msg))
+                ++messagesSent;
+    }
 }
 
 void OSCManager::arrayMuteChanged (int, bool)
@@ -4470,22 +4505,19 @@ void OSCManager::sendAllInputPositionsToRemote(int targetIndex)
         return;
 
     // Verify target is connected
-    const auto& config = targetConfigs[static_cast<size_t>(targetIndex)];
     if (!connections[static_cast<size_t>(targetIndex)])
         return;
 
-    // Helper lambda to send directly, bypassing rate limiter
-    // This is critical for bulk sends where multiple channels share the same OSC address.
-    // The rate limiter coalesces by address, so only the last channel would be sent otherwise.
-    auto sendDirect = [this, targetIndex, &config](const juce::OSCMessage& msg)
-    {
-        if (connections[static_cast<size_t>(targetIndex)]->send(msg))
-        {
-            ++messagesSent;
-            logger.logSentWithDetails(targetIndex, msg, config.protocol,
-                                      config.ipAddress, config.port, config.mode);
-        }
-    };
+    // Collected here on the message thread (tree reads), sent below as paced
+    // bundles from a background thread, like the dumps. This went out as one
+    // datagram per message, back to back — eight per channel, every channel, on
+    // every input-count change — and the /remote/channelList push that follows
+    // the change was the tail of that burst, the first thing a busy or
+    // power-saving tablet's Wi-Fi drops. Bundles bypass the rate limiter too,
+    // which is critical here: it coalesces by address, so it would keep only
+    // the last channel of each.
+    std::vector<juce::OSCMessage> messages;
+    auto sendDirect = [&messages](const juce::OSCMessage& msg) { messages.push_back(msg); };
 
     // Get number of input channels
     auto ioTree = state.getIOState();
@@ -4568,6 +4600,10 @@ void OSCManager::sendAllInputPositionsToRemote(int targetIndex)
         sendDirect(msgCluster);
     }
 
+    std::thread([this, targetIndex, msgs = std::move(messages)]()
+    {
+        sendMessagesAsBundles(targetIndex, msgs);
+    }).detach();
 }
 
 void OSCManager::sendAllInputParametersToRemote(int targetIndex)
@@ -5284,6 +5320,7 @@ void OSCManager::sendRemoteChannelList()
     const auto changedChannels = channelsNewOrRetyped (lastChannelListPayload, payload);
 
     lastChannelListPayload = payload;
+    lastChannelListSendMs = juce::Time::getMillisecondCounter();  // the repeat can wait
 
     std::vector<juce::OSCMessage> messages;
     buildRemoteChannelListMessages(messages, payload);

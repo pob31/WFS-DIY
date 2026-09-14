@@ -86,7 +86,9 @@ asserts the remote-protocol contract:
                    (width, axis offset, axis lock) — the per-channel dump the
                    desktop now sends for every channel that is new or retyped
                    in the inventory, not only the name/position burst — with
-                   no full dump. Runs last, after 9: it adds a channel
+                   no full dump; and the inventory repeats every 2 s on a
+                   quiet scene, so a lost push heals. Runs last, after 9: it
+                   adds a channel
 
 Stdlib-only, follows the control-replay harness conventions (common.py).
 Exit codes: 0 pass, 1 mismatch, 2 usage, 3 app failed to start.
@@ -1504,6 +1506,20 @@ def main() -> int:
                           for adr, _tt, _a in tablet.since(mark)),
                   "adding it sent no full dump, so only a per-channel push can "
                   "carry the stereo image")
+
+            # The push is one datagram, sent into the burst a structural edit
+            # makes; a tablet that lost it never saw the new pair until a
+            # reconnect. The inventory now repeats every 2 s on a quiet scene.
+            def repeat_lists_pair(msgs):
+                inventory, _raw = latest_channel_list(msgs)
+                if inventory is not None and dict(inventory).get(new_pair) == 1:
+                    return inventory
+                return None
+            mark = tablet.mark()
+            repeated = tablet.wait_for(repeat_lists_pair, timeout=3.0, mark=mark)
+            check(repeated is not None,
+                  f"the inventory repeats on a quiet scene, still listing "
+                  f"{new_pair} stereo ({repeated})")
 
         return EXIT_PASS if not failures else EXIT_MISMATCH
     finally:

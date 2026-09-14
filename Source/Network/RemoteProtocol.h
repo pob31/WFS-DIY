@@ -66,6 +66,10 @@ namespace WFSNetwork
 //         dump (the /remote/requestResync <number> answer), so a channel added
 //         mid-session arrives whole — its stereo image included — rather than as
 //         the name/position burst alone.
+//       - /remote/channelList repeats every 2 s (the inventory the tablets should
+//         hold; a full-replacement snapshot, so a no-op on a tablet that has
+//         it), and the name/position/offset/cluster burst of an input-count
+//         change goes as paced bundles instead of one datagram per message.
 constexpr int kRemoteProtocolVersion = 4;
 
 } // namespace WFSNetwork

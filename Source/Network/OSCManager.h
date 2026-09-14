@@ -1063,6 +1063,13 @@ private:
     static constexpr juce::uint32 arrayMuteRepeatIntervalMs = 2000;
     juce::uint32 lastArrayMuteSendMs = 0;
 
+    // /remote/channelList repeat (repeatRemoteChannelList): the inventory the
+    // tablets should hold, re-sent once this long passes without a push. Same
+    // clock rules as the array mute repeat. Message thread only.
+    static constexpr juce::uint32 channelListRepeatIntervalMs = 2000;
+    juce::uint32 lastChannelListSendMs = 0;
+    void repeatRemoteChannelList();
+
     // Build the /remote/vis/config + /remote/vis/outputArrays pair (reads the
     // ValueTree only — safe wherever state reads are). Shared by the direct
     // send and the state dump so the two can't drift.
