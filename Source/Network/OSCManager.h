@@ -933,6 +933,13 @@ private:
     // message thread (both writers run there).
     std::vector<int> lastChannelListPayload;
 
+    // Full state dumps collected per target (collectStateDumpMessages).
+    // sendRemoteChannelList pushes new or retyped channels one message-loop turn
+    // later and skips a target that got a full dump in between, which already
+    // carries them: a snapshot recall that renumbers runs the structural funnel
+    // right before its own re-dump. Message thread only.
+    std::array<int, MAX_TARGETS> fullDumpsCollected {};
+
     // Cached pad config for state dump replay
     struct CachedPadConfig
     {

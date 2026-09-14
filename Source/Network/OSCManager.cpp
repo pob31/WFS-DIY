@@ -4733,11 +4733,16 @@ std::vector<juce::OSCMessage> OSCManager::collectChannelDumpMessages(const std::
     return messages;
 }
 
-std::vector<juce::OSCMessage> OSCManager::collectStateDumpMessages(int /*targetIndex*/)
+std::vector<juce::OSCMessage> OSCManager::collectStateDumpMessages(int targetIndex)
 {
     std::vector<juce::OSCMessage> messages;
 
     const int dumpSeq = nextDumpSequence++;
+
+    // Carries every channel whole, so a per-channel push still pending for this
+    // target is redundant (see sendRemoteChannelList).
+    if (targetIndex >= 0 && targetIndex < MAX_TARGETS)
+        ++fullDumpsCollected[static_cast<size_t>(targetIndex)];
 
     // --- /inputs ---
     auto ioTree = state.getIOState();
@@ -5232,6 +5237,30 @@ void OSCManager::buildRemoteChannelListMessages(std::vector<juce::OSCMessage>& o
     out.push_back(std::move(list));
 }
 
+namespace
+{
+    // Channel numbers a remote holding the `before` inventory has not seen as
+    // they are in `after`: numbers new to the list, and channels whose type
+    // flipped between mono and stereo. Both are /remote/channelList payloads
+    // (count, then one number/isStereo pair per channel).
+    std::vector<int> channelsNewOrRetyped (const std::vector<int>& before,
+                                           const std::vector<int>& after)
+    {
+        std::map<int, int> knownTypes;
+        for (size_t k = 1; k + 1 < before.size(); k += 2)
+            knownTypes[before[k]] = before[k + 1];
+
+        std::vector<int> changed;
+        for (size_t k = 1; k + 1 < after.size(); k += 2)
+        {
+            const auto known = knownTypes.find (after[k]);
+            if (known == knownTypes.end() || known->second != after[k + 1])
+                changed.push_back (after[k]);
+        }
+        return changed;
+    }
+}
+
 void OSCManager::sendRemoteChannelList()
 {
     auto payload = buildRemoteChannelListPayload();
@@ -5243,6 +5272,16 @@ void OSCManager::sendRemoteChannelList()
     // collectStateDumpMessages.
     if (payload == lastChannelListPayload)
         return;
+
+    // A channel added (or retyped) while a tablet is connected reached it only as
+    // the name/position/cluster burst of the inputChannels hook
+    // (sendAllInputPositionsToRemote). Everything else the tablet shows for it —
+    // the stereo width/axis/lock its map draws the spread bar from, the colour,
+    // the per-array levels — travels in the channel's own dump, which the tablet
+    // never asks for, so a stereo pair added mid-session drew no bar until the
+    // next full resync. The cache is exactly what the tablets hold, so the
+    // difference against it names the channels to send.
+    const auto changedChannels = channelsNewOrRetyped (lastChannelListPayload, payload);
 
     lastChannelListPayload = payload;
 
@@ -5264,6 +5303,21 @@ void OSCManager::sendRemoteChannelList()
         {
             for (const auto& msg : messages)
                 sendMessageDirect(i, msg);
+
+            // After the list, so the tablet already knows the numbers: the same
+            // per-channel dump a /remote/requestResync <number> gets, paced on a
+            // background thread. One message-loop turn later, and not at all if
+            // a full dump was collected for this tablet in between: it carries
+            // these channels too, and both at once would double the burst.
+            if (! changedChannels.empty())
+            {
+                const int dumpsSoFar = fullDumpsCollected[static_cast<size_t>(i)];
+                juce::MessageManager::callAsync([this, i, changedChannels, dumpsSoFar]()
+                {
+                    if (fullDumpsCollected[static_cast<size_t>(i)] == dumpsSoFar)
+                        resendChannelsToRemote(i, changedChannels);
+                });
+            }
         }
     }
 }

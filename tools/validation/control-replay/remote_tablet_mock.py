@@ -81,6 +81,12 @@ asserts the remote-protocol contract:
                    the mute (its resync dump still carries it); a float 0.0
                    unmutes; the plain-OSC target never sees the state. Runs
                    after 10, before 7g
+ 12. added pair    a stereo channel added over MCP while the tablet is
+                   connected arrives listed stereo AND with its stereo image
+                   (width, axis offset, axis lock) — the per-channel dump the
+                   desktop now sends for every channel that is new or retyped
+                   in the inventory, not only the name/position burst — with
+                   no full dump. Runs last, after 9: it adds a channel
 
 Stdlib-only, follows the control-replay harness conventions (common.py).
 Exit codes: 0 pass, 1 mismatch, 2 usage, 3 app failed to start.
@@ -1452,6 +1458,52 @@ def main() -> int:
                       f"post-delete dump names exactly the listed channels "
                       f"(listed {sorted(numbers9)}, named "
                       f"{sorted(info9['names'])})")
+
+        # ---- 12. a stereo pair added while connected arrives whole -------
+        # The tablet draws a stereo pair's spread bar from its width, axis
+        # offset and axis lock. A channel added mid-session used to reach it
+        # only as the name / position / cluster burst of the channel-count
+        # hook; the rest travels in the channel's own dump, which a tablet has
+        # no reason to ask for, so the new pair drew no bar until the next
+        # full resync. The inventory push now carries the dump of every
+        # channel that is new or retyped. Added over MCP input_create, which
+        # reaches the same handleChannelCountChange funnel as the Inputs
+        # tab's channel list. Runs last: it adds a channel.
+        time.sleep(1.5)  # let 9's resync and its trailing vis refresh drain
+        mark = tablet.mark()
+        _, creation = app.tool_confirmed("input_create",
+                                         {"count": 1, "type": "stereo"})
+        payload = tool_payload(creation)
+        new_ids = (payload.get("created_channel_ids")
+                   if isinstance(payload, dict) else None)
+        check(isinstance(new_ids, list) and len(new_ids) == 1,
+              f"MCP input_create added one stereo channel ({payload})")
+        if isinstance(new_ids, list) and len(new_ids) == 1:
+            new_pair = new_ids[0]
+            stereo_image = {"/remoteInput/stereoWidth",
+                            "/remoteInput/stereoAxisOffset",
+                            "/remoteInput/stereoAxisLock"}
+
+            def pair_state(msgs):
+                return {adr for adr, _tt, a in msgs
+                        if adr.startswith("/remoteInput/") and a
+                        and a[0] == new_pair}
+
+            def pair_arrived_whole(msgs):
+                inventory, _raw = latest_channel_list(msgs)
+                listed_stereo = (inventory is not None
+                                 and dict(inventory).get(new_pair) == 1)
+                seen = pair_state(msgs)
+                return seen if listed_stereo and stereo_image <= seen else None
+            whole = tablet.wait_for(pair_arrived_whole, timeout=5.0, mark=mark)
+            check(whole is not None,
+                  f"stereo channel {new_pair}, added while connected, arrives "
+                  f"listed stereo with its width, axis offset and axis lock "
+                  f"(got {sorted(pair_state(tablet.since(mark)))})")
+            check(not any(adr == "/remote/dumpBegin"
+                          for adr, _tt, _a in tablet.since(mark)),
+                  "adding it sent no full dump, so only a per-channel push can "
+                  "carry the stereo image")
 
         return EXIT_PASS if not failures else EXIT_MISMATCH
     finally:

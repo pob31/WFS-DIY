@@ -61,6 +61,11 @@ namespace WFSNetwork
 //         (count, then 0/1 per array) in the full dump, to every tablet after
 //         any change (the sender included: it is the confirmation) and every
 //         2 s. An older desktop counts /arrayAdjust/mute as a parse error.
+//       - a /remote/channelList push that lists a channel new to the tablets, or
+//         one whose mono/stereo type flipped, is followed by that channel's own
+//         dump (the /remote/requestResync <number> answer), so a channel added
+//         mid-session arrives whole — its stereo image included — rather than as
+//         the name/position burst alone.
 constexpr int kRemoteProtocolVersion = 4;
 
 } // namespace WFSNetwork
