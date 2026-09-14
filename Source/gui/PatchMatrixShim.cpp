@@ -125,8 +125,13 @@ PatchMatrixComponent::makeConfig (WFSValueTreeState& parameters, bool isInputPat
         if (outputTree.isValid())
         {
             auto channelTree = outputTree.getChildWithName (WFSParameterIDs::Channel);
-            const int arrayNum = channelTree.getProperty (WFSParameterIDs::outputArray);
-            return WfsColorUtilities::getArrayColor (arrayNum);
+            const int arrayNum = static_cast<int> (channelTree.getProperty (WFSParameterIDs::outputArray));
+
+            // Single (0) belongs to no array. getArrayColor has no "none" hue:
+            // 0 lands on hue 0, Array 10's colour (10 * 36 wraps to 0), so a
+            // Single row read as a member of Array 10. Grey, as for a missing tree.
+            return arrayNum >= 1 ? WfsColorUtilities::getArrayColor (arrayNum)
+                                 : juce::Colours::grey;
         }
 
         return juce::Colours::grey;

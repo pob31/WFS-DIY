@@ -8039,6 +8039,11 @@ private:
             {
                 arrayAttenDimmingPending = false;
                 updateArrayAttenDimming();
+                // The Visualisation bars tint their values by the output's array,
+                // which they read only when they are built (configureVisualisation:
+                // startup, a channel count change, a load), so they kept showing
+                // the old array's colour.
+                refreshVisualisationArrayColors();
             });
         }
 
