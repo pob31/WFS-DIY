@@ -2688,6 +2688,12 @@ MainComponent::MainComponent()
     // Tamer toggles through an exported input config. Restores what it touched.
     if (std::getenv("WFS_TEST_LS_PERSIST") != nullptr)
         runLiveSourcePersistSelfTest();
+
+    // Hidden diagnostic: WFS_TEST_ARRAY_ATTEN_PERSIST=1 takes the ten per-input
+    // array attenuations through every store and recall path. Restores what it
+    // touched, but latches the channel numbers: run it in a throwaway session.
+    if (std::getenv("WFS_TEST_ARRAY_ATTEN_PERSIST") != nullptr)
+        runArrayAttenPersistSelfTest();
 }
 
 void MainComponent::runLiveSourcePersistSelfTest()
@@ -2759,6 +2765,316 @@ void MainComponent::runLiveSourcePersistSelfTest()
     }
     file.deleteFile();
 
+    logLine(failures == 0 ? "SELF-TEST RESULT: ALL PASS"
+                          : "SELF-TEST RESULT: FAIL (" + juce::String(failures) + ")");
+}
+
+void MainComponent::runArrayAttenPersistSelfTest()
+{
+    using namespace WFSParameterIDs;
+    using Scope = WFSFileManager::ExtendedSnapshotScope;
+    auto& vts = parameters.getValueTreeState();
+    auto& fm = parameters.getFileManager();
+    int failures = 0;
+
+    auto logLine = [](const juce::String& s) { WFSLogger::getInstance().logInfo(s); };
+    auto check = [&](bool ok, const juce::String& what)
+    {
+        if (! ok) ++failures;
+        logLine(juce::String("SELF-TEST ") + (ok ? "PASS " : "FAIL ") + what);
+    };
+
+    logLine("SELF-TEST begin (array attenuation store/recall and tablet typing)");
+
+    const int numChannels = vts.getNumInputChannels();
+    if (numChannels < 2)
+    {
+        logLine("SELF-TEST SKIP A: this session has fewer than two input channels");
+        logLine("SELF-TEST RESULT: SKIPPED");
+        return;
+    }
+
+    static const juce::Identifier attenIds[10] = {
+        inputArrayAtten1, inputArrayAtten2, inputArrayAtten3, inputArrayAtten4, inputArrayAtten5,
+        inputArrayAtten6, inputArrayAtten7, inputArrayAtten8, inputArrayAtten9, inputArrayAtten10
+    };
+
+    // No undo entries and no "modified" marks for the test's own writes
+    WFSValueTreeState::ScopedUndoSuppression noUndo (vts);
+    parameters.getDirtyTracker().beginSuppression();
+
+    // Every <Mutes> property written, with what it held, to put back at the end
+    struct Touched { int slot; juce::Identifier property; juce::var original; bool existed; };
+    std::vector<Touched> touched;
+    auto setMutes = [&](int slot, const juce::Identifier& property, const juce::var& value)
+    {
+        auto mutes = vts.getInputMutesSection(slot);
+        const bool known = std::any_of(touched.begin(), touched.end(),
+                                       [&](const Touched& t) { return t.slot == slot && t.property == property; });
+        if (! known)
+            touched.push_back({ slot, property, mutes.getProperty(property), mutes.hasProperty(property) });
+        mutes.setProperty(property, value, nullptr);
+    };
+    auto atten = [&](int slot, int array) { return vts.getInputMutesSection(slot).getProperty(attenIds[array - 1]); };
+    // (not "near": <windows.h> defines that as an empty macro)
+    auto isNear = [](const juce::var& v, double expected)
+    {
+        return WFSVar::isNumeric(v) && std::abs(WFSVar::toFloat(v) - expected) < 1.0e-6;
+    };
+
+    struct Level { int slot; int array; double db; };
+    const Level levels[] = { { 0, 1, -6.5 }, { 0, 3, -12.25 }, { 0, 10, -60.0 },
+                             { 1, 2, -3.5 }, { 1, 5, -42.75 } };
+    auto setLevels = [&](bool zero)
+    {
+        for (const auto& l : levels)
+            setMutes(l.slot, attenIds[l.array - 1], zero ? 0.0 : l.db);
+    };
+    auto levelsBack = [&]()
+    {
+        for (const auto& l : levels)
+            if (! isNear(atten(l.slot, l.array), l.db))
+                return false;
+        return true;
+    };
+
+    // --- A0: every channel carries all ten, numeric and in range
+    {
+        bool present = true, inRange = true;
+        for (int slot = 0; slot < numChannels; ++slot)
+            for (int array = 1; array <= 10; ++array)
+            {
+                const auto v = atten(slot, array);
+                if (v.isVoid())
+                    present = false;
+                else if (! WFSVar::isNumeric(v) || WFSVar::toFloat(v) < -60.0f || WFSVar::toFloat(v) > 0.0f)
+                    inRange = false;
+            }
+        check(present, "A0: every channel carries inputArrayAtten1..10");
+        check(inRange, "A0: every one is a number within -60..0 dB");
+    }
+
+    // --- A1: an exported input config brings them back exactly
+    const auto tempDir = juce::File::getSpecialLocation(juce::File::tempDirectory);
+    auto exportFile = tempDir.getChildFile("wfs-selftest-arrayatten-inputs.xml");
+    exportFile.deleteFile();
+
+    setLevels(false);
+    check(fm.exportInputConfig(exportFile), "A1: export the input config with five distinct levels on two channels");
+    const auto exported = exportFile.loadFileAsString();
+    check(exported.contains("inputArrayAtten3=\"-12.25\""), "A1: the file carries inputArrayAtten3=\"-12.25\"");
+
+    setLevels(true);
+    check(fm.importInputConfig(exportFile), "A1: import it back with the five levels zeroed");
+    check(levelsBack(), "A1: all five came back (-6.5, -12.25, -60 / -3.5, -42.75)");
+    logLine(juce::String("SELF-TEST note A1: imported levels are held as ")
+            + (atten(0, 3).isString() ? "strings" : "numbers"));
+
+    // A1c: a file value outside -60..0 is refused at load and the live value kept
+    {
+        const auto corrupted = exported.replace("inputArrayAtten5=\"-42.75\"", "inputArrayAtten5=\"-75.0\"");
+        check(corrupted != exported, "A1c: the export holds inputArrayAtten5=\"-42.75\" to corrupt");
+        exportFile.replaceWithText(corrupted);
+        setMutes(1, inputArrayAtten5, -1.5);
+        check(fm.importInputConfig(exportFile), "A1c: import a file with inputArrayAtten5=\"-75.0\"");
+        check(isNear(atten(1, 5), -1.5), "A1c: the out-of-range -75 is refused; the live -1.5 stays");
+    }
+
+    // --- A2: snapshots, in a scratch project folder (at a cold start the project
+    // folder is the user's last project; nothing is ever written there)
+    const auto previousFolder = fm.getProjectFolder();
+    auto scratch = tempDir.getChildFile("wfs-selftest-arrayatten");
+    scratch.deleteRecursively();
+    scratch.createDirectory();
+    fm.setProjectFolder(scratch);
+    fm.createProjectFolderStructure();
+
+    // The stored <Mutes> of the snapshot entry for one channel number
+    auto storedMutes = [&](const juce::String& snapshotName, int number) -> juce::ValueTree
+    {
+        const auto file = fm.getInputSnapshotsFolder().getChildFile(snapshotName + ".xml");
+        if (auto xml = juce::XmlDocument::parse(file))
+        {
+            const auto inputs = juce::ValueTree::fromXml(*xml).getChildWithName(Inputs);
+            for (int i = 0; i < inputs.getNumChildren(); ++i)
+                if (static_cast<int>(inputs.getChild(i).getProperty(id)) == number)
+                    return inputs.getChild(i).getChildWithName(Mutes);
+        }
+        return {};
+    };
+    const int number0 = vts.getInputChannelNumber(0);
+    const int number1 = vts.getInputChannelNumber(1);
+
+    Scope all;
+    all.initializeDefaults(numChannels);
+
+    setLevels(false);
+    setMutes(0, inputSidelinesFringe, 2.5);
+    check(fm.saveInputSnapshotWithExtendedScope("aa-selftest", all), "A2: store a snapshot with the default scope");
+    check(isNear(storedMutes("aa-selftest", number0).getProperty(inputArrayAtten3), -12.25),
+          "A2: the entry for channel #" + juce::String(number0) + " stores inputArrayAtten3 = -12.25");
+
+    setLevels(true);
+    check(fm.loadInputSnapshotWithExtendedScope("aa-selftest", fm.getExtendedSnapshotScope("aa-selftest")),
+          "A2: recall it with its own scope");
+    check(levelsBack(), "A2: all five levels came back");
+
+    // A2b: left out of the scope, they stay; the sidelines fringe on the same
+    // node is the positive control that the recall did run
+    setMutes(0, inputArrayAtten3, -1.5);
+    setMutes(0, inputSidelinesFringe, 1.25);
+    {
+        auto withoutLevels = all;
+        withoutLevels.setItemForAllChannels("arrayAttens", false, numChannels);
+        check(fm.loadInputSnapshotWithExtendedScope("aa-selftest", withoutLevels),
+              "A2b: recall with Array Attens left out of the scope");
+    }
+    check(isNear(atten(0, 3), -1.5), "A2b: the level stays at its live -1.5");
+    check(isNear(vts.getInputMutesSection(0).getProperty(inputSidelinesFringe), 2.5),
+          "A2b: the sidelines fringe on the same node was recalled (2.5)");
+
+    // A2c: When Saving, left out on slot 1 only: that entry stores none of them
+    setLevels(false);
+    {
+        Scope onSave;
+        onSave.initializeDefaults(numChannels);
+        onSave.applyMode = Scope::ApplyMode::OnSave;
+        onSave.setIncluded("arrayAttens", 1, false);
+        check(fm.saveInputSnapshotWithExtendedScope("aa-selftest-onsave", onSave),
+              "A2c: store When Saving with Array Attens left out on slot 1");
+    }
+    check(! storedMutes("aa-selftest-onsave", number1).hasProperty(inputArrayAtten2),
+          "A2c: the entry for channel #" + juce::String(number1) + " stores no levels");
+    check(isNear(storedMutes("aa-selftest-onsave", number0).getProperty(inputArrayAtten3), -12.25),
+          "A2c: the entry for channel #" + juce::String(number0) + " keeps them");
+
+    // --- A3: the When Saving re-scope pairs each stored number with its live
+    // slot. #2 is at slot 0, #1 at slot 1, #7 has no live channel: the old
+    // number - 1 rule trimmed #1 instead of #2 and trimmed #7 with slot 6.
+    {
+        juce::ValueTree inputs (Inputs);
+        for (int number : { 1, 2, 7 })
+        {
+            juce::ValueTree input (Input);
+            input.setProperty(id, number, nullptr);
+            juce::ValueTree mutes (Mutes);
+            for (const auto& attenId : attenIds)
+                mutes.setProperty(attenId, -6.0, nullptr);
+            mutes.setProperty(inputSidelinesFringe, 2.0, nullptr);
+            input.appendChild(mutes, nullptr);
+            inputs.appendChild(input, nullptr);
+        }
+
+        Scope scope;
+        scope.initializeDefaults(8);
+        scope.applyMode = Scope::ApplyMode::OnSave;
+        scope.setIncluded("arrayAttens", 0, false);
+
+        WFSFileManager::trimSnapshotInputsToScope(inputs, scope,
+            [](int number) { return number == 2 ? 0 : number == 1 ? 1 : -1; });
+
+        auto mutesOf = [&inputs](int number)
+        {
+            for (int i = 0; i < inputs.getNumChildren(); ++i)
+                if (static_cast<int>(inputs.getChild(i).getProperty(id)) == number)
+                    return inputs.getChild(i).getChildWithName(Mutes);
+            return juce::ValueTree();
+        };
+        check(! mutesOf(2).hasProperty(inputArrayAtten1) && mutesOf(2).hasProperty(inputSidelinesFringe),
+              "A3: #2 (slot 0) lost its levels and kept its fringe");
+        check(mutesOf(1).hasProperty(inputArrayAtten1), "A3: #1 (slot 1) kept its levels");
+        check(mutesOf(7).hasProperty(inputArrayAtten1), "A3: #7 (no live channel) was left whole");
+    }
+
+    // A3b: the real update on a stored snapshot (this session's numbers are dense)
+    {
+        Scope rescope;
+        rescope.initializeDefaults(numChannels);
+        rescope.applyMode = Scope::ApplyMode::OnSave;
+        rescope.setIncluded("arrayAttens", 0, false);
+        check(fm.updateInputSnapshotScope("aa-selftest", rescope),
+              "A3b: update the stored snapshot's scope to When Saving without slot 0's levels");
+    }
+    check(! storedMutes("aa-selftest", number0).hasProperty(inputArrayAtten3)
+              && isNear(storedMutes("aa-selftest", number1).getProperty(inputArrayAtten2), -3.5),
+          "A3b: channel #" + juce::String(number0) + " lost its stored levels, #" + juce::String(number1) + " kept them");
+
+    fm.setProjectFolder(previousFolder);
+    scratch.deleteRecursively();
+    exportFile.deleteFile();
+
+    // --- A4: a channel whose node lacks a level (appended whole from an old
+    // inputs.xml) still takes writes: both write paths create it in <Mutes>
+    {
+        auto mutes = vts.getInputMutesSection(0);
+        setMutes(0, inputArrayAtten7, 0.0);       // remembered, restored at the end
+        mutes.removeProperty(inputArrayAtten7, nullptr);
+
+        check(vts.canWriteParameter(inputArrayAtten7, 0), "A4: a channel missing inputArrayAtten7 reports it writable");
+        vts.setInputParameter(0, inputArrayAtten7, -9.5);
+        check(isNear(mutes.getProperty(inputArrayAtten7), -9.5), "A4: setInputParameter recreated it in <Mutes> at -9.5");
+
+        bool elsewhere = false;
+        auto input = vts.getInputState(0);
+        for (int i = 0; i < input.getNumChildren(); ++i)
+            if (! input.getChild(i).hasType(Mutes) && input.getChild(i).hasProperty(inputArrayAtten7))
+                elsewhere = true;
+        check(! elsewhere, "A4: and nowhere else");
+
+        mutes.removeProperty(inputArrayAtten7, nullptr);
+        vts.setParameter(inputArrayAtten7, -8.5, 0);
+        check(isNear(mutes.getProperty(inputArrayAtten7), -8.5), "A4: setParameter (the /wfs and MCP path) recreated it at -8.5");
+
+        vts.setInputParameter(0, inputArrayAtten7, -75.0);
+        check(isNear(mutes.getProperty(inputArrayAtten7), -60.0), "A4: a -75 write clamps to -60");
+    }
+
+    // --- A5: the tablet echo of a value held as text is typed by the parameter
+    {
+        using WFSNetwork::OSCMessageBuilder;
+        auto tagsOf = [](const std::optional<juce::OSCMessage>& msg) -> juce::String
+        {
+            if (! msg.has_value())
+                return "none";
+            juce::String tags (",");
+            for (const auto& arg : *msg)
+                tags << (arg.isInt32() ? "i" : arg.isFloat32() ? "f" : arg.isString() ? "s" : "?");
+            return tags;
+        };
+
+        const auto level = OSCMessageBuilder::buildRemoteEchoMessage(inputArrayAtten3, 4, juce::var("-6.0"));
+        check(tagsOf(level) == ",if" && level->getAddressPattern().toString() == "/remoteInput/arrayAtten3"
+                  && (*level)[1].getFloat32() == -6.0f,
+              "A5: a level held as \"-6.0\" echoes as /remoteInput/arrayAtten3 ,if 4 -6.0");
+        check(tagsOf(OSCMessageBuilder::buildRemoteEchoMessage(inputCluster, 4, juce::var("3"))) == ",ii",
+              "A5: a cluster held as \"3\" echoes as ,ii");
+        check(tagsOf(OSCMessageBuilder::buildRemoteEchoMessage(inputName, 4, juce::var("Kick"))) == ",is",
+              "A5: a name still echoes as ,is");
+        check(tagsOf(OSCMessageBuilder::buildRemoteEchoMessage(inputMutes, 4, juce::var("0,1"))) == ",is",
+              "A5: a mute list still echoes as ,is");
+        check(tagsOf(OSCMessageBuilder::buildRemoteEchoMessage(inputArrayAtten3, 4, juce::var("abc"))) == "none",
+              "A5: text that is no number on a bounded parameter sends nothing");
+        check(tagsOf(OSCMessageBuilder::buildRemoteEchoMessage(inputLFOshapeX, 4, juce::var(3))) == ",ii",
+              "A5: an int var still echoes as ,ii");
+        check(tagsOf(OSCMessageBuilder::buildRemoteEchoMessage(inputAttenuation, 4, juce::var(-6.0))) == ",if",
+              "A5: a double var still echoes as ,if");
+        check(tagsOf(OSCMessageBuilder::buildRemoteEchoMessage(inputArrayAtten3, 4, juce::var())) == "none",
+              "A5: a void var sends nothing");
+    }
+
+    // Put back every level (and the fringe) this test wrote
+    for (const auto& t : touched)
+    {
+        auto mutes = vts.getInputMutesSection(t.slot);
+        if (t.existed)
+            mutes.setProperty(t.property, t.original, nullptr);
+        else
+            mutes.removeProperty(t.property, nullptr);
+    }
+    parameters.getDirtyTracker().endSuppressionAndClear();
+
+    logLine("SELF-TEST note: the import and the snapshot store latched the channel numbers and "
+            "the import cleared the undo history; treat this session as disposable");
     logLine(failures == 0 ? "SELF-TEST RESULT: ALL PASS"
                           : "SELF-TEST RESULT: FAIL (" + juce::String(failures) + ")");
 }

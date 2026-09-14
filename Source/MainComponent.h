@@ -600,6 +600,15 @@ private:
         made a saved session reload with the tamer silently off. */
     void runLiveSourcePersistSelfTest();
 
+    /** WFS_TEST_ARRAY_ATTEN_PERSIST=1 — the ten per-input array attenuations
+        through every store and recall: an exported and re-imported input config
+        (with an out-of-range file value refused), a snapshot store and recall
+        with and without them in scope, a When Saving store, the scope trim's
+        number-to-slot pairing, a write to a channel missing the property, and
+        the typing of the tablet echo for values held as text. Restores the
+        values and the project folder it touched. */
+    void runArrayAttenPersistSelfTest();
+
     /** A mono row may hold at most one hardware column. Clears any extra
         columns (keeping the lowest = L) left behind when a count change
         moves the mono/stereo boundary. */
