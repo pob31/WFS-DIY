@@ -72,6 +72,15 @@ asserts the remote-protocol contract:
                    store + recall no number reaches the tablet as ",is" (the
                    recalled values are text in the tree) before the resync
                    dump. Runs after 7f, before the rig grows in 7g
+ 11. array mute    session array mutes: the dump carries /remote/array/mute
+                   (count 10, then 0/1 per array) all unmuted; it repeats
+                   every 2 s; /arrayAdjust/mute 3 1 comes back at once with
+                   array 3 alone muted (sent just after a repeat, so only
+                   the change broadcast fits the window); array 0 / 11 and a
+                   text state are ignored; an input snapshot recall keeps
+                   the mute (its resync dump still carries it); a float 0.0
+                   unmutes; the plain-OSC target never sees the state. Runs
+                   after 10, before 7g
 
 Stdlib-only, follows the control-replay harness conventions (common.py).
 Exit codes: 0 pass, 1 mismatch, 2 usage, 3 app failed to start.
@@ -105,6 +114,8 @@ MAX_OUTPUTS = 128              # WFSParameterDefaults::maxOutputChannels
 MAX_REVERBS = 32               # WFSParameterDefaults::maxReverbChannels
 UDP_PAYLOAD_MAX = 1472         # 1500 B Ethernet MTU - 20 B IPv4 - 8 B UDP
 VIS_KEEPALIVE_S = 2.0          # MainComponent::visKeepaliveIntervalMs
+ARRAY_COUNT = 10               # ArrayMuteState::numArrays
+ARRAY_MUTE_REPEAT_S = 2.0      # OSCManager::arrayMuteRepeatIntervalMs (500 ms timer)
 
 # Fixture channels swapped on disk to make the display order non-ascending,
 # the one typed stereo, and the channel deleted at the end. The swap may not
@@ -1212,6 +1223,97 @@ def main() -> int:
         check(level is not None and abs(level + 7.25) < eps,
               f"the recall restored arrayAtten2 -7.25 in the desktop state "
               f"(OSCQuery reads {level})")
+
+        # ---- 11. array mute (session state) -----------------------------
+        # /arrayAdjust/mute <array> <0/1> sets a whole array's session mute;
+        # the desktop tells every tablet /remote/array/mute <10> <10 x 0/1>:
+        # in the dump, right after a change, and every 2 s. Each change is sent
+        # just after a repeat, so the next repeat is at least
+        # ARRAY_MUTE_REPEAT_S away and only the change broadcast can answer
+        # inside the window.
+        def array_mute_state(msgs):
+            """(typetags, args) of the last /remote/array/mute in msgs."""
+            got = None
+            for adr, tt, a in msgs:
+                if adr == "/remote/array/mute":
+                    got = (tt, a)
+            return got
+
+        def mutes(*muted_arrays):
+            return [ARRAY_COUNT] + [1 if a in muted_arrays else 0
+                                    for a in range(1, ARRAY_COUNT + 1)]
+
+        def wait_array_mute_repeat():
+            m = tablet.mark()
+            return tablet.wait_for(array_mute_state,
+                                   timeout=ARRAY_MUTE_REPEAT_S + 1.0, mark=m)
+
+        def mute_answer(expected):
+            """(mark, predicate) for a /remote/array/mute carrying expected
+            after now; the predicate returns its latency. Take it just
+            before sending."""
+            m, t0 = tablet.mark(), time.monotonic()
+
+            def hit(_msgs):
+                for t, adr, _tt, a in tablet.timed_since(m):
+                    if adr == "/remote/array/mute" and a == expected:
+                        return {"dt": t - t0}
+                return None
+            return m, hit
+
+        in_dump = array_mute_state(dump["body"]) if dump else None
+        check(in_dump is not None and in_dump[0] == ",i" + "i" * ARRAY_COUNT
+              and in_dump[1] == mutes(),
+              f"the connect dump carries /remote/array/mute, all "
+              f"{ARRAY_COUNT} arrays unmuted (got {in_dump})")
+
+        check(wait_array_mute_repeat() is not None,
+              f"/remote/array/mute repeats on a quiet scene "
+              f"(every {ARRAY_MUTE_REPEAT_S:.0f} s)")
+        mark_osc = osc_target.mark()
+        m, hit = mute_answer(mutes(3))
+        tablet.tx.send("/arrayAdjust/mute", [("i", 3), ("i", 1)])
+        got = tablet.wait_for(hit, timeout=1.0, mark=m)
+        check(got is not None,
+              f"/arrayAdjust/mute 3 1 mutes array 3 alone, and the tablet "
+              f"hears it at once ({got})")
+
+        # Out of range and non-numeric: no change and nothing broken.
+        tablet.tx.send("/arrayAdjust/mute", [("i", 0), ("i", 1)])
+        tablet.tx.send("/arrayAdjust/mute", [("i", 11), ("i", 1)])
+        tablet.tx.send("/arrayAdjust/mute", [("i", 4), ("s", "on")])
+        rep = wait_array_mute_repeat()
+        check(rep is not None and rep[1] == mutes(3),
+              f"array 0, array 11 and a text state are ignored (next repeat "
+              f"{rep})")
+
+        # An input snapshot recall is a cue, not a load: the mute survives it,
+        # and so the resync dump that follows the recall still carries it.
+        desk = OSCSender(port=APP_RX_PORT, delay=0.0)
+        m = tablet.mark()
+        desk.send("/wfs/input/snapshot/load", [("s", "aa-mock")])
+        desk.close()
+        dump11 = tablet.wait_for(
+            lambda msgs: find_dump(msgs, after_seq=last_seq), timeout=20.0,
+            mark=m)
+        if dump11:
+            last_seq = dump11["seq"]
+        after_recall = array_mute_state(dump11["body"]) if dump11 else None
+        check(after_recall is not None and after_recall[1] == mutes(3),
+              f"an input snapshot recall keeps array 3 muted (its resync dump "
+              f"carries {after_recall})")
+
+        wait_array_mute_repeat()
+        m, hit = mute_answer(mutes())
+        tablet.tx.send("/arrayAdjust/mute", [("i", 3), ("f", 0.0)])
+        got = tablet.wait_for(hit, timeout=1.0, mark=m)
+        check(got is not None,
+              f"/arrayAdjust/mute 3 0.0 (a float state) unmutes array 3 "
+              f"({got})")
+        check(not any(adr == "/remote/array/mute"
+                      for adr, _tt, _a in osc_target.since(mark_osc)),
+              "the array mute state goes to tablets only, not to the plain-OSC "
+              "target")
 
         # 7g. The desktop maxima, 128 outputs + 32 reverbs: the vis state
         # carries the counts in full, and no /remote/vis/* datagram is larger
