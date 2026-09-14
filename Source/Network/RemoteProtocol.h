@@ -47,6 +47,10 @@ namespace WFSNetwork
 //         tablet's selected one, always as numbers typed by the parameter
 //         (",if" width, ",ii" the other three), even after a load left the
 //         stored value a string.
+//       - the selected channel's echoes never carry a number as ",is": a value
+//         a load, a snapshot recall or an undo left as text goes out typed by
+//         the parameter (",ii" / ",if"). Only unbounded text (inputName, the
+//         mute list) is still ",is".
 constexpr int kRemoteProtocolVersion = 4;
 
 } // namespace WFSNetwork

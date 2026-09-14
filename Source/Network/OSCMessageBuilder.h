@@ -117,6 +117,19 @@ public:
         const juce::String& value);
 
     /**
+     * Build the REMOTE echo of one stored input value, typed for the tablet.
+     * Int and double vars go out as ,ii / ,if. A string var on a parameter with
+     * bounds is a number a load, a snapshot recall or an undo left as text: it goes
+     * out typed by the parameter (,ii or ,if), never as ,is, which the tablet
+     * stores as 0; text that is not a number is dropped. A string on a parameter
+     * without bounds (a name, a mute list) still goes out as ,is.
+     */
+    static std::optional<juce::OSCMessage> buildRemoteEchoMessage(
+        const juce::Identifier& paramId,
+        int channelId,
+        const juce::var& value);
+
+    /**
      * Build all REMOTE protocol messages for a channel.
      * Used when Android app requests channel data.
      */

@@ -1,4 +1,6 @@
 #include "OSCMessageBuilder.h"
+#include "OSCParameterBounds.h"
+#include "../Parameters/VarCoercion.h"
 
 namespace WFSNetwork
 {
@@ -442,6 +444,38 @@ std::optional<juce::OSCMessage> OSCMessageBuilder::buildRemoteOutputStringMessag
     msg.addInt32(channelId);
     msg.addString(value);
     return msg;
+}
+
+std::optional<juce::OSCMessage> OSCMessageBuilder::buildRemoteEchoMessage(
+    const juce::Identifier& paramId,
+    int channelId,
+    const juce::var& value)
+{
+    if (value.isString())
+    {
+        // After a load, a snapshot recall or an undo the tree holds the value as
+        // text, and ",is" reached the tablet as 0 - a slider at the bottom of its
+        // range. The type comes from the PARAMETER, as appendInputMessages does
+        // for the dump; only a parameter with no bounds is genuinely text.
+        if (const auto bounds = getBounds (paramId))
+        {
+            if (! WFSVar::isNumeric (value))
+                return std::nullopt;
+
+            return bounds->isInt ? buildRemoteOutputIntMessage (paramId, channelId, WFSVar::toInt (value))
+                                 : buildRemoteOutputMessage (paramId, channelId, WFSVar::toFloat (value));
+        }
+
+        return buildRemoteOutputStringMessage (paramId, channelId, value.toString());
+    }
+
+    if (value.isInt() || value.isInt64() || value.isBool())
+        return buildRemoteOutputIntMessage (paramId, channelId, static_cast<int> (value));
+
+    if (value.isDouble())
+        return buildRemoteOutputMessage (paramId, channelId, static_cast<float> (static_cast<double> (value)));
+
+    return std::nullopt;
 }
 
 std::vector<juce::OSCMessage> OSCMessageBuilder::buildRemoteChannelDump(

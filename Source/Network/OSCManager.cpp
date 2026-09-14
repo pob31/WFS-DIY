@@ -1208,8 +1208,8 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
                 {
                     // Type tag from the PARAMETER, not the var, as appendInputMessages
                     // does: after a load or a snapshot recall the var is a string, which
-                    // the branch below sends as ",is" and the tablet stores as 0 - a 0 m
-                    // width, a black marker
+                    // went out as ",is" and the tablet stored as 0 - a 0 m width, a
+                    // black marker
                     if (WFSVar::isNumeric (value))
                     {
                         const auto bounds = WFSNetwork::getBounds (property);
@@ -1223,35 +1223,13 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
                 }
                 else if (isPositionZ || isCluster || channelId == remoteSelectedChannel)
                 {
-                    // Z position or selected channel params: send immediately
-                    bool isNumeric = value.isDouble() || value.isInt() || value.isInt64();
-                    if (isNumeric)
-                    {
-                        // Use int message for integer-typed values (e.g., cluster)
-                        std::optional<juce::OSCMessage> msg;
-                        if (value.isInt() || value.isInt64())
-                            msg = OSCMessageBuilder::buildRemoteOutputIntMessage(
-                                property, channelId, static_cast<int>(value));
-                        else
-                            msg = OSCMessageBuilder::buildRemoteOutputMessage(
-                                property, channelId, static_cast<float>(static_cast<double>(value)));
-
-                        if (msg.has_value())
-                        {
-                            sendMessage(i, *msg);
-                        }
-                    }
-                    else if (value.isString())
-                    {
-                        // String parameters (e.g., inputName)
-                        auto msg = OSCMessageBuilder::buildRemoteOutputStringMessage(
-                            property, channelId, value.toString());
-
-                        if (msg.has_value())
-                        {
-                            sendMessage(i, *msg);
-                        }
-                    }
+                    // Z position or selected channel params: send immediately. Typed by
+                    // the var, except that a number held as text (after a load, a
+                    // snapshot recall or an undo) is typed by the parameter: as ",is"
+                    // the tablet stored it as 0, and after an undo no dump follows to
+                    // put it right
+                    if (auto msg = OSCMessageBuilder::buildRemoteEchoMessage (property, channelId, value))
+                        sendMessage(i, *msg);
                 }
             }
         }
