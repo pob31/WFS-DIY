@@ -21,7 +21,20 @@ namespace WFSNetwork
 //       tablet's enumeration source, because a permanent channel number is no
 //       longer an index: deletes leave gaps and a drag-reorder puts the numbers
 //       out of ascending order, so enumerating 1..count both demands channels
-//       that do not exist and hides ones that do.
+//       that do not exist and hides ones that do. Also /remoteInput/stereoWidth
+//       and /remoteInput/stereoAxisOffset.
+//   Still 4 — additive, no bump: an older peer drops an unknown address at its
+//       catch-all with no side effect, the reasoning /remote/channelList
+//       shipped under.
+//       - /remoteInput/inputColour (the stored 24-bit RGB, -1 = derived hue)
+//         and /remoteInput/stereoAxisLock.
+//       - tablet -> desktop /remote/vis/request [",i" pin, optional]: the
+//         desktop answers that tablet only with config + outputArrays +
+//         selection + rows (and its pinned rows), without a dump or a
+//         selection change. The int restates the tablet's pin (0 = none);
+//         a tablet's requests less than 250 ms apart are dropped.
+//       - a full state dump (requestResync, config reload) is followed by the
+//         same vis state; the dump itself carries only the vis config.
 constexpr int kRemoteProtocolVersion = 4;
 
 } // namespace WFSNetwork

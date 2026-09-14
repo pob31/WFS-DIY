@@ -4,8 +4,18 @@ All notable changes to WFS DIY are documented in this file, organized by release
 
 ## v1.0.0beta50 — 2026-09-11
 
+### Added
+- **The tablet can ask for the Visualisation data.** The desktop sent WFS Control 2's Visualisation bars only when something changed, and the tablet had no way to ask. A tablet that lost the burst sent at connection kept "Waiting for data…" or blank bars on a static scene until a source moved. The new `/remote/vis/request` fixes that.
+  - **When the tablet asks.** WFS Control 2 1.0-beta_13 asks when its Visualisation tab opens, on every reconnect while the tab is shown, and every 2 s while data is still missing.
+  - **What the desktop answers.** Channel counts, array assignments, selection and bars, to that tablet only. There is no state dump and the desktop selection is untouched. The request can also restate the tablet's pinned channel, restoring a pin the desktop dropped on a re-handshake the tablet never noticed. A tablet's requests less than 250 ms apart are dropped; the tablet retries.
+  - **After a full resync.** A resync the tablet requests is now followed by the selection and bars too; the dump itself carries only the channel counts and array assignments. After a session load they now also arrive once the dump has gone out, instead of only racing it.
+  - **Compatibility.** Still protocol v4: the change is additive. Older tablets never ask, and older desktops ignore the request at their catch-all.
+
 ### Changed
 - **The Lock on Map padlock turns red when the input is locked.** The padlock in front of **Lock on Map** at the top of the Inputs tab was an emoji, which the system always draws in its own yellow, so a locked input looked almost the same as an unlocked one. It is now drawn by the app: open and yellow when unlocked, closed and red when locked, so a locked input stands out at a glance. Screen readers announce the button as a locked / unlocked toggle.
+
+### Chore / Internal
+- **The remote tablet mock runs again, and checks the new request.** `remote_tablet_mock.py` had been failing on main since the golden fixture was refreshed to the current schema: its fixture patches (two channels swapped, one typed stereo) no longer matched the typed `<Input>` tags, and system.xml's channel inventory now has to be patched along with inputs.xml, or the project load stops on the channel-list confirmation. It also checks that a full resync is followed by the selection and bars within 300 ms, and that `/remote/vis/request` is answered without a dump or a selection change.
 
 ## v1.0.0beta49 — 2026-09-11
 

@@ -463,6 +463,17 @@ public:
      *  Must NOT alter remoteSelectedChannel or trigger a channel dump. */
     std::function<void(int targetIndex, int channelId)> onRemoteVisPinRequested;
 
+    /** Callback when a tablet asks for the whole visualisation state via
+     *  /remote/vis/request, and again once a full state dump to a tablet has
+     *  gone out (the dump carries the vis config but no selection or rows).
+     *  MainComponent answers with config + outputArrays + selection + rows,
+     *  plus that tablet's pinned rows, sent to that target only. restatedPin
+     *  is the pin the request restated (0 = none, > 0 = the tablet named a
+     *  channel by number), or -1 when nothing was restated (a request with
+     *  no argument, or the post-dump refresh). Fired async on the message
+     *  thread. Must NOT alter remoteSelectedChannel or trigger a channel dump. */
+    std::function<void(int targetIndex, int restatedPin)> onRemoteVisRefreshRequested;
+
     /** Check if any remote target is connected */
     bool hasConnectedRemote() const
     {
@@ -754,6 +765,12 @@ private:
      *  detached background thread as paced bundles. */
     void resendChannelsToRemote(int targetIndex, std::vector<int> channelIds);
 
+    /** Post onRemoteVisRefreshRequested(targetIndex, -1) to the message thread.
+     *  Called from the detached dump-sender threads once a full dump has gone
+     *  out, so the vis selection and rows land after the dump instead of
+     *  racing it. */
+    void notifyRemoteVisRefreshAsync(int targetIndex);
+
     int findRemoteTargetByIP(const juce::String& senderIP) const;
 
     //==========================================================================
@@ -883,9 +900,14 @@ private:
         int pingAttemptsWhileConnecting = 0;
         bool stallNotified = false;
         // Visualisation channel pinned by this tablet via /remote/vis/pin
-        // (0 = follow mode). Reset on connect/disconnect; the tablet re-sends
-        // its pin after reconnecting.
+        // (0 = follow mode). Reset on connect/disconnect; the tablet is the
+        // pin authority and restates it — after reconnecting, and in the
+        // optional argument of every /remote/vis/request — which also repairs
+        // a pin cleared by a re-handshake the tablet never saw as a disconnect.
         int pinnedVisChannel = 0;
+        // When a /remote/vis/request from this tablet was last answered
+        // (Time::getMillisecondCounter; see VIS_REQUEST_MIN_INTERVAL_MS).
+        juce::uint32 lastVisRequestServedMs = 0;
     };
     std::array<RemoteConnectionState, MAX_TARGETS> remoteStates;
 
@@ -893,6 +915,11 @@ private:
     static constexpr int CONNECTION_TIMEOUT_MS = 6000;
     // Unanswered pings while Connecting before onRemoteHandshakeStalled fires (~10 s).
     static constexpr int STALL_PING_ATTEMPTS = 5;
+    // At most one answered /remote/vis/request per tablet per interval. Each
+    // answer is an unpaced burst (~110 KB for a 64-channel selection at 128
+    // outputs + 32 reverbs), so a looping peer must not turn requests into a
+    // flood; extras are dropped rather than queued, and the tablet retries.
+    static constexpr int VIS_REQUEST_MIN_INTERVAL_MS = 250;
 
     // Loop prevention: tracks the protocol type of incoming message being processed
     // Set to Protocol::Disabled when not processing an incoming message

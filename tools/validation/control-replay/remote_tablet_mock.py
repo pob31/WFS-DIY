@@ -27,7 +27,12 @@ asserts the remote-protocol contract:
                    selection + a delays/levels row pair for the selected
                    channel arrive after connect; /remote/vis/pin N answers
                    with channel N's rows without triggering a channel dump;
-                   moving a source refreshes rows at <= ~10 Hz
+                   moving a source refreshes rows at <= ~10 Hz;
+                   /remote/vis/request [pin] is answered to the asking
+                   tablet with that same state (plus the restated pin's
+                   rows) with no dump and no selection change; and a full
+                   resync (checked in 5) is followed by the selection and a
+                   row pair within ~300 ms of its /remote/stateComplete
   8. inventory     v4 /remote/channelList: ",i…i" = live count N followed by
                    N interleaved (number, isStereo) pairs in DISPLAY order,
                    a full-replacement snapshot carrying no sequence number.
@@ -146,6 +151,10 @@ class MockTablet:
         self.sock.settimeout(0.2)
         self.tx = OSCSender(port=APP_RX_PORT, delay=0.0)
         self.messages: list[tuple[str, str, list]] = []
+        # time.monotonic() at receipt, index for index with self.messages
+        # (a parallel list so every (address, typetags, args) unpacking of
+        # the log keeps working).
+        self.recv_times: list[float] = []
         self.lock = threading.Lock()
         self.ping_typetags: str | None = None
         self.ping_version: int | None = None
@@ -162,9 +171,14 @@ class MockTablet:
                 continue
             except OSError:
                 break
-            for address, typetags, args in decode_packet(data):
-                with self.lock:
-                    self.messages.append((address, typetags, args))
+            # One receive time per datagram: a bundle's messages arrived
+            # together.
+            received = time.monotonic()
+            msgs = decode_packet(data)
+            with self.lock:
+                self.messages.extend(msgs)
+                self.recv_times.extend([received] * len(msgs))
+            for address, typetags, args in msgs:
                 if address == "/remote/ping" and args:
                     if self.ping_typetags is None:
                         self.ping_typetags = typetags
@@ -189,6 +203,13 @@ class MockTablet:
     def since(self, mark: int) -> list[tuple[str, str, list]]:
         with self.lock:
             return list(self.messages[mark:])
+
+    def timed_since(self, mark: int) -> list[tuple[float, str, str, list]]:
+        """since(mark) with each message's receive time (time.monotonic())
+        in front: (time, address, typetags, args)."""
+        with self.lock:
+            return [(t,) + m for t, m in zip(self.recv_times[mark:],
+                                             self.messages[mark:])]
 
     def wait_for(self, predicate, timeout: float, mark: int = 0):
         """Poll the log until predicate(messages_since_mark) returns a truthy
@@ -588,6 +609,35 @@ def main() -> int:
             check(coincident,
                   f"shared cluster loads coincident at (-2.0, 1.5) "
                   f"(ch1={p1}, ch2={p2})")
+
+            # The dump carries only the vis config, so a tablet that lost the
+            # connect-time vis burst kept blank bars through every resync; a
+            # full resync must now be followed by the selection and a row
+            # pair. Timed from this dump's own /remote/stateComplete, so a
+            # >= 2 s quiet-scene repeat cannot be what satisfies it.
+            def vis_after_dump(_msgs, since=mark, seq=dump5["seq"],
+                               window=0.3):
+                timed = tablet.timed_since(since)
+                end = next((k for k, (_t, adr, _tt, a) in enumerate(timed)
+                            if adr == "/remote/stateComplete"
+                            and len(a) >= 2 and a[1] == seq), None)
+                if end is None:
+                    return None
+                t_end = timed[end][0]
+                first: dict[str, float] = {}
+                for t, adr, _tt, _a in timed[end + 1:]:
+                    if t - t_end <= window and adr in (
+                            "/remote/vis/selection", "/remote/vis/delays",
+                            "/remote/vis/levels"):
+                        first.setdefault(adr, t - t_end)
+                # A dict, not the bare delay: 0.0 would read as "not yet".
+                return {"s": max(first.values())} if len(first) == 3 else None
+            tail = tablet.wait_for(vis_after_dump, timeout=1.0, mark=mark)
+            check(tail is not None,
+                  "full resync is followed by vis selection + a row pair "
+                  "within 300 ms of its stateComplete ("
+                  + (f"{tail['s'] * 1000:.0f} ms" if tail else "not seen")
+                  + ")")
         else:
             check(False, "shared-cluster load check: no quiescent dump")
 
@@ -764,6 +814,39 @@ def main() -> int:
         after_unpin = [a for adr, _tt, a in tablet.since(mark)
                        if adr == "/remote/vis/delays" and a and a[0] == 5]
         check(not after_unpin, "unpin stops channel 5 rows")
+
+        # 7e. /remote/vis/request: answered to the asking tablet with config +
+        # outputArrays + selection + a row pair, with no dump and the desktop
+        # selection untouched. Sent ~0.4 s after 7d's trailing drain on a
+        # static scene, so nothing else is due inside the 0.8 s window — a
+        # >= 2 s quiet-scene repeat included.
+        mark = tablet.mark()
+        tablet.tx.send("/remote/vis/request", [("i", 0)])
+        req = tablet.wait_for(find_vis_init, timeout=0.8, mark=mark)
+        check(req is not None,
+              "vis request answered (config + outputArrays + selection + "
+              "row pair)")
+        time.sleep(0.5)
+        req_msgs = tablet.since(mark)
+        check(not any(adr == "/remote/dumpBegin" for adr, _tt, _a in req_msgs),
+              "vis request did not trigger a dump")
+        if req and vis:
+            check(req["sel"][0] == vis["sel"][0] and req["cfg"] == vis["cfg"],
+                  f"vis request left selection/config unchanged (primary "
+                  f"{req['sel'][0]} vs {vis['sel'][0]}, cfg {req['cfg']} vs "
+                  f"{vis['cfg']})")
+
+        # The optional int restates the tablet's pin — the repair for a pin a
+        # re-handshake cleared without the tablet noticing — so [i 5] answers
+        # with channel 5's rows too. The first request is >= 0.5 s old, well
+        # clear of the 250 ms per-tablet rate limit.
+        mark = tablet.mark()
+        tablet.tx.send("/remote/vis/request", [("i", 5)])
+        check(tablet.wait_for(pinned_rows, timeout=1.0, mark=mark) is not None,
+              "vis request restating pin 5 answers with channel 5 rows")
+        # Back to follow mode before the structural checks below.
+        tablet.tx.send("/remote/vis/pin", [("i", 0)])
+        time.sleep(0.3)
 
         # ---- 9. structural change: a delete retires a number -------------
         # Runs last: it changes the channel set every check above addresses.

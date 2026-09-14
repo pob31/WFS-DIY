@@ -1624,6 +1624,45 @@ void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
                 });
         }
     }
+    else if (address == "/remote/vis/request")
+    {
+        // Tablet asks for the whole visualisation state (additive, still v4):
+        // tab shown, reconnected while shown, or still waiting. Vis only goes
+        // out on change, so a tablet that lost the connect-time burst could
+        // not recover on a static scene. The optional int32 restates the
+        // TABLET's pin (0 = none): the tablet is the pin authority, and a
+        // re-handshake it never saw as a disconnect clears ours
+        // (onRemoteConnected). Answered to this target only; like the pin, it
+        // must not touch remoteSelectedChannel or trigger a channel dump.
+        int targetIndex = findRemoteTargetByIP(senderIP);
+        if (targetIndex >= 0)
+        {
+            auto& remoteState = remoteStates[static_cast<size_t>(targetIndex)];
+
+            // Rate limit per tablet. Unsigned subtraction on the monotonic
+            // counter stays correct across its ~49.7-day wrap.
+            const juce::uint32 nowMs = juce::Time::getMillisecondCounter();
+            if (nowMs - remoteState.lastVisRequestServedMs
+                    >= static_cast<juce::uint32>(VIS_REQUEST_MIN_INTERVAL_MS))
+            {
+                remoteState.lastVisRequestServedMs = nowMs;
+
+                int restatedPin = -1;  // -1 = not restated: keep the current pin
+                if (message.size() >= 1 && message[0].isInt32())
+                {
+                    restatedPin = juce::jmax(0, message[0].getInt32());
+                    remoteState.pinnedVisChannel = restatedPin;
+                }
+
+                if (onRemoteVisRefreshRequested)
+                    juce::MessageManager::callAsync([this, targetIndex, restatedPin]()
+                    {
+                        if (onRemoteVisRefreshRequested)
+                            onRemoteVisRefreshRequested(targetIndex, restatedPin);
+                    });
+            }
+        }
+    }
     else if (address == "/remote/pad/touch")
     {
         // Android remote pad touch: ,iifff zoneId touchState dx dy pressure
@@ -4233,6 +4272,9 @@ void OSCManager::resendStateToRemoteTargets()
             std::thread([this, i, msgs = std::move(messages)]()
             {
                 sendMessagesAsBundles(i, msgs);
+                // The dump carries the vis config only; follow it with the
+                // selection and rows (see resendChannelsToRemote).
+                notifyRemoteVisRefreshAsync(i);
             }).detach();
         }
     }
@@ -4249,12 +4291,31 @@ void OSCManager::resendChannelsToRemote(int targetIndex, std::vector<int> channe
     // Empty list means "resend everything" (full dump). Otherwise resend only the
     // requested channels' per-input messages. Collect on the message thread (safe
     // ValueTree read), send on a detached background thread as paced bundles.
-    auto messages = channelIds.empty() ? collectStateDumpMessages(targetIndex)
-                                       : collectChannelDumpMessages(channelIds);
-    std::thread([this, targetIndex, msgs = std::move(messages)]()
+    const bool fullDump = channelIds.empty();
+    auto messages = fullDump ? collectStateDumpMessages(targetIndex)
+                             : collectChannelDumpMessages(channelIds);
+    std::thread([this, targetIndex, fullDump, msgs = std::move(messages)]()
     {
         sendMessagesAsBundles(targetIndex, msgs);
+        // A full dump carries the vis config but no selection or rows, so a
+        // tablet that had lost the connect-time vis burst kept blank bars
+        // through every resync. Follow it with the whole vis state; a
+        // per-channel resend carries no vis data and needs none.
+        if (fullDump)
+            notifyRemoteVisRefreshAsync(targetIndex);
     }).detach();
+}
+
+void OSCManager::notifyRemoteVisRefreshAsync(int targetIndex)
+{
+    // Not onRemoteConnectionReady: that one also resends every composite
+    // delta. Raw `this`, the same lifetime assumption as the connect-time
+    // dump thread's post in onRemoteConnected.
+    juce::MessageManager::callAsync([this, targetIndex]()
+    {
+        if (onRemoteVisRefreshRequested)
+            onRemoteVisRefreshRequested(targetIndex, -1);
+    });
 }
 
 void OSCManager::sendAllInputPositionsToRemote(int targetIndex)

@@ -2479,6 +2479,23 @@ MainComponent::MainComponent()
                                       targetIndex);
     };
 
+    // Answer tablet /remote/vis/request (and the refresh that follows a full
+    // state dump) with the whole vis state, to that tablet only. View-only,
+    // like the pin: desktop selection is never touched.
+    oscManager->onRemoteVisRefreshRequested = [this](int targetIndex, int restatedPin)
+    {
+        if (calculationEngine == nullptr || oscManager == nullptr)
+            return;
+        // A restated pin names a channel BY NUMBER — the same external
+        // reference as a /remote/vis/pin, so the same latch. 0 (none) and -1
+        // (not restated) name nothing.
+        if (restatedPin > 0)
+            parameters.getValueTreeState().markChannelNumbersUserOwned ("Remote visualisation request");
+        // Config + outputArrays + selection + rows, plus this tablet's pinned
+        // rows — which is how a restated pin gets answered.
+        sendVisualisationToRemotes(targetIndex);
+    };
+
     // Send composite deltas for all inputs when a Remote client connects and initial data has been sent
     oscManager->onRemoteConnectionReady = [this](int targetIndex)
     {
@@ -6264,7 +6281,9 @@ void MainComponent::handleConfigReloaded()
         // travel through this call — without it a session load left the
         // tablet's Visualisation tab empty until the next selection change
         // (the load recalculates the matrix directly, so the timer's
-        // dirty-gated trailing send never fires either).
+        // dirty-gated trailing send never fires either). Each dump thread
+        // sends the same state again once its dump has gone out, so the rows
+        // also land after the dump rather than only racing it.
         sendVisualisationToRemotes();
     }
 
