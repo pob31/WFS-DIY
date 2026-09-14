@@ -22,9 +22,9 @@
       <Attenuation inputAttenuationLaw="0" inputDistanceAttenuation="-0.699999988079071"
                    inputDistanceRatio="1.0" inputCommonAtten="100"/>
       <Directivity inputDirectivity="360" inputRotation="0" inputTilt="0" inputHFshelf="-6.0"/>
-      <LiveSourceTamer inputLSradius="3.0" inputLSshape="0" inputLSattenuation="0.0"
-                       inputLSpeakThreshold="-20.0" inputLSpeakRatio="2.0" inputLSslowThreshold="-20.0"
-                       inputLSslowRatio="2.0"/>
+      <LiveSourceTamer inputLSactive="0" inputLSradius="3.0" inputLSshape="0" inputLSattenuation="0.0"
+                       inputLSpeakEnable="0" inputLSpeakThreshold="-20.0" inputLSpeakRatio="2.0"
+                       inputLSslowEnable="0" inputLSslowThreshold="-20.0" inputLSslowRatio="2.0"/>
       <Hackoustics inputFRactive="0" inputFRattenuation="-3.0" inputFRlowCutActive="1"
                    inputFRlowCutFreq="100" inputFRhighShelfActive="1" inputFRhighShelfFreq="3000"
                    inputFRhighShelfGain="-2.0" inputFRhighShelfSlope="0.4000000059604645"
@@ -182,9 +182,9 @@
       <Attenuation inputAttenuationLaw="0" inputDistanceAttenuation="-0.699999988079071"
                    inputDistanceRatio="1.0" inputCommonAtten="100"/>
       <Directivity inputDirectivity="360" inputRotation="0" inputTilt="0" inputHFshelf="-6.0"/>
-      <LiveSourceTamer inputLSradius="3.0" inputLSshape="0" inputLSattenuation="0.0"
-                       inputLSpeakThreshold="-20.0" inputLSpeakRatio="2.0" inputLSslowThreshold="-20.0"
-                       inputLSslowRatio="2.0"/>
+      <LiveSourceTamer inputLSactive="0" inputLSradius="3.0" inputLSshape="0" inputLSattenuation="0.0"
+                       inputLSpeakEnable="0" inputLSpeakThreshold="-20.0" inputLSpeakRatio="2.0"
+                       inputLSslowEnable="0" inputLSslowThreshold="-20.0" inputLSslowRatio="2.0"/>
       <Hackoustics inputFRactive="0" inputFRattenuation="-3.0" inputFRlowCutActive="1"
                    inputFRlowCutFreq="100" inputFRhighShelfActive="1" inputFRhighShelfFreq="3000"
                    inputFRhighShelfGain="-2.0" inputFRhighShelfSlope="0.4000000059604645"
@@ -342,9 +342,9 @@
       <Attenuation inputAttenuationLaw="0" inputDistanceAttenuation="-0.699999988079071"
                    inputDistanceRatio="1.0" inputCommonAtten="100"/>
       <Directivity inputDirectivity="360" inputRotation="0" inputTilt="0" inputHFshelf="-6.0"/>
-      <LiveSourceTamer inputLSradius="3.0" inputLSshape="0" inputLSattenuation="0.0"
-                       inputLSpeakThreshold="-20.0" inputLSpeakRatio="2.0" inputLSslowThreshold="-20.0"
-                       inputLSslowRatio="2.0"/>
+      <LiveSourceTamer inputLSactive="0" inputLSradius="3.0" inputLSshape="0" inputLSattenuation="0.0"
+                       inputLSpeakEnable="0" inputLSpeakThreshold="-20.0" inputLSpeakRatio="2.0"
+                       inputLSslowEnable="0" inputLSslowThreshold="-20.0" inputLSslowRatio="2.0"/>
       <Hackoustics inputFRactive="0" inputFRattenuation="-3.0" inputFRlowCutActive="1"
                    inputFRlowCutFreq="100" inputFRhighShelfActive="1" inputFRhighShelfFreq="3000"
                    inputFRhighShelfGain="-2.0" inputFRhighShelfSlope="0.4000000059604645"
@@ -502,9 +502,9 @@
       <Attenuation inputAttenuationLaw="0" inputDistanceAttenuation="-0.699999988079071"
                    inputDistanceRatio="1.0" inputCommonAtten="100"/>
       <Directivity inputDirectivity="360" inputRotation="0" inputTilt="0" inputHFshelf="-6.0"/>
-      <LiveSourceTamer inputLSradius="3.0" inputLSshape="0" inputLSattenuation="0.0"
-                       inputLSpeakThreshold="-20.0" inputLSpeakRatio="2.0" inputLSslowThreshold="-20.0"
-                       inputLSslowRatio="2.0"/>
+      <LiveSourceTamer inputLSactive="0" inputLSradius="3.0" inputLSshape="0" inputLSattenuation="0.0"
+                       inputLSpeakEnable="0" inputLSpeakThreshold="-20.0" inputLSpeakRatio="2.0"
+                       inputLSslowEnable="0" inputLSslowThreshold="-20.0" inputLSslowRatio="2.0"/>
       <Hackoustics inputFRactive="0" inputFRattenuation="-3.0" inputFRlowCutActive="1"
                    inputFRlowCutFreq="100" inputFRhighShelfActive="1" inputFRhighShelfFreq="3000"
                    inputFRhighShelfGain="-2.0" inputFRhighShelfSlope="0.4000000059604645"
@@ -662,9 +662,9 @@
       <Attenuation inputAttenuationLaw="0" inputDistanceAttenuation="-0.699999988079071"
                    inputDistanceRatio="1.0" inputCommonAtten="100"/>
       <Directivity inputDirectivity="360" inputRotation="0" inputTilt="0" inputHFshelf="-6.0"/>
-      <LiveSourceTamer inputLSradius="3.0" inputLSshape="0" inputLSattenuation="0.0"
-                       inputLSpeakThreshold="-20.0" inputLSpeakRatio="2.0" inputLSslowThreshold="-20.0"
-                       inputLSslowRatio="2.0"/>
+      <LiveSourceTamer inputLSactive="0" inputLSradius="3.0" inputLSshape="0" inputLSattenuation="0.0"
+                       inputLSpeakEnable="0" inputLSpeakThreshold="-20.0" inputLSpeakRatio="2.0"
+                       inputLSslowEnable="0" inputLSslowThreshold="-20.0" inputLSslowRatio="2.0"/>
       <Hackoustics inputFRactive="0" inputFRattenuation="-3.0" inputFRlowCutActive="1"
                    inputFRlowCutFreq="100" inputFRhighShelfActive="1" inputFRhighShelfFreq="3000"
                    inputFRhighShelfGain="-2.0" inputFRhighShelfSlope="0.4000000059604645"
@@ -822,9 +822,9 @@
       <Attenuation inputAttenuationLaw="0" inputDistanceAttenuation="-0.699999988079071"
                    inputDistanceRatio="1.0" inputCommonAtten="100"/>
       <Directivity inputDirectivity="360" inputRotation="0" inputTilt="0" inputHFshelf="-6.0"/>
-      <LiveSourceTamer inputLSradius="3.0" inputLSshape="0" inputLSattenuation="0.0"
-                       inputLSpeakThreshold="-20.0" inputLSpeakRatio="2.0" inputLSslowThreshold="-20.0"
-                       inputLSslowRatio="2.0"/>
+      <LiveSourceTamer inputLSactive="0" inputLSradius="3.0" inputLSshape="0" inputLSattenuation="0.0"
+                       inputLSpeakEnable="0" inputLSpeakThreshold="-20.0" inputLSpeakRatio="2.0"
+                       inputLSslowEnable="0" inputLSslowThreshold="-20.0" inputLSslowRatio="2.0"/>
       <Hackoustics inputFRactive="0" inputFRattenuation="-3.0" inputFRlowCutActive="1"
                    inputFRlowCutFreq="100" inputFRhighShelfActive="1" inputFRhighShelfFreq="3000"
                    inputFRhighShelfGain="-2.0" inputFRhighShelfSlope="0.4000000059604645"
@@ -982,9 +982,9 @@
       <Attenuation inputAttenuationLaw="0" inputDistanceAttenuation="-0.699999988079071"
                    inputDistanceRatio="1.0" inputCommonAtten="100"/>
       <Directivity inputDirectivity="360" inputRotation="0" inputTilt="0" inputHFshelf="-6.0"/>
-      <LiveSourceTamer inputLSradius="3.0" inputLSshape="0" inputLSattenuation="0.0"
-                       inputLSpeakThreshold="-20.0" inputLSpeakRatio="2.0" inputLSslowThreshold="-20.0"
-                       inputLSslowRatio="2.0"/>
+      <LiveSourceTamer inputLSactive="0" inputLSradius="3.0" inputLSshape="0" inputLSattenuation="0.0"
+                       inputLSpeakEnable="0" inputLSpeakThreshold="-20.0" inputLSpeakRatio="2.0"
+                       inputLSslowEnable="0" inputLSslowThreshold="-20.0" inputLSslowRatio="2.0"/>
       <Hackoustics inputFRactive="0" inputFRattenuation="-3.0" inputFRlowCutActive="1"
                    inputFRlowCutFreq="100" inputFRhighShelfActive="1" inputFRhighShelfFreq="3000"
                    inputFRhighShelfGain="-2.0" inputFRhighShelfSlope="0.4000000059604645"
@@ -1142,9 +1142,9 @@
       <Attenuation inputAttenuationLaw="0" inputDistanceAttenuation="-0.699999988079071"
                    inputDistanceRatio="1.0" inputCommonAtten="100"/>
       <Directivity inputDirectivity="360" inputRotation="0" inputTilt="0" inputHFshelf="-6.0"/>
-      <LiveSourceTamer inputLSradius="3.0" inputLSshape="0" inputLSattenuation="0.0"
-                       inputLSpeakThreshold="-20.0" inputLSpeakRatio="2.0" inputLSslowThreshold="-20.0"
-                       inputLSslowRatio="2.0"/>
+      <LiveSourceTamer inputLSactive="0" inputLSradius="3.0" inputLSshape="0" inputLSattenuation="0.0"
+                       inputLSpeakEnable="0" inputLSpeakThreshold="-20.0" inputLSpeakRatio="2.0"
+                       inputLSslowEnable="0" inputLSslowThreshold="-20.0" inputLSslowRatio="2.0"/>
       <Hackoustics inputFRactive="0" inputFRattenuation="-3.0" inputFRlowCutActive="1"
                    inputFRlowCutFreq="100" inputFRhighShelfActive="1" inputFRhighShelfFreq="3000"
                    inputFRhighShelfGain="-2.0" inputFRhighShelfSlope="0.4000000059604645"
