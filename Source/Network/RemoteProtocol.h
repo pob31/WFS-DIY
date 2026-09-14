@@ -35,6 +35,13 @@ namespace WFSNetwork
 //         a tablet's requests less than 250 ms apart are dropped.
 //       - a full state dump (requestResync, config reload) is followed by the
 //         same vis state; the dump itself carries only the vis config.
+//       - the vis state (config + outputArrays + selection + rows + pinned
+//         rows) is repeated to every tablet once 2 s pass with nothing sent,
+//         so it no longer goes out only on change.
+//       - /remote/vis/delays and /remote/vis/levels travel as two datagrams
+//         (one-element bundles, <= 860 B at 128 outputs + 32 reverbs) instead
+//         of one bundle, which was IP-fragmented on large rigs. Receivers
+//         already took the two independently.
 constexpr int kRemoteProtocolVersion = 4;
 
 } // namespace WFSNetwork

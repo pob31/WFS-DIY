@@ -5665,6 +5665,13 @@ void MainComponent::sendVisualisationToRemotes(int targetIndex)
                       ? vtsVis.getInputChannelNumber(inputsTab->getSelectedInputIndex())
                       : vtsVis.getInputChannelNumber(0);
 
+    // A tab slot with no channel behind it (the selected channel was deleted)
+    // resolves to 0, and tablets up to 1.0-beta_12 drop the whole selection for
+    // a primary of 0, leaving blank bars. Fall back to the first live channel;
+    // 0 then means there is no channel at all, and no selection goes out.
+    if (primary < 1)
+        primary = vtsVis.getInputChannelNumber(0);
+
     int clusterId = 0;
     std::vector<int> selection;
     if (mapTab != nullptr)
@@ -5715,7 +5722,8 @@ void MainComponent::sendVisualisationToRemotes(int targetIndex)
     // lost in the state-dump burst on lossy Wi-Fi, leaving the tablet on
     // "waiting for data" forever. Repeats are a no-op on the tablet.
     oscManager->sendRemoteVisConfig(numOutputs, numReverbs, targetIndex);
-    oscManager->sendRemoteVisSelection(primary, clusterId, selection, targetIndex);
+    if (primary >= 1)
+        oscManager->sendRemoteVisSelection(primary, clusterId, selection, targetIndex);
 
     // Rows straight from the engine matrices (max-channel stride) — independent
     // of windowVisible and of the GUI's re-strided copies.
@@ -5746,6 +5754,12 @@ void MainComponent::sendVisualisationToRemotes(int targetIndex)
         oscManager->sendRemoteVisRows(pinChannel, delays, levels, stride, numOutputs,
                                       rDelays, rLevels, rStride, numReverbs, pinTarget);
     }
+
+    // Every tablet just got the whole state, so the quiet-scene repeat can wait
+    // a full interval (selection broadcasts included). A single-target answer
+    // restarts nothing: the other tablets were not refreshed.
+    if (targetIndex < 0)
+        lastVisSendMs = juce::Time::getMillisecondCounter();
 }
 
 void MainComponent::handleAlgorithmSelectionChange(int selectedId)
@@ -8768,12 +8782,12 @@ void MainComponent::timerCallback()
         {
 
             // Copy calculated values to target arrays
-            // Note: Calculation engine uses maxOutputChannels (64) for stride,
+            // Note: Calculation engine uses maxOutputChannels (128) for stride,
             // but our local arrays use numOutputChannels (user-configured)
             const float* calcDelays = calculationEngine->getDelayTimesMs();
             const float* calcLevels = calculationEngine->getLevels();
             const float* calcHF = calculationEngine->getHFAttenuationDb();
-            const int calcStride = calculationEngine->getNumOutputs();  // maxOutputChannels (64)
+            const int calcStride = calculationEngine->getNumOutputs();  // maxOutputChannels (128)
 
             // Copy FR matrices from calculation engine
             const float* calcFRDelays = calculationEngine->getFRDelayTimesMs();
@@ -8867,11 +8881,11 @@ void MainComponent::timerCallback()
             if (windowVisible && inputsTab != nullptr)
             {
                 // Create temporary reverb arrays with correct stride for visualization
-                // Calculation engine uses maxReverbChannels (16) stride, but user may have fewer
+                // Calculation engine uses maxReverbChannels (32) stride, but user may have fewer
                 const float* calcReverbDelays = calculationEngine->getInputReverbDelayTimesMs();
                 const float* calcReverbLevels = calculationEngine->getInputReverbLevels();
                 const float* calcReverbHF = calculationEngine->getInputReverbHFAttenuationDb();
-                const int calcReverbStride = calculationEngine->getNumReverbs();  // maxReverbChannels (16)
+                const int calcReverbStride = calculationEngine->getNumReverbs();  // maxReverbChannels (32)
                 int numReverbs = parameters.getNumReverbChannels();
 
                 // Reindex reverb data with user-configured stride
@@ -8902,13 +8916,26 @@ void MainComponent::timerCallback()
         }
 
         // Drain pending tablet visualisation updates at most every visSendIntervalMs.
-        // Trailing-edge: the last recalc of a drag always goes out.
-        if (visSendPending)
+        // Trailing-edge: the last recalc of a drag always goes out. With nothing
+        // pending, repeat the current state every visKeepaliveIntervalMs: vis only
+        // went out on a matrix recalc, so a tablet that lost the connect-time burst
+        // (or any later send) kept "Waiting for data..." or blank bars until
+        // something moved. A drag drains every 100 ms, so the repeat never adds to
+        // one. Unsigned subtraction on the monotonic counter: wrap-safe.
         {
-            juce::int64 nowMs = juce::Time::currentTimeMillis();
-            if (nowMs - lastVisSendMs >= visSendIntervalMs)
+            const juce::uint32 nowMs = juce::Time::getMillisecondCounter();
+            const juce::uint32 sinceVisMs = nowMs - lastVisSendMs;
+            if ((visSendPending && sinceVisMs >= static_cast<juce::uint32>(visSendIntervalMs))
+                || sinceVisMs >= static_cast<juce::uint32>(visKeepaliveIntervalMs))
             {
-                sendVisualisationToRemotes();
+                if (oscManager != nullptr)
+                {
+                    // Nothing pending = a pure repeat: keep its selection and rows
+                    // out of the Network Log, or it buries everything else there.
+                    const WFSNetwork::OSCManager::ScopedQuietRemoteVisLog quietRepeat (*oscManager,
+                                                                                       ! visSendPending);
+                    sendVisualisationToRemotes();
+                }
                 visSendPending = false;
                 lastVisSendMs = nowMs;
             }

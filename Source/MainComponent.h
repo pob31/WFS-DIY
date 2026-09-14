@@ -402,14 +402,21 @@ private:
 
     // /remote/vis/* mirroring: matrix recalcs mark this pending; timerCallback
     // drains it at most every visSendIntervalMs (trailing edge, so the final
-    // state of a drag always goes out).
+    // state of a drag always goes out), and repeats the current state once
+    // nothing has gone to every tablet for visKeepaliveIntervalMs, so a static
+    // scene still recovers a tablet that lost a send. lastVisSendMs is on
+    // Time::getMillisecondCounter and compared by unsigned subtraction, which
+    // stays correct across the counter's ~49.7-day wrap and ignores wall-clock
+    // steps (an int64 holding that counter would stop the drain after a wrap).
     bool visSendPending = false;
-    juce::int64 lastVisSendMs = 0;
+    juce::uint32 lastVisSendMs = 0;
     static constexpr int visSendIntervalMs = 100;
+    static constexpr int visKeepaliveIntervalMs = 2000;
 
-    // Send /remote/vis/selection plus delays+levels rows for the current
-    // selection (and per-tablet pinned channels) to connected Remote targets.
-    // targetIndex == -1 sends to all. Message thread only.
+    // Send /remote/vis/config + outputArrays, /remote/vis/selection and the
+    // delays+levels rows for the current selection (and per-tablet pinned
+    // channels) to connected Remote targets. targetIndex == -1 sends to all
+    // and restarts the keepalive. Message thread only.
     void sendVisualisationToRemotes(int targetIndex = -1);
 
     // Live Source Tamer engine for per-speaker gain reduction

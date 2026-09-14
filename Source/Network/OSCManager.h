@@ -209,18 +209,23 @@ public:
 
     /**
      * Send /remote/vis/selection: the desktop's current input selection.
-     * @param primaryChannel 1-based InputsTab channel
+     * @param primaryChannel Permanent channel number of the InputsTab channel,
+     *                       never 0 (tablets up to 1.0-beta_12 drop the whole
+     *                       selection for it; the caller falls back to the
+     *                       first live channel)
      * @param clusterId Selected map cluster/barycenter (0 = none, 1-10)
-     * @param multiSelection 1-based channel IDs of the map multi-selection
+     * @param multiSelection Permanent channel numbers of the map multi-selection
      *                       (or cluster members when a cluster is selected)
      */
     void sendRemoteVisSelection(int primaryChannel, int clusterId,
                                 const std::vector<int>& multiSelection, int targetIndex = -1);
 
     /**
-     * Send one channel's visualisation rows as a /remote/vis/delays +
-     * /remote/vis/levels bundle. Arrays are the engine's flat matrices indexed
-     * (channelId-1)*stride + i; levels are linear and converted to dB here
+     * Send one channel's visualisation rows as two datagrams, a
+     * /remote/vis/delays one and a /remote/vis/levels one: each is <= 860 B at
+     * 128 outputs + 32 reverbs, so it is never IP-fragmented. Arrays are the
+     * engine's flat matrices indexed slot*stride + i, the slot resolved from
+     * the permanent channelId; levels are linear and converted to dB here
      * (clamped [-60, 0]) to match the desktop bargraph labels.
      */
     void sendRemoteVisRows(int channelId,
@@ -235,6 +240,38 @@ public:
 
     /** All (targetIndex, pinnedChannel) pairs for connected remotes with an active pin. */
     std::vector<std::pair<int, int>> getConnectedRemoteVisPins() const;
+
+    /**
+     * While alive with quiet == true, /remote/vis/* sends leave the selection
+     * and the delays/levels rows out of the Network Log; config and
+     * outputArrays are still logged, so the log keeps showing what each tablet
+     * is told about the rig. For the quiet-scene keepalive, whose unchanged
+     * repeat every 2 s (up to ~130 entries per tablet) would otherwise bury the
+     * messages being looked for. The datagrams and the sent count are
+     * unaffected. quiet == false leaves the current setting alone. Message
+     * thread only, like every /remote/vis/* send.
+     */
+    class ScopedQuietRemoteVisLog
+    {
+    public:
+        ScopedQuietRemoteVisLog (OSCManager& owner, bool quiet) noexcept
+            : manager (owner), wasQuiet (owner.remoteVisLogQuiet)
+        {
+            manager.remoteVisLogQuiet = wasQuiet || quiet;
+        }
+
+        ~ScopedQuietRemoteVisLog() noexcept
+        {
+            manager.remoteVisLogQuiet = wasQuiet;
+        }
+
+        ScopedQuietRemoteVisLog (const ScopedQuietRemoteVisLog&) = delete;
+        ScopedQuietRemoteVisLog& operator= (const ScopedQuietRemoteVisLog&) = delete;
+
+    private:
+        OSCManager& manager;
+        const bool wasQuiet;
+    };
 
     //==========================================================================
     // IP Filtering
@@ -973,6 +1010,10 @@ private:
     // Send a /remote/vis/* bundle to one connected Remote target (or all when
     // targetIndex == -1), bypassing the rate limiter.
     void sendRemoteVisBundle(const juce::OSCBundle& bundle, int targetIndex);
+
+    // Set by ScopedQuietRemoteVisLog around a keepalive repeat: sendRemoteVisBundle
+    // then logs only the config/outputArrays pair. Message thread only.
+    bool remoteVisLogQuiet = false;
 
     // Build the /remote/vis/config + /remote/vis/outputArrays pair (reads the
     // ValueTree only — safe wherever state reads are). Shared by the direct

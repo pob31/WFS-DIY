@@ -5013,9 +5013,25 @@ void OSCManager::sendRemoteVisBundle(const juce::OSCBundle& bundle, int targetIn
                 messagesSent += bundle.size();
                 for (const auto& element : bundle)
                 {
-                    if (element.isMessage())
-                        logger.logSentWithDetails(i, element.getMessage(), config.protocol,
-                                                  config.ipAddress, config.port, config.mode);
+                    if (! element.isMessage())
+                        continue;
+
+                    const auto& msg = element.getMessage();
+
+                    // Keepalive repeat (ScopedQuietRemoteVisLog): the selection and
+                    // the rows are what repeats unchanged, so only the rig
+                    // description (config + outputArrays) reaches the log.
+                    if (remoteVisLogQuiet)
+                    {
+                        const auto address = msg.getAddressPattern().toString();
+                        if (address == "/remote/vis/selection"
+                            || address == "/remote/vis/delays"
+                            || address == "/remote/vis/levels")
+                            continue;
+                    }
+
+                    logger.logSentWithDetails(i, msg, config.protocol,
+                                              config.ipAddress, config.port, config.mode);
                 }
             }
         }
@@ -5176,10 +5192,17 @@ void OSCManager::sendRemoteVisRows(int channelId,
         levels.addFloat32(haveReverb ? linearToDb(reverbLevelsLinear[row * reverbStride + r]) : -60.0f);
     }
 
-    juce::OSCBundle bundle;
-    bundle.addElement(delays);
-    bundle.addElement(levels);
-    sendRemoteVisBundle(bundle, targetIndex);
+    // Two datagrams, not one bundle: at 128 outputs + 32 reverbs the pair was
+    // 1704 B, over the 1472 B UDP payload of a 1500 B Ethernet MTU, so Wi-Fi
+    // had to deliver two IP fragments or lose the lot. Each is now <= 860 B,
+    // and receivers already take delays and levels independently.
+    juce::OSCBundle delaysBundle;
+    delaysBundle.addElement(delays);
+    sendRemoteVisBundle(delaysBundle, targetIndex);
+
+    juce::OSCBundle levelsBundle;
+    levelsBundle.addElement(levels);
+    sendRemoteVisBundle(levelsBundle, targetIndex);
 }
 
 int OSCManager::getRemoteVisPinnedChannel(int targetIndex) const

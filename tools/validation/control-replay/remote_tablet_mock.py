@@ -32,7 +32,13 @@ asserts the remote-protocol contract:
                    tablet with that same state (plus the restated pin's
                    rows) with no dump and no selection change; and a full
                    resync (checked in 5) is followed by the selection and a
-                   row pair within ~300 ms of its /remote/stateComplete
+                   row pair within ~300 ms of its /remote/stateComplete.
+                   On a quiet scene the state also repeats every 2 s; the
+                   answer checks use windows too short for that repeat to
+                   pass them. Last before 9, the rig grows over MCP to the
+                   desktop maxima (128 outputs + 32 reverbs): the counts
+                   and rows are carried in full, and no /remote/vis/*
+                   datagram exceeds a 1472 B UDP payload (no IP fragments)
   8. inventory     v4 /remote/channelList: ",i…i" = live count N followed by
                    N interleaved (number, isStereo) pairs in DISPLAY order,
                    a full-replacement snapshot carrying no sequence number.
@@ -79,6 +85,9 @@ EXPECTED_PROTOCOL_VERSION = 4
 MOCK_LISTEN_PORT = 9020        # the Remote target's networkTSport in the fixture
 APP_RX_PORT = 8000             # networkRxUDPport in the fixture
 MAX_CHANNEL_NUMBER = 64        # WFSParameterDefaults::maxInputChannels
+MAX_OUTPUTS = 128              # WFSParameterDefaults::maxOutputChannels
+MAX_REVERBS = 32               # WFSParameterDefaults::maxReverbChannels
+UDP_PAYLOAD_MAX = 1472         # 1500 B Ethernet MTU - 20 B IPv4 - 8 B UDP
 
 # Fixture channels swapped on disk to make the display order non-ascending,
 # the one typed stereo, and the channel deleted at the end. The swap may not
@@ -155,6 +164,10 @@ class MockTablet:
         # (a parallel list so every (address, typetags, args) unpacking of
         # the log keeps working).
         self.recv_times: list[float] = []
+        # (index of its first message in self.messages, UDP payload bytes) for
+        # every datagram that carried a /remote/vis/* message: the size is a
+        # property of the datagram, which the flattened log no longer has.
+        self.vis_datagrams: list[tuple[int, int]] = []
         self.lock = threading.Lock()
         self.ping_typetags: str | None = None
         self.ping_version: int | None = None
@@ -176,8 +189,12 @@ class MockTablet:
             received = time.monotonic()
             msgs = decode_packet(data)
             with self.lock:
+                start = len(self.messages)
                 self.messages.extend(msgs)
                 self.recv_times.extend([received] * len(msgs))
+                if any(address.startswith("/remote/vis/")
+                       for address, _tt, _a in msgs):
+                    self.vis_datagrams.append((start, len(data)))
             for address, typetags, args in msgs:
                 if address == "/remote/ping" and args:
                     if self.ping_typetags is None:
@@ -210,6 +227,13 @@ class MockTablet:
         with self.lock:
             return [(t,) + m for t, m in zip(self.recv_times[mark:],
                                              self.messages[mark:])]
+
+    def vis_datagram_sizes_since(self, mark: int) -> list[int]:
+        """UDP payload size of every /remote/vis/* datagram received after
+        mark (a mark() taken earlier)."""
+        with self.lock:
+            return [size for start, size in self.vis_datagrams
+                    if start >= mark]
 
     def wait_for(self, predicate, timeout: float, mark: int = 0):
         """Poll the log until predicate(messages_since_mark) returns a truthy
@@ -847,6 +871,73 @@ def main() -> int:
         # Back to follow mode before the structural checks below.
         tablet.tx.send("/remote/vis/pin", [("i", 0)])
         time.sleep(0.3)
+
+        # 7g. The desktop maxima, 128 outputs + 32 reverbs: the vis state
+        # carries the counts in full, and no /remote/vis/* datagram is larger
+        # than one UDP payload on a 1500 B Ethernet MTU. At this size the
+        # delays + levels pair used to travel as one 1704 B bundle, which
+        # Wi-Fi delivers as two IP fragments or not at all. Grown over MCP
+        # output_create / reverb_create (tier 2, refused while processing);
+        # each count change reaches the tablet through the vis broadcast in
+        # handleChannelCountChange. A count change also rebuilds the tabs, so
+        # the growth goes in batches that keep every call well inside
+        # common.py's 30 s HTTP timeout. Runs just before 9: it changes the
+        # output and reverb set.
+        mark = tablet.mark()
+        latest = find_vis_init(tablet.snapshot())
+        start_counts = latest["cfg"] if latest else (16, 1)
+        grow_batch = 32
+        for kind, have, want in (("output", start_counts[0], MAX_OUTPUTS),
+                                 ("reverb", start_counts[1], MAX_REVERBS)):
+            calls, slowest, payload = 0, 0.0, None
+            while have < want:
+                step = min(grow_batch, want - have)
+                t0 = time.monotonic()
+                _, created = app.tool_confirmed(f"{kind}_create",
+                                                {"count": step})
+                slowest = max(slowest, time.monotonic() - t0)
+                calls += 1
+                payload = tool_payload(created)
+                if not (isinstance(payload, dict)
+                        and payload.get("total") == have + step):
+                    break
+                have += step
+            check(have == want,
+                  f"MCP {kind}_create grows the rig to {want} {kind}s "
+                  f"({calls} call{'' if calls == 1 else 's'}, slowest "
+                  f"{slowest:.1f} s"
+                  + ("" if have == want else f"; stopped at {have}: {payload}")
+                  + ")")
+
+        def full_rig_vis(msgs):
+            v = find_vis_init(msgs)
+            full = [MAX_OUTPUTS, MAX_REVERBS]
+            if (v and v["cfg"] == tuple(full) and v["delays"][1:3] == full
+                    and v["levels"][1:3] == full):
+                return v
+            return None
+        big = tablet.wait_for(full_rig_vis, timeout=10.0, mark=mark)
+        check(big is not None,
+              f"vis config and rows follow the rig to {MAX_OUTPUTS} outputs "
+              f"+ {MAX_REVERBS} reverbs")
+        if big:
+            check(big["arrays"][0] == MAX_OUTPUTS
+                  and len(big["arrays"]) == 1 + MAX_OUTPUTS,
+                  f"outputArrays carries all {MAX_OUTPUTS} array ids "
+                  f"({len(big['arrays']) - 1})")
+            row_len = 3 + MAX_OUTPUTS + MAX_REVERBS
+            check(len(big["delays"]) == row_len
+                  and len(big["levels"]) == row_len,
+                  f"delays and levels rows each carry 3 + "
+                  f"{MAX_OUTPUTS + MAX_REVERBS} values "
+                  f"({len(big['delays'])} / {len(big['levels'])})")
+        # Read after the full-size rows arrived: a datagram's size is logged
+        # under the same lock as its messages.
+        sizes = tablet.vis_datagram_sizes_since(mark)
+        check(bool(sizes) and max(sizes) <= UDP_PAYLOAD_MAX,
+              f"no /remote/vis/* datagram above {UDP_PAYLOAD_MAX} B "
+              f"({len(sizes)} seen, largest "
+              f"{max(sizes) if sizes else None} B)")
 
         # ---- 9. structural change: a delete retires a number -------------
         # Runs last: it changes the channel set every check above addresses.
