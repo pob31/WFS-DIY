@@ -455,6 +455,14 @@ public:
         scope — removal only: values absent from the file cannot be re-added. */
     bool updateInputSnapshotScope (const juce::String& snapshotName, const ExtendedSnapshotScope& scope);
 
+    /** Trim every <Input> entry of a stored snapshot's <Inputs> node to the scope,
+        in place (removal only). Entries are keyed by permanent channel NUMBER and
+        the scope by live SLOT, so numberToSlot pairs them, as recall does. An entry
+        whose number no live channel carries (the ghost of a deleted channel) is
+        left whole: there is no slot to read its scope from, and recall skips it. */
+    static void trimSnapshotInputsToScope (juce::ValueTree inputs, const ExtendedSnapshotScope& scope,
+                                           const std::function<int (int)>& numberToSlot);
+
     /** Current value of the global sampler master switch (Config > UI > samplerEnabled). */
     bool isSamplerMasterOn() const;
 
@@ -721,8 +729,9 @@ private:
     bool applyInputWithExtendedScope (int channelIndex, const juce::ValueTree& inputData, const ExtendedSnapshotScope& scope);
 
     /** Remove out-of-scope values from a stored snapshot Input tree, in place.
-        Used by updateInputSnapshotScope for OnSave scopes; never adds data. */
-    void trimSnapshotInputToScope (juce::ValueTree& inputData, const ExtendedSnapshotScope& scope, int channelIndex);
+        channelIndex is the live SLOT the entry's scope is read from. Used by
+        trimSnapshotInputsToScope for OnSave scopes; never adds data. */
+    static void trimSnapshotInputToScope (juce::ValueTree& inputData, const ExtendedSnapshotScope& scope, int channelIndex);
 
     /** Serialize extended scope to ValueTree */
     juce::ValueTree serializeExtendedScope (const ExtendedSnapshotScope& scope, int numChannels) const;

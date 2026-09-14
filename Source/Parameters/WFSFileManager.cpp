@@ -1755,16 +1755,8 @@ bool WFSFileManager::updateInputSnapshotScope (const juce::String& snapshotName,
     // scope (removal only). OnRecall files keep their full data so the scope
     // can be broadened again later.
     if (scope.applyMode == ExtendedSnapshotScope::ApplyMode::OnSave)
-    {
-        auto inputsData = snapshot.getChildWithName (Inputs);
-        for (int i = 0; i < inputsData.getNumChildren(); ++i)
-        {
-            auto inputData = inputsData.getChild (i);
-            int channelIndex = static_cast<int> (inputData.getProperty (id)) - 1;
-            if (channelIndex >= 0)
-                trimSnapshotInputToScope (inputData, scope, channelIndex);
-        }
-    }
+        trimSnapshotInputsToScope (snapshot.getChildWithName (Inputs), scope,
+                                   [this] (int number) { return valueTreeState.getSlotForChannelNumber (number); });
 
     stripTransientToggles (snapshot);
     return writeToXmlFile (snapshot, file);
@@ -1903,6 +1895,23 @@ bool WFSFileManager::isPropertyCoveredBySnapshotScope (const juce::Identifier& p
             return true;
 
     return false;
+}
+
+void WFSFileManager::trimSnapshotInputsToScope (juce::ValueTree inputs, const ExtendedSnapshotScope& scope,
+                                                const std::function<int (int)>& numberToSlot)
+{
+    // The entry's scope is the one of the live channel carrying its number. Taking
+    // number - 1 as the slot, as this used to, trimmed each entry with another
+    // channel's choices once numbers had gaps (a deleted channel) or had stopped
+    // following display order (a reorder): data meant to be dropped survived and
+    // was recalled, and data meant to be kept was deleted from the file.
+    for (int i = 0; i < inputs.getNumChildren(); ++i)
+    {
+        auto inputData = inputs.getChild (i);
+        const int channelIndex = numberToSlot (static_cast<int> (inputData.getProperty (id)));
+        if (channelIndex >= 0)
+            trimSnapshotInputToScope (inputData, scope, channelIndex);
+    }
 }
 
 void WFSFileManager::trimSnapshotInputToScope (juce::ValueTree& inputData, const ExtendedSnapshotScope& scope, int channelIndex)
