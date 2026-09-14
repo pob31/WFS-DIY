@@ -1360,6 +1360,14 @@ void OSCManager::timerCallback()
 {
     auto now = juce::Time::currentTimeMillis();
 
+    // Sends the OS has refused on a target's connection so far (see
+    // RemoteConnectionState::sendErrorsAtAttemptStart).
+    auto sendErrorsOf = [this](int targetIndex) -> juce::int64
+    {
+        const auto& conn = connections[static_cast<size_t>(targetIndex)];
+        return conn != nullptr ? static_cast<juce::int64>(conn->getSendErrors()) : 0;
+    };
+
     // Poll connection statuses and handle Remote handshake/heartbeat
     for (int i = 0; i < MAX_TARGETS; ++i)
     {
@@ -1384,7 +1392,13 @@ void OSCManager::timerCallback()
             switch (remoteState.phase)
             {
                 case RemoteConnectionState::Phase::Disconnected:
-                    // Start connection attempt
+                    // Start connection attempt. The send-error baseline is taken
+                    // before the first ping is queued so the stall counts every
+                    // refusal of this attempt; stallNotified is re-armed so a
+                    // retry after Tx off/on can warn again (the UI clears its
+                    // flag on the status change).
+                    remoteState.sendErrorsAtAttemptStart = sendErrorsOf(i);
+                    remoteState.stallNotified = false;
                     sendRemotePing(i);
                     remoteState.phase = RemoteConnectionState::Phase::Connecting;
                     remoteState.lastPingSentTime = now;
@@ -1401,16 +1415,29 @@ void OSCManager::timerCallback()
                         sendRemotePing(i);
                         remoteState.lastPingSentTime = now;
 
-                        // After ~10s of unanswered pings, hint that the tablet app may
-                        // be outdated (a pre-v2 app silently ignores versioned pings).
-                        // Also fires when there is simply no tablet at that address, so
-                        // the UI must word this as a possibility, not a diagnosis.
+                        // After ~10s of unanswered pings, hint at the likely causes: no
+                        // tablet at that address, WFS Control not running, or a pre-v2
+                        // app that silently ignores versioned pings. None of them can
+                        // be told apart from here, so the UI must word this as a
+                        // possibility, not a diagnosis.
                         if (++remoteState.pingAttemptsWhileConnecting >= STALL_PING_ATTEMPTS &&
                             ! remoteState.stallNotified)
                         {
                             remoteState.stallNotified = true;
+
+                            // What can be told apart is pings the OS refused to send:
+                            // then the fault is on this machine (on macOS, typically a
+                            // denied Local Network permission). The rate limiter sends
+                            // on its next tick, so the ping just queued is not counted
+                            // yet, hence the -1. A count below the baseline means a
+                            // reconnect (new IP/port) reset it, all within this attempt.
+                            const auto errors = sendErrorsOf(i);
+                            const auto baseline = remoteState.sendErrorsAtAttemptStart;
+                            const auto refused = errors >= baseline ? errors - baseline : errors;
+                            const bool sendsFailing = refused >= STALL_PING_ATTEMPTS - 1;
+
                             if (onRemoteHandshakeStalled)
-                                onRemoteHandshakeStalled(i);
+                                onRemoteHandshakeStalled(i, sendsFailing);
                         }
                     }
                     // Ensure UI shows connecting
@@ -1422,8 +1449,12 @@ void OSCManager::timerCallback()
                     // Check for timeout (no pong received in CONNECTION_TIMEOUT_MS)
                     if (now - remoteState.lastPongReceivedTime >= CONNECTION_TIMEOUT_MS)
                     {
-                        // Timeout - disconnect and try to reconnect
+                        // Timeout - disconnect and try to reconnect. Re-take the
+                        // send-error baseline too, or refusals from a long Connected
+                        // spell (a burst the OS could not buffer) would count
+                        // against this attempt.
                         onRemoteDisconnected(i);
+                        remoteState.sendErrorsAtAttemptStart = sendErrorsOf(i);
                         sendRemotePing(i);
                         remoteState.phase = RemoteConnectionState::Phase::Connecting;
                         remoteState.lastPingSentTime = now;

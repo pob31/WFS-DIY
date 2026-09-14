@@ -9,6 +9,8 @@
     <string>WFS-DIY uses the camera for webcam head tracking in the binaural renderer.</string>
     <key>NSDocumentsFolderUsageDescription</key>
     <string>WFS-DIY saves session data (project files, snapshots, configuration) to your Documents folder.</string>
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>WFS-DIY exchanges OSC with the WFS Control tablet and other controllers on your local network.</string>
     <key>CFBundleDocumentTypes</key>
     <array>
       <dict>

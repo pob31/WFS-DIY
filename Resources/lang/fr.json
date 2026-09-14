@@ -204,7 +204,8 @@
   "network": {
     "remote": {
       "protocolMismatch": "L'application distante utilise le protocole v{remote}, v{local} attendu — mettez à jour l'application tablette",
-      "notResponding": "La télécommande ne répond pas — l'application tablette est peut-être obsolète ou injoignable"
+      "notResponding": "La télécommande ne répond pas — vérifiez l'IP/le port de la tablette, et que WFS Control est lancé et à jour",
+      "sendFailing": "L'envoi vers la tablette échoue — sur macOS, autorisez WFS-DIY dans Réglages Système › Confidentialité et sécurité › Réseau local, et vérifiez que cet ordinateur est sur le réseau de la tablette"
     },
 
     "help": {

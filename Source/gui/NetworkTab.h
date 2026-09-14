@@ -1970,6 +1970,7 @@ public:
                         // warnings; a Connected pong re-fires the mismatch callback
                         // (queued after this one) if it still applies.
                         remoteHandshakeStalled[targetIndex] = false;
+                        remoteSendsFailing[targetIndex] = false;
                         remoteProtocolMismatch[targetIndex] = false;
                     }
                     updateTargetConnectionStatus(targetIndex, status);
@@ -1992,14 +1993,16 @@ public:
             };
 
             // Repeated unanswered pings: possibly no tablet, possibly an outdated app
-            // that silently ignores versioned pings.
-            oscManager->onRemoteHandshakeStalled = [this](int targetIndex)
+            // that silently ignores versioned pings. When the pings could not even
+            // be sent, the fault is on this machine (macOS Local Network permission).
+            oscManager->onRemoteHandshakeStalled = [this](int targetIndex, bool sendsFailing)
             {
-                juce::MessageManager::callAsync([this, targetIndex]()
+                juce::MessageManager::callAsync([this, targetIndex, sendsFailing]()
                 {
                     if (targetIndex < 0 || targetIndex >= maxTargets)
                         return;
                     remoteHandshakeStalled[targetIndex] = true;
+                    remoteSendsFailing[targetIndex] = sendsFailing;
                     updateTargetConnectionStatus(targetIndex, WFSNetwork::ConnectionStatus::Connecting);
                 });
             };
@@ -2632,6 +2635,7 @@ private:
     // Remote-protocol warning state per target row (message thread only)
     bool remoteProtocolMismatch[maxTargets] = {};
     bool remoteHandshakeStalled[maxTargets] = {};
+    bool remoteSendsFailing[maxTargets] = {};   // the stalled pings were refused by the OS
     int remoteReportedVersion[maxTargets] = {};
     int remoteExpectedVersion[maxTargets] = {};
 
@@ -3739,7 +3743,17 @@ private:
         }
         else if (status == WFSNetwork::ConnectionStatus::Connecting && remoteHandshakeStalled[targetIndex])
         {
-            tooltip = LOC("network.remote.notResponding");
+            if (remoteSendsFailing[targetIndex])
+            {
+                // Red like Error rather than the waiting yellow: nothing leaves
+                // this machine, so the fix is here, not on the tablet.
+                bgColor = juce::Colour(0xFF4D1A1A);  // Dark red tint
+                tooltip = LOC("network.remote.sendFailing");
+            }
+            else
+            {
+                tooltip = LOC("network.remote.notResponding");
+            }
         }
         row.nameEditor.setTooltip(tooltip);
 

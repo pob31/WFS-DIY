@@ -303,6 +303,10 @@
       "admOsc": "Assignations ADM-OSC",
       "tracking": "Suivi"
     },
+    "remote": {
+      "notResponding": "La télécommande ne répond pas — vérifiez l'IP/le port de la tablette, et que WFS Control est lancé et à jour",
+      "sendFailing": "L'envoi vers la tablette échoue — sur macOS, autorisez WFS-DIY dans Réglages Système › Confidentialité et sécurité › Réseau local, et vérifiez que cet ordinateur est sur le réseau de la tablette"
+    },
     "labels": {
       "interface": "Interface réseau :",
       "currentIPv4": "IPv4 actuelle :",

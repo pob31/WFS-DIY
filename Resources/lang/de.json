@@ -202,6 +202,10 @@
     }
   },
   "network": {
+    "remote": {
+      "notResponding": "Remote antwortet nicht — prüfen Sie IP/Port des Tablets und ob WFS Control läuft und aktuell ist",
+      "sendFailing": "Senden an das Tablet schlägt fehl — erlauben Sie unter macOS WFS-DIY in Systemeinstellungen › Datenschutz & Sicherheit › Lokales Netzwerk, und prüfen Sie, ob dieser Computer im Netzwerk des Tablets ist"
+    },
     "help": {
       "networkInterface": "Network Interface auswählen.",
       "currentIP": "IP-Adresse des Prozessors.",

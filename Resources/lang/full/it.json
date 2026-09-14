@@ -303,6 +303,10 @@
       "admOsc": "Mappature ADM-OSC",
       "tracking": "Tracking"
     },
+    "remote": {
+      "notResponding": "Remote non risponde — controllare IP/porta del tablet e che WFS Control sia avviato e aggiornato",
+      "sendFailing": "L'invio al tablet non riesce — su macOS, consentire WFS-DIY in Impostazioni di Sistema › Privacy e sicurezza › Rete locale, e verificare che questo computer sia sulla rete del tablet"
+    },
     "labels": {
       "interface": "Interfaccia di Rete:",
       "currentIPv4": "IPv4 Corrente:",

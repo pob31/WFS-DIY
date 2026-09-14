@@ -423,7 +423,8 @@
 
     "remote": {
       "protocolMismatch": "Remote app uses protocol v{remote}, expected v{local} — update the tablet app",
-      "notResponding": "Remote not responding — the tablet app may be outdated or unreachable"
+      "notResponding": "Remote not responding — check the tablet's IP/port and that WFS Control is running and up to date",
+      "sendFailing": "Sending to the tablet fails — on macOS, allow WFS-DIY under System Settings › Privacy & Security › Local Network, and check that this computer is on the tablet's network"
     },
 
     "labels": {

@@ -303,6 +303,10 @@
       "admOsc": "ADM-OSC",
       "tracking": "트래킹"
     },
+    "remote": {
+      "notResponding": "Remote가 응답하지 않습니다 — 태블릿의 IP/포트와 WFS Control이 실행 중이고 최신 버전인지 확인하세요",
+      "sendFailing": "태블릿으로 전송하지 못하고 있습니다 — macOS에서는 시스템 설정 › 개인정보 보호 및 보안 › 로컬 네트워크에서 WFS-DIY를 허용하고, 이 컴퓨터가 태블릿과 같은 네트워크에 있는지 확인하세요"
+    },
     "labels": {
       "interface": "네트워크 인터페이스:",
       "currentIPv4": "현재 IPv4:",

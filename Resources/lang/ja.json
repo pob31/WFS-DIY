@@ -202,6 +202,10 @@
     }
   },
   "network": {
+    "remote": {
+      "notResponding": "Remoteが応答しません — タブレットのIP/ポートと、WFS Controlが起動していて最新版であることを確認してください",
+      "sendFailing": "タブレットへの送信に失敗しています — macOSでは「システム設定 › プライバシーとセキュリティ › ローカルネットワーク」でWFS-DIYを許可し、このコンピュータがタブレットと同じネットワークにあることを確認してください"
+    },
     "help": {
       "networkInterface": "Network Interfaceを選択。",
       "currentIP": "プロセッサーのIPアドレス。",

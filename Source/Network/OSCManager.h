@@ -486,9 +486,12 @@ public:
 
     /** Callback when a Remote target has been pinged repeatedly with no pong (~10 s).
      *  Likely causes: no tablet at that IP, or a pre-v2 tablet app that silently
-     *  ignores versioned pings. Fired once per connection attempt, on the message
-     *  thread; cleared when a pong finally arrives. */
-    std::function<void(int targetIndex)> onRemoteHandshakeStalled;
+     *  ignores versioned pings. sendsFailing is true when the OS refused nearly
+     *  every one of those pings rather than sending it unanswered: the fault is
+     *  then on this machine, typically macOS's Local Network permission. Fired
+     *  once per connection attempt, on the message thread; cleared when a pong
+     *  finally arrives. */
+    std::function<void(int targetIndex, bool sendsFailing)> onRemoteHandshakeStalled;
 
     /** Callback when a remote pad touch event is received.
      *  Args: zoneId, touchState (0=UP, 1=DOWN, 2=MOVE), dx, dy, pressure */
@@ -932,10 +935,16 @@ private:
         // tablet that sent a version-less ",i" pong).
         int reportedProtocolVersion = 0;
         // Handshake-stall detection: counts pings sent without a pong so the UI can
-        // hint that the tablet app may be outdated (a v1 tablet silently ignores
-        // v2 ",ii" pings and will never answer).
+        // hint at what is wrong (no tablet at that address, or a v1 tablet that
+        // silently ignores v2 ",ii" pings and will never answer).
         int pingAttemptsWhileConnecting = 0;
         bool stallNotified = false;
+        // The connection's send-error count when this connection attempt began,
+        // so the stall can tell pings that went out unanswered from pings the OS
+        // refused to send at all. On macOS a denied Local Network permission makes
+        // every send to the LAN fail (EHOSTUNREACH); without this count it looks
+        // like any other silent tablet.
+        juce::int64 sendErrorsAtAttemptStart = 0;
         // Visualisation channel pinned by this tablet via /remote/vis/pin
         // (0 = follow mode). Reset on connect/disconnect; the tablet is the
         // pin authority and restates it — after reconnecting, and in the

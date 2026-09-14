@@ -202,6 +202,10 @@
     }
   },
   "network": {
+    "remote": {
+      "notResponding": "Remote 无响应 — 请检查平板电脑的 IP/端口，并确认 WFS Control 正在运行且为最新版本",
+      "sendFailing": "向平板电脑发送失败 — 在 macOS 上，请在“系统设置 › 隐私与安全性 › 本地网络”中允许 WFS-DIY，并确认这台电脑与平板电脑位于同一网络"
+    },
     "help": {
       "networkInterface": "选择Network Interface。",
       "currentIP": "处理器的 IP 地址。",

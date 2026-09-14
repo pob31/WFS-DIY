@@ -303,6 +303,10 @@
       "admOsc": "Asignaciones ADM-OSC",
       "tracking": "Seguimiento"
     },
+    "remote": {
+      "notResponding": "Remote no responde — compruebe la IP/puerto de la tableta y que WFS Control esté abierto y actualizado",
+      "sendFailing": "El envío a la tableta falla — en macOS, permita WFS-DIY en Ajustes del Sistema › Privacidad y seguridad › Red local, y compruebe que este ordenador está en la red de la tableta"
+    },
     "labels": {
       "interface": "Interfaz de red:",
       "currentIPv4": "IPv4 actual:",
