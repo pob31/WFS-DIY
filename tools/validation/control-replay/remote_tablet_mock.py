@@ -9,7 +9,7 @@ asserts the remote-protocol contract:
                    /remote/channelList inventory whose numbers are EXACTLY
                    the channels the body names — no more, no less — and every
                    one of them has a name + position; the selected-channel
-                   detailed block (~95 msgs for channel 1) precedes the marker
+                   detailed block (~80 msgs for channel 1) precedes the marker
   3. race          a gesture blast while a full dump is being collected/sent
                    must not swallow the dump (regression for the old
                    incomingProtocol early-return in sendMessagesAsBundles)
@@ -61,6 +61,17 @@ asserts the remote-protocol contract:
                    /remote/channelList replaces the inventory, the gap it
                    leaves survives into the next full dump, and the highest
                    live number now runs past the live count
+ 10. array atten   the ten per-input array levels (/remoteInput/arrayAtten1..10,
+                   ",if"), seeded on disk for channels 4 and 6: the full dump,
+                   a per-channel resync and the selection dump carry all ten
+                   at their file values; a tablet write lands in the state
+                   (read back over OSCQuery), is range-checked, clamps on
+                   dec, reaches the plain-OSC target as /wfs/input/arrayAttenN
+                   and is not echoed to the tablet; a desktop edit of the
+                   selected channel reaches the tablet; and after a snapshot
+                   store + recall no number reaches the tablet as ",is" (the
+                   recalled values are text in the tree) before the resync
+                   dump. Runs after 7f, before the rig grows in 7g
 
 Stdlib-only, follows the control-replay harness conventions (common.py).
 Exit codes: 0 pass, 1 mismatch, 2 usage, 3 app failed to start.
@@ -84,7 +95,7 @@ from pathlib import Path
 
 from common import (EXIT_MISMATCH, EXIT_PASS, App, OSCSender,
                     copy_fixture_to_temp, find_exe, fixture_wfs,
-                    kill_stale_instances, tool_payload)
+                    kill_stale_instances, oscquery_get, tool_payload)
 
 EXPECTED_PROTOCOL_VERSION = 4
 MOCK_LISTEN_PORT = 9020        # the Remote target's networkTSport in the fixture
@@ -104,6 +115,13 @@ VIS_KEEPALIVE_S = 2.0          # MainComponent::visKeepaliveIntervalMs
 REORDER_SWAP = (5, 7)
 STEREO_CHANNEL = 7
 DELETED_CHANNEL = 3
+
+# Array levels seeded on disk, (channel, array) -> dB; every other level of
+# every channel stays at the fixture's 0.0. Channels 4 and 6 are touched by no
+# other patch or check. ARRAY_CHANNEL is the one section 10 selects and edits.
+ARRAY_SEEDS = {(4, 3): -12.25, (4, 7): -3.5, (6, 10): -60.0}
+ARRAY_CHANNEL = 4
+OSC_TARGET_PORT = 9010         # the fixture's plain-OSC target ("replay-target")
 
 
 # ---------------------------------------------------------------------------
@@ -433,9 +451,54 @@ def make_stereo_input_channel(project_dir: Path, number: int) -> None:
     system.write_text(_retag(text, entry, "type", "stereo"), encoding="utf-8")
 
 
+def seed_array_sends(project_dir: Path) -> None:
+    """Give a few array levels non-default values in the temp fixture's
+    inputs.xml (ARRAY_SEEDS), so the dump checks can tell a value loaded from
+    the file from the 0.0 default a dropped or zeroed level would read."""
+    inputs = project_dir / "inputs.xml"
+    text = inputs.read_text(encoding="utf-8")
+    for (channel, array), db in ARRAY_SEEDS.items():
+        node = next((m for m in _INPUT_NODE_RE.finditer(text)
+                     if int(m.group(1)) == channel), None)
+        mutes = (re.search(r"<Mutes\b[^>]*>", node.group(0))
+                 if node is not None else None)
+        if mutes is None or f'inputArrayAtten{array}="' not in mutes.group(0):
+            print(f"[remote-mock] fixture inputs.xml has no <Mutes "
+                  f"inputArrayAtten{array}> on <Input id=\"{channel}\">; "
+                  "cannot seed the array levels", file=sys.stderr)
+            raise SystemExit(EXIT_MISMATCH)
+        start = node.start() + mutes.start()
+        tag = re.compile(r"<Mutes\b[^>]*>").match(text, start)
+        text = _retag(text, tag, f"inputArrayAtten{array}", f"{db:.2f}")
+    inputs.write_text(text, encoding="utf-8")
+
+
 # ---------------------------------------------------------------------------
 # Dump analysis helpers
 # ---------------------------------------------------------------------------
+
+_ARRAY_ATTEN_RE = re.compile(r"/remoteInput/arrayAtten(\d+)$")
+
+
+def array_levels(messages, channel: int) -> dict[int, tuple[str, object]]:
+    """{array: (typetags, value)} of the last /remoteInput/arrayAttenN seen
+    for `channel` (last one wins, like the tablet)."""
+    levels: dict[int, tuple[str, object]] = {}
+    for address, typetags, args in messages:
+        m = _ARRAY_ATTEN_RE.match(address)
+        if m and len(args) >= 2 and args[0] == channel:
+            levels[int(m.group(1))] = (typetags, args[1])
+    return levels
+
+
+def wrong_array_levels(levels: dict[int, tuple[str, object]],
+                       channel: int) -> list[int]:
+    """Arrays of `channel` whose level is missing, not ",if", or not the
+    seeded / default value."""
+    return [n for n in range(1, 11)
+            if n not in levels or levels[n][0] != ",if"
+            or not isinstance(levels[n][1], float)
+            or abs(levels[n][1] - ARRAY_SEEDS.get((channel, n), 0.0)) > 1e-3]
 
 def find_dump(messages, after_seq: int | None = None):
     """Locate a complete dumpBegin..stateComplete cycle. Returns dict or None."""
@@ -542,10 +605,14 @@ def main() -> int:
     make_diverged_shared_cluster(project_dir)
     display_order = reorder_input_channels(project_dir, *REORDER_SWAP)
     make_stereo_input_channel(project_dir, STEREO_CHANNEL)
+    seed_array_sends(project_dir)
     print(f"[remote-mock] fixture display order {display_order}, "
-          f"channel {STEREO_CHANNEL} stereo")
+          f"channel {STEREO_CHANNEL} stereo, array levels {ARRAY_SEEDS}")
 
     tablet = MockTablet()
+    # The fixture's plain-OSC target, to see what the desktop sends OSC
+    # controllers (a MockTablet only for its logging: nothing pings there)
+    osc_target = MockTablet(listen_port=OSC_TARGET_PORT)
     app = App(exe, fixture_wfs(project_dir))
     try:
         app.wait_for_mcp()
@@ -923,7 +990,8 @@ def main() -> int:
 
         # 7f. The tablet draws every channel's stereo spread bar and marker
         # colour on its map, so a desktop edit of a channel it has NOT
-        # selected (1 here: the mock never sends /remoteInput/inputNumber)
+        # selected (1 here: no /remoteInput/inputNumber has been sent yet;
+        # section 10, next, is the first to select a channel)
         # must still reach it, typed by the parameter rather than by the
         # stored var: width ",if", axis offset, axis lock and colour ",ii".
         # They used to follow the selection only. Sent as plain OSC, the
@@ -968,6 +1036,182 @@ def main() -> int:
               f"colour of channel 5, neither selected, reach the tablet as "
               f"numbers (,if / ,ii / ,ii / ,ii; got "
               f"{echoed or last_map_state(tablet.since(mark))})")
+
+        # ---- 10. per-input array attenuation ----------------------------
+        # Runs here, before 7g grows the rig and 9 deletes a channel, and
+        # after every check that relies on no channel being selected.
+        def oscquery_level(array: int) -> float | None:
+            try:
+                value = oscquery_get(f"/wfs/input/{ARRAY_CHANNEL}/arrayAtten{array}")
+                # A value loaded from XML can come back as a string
+                return float(value[0]) if isinstance(value, list) and value else None
+            except (OSError, ValueError, TypeError, IndexError):
+                return None
+
+        def wait_level(array: int, expected: float, timeout: float = 3.0):
+            deadline = time.monotonic() + timeout
+            level = oscquery_level(array)
+            while time.monotonic() < deadline:
+                if level is not None and abs(level - expected) < eps:
+                    return level
+                time.sleep(0.1)
+                level = oscquery_level(array)
+            return level
+
+        # 10a. Every channel's ten levels ride the full dump as ",if", the
+        # seeded ones at their inputs.xml values, and a per-channel resync.
+        if dump5:
+            inv5, _raw5 = latest_channel_list(dump5["body"])
+            numbers5 = [c for c, _s in inv5] if inv5 else display_order
+            wrong = {ch: w for ch in numbers5
+                     if (w := wrong_array_levels(array_levels(dump5["body"], ch), ch))}
+            check(not wrong,
+                  f"full dump carries arrayAtten1..10 as ,if for every channel, "
+                  f"the seeded ones at their file values (wrong arrays: {wrong})")
+        mark = tablet.mark()
+        tablet.tx.send("/remote/requestResync", [("i", 4), ("i", 6)])
+        resent = tablet.wait_for(
+            lambda msgs: (msgs if len(array_levels(msgs, 4)) == 10
+                          and len(array_levels(msgs, 6)) == 10 else None),
+            timeout=10.0, mark=mark)
+        check(resent is not None
+              and not wrong_array_levels(array_levels(resent, 4), 4)
+              and not wrong_array_levels(array_levels(resent, 6), 6),
+              "requestResync [4, 6] resends both channels' ten levels as ,if")
+
+        # 10b. Selecting a channel sends its ten levels with the rest.
+        time.sleep(0.5)
+        mark = tablet.mark()
+        tablet.tx.send("/remoteInput/inputNumber", [("i", ARRAY_CHANNEL)])
+        selected = tablet.wait_for(
+            lambda msgs: (msgs if len(array_levels(msgs, ARRAY_CHANNEL)) == 10
+                          else None),
+            timeout=10.0, mark=mark)
+        check(selected is not None
+              and not wrong_array_levels(array_levels(selected, ARRAY_CHANNEL),
+                                         ARRAY_CHANNEL),
+              f"selecting channel {ARRAY_CHANNEL} sends its ten levels as ,if "
+              f"({array_levels(tablet.since(mark), ARRAY_CHANNEL)})")
+        time.sleep(0.5)  # let the selection dump drain
+
+        # 10c. A tablet write lands, reaches OSC controllers, is not echoed to
+        # tablets, is range-checked, and a dec clamps at the floor.
+        mark = tablet.mark()
+        mark_osc = osc_target.mark()
+        tablet.tx.send("/remoteInput/arrayAtten5",
+                       [("i", ARRAY_CHANNEL), ("f", -18.5)])
+        level = wait_level(5, -18.5)
+        check(level is not None and abs(level + 18.5) < eps,
+              f"a tablet write of arrayAtten5 -18.5 on channel {ARRAY_CHANNEL} "
+              f"lands in the desktop state (OSCQuery reads {level})")
+        forwarded = osc_target.wait_for(
+            lambda msgs: any(adr == "/wfs/input/arrayAtten5" and tt == ",if"
+                             and a[0] == ARRAY_CHANNEL and abs(a[1] + 18.5) < eps
+                             for adr, tt, a in msgs),
+            timeout=3.0, mark=mark_osc)
+        check(forwarded is not None,
+              f"and reaches the plain-OSC target as /wfs/input/arrayAtten5 ,if "
+              f"{ARRAY_CHANNEL} -18.5")
+        time.sleep(0.6)
+        check(not any(adr == "/remoteInput/arrayAtten5"
+                      for adr, _tt, _a in tablet.since(mark)),
+              "and is not echoed back to the tablet")
+        for refused in (-75.0, 3.0):
+            tablet.tx.send("/remoteInput/arrayAtten5",
+                           [("i", ARRAY_CHANNEL), ("f", refused)])
+        time.sleep(0.6)
+        level = oscquery_level(5)
+        check(level is not None and abs(level + 18.5) < eps,
+              f"tablet writes of -75 and +3 are refused (still {level})")
+        tablet.tx.send("/remoteInput/arrayAtten5",
+                       [("i", ARRAY_CHANNEL), ("s", "dec"), ("f", 100.0)])
+        level = wait_level(5, -60.0)
+        check(level is not None and abs(level + 60.0) < eps,
+              f"a tablet dec of 100 dB clamps at -60 ({level})")
+
+        # 10d. A desktop-side edit of the selected channel reaches the tablet
+        # (plain OSC stands in for it, as in 7f), and an OSC-origin edit goes
+        # back to no OSC target.
+        mark = tablet.mark()
+        mark_osc = osc_target.mark()
+        desk = OSCSender(port=APP_RX_PORT, delay=0.0)
+        desk.send("/wfs/input/arrayAtten2", [("i", ARRAY_CHANNEL), ("f", -7.25)])
+        echo = tablet.wait_for(
+            lambda msgs: array_levels(msgs, ARRAY_CHANNEL).get(2), timeout=3.0,
+            mark=mark)
+        check(echo is not None and echo[0] == ",if" and abs(echo[1] + 7.25) < eps,
+              f"a desktop edit of channel {ARRAY_CHANNEL}'s arrayAtten2 reaches "
+              f"the tablet as ,if -7.25 ({echo})")
+        time.sleep(0.5)
+        check(not any(adr == "/wfs/input/arrayAtten2"
+                      for adr, _tt, _a in osc_target.since(mark_osc)),
+              "an OSC-origin edit is not sent back to the OSC target")
+
+        # 10e. A snapshot recall writes the stored values into the tree as
+        # text; the selected channel's echoes must still carry numbers (",is"
+        # used to reach the tablet as 0) before the resync dump that follows
+        # the recall. The snapshot file on disk is the ground truth.
+        desk.send("/wfs/input/attenuation", [("i", ARRAY_CHANNEL), ("f", -12.5)])
+        time.sleep(0.3)
+        desk.send("/wfs/input/snapshot/store", [("s", "aa-mock")])
+        snap_file = project_dir / "snapshots" / "inputs" / "aa-mock.xml"
+        deadline = time.monotonic() + 5.0
+        while not snap_file.exists() and time.monotonic() < deadline:
+            time.sleep(0.1)
+        stored = {}
+        if snap_file.exists():
+            time.sleep(0.2)  # let the write finish
+            snap_text = snap_file.read_text(encoding="utf-8")
+            node = next((m.group(0) for m in _INPUT_NODE_RE.finditer(snap_text)
+                         if int(m.group(1)) == ARRAY_CHANNEL), "")
+            for attr in ("inputAttenuation", "inputArrayAtten2"):
+                m = re.search(rf'\b{attr}="([^"]*)"', node)
+                stored[attr] = float(m.group(1)) if m else None
+        check(stored.get("inputAttenuation") == -12.5
+              and stored.get("inputArrayAtten2") == -7.25,
+              f"/wfs/input/snapshot/store saves channel {ARRAY_CHANNEL}'s "
+              f"attenuation and arrayAtten2 ({snap_file.name}: {stored})")
+
+        desk.send("/wfs/input/attenuation", [("i", ARRAY_CHANNEL), ("f", 0.0)])
+        desk.send("/wfs/input/arrayAtten2", [("i", ARRAY_CHANNEL), ("f", 0.0)])
+        time.sleep(0.5)
+        mark = tablet.mark()
+        desk.send("/wfs/input/snapshot/load", [("s", "aa-mock")])
+        desk.close()
+        dump10 = tablet.wait_for(
+            lambda msgs: find_dump(msgs, after_seq=last_seq), timeout=20.0,
+            mark=mark)
+        if dump10:
+            last_seq = dump10["seq"]
+        recall = tablet.since(mark)
+        begin = next((k for k, (adr, _tt, _a) in enumerate(recall)
+                      if adr == "/remote/dumpBegin"), len(recall))
+        echoes = recall[:begin]
+        as_text = [(adr, a) for adr, tt, a in echoes
+                   if adr.startswith("/remoteInput/") and tt == ",is"
+                   and adr not in ("/remoteInput/inputName",
+                                   "/remoteInput/mutes",
+                                   "/remoteInput/muteMacro")]
+        check(dump10 is not None and not as_text,
+              f"the recall's echoes before its resync carry no number as ,is "
+              f"({len(echoes)} messages; as text: {as_text[:6]})")
+
+        def last_echo(address):
+            got = None
+            for adr, tt, a in echoes:
+                if adr == address and len(a) >= 2 and a[0] == ARRAY_CHANNEL:
+                    got = (tt, a[1])
+            return got
+        att = last_echo("/remoteInput/attenuation")
+        lvl = last_echo("/remoteInput/arrayAtten2")
+        check(att is not None and att[0] == ",if" and abs(att[1] + 12.5) < eps
+              and lvl is not None and lvl[0] == ",if" and abs(lvl[1] + 7.25) < eps,
+              f"and bring channel {ARRAY_CHANNEL}'s attenuation -12.5 and "
+              f"arrayAtten2 -7.25 back as ,if (got {att} / {lvl})")
+        level = oscquery_level(2)
+        check(level is not None and abs(level + 7.25) < eps,
+              f"the recall restored arrayAtten2 -7.25 in the desktop state "
+              f"(OSCQuery reads {level})")
 
         # 7g. The desktop maxima, 128 outputs + 32 reverbs: the vis state
         # carries the counts in full, and no /remote/vis/* datagram is larger
@@ -1111,6 +1355,7 @@ def main() -> int:
     finally:
         graceful = app.close()
         tablet.close()
+        osc_target.close()
         if not opts.keep_temp and graceful and not failures:
             shutil.rmtree(work_root, ignore_errors=True)
         else:
