@@ -42,6 +42,11 @@ namespace WFSNetwork
 //         (one-element bundles, <= 860 B at 128 outputs + 32 reverbs) instead
 //         of one bundle, which was IP-fragmented on large rigs. Receivers
 //         already took the two independently.
+//       - /remoteInput/stereoWidth, stereoAxisOffset, stereoAxisLock and
+//         inputColour echo a desktop edit for EVERY channel, not only the
+//         tablet's selected one, always as numbers typed by the parameter
+//         (",if" width, ",ii" the other three), even after a load left the
+//         stored value a string.
 constexpr int kRemoteProtocolVersion = 4;
 
 } // namespace WFSNetwork

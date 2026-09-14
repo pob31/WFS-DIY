@@ -1145,7 +1145,8 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
         }
         else if (config.protocol == Protocol::Remote)
         {
-            // REMOTE protocol - send position changes for any input, other params only for selected channel
+            // REMOTE protocol - send position changes and the map state below for any input,
+            // other params only for selected channel
             if (isInput)
             {
                 // Position X/Y parameters are buffered and sent as combined XY messages for smooth movement
@@ -1153,12 +1154,37 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
                                      property == WFSParameterIDs::inputPositionY);
                 bool isPositionZ = (property == WFSParameterIDs::inputPositionZ);
                 bool isCluster = (property == WFSParameterIDs::inputCluster);
+                // Per-channel state the tablet draws for EVERY channel on its map (the
+                // stereo spread bar, the marker colour), not only for the one it has
+                // selected: gated on the selection, a desktop edit of any other channel
+                // left that channel's bar or marker stale until the next full dump
+                bool isMapChannelState = (property == WFSParameterIDs::inputStereoWidth ||
+                                          property == WFSParameterIDs::inputStereoAxisOffset ||
+                                          property == WFSParameterIDs::inputStereoAxisLock ||
+                                          property == WFSParameterIDs::inputColour);
 
                 if (isPositionXY)
                 {
                     // Buffer X/Y for combined sending - handled outside the target loop
                     // (we only need to buffer once, not per-target)
                     break;  // Exit target loop - buffering handled below
+                }
+                else if (isMapChannelState)
+                {
+                    // Type tag from the PARAMETER, not the var, as appendInputMessages
+                    // does: after a load or a snapshot recall the var is a string, which
+                    // the branch below sends as ",is" and the tablet stores as 0 - a 0 m
+                    // width, a black marker
+                    if (WFSVar::isNumeric (value))
+                    {
+                        const auto bounds = WFSNetwork::getBounds (property);
+                        auto msg = (bounds && bounds->isInt)
+                            ? OSCMessageBuilder::buildRemoteOutputIntMessage (property, channelId, varToInt (value))
+                            : OSCMessageBuilder::buildRemoteOutputMessage (property, channelId, varToFloat (value));
+
+                        if (msg.has_value())
+                            sendMessage(i, *msg);
+                    }
                 }
                 else if (isPositionZ || isCluster || channelId == remoteSelectedChannel)
                 {

@@ -35,7 +35,11 @@ asserts the remote-protocol contract:
                    row pair within ~300 ms of its /remote/stateComplete.
                    On a quiet scene the state also repeats every 2 s; the
                    answer checks use windows too short for that repeat to
-                   pass them. Last before 9, the rig grows over MCP to the
+                   pass them. A desktop edit of a channel the tablet has
+                   NOT selected still reaches it for the state its map
+                   draws for every channel — stereo width, axis offset,
+                   axis lock and colour — typed by the parameter (",if" /
+                   ",ii"). Last before 9, the rig grows over MCP to the
                    desktop maxima (128 outputs + 32 reverbs): the counts
                    and rows are carried in full, and no /remote/vis/*
                    datagram exceeds a 1472 B UDP payload (no IP fragments)
@@ -871,6 +875,54 @@ def main() -> int:
         # Back to follow mode before the structural checks below.
         tablet.tx.send("/remote/vis/pin", [("i", 0)])
         time.sleep(0.3)
+
+        # 7f. The tablet draws every channel's stereo spread bar and marker
+        # colour on its map, so a desktop edit of a channel it has NOT
+        # selected (1 here: the mock never sends /remoteInput/inputNumber)
+        # must still reach it, typed by the parameter rather than by the
+        # stored var: width ",if", axis offset, axis lock and colour ",ii".
+        # They used to follow the selection only. Sent as plain OSC, the
+        # stand-in for a desktop edit: the echo skips the protocol a write
+        # arrived on, so a /remoteInput/ write would reach no tablet at all.
+        mark = tablet.mark()
+        map_edit = OSCSender(port=APP_RX_PORT, delay=0.0)
+        map_edit.send("/wfs/input/stereoWidth",
+                      [("i", STEREO_CHANNEL), ("f", 6.5)])
+        map_edit.send("/wfs/input/stereoAxisOffset",
+                      [("i", STEREO_CHANNEL), ("i", 45)])
+        map_edit.send("/wfs/input/stereoAxisLock",
+                      [("i", STEREO_CHANNEL), ("i", 1)])
+        map_edit.send("/wfs/input/colour", [("i", 5), ("i", 0x346DC5)])
+        map_edit.close()
+        # address -> (channel, typetags, value)
+        want_map_state = {
+            "/remoteInput/stereoWidth": (STEREO_CHANNEL, ",if", 6.5),
+            "/remoteInput/stereoAxisOffset": (STEREO_CHANNEL, ",ii", 45),
+            "/remoteInput/stereoAxisLock": (STEREO_CHANNEL, ",ii", 1),
+            "/remoteInput/inputColour": (5, ",ii", 0x346DC5),
+        }
+
+        def last_map_state(msgs):
+            seen = {}
+            for adr, tt, a in msgs:
+                if (adr in want_map_state and len(a) >= 2
+                        and a[0] == want_map_state[adr][0]):
+                    seen[adr] = (tt, a[1])
+            return seen
+
+        def map_state_echoed(msgs):
+            seen = last_map_state(msgs)
+            ok = all(adr in seen and seen[adr][0] == tags
+                     and isinstance(seen[adr][1], (int, float))
+                     and abs(seen[adr][1] - value) < eps
+                     for adr, (_ch, tags, value) in want_map_state.items())
+            return seen if ok else None
+        echoed = tablet.wait_for(map_state_echoed, timeout=3.0, mark=mark)
+        check(echoed is not None,
+              f"stereo width/axis/lock of channel {STEREO_CHANNEL} and the "
+              f"colour of channel 5, neither selected, reach the tablet as "
+              f"numbers (,if / ,ii / ,ii / ,ii; got "
+              f"{echoed or last_map_state(tablet.since(mark))})")
 
         # 7g. The desktop maxima, 128 outputs + 32 reverbs: the vis state
         # carries the counts in full, and no /remote/vis/* datagram is larger
