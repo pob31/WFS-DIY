@@ -771,6 +771,11 @@ OSCQueryServer::ParamRange OSCQueryServer::getParamRange(const juce::Identifier&
     if (paramId == inputOtomoPhi)            return { inputOtomoPhiMin, inputOtomoPhiMax, true };
 
     if (paramId == inputMuteMacro)           return { 0, 4, true };
+    if (paramId == inputArrayAtten1 || paramId == inputArrayAtten2 || paramId == inputArrayAtten3
+        || paramId == inputArrayAtten4 || paramId == inputArrayAtten5 || paramId == inputArrayAtten6
+        || paramId == inputArrayAtten7 || paramId == inputArrayAtten8 || paramId == inputArrayAtten9
+        || paramId == inputArrayAtten10)
+        return { inputArrayAttenMin, inputArrayAttenMax, true };
     if (paramId == inputSidelinesActive)     return { 0, 1, true };
     if (paramId == inputSidelinesFringe)     return { inputSidelinesFringeMin, inputSidelinesFringeMax, true };
     if (paramId == inputSamplerActive)       return { 0, 1, true };

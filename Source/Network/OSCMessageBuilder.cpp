@@ -122,6 +122,18 @@ const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBui
         { WFSParameterIDs::inputMutes,           { "/wfs/input/mutes",            "/remoteInput/mutes" } },
         { WFSParameterIDs::inputMuteMacro,       { "/wfs/input/muteMacro",        "/remoteInput/muteMacro" } },
 
+        // Array Attenuation (per-input send level to each output array)
+        { WFSParameterIDs::inputArrayAtten1,     { "/wfs/input/arrayAtten1",      "/remoteInput/arrayAtten1" } },
+        { WFSParameterIDs::inputArrayAtten2,     { "/wfs/input/arrayAtten2",      "/remoteInput/arrayAtten2" } },
+        { WFSParameterIDs::inputArrayAtten3,     { "/wfs/input/arrayAtten3",      "/remoteInput/arrayAtten3" } },
+        { WFSParameterIDs::inputArrayAtten4,     { "/wfs/input/arrayAtten4",      "/remoteInput/arrayAtten4" } },
+        { WFSParameterIDs::inputArrayAtten5,     { "/wfs/input/arrayAtten5",      "/remoteInput/arrayAtten5" } },
+        { WFSParameterIDs::inputArrayAtten6,     { "/wfs/input/arrayAtten6",      "/remoteInput/arrayAtten6" } },
+        { WFSParameterIDs::inputArrayAtten7,     { "/wfs/input/arrayAtten7",      "/remoteInput/arrayAtten7" } },
+        { WFSParameterIDs::inputArrayAtten8,     { "/wfs/input/arrayAtten8",      "/remoteInput/arrayAtten8" } },
+        { WFSParameterIDs::inputArrayAtten9,     { "/wfs/input/arrayAtten9",      "/remoteInput/arrayAtten9" } },
+        { WFSParameterIDs::inputArrayAtten10,    { "/wfs/input/arrayAtten10",     "/remoteInput/arrayAtten10" } },
+
         // Sidelines
         { WFSParameterIDs::inputSidelinesActive, { "/wfs/input/sidelinesEnable",  "/remoteInput/sidelinesActive" } },
         { WFSParameterIDs::inputSidelinesFringe, { "/wfs/input/sidelinesFringe",  "/remoteInput/sidelinesFringe" } },
