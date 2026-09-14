@@ -256,14 +256,33 @@ def make_diverged_shared_cluster(project_dir: Path) -> None:
     inputs.write_text(text, encoding="utf-8")
 
 
-_INPUT_NODE_RE = re.compile(r'[ \t]*<Input id="(\d+)">.*?</Input>\r?\n', re.S)
+# The opening tag carries attributes after the id since the channel model
+# (inputChannelType, and the hwInputs fingerprint a save stamps), so match up
+# to the tag's own '>' rather than a bare <Input id="N">.
+_INPUT_NODE_RE = re.compile(r'[ \t]*<Input id="(\d+)"[^>]*>.*?</Input>\r?\n',
+                            re.S)
+
+# system.xml's <InputChannelList> states the same list as the <Input> nodes —
+# number, type and display order. A project load cross-checks the two files
+# and stops on a confirmation dialog, which nothing here can answer, as soon
+# as they disagree beyond order, so every patch to the nodes is mirrored in
+# the inventory.
+_INVENTORY_CH_RE = re.compile(r'<Ch n="(\d+)"[^>]*/>')
+
+
+def _swap_spans(text: str, m1: re.Match, m2: re.Match) -> str:
+    first, second = sorted((m1, m2), key=lambda m: m.start())
+    return (text[:first.start()] + second.group(0)
+            + text[first.end():second.start()] + first.group(0)
+            + text[second.end():])
 
 
 def reorder_input_channels(project_dir: Path, a: int, b: int) -> list[int]:
-    """Swap two <Input> nodes in the temp fixture and return the resulting
-    display order. Tree order IS the display order while the permanent numbers
-    stay put, so the loaded project's channel list is not in ascending order —
-    the state a desktop drag-reorder saves.
+    """Swap two <Input> nodes in the temp fixture, and the matching entries of
+    system.xml's channel inventory, and return the resulting display order.
+    Tree order IS the display order while the permanent numbers stay put, so
+    the loaded project's channel list is not in ascending order — the state a
+    desktop drag-reorder saves.
 
     Patched on disk because nothing can drive a live reorder: moveInputChannel
     is reachable only from the channel-list dialog, with no OSC address and no
@@ -282,38 +301,63 @@ def reorder_input_channels(project_dir: Path, a: int, b: int) -> list[int]:
         raise SystemExit(EXIT_MISMATCH)
 
     ia, ib = order.index(a), order.index(b)
-    first, second = sorted((nodes[ia], nodes[ib]), key=lambda m: m.start())
-    text = (text[:first.start()] + second.group(0)
-            + text[first.end():second.start()] + first.group(0)
-            + text[second.end():])
-    inputs.write_text(text, encoding="utf-8")
+    inputs.write_text(_swap_spans(text, nodes[ia], nodes[ib]),
+                      encoding="utf-8")
+
+    system = project_dir / "system.xml"
+    text = system.read_text(encoding="utf-8")
+    entries = list(_INVENTORY_CH_RE.finditer(text))
+    listed = [int(m.group(1)) for m in entries]
+    if listed != order:
+        print(f"[remote-mock] fixture system.xml channel inventory {listed} "
+              f"does not match inputs.xml order {order}; cannot mirror the "
+              "swap", file=sys.stderr)
+        raise SystemExit(EXIT_MISMATCH)
+    system.write_text(_swap_spans(text, entries[ia], entries[ib]),
+                      encoding="utf-8")
 
     order[ia], order[ib] = b, a
     return order
 
 
-def make_stereo_input_channel(project_dir: Path, number: int) -> None:
-    """Type one <Input> node stereo in the temp fixture. An all-mono fixture
-    cannot tell a correct isStereo flag from one hardcoded to 0, and the flag is
-    the tablet's only source of truth for showing the Stereo Width / Stereo Axis
-    dials and the picker's pair badge.
+def _retag(text: str, tag: re.Match, attr: str, value: str) -> str:
+    """Set attr="value" on the tag `tag` matched: replaced in place when the
+    tag carries it, added at the end otherwise."""
+    old = tag.group(0)
+    new, n = re.subn(rf'\b{attr}="[^"]*"', f'{attr}="{value}"', old)
+    if n == 0:
+        end = len(old) - (2 if old.endswith("/>") else 1)
+        new = f'{old[:end]} {attr}="{value}"{old[end:]}'
+    return text[:tag.start()] + new + text[tag.end():]
 
-    A partially typed list is post-rework data: migrateInputChannelModel defaults
-    the untyped nodes to mono rather than falling back to the legacy tail split.
+
+def make_stereo_input_channel(project_dir: Path, number: int) -> None:
+    """Type one <Input> node stereo in the temp fixture, and its entry in
+    system.xml's channel inventory. An all-mono fixture cannot tell a correct
+    isStereo flag from one hardcoded to 0, and the flag is the tablet's only
+    source of truth for showing the Stereo Width / Stereo Axis dials and the
+    picker's pair badge.
 
     Patched on disk for the same reason as the reorder — the type is settable
-    only from the channel-list dialog. Must run AFTER reorder_input_channels,
-    whose node regex matches `<Input id="N">` with no other attributes."""
+    only from the channel-list dialog."""
     inputs = project_dir / "inputs.xml"
     text = inputs.read_text(encoding="utf-8")
-    marker = f'<Input id="{number}">'
-    if marker not in text:
+    tag = re.search(rf'<Input id="{number}"[^>]*>', text)
+    if tag is None:
         print(f'[remote-mock] fixture inputs.xml has no <Input id="{number}">; '
               "cannot type it stereo", file=sys.stderr)
         raise SystemExit(EXIT_MISMATCH)
-    text = text.replace(
-        marker, f'<Input id="{number}" inputChannelType="stereo">', 1)
-    inputs.write_text(text, encoding="utf-8")
+    inputs.write_text(_retag(text, tag, "inputChannelType", "stereo"),
+                      encoding="utf-8")
+
+    system = project_dir / "system.xml"
+    text = system.read_text(encoding="utf-8")
+    entry = re.search(rf'<Ch n="{number}"[^>]*/>', text)
+    if entry is None:
+        print(f'[remote-mock] fixture system.xml has no <Ch n="{number}"/> '
+              "inventory entry; cannot type it stereo", file=sys.stderr)
+        raise SystemExit(EXIT_MISMATCH)
+    system.write_text(_retag(text, entry, "type", "stereo"), encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------
