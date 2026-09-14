@@ -398,6 +398,8 @@
     "messages": {
       "setToSingle": "Ausgang {num} auf Einzeln gesetzt",
       "assignedToArray": "Ausgang {num} zu Array {array} zugewiesen",
+      "arrayMuted": "Array {array} stummgeschaltet",
+      "arrayUnmuted": "Stummschaltung von Array {array} aufgehoben",
       "arrayEditSingle": "Strg-Bearbeitung: Änderung nur auf diesen Ausgang angewendet (Array {array} nicht betroffen)",
       "selectFolderFirst": "Bitte wählen Sie zuerst einen Projektordner in der System Config.",
       "configSaved": "Ausgangskonfiguration gespeichert.",
@@ -431,6 +433,7 @@
       "hfDamping": "Hochfrequenzverlust abhängig von der Entfernung des Objekts zum Ausgang. (Änderungen können den Rest des Arrays betreffen)",
       "wizardOfOutZ": "Wizard of OutZ öffnen, um Lautsprecher-Arrays bequem zu positionieren.",
       "mapVisibility": "Den ausgewählten Ausgang auf der Karte sichtbar machen oder ausblenden.",
+      "arrayMute": "Alle Lautsprecher des Arrays dieses Ausgangs stummschalten oder wieder freigeben. Nur für die Sitzung: wird nicht mit dem Projekt gespeichert und beim Laden eines Projekts aufgehoben. Für Single-Ausgänge nicht verfügbar.",
       "storeConfig": "Ausgangskonfiguration in Datei speichern (mit Backup).",
       "reloadConfig": "Ausgangskonfiguration aus Datei neu laden.",
       "reloadBackup": "Ausgangskonfiguration aus Backup-Datei neu laden.",

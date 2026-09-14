@@ -400,6 +400,8 @@
     "messages": {
       "setToSingle": "Sortie {num} définie en Individuel",
       "assignedToArray": "Sortie {num} assignée au Groupe {array}",
+      "arrayMuted": "Groupe {array} coupé",
+      "arrayUnmuted": "Groupe {array} rétabli",
       "arrayEditSingle": "Édition Ctrl : modification appliquée à cette sortie uniquement (Groupe {array} non affecté)",
       "selectFolderFirst": "Veuillez d'abord sélectionner un dossier projet dans System Config.",
       "configSaved": "Configuration des sorties enregistrée.",
@@ -433,6 +435,7 @@
       "hfDamping": "Perte de hautes fréquences en fonction de la distance de l'objet à la sortie. (les modifications peuvent affecter le reste du groupe)",
       "wizardOfOutZ": "Ouvrir le Wizard of OutZ pour positionner les groupes d'enceintes facilement.",
       "mapVisibility": "Rendre visible ou masquer la sortie sélectionnée sur la carte.",
+      "arrayMute": "Couper ou rétablir tous les haut-parleurs du groupe de cette sortie. Valable pour la session seulement : non enregistré avec le projet et annulé au chargement d'un projet. Indisponible pour les sorties Single.",
       "storeConfig": "Enregistrer la configuration des sorties dans un fichier (avec sauvegarde).",
       "reloadConfig": "Recharger la configuration des sorties depuis un fichier.",
       "reloadBackup": "Recharger la configuration des sorties depuis le fichier de sauvegarde.",

@@ -398,6 +398,8 @@
     "messages": {
       "setToSingle": "Uscita {num} impostata su Singolo",
       "assignedToArray": "Uscita {num} assegnata all'Array {array}",
+      "arrayMuted": "Array {array} silenziato",
+      "arrayUnmuted": "Array {array} riattivato",
       "arrayEditSingle": "Modifica con Ctrl: variazione applicata solo a questa uscita (Array {array} non interessato)",
       "selectFolderFirst": "Seleziona prima una cartella progetto in System Config.",
       "configSaved": "Configurazione uscite salvata.",
@@ -431,6 +433,7 @@
       "hfDamping": "Perdita di alte frequenze in funzione della distanza dall'oggetto all'uscita. (le modifiche possono influenzare il resto dell'array)",
       "wizardOfOutZ": "Aprire il Wizard of OutZ per posizionare comodamente gli array di altoparlanti.",
       "mapVisibility": "Rendere visibile o nascondere l'uscita selezionata sulla mappa.",
+      "arrayMute": "Silenzia o riattiva tutti i diffusori dell'array di questa uscita. Solo per la sessione: non viene salvato con il progetto e si annulla quando se ne carica uno. Non disponibile per le uscite Single.",
       "storeConfig": "Salvare la configurazione delle uscite su file (con backup).",
       "reloadConfig": "Ricaricare la configurazione delle uscite da file.",
       "reloadBackup": "Ricaricare la configurazione delle uscite dal file di backup.",

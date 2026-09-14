@@ -35,7 +35,9 @@ struct QLabCueSequence;
  * Supports IP filtering for incoming messages (UDP and TCP).
  */
 class OSCManager : public juce::ValueTree::Listener,
-                   public juce::Timer
+                   public juce::Timer,
+                   private ArrayMuteState::Listener,
+                   private juce::AsyncUpdater
 {
 public:
     //==========================================================================
@@ -195,6 +197,18 @@ public:
      * payload is skipped, see the de-spam guard at the definition.
      */
     void sendRemoteChannelList();
+
+    /**
+     * /remote/array/mute <count> <state array 1> ... <state array count>: the
+     * session array mutes (ArrayMuteState), 0/1 per array, count = 10. Rides the
+     * state dump, goes to every connected tablet after any change (coalesced,
+     * the sending tablet included, which is its confirmation), and repeats every
+     * arrayMuteRepeatIntervalMs so a lost datagram heals. Message thread only.
+     */
+    juce::OSCMessage buildRemoteArrayMuteMessage() const;
+
+    /** @param quietRepeat  leave it out of the Network Log (the periodic repeat). */
+    void sendRemoteArrayMutes(bool quietRepeat);
 
     //==========================================================================
     // REMOTE Visualisation mirroring (protocol v3, /remote/vis/*)
@@ -658,6 +672,12 @@ private:
 
     void timerCallback() override;
 
+    /** ArrayMuteState::Listener: coalesce a burst of changes into one send. */
+    void arrayMuteChanged (int arrayId, bool muted) override;
+
+    /** AsyncUpdater: the coalesced /remote/array/mute broadcast. */
+    void handleAsyncUpdate() override;
+
     //==========================================================================
     // Internal Methods
     //==========================================================================
@@ -1030,6 +1050,11 @@ private:
     // Set by ScopedQuietRemoteVisLog around a keepalive repeat: sendRemoteVisBundle
     // then logs only the config/outputArrays pair. Message thread only.
     bool remoteVisLogQuiet = false;
+
+    // /remote/array/mute repeat (see sendRemoteArrayMutes). Monotonic ms counter,
+    // compared with unsigned subtraction (wrap-safe). Message thread only.
+    static constexpr juce::uint32 arrayMuteRepeatIntervalMs = 2000;
+    juce::uint32 lastArrayMuteSendMs = 0;
 
     // Build the /remote/vis/config + /remote/vis/outputArrays pair (reads the
     // ValueTree only — safe wherever state reads are). Shared by the direct

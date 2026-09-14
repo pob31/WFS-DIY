@@ -398,6 +398,8 @@
     "messages": {
       "setToSingle": "Salida {num} configurada como Individual",
       "assignedToArray": "Salida {num} asignada al Grupo {array}",
+      "arrayMuted": "Grupo {array} silenciado",
+      "arrayUnmuted": "Grupo {array} reactivado",
       "arrayEditSingle": "Edición con Ctrl: cambio aplicado solo a esta salida (Grupo {array} no afectado)",
       "selectFolderFirst": "Por favor seleccione primero una carpeta de proyecto en System Config.",
       "configSaved": "Configuración de salidas guardada.",
@@ -431,6 +433,7 @@
       "hfDamping": "Pérdida de altas frecuencias según la distancia del objeto a la salida. (los cambios pueden afectar al resto del grupo)",
       "wizardOfOutZ": "Abrir el Wizard of OutZ para posicionar grupos de altavoces cómodamente.",
       "mapVisibility": "Hacer visible u ocultar la salida seleccionada en el mapa.",
+      "arrayMute": "Silenciar o reactivar todos los altavoces del grupo de esta salida. Solo para la sesión: no se guarda con el proyecto y se anula al cargar uno. No disponible para salidas Single.",
       "storeConfig": "Guardar la configuración de salidas en un archivo (con respaldo).",
       "reloadConfig": "Recargar la configuración de salidas desde un archivo.",
       "reloadBackup": "Recargar la configuración de salidas desde el archivo de respaldo.",

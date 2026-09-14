@@ -398,6 +398,8 @@
     "messages": {
       "setToSingle": "输出 {num} 设置为单独",
       "assignedToArray": "输出 {num} 分配到阵列 {array}",
+      "arrayMuted": "阵列 {array} 已静音",
+      "arrayUnmuted": "阵列 {array} 已取消静音",
       "arrayEditSingle": "Ctrl 编辑：更改仅应用于此输出（不影响阵列 {array}）",
       "selectFolderFirst": "请先在System Config中选择项目文件夹。",
       "configSaved": "输出配置已保存。",
@@ -431,6 +433,7 @@
       "hfDamping": "根据对象到输出的距离产生的高频损失。（更改可能影响阵列的其余部分）",
       "wizardOfOutZ": "打开 Wizard of OutZ 以便捷地定位扬声器阵列。",
       "mapVisibility": "在地图上显示或隐藏选定的输出。",
+      "arrayMute": "静音或取消静音此输出所属阵列的所有扬声器。仅在本次会话有效：不随项目保存，加载项目时会被清除。Single输出不可用。",
       "storeConfig": "将输出配置存储到文件（含备份）。",
       "reloadConfig": "从文件重新加载输出配置。",
       "reloadBackup": "从备份文件重新加载输出配置。",

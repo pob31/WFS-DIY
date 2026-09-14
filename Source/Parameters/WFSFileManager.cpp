@@ -1025,7 +1025,12 @@ bool WFSFileManager::importOutputConfig (const juce::File& file)
 
     bool result = applyOutputsSection (outputsTree);
     if (result)
+    {
         valueTreeState.clearAllUndoHistories();
+        // Array mutes are session state, not part of the file: a freshly loaded
+        // output configuration starts with every array audible.
+        valueTreeState.getArrayMutes().clearAll();
+    }
     return result;
 }
 

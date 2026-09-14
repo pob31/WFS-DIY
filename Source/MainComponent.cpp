@@ -8585,15 +8585,24 @@ void MainComponent::timerCallback()
             std::memory_order_relaxed);
     }
 
-    // Update per-output attenuation targets (message thread → audio thread via atomics)
+    // Update per-output attenuation targets (message thread → audio thread via atomics).
+    // A muted array's outputs target silence here, so the mute rides the same
+    // 50 ms linear ramp as an attenuation change (click-free) and, sitting after
+    // the reverb-return mix, silences WFS and reverb alike.
     {
+        const auto& arrayMutes = parameters.getValueTreeState().getArrayMutes();
+        const bool anyArrayMuted = arrayMutes.anyMuted();
         const int n = juce::jmin(numOutputChannels, outputAttenuationTargetsCount);
         for (int i = 0; i < n; ++i)
         {
-            float dB = (float) parameters.getOutputParam(i, "outputAttenuation");
-            outputAttenuationTargets[i].store(
-                juce::Decibels::decibelsToGain(dB, -92.0f),
-                std::memory_order_relaxed);
+            float gain = 0.0f;
+            if (! (anyArrayMuted
+                   && arrayMutes.isMuted (WFSVar::toInt (parameters.getOutputParam (i, "outputArray")))))
+            {
+                float dB = (float) parameters.getOutputParam(i, "outputAttenuation");
+                gain = juce::Decibels::decibelsToGain(dB, -92.0f);
+            }
+            outputAttenuationTargets[i].store(gain, std::memory_order_relaxed);
         }
     }
 

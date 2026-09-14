@@ -1,5 +1,6 @@
 #include "OSCMessageRouter.h"
 #include "OSCParameterBounds.h"
+#include "../Parameters/WFSParameterDefaults.h"
 
 #include <cmath>
 #include <set>
@@ -1164,6 +1165,32 @@ OSCMessageRouter::ParsedRemoteInput OSCMessageRouter::parseRemoteInputMessage(co
     if (! valueWithinBounds (result.paramId, result.value, result.invalidReason))
         return result;
 
+    result.valid = true;
+    return result;
+}
+
+bool OSCMessageRouter::isArrayMuteAddress(const juce::String& address)
+{
+    return address == "/arrayAdjust/mute";
+}
+
+OSCMessageRouter::ParsedArrayMuteMessage OSCMessageRouter::parseArrayMuteMessage(const juce::OSCMessage& message)
+{
+    ParsedArrayMuteMessage result;
+
+    if (! isArrayMuteAddress(message.getAddressPattern().toString()) || message.size() < 2)
+        return result;
+
+    // Numbers only (int or float); a string argument is not a state.
+    if (! (message[0].isInt32() || message[0].isFloat32())
+        || ! (message[1].isInt32() || message[1].isFloat32()))
+        return result;
+
+    result.arrayId = extractInt(message[0]);
+    if (result.arrayId < 1 || result.arrayId > WFSParameterDefaults::outputArrayMax)
+        return result;
+
+    result.muted = extractFloat(message[1]) >= 0.5f;
     result.valid = true;
     return result;
 }

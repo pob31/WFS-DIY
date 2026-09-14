@@ -144,12 +144,18 @@ OSCManager::OSCManager(WFSValueTreeState& valueTreeState)
             + " messages total");
     });
 
+    // Array mutes are session state beside the tree, so they reach the tablets
+    // through their own listener rather than valueTreePropertyChanged.
+    state.getArrayMutes().addListener(this);
+
     // Start status polling timer
     startTimer(500);  // Check connection status every 500ms
 }
 
 OSCManager::~OSCManager()
 {
+    state.getArrayMutes().removeListener(this);
+    cancelPendingUpdate();
     stopTimer();
     clusterMemberFlushTimer.stopTimer();
     stopListening();
@@ -1491,6 +1497,54 @@ void OSCManager::timerCallback()
             if (targetStatuses[static_cast<size_t>(i)] != ConnectionStatus::Disconnected)
                 updateTargetStatus(i, ConnectionStatus::Disconnected);
         }
+    }
+
+    // Array mute repeat: the change broadcast is one UDP datagram and the tablet
+    // shows only what the desktop echoes, so a lost one would leave its Array
+    // Adjust mute column wrong until the next dump. Kept out of the Network Log.
+    if (juce::Time::getMillisecondCounter() - lastArrayMuteSendMs >= arrayMuteRepeatIntervalMs)
+        sendRemoteArrayMutes (true);
+}
+
+void OSCManager::arrayMuteChanged (int, bool)
+{
+    triggerAsyncUpdate();
+}
+
+void OSCManager::handleAsyncUpdate()
+{
+    sendRemoteArrayMutes (false);
+}
+
+juce::OSCMessage OSCManager::buildRemoteArrayMuteMessage() const
+{
+    const auto& mutes = state.getArrayMutes();
+    juce::OSCMessage msg ("/remote/array/mute");
+    msg.addInt32 (ArrayMuteState::numArrays);
+    for (int a = 1; a <= ArrayMuteState::numArrays; ++a)
+        msg.addInt32 (mutes.isMuted (a) ? 1 : 0);
+    return msg;
+}
+
+void OSCManager::sendRemoteArrayMutes (bool quietRepeat)
+{
+    lastArrayMuteSendMs = juce::Time::getMillisecondCounter();
+    const auto msg = buildRemoteArrayMuteMessage();
+
+    // Direct, not through the rate limiter: every tablet gets it, the one whose
+    // /arrayAdjust/mute caused it included (that echo is its confirmation, and
+    // this runs after the Remote ScopedIncomingProtocol has gone out of scope).
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        const auto& config = targetConfigs[static_cast<size_t>(i)];
+        if (config.protocol != Protocol::Remote || ! config.txEnabled
+            || remoteStates[static_cast<size_t>(i)].phase != RemoteConnectionState::Phase::Connected)
+            continue;
+
+        if (! quietRepeat)
+            sendMessageDirect (i, msg);
+        else if (connections[static_cast<size_t>(i)] && connections[static_cast<size_t>(i)]->send (msg))
+            ++messagesSent;
     }
 }
 
@@ -2906,6 +2960,24 @@ void OSCManager::handleRemotePositionXY(const OSCMessageRouter::ParsedRemoteInpu
 
 void OSCManager::handleArrayAdjustMessage(const juce::OSCMessage& message)
 {
+    // /arrayAdjust/mute is a state, not a delta: session array mute. The tablet
+    // learns the result from the /remote/array/mute broadcast the change triggers.
+    if (OSCMessageRouter::isArrayMuteAddress(message.getAddressPattern().toString()))
+    {
+        auto mute = OSCMessageRouter::parseArrayMuteMessage(message);
+        if (! mute.valid)
+        {
+            ++parseErrors;
+            return;
+        }
+
+        juce::MessageManager::callAsync([this, mute]()
+        {
+            state.getArrayMutes().setMuted(mute.arrayId, mute.muted);
+        });
+        return;
+    }
+
     auto parsed = OSCMessageRouter::parseArrayAdjustMessage(message);
 
     if (!parsed.valid)
@@ -4796,6 +4868,9 @@ std::vector<juce::OSCMessage> OSCManager::collectStateDumpMessages(int /*targetI
             messages.push_back (std::move (msg));
         }
     }
+
+    // --- Array mutes (session state, still v4) ---
+    messages.push_back (buildRemoteArrayMuteMessage());
 
     // --- Cluster LFO presets ---
     {

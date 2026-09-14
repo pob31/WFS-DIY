@@ -107,6 +107,7 @@ class OutputsTab : public juce::Component,
                    private juce::Label::Listener,
                    private juce::ValueTree::Listener,
                    private juce::KeyListener,
+                   private ArrayMuteState::Listener,
                    public ColorScheme::Manager::Listener,
                    public HelpCardProvider
 {
@@ -191,6 +192,17 @@ public:
             // TTS: Announce selection change
             TTSManager::getInstance().announceValueChange("Array", arraySelector.getText());
         };
+
+        // Array mute: silences every output of this output's array. Session state
+        // (ArrayMuteState), not a parameter, so the button's toggle is driven from
+        // that state rather than toggled by the click; the tablet can flip it too.
+        addAndMakeVisible(arrayMuteButton);
+        arrayMuteButton.setButtonText(LOC("outputs.buttons.muteArray"));
+        arrayMuteButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFFF5722));  // Mute orange, as the Inputs mute grid
+        arrayMuteButton.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+        arrayMuteButton.onClick = [this]() { toggleArrayMute(); };
+        arrayMuteState = &parameters.getValueTreeState().getArrayMutes();
+        arrayMuteState->addListener(this);
 
         // Apply to Array selector
         addAndMakeVisible(applyToArrayLabel);
@@ -298,6 +310,10 @@ public:
     ~OutputsTab() override
     {
         parameters.getArrayEdit().onBypassStarted = nullptr;
+        // Weak: MainComponent destroys WfsParameters before the tabbedComponent
+        // that owns this tab, and with it the ListenerList.
+        if (auto* mutes = arrayMuteState.get())
+            mutes->removeListener(this);
         ColorScheme::Manager::getInstance().removeListener(this);
         outputsTree.removeListener(this);
         configTree.removeListener(this);
@@ -471,6 +487,8 @@ public:
         // Array and Apply to Array in same row
         arrayLabel.setBounds(row1.removeFromLeft(scaled(50)));
         arraySelector.setBounds(row1.removeFromLeft(scaled(100)));
+        row1.removeFromLeft(spacing);
+        arrayMuteButton.setBounds(row1.removeFromLeft(scaled(110)));
         row1.removeFromLeft(spacing * 2);
         applyToArrayLabel.setBounds(row1.removeFromLeft(scaled(100)));
         applyToArraySelector.setBounds(row1.removeFromLeft(scaled(100)));
@@ -2046,7 +2064,42 @@ private:
         bool isPartOfArray = arraySelector.getSelectedId() > 1;
         applyToArraySelector.setEnabled(isPartOfArray);
         applyToArrayLabel.setAlpha(isPartOfArray ? 1.0f : 0.5f);
+        updateArrayMuteButtonState();
     }
+
+    /** Array of the selected output (1-10), or 0 for Single. */
+    int getSelectedOutputArray() const { return arraySelector.getSelectedId() - 1; }
+
+    void toggleArrayMute()
+    {
+        const int array = getSelectedOutputArray();
+        if (! ArrayMuteState::isValidArray(array))
+            return;
+
+        auto& mutes = parameters.getValueTreeState().getArrayMutes();
+        const bool mute = ! mutes.isMuted(array);
+        mutes.setMuted(array, mute);   // arrayMuteChanged() refreshes the button
+
+        showStatusMessage(LocalizationManager::getInstance().get(
+            mute ? "outputs.messages.arrayMuted" : "outputs.messages.arrayUnmuted",
+            {{"array", juce::String(array)}}));
+        TTSManager::getInstance().announceValueChange("Array " + juce::String(array),
+                                                      mute ? "Muted" : "Unmuted");
+    }
+
+    void updateArrayMuteButtonState()
+    {
+        const int array = getSelectedOutputArray();
+        const bool isPartOfArray = ArrayMuteState::isValidArray(array);
+        const bool muted = isPartOfArray && parameters.getValueTreeState().getArrayMutes().isMuted(array);
+        arrayMuteButton.setEnabled(isPartOfArray);
+        arrayMuteButton.setToggleState(muted, juce::dontSendNotification);
+        arrayMuteButton.setButtonText(muted ? LOC("outputs.buttons.arrayMuted")
+                                            : LOC("outputs.buttons.muteArray"));
+    }
+
+    /** ArrayMuteState::Listener — any source (this tab, the tablet, a load). */
+    void arrayMuteChanged(int, bool) override { updateArrayMuteButtonState(); }
 
     void toggleMapVisibility()
     {
@@ -2448,6 +2501,7 @@ private:
         helpTextMap[&tuningHelpButton] = LOC("help.tuning.title");
         helpTextMap[&advancedHelpButton] = LOC("help.outputAdvanced.title");
         helpTextMap[&mapVisibilityButton] = LOC("outputs.help.mapVisibility");
+        helpTextMap[&arrayMuteButton] = LOC("outputs.help.arrayMute");
         // EQ controls
         helpTextMap[&eqEnableButton] = LOC("outputs.help.eqEnable");
         helpTextMap[&eqFlattenButton] = LOC("outputs.help.eqFlatten");
@@ -2473,6 +2527,7 @@ private:
         oscMethodMap[&channelSelector] = "/wfs/output/selected <ID>";
         oscMethodMap[&nameEditor] = "/wfs/output/name <ID> <value>";
         oscMethodMap[&arraySelector] = "/wfs/output/array <ID> <value>";
+        oscMethodMap[&arrayMuteButton] = "/arrayAdjust/mute <array ID> <0/1>";
         oscMethodMap[&applyToArraySelector] = "/wfs/output/applyToArray <ID> <value>";
         oscMethodMap[&attenuationSlider] = "/wfs/output/attenuation <ID> <value>";
         oscMethodMap[&delayLatencySlider] = "/wfs/output/delayLatency <ID> <value>";
@@ -2626,6 +2681,8 @@ private:
     juce::TextEditor nameEditor;
     juce::Label arrayLabel;
     juce::ComboBox arraySelector;
+    juce::TextButton arrayMuteButton;
+    juce::WeakReference<ArrayMuteState> arrayMuteState;
     juce::Label applyToArrayLabel;
     juce::ComboBox applyToArraySelector;
     juce::TextButton mapVisibilityButton;

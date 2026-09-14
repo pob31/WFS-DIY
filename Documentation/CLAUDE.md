@@ -69,7 +69,7 @@ The application has established a solid foundation with infrastructure and core 
 - **SystemConfigTab** - Show info, channel counts, WFS Processor (Algorithm + Processing long-press), Stage geometry & origin, Master Section (Master Level / System Latency / Haas Effect), UI (Color Scheme / Long Press / Language), Controllers (Dials+Buttons / Position / Sampler), Binaural Renderer, Files (project folder, Store/Reload complete/system configs), Diagnostics (version, Export Logs, Copy System Info, Report Issue).
 - **NetworkTab** - Network Interface / current IPv4 / Rx UDP+TCP ports / OSC Query (enable + HTTP port) / OSC Source Filter, Network Connections table (up to 6 targets with Protocol: DISABLED/OSC/Remote/ADM-OSC/QLab + per-target QLab Patch), ADM-OSC Mappings panel (4 Cartesian + 4 Polar mappings with per-axis Source/Flip/Center/Breakpoint/Widths and Polar Az-Offset / Az-Flip / El-Flip / Distance controls), Tracking section (Enabled / Protocol DISABLED/OSC/PSN/RTTrP/MQTT / Rx Port / OSC Path / PSN Interface / MQTT Host+Topic+JSON fields+Tag-IDs / Offsets / Scales / Flips), Find My Remote, Store/Reload/Reload-Backup/Import/Export network config.
 - **InputsTab** - Header: channel selector, name, Map Lock, Map Visibility, Set All Inputs long-press, Snapshot controls. Sub-tabs include Position/Attenuation/Directivity, Live Source Tamer + Floor Reflections (Hackoustics), Movements (LFO + AutomOtion), Gradient Maps, and the **Sampler sub-tab** (shown when per-input `inputSamplerActive` is ON and global `samplerEnabled` is on — 6×6 cell grid, per-cell Name/File/In-Out/Offset/Attenuation, SamplerSet management with pressure mappings for Lightpad / Remote pad).
-- **OutputsTab** - Header: channel selector, name, Map Visibility, Array Map Visibility, Level Meters button, Wizard of OutZ button. Two sub-tabs:
+- **OutputsTab** - Header: channel selector, name, Array selector + **Mute Array** (session-only whole-array mute, disabled for Single outputs — see *Array Mute* below), Apply to Array, Map Visibility / Array Map Visibility, Level Meters button, Wizard of OutZ button. Two sub-tabs:
   - "Channel Parameters" (Position/Orientation, Array Assignment, LS/FR enables, parallax, distance attenuation %, HF damping, min latency — Options content is integrated here, not a separate tab)
   - "Output EQ" (6-band parametric EQ with interactive display, per-band enable toggles, Flatten-EQ and Reset-Band long-press buttons)
 - **ClustersTab** - 10 cluster radio buttons, Assigned Inputs drag-reorder list, Reference (First Input / Barycenter), Transforms (Position joystick / Z / Attenuation / Rotation / Scale with 50Hz auto-center spring-back; Plane selector XY/XZ/YZ), **Cluster LFO** (per-cluster 5-axis LFO — Shape/Rate/Amplitude/Phase each for X/Y/Z/Rot/Scale, global Period + Phase + Progress), **16 LFO presets** (4×4 tile grid, shared across clusters, with Export/Import/Stop-All/QLab export).
@@ -313,6 +313,23 @@ return (angleOff - angle) / (angleOff - angleOn);  // Transition
 - Per-input `inputMutes` parameter: comma-separated list of muted outputs
 - Example: `"1,5,12"` mutes this input for outputs 1, 5, and 12
 - Muted routings skip calculation entirely (level = 0, no processing)
+
+### Array Mute (session state, not a parameter)
+One flag per output array (`Source/Parameters/ArrayMuteState.h`), held by `WFSValueTreeState`
+**beside** the tree (`getArrayMutes()`), so it is never saved, never undoable and never in a
+snapshot — like the reverb Mute Pre/Post. An output is silenced while the array it currently
+belongs to is muted: moving a speaker into a muted array mutes it, moving it to Single unmutes it.
+- **Audio**: `MainComponent::timerCallback` stores a 0 target into `outputAttenuationTargets` for
+  those outputs, so the mute rides the 50 ms linear output-gain ramp (click-free) after the
+  reverb-return mix — WFS and reverb are silenced together. Binaural is unaffected.
+- **Cleared** by `replaceState` (project load) and `importOutputConfig`; deliberately **not** by an
+  input snapshot recall, so a cue cannot unmute an array the operator muted mid-show.
+- **Controls**: the Outputs tab's **Mute Array** button (next to the Array dropdown, disabled for
+  Single outputs) and WFS Control 2's Array Adjust MUTE column. Tablet → desktop
+  `/arrayAdjust/mute <array> <0/1>` (absolute, special-cased ahead of the `/arrayAdjust/` delta
+  parser); desktop → tablets `/remote/array/mute <10> <10 × 0/1>` in the dump, after every change
+  (coalesced through `OSCManager`'s AsyncUpdater, the sender included) and every 2 s (kept out of
+  the Network Log). No `/wfs/` address, OSCQuery node or MCP tool — it is not show state.
 
 ### Sidelines (Edge Muting)
 Automatic position-based muting when sources approach stage edges. Per-channel feature that prevents sound from "spilling" outside the intended performance area.

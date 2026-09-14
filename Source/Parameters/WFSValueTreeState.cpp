@@ -3147,6 +3147,10 @@ void WFSValueTreeState::replaceState (const juce::ValueTree& newState)
             clusters.removeProperty (inputOrderKey, nullptr);   // file artifact, not runtime state
         }
 
+        // Array mutes are session state beside the tree: a load starts with
+        // every array audible rather than inheriting the previous show's mutes.
+        arrayMutes.clearAll();
+
         clearAllUndoHistories();
     }
 }

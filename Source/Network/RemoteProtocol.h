@@ -55,6 +55,12 @@ namespace WFSNetwork
 //         level to each output array, both ways - set and inc/dec from the
 //         tablet, and in the full dump, the per-channel resync, the
 //         selected-channel dump and the selected channel's echo.
+//       - array mute (session state, never saved): tablet -> desktop
+//         /arrayAdjust/mute ",ii" (array 1-10, 0/1), an absolute state beside
+//         the /arrayAdjust/ deltas; desktop -> tablet /remote/array/mute
+//         (count, then 0/1 per array) in the full dump, to every tablet after
+//         any change (the sender included: it is the confirmation) and every
+//         2 s. An older desktop counts /arrayAdjust/mute as a parse error.
 constexpr int kRemoteProtocolVersion = 4;
 
 } // namespace WFSNetwork

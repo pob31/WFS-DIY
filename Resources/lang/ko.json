@@ -384,6 +384,8 @@
     "messages": {
       "setToSingle": "출력 {num}이(가) 단일로 설정됨",
       "assignedToArray": "출력 {num}이(가) 어레이 {array}에 할당됨",
+      "arrayMuted": "어레이 {array} 뮤트됨",
+      "arrayUnmuted": "어레이 {array} 뮤트 해제됨",
       "arrayEditSingle": "Ctrl 편집: 변경이 이 출력에만 적용됨 (어레이 {array}에는 영향 없음)",
       "selectFolderFirst": "System Config에서 먼저 프로젝트 폴더를 선택하세요.",
       "configSaved": "출력 설정이 저장되었습니다.",
@@ -417,6 +419,7 @@
       "hfDamping": "오브젝트에서 출력까지의 거리에 따른 고주파 손실. (변경 사항이 어레이의 나머지에 영향을 줄 수 있습니다)",
       "wizardOfOutZ": "Wizard of OutZ를 열어 스피커 어레이를 편리하게 배치합니다.",
       "mapVisibility": "선택한 출력을 맵에서 보이게 하거나 숨깁니다.",
+      "arrayMute": "이 출력이 속한 어레이의 모든 스피커를 뮤트하거나 뮤트 해제합니다. 세션 동안만 유지되며 프로젝트에 저장되지 않고 프로젝트를 불러오면 해제됩니다. Single 출력에서는 사용할 수 없습니다.",
       "storeConfig": "출력 설정을 파일로 저장합니다 (백업 포함).",
       "reloadConfig": "파일에서 출력 설정을 다시 로드합니다.",
       "reloadBackup": "백업 파일에서 출력 설정을 다시 로드합니다.",

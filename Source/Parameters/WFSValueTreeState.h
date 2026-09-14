@@ -6,6 +6,7 @@
 #include "../Helpers/ReverbNodePlacement.h"
 #include "../../spatcore/control/state/TreeParameterStore.h"
 #include "InputChannelIdentity.h"
+#include "ArrayMuteState.h"
 #include <vector>
 
 /**
@@ -236,6 +237,12 @@ public:
 
     /** Check if an output parameter is an on/off toggle (no meaningful relative delta) */
     static bool isBooleanOutputParameter (const juce::Identifier& paramId);
+
+    /** Per-array output mute: session state held beside the tree, never in it
+        (not saved, not undoable). Cleared by replaceState and by an output
+        config load; see ArrayMuteState. */
+    ArrayMuteState& getArrayMutes() noexcept { return arrayMutes; }
+    const ArrayMuteState& getArrayMutes() const noexcept { return arrayMutes; }
 
     /** Get the ValueTree for a specific output channel subsection */
     juce::ValueTree getOutputChannelSection (int channelIndex);
@@ -931,6 +938,8 @@ private:
 
     /** Set EQ band parameter directly without array propagation (internal use) */
     void setOutputEQBandParameterDirect (int channelIndex, int bandIndex, const juce::Identifier& id, const juce::var& value);
+
+    ArrayMuteState arrayMutes;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WFSValueTreeState)
 };

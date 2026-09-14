@@ -86,6 +86,15 @@ public:
         bool valid = false;
     };
 
+    /** /arrayAdjust/mute <array # 1-10> <0/1> — absolute, unlike the other
+        /arrayAdjust/ deltas; sets the session array mute (ArrayMuteState). */
+    struct ParsedArrayMuteMessage
+    {
+        int arrayId = 0;
+        bool muted = false;
+        bool valid = false;
+    };
+
     struct ParsedConfigMessage
     {
         juce::Identifier paramId;  // Config parameter identifier
@@ -169,6 +178,11 @@ public:
      * Handles /arrayAdjust/... addresses for bulk output parameter changes.
      */
     static ParsedArrayAdjustMessage parseArrayAdjustMessage(const juce::OSCMessage& message);
+
+    /** True for /arrayAdjust/mute (checked before parseArrayAdjustMessage,
+        which rejects it: the value is a state, not a delta). */
+    static bool isArrayMuteAddress(const juce::String& address);
+    static ParsedArrayMuteMessage parseArrayMuteMessage(const juce::OSCMessage& message);
 
     /**
      * Parse a cluster move message from remote.
