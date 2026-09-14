@@ -1,5 +1,6 @@
 #include "MCPParameterRegistry.h"
 #include "MCPLogger.h"
+#include "MCPToolTemplate.h"
 
 #include <algorithm>
 #include <vector>
@@ -80,18 +81,15 @@ namespace
     }
 
     /** Build a registry record from one tool entry. Returns false if the
-        entry is malformed (missing internal_variable / name). */
+        entry is malformed (missing internal_variable / name). A family tool
+        (internal_variable_template) comes back with the template as its
+        variable and path; the caller expands it into one record per member. */
     bool buildRecord (juce::DynamicObject& toolObj,
                        ParameterRegistryRecord& out)
     {
         out.toolName = toolObj.getProperty ("name").toString();
         out.variable = toolObj.getProperty ("internal_variable").toString();
 
-        // Tools that operate on numeric-suffix families carry
-        // `internal_variable_template` instead of `internal_variable`.
-        // Treat the template literally as the registry name — the AI can
-        // discover the family pattern via `internal_osc_path_template`
-        // visible in the description / osc_path field.
         if (out.variable.isEmpty())
             out.variable = toolObj.getProperty ("internal_variable_template").toString();
 
@@ -164,7 +162,7 @@ namespace
 
     /** Iterative Levenshtein with a single rolling row. O(|a| · |b|) time,
         O(min(|a|,|b|)) space. Used only on demand for did-you-mean — the
-        registry has ~330 entries, so a full scan is cheap. */
+        registry has ~340 entries, so a full scan is cheap. */
     int levenshtein (const juce::String& a, const juce::String& b)
     {
         const auto au = a.toStdString();
@@ -233,6 +231,37 @@ void MCPParameterRegistry::loadFromManifest (const juce::File& jsonPath,
             ParameterRegistryRecord rec;
             if (! buildRecord (*toolObj, rec))
                 continue;
+
+            // A family tool stands for its members: one record each, under
+            // the names the state and every generic tool actually use
+            // (inputArrayAtten1..10). The template itself was once registered
+            // as the name, which no write could ever resolve, and it hid the
+            // members from wfs_set_parameter / wfs_get_parameter / describe.
+            if (toolObj->hasProperty ("internal_variable_template"))
+            {
+                const auto spec = MCPToolTemplate::read (*toolObj);
+                if (! spec.has_value())
+                {
+                    mcpLogger.logError ("MCPParameterRegistry: " + rec.toolName
+                                        + " has an internal_variable_template whose placeholder "
+                                          "is no bounded integer argument; not registered");
+                    continue;
+                }
+
+                for (int index = spec->minIndex; index <= spec->maxIndex; ++index)
+                {
+                    auto member = rec;
+                    member.variable     = spec->variableFor (index);
+                    member.oscPath      = spec->oscPathTemplate.isNotEmpty() ? spec->oscPathFor (index) : juce::String();
+                    member.description  = MCPToolTemplate::describeMember (rec.description, spec->minIndex,
+                                                                           juce::String (index));
+                    member.toolIndexArg = spec->argName;
+                    member.toolIndex    = index;
+                    if (knownVariables.insert (member.variable).second)
+                        records.push_back (std::move (member));
+                }
+                continue;
+            }
 
             // Dedup by variable: each canonical param shows up once even
             // when both a setter and a nudge-variant tool reference it.

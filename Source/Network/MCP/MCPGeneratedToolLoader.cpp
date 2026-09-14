@@ -165,6 +165,27 @@ namespace Detail
         if (! args.isObject())
             return ToolResult::error ("invalid_args", "Arguments must be a JSON object");
 
+        // A family tool: resolve the member this call names, then write that
+        // member exactly as a tool generated for it alone would
+        if (binding.variableTemplate.has_value())
+        {
+            juce::String errorCode, errorMessage;
+            const auto index = MCPToolTemplate::readIndex (*binding.variableTemplate, args,
+                                                           errorCode, errorMessage);
+            if (! index.has_value())
+                return ToolResult::error (errorCode, errorMessage);
+
+            auto member = binding;
+            member.internalVariable = binding.variableTemplate->variableFor (*index);
+            member.variableTemplate.reset();
+
+            auto result = dispatchGenericSet (state, member, args, record);
+            if (result.success)
+                if (auto* resultObj = result.value.getDynamicObject())
+                    resultObj->setProperty (juce::Identifier (binding.variableTemplate->argName), *index);
+            return result;
+        }
+
         auto* argsObj = asObject (args);
 
         // Resolve channel index (1-based MCP arg → 0-based ValueTree index).
@@ -613,6 +634,26 @@ namespace Detail
         if (! args.isObject())
             return ToolResult::error ("invalid_args", "Arguments must be a JSON object");
 
+        // A family tool: the member this call names, as in dispatchGenericSet
+        if (binding.variableTemplate.has_value())
+        {
+            juce::String errorCode, errorMessage;
+            const auto index = MCPToolTemplate::readIndex (*binding.variableTemplate, args,
+                                                           errorCode, errorMessage);
+            if (! index.has_value())
+                return ToolResult::error (errorCode, errorMessage);
+
+            auto member = binding;
+            member.internalVariable = binding.variableTemplate->variableFor (*index);
+            member.variableTemplate.reset();
+
+            auto result = dispatchGenericNudge (state, member, args, record);
+            if (result.success)
+                if (auto* resultObj = result.value.getDynamicObject())
+                    resultObj->setProperty (juce::Identifier (binding.variableTemplate->argName), *index);
+            return result;
+        }
+
         auto* argsObj = asObject (args);
 
         // Resolve channel index (input_id is a permanent channel number —
@@ -749,7 +790,8 @@ namespace Detail
 namespace
 {
     /** Build the binding metadata for one tool entry. Returns false only on
-        truly-malformed entries (missing name or internal_variable). When a
+        truly-malformed entries (missing name, or neither internal_variable nor
+        a usable internal_variable_template). When a
         case-only mismatch with the live ValueTree is detected, the canonical
         casing from the tree is used; otherwise the raw `internal_variable`
         from the JSON is preserved so per-channel tools that haven't yet
@@ -762,15 +804,25 @@ namespace
                        juce::String& outSkipReason)
     {
         outBinding.name             = toolObj.getProperty ("name").toString();
-        const auto rawVariable      = toolObj.getProperty ("internal_variable").toString();
+        auto rawVariable            = toolObj.getProperty ("internal_variable").toString();
         outBinding.csvSection       = toolObj.getProperty ("csv_section").toString();
         const auto valueArgName     = toolObj.getProperty ("value_arg_name").toString();
         if (valueArgName.isNotEmpty())
             outBinding.valueArgName = valueArgName;
 
+        // A family tool carries a template where the variable would be; each
+        // call's index argument picks the member (MCPToolTemplate.h). Skipped
+        // for that reason alone, the whole array-attenuation family was out of
+        // MCP's reach.
+        if (rawVariable.isEmpty())
+            if ((outBinding.variableTemplate = MCPToolTemplate::read (toolObj)).has_value())
+                rawVariable = outBinding.variableTemplate->variableTemplate;
+
         if (outBinding.name.isEmpty() || rawVariable.isEmpty())
         {
-            outSkipReason = "missing name or internal_variable";
+            outSkipReason = toolObj.hasProperty ("internal_variable_template")
+                              ? "internal_variable_template names no bounded integer argument"
+                              : "missing name or internal_variable";
             return false;
         }
 

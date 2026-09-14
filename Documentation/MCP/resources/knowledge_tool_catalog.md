@@ -15,6 +15,13 @@ not advertised**.
 They still work. If you know the name, `tools/call` resolves it normally, and
 `mcp_describe_parameters` reports each parameter's `tool_name` in `mode="full"`.
 
+A few parameters come in numbered families, such as an input's ten array
+attenuations `inputArrayAtten1` … `inputArrayAtten10`. A family shares ONE
+dedicated tool (`input_set_array_attenuation`) whose extra argument picks the
+member; `mode="full"` gives that argument as `tool_args` (`{"array": 3}` for
+`inputArrayAtten3`). Each member is also an ordinary parameter name for
+`wfs_set_parameter` and `wfs_get_parameter`.
+
 Tier-3 generated tools **are** listed. `wfs_set_parameter` refuses tier-3
 parameters by design, so those tools are the only route to a destructive
 change and need to stay visible.

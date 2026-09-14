@@ -16,7 +16,9 @@
 */
 
 #include <juce_core/juce_core.h>
+#include <optional>
 #include "MCPCompat.h"
+#include "MCPToolTemplate.h"
 
 class WFSValueTreeState;
 
@@ -64,6 +66,12 @@ struct ToolBinding
     juce::String subIndexArgB;      // second ("shape"), empty if none
     int aliasIndex = -1;            // GradientAlias: the layer the name encodes
     juce::Identifier aliasProperty; // GradientAlias: the property actually stored
+
+    /** A tool standing for a numbered family (see MCPToolTemplate.h): the
+        variable is whichever member the call's index argument names —
+        inputArrayAtten{array} with array = 3 writes inputArrayAtten3. Set,
+        internalVariable holds the template itself until a call resolves it. */
+    std::optional<MCPToolTemplate::Spec> variableTemplate;
 
     bool hasRange = false;
     double minValue = 0.0;

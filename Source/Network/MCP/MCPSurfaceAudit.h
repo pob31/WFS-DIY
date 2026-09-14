@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "../../Parameters/WFSValueTreeState.h"
 #include "../../Parameters/WFSParameterIDs.h"
+#include "MCPToolTemplate.h"
 
 namespace WFSNetwork::SurfaceAudit
 {
@@ -22,9 +23,9 @@ namespace WFSNetwork::SurfaceAudit
     Log) and the WFS_TEST_MCP_SURFACE self-test (on demand, reports PASS/FAIL). */
 struct Result
 {
-    int checked = 0;                  ///< entries actually judged
+    int checked = 0;                  ///< variables actually judged
+    int familyMembers = 0;            ///< ... of which members of a family tool ("{array}")
     int skippedSubTree = 0;           ///< resolve their own node; see below
-    int skippedTemplate = 0;          ///< numeric-suffix families ("{array}")
     int skippedOverridden = 0;        ///< a hand-written tool of the same name wins
     int skippedNoChannel = 0;         ///< session has no channel of that kind
     juce::StringArray skippedKinds;   ///< which kinds those were
@@ -93,15 +94,35 @@ inline Result run (const juce::var& manifest, WFSValueTreeState& state)
             if (obj == nullptr)
                 continue;
 
+            const auto toolName = obj->getProperty ("name").toString();
+
+            // What the entry writes: its variable, or every member of its family.
+            // A family used to be skipped here, which is how a tool the loader
+            // could not even register passed this audit.
+            juce::StringArray variables;
             const auto variable = obj->getProperty ("internal_variable").toString();
-            if (variable.isEmpty())
+            if (variable.isNotEmpty())
             {
-                if (obj->getProperty ("internal_variable_template").toString().isNotEmpty())
-                    ++r.skippedTemplate;
+                variables.add (variable);
+            }
+            else if (const auto spec = MCPToolTemplate::read (*obj))
+            {
+                for (int index = spec->minIndex; index <= spec->maxIndex; ++index)
+                    variables.add (spec->variableFor (index));
+                r.familyMembers += variables.size();
+            }
+            else
+            {
+                const auto templ = obj->getProperty ("internal_variable_template").toString();
+                if (templ.isNotEmpty())
+                {
+                    r.deadVariables.addIfNotAlreadyThere (templ);
+                    r.deadDetails.add ("[" + label + "] '" + toolName + "' advertises '" + templ
+                                       + "', a template no call can resolve");
+                }
                 continue;
             }
 
-            const auto toolName = obj->getProperty ("name").toString();
             if (isHandWrittenOverride (toolName))
             {
                 ++r.skippedOverridden;
@@ -117,7 +138,7 @@ inline Result run (const juce::var& manifest, WFSValueTreeState& state)
                         if (props->hasProperty (candidate))
                             { channelArg = candidate; break; }
 
-            if (isSubTreeRouted (props, variable))
+            if (isSubTreeRouted (props, variables[0]))
             {
                 ++r.skippedSubTree;
                 continue;
@@ -140,12 +161,15 @@ inline Result run (const juce::var& manifest, WFSValueTreeState& state)
                                         ? state.getSlotForChannelNumber (firstInputNumber)
                                         : 0;
 
-            ++r.checked;
-            if (! state.canWriteParameter (juce::Identifier (variable), channelIndex))
+            for (const auto& judged : variables)
             {
-                r.deadVariables.addIfNotAlreadyThere (variable);
-                r.deadDetails.add ("[" + label + "] '" + toolName
-                                   + "' advertises '" + variable + "' but no write can land");
+                ++r.checked;
+                if (! state.canWriteParameter (juce::Identifier (judged), channelIndex))
+                {
+                    r.deadVariables.addIfNotAlreadyThere (judged);
+                    r.deadDetails.add ("[" + label + "] '" + toolName
+                                       + "' advertises '" + judged + "' but no write can land");
+                }
             }
         }
     };
@@ -159,10 +183,12 @@ inline Result run (const juce::var& manifest, WFSValueTreeState& state)
 inline juce::String summarise (const Result& r)
 {
     juce::String s;
-    s << r.checked << " registrations checked, " << r.deadCount() << " unwritable ("
+    s << r.checked << " registrations checked";
+    if (r.familyMembers > 0)
+        s << " (" << r.familyMembers << " of them members of a family tool)";
+    s << ", " << r.deadCount() << " unwritable ("
       << r.deadVariables.size() << " distinct parameters); skipped: "
       << r.skippedSubTree << " sub-tree routed, "
-      << r.skippedTemplate << " templated, "
       << r.skippedOverridden << " hand-written override, "
       << r.skippedNoChannel << " no live channel";
     if (! r.skippedKinds.isEmpty())

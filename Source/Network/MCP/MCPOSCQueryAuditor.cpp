@@ -89,17 +89,6 @@ void MCPOSCQueryAuditor::collectPaths (const juce::var& node,
     }
 }
 
-juce::String MCPOSCQueryAuditor::stripPlaceholder (const juce::String& templatePath)
-{
-    // Templates look like "/wfs/input/arrayAtten{array}" — drop the
-    // `{...}` and any trailing characters so we end up with the stem
-    // path the family is built around.
-    const int braceIdx = templatePath.indexOfChar ('{');
-    if (braceIdx < 0)
-        return templatePath;
-    return templatePath.substring (0, braceIdx);
-}
-
 void MCPOSCQueryAuditor::run()
 {
     if (threadShouldExit())
@@ -174,27 +163,36 @@ void MCPOSCQueryAuditor::run()
             auto* entryObj = entry.getDynamicObject();
             if (entryObj == nullptr) continue;
 
-            juce::String path;
+            // A family tool's template stands for one path per member
+            // (/wfs/input/arrayAtten1..10). Its brace-stripped stem was checked
+            // once, and no node is ever named like that, so the family always
+            // read as missing.
+            juce::StringArray paths;
             if (entryObj->hasProperty ("internal_osc_path"))
-                path = entryObj->getProperty ("internal_osc_path").toString();
-            else if (entryObj->hasProperty ("internal_osc_path_template"))
-                path = stripPlaceholder (entryObj->getProperty ("internal_osc_path_template").toString());
+                paths.add (entryObj->getProperty ("internal_osc_path").toString());
+            else if (const auto spec = MCPToolTemplate::read (*entryObj))
+                if (spec->oscPathTemplate.isNotEmpty())
+                    for (int index = spec->minIndex; index <= spec->maxIndex; ++index)
+                        paths.add (spec->oscPathFor (index));
 
-            if (path.isEmpty())
-                continue;
-
-            ++totalChecked;
-            if (liveTreePaths.find (path) != liveTreePaths.end())
-                continue;
-
-            ++totalMissing;
-            if (loggedMissing < kMaxDriftLogsPerRun)
+            for (const auto& path : paths)
             {
-                const auto toolName = entryObj->getProperty ("name").toString();
-                mcpLogger.logInfo ("OSCQuery: tool '" + toolName
-                                    + "' declares " + path
-                                    + " but no OSCQuery node exists");
-                ++loggedMissing;
+                if (path.isEmpty())
+                    continue;
+
+                ++totalChecked;
+                if (liveTreePaths.find (path) != liveTreePaths.end())
+                    continue;
+
+                ++totalMissing;
+                if (loggedMissing < kMaxDriftLogsPerRun)
+                {
+                    const auto toolName = entryObj->getProperty ("name").toString();
+                    mcpLogger.logInfo ("OSCQuery: tool '" + toolName
+                                        + "' declares " + path
+                                        + " but no OSCQuery node exists");
+                    ++loggedMissing;
+                }
             }
         }
     };

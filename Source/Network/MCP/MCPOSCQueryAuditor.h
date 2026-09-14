@@ -22,8 +22,8 @@ namespace WFSNetwork
     `juce::Thread`. It fetches the OSCQuery JSON tree at
     `http://127.0.0.1:<httpPort>/`, walks `CONTENTS` recursively into a
     set of full paths, then walks `generated_tools.json` and reports any
-    tool whose `internal_osc_path` (or `internal_osc_path_template`
-    stripped of `{...}`) is missing from the live tree. Drift is logged
+    tool whose `internal_osc_path` (or, for a family tool, any member of
+    its `internal_osc_path_template`) is missing from the live tree. Drift is logged
     via `MCPLogger` so it surfaces in the Network Log under
     Protocol::MCP. Capped at 20 error lines to avoid log spam.
 
@@ -60,8 +60,6 @@ private:
     static void collectPaths (const juce::var& node,
                               const juce::String& prefix,
                               std::set<juce::String>& out);
-
-    static juce::String stripPlaceholder (const juce::String& templatePath);
 
     /** Add each live path's channel-stripped form, so a tool's channel-less
         declaration can match a channel-indexed node. */

@@ -103,6 +103,14 @@ inline juce::var recordToVar (const ParameterRegistryRecord& r)
     auto obj = std::make_unique<juce::DynamicObject>();
     obj->setProperty ("variable",    r.variable);
     obj->setProperty ("tool_name",   r.toolName);
+    if (r.toolIndexArg.isNotEmpty())
+    {
+        // One tool covers the whole family: this is the index argument that
+        // makes it write THIS member (array: 3 for inputArrayAtten3)
+        auto toolArgs = std::make_unique<juce::DynamicObject>();
+        toolArgs->setProperty (juce::Identifier (r.toolIndexArg), r.toolIndex);
+        obj->setProperty ("tool_args", juce::var (toolArgs.release()));
+    }
     obj->setProperty ("scope",       r.scope);
     obj->setProperty ("type",        r.type);
     if (r.minValue.has_value())
@@ -292,7 +300,9 @@ inline ToolDescriptor describeTool()
                     "wfs_set_parameter expects), type, scope, tier, unit and "
                     "min/max or enum values; mode=\"full\" adds description, "
                     "OSC path, synonyms, domain tags and the `tool_name` of "
-                    "the dedicated (unlisted) tool that writes it. Results are "
+                    "the dedicated (unlisted) tool that writes it, plus "
+                    "`tool_args` when that tool covers a numbered family and "
+                    "needs an index to pick this parameter. Results are "
                     "capped by `limit` (default 50). For current values use "
                     "wfs_get_parameter / wfs_get_parameters; for one channel's "
                     "entire state call session_get_channel_full.";

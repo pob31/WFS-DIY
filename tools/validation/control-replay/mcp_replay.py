@@ -19,6 +19,15 @@ Segment A (WFS_MCP_AI_ENABLED=1):
                                    (hard assert via read-back)
   8. mcp_redo_last_undone_ai_change -> batch re-applies (hard assert)
   9. mcp_get_ai_change_history compact (timestamps normalized)
+ 10. array attenuation          (input_set_array_attenuation, the one tool the
+                                   generator writes as a template for the
+                                   inputArrayAtten1..10 family: the `array`
+                                   argument picks the member; neighbours stay
+                                   put; wfs_set/get_parameter and the batch
+                                   reach every member; out-of-range index /
+                                   value refused; describe lists all ten with
+                                   their tool_args; undo reverts the batch,
+                                   then the single write)
 
 Segment B (env var absent): one tier-1 call -> ai_disabled envelope.
 
@@ -264,6 +273,107 @@ def main() -> int:
 
         record("history_compact",
                app.tool("mcp_get_ai_change_history", {"compact": True}))
+
+        # ---- array attenuation: one family tool, ten parameters ----------
+        # The generator collapses inputArrayAtten1..10 into ONE tool whose
+        # `array` argument picks the member, and writes a template
+        # ("inputArrayAtten{array}") where the variable would be. The loader
+        # used to skip that tool and the registry to know only the literal
+        # template, so MCP reached none of the ten. Placed after the batch
+        # undo/redo and before the generic nudge: the session_save check
+        # further down expects the nudge to be the last undoable change.
+        def get_level(array: int, channel: int):
+            payload = common.tool_payload(app.tool(
+                "wfs_get_parameter",
+                {"variable": f"inputArrayAtten{array}", "channel_id": channel}))
+            return (round(float(payload["value"]), 6)
+                    if isinstance(payload, dict) and "value" in payload
+                    else payload)
+
+        aa_first, aa_final = app.tool_confirmed(
+            "input_set_array_attenuation",
+            {"input_id": 3, "array": 4, "value": -6.5})
+        record("array_atten_awaiting_confirmation", aa_first)
+        record("array_atten_confirmed", aa_final)
+        aa_payload = common.tool_payload(aa_final)
+        if not (isinstance(aa_payload, dict)
+                and aa_payload.get("variable") == "inputArrayAtten4"
+                and aa_payload.get("array") == 4
+                and float(aa_payload.get("value", 0)) == -6.5):
+            hard_failures.append(
+                f"input_set_array_attenuation did not write array 4: {aa_payload}")
+
+        levels = {"input3_array4": get_level(4, 3),
+                  "input3_array3": get_level(3, 3),
+                  "input3_array5": get_level(5, 3),
+                  "input2_array4": get_level(4, 2)}
+        transcript.append({"step": "array_atten_readback", "values": levels})
+        if levels != {"input3_array4": -6.5, "input3_array3": 0.0,
+                      "input3_array5": 0.0, "input2_array4": 0.0}:
+            hard_failures.append(
+                f"array attenuation landed on the wrong member: {levels}")
+
+        _, aa_generic = app.tool_confirmed(
+            "wfs_set_parameter",
+            {"variable": "inputArrayAtten10", "channel_id": 3, "value": -60.0})
+        record("array_atten_generic_set", aa_generic)
+        if get_level(10, 3) != -60.0:
+            hard_failures.append("wfs_set_parameter did not write inputArrayAtten10")
+
+        for label, call_args in (
+                ("array_11", {"input_id": 3, "array": 11, "value": -3.0}),
+                ("array_0", {"input_id": 3, "array": 0, "value": -3.0}),
+                ("array_2_5", {"input_id": 3, "array": 2.5, "value": -3.0}),
+                ("array_missing", {"input_id": 3, "value": -3.0}),
+                ("value_minus_75", {"input_id": 3, "array": 2, "value": -75.0})):
+            _, refused = app.tool_confirmed("input_set_array_attenuation",
+                                            call_args)
+            record(f"array_atten_refused_{label}", refused)
+            if not common.envelope_result(refused).get("isError"):
+                hard_failures.append(
+                    f"input_set_array_attenuation accepted {call_args}")
+        _, aa_generic_oor = app.tool_confirmed(
+            "wfs_set_parameter",
+            {"variable": "inputArrayAtten2", "channel_id": 3, "value": 3.0})
+        record("array_atten_generic_refused", aa_generic_oor)
+        if not common.envelope_result(aa_generic_oor).get("isError"):
+            hard_failures.append("wfs_set_parameter accepted inputArrayAtten2 = +3 dB")
+        if get_level(2, 3) != 0.0:
+            hard_failures.append("a refused array attenuation write changed the level")
+
+        described = record("array_atten_describe",
+                           app.tool("mcp_describe_parameters",
+                                    {"prefix": "inputArrayAtten", "mode": "full"}))
+        described_payload = common.tool_payload(described)
+        members = (described_payload.get("parameters") or []) \
+            if isinstance(described_payload, dict) else []
+        by_name = {m.get("variable"): m for m in members}
+        want_names = {f"inputArrayAtten{n}" for n in range(1, 11)}
+        if set(by_name) != want_names or any(
+                by_name[f"inputArrayAtten{n}"].get("tool_args") != {"array": n}
+                or by_name[f"inputArrayAtten{n}"].get("tool_name")
+                != "input_set_array_attenuation"
+                or f"Array {n}" not in by_name[f"inputArrayAtten{n}"].get("description", "")
+                for n in range(1, 11)):
+            hard_failures.append(
+                f"describe did not list the ten array attenuations with their "
+                f"tool_args: {sorted(by_name)}")
+
+        _, aa_batch = app.tool_confirmed("wfs_set_parameter_batch", {"writes": [
+            {"variable": "inputArrayAtten1", "channel_id": 5, "value": -3.0},
+            {"variable": "inputArrayAtten2", "channel_id": 5, "value": -9.0}]})
+        record("array_atten_batch", aa_batch)
+        if (get_level(1, 5), get_level(2, 5)) != (-3.0, -9.0):
+            hard_failures.append("wfs_set_parameter_batch did not write two array levels")
+
+        # Undo resolves the input number through the registry record of the
+        # variable it restores, which a member of the family now has
+        record("array_atten_undo_batch", app.tool("mcp_undo_last_ai_change", {}))
+        if (get_level(1, 5), get_level(2, 5)) != (0.0, 0.0):
+            hard_failures.append("undo did not revert the array-level batch")
+        record("array_atten_undo_set", app.tool("mcp_undo_last_ai_change", {}))
+        if get_level(10, 3) != 0.0:
+            hard_failures.append("undo did not revert the inputArrayAtten10 write")
 
         # ---- generic tools now carry the validation the named tools had ----
         # wfs_set_parameter used to range-check only against the permissive

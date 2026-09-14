@@ -42,7 +42,7 @@
       "_meta": {
         "ai_enabled": true,
         "critical_actions_allowed": false,
-        "hidden_tool_count": 384
+        "hidden_tool_count": 385
       },
       "count_in_visible_range": true,
       "spot_check_hidden": {
@@ -609,6 +609,230 @@
       "result": {
         "content": [
           {
+            "text": "Tier 2 action awaiting confirmation. Re-call with `confirm: \"<TOKEN>\"` within 30 seconds.",
+            "type": "text"
+          }
+        ],
+        "isError": false,
+        "tier_enforcement": {
+          "awaiting_confirmation": true,
+          "confirmation_token": "<TOKEN>",
+          "declared_tier": 2,
+          "expires_in_seconds": "<SECONDS>",
+          "tool": "input_set_array_attenuation"
+        }
+      }
+    },
+    "step": "array_atten_awaiting_confirmation"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "{\"array\": 4, \"before\": 0.0, \"channel_id\": 3, \"value\": -6.5, \"variable\": \"inputArrayAtten4\"}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    "step": "array_atten_confirmed"
+  },
+  {
+    "step": "array_atten_readback",
+    "values": {
+      "input2_array4": 0.0,
+      "input3_array3": 0.0,
+      "input3_array4": -6.5,
+      "input3_array5": 0.0
+    }
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "{\"after\": -60.0, \"before\": 0.0, \"channel_id\": 3, \"variable\": \"inputArrayAtten10\"}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    "step": "array_atten_generic_set"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "Tool error [out_of_range]: array 11 not in [1, 10]",
+            "type": "text"
+          }
+        ],
+        "isError": true
+      }
+    },
+    "step": "array_atten_refused_array_11"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "Tool error [out_of_range]: array 0 not in [1, 10]",
+            "type": "text"
+          }
+        ],
+        "isError": true
+      }
+    },
+    "step": "array_atten_refused_array_0"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "Tool error [invalid_args]: array must be an integer from 1 to 10, got \"2.5\"",
+            "type": "text"
+          }
+        ],
+        "isError": true
+      }
+    },
+    "step": "array_atten_refused_array_2_5"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "Tool error [invalid_args]: Missing required arg: array",
+            "type": "text"
+          }
+        ],
+        "isError": true
+      }
+    },
+    "step": "array_atten_refused_array_missing"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "Tool error [out_of_range]: value -75.000000 not in [-60.000000, 0.000000] for inputArrayAtten2",
+            "type": "text"
+          }
+        ],
+        "isError": true
+      }
+    },
+    "step": "array_atten_refused_value_minus_75"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "Tool error [out_of_range]: value 3.000000 not in [-60.000000, 0.000000] for inputArrayAtten2",
+            "type": "text"
+          }
+        ],
+        "isError": true
+      }
+    },
+    "step": "array_atten_generic_refused"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "{\"count\": 10, \"matched\": 10, \"mode\": \"full\", \"parameters\": [{\"csv_section\": \"Array Attenuation\", \"default\": 0.0, \"description\": \"Per-Array Attenuation for Array 1. Dimmed if Array has No Outputs Assigned. Value in dB. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]\", \"domains\": [\"wfs_synthesis\"], \"group_key\": \"input_array_attenuation\", \"max\": 0.0, \"min\": -60.0, \"osc_path\": \"/wfs/input/arrayAtten1\", \"scope\": \"input\", \"tier\": 2, \"tool_args\": {\"array\": 1}, \"tool_name\": \"input_set_array_attenuation\", \"type\": \"number\", \"variable\": \"inputArrayAtten1\"}, {\"csv_section\": \"Array Attenuation\", \"default\": 0.0, \"description\": \"Per-Array Attenuation for Array 2. Dimmed if Array has No Outputs Assigned. Value in dB. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]\", \"domains\": [\"wfs_synthesis\"], \"group_key\": \"input_array_attenuation\", \"max\": 0.0, \"min\": -60.0, \"osc_path\": \"/wfs/input/arrayAtten2\", \"scope\": \"input\", \"tier\": 2, \"tool_args\": {\"array\": 2}, \"tool_name\": \"input_set_array_attenuation\", \"type\": \"number\", \"variable\": \"inputArrayAtten2\"}, {\"csv_section\": \"Array Attenuation\", \"default\": 0.0, \"description\": \"Per-Array Attenuation for Array 3. Dimmed if Array has No Outputs Assigned. Value in dB. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]\", \"domains\": [\"wfs_synthesis\"], \"group_key\": \"input_array_attenuation\", \"max\": 0.0, \"min\": -60.0, \"osc_path\": \"/wfs/input/arrayAtten3\", \"scope\": \"input\", \"tier\": 2, \"tool_args\": {\"array\": 3}, \"tool_name\": \"input_set_array_attenuation\", \"type\": \"number\", \"variable\": \"inputArrayAtten3\"}, {\"csv_section\": \"Array Attenuation\", \"default\": 0.0, \"description\": \"Per-Array Attenuation for Array 4. Dimmed if Array has No Outputs Assigned. Value in dB. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]\", \"domains\": [\"wfs_synthesis\"], \"group_key\": \"input_array_attenuation\", \"max\": 0.0, \"min\": -60.0, \"osc_path\": \"/wfs/input/arrayAtten4\", \"scope\": \"input\", \"tier\": 2, \"tool_args\": {\"array\": 4}, \"tool_name\": \"input_set_array_attenuation\", \"type\": \"number\", \"variable\": \"inputArrayAtten4\"}, {\"csv_section\": \"Array Attenuation\", \"default\": 0.0, \"description\": \"Per-Array Attenuation for Array 5. Dimmed if Array has No Outputs Assigned. Value in dB. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]\", \"domains\": [\"wfs_synthesis\"], \"group_key\": \"input_array_attenuation\", \"max\": 0.0, \"min\": -60.0, \"osc_path\": \"/wfs/input/arrayAtten5\", \"scope\": \"input\", \"tier\": 2, \"tool_args\": {\"array\": 5}, \"tool_name\": \"input_set_array_attenuation\", \"type\": \"number\", \"variable\": \"inputArrayAtten5\"}, {\"csv_section\": \"Array Attenuation\", \"default\": 0.0, \"description\": \"Per-Array Attenuation for Array 6. Dimmed if Array has No Outputs Assigned. Value in dB. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]\", \"domains\": [\"wfs_synthesis\"], \"group_key\": \"input_array_attenuation\", \"max\": 0.0, \"min\": -60.0, \"osc_path\": \"/wfs/input/arrayAtten6\", \"scope\": \"input\", \"tier\": 2, \"tool_args\": {\"array\": 6}, \"tool_name\": \"input_set_array_attenuation\", \"type\": \"number\", \"variable\": \"inputArrayAtten6\"}, {\"csv_section\": \"Array Attenuation\", \"default\": 0.0, \"description\": \"Per-Array Attenuation for Array 7. Dimmed if Array has No Outputs Assigned. Value in dB. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]\", \"domains\": [\"wfs_synthesis\"], \"group_key\": \"input_array_attenuation\", \"max\": 0.0, \"min\": -60.0, \"osc_path\": \"/wfs/input/arrayAtten7\", \"scope\": \"input\", \"tier\": 2, \"tool_args\": {\"array\": 7}, \"tool_name\": \"input_set_array_attenuation\", \"type\": \"number\", \"variable\": \"inputArrayAtten7\"}, {\"csv_section\": \"Array Attenuation\", \"default\": 0.0, \"description\": \"Per-Array Attenuation for Array 8. Dimmed if Array has No Outputs Assigned. Value in dB. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]\", \"domains\": [\"wfs_synthesis\"], \"group_key\": \"input_array_attenuation\", \"max\": 0.0, \"min\": -60.0, \"osc_path\": \"/wfs/input/arrayAtten8\", \"scope\": \"input\", \"tier\": 2, \"tool_args\": {\"array\": 8}, \"tool_name\": \"input_set_array_attenuation\", \"type\": \"number\", \"variable\": \"inputArrayAtten8\"}, {\"csv_section\": \"Array Attenuation\", \"default\": 0.0, \"description\": \"Per-Array Attenuation for Array 9. Dimmed if Array has No Outputs Assigned. Value in dB. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]\", \"domains\": [\"wfs_synthesis\"], \"group_key\": \"input_array_attenuation\", \"max\": 0.0, \"min\": -60.0, \"osc_path\": \"/wfs/input/arrayAtten9\", \"scope\": \"input\", \"tier\": 2, \"tool_args\": {\"array\": 9}, \"tool_name\": \"input_set_array_attenuation\", \"type\": \"number\", \"variable\": \"inputArrayAtten9\"}, {\"csv_section\": \"Array Attenuation\", \"default\": 0.0, \"description\": \"Per-Array Attenuation for Array 10. Dimmed if Array has No Outputs Assigned. Value in dB. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]\", \"domains\": [\"wfs_synthesis\"], \"group_key\": \"input_array_attenuation\", \"max\": 0.0, \"min\": -60.0, \"osc_path\": \"/wfs/input/arrayAtten10\", \"scope\": \"input\", \"tier\": 2, \"tool_args\": {\"array\": 10}, \"tool_name\": \"input_set_array_attenuation\", \"type\": \"number\", \"variable\": \"inputArrayAtten10\"}], \"total\": 342}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    "step": "array_atten_describe"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "{\"applied\": [{\"after\": -3.0, \"before\": 0.0, \"channel_id\": 5, \"variable\": \"inputArrayAtten1\"}, {\"after\": -9.0, \"before\": 0.0, \"channel_id\": 5, \"variable\": \"inputArrayAtten2\"}], \"count\": 2, \"operator_description\": \"Batch: 2 writes (2 Array Attenuation)\"}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    "step": "array_atten_batch"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "{\"after_applied\": {\"inputArrayAtten1\": 0.0, \"inputArrayAtten2\": 0.0}, \"before_applied\": {\"inputArrayAtten1\": -3.0, \"inputArrayAtten2\": -9.0}, \"operator_description\": \"Undid: Batch: 2 writes (2 Array Attenuation)\", \"records_affected\": 1}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    "step": "array_atten_undo_batch"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "{\"after_applied\": {\"inputArrayAtten10\": 0.0}, \"before_applied\": {\"inputArrayAtten10\": -60.0}, \"operator_description\": \"Undid: Set inputArrayAtten10 for channel 3 to -60.0 (via wfs.set_parameter escape-hatch)\", \"records_affected\": 1}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    "step": "array_atten_undo_set"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
             "text": "Tool error [out_of_range]: value 99999.000000 not in [-50.000000, 50.000000] for inputPositionX",
             "type": "text"
           }
@@ -657,7 +881,7 @@
       "result": {
         "content": [
           {
-            "text": "{\"group_count\": 63, \"groups\": [{\"example_variables\": [\"clusterInputOrder\", \"clusterInputsVisible\"], \"group_key\": \"cluster_assigned_inputs\", \"param_count\": 2, \"scope\": \"cluster\"}, {\"example_variables\": [\"clusterLFOactive\", \"clusterLFOamplitudeRot\", \"clusterLFOamplitudeScale\"], \"group_key\": \"cluster_lfo\", \"param_count\": 23, \"scope\": \"cluster\"}, {\"example_variables\": [\"clusterLFOPresetName\"], \"group_key\": \"cluster_lfo_presets\", \"param_count\": 1, \"scope\": \"cluster\"}, {\"example_variables\": [\"clusterReferenceMode\"], \"group_key\": \"cluster_reference\", \"param_count\": 1, \"scope\": \"cluster\"}, {\"example_variables\": [\"inputArrayAtten{array}\"], \"group_key\": \"input_array_attenuation\", \"param_count\": 1, \"scope\": \"input\"}, {\"example_variables\": [\"inputCommonAtten\", \"inputDistanceAttenuation\", \"inputDistanceRatio\"], \"group_key\": \"input_attenuation\", \"param_count\": 5, \"scope\": \"input\"}, {\"example_variables\": [\"inputOtomoAbsoluteRelative\", \"inputOtomoCurve\", \"inputOtomoDuration\"], \"group_key\": \"input_automotion\", \"param_count\": 16, \"scope\": \"input\"}, {\"example_variables\": [\"inputCluster\"], \"group_key\": \"input_cluster\", \"param_count\": 1, \"scope\": \"input\"}, {\"example_variables\": [\"inputConstraintX\", \"inputConstraintY\", \"inputConstraintZ\"], \"group_key\": \"input_constraint\", \"param_count\": 3, \"scope\": \"input\"}, {\"example_variables\": [\"inputDelayLatency\", \"inputMinimalLatency\"], \"group_key\": \"input_delay\", \"param_count\": 2, \"scope\": \"input\"}, {\"example_variables\": [\"inputHFshelf\", \"inputRotation\", \"inputTilt\"], \"group_key\": \"input_directivity\", \"param_count\": 4, \"scope\": \"input\"}, {\"example_variables\": [\"inputFlipX\", \"inputFlipY\", \"inputFlipZ\"], \"group_key\": \"input_flip\", \"param_count\": 3, \"scope\": \"input\"}, {\"example_variables\": [\"inputFRactive\", \"inputFRattenuation\", \"inputFRdiffusion\"], \"group_key\": \"input_floor_reflections\", \"param_count\": 9, \"scope\": \"input\"}, {\"example_variables\": [\"gmLayer0Enabled\", \"gmLayer1Enabled\", \"gmLayer2Enabled\"], \"group_key\": \"input_gradient_map\", \"param_count\": 15, \"scope\": \"input\"}, {\"example_variables\": [\"inputMapLocked\", \"inputMapVisible\"], \"group_key\": \"input_header\", \"param_count\": 2, \"scope\": \"input\"}, {\"example_variables\": [\"inputHeightFactor\"], \"group_key\": \"input_height_factor\", \"param_count\": 1, \"scope\": \"input\"}, {\"example_variables\": [\"inputJitter\"], \"group_key\": \"input_jitter\", \"param_count\": 1, \"scope\": \"input\"}, {\"example_variables\": [\"inputLFOactive\", \"inputLFOamplitudeX\", \"inputLFOamplitudeY\"], \"group_key\": \"input_lfo\", \"param_count\": 16, \"scope\": \"input\"}, {\"example_variables\": [\"inputLSactive\", \"inputLSattenuation\", \"inputLSpeakRatio\"], \"group_key\": \"input_live_source_tamer\", \"param_count\": 8, \"scope\": \"input\"}, {\"example_variables\": [\"inputMaxSpeedActive\", \"inputPathModeActive\", \"inputMaxSpeed\"], \"group_key\": \"input_max_speed\", \"param_count\": 3, \"scope\": \"input\"}, {\"example_variables\": [\"inputMutes\"], \"group_key\": \"input_mutes\", \"param_count\": 1, \"scope\": \"input\"}, {\"example_variables\": [\"inputColour\", \"inputName\"], \"group_key\": \"input_name\", \"param_count\": 2, \"scope\": \"input\"}, {\"example_variables\": [\"inputConstraintDistance\", \"inputConstraintDistanceMax\", \"inputConstraintDistanceMin\"], \"group_key\": \"input_position\", \"param_count\": 10, \"scope\": \"input\"}, {\"example_variables\": [\"inputMuteReverbSends\"], \"group_key\": \"input_reverb\", \"param_count\": 1, \"scope\": \"input\"}, {\"example_variables\": [\"inputSamplerActive\", \"inputSamplerActiveSet\", \"samplerCellAttenuation\"], \"group_key\": \"input_sampler\", \"param_count\": 28, \"scope\": \"input\"}, {\"example_variables\": [\"inputSidelinesActive\", \"inputSidelinesFringe\"], \"group_key\": \"input_sidelines\", \"param_count\": 2, \"scope\": \"input\"}, {\"example_variables\": [\"inputStereoAxisLock\", \"inputStereoAxisOffset\", \"inputStereoWidth\"], \"group_key\": \"input_stereo\", \"param_count\": 3, \"scope\": \"input\"}, {\"example_variables\": [\"inputTrackingActive\", \"inputTrackingID\", \"inputTrackingSmooth\"], \"group_key\": \"input_tracking\", \"param_count\": 3, \"scope\": \"input\"}, {\"example_variables\": [\"networkCurrentIP\", \"networkOscQueryEnabled\", \"networkOscQueryPort\"], \"group_key\": \"network\", \"param_count\": 14, \"scope\": \"global\"}, {\"example_variables\": [\"admCartAxisSwap\", \"admPolarAzimuthFlip\", \"admPolarAzimuthOffset\"], \"group_key\": \"network_adm_osc\", \"param_count\": 16, \"scope\": \"global\"}, {\"example_variables\": [\"trackingEnabled\", \"trackingFlipX\", \"trackingFlipY\"], \"group_key\": \"network_tracking\", \"param_count\": 21, \"scope\": \"global\"}, {\"example_variables\": [\"outputApplyToArray\", \"outputArray\"], \"group_key\": \"output_array\", \"param_count\": 2, \"scope\": \"output\"}, {\"example_variables\": [\"outputDistanceAttenPercent\", \"outputAttenuation\"], \"group_key\": \"output_attenuation\", \"param_count\": 2, \"scope\": \"output\"}, {\"example_variables\": [\"outputDelayLatency\"], \"group_key\": \"output_delay\", \"param_count\": 1, \"scope\": \"output\"}, {\"example_variables\": [\"outputEQenabled\", \"eqFrequency\", \"eqGain\"], \"group_key\": \"output_eq\", \"param_count\": 6, \"scope\": \"output\"}, {\"example_variables\": [\"outputFRenable\"], \"group_key\": \"output_floor_reflections\", \"param_count\": 1, \"scope\": \"output\"}, {\"example_variables\": [\"outputArrayMapVisible\", \"outputMapVisible\"], \"group_key\": \"output_header\", \"param_count\": 2, \"scope\": \"output\"}, {\"example_variables\": [\"outputHFdamping\"], \"group_key\": \"output_hf_damping\", \"param_count\": 1, \"scope\": \"output\"}, {\"example_variables\": [\"outputLSattenEnable\"], \"group_key\": \"output_live_source_attenuation\", \"param_count\": 1, \"scope\": \"output\"}, {\"example_variables\": [\"outputMiniLatencyEnable\"], \"group_key\": \"output_minimal_latency\", \"param_count\": 1, \"scope\": \"output\"}, {\"example_variables\": [\"outputName\"], \"group_key\": \"output_name\", \"param_count\": 1, \"scope\": \"output\"}, {\"example_variables\": [\"outputAngleOff\", \"outputAngleOn\", \"outputPitch\"], \"group_key\": \"output_orientation\", \"param_count\": 4, \"scope\": \"output\"}, {\"example_variables\": [\"outputHparallax\", \"outputVparallax\"], \"group_key\": \"output_parallax_correction\", \"param_count\": 2, \"scope\": \"output\"}, {\"example_variables\": [\"outputCoordinateMode\", \"outputPositionX\", \"outputPositionY\"], \"group_key\": \"output_position\", \"param_count\": 4, \"scope\": \"output\"}, {\"example_variables\": [\"reverbAlgoType\", \"reverbCrossoverHigh\", \"reverbCrossoverLow\"], \"group_key\": \"reverb_algorithm\", \"param_count\": 14, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbCommonAtten\", \"reverbDistanceAttenuation\", \"reverbAttenuation\"], \"group_key\": \"reverb_attenuation\", \"param_count\": 3, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbDelayLatency\"], \"group_key\": \"reverb_delay\", \"param_count\": 1, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbAngleOff\", \"reverbAngleOn\", \"reverbDistanceAttenEnable\"], \"group_key\": \"reverb_feed\", \"param_count\": 7, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbsMapVisible\"], \"group_key\": \"reverb_header\", \"param_count\": 1, \"scope\": \"global\"}, {\"example_variables\": [\"reverbMuteMacro\", \"reverbMutes\"], \"group_key\": \"reverb_mutes\", \"param_count\": 2, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbName\"], \"group_key\": \"reverb_name\", \"param_count\": 1, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbCoordinateMode\", \"reverbReturnOffsetX\", \"reverbReturnOffsetY\"], \"group_key\": \"reverb_position\", \"param_count\": 7, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbPostEQenable\", \"reverbPostEQfreq\", \"reverbPostEQgain\"], \"group_key\": \"reverb_post_processing_eq\", \"param_count\": 6, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbPostExpAttack\", \"reverbPostExpBypass\", \"reverbPostExpRatio\"], \"group_key\": \"reverb_post_processing_expander\", \"param_count\": 5, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbPreCompAttack\", \"reverbPreCompBypass\", \"reverbPreCompRatio\"], \"group_key\": \"reverb_pre_processing_compressor\", \"param_count\": 5, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbPreEQenable\", \"reverbPreEQfreq\", \"reverbPreEQgain\"], \"group_key\": \"reverb_pre_processing_eq\", \"param_count\": 6, \"scope\": \"reverb\"}, {\"example_variables\": [\"binauralAttenuation\", \"binauralDelay\", \"binauralEnabled\"], \"group_key\": \"system_binaural_renderer\", \"param_count\": 7, \"scope\": \"global\"}, {\"example_variables\": [\"SamplerControllerMode\"], \"group_key\": \"system_controllers\", \"param_count\": 1, \"scope\": \"global\"}, {\"example_variables\": [\"inputChannels\", \"outputChannels\", \"reverbChannels\"], \"group_key\": \"system_i_o\", \"param_count\": 4, \"scope\": \"global\"}, {\"example_variables\": [\"haasEffect\", \"masterLevel\", \"systemLatency\"], \"group_key\": \"system_master_section\", \"param_count\": 3, \"scope\": \"global\"}, {\"example_variables\": [\"showLocation\", \"showName\"], \"group_key\": \"system_show\", \"param_count\": 2, \"scope\": \"global\"}, {\"example_variables\": [\"stageDepth\", \"stageDiameter\", \"domeElevation\"], \"group_key\": \"system_stage\", \"param_count\": 11, \"scope\": \"global\"}, {\"example_variables\": [\"colorScheme\"], \"group_key\": \"system_ui\", \"param_count\": 1, \"scope\": \"global\"}], \"hint\": \"Re-call with group_key, scope, prefix or domain to list parameters. Add mode=\\\"full\\\" for descriptions and OSC paths.\", \"total_parameters\": 333, \"view\": \"groups\"}",
+            "text": "{\"group_count\": 63, \"groups\": [{\"example_variables\": [\"clusterInputOrder\", \"clusterInputsVisible\"], \"group_key\": \"cluster_assigned_inputs\", \"param_count\": 2, \"scope\": \"cluster\"}, {\"example_variables\": [\"clusterLFOactive\", \"clusterLFOamplitudeRot\", \"clusterLFOamplitudeScale\"], \"group_key\": \"cluster_lfo\", \"param_count\": 23, \"scope\": \"cluster\"}, {\"example_variables\": [\"clusterLFOPresetName\"], \"group_key\": \"cluster_lfo_presets\", \"param_count\": 1, \"scope\": \"cluster\"}, {\"example_variables\": [\"clusterReferenceMode\"], \"group_key\": \"cluster_reference\", \"param_count\": 1, \"scope\": \"cluster\"}, {\"example_variables\": [\"inputArrayAtten1\", \"inputArrayAtten2\", \"inputArrayAtten3\"], \"group_key\": \"input_array_attenuation\", \"param_count\": 10, \"scope\": \"input\"}, {\"example_variables\": [\"inputCommonAtten\", \"inputDistanceAttenuation\", \"inputDistanceRatio\"], \"group_key\": \"input_attenuation\", \"param_count\": 5, \"scope\": \"input\"}, {\"example_variables\": [\"inputOtomoAbsoluteRelative\", \"inputOtomoCurve\", \"inputOtomoDuration\"], \"group_key\": \"input_automotion\", \"param_count\": 16, \"scope\": \"input\"}, {\"example_variables\": [\"inputCluster\"], \"group_key\": \"input_cluster\", \"param_count\": 1, \"scope\": \"input\"}, {\"example_variables\": [\"inputConstraintX\", \"inputConstraintY\", \"inputConstraintZ\"], \"group_key\": \"input_constraint\", \"param_count\": 3, \"scope\": \"input\"}, {\"example_variables\": [\"inputDelayLatency\", \"inputMinimalLatency\"], \"group_key\": \"input_delay\", \"param_count\": 2, \"scope\": \"input\"}, {\"example_variables\": [\"inputHFshelf\", \"inputRotation\", \"inputTilt\"], \"group_key\": \"input_directivity\", \"param_count\": 4, \"scope\": \"input\"}, {\"example_variables\": [\"inputFlipX\", \"inputFlipY\", \"inputFlipZ\"], \"group_key\": \"input_flip\", \"param_count\": 3, \"scope\": \"input\"}, {\"example_variables\": [\"inputFRactive\", \"inputFRattenuation\", \"inputFRdiffusion\"], \"group_key\": \"input_floor_reflections\", \"param_count\": 9, \"scope\": \"input\"}, {\"example_variables\": [\"gmLayer0Enabled\", \"gmLayer1Enabled\", \"gmLayer2Enabled\"], \"group_key\": \"input_gradient_map\", \"param_count\": 15, \"scope\": \"input\"}, {\"example_variables\": [\"inputMapLocked\", \"inputMapVisible\"], \"group_key\": \"input_header\", \"param_count\": 2, \"scope\": \"input\"}, {\"example_variables\": [\"inputHeightFactor\"], \"group_key\": \"input_height_factor\", \"param_count\": 1, \"scope\": \"input\"}, {\"example_variables\": [\"inputJitter\"], \"group_key\": \"input_jitter\", \"param_count\": 1, \"scope\": \"input\"}, {\"example_variables\": [\"inputLFOactive\", \"inputLFOamplitudeX\", \"inputLFOamplitudeY\"], \"group_key\": \"input_lfo\", \"param_count\": 16, \"scope\": \"input\"}, {\"example_variables\": [\"inputLSactive\", \"inputLSattenuation\", \"inputLSpeakRatio\"], \"group_key\": \"input_live_source_tamer\", \"param_count\": 8, \"scope\": \"input\"}, {\"example_variables\": [\"inputMaxSpeedActive\", \"inputPathModeActive\", \"inputMaxSpeed\"], \"group_key\": \"input_max_speed\", \"param_count\": 3, \"scope\": \"input\"}, {\"example_variables\": [\"inputMutes\"], \"group_key\": \"input_mutes\", \"param_count\": 1, \"scope\": \"input\"}, {\"example_variables\": [\"inputColour\", \"inputName\"], \"group_key\": \"input_name\", \"param_count\": 2, \"scope\": \"input\"}, {\"example_variables\": [\"inputConstraintDistance\", \"inputConstraintDistanceMax\", \"inputConstraintDistanceMin\"], \"group_key\": \"input_position\", \"param_count\": 10, \"scope\": \"input\"}, {\"example_variables\": [\"inputMuteReverbSends\"], \"group_key\": \"input_reverb\", \"param_count\": 1, \"scope\": \"input\"}, {\"example_variables\": [\"inputSamplerActive\", \"inputSamplerActiveSet\", \"samplerCellAttenuation\"], \"group_key\": \"input_sampler\", \"param_count\": 28, \"scope\": \"input\"}, {\"example_variables\": [\"inputSidelinesActive\", \"inputSidelinesFringe\"], \"group_key\": \"input_sidelines\", \"param_count\": 2, \"scope\": \"input\"}, {\"example_variables\": [\"inputStereoAxisLock\", \"inputStereoAxisOffset\", \"inputStereoWidth\"], \"group_key\": \"input_stereo\", \"param_count\": 3, \"scope\": \"input\"}, {\"example_variables\": [\"inputTrackingActive\", \"inputTrackingID\", \"inputTrackingSmooth\"], \"group_key\": \"input_tracking\", \"param_count\": 3, \"scope\": \"input\"}, {\"example_variables\": [\"networkCurrentIP\", \"networkOscQueryEnabled\", \"networkOscQueryPort\"], \"group_key\": \"network\", \"param_count\": 14, \"scope\": \"global\"}, {\"example_variables\": [\"admCartAxisSwap\", \"admPolarAzimuthFlip\", \"admPolarAzimuthOffset\"], \"group_key\": \"network_adm_osc\", \"param_count\": 16, \"scope\": \"global\"}, {\"example_variables\": [\"trackingEnabled\", \"trackingFlipX\", \"trackingFlipY\"], \"group_key\": \"network_tracking\", \"param_count\": 21, \"scope\": \"global\"}, {\"example_variables\": [\"outputApplyToArray\", \"outputArray\"], \"group_key\": \"output_array\", \"param_count\": 2, \"scope\": \"output\"}, {\"example_variables\": [\"outputDistanceAttenPercent\", \"outputAttenuation\"], \"group_key\": \"output_attenuation\", \"param_count\": 2, \"scope\": \"output\"}, {\"example_variables\": [\"outputDelayLatency\"], \"group_key\": \"output_delay\", \"param_count\": 1, \"scope\": \"output\"}, {\"example_variables\": [\"outputEQenabled\", \"eqFrequency\", \"eqGain\"], \"group_key\": \"output_eq\", \"param_count\": 6, \"scope\": \"output\"}, {\"example_variables\": [\"outputFRenable\"], \"group_key\": \"output_floor_reflections\", \"param_count\": 1, \"scope\": \"output\"}, {\"example_variables\": [\"outputArrayMapVisible\", \"outputMapVisible\"], \"group_key\": \"output_header\", \"param_count\": 2, \"scope\": \"output\"}, {\"example_variables\": [\"outputHFdamping\"], \"group_key\": \"output_hf_damping\", \"param_count\": 1, \"scope\": \"output\"}, {\"example_variables\": [\"outputLSattenEnable\"], \"group_key\": \"output_live_source_attenuation\", \"param_count\": 1, \"scope\": \"output\"}, {\"example_variables\": [\"outputMiniLatencyEnable\"], \"group_key\": \"output_minimal_latency\", \"param_count\": 1, \"scope\": \"output\"}, {\"example_variables\": [\"outputName\"], \"group_key\": \"output_name\", \"param_count\": 1, \"scope\": \"output\"}, {\"example_variables\": [\"outputAngleOff\", \"outputAngleOn\", \"outputPitch\"], \"group_key\": \"output_orientation\", \"param_count\": 4, \"scope\": \"output\"}, {\"example_variables\": [\"outputHparallax\", \"outputVparallax\"], \"group_key\": \"output_parallax_correction\", \"param_count\": 2, \"scope\": \"output\"}, {\"example_variables\": [\"outputCoordinateMode\", \"outputPositionX\", \"outputPositionY\"], \"group_key\": \"output_position\", \"param_count\": 4, \"scope\": \"output\"}, {\"example_variables\": [\"reverbAlgoType\", \"reverbCrossoverHigh\", \"reverbCrossoverLow\"], \"group_key\": \"reverb_algorithm\", \"param_count\": 14, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbCommonAtten\", \"reverbDistanceAttenuation\", \"reverbAttenuation\"], \"group_key\": \"reverb_attenuation\", \"param_count\": 3, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbDelayLatency\"], \"group_key\": \"reverb_delay\", \"param_count\": 1, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbAngleOff\", \"reverbAngleOn\", \"reverbDistanceAttenEnable\"], \"group_key\": \"reverb_feed\", \"param_count\": 7, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbsMapVisible\"], \"group_key\": \"reverb_header\", \"param_count\": 1, \"scope\": \"global\"}, {\"example_variables\": [\"reverbMuteMacro\", \"reverbMutes\"], \"group_key\": \"reverb_mutes\", \"param_count\": 2, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbName\"], \"group_key\": \"reverb_name\", \"param_count\": 1, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbCoordinateMode\", \"reverbReturnOffsetX\", \"reverbReturnOffsetY\"], \"group_key\": \"reverb_position\", \"param_count\": 7, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbPostEQenable\", \"reverbPostEQfreq\", \"reverbPostEQgain\"], \"group_key\": \"reverb_post_processing_eq\", \"param_count\": 6, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbPostExpAttack\", \"reverbPostExpBypass\", \"reverbPostExpRatio\"], \"group_key\": \"reverb_post_processing_expander\", \"param_count\": 5, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbPreCompAttack\", \"reverbPreCompBypass\", \"reverbPreCompRatio\"], \"group_key\": \"reverb_pre_processing_compressor\", \"param_count\": 5, \"scope\": \"reverb\"}, {\"example_variables\": [\"reverbPreEQenable\", \"reverbPreEQfreq\", \"reverbPreEQgain\"], \"group_key\": \"reverb_pre_processing_eq\", \"param_count\": 6, \"scope\": \"reverb\"}, {\"example_variables\": [\"binauralAttenuation\", \"binauralDelay\", \"binauralEnabled\"], \"group_key\": \"system_binaural_renderer\", \"param_count\": 7, \"scope\": \"global\"}, {\"example_variables\": [\"SamplerControllerMode\"], \"group_key\": \"system_controllers\", \"param_count\": 1, \"scope\": \"global\"}, {\"example_variables\": [\"inputChannels\", \"outputChannels\", \"reverbChannels\"], \"group_key\": \"system_i_o\", \"param_count\": 4, \"scope\": \"global\"}, {\"example_variables\": [\"haasEffect\", \"masterLevel\", \"systemLatency\"], \"group_key\": \"system_master_section\", \"param_count\": 3, \"scope\": \"global\"}, {\"example_variables\": [\"showLocation\", \"showName\"], \"group_key\": \"system_show\", \"param_count\": 2, \"scope\": \"global\"}, {\"example_variables\": [\"stageDepth\", \"stageDiameter\", \"domeElevation\"], \"group_key\": \"system_stage\", \"param_count\": 11, \"scope\": \"global\"}, {\"example_variables\": [\"colorScheme\"], \"group_key\": \"system_ui\", \"param_count\": 1, \"scope\": \"global\"}], \"hint\": \"Re-call with group_key, scope, prefix or domain to list parameters. Add mode=\\\"full\\\" for descriptions and OSC paths.\", \"total_parameters\": 342, \"view\": \"groups\"}",
             "type": "text"
           }
         ],
@@ -673,7 +897,7 @@
       "result": {
         "content": [
           {
-            "text": "{\"count\": 10, \"matched\": 10, \"mode\": \"summary\", \"parameters\": [{\"enum\": [\"OFF\", \"ON\"], \"group_key\": \"input_position\", \"scope\": \"input\", \"tier\": 1, \"type\": \"string\", \"variable\": \"inputConstraintDistance\"}, {\"group_key\": \"input_position\", \"max\": 50.0, \"min\": 0.0, \"scope\": \"input\", \"tier\": 1, \"type\": \"number\", \"variable\": \"inputConstraintDistanceMax\"}, {\"group_key\": \"input_position\", \"max\": 50.0, \"min\": 0.0, \"scope\": \"input\", \"tier\": 1, \"type\": \"number\", \"variable\": \"inputConstraintDistanceMin\"}, {\"enum\": [\"Cartesian\", \"Cylindrical\", \"Spherical\"], \"group_key\": \"input_position\", \"scope\": \"input\", \"tier\": 1, \"type\": \"string\", \"variable\": \"inputCoordinateMode\"}, {\"group_key\": \"input_position\", \"max\": 50.0, \"min\": -50.0, \"scope\": \"input\", \"tier\": 1, \"type\": \"number\", \"variable\": \"inputOffsetX\"}, {\"group_key\": \"input_position\", \"max\": 50.0, \"min\": -50.0, \"scope\": \"input\", \"tier\": 1, \"type\": \"number\", \"variable\": \"inputOffsetY\"}, {\"group_key\": \"input_position\", \"max\": 50.0, \"min\": -50.0, \"scope\": \"input\", \"tier\": 1, \"type\": \"number\", \"variable\": \"inputOffsetZ\"}, {\"group_key\": \"input_position\", \"max\": 50.0, \"min\": -50.0, \"scope\": \"input\", \"tier\": 1, \"type\": \"number\", \"variable\": \"inputPositionX\"}, {\"group_key\": \"input_position\", \"max\": 50.0, \"min\": -50.0, \"scope\": \"input\", \"tier\": 1, \"type\": \"number\", \"variable\": \"inputPositionY\"}, {\"group_key\": \"input_position\", \"max\": 50.0, \"min\": -50.0, \"scope\": \"input\", \"tier\": 1, \"type\": \"number\", \"variable\": \"inputPositionZ\"}], \"total\": 333}",
+            "text": "{\"count\": 10, \"matched\": 10, \"mode\": \"summary\", \"parameters\": [{\"enum\": [\"OFF\", \"ON\"], \"group_key\": \"input_position\", \"scope\": \"input\", \"tier\": 1, \"type\": \"string\", \"variable\": \"inputConstraintDistance\"}, {\"group_key\": \"input_position\", \"max\": 50.0, \"min\": 0.0, \"scope\": \"input\", \"tier\": 1, \"type\": \"number\", \"variable\": \"inputConstraintDistanceMax\"}, {\"group_key\": \"input_position\", \"max\": 50.0, \"min\": 0.0, \"scope\": \"input\", \"tier\": 1, \"type\": \"number\", \"variable\": \"inputConstraintDistanceMin\"}, {\"enum\": [\"Cartesian\", \"Cylindrical\", \"Spherical\"], \"group_key\": \"input_position\", \"scope\": \"input\", \"tier\": 1, \"type\": \"string\", \"variable\": \"inputCoordinateMode\"}, {\"group_key\": \"input_position\", \"max\": 50.0, \"min\": -50.0, \"scope\": \"input\", \"tier\": 1, \"type\": \"number\", \"variable\": \"inputOffsetX\"}, {\"group_key\": \"input_position\", \"max\": 50.0, \"min\": -50.0, \"scope\": \"input\", \"tier\": 1, \"type\": \"number\", \"variable\": \"inputOffsetY\"}, {\"group_key\": \"input_position\", \"max\": 50.0, \"min\": -50.0, \"scope\": \"input\", \"tier\": 1, \"type\": \"number\", \"variable\": \"inputOffsetZ\"}, {\"group_key\": \"input_position\", \"max\": 50.0, \"min\": -50.0, \"scope\": \"input\", \"tier\": 1, \"type\": \"number\", \"variable\": \"inputPositionX\"}, {\"group_key\": \"input_position\", \"max\": 50.0, \"min\": -50.0, \"scope\": \"input\", \"tier\": 1, \"type\": \"number\", \"variable\": \"inputPositionY\"}, {\"group_key\": \"input_position\", \"max\": 50.0, \"min\": -50.0, \"scope\": \"input\", \"tier\": 1, \"type\": \"number\", \"variable\": \"inputPositionZ\"}], \"total\": 342}",
             "type": "text"
           }
         ],
