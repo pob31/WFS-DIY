@@ -1,6 +1,6 @@
 # Proofreading checklist — Japanese (日本語)
 
-Locale: `ja`  |  Total keys: 771  |  Source: `Resources/lang/en.json` vs `Resources/lang/ja.json`
+Locale: `ja`  |  Total keys: 770  |  Source: `Resources/lang/en.json` vs `Resources/lang/ja.json`
 
 ## How to use this file
 
@@ -3286,11 +3286,6 @@ Walk through each section. For every entry:
 - **`dragHintInUse`**
   - EN: Session in use: numbers are permanent. Reordering changes only what you see — each channel keeps its hardware inputs, and snapshots, cues and remotes keep pointing at the same channel. The patch matrix will no longer read as a straight diagonal.
   - JA: 使用中のセッション: 番号は固定です。並べ替えは表示だけを変えます — 各チャンネルはハードウェア入力を保持し、スナップショット、キュー、リモートは同じチャンネルを指し続けます。パッチマトリクスは対角線ではなくなります。
-  - [ ] OK    Fix: 
-
-- **`edit`**
-  - EN: Arrange...
-  - JA: 並べ替え...
   - [ ] OK    Fix: 
 
 - **`fromFile`**

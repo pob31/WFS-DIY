@@ -35,7 +35,6 @@
   },
   "systemConfig": {
     "channelList": {
-      "edit": "排列...",
       "title": "排列输入通道",
       "status": "单声道 {mono} + 立体声 {stereo}",
       "dragHint": "拖动通道以更改顺序。",

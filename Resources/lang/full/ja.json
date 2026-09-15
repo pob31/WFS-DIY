@@ -58,6 +58,9 @@
     "oscMode": "OSC"
   },
   "systemConfig": {
+    "channelList": {
+      "edit": "並べ替え..."
+    },
     "sections": {
       "show": "ショー",
       "io": "I/O",

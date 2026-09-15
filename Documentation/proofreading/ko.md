@@ -1,6 +1,6 @@
 # Proofreading checklist — Korean (한국어)
 
-Locale: `ko`  |  Total keys: 771  |  Source: `Resources/lang/en.json` vs `Resources/lang/ko.json`
+Locale: `ko`  |  Total keys: 770  |  Source: `Resources/lang/en.json` vs `Resources/lang/ko.json`
 
 ## How to use this file
 
@@ -3286,11 +3286,6 @@ Walk through each section. For every entry:
 - **`dragHintInUse`**
   - EN: Session in use: numbers are permanent. Reordering changes only what you see — each channel keeps its hardware inputs, and snapshots, cues and remotes keep pointing at the same channel. The patch matrix will no longer read as a straight diagonal.
   - KO: 사용 중인 세션: 번호는 고정됩니다. 재정렬은 표시만 바꿉니다 — 각 채널은 하드웨어 입력을 유지하고, 스냅샷·큐·리모트는 같은 채널을 계속 가리킵니다. 패치 매트릭스는 더 이상 직선 대각선으로 보이지 않습니다.
-  - [ ] OK    Fix: 
-
-- **`edit`**
-  - EN: Arrange...
-  - KO: 정렬...
   - [ ] OK    Fix: 
 
 - **`fromFile`**

@@ -35,7 +35,6 @@
   },
   "systemConfig": {
     "channelList": {
-      "edit": "Organizar...",
       "title": "Organizar canais de entrada",
       "status": "{mono} mono + {stereo} estéreo",
       "dragHint": "Arraste um canal para mudar a ordem.",

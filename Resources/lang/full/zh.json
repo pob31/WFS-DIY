@@ -58,6 +58,9 @@
     "oscMode": "OSC"
   },
   "systemConfig": {
+    "channelList": {
+      "edit": "排列..."
+    },
     "sections": {
       "show": "演出",
       "io": "输入/输出",

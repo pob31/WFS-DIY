@@ -1,6 +1,6 @@
 # Proofreading checklist — Chinese (中文)
 
-Locale: `zh`  |  Total keys: 771  |  Source: `Resources/lang/en.json` vs `Resources/lang/zh.json`
+Locale: `zh`  |  Total keys: 770  |  Source: `Resources/lang/en.json` vs `Resources/lang/zh.json`
 
 ## How to use this file
 
@@ -3286,11 +3286,6 @@ Walk through each section. For every entry:
 - **`dragHintInUse`**
   - EN: Session in use: numbers are permanent. Reordering changes only what you see — each channel keeps its hardware inputs, and snapshots, cues and remotes keep pointing at the same channel. The patch matrix will no longer read as a straight diagonal.
   - ZH: 会话使用中: 编号已固定。重排只改变显示 — 每个通道保留其硬件输入，快照、提示和遥控仍指向同一通道。跳线矩阵将不再是一条直对角线。
-  - [ ] OK    Fix: 
-
-- **`edit`**
-  - EN: Arrange...
-  - ZH: 排列...
   - [ ] OK    Fix: 
 
 - **`fromFile`**

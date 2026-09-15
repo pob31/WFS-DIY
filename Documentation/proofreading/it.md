@@ -1,6 +1,6 @@
 # Proofreading checklist — Italian (Italiano)
 
-Locale: `it`  |  Total keys: 771  |  Source: `Resources/lang/en.json` vs `Resources/lang/it.json`
+Locale: `it`  |  Total keys: 770  |  Source: `Resources/lang/en.json` vs `Resources/lang/it.json`
 
 ## How to use this file
 
@@ -3286,11 +3286,6 @@ Walk through each section. For every entry:
 - **`dragHintInUse`**
   - EN: Session in use: numbers are permanent. Reordering changes only what you see — each channel keeps its hardware inputs, and snapshots, cues and remotes keep pointing at the same channel. The patch matrix will no longer read as a straight diagonal.
   - IT: Sessione in uso: i numeri sono permanenti. Riordinare cambia solo la visualizzazione — ogni canale mantiene i suoi ingressi hardware, e snapshot, cue e remoti continuano a puntare allo stesso canale. La matrice di patch non si leggerà più come una diagonale.
-  - [ ] OK    Fix: 
-
-- **`edit`**
-  - EN: Arrange...
-  - IT: Organizza...
   - [ ] OK    Fix: 
 
 - **`fromFile`**

@@ -35,7 +35,6 @@
   },
   "systemConfig": {
     "channelList": {
-      "edit": "並べ替え...",
       "title": "入力チャンネルの並べ替え",
       "status": "モノラル {mono} + ステレオ {stereo}",
       "dragHint": "チャンネルをドラッグして順番を変更。",

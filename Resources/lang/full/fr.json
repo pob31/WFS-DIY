@@ -58,6 +58,9 @@
     "oscMode": "OSC"
   },
   "systemConfig": {
+    "channelList": {
+      "edit": "Organiser..."
+    },
     "sections": {
       "show": "Spectacle",
       "io": "E/S",

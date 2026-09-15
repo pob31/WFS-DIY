@@ -58,6 +58,9 @@
     "oscMode": "OSC"
   },
   "systemConfig": {
+    "channelList": {
+      "edit": "Organizar..."
+    },
     "sections": {
       "show": "Show",
       "io": "E/S",
