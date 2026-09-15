@@ -128,6 +128,13 @@ OSCManager::OSCManager(WFSValueTreeState& valueTreeState)
         { OSCPaths::REMOTE_INPUT_PREFIX, true  },   // "/remoteInput/"  key: addr|channel
         { OSCPaths::CONFIG_PREFIX,       false }    // "/wfs/config/"   global: key on address
     };
+    // One output of an input's mute list per message: two quick mutes on one
+    // input (a QLab group firing its cues at once) are two edits, not a newer
+    // value of one, so they must all arrive, in order. They share the ingest
+    // FIFO (256 pending) with bundles and handshakes: a burst beyond that drops
+    // the excess. QLab snapshot cues send one whole list per input, far below it;
+    // a surface changing many outputs at once should send the whole list too.
+    ingestClassifier.bypassAddresses = { "/wfs/input/mutes" };
     ingestQueue = std::make_unique<OSCIngestQueue>(std::move(ingestClassifier));
     ingestQueue->setDispatch([this] (const juce::MemoryBlock& data,
                                      const juce::String& senderIP,
@@ -2286,6 +2293,43 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
             if (parsed.rampArgIgnored)
                 logger.logText ("Fade time ignored: " + parsed.paramId.toString()
                                 + " is not fade-capable (see WFS-UI_input.csv)");
+
+            // The per-output mute list: every message applies, in order. The
+            // coalescer below keeps only the newest value per param+channel,
+            // which would merge "mute output 3" and "mute output 5" on one
+            // input into whichever came last.
+            if (parsed.paramId == WFSParameterIDs::inputMutes)
+            {
+                if (channelIndex >= 0)
+                {
+                    juce::MessageManager::callAsync ([this, parsed, channelIndex, senderIP, address, port, transport]()
+                    {
+                        ScopedIncomingProtocol incomingGuard (*this, Protocol::OSC);
+                        if (oscQueryServer) oscQueryServer->beginIncomingOSC (senderIP);
+                        WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
+                        state.beginUndoTransaction ("OSC Input");
+
+                        if (parsed.muteOutput > 0)
+                        {
+                            if (! state.setInputOutputMute (channelIndex, parsed.muteOutput - 1,
+                                                            static_cast<int> (parsed.value) != 0))
+                                logger.logRejected (address, senderIP, port, transport,
+                                                    "inputMutes: output " + juce::String (parsed.muteOutput)
+                                                        + " does not exist (" + juce::String (state.getNumOutputChannels())
+                                                        + " outputs)");
+                        }
+                        else
+                        {
+                            // A whole list; the state fits it to the live outputs.
+                            state.setInputParameter (channelIndex, WFSParameterIDs::inputMutes, parsed.value);
+                        }
+
+                        incomingGuard.release();
+                        if (oscQueryServer) oscQueryServer->endIncomingOSC();
+                    });
+                }
+                return;
+            }
 
             // Special cases that need immediate processing (position constraints, etc.)
             bool needsSpecialHandling =

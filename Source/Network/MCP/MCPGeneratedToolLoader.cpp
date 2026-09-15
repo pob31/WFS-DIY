@@ -343,6 +343,13 @@ namespace Detail
                                       "Missing required arg: " + binding.valueArgName);
         juce::var value = coerceValue (argsObj->getProperty (binding.valueArgName), binding);
 
+        {
+            auto muteCheck = MCPValidation::validateInputMuteList (binding.internalVariable, value,
+                                                                   state.getNumOutputChannels());
+            if (! muteCheck.success)
+                return muteCheck;
+        }
+
         // Enum validation. After coerceValue (above) has tried both
         // exact and whitespace-tolerant string-to-index lookups, a
         // remaining string can only be valid if it's a numeric literal

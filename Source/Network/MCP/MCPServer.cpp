@@ -108,6 +108,7 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     // its changes to survive a restart.
     registry->registerTool (Tools::Session::describeSave (fileMgr));
     registry->registerTool (Tools::Input::describeSetName (state));
+    registry->registerTool (Tools::Input::describeSetOutputMute (state));
     registry->registerTool (Tools::Input::describeSetCartesian (state));
     registry->registerTool (Tools::Input::describeSetAttenuation (state));
     registry->registerTool (Tools::Output::describeSetCartesian (state));

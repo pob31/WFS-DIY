@@ -292,6 +292,12 @@ inline ToolResult batch (WFSValueTreeState& state, const juce::var& args, Change
                 return fail ("invalid_args", i, "band out of range");
         }
 
+        {
+            auto muteCheck = MCPValidation::validateInputMuteList (w.variable, w.value, state.getNumOutputChannels());
+            if (! muteCheck.success)
+                return fail (muteCheck.errorCode, i, muteCheck.errorMessage);
+        }
+
         // Enum string -> int coercion (mirrors SetParameterTool). Run
         // BEFORE the numeric coercion so labels like "Dome" don't get
         // rejected as "not numeric".

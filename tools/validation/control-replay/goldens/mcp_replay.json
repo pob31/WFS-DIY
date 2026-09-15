@@ -59,7 +59,7 @@
         "wfs_set_parameter_batch": true
       },
       "tier_counts": {
-        "1": 15,
+        "1": 16,
         "2": 14,
         "3": 9
       },

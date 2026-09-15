@@ -29,6 +29,7 @@ public:
         float rampTimeSec = 0.0f;  // Optional 3rd OSC arg: transition time in seconds (0 = apply immediately)
         float rampTimeSecRequested = 0.0f; // As sent by the client, before the [0, 600] s clamp
         bool rampArgIgnored = false; // A trailing numeric arg was present but the param is not fade-capable
+        int muteOutput = 0;          // inputMutes only: 1-based output of a single-output edit, 0 = whole list
         bool valid = false;
         juce::String invalidReason; // Set when valid==false because the value failed range gate.
     };
@@ -300,6 +301,13 @@ public:
 
     /** Address maps: oscParamName -> parameterID (used by OSCQuery for namespace discovery) */
     static const std::map<juce::String, juce::Identifier>& getInputAddressMap();
+
+    /** Input names accepted on receive but not published by OSCQuery: the names
+        this app itself sends (OSCMessageBuilder, QLab snapshot cues) where they
+        differ from getInputAddressMap's. Consulted only after that map misses, so
+        the published namespace and its reverse lookup stay as they are. */
+    static const std::map<juce::String, juce::Identifier>& getInputInboundAliases();
+
     static const std::map<juce::String, juce::Identifier>& getOutputAddressMap();
     static const std::map<juce::String, juce::Identifier>& getReverbAddressMap();
     static const std::map<juce::String, juce::Identifier>& getConfigAddressMap();

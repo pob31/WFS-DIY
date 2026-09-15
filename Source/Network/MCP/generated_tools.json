@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "input_hash": "0495e3f6065a4d59ff315ca8c513ddcad58f7428d1dab687d4a74b18c7e0f4d4",
+  "input_hash": "fe7d3817ed6e4a41b67ff3b118a387a55f4e03f54a6d78e23d717debd783ce4f",
   "source_csvs": [
     "WFS-UI_config.csv",
     "WFS-UI_input.csv",
@@ -6183,7 +6183,7 @@
     },
     {
       "name": "input_set_mutes",
-      "description": "Mute Selectively the Output of an Object to a Speaker. Enum: unmute; MUTE. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Mute Selectively the Output of an Object to a Speaker. One comma-separated list for all outputs, one 0 (unmuted) or 1 (muted) per output, e.g. 0,1,0,0. To change one output only, use input_set_output_mute. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -6195,11 +6195,7 @@
           },
           "value": {
             "type": "string",
-            "enum": [
-              "unmute",
-              "MUTE"
-            ],
-            "description": "Mutes (enum)."
+            "description": "Mutes."
           }
         },
         "required": [

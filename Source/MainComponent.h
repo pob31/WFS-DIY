@@ -616,6 +616,15 @@ private:
         values and the project folder it touched. */
     void runArrayAttenPersistSelfTest();
 
+    /** WFS_TEST_MUTES_PERSIST=1 — the per-input output mute lists: the list
+        format and the store's guard against a bare number, one-output edits,
+        an exported and re-imported input config, a snapshot store and recall,
+        the QLab cues built from that snapshot (every one parsed back through the
+        OSC router), the OSC argument forms, and outputs added by a count change.
+        Restores the lists, the output count and the project folder it touched,
+        but latches the channel numbers: run it in a throwaway session. */
+    void runInputMutesPersistSelfTest();
+
     /** A mono row may hold at most one hardware column. Clears any extra
         columns (keeping the lowest = L) left behind when a count change
         moves the mono/stereo boundary. */

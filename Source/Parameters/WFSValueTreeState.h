@@ -155,6 +155,21 @@ public:
     juce::ValueTree getInputLFOSection (int channelIndex);
     juce::ValueTree getInputAutoMotionSection (int channelIndex);
     juce::ValueTree getInputMutesSection (int channelIndex);
+
+    /** The canonical form of an input's per-output mute list (inputMutes): one
+        "0" or "1" token per output, comma-separated, "1" = muted. Any token that
+        parses to a non-zero number counts as muted (older files carry "1.0").
+        Tokens at or past keepTokens are forced to "0"; the list is then padded
+        with "0" or cut to numOutputs. numOutputs <= 0 canonicalises the tokens
+        without resizing. Static so every reader and writer shares one rule. */
+    static juce::String normaliseMuteList (const juce::var& list, int numOutputs,
+                                           int keepTokens = std::numeric_limits<int>::max());
+
+    /** Mute or unmute ONE output of an input, leaving the others as they are.
+        outputIndex is 0-based. Writes through setInputParameter, so it is undoable
+        and listeners see it. False when the slot or the output does not exist. */
+    bool setInputOutputMute (int channelIndex, int outputIndex, bool muted);
+
     juce::ValueTree getInputGradientMapsSection (int channelIndex);
     juce::ValueTree getInputGradientLayer (int channelIndex, int layerIndex);
 
@@ -631,7 +646,10 @@ public:
         numbers; latching is not implied by it. Idempotent. */
     void resequenceDefaultInputNames();
 
-    void setNumOutputChannels (int numChannels);
+    /** previousCount: how many outputs existed before this change, when the
+        caller has already added output nodes itself (an output-config merge);
+        -1 = the current node count. Decides which mute-list entries are new. */
+    void setNumOutputChannels (int numChannels, int previousCount = -1);
     void setNumReverbChannels (int numChannels);
 
     /** Update hardware channel count in patch trees based on actual audio device.

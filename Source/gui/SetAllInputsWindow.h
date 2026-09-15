@@ -797,16 +797,14 @@ private:
 
         for (int inputIdx = 0; inputIdx < numInputs; ++inputIdx)
         {
-            // Get current mute states for this input (comma-separated "0,1,0,1,..." format)
+            // Get current mute states for this input (comma-separated "0,1,0,1,..." format).
+            // Any non-zero entry is a mute: older files carry "1.0".
             bool muteStates[kMaxMutes] = {false};
-            juce::var mutesVar = parameters.getInputParam(inputIdx, WFSParameterIDs::inputMutes.toString());
-            if (mutesVar.isString())
             {
-                juce::String muteStr = mutesVar.toString();
                 juce::StringArray muteValues;
-                muteValues.addTokens(muteStr, ",", "");
+                muteValues.addTokens(parameters.getInputParam(inputIdx, WFSParameterIDs::inputMutes.toString()).toString(), ",", "");
                 for (int i = 0; i < juce::jmin(kMaxMutes, muteValues.size()); ++i)
-                    muteStates[i] = (muteValues[i] == "1");
+                    muteStates[i] = (muteValues[i].getIntValue() != 0);
             }
 
             switch (macroId)
@@ -849,9 +847,9 @@ private:
                     break;
             }
 
-            // Save as comma-separated string (same format as InputsTab)
+            // Save as comma-separated string (same format as InputsTab), one per live output
             juce::StringArray muteValues;
-            for (int i = 0; i < kMaxMutes; ++i)
+            for (int i = 0; i < numOutputs; ++i)
                 muteValues.add(muteStates[i] ? "1" : "0");
             parameters.setInputParam(inputIdx, WFSParameterIDs::inputMutes.toString(), muteValues.joinIntoString(","));
         }

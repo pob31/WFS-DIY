@@ -3289,8 +3289,7 @@ private:
                 // TTS: Announce macro applied (before resetting selector)
                 TTSManager::getInstance().announceValueChange("Mute Macro", muteMacrosSelector.getText() + " applied");
                 applyMuteMacro(macroId);
-                saveMuteStates();
-                saveInputParam(WFSParameterIDs::inputMuteMacro, macroId);
+                saveMuteStates();   // one write for the whole macro
             }
             muteMacrosSelector.setSelectedId(1, juce::dontSendNotification);
         };
@@ -3380,29 +3379,33 @@ private:
         setupEditableValueLabel(sidelinesFringeValueLabel);
     }
 
+    /** Sets the buttons only; the caller saves once. Live outputs only, and no
+        click notifications: each one used to save the whole list again. */
     void applyMuteMacro(int macroId)
     {
+        const int numOutputs = juce::jlimit(1, maxMuteButtons, parameters.getNumOutputChannels());
+
         switch (macroId)
         {
             case 2: // MUTE ALL
-                for (int i = 0; i < maxMuteButtons; ++i)
-                    muteButtons[i].setToggleState(true, juce::sendNotification);
+                for (int i = 0; i < numOutputs; ++i)
+                    muteButtons[i].setToggleState(true, juce::dontSendNotification);
                 break;
             case 3: // UNMUTE ALL
-                for (int i = 0; i < maxMuteButtons; ++i)
-                    muteButtons[i].setToggleState(false, juce::sendNotification);
+                for (int i = 0; i < numOutputs; ++i)
+                    muteButtons[i].setToggleState(false, juce::dontSendNotification);
                 break;
             case 4: // INVERT MUTES
-                for (int i = 0; i < maxMuteButtons; ++i)
-                    muteButtons[i].setToggleState(!muteButtons[i].getToggleState(), juce::sendNotification);
+                for (int i = 0; i < numOutputs; ++i)
+                    muteButtons[i].setToggleState(!muteButtons[i].getToggleState(), juce::dontSendNotification);
                 break;
             case 5: // MUTE ODD
-                for (int i = 0; i < maxMuteButtons; ++i)
-                    muteButtons[i].setToggleState((i % 2) == 0, juce::sendNotification);
+                for (int i = 0; i < numOutputs; ++i)
+                    muteButtons[i].setToggleState((i % 2) == 0, juce::dontSendNotification);
                 break;
             case 6: // MUTE EVEN
-                for (int i = 0; i < maxMuteButtons; ++i)
-                    muteButtons[i].setToggleState((i % 2) == 1, juce::sendNotification);
+                for (int i = 0; i < numOutputs; ++i)
+                    muteButtons[i].setToggleState((i % 2) == 1, juce::dontSendNotification);
                 break;
             default:
                 // Array mute/unmute macros (macroId >= 7)
@@ -3412,14 +3415,11 @@ private:
                     bool shouldMute = ((macroId - 7) % 2 == 0);
                     int arrayNumber = (macroId - 7) / 2 + 1;  // 1-10
 
-                    int numOutputs = parameters.getNumOutputChannels();
-                    if (numOutputs <= 0) numOutputs = 16;
-
-                    for (int outIdx = 0; outIdx < numOutputs && outIdx < maxMuteButtons; ++outIdx)
+                    for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
                     {
                         int outputArray = static_cast<int>(parameters.getOutputParam(outIdx, "outputArray"));
                         if (outputArray == arrayNumber)
-                            muteButtons[outIdx].setToggleState(shouldMute, juce::sendNotification);
+                            muteButtons[outIdx].setToggleState(shouldMute, juce::dontSendNotification);
                     }
                 }
                 break;
@@ -6141,18 +6141,15 @@ private:
         otomoPauseButton.setToggleState(pauseResume, juce::dontSendNotification);
 
         // ==================== MUTES TAB ====================
-        juce::String muteStr = getStringParam(WFSParameterIDs::inputMutes, "");
-        if (muteStr.isNotEmpty())
+        // Every button, not just as many as the list has entries: an output the
+        // list does not reach is unmuted, and a button left as it was would show
+        // the previous channel's mute and write it back on the next click.
         {
             juce::StringArray muteValues;
-            muteValues.addTokens(muteStr, ",", "");
-            for (int i = 0; i < juce::jmin(maxMuteButtons, muteValues.size()); ++i)
-                muteButtons[i].setToggleState(muteValues[i].getIntValue() != 0, juce::dontSendNotification);
-        }
-        else
-        {
+            muteValues.addTokens(getStringParam(WFSParameterIDs::inputMutes, ""), ",", "");
             for (int i = 0; i < maxMuteButtons; ++i)
-                muteButtons[i].setToggleState(false, juce::dontSendNotification);
+                muteButtons[i].setToggleState(i < muteValues.size() && muteValues[i].getIntValue() != 0,
+                                              juce::dontSendNotification);
         }
 
         // Array attenuation dials
@@ -7950,8 +7947,9 @@ private:
         oscMethodMap[&otomoPauseResumeAllButton] = "/wfs/input/otomoPauseResumeAll";
         // Mutes tab
         for (int i = 0; i < maxMuteButtons; ++i)
-            oscMethodMap[&muteButtons[i]] = "/wfs/input/mutes <ID> " + juce::String(i + 1) + " <value>";
-        oscMethodMap[&muteMacrosSelector] = "/wfs/input/muteMacro <ID> <value>";
+            oscMethodMap[&muteButtons[i]] = "/wfs/input/mutes <ID> " + juce::String(i + 1) + " <0|1>";
+        // No hint for the macro selector: /wfs/input/muteMacro stores nothing and
+        // applies nothing (macros exist only in this tab's applyMuteMacro).
         // Array attenuation
         for (int i = 0; i < 10; ++i)
             oscMethodMap[&arrayAttenDials[i]] = "/wfs/input/arrayAtten" + juce::String(i + 1) + " <ID> <value>";
@@ -8696,8 +8694,12 @@ private:
     void saveMuteStates()
     {
         if (isLoadingParameters) return;
+        // One entry per live output. The hidden buttons past the output count
+        // are not a choice anyone made; writing them made a mute appear on an
+        // output added later.
+        const int numOutputs = juce::jlimit(1, maxMuteButtons, parameters.getNumOutputChannels());
         juce::StringArray muteValues;
-        for (int i = 0; i < maxMuteButtons; ++i)
+        for (int i = 0; i < numOutputs; ++i)
             muteValues.add(muteButtons[i].getToggleState() ? "1" : "0");
         // Through the cluster-edit engine so Shift-clicking a mute copies the
         // whole mute state to the other inputs of the cluster.

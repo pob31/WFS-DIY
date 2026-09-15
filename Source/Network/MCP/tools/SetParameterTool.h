@@ -133,6 +133,12 @@ inline ToolResult set (WFSValueTreeState& state, const juce::var& args, ChangeRe
         return ToolResult::error ("invalid_args", "Missing required arg: value");
     juce::var value = obj->getProperty ("value");
 
+    {
+        auto muteCheck = MCPValidation::validateInputMuteList (variable, value, state.getNumOutputChannels());
+        if (! muteCheck.success)
+            return muteCheck;
+    }
+
     // Enum string -> int coercion. The registry surfaces enum_values for
     // the auto-gen path; mirror that here so wfs_set_parameter("stageShape",
     // "Dome") works the same way system_stage_set_shape(value="Dome") does.

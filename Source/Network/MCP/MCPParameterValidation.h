@@ -167,4 +167,33 @@ inline ToolResult validateAgainstRegistry (const ParameterRegistryRecord* rec,
     return ToolResult::ok ({});
 }
 
+/** inputMutes is one list for the whole input: exactly one "0" or "1" per live
+    output, comma-separated. Anything else is refused, not fitted the way OSC
+    input is: a label ("MUTE"), a number or a short list would unmute outputs
+    the caller never named. ok() for every other variable. */
+inline ToolResult validateInputMuteList (const juce::String& variable, const juce::var& value, int numOutputs)
+{
+    if (variable != "inputMutes")
+        return ToolResult::ok ({});
+
+    const juce::String expected = " (expected " + juce::String (numOutputs)
+                                + " comma-separated entries, 0 = unmuted or 1 = muted, one per output;"
+                                  " to change one output use input_set_output_mute)";
+    if (! value.isString())
+        return ToolResult::error ("invalid_args", "inputMutes takes the whole list as a string" + expected);
+
+    juce::StringArray tokens;
+    tokens.addTokens (value.toString(), ",", "");
+    if (tokens.size() != numOutputs)
+        return ToolResult::error ("invalid_args",
+                                  "inputMutes has " + juce::String (tokens.size()) + " entries" + expected);
+
+    for (const auto& token : tokens)
+        if (token.trim() != "0" && token.trim() != "1")
+            return ToolResult::error ("invalid_args",
+                                      "inputMutes entry " + token.trim().quoted() + " is not 0 or 1" + expected);
+
+    return ToolResult::ok ({});
+}
+
 } // namespace WFSNetwork::MCPValidation

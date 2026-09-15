@@ -50,6 +50,8 @@ public:
      * @param numberToSlot     Resolves a permanent input channel number to the slot it
      *                         currently occupies, negative when no live channel carries
      *                         it (WFSValueTreeState::getSlotForChannelNumber)
+     * @param numOutputs       Live output count: each input's mute list is fitted to it,
+     *                         so the cue carries exactly one entry per output (0 = as stored)
      * @return QLabCueSequence with group messages and per-cue messages
      */
     static QLabCueSequence buildSnapshotCues (
@@ -58,7 +60,8 @@ public:
         const WFSFileManager::ExtendedSnapshotScope& scope,
         int numChannels,
         int qlabPatchNumber,
-        const std::function<int (int)>& numberToSlot = {})
+        const std::function<int (int)>& numberToSlot = {},
+        int numOutputs = 0)
     {
         QLabCueSequence sequence;
 
@@ -88,7 +91,7 @@ public:
                 continue;
 
             appendChannelCues (sequence.networkCues, inputData, channelIndex, channelId,
-                               scope, qlabPatchNumber, cueCounter);
+                               scope, qlabPatchNumber, numOutputs, cueCounter);
         }
 
         return sequence;
@@ -293,6 +296,7 @@ private:
         int channelId,
         const WFSFileManager::ExtendedSnapshotScope& scope,
         int qlabPatchNumber,
+        int numOutputs,
         int& cueCounter)
     {
         const auto& inputMappings = OSCMessageBuilder::getInputMappings();
@@ -319,6 +323,14 @@ private:
                 auto value = section.getProperty (paramId);
                 ++cueCounter;
 
+                // Stored zero-based; /wfs/input/samplerSet counts sets from 1.
+                if (paramId == WFSParameterIDs::inputSamplerActiveSet)
+                    value = juce::var (value.toString().getIntValue() + 1);
+
+                const bool isMuteList = (paramId == WFSParameterIDs::inputMutes);
+                if (isMuteList)
+                    value = juce::var (WFSValueTreeState::normaliseMuteList (value, numOutputs));
+
                 QLabCueSequence::NetworkCue cue;
                 cue.movePosition = cueCounter;  // 1-based
 
@@ -329,13 +341,20 @@ private:
                 cue.messages.push_back (juce::OSCMessage ("/cue/selected/patch",
                     qlabPatchNumber));
 
-                // d. Set customString (the OSC message QLab will send)
+                // d. Set customString (the OSC message QLab will send).
+                // A one-output list is a lone "0" or "1", which the receiver
+                // refuses as the bare number that used to wipe lists, so it
+                // goes out in the one-output form instead.
+                const bool singleMute = isMuteList && value.toString().isNotEmpty()
+                                        && ! value.toString().containsChar (',');
                 cue.messages.push_back (juce::OSCMessage ("/cue/selected/customString",
-                    formatCustomString (oscPath, channelId, value)));
+                    singleMute ? oscPath + " " + juce::String (channelId) + " 1 " + value.toString()
+                               : formatCustomString (oscPath, channelId, value)));
 
                 // e. Set descriptive cue name
                 cue.messages.push_back (juce::OSCMessage ("/cue/selected/name",
-                    formatCueName (paramId, channelId, value)));
+                    isMuteList ? formatMuteCueName (channelId, value.toString())
+                               : formatCueName (paramId, channelId, value)));
 
                 networkCues.push_back (std::move (cue));
             }
@@ -356,6 +375,13 @@ private:
         juce::String result = oscPath + " " + juce::String (channelId) + " ";
         juce::String strVal = value.toString();
 
+        // Text that is not a number (the per-output mute list "0,1,0,...") goes
+        // out whole and quoted: QLab splits unquoted arguments at spaces, and
+        // reading it as a number kept only its first entry.
+        const auto trimmed = strVal.trim();
+        if (trimmed.isNotEmpty() && ! trimmed.containsOnly ("0123456789.+-eE"))
+            return result + trimmed.quoted();
+
         // Values loaded from XML are always string vars — parse as number by content
         if (strVal.containsChar ('.'))
             result += juce::String (strVal.getDoubleValue(), 6);
@@ -363,6 +389,32 @@ private:
             result += juce::String (strVal.getIntValue());
 
         return result;
+    }
+
+    /** "Input 3 Mutes: 2, 4, 9-12", or "Input 3 Mutes: none", from a
+        normalised mute list (one "0"/"1" per output). */
+    static juce::String formatMuteCueName (int channelId, const juce::String& muteList)
+    {
+        juce::StringArray tokens;
+        tokens.addTokens (muteList, ",", "");
+
+        juce::StringArray runs;
+        for (int i = 0; i < tokens.size(); ++i)
+        {
+            if (tokens[i] != "1")
+                continue;
+
+            int last = i;
+            while (last + 1 < tokens.size() && tokens[last + 1] == "1")
+                ++last;
+
+            runs.add (last == i ? juce::String (i + 1)
+                                : juce::String (i + 1) + "-" + juce::String (last + 1));
+            i = last;
+        }
+
+        return "Input " + juce::String (channelId) + " Mutes: "
+               + (runs.isEmpty() ? juce::String ("none") : runs.joinIntoString (", "));
     }
 
     //==========================================================================

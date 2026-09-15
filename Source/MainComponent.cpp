@@ -8,6 +8,7 @@
 #include "Localization/LocalizationManager.h"
 #include "Accessibility/TTSManager.h"
 #include "Network/QLabCueBuilder.h"
+#include "Network/OSCMessageRouter.h"
 #include "Network/MCP/tools/ChannelLifecycleTools.h"
 #include "Network/MCP/MCPSurfaceAudit.h"
 #include "Controllers/DialsAndButtons/pages/InputsTabPages.h"
@@ -592,7 +593,8 @@ MainComponent::MainComponent()
         }
 
         auto sequence = WFSNetwork::QLabCueBuilder::buildSnapshotCues (
-            snapshotName, inputsData, effScope, numChannels, patchNumber, numberToSlot);
+            snapshotName, inputsData, effScope, numChannels, patchNumber, numberToSlot,
+            parameters.getNumOutputChannels());
 
         oscManager->sendToQLab (sequence, [this, cueCount](int /*sentCount*/) {
             if (inputsTab != nullptr)
@@ -2707,6 +2709,12 @@ MainComponent::MainComponent()
     // touched, but latches the channel numbers: run it in a throwaway session.
     if (std::getenv("WFS_TEST_ARRAY_ATTEN_PERSIST") != nullptr)
         runArrayAttenPersistSelfTest();
+
+    // Hidden diagnostic: WFS_TEST_MUTES_PERSIST=1 takes the per-input output
+    // mute lists through every store, recall, OSC and QLab path. Restores what
+    // it touched, but latches the channel numbers: run it in a throwaway session.
+    if (std::getenv("WFS_TEST_MUTES_PERSIST") != nullptr)
+        runInputMutesPersistSelfTest();
 }
 
 void MainComponent::runLiveSourcePersistSelfTest()
@@ -3083,6 +3091,372 @@ void MainComponent::runArrayAttenPersistSelfTest()
             mutes.setProperty(t.property, t.original, nullptr);
         else
             mutes.removeProperty(t.property, nullptr);
+    }
+    parameters.getDirtyTracker().endSuppressionAndClear();
+
+    logLine("SELF-TEST note: the import and the snapshot store latched the channel numbers and "
+            "the import cleared the undo history; treat this session as disposable");
+    logLine(failures == 0 ? "SELF-TEST RESULT: ALL PASS"
+                          : "SELF-TEST RESULT: FAIL (" + juce::String(failures) + ")");
+}
+
+void MainComponent::runInputMutesPersistSelfTest()
+{
+    using namespace WFSParameterIDs;
+    using Scope = WFSFileManager::ExtendedSnapshotScope;
+    using WFSNetwork::OSCMessageRouter;
+    auto& vts = parameters.getValueTreeState();
+    auto& fm = parameters.getFileManager();
+    int failures = 0;
+
+    auto logLine = [](const juce::String& s) { WFSLogger::getInstance().logInfo(s); };
+    auto check = [&](bool ok, const juce::String& what)
+    {
+        if (! ok) ++failures;
+        logLine(juce::String("SELF-TEST ") + (ok ? "PASS " : "FAIL ") + what);
+    };
+
+    logLine("SELF-TEST begin (input mute lists: format, store and recall, OSC, QLab)");
+
+    const int numChannels = vts.getNumInputChannels();
+    const int numOutputs = vts.getNumOutputChannels();
+    if (numChannels < 2 || numOutputs < 6)
+    {
+        logLine("SELF-TEST SKIP M: this session needs two inputs and six outputs");
+        logLine("SELF-TEST RESULT: SKIPPED");
+        return;
+    }
+
+    WFSValueTreeState::ScopedUndoSuppression noUndo (vts);
+    parameters.getDirtyTracker().beginSuppression();
+
+    // Every list, to put back at the end
+    std::vector<juce::var> originalMutes;
+    for (int slot = 0; slot < numChannels; ++slot)
+        originalMutes.push_back(vts.getInputMutesSection(slot).getProperty(inputMutes));
+
+    auto mutesOf = [&](int slot) { return vts.getInputMutesSection(slot).getProperty(inputMutes).toString(); };
+    auto setRaw = [&](int slot, const juce::String& list) { vts.getInputMutesSection(slot).setProperty(inputMutes, list, nullptr); };
+    // The canonical list for this rig with the given outputs (1-based) muted
+    auto listWith = [numOutputs](std::initializer_list<int> muted)
+    {
+        juce::StringArray tokens;
+        for (int out = 1; out <= numOutputs; ++out)
+            tokens.add(std::find(muted.begin(), muted.end(), out) != muted.end() ? "1" : "0");
+        return tokens.joinIntoString(",");
+    };
+    auto tokensOf = [](const juce::String& list) { juce::StringArray t; t.addTokens(list, ",", ""); return t; };
+
+    // --- M1: the list format
+    check(WFSValueTreeState::normaliseMuteList("0,1,0", 5) == "0,1,0,0,0", "M1: a short list is padded with unmuted outputs");
+    check(WFSValueTreeState::normaliseMuteList("1,1,1,1,1,1", 4) == "1,1,1,1", "M1: a long list is cut to the output count");
+    check(WFSValueTreeState::normaliseMuteList("1.0", 3) == "1,0,0", "M1: a collapsed \"1.0\" reads as output 1 muted");
+    check(WFSValueTreeState::normaliseMuteList(" 0 , 5 ,x", 3) == "0,1,0", "M1: non-zero is muted, text unmuted, spaces ignored");
+    check(WFSValueTreeState::normaliseMuteList("1,1,1,1", 4, 2) == "1,1,0,0", "M1: entries past keepTokens start unmuted");
+    check(WFSValueTreeState::normaliseMuteList({}, 3) == "0,0,0", "M1: no list is all unmuted");
+    check(WFSValueTreeState::normaliseMuteList("1,0,1", 0) == "1,0,1", "M1: numOutputs 0 canonicalises without resizing");
+
+    // --- M2: the store's guard
+    const auto pattern = listWith({ 2, 4, 5, 6 });
+    vts.setInputParameter(0, inputMutes, pattern);
+    check(mutesOf(0) == pattern, "M2: a full list is stored as sent");
+    vts.setInputParameter(0, inputMutes, 1.0);
+    check(mutesOf(0) == pattern, "M2: a bare number (what a QLab cue sent) leaves the list alone");
+    vts.setParameter(inputMutes, 0, 0);
+    check(mutesOf(0) == pattern, "M2: through setParameter, the OSC and MCP path, too");
+    {
+        juce::StringArray grid;
+        for (int i = 0; i < WFSParameterDefaults::maxOutputChannels; ++i)
+            grid.add(i % 2 == 0 ? "1" : "0");
+        vts.setInputParameter(0, inputMutes, grid.joinIntoString(","));
+        check(tokensOf(mutesOf(0)).size() == numOutputs, "M2: a 128-entry list from the old grid is cut to the "
+                                                         + juce::String(numOutputs) + " outputs");
+    }
+
+    // --- M3: one output at a time
+    vts.setInputParameter(0, inputMutes, listWith({}));
+    check(vts.setInputOutputMute(0, 2, true) && mutesOf(0) == listWith({ 3 }), "M3: mute output 3 alone");
+    check(vts.setInputOutputMute(0, 4, true) && mutesOf(0) == listWith({ 3, 5 }), "M3: output 5 joins, output 3 stays");
+    check(vts.setInputOutputMute(0, 2, false) && mutesOf(0) == listWith({ 5 }), "M3: unmute output 3, output 5 stays");
+    check(! vts.setInputOutputMute(0, numOutputs, true) && mutesOf(0) == listWith({ 5 }),
+          "M3: an output past the count is refused and changes nothing");
+
+    // --- M4: an exported input config brings them back exactly
+    const auto tempDir = juce::File::getSpecialLocation(juce::File::tempDirectory);
+    auto exportFile = tempDir.getChildFile("wfs-selftest-mutes-inputs.xml");
+    exportFile.deleteFile();
+
+    vts.setInputParameter(0, inputMutes, pattern);
+    vts.setInputParameter(1, inputMutes, listWith({ 1 }));
+    check(fm.exportInputConfig(exportFile), "M4: export the input config with two mute patterns");
+    check(exportFile.loadFileAsString().contains("inputMutes=\"" + pattern + "\""),
+          "M4: the file carries inputMutes=\"" + pattern + "\"");
+    setRaw(0, listWith({}));
+    setRaw(1, listWith({}));
+    check(fm.importInputConfig(exportFile), "M4: import it back with both lists cleared");
+    check(mutesOf(0) == pattern && mutesOf(1) == listWith({ 1 }), "M4: both patterns came back");
+
+    // --- M5: snapshots, in a scratch project folder
+    const auto previousFolder = fm.getProjectFolder();
+    auto scratch = tempDir.getChildFile("wfs-selftest-mutes");
+    scratch.deleteRecursively();
+    scratch.createDirectory();
+    fm.setProjectFolder(scratch);
+    fm.createProjectFolderStructure();
+
+    Scope all;
+    all.initializeDefaults(numChannels);
+    vts.setInputParameter(0, inputMutes, pattern);
+    check(fm.saveInputSnapshotWithExtendedScope("mutes-selftest", all), "M5: store a snapshot with the default scope");
+    vts.setInputParameter(0, inputMutes, listWith({}));
+    check(fm.loadInputSnapshotWithExtendedScope("mutes-selftest", fm.getExtendedSnapshotScope("mutes-selftest")),
+          "M5: recall it");
+    check(mutesOf(0) == pattern, "M5: the pattern came back");
+
+    // --- M6: the QLab cues built from that snapshot
+    // What QLab does with a custom string: split at spaces outside quotes,
+    // send a quoted token as a string, a bare number as a number.
+    auto sendLikeQLab = [](const juce::String& customString)
+    {
+        std::vector<std::pair<juce::String, bool>> tokens;   // text, was quoted
+        juce::String current;
+        bool inQuotes = false, quoted = false;
+        for (int ci = 0; ci < customString.length(); ++ci)
+        {
+            const auto c = customString[ci];
+            if (c == '"') { inQuotes = ! inQuotes; quoted = true; continue; }
+            if (c == ' ' && ! inQuotes)
+            {
+                if (current.isNotEmpty() || quoted) tokens.push_back({ current, quoted });
+                current.clear(); quoted = false;
+                continue;
+            }
+            current += c;
+        }
+        if (current.isNotEmpty() || quoted) tokens.push_back({ current, quoted });
+
+        juce::OSCMessage msg (juce::OSCAddressPattern (tokens.empty() ? juce::String("/") : tokens.front().first));
+        for (size_t i = 1; i < tokens.size(); ++i)
+        {
+            const auto& [text, wasQuoted] = tokens[i];
+            const bool isInt = ! wasQuoted && text.isNotEmpty()
+                               && text.trimCharactersAtStart("-+").containsOnly("0123456789")
+                               && text.trimCharactersAtStart("-+").isNotEmpty();
+            const bool isFloat = ! wasQuoted && ! isInt && text.containsAnyOf("0123456789")
+                                 && text.containsOnly("0123456789.-+eE");
+            if (isInt)        msg.addInt32(text.getIntValue());
+            else if (isFloat) msg.addFloat32(text.getFloatValue());
+            else              msg.addString(text);
+        }
+        return msg;
+    };
+    auto customStringOf = [](const WFSNetwork::QLabCueSequence::NetworkCue& cue, const juce::String& address)
+    {
+        for (const auto& m : cue.messages)
+            if (m.getAddressPattern().toString() == address && m.size() > 0 && m[0].isString())
+                return m[0].getString();
+        return juce::String();
+    };
+
+    {
+        const auto file = fm.getInputSnapshotsFolder().getChildFile("mutes-selftest.xml");
+        juce::ValueTree inputsData;
+        if (auto xml = juce::XmlDocument::parse(file))
+            inputsData = juce::ValueTree::fromXml(*xml).getChildWithName(Inputs);
+        check(inputsData.isValid(), "M6: read the stored snapshot");
+
+        const auto effScope = all.withGlobals(fm.isSamplerMasterOn(), numChannels);
+        const auto numberToSlot = [&vts](int number) { return vts.getSlotForChannelNumber(number); };
+        auto sequence = WFSNetwork::QLabCueBuilder::buildSnapshotCues("mutes-selftest", inputsData, effScope,
+                                                                      numChannels, 1, numberToSlot, numOutputs);
+        check(WFSNetwork::QLabCueBuilder::countCues(inputsData, effScope, numChannels, numberToSlot)
+                  == static_cast<int>(sequence.networkCues.size()),
+              "M6: countCues agrees with the " + juce::String(static_cast<int>(sequence.networkCues.size())) + " cues built");
+
+        const int number0 = vts.getInputChannelNumber(0);
+        const auto expectedMuteCue = "/wfs/input/mutes " + juce::String(number0) + " \"" + pattern + "\"";
+        bool foundMuteCue = false, muteCueNamed = false;
+        int total = 0, parsedBack = 0;
+        juce::StringArray refused;
+        const auto& mappings = WFSNetwork::OSCMessageBuilder::getInputMappings();
+
+        for (const auto& cue : sequence.networkCues)
+        {
+            const auto customString = customStringOf(cue, "/cue/selected/customString");
+            if (customString.isEmpty())
+                continue;
+            ++total;
+
+            if (customString == expectedMuteCue)
+            {
+                foundMuteCue = true;
+                muteCueNamed = customStringOf(cue, "/cue/selected/name")
+                               == "Input " + juce::String(number0) + " Mutes: 2, 4-6";
+            }
+
+            const auto msg = sendLikeQLab(customString);
+            const auto parsed = OSCMessageRouter::parseInputMessage(msg);
+            const auto it = mappings.find(parsed.paramId);
+            if (parsed.valid && it != mappings.end()
+                && it->second.oscPath == msg.getAddressPattern().toString())
+                ++parsedBack;
+            else if (refused.size() < 12)
+                refused.add(customString + (parsed.invalidReason.isNotEmpty() ? " (" + parsed.invalidReason + ")" : ""));
+
+            if (customString == expectedMuteCue)
+                check(parsed.valid && parsed.muteOutput == 0 && parsed.value.toString() == pattern,
+                      "M6: the mute cue parses back to the whole list");
+        }
+
+        check(foundMuteCue, "M6: the mute cue carries the whole list, quoted: " + expectedMuteCue);
+        check(muteCueNamed, "M6: the mute cue is named \"Input " + juce::String(number0) + " Mutes: 2, 4-6\"");
+        check(total > 0 && parsedBack == total,
+              "M6: " + juce::String(parsedBack) + " of " + juce::String(total)
+                  + " cues parse back to their own parameter"
+                  + (refused.isEmpty() ? juce::String() : "; refused: " + refused.joinIntoString(" | ")));
+    }
+
+    // M6b: the sampler set goes out counted from 1, the way the address reads it
+    {
+        juce::ValueTree inputs (Inputs), input (Input), sampler (Sampler);
+        input.setProperty(id, vts.getInputChannelNumber(0), nullptr);
+        sampler.setProperty(inputSamplerActiveSet, "2", nullptr);   // third set, as a file holds it
+        input.appendChild(sampler, nullptr);
+        inputs.appendChild(input, nullptr);
+
+        const auto numberToSlot = [&vts](int number) { return vts.getSlotForChannelNumber(number); };
+        auto sequence = WFSNetwork::QLabCueBuilder::buildSnapshotCues("sampler-selftest", inputs, Scope(),
+                                                                      numChannels, 1, numberToSlot, numOutputs);
+        const auto customString = sequence.networkCues.empty() ? juce::String()
+                                      : customStringOf(sequence.networkCues.front(), "/cue/selected/customString");
+        check(customString == "/wfs/input/samplerSet " + juce::String(vts.getInputChannelNumber(0)) + " 3",
+              "M6b: stored set 2 (the third) goes out as set 3: " + customString);
+    }
+
+    // M6c: on a one-output rig the whole list is a lone "1", which the receiver
+    // refuses as a bare number, so the cue uses the one-output form
+    {
+        juce::ValueTree inputs (Inputs), input (Input), mutes (Mutes);
+        input.setProperty(id, vts.getInputChannelNumber(0), nullptr);
+        mutes.setProperty(inputMutes, "1", nullptr);
+        input.appendChild(mutes, nullptr);
+        inputs.appendChild(input, nullptr);
+
+        const auto numberToSlot = [&vts](int number) { return vts.getSlotForChannelNumber(number); };
+        auto sequence = WFSNetwork::QLabCueBuilder::buildSnapshotCues("one-output-selftest", inputs, Scope(),
+                                                                      numChannels, 1, numberToSlot, 1);
+        const auto customString = sequence.networkCues.empty() ? juce::String()
+                                      : customStringOf(sequence.networkCues.front(), "/cue/selected/customString");
+        const auto parsed = OSCMessageRouter::parseInputMessage(sendLikeQLab(customString));
+        check(customString == "/wfs/input/mutes " + juce::String(vts.getInputChannelNumber(0)) + " 1 1"
+                  && parsed.valid && parsed.muteOutput == 1 && static_cast<int>(parsed.value) == 1,
+              "M6c: a one-output list goes out as output 1 muted and is received: " + customString);
+    }
+
+    fm.setProjectFolder(previousFolder);
+    scratch.deleteRecursively();
+    exportFile.deleteFile();
+
+    // --- M7: the OSC argument forms
+    {
+        auto standard = [](std::function<void (juce::OSCMessage&)> fill)
+        {
+            juce::OSCMessage m ("/wfs/input/mutes");
+            m.addInt32(3);
+            fill(m);
+            return OSCMessageRouter::parseInputMessage(m);
+        };
+
+        auto p = standard([](auto& m) { m.addString("0,1,0"); });
+        check(p.valid && p.muteOutput == 0 && p.value.toString() == "0,1,0", "M7: <ch> \"<list>\" sets the whole list");
+        p = standard([](auto& m) { m.addInt32(5); m.addInt32(1); });
+        check(p.valid && p.muteOutput == 5 && static_cast<int>(p.value) == 1, "M7: <ch> 5 1 mutes output 5");
+        p = standard([](auto& m) { m.addString("5"); m.addString("0"); });
+        check(p.valid && p.muteOutput == 5 && static_cast<int>(p.value) == 0, "M7: numeric strings (QLab) work too");
+        p = standard([](auto& m) { m.addFloat32(5.0f); m.addFloat32(1.0f); });
+        check(p.valid && p.muteOutput == 5, "M7: so do floats");
+        p = standard([](auto& m) { m.addInt32(0); });
+        check(! p.valid && p.invalidReason.isNotEmpty(), "M7: a lone number is refused, with a reason");
+        p = standard([](auto& m) { m.addString("1"); });
+        check(! p.valid, "M7: a lone numeric string is refused");
+        p = standard([](auto& m) { m.addInt32(5); m.addInt32(2); });
+        check(! p.valid, "M7: a state other than 0 or 1 is refused");
+        p = standard([](auto& m) { m.addInt32(0); m.addInt32(1); });
+        check(! p.valid, "M7: output 0 is refused");
+        p = standard([](auto& m) { m.addInt32(WFSParameterDefaults::maxOutputChannels + 1); m.addInt32(1); });
+        check(! p.valid, "M7: an output past the maximum is refused");
+
+        juce::OSCMessage shortList ("/wfs/input/3/mutes");
+        shortList.addString("1,0");
+        p = OSCMessageRouter::parseInputMessage(shortList);
+        check(p.valid && p.channelId == 3 && p.value.toString() == "1,0", "M7: /wfs/input/3/mutes \"<list>\"");
+        juce::OSCMessage shortOne ("/wfs/input/3/mutes");
+        shortOne.addInt32(4);
+        shortOne.addInt32(1);
+        p = OSCMessageRouter::parseInputMessage(shortOne);
+        check(p.valid && p.muteOutput == 4, "M7: /wfs/input/3/mutes 4 1");
+        juce::OSCMessage shortScalar ("/wfs/input/3/mutes");
+        shortScalar.addInt32(1);
+        check(! OSCMessageRouter::parseInputMessage(shortScalar).valid, "M7: /wfs/input/3/mutes 1 is refused");
+
+        // The sending names the receiver did not know
+        for (const auto& [alias, param] : OSCMessageRouter::getInputInboundAliases())
+        {
+            juce::OSCMessage m ("/wfs/input/" + alias);
+            m.addInt32(3);
+            m.addInt32(1);
+            const auto parsed = OSCMessageRouter::parseInputMessage(m);
+            check(parsed.valid && parsed.paramId == param, "M7: /wfs/input/" + alias + " is received");
+        }
+        juce::OSCMessage legacy ("/wfs/input/LSenable");
+        legacy.addInt32(3);
+        legacy.addInt32(1);
+        check(OSCMessageRouter::parseInputMessage(legacy).paramId == inputLSactive, "M7: /wfs/input/LSenable still is");
+    }
+
+    // --- M8: a count change starts added outputs unmuted when the list is the
+    // old grid's (every button written), and keeps any other list's real tail
+    const int added = juce::jmin(2, WFSParameterDefaults::maxOutputChannels - numOutputs);
+    if (added <= 0)
+    {
+        logLine("SELF-TEST SKIP M8: no room above " + juce::String(numOutputs) + " outputs");
+    }
+    else
+    {
+        auto allOnes = [](int n) { juce::StringArray t; for (int i = 0; i < n; ++i) t.add("1"); return t.joinIntoString(","); };
+
+        setRaw(0, allOnes(WFSParameterDefaults::maxOutputChannels));   // the old grid's Mute All, hidden buttons included
+        setRaw(1, allOnes(numOutputs + added));                        // a real list saved on a bigger rig, reloaded raw
+
+        vts.setNumOutputChannels(numOutputs + added);
+        const auto grid = tokensOf(mutesOf(0));
+        const auto real = tokensOf(mutesOf(1));
+        bool keptLive = grid.size() == numOutputs + added, addedClear = keptLive;
+        for (int i = 0; keptLive && i < numOutputs; ++i)
+            keptLive = grid[i] == "1";
+        for (int i = numOutputs; addedClear && i < numOutputs + added; ++i)
+            addedClear = grid[i] == "0";
+        check(keptLive, "M8: the live outputs keep their mutes through the count change");
+        check(addedClear, "M8: outputs added start unmuted despite the old grid's tail");
+        const int realLength = numOutputs + added;
+        if (realLength == 64 || realLength == WFSParameterDefaults::maxOutputChannels)
+            logLine("SELF-TEST SKIP M8: a " + juce::String(realLength) + "-entry list reads as the old grid's here");
+        else
+            check(real.size() == realLength && ! real.contains("0"),
+                  "M8: a shorter list's real tail is kept for the outputs added");
+
+        vts.setNumOutputChannels(numOutputs);
+        check(vts.getNumOutputChannels() == numOutputs, "M8: the output count is back to " + juce::String(numOutputs));
+    }
+
+    // Put every list back
+    for (int slot = 0; slot < numChannels && slot < static_cast<int>(originalMutes.size()); ++slot)
+    {
+        auto mutes = vts.getInputMutesSection(slot);
+        if (originalMutes[static_cast<size_t>(slot)].isVoid())
+            mutes.removeProperty(inputMutes, nullptr);
+        else
+            mutes.setProperty(inputMutes, originalMutes[static_cast<size_t>(slot)], nullptr);
     }
     parameters.getDirtyTracker().endSuppressionAndClear();
 

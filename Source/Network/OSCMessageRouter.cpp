@@ -161,6 +161,24 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getInputAddres
     return addressMap;
 }
 
+const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getInputInboundAliases()
+{
+    // The names OSCMessageBuilder sends and the parameter CSV documents, where
+    // the receive map above settled on different ones. QLab snapshot cues are
+    // built from the sending names, so without these their Live Source, floor
+    // reflection, LFO and coordinate mode cues were dropped without a word.
+    static const std::map<juce::String, juce::Identifier> aliases = {
+        { "LSactive",       WFSParameterIDs::inputLSactive },
+        { "LSpeakEnable",   WFSParameterIDs::inputLSpeakEnable },
+        { "LSslowEnable",   WFSParameterIDs::inputLSslowEnable },
+        { "FRactive",       WFSParameterIDs::inputFRactive },
+        { "LFOactive",      WFSParameterIDs::inputLFOactive },
+        { "coordinateMode", WFSParameterIDs::inputCoordinateMode },
+    };
+
+    return aliases;
+}
+
 const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getOutputAddressMap()
 {
     static const std::map<juce::String, juce::Identifier> addressMap = {
@@ -484,6 +502,11 @@ juce::Identifier OSCMessageRouter::getInputParamId(const juce::String& address)
     if (it != addressMap.end())
         return it->second;
 
+    const auto& aliases = getInputInboundAliases();
+    auto alias = aliases.find(paramName);
+    if (alias != aliases.end())
+        return alias->second;
+
     return {};
 }
 
@@ -645,6 +668,59 @@ namespace
     {
         return juce::jlimit (0.0f, 600.0f, v);
     }
+
+    // inputMutes is ONE list for the whole input, so its arguments do not take
+    // the <value> [fade] shape of the other input parameters. After the channel,
+    // starting at argument `first`:
+    //   "<list>"      a non-numeric string such as "0,1,0,0": sets every output
+    //   <out> <0|1>   two numbers, typed or numeric strings (QLab): one output
+    // A lone number is refused. Stored as the list, it unmuted every output but
+    // the first, which is how QLab cues and scalar OSC writes lost the mutes.
+    static void parseMuteArguments (const juce::OSCMessage& message, int first,
+                                     OSCMessageRouter::ParsedInputMessage& result)
+    {
+        auto isNumber = [&message] (int i)
+        {
+            return message[i].isInt32() || message[i].isFloat32()
+                || (message[i].isString() && OSCMessageRouter::isNumericString (message[i].getString()));
+        };
+
+        const int count = message.size() - first;
+
+        if (count == 1 && message[first].isString() && ! isNumber (first))
+        {
+            result.value = message[first].getString();
+            result.valid = true;
+            return;
+        }
+
+        if (count == 2 && isNumber (first) && isNumber (first + 1))
+        {
+            const float output = OSCMessageRouter::extractFloatLenient (message[first]);
+            const float state  = OSCMessageRouter::extractFloatLenient (message[first + 1]);
+            const int maxOutputs = WFSParameterDefaults::maxOutputChannels;
+
+            if (output != std::floor (output) || output < 1.0f || output > static_cast<float> (maxOutputs))
+            {
+                result.invalidReason = "inputMutes: output " + juce::String (output)
+                                     + " is not a whole number from 1 to " + juce::String (maxOutputs);
+                return;
+            }
+            if (state != 0.0f && state != 1.0f)
+            {
+                result.invalidReason = "inputMutes: state " + juce::String (state) + " is not 0 or 1";
+                return;
+            }
+
+            result.muteOutput = static_cast<int> (output);
+            result.value = static_cast<int> (state);
+            result.valid = true;
+            return;
+        }
+
+        result.invalidReason = "inputMutes takes <output> <0|1>, or the full list \"0,1,...\" "
+                               "(one 0 or 1 per output)";
+    }
 }
 
 //==============================================================================
@@ -671,12 +747,24 @@ OSCMessageRouter::ParsedInputMessage OSCMessageRouter::parseInputMessage(const j
 
         if (firstSeg.containsOnly("0123456789") && paramName.isNotEmpty())
         {
+            juce::Identifier paramId;
             const auto& addrMap = getInputAddressMap();
-            auto it = addrMap.find(paramName);
-            if (it != addrMap.end() && message.size() >= 1)
+            const auto& aliases = getInputInboundAliases();
+            if (auto it = addrMap.find(paramName); it != addrMap.end())
+                paramId = it->second;
+            else if (auto alias = aliases.find(paramName); alias != aliases.end())
+                paramId = alias->second;
+
+            if (paramId.isValid() && message.size() >= 1)
             {
-                result.paramId = it->second;
+                result.paramId = paramId;
                 result.channelId = firstSeg.getIntValue();
+
+                if (result.paramId == WFSParameterIDs::inputMutes)
+                {
+                    parseMuteArguments (message, 0, result);
+                    return result;
+                }
 
                 // Numeric strings are coerced to floats — QLab custom messages
                 // may type every argument as a string. inputName legitimately
@@ -717,6 +805,12 @@ OSCMessageRouter::ParsedInputMessage OSCMessageRouter::parseInputMessage(const j
     if (result.paramId.isValid() && message.size() >= 2)
     {
         result.channelId = extractInt(message[0]);
+
+        if (result.paramId == WFSParameterIDs::inputMutes)
+        {
+            parseMuteArguments (message, 1, result);
+            return result;
+        }
 
         // Numeric strings are coerced to floats — QLab custom messages may
         // type every argument as a string. inputName legitimately takes

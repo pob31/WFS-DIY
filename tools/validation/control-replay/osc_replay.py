@@ -4,7 +4,9 @@ Launches WFS-DIY on a temp copy of the golden fixture, sends a scripted,
 deterministic OSC write sequence over UDP 8000 covering the address
 families (per-channel float/string/int writes, config-global, cluster
 move, /remoteInput absolute + inc delta, one polar write, one out-of-range
-write that must be rejected keep-current), then reads every touched value
+write that must be rejected keep-current, the per-output mute list in its
+whole-list, one-output, refused-scalar and back-to-back burst forms), then
+reads every touched value
 back over OSCQuery HTTP (`GET /<path>?VALUE`) and compares the result set
 against a committed golden JSON.
 
@@ -55,7 +57,27 @@ WRITES = [
     # inc/dec delta over OSC (/remoteInput/<param> <id> "inc" <delta>)
     ("remote5.positionX.inc", "/remoteInput/positionX",
      [("i", 5), ("s", "inc"), ("f", 0.25)]),
+    # per-output mute list: a whole (short) list, then one output, then a
+    # lone number - which must be refused, not replace the list (it used to
+    # unmute every output but the first)
+    ("input7.mutes.list",   "/wfs/input/mutes", [("i", 7), ("s", "0,1,0,0,1")]),
+    ("input7.mutes.one",    "/wfs/input/mutes", [("i", 7), ("i", 3), ("i", 1)]),
+    ("input7.mutes.scalar", "/wfs/input/mutes", [("i", 7), ("i", 0)]),
 ]
+
+# Two single-output mutes on one input sent back to back, the way a QLab group
+# fires its cues at once. Both must land: the ingest queue merges messages of
+# one address and channel newest-wins, so /wfs/input/mutes bypasses it.
+MUTE_BURST = [
+    ("/wfs/input/mutes", [("i", 8), ("i", 2), ("i", 1)]),
+    ("/wfs/input/mutes", [("i", 8), ("i", 7), ("i", 1)]),
+]
+
+# The fixture has 16 outputs.
+EXPECTED_MUTES = {
+    "input7.mutes": ["0,1,1,0,1,0,0,0,0,0,0,0,0,0,0,0"],
+    "input8.mutes": ["0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0"],
+}
 
 # OSCQuery read-back paths for every touched value.
 READS = [
@@ -71,6 +93,8 @@ READS = [
     ("input5.positionX",  "/wfs/input/5/positionX"),   # 1.75 + 0.25 = 2.0
     ("input6.positionX",  "/wfs/input/6/positionX"),   # polar R=2 result
     ("input6.positionY",  "/wfs/input/6/positionY"),
+    ("input7.mutes",      "/wfs/input/7/mutes"),       # list + output 3, scalar refused
+    ("input8.mutes",      "/wfs/input/8/mutes"),       # burst: outputs 2 and 7
 ]
 
 
@@ -114,6 +138,11 @@ def main() -> int:
             sender.send(address, osc_args)
         sender.close()
 
+        burst = common.OSCSender(delay=0.0)
+        for address, osc_args in MUTE_BURST:
+            burst.send(address, osc_args)
+        burst.close()
+
         # Final drain before reading back.
         time.sleep(1.5)
 
@@ -143,6 +172,11 @@ def main() -> int:
         print("[osc-replay] HARD FAIL: inc delta result wrong: "
               f"{readbacks.get('input5.positionX')}", file=sys.stderr)
         ok = False
+    for label, expected in EXPECTED_MUTES.items():
+        if readbacks.get(label) != expected:
+            print(f"[osc-replay] HARD FAIL: {label} is {readbacks.get(label)}, "
+                  f"expected {expected}", file=sys.stderr)
+            ok = False
 
     if not common.compare_or_update(GOLDEN, actual_text, args.update,
                                     "osc-replay"):

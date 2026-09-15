@@ -68,10 +68,26 @@ WFSValueTreeState::WFSValueTreeState()
     // the store; this clamp only ever fires for paths that used to bypass
     // validation). In-range numeric writes and all non-numeric writes return
     // the proposed var UNTOUCHED — same object, same type — so every
-    // already-validated caller produces byte-identical results.
-    setWriteInterceptor ([] (const juce::Identifier& property, const juce::var& proposed,
-                             const juce::ValueTree&) -> juce::var
+    // already-validated caller produces byte-identical results. The one
+    // exception is the per-output mute list (inputMutes), handled first below.
+    setWriteInterceptor ([this] (const juce::Identifier& property, const juce::var& proposed,
+                                 const juce::ValueTree& node) -> juce::var
     {
+        // The per-output mute list is one string for the whole input. A bare
+        // number here is never a list: it is what a QLab cue, an OSC scalar or
+        // an MCP enum used to write over it, which unmuted every output but the
+        // first and was then saved like that. Keep the list as it is instead,
+        // and fit a real list to the live outputs.
+        if (property == inputMutes)
+        {
+            if (proposed.isString())
+                return juce::var (normaliseMuteList (proposed, getNumOutputChannels()));
+
+            return node.hasProperty (property)
+                       ? node.getProperty (property)
+                       : juce::var (normaliseMuteList ({}, getNumOutputChannels()));
+        }
+
         if (proposed.isDouble() || proposed.isInt() || proposed.isInt64())
         {
             // LFO phases are circular: wrap into the canonical [-180, 180]
@@ -576,6 +592,37 @@ juce::ValueTree WFSValueTreeState::getInputAutoMotionSection (int channelIndex)
 juce::ValueTree WFSValueTreeState::getInputMutesSection (int channelIndex)
 {
     return getInputState (channelIndex).getChildWithName (Mutes);
+}
+
+juce::String WFSValueTreeState::normaliseMuteList (const juce::var& list, int numOutputs, int keepTokens)
+{
+    juce::StringArray tokens;
+    tokens.addTokens (list.toString(), ",", "");
+
+    for (int i = 0; i < tokens.size(); ++i)
+        tokens.set (i, (i < keepTokens && tokens[i].trim().getIntValue() != 0) ? "1" : "0");
+
+    if (numOutputs > 0)
+    {
+        while (tokens.size() < numOutputs)
+            tokens.add ("0");
+        tokens.removeRange (numOutputs, tokens.size() - numOutputs);
+    }
+
+    return tokens.joinIntoString (",");
+}
+
+bool WFSValueTreeState::setInputOutputMute (int channelIndex, int outputIndex, bool muted)
+{
+    const int numOutputs = getNumOutputChannels();
+    if (! getInputMutesSection (channelIndex).isValid() || outputIndex < 0 || outputIndex >= numOutputs)
+        return false;
+
+    juce::StringArray tokens;
+    tokens.addTokens (normaliseMuteList (getInputParameter (channelIndex, inputMutes), numOutputs), ",", "");
+    tokens.set (outputIndex, muted ? "1" : "0");
+    setInputParameter (channelIndex, inputMutes, tokens.joinIntoString (","));
+    return true;
 }
 
 juce::ValueTree WFSValueTreeState::getInputGradientMapsSection (int channelIndex)
@@ -2675,11 +2722,13 @@ void WFSValueTreeState::setNumInputChannels (int numChannels)
     inputs.setProperty (count, inputs.getNumChildren(), nullptr);
 }
 
-void WFSValueTreeState::setNumOutputChannels (int numChannels)
+void WFSValueTreeState::setNumOutputChannels (int numChannels, int previousCount)
 {
     numChannels = juce::jlimit (1, maxOutputChannels, numChannels);
     auto outputs = getOutputsState();
     int currentCount = outputs.getNumChildren();
+    if (previousCount < 0)
+        previousCount = currentCount;
 
     beginUndoTransaction ("Set Output Channel Count");
 
@@ -2706,24 +2755,32 @@ void WFSValueTreeState::setNumOutputChannels (int numChannels)
     }
     outputs.setProperty (count, numChannels, getActiveUndoManager());
 
-    // Update input mute arrays
+    // Update input mute arrays. The old mute grid wrote every one of its
+    // buttons, hidden ones included: 128 entries, 64 before the output cap was
+    // raised. On a smaller rig, the entries of such a list past the outputs
+    // that existed were never a choice anyone made, so outputs this resize adds
+    // start unmuted. Any other length is kept whole: a list longer than the
+    // live count can carry real mutes, brought back by a standalone input
+    // reload or a snapshot recall before the count caught up. (A real 64- or
+    // 128-entry list reloaded that way onto fewer outputs is the one case this
+    // cannot tell apart; its added outputs start unmuted too.)
     auto inputs = getInputsState();
     for (int i = 0; i < inputs.getNumChildren(); ++i)
     {
         auto mutesTree = getInputMutesSection (i);
-        if (mutesTree.isValid())
-        {
-            juce::String mutesStr = mutesTree.getProperty (inputMutes).toString();
-            juce::StringArray mutesArray;
-            mutesArray.addTokens (mutesStr, ",", "");
+        if (! mutesTree.isValid())
+            continue;
 
-            while (mutesArray.size() < numChannels)
-                mutesArray.add ("0");
-            while (mutesArray.size() > numChannels)
-                mutesArray.remove (mutesArray.size() - 1);
+        const auto list = mutesTree.getProperty (inputMutes);
+        juce::StringArray tokens;
+        tokens.addTokens (list.toString(), ",", "");
+        const bool oldGridList = tokens.size() > previousCount
+                                 && (tokens.size() == maxOutputChannels || tokens.size() == 64);
 
-            mutesTree.setProperty (inputMutes, mutesArray.joinIntoString (","), getActiveUndoManager());
-        }
+        mutesTree.setProperty (inputMutes,
+                               normaliseMuteList (list, numChannels,
+                                                  oldGridList ? previousCount : std::numeric_limits<int>::max()),
+                               getActiveUndoManager());
     }
 }
 

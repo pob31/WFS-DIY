@@ -125,6 +125,124 @@ inline ToolDescriptor describeSetName (WFSValueTreeState& state)
 }
 
 //==============================================================================
+// input.set_output_mute
+//==============================================================================
+
+inline juce::var buildSetOutputMuteSchema()
+{
+    auto inputId = std::make_unique<juce::DynamicObject>();
+    inputId->setProperty ("type", "integer");
+    inputId->setProperty ("minimum", 1);
+    inputId->setProperty ("description", "Input channel number (1-based, permanent).");
+
+    auto outputId = std::make_unique<juce::DynamicObject>();
+    outputId->setProperty ("type", "integer");
+    outputId->setProperty ("minimum", 1);
+    outputId->setProperty ("description", "Output channel number (1-based).");
+
+    auto muted = std::make_unique<juce::DynamicObject>();
+    muted->setProperty ("type", "boolean");
+    muted->setProperty ("description", "true mutes this input on that output, false unmutes it.");
+
+    auto props = std::make_unique<juce::DynamicObject>();
+    props->setProperty ("input_id",  juce::var (inputId.release()));
+    props->setProperty ("output_id", juce::var (outputId.release()));
+    props->setProperty ("muted",     juce::var (muted.release()));
+
+    auto required = juce::Array<juce::var>();
+    required.add ("input_id");
+    required.add ("output_id");
+    required.add ("muted");
+
+    auto schema = std::make_unique<juce::DynamicObject>();
+    schema->setProperty ("type", "object");
+    schema->setProperty ("properties", juce::var (props.release()));
+    schema->setProperty ("required", juce::var (required));
+    schema->setProperty ("additionalProperties", false);
+    return juce::var (schema.release());
+}
+
+inline ToolResult setOutputMute (WFSValueTreeState& state, const juce::var& args, ChangeRecord* record)
+{
+    if (! args.isObject())
+        return ToolResult::error ("invalid_args", "Arguments must be a JSON object");
+
+    auto* obj = args.getDynamicObject();
+
+    // The dispatcher does not enforce `required`, and a missing flag would cast
+    // to false: a call that forgot it would UNMUTE, the opposite of the tool's
+    // name, and report success.
+    for (const char* arg : { "input_id", "output_id", "muted" })
+        if (! obj->hasProperty (arg) || obj->getProperty (arg).isVoid())
+            return ToolResult::error ("invalid_args", juce::String ("Missing required arg: ") + arg);
+
+    const auto mutedVar = obj->getProperty ("muted");
+    if (! (mutedVar.isBool() || mutedVar.isInt() || mutedVar.isInt64() || mutedVar.isDouble()))
+        return ToolResult::error ("invalid_args", "muted must be true or false");
+
+    const int inputId  = static_cast<int> (obj->getProperty ("input_id"));
+    const int outputId = static_cast<int> (obj->getProperty ("output_id"));
+    const bool muted   = static_cast<bool> (mutedVar);
+
+    const int channelIndex = detail::resolveChannelIndex (state, inputId);
+    if (channelIndex < 0)
+        return ToolResult::error ("invalid_args", "input_id is not a live input channel: " + juce::String (inputId));
+
+    const int numOutputs = state.getNumOutputChannels();
+    if (outputId < 1 || outputId > numOutputs)
+        return ToolResult::error ("invalid_args", "output_id out of range: " + juce::String (outputId)
+                                                     + " (outputs are 1-" + juce::String (numOutputs) + ")");
+
+    const juce::String before = WFSValueTreeState::normaliseMuteList (
+        state.getInputParameter (channelIndex, WFSParameterIDs::inputMutes), numOutputs);
+
+    if (! state.setInputOutputMute (channelIndex, outputId - 1, muted))
+        return ToolResult::error ("internal_error", "Input " + juce::String (inputId) + " has no mute list");
+
+    const juce::String after = state.getInputParameter (channelIndex, WFSParameterIDs::inputMutes).toString();
+
+    if (record != nullptr)
+    {
+        record->operatorDescription = juce::String (muted ? "Muted" : "Unmuted") + " input "
+                                      + juce::String (inputId) + " on output " + juce::String (outputId);
+        record->affectedParameters.add ("inputMutes");
+        record->affectedGroups.push_back ({ inputId, "Mutes" });
+
+        // The whole list, so undo restores it exactly.
+        auto beforeObj = std::make_unique<juce::DynamicObject>();
+        beforeObj->setProperty ("inputMutes", before);
+        record->beforeState = juce::var (beforeObj.release());
+
+        auto afterObj = std::make_unique<juce::DynamicObject>();
+        afterObj->setProperty ("inputMutes", after);
+        record->afterState = juce::var (afterObj.release());
+    }
+
+    auto result = std::make_unique<juce::DynamicObject>();
+    result->setProperty ("input_id",  inputId);
+    result->setProperty ("output_id", outputId);
+    result->setProperty ("muted",     muted);
+    result->setProperty ("mutes",     after);
+    return ToolResult::ok (juce::var (result.release()));
+}
+
+inline ToolDescriptor describeSetOutputMute (WFSValueTreeState& state)
+{
+    ToolDescriptor d;
+    d.name        = "input_set_output_mute";
+    d.description = "Mute or unmute one input on one output (speaker), leaving its other "
+                    "outputs as they are. For example 'mute input 3 on output 12'.";
+    d.inputSchema   = buildSetOutputMuteSchema();
+    d.modifiesState = true;
+    d.tier        = 1;  // one routing point, undoable; input_set_mutes is tier 1 too
+    d.handler = [&state] (const juce::var& args, ChangeRecord* record) -> ToolResult
+    {
+        return setOutputMute (state, args, record);
+    };
+    return d;
+}
+
+//==============================================================================
 // input.position.set_cartesian
 //==============================================================================
 

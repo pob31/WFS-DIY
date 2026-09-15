@@ -310,8 +310,19 @@ return (angleOff - angle) / (angleOff - angleOn);  // Transition
 ```
 
 ### Input Muting
-- Per-input `inputMutes` parameter: comma-separated list of muted outputs
-- Example: `"1,5,12"` mutes this input for outputs 1, 5, and 12
+- Per-input `inputMutes` parameter: ONE comma-separated string with one `0` (unmuted) or `1` (muted)
+  token per output, e.g. `"0,1,0,0"` mutes this input on output 2 of 4. A missing token reads as unmuted.
+- Its format lives in `WFSValueTreeState::normaliseMuteList`. The store's write interceptor fits every
+  string write to the live output count and ignores a bare number (a number over the list used to unmute
+  every output but the first). File merges, snapshot recall and undo write the list raw, so it can be
+  longer than the live count; `setNumOutputChannels` keeps such a tail, except for the old grid's
+  signature (exactly 128 entries, or 64 from before the cap was raised, longer than the previous count),
+  whose entries for the outputs being added are cleared.
+- One output: `WFSValueTreeState::setInputOutputMute`; OSC `/wfs/input/mutes <ID> <output> <0|1>`;
+  MCP `input_set_output_mute`. The whole list: OSC `/wfs/input/mutes <ID> "<list>"` (QLab snapshot cues
+  send this, quoted; with one output they use the one-output form, since a lone "1" is refused). A lone
+  number over OSC is refused and logged. `/wfs/input/mutes` bypasses the OSC ingest coalescer so one-output
+  edits on one input all arrive, in order, through its 256-slot FIFO.
 - Muted routings skip calculation entirely (level = 0, no processing)
 
 ### Array Mute (session state, not a parameter)
@@ -394,7 +405,7 @@ Distance from edge:
 | `inputAttenuation` | Input Attenuation | Base attenuation (dB) |
 | `inputDistanceAttenuation` | Input Attenuation | Distance attenuation factor |
 | `inputHeightFactor` | Input Position | Z scaling (0-100%) |
-| `inputMutes` | Input Options | Comma-separated muted outputs |
+| `inputMutes` | Input Mutes | One 0/1 per output, comma-separated (see Input Muting) |
 | `inputCommonAtten` | Input Attenuation | Common attenuation % (see below) |
 
 ### Common Attenuation

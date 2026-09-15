@@ -3183,11 +3183,15 @@ bool WFSFileManager::applyOutputsSection (const juce::ValueTree& outputsTree)
     auto existingOutputs = valueTreeState.getOutputsState();
     if (existingOutputs.isValid())
     {
+        // The merge appends any output the file has beyond the session's, so
+        // count before it: the resize decides from this which mute-list
+        // entries belong to outputs that are new.
+        const int countBeforeMerge = existingOutputs.getNumChildren();
         mergeTreeRecursive (existingOutputs, outputsTree, valueTreeState.getUndoManager());
 
         // Sync outputChannels count with actual number of output children
         int actualCount = existingOutputs.getNumChildren();
-        valueTreeState.setNumOutputChannels (actualCount);
+        valueTreeState.setNumOutputChannels (actualCount, countBeforeMerge);
 
         return true;
     }
