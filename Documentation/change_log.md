@@ -2,6 +2,11 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
+## v1.0.0beta51 — 2026-09-15
+
+### Fixed
+- **The Network Log's filters can be changed while logging is on.** With logging on and traffic flowing, clicking a filter checkbox — Incoming, Outgoing, UDP, TCP, a protocol or a client IP — did nothing; logging had to be switched off first. The window recreated every checkbox each time a new message arrived, up to 20 times a second, so the one being clicked was replaced between press and release. The checkboxes are now kept, and only a new client IP or a change of filter mode adds or removes one. **Hide heartbeat** and the filter mode selector were not affected.
+
 ## v1.0.0beta50 — 2026-09-11
 
 ### Added
