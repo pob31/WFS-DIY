@@ -503,14 +503,16 @@ private:
         // Other tabs (0-3): no movement
     }
 
-    /** Shift layer dispatch shared by the Map and Inputs tabs. The moveZ
-        mapping is inverted so that lifting the puck is +Z; the width takes
-        the opposite sign so that pushing down spreads the pair and pulling
-        up narrows it. */
+    /** Shift layer dispatch shared by the Map and Inputs tabs. Both axes run
+        the same way round as the map's Shift + second finger: the moveZ
+        mapping is inverted so that lifting the puck is +Z, and +Z widens the
+        pair as spreading the fingers does - pulling up is the pinch-out
+        everywhere else too (it raises a source, grows a cluster and zooms the
+        map in). The twist is counter-clockwise-positive like the finger's turn. */
     void dispatchStereoImage (float totalDz, float totalRotation)
     {
         if (std::abs (totalDz) > 0.0001f && callbacks.adjustStereoWidth)
-            callbacks.adjustStereoWidth (-totalDz);
+            callbacks.adjustStereoWidth (totalDz);
 
         if (std::abs (totalRotation) > 0.01f && callbacks.adjustStereoAxis)
             callbacks.adjustStereoAxis (totalRotation);

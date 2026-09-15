@@ -131,12 +131,13 @@ Default SpaceMouse mapping:
 image layer: TransZ and RotZ are redirected to the stereo image of the selected
 stereo inputs while TransX/TransY keep moving the source. Mono targets ignore
 the two redirected axes; the Clusters tab and the Map's cluster-reference
-path are unaffected.
+path are unaffected. Both redirected axes run the same way round as the Map's
+Shift + second finger on the same image.
 
 | Axis + Shift | Action | Sensitivity | Notes |
 |---|---|---|---|
-| TransZ (2) | `inputStereoWidth` | 2.0 m/s | Push down = wider, pull up = narrower (opposite sign to height) |
-| RotZ (5) | `inputStereoAxisOffset` | 90 °/s | Sub-degree remainder carried between ticks; wraps at ±180° through `wrapAxisDegrees` — `wrapPhaseDegrees` returns −180, which the parameter's −179 floor clamps back, so a 1° step stuck at the boundary |
+| TransZ (2) | `inputStereoWidth` | 2.0 m/s | Pull up = wider, push down = narrower: the same sign as height, and the same way round as the pinch, whose spreading fingers raise a source and widen a pair. Push down used to widen |
+| RotZ (5) | `inputStereoAxisOffset` | 90 °/s | Counter-clockwise twist = counter-clockwise image, like the finger's turn. Sub-degree remainder carried between ticks; wraps at ±180° through `wrapAxisDegrees` — `wrapPhaseDegrees` returns −180, which the parameter's −179 floor clamps back, so a 1° step stuck at the boundary |
 
 ### Velocity integration
 
