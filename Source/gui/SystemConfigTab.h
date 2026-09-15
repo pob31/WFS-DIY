@@ -835,7 +835,9 @@ public:
                     TTSManager::getInstance().announceValueChange("Language", languageSelector.getText());
 
                     // Refresh the tier control's enabled state (no-op for English)
+                    // and its choices, which follow the language at once
                     updateTranslationTierEnabled();
+                    updateTranslationTierTexts();
                 }
             }
         };
@@ -845,8 +847,9 @@ public:
         translationTierLabel.setText(LOC("systemConfig.labels.translationTier"), juce::dontSendNotification);
 
         addAndMakeVisible(translationTierSelector);
-        translationTierSelector.addItem(LOC("systemConfig.translationTiers.minimal"), 1);
-        translationTierSelector.addItem(LOC("systemConfig.translationTiers.full"), 2);
+        // Choices from the Full-tier file, see updateTranslationTierTexts()
+        translationTierSelector.addItem(LocalizationManager::getInstance().getFullTier("systemConfig.translationTiers.minimal"), 1);
+        translationTierSelector.addItem(LocalizationManager::getInstance().getFullTier("systemConfig.translationTiers.full"), 2);
         translationTierSelector.setSelectedId(
             LocalizationManager::getInstance().getCurrentTier() == LocalizationManager::TranslationTier::Full ? 2 : 1,
             juce::dontSendNotification);
@@ -871,7 +874,7 @@ public:
 
                 if (statusBar != nullptr)
                     statusBar->showTemporaryMessage(
-                        LocalizationManager::getInstance().get("systemConfig.messages.translationTierChanged",
+                        locMgr.getFullTier("systemConfig.messages.translationTierChanged",
                             {{"tier", translationTierSelector.getText()}}), 3000);
 
                 // Show restart popup (some UI strings are cached at construction)
@@ -4613,6 +4616,22 @@ public:
         translationTierSelector.setEnabled(LocalizationManager::getInstance().getCurrentLocale() != "en");
     }
 
+    // The tier's choices, like its help line, come from the Full-tier file
+    // whatever tier is selected: its help quotes them by name, so they must
+    // read the same, in the language just chosen, before any restart.
+    void updateTranslationTierTexts()
+    {
+        auto& locMgr = LocalizationManager::getInstance();
+        translationTierSelector.changeItemText(1, locMgr.getFullTier("systemConfig.translationTiers.minimal"));
+        translationTierSelector.changeItemText(2, locMgr.getFullTier("systemConfig.translationTiers.full"));
+        // changeItemText() leaves the shown text alone; re-selecting refreshes it.
+        // Take the id from the tier: getSelectedId() reads 0 as soon as the shown
+        // text no longer matches its item's, which left the box blank.
+        translationTierSelector.setSelectedId(
+            locMgr.getCurrentTier() == LocalizationManager::TranslationTier::Full ? 2 : 1,
+            juce::dontSendNotification);
+    }
+
     //==============================================================================
     // Diagnostics helper methods
 
@@ -4745,7 +4764,7 @@ public:
         helpTextMap[&quickLongPressLabel] = LOC("systemConfig.help.quickLongPress");
         helpTextMap[&quickLongPressToggle] = LOC("systemConfig.help.quickLongPress");
         helpTextMap[&languageSelector] = LOC("systemConfig.help.language");
-        helpTextMap[&translationTierSelector] = LOC("systemConfig.help.translationTier");
+        helpTextMap[&translationTierSelector] = {};  // looked up when shown, see helpTextFor()
         helpTextMap[&dialsAndButtonsSelector] = LOC("systemConfig.help.dialsAndButtons");
         helpTextMap[&positionControlSelector] = LOC("systemConfig.help.positionControl");
         helpTextMap[&controllerModeSelector] = LOC("systemConfig.help.sampler");
@@ -4817,7 +4836,7 @@ public:
         {
             if (helpTextMap.find(component) != helpTextMap.end())
             {
-                const auto& helpText = helpTextMap[component];
+                const auto helpText = helpTextFor(component);
                 statusBar->setHelpText(helpText);
 
                 // TTS: Announce parameter name and current value for accessibility
@@ -4828,6 +4847,17 @@ public:
             }
             component = component->getParentComponent();
         }
+    }
+
+    // The help line for a registered component. The translation tier's is read
+    // at each hover, from the Full-tier file: it has to be readable in the
+    // language just chosen, before a tier is picked and without a restart.
+    juce::String helpTextFor(juce::Component* component)
+    {
+        if (component == &translationTierSelector)
+            return LocalizationManager::getInstance().getFullTier("systemConfig.help.translationTier");
+
+        return helpTextMap[component];
     }
 
     void mouseExit(const juce::MouseEvent&) override

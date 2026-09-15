@@ -1860,6 +1860,7 @@ LocalizationManager::getInstance().get(
 - `getAvailableLanguages()` scans directory for `*.json` files
 - Missing keys fall back to the key itself (visible as untranslated)
 - Language change requires application restart for full effect (some UI elements cached at startup)
+- **Exception — the translation-tier control explains itself.** The System Config **Translation** dropdown (tier: Minimal = prose only, Full = everything) has its help line, its two choice names and its confirmation message read through `LocalizationManager::getFullTier()`, which looks them up in `lang/full/<locale>.json` whatever tier is selected and falls back to `get()`. They are resolved when shown — the help line on each hover (`SystemConfigTab::helpTextFor`), the choices by `updateTranslationTierTexts()` after a language change — so the control a non-English speaker needs in order to set the level is never in English or in the previous language. Use `getFullTier()` for nothing else: it deliberately defeats the Minimal tier's "control surface stays English" rule. `updateTranslationTierTexts()` must re-select from `getCurrentTier()`, not from `ComboBox::getSelectedId()`, which reads 0 once `changeItemText` has made the shown text differ from its item's.
 
 ---
 

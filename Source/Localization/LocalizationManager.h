@@ -123,6 +123,22 @@ public:
                      const std::map<juce::String, juce::String>& params) const;
 
     /**
+     * Get a string from the current locale's Full-tier translation, whatever
+     * tier is selected, falling back to get() when that file lacks the key.
+     *
+     * For the strings that explain the tier choice itself: the Minimal tier
+     * keeps control labels English, but someone who has not chosen a tier yet
+     * must still be able to read what the choices mean in their own language.
+     * Resolve it when the text is shown, not once at construction, so it
+     * follows a language change without a restart.
+     */
+    juce::String getFullTier(const juce::String& keyPath) const;
+
+    /** getFullTier() with {name} parameter substitution, as get(keyPath, params). */
+    juce::String getFullTier(const juce::String& keyPath,
+                             const std::map<juce::String, juce::String>& params) const;
+
+    /**
      * Convenience method for common.* strings
      */
     juce::String common(const juce::String& key) const;
@@ -160,6 +176,7 @@ private:
     juce::String currentLocale = "en";
     TranslationTier currentTier = TranslationTier::Minimal;
     juce::var stringsRoot;
+    juce::var fullTierRoot;  // full/<locale>.json alone; void for English or when absent
     juce::File resourceDirectory;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LocalizationManager)

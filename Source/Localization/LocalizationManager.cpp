@@ -53,6 +53,25 @@ namespace
             baseObj->setProperty(name, overlayVal);
         }
     }
+
+    /** Walk a dot-separated key path from `root`; void when a step is missing. */
+    juce::var resolveKey(const juce::var& root, const juce::String& keyPath)
+    {
+        juce::StringArray pathComponents;
+        pathComponents.addTokens(keyPath, ".", "");
+
+        juce::var current = root;
+
+        for (const auto& component : pathComponents)
+        {
+            if (!current.isObject())
+                return {};  // Path doesn't exist
+
+            current = current[juce::Identifier(component)];
+        }
+
+        return current;
+    }
 }
 
 bool LocalizationManager::loadLanguage(const juce::String& locale, TranslationTier tier)
@@ -117,6 +136,17 @@ bool LocalizationManager::loadLanguage(const juce::String& locale, TranslationTi
         }
     }
 
+    // getFullTier() reads full/<locale>.json on its own, with no en base, so a
+    // key it lacks falls through to get(). The Full tier already has it in
+    // stringsRoot, so only the Minimal tier needs the file parsed separately.
+    fullTierRoot = juce::var();
+    if (locale != "en" && tier == TranslationTier::Minimal)
+    {
+        auto fullFile = langDir.getChildFile("full").getChildFile(locale + ".json");
+        if (fullFile.existsAsFile())
+            fullTierRoot = juce::JSON::parse(fullFile);
+    }
+
     stringsRoot = json;
     currentLocale = locale;
     currentTier = tier;
@@ -134,6 +164,7 @@ bool LocalizationManager::loadFromString(const juce::String& jsonString, const j
     }
 
     stringsRoot = json;
+    fullTierRoot = juce::var();
     currentLocale = locale;
     return true;
 }
@@ -162,26 +193,12 @@ juce::StringArray LocalizationManager::getAvailableLanguages() const
 
 juce::String LocalizationManager::get(const juce::String& keyPath) const
 {
-    if (!stringsRoot.isObject())
-        return keyPath;  // Return key as fallback
+    auto value = resolveKey(stringsRoot, keyPath);
 
-    juce::StringArray pathComponents;
-    pathComponents.addTokens(keyPath, ".", "");
+    if (value.isString())
+        return value.toString();
 
-    juce::var current = stringsRoot;
-
-    for (const auto& component : pathComponents)
-    {
-        if (!current.isObject())
-            return keyPath;  // Path doesn't exist
-
-        current = current[juce::Identifier(component)];
-    }
-
-    if (current.isString())
-        return current.toString();
-
-    return keyPath;  // Not a string value
+    return keyPath;  // Missing or not a string: return the key as fallback
 }
 
 juce::String LocalizationManager::get(const juce::String& keyPath,
@@ -193,6 +210,27 @@ juce::String LocalizationManager::get(const juce::String& keyPath,
     {
         result = result.replace("{" + key + "}", value);
     }
+
+    return result;
+}
+
+juce::String LocalizationManager::getFullTier(const juce::String& keyPath) const
+{
+    auto value = resolveKey(fullTierRoot, keyPath);
+
+    if (value.isString())
+        return value.toString();
+
+    return get(keyPath);
+}
+
+juce::String LocalizationManager::getFullTier(const juce::String& keyPath,
+                                               const std::map<juce::String, juce::String>& params) const
+{
+    juce::String result = getFullTier(keyPath);
+
+    for (const auto& [key, value] : params)
+        result = result.replace("{" + key + "}", value);
 
     return result;
 }
@@ -209,26 +247,7 @@ juce::String LocalizationManager::unit(const juce::String& key) const
 
 bool LocalizationManager::hasKey(const juce::String& keyPath) const
 {
-    if (!stringsRoot.isObject())
-        return false;
-
-    juce::StringArray pathComponents;
-    pathComponents.addTokens(keyPath, ".", "");
-
-    juce::var current = stringsRoot;
-
-    for (const auto& component : pathComponents)
-    {
-        if (!current.isObject())
-            return false;
-
-        current = current[juce::Identifier(component)];
-
-        if (current.isVoid())
-            return false;
-    }
-
-    return current.isString();
+    return resolveKey(stringsRoot, keyPath).isString();
 }
 
 //==============================================================================
@@ -263,4 +282,5 @@ juce::File LocalizationManager::getResourceDirectory() const
 void LocalizationManager::shutdown()
 {
     stringsRoot = juce::var();  // Clear to avoid leak detector warnings
+    fullTierRoot = juce::var();
 }
