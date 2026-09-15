@@ -77,7 +77,9 @@
       "gpuPipelineBlocks": "blocchi",
       "showName": "Nome:",
       "showLocation": "Luogo:",
-      "inputChannels": "Canali Ingresso:",
+      "inputChannels": "Ingressi Mono:",
+      "stereoInputs": "Ingressi Stereo:",
+      "renderSourceTotal": "({count} sorgenti di rendering)",
       "outputChannels": "Canali Uscita:",
       "reverbChannels": "Canali Riverbero:",
       "algorithm": "Algoritmo:",
@@ -173,7 +175,7 @@
       "gpuPipelineDepth": "Profondità della pipeline GPU in blocchi audio. Aggiunge depth x buffer/frequenza di campionamento di latenza costante (pre-sottratta dai ritardi WFS) e assorbe gli stalli della GPU della stessa durata: più profonda = immune agli scatti del desktop/interfaccia, meno profonda = latenza inferiore. Si applica in tempo reale. Predefinito 4.",
       "showName": "Nome dello spettacolo corrente.",
       "showLocation": "Luogo dello spettacolo corrente.",
-      "inputChannels": "Numero di canali di ingresso.",
+      "inputChannels": "Numero di ingressi mono. Aumentare aggiunge canali dopo l’ultimo; ridurre rimuove i canali mono con i numeri più alti. Bloccato mentre il DSP è in funzione.",
       "outputChannels": "Numero di canali di uscita.",
       "reverbChannels": "Numero di canali di riverbero.",
       "audioPatch": "Apre la finestra dell'interfaccia audio e routing.",
@@ -2379,8 +2381,8 @@
         "description": "Scegli una cartella per i file del progetto WFS. Conterrà configurazioni, snapshot, file IR e campioni. Clicca il pulsante per aprire il selettore di cartelle."
       },
       "inputChannels": {
-        "title": "Imposta i canali di ingresso",
-        "description": "Quante sorgenti audio spazializzerai?\nImposta il numero di canali di ingresso in base alle tue sorgenti."
+        "title": "Imposta gli ingressi mono e stereo",
+        "description": "Quante sorgenti audio spazializzerai? Imposta in Ingressi Mono le sorgenti singole, come voci e strumenti, e in Ingressi Stereo i segnali stereo, come playback, tastiere o submix. Un ingresso stereo mantiene un solo numero di canale e occupa due ingressi hardware, L e R.\nVantaggi: la coppia si sposta, entra nei cluster e viene richiamata come una sola sorgente, ed è riprodotta da due sorgenti distanziate della sua Larghezza, così l'immagine stereo resta ampia su tutto l'array.\nLimiti: l'immagine tra i due lati regge meglio al centro del pubblico; chi ascolta da un lato sente soprattutto il lato più vicino. L'intero mix si sposta in blocco, Riflessioni del Pavimento, Live Source Tamer, Mappe di Gradiente e Sampler non sono disponibili, e il massimo è 8 coppie. Quando una sorgente va posizionata con precisione, usa stem mono.\nCarico CPU: ogni ingresso stereo viene elaborato come 6 sorgenti (il totale compare accanto al numero di ingressi stereo); stima circa il carico di 6 ingressi mono per ciascuno."
       },
       "outputChannels": {
         "title": "Imposta i canali di uscita",

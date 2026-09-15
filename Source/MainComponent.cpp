@@ -7712,7 +7712,7 @@ void MainComponent::openGettingStartedWizard()
         nullptr, nullptr, -1
     });
 
-    // Step 1: Set Input Channels
+    // Step 1: Set Mono and Stereo Inputs (spotlight covers both count rows)
     gettingStartedWizard->addStep({
         0,
         "wizard.steps.inputChannels.title",

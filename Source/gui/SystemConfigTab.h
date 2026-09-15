@@ -2317,7 +2317,12 @@ public:
 
     juce::Rectangle<int> getInputChannelsBounds() const
     {
-        return inputChannelsLabel.getBounds().getUnion(inputChannelsEditor.getBounds());
+        // Both count rows, the Arrange button and the render-source total
+        return inputChannelsLabel.getBounds().getUnion(inputChannelsEditor.getBounds())
+                                             .getUnion(editChannelsButton.getBounds())
+                                             .getUnion(stereoChannelsLabel.getBounds())
+                                             .getUnion(stereoChannelsEditor.getBounds())
+                                             .getUnion(renderSourceTotalLabel.getBounds());
     }
 
     juce::Rectangle<int> getOutputChannelsBounds() const

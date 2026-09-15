@@ -77,7 +77,9 @@
       "gpuPipelineBlocks": "blocs",
       "showName": "Nom :",
       "showLocation": "Lieu :",
-      "inputChannels": "Canaux d'entrée :",
+      "inputChannels": "Entrées mono :",
+      "stereoInputs": "Entrées stéréo :",
+      "renderSourceTotal": "({count} sources de rendu)",
       "outputChannels": "Canaux de sortie :",
       "reverbChannels": "Canaux de réverb :",
       "algorithm": "Algorithme :",
@@ -182,7 +184,7 @@
       "gpuPipelineDepth": "Profondeur du pipeline GPU en blocs audio. Ajoute depth x buffer/fréquence d'échantillonnage de latence constante (pré-soustraite des délais WFS) et absorbe les interruptions GPU de même durée : plus profond = immunisé contre les à-coups du bureau/de l'interface, moins profond = latence plus faible. Application en direct. Défaut 4.",
       "showName": "Nom du spectacle actuel.",
       "showLocation": "Lieu du spectacle actuel.",
-      "inputChannels": "Nombre de canaux d'entrée.",
+      "inputChannels": "Nombre d’entrées mono. Augmenter ajoute des canaux après le dernier ; réduire supprime les canaux mono aux numéros les plus élevés. Verrouillé quand le DSP tourne.",
       "outputChannels": "Nombre de canaux de sortie.",
       "reverbChannels": "Nombre de canaux de réverbération.",
       "audioPatch": "Ouvre la fenêtre d'interface audio et de routage.",
@@ -2399,8 +2401,8 @@
         "description": "Choisissez un dossier pour stocker vos fichiers de projet WFS. Il contiendra les configurations, snapshots, fichiers IR et samples. Cliquez sur le bouton pour ouvrir le sélecteur de dossier."
       },
       "inputChannels": {
-        "title": "Définir les canaux d'entrée",
-        "description": "Combien de sources audio allez-vous spatialiser ?\nDéfinissez le nombre de canaux d'entrée en fonction de vos sources."
+        "title": "Définir les entrées mono et stéréo",
+        "description": "Combien de sources audio allez-vous spatialiser ? Indiquez dans Entrées mono les sources simples, comme les voix et les instruments, et dans Entrées stéréo les signaux stéréo, comme les playbacks, les claviers ou les sous-mixages. Une entrée stéréo garde un seul numéro de canal et occupe deux entrées matérielles, L et R.\nAvantages : la paire se déplace, rejoint les clusters et se rappelle comme une seule source, et elle est jouée par deux sources écartées de sa Largeur, si bien que l'image stéréo reste large sur tout le réseau.\nLimites : l'image entre les deux côtés tient le mieux au milieu du public ; les auditeurs placés d'un côté entendent surtout le côté le plus proche. Tout le mixage se déplace d'un bloc, les Réflexions du Sol, le Dompteur de Source Live, les Cartes de Gradient et le Sampler ne s'appliquent pas, et le nombre de paires est limité à 8. Quand une source doit être placée avec précision, utilisez des stems mono.\nCharge CPU : chaque entrée stéréo est rendue comme 6 sources (le total s'affiche à côté du nombre d'entrées stéréo) ; comptez environ la charge de 6 entrées mono pour chacune."
       },
       "outputChannels": {
         "title": "Définir les canaux de sortie",

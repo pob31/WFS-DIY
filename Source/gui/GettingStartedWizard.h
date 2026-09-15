@@ -200,8 +200,15 @@ public:
 
     void positionRelativeTo(juce::Rectangle<int> spotlight, juce::Rectangle<int> parentBounds)
     {
-        const int cardWidth = juce::jmax(400, (int)(parentBounds.getWidth() * 0.35f));
-        updateSize(cardWidth);
+        // A long description may grow the card to 60% of the window height,
+        // and widens it first if it would not fit there at the usual width.
+        const int maxCardHeight = (int)(parentBounds.getHeight() * 0.6f);
+        int cardWidth = juce::jmax(400, (int)(parentBounds.getWidth() * 0.35f));
+        if (!updateSize(cardWidth, maxCardHeight))
+        {
+            cardWidth = juce::jmax(cardWidth, (int)(parentBounds.getWidth() * 0.5f));
+            updateSize(cardWidth, maxCardHeight);
+        }
 
         int cardHeight = getHeight();
         int x, y;
@@ -400,7 +407,10 @@ private:
         completionLabel.setFont(juce::FontOptions().withHeight(juce::jmax(19.0f, 24.0f * scale)).withStyle("Bold"));
     }
 
-    void updateSize(int width = 400)
+    /** Size the card for its description. maxHeight > 0 lets a long description
+        grow the card up to that height instead of the default 200 px (scaled)
+        description cap. Returns false if the description had to be capped. */
+    bool updateSize(int width = 400, int maxHeight = 0)
     {
         float scale = WfsLookAndFeel::uiScale;
         int padding = 28; // 14px on each side
@@ -408,7 +418,7 @@ private:
         int labelH = (int)(34 * scale);
         int titleH = (int)(43 * scale);
         int buttonH = (int)(40 * scale);
-        int descTextWidth = width - padding;
+        int descTextWidth = width - padding - descriptionLabel.getBorderSize().getLeftAndRight();
 
         // Estimate description height from text content
         auto descText = descriptionLabel.getText();
@@ -420,10 +430,13 @@ private:
         int numLines = glyphs.getNumGlyphs() > 0
             ? (int)((glyphs.getBoundingBox(glyphs.getNumGlyphs() - 1, 1, true).getBottom()) / lineH) + 1
             : 1;
-        int descHeight = juce::jlimit((int)(50 * scale), (int)(200 * scale), (int)(numLines * lineH + lineH));
+        const int fixedHeight = padding + labelH + 4 + titleH + 10 + 10 + buttonH + padding / 2;
+        const int maxDescHeight = juce::jmax((int)(200 * scale), maxHeight - fixedHeight);
+        const int naturalDescHeight = (int)(numLines * lineH + lineH);
+        int descHeight = juce::jlimit((int)(50 * scale), maxDescHeight, naturalDescHeight);
 
-        int totalHeight = padding + labelH + 4 + titleH + 10 + descHeight + 10 + buttonH + padding / 2;
-        setSize(width, totalHeight);
+        setSize(width, fixedHeight + descHeight);
+        return naturalDescHeight <= maxDescHeight;
     }
 };
 

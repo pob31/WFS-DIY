@@ -77,7 +77,9 @@
       "gpuPipelineBlocks": "blocos",
       "showName": "Nome:",
       "showLocation": "Local:",
-      "inputChannels": "Canais de Entrada:",
+      "inputChannels": "Entradas Mono:",
+      "stereoInputs": "Entradas Estéreo:",
+      "renderSourceTotal": "({count} fontes de renderização)",
       "outputChannels": "Canais de Saída:",
       "reverbChannels": "Canais de Reverb:",
       "algorithm": "Algoritmo:",
@@ -173,7 +175,7 @@
       "gpuPipelineDepth": "Profundidade do pipeline GPU em blocos de áudio. Adiciona depth x buffer/taxa de amostragem de latência constante (pré-subtraída dos atrasos WFS) e absorve interrupções da GPU da mesma duração: mais profundo = imune a engasgos do ambiente de trabalho/IU, menos profundo = menor latência. Aplicado em tempo real. Predefinição 4.",
       "showName": "Nome do espetáculo atual.",
       "showLocation": "Local do espetáculo atual.",
-      "inputChannels": "Número de canais de entrada.",
+      "inputChannels": "Número de canais de entrada mono. Aumentar acrescenta canais depois do último; reduzir remove os canais mono com os números mais altos. Bloqueado enquanto o DSP está em execução.",
       "outputChannels": "Número de canais de saída.",
       "reverbChannels": "Número de canais de reverberação.",
       "audioPatch": "Abre a janela de Interface de Áudio e Patch.",
@@ -2379,8 +2381,8 @@
         "description": "Escolha uma pasta para armazenar seus arquivos de projeto WFS. Ela conterá configurações, snapshots, arquivos IR e amostras. Clique no botão para abrir o seletor de pastas."
       },
       "inputChannels": {
-        "title": "Definir canais de entrada",
-        "description": "Quantas fontes de áudio você vai espacializar?\nDefina o número de canais de entrada de acordo com suas fontes."
+        "title": "Definir entradas mono e estéreo",
+        "description": "Quantas fontes de áudio você vai espacializar? Defina em Entradas Mono as fontes individuais, como vozes e instrumentos, e em Entradas Estéreo os sinais estéreo, como playbacks, teclados ou submixes. Uma entrada estéreo mantém um único número de canal e ocupa duas entradas de hardware, L e R.\nVantagens: o par se move, entra em clusters e é recuperado como uma única fonte, e soa por meio de duas fontes afastadas pela sua Largura, de modo que a imagem estéreo continua ampla em todo o array.\nLimites: a imagem entre os dois lados funciona melhor no centro da plateia; quem está de um lado ouve sobretudo o lado mais próximo. A mixagem inteira se move em bloco, Reflexões do Chão, Domador de Fonte ao Vivo, Mapas de Gradiente e Sampler não estão disponíveis, e o máximo é de 8 pares. Quando uma fonte precisar ser posicionada com precisão, use stems mono.\nCarga de CPU: cada entrada estéreo é renderizada como 6 fontes (o total aparece ao lado do número de entradas estéreo); estime cerca da carga de 6 entradas mono para cada uma."
       },
       "outputChannels": {
         "title": "Definir canais de saída",
