@@ -1,6 +1,6 @@
 # Proofreading checklist — Spanish (Español)
 
-Locale: `es`  |  Total keys: 690  |  Source: `Resources/lang/en.json` vs `Resources/lang/es.json`
+Locale: `es`  |  Total keys: 771  |  Source: `Resources/lang/en.json` vs `Resources/lang/es.json`
 
 ## How to use this file
 
@@ -54,6 +54,13 @@ Walk through each section. For every entry:
 - **`ready`**
   - EN: Ready
   - ES: Listo
+  - [ ] OK    Fix: 
+
+## `audioPatch.deviceSettings`
+
+- **`midiTooltip`**
+  - EN: Snapshot recall only. This port is opened for input alone and is used for nothing else: WFS-DIY sends it no MIDI, and the only messages it acts on are note-ons that recall an input snapshot. Bind a channel and note to a snapshot in the Inputs tab's Edit Scope window; a note-on above velocity 64 recalls it.
+  - ES: Solo para recuperar snapshots. Este puerto se abre únicamente como entrada y no se usa para nada más: WFS-DIY no le envía MIDI, y los únicos mensajes a los que responde son los note-on que recuperan un snapshot de entrada. Asigne un canal y una nota a un snapshot en la ventana Edit Scope de la pestaña Inputs; un note-on con velocidad superior a 64 lo recupera.
   - [ ] OK    Fix: 
 
 ## `audioPatch.dialogs`
@@ -316,6 +323,16 @@ Walk through each section. For every entry:
   - ES: Cancelar
   - [ ] OK    Fix: 
 
+- **`channelDescription`**
+  - EN: #{number} "{name}" ({type})
+  - ES: #{number} «{name}» ({type})
+  - [ ] OK    Fix: 
+
+- **`channelDescriptionUnnamed`**
+  - EN: #{number} ({type})
+  - ES: #{number} ({type})
+  - [ ] OK    Fix: 
+
 - **`close`**
   - EN: Close
   - ES: Cerrar
@@ -462,7 +479,7 @@ Walk through each section. For every entry:
 ## `help.binaural`
 
 - **`body`**
-  - EN: The Binaural renderer is used for:\n- listening to a rough spatial mix on headphones,\n- creating a mix for stereo output,\n- listening to a single soloed track through the spatial processing.\nThis may take the place of your master mix if it's only feeding headphones and media mix.\n\nRender Mode selects the algorithm: ORTF (legacy) emulates a virtual microphone pair; Structural HRTF is a parametric head model (adjust Head Radius to your head); SOFA file renders measured HRTFs — the built-in SADIE II KU100 set or your own SOFA files imported into the project.\n\nHead Tracking rotates the scene with your head so it stays anchored to the stage. Select Webcam (camera-based, no extra hardware) or, when a USB receiver is connected, a head tracker itself — every tracker in range appears as its own entry. Look at the stage center and press Set Zero to calibrate; the live readout below the selector shows the tracked yaw/pitch/roll. Manual orientation uses the yaw/pitch/roll values from the Listener Geometry panel (head glyph button) instead.\n\nIn the HRTF modes the spatialised reverb is also rendered at the node positions (studio preview only, balanced by the reverb level); the listener placement (angle, lateral offset, ear height) lives in the Listener Geometry panel. Delay and level settings allow you to eventually match the sound at the FOH position.
+  - EN: The Binaural renderer is used for:\n- listening to a rough spatial mix on headphones,\n- creating a mix for stereo output,\n- listening to a single soloed track through the spatial processing.\nThis may take the place of your master mix if it's only feeding headphones and media mix.\n\nRender Mode selects the algorithm: ORTF (legacy) emulates a virtual microphone pair; Structural HRTF is a parametric head model (adjust Head Radius to your head); SOFA file renders measured HRTFs — the built-in SADIE II KU100 set or your own SOFA files imported into the project.\n\nOrbit and Head Yaw are two different things, and it matters. Orbit is WHERE YOU SIT: it moves the listener around a circle of Listener Distance about the stage origin, always facing the origin. It does not turn your head — it walks you around the room, so every source changes distance and gets louder or quieter. Head Yaw turns you on the spot from that seat. The Map shows the listener as a head glyph so you can see which one you moved.\n\nHead Tracking rotates the scene with your head so it stays anchored to the stage. Select Webcam (camera-based, no extra hardware) or, when a USB receiver is connected, a head tracker itself — every tracker in range appears as its own entry. Look at the stage center and press Set Zero to calibrate; the Head Yaw dial and the live readout below the selector both follow the tracker. Yaw is measured from your seat, so zero always means facing the origin and changing Orbit re-aims the tracker's zero with you. Manual orientation uses the yaw/pitch/roll values from the Listener Geometry panel (head glyph button) instead.\n\nIn the HRTF modes the spatialised reverb is also rendered at the node positions (studio preview only, balanced by the reverb level); the listener placement (orbit, sideways offset, ear height) lives in the Listener Geometry panel. Note ORTF (legacy) ignores the sideways offset and ear height and always uses 1.5 m, so switching between it and an HRTF mode can move the listener. Delay and level settings allow you to eventually match the sound at the FOH position.
   - ES: Renderizador Binaural\n\nEl Binaural Renderer se utiliza para:\n- escuchar una mezcla espacial aproximada con auriculares,\n- crear una mezcla para salida estéreo,\n- escuchar una pista en solo a través del procesamiento espacial.\nPuede sustituir su mezcla master si solo alimenta auriculares y mezcla de medios.\nLa posición de escucha puede ajustarse en profundidad desde el punto de origen y en orientación. Los ajustes de retardo y nivel permiten igualar el sonido en la posición FOH.
   - [ ] OK    Fix: 
 
@@ -651,8 +668,8 @@ Walk through each section. For every entry:
 ## `help.map`
 
 - **`body`**
-  - EN: - A left click on an input or a cluster will allow to move it by dragging it. A single finger touch will do the same.\n- A left click with the shift key pressed will add or remove inputs to the selection. A double tap and drag will act the same way.\n- A left click drag will draw a selection rectangle to select multiple inputs and clusters at the same time.\n- A left double-click or tap will reset the position offset of the input.\n- A long left click or press with no movement will switch to the input tab with the focus on the selected input on release.\n- A left click away from any input will clear the selection.\n- A right click and drag will pan the view of the map. A two finger drag with no selected input or cluster will do the same if your operating system supports multitouch.\n- The mouse wheel will zoom in and out. A two finger pinch with no selected input or cluster will also zoom in and out.\n- A middle click will reset the view to fit the stage on the map display. There is also a dedicated set of buttons to reset the view to fit all inputs and to fit the stage respectively.\n- Selected inputs and clusters can also be moved with the arrow keys for X and Y and with the PageUp and PageDown keys for height. Hardware controllers can be used too.\n- When an input is touched, a second finger nearby can rotate the input directivity and adjust the height by pinching if your operating system allows multitouch interaction.\n- When a cluster is touched, a second finger nearby can rotate the cluster and scale it by pinching.\n- Inputs, output arrays and the reverb nodes can be hidden on the map.\n- Inputs can also be locked to prevent selecting and moving them on the map. They will still be moved by clusters, network commands, tracking and hardware controllers.\n- All reverb nodes can be moved on the map if this is enabled on the reverb tab. Holding the Ctrl/Cmd key will move each pair of reverb nodes in symmetry.\n- Inputs with offsets, LFO or with speed regulation will have a temporary position marker. But the point of interaction will remain the normal marker.\n- The Live Source Tamer radius will be displayed around input when activated.\n- There is a toggle to display the audio level for the inputs and outputs on the map tab, that's active when the audio processing is running.
-  - ES: - Clic izquierdo en una entrada o cluster permite moverlo arrastrando.\n- Clic izquierdo con Mayús añade o quita entradas de la selección.\n- Clic izquierdo arrastrado dibuja un rectángulo de selección.\n- Doble clic restablece el desplazamiento de posición.\n- Clic largo sin movimiento cambia a la pestaña de la entrada seleccionada.\n- Clic fuera de cualquier entrada limpia la selección.\n- Clic derecho arrastrado desplaza la vista del mapa. Arrastre con dos dedos también.\n- La rueda del ratón hace zoom. Pellizco con dos dedos también.\n- Clic del botón central restablece la vista.\n- Las flechas mueven X/Y, RePág/AvPág la altura.\n- Un segundo dedo puede rotar la directividad y ajustar la altura.\n- En clusters, un segundo dedo puede rotar y escalar.\n- Las entradas, arrays de salida y nodos de reverberación pueden ocultarse.\n- Las entradas pueden bloquearse.\n- Los nodos de reverberación pueden moverse. Ctrl/Cmd mueve pares en simetría.\n- El radio del Live Source Tamer se muestra cuando está activado.\n- Los niveles de audio pueden mostrarse en el mapa.
+  - EN: - A left click on an input or a cluster will allow to move it by dragging it. A single finger touch will do the same.\n- A left click with the shift key pressed will add or remove inputs to the selection. A double tap and drag will act the same way.\n- A left click drag will draw a selection rectangle to select multiple inputs and clusters at the same time.\n- A left double-click or tap will reset the position offset of the input.\n- A long left click or press (0.7 to 1.2 s) with no movement will switch to the input tab with the focus on the selected input on release. Moving away cancels it even if you come back, and it is ignored for 3 s after moving or editing a marker.\n- A left click away from any input will clear the selection.\n- A right click and drag will pan the view of the map. A two finger drag with no selected input or cluster will do the same if your operating system supports multitouch.\n- The mouse wheel will zoom in and out. A two finger pinch with no selected input or cluster will also zoom in and out.\n- With stereo inputs selected the mouse wheel turns their image axis instead of zooming: 5° per notch, 1° with Shift held. Hold Ctrl/Cmd to zoom as usual.\n- A middle click will reset the view to fit the stage on the map display. There is also a dedicated set of buttons to reset the view to fit all inputs and to fit the stage respectively.\n- Selected inputs and clusters can also be moved with the arrow keys for X and Y and with the PageUp and PageDown keys for height. Hardware controllers can be used too.\n- When an input is touched, a second finger nearby can rotate the input directivity and adjust the height by pinching if your operating system allows multitouch interaction.\n- When a cluster is touched, a second finger nearby can rotate the cluster and scale it by pinching.\n- When a stereo input is touched, holding Shift makes the second finger act on the stereo image instead: rotating changes the image axis and pinching changes the width.\n- The button under the levels toggle suspends every second-finger edit on inputs and clusters. Pan, zoom and reverb pair mirroring keep working. It is not saved.\n- With a Space Mouse, holding Shift while a stereo input is selected makes the twist change the image axis and the push/pull change the width (push to spread, pull to narrow). Shift with XY still moves the input.\n- Pressing L with stereo inputs selected locks or unlocks their image orientation. Locked, the pair spreads house left/right turned by the Axis value alone and no longer follows the source around the origin.\n- Inputs, output arrays and the reverb nodes can be hidden on the map.\n- Inputs can also be locked to prevent selecting and moving them on the map. They will still be moved by clusters, network commands, tracking and hardware controllers.\n- All reverb nodes can be moved on the map if this is enabled on the reverb tab. Holding the Ctrl/Cmd key will move each pair of reverb nodes in symmetry.\n- Inputs with offsets, LFO or with speed regulation will have a temporary position marker. But the point of interaction will remain the normal marker.\n- The Live Source Tamer radius will be displayed around input when activated.\n- There is a toggle to display the audio level for the inputs and outputs on the map tab, that's active when the audio processing is running.
+  - ES: - Clic izquierdo en una entrada o cluster permite moverlo arrastrando.\n- Clic izquierdo con Mayús añade o quita entradas de la selección.\n- Clic izquierdo arrastrado dibuja un rectángulo de selección.\n- Doble clic restablece el desplazamiento de posición.\n- Clic largo o pulsación larga (0,7 a 1,2 s) sin movimiento cambia, al soltar, a la pestaña de la entrada seleccionada. Alejarse lo cancela aunque luego se vuelva, y se ignora durante 3 s tras mover o editar un marcador.\n- Clic fuera de cualquier entrada limpia la selección.\n- Clic derecho arrastrado desplaza la vista del mapa. Arrastre con dos dedos también.\n- La rueda del ratón hace zoom. Pellizco con dos dedos también.\n- Con entradas estéreo seleccionadas, la rueda del ratón gira su eje de imagen en lugar de hacer zoom: 5° por muesca, 1° con Shift. Mantén Ctrl/Cmd para hacer zoom como siempre.\n- Clic del botón central restablece la vista.\n- Las flechas mueven X/Y, RePág/AvPág la altura.\n- Un segundo dedo puede rotar la directividad y ajustar la altura.\n- En clusters, un segundo dedo puede rotar y escalar.\n- En una entrada estéreo tocada, con Shift pulsado el segundo dedo actúa sobre la imagen estéreo: rotar cambia el eje de la imagen y pellizcar cambia la anchura.\n- El botón situado debajo del que muestra los niveles de audio suspende todas las ediciones con el segundo dedo en entradas y clusters. El desplazamiento de la vista, el zoom y el movimiento en simetría de los pares de nodos de reverberación siguen funcionando. Su estado no se guarda.\n- Con un Space Mouse, manteniendo Shift con una entrada estéreo seleccionada, el giro cambia el eje de la imagen y empujar/tirar cambia la anchura (empujar amplía, tirar estrecha). Shift con XY sigue moviendo la entrada.\n- Pulsar L con entradas estéreo seleccionadas bloquea o desbloquea la orientación de su imagen. Bloqueada, el par se abre a izquierda/derecha de sala girado solo por el valor de Eje, y ya no sigue a la fuente alrededor del origen.\n- Las entradas, arrays de salida y nodos de reverberación pueden ocultarse.\n- Las entradas pueden bloquearse.\n- Los nodos de reverberación pueden moverse. Ctrl/Cmd mueve pares en simetría.\n- El radio del Live Source Tamer se muestra cuando está activado.\n- Los niveles de audio pueden mostrarse en el mapa.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -846,8 +863,8 @@ Walk through each section. For every entry:
 ## `help.shortcuts`
 
 - **`body`**
-  - EN: *H* opens the help card closest to the pointer.\n*I*, *O* and *R* open the Input, Output and Reverb tabs respectively; for a few seconds afterwards you can type a channel number to select it (confirm with *Enter*).\n*N* opens the Network tab.\n*C* opens the Clusters tab.\n*M* opens the Map tab.\n*Spacebar* scrolls to the next channel and *Shift+Spacebar* to the previous one in the Input, Output and Reverb tabs. On the Clusters tab they cycle through the clusters.\n*Ctrl/Cmd* while adjusting a parameter of an output channel that is part of an array adjusts the parameter for the selected channel only, temporarily disabling the propagation to the rest of the array.\n*F1* to *F10* assign inputs to the corresponding cluster in the Input and Map tabs, assign outputs to the corresponding array in the Output tab, and select the corresponding cluster in the Clusters tab. *F11* sets the channel back to Single.\n*Shift* while adjusting a parameter of an input that is part of a cluster adjusts this parameter for the other inputs of the cluster in relative mode: the variation affects all inputs of the cluster, but relative offsets are kept. *Ctrl/Cmd+Shift* changes the parameter in absolute mode: the value becomes identical across all inputs of the cluster.\n*Ctrl/Cmd+Z* undoes the last change; *Ctrl/Cmd+Y* or *Ctrl/Cmd+Shift+Z* redoes it.
-  - ES: *H* abre la tarjeta de ayuda más cercana al puntero.\n*I*, *O* y *R* abren respectivamente las pestañas Inputs (entradas), Outputs (salidas) y Reverb; durante unos segundos después puede escribir un número de canal para seleccionarlo (confirme con *Enter*).\n*N* abre la pestaña Network (red).\n*C* abre la pestaña Clusters (grupos).\n*M* abre la pestaña Map (mapa).\nLa *barra espaciadora* pasa al canal siguiente y *Mayús+Espacio* al anterior en las pestañas Inputs, Outputs y Reverb. En la pestaña Clusters recorren los grupos.\n*Ctrl/Cmd* mientras se ajusta un parámetro de una salida que forma parte de un array ajusta el parámetro solo para el canal seleccionado, desactivando temporalmente la propagación al resto del array.\n*F1* a *F10* asignan las entradas al grupo correspondiente en las pestañas Inputs y Map, asignan las salidas al array correspondiente en la pestaña Outputs y seleccionan el grupo correspondiente en la pestaña Clusters. *F11* devuelve el canal a Single.\n*Mayús* mientras se ajusta un parámetro de una entrada que forma parte de un grupo ajusta ese parámetro para las demás entradas del grupo en modo relativo: la variación afecta a todas las entradas del grupo, pero se conservan las diferencias relativas. *Ctrl/Cmd+Mayús* cambia el parámetro en modo absoluto: el valor pasa a ser idéntico en todas las entradas del grupo.\n*Ctrl/Cmd+Z* deshace el último cambio; *Ctrl/Cmd+Y* o *Ctrl/Cmd+Mayús+Z* lo rehace.
+  - EN: *H* opens the help card closest to the pointer.\n*I*, *O* and *R* open the Input, Output and Reverb tabs respectively; for a few seconds afterwards you can type a channel number to select it (confirm with *Enter*).\n*N* opens the Network tab.\n*C* opens the Clusters tab.\n*M* opens the Map tab.\n*L* locks or unlocks the stereo image orientation of the pairs selected on the Map tab.\n*Spacebar* scrolls to the next channel and *Shift+Spacebar* to the previous one in the Input, Output and Reverb tabs. On the Clusters tab they cycle through the clusters.\n*Ctrl/Cmd* while adjusting a parameter of an output channel that is part of an array adjusts the parameter for the selected channel only, temporarily disabling the propagation to the rest of the array.\n*F1* to *F10* assign inputs to the corresponding cluster in the Input and Map tabs, assign outputs to the corresponding array in the Output tab, and select the corresponding cluster in the Clusters tab. *F11* sets the channel back to Single.\n*Shift* while adjusting a parameter of an input that is part of a cluster adjusts this parameter for the other inputs of the cluster in relative mode: the variation affects all inputs of the cluster, but relative offsets are kept. *Ctrl/Cmd+Shift* changes the parameter in absolute mode: the value becomes identical across all inputs of the cluster.\n*Ctrl/Cmd+Z* undoes the last change; *Ctrl/Cmd+Y* or *Ctrl/Cmd+Shift+Z* redoes it.
+  - ES: *H* abre la tarjeta de ayuda más cercana al puntero.\n*I*, *O* y *R* abren respectivamente las pestañas Inputs (entradas), Outputs (salidas) y Reverb; durante unos segundos después puede escribir un número de canal para seleccionarlo (confirme con *Enter*).\n*N* abre la pestaña Network (red).\n*C* abre la pestaña Clusters (grupos).\n*M* abre la pestaña Map (mapa).\n*L* bloquea o desbloquea la orientación de la imagen estéreo de los pares seleccionados en la pestaña Map.\nLa *barra espaciadora* pasa al canal siguiente y *Mayús+Espacio* al anterior en las pestañas Inputs, Outputs y Reverb. En la pestaña Clusters recorren los grupos.\n*Ctrl/Cmd* mientras se ajusta un parámetro de una salida que forma parte de un array ajusta el parámetro solo para el canal seleccionado, desactivando temporalmente la propagación al resto del array.\n*F1* a *F10* asignan las entradas al grupo correspondiente en las pestañas Inputs y Map, asignan las salidas al array correspondiente en la pestaña Outputs y seleccionan el grupo correspondiente en la pestaña Clusters. *F11* devuelve el canal a Single.\n*Mayús* mientras se ajusta un parámetro de una entrada que forma parte de un grupo ajusta ese parámetro para las demás entradas del grupo en modo relativo: la variación afecta a todas las entradas del grupo, pero se conservan las diferencias relativas. *Ctrl/Cmd+Mayús* cambia el parámetro en modo absoluto: el valor pasa a ser idéntico en todas las entradas del grupo.\n*Ctrl/Cmd+Z* deshace el último cambio; *Ctrl/Cmd+Y* o *Ctrl/Cmd+Mayús+Z* lo rehace.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -906,6 +923,31 @@ Walk through each section. For every entry:
 - **`selectChannel`**
   - EN: Select Channel
   - ES: Seleccionar canal
+  - [ ] OK    Fix: 
+
+- **`snapshotIdentity.fixNumbers`**
+  - EN: Fix numbers first
+  - ES: Corregir números primero
+  - [ ] OK    Fix: 
+
+- **`snapshotIdentity.intro`**
+  - EN: Snapshot '{name}' was stored when these channels were on other hardware inputs:
+  - ES: El snapshot «{name}» se guardó cuando estos canales estaban en otras entradas de hardware:
+  - [ ] OK    Fix: 
+
+- **`snapshotIdentity.noFix`**
+  - EN: No one-to-one hardware match was found, so no automatic renumbering is offered. If the rig was re-cabled on purpose, proceed; otherwise cancel and check the channel list.
+  - ES: No se encontró una correspondencia de hardware uno a uno, así que no se ofrece renumeración automática. Si se recableó a propósito, continúe; si no, cancele y revise la lista de canales.
+  - [ ] OK    Fix: 
+
+- **`snapshotIdentity.proceedNote`**
+  - EN: Proceed applies the snapshot by channel number as it is. Cancel leaves everything unchanged.
+  - ES: Continuar aplica el snapshot por número de canal tal cual. Cancelar no cambia nada.
+  - [ ] OK    Fix: 
+
+- **`snapshotIdentity.title`**
+  - EN: Snapshot stored under a different patching
+  - ES: Snapshot guardado con otro patch
   - [ ] OK    Fix: 
 
 - **`snapshotNameLabel`**
@@ -1617,6 +1659,21 @@ Walk through each section. For every entry:
   - ES: Único: una entrada a la vez. Múltiple: varias entradas simultáneamente.
   - [ ] OK    Fix: 
 
+- **`stereoAxisDial`**
+  - EN: Rotates the stereo axis, positive counter-clockwise seen from above. 0 = automatic: the pair spreads perpendicular to the line from the origin to the source. Use it to aim a pair sitting at the centre of a circular rig. ±180° swaps left and right. A Space Mouse twist with Shift held, or a Shift + second-finger rotation on the map, changes it too. With Axis Lock on, this becomes an absolute bearing measured from house left/right. The mouse wheel on the map turns it too when the pair is selected.
+  - ES: Gira el eje estéreo, positivo en sentido antihorario visto desde arriba. 0 = automático: el par se abre perpendicular a la línea del origen a la fuente. Sirve para orientar un par situado en el centro de un montaje circular. ±180° intercambia izquierda y derecha. También lo cambia un Space Mouse con Shift pulsado (giro) o un segundo dedo con Shift en el mapa (rotación). Con el Eje fijo activado, pasa a ser una orientación absoluta medida desde izquierda/derecha de sala. La rueda del ratón en el mapa también lo gira cuando el par está seleccionado.
+  - [ ] OK    Fix: 
+
+- **`stereoAxisLockButton`**
+  - EN: Locks the stereo image orientation: the pair spreads house left/right turned by the Axis value alone, instead of following the line from the origin to the source. Use it when the image has to hold still while the source walks. L on the map toggles it for the selected pairs.
+  - ES: Bloquea la orientación de la imagen estéreo: el par se abre a izquierda/derecha de sala girado solo por el valor de Eje, en lugar de seguir la línea del origen a la fuente. Útil cuando la imagen debe quedarse quieta mientras la fuente se mueve. L en el mapa lo conmuta para los pares seleccionados.
+  - [ ] OK    Fix: 
+
+- **`stereoWidthDial`**
+  - EN: Stereo image width in metres: the physical distance between the pair's left and right legs. The channel position stays the centre of the pair. Behaves the same on straight, curved, circular and side arrays. 0 m collapses the pair to a point source. A Space Mouse push/pull with Shift held, or a Shift + second-finger pinch on the map, changes it too.
+  - ES: Anchura de la imagen estéreo en metros: la distancia física entre el brazo izquierdo y el derecho del par. La posición del canal sigue siendo el centro del par. Se comporta igual en arrays rectos, curvos, circulares y laterales. 0 m colapsa el par en una fuente puntual. También la cambia un Space Mouse con Shift pulsado (empujar/tirar) o un segundo dedo con Shift en el mapa (pellizco).
+  - [ ] OK    Fix: 
+
 - **`storeConfig`**
   - EN: Store Input Configuration to file (with backup).
   - ES: Guardar la configuración de entrada en archivo (con copia de seguridad).
@@ -1699,6 +1756,31 @@ Walk through each section. For every entry:
   - ES: Error: {error}
   - [ ] OK    Fix: 
 
+- **`midiBindingConflict`**
+  - EN: MIDI ch {ch} note {note} is claimed by both '{first}' and '{other}' — '{first}' wins.
+  - ES: La nota {note} del canal MIDI {ch} está asignada tanto a '{first}' como a '{other}' — prevalece '{first}'.
+  - [ ] OK    Fix: 
+
+- **`midiBindingNotSaved`**
+  - EN: The MIDI note was not saved: OK only keeps the scope for the next new snapshot. Long-press Update Snapshot Scope to save the note.
+  - ES: La nota MIDI no se guardó: OK solo conserva el alcance para el siguiente snapshot nuevo. Mantenga pulsado Update Snapshot Scope para guardar la nota.
+  - [ ] OK    Fix: 
+
+- **`midiPortConnected`**
+  - EN: MIDI snapshot recall: '{name}' connected.
+  - ES: Recuperar snapshots por MIDI: '{name}' conectado.
+  - [ ] OK    Fix: 
+
+- **`midiPortDisconnected`**
+  - EN: MIDI snapshot recall: '{name}' is not connected. It reconnects when it comes back.
+  - ES: Recuperar snapshots por MIDI: '{name}' no está conectado. Se reconectará cuando vuelva.
+  - [ ] OK    Fix: 
+
+- **`midiPortRefused`**
+  - EN: MIDI snapshot recall: '{name}' could not be opened. Another application may be using it. Retrying every 2 s.
+  - ES: Recuperar snapshots por MIDI: no se pudo abrir '{name}'. Puede que otra aplicación lo esté usando. Reintentando cada 2 s.
+  - [ ] OK    Fix: 
+
 - **`noSnapshotSelected`**
   - EN: No snapshot selected.
   - ES: Ningún snapshot seleccionado.
@@ -1724,9 +1806,19 @@ Walk through each section. For every entry:
   - ES: Entrada {channel} configurada como Individual
   - [ ] OK    Fix: 
 
+- **`snapshotActionCancelled`**
+  - EN: The snapshot button you were holding was cancelled, because the selection changed.
+  - ES: Se canceló la pulsación que mantenía sobre el botón de snapshot, porque cambió la selección.
+  - [ ] OK    Fix: 
+
 - **`snapshotDeleted`**
   - EN: Snapshot '{name}' deleted.
   - ES: Snapshot '{name}' eliminado.
+  - [ ] OK    Fix: 
+
+- **`snapshotEntriesSkipped`**
+  - EN: Snapshot '{name}' loaded; {n} entries skipped, no channel {numbers}
+  - ES: Snapshot «{name}» cargado; {n} entradas omitidas, no existe el canal {numbers}
   - [ ] OK    Fix: 
 
 - **`snapshotLoaded`**
@@ -1734,9 +1826,29 @@ Walk through each section. For every entry:
   - ES: Snapshot '{name}' cargado.
   - [ ] OK    Fix: 
 
+- **`snapshotLoadedByMidi`**
+  - EN: Snapshot '{name}' recalled by MIDI.
+  - ES: Snapshot '{name}' recuperado por MIDI.
+  - [ ] OK    Fix: 
+
 - **`snapshotLoadedWithoutScope`**
   - EN: Snapshot '{name}' loaded (without scope).
   - ES: Snapshot '{name}' cargado (sin alcance).
+  - [ ] OK    Fix: 
+
+- **`snapshotNotFound`**
+  - EN: Snapshot '{name}' not found.
+  - ES: Snapshot '{name}' no encontrado.
+  - [ ] OK    Fix: 
+
+- **`snapshotPatchMismatchApplied`**
+  - EN: Snapshot '{name}' applied, but it was stored under a different patching ({n} channel(s) differ) — check the channel list
+  - ES: Snapshot «{name}» aplicado, pero se guardó con otro patch ({n} canal(es) difieren) — revise la lista de canales
+  - [ ] OK    Fix: 
+
+- **`snapshotRecallFailed`**
+  - EN: Snapshot '{name}' could not be recalled: {error}
+  - ES: No se pudo recuperar el snapshot '{name}': {error}
   - [ ] OK    Fix: 
 
 - **`snapshotScopeUpdated`**
@@ -1830,6 +1942,11 @@ Walk through each section. For every entry:
   - ES: Mostrar los niveles de entradas y salidas en el mapa
   - [ ] OK    Fix: 
 
+- **`secondaryTouch`**
+  - EN: Suspend or restore the second-finger edits: input rotation and height, stereo image, cluster rotation and scale. Pan and zoom still work. Not saved.
+  - ES: Suspender o reactivar las ediciones con el segundo dedo: rotación y altura de las entradas, imagen estéreo, rotación y escala de los clusters. La panorámica y el zoom siguen funcionando. No se guarda.
+  - [ ] OK    Fix: 
+
 ## `meta`
 
 - **`author`**
@@ -1889,9 +2006,19 @@ Walk through each section. For every entry:
   - ES: Eliminar destino
   - [ ] OK    Fix: 
 
+- **`trackingConflictsCluster`**
+  - EN: Cluster {cluster}: Inputs
+  - ES: Clúster {cluster}: Entradas
+  - [ ] OK    Fix: 
+
 - **`trackingConflictsContinue`**
   - EN: Continue
   - ES: Continuar
+  - [ ] OK    Fix: 
+
+- **`trackingConflictsHeader`**
+  - EN: The following clusters have multiple inputs with tracking enabled:
+  - ES: Los siguientes clústeres tienen varias entradas con seguimiento activado:
   - [ ] OK    Fix: 
 
 - **`trackingConflictsMessage`**
@@ -2246,13 +2373,18 @@ Walk through each section. For every entry:
 ## `network.remote`
 
 - **`notResponding`**
-  - EN: Remote not responding — the tablet app may be outdated or unreachable
-  - ES: (missing — falls back to English)
+  - EN: Remote not responding — check the tablet's IP/port and that WFS Control is running and up to date
+  - ES: Remote no responde — compruebe la IP/puerto de la tableta y que WFS Control esté abierto y actualizado
   - [ ] OK    Fix: 
 
 - **`protocolMismatch`**
   - EN: Remote app uses protocol v{remote}, expected v{local} — update the tablet app
   - ES: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`sendFailing`**
+  - EN: Sending to the tablet fails — on macOS, allow WFS-DIY under System Settings › Privacy & Security › Local Network, and check that this computer is on the tablet's network
+  - ES: El envío a la tableta falla — en macOS, permita WFS-DIY en Ajustes del Sistema › Privacidad y seguridad › Red local, y compruebe que este ordenador está en la red de la tableta
   - [ ] OK    Fix: 
 
 ## `networkLog.dialogs`
@@ -2311,6 +2443,11 @@ Walk through each section. For every entry:
 - **`applyToArray`**
   - EN: Apply Changes to the rest of the Array (Absolute value or Relative changes).
   - ES: Aplicar cambios al resto del grupo (valor absoluto o cambios relativos).
+  - [ ] OK    Fix: 
+
+- **`arrayMute`**
+  - EN: Mute or unmute every speaker of this output's array. Session only: not saved with the project and cleared when one is loaded. Unavailable for Single outputs.
+  - ES: Silenciar o reactivar todos los altavoces del grupo de esta salida. Solo para la sesión: no se guarda con el proyecto y se anula al cargar uno. No disponible para salidas Single.
   - [ ] OK    Fix: 
 
 - **`arraySelector`**
@@ -2483,6 +2620,16 @@ Walk through each section. For every entry:
 - **`arrayEditSingle`**
   - EN: Ctrl edit: change applied to this output only (Array {array} not affected)
   - ES: Edición con Ctrl: cambio aplicado solo a esta salida (Grupo {array} no afectado)
+  - [ ] OK    Fix: 
+
+- **`arrayMuted`**
+  - EN: Array {array} muted
+  - ES: Grupo {array} silenciado
+  - [ ] OK    Fix: 
+
+- **`arrayUnmuted`**
+  - EN: Array {array} unmuted
+  - ES: Grupo {array} reactivado
   - [ ] OK    Fix: 
 
 - **`assignedToArray`**
@@ -2757,11 +2904,6 @@ Walk through each section. For every entry:
 - **`importConfig`**
   - EN: Import Reverb Configuration from file (with file explorer window).
   - ES: Importar la configuración de reverberación desde archivo (con explorador de archivos).
-  - [ ] OK    Fix: 
-
-- **`liveSourceTooltip`**
-  - EN: Allow or exclude this reverb feed from Live Source Attenuation.
-  - ES: Permitir o excluir este envío de reverberación de la atenuación Live Source.
   - [ ] OK    Fix: 
 
 - **`mapVisibility`**
@@ -3102,7 +3244,261 @@ Walk through each section. For every entry:
   - ES: Establecer la posición base en metros (X, Y, Z)
   - [ ] OK    Fix: 
 
+## `snapshotScope.midi`
+
+- **`conflict`**
+  - EN: Used by '{name}' (ch {ch}, note {note}) — pick another note to save.
+  - ES: En uso por '{name}' (canal {ch}, nota {note}) — elija otra nota para guardar.
+  - [ ] OK    Fix: 
+
+- **`tooltip`**
+  - EN: A note-on above velocity 64 on this channel and note recalls this snapshot. Note-offs and softer notes are ignored. Choose the MIDI input in Audio Interface ▸ Device Settings.
+  - ES: Un note-on con velocidad superior a 64 en este canal y esta nota recupera este snapshot. Los note-off y las notas más suaves se ignoran. Elija la entrada MIDI en Audio Interface ▸ Device Settings.
+  - [ ] OK    Fix: 
+
+## `systemConfig.channelList`
+
+- **`deleteConfirm`**
+  - EN: Remove
+  - ES: Eliminar
+  - [ ] OK    Fix: 
+
+- **`deleteMessage`**
+  - EN: Remove input channel {number}? Its settings are discarded. On a fresh session the remaining channels renumber to follow the display order; once the session is in use its number is retired as a gap and the others keep theirs, so the patch, snapshots, QLab cues and DAW plug-in mappings stay valid.
+  - ES: ¿Eliminar el canal de entrada {number}? Sus ajustes se descartan. En una sesión nueva los canales restantes se renumeran siguiendo el orden de visualización; en cuanto la sesión está en uso, su número queda retirado como hueco y los demás conservan los suyos, así que el patch, los snapshots, los cues de QLab y las asignaciones DAW siguen siendo válidos.
+  - [ ] OK    Fix: 
+
+- **`deleteTitle`**
+  - EN: Remove Input Channel
+  - ES: Eliminar canal de entrada
+  - [ ] OK    Fix: 
+
+- **`dragHint`**
+  - EN: Drag a channel to change the order.
+  - ES: Arrastra un canal para cambiar el orden.
+  - [ ] OK    Fix: 
+
+- **`dragHintFresh`**
+  - EN: Fresh session: this order becomes the channel numbering, and the patch is laid out to match it. Arrange stereo and mono channels now, before anything is saved or patched.
+  - ES: Sesión nueva: este orden se convierte en la numeración de canales y el patch se dispone a juego. Coloque ahora los canales estéreo y mono, antes de guardar o patchear nada.
+  - [ ] OK    Fix: 
+
+- **`dragHintInUse`**
+  - EN: Session in use: numbers are permanent. Reordering changes only what you see — each channel keeps its hardware inputs, and snapshots, cues and remotes keep pointing at the same channel. The patch matrix will no longer read as a straight diagonal.
+  - ES: Sesión en uso: los números son permanentes. Reordenar solo cambia lo que se ve — cada canal conserva sus entradas de hardware, y los snapshots, cues y remotos siguen apuntando al mismo canal. La matriz de patch dejará de leerse como una diagonal.
+  - [ ] OK    Fix: 
+
+- **`edit`**
+  - EN: Arrange...
+  - ES: Organizar...
+  - [ ] OK    Fix: 
+
+- **`fromFile`**
+  - EN: From file...
+  - ES: Desde archivo...
+  - [ ] OK    Fix: 
+
+- **`fromFileHelp`**
+  - EN: Adopt the channel numbers or order from a saved system or input config, without loading anything else.
+  - ES: Adoptar los números o el orden de canales de una config de sistema o de entradas guardada, sin cargar nada más.
+  - [ ] OK    Fix: 
+
+- **`fromFileTitle`**
+  - EN: Take the channel list from a saved config
+  - ES: Tomar la lista de canales de una config guardada
+  - [ ] OK    Fix: 
+
+- **`mono`**
+  - EN: Mono
+  - ES: Mono
+  - [ ] OK    Fix: 
+
+- **`status`**
+  - EN: {mono} mono + {stereo} stereo
+  - ES: {mono} mono + {stereo} estéreo
+  - [ ] OK    Fix: 
+
+- **`stereo`**
+  - EN: Stereo
+  - ES: Estéreo
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Arrange Input Channels
+  - ES: Organizar canales de entrada
+  - [ ] OK    Fix: 
+
 ## `systemConfig.dialogs`
+
+- **`channelIdentity.alreadyMatches`**
+  - EN: The channel list already matches {file}.
+  - ES: La lista de canales ya coincide con {file}.
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.cancelled`**
+  - EN: Load cancelled: channel list not reconciled.
+  - ES: Carga cancelada: lista de canales sin reconciliar.
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.conflictOnly`**
+  - EN: The lists conflict, so nothing can be adopted safely. Loading this file would do the following:
+  - ES: Las listas están en conflicto, no se puede adoptar nada con seguridad. Cargar este archivo haría lo siguiente:
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.fixFailed`**
+  - EN: Could not reconcile the channel list: {error}
+  - ES: No se pudo reconciliar la lista de canales: {error}
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.fixed`**
+  - EN: Channel list now matches {file}.
+  - ES: La lista de canales ahora coincide con {file}.
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.intro`**
+  - EN: {file} describes a different channel list than this session.
+  - ES: {file} describe una lista de canales distinta de esta sesión.
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.lineAdded`**
+  - EN:   #{number} ({type}) is created with default settings
+  - ES:   #{number} ({type}) se crea con ajustes por defecto
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.lineMore`**
+  - EN:   ... and {n} more
+  - ES:   ... y {n} más
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.linePatch`**
+  - EN:   {channel}: saved on hardware input(s) {file}, now on {live}
+  - ES:   {channel}: guardado en la entrada {file}, ahora en {live}
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.lineRemoved`**
+  - EN:   {channel} is removed with its settings
+  - ES:   {channel} se elimina con sus ajustes
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.lineRetyped`**
+  - EN:   {channel} becomes {newType} and keeps its current settings
+  - ES:   {channel} pasa a ser {newType} y conserva sus ajustes actuales
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.lineRowsCross`**
+  - EN:   hardware inputs stay with their row position, so every moved channel gets another channel's inputs
+  - ES:   las entradas de hardware se quedan en su posición de fila, así que cada canal movido recibe las entradas de otro
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.loadAnyway`**
+  - EN: Load anyway applies the file's list by channel NUMBER:
+  - ES: Cargar de todos modos aplica la lista del archivo por NÚMERO de canal:
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.loadAnywayButton`**
+  - EN: Load anyway
+  - ES: Cargar de todos modos
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.noIdentity`**
+  - EN: {file} was saved by an older version and carries only a channel count ({count}); this session has {liveCount}. The current channel list is kept and the file's hardware patch is applied by row position; {delta}.
+  - ES: {file} fue guardado por una versión anterior y solo contiene un número de canales ({count}); esta sesión tiene {liveCount}. Se conserva la lista actual y el patch del archivo se aplica por posición de fila; {delta}.
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.noIdentityAppend`**
+  - EN: {n} mono channel(s) are appended
+  - ES: se añaden {n} canales mono
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.noIdentityKeep`**
+  - EN: no channel is added or removed
+  - ES: no se añade ni elimina ningún canal
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.noIdentityRemove`**
+  - EN: the {n} highest-numbered channel(s) are removed: {channels}
+  - ES: se eliminan los {n} canales de número más alto: {channels}
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.noIdentityShort`**
+  - EN: {file} carries no channel list to adopt (saved by an older version).
+  - ES: {file} no contiene una lista de canales que adoptar (versión anterior).
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.notAConfig`**
+  - EN: {file} is not a system or input config file.
+  - ES: {file} no es un archivo de config de sistema o de entradas.
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.notUndoable`**
+  - EN: None of this can be undone, and it clears the undo history of every tab.
+  - ES: Nada de esto se puede deshacer, y se borra el historial de deshacer de todas las pestañas.
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.pairAdvice`**
+  - EN: This happens when one of the two was stored on its own. Cancel and store the complete config once to bring them back in step.
+  - ES: Esto ocurre cuando uno de los dos se guardó por separado. Cancele y guarde una vez la configuración completa para volver a sincronizarlos.
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.pairLine`**
+  - EN:   {channel} becomes #{newNumber}
+  - ES:   {channel} pasa a ser #{newNumber}
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.pairMismatch`**
+  - EN: system.xml and inputs.xml in this project disagree about the channel list. system.xml decides the numbers, types and hardware patch; inputs.xml then decides settings, types and order:
+  - ES: system.xml e inputs.xml de este proyecto no coinciden en la lista de canales. system.xml decide números, tipos y patch; inputs.xml decide después ajustes, tipos y orden:
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.patchOnly`**
+  - EN: Same channel list, but it was saved under a different patching:
+  - ES: Misma lista de canales, pero guardada con otro patch:
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.proceed`**
+  - EN: Proceed
+  - ES: Continuar
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.rearrangeFirst`**
+  - EN: Rearrange first
+  - ES: Reordenar primero
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.relabelOffer`**
+  - EN: The arrangement matches position by position — the same mono and stereo channels in the same places — but the channel numbers differ.\n\nTake the file's numbers: every channel keeps its place, its settings and its hardware inputs, and is renumbered to the file's number for that position:
+  - ES: La disposición coincide posición por posición — los mismos canales mono y estéreo en los mismos lugares — pero los números difieren.\n\nTomar los números del archivo: cada canal conserva su lugar, sus ajustes y sus entradas de hardware, y recibe el número del archivo para esa posición:
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.relabelOfferHw`**
+  - EN: Matched by hardware input, these channels appear to be the same ones under different numbers.\n\nTake the file's numbers: every channel keeps its place, its settings and its hardware inputs; only its number changes, so snapshots, cues and OSC that use the file's numbers reach the right channels:
+  - ES: Por sus entradas de hardware, estos canales parecen ser los mismos con otros números.\n\nTomar los números del archivo: cada canal conserva su lugar, sus ajustes y sus entradas de hardware; solo cambia su número, para que los snapshots, cues y OSC que usan los números del archivo lleguen a los canales correctos:
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.reorderOffer`**
+  - EN: The same channels are in a different order.\n\nRearrange first: the channels are moved to the file's order and keep their numbers, settings and hardware inputs.
+  - ES: Los mismos canales en distinto orden.\n\nReordenar primero: los canales se colocan en el orden del archivo y conservan sus números, ajustes y entradas de hardware.
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.stillDiffers`**
+  - EN: The channel list still differs from {file} after reconciling; load cancelled.
+  - ES: La lista de canales sigue difiriendo de {file} tras reconciliar; carga cancelada.
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.takeNumbers`**
+  - EN: Take the file's numbers
+  - ES: Tomar los números del archivo
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.takeNumbersHw`**
+  - EN: Take the file's numbers (by hardware input)
+  - ES: Tomar los números del archivo (por entrada de hardware)
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.title`**
+  - EN: Channel list differs from the file
+  - ES: La lista de canales difiere del archivo
+  - [ ] OK    Fix: 
 
 - **`exportSystemConfig`**
   - EN: Export System Configuration
@@ -3119,9 +3515,14 @@ Walk through each section. For every entry:
   - ES: Reducir
   - [ ] OK    Fix: 
 
-- **`reduceInputChannels.message`**
-  - EN: Reducing from {current} to {new} input channels will remove settings for channels {start} to {end}.\n\nThis cannot be undone.
-  - ES: Reducir de {current} a {new} canales de entrada eliminará la configuración de los canales {start} a {end}.\n\nEsta acción no se puede deshacer.
+- **`reduceInputChannels.messageList`**
+  - EN: The last channel(s) of that type in the display order will be removed, with their settings:\n\n{rows}\n\nOnce the session is in use their numbers are retired and the remaining channels keep theirs, so the patch, snapshots and cues stay valid.\n\nThis cannot be undone, and it clears the undo history of every tab.
+  - ES: Se eliminarán los últimos canales de ese tipo en el orden de visualización, con sus ajustes:\n\n{rows}\n\nUna vez la sesión está en uso, sus números se retiran y los demás canales conservan los suyos, para que el patch, los snapshots y los cues sigan siendo válidos.\n\nEsto no se puede deshacer y borra el historial de deshacer de todas las pestañas.
+  - [ ] OK    Fix: 
+
+- **`reduceInputChannels.row`**
+  - EN:   {channel}
+  - ES:   {channel}
   - [ ] OK    Fix: 
 
 - **`reduceInputChannels.title`**
@@ -3167,7 +3568,7 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`binauralAngle`**
-  - EN: Horizontal rotation of binaural listener view (degrees, 0 = facing stage).
+  - EN: Where the listener SITS on a circle around the stage origin (degrees, 0 = the audience side, straight in front of the stage). They always face the origin, so this does not turn the head — it walks the listener around the room, changing the distance to every source. To turn the head, use Head Yaw (or Orientation Y/P/R in the Listener Geometry panel). Yaw is measured from this seat, so changing Orbit also re-aims a head tracker’s zero.
   - ES: Rotación horizontal de la vista del oyente binaural (grados, 0 = mirando al escenario).
   - [ ] OK    Fix: 
 
@@ -3226,6 +3627,11 @@ Walk through each section. For every entry:
   - ES: Ángulo de elevación de la cúpula: 180 = hemisferio, 360 = esfera completa.
   - [ ] OK    Fix: 
 
+- **`editChannels`**
+  - EN: Arrange the input channels: drag to interleave mono and stereo channels in any order, or remove a specific channel. On a fresh session the numbers follow the display order; they become permanent once the session is in use — a project loaded, the Inputs or Map tab opened, the patch window opened, a snapshot stored, or external control connected. From then on a channel keeps its number wherever you drag it and a removed number is retired as a gap, so the patch, snapshots, QLab cues and DAW plug-in mappings never break. Locked when DSP is running.
+  - ES: Organizar los canales de entrada: arrastra para intercalar mono y estéreo en cualquier orden, o elimina un canal concreto. En una sesión nueva los números siguen el orden de visualización; se vuelven permanentes en cuanto la sesión está en uso — un proyecto cargado, la pestaña Inputs o Map abierta, la ventana de patch abierta, un snapshot guardado o un control externo conectado. A partir de ahí un canal conserva su número allá donde lo arrastres y un número eliminado queda retirado como hueco — el patch, los snapshots, los cues de QLab y las asignaciones del plug-in DAW nunca se rompen. Bloqueado mientras el DSP está en marcha.
+  - [ ] OK    Fix: 
+
 - **`exportLogs`**
   - EN: Export diagnostic logs to a zip file for debugging or support.
   - ES: Exportar los registros de diagnóstico a un archivo zip para depuración o soporte.
@@ -3252,8 +3658,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`inputChannels`**
-  - EN: Number of Input Channels.
-  - ES: Número de Input Channels.
+  - EN: Number of mono input channels. Raising the count appends channels after the last one; lowering it removes the highest-numbered mono channels. Locked when DSP is running.
+  - ES: Número de canales de entrada mono. Aumentar añade canales después del último; reducir elimina los canales mono con los números más altos. Bloqueado mientras el DSP está en marcha.
   - [ ] OK    Fix: 
 
 - **`language`**
@@ -3347,8 +3753,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`positionControl`**
-  - EN: Select the hardware controller for position control: Space Mouse, Joystick, or Game Pad.
-  - ES: Seleccionar el controlador hardware para el control de posición: Space Mouse, Joystick o gamepad.
+  - EN: Select the hardware controller for position control: Space Mouse, Joystick, or Game Pad. With a Space Mouse, holding Shift on a stereo input turns twist into the stereo axis and push/pull into the stereo width.
+  - ES: Seleccionar el controlador hardware para el control de posición: Space Mouse, Joystick o gamepad. Con un Space Mouse, mantener Shift en una entrada estéreo convierte el giro en el eje estéreo y empujar/tirar en la anchura estéreo.
   - [ ] OK    Fix: 
 
 - **`processing`**
@@ -3469,6 +3875,11 @@ Walk through each section. For every entry:
 - **`stageWidth`**
   - EN: Width of the stage in meters (Box shape only).
   - ES: Ancho del escenario en metros (solo forma Caja).
+  - [ ] OK    Fix: 
+
+- **`stereoInputChannels`**
+  - EN: Number of stereo pair inputs. Each keeps one channel number and claims two hardware inputs (L and R) in the patch. Raising the count appends after the last channel; lowering it removes the highest-numbered stereo channels. Locked when DSP is running.
+  - ES: Número de entradas estéreo (pares). Cada par conserva un número de canal y ocupa dos entradas de hardware (L y R) en el patch. Aumentar añade después del último canal; reducir elimina los estéreo con los números más altos. Bloqueado mientras el DSP está en marcha.
   - [ ] OK    Fix: 
 
 - **`storeComplete`**

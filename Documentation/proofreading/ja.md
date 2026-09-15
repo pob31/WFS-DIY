@@ -1,6 +1,6 @@
 # Proofreading checklist — Japanese (日本語)
 
-Locale: `ja`  |  Total keys: 690  |  Source: `Resources/lang/en.json` vs `Resources/lang/ja.json`
+Locale: `ja`  |  Total keys: 771  |  Source: `Resources/lang/en.json` vs `Resources/lang/ja.json`
 
 ## How to use this file
 
@@ -54,6 +54,13 @@ Walk through each section. For every entry:
 - **`ready`**
   - EN: Ready
   - JA: 準備完了
+  - [ ] OK    Fix: 
+
+## `audioPatch.deviceSettings`
+
+- **`midiTooltip`**
+  - EN: Snapshot recall only. This port is opened for input alone and is used for nothing else: WFS-DIY sends it no MIDI, and the only messages it acts on are note-ons that recall an input snapshot. Bind a channel and note to a snapshot in the Inputs tab's Edit Scope window; a note-on above velocity 64 recalls it.
+  - JA: スナップショット呼び出し専用です。このポートは入力専用で開かれ、他の用途には使われません — WFS-DIYがこのポートへMIDIを送ることはなく、反応するメッセージは入力スナップショットを呼び出すノートオンのみです。Inputs タブの Edit Scope ウィンドウでスナップショットにチャンネルとノートを割り当てると、ベロシティが64を超えるノートオンでそのスナップショットが呼び出されます。
   - [ ] OK    Fix: 
 
 ## `audioPatch.dialogs`
@@ -316,6 +323,16 @@ Walk through each section. For every entry:
   - JA: キャンセル
   - [ ] OK    Fix: 
 
+- **`channelDescription`**
+  - EN: #{number} "{name}" ({type})
+  - JA: #{number}「{name}」({type})
+  - [ ] OK    Fix: 
+
+- **`channelDescriptionUnnamed`**
+  - EN: #{number} ({type})
+  - JA: #{number}（{type}）
+  - [ ] OK    Fix: 
+
 - **`close`**
   - EN: Close
   - JA: 閉じる
@@ -462,7 +479,7 @@ Walk through each section. For every entry:
 ## `help.binaural`
 
 - **`body`**
-  - EN: The Binaural renderer is used for:\n- listening to a rough spatial mix on headphones,\n- creating a mix for stereo output,\n- listening to a single soloed track through the spatial processing.\nThis may take the place of your master mix if it's only feeding headphones and media mix.\n\nRender Mode selects the algorithm: ORTF (legacy) emulates a virtual microphone pair; Structural HRTF is a parametric head model (adjust Head Radius to your head); SOFA file renders measured HRTFs — the built-in SADIE II KU100 set or your own SOFA files imported into the project.\n\nHead Tracking rotates the scene with your head so it stays anchored to the stage. Select Webcam (camera-based, no extra hardware) or, when a USB receiver is connected, a head tracker itself — every tracker in range appears as its own entry. Look at the stage center and press Set Zero to calibrate; the live readout below the selector shows the tracked yaw/pitch/roll. Manual orientation uses the yaw/pitch/roll values from the Listener Geometry panel (head glyph button) instead.\n\nIn the HRTF modes the spatialised reverb is also rendered at the node positions (studio preview only, balanced by the reverb level); the listener placement (angle, lateral offset, ear height) lives in the Listener Geometry panel. Delay and level settings allow you to eventually match the sound at the FOH position.
+  - EN: The Binaural renderer is used for:\n- listening to a rough spatial mix on headphones,\n- creating a mix for stereo output,\n- listening to a single soloed track through the spatial processing.\nThis may take the place of your master mix if it's only feeding headphones and media mix.\n\nRender Mode selects the algorithm: ORTF (legacy) emulates a virtual microphone pair; Structural HRTF is a parametric head model (adjust Head Radius to your head); SOFA file renders measured HRTFs — the built-in SADIE II KU100 set or your own SOFA files imported into the project.\n\nOrbit and Head Yaw are two different things, and it matters. Orbit is WHERE YOU SIT: it moves the listener around a circle of Listener Distance about the stage origin, always facing the origin. It does not turn your head — it walks you around the room, so every source changes distance and gets louder or quieter. Head Yaw turns you on the spot from that seat. The Map shows the listener as a head glyph so you can see which one you moved.\n\nHead Tracking rotates the scene with your head so it stays anchored to the stage. Select Webcam (camera-based, no extra hardware) or, when a USB receiver is connected, a head tracker itself — every tracker in range appears as its own entry. Look at the stage center and press Set Zero to calibrate; the Head Yaw dial and the live readout below the selector both follow the tracker. Yaw is measured from your seat, so zero always means facing the origin and changing Orbit re-aims the tracker's zero with you. Manual orientation uses the yaw/pitch/roll values from the Listener Geometry panel (head glyph button) instead.\n\nIn the HRTF modes the spatialised reverb is also rendered at the node positions (studio preview only, balanced by the reverb level); the listener placement (orbit, sideways offset, ear height) lives in the Listener Geometry panel. Note ORTF (legacy) ignores the sideways offset and ear height and always uses 1.5 m, so switching between it and an HRTF mode can move the listener. Delay and level settings allow you to eventually match the sound at the FOH position.
   - JA: バイノーラルレンダラー\n\nBinaural Rendererの用途：\n- ヘッドフォンで大まかな空間ミックスを聴く\n- ステレオ出力用のミックスを作成する\n- ソロトラックを空間処理で聴く\nヘッドフォンとメディアミックスのみに使用する場合、マスターミックスの代わりになります。\nリスニング位置は原点からの奥行きと向きで調整できます。ディレイとレベルの設定でFOH位置の音に合わせることができます。
   - [ ] OK    Fix: 
 
@@ -651,8 +668,8 @@ Walk through each section. For every entry:
 ## `help.map`
 
 - **`body`**
-  - EN: - A left click on an input or a cluster will allow to move it by dragging it. A single finger touch will do the same.\n- A left click with the shift key pressed will add or remove inputs to the selection. A double tap and drag will act the same way.\n- A left click drag will draw a selection rectangle to select multiple inputs and clusters at the same time.\n- A left double-click or tap will reset the position offset of the input.\n- A long left click or press with no movement will switch to the input tab with the focus on the selected input on release.\n- A left click away from any input will clear the selection.\n- A right click and drag will pan the view of the map. A two finger drag with no selected input or cluster will do the same if your operating system supports multitouch.\n- The mouse wheel will zoom in and out. A two finger pinch with no selected input or cluster will also zoom in and out.\n- A middle click will reset the view to fit the stage on the map display. There is also a dedicated set of buttons to reset the view to fit all inputs and to fit the stage respectively.\n- Selected inputs and clusters can also be moved with the arrow keys for X and Y and with the PageUp and PageDown keys for height. Hardware controllers can be used too.\n- When an input is touched, a second finger nearby can rotate the input directivity and adjust the height by pinching if your operating system allows multitouch interaction.\n- When a cluster is touched, a second finger nearby can rotate the cluster and scale it by pinching.\n- Inputs, output arrays and the reverb nodes can be hidden on the map.\n- Inputs can also be locked to prevent selecting and moving them on the map. They will still be moved by clusters, network commands, tracking and hardware controllers.\n- All reverb nodes can be moved on the map if this is enabled on the reverb tab. Holding the Ctrl/Cmd key will move each pair of reverb nodes in symmetry.\n- Inputs with offsets, LFO or with speed regulation will have a temporary position marker. But the point of interaction will remain the normal marker.\n- The Live Source Tamer radius will be displayed around input when activated.\n- There is a toggle to display the audio level for the inputs and outputs on the map tab, that's active when the audio processing is running.
-  - JA: - 入力やクラスターを左クリックしてドラッグで移動できます。\n- Shiftキー+左クリックで選択に追加/削除できます。\n- 左クリックドラッグで選択矩形を描きます。\n- ダブルクリックで位置オフセットをリセットします。\n- 長押しで入力タブに切り替えます。\n- 入力以外をクリックで選択をクリアします。\n- 右クリックドラッグでマップをパンします。2本指ドラッグも同様です。\n- マウスホイールでズーム。2本指ピンチも同様です。\n- 中クリックでビューをリセットします。\n- 矢印キーでX/Y移動、PageUp/Downで高さ調整。\n- 2本目の指で指向性の回転と高さ調整ができます。\n- クラスターでは2本目の指で回転とスケーリングができます。\n- 入力、出力配列、リバーブノードを非表示にできます。\n- 入力をロックして選択・移動を防止できます。\n- リバーブノードを移動可能。Ctrl/Cmdでペアを対称移動します。\n- Live Source Tamerの半径が表示されます。\n- オーディオレベルをマップに表示できます。
+  - EN: - A left click on an input or a cluster will allow to move it by dragging it. A single finger touch will do the same.\n- A left click with the shift key pressed will add or remove inputs to the selection. A double tap and drag will act the same way.\n- A left click drag will draw a selection rectangle to select multiple inputs and clusters at the same time.\n- A left double-click or tap will reset the position offset of the input.\n- A long left click or press (0.7 to 1.2 s) with no movement will switch to the input tab with the focus on the selected input on release. Moving away cancels it even if you come back, and it is ignored for 3 s after moving or editing a marker.\n- A left click away from any input will clear the selection.\n- A right click and drag will pan the view of the map. A two finger drag with no selected input or cluster will do the same if your operating system supports multitouch.\n- The mouse wheel will zoom in and out. A two finger pinch with no selected input or cluster will also zoom in and out.\n- With stereo inputs selected the mouse wheel turns their image axis instead of zooming: 5° per notch, 1° with Shift held. Hold Ctrl/Cmd to zoom as usual.\n- A middle click will reset the view to fit the stage on the map display. There is also a dedicated set of buttons to reset the view to fit all inputs and to fit the stage respectively.\n- Selected inputs and clusters can also be moved with the arrow keys for X and Y and with the PageUp and PageDown keys for height. Hardware controllers can be used too.\n- When an input is touched, a second finger nearby can rotate the input directivity and adjust the height by pinching if your operating system allows multitouch interaction.\n- When a cluster is touched, a second finger nearby can rotate the cluster and scale it by pinching.\n- When a stereo input is touched, holding Shift makes the second finger act on the stereo image instead: rotating changes the image axis and pinching changes the width.\n- The button under the levels toggle suspends every second-finger edit on inputs and clusters. Pan, zoom and reverb pair mirroring keep working. It is not saved.\n- With a Space Mouse, holding Shift while a stereo input is selected makes the twist change the image axis and the push/pull change the width (push to spread, pull to narrow). Shift with XY still moves the input.\n- Pressing L with stereo inputs selected locks or unlocks their image orientation. Locked, the pair spreads house left/right turned by the Axis value alone and no longer follows the source around the origin.\n- Inputs, output arrays and the reverb nodes can be hidden on the map.\n- Inputs can also be locked to prevent selecting and moving them on the map. They will still be moved by clusters, network commands, tracking and hardware controllers.\n- All reverb nodes can be moved on the map if this is enabled on the reverb tab. Holding the Ctrl/Cmd key will move each pair of reverb nodes in symmetry.\n- Inputs with offsets, LFO or with speed regulation will have a temporary position marker. But the point of interaction will remain the normal marker.\n- The Live Source Tamer radius will be displayed around input when activated.\n- There is a toggle to display the audio level for the inputs and outputs on the map tab, that's active when the audio processing is running.
+  - JA: - 入力やクラスターを左クリックしてドラッグで移動できます。\n- Shiftキー+左クリックで選択に追加/削除できます。\n- 左クリックドラッグで選択矩形を描きます。\n- ダブルクリックで位置オフセットをリセットします。\n- 動かさずに長押し（0.7〜1.2秒）して離すと、選択した入力にフォーカスした状態で入力タブに切り替わります。途中で動かすと元の位置に戻しても取り消され、マーカーを移動・編集した後の3秒間は無視されます。\n- 入力以外をクリックで選択をクリアします。\n- 右クリックドラッグでマップをパンします。2本指ドラッグも同様です。\n- マウスホイールでズーム。2本指ピンチも同様です。\n- ステレオ入力を選択しているときは、マウスホイールはズームではなくイメージ軸を回します（1ノッチ5°、Shiftを押しながらで1°）。Ctrl/Cmdを押しながらであれば通常どおりズームします。\n- 中クリックでビューをリセットします。\n- 矢印キーでX/Y移動、PageUp/Downで高さ調整。\n- 2本目の指で指向性の回転と高さ調整ができます。\n- クラスターでは2本目の指で回転とスケーリングができます。\n- ステレオ入力に触れているとき、Shiftを押しながら2本目の指を使うとステレオイメージを操作します。回転でイメージ軸、ピンチで幅が変わります。\n- オーディオレベル表示のトグルの下にあるボタンで、入力とクラスターに対する2本目の指による操作をすべて一時停止します。パン、ズーム、リバーブノードのペアの対称移動は引き続き使えます。この設定は保存されません。\n- Space Mouseでは、ステレオ入力を選択してShiftを押しながらツイストするとイメージ軸、押す/引くで幅が変わります（押すと広がり、引くと狭まります）。ShiftとXYでは入力の移動は従来どおりです。\n- ステレオ入力を選択してLを押すと、イメージの向きをロック/解除します。ロック中はペアが客席左右方向に開き、軸の値の分だけ回転し、原点まわりのソースの動きには追従しません。\n- 入力、出力配列、リバーブノードを非表示にできます。\n- 入力をロックして選択・移動を防止できます。\n- リバーブノードを移動可能。Ctrl/Cmdでペアを対称移動します。\n- Live Source Tamerの半径が表示されます。\n- オーディオレベルをマップに表示できます。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -846,8 +863,8 @@ Walk through each section. For every entry:
 ## `help.shortcuts`
 
 - **`body`**
-  - EN: *H* opens the help card closest to the pointer.\n*I*, *O* and *R* open the Input, Output and Reverb tabs respectively; for a few seconds afterwards you can type a channel number to select it (confirm with *Enter*).\n*N* opens the Network tab.\n*C* opens the Clusters tab.\n*M* opens the Map tab.\n*Spacebar* scrolls to the next channel and *Shift+Spacebar* to the previous one in the Input, Output and Reverb tabs. On the Clusters tab they cycle through the clusters.\n*Ctrl/Cmd* while adjusting a parameter of an output channel that is part of an array adjusts the parameter for the selected channel only, temporarily disabling the propagation to the rest of the array.\n*F1* to *F10* assign inputs to the corresponding cluster in the Input and Map tabs, assign outputs to the corresponding array in the Output tab, and select the corresponding cluster in the Clusters tab. *F11* sets the channel back to Single.\n*Shift* while adjusting a parameter of an input that is part of a cluster adjusts this parameter for the other inputs of the cluster in relative mode: the variation affects all inputs of the cluster, but relative offsets are kept. *Ctrl/Cmd+Shift* changes the parameter in absolute mode: the value becomes identical across all inputs of the cluster.\n*Ctrl/Cmd+Z* undoes the last change; *Ctrl/Cmd+Y* or *Ctrl/Cmd+Shift+Z* redoes it.
-  - JA: *H*：ポインターに最も近いヘルプカードを開きます。\n*I*、*O*、*R*：それぞれ Inputs（入力）、Outputs（出力）、Reverb タブを開きます。その後数秒間はチャンネル番号を入力して選択できます（*Enter* で確定）。\n*N*：Network（ネットワーク）タブを開きます。\n*C*：Clusters（クラスター）タブを開きます。\n*M*：Map（マップ）タブを開きます。\n*スペースキー*：Inputs・Outputs・Reverb タブで次のチャンネルへ、*Shift+スペース*で前のチャンネルへ移動します。Clusters タブではクラスターを順に切り替えます。\n*Ctrl/Cmd*：アレイに属する出力のパラメーターを調整中に押すと、選択中のチャンネルのみが変更され、アレイの他のチャンネルへの伝播が一時的に無効になります。\n*F1*〜*F10*：Inputs・Map タブでは入力を対応するクラスターに割り当て、Outputs タブでは出力を対応するアレイに割り当て、Clusters タブでは対応するクラスターを選択します。*F11* はチャンネルを Single に戻します。\n*Shift*：クラスターに属する入力のパラメーターを調整中に押すと、クラスターの他の入力も相対モードで変更されます。変化はクラスターの全入力に適用され、相対的な差は維持されます。*Ctrl/Cmd+Shift* は絶対モードで変更し、クラスターの全入力で値が同一になります。\n*Ctrl/Cmd+Z*：直前の変更を取り消します。*Ctrl/Cmd+Y* または *Ctrl/Cmd+Shift+Z* はやり直します。
+  - EN: *H* opens the help card closest to the pointer.\n*I*, *O* and *R* open the Input, Output and Reverb tabs respectively; for a few seconds afterwards you can type a channel number to select it (confirm with *Enter*).\n*N* opens the Network tab.\n*C* opens the Clusters tab.\n*M* opens the Map tab.\n*L* locks or unlocks the stereo image orientation of the pairs selected on the Map tab.\n*Spacebar* scrolls to the next channel and *Shift+Spacebar* to the previous one in the Input, Output and Reverb tabs. On the Clusters tab they cycle through the clusters.\n*Ctrl/Cmd* while adjusting a parameter of an output channel that is part of an array adjusts the parameter for the selected channel only, temporarily disabling the propagation to the rest of the array.\n*F1* to *F10* assign inputs to the corresponding cluster in the Input and Map tabs, assign outputs to the corresponding array in the Output tab, and select the corresponding cluster in the Clusters tab. *F11* sets the channel back to Single.\n*Shift* while adjusting a parameter of an input that is part of a cluster adjusts this parameter for the other inputs of the cluster in relative mode: the variation affects all inputs of the cluster, but relative offsets are kept. *Ctrl/Cmd+Shift* changes the parameter in absolute mode: the value becomes identical across all inputs of the cluster.\n*Ctrl/Cmd+Z* undoes the last change; *Ctrl/Cmd+Y* or *Ctrl/Cmd+Shift+Z* redoes it.
+  - JA: *H*：ポインターに最も近いヘルプカードを開きます。\n*I*、*O*、*R*：それぞれ Inputs（入力）、Outputs（出力）、Reverb タブを開きます。その後数秒間はチャンネル番号を入力して選択できます（*Enter* で確定）。\n*N*：Network（ネットワーク）タブを開きます。\n*C*：Clusters（クラスター）タブを開きます。\n*M*：Map（マップ）タブを開きます。\n*L*：Mapタブで選択しているペアのステレオイメージの向きをロック/解除します。\n*スペースキー*：Inputs・Outputs・Reverb タブで次のチャンネルへ、*Shift+スペース*で前のチャンネルへ移動します。Clusters タブではクラスターを順に切り替えます。\n*Ctrl/Cmd*：アレイに属する出力のパラメーターを調整中に押すと、選択中のチャンネルのみが変更され、アレイの他のチャンネルへの伝播が一時的に無効になります。\n*F1*〜*F10*：Inputs・Map タブでは入力を対応するクラスターに割り当て、Outputs タブでは出力を対応するアレイに割り当て、Clusters タブでは対応するクラスターを選択します。*F11* はチャンネルを Single に戻します。\n*Shift*：クラスターに属する入力のパラメーターを調整中に押すと、クラスターの他の入力も相対モードで変更されます。変化はクラスターの全入力に適用され、相対的な差は維持されます。*Ctrl/Cmd+Shift* は絶対モードで変更し、クラスターの全入力で値が同一になります。\n*Ctrl/Cmd+Z*：直前の変更を取り消します。*Ctrl/Cmd+Y* または *Ctrl/Cmd+Shift+Z* はやり直します。
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -906,6 +923,31 @@ Walk through each section. For every entry:
 - **`selectChannel`**
   - EN: Select Channel
   - JA: チャンネルを選択
+  - [ ] OK    Fix: 
+
+- **`snapshotIdentity.fixNumbers`**
+  - EN: Fix numbers first
+  - JA: 先に番号を修正
+  - [ ] OK    Fix: 
+
+- **`snapshotIdentity.intro`**
+  - EN: Snapshot '{name}' was stored when these channels were on other hardware inputs:
+  - JA: スナップショット「{name}」は、これらのチャンネルが別のハードウェア入力にあったときに保存されました:
+  - [ ] OK    Fix: 
+
+- **`snapshotIdentity.noFix`**
+  - EN: No one-to-one hardware match was found, so no automatic renumbering is offered. If the rig was re-cabled on purpose, proceed; otherwise cancel and check the channel list.
+  - JA: 一対一のハードウェア照合が見つからなかったため、自動の番号修正は提案されません。意図的に配線を変えた場合は続行し、そうでなければキャンセルしてチャンネルリストを確認してください。
+  - [ ] OK    Fix: 
+
+- **`snapshotIdentity.proceedNote`**
+  - EN: Proceed applies the snapshot by channel number as it is. Cancel leaves everything unchanged.
+  - JA: 続行するとスナップショットはチャンネル番号でそのまま適用されます。キャンセルすると何も変わりません。
+  - [ ] OK    Fix: 
+
+- **`snapshotIdentity.title`**
+  - EN: Snapshot stored under a different patching
+  - JA: 異なるパッチで保存されたスナップショット
   - [ ] OK    Fix: 
 
 - **`snapshotNameLabel`**
@@ -1617,6 +1659,21 @@ Walk through each section. For every entry:
   - JA: 単一: 一度に1つの入力。複数: 複数の入力を同時に。
   - [ ] OK    Fix: 
 
+- **`stereoAxisDial`**
+  - EN: Rotates the stereo axis, positive counter-clockwise seen from above. 0 = automatic: the pair spreads perpendicular to the line from the origin to the source. Use it to aim a pair sitting at the centre of a circular rig. ±180° swaps left and right. A Space Mouse twist with Shift held, or a Shift + second-finger rotation on the map, changes it too. With Axis Lock on, this becomes an absolute bearing measured from house left/right. The mouse wheel on the map turns it too when the pair is selected.
+  - JA: ステレオ軸を回転します（上から見て正の値が反時計回り）。0 = 自動：原点から音源へ向かう線に対して垂直にペアが広がります。円形アレイの中心に置いたペアの向きを決めるのに使います。±180° で左右が入れ替わります。 Shiftを押しながらのSpace Mouseのツイスト、またはマップ上でShiftを押しながらの2本目の指の回転でも変更できます。 軸固定がオンのときは、客席左右を基準とした絶対的な方位になります。ペアを選択していれば、マップ上のマウスホイールでも回せます。
+  - [ ] OK    Fix: 
+
+- **`stereoAxisLockButton`**
+  - EN: Locks the stereo image orientation: the pair spreads house left/right turned by the Axis value alone, instead of following the line from the origin to the source. Use it when the image has to hold still while the source walks. L on the map toggles it for the selected pairs.
+  - JA: ステレオイメージの向きを固定します。原点からソースへの線に追従する代わりに、ペアは客席左右方向に開き、軸の値の分だけ回転します。ソースが動いてもイメージを止めておきたいときに使います。マップ上でLを押すと選択中のペアで切り替わります。
+  - [ ] OK    Fix: 
+
+- **`stereoWidthDial`**
+  - EN: Stereo image width in metres: the physical distance between the pair's left and right legs. The channel position stays the centre of the pair. Behaves the same on straight, curved, circular and side arrays. 0 m collapses the pair to a point source. A Space Mouse push/pull with Shift held, or a Shift + second-finger pinch on the map, changes it too.
+  - JA: ステレオイメージの幅（メートル）。ペアの左脚と右脚の物理的な距離です。チャンネル位置はペアの中心のままです。直線・カーブ・円形・サイドのいずれのアレイでも同じ動作になります。0 m でペアは点音源になります。 Shiftを押しながらのSpace Mouseの押す/引く、またはマップ上でShiftを押しながらの2本目の指のピンチでも変更できます。
+  - [ ] OK    Fix: 
+
 - **`storeConfig`**
   - EN: Store Input Configuration to file (with backup).
   - JA: 入力設定をファイルに保存します（バックアップ付き）。
@@ -1699,6 +1756,31 @@ Walk through each section. For every entry:
   - JA: エラー: {error}
   - [ ] OK    Fix: 
 
+- **`midiBindingConflict`**
+  - EN: MIDI ch {ch} note {note} is claimed by both '{first}' and '{other}' — '{first}' wins.
+  - JA: MIDI チャンネル {ch} ノート {note} が「{first}」と「{other}」の両方に割り当てられています — 「{first}」が優先されます。
+  - [ ] OK    Fix: 
+
+- **`midiBindingNotSaved`**
+  - EN: The MIDI note was not saved: OK only keeps the scope for the next new snapshot. Long-press Update Snapshot Scope to save the note.
+  - JA: MIDI ノートは保存されていません。OK は、次に作成するスナップショットのスコープとしてのみ保持します。ノートを保存するには Update Snapshot Scope を長押ししてください。
+  - [ ] OK    Fix: 
+
+- **`midiPortConnected`**
+  - EN: MIDI snapshot recall: '{name}' connected.
+  - JA: MIDI スナップショット呼び出し: 「{name}」に接続しました。
+  - [ ] OK    Fix: 
+
+- **`midiPortDisconnected`**
+  - EN: MIDI snapshot recall: '{name}' is not connected. It reconnects when it comes back.
+  - JA: MIDI スナップショット呼び出し: 「{name}」が接続されていません。デバイスが戻ると再接続します。
+  - [ ] OK    Fix: 
+
+- **`midiPortRefused`**
+  - EN: MIDI snapshot recall: '{name}' could not be opened. Another application may be using it. Retrying every 2 s.
+  - JA: MIDI スナップショット呼び出し: 「{name}」を開けませんでした。別のアプリケーションが使用中の可能性があります。2 秒ごとに再試行します。
+  - [ ] OK    Fix: 
+
 - **`noSnapshotSelected`**
   - EN: No snapshot selected.
   - JA: スナップショットが選択されていません。
@@ -1724,9 +1806,19 @@ Walk through each section. For every entry:
   - JA: 入力 {channel} をシングルに設定しました
   - [ ] OK    Fix: 
 
+- **`snapshotActionCancelled`**
+  - EN: The snapshot button you were holding was cancelled, because the selection changed.
+  - JA: 選択が変わったため、押し続けていたスナップショットボタンの操作をキャンセルしました。
+  - [ ] OK    Fix: 
+
 - **`snapshotDeleted`**
   - EN: Snapshot '{name}' deleted.
   - JA: スナップショット '{name}' を削除しました。
+  - [ ] OK    Fix: 
+
+- **`snapshotEntriesSkipped`**
+  - EN: Snapshot '{name}' loaded; {n} entries skipped, no channel {numbers}
+  - JA: スナップショット「{name}」を読み込みました; {n} 件をスキップ、チャンネル {numbers} はありません
   - [ ] OK    Fix: 
 
 - **`snapshotLoaded`**
@@ -1734,9 +1826,29 @@ Walk through each section. For every entry:
   - JA: スナップショット '{name}' を読み込みました。
   - [ ] OK    Fix: 
 
+- **`snapshotLoadedByMidi`**
+  - EN: Snapshot '{name}' recalled by MIDI.
+  - JA: スナップショット「{name}」を MIDI で呼び出しました。
+  - [ ] OK    Fix: 
+
 - **`snapshotLoadedWithoutScope`**
   - EN: Snapshot '{name}' loaded (without scope).
   - JA: スナップショット '{name}' を読み込みました（スコープなし）。
+  - [ ] OK    Fix: 
+
+- **`snapshotNotFound`**
+  - EN: Snapshot '{name}' not found.
+  - JA: スナップショット「{name}」が見つかりません。
+  - [ ] OK    Fix: 
+
+- **`snapshotPatchMismatchApplied`**
+  - EN: Snapshot '{name}' applied, but it was stored under a different patching ({n} channel(s) differ) — check the channel list
+  - JA: スナップショット「{name}」を適用しましたが、異なるパッチで保存されています（{n} チャンネルが異なる）— チャンネルリストを確認してください
+  - [ ] OK    Fix: 
+
+- **`snapshotRecallFailed`**
+  - EN: Snapshot '{name}' could not be recalled: {error}
+  - JA: スナップショット「{name}」を呼び出せませんでした: {error}
   - [ ] OK    Fix: 
 
 - **`snapshotScopeUpdated`**
@@ -1830,6 +1942,11 @@ Walk through each section. For every entry:
   - JA: マップ上に入出力のレベルを表示
   - [ ] OK    Fix: 
 
+- **`secondaryTouch`**
+  - EN: Suspend or restore the second-finger edits: input rotation and height, stereo image, cluster rotation and scale. Pan and zoom still work. Not saved.
+  - JA: 2本目の指による操作を一時停止または再開：入力の回転と高さ、ステレオイメージ、クラスターの回転とスケーリング。パンとズームは引き続き使えます。保存されません。
+  - [ ] OK    Fix: 
+
 ## `meta`
 
 - **`author`**
@@ -1889,9 +2006,19 @@ Walk through each section. For every entry:
   - JA: ターゲットを削除
   - [ ] OK    Fix: 
 
+- **`trackingConflictsCluster`**
+  - EN: Cluster {cluster}: Inputs
+  - JA: クラスター {cluster}: 入力
+  - [ ] OK    Fix: 
+
 - **`trackingConflictsContinue`**
   - EN: Continue
   - JA: 続行
+  - [ ] OK    Fix: 
+
+- **`trackingConflictsHeader`**
+  - EN: The following clusters have multiple inputs with tracking enabled:
+  - JA: 次のクラスターで複数の入力のトラッキングが有効になっています:
   - [ ] OK    Fix: 
 
 - **`trackingConflictsMessage`**
@@ -2246,13 +2373,18 @@ Walk through each section. For every entry:
 ## `network.remote`
 
 - **`notResponding`**
-  - EN: Remote not responding — the tablet app may be outdated or unreachable
-  - JA: (missing — falls back to English)
+  - EN: Remote not responding — check the tablet's IP/port and that WFS Control is running and up to date
+  - JA: Remoteが応答しません — タブレットのIP/ポートと、WFS Controlが起動していて最新版であることを確認してください
   - [ ] OK    Fix: 
 
 - **`protocolMismatch`**
   - EN: Remote app uses protocol v{remote}, expected v{local} — update the tablet app
   - JA: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`sendFailing`**
+  - EN: Sending to the tablet fails — on macOS, allow WFS-DIY under System Settings › Privacy & Security › Local Network, and check that this computer is on the tablet's network
+  - JA: タブレットへの送信に失敗しています — macOSでは「システム設定 › プライバシーとセキュリティ › ローカルネットワーク」でWFS-DIYを許可し、このコンピュータがタブレットと同じネットワークにあることを確認してください
   - [ ] OK    Fix: 
 
 ## `networkLog.dialogs`
@@ -2311,6 +2443,11 @@ Walk through each section. For every entry:
 - **`applyToArray`**
   - EN: Apply Changes to the rest of the Array (Absolute value or Relative changes).
   - JA: アレイの残りに変更を適用（絶対値または相対変更）。
+  - [ ] OK    Fix: 
+
+- **`arrayMute`**
+  - EN: Mute or unmute every speaker of this output's array. Session only: not saved with the project and cleared when one is loaded. Unavailable for Single outputs.
+  - JA: この出力のアレイに属するすべてのスピーカーをミュート／ミュート解除します。セッション中のみ有効で、プロジェクトには保存されず、プロジェクトを読み込むと解除されます。Single の出力では使用できません。
   - [ ] OK    Fix: 
 
 - **`arraySelector`**
@@ -2483,6 +2620,16 @@ Walk through each section. For every entry:
 - **`arrayEditSingle`**
   - EN: Ctrl edit: change applied to this output only (Array {array} not affected)
   - JA: Ctrl編集: 変更をこの出力のみに適用 (アレイ {array} には影響しません)
+  - [ ] OK    Fix: 
+
+- **`arrayMuted`**
+  - EN: Array {array} muted
+  - JA: アレイ {array} をミュート
+  - [ ] OK    Fix: 
+
+- **`arrayUnmuted`**
+  - EN: Array {array} unmuted
+  - JA: アレイ {array} のミュートを解除
   - [ ] OK    Fix: 
 
 - **`assignedToArray`**
@@ -2757,11 +2904,6 @@ Walk through each section. For every entry:
 - **`importConfig`**
   - EN: Import Reverb Configuration from file (with file explorer window).
   - JA: ファイルからリバーブ設定をインポート（ファイルエクスプローラー使用）。
-  - [ ] OK    Fix: 
-
-- **`liveSourceTooltip`**
-  - EN: Allow or exclude this reverb feed from Live Source Attenuation.
-  - JA: このリバーブフィードをLive Source減衰に含めるか除外します。
   - [ ] OK    Fix: 
 
 - **`mapVisibility`**
@@ -3102,7 +3244,261 @@ Walk through each section. For every entry:
   - JA: ベース位置をメートル単位で設定（X、Y、Z）
   - [ ] OK    Fix: 
 
+## `snapshotScope.midi`
+
+- **`conflict`**
+  - EN: Used by '{name}' (ch {ch}, note {note}) — pick another note to save.
+  - JA: 「{name}」が使用中（チャンネル {ch}、ノート {note}）— 保存するには別のノートを選んでください。
+  - [ ] OK    Fix: 
+
+- **`tooltip`**
+  - EN: A note-on above velocity 64 on this channel and note recalls this snapshot. Note-offs and softer notes are ignored. Choose the MIDI input in Audio Interface ▸ Device Settings.
+  - JA: このチャンネルとノートでベロシティが 64 を超えるノートオンを受けると、このスナップショットを呼び出します。ノートオフとそれより弱いノートは無視されます。MIDI 入力は Audio Interface ▸ Device Settings で選択してください。
+  - [ ] OK    Fix: 
+
+## `systemConfig.channelList`
+
+- **`deleteConfirm`**
+  - EN: Remove
+  - JA: 削除
+  - [ ] OK    Fix: 
+
+- **`deleteMessage`**
+  - EN: Remove input channel {number}? Its settings are discarded. On a fresh session the remaining channels renumber to follow the display order; once the session is in use its number is retired as a gap and the others keep theirs, so the patch, snapshots, QLab cues and DAW plug-in mappings stay valid.
+  - JA: 入力チャンネル {number} を削除しますか？設定は破棄されます。新規セッションでは残りのチャンネルが表示順に振り直されます。セッションが使用状態になると、その番号は欠番として保持され、他のチャンネルは番号を保つため、パッチ、スナップショット、QLabキュー、DAWの割り当ては有効のままです。
+  - [ ] OK    Fix: 
+
+- **`deleteTitle`**
+  - EN: Remove Input Channel
+  - JA: 入力チャンネルを削除
+  - [ ] OK    Fix: 
+
+- **`dragHint`**
+  - EN: Drag a channel to change the order.
+  - JA: チャンネルをドラッグして順番を変更。
+  - [ ] OK    Fix: 
+
+- **`dragHintFresh`**
+  - EN: Fresh session: this order becomes the channel numbering, and the patch is laid out to match it. Arrange stereo and mono channels now, before anything is saved or patched.
+  - JA: 新規セッション: この並び順がチャンネル番号になり、パッチもそれに合わせて配置されます。保存やパッチの前に、ステレオとモノラルのチャンネルを今配置してください。
+  - [ ] OK    Fix: 
+
+- **`dragHintInUse`**
+  - EN: Session in use: numbers are permanent. Reordering changes only what you see — each channel keeps its hardware inputs, and snapshots, cues and remotes keep pointing at the same channel. The patch matrix will no longer read as a straight diagonal.
+  - JA: 使用中のセッション: 番号は固定です。並べ替えは表示だけを変えます — 各チャンネルはハードウェア入力を保持し、スナップショット、キュー、リモートは同じチャンネルを指し続けます。パッチマトリクスは対角線ではなくなります。
+  - [ ] OK    Fix: 
+
+- **`edit`**
+  - EN: Arrange...
+  - JA: 並べ替え...
+  - [ ] OK    Fix: 
+
+- **`fromFile`**
+  - EN: From file...
+  - JA: ファイルから...
+  - [ ] OK    Fix: 
+
+- **`fromFileHelp`**
+  - EN: Adopt the channel numbers or order from a saved system or input config, without loading anything else.
+  - JA: 保存済みのシステムまたは入力設定から、他は何も読み込まずにチャンネル番号または順序だけを取り込みます。
+  - [ ] OK    Fix: 
+
+- **`fromFileTitle`**
+  - EN: Take the channel list from a saved config
+  - JA: 保存済み設定からチャンネルリストを取り込む
+  - [ ] OK    Fix: 
+
+- **`mono`**
+  - EN: Mono
+  - JA: モノラル
+  - [ ] OK    Fix: 
+
+- **`status`**
+  - EN: {mono} mono + {stereo} stereo
+  - JA: モノラル {mono} + ステレオ {stereo}
+  - [ ] OK    Fix: 
+
+- **`stereo`**
+  - EN: Stereo
+  - JA: ステレオ
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Arrange Input Channels
+  - JA: 入力チャンネルの並べ替え
+  - [ ] OK    Fix: 
+
 ## `systemConfig.dialogs`
+
+- **`channelIdentity.alreadyMatches`**
+  - EN: The channel list already matches {file}.
+  - JA: チャンネルリストは既に {file} と一致しています。
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.cancelled`**
+  - EN: Load cancelled: channel list not reconciled.
+  - JA: 読み込みをキャンセル: チャンネルリストは調整されていません。
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.conflictOnly`**
+  - EN: The lists conflict, so nothing can be adopted safely. Loading this file would do the following:
+  - JA: リストが衝突しているため、安全に取り込めるものはありません。このファイルを読み込むと次のようになります:
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.fixFailed`**
+  - EN: Could not reconcile the channel list: {error}
+  - JA: チャンネルリストを調整できませんでした: {error}
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.fixed`**
+  - EN: Channel list now matches {file}.
+  - JA: チャンネルリストは {file} と一致しました。
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.intro`**
+  - EN: {file} describes a different channel list than this session.
+  - JA: {file} はこのセッションとは異なるチャンネルリストを記述しています。
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.lineAdded`**
+  - EN:   #{number} ({type}) is created with default settings
+  - JA:   #{number}（{type}）が既定設定で作成されます
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.lineMore`**
+  - EN:   ... and {n} more
+  - JA:   ... 他 {n} 件
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.linePatch`**
+  - EN:   {channel}: saved on hardware input(s) {file}, now on {live}
+  - JA:   {channel}: 保存時は入力 {file}、現在は {live}
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.lineRemoved`**
+  - EN:   {channel} is removed with its settings
+  - JA:   {channel} は設定ごと削除されます
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.lineRetyped`**
+  - EN:   {channel} becomes {newType} and keeps its current settings
+  - JA:   {channel} は {newType} になり、現在の設定を保持します
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.lineRowsCross`**
+  - EN:   hardware inputs stay with their row position, so every moved channel gets another channel's inputs
+  - JA:   ハードウェア入力は行位置に留まるため、移動した各チャンネルは別のチャンネルの入力を受け取ります
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.loadAnyway`**
+  - EN: Load anyway applies the file's list by channel NUMBER:
+  - JA: そのまま読み込むと、ファイルのリストがチャンネル番号で適用されます:
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.loadAnywayButton`**
+  - EN: Load anyway
+  - JA: そのまま読み込む
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.noIdentity`**
+  - EN: {file} was saved by an older version and carries only a channel count ({count}); this session has {liveCount}. The current channel list is kept and the file's hardware patch is applied by row position; {delta}.
+  - JA: {file} は古いバージョンで保存され、チャンネル数（{count}）しか含みません。このセッションは {liveCount} です。現在のリストは保持され、ファイルのパッチは行位置で適用されます; {delta}。
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.noIdentityAppend`**
+  - EN: {n} mono channel(s) are appended
+  - JA: モノラル {n} チャンネルが追加されます
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.noIdentityKeep`**
+  - EN: no channel is added or removed
+  - JA: チャンネルの追加・削除はありません
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.noIdentityRemove`**
+  - EN: the {n} highest-numbered channel(s) are removed: {channels}
+  - JA: 番号の大きい {n} チャンネルが削除されます: {channels}
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.noIdentityShort`**
+  - EN: {file} carries no channel list to adopt (saved by an older version).
+  - JA: {file} には取り込めるチャンネルリストがありません（古いバージョン）。
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.notAConfig`**
+  - EN: {file} is not a system or input config file.
+  - JA: {file} はシステムまたは入力の設定ファイルではありません。
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.notUndoable`**
+  - EN: None of this can be undone, and it clears the undo history of every tab.
+  - JA: これらは元に戻せず、すべてのタブのアンドゥ履歴を消去します。
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.pairAdvice`**
+  - EN: This happens when one of the two was stored on its own. Cancel and store the complete config once to bring them back in step.
+  - JA: これはどちらか一方だけが保存されたときに起こります。キャンセルして完全な設定を一度保存し、両者を揃えてください。
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.pairLine`**
+  - EN:   {channel} becomes #{newNumber}
+  - JA:   {channel} → #{newNumber}
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.pairMismatch`**
+  - EN: system.xml and inputs.xml in this project disagree about the channel list. system.xml decides the numbers, types and hardware patch; inputs.xml then decides settings, types and order:
+  - JA: このプロジェクトの system.xml と inputs.xml はチャンネルリストについて一致していません。system.xml が番号、種類、パッチを決め、次に inputs.xml が設定、種類、順序を決めます:
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.patchOnly`**
+  - EN: Same channel list, but it was saved under a different patching:
+  - JA: 同じチャンネルリストですが、異なるパッチで保存されています:
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.proceed`**
+  - EN: Proceed
+  - JA: 続行
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.rearrangeFirst`**
+  - EN: Rearrange first
+  - JA: 先に並べ替える
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.relabelOffer`**
+  - EN: The arrangement matches position by position — the same mono and stereo channels in the same places — but the channel numbers differ.\n\nTake the file's numbers: every channel keeps its place, its settings and its hardware inputs, and is renumbered to the file's number for that position:
+  - JA: 配置は位置ごとに一致していますが、チャンネル番号が異なります。\n\nファイルの番号を取り込む: 各チャンネルは位置、設定、ハードウェア入力を保持し、その位置に対するファイルの番号に振り直されます:
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.relabelOfferHw`**
+  - EN: Matched by hardware input, these channels appear to be the same ones under different numbers.\n\nTake the file's numbers: every channel keeps its place, its settings and its hardware inputs; only its number changes, so snapshots, cues and OSC that use the file's numbers reach the right channels:
+  - JA: ハードウェア入力による照合では、これらは同じチャンネルが別の番号になっているようです。\n\nファイルの番号を取り込む: 各チャンネルは位置、設定、ハードウェア入力を保持し、番号だけが変わります:
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.reorderOffer`**
+  - EN: The same channels are in a different order.\n\nRearrange first: the channels are moved to the file's order and keep their numbers, settings and hardware inputs.
+  - JA: 同じチャンネルが異なる順序になっています。\n\n先に並べ替える: チャンネルをファイルの順序に移動し、番号、設定、ハードウェア入力は保持されます。
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.stillDiffers`**
+  - EN: The channel list still differs from {file} after reconciling; load cancelled.
+  - JA: 調整後もチャンネルリストは {file} と異なります。読み込みをキャンセルしました。
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.takeNumbers`**
+  - EN: Take the file's numbers
+  - JA: ファイルの番号を取り込む
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.takeNumbersHw`**
+  - EN: Take the file's numbers (by hardware input)
+  - JA: ファイルの番号を取り込む（ハードウェア入力で照合）
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.title`**
+  - EN: Channel list differs from the file
+  - JA: チャンネルリストがファイルと異なります
+  - [ ] OK    Fix: 
 
 - **`exportSystemConfig`**
   - EN: Export System Configuration
@@ -3119,9 +3515,14 @@ Walk through each section. For every entry:
   - JA: 減らす
   - [ ] OK    Fix: 
 
-- **`reduceInputChannels.message`**
-  - EN: Reducing from {current} to {new} input channels will remove settings for channels {start} to {end}.\n\nThis cannot be undone.
-  - JA: {current}から{new}入力チャンネルに減らすと、チャンネル{start}から{end}の設定が削除されます。\n\nこの操作は元に戻せません。
+- **`reduceInputChannels.messageList`**
+  - EN: The last channel(s) of that type in the display order will be removed, with their settings:\n\n{rows}\n\nOnce the session is in use their numbers are retired and the remaining channels keep theirs, so the patch, snapshots and cues stay valid.\n\nThis cannot be undone, and it clears the undo history of every tab.
+  - JA: 表示順でその種類の最後のチャンネルが、設定ごと削除されます:\n\n{rows}\n\nセッション使用後はその番号は欠番となり、他のチャンネルは番号を保持するため、パッチ、スナップショット、キューは有効のままです。\n\nこの操作は元に戻せず、すべてのタブのアンドゥ履歴を消去します。
+  - [ ] OK    Fix: 
+
+- **`reduceInputChannels.row`**
+  - EN:   {channel}
+  - JA:   {channel}
   - [ ] OK    Fix: 
 
 - **`reduceInputChannels.title`**
@@ -3167,7 +3568,7 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`binauralAngle`**
-  - EN: Horizontal rotation of binaural listener view (degrees, 0 = facing stage).
+  - EN: Where the listener SITS on a circle around the stage origin (degrees, 0 = the audience side, straight in front of the stage). They always face the origin, so this does not turn the head — it walks the listener around the room, changing the distance to every source. To turn the head, use Head Yaw (or Orientation Y/P/R in the Listener Geometry panel). Yaw is measured from this seat, so changing Orbit also re-aims a head tracker’s zero.
   - JA: バイノーラルリスナーの視点の水平回転（度、0=ステージ正面）。
   - [ ] OK    Fix: 
 
@@ -3226,6 +3627,11 @@ Walk through each section. For every entry:
   - JA: ドームの仰角：180 = 半球、360 = 完全な球。
   - [ ] OK    Fix: 
 
+- **`editChannels`**
+  - EN: Arrange the input channels: drag to interleave mono and stereo channels in any order, or remove a specific channel. On a fresh session the numbers follow the display order; they become permanent once the session is in use — a project loaded, the Inputs or Map tab opened, the patch window opened, a snapshot stored, or external control connected. From then on a channel keeps its number wherever you drag it and a removed number is retired as a gap, so the patch, snapshots, QLab cues and DAW plug-in mappings never break. Locked when DSP is running.
+  - JA: 入力チャンネルの並べ替え：ドラッグでモノラルとステレオを自由な順に並べたり、特定のチャンネルを削除できます。新規セッションでは番号は表示順に従います。セッションが使用状態になると番号は永久になります — プロジェクトの読み込み、Inputs または Map タブを開く、パッチウィンドウを開く、スナップショットの保存、外部コントロールの接続。以後、チャンネルはどこに移動しても番号を保ち、削除された番号は欠番として保持されるため、パッチ、スナップショット、QLabキュー、DAWプラグインの割り当ては壊れません。DSP実行中はロックされます。
+  - [ ] OK    Fix: 
+
 - **`exportLogs`**
   - EN: Export diagnostic logs to a zip file for debugging or support.
   - JA: デバッグまたはサポート用に診断ログをzipファイルにエクスポート。
@@ -3252,8 +3658,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`inputChannels`**
-  - EN: Number of Input Channels.
-  - JA: Input Channels数。
+  - EN: Number of mono input channels. Raising the count appends channels after the last one; lowering it removes the highest-numbered mono channels. Locked when DSP is running.
+  - JA: モノラル入力チャンネル数。増やすと最後のチャンネルの後ろに追加され、減らすと番号が最も大きいモノラルチャンネルから削除されます。DSP実行中はロックされます。
   - [ ] OK    Fix: 
 
 - **`language`**
@@ -3347,8 +3753,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`positionControl`**
-  - EN: Select the hardware controller for position control: Space Mouse, Joystick, or Game Pad.
-  - JA: 位置コントロール用のハードウェアコントローラーを選択: Space Mouse、ジョイスティック、またはゲームパッド。
+  - EN: Select the hardware controller for position control: Space Mouse, Joystick, or Game Pad. With a Space Mouse, holding Shift on a stereo input turns twist into the stereo axis and push/pull into the stereo width.
+  - JA: 位置コントロール用のハードウェアコントローラーを選択: Space Mouse、ジョイスティック、またはゲームパッド。 Space Mouseでは、ステレオ入力でShiftを押すとツイストがステレオ軸、押す/引くがステレオ幅になります。
   - [ ] OK    Fix: 
 
 - **`processing`**
@@ -3469,6 +3875,11 @@ Walk through each section. For every entry:
 - **`stageWidth`**
   - EN: Width of the stage in meters (Box shape only).
   - JA: ステージの幅（メートル）（ボックス形状のみ）。
+  - [ ] OK    Fix: 
+
+- **`stereoInputChannels`**
+  - EN: Number of stereo pair inputs. Each keeps one channel number and claims two hardware inputs (L and R) in the patch. Raising the count appends after the last channel; lowering it removes the highest-numbered stereo channels. Locked when DSP is running.
+  - JA: ステレオペア入力の数。各ペアは1つのチャンネル番号を保持し、パッチでハードウェア入力を2つ（LとR）使用します。増やすと最後のチャンネルの後ろに追加され、減らすと番号が最も大きいステレオチャンネルから削除されます。DSP実行中はロックされます。
   - [ ] OK    Fix: 
 
 - **`storeComplete`**

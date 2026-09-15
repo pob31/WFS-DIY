@@ -1,6 +1,6 @@
 # Proofreading checklist — Korean (한국어)
 
-Locale: `ko`  |  Total keys: 690  |  Source: `Resources/lang/en.json` vs `Resources/lang/ko.json`
+Locale: `ko`  |  Total keys: 771  |  Source: `Resources/lang/en.json` vs `Resources/lang/ko.json`
 
 ## How to use this file
 
@@ -54,6 +54,13 @@ Walk through each section. For every entry:
 - **`ready`**
   - EN: Ready
   - KO: 준비됨
+  - [ ] OK    Fix: 
+
+## `audioPatch.deviceSettings`
+
+- **`midiTooltip`**
+  - EN: Snapshot recall only. This port is opened for input alone and is used for nothing else: WFS-DIY sends it no MIDI, and the only messages it acts on are note-ons that recall an input snapshot. Bind a channel and note to a snapshot in the Inputs tab's Edit Scope window; a note-on above velocity 64 recalls it.
+  - KO: 스냅샷 호출 전용입니다. 이 포트는 입력으로만 열리며 다른 용도로는 전혀 쓰이지 않습니다: WFS-DIY는 이 포트로 MIDI를 보내지 않고, 반응하는 메시지는 입력 스냅샷을 호출하는 노트 온뿐입니다. Inputs 탭의 Edit Scope 창에서 스냅샷에 채널과 노트를 할당하면, 벨로시티가 64를 넘는 노트 온이 그 스냅샷을 호출합니다.
   - [ ] OK    Fix: 
 
 ## `audioPatch.dialogs`
@@ -316,6 +323,16 @@ Walk through each section. For every entry:
   - KO: 취소
   - [ ] OK    Fix: 
 
+- **`channelDescription`**
+  - EN: #{number} "{name}" ({type})
+  - KO: #{number} "{name}" ({type})
+  - [ ] OK    Fix: 
+
+- **`channelDescriptionUnnamed`**
+  - EN: #{number} ({type})
+  - KO: #{number} ({type})
+  - [ ] OK    Fix: 
+
 - **`close`**
   - EN: Close
   - KO: 닫기
@@ -462,7 +479,7 @@ Walk through each section. For every entry:
 ## `help.binaural`
 
 - **`body`**
-  - EN: The Binaural renderer is used for:\n- listening to a rough spatial mix on headphones,\n- creating a mix for stereo output,\n- listening to a single soloed track through the spatial processing.\nThis may take the place of your master mix if it's only feeding headphones and media mix.\n\nRender Mode selects the algorithm: ORTF (legacy) emulates a virtual microphone pair; Structural HRTF is a parametric head model (adjust Head Radius to your head); SOFA file renders measured HRTFs — the built-in SADIE II KU100 set or your own SOFA files imported into the project.\n\nHead Tracking rotates the scene with your head so it stays anchored to the stage. Select Webcam (camera-based, no extra hardware) or, when a USB receiver is connected, a head tracker itself — every tracker in range appears as its own entry. Look at the stage center and press Set Zero to calibrate; the live readout below the selector shows the tracked yaw/pitch/roll. Manual orientation uses the yaw/pitch/roll values from the Listener Geometry panel (head glyph button) instead.\n\nIn the HRTF modes the spatialised reverb is also rendered at the node positions (studio preview only, balanced by the reverb level); the listener placement (angle, lateral offset, ear height) lives in the Listener Geometry panel. Delay and level settings allow you to eventually match the sound at the FOH position.
+  - EN: The Binaural renderer is used for:\n- listening to a rough spatial mix on headphones,\n- creating a mix for stereo output,\n- listening to a single soloed track through the spatial processing.\nThis may take the place of your master mix if it's only feeding headphones and media mix.\n\nRender Mode selects the algorithm: ORTF (legacy) emulates a virtual microphone pair; Structural HRTF is a parametric head model (adjust Head Radius to your head); SOFA file renders measured HRTFs — the built-in SADIE II KU100 set or your own SOFA files imported into the project.\n\nOrbit and Head Yaw are two different things, and it matters. Orbit is WHERE YOU SIT: it moves the listener around a circle of Listener Distance about the stage origin, always facing the origin. It does not turn your head — it walks you around the room, so every source changes distance and gets louder or quieter. Head Yaw turns you on the spot from that seat. The Map shows the listener as a head glyph so you can see which one you moved.\n\nHead Tracking rotates the scene with your head so it stays anchored to the stage. Select Webcam (camera-based, no extra hardware) or, when a USB receiver is connected, a head tracker itself — every tracker in range appears as its own entry. Look at the stage center and press Set Zero to calibrate; the Head Yaw dial and the live readout below the selector both follow the tracker. Yaw is measured from your seat, so zero always means facing the origin and changing Orbit re-aims the tracker's zero with you. Manual orientation uses the yaw/pitch/roll values from the Listener Geometry panel (head glyph button) instead.\n\nIn the HRTF modes the spatialised reverb is also rendered at the node positions (studio preview only, balanced by the reverb level); the listener placement (orbit, sideways offset, ear height) lives in the Listener Geometry panel. Note ORTF (legacy) ignores the sideways offset and ear height and always uses 1.5 m, so switching between it and an HRTF mode can move the listener. Delay and level settings allow you to eventually match the sound at the FOH position.
   - KO: 바이노럴 렌더러\n\nBinaural Renderer 용도:\n- 헤드폰으로 대략적인 공간 믹스 청취\n- 스테레오 출력용 믹스 생성\n- 솔로 트랙을 공간 처리로 청취\n헤드폰과 미디어 믹스만 사용하는 경우 마스터 믹스를 대체할 수 있습니다.\n청취 위치는 원점에서의 깊이와 방향으로 조정할 수 있습니다. 딜레이와 레벨 설정으로 FOH 위치의 사운드에 맞출 수 있습니다.
   - [ ] OK    Fix: 
 
@@ -651,8 +668,8 @@ Walk through each section. For every entry:
 ## `help.map`
 
 - **`body`**
-  - EN: - A left click on an input or a cluster will allow to move it by dragging it. A single finger touch will do the same.\n- A left click with the shift key pressed will add or remove inputs to the selection. A double tap and drag will act the same way.\n- A left click drag will draw a selection rectangle to select multiple inputs and clusters at the same time.\n- A left double-click or tap will reset the position offset of the input.\n- A long left click or press with no movement will switch to the input tab with the focus on the selected input on release.\n- A left click away from any input will clear the selection.\n- A right click and drag will pan the view of the map. A two finger drag with no selected input or cluster will do the same if your operating system supports multitouch.\n- The mouse wheel will zoom in and out. A two finger pinch with no selected input or cluster will also zoom in and out.\n- A middle click will reset the view to fit the stage on the map display. There is also a dedicated set of buttons to reset the view to fit all inputs and to fit the stage respectively.\n- Selected inputs and clusters can also be moved with the arrow keys for X and Y and with the PageUp and PageDown keys for height. Hardware controllers can be used too.\n- When an input is touched, a second finger nearby can rotate the input directivity and adjust the height by pinching if your operating system allows multitouch interaction.\n- When a cluster is touched, a second finger nearby can rotate the cluster and scale it by pinching.\n- Inputs, output arrays and the reverb nodes can be hidden on the map.\n- Inputs can also be locked to prevent selecting and moving them on the map. They will still be moved by clusters, network commands, tracking and hardware controllers.\n- All reverb nodes can be moved on the map if this is enabled on the reverb tab. Holding the Ctrl/Cmd key will move each pair of reverb nodes in symmetry.\n- Inputs with offsets, LFO or with speed regulation will have a temporary position marker. But the point of interaction will remain the normal marker.\n- The Live Source Tamer radius will be displayed around input when activated.\n- There is a toggle to display the audio level for the inputs and outputs on the map tab, that's active when the audio processing is running.
-  - KO: - 입력이나 클러스터를 왼쪽 클릭하여 드래그로 이동합니다.\n- Shift+왼쪽 클릭으로 선택에 추가/제거합니다.\n- 왼쪽 클릭 드래그로 선택 사각형을 그립니다.\n- 더블클릭으로 위치 오프셋을 리셋합니다.\n- 움직임 없는 긴 클릭으로 입력 탭으로 전환합니다.\n- 입력 외부 클릭으로 선택을 해제합니다.\n- 오른쪽 클릭 드래그로 맵을 팬합니다. 두 손가락 드래그도 동일합니다.\n- 마우스 휠로 줌합니다. 두 손가락 핀치도 동일합니다.\n- 가운데 클릭으로 뷰를 리셋합니다.\n- 화살표 키로 X/Y 이동, PageUp/Down으로 높이 조정.\n- 두 번째 손가락으로 지향성 회전과 높이 조정이 가능합니다.\n- 클러스터에서는 두 번째 손가락으로 회전과 크기 조정이 가능합니다.\n- 입력, 출력 배열, 리버브 노드를 숨길 수 있습니다.\n- 입력을 잠가 선택과 이동을 방지할 수 있습니다.\n- 리버브 노드를 이동 가능. Ctrl/Cmd로 쌍을 대칭 이동합니다.\n- Live Source Tamer 반경이 표시됩니다.\n- 오디오 레벨을 맵에 표시할 수 있습니다.
+  - EN: - A left click on an input or a cluster will allow to move it by dragging it. A single finger touch will do the same.\n- A left click with the shift key pressed will add or remove inputs to the selection. A double tap and drag will act the same way.\n- A left click drag will draw a selection rectangle to select multiple inputs and clusters at the same time.\n- A left double-click or tap will reset the position offset of the input.\n- A long left click or press (0.7 to 1.2 s) with no movement will switch to the input tab with the focus on the selected input on release. Moving away cancels it even if you come back, and it is ignored for 3 s after moving or editing a marker.\n- A left click away from any input will clear the selection.\n- A right click and drag will pan the view of the map. A two finger drag with no selected input or cluster will do the same if your operating system supports multitouch.\n- The mouse wheel will zoom in and out. A two finger pinch with no selected input or cluster will also zoom in and out.\n- With stereo inputs selected the mouse wheel turns their image axis instead of zooming: 5° per notch, 1° with Shift held. Hold Ctrl/Cmd to zoom as usual.\n- A middle click will reset the view to fit the stage on the map display. There is also a dedicated set of buttons to reset the view to fit all inputs and to fit the stage respectively.\n- Selected inputs and clusters can also be moved with the arrow keys for X and Y and with the PageUp and PageDown keys for height. Hardware controllers can be used too.\n- When an input is touched, a second finger nearby can rotate the input directivity and adjust the height by pinching if your operating system allows multitouch interaction.\n- When a cluster is touched, a second finger nearby can rotate the cluster and scale it by pinching.\n- When a stereo input is touched, holding Shift makes the second finger act on the stereo image instead: rotating changes the image axis and pinching changes the width.\n- The button under the levels toggle suspends every second-finger edit on inputs and clusters. Pan, zoom and reverb pair mirroring keep working. It is not saved.\n- With a Space Mouse, holding Shift while a stereo input is selected makes the twist change the image axis and the push/pull change the width (push to spread, pull to narrow). Shift with XY still moves the input.\n- Pressing L with stereo inputs selected locks or unlocks their image orientation. Locked, the pair spreads house left/right turned by the Axis value alone and no longer follows the source around the origin.\n- Inputs, output arrays and the reverb nodes can be hidden on the map.\n- Inputs can also be locked to prevent selecting and moving them on the map. They will still be moved by clusters, network commands, tracking and hardware controllers.\n- All reverb nodes can be moved on the map if this is enabled on the reverb tab. Holding the Ctrl/Cmd key will move each pair of reverb nodes in symmetry.\n- Inputs with offsets, LFO or with speed regulation will have a temporary position marker. But the point of interaction will remain the normal marker.\n- The Live Source Tamer radius will be displayed around input when activated.\n- There is a toggle to display the audio level for the inputs and outputs on the map tab, that's active when the audio processing is running.
+  - KO: - 입력이나 클러스터를 왼쪽 클릭하여 드래그로 이동합니다.\n- Shift+왼쪽 클릭으로 선택에 추가/제거합니다.\n- 왼쪽 클릭 드래그로 선택 사각형을 그립니다.\n- 더블클릭으로 위치 오프셋을 리셋합니다.\n- 움직임 없는 긴 클릭이나 길게 누르기(0.7~1.2초)는 놓을 때 입력 탭으로 전환하고 선택한 입력에 포커스를 맞춥니다. 움직여 벗어나면 다시 돌아와도 취소되며, 마커를 이동하거나 편집한 후 3초 동안은 무시됩니다.\n- 입력 외부 클릭으로 선택을 해제합니다.\n- 오른쪽 클릭 드래그로 맵을 팬합니다. 두 손가락 드래그도 동일합니다.\n- 마우스 휠로 줌합니다. 두 손가락 핀치도 동일합니다.\n- 스테레오 입력이 선택되어 있으면 마우스 휠은 줌 대신 이미지 축을 회전합니다(한 칸에 5°, Shift를 누르면 1°). Ctrl/Cmd를 누르면 평소처럼 줌합니다.\n- 가운데 클릭으로 뷰를 리셋합니다.\n- 화살표 키로 X/Y 이동, PageUp/Down으로 높이 조정.\n- 두 번째 손가락으로 지향성 회전과 높이 조정이 가능합니다.\n- 클러스터에서는 두 번째 손가락으로 회전과 크기 조정이 가능합니다.\n- 스테레오 입력을 터치한 상태에서 Shift를 누르면 두 번째 손가락이 스테레오 이미지를 조작합니다. 회전은 이미지 축을, 핀치는 폭을 바꿉니다.\n- 오디오 레벨 표시 토글 아래의 버튼은 입력과 클러스터에 대한 두 번째 손가락 조작을 모두 일시 정지합니다. 팬, 줌, 리버브 노드 쌍의 대칭 이동은 계속 작동합니다. 이 설정은 저장되지 않습니다.\n- Space Mouse에서는 스테레오 입력을 선택하고 Shift를 누른 채 비틀면 이미지 축이, 누르기/당기기로 폭이 바뀝니다(누르면 넓어지고 당기면 좁아집니다). Shift와 XY는 여전히 입력을 이동합니다.\n- 스테레오 입력을 선택한 상태에서 L을 누르면 이미지 방향이 잠기거나 풀립니다. 잠기면 페어는 객석 좌우로 벌어지고 축 값만큼만 회전하며, 원점을 도는 소스를 더 이상 따라가지 않습니다.\n- 입력, 출력 배열, 리버브 노드를 숨길 수 있습니다.\n- 입력을 잠가 선택과 이동을 방지할 수 있습니다.\n- 리버브 노드를 이동 가능. Ctrl/Cmd로 쌍을 대칭 이동합니다.\n- Live Source Tamer 반경이 표시됩니다.\n- 오디오 레벨을 맵에 표시할 수 있습니다.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -846,8 +863,8 @@ Walk through each section. For every entry:
 ## `help.shortcuts`
 
 - **`body`**
-  - EN: *H* opens the help card closest to the pointer.\n*I*, *O* and *R* open the Input, Output and Reverb tabs respectively; for a few seconds afterwards you can type a channel number to select it (confirm with *Enter*).\n*N* opens the Network tab.\n*C* opens the Clusters tab.\n*M* opens the Map tab.\n*Spacebar* scrolls to the next channel and *Shift+Spacebar* to the previous one in the Input, Output and Reverb tabs. On the Clusters tab they cycle through the clusters.\n*Ctrl/Cmd* while adjusting a parameter of an output channel that is part of an array adjusts the parameter for the selected channel only, temporarily disabling the propagation to the rest of the array.\n*F1* to *F10* assign inputs to the corresponding cluster in the Input and Map tabs, assign outputs to the corresponding array in the Output tab, and select the corresponding cluster in the Clusters tab. *F11* sets the channel back to Single.\n*Shift* while adjusting a parameter of an input that is part of a cluster adjusts this parameter for the other inputs of the cluster in relative mode: the variation affects all inputs of the cluster, but relative offsets are kept. *Ctrl/Cmd+Shift* changes the parameter in absolute mode: the value becomes identical across all inputs of the cluster.\n*Ctrl/Cmd+Z* undoes the last change; *Ctrl/Cmd+Y* or *Ctrl/Cmd+Shift+Z* redoes it.
-  - KO: *H*: 포인터에서 가장 가까운 도움말 카드를 엽니다.\n*I*, *O*, *R*: 각각 Inputs(입력), Outputs(출력), Reverb 탭을 엽니다. 이후 몇 초 동안 채널 번호를 입력해 선택할 수 있습니다(*Enter*로 확인).\n*N*: Network(네트워크) 탭을 엽니다.\n*C*: Clusters(클러스터) 탭을 엽니다.\n*M*: Map(맵) 탭을 엽니다.\n*스페이스바*: Inputs, Outputs, Reverb 탭에서 다음 채널로, *Shift+스페이스바*는 이전 채널로 이동합니다. Clusters 탭에서는 클러스터를 순환합니다.\n*Ctrl/Cmd*: 어레이에 속한 출력의 파라미터를 조정하는 동안 누르면 선택된 채널만 조정되며, 어레이의 나머지 채널로의 전파가 일시적으로 비활성화됩니다.\n*F1*~*F10*: Inputs, Map 탭에서는 입력을 해당 클러스터에 할당하고, Outputs 탭에서는 출력을 해당 어레이에 할당하며, Clusters 탭에서는 해당 클러스터를 선택합니다. *F11*은 채널을 Single로 되돌립니다.\n*Shift*: 클러스터에 속한 입력의 파라미터를 조정하는 동안 누르면 클러스터의 다른 입력도 상대 모드로 조정됩니다. 변화는 클러스터의 모든 입력에 적용되지만 상대적인 차이는 유지됩니다. *Ctrl/Cmd+Shift*는 절대 모드로 변경하여 클러스터의 모든 입력 값이 동일해집니다.\n*Ctrl/Cmd+Z*: 마지막 변경을 실행 취소합니다. *Ctrl/Cmd+Y* 또는 *Ctrl/Cmd+Shift+Z*는 다시 실행합니다.
+  - EN: *H* opens the help card closest to the pointer.\n*I*, *O* and *R* open the Input, Output and Reverb tabs respectively; for a few seconds afterwards you can type a channel number to select it (confirm with *Enter*).\n*N* opens the Network tab.\n*C* opens the Clusters tab.\n*M* opens the Map tab.\n*L* locks or unlocks the stereo image orientation of the pairs selected on the Map tab.\n*Spacebar* scrolls to the next channel and *Shift+Spacebar* to the previous one in the Input, Output and Reverb tabs. On the Clusters tab they cycle through the clusters.\n*Ctrl/Cmd* while adjusting a parameter of an output channel that is part of an array adjusts the parameter for the selected channel only, temporarily disabling the propagation to the rest of the array.\n*F1* to *F10* assign inputs to the corresponding cluster in the Input and Map tabs, assign outputs to the corresponding array in the Output tab, and select the corresponding cluster in the Clusters tab. *F11* sets the channel back to Single.\n*Shift* while adjusting a parameter of an input that is part of a cluster adjusts this parameter for the other inputs of the cluster in relative mode: the variation affects all inputs of the cluster, but relative offsets are kept. *Ctrl/Cmd+Shift* changes the parameter in absolute mode: the value becomes identical across all inputs of the cluster.\n*Ctrl/Cmd+Z* undoes the last change; *Ctrl/Cmd+Y* or *Ctrl/Cmd+Shift+Z* redoes it.
+  - KO: *H*: 포인터에서 가장 가까운 도움말 카드를 엽니다.\n*I*, *O*, *R*: 각각 Inputs(입력), Outputs(출력), Reverb 탭을 엽니다. 이후 몇 초 동안 채널 번호를 입력해 선택할 수 있습니다(*Enter*로 확인).\n*N*: Network(네트워크) 탭을 엽니다.\n*C*: Clusters(클러스터) 탭을 엽니다.\n*M*: Map(맵) 탭을 엽니다.\n*L*: Map 탭에서 선택한 페어의 스테레오 이미지 방향을 잠그거나 풉니다.\n*스페이스바*: Inputs, Outputs, Reverb 탭에서 다음 채널로, *Shift+스페이스바*는 이전 채널로 이동합니다. Clusters 탭에서는 클러스터를 순환합니다.\n*Ctrl/Cmd*: 어레이에 속한 출력의 파라미터를 조정하는 동안 누르면 선택된 채널만 조정되며, 어레이의 나머지 채널로의 전파가 일시적으로 비활성화됩니다.\n*F1*~*F10*: Inputs, Map 탭에서는 입력을 해당 클러스터에 할당하고, Outputs 탭에서는 출력을 해당 어레이에 할당하며, Clusters 탭에서는 해당 클러스터를 선택합니다. *F11*은 채널을 Single로 되돌립니다.\n*Shift*: 클러스터에 속한 입력의 파라미터를 조정하는 동안 누르면 클러스터의 다른 입력도 상대 모드로 조정됩니다. 변화는 클러스터의 모든 입력에 적용되지만 상대적인 차이는 유지됩니다. *Ctrl/Cmd+Shift*는 절대 모드로 변경하여 클러스터의 모든 입력 값이 동일해집니다.\n*Ctrl/Cmd+Z*: 마지막 변경을 실행 취소합니다. *Ctrl/Cmd+Y* 또는 *Ctrl/Cmd+Shift+Z*는 다시 실행합니다.
   - [ ] OK    Fix: 
 
 - **`title`**
@@ -906,6 +923,31 @@ Walk through each section. For every entry:
 - **`selectChannel`**
   - EN: Select Channel
   - KO: 채널 선택
+  - [ ] OK    Fix: 
+
+- **`snapshotIdentity.fixNumbers`**
+  - EN: Fix numbers first
+  - KO: 먼저 번호 수정
+  - [ ] OK    Fix: 
+
+- **`snapshotIdentity.intro`**
+  - EN: Snapshot '{name}' was stored when these channels were on other hardware inputs:
+  - KO: 스냅샷 '{name}'은(는) 이 채널들이 다른 하드웨어 입력에 있을 때 저장되었습니다:
+  - [ ] OK    Fix: 
+
+- **`snapshotIdentity.noFix`**
+  - EN: No one-to-one hardware match was found, so no automatic renumbering is offered. If the rig was re-cabled on purpose, proceed; otherwise cancel and check the channel list.
+  - KO: 일대일 하드웨어 일치를 찾지 못해 자동 번호 수정을 제안하지 않습니다. 의도적으로 배선을 바꿨다면 계속하고, 아니면 취소하고 채널 목록을 확인하세요.
+  - [ ] OK    Fix: 
+
+- **`snapshotIdentity.proceedNote`**
+  - EN: Proceed applies the snapshot by channel number as it is. Cancel leaves everything unchanged.
+  - KO: 계속은 스냅샷을 채널 번호 기준으로 그대로 적용합니다. 취소는 아무것도 바꾸지 않습니다.
+  - [ ] OK    Fix: 
+
+- **`snapshotIdentity.title`**
+  - EN: Snapshot stored under a different patching
+  - KO: 다른 패치로 저장된 스냅샷
   - [ ] OK    Fix: 
 
 - **`snapshotNameLabel`**
@@ -1617,6 +1659,21 @@ Walk through each section. For every entry:
   - KO: 단일: 한 번에 하나의 입력. 다중: 여러 입력 동시에.
   - [ ] OK    Fix: 
 
+- **`stereoAxisDial`**
+  - EN: Rotates the stereo axis, positive counter-clockwise seen from above. 0 = automatic: the pair spreads perpendicular to the line from the origin to the source. Use it to aim a pair sitting at the centre of a circular rig. ±180° swaps left and right. A Space Mouse twist with Shift held, or a Shift + second-finger rotation on the map, changes it too. With Axis Lock on, this becomes an absolute bearing measured from house left/right. The mouse wheel on the map turns it too when the pair is selected.
+  - KO: 스테레오 축을 회전합니다(위에서 볼 때 양수가 반시계 방향). 0 = 자동: 원점에서 음원으로 향하는 선에 수직으로 페어가 펼쳐집니다. 원형 어레이 중앙에 놓인 페어의 방향을 정할 때 사용합니다. ±180°이면 좌우가 바뀝니다. Shift를 누른 채 Space Mouse를 비틀기, 또는 맵에서 Shift를 누른 채 두 번째 손가락으로 회전해도 바뀝니다. 축 고정이 켜져 있으면 객석 좌우를 기준으로 한 절대 방위가 됩니다. 페어가 선택되어 있으면 맵에서 마우스 휠로도 돌릴 수 있습니다.
+  - [ ] OK    Fix: 
+
+- **`stereoAxisLockButton`**
+  - EN: Locks the stereo image orientation: the pair spreads house left/right turned by the Axis value alone, instead of following the line from the origin to the source. Use it when the image has to hold still while the source walks. L on the map toggles it for the selected pairs.
+  - KO: 스테레오 이미지의 방향을 고정합니다. 원점에서 소스로 향하는 선을 따라가는 대신, 페어는 객석 좌우로 벌어지고 축 값만큼만 회전합니다. 소스가 움직여도 이미지를 고정해야 할 때 사용합니다. 맵에서 L을 누르면 선택된 페어에 대해 전환됩니다.
+  - [ ] OK    Fix: 
+
+- **`stereoWidthDial`**
+  - EN: Stereo image width in metres: the physical distance between the pair's left and right legs. The channel position stays the centre of the pair. Behaves the same on straight, curved, circular and side arrays. 0 m collapses the pair to a point source. A Space Mouse push/pull with Shift held, or a Shift + second-finger pinch on the map, changes it too.
+  - KO: 스테레오 이미지 폭(미터). 페어의 좌우 다리 사이의 실제 거리입니다. 채널 위치는 페어의 중심으로 유지됩니다. 직선, 곡선, 원형, 측면 어레이에서 모두 동일하게 동작합니다. 0 m이면 페어가 점음원으로 축소됩니다. Shift를 누른 채 Space Mouse를 누르기/당기기, 또는 맵에서 Shift를 누른 채 두 번째 손가락으로 핀치해도 바뀝니다.
+  - [ ] OK    Fix: 
+
 - **`storeConfig`**
   - EN: Store Input Configuration to file (with backup).
   - KO: 입력 구성을 파일에 저장합니다 (백업 포함).
@@ -1699,6 +1756,31 @@ Walk through each section. For every entry:
   - KO: 오류: {error}
   - [ ] OK    Fix: 
 
+- **`midiBindingConflict`**
+  - EN: MIDI ch {ch} note {note} is claimed by both '{first}' and '{other}' — '{first}' wins.
+  - KO: MIDI 채널 {ch} 노트 {note}이(가) '{first}'와(과) '{other}'에 모두 할당되어 있습니다 — '{first}'이(가) 우선합니다.
+  - [ ] OK    Fix: 
+
+- **`midiBindingNotSaved`**
+  - EN: The MIDI note was not saved: OK only keeps the scope for the next new snapshot. Long-press Update Snapshot Scope to save the note.
+  - KO: MIDI 노트가 저장되지 않았습니다. OK는 다음에 만들 새 스냅샷의 범위로만 유지합니다. 노트를 저장하려면 Update Snapshot Scope를 길게 누르세요.
+  - [ ] OK    Fix: 
+
+- **`midiPortConnected`**
+  - EN: MIDI snapshot recall: '{name}' connected.
+  - KO: MIDI 스냅샷 호출: '{name}'이(가) 연결되었습니다.
+  - [ ] OK    Fix: 
+
+- **`midiPortDisconnected`**
+  - EN: MIDI snapshot recall: '{name}' is not connected. It reconnects when it comes back.
+  - KO: MIDI 스냅샷 호출: '{name}'이(가) 연결되어 있지 않습니다. 다시 나타나면 재연결됩니다.
+  - [ ] OK    Fix: 
+
+- **`midiPortRefused`**
+  - EN: MIDI snapshot recall: '{name}' could not be opened. Another application may be using it. Retrying every 2 s.
+  - KO: MIDI 스냅샷 호출: '{name}'을(를) 열지 못했습니다. 다른 애플리케이션이 사용 중일 수 있습니다. 2초마다 다시 시도합니다.
+  - [ ] OK    Fix: 
+
 - **`noSnapshotSelected`**
   - EN: No snapshot selected.
   - KO: 스냅샷이 선택되지 않았습니다.
@@ -1724,9 +1806,19 @@ Walk through each section. For every entry:
   - KO: 입력 {channel}이(가) 단일로 설정됨
   - [ ] OK    Fix: 
 
+- **`snapshotActionCancelled`**
+  - EN: The snapshot button you were holding was cancelled, because the selection changed.
+  - KO: 선택이 바뀌어 누르고 있던 스냅샷 버튼 동작이 취소되었습니다.
+  - [ ] OK    Fix: 
+
 - **`snapshotDeleted`**
   - EN: Snapshot '{name}' deleted.
   - KO: 스냅샷 '{name}'이(가) 삭제되었습니다.
+  - [ ] OK    Fix: 
+
+- **`snapshotEntriesSkipped`**
+  - EN: Snapshot '{name}' loaded; {n} entries skipped, no channel {numbers}
+  - KO: 스냅샷 '{name}' 불러옴; {n}개 항목 건너뜀, 채널 {numbers} 없음
   - [ ] OK    Fix: 
 
 - **`snapshotLoaded`**
@@ -1734,9 +1826,29 @@ Walk through each section. For every entry:
   - KO: 스냅샷 '{name}'이(가) 로드되었습니다.
   - [ ] OK    Fix: 
 
+- **`snapshotLoadedByMidi`**
+  - EN: Snapshot '{name}' recalled by MIDI.
+  - KO: 스냅샷 '{name}'이(가) MIDI로 호출되었습니다.
+  - [ ] OK    Fix: 
+
 - **`snapshotLoadedWithoutScope`**
   - EN: Snapshot '{name}' loaded (without scope).
   - KO: 스냅샷 '{name}'이(가) 로드되었습니다 (범위 없이).
+  - [ ] OK    Fix: 
+
+- **`snapshotNotFound`**
+  - EN: Snapshot '{name}' not found.
+  - KO: 스냅샷 '{name}'을(를) 찾을 수 없습니다.
+  - [ ] OK    Fix: 
+
+- **`snapshotPatchMismatchApplied`**
+  - EN: Snapshot '{name}' applied, but it was stored under a different patching ({n} channel(s) differ) — check the channel list
+  - KO: 스냅샷 '{name}' 적용됨, 하지만 다른 패치로 저장되었습니다({n}개 채널 다름) — 채널 목록을 확인하세요
+  - [ ] OK    Fix: 
+
+- **`snapshotRecallFailed`**
+  - EN: Snapshot '{name}' could not be recalled: {error}
+  - KO: 스냅샷 '{name}'을(를) 호출하지 못했습니다: {error}
   - [ ] OK    Fix: 
 
 - **`snapshotScopeUpdated`**
@@ -1830,6 +1942,11 @@ Walk through each section. For every entry:
   - KO: 맵에 입력 및 출력 레벨 표시
   - [ ] OK    Fix: 
 
+- **`secondaryTouch`**
+  - EN: Suspend or restore the second-finger edits: input rotation and height, stereo image, cluster rotation and scale. Pan and zoom still work. Not saved.
+  - KO: 두 번째 손가락 조작을 일시 정지하거나 재개합니다: 입력 회전과 높이, 스테레오 이미지, 클러스터 회전과 크기. 팬과 줌은 계속 작동합니다. 저장되지 않습니다.
+  - [ ] OK    Fix: 
+
 ## `meta`
 
 - **`author`**
@@ -1889,9 +2006,19 @@ Walk through each section. For every entry:
   - KO: 대상 제거
   - [ ] OK    Fix: 
 
+- **`trackingConflictsCluster`**
+  - EN: Cluster {cluster}: Inputs
+  - KO: 클러스터 {cluster}: 입력
+  - [ ] OK    Fix: 
+
 - **`trackingConflictsContinue`**
   - EN: Continue
   - KO: 계속
+  - [ ] OK    Fix: 
+
+- **`trackingConflictsHeader`**
+  - EN: The following clusters have multiple inputs with tracking enabled:
+  - KO: 다음 클러스터에 트래킹이 활성화된 입력이 여러 개 있습니다:
   - [ ] OK    Fix: 
 
 - **`trackingConflictsMessage`**
@@ -2246,13 +2373,18 @@ Walk through each section. For every entry:
 ## `network.remote`
 
 - **`notResponding`**
-  - EN: Remote not responding — the tablet app may be outdated or unreachable
-  - KO: (missing — falls back to English)
+  - EN: Remote not responding — check the tablet's IP/port and that WFS Control is running and up to date
+  - KO: Remote가 응답하지 않습니다 — 태블릿의 IP/포트와 WFS Control이 실행 중이고 최신 버전인지 확인하세요
   - [ ] OK    Fix: 
 
 - **`protocolMismatch`**
   - EN: Remote app uses protocol v{remote}, expected v{local} — update the tablet app
   - KO: (missing — falls back to English)
+  - [ ] OK    Fix: 
+
+- **`sendFailing`**
+  - EN: Sending to the tablet fails — on macOS, allow WFS-DIY under System Settings › Privacy & Security › Local Network, and check that this computer is on the tablet's network
+  - KO: 태블릿으로 전송하지 못하고 있습니다 — macOS에서는 시스템 설정 › 개인정보 보호 및 보안 › 로컬 네트워크에서 WFS-DIY를 허용하고, 이 컴퓨터가 태블릿과 같은 네트워크에 있는지 확인하세요
   - [ ] OK    Fix: 
 
 ## `networkLog.dialogs`
@@ -2311,6 +2443,11 @@ Walk through each section. For every entry:
 - **`applyToArray`**
   - EN: Apply Changes to the rest of the Array (Absolute value or Relative changes).
   - KO: 어레이의 나머지에 변경 사항 적용 (절대값 또는 상대적 변경).
+  - [ ] OK    Fix: 
+
+- **`arrayMute`**
+  - EN: Mute or unmute every speaker of this output's array. Session only: not saved with the project and cleared when one is loaded. Unavailable for Single outputs.
+  - KO: 이 출력이 속한 어레이의 모든 스피커를 뮤트하거나 뮤트 해제합니다. 세션 동안만 유지되며 프로젝트에 저장되지 않고 프로젝트를 불러오면 해제됩니다. Single 출력에서는 사용할 수 없습니다.
   - [ ] OK    Fix: 
 
 - **`arraySelector`**
@@ -2483,6 +2620,16 @@ Walk through each section. For every entry:
 - **`arrayEditSingle`**
   - EN: Ctrl edit: change applied to this output only (Array {array} not affected)
   - KO: Ctrl 편집: 변경이 이 출력에만 적용됨 (어레이 {array}에는 영향 없음)
+  - [ ] OK    Fix: 
+
+- **`arrayMuted`**
+  - EN: Array {array} muted
+  - KO: 어레이 {array} 뮤트됨
+  - [ ] OK    Fix: 
+
+- **`arrayUnmuted`**
+  - EN: Array {array} unmuted
+  - KO: 어레이 {array} 뮤트 해제됨
   - [ ] OK    Fix: 
 
 - **`assignedToArray`**
@@ -2757,11 +2904,6 @@ Walk through each section. For every entry:
 - **`importConfig`**
   - EN: Import Reverb Configuration from file (with file explorer window).
   - KO: 파일에서 리버브 설정 가져오기 (파일 탐색기 사용).
-  - [ ] OK    Fix: 
-
-- **`liveSourceTooltip`**
-  - EN: Allow or exclude this reverb feed from Live Source Attenuation.
-  - KO: 이 리버브 피드를 Live Source 감쇠에 포함하거나 제외합니다.
   - [ ] OK    Fix: 
 
 - **`mapVisibility`**
@@ -3102,7 +3244,261 @@ Walk through each section. For every entry:
   - KO: 기본 위치를 미터 단위로 설정 (X, Y, Z)
   - [ ] OK    Fix: 
 
+## `snapshotScope.midi`
+
+- **`conflict`**
+  - EN: Used by '{name}' (ch {ch}, note {note}) — pick another note to save.
+  - KO: '{name}'에서 사용 중(채널 {ch}, 노트 {note}) — 저장하려면 다른 노트를 선택하세요.
+  - [ ] OK    Fix: 
+
+- **`tooltip`**
+  - EN: A note-on above velocity 64 on this channel and note recalls this snapshot. Note-offs and softer notes are ignored. Choose the MIDI input in Audio Interface ▸ Device Settings.
+  - KO: 이 채널과 노트에서 벨로시티가 64를 넘는 노트 온을 받으면 이 스냅샷을 호출합니다. 노트 오프와 그보다 약한 노트는 무시됩니다. MIDI 입력은 Audio Interface ▸ Device Settings에서 선택하세요.
+  - [ ] OK    Fix: 
+
+## `systemConfig.channelList`
+
+- **`deleteConfirm`**
+  - EN: Remove
+  - KO: 제거
+  - [ ] OK    Fix: 
+
+- **`deleteMessage`**
+  - EN: Remove input channel {number}? Its settings are discarded. On a fresh session the remaining channels renumber to follow the display order; once the session is in use its number is retired as a gap and the others keep theirs, so the patch, snapshots, QLab cues and DAW plug-in mappings stay valid.
+  - KO: 입력 채널 {number}을(를) 제거할까요? 설정은 삭제됩니다. 새 세션에서는 남은 채널의 번호가 표시 순서대로 다시 매겨집니다. 세션이 사용 중이 되면 그 번호는 공번으로 유지되고 나머지 채널은 번호를 그대로 유지하므로 패치, 스냅샷, QLab 큐, DAW 매핑이 유효합니다.
+  - [ ] OK    Fix: 
+
+- **`deleteTitle`**
+  - EN: Remove Input Channel
+  - KO: 입력 채널 제거
+  - [ ] OK    Fix: 
+
+- **`dragHint`**
+  - EN: Drag a channel to change the order.
+  - KO: 채널을 드래그하여 순서를 변경합니다.
+  - [ ] OK    Fix: 
+
+- **`dragHintFresh`**
+  - EN: Fresh session: this order becomes the channel numbering, and the patch is laid out to match it. Arrange stereo and mono channels now, before anything is saved or patched.
+  - KO: 새 세션: 이 순서가 채널 번호가 되며 패치도 이에 맞춰 배치됩니다. 저장하거나 패치하기 전에 지금 스테레오와 모노 채널을 배치하세요.
+  - [ ] OK    Fix: 
+
+- **`dragHintInUse`**
+  - EN: Session in use: numbers are permanent. Reordering changes only what you see — each channel keeps its hardware inputs, and snapshots, cues and remotes keep pointing at the same channel. The patch matrix will no longer read as a straight diagonal.
+  - KO: 사용 중인 세션: 번호는 고정됩니다. 재정렬은 표시만 바꿉니다 — 각 채널은 하드웨어 입력을 유지하고, 스냅샷·큐·리모트는 같은 채널을 계속 가리킵니다. 패치 매트릭스는 더 이상 직선 대각선으로 보이지 않습니다.
+  - [ ] OK    Fix: 
+
+- **`edit`**
+  - EN: Arrange...
+  - KO: 정렬...
+  - [ ] OK    Fix: 
+
+- **`fromFile`**
+  - EN: From file...
+  - KO: 파일에서...
+  - [ ] OK    Fix: 
+
+- **`fromFileHelp`**
+  - EN: Adopt the channel numbers or order from a saved system or input config, without loading anything else.
+  - KO: 저장된 시스템 또는 입력 설정에서 다른 것은 불러오지 않고 채널 번호나 순서만 가져옵니다.
+  - [ ] OK    Fix: 
+
+- **`fromFileTitle`**
+  - EN: Take the channel list from a saved config
+  - KO: 저장된 설정에서 채널 목록 가져오기
+  - [ ] OK    Fix: 
+
+- **`mono`**
+  - EN: Mono
+  - KO: 모노
+  - [ ] OK    Fix: 
+
+- **`status`**
+  - EN: {mono} mono + {stereo} stereo
+  - KO: 모노 {mono} + 스테레오 {stereo}
+  - [ ] OK    Fix: 
+
+- **`stereo`**
+  - EN: Stereo
+  - KO: 스테레오
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Arrange Input Channels
+  - KO: 입력 채널 정렬
+  - [ ] OK    Fix: 
+
 ## `systemConfig.dialogs`
+
+- **`channelIdentity.alreadyMatches`**
+  - EN: The channel list already matches {file}.
+  - KO: 채널 목록이 이미 {file}과(와) 일치합니다.
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.cancelled`**
+  - EN: Load cancelled: channel list not reconciled.
+  - KO: 불러오기 취소: 채널 목록이 조정되지 않았습니다.
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.conflictOnly`**
+  - EN: The lists conflict, so nothing can be adopted safely. Loading this file would do the following:
+  - KO: 목록이 충돌하여 안전하게 가져올 수 있는 것이 없습니다. 이 파일을 불러오면 다음이 수행됩니다:
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.fixFailed`**
+  - EN: Could not reconcile the channel list: {error}
+  - KO: 채널 목록을 조정할 수 없습니다: {error}
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.fixed`**
+  - EN: Channel list now matches {file}.
+  - KO: 채널 목록이 이제 {file}과(와) 일치합니다.
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.intro`**
+  - EN: {file} describes a different channel list than this session.
+  - KO: {file}은(는) 이 세션과 다른 채널 목록을 설명합니다.
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.lineAdded`**
+  - EN:   #{number} ({type}) is created with default settings
+  - KO:   #{number} ({type})이(가) 기본 설정으로 생성됩니다
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.lineMore`**
+  - EN:   ... and {n} more
+  - KO:   ... 외 {n}개
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.linePatch`**
+  - EN:   {channel}: saved on hardware input(s) {file}, now on {live}
+  - KO:   {channel}: 저장 시 입력 {file}, 현재 {live}
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.lineRemoved`**
+  - EN:   {channel} is removed with its settings
+  - KO:   {channel}이(가) 설정과 함께 제거됩니다
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.lineRetyped`**
+  - EN:   {channel} becomes {newType} and keeps its current settings
+  - KO:   {channel}이(가) {newType}이(가) 되며 현재 설정을 유지합니다
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.lineRowsCross`**
+  - EN:   hardware inputs stay with their row position, so every moved channel gets another channel's inputs
+  - KO:   하드웨어 입력은 행 위치에 남으므로 옮겨진 채널마다 다른 채널의 입력을 받게 됩니다
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.loadAnyway`**
+  - EN: Load anyway applies the file's list by channel NUMBER:
+  - KO: 그래도 불러오기는 파일의 목록을 채널 번호 기준으로 적용합니다:
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.loadAnywayButton`**
+  - EN: Load anyway
+  - KO: 그래도 불러오기
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.noIdentity`**
+  - EN: {file} was saved by an older version and carries only a channel count ({count}); this session has {liveCount}. The current channel list is kept and the file's hardware patch is applied by row position; {delta}.
+  - KO: {file}은(는) 이전 버전으로 저장되어 채널 수({count})만 담고 있습니다. 이 세션은 {liveCount}개입니다. 현재 채널 목록은 유지되고 파일의 패치는 행 위치로 적용됩니다; {delta}.
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.noIdentityAppend`**
+  - EN: {n} mono channel(s) are appended
+  - KO: 모노 채널 {n}개가 추가됩니다
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.noIdentityKeep`**
+  - EN: no channel is added or removed
+  - KO: 채널이 추가되거나 제거되지 않습니다
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.noIdentityRemove`**
+  - EN: the {n} highest-numbered channel(s) are removed: {channels}
+  - KO: 번호가 가장 큰 {n}개 채널이 제거됩니다: {channels}
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.noIdentityShort`**
+  - EN: {file} carries no channel list to adopt (saved by an older version).
+  - KO: {file}에는 가져올 채널 목록이 없습니다(이전 버전).
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.notAConfig`**
+  - EN: {file} is not a system or input config file.
+  - KO: {file}은(는) 시스템 또는 입력 설정 파일이 아닙니다.
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.notUndoable`**
+  - EN: None of this can be undone, and it clears the undo history of every tab.
+  - KO: 이 작업은 되돌릴 수 없으며 모든 탭의 실행 취소 기록을 지웁니다.
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.pairAdvice`**
+  - EN: This happens when one of the two was stored on its own. Cancel and store the complete config once to bring them back in step.
+  - KO: 둘 중 하나만 따로 저장했을 때 생깁니다. 취소하고 전체 설정을 한 번 저장하여 다시 맞추세요.
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.pairLine`**
+  - EN:   {channel} becomes #{newNumber}
+  - KO:   {channel} → #{newNumber}
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.pairMismatch`**
+  - EN: system.xml and inputs.xml in this project disagree about the channel list. system.xml decides the numbers, types and hardware patch; inputs.xml then decides settings, types and order:
+  - KO: 이 프로젝트의 system.xml과 inputs.xml이 채널 목록에 대해 서로 다릅니다. system.xml이 번호·유형·패치를 결정하고 inputs.xml이 설정·유형·순서를 결정합니다:
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.patchOnly`**
+  - EN: Same channel list, but it was saved under a different patching:
+  - KO: 채널 목록은 같지만 다른 패치로 저장되었습니다:
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.proceed`**
+  - EN: Proceed
+  - KO: 계속
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.rearrangeFirst`**
+  - EN: Rearrange first
+  - KO: 먼저 재정렬
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.relabelOffer`**
+  - EN: The arrangement matches position by position — the same mono and stereo channels in the same places — but the channel numbers differ.\n\nTake the file's numbers: every channel keeps its place, its settings and its hardware inputs, and is renumbered to the file's number for that position:
+  - KO: 배치는 위치별로 일치하지만 — 같은 모노·스테레오 채널이 같은 자리에 — 채널 번호가 다릅니다.\n\n파일의 번호 가져오기: 각 채널은 위치·설정·하드웨어 입력을 유지하고 해당 위치의 파일 번호로 바뀝니다:
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.relabelOfferHw`**
+  - EN: Matched by hardware input, these channels appear to be the same ones under different numbers.\n\nTake the file's numbers: every channel keeps its place, its settings and its hardware inputs; only its number changes, so snapshots, cues and OSC that use the file's numbers reach the right channels:
+  - KO: 하드웨어 입력 기준으로 보면 이 채널들은 다른 번호의 같은 채널로 보입니다.\n\n파일의 번호 가져오기: 각 채널은 위치·설정·하드웨어 입력을 유지하고 번호만 바뀝니다:
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.reorderOffer`**
+  - EN: The same channels are in a different order.\n\nRearrange first: the channels are moved to the file's order and keep their numbers, settings and hardware inputs.
+  - KO: 같은 채널이 다른 순서로 있습니다.\n\n먼저 재정렬: 채널을 파일의 순서로 옮기고 번호·설정·하드웨어 입력은 유지합니다.
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.stillDiffers`**
+  - EN: The channel list still differs from {file} after reconciling; load cancelled.
+  - KO: 조정 후에도 채널 목록이 {file}과(와) 다릅니다. 불러오기를 취소했습니다.
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.takeNumbers`**
+  - EN: Take the file's numbers
+  - KO: 파일의 번호 가져오기
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.takeNumbersHw`**
+  - EN: Take the file's numbers (by hardware input)
+  - KO: 파일의 번호 가져오기(하드웨어 입력 기준)
+  - [ ] OK    Fix: 
+
+- **`channelIdentity.title`**
+  - EN: Channel list differs from the file
+  - KO: 채널 목록이 파일과 다릅니다
+  - [ ] OK    Fix: 
 
 - **`exportSystemConfig`**
   - EN: Export System Configuration
@@ -3119,9 +3515,14 @@ Walk through each section. For every entry:
   - KO: 줄이기
   - [ ] OK    Fix: 
 
-- **`reduceInputChannels.message`**
-  - EN: Reducing from {current} to {new} input channels will remove settings for channels {start} to {end}.\n\nThis cannot be undone.
-  - KO: {current}에서 {new}개의 입력 채널로 줄이면 채널 {start}부터 {end}까지의 설정이 제거됩니다.\n\n이 작업은 취소할 수 없습니다.
+- **`reduceInputChannels.messageList`**
+  - EN: The last channel(s) of that type in the display order will be removed, with their settings:\n\n{rows}\n\nOnce the session is in use their numbers are retired and the remaining channels keep theirs, so the patch, snapshots and cues stay valid.\n\nThis cannot be undone, and it clears the undo history of every tab.
+  - KO: 표시 순서에서 해당 유형의 마지막 채널이 설정과 함께 제거됩니다:\n\n{rows}\n\n세션 사용 후에는 해당 번호가 폐기되고 나머지 채널은 번호를 유지하므로 패치·스냅샷·큐는 유효합니다.\n\n이 작업은 되돌릴 수 없으며 모든 탭의 실행 취소 기록을 지웁니다.
+  - [ ] OK    Fix: 
+
+- **`reduceInputChannels.row`**
+  - EN:   {channel}
+  - KO:   {channel}
   - [ ] OK    Fix: 
 
 - **`reduceInputChannels.title`**
@@ -3167,7 +3568,7 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`binauralAngle`**
-  - EN: Horizontal rotation of binaural listener view (degrees, 0 = facing stage).
+  - EN: Where the listener SITS on a circle around the stage origin (degrees, 0 = the audience side, straight in front of the stage). They always face the origin, so this does not turn the head — it walks the listener around the room, changing the distance to every source. To turn the head, use Head Yaw (or Orientation Y/P/R in the Listener Geometry panel). Yaw is measured from this seat, so changing Orbit also re-aims a head tracker’s zero.
   - KO: 바이노럴 청취자 시점의 수평 회전 (도, 0 = 무대 정면).
   - [ ] OK    Fix: 
 
@@ -3226,6 +3627,11 @@ Walk through each section. For every entry:
   - KO: 돔 고도각: 180 = 반구, 360 = 전구.
   - [ ] OK    Fix: 
 
+- **`editChannels`**
+  - EN: Arrange the input channels: drag to interleave mono and stereo channels in any order, or remove a specific channel. On a fresh session the numbers follow the display order; they become permanent once the session is in use — a project loaded, the Inputs or Map tab opened, the patch window opened, a snapshot stored, or external control connected. From then on a channel keeps its number wherever you drag it and a removed number is retired as a gap, so the patch, snapshots, QLab cues and DAW plug-in mappings never break. Locked when DSP is running.
+  - KO: 입력 채널 정렬: 드래그로 모노와 스테레오를 자유롭게 섞거나 특정 채널을 제거합니다. 새 세션에서는 번호가 표시 순서를 따릅니다. 세션이 사용 중이 되면 번호가 영구 고정됩니다 — 프로젝트를 불러오거나, Inputs 또는 Map 탭을 열거나, 패치 창을 열거나, 스냅샷을 저장하거나, 외부 컨트롤이 연결될 때입니다. 그 이후에는 채널을 어디로 옮겨도 번호를 유지하고 제거된 번호는 공번으로 남으므로 패치, 스냅샷, QLab 큐, DAW 플러그인 매핑이 깨지지 않습니다. DSP 실행 중에는 잠깁니다.
+  - [ ] OK    Fix: 
+
 - **`exportLogs`**
   - EN: Export diagnostic logs to a zip file for debugging or support.
   - KO: 디버깅 또는 지원을 위해 진단 로그를 zip 파일로 내보냅니다.
@@ -3252,8 +3658,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`inputChannels`**
-  - EN: Number of Input Channels.
-  - KO: Input Channels 수.
+  - EN: Number of mono input channels. Raising the count appends channels after the last one; lowering it removes the highest-numbered mono channels. Locked when DSP is running.
+  - KO: 모노 입력 채널 수. 늘리면 마지막 채널 뒤에 추가되고, 줄이면 번호가 가장 큰 모노 채널부터 제거됩니다. DSP 실행 중에는 잠깁니다.
   - [ ] OK    Fix: 
 
 - **`language`**
@@ -3347,8 +3753,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`positionControl`**
-  - EN: Select the hardware controller for position control: Space Mouse, Joystick, or Game Pad.
-  - KO: 위치 제어용 하드웨어 컨트롤러 선택: Space Mouse, 조이스틱 또는 게임패드.
+  - EN: Select the hardware controller for position control: Space Mouse, Joystick, or Game Pad. With a Space Mouse, holding Shift on a stereo input turns twist into the stereo axis and push/pull into the stereo width.
+  - KO: 위치 제어용 하드웨어 컨트롤러 선택: Space Mouse, 조이스틱 또는 게임패드. Space Mouse에서는 스테레오 입력에서 Shift를 누르면 비틀기가 스테레오 축, 누르기/당기기가 스테레오 폭이 됩니다.
   - [ ] OK    Fix: 
 
 - **`processing`**
@@ -3469,6 +3875,11 @@ Walk through each section. For every entry:
 - **`stageWidth`**
   - EN: Width of the stage in meters (Box shape only).
   - KO: 무대 너비 (미터) (박스 형태만 해당).
+  - [ ] OK    Fix: 
+
+- **`stereoInputChannels`**
+  - EN: Number of stereo pair inputs. Each keeps one channel number and claims two hardware inputs (L and R) in the patch. Raising the count appends after the last channel; lowering it removes the highest-numbered stereo channels. Locked when DSP is running.
+  - KO: 스테레오 페어 입력 수. 각 페어는 채널 번호 하나를 유지하며 패치에서 하드웨어 입력 2개(L, R)를 사용합니다. 늘리면 마지막 채널 뒤에 추가되고, 줄이면 번호가 가장 큰 스테레오 채널부터 제거됩니다. DSP 실행 중에는 잠깁니다.
   - [ ] OK    Fix: 
 
 - **`storeComplete`**
