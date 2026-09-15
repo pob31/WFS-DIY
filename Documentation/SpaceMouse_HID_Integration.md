@@ -127,6 +127,12 @@ Default SpaceMouse mapping:
 | Button 0 | Previous input | — | — | |
 | Button 1 | Next input | — | — | |
 
+**Targets.** On the Map tab the axes act on the map selection. On the Inputs
+tab every axis — move, twist and the Shift layer below — acts on the channel
+shown there and nothing else, even with inputs still selected on the Map
+(`resolveControllerTargets` in MainComponent picks by tab; it used to prefer a
+leftover map selection, so the twist hit other inputs than the push/pull).
+
 **Shift layer (keyboard Shift held, Map and Inputs tabs).** Shift is the stereo
 image layer: TransZ and RotZ are redirected to the stereo image of the selected
 stereo inputs while TransX/TransY keep moving the source. Mono targets ignore

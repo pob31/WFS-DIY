@@ -1497,19 +1497,25 @@ MainComponent::MainComponent()
             });
         };
 
-        // Inputs a Space Mouse twist / Shift gesture applies to: the map
-        // selection, else the Inputs tab's current channel.
+        // Inputs a Space Mouse twist / Shift gesture applies to. On the Inputs
+        // tab that is the channel on screen and nothing else - the one
+        // moveCurrentChannel moves - even with inputs still selected on the
+        // map; everywhere else it is the map selection.
         auto resolveControllerTargets = [this]()
         {
             std::set<int> targets;
-            if (mapTab)
-                targets = mapTab->getSelectedInputSet();
-
-            if (targets.empty() && inputsTab)
+            if (tabbedComponent.getCurrentTabIndex() == 4)   // Inputs tab
             {
-                int ch = inputsTab->getSelectedInputIndex();
-                if (ch >= 0 && ch < parameters.getNumInputChannels())
-                    targets.insert (ch);
+                if (inputsTab)
+                {
+                    int ch = inputsTab->getSelectedInputIndex();
+                    if (ch >= 0 && ch < parameters.getNumInputChannels())
+                        targets.insert (ch);
+                }
+            }
+            else if (mapTab)
+            {
+                targets = mapTab->getSelectedInputSet();
             }
             return targets;
         };
