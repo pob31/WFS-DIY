@@ -575,17 +575,8 @@ void NetworkLogWindowContent::updateFilterToggles()
         toggleStates[toggle->getButtonText()] = toggle->getToggleState();
     }
 
-    filterToggles.clear();
-
-    auto addToggle = [this](const juce::String& name, bool defaultState = true)
-    {
-        auto* toggle = new juce::ToggleButton(name);
-        bool state = toggleStates.count(name) > 0 ? toggleStates[name] : defaultState;
-        toggle->setToggleState(state, juce::dontSendNotification);
-        toggle->onClick = [this]() { applyFilters(); };
-        filterToggles.add(toggle);
-        addAndMakeVisible(toggle);
-    };
+    std::vector<juce::String> names;
+    auto addToggle = [&names](const juce::String& name) { names.push_back(name); };
 
     switch (currentFilterMode)
     {
@@ -655,6 +646,41 @@ void NetworkLogWindowContent::updateFilterToggles()
             // No toggles for rejected mode - shows all rejected
             break;
     }
+
+    // The poll timer calls this on every new log entry. Recreating the
+    // buttons each time destroyed the one under the mouse between press and
+    // release, so no filter click landed while traffic was flowing. Leave an
+    // unchanged row alone, and keep surviving buttons when it does change.
+    bool unchanged = static_cast<int>(names.size()) == filterToggles.size();
+    for (size_t i = 0; unchanged && i < names.size(); ++i)
+        unchanged = filterToggles[static_cast<int>(i)]->getButtonText() == names[i];
+    if (unchanged)
+        return;
+
+    juce::OwnedArray<juce::ToggleButton> rebuilt;
+    for (const auto& name : names)
+    {
+        juce::ToggleButton* toggle = nullptr;
+        for (int i = 0; i < filterToggles.size(); ++i)
+        {
+            if (filterToggles[i]->getButtonText() == name)
+            {
+                toggle = filterToggles.removeAndReturn(i);
+                break;
+            }
+        }
+
+        if (toggle == nullptr)
+        {
+            toggle = new juce::ToggleButton(name);
+            auto it = toggleStates.find(name);
+            toggle->setToggleState(it != toggleStates.end() ? it->second : true, juce::dontSendNotification);
+            toggle->onClick = [this]() { applyFilters(); };
+            addAndMakeVisible(toggle);
+        }
+        rebuilt.add(toggle);
+    }
+    filterToggles.swapWith(rebuilt);  // buttons no longer wanted are deleted with 'rebuilt'
 
     resized();
 }
