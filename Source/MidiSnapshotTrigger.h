@@ -4,7 +4,9 @@
 #include "AppSettings.h"
 #include <atomic>
 #include <map>
+#include <set>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 /**
@@ -54,8 +56,17 @@
  * ports but filters on isBlocksMidiDeviceName, so it will not contend for a
  * generic controller. A Lightpad's own port WILL appear in the selector and
  * must not be chosen -- on Windows a port cannot be opened twice.
+ *
+ * PORT HEALTH: a device that drops off the bus and comes back inside JUCE's
+ * 500 ms device-change debounce leaves the device list identical, so
+ * MidiDeviceListConnection never fires and the open MidiInput keeps the dead
+ * instance's handle for good. Every raw OS device-change notification
+ * therefore reopens the port (RawMidiDeviceChangeFlag). A port that is listed
+ * but refuses to open (held by another application) is retried every 2 s
+ * rather than looking armed while dead.
  */
-class MidiSnapshotTrigger final : private juce::MidiInputCallback
+class MidiSnapshotTrigger final : private juce::MidiInputCallback,
+                                  private juce::Timer
 {
 public:
     /** Note-on velocity must be STRICTLY greater than this to fire. */
@@ -65,17 +76,34 @@ public:
         doubled cable). A different bound note always fires immediately. */
     static constexpr int kRetriggerLockoutMs = 250;
 
+    /** Retry interval for a listed port that refused to open. */
+    static constexpr int kOpenRetryMs = 2000;
+
+    enum class PortState
+    {
+        off,       // no device selected
+        absent,    // selected, not plugged in
+        open,      // receiving
+        refused    // listed, but the OS refused to open it (in use elsewhere)
+    };
+
     MidiSnapshotTrigger()
     {
         deviceListConnection = juce::MidiDeviceListConnection::make ([this] { onDeviceListChanged(); });
+        RawMidiDeviceChangeFlag::get();   // registers with the OS change feed once
 
         desiredIdentifier = AppSettings::getMidiSnapshotInputId();
         desiredName       = AppSettings::getMidiSnapshotInputName();
 
         reopenIfNeeded();
+        startTimer (250);
     }
 
-    ~MidiSnapshotTrigger() override { closePort(); }
+    ~MidiSnapshotTrigger() override
+    {
+        stopTimer();
+        closePort();
+    }
 
     //==========================================================================
     // Message thread only
@@ -86,13 +114,18 @@ public:
         return juce::MidiInput::getAvailableDevices();
     }
 
+    /** The saved selection. The port actually open can differ: see getOpenIdentifier(). */
     juce::String getSelectedIdentifier() const { return desiredIdentifier; }
     juce::String getSelectedName()       const { return desiredName; }
 
-    /** True when a port is actually open. False with a non-empty identifier
-        means the device is absent, or present but refused to open (on Windows
-        a MIDI port cannot be opened twice). */
+    /** Identifier of the port actually open, or empty. It differs from the saved
+        one when the name fallback found the device under a new identifier. */
+    juce::String getOpenIdentifier() const { return input != nullptr ? openIdentifier : juce::String(); }
+
+    /** True when a port is actually open. */
     bool isPortOpen() const noexcept { return input != nullptr; }
+
+    PortState getPortState() const noexcept { return portState; }
 
     /** Empty identifier = off. Persists immediately, then (re)opens. */
     void selectDevice (const juce::String& identifier, const juce::String& deviceName)
@@ -109,8 +142,10 @@ public:
     }
 
     /** Publish the binding table. Duplicates are resolved first-wins in the
-        order given (the scan sorts by file name), and every loser is reported
-        through onDuplicateBinding.
+        order given (the scan sorts by snapshot name), and each loser is
+        reported through onDuplicateBinding once, when it first appears: the
+        index is rebuilt on every recall, and repeating the warning there only
+        buried it under the recall's own status line.
 
         The UI refuses to CREATE a collision; this is the safety net for one
         that arrives on disk -- a copied snapshot file, hand-edited XML, or a
@@ -118,11 +153,9 @@ public:
         arbitrarily. */
     void setBindings (const std::vector<std::tuple<int, int, juce::String>>& bindings)
     {
-        keyToSnapshot.clear();
-
-        for (int ch = 1; ch <= 16; ++ch)
-            for (int n = 0; n < 128; ++n)
-                boundNotes[ch][n].store (0, std::memory_order_relaxed);
+        std::map<int, juce::String> next;
+        std::set<std::pair<int, juce::String>> duplicates;
+        bool bound[17][128] {};
 
         for (const auto& [ch, note, snapName] : bindings)
         {
@@ -131,19 +164,39 @@ public:
 
             const int key = packKey (ch, note);
 
-            if (auto it = keyToSnapshot.find (key); it != keyToSnapshot.end())
+            if (auto it = next.find (key); it != next.end())
             {
-                if (onDuplicateBinding)
+                duplicates.insert ({ key, snapName });
+                if (reportedDuplicates.count ({ key, snapName }) == 0 && onDuplicateBinding)
                     onDuplicateBinding (ch, note, it->second, snapName);
-                continue;  // first in file order wins
+                continue;  // first in snapshot-name order wins
             }
 
-            keyToSnapshot[key] = snapName;
-            boundNotes[ch][note].store (1, std::memory_order_release);
+            next[key] = snapName;
+            bound[ch][note] = true;
         }
 
-        // A stale parked key could name a note that has just been rebound.
-        pendingKey.store (-1, std::memory_order_relaxed);
+        reportedDuplicates = std::move (duplicates);
+
+        // One store per slot: clearing the whole table first left a window in
+        // which a note bound both before and after the rebuild read as unbound.
+        for (int ch = 1; ch <= 16; ++ch)
+            for (int n = 0; n < 128; ++n)
+                boundNotes[ch][n].store (bound[ch][n] ? 1 : 0, std::memory_order_release);
+
+        // A note parked while the index was rebuilt keeps its place unless the
+        // rebuild gave its key to another snapshot or unbound it -- it was
+        // pressed for the snapshot the key named then. Every recall rebuilds
+        // the index, so clearing it unconditionally threw away any cue pressed
+        // while the previous recall was loading.
+        const int parked = pendingKey.load (std::memory_order_acquire);
+        if (parked >= 0 && ownerIn (keyToSnapshot, parked) != ownerIn (next, parked))
+        {
+            int expected = parked;   // a newer press is left alone
+            pendingKey.compare_exchange_strong (expected, -1, std::memory_order_acq_rel);
+        }
+
+        keyToSnapshot = std::move (next);
     }
 
     /** Returns the packed key of a pending recall, or -1 for nothing pending. */
@@ -153,11 +206,7 @@ public:
     }
 
     /** Snapshot name bound to a packed key, or empty. */
-    juce::String resolve (int key) const
-    {
-        auto it = keyToSnapshot.find (key);
-        return it == keyToSnapshot.end() ? juce::String() : it->second;
-    }
+    juce::String resolve (int key) const { return ownerIn (keyToSnapshot, key); }
 
     static int packKey  (int channel, int note) noexcept { return (channel << 8) | note; }
     static int channelOf (int key) noexcept { return key >> 8; }
@@ -166,10 +215,53 @@ public:
     /** (channel, note, winner, loser) -- message thread. */
     std::function<void (int, int, const juce::String&, const juce::String&)> onDuplicateBinding;
 
-    /** MIDI device list changed (hot-plug) -- message thread. */
-    std::function<void()> onDeviceListRefreshed;
+    /** (previous, current) -- message thread. For the owner's log and status bar. */
+    std::function<void (PortState, PortState)> onPortStateChanged;
+
+    /** For UI that shows the port (the Audio Interface selector) -- message thread. */
+    struct Listener
+    {
+        virtual ~Listener() = default;
+        virtual void midiPortStateChanged() = 0;
+    };
+
+    void addListener (Listener* l)    { listeners.add (l); }
+    void removeListener (Listener* l) { listeners.remove (l); }
 
 private:
+    /** Raised by every raw OS MIDI device-change notification, whether or not
+        the device list changed. JUCE 9.0.2's ump::Endpoints::removeListener()
+        calls addListener() (juce_UMPEndpoints.cpp:186), so a listener can never
+        be detached: this one is registered once for the life of the process
+        and only raises a flag, which the trigger polls. */
+    struct RawMidiDeviceChangeFlag final : private juce::ump::EndpointsListener
+    {
+        static RawMidiDeviceChangeFlag& get()
+        {
+            static RawMidiDeviceChangeFlag instance;
+            return instance;
+        }
+
+        bool take() noexcept { return raised.exchange (false, std::memory_order_acq_rel); }
+
+    private:
+        RawMidiDeviceChangeFlag()
+        {
+            if (auto* endpoints = juce::ump::Endpoints::getInstance())
+                endpoints->addListener (*this);
+        }
+
+        void endpointsChanged() override { raised.store (true, std::memory_order_release); }
+
+        std::atomic<bool> raised { false };
+    };
+
+    static juce::String ownerIn (const std::map<int, juce::String>& table, int key)
+    {
+        auto it = table.find (key);
+        return it == table.end() ? juce::String() : it->second;
+    }
+
     //==========================================================================
     // MIDI thread
     //==========================================================================
@@ -209,24 +301,34 @@ private:
     {
         // JUCE does not null a MidiInput whose device has disappeared, so a
         // stale object would block every subsequent reopen and make unplug ->
-        // replug permanently fatal. Close it first when it is gone.
-        if (input != nullptr)
-        {
-            const auto devices = juce::MidiInput::getAvailableDevices();
-            const auto openId  = input->getIdentifier();
-
-            bool stillPresent = false;
-            for (const auto& d : devices)
-                if (d.identifier == openId) { stillPresent = true; break; }
-
-            if (! stillPresent)
-                closePort();
-        }
+        // replug permanently fatal. Close it first when it is gone -- and also
+        // when it is the name fallback and the saved device has come back.
+        if (input != nullptr
+            && (! isListed (openIdentifier)
+                || (openIdentifier != desiredIdentifier && isListed (desiredIdentifier))))
+            closePort();
 
         reopenIfNeeded();
+        listeners.call ([] (Listener& l) { l.midiPortStateChanged(); });
+    }
 
-        if (onDeviceListRefreshed)
-            onDeviceListRefreshed();
+    void timerCallback() override
+    {
+        // A raw device change can leave the open port dead even though the
+        // device list reads the same before and after (a fast replug), so the
+        // port is reopened on every one. Closing and reopening a healthy port
+        // costs a few milliseconds.
+        if (RawMidiDeviceChangeFlag::get().take())
+        {
+            closePort();
+            reopenIfNeeded();
+            listeners.call ([] (Listener& l) { l.midiPortStateChanged(); });
+            return;
+        }
+
+        if (portState == PortState::refused
+            && juce::Time::getMillisecondCounter() - lastOpenAttemptMs >= (juce::uint32) kOpenRetryMs)
+            reopenIfNeeded();
     }
 
     void closePort()
@@ -236,45 +338,79 @@ private:
             input->stop();
             input.reset();
         }
+
+        openIdentifier.clear();
+    }
+
+    bool isListed (const juce::String& identifier) const
+    {
+        if (identifier.isEmpty())
+            return false;
+
+        for (const auto& d : juce::MidiInput::getAvailableDevices())
+            if (d.identifier == identifier)
+                return true;
+
+        return false;
     }
 
     /** Identifier first, then name -- MidiDeviceInfo::identifier is OS-formatted
-        and not promised stable across reboots. */
+        and not promised stable across reboots. The saved identifier is never
+        replaced by the one the name fallback finds: with two controllers of
+        the same name, that would move the trigger to the other unit for good. */
     void reopenIfNeeded()
     {
-        if (input != nullptr || desiredIdentifier.isEmpty())
+        if (input != nullptr)
             return;
 
-        const auto devices = juce::MidiInput::getAvailableDevices();
-
-        juce::String openId;
-
-        for (const auto& d : devices)
-            if (d.identifier == desiredIdentifier) { openId = d.identifier; break; }
-
-        if (openId.isEmpty() && desiredName.isNotEmpty())
+        if (desiredIdentifier.isEmpty())
         {
-            for (const auto& d : devices)
-            {
-                if (d.name == desiredName)
-                {
-                    openId = d.identifier;
-                    desiredIdentifier = d.identifier;              // adopt the new identifier
-                    AppSettings::setMidiSnapshotInputId (openId);
-                    break;
-                }
-            }
+            setPortState (PortState::off);
+            return;
         }
 
-        if (openId.isEmpty())
-            return;  // not plugged in -- stay selected, retry on hot-plug
+        juce::String target;
+        const auto devices = juce::MidiInput::getAvailableDevices();
 
-        input = juce::MidiInput::openDevice (openId, this);
+        for (const auto& d : devices)
+            if (d.identifier == desiredIdentifier) { target = d.identifier; break; }
+
+        if (target.isEmpty() && desiredName.isNotEmpty())
+            for (const auto& d : devices)
+                if (d.name == desiredName) { target = d.identifier; break; }
+
+        if (target.isEmpty())
+        {
+            setPortState (PortState::absent);  // stay selected, reopen on hot-plug
+            return;
+        }
+
+        lastOpenAttemptMs = juce::Time::getMillisecondCounter();
+        input = juce::MidiInput::openDevice (target, this);
 
         if (input != nullptr)
+        {
             input->start();
+            openIdentifier = target;
+            setPortState (PortState::open);
+        }
         else
-            DBG ("MIDI snapshot trigger: could not open " + desiredName);
+        {
+            setPortState (PortState::refused);  // retried by timerCallback
+        }
+    }
+
+    void setPortState (PortState newState)
+    {
+        if (newState == portState)
+            return;
+
+        const auto previous = std::exchange (portState, newState);
+
+        if (onPortStateChanged)
+            onPortStateChanged (previous, newState);
+
+        listeners.call ([] (Listener& l) { l.midiPortStateChanged(); });
     }
 
     std::atomic<uint8_t>      boundNotes[17][128] {};  // [1..16][0..127]; 2 KB
@@ -282,11 +418,16 @@ private:
     std::atomic<int>          lastFiredKey { -1 };
     std::atomic<juce::uint32> lastFiredMs  { 0 };
 
-    std::map<int, juce::String> keyToSnapshot;  // MESSAGE THREAD ONLY
+    // MESSAGE THREAD ONLY from here down
+    std::map<int, juce::String>            keyToSnapshot;
+    std::set<std::pair<int, juce::String>> reportedDuplicates;
 
     std::unique_ptr<juce::MidiInput> input;
     juce::MidiDeviceListConnection   deviceListConnection;
-    juce::String desiredIdentifier, desiredName;
+    juce::String desiredIdentifier, desiredName, openIdentifier;
+    PortState    portState = PortState::off;
+    juce::uint32 lastOpenAttemptMs = 0;
+    juce::ListenerList<Listener> listeners;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MidiSnapshotTrigger)
 };

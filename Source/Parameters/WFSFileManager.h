@@ -409,13 +409,19 @@ public:
         juce::String snapshotName;
     };
 
-    /** Every bound snapshot in the project, in file-name order (which makes the
-        winner of a duplicate deterministic and identical on every machine).
+    /** Every bound snapshot in the project, in snapshot-name order ignoring
+        case (which makes the winner of a duplicate deterministic and identical
+        on every machine).
 
         Reads only the OUTER document element of each file -- which is exactly
         why the binding lives on the root rather than inside <ExtendedScope>.
         Cheap enough to call on every scope-editor keystroke. */
     std::vector<MidiBinding> scanSnapshotMidiBindings() const;
+
+    /** Changes whenever an input snapshot file is added, removed, renamed or
+        rewritten -- inside the app or not. Built from the directory listing
+        alone (name, size, modification time), so it is cheap to poll. */
+    juce::int64 getInputSnapshotsFolderSignature() const;
 
     /** Fired at the end of setProjectFolder(). One choke point for every call
         site so MIDI binding-index invalidation is not duplicated. */
@@ -744,6 +750,11 @@ private:
         an outer-element-only XML parse, and so scope templates never carry it). */
     static void writeMidiBindingToRoot (juce::ValueTree& snapshot, const ExtendedSnapshotScope& scope);
     static void readMidiBindingFromRoot (const juce::ValueTree& snapshot, ExtendedSnapshotScope& scope);
+
+    /** The one reading rule for a stored binding: both attributes present,
+        plain digits, in range. False = unbound. */
+    static bool parseMidiBinding (const juce::String& channelText, const juce::String& noteText,
+                                  int& channel, int& note);
 
     /** Set error message */
     void setError (const juce::String& error);

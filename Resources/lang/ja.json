@@ -279,6 +279,9 @@
     }
   },
   "audioPatch": {
+    "deviceSettings": {
+      "midiTooltip": "スナップショット呼び出し専用です。このポートは入力専用で開かれ、他の用途には使われません — WFS-DIYがこのポートへMIDIを送ることはなく、反応するメッセージは入力スナップショットを呼び出すノートオンのみです。Inputs タブの Edit Scope ウィンドウでスナップショットにチャンネルとノートを割り当てると、ベロシティが64を超えるノートオンでそのスナップショットが呼び出されます。"
+    },
     "dialogs": {
       "unpatchInputsTitle": "すべての入力を解除",
       "unpatchInputsMessage": "すべての入力パッチを削除してもよろしいですか？",
@@ -603,6 +606,15 @@
       "scopeSaved": "スナップショットのスコープを保存しました。",
       "scopeConfigured": "次のスナップショットのスコープを設定しました。",
       "snapshotScopeUpdated": "スナップショット '{name}' のスコープを更新しました。",
+      "snapshotNotFound": "スナップショット「{name}」が見つかりません。",
+      "snapshotRecallFailed": "スナップショット「{name}」を呼び出せませんでした: {error}",
+      "snapshotActionCancelled": "選択が変わったため、押し続けていたスナップショットボタンの操作をキャンセルしました。",
+      "snapshotLoadedByMidi": "スナップショット「{name}」を MIDI で呼び出しました。",
+      "midiBindingConflict": "MIDI チャンネル {ch} ノート {note} が「{first}」と「{other}」の両方に割り当てられています — 「{first}」が優先されます。",
+      "midiPortRefused": "MIDI スナップショット呼び出し: 「{name}」を開けませんでした。別のアプリケーションが使用中の可能性があります。2 秒ごとに再試行します。",
+      "midiPortDisconnected": "MIDI スナップショット呼び出し: 「{name}」が接続されていません。デバイスが戻ると再接続します。",
+      "midiPortConnected": "MIDI スナップショット呼び出し: 「{name}」に接続しました。",
+      "midiBindingNotSaved": "MIDI ノートは保存されていません。OK は、次に作成するスナップショットのスコープとしてのみ保持します。ノートを保存するには Update Snapshot Scope を長押ししてください。",
       "trackingDisabled": "入力 {channel} のトラッキングを無効にしました",
       "trackingSwitched": "トラッキングを入力 {from} から入力 {to} に切り替えました",
       "clusterEditRelative": "Shift編集: クラスター {cluster} の他の {count} 入力に相対変更を適用",
@@ -731,6 +743,12 @@
       "nudgeHint2": " 上下キーで調整。",
       "nudgeHint3": " Page Up/Downで調整。",
       "admMapping": "この入力をADM-OSCマッピングに割り当て、位置の送受信を行います。"
+    }
+  },
+  "snapshotScope": {
+    "midi": {
+      "tooltip": "このチャンネルとノートでベロシティが 64 を超えるノートオンを受けると、このスナップショットを呼び出します。ノートオフとそれより弱いノートは無視されます。MIDI 入力は Audio Interface ▸ Device Settings で選択してください。",
+      "conflict": "「{name}」が使用中（チャンネル {ch}、ノート {note}）— 保存するには別のノートを選んでください。"
     }
   },
   "fileManager": {

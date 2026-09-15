@@ -295,6 +295,9 @@
     }
   },
   "audioPatch": {
+    "deviceSettings": {
+      "midiTooltip": "Rappel de snapshots uniquement. Ce port est ouvert en entrée seule et ne sert à rien d'autre : WFS-DIY ne lui envoie aucune donnée MIDI, et les seuls messages pris en compte sont les note-on qui rappellent un snapshot d'entrée. Affectez un canal et une note à un snapshot dans la fenêtre Edit Scope de l'onglet Inputs ; un note-on de vélocité supérieure à 64 le rappelle."
+    },
     "dialogs": {
       "unpatchInputsTitle": "Déconnecter toutes les entrées",
       "unpatchInputsMessage": "Êtes-vous sûr de vouloir supprimer tous les routages d'entrée ?",
@@ -619,6 +622,15 @@
       "scopeSaved": "Portée du snapshot enregistrée.",
       "scopeConfigured": "Portée configurée pour le prochain snapshot.",
       "snapshotScopeUpdated": "Portée du snapshot '{name}' mise à jour.",
+      "snapshotNotFound": "Snapshot « {name} » introuvable.",
+      "snapshotRecallFailed": "Le snapshot « {name} » n'a pas pu être rappelé : {error}",
+      "snapshotActionCancelled": "Votre appui long sur le bouton de snapshot a été annulé, car la sélection a changé.",
+      "snapshotLoadedByMidi": "Snapshot « {name} » rappelé par MIDI.",
+      "midiBindingConflict": "Le canal MIDI {ch}, note {note}, est affecté à la fois à « {first} » et à « {other} » — « {first} » l'emporte.",
+      "midiPortRefused": "Rappel MIDI des snapshots : impossible d'ouvrir « {name} ». Une autre application l'utilise peut-être. Nouvelle tentative toutes les 2 s.",
+      "midiPortDisconnected": "Rappel MIDI des snapshots : « {name} » n'est pas connecté. Il se reconnectera dès son retour.",
+      "midiPortConnected": "Rappel MIDI des snapshots : « {name} » connecté.",
+      "midiBindingNotSaved": "La note MIDI n'a pas été enregistrée : OK ne conserve la portée que pour le prochain nouveau snapshot. Appuyez longuement sur Update Snapshot Scope pour enregistrer la note.",
       "trackingDisabled": "Tracking désactivé pour Entrée {channel}",
       "trackingSwitched": "Tracking transféré de Entrée {from} à Entrée {to}",
       "clusterEditRelative": "Édition Maj : changement relatif appliqué à {count} autre(s) entrée(s) du Groupe {cluster}",
@@ -747,6 +759,12 @@
       "nudgeHint2": " Ajuster avec les touches Haut et Bas.",
       "nudgeHint3": " Ajuster avec Page Haut et Page Bas.",
       "admMapping": "Assigner cette entrée à un mappage ADM-OSC pour la réception/transmission de position."
+    }
+  },
+  "snapshotScope": {
+    "midi": {
+      "tooltip": "Un note-on sur ce canal et cette note, de vélocité supérieure à 64, rappelle ce snapshot. Les note-off et les notes plus faibles sont ignorés. Choisissez l'entrée MIDI dans Audio Interface ▸ Device Settings.",
+      "conflict": "Utilisée par « {name} » (canal {ch}, note {note}) — choisissez une autre note pour enregistrer."
     }
   },
   "fileManager": {

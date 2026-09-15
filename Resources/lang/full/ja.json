@@ -483,14 +483,19 @@
         "deviceType": "オーディオデバイスタイプ:",
         "device": "デバイス:",
         "sampleRate": "サンプルレート:",
-        "bufferSize": "オーディオバッファサイズ:"
+        "bufferSize": "オーディオバッファサイズ:",
+        "midiInput": "MIDI スナップショット呼び出し:"
       },
       "buttons": {
         "controlPanel": "コントロールパネル",
         "resetDevice": "デバイスをリセット"
       },
       "noDevice": "デバイスなし",
-      "notConfigured": "未設定"
+      "notConfigured": "未設定",
+      "midiOff": "オフ — MIDI 呼び出しなし",
+      "midiNotConnected": "（未接続）",
+      "midiUnavailable": "（使用不可 — 使用中？）",
+      "midiTooltip": "スナップショット呼び出し専用です。このポートは入力専用で開かれ、他の用途には使われません — WFS-DIY がこのポートへ MIDI を送ることはなく、反応するメッセージは入力スナップショットを呼び出すノートオンのみです。入力タブの「スコープを編集」ウィンドウでスナップショットにチャンネルとノートを割り当てると、ベロシティが 64 を超えるノートオンでそのスナップショットが呼び出されます。"
     },
     "modes": {
       "scrolling": "スクロール",
@@ -1529,6 +1534,15 @@
       "scopeSaved": "スナップショットのスコープを保存しました。",
       "scopeConfigured": "次のスナップショットのスコープを設定しました。",
       "snapshotScopeUpdated": "スナップショット '{name}' のスコープを更新しました。",
+      "snapshotNotFound": "スナップショット「{name}」が見つかりません。",
+      "snapshotRecallFailed": "スナップショット「{name}」を呼び出せませんでした: {error}",
+      "snapshotActionCancelled": "選択が変わったため、押し続けていたスナップショットボタンの操作をキャンセルしました。",
+      "snapshotLoadedByMidi": "スナップショット「{name}」を MIDI で呼び出しました。",
+      "midiBindingConflict": "MIDI チャンネル {ch} ノート {note} が「{first}」と「{other}」の両方に割り当てられています — 「{first}」が優先されます。",
+      "midiPortRefused": "MIDI スナップショット呼び出し: 「{name}」を開けませんでした。別のアプリケーションが使用中の可能性があります。2 秒ごとに再試行します。",
+      "midiPortDisconnected": "MIDI スナップショット呼び出し: 「{name}」が接続されていません。デバイスが戻ると再接続します。",
+      "midiPortConnected": "MIDI スナップショット呼び出し: 「{name}」に接続しました。",
+      "midiBindingNotSaved": "MIDI ノートは保存されていません。OK は、次に作成するスナップショットのスコープとしてのみ保持します。ノートを保存するには「スコープを更新」を長押ししてください。",
       "trackingDisabled": "入力 {channel} のトラッキングを無効にしました",
       "trackingSwitched": "トラッキングを入力 {from} から入力 {to} に切り替えました",
       "clusterEditRelative": "Shift編集: クラスター {cluster} の他の {count} 入力に相対変更を適用",
@@ -1700,7 +1714,13 @@
     "writeToQLab": "QLabに書き出す",
     "writeToQLabTooltip": "ファイル保存の代わりにスコープをQLabにエクスポート",
     "writeSnapshotLoadCue": "スナップショット読込キューをQLabに書き出す",
-    "writeSnapshotLoadCueTooltip": "このスナップショットをOSCで読み込むQLab キューも作成する"
+    "writeSnapshotLoadCueTooltip": "このスナップショットをOSCで読み込むQLab キューも作成する",
+    "midi": {
+      "label": "MIDI:",
+      "enable": "MIDI ノートで呼び出す",
+      "tooltip": "このチャンネルとノートでベロシティが 64 を超えるノートオンを受けると、このスナップショットを呼び出します。ノートオフとそれより弱いノートは無視されます。MIDI 入力は「オーディオインターフェース ▸ デバイス設定」で選択してください。",
+      "conflict": "「{name}」が使用中（チャンネル {ch}、ノート {note}）— 保存するには別のノートを選んでください。"
+    }
   },
   "snapshot": {
     "qlabNoTarget": "QLab送信先が設定されていません",

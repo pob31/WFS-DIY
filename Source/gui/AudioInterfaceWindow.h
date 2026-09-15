@@ -7,8 +7,7 @@
 #include "../../spatcore/io/DeviceHost.h"
 #include "../Localization/LocalizationManager.h"
 #include "HelpCardSVG.h"
-
-class MidiSnapshotTrigger;
+#include "../MidiSnapshotTrigger.h"
 
 /**
  * DeviceInfoBar
@@ -50,7 +49,8 @@ private:
  */
 class DeviceSettingsPanel : public juce::Component,
                             private juce::ChangeListener,
-                            private ColorScheme::Manager::Listener
+                            private ColorScheme::Manager::Listener,
+                            private MidiSnapshotTrigger::Listener
 {
 public:
     DeviceSettingsPanel(juce::AudioDeviceManager& deviceManager,
@@ -65,6 +65,7 @@ public:
 
 private:
     void changeListenerCallback(juce::ChangeBroadcaster* source) override;
+    void midiPortStateChanged() override { updateMidiInputs(); }
 
     void updateDeviceTypes();
     void updateDevices();
@@ -112,7 +113,8 @@ private:
     juce::StringArray midiDeviceNames;    // ditto -- NEVER persist getText(), which
                                           // may carry the "(not connected)" suffix
     juce::MidiDeviceListConnection midiListConnection;
-    MidiSnapshotTrigger* midiTrigger = nullptr;   // owned by MainComponent, outlives this window
+    MidiSnapshotTrigger* midiTrigger = nullptr;   // owned by MainComponent, which destroys
+                                                  // this window before the trigger
 
     juce::TextButton controlPanelButton;
     juce::TextButton resetDeviceButton;

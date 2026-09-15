@@ -128,8 +128,12 @@ DeviceSettingsPanel::DeviceSettingsPanel(juce::AudioDeviceManager& devManager,
     midiInputCombo.onChange = [this]() { midiInputChanged(); };
 
     // We own the MIDI port (not AudioDeviceManager), so this panel needs its own
-    // device-list notification. JUCE delivers it on the message thread.
+    // device-list notification. JUCE delivers it on the message thread. The
+    // trigger's own notice covers what the list cannot show: a listed port
+    // that refused to open, or came back.
     midiListConnection = juce::MidiDeviceListConnection::make([this]() { updateMidiInputs(); });
+    if (midiTrigger != nullptr)
+        midiTrigger->addListener(this);
 
     // Setup buttons with localized text
     addAndMakeVisible(controlPanelButton);
@@ -181,6 +185,8 @@ DeviceSettingsPanel::DeviceSettingsPanel(juce::AudioDeviceManager& devManager,
 
 DeviceSettingsPanel::~DeviceSettingsPanel()
 {
+    if (midiTrigger != nullptr)
+        midiTrigger->removeListener(this);
     ColorScheme::Manager::getInstance().removeListener(this);
     deviceManager.removeChangeListener(this);
 }
@@ -473,22 +479,38 @@ void DeviceSettingsPanel::updateMidiInputs()
 
     const auto wantedId   = midiTrigger->getSelectedIdentifier();
     const auto wantedName = midiTrigger->getSelectedName();
+    const auto openId     = midiTrigger->getOpenIdentifier();
+    const auto devices    = MidiSnapshotTrigger::getAvailableDevices();
+
+    // Which listed port is the selection: the one actually open, else the
+    // saved identifier, else the first with the saved name -- the order the
+    // trigger itself uses, so two controllers of one name cannot swap here.
+    int chosen = -1;
+    for (int i = 0; i < devices.size() && wantedId.isNotEmpty(); ++i)
+        if (devices[i].identifier == (openId.isNotEmpty() ? openId : wantedId)) { chosen = i; break; }
+    for (int i = 0; i < devices.size() && chosen < 0 && wantedId.isNotEmpty(); ++i)
+        if (devices[i].name == wantedName) { chosen = i; break; }
 
     int selectedId = 1;
     int id = 2;
-    bool wantedPresent = false;
+    const bool wantedPresent = chosen >= 0;
+    const bool refused = midiTrigger->getPortState() == MidiSnapshotTrigger::PortState::refused;
 
-    for (const auto& d : MidiSnapshotTrigger::getAvailableDevices())
+    for (int i = 0; i < devices.size(); ++i)
     {
-        midiInputCombo.addItem(d.name, id);
+        const auto& d = devices[i];
+
+        // A listed port that refused to open (held by another application)
+        // must not look armed. Display-only suffix, as for "(not connected)".
+        midiInputCombo.addItem(i == chosen && refused
+                                   ? d.name + " " + LOC("audioPatch.deviceSettings.midiUnavailable")
+                                   : d.name,
+                               id);
         midiDeviceIds.add(d.identifier);
         midiDeviceNames.add(d.name);
 
-        if (wantedId.isNotEmpty() && (d.identifier == wantedId || d.name == wantedName))
-        {
+        if (i == chosen)
             selectedId = id;
-            wantedPresent = true;
-        }
 
         ++id;
     }

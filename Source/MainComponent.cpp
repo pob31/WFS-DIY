@@ -311,6 +311,8 @@ MainComponent::MainComponent()
     // explicitly once midiSnapshotTrigger exists (this fires before that).
     parameters.getFileManager().onProjectFolderChanged = [this]() {
         refreshMidiSnapshotBindings();
+        if (inputsTab != nullptr)
+            inputsTab->forgetSnapshotScopes();
     };
 
     // Restore project folder from AppSettings (persists across sessions)
@@ -2269,13 +2271,8 @@ MainComponent::MainComponent()
     // both external trigger paths are wired next to each other.
     midiSnapshotTrigger = std::make_unique<MidiSnapshotTrigger>();
 
-    // REQUIRED, not belt-and-braces: FileManager::onProjectFolderChanged fires
-    // during the project restore earlier in this constructor, before the trigger
-    // exists, and handleConfigReloaded() is never called on a plain launch (only
-    // openProjectFromFile calls it). Without this the index stays empty until the
-    // operator re-picks the project folder or stores a snapshot.
-    refreshMidiSnapshotBindings();
-
+    // Wired BEFORE the first index build below, so a collision already on
+    // disk at launch is reported instead of being resolved in silence.
     midiSnapshotTrigger->onDuplicateBinding =
         [this] (int ch, int note, const juce::String& winner, const juce::String& loser)
     {
@@ -2290,6 +2287,22 @@ MainComponent::MainComponent()
         if (statusBar != nullptr)
             statusBar->showTemporaryMessage (msg, 5000);
     };
+
+    midiSnapshotTrigger->onPortStateChanged =
+        [this] (MidiSnapshotTrigger::PortState previous, MidiSnapshotTrigger::PortState current)
+    {
+        reportMidiPortState (previous, current);
+    };
+
+    // The trigger tried its port in its constructor, before anything listened.
+    reportMidiPortState (MidiSnapshotTrigger::PortState::off, midiSnapshotTrigger->getPortState());
+
+    // REQUIRED, not belt-and-braces: FileManager::onProjectFolderChanged fires
+    // during the project restore earlier in this constructor, before the trigger
+    // exists, and handleConfigReloaded() is never called on a plain launch (only
+    // openProjectFromFile calls it). Without this the index stays empty until the
+    // operator re-picks the project folder or stores a snapshot.
+    refreshMidiSnapshotBindings();
 
     // Snapshot OSC command callbacks
     // Both external trigger paths and the Inputs long-press funnel through the
@@ -4516,9 +4529,13 @@ MainComponent::~MainComponent()
     // Invalidate in-flight SOFA loader callbacks (they capture this).
     *sofaLoadAlive = false;
 
-    // Close the MIDI port before UI teardown. Strictly defensive -- the trigger
-    // parks values in atomics and is polled, so it never calls back into this
-    // object -- but it keeps the shutdown ordering obvious.
+    // The Audio Interface window's MIDI selector listens to the trigger and
+    // unregisters in its destructor, so it goes first.
+    audioInterfaceWindow.reset();
+
+    // Close the MIDI port before UI teardown. The trigger parks notes in
+    // atomics and is polled; its only call back into this object is the
+    // port-state report, which cannot fire once it is gone.
     midiSnapshotTrigger.reset();
 
     // Sever NetworkTab's reference to mcpServer + its listener registration
@@ -6159,12 +6176,13 @@ void MainComponent::openProjectFromFile (const juce::File& folder)
 
     WFSLogger::getInstance().logInfo ("Opening project from: " + folder.getFullPathName());
 
-    auto& fileManager = parameters.getFileManager();
-
-    // Set folder (also auto-creates .wfs manifest if missing)
-    fileManager.setProjectFolder (folder);
-    fileManager.createProjectFolderStructure();
-    AppSettings::setLastFolder ("lastProjectFolder", folder);
+    // The folder switches only once the load is confirmed. A Cancel in the
+    // channel-identity dialog below used to leave it on the project that was
+    // not opened -- its snapshot list, its MIDI note bindings (armed against
+    // the show still loaded, even while the dialog was up) and the folder
+    // restored at the next launch.
+    const auto systemFile = folder.getChildFile ("system" + juce::String (WFSFileManager::systemConfigExtension));
+    const auto inputsFile = folder.getChildFile ("inputs" + juce::String (WFSFileManager::inputConfigExtension));
 
     // The pair (system.xml vs inputs.xml) is checked before anything is
     // applied. This runs after the message loop is up (Main.cpp defers it
@@ -6183,10 +6201,18 @@ void MainComponent::openProjectFromFile (const juce::File& folder)
         if (inputsTab != nullptr) inputsTab->showStatusMessage (text);
     };
 
-    ChannelIdentityGate::confirmThenLoadProject (ctx, fileManager.getSystemConfigFile(), fileManager.getInputConfigFile(),
+    ChannelIdentityGate::confirmThenLoadProject (ctx, systemFile, inputsFile,
         [this, folder]
         {
             auto& fm = parameters.getFileManager();
+
+            // Set folder (also auto-creates .wfs manifest if missing). The
+            // clearance the gate granted names folder/system.xml, which is what
+            // getSystemConfigFile() resolves to from here on.
+            fm.setProjectFolder (folder);
+            fm.createProjectFolderStructure();
+            AppSettings::setLastFolder ("lastProjectFolder", folder);
+
             if (fm.loadCompleteConfig())
             {
                 handleConfigReloaded();
@@ -6215,18 +6241,34 @@ bool MainComponent::recallSnapshotByName (const juce::String& snapshotName, bool
 
     auto& fileManager = parameters.getFileManager();
 
+    // A cue that does nothing must say so: the operator is looking at the
+    // stage, not at this window, so MIDI failures are logged and announced too.
+    auto reportFailure = [this, fromMidi, fromOsc, &snapshotName] (const juce::String& message)
+    {
+        WFSLogger::getInstance().logWarning ("Snapshot recall of '" + snapshotName + "'"
+                                             + (fromMidi ? " (MIDI)" : fromOsc ? " (OSC)" : "")
+                                             + " failed: " + message);
+        if (inputsTab != nullptr)
+            inputsTab->showStatusMessage (message);
+        if (fromMidi)
+            TTSManager::getInstance().announceImmediate (
+                message, juce::AccessibilityHandler::AnnouncementPriority::high);
+    };
+
     if (! fileManager.hasValidProjectFolder())
     {
-        DBG ("snapshot recall: no project folder configured");
+        reportFailure (LOC("fileManager.errors.noProjectFolder"));
         return false;
     }
 
     if (! fileManager.getInputSnapshotNames().contains (snapshotName))
     {
-        DBG ("snapshot recall: snapshot not found: " << snapshotName);
-        if (inputsTab != nullptr)
-            inputsTab->showStatusMessage (
-                LOC("inputs.messages.snapshotNotFound").replace ("{name}", snapshotName));
+        reportFailure (LOC("inputs.messages.snapshotNotFound").replace ("{name}", snapshotName));
+
+        // The file was renamed or removed behind the index's back: rebuild it
+        // now, so the next hit of this note already sees what is on disk.
+        if (fromMidi)
+            refreshMidiSnapshotBindings();
         return false;
     }
 
@@ -6297,20 +6339,38 @@ bool MainComponent::recallSnapshotByName (const juce::String& snapshotName, bool
         if (inputsTab != nullptr)
         {
             // AFTER handleConfigReloaded: that rebuilds the snapshot dropdown, so
-            // selecting first would be overwritten by the rebuild.
-            inputsTab->selectSnapshotInSelector (snapshotName);
+            // selecting first would be overwritten by the rebuild. Moving the
+            // dropdown cancels a snapshot button held meanwhile, which would
+            // otherwise act on the cue's snapshot instead of the one picked.
+            if (inputsTab->selectSnapshotInSelector (snapshotName))
+                statusText += "  " + LOC("inputs.messages.snapshotActionCancelled");
             inputsTab->showStatusMessage (statusText);
         }
 
         // A hardware-triggered state change has no visual focus, so announce it.
+        // High priority: the TTS rate limit would otherwise drop the second of
+        // two cues less than 500 ms apart, and the newest cue is the one that
+        // matters.
         if (fromMidi)
             TTSManager::getInstance().announceImmediate (
                 patchWarning.isNotEmpty() ? patchWarning
-                                          : LOC("inputs.messages.snapshotLoadedByMidi").replace ("{name}", snapshotName));
+                                          : LOC("inputs.messages.snapshotLoadedByMidi").replace ("{name}", snapshotName),
+                juce::AccessibilityHandler::AnnouncementPriority::high);
+
+        // An undo barrier. The cue wrote no undo entry, so the history still
+        // holds the operator's earlier edits, recorded against the state the
+        // cue has just replaced: Ctrl+Z would set values neither of them chose
+        // and, after a Reload Snapshot, remove and insert gradient shapes at
+        // stale indices. clearAllUndoHistories() reaches every manager
+        // directly, so the suppression still in scope does not hide them.
+        if (external)
+            parameters.getValueTreeState().clearAllUndoHistories();
     }
     else
     {
-        DBG ("snapshot recall failed: " << fileManager.getLastError());
+        reportFailure (LOC("inputs.messages.snapshotRecallFailed")
+                           .replace ("{name}", snapshotName)
+                           .replace ("{error}", fileManager.getLastError()));
     }
 
     parameters.getDirtyTracker().endSuppressionAndClear();
@@ -6324,10 +6384,43 @@ void MainComponent::refreshMidiSnapshotBindings()
 
     std::vector<std::tuple<int, int, juce::String>> rows;
 
-    for (const auto& b : parameters.getFileManager().scanSnapshotMidiBindings())
+    auto& fileManager = parameters.getFileManager();
+    snapshotFolderSignature = fileManager.getInputSnapshotsFolderSignature();
+
+    for (const auto& b : fileManager.scanSnapshotMidiBindings())
         rows.emplace_back (b.channel, b.note, b.snapshotName);
 
     midiSnapshotTrigger->setBindings (rows);
+}
+
+void MainComponent::reportMidiPortState (MidiSnapshotTrigger::PortState previous,
+                                         MidiSnapshotTrigger::PortState current)
+{
+    using PortState = MidiSnapshotTrigger::PortState;
+
+    if (midiSnapshotTrigger == nullptr || current == previous)
+        return;
+
+    const auto name = midiSnapshotTrigger->getSelectedName();
+    juce::String msg;
+
+    if (current == PortState::refused)
+        msg = LOC("inputs.messages.midiPortRefused").replace ("{name}", name);
+    else if (current == PortState::absent)
+        msg = LOC("inputs.messages.midiPortDisconnected").replace ("{name}", name);
+    else if (current == PortState::open && previous != PortState::off)
+        msg = LOC("inputs.messages.midiPortConnected").replace ("{name}", name);
+
+    if (msg.isEmpty())
+        return;   // choosing a device or Off is its own feedback
+
+    if (current == PortState::open)
+        WFSLogger::getInstance().logInfo (msg);
+    else
+        WFSLogger::getInstance().logWarning (msg);
+
+    if (statusBar != nullptr)
+        statusBar->showTemporaryMessage (msg, 5000);
 }
 
 void MainComponent::handleConfigReloaded()
@@ -8517,6 +8610,16 @@ void MainComponent::timerCallback()
             const auto pending = midiSnapshotTrigger->resolve (key);
             if (pending.isNotEmpty())
                 recallSnapshotByName (pending, /*fromMidi*/ true);
+        }
+
+        // Once a second: a snapshot renamed, copied in or restored outside the
+        // app changes which note recalls what. The listing is cheap, and the
+        // full rescan only runs when it changed.
+        if (++snapshotFolderPollTick >= 200)
+        {
+            snapshotFolderPollTick = 0;
+            if (parameters.getFileManager().getInputSnapshotsFolderSignature() != snapshotFolderSignature)
+                refreshMidiSnapshotBindings();
         }
     }
 

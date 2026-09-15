@@ -516,14 +516,19 @@
         "deviceType": "音频设备类型:",
         "device": "设备:",
         "sampleRate": "采样率:",
-        "bufferSize": "音频缓冲区大小:"
+        "bufferSize": "音频缓冲区大小:",
+        "midiInput": "MIDI 快照调用:"
       },
       "buttons": {
         "controlPanel": "控制面板",
         "resetDevice": "重置设备"
       },
       "noDevice": "无设备",
-      "notConfigured": "未配置"
+      "notConfigured": "未配置",
+      "midiOff": "关闭 — 不使用 MIDI 调用",
+      "midiNotConnected": "(未连接)",
+      "midiUnavailable": "(不可用 — 被占用？)",
+      "midiTooltip": "仅用于快照调用。此端口只作为输入打开，不作其他任何用途：WFS-DIY 不会向其发送任何 MIDI，且只响应用于调用输入快照的 Note On 消息。请在输入标签页的“编辑范围”窗口中为快照绑定通道和音符；力度高于 64 的 Note On 即会调用该快照。"
     },
     "modes": {
       "scrolling": "滚动",
@@ -1562,6 +1567,15 @@
       "scopeSaved": "快照范围已保存。",
       "scopeConfigured": "已为下一个快照配置范围。",
       "snapshotScopeUpdated": "快照 '{name}' 的范围已更新。",
+      "snapshotNotFound": "未找到快照“{name}”。",
+      "snapshotRecallFailed": "无法调用快照“{name}”：{error}",
+      "snapshotActionCancelled": "您按住的快照按钮操作已取消，因为选择已更改。",
+      "snapshotLoadedByMidi": "快照“{name}”已由 MIDI 调用。",
+      "midiBindingConflict": "MIDI 通道 {ch} 音符 {note} 同时被“{first}”和“{other}”占用 — 以“{first}”为准。",
+      "midiPortRefused": "MIDI 快照调用：无法打开“{name}”。可能有其他应用程序正在使用它。每 2 秒重试一次。",
+      "midiPortDisconnected": "MIDI 快照调用：“{name}”未连接。设备恢复后将自动重新连接。",
+      "midiPortConnected": "MIDI 快照调用：“{name}”已连接。",
+      "midiBindingNotSaved": "MIDI 音符未保存：OK 仅将此范围保留给下一个新快照。要保存音符，请长按“更新快照范围”。",
       "trackingDisabled": "输入 {channel} 的追踪已禁用",
       "trackingSwitched": "追踪已从输入 {from} 切换到输入 {to}",
       "clusterEditRelative": "Shift 编辑：相对更改已应用到集群 {cluster} 的其他 {count} 个输入",
@@ -1733,7 +1747,13 @@
     "writeToQLab": "写入 QLab",
     "writeToQLabTooltip": "将范围导出到 QLab 而非保存到文件",
     "writeSnapshotLoadCue": "将快照加载提示写入 QLab",
-    "writeSnapshotLoadCueTooltip": "同时创建一个通过 OSC 加载此快照的 QLab 提示"
+    "writeSnapshotLoadCueTooltip": "同时创建一个通过 OSC 加载此快照的 QLab 提示",
+    "midi": {
+      "label": "MIDI:",
+      "enable": "通过 MIDI 音符调用",
+      "tooltip": "在此通道和音符上收到力度高于 64 的 Note On 时，将调用此快照。Note Off 及力度较低的音符将被忽略。请在“音频接口 ▸ 设备设置”中选择 MIDI 输入。",
+      "conflict": "已被“{name}”占用（通道 {ch}，音符 {note}）— 请另选音符以便保存。"
+    }
   },
   "snapshot": {
     "qlabNoTarget": "未配置QLab目标",

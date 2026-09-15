@@ -333,6 +333,13 @@ private:
     std::unique_ptr<MidiSnapshotTrigger> midiSnapshotTrigger;
     bool snapshotRecallInProgress = false;   // message thread only
 
+    // The binding index follows the snapshot files, so it is rebuilt when the
+    // folder changes outside the app too (a rename or copy in Explorer).
+    juce::int64 snapshotFolderSignature = 0;
+    int snapshotFolderPollTick = 0;          // 5 ms timer ticks -> 1 s poll
+    void reportMidiPortState (MidiSnapshotTrigger::PortState previous,
+                              MidiSnapshotTrigger::PortState current);
+
     // WFS calculation engine (computes delays, levels, HF attenuation)
     std::unique_ptr<WFSCalculationEngine> calculationEngine;
 

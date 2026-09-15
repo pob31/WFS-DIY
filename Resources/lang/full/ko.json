@@ -483,14 +483,19 @@
         "deviceType": "오디오 장치 유형:",
         "device": "장치:",
         "sampleRate": "샘플 레이트:",
-        "bufferSize": "오디오 버퍼 크기:"
+        "bufferSize": "오디오 버퍼 크기:",
+        "midiInput": "MIDI 스냅샷 호출:"
       },
       "buttons": {
         "controlPanel": "제어판",
         "resetDevice": "장치 초기화"
       },
       "noDevice": "장치 없음",
-      "notConfigured": "구성되지 않음"
+      "notConfigured": "구성되지 않음",
+      "midiOff": "끄기 — MIDI 호출 없음",
+      "midiNotConnected": "(연결되지 않음)",
+      "midiUnavailable": "(사용 불가 — 사용 중?)",
+      "midiTooltip": "스냅샷 호출 전용입니다. 이 포트는 입력으로만 열리며 다른 용도로는 전혀 쓰이지 않습니다: WFS-DIY는 이 포트로 MIDI를 보내지 않고, 반응하는 메시지는 입력 스냅샷을 호출하는 노트 온뿐입니다. 입력 탭의 범위 편집 창에서 스냅샷에 채널과 노트를 할당하면, 벨로시티가 64를 넘는 노트 온이 그 스냅샷을 호출합니다."
     },
     "modes": {
       "scrolling": "스크롤",
@@ -1529,6 +1534,15 @@
       "scopeSaved": "스냅샷 범위가 저장되었습니다.",
       "scopeConfigured": "다음 스냅샷을 위한 범위가 구성되었습니다.",
       "snapshotScopeUpdated": "스냅샷 '{name}'의 범위가 업데이트되었습니다.",
+      "snapshotNotFound": "스냅샷 '{name}'을(를) 찾을 수 없습니다.",
+      "snapshotRecallFailed": "스냅샷 '{name}'을(를) 호출하지 못했습니다: {error}",
+      "snapshotActionCancelled": "선택이 바뀌어 누르고 있던 스냅샷 버튼 동작이 취소되었습니다.",
+      "snapshotLoadedByMidi": "스냅샷 '{name}'이(가) MIDI로 호출되었습니다.",
+      "midiBindingConflict": "MIDI 채널 {ch} 노트 {note}이(가) '{first}'와(과) '{other}'에 모두 할당되어 있습니다 — '{first}'이(가) 우선합니다.",
+      "midiPortRefused": "MIDI 스냅샷 호출: '{name}'을(를) 열지 못했습니다. 다른 애플리케이션이 사용 중일 수 있습니다. 2초마다 다시 시도합니다.",
+      "midiPortDisconnected": "MIDI 스냅샷 호출: '{name}'이(가) 연결되어 있지 않습니다. 다시 나타나면 재연결됩니다.",
+      "midiPortConnected": "MIDI 스냅샷 호출: '{name}'이(가) 연결되었습니다.",
+      "midiBindingNotSaved": "MIDI 노트가 저장되지 않았습니다. OK는 다음에 만들 새 스냅샷의 범위로만 유지합니다. 노트를 저장하려면 '범위 업데이트'를 길게 누르세요.",
       "trackingDisabled": "입력 {channel}의 트래킹이 비활성화됨",
       "trackingSwitched": "트래킹이 입력 {from}에서 입력 {to}(으)로 전환됨",
       "clusterEditRelative": "Shift 편집: 클러스터 {cluster}의 다른 입력 {count}개에 상대 변경 적용",
@@ -1700,7 +1714,13 @@
     "writeToQLab": "QLab에 쓰기",
     "writeToQLabTooltip": "파일 저장 대신 스코프를 QLab으로 내보내기",
     "writeSnapshotLoadCue": "스냅샷 로드 큐를 QLab에 쓰기",
-    "writeSnapshotLoadCueTooltip": "OSC로 이 스냅샷을 로드하는 QLab 큐도 생성"
+    "writeSnapshotLoadCueTooltip": "OSC로 이 스냅샷을 로드하는 QLab 큐도 생성",
+    "midi": {
+      "label": "MIDI:",
+      "enable": "MIDI 노트로 호출",
+      "tooltip": "이 채널과 노트에서 벨로시티가 64를 넘는 노트 온을 받으면 이 스냅샷을 호출합니다. 노트 오프와 그보다 약한 노트는 무시됩니다. MIDI 입력은 오디오 인터페이스 ▸ 장치 설정에서 선택하세요.",
+      "conflict": "'{name}'에서 사용 중(채널 {ch}, 노트 {note}) — 저장하려면 다른 노트를 선택하세요."
+    }
   },
   "snapshot": {
     "qlabNoTarget": "QLab 대상이 설정되지 않았습니다",

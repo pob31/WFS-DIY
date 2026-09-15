@@ -516,14 +516,19 @@
         "deviceType": "Tipo de dispositivo áudio:",
         "device": "Dispositivo:",
         "sampleRate": "Taxa de amostragem:",
-        "bufferSize": "Tamanho do buffer de áudio:"
+        "bufferSize": "Tamanho do buffer de áudio:",
+        "midiInput": "Recuperação de snapshots por MIDI:"
       },
       "buttons": {
         "controlPanel": "Painel de Controlo",
         "resetDevice": "Reiniciar Dispositivo"
       },
       "noDevice": "Sem Dispositivo",
-      "notConfigured": "Não configurado"
+      "notConfigured": "Não configurado",
+      "midiOff": "Desligado — sem recuperação MIDI",
+      "midiNotConnected": "(não ligado)",
+      "midiUnavailable": "(indisponível — em uso?)",
+      "midiTooltip": "Apenas recuperação de snapshots. Esta porta é aberta só como entrada e não serve para mais nada: o WFS-DIY não lhe envia MIDI, e as únicas mensagens a que reage são as note-on que recuperam um snapshot de entrada. Atribua um canal e uma nota a um snapshot na janela Editar Âmbito do separador Entradas; uma mensagem note-on com velocidade superior a 64 recupera-o."
     },
     "modes": {
       "scrolling": "Deslocamento",
@@ -1562,6 +1567,15 @@
       "scopeSaved": "Âmbito do snapshot guardado.",
       "scopeConfigured": "Âmbito configurado para o próximo snapshot.",
       "snapshotScopeUpdated": "Âmbito do snapshot '{name}' atualizado.",
+      "snapshotNotFound": "Snapshot '{name}' não encontrado.",
+      "snapshotRecallFailed": "Não foi possível recuperar o snapshot '{name}': {error}",
+      "snapshotActionCancelled": "O botão de snapshot que mantinha premido foi cancelado, porque a seleção mudou.",
+      "snapshotLoadedByMidi": "Snapshot '{name}' recuperado por MIDI.",
+      "midiBindingConflict": "O canal MIDI {ch}, nota {note}, está atribuído tanto a '{first}' como a '{other}' — '{first}' prevalece.",
+      "midiPortRefused": "Recuperação de snapshots por MIDI: não foi possível abrir '{name}'. Pode estar em uso por outra aplicação. Nova tentativa a cada 2 s.",
+      "midiPortDisconnected": "Recuperação de snapshots por MIDI: '{name}' não está ligado. Volta a ligar-se quando reaparecer.",
+      "midiPortConnected": "Recuperação de snapshots por MIDI: '{name}' ligado.",
+      "midiBindingNotSaved": "A nota MIDI não foi guardada: OK só mantém o âmbito para o próximo snapshot novo. Mantenha premido 'Atualizar âmbito' para guardar a nota.",
       "trackingDisabled": "Rastreamento desativado para Entrada {channel}",
       "trackingSwitched": "Rastreamento mudou de Entrada {from} para Entrada {to}",
       "clusterEditRelative": "Edição com Shift: alteração relativa aplicada a {count} outra(s) entrada(s) do Cluster {cluster}",
@@ -1733,7 +1747,13 @@
     "writeToQLab": "Escrever no QLab",
     "writeToQLabTooltip": "Exportar scope para QLab em vez de guardar em ficheiro",
     "writeSnapshotLoadCue": "Escrever cue de carregamento no QLab",
-    "writeSnapshotLoadCueTooltip": "Também criar um cue QLab para carregar este snapshot via OSC"
+    "writeSnapshotLoadCueTooltip": "Também criar um cue QLab para carregar este snapshot via OSC",
+    "midi": {
+      "label": "MIDI:",
+      "enable": "Recuperar por nota MIDI",
+      "tooltip": "Uma mensagem note-on com velocidade superior a 64 neste canal e nesta nota recupera este snapshot. As mensagens note-off e as notas mais suaves são ignoradas. Escolha a entrada MIDI em Interface de Áudio ▸ Definições do Dispositivo.",
+      "conflict": "Em uso por '{name}' (can. {ch}, nota {note}) — escolha outra nota para guardar."
+    }
   },
   "snapshot": {
     "qlabNoTarget": "Nenhum destino QLab configurado",

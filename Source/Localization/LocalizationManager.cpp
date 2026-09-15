@@ -97,11 +97,21 @@ bool LocalizationManager::loadLanguage(const juce::String& locale, TranslationTi
     // base and overlay the locale on top, so labels/keys the locale intentionally
     // omits (or hasn't translated yet) resolve to English instead of a raw key.
     // The en base is always the flat superset en.json, for both tiers.
+    // The Full tier stacks en.json, then the minimal <locale>.json, then
+    // full/<locale>.json: a message the full file has not caught up with yet
+    // then shows in the minimal tier's translation instead of in English.
     if (locale != "en")
     {
         auto enJson = juce::JSON::parse(langDir.getChildFile("en.json"));
         if (enJson.isObject())
         {
+            if (tier == TranslationTier::Full && langFile != langDir.getChildFile(locale + ".json"))
+            {
+                auto minimalJson = juce::JSON::parse(langDir.getChildFile(locale + ".json"));
+                if (minimalJson.isObject())
+                    mergeInto(enJson, minimalJson);
+            }
+
             mergeInto(enJson, json);
             json = enJson;
         }

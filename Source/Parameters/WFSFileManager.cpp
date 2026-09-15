@@ -7,6 +7,7 @@
 #include "../Network/OSCProtocolTypes.h"
 #include "../WFSLogger.h"
 
+#include <algorithm>
 #include <cmath>
 
 #if JUCE_WINDOWS
@@ -1193,8 +1194,21 @@ std::vector<WFSFileManager::MidiBinding> WFSFileManager::scanSnapshotMidiBinding
                                         "*" + juce::String (snapshotExtension));
 
     // findChildFiles order is filesystem-dependent; sorting makes the winner of
-    // a duplicate binding deterministic and identical on every machine.
-    files.sort();
+    // a duplicate binding deterministic. The sort is on the snapshot NAME,
+    // ignoring case, with an exact tie-break: File's own ordering is
+    // case-insensitive on Windows and macOS but not on Linux, and it includes
+    // the extension, which put an Explorer copy ("Cue - Copy.xml") ahead of
+    // the original ("Cue.xml") and handed it the original's note.
+    std::sort (files.begin(), files.end(), [] (const juce::File& a, const juce::File& b)
+    {
+        const auto na = a.getFileNameWithoutExtension();
+        const auto nb = b.getFileNameWithoutExtension();
+
+        if (const int c = na.compareIgnoreCase (nb); c != 0)
+            return c < 0;
+
+        return na.compare (nb) < 0;
+    });
 
     for (const auto& file : files)
     {
@@ -1208,18 +1222,58 @@ std::vector<WFSFileManager::MidiBinding> WFSFileManager::scanSnapshotMidiBinding
             continue;
 
         MidiBinding binding;
-        binding.channel = root->getStringAttribute (midiChannel.toString()).getIntValue();
-        binding.note    = root->getStringAttribute (midiNote.toString()).getIntValue();
-
-        if (binding.channel < 1 || binding.channel > 16
-            || binding.note < 0 || binding.note > 127)
-            continue;  // absent or garbage attributes = unbound
+        if (! parseMidiBinding (root->getStringAttribute (midiChannel.toString()),
+                                root->getStringAttribute (midiNote.toString()),
+                                binding.channel, binding.note))
+            continue;  // absent, partial or garbage attributes = unbound
 
         binding.snapshotName = file.getFileNameWithoutExtension();
         result.push_back (std::move (binding));
     }
 
     return result;
+}
+
+bool WFSFileManager::parseMidiBinding (const juce::String& channelText, const juce::String& noteText,
+                                       int& channel, int& note)
+{
+    // Both attributes, plain digits: a hand-edited file with midiNote missing
+    // or written "C4" used to read as note 0, a valid note, and armed it.
+    const auto ch = channelText.trim();
+    const auto nt = noteText.trim();
+
+    if (ch.isEmpty() || nt.isEmpty()
+        || ! ch.containsOnly ("0123456789") || ! nt.containsOnly ("0123456789")
+        || ch.length() > 3 || nt.length() > 3)
+        return false;
+
+    channel = ch.getIntValue();
+    note    = nt.getIntValue();
+
+    return channel >= 1 && channel <= 16 && note >= 0 && note <= 127;
+}
+
+juce::int64 WFSFileManager::getInputSnapshotsFolderSignature() const
+{
+    auto folder = getInputSnapshotsFolder();
+    if (! folder.isDirectory())
+        return 0;
+
+    // Name, size and modification time of every snapshot file, from the
+    // directory listing itself (no per-file stat). Order-independent, so the
+    // listing order the filesystem happens to use cannot read as a change.
+    juce::int64 signature = 1;
+    for (const auto& entry : juce::RangedDirectoryIterator (folder, false,
+                                                            "*" + juce::String (snapshotExtension),
+                                                            juce::File::findFiles))
+    {
+        const auto text = entry.getFile().getFileName()
+                          + "|" + juce::String (entry.getFileSize())
+                          + "|" + juce::String (entry.getModificationTime().toMilliseconds());
+        signature += text.hashCode64() * 31 + 7;
+    }
+
+    return signature;
 }
 
 //==============================================================================
@@ -2030,14 +2084,15 @@ void WFSFileManager::writeMidiBindingToRoot (juce::ValueTree& snapshot, const Ex
 
 void WFSFileManager::readMidiBindingFromRoot (const juce::ValueTree& snapshot, ExtendedSnapshotScope& scope)
 {
-    // juce::ValueTree::fromXml returns EVERY property as a STRING var, so read
-    // through getIntValue() rather than an isInt()-guarded cast -- that is this
-    // codebase's documented "works new, broken saved" trap.
-    scope.midiChannel = snapshot.getProperty (midiChannel).toString().getIntValue();
-    scope.midiNote    = snapshot.getProperty (midiNote).toString().getIntValue();
-
-    if (! scope.hasMidiBinding())
-        scope.clearMidiBinding();  // normalise garbage / out-of-range to "unbound"
+    // juce::ValueTree::fromXml returns EVERY property as a STRING var, so parse
+    // the text rather than an isInt()-guarded cast -- that is this codebase's
+    // documented "works new, broken saved" trap. Same rule as the index scan,
+    // so the Scope window never shows a binding that the trigger does not fire
+    // (or the other way round).
+    if (! parseMidiBinding (snapshot.getProperty (midiChannel).toString(),
+                            snapshot.getProperty (midiNote).toString(),
+                            scope.midiChannel, scope.midiNote))
+        scope.clearMidiBinding();  // absent / partial / garbage = unbound
 }
 
 juce::ValueTree WFSFileManager::serializeExtendedScope (const ExtendedSnapshotScope& scope, int numChannels) const

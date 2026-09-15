@@ -71,6 +71,21 @@ public:
 
     std::function<void()> onLongPress;
 
+    /** Abandon a press in progress, so its release does nothing. Returns true
+        if there was one. For when the thing the press would act on changes
+        under the operator's finger. */
+    bool cancelPress()
+    {
+        if (! isLongPressActive)
+            return false;
+
+        stopTimer();
+        isLongPressActive = false;
+        thresholdReached = false;
+        repaint();
+        return true;
+    }
+
 protected:
     int getEffectiveDuration() const
     {

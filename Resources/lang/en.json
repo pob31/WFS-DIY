@@ -660,6 +660,7 @@
       "notConfigured": "Not configured",
       "midiOff": "Off — no MIDI recall",
       "midiNotConnected": "(not connected)",
+      "midiUnavailable": "(unavailable — in use?)",
       "midiTooltip": "Snapshot recall only. This port is opened for input alone and is used for nothing else: WFS-DIY sends it no MIDI, and the only messages it acts on are note-ons that recall an input snapshot. Bind a channel and note to a snapshot in the Inputs tab's Edit Scope window; a note-on above velocity 64 recalls it."
     },
 
@@ -1781,8 +1782,14 @@
       "scopeConfigured": "Scope configured for next snapshot.",
       "snapshotScopeUpdated": "Snapshot '{name}' scope updated.",
       "snapshotNotFound": "Snapshot '{name}' not found.",
+      "snapshotRecallFailed": "Snapshot '{name}' could not be recalled: {error}",
+      "snapshotActionCancelled": "The snapshot button you were holding was cancelled, because the selection changed.",
       "snapshotLoadedByMidi": "Snapshot '{name}' recalled by MIDI.",
       "midiBindingConflict": "MIDI ch {ch} note {note} is claimed by both '{first}' and '{other}' — '{first}' wins.",
+      "midiPortRefused": "MIDI snapshot recall: '{name}' could not be opened. Another application may be using it. Retrying every 2 s.",
+      "midiPortDisconnected": "MIDI snapshot recall: '{name}' is not connected. It reconnects when it comes back.",
+      "midiPortConnected": "MIDI snapshot recall: '{name}' connected.",
+      "midiBindingNotSaved": "The MIDI note was not saved: OK only keeps the scope for the next new snapshot. Long-press Update Snapshot Scope to save the note.",
       "trackingDisabled": "Tracking disabled for Input {channel}",
       "trackingSwitched": "Tracking switched from Input {from} to Input {to}",
       "clusterEditRelative": "Shift edit: applying relative change to {count} other input(s) of Cluster {cluster}",
@@ -1988,7 +1995,7 @@
       "label": "MIDI:",
       "enable": "Recall on MIDI note",
       "tooltip": "A note-on above velocity 64 on this channel and note recalls this snapshot. Note-offs and softer notes are ignored. Choose the MIDI input in Audio Interface ▸ Device Settings.",
-      "conflict": "MIDI ch {ch} note {note} is already used by '{name}' — pick another note to save."
+      "conflict": "Used by '{name}' (ch {ch}, note {note}) — pick another note to save."
     }
   },
 

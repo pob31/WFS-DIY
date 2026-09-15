@@ -692,8 +692,8 @@ public:
                 showSection.setProperty (WFSParameterIDs::autoPreselectDirty,
                                          autoPreselectToggle.getToggleState(), nullptr);
 
-            // Apply immediately when toggled ON
-            if (autoPreselectToggle.getToggleState())
+            // Apply immediately when toggled ON (new snapshots only)
+            if (autoPreselectApplies())
                 applyDirtyToScope();
 
             updateSelectModifiedVisibility();
@@ -729,11 +729,11 @@ public:
             };
         }
 
-        // Hide "Select Modified" button when auto-preselect is ON (redundant)
-        selectModifiedButton.setVisible (!autoPreselectToggle.getToggleState());
+        // Hide "Select Modified" button where auto-preselect applies (redundant)
+        selectModifiedButton.setVisible (! autoPreselectApplies());
 
-        // Auto-preselect on open if toggle is ON and there are dirty params
-        if (autoPreselectToggle.getToggleState() && dirtyTracker != nullptr && dirtyTracker->hasAnyDirty())
+        // Auto-preselect on open if it applies and there are dirty params
+        if (autoPreselectApplies() && dirtyTracker != nullptr && dirtyTracker->hasAnyDirty())
             applyDirtyToScope();
 
         // Scope templates: named grid-only presets stored in <project>/snapshots/scopes
@@ -811,6 +811,9 @@ public:
 
         addAndMakeVisible (midiConflictLabel);
         midiConflictLabel.setJustificationType (juce::Justification::centredLeft);
+        // At the default window width the label gets ~130 px: let the text
+        // shrink before it is cut, and keep the whole sentence in the tooltip.
+        midiConflictLabel.setMinimumHorizontalScale (0.5f);
 
         midiTriggerEnable.setToggleState (scope.hasMidiBinding(), juce::dontSendNotification);
         midiChannelCombo.setSelectedId (scope.hasMidiBinding() ? scope.midiChannel : 1,
@@ -1165,13 +1168,15 @@ private:
 
         hasMidiConflict = owner.isNotEmpty();
 
-        midiConflictLabel.setText (hasMidiConflict
-                                     ? LOC("snapshotScope.midi.conflict")
-                                         .replace ("{ch}",   juce::String (scope.midiChannel))
-                                         .replace ("{note}", juce::String (scope.midiNote))
-                                         .replace ("{name}", owner)
-                                     : juce::String(),
-                                   juce::dontSendNotification);
+        const auto conflictText = hasMidiConflict
+                                    ? LOC("snapshotScope.midi.conflict")
+                                        .replace ("{ch}",   juce::String (scope.midiChannel))
+                                        .replace ("{note}", juce::String (scope.midiNote))
+                                        .replace ("{name}", owner)
+                                    : juce::String();
+
+        midiConflictLabel.setText (conflictText, juce::dontSendNotification);
+        midiConflictLabel.setTooltip (conflictText);
 
         refreshUpdateScopeButtonVisibility();
     }
@@ -1303,9 +1308,21 @@ private:
                                                 LOC("snapshotScope.templates.errorTitle"), message);
     }
 
+    /** Auto-preselect only shapes the scope of a snapshot still to be created.
+        An existing snapshot opens with its saved grid: a long press on Update
+        Snapshot Scope -- the only way to save a MIDI note -- writes the whole
+        grid, and for a When Saving snapshot that trims its stored values, so
+        a preselected grid there cost values the operator never meant to drop. */
+    bool autoPreselectApplies() const
+    {
+        return ! hasSelectedSnapshot && autoPreselectToggle.getToggleState();
+    }
+
     void updateSelectModifiedVisibility()
     {
-        selectModifiedButton.setVisible (!autoPreselectToggle.getToggleState());
+        // Redundant only where auto-preselect applies; for an existing
+        // snapshot it is the deliberate way to apply the modified set.
+        selectModifiedButton.setVisible (! autoPreselectApplies());
         resized();
     }
 

@@ -707,13 +707,30 @@ public:
         rewritten -- the MIDI binding index rebuilds from this. */
     std::function<void()> onSnapshotsChanged;
 
+    /** Drop the cached snapshot scopes: they describe the previous project's
+        files. Called when the project folder changes. */
+    void forgetSnapshotScopes() { snapshotScopes.clear(); }
+
     /** Mirror an externally-triggered recall in the dropdown, so the operator
-        can see which cue is live. */
-    void selectSnapshotInSelector (const juce::String& snapshotName)
+        can see which cue is live. Returns true when that cancelled a snapshot
+        button being held: Reload, Update and Delete act on the dropdown's
+        snapshot when released, so a cue landing mid-press would have turned
+        the operator's Delete of one snapshot into a Delete of the cue's. */
+    bool selectSnapshotInSelector (const juce::String& snapshotName)
     {
+        const auto previous = snapshotSelector.getSelectedId() > 1 ? snapshotSelector.getText()
+                                                                   : juce::String();
+        bool cancelled = false;
+
+        if (previous != snapshotName)
+            for (auto* b : { &reloadSnapshotButton, &reloadWithoutScopeButton,
+                             &updateSnapshotButton, &deleteSnapshotButton })
+                cancelled = b->cancelPress() || cancelled;
+
         refreshSnapshotList();
         snapshotSelector.setText (snapshotName, juce::dontSendNotification);
         updateSnapshotButtonStates();
+        return cancelled;
     }
 
     /** Callback when Level Meter window is requested */
@@ -6993,8 +7010,12 @@ private:
                         // a re-bind: keep whatever note that snapshot already had,
                         // otherwise "Store" silently disarms a live cue.
                         // (The enclosing fileManager reference is not captured by
-                        // this lambda, so go through parameters.)
-                        if (parameters.getFileManager().getInputSnapshotNames().contains(name))
+                        // this lambda, so go through parameters.) The test asks the
+                        // filesystem, like the write does: on Windows and macOS
+                        // "scene 3" overwrites "Scene 3.xml", which a case-sensitive
+                        // name lookup missed, dropping the note.
+                        if (parameters.getFileManager().getInputSnapshotsFolder()
+                                .getChildFile (name + ".xml").existsAsFile())
                         {
                             auto existing = parameters.getFileManager().getExtendedSnapshotScope(name);
                             scope.midiChannel = existing.midiChannel;
@@ -7158,10 +7179,12 @@ private:
 
         auto& fileManager = parameters.getFileManager();
 
-        // Get existing scope or create default
-        if (snapshotScopes.find(selectedSnapshot) == snapshotScopes.end())
-            snapshotScopes[selectedSnapshot] = fileManager.getExtendedSnapshotScope(selectedSnapshot);
-
+        // Always from disk: this writes the scope and the MIDI binding back
+        // into the file, and a cached copy goes stale -- after a project switch
+        // it is another project's same-named snapshot (its note included, past
+        // the Scope window's conflict check), and after a channel delete or
+        // reorder its slot-keyed grid lands on other channels.
+        snapshotScopes[selectedSnapshot] = fileManager.getExtendedSnapshotScope(selectedSnapshot);
         auto& scope = snapshotScopes[selectedSnapshot];
 
         if (writeToQLabEnabled)
@@ -7209,11 +7232,9 @@ private:
 
         if (hasSelectedSnapshot)
         {
-            // Load scope for selected snapshot if not cached
-            if (snapshotScopes.find(selectedSnapshot) == snapshotScopes.end())
-            {
-                snapshotScopes[selectedSnapshot] = fileManager.getExtendedSnapshotScope(selectedSnapshot);
-            }
+            // Always from disk, for the reason given in updateSnapshot(): the
+            // window can write this scope and its MIDI binding back.
+            snapshotScopes[selectedSnapshot] = fileManager.getExtendedSnapshotScope(selectedSnapshot);
             scopePtr = &snapshotScopes[selectedSnapshot];
             windowTitle = selectedSnapshot;
         }
@@ -7238,10 +7259,15 @@ private:
             // shared_ptr so the lambda remains copy-constructible for std::function.
             auto working = std::make_shared<WFSFileManager::ExtendedSnapshotScope>(*scopePtr);
 
+            // The binding as the window opened, to tell whether OK is about to
+            // drop a note the operator just set.
+            const int openedMidiChannel = scopePtr->midiChannel;
+            const int openedMidiNote    = scopePtr->midiNote;
+
             snapshotScopeWindow = std::make_unique<SnapshotScopeWindow>(parameters, windowTitle, *working, hasSelectedSnapshot, &parameters.getDirtyTracker());
             snapshotScopeWindow->setQLabAvailable (isQLabAvailable ? isQLabAvailable() : false);
             snapshotScopeWindow->onWindowClosed =
-                [this, selectedSnapshot, working]
+                [this, selectedSnapshot, working, hasSelectedSnapshot, openedMidiChannel, openedMidiNote]
                 (SnapshotScopeWindow::CloseResult result, bool writeToQLab, bool writeLoadCue)
             {
                 using CloseResult = SnapshotScopeWindow::CloseResult;
@@ -7263,13 +7289,20 @@ private:
                     // OK is session-only: the edited scope becomes the default for the
                     // next "Create Snapshot"; the selected snapshot's file and cached
                     // scope stay untouched (the long-press button handles those).
+                    const bool droppedMidiEdit = hasSelectedSnapshot
+                        && (working->midiChannel != openedMidiChannel || working->midiNote != openedMidiNote);
+
                     currentScope = *working;
                     // The grid is the reusable part of a scope; a MIDI binding
                     // names ONE snapshot. Carrying it into the session default
                     // would hand the next created snapshot the same note.
                     currentScope.clearMidiBinding();
                     currentScopeInitialized = true;
-                    showStatusMessage(LOC("inputs.messages.scopeConfigured"));
+
+                    // A note set in the window and closed with OK was dropped in
+                    // silence: say so, and where it is saved instead.
+                    showStatusMessage(LOC(droppedMidiEdit ? "inputs.messages.midiBindingNotSaved"
+                                                          : "inputs.messages.scopeConfigured"));
                 }
                 else if (result == CloseResult::ScopeUpdated)
                 {
@@ -7992,6 +8025,7 @@ private:
         {
             juce::MessageManager::callAsync([this]()
             {
+                snapshotScopes.clear();   // they belong to the previous project's files
                 refreshSnapshotList();
                 updateSnapshotButtonStates();
             });

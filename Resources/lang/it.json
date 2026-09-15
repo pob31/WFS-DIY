@@ -293,6 +293,9 @@
     }
   },
   "audioPatch": {
+    "deviceSettings": {
+      "midiTooltip": "Solo per il richiamo degli snapshot. Questa porta viene aperta soltanto in ingresso e non viene usata per nient'altro: WFS-DIY non le invia alcun dato MIDI e gli unici messaggi a cui reagisce sono i note-on che richiamano uno snapshot di ingresso. Assegnare un canale e una nota a uno snapshot nella finestra Edit Scope della scheda Inputs; un note-on con velocity superiore a 64 lo richiama."
+    },
     "dialogs": {
       "unpatchInputsTitle": "Rimuovi Tutti i Patch Ingressi",
       "unpatchInputsMessage": "Sei sicuro di voler rimuovere tutti i patch degli ingressi?",
@@ -617,6 +620,15 @@
       "scopeSaved": "Ambito snapshot salvato.",
       "scopeConfigured": "Ambito configurato per il prossimo snapshot.",
       "snapshotScopeUpdated": "Ambito dello snapshot '{name}' aggiornato.",
+      "snapshotNotFound": "Snapshot '{name}' non trovato.",
+      "snapshotRecallFailed": "Impossibile richiamare lo snapshot '{name}': {error}",
+      "snapshotActionCancelled": "La pressione prolungata sul pulsante snapshot è stata annullata, perché la selezione è cambiata.",
+      "snapshotLoadedByMidi": "Snapshot '{name}' richiamato via MIDI.",
+      "midiBindingConflict": "Canale MIDI {ch}, nota {note}: usata sia da '{first}' sia da '{other}' — prevale '{first}'.",
+      "midiPortRefused": "Richiamo snapshot via MIDI: impossibile aprire '{name}'. Potrebbe essere in uso da parte di un'altra applicazione. Nuovo tentativo ogni 2 s.",
+      "midiPortDisconnected": "Richiamo snapshot via MIDI: '{name}' non è connesso. Si riconnette quando torna disponibile.",
+      "midiPortConnected": "Richiamo snapshot via MIDI: '{name}' connesso.",
+      "midiBindingNotSaved": "La nota MIDI non è stata salvata: OK mantiene l'ambito solo per il prossimo nuovo snapshot. Tenere premuto Update Snapshot Scope per salvare la nota.",
       "trackingDisabled": "Tracking disabilitato per Ingresso {channel}",
       "trackingSwitched": "Tracking trasferito da Ingresso {from} a Ingresso {to}",
       "clusterEditRelative": "Modifica con Shift: variazione relativa applicata a {count} altri ingressi del Cluster {cluster}",
@@ -745,6 +757,12 @@
       "nudgeHint2": " Regolare con i tasti Su e Giù.",
       "nudgeHint3": " Regolare con Pagina Su e Pagina Giù.",
       "admMapping": "Assegnare questo ingresso a una mappatura ADM-OSC per la ricezione/trasmissione della posizione."
+    }
+  },
+  "snapshotScope": {
+    "midi": {
+      "tooltip": "Un note-on con velocity superiore a 64 su questo canale e questa nota richiama questo snapshot. I note-off e le note più deboli vengono ignorati. Scegliere l'ingresso MIDI in Audio Interface ▸ Device Settings.",
+      "conflict": "Usata da '{name}' (canale {ch}, nota {note}) — scegliere un'altra nota per salvare."
     }
   },
   "fileManager": {
