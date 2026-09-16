@@ -4,10 +4,12 @@
 # Consumes JUCE the same way Plugin/CMakeLists.txt does (add_subdirectory of
 # the vendored ThirdParty/JUCE) and compiles the app's DSP headers in place.
 #
-# Configure/build (Windows, VS-bundled cmake):
-#   cmake -S tools/validation/offline-render -B tools/validation/offline-render/build \
-#         -G "Visual Studio 18 2026"
-#   cmake --build tools/validation/offline-render/build --config Release
+# Configure/build (Windows). cmake is NOT on PATH on a stock VS install: use the
+# one VS ships, by full path, or run these from a VS Developer prompt.
+#   CMAKE="C:/Program Files/Microsoft Visual Studio/18/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe"
+#   "$CMAKE" -S tools/validation/offline-render -B tools/validation/offline-render/build \
+#            -G "Visual Studio 18 2026"
+#   "$CMAKE" --build tools/validation/offline-render/build --config Release
 #
 # GPU paths (milestone 2): WFS_GPU_NATIVE=1 + WFS_GPU_PLUGINS=1 mirror the
 # app's Windows config — the harness links NO GPU runtime; GpuBackendFactory
@@ -31,6 +33,30 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(REPO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../..")
 set(JUCE_DIR  "${REPO_ROOT}/ThirdParty/JUCE")
+
+# The harness compiles spatcore's headers in place, so the SUBMODULE POINTER
+# this repo records is load-bearing, not incidental: --path effects needs a
+# spatcore that already has effects/ (a4e4e57 or later). A checkout whose
+# pointer predates it produces dozens of missing-include errors that say
+# nothing about the cause, so say it here instead. Whoever ships a change to
+# this harness ships the pointer bump with it.
+foreach(required_spatcore_header
+        "effects/EffectChain.h"
+        "effects/EffectParams.h"
+        "effects/EffectModule.h"
+        "reverb/ReverbAlgorithm.h")
+    if(NOT EXISTS "${REPO_ROOT}/spatcore/${required_spatcore_header}")
+        message(FATAL_ERROR
+            "spatcore/${required_spatcore_header} is missing.\n"
+            "  The offline-render harness compiles spatcore in place, and the\n"
+            "  effects path needs a spatcore revision that has effects/\n"
+            "  (a4e4e57 or later).\n"
+            "  Run:  git submodule update --init --recursive\n"
+            "  If that leaves the file missing, the recorded submodule pointer is\n"
+            "  older than the harness: the pointer bump belongs in the same commit\n"
+            "  as this harness change.")
+    endif()
+endforeach()
 
 add_subdirectory(${JUCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/juce EXCLUDE_FROM_ALL)
 

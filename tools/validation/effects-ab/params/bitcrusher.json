@@ -1,0 +1,9 @@
+{
+  "comment": "fx_bitcrusher at 8 bits, dither OFF, fully wet. Send dither = -96 in Max: the gen~ @default of 0 dB is FULL-SCALE noise, and two different noise generators never null. drywet is a DRY per cent, so 0 means 100 % wet.",
+  "patch": "fx_bitcrusher",
+  "prototype": {
+    "resolution": 8.0,
+    "dither": -96.0,
+    "drywet": 0.0
+  }
+}

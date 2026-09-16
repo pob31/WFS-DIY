@@ -9,9 +9,10 @@
 // of all output channels.
 //
 //   offline-render --path <cpu-gather|cpu-scatter|reverb-sdn|reverb-fdn|reverb-ir
-//                          |gpu-gather|gpu-scatter|gpu-reverb-sdn|gpu-reverb-fdn
-//                          |gpu-reverb-ir|cpu|gpu|all>
-//                  --scenario <static|moving|fr-toggle|all>
+//                          |effects|gpu-gather|gpu-scatter|gpu-reverb-sdn
+//                          |gpu-reverb-fdn|gpu-reverb-ir|cpu|gpu|all>
+//                  --scenario <static|moving|fr-toggle|stereo|all
+//                              |dist|eq|dyn|mod|phaser|trem|reverb|delay|crush|chain>
 //                  [--blocks N] [--block 512] [--sr 48000] [--in 8] [--out 16]
 //                  [--device cuda:0] [--plugin-dir <dir with wfs_cuda.dll>]
 //                  [--wav out.wav] [--raw out.f32]
@@ -21,6 +22,16 @@
 // --check compares each rendered hash against the committed JSON baseline and
 // exits 1 on any mismatch (same contract as tools/validation/kernel_hashes.py);
 // --check with --update rewrites the baseline entries for the combos just run.
+//
+// Both apply at the DEFAULT render shape only: the shape is stamped into the
+// baseline file under the reserved "#shape" key, and any other --blocks /
+// --block / --sr / --in / --out is refused with exit 2. A wrong-shape --check
+// would only MISMATCH, but a wrong-shape --update would quietly record a hash
+// of a truncated run (30 blocks of an effects scenario never reach the end of
+// the bypass window, let alone a variant switch) as the golden and exit 0.
+//
+// If an effects render trips its NaN trap, the hash is the trap's output and
+// not the module's, so the run exits 8 and neither checks nor records.
 //
 // --bench (GPU host-path optimization M0) reports per path x scenario: blocks,
 // wall ms, xRealtime, per-block budget ms, and — for GPU paths — the
@@ -32,6 +43,15 @@
 // The harness compiles the app's DSP headers in place and drives them exactly
 // as the app does (drain-pull below the async algorithm wrappers) — no
 // production-code changes.
+//
+// The effects path (--path effects) is the same gate for spatcore/effects: one
+// scenario per module driven through a ModuleSlot, plus one whole-chain
+// scenario that reorders the chain and toggles chain bypass/mute mid-render.
+// Modules are mono and synchronous, so it renders --in independent chains (one
+// per input stream, each with its own ChainConfig::noiseKey) and hashes them
+// exactly like every other path. Scenario families do not cross: --scenario
+// all means the four WFS timelines on a render path and the ten effects
+// timelines on --path effects.
 //
 // GPU paths (milestone 2, WFS_GPU_NATIVE builds): drive the vendor backends
 // SYNCHRONOUSLY — makeWfsBackend/makeObBackend(deviceId) ->
@@ -68,6 +88,7 @@
 #include "../../../spatcore/reverb/ReverbSDNAlgorithm.h"
 #include "../../../spatcore/reverb/ReverbFDNAlgorithm.h"
 #include "../../../spatcore/reverb/ReverbIRAlgorithm.h"
+#include "../../../spatcore/effects/EffectChain.h"          // EffectChain, ModuleSlot, createModule
 
 #if WFS_GPU_NATIVE
  #include "../../../spatcore/gpu/GpuDeviceManager.h"   // device enumeration ("cuda:0", ...)
@@ -85,6 +106,10 @@
 namespace
 {
 
+/** NaN traps tripped by every effects render in this invocation. Any non-zero
+    value invalidates the run - see renderEffects() and exit code 8. */
+std::uint32_t gNanTripTotal = 0;
+
 struct Config
 {
     double sr = 48000.0;
@@ -95,6 +120,26 @@ struct Config
     int reverbWorkers = 0;   // AudioParallelFor width for the CPU reverb paths
 };
 
+/** The render shape a hash was produced at, as it is stored in the baseline
+    file under kShapeKey.
+
+    A hash means nothing without it: a 30-block run of an effects scenario
+    stops at tick ~31, before the bypass window closes and long before either
+    variant switch, so it hashes a fraction of the script the golden is
+    supposed to gate. --check at the wrong shape is at least loud (it
+    MISMATCHes), but --update at the wrong shape would quietly record that
+    fraction as the golden and exit 0, which is why both are refused. */
+const char* const kShapeKey = "#shape";
+
+std::string shapeString (const Config& cfg)
+{
+    char buf[128];
+    std::snprintf (buf, sizeof (buf),
+                   "sr=%.0f block=%d blocks=%d in=%d out=%d",
+                   cfg.sr, cfg.block, cfg.blocks, cfg.numIn, cfg.numOut);
+    return buf;
+}
+
 enum class Path
 {
     CpuGather,
@@ -102,6 +147,7 @@ enum class Path
     ReverbSdn,
     ReverbFdn,
     ReverbIr,
+    Effects,
     GpuGather,
     GpuScatter,
     GpuReverbSdn,
@@ -118,6 +164,7 @@ const char* pathName (Path p)
         case Path::ReverbSdn:    return "reverb-sdn";
         case Path::ReverbFdn:    return "reverb-fdn";
         case Path::ReverbIr:     return "reverb-ir";
+        case Path::Effects:      return "effects";
         case Path::GpuGather:    return "gpu-gather";
         case Path::GpuScatter:   return "gpu-scatter";
         case Path::GpuReverbSdn: return "gpu-reverb-sdn";
@@ -134,6 +181,7 @@ bool pathFromName (const std::string& s, Path& out)
     if (s == "reverb-sdn")     { out = Path::ReverbSdn;    return true; }
     if (s == "reverb-fdn")     { out = Path::ReverbFdn;    return true; }
     if (s == "reverb-ir")      { out = Path::ReverbIr;     return true; }
+    if (s == "effects")        { out = Path::Effects;     return true; }
     if (s == "gpu-gather")     { out = Path::GpuGather;    return true; }
     if (s == "gpu-scatter")    { out = Path::GpuScatter;   return true; }
     if (s == "gpu-reverb-sdn") { out = Path::GpuReverbSdn; return true; }
@@ -153,6 +201,19 @@ const std::vector<Path>& cpuPaths()
     static const std::vector<Path> v {
         Path::CpuGather, Path::CpuScatter,
         Path::ReverbSdn, Path::ReverbFdn, Path::ReverbIr };
+    return v;
+}
+
+/** --path all = every path that does not need a GPU, then the GPU ones.
+    cpuPaths() is deliberately NOT widened: --path cpu names the five WFS and
+    reverb render paths, and widening it would change what the documented CPU
+    baseline invocation renders. */
+const std::vector<Path>& cpuOnlyPaths()
+{
+    static const std::vector<Path> v {
+        Path::CpuGather, Path::CpuScatter,
+        Path::ReverbSdn, Path::ReverbFdn, Path::ReverbIr,
+        Path::Effects };
     return v;
 }
 
@@ -710,6 +771,160 @@ ChannelData renderReverb (Path path, scenario::Id id, const Config& cfg)
 }
 
 //==============================================================================
+// Effects: spatcore/effects, driven synchronously on this thread. Modules are
+// mono and in-place, so one scenario renders cfg.numIn INDEPENDENT chains —
+// one per input stream, each prepared with its own ChainConfig::noiseKey, so
+// the per-channel keyed noise (bitcrusher dither, modulation/phaser random
+// LFOs, the reverb's node identity) is part of the hash rather than eleven
+// copies of channel 0.
+//
+// A module scenario drives its module through a ModuleSlot, not bare: the
+// bypass crossfade, the reset-at-silence and commitPendingVariant() all live
+// in the slot, and those are precisely what the scripted timeline toggles. The
+// chain scenario drives an EffectChain, which additionally owns the reorder
+// envelope and the chain bypass/mute envelopes.
+//
+// Parameters step at the same 50 Hz tick cadence as every other path
+// (scenario::effectsParams). EffectChain re-reads them only when
+// params.revision moves, which effectsParams bumps on every tick.
+//==============================================================================
+ChannelData renderEffects (scenario::Id id, const Config& cfg)
+{
+    using namespace spatcore::effects;
+
+    // The self-test rejects three different faults in the chain-order data and
+    // all three make the reorder gate inert; print which one it actually found
+    // rather than leaving the reader hunting a typo that may not be there.
+    if (const auto why = scenario::effectsSelfTestFailure(); ! why.empty())
+    {
+        std::fprintf (stderr,
+            "FATAL: effects scenario self-test failed - the reorder gate would "
+            "be inert: %s\n", why.c_str());
+        std::exit (5);
+    }
+
+    const int srInt = static_cast<int> (cfg.sr);
+    const int numChains = cfg.numIn;
+    const bool wholeChain = (id == scenario::Id::FxChain);
+    const int slotIndex = scenario::effectsSlotIndex (id);
+
+    if (! wholeChain && (slotIndex < 0 || slotIndex >= kNumModuleSlots))
+    {
+        std::fprintf (stderr, "FATAL: '%s' is not an effects scenario\n", scenario::name (id));
+        std::exit (2);
+    }
+
+    const ModuleId moduleType = wholeChain ? ModuleId::Count : kSlots[slotIndex].type;
+    const int moduleInstance = wholeChain ? 0 : static_cast<int> (kSlots[slotIndex].instance);
+
+    // Tick 0 parameters: for a module slot this FIRST applyParams after
+    // prepare() is what snaps the module's smoothers to their targets, so a
+    // render starts settled instead of gliding in from the defaults.
+    EffectChannelParams params = scenario::effectsParams (id, 0);
+
+    std::vector<std::unique_ptr<EffectChain>> chains;
+    std::vector<std::unique_ptr<ModuleSlot>> slots;   // atomics inside: held by pointer
+
+    for (int c = 0; c < numChains; ++c)
+    {
+        ChainConfig chainCfg;
+        chainCfg.sampleRate = cfg.sr;
+        chainCfg.maxBlock = cfg.block;
+        chainCfg.noiseKey = static_cast<std::uint32_t> (c) + 1u;
+
+        if (wholeChain)
+        {
+            auto chain = std::make_unique<EffectChain>();
+            chain->prepare (chainCfg);
+            chains.push_back (std::move (chain));
+        }
+        else
+        {
+            auto slot = std::make_unique<ModuleSlot>();
+            slot->prepare (chainCfg, createModule (moduleType, moduleInstance, chainCfg));
+            if (! slot->hasModule())
+            {
+                std::fprintf (stderr, "FATAL: no module for scenario '%s'\n", scenario::name (id));
+                std::exit (2);
+            }
+            slot->applyParams (params, moduleInstance);
+            slots.push_back (std::move (slot));
+        }
+    }
+
+    const int64_t total = static_cast<int64_t> (cfg.blocks) * cfg.block;
+    ChannelData out (static_cast<size_t> (numChains),
+                     std::vector<float> (static_cast<size_t> (total), 0.0f));
+
+    std::vector<float> buf (static_cast<size_t> (cfg.block));
+    int lastTick = 0;   // tick 0 already applied
+
+    for (int b = 0; b < cfg.blocks; ++b)
+    {
+        gBench.blockBegin (b);
+        const int64_t startSample = static_cast<int64_t> (b) * cfg.block;
+
+        // Parameter timeline: re-cook between blocks at tick boundaries, the
+        // same cadence the app's 50 Hz publisher uses.
+        const int tick = tickForSample (startSample, srInt);
+        if (tick != lastTick)
+        {
+            params = scenario::effectsParams (id, tick);
+            for (auto& slot : slots)
+                slot->applyParams (params, moduleInstance);
+            lastTick = tick;
+        }
+
+        for (int c = 0; c < numChains; ++c)
+        {
+            for (int s = 0; s < cfg.block; ++s)
+                buf[static_cast<size_t> (s)] =
+                    scenario::inputSample (id, c, startSample + s, cfg.sr);
+
+            if (wholeChain)
+                chains[static_cast<size_t> (c)]->process (buf.data(), cfg.block, params);
+            else
+                slots[static_cast<size_t> (c)]->process (buf.data(), cfg.block);
+
+            std::memcpy (out[static_cast<size_t> (c)].data() + startSample,
+                         buf.data(), static_cast<size_t> (cfg.block) * sizeof (float));
+        }
+        gBench.blockEnd (b, -1.0);
+    }
+
+    // The slot and chain NaN traps silence and reset whatever produced a
+    // non-finite sample. That is deterministic, so a tripped render still
+    // hashes — and would gate the trap instead of the module. Say so loudly.
+    std::uint32_t nanTrips = 0, silentResets = 0;
+    for (auto& chain : chains)
+    {
+        nanTrips += chain->nanTrips.load();
+        for (int k = 0; k < kNumModuleSlots; ++k)
+        {
+            nanTrips += chain->getSlot (k).nanTrips.load();
+            silentResets += chain->getSlot (k).silentResets.load();
+        }
+    }
+    for (auto& slot : slots)
+    {
+        nanTrips += slot->nanTrips.load();
+        silentResets += slot->silentResets.load();
+    }
+
+    std::fprintf (stderr,
+                  "%s effects/%s: chains=%d nanTrips=%u silentResets=%u\n",
+                  nanTrips != 0 ? "WARNING:" : "note:",
+                  scenario::name (id), numChains, nanTrips, silentResets);
+
+    // A gate whose own safety net fired is not a gate: the hash is then the
+    // trap's output, not the module's. main() turns any non-zero total into
+    // exit 8 and refuses to check or record a baseline from such a run.
+    gNanTripTotal += nanTrips;
+
+    return out;
+}
+
+//==============================================================================
 // GPU gather / scatter (milestone 2): synchronous backend drive per the design
 // doc — makeWfsBackend/makeObBackend(deviceId) -> prepare(..., latency 0, ...)
 // -> setMatrixPointers -> processBlock. With pipelineLatencyMs = 0 there is no
@@ -1097,6 +1312,7 @@ ChannelData renderOne (Path path, scenario::Id id, const Config& cfg,
         case Path::ReverbSdn:
         case Path::ReverbFdn:
         case Path::ReverbIr:   return renderReverb (path, id, cfg);
+        case Path::Effects:    return renderEffects (id, cfg);
         case Path::GpuGather:
         case Path::GpuScatter:
 #if WFS_GPU_NATIVE
@@ -1178,9 +1394,11 @@ void usage()
 {
     std::fprintf (stderr,
         "usage: offline-render --path <cpu-gather|cpu-scatter|reverb-sdn|reverb-fdn|reverb-ir\n"
-        "                              |gpu-gather|gpu-scatter|gpu-reverb-sdn|gpu-reverb-fdn\n"
-        "                              |gpu-reverb-ir|cpu|gpu|all>\n"
-        "                      --scenario <static|moving|fr-toggle|stereo|all>\n"
+        "                              |effects|gpu-gather|gpu-scatter|gpu-reverb-sdn\n"
+        "                              |gpu-reverb-fdn|gpu-reverb-ir|cpu|gpu|all>\n"
+        "                      --scenario <static|moving|fr-toggle|stereo|all>   (render paths)\n"
+        "                      --scenario <dist|eq|dyn|mod|phaser|trem|reverb|delay|crush\n"
+        "                                  |chain|all>                           (--path effects)\n"
         "                      [--stereo-null]\n"
         "                      [--blocks N] [--block 512] [--sr 48000] [--in 8] [--out 16]\n"
         "                      [--device cuda:0] [--plugin-dir <dir with wfs_cuda.dll>]\n"
@@ -1190,8 +1408,22 @@ void usage()
         "\n"
         "GPU baselines are per device+driver: keep them in a separate file and check\n"
         "them in a separate invocation, e.g.\n"
-        "  offline-render --path cpu --check baselines/<machine>.json\n"
-        "  offline-render --path gpu --check baselines/<machine>-gpu.json\n"
+        "  offline-render --path cpu     --check baselines/<machine>.json\n"
+        "  offline-render --path effects --check baselines/<machine>.json\n"
+        "  offline-render --path gpu     --check baselines/<machine>-gpu.json\n"
+        "\n"
+        "--check and --update apply at the DEFAULT render shape only, and the shape\n"
+        "is stamped into the baseline file under the reserved \"#shape\" key. Any other\n"
+        "--blocks/--block/--sr/--in/--out is refused with exit 2 rather than compared:\n"
+        "a short run stops part-way through a scenario script, so recording it would\n"
+        "produce a golden that gates only the part it reached.\n"
+        "\n"
+        "--path effects renders spatcore/effects: one scenario per module through a\n"
+        "ModuleSlot (bypass toggle, parameter sweeps, variant switch), plus a chain\n"
+        "scenario that reorders the chain and toggles chain bypass and mute. It uses\n"
+        "--in as the number of independent mono chains and ignores --out. Its hashes\n"
+        "live in the CPU baseline file but are still per-machine: the modules call\n"
+        "std::tanh/std::cos/std::exp, so they must be recorded on each machine.\n"
         "\n"
         "--stereo-null renders the Phase-0 null pair on the WFS paths (gather/scatter)\n"
         "and compares the two hashes against EACH OTHER instead of a baseline: a\n"
@@ -1203,9 +1435,10 @@ void usage()
         "launchMs min/med/p99/max/mean distribution on GPU paths), excluding the first\n"
         "--warmup blocks. Bench shapes other than the default are not baselined.\n"
         "\n"
-        "exit codes: 0 ok, 1 baseline mismatch, 2 usage, 3 drain timeout,\n"
-        "            4 IR-load timeout, 5 self-test, 6 GPU/plugin unavailable,\n"
-        "            7 GPU runtime failure\n");
+        "exit codes: 0 ok, 1 baseline mismatch, 2 usage or a refused invocation,\n"
+        "            3 drain timeout, 4 IR-load timeout, 5 self-test,\n"
+        "            6 GPU/plugin unavailable, 7 GPU runtime failure,\n"
+        "            8 a NaN trap tripped during a render\n");
 }
 
 } // namespace
@@ -1287,7 +1520,7 @@ int main (int argc, char* argv[])
     bool gpuOptional = false;   // --path all: skip gpu paths with a note when unavailable
     if (pathArg == "all")
     {
-        paths = cpuPaths();
+        paths = cpuOnlyPaths();
         for (const Path p : gpuPaths())
             paths.push_back (p);
         gpuOptional = true;
@@ -1307,19 +1540,44 @@ int main (int argc, char* argv[])
         paths.push_back (p);
     }
 
-    std::vector<scenario::Id> scenarios;
-    if (scenarioArg == "all")
-        scenarios = scenario::allScenarios();
-    else
+    // Scenario families do not cross: the WFS/reverb render paths take the four
+    // matrix timelines, --path effects takes the ten module timelines. With an
+    // explicit --scenario, the paths of the OTHER family are dropped, so
+    // "--path all --scenario static" still means exactly what it used to.
+    const bool allScenarios = (scenarioArg == "all");
+    scenario::Id namedScenario = scenario::Id::Static;
+
+    if (! allScenarios && ! scenario::fromName (scenarioArg, namedScenario))
     {
-        scenario::Id s;
-        if (! scenario::fromName (scenarioArg, s))
+        std::fprintf (stderr, "error: unknown scenario '%s'\n", scenarioArg.c_str());
+        return 2;
+    }
+
+    if (! allScenarios)
+    {
+        const bool wantsEffects = scenario::isEffectsScenario (namedScenario);
+        paths.erase (std::remove_if (paths.begin(), paths.end(),
+                                     [wantsEffects] (Path p)
+                                     { return (p == Path::Effects) != wantsEffects; }),
+                     paths.end());
+
+        if (paths.empty())
         {
-            std::fprintf (stderr, "error: unknown scenario '%s'\n", scenarioArg.c_str());
+            std::fprintf (stderr,
+                "error: scenario '%s' is %san effects scenario — it only runs on %s\n",
+                scenarioArg.c_str(), wantsEffects ? "" : "not ",
+                wantsEffects ? "--path effects" : "the WFS/reverb render paths");
             return 2;
         }
-        scenarios.push_back (s);
     }
+
+    auto scenariosFor = [&] (Path p) -> std::vector<scenario::Id>
+    {
+        if (! allScenarios)
+            return { namedScenario };
+        return (p == Path::Effects) ? scenario::allEffectsScenarios()
+                                    : scenario::allScenarios();
+    };
 
     // CPU workers consume fixed 64-sample sub-blocks; a non-multiple block size
     // would leave a residue in the input rings and stall the drain forever.
@@ -1440,12 +1698,16 @@ int main (int argc, char* argv[])
         return allMatch ? 0 : 1;
     }
 
-    const bool multiCombo = paths.size() * scenarios.size() > 1;
+    size_t comboCount = 0;
+    for (const Path p : paths)
+        comboCount += scenariosFor (p).size();
+
+    const bool multiCombo = comboCount > 1;
     std::map<std::string, std::string> results;   // "path/scenario" -> sha256
 
     for (const Path p : paths)
     {
-        for (const scenario::Id s : scenarios)
+        for (const scenario::Id s : scenariosFor (p))
         {
             const std::string key = std::string (pathName (p)) + "/" + scenario::name (s);
             gBench.beginCombo (cfg);
@@ -1488,6 +1750,19 @@ int main (int argc, char* argv[])
                           f.getFullPathName().toRawUTF8());
     }
 
+    // A render whose NaN trap fired hashes the trap, not the module - so it is
+    // not a gate. Fail here, before any baseline is consulted or written, so a
+    // tripped run can neither pass --check nor be recorded by --update. The
+    // per-render WARNING above says which scenario it was.
+    if (gNanTripTotal != 0)
+    {
+        std::fprintf (stderr,
+            "FATAL: %u NaN trap(s) tripped during this run — the hash is the "
+            "trap's output, not the module's. Refusing to check or record "
+            "a baseline.\n", gNanTripTotal);
+        return 8;
+    }
+
     if (checkArg.empty())
         return 0;
 
@@ -1496,20 +1771,66 @@ int main (int argc, char* argv[])
     //==========================================================================
     auto baselineFile = juce::File::getCurrentWorkingDirectory().getChildFile (juce::String (checkArg));
 
+    // One read of the file, shared by the shape guard, the merge and the check.
+    std::map<std::string, std::string> recorded;
+    if (baselineFile.existsAsFile())
+    {
+        const auto parsed = juce::JSON::parse (baselineFile.loadFileAsString());
+        if (auto* obj = parsed.getDynamicObject())
+            for (const auto& prop : obj->getProperties())
+                recorded[prop.name.toString().toStdString()] =
+                    prop.value.toString().toStdString();
+    }
+
+    //==========================================================================
+    // Render-shape guard (kShapeKey). A hash is only comparable to another one
+    // rendered at the same shape, and only the DEFAULT shape is ever baselined
+    // - --bench shapes explicitly are not. Both --check and --update are
+    // refused off-shape rather than one of them being trusted to be loud:
+    // --check would MISMATCH, but --update would silently record a golden that
+    // gates a fraction of the script (a 30-block effects run never reaches the
+    // end of the bypass window, let alone either variant switch) and exit 0.
+    //==========================================================================
+    const std::string runShape = shapeString (cfg);
+    {
+        const Config defaults;
+        const std::string defaultShape = shapeString (defaults);
+
+        if (runShape != defaultShape)
+        {
+            std::fprintf (stderr,
+                "error: --check/--update apply at the default render shape only\n"
+                "       this run:  %s\n"
+                "       baselined: %s\n"
+                "       drop --check to render this shape anyway (hashes still print)\n",
+                runShape.c_str(), defaultShape.c_str());
+            return 2;
+        }
+
+        const auto it = recorded.find (kShapeKey);
+
+        if (it != recorded.end() && it->second != runShape)
+        {
+            std::fprintf (stderr,
+                "error: %s was recorded at a different render shape, so every entry\n"
+                "       in it is stale\n"
+                "       recorded: %s\n"
+                "       this run: %s\n"
+                "       delete the file and re-record each path with --update\n",
+                baselineFile.getFileName().toRawUTF8(),
+                it->second.c_str(), runShape.c_str());
+            return 2;
+        }
+    }
+
     if (update)
     {
         // Merge: keep entries for combos not rendered in this invocation.
-        std::map<std::string, std::string> merged;
-        if (baselineFile.existsAsFile())
-        {
-            const auto parsed = juce::JSON::parse (baselineFile.loadFileAsString());
-            if (auto* obj = parsed.getDynamicObject())
-                for (const auto& prop : obj->getProperties())
-                    merged[prop.name.toString().toStdString()] =
-                        prop.value.toString().toStdString();
-        }
+        std::map<std::string, std::string> merged = recorded;
         for (const auto& r : results)
             merged[r.first] = r.second;
+
+        merged[kShapeKey] = runShape;   // stamped on every write, old files included
 
         juce::String json = "{\n";
         size_t i = 0;
@@ -1529,9 +1850,10 @@ int main (int argc, char* argv[])
                           baselineFile.getFullPathName().toRawUTF8());
             return 2;
         }
-        std::printf ("wrote %s (%d entries)\n",
+        std::printf ("wrote %s (%d hash entries, shape %s)\n",
                      baselineFile.getFullPathName().toRawUTF8(),
-                     static_cast<int> (merged.size()));
+                     static_cast<int> (merged.size() - merged.count (kShapeKey)),
+                     runShape.c_str());
         return 0;
     }
 
@@ -1542,14 +1864,7 @@ int main (int argc, char* argv[])
         return 1;
     }
 
-    std::map<std::string, std::string> expected;
-    {
-        const auto parsed = juce::JSON::parse (baselineFile.loadFileAsString());
-        if (auto* obj = parsed.getDynamicObject())
-            for (const auto& prop : obj->getProperties())
-                expected[prop.name.toString().toStdString()] =
-                    prop.value.toString().toStdString();
-    }
+    const std::map<std::string, std::string>& expected = recorded;
 
     std::vector<std::string> problems;
     for (const auto& r : results)

@@ -1,0 +1,18 @@
+{
+  "comment": "fx_distortion, 12 dB of drive, half clip half tanh, -6 dB out, fully wet, ALL FOUR SHELVES TAKEN OUT OF THE COMPARISON. The shelf gains are -200 and not 0 because of plan section 5.13 defect P2: the prototype converts the gain from dB twice, so a nominal 0 dB shelf really applies +1.00 dB. The mapping converts for you by default (set options.shelfGainNominal true to see the raw knob-for-knob difference instead), but -200 goes further and makes the shelves the identity on BOTH sides, which also removes defect P1 - the alpha bug, which nothing can undo from the Max end. The corners are inside our ranges (20..2000 and 1000..20000) so nothing is clamped. waveform is a per cent of the HARD CLIPPER and our effectDistShape runs the other way - the mapping inverts it for you.",
+  "patch": "fx_distortion",
+  "prototype": {
+    "drive": 12.0,
+    "waveform": 50.0,
+    "outputAttenuation": -6.0,
+    "dryWet": 0.0,
+    "loShelfFreq-pre": 100.0,
+    "loShelfGain-pre": -200.0,
+    "hiShelfFreq-pre": 8000.0,
+    "hiShelfGain-pre": -200.0,
+    "loShelfFreq-post": 100.0,
+    "loShelfGain-post": -200.0,
+    "hiShelfFreq-post": 8000.0,
+    "hiShelfGain-post": -200.0
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "comment": "fx_delay at 375 ms with 40 % feedback, 35 % wet. delayTime is in SECONDS (the patch multiplies by 1000 and floors at 1 ms). The two shelf gains are -200 and not 0 for the same reason as the distortion: plan section 5.13 defects P1/P2 mean a nominal 0 dB shelf adds about +0.5 dB PER REPEAT inside the feedback loop, which our module cannot and should not reproduce. The corners are inside our ranges so nothing is clamped. modDepth is 0 because MultitapDelayModule has no LFO phase control and its sine is a quarter cycle from the prototype's cosine.",
+  "patch": "fx_delay",
+  "prototype": {
+    "delayTime": 0.375,
+    "modFreq": 0.1,
+    "modDepth": 0.0,
+    "loCutFreq": 20.0,
+    "loShelfFreq": 200.0,
+    "loShelfGain": -200.0,
+    "hiShelfFreq": 4000.0,
+    "hiShelfGain": -200.0,
+    "feedback": 40.0,
+    "dryWet": 65.0
+  }
+}

@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "../../../spatcore/reverb/ReverbAlgorithm.h"   // AlgorithmParameters, NodePosition (POD)
+#include "../../../spatcore/effects/EffectParams.h"     // EffectChannelParams, ChainOrder (POD)
 
 namespace scenario
 {
@@ -57,6 +58,20 @@ enum class Id
     // their output hashes against each other instead of a baseline file.
     StereoNull,     // config A: width-0 stereo — 6 sources: silent centre on 0, L/R on 1/2, 3..5 claimed-and-silent
     StereoNullMono, // config B: two mono channels at the same position
+
+    // --path effects: one scenario per module, plus the whole chain. APPENDED
+    // on purpose — the enum value feeds inputSample()'s frequency map, so an
+    // id inserted anywhere above would move every existing baseline hash.
+    FxDist,         // distortion:  drive/shape/bias sweep + oversampling variant
+    FxEq,           // 6-band EQ:   swept peak + band-shape switches
+    FxDyn,          // dynamics:    comp + expander, detector and lookahead variants
+    FxMod,          // chorus/flanger: voices and through-zero variants
+    FxPhaser,       // phaser:      stage-count variant
+    FxTrem,         // tremolo:     no variant — sweeps and the bypass toggle
+    FxReverb,       // FDN reverb:  size variant (rebuilds the network at silence)
+    FxDelay,        // multitap:    tap count / pattern / manual / feedback tap
+    FxCrush,        // bitcrusher:  decimation-filter variant + dither floor
+    FxChain,        // all eleven slots: reorder x3, chain bypass, mute
 };
 
 inline const char* name (Id id)
@@ -69,6 +84,17 @@ inline const char* name (Id id)
         case Id::Stereo:         return "stereo";
         case Id::StereoNull:     return "stereo-null";
         case Id::StereoNullMono: return "stereo-null-mono";
+
+        case Id::FxDist:         return "dist";
+        case Id::FxEq:           return "eq";
+        case Id::FxDyn:          return "dyn";
+        case Id::FxMod:          return "mod";
+        case Id::FxPhaser:       return "phaser";
+        case Id::FxTrem:         return "trem";
+        case Id::FxReverb:       return "reverb";
+        case Id::FxDelay:        return "delay";
+        case Id::FxCrush:        return "crush";
+        case Id::FxChain:        return "chain";
     }
     return "?";
 }
@@ -79,12 +105,41 @@ inline bool fromName (const std::string& s, Id& out)
     if (s == "moving")    { out = Id::Moving;   return true; }
     if (s == "fr-toggle") { out = Id::FrToggle; return true; }
     if (s == "stereo")    { out = Id::Stereo;   return true; }
+
+    if (s == "dist")      { out = Id::FxDist;   return true; }
+    if (s == "eq")        { out = Id::FxEq;     return true; }
+    if (s == "dyn")       { out = Id::FxDyn;    return true; }
+    if (s == "mod")       { out = Id::FxMod;    return true; }
+    if (s == "phaser")    { out = Id::FxPhaser; return true; }
+    if (s == "trem")      { out = Id::FxTrem;   return true; }
+    if (s == "reverb")    { out = Id::FxReverb; return true; }
+    if (s == "delay")     { out = Id::FxDelay;  return true; }
+    if (s == "crush")     { out = Id::FxCrush;  return true; }
+    if (s == "chain")     { out = Id::FxChain;  return true; }
     return false;
+}
+
+/** Scenario families. A scenario belongs to exactly one, and the runner pairs
+    each path with its own family's list: --scenario all means the four WFS
+    timelines on a render path and the ten module timelines on --path effects,
+    never the cross product (which is what would have added 50 MISSING keys to
+    the existing baseline check). */
+inline bool isEffectsScenario (Id id)
+{
+    return static_cast<int> (id) >= static_cast<int> (Id::FxDist);
 }
 
 inline const std::vector<Id>& allScenarios()
 {
     static const std::vector<Id> all { Id::Static, Id::Moving, Id::FrToggle, Id::Stereo };
+    return all;
+}
+
+inline const std::vector<Id>& allEffectsScenarios()
+{
+    static const std::vector<Id> all {
+        Id::FxDist, Id::FxEq, Id::FxDyn, Id::FxMod, Id::FxPhaser,
+        Id::FxTrem, Id::FxReverb, Id::FxDelay, Id::FxCrush, Id::FxChain };
     return all;
 }
 
@@ -392,6 +447,454 @@ inline std::vector<float> deterministicIr (double sampleRate)
             * hashNoiseBipolar (static_cast<uint32_t> (i), 0xC0FFEE01u);
     ir[0] = 1.0f;
     return ir;
+}
+
+//==============================================================================
+// EFFECTS PATH (--path effects): one scenario per module + one whole-chain
+// scenario, each a scripted parameter timeline stepped at the SAME 50 Hz tick
+// cadence as the WFS/reverb timelines above.
+//
+// Input: scenario::inputSample() — the same generator every other path uses.
+// There is no second signal source in this harness, on purpose.
+//
+// A module scenario drives its module through a ModuleSlot rather than bare,
+// because the three things worth gating live in the slot: the bypass
+// crossfade, the reset-at-silence, and the commit of a variant change that
+// cannot be interpolated. A render of a module at defaults is a render of a
+// BYPASSED module (every module in EffectChannelParams starts bypassed), which
+// hashes the input straight back and proves nothing.
+//
+// One shared temporal script, so all ten scenarios read the same way at the
+// default shape (200 blocks x 512 @ 48 kHz = ticks 0..106):
+//
+//   ticks  0..19    active, every continuous parameter sweeping
+//   ticks 20..34    BYPASSED — the slot fades out and resets the module at
+//                   silence, so its tail cannot reappear
+//   ticks 35..      active again (the fade back in is in the hash too)
+//   tick  50        variant switch A — needs silence: fade out, reset,
+//                   commitPendingVariant(), fade back in
+//   tick  75        variant switch B
+//
+// plus per-module discrete edits at ticks 40, 60 and 85 where the module has
+// something else worth switching (a stage on, an LFO shape, a dither floor).
+//==============================================================================
+namespace fx
+{
+    inline constexpr int kBypassOn  = 20;   // tick the module is bypassed at
+    inline constexpr int kBypassOff = 35;   // tick it comes back
+    inline constexpr int kVariantA  = 50;   // first variant switch
+    inline constexpr int kVariantB  = 75;   // second variant switch
+
+    // The chain scenario's own slot-level windows. eq2 and dyn2 (instance 1 of
+    // the EQ and of the dynamics) exist ONLY inside the chain — no module
+    // scenario instantiates them — so without these they would render at
+    // steady non-identity settings and never go through a ModuleSlot bypass
+    // fade, a reset-at-silence or a commitPendingVariant(). A slot-level
+    // regression specific to instance 1 would then pass the gate.
+    // The windows are placed clear of the chain-bypass window (55..64) and the
+    // mute window (90..95) so the slot fades land in audible output.
+    inline constexpr int kChainEq2BypassOn   = 20;
+    inline constexpr int kChainEq2BypassOff  = 35;   // same 15-tick fade room as a module scenario
+    inline constexpr int kChainDyn2Variant   = 45;   // detector peak -> RMS: commits at silence
+    inline constexpr int kChainDyn2BypassOn  = 72;
+    inline constexpr int kChainDyn2BypassOff = 87;
+
+    inline bool bypassed (int tick) noexcept
+    {
+        return tick >= kBypassOn && tick < kBypassOff;
+    }
+
+    /** 0..1, a pure function of the tick — the same sin-of-tick-time idiom the
+        WFS and reverb timelines use, so there is one cadence in this file. */
+    inline float sweep01 (int tick, double hz, double phase) noexcept
+    {
+        const double t = static_cast<double> (tick) / 50.0;
+        return 0.5f + 0.5f * static_cast<float> (
+                   std::sin (2.0 * 3.141592653589793 * hz * t + phase));
+    }
+
+    inline float sweep (int tick, double hz, double phase, float lo, float hi) noexcept
+    {
+        return lo + (hi - lo) * sweep01 (tick, hz, phase);
+    }
+
+    /** Chain orders, as the strings an operator would actually type — parsed
+        through the shipped parser, so the harness gates that too. */
+    inline const char* const kOrderDefault = "dist,eq1,eq2,dyn1,dyn2,mod,phaser,trem,reverb,delay,crush";
+    inline const char* const kOrderB       = "reverb,delay,crush,trem,phaser,mod,dyn2,dyn1,eq2,eq1,dist";
+    inline const char* const kOrderC       = "crush,dist,trem,eq1,dyn1,reverb,mod,eq2,dyn2,phaser,delay";
+    inline const char* const kOrderD       = "eq1,dyn1,dist,mod,phaser,trem,delay,reverb,crush,eq2,dyn2";
+}
+
+/** Slot index in spatcore::effects::kSlots for a per-module scenario;
+    -1 for the whole-chain scenario. */
+inline int effectsSlotIndex (Id id) noexcept
+{
+    switch (id)
+    {
+        case Id::FxDist:   return 0;    // "dist"
+        case Id::FxEq:     return 1;    // "eq1"   (instance 0)
+        case Id::FxDyn:    return 3;    // "dyn1"  (instance 0)
+        case Id::FxMod:    return 5;    // "mod"
+        case Id::FxPhaser: return 6;    // "phaser"
+        case Id::FxTrem:   return 7;    // "trem"
+        case Id::FxReverb: return 8;    // "reverb"
+        case Id::FxDelay:  return 9;    // "delay"
+        case Id::FxCrush:  return 10;   // "crush"
+        default:           return -1;   // the chain, or not an effects scenario
+    }
+}
+
+/** The parameter set for one 50 Hz tick. Pure function of (scenario, tick).
+    Everything starts bypassed (EffectChannelParams' documented default), so a
+    scenario only has to switch ON what it means to exercise. */
+inline spatcore::effects::EffectChannelParams effectsParams (Id id, int tick)
+{
+    using namespace spatcore::effects;
+
+    EffectChannelParams p;
+
+    // The chain re-reads parameters only when revision MOVES, so every tick
+    // gets its own. (A module scenario calls applyParams directly and never
+    // consults it, but one rule is easier to trust than two.)
+    p.revision = static_cast<std::uint32_t> (tick) + 1u;
+
+    const bool off = fx::bypassed (tick);
+    const bool vA  = tick >= fx::kVariantA;
+    const bool vB  = tick >= fx::kVariantB;
+
+    switch (id)
+    {
+        case Id::FxDist:
+        {
+            p.dist.bypass = off ? 1 : 0;
+            p.dist.driveDb = fx::sweep (tick, 0.35, 0.0,  6.0f, 30.0f);
+            p.dist.shape   = fx::sweep (tick, 0.17, 1.1,  0.0f,  1.0f);   // hard clip <-> tanh
+            p.dist.bias    = fx::sweep (tick, 0.11, 2.3, -0.35f, 0.35f);  // even harmonics
+            p.dist.mix     = fx::sweep (tick, 0.23, 0.7, 40.0f, 100.0f);
+            p.dist.outputDb = -9.0f;
+            p.dist.preLoShelfHz  =  140.0f; p.dist.preLoShelfDb  =  6.0f;
+            p.dist.preHiShelfHz  = 6000.0f; p.dist.preHiShelfDb  = -4.0f;
+            p.dist.postLoShelfHz =   90.0f; p.dist.postLoShelfDb = -3.0f;
+            p.dist.postHiShelfHz = 9000.0f; p.dist.postHiShelfDb =  5.0f;
+
+            // Variant: the oversampling factor. Rebuilding the oversampler
+            // cannot be crossfaded, and it changes the reported latency.
+            p.dist.oversample = vB ? 3 : (vA ? 2 : 1);   // off -> 2x -> 4x
+            break;
+        }
+
+        case Id::FxEq:
+        {
+            p.eq[0].bypass = off ? 1 : 0;
+
+            p.eq[0].shape[0] = 1;                                   // low cut
+            p.eq[0].freqHz[0] = 60.0f;  p.eq[0].slope[0] = 0.9f;
+
+            p.eq[0].shape[1] = 2;                                   // low shelf
+            p.eq[0].freqHz[1] = 220.0f; p.eq[0].gainDb[1] = -6.0f; p.eq[0].slope[1] = 0.6f;
+
+            p.eq[0].shape[2] = 3;                                   // swept peak
+            p.eq[0].freqHz[2] = fx::sweep (tick, 0.29, 0.0, 400.0f, 3000.0f);
+            p.eq[0].gainDb[2] = fx::sweep (tick, 0.19, 1.9, -12.0f,  12.0f);
+            p.eq[0].q[2]      = fx::sweep (tick, 0.13, 0.4,   0.4f,   6.0f);
+
+            // The EQ has no variantPending — a band that changes SHAPE is its
+            // equivalent, and the bank has to redesign rather than interpolate.
+            p.eq[0].shape[3] = vA ? 5 : 3;                          // peak -> high shelf
+            p.eq[0].freqHz[3] = 3500.0f; p.eq[0].gainDb[3] = 5.0f; p.eq[0].q[3] = 1.2f;
+
+            p.eq[0].shape[4] = 7;                                   // all pass
+            p.eq[0].freqHz[4] = 1200.0f; p.eq[0].q[4] = 0.8f;
+
+            p.eq[0].shape[5] = vB ? 3 : 6;                          // high cut -> peak
+            p.eq[0].freqHz[5] = 9000.0f; p.eq[0].gainDb[5] = -8.0f;
+            p.eq[0].q[5] = 1.5f; p.eq[0].slope[5] = 0.8f;
+            break;
+        }
+
+        case Id::FxDyn:
+        {
+            p.dyn[0].bypass = off ? 1 : 0;
+            p.dyn[0].compOn = 1;
+            p.dyn[0].expOn  = (tick >= 60) ? 1 : 0;   // switch-on edge clears the stage
+
+            p.dyn[0].compThresholdDb = fx::sweep (tick, 0.21, 0.0, -40.0f, -6.0f);
+            p.dyn[0].compRatio       = fx::sweep (tick, 0.13, 1.4,   1.5f, 20.0f);
+            p.dyn[0].compAttackMs    = fx::sweep (tick, 0.09, 2.2,   0.5f, 60.0f);
+            p.dyn[0].compKneeDb      = 6.0f;
+            p.dyn[0].compReleaseMs   = 120.0f;
+            p.dyn[0].compDetectorDelayMs = 2.0f;      // transient pass, not lookahead
+            p.dyn[0].compScLoCutHz = 80.0f;
+            p.dyn[0].compScHiCutHz = 8000.0f;
+
+            p.dyn[0].autoMakeup = (tick >= 40) ? 1 : 0;
+            p.dyn[0].makeupDb = 2.0f;
+
+            p.dyn[0].expThresholdDb = -38.0f;
+            p.dyn[0].expRatio = 3.0f;
+            p.dyn[0].expRangeDb = -30.0f;
+            p.dyn[0].expAttackMs = 5.0f;
+            p.dyn[0].expReleaseMs = 80.0f;
+            p.dyn[0].expHoldMs = 15.0f;
+            p.dyn[0].expScLoCutHz = 60.0f;
+            p.dyn[0].expScHiCutHz = 9000.0f;
+
+            // Two variants, both needing silence: the detector mode rebuilds
+            // the followers, the lookahead re-times the audio delay line.
+            p.dyn[0].detector    = vA ? 1 : 0;        // peak -> RMS
+            p.dyn[0].lookaheadMs = vB ? 5.0f : 1.0f;
+            break;
+        }
+
+        case Id::FxMod:
+        {
+            p.mod.bypass = off ? 1 : 0;
+            p.mod.rateHz   = fx::sweep (tick, 0.11, 0.0,   0.2f,  3.0f);
+            p.mod.depth    = fx::sweep (tick, 0.17, 1.3,  15.0f, 90.0f);
+            p.mod.delayMs  = fx::sweep (tick, 0.07, 2.6,   4.0f, 25.0f);
+            p.mod.feedback = fx::sweep (tick, 0.23, 0.9, -60.0f, 60.0f);
+            p.mod.mix      = fx::sweep (tick, 0.29, 1.8,  25.0f, 85.0f);
+            p.mod.phaseDeg = 120.0f;
+            p.mod.loCutHz  = 120.0f;
+            p.mod.shape    = (tick >= 60) ? 2 : 1;    // LFO waveform, no silence needed
+
+            // Variants: the voice count and through-zero both change topology.
+            p.mod.voices      = vA ? 3 : 2;           // kMaxVoices is 3
+            p.mod.throughZero = vB ? 1 : 0;
+            break;
+        }
+
+        case Id::FxPhaser:
+        {
+            p.phaser.bypass = off ? 1 : 0;
+            p.phaser.centreHz  = fx::sweep (tick, 0.13, 0.0, 200.0f, 3000.0f);
+            p.phaser.spreadOct = fx::sweep (tick, 0.07, 1.5,   0.2f,    2.5f);
+            p.phaser.rateHz    = fx::sweep (tick, 0.19, 2.4,   0.1f,    2.0f);
+            p.phaser.depthOct  = fx::sweep (tick, 0.11, 0.6,   0.5f,    3.5f);
+            p.phaser.feedback  = fx::sweep (tick, 0.23, 1.1, -80.0f,   80.0f);
+            p.phaser.mix       = fx::sweep (tick, 0.29, 3.0,  30.0f,   90.0f);
+            p.phaser.shape     = (tick >= 60) ? 3 : 1;
+
+            // Variant: the stage count (4, 6, 8 or 12 are the legal values).
+            p.phaser.stages = vB ? 4 : (vA ? 12 : 6);
+            break;
+        }
+
+        case Id::FxTrem:
+        {
+            // No variant parameter exists on this module; the bypass toggle and
+            // the sweeps are its whole surface.
+            p.trem.bypass = off ? 1 : 0;
+            p.trem.rateHz  = fx::sweep (tick, 0.13, 0.0,  1.0f,  12.0f);
+            p.trem.depthDb = fx::sweep (tick, 0.09, 1.7,  3.0f,  24.0f);
+            p.trem.shape   = fx::sweep (tick, 0.05, 2.9,  0.0f,   1.0f);   // sine <-> triangle
+            p.trem.mix     = fx::sweep (tick, 0.21, 0.8, 40.0f, 100.0f);
+            break;
+        }
+
+        case Id::FxReverb:
+        {
+            p.reverb.bypass = off ? 1 : 0;
+            p.reverb.predelayMs = fx::sweep (tick, 0.07, 0.0,    0.0f,    60.0f);
+            p.reverb.rt60       = fx::sweep (tick, 0.11, 1.2,    0.6f,     4.0f);
+            p.reverb.diffusion  = fx::sweep (tick, 0.17, 2.1,    0.0f,     1.0f);
+            p.reverb.toneHz     = fx::sweep (tick, 0.13, 0.5, 2000.0f, 16000.0f);
+            p.reverb.mix        = fx::sweep (tick, 0.23, 1.6,   20.0f,    80.0f);
+            p.reverb.rt60LowMult   = 1.6f;
+            p.reverb.rt60HighMult  = 0.35f;
+            p.reverb.crossoverLow  = 180.0f;
+            p.reverb.crossoverHigh = 3500.0f;
+
+            // Variant: the size rebuilds the FDN network, which is why it is
+            // committed at silence rather than glided.
+            p.reverb.size = vB ? 0.75f : (vA ? 1.75f : 1.0f);
+            break;
+        }
+
+        case Id::FxDelay:
+        {
+            p.delay.bypass = off ? 1 : 0;
+            p.delay.timeMs      = fx::sweep (tick, 0.09, 0.0, 40.0f, 400.0f);
+            p.delay.feedback    = fx::sweep (tick, 0.13, 1.4, 10.0f,  70.0f);
+            p.delay.mix         = fx::sweep (tick, 0.19, 2.2, 20.0f,  80.0f);
+            p.delay.diffusion   = fx::sweep (tick, 0.07, 0.9,  0.0f,   1.0f);
+            p.delay.modDepthPct = fx::sweep (tick, 0.11, 1.1,  0.0f,  30.0f);
+            p.delay.modRateHz = 0.6f;
+            p.delay.inLoCutHz = 90.0f;
+            p.delay.fbLoShelfHz = 250.0f;  p.delay.fbLoShelfDb =  4.0f;
+            p.delay.fbHiShelfHz = 3500.0f; p.delay.fbHiShelfDb = -8.0f;
+            p.delay.glideMs = 120.0f;
+
+            // Manual tap times, used once tapMode switches away from the
+            // pattern generator below.
+            const float manual[8] = { 55.0f, 130.0f, 240.0f, 390.0f,
+                                      570.0f, 780.0f, 1020.0f, 1290.0f };
+            for (int k = 0; k < 8; ++k)
+            {
+                p.delay.tapTimeMs[k]  = manual[k];
+                p.delay.tapLevelDb[k] = -2.0f * static_cast<float> (k);
+            }
+
+            // This module reports no variant — every discrete edit glides
+            // instead (tap gains fade, the feedback tap crossfades), which is
+            // exactly the behaviour worth having in a hash.
+            p.delay.taps        = vA ? 5 : 3;
+            p.delay.pattern     = (tick >= 60) ? 2 : 0;
+            p.delay.tapMode     = vB ? 0 : 1;             // pattern -> manual
+            p.delay.feedbackTap = (tick >= 85) ? 2 : 0;
+            break;
+        }
+
+        case Id::FxCrush:
+        {
+            p.crush.bypass = off ? 1 : 0;
+            p.crush.bits   = fx::sweep (tick, 0.11, 0.0,    3.0f,    14.0f);
+            p.crush.rateHz = fx::sweep (tick, 0.17, 1.9, 2000.0f, 20000.0f);
+            p.crush.mix    = fx::sweep (tick, 0.23, 0.6,   40.0f,   100.0f);
+
+            // -96 dB is the documented "off"; crossing it turns the keyed
+            // dither noise on, which is this module's only stochastic element.
+            p.crush.ditherDb = (tick >= 40) ? -60.0f : -96.0f;
+
+            // Variant: the decimation filter (hold/aliasing vs anti-aliased),
+            // switched on at A and back off at B.
+            p.crush.filter = (vA && ! vB) ? 1 : 0;
+            break;
+        }
+
+        case Id::FxChain:
+        {
+            // Every slot live, at settings that stay well behaved when eleven
+            // of them are stacked. The point of this scenario is the CHAIN —
+            // order, bypass, mute — not a second pass at each module's own
+            // extremes, so only three parameters sweep.
+            p.dist.bypass = 0; p.dist.oversample = 2; p.dist.shape = 0.8f;
+            p.dist.outputDb = -8.0f; p.dist.mix = 60.0f;
+            p.dist.driveDb = fx::sweep (tick, 0.07, 1.3, 6.0f, 18.0f);
+
+            p.eq[0].bypass = 0;
+            p.eq[0].shape[2] = 3; p.eq[0].freqHz[2] = 900.0f; p.eq[0].gainDb[2] = 4.0f;
+
+            // eq2: the second EQ instance, bypassed for one window so its slot
+            // fades out, resets at silence and fades back in (see fx::kChainEq2*).
+            p.eq[1].bypass = (tick >= fx::kChainEq2BypassOn
+                              && tick < fx::kChainEq2BypassOff) ? 1 : 0;
+            p.eq[1].shape[3] = 3; p.eq[1].freqHz[3] = 2600.0f; p.eq[1].gainDb[3] = -5.0f;
+
+            p.dyn[0].bypass = 0; p.dyn[0].compOn = 1; p.dyn[0].expOn = 0;
+            p.dyn[0].compThresholdDb = -18.0f; p.dyn[0].compRatio = 4.0f;
+            p.dyn[0].compAttackMs = 8.0f; p.dyn[0].compReleaseMs = 120.0f;
+            p.dyn[0].autoMakeup = 1;
+
+            // dyn2: the second dynamics instance, the only slot in the harness
+            // that gets BOTH a bypass window and a variant commit inside the
+            // chain — the detector mode rebuilds the followers, so it cannot be
+            // interpolated and has to be taken at silence.
+            p.dyn[1].bypass = (tick >= fx::kChainDyn2BypassOn
+                               && tick < fx::kChainDyn2BypassOff) ? 1 : 0;
+            p.dyn[1].compOn = 0; p.dyn[1].expOn = 1;
+            p.dyn[1].expThresholdDb = -45.0f; p.dyn[1].expRatio = 2.5f;
+            p.dyn[1].expRangeDb = -24.0f;
+            p.dyn[1].detector = (tick >= fx::kChainDyn2Variant) ? 1 : 0;   // peak -> RMS
+
+            p.mod.bypass = 0; p.mod.rateHz = 0.7f; p.mod.depth = 40.0f;
+            p.mod.delayMs = 12.0f; p.mod.feedback = 25.0f; p.mod.mix = 40.0f;
+
+            p.phaser.bypass = 0; p.phaser.rateHz = 0.4f; p.phaser.stages = 8;
+            p.phaser.centreHz = 700.0f; p.phaser.depthOct = 2.0f;
+            p.phaser.feedback = 35.0f; p.phaser.mix = 45.0f;
+
+            p.trem.bypass = 0; p.trem.depthDb = 6.0f; p.trem.mix = 70.0f;
+            p.trem.rateHz = fx::sweep (tick, 0.11, 0.0, 2.0f, 8.0f);
+
+            p.reverb.bypass = 0; p.reverb.predelayMs = 18.0f; p.reverb.rt60 = 2.2f;
+            p.reverb.diffusion = 0.6f; p.reverb.toneHz = 9000.0f; p.reverb.size = 1.25f;
+            p.reverb.mix = fx::sweep (tick, 0.09, 2.1, 10.0f, 50.0f);
+
+            p.delay.bypass = 0; p.delay.taps = 3; p.delay.timeMs = 220.0f;
+            p.delay.feedback = 35.0f; p.delay.mix = 30.0f; p.delay.fbHiShelfDb = -6.0f;
+
+            p.crush.bypass = 0; p.crush.bits = 10.0f; p.crush.rateHz = 16000.0f;
+            p.crush.mix = 35.0f;
+
+            //---- the part no unit test can cover at render scale -------------
+            // Three reorders, one of them (C) inside the chain-bypass window,
+            // so BOTH swap paths are in the hash: the muted swap at a block
+            // boundary, and the "silent anyway, just take it" branch.
+            const char* order = fx::kOrderDefault;
+            if (tick >= 70)      order = fx::kOrderD;
+            else if (tick >= 58) order = fx::kOrderC;
+            else if (tick >= 40) order = fx::kOrderB;
+            (void) parseChainOrder (order, p.order);
+
+            p.chainBypass = (tick >= 55 && tick < 65) ? 1 : 0;
+            p.mute        = (tick >= 90 && tick < 96) ? 1 : 0;
+            break;
+        }
+
+        case Id::Static:
+        case Id::Moving:
+        case Id::FrToggle:
+        case Id::Stereo:
+        case Id::StereoNull:
+        case Id::StereoNullMono:
+            break;   // not effects scenarios: every module stays bypassed
+    }
+
+    return p;
+}
+
+/** The chain scenario's order strings are data, and a typo in one of them
+    would silently leave the default order running (parseChainOrder refuses a
+    whole string rather than half-applying it) — which would quietly turn the
+    reorder gate into no gate at all. Checked once before the render.
+
+    Returns an EMPTY string when the data is sound, otherwise the reason —
+    naming the offending string and what is actually wrong with it. The three
+    failures are different bugs with the same symptom (an inert reorder gate),
+    so a caller that prints only "does not parse" sends whoever reads it
+    hunting for a typo that may not exist. */
+inline std::string effectsSelfTestFailure()
+{
+    using namespace spatcore::effects;
+
+    const char* const names[4]   = { "kOrderDefault", "kOrderB", "kOrderC", "kOrderD" };
+    const char* const strings[4] = { fx::kOrderDefault, fx::kOrderB,
+                                     fx::kOrderC, fx::kOrderD };
+    ChainOrder o[4];
+
+    for (int i = 0; i < 4; ++i)
+    {
+        o[i] = kDefaultOrder;
+
+        if (! parseChainOrder (strings[i], o[i]))
+            return std::string ("fx::") + names[i] + " does not parse — \""
+                   + strings[i] + "\"";
+
+        if (! isValidChainOrder (o[i]))
+            return std::string ("fx::") + names[i]
+                   + " parses but is not a valid permutation of the slots — \""
+                   + strings[i] + "\"";
+    }
+
+    if (o[0] != kDefaultOrder)
+        return "fx::kOrderDefault is not the shipped default order, so the "
+               "chain scenario does not start where it claims to";
+
+    for (int i = 1; i < 4; ++i)
+    {
+        if (o[i] == kDefaultOrder)
+            return std::string ("fx::") + names[i]
+                   + " is equal to the default order, so that reorder reorders nothing";
+
+        for (int j = i + 1; j < 4; ++j)
+            if (o[i] == o[j])
+                return std::string ("fx::") + names[i] + " and fx::" + names[j]
+                       + " are the same order, so one of the two reorders is a no-op";
+    }
+
+    return {};
 }
 
 } // namespace scenario

@@ -1,0 +1,21 @@
+{
+  "comment": "fx_dynamics, compressor only. Xratio = 1 takes the expander out of the comparison, because plan section 5.13 defect P3 makes the prototype's expander realise 2 - 1/R and no inlet value fixes that. CscHiFreq and XscHiFreq are 20000 and NOT the gen~ default of 20 - defect P4, a stale hiShelf label, which at 20 Hz mutes the detector entirely. Cattack/Crelease are mapped by intent; the prototype wires them the other way round, so set options.dynMatchProtoTimeWiring true if you want the two envelopes to match instead.",
+  "patch": "fx_dynamics",
+  "options": { "dynMatchProtoTimeWiring": false },
+  "prototype": {
+    "Cthreshold": -20.0,
+    "Cratio": 4.0,
+    "Cattack": 10.0,
+    "Crelease": 100.0,
+    "CscLoFreq": 20.0,
+    "CscHiFreq": 20000.0,
+    "CdetectionDelay": 0.0,
+    "Xthreshold": -50.0,
+    "Xratio": 1.0,
+    "Xattack": 10.0,
+    "Xrelease": 100.0,
+    "XscLoFreq": 20.0,
+    "XscHiFreq": 20000.0,
+    "gain": 0.0
+  }
+}

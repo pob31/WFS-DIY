@@ -1,0 +1,10 @@
+{
+  "comment": "fx_tremolo at 4 Hz, 12 dB, pure cosine leg, fully wet. NOTE drywet here is a WET FRACTION 0..1, not a per cent and not a dry per cent - fx_tremolo is the one patch that does its own dry/wet arithmetic. Expect a large residual whatever you do: the prototype's wet leg is in*w*(g-1) and ours is in*w*g. Read the modRate metric.",
+  "patch": "fx_tremolo",
+  "prototype": {
+    "freq": 4.0,
+    "waveform": 0.0,
+    "depth": 12.0,
+    "drywet": 1.0
+  }
+}

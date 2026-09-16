@@ -1,0 +1,15 @@
+{
+  "comment": "fx_chorus, one line only. delaytime1 is in SAMPLES: 720 at 48 kHz is 15 ms, so render the Max side at 48 kHz or the two are different delays. delaytime2onOff = 0 keeps the prototype's second line out (we have no counterpart, and the render is refused if you switch it on). feedbackPolarity = 0 because the prototype's feedback coefficient is exactly +-1 and ours clamps at +-0.95. drywet is a DRY per cent.",
+  "patch": "fx_chorus",
+  "prototype": {
+    "delaytime1": 720.0,
+    "delaytime2": 0.0,
+    "delaytime2onOff": 0.0,
+    "delaytime2LFO": 0.0,
+    "LFOspeed": 0.8,
+    "LFOamount": 30.0,
+    "feedbackPolarity": 0.0,
+    "loCutFreq": 20.0,
+    "drywet": 50.0
+  }
+}
