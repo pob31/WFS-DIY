@@ -497,8 +497,10 @@ bool WFSFileManager::loadCompleteConfig()
         DBG ("  FAILED: Reverbs - " << lastError);
     }
 
-    // A false here would take the latch at the tail of this function down with
-    // it, which is exactly why an absent effects.xml returns TRUE. See
+    // An absent effects.xml returns TRUE, so this does not fail a project that
+    // predates the family. A false would show a load error on the first open of
+    // every existing show (and would take the latch at the tail of this function
+    // with it, though applyConfigSection has already latched by then). See
     // loadEffectsConfig.
     if (!loadEffectsConfig())
     {
@@ -1180,17 +1182,22 @@ bool WFSFileManager::loadEffectsConfig()
 
     // THE DIVERGENCE, and the only place it may live. A project saved before
     // this family existed has no effects.xml, and that is not a failure: it is
-    // a show with no effects. Returning false here would (a) surface a
-    // user-visible load error on the first open of every existing show and
-    // (b) - far worse - clear `success` in loadCompleteConfig, which gates
-    // valueTreeState.markChannelNumbersUserOwned() on it, leaving the session
-    // unlatched and free to renumber the channel list out from under every
-    // snapshot, QLab cue, plug-in lane and MCP reference that names a channel.
+    // a show with no effects. Returning false here would surface a user-visible
+    // load error on the first open of every existing show - that is the cost,
+    // and it is enough on its own.
+    //
+    // It would ALSO clear `success` in loadCompleteConfig and so skip the
+    // markChannelNumbersUserOwned at its tail, but that is the belt and not the
+    // braces: applyConfigSection calls markChannelNumbersUserOwned
+    // unconditionally at its top, so every project that has a system.xml with a
+    // <Config> - every project this application has ever written - is latched
+    // well before this function is reached. Do not read the tail latch as the
+    // reason for the divergence; the load error is.
     //
     // Nothing is touched in this branch - in particular NOT setNumEffectChannels(0):
-    // applyConfigSection has already merged system.xml by the time this runs, so
-    // <IO>/effectChannels may legitimately name a count, and forcing zero would
-    // destroy what the config section just restored.
+    // applyConfigSection has already BUILT the family from <IO>/effectChannels by
+    // the time this runs, so zeroing here would delete channels the config
+    // section just materialised.
     auto file = getEffectsConfigFile();
     if (! file.existsAsFile())
     {
@@ -3135,6 +3142,7 @@ bool WFSFileManager::applyConfigSection (const juce::ValueTree& configTree)
         int inputCount = ioSection.getProperty (inputChannels, 0);
         int outputCount = ioSection.getProperty (outputChannels, 0);
         int reverbCount = ioSection.getProperty (reverbChannels, 0);
+        int effectCount = ioSection.getProperty (effectChannels, 0);
 
         // The merge copies children too, so the inventory rode in with it —
         // evict it again. Runtime state is the <Input> nodes; keeping a second
@@ -3167,6 +3175,33 @@ bool WFSFileManager::applyConfigSection (const juce::ValueTree& configTree)
 
         valueTreeState.setNumOutputChannels (outputCount);
         valueTreeState.setNumReverbChannels (reverbCount);
+
+        // Effects, on the SAME rule as the three above and for the same reason:
+        // <IO>/effectChannels is the config section's description of how many
+        // channels this show has, and until the family is built from it the
+        // number describes nothing. Two consequences, both of them real:
+        //
+        //  - the count could disagree with the child list and nothing re-synced
+        //    it. A system.xml naming four effect channels beside a project with
+        //    no effects.xml (a "Load System Config" on its own does exactly
+        //    that, and so does the exit auto-save, which writes system.xml
+        //    alone) left <IO>/effectChannels saying four while <Effects> stayed
+        //    empty, and the pair persisted across every later save.
+        //  - the per-family merge had no template to land on. Every other
+        //    family reaches its apply*Section with its channels already built,
+        //    so mergeTreeRecursive merges the file ONTO a schema-complete node
+        //    and a property the file lacks keeps its default. Effects alone
+        //    started at zero, so every <Effect> in the file was appended
+        //    VERBATIM - an older or hand-edited file became a live channel
+        //    missing whatever it did not carry, and setEffectParameter only
+        //    writes where some child already hasProperty(), so the missing
+        //    parameter was a silent no-op for the life of the show.
+        //
+        // Zero on an old system.xml that has no effectChannels attribute at all,
+        // which is a no-op: the family is already empty. applyEffectsSection
+        // still re-syncs afterwards, because a file holding MORE <Effect> nodes
+        // than this count grows the list past it.
+        valueTreeState.setNumEffectChannels (effectCount);
     }
 
     // The channel list has settled, so slots mean what the file meant. This
@@ -3369,6 +3404,19 @@ bool WFSFileManager::applyEffectsSection (const juce::ValueTree& effectsTree)
         return false;
 
     mergeTreeRecursive (existingEffects, effectsTree, valueTreeState.getUndoManager());
+
+    // THE OTHER DIRECTION, and it has to run here rather than only in
+    // ensureCompleteSchema, which this path never reaches (it runs from
+    // replaceState alone). applyConfigSection now builds the family from
+    // <IO>/effectChannels, so the common case merges onto a schema-complete
+    // channel - but mergeTreeRecursive APPENDS any <Effect> the file holds
+    // beyond that count verbatim, and a file written by an older schema is
+    // short of whatever that schema lacked. Either way the channel would go
+    // live half-built, and setEffectParameter writes only where some child
+    // already hasProperty(), so every later write of the absent parameter would
+    // be a silent no-op for the life of the show. Stamp the template's missing
+    // names on before the count is published.
+    valueTreeState.backfillEffectChannelsFromTemplate();
 
     // The merge carries every attribute the file has, including ones this schema
     // no longer declares. mergeTreeRecursive and backfillFromTemplate both only

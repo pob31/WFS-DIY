@@ -4827,12 +4827,45 @@ void MainComponent::runChannelListSelfTest()
         // family existed. It must open with SUCCESS, with the family present, and
         // it must latch the channel numbers, which loadCompleteConfig does only
         // when every section reported success.
+        //
+        // Deleting effects.xml is NOT enough to make the folder look old: this
+        // version's system.xml still carries effectChannels, effectsMapVisible
+        // and <EffectsGlobal>, none of which a pre-effects save ever wrote. The
+        // case that matters is all four absent together, so strip the three as
+        // well - otherwise this gate passes on a folder no existing show
+        // resembles.
         {
             vts.setNumEffectChannels(0);
             check(fm.saveCompleteConfig(), "X7: save a complete project");
             check(effectsFile().existsAsFile(), "X7: the save wrote effects.xml");
 
-            check(effectsFile().deleteFile(), "X7: delete it - now the folder looks like every project ever saved");
+            check(effectsFile().deleteFile(), "X7: delete effects.xml");
+
+            const auto systemFile = fm.getSystemConfigFile();
+            if (auto sys = juce::XmlDocument::parse(systemFile))
+            {
+                if (auto* cfg = sys->getChildByName("Config"))
+                {
+                    if (auto* io = cfg->getChildByName("IO"))
+                        io->removeAttribute(P::effectChannels);
+                    if (auto* master = cfg->getChildByName("Master"))
+                        master->removeAttribute(P::effectsMapVisible);
+                    cfg->removeChildElement(cfg->getChildByName(P::EffectsGlobal.toString()), true);
+                }
+                check(sys->writeTo(systemFile),
+                      "X7: strip system.xml of all three things this version added - NOW the "
+                      "folder looks like every project ever saved");
+            }
+            else
+            {
+                check(false, "X7: system.xml parses");
+            }
+
+            const juce::String preEffects = systemFile.loadFileAsString();
+            check(! preEffects.contains("effectChannels") && ! preEffects.contains("effectsMapVisible")
+                      && ! preEffects.contains("EffectsGlobal"),
+                  "X7: the pre-effects system.xml names none of the three");
+
             fm.clearError();
             check(fm.loadCompleteConfig(), "X7: a project with no effects.xml loads with SUCCESS");
             check(fm.getLastError().isEmpty(), "X7: ...and reports no error");
@@ -4843,6 +4876,121 @@ void MainComponent::runChannelListSelfTest()
 
             check(fm.saveCompleteConfig(), "X7: save the project again");
             check(effectsFile().existsAsFile(), "X7: effects.xml is back");
+            const juce::String upgraded = systemFile.loadFileAsString();
+            check(upgraded.contains("effectChannels") && upgraded.contains("EffectsGlobal"),
+                  "X7: ...and one save upgrades the old show to this version's baseline");
+        }
+
+        // X8: THE COUNT MAY NOT LIE. <IO>/effectChannels is the config section's
+        // statement of how many effect channels the show has, and every other
+        // family is BUILT from its equivalent by applyConfigSection before its
+        // own file is merged. Effects were not, so a system.xml naming four
+        // beside a project with no effects.xml - which is exactly what "Load
+        // System Config" on its own leaves behind, and what the exit auto-save
+        // writes, since that saves system.xml alone - produced a session
+        // claiming four channels with none in the tree, and the two stayed at
+        // odds through every later save. The load has to materialise them.
+        {
+            vts.setNumEffectChannels(4);
+            check(fm.saveCompleteConfig(), "X8: save a four-channel project");
+            check(effectsFile().deleteFile(),
+                  "X8: delete effects.xml, leaving system.xml alone to say four");
+
+            vts.setNumEffectChannels(0);
+            check(vts.getNumEffectChannels() == 0, "X8: the session is emptied first");
+
+            fm.clearError();
+            check(fm.loadCompleteConfig(), "X8: it loads with SUCCESS");
+            check(fm.getLastError().isEmpty(), "X8: ...and reports no error");
+            verifyFamily("X8 (count from system.xml, no effects.xml)", 4);
+            reconfig();
+
+            check(fm.saveCompleteConfig(), "X8: save it back");
+            check(occurrences(effectsFile().loadFileAsString(), "<Effect ") == 4,
+                  "X8: the regenerated effects.xml holds the four channels the count promised");
+        }
+
+        // X9: A FILE SHORT OF THE SCHEMA IS COMPLETED, not accepted half-built.
+        // mergeTreeRecursive appends an <Effect> the session does not have
+        // VERBATIM and adds nothing to it, so without the template backfill on
+        // this path an older or hand-edited file went live missing whatever it
+        // did not carry - and setEffectParameter writes only where some child
+        // already hasProperty(), which would make every later GUI/OSC/MCP write
+        // of the absent parameter a silent no-op for the life of that show.
+        // Planted at three depths, plus a channel that is nothing but an id.
+        {
+            vts.setNumEffectChannels(2);
+            check(fm.saveEffectsConfig(), "X9: save two channels");
+
+            if (auto doc = juce::XmlDocument::parse(effectsFile()))
+            {
+                auto* effectsEl = doc->getChildByName(P::Effects.toString());
+                auto* first = effectsEl != nullptr ? effectsEl->getChildByName(P::Effect.toString())
+                                                   : nullptr;
+                check(first != nullptr, "X9: the saved file holds an <Effect>");
+
+                if (first != nullptr)
+                {
+                    // A whole module node, one band of the SECOND EQ instance,
+                    // and a single property of <Channel>.
+                    first->removeChildElement(first->getChildByName(P::FxCrush.toString()), true);
+                    if (auto* eq2 = first->getChildByName(P::FxEq2.toString()))
+                        eq2->removeChildElement(eq2->getChildElement(D::numEffectEQBands - 1), true);
+                    if (auto* channel = first->getChildByName(P::Channel.toString()))
+                    {
+                        channel->removeAttribute(P::effectMute);
+
+                        // Values the file DOES carry, distinct from every
+                        // default: a backfill that overwrote instead of filling
+                        // in would reset them, and not one shape assertion in
+                        // this phase would notice.
+                        channel->setAttribute(P::effectName, "Alpha");
+                        channel->setAttribute(P::effectAttenuation, -12.5);
+                    }
+                    if (auto* position = first->getChildByName(P::Position.toString()))
+                        position->setAttribute(P::effectPositionX, 1.25);
+                }
+
+                if (effectsEl != nullptr)
+                {
+                    // ...and a third channel beyond the count, so the merge
+                    // appends it and nothing ever built it.
+                    effectsEl->createNewChildElement(P::Effect.toString())->setAttribute(P::id, 3);
+                    check(doc->writeTo(effectsFile()), "X9: write the short file back");
+                }
+            }
+            else
+            {
+                check(false, "X9: the saved file parses");
+            }
+
+            check(occurrences(effectsFile().loadFileAsString(), "<FxCrush") == 1,
+                  "X9: the file is one <FxCrush> short of the channels it describes");
+
+            vts.setNumEffectChannels(0);
+            check(fm.loadEffectsConfig(), "X9: load the short file");
+            verifyFamily("X9 (short file completed from the template)", 3);
+
+            auto shortChannel = vts.getEffectChannelSection(0);
+            check(shortChannel.hasProperty(P::effectMute),
+                  "X9: the missing <Channel> property is back");
+            check(static_cast<int>(shortChannel.getProperty(P::effectMute, -1))
+                      == static_cast<int>(D::effectMuteDefault),
+                  "X9: ...at its DEFAULT, not at a neighbour's value");
+
+            // The other half of "backfill", and the half no shape assertion can
+            // see: what the file DID carry has to come through untouched.
+            check(shortChannel.getProperty(P::effectName).toString() == "Alpha",
+                  "X9: a string the short file carried is not overwritten by the template");
+            check(std::abs(static_cast<double>(shortChannel.getProperty(P::effectAttenuation)) + 12.5) < 1.0e-6,
+                  "X9: ...nor is a float");
+            check(std::abs(static_cast<double>(vts.getEffectPositionSection(0)
+                                                   .getProperty(P::effectPositionX)) - 1.25) < 1.0e-6,
+                  "X9: ...nor one a node deeper, where the ring default would have landed");
+
+            check(fm.saveEffectsConfig(), "X9: save it again");
+            check(occurrences(effectsFile().loadFileAsString(), "<FxCrush") == 3,
+                  "X9: and the completed shape is what goes back to disk");
         }
 
         // Leave nothing behind: the folder, and the count this phase raised.

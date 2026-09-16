@@ -252,10 +252,16 @@ public:
     // effects.xml is SUCCESS. Every project this application has ever saved
     // predates the family, so a loader that copied importReverbConfig's
     // "missing file == false" would report a load failure on the first open of
-    // every existing show - and worse, loadCompleteConfig gates
-    // markChannelNumbersUserOwned on success, so that failure would leave every
-    // one of those sessions UNLATCHED and free to renumber the channel list out
-    // from under its snapshots, cues and automation lanes.
+    // every existing show. That is the cost that is always real.
+    //
+    // The second-order one is smaller than it looks, and is written down here
+    // because the obvious reading of loadCompleteConfig overstates it: a false
+    // would also clear `success` there and skip the markChannelNumbersUserOwned
+    // at its tail. But applyConfigSection calls markChannelNumbersUserOwned
+    // UNCONDITIONALLY at its top, before any per-family file is touched, so any
+    // project carrying a system.xml with a <Config> in it - every project this
+    // application has ever written - is already latched by the time the effects
+    // file is read. The tail latch is the belt to that brace, not the only one.
     //
     // The exists() test therefore lives in loadEffectsConfig (and the
     // empty-backup-set test in loadEffectsConfigBackup), never in
@@ -268,10 +274,10 @@ public:
     /** Load effects configuration from project folder.
 
         Returns TRUE when the project has no effects.xml at all, leaving the
-        family exactly as initializeDefaultState / ensureCompleteSchema built it
-        (do NOT force the count to zero here: applyConfigSection has already
-        merged system.xml's effectChannels by the time this runs). A file that
-        IS there and cannot be read, or carries no <Effects>, is an error. */
+        family exactly as applyConfigSection built it from <IO>/effectChannels -
+        do NOT force the count to zero here, because that count has by now been
+        MATERIALISED into real channels and zeroing it would delete them. A file
+        that IS there and cannot be read, or carries no <Effects>, is an error. */
     bool loadEffectsConfig();
 
     /** Load effects configuration from backup. An empty backup set is SUCCESS,

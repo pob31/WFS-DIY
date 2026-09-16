@@ -3828,35 +3828,42 @@ void WFSValueTreeState::ensureCompleteSchema()
     // life of the session. (The reverb branch has the same latent gap.)
     auto effects = state.getChildWithName (Effects);
     if (! effects.isValid())
-    {
         createEffectsSection();
-    }
     else
+        backfillEffectChannelsFromTemplate();
+}
+
+void WFSValueTreeState::backfillEffectChannelsFromTemplate()
+{
+    juce::UndoManager* um = nullptr;  // schema back-fill is not an undoable user edit
+
+    auto effects = getEffectsState();
+    if (! effects.isValid())
+        return;
+
+    // Count first, so each per-channel template is built for the count the
+    // finished set has and the ring the backfill would stamp matches the one
+    // the channels are already on.
+    const int effectCount = getNumEffectChannels();
+
+    int fxIdx = 0;
+    for (int i = 0; i < effects.getNumChildren(); ++i)
     {
-        // Count first, so each per-channel template is built for the count the
-        // finished set has and the ring the backfill would stamp matches the one
-        // the channels are already on.
-        const int effectCount = getNumEffectChannels();
-
-        int fxIdx = 0;
-        for (int i = 0; i < effects.getNumChildren(); ++i)
-        {
-            auto child = effects.getChild (i);
-            if (! child.hasType (Effect))
-                continue;
-            auto tmpl = createDefaultEffectChannel (fxIdx++, effectCount);
-            backfillFromTemplate (child, tmpl, um);
-        }
-
-        // Container properties, if the file predates either of them. `count` is
-        // bookkeeping (getNumEffectChannels counts children), and the ownership
-        // latch defaults to "not owned" so an older file still gets its returns
-        // laid out on a count change.
-        if (! effects.hasProperty (count))
-            effects.setProperty (count, effectCount, um);
-        if (! effects.hasProperty (effectPositionsUserOwned))
-            effects.setProperty (effectPositionsUserOwned, false, um);
+        auto child = effects.getChild (i);
+        if (! child.hasType (Effect))
+            continue;
+        auto tmpl = createDefaultEffectChannel (fxIdx++, effectCount);
+        backfillFromTemplate (child, tmpl, um);
     }
+
+    // Container properties, if the file predates either of them. `count` is
+    // bookkeeping (getNumEffectChannels counts children), and the ownership
+    // latch defaults to "not owned" so an older file still gets its returns
+    // laid out on a count change.
+    if (! effects.hasProperty (count))
+        effects.setProperty (count, effectCount, um);
+    if (! effects.hasProperty (effectPositionsUserOwned))
+        effects.setProperty (effectPositionsUserOwned, false, um);
 }
 
 void WFSValueTreeState::migrateADMOSCSection()
@@ -4247,7 +4254,12 @@ void WFSValueTreeState::stripObsoleteEffectProperties()
     // Depth-first, template-driven. A node the template does not have at all is
     // left alone rather than deleted: removing a whole subtree is a different
     // and much more destructive decision than dropping a retired attribute, and
-    // nothing has ever needed it.
+    // nothing has ever needed it. Note the consequence, which is wider than the
+    // node itself - the walk does not DESCEND into an unmatched node either, so
+    // every property under it is out of this hook's reach. Retiring a whole
+    // module type (dropping <FxTrem> from the chain, say) therefore needs a
+    // deliberate decision here, exactly as the reverb hook's hand-written list
+    // does at property granularity.
     std::function<void (juce::ValueTree&, const juce::ValueTree&)> evict =
         [&evict] (juce::ValueTree& target, const juce::ValueTree& tmpl)
     {

@@ -319,8 +319,33 @@ public:
         stamp. A runtime-only flag parked there would be evicted on the next
         load, and should live outside the persisted subtree instead.
 
+        THE LIMIT, stated so nobody has to rediscover it: this works at property
+        granularity only. A NODE the template does not have is neither deleted
+        nor descended into, so every property beneath an unrecognised node is out
+        of reach. Retiring a whole module type is a deliberate edit here, not a
+        consequence of deleting its builder.
+
         Public because WFSFileManager::applyEffectsSection is a merge path. */
     void stripObsoleteEffectProperties();
+
+    /** The eviction hook's opposite number: stamp onto every loaded <Effect>
+        whatever createDefaultEffectChannel declares and the file does not carry.
+
+        Every other family reaches its apply*Section with its channels already
+        built from the count in <IO>, so mergeTreeRecursive lands the file ONTO a
+        schema-complete node and a property the file lacks simply keeps its
+        default. Effects are built from <IO>/effectChannels too now, but the
+        merge still APPENDS any <Effect> the file holds beyond that count,
+        verbatim - and an appended half-built channel is worse than a missing
+        one: setEffectParameter only writes where some child already
+        hasProperty(), so a later GUI/OSC/MCP write of the absent parameter is a
+        silent no-op for the life of the show. This closes that on the merge path
+        the same way ensureCompleteSchema closes it on the replaceState path - it
+        IS that pass, shared by both.
+
+        ADDS only, like the schema backfill it is made of. Retired names are the
+        other direction: stripObsoleteEffectProperties, which runs beside it. */
+    void backfillEffectChannelsFromTemplate();
     juce::ValueTree getReverbEQSection (int channelIndex);
     juce::ValueTree ensureReverbEQSection (int channelIndex);  // Creates if missing
     juce::ValueTree getReverbEQBand (int channelIndex, int bandIndex);
