@@ -43,6 +43,15 @@ WRITES = [
     ("input5.colour",      "/wfs/input/colour",      [("i", 5), ("i", 3435973)]),
     ("output1.positionX",  "/wfs/output/positionX",  [("i", 1), ("f", -4.5)]),
     ("reverb1.positionX",  "/wfs/reverb/positionX",  [("i", 1), ("f", 2.25)]),
+    # Reverb pre-processing EQ, in BOTH wire forms - they take different arms
+    # of parseReverbMessage and each used to be broken in its own way. The
+    # standard form stored the band index as the value (its EQ test looked for
+    # names beginning "EQ" when every reverb name begins "preEQ"); the
+    # OSCQuery form parsed correctly and was then dropped by a band lookup
+    # that asked for a child of type "Band2" when bands are <Band id="2">.
+    # Bands are 1-based on the wire, as they already are in the MCP tools.
+    ("reverb1.preEQgain",  "/wfs/reverb/preEQgain",   [("i", 1), ("i", 2), ("f", -6.5)]),
+    ("reverb1.preEQfreq",  "/wfs/reverb/1/preEQfreq", [("i", 3), ("f", 250.0)]),
     # config-global family
     ("stage.width",        "/wfs/config/stage/width", [("f", 14.0)]),
     # cluster family: input 4 joined cluster 1 above; delta-move the cluster
@@ -78,6 +87,14 @@ EXPECTED_MUTES = {
     "input7.mutes": ["0,1,1,0,1,0,0,0,0,0,0,0,0,0,0,0"],
     "input8.mutes": ["0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0"],
 }
+
+# Values that OSCQuery cannot report: the pre-EQ descriptor publishes one
+# node for all four bands and carries no VALUE, so these are read through the
+# MCP read tool instead. (label, variable, channel_id, band, expected)
+EQ_READS = [
+    ("reverb1.preEQgain.band2", "reverbPreEQgain", 1, 2, -6.5),
+    ("reverb1.preEQfreq.band3", "reverbPreEQfreq", 1, 3, 250.0),
+]
 
 # OSCQuery read-back paths for every touched value.
 READS = [
@@ -120,7 +137,10 @@ def main() -> int:
     project = common.copy_fixture_to_temp(work_root)
 
     common.kill_stale_instances()
-    app = common.App(exe, common.fixture_wfs(project), ai_enabled=False)
+    # ai_enabled: the pre-EQ band values are read back over MCP (see
+    # EQ_READS), and the master AI toggle refuses every tool call while it is
+    # off. This driver makes no MCP writes.
+    app = common.App(exe, common.fixture_wfs(project), ai_enabled=True)
     try:
         app.wait_for_mcp()
         # OSC listening + OSCQuery both come up when network.xml is applied.
@@ -152,6 +172,17 @@ def main() -> int:
                 readbacks[label] = _round(common.oscquery_get(path))
             except Exception as exc:  # noqa: BLE001 — record, don't die
                 readbacks[label] = f"<read failed: {exc}>"
+
+        for label, variable, channel_id, band, _expected in EQ_READS:
+            try:
+                payload = common.tool_payload(app.tool("wfs_get_parameter", {
+                    "variable": variable,
+                    "channel_id": channel_id,
+                    "band": band,
+                }))
+                readbacks[label] = _round(payload.get("value"))
+            except Exception as exc:  # noqa: BLE001 — record, don't die
+                readbacks[label] = f"<read failed: {exc}>"
     finally:
         app.close()
 
@@ -172,6 +203,13 @@ def main() -> int:
         print("[osc-replay] HARD FAIL: inc delta result wrong: "
               f"{readbacks.get('input5.positionX')}", file=sys.stderr)
         ok = False
+    for label, _variable, _channel_id, band, expected in EQ_READS:
+        got = readbacks.get(label)
+        if got != expected:
+            print(f"[osc-replay] HARD FAIL: reverb pre-EQ band {band} write did "
+                  f"not land ({label}): expected {expected}, got {got}",
+                  file=sys.stderr)
+            ok = False
     for label, expected in EXPECTED_MUTES.items():
         if readbacks.get(label) != expected:
             print(f"[osc-replay] HARD FAIL: {label} is {readbacks.get(label)}, "

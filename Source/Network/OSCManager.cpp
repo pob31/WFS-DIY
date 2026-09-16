@@ -2476,20 +2476,19 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
                     ScopedIncomingProtocol incomingGuard (*this, Protocol::OSC);
                     if (oscQueryServer) oscQueryServer->beginIncomingOSC(senderIP);
                     WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Reverb);
-                    if (channelIndex >= 0)
+                    if (channelIndex >= 0
+                        && parsed.bandIndex >= 1
+                        && parsed.bandIndex <= WFSParameterDefaults::numReverbPreEQBands)
                     {
-                        auto reverbState = state.getReverbState(channelIndex);
-                        if (reverbState.isValid())
-                        {
-                            auto eqSection = reverbState.getChildWithName(WFSParameterIDs::EQ);
-                            if (eqSection.isValid() && parsed.bandIndex >= 1 && parsed.bandIndex <= 4)
-                            {
-                                auto bandSection = eqSection.getChildWithName(
-                                    juce::Identifier("Band" + juce::String(parsed.bandIndex)));
-                                if (bandSection.isValid())
-                                    bandSection.setProperty(parsed.paramId, parsed.value, state.getActiveUndoManager());
-                            }
-                        }
+                        // Bands are <Band id="n"> children of <EQ>, so they are
+                        // reached by position, not by a synthesised type name:
+                        // this used to ask for a child of TYPE "Band2" and so
+                        // silently dropped every write. getReverbEQBand is the
+                        // accessor MCP already uses, and the band argument is
+                        // 1-based on the wire there too.
+                        auto bandSection = state.getReverbEQBand (channelIndex, parsed.bandIndex - 1);
+                        if (bandSection.isValid())
+                            bandSection.setProperty(parsed.paramId, parsed.value, state.getActiveUndoManager());
                     }
                     if (oscQueryServer) oscQueryServer->endIncomingOSC();
                 });

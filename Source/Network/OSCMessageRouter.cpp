@@ -1070,11 +1070,19 @@ OSCMessageRouter::ParsedReverbMessage OSCMessageRouter::parseReverbMessage(const
     }
 
     // Standard format: /wfs/reverb/{param} <channelID> <value>
+    //                   /wfs/reverb/{preEQparam} <channelID> <band> <value>
     result.paramId = getReverbParamId(address);
     if (result.paramId.isValid())
     {
         juce::String paramName = extractParamName(address);
-        bool isEQParam = paramName.startsWith("EQ") && paramName != "EQenable";
+
+        // The reverb map spells its EQ entries preEQgain/preEQfreq/... - this
+        // test used to read startsWith("EQ"), copied from parseOutputMessage
+        // where the keys really are EQgain/EQfreq. No reverb name has ever
+        // matched it, so every standard-form pre-EQ write took the two-argument
+        // branch below and stored the BAND INDEX as the value. Keep it in step
+        // with the OSCQuery arm above, which tests preEQ correctly.
+        bool isEQParam = paramName.startsWith("preEQ") && paramName != "preEQenable";
 
         if (isEQParam)
         {

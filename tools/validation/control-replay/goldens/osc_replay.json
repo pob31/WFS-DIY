@@ -38,6 +38,8 @@
   "reverb1.positionX": [
     2.25
   ],
+  "reverb1.preEQfreq.band3": 250.0,
+  "reverb1.preEQgain.band2": -6.5,
   "stage.width": [
     14.0
   ]

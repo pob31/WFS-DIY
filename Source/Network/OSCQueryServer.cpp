@@ -1089,12 +1089,19 @@ juce::DynamicObject* OSCQueryServer::buildReverbChannelJson(int channelIndex)
             node->setProperty("FULL_PATH", fullPath);
             node->setProperty("TYPE", "if");
             node->setProperty("ACCESS", 3);
-            node->setProperty("DESCRIPTION", oscName + " (first arg: band index 0-3)");
+            // 1-based, like the channel number in the path, like the band
+            // argument of the equivalent MCP tool, and like the range the
+            // dispatcher has always enforced. This descriptor used to publish
+            // 0-3, so a client that believed it was rejected on band 0 and a
+            // client that guessed 1-4 was not.
+            node->setProperty("DESCRIPTION",
+                              oscName + " (first arg: band index 1-"
+                                  + juce::String(WFSParameterDefaults::numReverbPreEQBands) + ")");
             if (range.hasRange)
             {
                 auto* rangeObj0 = new juce::DynamicObject();
-                rangeObj0->setProperty("MIN", 0);
-                rangeObj0->setProperty("MAX", WFSParameterDefaults::numReverbPreEQBands - 1);
+                rangeObj0->setProperty("MIN", 1);
+                rangeObj0->setProperty("MAX", WFSParameterDefaults::numReverbPreEQBands);
                 auto* rangeObj1 = new juce::DynamicObject();
                 rangeObj1->setProperty("MIN", range.min);
                 rangeObj1->setProperty("MAX", range.max);
