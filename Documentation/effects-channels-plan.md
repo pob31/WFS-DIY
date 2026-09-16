@@ -1133,3 +1133,29 @@ showed the revision-2 text to be wrong, under-specified, or stale.
 
 Unchanged by revision 3: every binding decision of §2.1, the answers of §2.4, the parameter surface of
 §§6-7, and the phase plan of §9. Nothing in the app repo has been touched.
+
+### 12.5 Revision-4 resolution log (corrections the Phase 3 engine forced back, 2026-09-16)
+
+Phase 3 built the engine on spatcore branch `feature/effects-phase3`. Before writing it, four audits
+read the code the design leans on. Several things this document specified turned out not to be
+buildable as written, and two were wrong in ways that would have shipped.
+
+| # | Correction | Where |
+|---|---|---|
+| R4-1 | **The loop guard's release criterion was wrong.** §4.4-9 releases when the RETURN peak stays 12 dB under the ceiling. The return is on the far side of the chain from the only thing the guard controls: a self-sustaining chain (a delay at unity feedback, a long reverb) keeps its return hot with the feed already silenced, so the guard would latch forever on a channel whose loop the operator removed minutes ago; a memoryless chain collapses the moment the feed is cut, so it would release on a timer whether or not the loop was still dangerous. Both decisions now read the pre-gain feed peak, and the return is a veto that can delay a release but never cause one. | §4.4-9, §2.2 |
+| R4-2 | **The trip threshold is a time, not a block count.** "20 consecutive blocks" is 27 ms at a 64-sample buffer and 232 ms at 512: the same event letting eight times as much runaway reach the speakers depending on a setting the operator may never have touched. Default 60 ms, which is what §10's own venue check already assumed. A bounded backoff ladder was added for repeated trips, because a guard sitting inside the loop it watches cannot distinguish "the danger passed" from "the guard is working". | §4.4-9 |
+| R4-3 | **`computeNodeFeed` could not render a source subset.** §4.4-9 describes "two `computeNodeFeed` calls over disjoint row ranges", but the function had no row-range argument and always cleared its destination, so the loop guard as described was unimplementable. It now takes `srcBegin`, `srcEnd` and `clearDest`, all defaulted to today's behaviour. `prepare` also gained a history length, and with it a constraint that was previously implicit: the history must exceed the longest delay by at least one block, because `writeInputs` fills the current block before the taps read it. | §4.4-9, §4.2 |
+| R4-4 | **The §4.2 class sketch does not compile.** It declares `std::vector<EffectChain>` and a vector of `RtTripleBuffer`; both types hold a `std::atomic` and are therefore non-movable, so neither vector can be resized. All three of chains, parameter buffers and return rings are held by `unique_ptr`. `LoopGuard` is deliberately the exception - it holds no atomic, so a plain vector of values stays legal, and its GUI-visible counter lives in the engine's telemetry instead. | §4.2 |
+| R4-5 | **The return cushion was off by one between §3.3 and §4.4-6.** The ledger tabulates a cushion of 1 as costing no extra block; the discard rule permitted two resident blocks at that setting. Since the ledger is the published latency claim, the rule moved to match it and the rings are primed with exactly the cushion. The headline "input to effect to speaker = 1 block" is now true as written. | §3.3, §4.4-6 |
+| R4-6 | **Chain latency as telemetry was a data race.** `EffectChain::getLatencySamples` reads plain bools that the driver's own sweep writes, so a message thread polling it for the pipeline strip would tear. It is computed once per batch after the join and published as a per-channel atomic; nothing else calls the chain getter. The same reasoning removed the per-module meter from the engine's surface for now: polling a chain from the message thread is a use-after-free during release. | §4.2, §6.5 |
+| R4-7 | **The NaN guard has a hole the document acknowledges but does not close.** §4.6 has `ModuleSlot` test the block's last sample and says the chain checks its own output as the second net - but the chain tests only its last sample too, so a memoryless module can pass a single non-finite sample straight through both. The engine scans the whole return block, at no cost: the meter already walks every sample, so the sum of squares accumulates in a double and one test of the accumulator detects a non-finite sample anywhere. | §4.6, §4.4-11 |
+| R4-8 | **Mute must not skip the sweep.** The reverb feed's muted branch skips its whole pass, which is right for a send. Doing that here would freeze every effect tail for the duration of the mute and resume it unchanged, so mute silences the feed entering the chain and lets every chain keep running. | §4.4-8 |
+| R4-9 | **`kMaxRenderSources` cannot be redefined to 136 on its own.** The app compiles spatcore from the working tree rather than from the recorded pin, and asserts `==` against its own mirror, so there is no order of two independent commits that keeps the app building. Phase 3 adds `kMaxInputRenderSources`, `kMaxEffectChannels` and `kMaxRenderSourceSlots` and leaves `kMaxRenderSources` at 104; Phase 4 renames it in the same commit that moves the app mirror. §4.5's sketch assumes the rename lands immediately. | §4.5 |
+| R4-10 | **Emergency Clear is not instantaneous.** §10's venue check 8 says Clear "silences everything instantly". Clearing everything memsets one delay line per source - 52 MB at 136 sources and 96 kHz - on the realtime thread. It is an emergency button, so dropping a block or two is defensible, but the documentation should say so and the engine counts it. | §4.4-10, §10 |
+
+Also worth recording: the plan's §3.3 latency ledger lists module latencies as if they were
+constants, but the through-zero flanger reports its alignment delay as a continuously moving value
+of up to 30 ms at 48 kHz, which is by far the largest in the set and is absent from the table.
+
+---
+
