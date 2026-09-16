@@ -3216,8 +3216,24 @@ namespace
 {
     // Recursively add to `target` any property or child present in `tmpl` but
     // missing from `target`. Never overwrites an existing value and never removes
-    // anything. Children are matched by id (when the template child carries one),
-    // otherwise by type name - mirroring WFSFileManager::mergeTreeRecursive.
+    // anything.
+    //
+    // Child matching mirrors spatcore::control::state::mergeTreeRecursive, and
+    // must keep mirroring it: this function drifted once already and the two
+    // rules below are the corrections that landed there and not here.
+    //
+    // An id'd child is matched on type AND id together. Matching on id alone and
+    // then rejecting a type mismatch is not the same thing: getChildWithProperty
+    // returns the FIRST child of any type carrying that id, so as soon as two
+    // sibling node types share an id namespace, the wrong one is found, the
+    // template child is declared missing, and a duplicate is appended - on every
+    // load, for ever. No node type in today's schema shares an id with a sibling
+    // of another type, which is the only reason this has not yet bitten.
+    //
+    // An id-less child is matched on type AND ordinal position among its
+    // id-less same-type siblings. Matching on type alone returns the first such
+    // child for every template child, so a run of repeated id-less siblings all
+    // collapses into the first slot.
     void backfillFromTemplate (juce::ValueTree& target, const juce::ValueTree& tmpl,
                                juce::UndoManager* um)
     {
@@ -3235,13 +3251,48 @@ namespace
 
             if (tmplChild.hasProperty (id))
             {
-                match = target.getChildWithProperty (id, tmplChild.getProperty (id));
-                if (match.isValid() && match.getType() != tmplChild.getType())
-                    match = {};
+                const auto tmplId = tmplChild.getProperty (id);
+
+                for (int c = 0; c < target.getNumChildren(); ++c)
+                {
+                    auto candidate = target.getChild (c);
+
+                    if (candidate.getType() == tmplChild.getType()
+                        && candidate.getProperty (id) == tmplId)
+                    {
+                        match = candidate;
+                        break;
+                    }
+                }
             }
             else
             {
-                match = target.getChildWithName (tmplChild.getType());
+                // Which id-less sibling of this type is this, counting from the
+                // start of the template?
+                int wanted = 0;
+                for (int j = 0; j < i; ++j)
+                {
+                    const auto prev = tmpl.getChild (j);
+                    if (prev.getType() == tmplChild.getType() && ! prev.hasProperty (id))
+                        ++wanted;
+                }
+
+                int seen = 0;
+                for (int c = 0; c < target.getNumChildren(); ++c)
+                {
+                    auto candidate = target.getChild (c);
+
+                    if (candidate.getType() == tmplChild.getType() && ! candidate.hasProperty (id))
+                    {
+                        if (seen == wanted)
+                        {
+                            match = candidate;
+                            break;
+                        }
+
+                        ++seen;
+                    }
+                }
             }
 
             if (match.isValid())
