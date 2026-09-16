@@ -104,6 +104,20 @@ public:
     juce::ValueTree getReverbsState() const;
     juce::ValueTree getReverbState (int channelIndex);
 
+    /** Get effects states.
+
+        <Effects> holds ONLY <Effect> children - no global siblings, which is
+        the one shape decision that separates this family from <Reverbs>. The
+        reverb globals (Algorithm / PreComp / PostEQ / PostExp) are siblings of
+        the reverb channels, and paying for that costs a count-by-type walk at a
+        dozen sites; the effects globals live in Config/EffectsGlobal instead, so
+        getEffectState can index straight into the child list. NOTHING may ever
+        be appended beside the channels - that constraint is what this comment
+        is for. */
+    juce::ValueTree getEffectsState();
+    juce::ValueTree getEffectsState() const;
+    juce::ValueTree getEffectState (int channelIndex);
+
     /** Get audio patch state */
     juce::ValueTree getAudioPatchState();
 
@@ -309,6 +323,88 @@ public:
     juce::ValueTree ensureReverbPostExpSection();  // Creates if missing
 
     //==========================================================================
+    // Effects Channel Access
+    //==========================================================================
+    // An <Effect> holds six flat sections (Channel, Position, Feed, Return,
+    // AutomOtion, Chain), the eleven id-less module nodes named for
+    // spatcore::effects::kSlots, and <Sends>. Two module TYPES exist twice per
+    // channel (FxEq1/FxEq2 and FxDyn1/FxDyn2) and carry identical property
+    // names, which is the one deliberate exception to the rule that a property
+    // lives on exactly one node type - so every accessor for them takes an
+    // instance, and the generic by-name searches below skip them outright.
+    //
+    // WHAT THE EXCEPTION COSTS, stated in full because every later surface pays
+    // it: 31 of the 155 per-channel identifiers - 20% - cannot be reached by
+    // name, so canWriteParameter answers FALSE for all of them. Twenty-four are
+    // the doubled types proper (effectEQBypass and the 23 effectDyn*); the
+    // other seven are the index-addressed repeats carried by the <Band> and
+    // <Tap> siblings (effectEQshape/freq/gain/q/slope, effectDelayTapTime and
+    // effectDelayTapLevel), which <Reverb> repeats the same way. That FALSE is
+    // invisible in one stroke to MCP, OSC, OSCQuery, the plugin and any
+    // snapshot loop discriminating on hasProperty: none of them can address a
+    // property that no single node claims. Every surface that wants this 20%
+    // must therefore carry its own instance-taking dispatch onto
+    // getEffectEQBand / getEffectDynSection / getEffectDelayTap, and a snapshot
+    // scope built the way the input scopes are built can never cover it.
+
+    /** Read a per-channel effect parameter.
+
+        Resolves the six flat sections and the seven SINGLE-instance module
+        nodes. Deliberately returns a void var for the doubled modules
+        (effectEQ* / effectDyn*, on FxEq1/FxEq2 and FxDyn1/FxDyn2) and for the
+        per-band / per-tap properties: those names exist on more than one node,
+        so a first-hit walk could only ever report instance 1 while claiming
+        success. Use getEffectEQBand / getEffectDelayTap / getEffectModuleSection
+        for those - the extra index is the whole point of their signatures. */
+    juce::var getEffectParameter (int channelIndex, const juce::Identifier& id) const;
+
+    /** Write a per-channel effect parameter. Same resolution rule - and the same
+        deliberate refusal - as getEffectParameter. A position or return-offset
+        write latches effect position ownership (see markEffectPositionsUserOwned). */
+    void setEffectParameter (int channelIndex, const juce::Identifier& id, const juce::var& value);
+
+    /** The flat sections of one effect channel. */
+    juce::ValueTree getEffectChannelSection (int channelIndex);
+    juce::ValueTree getEffectPositionSection (int channelIndex);
+    juce::ValueTree getEffectFeedSection (int channelIndex);
+    juce::ValueTree getEffectReturnSection (int channelIndex);
+    juce::ValueTree getEffectAutoMotionSection (int channelIndex);
+    juce::ValueTree getEffectChainSection (int channelIndex);
+
+    /** The <Sends> node. Declared and built empty in this commit: the four
+        packed CSV rows, their cell accessors and their write guards land with
+        the send matrix. */
+    juce::ValueTree getEffectSendsSection (int channelIndex);
+
+    /** One chain slot's module node, by slot index 0..10 in the declared order
+        (dist, eq1, eq2, dyn1, dyn2, mod, phaser, trem, reverb, delay, crush) or
+        by node type. This is the only way to address FxEq1 vs FxEq2 and FxDyn1
+        vs FxDyn2, whose properties are indistinguishable by name. */
+    juce::ValueTree getEffectModuleSection (int channelIndex, int slotIndex);
+    juce::ValueTree getEffectModuleSection (int channelIndex, const juce::Identifier& moduleType);
+
+    /** One EQ band: channel, EQ instance (0 = FxEq1, 1 = FxEq2), band 0..5. */
+    juce::ValueTree getEffectEQSection (int channelIndex, int eqInstance);
+    juce::ValueTree getEffectEQBand (int channelIndex, int eqInstance, int bandIndex);
+
+    /** One dynamics stage: channel, instance (0 = FxDyn1, 1 = FxDyn2). */
+    juce::ValueTree getEffectDynSection (int channelIndex, int dynInstance);
+
+    /** One multitap delay tap: channel, tap 0..7, under <FxDelay>. */
+    juce::ValueTree getEffectDelayTap (int channelIndex, int tapIndex);
+
+    /** The eleven chain slot node types in their declared order. A slot index
+        outside [0, numEffectModuleSlots) returns an invalid Identifier, which
+        getChildWithName can never match. */
+    static const juce::Identifier& getEffectModuleType (int slotIndex);
+
+    /** True for the two node types that exist TWICE per channel and therefore
+        repeat their property names (FxEq1/FxEq2, FxDyn1/FxDyn2). Every generic
+        by-name search skips these: resolving such a property by name alone can
+        only ever mean instance 1, and would report success while doing it. */
+    static bool isInstancedEffectModuleType (const juce::Identifier& nodeType);
+
+    //==========================================================================
     // Cluster Access
     //==========================================================================
 
@@ -394,6 +490,12 @@ public:
     int getNumInputChannels() const;
     int getNumOutputChannels() const;
     int getNumReverbChannels() const;
+
+    /** Live effect channels - counted from the <Effect> children, never read
+        off the `count` property, for the reason getNumReverbChannels records:
+        a writer that bypasses setNumEffectChannels makes the property lie, and
+        every id lookup built on it then refuses valid channels. */
+    int getNumEffectChannels() const;
 
     /** Set channel counts. For inputs this is the blunt legacy entry point:
         growth appends default mono channels, reduction removes the
@@ -653,6 +755,44 @@ public:
     void setNumOutputChannels (int numChannels, int previousCount = -1);
     void setNumReverbChannels (int numChannels);
 
+    /** Resize the effect channel list to [0, maxEffectChannels]. Zero is a
+        legal count and the default: a show that uses no effects carries an
+        empty container and nothing else.
+
+        Growth appends default channels laid out for the TARGET count, so the
+        whole set sits on one ring rather than on the ring each channel happened
+        to be born under; reduction drops from the end. Stopped-only and NOT
+        undoable, like every other structural edit: the undo histories are
+        cleared when the count actually moves.
+
+        That clear is the INPUT precedent rather than an effects invention.
+        setNumInputChannels is non-undoable in exactly this way and reaches the
+        same end through addInputChannel / removeInputChannel, which clear on
+        every call - so a remote write of inputChannels already empties the
+        stack today, over the same setParameter route effectChannels will use.
+        setNumOutputChannels and setNumReverbChannels clear nothing because
+        their structural writes go through getActiveUndoManager and sit on the
+        stack like any other edit; a family whose writes pass nullptr has no
+        such option. Leaving the old history standing here would let entries
+        recorded above a removal replay onto nodes that have since been
+        renumbered - ids in this family are dense - which is precisely what the
+        clear buys out. */
+    void setNumEffectChannels (int numChannels);
+
+    /** Append one effect channel. Fails when the list is already at
+        maxEffectChannels. Stopped-only, not undoable. */
+    juce::Result addEffectChannel();
+
+    /** Remove one effect channel by its dense index (0-based).
+
+        Effect ids are DENSE (id == index + 1) - unlike input channel numbers,
+        which are permanent and leave gaps - so removing a channel renumbers
+        every channel above it. That is why the family has no permanent-number
+        latch and no gap reuse: an effect return is addressed by its position in
+        the list, and a delete is expected to close up behind it. Stopped-only,
+        not undoable. */
+    juce::Result removeEffectChannel (int channelIndex);
+
     /** Update hardware channel count in patch trees based on actual audio device.
      *  Pass 0 for either count when no device is connected to trigger the
      *  "default to 64 or highest patched channel" policy. */
@@ -731,6 +871,12 @@ public:
         node count (the reverb twin of redistributeAllInputPositions). */
     void redistributeAllReverbPositions();
 
+    /** Re-lays ALL effect returns on their default ring for the current stage
+        and channel count, feed orientations included. The effects twin of
+        redistributeAllReverbPositions; gated by the effects-only ownership
+        latch, never by the shared input/reverb one. */
+    void redistributeAllEffectPositions();
+
     //==========================================================================
     // Position ownership (see positionsUserOwned in WFSParameterIDs.h).
 
@@ -745,6 +891,34 @@ public:
     /** Latches position ownership to the user. Idempotent; not undoable on
         purpose (Ctrl+Z must not re-arm auto-placement). */
     void markPositionsUserOwned();
+
+    //==========================================================================
+    // Effect position ownership - ITS OWN LATCH, stored on <Effects> as
+    // effectPositionsUserOwned, never the shared positionsUserOwned flag on
+    // <Stage>.
+    //
+    // Sharing the flag looks harmless and is not: positionsUserOwned is latched
+    // by opening the Map tab and by any input, output or reverb position edit,
+    // so in a real session it is true long before the first effect channel
+    // exists. setNumEffectChannels would then skip the layout pass for every
+    // effect channel ever created, and the whole family would stack on the
+    // origin - which is also where the angular feed attenuation and the
+    // inter-node geometry are least meaningful. A separate latch costs one
+    // property and keeps "the user has placed the effect returns" answerable on
+    // its own terms.
+
+    /** True once the user owns the effect return positions. One-way, and it
+        will persist with the family - but NOTHING persists the family yet:
+        <Effects> has no section writer, so today the latch and the positions it
+        protects are both session-lived and both come back false on the next
+        load. Make this sentence unconditional in the commit that adds
+        effects.xml, not before. While false, a channel-count change re-lays the
+        whole ring. */
+    bool areEffectPositionsUserOwned() const;
+
+    /** Latches effect position ownership. Idempotent; not undoable, for the
+        same reason its input/reverb twin is not. */
+    void markEffectPositionsUserOwned();
 
     //==========================================================================
     // Channel-number ownership (see channelNumbersUserOwned in WFSParameterIDs.h).
@@ -844,6 +1018,14 @@ private:
     void createInputsSection();
     void createOutputsSection();
     void createReverbsSection();
+
+    /** <Effects count="0" effectPositionsUserOwned="0"> - the container only,
+        at the default count of zero. Appended unconditionally by
+        initializeDefaultState so every fresh tree carries the family even when
+        no show ever uses it, and created by ensureCompleteSchema for any state
+        that predates it (validateState does not require the node, so a loaded
+        project can arrive without one). */
+    void createEffectsSection();
     void createAudioPatchSection();
 
     /** Create a single default input channel */
@@ -892,6 +1074,44 @@ private:
     ReverbNodePlacement::Node getDefaultReverbNode (int index, int totalCount);
 
 
+    /** One default effect channel: <Effect id="index + 1"> with its six flat
+        sections, its eleven module nodes and an empty <Sends>.
+
+        totalCount is the TARGET channel count, so a channel built while the
+        list is growing lands on the ring the finished set will use. The layout
+        node is computed ONCE here and handed to the position and feed builders:
+        the feed bearing is only meaningful beside the position it came from,
+        and the reverb twin's habit of recomputing the whole layout in each of
+        them is what makes that path quadratic. */
+    juce::ValueTree createDefaultEffectChannel (int index, int totalCount);
+
+    /** Default ring for the effect returns: the reverb arc helper, pushed
+        outwards so the two families do not land on each other when their counts
+        happen to match. Returns the whole set; index it, do not recompute it
+        per channel. */
+    std::vector<ReverbNodePlacement::Node> layoutEffectNodes (int totalCount);
+
+    /** Create effect channel subsections. The two doubled module builders take
+        the node TYPE rather than an instance number: FxEq1 and FxEq2 differ
+        only by type and carry identical defaults, so one builder stamps
+        whichever type it is asked for. */
+    juce::ValueTree createEffectChannelSection (int index);
+    juce::ValueTree createEffectPositionSection (const ReverbNodePlacement::Node& node);
+    juce::ValueTree createEffectFeedSection (int orientationDeg);
+    juce::ValueTree createEffectReturnSection (int numOutputs);
+    juce::ValueTree createEffectAutoMotionSection();
+    juce::ValueTree createEffectChainSection();
+    juce::ValueTree createEffectSendsSection();
+    juce::ValueTree createEffectDistSection();
+    juce::ValueTree createEffectEQSection (const juce::Identifier& nodeType);
+    juce::ValueTree createEffectDynSection (const juce::Identifier& nodeType);
+    juce::ValueTree createEffectModSection();
+    juce::ValueTree createEffectPhaserSection();
+    juce::ValueTree createEffectTremSection();
+    juce::ValueTree createEffectReverbSection();
+    juce::ValueTree createEffectDelaySection();
+    juce::ValueTree createEffectCrushSection();
+
     /** Create reverb channel subsections */
     juce::ValueTree createReverbChannelSection (int index);
     juce::ValueTree createReverbPositionSection (int index, int totalCount);
@@ -914,7 +1134,7 @@ private:
     juce::ValueTree getTreeForParameter (const juce::Identifier& id, int channelIndex) const override;
 
     /** Determine if a parameter belongs to input, output, reverb, or config */
-    enum class ParameterScope { Config, Input, Output, Reverb, Cluster, AudioPatch, Unknown };
+    enum class ParameterScope { Config, Input, Output, Reverb, Effect, Cluster, AudioPatch, Unknown };
     ParameterScope getParameterScope (const juce::Identifier& id) const;
 
     /** Enforce cluster tracking constraint: only one tracked input per cluster
