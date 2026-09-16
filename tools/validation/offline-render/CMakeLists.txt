@@ -36,21 +36,26 @@ set(JUCE_DIR  "${REPO_ROOT}/ThirdParty/JUCE")
 
 # The harness compiles spatcore's headers in place, so the SUBMODULE POINTER
 # this repo records is load-bearing, not incidental: --path effects needs a
-# spatcore that already has effects/ (a4e4e57 or later). A checkout whose
-# pointer predates it produces dozens of missing-include errors that say
-# nothing about the cause, so say it here instead. Whoever ships a change to
-# this harness ships the pointer bump with it.
+# spatcore that already has effects/ (a4e4e57 or later), and its engine
+# scenario needs one that also has effects/EffectsEngineCore.h - c9e67d2, the
+# effects-phase3 merge, or later. A checkout whose pointer predates either
+# produces dozens of missing-include errors that say nothing about the cause,
+# so say it here instead. Whoever ships a change to this harness ships the
+# pointer bump with it.
 foreach(required_spatcore_header
         "effects/EffectChain.h"
         "effects/EffectParams.h"
         "effects/EffectModule.h"
+        "effects/EffectsEngineCore.h"
+        "effects/LoopGuard.h"
         "reverb/ReverbAlgorithm.h")
     if(NOT EXISTS "${REPO_ROOT}/spatcore/${required_spatcore_header}")
         message(FATAL_ERROR
             "spatcore/${required_spatcore_header} is missing.\n"
             "  The offline-render harness compiles spatcore in place, and the\n"
             "  effects path needs a spatcore revision that has effects/\n"
-            "  (a4e4e57 or later).\n"
+            "  (a4e4e57 or later); its engine scenario needs one that also\n"
+            "  has effects/EffectsEngineCore.h (c9e67d2 or later).\n"
             "  Run:  git submodule update --init --recursive\n"
             "  If that leaves the file missing, the recorded submodule pointer is\n"
             "  older than the harness: the pointer bump belongs in the same commit\n"

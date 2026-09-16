@@ -50,8 +50,20 @@
 // Modules are mono and synchronous, so it renders --in independent chains (one
 // per input stream, each with its own ChainConfig::noiseKey) and hashes them
 // exactly like every other path. Scenario families do not cross: --scenario
-// all means the four WFS timelines on a render path and the ten effects
+// all means the four WFS timelines on a render path and the eleven effects
 // timelines on --path effects.
+//
+// Its eleventh scenario, --scenario engine, is the odd one: it drives
+// EffectsEngineCore itself - eight input sources, four effects channels, a
+// feed matrix with an effect-to-effect loop in it, and a driver that misses
+// wakes on a script - synchronously and with the worker count pinned to 0,
+// and hashes the four return streams. It also ASSERTS what a hash cannot
+// name: the exact block ledger its stalls predict, WHICH guards tripped and
+// how many times each, that every hold was let go of, and that
+// LoopGuard::peakOf still keeps a non-finite sample as the peak. A hash
+// notices that a behaviour changed; only an assertion notices that one
+// stopped happening at all, and a machine recording this key for the first
+// time with --update has nothing but the assertions.
 //
 // GPU paths (milestone 2, WFS_GPU_NATIVE builds): drive the vendor backends
 // SYNCHRONOUSLY — makeWfsBackend/makeObBackend(deviceId) ->
@@ -89,6 +101,7 @@
 #include "../../../spatcore/reverb/ReverbFDNAlgorithm.h"
 #include "../../../spatcore/reverb/ReverbIRAlgorithm.h"
 #include "../../../spatcore/effects/EffectChain.h"          // EffectChain, ModuleSlot, createModule
+#include "../../../spatcore/effects/EffectsEngineCore.h"    // the effects engine, minus its thread
 
 #if WFS_GPU_NATIVE
  #include "../../../spatcore/gpu/GpuDeviceManager.h"   // device enumeration ("cuda:0", ...)
@@ -771,6 +784,408 @@ ChannelData renderReverb (Path path, scenario::Id id, const Config& cfg)
 }
 
 //==============================================================================
+// Effects ENGINE (--path effects --scenario engine): effects/EffectsEngineCore
+// driven SYNCHRONOUSLY on this thread - no juce::Thread wrapper, worker count
+// pinned to 0 - so the render is deterministic by construction rather than by
+// argument. (That worker count cannot reach the arithmetic is the engine's own
+// contract and spatcore's testEffectsEngineWorkerDeterminism is what gates it;
+// re-litigating it once per render would only make this hash depend on how
+// many cores the machine has.)
+//
+// The drive is one device callback per block, in the app's order - and in the
+// order spatcore's own engine tests use, for the same reason:
+//
+//   1. pull every effects RETURN, at the top of the callback and before
+//      anything is written: that ordering IS the one-block ledger
+//   2. write every input into its own render-source ring
+//   3. write every popped return into the render-source row that belongs to
+//      it, from where it re-enters the feed matrix on the NEXT batch - which
+//      is the only way an effect reaches another effect at all
+//   4. drainAvailable(): one complete block is waiting on every source, so
+//      exactly one batch runs per callback - EXCEPT across the scenario's
+//      scripted driver stalls, where the engine's thread misses wakes while
+//      the callback keeps running. Those are steps 1 to 3 without step 4, and
+//      what they cost is predicted by scenario::engine::expectedLedger() and
+//      asserted rather than tolerated.
+//
+// The four hashed streams are the four returns AS THE CALLBACK POPPED THEM,
+// which is what a consumer would mix into its outputs - so the cushion
+// latency, every underrun and every discard are all inside the hash rather
+// than beside it. The ledger, the resync counters and the loop guard are then
+// asserted outright after the render: a hash notices that they changed, but
+// only an assertion notices that they never happened.
+//==============================================================================
+ChannelData renderEffectsEngine (const Config& cfg)
+{
+    using namespace spatcore::effects;
+    namespace srt = spatcore::rt;
+    namespace eng = scenario::engine;
+
+    // LoopGuard's NaN policy is the one thing in this scenario a render cannot
+    // reach - deliberately, since the timeline is clip-bounded so that a
+    // runaway gates the ENGINE rather than the NaN trap - so it is gated here,
+    // before the render, at the cost of no render at all.
+    if (const auto why = eng::loopGuardSelfTestFailure(); ! why.empty())
+    {
+        std::fprintf (stderr,
+            "FATAL: effects/engine self-test failed - the loop guard's NaN "
+            "policy is not what the engine relies on: %s\n", why.c_str());
+        std::exit (5);
+    }
+
+    const int srInt   = static_cast<int> (cfg.sr);
+    const int block   = cfg.block;
+    const int nIn     = cfg.numIn;
+    const int nFx     = eng::kNumEffects;
+    const int nSrc    = nIn + nFx;
+    const int firstFx = nIn;            // the returns are contiguous and LAST
+    const int stride  = nFx;
+
+    // One ring per render source, the effect returns last, exactly as a
+    // consumer lays them out. The depth is the scenario's own constant rather
+    // than a local number, because the scripted LAP is a stall of one callback
+    // more than this ring can hold and the ledger arithmetic is derived from
+    // the same figure.
+    std::vector<std::unique_ptr<srt::SharedInputRingBuffer>> rings;
+    for (int i = 0; i < nSrc; ++i)
+    {
+        auto r = std::make_unique<srt::SharedInputRingBuffer>();
+        r->setSize (block * eng::kSourceRingBlocks);
+        rings.push_back (std::move (r));
+    }
+
+    std::vector<float> levels (static_cast<size_t> (nSrc * stride), 0.0f);
+    std::vector<float> delays (static_cast<size_t> (nSrc * stride), 0.0f);
+    std::vector<float> hf     (static_cast<size_t> (nSrc * stride), 0.0f);
+
+    // [src * stride + fx], the layout EffectsEngineCore indexes and the same
+    // input-major shape as every other matrix in this harness.
+    auto writeMatrices = [&] (int tick)
+    {
+        for (int src = 0; src < nSrc; ++src)
+        {
+            for (int fx = 0; fx < nFx; ++fx)
+            {
+                const size_t idx = static_cast<size_t> (src * stride + fx);
+
+                if (src < firstFx)
+                {
+                    levels[idx] = eng::inputSendLevel (src, fx, tick);
+                    delays[idx] = eng::inputSendDelayMs (src, fx, tick);
+                    hf[idx]     = eng::inputSendHfDb (src, fx);
+                }
+                else
+                {
+                    const int from = src - firstFx;
+                    levels[idx] = eng::fxSendLevel (from, fx, tick);
+                    delays[idx] = eng::fxSendDelayMs (from, fx);
+                    hf[idx]     = 0.0f;
+                }
+            }
+        }
+    };
+
+    // The COUNT the matrix declares, which is not always the count that is
+    // live: inside the unrouted window the timeline publishes three while four
+    // channels run, and the fourth still has to render, hold its tails and
+    // feed the callback's pull. Everything else about the publish is unchanged
+    // - same arrays, same stride - so the only thing under test is the clamp.
+    auto publishMatrices = [&] (EffectsEngineCore& core, int tick)
+    {
+        core.setFeedMatrices (delays.data(), levels.data(), hf.data(),
+                              stride, nSrc, eng::publishedEffectCount (tick));
+    };
+
+    EffectsEngineCore::Config ec;
+    ec.sampleRate = cfg.sr;
+    ec.blockSize = block;
+    ec.numSources = nSrc;
+    ec.numEffects = nFx;
+    ec.matrixStride = stride;
+    ec.firstEffectSourceRow = firstFx;
+    ec.workerThreads = 0;              // pinned - see the header comment
+    ec.returnCushionBlocks = eng::kReturnCushionBlocks;   // stated, not auto: the ledger then
+                                       // reads the same way whatever --block this is run at
+    ec.maxSourceBacklogBlocks = eng::kBacklogBlocks;
+    ec.returnRingBlocks = eng::kReturnRingBlocks;
+    ec.maxFeedDelaySeconds = 0.05;     // the longest scripted send is 14 ms
+    ec.maxEffectDelaySeconds = 0.5;    // fx3's multitap asks for 260
+    ec.moduleFactory = &createModule;  // the shipped modules, not stand-ins
+
+    // Every loop-guard setting is left at the SHIPPED default. A gate that
+    // tuned its own ceiling and its own trip time would gate those numbers
+    // instead of the product's.
+
+    EffectsEngineCore core;
+
+    writeMatrices (0);
+
+    if (! core.prepare (ec, rings))
+    {
+        std::fprintf (stderr,
+            "FATAL: EffectsEngineCore::prepare failed (sources=%d channels=%d "
+            "block=%d) - a ring under two blocks, or a count of zero\n",
+            nSrc, nFx, block);
+        std::exit (5);
+    }
+
+    // prepare() deliberately leaves the engine with no matrix at all, so this
+    // is not tidiness: without it the first batch renders every channel
+    // unrouted.
+    publishMatrices (core, 0);
+    core.setMuted (eng::engineMuted (0));
+    core.setLoopGuardEnabled (eng::loopGuardEnabled (0));
+
+    for (int fx = 0; fx < nFx; ++fx)
+        core.publishChannelParams (fx, scenario::engineChannelParams (fx, 0));
+
+    const int64_t total = static_cast<int64_t> (cfg.blocks) * block;
+    ChannelData out (static_cast<size_t> (nFx),
+                     std::vector<float> (static_cast<size_t> (total), 0.0f));
+
+    std::vector<std::vector<float>> popped (static_cast<size_t> (nFx),
+                                            std::vector<float> (static_cast<size_t> (block), 0.0f));
+    std::vector<float> inBuf (static_cast<size_t> (block));
+
+    int lastTick = 0;      // tick 0 already published
+    int batches = 0;
+
+    for (int b = 0; b < cfg.blocks; ++b)
+    {
+        gBench.blockBegin (b);
+        const int64_t startSample = static_cast<int64_t> (b) * block;
+
+        // The 50 Hz control tick, applied between callbacks exactly as the
+        // app's timer thread publishes it: matrices, parameters, engine mute,
+        // the global guard switch and the emergency Clear. The last two are
+        // asynchronous by contract - the engine honours them at its next batch
+        // boundary - so a request made during a stall is honoured by the
+        // recovery batch, which is the behaviour, not a wrinkle in the drive.
+        const int tick = tickForSample (startSample, srInt);
+        if (tick != lastTick)
+        {
+            writeMatrices (tick);
+            publishMatrices (core, tick);
+
+            for (int fx = 0; fx < nFx; ++fx)
+                core.publishChannelParams (fx, scenario::engineChannelParams (fx, tick));
+
+            core.setMuted (eng::engineMuted (tick));
+            core.setLoopGuardEnabled (eng::loopGuardEnabled (tick));
+
+            if (const int clear = eng::clearRequestAt (tick); clear != eng::kNoClear)
+                core.requestClear (clear);
+
+            lastTick = tick;
+        }
+
+        for (int fx = 0; fx < nFx; ++fx)
+            core.pullReturn (fx, popped[static_cast<size_t> (fx)].data(), block);
+
+        for (int fx = 0; fx < nFx; ++fx)
+            std::memcpy (out[static_cast<size_t> (fx)].data() + startSample,
+                         popped[static_cast<size_t> (fx)].data(),
+                         static_cast<size_t> (block) * sizeof (float));
+
+        for (int i = 0; i < nIn; ++i)
+        {
+            for (int s = 0; s < block; ++s)
+                inBuf[static_cast<size_t> (s)] =
+                    scenario::inputSample (scenario::Id::FxEngine, i, startSample + s, cfg.sr);
+
+            rings[static_cast<size_t> (i)]->write (inBuf.data(), block);
+        }
+
+        for (int fx = 0; fx < nFx; ++fx)
+            rings[static_cast<size_t> (firstFx + fx)]->write (popped[static_cast<size_t> (fx)].data(), block);
+
+        // A DRIVER STALL is this line not running: the audio callback above
+        // has already done its whole job for this block, and it is the
+        // engine's thread that missed the wake. Everything the engine does
+        // about it - the backlog jump, the lap resync, the two-batch catch-up
+        // and the discard that follows one - happens on the callback that
+        // comes after.
+        if (! eng::driverStalled (b))
+            batches += core.drainAvailable();
+
+        gBench.blockEnd (b, -1.0);
+    }
+
+    std::uint32_t trips = 0, underruns = 0, discards = 0, overflows = 0, nanTrips = 0;
+    bool stillTripped = false;
+    std::string perChannelTrips;
+
+    for (int fx = 0; fx < nFx; ++fx)
+    {
+        const std::uint32_t channelTrips = core.getLoopGuardTrips (fx);
+
+        trips     += channelTrips;
+        underruns += core.getUnderruns (fx);
+        discards  += core.getReturnDiscards (fx);
+        overflows += core.getReturnOverflows (fx);
+        nanTrips  += core.getNanTrips (fx);
+        stillTripped = stillTripped || core.isLoopGuardTripped (fx);
+
+        perChannelTrips += (fx == 0 ? "" : ",") + std::to_string (channelTrips);
+    }
+
+    const std::uint32_t sourceSkips = core.getSourceSkips();
+    const std::uint32_t ringWraps   = core.getRingWraps();
+    const std::uint32_t clears      = core.getClearCount();
+
+    // PER CHANNEL, not just the total, and that is the whole point of printing
+    // it: the expected reading is 1,2,0,0 - one trip on fx0, two on fx1 (the
+    // second is what makes its hold double) and none at all on the two
+    // channels that are not in the loop. A total of three arrived at any other
+    // way is a different engine, so the vector is ASSERTED below and not left
+    // for a reader to notice.
+    std::fprintf (stderr,
+                  "%s effects/engine: sources=%d channels=%d batches=%d/%d "
+                  "guardTrips=%u [%s] underruns=%u discards=%u overflows=%u "
+                  "skips=%u wraps=%u clears=%u nanTrips=%u\n",
+                  nanTrips != 0 ? "WARNING:" : "note:",
+                  nSrc, nFx, batches, cfg.blocks,
+                  trips, perChannelTrips.c_str(),
+                  underruns, discards, overflows,
+                  sourceSkips, ringWraps, clears, nanTrips);
+
+    // Same contract as the module renders: a NaN trap turns the hash into the
+    // trap's output, so main() refuses to check or record the run (exit 8).
+    gNanTripTotal += nanTrips;
+
+    const int finalTick = tickForSample (static_cast<int64_t> (cfg.blocks - 1) * block, srInt);
+
+    // THE LEDGER, asserted against an exact prediction rather than against
+    // zero. One complete block lands on every source per callback, so the
+    // driver runs exactly one batch per callback and - with a cushion of one -
+    // every pull finds exactly one block waiting, one popping and one
+    // arriving. The scripted stalls break that on purpose, and by a knowable
+    // amount: expectedLedger() derives every figure below from the same stall
+    // table the drive loop reads, so the two cannot drift apart. Anything else
+    // means the return latency moved, which is the failure this scenario
+    // exists to catch and one a hash reports as "something changed" at best.
+    const auto expected = eng::expectedLedger (cfg.blocks);
+
+    if (! expected.known)
+    {
+        std::fprintf (stderr,
+            "note: effects/engine ledger not asserted - a scripted driver stall "
+            "straddles the end of a %d-block run, so what is owed is in flight\n",
+            cfg.blocks);
+    }
+    else
+    {
+        const std::uint32_t chans = static_cast<std::uint32_t> (nFx);
+        const char* problem = nullptr;
+        std::uint32_t saw = 0, want = 0;
+
+        if (batches != expected.batches)
+        {
+            problem = "the driver did not run the batches its stalls left it";
+            saw = static_cast<std::uint32_t> (batches);
+            want = static_cast<std::uint32_t> (expected.batches);
+        }
+        else if (underruns != expected.underrunsPerChannel * chans)
+        {
+            problem = "a return ring starved other than where the script stalls the driver";
+            saw = underruns;
+            want = expected.underrunsPerChannel * chans;
+        }
+        else if (discards != expected.discardsPerChannel * chans)
+        {
+            problem = "the pullReturn discard rule did not trim what the cushion says it must";
+            saw = discards;
+            want = expected.discardsPerChannel * chans;
+        }
+        else if (overflows != 0)
+        {
+            problem = "a return ring overflowed: a block of chain output was dropped";
+            saw = overflows;
+        }
+        else if (sourceSkips != expected.sourceSkips)
+        {
+            problem = "the backlog jump did not fire where the script overfills the sources";
+            saw = sourceSkips;
+            want = expected.sourceSkips;
+        }
+        else if (ringWraps != expected.ringWraps)
+        {
+            problem = "the lap detector did not fire where the script laps the source rings";
+            saw = ringWraps;
+            want = expected.ringWraps;
+        }
+        else if (clears != eng::expectedClears (finalTick))
+        {
+            problem = "the emergency Clear was not honoured at a batch boundary";
+            saw = clears;
+            want = eng::expectedClears (finalTick);
+        }
+
+        if (problem != nullptr)
+        {
+            std::fprintf (stderr,
+                "FATAL: effects/engine block ledger broke - %s (saw %u, expected %u)\n",
+                problem, saw, want);
+            std::exit (5);
+        }
+    }
+
+    // AND THE GUARD. A scenario in which the loop guard never engages does not
+    // test the loop guard, and one in which it never lets go tests half of it -
+    // and either would go on hashing perfectly stably for ever. Only a run long
+    // enough to have reached the scripted events is held to them: a truncated
+    // shape (--blocks 30) stops before the runaway and legitimately sees
+    // neither.
+    if (eng::reachesLoopGuardTrip (finalTick) && trips == 0)
+    {
+        std::fprintf (stderr,
+            "FATAL: effects/engine reached tick %d - past the runaway at tick %d - "
+            "without the loop guard ever tripping. The guard is not being gated by "
+            "this render.\n", finalTick, eng::kLoopArm);
+        std::exit (5);
+    }
+
+    if (eng::reachesLoopGuardRelease (finalTick) && stillTripped)
+    {
+        std::fprintf (stderr,
+            "FATAL: effects/engine ended at tick %d with a loop guard still holding "
+            "a feed down. The release half of the guard is not being gated.\n",
+            finalTick);
+        std::exit (5);
+    }
+
+    // WHICH CHANNELS, and how many times each. The two assertions above are
+    // satisfied by a total of three trips arrived at ANY way - both legs
+    // tripping once and the reverb channel once, say, or one leg three times -
+    // and every one of those is a different engine from this one. The shape is
+    // only predictable between events, so a run that stops mid-trip says so
+    // rather than inventing a number.
+    if (std::string wantTrips; eng::expectedTripVector (finalTick, wantTrips))
+    {
+        if (perChannelTrips != wantTrips)
+        {
+            std::fprintf (stderr,
+                "FATAL: effects/engine tripped the wrong guards - saw [%s], expected "
+                "[%s] at tick %d. The count is right only if it is right per "
+                "channel: fx0 and fx1 are the loop, fx1 alone re-trips (which is "
+                "what doubles its hold), and nothing feeds fx2 or fx3 hard enough "
+                "to trip anything.\n",
+                perChannelTrips.c_str(), wantTrips.c_str(), finalTick);
+            std::exit (5);
+        }
+    }
+    else
+    {
+        std::fprintf (stderr,
+            "note: effects/engine trip vector not asserted - tick %d lands inside a "
+            "scripted trip, so [%s] is legitimately in flight\n",
+            finalTick, perChannelTrips.c_str());
+    }
+
+    return out;
+}
+
+//==============================================================================
 // Effects: spatcore/effects, driven synchronously on this thread. Modules are
 // mono and in-place, so one scenario renders cfg.numIn INDEPENDENT chains —
 // one per input stream, each prepared with its own ChainConfig::noiseKey, so
@@ -802,6 +1217,14 @@ ChannelData renderEffects (scenario::Id id, const Config& cfg)
             "be inert: %s\n", why.c_str());
         std::exit (5);
     }
+
+    // The engine scenario is this path's other half: four whole chains inside
+    // EffectsEngineCore rather than one module in a slot. It shares the
+    // self-test above - its reorders use the same order strings - and nothing
+    // below it, so it forks here rather than threading a third mode through
+    // the slot/chain branching that follows.
+    if (id == scenario::Id::FxEngine)
+        return renderEffectsEngine (cfg);
 
     const int srInt = static_cast<int> (cfg.sr);
     const int numChains = cfg.numIn;
@@ -1398,7 +1821,7 @@ void usage()
         "                              |gpu-reverb-fdn|gpu-reverb-ir|cpu|gpu|all>\n"
         "                      --scenario <static|moving|fr-toggle|stereo|all>   (render paths)\n"
         "                      --scenario <dist|eq|dyn|mod|phaser|trem|reverb|delay|crush\n"
-        "                                  |chain|all>                           (--path effects)\n"
+        "                                  |chain|engine|all>                    (--path effects)\n"
         "                      [--stereo-null]\n"
         "                      [--blocks N] [--block 512] [--sr 48000] [--in 8] [--out 16]\n"
         "                      [--device cuda:0] [--plugin-dir <dir with wfs_cuda.dll>]\n"
@@ -1420,10 +1843,16 @@ void usage()
         "\n"
         "--path effects renders spatcore/effects: one scenario per module through a\n"
         "ModuleSlot (bypass toggle, parameter sweeps, variant switch), plus a chain\n"
-        "scenario that reorders the chain and toggles chain bypass and mute. It uses\n"
-        "--in as the number of independent mono chains and ignores --out. Its hashes\n"
-        "live in the CPU baseline file but are still per-machine: the modules call\n"
-        "std::tanh/std::cos/std::exp, so they must be recorded on each machine.\n"
+        "scenario that reorders the chain and toggles chain bypass and mute, plus\n"
+        "--scenario engine, which drives EffectsEngineCore end to end (8 sources,\n"
+        "4 channels, an effect-to-effect loop, three scripted driver stalls, an\n"
+        "emergency Clear, and a loop guard that trips, is vetoed, backs off and\n"
+        "releases) and hashes its four return streams while asserting the block\n"
+        "ledger and the per-channel trip vector outright. It uses\n"
+        "--in as the number of independent mono chains - or, for engine, of input\n"
+        "sources - and ignores --out. Its hashes live in the CPU baseline file but\n"
+        "are still per-machine: the modules call std::tanh/std::cos/std::exp, so\n"
+        "they must be recorded on each machine.\n"
         "\n"
         "--stereo-null renders the Phase-0 null pair on the WFS paths (gather/scatter)\n"
         "and compares the two hashes against EACH OTHER instead of a baseline: a\n"
@@ -1541,7 +1970,7 @@ int main (int argc, char* argv[])
     }
 
     // Scenario families do not cross: the WFS/reverb render paths take the four
-    // matrix timelines, --path effects takes the ten module timelines. With an
+    // matrix timelines, --path effects takes the eleven effects timelines. With an
     // explicit --scenario, the paths of the OTHER family are dropped, so
     // "--path all --scenario static" still means exactly what it used to.
     const bool allScenarios = (scenarioArg == "all");

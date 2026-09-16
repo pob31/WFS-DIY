@@ -14,11 +14,13 @@
 
 #include <cstdint>
 #include <cmath>
+#include <limits>
 #include <string>
 #include <vector>
 
 #include "../../../spatcore/reverb/ReverbAlgorithm.h"   // AlgorithmParameters, NodePosition (POD)
 #include "../../../spatcore/effects/EffectParams.h"     // EffectChannelParams, ChainOrder (POD)
+#include "../../../spatcore/effects/LoopGuard.h"         // the engine scenario's NaN-policy self-test
 
 namespace scenario
 {
@@ -72,6 +74,14 @@ enum class Id
     FxDelay,        // multitap:    tap count / pattern / manual / feedback tap
     FxCrush,        // bitcrusher:  decimation-filter variant + dither floor
     FxChain,        // all eleven slots: reorder x3, chain bypass, mute
+
+    // The ENGINE, and the same append-only rule for the same reason: this
+    // value feeds inputSample()'s frequency map, so an id put anywhere above
+    // it would silently re-render every scenario after it.
+    FxEngine,       // EffectsEngineCore end to end: 8 sources, 4 channels, a
+                    // fixed feed matrix with an fx -> fx loop, the block
+                    // ledger, a reorder, a bypass window, two mute windows,
+                    // and a loop guard that trips and releases
 };
 
 inline const char* name (Id id)
@@ -95,6 +105,7 @@ inline const char* name (Id id)
         case Id::FxDelay:        return "delay";
         case Id::FxCrush:        return "crush";
         case Id::FxChain:        return "chain";
+        case Id::FxEngine:       return "engine";
     }
     return "?";
 }
@@ -116,14 +127,15 @@ inline bool fromName (const std::string& s, Id& out)
     if (s == "delay")     { out = Id::FxDelay;  return true; }
     if (s == "crush")     { out = Id::FxCrush;  return true; }
     if (s == "chain")     { out = Id::FxChain;  return true; }
+    if (s == "engine")    { out = Id::FxEngine; return true; }
     return false;
 }
 
 /** Scenario families. A scenario belongs to exactly one, and the runner pairs
     each path with its own family's list: --scenario all means the four WFS
-    timelines on a render path and the ten module timelines on --path effects,
-    never the cross product (which is what would have added 50 MISSING keys to
-    the existing baseline check). */
+    timelines on a render path and the eleven effects timelines on --path
+    effects, never the cross product (which is what would have added 50 MISSING
+    keys to the existing baseline check). */
 inline bool isEffectsScenario (Id id)
 {
     return static_cast<int> (id) >= static_cast<int> (Id::FxDist);
@@ -139,7 +151,8 @@ inline const std::vector<Id>& allEffectsScenarios()
 {
     static const std::vector<Id> all {
         Id::FxDist, Id::FxEq, Id::FxDyn, Id::FxMod, Id::FxPhaser,
-        Id::FxTrem, Id::FxReverb, Id::FxDelay, Id::FxCrush, Id::FxChain };
+        Id::FxTrem, Id::FxReverb, Id::FxDelay, Id::FxCrush, Id::FxChain,
+        Id::FxEngine };
     return all;
 }
 
@@ -464,8 +477,10 @@ inline std::vector<float> deterministicIr (double sampleRate)
 // BYPASSED module (every module in EffectChannelParams starts bypassed), which
 // hashes the input straight back and proves nothing.
 //
-// One shared temporal script, so all ten scenarios read the same way at the
-// default shape (200 blocks x 512 @ 48 kHz = ticks 0..106):
+// One shared temporal script, so all ten MODULE scenarios read the same way
+// at the default shape (200 blocks x 512 @ 48 kHz = ticks 0..106). The engine
+// scenario at the bottom of this file scripts its own, because what it drives
+// is the engine rather than a module:
 //
 //   ticks  0..19    active, every continuous parameter sweeping
 //   ticks 20..34    BYPASSED — the slot fades out and resets the module at
@@ -541,7 +556,12 @@ inline int effectsSlotIndex (Id id) noexcept
         case Id::FxReverb: return 8;    // "reverb"
         case Id::FxDelay:  return 9;    // "delay"
         case Id::FxCrush:  return 10;   // "crush"
-        default:           return -1;   // the chain, or not an effects scenario
+
+        // The engine scenario drives four whole CHAINS through
+        // EffectsEngineCore and has no single slot of its own, so it lands
+        // here with the chain scenario rather than naming a slot.
+        case Id::FxEngine:
+        default:           return -1;   // the chain or the engine, or not an effects scenario
     }
 }
 
@@ -833,6 +853,14 @@ inline spatcore::effects::EffectChannelParams effectsParams (Id id, int tick)
             break;
         }
 
+        case Id::FxEngine:
+            // Four channels with four different parameter sets: this one is
+            // per CHANNEL, so it has its own function (engineChannelParams
+            // below) and this single-channel entry point is never asked for
+            // it. Named rather than defaulted so that adding a scenario
+            // cannot make it fall through here unnoticed.
+            break;
+
         case Id::Static:
         case Id::Moving:
         case Id::FrToggle:
@@ -844,6 +872,694 @@ inline spatcore::effects::EffectChannelParams effectsParams (Id id, int tick)
 
     return p;
 }
+//==============================================================================
+// THE ENGINE scenario (--scenario engine): effects/EffectsEngineCore driven
+// end to end. It is the only scenario in this harness that renders the ENGINE
+// rather than the DSP inside it, so it is built entirely out of what only a
+// render can reach: the block ledger over two hundred callbacks, a chain
+// reorder, a chain bypass window, two kinds of mute window, three scripted
+// DRIVER STALLS, an emergency Clear, the operator's global guard switch, and
+// the effect-to-effect path driven hard enough that the loop guard trips, is
+// held off by its return veto, backs off on a second trip, and releases.
+//
+// EVERYTHING HERE IS ASSERTED, not merely hashed. A hash notices that a
+// behaviour CHANGED; it cannot notice that one stopped happening at all, and
+// the first run on a new machine records the hash from the assertions alone
+// (--update). So the runner checks the per-channel trip vector, the exact
+// ledger (batches, underruns, discards, overflows) and the exact resync and
+// clear counts against what this file predicts, before any baseline is
+// consulted.
+//
+// FOUR CHANNELS, one job each, because a scenario in which every channel does
+// everything hashes the same way whatever broke:
+//
+//   fx0  loop leg A, the RETURN VETO, and TWO REORDERS (ticks 14 and 68 - the
+//        second lands while its own guard is holding the loop down)
+//   fx1  loop leg B, the BACKOFF LADDER (a second consecutive trip, held twice
+//        as long), plus a CHAIN BYPASS window (ticks 22..30)
+//   fx2  the long tail (reverb), a channel MUTE window (ticks 56..64) and the
+//        per-channel emergency CLEAR at tick 58. Nothing feeds it from the
+//        effect rows, so its guard renders the armed and idle path next to two
+//        that are working.
+//   fx3  fed one-way from fx0's return: an A -> B hop that never runs away, so
+//        the ledger's two-block figure is in the hash beside the loop. It is
+//        also the channel the published matrix DROPS at ticks 76..83, which is
+//        the "routed count is not the live count" path: unrouted, its chain
+//        still has to run and its return ring still has to feed the callback.
+//
+// THE LOOP, and why these numbers rather than tuned ones. fx0 and fx1 feed
+// each other, and BOTH chains end at a hard clip (distortion, shape 0,
+// oversampling off), so each return is bounded by construction at about 0.8:
+// a runaway here builds to a known ceiling instead of to infinity, and a
+// render that exploded would gate the NaN trap rather than the engine. At
+// kLoopRunawayLevel the pre-gain effect-to-effect bus is therefore 3 to 6 -
+// two to three times the guard's +6 dBFS ceiling (1.995 linear) with no
+// reliance on a chain gain to three figures - and at the safe levels it is a
+// third of the release threshold (the ceiling less 12 dB of hysteresis,
+// 0.501) or less.
+//
+// THE VETO NEEDS A HOT RETURN OVER A CALM FEED, which is exactly the case
+// LoopGuard documents: the guard never touches input-to-effect feeds, so a
+// channel can sit far over the ceiling with its loop already cut. That is what
+// the fx0 HOT windows are. Inside one, the input sends into fx0 are multiplied
+// by kFx0HotInputFactor and its distortion is given +12 dB of post-clip
+// makeup, so its return is pinned at 0.8 * 3.981 = 3.185: over the ceiling by
+// 60 %, bounded by the clip, and completely independent of what the loop is
+// doing. The first window (18..37) holds fx0's release off for twenty ticks
+// while fx1 - whose own return is the bare 0.8 - releases on schedule beside
+// it; the second (43..47) drives fx1's re-trip and vetoes fx0 a second time.
+// The sends OUT of fx0 are 0.10 rather than 0.25 for the same reason: at 3.185
+// a quarter would put fx1's bus over the release threshold, and fx1 would
+// never let go.
+//
+// TICKS at the default shape (200 blocks x 512 @ 48 kHz = ticks 0..106; one
+// block is 10.67 ms, one tick 20 ms):
+//
+//    4       the loop is cranked both ways. Both buses go over the ceiling at
+//            once and both guards trip one trip time (60 ms) later
+//   11       the loop is taken back to safe levels: both buses read calm
+//   14       fx0 reorder: the shipped default order -> kOrderB, which puts the
+//            clipper LAST and is what makes the hot window's 3.185 exact
+//   18..37   fx0 HOT: the RETURN VETO holds its release off
+//   22..30   fx1 chain bypass
+//   28       fx1's dither floor crosses -96 dB, the engine's only keyed noise
+//   43..47   fx0 HOT again, and fx0 -> fx1 cranked: fx1 re-trips - its second
+//            CONSECUTIVE trip, so the backoff ladder doubles its hold - and
+//            fx0's calm clock is vetoed back to zero a second time
+//   56..64   fx2 channel mute - the CHAIN's mute, so its modules keep running
+//            and the reverb tail moves on rather than freezing
+//   58       requestClear(2): the per-channel emergency Clear, mid-mute, which
+//            takes that tail away outright. The difference between the two
+//            is the whole point of putting them one inside the other
+//   68       fx0 reorder: kOrderB -> kOrderC, inside the guard's hold
+//   76..83   the published matrix declares THREE effects while four are live:
+//            fx3 is unrouted, and has to keep running anyway
+//   86..91   setLoopGuardEnabled(false): fx1's doubled hold ends the way an
+//            operator ends one, with the held feed snapped back to unity
+//   95..100  ENGINE mute - EffectsEngineCore::setMuted, which silences every
+//            channel's FEED and lets every chain keep running. A different
+//            thing from the chain mute at 56, and only the engine has it
+//  103       requestClear(-1): the emergency Clear on EVERY channel, which is
+//            also the only thing that resets the shared feed history
+//
+// THE DRIVER STALLS are counted in CALLBACKS, not ticks, because that is what
+// a stalled driver thread is: the audio callback keeps running - it keeps
+// pulling returns, and keeps counting underruns while it gets none - and the
+// engine's own thread misses wakes. Three of them, one per branch:
+//
+//   block 44       ONE missed wake. Two blocks are then resident on every
+//                  source, so the next callback runs TWO batches, and the pull
+//                  after it finds two blocks in a ring whose cushion is one:
+//                  the pullReturn DISCARD rule has to choose what to trim.
+//   blocks 116-117 TWO missed wakes. Three blocks resident is past
+//                  maxSourceBacklogBlocks, so processBatch jumps FORWARD
+//                  instead of working through the backlog: resync, and every
+//                  chain reset because the input stream just skipped.
+//   blocks 132-139 EIGHT missed wakes. Nine blocks written into an eight-block
+//                  ring is a LAP, which the modular "available" cannot express
+//                  and only the additive counter can see.
+//
+// Their cost is predicted exactly by expectedLedger() below and asserted, so
+// "the engine fell behind" is a NUMBER this scenario knows rather than a
+// tolerance it waives.
+//==============================================================================
+namespace engine
+{
+    /** Effects channels. Fixed, because the timeline below names them one by
+        one; the INPUT count follows --in like every other scenario. */
+    inline constexpr int kNumEffects = 4;
+
+    /** The engine shape, HERE rather than at the call site, because the ledger
+        arithmetic further down is derived from these four numbers: a driver
+        that configured the engine differently would predict the wrong counts
+        in silence. */
+    inline constexpr int kSourceRingBlocks    = 8;
+    inline constexpr int kReturnRingBlocks    = 8;
+    inline constexpr int kReturnCushionBlocks = 1;
+    inline constexpr int kBacklogBlocks       = 2;
+
+    inline constexpr int kLoopArm       = 4;
+    inline constexpr int kLoopSafe      = 11;
+    inline constexpr int kReorderA      = 14;
+    inline constexpr int kFx0HotOn      = 18;
+    inline constexpr int kFx0HotOff     = 38;
+    inline constexpr int kBypassOn      = 22;
+    inline constexpr int kBypassOff     = 31;
+    inline constexpr int kDitherOn      = 28;
+    inline constexpr int kCrank2On      = 43;
+    inline constexpr int kCrank2Off     = 48;
+    inline constexpr int kChanMuteOn    = 56;
+    inline constexpr int kChanMuteOff   = 65;
+    inline constexpr int kClearChannel  = 58;
+    inline constexpr int kReorderB      = 68;
+    inline constexpr int kUnroutedOn    = 76;
+    inline constexpr int kUnroutedOff   = 84;
+    inline constexpr int kGuardOffOn    = 86;
+    inline constexpr int kGuardOffOff   = 92;
+    inline constexpr int kEngineMuteOn  = 95;
+    inline constexpr int kEngineMuteOff = 101;
+    inline constexpr int kClearAll      = 103;
+
+    /** The channel the per-channel Clear at kClearChannel names. */
+    inline constexpr int kClearChannelIndex = 2;
+
+    /** How many effects the matrix DECLARES while fx3 is dropped. */
+    inline constexpr int kUnroutedEffectCount = 3;
+
+    /** Multiplied by a clipped return this clears the guard's ceiling two to
+        three times over, so the trip does not hang on an exact chain gain. */
+    inline constexpr float kLoopRunawayLevel = 6.0f;
+
+    /** fx0 -> fx1 at rest. A third of the 1 -> 0 level, because fx0's return
+        is 3.185 rather than 0.8 inside a hot window and a quarter of that
+        would sit over fx1's release threshold. */
+    inline constexpr float kSafeLevel01 = 0.10f;
+
+    /** fx1 -> fx0 at rest, against a return the clip pins at 0.8. */
+    inline constexpr float kSafeLevel10 = 0.25f;
+
+    /** fx0 -> fx3: the one-way hop, never loud enough to trip anything - 0.955
+        against a 1.995 ceiling even with fx0's return at its hot 3.185. */
+    inline constexpr float kHopLevel = 0.3f;
+
+    /** What the input sends into fx0 are multiplied by inside a hot window.
+        Deliberately far past what the clipper needs: the clip bounds the
+        return at 0.8 whatever arrives, so there is no cost to a margin here
+        and every reason to want one. A hot window that failed to reach the
+        clip would leave the veto's 3.185 at the mercy of how eight sines
+        happened to line up inside one block. */
+    inline constexpr float kFx0HotInputFactor = 200.0f;
+
+    /** Post-clip makeup inside a hot window. +12 dB is the module's own clamp,
+        and 0.8 * 3.981 = 3.185 is 60 % over the guard's +6 dBFS ceiling. */
+    inline constexpr float kFx0HotOutputDb = 12.0f;
+
+    /** True while fx0 is being driven into its clipper with the makeup on,
+        which is what pins its return over the ceiling with its loop feed
+        calm - the one state the return veto exists for. */
+    inline bool fx0ReturnHot (int tick) noexcept
+    {
+        return (tick >= kFx0HotOn && tick < kFx0HotOff)
+            || (tick >= kCrank2On && tick < kCrank2Off);
+    }
+
+    /** The ENGINE's mute (EffectsEngineCore::setMuted), not the chain's. */
+    inline bool engineMuted (int tick) noexcept
+    {
+        return tick >= kEngineMuteOn && tick < kEngineMuteOff;
+    }
+
+    /** The operator's global loop-guard switch. Turning it OFF re-arms every
+        guard and snaps a held feed straight back to unity - LoopGuard's one
+        documented non-click-free transition, and the only thing in this
+        timeline that ends fx1's doubled hold. */
+    inline bool loopGuardEnabled (int tick) noexcept
+    {
+        return ! (tick >= kGuardOffOn && tick < kGuardOffOff);
+    }
+
+    /** How many effects channels the published matrix declares. Three inside
+        the unrouted window; the engine must still run all four. */
+    inline int publishedEffectCount (int tick) noexcept
+    {
+        return (tick >= kUnroutedOn && tick < kUnroutedOff) ? kUnroutedEffectCount
+                                                            : kNumEffects;
+    }
+
+    /** No clear at all. Not -1, which is requestClear's "every channel". */
+    inline constexpr int kNoClear = -2;
+
+    /** The argument for requestClear() on the tick the render has just entered,
+        or kNoClear. Both of its branches are scripted: the per-channel clear,
+        which drops one chain's tails, and the all-channel clear, which is the
+        only thing that also resets the shared feed history. */
+    inline int clearRequestAt (int tick) noexcept
+    {
+        if (tick == kClearChannel) return kClearChannelIndex;
+        if (tick == kClearAll)     return -1;
+        return kNoClear;
+    }
+
+    /** True once the render is long enough to have reached the guard's first
+        trip. Short shapes stop before tick 4 and legitimately never see one;
+        only a run that got there may be held to it. */
+    inline bool reachesLoopGuardTrip (int finalTick) noexcept
+    {
+        return finalTick >= kLoopArm + 6;
+    }
+
+    /** True once it is long enough for every hold to have been let go of.
+        fx1's second hold is the doubled one, and the guard switch at
+        kGuardOffOn is what ends it. */
+    inline bool reachesLoopGuardRelease (int finalTick) noexcept
+    {
+        return finalTick >= kGuardOffOn + 2;
+    }
+
+    /** The per-channel trip counts this timeline predicts, in the note line's
+        own format, or false when the run stops mid-event and the count is
+        legitimately in flight.
+
+        PER CHANNEL, and that is the whole point of predicting it rather than a
+        total: a total of three reached any other way - all three on one leg,
+        or one on the reverb channel nothing feeds - is a different engine, and
+        a total is exactly what would not notice. */
+    inline bool expectedTripVector (int finalTick, std::string& out)
+    {
+        if (finalTick < kLoopArm)
+        {
+            out = "0,0,0,0";
+            return true;
+        }
+
+        if (finalTick >= kLoopArm + 6 && finalTick < kCrank2On)
+        {
+            out = "1,1,0,0";
+            return true;
+        }
+
+        if (finalTick >= kCrank2On + 6)
+        {
+            out = "1,2,0,0";
+            return true;
+        }
+
+        return false;
+    }
+
+    /** How many requestClear() calls have been made AND honoured by the time
+        the run ends. One asked for on the very last tick may have no batch
+        left to honour it, so the tick has to be strictly past. */
+    inline std::uint32_t expectedClears (int finalTick) noexcept
+    {
+        std::uint32_t n = 0;
+
+        if (finalTick > kClearChannel) ++n;
+        if (finalTick > kClearAll)     ++n;
+
+        return n;
+    }
+
+    //==========================================================================
+    /** One scripted driver stall: the engine's thread misses `callbacks`
+        consecutive wakes from `firstBlock` on. The audio callback keeps
+        running throughout, which is what makes the arithmetic below
+        predictable rather than a tolerance. */
+    struct DriverStall
+    {
+        int firstBlock;
+        int callbacks;
+    };
+
+    inline constexpr DriverStall kStalls[] = {
+        {  44, 1 },     // -> two batches on one wake, then a pullReturn DISCARD
+        { 116, 2 },     // -> three blocks resident: the BACKLOG resync
+        { 132, 8 },     // -> nine blocks into an eight-block ring: the LAP
+    };
+
+    inline constexpr int kNumStalls = static_cast<int> (sizeof (kStalls) / sizeof (kStalls[0]));
+
+    inline bool driverStalled (int block) noexcept
+    {
+        for (const auto& s : kStalls)
+            if (block >= s.firstBlock && block < s.firstBlock + s.callbacks)
+                return true;
+
+        return false;
+    }
+
+    /** What the block ledger must read at the end of a run of `blocks`
+        callbacks, derived from the stall table and the engine shape above
+        rather than written down beside them, so the two cannot drift apart.
+
+        THE ARITHMETIC, once, for all three stalls. A stall of L callbacks
+        leaves L + 1 blocks resident on every source at the recovery callback
+        (L missed writes, plus that callback's own), and the audio callback
+        pulls a return on each of the L callbacks after the last one the ring
+        still had a block for: L underruns.
+
+          L + 1 <= backlog    the backlog test is not exceeded, so the recovery
+                              wake runs BOTH batches and no batch is lost. The
+                              return ring then holds two blocks against a
+                              cushion of one, and the next pull DISCARDS the
+                              older of them.
+          backlog < L + 1     past the allowance but inside the ring:
+            <= ring - 1       processBatch resyncs every source to one block
+                              behind the head, counts a SOURCE SKIP, resets
+                              every chain because the input stream jumped, and
+                              the L missed batches are gone for good.
+          L + 1 > ring - 1    the producer has lapped the consumer, which the
+                              per-cursor "available" cannot express at all: the
+                              additive counter catches it, counts a RING WRAP,
+                              and resyncs the same way. */
+    struct LedgerExpectation
+    {
+        bool          known               = true;   // false: a stall straddles the end
+        int           batches             = 0;
+        std::uint32_t underrunsPerChannel = 0;
+        std::uint32_t discardsPerChannel  = 0;
+        std::uint32_t sourceSkips         = 0;
+        std::uint32_t ringWraps           = 0;
+    };
+
+    inline LedgerExpectation expectedLedger (int blocks) noexcept
+    {
+        LedgerExpectation e;
+        e.batches = blocks;
+
+        for (const auto& s : kStalls)
+        {
+            if (s.firstBlock >= blocks)
+                continue;                           // never reached
+
+            if (s.firstBlock + s.callbacks >= blocks)
+            {
+                e.known = false;                    // reached, but not recovered from
+                continue;
+            }
+
+            e.underrunsPerChannel += static_cast<std::uint32_t> (s.callbacks);
+
+            if (s.callbacks + 1 <= kBacklogBlocks)
+            {
+                e.discardsPerChannel += 1;
+            }
+            else
+            {
+                e.batches -= s.callbacks;
+
+                if (s.callbacks + 1 > kSourceRingBlocks - 1)
+                    e.ringWraps += 1;
+                else
+                    e.sourceSkips += 1;
+            }
+        }
+
+        return e;
+    }
+
+    //==========================================================================
+    /** The send from effect channel `from`'s RETURN into channel `to`. */
+    inline float fxSendLevel (int from, int to, int tick) noexcept
+    {
+        const bool runaway = tick >= kLoopArm && tick < kLoopSafe;
+        const bool crank2  = tick >= kCrank2On && tick < kCrank2Off;
+
+        // The second crank is ONE WAY, and deliberately: fx0 is still being
+        // held down at tick 43, so a two-way crank could not bootstrap the
+        // loop at all. What drives fx1 over the ceiling instead is fx0's hot
+        // return, 3.185 * 6 - which is also why the hot window and this one
+        // are the same window.
+        if (from == 0 && to == 1)
+            return (runaway || crank2) ? kLoopRunawayLevel : kSafeLevel01;
+
+        if (from == 1 && to == 0)
+            return runaway ? kLoopRunawayLevel : kSafeLevel10;
+
+        if (from == 0 && to == 3)
+            return kHopLevel;
+
+        return 0.0f;                     // and no channel ever feeds itself
+    }
+
+    /** Fractional on purpose: an effect row reaches a channel through the same
+        delay line and interpolating tap as an input row, so it has to be
+        rendered through one rather than at an integer number of samples. */
+    inline float fxSendDelayMs (int from, int to) noexcept
+    {
+        if (from == 0 && to == 1) return 1.5f;
+        if (from == 1 && to == 0) return 2.75f;
+        if (from == 0 && to == 3) return 4.0f;
+        return 0.0f;
+    }
+
+    /** Input -> effect send. One cell in seven is dead, so "this source does
+        not reach this channel" is rendered too. */
+    inline float inputSendLevel (int in, int fx, int tick) noexcept
+    {
+        if (((in * 3 + fx * 5) % 7) == 0)
+            return 0.0f;
+
+        const float base = (fx <= 1) ? 0.05f : 0.10f;   // see THE LOOP above
+        const float hot  = (fx == 0 && fx0ReturnHot (tick)) ? kFx0HotInputFactor : 1.0f;
+
+        return hot * base * (0.7f + 0.3f * fx::sweep01 (tick, 0.13, 0.31 * in + 0.77 * fx));
+    }
+
+    inline float inputSendDelayMs (int in, int fx, int tick) noexcept
+    {
+        const float fixed = 2.0f + 1.25f * static_cast<float> ((in * 3 + fx * 5) % 9);
+
+        // One moving send per channel, so the tap's delay smoother has to glide
+        // across a tick boundary instead of only ever holding still.
+        return ((in % kNumEffects) == fx)
+                   ? fixed + 2.0f * fx::sweep01 (tick, 0.07, 0.5 * fx)
+                   : fixed;
+    }
+
+    inline float inputSendHfDb (int in, int fx) noexcept
+    {
+        return -1.0f * static_cast<float> ((in + 2 * fx) % 5);   // 0 .. -4 dB
+    }
+
+    //==========================================================================
+    /** LoopGuard's NaN policy, gated directly rather than through a render.
+
+        peakOf() IS the guard's NaN policy - a plain running max drops a NaN,
+        because every comparison against one is false, and a channel that has
+        gone non-finite then reads as the calmest in the engine. The render
+        cannot gate it, and that is not an oversight: this scenario is bounded
+        by a hard clip precisely so that a runaway does NOT go non-finite and
+        gate the NaN trap instead of the engine, and a render that did produce
+        one would be refused (exit 8) before its hash was ever recorded. So the
+        policy is gated here instead, for the price of no render at all.
+
+        Returns an EMPTY string when the policy holds, otherwise what broke. */
+    inline std::string loopGuardSelfTestFailure()
+    {
+        using spatcore::effects::LoopGuard;
+
+        float block[8] = { 0.1f, -0.2f, 0.3f, -0.1f, 0.05f, 0.0f, -0.4f, 0.2f };
+
+        if (LoopGuard::peakOf (block, 8) != 0.4f)
+            return "LoopGuard::peakOf does not return the absolute peak of a "
+                   "finite block";
+
+        // The NaN goes in the MIDDLE, and below a later sample, so a plain
+        // `if (v > peak) peak = v;` steps straight over it and returns 0.4 -
+        // which is exactly what this test is here to refuse.
+        block[3] = std::numeric_limits<float>::quiet_NaN();
+
+        if (! std::isnan (LoopGuard::peakOf (block, 8)))
+            return "LoopGuard::peakOf drops a NaN, so a channel that has gone "
+                   "non-finite reads as the calmest one in the engine";
+
+        block[3] = std::numeric_limits<float>::infinity();
+
+        if (! std::isinf (LoopGuard::peakOf (block, 8)))
+            return "LoopGuard::peakOf drops a +inf";
+
+        block[3] = -0.1f;
+
+        // And the state machine's half of the same contract: a non-finite peak
+        // counts as loud for the trip test and as not calm for both release
+        // tests, so a channel producing NaN trips and STAYS tripped.
+        LoopGuard guard;
+        guard.prepare (48000.0);
+
+        const float nan = std::numeric_limits<float>::quiet_NaN();
+
+        for (int i = 0; i < 16; ++i)             // 16 x 512 = 170 ms, past the 60 ms trip
+        {
+            guard.observeBlock (nan, 0.0f, 512);
+            guard.applyGain (block, 8);
+        }
+
+        if (! guard.isTripped())
+            return "a LoopGuard fed a NaN feed peak never trips";
+
+        for (int i = 0; i < 400; ++i)            // 400 x 512 = 4.3 s, past every release
+        {
+            guard.observeBlock (nan, 0.0f, 512);
+            guard.applyGain (block, 8);
+        }
+
+        if (! guard.isTripped())
+            return "a LoopGuard fed a NaN feed peak releases again - every "
+                   "comparison against a NaN is false, so the false branch of "
+                   "each test has to be the failure-safe one";
+
+        return {};
+    }
+}
+
+/** One effects channel's parameters for one 50 Hz tick of the engine scenario.
+    A pure function of (channel, tick), like every other timeline in this file.
+
+    The four channels carry DIFFERENT module sets deliberately. The ten module
+    scenarios above already render each module's own extremes eight times over,
+    so what four chains are worth spending here is four different JOBS inside
+    one batch - two whose output is bounded by a clip because they are in a
+    loop, one with a tail long enough to outlive a mute window, one fed from
+    another channel's return. */
+inline spatcore::effects::EffectChannelParams engineChannelParams (int fx, int tick)
+{
+    using namespace spatcore::effects;
+
+    EffectChannelParams p;
+    p.revision = static_cast<std::uint32_t> (tick) + 1u;   // the chain re-reads only on a move
+
+    // Both loop legs END at a hard clip: shape 0 is the +-0.8 limiter, and
+    // oversampling OFF keeps it an exact bound (an oversampled clip rings past
+    // its own limit) while costing the channel no reported latency.
+    const auto clipper = [] (DistortionParams& d, float driveDb, float outputDb)
+    {
+        d.bypass = 0;
+        d.oversample = 1;          // off
+        d.shape = 0.0f;            // hard clip at +-0.8, no tanh leg
+        d.bias = 0.0f;
+        d.driveDb = driveDb;
+        d.outputDb = outputDb;
+        d.mix = 100.0f;
+    };
+
+    switch (fx)
+    {
+        case 0:
+        {
+            // The makeup is POST-clip, so inside a hot window this return is
+            // exactly 0.8 * 3.981 = 3.185 whatever arrives at the channel -
+            // which is the whole basis of the return veto, and the reason the
+            // reorder at tick 14 (kOrderB puts the clipper LAST) has to come
+            // before the first hot window rather than after it.
+            clipper (p.dist, 9.0f,
+                     engine::fx0ReturnHot (tick) ? engine::kFx0HotOutputDb : 0.0f);
+
+            // Cut-only, so nothing after the clip can put the return back over
+            // the bound the loop arithmetic above is reasoned from.
+            p.eq[0].bypass = 0;
+            p.eq[0].shape[0] = 1; p.eq[0].freqHz[0] = 70.0f; p.eq[0].slope[0] = 0.8f;
+            p.eq[0].shape[1] = 0;
+            p.eq[0].shape[2] = 3;
+            p.eq[0].freqHz[2] = fx::sweep (tick, 0.19, 0.0, 500.0f, 2400.0f);
+            p.eq[0].gainDb[2] = -5.0f; p.eq[0].q[2] = 1.1f;
+            p.eq[0].shape[3] = 0;
+            p.eq[0].shape[4] = 0;
+            p.eq[0].shape[5] = 6; p.eq[0].freqHz[5] = 11000.0f; p.eq[0].slope[5] = 0.7f;
+
+            p.trem.bypass = 0;
+            p.trem.rateHz  = fx::sweep (tick, 0.11, 1.3, 2.0f, 7.0f);
+            p.trem.depthDb = 8.0f;
+            p.trem.shape   = 0.3f;
+            p.trem.mix     = 70.0f;
+
+            // TWO REORDERS, through the shipped parser and the same order
+            // strings effectsSelfTestFailure() already checks for the chain
+            // scenario - so a typo in one of them is caught there, once.
+            const char* order = fx::kOrderDefault;
+            if (tick >= engine::kReorderB)      order = fx::kOrderC;
+            else if (tick >= engine::kReorderA) order = fx::kOrderB;
+            (void) parseChainOrder (order, p.order);
+            break;
+        }
+
+        case 1:
+        {
+            clipper (p.dist, 9.0f, 0.0f);
+
+            p.dyn[0].bypass = 0;
+            p.dyn[0].compOn = 1;
+            p.dyn[0].expOn = 0;
+            p.dyn[0].detector = 0;
+            p.dyn[0].autoMakeup = 0;
+            p.dyn[0].makeupDb = 0.0f;
+            p.dyn[0].lookaheadMs = 1.0f;
+            p.dyn[0].compThresholdDb = -6.0f;
+            p.dyn[0].compRatio = 3.0f;
+            p.dyn[0].compKneeDb = 3.0f;
+            p.dyn[0].compAttackMs = 5.0f;
+            p.dyn[0].compReleaseMs = 90.0f;
+            p.dyn[0].compScLoCutHz = 70.0f;
+            p.dyn[0].compScHiCutHz = 9000.0f;
+
+            p.crush.bypass = 0;
+            p.crush.bits = 10.0f;
+            p.crush.rateHz = 18000.0f;
+            p.crush.mix = 60.0f;
+
+            // -96 dB is the documented "off"; crossing it turns the per-channel
+            // keyed dither on, which is the only keyed noise anywhere in this
+            // scenario and therefore the only thing that would collapse if the
+            // engine ever handed every chain the same noise key.
+            p.crush.ditherDb = (tick >= engine::kDitherOn) ? -70.0f : -96.0f;
+
+            p.chainBypass = (tick >= engine::kBypassOn && tick < engine::kBypassOff) ? 1 : 0;
+            break;
+        }
+
+        case 2:
+        {
+            p.reverb.bypass = 0;
+            p.reverb.predelayMs = 15.0f;
+            p.reverb.rt60 = 1.8f;
+            p.reverb.rt60LowMult = 1.4f;
+            p.reverb.rt60HighMult = 0.4f;
+            p.reverb.crossoverLow = 200.0f;
+            p.reverb.crossoverHigh = 3800.0f;
+            p.reverb.diffusion = 0.55f;
+            p.reverb.size = 1.0f;
+            p.reverb.toneHz = 9000.0f;
+            p.reverb.mix = fx::sweep (tick, 0.09, 2.1, 30.0f, 70.0f);
+
+            p.eq[0].bypass = 0;
+            p.eq[0].shape[0] = 1; p.eq[0].freqHz[0] = 90.0f; p.eq[0].slope[0] = 0.7f;
+            p.eq[0].shape[1] = 0;
+            p.eq[0].shape[2] = 3;
+            p.eq[0].freqHz[2] = fx::sweep (tick, 0.13, 1.7, 800.0f, 2600.0f);
+            p.eq[0].gainDb[2] = 3.0f; p.eq[0].q[2] = 0.9f;
+            p.eq[0].shape[3] = 0;
+            p.eq[0].shape[4] = 0;
+            p.eq[0].shape[5] = 6; p.eq[0].freqHz[5] = 13000.0f; p.eq[0].slope[5] = 0.7f;
+
+            // The CHAIN's mute, which is not the engine's: the modules keep
+            // running, so this tail has moved on by the time it comes back
+            // rather than resuming where it stopped. The per-channel Clear at
+            // tick 58 lands inside this window and takes the tail away
+            // outright, which is the difference between the two.
+            p.mute = (tick >= engine::kChanMuteOn && tick < engine::kChanMuteOff) ? 1 : 0;
+            break;
+        }
+
+        default:
+        {
+            // Channel 3, and anything above it were the count ever raised.
+            p.delay.bypass = 0;
+            p.delay.taps = 4;
+            p.delay.tapMode = 1;                    // pattern
+            p.delay.pattern = 1;
+            p.delay.timeMs = fx::sweep (tick, 0.07, 0.4, 140.0f, 260.0f);
+            p.delay.feedback = 35.0f;
+            p.delay.mix = 45.0f;
+            p.delay.inLoCutHz = 90.0f;
+            p.delay.fbHiShelfHz = 3500.0f; p.delay.fbHiShelfDb = -6.0f;
+            p.delay.glideMs = 120.0f;
+            p.delay.diffusion = 0.25f;
+
+            p.phaser.bypass = 0;
+            p.phaser.stages = 6;
+            p.phaser.centreHz = 700.0f;
+            p.phaser.spreadOct = 1.0f;
+            p.phaser.rateHz = 0.35f;
+            p.phaser.depthOct = 2.0f;
+            p.phaser.feedback = 30.0f;
+            p.phaser.mix = 40.0f;
+            break;
+        }
+    }
+
+    return p;
+}
+
 
 /** The chain scenario's order strings are data, and a typo in one of them
     would silently leave the default order running (parseChainOrder refuses a
