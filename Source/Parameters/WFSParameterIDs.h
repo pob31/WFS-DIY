@@ -1040,6 +1040,18 @@ namespace WFSParameterIDs
     // Effect > Sends - four packed CSV rows on one <Sends> node. effectSend*
     // are 64 wide and keyed by input PERMANENT NUMBER; effectFxSend* are 32
     // wide and keyed by dense effect index, with the diagonal forced off.
+    //
+    // DECLARED HERE, NOT STAMPED BY ANY BUILDER, because createEffectSendsSection
+    // refuses to stamp a CSV whose width it cannot yet maintain and the rows
+    // arrive at runtime instead.
+    //
+    // Eight names in this family are declared and never stamped; these four and
+    // the four cell pseudo-identifiers below. The difference is the whole point:
+    // a NODE WILL CARRY these four, so stripObsoleteEffectProperties must exempt
+    // them by name or the load path deletes an operator's send routing with no
+    // undo - while no node ever carries a cell identifier, so exempting one there
+    // would only protect a property that is already a bug. Rename or retire one
+    // of these four and its entry in that hook must move in the same commit.
     const juce::Identifier effectSendLevels      ("effectSendLevels");
     const juce::Identifier effectSendOns         ("effectSendOns");
     const juce::Identifier effectFxSendLevels    ("effectFxSendLevels");

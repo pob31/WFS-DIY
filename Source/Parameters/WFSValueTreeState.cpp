@@ -28,6 +28,54 @@ namespace
         return {};
     }
 
+    /** The nth child of `parent` that has `type`, counting ONLY that type.
+
+        ONE RULE, ONE PLACE, because this file got it wrong at three different
+        depths. A container built holding a single node type is addressed by its
+        callers as if the nth child WERE the nth of that type - <EQ> holds six
+        <Band>s, <FxDelay> eight <Tap>s, <ReverbPostEQ> its <PostEQBand>s - and
+        for everything this application writes that is true. A FILE is not this
+        application: mergeTreeRecursive appends an unmatched source child
+        verbatim, so one unrecognised node anywhere in the list shifts every
+        sibling above it by one, and a straight getChild (n) then answers with
+        the wrong node - or with nothing, for the last band, which has been
+        pushed off the end.
+
+        That is not a lookup miss, it is a SILENT WRITE TO NOWHERE. The caller
+        gets back a valid tree, setProperty succeeds, canWriteParameter says yes
+        and the remote surface reports success - while the value lands on a node
+        no reader ever descends into. Worse, it ROUND-TRIPS: the property is
+        saved onto that node and read back off it, so a check that writes and
+        reads through the same accessor passes, and the operator only ever sees
+        an EQ band or a delay tap that does not do anything.
+
+        The unknown child is left exactly where it is. An unrecognised node is
+        evidence of nothing, and deleting it on load would be a second silent
+        data loss rather than a fix for the first - the rule getEffectState and
+        stripObsoleteEffectProperties already follow at their own granularities.
+
+        Returns an invalid tree when there is no nth child of that type, which is
+        what every caller already handles for an out-of-range index. */
+    juce::ValueTree nthChildOfType (const juce::ValueTree& parent,
+                                    const juce::Identifier& type,
+                                    int n)
+    {
+        if (n < 0)
+            return {};
+
+        int seen = 0;
+        for (int i = 0; i < parent.getNumChildren(); ++i)
+        {
+            auto child = parent.getChild (i);
+            if (! child.hasType (type))
+                continue;
+            if (seen == n)
+                return child;
+            ++seen;
+        }
+        return {};
+    }
+
     /** The <Input> child a property belongs in when no child carries it yet. A
         channel the merge could not match by number is appended whole from the
         file, with no backfill, so one from an inputs.xml older than a property has
@@ -406,17 +454,44 @@ juce::ValueTree WFSValueTreeState::getEffectsState() const
 
 juce::ValueTree WFSValueTreeState::getEffectState (int channelIndex)
 {
-    // Straight indexing, not the count-by-type walk getReverbState needs:
-    // <Effects> holds only <Effect> children by construction (the globals are
-    // in Config/EffectsGlobal). The type check is the guard on that invariant,
-    // not a search - if it ever fails, something appended a sibling and the
-    // rule in the header was broken rather than bent.
+    // THE SAME COUNT-BY-TYPE WALK getReverbState does, and for the same reason
+    // - not because <Effects> is meant to hold anything but <Effect> children,
+    // but because this must AGREE WITH getNumEffectChannels whatever the file
+    // turned out to hold.
+    //
+    // This used to index straight into the child list and treat the type test as
+    // a guard on the container's invariant. The invariant is real and nothing in
+    // this app breaks it; a FILE can. mergeTreeRecursive appends any unmatched
+    // source child verbatim, and WFSFileManager::applyEffectsSection is exactly
+    // the path a hand-edited or foreign effects.xml takes, so <Effects> holding
+    // <Effect id="1"/>, <Foo/>, <Effect id="2"/> was reachable. The count walks
+    // by type and said two; this indexed and returned an invalid tree for
+    // channel 2, and every accessor built on it - Channel, Position, Feed,
+    // Return, AutomOtion, Chain, Sends, the eleven modules - plus
+    // redistributeAllEffectPositions went with it. setNumEffectChannels then
+    // wrote that same two into <Effects count> and Config/IO/effectChannels, so
+    // a channel the whole application agreed existed could not be addressed.
+    //
+    // The unknown child is left where it is rather than deleted on load: an
+    // unrecognised node is evidence of nothing (see stripObsoleteEffectProperties
+    // for the same rule at property granularity), and dropping it would be the
+    // second silent data loss on this path, not a fix for the first.
     auto effects = getEffectsState();
-    if (channelIndex < 0 || channelIndex >= effects.getNumChildren())
+    if (channelIndex < 0)
         return {};
 
-    auto child = effects.getChild (channelIndex);
-    return child.hasType (Effect) ? child : juce::ValueTree();
+    int effectCount = 0;
+    for (int i = 0; i < effects.getNumChildren(); ++i)
+    {
+        auto child = effects.getChild (i);
+        if (child.hasType (Effect))
+        {
+            if (effectCount == channelIndex)
+                return child;
+            ++effectCount;
+        }
+    }
+    return {};
 }
 
 juce::ValueTree WFSValueTreeState::getAudioPatchState()
@@ -1179,10 +1254,12 @@ juce::ValueTree WFSValueTreeState::getOutputEQSection (int channelIndex)
 
 juce::ValueTree WFSValueTreeState::getOutputEQBand (int channelIndex, int bandIndex)
 {
-    auto eq = getOutputEQSection (channelIndex);
-    if (eq.isValid() && bandIndex >= 0 && bandIndex < eq.getNumChildren())
-        return eq.getChild (bandIndex);
-    return {};
+    // By TYPE, never by position - see nthChildOfType. <EQ> holds <Band> children
+    // and nothing else, and a loaded outputs.xml is exactly what can make that
+    // untrue. This accessor has live remote callers (the MCP EQ-band dispatcher,
+    // the generic get/set tools, the dials pages), so a foreign child in here
+    // used to make a write to band 2 land on it and report success.
+    return nthChildOfType (getOutputEQSection (channelIndex), Band, bandIndex);
 }
 
 //==============================================================================
@@ -1351,10 +1428,13 @@ juce::ValueTree WFSValueTreeState::ensureReverbEQSection (int channelIndex)
 
 juce::ValueTree WFSValueTreeState::getReverbEQBand (int channelIndex, int bandIndex)
 {
-    auto eq = getReverbEQSection (channelIndex);
-    if (eq.isValid() && bandIndex >= 0 && bandIndex < eq.getNumChildren())
-        return eq.getChild (bandIndex);
-    return {};
+    // By TYPE - see nthChildOfType, and note getReverbEQSection above already
+    // MIGRATES old band property names in place, so this is a child list a FILE
+    // has demonstrably written. The most exposed of the five:
+    // /wfs/reverb/n/eq/b/gain resolves through here (OSCManager), as do the MCP
+    // band tools and the GUI tab, and an unknown child inside <EQ> used to send
+    // every one of those writes onto it with a success reply.
+    return nthChildOfType (getReverbEQSection (channelIndex), Band, bandIndex);
 }
 
 juce::ValueTree WFSValueTreeState::getReverbReturnSection (int channelIndex)
@@ -1406,10 +1486,12 @@ juce::ValueTree WFSValueTreeState::ensureReverbPostEQSection()
 
 juce::ValueTree WFSValueTreeState::getReverbPostEQBand (int bandIndex)
 {
-    auto postEQ = getReverbPostEQSection();
-    if (postEQ.isValid() && bandIndex >= 0 && bandIndex < postEQ.getNumChildren())
-        return postEQ.getChild (bandIndex);
-    return {};
+    // By TYPE - see nthChildOfType. <ReverbPostEQ> holds <PostEQBand> children,
+    // NOT <Band>: the post EQ is a global sibling of the reverb channels and its
+    // bands carry their own node type, which is what keeps the two id namespaces
+    // apart. Naming the wrong type here would resolve nothing at all, which is
+    // the loud failure rather than the silent one.
+    return nthChildOfType (getReverbPostEQSection(), PostEQBand, bandIndex);
 }
 
 juce::ValueTree WFSValueTreeState::getReverbPreCompSection()
@@ -1610,10 +1692,12 @@ juce::ValueTree WFSValueTreeState::getEffectEQSection (int channelIndex, int eqI
 
 juce::ValueTree WFSValueTreeState::getEffectEQBand (int channelIndex, int eqInstance, int bandIndex)
 {
-    auto eq = getEffectEQSection (channelIndex, eqInstance);
-    if (eq.isValid() && bandIndex >= 0 && bandIndex < eq.getNumChildren())
-        return eq.getChild (bandIndex);
-    return {};
+    // By TYPE - see nthChildOfType. getEffectState counts <Effect> children by
+    // type for one reason: the accessor and the count must agree about which
+    // channel is the nth one whatever the file turned out to hold. The same file
+    // that can leave an unknown node in <Effects> can leave one in <FxEq1>, and
+    // this is that hazard one level further down the very same load path.
+    return nthChildOfType (getEffectEQSection (channelIndex, eqInstance), Band, bandIndex);
 }
 
 juce::ValueTree WFSValueTreeState::getEffectDynSection (int channelIndex, int dynInstance)
@@ -1625,10 +1709,9 @@ juce::ValueTree WFSValueTreeState::getEffectDynSection (int channelIndex, int dy
 
 juce::ValueTree WFSValueTreeState::getEffectDelayTap (int channelIndex, int tapIndex)
 {
-    auto delay = getEffectModuleSection (channelIndex, FxDelay);
-    if (delay.isValid() && tapIndex >= 0 && tapIndex < delay.getNumChildren())
-        return delay.getChild (tapIndex);
-    return {};
+    // By TYPE - see nthChildOfType, and getEffectEQBand just above for why the
+    // fixed eight-tap child list is not a licence to index straight into it.
+    return nthChildOfType (getEffectModuleSection (channelIndex, FxDelay), Tap, tapIndex);
 }
 
 //==============================================================================
@@ -2905,8 +2988,11 @@ int WFSValueTreeState::getNumEffectChannels() const
 {
     // Counted, never read off `count`: the property is bookkeeping and a writer
     // that bypasses setNumEffectChannels makes it lie, which is exactly the
-    // drift getNumReverbChannels documents. <Effects> holds only <Effect>
-    // children, so the type test here is a guard on that invariant.
+    // drift getNumReverbChannels documents. The type test is NOT a guard on the
+    // container's invariant, whatever this comment used to say: nothing this
+    // application writes puts a non-<Effect> node in <Effects>, but a merged FILE
+    // can, and getEffectState resolves the nth channel by this same walk so the
+    // two cannot disagree about which channel that is.
     auto effects = getEffectsState();
     int effectCount = 0;
     for (int i = 0; i < effects.getNumChildren(); ++i)
@@ -3190,20 +3276,28 @@ juce::Result WFSValueTreeState::removeEffectChannel (int channelIndex)
         return juce::Result::fail ("effect channel " + juce::String (channelIndex + 1)
                                    + " is not live");
 
-    auto victim = effects.getChild (channelIndex);
+    // By TYPE, like getEffectState and getNumEffectChannels: channelIndex is the
+    // nth <Effect>, which is only the nth child while nothing unrecognised sits
+    // in the list - and a merged file can put something there.
+    auto victim = getEffectState (channelIndex);
     if (! victim.hasType (Effect))
         return juce::Result::fail ("effect channel " + juce::String (channelIndex + 1)
                                    + " is not an effect node");
 
-    effects.removeChild (channelIndex, nullptr);
+    effects.removeChild (effects.indexOf (victim), nullptr);
 
     // Effect ids are DENSE, so the hole closes: everything above moves down one.
     // No number is retired and none is ever reused, because an effect return is
     // addressed by its place in the list rather than by a permanent number.
+    // Only the <Effect> children are numbered - stamping an id onto a foreign
+    // sibling would invent a channel that is not one, and the merge matches
+    // children by type AND id, so the invention would stick to the file.
+    int renumbered = 0;
     for (int i = 0; i < effects.getNumChildren(); ++i)
-        effects.getChild (i).setProperty (id, i + 1, nullptr);
+        if (auto child = effects.getChild (i); child.hasType (Effect))
+            child.setProperty (id, ++renumbered, nullptr);
 
-    const int remaining = effects.getNumChildren();
+    const int remaining = renumbered;   // by type, never getNumChildren()
     if (auto io = getIOState(); io.isValid())
         io.setProperty (effectChannels, remaining, nullptr);
     effects.setProperty (count, remaining, nullptr);
@@ -4261,6 +4355,97 @@ void WFSValueTreeState::stripObsoleteEffectProperties()
     // channel 0 answers for every channel.
     const auto tmplChannel = createDefaultEffectChannel (0, juce::jmax (1, n));
 
+    // DECLARED BUT NOT STAMPED - and the template diff cannot tell that apart
+    // from RETIRED, because both look identical from here: absent from a freshly
+    // built channel. Absence is therefore NOT proof of retirement, and this hook
+    // must not infer one from the other where the name is known to be declared
+    // and written at runtime.
+    //
+    // The four <Sends> rows are exactly that case. WFSParameterIDs declares all
+    // four; createEffectSendsSection deliberately stamps none of them, because a
+    // packed CSV row whose width, keying and column maintenance do not exist yet
+    // is worse than no row at all - so the node is built empty and the rows
+    // arrive at runtime, through a cell accessor or an OSC/MCP route, the way
+    // inputMutes does. Without this exemption the first such write would be
+    // saved to effects.xml correctly, restored faithfully by the merge on the
+    // next open, and then deleted right here: the operator's entire send
+    // routing, with no error and no undo entry - the eviction passes nullptr for
+    // the UndoManager on purpose, and until the warning below existed there was
+    // no trace of it anywhere either.
+    //
+    // THIS LIST IS THE ONE PIECE OF HAND MAINTENANCE the table-free design
+    // otherwise avoids, so keep it honest: an entry must be REMOVED from it the
+    // day its property is genuinely retired, or the retired name rides along in
+    // saved files for ever - which is the very thing this hook exists to stop.
+    // The trade is still the right way round, and deliberately asymmetric. A
+    // STALE entry costs one attribute riding along in saved files until someone
+    // notices. A MISSING entry destroys an operator's routing, on load, with
+    // nothing to undo it - the warning at the bottom of this function is the
+    // only trace, and it arrives after the data is gone. Those two costs are not
+    // comparable, so this list errs towards keeping data.
+    auto isDeclaredButUnstamped = [] (const juce::Identifier& propName)
+    {
+        return propName == effectSendLevels   || propName == effectSendOns
+            || propName == effectFxSendLevels || propName == effectFxSendOns;
+    };
+
+    // KEYED ON THE NAME ALONE, AT EVERY DEPTH - considered again and kept, so
+    // nobody has to re-litigate this one either. The exact rule is available:
+    // exempt (node type <Sends>, one of those four names) and evict the name
+    // anywhere else. It is more precise today and it inverts the asymmetry this
+    // whole list is built on. The four rows are hand-maintained BY DESIGN, and
+    // the move that will actually happen to them - a row relocated from <Sends>
+    // onto some other node, with a migration - would then need the node type in
+    // this hook updated in the same commit as well as the name. Forget the name
+    // and you lose the routing; forget the TYPE and you also lose the routing,
+    // and only on the second load, after the migration has already reported
+    // success. One hand-maintained fact is safer than two.
+    //
+    // The price is exact and bounded: one of those four names used as genuine
+    // junk on a node that is not <Sends> can never be evicted from a file. That
+    // is one orphan attribute riding along, never destroyed data - but it is
+    // also a send row sitting where NOTHING reads it, which is a bug worth
+    // seeing. So the name is kept and its location is REPORTED, below.
+
+    // CONSIDERED AND REJECTED, so nobody has to re-litigate it: exempting any
+    // node whose TEMPLATE counterpart carries zero properties, wholesale, as a
+    // general net instead of this named list. It is the more appealing rule - an
+    // empty template node really is evidence of nothing, and it would cover the
+    // next deliberately-empty node with nobody having to remember a list. Two
+    // things sink it.
+    //
+    // It makes <Sends> a permanent blind spot, and <Sends> is the one node
+    // certain to carry hand-maintained names that will be RENAMED: the four rows
+    // arrive with a width and a keying convention (input permanent number,
+    // dense effect index) that the commit writing them may well revise, and
+    // under the wholesale rule the superseded spelling could never be evicted
+    // from anyone's file. The named list gets that exactly right - delete the
+    // old name from it, add the new one - which is the whole reason it is a list
+    // of names and not a property of the node.
+    //
+    // And it would make BOTH rules untestable. With the wholesale net in place,
+    // deleting this list changes no observable behaviour, so no gate can fail on
+    // it; the self-test proved that directly - X10's ghost, planted on <Sends>
+    // itself, survived eviction under the net and nothing else moved. Two
+    // overlapping defences that each hide the other's absence are worth less
+    // than one defence a test can break.
+    //
+    // What the net WOULD have bought - cover for a future deliberately-empty
+    // node - is bought instead by the warning below: an eviction is no longer
+    // silent, which is the half of this bug that made it undiagnosable.
+
+    // What was actually dropped, for the log. Collected rather than logged in
+    // place: a name retired from one builder is evicted from the same node of
+    // all 32 channels, and thirty-two identical warnings would bury the one
+    // thing a reader needs, which is WHICH names went.
+    juce::StringArray evicted;
+
+    // ...and what was KEPT but should not have been there: an exempt name found
+    // on any node but <Sends>. Nothing is deleted for this - see the keying note
+    // above - so this is not a loss report, it is the only trace a send row
+    // written to the wrong node will ever leave.
+    juce::StringArray misplaced;
+
     // Depth-first, template-driven. A node the template does not have at all is
     // left alone rather than deleted: removing a whole subtree is a different
     // and much more destructive decision than dropping a retired attribute, and
@@ -4271,13 +4456,31 @@ void WFSValueTreeState::stripObsoleteEffectProperties()
     // deliberate decision here, exactly as the reverb hook's hand-written list
     // does at property granularity.
     std::function<void (juce::ValueTree&, const juce::ValueTree&)> evict =
-        [&evict] (juce::ValueTree& target, const juce::ValueTree& tmpl)
+        [&evict, &isDeclaredButUnstamped, &evicted, &misplaced] (juce::ValueTree& target, const juce::ValueTree& tmpl)
     {
         for (int i = target.getNumProperties(); --i >= 0;)
         {
             const auto propName = target.getPropertyName (i);
+
+            if (isDeclaredButUnstamped (propName))
+            {
+                // Kept wherever it sits, and named when it sits somewhere it
+                // cannot work. <Sends> is the only node any of these four is
+                // ever read off - createEffectSendsSection builds it and
+                // getEffectSendsSection is how every caller reaches it - so the
+                // same name on a <Chain> or a <Band> is dead weight that this
+                // hook, by its own keying rule, can never clean up.
+                if (! target.hasType (Sends))
+                    misplaced.addIfNotAlreadyThere (target.getType().toString()
+                                                    + "/" + propName.toString());
+                continue;
+            }
+
             if (! tmpl.hasProperty (propName))
+            {
+                evicted.addIfNotAlreadyThere (propName.toString());
                 target.removeProperty (propName, nullptr);   // schema eviction is not an undoable user edit
+            }
         }
 
         for (int c = 0; c < target.getNumChildren(); ++c)
@@ -4320,6 +4523,31 @@ void WFSValueTreeState::stripObsoleteEffectProperties()
         if (child.hasType (Effect))
             evict (child, tmplChannel);
     }
+
+    // SAY SO. Eviction passes nullptr for the UndoManager by design - a schema
+    // change is not a user edit and Ctrl+Z must not resurrect a retired name -
+    // so a wrong eviction cannot be undone and, until this line, could not even
+    // be noticed: the <Sends> hole would have destroyed an operator's entire
+    // send routing on load with nothing in the log to say it had happened. A
+    // retired name appears here on EVERY load of a file that still carries it and
+    // stops the first time that file is saved back, which is the honest shape of
+    // it: the hook strips the live tree, not the file. Anything else appearing
+    // here is a bug in this hook.
+    if (! evicted.isEmpty())
+        WFSLogger::getInstance().logWarning (
+            "Effects schema: dropped " + juce::String (evicted.size())
+            + " attribute(s) no longer declared by the effect channel template - "
+            + evicted.joinIntoString (", "));
+
+    // The other half: what the exemption REFUSED to drop, and where. Deliberately
+    // a separate line with different wording - one says data went, this one says
+    // data is sitting somewhere nothing will ever read it, and conflating the two
+    // would make the first line useless.
+    if (! misplaced.isEmpty())
+        WFSLogger::getInstance().logWarning (
+            "Effects schema: kept " + juce::String (misplaced.size())
+            + " exempt attribute(s) found outside <Sends>, where nothing reads them - "
+            + misplaced.joinIntoString (", "));
 }
 
 void WFSValueTreeState::createNetworkSection (juce::ValueTree& config)
@@ -4554,8 +4782,10 @@ void WFSValueTreeState::createEffectsSection()
 
     // Zero by default: <Effects count="0"/> and nothing else. Unlike
     // createReverbsSection there are NO global siblings to append - the effects
-    // globals live in Config/EffectsGlobal, which is what lets getEffectState
-    // index straight into the child list instead of counting by type.
+    // globals live in Config/EffectsGlobal, so nothing this application writes
+    // ever puts a non-<Effect> node in here. The accessors still count by type
+    // rather than trusting that, because a merged file is not this application:
+    // see getEffectState.
     for (int i = 0; i < effectChannelsDefault; ++i)
         effects.appendChild (createDefaultEffectChannel (i, effectChannelsDefault), nullptr);
 
@@ -5432,6 +5662,14 @@ juce::ValueTree WFSValueTreeState::createEffectSendsSection()
     // maintenance on input delete and renumber. Stamping them here without any
     // of that would create five destructible CSV rows per channel - the hole
     // reverbMutes still has - so the node exists and the rows do not.
+    //
+    // THE ROWS ARE EXEMPT FROM EVICTION BY NAME, and they have to be: an empty
+    // template node and the property-diff rule in stripObsoleteEffectProperties
+    // together say "every property on a loaded <Sends> is obsolete", which would
+    // delete an operator's whole send routing on the load after the first
+    // runtime write. If a row is ever renamed or genuinely retired, change the
+    // list there in the same commit - it is the one place this family keeps a
+    // name by hand.
     return juce::ValueTree (Sends);
 }
 
@@ -5597,8 +5835,10 @@ juce::ValueTree WFSValueTreeState::createEffectDelaySection()
     delay.setProperty (effectDelayMix, effectDelayMixDefault, nullptr);
 
     // All eight taps always exist; effectDelayTaps says how many are live.
-    // A fixed child count is what lets the schema backfill match them by id and
-    // what keeps getEffectDelayTap a straight positional index.
+    // A fixed child count is what lets the schema backfill match them by id.
+    // It does NOT make getEffectDelayTap a straight positional index: a merged
+    // file can leave an unknown node in here, and indexing would then hand the
+    // caller the wrong tap - see nthChildOfType.
     for (int i = 0; i < numEffectDelayTaps; ++i)
     {
         juce::ValueTree tap (Tap);
@@ -5891,15 +6131,33 @@ juce::ValueTree WFSValueTreeState::getTreeForParameter (const juce::Identifier& 
             if (! effects.isValid())
                 return {};
 
-            // No global siblings under <Effects>, so no count-by-type walk and
-            // no hasProperty pre-pass over four algo nodes: the nth child IS the
-            // nth channel. The effects globals are Config properties and are
-            // routed there by name in getParameterScope.
-            if (channelIndex >= effects.getNumChildren())
-                return {};
+            // BY TYPE, exactly as the Reverb case above walks its nth, and for
+            // the reason getEffectState records: this must resolve the same
+            // channel getNumEffectChannels counted, whatever the container turns
+            // out to hold. There is still no hasProperty pre-pass over global
+            // siblings - the effects globals are Config properties, routed there
+            // by name in getParameterScope - but "no globals" was never a
+            // promise about what a MERGED FILE can leave in the child list, and
+            // this is the resolution path every OSC, MCP and GUI write takes. It
+            // indexed positionally, so a foreign child ahead of a channel made
+            // canWriteParameter answer FALSE for a channel the count promised,
+            // and every remote write to it was refused for the life of the show.
+            int nth = 0;
+            juce::ValueTree effect;
+            for (int i = 0; i < effects.getNumChildren(); ++i)
+            {
+                auto candidate = effects.getChild (i);
+                if (! candidate.hasType (Effect))
+                    continue;
+                if (nth == channelIndex)
+                {
+                    effect = candidate;
+                    break;
+                }
+                ++nth;
+            }
 
-            auto effect = effects.getChild (channelIndex);
-            if (! effect.hasType (Effect))
+            if (! effect.isValid())
                 return {};
 
             for (int i = 0; i < effect.getNumChildren(); ++i)

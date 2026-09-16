@@ -109,11 +109,20 @@ public:
         <Effects> holds ONLY <Effect> children - no global siblings, which is
         the one shape decision that separates this family from <Reverbs>. The
         reverb globals (Algorithm / PreComp / PostEQ / PostExp) are siblings of
-        the reverb channels, and paying for that costs a count-by-type walk at a
-        dozen sites; the effects globals live in Config/EffectsGlobal instead, so
-        getEffectState can index straight into the child list. NOTHING may ever
-        be appended beside the channels - that constraint is what this comment
-        is for. */
+        the reverb channels; the effects globals live in Config/EffectsGlobal
+        instead. NOTHING this application writes may ever be appended beside the
+        channels - that constraint is what this comment is for.
+
+        It is still only a constraint on US. A FILE can hold anything:
+        mergeTreeRecursive appends an unmatched source child verbatim and
+        WFSFileManager::applyEffectsSection is the path a hand-edited or foreign
+        effects.xml takes. getEffectState therefore counts by type exactly as
+        getReverbState does - not because the shape decision was wrong, but
+        because the accessor and getNumEffectChannels must agree about which
+        channel is the nth one even when the container holds something neither of
+        them recognises. Indexing positionally made them disagree, and a channel
+        both copies of the count promised was then unreachable to every
+        accessor. */
     juce::ValueTree getEffectsState();
     juce::ValueTree getEffectsState() const;
     juce::ValueTree getEffectState (int channelIndex);
@@ -279,6 +288,20 @@ public:
     juce::ValueTree getOutputPositionSection (int channelIndex);
     juce::ValueTree getOutputOptionsSection (int channelIndex);
     juce::ValueTree getOutputEQSection (int channelIndex);
+
+    /** One EQ band - the nth <Band> BY TYPE, not the nth child.
+
+        EVERY band and tap accessor in this class resolves that way, for the
+        reason nthChildOfType records in the .cpp: the container is built holding
+        one node type and callers address it as if the nth child were the nth of
+        that type, but a merged FILE can leave an unrecognised node in the list,
+        and a positional index then hands the caller the wrong node - or nothing
+        at all for the last band, which has been pushed off the end.
+
+        That is not a lookup miss. The wrong node is a valid tree, so the write
+        succeeds, the remote surface reports success, the value is saved onto it
+        and read straight back off it, and only the audio is missing. Counting by
+        type answers with the band the caller named or with nothing. */
     juce::ValueTree getOutputEQBand (int channelIndex, int bandIndex);
 
     //==========================================================================
@@ -306,18 +329,44 @@ public:
         Same job as stripObsoleteReverbProperties - mergeTreeRecursive and
         backfillFromTemplate both only ever ADD, so an attribute the schema has
         retired rides along in the live tree and is re-saved for ever - but it
-        names nothing. Every property anywhere under an <Effect> is stamped by
-        exactly one builder under createDefaultEffectChannel, so "what the schema
-        declares" IS that template: this walks each channel against a freshly
-        built one and removes any property the template does not carry. A name
-        deleted from a builder is therefore evicted from every loaded file with
-        no second list to keep in step - which is precisely the maintenance the
-        reverb hook's hand-written legacy identifier demands.
+        names almost nothing. Every property anywhere under an <Effect> is
+        stamped by exactly one builder under createDefaultEffectChannel, so "what
+        the schema declares" IS that template: this walks each channel against a
+        freshly built one and removes any property the template does not carry. A
+        name deleted from a builder is therefore evicted from every loaded file
+        with no second list to keep in step - which is precisely the maintenance
+        the reverb hook's hand-written legacy identifier demands.
+
+        THE ONE EXCEPTION, and it is a data-loss guard, not a convenience. A
+        template diff cannot tell PENDING from RETIRED: both are absent from a
+        freshly built channel. The four <Sends> rows (effectSendLevels /
+        effectSendOns / effectFxSendLevels / effectFxSendOns) are DECLARED in
+        WFSParameterIDs and deliberately not stamped by createEffectSendsSection,
+        because their width and column maintenance do not exist yet - so they are
+        exempted by name in the implementation. Without that, the first runtime
+        write of a send row would be saved correctly, restored faithfully by the
+        merge, and then deleted on the next load with no undo entry. Remove an
+        entry from that list the day its property is genuinely retired; the cost
+        of a stale entry is one attribute riding along in saved files, and the
+        cost of a missing one is an operator's routing.
 
         The corollary is a rule, not an accident: nothing may stamp a property
         onto an <Effect> subtree that createDefaultEffectChannel does not also
-        stamp. A runtime-only flag parked there would be evicted on the next
-        load, and should live outside the persisted subtree instead.
+        stamp, unless it is on that exemption list. A runtime-only flag parked
+        there would be evicted on the next load, and should live outside the
+        persisted subtree instead.
+
+        Whatever it drops, it SAYS so: one warning naming the distinct attributes
+        removed. Eviction is not undoable by design, so a wrong one has to be
+        visible somewhere.
+
+        A SECOND warning names any exempt attribute found on a node that is not
+        <Sends>. Nothing is deleted for that one - the exemption is keyed on the
+        property NAME at every depth, deliberately, because the list is
+        hand-maintained and a second hand-maintained fact (the node type) would
+        be a second thing to forget, with the same cost. The consequence is that
+        such an attribute can never be cleaned up, and a send row anywhere but
+        <Sends> is read by nobody, so the warning is the only trace it leaves.
 
         THE LIMIT, stated so nobody has to rediscover it: this works at property
         granularity only. A NODE the template does not have is neither deleted
@@ -348,6 +397,9 @@ public:
     void backfillEffectChannelsFromTemplate();
     juce::ValueTree getReverbEQSection (int channelIndex);
     juce::ValueTree ensureReverbEQSection (int channelIndex);  // Creates if missing
+    /** One pre-EQ band - the nth <Band> BY TYPE; see getOutputEQBand. This is
+        the most exposed of the five: OSC (/wfs/reverb/n/eq/b/...), the MCP band
+        tools and the GUI tab all resolve through it. */
     juce::ValueTree getReverbEQBand (int channelIndex, int bandIndex);
     juce::ValueTree getReverbReturnSection (int channelIndex);
 
@@ -362,6 +414,10 @@ public:
     /** Get the global reverb post-processing EQ section (child of Reverbs node) */
     juce::ValueTree getReverbPostEQSection();
     juce::ValueTree ensureReverbPostEQSection();  // Creates if missing
+    /** One post-EQ band - the nth <PostEQBand> BY TYPE; see getOutputEQBand.
+        The node type is NOT <Band>: the post EQ is a global sibling of the
+        reverb channels and its bands carry their own type, which is what keeps
+        the two id namespaces apart. */
     juce::ValueTree getReverbPostEQBand (int bandIndex);
 
     /** Get the global reverb post-expander section (child of Reverbs node) */
@@ -429,14 +485,20 @@ public:
     juce::ValueTree getEffectModuleSection (int channelIndex, int slotIndex);
     juce::ValueTree getEffectModuleSection (int channelIndex, const juce::Identifier& moduleType);
 
-    /** One EQ band: channel, EQ instance (0 = FxEq1, 1 = FxEq2), band 0..5. */
+    /** One EQ band: channel, EQ instance (0 = FxEq1, 1 = FxEq2), band 0..5 -
+        the nth <Band> BY TYPE inside the instance, see getOutputEQBand. The
+        channel index is resolved by type too, in getEffectState; a file that can
+        leave an unknown node in <Effects> can leave one in <FxEq1>. */
     juce::ValueTree getEffectEQSection (int channelIndex, int eqInstance);
     juce::ValueTree getEffectEQBand (int channelIndex, int eqInstance, int bandIndex);
 
     /** One dynamics stage: channel, instance (0 = FxDyn1, 1 = FxDyn2). */
     juce::ValueTree getEffectDynSection (int channelIndex, int dynInstance);
 
-    /** One multitap delay tap: channel, tap 0..7, under <FxDelay>. */
+    /** One multitap delay tap: channel, tap 0..7 - the nth <Tap> BY TYPE under
+        <FxDelay>, see getOutputEQBand. All eight taps always exist, which is
+        what lets the schema backfill match them by id; it is not a licence to
+        index straight into the child list. */
     juce::ValueTree getEffectDelayTap (int channelIndex, int tapIndex);
 
     /** The eleven chain slot node types in their declared order. A slot index
@@ -540,7 +602,10 @@ public:
     /** Live effect channels - counted from the <Effect> children, never read
         off the `count` property, for the reason getNumReverbChannels records:
         a writer that bypasses setNumEffectChannels makes the property lie, and
-        every id lookup built on it then refuses valid channels. */
+        every id lookup built on it then refuses valid channels.
+
+        By TYPE, and getEffectState resolves the nth channel the same way, so the
+        two cannot disagree about a container that holds a foreign child. */
     int getNumEffectChannels() const;
 
     /** Set channel counts. For inputs this is the blunt legacy entry point:

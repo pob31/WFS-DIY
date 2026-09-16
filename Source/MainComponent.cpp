@@ -4621,6 +4621,25 @@ void MainComponent::runChannelListSelfTest()
             return n;
         };
 
+        // THE LOG IS EVIDENCE HERE, not decoration. stripObsoleteEffectProperties
+        // passes nullptr for the UndoManager on purpose - a schema change is not
+        // a user edit - so a wrong eviction cannot be undone, and the warning is
+        // the only trace one will ever leave. A warning nothing asserts is a
+        // warning that can silently stop being emitted, which is exactly the
+        // state this family was in before it existed, so both warnings are read
+        // back off disk. WFSLogger writes through juce::FileLogger, which opens,
+        // appends and closes per line, so everything a load emitted is on disk by
+        // the time the load returns.
+        auto logMark = [] { return WFSLogger::getInstance().getCurrentLogFile().getSize(); };
+
+        auto logSince = [](juce::int64 mark) -> juce::String
+        {
+            juce::FileInputStream in (WFSLogger::getInstance().getCurrentLogFile());
+            if (! in.openedOk() || ! in.setPosition (mark))
+                return {};
+            return in.readEntireStreamAsString();
+        };
+
         // The whole node shape of one channel, read off the tree. Returns an
         // empty string when the channel is exactly right, otherwise the first
         // thing wrong with it - so a failure names the defect instead of just
@@ -4803,10 +4822,18 @@ void MainComponent::runChannelListSelfTest()
             xml = xml.replace("<Effect id=", "<Effect effectRetiredGhost=\"1\" id=");
             xml = xml.replace("<FxDist ", "<FxDist effectRetiredGhost=\"1\" ");
             xml = xml.replace("<Band id=", "<Band effectRetiredGhost=\"1\" id=");
+            // Two shapes X6 never covered: a CHANNEL-section node (<Chain> - id-less
+            // like <FxDist>, but not a chain module) and an id'd <Tap>, matched by
+            // type AND id exactly as <Band> is. Structurally identical to what is
+            // already here, which is the point: a rule asserted on two of the four
+            // shapes it has to handle is a rule half asserted.
+            xml = xml.replace("<Chain ", "<Chain effectRetiredGhost=\"1\" ");
+            xml = xml.replace("<Tap id=", "<Tap effectRetiredGhost=\"1\" id=");
             effectsFile().replaceWithText(xml);
             check(occurrences(effectsFile().loadFileAsString(), "effectRetiredGhost") > 0,
                   "X6: the file carries a retired attribute the schema no longer declares");
 
+            const auto beforeGhostLoad = logMark();
             check(fm.loadEffectsConfig(), "X6: load it");
             verifyFamily("X6 (after the ghost load)", 4);
 
@@ -4816,6 +4843,18 @@ void MainComponent::runChannelListSelfTest()
                   "X6: ...from an id-less module node");
             check(! effect.getChildWithName(P::FxEq2).getChild(0).hasProperty(ghost),
                   "X6: ...and from an id'd <Band> under the SECOND EQ instance");
+            check(! effect.getChildWithName(P::Chain).hasProperty(ghost),
+                  "X6: ...from a channel-section node, not only a chain module");
+            check(! effect.getChildWithName(P::FxDelay).getChild(0).hasProperty(ghost),
+                  "X6: ...and from an id'd <Tap>");
+
+            // The eviction SAYS what it took. Nothing else does: it is not
+            // undoable, it trips no flag a user can see, and the next save simply
+            // writes the shorter file.
+            const juce::String ghostLog = logSince(beforeGhostLoad);
+            check(ghostLog.contains("Effects schema: dropped")
+                      && ghostLog.contains("effectRetiredGhost"),
+                  "X6: the eviction is not silent - one warning, naming what went");
 
             check(fm.saveEffectsConfig(), "X6: save again");
             check(occurrences(effectsFile().loadFileAsString(), "effectRetiredGhost") == 0,
@@ -4991,6 +5030,550 @@ void MainComponent::runChannelListSelfTest()
             check(fm.saveEffectsConfig(), "X9: save it again");
             check(occurrences(effectsFile().loadFileAsString(), "<FxCrush") == 3,
                   "X9: and the completed shape is what goes back to disk");
+        }
+
+        // X10: A DECLARED-BUT-UNSTAMPED PROPERTY IS NOT AN OBSOLETE ONE.
+        // stripObsoleteEffectProperties builds its whole notion of "what the
+        // schema still declares" by diffing against createDefaultEffectChannel -
+        // which cannot tell PENDING from RETIRED, because both are absent from a
+        // freshly built channel. <Sends> is built EMPTY on purpose (the four
+        // packed rows want a width, a keying convention, cell accessors, an
+        // interceptor clause each and column maintenance before anything stamps
+        // them), so the diff rule read "every property on a loaded <Sends> is
+        // obsolete" - and the four rows are written at RUNTIME, the way
+        // inputMutes is, through a cell accessor or an OSC/MCP route. Saved
+        // correctly, restored faithfully by the merge, then deleted on the load
+        // path with no error, no log line and no undo entry.
+        //
+        // X6 above plants a GHOST attribute and proves the eviction WORKS. This
+        // plants a LEGITIMATE one and proves it does not overreach - the
+        // assertion the other 385 checks never made, because every fixture in
+        // this phase is built through the very template the rule reads, so the
+        // rows are missing from the expected shape too.
+        {
+            auto packedRow = [](int width, const juce::String& idle,
+                                int at1, const juce::String& v1,
+                                int at2, const juce::String& v2)
+            {
+                juce::StringArray cells;
+                for (int i = 0; i < width; ++i)
+                    cells.add(idle);
+                cells.set(at1, v1);
+                cells.set(at2, v2);
+                return cells.joinIntoString(",");
+            };
+
+            // Plausible, and distinct from anything a default or a neighbour
+            // would produce: effectSend* are input-wide and keyed by permanent
+            // number, effectFxSend* are effect-wide, levels in dB and switches
+            // as 0/1.
+            const juce::String sendLevels   = packedRow(D::maxInputChannels,  "0",  2, "-6.5",  17, "-12.25");
+            const juce::String sendOns      = packedRow(D::maxInputChannels,  "0",  2, "1",     17, "1");
+            const juce::String fxSendLevels = packedRow(D::maxEffectChannels, "0",  1, "-3.75",  9, "-24");
+            const juce::String fxSendOns    = packedRow(D::maxEffectChannels, "0",  1, "1",      9, "1");
+
+            vts.setNumEffectChannels(2);
+            check(fm.saveEffectsConfig(), "X10: save two channels");
+
+            if (auto doc = juce::XmlDocument::parse(effectsFile()))
+            {
+                auto* effectsEl = doc->getChildByName(P::Effects.toString());
+                auto* first = effectsEl != nullptr ? effectsEl->getChildByName(P::Effect.toString())
+                                                   : nullptr;
+                auto* sends = first != nullptr ? first->getChildByName(P::Sends.toString()) : nullptr;
+                check(sends != nullptr, "X10: the saved channel carries a <Sends> node with no rows on it");
+
+                if (sends != nullptr)
+                {
+                    // Exactly what a runtime write would have left behind: the
+                    // four rows on <Sends>, and nothing else touched.
+                    sends->setAttribute(P::effectSendLevels,   sendLevels);
+                    sends->setAttribute(P::effectSendOns,      sendOns);
+                    sends->setAttribute(P::effectFxSendLevels, fxSendLevels);
+                    sends->setAttribute(P::effectFxSendOns,    fxSendOns);
+                    check(doc->writeTo(effectsFile()), "X10: write the operator's send routing back to the file");
+                }
+            }
+            else
+            {
+                check(false, "X10: the saved file parses");
+            }
+
+            vts.setNumEffectChannels(0);
+            check(fm.loadEffectsConfig(), "X10: load the routed file");
+            verifyFamily("X10 (Sends rows written at runtime)", 2);
+
+            auto sendsNode = vts.getEffectSendsSection(0);
+            check(sendsNode.isValid(), "X10: <Sends> is on the loaded channel");
+            check(sendsNode.getProperty(P::effectSendLevels).toString() == sendLevels,
+                  "X10: effectSendLevels survives the load with its EXACT value");
+            check(sendsNode.getProperty(P::effectSendOns).toString() == sendOns,
+                  "X10: ...and effectSendOns");
+            check(sendsNode.getProperty(P::effectFxSendLevels).toString() == fxSendLevels,
+                  "X10: ...and effectFxSendLevels");
+            check(sendsNode.getProperty(P::effectFxSendOns).toString() == fxSendOns,
+                  "X10: ...and effectFxSendOns");
+
+            // The other channel was never routed, so its <Sends> must still be
+            // empty: the exemption is a refusal to DELETE, not a licence to
+            // stamp a default width nobody can maintain yet.
+            check(vts.getEffectSendsSection(1).getNumProperties() == 0,
+                  "X10: an unrouted channel's <Sends> is still empty");
+
+            check(fm.saveEffectsConfig(), "X10: save the routed session again");
+            const juce::String routed = effectsFile().loadFileAsString();
+            check(occurrences(routed, "effectSendLevels") == 1
+                      && occurrences(routed, "effectFxSendOns") == 1,
+                  "X10: the rows go back to disk, on the one channel that carries them");
+            check(routed.contains(sendLevels) && routed.contains(fxSendLevels),
+                  "X10: ...with the operator's values, not a re-defaulted row");
+
+            // ...and a real ghost planted on that SAME node is still evicted.
+            // The exemption names four identifiers; it does not turn <Sends>
+            // into a place where retired attributes can hide.
+            {
+                static const juce::Identifier sendsGhost("effectSendRetiredGhost");
+                juce::String xml = effectsFile().loadFileAsString();
+                xml = xml.replace("<Sends ", "<Sends effectSendRetiredGhost=\"1\" ");
+                effectsFile().replaceWithText(xml);
+                check(occurrences(effectsFile().loadFileAsString(), "effectSendRetiredGhost") > 0,
+                      "X10: plant a retired attribute on the very node the exemption protects");
+
+                vts.setNumEffectChannels(0);
+                check(fm.loadEffectsConfig(), "X10: load it");
+                check(! vts.getEffectSendsSection(0).hasProperty(sendsGhost),
+                      "X10: the ghost is evicted from <Sends> anyway");
+                check(vts.getEffectSendsSection(0).getProperty(P::effectSendLevels).toString() == sendLevels,
+                      "X10: ...and the legitimate row beside it is untouched");
+            }
+
+            // THE BLIND SPOT THE EXEMPTION BUYS, made visible. The four names are
+            // exempt by NAME at every depth. Keyed on (node type, name) instead,
+            // the hook would need TWO hand-maintained facts to stay right, and the
+            // day a row is relocated it would delete the migrated value on the
+            // second load - the direction whose cost is an operator's routing
+            // rather than one orphan attribute. The price of the name-only rule is
+            // exact: one of those four, used as junk on a node that is not
+            // <Sends>, can never be evicted. That is not data loss, nothing is
+            // deleted - but it IS a send row where no reader will ever look, so
+            // the hook says where it is. Without this the rule had no gate in
+            // either direction.
+            {
+                check(fm.saveEffectsConfig(), "X10: write the cleaned tree back before the next plant");
+
+                juce::String xml = effectsFile().loadFileAsString();
+                xml = xml.replace("<Chain ", "<Chain effectSendLevels=\"JUNK-ON-CHAIN\" ");
+                effectsFile().replaceWithText(xml);
+
+                const auto beforeMisplaced = logMark();
+                vts.setNumEffectChannels(0);
+                check(fm.loadEffectsConfig(), "X10: load a send row planted on <Chain>");
+                const juce::String misplacedLog = logSince(beforeMisplaced);
+
+                check(vts.getEffectChainSection(0).getProperty(P::effectSendLevels).toString()
+                          == "JUNK-ON-CHAIN",
+                      "X10: it is KEPT - the exemption refuses to delete by name, at every depth");
+                check(misplacedLog.contains("exempt attribute(s) found outside <Sends>")
+                          && misplacedLog.contains("Chain/effectSendLevels"),
+                      "X10: ...and the log names the node it is stranded on");
+                check(! misplacedLog.contains("Effects schema: dropped"),
+                      "X10: the two warnings stay apart - this load dropped nothing");
+                check(vts.getEffectSendsSection(0).getProperty(P::effectSendLevels).toString() == sendLevels,
+                      "X10: ...and the real row on <Sends> is still the operator's");
+
+                // Not left for the phases below to trip over.
+                for (int ch = 0; ch < 2; ++ch)
+                    vts.getEffectChainSection(ch).removeProperty(P::effectSendLevels, nullptr);
+            }
+        }
+
+        // X11: THE COUNT AND THE ACCESSORS MUST AGREE ABOUT EVERY CHANNEL.
+        // getNumEffectChannels counts <Effect> children BY TYPE; getEffectState
+        // used to index the child list POSITIONALLY and return an invalid tree
+        // when the child at that index was not an <Effect>, treating the type
+        // test as a guard on an invariant rather than as a search. The invariant
+        // holds for everything this application writes - and a FILE is not this
+        // application: mergeTreeRecursive appends an unmatched source child
+        // verbatim, and applyEffectsSection is exactly the path a hand-edited or
+        // foreign effects.xml takes. <Effect id="1"/>, <Foo/>, <Effect id="2"/>
+        // made the count say two while getEffectState(1) returned invalid, so
+        // channel 2 was unreachable to every section accessor and to
+        // redistributeAllEffectPositions - while setNumEffectChannels wrote that
+        // same two into <Effects count> AND Config/IO/effectChannels.
+        //
+        // The foreign child is KEPT, not dropped: an unrecognised node is
+        // evidence of nothing, and deleting it on load would be a second silent
+        // data loss rather than a fix for the first.
+        {
+            static const juce::Identifier foreign("Foo");
+
+            vts.setNumEffectChannels(3);
+            check(fm.saveEffectsConfig(), "X11: save three channels");
+
+            if (auto doc = juce::XmlDocument::parse(effectsFile()))
+            {
+                auto* effectsEl = doc->getChildByName(P::Effects.toString());
+                check(effectsEl != nullptr, "X11: the saved file holds <Effects>");
+
+                if (effectsEl != nullptr)
+                {
+                    // BETWEEN the first channel and the second, never after the
+                    // last: an unknown node at the END leaves positional
+                    // indexing accidentally right for every live channel, and
+                    // this gate would then pass on the broken code.
+                    auto* intruder = new juce::XmlElement(foreign.toString());
+                    intruder->setAttribute("note", "a node written by a schema this build does not know");
+                    effectsEl->insertChildElement(intruder, 1);
+                    check(doc->writeTo(effectsFile()),
+                          "X11: write it back with a foreign child between channel 1 and channel 2");
+                }
+            }
+            else
+            {
+                check(false, "X11: the saved file parses");
+            }
+
+            vts.setNumEffectChannels(0);
+            check(fm.loadEffectsConfig(), "X11: load the foreign file");
+
+            auto effects = vts.getEffectsState();
+            check(effects.getNumChildren() == 4,
+                  "X11: the container holds the foreign child beside the three channels");
+            check(effects.getChild(1).hasType(foreign),
+                  "X11: ...and it sits in the middle, where it breaks positional indexing");
+            check(vts.getNumEffectChannels() == 3, "X11: the count by type says three");
+            check(static_cast<int>(effects.getProperty(P::count, -1)) == 3,
+                  "X11: <Effects count> says three");
+            check(static_cast<int>(vts.getIOState().getProperty(P::effectChannels, -1)) == 3,
+                  "X11: Config/IO/effectChannels says three");
+
+            // THE CRUX: every channel the count promises is reachable, IS the
+            // channel it claims to be, and has its sections. Shaped like
+            // faultInChannel so a failure names the defect.
+            juce::String unreachable;
+            for (int ch = 0; ch < 3 && unreachable.isEmpty(); ++ch)
+            {
+                const juce::String who = "channel " + juce::String(ch + 1) + " ";
+                auto e = vts.getEffectState(ch);
+
+                if (! e.isValid())
+                    unreachable = who + "is unreachable - getEffectState returns an invalid tree";
+                else if (! e.hasType(P::Effect))
+                    unreachable = who + "resolves to a <" + e.getType().toString() + ">";
+                else if (static_cast<int>(e.getProperty(P::id, -1)) != ch + 1)
+                    unreachable = who + "resolves to the channel with id "
+                                      + e.getProperty(P::id).toString();
+                else if (! vts.getEffectChannelSection(ch).isValid()
+                      || ! vts.getEffectPositionSection(ch).isValid()
+                      || ! vts.getEffectFeedSection(ch).isValid()
+                      || ! vts.getEffectSendsSection(ch).isValid()
+                      || ! vts.getEffectModuleSection(ch, 0).isValid())
+                    unreachable = who + "has sections the accessors cannot reach";
+
+                // getTreeForParameter is a SECOND resolver, not a caller of
+                // getEffectState, and it indexed the child list on its own - so
+                // it needs its own assertion or half this fix is ungated. It is
+                // the path every OSC, MCP and GUI write takes, and an invalid
+                // tree there makes canWriteParameter answer FALSE: a remote
+                // surface is told the channel cannot be written, forever.
+                else if (! vts.canWriteParameter(P::effectAttenuation, ch))
+                    unreachable = who + "is not writable through the generic "
+                                        "parameter path (getTreeForParameter)";
+            }
+            check(unreachable.isEmpty(),
+                  juce::String("X11: the count and every accessor agree about all three channels")
+                      + (unreachable.isEmpty() ? juce::String() : " - " + unreachable));
+
+            // Reachable is not the same as CORRECT: a resolver that is off by
+            // one is reachable for every channel and writes to the wrong one.
+            // Three distinct values, read back per channel through the same
+            // generic path, is what tells those two apart.
+            juce::String misrouted;
+            for (int ch = 0; ch < 3; ++ch)
+                vts.setParameterWithoutUndo(P::effectAttenuation, -3.0 - ch, ch);
+            for (int ch = 0; ch < 3 && misrouted.isEmpty(); ++ch)
+            {
+                const double want = -3.0 - ch;
+                const double got  = static_cast<double>(vts.getFloatParameter(P::effectAttenuation, ch));
+                if (std::abs(got - want) > 1.0e-4)
+                    misrouted = "channel " + juce::String(ch + 1) + " reads back "
+                              + juce::String(got) + " where " + juce::String(want) + " was written";
+            }
+            check(misrouted.isEmpty(),
+                  juce::String("X11: a generic write lands on the channel it names")
+                      + (misrouted.isEmpty() ? juce::String() : " - " + misrouted));
+
+            // redistributeAllEffectPositions walks 0..count-1 through that same
+            // accessor and silently skips whatever it cannot resolve, so an
+            // unreachable channel keeps the position it had while the ring is
+            // laid out around it. An invalid section is a fault outright;
+            // pairwise equality is the shape the failure actually takes.
+            vts.redistributeAllEffectPositions();
+            juce::String stacked;
+            for (int a = 0; a < 3 && stacked.isEmpty(); ++a)
+            {
+                auto pa = vts.getEffectPositionSection(a);
+                if (! pa.isValid())
+                {
+                    stacked = "channel " + juce::String(a + 1) + " has no <Position> to lay out";
+                    break;
+                }
+
+                for (int bb = a + 1; bb < 3 && stacked.isEmpty(); ++bb)
+                {
+                    auto pb = vts.getEffectPositionSection(bb);
+                    if (! pb.isValid())
+                    {
+                        stacked = "channel " + juce::String(bb + 1) + " has no <Position> to lay out";
+                        break;
+                    }
+
+                    const auto dx = static_cast<double>(pa.getProperty(P::effectPositionX))
+                                  - static_cast<double>(pb.getProperty(P::effectPositionX));
+                    const auto dy = static_cast<double>(pa.getProperty(P::effectPositionY))
+                                  - static_cast<double>(pb.getProperty(P::effectPositionY));
+                    if (std::abs(dx) < 1.0e-9 && std::abs(dy) < 1.0e-9)
+                        stacked = "channels " + juce::String(a + 1) + " and " + juce::String(bb + 1)
+                                              + " were laid on the same spot";
+                }
+            }
+            check(stacked.isEmpty(),
+                  juce::String("X11: the re-layout reaches all three returns")
+                      + (stacked.isEmpty() ? juce::String() : " - " + stacked));
+
+            // The remove path indexed that same child list AND renumbered it, so
+            // it is the other half of this fix: it reached for child 1, found
+            // the foreign node and refused the edit - and had it got past that,
+            // it would have stamped id="2" onto a node that is not a channel,
+            // which the merge then matches by type AND id for ever after.
+            check(vts.removeEffectChannel(1).wasOk(),
+                  "X11: removing channel 2 finds an <Effect>, not the foreign child");
+            check(vts.getNumEffectChannels() == 2, "X11: two channels remain");
+            check(static_cast<int>(vts.getEffectState(0).getProperty(P::id, -1)) == 1
+                      && static_cast<int>(vts.getEffectState(1).getProperty(P::id, -1)) == 2,
+                  "X11: the surviving ids are dense 1..2");
+            check(static_cast<int>(vts.getEffectsState().getProperty(P::count, -1)) == 2,
+                  "X11: <Effects count> says two, not the four children the container has");
+            check(static_cast<int>(vts.getIOState().getProperty(P::effectChannels, -1)) == 2,
+                  "X11: ...and so does Config/IO/effectChannels");
+
+            auto stranger = vts.getEffectsState().getChildWithName(foreign);
+            check(stranger.isValid(),
+                  "X11: the foreign child is still there - an unknown node is not a licence to delete it");
+            check(! stranger.hasProperty(P::id),
+                  "X11: ...and the renumber did not invent a channel by stamping an id on it");
+
+            // Leave the container as this phase found it.
+            vts.getEffectsState().removeChild(stranger, nullptr);
+        }
+
+        // X12: THE SAME DEFECT ONE LEVEL DOWN, where it stops being loud.
+        // X11 fixed the CHANNEL index. The band and tap indexes INSIDE a channel
+        // were still straight positional reads, on the same reasoning - <FxEq1>
+        // holds six <Band>s and <FxDelay> eight <Tap>s "by construction" - which
+        // is the same sentence that was wrong about <Effects>, wrong here for the
+        // same reason, and reachable through the same file: mergeTreeRecursive
+        // lays an unmatched source child down verbatim at EVERY depth, not only
+        // at the top of the container.
+        //
+        // AND IT IS WORSE DOWN HERE, which is why it gets a phase rather than a
+        // line in X11. A wrong CHANNEL index returns an INVALID tree: the write
+        // is refused and the remote surface is told so. A wrong BAND index
+        // returns a VALID tree - the foreign node - so setProperty succeeds, the
+        // reply says ok, the value is saved onto that node and read straight back
+        // off it on the next load. It round-trips perfectly. The only symptom is
+        // an EQ band that does not change the sound, for ever. That is also why
+        // the read-back below walks for the id instead of asking the accessor
+        // again: a write-then-read through one accessor passes on the broken code.
+        {
+            static const juce::Identifier eqIntruder("Bar");
+            static const juce::Identifier tapIntruder("Baz");
+
+            // Find a node by its id WITHOUT the accessor under test.
+            auto childById = [](const juce::ValueTree& parent, const juce::Identifier& type, int wantedId)
+            {
+                for (int i = 0; i < parent.getNumChildren(); ++i)
+                    if (auto c = parent.getChild(i);
+                        c.hasType(type) && static_cast<int>(c.getProperty(P::id, -1)) == wantedId)
+                        return c;
+                return juce::ValueTree();
+            };
+
+            vts.setNumEffectChannels(1);
+            check(fm.saveEffectsConfig(), "X12: save one channel");
+
+            if (auto doc = juce::XmlDocument::parse(effectsFile()))
+            {
+                auto* effectsEl = doc->getChildByName(P::Effects.toString());
+                auto* first = effectsEl != nullptr ? effectsEl->getChildByName(P::Effect.toString())
+                                                   : nullptr;
+                auto* eqEl    = first != nullptr ? first->getChildByName(P::FxEq1.toString())   : nullptr;
+                auto* delayEl = first != nullptr ? first->getChildByName(P::FxDelay.toString()) : nullptr;
+                check(eqEl != nullptr && delayEl != nullptr,
+                      "X12: the saved channel carries <FxEq1> and <FxDelay>");
+
+                if (eqEl != nullptr && delayEl != nullptr)
+                {
+                    // After the FIRST band and the FIRST tap, never at the end. An
+                    // intruder at the tail leaves positional indexing accidentally
+                    // right for every live band, and this gate would then pass on
+                    // the broken code.
+                    eqEl->insertChildElement(new juce::XmlElement(eqIntruder.toString()), 1);
+                    delayEl->insertChildElement(new juce::XmlElement(tapIntruder.toString()), 1);
+                    check(doc->writeTo(effectsFile()),
+                          "X12: write it back with a foreign node inside each module");
+                }
+            }
+            else
+            {
+                check(false, "X12: the saved file parses");
+            }
+
+            vts.setNumEffectChannels(0);
+            check(fm.loadEffectsConfig(), "X12: load it");
+
+            auto eqNode    = vts.getEffectModuleSection(0, P::FxEq1);
+            auto delayNode = vts.getEffectModuleSection(0, P::FxDelay);
+            check(eqNode.getChild(1).hasType(eqIntruder),
+                  "X12: the foreign node really is inside <FxEq1>, between band 1 and band 2");
+            check(delayNode.getChild(1).hasType(tapIntruder),
+                  "X12: ...and inside <FxDelay>, between tap 1 and tap 2");
+
+            juce::String wrongBand;
+            for (int b = 0; b < D::numEffectEQBands && wrongBand.isEmpty(); ++b)
+            {
+                auto band = vts.getEffectEQBand(0, 0, b);
+                if (! band.isValid())
+                    wrongBand = "band " + juce::String(b + 1) + " is unreachable";
+                else if (! band.hasType(P::Band))
+                    wrongBand = "band " + juce::String(b + 1) + " resolves to a <"
+                              + band.getType().toString() + ">";
+                else if (static_cast<int>(band.getProperty(P::id, -1)) != b + 1)
+                    wrongBand = "band " + juce::String(b + 1) + " resolves to the band with id "
+                              + band.getProperty(P::id).toString();
+            }
+            check(wrongBand.isEmpty(),
+                  juce::String("X12: every EQ band resolves to the band it names")
+                      + (wrongBand.isEmpty() ? juce::String() : " - " + wrongBand));
+
+            juce::String wrongTap;
+            for (int t = 0; t < D::numEffectDelayTaps && wrongTap.isEmpty(); ++t)
+            {
+                auto tap = vts.getEffectDelayTap(0, t);
+                if (! tap.isValid())
+                    wrongTap = "tap " + juce::String(t + 1) + " is unreachable";
+                else if (! tap.hasType(P::Tap))
+                    wrongTap = "tap " + juce::String(t + 1) + " resolves to a <"
+                             + tap.getType().toString() + ">";
+                else if (static_cast<int>(tap.getProperty(P::id, -1)) != t + 1)
+                    wrongTap = "tap " + juce::String(t + 1) + " resolves to the tap with id "
+                             + tap.getProperty(P::id).toString();
+            }
+            check(wrongTap.isEmpty(),
+                  juce::String("X12: every delay tap resolves to the tap it names")
+                      + (wrongTap.isEmpty() ? juce::String() : " - " + wrongTap));
+
+            // The write, read back BY ID rather than through the accessor. Values
+            // no default carries, so a coincidence cannot answer for a hit.
+            for (int b = 0; b < D::numEffectEQBands; ++b)
+                vts.getEffectEQBand(0, 0, b).setProperty(P::effectEQgain, -1.0 - b, nullptr);
+            for (int t = 0; t < D::numEffectDelayTaps; ++t)
+                vts.getEffectDelayTap(0, t).setProperty(P::effectDelayTapLevel, -0.5 - t, nullptr);
+
+            juce::String lost;
+            for (int b = 0; b < D::numEffectEQBands && lost.isEmpty(); ++b)
+            {
+                const double got = static_cast<double>(
+                    childById(eqNode, P::Band, b + 1).getProperty(P::effectEQgain, 999.0));
+                if (std::abs(got - (-1.0 - b)) > 1.0e-6)
+                    lost = "<Band id=" + juce::String(b + 1) + "> reads " + juce::String(got)
+                         + " where " + juce::String(-1.0 - b) + " was written";
+            }
+            for (int t = 0; t < D::numEffectDelayTaps && lost.isEmpty(); ++t)
+            {
+                const double got = static_cast<double>(
+                    childById(delayNode, P::Tap, t + 1).getProperty(P::effectDelayTapLevel, 999.0));
+                if (std::abs(got - (-0.5 - t)) > 1.0e-6)
+                    lost = "<Tap id=" + juce::String(t + 1) + "> reads " + juce::String(got)
+                         + " where " + juce::String(-0.5 - t) + " was written";
+            }
+            check(lost.isEmpty(),
+                  juce::String("X12: a write through the accessor lands on the node it named")
+                      + (lost.isEmpty() ? juce::String() : " - " + lost));
+
+            check(! eqNode.getChild(1).hasProperty(P::effectEQgain)
+                      && ! delayNode.getChild(1).hasProperty(P::effectDelayTapLevel),
+                  "X12: and nothing landed on the foreign nodes, where no reader would find it");
+
+            // Durable, and the intruders survive: an unknown node is no more a
+            // licence to delete it here than it is in <Effects>.
+            check(fm.saveEffectsConfig(), "X12: save the edited channel");
+            vts.setNumEffectChannels(0);
+            check(fm.loadEffectsConfig(), "X12: reload it");
+            eqNode    = vts.getEffectModuleSection(0, P::FxEq1);
+            delayNode = vts.getEffectModuleSection(0, P::FxDelay);
+            check(eqNode.getChildWithName(eqIntruder).isValid()
+                      && delayNode.getChildWithName(tapIntruder).isValid(),
+                  "X12: the foreign nodes are still there after a round trip");
+            check(std::abs(static_cast<double>(vts.getEffectEQBand(0, 0, 5)
+                                                  .getProperty(P::effectEQgain, 999.0)) + 6.0) < 1.0e-6,
+                  "X12: ...and band 6 - the one positional indexing pushed off the end - kept its gain");
+
+            // THE SAME RESOLVER, ON THE LIVE FAMILIES. getOutputEQBand,
+            // getReverbEQBand and getReverbPostEQBand carried the identical
+            // unguarded index, and unlike the effect pair they have callers
+            // TODAY: OSC (/wfs/reverb/n/eq/b/...), the MCP band tools and the GUI
+            // tabs all resolve a band through them. Driven in memory because this
+            // phase owns no reverb CHANNELS and must not move the session's reverb
+            // count; <ReverbPostEQ> is a global the container always carries, and
+            // output 1 always exists. getReverbEQBand is the same one-line call on
+            // the same helper with the same node type as getOutputEQBand - the one
+            // of the five this phase does not drive directly.
+            {
+                auto outEQ = vts.getOutputEQSection(0);
+                check(outEQ.isValid(), "X12: output 1 has an <EQ> section");
+                outEQ.addChild(juce::ValueTree(eqIntruder), 1, nullptr);
+
+                juce::String wrongOut;
+                for (int b = 0; b < D::numEQBands && wrongOut.isEmpty(); ++b)
+                {
+                    auto band = vts.getOutputEQBand(0, b);
+                    if (! band.hasType(P::Band)
+                        || static_cast<int>(band.getProperty(P::id, -1)) != b + 1)
+                        wrongOut = "output band " + juce::String(b + 1) + " resolves to <"
+                                 + band.getType().toString() + " id="
+                                 + band.getProperty(P::id).toString() + ">";
+                }
+                check(wrongOut.isEmpty(),
+                      juce::String("X12: an output EQ band resolves by type, not by position")
+                          + (wrongOut.isEmpty() ? juce::String() : " - " + wrongOut));
+
+                outEQ.removeChild(outEQ.getChildWithName(eqIntruder), nullptr);
+                check(outEQ.getNumChildren() == D::numEQBands,
+                      "X12: ...and the output EQ is left exactly as it was found");
+
+                auto postEQ = vts.ensureReverbPostEQSection();
+                check(postEQ.isValid(), "X12: the global <ReverbPostEQ> is present");
+                postEQ.addChild(juce::ValueTree(eqIntruder), 1, nullptr);
+
+                juce::String wrongPost;
+                for (int b = 0; b < D::numReverbPostEQBands && wrongPost.isEmpty(); ++b)
+                {
+                    auto band = vts.getReverbPostEQBand(b);
+                    if (! band.hasType(P::PostEQBand)
+                        || static_cast<int>(band.getProperty(P::id, -1)) != b + 1)
+                        wrongPost = "post-EQ band " + juce::String(b + 1) + " resolves to <"
+                                  + band.getType().toString() + " id="
+                                  + band.getProperty(P::id).toString() + ">";
+                }
+                check(wrongPost.isEmpty(),
+                      juce::String("X12: a reverb post-EQ band resolves by its OWN type, <PostEQBand>")
+                          + (wrongPost.isEmpty() ? juce::String() : " - " + wrongPost));
+
+                postEQ.removeChild(postEQ.getChildWithName(eqIntruder), nullptr);
+                check(postEQ.getNumChildren() == D::numReverbPostEQBands,
+                      "X12: ...and the post EQ is left exactly as it was found");
+            }
         }
 
         // Leave nothing behind: the folder, and the count this phase raised.
