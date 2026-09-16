@@ -50,6 +50,29 @@ public:
         float value);
 
     /**
+     * Build an OSC message for a reverb PRE-EQ BAND parameter change.
+     *
+     * The pre-EQ properties live on <Band id="n"> nodes, four per reverb
+     * channel, so the two-argument form cannot say which band moved and a
+     * receiver cannot mirror the state from it. This emits the three-argument
+     * form the standard inbound parser reads - channel, band, value - with the
+     * band 1-based, matching the channel number in the path, the OSCQuery
+     * descriptor and the equivalent MCP tool.
+     *
+     * @param paramId   one of the reverbPreEQ* band properties
+     * @param channelId 1-based reverb channel
+     * @param bandIndex 1-based band
+     * @param value     the new value
+     * @return OSC message, or nullopt if the parameter is not a mapped
+     *         pre-EQ band property
+     */
+    static std::optional<juce::OSCMessage> buildReverbBandMessage(
+        const juce::Identifier& paramId,
+        int channelId,
+        int bandIndex,
+        float value);
+
+    /**
      * Build an OSC message for a config parameter change.
      * Config parameters are global (no channel ID).
      * @param paramId The parameter identifier (e.g., stageShape)

@@ -3657,8 +3657,18 @@ namespace
     // returns the FIRST child of any type carrying that id, so as soon as two
     // sibling node types share an id namespace, the wrong one is found, the
     // template child is declared missing, and a duplicate is appended - on every
-    // load, for ever. No node type in today's schema shares an id with a sibling
-    // of another type, which is the only reason this has not yet bitten.
+    // load, for ever.
+    //
+    // CORRECTION, from a later audit: the commit that wrote this said no node
+    // type in today's schema shares an id with a sibling of another type, and
+    // that is FALSE. <ADMOSC> holds four <ADMCartMapping id="0".."3"> and four
+    // <ADMPolarMapping id="0".."3"> as siblings (createADMOSCSection), and
+    // <Sampler> holds <SamplerCell id> beside <SamplerSet id>. Both are in the
+    // Config template this function walks. So the bug was LIVE, not latent:
+    // every pass over an <ADMOSC> appended four duplicate polar mappings,
+    // because the polar template child kept finding the cart mapping of the
+    // same id. Do not restore the old matcher, and do not assume sibling types
+    // have disjoint id namespaces - two pairs already do not.
     //
     // An id-less child is matched on type AND ordinal position among its
     // id-less same-type siblings. Matching on type alone returns the first such

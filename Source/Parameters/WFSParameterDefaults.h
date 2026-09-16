@@ -1129,10 +1129,12 @@ namespace WFSParameterDefaults
     // future file: WFSCalculationEngine.cpp:16 already includes
     // spatcore/wfs/RenderSourceMap.h, whose :108 defines kMaxEffectChannels = 32,
     // so maxEffectChannels can be pinned there with no new include at all, beside
-    // the render-source asserts. Both asserts hold as of this commit (verified by
-    // compiling a TU over EffectParams.h + EffectsTypes.h). They are omitted only
-    // because this commit is scoped to the four parameter files; until the next
-    // commit adds them, these two constants CAN drift from spatcore silently.
+    // the render-source asserts. BOTH ARE NOW THERE, at WFSCalculationEngine.cpp
+    // (beside the render-source pair), so neither constant can drift from
+    // spatcore silently. They were promised by the commit that wrote this note
+    // and not delivered by it; a later audit caught the gap, which is the
+    // argument for pinning a mirrored constant in the same commit that creates
+    // it rather than in the next one.
 
     // Effect > Channel
     inline juce::String getDefaultEffectName (int index) { return "Effect " + juce::String (index + 1); }

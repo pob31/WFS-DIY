@@ -1,6 +1,7 @@
 #include "WFSCalculationEngine.h"
 #include "../../spatcore/dsp/NumericGuards.h"
 #include "../../spatcore/wfs/RenderSourceMap.h"
+#include "../../spatcore/effects/EffectsTypes.h"
 #include <array>
 #include <limits>
 
@@ -16,6 +17,27 @@ static_assert (spatcore::wfs::RenderSourceMap::kDerivedPerStereo
             && spatcore::wfs::RenderSourceMap::kMaxRenderSources
                    == WFSParameterDefaults::maxRenderSources,
                "RenderSourceMap and WFSParameterDefaults disagree on the render-source budget");
+
+// The effects vocabulary exists twice for the same reason, and the parameter
+// header says these two asserts belong here rather than beside the constants -
+// spatcore/effects/EffectsTypes.h must not be pulled into a header as widely
+// included as WFSParameterDefaults.h. It carries only <array> and <cstdint>, so
+// naming it from this .cpp costs nothing.
+//
+// numEffectModuleSlots is the eleven chain slots, and a drift there mis-maps
+// every stored effectChainOrder string: the order is a permutation of the slot
+// tokens, so a count that disagrees silently reorders a saved show's chain.
+// maxEffectChannels is also spelled in RenderSourceMap.h:108, which is already
+// included above; both spellings are pinned so neither can move alone.
+static_assert (spatcore::effects::kNumModuleSlots
+                   == WFSParameterDefaults::numEffectModuleSlots,
+               "EffectsTypes and WFSParameterDefaults disagree on the chain-slot count");
+static_assert (spatcore::effects::kMaxEffectChannels
+                   == WFSParameterDefaults::maxEffectChannels
+            && spatcore::wfs::RenderSourceMap::kMaxEffectChannels
+                   == WFSParameterDefaults::maxEffectChannels,
+               "EffectsTypes, RenderSourceMap and WFSParameterDefaults disagree "
+               "on the effects-channel budget");
 
 using namespace WFSParameterIDs;
 using namespace WFSParameterDefaults;

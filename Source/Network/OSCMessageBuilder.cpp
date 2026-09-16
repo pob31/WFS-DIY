@@ -333,6 +333,25 @@ std::optional<juce::OSCMessage> OSCMessageBuilder::buildReverbMessage(
     return buildMessage(it->second.oscPath, channelId, value);
 }
 
+std::optional<juce::OSCMessage> OSCMessageBuilder::buildReverbBandMessage(
+    const juce::Identifier& paramId,
+    int channelId,
+    int bandIndex,
+    float value)
+{
+    const auto& mappings = getReverbMappings();
+    auto it = mappings.find(paramId);
+
+    if (it == mappings.end())
+        return std::nullopt;
+
+    juce::OSCMessage msg (it->second.oscPath);
+    msg.addInt32 (channelId);
+    msg.addInt32 (bandIndex);
+    msg.addFloat32 (value);
+    return msg;
+}
+
 //==============================================================================
 // Message Building - Config Values (no channel ID)
 //==============================================================================

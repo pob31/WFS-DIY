@@ -1119,6 +1119,14 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
     bool isOutput = false;
     bool isReverb = false;
 
+    // The property that changed may sit on a <Band id="n"> grandchild rather
+    // than on the channel's own section. Capture that before climbing, because
+    // the climb throws the node away and the band is the one thing the
+    // two-argument wire form could never express.
+    int bandId = -1;
+    if (tree.getType() == WFSParameterIDs::Band)
+        bandId = tree.getProperty (WFSParameterIDs::id, -1);
+
     juce::ValueTree parent = tree;
     while (parent.isValid())
     {
@@ -1184,8 +1192,16 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
             }
             else if (isReverb && isNumeric)
             {
-                msg = OSCMessageBuilder::buildReverbMessage(property, channelId,
-                                                             static_cast<float>(static_cast<double>(value)));
+                // A pre-EQ property on a <Band> goes out in the three-argument
+                // form. The two-argument one collapsed all four bands onto one
+                // message with no way to tell them apart, and since the inbound
+                // parser was fixed the app would no longer accept what it sent.
+                if (bandId > 0)
+                    msg = OSCMessageBuilder::buildReverbBandMessage(property, channelId, bandId,
+                                                                    static_cast<float>(static_cast<double>(value)));
+                else
+                    msg = OSCMessageBuilder::buildReverbMessage(property, channelId,
+                                                                 static_cast<float>(static_cast<double>(value)));
             }
 
             if (msg.has_value())
