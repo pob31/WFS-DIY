@@ -588,6 +588,46 @@ Purpose: lo-fi degradation — word-length reduction (quantisation) and sample-r
 
 Algorithm: fractional-rate sample-and-hold — the trigger is tested BEFORE the phase accumulates (`if (phase >= 1) { phase -= 1; hold = q(x); } phase += rate/sr;`, with `phase = 1` after `prepare()`/`reset()`), so the first hold lands on sample 0 and every run is full length; the other order costs the first run one sample. Quantiser `q(x) = round(x · 2^bits) / 2^bits` (the prototype's law; `std::round` = half away from zero, symmetric; fractional bits give a continuous step; `2^bits` from `FastDecibels::exp2`, exact for integer bits), dither = white noise from `hashNoiseBipolar` (deterministic, `spatcore/dsp/FrDiffusionModel.h:52-63`, keyed per module instance through `makeKey`; the index advances every sample whether or not dither is on, so the stream never depends on when it was switched in) scaled by the dither level (the prototype's `noise · dbtoa(dither)` with a default of 0 dB, i.e. full-scale noise — a placeholder; ours defaults to off). Bits and rate changes glide through the 10 ms `OnePoleSmoother`. State: hold value, phase, LP; latency 0. Cost ≈ 5-15 flops/sample. Second module implemented (after tremolo): proves the quantiser and a stateful hold under the slot fades.
 
+### 5.13 Prototype defects found on re-decoding (2026-09-16, Phase 2)
+
+Before writing the six remaining modules every prototype was decoded again and then **independently
+re-traced by a second reader**. Three of the six first readings turned out to be materially wrong,
+which is the justification for having done it twice. More importantly, the pass found four genuine
+DEFECTS in the prototypes themselves. They are recorded here because the modules deliberately do
+**not** reproduce them, and an A/B against the Max patches (§10) will therefore show a difference
+that is correct rather than a regression.
+
+| # | Defect | Consequence | What the modules do |
+|---|---|---|---|
+| P1 | **Shelf alpha is missing a pair of brackets.** `loShelf.gendsp` / `hiShelf.gendsp` compute `alpha = (sin ω/2)·sqrt((A + 1/A)·1/S − 1 + 2)`, which parses as `(A + 1/A)/S + 1`. The RBJ law, and what §5.12's table records, is `(A + 1/A)(1/S − 1) + 2`. The two agree only at A = 1, where the shelf is flat anyway. | The prototype's low shelf at a nominal S = 0.7 is really running an effective S ≈ 0.52, a difference of 0.19 dB at ±3 dB of gain rising to 2.07 dB at ±24 dB. | Implement the **correct** RBJ law: `OutputEQBiquadFilter` shapes 2 and 5 at slope 0.7. An exact match to the prototype would need a gain-dependent slope, `S' = 1/(1/S + 1 − 1/(A + 1/A))`, which is not worth carrying a bug for. |
+| P2 | **Shelf gain is converted from dB twice.** The gain inlet passes through a `dbtoa` box *before* the codebox, and the codebox then computes `A = 10^(in2/40)` as though it were still dB. | A nominal 0 dB shelf is **not neutral**: it applies about +0.5 dB, and two shelves in series about +1 dB. The mapping is doubly exponential, so a nominal +40 dB asks for +100 dB. It also destabilises `fx_delay`, whose shelves sit inside the feedback loop. | Gain in dB means gain in dB. This is why a port that "corrects" only the alpha still would not match: both defects sit on the same parameter. |
+| P3 | **The expander realises the wrong ratio.** `fx_dynamics`'s expander stage computes a gain equivalent to a ratio of `2 − 1/R` rather than `R`. The compressor stage beside it is textbook-correct (`out_dB = T + (L − T)/R`), which is what makes the expander's arithmetic look deliberate at a glance. | At a nominal 2:1 the expander expands at 1.5:1; the error grows with R and inverts the meaning of the control at high settings. | Implement the correct downward expander of §5.3, `g = max(range, (R − 1)·over)` below threshold. |
+| P4 | **A stale sidechain default that mutes the detector.** `hiCut.gendsp`'s second inlet still carries the label and default of a high *shelf*: `@default 20`. In `fx_dynamics` that inlet is left unconnected, so both sidechain high cuts default to **20 Hz** rather than 20 kHz. | The detector sees essentially nothing, so the dynamics stage barely responds at its own default settings. | The plan's default of 20 kHz is the intent and is what ships. |
+
+Three further findings that are **not** defects but change what the modules must do:
+
+- **`gen~`'s `delay` interpolates linearly by default.** The first reading of `fx_chorus` asserted the
+  opposite and the verifier overturned it. So `spatcore/dsp/FractionalDelayLine.h` *matches* the
+  prototypes rather than improving on them, and the plan's earlier note that the prototype "does not
+  interpolate at all" is withdrawn.
+- **The low and high CUTS do reproduce exactly.** `OutputEQBiquadFilter` shapes 1 and 6 at q = 0.6
+  give coefficients identical to `loCut.gendsp` / `hiCut.gendsp` to the bit, checked in double at six
+  frequencies from 20 Hz to 20 kHz. §5.12's claim is confirmed. The shelves are the only part that
+  cannot be matched, and P1/P2 are why.
+- **`fx_delay` is a single tap with feedback, not a multitap.** The taps, the pattern modes and the
+  per-tap levels of §5.8 are all additions. Its verified topology is worth keeping: the dry is tapped
+  **before** the input low cut, the wet **before** the feedback shelves, and the two shelves sit
+  strictly **inside** the feedback loop after the feedback gain. One consequence the re-trace drew
+  out: the first repeat is at unity whatever the feedback control says, because the line is written
+  at unity and only the recirculating path is scaled.
+
+Also corrected: §5.12's quirk list attributes the stale `hiShelfFreq` inlet label to `loCut.gendsp`;
+it is `hiCut.gendsp`. And `hiShelfParam.gendsp`, the display twin, hard-codes `1/0.7` in the same
+expression the audio version leaves at its `@default 0` — good evidence that the high shelf's S = 0
+is an accident rather than a choice.
+
+---
+
 ### 5.10 Chain-level parameters
 
 | Identifier | Type | Range | Default | Ramp | Tier |
@@ -610,7 +650,7 @@ Sixteen gen~ files: `fx_{bitcrusher,chorus,delay,distortion,dynamics,flanger,tre
 |---|---|---|
 | `wetDry` | `out = dry·m + wet·(1−m)`, `m = mix/100` — a **linear** crossfade whose argument is the **dry** fraction (`mix = 100` → fully dry, the `@default 1` → 99 % wet) | every module's `effect*Mix` is a wet %, so the harness maps `mix_ours = 100 − mix_max`; no equal-power law anywhere. |
 | `loCut` / `hiCut` | RBJ 2nd-order high-/low-pass, `alpha = sin ω / 1.2` (Q = 0.6), Direct Form I `y = b0·x + b1·x1 + b2·x2 − a1·y1 − a2·y2` | `OutputEQBiquadFilter` LowCut / HighCut shapes with q = 0.6 (`spatcore/dsp/OutputEQBiquadFilter.h:14-22`) reproduce them exactly; used for the dynamics sidechains and the delay / chorus / flanger input low-cut. |
-| `loShelf` / `hiShelf` | RBJ shelving, `A = 10^(dB/40)`, `alpha = sin ω/2 · sqrt((A + 1/A)(1/S − 1) + 2)`; the module patches connect only freq and gain, so S falls back to the sub-patch default — 0.7 for the low shelf, **0 for the high shelf**, which under gen~'s divide-by-zero-returns-0 rule collapses to `alpha = sin ω/2` (a slightly steeper corner than S = 1) | both implemented as `OutputEQBiquadFilter` LowShelf / HighShelf with slope 0.7; the high-shelf quirk is recorded for the A/B (expect a small corner difference on the distortion and delay tests). |
+| `loShelf` / `hiShelf` | RBJ shelving, `A = 10^(dB/40)`, `alpha = sin ω/2 · sqrt((A + 1/A)(1/S − 1) + 2)`; the module patches connect only freq and gain, so S falls back to the sub-patch default — 0.7 for the low shelf, **0 for the high shelf**, which under gen~'s divide-by-zero-returns-0 rule collapses to `alpha = sin ω/2` (a slightly steeper corner than S = 1) | both implemented as `OutputEQBiquadFilter` LowShelf / HighShelf with slope 0.7. **Revised in §5.13:** the codebox does not actually implement the law in this row, and the difference is not small - see defects P1 and P2. |
 | `slide` (dynamics) | `y += (x − y)/n`, n = t_ms · sr/1000 samples, applied to the linear gain | our one-pole `1 − exp(−1/n)` matches to first order. |
 | `cycle` / `phasor` / `triangle 0.5` | sine; saw 0..1; symmetric triangle 0..1 | `LfoPhasor` + `LFOWaveforms` cover them. |
 | `mstosamps`, `dbtoa` / `atodb`, `delay … @interp linear` | ms → samples at the device rate; 20·log10; linear interpolation | identical to the plan's primitives. |
@@ -1053,7 +1093,7 @@ Branch/PR strategy: spatcore PRs first on `github.com/pob31/spatcore` (branch `f
 | Tremolo gen~ prototype | §5.6: depth in dB, sine↔triangle blend, mix; the prototype's wet-leg sign flagged as a bug. |
 | Delay gen~ prototype | §5.8: input low-cut, shelved feedback loop, time-modulation LFO (rate, depth %), global max-delay cap `effectsGlobalMaxDelaySeconds`. |
 | Compressor + expander gen~ prototype | §5.3: comp→expander pair with per-stage sidechain low/high-cut, hard knee default, linear-domain slide smoothing, makeup; the detector delay kept as the deliberate transient-pass control `effectDynCompDetectorDelay` next to an audio-path lookahead; mode enum dropped. |
-| Chorus/flanger gen~ prototype | §5.4: LFO phase offset and input low-cut added; depth defined as % of the centre delay; signed feedback covers the polarity switch. |
+| Chorus/flanger gen~ prototype | §5.4: LFO phase offset and input low-cut added; depth defined as % of the centre delay; signed feedback covers the polarity switch. (§5.13 withdraws the claim that the prototype does not interpolate its delay reads - `gen~`'s `delay` interpolates linearly by default.) |
 | "Phaser and reverb models were not great"; "EQ: we already have a model" | §5.5/§5.7 designed from scratch; §5.2 = the output EQ. |
 | Q2 HF damping on all legs | §2.1-3, §2.4; no global toggle; the shelf self-gates. |
 | Isolated bunches of effects channels | §2.3 assumption; cost model, loop guard and sends grid built around sparsity; cycle warning per bunch. |
