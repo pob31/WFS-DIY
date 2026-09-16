@@ -1,6 +1,6 @@
 # Effects Channels — Implementation Plan
 
-Status: design synthesis, **revision 2** (read-only exploration, nothing built). Line references were re-verified against main `4334616` (v1.0.0beta44, spatcore `7e7ed63`) on 2026-08-28; `[I]` marks inference. Revision 2 folds in the reverb geometric-path rework that landed on main the same day (`spatcore/dsp/AcousticTap.h`, `spatcore/reverb/ReverbSendMatrix.h`, `spatcore/reverb/ReverbReturnProcessor.h`), the user's second round of answers (§2.4), the bitcrusher/downsampler module (§5.9) the six gen~ prototypes received the same day (§5) and their shared sub-patches read from `Documentation/effects/` (§5.12).
+Status: **revision 3** — Phase 1 is being implemented in the `spatcore` submodule (branch `feature/effects-phase1`, target tag `v0.3.0`); §12.4 logs every correction the implementation forced back into this document. Revisions 1-2 were design synthesis (read-only exploration, nothing built). Line references were re-verified against main `4334616` (v1.0.0beta44, spatcore `7e7ed63`) on 2026-08-28; `[I]` marks inference. Revision 2 folds in the reverb geometric-path rework that landed on main the same day (`spatcore/dsp/AcousticTap.h`, `spatcore/reverb/ReverbSendMatrix.h`, `spatcore/reverb/ReverbReturnProcessor.h`), the user's second round of answers (§2.4), the bitcrusher/downsampler module (§5.9) the six gen~ prototypes received the same day (§5) and their shared sub-patches read from `Documentation/effects/` (§5.12).
 
 ---
 
@@ -179,7 +179,7 @@ Late-batch policy: the pop silence-fills and counts underruns; on the **source**
 | `effects/EffectsTypes.h` | `enum class ModuleId : uint8_t { Dist=0, EQ, Dyn, Mod, Phaser, Trem, Reverb, Delay, Crush, Count }` (append-only), `kNumModuleTypes = 9`, `kNumModuleSlots = 11`, `kMaxEffectChannels = 32`, slot table `kSlots[11] = {Dist, EQ#1, EQ#2, Dyn#1, Dyn#2, Mod, Phaser, Trem, Reverb, Delay, Crush}` with tokens `dist,eq1,eq2,dyn1,dyn2,mod,phaser,trem,reverb,delay,crush`, `bool parseChainOrder(const char* csv, std::array<uint8_t,kNumModuleSlots>&)` (pure, allocation-free). |
 | `effects/EffectParams.h` | POD structs per module + `EffectChannelParams` (§4.3), `static_assert(std::is_trivially_copyable_v<…>)`. |
 | `effects/EffectModule.h` | `IEffectModule`, `ModuleSlot` (bypass/variant fades, NaN trip). |
-| `effects/EffectChain.h` | `EffectChain` (8 slots, order, reorder envelope, latency sum). |
+| `effects/EffectChain.h` | `EffectChain` (11 slots, order, reorder envelope, chain bypass/mute fades, latency sum) + the `createModule` factory. |
 | `effects/EffectPresets.h` | `applyReverbType(int type, ReverbParams&)` table (§5.7). |
 | `dsp/AcousticSendMatrix.h` | today's `reverb/ReverbSendMatrix.h` moved verbatim into `dsp/` and renamed; `reverb/ReverbSendMatrix.h` becomes `using ReverbSendMatrix = spatcore::dsp::AcousticSendMatrix;`. Zero behaviour change — the three `testReverbSendMatrix*` tests keep passing untouched. |
 | `effects/LoopGuard.h` | per-channel build-up detector + ramped fx→fx feed attenuator (§4.4-9). |
@@ -193,40 +193,60 @@ Late-batch policy: the pop silence-fills and counts underruns; on the **source**
 ### 4.2 Class sketches
 
 ```cpp
-// effects/EffectModule.h
+// effects/EffectModule.h — one config POD instead of a growing prepare() argument list, so
+// phases 2-3 add fields without touching every module signature (R3-1).
+struct ChainConfig { double sampleRate = 48000.0; int maxBlock = 512;
+                     int reverbMaxDelaySamples = 16384; double maxEffectDelaySeconds = 5.0;
+                     uint32_t noiseKey = 1; };                 // EffectsEngine::Config maps onto it
+inline constexpr float kFadeTauSeconds  = 0.005f;              // slot + chain fades (§4.6)
+inline constexpr float kParamTauSeconds = 0.010f;              // in-module gain/mix/depth glides
+struct ParamApplyInfo { bool bypass = true; bool variantChanged = false; };
+
 class IEffectModule {
 public:
     virtual ~IEffectModule() = default;
     virtual ModuleId type() const noexcept = 0;
-    virtual void prepare (double sampleRate, int maxBlock) = 0;        // allocates; never RT
+    virtual void prepare (const ChainConfig&) = 0;                      // allocates; never RT
     virtual void reset() noexcept = 0;                                  // clear state, keep params
-    virtual void process (float* inout, int n) noexcept = 0;           // mono, in place, RT
+    virtual ParamApplyInfo applyParams (const EffectChannelParams&, int instance) noexcept = 0;
+    virtual void commitPendingVariant() noexcept {}                     // called by the slot at silence
+    virtual void process (float* inout, int n) noexcept = 0;            // mono, in place, RT
     virtual int  getLatencySamples() const noexcept = 0;
     virtual float getMeterDb() const noexcept { return 0.0f; }          // relaxed atomic (GR or level)
 };
-// each module adds: void setParams (const XxxParams&) noexcept;  // diff-check + retarget smoothers
+// A module picks its OWN sub-struct out of EffectChannelParams (p.trem, p.eq[instance & 1], ...) and
+// reports back its bypass flag plus whether a state-resetting VARIANT field changed. A changed
+// variant is staged as `pending` and keeps running the old one until the slot calls reset() +
+// commitPendingVariant() at silence — so the slot never switches on module type (R3-5).
 
 class ModuleSlot {                      // one per module in a chain
 public:
-    void prepare (double sr, int maxBlock, std::unique_ptr<IEffectModule>);
-    void apply (bool bypass, bool variantChanged) noexcept;   // schedules fades / retrigger
+    void prepare (const ChainConfig&, std::unique_ptr<IEffectModule>);  // nullptr = pass-through slot
+    void applyParams (const EffectChannelParams&, int instance) noexcept;   // sets the fade target
     void process (float* inout, int n) noexcept;              // out = dry*(1-g) + wet*g, 5 ms one-pole g
-    bool isSilentBypassed() const noexcept;                    // g == 0 → module skipped, reset once
-    std::atomic<uint32_t> nanTrips { 0 };
+    bool isBypassedSettled() const noexcept;                   // g == 0 → module skipped, reset once
+    bool isActiveSettled() const noexcept;                     // g == 1 → NO crossfade arithmetic
+    std::atomic<uint32_t> nanTrips { 0 }, silentResets { 0 };
 };
 
 // effects/EffectChain.h
+using ModuleFactory = std::unique_ptr<IEffectModule> (*) (ModuleId, int instance, const ChainConfig&);
+std::unique_ptr<IEffectModule> createModule (ModuleId, int instance, const ChainConfig&);
+
 class EffectChain {
 public:
-    void prepare (double sr, int maxBlock, int maxReverbDelaySamples);
+    void prepare (const ChainConfig&, ModuleFactory = &createModule);   // injectable for tests (R3-7)
     void reset() noexcept;
     void process (float* inout, int n, const EffectChannelParams& p) noexcept;
     int  getLatencySamples() const noexcept;                   // Σ non-bypassed module latencies
 private:
     std::array<ModuleSlot, kNumModuleSlots> slots;             // indexed by slot (kSlots table)
-    std::array<uint8_t, kNumModuleSlots> currentOrder;
-    OnePoleSmoother reorderEnvelope;                            // mute-switch-unmute, 5 ms
+    std::array<uint8_t, kNumModuleSlots> currentOrder, pendingOrder;
+    OnePoleSmoother reorderEnvelope, bypassEnvelope, muteEnvelope;   // 5 ms; reorder = mute-switch-unmute
+    uint32_t lastRevision = 0;                                 // params re-applied only when p.revision moves
 };
+// The atomics make ModuleSlot and EffectChain non-movable: the engine (Phase 3) must hold chains as
+// std::vector<std::unique_ptr<EffectChain>>, never std::vector<EffectChain>.
 
 // dsp/AcousticSendMatrix.h — today's spatcore::reverb::ReverbSendMatrix, API unchanged:
 //   prepare (sr, numSources, numNodes)                       ReverbSendMatrix.h:38
@@ -344,8 +364,9 @@ Layout: `[0,numIn)` primaries, then `5·numStereo` derived, then `numEffects` re
 
 | Event | Policy |
 |---|---|
-| Module bypass ↔ active | 5 ms one-pole crossfade dry/wet; at g = 0 the module is skipped and `reset()` once. |
-| Variant switch (dist type, dyn mode, chorus/flanger, reverb type/size, delay pattern) | fade out 5 ms → `reset()` + apply → fade in (tails dropped, documented). |
+| Module bypass ↔ active | one-pole crossfade dry/wet with **τ = 5 ms** and an exact snap at |g − target| ≤ 1e-4, so g reaches exactly 0/1 after ≈ 9.2 τ ≈ 46 ms (63 % at 5 ms, −20 dB at ≈ 12 ms). At g = 0 the module is skipped and `reset()` once; at g = 1 the crossfade arithmetic is skipped entirely, so an active settled slot is bit-transparent for a module at identity (`dry·(1−g) + wet·g` at g = 1 turns −0.0 into +0.0). A 5 ms *completion* rather than a 5 ms time constant is one constant, `kFadeTauSeconds ≈ 0.54 ms`. |
+| Variant switch (dist type, dyn mode, chorus/flanger, reverb type/size, delay pattern, crusher filter) | the module stages the new value as `pending` and keeps running the old one; the slot fades out (τ = 5 ms), calls `reset()` + `commitPendingVariant()` at g = 0, then fades back in (tails dropped, documented). Cancelling before g reaches 0 costs nothing. |
+| Chain bypass / mute | the same envelopes: `chainBypass` settled at 0 → every slot skipped and reset once, the dry signal passes; `mute` is an output-gain fade to silence with the modules still running. Settled at 1, neither applies any arithmetic. |
 | Chain reorder | mute-switch-unmute 5 ms envelope at a block boundary; module state untouched. |
 | Linear gains (drive, output, mix, feedback, depth) | in-module `OnePoleSmoother` 10 ms. |
 | Filter coefficients | stepped at the 50 Hz tick with short-circuit on unchanged values. |
@@ -376,7 +397,7 @@ Layout: `[0,numIn)` primaries, then `5·numStereo` derived, then `numEffects` re
 
 Interface: §4.2. Column key for the tables: **Identifier** (ValueTree property), **Type** (F float / I int / S string), **Ramp** = OSC trailing-seconds arg accepted (`isEffectParamRampCapable`, mirrors the CSV "OSC path optional value" column), **Tier** = MCP tier (1 default; 2 = loud/wide or store/load; 3 = structural).
 
-Shared primitives (`spatcore/dsp/`): `AcousticSendMatrix` (promoted `ReverbSendMatrix`, §2.2), `FractionalDelayLine` (pow2 ring, `readLinear`, same interpolation as `spatcore/wfs/InputBufferProcessor.h:516-521`), `DcBlocker` (`R = 1 − 2π·5/sr`), `OnePoleSmoother` (`coef = 1 − exp(−1/(τ·sr))`, `spatcore/reverb/ReverbPreProcessor.h:226-227`), `LfoPhasor` (wraps `LFOWaveforms::applyWaveform`, shapes 1..8 `spatcore/dsp/LFOWaveforms.h:17-28`), `EnvelopeFollower` (peak: instant attack / exp release as `LiveSourceLevelDetector.h:82-88`; RMS: one-pole on x²), `Waveshaper` (static curves), `FastDecibels` (polynomial log2/exp2, deterministic across platforms, shared by both apps).
+Shared primitives (`spatcore/dsp/`): `AcousticSendMatrix` (promoted `ReverbSendMatrix`, §2.2), `FractionalDelayLine` (pow2 ring, `readLinear`, same interpolation as `spatcore/wfs/InputBufferProcessor.h:516-521`), `DcBlocker` (`R = 1 − 2π·5/sr`), `OnePoleSmoother` (`coef = 1 − exp(−1/(τ·sr))`, `spatcore/reverb/ReverbPreProcessor.h:226-227`, plus a stall guard that snaps to the target when a step no longer changes the float — a one-pole in float otherwise freezes short of its target forever), `LfoPhasor` (wraps `LFOWaveforms::applyWaveform`, shapes 1..8 `spatcore/dsp/LFOWaveforms.h:17-28`; phase accumulates in **double**; `hashNoiseBipolar`-keyed Random targets), `EnvelopeFollower` (peak or RMS, **attack and release**, 0 ms = the instant attack of `LiveSourceLevelDetector.h:82-88` — the dynamics module needs both), `Waveshaper` (static curves), `FastDecibels` (**libm-free** log2/exp2: exponent/mantissa split plus fixed-coefficient polynomials, so every platform runs the same +, −, × sequence; ≤ 1e-6 relative on gains and ≤ 1e-4 dB over −120..+24 dB, with `dbToGain(0) == 1.0f` and `exp2(k) == 2^k` exact by construction).
 
 ### 5.1 Distortion (`FxDist`)
 
@@ -492,7 +513,7 @@ Derived from the user's Max gen~ prototype (received 2026-08-28): the LFO is a c
 | effectTremShape | F | 0..1 (0 = sine, 1 = triangle; continuous blend — the prototype's "waveform") | 0 | — | yes | 1 |
 | effectTremMix | F | 0..100 | 100 | % | yes | 1 |
 
-`m = (1−s)·(sin(2πφ) − 1)/2 + s·(−tri(φ))` ∈ [−1, 0]; `gainDb = m·depth`; `out = in·((1−w) + w·10^(gainDb/20))` (`FastDecibels`). Phase φ from `LfoPhasor`, no square edges to smooth. Cost ≈ 10 flops/sample. First module implemented (proves `LfoPhasor` + slot fades).
+`m = −(1 + (1−s)·sine(φ) + s·tri(φ))/2` ∈ [−1, 0], where `sine` and `tri` are the `LFOWaveforms` shapes (both −1 at φ = 0 and +1 at φ = 0.5); `gainDb = m·depth`; `out = in·((1−w) + w·10^(gainDb/20))` (`FastDecibels`). **Correction (revision 3):** the prototype's two legs are `(cos(2πφ) − 1)/2` and `−triangle(φ)`, which are PHASE-ALIGNED — both 0 at φ = 0 and −1 at φ = 0.5 — because Max's `cycle` is a cosine. Revision 2 wrote the first leg as `(sin(2πφ) − 1)/2`, which rotates the sine leg a quarter cycle against the triangle, so the blend control would cancel rather than morph. The form above is the aligned one (a half-cycle offset from the prototype, which has no phase parameter to notice it). Phase φ from `LfoPhasor`, no square edges to smooth. Cost ≈ 10 flops/sample. First module implemented (proves `LfoPhasor` + slot fades).
 
 ### 5.7 Reverb (`FxReverb`)
 
@@ -565,13 +586,13 @@ Purpose: lo-fi degradation — word-length reduction (quantisation) and sample-r
 | effectCrushDither | F | −96..0 (−96 = off; white noise added before the quantiser, as in the prototype) | −96 | dB | yes | 1 |
 | effectCrushMix | F | 0..100 | 100 | % | yes | 1 |
 
-Algorithm: fractional-rate sample-and-hold (`phase += rate/sr; if (phase >= 1) { hold = q(x); phase -= 1; }`), quantiser `q(x) = round(x · 2^bits) / 2^bits` (the prototype's law; fractional bits give a continuous step), dither = white noise from `hashNoiseBipolar` (deterministic, `spatcore/dsp/FrDiffusionModel.h:52-63`) scaled by the dither level (the prototype's `noise · dbtoa(dither)` with a default of 0 dB, i.e. full-scale noise — a placeholder; ours defaults to off). Bits and rate changes glide through the 10 ms `OnePoleSmoother`. State: hold value, phase, LP; latency 0. Cost ≈ 5-15 flops/sample. Second module implemented (after tremolo): proves the quantiser and a stateful hold under the slot fades.
+Algorithm: fractional-rate sample-and-hold — the trigger is tested BEFORE the phase accumulates (`if (phase >= 1) { phase -= 1; hold = q(x); } phase += rate/sr;`, with `phase = 1` after `prepare()`/`reset()`), so the first hold lands on sample 0 and every run is full length; the other order costs the first run one sample. Quantiser `q(x) = round(x · 2^bits) / 2^bits` (the prototype's law; `std::round` = half away from zero, symmetric; fractional bits give a continuous step; `2^bits` from `FastDecibels::exp2`, exact for integer bits), dither = white noise from `hashNoiseBipolar` (deterministic, `spatcore/dsp/FrDiffusionModel.h:52-63`, keyed per module instance through `makeKey`; the index advances every sample whether or not dither is on, so the stream never depends on when it was switched in) scaled by the dither level (the prototype's `noise · dbtoa(dither)` with a default of 0 dB, i.e. full-scale noise — a placeholder; ours defaults to off). Bits and rate changes glide through the 10 ms `OnePoleSmoother`. State: hold value, phase, LP; latency 0. Cost ≈ 5-15 flops/sample. Second module implemented (after tremolo): proves the quantiser and a stateful hold under the slot fades.
 
 ### 5.10 Chain-level parameters
 
 | Identifier | Type | Range | Default | Ramp | Tier |
 |---|---|---|---|---|---|
-| effectChainOrder | S | permutation of `dist,eq,dyn,mod,phaser,trem,reverb,delay` | that order | no | 1 |
+| effectChainOrder | S | permutation of the 11 tokens `dist,eq1,eq2,dyn1,dyn2,mod,phaser,trem,reverb,delay,crush` (§4.1 is the binding table; revision 2 left a stale 8-token list here) | that order | no | 1 |
 | effectChainBypass | I | 0..1 | 0 | no | 1 |
 | (action) clear | — | `/wfs/effect/clear <fx>`, `/wfs/effect/clearAll`, MCP `effect_clear`, header button, Stream Deck key — flushes the chain, feed lines and return ring (§4.4-10); not a stored parameter | — | no | 1 |
 
@@ -781,7 +802,7 @@ Level source: `LevelMeteringManager::getEffectLevel(fx)` (second table `effectFe
 | send cell | `/wfs/effect/sendLevel <fx> <inputNumber> <dB> [sec]`, `/wfs/effect/sendOn <fx> <inputNumber> <0/1>`, `/wfs/effect/fxSendLevel <fx> <srcFx> <dB> [sec]`, `/wfs/effect/fxSendOn <fx> <srcFx> <0/1>` | `/wfs/effect/<fx>/sendLevel <in> <dB> [sec]` … | `isCell` set → `setEffectSendCell`; ingest classifier key `addr|fx|sub` (today `/wfs/reverb/` coalesces on `addr|first int`, `OSCManager.cpp:107-114`) |
 | send row | `/wfs/effect/sendLevels <fx> "<csv>"` (+ `sendOns`, `fxSendLevels`, `fxSendOns`) | `/wfs/effect/<fx>/sendLevels "<csv>"` | distinct identifiers → distinct reverse-map entries (`OSCQueryServer.cpp:381-398` is keyed by Identifier, last wins) |
 | mutes | `/wfs/effect/mutes <fx> "<csv>"` | — | row form only (the reverb `mutes <id> <out> <v>` 3-arg form is broken today and not copied) |
-| chain order | `/wfs/effect/chainOrder <fx> "eq,dist,dyn,mod,phaser,trem,reverb,delay"` | `/wfs/effect/<fx>/chainOrder "<csv>"` | validated permutation; rejection → `invalidReason` |
+| chain order | `/wfs/effect/chainOrder <fx> "eq1,dist,eq2,dyn1,dyn2,mod,phaser,trem,reverb,delay,crush"` | `/wfs/effect/<fx>/chainOrder "<csv>"` | validated permutation; rejection → `invalidReason` |
 | position polar | `/wfs/effect/positionR|positionTheta|positionRsph|positionPhi <fx> <v>` and `offset*` | — | same conversion path as inputs (`OSCManager.cpp:1825-1837`) generalised by family |
 | snapshot | `/wfs/effect/snapshot/load "<name>"`, `/wfs/effect/snapshot/store "<name>"` | — | intercept before routing |
 | clear | `/wfs/effect/clear <fx>`, `/wfs/effect/clearAll` | — | intercept before routing; no stored parameter (§4.4-10) |
@@ -875,7 +896,7 @@ Branch/PR strategy: spatcore PRs first on `github.com/pob31/spatcore` (branch `f
 | Phase | Scope | Files (summary) | Gates | Size |
 |---|---|---|---|---|
 | **0. Design sign-off + Max prototype review** | Walk this document with the user; review each Max prototype module by module (formulas, ranges, defaults, tonal variants); confirm Q1-Q17; freeze the identifier table and the CSV. Output: this file updated + `WFS-UI_effects.csv` draft. | `Documentation/effects-channels-plan.md`, `Documentation/WFS-UI_effects.csv` (draft) | review only | S |
-| **1. spatcore primitives + contract** (spatcore PR 1, tag v0.3.0) | promote `reverb/ReverbSendMatrix.h` → `dsp/AcousticSendMatrix.h` (alias kept, the three reverb-send tests untouched); `dsp/` primitives, `rt/RtTripleBuffer.h`, `effects/EffectsTypes.h`, `EffectParams.h`, `EffectModule.h` (ModuleSlot), `EffectChain.h` skeleton (11 slots), Tremolo + Bitcrusher + EQ modules; compile-check entries; unit tests (neutrality, identity, slot fades, triple buffer, chain order parse, quantiser). | spatcore only | b, c, d (a trivially: nothing in the app changed) | M |
+| **1. spatcore primitives + contract** (spatcore PR 1, branch `feature/effects-phase1`, tag v0.3.0) — IN PROGRESS | promote `reverb/ReverbSendMatrix.h` → `dsp/AcousticSendMatrix.h` (alias kept, the three reverb-send tests untouched); `dsp/` primitives, `rt/RtTripleBuffer.h`, `effects/EffectsTypes.h`, `EffectParams.h`, `EffectModule.h` (ModuleSlot), `EffectChain.h` skeleton (11 slots), Tremolo + Bitcrusher + EQ modules; compile-check entries; unit tests (neutrality, identity, slot fades, triple buffer, chain order parse, quantiser). | spatcore only | b, c, d (a trivially: nothing in the app changed) | M |
 | **2. spatcore remaining modules** (PR 2, tag v0.3.1) | Multitap (shelved feedback + time modulation), Chorus/Flanger (LFO phase), Phaser, Dynamics (comp→expander pair, both instances share the code; lookahead), Distortion (per the gen~ prototype), Reverb (`IEffectReverbModel` seam + FDN model, `EffectPresets.h`, FDN `maxDelaySamples` ctor arg, shadow-size swap); tests (waveshaper tables, static curves, impulse goldens, latency report, NaN guard, preset ordering, all rates); offline-render `--path effects` scenarios per module; `effects-ab` harness. | spatcore + `tools/validation/offline-render/{main.cpp,scenarios.h}` + `tools/validation/effects-ab/` | a (FDN default path bit-exact), b, c, d | L |
 | **3. spatcore engine + map** (PR 3, tag v0.3.2) | `EffectsEngine.h` (drain loop over `AcousticSendMatrix`, wrap detection, ready gate, `requestClear`, telemetry), `effects/LoopGuard.h`, `SharedInputRingBuffer` counter, `RenderSourceMap` 3-arg build + `kMaxInputRenderSources`; tests (feed impulse, sum-order determinism, block ledger n+1 / n+2, backlog skip, wrap resync); `EffectChain` offline scenario with reorder/bypass/variant timeline; `docs/audio-engine-map.md` thread table. | spatcore | a, b, c, d | L |
 | **4. App data model + parameter surface** (WFS-DIY PR, after bump) | IDs/defaults (incl. `maxRenderSources = 136`, static_asserts), `UndoDomain::Effects`, `WFSValueTreeState` (get/set, sections, `setNumEffectChannels`, scope/tree/resolve, schema backfill, send-cell accessors, input-delete column zeroing, renumber hook, `effectMutes` width in `setNumOutputChannels`), facade, persistence (`effects.xml`, absent-file rule, backups, reconciliation), OSC router/parser/bounds/dispatch/builder/ramper, ingest classifier, OSCQuery, codegen (CSV, config, overrides, tests, regenerate JSON), MCP loader/audit/registry/lifecycle/EffectTools, `ChannelCounts` plumbing (count stays 0 by default). | see §12 | a (count 0), e (goldens regenerated), f, g | XL |
@@ -904,6 +925,10 @@ Branch/PR strategy: spatcore PRs first on `github.com/pob31/spatcore` (branch `f
 | `testEffectImpulseGoldens` | linear configs vs literal IR taps (style `testBiquadGoldenCoefficients`). |
 | `testWaveshaperTables`, `testDynamicsStaticCurve`, `testReverbPresetsOrdering`, `testDelayGlideVsSnap`, `testLatencyReport`, `testAllRates` | as specified in §5 (knee C0-continuity, gate hysteresis, limiter ceiling +0.1 dB, Room < Chamber < Hall < Cathedral energy, dist latency == `Oversampling::getLatencyInSamples`). |
 | `testChainReorderDeterminism`, `testResetOnFullBypass`, `testNaNGuard` | order A→B→A returns to reference after the envelope; tails cleared; NaN → finite, `nanTrips == 1`. |
+| `testEffectParamsPod` | every parameter struct is trivially copyable (compile-time) and its defaults are the §5 table (spot-checked: bypasses, `order`, EQ shapes, `crush.ditherDb`, the last delay tap). |
+| `testModuleSlotBypassFade`, `testModuleSlotVariantSwitch` | the fade is monotonic, passes 63 % at τ = 5 ms, reaches exactly 0/1, and resets the module exactly once at silence; a settled slot is bit-transparent both ways; a staged variant commits exactly at g = 0 and cancels cleanly if it is revoked first. |
+| `testChainLatencySum`, `testChainBypassAndMute` | latency is the sum over non-bypassed slots and 0 under `chainBypass`; bypass and mute fade monotonically to exactly dry / exactly silence and back. |
+| `testOnePoleSmoother`, `testFastDecibels`, `testLfoPhasor`, `testFractionalDelayLine`, `testDcBlocker`, `testEnvelopeFollower`, `testWaveshaperCurves` | the primitives of §5.0: coefficient law + stall-guard snap; dB↔linear accuracy (≤ 1e-6 gain, ≤ 1e-4 dB) and the exact pins; phase wrap, shape values and keyed-noise determinism; the 10.5-sample impulse splitting 0.5/0.5 and bit-equality with a `% length` reference; DC removal; attack/release envelopes; curve symmetry and monotonicity. |
 | `testFeedDelayImpulse`, `testFeedSumOrderDeterminism` | 10.5 ms delay splits 0.5/0.5 across two samples; workers 0 vs 3 bit-identical; level-0 pairs touch no state. |
 | `testEffectsEngineBlockLedger`, `testEngineBacklogSkip`, `testEngineRingWrapResync` | return of batch n at pop n+1; fx→fx at n+2; 3 pending blocks → skip + reset + counter; producer laps consumer → resync + counter. |
 
@@ -1046,3 +1071,25 @@ Branch/PR strategy: spatcore PRs first on `github.com/pob31/spatcore` (branch `f
 | Q15 several reverb models | `effectReverbModel` + `IEffectReverbModel` seam (§5.7); follow-up 9h = more models. |
 | Q16 module details | six prototypes folded in (above); §5 stays a range table for Phase 0; the shared sub-patches were read from `Documentation/effects/*.gendsp` (16 files) — laws and quirks in §5.12. |
 | Q17 EQ and dynamics doubled now | 11 slots, `instance` sub-index, `iif` OSCQuery nodes, `SUB_INDEX_RULES` two-arg rule (§2.1-4, §5.2, §5.3, §6.1, §7). |
+
+### 12.4 Revision-3 resolution log (corrections the Phase 1 implementation forced back, 2026-09-16)
+
+Phase 1 is being built on spatcore branch `feature/effects-phase1` (target tag `v0.3.0`). Everything
+below is a change to THIS document, not a new decision: each entry is a place where writing the code
+showed the revision-2 text to be wrong, under-specified, or stale.
+
+| # | Correction | Where |
+|---|---|---|
+| R3-1 | `ChainConfig` POD `{ sampleRate, maxBlock, reverbMaxDelaySamples = 16384, maxEffectDelaySeconds = 5.0, noiseKey = 1 }` replaces the positional argument lists of `IEffectModule::prepare` and `EffectChain::prepare`, so phases 2-3 add fields without editing every module. `EffectsEngine::Config` maps onto it. | §4.2 |
+| R3-2 | **Tremolo LFO was misaligned.** Max's `cycle` is a cosine, so the prototype's two legs are both 0 at φ = 0 and −1 at φ = 0.5; revision 2's `sin(2πφ)` would rotate one leg a quarter cycle and make the shape blend cancel instead of morph. Implemented as `m = −(1 + (1−s)·sine(φ) + s·tri(φ))/2` over the `LFOWaveforms` shapes. | §5.6 |
+| R3-3 | The `effectChainOrder` row in §5.10 and the OSC example in §7.1 still carried revision 1's 8 tokens, and §4.1 said "8 slots"; the binding table is the 11 tokens of §2.2/§4.1. | §4.1, §5.10, §7.1 |
+| R3-4 | "5 ms one-pole" is a **time constant**, not a completion time: with the exact snap at ≤ 1e-4 a fade settles after ≈ 9.2 τ ≈ 46 ms. Stated explicitly, with the one constant to change if completion-in-5-ms is ever wanted. A settled fade applies no crossfade arithmetic at all, so a bypassed or identity slot is bit-transparent (−0.0 survives). | §4.6 |
+| R3-5 | `ModuleSlot::apply (bypass, variantChanged)` becomes `applyParams (const EffectChannelParams&, int instance)` on both slot and module: the module picks its own sub-struct and reports back, staging a changed variant until the slot calls `reset()` + `commitPendingVariant()` at silence. The slot never switches on module type. | §4.2, §4.6 |
+| R3-6 | Chain-level `chainBypass` and `mute` get the same treatment as a module bypass (skip + reset once at silence; mute is an output-gain fade with the modules still running) — revision 2 only specified the module case. | §4.6 |
+| R3-7 | `EffectChain::prepare` takes an injectable `ModuleFactory` (default `createModule`), which is what lets the unit tests drive the chain with counting test doubles instead of real modules. | §4.2 |
+| R3-8 | Bitcrusher: the sample-and-hold trigger is tested **before** the phase accumulates (otherwise the first hold run is one sample short), `std::round` is the quantiser's rounding, `2^bits` comes from `FastDecibels::exp2`, and the dither stream is keyed per instance with its index advancing whether or not dither is on. | §5.9 |
+| R3-9 | `EnvelopeFollower` carries attack **and** release (0 ms = the instant attack of the existing detector), since the Phase 2 dynamics module needs both; `LfoPhasor` accumulates phase in double; `FastDecibels` is specified as libm-free with stated accuracy and exact pins; `OnePoleSmoother` needs a stall guard, because a float one-pole otherwise freezes short of its target forever and a fade would never reach exactly 0 or 1. | §5.0 |
+| R3-10 | Test list extended with the parameter-POD, slot-fade, variant-switch, chain latency/bypass/mute and seven primitive tests. Also noted: `spatcore/docs/audio-engine-map.md` claimed "zero `ScopedNoDenormals`" — stale since the binaural engine gained one (`binaural/BinauralEngine.h:108`). | §10 |
+
+Unchanged by revision 3: every binding decision of §2.1, the answers of §2.4, the parameter surface of
+§§6-7, and the phase plan of §9. Nothing in the app repo has been touched.
