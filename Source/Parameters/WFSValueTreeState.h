@@ -300,6 +300,27 @@ public:
         file merge, which carries everything the file holds and removes nothing.
         Public because WFSFileManager::applyReverbsSection is a merge path too. */
     void stripObsoleteReverbProperties();
+
+    /** The effects family's eviction hook, and the reason it is table-free.
+
+        Same job as stripObsoleteReverbProperties - mergeTreeRecursive and
+        backfillFromTemplate both only ever ADD, so an attribute the schema has
+        retired rides along in the live tree and is re-saved for ever - but it
+        names nothing. Every property anywhere under an <Effect> is stamped by
+        exactly one builder under createDefaultEffectChannel, so "what the schema
+        declares" IS that template: this walks each channel against a freshly
+        built one and removes any property the template does not carry. A name
+        deleted from a builder is therefore evicted from every loaded file with
+        no second list to keep in step - which is precisely the maintenance the
+        reverb hook's hand-written legacy identifier demands.
+
+        The corollary is a rule, not an accident: nothing may stamp a property
+        onto an <Effect> subtree that createDefaultEffectChannel does not also
+        stamp. A runtime-only flag parked there would be evicted on the next
+        load, and should live outside the persisted subtree instead.
+
+        Public because WFSFileManager::applyEffectsSection is a merge path. */
+    void stripObsoleteEffectProperties();
     juce::ValueTree getReverbEQSection (int channelIndex);
     juce::ValueTree ensureReverbEQSection (int channelIndex);  // Creates if missing
     juce::ValueTree getReverbEQBand (int channelIndex, int bandIndex);
@@ -1015,6 +1036,19 @@ private:
     void createClustersSection (juce::ValueTree& config);
     void createBinauralSection (juce::ValueTree& config);
     void createUISection (juce::ValueTree& config);
+
+    /** <Config><EffectsGlobal> - the nine effectsGlobal* settings.
+
+        A child of <Config>, NOT a sibling of the <Effect> channels: that is what
+        keeps <Effects> holding only <Effect> children, which is what lets
+        getEffectState index the child list instead of walking it by type the way
+        every reverb accessor must. getParameterScope already routes all nine
+        names here (the "effectsGlobal" test sits ahead of the per-channel
+        "effect" prefix), and getTreeForParameter's Config branch searches this
+        node with the others - until it existed, every one of those writes
+        resolved to Config, found no node carrying the property, and was dropped
+        with no error at all. */
+    void createEffectsGlobalSection (juce::ValueTree& config);
     void createInputsSection();
     void createOutputsSection();
     void createReverbsSection();

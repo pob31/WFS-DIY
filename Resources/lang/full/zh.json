@@ -1817,6 +1817,7 @@
       "noInputDataInFile": "文件中未找到输入数据",
       "noOutputDataInFile": "文件中未找到输出数据",
       "noReverbDataInFile": "文件中未找到混响数据",
+      "noEffectDataInFile": "文件中未找到效果器数据",
       "noLFOPresetDataInFile": "文件中未找到LFO预设数据",
       "noInputDataInSnapshot": "快照中没有输入数据",
       "snapshotDoesNotExist": "快照不存在",
@@ -1833,7 +1834,8 @@
       "prefixNetwork": "网络：",
       "prefixInputs": "输入：",
       "prefixOutputs": "输出：",
-      "prefixReverbs": "混响："
+      "prefixReverbs": "混响：",
+      "prefixEffects": "效果器："
     }
   },
   "sampler": {

@@ -1837,6 +1837,7 @@
       "noInputDataInFile": "Keine Eingangsdaten in der Datei gefunden",
       "noOutputDataInFile": "Keine Ausgangsdaten in der Datei gefunden",
       "noReverbDataInFile": "Keine Hall-Daten in der Datei gefunden",
+      "noEffectDataInFile": "Keine Effekt-Daten in der Datei gefunden",
       "noLFOPresetDataInFile": "Keine LFO-Preset-Daten in der Datei gefunden",
       "noInputDataInSnapshot": "Keine Eingangsdaten im Snapshot",
       "snapshotDoesNotExist": "Snapshot existiert nicht",
@@ -1853,7 +1854,8 @@
       "prefixNetwork": "Netzwerk: ",
       "prefixInputs": "Eingänge: ",
       "prefixOutputs": "Ausgänge: ",
-      "prefixReverbs": "Hall: "
+      "prefixReverbs": "Hall: ",
+      "prefixEffects": "Effekte: "
     }
   },
   "sampler": {

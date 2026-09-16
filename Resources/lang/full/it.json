@@ -1817,6 +1817,7 @@
       "noInputDataInFile": "Nessun dato di ingresso trovato nel file",
       "noOutputDataInFile": "Nessun dato di uscita trovato nel file",
       "noReverbDataInFile": "Nessun dato di riverbero trovato nel file",
+      "noEffectDataInFile": "Nessun dato di effetti trovato nel file",
       "noLFOPresetDataInFile": "Nessun dato di preset LFO trovato nel file",
       "noInputDataInSnapshot": "Nessun dato di ingresso nello snapshot",
       "snapshotDoesNotExist": "Lo snapshot non esiste",
@@ -1833,7 +1834,8 @@
       "prefixNetwork": "Rete: ",
       "prefixInputs": "Ingressi: ",
       "prefixOutputs": "Uscite: ",
-      "prefixReverbs": "Riverberi: "
+      "prefixReverbs": "Riverberi: ",
+      "prefixEffects": "Effetti: "
     }
   },
   "sampler": {

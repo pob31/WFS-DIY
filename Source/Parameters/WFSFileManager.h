@@ -23,8 +23,8 @@ void setFolderIconMac (const char* folderPath);
  * Composes spatcore::control::state::XmlPersistence for the app-agnostic
  * machinery (XML file I/O with header convention, rolling backups, and the
  * merge/backfill engine). This class keeps everything WFS-shaped: the
- * section-split file layout (show/system/inputs/outputs/reverbs/audio_patch/
- * network), the .wfs manifest, snapshots + scope filtering, dialogs, and the
+ * section-split file layout (show/system/inputs/outputs/reverbs/effects/
+ * audio_patch/network), the .wfs manifest, snapshots + scope filtering, dialogs, and the
  * WFSParameterDefaults-range merge validator injected into the core engine.
  */
 class WFSFileManager
@@ -93,6 +93,9 @@ public:
 
     /** Get path for reverb configuration file */
     juce::File getReverbConfigFile() const;
+
+    /** Get path for effects configuration file */
+    juce::File getEffectsConfigFile() const;
 
     /** Get path for audio patch file */
     juce::File getAudioPatchFile() const;
@@ -241,6 +244,48 @@ public:
 
     /** Import reverb configuration from specified file */
     bool importReverbConfig (const juce::File& file);
+
+    //==========================================================================
+    // Effects Configuration
+    //==========================================================================
+    // ONE DIVERGENCE FROM THE REVERB QUARTET, AND IT IS DELIBERATE: an ABSENT
+    // effects.xml is SUCCESS. Every project this application has ever saved
+    // predates the family, so a loader that copied importReverbConfig's
+    // "missing file == false" would report a load failure on the first open of
+    // every existing show - and worse, loadCompleteConfig gates
+    // markChannelNumbersUserOwned on success, so that failure would leave every
+    // one of those sessions UNLATCHED and free to renumber the channel list out
+    // from under its snapshots, cues and automation lanes.
+    //
+    // The exists() test therefore lives in loadEffectsConfig (and the
+    // empty-backup-set test in loadEffectsConfigBackup), never in
+    // importEffectsConfig: a file the caller NAMED and that is not there is a
+    // genuine error, and so is a present-but-malformed one.
+
+    /** Save effects configuration to project folder */
+    bool saveEffectsConfig();
+
+    /** Load effects configuration from project folder.
+
+        Returns TRUE when the project has no effects.xml at all, leaving the
+        family exactly as initializeDefaultState / ensureCompleteSchema built it
+        (do NOT force the count to zero here: applyConfigSection has already
+        merged system.xml's effectChannels by the time this runs). A file that
+        IS there and cannot be read, or carries no <Effects>, is an error. */
+    bool loadEffectsConfig();
+
+    /** Load effects configuration from backup. An empty backup set is SUCCESS,
+        for the same reason an absent effects.xml is: every backup set written
+        before this family existed has no effects_*.xml, and failing here would
+        fail loadCompleteConfigBackup for all of them. */
+    bool loadEffectsConfigBackup (int backupIndex = 0);
+
+    /** Export effects configuration to specified file */
+    bool exportEffectsConfig (const juce::File& file);
+
+    /** Import effects configuration from the named file. A missing file is an
+        ERROR here - the caller named it. */
+    bool importEffectsConfig (const juce::File& file);
 
     //==========================================================================
     // Cluster LFO Presets
@@ -525,6 +570,7 @@ public:
     static constexpr const char* inputConfigExtension = ".xml";
     static constexpr const char* outputConfigExtension = ".xml";
     static constexpr const char* reverbConfigExtension = ".xml";
+    static constexpr const char* effectsConfigExtension = ".xml";
     static constexpr const char* audioPatchExtension = ".xml";
     static constexpr const char* snapshotExtension = ".xml";
 
@@ -704,6 +750,9 @@ private:
     /** Extract reverbs section from state */
     juce::ValueTree extractReverbsSection() const;
 
+    /** Extract effects section from state */
+    juce::ValueTree extractEffectsSection() const;
+
     /** Extract audio patch section from state */
     juce::ValueTree extractAudioPatchSection() const;
 
@@ -721,6 +770,17 @@ private:
 
     /** Apply reverbs section to state */
     bool applyReverbsSection (const juce::ValueTree& reverbs);
+
+    /** Apply effects section to state.
+
+        Mirrors applyOutputsSection, NOT applyReverbsSection: the count is
+        re-synced from the child count after the merge. mergeTreeRecursive
+        appends unmatched source children and removes none, so an effects.xml
+        with more <Effect> nodes than the session has would otherwise leave
+        <Effects count> and Config/IO/effectChannels lying about a list that had
+        already grown - the drift getNumReverbChannels' counting loop exists to
+        paper over. */
+    bool applyEffectsSection (const juce::ValueTree& effects);
 
     /** Apply audio patch section to state */
     bool applyAudioPatchSection (const juce::ValueTree& audioPatch);

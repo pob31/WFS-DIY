@@ -295,6 +295,12 @@ juce::File WFSFileManager::getReverbConfigFile() const
     return projectFolder.getChildFile ("reverbs" + juce::String (reverbConfigExtension));
 }
 
+juce::File WFSFileManager::getEffectsConfigFile() const
+{
+    if (! projectFolder.isDirectory()) return {};
+    return projectFolder.getChildFile ("effects" + juce::String (effectsConfigExtension));
+}
+
 juce::File WFSFileManager::getAudioPatchFile() const
 {
     if (! projectFolder.isDirectory()) return {};
@@ -397,6 +403,12 @@ bool WFSFileManager::saveCompleteConfig()
         errors.add (LOC ("fileManager.errors.prefixReverbs") + lastError);
     }
 
+    if (!saveEffectsConfig())
+    {
+        success = false;
+        errors.add (LOC ("fileManager.errors.prefixEffects") + lastError);
+    }
+
     if (!success)
         setError (errors.joinIntoString ("; "));
 
@@ -485,6 +497,16 @@ bool WFSFileManager::loadCompleteConfig()
         DBG ("  FAILED: Reverbs - " << lastError);
     }
 
+    // A false here would take the latch at the tail of this function down with
+    // it, which is exactly why an absent effects.xml returns TRUE. See
+    // loadEffectsConfig.
+    if (!loadEffectsConfig())
+    {
+        success = false;
+        errors.add (LOC ("fileManager.errors.prefixEffects") + lastError);
+        DBG ("  FAILED: Effects - " << lastError);
+    }
+
     if (!success)
         setError (errors.joinIntoString ("; "));
 
@@ -566,6 +588,14 @@ bool WFSFileManager::loadCompleteConfigBackup (int backupIndex)
     {
         success = false;
         errors.add (LOC ("fileManager.errors.prefixReverbs") + lastError);
+    }
+
+    // An empty effects backup set is SUCCESS - every backup folder that predates
+    // the family has one, and the latch below is gated on `success` too.
+    if (!loadEffectsConfigBackup (backupIndex))
+    {
+        success = false;
+        errors.add (LOC ("fileManager.errors.prefixEffects") + lastError);
     }
 
     if (!success)
@@ -1107,6 +1137,121 @@ bool WFSFileManager::importReverbConfig (const juce::File& file)
     }
 
     bool result = applyReverbsSection (reverbsTree);
+    if (result)
+        valueTreeState.clearAllUndoHistories();
+    return result;
+}
+
+//==============================================================================
+// Effects Configuration
+//==============================================================================
+// Transcribed from the reverb quartet above, with ONE divergence: an absent
+// effects.xml is SUCCESS. See the header for why (every existing project has
+// none, and a false here would leave every one of those loads unlatched).
+
+bool WFSFileManager::saveEffectsConfig()
+{
+    if (!hasValidProjectFolder())
+    {
+        setError (LOC ("fileManager.errors.noValidProjectFolder"));
+        return false;
+    }
+
+    WFSLogger::getInstance().logInfo ("Saving effects config");
+    auto file = getEffectsConfigFile();
+
+    if (file.existsAsFile())
+        createBackup (file);
+
+    juce::ValueTree effectsState ("EffectsConfig");
+    effectsState.setProperty (WFSParameterIDs::version, "1.0", nullptr);
+    effectsState.appendChild (extractEffectsSection().createCopy(), nullptr);
+
+    return writeToXmlFile (effectsState, file);
+}
+
+bool WFSFileManager::loadEffectsConfig()
+{
+    if (!hasValidProjectFolder())
+    {
+        setError (LOC ("fileManager.errors.noValidProjectFolder"));
+        return false;
+    }
+
+    // THE DIVERGENCE, and the only place it may live. A project saved before
+    // this family existed has no effects.xml, and that is not a failure: it is
+    // a show with no effects. Returning false here would (a) surface a
+    // user-visible load error on the first open of every existing show and
+    // (b) - far worse - clear `success` in loadCompleteConfig, which gates
+    // valueTreeState.markChannelNumbersUserOwned() on it, leaving the session
+    // unlatched and free to renumber the channel list out from under every
+    // snapshot, QLab cue, plug-in lane and MCP reference that names a channel.
+    //
+    // Nothing is touched in this branch - in particular NOT setNumEffectChannels(0):
+    // applyConfigSection has already merged system.xml by the time this runs, so
+    // <IO>/effectChannels may legitimately name a count, and forcing zero would
+    // destroy what the config section just restored.
+    auto file = getEffectsConfigFile();
+    if (! file.existsAsFile())
+    {
+        WFSLogger::getInstance().logInfo ("No effects.xml in this project - the effects family stays as built "
+                                          "(a show saved before the family existed has none; this is not an error)");
+        return true;
+    }
+
+    WFSLogger::getInstance().logInfo ("Loading effects config");
+    return importEffectsConfig (file);
+}
+
+bool WFSFileManager::loadEffectsConfigBackup (int backupIndex)
+{
+    auto backups = getBackups ("effects");
+
+    // The same rule as an absent effects.xml, against the backup set: every
+    // backup folder written before this family existed holds no effects_*.xml,
+    // and failing here would fail loadCompleteConfigBackup wholesale for them.
+    // An index out of range within a NON-empty set is still an error.
+    if (backups.isEmpty())
+    {
+        WFSLogger::getInstance().logInfo ("No effects backups in this project - nothing to restore, which is not an error");
+        return true;
+    }
+
+    if (backupIndex >= 0 && backupIndex < backups.size())
+        return importEffectsConfig (backups[backupIndex]);
+
+    setError (LOC ("fileManager.errors.backupNotFound"));
+    return false;
+}
+
+bool WFSFileManager::exportEffectsConfig (const juce::File& file)
+{
+    juce::ValueTree effectsState ("EffectsConfig");
+    effectsState.setProperty (WFSParameterIDs::version, "1.0", nullptr);
+    effectsState.appendChild (extractEffectsSection().createCopy(), nullptr);
+
+    return writeToXmlFile (effectsState, file);
+}
+
+bool WFSFileManager::importEffectsConfig (const juce::File& file)
+{
+    OriginTagScope originScope { OriginTag::Snapshot };
+
+    // NO exists() test here, deliberately: the caller named this file, so a
+    // missing one is a genuine error and readFromXmlFile already reports it.
+    // The absent-project-file rule lives one level up, in loadEffectsConfig.
+    auto loadedState = readFromXmlFile (file);
+    if (!loadedState.isValid())
+        return false;
+
+    auto effectsTree = loadedState.getChildWithName (Effects);
+    if (!effectsTree.isValid())
+    {
+        setError (LOC ("fileManager.errors.noEffectDataInFile"));
+        return false;
+    }
+
+    bool result = applyEffectsSection (effectsTree);
     if (result)
         valueTreeState.clearAllUndoHistories();
     return result;
@@ -2502,7 +2647,7 @@ void WFSFileManager::cleanupBackups (int keepCount)
 {
     // Clean up each section file type (the WFS multi-file layout)
     spatcore::control::state::XmlPersistence::cleanupBackups (
-        getBackupFolder(), { "system", "network", "inputs", "outputs", "reverbs" }, keepCount);
+        getBackupFolder(), { "system", "network", "inputs", "outputs", "reverbs", "effects" }, keepCount);
 }
 
 juce::String WFSFileManager::getBackupTimestamp()
@@ -2651,6 +2796,11 @@ juce::ValueTree WFSFileManager::extractOutputsSection() const
 juce::ValueTree WFSFileManager::extractReverbsSection() const
 {
     return valueTreeState.getState().getChildWithName (Reverbs);
+}
+
+juce::ValueTree WFSFileManager::extractEffectsSection() const
+{
+    return valueTreeState.getState().getChildWithName (Effects);
 }
 
 juce::ValueTree WFSFileManager::extractAudioPatchSection() const
@@ -3210,6 +3360,32 @@ bool WFSFileManager::applyReverbsSection (const juce::ValueTree& reverbsTree)
         return true;
     }
     return false;
+}
+
+bool WFSFileManager::applyEffectsSection (const juce::ValueTree& effectsTree)
+{
+    auto existingEffects = valueTreeState.getEffectsState();
+    if (! existingEffects.isValid())
+        return false;
+
+    mergeTreeRecursive (existingEffects, effectsTree, valueTreeState.getUndoManager());
+
+    // The merge carries every attribute the file has, including ones this schema
+    // no longer declares. mergeTreeRecursive and backfillFromTemplate both only
+    // ever ADD - neither removes a property - so without this a retired effect
+    // attribute would ride along in every saved show for ever.
+    valueTreeState.stripObsoleteEffectProperties();
+
+    // OUTPUTS here, not reverbs. mergeTreeRecursive appends unmatched source
+    // children and never removes one, so a file with more <Effect> nodes than
+    // the session has just grew the list; setNumEffectChannels writes the true
+    // child count back to BOTH <Effects count> and Config/IO/effectChannels so
+    // nothing downstream reads a number the tree does not have. When the counts
+    // already agree - the normal case - it writes the same two values and
+    // changes nothing else: the re-layout and the undo clear are both gated on
+    // the count actually having moved.
+    valueTreeState.setNumEffectChannels (valueTreeState.getNumEffectChannels());
+    return true;
 }
 
 bool WFSFileManager::applyAudioPatchSection (const juce::ValueTree& audioPatchTree)

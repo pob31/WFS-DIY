@@ -1833,6 +1833,7 @@
       "noInputDataInFile": "Aucune donnée d'entrée trouvée dans le fichier",
       "noOutputDataInFile": "Aucune donnée de sortie trouvée dans le fichier",
       "noReverbDataInFile": "Aucune donnée de réverbération trouvée dans le fichier",
+      "noEffectDataInFile": "Aucune donnée d'effets trouvée dans le fichier",
       "noLFOPresetDataInFile": "Aucune donnée de preset LFO trouvée dans le fichier",
       "noInputDataInSnapshot": "Aucune donnée d'entrée dans le snapshot",
       "snapshotDoesNotExist": "Le snapshot n'existe pas",
@@ -1849,7 +1850,8 @@
       "prefixNetwork": "Réseau : ",
       "prefixInputs": "Entrées : ",
       "prefixOutputs": "Sorties : ",
-      "prefixReverbs": "Réverbérations : "
+      "prefixReverbs": "Réverbérations : ",
+      "prefixEffects": "Effets : "
     }
   },
   "sampler": {

@@ -3607,6 +3607,9 @@ void WFSValueTreeState::replaceState (const juce::ValueTree& newState)
         // default in the proper section and the real value stays orphaned.
         migrateStrayConfigProperties();
         stripObsoleteReverbProperties();
+        // Same job for the effects family, and on the same side of the back-fill:
+        // evict what the schema no longer declares, THEN stamp what it is missing.
+        stripObsoleteEffectProperties();
         // Back-fill anything the loaded state omitted (incomplete / scope-filtered
         // files) so no parameter is left absent on this wholesale-replace path.
         ensureCompleteSchema();
@@ -3749,6 +3752,7 @@ void WFSValueTreeState::ensureCompleteSchema()
         createClustersSection (defaultConfig);
         createBinauralSection (defaultConfig);
         createUISection (defaultConfig);
+        createEffectsGlobalSection (defaultConfig);
         backfillFromTemplate (config, defaultConfig, um);
     }
 
@@ -4058,6 +4062,7 @@ void WFSValueTreeState::createConfigSection()
     createClustersSection (config);
     createBinauralSection (config);
     createUISection (config);
+    createEffectsGlobalSection (config);
 
     state.appendChild (config, nullptr);
 }
@@ -4077,6 +4082,11 @@ void WFSValueTreeState::createIOSection (juce::ValueTree& config)
     io.setProperty (inputChannels, inputChannelsDefault, nullptr);
     io.setProperty (outputChannels, outputChannelsDefault, nullptr);
     io.setProperty (reverbChannels, reverbChannelsDefault, nullptr);
+    // Zero by default, so a show that uses no effects gains one attribute and
+    // nothing else. It lives HERE rather than on <Effects> for the same reason
+    // the other three counts do: applyConfigSection reads the channel inventory
+    // off <IO> before any per-family file is touched.
+    io.setProperty (effectChannels, effectChannelsDefault, nullptr);
     io.setProperty (algorithmDSP, algorithmDSPDefault, nullptr);
     io.setProperty (runDSP, runDSPDefault, nullptr);
     config.appendChild (io, nullptr);
@@ -4106,7 +4116,23 @@ void WFSValueTreeState::createMasterSection (juce::ValueTree& config)
     master.setProperty (systemLatency, systemLatencyDefault, nullptr);
     master.setProperty (haasEffect, haasEffectDefault, nullptr);
     master.setProperty (reverbsMapVisible, 1, nullptr);  // Default: visible
+    master.setProperty (effectsMapVisible, effectsMapVisibleDefault, nullptr);  // Default: visible
     config.appendChild (master, nullptr);
+}
+
+void WFSValueTreeState::createEffectsGlobalSection (juce::ValueTree& config)
+{
+    juce::ValueTree effectsGlobal (EffectsGlobal);
+    effectsGlobal.setProperty (effectsGlobalLinkNames, effectsGlobalLinkNamesDefault, nullptr);
+    effectsGlobal.setProperty (effectsGlobalLinkMode, effectsGlobalLinkModeDefault, nullptr);
+    effectsGlobal.setProperty (effectsGlobalFxFeedGeometric, effectsGlobalFxFeedGeometricDefault, nullptr);
+    effectsGlobal.setProperty (effectsGlobalWorkerThreads, effectsGlobalWorkerThreadsDefault, nullptr);
+    effectsGlobal.setProperty (effectsGlobalReturnCushion, effectsGlobalReturnCushionDefault, nullptr);
+    effectsGlobal.setProperty (effectsGlobalLoopGuard, effectsGlobalLoopGuardDefault, nullptr);
+    effectsGlobal.setProperty (effectsGlobalLoopGuardCeiling, effectsGlobalLoopGuardCeilingDefault, nullptr);
+    effectsGlobal.setProperty (effectsGlobalMaxDelaySeconds, effectsGlobalMaxDelaySecondsDefault, nullptr);
+    effectsGlobal.setProperty (effectsGlobalFeedGpuDevice, effectsGlobalFeedGpuDeviceDefault, nullptr);
+    config.appendChild (effectsGlobal, nullptr);
 }
 
 void WFSValueTreeState::migrateStrayConfigProperties()
@@ -4190,6 +4216,87 @@ void WFSValueTreeState::stripObsoleteReverbProperties()
         auto feed = getReverbFeedSection (i);
         if (feed.isValid() && feed.hasProperty (legacyReverbLSenable))
             feed.removeProperty (legacyReverbLSenable, nullptr);
+    }
+}
+
+void WFSValueTreeState::stripObsoleteEffectProperties()
+{
+    // The reverb twin above names one retired identifier by hand. This one names
+    // none, on purpose: every property anywhere under an <Effect> is stamped by
+    // exactly one builder under createDefaultEffectChannel, so a freshly built
+    // channel IS the list of what the schema still declares. Diffing against it
+    // evicts a retired attribute the moment its setProperty line is deleted,
+    // with no second table to keep in step - and the reverb hook's history (a
+    // name removed in 125e00b, re-saved in every show until someone noticed) is
+    // what that table costs when it is forgotten.
+    //
+    // Structure, not just the top level: <Band> and <Tap> carry ids, the eleven
+    // module nodes carry none but each has its own type, and the walk matches on
+    // exactly that - the same rule backfillFromTemplate uses in the opposite
+    // direction.
+    const int n = getNumEffectChannels();
+    if (n == 0)
+        return;
+
+    // One template for the whole set. createDefaultEffectChannel lays the
+    // channel out on the ring for (index, totalCount), but only VALUES depend on
+    // that; the property NAMES - all this walk reads - do not, so the shape of
+    // channel 0 answers for every channel.
+    const auto tmplChannel = createDefaultEffectChannel (0, juce::jmax (1, n));
+
+    // Depth-first, template-driven. A node the template does not have at all is
+    // left alone rather than deleted: removing a whole subtree is a different
+    // and much more destructive decision than dropping a retired attribute, and
+    // nothing has ever needed it.
+    std::function<void (juce::ValueTree&, const juce::ValueTree&)> evict =
+        [&evict] (juce::ValueTree& target, const juce::ValueTree& tmpl)
+    {
+        for (int i = target.getNumProperties(); --i >= 0;)
+        {
+            const auto propName = target.getPropertyName (i);
+            if (! tmpl.hasProperty (propName))
+                target.removeProperty (propName, nullptr);   // schema eviction is not an undoable user edit
+        }
+
+        for (int c = 0; c < target.getNumChildren(); ++c)
+        {
+            auto child = target.getChild (c);
+            juce::ValueTree match;
+
+            if (child.hasProperty (id))
+            {
+                // Type AND id together, never id alone: two sibling types
+                // sharing an id namespace would otherwise cross-match and strip
+                // each other's properties wholesale.
+                for (int t = 0; t < tmpl.getNumChildren(); ++t)
+                {
+                    auto candidate = tmpl.getChild (t);
+                    if (candidate.getType() == child.getType()
+                        && candidate.getProperty (id) == child.getProperty (id))
+                    {
+                        match = candidate;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                match = tmpl.getChildWithName (child.getType());
+                if (match.isValid() && match.hasProperty (id))
+                    match = juce::ValueTree();   // an id-less node never answers for an id'd template child
+            }
+
+            if (match.isValid())
+                evict (child, match);
+        }
+    };
+
+    auto effects = getEffectsState();
+    for (int i = 0; i < effects.getNumChildren(); ++i)
+    {
+        auto child = effects.getChild (i);
+        if (child.hasType (Effect))
+            evict (child, tmplChannel);
     }
 }
 
@@ -5573,6 +5680,17 @@ juce::ValueTree WFSValueTreeState::getTreeForParameter (const juce::Identifier& 
             auto ui = config.getChildWithName (UI);
             if (ui.hasProperty (paramId))
                 return ui;
+
+            // EffectsGlobal. getParameterScope sends every effectsGlobal* name
+            // here by name, ahead of the per-channel "effect" prefix test - but
+            // the routing is only half the journey: a scope with no node to land
+            // on falls off the end of this list and the write is dropped in
+            // silence (TreeParameterStore::setParameter is `if (tree.isValid())`
+            // with no else and a void return). That was the state of things
+            // until <Config><EffectsGlobal> existed.
+            auto effectsGlobal = config.getChildWithName (EffectsGlobal);
+            if (effectsGlobal.hasProperty (paramId))
+                return effectsGlobal;
 
             return {};
         }

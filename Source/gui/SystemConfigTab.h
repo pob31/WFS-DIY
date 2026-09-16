@@ -4341,7 +4341,7 @@ public:
                 if (safe == nullptr) return;
                 auto& fm = safe->parameters.getFileManager();
 
-                // Load complete config from individual files (system.xml, network.xml, inputs.xml, outputs.xml, reverbs.xml)
+                // Load complete config from individual files (system.xml, network.xml, inputs.xml, outputs.xml, reverbs.xml, effects.xml)
                 safe->parameters.getDirtyTracker().beginSuppression();
                 bool success = fm.loadCompleteConfig();
 

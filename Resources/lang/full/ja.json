@@ -1784,6 +1784,7 @@
       "noInputDataInFile": "ファイルに入力データが見つかりません",
       "noOutputDataInFile": "ファイルに出力データが見つかりません",
       "noReverbDataInFile": "ファイルにリバーブデータが見つかりません",
+      "noEffectDataInFile": "ファイルにエフェクトデータが見つかりません",
       "noLFOPresetDataInFile": "ファイルにLFOプリセットデータが見つかりません",
       "noInputDataInSnapshot": "スナップショットに入力データがありません",
       "snapshotDoesNotExist": "スナップショットが存在しません",
@@ -1800,7 +1801,8 @@
       "prefixNetwork": "ネットワーク: ",
       "prefixInputs": "入力: ",
       "prefixOutputs": "出力: ",
-      "prefixReverbs": "リバーブ: "
+      "prefixReverbs": "リバーブ: ",
+      "prefixEffects": "エフェクト: "
     }
   },
   "sampler": {

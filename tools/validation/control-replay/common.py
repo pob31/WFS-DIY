@@ -48,7 +48,7 @@ OSCQUERY_HTTP_PORT = 5005    # networkOscQueryPort in the fixture
 
 # Fixture project files the round-trip driver diffs (backups/ is ignored).
 SECTION_FILES = ("system.xml", "network.xml", "inputs.xml",
-                 "outputs.xml", "reverbs.xml")
+                 "outputs.xml", "reverbs.xml", "effects.xml")
 
 EXE_CANDIDATES = (
     REPO_ROOT / "Builds/VisualStudio2022/x64/Release/App/WFS-DIY.exe",

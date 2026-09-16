@@ -2059,6 +2059,7 @@
       "channelListMismatchNotConfirmed": "Load refused: the channel list in {path} differs from this session and the load was not confirmed.",
       "noOutputDataInFile": "No output data found in file",
       "noReverbDataInFile": "No reverb data found in file",
+      "noEffectDataInFile": "No effects data found in file",
       "noLFOPresetDataInFile": "No LFO preset data found in file",
       "noInputDataInSnapshot": "No input data in snapshot",
       "noScopeDataInTemplate": "No scope data found in template file",
@@ -2076,7 +2077,8 @@
       "prefixNetwork": "Network: ",
       "prefixInputs": "Inputs: ",
       "prefixOutputs": "Outputs: ",
-      "prefixReverbs": "Reverbs: "
+      "prefixReverbs": "Reverbs: ",
+      "prefixEffects": "Effects: "
     }
   },
 

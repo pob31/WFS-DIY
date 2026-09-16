@@ -4578,6 +4578,279 @@ void MainComponent::runChannelListSelfTest()
         }
     }
 
+    // ---- X: the effects family survives a save and a load -------------------
+    // The commit that put <Effects> in the tree could gate none of this: nothing
+    // could set a non-zero count, so the channel builder, the ring layout, add,
+    // remove and the whole per-channel path were compile-verified and never run.
+    //
+    // Every shape assertion below is made AFTER a save and a reload, never on a
+    // freshly built tree. A fresh tree is built by the very builder the
+    // assertions describe, so it agrees with itself whatever the file path does;
+    // only a reloaded one can see the merge appending a duplicate, the backfill
+    // matching the wrong sibling, or the eviction hook failing to run.
+    {
+        namespace P = WFSParameterIDs;
+        namespace D = WFSParameterDefaults;
+
+        auto& fm = parameters.getFileManager();
+        const auto previousProject = fm.getProjectFolder();
+
+        auto tempProject = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                               .getChildFile("wfs-selftest-effects-project");
+        tempProject.deleteRecursively();
+        fm.setProjectFolder(tempProject);
+        check(fm.createProjectFolderStructure(), "X0: a throwaway project folder");
+
+        auto effectsFile = [&] { return fm.getEffectsConfigFile(); };
+
+        auto occurrences = [](const juce::String& haystack, const juce::String& needle)
+        {
+            int n = 0;
+            for (int at = haystack.indexOf(needle); at >= 0;
+                 at = haystack.indexOf(at + needle.length(), needle))
+                ++n;
+            return n;
+        };
+
+        auto childrenOfType = [](const juce::ValueTree& parent, const juce::Identifier& type)
+        {
+            int n = 0;
+            for (int i = 0; i < parent.getNumChildren(); ++i)
+                if (parent.getChild(i).hasType(type))
+                    ++n;
+            return n;
+        };
+
+        // The whole node shape of one channel, read off the tree. Returns an
+        // empty string when the channel is exactly right, otherwise the first
+        // thing wrong with it - so a failure names the defect instead of just
+        // saying "false".
+        auto faultInChannel = [&](int ch) -> juce::String
+        {
+            const juce::String who = "effect " + juce::String(ch + 1) + ": ";
+            auto effect = vts.getEffectState(ch);
+            if (! effect.isValid())
+                return who + "no <Effect> node";
+
+            // Dense ids: id == index + 1, no gaps, no reuse.
+            if (static_cast<int>(effect.getProperty(P::id, -1)) != ch + 1)
+                return who + "id is " + effect.getProperty(P::id).toString()
+                           + ", expected " + juce::String(ch + 1);
+
+            // The six flat sections and the sends node, exactly once each.
+            const juce::Identifier flat[] = { P::Channel, P::Position, P::Feed, P::ReverbReturn,
+                                              P::AutomOtion, P::Chain, P::Sends };
+            for (const auto& type : flat)
+            {
+                const int n = childrenOfType(effect, type);
+                if (n != 1)
+                    return who + juce::String(n) + " <" + type.toString() + "> nodes, expected 1";
+            }
+
+            // The eleven module types, exactly once each. Named from the slot
+            // table rather than listed here, so a slot added to the chain is
+            // covered without touching this test.
+            for (int slot = 0; slot < D::numEffectModuleSlots; ++slot)
+            {
+                const auto& type = WFSValueTreeState::getEffectModuleType(slot);
+                const int n = childrenOfType(effect, type);
+                if (n != 1)
+                    return who + juce::String(n) + " <" + type.toString() + "> nodes, expected 1";
+            }
+            if (effect.getNumChildren() != 7 + D::numEffectModuleSlots)
+                return who + juce::String(effect.getNumChildren()) + " child nodes, expected "
+                           + juce::String(7 + D::numEffectModuleSlots);
+
+            // Six <Band id="1".."6"> under EACH of the two EQ instances. The two
+            // are different node TYPES carrying identical property names, which
+            // is exactly the arrangement a by-name merge or backfill collapses
+            // into one - so both are counted, not just the first.
+            const juce::Identifier eqs[] = { P::FxEq1, P::FxEq2 };
+            for (const auto& eqType : eqs)
+            {
+                auto eq = effect.getChildWithName(eqType);
+                const int bands = childrenOfType(eq, P::Band);
+                if (bands != D::numEffectEQBands)
+                    return who + "<" + eqType.toString() + "> has " + juce::String(bands)
+                               + " <Band> nodes, expected " + juce::String(D::numEffectEQBands);
+                for (int b = 0; b < D::numEffectEQBands; ++b)
+                    if (static_cast<int>(eq.getChild(b).getProperty(P::id, -1)) != b + 1)
+                        return who + "<" + eqType.toString() + "> band ids are not dense 1.."
+                                   + juce::String(D::numEffectEQBands);
+            }
+
+            // Eight <Tap id="1".."8"> under <FxDelay>.
+            auto delay = effect.getChildWithName(P::FxDelay);
+            const int taps = childrenOfType(delay, P::Tap);
+            if (taps != D::numEffectDelayTaps)
+                return who + "<FxDelay> has " + juce::String(taps) + " <Tap> nodes, expected "
+                           + juce::String(D::numEffectDelayTaps);
+            for (int t = 0; t < D::numEffectDelayTaps; ++t)
+                if (static_cast<int>(delay.getChild(t).getProperty(P::id, -1)) != t + 1)
+                    return who + "<FxDelay> tap ids are not dense 1.."
+                               + juce::String(D::numEffectDelayTaps);
+
+            return {};
+        };
+
+        // Every live channel, plus the two bookkeeping copies of the count and
+        // the container's child list. Asserting the count in three places is the
+        // point: mergeTreeRecursive only ever appends, so a list that grew past
+        // <Effects count> and Config/IO/effectChannels is exactly the drift
+        // getNumReverbChannels' counting loop exists to paper over.
+        auto verifyFamily = [&](const char* label, int expected)
+        {
+            auto effects = vts.getEffectsState();
+            check(effects.isValid(), juce::String(label) + ": the <Effects> container is present");
+            check(vts.getNumEffectChannels() == expected,
+                  juce::String(label) + ": " + juce::String(expected) + " live effect channels");
+            check(effects.getNumChildren() == expected,
+                  juce::String(label) + ": no orphan children beside them");
+            check(static_cast<int>(effects.getProperty(P::count, -1)) == expected,
+                  juce::String(label) + ": <Effects count> agrees");
+            check(static_cast<int>(vts.getIOState().getProperty(P::effectChannels, -1)) == expected,
+                  juce::String(label) + ": Config/IO/effectChannels agrees");
+
+            juce::String fault;
+            for (int ch = 0; ch < expected && fault.isEmpty(); ++ch)
+                fault = faultInChannel(ch);
+            check(fault.isEmpty(), juce::String(label) + ": every channel is twenty nodes deep"
+                                 + (fault.isEmpty() ? juce::String() : " - " + fault));
+        };
+
+        // X0: an ABSENT effects.xml is SUCCESS. Every project this application
+        // has ever saved has none, and a false here would not merely show an
+        // error: loadCompleteConfig gates markChannelNumbersUserOwned on
+        // success, so every one of those opens would go unlatched.
+        check(! effectsFile().existsAsFile(), "X0: the throwaway project has no effects.xml");
+        check(fm.loadEffectsConfig(), "X0: an absent effects.xml loads as SUCCESS");
+        verifyFamily("X0", 0);
+        check(fm.loadEffectsConfigBackup(0), "X0: an empty effects backup set is SUCCESS too");
+
+        // ...but the same missing file named through the IMPORT primitive is an
+        // error, because the caller named it. The distinction is the divergence.
+        check(! fm.importEffectsConfig(effectsFile()),
+              "X0: importEffectsConfig on a file that is not there is an ERROR");
+
+        // X1: create channels and write them out.
+        vts.setNumEffectChannels(3);
+        check(vts.getNumEffectChannels() == 3, "X1: three effect channels created");
+        check(fm.saveEffectsConfig(), "X1: save effects.xml");
+        check(effectsFile().existsAsFile(), "X1: effects.xml appears");
+        check(occurrences(effectsFile().loadFileAsString(), "<Effect ") == 3,
+              "X1: the file holds exactly three <Effect> nodes");
+
+        // X2: empty the family in memory, then bring it back from the file. The
+        // shape assertions run on THIS tree, not the one X1 built.
+        vts.setNumEffectChannels(0);
+        check(vts.getNumEffectChannels() == 0, "X2: the family is emptied in memory");
+        check(fm.loadEffectsConfig(), "X2: reload effects.xml");
+        verifyFamily("X2 (after save + reload)", 3);
+
+        // X3: raising then lowering the count leaves no orphan - in memory, and
+        // then through a full round trip so a stale child cannot hide in the file.
+        vts.setNumEffectChannels(5);
+        verifyFamily("X3: raised to five", 5);
+        vts.setNumEffectChannels(2);
+        verifyFamily("X3: lowered to two", 2);
+        check(fm.saveEffectsConfig(), "X3: save the lowered family");
+        check(occurrences(effectsFile().loadFileAsString(), "<Effect ") == 2,
+              "X3: the three removed channels are not in the file");
+        vts.setNumEffectChannels(0);
+        check(fm.loadEffectsConfig(), "X3: reload it");
+        verifyFamily("X3 (after save + reload)", 2);
+
+        // X4: a file that holds MORE channels than the session re-syncs the count
+        // from the child list. mergeTreeRecursive appends and never removes, so
+        // without the outputs-style re-sync the list would grow while both copies
+        // of the count stayed at the session's smaller number.
+        vts.setNumEffectChannels(4);
+        check(fm.saveEffectsConfig(), "X4: save four channels");
+        vts.setNumEffectChannels(1);
+        check(vts.getNumEffectChannels() == 1, "X4: the session drops to one");
+        check(fm.loadEffectsConfig(), "X4: load the four-channel file over it");
+        verifyFamily("X4 (file longer than the session)", 4);
+
+        // X5: a PRESENT but malformed effects.xml is an error, like every other
+        // section file. Both shapes: well-formed XML with no <Effects> in it, and
+        // something that is not XML at all.
+        {
+            const juce::String good = effectsFile().loadFileAsString();
+
+            effectsFile().replaceWithText("<?xml version=\"1.0\"?>\n<EffectsConfig version=\"1.0\"/>\n");
+            fm.clearError();
+            check(! fm.loadEffectsConfig(), "X5: an effects.xml with no <Effects> is an ERROR");
+            check(fm.getLastError().isNotEmpty(), "X5: ...and says why");
+
+            effectsFile().replaceWithText("this is not xml at all\n");
+            fm.clearError();
+            check(! fm.loadEffectsConfig(), "X5: an unparseable effects.xml is an ERROR");
+
+            effectsFile().replaceWithText(good);
+            check(fm.loadEffectsConfig(), "X5: the good file still loads");
+            verifyFamily("X5", 4);
+        }
+
+        // X6: the eviction hook. Nothing removes a property on the load path -
+        // mergeTreeRecursive and backfillFromTemplate both only ever ADD - so
+        // without stripObsoleteEffectProperties a retired attribute would ride
+        // along in the live tree and be re-saved for ever. Planted at three
+        // depths, because the walk has to match id'd and id-less children by
+        // different rules.
+        {
+            static const juce::Identifier ghost("effectRetiredGhost");
+            juce::String xml = effectsFile().loadFileAsString();
+            xml = xml.replace("<Effect id=", "<Effect effectRetiredGhost=\"1\" id=");
+            xml = xml.replace("<FxDist ", "<FxDist effectRetiredGhost=\"1\" ");
+            xml = xml.replace("<Band id=", "<Band effectRetiredGhost=\"1\" id=");
+            effectsFile().replaceWithText(xml);
+            check(occurrences(effectsFile().loadFileAsString(), "effectRetiredGhost") > 0,
+                  "X6: the file carries a retired attribute the schema no longer declares");
+
+            check(fm.loadEffectsConfig(), "X6: load it");
+            verifyFamily("X6 (after the ghost load)", 4);
+
+            auto effect = vts.getEffectState(0);
+            check(! effect.hasProperty(ghost), "X6: the retired attribute is evicted from <Effect>");
+            check(! effect.getChildWithName(P::FxDist).hasProperty(ghost),
+                  "X6: ...from an id-less module node");
+            check(! effect.getChildWithName(P::FxEq2).getChild(0).hasProperty(ghost),
+                  "X6: ...and from an id'd <Band> under the SECOND EQ instance");
+
+            check(fm.saveEffectsConfig(), "X6: save again");
+            check(occurrences(effectsFile().loadFileAsString(), "effectRetiredGhost") == 0,
+                  "X6: and it is gone from the file rather than re-saved for ever");
+        }
+
+        // X7: THE BACKWARD-COMPATIBILITY CASE, through the complete orchestration
+        // rather than the section primitive - a project folder written before this
+        // family existed. It must open with SUCCESS, with the family present, and
+        // it must latch the channel numbers, which loadCompleteConfig does only
+        // when every section reported success.
+        {
+            vts.setNumEffectChannels(0);
+            check(fm.saveCompleteConfig(), "X7: save a complete project");
+            check(effectsFile().existsAsFile(), "X7: the save wrote effects.xml");
+
+            check(effectsFile().deleteFile(), "X7: delete it - now the folder looks like every project ever saved");
+            fm.clearError();
+            check(fm.loadCompleteConfig(), "X7: a project with no effects.xml loads with SUCCESS");
+            check(fm.getLastError().isEmpty(), "X7: ...and reports no error");
+            verifyFamily("X7 (no effects.xml)", 0);
+            check(vts.areChannelNumbersUserOwned(),
+                  "X7: the load latched the channel numbers - the thing a false here would have cost");
+            reconfig();
+
+            check(fm.saveCompleteConfig(), "X7: save the project again");
+            check(effectsFile().existsAsFile(), "X7: effects.xml is back");
+        }
+
+        // Leave nothing behind: the folder, and the count this phase raised.
+        vts.setNumEffectChannels(0);
+        fm.setProjectFolder(previousProject);
+        tempProject.deleteRecursively();
+    }
+
     logLine(failures == 0 ? juce::String("SELF-TEST RESULT: ALL PASS")
                           : "SELF-TEST RESULT: " + juce::String(failures) + " FAILURES");
 }
