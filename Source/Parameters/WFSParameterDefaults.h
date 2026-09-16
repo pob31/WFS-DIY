@@ -32,6 +32,20 @@ namespace WFSParameterDefaults
     constexpr int numEQBands           = 6;
     constexpr int numReverbPreEQBands  = 4;
 
+    // Effects channels. maxEffectChannels sits OUTSIDE the render-source
+    // arithmetic above, exactly as maxReverbChannels does: an effect return is
+    // not a WFS render source in this phase. The mirrors of
+    // spatcore::effects::kMaxEffectChannels and kNumModuleSlots are asserted in a
+    // .cpp (the WFSCalculationEngine.cpp pattern) rather than here, so that
+    // spatcore/effects/EffectsTypes.h is not pulled into this very widely
+    // included header.
+    constexpr int maxEffectChannels     = 32;
+    constexpr int numEffectEQBands      = 6;   // <Band id="1".."6"> under FxEq1 / FxEq2
+    constexpr int numEffectEqInstances  = 2;   // FxEq1, FxEq2
+    constexpr int numEffectDynInstances = 2;   // FxDyn1, FxDyn2
+    constexpr int numEffectDelayTaps    = 8;   // <Tap id="1".."8"> under FxDelay
+    constexpr int numEffectModuleSlots  = 11;  // the eleven chain slots
+
     /** Wrap an LFO phase (degrees) into [-180, 180]. Values already in range
         pass through untouched, so both typed endpoints (-180 and 180) are
         preserved; out-of-range values wrap to the equivalent angle in
@@ -73,6 +87,7 @@ namespace WFSParameterDefaults
     constexpr int inputChannelsDefault      = 8;
     constexpr int outputChannelsDefault     = 16;
     constexpr int reverbChannelsDefault     = 0;
+    constexpr int effectChannelsDefault     = 0;   // a show that uses no effects is unchanged
     constexpr int algorithmDSPDefault       = 0;  // 0=Input Buffer CPU, 1=Output Buffer CPU
     constexpr int algorithmDSPMin           = 0;
     constexpr int algorithmDSPMax           = 1;
@@ -1083,6 +1098,717 @@ namespace WFSParameterDefaults
     constexpr float reverbPostExpReleaseDefault      = 200.0f;  // ms
     constexpr float reverbPostExpReleaseMin          = 50.0f;
     constexpr float reverbPostExpReleaseMax          = 2000.0f;
+
+    //==========================================================================
+    // Effects Channel Defaults
+    //==========================================================================
+    //
+    // Phase 4, commit 1: DECLARATION ONLY - nothing reads these yet.
+    //
+    // The values are transcribed from spatcore/effects/EffectParams.h (the POD
+    // structs the realtime side consumes, and the authority on WHICH parameters
+    // exist and what they default to) and the ranges from
+    // Documentation/effects-channels-plan.md sections 5.1-5.10 and 6.1 (the
+    // authority on ranges, since the PODs carry none). Each POD field is the
+    // identifier minus the "effect" prefix and minus its unit suffix, so this
+    // block is checkable against EffectParams.h line by line.
+    //
+    // NAMING IS LOAD-BEARING: OSCParameterBounds.cpp's BIND_F/BIND_I macros
+    // token-paste <identifier>Min / <identifier>Max, so a constant pair that is
+    // not spelled exactly after its Identifier needs BIND_F_AS instead (the
+    // reverbPosition precedent, used here for effectPosition*, effectReturnOffset*
+    // and effectOtomoX/Y/Z). Plain 0/1 toggles get a Default only - BIND_BOOL
+    // supplies their bounds.
+    //
+    // The static_asserts tying numEffectModuleSlots to
+    // spatcore::effects::kNumModuleSlots and maxEffectChannels to
+    // spatcore::effects::kMaxEffectChannels deliberately do NOT live here:
+    // spatcore/effects/EffectsTypes.h must not be pulled into a header this
+    // widely included. They go in a .cpp, the way WFSCalculationEngine.cpp does
+    // for the render-source budget - and that is where they should go, NOT some
+    // future file: WFSCalculationEngine.cpp:16 already includes
+    // spatcore/wfs/RenderSourceMap.h, whose :108 defines kMaxEffectChannels = 32,
+    // so maxEffectChannels can be pinned there with no new include at all, beside
+    // the render-source asserts. Both asserts hold as of this commit (verified by
+    // compiling a TU over EffectParams.h + EffectsTypes.h). They are omitted only
+    // because this commit is scoped to the four parameter files; until the next
+    // commit adds them, these two constants CAN drift from spatcore silently.
+
+    // Effect > Channel
+    inline juce::String getDefaultEffectName (int index) { return "Effect " + juce::String (index + 1); }
+
+    constexpr float effectAttenuationDefault      = 0.0f;    // dB
+    constexpr float effectAttenuationMin          = -92.0f;
+    constexpr float effectAttenuationMax          = 0.0f;
+
+    constexpr float effectDelayLatencyDefault     = 0.0f;    // ms
+    constexpr float effectDelayLatencyMin         = -100.0f;
+    constexpr float effectDelayLatencyMax         = 100.0f;
+
+    // NOTE THE SENSE AND THE DEFAULT. This flag sits on <Channel> like
+    // inputMinimalLatency, but it does NOT inherit that constant's default:
+    // inputMinimalLatencyDefault is 0 (:439, "0=Acoustic Precedence,
+    // 1=Minimal Latency"), while plan 6.1 (:708) specifies 1 here, matching the
+    // reverb feed flag reverbMiniLatencyEnableDefault (:927). An effect return
+    // therefore ships with minimal latency ON where an input channel ships with
+    // it OFF; that is deliberate, not a transcription of the input row.
+    constexpr int effectMinimalLatencyDefault     = 1;       // 0=DISABLE, 1=ENABLE
+
+    constexpr int effectLinkGroupDefault          = 0;       // 0=unlinked
+    constexpr int effectLinkGroupMin              = 0;
+    constexpr int effectLinkGroupMax              = 8;
+
+    constexpr int effectMuteDefault               = 0;
+    constexpr int effectSoloDefault               = 0;
+
+    // Effect > Position
+    constexpr float effectPositionDefault         = 0.0f;    // metres; the real default is a placement
+    constexpr float effectPositionMin             = -50.0f;
+    constexpr float effectPositionMax             = 50.0f;
+
+    constexpr float effectReturnOffsetDefault     = 0.0f;    // metres
+    constexpr float effectReturnOffsetMin         = -50.0f;
+    constexpr float effectReturnOffsetMax         = 50.0f;
+
+    constexpr int effectCoordinateModeDefault     = 0;       // 0=Cartesian, 1=Cylindrical, 2=Spherical
+    constexpr int effectCoordinateModeMin         = 0;
+    constexpr int effectCoordinateModeMax         = 2;
+
+    // Effect > Feed
+    constexpr int effectOrientationDefault        = 0;       // degrees
+    constexpr int effectOrientationMin            = -179;
+    constexpr int effectOrientationMax            = 180;
+
+    constexpr int effectAngleOnDefault            = 86;
+    constexpr int effectAngleOnMin                = 1;
+    constexpr int effectAngleOnMax                = 180;
+
+    constexpr int effectAngleOffDefault           = 90;
+    constexpr int effectAngleOffMin               = 0;
+    constexpr int effectAngleOffMax               = 179;
+
+    constexpr int effectPitchDefault              = 0;       // degrees
+    constexpr int effectPitchMin                  = -90;
+    constexpr int effectPitchMax                  = 90;
+
+    constexpr float effectHFdampingDefault        = 0.0f;    // dB
+    constexpr float effectHFdampingMin            = -6.0f;
+    constexpr float effectHFdampingMax            = 0.0f;
+
+    constexpr int effectFeedMiniLatencyDefault    = 1;       // 0=DISABLE, 1=ENABLE
+
+    constexpr int effectDistanceAttenPercentDefault = 100;   // %
+    constexpr int effectDistanceAttenPercentMin   = 0;
+    constexpr int effectDistanceAttenPercentMax   = 200;
+
+    // Effect > Return (ranges and defaults mirror the input channel set)
+    constexpr int effectAttenuationLawDefault     = 0;       // 0=Log, 1=1/d
+
+    constexpr float effectDistanceAttenuationDefault = -0.7f; // dB
+    constexpr float effectDistanceAttenuationMin  = -6.0f;
+    constexpr float effectDistanceAttenuationMax  = 0.0f;
+
+    constexpr float effectDistanceRatioDefault    = 1.0f;
+    constexpr float effectDistanceRatioMin        = 0.1f;
+    constexpr float effectDistanceRatioMax        = 10.0f;
+
+    constexpr int effectCommonAttenDefault        = 100;     // %
+    constexpr int effectCommonAttenMin            = 0;
+    constexpr int effectCommonAttenMax            = 100;
+
+    constexpr float effectHFshelfDefault          = -6.0f;   // dB
+    constexpr float effectHFshelfMin              = -24.0f;
+    constexpr float effectHFshelfMax              = 0.0f;
+
+    constexpr int effectMuteMacroDefault          = 0;       // 0=Mute Macro Select (no action)
+    constexpr int effectMuteMacroMin              = 0;
+    constexpr int effectMuteMacroMax              = 4;
+
+    constexpr int effectMuteReverbSendsDefault    = 0;
+
+    // effectMutes has no bounds entry on purpose: it is a packed CSV row, one
+    // token per output, built at channel-creation time from the live output
+    // count. reverbMutes is the precedent.
+
+    // Effect > AutomOtion (the inputOtomo* set minus StayReturn; every value
+    // matches its input constant, with one addition - effectOtomoCoordinateMode
+    // carries a Min/Max pair where inputOtomoCoordinateMode (:641) has a Default
+    // only, so BIND_I can bound it instead of a hand-written OSCQuery case)
+    constexpr float effectOtomoDefault            = 0.0f;    // metres, X/Y/Z
+    constexpr float effectOtomoMin                = -50.0f;
+    constexpr float effectOtomoMax                = 50.0f;
+
+    constexpr int effectOtomoAbsoluteRelativeDefault = 0;     // 0=Absolute, 1=Relative
+
+    constexpr int effectOtomoSpeedProfileDefault  = 0;
+    constexpr int effectOtomoSpeedProfileMin      = 0;
+    constexpr int effectOtomoSpeedProfileMax      = 100;
+
+    constexpr float effectOtomoDurationDefault    = 5.0f;    // seconds
+    constexpr float effectOtomoDurationMin        = 0.1f;
+    constexpr float effectOtomoDurationMax        = 3600.0f;
+
+    constexpr int effectOtomoCurveDefault         = 0;       // straight path
+    constexpr int effectOtomoCurveMin             = -100;
+    constexpr int effectOtomoCurveMax             = 100;
+
+    constexpr int effectOtomoTriggerDefault       = 0;       // 0=Manual, 1=Trigger
+
+    constexpr float effectOtomoThresholdDefault   = -20.0f;  // dB
+    constexpr float effectOtomoThresholdMin       = -92.0f;
+    constexpr float effectOtomoThresholdMax       = 0.0f;
+
+    constexpr float effectOtomoResetDefault       = -60.0f;  // dB
+    constexpr float effectOtomoResetMin           = -92.0f;
+    constexpr float effectOtomoResetMax           = 0.0f;
+
+    constexpr int effectOtomoPauseResumeDefault   = 1;       // 0=Paused, 1=Resume
+
+    constexpr int effectOtomoCoordinateModeDefault = 0;      // 0=Cartesian, 1=Cylindrical, 2=Spherical
+    constexpr int effectOtomoCoordinateModeMin    = 0;
+    constexpr int effectOtomoCoordinateModeMax    = 2;
+
+    constexpr float effectOtomoRDefault           = 0.0f;    // cylindrical radius
+    constexpr float effectOtomoRMin               = 0.0f;
+    constexpr float effectOtomoRMax               = 50.0f;
+
+    constexpr float effectOtomoThetaDefault       = 0.0f;    // azimuth, degrees
+    constexpr float effectOtomoThetaMin           = -3600.0f;  // 10 full rotations
+    constexpr float effectOtomoThetaMax           = 3600.0f;
+
+    constexpr float effectOtomoRsphDefault        = 0.0f;    // spherical radius
+    constexpr float effectOtomoRsphMin            = 0.0f;
+    constexpr float effectOtomoRsphMax            = 50.0f;
+
+    constexpr float effectOtomoPhiDefault         = 0.0f;    // elevation, degrees
+    constexpr float effectOtomoPhiMin             = -3600.0f;  // 10 full rotations
+    constexpr float effectOtomoPhiMax             = 3600.0f;
+
+    // Effect > Chain. The order string is a permutation of the eleven slot
+    // tokens of spatcore::effects::kSlots, in their declared order - the
+    // string form of spatcore::effects::kDefaultOrder.
+    inline const juce::String effectChainOrderDefault = "dist,eq1,eq2,dyn1,dyn2,mod,phaser,trem,reverb,delay,crush";
+    constexpr int effectChainBypassDefault        = 0;
+
+    //--------------------------------------------------------------------------
+    // Effect > FxDist (spatcore::effects::DistortionParams)
+    //--------------------------------------------------------------------------
+
+    constexpr int effectDistBypassDefault         = 1;       // every module is bypassed by default
+
+    constexpr float effectDistDriveDefault        = 12.0f;   // dB
+    constexpr float effectDistDriveMin            = 0.0f;
+    constexpr float effectDistDriveMax            = 40.0f;
+
+    constexpr float effectDistShapeDefault        = 0.5f;    // 0=hard clip +-0.8, 1=tanh
+    constexpr float effectDistShapeMin            = 0.0f;
+    constexpr float effectDistShapeMax            = 1.0f;
+
+    constexpr float effectDistBiasDefault         = 0.0f;
+    constexpr float effectDistBiasMin             = -0.5f;
+    constexpr float effectDistBiasMax             = 0.5f;
+
+    constexpr float effectDistPreLoShelfFreqDefault = 20.0f;   // Hz
+    constexpr float effectDistPreLoShelfFreqMin   = 20.0f;
+    constexpr float effectDistPreLoShelfFreqMax   = 2000.0f;
+
+    constexpr float effectDistPreLoShelfGainDefault = 0.0f;    // dB
+    constexpr float effectDistPreLoShelfGainMin   = -24.0f;
+    constexpr float effectDistPreLoShelfGainMax   = 24.0f;
+
+    constexpr float effectDistPreHiShelfFreqDefault = 20000.0f; // Hz
+    constexpr float effectDistPreHiShelfFreqMin   = 1000.0f;
+    constexpr float effectDistPreHiShelfFreqMax   = 20000.0f;
+
+    constexpr float effectDistPreHiShelfGainDefault = 0.0f;    // dB
+    constexpr float effectDistPreHiShelfGainMin   = -24.0f;
+    constexpr float effectDistPreHiShelfGainMax   = 24.0f;
+
+    constexpr float effectDistPostLoShelfFreqDefault = 20.0f;  // Hz
+    constexpr float effectDistPostLoShelfFreqMin  = 20.0f;
+    constexpr float effectDistPostLoShelfFreqMax  = 2000.0f;
+
+    constexpr float effectDistPostLoShelfGainDefault = 0.0f;   // dB
+    constexpr float effectDistPostLoShelfGainMin  = -24.0f;
+    constexpr float effectDistPostLoShelfGainMax  = 24.0f;
+
+    constexpr float effectDistPostHiShelfFreqDefault = 20000.0f; // Hz
+    constexpr float effectDistPostHiShelfFreqMin  = 1000.0f;
+    constexpr float effectDistPostHiShelfFreqMax  = 20000.0f;
+
+    constexpr float effectDistPostHiShelfGainDefault = 0.0f;   // dB
+    constexpr float effectDistPostHiShelfGainMin  = -24.0f;
+    constexpr float effectDistPostHiShelfGainMax  = 24.0f;
+
+    constexpr float effectDistOutputDefault       = -6.0f;   // dB
+    constexpr float effectDistOutputMin           = -24.0f;
+    constexpr float effectDistOutputMax           = 12.0f;
+
+    constexpr float effectDistMixDefault          = 100.0f;  // wet %
+    constexpr float effectDistMixMin              = 0.0f;
+    constexpr float effectDistMixMax              = 100.0f;
+
+    constexpr int effectDistOversampleDefault     = 0;       // 0=auto, 1=off, 2=2x, 3=4x
+    constexpr int effectDistOversampleMin         = 0;
+    constexpr int effectDistOversampleMax         = 3;
+
+    //--------------------------------------------------------------------------
+    // Effect > FxEq1 / FxEq2, 6 bands each (spatcore::effects::EqParams)
+    //--------------------------------------------------------------------------
+
+    constexpr int effectEQBypassDefault           = 1;
+
+    // Shape ids are the OUTPUT EQ's (eqShapeDefault and friends), not the
+    // reverb EQ's different numbering. The plan's range starts at 1, so the
+    // output EQ's 0=Off is not offered on an effects band.
+    // 0=Off .. 7=AllPass, the OUTPUT EQ's numbering (not the reverb EQ's, which
+    // stops at 6). Plan 5.2 writes the range as 1..7, which would be the only
+    // EQ in the app whose bands cannot be switched off one at a time: the
+    // output EQ allows 0 (eqShapeMin), the reverb pre-EQ allows 0
+    // (reverbPreEQshapeMin), and the effects EQ module itself documents 0 as a
+    // true bypass and is tested at all-zero as its identity case. Taking 0.
+    constexpr int effectEQshapeDefault            = 1;
+    constexpr int effectEQshapeMin                = 0;
+    constexpr int effectEQshapeMax                = 7;
+
+    constexpr int effectEQfreqDefault             = 80;      // Hz
+    constexpr int effectEQfreqMin                 = 20;
+    constexpr int effectEQfreqMax                 = 20000;
+
+    constexpr float effectEQgainDefault           = 0.0f;    // dB
+    constexpr float effectEQgainMin               = -24.0f;
+    constexpr float effectEQgainMax               = 24.0f;
+
+    constexpr float effectEQqDefault              = 0.7f;
+    constexpr float effectEQqMin                  = eqQMin;
+    constexpr float effectEQqMax                  = eqQMax;
+
+    constexpr float effectEQslopeDefault          = 0.7f;
+    constexpr float effectEQslopeMin              = eqSlopeMin;
+    constexpr float effectEQslopeMax              = eqSlopeMax;
+
+    // Per-band defaults; gain, q and slope are uniform across the six bands
+    // and use the scalars above.
+    inline const int effectEQBandShapes[6] = { 1, 2, 3, 3, 5, 6 };  // LowCut, LowShelf, Peak, Peak, HighShelf, HighCut
+    inline const int effectEQBandFrequencies[6] = { 80, 250, 1000, 4000, 8000, 12000 };
+
+    //--------------------------------------------------------------------------
+    // Effect > FxDyn1 / FxDyn2 (spatcore::effects::DynamicsParams)
+    //--------------------------------------------------------------------------
+
+    constexpr int effectDynBypassDefault          = 1;
+    constexpr int effectDynDetectorDefault        = 0;       // 0=Peak, 1=RMS
+
+    constexpr float effectDynLookaheadDefault     = 1.0f;    // ms, delays the AUDIO (reported latency)
+    constexpr float effectDynLookaheadMin         = 0.0f;
+    constexpr float effectDynLookaheadMax         = 5.0f;
+
+    constexpr float effectDynMakeupDefault        = 0.0f;    // dB
+    constexpr float effectDynMakeupMin            = -24.0f;
+    constexpr float effectDynMakeupMax            = 24.0f;
+
+    constexpr int effectDynAutoMakeupDefault      = 0;
+    constexpr int effectDynCompOnDefault          = 1;
+
+    constexpr float effectDynCompThresholdDefault = -20.0f;  // dB
+    constexpr float effectDynCompThresholdMin     = -60.0f;
+    constexpr float effectDynCompThresholdMax     = 0.0f;
+
+    constexpr float effectDynCompRatioDefault     = 4.0f;    // :1, 100 = limiter
+    constexpr float effectDynCompRatioMin         = 1.0f;
+    constexpr float effectDynCompRatioMax         = 100.0f;
+
+    constexpr float effectDynCompKneeDefault      = 0.0f;    // dB, 0 = the prototype's hard knee
+    constexpr float effectDynCompKneeMin          = 0.0f;
+    constexpr float effectDynCompKneeMax          = 24.0f;
+
+    constexpr float effectDynCompAttackDefault    = 10.0f;   // ms
+    constexpr float effectDynCompAttackMin        = 0.05f;
+    constexpr float effectDynCompAttackMax        = 200.0f;
+
+    constexpr float effectDynCompReleaseDefault   = 100.0f;  // ms
+    constexpr float effectDynCompReleaseMin       = 5.0f;
+    constexpr float effectDynCompReleaseMax       = 2000.0f;
+
+    constexpr float effectDynCompDetectorDelayDefault = 0.0f; // ms, delays the DETECTOR (transient pass, no latency)
+    constexpr float effectDynCompDetectorDelayMin = 0.0f;
+    constexpr float effectDynCompDetectorDelayMax = 50.0f;
+
+    constexpr float effectDynCompScLoCutDefault   = 20.0f;   // Hz
+    constexpr float effectDynCompScLoCutMin       = 20.0f;
+    constexpr float effectDynCompScLoCutMax       = 2000.0f;
+
+    constexpr float effectDynCompScHiCutDefault   = 20000.0f; // Hz
+    constexpr float effectDynCompScHiCutMin       = 1000.0f;
+    constexpr float effectDynCompScHiCutMax       = 20000.0f;
+
+    constexpr int effectDynExpOnDefault           = 0;
+
+    constexpr float effectDynExpThresholdDefault  = -50.0f;  // dB
+    constexpr float effectDynExpThresholdMin      = -90.0f;
+    constexpr float effectDynExpThresholdMax      = 0.0f;
+
+    constexpr float effectDynExpRatioDefault      = 2.0f;    // :1, 100 = gate
+    constexpr float effectDynExpRatioMin          = 1.0f;
+    constexpr float effectDynExpRatioMax          = 100.0f;
+
+    constexpr float effectDynExpAttackDefault     = 10.0f;   // ms
+    constexpr float effectDynExpAttackMin         = 0.05f;
+    constexpr float effectDynExpAttackMax         = 200.0f;
+
+    constexpr float effectDynExpReleaseDefault    = 100.0f;  // ms
+    constexpr float effectDynExpReleaseMin        = 5.0f;
+    constexpr float effectDynExpReleaseMax        = 2000.0f;
+
+    constexpr float effectDynExpRangeDefault      = -60.0f;  // dB
+    constexpr float effectDynExpRangeMin          = -80.0f;
+    constexpr float effectDynExpRangeMax          = 0.0f;
+
+    constexpr float effectDynExpHoldDefault       = 20.0f;   // ms
+    constexpr float effectDynExpHoldMin           = 0.0f;
+    constexpr float effectDynExpHoldMax           = 500.0f;
+
+    constexpr float effectDynExpScLoCutDefault    = 20.0f;   // Hz
+    constexpr float effectDynExpScLoCutMin        = 20.0f;
+    constexpr float effectDynExpScLoCutMax        = 2000.0f;
+
+    constexpr float effectDynExpScHiCutDefault    = 20000.0f; // Hz
+    constexpr float effectDynExpScHiCutMin        = 1000.0f;
+    constexpr float effectDynExpScHiCutMax        = 20000.0f;
+
+    //--------------------------------------------------------------------------
+    // Effect > FxMod, chorus / flanger (spatcore::effects::ModulationParams)
+    //--------------------------------------------------------------------------
+
+    constexpr int effectModBypassDefault          = 1;
+    constexpr int effectModModeDefault            = 0;       // 0=Chorus, 1=Flanger
+
+    constexpr float effectModRateDefault          = 0.8f;    // Hz
+    constexpr float effectModRateMin              = 0.05f;
+    constexpr float effectModRateMax              = 10.0f;
+
+    constexpr float effectModDepthDefault         = 50.0f;   // % of the centre delay
+    constexpr float effectModDepthMin             = 0.0f;
+    constexpr float effectModDepthMax             = 100.0f;
+
+    constexpr float effectModDelayDefault         = 15.0f;   // ms
+    constexpr float effectModDelayMin             = 0.1f;
+    constexpr float effectModDelayMax             = 30.0f;
+
+    constexpr float effectModFeedbackDefault      = 0.0f;    // signed %
+    constexpr float effectModFeedbackMin          = -95.0f;
+    constexpr float effectModFeedbackMax          = 95.0f;
+
+    constexpr int effectModVoicesDefault          = 2;
+    constexpr int effectModVoicesMin              = 1;
+    constexpr int effectModVoicesMax              = 3;
+
+    constexpr int effectModShapeDefault           = 1;       // LFOWaveforms shape id
+    constexpr int effectModShapeMin               = 1;
+    constexpr int effectModShapeMax               = 8;
+
+    constexpr float effectModPhaseDefault         = 0.0f;    // degrees
+    constexpr float effectModPhaseMin             = 0.0f;
+    constexpr float effectModPhaseMax             = 360.0f;
+
+    constexpr float effectModLoCutDefault         = 20.0f;   // Hz
+    constexpr float effectModLoCutMin             = 20.0f;
+    constexpr float effectModLoCutMax             = 2000.0f;
+
+    constexpr int effectModThroughZeroDefault     = 0;
+
+    constexpr float effectModMixDefault           = 50.0f;   // wet %
+    constexpr float effectModMixMin               = 0.0f;
+    constexpr float effectModMixMax               = 100.0f;
+
+    //--------------------------------------------------------------------------
+    // Effect > FxPhaser (spatcore::effects::PhaserParams)
+    //--------------------------------------------------------------------------
+
+    constexpr int effectPhaserBypassDefault       = 1;
+
+    // STAGES IS A SET, NOT AN INTERVAL. Plan 5.5 validates {4, 6, 8, 12}; the
+    // Min/Max pair below is that set's HULL, which is all a bounds pair can
+    // express. So 5, 7 and 9..11 pass the bounds table, OSC, MCP and OSCQuery,
+    // and PhaserModule::validateStages (spatcore/effects/modules/PhaserModule.h
+    // :318-325) then snaps them DOWN to the next member - it never rejects, so
+    // a controller that sends 7 gets 6 and no error. Whatever binds this must
+    // enforce set membership itself or accept that snap. Same deviation class
+    // as effectReverbModelMax below.
+    constexpr int effectPhaserStagesDefault       = 6;       // validated set: 4, 6, 8, 12
+    constexpr int effectPhaserStagesMin           = 4;       // hull of the set, not the set
+    constexpr int effectPhaserStagesMax           = 12;
+
+    constexpr float effectPhaserCentreDefault     = 800.0f;  // Hz
+    constexpr float effectPhaserCentreMin         = 100.0f;
+    constexpr float effectPhaserCentreMax         = 5000.0f;
+
+    constexpr float effectPhaserSpreadDefault     = 1.0f;    // octaves
+    constexpr float effectPhaserSpreadMin         = 0.0f;
+    constexpr float effectPhaserSpreadMax         = 3.0f;
+
+    constexpr float effectPhaserRateDefault       = 0.3f;    // Hz
+    constexpr float effectPhaserRateMin           = 0.02f;
+    constexpr float effectPhaserRateMax           = 10.0f;
+
+    constexpr float effectPhaserDepthDefault      = 2.0f;    // octaves
+    constexpr float effectPhaserDepthMin          = 0.0f;
+    constexpr float effectPhaserDepthMax          = 4.0f;
+
+    constexpr int effectPhaserShapeDefault        = 1;       // LFOWaveforms shape id
+    constexpr int effectPhaserShapeMin            = 1;
+    constexpr int effectPhaserShapeMax            = 8;
+
+    constexpr float effectPhaserFeedbackDefault   = 30.0f;   // signed %
+    constexpr float effectPhaserFeedbackMin       = -95.0f;
+    constexpr float effectPhaserFeedbackMax       = 95.0f;
+
+    constexpr float effectPhaserMixDefault        = 50.0f;   // wet %
+    constexpr float effectPhaserMixMin            = 0.0f;
+    constexpr float effectPhaserMixMax            = 100.0f;
+
+    //--------------------------------------------------------------------------
+    // Effect > FxTrem (spatcore::effects::TremoloParams)
+    //--------------------------------------------------------------------------
+
+    constexpr int effectTremBypassDefault         = 1;
+
+    constexpr float effectTremRateDefault         = 4.0f;    // Hz
+    constexpr float effectTremRateMin             = 0.05f;
+    constexpr float effectTremRateMax             = 20.0f;
+
+    constexpr float effectTremDepthDefault        = 12.0f;   // dB (dB-linear modulation)
+    constexpr float effectTremDepthMin            = 0.0f;
+    constexpr float effectTremDepthMax            = 60.0f;
+
+    constexpr float effectTremShapeDefault        = 0.0f;    // 0=sine, 1=triangle, continuous
+    constexpr float effectTremShapeMin            = 0.0f;
+    constexpr float effectTremShapeMax            = 1.0f;
+
+    constexpr float effectTremMixDefault          = 100.0f;  // wet %
+    constexpr float effectTremMixMin              = 0.0f;
+    constexpr float effectTremMixMax              = 100.0f;
+
+    //--------------------------------------------------------------------------
+    // Effect > FxReverb (spatcore::effects::ReverbParams). Unrelated to the
+    // <Reverbs> channel family: the two sets deliberately differ, e.g. the
+    // crossover-high default is 4000 Hz here and 2500 Hz there.
+    //--------------------------------------------------------------------------
+
+    constexpr int effectReverbBypassDefault       = 1;
+
+    constexpr int effectReverbModelDefault        = 0;       // 0=FDN, the only model in v1
+    constexpr int effectReverbModelMin            = 0;
+    constexpr int effectReverbModelMax            = 3;       // 1=Plate, 2=SDN-style, 3=IR, all later
+
+    constexpr int effectReverbTypeDefault         = 0;       // preset within the model
+    constexpr int effectReverbTypeMin             = 0;
+    constexpr int effectReverbTypeMax             = 5;       // Room, Chamber, Hall, Cathedral, Plate, Custom
+
+    constexpr float effectReverbPredelayDefault   = 10.0f;   // ms
+    constexpr float effectReverbPredelayMin       = 0.0f;
+    constexpr float effectReverbPredelayMax       = 250.0f;
+
+    constexpr float effectReverbRT60Default       = 1.5f;    // seconds
+    constexpr float effectReverbRT60Min           = 0.2f;
+    constexpr float effectReverbRT60Max           = 8.0f;
+
+    constexpr float effectReverbRT60LowMultDefault = 1.3f;
+    constexpr float effectReverbRT60LowMultMin    = 0.1f;
+    constexpr float effectReverbRT60LowMultMax    = 9.0f;
+
+    constexpr float effectReverbRT60HighMultDefault = 0.4f;
+    constexpr float effectReverbRT60HighMultMin   = 0.1f;
+    constexpr float effectReverbRT60HighMultMax   = 9.0f;
+
+    constexpr float effectReverbCrossoverLowDefault = 200.0f; // Hz
+    constexpr float effectReverbCrossoverLowMin   = 50.0f;
+    constexpr float effectReverbCrossoverLowMax   = 500.0f;
+
+    constexpr float effectReverbCrossoverHighDefault = 4000.0f; // Hz
+    constexpr float effectReverbCrossoverHighMin  = 1000.0f;
+    constexpr float effectReverbCrossoverHighMax  = 10000.0f;
+
+    constexpr float effectReverbDiffusionDefault  = 0.5f;
+    constexpr float effectReverbDiffusionMin      = 0.0f;
+    constexpr float effectReverbDiffusionMax      = 1.0f;
+
+    constexpr float effectReverbSizeDefault       = 1.0f;
+    constexpr float effectReverbSizeMin           = 0.5f;
+    constexpr float effectReverbSizeMax           = 2.0f;
+
+    constexpr float effectReverbToneDefault       = 12000.0f; // Hz
+    constexpr float effectReverbToneMin           = 1000.0f;
+    constexpr float effectReverbToneMax           = 20000.0f;
+
+    constexpr float effectReverbMixDefault        = 30.0f;   // wet %
+    constexpr float effectReverbMixMin            = 0.0f;
+    constexpr float effectReverbMixMax            = 100.0f;
+
+    //--------------------------------------------------------------------------
+    // Effect > FxDelay, multitap (spatcore::effects::MultitapParams)
+    //--------------------------------------------------------------------------
+
+    constexpr int effectDelayBypassDefault        = 1;
+
+    // The time maxima are the LARGEST the global cap allows
+    // (effectsGlobalMaxDelaySecondsMax * 1000). The live maximum is the current
+    // effectsGlobalMaxDelaySeconds, which is narrower whenever the cap is not 20 s.
+    constexpr float effectDelayTimeDefault        = 375.0f;  // ms
+    constexpr float effectDelayTimeMin            = 1.0f;
+    constexpr float effectDelayTimeMax            = 20000.0f;
+
+    constexpr int effectDelayTapsDefault          = 3;
+    constexpr int effectDelayTapsMin              = 1;
+    constexpr int effectDelayTapsMax              = 8;
+
+    constexpr int effectDelayTapModeDefault       = 1;       // 0=Manual, 1=Pattern
+    constexpr int effectDelayPatternDefault       = 0;       // 0=Equal, 1=Dotted, 2=Triplet, 3=Golden
+    constexpr int effectDelayPatternMin           = 0;
+    constexpr int effectDelayPatternMax           = 3;
+
+    constexpr float effectDelayFeedbackDefault    = 30.0f;   // %
+    constexpr float effectDelayFeedbackMin        = 0.0f;
+    constexpr float effectDelayFeedbackMax        = 95.0f;
+
+    constexpr int effectDelayFeedbackTapDefault   = 0;       // 0=last
+    constexpr int effectDelayFeedbackTapMin       = 0;
+    constexpr int effectDelayFeedbackTapMax       = 8;
+
+    constexpr float effectDelayInLoCutDefault     = 20.0f;   // Hz
+    constexpr float effectDelayInLoCutMin         = 20.0f;
+    constexpr float effectDelayInLoCutMax         = 2000.0f;
+
+    constexpr float effectDelayFbLoShelfFreqDefault = 200.0f; // Hz
+    constexpr float effectDelayFbLoShelfFreqMin   = 20.0f;
+    constexpr float effectDelayFbLoShelfFreqMax   = 2000.0f;
+
+    constexpr float effectDelayFbLoShelfGainDefault = 0.0f;   // dB
+    constexpr float effectDelayFbLoShelfGainMin   = -24.0f;
+    constexpr float effectDelayFbLoShelfGainMax   = 24.0f;
+
+    constexpr float effectDelayFbHiShelfFreqDefault = 4000.0f; // Hz
+    constexpr float effectDelayFbHiShelfFreqMin   = 1000.0f;
+    constexpr float effectDelayFbHiShelfFreqMax   = 20000.0f;
+
+    constexpr float effectDelayFbHiShelfGainDefault = -3.0f;  // dB
+    constexpr float effectDelayFbHiShelfGainMin   = -24.0f;
+    constexpr float effectDelayFbHiShelfGainMax   = 24.0f;
+
+    constexpr float effectDelayModRateDefault     = 0.1f;    // Hz
+    constexpr float effectDelayModRateMin         = 0.02f;
+    constexpr float effectDelayModRateMax         = 10.0f;
+
+    constexpr float effectDelayModDepthDefault    = 0.0f;    // % of the delay time
+    constexpr float effectDelayModDepthMin        = 0.0f;
+    constexpr float effectDelayModDepthMax        = 50.0f;
+
+    constexpr float effectDelayDiffusionDefault   = 0.0f;
+    constexpr float effectDelayDiffusionMin       = 0.0f;
+    constexpr float effectDelayDiffusionMax       = 1.0f;
+
+    constexpr float effectDelayGlideDefault       = 200.0f;  // ms
+    constexpr float effectDelayGlideMin           = 0.0f;
+    constexpr float effectDelayGlideMax           = 2000.0f;
+
+    constexpr float effectDelayMixDefault         = 35.0f;   // wet %
+    constexpr float effectDelayMixMin             = 0.0f;
+    constexpr float effectDelayMixMax             = 100.0f;
+
+    // Per-tap, on the <Tap id="1".."8"> children
+    constexpr float effectDelayTapTimeDefault     = 375.0f;  // ms, tap 1
+    constexpr float effectDelayTapTimeMin         = 1.0f;
+    constexpr float effectDelayTapTimeMax         = 20000.0f;
+
+    constexpr float effectDelayTapLevelDefault    = 0.0f;    // dB, tap 1
+    constexpr float effectDelayTapLevelMin        = -60.0f;
+    constexpr float effectDelayTapLevelMax        = 0.0f;
+
+    // Tap tables: k * 375 ms and -2 dB per tap, matching MultitapParams'
+    // tapTimeMs[8] / tapLevelDb[8].
+    inline const float effectDelayTapTimes[8]  = { 375.0f, 750.0f, 1125.0f, 1500.0f, 1875.0f, 2250.0f, 2625.0f, 3000.0f };
+    inline const float effectDelayTapLevels[8] = { 0.0f, -2.0f, -4.0f, -6.0f, -8.0f, -10.0f, -12.0f, -14.0f };
+
+    //--------------------------------------------------------------------------
+    // Effect > FxCrush (spatcore::effects::BitcrusherParams)
+    //--------------------------------------------------------------------------
+
+    constexpr int effectCrushBypassDefault        = 1;
+
+    constexpr float effectCrushBitsDefault        = 8.0f;    // fractional allowed
+    constexpr float effectCrushBitsMin            = 1.0f;
+    constexpr float effectCrushBitsMax            = 24.0f;
+
+    constexpr float effectCrushRateDefault        = 12000.0f; // Hz, clamped to the device rate
+    constexpr float effectCrushRateMin            = 100.0f;
+    constexpr float effectCrushRateMax            = 96000.0f;
+
+    constexpr int effectCrushFilterDefault        = 0;       // 0=hold (aliasing), 1=anti-aliased
+
+    constexpr float effectCrushDitherDefault      = -96.0f;  // dB, -96 = off
+    constexpr float effectCrushDitherMin          = -96.0f;
+    constexpr float effectCrushDitherMax          = 0.0f;
+
+    constexpr float effectCrushMixDefault         = 100.0f;  // wet %
+    constexpr float effectCrushMixMin             = 0.0f;
+    constexpr float effectCrushMixMax             = 100.0f;
+
+    //--------------------------------------------------------------------------
+    // Effect > Sends, per-CELL bounds
+    //--------------------------------------------------------------------------
+    // The four row properties (effectSendLevels / Ons / FxSendLevels / FxSendOns)
+    // are unbound packed CSV strings, like effectMutes. These constants belong to
+    // the CELL pseudo-identifiers, which no node carries: the OSC parser, the
+    // ramper and the OSCQuery cell nodes validate one cell against them.
+    // A cell is gated by its On switch, so a level of 0 dB is unity and the row
+    // starts silent because the switches start off.
+
+    constexpr float effectSendLevelDefault        = 0.0f;    // dB
+    constexpr float effectSendLevelMin            = -92.0f;
+    constexpr float effectSendLevelMax            = 0.0f;
+
+    constexpr int effectSendOnDefault             = 0;
+
+    constexpr float effectFxSendLevelDefault      = 0.0f;    // dB
+    constexpr float effectFxSendLevelMin          = -92.0f;
+    constexpr float effectFxSendLevelMax          = 0.0f;
+
+    constexpr int effectFxSendOnDefault           = 0;
+
+    //==========================================================================
+    // Effects Global Defaults (Config > EffectsGlobal, not per-channel)
+    //==========================================================================
+
+    constexpr int effectsMapVisibleDefault        = 1;       // Config > Master display toggle
+
+    inline const juce::String effectsGlobalLinkNamesDefault =
+        "Group 1,Group 2,Group 3,Group 4,Group 5,Group 6,Group 7,Group 8";
+
+    constexpr int effectsGlobalLinkModeDefault    = 1;       // 0=off, 1=absolute, 2=relative
+    constexpr int effectsGlobalLinkModeMin        = 0;
+    constexpr int effectsGlobalLinkModeMax        = 2;
+
+    constexpr int effectsGlobalFxFeedGeometricDefault = 1;   // 0=matrix only (delay 0), 1=geometric
+
+    constexpr int effectsGlobalWorkerThreadsDefault = -1;    // -1=auto (the reverb-feed rule)
+    constexpr int effectsGlobalWorkerThreadsMin   = -1;
+    constexpr int effectsGlobalWorkerThreadsMax   = 4;
+
+    constexpr int effectsGlobalReturnCushionDefault = 0;     // 0=auto, else blocks
+    constexpr int effectsGlobalReturnCushionMin   = 0;
+    constexpr int effectsGlobalReturnCushionMax   = 3;
+
+    constexpr int effectsGlobalLoopGuardDefault   = 1;
+
+    constexpr float effectsGlobalLoopGuardCeilingDefault = 6.0f;  // dBFS peak
+    constexpr float effectsGlobalLoopGuardCeilingMin = 0.0f;
+    constexpr float effectsGlobalLoopGuardCeilingMax = 24.0f;
+
+    constexpr int effectsGlobalMaxDelaySecondsDefault = 5;   // sizes every delay module's buffer
+    constexpr int effectsGlobalMaxDelaySecondsMin = 1;
+    constexpr int effectsGlobalMaxDelaySecondsMax = 20;
+
+    constexpr const char* effectsGlobalFeedGpuDeviceDefault = "cpu";  // compute device id
 
     //==========================================================================
     // Sampler Defaults

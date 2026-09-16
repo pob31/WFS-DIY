@@ -20,6 +20,7 @@ enum class UndoDomain
     Map,        // MapTab (input positions via map drag)
     Config,     // SystemConfigTab + NetworkTab
     Clusters,   // ClustersTab
+    Effects,    // EffectsTab + the effectsGlobal* config block
     COUNT
 };
 
@@ -36,7 +37,7 @@ enum class UndoDomain
  * - Scope routing (getTreeForParameter / getParameterScope)
  * - Semantic invariants (cluster shared-position, tracking uniqueness),
  *   registered into the core post-write hook
- * - The six WFS tab undo domains (UndoDomain), mapped onto the core's
+ * - The seven WFS tab undo domains (UndoDomain), mapped onto the core's
  *   integer domain indices
  */
 class WFSValueTreeState : public spatcore::control::state::TreeParameterStore

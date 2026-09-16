@@ -81,6 +81,13 @@ namespace WFSParameterIDs
     const juce::Identifier stereoInputChannels ("stereoInputChannels");  // how many of the LAST input channels are stereo pairs
     const juce::Identifier outputChannels    ("outputChannels");
     const juce::Identifier reverbChannels    ("reverbChannels");
+    const juce::Identifier effectChannels    ("effectChannels");
+    // effectChannels is a CONFIG property despite the "effect" prefix: it lives
+    // in <Config><IO>, not on an <Effect>, so getParameterScope needs a BY-NAME
+    // exception here ahead of its "effect" prefix test (the reverbChannels
+    // precedent). Without it the prefix test would send the write into the
+    // per-channel Effect branch, which carries no such property, and the write
+    // would be dropped with no error.
     const juce::Identifier algorithmDSP      ("algorithmDSP");
     const juce::Identifier algorithmDeviceId ("algorithmDeviceId");   // compute device for the GPU algorithm paths ("cpu"/"hip:0"/...)
     const juce::Identifier runDSP            ("runDSP");
@@ -687,6 +694,10 @@ namespace WFSParameterIDs
 
     // Reverb > Map Display (global toggle in Config section)
     const juce::Identifier reverbsMapVisible     ("reverbsMapVisible");
+    const juce::Identifier effectsMapVisible     ("effectsMapVisible");
+    // Same story as effectChannels: a Config/Master display toggle whose name
+    // starts with "effect", so it too needs a by-name Config exception before
+    // the prefix test in getParameterScope.
 
     // Reverb > Algorithm (global, stored as child of Reverbs node)
     const juce::Identifier ReverbAlgorithm       ("ReverbAlgorithm");
@@ -736,6 +747,329 @@ namespace WFSParameterIDs
     const juce::Identifier reverbPostExpRatio    ("reverbPostExpRatio");      // ratio 1:N
     const juce::Identifier reverbPostExpAttack   ("reverbPostExpAttack");     // ms
     const juce::Identifier reverbPostExpRelease  ("reverbPostExpRelease");    // ms
+
+    //==========================================================================
+    // Effects Channel Parameters
+    //==========================================================================
+    //
+    // Phase 4, commit 1: DECLARATION ONLY. Nothing builds these nodes, reads
+    // these properties or routes them yet - the tree builders, accessors, scope
+    // routing, bounds table and persistence land in later commits.
+    //
+    // Schema (Documentation/effects-channels-plan.md section 6.1, with the
+    // module-node reshape described below):
+    //
+    //   <Effects count="N" effectPositionsUserOwned="0">   top-level, ONLY <Effect> children
+    //     <Effect id="1">                                  dense: id = index + 1
+    //       <Channel/> <Position/> <Feed/> <Return/> <AutomOtion/> <Chain/>
+    //       <FxDist/>
+    //       <FxEq1><Band id="1".."6"/></FxEq1>  <FxEq2><Band id="1".."6"/></FxEq2>
+    //       <FxDyn1/> <FxDyn2/> <FxMod/> <FxPhaser/> <FxTrem/> <FxReverb/>
+    //       <FxDelay><Tap id="1".."8"/></FxDelay>
+    //       <FxCrush/>
+    //       <Sends/>
+    //     </Effect>
+    //   </Effects>
+    //
+    // REUSED type identifiers - do NOT redeclare: Channel, Position and
+    // AutomOtion (the input section names, :29/:30/:36), Feed and ReverbReturn
+    // (declared in the reverb block above; ReverbReturn's C++ name is
+    // disambiguated but its XML tag is plain "Return", which is the tag the
+    // effects <Return> section uses too), and Band (:42, shared with the output
+    // EQ). Only the names that do not already exist are declared here.
+    //
+    // ELEVEN MODULE NODE TYPES, NOT INSTANCED ONES. The plan drafted
+    // <FxEQ id="1">/<FxEQ id="2"> and <FxDyn id="1">/<FxDyn id="2">; that is
+    // dropped. Identical property names on two sibling nodes break the one-node
+    // rule the snapshot layer depends on (Documentation/CLAUDE.md:1905-1914 -
+    // hasProperty is the discriminator), make every first-hit generic search
+    // (the setReverbParameter-shaped walk, getTreeForParameter) silently address
+    // instance 1 while reporting success, and put two node types in one id
+    // namespace, which backfillFromTemplate mishandles by appending a duplicate
+    // on every load. Instead each of spatcore's eleven chain SLOTS
+    // (spatcore/effects/EffectsTypes.h:54-67, tokens dist, eq1, eq2, dyn1, dyn2,
+    // mod, phaser, trem, reverb, delay, crush) gets its own id-less node type,
+    // so the tree is a 1:1 transcription of the engine's slot table and
+    // getChildWithName resolves an instance without a sub-index.
+    //
+    // The PROPERTY names stay singular - effectEQgain, effectDynCompThreshold -
+    // because the node now carries the instance. CONSEQUENCE: a property name
+    // appears on TWO node types (FxEq1/FxEq2, FxDyn1/FxDyn2), so anything that
+    // maps a property name to a node must take the instance as well; the wire
+    // keeps its instance argument and simply routes to a different node.
+
+    // PREFIX COLLISIONS - A LATER BINDING COMMIT MUST MATCH EXACTLY OR TEST
+    // LONGEST-FIRST. The app routes sub-trees with literal startsWith tests on
+    // the internal variable name (Source/Network/MCP/MCPGeneratedToolLoader.cpp
+    // :862-908 for samplerCell/samplerSet/networkTS/admCart/admPolar/gmShape/
+    // gmLayer, and :457-458 for reverbPostEQ/reverbPreEQ), and plan 7.3/7.4
+    // specifies that same shape for effects (effectSend, effectFxSend, effectEQ,
+    // effectDyn, effectDelayTap). Four families below are strict prefixes of
+    // each other, so a naive startsWith binds to the WRONG node and reports
+    // success - the exact failure this declaration block exists to prevent:
+    //
+    //   effectDist   (FxDist module)  swallows effectDistanceAttenPercent (Feed),
+    //                                 effectDistanceAttenuation and
+    //                                 effectDistanceRatio (Return)
+    //   effectDelay  (FxDelay module) swallows effectDelayLatency (Channel)
+    //   effectSend   (Sends cells)    swallows the row identifiers
+    //                                 effectSendLevels / effectSendOns, which
+    //                                 stay string setters
+    //   effectMute   (Channel)        is a prefix of effectMutes,
+    //                                 effectMuteMacro and effectMuteReverbSends
+    //
+    // All eight names are plan-faithful and must NOT be renamed to dodge this.
+    // Order the tests longest-first, or compare with == against the Identifier.
+
+    // Effects Section Identifiers (node types)
+    const juce::Identifier Effects               ("Effects");
+    const juce::Identifier Effect                ("Effect");
+    const juce::Identifier Chain                 ("Chain");
+    const juce::Identifier Sends                 ("Sends");
+    const juce::Identifier Tap                   ("Tap");           // <FxDelay> child, id="1".."8"
+    const juce::Identifier EffectsGlobal         ("EffectsGlobal"); // Config child, not an <Effects> sibling
+
+    // The eleven chain slots, named for the tokens in spatcore::effects::kSlots
+    const juce::Identifier FxDist                ("FxDist");
+    const juce::Identifier FxEq1                 ("FxEq1");
+    const juce::Identifier FxEq2                 ("FxEq2");
+    const juce::Identifier FxDyn1                ("FxDyn1");
+    const juce::Identifier FxDyn2                ("FxDyn2");
+    const juce::Identifier FxMod                 ("FxMod");
+    const juce::Identifier FxPhaser              ("FxPhaser");
+    const juce::Identifier FxTrem                ("FxTrem");
+    const juce::Identifier FxReverb              ("FxReverb");
+    const juce::Identifier FxDelay               ("FxDelay");
+    const juce::Identifier FxCrush               ("FxCrush");
+
+    // Effects container property (on <Effects>, not per-channel): the layout
+    // ownership latch, twin of the reverb position latch.
+    const juce::Identifier effectPositionsUserOwned ("effectPositionsUserOwned");
+
+    // Effect > Channel
+    const juce::Identifier effectName            ("effectName");
+    const juce::Identifier effectAttenuation     ("effectAttenuation");
+    const juce::Identifier effectDelayLatency    ("effectDelayLatency");
+    const juce::Identifier effectMinimalLatency  ("effectMinimalLatency");
+    const juce::Identifier effectLinkGroup       ("effectLinkGroup");       // 0=unlinked, 1..8
+    const juce::Identifier effectMute            ("effectMute");
+    const juce::Identifier effectSolo            ("effectSolo");
+
+    // Effect > Position
+    const juce::Identifier effectPositionX       ("effectPositionX");
+    const juce::Identifier effectPositionY       ("effectPositionY");
+    const juce::Identifier effectPositionZ       ("effectPositionZ");
+    const juce::Identifier effectCoordinateMode  ("effectCoordinateMode");  // 0=Cartesian, 1=Cylindrical, 2=Spherical
+    const juce::Identifier effectReturnOffsetX   ("effectReturnOffsetX");
+    const juce::Identifier effectReturnOffsetY   ("effectReturnOffsetY");
+    const juce::Identifier effectReturnOffsetZ   ("effectReturnOffsetZ");
+
+    // Effect > Feed (node type Feed, shared with the reverb channels)
+    const juce::Identifier effectOrientation     ("effectOrientation");
+    const juce::Identifier effectAngleOn         ("effectAngleOn");
+    const juce::Identifier effectAngleOff        ("effectAngleOff");
+    const juce::Identifier effectPitch           ("effectPitch");
+    const juce::Identifier effectHFdamping       ("effectHFdamping");
+    const juce::Identifier effectFeedMiniLatency ("effectFeedMiniLatency");
+    const juce::Identifier effectDistanceAttenPercent ("effectDistanceAttenPercent");
+
+    // Effect > Return (node type ReverbReturn, whose XML tag is "Return")
+    const juce::Identifier effectAttenuationLaw  ("effectAttenuationLaw");      // 0=Log, 1=1/d
+    const juce::Identifier effectDistanceAttenuation ("effectDistanceAttenuation");
+    const juce::Identifier effectDistanceRatio   ("effectDistanceRatio");
+    const juce::Identifier effectCommonAtten     ("effectCommonAtten");
+    const juce::Identifier effectHFshelf         ("effectHFshelf");
+    const juce::Identifier effectMutes           ("effectMutes");              // packed CSV, one token per output
+    const juce::Identifier effectMuteMacro       ("effectMuteMacro");
+    const juce::Identifier effectMuteReverbSends ("effectMuteReverbSends");
+
+    // Effect > AutomOtion (the input set minus StayReturn - an effect return
+    // always returns; ranges mirror the inputOtomo* set, with the single
+    // addition noted at the AutomOtion defaults block)
+    const juce::Identifier effectOtomoX          ("effectOtomoX");
+    const juce::Identifier effectOtomoY          ("effectOtomoY");
+    const juce::Identifier effectOtomoZ          ("effectOtomoZ");
+    const juce::Identifier effectOtomoAbsoluteRelative ("effectOtomoAbsoluteRelative");
+    const juce::Identifier effectOtomoSpeedProfile ("effectOtomoSpeedProfile");
+    const juce::Identifier effectOtomoDuration   ("effectOtomoDuration");
+    const juce::Identifier effectOtomoCurve      ("effectOtomoCurve");
+    const juce::Identifier effectOtomoTrigger    ("effectOtomoTrigger");
+    const juce::Identifier effectOtomoThreshold  ("effectOtomoThreshold");
+    const juce::Identifier effectOtomoReset      ("effectOtomoReset");
+    const juce::Identifier effectOtomoPauseResume ("effectOtomoPauseResume");
+    const juce::Identifier effectOtomoCoordinateMode ("effectOtomoCoordinateMode");  // 0=Cartesian, 1=Cylindrical, 2=Spherical
+    const juce::Identifier effectOtomoR          ("effectOtomoR");             // Cylindrical radius
+    const juce::Identifier effectOtomoTheta      ("effectOtomoTheta");         // Azimuth angle (shared cyl/sph)
+    const juce::Identifier effectOtomoRsph       ("effectOtomoRsph");          // Spherical radius
+    const juce::Identifier effectOtomoPhi        ("effectOtomoPhi");           // Elevation angle
+
+    // Effect > Chain
+    const juce::Identifier effectChainOrder      ("effectChainOrder");         // permutation of the 11 slot tokens
+    const juce::Identifier effectChainBypass     ("effectChainBypass");
+
+    // Effect > FxDist
+    const juce::Identifier effectDistBypass      ("effectDistBypass");
+    const juce::Identifier effectDistDrive       ("effectDistDrive");          // dB
+    const juce::Identifier effectDistShape       ("effectDistShape");          // 0=hard clip, 1=tanh, continuous
+    const juce::Identifier effectDistBias        ("effectDistBias");           // asymmetry -> even harmonics
+    const juce::Identifier effectDistPreLoShelfFreq ("effectDistPreLoShelfFreq");
+    const juce::Identifier effectDistPreLoShelfGain ("effectDistPreLoShelfGain");
+    const juce::Identifier effectDistPreHiShelfFreq ("effectDistPreHiShelfFreq");
+    const juce::Identifier effectDistPreHiShelfGain ("effectDistPreHiShelfGain");
+    const juce::Identifier effectDistPostLoShelfFreq ("effectDistPostLoShelfFreq");
+    const juce::Identifier effectDistPostLoShelfGain ("effectDistPostLoShelfGain");
+    const juce::Identifier effectDistPostHiShelfFreq ("effectDistPostHiShelfFreq");
+    const juce::Identifier effectDistPostHiShelfGain ("effectDistPostHiShelfGain");
+    const juce::Identifier effectDistOutput      ("effectDistOutput");         // dB
+    const juce::Identifier effectDistMix         ("effectDistMix");            // wet %
+    const juce::Identifier effectDistOversample  ("effectDistOversample");     // 0=auto, 1=off, 2=2x, 3=4x
+
+    // Effect > FxEq1 / FxEq2 - the bypass lives on the module node, the five
+    // band properties on its six <Band id="1".."6"> children. Both instances
+    // carry the same property names on different node types (see the header
+    // note): the node IS the instance.
+    const juce::Identifier effectEQBypass        ("effectEQBypass");
+    const juce::Identifier effectEQshape         ("effectEQshape");            // output-EQ shape ids 1..7
+    const juce::Identifier effectEQfreq          ("effectEQfreq");             // Hz
+    const juce::Identifier effectEQgain          ("effectEQgain");             // dB
+    const juce::Identifier effectEQq             ("effectEQq");
+    const juce::Identifier effectEQslope         ("effectEQslope");
+
+    // Effect > FxDyn1 / FxDyn2 (a compressor stage followed by an expander stage)
+    const juce::Identifier effectDynBypass       ("effectDynBypass");
+    const juce::Identifier effectDynDetector     ("effectDynDetector");        // 0=Peak, 1=RMS
+    const juce::Identifier effectDynLookahead    ("effectDynLookahead");       // ms, delays the AUDIO (adds latency)
+    const juce::Identifier effectDynMakeup       ("effectDynMakeup");          // dB
+    const juce::Identifier effectDynAutoMakeup   ("effectDynAutoMakeup");
+    const juce::Identifier effectDynCompOn       ("effectDynCompOn");
+    const juce::Identifier effectDynCompThreshold ("effectDynCompThreshold");  // dB
+    const juce::Identifier effectDynCompRatio    ("effectDynCompRatio");       // :1, 100 = limiter
+    const juce::Identifier effectDynCompKnee     ("effectDynCompKnee");        // dB
+    const juce::Identifier effectDynCompAttack   ("effectDynCompAttack");      // ms
+    const juce::Identifier effectDynCompRelease  ("effectDynCompRelease");     // ms
+    const juce::Identifier effectDynCompDetectorDelay ("effectDynCompDetectorDelay"); // ms, delays the DETECTOR (transient pass, no latency)
+    const juce::Identifier effectDynCompScLoCut  ("effectDynCompScLoCut");     // Hz
+    const juce::Identifier effectDynCompScHiCut  ("effectDynCompScHiCut");     // Hz
+    const juce::Identifier effectDynExpOn        ("effectDynExpOn");
+    const juce::Identifier effectDynExpThreshold ("effectDynExpThreshold");    // dB
+    const juce::Identifier effectDynExpRatio     ("effectDynExpRatio");        // :1, 100 = gate
+    const juce::Identifier effectDynExpAttack    ("effectDynExpAttack");       // ms
+    const juce::Identifier effectDynExpRelease   ("effectDynExpRelease");      // ms
+    const juce::Identifier effectDynExpRange     ("effectDynExpRange");        // dB
+    const juce::Identifier effectDynExpHold      ("effectDynExpHold");         // ms
+    const juce::Identifier effectDynExpScLoCut   ("effectDynExpScLoCut");      // Hz
+    const juce::Identifier effectDynExpScHiCut   ("effectDynExpScHiCut");      // Hz
+
+    // Effect > FxMod (chorus / flanger)
+    const juce::Identifier effectModBypass       ("effectModBypass");
+    const juce::Identifier effectModMode         ("effectModMode");            // 0=Chorus, 1=Flanger
+    const juce::Identifier effectModRate         ("effectModRate");            // Hz
+    const juce::Identifier effectModDepth        ("effectModDepth");           // % of the centre delay
+    const juce::Identifier effectModDelay        ("effectModDelay");           // ms
+    const juce::Identifier effectModFeedback     ("effectModFeedback");        // signed %
+    const juce::Identifier effectModVoices       ("effectModVoices");
+    const juce::Identifier effectModShape        ("effectModShape");           // LFOWaveforms shape id
+    const juce::Identifier effectModPhase        ("effectModPhase");           // degrees, spreads linked channels
+    const juce::Identifier effectModLoCut        ("effectModLoCut");           // Hz
+    const juce::Identifier effectModThroughZero  ("effectModThroughZero");
+    const juce::Identifier effectModMix          ("effectModMix");             // wet %
+
+    // Effect > FxPhaser
+    const juce::Identifier effectPhaserBypass    ("effectPhaserBypass");
+    const juce::Identifier effectPhaserStages    ("effectPhaserStages");       // validated: 4, 6, 8 or 12
+    const juce::Identifier effectPhaserCentre    ("effectPhaserCentre");       // Hz
+    const juce::Identifier effectPhaserSpread    ("effectPhaserSpread");       // octaves
+    const juce::Identifier effectPhaserRate      ("effectPhaserRate");         // Hz
+    const juce::Identifier effectPhaserDepth     ("effectPhaserDepth");        // octaves
+    const juce::Identifier effectPhaserShape     ("effectPhaserShape");        // LFOWaveforms shape id
+    const juce::Identifier effectPhaserFeedback  ("effectPhaserFeedback");     // signed %
+    const juce::Identifier effectPhaserMix       ("effectPhaserMix");          // wet %
+
+    // Effect > FxTrem
+    const juce::Identifier effectTremBypass      ("effectTremBypass");
+    const juce::Identifier effectTremRate        ("effectTremRate");           // Hz
+    const juce::Identifier effectTremDepth       ("effectTremDepth");          // dB (dB-linear modulation)
+    const juce::Identifier effectTremShape       ("effectTremShape");          // 0=sine .. 1=triangle, continuous
+    const juce::Identifier effectTremMix         ("effectTremMix");            // wet %
+
+    // Effect > FxReverb (the per-chain reverb module; unrelated to the <Reverbs> family)
+    const juce::Identifier effectReverbBypass    ("effectReverbBypass");
+    const juce::Identifier effectReverbModel     ("effectReverbModel");        // 0=FDN (v1); 1=Plate, 2=SDN, 3=IR later
+    const juce::Identifier effectReverbType      ("effectReverbType");         // preset within the model
+    const juce::Identifier effectReverbPredelay  ("effectReverbPredelay");     // ms
+    const juce::Identifier effectReverbRT60      ("effectReverbRT60");         // seconds
+    const juce::Identifier effectReverbRT60LowMult ("effectReverbRT60LowMult");
+    const juce::Identifier effectReverbRT60HighMult ("effectReverbRT60HighMult");
+    const juce::Identifier effectReverbCrossoverLow ("effectReverbCrossoverLow");   // Hz
+    const juce::Identifier effectReverbCrossoverHigh ("effectReverbCrossoverHigh"); // Hz
+    const juce::Identifier effectReverbDiffusion ("effectReverbDiffusion");
+    const juce::Identifier effectReverbSize      ("effectReverbSize");
+    const juce::Identifier effectReverbTone      ("effectReverbTone");         // Hz
+    const juce::Identifier effectReverbMix       ("effectReverbMix");          // wet %
+
+    // Effect > FxDelay (multitap) - the two per-tap properties live on its
+    // eight <Tap id="1".."8"> children, everything else on the module node.
+    const juce::Identifier effectDelayBypass     ("effectDelayBypass");
+    const juce::Identifier effectDelayTime       ("effectDelayTime");          // ms
+    const juce::Identifier effectDelayTaps       ("effectDelayTaps");
+    const juce::Identifier effectDelayTapMode    ("effectDelayTapMode");       // 0=Manual, 1=Pattern
+    const juce::Identifier effectDelayPattern    ("effectDelayPattern");       // 0=Equal, 1=Dotted, 2=Triplet, 3=Golden
+    const juce::Identifier effectDelayFeedback   ("effectDelayFeedback");      // %
+    const juce::Identifier effectDelayFeedbackTap ("effectDelayFeedbackTap");  // 0=last, 1..8
+    const juce::Identifier effectDelayInLoCut    ("effectDelayInLoCut");       // Hz
+    const juce::Identifier effectDelayFbLoShelfFreq ("effectDelayFbLoShelfFreq");
+    const juce::Identifier effectDelayFbLoShelfGain ("effectDelayFbLoShelfGain");
+    const juce::Identifier effectDelayFbHiShelfFreq ("effectDelayFbHiShelfFreq");
+    const juce::Identifier effectDelayFbHiShelfGain ("effectDelayFbHiShelfGain");
+    const juce::Identifier effectDelayModRate    ("effectDelayModRate");       // Hz
+    const juce::Identifier effectDelayModDepth   ("effectDelayModDepth");      // % of the delay time
+    const juce::Identifier effectDelayDiffusion  ("effectDelayDiffusion");
+    const juce::Identifier effectDelayGlide      ("effectDelayGlide");         // ms
+    const juce::Identifier effectDelayMix        ("effectDelayMix");           // wet %
+    const juce::Identifier effectDelayTapTime    ("effectDelayTapTime");       // ms,  per <Tap>
+    const juce::Identifier effectDelayTapLevel   ("effectDelayTapLevel");      // dB,  per <Tap>
+
+    // Effect > FxCrush (bitcrusher / downsampler)
+    const juce::Identifier effectCrushBypass     ("effectCrushBypass");
+    const juce::Identifier effectCrushBits       ("effectCrushBits");          // fractional allowed
+    const juce::Identifier effectCrushRate       ("effectCrushRate");          // Hz, clamped to the device rate
+    const juce::Identifier effectCrushFilter     ("effectCrushFilter");        // 0=hold (aliasing), 1=anti-aliased
+    const juce::Identifier effectCrushDither     ("effectCrushDither");        // dB, -96 = off
+    const juce::Identifier effectCrushMix        ("effectCrushMix");           // wet %
+
+    // Effect > Sends - four packed CSV rows on one <Sends> node. effectSend*
+    // are 64 wide and keyed by input PERMANENT NUMBER; effectFxSend* are 32
+    // wide and keyed by dense effect index, with the diagonal forced off.
+    const juce::Identifier effectSendLevels      ("effectSendLevels");
+    const juce::Identifier effectSendOns         ("effectSendOns");
+    const juce::Identifier effectFxSendLevels    ("effectFxSendLevels");
+    const juce::Identifier effectFxSendOns       ("effectFxSendOns");
+
+    // Sends CELL pseudo-identifiers. NO node ever carries these: they exist so
+    // the OSC parser, the ramper and the OSCQuery cell nodes have something to
+    // validate a single cell against, while the generic parameter path finds no
+    // tree for them and therefore refuses a write instead of overwriting a whole
+    // row with a scalar. Never stamp one onto a node.
+    const juce::Identifier effectSendLevel       ("effectSendLevel");
+    const juce::Identifier effectSendOn          ("effectSendOn");
+    const juce::Identifier effectFxSendLevel     ("effectFxSendLevel");
+    const juce::Identifier effectFxSendOn        ("effectFxSendOn");
+
+    // Config > EffectsGlobal (global, stored as a child of <Config> - NOT a
+    // sibling of the <Effect> channels). Every name below starts with "effect",
+    // so each one needs a BY-NAME exception ahead of getParameterScope's prefix
+    // test, exactly like reverbsMapVisible; without it the prefix test routes
+    // them into the Effect branch, which finds no channel node and drops the
+    // write in silence.
+    const juce::Identifier effectsGlobalLinkNames ("effectsGlobalLinkNames");        // CSV, 8 group names
+    const juce::Identifier effectsGlobalLinkMode  ("effectsGlobalLinkMode");         // 0=off, 1=absolute, 2=relative
+    const juce::Identifier effectsGlobalFxFeedGeometric ("effectsGlobalFxFeedGeometric");
+    const juce::Identifier effectsGlobalWorkerThreads ("effectsGlobalWorkerThreads"); // -1=auto, 0..4 fixed
+    const juce::Identifier effectsGlobalReturnCushion ("effectsGlobalReturnCushion"); // 0=auto, 1..3 blocks
+    const juce::Identifier effectsGlobalLoopGuard ("effectsGlobalLoopGuard");
+    const juce::Identifier effectsGlobalLoopGuardCeiling ("effectsGlobalLoopGuardCeiling"); // dBFS peak
+    const juce::Identifier effectsGlobalMaxDelaySeconds ("effectsGlobalMaxDelaySeconds"); // sizes every delay module's buffer
+    const juce::Identifier effectsGlobalFeedGpuDevice ("effectsGlobalFeedGpuDevice"); // compute device id ("cpu"/"hip:0"/...)
 
     //==========================================================================
     // Sampler Parameters

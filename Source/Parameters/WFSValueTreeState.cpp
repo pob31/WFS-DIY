@@ -60,7 +60,7 @@ using namespace WFSParameterDefaults;
 
 WFSValueTreeState::WFSValueTreeState()
     : TreeParameterStore (static_cast<int> (UndoDomain::COUNT),
-                          { "Input", "Output", "Reverb", "Map", "Config", "Clusters" })
+                          { "Input", "Output", "Reverb", "Map", "Config", "Clusters", "Effects" })
 {
     // WRITE-INTERCEPTOR (control Q6a): numeric-bounds hardening at the store
     // choke point, using the same bounds table OSC ingress and the MCP
