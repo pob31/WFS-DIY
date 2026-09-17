@@ -10,11 +10,19 @@
 static_assert (spatcore::wfs::RenderSourceMap::kMaxInputChannels
                    == WFSParameterDefaults::maxInputChannels,
                "RenderSourceMap and WFSParameterDefaults disagree on the input-channel budget");
+// maxRenderSources is pinned to kMaxRenderSourceSlots - the size of the map's
+// descriptor array, which every app-side per-source array must be at least as
+// large as - and NOT to the kMaxRenderSources alias, which spatcore still keeps
+// at the input-only budget. Naming the array size here is what turns a future
+// change to kMaxEffectChannels in spatcore into a build error instead of a
+// silent over-read of the calculation matrices.
 static_assert (spatcore::wfs::RenderSourceMap::kDerivedPerStereo
                    == WFSParameterDefaults::derivedSlicesPerStereo
             && spatcore::wfs::RenderSourceMap::kMaxStereoChannels
                    == WFSParameterDefaults::maxStereoChannels
-            && spatcore::wfs::RenderSourceMap::kMaxRenderSources
+            && spatcore::wfs::RenderSourceMap::kMaxInputRenderSources
+                   == WFSParameterDefaults::maxInputRenderSources
+            && spatcore::wfs::RenderSourceMap::kMaxRenderSourceSlots
                    == WFSParameterDefaults::maxRenderSources,
                "RenderSourceMap and WFSParameterDefaults disagree on the render-source budget");
 

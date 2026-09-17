@@ -2001,8 +2001,10 @@ MainComponent::MainComponent()
     // Initialize Live Source Tamer engine for per-speaker gain reduction.
     // Row dimension is maxRenderSources, NOT maxInputChannels: lsGains is indexed
     // with the calculation engine's matrixIdx, whose rows cover derived stereo
-    // slice sources too. Sizing this smaller than the engine's matrix is an
-    // out-of-bounds read on the 50 Hz path.
+    // slice sources and effect returns too. Sizing this smaller than the
+    // engine's matrix is an out-of-bounds read on the 50 Hz path. The return
+    // rows have no Live Source section, so they read lsActive = false and stay
+    // at unity - 32 no-op lookups per tick, paid for the bounds guarantee.
     lsTamerEngine = std::make_unique<LiveSourceTamerEngine>(
         parameters.getValueTreeState(),
         *calculationEngine,
@@ -6879,7 +6881,16 @@ void MainComponent::recomputeRenderSourceCount()
         juce::ignoreUnused (ok);
     }
 
-    numRenderSources = renderSourceMap.count > 0 ? renderSourceMap.count : numInputChannels;
+    // The single write of numRenderSources. Every message-thread copy loop that
+    // reads a calculation-engine matrix is bounded by this value while the
+    // matrices are sized by maxRenderSources, so a count past the budget would
+    // be a heap over-read on the 50 Hz path, not an error. The map refuses to
+    // build past its own budget and the two budgets are static_asserted equal,
+    // so the clamp cannot fire today - it is the defined behaviour for the day
+    // it can.
+    jassert (renderSourceMap.count <= WFSParameterDefaults::maxRenderSources);
+    numRenderSources = juce::jmin (WFSParameterDefaults::maxRenderSources,
+                                   renderSourceMap.count > 0 ? renderSourceMap.count : numInputChannels);
 
     // Both stereo image arrays are keyed by channel SLOT, and a rebuild is
     // exactly the moment a slot can change identity — reorder, delete, type

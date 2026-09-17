@@ -456,6 +456,8 @@ public:
     // those detectors exist for the Live Source Tamer and carry a compressor's
     // ballistics rather than a display meter's.
 
+    // Inputs, derived stereo slices AND effect returns: the tap runs over every
+    // render-source row, so the budget follows the app-wide constant (136).
     static constexpr int MaxRenderSources = WFSParameterDefaults::maxRenderSources;
 
     /** Coefficient for one block of exponential decay toward a target.
@@ -509,7 +511,7 @@ public:
 
     /** Audio thread, once per block AFTER the render-source loop. One stamp for
      *  the whole tap — the loop writes every source together, so per-source
-     *  stamps would carry no extra information and cost 104 more stores. */
+     *  stamps would carry no extra information and cost 136 more stores. */
     void markRenderSourceMeterBlock() noexcept
     {
         renderSourceMeterMs.store(juce::Time::getMillisecondCounter(),

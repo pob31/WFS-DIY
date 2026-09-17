@@ -17,29 +17,39 @@ namespace WFSParameterDefaults
     constexpr int maxInputChannels     = 64;
     constexpr int maxOutputChannels    = 128;
 
+    // Effects channels. The count is part of the render-source arithmetic
+    // below: an effect return IS a WFS render source, appended after the input
+    // slots and the derived stereo slices (spatcore::wfs::RenderSourceMap). The
+    // mirrors of spatcore::effects::kMaxEffectChannels and kNumModuleSlots are
+    // asserted in a .cpp (the WFSCalculationEngine.cpp pattern) rather than
+    // here, so that spatcore/effects/EffectsTypes.h is not pulled into this very
+    // widely included header.
+    constexpr int maxEffectChannels     = 32;
+
     // Renderer source dimension. A stereo-pair input channel renders as 6 WFS
     // sources (its primary slot + 5 derived slices appended past the visible
-    // inputs), so the matrix row budget exceeds the input-channel budget. These
-    // mirror spatcore::wfs::RenderSourceMap's constants; WFSCalculationEngine.cpp
-    // static_asserts the two sets are equal.
+    // inputs), and every effect channel adds one return source after those, so
+    // the matrix row budget exceeds the input-channel budget twice over:
+    //   maxInputRenderSources = 64 + 8 * 5 = 104   (inputs and their slices)
+    //   maxRenderSources      = 104 + 32   = 136   (plus the effect returns)
+    // These mirror spatcore::wfs::RenderSourceMap's kMaxInputRenderSources and
+    // kMaxRenderSourceSlots - the SLOT count, i.e. the size of its descriptor
+    // array, not its kMaxRenderSources alias, which still names the input-only
+    // budget. WFSCalculationEngine.cpp static_asserts the two sets are equal.
+    // Every per-source array in the app (the calculation engine's matrices, the
+    // Live Source Tamer rows, the meter taps) is sized from maxRenderSources;
+    // rows past the live count stay zero.
     constexpr int maxStereoChannels       = 8;
     constexpr int derivedSlicesPerStereo  = 5;
-    constexpr int maxRenderSources        = maxInputChannels
+    constexpr int maxInputRenderSources   = maxInputChannels
                                           + maxStereoChannels * derivedSlicesPerStereo;  // 104
+    constexpr int maxRenderSources        = maxInputRenderSources + maxEffectChannels;    // 136
     constexpr int maxReverbChannels    = 32;
     constexpr int maxNetworkTargets    = 6;
     constexpr int maxClusters          = 10;
     constexpr int numEQBands           = 6;
     constexpr int numReverbPreEQBands  = 4;
 
-    // Effects channels. maxEffectChannels sits OUTSIDE the render-source
-    // arithmetic above, exactly as maxReverbChannels does: an effect return is
-    // not a WFS render source in this phase. The mirrors of
-    // spatcore::effects::kMaxEffectChannels and kNumModuleSlots are asserted in a
-    // .cpp (the WFSCalculationEngine.cpp pattern) rather than here, so that
-    // spatcore/effects/EffectsTypes.h is not pulled into this very widely
-    // included header.
-    constexpr int maxEffectChannels     = 32;
     constexpr int numEffectEQBands      = 6;   // <Band id="1".."6"> under FxEq1 / FxEq2
     constexpr int numEffectEqInstances  = 2;   // FxEq1, FxEq2
     constexpr int numEffectDynInstances = 2;   // FxDyn1, FxDyn2
