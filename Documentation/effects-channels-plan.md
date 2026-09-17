@@ -29,7 +29,7 @@ Development hold: nothing is built until the user gives the go (urgent fixes are
 | 3 | Input→effect feed is geometric like the reverb feed (level AND delay from the input's composite position vs the effect's position), times a per-(source, effect) user **level (dB) + on/off switch**. Effect→effect: same geometric model (confirmed 2026-08-28), diagonal forced off. New channels start with every switch OFF and levels at 0 dB; cells range −92..0 dB (no gain). HF air absorption is applied on every leg — input→effect and effect→effect (per-pair shelf from `effectHFdamping` dB/m plus the source's directivity/HF terms, exactly as the reverb send does now) and effect→speaker (the render rows carry `outputHFdamping` like any source). |
 | 4 | Every chain owns the same 11 module slots: one of each of the 9 module types, with EQ and dynamics doubled from day one (`eq1, eq2, dyn1, dyn2`); each slot bypassed by default; a separate ordered-list parameter defines processing order. Further duplicates and new module types are additive (append-only registry, `instance` sub-index). |
 | 5 | Type-keyed addressing (`/wfs/effect/distDrive <id> <v>`); chain order is its own parameter; reordering never moves parameter state. |
-| 6 | Link groups a la clusters (N groups, each channel in at most one); module parameters, module bypasses AND chain order propagate (confirmed 2026-08-28) — continuous values absolute or relative, discrete values (enums, bypasses, order, mutes) only ever absolute or unlinked; feeds, position, otomo, name never propagate. |
+| 6 | Link groups a la clusters (N groups, each channel in at most one); module parameters, module bypasses AND chain order propagate (confirmed 2026-08-28) — continuous values absolute or relative, discrete values (enums, bypasses, order) only ever absolute or unlinked; feeds, position, otomo, name never propagate. **MUTES NO LONGER PROPAGATE AT ALL - see R5-1 (§12.6):** a single channel must be independently mutable whatever it is bunched with, and the group shortcut writes rather than links. |
 | 7 | Snapshots: scope grid channels × items mirroring `ExtendedSnapshotScope` (`Source/Parameters/WFSFileManager.h:273-393`), stored under `snapshots/effects/`, MIDI-note + OSC recall. |
 | 8 | No self-feed. No full loop-gain limiter in v1, but: a 0..5 ms lookahead on the dynamics module's compressor/limiter stage, a per-channel loop guard against runaway build-up, a cycle warning in the sends grid, and an emergency **Clear** action that flushes every internal buffer (§2.2, §4.4). |
 | 9 | AutomOtion on an effects channel is return-only (no Stay) and moves an OFFSET on top of the base position, never the stored position; feed geometry follows the base position, the return follows base + offset (§6.7). |
@@ -56,7 +56,7 @@ Development hold: nothing is built until the user gives the go (urgent fixes are
 | Return path | Per-effect SPSC `LockFreeRingBuffer` popped at the top of the callback into `patchedInputBuffer[firstEffectSlot+fx]`, gated by a `ready` flag + `SpinLock` try-lock. | C1-3, pattern `spatcore/wfs/NativeGpuWfsAlgorithm.h:115-128`. |
 | Source rings | Reuse `SharedInputRingBuffer` (SPMC) with an additive monotonic `totalWritten` counter for wrap detection; depth `blockSize * 8` when effects exist (today `* 4`, `Source/MainComponent.cpp:6932`). | C1-2. |
 | Reverb module | `effectReverbModel` selects the algorithm behind an `IEffectReverbModel` seam; model 0 (v1) = `spatcore::reverb::FDNAlgorithm` with `numNodes = 1` at **native** device rate, `MAX_DELAY_SAMPLES` becoming a constructor argument defaulting to 16384 (bit-identical for existing users). Presets (`effectReverbType`) are per model. | C1-18; user round 2 (Q15); `spatcore/reverb/ReverbFDNAlgorithm.h:28, :273-276`. |
-| Link mode | Explicit state `effectsGlobalLinkMode` (0 off / 1 absolute / 2 relative), default 1; relative applies to continuous values only — discrete values (enums, bypasses, chain order, mutes) are always copied absolutely; `effectLinkGroup = 0` = unlinked; keyboard modifiers override on GUI only; hardware follows the state. | C2-13; user round 2 (Q4). |
+| Link mode | Explicit state `effectsGlobalLinkMode` (0 off / 1 absolute / 2 relative), default 1; relative applies to continuous values only — discrete values (enums, bypasses, chain order) are always copied absolutely; mutes are excluded entirely (R5-1, §12.6); `effectLinkGroup = 0` = unlinked; keyboard modifiers override on GUI only; hardware follows the state. | C2-13; user round 2 (Q4). |
 | Loop guard | Per channel, on the engine thread (`effects/LoopGuard.h`): if the summed fx→fx feed OR the return exceeds `effectsGlobalLoopGuardCeiling` (default +6 dBFS peak) for more than 20 consecutive blocks, that channel's fx→fx feed bus is ramped to −∞ over 5 ms, `loopGuardTripped(fx)` is raised for the GUI/OSCQuery/MCP, and it auto-releases once the return has stayed 12 dB under the ceiling for 500 ms. `effectsGlobalLoopGuard` 0/1, default 1. Input→effect feeds are never touched. | user round 2 (Q11). |
 | Emergency Clear | `EffectsEngine::requestClear(fx / all)`: at the next batch boundary every chain, the feed delay lines and the return ring(s) of the target are silenced and reset (tails, feedback, reverb and delay memory, loop-guard trips). Exposed as a header long-press button, a Stream Deck key, `/wfs/effect/clear <fx>` / `/wfs/effect/clearAll` and MCP `effect_clear`. | user round 2 (Q11). |
 | Cycle warning | Message thread only: on every Sends edit the fx→fx on-switch graph (≤ 32 nodes) is walked for cycles; channels inside a cycle get a warning badge and a read-only `effectInCycle` flag. No audio-side action — the user owns the loops. | user round 2: isolated bunches; Q11. |
@@ -78,7 +78,7 @@ Development hold: nothing is built until the user gives the go (urgent fixes are
 | Q1 | Effect→effect feed geometric? | **Decided: yes**; `effectsGlobalFxFeedGeometric` stays as an escape hatch (default 1). |
 | Q2 | HF damping on feeds? | **Decided: yes, on every leg** (input→effect, effect→effect, effect→speaker). Cost self-gates: the shelf runs only for pairs whose HF term is below −0.005 dB (`spatcore/dsp/AcousticTap.h:104-117`) and only active pairs are visited; no global toggle. |
 | Q3 | Naming `effect` vs `fx`? | **Decided: `effect`** for identifiers/OSC/MCP; `Fx*` only for module node types. |
-| Q4 | Does chain order propagate through links? | **Decided: yes** — order, module bypasses and parameters propagate; continuous values absolute or relative, discrete values absolute only (or the channel is unlinked). |
+| Q4 | Does chain order propagate through links? | **Decided: yes** — order, module bypasses and parameters propagate; continuous values absolute or relative, discrete values absolute only (or the channel is unlinked). **AMENDED 2026-09-17 (R5-1, §12.6): mutes are excluded from propagation.** The user needs per-channel mute independence inside a bunch, with a group-mute SHORTCUT that writes every member once and leaves each independently editable afterwards. |
 | Q5 | MIDI snapshot collisions across families? | **Decided**: one (channel, note) may bind one input snapshot AND one effects snapshot; duplicates are refused per family only; both recall on the trigger (input first, then effects). |
 | Q6 | Feed matrix default? | **Decided: all switches OFF, levels 0 dB**; "all inputs on/off for this effect" buttons in the Sends panel. |
 | Q7 | Denormal guard app-wide? | **Decided 2026-08-28: yes, as recommended** — effects threads under FTZ/DAZ from day one; the app-wide guard lands as its own baseline-changing PR (9c) scheduled right after Phase 3. Background: denormals are the tiny float values (< 1e-38) left behind when a filter or reverb tail decays towards silence; x86 CPUs process them 10-100× slower than normal numbers, so a *silent* effects channel can cost more CPU than a loud one. The fix is a per-thread CPU flag (FTZ/DAZ, `juce::ScopedNoDenormals`) that rounds them to exactly zero — inaudible by construction. The effects threads get it from day one. Enabling it on the existing gather/scatter/reverb threads is a one-line change, but it alters the last bits of the 21 offline-render baselines, so it must be its own small baseline-changing PR (9c). |
@@ -775,7 +775,7 @@ Per-effect packed CSV rows (precedent `reverbMutes`, `WFSValueTreeState.cpp:4424
 
 ### 6.6 Link groups — `Source/Parameters/EffectParamEdit.h`
 
-Clone of `ClusterParamEdit.h` with: `write(fx, id, var)`, `writeBand(fx, band, id, var)`, `writeTap(fx, tap, id, var)`; membership = `effectLinkGroup == group`; mode from `effectsGlobalLinkMode` (0 off / 1 absolute / 2 relative), GUI modifiers override per gesture (Ctrl/Cmd = this channel only, Shift = relative) — hardware and OSC-driven GUI states follow the global mode since dials carry no modifiers (`ClusterParamEdit.h:174-189` reads realtime modifiers). One undo transaction per gesture for every origin (today only Hardware, `:227-228`). Timers 25/50/500 ms as `:164-166`. `isExcluded`: name, position XYZ, return offset XYZ, coordinate mode, link group, all `effectOtomo*`, the four Sends rows, `effectSolo`. `isAbsoluteOnly`: every bypass/mode/type/shape/enum, chain order, chain bypass, minimal-latency flags, attenuation law, mutes/macro/muteReverbSends. Chain order and mutes propagate (Q4); relative mode only ever applies to continuous parameters, so a link group is either "same chain" or nothing (user, round 2). OSC/MCP/snapshot writes bypass the funnel (`ClusterParamEdit.h:35-36` rule). Group names in `effectsGlobalLinkNames` (one CSV property, editable via long-press on the group combo).
+Clone of `ClusterParamEdit.h` with: `write(fx, id, var)`, `writeBand(fx, band, id, var)`, `writeTap(fx, tap, id, var)`; membership = `effectLinkGroup == group`; mode from `effectsGlobalLinkMode` (0 off / 1 absolute / 2 relative), GUI modifiers override per gesture (Ctrl/Cmd = this channel only, Shift = relative) — hardware and OSC-driven GUI states follow the global mode since dials carry no modifiers (`ClusterParamEdit.h:174-189` reads realtime modifiers). One undo transaction per gesture for every origin (today only Hardware, `:227-228`). Timers 25/50/500 ms as `:164-166`. `isExcluded`: name, position XYZ, return offset XYZ, coordinate mode, link group, all `effectOtomo*`, the four Sends rows, `effectSolo`, and — per R5-1 (§12.6) — `effectMute`, `effectMutes`, `effectMuteMacro`, `effectMuteReverbSends`. `isAbsoluteOnly`: every bypass/mode/type/shape/enum, chain order, chain bypass, minimal-latency flags, attenuation law. (Mutes were here until R5-1 moved them to `isExcluded`.) Chain order propagates (Q4); relative mode only ever applies to continuous parameters, so a link group is either "same chain" or nothing (user, round 2). OSC/MCP/snapshot writes bypass the funnel (`ClusterParamEdit.h:35-36` rule). Group names in `effectsGlobalLinkNames` (one CSV property, editable via long-press on the group combo).
 
 ### 6.7 AutomOtion generalisation (`Source/Automation/AutomOtionProcessor.h`)
 
@@ -1156,6 +1156,95 @@ buildable as written, and two were wrong in ways that would have shipped.
 Also worth recording: the plan's §3.3 latency ledger lists module latencies as if they were
 constants, but the through-zero flanger reports its alignment delay as a continuously moving value
 of up to 30 ms at 48 kHz, which is by far the largest in the set and is absent from the table.
+
+---
+
+### 12.6 Revision-5: mute independence and channel bunches (user, 2026-09-17)
+
+The user described how effects channels are expected to be used in practice: grouped into
+**bunches**, where one channel is the entry point and the others bounce sound around from it, or
+other configurations of the same idea. Two requirements follow, and the first contradicts a
+decision this document records as confirmed.
+
+| # | Correction | Where |
+|---|---|---|
+| R5-1 | **Mute must NOT propagate through link groups.** Decision 6 and Q4 put mutes in the propagating set, and 6.8 spells it out: `isAbsoluteOnly` carries `mutes/macro/muteReverbSends`, so two linked channels share one mute state and neither can be silenced alone. The requirement is the opposite - a single effects channel must be independently mutable whatever it is grouped with. Move `effectMute`, `effectMutes`, `effectMuteMacro` and `effectMuteReverbSends` from `isAbsoluteOnly` to `isExcluded`. Note that `effectSolo` is ALREADY in `isExcluded`: solo independent while mute is shared was never coherent, and that inconsistency is evidence the propagating half was an oversight rather than a choice. | 2.1-6, 2.2 Link mode, 6.8, Q4 |
+| R5-2 | **Group mute is an ACTION, not a coupling.** The requirement asks for "groups of channels mute shortcuts" in the same breath as independence, and the two are only compatible if the shortcut WRITES rather than LINKS: one gesture sets the mute of every member, and afterwards each member is still independently editable. Propagation cannot express that - under it, unmuting one member unmutes all. This is exactly the shape `inputMutes` + `muteMacro` already has in the input family: independent per-channel state, plus a macro that writes many at once. | 5.10, 6.8, 6.10 |
+| R5-3 | **The bunch needs no new membership if the link group addresses it.** With R5-1 applied, `effectLinkGroup` no longer couples mute state, which frees the same membership to address a group-mute action without coupling anything. One membership, two semantics: links propagate parameters continuously, the group-mute button writes once. If bunches turn out to need a membership independent of parameter linking, that is a second grouping identifier and should be decided before the GUI lands, not after. | 2.2, 6.8 |
+
+**The three matrix levels, and which of them is complete** (user, 2026-09-17). The operator named
+three levels of muting and level matrixing. Mapping them onto the schema:
+
+| Level | Matrix | Mute | Level | Lives on |
+|---|---|---|---|---|
+| 1 | inputs -> each effect's entry point | `effectSendOns`, 64 wide | `effectSendLevels`, -92..0 dB | `<Sends>` |
+| 2 | effect output points -> other effects' entry points | `effectFxSendOns`, 32 wide | `effectFxSendLevels`, -92..0 dB | `<Sends>` |
+| 3 | effect output points -> outputs | `effectMutes`, one token per output | **MISSING** | `<Return>` |
+
+Both `<Sends>` rows are RECEIVE-side: effect N's rows say who feeds N, which is why the diagonal is
+the only forbidden cell.
+
+| # | Correction | Where |
+|---|---|---|
+| R5-4 | **Level 3 has mutes but no matrixed level, and the input family shows what is missing.** An input carries `inputArrayAtten1..10`, a per-array trim of -60..0 dB, and the effects family has no equivalent - the plan never mentions per-array attenuation at all. Levels 1 and 2 each got an on/off row AND a level row; level 3 got only the on/off row. Add `effectArrayAtten1..10` on `<Return>`, mirroring the input identifiers, their range and their default. | 5.x Return, 6.1 |
+
+**Two codegen registration traps, found while writing the CSV** (2026-09-17). Neither fails loudly.
+
+| # | Correction | Where |
+|---|---|---|
+| R5-7 | **There are TWO hardcoded CSV lists, and 7.3 names only one.** `tools/mcp/wfs_codegen_config.py` has `CSV_FILES_ORDER`, and `tools/audit_param_bounds.py` has its own independent `CSV_FILES` at :45-53. The second is the tool whose entire job is catching drift between a CSV, `WFSParameterDefaults.h` and `OSCParameterBounds.cpp` - so registering the effects CSV in only the first means the bounds auditor silently skips all 174 effect parameters, and the zero-drift property verified when the file was written stops being checked from that commit onward. Register in BOTH. | 7.3 |
+| R5-8 | **The globals mostly stay in the channel CSV; only the count moves.** 7.3 says the eleven global rows belong in `WFS-UI_config.csv`, but the config layout is 13 columns with NO OSC path column, so moving `effectsMapVisible` there forces `/wfs/config/effectsMapVisible` and loses the `/wfs/<family>/mapVisible` convention every family follows. The shipped answer already exists: `GLOBAL_ROWS_IN_CHANNEL_CSVS` (wfs_codegen_config.py:460) declares `reverbsMapVisible` global WHILE it stays in `WFS-UI_reverb.csv`, which is exactly what stops the generator giving it a channel argument. So: `effectsMapVisible` and the nine `effectsGlobal*` stay in `WFS-UI_effects.csv` and are added to that table; only `effectChannels` moves to the config CSV, where `/wfs/config/effectChannels` is both automatic and correct beside `reverbChannels`. | 7.3 |
+
+**The bunch propagates parameters, on the OUTPUT-ARRAY model** (user, 2026-09-17). The operator
+named the reference explicitly: a bunch should share parameters the way an output array does, with
+the ability to disengage temporarily, disengage permanently, and conserve relative offsets where
+applicable. All three already exist in the output family, and the effects design currently cannot
+express the first.
+
+| # | Correction | Where |
+|---|---|---|
+| R5-5 | **The link mode must be PER CHANNEL, not one global setting.** An output carries `outputArray` (membership, 0 = Single, 1..10) AND `outputApplyToArray` (0 OFF / 1 ABSOLUTE / 2 RELATIVE, default 1) - a mode on every member. Effects have `effectLinkGroup` per channel but only `effectsGlobalLinkMode` for the whole application, so switching propagation off to detach ONE channel detaches every group at once. Add `effectLinkMode` on `<Channel>`, the exact mirror of `outputApplyToArray`, and demote the global to the DEFAULT a new channel is stamped with. Then: disengage temporarily = set that channel's mode to 0 and flip it back later; disengage permanently = leave the group (`effectLinkGroup = 0`); conserve offsets = mode 2. | 2.2 Link mode, 6.8, 5.x Channel |
+| R5-6 | **Propagation must consult the RECEIVER's mode, not only the origin's.** `WFSValueTreeState.cpp:1186` reads each member's own `outputApplyToArray` and skips members set to OFF, under the comment "per-output unlinking". That is what makes "disengage temporarily" work from the detached channel's side rather than requiring the operator to remember which channel they edit from. The plan specifies `EffectParamEdit.h` as a clone of `ClusterParamEdit.h`, and clusters have membership with NO per-member mode - cloning that template inherits exactly the gap R5-5 closes. Model the funnel on `ArrayParamEdit.h` plus the array propagation in `WFSValueTreeState.cpp:1157-1250` instead, and keep the cluster file only for its timer and undo-transaction shape. | 6.8 |
+
+**Two consequences worth stating.** First, a per-channel mode makes detaching reachable from
+hardware and OSC. The plan currently notes that hardware and OSC-driven edits follow the global mode
+"since dials carry no modifiers" - so on a Stream Deck or over OSC there is today no way to detach a
+single channel at all. A per-channel mode is an ordinary parameter, so every surface gets it for
+free. Second, "where applicable" is already the shipped rule and needs no new thinking: the output
+code copies a toggle absolutely in ANY mode, because a toggle has no meaningful offset and a delta
+would invert already-matching members instead of sharing the state. Relative applies to continuous
+values only, which is what 2.2 already says for effects.
+
+**Why level 3 cannot become a free per-output matrix, and should not.** Levels 1 and 2 are true
+mixing matrices: a cell is a gain the operator sets outright. Level 3 is not a mixer at all - an
+effect return is a WFS render source, so its per-output gains are SOLVED from the geometry of the
+return position against each speaker. Handing the operator an arbitrary per-output level there would
+overwrite the spatialisation that makes the return localise where its marker sits. What the family
+offers instead, and what inputs have proven, is exactly two overrides on top of the solution: a
+per-output MUTE, which removes a speaker from the solution, and a per-ARRAY TRIM, which rebalances
+whole arrays without disturbing the within-array solution. That is the shape R5-4 completes, and it
+is the reason level 3's surface is deliberately smaller than levels 1 and 2 rather than accidentally
+so.
+
+**What is already safe, verified rather than assumed.** The bounce topology itself needs nothing
+new. `effectFxSendLevels` / `effectFxSendOns` express any effect-to-effect routing; only the
+DIAGONAL is forced off, so a channel cannot feed itself but A -> B -> A is fully expressible, which
+is what "bouncing around" means. And the loop guard will not fight a musical bounce: it trips only
+when the PRE-GAIN effect-to-effect feed peak holds above the ceiling (+6 dBFS by default) for the
+trip time (60 ms), so a bounce whose loop gain is under unity decays and never reaches it. The
+ceiling is an operator setting, `effectsGlobalLoopGuardCeiling`, adjustable 0..24 dB. The guard
+catches runaway, not recirculation.
+
+**Open, and worth settling before Phase 6 draws the interface.** (a) Is the entry point an explicit
+role - a channel property the interface shows and the send matrix respects - or is it purely
+emergent from who feeds whom? Nothing in the schema names one today. (b) Does a bunch want its own
+membership separate from `effectLinkGroup`, per R5-3? (c) Should the group-mute shortcut reach the
+per-output mute ROW as well as the channel mute, or only the channel mute?
+
+**Phase impact: none on Phases 4 or 5.** The mute identifiers are already declared and stamped, the
+send matrix already expresses the topology, and nothing built so far propagates anything - the link
+funnel is Phase 6 work and `EffectParamEdit.h` does not exist yet. R5-1 is a one-line change to a
+table that has not been written.
 
 ---
 
