@@ -1,11 +1,19 @@
 # Effects channels — implementation status and handoff
 
-**As of 2026-09-17.** Branch `effects/phase-3`, HEAD `434cddb`, pushed, working tree clean,
-submodules clean at their pins (`spatcore` v0.3.2 = `c9e67d2`).
+**As of 2026-09-17, after Phase 5.** Branch `effects/phase-3`, working tree clean, submodules
+clean at their pins (`spatcore` v0.3.2 = `c9e67d2`). Phase 5 added eight commits and touched no
+spatcore file.
 
-The design is `Documentation/effects-channels-plan.md`. Read its **§12.4, §12.5 and §12.6**
-first — those are the correction logs, and essentially every line reference in §6 and §7 of the
-body is stale. Where the document and the code disagree, the code is right.
+An effect channel is now a render source of the show: its chain runs on the engine's own realtime
+thread, its return is popped into a render-source row of every block, the calculation engine
+computes the source-by-effect feed matrix and the return rows of the output and reverb matrices,
+AutomOtion can move a return by an offset, and the engine's meters are readable from the
+application. What is still missing is a control surface: Phase 4's OSC and tool entries, and the
+Effects tab of Phase 6.
+
+The design is `Documentation/effects-channels-plan.md`. Read its **§12.4 through §12.7** first —
+those are the correction logs, and essentially every line reference in §6 and §7 of the body is
+stale. Where the document and the code disagree, the code is right.
 
 ---
 
@@ -35,7 +43,7 @@ control-replay drivers pass with every golden unchanged.
 
 ---
 
-## 2. What is NOT done, and the one thing that blocks Phase 5's gate
+## 2. What is NOT done: the control surface
 
 **Phase 4's control surface has not started.** Measured, not assumed:
 
@@ -49,24 +57,17 @@ WFS-UI_effects.csv registered          : 0 of the 2 lists that read it
 An effects channel exists, persists and maintains itself correctly, **and nothing outside the
 application can reach it.**
 
-### THE HANDOFF WARNING
+### THE HANDOFF WARNING — RESOLVED, AND IT WAS WRONG
 
-**Nothing can create an effect channel through any shipping surface.** `setNumEffectChannels` is
-reachable only from `setParameter(effectChannels, …)`, which needs an OSC route (Phase 4 C5) or a
-tool-manifest entry (Phase 4 C10). There is no Effects tab until Phase 6. Today the only thing
-that can build a channel is the in-process self-test.
+The warning said nothing could create an effect channel through any shipping surface, and that
+Phase 5's audio check therefore could not be performed. **That was already false when it was
+written.** `WFSFileManager::applyConfigSection` calls `setNumEffectChannels` from
+`<IO effectChannels="N">` and `applyEffectsSection` re-syncs, so **opening a project whose
+system.xml says `effectChannels="2"` builds two live channels**, with no UI, no OSC and no env
+hook. That is the route Phase 5's audio check used, and it needed nothing from Phase 4.
 
-Phase 5 can therefore be **written** against a complete ValueTree, but its stated gate — *"manual
-audio check with 1-2 effects"* — **cannot be performed** until one of:
-
-- Phase 4 C5 or C10 lands (either gives a route to `effectChannels`); or
-- Phase 5 adds a temporary creation path of its own (an env-var hook like
-  `WFS_TEST_CHANNEL_LIST`, or extending the self-test); or
-- the offline-render harness is used instead, which drives the engine directly and needs no app
-  surface at all — `tools/validation/offline-render --path effects` already exists from Phase 2.
-
-**Decide which before starting, because it changes what Phase 5's first commit looks like.** The
-offline-render route is the cheapest and is already built.
+The rest of §2 stands: an operator still cannot create or reach a channel, because a project file
+is not a control surface. Phase 4's OSC and tool entries are still the work that fixes that.
 
 ---
 
@@ -130,36 +131,60 @@ loader/registry/lifecycle/audit work, and the hand-written effect tools.
 
 ---
 
-## 4. Phase 5 — audio wiring
+## 4. Phase 5 — audio wiring: DONE
 
-Scope per the plan's §9 row 5: calc engine (§6.4, including `setEffectOtomoOffset` and the cycle
-warning), MainComponent (§6.5, including Clear wiring), `LevelMeteringManager`, binaural kind
-guard, the otomo family adapter (offset sink) + second instance, `InputVisualisation` block,
-`ReverbNodePlacement::layout(standoff)`, the ownership latch and "Re-layout effects".
+Eight commits, each gated on a Release build, the `WFS_TEST_CHANNEL_LIST` self-test, the seven
+control replays with no golden regenerated, the two offline-render canaries, the kernel hashes and
+the dependency lint. Every new assertion was mutation-tested: the mechanism it names was broken,
+the build repeated, the assertion seen to fail, and the source restored from a backup rather than
+from git.
 
-**Anchors verified today:**
-
-| What | Where |
+| Commit | What it did |
 |---|---|
-| The render-budget flip (Phase 5's first commit) | `WFSParameterDefaults.h:27-28` (`maxRenderSources = 104`) and `WFSCalculationEngine.cpp:9-18` (the static_asserts) |
-| The 2-arg build call to switch to 3-arg | `MainComponent.cpp:6857` `recomputeRenderSourceCount()` |
-| The engine's property listener (blind to effects today) | `WFSCalculationEngine::valueTreePropertyChanged` — tests only `input*`/`output*`/`reverb*` identifiers and falls through |
-| Typed accessors the wiring should read through | `WFSValueTreeState.h`, the Effects Channel Access block |
+| render budget | `maxRenderSources = maxInputRenderSources + maxEffectChannels` = 136, asserted against spatcore's `kMaxRenderSourceSlots`. App-only, no spatcore edit, no rename. |
+| count refactor | `handleChannelCountChange()` reads all four counts from `parameters` instead of taking them; nine call sites, behaviour-neutral. |
+| calc engine | The engine knows an effect return is a source: return rows in the output and reverb matrices, the source-by-effect feed matrix at the effects budget's stride, kind-aware `getRenderSourcePosition`, the otomo offset, the solo masks, the feedback-cycle mask, and the listener groups that dirty them. |
+| render sources | `recomputeRenderSourceCount` builds the 3-argument map, so the returns become rows of the show everywhere `numRenderSources` is read. |
+| the engine runs | `Source/DSP/EffectsHost.h`: config, prepare and release, the pop into the render-source rows, the tree-to-POD cook with per-channel revisions and per-tick coalescing, and the telemetry. MainComponent wiring, ring depth, teardown order, the reload guard and `WFS_EFFECTS_TRACE`. |
+| AutomOtion | `AutomOtionFamily` makes the processor family-driven; the effects family animates an offset instead of writing a position. |
+| meters | The engine's per-channel peaks reach `LevelMeteringManager` (5 ms poll, max-hold, the input meter's ballistics, freshness from the batch counter), and the effect sends reach the Inputs-tab visualisation as a third group of bars. |
+| docs | This section, the plan's §12.7 and the architecture thread table. |
 
-**The render-budget flip is SMALLER than the plan says, and it belongs here, not in Phase 4.**
-spatcore v0.3.2 already defines `kMaxRenderSourceSlots = 136` and already sizes `desc` from it, so
-the fix is to point the app static_assert at **that** name and set `maxRenderSources = 136` —
-app-only, one commit, no spatcore edit, no rename. It was deliberately kept out of Phase 4 because
-it grows the WFS delay/level arrays and the reverb feed matrices from 104 to 136 rows for rows that
-stay zero until audio exists, and it would put the one commit that can change rendered output into
-a phase whose gate is "count 0, nothing changed". Here, `offline-render --check` over the 21
-baselines is a real gate.
+**The audio check, which is the only way to hear the wiring.** A throwaway copy of the
+control-replay fixture with `effectChannels="2"` in its system.xml, input 1 sent to effect 1 with
+its first EQ live, a sampler tone held on input 1 through `/remote/pad/touch`, a real Windows Audio
+endpoint injected into a backed-up copy of `WFS-DIY.settings`, and processing started by the app
+itself through `WFS_TEST_AUTOSTART_PROCESSING`, because the shell this runs from has no interactive
+desktop to long-press the button from. With `WFS_EFFECTS_TRACE=1` the session log then reads:
 
-**Phase 4's gates were tree-level for a reason that now reverses.** The calc engine's listener is
-blind to every effect identifier, so effects writes set no dirty flag and trigger no recompute —
-which is what made Phase 4 safe to land without audio, but also meant nothing would have told you
-an effects write reached the wrong node. From Phase 5 onward the audio gates can see the family,
-and `offline-render --check` becomes the primary gate.
+```
+Effects engine prepared: 2 effects, 10 sources (returns from slot 8), block 480 @ 48000 Hz, cushion 1 block(s), workers 1
+effects: batch=1236 lastUs=39.7 perWake=1 skips=0 wraps=0 clears=0 lockFail=0 workers=1 cushion=1
+  fx 1 feedPk=-30.6dB retPk=-25.9dB under=0 disc=0 nan=0 lg=0/- lat=0 rev=1
+  fx 2 feedPk=-120.0dB retPk=-120.0dB under=0 disc=0 nan=0 lg=0/- lat=0 rev=1
+```
+
+The batch counter advances at block rate, the return sits above the feed because the EQ band is
+what the signal went through, the effect nothing is sent to stays silent, and nothing underruns or
+trips the loop guard. Removing the notify to the driver freezes the batch counter at zero and
+climbs the underrun count into the thousands, so the check is load-bearing rather than decorative.
+
+The driver is `tools/validation/`-shaped but lives in the session scratchpad rather than the repo,
+because it injects a real audio endpoint into the user's settings file. Phase 8 is where it becomes
+a fixture.
+
+**offline-render is a canary here, not a gate.** It compiles zero app headers, so it cannot see the
+render-budget flip, the calculation engine or MainComponent. Its baseline holds 15 WFS/reverb
+hashes plus 11 effects hashes; five `stereo` combos have never been baselined and report MISSING on
+every run, which is pre-existing. What matters is that no combo MISMATCHes.
+
+**What phase Y and phase O of the self-test can and cannot assert.** A return row in minimal-latency
+mode is measured against its own row minimum, and the delay rule (the input's, parallax included)
+makes the source-dependent term identical across the row. On a rig whose outputs share a listening
+point the two cancel exactly: the row is flat at zero and stays there however far the return
+travels. A moved return therefore re-LEVELS its row in both modes but only re-TIMES it in
+absolute-latency mode, and the self-test says so in two separate checks rather than one that reads
+like an invariant and is not.
 
 ---
 
@@ -259,6 +284,40 @@ only one may build.
 ---
 
 ## 8. Known-open, none blocking
+
+**From Phase 5:**
+
+- **`effectArrayAtten1..10` is a zero-filled hook** (R5-4). The return rows apply a per-array trim
+  keyed by `outputArrayAssignments`, and every array trims by 0 dB until the identifiers land with
+  the control surface. Phase 6/7.
+- **Binaural monitoring mutes every effect return whenever any input is soloed**, which is the
+  reverb-tap rule and the user's decision of 2026-09-17. It holds by construction rather than by a
+  branch of its own: binaural gates a source on its OWNING CHANNEL's solo bit, a return owns no
+  input channel, and the bitmask reports false for -1. Binaural renders returns at their positions
+  through the same kind-aware accessor the WFS path uses, so the origin hazard is closed on both
+  paths. An effects solo mask of its own comes with the Effects tab.
+- **The reverb `handleConfigReloaded` gap is unchanged.** A project load whose reverb count differs
+  from the prepared one does not call `setNumNodes`, resize the buffers or re-prepare the return
+  processor. The effects path has the guard the reverb path lacks (it stops processing when the
+  prepared layout no longer matches); fixing the reverb twin was explicitly left out of scope.
+- **`effectsGlobal*` other than the loop-guard switch apply at the next Processing start**, because
+  the rest of them are config the engine reads in `prepare`.
+- **The binaural-only path never drives the effects engine.** It pops nothing and notifies nothing,
+  so returns are silent there.
+- **The engine's meters are peaks only.** `getEffectLevel` reports the same number as its RMS field
+  because the engine taps no mean square. The AutomOtion trigger on an effect therefore reads the
+  return row's render-source meter, which has a true one, rather than the engine tap.
+- **The engine's per-channel peaks have no ballistics of their own** and are overwritten every
+  batch, which is why the app polls them at 5 ms. Decayed peak atomics in spatcore would let the
+  poll go back to the metering tick. Follow-up, spatcore side.
+- **`maxFeedDelaySeconds` is a flat 1.0 s.** At 136 sources and 96 kHz that is about 52 MB of feed
+  history allocated in `prepare`, only when effect channels exist. A geometry-derived cap (the
+  longest published feed delay plus a block) is the follow-up.
+- **spatcore's `RenderSourceMap.h:113-119` comment and the `kMaxRenderSources` alias are stale** —
+  the alias still reads 104 while `kMaxRenderSourceSlots` is 136. Doc-only spatcore PR.
+- **The control-replay fixture stays at `effectChannels="0"`.** Phase 8.
+
+**From earlier phases:**
 
 - **The reverb EQ band accessor is unguarded and HAS live callers** — an unknown child in a reverb
   `<EQ>` makes a band write land on it and report success. The effects twin was fixed; the reverb

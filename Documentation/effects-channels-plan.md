@@ -1159,6 +1159,71 @@ of up to 30 ms at 48 kHz, which is by far the largest in the set and is absent f
 
 ---
 
+### 12.7 Revision-6: what the Phase 5 wiring forced back (2026-09-17)
+
+The corrections below come from wiring the engine into the application. Where this section and the
+body disagree, this section is right.
+
+- **R6-1 — the render budget is app-only.** spatcore v0.3.2 already defines
+  `kMaxRenderSourceSlots = 136` and sizes `desc` from it. The app mirrors that number and asserts
+  against that name; the `kMaxRenderSources` alias beside it is stale at 104 and is a doc-only
+  spatcore follow-up. No rename, no spatcore edit, one app commit.
+
+- **R6-2 — two grades of dirtiness, and the otomo offset uses the cheap one.**
+  `effectsDirty` re-times every input's feed row; `effectReturnsDirty` re-times only the return
+  rows, the effect-to-effect legs and the return-to-reverb legs. A moving return sets the second at
+  50 Hz and nothing else, which is what keeps a travelling return from re-timing the whole feed
+  matrix twenty times a second. The feed rows read the effect's BASE position for the same reason:
+  an effect whose feed chased its own movement would ride its own send level.
+
+- **R6-3 — per-channel mute is cooked, solo is masked.** `effectMute` goes into
+  `EffectChannelParams` and the engine fades the output with its modules still running, so a tail
+  survives the mute. `effectSolo` and the session's global effects solo cannot be expressed that
+  way (they silence rows the engine does not own), so they stay calculation-engine masks.
+
+- **R6-4 — a closed send keeps its geometry.** The feed cell of a send that is switched off carries
+  its delay and its HF at level zero, so opening a send does not teleport the tap. The cell is only
+  zeroed outright when the feed cone rejects the source, which is a different thing entirely.
+
+- **R6-5 — the feedback-cycle warning is session state.** The calculation engine walks the
+  effect-to-effect on-switch graph when the sends change and publishes a bitmask; the message thread
+  logs it on change. No tree property, nothing persisted.
+
+- **R6-6 — an effect return always comes home.** The AutomOtion family for effects has no Stay
+  property at all, and a family with no Stay returns. The authored position is where the operator
+  put that room in the show, so a movement that ended somewhere else would move the room itself,
+  silently and for good. The movement travels as an offset the calculation engine adds, and the
+  position properties are never written.
+
+- **R6-7 — an effect's audio trigger holds before it re-arms.** Half a second below the reset
+  threshold, because an effect return is fed by a chain with a tail and a tail that dips under the
+  threshold for one tick would re-arm mid-decay and fire the movement again on its own ring-out.
+  Inputs keep the zero hold they always had.
+
+- **R6-8 — the engine's meters are polled at 5 ms, not 20.** The engine overwrites its per-channel
+  peaks on every batch and gives them no ballistics, so the metering tick would step over three
+  batches out of four. The app max-holds between polls and then applies the input meter's decay.
+  Freshness comes from the engine's batch counter: a driver that stopped batching reads as silence
+  within 250 ms. Decayed peak atomics in spatcore would make the 5 ms poll unnecessary.
+
+- **R6-9 — the effects duty is not in `GpuPipelineStats`.** That struct is cleared wholesale
+  whenever nothing is on a GPU, which is the configuration the effects engine usually runs in, so
+  the fields the plan put there would have read zero exactly where they were needed. The effects
+  driver gets its own small struct.
+
+- **R6-10 — minimal latency hides a moving return's delay.** The return row's delay follows the
+  input rule, parallax included, so its source-dependent term is identical across the row; in
+  minimal-latency mode the row's own minimum is subtracted and the two cancel. On a rig whose
+  outputs share a listening point the row is flat at zero however far the return travels. A moved
+  return re-levels its row in both modes, and re-times it only in absolute-latency mode.
+
+- **R6-11 — `effectArrayAtten1..10` is a zero-filled hook.** The return rows apply the per-array
+  trim already; the identifiers arrive with the control surface (phase 6/7).
+
+- **R6-12 — the reverb reload gap is recorded, not fixed.** A project load whose reverb count
+  differs from the prepared one does not re-prepare the reverb engine. The effects path has the
+  guard the reverb path lacks. Out of scope by decision (user, 2026-09-17).
+
 ### 12.6 Revision-5: mute independence and channel bunches (user, 2026-09-17)
 
 The user described how effects channels are expected to be used in practice: grouped into
