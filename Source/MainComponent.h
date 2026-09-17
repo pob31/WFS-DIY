@@ -21,6 +21,7 @@
 #include "DSP/BinauralCalculationEngine.h"
 #include "DSP/BinauralProcessor.h"
 #include "DSP/HeadTrackerManager.h"
+#include "DSP/EffectsHost.h"
 #include "MidiSnapshotTrigger.h"
 #include "../spatcore/reverb/ReverbEngine.h"
 #include "../spatcore/reverb/ReverbFeedThread.h"
@@ -302,6 +303,14 @@ private:
     std::atomic<bool> muteReverbPre  { false };
     std::atomic<bool> muteReverbPost { false };
 
+    // Effects: session-only, set by nothing until the Effects tab and its OSC
+    // verbs exist. soloEffects is a calculation-engine mask on the direct rows
+    // (only the effect returns reach the speakers); muteEffectsPre silences
+    // the feed into every chain while the chains keep running, read on the
+    // audio thread exactly as muteReverbPre is.
+    std::atomic<bool> soloEffects { false };
+    std::atomic<bool> muteEffectsPre { false };
+
     // Parameter management system
     WfsParameters parameters;
 
@@ -373,6 +382,15 @@ private:
 
     // Reverb engine (thread-based DSP processing)
     std::unique_ptr<ReverbEngine> reverbEngine;
+
+    // The effects engine host (spatcore's EffectsEngine plus the cook, the pop
+    // and the config). Declared AFTER the calculation engine and the shared
+    // rings, so it is destroyed before both: the engine caches raw pointers
+    // into the rings and the feed matrices (see EffectsHost.h).
+    std::unique_ptr<EffectsHost> effectsHost;
+    bool effectsTraceEnabled = false;      // WFS_EFFECTS_TRACE: one telemetry block per second in the log
+    int effectsTraceTick = 0;
+    uint32_t lastLoggedEffectCycleMask = 0;
     juce::AudioBuffer<float> reverbFeedBuffer;    // numReverbs channels, accumulates per-node feed sums
     juce::AudioBuffer<float> reverbReturnBuffer;  // numReverbs channels, receives wet reverb output
     std::vector<float> reverbFeedTemp;            // Temporary per-sample feed accumulation

@@ -1980,6 +1980,15 @@ MainComponent::MainComponent()
     reverbEngine = std::make_unique<ReverbEngine>();
     reverbEngine->setWorkgroupCoordinator(&workgroupCoordinator);
 
+    // The effects engine host. Prepared by setupSharedInputFeed once the rings
+    // exist and effect channels do (an empty session runs no engine), released
+    // wherever the rings are cleared. The trace hook is a diagnostic: with
+    // WFS_EFFECTS_TRACE set, the engine's telemetry is logged once per second,
+    // which is how an audio check reads without a GUI.
+    effectsHost = std::make_unique<EffectsHost>(parameters.getValueTreeState());
+    effectsHost->setWorkgroupCoordinator(&workgroupCoordinator);
+    effectsTraceEnabled = std::getenv("WFS_EFFECTS_TRACE") != nullptr;
+
     // Initialize LFO Processor for input position modulation
     lfoProcessor = std::make_unique<LFOProcessor>(parameters.getValueTreeState(), 64);
 
@@ -6638,6 +6647,153 @@ void MainComponent::runChannelListSelfTest()
             vts.getEffectsState().setProperty(P::effectPositionsUserOwned, 0, nullptr);
     }
 
+    // ---- C: the cook - the tree transcribed into the engine's parameters ---
+    // No device and no audio: EffectsHost::cookChannel and buildConfig are
+    // pure, and the coalescing is observable through a probe host's own
+    // counters, prepared on synthetic rings and never started.
+    {
+        namespace P = WFSParameterIDs;
+        namespace D = WFSParameterDefaults;
+        using spatcore::effects::ChainOrder;
+        using spatcore::effects::EffectChannelParams;
+
+        const bool effectLatchBefore = vts.areEffectPositionsUserOwned();
+        vts.setNumEffectChannels(2);
+
+        ChainOrder order = spatcore::effects::kDefaultOrder;
+        bool orderOk = false;
+
+        // C1: a fresh channel cooks to the engine's defaults (which the app's
+        // defaults equal): every module bypassed, the declared order, and a
+        // spread of fields from the deepest nodes
+        {
+            const EffectChannelParams fresh {};
+            const EffectChannelParams p = EffectsHost::cookChannel(vts, 0, order, orderOk);
+            check(orderOk, "C1: the default chain order parses");
+            check(p.order == fresh.order && p.mute == 0 && p.chainBypass == 0, "C1: a fresh channel keeps the declared order, unmuted, chain live");
+            check(p.dist.bypass == 1 && p.eq[0].bypass == 1 && p.eq[1].bypass == 1 && p.dyn[0].bypass == 1
+                      && p.dyn[1].bypass == 1 && p.mod.bypass == 1 && p.phaser.bypass == 1 && p.trem.bypass == 1
+                      && p.reverb.bypass == 1 && p.delay.bypass == 1 && p.crush.bypass == 1,
+                  "C1: every module of a fresh channel is bypassed");
+            check(p.dist.driveDb == fresh.dist.driveDb && p.eq[1].freqHz[5] == fresh.eq[1].freqHz[5]
+                      && p.dyn[1].expScHiCutHz == fresh.dyn[1].expScHiCutHz && p.delay.tapTimeMs[7] == fresh.delay.tapTimeMs[7]
+                      && p.crush.ditherDb == fresh.crush.ditherDb && p.reverb.rt60 == fresh.reverb.rt60,
+                  "C1: a fresh channel's fields equal the engine's defaults down to the deepest nodes");
+        }
+
+        // C2: units are the tree's units - dB stays dB, per cent stays per cent
+        {
+            vts.setEffectParameter(0, P::effectDistDrive, 3.0f);
+            vts.setEffectParameter(0, P::effectTremDepth, 4.0f);
+            vts.setEffectParameter(0, P::effectDistMix, 40.0f);
+            vts.setEffectParameter(0, P::effectMute, 1);
+            vts.setEffectParameter(0, P::effectChainBypass, 1);
+            const EffectChannelParams p = EffectsHost::cookChannel(vts, 0, order, orderOk);
+            check(p.dist.driveDb == 3.0f, "C2: effectDistDrive lands in dist.driveDb, still in dB");
+            check(p.trem.depthDb == 4.0f, "C2: effectTremDepth lands in trem.depthDb, still in dB");
+            check(p.dist.mix == 40.0f, "C2: effectDistMix lands in dist.mix, still in per cent");
+            check(p.mute == 1 && p.chainBypass == 1, "C2: effectMute and effectChainBypass land in the POD");
+        }
+
+        // C3: instances and sub-indices land in their own cell and nowhere else
+        {
+            vts.getEffectEQBand(0, 1, 2).setProperty(P::effectEQgain, -2.5f, nullptr);
+            vts.getEffectEQBand(0, 0, 4).setProperty(P::effectEQshape, 0, nullptr);
+            vts.getEffectDynSection(0, 1).setProperty(P::effectDynCompThreshold, -30.0f, nullptr);
+            vts.getEffectDelayTap(0, 7).setProperty(P::effectDelayTapTime, 999.0f, nullptr);
+            const EffectChannelParams p = EffectsHost::cookChannel(vts, 0, order, orderOk);
+            check(p.eq[1].gainDb[2] == -2.5f && p.eq[0].gainDb[2] == 0.0f,
+                  "C3: EQ instance 2, band 3 lands in eq[1].gainDb[2] and nowhere else");
+            check(p.eq[0].shape[4] == 0 && p.eq[1].shape[4] == 5,
+                  "C3: EQ instance 1, band 5 lands in eq[0].shape[4] and nowhere else");
+            check(p.dyn[1].compThresholdDb == -30.0f && p.dyn[0].compThresholdDb == -20.0f,
+                  "C3: dynamics instance 2 lands in dyn[1] and nowhere else");
+            check(p.delay.tapTimeMs[7] == 999.0f && p.delay.tapTimeMs[6] == 2625.0f,
+                  "C3: tap 8 lands in delay.tapTimeMs[7] and nowhere else");
+        }
+
+        // C4: the chain order is parsed; a bad string keeps the last good one
+        {
+            vts.setEffectParameter(0, P::effectChainOrder, "crush,delay,reverb,trem,phaser,mod,dyn2,dyn1,eq2,eq1,dist");
+            EffectChannelParams p = EffectsHost::cookChannel(vts, 0, order, orderOk);
+            const ChainOrder reversed { 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+            check(orderOk && p.order == reversed, "C4: a reversed order string cooks to the reversed slot indices");
+            vts.getEffectChainSection(0).setProperty(P::effectChainOrder,
+                                                     "dist,dist,dist,dist,dist,dist,dist,dist,dist,dist,dist", nullptr);
+            p = EffectsHost::cookChannel(vts, 0, order, orderOk);
+            check(! orderOk && p.order == reversed, "C4: a bad order string is refused and the last good order stays");
+        }
+
+        // C5: the phaser stage snap (the tree bounds a range, the module builds 4/6/8/12)
+        {
+            vts.setEffectParameter(0, P::effectPhaserStages, 7);
+            EffectChannelParams p = EffectsHost::cookChannel(vts, 0, order, orderOk);
+            check(p.phaser.stages == 6, "C5: 7 phaser stages snap to 6 (nearest, ties down)");
+            vts.setEffectParameter(0, P::effectPhaserStages, 11);
+            p = EffectsHost::cookChannel(vts, 0, order, orderOk);
+            check(p.phaser.stages == 12, "C5: 11 phaser stages snap to 12");
+        }
+
+        // C6: the engine config from the globals and the layout
+        {
+            auto cfg = EffectsHost::buildConfig(vts, 48000.0, 256, 40, 3, 37);
+            check(cfg.matrixStride == D::maxEffectChannels, "C6: the feed stride is the effects budget, not the live count");
+            check(cfg.numSources == 40 && cfg.numEffects == 3 && cfg.firstEffectSourceRow == 37,
+                  "C6: sources, effects and the first return row are handed over");
+            check(cfg.returnCushionBlocks == -1, "C6: cushion 0 in the tree is auto (-1) for the engine");
+            vts.setParameter(P::effectsGlobalReturnCushion, 2);
+            vts.setParameter(P::effectsGlobalWorkerThreads, 3);
+            vts.setParameter(P::effectsGlobalLoopGuardCeiling, 9.0f);
+            vts.setParameter(P::effectsGlobalMaxDelaySeconds, 7);
+            cfg = EffectsHost::buildConfig(vts, 48000.0, 256, 40, 3, 37);
+            check(cfg.returnCushionBlocks == 2 && cfg.workerThreads == 3, "C6: the cushion and the workers follow the globals");
+            check(std::abs(cfg.loopGuardCeilingDb - 9.0f) < 1e-6f && std::abs(cfg.maxEffectDelaySeconds - 7.0) < 1e-9,
+                  "C6: the loop-guard ceiling and the delay cap follow the globals");
+            vts.setParameter(P::effectsGlobalReturnCushion, D::effectsGlobalReturnCushionDefault);
+            vts.setParameter(P::effectsGlobalWorkerThreads, D::effectsGlobalWorkerThreadsDefault);
+            vts.setParameter(P::effectsGlobalLoopGuardCeiling, D::effectsGlobalLoopGuardCeilingDefault);
+            vts.setParameter(P::effectsGlobalMaxDelaySeconds, D::effectsGlobalMaxDelaySecondsDefault);
+        }
+
+        // C7: coalescing - many writes on one channel, one publish. A probe
+        // host on the same tree, prepared on synthetic rings and never started.
+        {
+            EffectsHost probe(vts);
+            probe.takeDirtyMaskForTest();
+            for (int i = 0; i < 20; ++i)
+                vts.setEffectParameter(1, P::effectDistDrive, static_cast<float>(i));
+            vts.setEffectParameter(0, P::effectTremRate, 2.0f);
+            check(probe.takeDirtyMaskForTest() == 0x3u, "C7: twenty writes on channel 2 and one on channel 1 dirty exactly those two bits");
+            check(probe.takeDirtyMaskForTest() == 0u, "C7: taking the mask clears it");
+            vts.getEffectEQBand(1, 0, 0).setProperty(P::effectEQgain, 1.0f, nullptr);
+            check(probe.takeDirtyMaskForTest() == 0x2u, "C7: a band write under channel 2 dirties channel 2 only");
+
+            std::vector<std::unique_ptr<SharedInputRingBuffer>> rings;
+            for (int i = 0; i < 4; ++i)
+            {
+                auto r = std::make_unique<SharedInputRingBuffer>();
+                r->setSize(256 * 8);
+                rings.push_back(std::move(r));
+            }
+            check(probe.prepare(48000.0, 256, 4, 2, 2, rings), "C7: a host prepares on synthetic rings");
+            probe.takeDirtyMaskForTest();   // prepare marks every channel dirty; start the count clean
+            for (int i = 0; i < 20; ++i)
+                vts.setEffectParameter(1, P::effectDistDrive, static_cast<float>(i + 1));
+            const uint32_t rev0 = probe.getRevision(0);
+            const uint32_t rev1 = probe.getRevision(1);
+            probe.publishDirty();
+            check(probe.getRevision(1) == rev1 + 1, "C7: twenty writes on channel 2, exactly one publish");
+            check(probe.getRevision(0) == rev0, "C7: channel 1 untouched, not published");
+            probe.publishDirty();
+            check(probe.getRevision(1) == rev1 + 1, "C7: nothing dirty, nothing published");
+            probe.release();
+        }
+
+        vts.setNumEffectChannels(0);
+        if (! effectLatchBefore)
+            vts.getEffectsState().setProperty(P::effectPositionsUserOwned, 0, nullptr);
+    }
+
     logLine(failures == 0 ? juce::String("SELF-TEST RESULT: ALL PASS")
                           : "SELF-TEST RESULT: " + juce::String(failures) + " FAILURES");
 }
@@ -7047,6 +7203,10 @@ MainComponent::~MainComponent()
         reverbFeedThread->stopThread(1000);
         reverbFeedThread.reset();
     }
+    // The effects driver reads the shared rings and the calculation engine's
+    // matrices through raw pointers: join it before either can go away
+    if (effectsHost)
+        effectsHost->release();
     inputAlgorithm.releaseResources();
     outputAlgorithm.releaseResources();
 
@@ -7410,6 +7570,10 @@ void MainComponent::stopProcessingForConfigurationChange()
         reverbFeedThread->stopThread(1000);
         reverbFeedThread.reset();
     }
+    // The effects driver holds raw pointers into the rings: released BEFORE
+    // they are cleared, re-prepared by the next setupSharedInputFeed
+    if (effectsHost)
+        effectsHost->release();
     sharedInputBuffers.clear();
 
     if (reverbEngine)
@@ -8250,6 +8414,12 @@ void MainComponent::handleProcessingChange(bool enabled)
         if (reverbEngine)
             reverbEngine->stopProcessing();
 
+        // The effects engine stays prepared (the rings persist) but stops being
+        // notified; clear it so a tail frozen at the stop does not resume stale
+        // whenever processing comes back
+        if (effectsHost)
+            effectsHost->requestClear();
+
         // Switch binaural to private ring buffers so binaural-only path can use pushInput
         if (binauralProcessor)
             binauralProcessor->clearSharedInputBuffers();
@@ -8693,6 +8863,27 @@ void MainComponent::openProjectFromFile (const juce::File& folder)
                 // Update window title with project name
                 if (auto* window = findParentComponentOfClass<juce::DocumentWindow>())
                     window->setName (ProjectInfo::projectName + juce::String (" - ") + folder.getFileName());
+
+                // Diagnostic hook: WFS_TEST_AUTOSTART_PROCESSING starts
+                // processing once the project is open, through the same
+                // request the Stream Deck's start key makes. It exists for an
+                // audio check driven from a shell that has no interactive
+                // desktop to long-press the button from; the delay lets the
+                // audio device finish opening first. Never set in production.
+                if (std::getenv ("WFS_TEST_AUTOSTART_PROCESSING") != nullptr)
+                {
+                    // A named pointer: in a nested lambda's init-capture MSVC
+                    // resolves a bare `this` to the enclosing closure
+                    MainComponent* const self = this;
+                    juce::Timer::callAfterDelay (1500, [safe = juce::Component::SafePointer<MainComponent> (self)]
+                    {
+                        if (safe != nullptr && safe->systemConfigTab != nullptr)
+                        {
+                            WFSLogger::getInstance().logInfo ("WFS_TEST_AUTOSTART_PROCESSING: requesting processing start");
+                            safe->systemConfigTab->requestStartProcessing();
+                        }
+                    });
+                }
             }
             else
             {
@@ -8922,6 +9113,22 @@ void MainComponent::handleConfigReloaded()
     // per-render-source loop in timerCallback) walk the new one, writing past the
     // end of the vectors.
     countsChanged = countsChanged || (numRenderSources != previousRenderSources);
+
+    // A load that moves the effects engine's prepared layout - the effect
+    // count, or the slot the returns start at - needs rings the engine still
+    // reads rebuilt, which cannot happen under a running callback. Stop
+    // processing first: the stopped-engine contract every structural edit
+    // follows, and the operator restarts as after a count edit.
+    if (effectsHost && effectsHost->isPrepared()
+        && (parameters.getNumEffectChannels() != effectsHost->getPreparedEffectCount()
+            || renderSourceMap.firstEffectSlot != effectsHost->getFirstEffectSlot()))
+    {
+        WFSLogger::getInstance().logInfo ("Effects layout changed on reload ("
+                                          + juce::String (effectsHost->getPreparedEffectCount()) + " -> "
+                                          + juce::String (parameters.getNumEffectChannels())
+                                          + " effects) - processing stopped for the rebuild");
+        stopProcessingForConfigurationChange();
+    }
 
     if (countsChanged)
     {
@@ -10016,12 +10223,23 @@ void MainComponent::setupSharedInputFeed (int blockSize, double sampleRate)
         reverbFeedThread.reset();
     }
 
-    // Create shared input buffers (used by reverb feed thread and binaural)
+    // The effects driver reads the same rings through raw pointers: joined
+    // and freed before they are cleared, re-prepared below once they exist
+    if (effectsHost)
+        effectsHost->release();
+
+    // Create shared input buffers (used by the reverb feed thread, binaural and
+    // the effects engine). Depth: four blocks, eight when effect channels
+    // exist. The effects engine refuses a ring under two blocks
+    // (EffectsEngineCore::prepare) and detects a lap at capacity minus one
+    // block, so eight blocks tolerate a seven-block driver stall where four
+    // tolerate three - headroom paid only by sessions that have effects.
+    const int ringBlocks = renderSourceMap.numEffectChannels > 0 ? 8 : 4;
     sharedInputBuffers.clear();
     for (int i = 0; i < numRenderSources; ++i)
     {
         auto buf = std::make_unique<SharedInputRingBuffer>();
-        buf->setSize (blockSize * 4);
+        buf->setSize (blockSize * ringBlocks);
         sharedInputBuffers.push_back (std::move (buf));
     }
 
@@ -10053,6 +10271,27 @@ void MainComponent::setupSharedInputFeed (int blockSize, double sampleRate)
     // Wire binaural processor to shared input buffers (reads directly, no push needed)
     if (binauralProcessor && ! sharedInputBuffers.empty())
         binauralProcessor->setSharedInputBuffers (sharedInputBuffers);
+
+    // Start the effects engine: the chains run off the audio callback on their
+    // own realtime driver, fed from the rings just rebuilt, which is why it is
+    // prepared here and nowhere else. Only when effect channels exist - an
+    // empty session allocates nothing and runs no thread. prepare() joins any
+    // previous driver and does not restart it: the priority is the owner's
+    // choice, exactly as for the reverb feed thread above.
+    if (effectsHost && calculationEngine)
+    {
+        const int numEffects = renderSourceMap.numEffectChannels;
+        if (numEffects > 0 && renderSourceMap.firstEffectSlot >= 0 && ! sharedInputBuffers.empty())
+        {
+            if (effectsHost->prepare (sampleRate, blockSize, numRenderSources, renderSourceMap.firstEffectSlot,
+                                      numEffects, sharedInputBuffers))
+            {
+                effectsHost->setFeedMatrices (*calculationEngine, numRenderSources);
+                effectsHost->startRealtimeThread (juce::Thread::RealtimeOptions{}
+                                                      .withApproximateAudioProcessingTime (blockSize, sampleRate));
+            }
+        }
+    }
 
     // (Re)wire the GPU pipeline strip's reverb telemetry sources: the feed
     // thread was just rebuilt (or dropped when numReverbs == 0), so refresh
@@ -10553,6 +10792,15 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
             }
         }
 
+        // Effect returns: pop every return into its render-source row - after
+        // the input patch (which cleared the rows) and before anything reads
+        // them: the meters, the shared rings (through which the engine's own
+        // effect-to-effect feed sees block n) and the renderers. Silence when
+        // the engine is not ready or a return is late; never blocks.
+        if (effectsHost != nullptr && renderSourceMap.firstEffectSlot >= 0)
+            effectsHost->pullReturns (patchedInputBuffer, bufferToFill.startSample, bufferToFill.numSamples,
+                                      renderSourceMap.numEffectChannels);
+
         // Apply AutomOtion return fade gain (50ms fade out/in during position snap-back).
         // For a stereo-pair row the gain goes onto BOTH raw channels before
         // decomposition — a per-channel linear gain commutes with the
@@ -10597,7 +10845,8 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         // Write patched input to shared buffers + notify consumers (only when needed)
         {
             bool needSharedBuffers = (reverbFeedThread != nullptr)
-                                  || (binauralProcessor && binauralProcessor->isEnabled());
+                                  || (binauralProcessor && binauralProcessor->isEnabled())
+                                  || (effectsHost != nullptr && effectsHost->isReady());
 
             if (needSharedBuffers && !sharedInputBuffers.empty())
             {
@@ -10617,6 +10866,14 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
                 {
                     reverbFeedThread->setMuted(muteReverbPre.load(std::memory_order_relaxed));
                     reverbFeedThread->notifyInputAvailable();
+                }
+
+                // The engine's batch order: every row of block n is in its
+                // ring (the popped returns included) before the driver wakes
+                if (effectsHost != nullptr && effectsHost->isReady())
+                {
+                    effectsHost->setMuted (muteEffectsPre.load (std::memory_order_relaxed));
+                    effectsHost->notifyInputAvailable();
                 }
             }
         }
@@ -10964,6 +11221,10 @@ void MainComponent::releaseResources()
         reverbFeedThread.reset();
     }
 
+    // Same rule for the effects driver: join it before the rings it reads die
+    if (effectsHost)
+        effectsHost->release();
+
     // Stop the binaural worker and drop its raw pointers into sharedInputBuffers
     // BEFORE destroying the buffers below — the worker must not outlive what it reads.
     if (binauralProcessor)
@@ -11094,6 +11355,50 @@ void MainComponent::timerCallback()
             snapshotFolderPollTick = 0;
             if (parameters.getFileManager().getInputSnapshotsFolderSignature() != snapshotFolderSignature)
                 refreshMidiSnapshotBindings();
+        }
+    }
+
+    // Once per second, when asked for (WFS_EFFECTS_TRACE): the effects
+    // engine's telemetry - batches, duty, per-effect feed and return peaks,
+    // underruns, NaN trips, loop-guard state, chain latency. This is what makes
+    // an audio check readable from the session log with no GUI.
+    if (effectsTraceEnabled && ++effectsTraceTick >= 200) // 5 ms timer
+    {
+        effectsTraceTick = 0;
+        if (effectsHost != nullptr && effectsHost->isPrepared())
+        {
+            juce::String line = effectsHost->describeTelemetry();
+
+            // What the engine is fed with: the source meters of the first slots
+            // and the strongest calc-engine feed cell per live effect, so a
+            // silent feed can be told apart from a silent source
+            if (levelMeteringManager != nullptr)
+            {
+                line << "\n  srcPk=";
+                const int shown = juce::jmin (numRenderSources, 10);
+                for (int s = 0; s < shown; ++s)
+                    line << (s > 0 ? " " : "") << "s" << s << ":"
+                         << juce::String (levelMeteringManager->getInputLevel (s).peakDb, 1);
+            }
+            if (calculationEngine != nullptr)
+            {
+                const float* feedLevels = calculationEngine->getInputEffectLevels();
+                const int stride = calculationEngine->getNumEffects();
+                line << "\n  feedMax=";
+                for (int fx = 0; fx < renderSourceMap.numEffectChannels; ++fx)
+                {
+                    float best = 0.0f;
+                    int bestSlot = -1;
+                    for (int s = 0; s < numRenderSources; ++s)
+                    {
+                        const float v = feedLevels[static_cast<size_t> (s * stride + fx)];
+                        if (v > best) { best = v; bestSlot = s; }
+                    }
+                    line << (fx > 0 ? " " : "") << "fx" << (fx + 1) << ":"
+                         << juce::String (best, 4) << "@s" << bestSlot;
+                }
+            }
+            WFSLogger::getInstance().logInfo (line);
         }
     }
 
@@ -11682,6 +11987,11 @@ void MainComponent::timerCallback()
         // LS gains are supplied fresh each call (never cached by the engine).
         if (calculationEngine->recalculateMatrixIfDirty(lsTamerEngine ? lsTamerEngine->getLSGains() : nullptr))
         {
+            // The effects engine reads the feed triplet through raw pointers
+            // handed over at prepare; the six scalars are re-handed whenever a
+            // recalc ran, so the live source and effect counts follow the map
+            if (effectsHost != nullptr && effectsHost->isPrepared())
+                effectsHost->setFeedMatrices (*calculationEngine, numRenderSources);
 
             // Copy calculated values to target arrays
             // Note: Calculation engine uses maxOutputChannels (128) for stride,
@@ -11855,6 +12165,44 @@ void MainComponent::timerCallback()
                     lfoProcessor->getNormalizedX(selectedInput),
                     lfoProcessor->getNormalizedY(selectedInput),
                     lfoProcessor->getNormalizedZ(selectedInput));
+            }
+        }
+
+        // Effects, every 50 Hz tick: the direct-row solo mask, the loop-guard
+        // switch (the one global that applies live), the coalesced parameter
+        // publish (one cook per changed channel per tick), and the cycle log
+        if (calculationEngine != nullptr)
+            calculationEngine->setSoloEffects (soloEffects.load (std::memory_order_relaxed));
+
+        if (effectsHost != nullptr && effectsHost->isPrepared())
+        {
+            auto globals = parameters.getValueTreeState().getEffectsGlobalSection();
+            const bool loopGuard = static_cast<int> (globals.getProperty (WFSParameterIDs::effectsGlobalLoopGuard,
+                                                                          WFSParameterDefaults::effectsGlobalLoopGuardDefault)) != 0;
+            effectsHost->setLoopGuardEnabled (loopGuard);
+            effectsHost->publishDirty();
+        }
+
+        if (calculationEngine != nullptr)
+        {
+            const uint32_t cycleMask = calculationEngine->getEffectCycleMask();
+            if (cycleMask != lastLoggedEffectCycleMask)
+            {
+                if (cycleMask != 0)
+                {
+                    juce::StringArray members;
+                    for (int fx = 0; fx < WFSParameterDefaults::maxEffectChannels; ++fx)
+                        if ((cycleMask & (1u << fx)) != 0)
+                            members.add (juce::String (fx + 1));
+                    WFSLogger::getInstance().logWarning ("Effects: feedback cycle among effect channels "
+                                                         + members.joinIntoString (", ")
+                                                         + " (the loop guard catches runaway; the routing is yours)");
+                }
+                else
+                {
+                    WFSLogger::getInstance().logInfo ("Effects: no feedback cycle remains");
+                }
+                lastLoggedEffectCycleMask = cycleMask;
             }
         }
 

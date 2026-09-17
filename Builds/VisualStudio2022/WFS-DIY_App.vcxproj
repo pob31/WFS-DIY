@@ -3580,6 +3580,7 @@
     <ClInclude Include="..\..\spatcore\wfs\RenderSourceMap.h"/>
     <ClInclude Include="..\..\spatcore\dsp\StereoDecomposer.h"/>
     <ClInclude Include="..\..\Source\DSP\StereoChannelManager.h"/>
+    <ClInclude Include="..\..\Source\DSP\EffectsHost.h"/>
     <ClInclude Include="..\..\spatcore\wfs\OutputBufferAlgorithm.h"/>
     <ClInclude Include="..\..\spatcore\gpu\GpuAsyncPipeline.h"/>
     <ClInclude Include="..\..\spatcore\gpu\GpuBackendInterface.h"/>

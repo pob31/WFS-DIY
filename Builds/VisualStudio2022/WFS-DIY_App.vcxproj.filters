@@ -5172,6 +5172,9 @@
     <ClInclude Include="..\..\Source\DSP\StereoChannelManager.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\DSP\EffectsHost.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\spatcore\wfs\OutputBufferAlgorithm.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
