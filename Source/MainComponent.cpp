@@ -3579,8 +3579,8 @@ void MainComponent::runChannelListSelfTest()
 
         check(numbersUnique, juce::String(label) + ": numbers unique and positive");
         check(rows.size() == n, juce::String(label) + ": patch rows == live channels");
-        check(renderSourceMap.count == n + 5 * vts.getNumStereoInputChannels(),
-              juce::String(label) + ": render sources = N + 5*stereo");
+        check(renderSourceMap.count == n + 5 * vts.getNumStereoInputChannels() + vts.getNumEffectChannels(),
+              juce::String(label) + ": render sources = N + 5*stereo + effects");
     };
 
     logLine("SELF-TEST begin (channel list flow)");
@@ -6582,6 +6582,62 @@ void MainComponent::runChannelListSelfTest()
         }
     }
 
+    // ---- Z: the app's own map carries the effect returns -------------------
+    // recomputeRenderSourceCount builds with the live effect count, so a count
+    // change through the funnel every structural edit reaches must move
+    // numRenderSources, place the returns after the inputs and their slices,
+    // install the map in the calculation engine, and hand it the positions of
+    // channels that were built as detached subtrees (the listener never saw
+    // them). Everything the audio path sizes from numRenderSources follows.
+    {
+        namespace P = WFSParameterIDs;
+        using Kind = spatcore::wfs::SourceKind;
+
+        const int inputsBefore = vts.getNumInputChannels();
+        const int stereoBefore = vts.getNumStereoInputChannels();
+        const int sourcesBefore = numRenderSources;
+        const bool effectLatchBefore = vts.areEffectPositionsUserOwned();
+
+        // Latch first: with the latch off, setNumEffectChannels re-lays the
+        // ring on the attached nodes and the engine's listener sees those
+        // writes, which would let Z5 pass without the funnel's explicit
+        // re-read. With it on, a new channel keeps the placement it was born
+        // with on a detached node, and only the re-read can reach the engine.
+        vts.markEffectPositionsUserOwned();
+        vts.setNumEffectChannels(3);
+        reconfig();
+
+        const int firstFx = renderSourceMap.firstEffectSlot;
+        check(firstFx == inputsBefore + 5 * stereoBefore, "Z1: the returns follow the inputs and their slices");
+        check(renderSourceMap.count == firstFx + 3, "Z2: the map counts the three returns");
+        check(numRenderSources == renderSourceMap.count, "Z3: numRenderSources follows the map");
+        check(numRenderSources == sourcesBefore + 3, "Z3: ...and grew by exactly the effect count");
+
+        if (calculationEngine != nullptr)
+        {
+            check(calculationEngine->getSourceKind(firstFx) == Kind::EffectReturn,
+                  "Z4: the engine's installed map knows the return");
+
+            const auto rp = calculationEngine->getRenderSourcePosition(firstFx);
+            const float ex = static_cast<float>(static_cast<double>(vts.getEffectParameter(0, P::effectPositionX)));
+            const float ey = static_cast<float>(static_cast<double>(vts.getEffectParameter(0, P::effectPositionY)));
+            const float ez = static_cast<float>(static_cast<double>(vts.getEffectParameter(0, P::effectPositionZ)));
+            check(! (std::abs(ex) < 1e-4f && std::abs(ey) < 1e-4f),
+                  "Z5: a new channel's ring placement is not the origin");
+            check(std::abs(rp.x - ex) < 1e-4f && std::abs(rp.y - ey) < 1e-4f && std::abs(rp.z - ez) < 1e-4f,
+                  "Z5: the engine renders the return at that placement");
+        }
+
+        vts.setNumEffectChannels(0);
+        reconfig();
+        check(renderSourceMap.firstEffectSlot == -1, "Z6: no returns, no first slot");
+        check(renderSourceMap.count == inputsBefore + 5 * stereoBefore, "Z6: the map is back to the inputs and their slices");
+        check(numRenderSources == sourcesBefore, "Z6: numRenderSources is back");
+
+        if (! effectLatchBefore)
+            vts.getEffectsState().setProperty(P::effectPositionsUserOwned, 0, nullptr);
+    }
+
     logLine(failures == 0 ? juce::String("SELF-TEST RESULT: ALL PASS")
                           : "SELF-TEST RESULT: " + juce::String(failures) + " FAILURES");
 }
@@ -7148,9 +7204,16 @@ void MainComponent::recomputeRenderSourceCount()
         if (vts.isInputChannelStereo (i))
             channelTypes[static_cast<size_t> (i)] = Map::Stereo;
 
-    if (! Map::build (channelTypes.data(), numTypes, renderSourceMap))
+    // Effect returns are appended after every input slot and derived slice:
+    // the third argument is what makes them render sources of the show, and
+    // everything sized from numRenderSources (the routing matrices, the input
+    // buffer, the rings, the renderers, binaural) follows from it.
+    const int numEffects = juce::jlimit (0, (int) Map::kMaxEffectChannels, vts.getNumEffectChannels());
+    if (! Map::build (channelTypes.data(), numTypes, numEffects, renderSourceMap))
     {
-        WFSLogger::getInstance().logWarning ("Render-source map build failed — treating every channel as mono");
+        WFSLogger::getInstance().logWarning ("Render-source map build failed (" + juce::String (numTypes) + " inputs, "
+                                             + juce::String (numEffects)
+                                             + " effects) - treating every channel as mono, with no effect returns");
         const bool ok = Map::buildIdentity (numTypes, renderSourceMap);
         jassert (ok);
         juce::ignoreUnused (ok);
@@ -8289,6 +8352,14 @@ void MainComponent::handleChannelCountChange()
                                        &workgroupCoordinator);
     }
 
+    // Effect channels are built as whole subtrees (a detached node, then
+    // appended), so the calculation engine's property listener never saw
+    // their positions: re-read them here, as the reverb positions are
+    // re-read on a reload. Marks the effects dirty, which the full recalc
+    // below consumes.
+    if (calculationEngine != nullptr)
+        calculationEngine->recalculateAllEffectPositions();
+
     // Refresh all tabs to update channel selectors
     if (inputsTab != nullptr)
     {
@@ -9004,6 +9075,7 @@ void MainComponent::handleConfigReloaded()
         calculationEngine->recalculateAllListenerPositions();
         calculationEngine->recalculateAllInputPositions();
         calculationEngine->recalculateAllReverbPositions();
+        calculationEngine->recalculateAllEffectPositions();
 
         // Debug: Print speaker positions after reload
         juce::Logger::writeToLog("=== Speaker Positions After Config Reload ===");
