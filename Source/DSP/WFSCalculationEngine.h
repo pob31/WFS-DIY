@@ -5,6 +5,9 @@
 #include "../Parameters/WFSValueTreeState.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
+#include <array>
+#include <atomic>
+#include <cstdint>
 
 //==============================================================================
 /**
@@ -273,6 +276,74 @@ public:
     /** Get pointer to reverb→output HF attenuation array (dB). Size = numReverbs * numOutputs */
     const float* getReverbOutputHFAttenuationDb() const { return reverbOutputHFAttenuationDb.data(); }
 
+    //==========================================================================
+    // Effects channels
+    //==========================================================================
+    // An effect return is a render source: its rows of the in x out and the
+    // in x reverb matrices are computed here, at slots [firstEffectSlot, count)
+    // of the installed render-source map, by the same delay-and-sum contract
+    // as an input's. Its FEED is the source x effect matrix below, which the
+    // effects engine consumes exactly as the reverb feed thread consumes the
+    // in x reverb triplet. Two positions per effect: the FEED position (the
+    // channel's base position, what its feed geometry is computed against)
+    // and the RETURN position (base + return offset + the AutomOtion offset),
+    // which is where the return rows and the effect-to-effect feeds travel
+    // from. Keeping the feed on the base position is what stops a moving
+    // return from chasing its own trigger level.
+
+    /** Cached effect feed position (the channel's base position). */
+    Position getEffectFeedPosition (int effectIndex) const;
+
+    /** Composite effect return position: base + return offset + AutomOtion
+        offset, as last rendered. */
+    Position getEffectReturnPosition (int effectIndex) const;
+
+    /** Re-read every effect position from the tree; marks the effects dirty.
+        Call after the effect count changed or a project was loaded. */
+    void recalculateAllEffectPositions();
+
+    /** AutomOtion offset of an effect return (50 Hz; the twin of setLFOOffset).
+        Moves the RETURN only. Marks the return rows dirty when it changed. */
+    void setEffectOtomoOffset (int effectIndex, float x, float y, float z);
+    Position getEffectOtomoOffset (int effectIndex) const;
+
+    /** Global "solo effects": every INPUT row of the in x out matrix is zeroed
+        so only the effect returns reach the speakers. The feeds are not masked
+        (solo is monitoring, not routing) and the reverb feeds keep running,
+        which mirrors soloReverbs. Marks every input dirty when it changed. */
+    void setSoloEffects (bool soloed);
+    bool getSoloEffects() const { return soloEffectsGlobal.load(); }
+
+    /** Kind of a render source: Input for every input slot and derived slice,
+        EffectReturn for a return row; Input when out of range. Thread-safe. */
+    spatcore::wfs::SourceKind getSourceKind (int sourceIndex) const;
+
+    /** Effect channel owning a return row, or -1 for any other source. */
+    int getOwningEffectChannel (int sourceIndex) const;
+
+    /** The stride of the source x effect matrices: the effects BUDGET, never
+        the live count - the engine reads cells at [source * stride + effect]
+        and is told this stride, so the two cannot disagree. */
+    int getNumEffects() const { return numEffects; }
+
+    /** Source x effect feed matrices (thread-safe read while the pointer is
+        held; the vectors are never reallocated). Index
+        [sourceIndex * numEffects + effectIndex]; rows = every render source
+        (inputs, derived slices, effect returns), size maxRenderSources *
+        numEffects. The level already carries geometry x the user send cell x
+        the on/off switch. The delay is carried even for a CLOSED cell, so the
+        engine's tap does not teleport when the cell opens. */
+    const float* getInputEffectDelayTimesMs() const { return inputEffectDelayTimesMs.data(); }
+    const float* getInputEffectLevels() const { return inputEffectLevels.data(); }
+    const float* getInputEffectHFAttenuationDb() const { return inputEffectHFAttenuationDb.data(); }
+
+    /** Bit n set while effect n sits inside a cycle of the effect-to-effect
+        on-switch graph (A feeds B feeds A). Recomputed whenever a send row
+        changes; message-thread state for a badge and a log line, never a tree
+        property. The audio side takes no action on it - the user owns the
+        loops, and the engine's loop guard handles runaway. */
+    uint32_t getEffectCycleMask() const { return effectCycleMask.load(); }
+
 private:
     //==========================================================================
     // ValueTree::Listener overrides
@@ -336,6 +407,21 @@ private:
     /** Check if reverb→output routing is muted (reverbMutes array) */
     bool isReverbOutputMuted (int reverbIndex, int outputIndex) const;
 
+    /** Update cached effect positions from parameters (positionLock held). */
+    void updateEffectFeedPosition (int effectIndex);
+    void updateEffectReturnPosition (int effectIndex);
+
+    /** Find effect index from ValueTree: walk up to the <Effect> node, then the
+        same count-by-type walk getEffectState uses. -1 when not under one. */
+    int findEffectIndexFromTree (const juce::ValueTree& tree) const;
+
+    /** The cone law the output and reverb-feed angular attenuations apply, on
+        explicit parameters rather than a tree section: 1 within angleOn of the
+        node's REAR axis, 0 within angleOff of its front axis, linear between.
+        Used for the effect feeds, whose parameters are read once per recalc. */
+    static float coneAttenuation (int orientationDeg, int pitchDeg, int angleOnDeg, int angleOffDeg,
+                                  const Position& sourcePos, const Position& nodePos);
+
     //==========================================================================
     // State
     //==========================================================================
@@ -397,6 +483,21 @@ private:
     std::vector<float> reverbOutputLevels;
     std::vector<float> reverbOutputHFAttenuationDb;
 
+    // Effects. numEffects is the BUDGET (the feed stride), never the live count;
+    // the live count is the installed render-source map's numEffectChannels.
+    int numEffects = 0;
+    std::vector<Position> effectFeedPositions;             // [effectIndex] base position (positionLock)
+    std::vector<Position> effectReturnPositions;           // [effectIndex] base + return offset (positionLock)
+    std::vector<Position> effectOtomoOffsets;              // [effectIndex] AutomOtion offset, 50 Hz (positionLock)
+    std::vector<Position> compositeEffectReturnPositions;  // [effectIndex] what the last recalc rendered (positionLock)
+    std::vector<float> effectCommonAttenAdjustments;       // [effectIndex] the return rows' lift, reused by the feeds
+                                                           // (message thread only - written and read by recalculateMatrix)
+
+    // Source → Effect feed matrix results [sourceIndex * numEffects + effectIndex]
+    std::vector<float> inputEffectDelayTimesMs;
+    std::vector<float> inputEffectLevels;
+    std::vector<float> inputEffectHFAttenuationDb;
+
     // Thread safety
     mutable juce::CriticalSection positionLock;
     mutable juce::CriticalSection matrixLock;
@@ -406,6 +507,18 @@ private:
     std::atomic<bool> outputsDirty { true };          // Output positions changed (affects all inputs)
     std::atomic<bool> reverbsDirty { true };          // Reverb positions changed
     std::vector<bool> inputDirtyFlags;                // Per-input dirty flags (protected by positionLock)
+
+    // Effects dirtiness, in two grades. effectsDirty = a feed position or a feed
+    // parameter changed, which re-times every source's feed row (as a reverb
+    // edit re-times every input). effectReturnsDirty = only the RETURN moved
+    // or a return/channel parameter changed - the return rows, the
+    // return -> reverb rows and the effect -> effect feeds, but no input row;
+    // this is what a running AutomOtion sets at 50 Hz, and it must stay cheap.
+    std::atomic<bool> effectsDirty { true };
+    std::atomic<bool> effectReturnsDirty { true };
+    std::atomic<bool> effectSendsDirty { true };      // A send row changed: rebuild gains + the cycle mask
+    std::atomic<bool> soloEffectsGlobal { false };
+    std::atomic<uint32_t> effectCycleMask { 0 };
 
     // Speed of sound (m/s)
     static constexpr float speedOfSound = 343.0f;

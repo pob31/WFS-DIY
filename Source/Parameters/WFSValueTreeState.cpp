@@ -608,6 +608,11 @@ juce::ValueTree WFSValueTreeState::getEffectsState() const
     return state.getChildWithName (Effects);
 }
 
+juce::ValueTree WFSValueTreeState::getEffectsGlobalSection() const
+{
+    return getConfigState().getChildWithName (EffectsGlobal);
+}
+
 juce::ValueTree WFSValueTreeState::getEffectState (int channelIndex)
 {
     // THE SAME COUNT-BY-TYPE WALK getReverbState does, and for the same reason
@@ -2138,6 +2143,53 @@ bool WFSValueTreeState::setEffectFxSendOnFromEffect (int channelIndex, int sourc
         return false;   // see setEffectFxSendLevelFromEffect
 
     return writeEffectSendCell (channelIndex, effectFxSendOns, sourceEffectIndex, on ? "1" : "0");
+}
+
+void WFSValueTreeState::readEffectSendRows (int channelIndex,
+                                            std::array<float, maxInputChannels>& inLevelsDb,
+                                            std::array<uint8_t, maxInputChannels>& inOns,
+                                            std::array<float, maxEffectChannels>& fxLevelsDb,
+                                            std::array<uint8_t, maxEffectChannels>& fxOns) const
+{
+    inLevelsDb.fill (effectSendLevelDefault);
+    inOns.fill (0);
+    fxLevelsDb.fill (effectFxSendLevelDefault);
+    fxOns.fill (0);
+
+    auto sends = const_cast<WFSValueTreeState*> (this)->getEffectSendsSection (channelIndex);
+    if (! sends.isValid())
+        return;
+
+    // Canonicalised on the way out, as readEffectSendCell does, so a short or
+    // hand-edited row answers for every column it is supposed to have. The self
+    // index is the channel's own dense index: this section came from it, so
+    // the fx diagonal is forced off before anyone downstream can read it.
+    auto unpackLevels = [&] (const juce::Identifier& rowId, float* dest, int width)
+    {
+        if (! sends.hasProperty (rowId))
+            return;
+
+        juce::StringArray tokens;
+        tokens.addTokens (canonicalEffectSendRow (rowId, sends.getProperty (rowId), channelIndex), ",", "");
+        for (int i = 0; i < width && i < tokens.size(); ++i)
+            dest[i] = tokens[i].getFloatValue();
+    };
+
+    auto unpackSwitches = [&] (const juce::Identifier& rowId, uint8_t* dest, int width)
+    {
+        if (! sends.hasProperty (rowId))
+            return;
+
+        juce::StringArray tokens;
+        tokens.addTokens (canonicalEffectSendRow (rowId, sends.getProperty (rowId), channelIndex), ",", "");
+        for (int i = 0; i < width && i < tokens.size(); ++i)
+            dest[i] = tokens[i].getIntValue() != 0 ? 1 : 0;
+    };
+
+    unpackLevels   (effectSendLevels,   inLevelsDb.data(), maxInputChannels);
+    unpackSwitches (effectSendOns,      inOns.data(),      maxInputChannels);
+    unpackLevels   (effectFxSendLevels, fxLevelsDb.data(), maxEffectChannels);
+    unpackSwitches (effectFxSendOns,    fxOns.data(),      maxEffectChannels);
 }
 
 void WFSValueTreeState::zeroEffectSendColumnsForInput (int inputPermanentNumber)

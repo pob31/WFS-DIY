@@ -112,6 +112,22 @@ WFSCalculationEngine::WFSCalculationEngine (WFSValueTreeState& state)
     reverbOutputLevels.resize (reverbOutputSize, 0.0f);
     reverbOutputHFAttenuationDb.resize (reverbOutputSize, 0.0f);
 
+    // Effects: the feed matrices are strided by the effects BUDGET (the engine
+    // reads cells at [source * stride + effect] and is told this stride), with
+    // a row for every render source in the budget - inputs, derived slices and
+    // effect returns alike.
+    numEffects = maxEffectChannels;
+    effectFeedPositions.resize (static_cast<size_t> (numEffects));
+    effectReturnPositions.resize (static_cast<size_t> (numEffects));
+    effectOtomoOffsets.resize (static_cast<size_t> (numEffects));
+    compositeEffectReturnPositions.resize (static_cast<size_t> (numEffects));
+    effectCommonAttenAdjustments.resize (static_cast<size_t> (numEffects), 0.0f);
+
+    const size_t inputEffectSize = static_cast<size_t> (maxRenderSources * numEffects);
+    inputEffectDelayTimesMs.resize (inputEffectSize, 0.0f);
+    inputEffectLevels.resize (inputEffectSize, 0.0f);
+    inputEffectHFAttenuationDb.resize (inputEffectSize, 0.0f);
+
     // Initialize per-input dirty flags (all dirty initially)
     inputDirtyFlags.resize (static_cast<size_t> (numInputs), true);
 
@@ -119,6 +135,7 @@ WFSCalculationEngine::WFSCalculationEngine (WFSValueTreeState& state)
     recalculateAllListenerPositions();
     recalculateAllInputPositions();
     recalculateAllReverbPositions();
+    recalculateAllEffectPositions();
 
     // Initial matrix calculation (no Live Source Tamer exists yet — unity gains)
     recalculateMatrix (nullptr);
@@ -189,6 +206,11 @@ void WFSCalculationEngine::setRenderSourceMap (const spatcore::wfs::RenderSource
                 channelIntrinsicLatencyMs[static_cast<size_t> (i)] = 0.0f;
     }
     markAllInputsDirty();
+
+    // A new layout moves the return rows (their slots follow the input count),
+    // and rows the previous layout wrote are stale where they now sit.
+    effectsDirty.store (true);
+    effectReturnsDirty.store (true);
 }
 
 void WFSCalculationEngine::setChannelIntrinsicLatency (int inputChannel, float latencyMs)
@@ -259,6 +281,21 @@ WFSCalculationEngine::Position WFSCalculationEngine::getRenderSourcePosition (in
         return {};
 
     const auto& d = sourceMap.desc[static_cast<size_t> (sourceIndex)];
+
+    // An effect return renders at its composite return position: base +
+    // return offset + AutomOtion offset. Its owningInputChannel is -1, so
+    // without this branch it would fall through to the origin - where every
+    // silent return sat through Phase 4, and where a return WITH signal must
+    // never be placed (binaural reads this for every source it renders).
+    if (d.kind == spatcore::wfs::SourceKind::EffectReturn)
+    {
+        const int fx = d.owningEffectChannel;
+        if (fx < 0 || fx >= static_cast<int> (compositeEffectReturnPositions.size()))
+            return {};
+
+        return compositeEffectReturnPositions[static_cast<size_t> (fx)];
+    }
+
     const int owning = d.owningInputChannel;
     if (owning < 0 || owning >= static_cast<int> (compositeInputPositions.size()))
         return {};
@@ -752,6 +789,200 @@ void WFSCalculationEngine::updateReverbReturnPosition (int reverbIndex)
 }
 
 //==============================================================================
+// Effects: positions, offsets, kinds
+//==============================================================================
+
+WFSCalculationEngine::Position WFSCalculationEngine::getEffectFeedPosition (int effectIndex) const
+{
+    if (effectIndex < 0 || effectIndex >= numEffects)
+        return {};
+
+    const juce::ScopedLock sl (positionLock);
+    return effectFeedPositions[static_cast<size_t> (effectIndex)];
+}
+
+WFSCalculationEngine::Position WFSCalculationEngine::getEffectReturnPosition (int effectIndex) const
+{
+    if (effectIndex < 0 || effectIndex >= numEffects)
+        return {};
+
+    const juce::ScopedLock sl (positionLock);
+    return compositeEffectReturnPositions[static_cast<size_t> (effectIndex)];
+}
+
+void WFSCalculationEngine::recalculateAllEffectPositions()
+{
+    {
+        const juce::ScopedLock sl (positionLock);
+
+        for (int i = 0; i < numEffects; ++i)
+        {
+            updateEffectFeedPosition (i);
+            updateEffectReturnPosition (i);
+        }
+
+        // The composite is what the next recalc will render; refreshed here so
+        // a reader between now and then (binaural, the Map) sees the new base
+        // rather than the previous show's.
+        for (size_t i = 0; i < compositeEffectReturnPositions.size(); ++i)
+        {
+            const Position& r = effectReturnPositions[i];
+            const Position& o = effectOtomoOffsets[i];
+            compositeEffectReturnPositions[i] = { r.x + o.x, r.y + o.y, r.z + o.z };
+        }
+    }
+
+    effectsDirty.store (true);
+    effectReturnsDirty.store (true);
+    matrixDirty.store (true);
+}
+
+void WFSCalculationEngine::updateEffectFeedPosition (int effectIndex)
+{
+    // Note: assumes positionLock is already held. A slot past the live count
+    // has no section and reads the defaults, exactly as the reverb twin does.
+    auto positionSection = valueTreeState.getEffectPositionSection (effectIndex);
+
+    Position& feedPos = effectFeedPositions[static_cast<size_t> (effectIndex)];
+    feedPos.x = positionSection.getProperty (effectPositionX, effectPositionDefault);
+    feedPos.y = positionSection.getProperty (effectPositionY, effectPositionDefault);
+    feedPos.z = positionSection.getProperty (effectPositionZ, effectPositionDefault);
+}
+
+void WFSCalculationEngine::updateEffectReturnPosition (int effectIndex)
+{
+    // Note: assumes positionLock is already held. Return = feed + offset; the
+    // AutomOtion offset is added on top at recalc time, never stored here, so
+    // a stored position is never contaminated by a movement.
+    auto positionSection = valueTreeState.getEffectPositionSection (effectIndex);
+
+    const Position& feedPos = effectFeedPositions[static_cast<size_t> (effectIndex)];
+
+    const float offsetX = positionSection.getProperty (effectReturnOffsetX, effectReturnOffsetDefault);
+    const float offsetY = positionSection.getProperty (effectReturnOffsetY, effectReturnOffsetDefault);
+    const float offsetZ = positionSection.getProperty (effectReturnOffsetZ, effectReturnOffsetDefault);
+
+    Position& returnPos = effectReturnPositions[static_cast<size_t> (effectIndex)];
+    returnPos.x = feedPos.x + offsetX;
+    returnPos.y = feedPos.y + offsetY;
+    returnPos.z = feedPos.z + offsetZ;
+}
+
+void WFSCalculationEngine::setEffectOtomoOffset (int effectIndex, float x, float y, float z)
+{
+    if (effectIndex < 0 || effectIndex >= numEffects)
+        return;
+
+    const juce::ScopedLock sl (positionLock);
+    auto& offset = effectOtomoOffsets[static_cast<size_t> (effectIndex)];
+
+    // Only mark dirty if the offset actually changed (with small tolerance)
+    constexpr float epsilon = 0.0001f;
+    if (std::abs (offset.x - x) > epsilon ||
+        std::abs (offset.y - y) > epsilon ||
+        std::abs (offset.z - z) > epsilon)
+    {
+        offset.x = x;
+        offset.y = y;
+        offset.z = z;
+        // The return moved and nothing else: the cheap grade of dirtiness.
+        // The feed rows keep reading the base position, which is the point.
+        effectReturnsDirty.store (true);
+        matrixDirty.store (true);
+    }
+}
+
+WFSCalculationEngine::Position WFSCalculationEngine::getEffectOtomoOffset (int effectIndex) const
+{
+    if (effectIndex < 0 || effectIndex >= numEffects)
+        return {};
+
+    const juce::ScopedLock sl (positionLock);
+    return effectOtomoOffsets[static_cast<size_t> (effectIndex)];
+}
+
+void WFSCalculationEngine::setSoloEffects (bool soloed)
+{
+    if (soloEffectsGlobal.exchange (soloed) == soloed)
+        return;
+
+    // The mask lives in the input rows' final level pass, so every input row
+    // has to be rebuilt; the return rows do not change.
+    markAllInputsDirty();
+}
+
+spatcore::wfs::SourceKind WFSCalculationEngine::getSourceKind (int sourceIndex) const
+{
+    const juce::ScopedLock sl (positionLock);
+
+    if (sourceIndex < 0 || sourceIndex >= sourceMap.count)
+        return spatcore::wfs::SourceKind::Input;
+
+    return sourceMap.desc[static_cast<size_t> (sourceIndex)].kind;
+}
+
+int WFSCalculationEngine::getOwningEffectChannel (int sourceIndex) const
+{
+    const juce::ScopedLock sl (positionLock);
+
+    if (sourceIndex < 0 || sourceIndex >= sourceMap.count)
+        return -1;
+
+    const auto& d = sourceMap.desc[static_cast<size_t> (sourceIndex)];
+    return d.kind == spatcore::wfs::SourceKind::EffectReturn ? d.owningEffectChannel : -1;
+}
+
+float WFSCalculationEngine::coneAttenuation (int orientationDeg, int pitchDeg, int angleOnDeg, int angleOffDeg,
+                                             const Position& sourcePos, const Position& nodePos)
+{
+    // The reverb-feed law, operation for operation
+    // (calculateReverbFeedAngularAttenuation), on explicit parameters.
+    if (angleOnDeg >= 90)
+        return 1.0f;
+
+    constexpr float degToRad = juce::MathConstants<float>::pi / 180.0f;
+    const float orientationRad = static_cast<float> (orientationDeg) * degToRad;
+    const float pitchRad = static_cast<float> (pitchDeg) * degToRad;
+    const float angleOnRad = static_cast<float> (angleOnDeg) * degToRad;
+    const float angleOffRad = static_cast<float> (angleOffDeg) * degToRad;
+
+    const float cosPitch = std::cos (pitchRad);
+    const float sinPitch = std::sin (pitchRad);
+
+    const float rearDirX = -cosPitch * std::sin (orientationRad);
+    const float rearDirY = cosPitch * std::cos (orientationRad);
+    const float rearDirZ = sinPitch;
+
+    const float dx = sourcePos.x - nodePos.x;
+    const float dy = sourcePos.y - nodePos.y;
+    const float dz = sourcePos.z - nodePos.z;
+    const float distance = std::sqrt (dx * dx + dy * dy + dz * dz);
+
+    if (distance < 0.001f)
+        return 1.0f;
+
+    float dotProduct = (dx * rearDirX + dy * rearDirY + dz * rearDirZ) / distance;
+    dotProduct = juce::jlimit (-1.0f, 1.0f, dotProduct);
+
+    const float angle = std::acos (dotProduct);
+
+    if (angle <= angleOnRad)
+        return 1.0f;
+
+    const float muteAngle = juce::MathConstants<float>::pi - angleOffRad;
+
+    if (angle >= muteAngle)
+        return 0.0f;
+
+    const float transitionWidth = muteAngle - angleOnRad;
+    if (transitionWidth <= 0.0f)
+        return 1.0f;
+
+    const float progress = (angle - angleOnRad) / transitionWidth;
+    return 1.0f - progress;
+}
+
+//==============================================================================
 // Matrix Calculation
 //==============================================================================
 
@@ -1087,9 +1318,18 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
     spatcore::wfs::RenderSourceMap localSourceMap;
     std::vector<float> localChannelLatencyMs;
 
+    // Effects: feed (base) positions and composite return positions, copied
+    // under the lock so the three effect passes see one consistent set
+    std::vector<Position> localEffectFeedPositions;
+    std::vector<Position> localEffectReturnPositions;
+
     // Capture dirty state and clear flags
     bool needOutputRecalc = outputsDirty.exchange(false);
     bool needReverbRecalc = reverbsDirty.exchange(false);
+    const bool needEffectRecalc = effectsDirty.exchange (false);
+    const bool needReturnRecalc = effectReturnsDirty.exchange (false) || needEffectRecalc;
+    const bool sendsChanged = effectSendsDirty.exchange (false);
+    const bool soloGlobal = soloEffectsGlobal.load();
 
     {
         const juce::ScopedLock sl (positionLock);
@@ -1098,6 +1338,19 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
         localListenerPositions = listenerPositions;
         localReverbFeedPositions = reverbFeedPositions;
         localReverbReturnPositions = reverbReturnPositions;
+
+        // Effect feed = base; effect return = base + return offset + the
+        // AutomOtion offset. The composite is published for binaural and the
+        // Map, the twin of compositeInputPositions below.
+        localEffectFeedPositions = effectFeedPositions;
+        localEffectReturnPositions.resize (effectReturnPositions.size());
+        for (size_t i = 0; i < effectReturnPositions.size(); ++i)
+        {
+            const Position& r = effectReturnPositions[i];
+            const Position& o = effectOtomoOffsets[i];
+            localEffectReturnPositions[i] = { r.x + o.x, r.y + o.y, r.z + o.z };
+        }
+        compositeEffectReturnPositions = localEffectReturnPositions;
 
         // Apply flip transformation and regular offset (before LFO)
         for (size_t i = 0; i < localInputPositions.size(); ++i)
@@ -1169,11 +1422,14 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
         localCommonAttenRampTimeRemaining = commonAttenRampTimeRemaining;
 
         // Capture and clear per-input dirty flags
-        // If outputs or reverbs changed, ALL inputs need recalculation
+        // If outputs, reverbs or effect feeds changed, ALL inputs need
+        // recalculation (an effect's feed position or cone re-times every
+        // source's feed row, as a reverb node's does)
         inputsToRecalc.resize(static_cast<size_t>(numInputs));
         for (int i = 0; i < numInputs; ++i)
         {
-            inputsToRecalc[static_cast<size_t>(i)] = needOutputRecalc || needReverbRecalc || inputDirtyFlags[static_cast<size_t>(i)];
+            inputsToRecalc[static_cast<size_t>(i)] = needOutputRecalc || needReverbRecalc || needEffectRecalc
+                                                     || inputDirtyFlags[static_cast<size_t>(i)];
             inputDirtyFlags[static_cast<size_t>(i)] = false;
         }
     }
@@ -1235,6 +1491,105 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
         newReverbOutputLevels = reverbOutputLevels;
         newReverbOutputHF = reverbOutputHFAttenuationDb;
     }
+
+    // Temporary arrays for Source → Effect Feed calculations (a row for every
+    // render source; seeded from the live matrices so untouched rows survive)
+    std::vector<float> newInputEffectDelays;
+    std::vector<float> newInputEffectLevels;
+    std::vector<float> newInputEffectHF;
+    {
+        const juce::ScopedLock sl (matrixLock);
+        newInputEffectDelays = inputEffectDelayTimesMs;
+        newInputEffectLevels = inputEffectLevels;
+        newInputEffectHF = inputEffectHFAttenuationDb;
+    }
+
+    // ==========================================================================
+    // EFFECTS: PER-CHANNEL PARAMETERS, READ ONCE
+    // ==========================================================================
+    // Shared by the three effect passes below (the return rows, the
+    // return → reverb rows and the source × effect feed). liveEffects comes
+    // from the installed map, not from the tree: a row exists only where the
+    // map says a return sits.
+    const int liveEffects = localSourceMap.numEffectChannels;
+    const int firstEffectSlot = localSourceMap.firstEffectSlot;
+
+    struct EffectRt
+    {
+        float attenuationDb = 0.0f;         // effectAttenuation: the return's trim
+        float delayLatencyMs = 0.0f;        // effectDelayLatency: mode-0 trim of the return legs
+        int   minimalLatencyMode = 1;       // effectMinimalLatency: the return as a source
+        bool  solo = false;
+        int   orientationDeg = 0, pitchDeg = 0, angleOnDeg = 86, angleOffDeg = 90;   // the feed cone
+        float hfDampingDbPerM = 0.0f;       // effectHFdamping, on every feed leg into this effect
+        bool  feedMiniLatency = true;       // effectFeedMiniLatency
+        float distanceAttenPercent = 100.0f;
+        int   attenLaw = 0;                 // the return's law (0 = dB/m, 1 = 1/d)
+        float distAtten = 0.0f;
+        float distRatio = 1.0f;
+        float commonAttenFactor = 1.0f;
+        float hfShelfDb = 0.0f;             // effectHFshelf, uniform per return → speaker cell
+        bool  muteReverbSends = false;
+        juce::StringArray mutesPerOutput;   // effectMutes, one token per output
+        std::array<float, maxInputChannels>   inLevelsDb {};
+        std::array<uint8_t, maxInputChannels> inOns {};
+        std::array<float, maxEffectChannels>   fxLevelsDb {};
+        std::array<uint8_t, maxEffectChannels> fxOns {};
+    };
+
+    std::vector<EffectRt> fxRt (static_cast<size_t> (juce::jmax (0, liveEffects)));
+    bool anyEffectSoloed = false;
+
+    for (int fx = 0; fx < liveEffects; ++fx)
+    {
+        auto& p = fxRt[static_cast<size_t> (fx)];
+
+        auto channelSection = valueTreeState.getEffectChannelSection (fx);
+        p.attenuationDb      = channelSection.getProperty (effectAttenuation, effectAttenuationDefault);
+        p.delayLatencyMs     = channelSection.getProperty (effectDelayLatency, effectDelayLatencyDefault);
+        p.minimalLatencyMode = channelSection.getProperty (effectMinimalLatency, effectMinimalLatencyDefault);
+        p.solo               = static_cast<int> (channelSection.getProperty (effectSolo, effectSoloDefault)) != 0;
+        anyEffectSoloed = anyEffectSoloed || p.solo;
+
+        auto feedSection = valueTreeState.getEffectFeedSection (fx);
+        p.orientationDeg       = feedSection.getProperty (effectOrientation, effectOrientationDefault);
+        p.pitchDeg             = feedSection.getProperty (effectPitch, effectPitchDefault);
+        p.angleOnDeg           = feedSection.getProperty (effectAngleOn, effectAngleOnDefault);
+        p.angleOffDeg          = feedSection.getProperty (effectAngleOff, effectAngleOffDefault);
+        p.hfDampingDbPerM      = feedSection.getProperty (effectHFdamping, effectHFdampingDefault);
+        p.feedMiniLatency      = static_cast<int> (feedSection.getProperty (effectFeedMiniLatency, effectFeedMiniLatencyDefault)) != 0;
+        p.distanceAttenPercent = static_cast<float> (static_cast<int> (feedSection.getProperty (effectDistanceAttenPercent,
+                                                                                                effectDistanceAttenPercentDefault)));
+
+        auto returnSection = valueTreeState.getEffectReturnSection (fx);
+        p.attenLaw          = returnSection.getProperty (effectAttenuationLaw, effectAttenuationLawDefault);
+        p.distAtten         = returnSection.getProperty (effectDistanceAttenuation, effectDistanceAttenuationDefault);
+        p.distRatio         = returnSection.getProperty (effectDistanceRatio, effectDistanceRatioDefault);
+        p.commonAttenFactor = static_cast<float> (static_cast<int> (returnSection.getProperty (effectCommonAtten,
+                                                                                             effectCommonAttenDefault))) / 100.0f;
+        p.hfShelfDb         = returnSection.getProperty (effectHFshelf, effectHFshelfDefault);
+        p.muteReverbSends   = static_cast<int> (returnSection.getProperty (effectMuteReverbSends, effectMuteReverbSendsDefault)) != 0;
+        if (returnSection.isValid())
+            p.mutesPerOutput.addTokens (returnSection.getProperty (effectMutes).toString(), ",", "");
+
+        valueTreeState.readEffectSendRows (fx, p.inLevelsDb, p.inOns, p.fxLevelsDb, p.fxOns);
+    }
+
+    const bool fxFeedGeometric = static_cast<int> (valueTreeState.getEffectsGlobalSection()
+                                                       .getProperty (effectsGlobalFxFeedGeometric,
+                                                                     effectsGlobalFxFeedGeometricDefault)) != 0;
+
+    // The distance law of a RETURN, shared by its return legs and the
+    // effect → effect feeds it is the source of (an input's feed rows keep
+    // the input's own law)
+    auto returnDistanceAttenDb = [] (const EffectRt& p, float distance) -> float
+    {
+        if (p.attenLaw == 0)
+            return p.distAtten * distance;
+
+        const float effectiveDistance = distance / juce::jmax (0.001f, p.distRatio);
+        return effectiveDistance < 1.0f ? 0.0f : -20.0f * std::log10 (effectiveDistance);
+    };
 
     // Store common attenuation adjustment per input (for reverb feed calculations)
     std::vector<float> inputCommonAttenAdjustments (static_cast<size_t> (numInputs), 0.0f);
@@ -1822,6 +2177,11 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
             if (primaryDesc.isStereoSlice)
                 linearLevel *= primaryDesc.gainLinear;
 
+            // "Solo effects": the direct rows are silenced so only the effect
+            // returns reach the speakers (the feeds are untouched)
+            if (soloGlobal)
+                linearLevel = 0.0f;
+
             newLevels[matrixIdx] = linearLevel;
         }
 
@@ -1961,6 +2321,9 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
 
                 linearLevel *= sliceDesc.gainLinear;
 
+                if (soloGlobal)
+                    linearLevel = 0.0f;
+
                 newLevels[matrixIdx] = linearLevel;
 
                 // HF attenuation: same formula at the slice position
@@ -2008,6 +2371,204 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
                 hfAtten = juce::jlimit (-60.0f, 0.0f, hfAtten);
 
                 newHF[matrixIdx] = hfAtten;
+            }
+        }
+    }
+
+    // ==========================================================================
+    // EFFECT RETURN ROWS IN THE INPUT → OUTPUT MATRIX
+    // ==========================================================================
+    // An effect return is a render source: its row sits at slot
+    // firstEffectSlot + fx and is rendered by the same delay-and-sum path as an
+    // input's. The input loops above stop at numInputChannels, so the rows are
+    // computed here - from the RETURN position, with the return's own law,
+    // trim, per-output mutes and common attenuation, and WITHOUT the terms an
+    // input carries and a return does not: height factor, directivity cone,
+    // sidelines, the Live Source Tamer, and floor reflections (the FR rows of
+    // a return are forced to zero, because the FR loop below never reaches
+    // them). Nor the render-latency reference: that aligns the inputs'
+    // backend latency, and a return's content already passed through feed
+    // rows that carry it, so adding it here would count it twice.
+    //
+    // Recomputed when an effect or an output changed - never per input tick,
+    // so a moving input dirties nothing here. A running AutomOtion on a
+    // return sets the return grade of dirtiness at 50 Hz, and this block plus
+    // the two return passes below are all it costs.
+    if (liveEffects > 0 && firstEffectSlot >= 0 && (needReturnRecalc || needOutputRecalc))
+    {
+        // R5-4 hook: the per-array trim of a return (effectArrayAtten1..10).
+        // The identifiers land with the control surface; until then every
+        // array trims by 0 dB, which is the value they will default to.
+        const std::array<float, 10> effectArrayAttenDb {};
+
+        for (int fx = 0; fx < liveEffects; ++fx)
+        {
+            const int slot = firstEffectSlot + fx;
+            if (slot >= localSourceMap.count || slot >= maxRenderSources)
+                break;
+
+            const auto& p = fxRt[static_cast<size_t> (fx)];
+            const Position& returnPos = localEffectReturnPositions[static_cast<size_t> (fx)];
+
+            std::fill (validForMinLatency.begin(), validForMinLatency.end(), false);
+            std::fill (validForCommonAtten.begin(), validForCommonAtten.end(), false);
+            std::fill (tempAttenuationDb.begin(), tempAttenuationDb.end(), -92.0f);
+            std::fill (tempDistanceAttenDb.begin(), tempDistanceAttenDb.end(), 0.0f);
+            std::fill (tempAngularAtten.begin(), tempAngularAtten.end(), 0.0f);
+
+            for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+            {
+                const size_t matrixIdx = static_cast<size_t> (slot * numOutputs + outIdx);
+
+                // No floor reflection for a return, ever
+                newFRDelays[matrixIdx] = 0.0f;
+                newFRLevels[matrixIdx] = 0.0f;
+                newFRHF[matrixIdx] = 0.0f;
+
+                const bool routingMuted = outIdx < p.mutesPerOutput.size()
+                                       && p.mutesPerOutput[outIdx].getIntValue() != 0;
+                if (routingMuted)
+                {
+                    newDelays[matrixIdx] = 0.0f;
+                    newLevels[matrixIdx] = 0.0f;
+                    newHF[matrixIdx] = 0.0f;
+                    continue;
+                }
+
+                const Position& speakerPos = localSpeakerPositions[static_cast<size_t> (outIdx)];
+                const Position& listenerPos = localListenerPositions[static_cast<size_t> (outIdx)];
+
+                auto outputOptionsSection = valueTreeState.getOutputOptionsSection (outIdx);
+                auto outputPositionSection = valueTreeState.getOutputPositionSection (outIdx);
+                const int outputMiniLatEnable = outputOptionsSection.getProperty (outputMiniLatencyEnable, 1);
+                const float outputDistAttenPercent = outputOptionsSection.getProperty (outputDistanceAttenPercent, 100.0f);
+                const float outputHFdamp = outputPositionSection.getProperty (outputHFdamping, outputHFdampingDefault);
+
+                // Screened by the speaker's facing like any source (-1 = not an input)
+                const float angularAtten = calculateAngularAttenuation (-1, outIdx, returnPos, speakerPos);
+                if (angularAtten <= 0.0f)
+                {
+                    newDelays[matrixIdx] = 0.0f;
+                    newLevels[matrixIdx] = 0.0f;
+                    newHF[matrixIdx] = 0.0f;
+                    continue;
+                }
+
+                if (outputMiniLatEnable == 1)
+                    validForMinLatency[static_cast<size_t> (outIdx)] = true;
+                validForCommonAtten[static_cast<size_t> (outIdx)] = true;
+
+                // Distances without a height factor (a return has none)
+                const float returnToSpeaker = distance3D (returnPos, speakerPos);
+                const float returnToListener = distance3D (returnPos, listenerPos);
+                const float speakerToListener = distance3D (speakerPos, listenerPos);
+
+                // Delay with parallax, exactly as an input's
+                const float delayMs = ((returnToListener - speakerToListener) / speedOfSound) * 1000.0f;
+                newDelays[matrixIdx] = juce::jmax (0.0f, delayMs);
+
+                // Level: the return's law scaled by the output's percentage, plus
+                // the return's trim. The distance-only part is kept apart so the
+                // common-attenuation lift never claws the trim back.
+                const float scaledDistanceAttenDb = returnDistanceAttenDb (p, returnToSpeaker)
+                                                    * (outputDistAttenPercent / 100.0f);
+                tempAttenuationDb[static_cast<size_t> (outIdx)] =
+                    juce::jlimit (-92.0f, 0.0f, p.attenuationDb + scaledDistanceAttenDb);
+                tempDistanceAttenDb[static_cast<size_t> (outIdx)] = juce::jlimit (-92.0f, 0.0f, scaledDistanceAttenDb);
+                tempAngularAtten[static_cast<size_t> (outIdx)] = angularAtten;
+                newLevels[matrixIdx] = 1.0f;   // active; replaced below
+
+                // HF: the speaker's air damping plus the return's shelf, applied
+                // uniformly - a return has no directivity cone to attach it to
+                newHF[matrixIdx] = juce::jlimit (-60.0f, 0.0f, outputHFdamp * returnToSpeaker + p.hfShelfDb);
+            }
+
+            // Delay post-processing: the input rule minus the mode-change ramp
+            // (a flip steps the delay, as the reverb return's does) and minus
+            // the render-latency reference (see the header comment above)
+            float minDelay = std::numeric_limits<float>::max();
+            bool foundValidOutput = false;
+
+            for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+            {
+                if (validForMinLatency[static_cast<size_t> (outIdx)])
+                {
+                    const size_t matrixIdx = static_cast<size_t> (slot * numOutputs + outIdx);
+                    if (newDelays[matrixIdx] < minDelay)
+                    {
+                        minDelay = newDelays[matrixIdx];
+                        foundValidOutput = true;
+                    }
+                }
+            }
+
+            for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+            {
+                const size_t matrixIdx = static_cast<size_t> (slot * numOutputs + outIdx);
+                if (newLevels[matrixIdx] <= 0.0f)
+                    continue;
+
+                if (p.minimalLatencyMode == 0)
+                {
+                    auto outputChannelSection = valueTreeState.getOutputChannelSection (outIdx);
+                    const float outputDelayLat = outputChannelSection.getProperty (outputDelayLatency, 0.0f);
+
+                    newDelays[matrixIdx] = juce::jmax (0.0f, newDelays[matrixIdx] + globalHaasEffect - globalSystemLatency
+                                                             + p.delayLatencyMs + outputDelayLat);
+                }
+                else if (foundValidOutput)
+                {
+                    newDelays[matrixIdx] = juce::jmax (0.0f, newDelays[matrixIdx] - minDelay);
+                }
+            }
+
+            // Common attenuation: the input rule on the distance-only component,
+            // without the ramp. The lift is kept for the return's other legs.
+            float minAttenuation = -92.0f;
+            bool foundValidForCommon = false;
+
+            for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+            {
+                if (validForCommonAtten[static_cast<size_t> (outIdx)])
+                {
+                    const float atten = tempDistanceAttenDb[static_cast<size_t> (outIdx)];
+                    if (atten > minAttenuation)
+                    {
+                        minAttenuation = atten;
+                        foundValidForCommon = true;
+                    }
+                }
+            }
+
+            float commonAttenAdjustment = 0.0f;
+            if (p.commonAttenFactor < 1.0f && foundValidForCommon)
+                commonAttenAdjustment = -minAttenuation * (1.0f - p.commonAttenFactor);
+            effectCommonAttenAdjustments[static_cast<size_t> (fx)] = commonAttenAdjustment;
+
+            // Solo is a mask on the return rows: any effect soloed silences the
+            // returns that are not (the direct rows are the global switch's job)
+            const bool soloedOut = anyEffectSoloed && ! p.solo;
+
+            for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+            {
+                const size_t matrixIdx = static_cast<size_t> (slot * numOutputs + outIdx);
+                if (newLevels[matrixIdx] <= 0.0f)
+                    continue;
+
+                float attenuationDb = tempAttenuationDb[static_cast<size_t> (outIdx)] + commonAttenAdjustment;
+
+                const int outputArrayNum = outputArrayAssignments[static_cast<size_t> (outIdx)];
+                if (outputArrayNum >= 1 && outputArrayNum <= 10)
+                    attenuationDb += effectArrayAttenDb[static_cast<size_t> (outputArrayNum - 1)];
+
+                attenuationDb = juce::jlimit (-92.0f, 0.0f, attenuationDb);
+
+                float linearLevel = std::pow (10.0f, attenuationDb / 20.0f);
+                linearLevel *= tempAngularAtten[static_cast<size_t> (outIdx)];
+                if (soloedOut)
+                    linearLevel = 0.0f;
+
+                newLevels[matrixIdx] = linearLevel;
             }
         }
     }
@@ -2625,6 +3186,144 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
     }
 
     // ==========================================================================
+    // EFFECT RETURN ROWS IN THE INPUT → REVERB FEED MATRIX
+    // ==========================================================================
+    // A return feeds the reverb nodes like any source, from the RETURN
+    // position, with the return's law and trim, no directivity and no
+    // render-latency reference; effectMuteReverbSends silences the row.
+    // Recomputed when an effect or a reverb changed.
+    if (liveEffects > 0 && firstEffectSlot >= 0 && (needReturnRecalc || needReverbRecalc))
+    {
+        for (int fx = 0; fx < liveEffects; ++fx)
+        {
+            const int slot = firstEffectSlot + fx;
+            if (slot >= localSourceMap.count || slot >= maxRenderSources)
+                break;
+
+            const auto& p = fxRt[static_cast<size_t> (fx)];
+            const Position& returnPos = localEffectReturnPositions[static_cast<size_t> (fx)];
+
+            if (p.muteReverbSends)
+            {
+                for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
+                {
+                    const size_t matrixIdx = static_cast<size_t> (slot * numReverbs + revIdx);
+                    newInputReverbDelays[matrixIdx] = 0.0f;
+                    newInputReverbLevels[matrixIdx] = 0.0f;
+                    newInputReverbHF[matrixIdx] = 0.0f;
+                }
+                continue;
+            }
+
+            std::fill (validReverbForMinLatency.begin(), validReverbForMinLatency.end(), false);
+            std::fill (tempReverbAttenuationDb.begin(), tempReverbAttenuationDb.end(), -92.0f);
+            std::fill (tempReverbAngularAtten.begin(), tempReverbAngularAtten.end(), 0.0f);
+
+            for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
+            {
+                const size_t matrixIdx = static_cast<size_t> (slot * numReverbs + revIdx);
+                const Position& reverbFeedPos = localReverbFeedPositions[static_cast<size_t> (revIdx)];
+
+                auto feedSection = valueTreeState.getReverbFeedSection (revIdx);
+                const int reverbMiniLatEnable = feedSection.getProperty (reverbMiniLatencyEnable, reverbMiniLatencyEnableDefault);
+                const int reverbDistAttenPercent = feedSection.getProperty (reverbDistanceAttenEnable, reverbDistanceAttenEnableDefault);
+                const float reverbHFdamp = feedSection.getProperty (reverbHFdamping, reverbHFdampingDefault);
+
+                const float angularAtten = calculateReverbFeedAngularAttenuation (-1, revIdx, returnPos, reverbFeedPos);
+                if (angularAtten <= 0.0f)
+                {
+                    newInputReverbDelays[matrixIdx] = 0.0f;
+                    newInputReverbLevels[matrixIdx] = 0.0f;
+                    newInputReverbHF[matrixIdx] = 0.0f;
+                    continue;
+                }
+
+                if (reverbMiniLatEnable == 1)
+                    validReverbForMinLatency[static_cast<size_t> (revIdx)] = true;
+
+                const float returnToReverbFeed = distance3D (returnPos, reverbFeedPos);
+                newInputReverbDelays[matrixIdx] = juce::jmax (0.0f, (returnToReverbFeed / speedOfSound) * 1000.0f);
+
+                const float attenuationDb = juce::jlimit (-92.0f, 0.0f,
+                    p.attenuationDb + returnDistanceAttenDb (p, returnToReverbFeed)
+                                      * (static_cast<float> (reverbDistAttenPercent) / 100.0f));
+                tempReverbAttenuationDb[static_cast<size_t> (revIdx)] = attenuationDb;
+                tempReverbAngularAtten[static_cast<size_t> (revIdx)] = angularAtten;
+                newInputReverbLevels[matrixIdx] = 1.0f;   // active; replaced below
+
+                newInputReverbHF[matrixIdx] = juce::jlimit (-60.0f, 0.0f, reverbHFdamp * returnToReverbFeed);
+            }
+
+            // Delay post-processing with the return's own mode
+            if (p.minimalLatencyMode == 1)
+            {
+                float reverbMinDelay = std::numeric_limits<float>::max();
+                bool reverbFoundValid = false;
+
+                for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
+                {
+                    if (validReverbForMinLatency[static_cast<size_t> (revIdx)])
+                    {
+                        const size_t matrixIdx = static_cast<size_t> (slot * numReverbs + revIdx);
+                        if (newInputReverbDelays[matrixIdx] < reverbMinDelay)
+                        {
+                            reverbMinDelay = newInputReverbDelays[matrixIdx];
+                            reverbFoundValid = true;
+                        }
+                    }
+                }
+
+                if (reverbFoundValid)
+                {
+                    for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
+                    {
+                        const size_t matrixIdx = static_cast<size_t> (slot * numReverbs + revIdx);
+                        if (newInputReverbLevels[matrixIdx] > 0.0f)
+                            newInputReverbDelays[matrixIdx] = juce::jmax (0.0f, newInputReverbDelays[matrixIdx] - reverbMinDelay);
+                    }
+                }
+            }
+            else
+            {
+                for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
+                {
+                    const size_t matrixIdx = static_cast<size_t> (slot * numReverbs + revIdx);
+                    if (newInputReverbLevels[matrixIdx] > 0.0f)
+                    {
+                        auto channelSection = valueTreeState.getReverbChannelSection (revIdx);
+                        const float reverbDelayLat = channelSection.getProperty (reverbDelayLatency, reverbDelayLatencyDefault);
+
+                        newInputReverbDelays[matrixIdx] = juce::jmax (0.0f, newInputReverbDelays[matrixIdx]
+                                                                            + globalHaasEffect - globalSystemLatency
+                                                                            + p.delayLatencyMs + reverbDelayLat);
+                    }
+                }
+            }
+
+            // Levels: the return rows' lift, then linear, then the solo mask
+            const float commonAttenAdjustment = effectCommonAttenAdjustments[static_cast<size_t> (fx)];
+            const bool soloedOut = anyEffectSoloed && ! p.solo;
+
+            for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
+            {
+                const size_t matrixIdx = static_cast<size_t> (slot * numReverbs + revIdx);
+                if (newInputReverbLevels[matrixIdx] <= 0.0f)
+                    continue;
+
+                const float attenuationDb = juce::jlimit (-92.0f, 0.0f,
+                    tempReverbAttenuationDb[static_cast<size_t> (revIdx)] + commonAttenAdjustment);
+
+                float linearLevel = std::pow (10.0f, attenuationDb / 20.0f);
+                linearLevel *= tempReverbAngularAtten[static_cast<size_t> (revIdx)];
+                if (soloedOut)
+                    linearLevel = 0.0f;
+
+                newInputReverbLevels[matrixIdx] = linearLevel;
+            }
+        }
+    }
+
+    // ==========================================================================
     // REVERB RETURN → OUTPUT CALCULATIONS
     // ==========================================================================
     // Reverb returns act like simplified inputs (ambient sources)
@@ -2804,6 +3503,485 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
     }
     } // End of if (needOutputRecalc || needReverbRecalc)
 
+    // ==========================================================================
+    // SOURCE → EFFECT FEED CALCULATIONS
+    // ==========================================================================
+    // The feed matrix the effects engine consumes: one cell per (render source,
+    // effect), strided by the effects BUDGET. Geometric like the reverb feed
+    // (delay, level and HF from the source's position against the effect's
+    // FEED position and cone), times the user's send cell and switch, which
+    // the reverb feed has no equivalent of. Rows:
+    //   A - input primaries and their derived stereo slices, with the input's
+    //       own law, trim, directivity and render-latency reference, exactly
+    //       as the reverb feed pass computes them;
+    //   B - effect returns feeding OTHER effects, from the RETURN position
+    //       with the source effect's law and trim, the diagonal forced off,
+    //       and - when effectsGlobalFxFeedGeometric is off - no geometry at
+    //       all (delay 0, level = the cell).
+    // Delay and HF are computed for a CLOSED cell too (only the level carries
+    // the switch), so the engine's tap already sits at the right delay when
+    // the cell opens instead of teleporting there. No effect trim on the feed
+    // leg (plan §2.2): effectAttenuation and effectDelayLatency belong to the
+    // return legs.
+    if (liveEffects > 0)
+    {
+        std::vector<float> tempFxAttenuationDb (static_cast<size_t> (numEffects), -92.0f);
+        std::vector<float> tempFxAngularAtten (static_cast<size_t> (numEffects), 0.0f);
+        std::vector<bool> validFxForMinLatency (static_cast<size_t> (numEffects), false);
+
+        // The user gains of one source row, by destination effect
+        std::vector<float> userLin (static_cast<size_t> (numEffects), 0.0f);
+
+        auto zeroFeedRow = [&] (int slot)
+        {
+            for (int fx = 0; fx < numEffects; ++fx)
+            {
+                const size_t matrixIdx = static_cast<size_t> (slot * numEffects + fx);
+                newInputEffectDelays[matrixIdx] = 0.0f;
+                newInputEffectLevels[matrixIdx] = 0.0f;
+                newInputEffectHF[matrixIdx] = 0.0f;
+            }
+        };
+
+        // ---- Rows A: inputs and their derived slices --------------------------
+        for (int inIdx = 0; inIdx < numInputs; ++inIdx)
+        {
+            if (inIdx >= localSourceMap.numInputChannels)
+                break;
+
+            if (! inputsToRecalc[static_cast<size_t> (inIdx)])
+                continue;
+
+            Position inputPos = localInputPositions[static_cast<size_t> (inIdx)];
+            const auto& primaryDesc = localSourceMap.desc[static_cast<size_t> (inIdx)];
+            if (primaryDesc.isStereoSlice)
+            {
+                inputPos.x += primaryDesc.offsetX;
+                inputPos.y += primaryDesc.offsetY;
+                inputPos.z += primaryDesc.offsetZ;
+            }
+            const int channelFirstDerivedSlot = localSourceMap.firstDerivedSlot[static_cast<size_t> (inIdx)];
+
+            const float latencyCompensationMs = renderLatencyReferenceMs
+                - (static_cast<size_t> (inIdx) < localChannelLatencyMs.size()
+                       ? localChannelLatencyMs[static_cast<size_t> (inIdx)] : 0.0f);
+
+            // The user's cells for this input, keyed by its PERMANENT number
+            const int column = valueTreeState.getInputChannelNumber (inIdx) - 1;
+            std::fill (userLin.begin(), userLin.end(), 0.0f);
+            for (int fx = 0; fx < liveEffects; ++fx)
+            {
+                const auto& p = fxRt[static_cast<size_t> (fx)];
+                if (column >= 0 && column < maxInputChannels && p.inOns[static_cast<size_t> (column)] != 0)
+                    userLin[static_cast<size_t> (fx)] = std::pow (10.0f, p.inLevelsDb[static_cast<size_t> (column)] / 20.0f);
+            }
+
+            // Input parameters, as the reverb feed pass reads them
+            auto inputChannelSection = valueTreeState.getInputChannelSection (inIdx);
+            auto inputAttenSection = valueTreeState.getInputAttenuationSection (inIdx);
+            float inputAtten = inputChannelSection.getProperty (inputAttenuation, inputAttenuationDefault);
+            if (static_cast<size_t> (inIdx) < localGradientMapOffsets.size())
+                inputAtten += localGradientMapOffsets[static_cast<size_t> (inIdx)].attenuationDb;
+
+            const float inputDistAtten = inputAttenSection.getProperty (inputDistanceAttenuation, inputDistanceAttenuationDefault);
+            const int attenLaw = inputAttenSection.getProperty (inputAttenuationLaw, inputAttenuationLawDefault);
+            const float distRatio = inputAttenSection.getProperty (inputDistanceRatio, inputDistanceRatioDefault);
+            const int minimalLatencyMode = inputChannelSection.getProperty (inputMinimalLatency, 0);
+            const float inputDelayLat = inputChannelSection.getProperty (inputDelayLatency, 0.0f);
+
+            auto inputPosSection = valueTreeState.getInputPositionSection (inIdx);
+            const int heightFactorPercent = inputPosSection.getProperty (inputHeightFactor, inputHeightFactorDefault);
+            const float heightFactor = static_cast<float> (heightFactorPercent) / 100.0f;
+
+            auto inputDirectivitySection = valueTreeState.getInputDirectivitySection (inIdx);
+            const int directivityDeg = inputDirectivitySection.getProperty (inputDirectivity, inputDirectivityDefault);
+            const int rotationDeg = inputDirectivitySection.getProperty (inputRotation, inputRotationDefault);
+            const int tiltDeg = inputDirectivitySection.getProperty (inputTilt, inputTiltDefault);
+            const float hfShelfDb = inputDirectivitySection.getProperty (inputHFshelf, inputHFshelfDefault);
+
+            const float directivityRad = static_cast<float> (directivityDeg) * (juce::MathConstants<float>::pi / 180.0f);
+            float rotationRad = static_cast<float> (rotationDeg) * (juce::MathConstants<float>::pi / 180.0f);
+            const float tiltRad = static_cast<float> (tiltDeg) * (juce::MathConstants<float>::pi / 180.0f);
+            if (static_cast<size_t> (inIdx) < localGyrophoneOffsets.size())
+                rotationRad += localGyrophoneOffsets[static_cast<size_t> (inIdx)];
+
+            const float facingX = std::sin (rotationRad) * std::cos (tiltRad);
+            const float facingY = -std::cos (rotationRad) * std::cos (tiltRad);
+            const float facingZ = std::sin (tiltRad);
+
+            const float gmHfOffset = (static_cast<size_t> (inIdx) < localGradientMapOffsets.size())
+                                         ? localGradientMapOffsets[static_cast<size_t> (inIdx)].hfShelfDb : 0.0f;
+
+            const float commonAttenAdjustment = inputCommonAttenAdjustments[static_cast<size_t> (inIdx)];
+
+            auto distanceWithHeightFactor = [heightFactor] (const Position& a, const Position& b) -> float
+            {
+                const float dx = b.x - a.x;
+                const float dy = b.y - a.y;
+                const float dz = (b.z - a.z) * heightFactor;
+                return std::sqrt (dx * dx + dy * dy + dz * dz);
+            };
+
+            // The input's directivity HF term towards a point (the reverb feed
+            // pass's arithmetic)
+            auto directivityHfDb = [&] (const Position& from, const Position& to) -> float
+            {
+                if (directivityDeg >= 360 || hfShelfDb >= 0.0f)
+                    return 0.0f;
+
+                const float dx = to.x - from.x;
+                const float dy = to.y - from.y;
+                const float dz = to.z - from.z;
+                const float rawDistance = std::sqrt (dx * dx + dy * dy + dz * dz);
+                if (rawDistance <= 0.001f)
+                    return 0.0f;
+
+                const float invDist = 1.0f / rawDistance;
+                const float toX = dx * invDist;
+                const float toY = dy * invDist;
+                const float toZ = dz * invDist;
+
+                float dotProduct = facingX * toX + facingY * toY + facingZ * toZ;
+                dotProduct = juce::jlimit (-1.0f, 1.0f, dotProduct);
+
+                const float angle = std::acos (dotProduct);
+                const float halfDirectivity = directivityRad * 0.5f;
+                if (angle <= halfDirectivity)
+                    return 0.0f;
+
+                const float transitionRange = juce::MathConstants<float>::pi - halfDirectivity;
+                if (transitionRange <= 0.001f)
+                    return 0.0f;
+
+                const float progress = juce::jmin (1.0f, (angle - halfDirectivity) / transitionRange);
+                return hfShelfDb * std::sqrt (std::sin (progress * juce::MathConstants<float>::halfPi));
+            };
+
+            // One source row at one position: geometry into every live effect.
+            // Fills delay and HF for every cell, marks the active cells with
+            // level 1 and stores the dB terms for the post-processing.
+            auto computeFeedCells = [&] (int slot, const Position& srcPos)
+            {
+                std::fill (validFxForMinLatency.begin(), validFxForMinLatency.end(), false);
+                std::fill (tempFxAttenuationDb.begin(), tempFxAttenuationDb.end(), -92.0f);
+                std::fill (tempFxAngularAtten.begin(), tempFxAngularAtten.end(), 0.0f);
+
+                for (int fx = 0; fx < numEffects; ++fx)
+                {
+                    const size_t matrixIdx = static_cast<size_t> (slot * numEffects + fx);
+
+                    if (fx >= liveEffects)
+                    {
+                        newInputEffectDelays[matrixIdx] = 0.0f;
+                        newInputEffectLevels[matrixIdx] = 0.0f;
+                        newInputEffectHF[matrixIdx] = 0.0f;
+                        continue;
+                    }
+
+                    const auto& p = fxRt[static_cast<size_t> (fx)];
+                    // The BASE position, never the return: a moving return must
+                    // not chase its own trigger level
+                    const Position& feedPos = localEffectFeedPositions[static_cast<size_t> (fx)];
+
+                    const float angularAtten = coneAttenuation (p.orientationDeg, p.pitchDeg, p.angleOnDeg, p.angleOffDeg,
+                                                                srcPos, feedPos);
+                    if (angularAtten <= 0.0f)
+                    {
+                        newInputEffectDelays[matrixIdx] = 0.0f;
+                        newInputEffectLevels[matrixIdx] = 0.0f;
+                        newInputEffectHF[matrixIdx] = 0.0f;
+                        continue;
+                    }
+
+                    if (p.feedMiniLatency)
+                        validFxForMinLatency[static_cast<size_t> (fx)] = true;
+
+                    const float srcToFeed = distanceWithHeightFactor (srcPos, feedPos);
+                    newInputEffectDelays[matrixIdx] = juce::jmax (0.0f, (srcToFeed / speedOfSound) * 1000.0f);
+
+                    float distanceAttenDb = 0.0f;
+                    if (attenLaw == 0)
+                    {
+                        distanceAttenDb = inputDistAtten * srcToFeed;
+                    }
+                    else
+                    {
+                        const float effectiveDistance = srcToFeed / juce::jmax (0.001f, distRatio);
+                        distanceAttenDb = effectiveDistance < 1.0f ? 0.0f : -20.0f * std::log10 (effectiveDistance);
+                    }
+
+                    tempFxAttenuationDb[static_cast<size_t> (fx)] =
+                        juce::jlimit (-92.0f, 0.0f, inputAtten + distanceAttenDb * (p.distanceAttenPercent / 100.0f));
+                    tempFxAngularAtten[static_cast<size_t> (fx)] = angularAtten;
+                    newInputEffectLevels[matrixIdx] = 1.0f;   // active; replaced below
+
+                    newInputEffectHF[matrixIdx] = juce::jlimit (-60.0f, 0.0f,
+                        p.hfDampingDbPerM * srcToFeed + directivityHfDb (srcPos, feedPos) + gmHfOffset);
+                }
+            };
+
+            // The channel's delay post-processing terms are computed on the
+            // primary row and shared by its slices - a per-slice recompute
+            // would break the slices-sum-to-input identity, as in the reverb
+            // pass. The level carries the user's cell last: 0 for a closed
+            // send, with the geometry left in place.
+            auto finishFeedRow = [&] (int slot, float minDelayShared, bool foundValidShared, float sliceGain)
+            {
+                for (int fx = 0; fx < liveEffects; ++fx)
+                {
+                    const size_t matrixIdx = static_cast<size_t> (slot * numEffects + fx);
+                    if (newInputEffectLevels[matrixIdx] <= 0.0f)
+                        continue;
+
+                    float delayMs = newInputEffectDelays[matrixIdx];
+                    if (minimalLatencyMode == 1)
+                    {
+                        if (foundValidShared)
+                            delayMs = delayMs - minDelayShared + latencyCompensationMs;
+                        else if (latencyCompensationMs > 0.0f)
+                            delayMs = delayMs + latencyCompensationMs;
+                    }
+                    else
+                    {
+                        delayMs = delayMs + globalHaasEffect - globalSystemLatency + inputDelayLat + latencyCompensationMs;
+                    }
+                    newInputEffectDelays[matrixIdx] = juce::jmax (0.0f, delayMs);
+
+                    const float attenuationDb = juce::jlimit (-92.0f, 0.0f,
+                        tempFxAttenuationDb[static_cast<size_t> (fx)] + commonAttenAdjustment);
+
+                    float linearLevel = std::pow (10.0f, attenuationDb / 20.0f);
+                    linearLevel *= tempFxAngularAtten[static_cast<size_t> (fx)];
+                    linearLevel *= sliceGain;
+                    linearLevel *= userLin[static_cast<size_t> (fx)];
+                    newInputEffectLevels[matrixIdx] = linearLevel;
+                }
+            };
+
+            // Primary row
+            computeFeedCells (inIdx, inputPos);
+
+            float minDelay = std::numeric_limits<float>::max();
+            bool foundValid = false;
+            if (minimalLatencyMode == 1)
+            {
+                for (int fx = 0; fx < liveEffects; ++fx)
+                {
+                    if (validFxForMinLatency[static_cast<size_t> (fx)])
+                    {
+                        const float d = newInputEffectDelays[static_cast<size_t> (inIdx * numEffects + fx)];
+                        if (d < minDelay)
+                        {
+                            minDelay = d;
+                            foundValid = true;
+                        }
+                    }
+                }
+            }
+
+            finishFeedRow (inIdx, minDelay, foundValid, primaryDesc.isStereoSlice ? primaryDesc.gainLinear : 1.0f);
+
+            // Derived slice rows: their own geometry, the primary's shared terms
+            for (int slice = 1; channelFirstDerivedSlot >= 0
+                                && slice <= spatcore::wfs::RenderSourceMap::kDerivedPerStereo; ++slice)
+            {
+                const int slot = channelFirstDerivedSlot + (slice - 1);
+                const auto& sliceDesc = localSourceMap.desc[static_cast<size_t> (slot)];
+
+                if (! sliceDesc.active)
+                {
+                    zeroFeedRow (slot);
+                    continue;
+                }
+
+                Position slicePos = localInputPositions[static_cast<size_t> (inIdx)];
+                slicePos.x += sliceDesc.offsetX;
+                slicePos.y += sliceDesc.offsetY;
+                slicePos.z += sliceDesc.offsetZ;
+
+                computeFeedCells (slot, slicePos);
+                finishFeedRow (slot, minDelay, foundValid, sliceDesc.gainLinear);
+            }
+        }
+
+        // ---- Rows B: effect returns feeding other effects ---------------------
+        if (firstEffectSlot >= 0 && (needReturnRecalc || sendsChanged))
+        {
+            for (int srcFx = 0; srcFx < liveEffects; ++srcFx)
+            {
+                const int slot = firstEffectSlot + srcFx;
+                if (slot >= localSourceMap.count || slot >= maxRenderSources)
+                    break;
+
+                const auto& ps = fxRt[static_cast<size_t> (srcFx)];
+                // What travels is the RETURN, AutomOtion offset included
+                const Position& srcPos = localEffectReturnPositions[static_cast<size_t> (srcFx)];
+
+                std::fill (validFxForMinLatency.begin(), validFxForMinLatency.end(), false);
+                std::fill (tempFxAttenuationDb.begin(), tempFxAttenuationDb.end(), -92.0f);
+                std::fill (tempFxAngularAtten.begin(), tempFxAngularAtten.end(), 0.0f);
+                std::fill (userLin.begin(), userLin.end(), 0.0f);
+
+                for (int dstFx = 0; dstFx < numEffects; ++dstFx)
+                {
+                    const size_t matrixIdx = static_cast<size_t> (slot * numEffects + dstFx);
+
+                    // No self-feed, ever: the diagonal is a feedback loop
+                    // around a delay line, not a routing choice
+                    if (dstFx >= liveEffects || dstFx == srcFx)
+                    {
+                        newInputEffectDelays[matrixIdx] = 0.0f;
+                        newInputEffectLevels[matrixIdx] = 0.0f;
+                        newInputEffectHF[matrixIdx] = 0.0f;
+                        continue;
+                    }
+
+                    // The destination's row says who feeds it (both send rows
+                    // are receive-side)
+                    const auto& pd = fxRt[static_cast<size_t> (dstFx)];
+                    const float user = pd.fxOns[static_cast<size_t> (srcFx)] != 0
+                                         ? std::pow (10.0f, pd.fxLevelsDb[static_cast<size_t> (srcFx)] / 20.0f)
+                                         : 0.0f;
+                    userLin[static_cast<size_t> (dstFx)] = user;
+
+                    if (! fxFeedGeometric)
+                    {
+                        // Matrix only: no travel, the cell is the gain
+                        newInputEffectDelays[matrixIdx] = 0.0f;
+                        newInputEffectLevels[matrixIdx] = user;
+                        newInputEffectHF[matrixIdx] = 0.0f;
+                        continue;
+                    }
+
+                    const Position& feedPos = localEffectFeedPositions[static_cast<size_t> (dstFx)];
+                    const float angularAtten = coneAttenuation (pd.orientationDeg, pd.pitchDeg, pd.angleOnDeg, pd.angleOffDeg,
+                                                                srcPos, feedPos);
+                    if (angularAtten <= 0.0f)
+                    {
+                        newInputEffectDelays[matrixIdx] = 0.0f;
+                        newInputEffectLevels[matrixIdx] = 0.0f;
+                        newInputEffectHF[matrixIdx] = 0.0f;
+                        continue;
+                    }
+
+                    if (pd.feedMiniLatency)
+                        validFxForMinLatency[static_cast<size_t> (dstFx)] = true;
+
+                    const float srcToFeed = distance3D (srcPos, feedPos);
+                    newInputEffectDelays[matrixIdx] = juce::jmax (0.0f, (srcToFeed / speedOfSound) * 1000.0f);
+
+                    tempFxAttenuationDb[static_cast<size_t> (dstFx)] = juce::jlimit (-92.0f, 0.0f,
+                        ps.attenuationDb + returnDistanceAttenDb (ps, srcToFeed) * (pd.distanceAttenPercent / 100.0f));
+                    tempFxAngularAtten[static_cast<size_t> (dstFx)] = angularAtten;
+                    newInputEffectLevels[matrixIdx] = 1.0f;   // active; replaced below
+
+                    newInputEffectHF[matrixIdx] = juce::jlimit (-60.0f, 0.0f, pd.hfDampingDbPerM * srcToFeed);
+                }
+
+                if (! fxFeedGeometric)
+                    continue;
+
+                // Post-processing with the SOURCE effect's mode and trims
+                float minDelay = std::numeric_limits<float>::max();
+                bool foundValid = false;
+                if (ps.minimalLatencyMode == 1)
+                {
+                    for (int dstFx = 0; dstFx < liveEffects; ++dstFx)
+                    {
+                        if (validFxForMinLatency[static_cast<size_t> (dstFx)])
+                        {
+                            const float d = newInputEffectDelays[static_cast<size_t> (slot * numEffects + dstFx)];
+                            if (d < minDelay)
+                            {
+                                minDelay = d;
+                                foundValid = true;
+                            }
+                        }
+                    }
+                }
+
+                const float commonAttenAdjustment = effectCommonAttenAdjustments[static_cast<size_t> (srcFx)];
+
+                for (int dstFx = 0; dstFx < liveEffects; ++dstFx)
+                {
+                    const size_t matrixIdx = static_cast<size_t> (slot * numEffects + dstFx);
+                    if (newInputEffectLevels[matrixIdx] <= 0.0f)
+                        continue;
+
+                    float delayMs = newInputEffectDelays[matrixIdx];
+                    if (ps.minimalLatencyMode == 1)
+                    {
+                        if (foundValid)
+                            delayMs -= minDelay;
+                    }
+                    else
+                    {
+                        delayMs += globalHaasEffect - globalSystemLatency + ps.delayLatencyMs;
+                    }
+                    newInputEffectDelays[matrixIdx] = juce::jmax (0.0f, delayMs);
+
+                    const float attenuationDb = juce::jlimit (-92.0f, 0.0f,
+                        tempFxAttenuationDb[static_cast<size_t> (dstFx)] + commonAttenAdjustment);
+
+                    float linearLevel = std::pow (10.0f, attenuationDb / 20.0f);
+                    linearLevel *= tempFxAngularAtten[static_cast<size_t> (dstFx)];
+                    linearLevel *= userLin[static_cast<size_t> (dstFx)];
+                    newInputEffectLevels[matrixIdx] = linearLevel;
+                }
+            }
+        }
+
+        // ---- The cycle mask ---------------------------------------------------
+        // An effect sits in a cycle when it can reach itself through the
+        // on-switches: dst's row names who feeds dst. At most 32 nodes, so a
+        // plain reachability walk per node is cheap and obviously right.
+        if (sendsChanged || needEffectRecalc)
+        {
+            uint32_t mask = 0;
+
+            auto feeds = [&] (int src, int dst) -> bool
+            {
+                return src != dst && fxRt[static_cast<size_t> (dst)].fxOns[static_cast<size_t> (src)] != 0;
+            };
+
+            for (int start = 0; start < liveEffects; ++start)
+            {
+                uint32_t reach = 0;
+                for (int dst = 0; dst < liveEffects; ++dst)
+                    if (feeds (start, dst))
+                        reach |= (1u << dst);
+
+                bool grew = true;
+                while (grew)
+                {
+                    grew = false;
+                    for (int node = 0; node < liveEffects; ++node)
+                    {
+                        if ((reach & (1u << node)) == 0)
+                            continue;
+                        for (int dst = 0; dst < liveEffects; ++dst)
+                        {
+                            if ((reach & (1u << dst)) == 0 && feeds (node, dst))
+                            {
+                                reach |= (1u << dst);
+                                grew = true;
+                            }
+                        }
+                    }
+                }
+
+                if ((reach & (1u << start)) != 0)
+                    mask |= (1u << start);
+            }
+
+            effectCycleMask.store (mask);
+        }
+    }
+    else
+    {
+        effectCycleMask.store (0);
+    }
+
     // Update all matrices under lock
     {
         const juce::ScopedLock sl (matrixLock);
@@ -2831,6 +4009,11 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
         std::copy (newReverbOutputDelays.begin(), newReverbOutputDelays.end(), reverbOutputDelayTimesMs.begin());
         std::copy (newReverbOutputLevels.begin(), newReverbOutputLevels.end(), reverbOutputLevels.begin());
         std::copy (newReverbOutputHF.begin(), newReverbOutputHF.end(), reverbOutputHFAttenuationDb.begin());
+
+        // Source → Effect Feed (the effects engine holds these .data() pointers)
+        std::copy (newInputEffectDelays.begin(), newInputEffectDelays.end(), inputEffectDelayTimesMs.begin());
+        std::copy (newInputEffectLevels.begin(), newInputEffectLevels.end(), inputEffectLevels.begin());
+        std::copy (newInputEffectHF.begin(), newInputEffectHF.end(), inputEffectHFAttenuationDb.begin());
     }
 
     // Update ramp states under position lock
@@ -2945,6 +4128,36 @@ int WFSCalculationEngine::findReverbIndexFromTree (const juce::ValueTree& tree) 
                         return reverbCount;
                     if (child.hasType (Reverb))
                         ++reverbCount;
+                }
+            }
+        }
+        current = current.getParent();
+    }
+
+    return -1;
+}
+
+int WFSCalculationEngine::findEffectIndexFromTree (const juce::ValueTree& tree) const
+{
+    juce::ValueTree current = tree;
+
+    while (current.isValid())
+    {
+        if (current.getType() == Effect)
+        {
+            auto parent = current.getParent();
+            if (parent.isValid())
+            {
+                // Count by type, as getEffectState does: a foreign child a
+                // merged file left under <Effects> must not shift the index.
+                int effectCount = 0;
+                for (int i = 0; i < parent.getNumChildren(); ++i)
+                {
+                    auto child = parent.getChild (i);
+                    if (child == current)
+                        return effectCount;
+                    if (child.hasType (Effect))
+                        ++effectCount;
                 }
             }
         }
@@ -3188,6 +4401,96 @@ void WFSCalculationEngine::valueTreePropertyChanged (juce::ValueTree& tree,
         // Reverb parameter changed - affects ALL inputs for reverb matrices
         reverbsDirty.store(true);
         matrixDirty.store(true);
+        return;
+    }
+
+    // ==========================================================================
+    // EFFECT PARAMETERS THAT AFFECT CALCULATIONS
+    // ==========================================================================
+    // Every test is an exact compare: several effect names are strict prefixes
+    // of others (effectDist / effectDistanceAttenuation, effectMute /
+    // effectMutes), so a prefix test here would route the wrong parameter.
+
+    // Base position: moves the feed AND the return
+    bool isEffectPositionProperty = (property == effectPositionX ||
+                                     property == effectPositionY ||
+                                     property == effectPositionZ);
+
+    // Return offset: moves the return only
+    bool isEffectReturnOffsetProperty = (property == effectReturnOffsetX ||
+                                         property == effectReturnOffsetY ||
+                                         property == effectReturnOffsetZ);
+
+    if (isEffectPositionProperty || isEffectReturnOffsetProperty)
+    {
+        int effectIndex = findEffectIndexFromTree (tree);
+
+        if (effectIndex >= 0 && effectIndex < numEffects)
+        {
+            const juce::ScopedLock sl (positionLock);
+
+            if (isEffectPositionProperty)
+            {
+                updateEffectFeedPosition (effectIndex);
+                updateEffectReturnPosition (effectIndex);   // the return depends on the feed
+                effectsDirty.store (true);                  // every source's feed row re-times
+            }
+            else
+            {
+                updateEffectReturnPosition (effectIndex);
+            }
+            effectReturnsDirty.store (true);
+            matrixDirty.store (true);
+        }
+        return;
+    }
+
+    // Feed parameters: the cone, the damping and the percentage every source's
+    // feed row into this effect is computed with
+    bool isEffectFeedProperty = (property == effectOrientation ||
+                                 property == effectAngleOn ||
+                                 property == effectAngleOff ||
+                                 property == effectPitch ||
+                                 property == effectHFdamping ||
+                                 property == effectFeedMiniLatency ||
+                                 property == effectDistanceAttenPercent ||
+                                 property == effectsGlobalFxFeedGeometric);
+
+    // Send rows: the user gains of every source row, and the cycle mask
+    bool isEffectSendsProperty = (property == effectSendLevels ||
+                                  property == effectSendOns ||
+                                  property == effectFxSendLevels ||
+                                  property == effectFxSendOns);
+
+    if (isEffectFeedProperty || isEffectSendsProperty)
+    {
+        if (isEffectSendsProperty)
+            effectSendsDirty.store (true);
+        effectsDirty.store (true);
+        effectReturnsDirty.store (true);
+        matrixDirty.store (true);
+        return;
+    }
+
+    // Return and channel parameters: the return rows, the return → reverb rows
+    // and the effect → effect feeds (where the return is the source) - never
+    // an input row
+    bool isEffectReturnProperty = (property == effectAttenuationLaw ||
+                                   property == effectDistanceAttenuation ||
+                                   property == effectDistanceRatio ||
+                                   property == effectCommonAtten ||
+                                   property == effectHFshelf ||
+                                   property == effectMutes ||
+                                   property == effectMuteReverbSends ||
+                                   property == effectAttenuation ||
+                                   property == effectDelayLatency ||
+                                   property == effectMinimalLatency ||
+                                   property == effectSolo);
+
+    if (isEffectReturnProperty)
+    {
+        effectReturnsDirty.store (true);
+        matrixDirty.store (true);
         return;
     }
 

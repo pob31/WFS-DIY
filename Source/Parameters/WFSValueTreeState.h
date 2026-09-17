@@ -9,6 +9,8 @@
 #include "ArrayMuteState.h"
 #include <vector>
 #include <map>
+#include <array>
+#include <cstdint>
 
 /**
  * Undo domain — each tab has its own undo history.
@@ -127,6 +129,10 @@ public:
     juce::ValueTree getEffectsState();
     juce::ValueTree getEffectsState() const;
     juce::ValueTree getEffectState (int channelIndex);
+
+    /** <Config><EffectsGlobal> - the nine effectsGlobal* settings. Invalid only
+        on a half-built tree: ensureCompleteSchema backfills it on every load. */
+    juce::ValueTree getEffectsGlobalSection() const;
 
     /** Get audio patch state */
     juce::ValueTree getAudioPatchState();
@@ -598,6 +604,20 @@ public:
     bool  setEffectFxSendLevelFromEffect (int channelIndex, int sourceEffectIndex, float levelDb);
     bool  getEffectFxSendOnFromEffect    (int channelIndex, int sourceEffectIndex) const;
     bool  setEffectFxSendOnFromEffect    (int channelIndex, int sourceEffectIndex, bool on);
+
+    /** The four send rows of one effect, canonicalised and unpacked in one
+        pass, for a reader that wants every cell rather than one: the
+        calculation engine rebuilds its source x effect gains from these on
+        every effects recalc. inLevelsDb / inOns are indexed by input PERMANENT
+        NUMBER minus one, the row's own keying; fxLevelsDb / fxOns by dense
+        effect index, with the diagonal already forced off. A missing channel
+        or row fills the defaults (every send off, levels at the row default),
+        which is what an absent row means. */
+    void readEffectSendRows (int channelIndex,
+                             std::array<float, WFSParameterDefaults::maxInputChannels>& inLevelsDb,
+                             std::array<uint8_t, WFSParameterDefaults::maxInputChannels>& inOns,
+                             std::array<float, WFSParameterDefaults::maxEffectChannels>& fxLevelsDb,
+                             std::array<uint8_t, WFSParameterDefaults::maxEffectChannels>& fxOns) const;
 
     /** One chain slot's module node, by slot index 0..10 in the declared order
         (dist, eq1, eq2, dyn1, dyn2, mod, phaser, trem, reverb, delay, crush) or

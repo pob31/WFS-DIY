@@ -6300,6 +6300,288 @@ void MainComponent::runChannelListSelfTest()
         tempProject.deleteRecursively();
     }
 
+    // ---- Y: the calculation engine renders an effect return as a source -----
+    // Nothing in the app installs a render-source map with effect returns yet
+    // (recomputeRenderSourceCount still builds without effects), so this phase
+    // builds one by hand from the live channel types, installs it in the
+    // calculation engine and reads the matrices back. Every assertion names a
+    // mechanism that has no other caller today: the kind-aware position, the
+    // return rows, the feed matrix and its user cells, the diagonal, the two
+    // solo masks, the latency rule and the cycle mask.
+    {
+        namespace P = WFSParameterIDs;
+        namespace D = WFSParameterDefaults;
+        using Map = spatcore::wfs::RenderSourceMap;
+        using Kind = spatcore::wfs::SourceKind;
+
+        auto* calc = calculationEngine.get();
+        check(calc != nullptr, "Y0: the calculation engine exists");
+
+        if (calc != nullptr)
+        {
+            const int inputsBefore = vts.getNumInputChannels();
+            const int stereoBefore = vts.getNumStereoInputChannels();
+            const bool effectLatchBefore = vts.areEffectPositionsUserOwned();
+
+            vts.setNumEffectChannels(2);
+
+            // The live channel types plus two effect returns: the map the app
+            // itself will build once the effects count reaches it
+            std::array<uint8_t, Map::kMaxInputChannels> types {};
+            const int numTypes = juce::jlimit(0, (int) Map::kMaxInputChannels, inputsBefore);
+            for (int i = 0; i < numTypes; ++i)
+                if (vts.isInputChannelStereo(i))
+                    types[(size_t) i] = Map::Stereo;
+
+            Map map;
+            check(Map::build(types.data(), numTypes, 2, map), "Y0: a map with two effect returns builds");
+            const int firstFx = map.firstEffectSlot;
+            check(firstFx == inputsBefore + 5 * stereoBefore, "Y0: the returns follow the inputs and their slices");
+            check(map.count == firstFx + 2, "Y0: the map counts the two returns");
+            const int stride = calc->getNumEffects();
+            check(stride == D::maxEffectChannels, "Y0: the feed stride is the effects budget");
+
+            // Both effects far upstage (behind every speaker facing the
+            // audience, so every return row reaches the array) and hearing
+            // everything (angleOn 180 = no feed cone), so the assertions below
+            // are about the mechanisms and not about the rig's geometry.
+            vts.setEffectParameter(0, P::effectPositionX, 0.0f);
+            vts.setEffectParameter(0, P::effectPositionY, 40.0f);
+            vts.setEffectParameter(0, P::effectPositionZ, 3.0f);
+            vts.setEffectParameter(1, P::effectPositionX, 3.0f);
+            vts.setEffectParameter(1, P::effectPositionY, 40.0f);
+            vts.setEffectParameter(1, P::effectPositionZ, 3.0f);
+            vts.setEffectParameter(0, P::effectAngleOn, 180);
+            vts.setEffectParameter(1, P::effectAngleOn, 180);
+
+            calc->setRenderSourceMap(map);
+            calc->recalculateAllEffectPositions();
+            calc->recalculateMatrix(nullptr);
+
+            const int numOutputs = calc->getNumOutputs();
+            const int liveOutputs = vts.getNumOutputChannels();
+            auto cellOut  = [&](int slot, int out) { return calc->getLevels()[(size_t) (slot * numOutputs + out)]; };
+            auto delayOut = [&](int slot, int out) { return calc->getDelayTimesMs()[(size_t) (slot * numOutputs + out)]; };
+            auto cellFx   = [&](int slot, int fx)  { return calc->getInputEffectLevels()[(size_t) (slot * stride + fx)]; };
+            auto delayFx  = [&](int slot, int fx)  { return calc->getInputEffectDelayTimesMs()[(size_t) (slot * stride + fx)]; };
+            auto rowMax   = [&](int slot)
+            {
+                float m = 0.0f;
+                for (int o = 0; o < liveOutputs; ++o)
+                    m = juce::jmax(m, cellOut(slot, o));
+                return m;
+            };
+            auto allOff = [&]
+            {
+                juce::StringArray row;
+                for (int o = 0; o < liveOutputs; ++o)
+                    row.add("0");
+                return row.joinIntoString(",");
+            };
+
+            // Y1: kinds and the position
+            check(calc->getSourceKind(firstFx) == Kind::EffectReturn, "Y1: the return slot is an effect return");
+            check(calc->getSourceKind(0) == Kind::Input, "Y1: slot 0 is still an input");
+            check(calc->getOwningEffectChannel(firstFx) == 0, "Y1: the return slot names effect 0");
+            check(calc->getOwningInputChannel(firstFx) == -1, "Y1: the return slot owns no input");
+            {
+                const auto rp = calc->getRenderSourcePosition(firstFx);
+                check(std::abs(rp.x) < 1e-4f && std::abs(rp.y - 40.0f) < 1e-4f && std::abs(rp.z - 3.0f) < 1e-4f,
+                      "Y1: the return renders at its position, not at the origin");
+            }
+
+            // Y2: the return row of the in x out matrix
+            check(rowMax(firstFx) > 0.0f, "Y2: the return row reaches the array");
+            {
+                bool frZero = true;
+                for (int o = 0; o < liveOutputs; ++o)
+                    frZero = frZero && calc->getFRLevels()[(size_t) (firstFx * numOutputs + o)] == 0.0f;
+                check(frZero, "Y2: a return has no floor reflection");
+
+                int loudOut = -1;
+                for (int o = 0; o < liveOutputs && loudOut < 0; ++o)
+                    if (cellOut(firstFx, o) > 0.0f)
+                        loudOut = o;
+                check(loudOut >= 0, "Y2: an output hears the return");
+
+                if (loudOut >= 0)
+                {
+                    const float before = cellOut(firstFx, loudOut);
+
+                    juce::StringArray mutes;
+                    for (int o = 0; o < liveOutputs; ++o)
+                        mutes.add(o == loudOut ? "1" : "0");
+                    vts.setEffectParameter(0, P::effectMutes, mutes.joinIntoString(","));
+                    calc->recalculateMatrix(nullptr);
+                    check(cellOut(firstFx, loudOut) == 0.0f, "Y2: effectMutes silences that output");
+
+                    vts.setEffectParameter(0, P::effectMutes, allOff());
+                    vts.setEffectParameter(0, P::effectAttenuation, -6.0f);
+                    calc->recalculateMatrix(nullptr);
+                    check(std::abs(cellOut(firstFx, loudOut) / before - 0.501187f) < 1e-3f,
+                          "Y2: effectAttenuation trims the return by 6 dB");
+                    vts.setEffectParameter(0, P::effectAttenuation, 0.0f);
+                }
+            }
+
+            // Y3: the feed matrix, input 0 -> effect 0
+            {
+                const int in0Number = vts.getInputChannelNumber(0);
+                bool allZero = true;
+                for (int s = 0; s < map.count; ++s)
+                    for (int fx = 0; fx < 2; ++fx)
+                        allZero = allZero && cellFx(s, fx) == 0.0f;
+                check(allZero, "Y3: every feed cell is 0 while every send is off");
+                check(delayFx(0, 0) > 0.0f, "Y3: a closed cell still carries its geometric delay");
+
+                check(vts.setEffectSendOnFromInput(0, in0Number, true), "Y3: the send switch takes");
+                check(vts.setEffectSendLevelFromInput(0, in0Number, 0.0f), "Y3: the send level takes");
+                calc->recalculateMatrix(nullptr);
+                const float openCell = cellFx(0, 0);
+                check(openCell > 0.0f && openCell <= 1.0f, "Y3: an open send feeds effect 0 from input 0");
+
+                auto attenSection = vts.getInputAttenuationSection(0);
+                auto channelSection = vts.getInputChannelSection(0);
+                auto positionSection = vts.getInputPositionSection(0);
+                const int law = attenSection.getProperty(P::inputAttenuationLaw, D::inputAttenuationLawDefault);
+                const int common = attenSection.getProperty(P::inputCommonAtten, D::inputCommonAttenDefault);
+                const int heightPercent = positionSection.getProperty(P::inputHeightFactor, D::inputHeightFactorDefault);
+                const float distAtten = attenSection.getProperty(P::inputDistanceAttenuation, D::inputDistanceAttenuationDefault);
+                const float trim = channelSection.getProperty(P::inputAttenuation, D::inputAttenuationDefault);
+                if (law == 0 && common == 100 && heightPercent == 100)
+                {
+                    const auto ip = calc->getRenderSourcePosition(0);
+                    const auto fp = calc->getEffectFeedPosition(0);
+                    const float d = std::sqrt((fp.x - ip.x) * (fp.x - ip.x) + (fp.y - ip.y) * (fp.y - ip.y)
+                                              + (fp.z - ip.z) * (fp.z - ip.z));
+                    const float expected = std::pow(10.0f, juce::jlimit(-92.0f, 0.0f, trim + distAtten * d) / 20.0f);
+                    check(std::abs(openCell - expected) < 1e-3f, "Y3: the open cell is the geometric level");
+                }
+
+                vts.setEffectSendLevelFromInput(0, in0Number, -6.0f);
+                calc->recalculateMatrix(nullptr);
+                check(std::abs(cellFx(0, 0) / openCell - 0.501187f) < 1e-3f, "Y3: the send level scales the cell");
+                check(cellFx(0, 1) == 0.0f, "Y3: effect 1's cell stays closed");
+
+                // A stereo channel's derived rows carry the owner's cell at
+                // their own geometry; with no slice geometry pushed yet they
+                // sit on the anchor at unity, so the rows are bit-equal
+                int stereoSlot = -1;
+                for (int s = 0; s < inputsBefore && stereoSlot < 0; ++s)
+                    if (vts.isInputChannelStereo(s))
+                        stereoSlot = s;
+                if (stereoSlot >= 0)
+                {
+                    vts.setEffectSendOnFromInput(0, vts.getInputChannelNumber(stereoSlot), true);
+                    calc->recalculateMatrix(nullptr);
+                    const int derived = map.firstDerivedSlot[(size_t) stereoSlot];
+                    check(derived >= 0 && cellFx(stereoSlot, 0) > 0.0f
+                              && cellFx(derived, 0) == cellFx(stereoSlot, 0),
+                          "Y3: a derived slice row carries the owner's send cell");
+                }
+            }
+
+            // Y4: effect -> effect
+            {
+                check(vts.setEffectFxSendOnFromEffect(1, 0, true), "Y4: the switch 'effect 1 receives effect 0' takes");
+                vts.setEffectParameter(0, P::effectMinimalLatency, 0);   // mode 0 keeps the geometric delay visible
+                calc->recalculateMatrix(nullptr);
+                check(cellFx(firstFx, 1) > 0.0f, "Y4: effect 0's return feeds effect 1");
+                check(cellFx(firstFx + 1, 0) == 0.0f, "Y4: effect 1's return does not feed effect 0");
+                check(cellFx(firstFx, 0) == 0.0f, "Y4: the diagonal is closed");
+                check(delayFx(firstFx, 1) > 0.0f, "Y4: a geometric effect feed carries a delay");
+
+                juce::StringArray ones;
+                for (int i = 0; i < D::maxEffectChannels; ++i)
+                    ones.add("1");
+                vts.setEffectParameter(0, P::effectFxSendOns, ones.joinIntoString(","));
+                calc->recalculateMatrix(nullptr);
+                check(cellFx(firstFx, 0) == 0.0f, "Y4: a diagonal planted through the row string stays closed");
+                check(vts.getEffectFxSendOnFromEffect(0, 1), "Y4: ...while the row's other cells opened");
+
+                vts.setParameter(P::effectsGlobalFxFeedGeometric, 0);
+                calc->recalculateMatrix(nullptr);
+                check(delayFx(firstFx, 1) == 0.0f, "Y4: a matrix-only effect feed carries no delay");
+                check(std::abs(cellFx(firstFx, 1) - 1.0f) < 1e-6f, "Y4: ...and its cell is the user gain (0 dB = 1)");
+                vts.setParameter(P::effectsGlobalFxFeedGeometric, 1);
+                calc->recalculateMatrix(nullptr);
+                check(delayFx(firstFx, 1) > 0.0f, "Y4: geometric again, the delay is back");
+            }
+
+            // Y5: the two solo masks
+            {
+                vts.setEffectParameter(1, P::effectSolo, 1);
+                calc->recalculateMatrix(nullptr);
+                check(rowMax(firstFx) == 0.0f, "Y5: soloing effect 1 silences effect 0's return row");
+                check(rowMax(firstFx + 1) > 0.0f, "Y5: ...and leaves effect 1's");
+                vts.setEffectParameter(1, P::effectSolo, 0);
+
+                calc->setSoloEffects(true);
+                calc->recalculateMatrix(nullptr);
+                check(rowMax(0) == 0.0f, "Y5: solo effects silences input 0's direct row");
+                check(rowMax(firstFx) > 0.0f, "Y5: ...and leaves the returns");
+                calc->setSoloEffects(false);
+                calc->recalculateMatrix(nullptr);
+                check(rowMax(0) > 0.0f, "Y5: input 0's direct row is back");
+            }
+
+            // Y6: no render-latency reference on a return; the delay trim applies
+            {
+                vts.setEffectParameter(0, P::effectDelayLatency, 0.0f);
+                calc->recalculateMatrix(nullptr);
+                std::vector<float> d0((size_t) liveOutputs);
+                for (int o = 0; o < liveOutputs; ++o)
+                    d0[(size_t) o] = delayOut(firstFx, o);
+
+                // The reference dirties the INPUT rows only, so the return rows
+                // must be forced through a recompute here or this assertion
+                // passes for the wrong reason (a mutation adding the term to the
+                // return rows went unnoticed until the recompute was forced)
+                calc->setChannelIntrinsicLatency(0, 3.0f);
+                calc->recalculateAllEffectPositions();
+                calc->recalculateMatrix(nullptr);
+                bool unchanged = true;
+                for (int o = 0; o < liveOutputs; ++o)
+                    unchanged = unchanged && delayOut(firstFx, o) == d0[(size_t) o];
+                check(unchanged, "Y6: the render-latency reference never reaches a return row");
+                calc->setChannelIntrinsicLatency(0, 0.0f);
+
+                vts.setEffectParameter(0, P::effectDelayLatency, 10.0f);
+                calc->recalculateMatrix(nullptr);
+                bool trimmed = true;
+                int compared = 0;
+                for (int o = 0; o < liveOutputs; ++o)
+                {
+                    if (cellOut(firstFx, o) <= 0.0f || d0[(size_t) o] < 0.5f)
+                        continue;   // silent or clamped cells say nothing about the trim
+                    trimmed = trimmed && std::abs(delayOut(firstFx, o) - (d0[(size_t) o] + 10.0f)) < 1e-3f;
+                    ++compared;
+                }
+                check(trimmed && compared > 0, "Y6: effectDelayLatency adds exactly 10 ms to the return row");
+                vts.setEffectParameter(0, P::effectDelayLatency, 0.0f);
+            }
+
+            // Y7: the cycle mask (Y4 left effect 0 receiving everyone, and
+            // effect 1 receiving effect 0: A -> B -> A)
+            {
+                calc->recalculateMatrix(nullptr);
+                check(calc->getEffectCycleMask() == 0x3u, "Y7: A -> B -> A is reported for both effects");
+                vts.setEffectFxSendOnFromEffect(1, 0, false);
+                calc->recalculateMatrix(nullptr);
+                check(calc->getEffectCycleMask() == 0u, "Y7: breaking one leg clears the cycle");
+            }
+
+            // Leave nothing behind: the channels, the latch they tripped, the
+            // latency reference, and the app's own map
+            vts.setNumEffectChannels(0);
+            if (! effectLatchBefore)
+                vts.getEffectsState().setProperty(P::effectPositionsUserOwned, 0, nullptr);
+            calc->setChannelIntrinsicLatency(0, 0.0f);
+            recomputeRenderSourceCount();
+            calc->recalculateMatrix(nullptr);
+        }
+    }
+
     logLine(failures == 0 ? juce::String("SELF-TEST RESULT: ALL PASS")
                           : "SELF-TEST RESULT: " + juce::String(failures) + " FAILURES");
 }
