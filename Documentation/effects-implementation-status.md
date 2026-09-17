@@ -300,6 +300,12 @@ only one may build.
   from the prepared one does not call `setNumNodes`, resize the buffers or re-prepare the return
   processor. The effects path has the guard the reverb path lacks (it stops processing when the
   prepared layout no longer matches); fixing the reverb twin was explicitly left out of scope.
+  **Only a project load can fire that guard.** The other route into `handleConfigReloaded` is
+  snapshot recall, which is reachable remotely over OSC, but every entry of
+  `ExtendedSnapshotScope::getScopeItems()` targets a per-channel subsection — Channel, Position,
+  Attenuation, AutomOtion, Directivity, GradientMaps, Hackoustics, LFO, LiveSourceTamer, Mutes,
+  Sampler, ADMMapping — and not one targets `Config` or `IO`, so a snapshot cannot carry a channel
+  count of any family. A cue therefore never changes the render-source layout.
 - **`effectsGlobal*` other than the loop-guard switch apply at the next Processing start**, because
   the rest of them are config the engine reads in `prepare`.
 - **The binaural-only path never drives the effects engine.** It pops nothing and notifies nothing,
