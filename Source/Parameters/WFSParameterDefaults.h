@@ -1230,7 +1230,11 @@ namespace WFSParameterDefaults
 
     // effectMutes has no bounds entry on purpose: it is a packed CSV row, one
     // token per output, built at channel-creation time from the live output
-    // count. reverbMutes is the precedent.
+    // count and refitted by setNumOutputChannels. reverbMutes is the precedent -
+    // and having no bounds entry is exactly why a row needs its own clause in the
+    // write interceptor: the generic numeric clamp only acts where getBounds
+    // answers, so without one a bare number passes straight through and replaces
+    // the whole row.
 
     // Effect > AutomOtion (the inputOtomo* set minus StayReturn; every value
     // matches its input constant, with one addition - effectOtomoCoordinateMode
@@ -1761,7 +1765,10 @@ namespace WFSParameterDefaults
     // The four row properties (effectSendLevels / Ons / FxSendLevels / FxSendOns)
     // are unbound packed CSV strings, like effectMutes. These constants belong to
     // the CELL pseudo-identifiers, which no node carries: the OSC parser, the
-    // ramper and the OSCQuery cell nodes validate one cell against them.
+    // ramper and the OSCQuery cell nodes validate one cell against them - and so
+    // does the row normaliser, which clamps every token of a level row into
+    // [Min, Max] and pads with Default. The Min/Max pair is therefore load-bearing
+    // for stored state, not only for the wire.
     // A cell is gated by its On switch, so a level of 0 dB is unity and the row
     // starts silent because the switches start off.
 

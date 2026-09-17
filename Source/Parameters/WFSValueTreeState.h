@@ -8,6 +8,7 @@
 #include "InputChannelIdentity.h"
 #include "ArrayMuteState.h"
 #include <vector>
+#include <map>
 
 /**
  * Undo domain — each tab has its own undo history.
@@ -189,6 +190,45 @@ public:
     static juce::String normaliseMuteList (const juce::var& list, int numOutputs,
                                            int keepTokens = std::numeric_limits<int>::max());
 
+    /** THE SHAPE TEST EVERY PACKED ROW IS GUARDED BY: true when `proposed` is a
+        string that can BE a row - a comma-separated list of well-formed numbers,
+        of more than one column unless `expectedColumns` really is 1. False for
+        everything else, and the two falses are the two writes that used to eat a
+        row whole:
+
+          - a bare NUMBER (an int or float var): a QLab cue, an OSC scalar, an
+            MCP numeric enum. The original loss, and the reason this guard exists;
+          - a ONE-TOKEN STRING: the same scalar, typed as text. The MCP surface
+            advertises reverb_set_mutes with its value as the string enum
+            "unmute" / "MUTE" and the OSC list form accepts any non-numeric
+            string, so this is a write that can be made today, not a hypothesis.
+            It used to normalise into a full row of DEFAULTS, which is worse than
+            the number it replaced: the damage is well-formed, and an unmuted row
+            cannot be told from a deliberate unmute-all.
+
+        A string with one junk token in it is refused WHOLE rather than repaired
+        token by token. The normalisers repair what a FILE carries, where there
+        is no writer left to refuse; a live write that cannot spell its own row
+        is not a row that lost a column. */
+    static bool isPackedRowWrite (const juce::var& proposed, int expectedColumns);
+
+    /** `proposed`'s tokens over `existing`'s, column by column: every column
+        `proposed` does not name is kept, and a `proposed` longer than `existing`
+        extends the row. A writer speaks for the columns it knows about and for
+        no others - a grid or a tablet showing 16 outputs of a 32-output rig
+        writes 16 tokens, and the other 16 are not its to clear. */
+    static juce::String mergePackedRow (const juce::var& existing, const juce::var& proposed);
+
+    /** The width a per-output row is fitted to: the live output count, or the
+        row's own width when that is wider. A PER-OUTPUT ROW IS NEVER CUT BACK.
+        The columns past the live count are not stale - they are the mutes of
+        outputs that are not there today (an interface that dropped, a System
+        Config edit about to be undone, a snapshot recalled ahead of the count) -
+        and cutting them replaces them with "0" the moment the rig comes back,
+        silently and then saved that way. normaliseMuteList pads AND cuts, so
+        every per-output caller passes it this width rather than a live count. */
+    static int perOutputRowWidth (const juce::var& row, int numOutputs);
+
     /** Mute or unmute ONE output of an input, leaving the others as they are.
         outputIndex is 0-based. Writes through setInputParameter, so it is undoable
         and listeners see it. False when the slot or the output does not exist. */
@@ -337,36 +377,25 @@ public:
         with no second list to keep in step - which is precisely the maintenance
         the reverb hook's hand-written legacy identifier demands.
 
-        THE ONE EXCEPTION, and it is a data-loss guard, not a convenience. A
-        template diff cannot tell PENDING from RETIRED: both are absent from a
-        freshly built channel. The four <Sends> rows (effectSendLevels /
-        effectSendOns / effectFxSendLevels / effectFxSendOns) are DECLARED in
-        WFSParameterIDs and deliberately not stamped by createEffectSendsSection,
-        because their width and column maintenance do not exist yet - so they are
-        exempted by name in the implementation. Without that, the first runtime
-        write of a send row would be saved correctly, restored faithfully by the
-        merge, and then deleted on the next load with no undo entry. Remove an
-        entry from that list the day its property is genuinely retired; the cost
-        of a stale entry is one attribute riding along in saved files, and the
-        cost of a missing one is an operator's routing.
+        THE EXEMPTION IS GONE, and its removal is this design working rather
+        than a regression. A template diff cannot tell PENDING from RETIRED: both
+        are absent from a freshly built channel, and while <Sends> was built
+        empty the four send rows were declared, written at runtime and therefore
+        indistinguishable from retired names - so they were named here by hand
+        and skipped. createEffectSendsSection now stamps all four, the template
+        carries them like every other property, and the hand-maintained list that
+        stood in for that has been deleted, exactly as its own comment said it
+        must be the day it stopped being needed. A row NAME that appears anywhere
+        but on <Sends> is now a genuine ghost and is evicted like any other.
 
         The corollary is a rule, not an accident: nothing may stamp a property
         onto an <Effect> subtree that createDefaultEffectChannel does not also
-        stamp, unless it is on that exemption list. A runtime-only flag parked
-        there would be evicted on the next load, and should live outside the
-        persisted subtree instead.
+        stamp. A runtime-only flag parked there is evicted on the next load and
+        belongs outside the persisted subtree.
 
         Whatever it drops, it SAYS so: one warning naming the distinct attributes
         removed. Eviction is not undoable by design, so a wrong one has to be
         visible somewhere.
-
-        A SECOND warning names any exempt attribute found on a node that is not
-        <Sends>. Nothing is deleted for that one - the exemption is keyed on the
-        property NAME at every depth, deliberately, because the list is
-        hand-maintained and a second hand-maintained fact (the node type) would
-        be a second thing to forget, with the same cost. The consequence is that
-        such an attribute can never be cleaned up, and a send row anywhere but
-        <Sends> is read by nobody, so the warning is the only trace it leaves.
 
         THE LIMIT, stated so nobody has to rediscover it: this works at property
         granularity only. A NODE the template does not have is neither deleted
@@ -473,10 +502,102 @@ public:
     juce::ValueTree getEffectAutoMotionSection (int channelIndex);
     juce::ValueTree getEffectChainSection (int channelIndex);
 
-    /** The <Sends> node. Declared and built empty in this commit: the four
-        packed CSV rows, their cell accessors and their write guards land with
-        the send matrix. */
+    /** The <Sends> node: the four packed send rows of one effect channel. */
     juce::ValueTree getEffectSendsSection (int channelIndex);
+
+    //--------------------------------------------------------------------------
+    // The send matrix
+    //--------------------------------------------------------------------------
+    /* FIVE PACKED ROWS, THREE SHAPES, AND NO ONE HELPER ACROSS THEM. They look
+       alike - a comma-separated string on one node - and the ways they differ
+       are exactly the ways a shared helper gets them wrong:
+
+         row                | width             | a column is       | tokens
+         effectMutes        | LIVE output count | an output INDEX   | 0 / 1
+         effectSendLevels   | maxInputChannels  | an input NUMBER   | dB
+         effectSendOns      | maxInputChannels  | an input NUMBER   | 0 / 1
+         effectFxSendLevels | maxEffectChannels | an effect INDEX   | dB
+         effectFxSendOns    | maxEffectChannels | an effect INDEX   | 0 / 1
+
+       1. effectMutes FOLLOWS THE LIVE OUTPUT COUNT, the way inputMutes and
+          reverbMutes do, and setNumOutputChannels refits it. The four send rows
+          do NOT: a column is an input's PERMANENT NUMBER, which can be anything
+          up to maxInputChannels whatever the live count is and can have gaps, so
+          a live-width row would drop the columns of channels that still exist.
+          They are stamped at their fixed width and never resized.
+       2. The LEVEL rows hold dB, not flags. normaliseMuteList coerces every
+          token to 0 or 1, so putting a level row through it silently sets every
+          send to unity or to nothing. They get their own normaliser, which
+          clamps into the declared range and KEEPS the value.
+       3. The fx rows carry a DIAGONAL that has to stay off - effect n may not
+          feed itself - and it is forced where the row is WRITTEN (the builder,
+          the cell setters, the write interceptor and the column maintenance),
+          not only where it is read.
+
+       KEYING, because both columns are ints and only one of them is an index: an
+       effectSend* column is an input PERMANENT NUMBER minus one, and an
+       effectFxSend* column is a DENSE effect index. The accessors below say
+       which in the function name and in the parameter name, so no call site has
+       to remember it.
+
+       ROW writes go through setEffectParameter - the row identifiers resolve to
+       <Sends> like any other property - and the interceptor normalises them,
+       but only after isPackedRowWrite has agreed that what arrived is a ROW.
+       A string is not a row because it is a string: one token is a scalar
+       whatever it spells, and normalising one into a full row of defaults is
+       how a single MCP enum value used to clear an entire routing.
+       CELL writes go through the eight accessors below, which read-modify-write
+       the whole row through that same setter: one undo entry, one listener
+       notification carrying the whole row, in the shape of setInputOutputMute.
+
+       THE FOUR CELL PSEUDO-IDENTIFIERS (effectSendLevel, effectSendOn,
+       effectFxSendLevel, effectFxSendOn) are NOT these rows and no node ever
+       carries one. They exist so the OSC parser, the ramper and the OSCQuery
+       cell nodes have something to validate a single cell against, while the
+       generic parameter path finds no tree for them and refuses the write
+       instead of dropping a scalar onto a whole row. Never stamp one. */
+
+    /** The canonical form of a packed LEVEL row: `width` comma-separated dB
+        values inside [minDb, maxDb]. A token that is already a well-formed
+        number in range is kept VERBATIM, spelling and all - normalisation is
+        there to repair a row, not to re-spell an operator's values, and a
+        normaliser that rewrites every token makes a file diff on nothing. A
+        missing or malformed token becomes defaultDb, an out-of-range one is
+        clamped. width <= 0 canonicalises the tokens without resizing. */
+    static juce::String normaliseSendLevelList (const juce::var& list, int width,
+                                                float minDb, float maxDb, float defaultDb);
+
+    /** The canonical form of a packed SWITCH row: `width` comma-separated "0" or
+        "1". Any token that parses to a non-zero number is on, the rule
+        normaliseMuteList uses and for the same reason (older files carry "1.0").
+        width <= 0 canonicalises without resizing. */
+    static juce::String normaliseSendSwitchList (const juce::var& list, int width);
+
+    /** One input's send INTO this effect. The column is the input's PERMANENT
+        number (1-based, as getInputChannelNumber reports it), never a slot and
+        never a display position: a row keyed by slot would repoint every send
+        the first time a channel is dragged. The getter answers the row's default
+        when the channel, the row or the column is not there; the setter returns
+        false and writes nothing. */
+    float getEffectSendLevelFromInput (int channelIndex, int inputPermanentNumber) const;
+    bool  setEffectSendLevelFromInput (int channelIndex, int inputPermanentNumber, float levelDb);
+    bool  getEffectSendOnFromInput    (int channelIndex, int inputPermanentNumber) const;
+    bool  setEffectSendOnFromInput    (int channelIndex, int inputPermanentNumber, bool on);
+
+    /** One effect's send into this effect. The column is a DENSE effect index
+        (0-based, the index every other effect accessor takes), because effect
+        ids are dense and a delete closes the hole up - which is why
+        removeEffectChannel has to shift these columns while the input-keyed rows
+        are left alone.
+
+        THE DIAGONAL IS REFUSED: channelIndex == sourceEffectIndex returns false
+        and writes nothing, and the interceptor forces that cell back off even
+        when a whole-row write sets it. An effect feeding itself is a feedback
+        loop around a delay line, not a routing choice. */
+    float getEffectFxSendLevelFromEffect (int channelIndex, int sourceEffectIndex) const;
+    bool  setEffectFxSendLevelFromEffect (int channelIndex, int sourceEffectIndex, float levelDb);
+    bool  getEffectFxSendOnFromEffect    (int channelIndex, int sourceEffectIndex) const;
+    bool  setEffectFxSendOnFromEffect    (int channelIndex, int sourceEffectIndex, bool on);
 
     /** One chain slot's module node, by slot index 0..10 in the declared order
         (dist, eq1, eq2, dyn1, dyn2, mod, phaser, trem, reverb, delay, crush) or
@@ -834,7 +955,12 @@ public:
         tracking id, stamped FROM the number, follows it; anything the user
         changed stays. Names do NOT follow the number: a default name is a
         per-type ordinal maintained by resequenceDefaultInputNames(). Only ever
-        called while the session has not latched channel numbers. Idempotent. */
+        called while the session has not latched channel numbers. Idempotent.
+
+        Anything keyed by the permanent NUMBER has to move with it, and the
+        effect send rows are: the whole permutation is computed before the walk
+        and applied once after it (see remapEffectSendColumnsByInputNumber, and
+        the note below about the list briefly holding a number twice). */
     void compactChannelNumbersToDisplayOrder();
 
     /** Re-flow the whole input patch into a gapless diagonal in DISPLAY order:
@@ -862,7 +988,23 @@ public:
 
     /** previousCount: how many outputs existed before this change, when the
         caller has already added output nodes itself (an output-config merge);
-        -1 = the current node count. Decides which mute-list entries are new. */
+        -1 = the current node count. Decides which mute-list entries are new.
+
+        Refits the per-output mute row of all THREE families that carry one:
+        inputMutes, reverbMutes and effectMutes. Only inputMutes was refitted
+        before, so a reverb's row stayed at whatever width it was created at and
+        self-healed only because ReverbTab rewrites it whole whenever the user
+        opens that tab - with a hard-coded fallback of 16, which is what hid the
+        gap. The send rows of <Sends> are deliberately NOT touched here: they are
+        keyed by input number and by effect index, neither of which has anything
+        to do with how many outputs the rig has.
+
+        THE REFIT ONLY GROWS (perOutputRowWidth). A row is padded up to the live
+        count and never cut down to it, because an output count that goes DOWN is
+        usually temporary - an interface that dropped, an edit about to be undone
+        - and a row cut to fit comes back padded with "0" where the operator's
+        mutes were. The single exception is the legacy 64/128 grid list, whose
+        tail the keepTokens window has just declared meaningless anyway. */
     void setNumOutputChannels (int numChannels, int previousCount = -1);
     void setNumReverbChannels (int numChannels);
 
@@ -1199,7 +1341,7 @@ private:
 
 
     /** One default effect channel: <Effect id="index + 1"> with its six flat
-        sections, its eleven module nodes and an empty <Sends>.
+        sections, its eleven module nodes and a <Sends> holding all four rows.
 
         totalCount is the TARGET channel count, so a channel built while the
         list is growing lands on the ring the finished set will use. The layout
@@ -1225,7 +1367,13 @@ private:
     juce::ValueTree createEffectReturnSection (int numOutputs);
     juce::ValueTree createEffectAutoMotionSection();
     juce::ValueTree createEffectChainSection();
-    juce::ValueTree createEffectSendsSection();
+
+    /** <Sends> with all four rows stamped at their fixed widths and defaults.
+        Takes the channel's DENSE index for one reason: the fx diagonal. A row
+        built without knowing which channel it belongs to cannot say which of its
+        32 columns is the channel itself, and a self-send that starts on is a
+        loop the operator never asked for. */
+    juce::ValueTree createEffectSendsSection (int channelIndex);
     juce::ValueTree createEffectDistSection();
     juce::ValueTree createEffectEQSection (const juce::Identifier& nodeType);
     juce::ValueTree createEffectDynSection (const juce::Identifier& nodeType);
@@ -1235,6 +1383,78 @@ private:
     juce::ValueTree createEffectReverbSection();
     juce::ValueTree createEffectDelaySection();
     juce::ValueTree createEffectCrushSection();
+
+    //==========================================================================
+    // Send-row internals (see "The send matrix" in the public section)
+    //==========================================================================
+
+    /** The canonical form of ONE named send row: the single place that maps a
+        row identifier to its width, its value kind and its diagonal rule. Every
+        writer goes through it - the builder, the cell setters, the column
+        maintenance and the write interceptor - so a row cannot acquire a shape
+        that depends on which door it came in by.
+
+        selfEffectIndex is the DENSE index of the channel the row belongs to, and
+        -1 when that cannot be resolved (a detached node under construction); the
+        fx diagonal is only forced when it is known. Passing an identifier that is
+        not one of the four rows is a programming error and returns the input
+        unchanged. */
+    static juce::String canonicalEffectSendRow (const juce::Identifier& rowId,
+                                                const juce::var& list,
+                                                int selfEffectIndex);
+
+    /** The dense index of the <Effect> a node lives under, by the same
+        count-by-type walk getEffectState uses, or -1 when the node is not under
+        a live effect channel. The interceptor needs it: a <Sends> node knows its
+        own diagonal only through its channel. */
+    int denseEffectIndexOfNode (const juce::ValueTree& node) const;
+
+    /** One cell of one row, as the text stored for it; empty when the channel,
+        the row or the column does not exist. The read canonicalises first, so a
+        hand-edited short row answers for every column it is supposed to have. */
+    juce::String readEffectSendCell (int channelIndex, const juce::Identifier& rowId,
+                                     int column) const;
+
+    /** Write one cell: read-modify-write of the WHOLE row through
+        setEffectParameter, so it carries one undo entry and one notification
+        (setInputOutputMute is the precedent). False when the channel, the row or
+        the column is out of reach. */
+    bool writeEffectSendCell (int channelIndex, const juce::Identifier& rowId,
+                              int column, const juce::String& token);
+
+    /** INPUT DELETE. Reset one input's column to the row default in both
+        input-keyed rows of every effect channel. Called by removeInputChannel
+        BEFORE the compaction, so what the compaction then shifts is a row with
+        no dead channel left in it: without this, a channel later re-created on
+        that retired number inherits the dead channel's sends. */
+    void zeroEffectSendColumnsForInput (int inputPermanentNumber);
+
+    /** INPUT RENUMBER. Apply ONE permutation of input permanent numbers to the
+        input-keyed rows of every effect channel.
+
+        It takes the whole map and applies it in one pass on purpose. Both
+        renumber paths walk slot by slot through setInputChannelNumberAtSlot, and
+        mid-walk the list can hold the same number twice (the compaction's own
+        comment records it), so a remap driven one write at a time would move a
+        column onto one that has not moved yet and collapse two channels' sends
+        into one. A swap - the case a shift-shaped renumber never produces -
+        breaks that way every time.
+
+        Columns the map does not mention are left ALONE rather than cleared:
+        this must not infer from "no live channel owns that number today" that
+        the column is dead. The one exception is a column the map VACATES (a
+        source that is nothing's destination), which is reset to the row default
+        because its owner has demonstrably moved away. */
+    void remapEffectSendColumnsByInputNumber (const std::map<int, int>& oldToNewNumbers);
+
+    /** EFFECT DELETE. Drop one column from the fx-keyed rows of every surviving
+        channel and shift the ones above it down, then force each survivor's
+        diagonal at its NEW index. The fx rows are keyed by dense index, so a
+        removal renumbers every column above the hole exactly as it renumbers the
+        channels themselves; leaving them put would re-point every send above the
+        deleted channel by one. Call it AFTER the node is gone and the ids have
+        been re-stamped. */
+    void dropEffectFxSendColumn (int removedEffectIndex);
 
     /** Create reverb channel subsections */
     juce::ValueTree createReverbChannelSection (int index);

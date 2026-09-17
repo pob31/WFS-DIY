@@ -5032,24 +5032,22 @@ void MainComponent::runChannelListSelfTest()
                   "X9: and the completed shape is what goes back to disk");
         }
 
-        // X10: A DECLARED-BUT-UNSTAMPED PROPERTY IS NOT AN OBSOLETE ONE.
-        // stripObsoleteEffectProperties builds its whole notion of "what the
-        // schema still declares" by diffing against createDefaultEffectChannel -
-        // which cannot tell PENDING from RETIRED, because both are absent from a
-        // freshly built channel. <Sends> is built EMPTY on purpose (the four
-        // packed rows want a width, a keying convention, cell accessors, an
-        // interceptor clause each and column maintenance before anything stamps
-        // them), so the diff rule read "every property on a loaded <Sends> is
-        // obsolete" - and the four rows are written at RUNTIME, the way
-        // inputMutes is, through a cell accessor or an OSC/MCP route. Saved
-        // correctly, restored faithfully by the merge, then deleted on the load
-        // path with no error, no log line and no undo entry.
+        // X10: THE SEND ROWS ARE SCHEMA NOW, and the exemption that stood in
+        // for that is gone. While <Sends> was built EMPTY the four packed rows
+        // were declared, written at runtime, and therefore indistinguishable
+        // from RETIRED names by the only evidence stripObsoleteEffectProperties
+        // has - absence from a freshly built channel - so the hook had to name
+        // and skip them by hand, or the load after the first write would have
+        // deleted an operator's entire routing with no error and no undo entry.
         //
-        // X6 above plants a GHOST attribute and proves the eviction WORKS. This
-        // plants a LEGITIMATE one and proves it does not overreach - the
-        // assertion the other 385 checks never made, because every fixture in
-        // this phase is built through the very template the rule reads, so the
-        // rows are missing from the expected shape too.
+        // createEffectSendsSection stamps all four now, so the template carries
+        // them like any other property and that hand-maintained list is deleted.
+        // Three things change with it, and this phase asserts each: a row written
+        // from OUTSIDE the app still arrives intact and exact; a genuine ghost on
+        // <Sends> itself still goes; and a row NAME on a node that is not <Sends>
+        // is a ghost again rather than an exempt stowaway nothing could ever
+        // clean up. X6 above proves eviction works at all; this proves it stops
+        // in the right place.
         {
             auto packedRow = [](int width, const juce::String& idle,
                                 int at1, const juce::String& v1,
@@ -5081,12 +5079,19 @@ void MainComponent::runChannelListSelfTest()
                 auto* first = effectsEl != nullptr ? effectsEl->getChildByName(P::Effect.toString())
                                                    : nullptr;
                 auto* sends = first != nullptr ? first->getChildByName(P::Sends.toString()) : nullptr;
-                check(sends != nullptr, "X10: the saved channel carries a <Sends> node with no rows on it");
+                check(sends != nullptr, "X10: the saved channel carries a <Sends> node");
+                check(sends != nullptr && sends->hasAttribute(P::effectSendLevels)
+                          && sends->hasAttribute(P::effectSendOns)
+                          && sends->hasAttribute(P::effectFxSendLevels)
+                          && sends->hasAttribute(P::effectFxSendOns),
+                      "X10: ...with all four rows stamped on it, straight from the builder");
 
                 if (sends != nullptr)
                 {
-                    // Exactly what a runtime write would have left behind: the
-                    // four rows on <Sends>, and nothing else touched.
+                    // An operator's routing, written by something that is not
+                    // this build - a hand edit, an older save, a show file from
+                    // another machine. Distinct from every default, so a row that
+                    // came back re-defaulted cannot pass for one that survived.
                     sends->setAttribute(P::effectSendLevels,   sendLevels);
                     sends->setAttribute(P::effectSendOns,      sendOns);
                     sends->setAttribute(P::effectFxSendLevels, fxSendLevels);
@@ -5114,17 +5119,27 @@ void MainComponent::runChannelListSelfTest()
             check(sendsNode.getProperty(P::effectFxSendOns).toString() == fxSendOns,
                   "X10: ...and effectFxSendOns");
 
-            // The other channel was never routed, so its <Sends> must still be
-            // empty: the exemption is a refusal to DELETE, not a licence to
-            // stamp a default width nobody can maintain yet.
-            check(vts.getEffectSendsSection(1).getNumProperties() == 0,
-                  "X10: an unrouted channel's <Sends> is still empty");
+            // The other channel was never routed, so it carries the four
+            // DEFAULT rows - not an empty node, which is what it would have been
+            // before the builder stamped them, and not the first channel's
+            // routing either.
+            {
+                auto unrouted = vts.getEffectSendsSection(1);
+                check(unrouted.getNumProperties() == 4,
+                      "X10: an unrouted channel's <Sends> carries exactly the four rows");
+                check(unrouted.getProperty(P::effectSendLevels).toString()
+                          == juce::String::repeatedString("0,", D::maxInputChannels - 1) + "0",
+                      "X10: ...all of them at the default, every send at unity into a switch that is off");
+                check(unrouted.getProperty(P::effectSendOns).toString()
+                          != sendOns,
+                      "X10: ...and not the routing the OTHER channel was given");
+            }
 
             check(fm.saveEffectsConfig(), "X10: save the routed session again");
             const juce::String routed = effectsFile().loadFileAsString();
-            check(occurrences(routed, "effectSendLevels") == 1
-                      && occurrences(routed, "effectFxSendOns") == 1,
-                  "X10: the rows go back to disk, on the one channel that carries them");
+            check(occurrences(routed, "effectSendLevels") == 2
+                      && occurrences(routed, "effectFxSendOns") == 2,
+                  "X10: the rows go back to disk, one of each per channel");
             check(routed.contains(sendLevels) && routed.contains(fxSendLevels),
                   "X10: ...with the operator's values, not a re-defaulted row");
 
@@ -5147,17 +5162,15 @@ void MainComponent::runChannelListSelfTest()
                       "X10: ...and the legitimate row beside it is untouched");
             }
 
-            // THE BLIND SPOT THE EXEMPTION BUYS, made visible. The four names are
-            // exempt by NAME at every depth. Keyed on (node type, name) instead,
-            // the hook would need TWO hand-maintained facts to stay right, and the
-            // day a row is relocated it would delete the migrated value on the
-            // second load - the direction whose cost is an operator's routing
-            // rather than one orphan attribute. The price of the name-only rule is
-            // exact: one of those four, used as junk on a node that is not
-            // <Sends>, can never be evicted. That is not data loss, nothing is
-            // deleted - but it IS a send row where no reader will ever look, so
-            // the hook says where it is. Without this the rule had no gate in
-            // either direction.
+            // WHAT THE EXEMPTION USED TO COST, and no longer does. It was keyed
+            // on the property NAME at every depth - one hand-maintained fact
+            // rather than two - so one of those four names used as junk on a node
+            // that is not <Sends> could never be evicted from anyone's file. It
+            // was not data loss, nothing was deleted, but it WAS a send row
+            // sitting where no reader would ever look, and the hook could only
+            // report it. With the rows in the template that whole trade is off:
+            // <Chain> has no effectSendLevels in a freshly built channel, so one
+            // in a file is a ghost like any other and goes.
             {
                 check(fm.saveEffectsConfig(), "X10: write the cleaned tree back before the next plant");
 
@@ -5170,20 +5183,44 @@ void MainComponent::runChannelListSelfTest()
                 check(fm.loadEffectsConfig(), "X10: load a send row planted on <Chain>");
                 const juce::String misplacedLog = logSince(beforeMisplaced);
 
-                check(vts.getEffectChainSection(0).getProperty(P::effectSendLevels).toString()
-                          == "JUNK-ON-CHAIN",
-                      "X10: it is KEPT - the exemption refuses to delete by name, at every depth");
-                check(misplacedLog.contains("exempt attribute(s) found outside <Sends>")
-                          && misplacedLog.contains("Chain/effectSendLevels"),
-                      "X10: ...and the log names the node it is stranded on");
-                check(! misplacedLog.contains("Effects schema: dropped"),
-                      "X10: the two warnings stay apart - this load dropped nothing");
+                check(! vts.getEffectChainSection(0).hasProperty(P::effectSendLevels),
+                      "X10: it is EVICTED - a row name off <Sends> is a ghost again");
+                check(misplacedLog.contains("Effects schema: dropped")
+                          && misplacedLog.contains("effectSendLevels"),
+                      "X10: ...and the eviction warning names it");
+                check(! misplacedLog.contains("exempt attribute(s) found outside <Sends>"),
+                      "X10: the exemption's own warning is gone with the exemption");
                 check(vts.getEffectSendsSection(0).getProperty(P::effectSendLevels).toString() == sendLevels,
-                      "X10: ...and the real row on <Sends> is still the operator's");
+                      "X10: ...and the real row on <Sends>, the same NAME one node up, is untouched");
+            }
 
-                // Not left for the phases below to trip over.
-                for (int ch = 0; ch < 2; ++ch)
-                    vts.getEffectChainSection(ch).removeProperty(P::effectSendLevels, nullptr);
+            // THE UPGRADE PATH, which is every effects.xml this branch has saved
+            // so far: <Sends> with no rows on it at all. The template backfill
+            // has to put all four back, or every channel of every existing show
+            // goes live with a send matrix that no write can reach - setEffect-
+            // Parameter only writes where some child already hasProperty().
+            {
+                check(fm.saveEffectsConfig(), "X10: save before the empty-node plant");
+
+                juce::String xml = effectsFile().loadFileAsString();
+                const int at = xml.indexOf("<Sends ");
+                const int end = at >= 0 ? xml.indexOf(at, "/>") : -1;
+                check(at >= 0 && end > at, "X10: the file holds a <Sends> to empty out");
+                if (at >= 0 && end > at)
+                    xml = xml.substring(0, at) + "<Sends " + xml.substring(end);
+                effectsFile().replaceWithText(xml);
+                check(occurrences(effectsFile().loadFileAsString(), "effectSendLevels") == 1,
+                      "X10: one channel's <Sends> is now as empty as last commit wrote it");
+
+                vts.setNumEffectChannels(0);
+                check(fm.loadEffectsConfig(), "X10: load the pre-send-matrix file");
+                auto restored = vts.getEffectSendsSection(0);
+                check(restored.getNumProperties() == 4,
+                      "X10: the backfill puts all four rows back on the empty node");
+                check(juce::StringArray::fromTokens(
+                          restored.getProperty(P::effectSendOns).toString(), ",", "").size()
+                              == D::maxInputChannels,
+                      "X10: ...at the width the template declares, not at nothing");
             }
         }
 
@@ -5574,6 +5611,692 @@ void MainComponent::runChannelListSelfTest()
                 check(postEQ.getNumChildren() == D::numReverbPostEQBands,
                       "X12: ...and the post EQ is left exactly as it was found");
             }
+        }
+
+        // X13: THE SEND MATRIX, AND THE MAINTENANCE THAT KEEPS IT POINTED AT THE
+        // RIGHT CHANNELS. Five packed rows per channel, and every one of them is
+        // a row of columns living in a single string property - which is the
+        // shape every bug in this branch has been about. The four defects the
+        // phase caught before this one were all the same mistake: code inferring
+        // what it may destroy from what it cannot see. These rows ARE that data.
+        //
+        // Every assertion is made after a save and a reload, like the rest of
+        // this phase: a freshly built tree agrees with the builder whatever the
+        // file path does, and the columns are exactly what a merge, a backfill or
+        // an eviction can quietly move.
+        {
+            // Read the row TEXT off the node, never through the accessor under
+            // test. X12's lesson: a write and a read through one accessor pass
+            // each other's mistakes, and a column that is off by one round-trips
+            // perfectly.
+            auto rowOf = [&](int ch, const juce::Identifier& rowId)
+            {
+                return juce::StringArray::fromTokens(
+                    vts.getEffectSendsSection(ch).getProperty(rowId).toString(), ",", "");
+            };
+            auto cell = [&](int ch, const juce::Identifier& rowId, int col) -> juce::String
+            {
+                auto tokens = rowOf(ch, rowId);
+                return (col >= 0 && col < tokens.size()) ? tokens[col] : juce::String("<none>");
+            };
+            auto levelAt = [&](int ch, const juce::Identifier& rowId, int col)
+            {
+                return cell(ch, rowId, col).getFloatValue();
+            };
+            auto isAt = [&](int ch, const juce::Identifier& rowId, int col, float wanted)
+            {
+                return std::abs(levelAt(ch, rowId, col) - wanted) < 1.0e-6f;
+            };
+            auto onAt = [&](int ch, int col) { return cell(ch, P::effectSendOns, col) == "1"; };
+
+            auto reloadEffects = [&](const char* what)
+            {
+                check(fm.saveEffectsConfig(), juce::String(what) + ": save the routed session");
+                vts.setNumEffectChannels(0);
+                check(fm.loadEffectsConfig(), juce::String(what) + ": read it back off disk");
+            };
+
+            // How many tokens of a row are NOT at the row's idle value. The
+            // strongest form of "the neighbours did not move": one number that
+            // catches a write which landed everywhere.
+            auto nonIdle = [&](int ch, const juce::Identifier& rowId)
+            {
+                auto tokens = rowOf(ch, rowId);
+                int n = 0;
+                for (const auto& t : tokens)
+                    if (t.getFloatValue() != 0.0f)
+                        ++n;
+                return n;
+            };
+
+            // ---- X13a: the rows exist, at their widths, at their defaults ----
+            // The builder used to return a bare <Sends>, so every channel of
+            // every show carried a send matrix that no writer could reach:
+            // setEffectParameter only writes where some child already
+            // hasProperty(), so an absent row swallows every write for the life
+            // of the session.
+            // From a CLEAN set: X12 above deliberately leaves a foreign node
+            // inside <FxEq1> and proves it survives a round trip, and this phase
+            // is about the rows rather than about that fixture. Emptying the
+            // family first drops it; the save inside reloadEffects then writes
+            // the clean tree over the file X12 left behind.
+            vts.setNumEffectChannels(0);
+            vts.setNumEffectChannels(3);
+            reloadEffects("X13a");
+            verifyFamily("X13a (three channels, send matrix stamped)", 3);
+
+            juce::String shapeFault;
+            for (int ch = 0; ch < 3 && shapeFault.isEmpty(); ++ch)
+            {
+                const juce::String who = "effect " + juce::String(ch + 1) + ": ";
+                auto sends = vts.getEffectSendsSection(ch);
+
+                if (sends.getNumProperties() != 4)
+                    shapeFault = who + "<Sends> carries " + juce::String(sends.getNumProperties())
+                               + " properties, expected 4";
+                else
+                {
+                    // THE WIDTHS ARE THE POINT. The input rows are as wide as the
+                    // PERMANENT NUMBER space, not as wide as the live channel
+                    // list: a number survives a delete, can leave gaps and can be
+                    // anything up to the maximum however few channels are live,
+                    // so a row fitted to a live count would drop the columns of
+                    // channels that still exist.
+                    const int widths[] = { rowOf(ch, P::effectSendLevels).size(),
+                                           rowOf(ch, P::effectSendOns).size(),
+                                           rowOf(ch, P::effectFxSendLevels).size(),
+                                           rowOf(ch, P::effectFxSendOns).size() };
+                    const int wanted[] = { D::maxInputChannels, D::maxInputChannels,
+                                           D::maxEffectChannels, D::maxEffectChannels };
+                    const char* names[] = { "effectSendLevels", "effectSendOns",
+                                            "effectFxSendLevels", "effectFxSendOns" };
+                    for (int r = 0; r < 4 && shapeFault.isEmpty(); ++r)
+                        if (widths[r] != wanted[r])
+                            shapeFault = who + names[r] + " is " + juce::String(widths[r])
+                                       + " columns wide, expected " + juce::String(wanted[r]);
+
+                    if (shapeFault.isEmpty()
+                        && (nonIdle(ch, P::effectSendLevels) != 0 || nonIdle(ch, P::effectSendOns) != 0
+                            || nonIdle(ch, P::effectFxSendLevels) != 0 || nonIdle(ch, P::effectFxSendOns) != 0))
+                        shapeFault = who + "a freshly built row is not all at its default";
+                }
+            }
+            check(shapeFault.isEmpty(),
+                  juce::String("X13a: every channel carries four rows at their declared widths")
+                      + (shapeFault.isEmpty() ? juce::String() : " - " + shapeFault));
+
+            // ---- X13b: one cell, at its exact value, with quiet neighbours ----
+            // The level rows hold dB. Run one through normaliseMuteList - the
+            // helper that sits right beside them and looks like it fits - and
+            // every send becomes 0 or 1: silence or unity on all 64 columns, with
+            // the row still the right width and the right shape.
+            check(vts.setEffectSendLevelFromInput(0, 2, -3.0f),  "X13b: a level on the neighbour below");
+            check(vts.setEffectSendLevelFromInput(0, 4, -40.0f), "X13b: ...and on the one above");
+            check(vts.setEffectSendLevelFromInput(0, 3, -6.5f),  "X13b: the cell between them");
+            check(vts.setEffectSendOnFromInput(0, 3, true),      "X13b: ...switched on");
+            check(vts.setEffectSendLevelFromInput(0, 17, -12.25f),
+                  "X13b: a second cell, far enough up the row to catch a width mistake");
+            reloadEffects("X13b");
+
+            check(isAt(0, P::effectSendLevels, 2, -6.5f),
+                  "X13b: the level survives the round trip at its EXACT value");
+            check(isAt(0, P::effectSendLevels, 1, -3.0f) && isAt(0, P::effectSendLevels, 3, -40.0f),
+                  "X13b: ...and both neighbours are exactly where they were left");
+            check(isAt(0, P::effectSendLevels, 16, -12.25f),
+                  "X13b: ...as is the cell at input 17");
+            check(nonIdle(0, P::effectSendLevels) == 4 && nonIdle(0, P::effectSendOns) == 1,
+                  "X13b: four levels and one switch moved, and nothing else in either row");
+            check(std::abs(vts.getEffectSendLevelFromInput(0, 3) + 6.5f) < 1.0e-6f
+                      && vts.getEffectSendOnFromInput(0, 3),
+                  "X13b: the accessor reads back what the row text says, keyed by the same number");
+            check(std::abs(vts.getEffectSendLevelFromInput(1, 3) - D::effectSendLevelDefault) < 1.0e-6f,
+                  "X13b: ...and the other channels were not routed by it");
+
+            // OUT OF RANGE is clamped, not refused and not stored: a level row is
+            // the one packed row with a declared range, and the range is what the
+            // cell pseudo-identifier's bounds entry promises every later surface.
+            check(vts.setEffectSendLevelFromInput(0, 5, -400.0f), "X13b: write a level far below the floor");
+            reloadEffects("X13b-clamp");
+            check(isAt(0, P::effectSendLevels, 4, D::effectSendLevelMin),
+                  "X13b: it lands at the floor, and the row still parses as a row");
+
+            // ---- X13c: a bare number may not eat a row ------------------------
+            // Six rows, one hole. inputMutes was guarded after mutes were lost to
+            // a QLab cue, an OSC scalar and an MCP enum, each writing a number
+            // over the whole list; reverbMutes has been destructible by exactly
+            // that route ever since and effectMutes would have inherited it. None
+            // of the five has a bounds entry, so the generic numeric clamp never
+            // even looks at them.
+            {
+                const int reverbsBefore = vts.getNumReverbChannels();
+                if (reverbsBefore == 0)
+                    vts.setNumReverbChannels(1);   // restored below
+                check(vts.getNumReverbChannels() > 0, "X13c: a reverb channel to guard");
+                check(vts.getNumInputChannels() > 0, "X13c: an input channel to guard");
+
+                const juce::Identifier* rows[] = { &P::inputMutes, &P::reverbMutes, &P::effectMutes,
+                                                  &P::effectSendLevels, &P::effectSendOns,
+                                                  &P::effectFxSendLevels, &P::effectFxSendOns };
+
+                auto readRow = [&](const juce::Identifier& rowId) -> juce::String
+                {
+                    if (rowId == P::inputMutes)  return vts.getInputParameter(0, rowId).toString();
+                    if (rowId == P::reverbMutes) return vts.getReverbParameter(0, rowId).toString();
+                    return vts.getEffectParameter(0, rowId).toString();
+                };
+
+                // COLUMN 0 IS ARMED FIRST, and the assertions below are worth
+                // nothing without it. A scalar written over a row lands on its
+                // FIRST column, and every one of these rows starts idle there, so
+                // a guard that refused the write and a guard that took it produce
+                // the same row - "0" either way - and the comparison passes for
+                // the wrong reason. Armed, the same write has somewhere to show.
+                {
+                    juce::StringArray armed;
+                    for (int i = 0; i < juce::jmax(1, vts.getNumOutputChannels()); ++i)
+                        armed.add(i == 0 ? "1" : "0");
+                    const juce::String armedRow = armed.joinIntoString(",");
+
+                    check(vts.setInputOutputMute(0, 0, true), "X13c: mute output 1 of input 1");
+                    vts.setParameter(P::reverbMutes, armedRow, 0);
+                    vts.setParameter(P::effectMutes, armedRow, 0);
+                    check(vts.setEffectSendLevelFromInput(0, 1, -2.0f)
+                              && vts.setEffectSendOnFromInput(0, 1, true),
+                          "X13c: route input 1 into effect 1, so the send rows have a first column too");
+                    check(readRow(P::inputMutes).startsWith("1,")
+                              && readRow(P::reverbMutes).startsWith("1,")
+                              && readRow(P::effectMutes).startsWith("1,")
+                              && readRow(P::effectSendOns).startsWith("1,"),
+                          "X13c: ...and the first column of all four really is armed");
+                }
+
+                juce::StringArray before;
+                for (const auto* rowId : rows)
+                    before.add(readRow(*rowId));
+
+                juce::String emptyRow;
+                for (int r = 0; r < numElementsInArray(rows); ++r)
+                    if (before[r].isEmpty())
+                        emptyRow = rows[r]->toString();
+                check(emptyRow.isEmpty(),
+                      juce::String("X13c: all seven rows are on their nodes to begin with")
+                          + (emptyRow.isEmpty() ? juce::String() : " - " + emptyRow + " is not"));
+
+                // THE ROUTE THAT DID THE DAMAGE, not a hand-written setProperty:
+                // getTreeForParameter resolves the row and writeProperty lands on
+                // it, which is where an OSC scalar, an MCP enum and a cue recall
+                // all arrive.
+                for (int r = 0; r < numElementsInArray(rows); ++r)
+                {
+                    const int channelIndex = 0;
+                    vts.setParameter(*rows[r], 7, channelIndex);      // an int
+                    vts.setParameter(*rows[r], 0.5, channelIndex);    // ...and a float
+                }
+
+                juce::StringArray eatenRows;
+                for (int r = 0; r < numElementsInArray(rows); ++r)
+                    if (readRow(*rows[r]) != before[r])
+                        eatenRows.add(rows[r]->toString() + " became \"" + readRow(*rows[r]) + "\"");
+                const juce::String eaten = eatenRows.joinIntoString("; ");
+                check(eaten.isEmpty(),
+                      juce::String("X13c: a bare number leaves every one of the seven rows exactly as it was")
+                          + (eaten.isEmpty() ? juce::String() : " - " + eaten));
+
+                // ...AND THE SAME SCALAR TYPED AS TEXT, which a clause that tests
+                // the TYPE of the write cannot see. reverb_set_mutes is advertised
+                // to every MCP client with its value as a STRING ENUM of "unmute"
+                // / "MUTE" (Source/Network/MCP/generated_tools.json), and the OSC
+                // list form accepts any non-numeric string, so this is the shipped
+                // route rather than a hypothesis. One junk token used to tokenise
+                // into a full row of DEFAULTS: well-formed, silent, and
+                // indistinguishable from a deliberate unmute-all - which is a
+                // worse loss than the number that started this guard, not a
+                // smaller one.
+                const char* notRows[] = { "MUTE", "unmute", "", "   ", "wibble",
+                                          "7", "0.5", "1;0;1", "--5",
+                                          "MUTE,MUTE", "x,y,z", "1,x,1" };
+                for (const auto* text : notRows)
+                    for (int r = 0; r < numElementsInArray(rows); ++r)
+                        vts.setParameter(*rows[r], juce::String(text), 0);
+
+                juce::StringArray eatenByText;
+                for (int r = 0; r < numElementsInArray(rows); ++r)
+                    if (readRow(*rows[r]) != before[r])
+                        eatenByText.add(rows[r]->toString() + " became \"" + readRow(*rows[r]) + "\"");
+                const juce::String eatenText = eatenByText.joinIntoString("; ");
+                check(eatenText.isEmpty(),
+                      juce::String("X13c: ...and so does a string that is not a row, on all seven")
+                          + (eatenText.isEmpty() ? juce::String() : " - " + eatenText));
+
+                // ...and it survives the save too, which is the half that made the
+                // original bug permanent: the scalar was written, then saved, and
+                // the list was gone from the file as well as from the session.
+                check(fm.saveCompleteConfig(), "X13c: save the whole project");
+                check(fm.loadCompleteConfig(), "X13c: load it back");
+                juce::StringArray lostRows;
+                for (int r = 0; r < numElementsInArray(rows); ++r)
+                    if (readRow(*rows[r]) != before[r])
+                        lostRows.add(rows[r]->toString() + " came back as \"" + readRow(*rows[r]) + "\"");
+                const juce::String lost = lostRows.joinIntoString("; ");
+                check(lost.isEmpty(),
+                      juce::String("X13c: ...and every row comes back off disk unchanged")
+                          + (lost.isEmpty() ? juce::String() : " - " + lost));
+
+                // A SHORT ROW NAMES THE COLUMNS IT HAS, and the rest of the row is
+                // none of its business. Padded out to the full width with defaults
+                // instead, a three-column write clears sixty-one sends nothing
+                // asked about - the one-token loss above with three tokens.
+                check(vts.setEffectSendLevelFromInput(0, 40, -18.0f)
+                          && vts.setEffectSendOnFromInput(0, 40, true),
+                      "X13c: route input 40 into effect 1");
+                vts.setParameter(P::effectSendLevels, juce::String("-1,-2,-3"), 0);
+                check(std::abs(vts.getEffectSendLevelFromInput(0, 40) + 18.0f) < 1.0e-6f,
+                      "X13c: a three-column row write leaves column 40 exactly where it was");
+                check(std::abs(vts.getEffectSendLevelFromInput(0, 1) + 1.0f) < 1.0e-6f
+                          && std::abs(vts.getEffectSendLevelFromInput(0, 3) + 3.0f) < 1.0e-6f,
+                      "X13c: ...and takes the three columns it does name as written");
+
+                if (reverbsBefore == 0)
+                    vts.setNumReverbChannels(0);
+            }
+
+            // ---- X13d: an input delete takes its column with it ---------------
+            // removeInputChannel retires a number and leaves a GAP that
+            // addInputChannel can hand back out later, and it is followed by a
+            // renumber only on a session that has not latched. Both regimes are
+            // driven below, because they fail differently: latched, the column is
+            // idle only if the delete ZEROED it; unlatched, the compaction must
+            // shift the survivors and the zeroing has to happen BEFORE it, or it
+            // clears whichever channel moved into the retired number instead.
+            const int monoBefore   = vts.getNumInputChannels() - vts.getNumStereoInputChannels();
+            const int stereoBefore = vts.getNumStereoInputChannels();
+            auto ioLatch = vts.getIOState();
+            const bool ownedBefore = static_cast<bool>(ioLatch.getProperty(P::channelNumbersUserOwned, false));
+            {
+                // Four inputs numbered 1..4, one distinguishable send each. The
+                // values matter: a column that moved has to say WHICH channel it
+                // belongs to, because a width assertion cannot tell a shift from
+                // a rotate and "not the default" cannot either.
+                auto armFourInputs = [&](const char* who)
+                {
+                    vts.setInputChannelCounts(4, 0);
+                    reconfig();
+                    check(vts.assignInputChannelNumbersBySlot({ 1, 2, 3, 4 }, "self-test X13").wasOk(),
+                          juce::String(who) + ": four inputs numbered 1..4");
+
+                    // Cleared through the ROW identifier - the generic path an OSC
+                    // or MCP row write takes, and the second way into the
+                    // interceptor beside the cell setters.
+                    vts.setParameter(P::effectSendLevels,
+                                     juce::String::repeatedString("0,", D::maxInputChannels - 1) + "0", 0);
+                    vts.setParameter(P::effectSendOns,
+                                     juce::String::repeatedString("0,", D::maxInputChannels - 1) + "0", 0);
+                    check(nonIdle(0, P::effectSendLevels) == 0 && nonIdle(0, P::effectSendOns) == 0,
+                          juce::String(who) + ": a row write through the generic path clears the row it names");
+
+                    for (int number = 1; number <= 4; ++number)
+                        check(vts.setEffectSendLevelFromInput(0, number, (float) -number)
+                                  && vts.setEffectSendOnFromInput(0, number, true),
+                              juce::String(who) + ": route input " + juce::String(number) + " into effect 1");
+                };
+
+                // LATCHED: nothing renumbers, so nothing shifts into the hole.
+                armFourInputs("X13d");
+                check(vts.areChannelNumbersUserOwned(), "X13d: the session is latched");
+                check(vts.removeInputChannel(2).wasOk(), "X13d: delete input #2");
+                reconfig();
+                check(vts.getNumInputChannels() == 3 && vts.getInputChannelNumber(1) == 3,
+                      "X13d: three inputs left, still numbered 1,3,4");
+                reloadEffects("X13d");
+
+                check(isAt(0, P::effectSendLevels, 1, D::effectSendLevelDefault) && ! onAt(0, 1),
+                      "X13d: the retired number's column is idle - the delete zeroed it");
+                check(isAt(0, P::effectSendLevels, 0, -1.0f) && isAt(0, P::effectSendLevels, 2, -3.0f)
+                          && isAt(0, P::effectSendLevels, 3, -4.0f),
+                      "X13d: ...and every survivor kept its own column, by value");
+                check(nonIdle(0, P::effectSendLevels) == 3 && nonIdle(0, P::effectSendOns) == 3,
+                      "X13d: one column went and no other moved");
+
+                // THE GAP IS REUSABLE, which is what makes the zeroing matter.
+                // addInputChannel takes an explicit number precisely so a retired
+                // one can be handed back out, and the operator is warned that
+                // snapshots and cues addressed to it will reach the new channel.
+                // Its sends must not be among them.
+                check(vts.addInputChannel(false, 2).wasOk(),
+                      "X13d: re-create a channel on the retired number");
+                reconfig();
+                reloadEffects("X13d-reuse");
+                check(isAt(0, P::effectSendLevels, 1, D::effectSendLevelDefault) && ! onAt(0, 1),
+                      "X13d: it starts unrouted, instead of inheriting a dead channel's sends");
+
+                // UNLATCHED: the delete is followed by the compaction, so the
+                // survivors' numbers move and their columns have to move with
+                // them. The latch is lifted for this and put back after - the
+                // flag IS the regime, and this session has latched (X7 loaded a
+                // project), so there is no other way to reach it here.
+                armFourInputs("X13d2");
+                ioLatch.setProperty(P::channelNumbersUserOwned, false, nullptr);
+                check(vts.removeInputChannel(2).wasOk(), "X13d2: delete input #2 on a fresh session");
+                reconfig();
+                ioLatch.setProperty(P::channelNumbersUserOwned, true, nullptr);
+
+                check(vts.getNumInputChannels() == 3, "X13d2: three inputs are left");
+                check(vts.getInputChannelNumber(0) == 1 && vts.getInputChannelNumber(1) == 2
+                          && vts.getInputChannelNumber(2) == 3,
+                      "X13d2: ...renumbered 1,2,3 by the compaction");
+
+                reloadEffects("X13d2");
+
+                // BY VALUE, not by width. The surviving columns must still name
+                // the channels they were written for: #3 became #2 and #4 became
+                // #3, so their levels have to be found at the new numbers.
+                check(isAt(0, P::effectSendLevels, 0, -1.0f), "X13d2: input #1 kept its own send");
+                check(isAt(0, P::effectSendLevels, 1, -3.0f),
+                      "X13d2: the channel that was #3 is now #2 and its send came with it");
+                check(isAt(0, P::effectSendLevels, 2, -4.0f),
+                      "X13d2: ...and the one that was #4 is now #3");
+                check(isAt(0, P::effectSendLevels, 3, D::effectSendLevelDefault) && ! onAt(0, 3),
+                      "X13d2: the column the compaction vacated is idle, not a copy of its old occupant");
+                check(nonIdle(0, P::effectSendLevels) == 3 && nonIdle(0, P::effectSendOns) == 3,
+                      "X13d2: three columns routed, one gone, and no fourth invented");
+
+                // ---- X13e: a relabel that PERMUTES, not one that shifts -------
+                // The operator-facing relabel exists so that snapshots, cues and
+                // OSC written against the file's numbers still reach the right
+                // channel afterwards; a send row keyed by number is one of those
+                // references. A SWAP is the case the dense compaction never
+                // produces and an incremental remap always loses: moving #1 to #3
+                // first overwrites the value #3 still needs, and both channels end
+                // up with one of them.
+                check(vts.assignInputChannelNumbersBySlot({ 3, 2, 1 }, "self-test X13e").wasOk(),
+                      "X13e: swap the numbers of the first and last input");
+                reconfig();
+                reloadEffects("X13e");
+
+                check(isAt(0, P::effectSendLevels, 0, -4.0f),
+                      "X13e: column #1 now holds the send of the channel that took that number");
+                check(isAt(0, P::effectSendLevels, 2, -1.0f),
+                      "X13e: ...and column #3 holds the other half of the swap");
+                check(isAt(0, P::effectSendLevels, 1, -3.0f),
+                      "X13e: the channel that kept its number kept its send");
+                check(nonIdle(0, P::effectSendLevels) == 3 && nonIdle(0, P::effectSendOns) == 3,
+                      "X13e: still three routed columns - a collapsed swap would leave two");
+            }
+
+            // ---- X13f: the fx diagonal is off, and stays off ------------------
+            // Effect n may not feed itself: that is not a routing choice, it is a
+            // unity-gain loop around a delay line. Forced where the row is
+            // WRITTEN - the builder, the cell setters, the interceptor and the
+            // column maintenance - because a rule enforced only where the row is
+            // read is a rule every other reader has to remember.
+            {
+                juce::String diagonalFault;
+                for (int ch = 0; ch < 3 && diagonalFault.isEmpty(); ++ch)
+                    if (cell(ch, P::effectFxSendOns, ch) != "0"
+                        || ! isAt(ch, P::effectFxSendLevels, ch, D::effectFxSendLevelDefault))
+                        diagonalFault = "effect " + juce::String(ch + 1) + " feeds itself out of the builder";
+                check(diagonalFault.isEmpty(),
+                      juce::String("X13f: the diagonal is off on every freshly built channel")
+                          + (diagonalFault.isEmpty() ? juce::String() : " - " + diagonalFault));
+
+                check(! vts.setEffectFxSendOnFromEffect(1, 1, true),
+                      "X13f: the cell setter REFUSES the diagonal rather than reporting a write it cannot make");
+                check(! vts.setEffectFxSendLevelFromEffect(1, 1, -6.0f),
+                      "X13f: ...and so does the level setter");
+
+                // The other door: a whole ROW, every switch on, straight down the
+                // generic parameter path an OSC or MCP row write takes.
+                vts.setParameter(P::effectFxSendOns,
+                                 juce::String::repeatedString("1,", D::maxEffectChannels - 1) + "1", 1);
+                reloadEffects("X13f");
+                check(cell(1, P::effectFxSendOns, 1) == "0",
+                      "X13f: a row write with the diagonal set is stored with it cleared");
+                check(cell(1, P::effectFxSendOns, 0) == "1" && cell(1, P::effectFxSendOns, 2) == "1",
+                      "X13f: ...and every other column of that row was taken as written");
+
+                // THE LEVEL ROW'S DIAGONAL, forced by the same clause of the same
+                // interceptor and asserted here for the first time: a dB sitting
+                // in a cell that can never sound is a number no reader may trust,
+                // and after a removal shifts the columns it is exactly what would
+                // land on the survivor's new diagonal.
+                vts.setParameter(P::effectFxSendLevels,
+                                 juce::String::repeatedString("-7,", D::maxEffectChannels - 1) + "-7", 1);
+                reloadEffects("X13f-levels");
+                check(isAt(1, P::effectFxSendLevels, 1, D::effectFxSendLevelDefault),
+                      "X13f: a LEVEL row written with the diagonal set is stored with that cell at the default");
+                check(isAt(1, P::effectFxSendLevels, 0, -7.0f) && isAt(1, P::effectFxSendLevels, 2, -7.0f),
+                      "X13f: ...and every other column of the level row was taken as written");
+
+                // Back to idle before the removal fixture below.
+                vts.setParameter(P::effectFxSendOns,
+                                 juce::String::repeatedString("0,", D::maxEffectChannels - 1) + "0", 1);
+                vts.setParameter(P::effectFxSendLevels,
+                                 juce::String::repeatedString("0,", D::maxEffectChannels - 1) + "0", 1);
+
+                // ---- and after a channel removal, at the NEW index ------------
+                // The fx rows are keyed by DENSE index, so a delete renumbers
+                // their columns exactly as it renumbers the channels. Leave them
+                // and every send above the hole re-points one channel down - the
+                // quietest kind of wrong, because the matrix still looks full.
+                check(vts.setEffectFxSendLevelFromEffect(1, 2, -3.0f) && vts.setEffectFxSendOnFromEffect(1, 2, true),
+                      "X13f: effect 2 is fed by effect 3");
+                check(vts.setEffectFxSendLevelFromEffect(2, 0, -6.0f) && vts.setEffectFxSendOnFromEffect(2, 0, true),
+                      "X13f: effect 3 is fed by effect 1");
+                check(vts.setEffectFxSendLevelFromEffect(2, 1, -12.0f) && vts.setEffectFxSendOnFromEffect(2, 1, true),
+                      "X13f: ...and by effect 2");
+
+                check(vts.removeEffectChannel(0).wasOk(), "X13f: delete effect 1");
+                reloadEffects("X13f-removal");
+                verifyFamily("X13f (after an effect channel removal)", 2);
+
+                // Old 2 is index 0 now, old 3 is index 1.
+                check(isAt(0, P::effectFxSendLevels, 1, -3.0f) && cell(0, P::effectFxSendOns, 1) == "1",
+                      "X13f: the send from old effect 3 followed it down to column 2");
+                check(isAt(1, P::effectFxSendLevels, 0, -12.0f) && cell(1, P::effectFxSendOns, 0) == "1",
+                      "X13f: the send from old effect 2 followed it down to column 1");
+                check(isAt(1, P::effectFxSendLevels, 1, D::effectFxSendLevelDefault)
+                          && cell(1, P::effectFxSendOns, 1) == "0",
+                      "X13f: the deleted channel's send did not shift onto the survivor's own diagonal");
+                check(cell(0, P::effectFxSendOns, 0) == "0",
+                      "X13f: ...and the other survivor's diagonal is off at its new index too");
+                check(nonIdle(0, P::effectFxSendLevels) == 1 && nonIdle(1, P::effectFxSendLevels) == 1,
+                      "X13f: one send each - the deleted column was removed, not blanked in place");
+            }
+
+            // ---- X13g: an output count change refits the per-output rows ------
+            // effectMutes and reverbMutes are the only two send-matrix rows that
+            // FOLLOW a live count, and neither was refitted before: a reverb's row
+            // stayed at whatever width it was built at and self-healed only
+            // because the reverb tab rewrites it whole, with a hard-coded 16.
+            {
+                const int outputsBefore = vts.getNumOutputChannels();
+                const int reverbsBefore = vts.getNumReverbChannels();
+                if (reverbsBefore == 0)
+                    vts.setNumReverbChannels(1);
+
+                auto widthOf = [&](juce::ValueTree node, const juce::Identifier& rowId)
+                {
+                    return juce::StringArray::fromTokens(node.getProperty(rowId).toString(), ",", "").size();
+                };
+                auto columnOf = [&](juce::ValueTree node, const juce::Identifier& rowId, int col)
+                {
+                    auto tokens = juce::StringArray::fromTokens(node.getProperty(rowId).toString(), ",", "");
+                    return (col >= 0 && col < tokens.size()) ? tokens[col] : juce::String("<none>");
+                };
+                auto plantRow = [&](juce::ValueTree node, const juce::Identifier& rowId,
+                                    int width, int mutedA, int mutedB)
+                {
+                    juce::StringArray cells;
+                    for (int i = 0; i < width; ++i)
+                        cells.add((i == mutedA || i == mutedB) ? "1" : "0");
+                    node.setProperty(rowId, cells.joinIntoString(","), nullptr);
+                };
+
+                // ---- THE PADDING HALF: a narrow row grows to the live count ----
+                // Which is the gap this refit was added for: a reverb row left at
+                // whatever width it was built at by a tab whose fallback is 16.
+                plantRow(vts.getEffectReturnSection(0), P::effectMutes, 4, -1, -1);
+                plantRow(vts.getReverbReturnSection(0), P::reverbMutes, 4, -1, -1);
+                vts.setNumOutputChannels(outputsBefore);
+                check(widthOf(vts.getEffectReturnSection(0), P::effectMutes) == outputsBefore,
+                      "X13g: a four-column effectMutes grows to the live output count");
+                check(widthOf(vts.getReverbReturnSection(0), P::reverbMutes) == outputsBefore,
+                      "X13g: ...and so does reverbMutes, which nothing used to resize");
+
+                // ---- THE HALF THAT DELETES, if it is the same call both ways ---
+                // BY VALUE, not by width: a width assertion passes whether the row
+                // kept the operator's mutes or was CUT on the way down and padded
+                // with "0" on the way back up, which is what fitting a row to the
+                // live count in both directions does. Mute a low output and the
+                // top one, drop the rig to half its outputs - an interface that
+                // disappears, a System Config edit - and bring it back.
+                const int lowColumn  = 1;
+                const int highColumn = outputsBefore - 1;
+                plantRow(vts.getEffectReturnSection(0), P::effectMutes, outputsBefore, lowColumn, highColumn);
+                plantRow(vts.getReverbReturnSection(0), P::reverbMutes, outputsBefore, lowColumn, highColumn);
+                check(vts.setInputOutputMute(0, highColumn, true),
+                      "X13g: ...and the same output muted on input 1");
+
+                const int shrunk = juce::jmax(1, outputsBefore / 2);
+                vts.setNumOutputChannels(shrunk);
+                handleChannelCountChange(vts.getNumInputChannels(), vts.getNumOutputChannels(),
+                                         vts.getNumReverbChannels());
+                check(fm.saveCompleteConfig(), "X13g: save the project on a smaller rig");
+                check(fm.loadCompleteConfig(), "X13g: load it back");
+
+                check(columnOf(vts.getEffectReturnSection(0), P::effectMutes, highColumn) == "1",
+                      "X13g: the effect's mute on an output the smaller rig has not got is still in the row");
+                check(columnOf(vts.getReverbReturnSection(0), P::reverbMutes, highColumn) == "1",
+                      "X13g: ...and the reverb's, on a row that has SHIPPED and never had one refit it");
+                check(columnOf(vts.getEffectReturnSection(0), P::effectMutes, lowColumn) == "1"
+                          && columnOf(vts.getReverbReturnSection(0), P::reverbMutes, lowColumn) == "1",
+                      "X13g: ...while the mute on an output the smaller rig does have is untouched");
+                check(rowOf(0, P::effectSendLevels).size() == D::maxInputChannels,
+                      "X13g: the send rows did NOT follow - their columns are inputs, not outputs");
+
+                vts.setNumOutputChannels(outputsBefore);
+                handleChannelCountChange(vts.getNumInputChannels(), vts.getNumOutputChannels(),
+                                         vts.getNumReverbChannels());
+                check(fm.saveCompleteConfig(), "X13g: save it back on the original rig");
+                check(fm.loadCompleteConfig(), "X13g: load that");
+                check(widthOf(vts.getEffectReturnSection(0), P::effectMutes) == outputsBefore,
+                      "X13g: effectMutes is at the live width again");
+                check(widthOf(vts.getReverbReturnSection(0), P::reverbMutes) == outputsBefore,
+                      "X13g: ...and reverbMutes with it");
+                check(columnOf(vts.getEffectReturnSection(0), P::effectMutes, highColumn) == "1"
+                          && columnOf(vts.getReverbReturnSection(0), P::reverbMutes, highColumn) == "1",
+                      "X13g: and the mute at the top of the rig came back with the outputs, not as a 0");
+
+                // inputMutes takes the same trip, on the row the other two were
+                // modelled on. The one case this cannot make is a rig of exactly
+                // 64 or maxOutputChannels outputs: at those two widths a preserved
+                // row cannot be told from the legacy grid list, whose tail the
+                // keepTokens window exists to zero. This rig is 16.
+                if (outputsBefore != 64 && outputsBefore != D::maxOutputChannels)
+                {
+                    auto mutesSection = vts.getInputMutesSection(0);
+                    check(mutesSection.isValid()
+                              && columnOf(mutesSection, P::inputMutes, highColumn) == "1",
+                          "X13g: an input's mute on the top output survived the same round trip");
+                }
+
+                if (reverbsBefore == 0)
+                    vts.setNumReverbChannels(0);
+                handleChannelCountChange(vts.getNumInputChannels(), vts.getNumOutputChannels(),
+                                         vts.getNumReverbChannels());
+            }
+
+            // ---- X13h: a file's rows are canonicalised ON THE WAY IN ---------
+            // Every accessor canonicalises what it READS, so the app was already
+            // safe from a row a file carries in the wrong shape - and only the
+            // app. The stored text is what the next save writes back, so a
+            // self-feed hand-edited into effects.xml stayed in that operator's
+            // file indefinitely: a unity-gain loop around a delay line that no
+            // load and no save was ever going to take out. A junk level token sat
+            // there just as long, reading as 0 dB - UNITY - because "at least one
+            // digit and nothing outside the characters a number uses" passes
+            // "--5", and getFloatValue() answers 0 for it.
+            {
+                auto cellsOf = [](const juce::String& row)
+                {
+                    return juce::StringArray::fromTokens(row, ",", "");
+                };
+                vts.setNumEffectChannels(2);
+                check(fm.saveEffectsConfig(), "X13h: save two channels the app itself wrote");
+
+                if (auto doc = juce::XmlDocument::parse(effectsFile()))
+                {
+                    auto* effectsEl = doc->getChildByName(P::Effects.toString());
+                    auto* first = effectsEl != nullptr ? effectsEl->getChildByName(P::Effect.toString())
+                                                       : nullptr;
+                    auto* sends = first != nullptr ? first->getChildByName(P::Sends.toString()) : nullptr;
+                    check(sends != nullptr, "X13h: the saved channel carries a <Sends> to hand-edit");
+
+                    if (sends != nullptr)
+                    {
+                        auto fxOns    = cellsOf(sends->getStringAttribute(P::effectFxSendOns.toString()));
+                        auto fxLevels = cellsOf(sends->getStringAttribute(P::effectFxSendLevels.toString()));
+                        auto levels   = cellsOf(sends->getStringAttribute(P::effectSendLevels.toString()));
+
+                        fxOns.set(0, "1");         // effect 1 feeding ITSELF
+                        fxLevels.set(0, "-6");     // ...at a level, on the diagonal
+                        fxLevels.set(1, "-500");   // ...and one far below the floor
+                        levels.set(0, "--5");      // junk that parses to 0 dB, which is unity
+                        levels.set(1, "1e400");    // ...and junk that parses to +infinity
+
+                        sends->setAttribute(P::effectFxSendOns.toString(),    fxOns.joinIntoString(","));
+                        sends->setAttribute(P::effectFxSendLevels.toString(), fxLevels.joinIntoString(","));
+                        sends->setAttribute(P::effectSendLevels.toString(),   levels.joinIntoString(","));
+                        check(doc->writeTo(effectsFile()), "X13h: write the hand-edited routing back");
+                    }
+                }
+                else
+                {
+                    check(false, "X13h: the saved file parses");
+                }
+
+                vts.setNumEffectChannels(0);
+                check(fm.loadEffectsConfig(), "X13h: load the hand-edited file");
+
+                check(cell(0, P::effectFxSendOns, 0) == "0",
+                      "X13h: the self-feed is off in the TREE, not only in what the accessors answer");
+                check(isAt(0, P::effectFxSendLevels, 0, D::effectFxSendLevelDefault),
+                      "X13h: ...and the level that sat on the diagonal is back at the default");
+                check(isAt(0, P::effectFxSendLevels, 1, D::effectFxSendLevelMin),
+                      "X13h: a level far below the floor is clamped to it");
+                check(cell(0, P::effectSendLevels, 0) == juce::String(D::effectSendLevelDefault)
+                          && cell(0, P::effectSendLevels, 1) == juce::String(D::effectSendLevelDefault),
+                      "X13h: and both junk tokens are re-defaulted instead of reading back as unity");
+
+                // AND IT IS IN THE FILE. A repair that lives only in this session
+                // leaves the landmine where it was: the next load finds it again,
+                // and so does everything else that reads the operator's file.
+                check(fm.saveEffectsConfig(), "X13h: save the repaired tree");
+                if (auto doc = juce::XmlDocument::parse(effectsFile()))
+                {
+                    auto* effectsEl = doc->getChildByName(P::Effects.toString());
+                    auto* first = effectsEl != nullptr ? effectsEl->getChildByName(P::Effect.toString())
+                                                       : nullptr;
+                    auto* sends = first != nullptr ? first->getChildByName(P::Sends.toString()) : nullptr;
+                    check(sends != nullptr
+                              && cellsOf(sends->getStringAttribute(P::effectFxSendOns.toString()))[0] == "0",
+                          "X13h: the file the operator keeps no longer carries the self-feed");
+                    check(sends != nullptr
+                              && ! sends->getStringAttribute(P::effectSendLevels.toString()).contains("--5"),
+                          "X13h: ...nor the junk token");
+                }
+                else
+                {
+                    check(false, "X13h: the repaired file parses");
+                }
+            }
+
+            // Leave the input list roughly as this phase found it. The numbers
+            // cannot be restored - X13d deleted one - but the counts and the
+            // latch can, and nothing below this reads either.
+            vts.setInputChannelCounts(juce::jmax(1, monoBefore), stereoBefore);
+            reconfig();
+            ioLatch.setProperty(P::channelNumbersUserOwned, ownedBefore, nullptr);
         }
 
         // Leave nothing behind: the folder, and the count this phase raised.

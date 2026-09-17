@@ -1038,30 +1038,33 @@ namespace WFSParameterIDs
     const juce::Identifier effectCrushMix        ("effectCrushMix");           // wet %
 
     // Effect > Sends - four packed CSV rows on one <Sends> node. effectSend*
-    // are 64 wide and keyed by input PERMANENT NUMBER; effectFxSend* are 32
-    // wide and keyed by dense effect index, with the diagonal forced off.
+    // are maxInputChannels wide and keyed by input PERMANENT NUMBER minus one;
+    // effectFxSend* are maxEffectChannels wide and keyed by dense effect index,
+    // with the diagonal forced off. The widths are FIXED and follow no live
+    // count: a permanent number can be anything up to the maximum however few
+    // channels are live, so a row fitted to the live count would drop the
+    // columns of channels that still exist.
     //
-    // DECLARED HERE, NOT STAMPED BY ANY BUILDER, because createEffectSendsSection
-    // refuses to stamp a CSV whose width it cannot yet maintain and the rows
-    // arrive at runtime instead.
-    //
-    // Eight names in this family are declared and never stamped; these four and
-    // the four cell pseudo-identifiers below. The difference is the whole point:
-    // a NODE WILL CARRY these four, so stripObsoleteEffectProperties must exempt
-    // them by name or the load path deletes an operator's send routing with no
-    // undo - while no node ever carries a cell identifier, so exempting one there
-    // would only protect a property that is already a bug. Rename or retire one
-    // of these four and its entry in that hook must move in the same commit.
+    // STAMPED BY createEffectSendsSection, at those widths, on every channel it
+    // builds. They were declared-but-unstamped for exactly one commit, while the
+    // width, the keying, the cell accessors, the interceptor clause and the
+    // column maintenance were missing; stripObsoleteEffectProperties had to
+    // exempt them by name for that commit and no longer does, because the
+    // template carries them like any other property.
     const juce::Identifier effectSendLevels      ("effectSendLevels");
     const juce::Identifier effectSendOns         ("effectSendOns");
     const juce::Identifier effectFxSendLevels    ("effectFxSendLevels");
     const juce::Identifier effectFxSendOns       ("effectFxSendOns");
 
-    // Sends CELL pseudo-identifiers. NO node ever carries these: they exist so
-    // the OSC parser, the ramper and the OSCQuery cell nodes have something to
-    // validate a single cell against, while the generic parameter path finds no
-    // tree for them and therefore refuses a write instead of overwriting a whole
-    // row with a scalar. Never stamp one onto a node.
+    // Sends CELL pseudo-identifiers. NO NODE MAY EVER CARRY ONE - not the four
+    // rows above under another spelling, not a convenience copy, not a cached
+    // value. They exist so the OSC parser, the ramper and the OSCQuery cell nodes
+    // have something to validate a single cell against, while the generic
+    // parameter path finds no tree for them and therefore REFUSES a write instead
+    // of dropping a scalar onto a whole row - and that refusal is exactly what
+    // stamping one onto a node would take away. Cells are written through the
+    // typed accessors (setEffectSendLevelFromInput and its three siblings), which
+    // read-modify-write the row identifier instead.
     const juce::Identifier effectSendLevel       ("effectSendLevel");
     const juce::Identifier effectSendOn          ("effectSendOn");
     const juce::Identifier effectFxSendLevel     ("effectFxSendLevel");

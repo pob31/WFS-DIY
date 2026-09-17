@@ -4519,22 +4519,37 @@ private:
         auto& vts = parameters.getValueTreeState();
         const juce::String mutesStr = muteValues.joinIntoString (",");
 
+        // MERGED onto the stored row rather than written over it. This grid has
+        // one button per LIVE output, so on a rig that has shrunk - an interface
+        // that dropped, a System Config edit about to be undone - the row it
+        // builds is NARROWER than the row on the node, and a plain setProperty
+        // would cut the operator's mutes for the outputs that are not there
+        // today. setNumOutputChannels stopped doing exactly that; this write
+        // bypasses the store's interceptor entirely (it is a raw setProperty on
+        // the node), so it has to carry the rule itself - and it carries it by
+        // calling the same helper rather than by repeating it here.
+        auto writeMutes = [&vts, &mutesStr] (juce::ValueTree returnSection)
+        {
+            if (! returnSection.isValid())
+                return;
+
+            returnSection.setProperty (
+                WFSParameterIDs::reverbMutes,
+                WFSValueTreeState::mergePackedRow (
+                    returnSection.getProperty (WFSParameterIDs::reverbMutes), mutesStr),
+                vts.getUndoManager());
+        };
+
         // "Apply to all nodes" link: broadcast mutes to every reverb node when ON.
         if (applyToAllNodes)
         {
             int numChannels = parameters.getNumReverbChannels();
             for (int ch = 0; ch < numChannels; ++ch)
-            {
-                auto returnSection = vts.getReverbReturnSection (ch);
-                if (returnSection.isValid())
-                    returnSection.setProperty (WFSParameterIDs::reverbMutes, mutesStr, vts.getUndoManager());
-            }
+                writeMutes (vts.getReverbReturnSection (ch));
         }
         else
         {
-            auto returnSection = vts.getReverbReturnSection (currentChannel - 1);
-            if (returnSection.isValid())
-                returnSection.setProperty (WFSParameterIDs::reverbMutes, mutesStr, vts.getUndoManager());
+            writeMutes (vts.getReverbReturnSection (currentChannel - 1));
         }
     }
 
