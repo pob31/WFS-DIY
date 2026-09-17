@@ -361,8 +361,8 @@ MainComponent::MainComponent()
             streamDeckManager->refreshCurrentPage();
     });
 
-    systemConfigTab->setChannelCountCallback([this](int inputs, int outputs, int reverbs) {
-        handleChannelCountChange(inputs, outputs, reverbs);
+    systemConfigTab->setChannelCountCallback([this] {
+        handleChannelCountChange();
     });
 
     systemConfigTab->setAlgorithmChangedCallback([this](int selectedId) {
@@ -514,8 +514,7 @@ MainComponent::MainComponent()
     // A relabel or rearrangement done from an identity dialog on the Inputs
     // tab: the one funnel that also re-sends the remote channel inventory.
     inputsTab->onStructureChanged = [this]() {
-        handleChannelCountChange (parameters.getNumInputChannels(), numOutputChannels,
-                                  parameters.getNumReverbChannels());
+        handleChannelCountChange();
     };
 
     inputsTab->onConfigReloaded = [this]() {
@@ -947,9 +946,7 @@ MainComponent::MainComponent()
 
     mcpServer->setChannelTopologyChangedCallback ([this]
     {
-        handleChannelCountChange (parameters.getNumInputChannels(),
-                                  parameters.getNumOutputChannels(),
-                                  parameters.getNumReverbChannels());
+        handleChannelCountChange();
     });
 
     // Automation hook (control-replay harnesses): WFS_MCP_AI_ENABLED=1 in the
@@ -3587,8 +3584,7 @@ void MainComponent::runChannelListSelfTest()
     };
 
     logLine("SELF-TEST begin (channel list flow)");
-    const int reverbs = parameters.getNumReverbChannels();
-    auto reconfig = [&]() { handleChannelCountChange(vts.getNumInputChannels(), numOutputChannels, reverbs); };
+    auto reconfig = [&]() { handleChannelCountChange(); };
 
     auto numbersInSlotOrder = [&]() -> juce::String
     {
@@ -6161,8 +6157,7 @@ void MainComponent::runChannelListSelfTest()
 
                 const int shrunk = juce::jmax(1, outputsBefore / 2);
                 vts.setNumOutputChannels(shrunk);
-                handleChannelCountChange(vts.getNumInputChannels(), vts.getNumOutputChannels(),
-                                         vts.getNumReverbChannels());
+                handleChannelCountChange();
                 check(fm.saveCompleteConfig(), "X13g: save the project on a smaller rig");
                 check(fm.loadCompleteConfig(), "X13g: load it back");
 
@@ -6177,8 +6172,7 @@ void MainComponent::runChannelListSelfTest()
                       "X13g: the send rows did NOT follow - their columns are inputs, not outputs");
 
                 vts.setNumOutputChannels(outputsBefore);
-                handleChannelCountChange(vts.getNumInputChannels(), vts.getNumOutputChannels(),
-                                         vts.getNumReverbChannels());
+                handleChannelCountChange();
                 check(fm.saveCompleteConfig(), "X13g: save it back on the original rig");
                 check(fm.loadCompleteConfig(), "X13g: load that");
                 check(widthOf(vts.getEffectReturnSection(0), P::effectMutes) == outputsBefore,
@@ -6204,8 +6198,7 @@ void MainComponent::runChannelListSelfTest()
 
                 if (reverbsBefore == 0)
                     vts.setNumReverbChannels(0);
-                handleChannelCountChange(vts.getNumInputChannels(), vts.getNumOutputChannels(),
-                                         vts.getNumReverbChannels());
+                handleChannelCountChange();
             }
 
             // ---- X13h: a file's rows are canonicalised ON THE WAY IN ---------
@@ -7918,11 +7911,21 @@ void MainComponent::handleProcessingChange(bool enabled)
     }
 }
 
-void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverbs)
+void MainComponent::handleChannelCountChange()
 {
+    // The four counts come from the tree - the one place every caller used to
+    // read them from before passing three of them here. Effects is read and
+    // logged beside the others; nothing below consumes it until the engine is
+    // wired.
+    const int inputs  = parameters.getNumInputChannels();
+    const int outputs = parameters.getNumOutputChannels();
+    const int reverbs = parameters.getNumReverbChannels();
+    const int effects = parameters.getNumEffectChannels();
+
     WFSLogger::getInstance().logInfo ("Channel count changed: " + juce::String (inputs) + " inputs, "
                                       + juce::String (outputs) + " outputs, "
-                                      + juce::String (reverbs) + " reverbs");
+                                      + juce::String (reverbs) + " reverbs, "
+                                      + juce::String (effects) + " effects");
     numInputChannels = inputs;
     numOutputChannels = outputs;
 
@@ -8310,8 +8313,7 @@ void MainComponent::openProjectFromFile (const juce::File& folder)
     ctx.parameters = &parameters;
     ctx.afterStructuralChange = [this]
     {
-        handleChannelCountChange (parameters.getNumInputChannels(), numOutputChannels,
-                                  parameters.getNumReverbChannels());
+        handleChannelCountChange();
     };
     ctx.showStatus = [this] (const juce::String& text)
     {

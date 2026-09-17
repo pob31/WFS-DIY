@@ -675,7 +675,15 @@ private:
 
     // Handlers for callbacks from System Config tab
     void handleProcessingChange(bool enabled);
-    void handleChannelCountChange(int inputs, int outputs, int reverbs);
+
+    /** The one funnel every structural channel edit reaches - add, remove,
+        move, type flip, count edit, config load. It reads all four channel
+        counts (inputs, outputs, reverbs, effects) from the parameter tree
+        itself: every caller used to pass three of them and every one of those
+        callers read them off the same tree a moment earlier, so the arguments
+        could only ever agree with the tree or be a bug. Reading here is what
+        lets a new family reach the funnel without touching nine call sites. */
+    void handleChannelCountChange();
     void handleAlgorithmSelectionChange(int selectedId);
     void handleGpuDepthChange(int depthBlocks);
     void handleConfigReloaded();

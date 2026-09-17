@@ -472,7 +472,9 @@ class SystemConfigTab : public juce::Component,
 public:
     // Callback types for notifying MainComponent of changes
     using ProcessingCallback = std::function<void(bool enabled)>;
-    using ChannelCountCallback = std::function<void(int inputs, int outputs, int reverbs)>;
+    // Carries no counts: the receiver reads every family's count from the
+    // parameter tree, which is where this tab read them from anyway.
+    using ChannelCountCallback = std::function<void()>;
     using AlgorithmCallback = std::function<void(int algorithmId)>;
     using GpuDepthCallback = std::function<void(int depthBlocks)>;
     using AudioInterfaceCallback = std::function<void()>;
@@ -5273,12 +5275,7 @@ public:
     void notifyChannelCountChanged()
     {
         if (onChannelCountChanged)
-        {
-            int inputs = parameters.getNumInputChannels();
-            int outputs = parameters.getNumOutputChannels();
-            int reverbs = parameters.getNumReverbChannels();
-            onChannelCountChanged(inputs, outputs, reverbs);
-        }
+            onChannelCountChanged();
     }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SystemConfigTab)

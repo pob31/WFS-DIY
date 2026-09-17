@@ -171,6 +171,7 @@ public:
     int getNumInputChannels() const { return valueTreeState.getNumInputChannels(); }
     int getNumOutputChannels() const { return valueTreeState.getNumOutputChannels(); }
     int getNumReverbChannels() const { return valueTreeState.getNumReverbChannels(); }
+    int getNumEffectChannels() const { return valueTreeState.getNumEffectChannels(); }
 
     void updateHardwareChannelCount (int hwInputs, int hwOutputs)
     {
