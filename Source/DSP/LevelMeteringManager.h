@@ -10,6 +10,7 @@
 #endif
 #include "../../spatcore/reverb/ReverbEngine.h"
 #include "../../spatcore/reverb/ReverbFeedThread.h"
+#include "../../spatcore/effects/EffectsEngineCore.h"
 #include <vector>
 #include <array>
 #include <atomic>
@@ -85,6 +86,18 @@ public:
         float feedLastMs = 0.0f, feedBudgetMs = 0.0f, feedUiPeakMs = 0.0f, feedPct = 0.0f;
         bool engineLive = false;
         float engineLastMs = 0.0f, engineBudgetMs = 0.0f, engineUiPeakMs = 0.0f, enginePct = 0.0f;
+    };
+
+    /** The effects driver's duty, kept OUT of GpuPipelineStats on purpose:
+        that struct is wiped whenever nothing is on a GPU, which is the
+        configuration the effects engine most often runs in. */
+    struct EffectsEngineStats
+    {
+        bool live = false;
+        int numEffects = 0;
+        float lastMs = 0.0f, budgetMs = 0.0f, pct = 0.0f, uiPeakMs = 0.0f;
+        std::uint32_t batchCount = 0;
+        int batchesPerWake = 0;
     };
 
     LevelMeteringManager(int numInputs, int numOutputs)
@@ -168,6 +181,116 @@ public:
         reverbFeedThread = feedThread;
         feedBudgetMs = feedBudgetMsIn;
     }
+
+    /**
+     * Wire the effects engine's telemetry. Called at the same sites as
+     * setReverbSources - after setupSharedInputFeed() and on every teardown,
+     * where the pointer is null. budgetMsIn is the device block in ms, which
+     * is the driver's budget per batch.
+     * Message thread only.
+     */
+    void setEffectsSource(const spatcore::effects::EffectsEngineCore* core, float budgetMsIn)
+    {
+        effectsCore = core;
+        effectsBudgetMs = budgetMsIn;
+
+        if (core == nullptr)
+        {
+            for (auto& l : effectFeedLevels) l = LevelData{};
+            for (auto& l : effectReturnLevels) l = LevelData{};
+            for (auto& h : effectFeedHold) h = 0.0f;
+            for (auto& h : effectReturnHold) h = 0.0f;
+            effectsStats = EffectsEngineStats{};
+            lastEffectsBatch = 0;
+            lastEffectsBatchMoveMs = 0;
+        }
+    }
+
+    /**
+     * Sample the engine's per-channel peaks. Called on the 5 ms tick, NOT the
+     * 20 ms metering one: the engine overwrites feedPeak and returnPeak on
+     * every batch with no ballistics of their own, so a 20 ms poll would step
+     * over three batches out of four and show whichever one it landed on.
+     *
+     * Max-hold between polls, then the input meter's decay, so what the
+     * operator reads has the same ballistics as every other bar in the app.
+     * Freshness comes from the engine's own batch counter rather than a clock:
+     * a driver that stopped batching reads as silence within 250 ms, however
+     * recently it was wired.
+     */
+    void pollEffectLevels(float deltaSeconds)
+    {
+        if (effectsCore == nullptr)
+            return;
+
+        const juce::uint32 nowMs = juce::Time::getMillisecondCounter();
+        const std::uint32_t batch = effectsCore->getBatchCount();
+        if (batch != lastEffectsBatch)
+        {
+            lastEffectsBatch = batch;
+            lastEffectsBatchMoveMs = nowMs;
+        }
+
+        const bool batching = lastEffectsBatchMoveMs != 0
+                           && nowMs - lastEffectsBatchMoveMs < kMeterStaleMs;
+
+        const int live = effectsCore->getNumEffects();
+        const float decay = static_cast<float>(std::exp(-deltaSeconds / kInputMeterTauSeconds));
+
+        for (int fx = 0; fx < kMaxEffectMeters; ++fx)
+        {
+            if (fx >= live || ! batching)
+            {
+                effectFeedHold[(size_t) fx] = 0.0f;
+                effectReturnHold[(size_t) fx] = 0.0f;
+                effectFeedLevels[(size_t) fx] = LevelData{};
+                effectReturnLevels[(size_t) fx] = LevelData{};
+                continue;
+            }
+
+            auto ballistics = [decay](float& held, float sample, LevelData& out)
+            {
+                held = sample >= held ? sample : held * decay;
+                out.peakDb = linearToDb(held);
+                out.rmsDb = out.peakDb;   // the engine taps peaks only
+            };
+
+            ballistics(effectFeedHold[(size_t) fx], effectsCore->getFeedPeak(fx),
+                       effectFeedLevels[(size_t) fx]);
+            ballistics(effectReturnHold[(size_t) fx], effectsCore->getReturnPeak(fx),
+                       effectReturnLevels[(size_t) fx]);
+        }
+
+        effectsStats.live = batching;
+        effectsStats.numEffects = live;
+        effectsStats.batchCount = batch;
+        effectsStats.batchesPerWake = batching ? static_cast<int>(effectsCore->getBatchesPerWake()) : 0;
+        effectsStats.lastMs = batching ? effectsCore->getLastBatchUs() * 0.001f : 0.0f;
+        effectsStats.budgetMs = effectsBudgetMs;
+        effectsStats.pct = effectsBudgetMs > 0.0f ? 100.0f * effectsStats.lastMs / effectsBudgetMs : 0.0f;
+        effectsStats.uiPeakMs = effectsUiPeak.update(effectsStats.lastMs,
+                                                     juce::Time::getMillisecondCounterHiRes());
+    }
+
+    /** What the sends deliver INTO an effect. Nothing else can report this:
+        the feed never exists as a render source, so no meter tap sees it. */
+    LevelData getEffectLevel(int fx) const
+    {
+        if (fx < 0 || fx >= kMaxEffectMeters)
+            return LevelData{};
+        return effectFeedLevels[(size_t) fx];
+    }
+
+    /** What the chain hands back, as the engine measured it. The same signal
+        reaches the return's render-source meter one pop later. */
+    LevelData getEffectReturnLevel(int fx) const
+    {
+        if (fx < 0 || fx >= kMaxEffectMeters)
+            return LevelData{};
+        return effectReturnLevels[(size_t) fx];
+    }
+
+    EffectsEngineStats getEffectsStats() const { return effectsStats; }
 
     void setCurrentAlgorithm(ProcessingAlgorithm alg)
     {
@@ -827,6 +950,19 @@ private:
     std::atomic<bool> meterWindowEnabled{false};
 
     // Cached level data (updated at 20Hz from timer thread)
+    static constexpr int kMaxEffectMeters = WFSParameterDefaults::maxEffectChannels;
+
+    const spatcore::effects::EffectsEngineCore* effectsCore = nullptr;
+    float effectsBudgetMs = 0.0f;
+    std::array<LevelData, kMaxEffectMeters> effectFeedLevels {};
+    std::array<LevelData, kMaxEffectMeters> effectReturnLevels {};
+    std::array<float, kMaxEffectMeters> effectFeedHold {};
+    std::array<float, kMaxEffectMeters> effectReturnHold {};
+    EffectsEngineStats effectsStats;
+    std::uint32_t lastEffectsBatch = 0;
+    juce::uint32 lastEffectsBatchMoveMs = 0;
+    UiPeakHold effectsUiPeak;
+
     std::vector<LevelData> inputLevels;
     std::vector<std::vector<int>> sourceAggregation;  // per-channel render sources (see setSourceMap)
     std::vector<LevelData> outputLevels;

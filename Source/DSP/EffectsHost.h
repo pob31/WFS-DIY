@@ -334,6 +334,11 @@ public:
     /** The core, for meters and diagnostics; nullptr until prepared. */
     const Core* getCore() const noexcept { return isPrepared() ? &engine.getCore() : nullptr; }
 
+    /** Test only: the core as something that can be driven one batch at a
+        time. The realtime thread is processBatch's only other caller, so a
+        host that has been started must never be driven through this. */
+    Core* getMutableCoreForTest() noexcept { return isPrepared() ? &engine.getCore() : nullptr; }
+
     /** One line for the engine and one per live effect, for the trace log. */
     juce::String describeTelemetry() const
     {

@@ -667,6 +667,13 @@ private:
         levels read silence while audio was flowing. */
     void meterRenderSourceInputs (int startSample, int numSamples) noexcept;
 
+    /** Re-index the calculation engine's input x effect matrices from their
+        fixed 32-wide stride into the live-width block the Inputs tab reads.
+        Returns the number of effects packed, 0 when there are none. */
+    int packEffectVisualisationRows (std::vector<float>& delays,
+                                     std::vector<float>& levels,
+                                     std::vector<float>& hf) const;
+
     /** Audio-thread-private: how many render sources the previous block metered,
         so slots retired by a channel-count change get silenced instead of
         holding their last reading. */

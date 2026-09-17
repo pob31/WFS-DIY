@@ -2588,7 +2588,8 @@ MainComponent::MainComponent()
 
     // Configure the visualisation component with user-configured channel counts
     inputsTab->configureVisualisation(parameters.getNumOutputChannels(),
-                                      parameters.getNumReverbChannels());
+                                      parameters.getNumReverbChannels(),
+                                      parameters.getValueTreeState().getNumEffectChannels());
 
     // Make sure you set the size of the component after
     // you add any child components.
@@ -7002,6 +7003,147 @@ void MainComponent::runChannelListSelfTest()
         }
     }
 
+    // ---- P: the engine's meters, and the freshness that keeps them honest --
+    // A probe host prepared on synthetic rings and driven one batch at a time,
+    // so the whole tap - the engine's per-channel peaks, the max-hold, the
+    // ballistics and the freshness rule - is exercised with no device and no
+    // realtime thread. What must not happen is a meter that holds its last
+    // reading after the driver stops: that is the failure that makes a dead
+    // engine look like a live one.
+    {
+        namespace P = WFSParameterIDs;
+        using Map = spatcore::wfs::RenderSourceMap;
+        using spatcore::rt::SharedInputRingBuffer;
+
+        auto* calc = calculationEngine.get();
+        auto* meters = levelMeteringManager.get();
+
+        if (calc == nullptr || meters == nullptr)
+        {
+            logLine("SELF-TEST SKIP P: no calculation engine or metering manager");
+        }
+        else
+        {
+            const bool effectLatchBefore = vts.areEffectPositionsUserOwned();
+            const int inputsBefore = vts.getNumInputChannels();
+            vts.setNumEffectChannels(2);
+
+            // P1: nothing wired at all
+            meters->setEffectsSource(nullptr, 0.0f);
+            meters->pollEffectLevels(0.005f);
+            check(meters->getEffectLevel(0).peakDb <= -200.0f
+                      && meters->getEffectReturnLevel(0).peakDb <= -200.0f,
+                  "P1: with no engine wired both taps read silence");
+
+            // A map and an open send, so the published feed matrix actually
+            // routes source 0 into effect 0
+            std::array<uint8_t, Map::kMaxInputChannels> types {};
+            const int numTypes = juce::jlimit(0, (int) Map::kMaxInputChannels, inputsBefore);
+            for (int i = 0; i < numTypes; ++i)
+                if (vts.isInputChannelStereo(i))
+                    types[(size_t) i] = Map::Stereo;
+
+            Map map;
+            Map::build(types.data(), numTypes, 2, map);
+            vts.setEffectParameter(0, P::effectAngleOn, 180);
+            vts.setEffectParameter(1, P::effectAngleOn, 180);
+            vts.setEffectSendOnFromInput(0, vts.getInputChannelNumber(0), true);
+            vts.setEffectSendLevelFromInput(0, vts.getInputChannelNumber(0), 0.0f);
+            calc->setRenderSourceMap(map);
+            calc->recalculateAllEffectPositions();
+            calc->recalculateMatrix(nullptr);
+
+            // Every row of the map, because the returns sit ABOVE the inputs
+            // and their slices: a probe with fewer sources than
+            // firstEffectSlot + numEffects is refused, and rightly so.
+            const int probeSources = map.count;
+            const int probeBlock = 256;
+
+            EffectsHost probe(vts);
+            std::vector<std::unique_ptr<SharedInputRingBuffer>> rings;
+            for (int i = 0; i < probeSources; ++i)
+            {
+                auto r = std::make_unique<SharedInputRingBuffer>();
+                r->setSize(probeBlock * 8);
+                rings.push_back(std::move(r));
+            }
+
+            if (! probe.prepare(48000.0, probeBlock, probeSources, map.firstEffectSlot, 2, rings))
+            {
+                logLine("SELF-TEST SKIP P: the probe host would not prepare");
+            }
+            else
+            {
+                probe.setFeedMatrices(*calc, probeSources);
+                probe.publishDirty();
+
+                // P2: wired, but the driver has not run. The freshness rule
+                // is gated by P4 below, where there IS something to hold on to;
+                // this one only says that wiring a source is not itself a
+                // reading.
+                meters->setEffectsSource(probe.getCore(), 5.0f);
+                meters->pollEffectLevels(0.005f);
+                check(meters->getEffectLevel(0).peakDb <= -200.0f,
+                      "P2: wiring an engine that has not run is not itself a reading");
+
+                // P3: drive it. Half scale into source 0, silence everywhere
+                // else. A second of audio, because the send carries the
+                // geometric delay from the source to the effect - a channel
+                // laid out across the room is a hundred milliseconds of feed
+                // history before one sample reaches the chain - and the return
+                // adds the chain's latency and the cushion on top. The meter is
+                // polled inside the loop, where its max-hold is what catches
+                // the arrival whenever it happens.
+                auto* core = probe.getMutableCoreForTest();
+                std::vector<float> tone(static_cast<size_t> (probeBlock), 0.5f);
+                std::vector<float> quiet(static_cast<size_t> (probeBlock), 0.0f);
+
+                for (int b = 0; b < 200; ++b)
+                {
+                    for (int s = 0; s < probeSources; ++s)
+                        rings[(size_t) s]->write(s == 0 ? tone.data() : quiet.data(), probeBlock);
+                    core->processBatch();
+                    meters->pollEffectLevels(0.005f);
+                }
+
+                const float feedDb = meters->getEffectLevel(0).peakDb;
+                const float retDb = meters->getEffectReturnLevel(0).peakDb;
+                check(feedDb > -60.0f, "P3: the send reaches the engine and the feed tap reads it ("
+                                           + juce::String(feedDb, 1) + " dB)");
+                check(retDb > -60.0f, "P3: the chain hands it back and the return tap reads it ("
+                                          + juce::String(retDb, 1) + " dB)");
+                check(meters->getEffectLevel(1).peakDb <= -200.0f,
+                      "P3: the effect nothing is sent to stays silent - the taps are per channel");
+                check(meters->getEffectsStats().live && meters->getEffectsStats().batchCount > 0,
+                      "P3: the driver reports its batches");
+
+                // P4: the driver stops. Within the staleness window the meters
+                // have to fall to silence on their own.
+                juce::Thread::sleep(300);
+                meters->pollEffectLevels(0.005f);
+                check(meters->getEffectLevel(0).peakDb <= -200.0f
+                          && meters->getEffectReturnLevel(0).peakDb <= -200.0f,
+                      "P4: a driver that stopped batching reads as silence, not as its last value");
+                check(! meters->getEffectsStats().live, "P4: and the duty stops being reported");
+
+                probe.release();
+            }
+
+            // P5: unwiring clears everything
+            meters->setEffectsSource(nullptr, 0.0f);
+            check(meters->getEffectLevel(0).peakDb <= -200.0f
+                      && meters->getEffectsStats().batchCount == 0,
+                  "P5: unwiring the source clears the taps and the duty");
+
+            vts.setEffectSendOnFromInput(0, vts.getInputChannelNumber(0), false);
+            vts.setNumEffectChannels(0);
+            if (! effectLatchBefore)
+                vts.getEffectsState().setProperty(P::effectPositionsUserOwned, 0, nullptr);
+            recomputeRenderSourceCount();
+            calc->recalculateMatrix(nullptr);
+        }
+    }
+
     logLine(failures == 0 ? juce::String("SELF-TEST RESULT: ALL PASS")
                           : "SELF-TEST RESULT: " + juce::String(failures) + " FAILURES");
 }
@@ -7405,7 +7547,10 @@ MainComponent::~MainComponent()
     // Stop all processing threads BEFORE shutting down audio device
     // (prevents threads from accessing device state during ASIO teardown)
     if (levelMeteringManager)
+    {
         levelMeteringManager->setReverbSources(nullptr, nullptr, 0.0f);
+        levelMeteringManager->setEffectsSource(nullptr, 0.0f);
+    }
     if (reverbFeedThread)
     {
         reverbFeedThread->stopThread(1000);
@@ -7770,9 +7915,13 @@ void MainComponent::stopProcessingForConfigurationChange()
 
     // Stop reverb feed thread and engine for reconfiguration (drop the
     // metering manager's raw feed-thread pointer first; re-wired by the next
-    // setupSharedInputFeed)
+    // setupSharedInputFeed). The effects engine is released a few lines below,
+    // so its core goes with it.
     if (levelMeteringManager)
+    {
         levelMeteringManager->setReverbSources(reverbEngine.get(), nullptr, 0.0f);
+        levelMeteringManager->setEffectsSource(nullptr, 0.0f);
+    }
     if (reverbFeedThread)
     {
         reverbFeedThread->stopThread(1000);
@@ -8269,6 +8418,47 @@ void MainComponent::applyInputPatch(const juce::AudioSourceChannelInfo& bufferTo
     // No copy-back: downstream consumers read directly from patchedInputBuffer
 }
 
+int MainComponent::packEffectVisualisationRows (std::vector<float>& delays,
+                                               std::vector<float>& levels,
+                                               std::vector<float>& hf) const
+{
+    // The calculation engine publishes the feed matrix at the effects BUDGET's
+    // stride, which is what the engine indexes with and never the live count.
+    // The tab reads a live-width block, so the rows are re-indexed here exactly
+    // as the reverb rows are a few lines above every call site.
+    const int numEffects = renderSourceMap.numEffectChannels;
+    if (calculationEngine == nullptr || numEffects <= 0)
+    {
+        delays.clear();
+        levels.clear();
+        hf.clear();
+        return 0;
+    }
+
+    const float* calcDelays = calculationEngine->getInputEffectDelayTimesMs();
+    const float* calcLevels = calculationEngine->getInputEffectLevels();
+    const float* calcHF = calculationEngine->getInputEffectHFAttenuationDb();
+    const int calcStride = calculationEngine->getNumEffects();
+
+    delays.assign (static_cast<size_t> (numRenderSources * numEffects), 0.0f);
+    levels.assign (static_cast<size_t> (numRenderSources * numEffects), 0.0f);
+    hf.assign (static_cast<size_t> (numRenderSources * numEffects), 0.0f);
+
+    for (int inIdx = 0; inIdx < numRenderSources; ++inIdx)
+    {
+        for (int fx = 0; fx < numEffects; ++fx)
+        {
+            const size_t srcIdx = static_cast<size_t> (inIdx * calcStride + fx);
+            const size_t dstIdx = static_cast<size_t> (inIdx * numEffects + fx);
+            delays[dstIdx] = calcDelays[srcIdx];
+            levels[dstIdx] = calcLevels[srcIdx];
+            hf[dstIdx] = calcHF[srcIdx];
+        }
+    }
+
+    return numEffects;
+}
+
 void MainComponent::meterRenderSourceInputs (int startSample, int numSamples) noexcept
 {
     // RT-safe: one pass per render source over patchedInputBuffer, then two
@@ -8742,7 +8932,8 @@ void MainComponent::handleChannelCountChange()
     if (inputsTab != nullptr)
     {
         inputsTab->refreshFromValueTree();
-        inputsTab->configureVisualisation(outputs, reverbs);
+        inputsTab->configureVisualisation(outputs, reverbs,
+                                          parameters.getValueTreeState().getNumEffectChannels());
     }
     if (outputsTab != nullptr)
         outputsTab->refreshFromValueTree();
@@ -8816,9 +9007,15 @@ void MainComponent::handleChannelCountChange()
 
         if (inputsTab != nullptr)
         {
+            std::vector<float> effectDelays, effectLevels, effectHF;
+            packEffectVisualisationRows (effectDelays, effectLevels, effectHF);
+
             inputsTab->updateVisualisation(
                 targetDelayTimesMs.data(), targetLevels.data(), hfAttenuation.data(),
-                reverbDelays.data(), reverbLevelsVec.data(), reverbHF.data());
+                reverbDelays.data(), reverbLevelsVec.data(), reverbHF.data(),
+                effectDelays.empty() ? nullptr : effectDelays.data(),
+                effectLevels.empty() ? nullptr : effectLevels.data(),
+                effectHF.empty() ? nullptr : effectHF.data());
         }
 
         // Mirror the new channel counts and fresh matrix to connected tablets
@@ -9429,7 +9626,8 @@ void MainComponent::handleConfigReloaded()
         }
 
         inputsTab->configureVisualisation(parameters.getNumOutputChannels(),
-                                          parameters.getNumReverbChannels());
+                                          parameters.getNumReverbChannels(),
+                                          parameters.getValueTreeState().getNumEffectChannels());
 
         // Refresh sampler master enable state and controller mode from config
         bool samplerOn = (bool)parameters.getConfigParam("SamplerEnabled");
@@ -9561,9 +9759,15 @@ void MainComponent::handleConfigReloaded()
                 }
             }
 
+            std::vector<float> effectDelays, effectLevels, effectHF;
+            packEffectVisualisationRows (effectDelays, effectLevels, effectHF);
+
             inputsTab->updateVisualisation(
                 targetDelayTimesMs.data(), targetLevels.data(), hfAttenuation.data(),
-                reverbDelays.data(), reverbLevels.data(), reverbHF.data());
+                reverbDelays.data(), reverbLevels.data(), reverbHF.data(),
+                effectDelays.empty() ? nullptr : effectDelays.data(),
+                effectLevels.empty() ? nullptr : effectLevels.data(),
+                effectHF.empty() ? nullptr : effectHF.data());
         }
     }
 
@@ -10508,6 +10712,14 @@ void MainComponent::setupSharedInputFeed (int blockSize, double sampleRate)
         levelMeteringManager->setReverbSources (
             reverbEngine.get(), reverbFeedThread.get(),
             sampleRate > 0.0 ? (float) (1000.0 * blockSize / sampleRate) : 0.0f);
+
+    // The same for the effects driver, whose budget is the same device block.
+    // getCore() is null unless the host is prepared, which is exactly when the
+    // manager should report silence.
+    if (levelMeteringManager)
+        levelMeteringManager->setEffectsSource (
+            effectsHost != nullptr ? effectsHost->getCore() : nullptr,
+            sampleRate > 0.0 ? (float) (1000.0 * blockSize / sampleRate) : 0.0f);
 }
 
 void MainComponent::startAudioEngine()
@@ -11439,9 +11651,13 @@ void MainComponent::releaseResources()
 #endif
 
     // Stop reverb feed thread (drop the metering manager's raw pointer first;
-    // re-wired by the next setupSharedInputFeed)
+    // re-wired by the next setupSharedInputFeed). The effects host is released
+    // just below, so the manager must let go of its core here.
     if (levelMeteringManager)
+    {
         levelMeteringManager->setReverbSources(reverbEngine.get(), nullptr, 0.0f);
+        levelMeteringManager->setEffectsSource(nullptr, 0.0f);
+    }
     if (reverbFeedThread)
     {
         reverbFeedThread->stopThread(1000);
@@ -11589,6 +11805,12 @@ void MainComponent::timerCallback()
     // engine's telemetry - batches, duty, per-effect feed and return peaks,
     // underruns, NaN trips, loop-guard state, chain latency. This is what makes
     // an audio check readable from the session log with no GUI.
+    // The engine overwrites its per-channel peaks on every batch with no
+    // ballistics of their own, so they are sampled on THIS tick rather than the
+    // 20 ms metering one, which would step over three batches out of four.
+    if (levelMeteringManager != nullptr)
+        levelMeteringManager->pollEffectLevels (0.005f);
+
     if (effectsTraceEnabled && ++effectsTraceTick >= 200) // 5 ms timer
     {
         effectsTraceTick = 0;
@@ -11625,6 +11847,23 @@ void MainComponent::timerCallback()
                          << juce::String (best, 4) << "@s" << bestSlot;
                 }
             }
+
+            // What the metering manager made of the engine's peaks. The
+            // engine's own numbers are above; these have been through the
+            // 5 ms poll, the max-hold, the ballistics and the freshness rule,
+            // so a live run says whether the tap is wired and tracking rather
+            // than only whether the engine is running.
+            if (levelMeteringManager != nullptr)
+            {
+                const auto stats = levelMeteringManager->getEffectsStats();
+                line << "\n  meters=" << (stats.live ? "live" : "stale")
+                     << " duty=" << juce::String (stats.pct, 1) << "%";
+                for (int fx = 0; fx < renderSourceMap.numEffectChannels; ++fx)
+                    line << " fx" << (fx + 1) << ":"
+                         << juce::String (levelMeteringManager->getEffectLevel (fx).peakDb, 1) << "/"
+                         << juce::String (levelMeteringManager->getEffectReturnLevel (fx).peakDb, 1);
+            }
+
             WFSLogger::getInstance().logInfo (line);
         }
     }
@@ -12371,9 +12610,15 @@ void MainComponent::timerCallback()
                     }
                 }
 
+                std::vector<float> effectDelays, effectLevels, effectHF;
+                packEffectVisualisationRows (effectDelays, effectLevels, effectHF);
+
                 inputsTab->updateVisualisation(
                     targetDelayTimesMs.data(), targetLevels.data(), hfAttenuation.data(),
-                    reverbDelays.data(), reverbLevels.data(), reverbHF.data());
+                    reverbDelays.data(), reverbLevels.data(), reverbHF.data(),
+                    effectDelays.empty() ? nullptr : effectDelays.data(),
+                    effectLevels.empty() ? nullptr : effectLevels.data(),
+                    effectHF.empty() ? nullptr : effectHF.data());
             }
 
             // Tablet mirroring is throttled below and must run even when the

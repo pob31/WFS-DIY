@@ -949,9 +949,9 @@ public:
      * Configure the visualisation component with output and reverb counts.
      * Call this after system configuration is loaded.
      */
-    void configureVisualisation(int numOutputs, int numReverbs)
+    void configureVisualisation(int numOutputs, int numReverbs, int numEffects = 0)
     {
-        visualisationComponent.configure(numOutputs, numReverbs, &parameters);
+        visualisationComponent.configure(numOutputs, numReverbs, numEffects, &parameters);
         visualisationComponent.setSelectedInput(channelSlot());
     }
 
@@ -976,10 +976,13 @@ public:
      * @param reverbHfDb Input→Reverb HF attenuation (dB)
      */
     void updateVisualisation(const float* delaysMs, const float* levels, const float* hfDb,
-                             const float* reverbDelaysMs, const float* reverbLevels, const float* reverbHfDb)
+                             const float* reverbDelaysMs, const float* reverbLevels, const float* reverbHfDb,
+                             const float* effectDelaysMs = nullptr, const float* effectLevels = nullptr,
+                             const float* effectHfDb = nullptr)
     {
         visualisationComponent.updateValues(delaysMs, levels, hfDb,
-                                            reverbDelaysMs, reverbLevels, reverbHfDb);
+                                            reverbDelaysMs, reverbLevels, reverbHfDb,
+                                            effectDelaysMs, effectLevels, effectHfDb);
     }
 
     /**
