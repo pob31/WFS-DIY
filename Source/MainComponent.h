@@ -406,6 +406,9 @@ private:
 
     // AutomOtion processor for programmed input position movement
     std::unique_ptr<AutomOtionProcessor> automOtionProcessor;
+    // The same processor over the effect returns. Its movements never reach the
+    // tree: they are published as an offset the calculation engine adds.
+    std::unique_ptr<AutomOtionProcessor> effectOtomoProcessor;
 
     // Input speed limiter for smooth position movement
     std::unique_ptr<InputSpeedLimiter> speedLimiter;

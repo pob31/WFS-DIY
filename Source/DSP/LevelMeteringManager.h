@@ -550,6 +550,25 @@ public:
                 : -200.0f; });
     }
 
+    /** Message thread: one render source's metered level, uncollapsed.
+     *
+     *  getInputLevel() aggregates the slices of a channel and stops at the
+     *  input count, so the rows above them - an effect return most of all -
+     *  are invisible through it however well the tap meters them. Same
+     *  freshness rule: a tap that has not run recently reads as silence
+     *  rather than holding its last value.
+     */
+    LevelData getRenderSourceLevel(int src) const
+    {
+        if (src < 0 || src >= MaxRenderSources || ! isMeterFresh(renderSourceMeterMs))
+            return LevelData{};
+
+        LevelData level;
+        level.peakDb = linearToDb(renderSourcePeakLin[src].load(std::memory_order_relaxed));
+        level.rmsDb = meanSquareToDb(renderSourceMeanSq[src].load(std::memory_order_relaxed));
+        return level;
+    }
+
     /** Message thread: is the WFS engine actually rendering?
      *
      *  Only OUTPUT levels and thread performance need this. Input levels do

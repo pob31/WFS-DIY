@@ -1996,6 +1996,20 @@ MainComponent::MainComponent()
     automOtionProcessor = std::make_unique<AutomOtionProcessor>(parameters.getValueTreeState(), 64);
     automOtionProcessor->setDirtyTracker(&parameters.getDirtyTracker());
 
+    // The same processor over the effect returns, in offset mode: an effect's
+    // authored position is where the operator put that room in the show, so a
+    // movement travels as an offset the calculation engine adds and the
+    // position itself is never written. No dirty tracker for the same reason -
+    // this instance does not write the tree at all.
+    effectOtomoProcessor = std::make_unique<AutomOtionProcessor> (
+        parameters.getValueTreeState(),
+        AutomOtionFamily::effects (parameters.getValueTreeState(),
+                                   [this] (int fx, float x, float y, float z)
+                                   {
+                                       if (calculationEngine != nullptr)
+                                           calculationEngine->setEffectOtomoOffset (fx, x, y, z);
+                                   }));
+
     // Initialize Input Speed Limiter for smooth position movement
     speedLimiter = std::make_unique<InputSpeedLimiter>();
     speedLimiter->resize(WFSParameterDefaults::maxInputChannels);
@@ -6794,6 +6808,200 @@ void MainComponent::runChannelListSelfTest()
             vts.getEffectsState().setProperty(P::effectPositionsUserOwned, 0, nullptr);
     }
 
+    // ---- O: AutomOtion moves an effect return by an offset -----------------
+    // The same processor that animates inputs, in offset mode: the movement has
+    // to reach what is RENDERED without touching what was AUTHORED, and it has
+    // to leave the feed leg alone - an effect that chased its own trigger level
+    // as it travelled would ride its own send. No device and no audio: the
+    // processor is ticked by hand and the matrix recalculated between ticks.
+    {
+        namespace P = WFSParameterIDs;
+        namespace D = WFSParameterDefaults;
+        using Map = spatcore::wfs::RenderSourceMap;
+
+        auto* calc = calculationEngine.get();
+        auto* otomo = effectOtomoProcessor.get();
+
+        if (calc == nullptr || otomo == nullptr)
+        {
+            logLine("SELF-TEST SKIP O: no calculation engine or effect AutomOtion processor");
+        }
+        else
+        {
+            const bool effectLatchBefore = vts.areEffectPositionsUserOwned();
+            const int inputsBefore = vts.getNumInputChannels();
+            vts.setNumEffectChannels(2);
+
+            std::array<uint8_t, Map::kMaxInputChannels> types {};
+            const int numTypes = juce::jlimit(0, (int) Map::kMaxInputChannels, inputsBefore);
+            for (int i = 0; i < numTypes; ++i)
+                if (vts.isInputChannelStereo(i))
+                    types[(size_t) i] = Map::Stereo;
+
+            Map map;
+            check(Map::build(types.data(), numTypes, 2, map), "O0: a map with two effect returns builds");
+            const int firstFx = map.firstEffectSlot;
+            const int stride = calc->getNumEffects();
+            const int numOutputs = calc->getNumOutputs();
+            const int liveOutputs = vts.getNumOutputChannels();
+
+            // Upstage and hearing everything, as in Y: the assertions are about
+            // the mechanism, not about this rig's geometry
+            vts.setEffectParameter(0, P::effectPositionX, 0.0f);
+            vts.setEffectParameter(0, P::effectPositionY, 40.0f);
+            vts.setEffectParameter(0, P::effectPositionZ, 3.0f);
+            vts.setEffectParameter(0, P::effectAngleOn, 180);
+            vts.setEffectParameter(1, P::effectAngleOn, 180);
+
+            // Relative, so the offset the movement publishes IS the dialled
+            // destination, and short enough to finish inside the tick loop
+            vts.setEffectParameter(0, P::effectOtomoAbsoluteRelative, 1);
+            vts.setEffectParameter(0, P::effectOtomoX, 3.0f);
+            vts.setEffectParameter(0, P::effectOtomoY, 0.0f);
+            vts.setEffectParameter(0, P::effectOtomoZ, 0.0f);
+            vts.setEffectParameter(0, P::effectOtomoDuration, 0.2f);
+            vts.setEffectParameter(0, P::effectOtomoSpeedProfile, 0);
+            vts.setEffectParameter(0, P::effectOtomoCurve, 0);
+            vts.setEffectParameter(0, P::effectOtomoCoordinateMode, 0);
+
+            calc->setEffectOtomoOffset(0, 0.0f, 0.0f, 0.0f);
+            calc->setRenderSourceMap(map);
+            calc->recalculateAllEffectPositions();
+            calc->recalculateMatrix(nullptr);
+
+            auto cellFx  = [&](int slot, int fx) { return calc->getInputEffectLevels()[(size_t) (slot * stride + fx)]; };
+            auto delayFx = [&](int slot, int fx) { return calc->getInputEffectDelayTimesMs()[(size_t) (slot * stride + fx)]; };
+            auto delayOut = [&](int slot, int out) { return calc->getDelayTimesMs()[(size_t) (slot * numOutputs + out)]; };
+
+            // What must not move: the feed leg of every input row, and the
+            // authored position
+            std::vector<float> feedLevelsBefore, feedDelaysBefore;
+            for (int s = 0; s < firstFx; ++s)
+            {
+                feedLevelsBefore.push_back(cellFx(s, 0));
+                feedDelaysBefore.push_back(delayFx(s, 0));
+            }
+            const float authoredX = static_cast<float>(static_cast<double>(vts.getEffectParameter(0, P::effectPositionX)));
+            const float authoredY = static_cast<float>(static_cast<double>(vts.getEffectParameter(0, P::effectPositionY)));
+            const float authoredZ = static_cast<float>(static_cast<double>(vts.getEffectParameter(0, P::effectPositionZ)));
+            // The whole return row, not one cell of it: a speaker whose cone
+            // does not reach 40 m upstage has its cell zeroed and would hold
+            // still however far the return travelled.
+            auto levelOut = [&](int slot, int out) { return calc->getLevels()[(size_t) (slot * numOutputs + out)]; };
+            std::vector<float> returnLevelsBefore;
+            for (int o = 0; o < liveOutputs; ++o)
+                returnLevelsBefore.push_back(levelOut(firstFx, o));
+
+            // O5: the start is not blocked by guards this family does not have
+            check(otomo->startMotion(0), "O5: a movement starts on an effect, which has neither tracking nor sampler");
+
+            float peakOffsetX = 0.0f;
+            float minReturnGain = 1.0f;
+            float movedPositionX = 0.0f;
+            float returnLevelShift = 0.0f;
+            bool feedHeld = true;
+
+            // 0.2 s of movement, then the 50 ms fade out, the snap and the
+            // 50 ms fade in: 30 ticks of 20 ms covers all of it with room
+            for (int tick = 0; tick < 30; ++tick)
+            {
+                otomo->process(0.02f);
+                calc->recalculateMatrix(nullptr);
+
+                const float offX = otomo->getOffsetX(0);
+                if (std::abs(offX) > std::abs(peakOffsetX))
+                {
+                    peakOffsetX = offX;
+                    movedPositionX = calc->getRenderSourcePosition(firstFx).x;
+                    returnLevelShift = 0.0f;
+                    for (int o = 0; o < liveOutputs; ++o)
+                        returnLevelShift = juce::jmax(returnLevelShift,
+                                                      std::abs(levelOut(firstFx, o) - returnLevelsBefore[(size_t) o]));
+                }
+                minReturnGain = juce::jmin(minReturnGain, otomo->getReturnGain(0));
+
+                for (int s = 0; s < firstFx; ++s)
+                    feedHeld = feedHeld
+                            && cellFx(s, 0) == feedLevelsBefore[(size_t) s]
+                            && delayFx(s, 0) == feedDelaysBefore[(size_t) s];
+            }
+
+            // O1: the movement reaches what is rendered
+            check(peakOffsetX > 0.1f, "O1: the movement publishes an offset (peak "
+                                      + juce::String(peakOffsetX, 3) + " m)");
+            check(std::abs(movedPositionX - (authoredX + peakOffsetX)) < 1.0e-4f,
+                  "O1: the return renders at its authored position plus that offset");
+            check(liveOutputs == 0 || returnLevelShift > 0.0f,
+                  "O1: the moved return re-levels its row of the output matrix (largest shift "
+                      + juce::String(returnLevelShift, 5) + ")");
+
+            // O2: and never touches what was authored
+            {
+                const float nowX = static_cast<float>(static_cast<double>(vts.getEffectParameter(0, P::effectPositionX)));
+                const float nowY = static_cast<float>(static_cast<double>(vts.getEffectParameter(0, P::effectPositionY)));
+                const float nowZ = static_cast<float>(static_cast<double>(vts.getEffectParameter(0, P::effectPositionZ)));
+                check(nowX == authoredX && nowY == authoredY && nowZ == authoredZ,
+                      "O2: the authored position is bit-identical after the movement");
+            }
+
+            // O3: the feed leg is computed from the base position, so a moving
+            // return must not change one cell of it
+            check(feedHeld, "O3: not one input's feed cell moved while the return travelled");
+
+            // O4: it comes home by itself, through a fade, with no Stay to read
+            check(otomo->getOffsetX(0) == 0.0f && otomo->getOffsetY(0) == 0.0f && otomo->getOffsetZ(0) == 0.0f,
+                  "O4: the offset is exactly zero once the movement is over");
+            check(! otomo->isActive(0), "O4: the movement ended on its own - this family has no Stay");
+            check(minReturnGain < 1.0f, "O4: the snap home is covered by a fade (gain dipped to "
+                                        + juce::String(minReturnGain, 3) + ")");
+            check(otomo->getReturnGain(0) == 1.0f, "O4: the fade ends back at unity");
+            {
+                const auto rp = calc->getRenderSourcePosition(firstFx);
+                check(std::abs(rp.x - authoredX) < 1.0e-4f && std::abs(rp.y - authoredY) < 1.0e-4f
+                          && std::abs(rp.z - authoredZ) < 1.0e-4f,
+                      "O4: and the return renders where it was authored again");
+            }
+
+            // O6: the delay leg, which minimal latency hides. A return row in
+            // mode 1 is measured against its own minimum, and on a rig whose
+            // outputs share a listening point a rigid translation of the source
+            // shifts every cell by the same amount and cancels exactly - the row
+            // is flat at zero and stays there. In mode 0 the geometry is what is
+            // published, so the same translation has to re-time the row.
+            {
+                vts.setEffectParameter(0, P::effectMinimalLatency, 0);
+                calc->setEffectOtomoOffset(0, 0.0f, 0.0f, 0.0f);
+                calc->recalculateMatrix(nullptr);
+
+                std::vector<float> modeZeroBefore;
+                for (int o = 0; o < liveOutputs; ++o)
+                    modeZeroBefore.push_back(delayOut(firstFx, o));
+
+                calc->setEffectOtomoOffset(0, 3.0f, 0.0f, 0.0f);
+                calc->recalculateMatrix(nullptr);
+
+                float shift = 0.0f;
+                for (int o = 0; o < liveOutputs; ++o)
+                    shift = juce::jmax(shift, std::abs(delayOut(firstFx, o) - modeZeroBefore[(size_t) o]));
+
+                check(liveOutputs == 0 || shift > 0.0f,
+                      "O6: in absolute-latency mode the moved return re-times its row (largest shift "
+                          + juce::String(shift, 3) + " ms)");
+
+                vts.setEffectParameter(0, P::effectMinimalLatency, 1);
+            }
+
+            // Leave nothing behind
+            otomo->stopMotion(0);
+            calc->setEffectOtomoOffset(0, 0.0f, 0.0f, 0.0f);
+            vts.setNumEffectChannels(0);
+            if (! effectLatchBefore)
+                vts.getEffectsState().setProperty(P::effectPositionsUserOwned, 0, nullptr);
+            recomputeRenderSourceCount();
+            calc->recalculateMatrix(nullptr);
+        }
+    }
+
     logLine(failures == 0 ? juce::String("SELF-TEST RESULT: ALL PASS")
                           : "SELF-TEST RESULT: " + juce::String(failures) + " FAILURES");
 }
@@ -10834,6 +11042,25 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
             }
         }
 
+        // The same fade for an effect return that is snapping home. The row
+        // was popped a few lines up and nothing has read it yet, so one gain on
+        // the render-source row covers the renderers, the meters and the ring
+        // the engine's own effect-to-effect feed reads.
+        if (effectOtomoProcessor != nullptr && renderSourceMap.firstEffectSlot >= 0)
+        {
+            for (int fx = 0; fx < renderSourceMap.numEffectChannels; ++fx)
+            {
+                const int row = renderSourceMap.firstEffectSlot + fx;
+                if (row >= patchedInputBuffer.getNumChannels())
+                    break;
+
+                const float gain = effectOtomoProcessor->getReturnGain (fx);
+                if (gain < 1.0f)
+                    patchedInputBuffer.applyGain (row, bufferToFill.startSample,
+                                                  bufferToFill.numSamples, gain);
+            }
+        }
+
         // Stereo decomposition: raw L/R → the channels' six render-source
         // slots, before anything downstream reads patchedInputBuffer
         runStereoDecompositionStage (bufferToFill.startSample, bufferToFill.numSamples);
@@ -11652,6 +11879,22 @@ void MainComponent::timerCallback()
             }
         }
 
+        // The same levels for the effect returns, read from the return row's
+        // own render-source meter: that row is what the callback popped out of
+        // the engine, so it is the return the operator hears. getInputLevel()
+        // cannot serve here - it collapses onto channels and stops at the
+        // input count.
+        if (effectOtomoProcessor != nullptr && levelMeteringManager != nullptr
+            && renderSourceMap.firstEffectSlot >= 0)
+        {
+            for (int fx = 0; fx < renderSourceMap.numEffectChannels; ++fx)
+            {
+                const auto level = levelMeteringManager->getRenderSourceLevel (
+                    renderSourceMap.firstEffectSlot + fx);
+                effectOtomoProcessor->setInputLevels (fx, level.peakDb, level.rmsDb);
+            }
+        }
+
         // Process AutomOtion at 50Hz (control rate)
         if (automOtionProcessor != nullptr)
         {
@@ -11659,6 +11902,17 @@ void MainComponent::timerCallback()
 
             // Repaint map while AutomOtion is active (shows moving grey dot)
             if (mapVisible && automOtionProcessor->isAnyActive() && mapTab != nullptr)
+                mapTab->repaint();
+        }
+
+        // The effect returns move on the same control tick. The offsets it
+        // publishes reach the calculation engine through the sink, which
+        // dirties the effect rows itself.
+        if (effectOtomoProcessor != nullptr)
+        {
+            effectOtomoProcessor->process (0.02f);
+
+            if (mapVisible && effectOtomoProcessor->isAnyActive() && mapTab != nullptr)
                 mapTab->repaint();
         }
 
