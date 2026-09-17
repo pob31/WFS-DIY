@@ -1,0 +1,283 @@
+# Effects channels — implementation status and handoff
+
+**As of 2026-09-17.** Branch `effects/phase-3`, HEAD `434cddb`, pushed, working tree clean,
+submodules clean at their pins (`spatcore` v0.3.2 = `c9e67d2`).
+
+The design is `Documentation/effects-channels-plan.md`. Read its **§12.4, §12.5 and §12.6**
+first — those are the correction logs, and essentially every line reference in §6 and §7 of the
+body is stale. Where the document and the code disagree, the code is right.
+
+---
+
+## 1. What is done
+
+**spatcore, all merged:** Phase 1 (primitives + module contract, v0.3.0), Phase 2 (all nine
+module types, v0.3.1), Phase 3 (the engine, loop guard, render-source map, v0.3.2).
+
+**App Phase 4 — the data model is COMPLETE.** Eleven commits, `ed93f38..434cddb`:
+
+| Commit | What |
+|---|---|
+| `ed93f38` | render gate for the engine + spatcore pin to v0.3.2 |
+| `b34b237` | `backfillFromTemplate` fixed — it had drifted from the `mergeTreeRecursive` it claims to mirror |
+| `f9fbf93` | the parameter surface: 192 identifiers, 418 constants, band/tap tables |
+| `aad59d3` | the channel family: `<Effects count="0">`, the 20-node builder, accessors, scope routing, position latch |
+| `76d5afa` | three live reverb pre-EQ OSC defects (pre-work, so the effects parser is modelled on working code) |
+| `7863e85` | persistence: `effects.xml`, the Config properties, the eviction hook |
+| `c4db037` | the load path had no template to merge onto |
+| `3052c00` | what the phase-wide audit found (outbound band form, the two mirror static_asserts) |
+| `5c3bb18` | the eviction hook inferred retirement from absence |
+| `9f60833` | the parameter CSV + design corrections R5-1..R5-8 |
+| `434cddb` | the send matrix, its guards and its lifecycle |
+
+**Gate state:** Release x64 clean; structural self-test 600 assertions / 0 fail; all seven
+control-replay drivers pass with every golden unchanged.
+
+---
+
+## 2. What is NOT done, and the one thing that blocks Phase 5's gate
+
+**Phase 4's control surface has not started.** Measured, not assumed:
+
+```
+OSC effect addresses in Source/Network : 0
+effect entries in OSCParameterBounds   : 0
+effect tools in generated_tools.json   : 0
+WFS-UI_effects.csv registered          : 0 of the 2 lists that read it
+```
+
+An effects channel exists, persists and maintains itself correctly, **and nothing outside the
+application can reach it.**
+
+### THE HANDOFF WARNING
+
+**Nothing can create an effect channel through any shipping surface.** `setNumEffectChannels` is
+reachable only from `setParameter(effectChannels, …)`, which needs an OSC route (Phase 4 C5) or a
+tool-manifest entry (Phase 4 C10). There is no Effects tab until Phase 6. Today the only thing
+that can build a channel is the in-process self-test.
+
+Phase 5 can therefore be **written** against a complete ValueTree, but its stated gate — *"manual
+audio check with 1-2 effects"* — **cannot be performed** until one of:
+
+- Phase 4 C5 or C10 lands (either gives a route to `effectChannels`); or
+- Phase 5 adds a temporary creation path of its own (an env-var hook like
+  `WFS_TEST_CHANNEL_LIST`, or extending the self-test); or
+- the offline-render harness is used instead, which drives the engine directly and needs no app
+  surface at all — `tools/validation/offline-render --path effects` already exists from Phase 2.
+
+**Decide which before starting, because it changes what Phase 5's first commit looks like.** The
+offline-render route is the cheapest and is already built.
+
+---
+
+## 3. Phase 4 remainder — four commits, with the decisions already made
+
+Lettering follows the audit at
+`<scratchpad>/phase4-spec/osc-and-oscquery.json`, whose `commitBreakdown` is the detailed plan.
+C0–C4 and C9's CSV are done.
+
+**C5 + C6 — OSC inbound.** Address map, `isEffectAddress`, `getEffectParamId`,
+`parseEffectMessage`, bounds entries (including the four cell pseudo-identifiers), the dispatch
+branch, `/wfs/effect/` added to the routing/suppression test, snapshot and clear verbs, polar
+aliases.
+
+> **C6 IS ALREADY DECIDED: the app-only route.** Add the four cell addresses to
+> `ingestClassifier.bypassAddresses` (OSCManager.cpp:137) and extend OSCManager's second-stage
+> coalesce key (`paramId + ":" + channelIndex`) to carry the sub-index. Reason: spatcore's ingest
+> key is `address + "|" + firstInt32` (`OSCIngestQueue.cpp:141`), so a 3-argument cell message
+> keys on the EFFECT alone and only one cell per effect survives a drain tick — a cue setting 64
+> sends would land one. `/wfs/input/mutes` is already in that bypass list for exactly this reason
+> and its comment is the rationale verbatim. The alternative (extending spatcore's `CoalesceRule`)
+> puts a submodule PR and a tag inside an app phase. **Cost to document at the call site:** the
+> bypass list shares the 256-entry ingest FIFO, so a burst beyond that drops the excess; a surface
+> changing many cells at once should send the whole ROW.
+>
+> Cells and rows must dispatch ONLY through the typed accessors (`§4` below), never through the
+> generic parameter path.
+
+**C7 — ramper generalisation.** Key becomes `{family, channel, paramId, subA, subB}`; the three
+hard-wired `getInputParameter`/`setInputParameter` call sites become per-family functors. **Keep
+the `value.isDouble()` guard at the ramp entry** — it is the only thing stopping a CSV row
+entering the ramper, where `static_cast<double>` on a `juce::var` holding `"0,1,0,0"` yields 0.0
+and each step would overwrite the whole row with a bare double. Gate that the existing input ramp
+replay case does not move.
+
+**C8 — outbound + OSCQuery.** `getEffectMappings`, `buildEffectMessage`, the Effect arm of the
+ancestor walk, `buildEffectChannelJson`, the `/wfs/effect` container, `getReverseMap`,
+`resolveOSCPath` (**use the node's `id`, not the child index — the reverb arm is already wrong
+this way**), `structurePathForContainer`.
+
+> Known wall, decide here: OSCQuery publishes ONE node for all bands of an EQ and gives it no
+> VALUE, so band values are unreadable over OSCQuery today. The effects EQ and delay taps hit the
+> same wall. Either publish an array VALUE or accept the gap explicitly.
+
+**C9 rest + C10 — codegen and the tool layer.** Register `WFS-UI_effects.csv`, the config tables,
+regenerate `generated_tools.json` **and** the `mcp_replay.json` census golden together (that
+golden is the gate that fails otherwise, and the plan already says it is regenerated here), the
+loader/registry/lifecycle/audit work, and the hand-written effect tools.
+
+> **R5-7: there are TWO hardcoded CSV lists.** `tools/mcp/wfs_codegen_config.py`
+> (`CSV_FILES_ORDER`) and `tools/audit_param_bounds.py` (`CSV_FILES`, :45-53). The second belongs
+> to the bounds auditor, whose entire job is catching drift between the CSV, the defaults header
+> and the bounds table. Register in only the first and it **silently** skips all 174 effect
+> parameters, and the zero-drift property verified when the CSV was written stops being checked.
+>
+> **R5-8: only `effectChannels` moves to the config CSV.** The config layout has no OSC path
+> column, so moving the map toggle there would lose the `/wfs/<family>/mapVisible` convention every
+> family follows. `GLOBAL_ROWS_IN_CHANNEL_CSVS` (wfs_codegen_config.py:460) already exists for
+> exactly this and already carries `reverbsMapVisible`; add the nine `effectsGlobal*` and
+> `effectsMapVisible` there instead.
+
+---
+
+## 4. Phase 5 — audio wiring
+
+Scope per the plan's §9 row 5: calc engine (§6.4, including `setEffectOtomoOffset` and the cycle
+warning), MainComponent (§6.5, including Clear wiring), `LevelMeteringManager`, binaural kind
+guard, the otomo family adapter (offset sink) + second instance, `InputVisualisation` block,
+`ReverbNodePlacement::layout(standoff)`, the ownership latch and "Re-layout effects".
+
+**Anchors verified today:**
+
+| What | Where |
+|---|---|
+| The render-budget flip (Phase 5's first commit) | `WFSParameterDefaults.h:27-28` (`maxRenderSources = 104`) and `WFSCalculationEngine.cpp:9-18` (the static_asserts) |
+| The 2-arg build call to switch to 3-arg | `MainComponent.cpp:6857` `recomputeRenderSourceCount()` |
+| The engine's property listener (blind to effects today) | `WFSCalculationEngine::valueTreePropertyChanged` — tests only `input*`/`output*`/`reverb*` identifiers and falls through |
+| Typed accessors the wiring should read through | `WFSValueTreeState.h`, the Effects Channel Access block |
+
+**The render-budget flip is SMALLER than the plan says, and it belongs here, not in Phase 4.**
+spatcore v0.3.2 already defines `kMaxRenderSourceSlots = 136` and already sizes `desc` from it, so
+the fix is to point the app static_assert at **that** name and set `maxRenderSources = 136` —
+app-only, one commit, no spatcore edit, no rename. It was deliberately kept out of Phase 4 because
+it grows the WFS delay/level arrays and the reverb feed matrices from 104 to 136 rows for rows that
+stay zero until audio exists, and it would put the one commit that can change rendered output into
+a phase whose gate is "count 0, nothing changed". Here, `offline-render --check` over the 21
+baselines is a real gate.
+
+**Phase 4's gates were tree-level for a reason that now reverses.** The calc engine's listener is
+blind to every effect identifier, so effects writes set no dirty flag and trigger no recompute —
+which is what made Phase 4 safe to land without audio, but also meant nothing would have told you
+an effects write reached the wrong node. From Phase 5 onward the audio gates can see the family,
+and `offline-render --check` becomes the primary gate.
+
+---
+
+## 5. Design corrections from the 2026-09-17 conversation (§12.6)
+
+These came from the operator describing intended use. **They land in Phases 6 and 7, not 5**, but
+they amend decisions the document records as *confirmed*, so do not re-derive the old ones.
+
+| # | Correction |
+|---|---|
+| R5-1 | **Mute does NOT propagate through link groups.** The plan put mutes in the propagating set, so two linked channels shared one mute state and neither could be silenced alone. Move `effectMute`, `effectMutes`, `effectMuteMacro`, `effectMuteReverbSends` from `isAbsoluteOnly` to `isExcluded`. `effectSolo` was already excluded — that inconsistency is evidence the propagating half was an oversight. |
+| R5-2 | **Group mute is an ACTION, not a coupling.** Independence and group shortcuts are only compatible if the shortcut WRITES every member once and leaves each independently editable. Propagation cannot express it: under it, unmuting one member unmutes all. |
+| R5-3 | The bunch may need no new membership — with R5-1 applied, `effectLinkGroup` no longer couples mute state, so the same membership can address a group-mute action. If bunches need membership independent of parameter linking, that is a second identifier and must be decided before the GUI. |
+| R5-4 | **The third matrix level was missing its trim.** Add `effectArrayAtten1..10` on `<Return>`, mirroring `inputArrayAtten1..10` (-60..0 dB). Levels 1 and 2 each have an on/off row AND a level row; level 3 had only the on/off row. |
+| R5-5 | **The link mode moves onto the channel.** An output carries `outputArray` (membership) AND `outputApplyToArray` (0 OFF / 1 ABSOLUTE / 2 RELATIVE, per output). Effects have membership but only the global `effectsGlobalLinkMode`, so detaching one channel detaches every group. Add `effectLinkMode` on `<Channel>`; demote the global to the default a new channel is stamped with. |
+| R5-6 | **Propagation must consult the RECEIVER's mode.** `WFSValueTreeState.cpp:1186` reads each member's own mode and skips members set to OFF. The plan says clone `ClusterParamEdit.h`, and clusters have membership with **no per-member mode** — cloning it inherits exactly the gap R5-5 closes. Model on `ArrayParamEdit.h` + the array propagation at `WFSValueTreeState.cpp:1157-1250`. |
+
+**The three matrix levels**, as the operator framed them:
+
+| Level | Matrix | Mute | Level |
+|---|---|---|---|
+| 1 | inputs → an effect's entry | `effectSendOns`, 64 wide, keyed by input PERMANENT number | `effectSendLevels`, -92..0 dB |
+| 2 | effect outputs → other effects' entries | `effectFxSendOns`, 32 wide, dense effect index, diagonal off | `effectFxSendLevels`, -92..0 dB |
+| 3 | effect outputs → outputs | `effectMutes`, one token per LIVE output | `effectArrayAtten1..10` (R5-4, not yet added) |
+
+**Level 3 must NOT become a free per-output matrix.** Levels 1 and 2 are true mixers. Level 3 is
+not: an effect return is a WFS render source, so its per-output gains are SOLVED from the geometry
+of the return position against each speaker. An arbitrary per-output level would overwrite the
+spatialisation that makes the return localise where its marker sits. The family offers exactly two
+overrides on top of the solution — a per-output MUTE and a per-ARRAY TRIM — and that is why level
+3's surface is deliberately smaller.
+
+---
+
+## 6. Verified mechanically — do not redo
+
+- **All 104 spatcore `EffectParams` defaults agree exactly with the app's `effect*Default`
+  constants.** The one unpaired field, `inputTrimLin`, is marked "reserved, not exposed in v1".
+- **491 numeric cells in `WFS-UI_effects.csv` equal their constants.** Zero drift, checked by two
+  independently written verifiers.
+- **No prefix dispatch on an effect name exists outside `getParameterScope`,** where the two tests
+  are correctly ordered `effectsGlobal` before `effect`. The prefix-collision hazard the identifier
+  header warns about (`effectDist`/`effectDistance*`, `effectDelay`/`effectDelayLatency`,
+  `effectSend`/`effectSendLevels`, `effectMute`/`effectMutes`) is entirely FUTURE — it bites in the
+  OSC parser, OSCQuery and codegen. Order those tests longest-first or compare with `==`.
+- **Both app↔spatcore mirror constants are now static_asserted** (`WFSCalculationEngine.cpp`), so
+  `numEffectModuleSlots` and `maxEffectChannels` cannot drift silently.
+
+---
+
+## 7. How this branch works — the part that is not optional
+
+**Every serious bug in this phase was found by review, not by writing, and every one was the same
+mistake:** code inferring what it may destroy from what it cannot see.
+
+1. The eviction hook treated an empty template node as proof every property on it was retired —
+   it would have deleted the whole send matrix on every project open.
+2. The load path had no template to merge onto, so a half-built channel loaded as a live one.
+3. The output-count refit truncated a mute row on a shrink, destroying the very row it was added
+   to protect.
+4. The row guard checked the value's TYPE, not its SHAPE, so a one-token string became a
+   full-width row of defaults — reached through a shipped tool.
+
+**Mutation-test every gate you add.** Break the mechanism on purpose, rebuild, confirm the
+assertion fails, restore. **Three gates on this branch could not fail when first written** and
+were caught only this way. The most recent: a scalar lands on column 0, and every row was idle at
+column 0, so the assertion passed for the wrong reason.
+
+**Gate commands** (from `D:\dev\WFS_DIY_v1`):
+
+```powershell
+& "C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe" `
+    Builds\VisualStudio2022\WFS-DIY.sln -p:Configuration=Release -p:Platform=x64 -m
+# structural self-test: WFS_TEST_CHANNEL_LIST=1, launch the Release exe, read the log.
+# BACK UP %APPDATA%\WFS-DIY\WFS-DIY.settings first and restore it after — the forced kill
+# flips cleanShutdown.
+```
+```bash
+cd tools/validation/control-replay
+python session_roundtrip.py      # six section files, effects.xml included
+python osc_replay.py
+python oscquery_echo_check.py
+python mcp_replay.py
+python midi_snapshot_check.py    # needs the teVirtualMIDI port
+python fade_ramp_check.py
+python remote_tablet_mock.py
+cd ../offline-render && ./build/.../offline-render.exe --path cpu --check baselines/win-dev-nvidia.json
+```
+
+A moving golden is a finding, not something to `--update` away. The two exceptions so far were
+both deliberate and stated in their commit messages.
+
+**The app is single-instance**, so only one agent may drive it at a time, and two MSBuild runs on
+the same obj directory corrupt each other. Parallel agents must be scoped to disjoint files and
+only one may build.
+
+---
+
+## 8. Known-open, none blocking
+
+- **The reverb EQ band accessor is unguarded and HAS live callers** — an unknown child in a reverb
+  `<EQ>` makes a band write land on it and report success. The effects twin was fixed; the reverb
+  one was left because it is shipped behaviour outside this phase.
+- **The reverb mute tool takes a string enum with no output argument**, so it cannot address a
+  column at all. It is now a logged no-op rather than a row-destroyer, but still reports success to
+  the client. Fix with the C9/C10 grid tools.
+- **The OSC per-output mute form exists for `inputMutes` only.**
+- **The output EQ dispatcher ignores its band index entirely**, so a generic `eqGain` write always
+  lands on band 1. Shipped.
+- **`effectsMapVisible` is stamped, persisted, routed and read by nothing** — its twin has live
+  readers.
+- **Snapshot/MIDI/QLab scope has zero effects coverage** (`getScopeItems()` has no effect entries),
+  so an operator who builds a chain has no cue coverage for any of its 174 parameters. Phase 7.
+- **MCP session-info reports per-family channel counts without effects**, so a session with 8
+  effect channels is described as having none.
+- **`effectMuteMacroMax = 4`** reaches only mute-all, unmute-all and invert; the reverb equivalent
+  implements two more (mute-odd, mute-even). The plan specifies 4, so the constant is faithful —
+  but the plan looks like it truncated the list by oversight. **Product decision, one constant.**
+- **A deliberate trade-off, not a bug:** "never cut a per-output row" means a mute on an output the
+  rig does not currently have survives UNMUTE ALL and the other grid macros, because the grid
+  speaks only for the outputs it shows. The mute reappears with the outputs.
