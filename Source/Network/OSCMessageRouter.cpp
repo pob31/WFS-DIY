@@ -262,6 +262,448 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getReverbAddre
     return addressMap;
 }
 
+const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getEffectAddressMap()
+{
+    // 164 names, transcribed from the "OSC path" column of
+    // Documentation/WFS-UI_effects.csv. That column is the published contract:
+    // the map is the transcription, not the design.
+    //
+    // FOUR OF THESE NAMES ARE STRICT PREFIXES OF OTHERS - "sendLevel" of
+    // "sendLevels", "sendOn" of "sendOns", "fxSendLevel"/"fxSendOn" likewise -
+    // and the parameter identifiers behind them collide the same way
+    // (effectDist/effectDistance*, effectDelay/effectDelayLatency,
+    // effectMute/effectMutes). Nothing here may ever be resolved with a
+    // startsWith: this map is keyed for EXACT lookup and every classification
+    // below compares Identifiers with ==.
+    static const std::map<juce::String, juce::Identifier> addressMap = {
+        // Header
+        { "mapVisible",             WFSParameterIDs::effectsMapVisible },
+
+        // Channel
+        { "name",                   WFSParameterIDs::effectName },
+        { "attenuation",            WFSParameterIDs::effectAttenuation },
+        { "delayLatency",           WFSParameterIDs::effectDelayLatency },
+        { "minimalLatency",         WFSParameterIDs::effectMinimalLatency },
+        { "linkGroup",              WFSParameterIDs::effectLinkGroup },
+        { "mute",                   WFSParameterIDs::effectMute },
+        { "solo",                   WFSParameterIDs::effectSolo },
+
+        // Position
+        { "coordinateMode",         WFSParameterIDs::effectCoordinateMode },
+        { "positionX",              WFSParameterIDs::effectPositionX },
+        { "positionY",              WFSParameterIDs::effectPositionY },
+        { "positionZ",              WFSParameterIDs::effectPositionZ },
+        { "returnOffsetX",          WFSParameterIDs::effectReturnOffsetX },
+        { "returnOffsetY",          WFSParameterIDs::effectReturnOffsetY },
+        { "returnOffsetZ",          WFSParameterIDs::effectReturnOffsetZ },
+
+        // Feed
+        { "orientation",            WFSParameterIDs::effectOrientation },
+        { "angleOn",                WFSParameterIDs::effectAngleOn },
+        { "angleOff",               WFSParameterIDs::effectAngleOff },
+        { "pitch",                  WFSParameterIDs::effectPitch },
+        { "HFdamping",              WFSParameterIDs::effectHFdamping },
+        { "feedMiniLatency",        WFSParameterIDs::effectFeedMiniLatency },
+        { "distanceAttenPercent",   WFSParameterIDs::effectDistanceAttenPercent },
+
+        // Return
+        { "attenuationLaw",         WFSParameterIDs::effectAttenuationLaw },
+        { "distanceAttenuation",    WFSParameterIDs::effectDistanceAttenuation },
+        { "distanceRatio",          WFSParameterIDs::effectDistanceRatio },
+        { "commonAtten",            WFSParameterIDs::effectCommonAtten },
+        { "HFshelf",                WFSParameterIDs::effectHFshelf },
+        { "mutes",                  WFSParameterIDs::effectMutes },
+        { "muteMacro",              WFSParameterIDs::effectMuteMacro },
+        { "muteReverbSends",        WFSParameterIDs::effectMuteReverbSends },
+
+        // AutomOtion
+        { "otomoX",                 WFSParameterIDs::effectOtomoX },
+        { "otomoY",                 WFSParameterIDs::effectOtomoY },
+        { "otomoZ",                 WFSParameterIDs::effectOtomoZ },
+        { "otomoCoordinateMode",    WFSParameterIDs::effectOtomoCoordinateMode },
+        { "otomoR",                 WFSParameterIDs::effectOtomoR },
+        { "otomoTheta",             WFSParameterIDs::effectOtomoTheta },
+        { "otomoRsph",              WFSParameterIDs::effectOtomoRsph },
+        { "otomoPhi",               WFSParameterIDs::effectOtomoPhi },
+        { "otomoAbsoluteRelative",  WFSParameterIDs::effectOtomoAbsoluteRelative },
+        { "otomoSpeedProfile",      WFSParameterIDs::effectOtomoSpeedProfile },
+        { "otomoDuration",          WFSParameterIDs::effectOtomoDuration },
+        { "otomoCurve",             WFSParameterIDs::effectOtomoCurve },
+        { "otomoTrigger",           WFSParameterIDs::effectOtomoTrigger },
+        { "otomoThreshold",         WFSParameterIDs::effectOtomoThreshold },
+        { "otomoReset",             WFSParameterIDs::effectOtomoReset },
+        { "otomoPauseResume",       WFSParameterIDs::effectOtomoPauseResume },
+
+        // Chain
+        { "chainOrder",             WFSParameterIDs::effectChainOrder },
+        { "chainBypass",            WFSParameterIDs::effectChainBypass },
+
+        // FxDist
+        { "distBypass",             WFSParameterIDs::effectDistBypass },
+        { "distDrive",              WFSParameterIDs::effectDistDrive },
+        { "distShape",              WFSParameterIDs::effectDistShape },
+        { "distBias",               WFSParameterIDs::effectDistBias },
+        { "distPreLoShelfFreq",     WFSParameterIDs::effectDistPreLoShelfFreq },
+        { "distPreLoShelfGain",     WFSParameterIDs::effectDistPreLoShelfGain },
+        { "distPreHiShelfFreq",     WFSParameterIDs::effectDistPreHiShelfFreq },
+        { "distPreHiShelfGain",     WFSParameterIDs::effectDistPreHiShelfGain },
+        { "distPostLoShelfFreq",    WFSParameterIDs::effectDistPostLoShelfFreq },
+        { "distPostLoShelfGain",    WFSParameterIDs::effectDistPostLoShelfGain },
+        { "distPostHiShelfFreq",    WFSParameterIDs::effectDistPostHiShelfFreq },
+        { "distPostHiShelfGain",    WFSParameterIDs::effectDistPostHiShelfGain },
+        { "distOutput",             WFSParameterIDs::effectDistOutput },
+        { "distMix",                WFSParameterIDs::effectDistMix },
+        { "distOversample",         WFSParameterIDs::effectDistOversample },
+
+        // FxEQ
+        { "EQBypass",               WFSParameterIDs::effectEQBypass },
+        { "EQshape",                WFSParameterIDs::effectEQshape },
+        { "EQfreq",                 WFSParameterIDs::effectEQfreq },
+        { "EQgain",                 WFSParameterIDs::effectEQgain },
+        { "EQq",                    WFSParameterIDs::effectEQq },
+        { "EQslope",                WFSParameterIDs::effectEQslope },
+
+        // FxDyn
+        { "dynBypass",              WFSParameterIDs::effectDynBypass },
+        { "dynDetector",            WFSParameterIDs::effectDynDetector },
+        { "dynLookahead",           WFSParameterIDs::effectDynLookahead },
+        { "dynMakeup",              WFSParameterIDs::effectDynMakeup },
+        { "dynAutoMakeup",          WFSParameterIDs::effectDynAutoMakeup },
+        { "dynCompOn",              WFSParameterIDs::effectDynCompOn },
+        { "dynCompThreshold",       WFSParameterIDs::effectDynCompThreshold },
+        { "dynCompRatio",           WFSParameterIDs::effectDynCompRatio },
+        { "dynCompKnee",            WFSParameterIDs::effectDynCompKnee },
+        { "dynCompAttack",          WFSParameterIDs::effectDynCompAttack },
+        { "dynCompRelease",         WFSParameterIDs::effectDynCompRelease },
+        { "dynCompDetectorDelay",   WFSParameterIDs::effectDynCompDetectorDelay },
+        { "dynCompScLoCut",         WFSParameterIDs::effectDynCompScLoCut },
+        { "dynCompScHiCut",         WFSParameterIDs::effectDynCompScHiCut },
+        { "dynExpOn",               WFSParameterIDs::effectDynExpOn },
+        { "dynExpThreshold",        WFSParameterIDs::effectDynExpThreshold },
+        { "dynExpRatio",            WFSParameterIDs::effectDynExpRatio },
+        { "dynExpAttack",           WFSParameterIDs::effectDynExpAttack },
+        { "dynExpRelease",          WFSParameterIDs::effectDynExpRelease },
+        { "dynExpRange",            WFSParameterIDs::effectDynExpRange },
+        { "dynExpHold",             WFSParameterIDs::effectDynExpHold },
+        { "dynExpScLoCut",          WFSParameterIDs::effectDynExpScLoCut },
+        { "dynExpScHiCut",          WFSParameterIDs::effectDynExpScHiCut },
+
+        // FxMod
+        { "modBypass",              WFSParameterIDs::effectModBypass },
+        { "modMode",                WFSParameterIDs::effectModMode },
+        { "modRate",                WFSParameterIDs::effectModRate },
+        { "modDepth",               WFSParameterIDs::effectModDepth },
+        { "modDelay",               WFSParameterIDs::effectModDelay },
+        { "modFeedback",            WFSParameterIDs::effectModFeedback },
+        { "modVoices",              WFSParameterIDs::effectModVoices },
+        { "modShape",               WFSParameterIDs::effectModShape },
+        { "modPhase",               WFSParameterIDs::effectModPhase },
+        { "modLoCut",               WFSParameterIDs::effectModLoCut },
+        { "modThroughZero",         WFSParameterIDs::effectModThroughZero },
+        { "modMix",                 WFSParameterIDs::effectModMix },
+
+        // FxPhaser
+        { "phaserBypass",           WFSParameterIDs::effectPhaserBypass },
+        { "phaserStages",           WFSParameterIDs::effectPhaserStages },
+        { "phaserCentre",           WFSParameterIDs::effectPhaserCentre },
+        { "phaserSpread",           WFSParameterIDs::effectPhaserSpread },
+        { "phaserRate",             WFSParameterIDs::effectPhaserRate },
+        { "phaserDepth",            WFSParameterIDs::effectPhaserDepth },
+        { "phaserShape",            WFSParameterIDs::effectPhaserShape },
+        { "phaserFeedback",         WFSParameterIDs::effectPhaserFeedback },
+        { "phaserMix",              WFSParameterIDs::effectPhaserMix },
+
+        // FxTrem
+        { "tremBypass",             WFSParameterIDs::effectTremBypass },
+        { "tremRate",               WFSParameterIDs::effectTremRate },
+        { "tremDepth",              WFSParameterIDs::effectTremDepth },
+        { "tremShape",              WFSParameterIDs::effectTremShape },
+        { "tremMix",                WFSParameterIDs::effectTremMix },
+
+        // FxReverb
+        { "reverbBypass",           WFSParameterIDs::effectReverbBypass },
+        { "reverbModel",            WFSParameterIDs::effectReverbModel },
+        { "reverbType",             WFSParameterIDs::effectReverbType },
+        { "reverbPredelay",         WFSParameterIDs::effectReverbPredelay },
+        { "reverbRT60",             WFSParameterIDs::effectReverbRT60 },
+        { "reverbRT60LowMult",      WFSParameterIDs::effectReverbRT60LowMult },
+        { "reverbRT60HighMult",     WFSParameterIDs::effectReverbRT60HighMult },
+        { "reverbCrossoverLow",     WFSParameterIDs::effectReverbCrossoverLow },
+        { "reverbCrossoverHigh",    WFSParameterIDs::effectReverbCrossoverHigh },
+        { "reverbDiffusion",        WFSParameterIDs::effectReverbDiffusion },
+        { "reverbSize",             WFSParameterIDs::effectReverbSize },
+        { "reverbTone",             WFSParameterIDs::effectReverbTone },
+        { "reverbMix",              WFSParameterIDs::effectReverbMix },
+
+        // FxDelay
+        { "delayBypass",            WFSParameterIDs::effectDelayBypass },
+        { "delayTime",              WFSParameterIDs::effectDelayTime },
+        { "delayTaps",              WFSParameterIDs::effectDelayTaps },
+        { "delayTapMode",           WFSParameterIDs::effectDelayTapMode },
+        { "delayPattern",           WFSParameterIDs::effectDelayPattern },
+        { "delayFeedback",          WFSParameterIDs::effectDelayFeedback },
+        { "delayFeedbackTap",       WFSParameterIDs::effectDelayFeedbackTap },
+        { "delayInLoCut",           WFSParameterIDs::effectDelayInLoCut },
+        { "delayFbLoShelfFreq",     WFSParameterIDs::effectDelayFbLoShelfFreq },
+        { "delayFbLoShelfGain",     WFSParameterIDs::effectDelayFbLoShelfGain },
+        { "delayFbHiShelfFreq",     WFSParameterIDs::effectDelayFbHiShelfFreq },
+        { "delayFbHiShelfGain",     WFSParameterIDs::effectDelayFbHiShelfGain },
+        { "delayModRate",           WFSParameterIDs::effectDelayModRate },
+        { "delayModDepth",          WFSParameterIDs::effectDelayModDepth },
+        { "delayDiffusion",         WFSParameterIDs::effectDelayDiffusion },
+        { "delayGlide",             WFSParameterIDs::effectDelayGlide },
+        { "delayMix",               WFSParameterIDs::effectDelayMix },
+        { "delayTapTime",           WFSParameterIDs::effectDelayTapTime },
+        { "delayTapLevel",          WFSParameterIDs::effectDelayTapLevel },
+
+        // FxCrush
+        { "crushBypass",            WFSParameterIDs::effectCrushBypass },
+        { "crushBits",              WFSParameterIDs::effectCrushBits },
+        { "crushRate",              WFSParameterIDs::effectCrushRate },
+        { "crushFilter",            WFSParameterIDs::effectCrushFilter },
+        { "crushDither",            WFSParameterIDs::effectCrushDither },
+        { "crushMix",               WFSParameterIDs::effectCrushMix },
+
+        // Sends
+        { "sendLevels",             WFSParameterIDs::effectSendLevels },
+        { "sendOns",                WFSParameterIDs::effectSendOns },
+        { "fxSendLevels",           WFSParameterIDs::effectFxSendLevels },
+        { "fxSendOns",              WFSParameterIDs::effectFxSendOns },
+        { "sendLevel",              WFSParameterIDs::effectSendLevel },
+        { "sendOn",                 WFSParameterIDs::effectSendOn },
+        { "fxSendLevel",            WFSParameterIDs::effectFxSendLevel },
+        { "fxSendOn",               WFSParameterIDs::effectFxSendOn },
+    };
+
+    return addressMap;
+}
+
+OSCMessageRouter::ParsedEffectMessage::Kind
+OSCMessageRouter::getEffectParamKind (const juce::Identifier& paramId)
+{
+    using Kind = ParsedEffectMessage::Kind;
+
+    // THE ONE TABLE. Each set holds the identifiers of one argument shape; a
+    // parameter that is in none of them is an ordinary per-channel scalar.
+    // Membership is by Identifier equality - never by a name prefix - and the
+    // sets are built once.
+    //
+    // The row counts in the comments are the census of the CSV's "OSC path"
+    // column and are checked by the control replay, not by the compiler: if a
+    // parameter is added to the CSV and forgotten here it silently becomes a
+    // Scalar, which is exactly the failure the eight-shape table exists to
+    // prevent. Count before you trust.
+
+    // 24 rows: <ID> <instance> <value>. The doubled module node types.
+    static const std::set<juce::Identifier> instanced = {
+        WFSParameterIDs::effectEQBypass,
+        WFSParameterIDs::effectDynBypass,
+        WFSParameterIDs::effectDynDetector,
+        WFSParameterIDs::effectDynLookahead,
+        WFSParameterIDs::effectDynMakeup,
+        WFSParameterIDs::effectDynAutoMakeup,
+        WFSParameterIDs::effectDynCompOn,
+        WFSParameterIDs::effectDynCompThreshold,
+        WFSParameterIDs::effectDynCompRatio,
+        WFSParameterIDs::effectDynCompKnee,
+        WFSParameterIDs::effectDynCompAttack,
+        WFSParameterIDs::effectDynCompRelease,
+        WFSParameterIDs::effectDynCompDetectorDelay,
+        WFSParameterIDs::effectDynCompScLoCut,
+        WFSParameterIDs::effectDynCompScHiCut,
+        WFSParameterIDs::effectDynExpOn,
+        WFSParameterIDs::effectDynExpThreshold,
+        WFSParameterIDs::effectDynExpRatio,
+        WFSParameterIDs::effectDynExpAttack,
+        WFSParameterIDs::effectDynExpRelease,
+        WFSParameterIDs::effectDynExpRange,
+        WFSParameterIDs::effectDynExpHold,
+        WFSParameterIDs::effectDynExpScLoCut,
+        WFSParameterIDs::effectDynExpScHiCut,
+    };
+
+    // 5 rows: <ID> <instance> <band> <value>. Two indices, on <Band> nodes
+    // under FxEq1 / FxEq2.
+    static const std::set<juce::Identifier> band = {
+        WFSParameterIDs::effectEQshape,
+        WFSParameterIDs::effectEQfreq,
+        WFSParameterIDs::effectEQgain,
+        WFSParameterIDs::effectEQq,
+        WFSParameterIDs::effectEQslope,
+    };
+
+    // 2 rows: <ID> <tap> <value>. <Tap> nodes under the single <FxDelay>.
+    static const std::set<juce::Identifier> tap = {
+        WFSParameterIDs::effectDelayTapTime,
+        WFSParameterIDs::effectDelayTapLevel,
+    };
+
+    // 2 + 2 rows: one CELL of a send row. The column is an input PERMANENT
+    // number for the first pair and a DENSE effect index for the second, which
+    // is why they are two kinds and not one.
+    static const std::set<juce::Identifier> inputCell = {
+        WFSParameterIDs::effectSendLevel,
+        WFSParameterIDs::effectSendOn,
+    };
+    static const std::set<juce::Identifier> fxCell = {
+        WFSParameterIDs::effectFxSendLevel,
+        WFSParameterIDs::effectFxSendOn,
+    };
+
+    // 6 rows: <ID> "<csv>". A packed row is ONE string for the whole row. A
+    // bare number is never a row, and the parser refuses one rather than
+    // letting it reach the write interceptor.
+    static const std::set<juce::Identifier> row = {
+        WFSParameterIDs::effectMutes,
+        WFSParameterIDs::effectChainOrder,
+        WFSParameterIDs::effectSendLevels,
+        WFSParameterIDs::effectSendOns,
+        WFSParameterIDs::effectFxSendLevels,
+        WFSParameterIDs::effectFxSendOns,
+    };
+
+    // 10 rows: <value>, no channel. Nine are /wfs/config/effects/*; the tenth
+    // is effectsMapVisible, which the contract addresses under /wfs/effect/
+    // although the property lives in Config.
+    static const std::set<juce::Identifier> global = {
+        WFSParameterIDs::effectsMapVisible,
+        WFSParameterIDs::effectChannels,
+        WFSParameterIDs::effectsGlobalLinkNames,
+        WFSParameterIDs::effectsGlobalLinkMode,
+        WFSParameterIDs::effectsGlobalFxFeedGeometric,
+        WFSParameterIDs::effectsGlobalWorkerThreads,
+        WFSParameterIDs::effectsGlobalReturnCushion,
+        WFSParameterIDs::effectsGlobalLoopGuard,
+        WFSParameterIDs::effectsGlobalLoopGuardCeiling,
+        WFSParameterIDs::effectsGlobalMaxDelaySeconds,
+        WFSParameterIDs::effectsGlobalFeedGpuDevice,
+    };
+
+    if (! paramId.isValid())                       return Kind::Unknown;
+    if (instanced.count (paramId) != 0)            return Kind::Instanced;
+    if (band.count (paramId) != 0)                 return Kind::Band;
+    if (tap.count (paramId) != 0)                  return Kind::Tap;
+    if (inputCell.count (paramId) != 0)            return Kind::InputCell;
+    if (fxCell.count (paramId) != 0)               return Kind::FxCell;
+    if (row.count (paramId) != 0)                  return Kind::Row;
+    if (global.count (paramId) != 0)               return Kind::Global;
+    return Kind::Scalar;
+}
+
+bool OSCMessageRouter::isEffectParamRampCapable (const juce::Identifier& paramId)
+{
+    // Mirrors the "OSC path optional value" column of
+    // Documentation/WFS-UI_effects.csv: every row reading "extra value is
+    // transition time in seconds". 98 entries.
+    //
+    // NOT WIRED TO THE RAMPER YET - see the declaration. A ramp argument on one
+    // of these is parsed, the value is applied instantly, and rampArgIgnored is
+    // raised so the dispatch logs the difference once instead of leaving a
+    // client believing in a fade that never ran.
+    static const std::set<juce::Identifier> rampCapable = {
+        WFSParameterIDs::effectAttenuation,
+        WFSParameterIDs::effectDelayLatency,
+        WFSParameterIDs::effectPositionX,
+        WFSParameterIDs::effectPositionY,
+        WFSParameterIDs::effectPositionZ,
+        WFSParameterIDs::effectReturnOffsetX,
+        WFSParameterIDs::effectReturnOffsetY,
+        WFSParameterIDs::effectReturnOffsetZ,
+        WFSParameterIDs::effectOrientation,
+        WFSParameterIDs::effectAngleOn,
+        WFSParameterIDs::effectAngleOff,
+        WFSParameterIDs::effectPitch,
+        WFSParameterIDs::effectHFdamping,
+        WFSParameterIDs::effectDistanceAttenPercent,
+        WFSParameterIDs::effectDistanceAttenuation,
+        WFSParameterIDs::effectDistanceRatio,
+        WFSParameterIDs::effectCommonAtten,
+        WFSParameterIDs::effectHFshelf,
+        WFSParameterIDs::effectDistDrive,
+        WFSParameterIDs::effectDistShape,
+        WFSParameterIDs::effectDistBias,
+        WFSParameterIDs::effectDistPreLoShelfFreq,
+        WFSParameterIDs::effectDistPreLoShelfGain,
+        WFSParameterIDs::effectDistPreHiShelfFreq,
+        WFSParameterIDs::effectDistPreHiShelfGain,
+        WFSParameterIDs::effectDistPostLoShelfFreq,
+        WFSParameterIDs::effectDistPostLoShelfGain,
+        WFSParameterIDs::effectDistPostHiShelfFreq,
+        WFSParameterIDs::effectDistPostHiShelfGain,
+        WFSParameterIDs::effectDistOutput,
+        WFSParameterIDs::effectDistMix,
+        WFSParameterIDs::effectEQfreq,
+        WFSParameterIDs::effectEQgain,
+        WFSParameterIDs::effectEQq,
+        WFSParameterIDs::effectEQslope,
+        WFSParameterIDs::effectDynMakeup,
+        WFSParameterIDs::effectDynCompThreshold,
+        WFSParameterIDs::effectDynCompRatio,
+        WFSParameterIDs::effectDynCompKnee,
+        WFSParameterIDs::effectDynCompAttack,
+        WFSParameterIDs::effectDynCompRelease,
+        WFSParameterIDs::effectDynCompDetectorDelay,
+        WFSParameterIDs::effectDynCompScLoCut,
+        WFSParameterIDs::effectDynCompScHiCut,
+        WFSParameterIDs::effectDynExpThreshold,
+        WFSParameterIDs::effectDynExpRatio,
+        WFSParameterIDs::effectDynExpAttack,
+        WFSParameterIDs::effectDynExpRelease,
+        WFSParameterIDs::effectDynExpRange,
+        WFSParameterIDs::effectDynExpHold,
+        WFSParameterIDs::effectDynExpScLoCut,
+        WFSParameterIDs::effectDynExpScHiCut,
+        WFSParameterIDs::effectModRate,
+        WFSParameterIDs::effectModDepth,
+        WFSParameterIDs::effectModDelay,
+        WFSParameterIDs::effectModFeedback,
+        WFSParameterIDs::effectModPhase,
+        WFSParameterIDs::effectModLoCut,
+        WFSParameterIDs::effectModMix,
+        WFSParameterIDs::effectPhaserCentre,
+        WFSParameterIDs::effectPhaserSpread,
+        WFSParameterIDs::effectPhaserRate,
+        WFSParameterIDs::effectPhaserDepth,
+        WFSParameterIDs::effectPhaserFeedback,
+        WFSParameterIDs::effectPhaserMix,
+        WFSParameterIDs::effectTremRate,
+        WFSParameterIDs::effectTremDepth,
+        WFSParameterIDs::effectTremShape,
+        WFSParameterIDs::effectTremMix,
+        WFSParameterIDs::effectReverbPredelay,
+        WFSParameterIDs::effectReverbRT60,
+        WFSParameterIDs::effectReverbRT60LowMult,
+        WFSParameterIDs::effectReverbRT60HighMult,
+        WFSParameterIDs::effectReverbCrossoverLow,
+        WFSParameterIDs::effectReverbCrossoverHigh,
+        WFSParameterIDs::effectReverbDiffusion,
+        WFSParameterIDs::effectReverbTone,
+        WFSParameterIDs::effectReverbMix,
+        WFSParameterIDs::effectDelayTime,
+        WFSParameterIDs::effectDelayFeedback,
+        WFSParameterIDs::effectDelayInLoCut,
+        WFSParameterIDs::effectDelayFbLoShelfFreq,
+        WFSParameterIDs::effectDelayFbLoShelfGain,
+        WFSParameterIDs::effectDelayFbHiShelfFreq,
+        WFSParameterIDs::effectDelayFbHiShelfGain,
+        WFSParameterIDs::effectDelayModRate,
+        WFSParameterIDs::effectDelayModDepth,
+        WFSParameterIDs::effectDelayDiffusion,
+        WFSParameterIDs::effectDelayGlide,
+        WFSParameterIDs::effectDelayMix,
+        WFSParameterIDs::effectDelayTapTime,
+        WFSParameterIDs::effectDelayTapLevel,
+        WFSParameterIDs::effectCrushBits,
+        WFSParameterIDs::effectCrushRate,
+        WFSParameterIDs::effectCrushDither,
+        WFSParameterIDs::effectCrushMix,
+        WFSParameterIDs::effectSendLevel,
+        WFSParameterIDs::effectFxSendLevel,
+    };
+
+    return rampCapable.find (paramId) != rampCapable.end();
+}
+
 const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getRemoteAddressMap()
 {
     // Remote protocol address names -> parameter IDs
@@ -423,6 +865,31 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getConfigAddre
         { OSCPaths::CONFIG_REVERB_POST_EXP_RATIO,      WFSParameterIDs::reverbPostExpRatio },
         { OSCPaths::CONFIG_REVERB_POST_EXP_ATTACK,     WFSParameterIDs::reverbPostExpAttack },
         { OSCPaths::CONFIG_REVERB_POST_EXP_RELEASE,    WFSParameterIDs::reverbPostExpRelease },
+
+        // Effects globals (Config > EffectsGlobal). Every one of these names
+        // starts with "effect", which is why getParameterScope tests
+        // "effectsGlobal" BEFORE the per-channel "effect" prefix and names
+        // effectChannels and effectsMapVisible individually: without that the
+        // prefix would route them at a channel node that does not carry them
+        // and the write would be dropped with no error at all.
+        { OSCPaths::CONFIG_EFFECTS_LINK_NAMES,         WFSParameterIDs::effectsGlobalLinkNames },
+        { OSCPaths::CONFIG_EFFECTS_LINK_MODE,          WFSParameterIDs::effectsGlobalLinkMode },
+        { OSCPaths::CONFIG_EFFECTS_FX_FEED_GEOMETRIC,  WFSParameterIDs::effectsGlobalFxFeedGeometric },
+        { OSCPaths::CONFIG_EFFECTS_WORKER_THREADS,     WFSParameterIDs::effectsGlobalWorkerThreads },
+        { OSCPaths::CONFIG_EFFECTS_RETURN_CUSHION,     WFSParameterIDs::effectsGlobalReturnCushion },
+        { OSCPaths::CONFIG_EFFECTS_LOOP_GUARD,         WFSParameterIDs::effectsGlobalLoopGuard },
+        { OSCPaths::CONFIG_EFFECTS_LOOP_GUARD_CEILING, WFSParameterIDs::effectsGlobalLoopGuardCeiling },
+        { OSCPaths::CONFIG_EFFECTS_MAX_DELAY_SECONDS,  WFSParameterIDs::effectsGlobalMaxDelaySeconds },
+        { OSCPaths::CONFIG_EFFECTS_FEED_GPU_DEVICE,    WFSParameterIDs::effectsGlobalFeedGpuDevice },
+
+        // THE FIRST CHANNEL COUNT EVER ADDRESSABLE OVER OSC. No other family
+        // publishes one, and this one is accepted ONLY while processing is
+        // stopped - the refusal lives in OSCManager's config branch, because a
+        // count change tears down the shared rings and would stop a running
+        // show from a wrong cue. Its path is one segment deep so
+        // buildConfigJson's group split skips it and it stays out of the
+        // published OSCQuery namespace.
+        { OSCPaths::CONFIG_EFFECT_CHANNELS,            WFSParameterIDs::effectChannels },
     };
 
     return addressMap;
@@ -444,7 +911,12 @@ bool OSCMessageRouter::isOutputAddress(const juce::String& address)
 
 bool OSCMessageRouter::isReverbAddress(const juce::String& address)
 {
-    return address.startsWith("/wfs/reverb/");
+    return address.startsWith(OSCPaths::REVERB_PREFIX);
+}
+
+bool OSCMessageRouter::isEffectAddress(const juce::String& address)
+{
+    return address.startsWith(OSCPaths::EFFECT_PREFIX);
 }
 
 bool OSCMessageRouter::isConfigAddress(const juce::String& address)
@@ -526,6 +998,21 @@ juce::Identifier OSCMessageRouter::getReverbParamId(const juce::String& address)
 {
     juce::String paramName = extractParamName(address);
     const auto& addressMap = getReverbAddressMap();
+
+    auto it = addressMap.find(paramName);
+    if (it != addressMap.end())
+        return it->second;
+
+    return {};
+}
+
+juce::Identifier OSCMessageRouter::getEffectParamId(const juce::String& address)
+{
+    // EXACT lookup of the last path segment, like the other per-channel
+    // families. Never a prefix test: "sendLevel" is a prefix of "sendLevels"
+    // and they are a cell and a whole row.
+    juce::String paramName = extractParamName(address);
+    const auto& addressMap = getEffectAddressMap();
 
     auto it = addressMap.find(paramName);
     if (it != addressMap.end())
@@ -1025,7 +1512,7 @@ OSCMessageRouter::ParsedReverbMessage OSCMessageRouter::parseReverbMessage(const
         return result;
 
     // Check OSCQuery format first: /wfs/reverb/{channelID}/{param} <value>
-    juce::String suffix = address.fromFirstOccurrenceOf("/wfs/reverb/", false, true);
+    juce::String suffix = address.fromFirstOccurrenceOf(OSCPaths::REVERB_PREFIX, false, true);
     int slashIdx = suffix.indexOf("/");
     if (slashIdx > 0)
     {
@@ -1120,6 +1607,460 @@ OSCMessageRouter::ParsedReverbMessage OSCMessageRouter::parseReverbMessage(const
     return result;
 }
 
+namespace
+{
+    // Every argument that is an INDEX rather than a value goes through this:
+    // an effect id, an instance, a band, a tap, a send column. QLab types its
+    // unquoted custom-message arguments as strings, so "2" must read as 2 the
+    // way the input family already accepts "2" as a value (extractFloatLenient
+    // + isNumericString). extractInt alone answers 0 for a string, which would
+    // turn every QLab-sent index into "band 0" and reject it.
+    int extractIndexLenient (const juce::OSCArgument& arg)
+    {
+        return juce::roundToInt (OSCMessageRouter::extractFloatLenient (arg));
+    }
+
+    bool argIsNumber (const juce::OSCMessage& message, int i)
+    {
+        return message[i].isInt32() || message[i].isFloat32()
+            || (message[i].isString() && OSCMessageRouter::isNumericString (message[i].getString()));
+    }
+
+    // The one effect parameter that legitimately carries free text, plus the
+    // two effects globals that do. Everything else coerces a numeric string.
+    bool effectParamTakesText (const juce::Identifier& paramId)
+    {
+        return paramId == WFSParameterIDs::effectName
+            || paramId == WFSParameterIDs::effectsGlobalLinkNames
+            || paramId == WFSParameterIDs::effectsGlobalFeedGpuDevice;
+    }
+
+    // How many instances the identifier's node type has. effectEQBypass sits on
+    // FxEq1/FxEq2; every effectDyn* sits on FxDyn1/FxDyn2. Both are 2 today and
+    // the constants are read rather than assumed, because "they happen to be
+    // equal" is not a reason for one bound to stand for the other.
+    int effectInstanceCountFor (const juce::Identifier& paramId)
+    {
+        return paramId == WFSParameterIDs::effectEQBypass
+                   ? WFSParameterDefaults::numEffectEqInstances
+                   : WFSParameterDefaults::numEffectDynInstances;
+    }
+
+    juce::String indexOutOfRange (const juce::String& what, int got, int lo, int hi)
+    {
+        return what + " " + juce::String (got) + " is not in [" + juce::String (lo)
+             + ", " + juce::String (hi) + "]";
+    }
+}
+
+OSCMessageRouter::ParsedEffectMessage OSCMessageRouter::parseEffectMessage(const juce::OSCMessage& message)
+{
+    using Kind = ParsedEffectMessage::Kind;
+
+    ParsedEffectMessage result;
+
+    const juce::String address = message.getAddressPattern().toString();
+
+    // /wfs/effect/ ONLY. The nine effects globals and the channel count are
+    // addressed under /wfs/config/ like every other global and are parsed by
+    // parseConfigMessage, which matches the FULL path against
+    // getConfigAddressMap - they need no shape table, because a global is
+    // always <value>. The one global that reaches this parser is
+    // effectsMapVisible, which the published contract keeps under the channel
+    // prefix although the property lives in Config; getEffectParamKind answers
+    // Kind::Global for it and the channel arm below is skipped.
+    if (! isEffectAddress (address))
+        return result;
+
+    //--------------------------------------------------------------------------
+    // VERBS, before anything else. They are actions with no identifier and no
+    // value, so letting them fall through to the parameter lookup would report
+    // them as an unknown parameter - which tells an operator nothing about why
+    // nothing happened.
+    //--------------------------------------------------------------------------
+    {
+        const juce::String suffix = address.fromFirstOccurrenceOf (OSCPaths::EFFECT_PREFIX, false, true);
+
+        if (suffix == "snapshot/store" || suffix == "snapshot/load"
+            || suffix == "clear" || suffix == "clearAll"
+            || suffix == "selected" || suffix == "editOnMap")
+        {
+            result.kind = Kind::Verb;
+            result.verb = suffix;
+            result.invalidReason = juce::String (OSCPaths::EFFECT_PREFIX) + suffix
+                                 + " is a published address with no receiver yet: the effects"
+                                   " snapshot store, the emergency clear and the tab-level toggles"
+                                   " land with the Effects tab. The message was understood and"
+                                   " nothing was changed.";
+            return result;
+        }
+    }
+
+    //--------------------------------------------------------------------------
+    // IDENTIFY, THEN CLASSIFY, THEN READ ARGUMENTS - in that order and never
+    // any other. argBase is the index of the first argument the SHAPE owns:
+    // the OSCQuery short form spends the channel on the address, the standard
+    // form spends message[0] on it, and a global spends neither.
+    //--------------------------------------------------------------------------
+    int argBase = 0;
+    bool channelFromAddress = false;
+
+    {
+        const juce::String suffix = address.fromFirstOccurrenceOf (OSCPaths::EFFECT_PREFIX, false, true);
+        const int slashIdx = suffix.indexOf ("/");
+
+        if (slashIdx > 0)
+        {
+            const juce::String firstSeg  = suffix.substring (0, slashIdx);
+            const juce::String paramName = suffix.substring (slashIdx + 1);
+
+            if (firstSeg.containsOnly ("0123456789") && paramName.isNotEmpty())
+            {
+                const auto& addrMap = getEffectAddressMap();
+                if (auto it = addrMap.find (paramName); it != addrMap.end())
+                {
+                    result.paramId = it->second;
+                    result.channelId = firstSeg.getIntValue();
+                    channelFromAddress = true;
+                }
+            }
+        }
+
+        if (! result.paramId.isValid())
+            result.paramId = getEffectParamId (address);
+    }
+
+    if (! result.paramId.isValid())
+    {
+        // AN UNKNOWN NAME IS STILL AN ANSWER. isEffectAddress is a bare
+        // startsWith, so a misspelling under this prefix is captured here and
+        // can never reach an unknown-address fallthrough anywhere else: if this
+        // return stays silent, `/wfs/effect/attenuatino 1 -9.5` is the same
+        // experience as a cable that came out. Kind stays Unknown; only the
+        // reason is filled, so the dispatch reports it and changes nothing.
+        result.invalidReason = address + " is not an effect parameter. The"
+                                         " effects family publishes its names under "
+                             + juce::String (OSCPaths::EFFECT_PREFIX)
+                             + " - check the spelling. Nothing was changed.";
+        return result;
+    }
+
+    result.kind = getEffectParamKind (result.paramId);
+
+    //--------------------------------------------------------------------------
+    // The channel, for every shape that has one.
+    //--------------------------------------------------------------------------
+    if (result.kind == Kind::Global)
+    {
+        if (channelFromAddress)
+        {
+            result.invalidReason = result.paramId.toString()
+                                 + " is a global: it takes <value> and no effect id";
+            return result;
+        }
+    }
+    else
+    {
+        if (! channelFromAddress)
+        {
+            if (message.size() < 1)
+            {
+                // The standard form spends message[0] on the effect id, so a
+                // message with no arguments at all names a channel it did not
+                // send. Said out loud for the same reason as above.
+                result.invalidReason = result.paramId.toString()
+                                     + " takes <ID> and then its arguments, and this message"
+                                       " carried none. Nothing was changed.";
+                return result;
+            }
+            result.channelId = extractIndexLenient (message[0]);
+            argBase = 1;
+        }
+
+        if (result.channelId < 1 || result.channelId > WFSParameterDefaults::maxEffectChannels)
+        {
+            result.invalidReason = indexOutOfRange ("effect id", result.channelId,
+                                                    1, WFSParameterDefaults::maxEffectChannels);
+            return result;
+        }
+    }
+
+    //--------------------------------------------------------------------------
+    // THE SUB-INDICES. Read here, before the value, because the value POSITION
+    // depends on how many of them this shape has - which is exactly the thing
+    // an argument-first parser cannot know.
+    //--------------------------------------------------------------------------
+    int valueArg = argBase;
+
+    switch (result.kind)
+    {
+        case Kind::Instanced:
+        {
+            const int maxInstance = effectInstanceCountFor (result.paramId);
+            if (message.size() < argBase + 2)
+            {
+                result.invalidReason = result.paramId.toString()
+                                     + " takes <ID> <instance 1.." + juce::String (maxInstance)
+                                     + "> <value>";
+                return result;
+            }
+            result.instanceIndex = extractIndexLenient (message[argBase]);
+            if (result.instanceIndex < 1 || result.instanceIndex > maxInstance)
+            {
+                result.invalidReason = indexOutOfRange ("instance", result.instanceIndex, 1, maxInstance);
+                return result;
+            }
+            valueArg = argBase + 1;
+            break;
+        }
+
+        case Kind::Band:
+        {
+            const int maxInstance = WFSParameterDefaults::numEffectEqInstances;
+            const int maxBand     = WFSParameterDefaults::numEffectEQBands;
+            if (message.size() < argBase + 3)
+            {
+                result.invalidReason = result.paramId.toString()
+                                     + " takes <ID> <instance 1.." + juce::String (maxInstance)
+                                     + "> <band 1.." + juce::String (maxBand) + "> <value>";
+                return result;
+            }
+            result.instanceIndex = extractIndexLenient (message[argBase]);
+            result.bandIndex     = extractIndexLenient (message[argBase + 1]);
+            if (result.instanceIndex < 1 || result.instanceIndex > maxInstance)
+            {
+                result.invalidReason = indexOutOfRange ("EQ instance", result.instanceIndex, 1, maxInstance);
+                return result;
+            }
+            if (result.bandIndex < 1 || result.bandIndex > maxBand)
+            {
+                result.invalidReason = indexOutOfRange ("EQ band", result.bandIndex, 1, maxBand);
+                return result;
+            }
+            valueArg = argBase + 2;
+            break;
+        }
+
+        case Kind::Tap:
+        {
+            const int maxTap = WFSParameterDefaults::numEffectDelayTaps;
+            if (message.size() < argBase + 2)
+            {
+                result.invalidReason = result.paramId.toString()
+                                     + " takes <ID> <tap 1.." + juce::String (maxTap) + "> <value>";
+                return result;
+            }
+            result.tapIndex = extractIndexLenient (message[argBase]);
+            if (result.tapIndex < 1 || result.tapIndex > maxTap)
+            {
+                result.invalidReason = indexOutOfRange ("delay tap", result.tapIndex, 1, maxTap);
+                return result;
+            }
+            valueArg = argBase + 1;
+            break;
+        }
+
+        case Kind::InputCell:
+        case Kind::FxCell:
+        {
+            // The two cell keyings differ, and the difference is the whole
+            // reason they are two kinds: an effectSend* column is an input
+            // PERMANENT NUMBER and an effectFxSend* column is a dense effect
+            // id. The rows are stamped at those fixed widths and never resized,
+            // so the bound is the row width, not the live channel count.
+            const bool isInputKeyed = (result.kind == Kind::InputCell);
+            const int  maxCell = isInputKeyed ? WFSParameterDefaults::maxInputChannels
+                                              : WFSParameterDefaults::maxEffectChannels;
+            const juce::String what = isInputKeyed ? "input number" : "source effect id";
+
+            if (message.size() < argBase + 2)
+            {
+                result.invalidReason = result.paramId.toString()
+                                     + " takes <ID> <" + what + " 1.." + juce::String (maxCell)
+                                     + "> <value>";
+                return result;
+            }
+            result.cellIndex = extractIndexLenient (message[argBase]);
+            if (result.cellIndex < 1 || result.cellIndex > maxCell)
+            {
+                result.invalidReason = indexOutOfRange (what, result.cellIndex, 1, maxCell);
+                return result;
+            }
+            valueArg = argBase + 1;
+            break;
+        }
+
+        case Kind::Row:
+        {
+            // A PACKED ROW IS ONE STRING, AND A BARE NUMBER IS NEVER ONE.
+            // Modelled on parseMuteArguments: accept exactly one non-numeric
+            // string and refuse everything else with a reason, rather than
+            // handing a scalar to the write interceptor to reject silently.
+            // A row set to "0" is a routing wiped to one column.
+            const int count = message.size() - argBase;
+            if (count == 1 && message[argBase].isString() && ! argIsNumber (message, argBase))
+            {
+                result.value = message[argBase].getString();
+                result.valid = true;
+                return result;
+            }
+
+            result.invalidReason = result.paramId.toString()
+                                 + " is a packed row: it takes <ID> \"<comma-separated row>\","
+                                   " one token per column. The stored row was kept.";
+            return result;
+        }
+
+        case Kind::Scalar:
+        case Kind::Global:
+            valueArg = argBase;
+            break;
+
+        case Kind::Verb:
+        case Kind::Unknown:
+        default:
+            return result;
+    }
+
+    if (message.size() < valueArg + 1)
+    {
+        // The shape was understood and the value was not sent. Every other arm
+        // of the switch above already says what it wanted; the Scalar and Global
+        // arms reach here instead, so this is where they say it.
+        result.invalidReason = result.paramId.toString()
+                             + (result.kind == Kind::Global
+                                    ? " is a global: it takes <value>, and none was sent."
+                                    : " takes <ID> <value> [fade], and no value was sent.")
+                             + " Nothing was changed.";
+        return result;
+    }
+
+    //--------------------------------------------------------------------------
+    // THE VALUE, at the position the shape put it.
+    //
+    // A NON-NUMERIC STRING AT A NUMERIC PARAMETER IS REFUSED, not stored. The
+    // range gate waves strings through by design (a row, a name and a chain
+    // permutation are all strings), so if the parser accepted "loud" as a value
+    // the write interceptor would store it and every later reader would get 0
+    // out of it - a -92 dB send reading as unity. Only the three text-taking
+    // parameters may carry free text; everything else coerces a numeric string
+    // the way QLab needs and rejects anything else with a reason.
+    //--------------------------------------------------------------------------
+    if (effectParamTakesText (result.paramId))
+    {
+        result.value = message[valueArg].isString() ? extractString (message[valueArg])
+                                                    : juce::var (extractFloatLenient (message[valueArg]));
+    }
+    else if (message[valueArg].isString() && ! isNumericString (message[valueArg].getString()))
+    {
+        result.invalidReason = result.paramId.toString() + " takes a number, not \""
+                             + message[valueArg].getString() + "\"";
+        return result;
+    }
+    else
+    {
+        result.value = extractFloatLenient (message[valueArg]);
+    }
+
+    //--------------------------------------------------------------------------
+    // The optional ramp time, PARSED AND NOT APPLIED. See
+    // isEffectParamRampCapable: the ramper is still input-only, so the value is
+    // applied instantly and rampArgIgnored records that the fade did not run.
+    // The three fields mirror ParsedInputMessage exactly, so generalising the
+    // ramper is a wiring job here and not a redesign.
+    //--------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
+    // AN ARGUMENT THE SHAPE CANNOT SPEND IS A WRONG SHAPE, NOT A SPARE.
+    //
+    // Six per-channel shapes share this one prefix, so a client that picks the
+    // wrong one sends a well-formed message that means something else: the
+    // parser reads `/wfs/effect/distanceRatio 7 2 5.0` as "effect 7, value 2,
+    // fade 5" and stores 2, when the sender plainly meant the 5.0. Nothing in
+    // the argument list can tell those apart - but the ARITY can, and counting
+    // is free. After the value the shape owns at most one more argument, the
+    // optional transition time, and only for the 98 parameters
+    // isEffectParamRampCapable lists. Anything beyond that is refused with the
+    // shape spelled out, instead of being stored as a value nobody sent.
+    //--------------------------------------------------------------------------
+    if (message.size() > valueArg + 2)
+    {
+        result.invalidReason = result.paramId.toString() + " was sent "
+                             + juce::String (message.size()) + " arguments and this shape takes "
+                             + juce::String (valueArg + (isEffectParamRampCapable (result.paramId) ? 2 : 1))
+                             + " at most. The stored value was kept - check that the address"
+                               " matches the shape you are sending.";
+        return result;
+    }
+
+    if (message.size() == valueArg + 2)
+    {
+        if (! isEffectParamRampCapable (result.paramId))
+        {
+            // The trailing number is NOT a fade here, so the only readings left
+            // are "one argument too many" or "the wrong address" - and under the
+            // second one the value already read is an index, not a value. Both
+            // are refusals; swallowing it reported a value the sender never sent.
+            result.invalidReason = result.paramId.toString()
+                                 + " takes no transition time, so the trailing "
+                                 + juce::String (extractFloatLenient (message[valueArg + 1]), 3)
+                                 + " cannot be one. The stored value was kept - if you meant it"
+                                   " as the value, check the shape this address takes.";
+            return result;
+        }
+
+        if (! argIsNumber (message, valueArg + 1))
+        {
+            result.invalidReason = result.paramId.toString()
+                                 + ": the transition time must be a number, not \""
+                                 + extractString (message[valueArg + 1])
+                                 + "\". The stored value was kept.";
+            return result;
+        }
+
+        result.rampTimeSecRequested = extractFloatLenient (message[valueArg + 1]);
+        result.rampTimeSec = clampRampSeconds (result.rampTimeSecRequested);
+        result.rampArgIgnored = true;
+    }
+
+    if (! valueWithinBounds (result.paramId, result.value, result.invalidReason))
+        return result;
+
+    // AN INT-TYPED PARAMETER IS STORED AS AN INT. extractFloatLenient answers a
+    // float for everything, so a bypass switch arriving as int32 0 would be
+    // written as "0.0" - a cosmetic difference from what the GUI writes, and a
+    // real one to anything reading the tree with an isInt()-guarded accessor
+    // after a load has turned every property into a string. The bounds table
+    // already knows which parameters are integers, so it is the one that says
+    // so here; a parameter with no entry keeps whatever type it arrived as.
+    // Rounded AFTER the range gate, so a value outside the range is rejected
+    // rather than rounded into it.
+    if (result.value.isDouble())
+        if (auto b = WFSNetwork::getBounds (result.paramId); b.has_value() && b->isInt)
+            result.value = juce::roundToInt (static_cast<double> (result.value));
+
+    result.valid = true;
+    return result;
+}
+
+namespace
+{
+    // THE ONLY TWO CONFIG PARAMETERS THAT CARRY FREE TEXT. Of the 48 addresses
+    // in getConfigAddressMap, 46 are numbers - 45 of them carry a bounds entry
+    // and the 46th is effectChannels - and exactly these two name things:
+    // effectsGlobalLinkNames is a name list and effectsGlobalFeedGpuDevice is a
+    // device string. Note that stageShape and reverbAlgoType are NOT here: they
+    // read as words in the GUI but travel as integer enums (BIND_I), so a word
+    // sent at either of them is a typo and not a value.
+    //
+    // The effects counterpart is effectParamTakesText, which answers the same
+    // question for the /wfs/effect/ family and names effectName as its third.
+    bool configParamTakesText (const juce::Identifier& paramId)
+    {
+        return paramId == WFSParameterIDs::effectsGlobalLinkNames
+            || paramId == WFSParameterIDs::effectsGlobalFeedGpuDevice;
+    }
+}
+
 OSCMessageRouter::ParsedConfigMessage OSCMessageRouter::parseConfigMessage(const juce::OSCMessage& message)
 {
     ParsedConfigMessage result;
@@ -1138,18 +2079,82 @@ OSCMessageRouter::ParsedConfigMessage OSCMessageRouter::parseConfigMessage(const
     if (message.size() < 1)
         return result;
 
-    // Determine value type based on argument
+    //--------------------------------------------------------------------------
+    // A NON-NUMERIC STRING AT A NUMERIC CONFIG PARAMETER IS REFUSED, not stored.
+    //
+    // This is the same rule parseEffectMessage applies to the 164 per-channel
+    // parameters, and it has to be applied HERE as well because the ten
+    // addresses this commit added to getConfigAddressMap do not go through that
+    // parser. valueWithinBounds waves every string through by design (a name and
+    // a device string are legitimately strings), so without this gate a typo
+    // reaches the tree verbatim: `/wfs/config/effects/workerThreads "many"` used
+    // to persist the word, and `/wfs/config/effectChannels "seven"` used to read
+    // back as static_cast<int> of a String == 0 and DELETE EVERY EFFECT CHANNEL,
+    // silently and with no undo. Only the two config parameters that name things
+    // may carry free text; everything else coerces a numeric string the way QLab
+    // needs - QLab types its unquoted arguments as strings, which is why "3" must
+    // still work - and rejects anything else with a reason.
+    //--------------------------------------------------------------------------
     if (message[0].isInt32())
         result.value = extractInt(message[0]);
     else if (message[0].isFloat32())
         result.value = extractFloat(message[0]);
     else if (message[0].isString())
-        result.value = extractString(message[0]);
+    {
+        const juce::String s = message[0].getString();
+
+        if (configParamTakesText (result.paramId))
+        {
+            result.value = s;
+        }
+        else if (isNumericString (s))
+        {
+            result.value = s.trim().getFloatValue();
+        }
+        else
+        {
+            result.invalidReason = result.paramId.toString() + " takes a number, not \""
+                                 + s + "\"";
+            return result;
+        }
+    }
     else
         return result;
 
     if (! valueWithinBounds (result.paramId, result.value, result.invalidReason))
         return result;
+
+    //--------------------------------------------------------------------------
+    // THE CHANNEL COUNT IS A WHOLE NUMBER, AND IT IS THE ONE PARAMETER HERE WITH
+    // NO BOUNDS ENTRY. Its absence from the table is deliberate (a structural
+    // edit is not a clamped value), but that also means valueWithinBounds waves
+    // it through, so the range and the integer-ness are checked here instead.
+    // setNumEffectChannels would jlimit 0..32 silently, which turns "set 40" into
+    // "delete eight channels" and "set 2.5" into "delete one"; both are refused.
+    //--------------------------------------------------------------------------
+    if (result.paramId == WFSParameterIDs::effectChannels)
+    {
+        const double d = static_cast<double> (result.value);
+        if (d != std::floor (d) || d < 0.0
+            || d > static_cast<double> (WFSParameterDefaults::maxEffectChannels))
+        {
+            result.invalidReason =
+                "effectChannels takes a whole number from 0 to "
+                + juce::String (WFSParameterDefaults::maxEffectChannels)
+                + ", not " + juce::String (d, 3)
+                + ". The effect count was not changed.";
+            return result;
+        }
+        result.value = static_cast<int> (d);
+    }
+
+    // AN INT-TYPED PARAMETER IS STORED AS AN INT, for the same reason
+    // parseEffectMessage rounds: a numeric string coerces to a float here, and
+    // "3.0" written at an integer property reads back as a default through every
+    // isInt()-guarded accessor once a load has turned the property into a string.
+    if (result.value.isDouble())
+        if (auto b = WFSNetwork::getBounds (result.paramId); b.has_value() && b->isInt)
+            result.value = juce::roundToInt (static_cast<double> (result.value));
 
     result.valid = true;
     return result;

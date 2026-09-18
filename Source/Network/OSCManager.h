@@ -577,6 +577,15 @@ public:
     /** Callback when a snapshot store is requested via OSC: /wfs/input/snapshot/store <name> */
     std::function<void(const juce::String& snapshotName)> onSnapshotStoreRequested;
 
+    /** Fired after an ACCEPTED channel-count write from OSC (today only
+        /wfs/config/effectChannels, the one count any protocol can address).
+        The host reconfigures exactly as it does for the System Config editor
+        and for the MCP lifecycle tools, which own the same callback shape -
+        without it the count moves and the render-source budget, the routing
+        matrices and the patch rows stay as they were until something else
+        happens to reconfigure. Runs on the message thread. */
+    std::function<void()> onChannelTopologyChanged;
+
     //==========================================================================
     // QLab Integration
     //==========================================================================
@@ -873,8 +882,52 @@ private:
     std::unique_ptr<OSCQueryServer> oscQueryServer;
 
     // Coalescing: pending incoming standard OSC updates (latest value per param+channel wins)
-    struct PendingParamUpdate { juce::Identifier paramId; int channelId; juce::var value; juce::String senderIP; };
-    std::map<juce::String, PendingParamUpdate> pendingParamUpdates;  // key = "paramId:channelId", latest value + sender win
+    /** One coalesced parameter write waiting for the message thread.
+
+        `effectKind` and the two sub-indices are what an EFFECTS write needs and
+        no other family has: an effect parameter can name an EQ instance, a
+        band, a delay tap or one cell of a send row, and the generic parameter
+        path refuses every one of those by design (it would resolve them to
+        instance 1 while reporting success). The drain reads the kind and calls
+        the typed accessor that takes the extra index.
+
+        Kind::Unknown means "not an effects write" and leaves every other family
+        exactly as it was. */
+    struct PendingParamUpdate
+    {
+        juce::Identifier paramId;
+        int channelId;
+        juce::var value;
+        juce::String senderIP;
+        OSCMessageRouter::ParsedEffectMessage::Kind effectKind
+            = OSCMessageRouter::ParsedEffectMessage::Kind::Unknown;
+        int subA = 0;   // EQ/Dyn instance, delay tap, or send column (1-based, as sent)
+        int subB = 0;   // EQ band (1-based, as sent)
+        // The address exactly as it arrived. Kept because a refusal raised
+        // during the drain has to name what the sender typed: rebuilding a path
+        // from the paramId prints "/wfs/effect/effectDelayTapTime", which is not
+        // an address anybody can send.
+        juce::String address;
+    };
+
+    /** The coalescing key. paramId + channel for every family that has only
+        those two, plus the sub-indices when the write carries any.
+
+        THE SUB-INDEX IS LOAD-BEARING. Without it, 64 cell writes to one effect
+        share one key and 63 of them are discarded on the message thread - after
+        the ingest queue's bypass list has gone to the trouble of delivering all
+        64. The suffix is appended only when a sub-index is present, so the key
+        of every pre-existing family is byte-identical to what it was. */
+    static juce::String coalesceKey (const juce::Identifier& paramId, int channelIndex,
+                                     int subA = 0, int subB = 0)
+    {
+        juce::String key = paramId.toString() + ":" + juce::String (channelIndex);
+        if (subA != 0 || subB != 0)
+            key += ":" + juce::String (subA) + ":" + juce::String (subB);
+        return key;
+    }
+
+    std::map<juce::String, PendingParamUpdate> pendingParamUpdates;  // key = coalesceKey(), latest value + sender win
     juce::CriticalSection pendingParamLock;
     std::atomic<bool> paramDrainScheduled { false };
 
@@ -882,6 +935,41 @@ private:
     // argument ("transition time in seconds"). Stepped at 50 Hz by MainComponent.
     OSCParameterRamper parameterRamper { state };
     void drainPendingParamUpdates();
+
+    /** Apply one drained EFFECTS write through the typed accessor its kind
+        names. Split out of the drain because the six per-channel shapes each
+        resolve a different node, and because the generic parameter path refuses
+        four of them on purpose. */
+    void applyEffectUpdate (const PendingParamUpdate& upd);
+
+    /** Report a refused inbound message to the SESSION log as well as the
+        in-app Network table.
+
+        OSCLogger starts disabled and the only thing that enables it is a human
+        ticking the switch in the Network Log window, so logRejected on its own
+        means "refused in a place nobody is looking" - the effects family's
+        promise that a bad message is refused with a reason and never silently
+        dropped is not kept by logRejected alone. Same conclusion, and the same
+        remedy, as the ingest-queue drop counter already applies.
+
+        Rate-limited because this is driven from the wire: a client stuck in a
+        retry loop must not be able to fill the session log. The limit is a token
+        bucket rather than a fixed interval, so an operator making a handful of
+        mistakes while building a show sees every one of them and only a
+        sustained flood is capped. Whatever it drops is counted and carried into
+        the next line that gets through, so the log never claims fewer refusals
+        than there were. */
+    void logRefusalToSession (const juce::String& address, const juce::String& reason);
+
+    // Token bucket for the above: 20 lines of burst, refilled at 5 a second.
+    // Sized for the difference between an operator and a loop - a person
+    // building a show makes mistakes in ones and twos and must see every one of
+    // them, while a client stuck retrying cannot use more than 5 lines a second
+    // of the session log no matter how fast it sends.
+    juce::CriticalSection refusalLogLock;
+    double refusalLogTokens = 20.0;
+    juce::uint32 refusalLogLastRefillMs = 0;
+    int suppressedRefusalCount = 0;
 
 
     // Tracking position filter (shared by all tracking receivers)

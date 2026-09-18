@@ -1072,7 +1072,7 @@ juce::DynamicObject* OSCQueryServer::buildOutputChannelJson(int channelIndex)
 
 juce::DynamicObject* OSCQueryServer::buildReverbChannelJson(int channelIndex)
 {
-    juce::String basePath = "/wfs/reverb/" + juce::String(channelIndex + 1);
+    juce::String basePath = juce::String (OSCPaths::REVERB_PREFIX) + juce::String(channelIndex + 1);
     auto* channel = makeContainerNode(basePath, "Reverb " + juce::String(channelIndex + 1));
     auto* contents = channel->getProperties()["CONTENTS"].getDynamicObject();
 

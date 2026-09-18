@@ -407,6 +407,230 @@ namespace
             BIND_F (reverbPostExpAttack);
             BIND_F (reverbPostExpRelease);
 
+
+            //------------------------------------------------------------------
+            // Effects (Documentation/WFS-UI_effects.csv)
+            //------------------------------------------------------------------
+            // The 164 numeric parameters of the effects family, in CSV order.
+            //
+            // THE FOUR CELL PSEUDO-IDENTIFIERS ARE HERE ON PURPOSE.
+            // effectSendLevel / effectSendOn / effectFxSendLevel /
+            // effectFxSendOn name no property on any node: they exist so ONE
+            // CELL of a packed send row has something to be validated against,
+            // which is what lets the OSC parser reject a cell before it reaches
+            // a read-modify-write of the whole row.
+            //
+            // THE SIX ROW IDENTIFIERS ARE DELIBERATELY ABSENT.
+            // effectMutes, effectChainOrder and the four send rows are STRINGS.
+            // An entry here would hand them to the numeric clamp in the
+            // ValueTree write interceptor and to getOSCTypeTag, and a row that
+            // survives a clamp is a row rewritten as a scalar - the exact defect
+            // reverbMutes still carries. Their shape is checked by
+            // isPackedRowWrite, not by a min and a max.
+            //
+            // effectChannels is absent for the same reason no other channel
+            // count is here: it is a structural edit, refused outright while
+            // processing runs and clamped by setNumEffectChannels otherwise.
+            // Header
+            BIND_BOOL (effectsMapVisible);
+
+            // Channel
+            BIND_F (effectAttenuation);
+            BIND_F (effectDelayLatency);
+            BIND_BOOL (effectMinimalLatency);
+            BIND_I (effectLinkGroup);
+            BIND_BOOL (effectMute);
+            BIND_BOOL (effectSolo);
+
+            // Position
+            BIND_I (effectCoordinateMode);
+            BIND_F_AS (effectPositionX, effectPosition);
+            BIND_F_AS (effectPositionY, effectPosition);
+            BIND_F_AS (effectPositionZ, effectPosition);
+            BIND_F_AS (effectReturnOffsetX, effectReturnOffset);
+            BIND_F_AS (effectReturnOffsetY, effectReturnOffset);
+            BIND_F_AS (effectReturnOffsetZ, effectReturnOffset);
+
+            // Feed
+            BIND_I (effectOrientation);
+            BIND_I (effectAngleOn);
+            BIND_I (effectAngleOff);
+            BIND_I (effectPitch);
+            BIND_F (effectHFdamping);
+            BIND_BOOL (effectFeedMiniLatency);
+            BIND_I (effectDistanceAttenPercent);
+
+            // Return
+            BIND_BOOL (effectAttenuationLaw);
+            BIND_F (effectDistanceAttenuation);
+            BIND_F (effectDistanceRatio);
+            BIND_I (effectCommonAtten);
+            BIND_F (effectHFshelf);
+            BIND_I (effectMuteMacro);
+            BIND_BOOL (effectMuteReverbSends);
+
+            // AutomOtion
+            BIND_F_AS (effectOtomoX, effectOtomo);
+            BIND_F_AS (effectOtomoY, effectOtomo);
+            BIND_F_AS (effectOtomoZ, effectOtomo);
+            BIND_I (effectOtomoCoordinateMode);
+            BIND_F (effectOtomoR);
+            BIND_F (effectOtomoTheta);
+            BIND_F (effectOtomoRsph);
+            BIND_F (effectOtomoPhi);
+            BIND_BOOL (effectOtomoAbsoluteRelative);
+            BIND_I (effectOtomoSpeedProfile);
+            BIND_F (effectOtomoDuration);
+            BIND_I (effectOtomoCurve);
+            BIND_BOOL (effectOtomoTrigger);
+            BIND_F (effectOtomoThreshold);
+            BIND_F (effectOtomoReset);
+            BIND_BOOL (effectOtomoPauseResume);
+
+            // Chain
+            BIND_BOOL (effectChainBypass);
+
+            // FxDist
+            BIND_BOOL (effectDistBypass);
+            BIND_F (effectDistDrive);
+            BIND_F (effectDistShape);
+            BIND_F (effectDistBias);
+            BIND_F (effectDistPreLoShelfFreq);
+            BIND_F (effectDistPreLoShelfGain);
+            BIND_F (effectDistPreHiShelfFreq);
+            BIND_F (effectDistPreHiShelfGain);
+            BIND_F (effectDistPostLoShelfFreq);
+            BIND_F (effectDistPostLoShelfGain);
+            BIND_F (effectDistPostHiShelfFreq);
+            BIND_F (effectDistPostHiShelfGain);
+            BIND_F (effectDistOutput);
+            BIND_F (effectDistMix);
+            BIND_I (effectDistOversample);
+
+            // FxEQ
+            BIND_BOOL (effectEQBypass);
+            BIND_I (effectEQshape);
+            BIND_I (effectEQfreq);
+            BIND_F (effectEQgain);
+            BIND_F (effectEQq);
+            BIND_F (effectEQslope);
+
+            // FxDyn
+            BIND_BOOL (effectDynBypass);
+            BIND_BOOL (effectDynDetector);
+            BIND_F (effectDynLookahead);
+            BIND_F (effectDynMakeup);
+            BIND_BOOL (effectDynAutoMakeup);
+            BIND_BOOL (effectDynCompOn);
+            BIND_F (effectDynCompThreshold);
+            BIND_F (effectDynCompRatio);
+            BIND_F (effectDynCompKnee);
+            BIND_F (effectDynCompAttack);
+            BIND_F (effectDynCompRelease);
+            BIND_F (effectDynCompDetectorDelay);
+            BIND_F (effectDynCompScLoCut);
+            BIND_F (effectDynCompScHiCut);
+            BIND_BOOL (effectDynExpOn);
+            BIND_F (effectDynExpThreshold);
+            BIND_F (effectDynExpRatio);
+            BIND_F (effectDynExpAttack);
+            BIND_F (effectDynExpRelease);
+            BIND_F (effectDynExpRange);
+            BIND_F (effectDynExpHold);
+            BIND_F (effectDynExpScLoCut);
+            BIND_F (effectDynExpScHiCut);
+
+            // FxMod
+            BIND_BOOL (effectModBypass);
+            BIND_BOOL (effectModMode);
+            BIND_F (effectModRate);
+            BIND_F (effectModDepth);
+            BIND_F (effectModDelay);
+            BIND_F (effectModFeedback);
+            BIND_I (effectModVoices);
+            BIND_I (effectModShape);
+            BIND_F (effectModPhase);
+            BIND_F (effectModLoCut);
+            BIND_BOOL (effectModThroughZero);
+            BIND_F (effectModMix);
+
+            // FxPhaser
+            BIND_BOOL (effectPhaserBypass);
+            BIND_I (effectPhaserStages);
+            BIND_F (effectPhaserCentre);
+            BIND_F (effectPhaserSpread);
+            BIND_F (effectPhaserRate);
+            BIND_F (effectPhaserDepth);
+            BIND_I (effectPhaserShape);
+            BIND_F (effectPhaserFeedback);
+            BIND_F (effectPhaserMix);
+
+            // FxTrem
+            BIND_BOOL (effectTremBypass);
+            BIND_F (effectTremRate);
+            BIND_F (effectTremDepth);
+            BIND_F (effectTremShape);
+            BIND_F (effectTremMix);
+
+            // FxReverb
+            BIND_BOOL (effectReverbBypass);
+            BIND_I (effectReverbModel);
+            BIND_I (effectReverbType);
+            BIND_F (effectReverbPredelay);
+            BIND_F (effectReverbRT60);
+            BIND_F (effectReverbRT60LowMult);
+            BIND_F (effectReverbRT60HighMult);
+            BIND_F (effectReverbCrossoverLow);
+            BIND_F (effectReverbCrossoverHigh);
+            BIND_F (effectReverbDiffusion);
+            BIND_F (effectReverbSize);
+            BIND_F (effectReverbTone);
+            BIND_F (effectReverbMix);
+
+            // FxDelay
+            BIND_BOOL (effectDelayBypass);
+            BIND_F (effectDelayTime);
+            BIND_I (effectDelayTaps);
+            BIND_BOOL (effectDelayTapMode);
+            BIND_I (effectDelayPattern);
+            BIND_F (effectDelayFeedback);
+            BIND_I (effectDelayFeedbackTap);
+            BIND_F (effectDelayInLoCut);
+            BIND_F (effectDelayFbLoShelfFreq);
+            BIND_F (effectDelayFbLoShelfGain);
+            BIND_F (effectDelayFbHiShelfFreq);
+            BIND_F (effectDelayFbHiShelfGain);
+            BIND_F (effectDelayModRate);
+            BIND_F (effectDelayModDepth);
+            BIND_F (effectDelayDiffusion);
+            BIND_F (effectDelayGlide);
+            BIND_F (effectDelayMix);
+            BIND_F (effectDelayTapTime);
+            BIND_F (effectDelayTapLevel);
+
+            // FxCrush
+            BIND_BOOL (effectCrushBypass);
+            BIND_F (effectCrushBits);
+            BIND_F (effectCrushRate);
+            BIND_BOOL (effectCrushFilter);
+            BIND_F (effectCrushDither);
+            BIND_F (effectCrushMix);
+
+            // Sends
+            BIND_F (effectSendLevel);
+            BIND_BOOL (effectSendOn);
+            BIND_F (effectFxSendLevel);
+            BIND_BOOL (effectFxSendOn);
+
+            // EffectsGlobal
+            BIND_I (effectsGlobalLinkMode);
+            BIND_BOOL (effectsGlobalFxFeedGeometric);
+            BIND_I (effectsGlobalWorkerThreads);
+            BIND_I (effectsGlobalReturnCushion);
+            BIND_BOOL (effectsGlobalLoopGuard);
+            BIND_F (effectsGlobalLoopGuardCeiling);
+            BIND_I (effectsGlobalMaxDelaySeconds);
+
             return m;
         }();
         return map;

@@ -2334,6 +2334,15 @@ MainComponent::MainComponent()
     // operator re-picks the project folder or stores a snapshot.
     refreshMidiSnapshotBindings();
 
+    // An accepted channel-count write over OSC (/wfs/config/effectChannels, the
+    // only one there is) reconfigures through the SAME funnel as the System
+    // Config editor and the MCP lifecycle tools. OSCManager refuses the write
+    // outright while processing runs, so this only ever fires from a stopped
+    // engine.
+    oscManager->onChannelTopologyChanged = [this] {
+        handleChannelCountChange();
+    };
+
     // Snapshot OSC command callbacks
     // Both external trigger paths and the Inputs long-press funnel through the
     // one seam, so the recall logic cannot drift into three copies again.

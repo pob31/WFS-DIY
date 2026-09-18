@@ -56,6 +56,65 @@ public:
         juce::String invalidReason;
     };
 
+    /** One inbound /wfs/effect/ message.
+
+        The nine effects GLOBALS are /wfs/config/effects/* and are parsed by
+        parseConfigMessage like every other global; effectsMapVisible is the one
+        the published contract keeps under this prefix, and it arrives here as
+        Kind::Global.
+
+        CLASSIFICATION IS BY IDENTIFIER, BEFORE ANY ARGUMENT IS READ. The
+        effects family publishes EIGHT argument shapes over one prefix
+        (Documentation/WFS-UI_effects.csv, column "OSC path"), and nothing in
+        the argument list says which one arrived: `<ID> <instance> <value>` and
+        `<ID> <value> <fadeSeconds>` are both "int, number, number" on the
+        wire. The only thing that can tell them apart is the parameter NAME, so
+        the parser resolves the address to an Identifier, looks its Kind up in
+        ONE table (getEffectParamKind) and only then reads arguments.
+
+        That is not a style preference. parseReverbMessage classified its EQ
+        parameters with a startsWith on the address instead, the reverb keys
+        turned out to be spelled differently from the test, and for months every
+        standard-form pre-EQ write stored the BAND INDEX as the value - fixed on
+        this branch in 76d5afa, and this struct exists so 174 effect parameters
+        do not inherit the shape of that mistake.
+
+        SUB-INDICES ARE 1-BASED ON THE WIRE, like <ID> itself and like the band
+        argument of the reverb and MCP EQ paths. The accessors they feed
+        (getEffectEQBand, getEffectDynSection, getEffectDelayTap) are 0-based,
+        so the dispatch subtracts one in exactly one place per kind. */
+    struct ParsedEffectMessage
+    {
+        enum class Kind
+        {
+            Unknown,      // not an effect address, or a name not in the map
+            Scalar,       // /wfs/effect/<param> <ID> <value>            (122 rows)
+            Instanced,    // /wfs/effect/<param> <ID> <instance> <value>  (24 rows)
+            Band,         // /wfs/effect/<param> <ID> <inst> <band> <v>    (5 rows)
+            Tap,          // /wfs/effect/<param> <ID> <tap> <value>        (2 rows)
+            InputCell,    // /wfs/effect/<param> <ID> <input number> <v>   (2 rows)
+            FxCell,       // /wfs/effect/<param> <ID> <src effect ID> <v>  (2 rows)
+            Row,          // /wfs/effect/<param> <ID> "<csv>"              (6 rows)
+            Global,       // /wfs/effect/mapVisible <value>, /wfs/config/effects/*
+            Verb          // snapshot/clear/clearAll/selected/editOnMap: not a parameter
+        };
+
+        Kind kind = Kind::Unknown;
+        juce::Identifier paramId;
+        int channelId = 0;       // 1-based effect ID (dense: index = id - 1)
+        int instanceIndex = 0;   // 1-based FxEq1/FxEq2 or FxDyn1/FxDyn2
+        int bandIndex = 0;       // 1-based <Band> under the EQ instance
+        int tapIndex = 0;        // 1-based <Tap> under <FxDelay>
+        int cellIndex = 0;       // InputCell: input PERMANENT number. FxCell: source effect ID. Both 1-based.
+        juce::var value;
+        float rampTimeSec = 0.0f;          // parsed, NOT applied — see rampArgIgnored
+        float rampTimeSecRequested = 0.0f; // as sent, before the [0, 600] s clamp
+        bool rampArgIgnored = false;       // a ramp arg was present and the value was applied instantly
+        bool valid = false;
+        juce::String invalidReason;
+        juce::String verb;       // Kind::Verb only: "snapshot/store", "clear", ...
+    };
+
     struct ParsedRemoteInput
     {
         enum class Type {
@@ -166,6 +225,7 @@ public:
     static ParsedInputMessage parseInputMessage(const juce::OSCMessage& message);
     static ParsedOutputMessage parseOutputMessage(const juce::OSCMessage& message);
     static ParsedReverbMessage parseReverbMessage(const juce::OSCMessage& message);
+    static ParsedEffectMessage parseEffectMessage(const juce::OSCMessage& message);
     static ParsedConfigMessage parseConfigMessage(const juce::OSCMessage& message);
 
     /**
@@ -209,6 +269,7 @@ public:
     static bool isInputAddress(const juce::String& address);
     static bool isOutputAddress(const juce::String& address);
     static bool isReverbAddress(const juce::String& address);
+    static bool isEffectAddress(const juce::String& address);
     static bool isConfigAddress(const juce::String& address);
     static bool isRemoteInputAddress(const juce::String& address);
     static bool isArrayAdjustAddress(const juce::String& address);
@@ -233,7 +294,17 @@ public:
     static juce::Identifier getInputParamId(const juce::String& address);
     static juce::Identifier getOutputParamId(const juce::String& address);
     static juce::Identifier getReverbParamId(const juce::String& address);
+    static juce::Identifier getEffectParamId(const juce::String& address);
     static juce::Identifier getConfigParamId(const juce::String& address);
+
+    /**
+     * THE CLASSIFICATION TABLE. One lookup, keyed by Identifier, that says how
+     * many arguments a message for this parameter carries and what they mean.
+     * Every effect parameter has exactly one entry; an unknown Identifier
+     * answers Kind::Unknown. See ParsedEffectMessage for why this is a table
+     * and not a set of startsWith tests on the address.
+     */
+    static ParsedEffectMessage::Kind getEffectParamKind(const juce::Identifier& paramId);
 
     /**
      * True if the given input parameter accepts an optional 3rd OSC argument
@@ -241,6 +312,22 @@ public:
      * Documentation/WFS-UI_input.csv, column "OSC path optional value".
      */
     static bool isInputParamRampCapable(const juce::Identifier& paramId);
+
+    /**
+     * The 98 effect parameters marked "extra value is transition time in
+     * seconds" in Documentation/WFS-UI_effects.csv, column "OSC path optional
+     * value".
+     *
+     * PARSED BUT NOT YET APPLIED. The ramper (OSCParameterRamper) is still
+     * hard-wired to getInputParameter/setInputParameter at its three call
+     * sites, so an effects ramp cannot run until that generalisation lands.
+     * Until then a ramp argument on one of these is accepted, the value is
+     * applied INSTANTLY and ParsedEffectMessage::rampArgIgnored is set so the
+     * dispatch can say so once in the log - the same three-field contract
+     * ParsedInputMessage already uses for a ramp arg on a non-ramp parameter.
+     * The set is here now so that generalisation only has to connect it.
+     */
+    static bool isEffectParamRampCapable(const juce::Identifier& paramId);
 
     //==========================================================================
     // Value Extraction
@@ -310,6 +397,14 @@ public:
 
     static const std::map<juce::String, juce::Identifier>& getOutputAddressMap();
     static const std::map<juce::String, juce::Identifier>& getReverbAddressMap();
+
+    /** oscParamName -> parameterID for the 164 addressable /wfs/effect/ names.
+        The nine effects GLOBALS are not here: they are /wfs/config/effects/*
+        full paths and live in getConfigAddressMap, like every other global.
+        The one exception is "mapVisible", which the published contract puts
+        under /wfs/effect/ although effectsMapVisible is a Config property. */
+    static const std::map<juce::String, juce::Identifier>& getEffectAddressMap();
+
     static const std::map<juce::String, juce::Identifier>& getConfigAddressMap();
 
 private:

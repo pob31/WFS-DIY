@@ -45,17 +45,29 @@ control-replay drivers pass with every golden unchanged.
 
 ## 2. What is NOT done: the control surface
 
-**Phase 4's control surface has not started.** Measured, not assumed:
+**Phase 4's control surface is half written.** Measured, not assumed (the two UNCOMMITTED lines
+are the working tree, not `HEAD`):
 
 ```
-OSC effect addresses in Source/Network : 0
-effect entries in OSCParameterBounds   : 0
+OSC effect addresses in Source/Network : 164 in getEffectAddressMap
+                                         + 10 in getConfigAddressMap  (C5/C6, UNCOMMITTED)
+effect entries in OSCParameterBounds   : 164 (C5/C6, UNCOMMITTED; effectChannels and the six
+                                         packed ROW identifiers are deliberately absent)
 effect tools in generated_tools.json   : 0
 WFS-UI_effects.csv registered          : 0 of the 2 lists that read it
 ```
 
+**The INBOUND half is written and gated but not yet committed** (C5 + C6: the address map, the
+eight-shape parser, the bounds entries, the dispatch through the typed accessors, the
+routing/suppression entry, the config globals with `UndoDomain::Effects`, the cell ingest keying
+and the ramp argument parsed-but-not-applied). What is still missing from C5's own list: the
+polar aliases and the snapshot/clear verbs, which are **recognised and refused with a reason**
+rather than mis-parsed. Everything OUTBOUND is untouched: nothing echoes an effect change and
+OSCQuery publishes no `/wfs/effect` node, so the replay reads effects out of the saved
+`effects.xml` instead.
+
 An effects channel exists, persists and maintains itself correctly, **and nothing outside the
-application can reach it.**
+application can read it back.**
 
 ### THE HANDOFF WARNING — RESOLVED, AND IT WAS WRONG
 
@@ -66,8 +78,9 @@ written.** `WFSFileManager::applyConfigSection` calls `setNumEffectChannels` fro
 system.xml says `effectChannels="2"` builds two live channels**, with no UI, no OSC and no env
 hook. That is the route Phase 5's audio check used, and it needed nothing from Phase 4.
 
-The rest of §2 stands: an operator still cannot create or reach a channel, because a project file
-is not a control surface. Phase 4's OSC and tool entries are still the work that fixes that.
+The rest of §2 stands: an operator still cannot SEE a channel, because inbound OSC is not a
+control surface on its own - nothing reads back. Phase 4's outbound half (C8) and tool entries
+(C9/C10) are the work that finishes it.
 
 ---
 
@@ -77,10 +90,75 @@ Lettering follows the audit at
 `<scratchpad>/phase4-spec/osc-and-oscquery.json`, whose `commitBreakdown` is the detailed plan.
 C0–C4 and C9's CSV are done.
 
-**C5 + C6 — OSC inbound.** Address map, `isEffectAddress`, `getEffectParamId`,
-`parseEffectMessage`, bounds entries (including the four cell pseudo-identifiers), the dispatch
-branch, `/wfs/effect/` added to the routing/suppression test, snapshot and clear verbs, polar
-aliases.
+**C5 + C6 — OSC inbound. WRITTEN, GATED, UNCOMMITTED.** Address map, `isEffectAddress`,
+`getEffectParamId`, `getEffectParamKind` (the eight-shape classification table, consulted BEFORE
+any argument is read), `parseEffectMessage`, `isEffectParamRampCapable`, bounds entries (including
+the four cell pseudo-identifiers and excluding the six row identifiers), the dispatch branch
+through the typed accessors, `/wfs/effect/` added to the routing/suppression test, the cell
+bypass list and the sub-indexed coalesce key.
+
+> **The channel count is the first one any protocol can address, and it is STOPPED-ONLY.**
+> `/wfs/config/effectChannels` is accepted while processing is stopped and REFUSED with a logged
+> reason while it runs: an accepted count write reaches `handleChannelCountChange`, which stops
+> processing to rebuild the shared rings, so without the guard one mistyped cue address would stop
+> a live show. Same rule and same words as `MCPGeneratedToolLoader`'s channel-count gate. Both
+> halves are gated in `osc_replay.py`, the running half through a second app run started with
+> `WFS_TEST_AUTOSTART_PROCESSING` (a project can never LOAD with DSP flagged running, by design).
+> The guard is read TWICE: once on the ingest thread, and again inside the `callAsync` where the
+> write actually happens, because an operator who pressed Start between the two would otherwise
+> have had a count write land on a running engine — the one thing the rule exists to prevent.
+> Mutation-testing shows the redundancy is real: removing only the first check leaves the replay
+> passing, and only removing both lets the count move under a running engine.
+
+> Snapshot, clear, selected and editOnMap are recognised as VERBS and refused with a reason naming
+> the phase they land in — not silently mis-parsed as unknown parameters. Polar aliases are not
+> written.
+
+> **THE TYPING GATE, AND WHY IT IS NOT ONLY ON `/wfs/effect/`.** "A non-numeric string at a
+> numeric effect parameter is refused" was true of the 164 addresses parsed by
+> `parseEffectMessage` and false of the ten this commit added to `getConfigAddressMap`, because
+> those go through `parseConfigMessage` — which stored any string verbatim, and whose range gate
+> waves strings through by design. `/wfs/config/effectChannels "seven"` therefore read as
+> `static_cast<int>` of a String == **0** and DELETED EVERY EFFECT CHANNEL: silently, reported as
+> a success, and not undoable (`setNumEffectChannels` is a structural edit). `parseConfigMessage`
+> now applies the same rule as its effects counterpart — two config parameters name things
+> (`effectsGlobalLinkNames`, `effectsGlobalFeedGpuDevice`) and may carry text, the other 46 are
+> numbers, a numeric string still coerces so QLab's string-typed arguments keep working, and an
+> int-typed parameter is stored as an int so it does not read back as a default after a load.
+> `effectChannels` additionally has to be a WHOLE number in range, because it is the one config
+> parameter with no bounds entry and `setNumEffectChannels` would otherwise answer "set 40" with
+> a silent clamp to 32.
+
+> **A MESSAGE IS NEVER LOST, AND THE REASON REACHES THE SESSION LOG.** Three refusals used to
+> return with an EMPTY reason (an unknown parameter name, a message with no arguments, a missing
+> value), and the dispatch only logs when a reason is present — so a misspelled address was
+> indistinguishable from an unplugged cable. A write to a channel that does not exist was worse:
+> the parser bounds the effect id against `maxEffectChannels`, not the live count, so it parsed as
+> valid and then evaporated in five of the six per-channel shapes (`setEffectParameter` returns
+> void on an invalid tree; the instanced, band and tap arms were `if (node.isValid())` with no
+> else). That check cannot live in the parser, which has no session to ask, so it is one test at
+> the head of `applyEffectUpdate`, on the message thread, covering all six shapes.
+>
+> An argument the shape cannot spend is now refused rather than swallowed: the trailing number in
+> `/wfs/effect/minimalLatency <id> 0 9` is not a transition time (that parameter is not
+> fade-capable), so either it is one argument too many or the address is the wrong one — and under
+> the second reading the "value" already read is an INDEX. Six shapes share this prefix, so
+> picking the wrong one is the likeliest client error in the family; the arity is the only thing
+> that can catch it, and counting is free. For the 98 `isEffectParamRampCapable` rows the
+> `<value> [fade]` ambiguity is irreducible protocol design, exactly as in the input family.
+>
+> Finally, **`logRejected` is not a log.** `OSCLogger` starts disabled and the only thing that
+> enables it is a human ticking the switch in the Network Log window, so every reason above was
+> discarded on any machine nobody was watching — which is every machine running a show. The
+> effects and config refusals now also reach the SESSION log, the same conclusion the ingest-drop
+> counter already reached, through a token bucket (20 lines of burst, 5 a second sustained) so a
+> client stuck in a retry loop cannot flood it and the lines it drops are counted into the next
+> one that gets through.
+>
+> All of this is gated in `osc_replay.py`: `TYPING_ACCEPTED` / `TYPING_REFUSALS` are sent LAST, so
+> every assertion about them is "the refusal left the legitimate value alone", and
+> `EXPECTED_LOG_REASONS` asserts the reasons appear in the session log — the only assertion that
+> can catch a lost message, since a lost message leaves no trace in the state.
 
 > **C6 IS ALREADY DECIDED: the app-only route.** Add the four cell addresses to
 > `ingestClassifier.bypassAddresses` (OSCManager.cpp:137) and extend OSCManager's second-stage

@@ -124,17 +124,52 @@ OSCManager::OSCManager(WFSValueTreeState& valueTreeState)
     ingestClassifier.rules = {
         { OSCPaths::INPUT_PREFIX,        true  },   // "/wfs/input/"    key: addr|channel
         { OSCPaths::OUTPUT_PREFIX,       true  },   // "/wfs/output/"   key: addr|channel
-        { "/wfs/reverb/",                true  },   //                  key: addr|channel
+        { OSCPaths::REVERB_PREFIX,       true  },   // "/wfs/reverb/"   key: addr|channel
+        { OSCPaths::EFFECT_PREFIX,       true  },   // "/wfs/effect/"   key: addr|effect id
         { OSCPaths::REMOTE_INPUT_PREFIX, true  },   // "/remoteInput/"  key: addr|channel
         { OSCPaths::CONFIG_PREFIX,       false }    // "/wfs/config/"   global: key on address
     };
+    // THE BYPASS LIST: addresses whose messages are EDITS, not newer values of
+    // one thing, and must therefore all arrive, in order.
+    //
     // One output of an input's mute list per message: two quick mutes on one
     // input (a QLab group firing its cues at once) are two edits, not a newer
     // value of one, so they must all arrive, in order. They share the ingest
     // FIFO (256 pending) with bundles and handshakes: a burst beyond that drops
     // the excess. QLab snapshot cues send one whole list per input, far below it;
     // a surface changing many outputs at once should send the whole list too.
-    ingestClassifier.bypassAddresses = { "/wfs/input/mutes" };
+    //
+    // The four effects send CELLS are here for exactly that reason, restated
+    // because the numbers are bigger. The ingest key is `address | first int32`
+    // (spatcore/control/osc/OSCIngestQueue.cpp), and the first int32 of a cell
+    // message is the EFFECT, not the cell - so a cue setting 64 sends of one
+    // effect would collapse to ONE surviving message per 16 ms drain tick. Same
+    // FIFO, same 256-slot cost: a burst beyond that drops the excess, and a
+    // surface changing many cells at once should send the whole ROW
+    // (/wfs/effect/sendLevels and its three siblings), which is one message
+    // whatever the width.
+    //
+    // KNOWN AND LEFT: the instanced, band and tap addresses have the same
+    // first-stage collapse (every band of one effect keys on the effect), so a
+    // burst of band writes inside one tick keeps only the last. They are not in
+    // this list because there are 31 of them and the FIFO is shared; the
+    // OSCQuery short form /wfs/effect/<id>/<param> already bypasses coalescing
+    // wholesale (digitAfterPrefixBypasses), which is the route a surface
+    // rewriting a whole EQ should take.
+    //
+    // /wfs/effect/mapVisible is a GLOBAL under a channel prefix, so the "first
+    // int32 is the channel" rule would key it on its own VALUE - two keys, two
+    // survivors, and the coalesce map drains in unspecified order, so the last
+    // one written need not be the last one applied. One entry here is cheaper
+    // than a second classifier rule.
+    ingestClassifier.bypassAddresses = {
+        "/wfs/input/mutes",
+        "/wfs/effect/sendLevel",
+        "/wfs/effect/sendOn",
+        "/wfs/effect/fxSendLevel",
+        "/wfs/effect/fxSendOn",
+        "/wfs/effect/mapVisible"
+    };
     ingestQueue = std::make_unique<OSCIngestQueue>(std::move(ingestClassifier));
     ingestQueue->setDispatch([this] (const juce::MemoryBlock& data,
                                      const juce::String& senderIP,
@@ -146,6 +181,12 @@ OSCManager::OSCManager(WFSValueTreeState& valueTreeState)
     ingestQueue->setDropReport([this] (uint64_t totalDropped,
                                        ConnectionMode transport)
     {
+        // Also to the session log. logRejected reaches the in-app Network table
+        // and nothing else, so a queue overflow was invisible to anything that
+        // is not a human looking at that tab - including the control replay,
+        // whose burst case exists to prove this counter stays at zero.
+        WFSLogger::getInstance().logWarning ("OSC ingest queue full, dropped "
+                                             + juce::String(totalDropped) + " message(s) in total");
         logger.logRejected("[ingest queue]", "(internal)", 0, transport,
             "queue full, dropped " + juce::String(totalDropped)
             + " messages total");
@@ -1691,8 +1732,14 @@ void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
     logger.logReceivedWithDetails(message, protocol, senderIP, port, transport);
 
     // Route to appropriate handler
+    // EVERY family whose writes must not be echoed back to their own sender has
+    // to be named here. /wfs/effect/ is in the list because it is not optional:
+    // a handler that runs outside this window pushes every edit straight back to
+    // the client that made it, which is the feedback loop that punched Ableton
+    // automation out of playback and the reason oscquery_echo_check exists.
     if (OSCMessageRouter::isInputAddress(address) || OSCMessageRouter::isOutputAddress(address)
-        || OSCMessageRouter::isReverbAddress(address) || OSCMessageRouter::isConfigAddress(address))
+        || OSCMessageRouter::isReverbAddress(address) || OSCMessageRouter::isEffectAddress(address)
+        || OSCMessageRouter::isConfigAddress(address))
     {
         // Bracket only the synchronous part of the handler: every deferred
         // write (callAsync lambdas, coalesced drain, ramp steps) re-establishes
@@ -1943,6 +1990,179 @@ void OSCManager::handleIncomingBundle(const juce::OSCBundle& bundle,
     }
 }
 
+void OSCManager::logRefusalToSession (const juce::String& address, const juce::String& reason)
+{
+    // See the declaration. A burst passes untouched and only a sustained flood
+    // is capped; whatever the bucket does drop is counted into the next line
+    // that gets through, so the log never claims fewer refusals than there were.
+    constexpr double capacity   = 20.0;
+    constexpr double perSecond  = 5.0;
+
+    int skipped = 0;
+    {
+        const juce::ScopedLock sl (refusalLogLock);
+
+        const auto now = juce::Time::getMillisecondCounter();
+        if (refusalLogLastRefillMs != 0)
+        {
+            const double elapsedSec = static_cast<double> (now - refusalLogLastRefillMs) / 1000.0;
+            refusalLogTokens = juce::jmin (capacity, refusalLogTokens + elapsedSec * perSecond);
+        }
+        refusalLogLastRefillMs = now;
+
+        if (refusalLogTokens < 1.0)
+        {
+            ++suppressedRefusalCount;
+            return;
+        }
+
+        refusalLogTokens -= 1.0;
+        skipped = suppressedRefusalCount;
+        suppressedRefusalCount = 0;
+    }
+
+    WFSLogger::getInstance().logWarning (
+        "OSC refused " + address + ": " + reason
+        + (skipped > 0 ? " (and " + juce::String (skipped)
+                         + " further refusal(s) in the last second, not listed)"
+                       : juce::String()));
+}
+
+void OSCManager::applyEffectUpdate (const PendingParamUpdate& upd)
+{
+    using Kind = OSCMessageRouter::ParsedEffectMessage::Kind;
+
+    // THE CHANNEL HAS TO EXIST, AND THIS IS THE FIRST PLACE THAT CAN KNOW IT.
+    //
+    // parseEffectMessage bounds the effect id against maxEffectChannels, which
+    // is the CEILING (32) and not the LIVE count: the parser is static and has
+    // no session to ask. So `/wfs/effect/attenuation 9 -9.5` sent to a show with
+    // two effects parses as perfectly valid and then evaporates - setEffectParameter
+    // returns void on an invalid tree, and the Instanced, Band and Tap arms below
+    // are all `if (node.isValid())` with nothing on the other side. Five of the
+    // six per-channel shapes said nothing at all; only the two cell kinds spoke,
+    // and only because their accessors happen to return bool.
+    //
+    // One check here covers all six, on the message thread, where the tree is
+    // safe to read - which is exactly why it cannot live in the parser.
+    if (! state.getEffectState (upd.channelId).isValid())
+    {
+        const juce::String reason =
+            "effect " + juce::String (upd.channelId + 1) + " does not exist (this show has "
+            + juce::String (state.getNumEffectChannels()) + "). Effect ids are dense and start"
+              " at 1; set the count with /wfs/config/effectChannels while processing is stopped."
+              " Nothing was written.";
+
+        logger.logText ("Effect " + juce::String (upd.channelId + 1) + " "
+                        + upd.paramId.toString() + ": " + reason);
+        logRefusalToSession (upd.address, reason);
+        return;
+    }
+
+    // THE TYPED ACCESSORS, AND NOTHING ELSE. The generic parameter path
+    // (state.setParameter) resolves an effect property by walking the channel's
+    // children for the first node that already carries the name - which is
+    // right for the six flat sections and the seven single-instance modules,
+    // and DELIBERATELY IMPOSSIBLE for everything below: the instanced module
+    // types are skipped, <Band> and <Tap> are never descended into, and no node
+    // carries a cell pseudo-identifier at all. That refusal is the feature. A
+    // dispatch that reached for the generic path here would be handed instance
+    // 1, band 1 or nothing, and would report success either way - which is
+    // exactly what the output EQ still does today.
+    WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Effects);
+
+    switch (upd.effectKind)
+    {
+        case Kind::Scalar:
+        case Kind::Row:
+            // setEffectParameter, not setParameter: it is the same resolution
+            // walk plus the position-ownership latch, and a packed row reaches
+            // the write interceptor through it (which is where a row that is
+            // not a row is refused and the stored one kept).
+            state.setEffectParameter (upd.channelId, upd.paramId, upd.value);
+            break;
+
+        case Kind::Instanced:
+        {
+            // subA is the 1-based instance as sent. effectEQBypass lives on the
+            // EQ node itself; every effectDyn* lives on the dynamics node.
+            auto node = (upd.paramId == WFSParameterIDs::effectEQBypass)
+                            ? state.getEffectEQSection  (upd.channelId, upd.subA - 1)
+                            : state.getEffectDynSection (upd.channelId, upd.subA - 1);
+            if (node.isValid())
+                node.setProperty (upd.paramId, upd.value, state.getActiveUndoManager());
+            break;
+        }
+
+        case Kind::Band:
+        {
+            auto band = state.getEffectEQBand (upd.channelId, upd.subA - 1, upd.subB - 1);
+            if (band.isValid())
+                band.setProperty (upd.paramId, upd.value, state.getActiveUndoManager());
+            break;
+        }
+
+        case Kind::Tap:
+        {
+            auto tap = state.getEffectDelayTap (upd.channelId, upd.subA - 1);
+            if (tap.isValid())
+                tap.setProperty (upd.paramId, upd.value, state.getActiveUndoManager());
+            break;
+        }
+
+        case Kind::InputCell:
+        {
+            // The column is the input's PERMANENT number, 1-based, exactly as
+            // the accessor's parameter name says - never a slot, or every send
+            // would re-point the first time a channel was dragged.
+            const bool ok = (upd.paramId == WFSParameterIDs::effectSendLevel)
+                ? state.setEffectSendLevelFromInput (upd.channelId, upd.subA,
+                                                     static_cast<float> (static_cast<double> (upd.value)))
+                : state.setEffectSendOnFromInput    (upd.channelId, upd.subA,
+                                                     static_cast<double> (upd.value) != 0.0);
+            if (! ok)
+            {
+                const juce::String why = "input " + juce::String (upd.subA)
+                                       + " is not a column of this row - nothing was written";
+                logger.logText ("Effect " + juce::String (upd.channelId + 1) + " "
+                                + upd.paramId.toString() + ": " + why);
+                logRefusalToSession (upd.address, why);
+            }
+            break;
+        }
+
+        case Kind::FxCell:
+        {
+            // The column is a DENSE effect index here, so the 1-based id on the
+            // wire becomes subA - 1. The accessors refuse the diagonal (an
+            // effect may not feed itself) by returning false.
+            const int sourceIndex = upd.subA - 1;
+            const bool ok = (upd.paramId == WFSParameterIDs::effectFxSendLevel)
+                ? state.setEffectFxSendLevelFromEffect (upd.channelId, sourceIndex,
+                                                        static_cast<float> (static_cast<double> (upd.value)))
+                : state.setEffectFxSendOnFromEffect    (upd.channelId, sourceIndex,
+                                                        static_cast<double> (upd.value) != 0.0);
+            if (! ok)
+            {
+                const juce::String why = "source effect " + juce::String (upd.subA)
+                                       + " was refused (an effect may not feed itself, and the column"
+                                         " must exist) - nothing was written";
+                logger.logText ("Effect " + juce::String (upd.channelId + 1) + " "
+                                + upd.paramId.toString() + ": " + why);
+                logRefusalToSession (upd.address, why);
+            }
+            break;
+        }
+
+        case Kind::Global:
+        case Kind::Verb:
+        case Kind::Unknown:
+        default:
+            jassertfalse;   // globals and verbs never enter the coalesce map
+            break;
+    }
+}
+
 void OSCManager::drainPendingParamUpdates()
 {
     std::map<juce::String, PendingParamUpdate> updates;
@@ -1964,7 +2184,10 @@ void OSCManager::drainPendingParamUpdates()
     for (const auto& [key, upd] : updates)
     {
         if (oscQueryServer) oscQueryServer->beginIncomingOSC(upd.senderIP);
-        state.setParameter(upd.paramId, upd.value, upd.channelId);
+        if (upd.effectKind != OSCMessageRouter::ParsedEffectMessage::Kind::Unknown)
+            applyEffectUpdate (upd);
+        else
+            state.setParameter(upd.paramId, upd.value, upd.channelId);
         if (oscQueryServer) oscQueryServer->endIncomingOSC();
     }
 
@@ -2517,17 +2740,190 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
             ++parseErrors;
         }
     }
+    else if (OSCMessageRouter::isEffectAddress(address))
+    {
+        auto parsed = OSCMessageRouter::parseEffectMessage(message);
+
+        // A verb is a published address this commit understands and does not
+        // yet act on. Say so once, in the Rejected filter, rather than letting
+        // it read as an unknown parameter: "nothing happened and here is why"
+        // is a different message from "I have never heard of that".
+        if (parsed.kind == OSCMessageRouter::ParsedEffectMessage::Kind::Verb)
+        {
+            logger.logRejected (address, senderIP, port, transport, parsed.invalidReason);
+            return;
+        }
+
+        if (parsed.valid)
+        {
+            // A ramp argument was accepted by the parser and NOT run: the ramper
+            // is still input-only. Said out loud every time, because a client
+            // that asked for a 10 s fade and got a jump has to be able to find
+            // out from the log rather than from the show.
+            if (parsed.rampArgIgnored)
+                logger.logText ((parsed.channelId > 0 ? "Effect " + juce::String (parsed.channelId) + " "
+                                                      : juce::String())
+                                + parsed.paramId.toString() + ": transition time "
+                                + juce::String (parsed.rampTimeSec, 2)
+                                + " s ignored, value applied immediately "
+                                + (OSCMessageRouter::isEffectParamRampCapable (parsed.paramId)
+                                       ? "(the effects family cannot ramp yet)"
+                                       : "(this parameter is not fade-capable)"));
+
+            // Effect ids are DENSE - id == index + 1 - unlike input numbers,
+            // which are permanent and may have gaps. No slot resolution here,
+            // and none wanted: a delete closes the list up behind it.
+            const int channelIndex = parsed.channelId - 1;
+
+            const bool isGlobal =
+                parsed.kind == OSCMessageRouter::ParsedEffectMessage::Kind::Global;
+
+            if (isGlobal)
+            {
+                // /wfs/effect/mapVisible: a Config property addressed under the
+                // channel prefix because that is what the published contract
+                // says. It goes through the effects undo domain, not the reverb
+                // one the /wfs/config/ branch is hard-wired to.
+                const auto paramId = parsed.paramId;
+                const auto value   = parsed.value;
+                juce::MessageManager::callAsync ([this, paramId, value, senderIP]()
+                {
+                    ScopedIncomingProtocol incomingGuard (*this, Protocol::OSC);
+                    if (oscQueryServer) oscQueryServer->beginIncomingOSC(senderIP);
+                    WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Effects);
+                    state.setParameter (paramId, value);
+                    if (oscQueryServer) oscQueryServer->endIncomingOSC();
+                });
+            }
+            // isInt as well as isDouble: the parser stores an int-typed
+            // parameter as an int (the bounds table says which are), and a guard
+            // testing only isDouble would drop every bypass, enum and switch in
+            // the family without a word.
+            else if (channelIndex >= 0 && (parsed.value.isDouble() || parsed.value.isInt()
+                                           || parsed.value.isString()))
+            {
+                // EVERY per-channel shape takes the same road: into the coalesce
+                // map under a key that carries the sub-indices, out again in
+                // drainPendingParamUpdates through the typed accessor its kind
+                // names. One path, one undo domain, one origin window - and the
+                // sub-index in the key is what keeps 64 cells of one effect from
+                // collapsing into one surviving write.
+                PendingParamUpdate upd;
+                upd.paramId    = parsed.paramId;
+                upd.channelId  = channelIndex;
+                upd.value      = parsed.value;
+                upd.senderIP   = senderIP;
+                upd.effectKind = parsed.kind;
+                upd.address    = address;
+                upd.subA = parsed.instanceIndex != 0 ? parsed.instanceIndex
+                         : parsed.tapIndex      != 0 ? parsed.tapIndex
+                         : parsed.cellIndex;
+                upd.subB = parsed.bandIndex;
+
+                const juce::String key = coalesceKey (parsed.paramId, channelIndex,
+                                                      upd.subA, upd.subB);
+                {
+                    const juce::ScopedLock sl(pendingParamLock);
+                    pendingParamUpdates[key] = upd;
+                }
+                if (!paramDrainScheduled.exchange(true))
+                    juce::MessageManager::callAsync([this]() { drainPendingParamUpdates(); });
+            }
+        }
+        else
+        {
+            // BOTH LOGS, not just the in-app table. OSCLogger is disabled until
+            // a human opens the Network Log window and ticks the switch, so a
+            // reason that only reaches logRejected is a reason nobody reads -
+            // and "refused with a reason, never silently dropped" is the whole
+            // contract of this family's parser. Throttled inside the helper.
+            if (parsed.invalidReason.isNotEmpty())
+            {
+                logger.logRejected (address, senderIP, port, transport, parsed.invalidReason);
+                logRefusalToSession (address, parsed.invalidReason);
+            }
+            ++parseErrors;
+        }
+    }
     else if (OSCMessageRouter::isConfigAddress(address))
     {
         auto parsed = OSCMessageRouter::parseConfigMessage(message);
         if (parsed.valid)
         {
-            juce::MessageManager::callAsync([this, parsed, senderIP]()
+            //------------------------------------------------------------------
+            // THE CHANNEL COUNT IS STOPPED-ONLY, AND THE REFUSAL IS THE POINT.
+            //
+            // /wfs/config/effectChannels is the first and only channel count any
+            // protocol can address: getConfigAddressMap carried no count at all
+            // before it. An accepted count write reaches handleChannelCountChange,
+            // which stops processing to rebuild the shared rings - rebuilding
+            // them under a live audio callback is undefined behaviour and the
+            // effects engine holds raw pointers into them. That teardown is
+            // correct in itself and completely wrong as something a remote cue
+            // can trigger: one mistyped address would stop a running show.
+            //
+            // So: accepted while STOPPED, refused while RUNNING, with the count
+            // left exactly as it was and a reason an operator can read. Same
+            // rule, same words and the same reason as the MCP generated-tool
+            // layer already applies to every channel count
+            // (MCPGeneratedToolLoader.cpp), and the same convention
+            // setNumEffectChannels states in its own header.
+            //------------------------------------------------------------------
+            if (parsed.paramId == WFSParameterIDs::effectChannels && state.isProcessingEnabled())
             {
+                const juce::String why =
+                    "effectChannels is stopped-only: changing the effect count "
+                    "rebuilds the shared audio rings, so it is refused while the "
+                    "engine is running. Stop processing (System Config > Run DSP), "
+                    "then send it again. The count was not changed.";
+                logger.logRejected (address, senderIP, port, transport, why);
+                logRefusalToSession (address, why);
+                return;
+            }
+
+            // THE UNDO DOMAIN IS PER PARAMETER, not per branch. This branch was
+            // hard-wired to UndoDomain::Reverb with a transaction literally
+            // named "OSC Reverb Config", so an effects global written here would
+            // have filed under the reverb tab's history and been undone by a
+            // reverb undo.
+            const bool isEffectsConfig =
+                   parsed.paramId == WFSParameterIDs::effectChannels
+                || parsed.paramId.toString().startsWith ("effectsGlobal");
+            const auto domain = isEffectsConfig ? UndoDomain::Effects : UndoDomain::Reverb;
+            const juce::String transactionName = isEffectsConfig ? "OSC Effects Config"
+                                                                 : "OSC Reverb Config";
+            const bool isCountWrite = (parsed.paramId == WFSParameterIDs::effectChannels);
+
+            juce::MessageManager::callAsync([this, parsed, senderIP, domain,
+                                             transactionName, isCountWrite]()
+            {
+                // THE GUARD IS RE-READ HERE, WHERE THE WRITE ACTUALLY HAPPENS.
+                // The test above runs on the ingest thread and this lambda runs
+                // later on the message thread, so an operator who pressed Start
+                // in between would have had a count write land on a RUNNING
+                // engine - which is the one thing the stopped-only rule exists
+                // to make impossible. Checking once, at the point of the write,
+                // closes that window instead of narrowing it.
+                if (isCountWrite && state.isProcessingEnabled())
+                {
+                    logRefusalToSession ("/wfs/config/effectChannels",
+                        "processing started while the count write was in flight, so it was"
+                        " refused at the last moment. The count was not changed.");
+                    return;
+                }
+
+                // A COUNT THAT DOES NOT MOVE IS NOT A TOPOLOGY CHANGE. isCountWrite
+                // is set from the parameter name alone, so sending the count a
+                // session already has used to fire a full handleChannelCountChange
+                // refit - rebuilding the render-source budget, the routing matrices
+                // and the patch rows to arrive back where they started.
+                const bool countActuallyMoves =
+                    isCountWrite && state.getNumEffectChannels() != static_cast<int> (parsed.value);
+
                 ScopedIncomingProtocol incomingGuard (*this, Protocol::OSC);
                 if (oscQueryServer) oscQueryServer->beginIncomingOSC(senderIP);
-                WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Reverb);
-                state.beginUndoTransaction ("OSC Reverb Config");
+                WFSValueTreeState::ScopedUndoDomain scope (state, domain);
+                state.beginUndoTransaction (transactionName);
 
                 // Check if this is a reverb algorithm parameter (stored in ReverbAlgorithm section)
                 auto algoSection = state.ensureReverbAlgorithmSection();
@@ -2584,16 +2980,34 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
                 }
                 else
                 {
-                    // Standard config parameter
+                    // Standard config parameter. setParameter re-routes the four
+                    // channel counts to their setNumXChannels helper, so an
+                    // accepted effectChannels write really does build or drop
+                    // channel subtrees rather than moving a number.
                     state.setParameter(parsed.paramId, parsed.value);
                 }
                 if (oscQueryServer) oscQueryServer->endIncomingOSC();
+
+                // The host reconfigures on an accepted count exactly as it does
+                // for the System Config editor and the MCP lifecycle tools.
+                // Without this the count moves and the render-source budget, the
+                // routing matrices and the patch rows stay as they were.
+                if (countActuallyMoves && onChannelTopologyChanged)
+                    onChannelTopologyChanged();
             });
         }
         else
         {
+            // BOTH LOGS, not just the in-app table. OSCLogger is disabled until
+            // a human opens the Network Log window and ticks the switch, so a
+            // reason that only reaches logRejected is a reason nobody reads -
+            // and "refused with a reason, never silently dropped" is the whole
+            // contract of this family's parser. Throttled inside the helper.
             if (parsed.invalidReason.isNotEmpty())
+            {
                 logger.logRejected (address, senderIP, port, transport, parsed.invalidReason);
+                logRefusalToSession (address, parsed.invalidReason);
+            }
             ++parseErrors;
         }
     }
