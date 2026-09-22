@@ -14754,15 +14754,19 @@ void MainComponent::cycleHelpCards()
 {
     // Get the active tab's help card provider
     HelpCardProvider* provider = nullptr;
+    // By NAMED index: the Effects tab (4) moved Inputs, Clusters and Map up
+    // one, and the literal indices here kept cycling the Inputs tab's cards
+    // on the Effects tab and gave the Map none.
     switch (tabbedComponent.getCurrentTabIndex())
     {
-        case 0: provider = systemConfigTab; break;
-        case 1: provider = networkTab; break;
-        case 2: provider = outputsTab; break;
-        case 3: provider = reverbTab; break;
-        case 4: provider = inputsTab; break;
-        case 5: provider = clustersTab; break;
-        case 6: provider = dynamic_cast<HelpCardProvider*>(mapTab.get()); break;
+        case TabIndex::SystemConfig: provider = systemConfigTab; break;
+        case TabIndex::Network:      provider = networkTab; break;
+        case TabIndex::Outputs:      provider = outputsTab; break;
+        case TabIndex::Reverb:       provider = reverbTab; break;
+        case TabIndex::Effects:      provider = effectsTab; break;
+        case TabIndex::Inputs:       provider = inputsTab; break;
+        case TabIndex::Clusters:     provider = clustersTab; break;
+        case TabIndex::Map:          provider = dynamic_cast<HelpCardProvider*>(mapTab.get()); break;
     }
     if (provider == nullptr) return;
 
