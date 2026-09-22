@@ -334,6 +334,15 @@ public:
             addChildComponent(gpuStripStatus);
         }
 
+        // The effects engine's duty, one percent-of-budget bar in the controls
+        // row, beside (and independent of) the GPU strip. Hidden while the
+        // session has no effects channels (see timerCallback).
+        effectsEngineLabel.setText(LOC("levelMeter.effects.engine"), juce::dontSendNotification);
+        effectsEngineLabel.setJustificationType(juce::Justification::centredRight);
+        effectsEngineLabel.setFont(juce::FontOptions().withHeight(10.0f));
+        addChildComponent(effectsEngineLabel);
+        addChildComponent(effectsEngineBar);
+
         // Initialize button states
         updateSoloButtonStates();
         updateSoloButtonColors();
@@ -380,6 +389,15 @@ public:
         // own row above the controls, appearing/disappearing resized the meter
         // areas under a separator that paint() draws at a FIXED getHeight()/2,
         // so the output meters rode up over the line.
+        // The effects engine cell takes the right end of the controls row, so
+        // the GPU strip (which spends what is left) never overlaps it.
+        if (effectsStripVisible)
+        {
+            auto cell = controlsArea.removeFromRight(sc(150)).withSizeKeepingCentre(sc(150), sc(14));
+            effectsEngineLabel.setBounds(cell.removeFromLeft(sc(50)));
+            effectsEngineBar.setBounds(cell.reduced(sc(2), 0));
+        }
+
         if (levelManager.isGpuStripRelevant())
         {
             controlsArea.removeFromLeft(sc(10));  // Spacing after the buttons
@@ -432,8 +450,35 @@ public:
         outputLabels.clear();
         outputPerfBars.clear();
 
+        effectFeedMeters.clear();
+        effectReturnMeters.clear();
+        effectLabels.clear();
+
         int numInputs = levelManager.getNumInputChannels();
         int numOutputs = levelManager.getNumOutputChannels();
+        const int numEffects = valueTreeState.getNumEffectChannels();
+
+        // One feed / return pair per effect, after the inputs: what goes into
+        // the chain and what comes back, as the engine measured them.
+        for (int fx = 0; fx < numEffects; ++fx)
+        {
+            auto* feed = effectFeedMeters.add(new LevelMeterBar());
+            inputMetersHolder.addAndMakeVisible(feed);
+            auto* ret = effectReturnMeters.add(new LevelMeterBar());
+            inputMetersHolder.addAndMakeVisible(ret);
+
+            auto* feedLabel = effectLabels.add(new juce::Label());
+            feedLabel->setText(LOC("levelMeter.effects.feed").replace("{n}", juce::String(fx + 1)), juce::dontSendNotification);
+            auto* retLabel = effectLabels.add(new juce::Label());
+            retLabel->setText(LOC("levelMeter.effects.return").replace("{n}", juce::String(fx + 1)), juce::dontSendNotification);
+            for (auto* l : { feedLabel, retLabel })
+            {
+                l->setJustificationType(juce::Justification::centred);
+                l->setFont(juce::FontOptions().withHeight(9.0f));
+                l->setColour(juce::Label::textColourId, juce::Colour(0xFF26A69A));
+                inputMetersHolder.addAndMakeVisible(l);
+            }
+        }
 
         for (int i = 0; i < numInputs; ++i)
         {
@@ -501,6 +546,38 @@ private:
         {
             auto level = levelManager.getInputLevel(i);
             inputMeters[i]->setLevel(level.peakDb, level.rmsDb);
+        }
+
+        // The effects: their feed / return pairs, and the engine bar
+        for (int fx = 0; fx < effectFeedMeters.size(); ++fx)
+        {
+            const auto feed = levelManager.getEffectLevel(fx);
+            const auto ret = levelManager.getEffectReturnLevel(fx);
+            effectFeedMeters[fx]->setLevel(feed.peakDb, feed.rmsDb);
+            effectReturnMeters[fx]->setLevel(ret.peakDb, ret.rmsDb);
+        }
+        {
+            const bool relevant = effectFeedMeters.size() > 0;
+            if (relevant != effectsStripVisible)
+            {
+                effectsStripVisible = relevant;
+                effectsEngineLabel.setVisible(relevant);
+                effectsEngineBar.setVisible(relevant);
+                resized();
+            }
+            if (relevant)
+            {
+                const auto s = levelManager.getEffectsStats();
+                if (s.live)
+                    effectsEngineBar.setPercent(s.pct,
+                        LOC("levelMeter.effects.tooltip")
+                            .replace("{last}", juce::String(s.lastMs, 2))
+                            .replace("{budget}", juce::String(s.budgetMs, 2))
+                            .replace("{peak}", juce::String(s.uiPeakMs, 2))
+                            .replace("{batches}", juce::String(s.batchesPerWake)));
+                else
+                    effectsEngineBar.setPercent(0.0f, LOC("levelMeter.gpuStrip.inactive"));
+            }
         }
 
         // Update output meters
@@ -705,12 +782,15 @@ private:
 
         auto viewArea = inputViewport.getLocalBounds();
         int numMeters = inputMeters.size();
+        const int numEffectMeters = effectFeedMeters.size() * 2;
 
         // Inputs keep their preferred meter width; the row scrolls horizontally
-        // when the total exceeds the viewport.
+        // when the total exceeds the viewport. The effect pairs follow after a
+        // gap the width of one meter.
         int meterWidth = sc(30);
         int spacing = sc(4);
-        int contentWidth = spacing + numMeters * (meterWidth + spacing);
+        int contentWidth = spacing + numMeters * (meterWidth + spacing)
+                         + (numEffectMeters > 0 ? meterWidth + numEffectMeters * (meterWidth + spacing) : 0);
 
         bool needsScroll = contentWidth > viewArea.getWidth();
         int holderW = juce::jmax(contentWidth, viewArea.getWidth());
@@ -739,6 +819,20 @@ private:
             }
 
             x += meterWidth + spacing;
+        }
+
+        if (numEffectMeters > 0)
+            x += meterWidth;   // the gap between the inputs and the effects
+
+        for (int fx = 0; fx < effectFeedMeters.size(); ++fx)
+        {
+            LevelMeterBar* pair[] = { effectFeedMeters[fx], effectReturnMeters[fx] };
+            for (int k = 0; k < 2; ++k)
+            {
+                pair[k]->setBounds(x, 0, meterWidth, meterHeight);
+                effectLabels[fx * 2 + k]->setBounds(x, meterHeight + 2, meterWidth, labelHeight);
+                x += meterWidth + spacing;
+            }
         }
     }
 
@@ -883,6 +977,14 @@ private:
     ThreadPerformanceBar gpuWfsBar, gpuRevBar, gpuFeedBar, gpuEngineBar;
     juce::Label gpuStripStatus;
     bool gpuStripVisible = false;
+
+    // The effects: a feed / return pair per channel in the sources row, and
+    // the engine's duty in the controls row (visible only with effects channels)
+    juce::OwnedArray<LevelMeterBar> effectFeedMeters, effectReturnMeters;
+    juce::OwnedArray<juce::Label> effectLabels;
+    juce::Label effectsEngineLabel;
+    ThreadPerformanceBar effectsEngineBar;
+    bool effectsStripVisible = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LevelMeterWindowContent)
 };

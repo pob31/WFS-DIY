@@ -834,9 +834,14 @@
       "inactive": "inactive",
       "tooltip": "last {last} ms | budget {budget} ms | 3s peak {peak} ms | underruns {under}",
       "tooltipNoUnderruns": "last {last} ms | budget {budget} ms | 3s peak {peak} ms"
+    },
+    "effects": {
+      "feed": "F{n} in",
+      "return": "F{n} out",
+      "engine": "Effects",
+      "tooltip": "effects engine: last {last} ms | budget {budget} ms | 3s peak {peak} ms | {batches} batch(es) per wake"
     }
   },
-
   "clusters": {
     "labels": {
       "assignedInputs": "Assigned Inputs",
