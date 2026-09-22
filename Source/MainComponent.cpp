@@ -6615,6 +6615,148 @@ void MainComponent::runChannelListSelfTest()
         }
     }
 
+    // ---- A: the per-array trim reaches the return rows ---------------------
+    // effectArrayAtten1..10 (R5-4) completes the third matrix level, which had
+    // a per-output mute and no level at all. The trim is PER EFFECT and per
+    // ARRAY: it lives on this channel's <Return> and is applied against each
+    // output's array assignment, so a trim on one array must move exactly the
+    // outputs of that array, on exactly the effect that carries it, and leave
+    // every other cell bit-identical. The hook it fills was a zero-filled local
+    // that no test could distinguish from a trim that does nothing.
+    {
+        namespace P = WFSParameterIDs;
+        using Map = spatcore::wfs::RenderSourceMap;
+
+        auto* calc = calculationEngine.get();
+        check(calc != nullptr, "A0: the calculation engine exists");
+
+        if (calc != nullptr && vts.getNumOutputChannels() >= 2)
+        {
+            const int inputsBefore = vts.getNumInputChannels();
+            const bool effectLatchBefore = vts.areEffectPositionsUserOwned();
+            const int liveOutputs = vts.getNumOutputChannels();
+
+            // Two outputs on two different arrays, so "moved" and "untouched"
+            // are both observable in one matrix. Restored at the end.
+            const int arrayBefore0 = WFSVar::toInt (vts.getOutputParameter (0, P::outputArray));
+            const int arrayBefore1 = WFSVar::toInt (vts.getOutputParameter (1, P::outputArray));
+            vts.setOutputParameter (0, P::outputArray, 1);
+            vts.setOutputParameter (1, P::outputArray, 2);
+
+            vts.setNumEffectChannels (2);
+
+            std::array<uint8_t, Map::kMaxInputChannels> types {};
+            const int numTypes = juce::jlimit (0, (int) Map::kMaxInputChannels, inputsBefore);
+            for (int i = 0; i < numTypes; ++i)
+                if (vts.isInputChannelStereo (i))
+                    types[(size_t) i] = Map::Stereo;
+
+            Map map;
+            check (Map::build (types.data(), numTypes, 2, map), "A0: a map with two effect returns builds");
+            const int firstFx = map.firstEffectSlot;
+
+            // Upstage of the array and with no feed cone, exactly as phase Y
+            // does, so the assertions are about the trim and not the geometry.
+            for (int fx = 0; fx < 2; ++fx)
+            {
+                vts.setEffectParameter (fx, P::effectPositionX, (float) (3 * fx));
+                vts.setEffectParameter (fx, P::effectPositionY, 40.0f);
+                vts.setEffectParameter (fx, P::effectPositionZ, 3.0f);
+                vts.setEffectParameter (fx, P::effectAngleOn, 180);
+            }
+
+            calc->setRenderSourceMap (map);
+            calc->recalculateAllEffectPositions();
+            calc->recalculateMatrix (nullptr);
+
+            const int numOutputs = calc->getNumOutputs();
+            auto cellOut = [&] (int slot, int out)
+            {
+                return calc->getLevels()[(size_t) (slot * numOutputs + out)];
+            };
+
+            std::vector<float> before ((size_t) liveOutputs * 2, 0.0f);
+            for (int fx = 0; fx < 2; ++fx)
+                for (int o = 0; o < liveOutputs; ++o)
+                    before[(size_t) (fx * liveOutputs + o)] = cellOut (firstFx + fx, o);
+
+            check (before[0] > 1e-4f && before[1] > 1e-4f,
+                   "A1: both compared outputs carry the untrimmed return, well clear of the -92 dB clamp");
+
+            // A2: -6 dB on array 1 of effect 0 only
+            vts.setEffectParameter (0, WFSValueTreeState::getEffectArrayAttenId (0), -6.0f);
+            calc->recalculateMatrix (nullptr);
+
+            const float expected = std::pow (10.0f, -6.0f / 20.0f);
+            int movedInArray1 = 0, wrongInArray1 = 0, movedElsewhere = 0, movedOnEffect1 = 0;
+
+            for (int o = 0; o < liveOutputs; ++o)
+            {
+                const int arrayNum = WFSVar::toInt (vts.getOutputParameter (o, P::outputArray));
+                const float b0 = before[(size_t) o];
+                const float a0 = cellOut (firstFx, o);
+                const float b1 = before[(size_t) (liveOutputs + o)];
+                const float a1 = cellOut (firstFx + 1, o);
+
+                if (arrayNum == 1)
+                {
+                    if (b0 > 1e-4f)
+                    {
+                        ++movedInArray1;
+                        if (std::abs (a0 / b0 - expected) > 1e-3f)
+                            ++wrongInArray1;
+                    }
+                }
+                else if (std::abs (a0 - b0) > 1e-6f)
+                {
+                    ++movedElsewhere;
+                }
+
+                if (std::abs (a1 - b1) > 1e-6f)
+                    ++movedOnEffect1;
+            }
+
+            check (movedInArray1 > 0 && wrongInArray1 == 0,
+                   "A2: a -6 dB trim on array 1 scales exactly the array-1 cells of that return");
+            check (movedElsewhere == 0, "A2: outputs outside array 1 are untouched");
+            check (movedOnEffect1 == 0, "A2: the trim is per effect - the other return does not move");
+
+            // A3: the trim follows the ARRAY, not the output index. Moving
+            // output 1 into array 1 must bring it under the same trim without
+            // any write to the effect.
+            vts.setOutputParameter (1, P::outputArray, 1);
+            calc->recalculateMatrix (nullptr);
+            const float b1 = before[1];
+            const float a1 = cellOut (firstFx, 1);
+            check (b1 > 1e-4f && std::abs (a1 / b1 - expected) < 1e-3f,
+                   "A3: an output moved into array 1 picks the trim up from its assignment");
+
+            // A4: back to 0 dB restores the row exactly
+            vts.setOutputParameter (1, P::outputArray, 2);
+            vts.setEffectParameter (0, WFSValueTreeState::getEffectArrayAttenId (0),
+                                    WFSParameterDefaults::effectArrayAttenDefault);
+            calc->recalculateMatrix (nullptr);
+            int notRestored = 0;
+            for (int o = 0; o < liveOutputs; ++o)
+                if (std::abs (cellOut (firstFx, o) - before[(size_t) o]) > 1e-6f)
+                    ++notRestored;
+            check (notRestored == 0, "A4: clearing the trim restores every cell of the row");
+
+            // Leave nothing behind
+            vts.setOutputParameter (0, P::outputArray, arrayBefore0);
+            vts.setOutputParameter (1, P::outputArray, arrayBefore1);
+            vts.setNumEffectChannels (0);
+            if (! effectLatchBefore)
+                vts.getEffectsState().setProperty (P::effectPositionsUserOwned, 0, nullptr);
+            recomputeRenderSourceCount();
+            calc->recalculateMatrix (nullptr);
+        }
+        else
+        {
+            check (vts.getNumOutputChannels() >= 2, "A0: the session has at least two outputs to compare");
+        }
+    }
+
     // ---- Z: the app's own map carries the effect returns -------------------
     // recomputeRenderSourceCount builds with the live effect count, so a count
     // change through the funnel every structural edit reaches must move

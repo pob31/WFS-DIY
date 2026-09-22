@@ -264,7 +264,7 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getReverbAddre
 
 const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getEffectAddressMap()
 {
-    // 164 names, transcribed from the "OSC path" column of
+    // 175 names, transcribed from the "OSC path" column of
     // Documentation/WFS-UI_effects.csv. That column is the published contract:
     // the map is the transcription, not the design.
     //
@@ -285,6 +285,7 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getEffectAddre
         { "delayLatency",           WFSParameterIDs::effectDelayLatency },
         { "minimalLatency",         WFSParameterIDs::effectMinimalLatency },
         { "linkGroup",              WFSParameterIDs::effectLinkGroup },
+        { "linkMode",               WFSParameterIDs::effectLinkMode },
         { "mute",                   WFSParameterIDs::effectMute },
         { "solo",                   WFSParameterIDs::effectSolo },
 
@@ -315,6 +316,16 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getEffectAddre
         { "mutes",                  WFSParameterIDs::effectMutes },
         { "muteMacro",              WFSParameterIDs::effectMuteMacro },
         { "muteReverbSends",        WFSParameterIDs::effectMuteReverbSends },
+        { "arrayAtten1",            WFSParameterIDs::effectArrayAtten1 },
+        { "arrayAtten2",            WFSParameterIDs::effectArrayAtten2 },
+        { "arrayAtten3",            WFSParameterIDs::effectArrayAtten3 },
+        { "arrayAtten4",            WFSParameterIDs::effectArrayAtten4 },
+        { "arrayAtten5",            WFSParameterIDs::effectArrayAtten5 },
+        { "arrayAtten6",            WFSParameterIDs::effectArrayAtten6 },
+        { "arrayAtten7",            WFSParameterIDs::effectArrayAtten7 },
+        { "arrayAtten8",            WFSParameterIDs::effectArrayAtten8 },
+        { "arrayAtten9",            WFSParameterIDs::effectArrayAtten9 },
+        { "arrayAtten10",           WFSParameterIDs::effectArrayAtten10 },
 
         // AutomOtion
         { "otomoX",                 WFSParameterIDs::effectOtomoX },
@@ -594,7 +605,7 @@ bool OSCMessageRouter::isEffectParamRampCapable (const juce::Identifier& paramId
 {
     // Mirrors the "OSC path optional value" column of
     // Documentation/WFS-UI_effects.csv: every row reading "extra value is
-    // transition time in seconds". 98 entries.
+    // transition time in seconds". 108 entries.
     //
     // NOT WIRED TO THE RAMPER YET - see the declaration. A ramp argument on one
     // of these is parsed, the value is applied instantly, and rampArgIgnored is
@@ -619,6 +630,16 @@ bool OSCMessageRouter::isEffectParamRampCapable (const juce::Identifier& paramId
         WFSParameterIDs::effectDistanceRatio,
         WFSParameterIDs::effectCommonAtten,
         WFSParameterIDs::effectHFshelf,
+        WFSParameterIDs::effectArrayAtten1,
+        WFSParameterIDs::effectArrayAtten2,
+        WFSParameterIDs::effectArrayAtten3,
+        WFSParameterIDs::effectArrayAtten4,
+        WFSParameterIDs::effectArrayAtten5,
+        WFSParameterIDs::effectArrayAtten6,
+        WFSParameterIDs::effectArrayAtten7,
+        WFSParameterIDs::effectArrayAtten8,
+        WFSParameterIDs::effectArrayAtten9,
+        WFSParameterIDs::effectArrayAtten10,
         WFSParameterIDs::effectDistDrive,
         WFSParameterIDs::effectDistShape,
         WFSParameterIDs::effectDistBias,
@@ -2082,8 +2103,8 @@ OSCMessageRouter::ParsedConfigMessage OSCMessageRouter::parseConfigMessage(const
     //--------------------------------------------------------------------------
     // A NON-NUMERIC STRING AT A NUMERIC CONFIG PARAMETER IS REFUSED, not stored.
     //
-    // This is the same rule parseEffectMessage applies to the 164 per-channel
-    // parameters, and it has to be applied HERE as well because the ten
+    // This is the same rule parseEffectMessage applies to the 175 addressable
+    // effect names, and it has to be applied HERE as well because the ten
     // addresses this commit added to getConfigAddressMap do not go through that
     // parser. valueWithinBounds waves every string through by design (a name and
     // a device string are legitimately strings), so without this gate a typo

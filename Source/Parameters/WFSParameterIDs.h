@@ -817,8 +817,10 @@ namespace WFSParameterIDs
     //                                 stay string setters
     //   effectMute   (Channel)        is a prefix of effectMutes,
     //                                 effectMuteMacro and effectMuteReverbSends
+    //   effectArrayAtten1 (Return)    is a prefix of effectArrayAtten10, the
+    //                                 same shape inputArrayAtten1 already has
     //
-    // All eight names are plan-faithful and must NOT be renamed to dodge this.
+    // All nine names are plan-faithful and must NOT be renamed to dodge this.
     // Order the tests longest-first, or compare with == against the Identifier.
 
     // Effects Section Identifiers (node types)
@@ -852,6 +854,10 @@ namespace WFSParameterIDs
     const juce::Identifier effectDelayLatency    ("effectDelayLatency");
     const juce::Identifier effectMinimalLatency  ("effectMinimalLatency");
     const juce::Identifier effectLinkGroup       ("effectLinkGroup");       // 0=unlinked, 1..8
+    // Per-channel link mode, the exact mirror of outputApplyToArray: a member
+    // of a group can be detached without detaching the group. The global
+    // effectsGlobalLinkMode is only the value a NEW channel is stamped with.
+    const juce::Identifier effectLinkMode        ("effectLinkMode");        // 0=OFF, 1=ABSOLUTE, 2=RELATIVE
     const juce::Identifier effectMute            ("effectMute");
     const juce::Identifier effectSolo            ("effectSolo");
 
@@ -882,6 +888,20 @@ namespace WFSParameterIDs
     const juce::Identifier effectMutes           ("effectMutes");              // packed CSV, one token per output
     const juce::Identifier effectMuteMacro       ("effectMuteMacro");
     const juce::Identifier effectMuteReverbSends ("effectMuteReverbSends");
+    // Per-array trim of the return, the mirror of inputArrayAtten1..10. Level 3
+    // of the three matrix levels: an effect return is a render source, so its
+    // per-output gains are SOLVED from geometry - the family offers a per-output
+    // MUTE and this per-ARRAY trim on top of the solution, never a free matrix.
+    const juce::Identifier effectArrayAtten1     ("effectArrayAtten1");
+    const juce::Identifier effectArrayAtten2     ("effectArrayAtten2");
+    const juce::Identifier effectArrayAtten3     ("effectArrayAtten3");
+    const juce::Identifier effectArrayAtten4     ("effectArrayAtten4");
+    const juce::Identifier effectArrayAtten5     ("effectArrayAtten5");
+    const juce::Identifier effectArrayAtten6     ("effectArrayAtten6");
+    const juce::Identifier effectArrayAtten7     ("effectArrayAtten7");
+    const juce::Identifier effectArrayAtten8     ("effectArrayAtten8");
+    const juce::Identifier effectArrayAtten9     ("effectArrayAtten9");
+    const juce::Identifier effectArrayAtten10    ("effectArrayAtten10");
 
     // Effect > AutomOtion (the input set minus StayReturn - an effect return
     // always returns; ranges mirror the inputOtomo* set, with the single

@@ -76,7 +76,7 @@ public:
         parameters with a startsWith on the address instead, the reverb keys
         turned out to be spelled differently from the test, and for months every
         standard-form pre-EQ write stored the BAND INDEX as the value - fixed on
-        this branch in 76d5afa, and this struct exists so 174 effect parameters
+        this branch in 76d5afa, and this struct exists so 185 effect parameters
         do not inherit the shape of that mistake.
 
         SUB-INDICES ARE 1-BASED ON THE WIRE, like <ID> itself and like the band
@@ -88,7 +88,7 @@ public:
         enum class Kind
         {
             Unknown,      // not an effect address, or a name not in the map
-            Scalar,       // /wfs/effect/<param> <ID> <value>            (122 rows)
+            Scalar,       // /wfs/effect/<param> <ID> <value>            (133 rows)
             Instanced,    // /wfs/effect/<param> <ID> <instance> <value>  (24 rows)
             Band,         // /wfs/effect/<param> <ID> <inst> <band> <v>    (5 rows)
             Tap,          // /wfs/effect/<param> <ID> <tap> <value>        (2 rows)
@@ -398,7 +398,7 @@ public:
     static const std::map<juce::String, juce::Identifier>& getOutputAddressMap();
     static const std::map<juce::String, juce::Identifier>& getReverbAddressMap();
 
-    /** oscParamName -> parameterID for the 164 addressable /wfs/effect/ names.
+    /** oscParamName -> parameterID for the 175 addressable /wfs/effect/ names.
         The nine effects GLOBALS are not here: they are /wfs/config/effects/*
         full paths and live in getConfigAddressMap, like every other global.
         The one exception is "mapVisible", which the published contract puts

@@ -2,6 +2,7 @@
 #include "../Network/OSCParameterBounds.h"
 #include "../WFSLogger.h"
 #include "../Sampler/SamplerData.h"
+#include "VarCoercion.h"
 
 #include <algorithm>
 #include <cmath>
@@ -6308,6 +6309,43 @@ juce::ValueTree WFSValueTreeState::createDefaultEffectChannel (int index, int to
     return effect;
 }
 
+int WFSValueTreeState::getDefaultEffectLinkMode() const
+{
+    // Reads the global, falls back to the constant on a half-built tree. The
+    // fallback matters: createEffectChannelSection runs from the schema
+    // template as well as from addEffectChannel, and the template is built
+    // before <Config><EffectsGlobal> exists on some paths.
+    auto globals = getEffectsGlobalSection();
+    if (! globals.isValid() || ! globals.hasProperty (effectsGlobalLinkMode))
+        return effectLinkModeDefault;
+
+    return juce::jlimit (effectLinkModeMin, effectLinkModeMax,
+                         WFSVar::toInt (globals.getProperty (effectsGlobalLinkMode), effectLinkModeDefault));
+}
+
+const juce::Identifier& WFSValueTreeState::getEffectArrayAttenId (int arrayIndex)
+{
+    // Index 0..9 -> effectArrayAtten1..10. A table, never a name built from a
+    // string: effectArrayAtten1 is a strict prefix of effectArrayAtten10, and
+    // an Identifier assembled at runtime would also allocate on every call.
+    static const juce::Identifier* const ids[10] = {
+        &effectArrayAtten1, &effectArrayAtten2, &effectArrayAtten3, &effectArrayAtten4,
+        &effectArrayAtten5, &effectArrayAtten6, &effectArrayAtten7, &effectArrayAtten8,
+        &effectArrayAtten9, &effectArrayAtten10
+    };
+
+    return *ids[juce::jlimit (0, 9, arrayIndex)];
+}
+
+bool WFSValueTreeState::isEffectArrayAttenId (const juce::Identifier& paramId)
+{
+    for (int a = 0; a < 10; ++a)
+        if (paramId == getEffectArrayAttenId (a))
+            return true;
+
+    return false;
+}
+
 juce::ValueTree WFSValueTreeState::createEffectChannelSection (int index)
 {
     juce::ValueTree channel (Channel);
@@ -6316,6 +6354,16 @@ juce::ValueTree WFSValueTreeState::createEffectChannelSection (int index)
     channel.setProperty (effectDelayLatency, effectDelayLatencyDefault, nullptr);
     channel.setProperty (effectMinimalLatency, effectMinimalLatencyDefault, nullptr);
     channel.setProperty (effectLinkGroup, effectLinkGroupDefault, nullptr);
+
+    // The link MODE is per channel (R5-5), stamped from the global rather than
+    // read from it. The global is nothing more than "what a new channel gets":
+    // with only a global, detaching one channel from its group detached every
+    // group at once, which is the one thing an output array can already do and
+    // effects could not. A stamped copy is also what lets a Stream Deck or an
+    // OSC client detach a single channel - a per-channel mode is an ordinary
+    // parameter, a global is not.
+    channel.setProperty (effectLinkMode, getDefaultEffectLinkMode(), nullptr);
+
     channel.setProperty (effectMute, effectMuteDefault, nullptr);
     channel.setProperty (effectSolo, effectSoloDefault, nullptr);
     return channel;
@@ -6380,6 +6428,17 @@ juce::ValueTree WFSValueTreeState::createEffectReturnSection (int numOutputs)
 
     returnSection.setProperty (effectMuteMacro, effectMuteMacroDefault, nullptr);
     returnSection.setProperty (effectMuteReverbSends, effectMuteReverbSendsDefault, nullptr);
+
+    // Level 3's trim (R5-4). Ten properties, one per output array, applied to
+    // the return rows by the calculation engine against outputArrayAssignments.
+    // They complete the third matrix level: it had a per-output MUTE and no
+    // level at all, while levels 1 and 2 each carry an on/off row AND a level
+    // row. Deliberately not a free per-output matrix - a return is a render
+    // source, so its per-output gains are solved from geometry, and an
+    // arbitrary per-output level would overwrite the spatialisation.
+    for (int a = 0; a < 10; ++a)
+        returnSection.setProperty (getEffectArrayAttenId (a), effectArrayAttenDefault, nullptr);
+
     return returnSection;
 }
 

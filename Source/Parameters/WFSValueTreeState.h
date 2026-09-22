@@ -134,6 +134,19 @@ public:
         on a half-built tree: ensureCompleteSchema backfills it on every load. */
     juce::ValueTree getEffectsGlobalSection() const;
 
+    /** The value a NEW effects channel's effectLinkMode is stamped with: the
+        live effectsGlobalLinkMode, or the constant on a half-built tree. R5-5
+        demoted the global to exactly this - a stamp, never a live read. */
+    int getDefaultEffectLinkMode() const;
+
+    /** effectArrayAtten1..10 by 0-based array index. A table, because
+        effectArrayAtten1 is a strict prefix of effectArrayAtten10. */
+    static const juce::Identifier& getEffectArrayAttenId (int arrayIndex);
+
+    /** True for effectArrayAtten1..10. Ten == tests, never a startsWith:
+        effectArrayAtten1 is a strict prefix of effectArrayAtten10. */
+    static bool isEffectArrayAttenId (const juce::Identifier& paramId);
+
     /** Get audio patch state */
     juce::ValueTree getAudioPatchState();
 

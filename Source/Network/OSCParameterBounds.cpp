@@ -411,7 +411,7 @@ namespace
             //------------------------------------------------------------------
             // Effects (Documentation/WFS-UI_effects.csv)
             //------------------------------------------------------------------
-            // The 164 numeric parameters of the effects family, in CSV order.
+            // The 175 numeric parameters of the effects family, in CSV order.
             //
             // THE FOUR CELL PSEUDO-IDENTIFIERS ARE HERE ON PURPOSE.
             // effectSendLevel / effectSendOn / effectFxSendLevel /
@@ -439,6 +439,7 @@ namespace
             BIND_F (effectDelayLatency);
             BIND_BOOL (effectMinimalLatency);
             BIND_I (effectLinkGroup);
+            BIND_I (effectLinkMode);
             BIND_BOOL (effectMute);
             BIND_BOOL (effectSolo);
 
@@ -468,6 +469,16 @@ namespace
             BIND_F (effectHFshelf);
             BIND_I (effectMuteMacro);
             BIND_BOOL (effectMuteReverbSends);
+            BIND_F_AS (effectArrayAtten1 , effectArrayAtten);
+            BIND_F_AS (effectArrayAtten2 , effectArrayAtten);
+            BIND_F_AS (effectArrayAtten3 , effectArrayAtten);
+            BIND_F_AS (effectArrayAtten4 , effectArrayAtten);
+            BIND_F_AS (effectArrayAtten5 , effectArrayAtten);
+            BIND_F_AS (effectArrayAtten6 , effectArrayAtten);
+            BIND_F_AS (effectArrayAtten7 , effectArrayAtten);
+            BIND_F_AS (effectArrayAtten8 , effectArrayAtten);
+            BIND_F_AS (effectArrayAtten9 , effectArrayAtten);
+            BIND_F_AS (effectArrayAtten10, effectArrayAtten);
 
             // AutomOtion
             BIND_F_AS (effectOtomoX, effectOtomo);

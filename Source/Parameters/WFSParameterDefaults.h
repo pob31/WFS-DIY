@@ -1170,6 +1170,15 @@ namespace WFSParameterDefaults
     constexpr int effectLinkGroupMin              = 0;
     constexpr int effectLinkGroupMax              = 8;
 
+    // Per-channel link mode, the mirror of outputApplyToArrayDefault (:749).
+    // The constant below is only the FALLBACK: a channel is stamped with the
+    // live effectsGlobalLinkMode at creation, and the global is nothing more
+    // than "what a new channel gets" once this property exists (R5-5). Its
+    // value matches outputApplyToArrayDefault so the two families read alike.
+    constexpr int effectLinkModeDefault           = 1;       // 0=OFF, 1=ABSOLUTE, 2=RELATIVE
+    constexpr int effectLinkModeMin               = 0;
+    constexpr int effectLinkModeMax               = 2;
+
     constexpr int effectMuteDefault               = 0;
     constexpr int effectSoloDefault               = 0;
 
@@ -1237,6 +1246,14 @@ namespace WFSParameterDefaults
     constexpr int effectMuteMacroMax              = 4;
 
     constexpr int effectMuteReverbSendsDefault    = 0;
+
+    // Per-array trim of the return (R5-4), the mirror of inputArrayAtten* (:676).
+    // Ten properties share one constant triple exactly as the input family does;
+    // the array a given output belongs to is read from outputArrayAssignments at
+    // matrix time, so nothing here is per-array.
+    constexpr float effectArrayAttenDefault       = 0.0f;    // 0 dB (no attenuation)
+    constexpr float effectArrayAttenMin           = -60.0f;
+    constexpr float effectArrayAttenMax           = 0.0f;
 
     // effectMutes has no bounds entry on purpose: it is a packed CSV row, one
     // token per output, built at channel-creation time from the live output

@@ -1531,6 +1531,7 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
         float hfShelfDb = 0.0f;             // effectHFshelf, uniform per return → speaker cell
         bool  muteReverbSends = false;
         juce::StringArray mutesPerOutput;   // effectMutes, one token per output
+        std::array<float, 10> arrayAttenDb {};  // effectArrayAtten1..10, per output ARRAY
         std::array<float, maxInputChannels>   inLevelsDb {};
         std::array<uint8_t, maxInputChannels> inOns {};
         std::array<float, maxEffectChannels>   fxLevelsDb {};
@@ -1571,6 +1572,14 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
         p.muteReverbSends   = static_cast<int> (returnSection.getProperty (effectMuteReverbSends, effectMuteReverbSendsDefault)) != 0;
         if (returnSection.isValid())
             p.mutesPerOutput.addTokens (returnSection.getProperty (effectMutes).toString(), ",", "");
+
+        // The per-array trim (R5-4), read here with everything else this
+        // channel contributes rather than inside the output loop: it is ten
+        // properties per effect, and the loop below runs numOutputs times.
+        for (int a = 0; a < 10; ++a)
+            p.arrayAttenDb[static_cast<size_t> (a)] =
+                static_cast<float> (static_cast<double> (returnSection.getProperty (
+                    WFSValueTreeState::getEffectArrayAttenId (a), effectArrayAttenDefault)));
 
         valueTreeState.readEffectSendRows (fx, p.inLevelsDb, p.inOns, p.fxLevelsDb, p.fxOns);
     }
@@ -2396,11 +2405,6 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
     // the two return passes below are all it costs.
     if (liveEffects > 0 && firstEffectSlot >= 0 && (needReturnRecalc || needOutputRecalc))
     {
-        // R5-4 hook: the per-array trim of a return (effectArrayAtten1..10).
-        // The identifiers land with the control surface; until then every
-        // array trims by 0 dB, which is the value they will default to.
-        const std::array<float, 10> effectArrayAttenDb {};
-
         for (int fx = 0; fx < liveEffects; ++fx)
         {
             const int slot = firstEffectSlot + fx;
@@ -2557,9 +2561,13 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
 
                 float attenuationDb = tempAttenuationDb[static_cast<size_t> (outIdx)] + commonAttenAdjustment;
 
+                // The per-array trim is PER EFFECT (R5-4): it lives on this
+                // channel's <Return>, not on the array, so it reads out of the
+                // channel's own runtime block. An output assigned to Single
+                // (array 0) carries no trim - there is no array to rebalance.
                 const int outputArrayNum = outputArrayAssignments[static_cast<size_t> (outIdx)];
                 if (outputArrayNum >= 1 && outputArrayNum <= 10)
-                    attenuationDb += effectArrayAttenDb[static_cast<size_t> (outputArrayNum - 1)];
+                    attenuationDb += p.arrayAttenDb[static_cast<size_t> (outputArrayNum - 1)];
 
                 attenuationDb = juce::jlimit (-92.0f, 0.0f, attenuationDb);
 
@@ -4485,7 +4493,8 @@ void WFSCalculationEngine::valueTreePropertyChanged (juce::ValueTree& tree,
                                    property == effectAttenuation ||
                                    property == effectDelayLatency ||
                                    property == effectMinimalLatency ||
-                                   property == effectSolo);
+                                   property == effectSolo ||
+                                   WFSValueTreeState::isEffectArrayAttenId (property));
 
     if (isEffectReturnProperty)
     {

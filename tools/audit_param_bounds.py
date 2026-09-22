@@ -50,6 +50,13 @@ CSV_FILES = [
     "WFS-UI_clusters.csv",
     "WFS-UI_network.csv",
     "WFS-UI_audioPatch.csv",
+    # R5-7: this list is INDEPENDENT of wfs_codegen_config.CSV_FILES_ORDER.
+    # Registering the effects CSV in only the generator leaves the bounds
+    # auditor - whose entire job is catching drift between a CSV,
+    # WFSParameterDefaults.h and OSCParameterBounds.cpp - silently skipping
+    # every effect parameter, and the zero-drift property verified when the
+    # file was written stops being checked from that commit onward.
+    "WFS-UI_effects.csv",
 ]
 
 
