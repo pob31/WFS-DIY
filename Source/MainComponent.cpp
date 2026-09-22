@@ -2049,6 +2049,11 @@ MainComponent::MainComponent()
                                            calculationEngine->setEffectOtomoOffset (fx, x, y, z);
                                    }));
 
+    // The LFO's effects twin: the same waveform engine over effectLFO*, no
+    // gyrophone, published per tick to the engine's second offset slot.
+    effectLfoProcessor = std::make_unique<LFOProcessor> (
+        LFOFamily::effects (parameters.getValueTreeState()));
+
     // Initialize Input Speed Limiter for smooth position movement
     speedLimiter = std::make_unique<InputSpeedLimiter>();
     speedLimiter->resize(WFSParameterDefaults::maxInputChannels);
@@ -2088,13 +2093,14 @@ MainComponent::MainComponent()
             }
         });
 
-        // The effects twin. An effect return's AutomOtion travels as an offset
-        // the engine adds and the tree never carries, so the Map's grey dot can
-        // only come from here.
+        // The effects twin. An effect return's AutomOtion and LFO travel as
+        // offsets the engine adds and the tree never carries, so the Map's grey
+        // dot can only come from here - and it shows the SUM, which is where
+        // the return renders.
         mapTab->setEffectOtomoOffsetCallback([this](int effectIndex, float& x, float& y, float& z) {
             if (calculationEngine != nullptr)
             {
-                auto offset = calculationEngine->getEffectOtomoOffset(effectIndex);
+                auto offset = calculationEngine->getEffectMovementOffset(effectIndex);
                 x = offset.x;
                 y = offset.y;
                 z = offset.z;
@@ -4741,9 +4747,9 @@ void MainComponent::runChannelListSelfTest()
                 return who + "id is " + effect.getProperty(P::id).toString()
                            + ", expected " + juce::String(ch + 1);
 
-            // The six flat sections and the sends node, exactly once each.
+            // The seven flat sections and the sends node, exactly once each.
             const juce::Identifier flat[] = { P::Channel, P::Position, P::Feed, P::ReverbReturn,
-                                              P::AutomOtion, P::Chain, P::Sends };
+                                              P::AutomOtion, P::LFO, P::Chain, P::Sends };
             for (const auto& type : flat)
             {
                 const int n = childrenOfType(effect, type);
@@ -4761,9 +4767,9 @@ void MainComponent::runChannelListSelfTest()
                 if (n != 1)
                     return who + juce::String(n) + " <" + type.toString() + "> nodes, expected 1";
             }
-            if (effect.getNumChildren() != 7 + D::numEffectModuleSlots)
+            if (effect.getNumChildren() != 8 + D::numEffectModuleSlots)
                 return who + juce::String(effect.getNumChildren()) + " child nodes, expected "
-                           + juce::String(7 + D::numEffectModuleSlots);
+                           + juce::String(8 + D::numEffectModuleSlots);
 
             // Six <Band id="1".."6"> under EACH of the two EQ instances. The two
             // are different node TYPES carrying identical property names, which
@@ -4818,7 +4824,7 @@ void MainComponent::runChannelListSelfTest()
             juce::String fault;
             for (int ch = 0; ch < expected && fault.isEmpty(); ++ch)
                 fault = faultInChannel(ch);
-            check(fault.isEmpty(), juce::String(label) + ": every channel is twenty nodes deep"
+            check(fault.isEmpty(), juce::String(label) + ": every channel is nineteen nodes deep"
                                  + (fault.isEmpty() ? juce::String() : " - " + fault));
         };
 
@@ -7428,6 +7434,92 @@ void MainComponent::runChannelListSelfTest()
                           + juce::String(shift, 3) + " ms)");
 
                 vts.setEffectParameter(0, P::effectMinimalLatency, 1);
+            }
+
+            // O7: the LFO, the family's second movement, through the same
+            // offset path. A sine on X at 2 m over a 1 s period, ticked past
+            // the 500 ms fade-in: the return must render at base + LFO with
+            // the authored position untouched and the feed leg held; the two
+            // offsets must ADD; and once switched off it fades to exactly zero.
+            {
+                auto* lfo = effectLfoProcessor.get();
+                if (lfo == nullptr)
+                {
+                    logLine("SELF-TEST SKIP O7: no effect LFO processor");
+                }
+                else
+                {
+                    calc->setEffectOtomoOffset(0, 0.0f, 0.0f, 0.0f);
+                    calc->setEffectLFOOffset(0, 0.0f, 0.0f, 0.0f);
+                    calc->recalculateMatrix(nullptr);
+
+                    vts.setEffectParameter(0, P::effectLFOshapeX, 1);       // sine
+                    vts.setEffectParameter(0, P::effectLFOamplitudeX, 2.0f);
+                    vts.setEffectParameter(0, P::effectLFOrateX, 1.0f);
+                    vts.setEffectParameter(0, P::effectLFOperiod, 1.0f);
+                    vts.setEffectParameter(0, P::effectLFOphase, 0);
+                    vts.setEffectParameter(0, P::effectLFOphaseX, 0);
+                    vts.setEffectParameter(0, P::effectLFOactive, 1);
+
+                    float lfoPeak = 0.0f, lfoMovedX = 0.0f;
+                    bool lfoFeedHeld = true;
+                    for (int tick = 0; tick < 40; ++tick)          // 0.8 s: past both fades
+                    {
+                        lfo->process(0.02f);
+                        calc->setEffectLFOOffset(0, lfo->getOffsetX(0), lfo->getOffsetY(0), lfo->getOffsetZ(0));
+                        calc->recalculateMatrix(nullptr);
+
+                        const float offX = lfo->getOffsetX(0);
+                        if (std::abs(offX) > std::abs(lfoPeak))
+                        {
+                            lfoPeak = offX;
+                            lfoMovedX = calc->getRenderSourcePosition(firstFx).x;
+                        }
+
+                        for (int s = 0; s < firstFx; ++s)
+                            lfoFeedHeld = lfoFeedHeld
+                                       && cellFx(s, 0) == feedLevelsBefore[(size_t) s]
+                                       && delayFx(s, 0) == feedDelaysBefore[(size_t) s];
+                    }
+
+                    check(std::abs(lfoPeak) > 0.5f, "O7: the LFO publishes an offset (peak "
+                                                    + juce::String(lfoPeak, 3) + " m)");
+                    check(std::abs(lfoMovedX - (authoredX + lfoPeak)) < 1.0e-4f,
+                          "O7: the return renders at its authored position plus the LFO offset");
+                    check(lfoFeedHeld, "O7: not one input's feed cell moved while the LFO ran");
+                    {
+                        const float nowX = static_cast<float>(static_cast<double>(vts.getEffectParameter(0, P::effectPositionX)));
+                        const float nowY = static_cast<float>(static_cast<double>(vts.getEffectParameter(0, P::effectPositionY)));
+                        const float nowZ = static_cast<float>(static_cast<double>(vts.getEffectParameter(0, P::effectPositionZ)));
+                        check(nowX == authoredX && nowY == authoredY && nowZ == authoredZ,
+                              "O7: the authored position is bit-identical after the LFO ran");
+                    }
+
+                    // The two movements add: an AutomOtion offset under the running LFO
+                    calc->setEffectOtomoOffset(0, 3.0f, 0.0f, 0.0f);
+                    calc->recalculateMatrix(nullptr);
+                    {
+                        const float lfoNow = lfo->getOffsetX(0);
+                        const auto rp = calc->getRenderSourcePosition(firstFx);
+                        check(std::abs(rp.x - (authoredX + 3.0f + lfoNow)) < 1.0e-4f,
+                              "O7: the AutomOtion and LFO offsets add on the rendered return");
+                        const auto mv = calc->getEffectMovementOffset(0);
+                        check(std::abs(mv.x - (3.0f + lfoNow)) < 1.0e-6f,
+                              "O7: the Map reads the sum of both movements");
+                    }
+                    calc->setEffectOtomoOffset(0, 0.0f, 0.0f, 0.0f);
+
+                    // Off: the 500 ms fade, then exactly zero
+                    vts.setEffectParameter(0, P::effectLFOactive, 0);
+                    for (int tick = 0; tick < 40; ++tick)
+                        lfo->process(0.02f);
+                    check(lfo->getOffsetX(0) == 0.0f && lfo->getOffsetY(0) == 0.0f && lfo->getOffsetZ(0) == 0.0f,
+                          "O7: the offset is exactly zero once the LFO is off and faded");
+
+                    calc->setEffectLFOOffset(0, 0.0f, 0.0f, 0.0f);
+                    vts.setEffectParameter(0, P::effectLFOshapeX, 0);
+                    calc->recalculateMatrix(nullptr);
+                }
             }
 
             // Leave nothing behind
@@ -12603,6 +12695,40 @@ void MainComponent::timerCallback()
             effectOtomoProcessor->process (0.02f);
 
             if (mapVisible && effectOtomoProcessor->isAnyActive() && mapTab != nullptr)
+                mapTab->repaint();
+        }
+
+        // The effect LFOs, on the same tick. Where an input's LFO offset is
+        // summed here with the sampler and gradient offsets before one
+        // setLFOOffset, an effect return has exactly one LFO contribution, so
+        // it goes straight to its own engine slot and adds to the AutomOtion's
+        // there. The tab's progress dial and output bars follow the channel
+        // it shows.
+        if (effectLfoProcessor != nullptr && calculationEngine != nullptr)
+        {
+            effectLfoProcessor->process (0.02f);
+
+            bool anyEffectLfoMoving = false;
+            const int numFx = juce::jmin (parameters.getNumEffectChannels(),
+                                          WFSParameterDefaults::maxEffectChannels);
+            for (int fx = 0; fx < numFx; ++fx)
+            {
+                const float ox = effectLfoProcessor->getOffsetX (fx);
+                const float oy = effectLfoProcessor->getOffsetY (fx);
+                const float oz = effectLfoProcessor->getOffsetZ (fx);
+                calculationEngine->setEffectLFOOffset (fx, ox, oy, oz);
+                anyEffectLfoMoving = anyEffectLfoMoving
+                                  || std::abs (ox) > 0.001f || std::abs (oy) > 0.001f || std::abs (oz) > 0.001f;
+
+                if (effectsTab != nullptr && fx == effectsTab->getCurrentChannel() - 1)
+                    effectsTab->updateLFOIndicators (effectLfoProcessor->getRampProgress (fx),
+                                                     effectLfoProcessor->isActive (fx),
+                                                     effectLfoProcessor->getNormalizedX (fx),
+                                                     effectLfoProcessor->getNormalizedY (fx),
+                                                     effectLfoProcessor->getNormalizedZ (fx));
+            }
+
+            if (mapVisible && anyEffectLfoMoving && mapTab != nullptr)
                 mapTab->repaint();
         }
 

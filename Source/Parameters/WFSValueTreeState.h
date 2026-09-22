@@ -521,6 +521,7 @@ public:
     juce::ValueTree getEffectFeedSection (int channelIndex);
     juce::ValueTree getEffectReturnSection (int channelIndex);
     juce::ValueTree getEffectAutoMotionSection (int channelIndex);
+    juce::ValueTree getEffectLFOSection (int channelIndex);
     juce::ValueTree getEffectChainSection (int channelIndex);
 
     /** The <Sends> node: the four packed send rows of one effect channel. */
@@ -1480,6 +1481,7 @@ private:
     juce::ValueTree createEffectFeedSection (int orientationDeg);
     juce::ValueTree createEffectReturnSection (int numOutputs);
     juce::ValueTree createEffectAutoMotionSection();
+    juce::ValueTree createEffectLFOSection();
     juce::ValueTree createEffectChainSection();
 
     /** <Sends> with all four rows stamped at their fixed widths and defaults.

@@ -923,6 +923,28 @@ namespace WFSParameterIDs
     const juce::Identifier effectOtomoRsph       ("effectOtomoRsph");          // Spherical radius
     const juce::Identifier effectOtomoPhi        ("effectOtomoPhi");           // Elevation angle
 
+    // Effect > LFO (node type LFO, shared with the input channels): the input
+    // set minus gyrophone - an effect return is an omnidirectional render
+    // source with no brightness cone to rotate. Like the AutomOtion block it
+    // moves the RETURN as an offset on top of the authored position; the two
+    // offsets add in the calculation engine and the feed keeps reading the
+    // base position.
+    const juce::Identifier effectLFOactive       ("effectLFOactive");
+    const juce::Identifier effectLFOperiod       ("effectLFOperiod");
+    const juce::Identifier effectLFOphase        ("effectLFOphase");
+    const juce::Identifier effectLFOshapeX       ("effectLFOshapeX");
+    const juce::Identifier effectLFOshapeY       ("effectLFOshapeY");
+    const juce::Identifier effectLFOshapeZ       ("effectLFOshapeZ");
+    const juce::Identifier effectLFOrateX        ("effectLFOrateX");
+    const juce::Identifier effectLFOrateY        ("effectLFOrateY");
+    const juce::Identifier effectLFOrateZ        ("effectLFOrateZ");
+    const juce::Identifier effectLFOamplitudeX   ("effectLFOamplitudeX");
+    const juce::Identifier effectLFOamplitudeY   ("effectLFOamplitudeY");
+    const juce::Identifier effectLFOamplitudeZ   ("effectLFOamplitudeZ");
+    const juce::Identifier effectLFOphaseX       ("effectLFOphaseX");
+    const juce::Identifier effectLFOphaseY       ("effectLFOphaseY");
+    const juce::Identifier effectLFOphaseZ       ("effectLFOphaseZ");
+
     // Effect > Chain
     const juce::Identifier effectChainOrder      ("effectChainOrder");         // permutation of the 11 slot tokens
     const juce::Identifier effectChainBypass     ("effectChainBypass");

@@ -1317,6 +1317,25 @@ namespace WFSParameterDefaults
     constexpr float effectOtomoPhiMin             = -3600.0f;  // 10 full rotations
     constexpr float effectOtomoPhiMax             = 3600.0f;
 
+    // Effect > LFO. The input constants minus gyrophone; as for the inputs one
+    // shape / rate / amplitude / phase constant covers the three axes.
+    constexpr int   effectLFOactiveDefault        = 0;
+    constexpr float effectLFOperiodDefault        = 5.0f;    // seconds
+    constexpr float effectLFOperiodMin            = 0.01f;
+    constexpr float effectLFOperiodMax            = 100.0f;
+    constexpr int   effectLFOphaseDefault         = 0;       // degrees, canonical [-180, 180]
+    constexpr int   effectLFOphaseMin             = -180;
+    constexpr int   effectLFOphaseMax             = 180;
+    constexpr int   effectLFOshapeDefault         = 0;       // 0=OFF,1=sine,2=square,3=sawtooth,4=triangle,5=keystone,6=log,7=exp,8=random
+    constexpr int   effectLFOshapeMin             = 0;
+    constexpr int   effectLFOshapeMax             = 8;
+    constexpr float effectLFOrateDefault          = 1.0f;    // multiplier of the base period
+    constexpr float effectLFOrateMin              = 0.01f;
+    constexpr float effectLFOrateMax              = 100.0f;
+    constexpr float effectLFOamplitudeDefault     = 1.0f;    // metres
+    constexpr float effectLFOamplitudeMin         = 0.0f;
+    constexpr float effectLFOamplitudeMax         = 50.0f;
+
     // Effect > Chain. The order string is a permutation of the eleven slot
     // tokens of spatcore::effects::kSlots, in their declared order - the
     // string form of spatcore::effects::kDefaultOrder.

@@ -1876,6 +1876,11 @@ juce::ValueTree WFSValueTreeState::getEffectAutoMotionSection (int channelIndex)
     return getEffectState (channelIndex).getChildWithName (AutomOtion);
 }
 
+juce::ValueTree WFSValueTreeState::getEffectLFOSection (int channelIndex)
+{
+    return getEffectState (channelIndex).getChildWithName (LFO);
+}
+
 juce::ValueTree WFSValueTreeState::getEffectChainSection (int channelIndex)
 {
     return getEffectState (channelIndex).getChildWithName (Chain);
@@ -1928,6 +1933,11 @@ bool WFSValueTreeState::isEffectLinkExcluded (const juce::Identifier& paramId)
         effectOtomoAbsoluteRelative, effectOtomoSpeedProfile, effectOtomoDuration,
         effectOtomoCurve, effectOtomoTrigger, effectOtomoThreshold, effectOtomoReset,
         effectOtomoPauseResume,
+        effectLFOactive, effectLFOperiod, effectLFOphase,
+        effectLFOshapeX, effectLFOshapeY, effectLFOshapeZ,
+        effectLFOrateX, effectLFOrateY, effectLFOrateZ,
+        effectLFOamplitudeX, effectLFOamplitudeY, effectLFOamplitudeZ,
+        effectLFOphaseX, effectLFOphaseY, effectLFOphaseZ,
     };
 
     return excluded.count (paramId) != 0;
@@ -6602,6 +6612,7 @@ juce::ValueTree WFSValueTreeState::createDefaultEffectChannel (int index, int to
     effect.appendChild (createEffectFeedSection (node.orientationDeg), nullptr);
     effect.appendChild (createEffectReturnSection (getNumOutputChannels()), nullptr);
     effect.appendChild (createEffectAutoMotionSection(), nullptr);
+    effect.appendChild (createEffectLFOSection(), nullptr);
     effect.appendChild (createEffectChainSection(), nullptr);
 
     // The eleven chain slots, in the declared order, so the child list reads
@@ -6779,6 +6790,30 @@ juce::ValueTree WFSValueTreeState::createEffectAutoMotionSection()
     otomo.setProperty (effectOtomoRsph, effectOtomoRsphDefault, nullptr);
     otomo.setProperty (effectOtomoPhi, effectOtomoPhiDefault, nullptr);
     return otomo;
+}
+
+juce::ValueTree WFSValueTreeState::createEffectLFOSection()
+{
+    // The input LFO section minus gyrophone. An older effects.xml without the
+    // node gains it through backfillEffectChannelsFromTemplate, which walks
+    // this template child by child.
+    juce::ValueTree lfo (LFO);
+    lfo.setProperty (effectLFOactive, effectLFOactiveDefault, nullptr);
+    lfo.setProperty (effectLFOperiod, effectLFOperiodDefault, nullptr);
+    lfo.setProperty (effectLFOphase, effectLFOphaseDefault, nullptr);
+    lfo.setProperty (effectLFOshapeX, effectLFOshapeDefault, nullptr);
+    lfo.setProperty (effectLFOshapeY, effectLFOshapeDefault, nullptr);
+    lfo.setProperty (effectLFOshapeZ, effectLFOshapeDefault, nullptr);
+    lfo.setProperty (effectLFOrateX, effectLFOrateDefault, nullptr);
+    lfo.setProperty (effectLFOrateY, effectLFOrateDefault, nullptr);
+    lfo.setProperty (effectLFOrateZ, effectLFOrateDefault, nullptr);
+    lfo.setProperty (effectLFOamplitudeX, effectLFOamplitudeDefault, nullptr);
+    lfo.setProperty (effectLFOamplitudeY, effectLFOamplitudeDefault, nullptr);
+    lfo.setProperty (effectLFOamplitudeZ, effectLFOamplitudeDefault, nullptr);
+    lfo.setProperty (effectLFOphaseX, effectLFOphaseDefault, nullptr);
+    lfo.setProperty (effectLFOphaseY, effectLFOphaseDefault, nullptr);
+    lfo.setProperty (effectLFOphaseZ, effectLFOphaseDefault, nullptr);
+    return lfo;
 }
 
 juce::ValueTree WFSValueTreeState::createEffectChainSection()

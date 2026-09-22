@@ -398,7 +398,7 @@ public:
     static const std::map<juce::String, juce::Identifier>& getOutputAddressMap();
     static const std::map<juce::String, juce::Identifier>& getReverbAddressMap();
 
-    /** oscParamName -> parameterID for the 175 addressable /wfs/effect/ names.
+    /** oscParamName -> parameterID for the 190 addressable /wfs/effect/ names.
         The nine effects GLOBALS are not here: they are /wfs/config/effects/*
         full paths and live in getConfigAddressMap, like every other global.
         The one exception is "mapVisible", which the published contract puts

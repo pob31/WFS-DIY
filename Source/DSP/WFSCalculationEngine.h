@@ -307,6 +307,15 @@ public:
     void setEffectOtomoOffset (int effectIndex, float x, float y, float z);
     Position getEffectOtomoOffset (int effectIndex) const;
 
+    /** LFO offset of an effect return (50 Hz; the twin of setEffectOtomoOffset).
+        The two offsets ADD: the return renders at base + AutomOtion + LFO, and
+        the feed keeps reading the base position. */
+    void setEffectLFOOffset (int effectIndex, float x, float y, float z);
+    Position getEffectLFOOffset (int effectIndex) const;
+
+    /** AutomOtion + LFO: the whole movement, which is what the Map's grey dot shows. */
+    Position getEffectMovementOffset (int effectIndex) const;
+
     /** Global "solo effects": every INPUT row of the in x out matrix is zeroed
         so only the effect returns reach the speakers. The feeds are not masked
         (solo is monitoring, not routing) and the reverb feeds keep running,
@@ -489,6 +498,7 @@ private:
     std::vector<Position> effectFeedPositions;             // [effectIndex] base position (positionLock)
     std::vector<Position> effectReturnPositions;           // [effectIndex] base + return offset (positionLock)
     std::vector<Position> effectOtomoOffsets;              // [effectIndex] AutomOtion offset, 50 Hz (positionLock)
+    std::vector<Position> effectLfoOffsets;                // [effectIndex] LFO offset, 50 Hz (positionLock)
     std::vector<Position> compositeEffectReturnPositions;  // [effectIndex] what the last recalc rendered (positionLock)
     std::vector<float> effectCommonAttenAdjustments;       // [effectIndex] the return rows' lift, reused by the feeds
                                                            // (message thread only - written and read by recalculateMatrix)

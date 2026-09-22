@@ -120,6 +120,7 @@ WFSCalculationEngine::WFSCalculationEngine (WFSValueTreeState& state)
     effectFeedPositions.resize (static_cast<size_t> (numEffects));
     effectReturnPositions.resize (static_cast<size_t> (numEffects));
     effectOtomoOffsets.resize (static_cast<size_t> (numEffects));
+    effectLfoOffsets.resize (static_cast<size_t> (numEffects));
     compositeEffectReturnPositions.resize (static_cast<size_t> (numEffects));
     effectCommonAttenAdjustments.resize (static_cast<size_t> (numEffects), 0.0f);
 
@@ -828,7 +829,8 @@ void WFSCalculationEngine::recalculateAllEffectPositions()
         {
             const Position& r = effectReturnPositions[i];
             const Position& o = effectOtomoOffsets[i];
-            compositeEffectReturnPositions[i] = { r.x + o.x, r.y + o.y, r.z + o.z };
+            const Position& l = effectLfoOffsets[i];
+            compositeEffectReturnPositions[i] = { r.x + o.x + l.x, r.y + o.y + l.y, r.z + o.z + l.z };
         }
     }
 
@@ -899,6 +901,49 @@ WFSCalculationEngine::Position WFSCalculationEngine::getEffectOtomoOffset (int e
 
     const juce::ScopedLock sl (positionLock);
     return effectOtomoOffsets[static_cast<size_t> (effectIndex)];
+}
+
+void WFSCalculationEngine::setEffectLFOOffset (int effectIndex, float x, float y, float z)
+{
+    if (effectIndex < 0 || effectIndex >= numEffects)
+        return;
+
+    const juce::ScopedLock sl (positionLock);
+    auto& offset = effectLfoOffsets[static_cast<size_t> (effectIndex)];
+
+    constexpr float epsilon = 0.0001f;
+    if (std::abs (offset.x - x) > epsilon ||
+        std::abs (offset.y - y) > epsilon ||
+        std::abs (offset.z - z) > epsilon)
+    {
+        offset.x = x;
+        offset.y = y;
+        offset.z = z;
+        // The same grade of dirtiness as the AutomOtion offset: the return
+        // moved, the feed rows keep reading the base position.
+        effectReturnsDirty.store (true);
+        matrixDirty.store (true);
+    }
+}
+
+WFSCalculationEngine::Position WFSCalculationEngine::getEffectLFOOffset (int effectIndex) const
+{
+    if (effectIndex < 0 || effectIndex >= numEffects)
+        return {};
+
+    const juce::ScopedLock sl (positionLock);
+    return effectLfoOffsets[static_cast<size_t> (effectIndex)];
+}
+
+WFSCalculationEngine::Position WFSCalculationEngine::getEffectMovementOffset (int effectIndex) const
+{
+    if (effectIndex < 0 || effectIndex >= numEffects)
+        return {};
+
+    const juce::ScopedLock sl (positionLock);
+    const auto& o = effectOtomoOffsets[static_cast<size_t> (effectIndex)];
+    const auto& l = effectLfoOffsets[static_cast<size_t> (effectIndex)];
+    return { o.x + l.x, o.y + l.y, o.z + l.z };
 }
 
 void WFSCalculationEngine::setSoloEffects (bool soloed)
@@ -1348,7 +1393,8 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
         {
             const Position& r = effectReturnPositions[i];
             const Position& o = effectOtomoOffsets[i];
-            localEffectReturnPositions[i] = { r.x + o.x, r.y + o.y, r.z + o.z };
+            const Position& l = effectLfoOffsets[i];
+            localEffectReturnPositions[i] = { r.x + o.x + l.x, r.y + o.y + l.y, r.z + o.z + l.z };
         }
         compositeEffectReturnPositions = localEffectReturnPositions;
 

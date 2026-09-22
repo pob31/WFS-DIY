@@ -4,6 +4,60 @@
 #include "../Parameters/WFSValueTreeState.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../../spatcore/dsp/LFOWaveforms.h"
+#include <functional>
+
+/**
+    Which family an LFOProcessor animates: the <LFO> node of a slot and the
+    identifiers on it. The waveform engine is the same for every family; only
+    the tree it reads differs - the twin of AutomOtionFamily.
+
+    Gyrophone is optional. An input has a brightness cone to rotate; an effect
+    return is an omnidirectional render source and has no such property, so
+    its family leaves the identifier null and the processor publishes 0 rad.
+*/
+struct LFOFamily
+{
+    std::function<juce::ValueTree (int slot)> section;
+    int numSlots = 0;
+
+    juce::Identifier active, period, phase;
+    juce::Identifier shapeX, shapeY, shapeZ;
+    juce::Identifier rateX, rateY, rateZ;
+    juce::Identifier amplitudeX, amplitudeY, amplitudeZ;
+    juce::Identifier phaseX, phaseY, phaseZ;
+    juce::Identifier gyrophone;      // null for a family without one
+
+    static LFOFamily inputs (WFSValueTreeState& state, int numInputs)
+    {
+        namespace P = WFSParameterIDs;
+        LFOFamily f;
+        f.section  = [&state] (int slot) { return state.getInputLFOSection (slot); };
+        f.numSlots = numInputs;
+        f.active = P::inputLFOactive;  f.period = P::inputLFOperiod;  f.phase = P::inputLFOphase;
+        f.shapeX = P::inputLFOshapeX;  f.shapeY = P::inputLFOshapeY;  f.shapeZ = P::inputLFOshapeZ;
+        f.rateX = P::inputLFOrateX;    f.rateY = P::inputLFOrateY;    f.rateZ = P::inputLFOrateZ;
+        f.amplitudeX = P::inputLFOamplitudeX; f.amplitudeY = P::inputLFOamplitudeY; f.amplitudeZ = P::inputLFOamplitudeZ;
+        f.phaseX = P::inputLFOphaseX;  f.phaseY = P::inputLFOphaseY;  f.phaseZ = P::inputLFOphaseZ;
+        f.gyrophone = P::inputLFOgyrophone;
+        return f;
+    }
+
+    /** The effect returns: the same waveforms over effectLFO*, no gyrophone,
+        one slot per possible effect (the budget, as AutomOtionFamily::effects). */
+    static LFOFamily effects (WFSValueTreeState& state)
+    {
+        namespace P = WFSParameterIDs;
+        LFOFamily f;
+        f.section  = [&state] (int slot) { return state.getEffectLFOSection (slot); };
+        f.numSlots = WFSParameterDefaults::maxEffectChannels;
+        f.active = P::effectLFOactive;  f.period = P::effectLFOperiod;  f.phase = P::effectLFOphase;
+        f.shapeX = P::effectLFOshapeX;  f.shapeY = P::effectLFOshapeY;  f.shapeZ = P::effectLFOshapeZ;
+        f.rateX = P::effectLFOrateX;    f.rateY = P::effectLFOrateY;    f.rateZ = P::effectLFOrateZ;
+        f.amplitudeX = P::effectLFOamplitudeX; f.amplitudeY = P::effectLFOamplitudeY; f.amplitudeZ = P::effectLFOamplitudeZ;
+        f.phaseX = P::effectLFOphaseX;  f.phaseY = P::effectLFOphaseY;  f.phaseZ = P::effectLFOphaseZ;
+        return f;
+    }
+};
 
 /**
  * LFO Processor for WFS Input Position Modulation
@@ -78,9 +132,15 @@ public:
     // Construction
     //==========================================================================
     explicit LFOProcessor (WFSValueTreeState& state, int numInputs = 64)
-        : valueTreeState (state), numInputChannels (numInputs)
+        : LFOProcessor (LFOFamily::inputs (state, numInputs))
     {
-        states.resize (static_cast<size_t> (numInputs));
+    }
+
+    /** Any family: the effects twin is LFOProcessor (LFOFamily::effects (vts)). */
+    explicit LFOProcessor (LFOFamily familyToUse)
+        : family (std::move (familyToUse)), numInputChannels (family.numSlots)
+    {
+        states.resize (static_cast<size_t> (numInputChannels));
     }
 
     //==========================================================================
@@ -173,8 +233,8 @@ public:
     {
         if (inputIndex < 0 || inputIndex >= numInputChannels)
             return false;
-        auto lfoSection = valueTreeState.getInputLFOSection (inputIndex);
-        return static_cast<int> (lfoSection.getProperty (WFSParameterIDs::inputLFOactive, 0)) != 0;
+        auto lfoSection = family.section (inputIndex);
+        return static_cast<int> (lfoSection.getProperty (family.active, 0)) != 0;
     }
 
 private:
@@ -184,31 +244,34 @@ private:
     void processInput (int inputIndex, float deltaTime, float fadeIncrement, float axisFadeIncrement)
     {
         auto& state = states[static_cast<size_t> (inputIndex)];
-        auto lfoSection = valueTreeState.getInputLFOSection (inputIndex);
+        auto lfoSection = family.section (inputIndex);
 
         // Read parameters
-        bool isActive = static_cast<int> (lfoSection.getProperty (WFSParameterIDs::inputLFOactive, 0)) != 0;
-        float period = static_cast<float> (lfoSection.getProperty (WFSParameterIDs::inputLFOperiod, 5.0f));
-        int globalPhase = static_cast<int> (lfoSection.getProperty (WFSParameterIDs::inputLFOphase, 0));
+        bool isActive = static_cast<int> (lfoSection.getProperty (family.active, 0)) != 0;
+        float period = static_cast<float> (lfoSection.getProperty (family.period, 5.0f));
+        int globalPhase = static_cast<int> (lfoSection.getProperty (family.phase, 0));
 
-        int shapeX = static_cast<int> (lfoSection.getProperty (WFSParameterIDs::inputLFOshapeX, 0));
-        int shapeY = static_cast<int> (lfoSection.getProperty (WFSParameterIDs::inputLFOshapeY, 0));
-        int shapeZ = static_cast<int> (lfoSection.getProperty (WFSParameterIDs::inputLFOshapeZ, 0));
+        int shapeX = static_cast<int> (lfoSection.getProperty (family.shapeX, 0));
+        int shapeY = static_cast<int> (lfoSection.getProperty (family.shapeY, 0));
+        int shapeZ = static_cast<int> (lfoSection.getProperty (family.shapeZ, 0));
 
-        float rateX = static_cast<float> (lfoSection.getProperty (WFSParameterIDs::inputLFOrateX, 1.0f));
-        float rateY = static_cast<float> (lfoSection.getProperty (WFSParameterIDs::inputLFOrateY, 1.0f));
-        float rateZ = static_cast<float> (lfoSection.getProperty (WFSParameterIDs::inputLFOrateZ, 1.0f));
+        float rateX = static_cast<float> (lfoSection.getProperty (family.rateX, 1.0f));
+        float rateY = static_cast<float> (lfoSection.getProperty (family.rateY, 1.0f));
+        float rateZ = static_cast<float> (lfoSection.getProperty (family.rateZ, 1.0f));
 
-        float amplitudeX = static_cast<float> (lfoSection.getProperty (WFSParameterIDs::inputLFOamplitudeX, 1.0f));
-        float amplitudeY = static_cast<float> (lfoSection.getProperty (WFSParameterIDs::inputLFOamplitudeY, 1.0f));
-        float amplitudeZ = static_cast<float> (lfoSection.getProperty (WFSParameterIDs::inputLFOamplitudeZ, 1.0f));
+        float amplitudeX = static_cast<float> (lfoSection.getProperty (family.amplitudeX, 1.0f));
+        float amplitudeY = static_cast<float> (lfoSection.getProperty (family.amplitudeY, 1.0f));
+        float amplitudeZ = static_cast<float> (lfoSection.getProperty (family.amplitudeZ, 1.0f));
 
-        int phaseX = static_cast<int> (lfoSection.getProperty (WFSParameterIDs::inputLFOphaseX, 0));
-        int phaseY = static_cast<int> (lfoSection.getProperty (WFSParameterIDs::inputLFOphaseY, 0));
-        int phaseZ = static_cast<int> (lfoSection.getProperty (WFSParameterIDs::inputLFOphaseZ, 0));
+        int phaseX = static_cast<int> (lfoSection.getProperty (family.phaseX, 0));
+        int phaseY = static_cast<int> (lfoSection.getProperty (family.phaseY, 0));
+        int phaseZ = static_cast<int> (lfoSection.getProperty (family.phaseZ, 0));
 
-        // Gyrophone: -1 = Anti-Clockwise, 0 = OFF, 1 = Clockwise
-        int gyrophone = static_cast<int> (lfoSection.getProperty (WFSParameterIDs::inputLFOgyrophone, 0));
+        // Gyrophone: -1 = Anti-Clockwise, 0 = OFF, 1 = Clockwise; a family
+        // without one (the effect returns) reads OFF
+        int gyrophone = family.gyrophone.isNull()
+                          ? 0
+                          : static_cast<int> (lfoSection.getProperty (family.gyrophone, 0));
 
         // Update fade level (500ms fade in/out)
         if (isActive && state.fadeLevel < 1.0f)
@@ -364,7 +427,7 @@ private:
     //==========================================================================
     // Member Variables
     //==========================================================================
-    WFSValueTreeState& valueTreeState;
+    LFOFamily family;
     int numInputChannels;
     std::vector<LFOState> states;
     juce::Random random;

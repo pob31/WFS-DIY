@@ -412,6 +412,9 @@ private:
     // The same processor over the effect returns. Its movements never reach the
     // tree: they are published as an offset the calculation engine adds.
     std::unique_ptr<AutomOtionProcessor> effectOtomoProcessor;
+    // The LFO over the effect returns, in the same offset mode: its offsets go
+    // to the engine's second slot and add to the AutomOtion's.
+    std::unique_ptr<LFOProcessor> effectLfoProcessor;
 
     // Input speed limiter for smooth position movement
     std::unique_ptr<InputSpeedLimiter> speedLimiter;

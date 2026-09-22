@@ -498,6 +498,23 @@ namespace
             BIND_F (effectOtomoReset);
             BIND_BOOL (effectOtomoPauseResume);
 
+            // Effect / LFO (the input block minus gyrophone)
+            BIND_BOOL (effectLFOactive);
+            BIND_F (effectLFOperiod);
+            BIND_PHASE (effectLFOphase);
+            BIND_I_AS (effectLFOshapeX, effectLFOshape);
+            BIND_I_AS (effectLFOshapeY, effectLFOshape);
+            BIND_I_AS (effectLFOshapeZ, effectLFOshape);
+            BIND_F_AS (effectLFOrateX, effectLFOrate);
+            BIND_F_AS (effectLFOrateY, effectLFOrate);
+            BIND_F_AS (effectLFOrateZ, effectLFOrate);
+            BIND_F_AS (effectLFOamplitudeX, effectLFOamplitude);
+            BIND_F_AS (effectLFOamplitudeY, effectLFOamplitude);
+            BIND_F_AS (effectLFOamplitudeZ, effectLFOamplitude);
+            BIND_PHASE (effectLFOphaseX);
+            BIND_PHASE (effectLFOphaseY);
+            BIND_PHASE (effectLFOphaseZ);
+
             // Chain
             BIND_BOOL (effectChainBypass);
 
@@ -684,7 +701,11 @@ bool isLFOPhaseParam (const juce::Identifier& paramId)
         || paramId == clusterLFOphaseY
         || paramId == clusterLFOphaseZ
         || paramId == clusterLFOphaseRot
-        || paramId == clusterLFOphaseScale;
+        || paramId == clusterLFOphaseScale
+        || paramId == effectLFOphase
+        || paramId == effectLFOphaseX
+        || paramId == effectLFOphaseY
+        || paramId == effectLFOphaseZ;
 }
 
 juce::String formatOutOfRangeReason (const juce::Identifier& paramId, double value)

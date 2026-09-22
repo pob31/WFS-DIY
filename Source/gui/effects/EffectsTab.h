@@ -164,6 +164,12 @@ public:
         movementsPanel.updateLevelIndicators (shortPeakDb, rmsDb);
     }
 
+    /** 50 Hz from MainComponent, for the channel the tab shows. */
+    void updateLFOIndicators (float progress, bool active, float nx, float ny, float nz)
+    {
+        movementsPanel.updateLFOIndicators (progress, active, nx, ny, nz);
+    }
+
     int getCurrentChannel() const { return ctx.currentChannel; }
     int getCurrentSubTab() const { return subTabBar.getCurrentTabIndex(); }
 

@@ -1455,7 +1455,8 @@
     "sections": {
       "effectFeed": "Effect Feed",
       "effectReturn": "Effect Return",
-      "automOtion": "AutomOtion"
+      "automOtion": "AutomOtion",
+      "lfo": "LFO"
     },
     "labels": {
       "attenuation": "Attenuation:",
@@ -1486,14 +1487,33 @@
       "outputMutes": "Output Mutes:",
       "arrayAttenuation": "Array Attenuation:",
       "arrayPrefix": "Array",
-      "destination": "Destination:",
       "duration": "Duration:",
       "speedProfile": "Speed Profile:",
       "curve": "Curve:",
       "threshold": "Threshold:",
       "reset": "Reset:",
       "returnsHome": "An effect return always comes home: the movement travels as an offset, and the position you set is never overwritten.",
-      "name": "Name:"
+      "name": "Name:",
+      "period": "Period:",
+      "phase": "Phase:",
+      "shapeX": "Shape X:",
+      "shapeY": "Shape Y:",
+      "shapeZ": "Shape Z:",
+      "rateX": "Rate X:",
+      "rateY": "Rate Y:",
+      "rateZ": "Rate Z:",
+      "amplitudeX": "Amplitude X:",
+      "amplitudeY": "Amplitude Y:",
+      "amplitudeZ": "Amplitude Z:",
+      "phaseX": "Phase X:",
+      "phaseY": "Phase Y:",
+      "phaseZ": "Phase Z:",
+      "outX": "Out X:",
+      "outY": "Out Y:",
+      "outZ": "Out Z:",
+      "destX": "Dest. X:",
+      "destY": "Dest. Y:",
+      "destZ": "Dest. Z:"
     },
     "toggles": {
       "minLatencyOn": "Minimal Latency Allowed",
@@ -1505,9 +1525,11 @@
       "absolute": "Absolute",
       "relative": "Relative",
       "manual": "Manual",
-      "audioTrigger": "Audio Trigger",
       "paused": "Paused",
-      "resume": "Running"
+      "resume": "Running",
+      "triggered": "Triggered",
+      "lfoOn": "L.F.O: ON",
+      "lfoOff": "L.F.O: OFF"
     },
     "coordModes": {
       "xyz": "XYZ",
@@ -1551,13 +1573,14 @@
       "soloOn": "Solo ON",
       "clear": "Clear",
       "groupMute": "Mute Group",
-      "otomoStart": "Start",
-      "otomoStop": "Stop",
       "storeConfig": "Store Config",
       "reloadConfig": "Reload Config",
       "reloadBackup": "Reload Backup",
       "import": "Import",
-      "export": "Export"
+      "export": "Export",
+      "stopAll": "Stop All",
+      "pauseAll": "Pause All",
+      "resumeAll": "Resume All"
     },
     "dialogs": {
       "importTitle": "Import Effects Configuration",
@@ -1591,7 +1614,36 @@
       "reloadConfig": "Reload Effects Configuration from file (with confirmation).",
       "reloadBackup": "Reload Effects Configuration from backup file (with confirmation).",
       "import": "Import Effects Configuration from file (with file explorer window).",
-      "export": "Export Effects Configuration to file (with file explorer window)."
+      "export": "Export Effects Configuration to file (with file explorer window).",
+      "lfoActive": "Enable or Disable the Periodic Movement of the Effect Return (LFO).",
+      "lfoPeriod": "Base Period of the Movement of the Effect Return.",
+      "lfoPhase": "Phase Offset of the Movement of the Effect Return.",
+      "lfoShapeX": "Movement Behaviour of the Effect Return in Width.",
+      "lfoRateX": "Faster or Slower Movement in Relation to Base Period in Width.",
+      "lfoAmplitudeX": "Width of Movement in Relation to Base Position of the Effect Return.",
+      "lfoPhaseX": "Phase Offset of the Movement of the Effect Return in Width.",
+      "lfoShapeY": "Movement Behaviour of the Effect Return in Depth.",
+      "lfoRateY": "Faster or Slower Movement in Relation to Base Period in Depth.",
+      "lfoAmplitudeY": "Depth of Movement in Relation to Base Position of the Effect Return.",
+      "lfoPhaseY": "Phase Offset of the Movement of the Effect Return in Depth.",
+      "lfoShapeZ": "Movement Behaviour of the Effect Return in Height.",
+      "lfoRateZ": "Faster or Slower Movement in Relation to Base Period in Height.",
+      "lfoAmplitudeZ": "Height of Movement in Relation to Base Position of the Effect Return.",
+      "lfoPhaseZ": "Phase Offset of the Movement of the Effect Return in Height.",
+      "otomoCoordMode": "Coordinate display mode for AutomOtion destinations: Cartesian (X/Y/Z), Cylindrical (r/\u03b8/Z), or Spherical (r/\u03b8/\u03c6).",
+      "otomoDest": "Relative or Absolute Destination {name} ({unit}).",
+      "otomoAbsRel": "Select Relative or Absolute Coordinates of Displacement.",
+      "otomoDuration": "Duration of the Movement in Seconds (0.1s to 1 hour).",
+      "otomoCurve": "Bend the Path to the Left (Negative) or Right (Positive) of the Direction of Travel.",
+      "otomoSpeedProfile": "Constant Speed or Gradual Acceleration and Slow Down at the Start and the End of the Movement.",
+      "otomoTrigger": "Manual Start of Displacement or Automatic Trigger on the Audio Level.",
+      "otomoThreshold": "Set the Threshold for the Automatic Trigger of the Movement.",
+      "otomoReset": "Set the Reset Level for the Automatic Trigger.",
+      "otomoStart": "Start the Movement Manually. An effect return always comes home: the movement is an offset on the authored position.",
+      "otomoStop": "Stop the Movement.",
+      "otomoPause": "Pause and Resume the Movement.",
+      "otomoStopAll": "Stop All Active Movements on every effect return.",
+      "otomoPauseResumeAll": "Pause or Resume All Active Movements on every effect return."
     },
     "sends": {
       "corner": "Sources \u2192 Effects",
@@ -1610,6 +1662,19 @@
         "on": "on",
         "off": "off",
         "forbidden": "an effect cannot feed itself"
+      }
+    },
+    "lfo": {
+      "shapes": {
+        "off": "OFF",
+        "sine": "sine",
+        "square": "square",
+        "sawtooth": "sawtooth",
+        "triangle": "triangle",
+        "keystone": "keystone",
+        "log": "log",
+        "exp": "exp",
+        "random": "random"
       }
     }
   },

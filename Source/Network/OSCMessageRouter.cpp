@@ -264,7 +264,7 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getReverbAddre
 
 const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getEffectAddressMap()
 {
-    // 175 names, transcribed from the "OSC path" column of
+    // 190 names, transcribed from the "OSC path" column of
     // Documentation/WFS-UI_effects.csv. That column is the published contract:
     // the map is the transcription, not the design.
     //
@@ -344,6 +344,23 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getEffectAddre
         { "otomoThreshold",         WFSParameterIDs::effectOtomoThreshold },
         { "otomoReset",             WFSParameterIDs::effectOtomoReset },
         { "otomoPauseResume",       WFSParameterIDs::effectOtomoPauseResume },
+
+        // LFO
+        { "LFOactive",              WFSParameterIDs::effectLFOactive },
+        { "LFOperiod",              WFSParameterIDs::effectLFOperiod },
+        { "LFOphase",               WFSParameterIDs::effectLFOphase },
+        { "LFOshapeX",              WFSParameterIDs::effectLFOshapeX },
+        { "LFOshapeY",              WFSParameterIDs::effectLFOshapeY },
+        { "LFOshapeZ",              WFSParameterIDs::effectLFOshapeZ },
+        { "LFOrateX",               WFSParameterIDs::effectLFOrateX },
+        { "LFOrateY",               WFSParameterIDs::effectLFOrateY },
+        { "LFOrateZ",               WFSParameterIDs::effectLFOrateZ },
+        { "LFOamplitudeX",          WFSParameterIDs::effectLFOamplitudeX },
+        { "LFOamplitudeY",          WFSParameterIDs::effectLFOamplitudeY },
+        { "LFOamplitudeZ",          WFSParameterIDs::effectLFOamplitudeZ },
+        { "LFOphaseX",              WFSParameterIDs::effectLFOphaseX },
+        { "LFOphaseY",              WFSParameterIDs::effectLFOphaseY },
+        { "LFOphaseZ",              WFSParameterIDs::effectLFOphaseZ },
 
         // Chain
         { "chainOrder",             WFSParameterIDs::effectChainOrder },
@@ -605,7 +622,7 @@ bool OSCMessageRouter::isEffectParamRampCapable (const juce::Identifier& paramId
 {
     // Mirrors the "OSC path optional value" column of
     // Documentation/WFS-UI_effects.csv: every row reading "extra value is
-    // transition time in seconds". 108 entries.
+    // transition time in seconds". 119 entries.
     //
     // NOT WIRED TO THE RAMPER YET - see the declaration. A ramp argument on one
     // of these is parsed, the value is applied instantly, and rampArgIgnored is
@@ -640,6 +657,17 @@ bool OSCMessageRouter::isEffectParamRampCapable (const juce::Identifier& paramId
         WFSParameterIDs::effectArrayAtten8,
         WFSParameterIDs::effectArrayAtten9,
         WFSParameterIDs::effectArrayAtten10,
+        WFSParameterIDs::effectLFOperiod,
+        WFSParameterIDs::effectLFOphase,
+        WFSParameterIDs::effectLFOrateX,
+        WFSParameterIDs::effectLFOrateY,
+        WFSParameterIDs::effectLFOrateZ,
+        WFSParameterIDs::effectLFOamplitudeX,
+        WFSParameterIDs::effectLFOamplitudeY,
+        WFSParameterIDs::effectLFOamplitudeZ,
+        WFSParameterIDs::effectLFOphaseX,
+        WFSParameterIDs::effectLFOphaseY,
+        WFSParameterIDs::effectLFOphaseZ,
         WFSParameterIDs::effectDistDrive,
         WFSParameterIDs::effectDistShape,
         WFSParameterIDs::effectDistBias,
@@ -2103,7 +2131,7 @@ OSCMessageRouter::ParsedConfigMessage OSCMessageRouter::parseConfigMessage(const
     //--------------------------------------------------------------------------
     // A NON-NUMERIC STRING AT A NUMERIC CONFIG PARAMETER IS REFUSED, not stored.
     //
-    // This is the same rule parseEffectMessage applies to the 175 addressable
+    // This is the same rule parseEffectMessage applies to the 190 addressable
     // effect names, and it has to be applied HERE as well because the ten
     // addresses this commit added to getConfigAddressMap do not go through that
     // parser. valueWithinBounds waves every string through by design (a name and
