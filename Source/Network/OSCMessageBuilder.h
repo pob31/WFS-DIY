@@ -245,6 +245,13 @@ public:
     static const std::map<juce::Identifier, ParamMapping>& getInputMappings();
     static const std::map<juce::Identifier, ParamMapping>& getOutputMappings();
     static const std::map<juce::Identifier, ParamMapping>& getReverbMappings();
+
+    /** Every per-channel effect parameter's /wfs/effect/<name> address: the inverse
+        of OSCMessageRouter::getEffectAddressMap (the effects CSV's "OSC path"
+        column), minus the four send-cell pseudo-identifiers (a cell is not a
+        stored value) and the global. No remote path: the tablet has no effects
+        page. The QLab snapshot cues use it; the outbound echo (C8) is next. */
+    static const std::map<juce::Identifier, ParamMapping>& getEffectMappings();
     static const std::map<juce::Identifier, juce::String>& getConfigMappings();
 
 private:

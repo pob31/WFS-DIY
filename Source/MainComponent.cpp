@@ -580,8 +580,9 @@ MainComponent::MainComponent()
 
         auto snapshot = juce::ValueTree::fromXml (*xml);
         auto inputsData = snapshot.getChildWithName (WFSParameterIDs::Inputs);
+        auto effectsData = snapshot.getChildWithName (WFSParameterIDs::Effects);   // one file, both families
 
-        if (!inputsData.isValid())
+        if (!inputsData.isValid() && !effectsData.isValid())
         {
             if (inputsTab != nullptr)
                 inputsTab->showStatusMessage ("QLab export: no input data in snapshot");
@@ -603,7 +604,10 @@ MainComponent::MainComponent()
         auto& vts = parameters.getValueTreeState();
         const auto numberToSlot = [&vts] (int number) { return vts.getSlotForChannelNumber (number); };
 
-        int cueCount = WFSNetwork::QLabCueBuilder::countCues (inputsData, effScope, numChannels, numberToSlot);
+        const int numEffects = parameters.getNumEffectChannels();
+        const int numOutputs = parameters.getNumOutputChannels();
+        int cueCount = WFSNetwork::QLabCueBuilder::countCues (inputsData, effScope, numChannels, numberToSlot,
+                                                             effectsData, numEffects, numOutputs);
 
         if (cueCount == 0)
         {
@@ -614,7 +618,20 @@ MainComponent::MainComponent()
 
         auto sequence = WFSNetwork::QLabCueBuilder::buildSnapshotCues (
             snapshotName, inputsData, effScope, numChannels, patchNumber, numberToSlot,
-            parameters.getNumOutputChannels());
+            numOutputs, effectsData, numEffects);
+
+        // A one-output rig's per-output mute row of an effect is a lone number,
+        // which the receiver refuses as a row: say so rather than drop it silently.
+        {
+            int skippedRows = 0;
+            WFSNetwork::QLabCueBuilder::collectEffectCues (effectsData, effScope.effects, numEffects,
+                                                           numOutputs, &skippedRows);
+            if (skippedRows > 0)
+                WFSLogger::getInstance().logWarning ("QLab export of '" + snapshotName + "': "
+                                                     + juce::String (skippedRows) + " effect mute row(s) not exported"
+                                                     " (one output: a one-token row is not sendable; the snapshot"
+                                                     " load cue still recalls them)");
+        }
 
         oscManager->sendToQLab (sequence, [this, cueCount](int /*sentCount*/) {
             if (inputsTab != nullptr)
@@ -4931,6 +4948,165 @@ void MainComponent::runChannelListSelfTest()
 
         tracker.clearAll();
         vts.setNumEffectChannels(effectsBefore);
+    }
+
+    // ---- N12: the QLab export carries the effects, each value in its own shape --
+    // Built from a stored file, as the export reads it, and every effect cue sent
+    // back through the /wfs/effect/ parser the way QLab would send it: a cue in
+    // the wrong shape is a cue that does nothing on show night.
+    {
+        namespace P = WFSParameterIDs;
+        using Scope = WFSFileManager::ExtendedSnapshotScope;
+
+        auto& fm = parameters.getFileManager();
+        const auto previousProject = fm.getProjectFolder();
+        auto tempProject = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                               .getChildFile("wfs-selftest-qlab-effects-project");
+        tempProject.deleteRecursively();
+        fm.setProjectFolder(tempProject);
+        check(fm.createProjectFolderStructure(), "N12: a throwaway project folder");
+
+        auto ioLatch = vts.getIOState();
+        const bool latchHadProperty = ioLatch.hasProperty(P::channelNumbersUserOwned);
+        const juce::var latchBefore = ioLatch.getProperty(P::channelNumbersUserOwned);
+
+        const int effectsBefore = vts.getNumEffectChannels();
+        vts.setNumEffectChannels(2);
+        vts.getEffectEQBand(1, 1, 2).setProperty(P::effectEQgain, 5.5, nullptr);
+        vts.getEffectDynSection(1, 1).setProperty(P::effectDynCompThreshold, -31.0, nullptr);
+        vts.getEffectDelayTap(1, 4).setProperty(P::effectDelayTapTime, 123.0, nullptr);
+        vts.setEffectSendLevelFromInput(1, 3, -9.5f);
+
+        check(fm.saveInputSnapshotWithExtendedScope("nq-cues", Scope()), "N12: a snapshot to export");
+
+        juce::ValueTree inputsData, effectsData;
+        if (auto xml = juce::XmlDocument::parse(fm.getInputSnapshotsFolder().getChildFile("nq-cues.xml")))
+        {
+            const auto snap = juce::ValueTree::fromXml(*xml);
+            inputsData = snap.getChildWithName(P::Inputs);
+            effectsData = snap.getChildWithName(P::Effects);
+        }
+        check(effectsData.isValid(), "N12: the stored snapshot has its <Effects>");
+
+        const int numInputs = vts.getNumInputChannels();
+        const int numOutputs = vts.getNumOutputChannels();
+        const auto numberToSlot = [&vts](int number) { return vts.getSlotForChannelNumber(number); };
+
+        auto effectCueStrings = [](const WFSNetwork::QLabCueSequence& sequence)
+        {
+            juce::StringArray out;
+            for (const auto& cue : sequence.networkCues)
+                for (const auto& m : cue.messages)
+                    if (m.getAddressPattern().toString() == "/cue/selected/customString"
+                        && m.size() > 0 && m[0].isString() && m[0].getString().startsWith("/wfs/effect/"))
+                        out.add(m[0].getString());
+            return out;
+        };
+        auto hasPrefix = [](const juce::StringArray& strings, const juce::String& prefix)
+        {
+            for (const auto& s : strings)
+                if (s.startsWith(prefix))
+                    return true;
+            return false;
+        };
+
+        // What QLab does with a custom string: split at spaces outside quotes,
+        // send a quoted token as a string, a bare number as a number.
+        auto sendLikeQLab = [](const juce::String& customString)
+        {
+            std::vector<std::pair<juce::String, bool>> tokens;
+            juce::String current;
+            bool inQuotes = false, quoted = false;
+            for (int ci = 0; ci < customString.length(); ++ci)
+            {
+                const auto c = customString[ci];
+                if (c == '"') { inQuotes = ! inQuotes; quoted = true; continue; }
+                if (c == ' ' && ! inQuotes)
+                {
+                    if (current.isNotEmpty() || quoted) tokens.push_back({ current, quoted });
+                    current.clear(); quoted = false;
+                    continue;
+                }
+                current += c;
+            }
+            if (current.isNotEmpty() || quoted) tokens.push_back({ current, quoted });
+
+            juce::OSCMessage msg (juce::OSCAddressPattern (tokens.empty() ? juce::String("/") : tokens.front().first));
+            for (size_t i = 1; i < tokens.size(); ++i)
+            {
+                const auto& [text, wasQuoted] = tokens[i];
+                const bool isInt = ! wasQuoted && text.isNotEmpty()
+                                   && text.trimCharactersAtStart("-+").containsOnly("0123456789")
+                                   && text.trimCharactersAtStart("-+").isNotEmpty();
+                const bool isFloat = ! wasQuoted && ! isInt && text.containsAnyOf("0123456789")
+                                     && text.containsOnly("0123456789.-+eE");
+                if (isInt)        msg.addInt32(text.getIntValue());
+                else if (isFloat) msg.addFloat32(text.getFloatValue());
+                else              msg.addString(text);
+            }
+            return msg;
+        };
+
+        const Scope all;
+        const auto sequence = WFSNetwork::QLabCueBuilder::buildSnapshotCues("nq-cues", inputsData, all, numInputs, 1,
+                                                                            numberToSlot, numOutputs, effectsData, 2);
+        const auto strings = effectCueStrings(sequence);
+
+        check(hasPrefix(strings, "/wfs/effect/EQgain 2 2 3 5.5"),
+              "N12: an EQ band cue is <ID> <instance> <band> <value> (effect 2, EQ 2, band 3)");
+        check(hasPrefix(strings, "/wfs/effect/dynCompThreshold 2 2 -31"),
+              "N12: a dynamics cue is <ID> <instance> <value>");
+        check(hasPrefix(strings, "/wfs/effect/delayTapTime 2 5 123"),
+              "N12: a delay tap cue is <ID> <tap> <value>");
+        check(hasPrefix(strings, "/wfs/effect/sendLevels 2 \"") && hasPrefix(strings, "/wfs/effect/chainOrder 1 \""),
+              "N12: a row goes out whole, as one quoted string");
+        check(WFSNetwork::QLabCueBuilder::countCues(inputsData, all, numInputs, numberToSlot, effectsData, 2, numOutputs)
+                  == static_cast<int>(sequence.networkCues.size()),
+              "N12: countCues agrees with the " + juce::String(static_cast<int>(sequence.networkCues.size())) + " cues built");
+
+        int parsedBack = 0;
+        juce::StringArray refused;
+        const auto& mappings = WFSNetwork::OSCMessageBuilder::getEffectMappings();
+        for (const auto& s : strings)
+        {
+            const auto msg = sendLikeQLab(s);
+            const auto parsed = WFSNetwork::OSCMessageRouter::parseEffectMessage(msg);
+            const auto it = mappings.find(parsed.paramId);
+            if (parsed.valid && it != mappings.end() && it->second.oscPath == msg.getAddressPattern().toString())
+                ++parsedBack;
+            else if (refused.size() < 8)
+                refused.add(s + (parsed.invalidReason.isNotEmpty() ? " (" + parsed.invalidReason + ")" : ""));
+        }
+        check(strings.size() > 200 && parsedBack == strings.size(),
+              "N12: every one of the " + juce::String(strings.size()) + " effect cues parses back through the router"
+              + (refused.isEmpty() ? juce::String() : ": " + refused.joinIntoString(" | ")));
+
+        // The grid decides what is exported, per item and per channel.
+        Scope partial;
+        partial.effects.setIncluded("fxEq2", 1, false);
+        const auto partialStrings = effectCueStrings(WFSNetwork::QLabCueBuilder::buildSnapshotCues(
+            "nq-cues", inputsData, partial, numInputs, 1, numberToSlot, numOutputs, effectsData, 2));
+        check(! hasPrefix(partialStrings, "/wfs/effect/EQgain 2 2 ") && ! hasPrefix(partialStrings, "/wfs/effect/EQBypass 2 2 ")
+                  && hasPrefix(partialStrings, "/wfs/effect/EQgain 2 1 ") && hasPrefix(partialStrings, "/wfs/effect/EQgain 1 2 "),
+              "N12: an excluded module (EQ 2 of effect 2) exports nothing, its neighbours still do");
+
+        // N13: one address per parameter, and none for a cell or a global.
+        juce::StringArray paths;
+        for (const auto& [paramId, mapping] : mappings)
+            paths.add(mapping.oscPath);
+        paths.removeDuplicates(false);
+        check(static_cast<int>(mappings.size()) == paths.size()
+                  && mappings.count(P::effectSendLevel) == 0 && mappings.count(P::effectFxSendOn) == 0
+                  && mappings.count(P::effectsMapVisible) == 0 && mappings.count(P::effectEQgain) == 1,
+              "N13: the effect address map has one path per parameter and none for a cell or a global");
+
+        vts.setNumEffectChannels(effectsBefore);
+        if (latchHadProperty)
+            ioLatch.setProperty(P::channelNumbersUserOwned, latchBefore, nullptr);
+        else
+            ioLatch.removeProperty(P::channelNumbersUserOwned, nullptr);
+        fm.setProjectFolder(previousProject);
+        tempProject.deleteRecursively();
     }
 
     // ---- I: channel identity gate --------------------------------------------

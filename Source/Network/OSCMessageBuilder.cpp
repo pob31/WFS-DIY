@@ -1,5 +1,6 @@
 #include "OSCMessageBuilder.h"
 #include "OSCParameterBounds.h"
+#include "OSCMessageRouter.h"
 #include "../Parameters/VarCoercion.h"
 
 namespace WFSNetwork
@@ -240,6 +241,26 @@ const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBui
         { WFSParameterIDs::eqQ,                      { "/wfs/output/EQq",               "/remoteInput/output/EQq" } },
         { WFSParameterIDs::eqSlope,                  { "/wfs/output/EQslope",           "/remoteInput/output/EQslope" } },
     };
+
+    return mappings;
+}
+
+const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBuilder::getEffectMappings()
+{
+    static const std::map<juce::Identifier, ParamMapping> mappings = []
+    {
+        using Kind = OSCMessageRouter::ParsedEffectMessage::Kind;
+
+        std::map<juce::Identifier, ParamMapping> m;
+        for (const auto& [name, paramId] : OSCMessageRouter::getEffectAddressMap())
+        {
+            const auto kind = OSCMessageRouter::getEffectParamKind (paramId);
+            if (kind == Kind::Scalar || kind == Kind::Instanced || kind == Kind::Band
+                || kind == Kind::Tap || kind == Kind::Row)
+                m[paramId] = { juce::String (OSCPaths::EFFECT_PREFIX) + name, {} };
+        }
+        return m;
+    }();
 
     return mappings;
 }
