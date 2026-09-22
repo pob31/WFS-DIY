@@ -331,6 +331,7 @@
 		6FEDBAFEF6FC82D102F18212 /* MCPParameterRegistry.cpp */ /* MCPParameterRegistry.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPParameterRegistry.cpp; path = ../../Source/Network/MCP/MCPParameterRegistry.cpp; sourceTree = SOURCE_ROOT; };
 		706AFD4C25B7DB970B86308E /* HipObBackend.cpp */ /* HipObBackend.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = HipObBackend.cpp; path = ../../spatcore/gpu/HipObBackend.cpp; sourceTree = SOURCE_ROOT; };
 		70B4C8C7CC9933187C8F2500 /* InputChannelDescription.h */ /* InputChannelDescription.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = InputChannelDescription.h; path = ../../Source/Parameters/InputChannelDescription.h; sourceTree = SOURCE_ROOT; };
+		70DB9409FFD6A5E07ED0E977 /* EffectsSettingsPanel.h */ /* EffectsSettingsPanel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = EffectsSettingsPanel.h; path = ../../Source/gui/effects/EffectsSettingsPanel.h; sourceTree = SOURCE_ROOT; };
 		70F11209DC36A15E41B6C52D /* PlatformDynLib.h */ /* PlatformDynLib.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PlatformDynLib.h; path = ../../spatcore/gpu/PlatformDynLib.h; sourceTree = SOURCE_ROOT; };
 		7103A555C0CD955901478B54 /* MetalIrBackend.h */ /* MetalIrBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MetalIrBackend.h; path = ../../spatcore/gpu/MetalIrBackend.h; sourceTree = SOURCE_ROOT; };
 		7199DB67785B6EC37029964D /* include_juce_gui_basics_4.cpp */ /* include_juce_gui_basics_4.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_gui_basics_4.cpp; path = ../../JuceLibraryCode/include_juce_gui_basics_4.cpp; sourceTree = SOURCE_ROOT; };
@@ -664,6 +665,7 @@
 				2F0E437F79A9CD920C46E9AD,
 				0B2BF8F0DACE9F3F4C4E3556,
 				0B4FB2F751D0655CA15CE639,
+				70DB9409FFD6A5E07ED0E977,
 				F1915AE0BCEA97699FD1F419,
 				8221B4E7339966AC676FA364,
 				F915D7D1297230F5EE7F1F0E,

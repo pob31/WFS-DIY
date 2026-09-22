@@ -77,6 +77,8 @@
                 file="Source/gui/effects/EffectsSendsPanel.h"/>
           <FILE id="guiFxChain" name="EffectsChainPanel.h" compile="0" resource="0"
                 file="Source/gui/effects/EffectsChainPanel.h"/>
+          <FILE id="guiFxSettings" name="EffectsSettingsPanel.h" compile="0" resource="0"
+                file="Source/gui/effects/EffectsSettingsPanel.h"/>
           <FILE id="guiFxModPanel" name="EffectsModulePanel.h" compile="0" resource="0"
                 file="Source/gui/effects/EffectsModulePanel.h"/>
           <FILE id="guiFxModDesc" name="EffectsModuleDescriptors.h" compile="0" resource="0"

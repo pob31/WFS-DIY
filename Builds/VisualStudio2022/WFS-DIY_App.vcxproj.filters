@@ -4863,6 +4863,9 @@
     <ClInclude Include="..\..\Source\gui\effects\EffectsChainPanel.h">
       <Filter>WFS-DIY\Source\gui\effects</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsSettingsPanel.h">
+      <Filter>WFS-DIY\Source\gui\effects</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\gui\effects\EffectsModulePanel.h">
       <Filter>WFS-DIY\Source\gui\effects</Filter>
     </ClInclude>

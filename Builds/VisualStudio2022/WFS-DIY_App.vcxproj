@@ -3476,6 +3476,7 @@
     <ClInclude Include="..\..\Source\gui\effects\EffectsMovementsPanel.h"/>
     <ClInclude Include="..\..\Source\gui\effects\EffectsSendsPanel.h"/>
     <ClInclude Include="..\..\Source\gui\effects\EffectsChainPanel.h"/>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsSettingsPanel.h"/>
     <ClInclude Include="..\..\Source\gui\effects\EffectsModulePanel.h"/>
     <ClInclude Include="..\..\Source\gui\effects\EffectsModuleDescriptors.h"/>
     <ClInclude Include="..\..\spatcore\ui\sends\SendMatrixConfig.h"/>

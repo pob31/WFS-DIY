@@ -6,6 +6,7 @@
 #include "EffectsMovementsPanel.h"
 #include "EffectsSendsPanel.h"
 #include "EffectsChainPanel.h"
+#include "EffectsSettingsPanel.h"
 #include "../ChannelSelector.h"
 #include "../ColorScheme.h"
 #include "../WfsLookAndFeel.h"
@@ -476,6 +477,7 @@ private:
 
         addChildComponent (channelPanel);
         addChildComponent (chainPanel);
+        addChildComponent (settingsPanel);
         addChildComponent (movementsPanel);
         addChildComponent (sendsPanel);
 
@@ -503,8 +505,12 @@ private:
         chainPanel.setVisible (has && index == SubTab::Chain);
         chainPanel.setBounds (subTabContentArea);
 
+        settingsPanel.setVisible (has && index == SubTab::Settings);
+        settingsPanel.setBounds (subTabContentArea);
+
         const bool built = index == SubTab::Channel || index == SubTab::Chain
-                        || index == SubTab::Movements || index == SubTab::Sends;
+                        || index == SubTab::Movements || index == SubTab::Sends
+                        || index == SubTab::Settings;
         placeholderLabel.setVisible (has && ! built);
         placeholderLabel.setBounds (subTabContentArea);
         placeholderLabel.setText (subTabBar.getCurrentTabName(), juce::dontSendNotification);
@@ -683,6 +689,7 @@ private:
         chainPanel.loadParameters();
         movementsPanel.loadParameters();
         sendsPanel.refresh();
+        settingsPanel.loadParameters();
     }
 
     void updateVisibility()
@@ -855,6 +862,22 @@ private:
             return;
         }
 
+        // 2b. The nine globals: the Settings panel shows them, and the
+        //     link-group NAMES are read by the channel combo, the chain badge
+        //     and the sends matrix, so all four follow a change - including
+        //     the panel's own, which is how an undo shows up there.
+        if (tree.hasType (WFSParameterIDs::EffectsGlobal))
+        {
+            settingsPanel.loadParameters();
+            if (property == WFSParameterIDs::effectsGlobalLinkNames && ctx.hasChannels())
+            {
+                channelPanel.refreshLinkGroupNames();
+                chainPanel.loadParameters();
+                sendsPanel.refresh();
+            }
+            return;
+        }
+
         // 3. OUR OWN WRITES STOP HERE. Without this, every delta of a drag
         //    would schedule a full channel reload, which floods the message
         //    queue and fights the hand that is dragging.
@@ -993,6 +1016,7 @@ private:
     EffectsMovementsPanel movementsPanel { ctx };
     EffectsSendsPanel sendsPanel { ctx };
     EffectsChainPanel chainPanel { ctx };
+    EffectsSettingsPanel settingsPanel { ctx };
     juce::Label placeholderLabel;
     juce::Label noChannelsLabel;
 

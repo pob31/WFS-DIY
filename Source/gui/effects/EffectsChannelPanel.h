@@ -50,6 +50,18 @@ public:
     }
 
     /** Called from the tab's loadChannelParameters, inside its loading scope. */
+    /** The group names changed on the Settings tab: rebuild the combo's
+        items, keeping the selection. */
+    void refreshLinkGroupNames()
+    {
+        const int selected = linkGroupCombo.getSelectedId();
+        linkGroupCombo.clear (juce::dontSendNotification);
+        linkGroupCombo.addItem (LOC ("effects.link.unlinked"), 1);
+        for (int g = 1; g <= WFSParameterDefaults::effectLinkGroupMax; ++g)
+            linkGroupCombo.addItem (groupName (g), g + 1);
+        linkGroupCombo.setSelectedId (selected, juce::dontSendNotification);
+    }
+
     void loadParameters()
     {
         using namespace WFSParameterIDs;

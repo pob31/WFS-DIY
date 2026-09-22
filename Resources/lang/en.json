@@ -1701,7 +1701,8 @@
       "error": "Error: {error}",
       "cleared": "Effect chain cleared.",
       "clearedAll": "Every effect chain cleared.",
-      "groupMuteNeedsGroup": "This effect is not in a link group, so there is no group to mute."
+      "groupMuteNeedsGroup": "This effect is not in a link group, so there is no group to mute.",
+      "relayoutDone": "Every effect return laid out on the default ring again."
     },
     "help": {
       "channelSelector": "Select the effects channel to edit.",
@@ -1870,7 +1871,17 @@
       "eqGain": "Select the EQ Gain/Attenuation for Band <Band ID> of this EQ instance.",
       "eqQ": "Select the EQ Q for Band <Band ID> of this EQ instance.",
       "eqSlope": "Select the EQ Slope for Band <Band ID> of this EQ instance.",
-      "eqBypass": "Bypass this EQ instance."
+      "eqBypass": "Bypass this EQ instance.",
+      "settingsLinkNames": "Names of the eight effect link groups. Shown on the Channel Parameters combo, the Chain badge and the sends matrix.",
+      "settingsLinkMode": "The link mode a NEW effects channel is stamped with (off, absolute or relative). Existing channels keep their own.",
+      "settingsRelayout": "Long-press to lay every effect return out on the default ring again. Clears the effects position ownership latch.",
+      "settingsFxFeed": "Feed effects from each other geometrically, or through the matrix alone (no geometric delay or attenuation).",
+      "settingsWorkerThreads": "Number of effects worker threads (-1 = automatic, the reverb-feed rule). Applies at the next Processing start.",
+      "settingsReturnCushion": "Blocks of cushion on the effect return rings (Auto = the ledger decides). Applies at the next Processing start.",
+      "settingsLoopGuard": "Automatically mute an effect-to-effect feed that is running away. The one setting here that applies live.",
+      "settingsLoopGuardCeiling": "Peak level at which the loop guard trips (dBFS). Applies at the next Processing start.",
+      "settingsMaxDelay": "Longest delay any effects channel may buffer, in seconds; sizes every delay module. Applies at the next Processing start.",
+      "settingsFeedDevice": "Compute device used for the effects feed stage. Applies at the next Processing start."
     },
     "sends": {
       "corner": "Sources \u2192 Effects",
@@ -2026,6 +2037,31 @@
       "grMeter": "GR",
       "band": "Band {n}",
       "presetApplied": "Reverb preset \"{name}\" applied to this chain."
+    },
+    "settings": {
+      "linkGroups": "Link Groups",
+      "engine": "Engine",
+      "group": "Group {n}:",
+      "defaultLinkMode": "New channel link mode:",
+      "relayout": "Re-layout Effects",
+      "fxFeed": "Effect-to-effect feed:",
+      "fxFeedGeometric": "Geometric",
+      "fxFeedMatrix": "Matrix only",
+      "workerThreads": "Worker threads (-1 = auto):",
+      "returnCushion": "Return cushion:",
+      "cushion": {
+        "auto": "Auto",
+        "n1": "1 block",
+        "n2": "2 blocks",
+        "n3": "3 blocks"
+      },
+      "loopGuard": "Loop guard:",
+      "loopGuardOn": "ON",
+      "loopGuardOff": "OFF",
+      "loopGuardCeiling": "Loop guard ceiling:",
+      "maxDelay": "Maximum delay time:",
+      "feedDevice": "Feed compute device:",
+      "note": "Everything here except the Loop guard switch applies at the next Processing start: the engine reads these settings when it prepares."
     }
   },
   "inputs": {
