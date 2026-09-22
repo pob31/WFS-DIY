@@ -1,17 +1,18 @@
 # Effects channels — implementation status and handoff
 
-**As of 2026-09-22, after Phase 6.** Branch `effects/phase-6`, working tree clean, submodules
-clean at their pins (`spatcore` v0.3.3 = `4523d1b`). Phase 6 added fourteen app commits and one
-spatcore commit (the schema-free send-matrix widget and the per-slot meter read, PR #14).
+**As of 2026-09-23, after Phase 7.** Branch `effects/phase-7` (off `effects/phase-6`), submodules
+clean at their pins (`spatcore` v0.3.3 = `4523d1b`). Phase 7 added ten app commits and no spatcore
+commit (§10). Phase 6 added fourteen app commits and one spatcore commit (the schema-free
+send-matrix widget and the per-slot meter read, PR #14).
 
 An effect channel is now a render source of the show: its chain runs on the engine's own realtime
 thread, its return is popped into a render-source row of every block, the calculation engine
 computes the source-by-effect feed matrix and the return rows of the output and reverb matrices,
 AutomOtion can move a return by an offset, and the engine's meters are readable from the
 application, and since Phase 6 an operator can see and edit all of it from the Effects tab, the
-Stream Deck and the four tab-level OSC verbs (§9). What is still missing is the OUTBOUND half of
-the control surface (Phase 4's C8 echo and OSCQuery node, the C9/C10 tool entries) and the cue
-coverage of Phase 7.
+Stream Deck and the four tab-level OSC verbs (§9), and since Phase 7 every snapshot, MIDI cue and
+QLab export carries the effects too (§10). What is still missing is the OUTBOUND half of the control
+surface (Phase 4's C8 echo and OSCQuery node, the C9/C10 tool entries).
 
 The design is `Documentation/effects-channels-plan.md`. Read its **§12.4 through §12.7** first —
 those are the correction logs, and essentially every line reference in §6 and §7 of the body is
@@ -417,8 +418,8 @@ only one may build.
   lands on band 1. Shipped.
 - **`effectsMapVisible` is read by the Map and the Effects tab header since Phase 6** (it used to
   be stamped, persisted and routed with no reader).
-- **Snapshot/MIDI/QLab scope has zero effects coverage** (`getScopeItems()` has no effect entries),
-  so an operator who builds a chain has no cue coverage for any of its 174 parameters. Phase 7.
+- ~~**Snapshot/MIDI/QLab scope has zero effects coverage.**~~ Closed by Phase 7 (§10): one snapshot
+  carries both families, and the scope has an effects grid.
 - **MCP session-info reports per-family channel counts without effects**, so a session with 8
   effect channels is described as having none.
 - **`effectMuteMacroMax = 4`** reaches only mute-all, unmute-all and invert; the reverb equivalent
@@ -466,3 +467,54 @@ spatcore commit (PR #14, tagged v0.3.3) added the schema-free `ui/sends/SendMatr
   emits the descriptor and the strings, and the GUI panel and the Stream Deck page both read them.
 - The Effects tab was not screenshot-verified for the Settings sub-tab (the dev box locked) and the
   Stream Deck pages were not exercised on hardware (none attached); everything else was captured.
+
+---
+
+## 10. Phase 7 — snapshots carry the effects: DONE
+
+Ten commits on `effects/phase-7` (2026-09-22/23), off the Phase 6 tip. The design changed before a
+line was written (the user, 2026-09-22): the effects REUSE the input snapshots - one file, one scope
+with a grid per family, one Scope window with a tab per family, reachable from both tabs - instead
+of the plan's second snapshot family. The plan's §12.9 (revision 8) records it and the body was
+amended to match. The three questions it raised were answered: the `/wfs/effect/snapshot/*` verbs
+are RETIRED (refused with a pointer), the Effects tab carries the FULL snapshot row, and Write to
+QLab exports PER-PARAMETER effect cues.
+
+| Commit | What it did |
+|---|---|
+| `48652ff` scope matrix | `ScopeMatrix` over a `ScopeItemTable`; `ExtendedSnapshotScope` keeps its API as forwarders. Snapshot files byte-identical to the pre-phase exe (OnSave, OnRecall, full, diffed). |
+| `3b4c681` effects grid | `effectScopeTable` (property items on the flat nodes, one whole-node item per module), `<EffectsScope>` in `<ExtendedScope>`, `EffectsSnapshotScope.h`, self-test Q. |
+| `e339a86` store / recall | `<Effects>` in the file; apply writes only what the live node has, rows through `setEffectParameter`; skipped ids reported; ghosts kept; each half in its own undo domain; OnSave trim. Self-test N0-N10. |
+| `7792d57` dirty tracker | Effect writes mark their item (`itemIdFor`, a band reports its module). N11. |
+| `5d8beae` shared row | The Inputs tab's snapshot code moved into `SnapshotSession` + `SnapshotRow` (`Source/gui/snapshots/`), owned by MainComponent before the tab container. Behaviour unchanged. |
+| `af4b75a` two-tab window | Inputs / Effects tabs in the Scope window; `editScope (family)`. |
+| `e766009` Effects footer | The shared row on the Effects tab (second footer row) + `WFS_TEST_RENDER_UI`. |
+| `4952972` QLab | Per-parameter effect cues in each parser shape, `getEffectMappings`. N12 / N13. |
+| `6a73bc2` retired verbs | The refusal names `/wfs/input/snapshot/*`; the OSC replay asserts it; CSV rows; MCP description. |
+| docs | Plan §12.9 and amendments, this section, CLAUDE.md, help card, hover strings, change log. |
+
+**Gates on every code commit:** Release build; `WFS_TEST_CHANNEL_LIST=1` ALL PASS (750 -> 811);
+the seven control replays PASS with no golden moved; every new assertion mutation-tested (17
+mutants across Q, N, N11, N12, N13 and the OSC replay's new needle, every one caught). At the end:
+offline-render CPU check zero MISMATCH (the five MISSING stereo combos are pre-existing), kernel
+hashes, dependency lint, bounds-audit counts identical to the pre-phase commit, `pytest tools/mcp`
+25 passed.
+
+**What a reader of THIS document needs:**
+
+- **The effects half is node-driven for the modules.** Anything new that walks a snapshot's
+  effects - an importer, an MCP tool, a remote - must resolve items through
+  `EffectsSnapshotScope::itemIdFor (childOfEffect, property)`; `hasProperty` alone cannot tell
+  FxEq1 from FxEq2, or band 3 from band 4.
+- **Recall never goes through the link funnel** and writes rows through `setEffectParameter`: the
+  fx diagonal a hand-edited file offers comes back off (N6).
+- **The QLab export is big**: about 275 cues per effect channel in scope. The snapshot-load cue (one
+  cue recalling the whole file) is the lighter path and covers the effects.
+- **`WFS_TEST_RENDER_UI=<folder>`** renders the tabs and the Scope window offscreen - use it when
+  the dev box is locked; `createComponentSnapshot` does not need the screen.
+- **Known, not fixed:** `WFS_TEST_MUTES_PERSIST=1` fails the same 8 checks (M2-M5, mute-list width
+  and one-output mutes) on the pre-phase exe as after it - pre-existing, outside this phase. The
+  full-tier locales still say "Input Snapshot" in the row's hover text (en was reworded).
+- **Not verified on screen:** the long-press actions from the Effects tab's row (the workstation
+  locked mid-session); the rows, the window's tabs and Edit Scope were verified by offscreen renders
+  and, before the lock, a live capture of the Inputs tab's row and window.

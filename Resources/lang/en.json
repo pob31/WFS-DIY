@@ -2430,13 +2430,13 @@
       "reloadBackup": "Reload Input Configuration from backup file.",
       "importConfig": "Import Input Configuration from file (with file explorer window).",
       "exportConfig": "Export Input Configuration to file (with file explorer window).",
-      "storeSnapshot": "Store new Input Snapshot for All Objects.",
-      "snapshotSelector": "Select Input Snapshot Without Loading.",
-      "reloadSnapshot": "Reload Selected Input Snapshot for All Objects Taking the Scope into Account.",
-      "reloadWithoutScope": "Reload Selected Input Snapshot for All Objects Without the Scope.",
-      "updateSnapshot": "Update Selected Input Snapshot (with backup).",
-      "editScope": "Open Selected Input Snapshot Scope Window.",
-      "deleteSnapshot": "Delete Selected Input Snapshot With Confirmation.",
+      "storeSnapshot": "Store a new snapshot of all the inputs and effects.",
+      "snapshotSelector": "Select a snapshot without loading it.",
+      "reloadSnapshot": "Reload the selected snapshot (inputs and effects), taking the scope into account.",
+      "reloadWithoutScope": "Reload the selected snapshot (inputs and effects) without the scope.",
+      "updateSnapshot": "Update the selected snapshot, inputs and effects (with backup).",
+      "editScope": "Open the Snapshot Scope window for the selected snapshot.",
+      "deleteSnapshot": "Delete the selected snapshot, with confirmation.",
       "channelSelector": "Input Channel Number and Selection.",
       "nameEditor": "Displayed Input Channel Name (editable).",
       "clusterSelector": "Object is Part of a Cluster.",
@@ -3286,8 +3286,8 @@
       "body": "When starting a session select the working folder where the system will place the files and eventual audio files. For new projects create a new folder. When reloading a previous session navigate to the corresponding folder.\nEach section has a separate xml file (System configuration, Network, Outputs, Reverbs, Inputs) and backups. Additionally convolution reverb impulse responses and audio samples will be stored in sub-directories.\nEach section can be stored and recalled individually or as a whole.\nEach section can also export and import files from other projects."
     },
     "snapshotScope": {
-      "title": "Input Snapshots and Scope",
-      "body": "Snapshots store input parameters, but can have a scope to be recalled during a performance. They can have between all parameters for all inputs and only one parameter for a single channel. They can be updated and renamed for convenience.\nThe Scope tells the system what data to store or recall. It's the opposite of 'safe' parameters.\nThere are several ways to do this in this application:\n- Record only the needed data in local files. The scope filter is applied when storing the data. A recall cue can be created in QLab to trigger the reading of the local file.\n- Record all data and a filter in local files. The scope filter is applied when recalling the data. This allows to eventually recall all data not taking into account the scope filter. This may come in handy when a complete configuration should be recalled during rehearsal for example. A recall cue can be created in QLab to trigger the reading of the local file.\n- Record all data in scope in QLab cues. This should not be used to recall all parameters for large configurations since QLab may stall when recalling so much data.\nThe scope can show and automatically pre-select the parameters that have been manually changed (local UI, hardware controllers, remote Android application). Changed parameters are marked with a yellow mark."
+      "title": "Snapshots and Scope",
+      "body": "Snapshots store input and effect parameters, but can have a scope to be recalled during a performance. They can have between all parameters for all inputs and effects and only one parameter for a single channel. They can be updated and renamed for convenience.\nThe Scope tells the system what data to store or recall. It's the opposite of 'safe' parameters.\nThere are several ways to do this in this application:\n- Record only the needed data in local files. The scope filter is applied when storing the data. A recall cue can be created in QLab to trigger the reading of the local file.\n- Record all data and a filter in local files. The scope filter is applied when recalling the data. This allows to eventually recall all data not taking into account the scope filter. This may come in handy when a complete configuration should be recalled during rehearsal for example. A recall cue can be created in QLab to trigger the reading of the local file.\n- Record all data in scope in QLab cues. This should not be used to recall all parameters for large configurations since QLab may stall when recalling so much data.\nThe scope can show and automatically pre-select the parameters that have been manually changed (local UI, hardware controllers, remote Android application). Changed parameters are marked with a yellow mark.\nOne snapshot carries the inputs and the effects channels. The Scope window has an Inputs tab and an Effects tab, one grid per family; on the Effects grid each module of the chain is one row, its bands and taps included. The Inputs tab and the Effects tab show the same snapshot row, so a snapshot stored or recalled from either covers both, and one MIDI note or OSC cue recalls both."
     },
     "network": {
       "title": "Network",

@@ -171,14 +171,15 @@ The HF Shelf will set the maximum attenuation in the back of the input. There is
 You can set for each output array a specific attenuation for the selected input.
 You can mute each send to any output individually. There are macros to speed up the process.
 
-*Input Snapshots and Scope*
-Snapshots store input parameters, but can have a scope to be recalled during a performance. They can have between all parameters for all inputs and only one parameter for a single channel. They can be updated and renamed for convenience.
+*Snapshots and Scope*
+Snapshots store input and effect parameters, but can have a scope to be recalled during a performance. They can have between all parameters for all inputs and effects and only one parameter for a single channel. They can be updated and renamed for convenience.
 The Scope tells the system what data to store or recall. It's the opposite of 'safe' parameters.
 There are several ways to do this in this application:
 - record only the needed data in local files. The scope filter is applied when storing the data. A recall cue can be created in QLab to trigger the reading of the local file.
 - record all data and a filter in local files. The scope filter is applied when recalling the data. This allows to eventually recall all data not taking into account the scope filter. This may come in handy when a complete configuration should be recalled during rehearsal for example. A recall cue can be created in QLab to trigger the reading of the local file.
 - record all data in scope in QLab cues. This should not be used to recall all parameters for large configurations since QLab may stall when recalling so much data.
 The scope can show and automatically pre-select the parameters that have been manually changed (local UI, hardware controllers, remote Android application). Changed parameters are marked with a yellow mark.
+One snapshot carries the inputs and the effects channels. The Scope window has an Inputs tab and an Effects tab, one grid per family; on the Effects grid each module of the chain is one row, its bands and taps included. The Inputs tab and the Effects tab show the same snapshot row, so a snapshot stored or recalled from either covers both, and one MIDI note or OSC cue recalls both.
 
 *Live Source Tamer*
 A loud source on stage may not need to have much reinforcement through the nearby speakers. Imagine an opera singer near the edge of the stage. Normally the level distribution would make the level louder near to the input position. But if it is already loud enough we should be able to not over-amplify it. This function is there to manage this.

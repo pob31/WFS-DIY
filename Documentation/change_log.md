@@ -13,8 +13,12 @@ All notable changes to WFS DIY are documented in this file, organized by release
 - **Four inbound OSC verbs**: `/wfs/effect/selected <ID>`, `/wfs/effect/editOnMap <0|1>`, `/wfs/effect/clear <ID>` and `/wfs/effect/clearAll`. Each acceptance and each refusal writes a line to the session log.
 - **Effects in the level-meter window**: a feed / return meter pair per effect in the sources row and an engine-duty bar in the controls row.
 - **Array attenuation and a per-channel link mode on effects** (`effectArrayAtten1..10`, `effectLinkMode`), and an Effects Channels count on System Config.
+- **Snapshots carry the effects.** One snapshot file now stores and recalls the inputs AND the effects channels, so a MIDI note, `/wfs/input/snapshot/load` or the Reload button recalls both. The Snapshot Scope window has an Inputs tab and an Effects tab, one grid per family; on the Effects grid each module of a chain is one row, its bands and taps included. The Effects tab shows the same snapshot row as the Inputs tab (one selection, one Scope window). A snapshot stored before effects existed leaves them alone; one naming an effect the session lacks skips it and says so. A manual Reload is undoable on each tab for its own half.
+- **Write to QLab exports the effects**: one cue per in-scope effect parameter, in the address form the app's OSC receiver expects (instance, band or tap indices where needed, whole rows as one quoted string).
 
 ### Changed
+- **The Snapshot Scope window is titled "Snapshot Scope"** and names the Gradient Maps, Sampler and ADM-OSC sections instead of showing their internal ids.
+- **`/wfs/effect/snapshot/load` and `/store` are retired**: still recognised, and refused with a session-log reason pointing at `/wfs/input/snapshot/load|store`, which now cover the effects.
 - **Inputs, Clusters and Map moved up one main-tab index** to make room for Effects. Nothing persists a main-tab index, so nothing migrates; the Stream Deck, Space Mouse and Map navigation are written against the named indices in `Source/gui/TabIndex.h`.
 - **The three AutomOtion transport buttons** now live in `Source/gui/buttons/TransportButtons.h`, drawn identically on the Inputs and Effects tabs.
 
@@ -22,6 +26,8 @@ All notable changes to WFS DIY are documented in this file, organized by release
 - **The module controls of the Chain sub-tab are generated from `Documentation/WFS-UI_effects.csv`** by `tools/gen_effects_module_ui.py` (descriptors and strings); the CSV gained 26 rows (link mode, ten array trims, fifteen LFO parameters).
 - **spatcore v0.3.3**: the schema-free send-matrix widget and the per-slot meter read.
 - **Self-test phases A, L, O7, G1/G2** and the OSC replay's verb assertions, each mutation-tested.
+- **The snapshot row left the Inputs tab** for `Source/gui/snapshots/` (`SnapshotSession`, `SnapshotRow`), shared by both tabs; the scope's state machine became `ScopeMatrix`, one per family. Self-test phases Q, N, N11, N12/N13, each mutation-tested.
+- **`WFS_TEST_RENDER_UI=<folder>`** renders every main tab and the Snapshot Scope window to PNG files offscreen, for GUI checks behind a locked workstation.
 ## v1.0.0beta51 — 2026-09-15
 
 ### Fixed

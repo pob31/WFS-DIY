@@ -43,7 +43,7 @@ The application has established a solid foundation with infrastructure and core 
 - **Live Source Tamer** (per-speaker gain reduction for feedback prevention)
 - **Floor Reflections** (simulated floor bounce with filtering and diffusion)
 - **Audio Interface & Patching Window** (input/output patch matrices with test signal generation)
-- **Snapshot Scope Window** (parameter-level, per-channel granularity for snapshots)
+- **Snapshot Scope Window** (parameter-level, per-channel granularity for snapshots; one snapshot carries the inputs AND the effects, one grid tab per family)
 - **Level Metering System** (floating window with input/output meters and thread performance)
 - **Binaural Solo Monitoring** (virtual speaker rendering for headphone monitoring)
 - **ADM-OSC bidirectional mapping system** (4 Cartesian + 4 Polar mappings, per-input assignment grid, in-app axis-swap / sign-flip / center / breakpoint / inner-outer-width editing)
@@ -84,6 +84,7 @@ The application has established a solid foundation with infrastructure and core 
   - "Post-Processing" (the whole sends matrix: spatcore's `SendMatrixComponent` bound by `EffectsSendMatrixShim.cpp`)
   - "Movements" (LFO left, AutomOtion right, the Inputs tab's geometry; both are offsets the engine adds)
   - "Settings" (the nine `effectsGlobal*` + long-press Re-layout)
+  - Footer: the snapshot row shared with the Inputs tab (`SnapshotRow` over the one `SnapshotSession`; its Edit Scope opens the Scope window on the Effects grid) above the five config long-press buttons.
 - **MapTab** - Spatial visualization
 
 ### Floating Windows
@@ -91,7 +92,7 @@ The application has established a solid foundation with infrastructure and core 
 - **NetworkLogWindow** - Network traffic monitoring with filtering and export
 - **OutputArrayHelperWindow** - "Wizard of OutZ" for speaker array positioning
 - **SetAllInputsWindow** - Bulk parameter changes across all inputs (long-press access)
-- **SnapshotScopeWindow** - Extended scope editing for input snapshots (parameter-level, per-channel)
+- **SnapshotScopeWindow** - Extended scope editing for snapshots (parameter-level, per-channel), an Inputs tab and an Effects tab over one snapshot's two grids; opened from either tab's snapshot row
 - **LevelMeterWindow** - Real-time level metering with input/output meters, solo buttons, and thread performance
 
 ### Core Systems Status
@@ -1873,18 +1874,21 @@ LocalizationManager::getInstance().get(
 ## Snapshot and Scope System (Source/Parameters/WFSFileManager.h, Source/gui/SnapshotScopeWindow.h)
 
 ### Overview
-The snapshot system allows saving and recalling input channel configurations with precise control over which parameters and channels are included, using parameter-level, per-channel granularity.
+The snapshot system allows saving and recalling input AND effect channel configurations with precise control over which parameters and channels are included, using parameter-level, per-channel granularity. **One snapshot file carries both families** (effects plan revision 8, `Documentation/effects-channels-plan.md` §12.9): there is no separate effects snapshot, folder, MIDI table or OSC verb.
 
 ### Core Files
-- **WFSFileManager.h/cpp** - File I/O and scope data structures (`ExtendedSnapshotScope`, `ScopeItem`)
-- **SnapshotScopeWindow.h** - UI for editing scope (`ScopeGridComponent`, `ScopeChannelHeader`, `SnapshotScopeContent`)
+- **WFSFileManager.h/cpp** - File I/O and scope data structures (`ExtendedSnapshotScope`, `ScopeMatrix`, `ScopeItemTable`, `ScopeItem`), the input capture/apply loops
+- **Parameters/EffectsSnapshotScope.h** - the effects half: `itemIdFor`, the coverage predicate, capture / apply / trim of an `<Effect>` entry
+- **gui/snapshots/SnapshotSession.h** - the snapshot row's model and actions (store, reload, update, edit scope, delete, the session scope, the Scope window), one instance owned by MainComponent
+- **gui/snapshots/SnapshotRow.h** - the row's seven controls, shown on the Inputs tab and on the Effects tab over the same session
+- **SnapshotScopeWindow.h** - UI for editing scope (`ScopeGridComponent`, `ScopeChannelHeader`, `SnapshotScopeContent`), one grid per family behind a tab bar
 
 ### Snapshot Storage
 Snapshots are stored as XML files in the project folder structure:
 ```
 project_folder/
 ├── snapshots/
-│   ├── inputs/         # Input snapshots (*.xml)
+│   ├── inputs/         # Snapshots (*.xml) - inputs AND effects, one file each
 │   └── outputs/        # Output snapshots (*.xml)
 ```
 
@@ -1899,11 +1903,19 @@ Fine-grained control over individual parameters for each channel:
 
 **Data Structure:**
 ```cpp
+struct ScopeMatrix {                                   // one family's grid
+    const ScopeItemTable* table;                       // its items, section order, headings
+    std::map<juce::String, bool> itemChannelStates;    // Key: "itemId_channelIndex", absent == included
+};
 struct ExtendedSnapshotScope {
     ApplyMode applyMode = ApplyMode::OnRecall;
-    std::map<juce::String, bool> itemChannelStates;  // Key: "itemId_channelIndex"
+    int midiChannel, midiNote;                         // on the file's ROOT
+    ScopeMatrix inputs;                                // input items x input SLOTS
+    ScopeMatrix effects;                               // effect items x DENSE effect indexes
 };
 ```
+The old input API (`isIncluded`, `setIncluded`, `getScopeItems()`, ...) survives as forwarders to
+`inputs`; `isEquivalentTo (other, numInputs, numEffects)` and `initializeDefaults` cover both grids.
 
 ### Scope Items
 Parameters are grouped into logical items for easier management. Each scope item contains related parameters:
@@ -1975,8 +1987,41 @@ Parameters are grouped into logical items for easier management. Each scope item
 | **Mutes** | `sidelines` | Sidelines | Active, fringe |
 | **Mutes** | `arrayAttens` | Array Attens | `inputArrayAtten1-10` |
 
+### Effects Scope Items (`WFSFileManager::effectScopeTable`)
+
+> **The effects grid cannot use the input rule.** `hasProperty` finds an input parameter's node
+> because no input property lives on two `<Input>` children. On an `<Effect>` that holds for the
+> eight FLAT nodes (Channel, Position, Feed, Return, AutomOtion, LFO, Chain, Sends) and fails for the
+> modules: FxEq1/FxEq2 and FxDyn1/FxDyn2 repeat their names, bands and taps repeat theirs by index.
+> So the table is a hybrid - property items over the flat nodes, one WHOLE-NODE item per module keyed
+> by `ScopeItem::nodeType` - and every consumer (capture, apply, trim, the dirty tracker, the QLab
+> export) resolves an item through `EffectsSnapshotScope::itemIdFor (childOfEffect, property)`.
+> Apply writes only what the live node already has, children matched by type and id; the five packed
+> rows go through `setEffectParameter` (the row guards, the fx diagonal); nothing propagates through
+> a link group. Every effects item id starts with `fx`, so both families share the dirty tracker's
+> key set. `effectName` is always carried; `effectSolo` and `effectOtomoPauseResume` are in no item
+> (self-test phase Q walks every property of a live channel, bands and taps included).
+
+| Section | Item ID | Covers |
+|---------|---------|--------|
+| **Effect** | `fxLevel` / `fxMute` / `fxLink` | attenuation, delay latency, minimal latency / mute / link group + link mode |
+| **Position** | `fxPosition` / `fxReturnOffset` | position XYZ + coordinate mode / return offset XYZ |
+| **Feed** | `fxFeed` | orientation, angles on/off, pitch, HF damping, feed min latency, distance atten % |
+| **Return** | `fxReturnLaw` / `fxMutes` / `fxArrayAttens` | law, distance atten/ratio, common atten, HF shelf / `effectMutes`, macro, reverb sends / array trims 1-10 |
+| **Chain** | `fxChain` | chain order, chain bypass |
+| **Modules** | `fxDist` `fxEq1` `fxEq2` `fxDyn1` `fxDyn2` `fxMod` `fxPhaser` `fxTrem` `fxReverb` `fxDelay` `fxCrush` | the whole module node, bands and taps included |
+| **Sends** | `fxSendsInputs` / `fxSendsEffects` | the two input-keyed rows / the two effect-keyed rows |
+| **LFO** | `fxLfoEnable` / `fxLfoX` / `fxLfoY` / `fxLfoZ` | active, period, phase / shape, rate, amplitude, phase per axis |
+| **AutomOtion** | `fxOtomoDestination` / `fxOtomoMovement` / `fxOtomoAudioTrigger` | as the input items, minus Stay/Return |
+
+**Recall and undo.** A recall applies the `<Inputs>` block, then the `<Effects>` block; an `<Effect>`
+whose id no live channel carries is skipped, reported and kept in the file. Each half writes into its
+own tab's undo history (`ScopedUndoDomain` Input, then Effects, through the ACTIVE manager so
+`ScopedUndoSuppression` still wins on MIDI / OSC recalls - never `getUndoManagerForDomain`, which
+bypasses it).
+
 ### Sections
-Items are organized into 9 sections:
+Input items are organized into these sections:
 1. **Channel** - Basic input properties
 2. **Position** - Location, offset, constraints, tracking
 3. **Attenuation** - Distance attenuation settings
@@ -1988,6 +2033,11 @@ Items are organized into 9 sections:
 9. **Mutes** - Output muting and sidelines
 
 ### Scope Window UI Components
+
+One window, two tabs (a `TabbedButtonBar`): **Inputs** and **Effects**, each a grid over its own
+`ScopeMatrix`. The Inputs tab's snapshot row opens it on the Inputs grid, the Effects tab's on the
+Effects grid (or switches the open window there). Everything above the grids - apply mode, QLab,
+dirty tracking, templates, the MIDI trigger, OK / Update - belongs to the snapshot and is shared.
 
 **ScopeGridComponent:**
 - Scrollable grid with rows (scope items) and columns (channels)
@@ -2055,8 +2105,17 @@ auto state = scope.getChannelState(channelIndex);  // AllIncluded/AllExcluded/Pa
     </Input>
     <!-- More inputs... -->
   </Inputs>
+  <Effects>                                     <!-- only when the show has effects (then version="2.1") -->
+    <Effect id="1">                             <!-- dense id -->
+      <Channel effectName="..." .../> ... <FxEq2 ...><Band id="1" .../>...</FxEq2> ... <Sends .../>
+    </Effect>
+  </Effects>
 </InputSnapshot>
 ```
+
+The effects grid is a child of `<ExtendedScope>`: `<EffectsScope fullChannels excludedChannels>` with
+`<PartialChannel index excludedItems>` children, keyed by dense effect id, written only while the
+session has effects. Absent = every effect item included, which is how every earlier file reads.
 
 > `version` is written but read nowhere in `Source/`, so it cannot be used as a format switch.
 > `fullChannels` is **write-only** — the deserializer relies on "absent = included" and never reads
@@ -2111,12 +2170,13 @@ The snapshot scope window offers a **Write to QLab** mode as an exclusive altern
 - Inside it, one **Network cue** per in-scope parameter/channel
 - Each network cue sends an OSC message back to WFS to recall that parameter value
 - Network cues are named descriptively: "Input \<id\> \<param name\> \<value\>\<unit\>" (e.g., "Input 1 Volume -6.0 dB")
+- The effects half follows the inputs in the same group (`QLabCueBuilder::collectEffectCues`), each value in the shape the `/wfs/effect/` parser expects (`getEffectParamKind`: `<ID> <v>`, `<ID> <instance> <v>`, `<ID> <instance> <band> <v>`, `<ID> <tap> <v>`, `<ID> "<row>"`), named "Effect 2 EQ 2 Band 3 EQ Gain 5.5 dB"; about 275 cues per effect channel
 - Compression ratios display as "1:\<value\>" (e.g., "Input 2 LS Ratio 1:4.0")
 
 **Key files:**
 - `Source/Network/QLabCueBuilder.h` — Builds `QLabCueSequence` (group + network cue messages)
 - `Source/gui/SnapshotScopeWindow.h` — Scope window UI with QLab radio option
-- `Source/gui/InputsTab.h` — `storeNewSnapshot()` and `updateSnapshot()` handle exclusive save/QLab logic
+- `Source/gui/snapshots/SnapshotSession.h` — `store()` and `update()` handle exclusive save/QLab logic
 - `Source/Network/OSCManager.h` — `sendToQLab()` sends the cue sequence with unique-ID-based move commands
 
 **OSC flow (sendToQLab):**
@@ -2539,7 +2599,8 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 - `Source/gui/ColorScheme.h` - Centralized color scheme system with 3 themes
 - `Source/gui/WfsLookAndFeel.h` - Custom LookAndFeel for widget theming
 - `Source/gui/sliders/WfsRangeSlider.h` - Double-thumbed range slider for distance constraints
-- `Source/gui/SnapshotScopeWindow.h` - Extended scope editing UI for snapshots
+- `Source/gui/SnapshotScopeWindow.h` - Extended scope editing UI for snapshots (Inputs / Effects tabs)
+- `Source/gui/snapshots/SnapshotSession.h` / `SnapshotRow.h` - the snapshot row, shared by the Inputs and Effects tabs
 - `Source/Helpers/ArrayGeometryCalculator.h/cpp` - Speaker array geometry calculations
 
 ---
