@@ -3,17 +3,22 @@
 #include <JuceHeader.h>
 #include <atomic>
 #include "WFSFileManager.h"
+#include "EffectsSnapshotScope.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Network/OSCProtocolTypes.h"
 
 /**
  * Parameter Dirty Tracker
  *
- * Tracks which input parameters have been modified by the user (UI or Remote app)
- * since the last reset event. Used by the snapshot scope window to offer
- * auto-preselection of modified parameters, speeding up cuelist authoring.
+ * Tracks which input AND effect parameters have been modified by the user (UI or
+ * Remote app) since the last reset event. Used by the snapshot scope window to
+ * offer auto-preselection of modified parameters, speeding up cuelist authoring.
  *
  * Dirty state uses the same key format as ExtendedSnapshotScope: "itemId_channelIndex".
+ * One key set serves both families: every effects item id starts with "fx" and
+ * no input item id does, so "fxEq2_1" (effect 2's EQ 2) can never be read as an
+ * input key. An input key's channel is the input SLOT, an effect key's the DENSE
+ * effect index - each grid asks with its own.
  *
  * Reset events:
  *   - Any DAW OSC received (Protocol::OSC / ADMOSC) -> clear all
@@ -151,11 +156,25 @@ public:
     void valueTreePropertyChanged (juce::ValueTree& tree,
                                     const juce::Identifier& property) override
     {
-        if (!isInputParameterTree (tree))
-            return;
+        // Resolve the scope item ID - and the channel - for this property change
+        juce::String itemId;
+        int channelIndex = -1;
 
-        // Resolve the scope item ID for this property change
-        juce::String itemId = resolveItemId (tree, property);
+        if (isInputParameterTree (tree))
+        {
+            itemId = resolveItemId (tree, property);
+            channelIndex = extractChannelIndex (tree);
+        }
+        else if (auto child = directChildOfEffect (tree); child.isValid())
+        {
+            // The node the property sits on decides the item for a module (a
+            // band or a tap reports its module), the property for a flat node.
+            // effectSolo / effectOtomoPauseResume / effectName resolve to no
+            // item and so never dirty anything, like inputSolo.
+            itemId = EffectsSnapshotScope::itemIdFor (child.getType(), property);
+            channelIndex = extractEffectChannelIndex (child.getParent());
+        }
+
         if (itemId.isEmpty())
             return;
 
@@ -179,7 +198,7 @@ public:
         if (protocol == WFSNetwork::Protocol::Disabled ||
             protocol == WFSNetwork::Protocol::Remote)
         {
-            markDirty (itemId, tree);
+            markDirtyKey (itemId, channelIndex);
         }
     }
 
@@ -227,6 +246,42 @@ private:
                 return parent.isValid() ? parent.indexOf (node) : -1;
             }
             node = node.getParent();
+        }
+        return -1;
+    }
+
+    /** The direct child of an <Effect> (under <Effects>) that `tree` is or lives
+        under - its flat node or its module node - or an invalid tree when
+        `tree` is not inside an effect channel's parameters. */
+    juce::ValueTree directChildOfEffect (const juce::ValueTree& tree) const
+    {
+        juce::ValueTree child;
+        for (auto node = tree; node.isValid(); node = node.getParent())
+        {
+            if (node.getType() == WFSParameterIDs::Effect)
+                return node.getParent().hasType (WFSParameterIDs::Effects) ? child : juce::ValueTree();
+            child = node;
+        }
+        return {};
+    }
+
+    /** The DENSE index of an <Effect>: its ordinal among the <Effect>-typed
+        children of <Effects>, the count-by-type walk every effects accessor uses
+        (WFSValueTreeState::getEffectState) - never id - 1, never indexOf. */
+    int extractEffectChannelIndex (const juce::ValueTree& effect) const
+    {
+        auto parent = effect.getParent();
+        if (! parent.isValid())
+            return -1;
+
+        int dense = 0;
+        for (int i = 0; i < parent.getNumChildren(); ++i)
+        {
+            const auto child = parent.getChild (i);
+            if (child == effect)
+                return dense;
+            if (child.hasType (WFSParameterIDs::Effect))
+                ++dense;
         }
         return -1;
     }
@@ -309,7 +364,12 @@ private:
     /** Mark a scope item as dirty for the channel that owns the given tree node */
     void markDirty (const juce::String& itemId, const juce::ValueTree& tree)
     {
-        int channelIndex = extractChannelIndex (tree);
+        markDirtyKey (itemId, extractChannelIndex (tree));
+    }
+
+    /** Mark a scope item as dirty for a channel already resolved */
+    void markDirtyKey (const juce::String& itemId, int channelIndex)
+    {
         if (channelIndex >= 0)
         {
             auto key = ExtendedScope::makeKey (itemId, channelIndex);

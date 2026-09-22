@@ -4820,6 +4820,38 @@ void MainComponent::runChannelListSelfTest()
         tempProject.deleteRecursively();
     }
 
+    // ---- N11: an effect edit marks ITS effects scope item dirty --------------
+    // What the Scope window's "auto-preselect modified" and "Select modified"
+    // read. A module is one item whatever node inside it moved - a band reports
+    // its EQ instance, never the other one - and monitoring state marks nothing.
+    {
+        namespace P = WFSParameterIDs;
+        auto& tracker = parameters.getDirtyTracker();
+
+        const int effectsBefore = vts.getNumEffectChannels();
+        vts.setNumEffectChannels(2);
+        tracker.endSuppressionAndClear();
+
+        vts.getEffectModuleSection(1, P::FxDist).setProperty(P::effectDistDrive, 7.0, nullptr);
+        check(tracker.isDirty("fxDist", 1) && ! tracker.isDirty("fxDist", 0),
+              "N11: a module write marks that module, on that effect only");
+
+        vts.getEffectEQBand(1, 1, 2).setProperty(P::effectEQgain, 3.0, nullptr);
+        check(tracker.isDirty("fxEq2", 1) && ! tracker.isDirty("fxEq1", 1),
+              "N11: a band write on EQ 2 marks EQ 2, not EQ 1");
+
+        vts.setEffectParameter(1, P::effectAttenuation, -2.0);
+        check(tracker.isDirty("fxLevel", 1), "N11: a flat write marks its property item");
+
+        tracker.clearAll();
+        vts.setEffectParameter(1, P::effectSolo, 1);
+        check(! tracker.hasAnyDirty(), "N11: effectSolo marks nothing");
+        vts.setEffectParameter(1, P::effectSolo, 0);
+
+        tracker.clearAll();
+        vts.setNumEffectChannels(effectsBefore);
+    }
+
     // ---- I: channel identity gate --------------------------------------------
     // Position is not identity: a file's <Input> entries merge BY NUMBER, the
     // inventory rebuilds the list BY NUMBER, and patch rows land BY POSITION.

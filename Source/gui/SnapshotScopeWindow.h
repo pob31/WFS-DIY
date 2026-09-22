@@ -1109,14 +1109,22 @@ private:
 
         const auto& dirtyKeys = dirtyTracker->getDirtyKeys();
 
-        for (const auto& item : ExtendedScope::getScopeItems())
+        // Both grids from the one key set: an effects item id starts with "fx",
+        // so its keys can never be an input item's.
+        auto fill = [&dirtyKeys] (WFSFileManager::ScopeMatrix& matrix, int channels)
         {
-            for (int ch = 0; ch < numChannels; ++ch)
+            for (const auto& item : matrix.getTable().items)
             {
-                auto key = ExtendedScope::makeKey (item.itemId, ch);
-                scope.inputs.itemChannelStates[key] = (dirtyKeys.find (key) != dirtyKeys.end());
+                for (int ch = 0; ch < channels; ++ch)
+                {
+                    auto key = ExtendedScope::makeKey (item.itemId, ch);
+                    matrix.itemChannelStates[key] = (dirtyKeys.find (key) != dirtyKeys.end());
+                }
             }
-        }
+        };
+
+        fill (scope.inputs, numChannels);
+        fill (scope.effects, parameters.getNumEffectChannels());
 
         gridComponent->repaint();
         channelHeader->repaint();
