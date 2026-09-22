@@ -2824,10 +2824,10 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
         auto parsed = OSCMessageRouter::parseEffectMessage(message);
 
         // A verb is an action with no parameter behind it. Four are received
-        // here; the two snapshot verbs are still refused, with a reason that
-        // reaches the session log as every refusal does ("nothing happened and
-        // here is why" is a different message from "I have never heard of
-        // that").
+        // here; the two snapshot verbs are refused - retired, since the input
+        // snapshot verbs carry the effects too - with a reason that reaches the
+        // session log as every refusal does ("nothing happened and here is
+        // why" is a different message from "I have never heard of that").
         if (parsed.kind == OSCMessageRouter::ParsedEffectMessage::Kind::Verb)
         {
             if (parsed.invalidReason.isNotEmpty())

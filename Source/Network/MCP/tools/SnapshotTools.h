@@ -35,8 +35,9 @@ inline ToolDescriptor describe (WFSFileManager& fileManager)
 {
     ToolDescriptor d;
     d.name        = "snapshot_list";
-    d.description = "List the names of all saved input snapshots in the "
-                    "current project folder. Use before snapshot.load to "
+    d.description = "List the names of all saved snapshots in the current "
+                    "project folder (each one carries the inputs and the "
+                    "effects channels). Use before snapshot.load to "
                     "validate the name an operator/AI is asking about.";
     d.inputSchema   = buildListSchema();
     d.modifiesState = false;

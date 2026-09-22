@@ -1744,10 +1744,14 @@ OSCMessageRouter::ParsedEffectMessage OSCMessageRouter::parseEffectMessage(const
         {
             result.kind = Kind::Verb;
             result.verb = suffix;
+            // Retired, not pending (plan revision 8): one snapshot file carries
+            // the inputs AND the effects, so /wfs/input/snapshot/load|store
+            // already recall and store the effects. Kept recognised so a client
+            // that learnt this address hears where to go instead of silence.
             result.invalidReason = juce::String (OSCPaths::EFFECT_PREFIX) + suffix
-                                 + " is a published address with no receiver yet: the effects"
-                                   " snapshot store lands with phase 7 (snapshots, MIDI, QLab)."
-                                   " The message was understood and nothing was changed.";
+                                 + " is retired: one snapshot carries the inputs and the effects,"
+                                   " so use /wfs/input/snapshot/" + suffix.fromFirstOccurrenceOf ("/", false, false)
+                                 + " \"<name>\". The message was understood and nothing was changed.";
             return result;
         }
     }

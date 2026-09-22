@@ -197,8 +197,10 @@ TYPING_ACCEPTED = [
 ]
 
 # The four tab-level verbs the Effects tab receives (nothing stored: they
-# are asserted through the session log, below), and the two snapshot verbs
-# that are still refused until phase 7 - also asserted through the log.
+# are asserted through the session log, below), and the two snapshot verbs,
+# refused for good - one snapshot carries the inputs and the effects, so
+# /wfs/input/snapshot/* is the address (plan revision 8) - also asserted
+# through the log.
 VERB_SENDS = [
     ("/wfs/effect/selected",      [("i", 2)]),
     ("/wfs/effect/editOnMap",     [("i", 1)]),
@@ -206,7 +208,7 @@ VERB_SENDS = [
     ("/wfs/effect/clear",         [("i", 1)]),
     ("/wfs/effect/clearAll",      []),
     ("/wfs/effect/selected",      [("i", 9)]),      # no such channel: refused
-    ("/wfs/effect/snapshot/load", [("s", "x")]),     # phase 7: refused
+    ("/wfs/effect/snapshot/load", [("s", "x")]),     # retired: refused, pointing at /wfs/input/snapshot/load
 ]
 
 TYPING_REFUSALS = [
@@ -252,7 +254,7 @@ TYPING_REFUSALS = [
 # show. "Refused with a reason in the log, never silently dropped" is the
 # contract of this parser, and this is the half of it that can be measured.
 EXPECTED_LOG_REASONS = [
-    # the verbs: four accepted, two refused (a missing channel, phase 7)
+    # the verbs: four accepted, two refused (a missing channel, a retired address)
     "OSC accepted /wfs/effect/selected - effect 2 selected",
     "OSC accepted /wfs/effect/editOnMap - edit on map ON",
     "OSC accepted /wfs/effect/editOnMap - edit on map OFF",
@@ -260,6 +262,8 @@ EXPECTED_LOG_REASONS = [
     "OSC accepted /wfs/effect/clearAll - every effect cleared",
     "OSC refused /wfs/effect/selected",
     "OSC refused /wfs/effect/snapshot/load",
+    # ...and the refusal says where to go instead (plan revision 8)
+    "so use /wfs/input/snapshot/load",
     "OSC refused /wfs/config/effectChannels",
     "OSC refused /wfs/config/effects/workerThreads",
     "OSC refused /wfs/effect/attenuatino",
