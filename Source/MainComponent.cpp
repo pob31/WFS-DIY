@@ -6757,6 +6757,239 @@ void MainComponent::runChannelListSelfTest()
         }
     }
 
+    // ---- L: a link group propagates, and every member can leave it ---------
+    // The funnel is the output ARRAY's, not the cluster one (R5-6): membership
+    // plus a mode on every member, and the receiver's mode consulted as well as
+    // the origin's. Everything below is about that asymmetry and about what a
+    // group must never share - mutes above all (R5-1), which propagation cannot
+    // express and a group ACTION can (R5-2).
+    {
+        namespace P = WFSParameterIDs;
+        namespace D = WFSParameterDefaults;
+
+        const bool effectLatchBefore = vts.areEffectPositionsUserOwned();
+
+        // Three channels: 1 and 2 in group 1, channel 3 left unlinked as the
+        // control that must never move.
+        vts.setNumEffectChannels(3);
+
+        auto linkMode = [&](int fx) { return vts.getEffectLinkMode(fx); };
+        auto attenOf  = [&](int fx)
+        {
+            return static_cast<float>(static_cast<double>(vts.getEffectParameter(fx, P::effectAttenuation)));
+        };
+
+        check(vts.getNumEffectChannels() == 3, "L0: three effects channels exist");
+        check(linkMode(0) == vts.getDefaultEffectLinkMode(),
+              "L0: a new channel is stamped with the global link mode, not reading it live");
+
+        for (int fx = 0; fx < 2; ++fx)
+        {
+            vts.setEffectParameter(fx, P::effectLinkGroup, 1);
+            vts.setEffectParameter(fx, P::effectLinkMode, 1);   // ABSOLUTE
+        }
+        vts.setEffectParameter(2, P::effectLinkGroup, 0);
+
+        for (int fx = 0; fx < 3; ++fx)
+            vts.setEffectParameter(fx, P::effectAttenuation, -10.0f);
+
+        // L1: ABSOLUTE on both sides copies the value
+        vts.setEffectParameterWithLinkPropagation(0, P::effectAttenuation, -4.0f, true);
+        check(std::abs(attenOf(0) + 4.0f) < 1e-4f && std::abs(attenOf(1) + 4.0f) < 1e-4f,
+              "L1: absolute on both sides copies the value to the member");
+        check(std::abs(attenOf(2) + 10.0f) < 1e-4f, "L1: an unlinked channel never moves");
+
+        // L2: RELATIVE keeps the member's offset
+        vts.setEffectParameter(0, P::effectAttenuation, -4.0f);
+        vts.setEffectParameter(1, P::effectAttenuation, -20.0f);
+        vts.setEffectParameter(1, P::effectLinkMode, 2);        // the RECEIVER asks for relative
+        vts.setEffectParameterWithLinkPropagation(0, P::effectAttenuation, -6.0f, true);
+        check(std::abs(attenOf(0) + 6.0f) < 1e-4f && std::abs(attenOf(1) + 22.0f) < 1e-4f,
+              "L2: relative moves the member by the delta and keeps its offset");
+
+        // L3: the delta clamps to the parameter's own bounds
+        vts.setEffectParameter(0, P::effectAttenuation, -4.0f);
+        vts.setEffectParameter(1, P::effectAttenuation, -90.0f);
+        vts.setEffectParameterWithLinkPropagation(0, P::effectAttenuation, -20.0f, true);
+        check(std::abs(attenOf(1) - D::effectAttenuationMin) < 1e-4f,
+              "L3: a relative member clamps at the parameter's minimum instead of running past it");
+
+        // L4: the RECEIVER's mode is what detaches it (R5-6)
+        vts.setEffectParameter(1, P::effectLinkMode, 0);        // OFF, from the member's side
+        vts.setEffectParameter(0, P::effectAttenuation, -4.0f);
+        vts.setEffectParameter(1, P::effectAttenuation, -30.0f);
+        vts.setEffectParameterWithLinkPropagation(0, P::effectAttenuation, -8.0f, true);
+        check(std::abs(attenOf(1) + 30.0f) < 1e-4f,
+              "L4: a member set to OFF is skipped although the origin still propagates");
+
+        // L5: and the ORIGIN's mode stops it leaving
+        vts.setEffectParameter(1, P::effectLinkMode, 1);
+        vts.setEffectParameter(0, P::effectLinkMode, 0);
+        vts.setEffectParameter(1, P::effectAttenuation, -30.0f);
+        vts.setEffectParameterWithLinkPropagation(0, P::effectAttenuation, -12.0f, true);
+        check(std::abs(attenOf(1) + 30.0f) < 1e-4f,
+              "L5: a detached origin writes only itself");
+        vts.setEffectParameter(0, P::effectLinkMode, 1);
+
+        // L6: leaving the group entirely
+        vts.setEffectParameter(1, P::effectLinkGroup, 2);
+        vts.setEffectParameter(1, P::effectAttenuation, -30.0f);
+        vts.setEffectParameterWithLinkPropagation(0, P::effectAttenuation, -16.0f, true);
+        check(std::abs(attenOf(1) + 30.0f) < 1e-4f, "L6: another group does not receive");
+        vts.setEffectParameter(1, P::effectLinkGroup, 1);
+
+        // L7: an absolute-only parameter is copied even in relative mode -
+        // a toggle has no offset, and a delta would invert matching members
+        vts.setEffectParameter(0, P::effectLinkMode, 2);
+        vts.setEffectParameter(1, P::effectLinkMode, 2);
+        vts.setEffectParameter(0, P::effectMinimalLatency, 0);
+        vts.setEffectParameter(1, P::effectMinimalLatency, 0);
+        vts.setEffectParameterWithLinkPropagation(0, P::effectMinimalLatency, 1, true);
+        check(WFSVar::toInt(vts.getEffectParameter(1, P::effectMinimalLatency)) == 1,
+              "L7: a discrete parameter is copied absolutely even when both sides say relative");
+        vts.setEffectParameter(0, P::effectLinkMode, 1);
+        vts.setEffectParameter(1, P::effectLinkMode, 1);
+
+        // L8: the exclusions. Position is identity, mute is independence.
+        vts.setEffectParameter(1, P::effectPositionX, 7.0f);
+        vts.setEffectParameterWithLinkPropagation(0, P::effectPositionX, -7.0f, true);
+        check(std::abs(static_cast<float>(static_cast<double>(
+                  vts.getEffectParameter(1, P::effectPositionX))) - 7.0f) < 1e-4f,
+              "L8: position never propagates - it is the channel's identity in the show");
+
+        vts.setEffectParameter(0, P::effectMute, 0);
+        vts.setEffectParameter(1, P::effectMute, 0);
+        vts.setEffectParameterWithLinkPropagation(0, P::effectMute, 1, true);
+        check(WFSVar::toInt(vts.getEffectParameter(1, P::effectMute)) == 0,
+              "L8: mute never propagates, so a single channel stays independently mutable (R5-1)");
+
+        // L9: the group mute is an ACTION - it writes every member once and
+        // leaves each of them independently editable (R5-2)
+        vts.setEffectParameter(0, P::effectMute, 0);
+        vts.setEffectParameter(1, P::effectMute, 0);
+        vts.setEffectGroupMute(1, true);
+        check(WFSVar::toInt(vts.getEffectParameter(0, P::effectMute)) == 1
+           && WFSVar::toInt(vts.getEffectParameter(1, P::effectMute)) == 1,
+              "L9: the group mute writes every member of the group");
+        check(WFSVar::toInt(vts.getEffectParameter(2, P::effectMute)) == 0,
+              "L9: and reaches no channel outside it");
+        vts.setEffectParameter(1, P::effectMute, 0);
+        check(WFSVar::toInt(vts.getEffectParameter(0, P::effectMute)) == 1
+           && WFSVar::toInt(vts.getEffectParameter(1, P::effectMute)) == 0,
+              "L9: unmuting one member afterwards leaves the other muted - an action, not a coupling");
+        vts.setEffectParameter(0, P::effectMute, 0);
+
+        // L9b: the per-output row is not a mute shortcut and is left alone
+        {
+            auto ret0 = vts.getEffectReturnSection(0);
+            const juce::String rowBefore = ret0.getProperty(P::effectMutes).toString();
+            vts.setEffectGroupMute(1, true);
+            check(ret0.getProperty(P::effectMutes).toString() == rowBefore,
+                  "L9: the per-output mute row is spatial routing and the group mute never touches it");
+            vts.setEffectGroupMute(1, false);
+        }
+
+        // L10: an instanced module - the doubled EQ and dynamics are the whole
+        // reason the generic path refuses to resolve them
+        {
+            auto dynOf = [&](int fx)
+            {
+                auto s = vts.getEffectModuleSection(fx, P::FxDyn1);
+                return static_cast<float>(static_cast<double>(s.getProperty(P::effectDynCompThreshold)));
+            };
+            auto dyn2Of = [&](int fx)
+            {
+                auto s = vts.getEffectModuleSection(fx, P::FxDyn2);
+                return static_cast<float>(static_cast<double>(s.getProperty(P::effectDynCompThreshold)));
+            };
+            const float dyn2Before = dyn2Of(1);
+
+            vts.setEffectModuleParameterWithLinkPropagation(0, P::FxDyn1, P::effectDynCompThreshold,
+                                                            -33.0f, true);
+            check(std::abs(dynOf(0) + 33.0f) < 1e-4f && std::abs(dynOf(1) + 33.0f) < 1e-4f,
+                  "L10: a module parameter reaches the same instance on the member");
+            check(std::abs(dyn2Of(1) - dyn2Before) < 1e-4f,
+                  "L10: and leaves the OTHER instance of that module alone");
+        }
+
+        // L11: an EQ band - the same band of the same instance
+        {
+            auto bandGain = [&](int fx, int inst, int band)
+            {
+                auto b = vts.getEffectEQBand(fx, inst, band);
+                return static_cast<float>(static_cast<double>(b.getProperty(P::effectEQgain)));
+            };
+            const float otherBandBefore = bandGain(1, 0, 3);
+            const float otherInstBefore = bandGain(1, 1, 2);
+
+            vts.setEffectEQBandParameterWithLinkPropagation(0, 0, 2, P::effectEQgain, 5.5f, true);
+            check(std::abs(bandGain(0, 0, 2) - 5.5f) < 1e-4f
+               && std::abs(bandGain(1, 0, 2) - 5.5f) < 1e-4f,
+                  "L11: an EQ band reaches the same band of the same instance on the member");
+            check(std::abs(bandGain(1, 0, 3) - otherBandBefore) < 1e-4f
+               && std::abs(bandGain(1, 1, 2) - otherInstBefore) < 1e-4f,
+                  "L11: and moves no other band and no other instance");
+        }
+
+        // L12: a delay tap - the same tap
+        {
+            auto tapLevel = [&](int fx, int tap)
+            {
+                auto t = vts.getEffectDelayTap(fx, tap);
+                return static_cast<float>(static_cast<double>(t.getProperty(P::effectDelayTapLevel)));
+            };
+            const float otherTapBefore = tapLevel(1, 4);
+
+            vts.setEffectDelayTapParameterWithLinkPropagation(0, 2, P::effectDelayTapLevel, -9.0f, true);
+            check(std::abs(tapLevel(0, 2) + 9.0f) < 1e-4f && std::abs(tapLevel(1, 2) + 9.0f) < 1e-4f,
+                  "L12: a delay tap reaches the same tap on the member");
+            check(std::abs(tapLevel(1, 4) - otherTapBefore) < 1e-4f,
+                  "L12: and moves no other tap");
+        }
+
+        // L13: the chain order is a permutation, so it is copied whole
+        {
+            const juce::String reordered = "eq1,dist,eq2,dyn1,dyn2,mod,phaser,trem,reverb,delay,crush";
+            vts.setEffectParameterWithLinkPropagation(0, P::effectChainOrder, reordered, true);
+            check(vts.getEffectParameter(1, P::effectChainOrder).toString() == reordered,
+                  "L13: the chain order propagates as one string, never as a delta");
+            vts.setEffectParameterWithLinkPropagation(0, P::effectChainOrder,
+                                                      D::effectChainOrderDefault, true);
+        }
+
+        // L14: bypassing propagation writes the origin only
+        vts.setEffectParameter(0, P::effectAttenuation, -4.0f);
+        vts.setEffectParameter(1, P::effectAttenuation, -4.0f);
+        vts.setEffectParameterWithLinkPropagation(0, P::effectAttenuation, -18.0f, false);
+        check(std::abs(attenOf(0) + 18.0f) < 1e-4f && std::abs(attenOf(1) + 4.0f) < 1e-4f,
+              "L14: a bypassed write reaches the edited channel alone");
+        check(linkMode(0) == 1 && linkMode(1) == 1,
+              "L14: and leaves both link modes untouched, so the next write propagates again");
+
+        // L15: one undo reverts the origin AND every member it carried
+        {
+            WFSValueTreeState::ScopedUndoDomain domainScope(vts, UndoDomain::Effects);
+            vts.setEffectParameter(0, P::effectAttenuation, -5.0f);
+            vts.setEffectParameter(1, P::effectAttenuation, -5.0f);
+
+            vts.beginUndoTransaction("Effects Link Self-Test");
+            vts.setEffectParameterWithLinkPropagation(0, P::effectAttenuation, -25.0f, true);
+            check(std::abs(attenOf(0) + 25.0f) < 1e-4f && std::abs(attenOf(1) + 25.0f) < 1e-4f,
+                  "L15: the gesture moved both channels");
+
+            vts.beginUndoTransaction("Effects Link Self-Test Boundary");
+            vts.undo();
+            check(std::abs(attenOf(0) + 5.0f) < 1e-4f && std::abs(attenOf(1) + 5.0f) < 1e-4f,
+                  "L15: one undo reverts the origin and every member of the gesture");
+        }
+
+        // Leave nothing behind
+        vts.setNumEffectChannels(0);
+        if (! effectLatchBefore)
+            vts.getEffectsState().setProperty(P::effectPositionsUserOwned, 0, nullptr);
+        recomputeRenderSourceCount();
+    }
+
     // ---- Z: the app's own map carries the effect returns -------------------
     // recomputeRenderSourceCount builds with the live effect count, so a count
     // change through the funnel every structural edit reaches must move

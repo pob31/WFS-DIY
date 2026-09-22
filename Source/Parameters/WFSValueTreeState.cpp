@@ -1887,6 +1887,323 @@ juce::ValueTree WFSValueTreeState::getEffectSendsSection (int channelIndex)
 }
 
 //==============================================================================
+// Link groups - propagation between the members of one group
+//
+// MODELLED ON THE OUTPUT ARRAY, NOT ON CLUSTERS (R5-6). The plan originally
+// said to clone ClusterParamEdit, and clusters have membership with NO
+// per-member mode - cloning that template would have inherited exactly the gap
+// effectLinkMode closes. The shape here is setOutputParameterWithArrayPropagation:
+// membership plus a mode on every member, and the RECEIVER's mode is consulted
+// as well as the origin's, which is what lets a channel be detached from the
+// detached channel's own side.
+//
+// Writes that do NOT come through these methods never propagate: OSC, MCP,
+// snapshot recall and file loads all call the plain setters, exactly as the
+// input and output families behave.
+//==============================================================================
+
+bool WFSValueTreeState::isEffectLinkExcluded (const juce::Identifier& paramId)
+{
+    // What a link group must never share. Position, the return offset and the
+    // name are the channel's identity in the show; the send rows are its
+    // routing; AutomOtion is a movement authored per channel.
+    //
+    // MUTES ARE HERE, NOT IN THE ABSOLUTE-ONLY SET (R5-1). The plan had them
+    // propagating, which made two linked channels share one mute state so
+    // neither could be silenced alone - the opposite of the requirement. A
+    // group mute is an ACTION instead (setEffectGroupMute), which writes every
+    // member once and leaves each independently editable afterwards.
+    // effectSolo was already excluded, and solo independent while mute was
+    // shared was never coherent.
+    static const std::set<juce::Identifier> excluded = {
+        effectName,
+        effectPositionX, effectPositionY, effectPositionZ, effectCoordinateMode,
+        effectReturnOffsetX, effectReturnOffsetY, effectReturnOffsetZ,
+        effectLinkGroup, effectLinkMode,
+        effectMute, effectMutes, effectMuteMacro, effectMuteReverbSends, effectSolo,
+        effectSendLevels, effectSendOns, effectFxSendLevels, effectFxSendOns,
+        effectSendLevel, effectSendOn, effectFxSendLevel, effectFxSendOn,
+        effectOtomoX, effectOtomoY, effectOtomoZ, effectOtomoCoordinateMode,
+        effectOtomoR, effectOtomoTheta, effectOtomoRsph, effectOtomoPhi,
+        effectOtomoAbsoluteRelative, effectOtomoSpeedProfile, effectOtomoDuration,
+        effectOtomoCurve, effectOtomoTrigger, effectOtomoThreshold, effectOtomoReset,
+        effectOtomoPauseResume,
+    };
+
+    return excluded.count (paramId) != 0;
+}
+
+bool WFSValueTreeState::isEffectLinkAbsoluteOnly (const juce::Identifier& paramId)
+{
+    // Discrete values: copied outright in any mode, never delta'd. A toggle,
+    // an enum or a validated set has no meaningful offset, and a delta would
+    // invert already-matching members instead of sharing the state - the same
+    // reasoning isBooleanOutputParameter records for the output family.
+    //
+    // THIS TABLE IS THE CSV'S "enum" COLUMN. It was generated from
+    // Documentation/WFS-UI_effects.csv by taking every per-channel row with a
+    // non-empty enum cell, minus the rows isEffectLinkExcluded already stops.
+    // Add a row with an enum to that file and it belongs here; a startsWith
+    // would be wrong for the usual reason (effectDist / effectDistance*).
+    static const std::set<juce::Identifier> absoluteOnly = {
+        effectMinimalLatency, effectFeedMiniLatency, effectAttenuationLaw,
+        effectChainBypass,
+        effectDistBypass, effectDistOversample,
+        effectEQBypass, effectEQshape,
+        effectDynBypass, effectDynDetector, effectDynAutoMakeup,
+        effectDynCompOn, effectDynExpOn,
+        effectModBypass, effectModMode, effectModVoices, effectModShape,
+        effectModThroughZero,
+        effectPhaserBypass, effectPhaserStages, effectPhaserShape,
+        effectTremBypass,
+        effectReverbBypass, effectReverbModel, effectReverbType,
+        effectDelayBypass, effectDelayTaps, effectDelayTapMode, effectDelayPattern,
+        effectDelayFeedbackTap,
+        effectCrushBypass, effectCrushFilter,
+
+        // Not an enum, and absolute for a stronger reason: the chain order is
+        // a permutation of eleven tokens. "Half a reorder" is not a value.
+        effectChainOrder,
+    };
+
+    return absoluteOnly.count (paramId) != 0;
+}
+
+int WFSValueTreeState::getEffectLinkGroup (int channelIndex)
+{
+    auto channel = getEffectChannelSection (channelIndex);
+    return channel.isValid()
+         ? juce::jlimit (effectLinkGroupMin, effectLinkGroupMax,
+                         WFSVar::toInt (channel.getProperty (effectLinkGroup), effectLinkGroupDefault))
+         : 0;
+}
+
+int WFSValueTreeState::getEffectLinkMode (int channelIndex)
+{
+    auto channel = getEffectChannelSection (channelIndex);
+    return channel.isValid()
+         ? juce::jlimit (effectLinkModeMin, effectLinkModeMax,
+                         WFSVar::toInt (channel.getProperty (effectLinkMode), effectLinkModeDefault))
+         : 0;
+}
+
+void WFSValueTreeState::applyEffectLinkPropagation (int channelIndex,
+                                                    const juce::Identifier& paramId,
+                                                    const juce::var& newValue,
+                                                    const juce::var& oldValue,
+                                                    const std::function<juce::ValueTree (int)>& sectionFor)
+{
+    // The source channel has already been written by the caller - this walks
+    // the other members only.
+    if (isEffectLinkExcluded (paramId))
+        return;
+
+    const int group = getEffectLinkGroup (channelIndex);
+    if (group == 0)                     // unlinked
+        return;
+
+    const int originMode = getEffectLinkMode (channelIndex);
+    if (originMode == 0)                // this channel is detached
+        return;
+
+    const bool absoluteOnly = isEffectLinkAbsoluteOnly (paramId);
+    const auto bounds = WFSNetwork::getBounds (paramId);
+
+    const float delta = absoluteOnly ? 0.0f
+                                     : static_cast<float> (static_cast<double> (newValue))
+                                     - static_cast<float> (static_cast<double> (oldValue));
+
+    const int numEffects = getNumEffectChannels();
+
+    for (int member = 0; member < numEffects; ++member)
+    {
+        if (member == channelIndex)
+            continue;
+
+        if (getEffectLinkGroup (member) != group)
+            continue;
+
+        // THE RECEIVER'S MODE, not only the origin's (R5-6). This is what makes
+        // "disengage temporarily" work from the detached channel's side rather
+        // than requiring the operator to remember which channel they edit from.
+        const int memberMode = getEffectLinkMode (member);
+        if (memberMode == 0)
+            continue;
+
+        auto section = sectionFor (member);
+        if (! section.isValid() || ! section.hasProperty (paramId))
+            continue;
+
+        if (absoluteOnly || (originMode == 1 && memberMode == 1))
+        {
+            writeProperty (section, paramId, newValue, getActiveUndoManager());
+            continue;
+        }
+
+        // Relative: either side asking for it makes the member keep its offset.
+        float memberNew = static_cast<float> (static_cast<double> (section.getProperty (paramId))) + delta;
+
+        if (bounds.has_value())
+        {
+            memberNew = juce::jlimit (static_cast<float> (bounds->min),
+                                      static_cast<float> (bounds->max), memberNew);
+
+            if (bounds->isInt)
+            {
+                writeProperty (section, paramId, static_cast<int> (std::round (memberNew)),
+                               getActiveUndoManager());
+                continue;
+            }
+        }
+
+        writeProperty (section, paramId, memberNew, getActiveUndoManager());
+    }
+}
+
+juce::ValueTree WFSValueTreeState::findEffectSectionCarrying (int channelIndex,
+                                                              const juce::Identifier& paramId)
+{
+    // The same walk setEffectParameter does, and skipping the instanced module
+    // types for the same reason: a first-hit search would answer instance 1 and
+    // report success. Anything on FxEq1/2 or FxDyn1/2 must come through
+    // setEffectModuleParameterWithLinkPropagation instead.
+    auto effect = getEffectState (channelIndex);
+    if (! effect.isValid())
+        return {};
+
+    for (int i = 0; i < effect.getNumChildren(); ++i)
+    {
+        auto child = effect.getChild (i);
+
+        if (isInstancedEffectModuleType (child.getType()))
+            continue;
+
+        if (child.hasProperty (paramId))
+            return child;
+    }
+
+    return {};
+}
+
+void WFSValueTreeState::setEffectParameterWithLinkPropagation (int channelIndex,
+                                                               const juce::Identifier& paramId,
+                                                               const juce::var& value,
+                                                               bool propagateToGroup)
+{
+    if (! propagateToGroup || isEffectLinkExcluded (paramId))
+    {
+        setEffectParameter (channelIndex, paramId, value);
+        return;
+    }
+
+    const auto oldValue = getEffectParameter (channelIndex, paramId);
+    setEffectParameter (channelIndex, paramId, value);   // the source, with its ownership latch
+
+    applyEffectLinkPropagation (channelIndex, paramId, value, oldValue,
+                                [this, &paramId] (int member)
+                                {
+                                    return findEffectSectionCarrying (member, paramId);
+                                });
+}
+
+void WFSValueTreeState::setEffectModuleParameterWithLinkPropagation (int channelIndex,
+                                                                     const juce::Identifier& moduleType,
+                                                                     const juce::Identifier& paramId,
+                                                                     const juce::var& value,
+                                                                     bool propagateToGroup)
+{
+    auto section = getEffectModuleSection (channelIndex, moduleType);
+    if (! section.isValid())
+        return;
+
+    const auto oldValue = section.getProperty (paramId);
+    writeProperty (section, paramId, value, getActiveUndoManager());
+
+    if (! propagateToGroup)
+        return;
+
+    applyEffectLinkPropagation (channelIndex, paramId, value, oldValue,
+                                [this, &moduleType] (int member)
+                                {
+                                    return getEffectModuleSection (member, moduleType);
+                                });
+}
+
+void WFSValueTreeState::setEffectEQBandParameterWithLinkPropagation (int channelIndex,
+                                                                     int eqInstance,
+                                                                     int bandIndex,
+                                                                     const juce::Identifier& paramId,
+                                                                     const juce::var& value,
+                                                                     bool propagateToGroup)
+{
+    auto band = getEffectEQBand (channelIndex, eqInstance, bandIndex);
+    if (! band.isValid())
+        return;
+
+    const auto oldValue = band.getProperty (paramId);
+    writeProperty (band, paramId, value, getActiveUndoManager());
+
+    if (! propagateToGroup)
+        return;
+
+    // The SAME band of the SAME instance on every member: a link group shares a
+    // chain, so band 3 of EQ 2 answers to band 3 of EQ 2.
+    applyEffectLinkPropagation (channelIndex, paramId, value, oldValue,
+                                [this, eqInstance, bandIndex] (int member)
+                                {
+                                    return getEffectEQBand (member, eqInstance, bandIndex);
+                                });
+}
+
+void WFSValueTreeState::setEffectDelayTapParameterWithLinkPropagation (int channelIndex,
+                                                                       int tapIndex,
+                                                                       const juce::Identifier& paramId,
+                                                                       const juce::var& value,
+                                                                       bool propagateToGroup)
+{
+    auto tap = getEffectDelayTap (channelIndex, tapIndex);
+    if (! tap.isValid())
+        return;
+
+    const auto oldValue = tap.getProperty (paramId);
+    writeProperty (tap, paramId, value, getActiveUndoManager());
+
+    if (! propagateToGroup)
+        return;
+
+    applyEffectLinkPropagation (channelIndex, paramId, value, oldValue,
+                                [this, tapIndex] (int member)
+                                {
+                                    return getEffectDelayTap (member, tapIndex);
+                                });
+}
+
+void WFSValueTreeState::setEffectGroupMute (int group, bool muted)
+{
+    // AN ACTION, NOT A COUPLING (R5-2). One gesture writes the mute of every
+    // member; afterwards each member is still independently mutable, which is
+    // the whole point - under propagation, unmuting one member would unmute
+    // all of them. This is the shape inputMutes + inputMuteMacro already has:
+    // independent per-channel state plus a macro that writes many at once.
+    //
+    // The per-output row is deliberately NOT touched. effectMutes says which
+    // speakers carry this return, which is spatial routing the operator
+    // authored; effectMute is the channel's own mute and the only thing a
+    // group shortcut has any business writing.
+    if (group <= 0)
+        return;
+
+    beginUndoTransaction (muted ? "Mute Effects Group " + juce::String (group)
+                                : "Unmute Effects Group " + juce::String (group));
+
+    const int numEffects = getNumEffectChannels();
+
+    for (int member = 0; member < numEffects; ++member)
+        if (getEffectLinkGroup (member) == group)
+            setEffectParameter (member, effectMute, muted ? 1 : 0);
+}
+
+//==============================================================================
 // The send matrix
 //==============================================================================
 

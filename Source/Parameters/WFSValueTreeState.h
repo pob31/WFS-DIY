@@ -11,6 +11,8 @@
 #include <map>
 #include <array>
 #include <cstdint>
+#include <functional>
+#include <set>
 
 /**
  * Undo domain — each tab has its own undo history.
@@ -631,6 +633,71 @@ public:
                              std::array<uint8_t, WFSParameterDefaults::maxInputChannels>& inOns,
                              std::array<float, WFSParameterDefaults::maxEffectChannels>& fxLevelsDb,
                              std::array<uint8_t, WFSParameterDefaults::maxEffectChannels>& fxOns) const;
+
+    //==========================================================================
+    // Effects link groups
+    //
+    // The output-array funnel, not the cluster one (R5-6): membership
+    // (effectLinkGroup) plus a MODE ON EVERY MEMBER (effectLinkMode), and the
+    // receiver's mode is consulted as well as the origin's. Only writes made
+    // through these methods propagate - OSC, MCP, snapshots and file loads
+    // call the plain setters and reach one channel, as in every other family.
+    //==========================================================================
+
+    /** Parameters a link group must never share: identity, position, routing
+        and AutomOtion - and the mutes, which are an ACTION instead (R5-1). */
+    static bool isEffectLinkExcluded (const juce::Identifier& paramId);
+
+    /** Discrete parameters: copied outright in any mode, never delta'd. The
+        table is the CSV's "enum" column plus effectChainOrder. */
+    static bool isEffectLinkAbsoluteOnly (const juce::Identifier& paramId);
+
+    /** 0 = unlinked, 1..8. */
+    int getEffectLinkGroup (int channelIndex);
+
+    /** 0 = OFF (detached), 1 = ABSOLUTE, 2 = RELATIVE. */
+    int getEffectLinkMode (int channelIndex);
+
+    /** Write a per-channel effect parameter, propagating to the rest of its
+        link group unless propagateToGroup is false. Instanced module
+        parameters (FxEq1/2, FxDyn1/2), EQ bands and delay taps have their own
+        entry points below - this one resolves the property on the channel's
+        non-instanced children, exactly as setEffectParameter does. */
+    void setEffectParameterWithLinkPropagation (int channelIndex,
+                                                const juce::Identifier& paramId,
+                                                const juce::var& value,
+                                                bool propagateToGroup);
+
+    /** Write a parameter on one module node, named by its node type, so the
+        doubled EQ and dynamics instances are addressable. */
+    void setEffectModuleParameterWithLinkPropagation (int channelIndex,
+                                                      const juce::Identifier& moduleType,
+                                                      const juce::Identifier& paramId,
+                                                      const juce::var& value,
+                                                      bool propagateToGroup);
+
+    /** Write one EQ band of one instance. Propagates to the same band of the
+        same instance on every member: a link group shares a chain. */
+    void setEffectEQBandParameterWithLinkPropagation (int channelIndex,
+                                                      int eqInstance,
+                                                      int bandIndex,
+                                                      const juce::Identifier& paramId,
+                                                      const juce::var& value,
+                                                      bool propagateToGroup);
+
+    /** Write one delay tap. Propagates to the same tap on every member. */
+    void setEffectDelayTapParameterWithLinkPropagation (int channelIndex,
+                                                        int tapIndex,
+                                                        const juce::Identifier& paramId,
+                                                        const juce::var& value,
+                                                        bool propagateToGroup);
+
+    /** Mute or unmute every member of a link group in one undo transaction.
+        An ACTION, not a coupling (R5-2): each member stays independently
+        editable afterwards, which propagation could not express. Writes
+        effectMute only - never the per-output effectMutes row, which is
+        spatial routing rather than a mute shortcut. */
+    void setEffectGroupMute (int group, bool muted);
 
     /** One chain slot's module node, by slot index 0..10 in the declared order
         (dist, eq1, eq2, dyn1, dyn2, mod, phaser, trem, reverb, delay, crush) or
@@ -1276,6 +1343,20 @@ protected:
                           const juce::var& value, int channelIndex) override;
 
 private:
+    /** The member half of a link-group write: the source channel has already
+        been written by the caller. sectionFor resolves the node carrying the
+        property on a given member, which is what lets one core serve plain
+        parameters, module nodes, EQ bands and delay taps. */
+    void applyEffectLinkPropagation (int channelIndex,
+                                     const juce::Identifier& paramId,
+                                     const juce::var& newValue,
+                                     const juce::var& oldValue,
+                                     const std::function<juce::ValueTree (int)>& sectionFor);
+
+    /** The child of one <Effect> carrying paramId, skipping the instanced
+        module types for the reason getEffectParameter documents. */
+    juce::ValueTree findEffectSectionCarrying (int channelIndex, const juce::Identifier& paramId);
+
     /** Set one channel's permanent number, dragging its tracking id along only
         while that still matched the old number. Raw setProperty: a renumber is
         bookkeeping and must carry no undo entry, dirty mark or ownership latch.
