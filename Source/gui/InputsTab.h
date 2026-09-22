@@ -7036,6 +7036,17 @@ private:
                                                     .replace("{numbers}", nums.joinIntoString(", ")));
                     }
 
+                    const auto& skippedEffects = fm.getLastRecallSkippedEffectIds();
+                    if (! skippedEffects.empty())
+                    {
+                        juce::StringArray ids;
+                        for (int n : skippedEffects) ids.add (juce::String (n));
+                        safe->showStatusMessage(LOC("inputs.messages.snapshotEffectsSkipped")
+                                                    .replace("{name}", selectedSnapshot)
+                                                    .replace("{n}", juce::String((int) skippedEffects.size()))
+                                                    .replace("{ids}", ids.joinIntoString(", ")));
+                    }
+
                     if (safe->onConfigReloaded)
                         safe->onConfigReloaded();
                 }

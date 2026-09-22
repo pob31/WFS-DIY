@@ -530,9 +530,11 @@ public:
     // Snapshot Scope Operations
     //==========================================================================
 
-    /** Save a new input snapshot with extended scope. Also latches channel-number
-        ownership: the file keys its entries by permanent channel number, so those
-        numbers stop being reassignable the moment it is written. */
+    /** Save a new snapshot with extended scope - the inputs AND, since plan
+        revision 8, the effects: one file carries both families. Also latches
+        channel-number ownership: the file keys its <Input> entries by permanent
+        channel number, so those numbers stop being reassignable the moment it is
+        written. <Effect> entries are keyed by dense id. */
     /** True if `propertyId` is carried by an input snapshot — i.e. it appears in
         some ScopeItem's parameterIds, or in the <Channel> table.
 
@@ -693,6 +695,11 @@ public:
         live channel and were skipped. Recall used to be silent about them. */
     const std::vector<int>& getLastRecallSkippedNumbers() const { return lastRecallSkippedNumbers; }
 
+    /** After loadInputSnapshotWithExtendedScope: the <Effect> ids the snapshot
+        carries beyond the live effect count, which were skipped (and stay in the
+        file, applying again once the channel exists). */
+    const std::vector<int>& getLastRecallSkippedEffectIds() const { return lastRecallSkippedEffectIds; }
+
 private:
     //==========================================================================
     // Private Members
@@ -765,6 +772,7 @@ private:
     int channelIdentityBypassDepth = 0;
     juce::File channelIdentityClearance;
     std::vector<int> lastRecallSkippedNumbers;
+    std::vector<int> lastRecallSkippedEffectIds;
 
     /** The gate itself. True = proceed. False = refused; lastError and the log
         say why. Takes the already-parsed root so the primitive parses once. */

@@ -1923,8 +1923,13 @@ bool WFSFileManager::saveInputSnapshotWithExtendedScope (const juce::String& sna
     auto file = folder.getChildFile (snapshotName + snapshotExtension);
 
     juce::ValueTree snapshot ("InputSnapshot");
-    snapshot.setProperty (version, "2.0", nullptr);  // Version 2.0 for extended scope
+    snapshot.setProperty (version, "2.0", nullptr);  // Version 2.0 for extended scope; 2.1 once it carries <Effects>
     snapshot.setProperty (name, snapshotName, nullptr);
+
+    // The previous file, read once: both families carry its ghost entries over.
+    juce::ValueTree existing;
+    if (file.existsAsFile())
+        existing = readFromXmlFile (file);
 
     // This function builds a BRAND-NEW tree and overwrites the file, so both
     // "Store Snapshot" and "Update Snapshot" would otherwise destroy an
@@ -1952,9 +1957,8 @@ bool WFSFileManager::saveInputSnapshotWithExtendedScope (const juce::String& sna
     // deleted. Recall skips them, but nothing is silently destroyed — they
     // apply again if the number is ever re-created. Carried over from the
     // existing file before it is overwritten.
-    if (file.existsAsFile())
+    if (existing.isValid())
     {
-        auto existing = readFromXmlFile (file);
         auto oldInputs = existing.getChildWithName (Inputs);
         for (int i = 0; i < oldInputs.getNumChildren(); ++i)
         {
@@ -1966,6 +1970,43 @@ bool WFSFileManager::saveInputSnapshotWithExtendedScope (const juce::String& sna
     }
 
     snapshot.appendChild (inputsData, nullptr);
+
+    // THE EFFECTS HALF (plan revision 8): one <Effect id="n"> per live channel,
+    // n the dense id - filtered by the effects grid when OnSave, whole otherwise,
+    // exactly the input rule. Then the ghosts: entries for ids beyond the live
+    // count are carried over from the previous file, as deleted input numbers
+    // are, so shrinking the effect count and growing it back loses nothing. A
+    // snapshot of a show with no effects and no ghosts writes no <Effects> at
+    // all, and stays the file every earlier build wrote.
+    {
+        const int numEffects = valueTreeState.getNumEffectChannels();
+        const ExtendedSnapshotScope everything;
+        const auto& effectsMatrix = scope.applyMode == ExtendedSnapshotScope::ApplyMode::OnSave
+                                        ? scope.effects : everything.effects;
+
+        juce::ValueTree effectsData (Effects);
+        for (int fx = 0; fx < numEffects; ++fx)
+            effectsData.appendChild (EffectsSnapshotScope::extractEffect (valueTreeState, fx, effectsMatrix), nullptr);
+
+        if (existing.isValid())
+        {
+            auto oldEffects = existing.getChildWithName (Effects);
+            for (int i = 0; i < oldEffects.getNumChildren(); ++i)
+            {
+                auto entry = oldEffects.getChild (i);
+                const int effectId = static_cast<int> (entry.getProperty (id, 0));
+                if (entry.hasType (Effect) && effectId > numEffects)
+                    effectsData.appendChild (entry.createCopy(), nullptr);
+            }
+        }
+
+        if (effectsData.getNumChildren() > 0)
+        {
+            snapshot.appendChild (effectsData, nullptr);
+            snapshot.setProperty (version, "2.1", nullptr);   // read nowhere; a marker for a human reading the file
+        }
+    }
+
     stripTransientToggles (snapshot);
 
     return writeToXmlFile (snapshot, file);
@@ -1995,8 +2036,16 @@ bool WFSFileManager::loadInputSnapshotWithExtendedScope (const juce::String& sna
         return false;
     }
 
-    valueTreeState.beginUndoTransaction ("Load Input Snapshot: " + snapshotName);
     lastRecallSkippedNumbers.clear();
+    lastRecallSkippedEffectIds.clear();
+
+    // Each half writes into ITS OWN tab's undo history (the app's per-tab undo
+    // convention): Ctrl+Z on the Inputs tab takes back the input half of a
+    // Reload, on the Effects tab the effects half. getUndoManager() is the
+    // ACTIVE manager, so it still answers nullptr under ScopedUndoSuppression
+    // (the MIDI / OSC recalls); getUndoManagerForDomain would not.
+    WFSValueTreeState::ScopedUndoDomain inputDomain (valueTreeState, UndoDomain::Input);
+    valueTreeState.beginUndoTransaction ("Load Input Snapshot: " + snapshotName);
 
     for (int i = 0; i < inputsData.getNumChildren(); ++i)
     {
@@ -2018,6 +2067,41 @@ bool WFSFileManager::loadInputSnapshotWithExtendedScope (const juce::String& sna
                 applyInputWithExtendedScope (channelIndex, inputData, scope);
             else
                 applyInputWithExtendedScope (channelIndex, inputData, ExtendedSnapshotScope());  // All included
+        }
+    }
+
+    // THE EFFECTS HALF (plan revision 8). A snapshot written before the effects
+    // existed has no <Effects> and leaves every effect exactly as it is; an
+    // <Effect> whose id no live channel carries is skipped and reported, and
+    // stays in the file. The engine needs no resync call: every write below
+    // marks its channel in EffectsHost's listener, which re-cooks and
+    // republishes each channel once on the next 50 Hz tick.
+    auto effectsData = snapshot.getChildWithName (Effects);
+    if (effectsData.isValid())
+    {
+        WFSValueTreeState::ScopedUndoDomain effectsDomain (valueTreeState, UndoDomain::Effects);
+        valueTreeState.beginUndoTransaction ("Load Snapshot (effects): " + snapshotName);
+        auto* effectsUndo = valueTreeState.getUndoManager();
+
+        const ExtendedSnapshotScope everything;
+        const auto& effectsMatrix = scope.applyMode == ExtendedSnapshotScope::ApplyMode::OnRecall
+                                        ? scope.effects : everything.effects;
+        const int numEffects = valueTreeState.getNumEffectChannels();
+
+        for (int i = 0; i < effectsData.getNumChildren(); ++i)
+        {
+            auto entry = effectsData.getChild (i);
+            if (! entry.hasType (Effect))
+                continue;
+
+            const int effectId = static_cast<int> (entry.getProperty (id, 0));
+            if (effectId < 1 || effectId > numEffects)
+            {
+                lastRecallSkippedEffectIds.push_back (effectId);
+                continue;
+            }
+
+            EffectsSnapshotScope::applyEffect (valueTreeState, effectId - 1, entry, effectsMatrix, effectsUndo);
         }
     }
 
@@ -2102,8 +2186,22 @@ bool WFSFileManager::updateInputSnapshotScope (const juce::String& snapshotName,
     // scope (removal only). OnRecall files keep their full data so the scope
     // can be broadened again later.
     if (scope.applyMode == ExtendedSnapshotScope::ApplyMode::OnSave)
+    {
         trimSnapshotInputsToScope (snapshot.getChildWithName (Inputs), scope,
                                    [this] (int number) { return valueTreeState.getSlotForChannelNumber (number); });
+
+        // The effects half the same way: an entry whose id a live channel
+        // carries is trimmed with that channel's column; a ghost is left whole.
+        auto effectsData = snapshot.getChildWithName (Effects);
+        const int numEffects = valueTreeState.getNumEffectChannels();
+        for (int i = 0; i < effectsData.getNumChildren(); ++i)
+        {
+            auto entry = effectsData.getChild (i);
+            const int effectId = static_cast<int> (entry.getProperty (id, 0));
+            if (entry.hasType (Effect) && effectId >= 1 && effectId <= numEffects)
+                EffectsSnapshotScope::trimEffectToScope (entry, scope.effects, effectId - 1);
+        }
+    }
 
     stripTransientToggles (snapshot);
     return writeToXmlFile (snapshot, file);

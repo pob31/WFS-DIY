@@ -2400,6 +2400,7 @@
       "snapshotStored": "Snapshot '{name}' stored.",
       "snapshotLoaded": "Snapshot '{name}' loaded.",
       "snapshotEntriesSkipped": "Snapshot '{name}' loaded; {n} entries skipped, no channel {numbers}",
+      "snapshotEffectsSkipped": "Snapshot '{name}': {n} effect entries skipped, no effect channel {ids}",
       "snapshotPatchMismatchApplied": "Snapshot '{name}' applied, but it was stored under a different patching ({n} channel(s) differ) — check the channel list",
       "snapshotLoadedWithoutScope": "Snapshot '{name}' loaded (without scope).",
       "snapshotUpdated": "Snapshot '{name}' updated.",

@@ -4486,6 +4486,340 @@ void MainComponent::runChannelListSelfTest()
             vts.setNumEffectChannels(0);
     }
 
+    // ---- N: one snapshot carries the inputs AND the effects ------------------
+    // Plan revision 8. Every assertion reads a FILE the store wrote or a value
+    // a recall of that file wrote back, never the builder's own output: a
+    // store and a recall that agree with each other about a wrong table would
+    // round-trip green, which is what Q exists for; N checks the plumbing -
+    // that every node KIND survives (flat property, instanced module, band,
+    // tap, the two send-row shapes, the per-output row), that the scope is
+    // honoured in both directions and on disk, and that each half of a recall
+    // lands in its own tab's undo history.
+    {
+        namespace P = WFSParameterIDs;
+        using Scope = WFSFileManager::ExtendedSnapshotScope;
+
+        auto& fm = parameters.getFileManager();
+        const auto previousProject = fm.getProjectFolder();
+        auto tempProject = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                               .getChildFile("wfs-selftest-snapshots-project");
+        tempProject.deleteRecursively();
+        fm.setProjectFolder(tempProject);
+        check(fm.createProjectFolderStructure(), "N0: a throwaway project folder");
+
+        // A store and a recall both latch the channel numbers; put it back.
+        auto ioLatch = vts.getIOState();
+        const bool latchHadProperty = ioLatch.hasProperty(P::channelNumbersUserOwned);
+        const juce::var latchBefore = ioLatch.getProperty(P::channelNumbersUserOwned);
+
+        const int effectsBefore = vts.getNumEffectChannels();
+        vts.setNumEffectChannels(2);
+        const int numInputs = vts.getNumInputChannels();
+        const bool twoOutputs = vts.getNumOutputChannels() >= 2;
+
+        auto snapFile = [&](const juce::String& name)
+        {
+            return fm.getInputSnapshotsFolder().getChildFile(name + ".xml");
+        };
+
+        auto readSnap = [&](const juce::String& name) -> juce::ValueTree
+        {
+            if (auto xml = juce::XmlDocument::parse(snapFile(name)))
+                return juce::ValueTree::fromXml(*xml);
+            return {};
+        };
+
+        auto writeSnap = [&](const juce::String& name, const juce::ValueTree& tree)
+        {
+            if (auto xml = tree.createXml())
+                return xml->writeTo(snapFile(name));
+            return false;
+        };
+
+        auto effectEntry = [](const juce::ValueTree& snap, int effectId) -> juce::ValueTree
+        {
+            auto effects = snap.getChildWithName(P::Effects);
+            for (int i = 0; i < effects.getNumChildren(); ++i)
+                if (effects.getChild(i).hasType(P::Effect)
+                    && effects.getChild(i).getProperty(P::id).toString() == juce::String(effectId))
+                    return effects.getChild(i);
+            return {};
+        };
+
+        auto tokenOf = [](const juce::var& row, int col) -> juce::String
+        {
+            juce::StringArray t;
+            t.addTokens(row.toString(), ",", "");
+            return col < t.size() ? t[col].trim() : juce::String();
+        };
+
+        auto withToken = [](const juce::var& row, int col, const juce::String& token) -> juce::String
+        {
+            juce::StringArray t;
+            t.addTokens(row.toString(), ",", "");
+            if (col < t.size())
+                t.set(col, token);
+            return t.joinIntoString(",");
+        };
+
+        auto num = [](const juce::var& v) { return static_cast<double>(v); };
+        auto approx = [](double a, double b) { return std::abs(a - b) < 1.0e-4; };
+
+        auto eq2band3 = [&] { return vts.getEffectEQBand(1, 1, 2); };
+        auto dyn2     = [&] { return vts.getEffectDynSection(1, 1); };
+        auto tap5     = [&] { return vts.getEffectDelayTap(1, 4); };
+
+        const juce::String orderA = "crush,delay,reverb,trem,phaser,mod,dyn2,dyn1,eq2,eq1,dist";
+        const juce::String orderB = "dist,eq1,eq2,dyn1,dyn2,mod,phaser,trem,reverb,delay,crush";
+
+        // Set A is what gets stored; set B disturbs it. Every node kind once:
+        // Channel, Position, Feed, Return (a scalar, an array trim and the
+        // per-output row), AutomOtion, LFO, Chain, an FxEq2 band, FxDyn2, an
+        // FxDelay tap, both send-row shapes - and the name, always carried.
+        auto stamp = [&](bool a)
+        {
+            vts.setEffectParameter(1, P::effectName, a ? "N-fx-2" : "disturbed");
+            vts.setEffectParameter(1, P::effectAttenuation, a ? -7.25 : -1.5);
+            vts.setEffectParameter(1, P::effectReturnOffsetX, a ? 0.75 : -0.5);
+            vts.setEffectParameter(1, P::effectAngleOn, a ? 77 : 40);
+            vts.setEffectParameter(1, P::effectArrayAtten3, a ? -4.5 : -0.5);
+            vts.setEffectParameter(1, P::effectOtomoR, a ? 3.5 : 1.0);
+            vts.setEffectParameter(1, P::effectLFOrateY, a ? 2.5 : 0.5);
+            vts.setEffectParameter(1, P::effectChainOrder, a ? orderA : orderB);
+            eq2band3().setProperty(P::effectEQgain, a ? 5.5 : -2.0, nullptr);
+            dyn2().setProperty(P::effectDynCompThreshold, a ? -31.0 : -12.0, nullptr);
+            tap5().setProperty(P::effectDelayTapTime, a ? 123.0 : 45.0, nullptr);
+            vts.setEffectSendLevelFromInput(1, 3, a ? -9.5f : -20.0f);
+            vts.setEffectFxSendOnFromEffect(1, 0, a);
+            if (twoOutputs)
+                vts.setEffectParameter(1, P::effectMutes,
+                                       withToken(vts.getEffectParameter(1, P::effectMutes), 1, a ? "1" : "0"));
+            vts.setEffectParameter(0, P::effectAttenuation, a ? -3.0 : -0.25);
+            vts.setEffectSendLevelFromInput(0, 3, a ? -8.0f : -30.0f);
+        };
+
+        // Empty when every value is set A (a) or set B (! a); otherwise the
+        // names of the ones that are not, so a failure says what it lost.
+        auto faults = [&](bool a) -> juce::String
+        {
+            juce::StringArray bad;
+            auto want = [&](bool ok, const char* what) { if (! ok) bad.add(what); };
+
+            want(vts.getEffectParameter(1, P::effectName).toString() == (a ? "N-fx-2" : "disturbed"), "name");
+            want(approx(num(vts.getEffectParameter(1, P::effectAttenuation)), a ? -7.25 : -1.5), "attenuation");
+            want(approx(num(vts.getEffectParameter(1, P::effectReturnOffsetX)), a ? 0.75 : -0.5), "returnOffsetX");
+            want(approx(num(vts.getEffectParameter(1, P::effectAngleOn)), a ? 77 : 40), "angleOn");
+            want(approx(num(vts.getEffectParameter(1, P::effectArrayAtten3)), a ? -4.5 : -0.5), "arrayAtten3");
+            want(approx(num(vts.getEffectParameter(1, P::effectOtomoR)), a ? 3.5 : 1.0), "otomoR");
+            want(approx(num(vts.getEffectParameter(1, P::effectLFOrateY)), a ? 2.5 : 0.5), "lfoRateY");
+            want(vts.getEffectParameter(1, P::effectChainOrder).toString() == (a ? orderA : orderB), "chainOrder");
+            want(approx(num(eq2band3().getProperty(P::effectEQgain)), a ? 5.5 : -2.0), "EQ2 band 3 gain");
+            want(approx(num(dyn2().getProperty(P::effectDynCompThreshold)), a ? -31.0 : -12.0), "Dyn2 threshold");
+            want(approx(num(tap5().getProperty(P::effectDelayTapTime)), a ? 123.0 : 45.0), "tap 5 time");
+            want(approx(vts.getEffectSendLevelFromInput(1, 3), a ? -9.5 : -20.0), "send from input 3");
+            want(vts.getEffectFxSendOnFromEffect(1, 0) == a, "send on from effect 1");
+            if (twoOutputs)
+                want(tokenOf(vts.getEffectParameter(1, P::effectMutes), 1) == (a ? "1" : "0"), "mutes output 2");
+            want(approx(num(vts.getEffectParameter(0, P::effectAttenuation)), a ? -3.0 : -0.25), "effect 1 attenuation");
+            want(approx(vts.getEffectSendLevelFromInput(0, 3), a ? -8.0 : -30.0), "effect 1 send from input 3");
+
+            return bad.joinIntoString(", ");
+        };
+
+        auto recall = [&](const juce::String& name)
+        {
+            return fm.loadInputSnapshotWithExtendedScope(name, fm.getExtendedSnapshotScope(name));
+        };
+
+        // ---- N1/N2: the whole channel round-trips, every node kind ----------
+        stamp(true);
+        check(faults(true).isEmpty(), "N0: set A reads back live (" + faults(true) + ")");
+        check(fm.saveInputSnapshotWithExtendedScope("nn-full", Scope()), "N1: a full snapshot is stored");
+        {
+            auto snap = readSnap("nn-full");
+            check(snap.hasType("InputSnapshot") && snap.getChildWithName(P::Effects).getNumChildren() == 2
+                      && effectEntry(snap, 2).isValid() && snap.getProperty(P::version).toString() == "2.1",
+                  "N1: the file is <InputSnapshot version=2.1> with <Effects> holding <Effect id=1> and <Effect id=2>");
+        }
+
+        stamp(false);
+        check(recall("nn-full"), "N2: the snapshot recalls");
+        check(faults(true).isEmpty(), "N2: every node kind came back (" + faults(true) + ")");
+
+        // ---- N3: a partial effects scope, read back off the file -------------
+        {
+            Scope partial;
+            partial.effects.setIncluded("fxEq2", 1, false);
+            partial.effects.setIncluded("fxSendsInputs", 0, false);
+            check(fm.saveInputSnapshotWithExtendedScope("nn-partial", partial), "N3: a partial-scope snapshot is stored");
+
+            stamp(false);
+            check(recall("nn-partial"), "N3: the partial snapshot recalls");
+            check(approx(num(eq2band3().getProperty(P::effectEQgain)), -2.0),
+                  "N3: an excluded module (EQ 2 on effect 2) stays as it was");
+            check(approx(vts.getEffectSendLevelFromInput(0, 3), -30.0),
+                  "N3: an excluded flat item (effect 1's sends from inputs) stays as it was");
+            check(approx(num(dyn2().getProperty(P::effectDynCompThreshold)), -31.0)
+                      && approx(num(vts.getEffectParameter(1, P::effectAttenuation)), -7.25)
+                      && approx(num(vts.getEffectParameter(0, P::effectAttenuation)), -3.0),
+                  "N3: ...while the included items beside them are recalled");
+        }
+
+        // ---- N4: a snapshot from before the effects touches none of them -----
+        {
+            stamp(true);
+            auto snap = readSnap("nn-full");
+            snap.removeChild(snap.getChildWithName(P::Effects), nullptr);
+            check(writeSnap("nn-old", snap), "N4: an old-format snapshot (no <Effects>) is written");
+
+            stamp(false);
+            check(recall("nn-old"), "N4: the old snapshot recalls");
+            check(faults(false).isEmpty(), "N4: every effect value stayed as it was (" + faults(false) + ")");
+        }
+
+        // ---- N5: entries beyond the live count are skipped and reported ------
+        {
+            stamp(true);
+            vts.setNumEffectChannels(4);
+            vts.setEffectParameter(2, P::effectAttenuation, -5.0);
+            check(fm.saveInputSnapshotWithExtendedScope("nn-four", Scope()), "N5: a four-effect snapshot is stored");
+            vts.setNumEffectChannels(2);
+
+            vts.setEffectParameter(1, P::effectAttenuation, -1.5);
+            check(recall("nn-four"), "N5: it recalls into a two-effect session");
+            const auto& skipped = fm.getLastRecallSkippedEffectIds();
+            check(skipped.size() == 2 && skipped[0] == 3 && skipped[1] == 4,
+                  "N5: effects 3 and 4 are reported skipped");
+            check(approx(num(vts.getEffectParameter(1, P::effectAttenuation)), -7.25),
+                  "N5: ...and effects 1 and 2 are applied");
+        }
+
+        // ---- N6: a stored row goes through the store's row guards ------------
+        // The file offers effect 1 a send from ITSELF (the diagonal) and from
+        // effect 2. The diagonal must come back off - it is forced where the row
+        // is written - and the real send must come back on, which proves the
+        // row was written at all.
+        {
+            auto snap = readSnap("nn-full");
+            auto sends = effectEntry(snap, 1).getChildWithName(P::Sends);
+            const auto crafted = withToken(withToken(sends.getProperty(P::effectFxSendOns), 0, "1"), 1, "1");
+            sends.setProperty(P::effectFxSendOns, crafted, nullptr);
+            check(writeSnap("nn-diag", snap), "N6: a snapshot with a self-send in effect 1's row is written");
+
+            vts.setEffectFxSendOnFromEffect(0, 1, false);
+            check(recall("nn-diag"), "N6: it recalls");
+            const auto row = vts.getEffectParameter(0, P::effectFxSendOns);
+            check(tokenOf(row, 1) == "1", "N6: the send from effect 2 came back on (the row was written)");
+            check(tokenOf(row, 0) == "0", "N6: the self-send came back OFF (the row went through the guard)");
+        }
+
+        // ---- N7: monitoring and run-state never reach the file ---------------
+        {
+            vts.setEffectParameter(0, P::effectSolo, 1);
+            vts.getEffectAutoMotionSection(0).setProperty(P::effectOtomoPauseResume, 0, nullptr);
+            check(fm.saveInputSnapshotWithExtendedScope("nn-transient", Scope()), "N7: a snapshot is stored");
+            const auto text = snapFile("nn-transient").loadFileAsString();
+            check(text.contains("<Effect ") && ! text.contains("effectSolo") && ! text.contains("effectOtomoPauseResume"),
+                  "N7: effectSolo and effectOtomoPauseResume are in no snapshot");
+            vts.setEffectParameter(0, P::effectSolo, 0);
+            vts.getEffectAutoMotionSection(0).setProperty(P::effectOtomoPauseResume,
+                                                          WFSParameterDefaults::effectOtomoPauseResumeDefault, nullptr);
+        }
+
+        // ---- N8: the effects grid survives the file --------------------------
+        {
+            Scope s;
+            s.setIncluded("position", 0, false);
+            s.effects.setAllItemsForChannel(0, false);
+            s.effects.setIncluded("fxDist", 1, false);
+            s.effects.setIncluded("fxLfoX", 1, false);
+            check(fm.updateInputSnapshotScope("nn-full", s), "N8: a scope with an effects grid is written into a snapshot");
+
+            const auto back = fm.getExtendedSnapshotScope("nn-full");
+            check(back.isEquivalentTo(s, numInputs, 2), "N8: it reads back equivalent, both grids");
+            check(back.effects.getChannelState(0) == Scope::InclusionState::AllExcluded
+                      && ! back.effects.isIncluded("fxDist", 1) && ! back.effects.isIncluded("fxLfoX", 1)
+                      && back.effects.isIncluded("fxEq1", 1) && ! back.isIncluded("position", 0),
+                  "N8: ...cell for cell: effect 1 out, effect 2 partial, the input cell kept");
+        }
+
+        // ---- N9: an OnSave scope trims the stored effects --------------------
+        {
+            check(fm.saveInputSnapshotWithExtendedScope("nn-trim", Scope()), "N9: a full snapshot to trim");
+
+            Scope t;
+            t.applyMode = Scope::ApplyMode::OnSave;
+            t.effects.setIncluded("fxEq2", 0, false);
+            t.effects.setIncluded("fxLevel", 0, false);
+            check(fm.updateInputSnapshotScope("nn-trim", t), "N9: re-scoped to OnSave");
+
+            auto snap = readSnap("nn-trim");
+            auto e1 = effectEntry(snap, 1);
+            auto e2 = effectEntry(snap, 2);
+            check(e1.isValid() && ! e1.getChildWithName(P::FxEq2).isValid() && e1.getChildWithName(P::FxEq1).isValid(),
+                  "N9: effect 1 lost its EQ 2 and kept its EQ 1");
+            check(e1.getChildWithName(P::Channel).hasProperty(P::effectName)
+                      && ! e1.getChildWithName(P::Channel).hasProperty(P::effectAttenuation),
+                  "N9: effect 1 kept its name and lost its attenuation");
+            check(e2.getChildWithName(P::FxEq2).isValid() && e2.getChildWithName(P::Channel).hasProperty(P::effectAttenuation),
+                  "N9: effect 2 was not touched");
+
+            Scope u;
+            u.applyMode = Scope::ApplyMode::OnSave;
+            u.effects.setIncluded("fxDelay", 1, false);
+            check(fm.saveInputSnapshotWithExtendedScope("nn-onsave", u), "N9: an OnSave snapshot is stored");
+            auto stored = readSnap("nn-onsave");
+            check(! effectEntry(stored, 2).getChildWithName(P::FxDelay).isValid()
+                      && effectEntry(stored, 1).getChildWithName(P::FxDelay).isValid(),
+                  "N9: an OnSave store leaves out what the grid excludes, for that channel only");
+        }
+
+        // ---- N10: each half of a recall lands in its own tab's undo history ---
+        {
+            stamp(true);
+            check(fm.saveInputSnapshotWithExtendedScope("nn-undo", Scope()), "N10: a snapshot is stored");
+
+            auto inputChannel = vts.getInputChannelSection(0);
+            const juce::var storedInputAtten = inputChannel.getProperty(P::inputAttenuation);
+
+            auto disturbBoth = [&]
+            {
+                inputChannel.setProperty(P::inputAttenuation, -33.0, nullptr);
+                vts.getEffectChannelSection(1).setProperty(P::effectAttenuation, -1.5, nullptr);
+            };
+
+            disturbBoth();
+            vts.clearAllUndoHistories();
+            check(fm.loadInputSnapshotWithExtendedScope("nn-undo", Scope()), "N10: a manual recall");
+            check(vts.getUndoManagerForDomain(UndoDomain::Input)->canUndo()
+                      && vts.getUndoManagerForDomain(UndoDomain::Effects)->canUndo(),
+                  "N10: a manual recall is undoable on the Inputs tab AND on the Effects tab");
+
+            disturbBoth();
+            vts.clearAllUndoHistories();
+            {
+                WFSValueTreeState::ScopedUndoSuppression noUndo (vts);
+                check(fm.loadInputSnapshotWithExtendedScope("nn-undo", Scope()), "N10: a cue-driven recall");
+            }
+            check(! vts.getUndoManagerForDomain(UndoDomain::Input)->canUndo()
+                      && ! vts.getUndoManagerForDomain(UndoDomain::Effects)->canUndo(),
+                  "N10: a cue-driven recall writes no undo entry in either");
+            check(approx(num(vts.getEffectParameter(1, P::effectAttenuation)), -7.25)
+                      && inputChannel.getProperty(P::inputAttenuation).toString() == storedInputAtten.toString(),
+                  "N10: ...and still applied both halves");
+            vts.clearAllUndoHistories();
+        }
+
+        // Leave nothing behind.
+        vts.setNumEffectChannels(effectsBefore);
+        if (latchHadProperty)
+            ioLatch.setProperty(P::channelNumbersUserOwned, latchBefore, nullptr);
+        else
+            ioLatch.removeProperty(P::channelNumbersUserOwned, nullptr);
+        fm.setProjectFolder(previousProject);
+        tempProject.deleteRecursively();
+    }
+
     // ---- I: channel identity gate --------------------------------------------
     // Position is not identity: a file's <Input> entries merge BY NUMBER, the
     // inventory rebuilds the list BY NUMBER, and patch rows land BY POSITION.
@@ -10190,6 +10524,21 @@ bool MainComponent::recallSnapshotByName (const juce::String& snapshotName, bool
                              .replace ("{n}", juce::String ((int) skipped.size()))
                              .replace ("{numbers}", nums.joinIntoString (", "));
             WFSLogger::getInstance().logInfo (statusText);
+        }
+
+        // The same for the effects half: an <Effect> whose id no live channel
+        // carries was skipped (and stays in the file).
+        const auto& skippedEffects = fileManager.getLastRecallSkippedEffectIds();
+        if (! skippedEffects.empty())
+        {
+            juce::StringArray ids;
+            for (int n : skippedEffects) ids.add (juce::String (n));
+            const auto effectsText = LOC("inputs.messages.snapshotEffectsSkipped")
+                                         .replace ("{name}", snapshotName)
+                                         .replace ("{n}", juce::String ((int) skippedEffects.size()))
+                                         .replace ("{ids}", ids.joinIntoString (", "));
+            WFSLogger::getInstance().logInfo (effectsText);
+            statusText = skipped.empty() ? effectsText : statusText + "  " + effectsText;
         }
         if (patchWarning.isNotEmpty())
             statusText = patchWarning;   // the most important line wins the status bar
