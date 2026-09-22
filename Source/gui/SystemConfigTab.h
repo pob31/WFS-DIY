@@ -538,6 +538,11 @@ public:
         addAndMakeVisible(reverbChannelsEditor);
         // (reverbChannelsEditor uses default border)
 
+        addAndMakeVisible(effectChannelsLabel);
+        effectChannelsLabel.setText(LOC("systemConfig.labels.effectChannels"), juce::dontSendNotification);
+        addAndMakeVisible(effectChannelsEditor);
+        // (effectChannelsEditor uses default border)
+
         addAndMakeVisible(gettingStartedButton);
         gettingStartedButton.setButtonText(LOC("wizard.buttons.gettingStarted"));
         gettingStartedButton.onClick = [this]() {
@@ -1425,6 +1430,7 @@ public:
         stereoChannelsEditor.addListener(this);
         outputChannelsEditor.addListener(this);
         reverbChannelsEditor.addListener(this);
+        effectChannelsEditor.addListener(this);
         stageWidthEditor.addListener(this);
         stageDepthEditor.addListener(this);
         stageHeightEditor.addListener(this);
@@ -1613,6 +1619,13 @@ public:
             reverbChannelsEditor.setBounds(x + labelWidth + ei, y, editorWidth - ei * 2, rowHeight);
             reverbShiftButton.setBounds(shiftBtnX, y, shiftBtnSize, rowHeight);
             reverbShiftDismissButton.setBounds(shiftBtnX + shiftBtnSize + spacing, y, shiftBtnSize, rowHeight);
+            y += rowHeight + spacing;
+
+            // Effects has no shift button: the shift buttons move a channel's
+            // OSC numbering, and effect ids are dense with no permanent numbers
+            // to preserve.
+            effectChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
+            effectChannelsEditor.setBounds(x + labelWidth + ei, y, editorWidth - ei * 2, rowHeight);
         }
 
         // UI Section
@@ -2502,6 +2515,7 @@ private:
         setupNumericEditor(stereoChannelsEditor, false, false);
         setupNumericEditor(outputChannelsEditor, false, false);
         setupNumericEditor(reverbChannelsEditor, false, false);
+        setupNumericEditor(effectChannelsEditor, false, false);
 
         // Binaural Section
         setupNumericEditor(binauralDistanceEditor, false, true);  // 0.0 to 10.0
@@ -2655,6 +2669,7 @@ private:
         }
         outputChannelsEditor.setText(juce::String(parameters.getNumOutputChannels()), false);
         reverbChannelsEditor.setText(juce::String(parameters.getNumReverbChannels()), false);
+        effectChannelsEditor.setText(juce::String(parameters.getNumEffectChannels()), false);
 
         // Stage shape selector
         int shapeId = (int)parameters.getConfigParam("StageShape");
@@ -3000,6 +3015,58 @@ private:
             else
             {
                 parameters.setNumReverbChannels(newReverbs);
+                notifyChannelCountChanged();
+            }
+        }
+        else if (&editor == &effectChannelsEditor)
+        {
+            int newEffects = juce::jlimit(0, WFSParameterDefaults::maxEffectChannels, text.getIntValue());
+            int currentEffects = parameters.getNumEffectChannels();
+
+            // Clamp visibly rather than silently: setNumEffectChannels would
+            // answer "set 40" with a quiet 32, and the operator would be left
+            // believing in eight channels that are not there.
+            if (newEffects != text.getIntValue())
+                effectChannelsEditor.setText(juce::String(newEffects), false);
+
+            if (newEffects < currentEffects)
+            {
+                if (isShowingChannelReductionDialog)
+                {
+                    effectChannelsEditor.setText(juce::String(currentEffects), false);
+                    return;
+                }
+                isShowingChannelReductionDialog = true;
+
+                auto options = juce::MessageBoxOptions()
+                    .withIconType(juce::MessageBoxIconType::WarningIcon)
+                    .withTitle(LOC("systemConfig.dialogs.reduceEffectChannels.title"))
+                    .withMessage(LocalizationManager::getInstance().get(
+                        "systemConfig.dialogs.reduceEffectChannels.message",
+                        {{"current", juce::String(currentEffects)},
+                         {"new", juce::String(newEffects)},
+                         {"start", juce::String(newEffects + 1)},
+                         {"end", juce::String(currentEffects)}}))
+                    .withButton(LOC("systemConfig.dialogs.reduce"))
+                    .withButton(LOC("common.cancel"))
+                    .withAssociatedComponent(this);
+
+                juce::AlertWindow::showAsync(options, [this, newEffects, currentEffects](int result) {
+                    isShowingChannelReductionDialog = false;
+                    if (result == 1)
+                    {
+                        parameters.setNumEffectChannels(newEffects);
+                        notifyChannelCountChanged();
+                    }
+                    else
+                    {
+                        effectChannelsEditor.setText(juce::String(currentEffects), false);
+                    }
+                });
+            }
+            else if (newEffects != currentEffects)
+            {
+                parameters.setNumEffectChannels(newEffects);
                 notifyChannelCountChanged();
             }
         }
@@ -3563,6 +3630,10 @@ public:
         editChannelsButton.setEnabled(enabled);
         outputChannelsEditor.setEnabled(enabled);
         reverbChannelsEditor.setEnabled(enabled);
+        // Stopped-only like every other count: an accepted write reaches
+        // handleChannelCountChange, which stops processing to rebuild the
+        // shared rings the effects engine reads.
+        effectChannelsEditor.setEnabled(enabled);
         audioPatchingButton.setEnabled(enabled);
         algorithmSelector.setEnabled(enabled);
 #if WFS_GPU_NATIVE
@@ -4940,6 +5011,8 @@ public:
     juce::TextEditor outputChannelsEditor;
     juce::Label reverbChannelsLabel;
     juce::TextEditor reverbChannelsEditor;
+    juce::Label effectChannelsLabel;
+    juce::TextEditor effectChannelsEditor;
     juce::TextButton gettingStartedButton;
     juce::TextButton audioPatchingButton;
     juce::Label algorithmLabel;

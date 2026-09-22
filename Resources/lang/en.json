@@ -53,6 +53,7 @@
     "inputs": "Inputs",
     "outputs": "Outputs",
     "reverb": "Reverb",
+    "effects": "Effects",
     "network": "Network",
     "clusters": "Clusters",
     "map": "Map"
@@ -91,6 +92,7 @@
       "renderSourceTotal": "({count} render sources)",
       "outputChannels": "Output Channels:",
       "reverbChannels": "Reverb Channels:",
+      "effectChannels": "Effects Channels:",
       "algorithm": "Algorithm:",
       "processing": "Processing:",
       "stageShape": "Stage Shape:",
@@ -405,6 +407,10 @@
       "reduceReverbChannels": {
         "title": "Reduce Reverb Channels?",
         "message": "Reducing from {current} to {new} reverb channels will remove settings for channels {start} to {end}.\n\nThis cannot be undone."
+      },
+      "reduceEffectChannels": {
+        "title": "Reduce Effects Channels?",
+        "message": "Reducing from {current} to {new} effects channels will remove settings for channels {start} to {end}.\n\nThis cannot be undone."
       },
       "reduce": "Reduce",
       "selectProjectFolder": "Select Project Folder",
@@ -1443,6 +1449,75 @@
       "muteButton": "Toggle mute for this output channel's reverb return."
     }
   },
+
+  "effects":   {
+    "noChannels": "No effects channels. Set the count in System Config, or import an effects configuration.",
+    "tabs": {
+      "channel": "Channel",
+      "sends": "Sends",
+      "chain": "Chain",
+      "settings": "Settings"
+    },
+    "link": {
+      "unlinked": "Unlinked",
+      "group": "Group",
+      "modeOff": "Link: Off",
+      "modeAbsolute": "Link: Absolute",
+      "modeRelative": "Link: Relative"
+    },
+    "buttons": {
+      "mute": "MUTE",
+      "solo": "SOLO",
+      "groupMute": "Mute Group",
+      "clear": "Clear",
+      "mapVisible": "Map: Shown",
+      "mapHidden": "Map: Hidden",
+      "editOnMap": "Edit on Map",
+      "editOnMapOn": "Editing on Map",
+      "soloEffects": "Solo Effects",
+      "soloEffectsOn": "Effects Soloed",
+      "storeConfig": "Store Config",
+      "reloadConfig": "Reload Config",
+      "reloadBackup": "Reload Backup",
+      "import": "Import",
+      "export": "Export"
+    },
+    "dialogs": {
+      "importTitle": "Import Effects Configuration",
+      "exportTitle": "Export Effects Configuration"
+    },
+    "messages": {
+      "configSaved": "Effects configuration saved.",
+      "configLoaded": "Effects configuration loaded.",
+      "selectFolderFirst": "Select a project folder first.",
+      "error": "Error: {error}",
+      "cleared": "Effect chain cleared.",
+      "clearedAll": "Every effect chain cleared.",
+      "groupMuteNeedsGroup": "This effect is not in a link group, so there is no group to mute."
+    },
+    "help": {
+      "channelSelector": "Select the effects channel to edit.",
+      "name": "Displayed name of this effects channel.",
+      "linkGroup": "Link this effect to a group so module edits propagate to the other members.",
+      "linkMode": "How this channel takes group edits: off, absolute, or relative.",
+      "groupMute": "Long-press to mute or unmute every member of this link group at once.",
+      "mute": "Mute this effect return.",
+      "solo": "Long-press to solo this effect return.",
+      "mapVisible": "Show or hide effect return markers on the Map tab.",
+      "editOnMap": "Enable editing effect positions from the Map tab.",
+      "soloEffects": "Long-press to solo the effect returns: the direct signal is muted.",
+      "clear": "Long-press to flush this effect chain; hold Ctrl to clear every effect.",
+      "loopGuard": "The loop guard has muted this channel's effect-to-effect feed.",
+      "cycle": "This effect is part of a feedback loop in the sends grid.",
+      "entry": "This effect is fed by an input, so it is an entry point of its bunch.",
+      "storeConfig": "Store Effects Configuration to file (overwrite with confirmation).",
+      "reloadConfig": "Reload Effects Configuration from file (with confirmation).",
+      "reloadBackup": "Reload Effects Configuration from backup file (with confirmation).",
+      "import": "Import Effects Configuration from file (with file explorer window).",
+      "export": "Export Effects Configuration to file (with file explorer window)."
+    }
+  },
+
   "inputs": {
     "sections": {
       "channel": "Channel",

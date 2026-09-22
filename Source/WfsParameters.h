@@ -212,6 +212,7 @@ public:
     juce::ValueTree getInputTree() { return valueTreeState.getInputsState(); }
     juce::ValueTree getOutputTree() { return valueTreeState.getOutputsState(); }
     juce::ValueTree getReverbTree() { return valueTreeState.getReverbsState(); }
+    juce::ValueTree getEffectTree() { return valueTreeState.getEffectsState(); }
 
     //==============================================================================
     // Save (backward compatible API)

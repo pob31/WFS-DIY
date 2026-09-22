@@ -41,6 +41,8 @@
               file="Source/Parameters/WFSFileManager.cpp"/>
         <FILE id="paramDirtyTracker" name="ParameterDirtyTracker.h" compile="0"
               resource="0" file="Source/Parameters/ParameterDirtyTracker.h"/>
+        <FILE id="wfsFxEdit" name="EffectParamEdit.h" compile="0" resource="0"
+              file="Source/Parameters/EffectParamEdit.h"/>
       </GROUP>
       <GROUP id="{GUIGROUP1}" name="gui">
         <FILE id="guiStatus" name="StatusBar.h" compile="0" resource="0" file="Source/gui/StatusBar.h"/>
@@ -59,6 +61,13 @@
         <FILE id="guiCluTab" name="ClustersTab.h" compile="0" resource="0"
               file="Source/gui/ClustersTab.h"/>
         <FILE id="guiRevTab" name="ReverbTab.h" compile="0" resource="0" file="Source/gui/ReverbTab.h"/>
+        <FILE id="guiTabIdx" name="TabIndex.h" compile="0" resource="0" file="Source/gui/TabIndex.h"/>
+        <GROUP id="{GUIFXGROUP}" name="effects">
+          <FILE id="guiFxCtx" name="EffectsTabContext.h" compile="0" resource="0"
+                file="Source/gui/effects/EffectsTabContext.h"/>
+          <FILE id="guiFxTab" name="EffectsTab.h" compile="0" resource="0"
+                file="Source/gui/effects/EffectsTab.h"/>
+        </GROUP>
         <FILE id="guiMapTab" name="MapTab.h" compile="0" resource="0" file="Source/gui/MapTab.h"/>
         <FILE id="guiMapTabWin" name="MapTabWindow.h" compile="0" resource="0"
               file="Source/gui/MapTabWindow.h"/>

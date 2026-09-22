@@ -13,11 +13,12 @@
 #include "../../../Parameters/WFSParameterIDs.h"
 #include "../../../Parameters/WFSParameterDefaults.h"
 #include "../../../Localization/LocalizationManager.h"
+#include "../../../gui/TabIndex.h"
 
 namespace ClustersTabPages
 {
 
-static constexpr int CLUSTERS_MAIN_TAB_INDEX = 5;
+static constexpr int CLUSTERS_MAIN_TAB_INDEX = TabIndex::Clusters;
 
 //==============================================================================
 // Callbacks struct — actions that must go through the GUI

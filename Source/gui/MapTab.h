@@ -160,6 +160,18 @@ public:
     bool getReverbEditMode() const { return reverbEditMode; }
     int getSelectedReverbNode() const { return selectedReverbNode; }
 
+    /** Enable/disable effect return editing on the map. The STATE half only:
+        the markers, the hit test and the drag land with drawEffects, and until
+        they do this flag changes nothing the operator can see. */
+    void setEffectEditMode (bool enabled)
+    {
+        effectEditMode = enabled;
+        if (! enabled) { selectedEffectNode = -1; isDraggingEffect = false; }
+        repaint();
+    }
+    bool getEffectEditMode() const { return effectEditMode; }
+    int getSelectedEffectNode() const { return selectedEffectNode; }
+
     //==========================================================================
     // Stream Deck programmatic control
     //==========================================================================
@@ -2818,6 +2830,9 @@ private:
     // Reverb edit mode
     bool reverbEditMode = false;
     int selectedReverbNode = -1;  // 0-based reverb index, -1 = none
+    bool effectEditMode = false;
+    int selectedEffectNode = -1;  // 0-based effect index, -1 = none
+    bool isDraggingEffect = false;
     bool isDraggingReverb = false;
     bool reverbTouchMirrorActive = false;  // Two-finger touch activates pair mirroring
     juce::Point<float> reverbDragStartStagePos;

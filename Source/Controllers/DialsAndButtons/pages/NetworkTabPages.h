@@ -13,11 +13,12 @@
 #include "../../../Parameters/WFSValueTreeState.h"
 #include "../../../Parameters/WFSParameterIDs.h"
 #include "../../../Localization/LocalizationManager.h"
+#include "../../../gui/TabIndex.h"
 
 namespace NetworkTabPages
 {
 
-static constexpr int NETWORK_MAIN_TAB_INDEX = 1;
+static constexpr int NETWORK_MAIN_TAB_INDEX = TabIndex::Network;
 
 //==============================================================================
 // Callbacks struct — actions that must go through the GUI
@@ -63,23 +64,23 @@ inline StreamDeckPage createNetworkPage (WFSValueTreeState& state,
     // Top row: navigation buttons to other tabs
     //======================================================================
 
-    // Button 0: → Outputs (tab 2)
-    page.topRowNavigateToTab[0]     = 2;
+    // Button 0: → Outputs
+    page.topRowNavigateToTab[0]     = TabIndex::Outputs;
     page.topRowOverrideLabel[0]     = LOC ("tabs.outputs");
     page.topRowOverrideColour[0]    = juce::Colour (0xFF4A90D9);   // blue
 
-    // Button 1: → Reverb (tab 3)
-    page.topRowNavigateToTab[1]     = 3;
+    // Button 1: → Reverb
+    page.topRowNavigateToTab[1]     = TabIndex::Reverb;
     page.topRowOverrideLabel[1]     = LOC ("tabs.reverb");
     page.topRowOverrideColour[1]    = juce::Colour (0xFF9B6FC3);   // purple
 
-    // Button 2: → Inputs (tab 4)
-    page.topRowNavigateToTab[2]     = 4;
+    // Button 2: → Inputs
+    page.topRowNavigateToTab[2]     = TabIndex::Inputs;
     page.topRowOverrideLabel[2]     = LOC ("tabs.inputs");
     page.topRowOverrideColour[2]    = juce::Colour (0xFF26A69A);   // teal
 
-    // Button 3: → Map (tab 6)
-    page.topRowNavigateToTab[3]     = 6;
+    // Button 3: → Map
+    page.topRowNavigateToTab[3]     = TabIndex::Map;
     page.topRowOverrideLabel[3]     = LOC ("tabs.map");
     page.topRowOverrideColour[3]    = juce::Colour (0xFF7B68EE);   // medium slate blue
 

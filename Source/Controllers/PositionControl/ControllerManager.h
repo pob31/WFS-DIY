@@ -12,6 +12,7 @@
 
 #include <JuceHeader.h>
 #include "../../../spatcore/controllers/ControllerEvent.h"
+#include "../../gui/TabIndex.h"
 #include "../../../spatcore/controllers/ControllerDevice.h"
 #include "../../../spatcore/controllers/ControllerMapping.h"
 #include "../../Network/OSCProtocolTypes.h"
@@ -79,7 +80,7 @@ public:
         /** Cycle cluster selection on Clusters tab: +1 = next, -1 = prev. */
         std::function<void (int delta)> cycleCluster;
 
-        // Cluster callbacks (used when activeTab == 5 or when cluster ref is selected on Map)
+        // Cluster callbacks (used on the Clusters tab, or when a cluster ref is selected on Map)
         std::function<void (float dx, float dy, float dz)> moveClusterDelta;
         std::function<void (float deltaDeg)> rotateCluster;
         std::function<void (float scaleFactor)> scaleCluster;  // multiplicative, 1.0 = no change
@@ -87,8 +88,8 @@ public:
 
     Callbacks callbacks;
 
-    /** Active tab index — set by MainComponent on tab change.
-        When 5 (Clusters), SpaceMouse controls the selected cluster. */
+    /** Active tab index (TabIndex::*) — set by MainComponent on tab change.
+        On Clusters the SpaceMouse controls the selected cluster. */
     int activeTab = -1;
 
     //==========================================================================
@@ -245,21 +246,22 @@ private:
             return;
 
         // Tab-aware routing:
-        // Map tab (6): cycle map input selection
-        // Clusters tab (5): cycle cluster selection
-        // Channel tabs (2=Outputs, 3=Reverb, 4=Inputs): cycle channel like spacebar
+        // Map tab: cycle map input selection
+        // Clusters tab: cycle cluster selection
+        // Channel tabs (Outputs, Reverb, Effects, Inputs): cycle channel like spacebar
         // Other tabs: no action
-        if (activeTab == 6)
+        if (activeTab == TabIndex::Map)
         {
             if (callbacks.cycleInput)
                 callbacks.cycleInput (delta);
         }
-        else if (activeTab == 5)
+        else if (activeTab == TabIndex::Clusters)
         {
             if (callbacks.cycleCluster)
                 callbacks.cycleCluster (delta);
         }
-        else if (activeTab >= 2 && activeTab <= 4)
+        else if (activeTab == TabIndex::Outputs || activeTab == TabIndex::Reverb
+              || activeTab == TabIndex::Effects || activeTab == TabIndex::Inputs)
         {
             if (callbacks.cycleChannel)
                 callbacks.cycleChannel (delta);
@@ -358,7 +360,7 @@ private:
             callbacks.axisDeflection (defX, defY, defZ);
         }
 
-        if (activeTab == 5)
+        if (activeTab == TabIndex::Clusters)
         {
             // Clusters tab: TransZ switches between height and scale based on button state
             float moveZ = isAnyButtonPressed() ? 0.0f : totalDz;
@@ -380,7 +382,7 @@ private:
                 callbacks.scaleCluster (juce::jlimit (0.95f, 1.05f, scaleFactor));
             }
         }
-        else if (activeTab == 6)
+        else if (activeTab == TabIndex::Map)
         {
             // Map tab: check if selected input is a cluster reference
             int clusterRef = callbacks.getSelectedClusterRef ? callbacks.getSelectedClusterRef() : 0;
@@ -474,7 +476,7 @@ private:
                 }
             }
         }
-        else if (activeTab == 4)
+        else if (activeTab == TabIndex::Inputs)
         {
             if (shiftHeld)
             {

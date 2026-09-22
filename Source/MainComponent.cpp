@@ -330,6 +330,7 @@ MainComponent::MainComponent()
     inputsTab = new InputsTab(parameters);
     clustersTab = new ClustersTab(parameters);
     reverbTab = new ReverbTab(parameters);
+    effectsTab = new EffectsTab(parameters);
     mapTab = std::make_unique<MapTab>(parameters);
 
     // Set accessible names for screen readers (prevents "Custom" announcement)
@@ -339,6 +340,7 @@ MainComponent::MainComponent()
     inputsTab->setName("Inputs");
     clustersTab->setName("Clusters");
     reverbTab->setName("Reverb");
+    effectsTab->setName("Effects");
     mapTab->setName("Map");
 
     // Pass status bar to tabs that support it
@@ -348,6 +350,7 @@ MainComponent::MainComponent()
     outputsTab->setStatusBar(statusBar);
     inputsTab->setStatusBar(statusBar);
     reverbTab->setStatusBar(statusBar);
+    effectsTab->setStatusBar(statusBar);
     clustersTab->setStatusBar(statusBar);
     mapTab->setStatusBar(statusBar);
 
@@ -740,6 +743,7 @@ MainComponent::MainComponent()
     juce::String tabNetwork = LOC("tabs.network");
     juce::String tabOutputs = LOC("tabs.outputs");
     juce::String tabReverb = LOC("tabs.reverb");
+    juce::String tabEffects = LOC("tabs.effects");
     juce::String tabInputs = LOC("tabs.inputs");
     juce::String tabClusters = LOC("tabs.clusters");
     juce::String tabMap = LOC("tabs.map");
@@ -748,45 +752,51 @@ MainComponent::MainComponent()
     tabbedComponent.addTab(tabNetwork, ColorScheme::get().chromeBackground, networkTab, true);
     tabbedComponent.addTab(tabOutputs, ColorScheme::get().chromeBackground, outputsTab, true);
     tabbedComponent.addTab(tabReverb, ColorScheme::get().chromeBackground, reverbTab, true);
+    tabbedComponent.addTab(tabEffects, ColorScheme::get().chromeBackground, effectsTab, true);
     tabbedComponent.addTab(tabInputs, ColorScheme::get().chromeBackground, inputsTab, true);
     tabbedComponent.addTab(tabClusters, ColorScheme::get().chromeBackground, clustersTab, true);
     tabbedComponent.addTab(tabMap, ColorScheme::get().chromeBackground, mapTab.get(), false);
 
     // Wire per-tab undo domain: Ctrl+Z only affects the currently focused tab
     tabbedComponent.onTabChanged = [this](int tabIndex) {
-        static const UndoDomain domainForTab[] = {
-            UndoDomain::Config,   // 0: SystemConfig
-            UndoDomain::Config,   // 1: Network
-            UndoDomain::Output,   // 2: Outputs
-            UndoDomain::Reverb,   // 3: Reverb
-            UndoDomain::Input,    // 4: Inputs
-            UndoDomain::Clusters, // 5: Clusters
-            UndoDomain::Map       // 6: Map
+        // Indexed by TabIndex::*, sized by TabIndex::Count - the order here is
+        // the order of the addTab calls above and nothing else may set it.
+        static const UndoDomain domainForTab[TabIndex::Count] = {
+            UndoDomain::Config,   // SystemConfig
+            UndoDomain::Config,   // Network
+            UndoDomain::Output,   // Outputs
+            UndoDomain::Reverb,   // Reverb
+            UndoDomain::Effects,  // Effects
+            UndoDomain::Input,    // Inputs
+            UndoDomain::Clusters, // Clusters
+            UndoDomain::Map       // Map
         };
-        if (tabIndex >= 0 && tabIndex < 7)
+        if (tabIndex >= 0 && tabIndex < TabIndex::Count)
             parameters.getValueTreeState().setActiveDomain (domainForTab[tabIndex]);
         if (controllerManager)
             controllerManager->activeTab = tabIndex;
         if (streamDeckManager)
         {
             // Sync subtab + channel state atomically before page render
-            if (tabIndex == 3 && reverbTab != nullptr)
+            if (tabIndex == TabIndex::Reverb && reverbTab != nullptr)
                 streamDeckManager->syncNavigation (tabIndex, reverbTab->getCurrentSubTab(), reverbTab->getCurrentChannel());
-            else if (tabIndex == 2 && outputsTab != nullptr)
+            else if (tabIndex == TabIndex::Effects && effectsTab != nullptr)
+                streamDeckManager->syncNavigation (tabIndex, effectsTab->getCurrentSubTab(), effectsTab->getCurrentChannel());
+            else if (tabIndex == TabIndex::Outputs && outputsTab != nullptr)
                 streamDeckManager->syncNavigation (tabIndex, 0, outputsTab->getCurrentChannel());
-            else if (tabIndex == 4 && inputsTab != nullptr)
+            else if (tabIndex == TabIndex::Inputs && inputsTab != nullptr)
                 streamDeckManager->syncNavigation (tabIndex, 0, inputsTab->getCurrentChannel());
             else
                 streamDeckManager->setMainTab (tabIndex);
         }
         // Ownership rule: only the MAP tab latches position ownership — merely
-        // looking at the Inputs/Outputs/Reverb tabs does not (editing a
+        // looking at the Inputs/Outputs/Reverb/Effects tabs does not (editing a
         // position there latches it via the parameter setters instead).
         // Channel NUMBER ownership deliberately does NOT latch on tab visits:
         // merely looking at the numbers keeps the session fresh. It is spent by
         // the acts that commit them — a project save/load, an actual patch
         // edit, snapshots, or any wire message naming a channel by number.
-        if (tabIndex == 6 && systemConfigTab != nullptr)
+        if (tabIndex == TabIndex::Map && systemConfigTab != nullptr)
             systemConfigTab->setMapTabVisited();
         resetHelpCycle();
     };
@@ -817,29 +827,35 @@ MainComponent::MainComponent()
     mapTab->onDetachRequested = [this]() { detachMapTab(); };
 
     // Set up navigation callback from Map tab to other tabs via long-press gesture
-    // Parameters: (tabType, index) where tabType is: 0=Input, 1=Cluster, 2=Output, 3=Reverb
+    // Parameters: (tabType, index) where tabType is:
+    //   0=Input, 1=Cluster, 2=Output, 3=Reverb, 4=Effect
     mapTab->setNavigateToItemCallback([this](int tabType, int index) {
         switch (tabType)
         {
             case 0:  // Input
-                tabbedComponent.setCurrentTabIndex(4);  // Inputs tab
+                tabbedComponent.setCurrentTabIndex(TabIndex::Inputs);
                 // The Map hands out a SLOT; the selector holds permanent
                 // channel NUMBERS, which have gaps and are not in slot order
-                // after a reorder. Cluster/output/reverb ids below ARE dense
-                // slot positions, so their + 1 stays.
+                // after a reorder. Cluster/output/reverb/effect ids below ARE
+                // dense slot positions, so their + 1 stays.
                 inputsTab->selectChannel (parameters.getValueTreeState().getInputChannelNumber (index));
                 break;
             case 1:  // Cluster
-                tabbedComponent.setCurrentTabIndex(5);  // Clusters tab
+                tabbedComponent.setCurrentTabIndex(TabIndex::Clusters);
                 clustersTab->setSelectedCluster(index);
                 break;
             case 2:  // Output
-                tabbedComponent.setCurrentTabIndex(2);  // Outputs tab
+                tabbedComponent.setCurrentTabIndex(TabIndex::Outputs);
                 outputsTab->selectChannel(index + 1);   // Convert 0-based to 1-based
                 break;
             case 3:  // Reverb
-                tabbedComponent.setCurrentTabIndex(3);  // Reverb tab
+                tabbedComponent.setCurrentTabIndex(TabIndex::Reverb);
                 reverbTab->selectChannel(index + 1);    // Convert 0-based to 1-based
+                break;
+            case 4:  // Effect
+                tabbedComponent.setCurrentTabIndex(TabIndex::Effects);
+                if (effectsTab != nullptr)
+                    effectsTab->selectChannel(index + 1);
                 break;
         }
     });
@@ -1115,6 +1131,29 @@ MainComponent::MainComponent()
                     nullptr, nullptr,
                     onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD));
         }
+
+        // Wire EffectsTab GUI callbacks to the engine and the calculation mask.
+        // Solo is a mask the calculation engine applies to the direct rows, so
+        // it costs one atomic and never touches the audio thread; Clear reaches
+        // the engine, which honours it at the next batch boundary.
+        effectsTab->onSoloEffectsChanged = [this] (bool active)
+        {
+            soloEffects.store (active, std::memory_order_relaxed);
+        };
+        effectsTab->onClearRequested = [this] (int fx)
+        {
+            if (effectsHost != nullptr)
+                effectsHost->requestClear (fx);
+        };
+        effectsTab->onMapEditChanged = [this] (bool enabled)
+        {
+            if (mapTab)
+                mapTab->setEffectEditMode (enabled);
+        };
+        effectsTab->onConfigReloaded = [this]()
+        {
+            handleChannelCountChange();
+        };
 
         // Wire ReverbTab GUI callbacks to sync audio engine + shared state for StreamDeck
         reverbTab->onSoloReverbsChanged = [this, reverbSoloState, reverbMutePreState, reverbMutePostState] (bool active)
@@ -1501,7 +1540,7 @@ MainComponent::MainComponent()
         auto resolveControllerTargets = [this]()
         {
             std::set<int> targets;
-            if (tabbedComponent.getCurrentTabIndex() == 4)   // Inputs tab
+            if (tabbedComponent.getCurrentTabIndex() == TabIndex::Inputs)
             {
                 if (inputsTab)
                 {
@@ -2274,26 +2313,26 @@ MainComponent::MainComponent()
     // Connect OutputsTab channel and subtab selection to StreamDeck
     outputsTab->onChannelSelected = [this](int channelId)
     {
-        if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == 2)
+        if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == TabIndex::Outputs)
             streamDeckManager->setChannel (channelId);
     };
 
     outputsTab->onSubTabChanged = [this](int subTabIndex)
     {
-        if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == 2)
+        if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == TabIndex::Outputs)
             streamDeckManager->setSubTab (subTabIndex);
     };
 
     // Connect ReverbTab channel and subtab selection to StreamDeck
     reverbTab->onChannelSelected = [this](int channelId)
     {
-        if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == 3)
+        if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == TabIndex::Reverb)
             streamDeckManager->setChannel (channelId);
     };
 
     reverbTab->onSubTabChanged = [this](int subTabIndex)
     {
-        if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == 3)
+        if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == TabIndex::Reverb)
             streamDeckManager->setSubTab (subTabIndex);
     };
 
@@ -9323,6 +9362,8 @@ void MainComponent::handleChannelCountChange()
         outputsTab->refreshFromValueTree();
     if (reverbTab != nullptr)
         reverbTab->refreshFromValueTree();
+    if (effectsTab != nullptr)
+        effectsTab->refreshFromValueTree();
 
     // Update level meter channel counts
     if (levelMeteringManager != nullptr)
@@ -9988,6 +10029,8 @@ void MainComponent::handleConfigReloaded()
 
     if (reverbTab != nullptr)
         reverbTab->refreshFromValueTree();
+    if (effectsTab != nullptr)
+        effectsTab->refreshFromValueTree();
 
     if (mapTab != nullptr)
         mapTab->repaint();
@@ -10538,11 +10581,11 @@ void MainComponent::attachMapTab()
     tabbedComponent.addTab(tabMap, ColorScheme::get().chromeBackground, mapTab.get(), false);
 
     // Show the re-attached map tab
-    tabbedComponent.setCurrentTabIndex(6);
+    tabbedComponent.setCurrentTabIndex(TabIndex::Map);
 
     // Restore Stream Deck to current tab
     if (streamDeckManager)
-        streamDeckManager->setMainTab(6);
+        streamDeckManager->setMainTab(TabIndex::Map);
 }
 
 void MainComponent::openAudioInterfaceWindow()
@@ -12307,7 +12350,7 @@ void MainComponent::timerCallback()
     // that can starve the audio thread's parameter updates.
     const bool windowVisible = isShowing();
     const bool mapVisible = (mapTabWindow != nullptr) ? mapTabWindow->isVisible()
-                          : (windowVisible && tabbedComponent.getCurrentTabIndex() == 6);
+                          : (windowVisible && tabbedComponent.getCurrentTabIndex() == TabIndex::Map);
 
     // Update master level gain target (message thread → audio thread via atomic)
     {
@@ -13089,6 +13132,30 @@ void MainComponent::timerCallback()
             }
         }
 
+        // What the Effects tab's three indicators show. All of it is session
+        // state the engine and the calculation engine own, never a property:
+        // the loop-guard trip, membership of a feedback cycle, and whether
+        // anything feeds this channel at all - which is what makes it the
+        // ENTRY POINT of its bunch. The entry role is emergent by decision, so
+        // it is derived here from the send row rather than stored.
+        if (effectsTab != nullptr && calculationEngine != nullptr)
+        {
+            const int fx = effectsTab->getCurrentChannel() - 1;
+
+            if (fx >= 0 && fx < parameters.getValueTreeState().getNumEffectChannels())
+            {
+                const auto* core = effectsHost != nullptr ? effectsHost->getCore() : nullptr;
+                const bool tripped = core != nullptr && core->isLoopGuardTripped (fx);
+                const bool inCycle = (calculationEngine->getEffectCycleMask() & (1u << fx)) != 0;
+
+                bool fedByAnInput = false;
+                for (int in = 1; in <= WFSParameterDefaults::maxInputChannels && ! fedByAnInput; ++in)
+                    fedByAnInput = parameters.getValueTreeState().getEffectSendOnFromInput (fx, in);
+
+                effectsTab->setLiveState (fx, tripped, inCycle, fedByAnInput);
+            }
+        }
+
         // Update reverb engine parameters (every timer tick, independent of position changes)
         if (reverbEngine && reverbEngine->isActive())
         {
@@ -13530,15 +13597,15 @@ void MainComponent::startChannelSelection(ChannelSelectionMode mode)
     switch (mode)
     {
         case ChannelSelectionMode::Input:
-            tabbedComponent.setCurrentTabIndex(4);  // Inputs tab index
+            tabbedComponent.setCurrentTabIndex(TabIndex::Inputs);
             prompt = "Select Input Channel: ";
             break;
         case ChannelSelectionMode::Output:
-            tabbedComponent.setCurrentTabIndex(2);  // Outputs tab index
+            tabbedComponent.setCurrentTabIndex(TabIndex::Outputs);
             prompt = "Select Output Channel: ";
             break;
         case ChannelSelectionMode::Reverb:
-            tabbedComponent.setCurrentTabIndex(3);  // Reverb tab index
+            tabbedComponent.setCurrentTabIndex(TabIndex::Reverb);
             prompt = "Select Reverb Channel: ";
             break;
         default:
@@ -14144,17 +14211,17 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
     }
     if (key.isKeyCode('M') && !key.getModifiers().isCommandDown())
     {
-        tabbedComponent.setCurrentTabIndex(6);  // Map tab
+        tabbedComponent.setCurrentTabIndex(TabIndex::Map);
         return true;
     }
     if (key.isKeyCode('N') && !key.getModifiers().isCommandDown())
     {
-        tabbedComponent.setCurrentTabIndex(1);  // Network tab
+        tabbedComponent.setCurrentTabIndex(TabIndex::Network);
         return true;
     }
     if (key.isKeyCode('C') && !key.getModifiers().isCommandDown())
     {
-        tabbedComponent.setCurrentTabIndex(5);  // Clusters tab
+        tabbedComponent.setCurrentTabIndex(TabIndex::Clusters);
         return true;
     }
 

@@ -40,6 +40,8 @@
 #include "gui/InputsTab.h"
 #include "gui/ClustersTab.h"
 #include "gui/ReverbTab.h"
+#include "gui/effects/EffectsTab.h"
+#include "gui/TabIndex.h"
 #include "gui/MapTab.h"
 #include "gui/AudioInterfaceWindow.h"
 #include "gui/MapTabWindow.h"
@@ -211,9 +213,10 @@ private:
     InputsTab* inputsTab = nullptr;
     ClustersTab* clustersTab = nullptr;
     ReverbTab* reverbTab = nullptr;
+    EffectsTab* effectsTab = nullptr;
     std::unique_ptr<MapTab> mapTab;                          // Owned here, not by TabbedComponent
     std::unique_ptr<MapTabWindow> mapTabWindow;              // Non-null when map is detached
-    std::unique_ptr<MapTabPlaceholder> mapTabPlaceholder;    // Shown in tab 6 when map is detached
+    std::unique_ptr<MapTabPlaceholder> mapTabPlaceholder;    // Shown in the Map tab slot when it is detached
 
     std::unique_ptr<AudioInterfaceWindow> audioInterfaceWindow;
     std::unique_ptr<NetworkLogWindow> networkLogWindow;

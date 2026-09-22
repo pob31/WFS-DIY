@@ -23,11 +23,12 @@
 #include "../../../Parameters/WFSConstraints.h"
 #include "../../../Helpers/CoordinateConverter.h"
 #include "../../../Localization/LocalizationManager.h"
+#include "../../../gui/TabIndex.h"
 
 namespace MapTabPages
 {
 
-static constexpr int MAP_MAIN_TAB_INDEX = 6;
+static constexpr int MAP_MAIN_TAB_INDEX = TabIndex::Map;
 
 //==============================================================================
 // Callbacks struct — actions that must go through the GUI
@@ -102,18 +103,18 @@ inline StreamDeckPage createMapPage (WFSValueTreeState& state,
     // Top row: navigation buttons
     //======================================================================
 
-    // Button 0: → Outputs (tab 2) — always present
-    page.topRowNavigateToTab[0]     = 2;
+    // Button 0: → Outputs — always present
+    page.topRowNavigateToTab[0]     = TabIndex::Outputs;
     page.topRowOverrideLabel[0]     = LOC ("tabs.outputs");
     page.topRowOverrideColour[0]    = juce::Colour (0xFF4A90D9);
 
-    // Button 1: → Reverb (tab 3)
-    page.topRowNavigateToTab[1]     = 3;
+    // Button 1: → Reverb
+    page.topRowNavigateToTab[1]     = TabIndex::Reverb;
     page.topRowOverrideLabel[1]     = LOC ("tabs.reverb");
     page.topRowOverrideColour[1]    = juce::Colour (0xFF9B6FC3);
 
-    // Button 2: → Inputs (tab 4) — show selected channel if any
-    page.topRowNavigateToTab[2]     = 4;
+    // Button 2: → Inputs — show selected channel if any
+    page.topRowNavigateToTab[2]     = TabIndex::Inputs;
     if (selInput >= 0)
     {
         page.topRowOverrideLabel[2]    = LOC ("tabs.inputs") + "\n(Ch " + juce::String (selInputNumber) + ")";

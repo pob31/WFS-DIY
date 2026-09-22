@@ -18,6 +18,7 @@
 #include "../../../Parameters/WFSParameterDefaults.h"
 #include "../../../Parameters/ClusterParamEdit.h"
 #include "../../../Localization/LocalizationManager.h"
+#include "../../../gui/TabIndex.h"
 
 namespace InputsTabPages
 {
@@ -396,8 +397,8 @@ inline StreamDeckPage createInputParametersPage (WFSValueTreeState& state,
     page.numSections = 3;
     page.activeSectionIndex = 0;
 
-    // Button 3 (top row): navigate to Map tab (index 6)
-    page.topRowNavigateToTab[3] = 6;
+    // Button 3 (top row): navigate to Map tab
+    page.topRowNavigateToTab[3] = TabIndex::Map;
     page.topRowOverrideLabel[3] = LOC ("tabs.map");
     page.topRowOverrideColour[3] = juce::Colour (0xFF7B68EE);  // Medium slate blue
 
@@ -1156,7 +1157,7 @@ inline StreamDeckPage createVisualisationPage (WFSValueTreeState& /*state*/,
 
 /** Main tab index for Inputs (0-based position in the tab bar).
     Tab order: 0=SystemConfig, 1=Network, 2=Outputs, 3=Reverb, 4=Inputs, 5=Clusters, 6=Map */
-static constexpr int INPUTS_MAIN_TAB_INDEX = 4;
+static constexpr int INPUTS_MAIN_TAB_INDEX = TabIndex::Inputs;
 
 /** Build the page for a given subtab and register it with the manager.
     Call this whenever the channel changes to rebind getValue/setValue callbacks.
