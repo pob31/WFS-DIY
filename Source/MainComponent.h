@@ -38,6 +38,7 @@
 #include "gui/NetworkTab.h"
 #include "gui/OutputsTab.h"
 #include "gui/InputsTab.h"
+#include "gui/snapshots/SnapshotSession.h"
 #include "gui/ClustersTab.h"
 #include "gui/ReverbTab.h"
 #include "gui/effects/EffectsTab.h"
@@ -203,6 +204,12 @@ private:
 
     juce::Label algorithmLabel;
     juce::ComboBox algorithmSelector;
+
+    // The snapshot row's model, actions and Scope window, shared by the Inputs
+    // and Effects tabs (one snapshot file carries both families). Declared
+    // BEFORE tabbedComponent so it outlives the rows the tabs own; shutdown()
+    // closes its window early in the destructor, while the parameters exist.
+    std::unique_ptr<SnapshotSession> snapshotSession;
 
     // Main tabbed interface with status bar
     AccessibleTabbedComponent tabbedComponent { juce::TabbedButtonBar::TabsAtTop };

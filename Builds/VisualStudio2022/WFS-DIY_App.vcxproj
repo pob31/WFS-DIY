@@ -3467,6 +3467,8 @@
     <ClInclude Include="..\..\Source\gui\ChannelIdentityGate.h"/>
     <ClInclude Include="..\..\Source\gui\OutputsTab.h"/>
     <ClInclude Include="..\..\Source\gui\InputsTab.h"/>
+    <ClInclude Include="..\..\Source\gui\snapshots\SnapshotSession.h"/>
+    <ClInclude Include="..\..\Source\gui\snapshots\SnapshotRow.h"/>
     <ClInclude Include="..\..\Source\gui\ClustersTab.h"/>
     <ClInclude Include="..\..\Source\gui\ReverbTab.h"/>
     <ClInclude Include="..\..\Source\gui\TabIndex.h"/>

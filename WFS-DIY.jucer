@@ -60,6 +60,12 @@
               file="Source/gui/ChannelIdentityGate.h"/>
         <FILE id="guiOutTab" name="OutputsTab.h" compile="0" resource="0" file="Source/gui/OutputsTab.h"/>
         <FILE id="guiInpTab" name="InputsTab.h" compile="0" resource="0" file="Source/gui/InputsTab.h"/>
+        <GROUP id="{GUISNAPGROUP}" name="snapshots">
+          <FILE id="guiSnapSession" name="SnapshotSession.h" compile="0" resource="0"
+                file="Source/gui/snapshots/SnapshotSession.h"/>
+          <FILE id="guiSnapRow" name="SnapshotRow.h" compile="0" resource="0"
+                file="Source/gui/snapshots/SnapshotRow.h"/>
+        </GROUP>
         <FILE id="guiCluTab" name="ClustersTab.h" compile="0" resource="0"
               file="Source/gui/ClustersTab.h"/>
         <FILE id="guiRevTab" name="ReverbTab.h" compile="0" resource="0" file="Source/gui/ReverbTab.h"/>

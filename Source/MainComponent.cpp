@@ -312,10 +312,12 @@ MainComponent::MainComponent()
     // MIDI note belongs to the previous project. Wired before the restore below
     // so later folder changes are covered; the initial index build happens
     // explicitly once midiSnapshotTrigger exists (this fires before that).
+    snapshotSession = std::make_unique<SnapshotSession> (parameters);
+
     parameters.getFileManager().onProjectFolderChanged = [this]() {
         refreshMidiSnapshotBindings();
-        if (inputsTab != nullptr)
-            inputsTab->forgetSnapshotScopes();
+        if (snapshotSession != nullptr)
+            snapshotSession->projectFolderChanged();
     };
 
     // Restore project folder from AppSettings (persists across sessions)
@@ -329,7 +331,7 @@ MainComponent::MainComponent()
     systemConfigTab = new SystemConfigTab(parameters);
     networkTab = new NetworkTab(parameters);
     outputsTab = new OutputsTab(parameters);
-    inputsTab = new InputsTab(parameters);
+    inputsTab = new InputsTab(parameters, *snapshotSession);
     clustersTab = new ClustersTab(parameters);
     reverbTab = new ReverbTab(parameters);
     effectsTab = new EffectsTab(parameters);
@@ -526,24 +528,38 @@ MainComponent::MainComponent()
         handleConfigReloaded();
     };
 
-    // The Inputs "Reload Snapshot" long-press goes through the same seam as OSC
-    // and MIDI, so the recall logic exists in exactly one place.
-    inputsTab->onSnapshotRecallRequested = [this](const juce::String& snapshotName) {
+    // The snapshot row's "Reload Snapshot" long-press (on the Inputs tab or the
+    // Effects tab) goes through the same seam as OSC and MIDI, so the recall
+    // logic exists in exactly one place.
+    snapshotSession->onSnapshotRecallRequested = [this](const juce::String& snapshotName) {
         recallSnapshotByName (snapshotName);
     };
 
     // Any snapshot created / updated / deleted / re-scoped can change a binding.
-    inputsTab->onSnapshotsChanged = [this]() {
+    snapshotSession->onSnapshotsChanged = [this]() {
         refreshMidiSnapshotBindings();
     };
 
-    inputsTab->isQLabAvailable = [this]() {
+    snapshotSession->onConfigReloaded = [this]() {
+        handleConfigReloaded();
+    };
+
+    snapshotSession->onStructureChanged = [this]() {
+        handleChannelCountChange();
+    };
+
+    snapshotSession->showStatus = [this](const juce::String& text) {
+        if (statusBar != nullptr)
+            statusBar->showTemporaryMessage (text, 3000);
+    };
+
+    snapshotSession->isQLabAvailable = [this]() {
         return oscManager && oscManager->hasQLabTarget();
     };
 
-    // QLab export callback for InputsTab
-    inputsTab->onQLabExportRequested = [this](const juce::String& snapshotName,
-                                               const WFSFileManager::ExtendedSnapshotScope& scope) {
+    // QLab export callback for the snapshot row
+    snapshotSession->onQLabExportRequested = [this](const juce::String& snapshotName,
+                                                     const WFSFileManager::ExtendedSnapshotScope& scope) {
         if (!oscManager || !oscManager->hasQLabTarget())
         {
             if (inputsTab != nullptr)
@@ -612,7 +628,7 @@ MainComponent::MainComponent()
     };
 
     // QLab snapshot load cue callback
-    inputsTab->onQLabSnapshotLoadCueRequested = [this](const juce::String& snapshotName) {
+    snapshotSession->onQLabSnapshotLoadCueRequested = [this](const juce::String& snapshotName) {
         if (!oscManager || !oscManager->hasQLabTarget())
             return;
 
@@ -2538,7 +2554,7 @@ MainComponent::MainComponent()
 
             if (inputsTab != nullptr)
             {
-                inputsTab->refreshSnapshotSelector();
+                snapshotSession->refreshList();
                 inputsTab->showStatusMessage (
                     LOC("inputs.messages.snapshotUpdated").replace ("{name}", snapshotName));
             }
@@ -8640,6 +8656,11 @@ MainComponent::~MainComponent()
     if (networkTab != nullptr)
         networkTab->setMCPServer (nullptr);
 
+    // The Scope window references the parameters, which are destroyed before
+    // the session (declared ahead of the tabs so it outlives their rows).
+    if (snapshotSession != nullptr)
+        snapshotSession->shutdown();
+
     // Tear down MCP-aware UI before mcpServer destructs. mcpHistoryWindow
     // is declared earlier than mcpServer so it would otherwise outlive
     // the engine + change-record buffer it references.
@@ -10077,6 +10098,11 @@ void MainComponent::handleChannelCountChange()
         calculationEngine->recalculateAllEffectPositions();
 
     // Refresh all tabs to update channel selectors
+    if (snapshotSession != nullptr)
+    {
+        snapshotSession->restoreQLabToggles();
+        snapshotSession->refreshList();
+    }
     if (inputsTab != nullptr)
     {
         inputsTab->refreshFromValueTree();
@@ -10581,7 +10607,7 @@ bool MainComponent::recallSnapshotByName (const juce::String& snapshotName, bool
             // selecting first would be overwritten by the rebuild. Moving the
             // dropdown cancels a snapshot button held meanwhile, which would
             // otherwise act on the cue's snapshot instead of the one picked.
-            if (inputsTab->selectSnapshotInSelector (snapshotName))
+            if (snapshotSession->selectFromExternalRecall (snapshotName))
                 statusText += "  " + LOC("inputs.messages.snapshotActionCancelled");
             inputsTab->showStatusMessage (statusText);
         }
@@ -10765,6 +10791,13 @@ void MainComponent::handleConfigReloaded()
     // Refresh all tabs to show newly loaded config data
     if (networkTab != nullptr)
         networkTab->refreshFromValueTree();
+
+    // The snapshot row (both tabs): the show's QLab toggles and the folder's list.
+    if (snapshotSession != nullptr)
+    {
+        snapshotSession->restoreQLabToggles();
+        snapshotSession->refreshList();
+    }
 
     if (inputsTab != nullptr)
         inputsTab->refreshFromValueTree();

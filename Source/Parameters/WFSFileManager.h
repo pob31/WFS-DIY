@@ -399,6 +399,10 @@ public:
         const ScopeItemTable* table;
     };
 
+    /** The two families a snapshot carries (plan revision 8), i.e. the two grids
+        of its scope - which the Scope window shows first, for one. */
+    enum class SnapshotFamily { Inputs, Effects };
+
     /** Extended scope supporting parameter-level, per-channel granularity */
     struct ExtendedSnapshotScope
     {

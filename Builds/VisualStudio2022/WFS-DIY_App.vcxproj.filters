@@ -11,6 +11,9 @@
     <Filter Include="WFS-DIY\Source\gui\effects">
       <UniqueIdentifier>{C3B40B98-E017-39DF-9559-AF8F28DB58A7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="WFS-DIY\Source\gui\snapshots">
+      <UniqueIdentifier>{5D1E7A42-8C3B-4F0E-9A6D-2B7C9E4F1A83}</UniqueIdentifier>
+    </Filter>
     <Filter Include="WFS-DIY\Source\gui">
       <UniqueIdentifier>{779C7693-77C1-9EF7-9439-EE6915457295}</UniqueIdentifier>
     </Filter>
@@ -4835,6 +4838,12 @@
     </ClInclude>
     <ClInclude Include="..\..\Source\gui\InputsTab.h">
       <Filter>WFS-DIY\Source\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\gui\snapshots\SnapshotSession.h">
+      <Filter>WFS-DIY\Source\gui\snapshots</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\gui\snapshots\SnapshotRow.h">
+      <Filter>WFS-DIY\Source\gui\snapshots</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\gui\ClustersTab.h">
       <Filter>WFS-DIY\Source\gui</Filter>
