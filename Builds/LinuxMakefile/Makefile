@@ -76,6 +76,8 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/XmlPersistence_d407010d.o \
   $(JUCE_OBJDIR)/WFSValueTreeState_73cc0cca.o \
   $(JUCE_OBJDIR)/WFSFileManager_910393b3.o \
+  $(JUCE_OBJDIR)/EffectsSendMatrixShim_88f489a4.o \
+  $(JUCE_OBJDIR)/SendMatrixComponent_28576d4a.o \
   $(JUCE_OBJDIR)/NetworkLogWindow_80b93fa3.o \
   $(JUCE_OBJDIR)/MCPUndoOverlay_f8f9deaf.o \
   $(JUCE_OBJDIR)/MCPHistoryWindow_1129207.o \
@@ -234,6 +236,16 @@ $(JUCE_OBJDIR)/WFSValueTreeState_73cc0cca.o: ../../Source/Parameters/WFSValueTre
 $(JUCE_OBJDIR)/WFSFileManager_910393b3.o: ../../Source/Parameters/WFSFileManager.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling WFSFileManager.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/EffectsSendMatrixShim_88f489a4.o: ../../Source/gui/effects/EffectsSendMatrixShim.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling EffectsSendMatrixShim.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/SendMatrixComponent_28576d4a.o: ../../spatcore/ui/sends/SendMatrixComponent.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling SendMatrixComponent.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/NetworkLogWindow_80b93fa3.o: ../../Source/gui/NetworkLogWindow.cpp

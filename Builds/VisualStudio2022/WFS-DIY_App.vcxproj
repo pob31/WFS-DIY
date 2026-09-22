@@ -180,6 +180,8 @@
     <ClCompile Include="..\..\spatcore\control\state\XmlPersistence.cpp"/>
     <ClCompile Include="..\..\Source\Parameters\WFSValueTreeState.cpp"/>
     <ClCompile Include="..\..\Source\Parameters\WFSFileManager.cpp"/>
+    <ClCompile Include="..\..\Source\gui\effects\EffectsSendMatrixShim.cpp"/>
+    <ClCompile Include="..\..\spatcore\ui\sends\SendMatrixComponent.cpp"/>
     <ClCompile Include="..\..\Source\gui\NetworkLogWindow.cpp"/>
     <ClCompile Include="..\..\Source\gui\MCPUndoOverlay.cpp"/>
     <ClCompile Include="..\..\Source\gui\MCPHistoryWindow.cpp"/>
@@ -3454,6 +3456,7 @@
     <ClInclude Include="..\..\Source\Parameters\WFSValueTreeState.h"/>
     <ClInclude Include="..\..\Source\Parameters\WFSFileManager.h"/>
     <ClInclude Include="..\..\Source\Parameters\ParameterDirtyTracker.h"/>
+    <ClInclude Include="..\..\Source\Parameters\EffectParamEdit.h"/>
     <ClInclude Include="..\..\Source\gui\StatusBar.h"/>
     <ClInclude Include="..\..\Source\gui\UpdateBanner.h"/>
     <ClInclude Include="..\..\Source\gui\GettingStartedWizard.h"/>
@@ -3465,6 +3468,15 @@
     <ClInclude Include="..\..\Source\gui\InputsTab.h"/>
     <ClInclude Include="..\..\Source\gui\ClustersTab.h"/>
     <ClInclude Include="..\..\Source\gui\ReverbTab.h"/>
+    <ClInclude Include="..\..\Source\gui\TabIndex.h"/>
+    <ClInclude Include="..\..\Source\gui\TriangleIndicator.h"/>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsTabContext.h"/>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsTab.h"/>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsChannelPanel.h"/>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsMovementsPanel.h"/>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsSendsPanel.h"/>
+    <ClInclude Include="..\..\spatcore\ui\sends\SendMatrixConfig.h"/>
+    <ClInclude Include="..\..\spatcore\ui\sends\SendMatrixComponent.h"/>
     <ClInclude Include="..\..\Source\gui\MapTab.h"/>
     <ClInclude Include="..\..\Source\gui\MapTabWindow.h"/>
     <ClInclude Include="..\..\Source\gui\MapTabPlaceholder.h"/>

@@ -4,6 +4,7 @@
 #include "EffectsTabContext.h"
 #include "../ColorScheme.h"
 #include "../ColorUtilities.h"
+#include "../buttons/LongPressButton.h"
 #include "../dials/WfsBasicDial.h"
 #include "../dials/WfsDirectionalDial.h"
 #include "../sliders/WfsStandardSlider.h"
@@ -42,6 +43,7 @@ class EffectsChannelPanel : public juce::Component,
 public:
     explicit EffectsChannelPanel (EffectsTabContext& context) : ctx (context)
     {
+        setupLinkRow();
         setupColumn1();
         setupFeedColumn();
         setupReturnColumn();
@@ -52,6 +54,13 @@ public:
     {
         using namespace WFSParameterIDs;
         namespace D = WFSParameterDefaults;
+
+        const int group = juce::jlimit (0, D::effectLinkGroupMax, ctx.readInt (effectLinkGroup, 0));
+        linkGroupCombo.setSelectedId (group + 1, juce::dontSendNotification);
+        const int mode = juce::jlimit (D::effectLinkModeMin, D::effectLinkModeMax,
+                                       ctx.readInt (effectLinkMode, D::effectLinkModeDefault));
+        linkModeCombo.setSelectedId (mode + 1, juce::dontSendNotification);
+        updateLinkModeEnabled();
 
         setSliderFromDb (attenuationSlider, attenuationValue,
                          ctx.readFloat (effectAttenuation, D::effectAttenuationDefault),
@@ -147,7 +156,6 @@ public:
         layoutScale = static_cast<float> (getHeight()) / 780.0f;
 
         auto area = getLocalBounds().reduced (scaled (10), scaled (10));
-        contentTop = area.getY();
 
         const int rowHeight    = scaled (30);
         const int sliderHeight = scaled (40);
@@ -158,6 +166,19 @@ public:
         const int unitWidth    = scaled (25);
         const int dialSize     = juce::jmax (60, static_cast<int> (100.0f * layoutScale));
         const int titleHeight  = scaled (25);
+
+        // Top row: the link-group controls (full width, above the 3 columns),
+        // where the reverb tab keeps "Apply to all nodes".
+        {
+            auto topRow = area.removeFromTop (rowHeight);
+            linkGroupCombo.setBounds (topRow.removeFromLeft (scaled (160)));
+            topRow.removeFromLeft (spacing);
+            linkModeCombo.setBounds (topRow.removeFromLeft (scaled (150)));
+            topRow.removeFromLeft (spacing);
+            groupMuteButton.setBounds (topRow.removeFromLeft (scaled (130)));
+        }
+        area.removeFromTop (spacing);
+        contentTop = area.getY();
 
         const int colWidth = area.getWidth() / 3;
         auto col1 = area.removeFromLeft (colWidth).reduced (scaled (5), 0);
@@ -333,6 +354,70 @@ public:
     }
 
 private:
+    //==========================================================================
+    // The link row
+    //==========================================================================
+
+    void setupLinkRow()
+    {
+        addAndMakeVisible (linkGroupCombo);
+        linkGroupCombo.addItem (LOC ("effects.link.unlinked"), 1);
+        for (int g = 1; g <= WFSParameterDefaults::effectLinkGroupMax; ++g)
+            linkGroupCombo.addItem (groupName (g), g + 1);
+        linkGroupCombo.onChange = [this]
+        {
+            ctx.write (WFSParameterIDs::effectLinkGroup, linkGroupCombo.getSelectedId() - 1);
+            updateLinkModeEnabled();
+        };
+
+        addAndMakeVisible (linkModeCombo);
+        linkModeCombo.addItem (LOC ("effects.link.modeOff"), 1);
+        linkModeCombo.addItem (LOC ("effects.link.modeAbsolute"), 2);
+        linkModeCombo.addItem (LOC ("effects.link.modeRelative"), 3);
+        linkModeCombo.onChange = [this]
+        {
+            ctx.write (WFSParameterIDs::effectLinkMode, linkModeCombo.getSelectedId() - 1);
+        };
+
+        // A group mute WRITES every member once and leaves each one
+        // independently editable afterwards (R5-2). It is not a link.
+        addAndMakeVisible (groupMuteButton);
+        groupMuteButton.setButtonText (LOC ("effects.buttons.groupMute"));
+        groupMuteButton.onLongPress = [this]
+        {
+            const int group = ctx.readInt (WFSParameterIDs::effectLinkGroup, 0);
+            if (group == 0)
+            {
+                ctx.showStatusMessage (LOC ("effects.messages.groupMuteNeedsGroup"));
+                return;
+            }
+
+            // Not a self-write: the tab must reload so its header Mute button
+            // shows what the group mute just did to this channel.
+            groupMuted = ! groupMuted;
+            ctx.parameters.getValueTreeState().setEffectGroupMute (group, groupMuted);
+        };
+
+        ctx.helpTextMap[&linkGroupCombo]  = LOC ("effects.help.linkGroup");
+        ctx.helpTextMap[&linkModeCombo]   = LOC ("effects.help.linkMode");
+        ctx.helpTextMap[&groupMuteButton] = LOC ("effects.help.groupMute");
+    }
+
+    void updateLinkModeEnabled()
+    {
+        // A mode with no group to act on is a control that does nothing, so it
+        // greys out exactly as Apply-to-Array does for a Single output.
+        linkModeCombo.setEnabled (linkGroupCombo.getSelectedId() > 1);
+    }
+
+    juce::String groupName (int group) const
+    {
+        juce::StringArray tokens;
+        tokens.addTokens (ctx.parameters.getConfigParam ("effectsGlobalLinkNames").toString(), ",", "");
+        const auto name = tokens[group - 1].trim();
+        return name.isNotEmpty() ? name : LOC ("effects.link.group") + " " + juce::String (group);
+    }
+
     //==========================================================================
     // Column 1
     //==========================================================================
@@ -1015,6 +1100,11 @@ private:
     int contentTop = 0;
     int columnDividerX1 = 0;
     int columnDividerX2 = 0;
+    bool groupMuted = false;
+
+    // The link row
+    juce::ComboBox linkGroupCombo, linkModeCombo;
+    LongPressButton groupMuteButton { 800 };
 
     // Column 1
     juce::Label attenuationLabel, attenuationValue, delayLatencyLabel, delayLatencyValue;

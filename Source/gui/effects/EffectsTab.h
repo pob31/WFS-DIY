@@ -4,6 +4,7 @@
 #include "EffectsTabContext.h"
 #include "EffectsChannelPanel.h"
 #include "EffectsMovementsPanel.h"
+#include "EffectsSendsPanel.h"
 #include "../ChannelSelector.h"
 #include "../ColorScheme.h"
 #include "../WfsLookAndFeel.h"
@@ -203,6 +204,10 @@ public:
         anything at all, which is what makes it the ENTRY POINT of its bunch.
         The entry role is emergent (decision of 2026-09-22): no property names
         it, the sends grid already says who feeds whom. */
+    /** The calculation engine's feedback-cycle bitmask, one bit per effect:
+        the sends grid badges every column in a cycle, not just the selected one. */
+    void setCycleMask (juce::uint32 mask) { sendsPanel.setCycleMask (mask); }
+
     void setLiveState (int fx, bool loopGuardTripped, bool inCycle, bool isEntryPoint)
     {
         if (fx != ctx.slot())
@@ -239,6 +244,8 @@ public:
 
         if (numEffects > 0)
             loadChannelParameters (ctx.currentChannel);
+        else
+            sendsPanel.refresh();
 
         updateVisibility();
         resized();
@@ -252,21 +259,32 @@ public:
     void paint (juce::Graphics& g) override
     {
         g.fillAll (ColorScheme::get().background);
+
+        // Header and footer bands with their divider lines: ReverbTab::paint
+        g.setColour (ColorScheme::get().chromeSurface);
+        g.fillRect (0, 0, getWidth(), headerHeight);
+        g.fillRect (0, getHeight() - footerHeight, getWidth(), footerHeight);
+
+        g.setColour (ColorScheme::get().chromeDivider);
+        g.drawLine (0.0f, static_cast<float> (headerHeight),
+                    static_cast<float> (getWidth()), static_cast<float> (headerHeight), 1.0f);
+        g.drawLine (0.0f, static_cast<float> (getHeight() - footerHeight),
+                    static_cast<float> (getWidth()), static_cast<float> (getHeight() - footerHeight), 1.0f);
     }
 
     void resized() override
     {
         layoutScale = static_cast<float> (getHeight()) / 932.0f;
-
-        auto area = getLocalBounds().reduced (scaled (10));
+        headerHeight = scaled (60);
+        footerHeight = scaled (30) + 2 * scaled (10);
 
         // The footer is laid out FIRST, as the reverb tab does, so Import stays
         // reachable when the session has no effects channels at all.
-        layoutFooter (area.removeFromBottom (scaled (36)));
-        area.removeFromBottom (scaled (6));
+        layoutFooter (getLocalBounds().removeFromBottom (footerHeight).reduced (scaled (10)));
+        layoutHeader (getLocalBounds().removeFromTop (headerHeight).reduced (scaled (10), scaled (15)));
 
-        layoutHeader (area.removeFromTop (scaled (34)));
-        area.removeFromTop (scaled (6));
+        auto area = getLocalBounds().withTrimmedTop (headerHeight).withTrimmedBottom (footerHeight)
+                                    .reduced (scaled (10), scaled (6));
 
         subTabBar.setBounds (area.removeFromTop (scaled (28)));
         area.removeFromTop (scaled (6));
@@ -283,6 +301,7 @@ public:
         nameEditor.setColour (juce::TextEditor::textColourId, ColorScheme::get().textPrimary);
         refreshMapEditButton();
         refreshSoloEffectsButton();
+        refreshMuteButton();
         repaint();
     }
 
@@ -306,61 +325,28 @@ private:
                 onChannelSelected (channel);
         };
 
+        addAndMakeVisible (nameLabel);
+        nameLabel.setText (LOC ("effects.labels.name"), juce::dontSendNotification);
+
         addAndMakeVisible (nameEditor);
         nameEditor.addListener (this);
         nameEditor.addKeyListener (this);
 
-        addAndMakeVisible (linkGroupCombo);
-        linkGroupCombo.addItem (LOC ("effects.link.unlinked"), 1);
-        for (int g = 1; g <= WFSParameterDefaults::effectLinkGroupMax; ++g)
-            linkGroupCombo.addItem (groupName (g), g + 1);
-        linkGroupCombo.onChange = [this]
-        {
-            ctx.write (WFSParameterIDs::effectLinkGroup, linkGroupCombo.getSelectedId() - 1);
-            updateLinkModeEnabled();
-        };
+        // The link-group controls live on the Channel Parameters tab's top
+        // row, where the Reverb tab keeps its own cross-channel control.
 
-        addAndMakeVisible (linkModeCombo);
-        linkModeCombo.addItem (LOC ("effects.link.modeOff"), 1);
-        linkModeCombo.addItem (LOC ("effects.link.modeAbsolute"), 2);
-        linkModeCombo.addItem (LOC ("effects.link.modeRelative"), 3);
-        linkModeCombo.onChange = [this]
-        {
-            ctx.write (WFSParameterIDs::effectLinkMode, linkModeCombo.getSelectedId() - 1);
-        };
-
-        // A group mute WRITES every member once and leaves each one
-        // independently editable afterwards (R5-2). It is not a link.
-        addAndMakeVisible (groupMuteButton);
-        groupMuteButton.setButtonText (LOC ("effects.buttons.groupMute"));
-        groupMuteButton.onLongPress = [this]
-        {
-            const int group = ctx.readInt (WFSParameterIDs::effectLinkGroup, 0);
-            if (group == 0)
-            {
-                ctx.showStatusMessage (LOC ("effects.messages.groupMuteNeedsGroup"));
-                return;
-            }
-
-            groupMuted = ! groupMuted;
-            {
-                const juce::ScopedValueSetter<bool> selfWriteScope (ctx.isSelfWriting, true);
-                ctx.parameters.getValueTreeState().setEffectGroupMute (group, groupMuted);
-            }
-            loadChannelParameters (ctx.currentChannel);
-        };
-
+        // Per-channel mute: an instant toggle, worded and coloured like the
+        // reverb tab's Mute Pre / Mute Post so the two headers read alike.
         addAndMakeVisible (muteButton);
         muteButton.setButtonText (LOC ("effects.buttons.mute"));
-        muteButton.setClickingTogglesState (true);
-        muteButton.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xFFFF5722));
         muteButton.onClick = [this]
         {
-            ctx.write (WFSParameterIDs::effectMute, muteButton.getToggleState() ? 1 : 0);
+            const bool next = ! (ctx.readInt (WFSParameterIDs::effectMute, 0) != 0);
+            ctx.write (WFSParameterIDs::effectMute, next ? 1 : 0);
+            refreshMuteButton();
         };
 
         addAndMakeVisible (soloButton);
-        soloButton.setButtonText (LOC ("effects.buttons.solo"));
         soloButton.onLongPress = [this]
         {
             const bool soloed = ctx.readInt (WFSParameterIDs::effectSolo, 0) != 0;
@@ -425,38 +411,39 @@ private:
 
     void layoutHeader (juce::Rectangle<int> area)
     {
+        // ReverbTab::layoutHeader, width for width: selector, Name, the two
+        // map buttons on the left; the long-press group on the right.
+        const int rowHeight = scaled (30);
         const int spacing = scaled (5);
 
-        channelSelector.setBounds (area.removeFromLeft (scaled (120)));
-        area.removeFromLeft (spacing);
-        nameEditor.setBounds (area.removeFromLeft (scaled (150)));
-        area.removeFromLeft (spacing);
+        auto row = area.removeFromTop (rowHeight);
 
-        // The three engine indicators travel together, left of the controls.
+        channelSelector.setBounds (row.removeFromLeft (scaled (150)));
+        row.removeFromLeft (spacing * 2);
+
+        nameLabel.setBounds (row.removeFromLeft (scaled (50)));
+        nameEditor.setBounds (row.removeFromLeft (scaled (200)));
+
+        row.removeFromLeft (spacing * 4);
+        mapVisibilityButton.setBounds (row.removeFromLeft (scaled (180)));
+        row.removeFromLeft (spacing);
+        mapEditButton.setBounds (row.removeFromLeft (scaled (140)));
+
+        // The three engine indicators, after the map buttons
+        row.removeFromLeft (spacing * 3);
         const int led = scaled (16);
-        loopGuardLed.setBounds (area.removeFromLeft (led).withSizeKeepingCentre (led, led));
-        cycleLed.setBounds (area.removeFromLeft (led).withSizeKeepingCentre (led, led));
-        entryLed.setBounds (area.removeFromLeft (led).withSizeKeepingCentre (led, led));
-        area.removeFromLeft (spacing);
+        loopGuardLed.setBounds (row.removeFromLeft (led).withSizeKeepingCentre (led, led));
+        cycleLed.setBounds (row.removeFromLeft (led).withSizeKeepingCentre (led, led));
+        entryLed.setBounds (row.removeFromLeft (led).withSizeKeepingCentre (led, led));
 
-        linkGroupCombo.setBounds (area.removeFromLeft (scaled (110)));
-        area.removeFromLeft (spacing);
-        linkModeCombo.setBounds (area.removeFromLeft (scaled (130)));
-        area.removeFromLeft (spacing);
-        groupMuteButton.setBounds (area.removeFromLeft (scaled (95)));
-
-        // Right-hand group, in the order the reverb header uses
-        clearButton.setBounds (area.removeFromRight (scaled (80)));
-        area.removeFromRight (spacing);
-        soloEffectsButton.setBounds (area.removeFromRight (scaled (110)));
-        area.removeFromRight (spacing);
-        soloButton.setBounds (area.removeFromRight (scaled (70)));
-        area.removeFromRight (spacing);
-        muteButton.setBounds (area.removeFromRight (scaled (70)));
-        area.removeFromRight (spacing);
-        mapEditButton.setBounds (area.removeFromRight (scaled (100)));
-        area.removeFromRight (spacing);
-        mapVisibilityButton.setBounds (area.removeFromRight (scaled (100)));
+        // Right-aligned group, as the reverb header: Solo Effects, Mute, Solo, Clear
+        clearButton.setBounds (row.removeFromRight (scaled (110)));
+        row.removeFromRight (spacing);
+        soloButton.setBounds (row.removeFromRight (scaled (110)));
+        row.removeFromRight (spacing);
+        muteButton.setBounds (row.removeFromRight (scaled (110)));
+        row.removeFromRight (spacing);
+        soloEffectsButton.setBounds (row.removeFromRight (scaled (130)));
     }
 
     //==========================================================================
@@ -479,6 +466,7 @@ private:
 
         addChildComponent (channelPanel);
         addChildComponent (movementsPanel);
+        addChildComponent (sendsPanel);
 
         // The remaining panels land in the commits that follow; until then the
         // content area names what will occupy it rather than sitting empty.
@@ -498,7 +486,10 @@ private:
         movementsPanel.setVisible (has && index == SubTab::Movements);
         movementsPanel.setBounds (subTabContentArea);
 
-        const bool built = index == SubTab::Channel || index == SubTab::Movements;
+        sendsPanel.setVisible (has && index == SubTab::Sends);
+        sendsPanel.setBounds (subTabContentArea);
+
+        const bool built = index == SubTab::Channel || index == SubTab::Movements || index == SubTab::Sends;
         placeholderLabel.setVisible (has && ! built);
         placeholderLabel.setBounds (subTabContentArea);
         placeholderLabel.setText (subTabBar.getCurrentTabName(), juce::dontSendNotification);
@@ -670,23 +661,12 @@ private:
 
         nameEditor.setText (ctx.read (WFSParameterIDs::effectName).toString(), false);
 
-        const int group = juce::jlimit (0, WFSParameterDefaults::effectLinkGroupMax,
-                                        ctx.readInt (WFSParameterIDs::effectLinkGroup, 0));
-        linkGroupCombo.setSelectedId (group + 1, juce::dontSendNotification);
-
-        const int mode = juce::jlimit (WFSParameterDefaults::effectLinkModeMin,
-                                       WFSParameterDefaults::effectLinkModeMax,
-                                       ctx.readInt (WFSParameterIDs::effectLinkMode,
-                                                    WFSParameterDefaults::effectLinkModeDefault));
-        linkModeCombo.setSelectedId (mode + 1, juce::dontSendNotification);
-        updateLinkModeEnabled();
-
-        muteButton.setToggleState (ctx.readInt (WFSParameterIDs::effectMute, 0) != 0,
-                                   juce::dontSendNotification);
+        refreshMuteButton();
         refreshSoloButton();
 
         channelPanel.loadParameters();
         movementsPanel.loadParameters();
+        sendsPanel.refresh();
     }
 
     void updateVisibility()
@@ -698,10 +678,8 @@ private:
         layoutCurrentSubTab();
 
         for (auto* c : { static_cast<juce::Component*> (&channelSelector),
+                         static_cast<juce::Component*> (&nameLabel),
                          static_cast<juce::Component*> (&nameEditor),
-                         static_cast<juce::Component*> (&linkGroupCombo),
-                         static_cast<juce::Component*> (&linkModeCombo),
-                         static_cast<juce::Component*> (&groupMuteButton),
                          static_cast<juce::Component*> (&muteButton),
                          static_cast<juce::Component*> (&soloButton),
                          static_cast<juce::Component*> (&mapVisibilityButton),
@@ -735,18 +713,10 @@ private:
                     onMapEditChanged (false);
             }
 
-            groupMuted = false;
         }
 
         // The configuration footer stays reachable at zero channels: Import is
         // how a session gets its effects back.
-    }
-
-    void updateLinkModeEnabled()
-    {
-        // A mode with no group to act on is a control that does nothing, so it
-        // greys out exactly as Apply-to-Array does for a Single output.
-        linkModeCombo.setEnabled (linkGroupCombo.getSelectedId() > 1);
     }
 
     //==========================================================================
@@ -771,12 +741,19 @@ private:
 
     void refreshMapVisibilityButton()
     {
+        // Text-only state, as the reverb tab's "Reverbs Visible on Map"
         const bool visible = effectsVisibleOnMap();
-        mapVisibilityButton.setButtonText (visible ? LOC ("effects.buttons.mapVisible")
-                                                   : LOC ("effects.buttons.mapHidden"));
-        mapVisibilityButton.setColour (juce::TextButton::buttonColourId,
-                                       visible ? juce::Colour (0xFF3A6EA5)
-                                               : getLookAndFeel().findColour (juce::TextButton::buttonColourId));
+        mapVisibilityButton.setButtonText (visible ? LOC ("effects.buttons.visibleOnMap")
+                                                   : LOC ("effects.buttons.hiddenOnMap"));
+    }
+
+    void refreshMuteButton()
+    {
+        const bool muted = ctx.readInt (WFSParameterIDs::effectMute, 0) != 0;
+        muteButton.setButtonText (muted ? LOC ("effects.buttons.muteOn") : LOC ("effects.buttons.mute"));
+        muteButton.setColour (juce::TextButton::buttonColourId,
+                              muted ? juce::Colour (0xFFCC8800)
+                                    : getLookAndFeel().findColour (juce::TextButton::buttonColourId));
     }
 
     void refreshMapEditButton()
@@ -798,17 +775,8 @@ private:
     void refreshSoloButton()
     {
         const bool soloed = ctx.readInt (WFSParameterIDs::effectSolo, 0) != 0;
+        soloButton.setButtonText (soloed ? LOC ("effects.buttons.soloOn") : LOC ("effects.buttons.solo"));
         soloButton.setBaseColour (soloed ? juce::Colour (0xFFCC8800) : juce::Colour());
-    }
-
-    juce::String groupName (int group) const
-    {
-        const auto names = ctx.parameters.getConfigParam ("effectsGlobalLinkNames").toString();
-        juce::StringArray tokens;
-        tokens.addTokens (names, ",", "");
-
-        const auto name = tokens[group - 1].trim();
-        return name.isNotEmpty() ? name : LOC ("effects.link.group") + " " + juce::String (group);
     }
 
     //==========================================================================
@@ -920,9 +888,6 @@ private:
     {
         ctx.helpTextMap[&channelSelector]     = LOC ("effects.help.channelSelector");
         ctx.helpTextMap[&nameEditor]          = LOC ("effects.help.name");
-        ctx.helpTextMap[&linkGroupCombo]      = LOC ("effects.help.linkGroup");
-        ctx.helpTextMap[&linkModeCombo]       = LOC ("effects.help.linkMode");
-        ctx.helpTextMap[&groupMuteButton]     = LOC ("effects.help.groupMute");
         ctx.helpTextMap[&muteButton]          = LOC ("effects.help.mute");
         ctx.helpTextMap[&soloButton]          = LOC ("effects.help.solo");
         ctx.helpTextMap[&mapVisibilityButton] = LOC ("effects.help.mapVisible");
@@ -981,6 +946,8 @@ private:
     juce::ValueTree ioTree;
 
     float layoutScale = 1.0f;
+    int headerHeight = 60;
+    int footerHeight = 50;
     juce::Rectangle<int> subTabContentArea;
     bool channelReloadPending = false;
 
@@ -989,14 +956,11 @@ private:
     // will act next.
     bool soloEffectsActive = false;
     bool mapEditActive = false;
-    bool groupMuted = false;
 
     // Header
     ChannelSelectorButton channelSelector { "Effect" };
+    juce::Label nameLabel;
     juce::TextEditor nameEditor;
-    juce::ComboBox linkGroupCombo;
-    juce::ComboBox linkModeCombo;
-    LongPressButton groupMuteButton { 800 };
     juce::TextButton muteButton;
     LongPressButton soloButton { 800 };
     juce::TextButton mapVisibilityButton;
@@ -1011,6 +975,7 @@ private:
     juce::TabbedButtonBar subTabBar { juce::TabbedButtonBar::TabsAtTop };
     EffectsChannelPanel channelPanel { ctx };
     EffectsMovementsPanel movementsPanel { ctx };
+    EffectsSendsPanel sendsPanel { ctx };
     juce::Label placeholderLabel;
     juce::Label noChannelsLabel;
 

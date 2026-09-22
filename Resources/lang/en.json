@@ -1492,7 +1492,8 @@
       "curve": "Curve:",
       "threshold": "Threshold:",
       "reset": "Reset:",
-      "returnsHome": "An effect return always comes home: the movement travels as an offset, and the position you set is never overwritten."
+      "returnsHome": "An effect return always comes home: the movement travels as an offset, and the position you set is never overwritten.",
+      "name": "Name:"
     },
     "toggles": {
       "minLatencyOn": "Minimal Latency Allowed",
@@ -1538,18 +1539,20 @@
       "modeRelative": "Link: Relative"
     },
     "buttons": {
+      "visibleOnMap": "Effects Visible on Map",
+      "hiddenOnMap": "Effects Hidden on Map",
+      "editOnMap": "Edit on Map",
+      "editOnMapOn": "Edit on Map ON",
+      "soloEffects": "Solo Effects",
+      "soloEffectsOn": "Solo Effects ON",
+      "mute": "Mute",
+      "muteOn": "Mute ON",
+      "solo": "Solo",
+      "soloOn": "Solo ON",
+      "clear": "Clear",
+      "groupMute": "Mute Group",
       "otomoStart": "Start",
       "otomoStop": "Stop",
-      "mute": "MUTE",
-      "solo": "SOLO",
-      "groupMute": "Mute Group",
-      "clear": "Clear",
-      "mapVisible": "Map: Shown",
-      "mapHidden": "Map: Hidden",
-      "editOnMap": "Edit on Map",
-      "editOnMapOn": "Editing on Map",
-      "soloEffects": "Solo Effects",
-      "soloEffectsOn": "Effects Soloed",
       "storeConfig": "Store Config",
       "reloadConfig": "Reload Config",
       "reloadBackup": "Reload Backup",
@@ -1589,6 +1592,25 @@
       "reloadBackup": "Reload Effects Configuration from backup file (with confirmation).",
       "import": "Import Effects Configuration from file (with file explorer window).",
       "export": "Export Effects Configuration to file (with file explorer window)."
+    },
+    "sends": {
+      "corner": "Sources \u2192 Effects",
+      "group": "Group",
+      "inputPrefix": "In",
+      "effectPrefix": "Fx",
+      "allOn": "All Sends On (this effect)",
+      "allOff": "All Sends Off (this effect)",
+      "hint": "Click a cell to switch a send; drag up or down to set its level (Shift = fine). Rows: every input, then every effect return. Columns: every effect. The hatched diagonal is an effect feeding itself, which is refused.",
+      "gesture": {
+        "toggle": "Effect Send Switch",
+        "level": "Effect Send Level"
+      },
+      "announce": {
+        "into": "into effect",
+        "on": "on",
+        "off": "off",
+        "forbidden": "an effect cannot feed itself"
+      }
     }
   },
 

@@ -14,6 +14,7 @@
 		074B7E72ADC7BF70E6DE6552 /* OSCReceiverWithSenderIP.cpp */ = {isa = PBXBuildFile; fileRef = 1557615117698279AF4F8AE9; };
 		096579233CE326ECF174D666 /* MCPTransport.cpp */ = {isa = PBXBuildFile; fileRef = 5D5B1B273C74327EAFD83543; };
 		0C3E37513198F49189B74E8F /* inflate.c */ = {isa = PBXBuildFile; fileRef = 231528DBC6556603FCFF060E; };
+		0F05504EABF30E96EEA84A3F /* SendMatrixComponent.cpp */ = {isa = PBXBuildFile; fileRef = C94088A46A7C54A130D9648C; };
 		10B95162FAE17CF7A0421864 /* IOKit.framework */ = {isa = PBXBuildFile; fileRef = 10B5F6956A7261934156D7A8; };
 		11DF11F2BEB206713F372657 /* CudaIrBackend.cpp */ = {isa = PBXBuildFile; fileRef = F16B3589838847415A448F1F; };
 		125CEE99CBC2BE54E4254E38 /* include_juce_simpleweb.cpp */ = {isa = PBXBuildFile; fileRef = 76E1F8BC2E9C470188DD178D; };
@@ -79,6 +80,7 @@
 		897851F632D33A13E5E79DFD /* include_juce_core_zlib.c */ = {isa = PBXBuildFile; fileRef = 339C2DC4E32B5FBFC1C2B2B2; };
 		8A91A55D62DD389446BD9E7F /* commands.cpp */ = {isa = PBXBuildFile; fileRef = 804E6FAA96E98800D5B3A07B; };
 		8BEC9D272083CCE7ED364749 /* gcol.c */ = {isa = PBXBuildFile; fileRef = FB2969D767E798A86DB0F445; };
+		8DB0FAA45E206FDBFE57B035 /* EffectsSendMatrixShim.cpp */ = {isa = PBXBuildFile; fileRef = F915D7D1297230F5EE7F1F0E; };
 		8DC3BEC2C22D7CF136E88A22 /* include_juce_gui_basics_5.cpp */ = {isa = PBXBuildFile; fileRef = 00703200CC0660A2F30528FD; };
 		8ED50230E8A53F54E270C993 /* OSCRateLimiter.cpp */ = {isa = PBXBuildFile; fileRef = D7C4755CB02AB2A87557F96A; };
 		927652A67B54E4DCB6F196F9 /* include_juce_graphics_libpng.c */ = {isa = PBXBuildFile; fileRef = 413A66C349CF8FAF0B80B69A; };
@@ -176,10 +178,12 @@
 		0430A50E40195C34A3D32E6D /* CudaObKernels.h */ /* CudaObKernels.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CudaObKernels.h; path = ../../spatcore/gpu/CudaObKernels.h; sourceTree = SOURCE_ROOT; };
 		05D2B5A53FEB53CA24CFD91E /* LocalizationManager.cpp */ /* LocalizationManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = LocalizationManager.cpp; path = ../../Source/Localization/LocalizationManager.cpp; sourceTree = SOURCE_ROOT; };
 		0724D2EC3F7252162C616AE8 /* InputsTab.h */ /* InputsTab.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = InputsTab.h; path = ../../Source/gui/InputsTab.h; sourceTree = SOURCE_ROOT; };
+		077B2948E10BFDDEDA298758 /* TabIndex.h */ /* TabIndex.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TabIndex.h; path = ../../Source/gui/TabIndex.h; sourceTree = SOURCE_ROOT; };
 		08134ACD67020F7944801D62 /* WfsParameters.h */ /* WfsParameters.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WfsParameters.h; path = ../../Source/WfsParameters.h; sourceTree = SOURCE_ROOT; };
 		0916E9BE1E7416AD883F94DF /* PatchMatrixComponent.cpp */ /* PatchMatrixComponent.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = PatchMatrixComponent.cpp; path = ../../spatcore/ui/patch/PatchMatrixComponent.cpp; sourceTree = SOURCE_ROOT; };
 		0965060F26497EE431A8A356 /* WFS-DIY_logo.png */ /* WFS-DIY_logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "WFS-DIY_logo.png"; path = "../../Resources/WFS-DIY_logo.png"; sourceTree = SOURCE_ROOT; };
 		0A70ECA961F1EBE9EBDA802F /* mysofa.h */ /* mysofa.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = mysofa.h; path = ../../ThirdParty/libmysofa/src/hrtf/mysofa.h; sourceTree = SOURCE_ROOT; };
+		0B2BF8F0DACE9F3F4C4E3556 /* EffectsSendsPanel.h */ /* EffectsSendsPanel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = EffectsSendsPanel.h; path = ../../Source/gui/effects/EffectsSendsPanel.h; sourceTree = SOURCE_ROOT; };
 		0B8F55D3642FB94A31002CCE /* lookup.c */ /* lookup.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = lookup.c; path = ../../ThirdParty/libmysofa/src/hrtf/lookup.c; sourceTree = SOURCE_ROOT; };
 		0BF4874371E5B9D696B96D28 /* MCPParameterValidation.h */ /* MCPParameterValidation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPParameterValidation.h; path = ../../Source/Network/MCP/MCPParameterValidation.h; sourceTree = SOURCE_ROOT; };
 		0ED92E1B92ACB8538C3876E4 /* MCPPromptRegistry.cpp */ /* MCPPromptRegistry.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPPromptRegistry.cpp; path = ../../spatcore/control/mcp/MCPPromptRegistry.cpp; sourceTree = SOURCE_ROOT; };
@@ -202,6 +206,7 @@
 		1A10EA3687120F02EC073242 /* include_juce_graphics_Harfbuzz.cpp */ /* include_juce_graphics_Harfbuzz.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_graphics_Harfbuzz.cpp; path = ../../JuceLibraryCode/include_juce_graphics_Harfbuzz.cpp; sourceTree = SOURCE_ROOT; };
 		1ABC3B390474FF4A8F755E15 /* WFSLogger.h */ /* WFSLogger.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WFSLogger.h; path = ../../Source/WFSLogger.h; sourceTree = SOURCE_ROOT; };
 		1B28B101927A84789B514315 /* StreamDeckRenderer.h */ /* StreamDeckRenderer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StreamDeckRenderer.h; path = ../../spatcore/controllers/streamdeck/StreamDeckRenderer.h; sourceTree = SOURCE_ROOT; };
+		1BC1111BA3C08E3C338E43BE /* EffectParamEdit.h */ /* EffectParamEdit.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = EffectParamEdit.h; path = ../../Source/Parameters/EffectParamEdit.h; sourceTree = SOURCE_ROOT; };
 		1BD908F5EE15BCFED1F87F23 /* include_juce_events.mm */ /* include_juce_events.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_events.mm; path = ../../JuceLibraryCode/include_juce_events.mm; sourceTree = SOURCE_ROOT; };
 		1D4034F17218DC090D63347F /* OSCConnection.cpp */ /* OSCConnection.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCConnection.cpp; path = ../../Source/Network/OSCConnection.cpp; sourceTree = SOURCE_ROOT; };
 		1E2EF1F7B6FAF4535668A685 /* NativeGpuOutputBufferAlgorithm.h */ /* NativeGpuOutputBufferAlgorithm.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = NativeGpuOutputBufferAlgorithm.h; path = ../../spatcore/wfs/NativeGpuOutputBufferAlgorithm.h; sourceTree = SOURCE_ROOT; };
@@ -231,10 +236,12 @@
 		2D2312750B459097EF83E3E8 /* parser.hpp */ /* parser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = parser.hpp; path = ../../ThirdParty/headtracker/host/libheadtracker/include/headtracker/parser.hpp; sourceTree = SOURCE_ROOT; };
 		2EB98E621EA18E52DDD6C666 /* SnapshotTools.h */ /* SnapshotTools.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SnapshotTools.h; path = ../../Source/Network/MCP/tools/SnapshotTools.h; sourceTree = SOURCE_ROOT; };
 		2F0AEF01382622E2313D95F5 /* MetalFdnBackend.mm */ /* MetalFdnBackend.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = MetalFdnBackend.mm; path = ../../spatcore/gpu/MetalFdnBackend.mm; sourceTree = SOURCE_ROOT; };
+		2F0E437F79A9CD920C46E9AD /* EffectsMovementsPanel.h */ /* EffectsMovementsPanel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = EffectsMovementsPanel.h; path = ../../Source/gui/effects/EffectsMovementsPanel.h; sourceTree = SOURCE_ROOT; };
 		2F4BD502150B3B79E5519EDB /* MCPHistoryWindow.h */ /* MCPHistoryWindow.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPHistoryWindow.h; path = ../../Source/gui/MCPHistoryWindow.h; sourceTree = SOURCE_ROOT; };
 		2F5E4B751764BFC5158BF8A5 /* minphase.c */ /* minphase.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = minphase.c; path = ../../ThirdParty/libmysofa/src/hrtf/minphase.c; sourceTree = SOURCE_ROOT; };
 		2FD26C6C45DE46887E1B022A /* OSCParser.h */ /* OSCParser.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCParser.h; path = ../../spatcore/control/osc/OSCParser.h; sourceTree = SOURCE_ROOT; };
 		300E93A1943132FBD96DBD77 /* include_juce_gui_basics.mm */ /* include_juce_gui_basics.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_gui_basics.mm; path = ../../JuceLibraryCode/include_juce_gui_basics.mm; sourceTree = SOURCE_ROOT; };
+		30793BC910DB78FE5BBF5CBD /* EffectsHost.h */ /* EffectsHost.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = EffectsHost.h; path = ../../Source/DSP/EffectsHost.h; sourceTree = SOURCE_ROOT; };
 		30853C6C43776F69A1C8B9C5 /* commands.hpp */ /* commands.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = commands.hpp; path = ../../ThirdParty/headtracker/host/libheadtracker/include/headtracker/commands.hpp; sourceTree = SOURCE_ROOT; };
 		3193B4D9D805D393D760AE17 /* juce_gui_basics */ /* juce_gui_basics */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_gui_basics; path = ../../ThirdParty/JUCE/modules/juce_gui_basics; sourceTree = SOURCE_ROOT; };
 		31BBA84DB2EB7F91EF69ED4D /* MetalWfsBackend.h */ /* MetalWfsBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MetalWfsBackend.h; path = ../../spatcore/gpu/MetalWfsBackend.h; sourceTree = SOURCE_ROOT; };
@@ -313,6 +320,7 @@
 		69B2087E3025EB27857CB870 /* MCPUndoOverlay.h */ /* MCPUndoOverlay.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPUndoOverlay.h; path = ../../Source/gui/MCPUndoOverlay.h; sourceTree = SOURCE_ROOT; };
 		69C917578578859B1CE878B8 /* GradientMapEditor.h */ /* GradientMapEditor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GradientMapEditor.h; path = ../../Source/GradientMap/GradientMapEditor.h; sourceTree = SOURCE_ROOT; };
 		6A24677DF371FEEAE8B9B546 /* OSCReceiverWithSenderIP.h */ /* OSCReceiverWithSenderIP.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCReceiverWithSenderIP.h; path = ../../spatcore/control/osc/OSCReceiverWithSenderIP.h; sourceTree = SOURCE_ROOT; };
+		6AA9CC541A6780CA2F4D0EE1 /* TriangleIndicator.h */ /* TriangleIndicator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TriangleIndicator.h; path = ../../Source/gui/TriangleIndicator.h; sourceTree = SOURCE_ROOT; };
 		6BABB0D22DF0B0DEF97EC39A /* Foundation.framework */ /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		6C197DB268211A0714D027CE /* StereoDecomposer.h */ /* StereoDecomposer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StereoDecomposer.h; path = ../../spatcore/dsp/StereoDecomposer.h; sourceTree = SOURCE_ROOT; };
 		6E10D0FC4C9B6E6575A85044 /* include_juce_dsp.mm */ /* include_juce_dsp.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_dsp.mm; path = ../../JuceLibraryCode/include_juce_dsp.mm; sourceTree = SOURCE_ROOT; };
@@ -325,6 +333,7 @@
 		70F11209DC36A15E41B6C52D /* PlatformDynLib.h */ /* PlatformDynLib.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PlatformDynLib.h; path = ../../spatcore/gpu/PlatformDynLib.h; sourceTree = SOURCE_ROOT; };
 		7103A555C0CD955901478B54 /* MetalIrBackend.h */ /* MetalIrBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MetalIrBackend.h; path = ../../spatcore/gpu/MetalIrBackend.h; sourceTree = SOURCE_ROOT; };
 		7199DB67785B6EC37029964D /* include_juce_gui_basics_4.cpp */ /* include_juce_gui_basics_4.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_gui_basics_4.cpp; path = ../../JuceLibraryCode/include_juce_gui_basics_4.cpp; sourceTree = SOURCE_ROOT; };
+		729599FB9BB1E16DBEF2C3CD /* SendMatrixComponent.h */ /* SendMatrixComponent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SendMatrixComponent.h; path = ../../spatcore/ui/sends/SendMatrixComponent.h; sourceTree = SOURCE_ROOT; };
 		730F1505560F6C73AE07E7F8 /* TTSManager.h */ /* TTSManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TTSManager.h; path = ../../Source/Accessibility/TTSManager.h; sourceTree = SOURCE_ROOT; };
 		731872EE6D0947D8D5946510 /* juce_audio_devices */ /* juce_audio_devices */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_audio_devices; path = ../../ThirdParty/JUCE/modules/juce_audio_devices; sourceTree = SOURCE_ROOT; };
 		733D0E78F18ED00D054A394F /* StateInspectionTools.h */ /* StateInspectionTools.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StateInspectionTools.h; path = ../../Source/Network/MCP/tools/StateInspectionTools.h; sourceTree = SOURCE_ROOT; };
@@ -367,6 +376,7 @@
 		89B654EDBBF10BBCF67395CF /* MCPOSCQueryAuditor.h */ /* MCPOSCQueryAuditor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPOSCQueryAuditor.h; path = ../../Source/Network/MCP/MCPOSCQueryAuditor.h; sourceTree = SOURCE_ROOT; };
 		89F19441719BBC804132D553 /* TrackingPSNReceiver.cpp */ /* TrackingPSNReceiver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = TrackingPSNReceiver.cpp; path = ../../Source/Network/TrackingPSNReceiver.cpp; sourceTree = SOURCE_ROOT; };
 		8AB84F1939ABCA3CB159A5B8 /* MetalFdnBackend.h */ /* MetalFdnBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MetalFdnBackend.h; path = ../../spatcore/gpu/MetalFdnBackend.h; sourceTree = SOURCE_ROOT; };
+		8AD2236FB1023A11A50BDF0F /* EffectsChannelPanel.h */ /* EffectsChannelPanel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = EffectsChannelPanel.h; path = ../../Source/gui/effects/EffectsChannelPanel.h; sourceTree = SOURCE_ROOT; };
 		8BDFF50F5C228E133FE51580 /* OSCManager.cpp */ /* OSCManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCManager.cpp; path = ../../Source/Network/OSCManager.cpp; sourceTree = SOURCE_ROOT; };
 		8C11E7326375A886C71FF31C /* MetalKit.framework */ /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		8DB03BA853F8E5B1A25A7906 /* reader.c */ /* reader.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = reader.c; path = ../../ThirdParty/libmysofa/src/hrtf/reader.c; sourceTree = SOURCE_ROOT; };
@@ -454,12 +464,14 @@
 		C7954DCF4E6A85985F98667B /* juce_graphics */ /* juce_graphics */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_graphics; path = ../../ThirdParty/JUCE/modules/juce_graphics; sourceTree = SOURCE_ROOT; };
 		C7C47F0656977414C3A87685 /* JuceHeader.h */ /* JuceHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = JuceHeader.h; path = ../../JuceLibraryCode/JuceHeader.h; sourceTree = SOURCE_ROOT; };
 		C8A9B2AE6E06248A092E14C1 /* WFSHighShelfFilter.h */ /* WFSHighShelfFilter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WFSHighShelfFilter.h; path = ../../spatcore/dsp/WFSHighShelfFilter.h; sourceTree = SOURCE_ROOT; };
+		C94088A46A7C54A130D9648C /* SendMatrixComponent.cpp */ /* SendMatrixComponent.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SendMatrixComponent.cpp; path = ../../spatcore/ui/sends/SendMatrixComponent.cpp; sourceTree = SOURCE_ROOT; };
 		C94811DE622E6FFD11FA1C8B /* juce_gui_extra */ /* juce_gui_extra */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_gui_extra; path = ../../ThirdParty/JUCE/modules/juce_gui_extra; sourceTree = SOURCE_ROOT; };
 		CA0621138DD4DFC3AF7A711E /* OSCProtocolTypes.h */ /* OSCProtocolTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCProtocolTypes.h; path = ../../Source/Network/OSCProtocolTypes.h; sourceTree = SOURCE_ROOT; };
 		CA1E9F9547203C0558722585 /* MCPDispatcher.cpp */ /* MCPDispatcher.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPDispatcher.cpp; path = ../../spatcore/control/mcp/MCPDispatcher.cpp; sourceTree = SOURCE_ROOT; };
 		CB22A5EC8A06BF42A62F8290 /* CudaWfsBackend.h */ /* CudaWfsBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CudaWfsBackend.h; path = ../../spatcore/gpu/CudaWfsBackend.h; sourceTree = SOURCE_ROOT; };
 		CDBED1B9FA3F02E13A4435CE /* TrackingRTTrPReceiver.cpp */ /* TrackingRTTrPReceiver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = TrackingRTTrPReceiver.cpp; path = ../../Source/Network/TrackingRTTrPReceiver.cpp; sourceTree = SOURCE_ROOT; };
 		CDFCAEFFDE223B38F2084C89 /* FdnGpuBackend.h */ /* FdnGpuBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = FdnGpuBackend.h; path = ../../spatcore/gpu/FdnGpuBackend.h; sourceTree = SOURCE_ROOT; };
+		CE151A36C2798C86F74A1F57 /* EffectsTab.h */ /* EffectsTab.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = EffectsTab.h; path = ../../Source/gui/effects/EffectsTab.h; sourceTree = SOURCE_ROOT; };
 		CE540094C2300E3D686181BF /* neighbors.c */ /* neighbors.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = neighbors.c; path = ../../ThirdParty/libmysofa/src/hrtf/neighbors.c; sourceTree = SOURCE_ROOT; };
 		CEC081A521DE9D3B8C616524 /* InputTools.h */ /* InputTools.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = InputTools.h; path = ../../Source/Network/MCP/tools/InputTools.h; sourceTree = SOURCE_ROOT; };
 		D07FA404513B4AA9B62D68F9 /* zutil.c */ /* zutil.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = zutil.c; path = ../../ThirdParty/zlib/zutil.c; sourceTree = SOURCE_ROOT; };
@@ -478,6 +490,7 @@
 		D72FC10880D0962577B1DE1E /* include_juce_audio_formats_flac_1.c */ /* include_juce_audio_formats_flac_1.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = include_juce_audio_formats_flac_1.c; path = ../../JuceLibraryCode/include_juce_audio_formats_flac_1.c; sourceTree = SOURCE_ROOT; };
 		D7C4755CB02AB2A87557F96A /* OSCRateLimiter.cpp */ /* OSCRateLimiter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCRateLimiter.cpp; path = ../../spatcore/control/osc/OSCRateLimiter.cpp; sourceTree = SOURCE_ROOT; };
 		D82AC3F6B9C66CD74406D81B /* HidApiPlatform.c */ /* HidApiPlatform.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = HidApiPlatform.c; path = ../../ThirdParty/hidapi/HidApiPlatform.c; sourceTree = SOURCE_ROOT; };
+		D9C073EA67E27B225C5FC122 /* SendMatrixConfig.h */ /* SendMatrixConfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SendMatrixConfig.h; path = ../../spatcore/ui/sends/SendMatrixConfig.h; sourceTree = SOURCE_ROOT; };
 		DAF0A8D52DEC4B51BA171B78 /* OSCQueryServer.h */ /* OSCQueryServer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCQueryServer.h; path = ../../Source/Network/OSCQueryServer.h; sourceTree = SOURCE_ROOT; };
 		DAF8F992F5710B0186D52495 /* CudaIrKernels.h */ /* CudaIrKernels.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CudaIrKernels.h; path = ../../spatcore/gpu/CudaIrKernels.h; sourceTree = SOURCE_ROOT; };
 		DB5876E9C4AB938D271F414A /* OutputArrayHelperWindow.cpp */ /* OutputArrayHelperWindow.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OutputArrayHelperWindow.cpp; path = ../../Source/gui/OutputArrayHelperWindow.cpp; sourceTree = SOURCE_ROOT; };
@@ -490,6 +503,7 @@
 		E0ED792E850ECE52872FBCAD /* ReverbAutoLayoutTool.h */ /* ReverbAutoLayoutTool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ReverbAutoLayoutTool.h; path = ../../Source/Network/MCP/tools/ReverbAutoLayoutTool.h; sourceTree = SOURCE_ROOT; };
 		E1C3671AD66E2F1E72F8C5A8 /* XmlPersistence.h */ /* XmlPersistence.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = XmlPersistence.h; path = ../../spatcore/control/state/XmlPersistence.h; sourceTree = SOURCE_ROOT; };
 		E1C619E4C45F73A1C1F29851 /* include_juce_gui_basics_2.cpp */ /* include_juce_gui_basics_2.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_gui_basics_2.cpp; path = ../../JuceLibraryCode/include_juce_gui_basics_2.cpp; sourceTree = SOURCE_ROOT; };
+		E23AFAD0B6F2B918B656677C /* EffectsTabContext.h */ /* EffectsTabContext.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = EffectsTabContext.h; path = ../../Source/gui/effects/EffectsTabContext.h; sourceTree = SOURCE_ROOT; };
 		E2664AA4F56CB3F14CCE76AB /* RenderSourceMap.h */ /* RenderSourceMap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = RenderSourceMap.h; path = ../../spatcore/wfs/RenderSourceMap.h; sourceTree = SOURCE_ROOT; };
 		E2916F92933CBD02E725B173 /* PatchMatrixComponent.h */ /* PatchMatrixComponent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PatchMatrixComponent.h; path = ../../spatcore/ui/patch/PatchMatrixComponent.h; sourceTree = SOURCE_ROOT; };
 		E2E68A30C508D09CAE19BE7C /* InputChannelIdentity.h */ /* InputChannelIdentity.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = InputChannelIdentity.h; path = ../../Source/Parameters/InputChannelIdentity.h; sourceTree = SOURCE_ROOT; };
@@ -513,6 +527,7 @@
 		F5775FB8BB6E2B98B2D6B8DF /* include_juce_audio_devices.mm */ /* include_juce_audio_devices.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_devices.mm; path = ../../JuceLibraryCode/include_juce_audio_devices.mm; sourceTree = SOURCE_ROOT; };
 		F64B4CF71AC3C68B406743A1 /* PatchMatrixComponent.h */ /* PatchMatrixComponent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PatchMatrixComponent.h; path = ../../Source/gui/PatchMatrixComponent.h; sourceTree = SOURCE_ROOT; };
 		F88CD0C4C00C3B79368EFE7A /* SpaceMouseDevice.h */ /* SpaceMouseDevice.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SpaceMouseDevice.h; path = ../../spatcore/controllers/spacemouse/SpaceMouseDevice.h; sourceTree = SOURCE_ROOT; };
+		F915D7D1297230F5EE7F1F0E /* EffectsSendMatrixShim.cpp */ /* EffectsSendMatrixShim.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = EffectsSendMatrixShim.cpp; path = ../../Source/gui/effects/EffectsSendMatrixShim.cpp; sourceTree = SOURCE_ROOT; };
 		F92F41AD7A59BCB8CE6CFEA3 /* MCPUndoOverlay.cpp */ /* MCPUndoOverlay.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPUndoOverlay.cpp; path = ../../Source/gui/MCPUndoOverlay.cpp; sourceTree = SOURCE_ROOT; };
 		F9DE7E32A4C4D2AAEBBFC546 /* ReverbTabPages.h */ /* ReverbTabPages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ReverbTabPages.h; path = ../../Source/Controllers/DialsAndButtons/pages/ReverbTabPages.h; sourceTree = SOURCE_ROOT; };
 		FB2969D767E798A86DB0F445 /* gcol.c */ /* gcol.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = gcol.c; path = ../../ThirdParty/libmysofa/src/hdf/gcol.c; sourceTree = SOURCE_ROOT; };
@@ -635,6 +650,22 @@
 				E0ADC3B1E5CE3DA75793A9AD,
 			);
 			name = Source;
+			sourceTree = "<group>";
+		};
+		2A84935971237F2CE594E7BA /* effects */ = {
+			isa = PBXGroup;
+			children = (
+				E23AFAD0B6F2B918B656677C,
+				CE151A36C2798C86F74A1F57,
+				8AD2236FB1023A11A50BDF0F,
+				2F0E437F79A9CD920C46E9AD,
+				0B2BF8F0DACE9F3F4C4E3556,
+				F915D7D1297230F5EE7F1F0E,
+				D9C073EA67E27B225C5FC122,
+				729599FB9BB1E16DBEF2C3CD,
+				C94088A46A7C54A130D9648C,
+			);
+			name = effects;
 			sourceTree = "<group>";
 		};
 		39582B30061C39A6ED7B2849 /* tools */ = {
@@ -850,6 +881,9 @@
 				0724D2EC3F7252162C616AE8,
 				A39360C75305D0F857DC9FEE,
 				AA3D6463B920C9F5617110A3,
+				077B2948E10BFDDEDA298758,
+				6AA9CC541A6780CA2F4D0EE1,
+				2A84935971237F2CE594E7BA,
 				7AFF9282759B81540BA02DCC,
 				141DFB14179D8C4EA0A6FF2D,
 				FD7DB43D6E3D1AF4724A2303,
@@ -915,6 +949,7 @@
 				E2664AA4F56CB3F14CCE76AB,
 				6C197DB268211A0714D027CE,
 				99AE1FAA30FD5B63D542E1D6,
+				30793BC910DB78FE5BBF5CBD,
 				0039FC83EB5F584546AC52D0,
 				A43A175CA1FA862F3071E4B5,
 				1F9D94046CD304F5B29D772D,
@@ -1121,6 +1156,7 @@
 				0286C27EEF7FF41861AEADED,
 				7574FA77B1174E11D00A732D,
 				4281F4E644C9DE689365F064,
+				1BC1111BA3C08E3C338E43BE,
 			);
 			name = Parameters;
 			sourceTree = "<group>";
@@ -1243,6 +1279,8 @@
 				02C0B9F8F05793F28755A9E6,
 				8206CB7296A86BB520A4B965,
 				DDEBC46A91123F8716D9D977,
+				8DB0FAA45E206FDBFE57B035,
+				0F05504EABF30E96EEA84A3F,
 				F43ABAF1DAF97DA45A1AC7C0,
 				B3127E0DDA69F970E5529D20,
 				0536FD9C7D3537A9344A5DF2,

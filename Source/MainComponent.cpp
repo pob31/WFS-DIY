@@ -13178,6 +13178,8 @@ void MainComponent::timerCallback()
 
                 effectsTab->setLiveState (fx, tripped, inCycle, fedByAnInput);
             }
+
+            effectsTab->setCycleMask (calculationEngine->getEffectCycleMask());
         }
 
         // Update reverb engine parameters (every timer tick, independent of position changes)

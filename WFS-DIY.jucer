@@ -73,6 +73,16 @@
                 file="Source/gui/effects/EffectsChannelPanel.h"/>
           <FILE id="guiFxMove" name="EffectsMovementsPanel.h" compile="0" resource="0"
                 file="Source/gui/effects/EffectsMovementsPanel.h"/>
+          <FILE id="guiFxSends" name="EffectsSendsPanel.h" compile="0" resource="0"
+                file="Source/gui/effects/EffectsSendsPanel.h"/>
+          <FILE id="guiFxSendsShim" name="EffectsSendMatrixShim.cpp" compile="1" resource="0"
+                file="Source/gui/effects/EffectsSendMatrixShim.cpp"/>
+          <FILE id="coreSendCfgH" name="SendMatrixConfig.h" compile="0" resource="0"
+                file="spatcore/ui/sends/SendMatrixConfig.h"/>
+          <FILE id="coreSendMatH" name="SendMatrixComponent.h" compile="0" resource="0"
+                file="spatcore/ui/sends/SendMatrixComponent.h"/>
+          <FILE id="coreSendMatCpp" name="SendMatrixComponent.cpp" compile="1" resource="0"
+                file="spatcore/ui/sends/SendMatrixComponent.cpp"/>
         </GROUP>
         <FILE id="guiMapTab" name="MapTab.h" compile="0" resource="0" file="Source/gui/MapTab.h"/>
         <FILE id="guiMapTabWin" name="MapTabWindow.h" compile="0" resource="0"
