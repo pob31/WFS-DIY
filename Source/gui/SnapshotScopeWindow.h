@@ -1114,7 +1114,7 @@ private:
             for (int ch = 0; ch < numChannels; ++ch)
             {
                 auto key = ExtendedScope::makeKey (item.itemId, ch);
-                scope.itemChannelStates[key] = (dirtyKeys.find (key) != dirtyKeys.end());
+                scope.inputs.itemChannelStates[key] = (dirtyKeys.find (key) != dirtyKeys.end());
             }
         }
 

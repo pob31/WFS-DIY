@@ -318,6 +318,80 @@ public:
         juce::String displayName;      // Display name in UI
         juce::Identifier sectionId;    // Section this item belongs to (Position, Attenuation, etc.)
         std::vector<juce::Identifier> parameterIds;  // Parameters included in this group
+
+        /** Effects family only: the <Effect> child node this item is the WHOLE of
+            (one of the eleven module nodes, bands and taps included). Invalid for
+            every input item and for the effects' property items, which their
+            parameterIds describe. */
+        juce::Identifier nodeType {};
+    };
+
+    /** One family's rows: its items, and the order its display sections appear in.
+        The input and effect families each own one; a ScopeMatrix points at it. */
+    struct ScopeItemTable
+    {
+        std::vector<ScopeItem> items;
+        std::vector<juce::Identifier> sectionIds;
+
+        /** sectionId -> LOC key of the section's heading in the scope window.
+            A section with no entry is shown by its raw id. */
+        std::vector<std::pair<juce::Identifier, juce::String>> sectionLabelKeys;
+
+        std::vector<const ScopeItem*> itemsForSection (const juce::Identifier& sectionId) const;
+        const ScopeItem* find (const juce::String& itemId) const;
+        juce::String sectionLabelKey (const juce::Identifier& sectionId) const;
+    };
+
+    /** The input family's table. */
+    static const ScopeItemTable& inputScopeTable();
+
+    /** Per-item, per-channel inclusion over ONE family's table: the state machine
+        the scope grid edits. Channels are live SLOTS in memory; the serializer
+        writes them as each family's on-disk key. */
+    struct ScopeMatrix
+    {
+        enum class InclusionState { AllIncluded, AllExcluded, Partial };
+
+        explicit ScopeMatrix (const ScopeItemTable& t) noexcept : table (&t) {}
+
+        const ScopeItemTable& getTable() const noexcept { return *table; }
+
+        /** Per-item, per-channel inclusion state
+         *  Key format: "itemId_channelIndex"
+         *  Default: all items included (true) -- an ABSENT key means included
+         */
+        std::map<juce::String, bool> itemChannelStates;
+
+        /** Check if a scope item is included for a channel */
+        bool isIncluded (const juce::String& itemId, int channelIndex) const;
+
+        /** Check if a parameter is included for a channel (via its scope item) */
+        bool isParameterIncluded (const juce::Identifier& paramId, int channelIndex) const;
+
+        /** Same per-item/per-channel inclusion over every item and channel. Raw
+            map comparison would be wrong — an absent key and an explicit `true`
+            entry both mean "included". */
+        bool isEquivalentTo (const ScopeMatrix& other, int numChannels) const;
+
+        void setIncluded (const juce::String& itemId, int channelIndex, bool included);
+        void toggle (const juce::String& itemId, int channelIndex);
+        void setAllItemsForChannel (int channelIndex, bool included);
+        void setItemForAllChannels (const juce::String& itemId, bool included, int numChannels);
+        void setSectionForAllChannels (const juce::Identifier& sectionId, bool included, int numChannels);
+        void setAll (bool included, int numChannels);
+
+        InclusionState getSectionState (const juce::Identifier& sectionId, int numChannels) const;
+        InclusionState getSectionStateForChannel (const juce::Identifier& sectionId, int channelIndex) const;
+        InclusionState getChannelState (int channelIndex) const;
+        InclusionState getOverallState (int numChannels) const;
+
+        void clear() { itemChannelStates.clear(); }
+
+        /** Create key string for itemId and channel */
+        static juce::String makeKey (const juce::String& itemId, int channelIndex);
+
+    private:
+        const ScopeItemTable* table;
     };
 
     /** Extended scope supporting parameter-level, per-channel granularity */
@@ -327,11 +401,10 @@ public:
         enum class ApplyMode { OnSave, OnRecall };
         ApplyMode applyMode = ApplyMode::OnRecall;
 
-        /** Per-item, per-channel inclusion state
-         *  Key format: "itemId_channelIndex"
-         *  Default: all items included (true)
-         */
-        std::map<juce::String, bool> itemChannelStates;
+        /** The input grid: input items x input SLOTS (permanent numbers on disk). */
+        ScopeMatrix inputs { inputScopeTable() };
+
+        using InclusionState = ScopeMatrix::InclusionState;
 
         /** MIDI note trigger. A note-on above the velocity threshold on
             (midiChannel, midiNote) recalls this snapshot.
@@ -359,77 +432,44 @@ public:
         void clearMidiBinding() noexcept { midiChannel = 0; midiNote = 0; }
 
         //----------------------------------------------------------------------
-        // Static scope item definitions
+        // The input family's table (forwarders kept so no caller had to move)
         //----------------------------------------------------------------------
 
-        /** Get all scopeable items with their grouped parameters */
-        static const std::vector<ScopeItem>& getScopeItems();
-
-        /** Get all unique section identifiers in order */
-        static const std::vector<juce::Identifier>& getSectionIds();
-
-        /** Get scope items for a specific section */
-        static std::vector<const ScopeItem*> getItemsForSection (const juce::Identifier& sectionId);
+        static const std::vector<ScopeItem>& getScopeItems()           { return inputScopeTable().items; }
+        static const std::vector<juce::Identifier>& getSectionIds()   { return inputScopeTable().sectionIds; }
+        static std::vector<const ScopeItem*> getItemsForSection (const juce::Identifier& sectionId)
+        {
+            return inputScopeTable().itemsForSection (sectionId);
+        }
 
         //----------------------------------------------------------------------
-        // Query methods
+        // Input-grid forwarders
         //----------------------------------------------------------------------
 
-        /** Check if a scope item is included for a channel */
-        bool isIncluded (const juce::String& itemId, int channelIndex) const;
+        bool isIncluded (const juce::String& itemId, int channelIndex) const          { return inputs.isIncluded (itemId, channelIndex); }
+        bool isParameterIncluded (const juce::Identifier& paramId, int channelIndex) const { return inputs.isParameterIncluded (paramId, channelIndex); }
 
-        /** Check if a parameter is included for a channel (via its scope item) */
-        bool isParameterIncluded (const juce::Identifier& paramId, int channelIndex) const;
+        void setIncluded (const juce::String& itemId, int channelIndex, bool included) { inputs.setIncluded (itemId, channelIndex, included); }
+        void toggle (const juce::String& itemId, int channelIndex)                      { inputs.toggle (itemId, channelIndex); }
+        void setAllItemsForChannel (int channelIndex, bool included)                    { inputs.setAllItemsForChannel (channelIndex, included); }
+        void setItemForAllChannels (const juce::String& itemId, bool included, int numChannels)            { inputs.setItemForAllChannels (itemId, included, numChannels); }
+        void setSectionForAllChannels (const juce::Identifier& sectionId, bool included, int numChannels)  { inputs.setSectionForAllChannels (sectionId, included, numChannels); }
+        void setAll (bool included, int numChannels)                                    { inputs.setAll (included, numChannels); }
 
-        /** Semantic equality: same apply mode and same per-item/per-channel
-            inclusion across all scope items and channels. Raw map comparison
-            would be wrong — an absent key and an explicit `true` entry both
-            mean "included". */
+        InclusionState getSectionState (const juce::Identifier& sectionId, int numChannels) const          { return inputs.getSectionState (sectionId, numChannels); }
+        InclusionState getSectionStateForChannel (const juce::Identifier& sectionId, int channelIndex) const { return inputs.getSectionStateForChannel (sectionId, channelIndex); }
+        InclusionState getChannelState (int channelIndex) const                         { return inputs.getChannelState (channelIndex); }
+        InclusionState getOverallState (int numChannels) const                          { return inputs.getOverallState (numChannels); }
+
+        static juce::String makeKey (const juce::String& itemId, int channelIndex)      { return ScopeMatrix::makeKey (itemId, channelIndex); }
+
+        //----------------------------------------------------------------------
+        // Whole-scope operations
+        //----------------------------------------------------------------------
+
+        /** Semantic equality: same apply mode, same MIDI binding and the same
+            inclusion across every item and channel of the grid. */
         bool isEquivalentTo (const ExtendedSnapshotScope& other, int numChannels) const;
-
-        //----------------------------------------------------------------------
-        // Modification methods
-        //----------------------------------------------------------------------
-
-        /** Set inclusion state for a scope item and channel */
-        void setIncluded (const juce::String& itemId, int channelIndex, bool included);
-
-        /** Toggle inclusion state for a scope item and channel */
-        void toggle (const juce::String& itemId, int channelIndex);
-
-        /** Set all items for a specific channel */
-        void setAllItemsForChannel (int channelIndex, bool included);
-
-        /** Set a specific item for all channels */
-        void setItemForAllChannels (const juce::String& itemId, bool included, int numChannels);
-
-        /** Set all items in a section for all channels */
-        void setSectionForAllChannels (const juce::Identifier& sectionId, bool included, int numChannels);
-
-        /** Set all items for all channels */
-        void setAll (bool included, int numChannels);
-
-        //----------------------------------------------------------------------
-        // State queries for UI
-        //----------------------------------------------------------------------
-
-        enum class InclusionState { AllIncluded, AllExcluded, Partial };
-
-        /** Get the inclusion state for a section across all channels */
-        InclusionState getSectionState (const juce::Identifier& sectionId, int numChannels) const;
-
-        /** Get the inclusion state for a section in a specific channel */
-        InclusionState getSectionStateForChannel (const juce::Identifier& sectionId, int channelIndex) const;
-
-        /** Get the inclusion state for a channel (all items) */
-        InclusionState getChannelState (int channelIndex) const;
-
-        /** Get overall state (all items, all channels) */
-        InclusionState getOverallState (int numChannels) const;
-
-        //----------------------------------------------------------------------
-        // Initialization
-        //----------------------------------------------------------------------
 
         /** Initialize with all items included for all channels */
         void initializeDefaults (int numChannels);
@@ -438,9 +478,6 @@ public:
             When samplerMasterOn is false, every `sampler_<ch>` key is forced
             to excluded so callers cannot accidentally include sampler data. */
         ExtendedSnapshotScope withGlobals (bool samplerMasterOn, int numChannels) const;
-
-        /** Create key string for itemId and channel */
-        static juce::String makeKey (const juce::String& itemId, int channelIndex);
     };
 
     /** Delete an input snapshot */

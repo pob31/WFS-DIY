@@ -1432,150 +1432,179 @@ juce::int64 WFSFileManager::getInputSnapshotsFolderSignature() const
 // Snapshot Scope - Static Definitions
 //==============================================================================
 
-const std::vector<WFSFileManager::ScopeItem>& WFSFileManager::ExtendedSnapshotScope::getScopeItems()
-{
-    static std::vector<ScopeItem> items = {
-        // Input Section
-        { "inputAttenuation", "Attenuation", Channel, { inputAttenuation } },
-        { "inputDelay", "Delay/Latency", Channel, { inputDelayLatency, inputMinimalLatency } },
-        // Stereo pairs: the image (how wide, along which axis). Which channels
-        // ARE stereo is config-level (stereoInputChannels in System Config),
-        // never per-channel state, so snapshots cannot carry or change it.
-        // The itemId is the key stored in saved scope templates — it stays
-        // "stereo" whatever the group grows to cover.
-        { "stereo", "Stereo Image", Channel, { inputStereoWidth, inputStereoAxisOffset, inputStereoAxisLock } },
-        // Map display state. Not show state in the DSP sense, but it is state the
-        // operator sets by hand and would otherwise have to redo after every
-        // recall. inputSolo is deliberately NOT here: it is transient monitoring.
-        // inputHiddenByCluster is deliberately NOT here either — it is a cache of
-        // (inputCluster, clusterInputsVisible) that ClustersTab recomputes for
-        // every channel in a callAsync after any inputCluster write, so a recalled
-        // value is overwritten a message-loop tick later. Snapshotting the cluster
-        // toggle itself is the fix, and that is a separate change.
-        { "mapDisplay", "Map Lock/Visibility", Channel, { inputMapLocked, inputMapVisible } },
-
-        // Position Section
-        { "position", "Position (XYZ)", Position, { inputPositionX, inputPositionY, inputPositionZ, inputCoordinateMode } },
-        { "offset", "Offset (XYZ)", Position, { inputOffsetX, inputOffsetY, inputOffsetZ } },
-        { "constraints", "Constraints", Position, { inputConstraintX, inputConstraintY, inputConstraintZ, inputConstraintDistance, inputConstraintDistanceMin, inputConstraintDistanceMax } },
-        { "flip", "Flip (XYZ)", Position, { inputFlipX, inputFlipY, inputFlipZ } },
-        { "cluster", "Cluster", Position, { inputCluster } },
-        { "tracking", "Tracking", Position, { inputTrackingActive, inputTrackingID, inputTrackingSmooth } },
-        { "speedLimit", "Speed Limit", Position, { inputMaxSpeedActive, inputMaxSpeed } },
-        { "pathMode", "Path Mode", Position, { inputPathModeActive } },
-        { "heightFactor", "Height Factor", Position, { inputHeightFactor } },
-
-        // Attenuation Section
-        { "attenuationLaw", "Attenuation Law", Attenuation, { inputAttenuationLaw, inputDistanceAttenuation, inputDistanceRatio } },
-        { "commonAtten", "Common Atten", Attenuation, { inputCommonAtten } },
-
-        // Directivity Section
-        { "directivity", "Directivity", Directivity, { inputDirectivity, inputRotation, inputTilt } },
-        { "hfShelf", "HF Shelf", Directivity, { inputHFshelf } },
-
-        // Live Source Tamer Section
-        { "lsEnable", "Enable", LiveSourceTamer, { inputLSactive } },
-        { "lsRadiusShape", "Radius/Shape", LiveSourceTamer, { inputLSradius, inputLSshape } },
-        { "lsFixedAtten", "Fixed Atten", LiveSourceTamer, { inputLSattenuation } },
-        { "lsPeakComp", "Peak Comp", LiveSourceTamer, { inputLSpeakEnable, inputLSpeakThreshold, inputLSpeakRatio } },
-        { "lsSlowComp", "Slow Comp", LiveSourceTamer, { inputLSslowEnable, inputLSslowThreshold, inputLSslowRatio } },
-
-        // Hackoustics Section
-        { "frEnable", "Enable", Hackoustics, { inputFRactive } },
-        { "frAttenuation", "Attenuation", Hackoustics, { inputFRattenuation } },
-        { "frLowCut", "Low Cut", Hackoustics, { inputFRlowCutActive, inputFRlowCutFreq } },
-        { "frHighShelf", "High Shelf", Hackoustics, { inputFRhighShelfActive, inputFRhighShelfFreq, inputFRhighShelfGain, inputFRhighShelfSlope } },
-        { "frDiffusion", "Diffusion", Hackoustics, { inputFRdiffusion } },
-        { "reverbSends", "Reverb Sends", Hackoustics, { inputMuteReverbSends } },
-
-        // LFO Section
-        { "lfoEnable", "Enable/Period", LFO, { inputLFOactive, inputLFOperiod, inputLFOphase, inputLFOgyrophone } },
-        { "lfoX", "LFO X", LFO, { inputLFOshapeX, inputLFOrateX, inputLFOamplitudeX, inputLFOphaseX } },
-        { "lfoY", "LFO Y", LFO, { inputLFOshapeY, inputLFOrateY, inputLFOamplitudeY, inputLFOphaseY } },
-        { "lfoZ", "LFO Z", LFO, { inputLFOshapeZ, inputLFOrateZ, inputLFOamplitudeZ, inputLFOphaseZ } },
-        { "jitter", "Jitter", LFO, { inputJitter } },
-
-        // AutomOtion Section
-        // The destination is whatever the coordinate mode says it is, so all three
-        // representations belong to ONE item. Carrying only the Cartesian triplet
-        // was not merely lossy, it half-applied: inputOtomoZ is shared with the
-        // cylindrical form, so recalling in cylindrical mode restored the height
-        // while leaving R and Theta live, producing a destination matching neither
-        // the snapshot nor the pre-recall state. AutomOtionProcessor reads the mode
-        // and the polar targets at trigger time, so this is live motion, not a
-        // display convenience.
-        // inputOtomoPauseResume is deliberately absent: it is the run-state of a
-        // motion in flight, like inputSolo, not show state.
-        { "otomoDestination", "Destination", AutomOtion, { inputOtomoX, inputOtomoY, inputOtomoZ, inputOtomoAbsoluteRelative,
-                                                            inputOtomoCoordinateMode, inputOtomoR, inputOtomoTheta,
-                                                            inputOtomoRsph, inputOtomoPhi } },
-        { "otomoMovement", "Movement", AutomOtion, { inputOtomoStayReturn, inputOtomoDuration, inputOtomoCurve, inputOtomoSpeedProfile } },
-        { "otomoAudioTrigger", "Audio Trigger", AutomOtion, { inputOtomoTrigger, inputOtomoThreshold, inputOtomoReset } },
-
-        // Mutes Section
-        { "mutes", "Mutes", Mutes, { inputMutes, inputMuteMacro } },
-        { "sidelines", "Sidelines", Mutes, { inputSidelinesActive, inputSidelinesFringe } },
-        { "arrayAttens", "Array Attens", Mutes, { inputArrayAtten1, inputArrayAtten2, inputArrayAtten3, inputArrayAtten4, inputArrayAtten5, inputArrayAtten6, inputArrayAtten7, inputArrayAtten8, inputArrayAtten9, inputArrayAtten10 } },
-
-        // Gradient Maps Section (subtree-based — parameterIds are layer property IDs for display, actual save/load uses subtree copy)
-        { "gmLayer1", "Layer 1", GradientMaps, { gmLayerEnabled, gmLayerParam, gmLayerWhite, gmLayerBlack, gmLayerCurve, gmLayerVisible } },
-        { "gmLayer2", "Layer 2", GradientMaps, { gmLayerEnabled, gmLayerParam, gmLayerWhite, gmLayerBlack, gmLayerCurve, gmLayerVisible } },
-        { "gmLayer3", "Layer 3", GradientMaps, { gmLayerEnabled, gmLayerParam, gmLayerWhite, gmLayerBlack, gmLayerCurve, gmLayerVisible } },
-
-        // Sampler Section (subtree-based — cells and sets are children, not properties)
-        // lightpadZoneId rides the existing "sampler" item deliberately, rather
-        // than getting an id of its own: withGlobals force-excludes the literal
-        // "sampler" when the sampler master is off, and the grid hides the whole
-        // Sampler section in the same condition — a separate id would stay active
-        // while being invisible, so the operator could not turn it off.
-        { "sampler", "Sampler", Sampler, { inputSamplerActive, inputSamplerActiveSet, lightpadZoneId } },
-
-        // ADM-OSC Section
-        { "admMapping", "ADM Mapping", ADMMapping, { inputAdmMapping } }
-    };
-    return items;
-}
-
-const std::vector<juce::Identifier>& WFSFileManager::ExtendedSnapshotScope::getSectionIds()
-{
-    static std::vector<juce::Identifier> sections = {
-        Channel, Position, Attenuation, Directivity, LiveSourceTamer,
-        Hackoustics, LFO, AutomOtion, Mutes, GradientMaps, Sampler, ADMMapping
-    };
-    return sections;
-}
-
-std::vector<const WFSFileManager::ScopeItem*> WFSFileManager::ExtendedSnapshotScope::getItemsForSection (const juce::Identifier& sectionId)
+std::vector<const WFSFileManager::ScopeItem*>
+WFSFileManager::ScopeItemTable::itemsForSection (const juce::Identifier& sectionId) const
 {
     std::vector<const ScopeItem*> result;
-    for (const auto& item : getScopeItems())
-    {
+    for (const auto& item : items)
         if (item.sectionId == sectionId)
             result.push_back (&item);
-    }
     return result;
 }
 
+const WFSFileManager::ScopeItem* WFSFileManager::ScopeItemTable::find (const juce::String& itemId) const
+{
+    for (const auto& item : items)
+        if (item.itemId == itemId)
+            return &item;
+    return nullptr;
+}
+
+juce::String WFSFileManager::ScopeItemTable::sectionLabelKey (const juce::Identifier& sectionId) const
+{
+    for (const auto& entry : sectionLabelKeys)
+        if (entry.first == sectionId)
+            return entry.second;
+    return {};
+}
+
+const WFSFileManager::ScopeItemTable& WFSFileManager::inputScopeTable()
+{
+    static const ScopeItemTable table = []
+    {
+        ScopeItemTable t;
+        t.items = {
+            // Input Section
+            { "inputAttenuation", "Attenuation", Channel, { inputAttenuation } },
+            { "inputDelay", "Delay/Latency", Channel, { inputDelayLatency, inputMinimalLatency } },
+            // Stereo pairs: the image (how wide, along which axis). Which channels
+            // ARE stereo is config-level (stereoInputChannels in System Config),
+            // never per-channel state, so snapshots cannot carry or change it.
+            // The itemId is the key stored in saved scope templates — it stays
+            // "stereo" whatever the group grows to cover.
+            { "stereo", "Stereo Image", Channel, { inputStereoWidth, inputStereoAxisOffset, inputStereoAxisLock } },
+            // Map display state. Not show state in the DSP sense, but it is state the
+            // operator sets by hand and would otherwise have to redo after every
+            // recall. inputSolo is deliberately NOT here: it is transient monitoring.
+            // inputHiddenByCluster is deliberately NOT here either — it is a cache of
+            // (inputCluster, clusterInputsVisible) that ClustersTab recomputes for
+            // every channel in a callAsync after any inputCluster write, so a recalled
+            // value is overwritten a message-loop tick later. Snapshotting the cluster
+            // toggle itself is the fix, and that is a separate change.
+            { "mapDisplay", "Map Lock/Visibility", Channel, { inputMapLocked, inputMapVisible } },
+
+            // Position Section
+            { "position", "Position (XYZ)", Position, { inputPositionX, inputPositionY, inputPositionZ, inputCoordinateMode } },
+            { "offset", "Offset (XYZ)", Position, { inputOffsetX, inputOffsetY, inputOffsetZ } },
+            { "constraints", "Constraints", Position, { inputConstraintX, inputConstraintY, inputConstraintZ, inputConstraintDistance, inputConstraintDistanceMin, inputConstraintDistanceMax } },
+            { "flip", "Flip (XYZ)", Position, { inputFlipX, inputFlipY, inputFlipZ } },
+            { "cluster", "Cluster", Position, { inputCluster } },
+            { "tracking", "Tracking", Position, { inputTrackingActive, inputTrackingID, inputTrackingSmooth } },
+            { "speedLimit", "Speed Limit", Position, { inputMaxSpeedActive, inputMaxSpeed } },
+            { "pathMode", "Path Mode", Position, { inputPathModeActive } },
+            { "heightFactor", "Height Factor", Position, { inputHeightFactor } },
+
+            // Attenuation Section
+            { "attenuationLaw", "Attenuation Law", Attenuation, { inputAttenuationLaw, inputDistanceAttenuation, inputDistanceRatio } },
+            { "commonAtten", "Common Atten", Attenuation, { inputCommonAtten } },
+
+            // Directivity Section
+            { "directivity", "Directivity", Directivity, { inputDirectivity, inputRotation, inputTilt } },
+            { "hfShelf", "HF Shelf", Directivity, { inputHFshelf } },
+
+            // Live Source Tamer Section
+            { "lsEnable", "Enable", LiveSourceTamer, { inputLSactive } },
+            { "lsRadiusShape", "Radius/Shape", LiveSourceTamer, { inputLSradius, inputLSshape } },
+            { "lsFixedAtten", "Fixed Atten", LiveSourceTamer, { inputLSattenuation } },
+            { "lsPeakComp", "Peak Comp", LiveSourceTamer, { inputLSpeakEnable, inputLSpeakThreshold, inputLSpeakRatio } },
+            { "lsSlowComp", "Slow Comp", LiveSourceTamer, { inputLSslowEnable, inputLSslowThreshold, inputLSslowRatio } },
+
+            // Hackoustics Section
+            { "frEnable", "Enable", Hackoustics, { inputFRactive } },
+            { "frAttenuation", "Attenuation", Hackoustics, { inputFRattenuation } },
+            { "frLowCut", "Low Cut", Hackoustics, { inputFRlowCutActive, inputFRlowCutFreq } },
+            { "frHighShelf", "High Shelf", Hackoustics, { inputFRhighShelfActive, inputFRhighShelfFreq, inputFRhighShelfGain, inputFRhighShelfSlope } },
+            { "frDiffusion", "Diffusion", Hackoustics, { inputFRdiffusion } },
+            { "reverbSends", "Reverb Sends", Hackoustics, { inputMuteReverbSends } },
+
+            // LFO Section
+            { "lfoEnable", "Enable/Period", LFO, { inputLFOactive, inputLFOperiod, inputLFOphase, inputLFOgyrophone } },
+            { "lfoX", "LFO X", LFO, { inputLFOshapeX, inputLFOrateX, inputLFOamplitudeX, inputLFOphaseX } },
+            { "lfoY", "LFO Y", LFO, { inputLFOshapeY, inputLFOrateY, inputLFOamplitudeY, inputLFOphaseY } },
+            { "lfoZ", "LFO Z", LFO, { inputLFOshapeZ, inputLFOrateZ, inputLFOamplitudeZ, inputLFOphaseZ } },
+            { "jitter", "Jitter", LFO, { inputJitter } },
+
+            // AutomOtion Section
+            // The destination is whatever the coordinate mode says it is, so all three
+            // representations belong to ONE item. Carrying only the Cartesian triplet
+            // was not merely lossy, it half-applied: inputOtomoZ is shared with the
+            // cylindrical form, so recalling in cylindrical mode restored the height
+            // while leaving R and Theta live, producing a destination matching neither
+            // the snapshot nor the pre-recall state. AutomOtionProcessor reads the mode
+            // and the polar targets at trigger time, so this is live motion, not a
+            // display convenience.
+            // inputOtomoPauseResume is deliberately absent: it is the run-state of a
+            // motion in flight, like inputSolo, not show state.
+            { "otomoDestination", "Destination", AutomOtion, { inputOtomoX, inputOtomoY, inputOtomoZ, inputOtomoAbsoluteRelative,
+                                                                inputOtomoCoordinateMode, inputOtomoR, inputOtomoTheta,
+                                                                inputOtomoRsph, inputOtomoPhi } },
+            { "otomoMovement", "Movement", AutomOtion, { inputOtomoStayReturn, inputOtomoDuration, inputOtomoCurve, inputOtomoSpeedProfile } },
+            { "otomoAudioTrigger", "Audio Trigger", AutomOtion, { inputOtomoTrigger, inputOtomoThreshold, inputOtomoReset } },
+
+            // Mutes Section
+            { "mutes", "Mutes", Mutes, { inputMutes, inputMuteMacro } },
+            { "sidelines", "Sidelines", Mutes, { inputSidelinesActive, inputSidelinesFringe } },
+            { "arrayAttens", "Array Attens", Mutes, { inputArrayAtten1, inputArrayAtten2, inputArrayAtten3, inputArrayAtten4, inputArrayAtten5, inputArrayAtten6, inputArrayAtten7, inputArrayAtten8, inputArrayAtten9, inputArrayAtten10 } },
+
+            // Gradient Maps Section (subtree-based — parameterIds are layer property IDs for display, actual save/load uses subtree copy)
+            { "gmLayer1", "Layer 1", GradientMaps, { gmLayerEnabled, gmLayerParam, gmLayerWhite, gmLayerBlack, gmLayerCurve, gmLayerVisible } },
+            { "gmLayer2", "Layer 2", GradientMaps, { gmLayerEnabled, gmLayerParam, gmLayerWhite, gmLayerBlack, gmLayerCurve, gmLayerVisible } },
+            { "gmLayer3", "Layer 3", GradientMaps, { gmLayerEnabled, gmLayerParam, gmLayerWhite, gmLayerBlack, gmLayerCurve, gmLayerVisible } },
+
+            // Sampler Section (subtree-based — cells and sets are children, not properties)
+            // lightpadZoneId rides the existing "sampler" item deliberately, rather
+            // than getting an id of its own: withGlobals force-excludes the literal
+            // "sampler" when the sampler master is off, and the grid hides the whole
+            // Sampler section in the same condition — a separate id would stay active
+            // while being invisible, so the operator could not turn it off.
+            { "sampler", "Sampler", Sampler, { inputSamplerActive, inputSamplerActiveSet, lightpadZoneId } },
+
+            // ADM-OSC Section
+            { "admMapping", "ADM Mapping", ADMMapping, { inputAdmMapping } }
+        };
+
+        t.sectionIds = {
+            Channel, Position, Attenuation, Directivity, LiveSourceTamer,
+            Hackoustics, LFO, AutomOtion, Mutes, GradientMaps, Sampler, ADMMapping
+        };
+
+        t.sectionLabelKeys = {
+            { Channel,         "snapshotScope.sections.input" },
+            { Position,        "snapshotScope.sections.position" },
+            { Attenuation,     "snapshotScope.sections.attenuation" },
+            { Directivity,     "snapshotScope.sections.directivity" },
+            { LiveSourceTamer, "snapshotScope.sections.liveSource" },
+            { Hackoustics,     "snapshotScope.sections.hackoustics" },
+            { LFO,             "snapshotScope.sections.lfo" },
+            { AutomOtion,      "snapshotScope.sections.automOtion" },
+            { Mutes,           "snapshotScope.sections.mutes" }
+        };
+        return t;
+    }();
+
+    return table;
+}
+
 //==============================================================================
-// Extended Snapshot Scope - Instance Methods
+// Scope Matrix - the per-item, per-channel state machine of one family
 //==============================================================================
 
-juce::String WFSFileManager::ExtendedSnapshotScope::makeKey (const juce::String& itemId, int channelIndex)
+juce::String WFSFileManager::ScopeMatrix::makeKey (const juce::String& itemId, int channelIndex)
 {
     return itemId + "_" + juce::String (channelIndex);
 }
 
-bool WFSFileManager::ExtendedSnapshotScope::isIncluded (const juce::String& itemId, int channelIndex) const
+bool WFSFileManager::ScopeMatrix::isIncluded (const juce::String& itemId, int channelIndex) const
 {
     auto key = makeKey (itemId, channelIndex);
     auto it = itemChannelStates.find (key);
     return it == itemChannelStates.end() ? true : it->second;  // Default: included
 }
 
-bool WFSFileManager::ExtendedSnapshotScope::isParameterIncluded (const juce::Identifier& paramId, int channelIndex) const
+bool WFSFileManager::ScopeMatrix::isParameterIncluded (const juce::Identifier& paramId, int channelIndex) const
 {
     // Find which scope item contains this parameter
-    for (const auto& item : getScopeItems())
+    for (const auto& item : table->items)
     {
         for (const auto& pid : item.parameterIds)
         {
@@ -1586,19 +1615,9 @@ bool WFSFileManager::ExtendedSnapshotScope::isParameterIncluded (const juce::Ide
     return true;  // Unknown parameters are included by default
 }
 
-bool WFSFileManager::ExtendedSnapshotScope::isEquivalentTo (const ExtendedSnapshotScope& other, int numChannels) const
+bool WFSFileManager::ScopeMatrix::isEquivalentTo (const ScopeMatrix& other, int numChannels) const
 {
-    if (applyMode != other.applyMode)
-        return false;
-
-    // The MIDI trigger is part of the scope object, so a binding-only edit must
-    // register as a difference -- this is the sole gate on the scope window's
-    // "Update Snapshot Scope" button, and without it such an edit is silently
-    // discarded when the window closes.
-    if (midiChannel != other.midiChannel || midiNote != other.midiNote)
-        return false;
-
-    for (const auto& item : getScopeItems())
+    for (const auto& item : table->items)
         for (int ch = 0; ch < numChannels; ++ch)
             if (isIncluded (item.itemId, ch) != other.isIncluded (item.itemId, ch))
                 return false;
@@ -1606,7 +1625,7 @@ bool WFSFileManager::ExtendedSnapshotScope::isEquivalentTo (const ExtendedSnapsh
     return true;
 }
 
-void WFSFileManager::ExtendedSnapshotScope::setIncluded (const juce::String& itemId, int channelIndex, bool included)
+void WFSFileManager::ScopeMatrix::setIncluded (const juce::String& itemId, int channelIndex, bool included)
 {
     auto key = makeKey (itemId, channelIndex);
     if (included)
@@ -1615,26 +1634,26 @@ void WFSFileManager::ExtendedSnapshotScope::setIncluded (const juce::String& ite
         itemChannelStates[key] = false;
 }
 
-void WFSFileManager::ExtendedSnapshotScope::toggle (const juce::String& itemId, int channelIndex)
+void WFSFileManager::ScopeMatrix::toggle (const juce::String& itemId, int channelIndex)
 {
     setIncluded (itemId, channelIndex, !isIncluded (itemId, channelIndex));
 }
 
-void WFSFileManager::ExtendedSnapshotScope::setAllItemsForChannel (int channelIndex, bool included)
+void WFSFileManager::ScopeMatrix::setAllItemsForChannel (int channelIndex, bool included)
 {
-    for (const auto& item : getScopeItems())
+    for (const auto& item : table->items)
         setIncluded (item.itemId, channelIndex, included);
 }
 
-void WFSFileManager::ExtendedSnapshotScope::setItemForAllChannels (const juce::String& itemId, bool included, int numChannels)
+void WFSFileManager::ScopeMatrix::setItemForAllChannels (const juce::String& itemId, bool included, int numChannels)
 {
     for (int ch = 0; ch < numChannels; ++ch)
         setIncluded (itemId, ch, included);
 }
 
-void WFSFileManager::ExtendedSnapshotScope::setSectionForAllChannels (const juce::Identifier& sectionId, bool included, int numChannels)
+void WFSFileManager::ScopeMatrix::setSectionForAllChannels (const juce::Identifier& sectionId, bool included, int numChannels)
 {
-    for (const auto& item : getScopeItems())
+    for (const auto& item : table->items)
     {
         if (item.sectionId == sectionId)
         {
@@ -1644,7 +1663,7 @@ void WFSFileManager::ExtendedSnapshotScope::setSectionForAllChannels (const juce
     }
 }
 
-void WFSFileManager::ExtendedSnapshotScope::setAll (bool included, int numChannels)
+void WFSFileManager::ScopeMatrix::setAll (bool included, int numChannels)
 {
     if (included)
     {
@@ -1652,7 +1671,7 @@ void WFSFileManager::ExtendedSnapshotScope::setAll (bool included, int numChanne
     }
     else
     {
-        for (const auto& item : getScopeItems())
+        for (const auto& item : table->items)
         {
             for (int ch = 0; ch < numChannels; ++ch)
                 setIncluded (item.itemId, ch, false);
@@ -1660,13 +1679,13 @@ void WFSFileManager::ExtendedSnapshotScope::setAll (bool included, int numChanne
     }
 }
 
-WFSFileManager::ExtendedSnapshotScope::InclusionState
-WFSFileManager::ExtendedSnapshotScope::getSectionState (const juce::Identifier& sectionId, int numChannels) const
+WFSFileManager::ScopeMatrix::InclusionState
+WFSFileManager::ScopeMatrix::getSectionState (const juce::Identifier& sectionId, int numChannels) const
 {
     int includedCount = 0;
     int totalCount = 0;
 
-    for (const auto& item : getScopeItems())
+    for (const auto& item : table->items)
     {
         if (item.sectionId == sectionId)
         {
@@ -1684,13 +1703,13 @@ WFSFileManager::ExtendedSnapshotScope::getSectionState (const juce::Identifier& 
     return InclusionState::Partial;
 }
 
-WFSFileManager::ExtendedSnapshotScope::InclusionState
-WFSFileManager::ExtendedSnapshotScope::getSectionStateForChannel (const juce::Identifier& sectionId, int channelIndex) const
+WFSFileManager::ScopeMatrix::InclusionState
+WFSFileManager::ScopeMatrix::getSectionStateForChannel (const juce::Identifier& sectionId, int channelIndex) const
 {
     int includedCount = 0;
     int totalCount = 0;
 
-    for (const auto& item : getScopeItems())
+    for (const auto& item : table->items)
     {
         if (item.sectionId == sectionId)
         {
@@ -1705,13 +1724,13 @@ WFSFileManager::ExtendedSnapshotScope::getSectionStateForChannel (const juce::Id
     return InclusionState::Partial;
 }
 
-WFSFileManager::ExtendedSnapshotScope::InclusionState
-WFSFileManager::ExtendedSnapshotScope::getChannelState (int channelIndex) const
+WFSFileManager::ScopeMatrix::InclusionState
+WFSFileManager::ScopeMatrix::getChannelState (int channelIndex) const
 {
     int includedCount = 0;
     int totalCount = 0;
 
-    for (const auto& item : getScopeItems())
+    for (const auto& item : table->items)
     {
         ++totalCount;
         if (isIncluded (item.itemId, channelIndex))
@@ -1723,8 +1742,8 @@ WFSFileManager::ExtendedSnapshotScope::getChannelState (int channelIndex) const
     return InclusionState::Partial;
 }
 
-WFSFileManager::ExtendedSnapshotScope::InclusionState
-WFSFileManager::ExtendedSnapshotScope::getOverallState (int numChannels) const
+WFSFileManager::ScopeMatrix::InclusionState
+WFSFileManager::ScopeMatrix::getOverallState (int numChannels) const
 {
     if (itemChannelStates.empty())
         return InclusionState::AllIncluded;
@@ -1732,7 +1751,7 @@ WFSFileManager::ExtendedSnapshotScope::getOverallState (int numChannels) const
     int includedCount = 0;
     int totalCount = 0;
 
-    for (const auto& item : getScopeItems())
+    for (const auto& item : table->items)
     {
         for (int ch = 0; ch < numChannels; ++ch)
         {
@@ -1747,10 +1766,29 @@ WFSFileManager::ExtendedSnapshotScope::getOverallState (int numChannels) const
     return InclusionState::Partial;
 }
 
+//==============================================================================
+// Extended Snapshot Scope - whole-scope operations
+//==============================================================================
+
+bool WFSFileManager::ExtendedSnapshotScope::isEquivalentTo (const ExtendedSnapshotScope& other, int numChannels) const
+{
+    if (applyMode != other.applyMode)
+        return false;
+
+    // The MIDI trigger is part of the scope object, so a binding-only edit must
+    // register as a difference -- this is the sole gate on the scope window's
+    // "Update Snapshot Scope" button, and without it such an edit is silently
+    // discarded when the window closes.
+    if (midiChannel != other.midiChannel || midiNote != other.midiNote)
+        return false;
+
+    return inputs.isEquivalentTo (other.inputs, numChannels);
+}
+
 void WFSFileManager::ExtendedSnapshotScope::initializeDefaults (int numChannels)
 {
     juce::ignoreUnused (numChannels);
-    itemChannelStates.clear();
+    inputs.clear();
     applyMode = ApplyMode::OnRecall;
     clearMidiBinding();  // a fresh scope must never inherit another snapshot's note
     // All scope items default to included (missing = included convention)
@@ -2014,7 +2052,7 @@ bool WFSFileManager::loadScopeTemplateGrid (const juce::String& templateName, Ex
     }
 
     auto loaded = deserializeExtendedScope (scopeTree);
-    target.itemChannelStates = std::move (loaded.itemChannelStates);
+    target.inputs.itemChannelStates = std::move (loaded.inputs.itemChannelStates);
     return true;
 }
 
