@@ -196,6 +196,19 @@ TYPING_ACCEPTED = [
     ("/wfs/config/effects/workerThreads", [("s", "3")]),
 ]
 
+# The four tab-level verbs the Effects tab receives (nothing stored: they
+# are asserted through the session log, below), and the two snapshot verbs
+# that are still refused until phase 7 - also asserted through the log.
+VERB_SENDS = [
+    ("/wfs/effect/selected",      [("i", 2)]),
+    ("/wfs/effect/editOnMap",     [("i", 1)]),
+    ("/wfs/effect/editOnMap",     [("i", 0)]),
+    ("/wfs/effect/clear",         [("i", 1)]),
+    ("/wfs/effect/clearAll",      []),
+    ("/wfs/effect/selected",      [("i", 9)]),      # no such channel: refused
+    ("/wfs/effect/snapshot/load", [("s", "x")]),     # phase 7: refused
+]
+
 TYPING_REFUSALS = [
     # THE DESTRUCTIVE ONE. static_cast<int> of a var holding "seven" is 0, and
     # 0 effect channels is EVERY EFFECT CHANNEL DELETED - silently, with the
@@ -239,6 +252,14 @@ TYPING_REFUSALS = [
 # show. "Refused with a reason in the log, never silently dropped" is the
 # contract of this parser, and this is the half of it that can be measured.
 EXPECTED_LOG_REASONS = [
+    # the verbs: four accepted, two refused (a missing channel, phase 7)
+    "OSC accepted /wfs/effect/selected - effect 2 selected",
+    "OSC accepted /wfs/effect/editOnMap - edit on map ON",
+    "OSC accepted /wfs/effect/editOnMap - edit on map OFF",
+    "OSC accepted /wfs/effect/clear - effect 1 cleared",
+    "OSC accepted /wfs/effect/clearAll - every effect cleared",
+    "OSC refused /wfs/effect/selected",
+    "OSC refused /wfs/effect/snapshot/load",
     "OSC refused /wfs/config/effectChannels",
     "OSC refused /wfs/config/effects/workerThreads",
     "OSC refused /wfs/effect/attenuatino",
@@ -572,6 +593,8 @@ def run_stopped_pass(exe: Path, keep_temp: bool, failures: list[str]) -> dict:
         for address, osc_args in TYPING_ACCEPTED:
             typing.send(address, osc_args)
         for address, osc_args in TYPING_REFUSALS:
+            typing.send(address, osc_args)
+        for address, osc_args in VERB_SENDS:
             typing.send(address, osc_args)
         typing.close()
 

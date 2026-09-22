@@ -1990,6 +1990,85 @@ void OSCManager::handleIncomingBundle(const juce::OSCBundle& bundle,
     }
 }
 
+void OSCManager::handleEffectVerb (const juce::String& verb, const juce::OSCMessage& message,
+                                   const juce::String& address, const juce::String& senderIP,
+                                   int port, spatcore::control::osc::ConnectionMode transport)
+{
+    // The one integer these verbs carry, in either wire type; -1 when absent
+    // or unreadable so the refusal below can say so.
+    auto intArg = [&message] (int index) -> int
+    {
+        if (message.size() <= index) return -1;
+        const auto& a = message[index];
+        if (a.isInt32())   return a.getInt32();
+        if (a.isFloat32()) return juce::roundToInt (a.getFloat32());
+        if (a.isString())  return a.getString().trim().getIntValue();
+        return -1;
+    };
+
+    auto refuse = [&] (const juce::String& why)
+    {
+        logger.logRejected (address, senderIP, port, transport, why);
+        logRefusalToSession (address, why);
+    };
+
+    auto accept = [&] (const juce::String& what)
+    {
+        logger.logText ("Effect verb " + address + ": " + what);
+        WFSLogger::getInstance().logInfo ("OSC accepted " + address + " - " + what);
+    };
+
+    const int numEffects = state.getNumEffectChannels();
+
+    if (verb == "selected")
+    {
+        const int id = intArg (0);
+        if (id < 1 || id > numEffects)
+        {
+            refuse ("effect " + juce::String (id) + " does not exist (" + juce::String (numEffects) + " effects channel(s))");
+            return;
+        }
+        if (onEffectSelected) onEffectSelected (id);
+        accept ("effect " + juce::String (id) + " selected");
+        return;
+    }
+
+    if (verb == "editOnMap")
+    {
+        const int v = intArg (0);
+        if (v != 0 && v != 1)
+        {
+            refuse ("editOnMap takes 0 or 1");
+            return;
+        }
+        if (onEffectEditOnMap) onEffectEditOnMap (v != 0);
+        accept (v != 0 ? "edit on map ON" : "edit on map OFF");
+        return;
+    }
+
+    if (verb == "clear")
+    {
+        const int id = intArg (0);
+        if (id < 1 || id > numEffects)
+        {
+            refuse ("effect " + juce::String (id) + " does not exist (" + juce::String (numEffects) + " effects channel(s))");
+            return;
+        }
+        if (onEffectClear) onEffectClear (id);
+        accept ("effect " + juce::String (id) + " cleared");
+        return;
+    }
+
+    if (verb == "clearAll")
+    {
+        if (onEffectClear) onEffectClear (-1);
+        accept ("every effect cleared");
+        return;
+    }
+
+    refuse ("unknown effect verb");
+}
+
 void OSCManager::logRefusalToSession (const juce::String& address, const juce::String& reason)
 {
     // See the declaration. A burst passes untouched and only a sustained flood
@@ -2744,13 +2823,21 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
     {
         auto parsed = OSCMessageRouter::parseEffectMessage(message);
 
-        // A verb is a published address this commit understands and does not
-        // yet act on. Say so once, in the Rejected filter, rather than letting
-        // it read as an unknown parameter: "nothing happened and here is why"
-        // is a different message from "I have never heard of that".
+        // A verb is an action with no parameter behind it. Four are received
+        // here; the two snapshot verbs are still refused, with a reason that
+        // reaches the session log as every refusal does ("nothing happened and
+        // here is why" is a different message from "I have never heard of
+        // that").
         if (parsed.kind == OSCMessageRouter::ParsedEffectMessage::Kind::Verb)
         {
-            logger.logRejected (address, senderIP, port, transport, parsed.invalidReason);
+            if (parsed.invalidReason.isNotEmpty())
+            {
+                logger.logRejected (address, senderIP, port, transport, parsed.invalidReason);
+                logRefusalToSession (address, parsed.invalidReason);
+                return;
+            }
+
+            handleEffectVerb (parsed.verb, message, address, senderIP, port, transport);
             return;
         }
 

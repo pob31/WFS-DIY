@@ -587,6 +587,22 @@ public:
     std::function<void()> onChannelTopologyChanged;
 
     //==========================================================================
+    // Effects tab verbs: /wfs/effect/selected <ID>, /wfs/effect/editOnMap
+    // <0|1>, /wfs/effect/clear <ID>, /wfs/effect/clearAll. Actions, not
+    // parameters: nothing is stored, so nothing coalesces and nothing echoes.
+    // Each accepted one is logged to the session log by address.
+    //==========================================================================
+
+    /** The tab shows this channel (1-based). */
+    std::function<void (int effectId)> onEffectSelected;
+
+    /** The Effects tab's Edit-on-Map toggle, and the Map's effect edit mode with it. */
+    std::function<void (bool enabled)> onEffectEditOnMap;
+
+    /** Emergency clear of one chain (1-based id) or of every chain (-1). */
+    std::function<void (int effectIdOrMinusOne)> onEffectClear;
+
+    //==========================================================================
     // QLab Integration
     //==========================================================================
 
@@ -960,6 +976,11 @@ private:
         the next line that gets through, so the log never claims fewer refusals
         than there were. */
     void logRefusalToSession (const juce::String& address, const juce::String& reason);
+
+    /** The four received effect verbs (see the callbacks above). */
+    void handleEffectVerb (const juce::String& verb, const juce::OSCMessage& message,
+                           const juce::String& address, const juce::String& senderIP,
+                           int port, spatcore::control::osc::ConnectionMode transport);
 
     // Token bucket for the above: 20 lines of burst, refilled at 5 a second.
     // Sized for the difference between an operator and a loop - a person

@@ -2492,6 +2492,28 @@ MainComponent::MainComponent()
         handleChannelCountChange();
     };
 
+    // The Effects tab verbs. Selection and the map toggle are GUI state, so
+    // they go through the tab's external setters on the message thread; Clear
+    // goes to the engine, which honours it at the next batch boundary.
+    oscManager->onEffectSelected = [this] (int effectId) {
+        juce::MessageManager::callAsync ([this, effectId] {
+            if (effectsTab == nullptr) return;
+            effectsTab->selectChannel (effectId);
+            if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == TabIndex::Effects)
+                streamDeckManager->setChannel (effectsTab->getCurrentChannel());
+        });
+    };
+    oscManager->onEffectEditOnMap = [this] (bool enabled) {
+        juce::MessageManager::callAsync ([this, enabled] {
+            if (effectsTab) effectsTab->setEditOnMapFromExternal (enabled);
+            if (mapTab) mapTab->setEffectEditMode (enabled);
+        });
+    };
+    oscManager->onEffectClear = [this] (int effectIdOrMinusOne) {
+        if (effectsHost != nullptr)
+            effectsHost->requestClear (effectIdOrMinusOne > 0 ? effectIdOrMinusOne - 1 : -1);
+    };
+
     // Snapshot OSC command callbacks
     // Both external trigger paths and the Inputs long-press funnel through the
     // one seam, so the recall logic cannot drift into three copies again.

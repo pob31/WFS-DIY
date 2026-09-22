@@ -1730,17 +1730,24 @@ OSCMessageRouter::ParsedEffectMessage OSCMessageRouter::parseEffectMessage(const
     {
         const juce::String suffix = address.fromFirstOccurrenceOf (OSCPaths::EFFECT_PREFIX, false, true);
 
-        if (suffix == "snapshot/store" || suffix == "snapshot/load"
-            || suffix == "clear" || suffix == "clearAll"
+        if (suffix == "clear" || suffix == "clearAll"
             || suffix == "selected" || suffix == "editOnMap")
+        {
+            // Received by OSCManager (the Effects tab, the Map and the engine
+            // behind three callbacks). No reason: nothing is refused here.
+            result.kind = Kind::Verb;
+            result.verb = suffix;
+            return result;
+        }
+
+        if (suffix == "snapshot/store" || suffix == "snapshot/load")
         {
             result.kind = Kind::Verb;
             result.verb = suffix;
             result.invalidReason = juce::String (OSCPaths::EFFECT_PREFIX) + suffix
                                  + " is a published address with no receiver yet: the effects"
-                                   " snapshot store, the emergency clear and the tab-level toggles"
-                                   " land with the Effects tab. The message was understood and"
-                                   " nothing was changed.";
+                                   " snapshot store lands with phase 7 (snapshots, MIDI, QLab)."
+                                   " The message was understood and nothing was changed.";
             return result;
         }
     }
