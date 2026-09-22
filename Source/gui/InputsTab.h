@@ -35,6 +35,7 @@
 #include "ColumnFocusTraverser.h"
 #include "SamplerSubTab.h"
 #include "HelpCard.h"
+#include "TriangleIndicator.h"
 #include "InlineWarning.h"
 #include "ChannelIdentityGate.h"
 
@@ -9082,64 +9083,8 @@ private:
     //==========================================================================
     // Triangle level indicators for trigger threshold and reset level
     //==========================================================================
-    class TriangleIndicator : public juce::Component, private juce::Timer
-    {
-    public:
-        enum Direction { Up, Down };
-
-        TriangleIndicator (Direction dir, juce::Colour activeCol)
-            : direction (dir), activeColour (activeCol) {}
-
-        void setActive (bool shouldBeActive)
-        {
-            if (shouldBeActive)
-            {
-                active = true;
-                lastActiveTime = juce::Time::getMillisecondCounter();
-                if (! isTimerRunning()) startTimer (50);
-                repaint();
-            }
-        }
-
-        void paint (juce::Graphics& g) override
-        {
-            auto bounds = getLocalBounds().toFloat().reduced (1.0f);
-            juce::Path tri;
-            if (direction == Up)
-            {
-                tri.startNewSubPath (bounds.getCentreX(), bounds.getY());
-                tri.lineTo (bounds.getRight(), bounds.getBottom());
-                tri.lineTo (bounds.getX(), bounds.getBottom());
-            }
-            else
-            {
-                tri.startNewSubPath (bounds.getX(), bounds.getY());
-                tri.lineTo (bounds.getRight(), bounds.getY());
-                tri.lineTo (bounds.getCentreX(), bounds.getBottom());
-            }
-            tri.closeSubPath();
-            g.setColour (active ? activeColour : juce::Colour (0xFF1A1A1A));
-            g.fillPath (tri);
-        }
-
-    private:
-        void timerCallback() override
-        {
-            if (! active) { stopTimer(); return; }
-            auto now = juce::Time::getMillisecondCounter();
-            if (now - lastActiveTime >= 250)
-            {
-                active = false;
-                stopTimer();
-                repaint();
-            }
-        }
-
-        Direction direction;
-        juce::Colour activeColour;
-        bool active = false;
-        juce::uint32 lastActiveTime = 0;
-    };
+    // TriangleIndicator moved to Source/gui/TriangleIndicator.h so the
+    // effects AutomOtion block can show the same two indicators.
 
     TriangleIndicator otomoTriggerIndicator { TriangleIndicator::Up, juce::Colour (0xFF4CAF50) };
     TriangleIndicator otomoResetIndicator { TriangleIndicator::Down, juce::Colour (0xFF42A5F5) };

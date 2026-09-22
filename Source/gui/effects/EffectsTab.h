@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "EffectsTabContext.h"
+#include "EffectsChannelPanel.h"
 #include "../ChannelSelector.h"
 #include "../ColorScheme.h"
 #include "../WfsLookAndFeel.h"
@@ -140,6 +141,16 @@ public:
     std::function<void (int subTabIndex)> onSubTabChanged;
 
     void setStatusBar (StatusBar* bar) { ctx.statusBar = bar; }
+
+    void setOtomoProcessor (AutomOtionProcessor* p) { channelPanel.setOtomoProcessor (p); }
+
+    /** The output count moved: the mute grid and the array trims follow it. */
+    void refreshOutputDependentControls() { channelPanel.refreshOutputDependentControls(); }
+
+    void updateOtomoLevelIndicators (float shortPeakDb, float rmsDb)
+    {
+        channelPanel.updateOtomoLevelIndicators (shortPeakDb, rmsDb);
+    }
 
     int getCurrentChannel() const { return ctx.currentChannel; }
     int getCurrentSubTab() const { return subTabBar.getCurrentTabIndex(); }
@@ -451,15 +462,24 @@ private:
         subTabBar.addTab (LOC ("effects.tabs.settings"), tabColour, -1);
         subTabBar.addChangeListener (static_cast<juce::ChangeListener*> (this));
 
-        // The panels land in the commits that follow; until then the content
-        // area names what will occupy it rather than sitting empty.
-        addAndMakeVisible (placeholderLabel);
+        addChildComponent (channelPanel);
+
+        // The remaining panels land in the commits that follow; until then the
+        // content area names what will occupy it rather than sitting empty.
+        addChildComponent (placeholderLabel);
         placeholderLabel.setJustificationType (juce::Justification::centred);
         placeholderLabel.setColour (juce::Label::textColourId, ColorScheme::get().textDisabled);
     }
 
     void layoutCurrentSubTab()
     {
+        const int index = subTabBar.getCurrentTabIndex();
+        const bool has = ctx.hasChannels();
+
+        channelPanel.setVisible (has && index == 0);
+        channelPanel.setBounds (subTabContentArea);
+
+        placeholderLabel.setVisible (has && index != 0);
         placeholderLabel.setBounds (subTabContentArea);
         placeholderLabel.setText (subTabBar.getCurrentTabName(), juce::dontSendNotification);
     }
@@ -644,6 +664,8 @@ private:
         muteButton.setToggleState (ctx.readInt (WFSParameterIDs::effectMute, 0) != 0,
                                    juce::dontSendNotification);
         refreshSoloButton();
+
+        channelPanel.loadParameters();
     }
 
     void updateVisibility()
@@ -651,8 +673,8 @@ private:
         const bool has = ctx.hasChannels();
 
         noChannelsLabel.setVisible (! has);
-        placeholderLabel.setVisible (has);
         subTabBar.setVisible (has);
+        layoutCurrentSubTab();
 
         for (auto* c : { static_cast<juce::Component*> (&channelSelector),
                          static_cast<juce::Component*> (&nameEditor),
@@ -966,6 +988,7 @@ private:
 
     // Sub-tabs
     juce::TabbedButtonBar subTabBar { juce::TabbedButtonBar::TabsAtTop };
+    EffectsChannelPanel channelPanel { ctx };
     juce::Label placeholderLabel;
     juce::Label noChannelsLabel;
 

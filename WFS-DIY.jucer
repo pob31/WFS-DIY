@@ -62,11 +62,15 @@
               file="Source/gui/ClustersTab.h"/>
         <FILE id="guiRevTab" name="ReverbTab.h" compile="0" resource="0" file="Source/gui/ReverbTab.h"/>
         <FILE id="guiTabIdx" name="TabIndex.h" compile="0" resource="0" file="Source/gui/TabIndex.h"/>
+        <FILE id="guiTriInd" name="TriangleIndicator.h" compile="0" resource="0"
+              file="Source/gui/TriangleIndicator.h"/>
         <GROUP id="{GUIFXGROUP}" name="effects">
           <FILE id="guiFxCtx" name="EffectsTabContext.h" compile="0" resource="0"
                 file="Source/gui/effects/EffectsTabContext.h"/>
           <FILE id="guiFxTab" name="EffectsTab.h" compile="0" resource="0"
                 file="Source/gui/effects/EffectsTab.h"/>
+          <FILE id="guiFxChan" name="EffectsChannelPanel.h" compile="0" resource="0"
+                file="Source/gui/effects/EffectsChannelPanel.h"/>
         </GROUP>
         <FILE id="guiMapTab" name="MapTab.h" compile="0" resource="0" file="Source/gui/MapTab.h"/>
         <FILE id="guiMapTabWin" name="MapTabWindow.h" compile="0" resource="0"

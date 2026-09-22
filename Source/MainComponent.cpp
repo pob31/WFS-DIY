@@ -2056,6 +2056,8 @@ MainComponent::MainComponent()
     // Pass AutomOtionProcessor to InputsTab for UI control
     if (inputsTab != nullptr)
         inputsTab->setAutoMotionProcessor(automOtionProcessor.get());
+    if (effectsTab != nullptr)
+        effectsTab->setOtomoProcessor(effectOtomoProcessor.get());
 
     // Initialize Live Source Tamer engine for per-speaker gain reduction.
     // Row dimension is maxRenderSources, NOT maxInputChannels: lsGains is indexed
@@ -9363,7 +9365,12 @@ void MainComponent::handleChannelCountChange()
     if (reverbTab != nullptr)
         reverbTab->refreshFromValueTree();
     if (effectsTab != nullptr)
+    {
         effectsTab->refreshFromValueTree();
+        // The per-output mute grid and the per-array trims are sized from the
+        // output count, which this funnel is what changed.
+        effectsTab->refreshOutputDependentControls();
+    }
 
     // Update level meter channel counts
     if (levelMeteringManager != nullptr)
@@ -12558,6 +12565,10 @@ void MainComponent::timerCallback()
                 const auto level = levelMeteringManager->getRenderSourceLevel (
                     renderSourceMap.firstEffectSlot + fx);
                 effectOtomoProcessor->setInputLevels (fx, level.peakDb, level.rmsDb);
+
+                // The tab's two trigger indicators, for the channel it shows.
+                if (effectsTab != nullptr && fx == effectsTab->getCurrentChannel() - 1)
+                    effectsTab->updateOtomoLevelIndicators (level.peakDb, level.rmsDb);
             }
         }
 

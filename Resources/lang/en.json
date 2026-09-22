@@ -1450,7 +1450,64 @@
     }
   },
 
-  "effects":   {
+  "effects": {
+    "sections": {
+      "channel": "Channel",
+      "position": "Position",
+      "feed": "Feed",
+      "returnSection": "Return",
+      "arrayAttenuation": "Array Attenuation",
+      "automOtion": "AutomOtion"
+    },
+    "labels": {
+      "attenuation": "Attenuation",
+      "delayLatency": "Delay / Latency",
+      "returnOffset": "Offset",
+      "orientation": "Orientation",
+      "angleOn": "Angle On",
+      "angleOff": "Angle Off",
+      "pitch": "Pitch",
+      "hfDamping": "HF Damping",
+      "distanceAttenPercent": "Distance Atten.",
+      "distanceAttenuation": "Dist. Atten.",
+      "distanceRatio": "Dist. Ratio",
+      "commonAtten": "Common",
+      "hfShelf": "HF Shelf",
+      "arrayPrefix": "Array",
+      "duration": "Duration",
+      "speedProfile": "Profile",
+      "curve": "Curve",
+      "threshold": "Threshold",
+      "reset": "Reset"
+    },
+    "toggles": {
+      "off": "OFF",
+      "on": "ON",
+      "disabled": "DISABLE",
+      "enabled": "ENABLE",
+      "acousticPrecedence": "Acoustic Precedence",
+      "minimalLatency": "Minimal Latency",
+      "lawLog": "Law: Log",
+      "lawInverse": "Law: 1/d",
+      "absolute": "Absolute",
+      "relative": "Relative",
+      "manual": "Manual",
+      "audioTrigger": "Audio Trigger",
+      "paused": "Paused",
+      "resume": "Running"
+    },
+    "coordModes": {
+      "cartesian": "Cartesian (X Y Z)",
+      "cylindrical": "Cylindrical (r \u03b8 Z)",
+      "spherical": "Spherical (r \u03b8 \u03c6)"
+    },
+    "muteMacros": {
+      "select": "Mute Macro...",
+      "muteAll": "MUTE ALL",
+      "unmuteAll": "UNMUTE ALL",
+      "invert": "INVERT",
+      "muteOdd": "MUTE ODD"
+    },
     "noChannels": "No effects channels. Set the count in System Config, or import an effects configuration.",
     "tabs": {
       "channel": "Channel",
@@ -1466,6 +1523,8 @@
       "modeRelative": "Link: Relative"
     },
     "buttons": {
+      "otomoStart": "Start",
+      "otomoStop": "Stop",
       "mute": "MUTE",
       "solo": "SOLO",
       "groupMute": "Mute Group",
