@@ -4860,6 +4860,15 @@
     <ClInclude Include="..\..\Source\gui\effects\EffectsSendsPanel.h">
       <Filter>WFS-DIY\Source\gui\effects</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsChainPanel.h">
+      <Filter>WFS-DIY\Source\gui\effects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsModulePanel.h">
+      <Filter>WFS-DIY\Source\gui\effects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\gui\effects\EffectsModuleDescriptors.h">
+      <Filter>WFS-DIY\Source\gui\effects</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\spatcore\ui\sends\SendMatrixConfig.h">
       <Filter>WFS-DIY\Source\gui\effects</Filter>
     </ClInclude>

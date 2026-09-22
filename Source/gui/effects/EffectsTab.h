@@ -5,6 +5,7 @@
 #include "EffectsChannelPanel.h"
 #include "EffectsMovementsPanel.h"
 #include "EffectsSendsPanel.h"
+#include "EffectsChainPanel.h"
 #include "../ChannelSelector.h"
 #include "../ColorScheme.h"
 #include "../WfsLookAndFeel.h"
@@ -214,7 +215,9 @@ public:
         the sends grid badges every column in a cycle, not just the selected one. */
     void setCycleMask (juce::uint32 mask) { sendsPanel.setCycleMask (mask); }
 
-    void setLiveState (int fx, bool loopGuardTripped, bool inCycle, bool isEntryPoint)
+    void setLiveState (int fx, bool loopGuardTripped, bool inCycle, bool isEntryPoint,
+                       int chainLatencySamples, double sampleRate,
+                       const std::array<float, EffectsChainPanel::numSlots>& slotMetersDb)
     {
         if (fx != ctx.slot())
             return;
@@ -222,6 +225,7 @@ public:
         loopGuardLed.setActive (loopGuardTripped);
         cycleLed.setActive (inCycle);
         entryLed.setActive (isEntryPoint);
+        chainPanel.setLiveState (chainLatencySamples, sampleRate, slotMetersDb);
     }
 
     /** After a project load or a config reload: the trees may have been
@@ -471,6 +475,7 @@ private:
         subTabBar.addChangeListener (static_cast<juce::ChangeListener*> (this));
 
         addChildComponent (channelPanel);
+        addChildComponent (chainPanel);
         addChildComponent (movementsPanel);
         addChildComponent (sendsPanel);
 
@@ -495,7 +500,11 @@ private:
         sendsPanel.setVisible (has && index == SubTab::Sends);
         sendsPanel.setBounds (subTabContentArea);
 
-        const bool built = index == SubTab::Channel || index == SubTab::Movements || index == SubTab::Sends;
+        chainPanel.setVisible (has && index == SubTab::Chain);
+        chainPanel.setBounds (subTabContentArea);
+
+        const bool built = index == SubTab::Channel || index == SubTab::Chain
+                        || index == SubTab::Movements || index == SubTab::Sends;
         placeholderLabel.setVisible (has && ! built);
         placeholderLabel.setBounds (subTabContentArea);
         placeholderLabel.setText (subTabBar.getCurrentTabName(), juce::dontSendNotification);
@@ -671,6 +680,7 @@ private:
         refreshSoloButton();
 
         channelPanel.loadParameters();
+        chainPanel.loadParameters();
         movementsPanel.loadParameters();
         sendsPanel.refresh();
     }
@@ -982,6 +992,7 @@ private:
     EffectsChannelPanel channelPanel { ctx };
     EffectsMovementsPanel movementsPanel { ctx };
     EffectsSendsPanel sendsPanel { ctx };
+    EffectsChainPanel chainPanel { ctx };
     juce::Label placeholderLabel;
     juce::Label noChannelsLabel;
 

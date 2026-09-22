@@ -118,6 +118,24 @@ struct EffectsTabContext
         return parameters.getValueTreeState().getEffectParameter (slot(), paramId);
     }
 
+    /** The reads the generic accessor refuses by design: a parameter on a
+        named module node (the only way to tell FxEq1 from FxEq2 and FxDyn1
+        from FxDyn2), an EQ band, a delay tap. Void when the node is missing. */
+    juce::var readModule (const juce::Identifier& moduleType, const juce::Identifier& paramId)
+    {
+        return parameters.getValueTreeState().getEffectModuleSection (slot(), moduleType).getProperty (paramId);
+    }
+
+    juce::var readBand (int eqInstance, int bandIndex, const juce::Identifier& paramId)
+    {
+        return parameters.getValueTreeState().getEffectEQBand (slot(), eqInstance, bandIndex).getProperty (paramId);
+    }
+
+    juce::var readTap (int tapIndex, const juce::Identifier& paramId)
+    {
+        return parameters.getValueTreeState().getEffectDelayTap (slot(), tapIndex).getProperty (paramId);
+    }
+
     float readFloat (const juce::Identifier& paramId, float fallback = 0.0f) const
     {
         const auto v = read (paramId);

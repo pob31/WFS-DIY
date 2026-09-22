@@ -7533,6 +7533,34 @@ void MainComponent::runChannelListSelfTest()
         }
     }
 
+    // ---- G: the Chain sub-tab's reorder helper ----------------------------
+    // Dragging a tile rewrites effectChainOrder through a pure function; if
+    // it ever produced anything but a permutation, parseChainOrder would
+    // refuse the write and the strip would silently stop reordering.
+    {
+        namespace fx = spatcore::effects;
+        const juce::String base = "dist,eq1,eq2,dyn1,dyn2,mod,phaser,trem,reverb,delay,crush";
+
+        check(EffectsChainPanel::movedOrder(base, 0, 5) == "eq1,eq2,dyn1,dyn2,mod,dist,phaser,trem,reverb,delay,crush",
+              "G1: moving the first tile to the sixth position shifts the five between it left");
+        check(EffectsChainPanel::movedOrder(base, 10, 0) == "crush,dist,eq1,eq2,dyn1,dyn2,mod,phaser,trem,reverb,delay",
+              "G1: moving the last tile to the front shifts everything right");
+        check(EffectsChainPanel::movedOrder(base, 4, 4) == base, "G1: a drop on its own position changes nothing");
+        check(EffectsChainPanel::movedOrder("not,an,order", 0, 1) == "not,an,order",
+              "G1: an unparsable order comes back untouched");
+
+        int perms = 0;
+        for (int from = 0; from < fx::kNumModuleSlots; ++from)
+            for (int to = 0; to < fx::kNumModuleSlots; ++to)
+            {
+                fx::ChainOrder o {};
+                if (fx::parseChainOrder(EffectsChainPanel::movedOrder(base, from, to).toRawUTF8(), o) && fx::isValidChainOrder(o))
+                    ++perms;
+            }
+        check(perms == fx::kNumModuleSlots * fx::kNumModuleSlots,
+              "G2: every (from, to) move yields a valid permutation (" + juce::String(perms) + " of 121)");
+    }
+
     // ---- P: the engine's meters, and the freshness that keeps them honest --
     // A probe host prepared on synthetic rings and driven one batch at a time,
     // so the whole tap - the engine's per-channel peaks, the max-hold, the
@@ -13302,7 +13330,25 @@ void MainComponent::timerCallback()
                 for (int in = 1; in <= WFSParameterDefaults::maxInputChannels && ! fedByAnInput; ++in)
                     fedByAnInput = parameters.getValueTreeState().getEffectSendOnFromInput (fx, in);
 
-                effectsTab->setLiveState (fx, tripped, inCycle, fedByAnInput);
+                // The Chain sub-tab's latency readout and per-tile meters, from
+                // the same core pointer. No core (processing stopped) reads as
+                // -1 and silent meters.
+                std::array<float, EffectsChainPanel::numSlots> slotMetersDb {};
+                int chainLatency = -1;
+                if (core != nullptr)
+                {
+                    chainLatency = core->getChainLatencySamples (fx);
+                    for (int s = 0; s < EffectsChainPanel::numSlots; ++s)
+                        slotMetersDb[static_cast<size_t> (s)] = core->getSlotMeterDb (fx, s);
+                }
+                else
+                {
+                    slotMetersDb.fill (-120.0f);
+                }
+                auto* liveDevice = deviceManager.getCurrentAudioDevice();
+                const double liveRate = liveDevice != nullptr ? liveDevice->getCurrentSampleRate() : 48000.0;
+
+                effectsTab->setLiveState (fx, tripped, inCycle, fedByAnInput, chainLatency, liveRate, slotMetersDb);
             }
 
             effectsTab->setCycleMask (calculationEngine->getEffectCycleMask());
