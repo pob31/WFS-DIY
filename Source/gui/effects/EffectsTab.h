@@ -175,6 +175,20 @@ public:
     int getCurrentChannel() const { return ctx.currentChannel; }
     int getCurrentSubTab() const { return subTabBar.getCurrentTabIndex(); }
 
+    //==========================================================================
+    // What the Stream Deck pages reach through the tab: the chain's selected
+    // module and the sends matrix's selected cell.
+
+    std::function<void (int slot)> onChainSlotSelected;
+    int  getChainSlot() const noexcept       { return chainPanel.getSelectedSlot(); }
+    void selectChainSlot (int slot)          { chainPanel.selectSlot (slot); }
+
+    void sendsMove (int dx, int dy)          { sendsPanel.moveSelection (dx, dy); }
+    void sendsToggle()                       { sendsPanel.toggleSelected(); }
+    float sendsLevelDb()                     { return sendsPanel.selectedLevelDb(); }
+    void sendsSetLevelDb (float db)          { sendsPanel.setSelectedLevelDb (db); }
+    void sendsSetAll (bool on)               { if (ctx.hasChannels()) sendsPanel.setAllSendsForCurrent (on); }
+
     void selectChannel (int channel)
     {
         const int numEffects = ctx.parameters.getNumEffectChannels();
@@ -477,6 +491,7 @@ private:
 
         addChildComponent (channelPanel);
         addChildComponent (chainPanel);
+        chainPanel.onSlotSelected = [this] (int slot) { if (onChainSlotSelected) onChainSlotSelected (slot); };
         addChildComponent (settingsPanel);
         addChildComponent (movementsPanel);
         addChildComponent (sendsPanel);

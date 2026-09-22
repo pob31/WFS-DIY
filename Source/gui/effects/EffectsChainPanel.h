@@ -117,6 +117,9 @@ public:
 
     int getSelectedSlot() const noexcept { return selectedSlot; }
 
+    /** Fired when the selection changes, from a click, a drop or selectSlot. */
+    std::function<void (int slot)> onSlotSelected;
+
     void selectSlot (int slot)
     {
         if (slot < 0 || slot >= numSlots || slot == selectedSlot)
@@ -125,6 +128,8 @@ public:
         showSelected();
         for (auto& t : tiles)
             t->refresh();
+        if (onSlotSelected)
+            onSlotSelected (selectedSlot);
     }
 
     /** The order string with the tile at position `from` moved to position

@@ -358,6 +358,8 @@
                   file="Source/Controllers/DialsAndButtons/pages/MapTabPages.h"/>
             <FILE id="sdRevPages" name="ReverbTabPages.h" compile="0" resource="0"
                   file="Source/Controllers/DialsAndButtons/pages/ReverbTabPages.h"/>
+            <FILE id="sdFxPages" name="EffectsTabPages.h" compile="0" resource="0"
+                  file="Source/Controllers/DialsAndButtons/pages/EffectsTabPages.h"/>
             <FILE id="sdCluPages" name="ClustersTabPages.h" compile="0" resource="0"
                   file="Source/Controllers/DialsAndButtons/pages/ClustersTabPages.h"/>
             <FILE id="sdPatchPages" name="PatchWindowPages.h" compile="0" resource="0"

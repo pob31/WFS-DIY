@@ -3096,9 +3096,53 @@
         "level": "Level",
         "frequency": "Frequency"
       }
+    },
+    "effects": {
+      "noChannels": "No Effects Channels",
+      "sections": {
+        "feedParameters": "Effect Feed\nParameters",
+        "feedOrientation": "Effect Feed\nOrientation",
+        "effectReturn": "Effect\nReturn",
+        "soloMute": "Solo\nMute",
+        "chain": "Chain",
+        "module": "Module",
+        "moduleCont": "(cont.)",
+        "moduleCont2": "(cont. 2)",
+        "sends": "Sends",
+        "sendsSwitch": "Send\nSwitch",
+        "settings": "Settings",
+        "engine": "Engine"
+      },
+      "buttons": {
+        "feedMiniLatency": "Feed Min.\nLatency",
+        "attenuationLaw": "Atten.\nLaw",
+        "mute": "Mute",
+        "solo": "Solo",
+        "soloEffects": "Solo\nEffects",
+        "editOnMap": "Edit on\nMap",
+        "prevModule": "\u25c0 Module",
+        "nextModule": "Module \u25b6",
+        "chainBypass": "Chain\nBypass",
+        "clear": "Clear",
+        "sendToggle": "Send\nOn/Off",
+        "sendsAllOn": "All\nOn",
+        "sendsAllOff": "All\nOff",
+        "loopGuard": "Loop\nGuard",
+        "fxFeed": "Feed\nGeometric",
+        "relayout": "Re-layout"
+      },
+      "dials": {
+        "distanceRatio": "Dist.\nRatio",
+        "hfShelf": "HF Shelf",
+        "sendLevel": "Send\nLevel",
+        "linkMode": "Link\nMode",
+        "loopCeiling": "Guard\nCeiling",
+        "maxDelay": "Max\nDelay",
+        "workerThreads": "Workers",
+        "returnCushion": "Cushion"
+      }
     }
   },
-
   "help": {
     "diagnostics": {
       "title": "Diagnostics & Feedback",

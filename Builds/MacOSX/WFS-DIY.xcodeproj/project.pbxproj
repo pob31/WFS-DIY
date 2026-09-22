@@ -399,6 +399,7 @@
 		985483A84729EE26DE85D575 /* TrackingRTTrPReceiver.h */ /* TrackingRTTrPReceiver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TrackingRTTrPReceiver.h; path = ../../Source/Network/TrackingRTTrPReceiver.h; sourceTree = SOURCE_ROOT; };
 		99189007A033AABBA19BF2E8 /* include_juce_audio_formats_flac_2.c */ /* include_juce_audio_formats_flac_2.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = include_juce_audio_formats_flac_2.c; path = ../../JuceLibraryCode/include_juce_audio_formats_flac_2.c; sourceTree = SOURCE_ROOT; };
 		99AE1FAA30FD5B63D542E1D6 /* StereoChannelManager.h */ /* StereoChannelManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StereoChannelManager.h; path = ../../Source/DSP/StereoChannelManager.h; sourceTree = SOURCE_ROOT; };
+		9B25AB972DBE727A1323F4F8 /* EffectsTabPages.h */ /* EffectsTabPages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = EffectsTabPages.h; path = ../../Source/Controllers/DialsAndButtons/pages/EffectsTabPages.h; sourceTree = SOURCE_ROOT; };
 		9D694DF0A6065B72BB8A4A10 /* StreamDeckManager.h */ /* StreamDeckManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StreamDeckManager.h; path = ../../spatcore/controllers/streamdeck/StreamDeckManager.h; sourceTree = SOURCE_ROOT; };
 		9F2BD03DF373651E39BEDFE5 /* TrackingMQTTReceiver.h */ /* TrackingMQTTReceiver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TrackingMQTTReceiver.h; path = ../../Source/Network/TrackingMQTTReceiver.h; sourceTree = SOURCE_ROOT; };
 		9F333764A6A1446DF0903EC4 /* MetalSdnBackend.mm */ /* MetalSdnBackend.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = MetalSdnBackend.mm; path = ../../spatcore/gpu/MetalSdnBackend.mm; sourceTree = SOURCE_ROOT; };
@@ -927,6 +928,7 @@
 				49B4DD71B5401B3D22E619EE,
 				BF3B70E6EBD69DB5A62A50E7,
 				F9DE7E32A4C4D2AAEBBFC546,
+				9B25AB972DBE727A1323F4F8,
 				527DE6F349B1DF165D7D2BF1,
 				366967657B27DF70D955B956,
 			);

@@ -5136,6 +5136,9 @@
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\ReverbTabPages.h">
       <Filter>WFS-DIY\Source\Controllers\DialsAndButtons\pages</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\EffectsTabPages.h">
+      <Filter>WFS-DIY\Source\Controllers\DialsAndButtons\pages</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\ClustersTabPages.h">
       <Filter>WFS-DIY\Source\Controllers\DialsAndButtons\pages</Filter>
     </ClInclude>

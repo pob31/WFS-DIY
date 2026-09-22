@@ -116,6 +116,59 @@ public:
 
     spatcore::ui::sends::SendMatrixComponent& getMatrix() noexcept { return matrix; }
 
+    //==========================================================================
+    // The Stream Deck's view of the matrix: one selected cell, moved, switched
+    // and levelled from the hardware. The widget owns the selection; the level
+    // read goes through the same typed accessors the cells are drawn from.
+
+    void moveSelection (int dx, int dy)
+    {
+        auto cell = matrix.getSelectedCell();
+        if (cell.x < 0 || cell.y < 0)
+            cell = { juce::jmax (0, ctx.slot()), 0 };
+        cell.x = juce::jlimit (0, juce::jmax (0, matrix.getNumColumns() - 1), cell.x + dx);
+        cell.y = juce::jlimit (0, juce::jmax (0, matrix.getNumRows() - 1), cell.y + dy);
+        matrix.setSelectedCell (cell);
+    }
+
+    void toggleSelected()
+    {
+        if (matrix.getSelectedCell().x < 0)
+            moveSelection (0, 0);
+        matrix.activateSelectedCell();
+    }
+
+    float selectedLevelDb()
+    {
+        const auto cell = matrix.getSelectedCell();
+        if (cell.x < 0 || cell.y < 0)
+            return WFSParameterDefaults::effectSendLevelDefault;
+
+        auto& vts = ctx.parameters.getValueTreeState();
+        const int numInputs = ctx.parameters.getNumInputChannels();
+        return cell.y < numInputs ? vts.getEffectSendLevelFromInput (cell.x, vts.getInputChannelNumber (cell.y))
+                                  : vts.getEffectFxSendLevelFromEffect (cell.x, cell.y - numInputs);
+    }
+
+    void setSelectedLevelDb (float levelDb)
+    {
+        const auto cell = matrix.getSelectedCell();
+        if (cell.x < 0 || cell.y < 0)
+            return;
+
+        const juce::ScopedValueSetter<bool> selfWriteScope (ctx.isSelfWriting, true);
+        auto& vts = ctx.parameters.getValueTreeState();
+        const int numInputs = ctx.parameters.getNumInputChannels();
+        if (cell.y < numInputs)
+            vts.setEffectSendLevelFromInput (cell.x, vts.getInputChannelNumber (cell.y), levelDb);
+        else
+            vts.setEffectFxSendLevelFromEffect (cell.x, cell.y - numInputs, levelDb);
+        matrix.refresh();
+    }
+
+    /** Every send into the shown effect, on or off (the two buttons' action). */
+    void setAllSendsForCurrent (bool on) { setAllSends (on); }
+
     void resized() override
     {
         auto area = getLocalBounds().reduced (scaled (6));

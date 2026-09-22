@@ -18,6 +18,7 @@
 #include "Controllers/DialsAndButtons/pages/SystemConfigTabPages.h"
 #include "Controllers/DialsAndButtons/pages/MapTabPages.h"
 #include "Controllers/DialsAndButtons/pages/ReverbTabPages.h"
+#include "Controllers/DialsAndButtons/pages/EffectsTabPages.h"
 #include "Controllers/DialsAndButtons/pages/ClustersTabPages.h"
 #include "Controllers/DialsAndButtons/pages/PatchWindowPages.h"
 #include "../spatcore/controllers/spacemouse/SpaceMouseDevice.h"
@@ -1132,23 +1133,91 @@ MainComponent::MainComponent()
                     onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD));
         }
 
+        // The Effects pages: shared toggles the GUI mirrors, the LFO sub-mode
+        // and the chain's selected module, and the callbacks that reach the
+        // engine, the movement processor, the map and the sends widget. Every
+        // per-channel write on the deck goes through the effect funnel, so a
+        // hardware edit propagates to the link group like a GUI one.
+        auto effectsSoloState     = std::make_shared<bool> (false);
+        auto effectsEditOnMapState = std::make_shared<bool> (false);
+        auto effectsLfoSubMode    = std::make_shared<int> (0);
+        auto effectsChainSlot     = std::make_shared<int> (0);
+
+        EffectsTabPages::EffectsCallbacks fxCB;
+        fxCB.onSoloEffectsChanged = [this] (bool active)
+        {
+            soloEffects.store (active, std::memory_order_relaxed);
+            juce::MessageManager::callAsync ([this, active] { if (effectsTab) effectsTab->setSoloEffectsFromExternal (active); });
+        };
+        fxCB.onEditOnMapChanged = [this] (bool enabled)
+        {
+            juce::MessageManager::callAsync ([this, enabled]
+            {
+                if (effectsTab) effectsTab->setEditOnMapFromExternal (enabled);
+                if (mapTab) mapTab->setEffectEditMode (enabled);
+            });
+        };
+        fxCB.onClear = [this] (int fx) { if (effectsHost != nullptr) effectsHost->requestClear (fx); };
+        fxCB.onChainSlotSelected = [this] (int slot)
+        {
+            juce::MessageManager::callAsync ([this, slot] { if (effectsTab) effectsTab->selectChainSlot (slot); });
+        };
+        fxCB.onRelayout = [this]
+        {
+            juce::MessageManager::callAsync ([this]
+            {
+                auto& vts = parameters.getValueTreeState();
+                vts.redistributeAllEffectPositions();
+                vts.getEffectsState().setProperty (WFSParameterIDs::effectPositionsUserOwned, 0, nullptr);
+            });
+        };
+        fxCB.startMotion  = [this] (int fx) { if (effectOtomoProcessor) effectOtomoProcessor->startMotion (fx); };
+        fxCB.stopMotion   = [this] (int fx) { if (effectOtomoProcessor) effectOtomoProcessor->stopMotion (fx); };
+        fxCB.pauseMotion  = [this] (int fx) { if (effectOtomoProcessor) effectOtomoProcessor->pauseMotion (fx); };
+        fxCB.resumeMotion = [this] (int fx) { if (effectOtomoProcessor) effectOtomoProcessor->resumeMotion (fx); };
+        fxCB.stopAll      = [this]         { if (effectOtomoProcessor) effectOtomoProcessor->stopAllMotion(); };
+        fxCB.sendsMove       = [this] (int dx, int dy) { juce::MessageManager::callAsync ([this, dx, dy] { if (effectsTab) effectsTab->sendsMove (dx, dy); }); };
+        fxCB.sendsToggle     = [this]                  { juce::MessageManager::callAsync ([this] { if (effectsTab) effectsTab->sendsToggle(); }); };
+        fxCB.sendsLevelDb    = [this]                  { return effectsTab ? effectsTab->sendsLevelDb() : 0.0f; };
+        fxCB.sendsSetLevelDb = [this] (float db)       { juce::MessageManager::callAsync ([this, db] { if (effectsTab) effectsTab->sendsSetLevelDb (db); }); };
+        fxCB.sendsSetAll     = [this] (bool on)        { juce::MessageManager::callAsync ([this, on] { if (effectsTab) effectsTab->sendsSetAll (on); }); };
+
+        for (int subTab : { 0, 1, 2, 3, 4 })
+        {
+            streamDeckManager->registerPage (
+                EffectsTabPages::EFFECTS_MAIN_TAB_INDEX, subTab,
+                EffectsTabPages::createPage (subTab, vts, parameters.getEffectEdit(), 0,
+                    effectsSoloState, effectsEditOnMapState, effectsLfoSubMode, effectsChainSlot, fxCB));
+        }
+
         // Wire EffectsTab GUI callbacks to the engine and the calculation mask.
         // Solo is a mask the calculation engine applies to the direct rows, so
         // it costs one atomic and never touches the audio thread; Clear reaches
-        // the engine, which honours it at the next batch boundary.
-        effectsTab->onSoloEffectsChanged = [this] (bool active)
+        // the engine, which honours it at the next batch boundary. The two
+        // toggles also land in the deck's shared state, so its buttons follow.
+        effectsTab->onSoloEffectsChanged = [this, effectsSoloState] (bool active)
         {
             soloEffects.store (active, std::memory_order_relaxed);
+            *effectsSoloState = active;
         };
         effectsTab->onClearRequested = [this] (int fx)
         {
             if (effectsHost != nullptr)
                 effectsHost->requestClear (fx);
         };
-        effectsTab->onMapEditChanged = [this] (bool enabled)
+        effectsTab->onMapEditChanged = [this, effectsEditOnMapState] (bool enabled)
         {
             if (mapTab)
                 mapTab->setEffectEditMode (enabled);
+            *effectsEditOnMapState = enabled;
+        };
+        effectsTab->onChainSlotSelected = [this, effectsChainSlot] (int slot)
+        {
+            if (*effectsChainSlot == slot)
+                return;
+            *effectsChainSlot = slot;
+            if (streamDeckManager && streamDeckManager->getCurrentMainTab() == EffectsTabPages::EFFECTS_MAIN_TAB_INDEX)
+                streamDeckManager->refreshCurrentPage();
         };
         effectsTab->onConfigReloaded = [this]()
         {
@@ -1399,7 +1468,7 @@ MainComponent::MainComponent()
         };
 
         // Set page rebuild callback for channel changes and binding swaps
-        streamDeckManager->onPageNeedsRebuild = [this, flipModeState, stereoParamsState, lfoSubModeState, movCB, outputEqBandState, onEqBandSelectedGui, netCB, sysCB, mapCB, mapQ, mapPosOffsetMode, reverbPreEqBandState, reverbPreDynMode, reverbPostEqBandState, reverbPostDynMode, reverbSoloState, reverbMutePreState, reverbMutePostState, reverbEditOnMapState, reverbAlgoSubMode, reverbIRDuration, onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD, clusterLfoSubMode, presetCol, presetRow, clusterCB](int mainTab, int subTab, int channel)
+        streamDeckManager->onPageNeedsRebuild = [this, flipModeState, stereoParamsState, lfoSubModeState, movCB, outputEqBandState, onEqBandSelectedGui, netCB, sysCB, mapCB, mapQ, mapPosOffsetMode, reverbPreEqBandState, reverbPreDynMode, reverbPostEqBandState, reverbPostDynMode, reverbSoloState, reverbMutePreState, reverbMutePostState, reverbEditOnMapState, reverbAlgoSubMode, reverbIRDuration, onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD, clusterLfoSubMode, presetCol, presetRow, clusterCB, effectsSoloState, effectsEditOnMapState, effectsLfoSubMode, effectsChainSlot, fxCB](int mainTab, int subTab, int channel)
         {
             if (mainTab == InputsTabPages::INPUTS_MAIN_TAB_INDEX)
             {
@@ -1464,6 +1533,13 @@ MainComponent::MainComponent()
                         reverbAlgoSubMode, reverbIRDuration,
                         nullptr, nullptr,
                         onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD));
+            }
+            else if (mainTab == EffectsTabPages::EFFECTS_MAIN_TAB_INDEX)
+            {
+                auto& vts = parameters.getValueTreeState();
+                streamDeckManager->registerPage (mainTab, subTab,
+                    EffectsTabPages::createPage (subTab, vts, parameters.getEffectEdit(), channel - 1,
+                        effectsSoloState, effectsEditOnMapState, effectsLfoSubMode, effectsChainSlot, fxCB));
             }
             else if (mainTab == ClustersTabPages::CLUSTERS_MAIN_TAB_INDEX)
             {
@@ -2354,6 +2430,19 @@ MainComponent::MainComponent()
     reverbTab->onSubTabChanged = [this](int subTabIndex)
     {
         if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == TabIndex::Reverb)
+            streamDeckManager->setSubTab (subTabIndex);
+    };
+
+    // The Effects tab, likewise
+    effectsTab->onChannelSelected = [this](int channelId)
+    {
+        if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == TabIndex::Effects)
+            streamDeckManager->setChannel (channelId);
+    };
+
+    effectsTab->onSubTabChanged = [this](int subTabIndex)
+    {
+        if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == TabIndex::Effects)
             streamDeckManager->setSubTab (subTabIndex);
     };
 

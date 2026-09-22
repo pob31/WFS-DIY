@@ -3567,6 +3567,7 @@
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\SystemConfigTabPages.h"/>
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\MapTabPages.h"/>
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\ReverbTabPages.h"/>
+    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\EffectsTabPages.h"/>
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\ClustersTabPages.h"/>
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\PatchWindowPages.h"/>
     <ClInclude Include="..\..\spatcore\controllers\lightpad\LightpadTypes.h"/>
