@@ -13,6 +13,7 @@
 #include "../HelpCard.h"
 #include "../StatusBar.h"
 #include "../buttons/LongPressButton.h"
+#include "../snapshots/SnapshotRow.h"
 #include "../../Parameters/WFSParameterIDs.h"
 #include "../../Parameters/WFSParameterDefaults.h"
 #include "../../Localization/LocalizationManager.h"
@@ -94,11 +95,12 @@ public:
     };
 
     //==========================================================================
-    explicit EffectsTab (WfsParameters& params)
+    EffectsTab (WfsParameters& params, SnapshotSession& snapshots)
         : ctx (params),
           effectsTree (params.getEffectTree()),
           configTree (params.getConfigTree()),
-          ioTree (params.getConfigTree().getChildWithName (WFSParameterIDs::IO))
+          ioTree (params.getConfigTree().getChildWithName (WFSParameterIDs::IO)),
+          snapshotRow (snapshots, WFSFileManager::SnapshotFamily::Effects)
     {
         setWantsKeyboardFocus (true);
         setFocusContainerType (FocusContainerType::keyboardFocusContainer);
@@ -154,7 +156,7 @@ public:
     std::function<void()> onConfigReloaded;
     std::function<void (int subTabIndex)> onSubTabChanged;
 
-    void setStatusBar (StatusBar* bar) { ctx.statusBar = bar; }
+    void setStatusBar (StatusBar* bar) { ctx.statusBar = bar; snapshotRow.setStatusBar (bar); }
 
     void setOtomoProcessor (AutomOtionProcessor* p) { movementsPanel.setOtomoProcessor (p); }
 
@@ -301,7 +303,9 @@ public:
     {
         layoutScale = static_cast<float> (getHeight()) / 932.0f;
         headerHeight = scaled (60);
-        footerHeight = scaled (30) + 2 * scaled (10);
+        // Two rows, the Inputs tab's footer geometry: the snapshot row over the
+        // five config buttons.
+        footerHeight = 2 * scaled (30) + 3 * scaled (10);
 
         // The footer is laid out FIRST, as the reverb tab does, so Import stays
         // reachable when the session has no effects channels at all.
@@ -594,6 +598,11 @@ private:
 
     void setupFooter()
     {
+        // The snapshot row: the SnapshotSession's, shared with the Inputs tab
+        // (one snapshot file carries the inputs AND the effects). Its Edit Scope
+        // opens the Scope window on the Effects grid.
+        addAndMakeVisible (snapshotRow);
+
         addAndMakeVisible (storeButton);
         storeButton.setButtonText (LOC ("effects.buttons.storeConfig"));
         storeButton.setBaseColour (juce::Colour (0xFF8C3333));
@@ -623,6 +632,13 @@ private:
     void layoutFooter (juce::Rectangle<int> area)
     {
         const int spacing = scaled (5);
+
+        // Row 1: the snapshot row, laid out by itself (the Inputs tab's widths)
+        snapshotRow.setSpacing (spacing);
+        snapshotRow.setBounds (area.removeFromTop (scaled (30)));
+        area.removeFromTop (scaled (10));
+
+        // Row 2: the five config buttons
         const int buttonWidth = (area.getWidth() - spacing * 4) / 5;
 
         storeButton.setBounds (area.removeFromLeft (buttonWidth));
@@ -1093,6 +1109,9 @@ private:
     LongPressButton reloadBackupButton { 1000 };
     LongPressButton importButton { 1000 };
     LongPressButton exportButton { 1000 };
+
+    // Footer row 1 - the snapshot row (the SnapshotSession's; see snapshots/SnapshotRow.h)
+    SnapshotRow snapshotRow;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EffectsTab)
 };

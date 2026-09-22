@@ -659,6 +659,10 @@ private:
         but latches the channel numbers: run it in a throwaway session. */
     void runInputMutesPersistSelfTest();
 
+    /** WFS_TEST_RENDER_UI=<folder>: every main tab and the Snapshot Scope window
+        (both family grids) rendered offscreen to PNG files. */
+    void renderUiSnapshots (const juce::File& dir);
+
     /** A mono row may hold at most one hardware column. Clears any extra
         columns (keeping the lowest = L) left behind when a count change
         moves the mono/stereo boundary. */

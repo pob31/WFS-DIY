@@ -334,7 +334,7 @@ MainComponent::MainComponent()
     inputsTab = new InputsTab(parameters, *snapshotSession);
     clustersTab = new ClustersTab(parameters);
     reverbTab = new ReverbTab(parameters);
-    effectsTab = new EffectsTab(parameters);
+    effectsTab = new EffectsTab(parameters, *snapshotSession);
     mapTab = std::make_unique<MapTab>(parameters);
 
     // Set accessible names for screen readers (prevents "Custom" announcement)
@@ -2941,6 +2941,71 @@ MainComponent::MainComponent()
     // it touched, but latches the channel numbers: run it in a throwaway session.
     if (std::getenv("WFS_TEST_MUTES_PERSIST") != nullptr)
         runInputMutesPersistSelfTest();
+
+    // Hidden diagnostic: WFS_TEST_RENDER_UI=<folder> renders every main tab and
+    // the Snapshot Scope window (both family grids) to PNG files in that folder,
+    // 8 s after launch - after a project given on the command line has loaded.
+    // A component snapshot paints offscreen, so this still works behind a locked
+    // workstation, where screen captures and injected clicks do not.
+    if (const char* renderDir = std::getenv("WFS_TEST_RENDER_UI"))
+    {
+        const juce::File dir (juce::String::fromUTF8 (renderDir));
+        MainComponent* const self = this;
+        juce::Timer::callAfterDelay (8000, [safe = juce::Component::SafePointer<MainComponent> (self), dir]
+        {
+            if (safe != nullptr)
+                safe->renderUiSnapshots (dir);
+        });
+    }
+}
+
+void MainComponent::renderUiSnapshots (const juce::File& dir)
+{
+    dir.createDirectory();
+
+    auto save = [&dir] (juce::Component& c, const juce::String& name)
+    {
+        if (c.getWidth() <= 0 || c.getHeight() <= 0)
+        {
+            WFSLogger::getInstance().logInfo ("RENDER-UI skipped " + name + " (no size)");
+            return;
+        }
+
+        auto image = c.createComponentSnapshot (c.getLocalBounds(), true, 1.0f);
+        auto file = dir.getChildFile (juce::File::createLegalFileName (name) + ".png");
+        file.deleteFile();
+        juce::FileOutputStream out (file);
+        if (out.openedOk() && juce::PNGImageFormat().writeImageToStream (image, out))
+            WFSLogger::getInstance().logInfo ("RENDER-UI wrote " + file.getFullPathName());
+    };
+
+    for (int i = 0; i < tabbedComponent.getNumTabs(); ++i)
+        if (auto* content = tabbedComponent.getTabContentComponent (i))
+            save (*content, "tab-" + juce::String (i) + "-" + tabbedComponent.getTabNames()[i]);
+
+    // The Scope window, opened as the Effects tab's row opens it, then switched
+    // to the inputs grid as the Inputs tab's row would switch it.
+    if (snapshotSession != nullptr)
+    {
+        snapshotSession->editScope (WFSFileManager::SnapshotFamily::Effects);
+
+        for (int i = juce::Desktop::getInstance().getNumComponents(); --i >= 0;)
+        {
+            if (auto* window = dynamic_cast<SnapshotScopeWindow*> (juce::Desktop::getInstance().getComponent (i)))
+            {
+                if (auto* content = window->getContentComponent())
+                {
+                    save (*content, "scope-effects");
+                    snapshotSession->editScope (WFSFileManager::SnapshotFamily::Inputs);
+                    save (*content, "scope-inputs");
+                }
+                window->closeButtonPressed();
+                break;
+            }
+        }
+    }
+
+    WFSLogger::getInstance().logInfo ("RENDER-UI done");
 }
 
 void MainComponent::runLiveSourcePersistSelfTest()
