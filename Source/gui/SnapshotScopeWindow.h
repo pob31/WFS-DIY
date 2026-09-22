@@ -17,8 +17,15 @@
 
 /**
  * Snapshot Scope Window
- * Allows editing the scope for input snapshots with parameter-level, per-channel control.
+ * Allows editing the scope of a snapshot with parameter-level, per-channel control.
  * Parameters are grouped into scope items and organized by sections.
+ *
+ * A snapshot carries two families (plan revision 8): the inputs and the effects.
+ * Each has its own grid (a ScopeMatrix over its own item table), shown on its own
+ * tab of this one window; the Inputs tab's and the Effects tab's snapshot rows
+ * both open it, each on its own family. Everything above the grids - apply mode,
+ * QLab, dirty tracking, templates, the MIDI trigger, OK / Update - is the
+ * snapshot's, so it is shared.
  */
 
 //==============================================================================
@@ -28,10 +35,13 @@ class ScopeGridComponent : public juce::Component
 {
 public:
     using ExtendedScope = WFSFileManager::ExtendedSnapshotScope;
+    using ScopeMatrix = WFSFileManager::ScopeMatrix;
     using ScopeItem = WFSFileManager::ScopeItem;
-    using InclusionState = ExtendedScope::InclusionState;
+    using InclusionState = ScopeMatrix::InclusionState;
 
-    ScopeGridComponent (ExtendedScope& scopeRef, int numChannelsValue,
+    /** One family's grid: `scopeRef` is that family's matrix (scope.inputs or
+        scope.effects), and its table gives the rows. */
+    ScopeGridComponent (ScopeMatrix& scopeRef, int numChannelsValue,
                         const ParameterDirtyTracker* dirtyTrackerPtr = nullptr)
         : scope (scopeRef), numChannels (numChannelsValue), dirtyTracker (dirtyTrackerPtr)
     {
@@ -43,7 +53,7 @@ public:
         visibleRows.clear();
         sectionStartRows.clear();
 
-        const auto& sections = ExtendedScope::getSectionIds();
+        const auto& sections = scope.getTable().sectionIds;
         int currentRow = 0;
 
         for (const auto& sectionId : sections)
@@ -62,7 +72,7 @@ public:
 
             if (expandedSections[sectionId.toString()])
             {
-                for (const auto* item : ExtendedScope::getItemsForSection (sectionId))
+                for (const auto* item : scope.getTable().itemsForSection (sectionId))
                 {
                     visibleRows.push_back ({ item->itemId, false, false });
                     ++currentRow;
@@ -167,7 +177,7 @@ public:
             // Draw dirty earmark if any item in this section was modified
             if (dirtyTracker != nullptr)
             {
-                for (const auto* item : ExtendedScope::getItemsForSection (juce::Identifier (sectionId)))
+                for (const auto* item : scope.getTable().itemsForSection (juce::Identifier (sectionId)))
                 {
                     if (dirtyTracker->isDirty (item->itemId, ch))
                     {
@@ -333,7 +343,7 @@ public:
                 auto state = scope.getSectionStateForChannel (sectionId, col);
                 bool newState = (state != InclusionState::AllIncluded);
 
-                for (const auto* item : ExtendedScope::getItemsForSection (sectionId))
+                for (const auto* item : scope.getTable().itemsForSection (sectionId))
                     scope.setIncluded (item->itemId, col, newState);
             }
             else
@@ -350,25 +360,15 @@ public:
 
     juce::String getSectionDisplayName (const juce::String& sectionId) const
     {
-        if (sectionId == "Channel") return LOC("snapshotScope.sections.input");
-        if (sectionId == "Position") return LOC("snapshotScope.sections.position");
-        if (sectionId == "Attenuation") return LOC("snapshotScope.sections.attenuation");
-        if (sectionId == "Directivity") return LOC("snapshotScope.sections.directivity");
-        if (sectionId == "LiveSourceTamer") return LOC("snapshotScope.sections.liveSource");
-        if (sectionId == "Hackoustics") return LOC("snapshotScope.sections.hackoustics");
-        if (sectionId == "LFO") return LOC("snapshotScope.sections.lfo");
-        if (sectionId == "AutomOtion") return LOC("snapshotScope.sections.automOtion");
-        if (sectionId == "Mutes") return LOC("snapshotScope.sections.mutes");
-        return sectionId;
+        // The family's table names each section's heading key.
+        const auto key = scope.getTable().sectionLabelKey (juce::Identifier (sectionId));
+        return key.isNotEmpty() ? LOC (key) : sectionId;
     }
 
     juce::String getItemDisplayName (const juce::String& itemId) const
     {
-        for (const auto& item : ExtendedScope::getScopeItems())
-        {
-            if (item.itemId == itemId)
-                return item.displayName;
-        }
+        if (const auto* item = scope.getTable().find (itemId))
+            return item->displayName;
         return itemId;
     }
 
@@ -396,7 +396,7 @@ private:
         bool expanded;
     };
 
-    ExtendedScope& scope;
+    ScopeMatrix& scope;
     int numChannels;
     const ParameterDirtyTracker* dirtyTracker = nullptr;
     std::vector<RowInfo> visibleRows;
@@ -412,10 +412,12 @@ private:
 class ScopeChannelHeader : public juce::Component
 {
 public:
-    using ExtendedScope = WFSFileManager::ExtendedSnapshotScope;
-    using InclusionState = ExtendedScope::InclusionState;
+    using ScopeMatrix = WFSFileManager::ScopeMatrix;
+    using InclusionState = ScopeMatrix::InclusionState;
 
-    ScopeChannelHeader (ExtendedScope& scopeRef, int numChannelsValue,
+    /** channelNumbersIn labels the columns (the inputs' permanent numbers);
+        empty = dense 1..n, which is exactly the effects' ids. */
+    ScopeChannelHeader (ScopeMatrix& scopeRef, int numChannelsValue,
                         std::vector<int> channelNumbersIn = {})
         : scope (scopeRef), numChannels (numChannelsValue),
           channelNumbers (std::move (channelNumbersIn))
@@ -515,7 +517,7 @@ public:
     }
 
 private:
-    ExtendedScope& scope;
+    ScopeMatrix& scope;
     int numChannels;
     std::vector<int> channelNumbers;   // per-slot permanent numbers (empty = dense ch+1)
 
@@ -526,18 +528,22 @@ private:
 // Snapshot Scope Content Component
 //==============================================================================
 class SnapshotScopeContent : public juce::Component,
-                              public ColorScheme::Manager::Listener
+                              public ColorScheme::Manager::Listener,
+                              private juce::ChangeListener
 {
 public:
     using ExtendedScope = WFSFileManager::ExtendedSnapshotScope;
+    using Family = WFSFileManager::SnapshotFamily;
 
     SnapshotScopeContent (WfsParameters& params, const juce::String& snapshotNameValue, ExtendedScope& scopeRef,
-                          bool hasSelectedSnapshotValue, ParameterDirtyTracker* dirtyTrackerPtr = nullptr)
+                          bool hasSelectedSnapshotValue, ParameterDirtyTracker* dirtyTrackerPtr = nullptr,
+                          Family initialFamily = Family::Inputs)
         : parameters (params),
           snapshotName (snapshotNameValue),
           scope (scopeRef),
           originalScope (scopeRef),  // baseline captured before any auto-preselect below
           numChannels (params.getNumInputChannels()),
+          numEffects (params.getNumEffectChannels()),
           hasSelectedSnapshot (hasSelectedSnapshotValue),
           dirtyTracker (dirtyTrackerPtr)
     {
@@ -585,7 +591,7 @@ public:
             auto& vts = parameters.getValueTreeState();
             for (int slot = 0; slot < numChannels; ++slot)
                 channelNumbers.push_back (vts.getInputChannelNumber (slot));
-            channelHeader = std::make_unique<ScopeChannelHeader> (scope, numChannels,
+            channelHeader = std::make_unique<ScopeChannelHeader> (scope.inputs, numChannels,
                                                                   std::move (channelNumbers));
         }
         addAndMakeVisible (channelHeader.get());
@@ -595,7 +601,7 @@ public:
         };
 
         // Scrollable grid (pass dirty tracker for earmarks)
-        gridComponent = std::make_unique<ScopeGridComponent> (scope, numChannels, dirtyTracker);
+        gridComponent = std::make_unique<ScopeGridComponent> (scope.inputs, numChannels, dirtyTracker);
 
         // Hide Sampler section if sampler is globally disabled
         {
@@ -637,6 +643,38 @@ public:
         addAndMakeVisible (viewport);
         viewport.setViewedComponent (gridComponent.get(), false);
         viewport.setScrollBarsShown (true, true);
+
+        // The effects grid: the same two components over scope.effects. Its
+        // columns are dense effect ids, which is the header's default labelling.
+        effectsHeader = std::make_unique<ScopeChannelHeader> (scope.effects, numEffects);
+        addChildComponent (effectsHeader.get());
+        effectsHeader->onScopeChanged = [this]() {
+            effectsGrid->repaint();
+            refreshUpdateScopeButtonVisibility();
+        };
+
+        effectsGrid = std::make_unique<ScopeGridComponent> (scope.effects, numEffects, dirtyTracker);
+        effectsGrid->onScopeChanged = [this]() {
+            effectsHeader->repaint();
+            refreshUpdateScopeButtonVisibility();
+        };
+        effectsGrid->onLayoutChanged = [this]() { resized(); };
+
+        addChildComponent (effectsViewport);
+        effectsViewport.setViewedComponent (effectsGrid.get(), false);
+        effectsViewport.setScrollBarsShown (true, true);
+
+        addChildComponent (noEffectsLabel);
+        noEffectsLabel.setText (LOC("snapshotScope.noEffectChannels"), juce::dontSendNotification);
+        noEffectsLabel.setJustificationType (juce::Justification::centred);
+
+        // One tab per family, the sub-tab bar every tab of the app uses.
+        addAndMakeVisible (familyTabBar);
+        familyTabBar.addTab (LOC("snapshotScope.families.inputs"), juce::Colour (0xFF2A2A2A), -1);
+        familyTabBar.addTab (LOC("snapshotScope.families.effects"), juce::Colour (0xFF2A2A2A), -1);
+        familyTabBar.setCurrentTabIndex (initialFamily == Family::Effects ? 1 : 0, false);
+        familyTabBar.addChangeListener (this);
+        showFamily (initialFamily);
 
         // Write to QLab radio option (exclusive with save/recall)
         addAndMakeVisible (writeToQLabToggle);
@@ -724,8 +762,7 @@ public:
                 bool hasDirty = dirtyTracker != nullptr && dirtyTracker->hasAnyDirty();
                 selectModifiedButton.setEnabled (hasDirty);
                 clearChangesButton.setVisible (hasDirty);
-                gridComponent->repaint();
-                channelHeader->repaint();
+                repaintPanes();
             };
         }
 
@@ -872,6 +909,7 @@ public:
 
     ~SnapshotScopeContent() override
     {
+        familyTabBar.removeChangeListener (this);
         if (dirtyTracker != nullptr)
         {
             dirtyTracker->cancelPendingUpdate();
@@ -913,6 +951,7 @@ public:
         midiTriggerLabel.setColour (juce::Label::textColourId, colors.textPrimary);
         midiTriggerEnable.setColour (juce::ToggleButton::textColourId, colors.textPrimary);
         midiConflictLabel.setColour (juce::Label::textColourId, colors.accentRed);
+        noEffectsLabel.setColour (juce::Label::textColourId, colors.textSecondary);
     }
 
     void paint (juce::Graphics& g) override
@@ -922,9 +961,10 @@ public:
 
     void resized() override
     {
-        // 668 = 635 + the 33 px MIDI trigger row (28 + 5). Must stay in step with
-        // the default height in the window constructor or the scale reference drifts.
-        float ls = static_cast<float>(getHeight()) / 668.0f;
+        // 701 = 635 + the 33 px MIDI trigger row (28 + 5) + the 33 px family tab
+        // bar (28 + 5). Must stay in step with the default height in the window
+        // constructor or the scale reference drifts.
+        float ls = static_cast<float>(getHeight()) / 701.0f;
         auto sc = [ls](int ref) { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * ls)); };
 
         auto bounds = getLocalBounds().reduced (sc(10));
@@ -1022,17 +1062,44 @@ public:
         int updateWidth = juce::jmax (0, juce::jmin (sc(190), buttonX - sc(10) - buttonRow.getX()));
         updateScopeButton.setBounds (buttonRow.getX(), buttonRow.getY(), updateWidth, sc(30));
 
-        // Update scaled sizes for grid and header
+        // Family tabs (Inputs / Effects) over the grid they switch
+        familyTabBar.setBounds (bounds.removeFromTop (sc(28)));
+        bounds.removeFromTop (sc(5));
+
+        // Update scaled sizes for grids and headers
         gridComponent->updateScaledSizes();
         channelHeader->updateScaledSizes();
+        effectsGrid->updateScaledSizes();
+        effectsHeader->updateScaledSizes();
 
-        // Channel header (fixed)
-        int gridWidth = gridComponent->paramLabelWidth + numChannels * gridComponent->cellSize;
-        channelHeader->setBounds (bounds.getX(), bounds.getY(), gridWidth, channelHeader->headerHeight);
-        bounds.removeFromTop (channelHeader->headerHeight);
+        // Both panes share the rect; showFamily decides which is visible.
+        auto layoutPane = [bounds] (ScopeChannelHeader& header, ScopeGridComponent& grid,
+                                    juce::Viewport& port, int channels)
+        {
+            auto area = bounds;
+            int gridWidth = grid.paramLabelWidth + channels * grid.cellSize;
+            header.setBounds (area.getX(), area.getY(), gridWidth, header.headerHeight);
+            area.removeFromTop (header.headerHeight);
+            port.setBounds (area);
+        };
 
-        // Viewport for grid
-        viewport.setBounds (bounds);
+        layoutPane (*channelHeader, *gridComponent, viewport, numChannels);
+        layoutPane (*effectsHeader, *effectsGrid, effectsViewport, numEffects);
+        noEffectsLabel.setBounds (bounds);
+    }
+
+    /** Show `family`'s grid (the rows' Edit Scope buttons each open their own). */
+    void showFamily (Family family)
+    {
+        const bool effects = family == Family::Effects;
+        familyTabBar.setCurrentTabIndex (effects ? 1 : 0, false);
+
+        channelHeader->setVisible (! effects);
+        viewport.setVisible (! effects);
+
+        effectsHeader->setVisible (effects && numEffects > 0);
+        effectsViewport.setVisible (effects && numEffects > 0);
+        noEffectsLabel.setVisible (effects && numEffects == 0);
     }
 
     std::function<void()> onCloseRequested;
@@ -1061,6 +1128,7 @@ private:
     ExtendedScope& scope;
     ExtendedScope originalScope;  // as opened — drives "changes made" detection
     int numChannels;
+    int numEffects;
     bool hasSelectedSnapshot = false;
 
     juce::Label titleLabel;
@@ -1068,9 +1136,16 @@ private:
     juce::ToggleButton applySavingButton;
     juce::ToggleButton applyRecallingButton;
 
+    // The input grid, and the effects grid behind the family tab bar
     std::unique_ptr<ScopeChannelHeader> channelHeader;
     std::unique_ptr<ScopeGridComponent> gridComponent;
     juce::Viewport viewport;
+
+    juce::TabbedButtonBar familyTabBar { juce::TabbedButtonBar::TabsAtTop };
+    std::unique_ptr<ScopeChannelHeader> effectsHeader;
+    std::unique_ptr<ScopeGridComponent> effectsGrid;
+    juce::Viewport effectsViewport;
+    juce::Label noEffectsLabel;
 
     juce::ToggleButton writeToQLabToggle;
     juce::ToggleButton writeSnapshotLoadCueToggle;
@@ -1101,6 +1176,19 @@ private:
     HelpCardButton scopeHelpButton;
     HelpCard scopeHelpCard;
 
+    void changeListenerCallback (juce::ChangeBroadcaster*) override
+    {
+        showFamily (familyTabBar.getCurrentTabIndex() == 1 ? Family::Effects : Family::Inputs);
+    }
+
+    void repaintPanes()
+    {
+        gridComponent->repaint();
+        channelHeader->repaint();
+        effectsGrid->repaint();
+        effectsHeader->repaint();
+    }
+
     /** Copy dirty flags to scope selection: dirty items included, others excluded */
     void applyDirtyToScope()
     {
@@ -1124,10 +1212,9 @@ private:
         };
 
         fill (scope.inputs, numChannels);
-        fill (scope.effects, parameters.getNumEffectChannels());
+        fill (scope.effects, numEffects);
 
-        gridComponent->repaint();
-        channelHeader->repaint();
+        repaintPanes();
         refreshUpdateScopeButtonVisibility();
     }
 
@@ -1137,8 +1224,7 @@ private:
         // path that writes the scope into the snapshot file, so hiding it is how
         // "refuse to save a collision" is enforced. midiConflictLabel says why.
         updateScopeButton.setVisible (hasSelectedSnapshot
-                                      && !scope.isEquivalentTo (originalScope, numChannels,
-                                                                parameters.getNumEffectChannels())
+                                      && !scope.isEquivalentTo (originalScope, numChannels, numEffects)
                                       && !hasMidiConflict);
     }
 
@@ -1270,8 +1356,7 @@ private:
         auto& fileManager = parameters.getFileManager();
         if (fileManager.loadScopeTemplateGrid (templateSelector.getText(), scope))
         {
-            gridComponent->repaint();
-            channelHeader->repaint();
+            repaintPanes();
             refreshUpdateScopeButtonVisibility();
         }
         else
@@ -1362,8 +1447,11 @@ public:
         ScopeUpdated = long-press — write the edited scope into the selected snapshot. */
     enum class CloseResult { Cancelled, Saved, ScopeUpdated };
 
+    using Family = WFSFileManager::SnapshotFamily;
+
     SnapshotScopeWindow (WfsParameters& params, const juce::String& snapshotName, ExtendedScope& scope,
-                         bool hasSelectedSnapshot, ParameterDirtyTracker* dirtyTracker = nullptr)
+                         bool hasSelectedSnapshot, ParameterDirtyTracker* dirtyTracker = nullptr,
+                         Family initialFamily = Family::Inputs)
         : DocumentWindow (LOC("snapshotScope.windowTitle"),
                           ColorScheme::get().background,
                           DocumentWindow::closeButton)
@@ -1371,7 +1459,8 @@ public:
         setUsingNativeTitleBar (true);
         setResizable (true, true);
 
-        content = std::make_unique<SnapshotScopeContent> (params, snapshotName, scope, hasSelectedSnapshot, dirtyTracker);
+        content = std::make_unique<SnapshotScopeContent> (params, snapshotName, scope, hasSelectedSnapshot,
+                                                          dirtyTracker, initialFamily);
         content->onCloseRequested = [this]() { closeButtonPressed(); };
         content->onSaveRequested = [this](bool writeQLab, bool writeLoadCue) {
             result = CloseResult::Saved;
@@ -1393,12 +1482,13 @@ public:
         float ds = (disp && !disp->userBounds.isEmpty()) ? disp->userBounds.getHeight() / 1080.0f : 1.0f;
         auto dsc = [ds](int ref) { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * ds)); };
 
-        int numChannels = params.getNumInputChannels();
+        // Wide enough for the wider of the two grids: one window shows both.
+        int numChannels = juce::jmax (params.getNumInputChannels(), params.getNumEffectChannels());
         int scaledCellSize = juce::jmax(15, static_cast<int>(22.0f * ds));
         int scaledParamLabelWidth = juce::jmax(90, static_cast<int>(140.0f * ds));
         int gridWidth = scaledParamLabelWidth + numChannels * scaledCellSize + dsc(50);
         int width = juce::jmax (dsc(600), juce::jmin (dsc(1200), gridWidth));
-        int height = dsc(668);   // 635 + the 33 px MIDI trigger row; keep in step with resized()
+        int height = dsc(701);   // 635 + the MIDI trigger row + the family tab bar; keep in step with resized()
         centreWithSize (width, height);
         setVisible (true);
         WindowUtils::enableDarkTitleBar (this);
@@ -1432,6 +1522,13 @@ public:
     {
         if (auto* c = dynamic_cast<SnapshotScopeContent*> (getContentComponent()))
             c->setQLabAvailable (available);
+    }
+
+    /** Switch the open window to `family`'s grid (a second row's Edit Scope). */
+    void selectFamily (Family family)
+    {
+        if (auto* c = dynamic_cast<SnapshotScopeContent*> (getContentComponent()))
+            c->showFamily (family);
     }
 
 private:

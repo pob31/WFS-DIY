@@ -1578,7 +1578,10 @@ const WFSFileManager::ScopeItemTable& WFSFileManager::inputScopeTable()
             { Hackoustics,     "snapshotScope.sections.hackoustics" },
             { LFO,             "snapshotScope.sections.lfo" },
             { AutomOtion,      "snapshotScope.sections.automOtion" },
-            { Mutes,           "snapshotScope.sections.mutes" }
+            { Mutes,           "snapshotScope.sections.mutes" },
+            { GradientMaps,    "snapshotScope.sections.gradientMaps" },
+            { Sampler,         "snapshotScope.sections.sampler" },
+            { ADMMapping,      "snapshotScope.sections.admMapping" }
         };
         return t;
     }();

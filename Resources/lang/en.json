@@ -2570,7 +2570,7 @@
   },
 
   "snapshotScope": {
-    "windowTitle": "Input Snapshot Scope",
+    "windowTitle": "Snapshot Scope",
     "title": "Snapshot Scope: {name}",
     "applyScope": "Apply scope:",
     "whenSaving": "When Saving",
@@ -2586,8 +2586,21 @@
       "lfo": "LFO",
       "automOtion": "AutomOtion",
       "mutes": "Mutes",
-      "admMapping": "ADM-OSC"
+      "admMapping": "ADM-OSC",
+      "gradientMaps": "Gradient Maps",
+      "sampler": "Sampler",
+      "effect": "Effect",
+      "feed": "Feed",
+      "return": "Return",
+      "chain": "Chain",
+      "modules": "Modules",
+      "sends": "Sends"
     },
+    "families": {
+      "inputs": "Inputs",
+      "effects": "Effects"
+    },
+    "noEffectChannels": "This session has no effect channels.",
     "buttons": {
       "ok": "OK",
       "cancel": "Cancel",

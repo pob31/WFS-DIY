@@ -389,8 +389,6 @@ public:
         and switch it there. */
     void editScope (Family family)
     {
-        juce::ignoreUnused (family);
-
         const auto name = selected;
         const bool hasSelectedSnapshot = hasSelection();
         auto& fileManager = parameters.getFileManager();
@@ -421,6 +419,9 @@ public:
 
         if (scopeWindow != nullptr && scopeWindow->isVisible())
         {
+            // Already open (from this tab's row or the other's): show the grid
+            // the button belongs to.
+            scopeWindow->selectFamily (family);
             scopeWindow->toFront (true);
             return;
         }
@@ -438,7 +439,7 @@ public:
         const int openedMidiNote    = scopePtr->midiNote;
 
         scopeWindow = std::make_unique<SnapshotScopeWindow> (parameters, windowTitle, *working, hasSelectedSnapshot,
-                                                             &parameters.getDirtyTracker());
+                                                             &parameters.getDirtyTracker(), family);
         scopeWindow->setQLabAvailable (isQLabAvailable ? isQLabAvailable() : false);
         // A named pointer: in a nested lambda's init-capture MSVC resolves a
         // bare `this` to the enclosing closure.
