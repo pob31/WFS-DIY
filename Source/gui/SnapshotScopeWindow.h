@@ -1129,7 +1129,8 @@ private:
         // path that writes the scope into the snapshot file, so hiding it is how
         // "refuse to save a collision" is enforced. midiConflictLabel says why.
         updateScopeButton.setVisible (hasSelectedSnapshot
-                                      && !scope.isEquivalentTo (originalScope, numChannels)
+                                      && !scope.isEquivalentTo (originalScope, numChannels,
+                                                                parameters.getNumEffectChannels())
                                       && !hasMidiConflict);
     }
 

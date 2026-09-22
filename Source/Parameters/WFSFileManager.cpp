@@ -1,6 +1,7 @@
 #include "WFSFileManager.h"
 #include "WFSParameterIDs.h"
 #include "WFSParameterDefaults.h"
+#include "EffectsSnapshotScope.h"
 #include "../AppSettings.h"
 #include "../Localization/LocalizationManager.h"
 #include "../Network/OSCParameterBounds.h"
@@ -1585,6 +1586,100 @@ const WFSFileManager::ScopeItemTable& WFSFileManager::inputScopeTable()
     return table;
 }
 
+const WFSFileManager::ScopeItemTable& WFSFileManager::effectScopeTable()
+{
+    // The effects family: plan revision 8 (one snapshot file carries both
+    // families). Property items live on the eight flat nodes and are found by
+    // hasProperty, exactly like the input items; the eleven module items are
+    // WHOLE NODES, keyed by node type, because FxEq1/FxEq2 and FxDyn1/FxDyn2
+    // repeat their property names and the <Band>/<Tap> children repeat theirs by
+    // index - see EffectsSnapshotScope.h. The display sections follow the
+    // Effects tab: Channel Parameters, Chain, Post-Processing, Movements.
+    //
+    // Never in any item: effectSolo (monitoring) and effectOtomoPauseResume (the
+    // run-state of a motion), which unlike their input twins ARE persisted in
+    // the tree - so they are kept out of snapshots by omission, and phase Q of
+    // the channel-list self-test says so. effectName is always carried.
+    static const ScopeItemTable table = []
+    {
+        static const juce::Identifier Modules ("Modules");
+
+        ScopeItemTable t;
+        t.items = {
+            // Effect (the Channel node)
+            { "fxLevel", "Attenuation/Latency", Effect, { effectAttenuation, effectDelayLatency, effectMinimalLatency } },
+            { "fxMute",  "Mute",                Effect, { effectMute } },
+            { "fxLink",  "Link Group",          Effect, { effectLinkGroup, effectLinkMode } },
+
+            // Position
+            { "fxPosition",     "Position (XYZ)", Position, { effectPositionX, effectPositionY, effectPositionZ, effectCoordinateMode } },
+            { "fxReturnOffset", "Return Offset",  Position, { effectReturnOffsetX, effectReturnOffsetY, effectReturnOffsetZ } },
+
+            // Feed
+            { "fxFeed", "Feed", Feed, { effectOrientation, effectAngleOn, effectAngleOff, effectPitch,
+                                        effectHFdamping, effectFeedMiniLatency, effectDistanceAttenPercent } },
+
+            // Return (the node whose C++ identifier is ReverbReturn)
+            { "fxReturnLaw",   "Attenuation Law", ReverbReturn, { effectAttenuationLaw, effectDistanceAttenuation, effectDistanceRatio,
+                                                                  effectCommonAtten, effectHFshelf } },
+            { "fxMutes",       "Mutes",           ReverbReturn, { effectMutes, effectMuteMacro, effectMuteReverbSends } },
+            { "fxArrayAttens", "Array Attens",    ReverbReturn, { effectArrayAtten1, effectArrayAtten2, effectArrayAtten3, effectArrayAtten4,
+                                                                  effectArrayAtten5, effectArrayAtten6, effectArrayAtten7, effectArrayAtten8,
+                                                                  effectArrayAtten9, effectArrayAtten10 } },
+
+            // Chain
+            { "fxChain", "Order/Bypass", Chain, { effectChainOrder, effectChainBypass } },
+
+            // Modules: one whole node each (bands and taps included)
+            { "fxDist",   "Distortion",       Modules, {}, FxDist },
+            { "fxEq1",    "EQ 1",             Modules, {}, FxEq1 },
+            { "fxEq2",    "EQ 2",             Modules, {}, FxEq2 },
+            { "fxDyn1",   "Dynamics 1",       Modules, {}, FxDyn1 },
+            { "fxDyn2",   "Dynamics 2",       Modules, {}, FxDyn2 },
+            { "fxMod",    "Chorus / Flanger", Modules, {}, FxMod },
+            { "fxPhaser", "Phaser",           Modules, {}, FxPhaser },
+            { "fxTrem",   "Tremolo",          Modules, {}, FxTrem },
+            { "fxReverb", "Reverb",           Modules, {}, FxReverb },
+            { "fxDelay",  "Multitap Delay",   Modules, {}, FxDelay },
+            { "fxCrush",  "Bitcrusher",       Modules, {}, FxCrush },
+
+            // Sends (the Post-Processing matrix): whole rows
+            { "fxSendsInputs",  "From Inputs",  Sends, { effectSendLevels, effectSendOns } },
+            { "fxSendsEffects", "From Effects", Sends, { effectFxSendLevels, effectFxSendOns } },
+
+            // LFO
+            { "fxLfoEnable", "Enable/Period", LFO, { effectLFOactive, effectLFOperiod, effectLFOphase } },
+            { "fxLfoX",      "LFO X",         LFO, { effectLFOshapeX, effectLFOrateX, effectLFOamplitudeX, effectLFOphaseX } },
+            { "fxLfoY",      "LFO Y",         LFO, { effectLFOshapeY, effectLFOrateY, effectLFOamplitudeY, effectLFOphaseY } },
+            { "fxLfoZ",      "LFO Z",         LFO, { effectLFOshapeZ, effectLFOrateZ, effectLFOamplitudeZ, effectLFOphaseZ } },
+
+            // AutomOtion (return-only: there is no StayReturn on an effect)
+            { "fxOtomoDestination",  "Destination",   AutomOtion, { effectOtomoX, effectOtomoY, effectOtomoZ, effectOtomoAbsoluteRelative,
+                                                                    effectOtomoCoordinateMode, effectOtomoR, effectOtomoTheta,
+                                                                    effectOtomoRsph, effectOtomoPhi } },
+            { "fxOtomoMovement",     "Movement",      AutomOtion, { effectOtomoSpeedProfile, effectOtomoDuration, effectOtomoCurve } },
+            { "fxOtomoAudioTrigger", "Audio Trigger", AutomOtion, { effectOtomoTrigger, effectOtomoThreshold, effectOtomoReset } },
+        };
+
+        t.sectionIds = { Effect, Position, Feed, ReverbReturn, Chain, Modules, Sends, LFO, AutomOtion };
+
+        t.sectionLabelKeys = {
+            { Effect,       "snapshotScope.sections.effect" },
+            { Position,     "snapshotScope.sections.position" },
+            { Feed,         "snapshotScope.sections.feed" },
+            { ReverbReturn, "snapshotScope.sections.return" },
+            { Chain,        "snapshotScope.sections.chain" },
+            { Modules,      "snapshotScope.sections.modules" },
+            { Sends,        "snapshotScope.sections.sends" },
+            { LFO,          "snapshotScope.sections.lfo" },
+            { AutomOtion,   "snapshotScope.sections.automOtion" }
+        };
+        return t;
+    }();
+
+    return table;
+}
+
 //==============================================================================
 // Scope Matrix - the per-item, per-channel state machine of one family
 //==============================================================================
@@ -1770,7 +1865,8 @@ WFSFileManager::ScopeMatrix::getOverallState (int numChannels) const
 // Extended Snapshot Scope - whole-scope operations
 //==============================================================================
 
-bool WFSFileManager::ExtendedSnapshotScope::isEquivalentTo (const ExtendedSnapshotScope& other, int numChannels) const
+bool WFSFileManager::ExtendedSnapshotScope::isEquivalentTo (const ExtendedSnapshotScope& other,
+                                                            int numInputs, int numEffects) const
 {
     if (applyMode != other.applyMode)
         return false;
@@ -1782,13 +1878,15 @@ bool WFSFileManager::ExtendedSnapshotScope::isEquivalentTo (const ExtendedSnapsh
     if (midiChannel != other.midiChannel || midiNote != other.midiNote)
         return false;
 
-    return inputs.isEquivalentTo (other.inputs, numChannels);
+    return inputs.isEquivalentTo (other.inputs, numInputs)
+        && effects.isEquivalentTo (other.effects, numEffects);
 }
 
 void WFSFileManager::ExtendedSnapshotScope::initializeDefaults (int numChannels)
 {
     juce::ignoreUnused (numChannels);
     inputs.clear();
+    effects.clear();
     applyMode = ApplyMode::OnRecall;
     clearMidiBinding();  // a fresh scope must never inherit another snapshot's note
     // All scope items default to included (missing = included convention)
@@ -2052,7 +2150,8 @@ bool WFSFileManager::loadScopeTemplateGrid (const juce::String& templateName, Ex
     }
 
     auto loaded = deserializeExtendedScope (scopeTree);
-    target.inputs.itemChannelStates = std::move (loaded.inputs.itemChannelStates);
+    target.inputs.itemChannelStates  = std::move (loaded.inputs.itemChannelStates);
+    target.effects.itemChannelStates = std::move (loaded.effects.itemChannelStates);
     return true;
 }
 
@@ -2285,64 +2384,132 @@ void WFSFileManager::readMidiBindingFromRoot (const juce::ValueTree& snapshot, E
         scope.clearMidiBinding();  // absent / partial / garbage = unbound
 }
 
+namespace
+{
+    /** One grid's channel partition, written onto `scopeTree`: fullChannels,
+        excludedChannels and one <PartialChannel index excludedItems> per partial
+        channel, channels written as `keyOf (slot)`. The input grid writes it
+        onto <ExtendedScope> itself - byte for byte what every earlier build
+        wrote - and the effects grid onto its <EffectsScope> child. */
+    void writeScopeMatrix (juce::ValueTree& scopeTree, const WFSFileManager::ScopeMatrix& matrix,
+                           int numChannels, const std::function<int (int)>& keyOf)
+    {
+        using InclusionState = WFSFileManager::ScopeMatrix::InclusionState;
+
+        // Find channels that are fully included, fully excluded, or partial
+        std::vector<int> fullChannels, excludedChannels, partialChannels;
+
+        for (int ch = 0; ch < numChannels; ++ch)
+        {
+            auto state = matrix.getChannelState (ch);
+            if (state == InclusionState::AllIncluded)
+                fullChannels.push_back (ch);
+            else if (state == InclusionState::AllExcluded)
+                excludedChannels.push_back (ch);
+            else
+                partialChannels.push_back (ch);
+        }
+
+        // Serialize full channels
+        if (!fullChannels.empty())
+        {
+            juce::StringArray indices;
+            for (int ch : fullChannels)
+                indices.add (juce::String (keyOf (ch)));
+            scopeTree.setProperty ("fullChannels", indices.joinIntoString (","), nullptr);
+        }
+
+        // Serialize excluded channels
+        if (!excludedChannels.empty())
+        {
+            juce::StringArray indices;
+            for (int ch : excludedChannels)
+                indices.add (juce::String (keyOf (ch)));
+            scopeTree.setProperty ("excludedChannels", indices.joinIntoString (","), nullptr);
+        }
+
+        // Serialize partial channels
+        for (int ch : partialChannels)
+        {
+            juce::ValueTree partialTree ("PartialChannel");
+            partialTree.setProperty ("index", keyOf (ch), nullptr);
+
+            juce::StringArray excludedItems;
+            for (const auto& item : matrix.getTable().items)
+            {
+                if (!matrix.isIncluded (item.itemId, ch))
+                    excludedItems.add (item.itemId);
+            }
+
+            if (!excludedItems.isEmpty())
+                partialTree.setProperty ("excludedItems", excludedItems.joinIntoString (","), nullptr);
+
+            scopeTree.appendChild (partialTree, nullptr);
+        }
+    }
+
+    /** The reader of writeScopeMatrix. `slotOf` maps an on-disk key to a live
+        slot, negative when nothing live carries it: such entries are dropped.
+        fullChannels is never read - absent is already included. */
+    void readScopeMatrix (const juce::ValueTree& scopeTree, WFSFileManager::ScopeMatrix& matrix,
+                          int numChannels, const std::function<int (int)>& slotOf)
+    {
+        auto excludedStr = scopeTree.getProperty ("excludedChannels").toString();
+        if (excludedStr.isNotEmpty())
+        {
+            juce::StringArray indices;
+            indices.addTokens (excludedStr, ",", "");
+            for (const auto& idx : indices)
+            {
+                int ch = slotOf (idx.getIntValue());
+                if (ch >= 0 && ch < numChannels)
+                    matrix.setAllItemsForChannel (ch, false);
+            }
+        }
+
+        for (int i = 0; i < scopeTree.getNumChildren(); ++i)
+        {
+            auto partialTree = scopeTree.getChild (i);
+            if (partialTree.getType().toString() == "PartialChannel")
+            {
+                int ch = slotOf (static_cast<int> (partialTree.getProperty ("index")));
+                if (ch >= 0 && ch < numChannels)
+                {
+                    auto excludedItems = partialTree.getProperty ("excludedItems").toString();
+                    if (excludedItems.isNotEmpty())
+                    {
+                        juce::StringArray items;
+                        items.addTokens (excludedItems, ",", "");
+                        for (const auto& itemId : items)
+                            matrix.setIncluded (itemId, ch, false);
+                    }
+                }
+            }
+        }
+    }
+}
+
 juce::ValueTree WFSFileManager::serializeExtendedScope (const ExtendedSnapshotScope& scope, int numChannels) const
 {
     juce::ValueTree scopeTree ("ExtendedScope");
     scopeTree.setProperty ("applyMode", scope.applyMode == ExtendedSnapshotScope::ApplyMode::OnSave ? "OnSave" : "OnRecall", nullptr);
 
-    // Find channels that are fully included, fully excluded, or partial
-    std::vector<int> fullChannels, excludedChannels, partialChannels;
+    // On disk, input channels are identified by their PERMANENT number
+    // (identical to slot + 1 for legacy dense files, so old snapshots parse
+    // unchanged); in memory the scope stays slot-keyed.
+    writeScopeMatrix (scopeTree, scope.inputs, numChannels,
+                      [this] (int slot) { return valueTreeState.getInputChannelNumber (slot); });
 
-    for (int ch = 0; ch < numChannels; ++ch)
+    // The effects grid, as a child: effect ids are dense, so the key is the
+    // index + 1. Written only while the session HAS effects, so a snapshot of
+    // an effect-less show is the file it always was - and an absent
+    // <EffectsScope> reads back as "every effect item included".
+    const int numEffects = valueTreeState.getNumEffectChannels();
+    if (numEffects > 0)
     {
-        auto state = scope.getChannelState (ch);
-        if (state == ExtendedSnapshotScope::InclusionState::AllIncluded)
-            fullChannels.push_back (ch);
-        else if (state == ExtendedSnapshotScope::InclusionState::AllExcluded)
-            excludedChannels.push_back (ch);
-        else
-            partialChannels.push_back (ch);
-    }
-
-    // On disk, channels are identified by their PERMANENT number (identical
-    // to slot + 1 for legacy dense files, so old snapshots parse unchanged);
-    // in memory the scope stays slot-keyed.
-    // Serialize full channels
-    if (!fullChannels.empty())
-    {
-        juce::StringArray indices;
-        for (int ch : fullChannels)
-            indices.add (juce::String (valueTreeState.getInputChannelNumber (ch)));
-        scopeTree.setProperty ("fullChannels", indices.joinIntoString (","), nullptr);
-    }
-
-    // Serialize excluded channels
-    if (!excludedChannels.empty())
-    {
-        juce::StringArray indices;
-        for (int ch : excludedChannels)
-            indices.add (juce::String (valueTreeState.getInputChannelNumber (ch)));
-        scopeTree.setProperty ("excludedChannels", indices.joinIntoString (","), nullptr);
-    }
-
-    // Serialize partial channels
-    for (int ch : partialChannels)
-    {
-        juce::ValueTree partialTree ("PartialChannel");
-        partialTree.setProperty ("index", valueTreeState.getInputChannelNumber (ch), nullptr);
-
-        // Collect excluded items for this channel (store whichever list is shorter)
-        juce::StringArray excludedItems;
-        for (const auto& item : ExtendedSnapshotScope::getScopeItems())
-        {
-            if (!scope.isIncluded (item.itemId, ch))
-                excludedItems.add (item.itemId);
-        }
-
-        if (!excludedItems.isEmpty())
-            partialTree.setProperty ("excludedItems", excludedItems.joinIntoString (","), nullptr);
-
-        scopeTree.appendChild (partialTree, nullptr);
+        juce::ValueTree effectsTree ("EffectsScope");
+        writeScopeMatrix (effectsTree, scope.effects, numEffects, [] (int fx) { return fx + 1; });
+        scopeTree.appendChild (effectsTree, nullptr);
     }
 
     return scopeTree;
@@ -2358,44 +2525,17 @@ WFSFileManager::ExtendedSnapshotScope WFSFileManager::deserializeExtendedScope (
         ? ExtendedSnapshotScope::ApplyMode::OnSave
         : ExtendedSnapshotScope::ApplyMode::OnRecall;
 
-    int numChannels = valueTreeState.getNumInputChannels();
+    // Input channels are stored as permanent numbers; entries whose number has
+    // no live channel are dropped.
+    readScopeMatrix (scopeTree, scope.inputs, valueTreeState.getNumInputChannels(),
+                     [this] (int number) { return valueTreeState.getSlotForChannelNumber (number); });
 
-    // Parse excluded channels (stored as permanent numbers; entries whose
-    // number has no live channel are dropped)
-    auto excludedStr = scopeTree.getProperty ("excludedChannels").toString();
-    if (excludedStr.isNotEmpty())
-    {
-        juce::StringArray indices;
-        indices.addTokens (excludedStr, ",", "");
-        for (const auto& idx : indices)
-        {
-            int ch = valueTreeState.getSlotForChannelNumber (idx.getIntValue());
-            if (ch >= 0 && ch < numChannels)
-                scope.setAllItemsForChannel (ch, false);
-        }
-    }
-
-    // Parse partial channels
-    for (int i = 0; i < scopeTree.getNumChildren(); ++i)
-    {
-        auto partialTree = scopeTree.getChild (i);
-        if (partialTree.getType().toString() == "PartialChannel")
-        {
-            int ch = valueTreeState.getSlotForChannelNumber (
-                         static_cast<int> (partialTree.getProperty ("index")));
-            if (ch >= 0 && ch < numChannels)
-            {
-                auto excludedItems = partialTree.getProperty ("excludedItems").toString();
-                if (excludedItems.isNotEmpty())
-                {
-                    juce::StringArray items;
-                    items.addTokens (excludedItems, ",", "");
-                    for (const auto& itemId : items)
-                        scope.setIncluded (itemId, ch, false);
-                }
-            }
-        }
-    }
+    // Effect channels are stored as dense ids; ids beyond the live count are
+    // dropped the same way.
+    auto effectsTree = scopeTree.getChildWithName ("EffectsScope");
+    if (effectsTree.isValid())
+        readScopeMatrix (effectsTree, scope.effects, valueTreeState.getNumEffectChannels(),
+                         [] (int effectId) { return effectId - 1; });
 
     return scope;
 }

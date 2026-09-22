@@ -345,6 +345,11 @@ public:
     /** The input family's table. */
     static const ScopeItemTable& inputScopeTable();
 
+    /** The effects family's table (plan revision 8: one snapshot file carries
+        both families). Property items over the eight flat <Effect> nodes, one
+        WHOLE-NODE item per module - see EffectsSnapshotScope.h for why. */
+    static const ScopeItemTable& effectScopeTable();
+
     /** Per-item, per-channel inclusion over ONE family's table: the state machine
         the scope grid edits. Channels are live SLOTS in memory; the serializer
         writes them as each family's on-disk key. */
@@ -403,6 +408,11 @@ public:
 
         /** The input grid: input items x input SLOTS (permanent numbers on disk). */
         ScopeMatrix inputs { inputScopeTable() };
+
+        /** The effects grid: effect items x DENSE effect indexes (id - 1 on disk,
+            in <ExtendedScope><EffectsScope>). Absent there = every item included,
+            which is what a snapshot written before the effects existed reads as. */
+        ScopeMatrix effects { effectScopeTable() };
 
         using InclusionState = ScopeMatrix::InclusionState;
 
@@ -468,10 +478,11 @@ public:
         //----------------------------------------------------------------------
 
         /** Semantic equality: same apply mode, same MIDI binding and the same
-            inclusion across every item and channel of the grid. */
-        bool isEquivalentTo (const ExtendedSnapshotScope& other, int numChannels) const;
+            inclusion across every item and channel of BOTH grids - the effects
+            grid over numEffects channels. */
+        bool isEquivalentTo (const ExtendedSnapshotScope& other, int numInputs, int numEffects) const;
 
-        /** Initialize with all items included for all channels */
+        /** Initialize with all items included for all channels of both grids */
         void initializeDefaults (int numChannels);
 
         /** Return a copy of this scope with global-master gates folded in.

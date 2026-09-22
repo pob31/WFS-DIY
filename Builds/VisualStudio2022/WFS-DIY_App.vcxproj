@@ -3457,6 +3457,7 @@
     <ClInclude Include="..\..\Source\Parameters\WFSFileManager.h"/>
     <ClInclude Include="..\..\Source\Parameters\ParameterDirtyTracker.h"/>
     <ClInclude Include="..\..\Source\Parameters\EffectParamEdit.h"/>
+    <ClInclude Include="..\..\Source\Parameters\EffectsSnapshotScope.h"/>
     <ClInclude Include="..\..\Source\gui\StatusBar.h"/>
     <ClInclude Include="..\..\Source\gui\UpdateBanner.h"/>
     <ClInclude Include="..\..\Source\gui\GettingStartedWizard.h"/>

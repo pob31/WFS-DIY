@@ -43,6 +43,8 @@
               resource="0" file="Source/Parameters/ParameterDirtyTracker.h"/>
         <FILE id="wfsFxEdit" name="EffectParamEdit.h" compile="0" resource="0"
               file="Source/Parameters/EffectParamEdit.h"/>
+        <FILE id="wfsFxSnapScope" name="EffectsSnapshotScope.h" compile="0" resource="0"
+              file="Source/Parameters/EffectsSnapshotScope.h"/>
       </GROUP>
       <GROUP id="{GUIGROUP1}" name="gui">
         <FILE id="guiStatus" name="StatusBar.h" compile="0" resource="0" file="Source/gui/StatusBar.h"/>

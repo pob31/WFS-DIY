@@ -5,6 +5,7 @@
 #include "gui/ChannelIdentityGate.h"
 #include "AppSettings.h"
 #include "Parameters/WFSParameterIDs.h"
+#include "Parameters/EffectsSnapshotScope.h"
 #include "Localization/LocalizationManager.h"
 #include "Accessibility/TTSManager.h"
 #include "Network/QLabCueBuilder.h"
@@ -4371,6 +4372,118 @@ void MainComponent::runChannelListSelfTest()
         for (const auto& e : kNotSnapshotted)
             check(! WFSFileManager::isPropertyCoveredBySnapshotScope(juce::Identifier(e.name)),
                   juce::String("T: '") + e.name + "' is still deliberately excluded");
+    }
+
+    // ---- Q: every per-effect property is either snapshotted or explicitly not --
+    // T's twin for the effects half of a snapshot (plan revision 8: one file
+    // carries both families). The same trap applies - store and recall read the
+    // same table, so an omission round-trips perfectly green - and one more: the
+    // effects scope is NODE-driven for the eleven modules, so the walk visits
+    // every direct child of an <Effect> AND their <Band>/<Tap> children, asking
+    // the predicate the store, the recall and the trim all use.
+    {
+        namespace ESS = EffectsSnapshotScope;
+
+        const int effectsBefore = vts.getNumEffectChannels();
+        if (effectsBefore == 0)
+            vts.setNumEffectChannels(1);
+
+        auto effect = vts.getEffectState(0);
+        check(effect.isValid(), "Q: an effect channel to walk");
+
+        int walked = 0;
+        int uncovered = 0;
+
+        std::function<void (const juce::ValueTree&, const juce::Identifier&)> walk;
+        walk = [&](const juce::ValueTree& node, const juce::Identifier& childOfEffect)
+        {
+            for (int i = 0; i < node.getNumProperties(); ++i)
+            {
+                const auto prop = node.getPropertyName(i);
+                if (prop == WFSParameterIDs::id)
+                    continue;
+
+                ++walked;
+                if (ESS::isEffectPropertyCovered(childOfEffect, prop))
+                    continue;
+
+                bool listed = false;
+                for (const auto& e : ESS::notSnapshotted())
+                    if (prop.toString() == e.name) { listed = true; break; }
+
+                if (! listed)
+                {
+                    ++uncovered;
+                    logLine("SELF-TEST FAIL Q: <" + childOfEffect.toString() + "> property '"
+                            + prop.toString() + "' is in no effects scope item and is not on the "
+                            "deliberately-not-snapshotted list - it will be silently absent "
+                            "from every snapshot");
+                }
+            }
+
+            for (int c = 0; c < node.getNumChildren(); ++c)
+                walk(node.getChild(c), childOfEffect);
+        };
+
+        for (int c = 0; c < effect.getNumChildren(); ++c)
+            walk(effect.getChild(c), effect.getChild(c).getType());
+
+        // 257 today; the floor only says the walk reached the modules at all.
+        check(walked > 200 && uncovered == 0,
+              "Q: every per-effect property (" + juce::String(walked)
+              + " walked, bands and taps included) is either snapshotted or explicitly excluded");
+
+        // The other direction, asked of the node each excluded property LIVES
+        // on (any module node answers "covered" for any name, since a module is
+        // carried whole) - and an exclusion whose property no node carries any
+        // more is a stale claim, so that fails too.
+        for (const auto& e : ESS::notSnapshotted())
+        {
+            const juce::Identifier prop (e.name);
+            juce::ValueTree home;
+            for (int c = 0; c < effect.getNumChildren() && ! home.isValid(); ++c)
+                if (effect.getChild(c).hasProperty(prop))
+                    home = effect.getChild(c);
+
+            check(home.isValid() && ! ESS::isEffectPropertyCovered(home.getType(), prop),
+                  juce::String("Q: '") + e.name + "' is still deliberately excluded (on <"
+                  + (home.isValid() ? home.getType().toString() : juce::String("no node")) + ">)");
+        }
+
+        // And the table names nothing the channel lacks: a mistyped property in
+        // an item would be carried by no snapshot while the grid offered it.
+        int ghosts = 0;
+        for (const auto& item : WFSFileManager::effectScopeTable().items)
+        {
+            if (item.nodeType.isValid())
+            {
+                if (! effect.getChildWithName(item.nodeType).isValid())
+                {
+                    ++ghosts;
+                    logLine("SELF-TEST FAIL Q: item '" + item.itemId + "' names module node <"
+                            + item.nodeType.toString() + "> which the channel does not have");
+                }
+                continue;
+            }
+
+            for (const auto& p : item.parameterIds)
+            {
+                bool found = false;
+                for (int c = 0; c < effect.getNumChildren() && ! found; ++c)
+                    found = ESS::isFlatNode(effect.getChild(c).getType()) && effect.getChild(c).hasProperty(p);
+
+                if (! found)
+                {
+                    ++ghosts;
+                    logLine("SELF-TEST FAIL Q: item '" + item.itemId + "' names '" + p.toString()
+                            + "', which no flat node of the channel carries");
+                }
+            }
+        }
+        check(ghosts == 0, "Q: every effects scope item names a node or property the channel has");
+
+        if (effectsBefore == 0)
+            vts.setNumEffectChannels(0);
     }
 
     // ---- I: channel identity gate --------------------------------------------

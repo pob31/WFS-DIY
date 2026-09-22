@@ -4806,6 +4806,9 @@
     <ClInclude Include="..\..\Source\Parameters\EffectParamEdit.h">
       <Filter>WFS-DIY\Source\Parameters</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Parameters\EffectsSnapshotScope.h">
+      <Filter>WFS-DIY\Source\Parameters</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\gui\StatusBar.h">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>
