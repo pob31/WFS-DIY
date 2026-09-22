@@ -78,6 +78,12 @@ The application has established a solid foundation with infrastructure and core 
   - "Pre-Processing" (4-band parametric pre-EQ per-channel with Flatten + per-band Reset long-press + interactive EQ display + global pre-compressor with GR meter)
   - "Algorithm" (SDN/FDN/IR selector, decay params, algorithm-specific params, wet level — global, with full DSP engine)
   - "Post-Processing" (4-band parametric post-EQ global + global post-expander with GR meter)
+- **EffectsTab** (`Source/gui/effects/`, main tab 4 = `TabIndex::Effects`, between Reverb and Inputs) - Header mirrors the Reverb tab: channel selector, name, Effects Visible on Map, Edit on Map, three engine LEDs (loop guard, cycle, entry point), Solo Effects (long-press), Mute, Solo (long-press), Clear (long-press; Ctrl = every chain). Every GUI write goes through `EffectParamEdit` (the link funnel). Five sub-tabs:
+  - "Channel Parameters" (link row: group, mode, Mute Group; then the Reverb tab's 3 columns: attenuation/latency/position + return offset, Effect Feed orientation, Effect Return law/mutes/array attenuation)
+  - "Chain" (link badge, chain bypass, latency, the draggable 11-tile strip with engine meters; module panels generated from `WFS-UI_effects.csv` by `tools/gen_effects_module_ui.py`, plus EQ display, GR meter, delay tap rows, reverb presets)
+  - "Post-Processing" (the whole sends matrix: spatcore's `SendMatrixComponent` bound by `EffectsSendMatrixShim.cpp`)
+  - "Movements" (LFO left, AutomOtion right, the Inputs tab's geometry; both are offsets the engine adds)
+  - "Settings" (the nine `effectsGlobal*` + long-press Re-layout)
 - **MapTab** - Spatial visualization
 
 ### Floating Windows
@@ -2643,6 +2649,7 @@ These files are the canonical reference for every user-facing parameter, control
 - `Documentation/WFS-UI_input.csv` — InputsTab (191 rows, includes Sampler subsystem)
 - `Documentation/WFS-UI_output.csv` — OutputsTab
 - `Documentation/WFS-UI_reverb.csv` — ReverbTab
+- `Documentation/WFS-UI_effects.csv` — EffectsTab (221 rows; the 116 module rows also GENERATE `Source/gui/effects/EffectsModuleDescriptors.h` and the `effects.*` strings through `tools/gen_effects_module_ui.py`; registered in the bounds audit, NOT yet in codegen - C9)
 - `Documentation/WFS-UI_clusters.csv` — ClustersTab
 - `Documentation/WFS-UI_audioPatch.csv` — AudioInterfaceWindow (AudioPatchTab + PatchMatrixComponent + TestSignalGenerator)
 

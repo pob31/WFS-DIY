@@ -2,6 +2,26 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
+## Unreleased
+
+### Added
+- **The Effects tab.** A new main tab between Reverb and Inputs edits the effects channels that Phase 5 wired into the engine: up to 32 chains of eleven modules, each fed by inputs and by other effects and returning to the stage as a WFS source. Five sub-tabs: Channel Parameters (the Reverb tab's layout, with the link-group row on top), Chain (a draggable strip of the eleven modules with the engine's meters, and the selected module's parameters), Post-Processing (the whole sends matrix), Movements (LFO and AutomOtion, laid out like the Inputs tab's) and Settings (the nine shared settings and Re-layout). A help card per sub-tab.
+- **Link groups for effects.** A channel in a link group shares its chain - order, bypasses, module parameters - with the other members according to each member's own link mode (Off, Absolute, Relative), while its movements, sends, mutes and position never propagate. Ctrl-drag edits one channel alone. Mute Group mutes every member once and leaves each independently editable.
+- **An LFO on the effect returns.** The input LFO minus gyrophone; it travels as an offset the engine adds to the AutomOtion's, and the return always comes home.
+- **Effect returns on the Map.** A teal rounded square per return, draggable in Edit on Map, with the grey dot showing where a movement has taken it.
+- **Stream Deck pages for the Effects tab**, one per sub-tab; the Chain page follows the module selected in the GUI and every hardware edit propagates to the link group.
+- **Four inbound OSC verbs**: `/wfs/effect/selected <ID>`, `/wfs/effect/editOnMap <0|1>`, `/wfs/effect/clear <ID>` and `/wfs/effect/clearAll`. Each acceptance and each refusal writes a line to the session log.
+- **Effects in the level-meter window**: a feed / return meter pair per effect in the sources row and an engine-duty bar in the controls row.
+- **Array attenuation and a per-channel link mode on effects** (`effectArrayAtten1..10`, `effectLinkMode`), and an Effects Channels count on System Config.
+
+### Changed
+- **Inputs, Clusters and Map moved up one main-tab index** to make room for Effects. Nothing persists a main-tab index, so nothing migrates; the Stream Deck, Space Mouse and Map navigation are written against the named indices in `Source/gui/TabIndex.h`.
+- **The three AutomOtion transport buttons** now live in `Source/gui/buttons/TransportButtons.h`, drawn identically on the Inputs and Effects tabs.
+
+### Chore / Internal
+- **The module controls of the Chain sub-tab are generated from `Documentation/WFS-UI_effects.csv`** by `tools/gen_effects_module_ui.py` (descriptors and strings); the CSV gained 26 rows (link mode, ten array trims, fifteen LFO parameters).
+- **spatcore v0.3.3**: the schema-free send-matrix widget and the per-slot meter read.
+- **Self-test phases A, L, O7, G1/G2** and the OSC replay's verb assertions, each mutation-tested.
 ## v1.0.0beta51 — 2026-09-15
 
 ### Fixed

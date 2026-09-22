@@ -1313,3 +1313,68 @@ table that has not been written.
 
 ---
 
+### 12.8 Revision-7: what the Phase 6 interface forced back (2026-09-22)
+
+The corrections below come from drawing the Effects tab, its Stream Deck pages and its OSC verbs.
+Where this section and the body disagree, this section is right. The user's four decisions taken
+before the first commit (D1-D4) open the list.
+
+- **R7-1 — the entry point is emergent.** No property names it: the tab derives an "entry" badge
+  for any effect with at least one input send switched on, from the send rows, stored nowhere (D1).
+
+- **R7-2 — membership follows the output-array model.** One `effectLinkGroup` plus a per-channel
+  `effectLinkMode` (Off / Absolute / Relative, the mirror of `outputApplyToArray`); no second bunch
+  identifier. Propagation reads the RECEIVER's mode (D2, R5-5).
+
+- **R7-3 — the group mute is an action on `effectMute` only.** It writes every member once, in one
+  undo transaction, and never touches the per-output row (D3, R5-2).
+
+- **R7-4 — the link funnel landed in phase 6, not 7.** `EffectParamEdit.h` mirrors `ArrayParamEdit`
+  (write / writeModule / writeBand / writeTap, Ctrl = bypass per write); every GUI and Stream Deck
+  write goes through it, OSC and MCP writes bypass it (D4).
+
+- **R7-5 — the effects gained an LFO** (user request during the phase): fifteen `effectLFO*` on a
+  new `<LFO>` node, the input set MINUS gyrophone because a return is an omnidirectional render
+  source. `LFOProcessor` learned which family it animates (`LFOFamily`, the twin of
+  `AutomOtionFamily`); the engine keeps a second per-effect offset slot that ADDS to the AutomOtion
+  offset in both return compositions, and the Map reads the sum. Excluded from link propagation
+  like every movement.
+
+- **R7-6 — the reverb module applies no preset.** Nothing in the engine reads `effectReverbType`
+  beyond copying it into the params POD, so the GUI applies the preset: choosing a type writes the
+  preset's eight values through the funnel, and an edit to one of them turns the type back to
+  Custom. The CSV default (Room) does not match the default values; open.
+
+- **R7-7 — the module controls are generated.** `tools/gen_effects_module_ui.py` reads the
+  116 module rows of the CSV and emits `EffectsModuleDescriptors.h` (kind, range, default, unit,
+  enum per row) together with the `effects.labels / help / enums / modules / chain` strings, so the
+  two cannot drift; the GUI panel and the Stream Deck Chain page both consume the descriptors. Only
+  the EQ display and band strips, the Dynamics GR meter, the delay tap rows and the reverb presets
+  are hand-written.
+
+- **R7-8 — the per-slot meter indexes the declared slot.** `getSlotMeterDb (fx, slot)` reads
+  `chains[fx]->getSlot (slot)`, i.e. `kSlots` order, not the chain position; Dynamics report gain
+  reduction, the others their output peak. With no engine the GUI passes -120 dB and treats
+  anything below -60 dB as "no data".
+
+- **R7-9 — the verbs log to the session log.** Each accepted `selected` / `editOnMap` / `clear` /
+  `clearAll` writes one session-log line by address, and every refusal (a missing channel, a bad
+  value, the phase-7 snapshot verbs) reaches the session log through the same throttled path as
+  the parser's - the OSC replay asserts both halves, and the mutation of the clearAll line was
+  caught. No golden moved: the verbs store nothing.
+
+- **R7-10 — the globals are config, written outside the funnel.** The Settings sub-tab and the
+  Stream Deck Settings page write the nine `effectsGlobal*` through `setConfigParam` /
+  `setParameter` under the main undo manager; all but the loop-guard switch apply at the next
+  Processing start, and the tab says so. An `<EffectsGlobal>` write refreshes every reader of the
+  link-group names (the channel combo, the chain badge, the sends matrix).
+
+- **R7-11 — the tab reads like its neighbours.** The header follows `ReverbTab::layoutHeader` width
+  for width; the Movements sub-tab follows `InputsTab::layoutMovementsTab` constant for constant
+  (minus gyrophone, jitter and Stay/Return); the sub-tab order is Channel Parameters / Chain /
+  Post-Processing (the matrix) / Movements / Settings. The three transport buttons moved from
+  InputsTab.h to `gui/buttons/TransportButtons.h` so both tabs draw the same transport.
+
+**Phase impact.** Phase 7 keeps the snapshot / MIDI / QLab scope (the two snapshot verbs and the
+footer's snapshot row are its); the outbound OSC / OSCQuery echo (C8) and the codegen / MCP
+registration of the effects CSV (C9 / C10) remain Phase 4 remainders.

@@ -332,7 +332,13 @@ public:
 
     std::vector<HelpCardButton*> getVisibleHelpButtons() override
     {
-        return {};   // help cards land with the panels
+        const int tab = subTabBar.getCurrentTabIndex();
+        if (tab == SubTab::Channel)   return { &channelHelpButton };
+        if (tab == SubTab::Chain)     return { &chainHelpButton };
+        if (tab == SubTab::Sends)     return { &sendsHelpButton };
+        if (tab == SubTab::Movements) return { &movementsHelpButton };
+        if (tab == SubTab::Settings)  return { &settingsHelpButton };
+        return {};
     }
 
 private:
@@ -501,6 +507,23 @@ private:
         addChildComponent (placeholderLabel);
         placeholderLabel.setJustificationType (juce::Justification::centred);
         placeholderLabel.setColour (juce::Label::textColourId, ColorScheme::get().textDisabled);
+
+        // One help card per sub-tab, the Reverb tab's three-line wiring
+        struct CardWiring { HelpCardButton* button; HelpCard* card; const char* key; };
+        const CardWiring cards[] = {
+            { &channelHelpButton,   &channelHelpCard,   "help.effects" },
+            { &chainHelpButton,     &chainHelpCard,     "help.effectsChain" },
+            { &sendsHelpButton,     &sendsHelpCard,     "help.effectsSends" },
+            { &movementsHelpButton, &movementsHelpCard, "help.effectsMovements" },
+            { &settingsHelpButton,  &settingsHelpCard,  "help.effectsSettings" },
+        };
+        for (const auto& w : cards)
+        {
+            addChildComponent (*w.card);
+            w.card->setContent (LOC (juce::String (w.key) + ".title"), LOC (juce::String (w.key) + ".body"));
+            w.button->setCard (w.card);
+            addChildComponent (*w.button);
+        }
     }
 
     void layoutCurrentSubTab()
@@ -526,6 +549,31 @@ private:
         const bool built = index == SubTab::Channel || index == SubTab::Chain
                         || index == SubTab::Movements || index == SubTab::Sends
                         || index == SubTab::Settings;
+
+        // The sub-tab's help button sits in the content area's top-right
+        // corner, over the panel; its card is centred when shown.
+        {
+            HelpCardButton* buttons[] = { &channelHelpButton, &chainHelpButton, &sendsHelpButton,
+                                          &movementsHelpButton, &settingsHelpButton };
+            HelpCard* cards[] = { &channelHelpCard, &chainHelpCard, &sendsHelpCard,
+                                  &movementsHelpCard, &settingsHelpCard };
+            const int btnSize = scaled (20);
+            const int cardW = juce::jmin (subTabContentArea.getWidth() - scaled (40), scaled (560));
+            for (int i = 0; i < 5; ++i)
+            {
+                const bool shown = has && index == i;
+                buttons[i]->setVisible (shown);
+                if (! shown)
+                    cards[i]->hide();
+                buttons[i]->setBounds (subTabContentArea.getRight() - btnSize - scaled (4),
+                                       subTabContentArea.getY() + scaled (4), btnSize, btnSize);
+                const int cardH = cards[i]->getIdealHeight (cardW);
+                cards[i]->setBounds (subTabContentArea.getCentreX() - cardW / 2,
+                                     subTabContentArea.getY() + scaled (30), cardW, cardH);
+                if (shown)
+                    buttons[i]->toFront (false);
+            }
+        }
         placeholderLabel.setVisible (has && ! built);
         placeholderLabel.setBounds (subTabContentArea);
         placeholderLabel.setText (subTabBar.getCurrentTabName(), juce::dontSendNotification);
@@ -1034,6 +1082,10 @@ private:
     EffectsSettingsPanel settingsPanel { ctx };
     juce::Label placeholderLabel;
     juce::Label noChannelsLabel;
+
+    // Help cards, one per sub-tab
+    HelpCardButton channelHelpButton, chainHelpButton, sendsHelpButton, movementsHelpButton, settingsHelpButton;
+    HelpCard channelHelpCard, chainHelpCard, sendsHelpCard, movementsHelpCard, settingsHelpCard;
 
     // Footer
     LongPressButton storeButton { 1000 };

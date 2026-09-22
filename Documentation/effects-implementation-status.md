@@ -1,15 +1,17 @@
 # Effects channels — implementation status and handoff
 
-**As of 2026-09-17, after Phase 5.** Branch `effects/phase-3`, working tree clean, submodules
-clean at their pins (`spatcore` v0.3.2 = `c9e67d2`). Phase 5 added eight commits and touched no
-spatcore file.
+**As of 2026-09-22, after Phase 6.** Branch `effects/phase-6`, working tree clean, submodules
+clean at their pins (`spatcore` v0.3.3 = `4523d1b`). Phase 6 added fourteen app commits and one
+spatcore commit (the schema-free send-matrix widget and the per-slot meter read, PR #14).
 
 An effect channel is now a render source of the show: its chain runs on the engine's own realtime
 thread, its return is popped into a render-source row of every block, the calculation engine
 computes the source-by-effect feed matrix and the return rows of the output and reverb matrices,
 AutomOtion can move a return by an offset, and the engine's meters are readable from the
-application. What is still missing is a control surface: Phase 4's OSC and tool entries, and the
-Effects tab of Phase 6.
+application, and since Phase 6 an operator can see and edit all of it from the Effects tab, the
+Stream Deck and the four tab-level OSC verbs (§9). What is still missing is the OUTBOUND half of
+the control surface (Phase 4's C8 echo and OSCQuery node, the C9/C10 tool entries) and the cue
+coverage of Phase 7.
 
 The design is `Documentation/effects-channels-plan.md`. Read its **§12.4 through §12.7** first —
 those are the correction logs, and essentially every line reference in §6 and §7 of the body is
@@ -67,7 +69,8 @@ OSCQuery publishes no `/wfs/effect` node, so the replay reads effects out of the
 `effects.xml` instead.
 
 An effects channel exists, persists and maintains itself correctly, **and nothing outside the
-application can read it back.**
+application can read it back.** (Phase 6 made it visible and editable from INSIDE the application
+and from a Stream Deck, and receives four inbound verbs; the outbound half is unchanged - see §9.)
 
 ### THE HANDOFF WARNING — RESOLVED, AND IT WAS WRONG
 
@@ -373,7 +376,7 @@ only one may build.
   branch of its own: binaural gates a source on its OWNING CHANNEL's solo bit, a return owns no
   input channel, and the bitmask reports false for -1. Binaural renders returns at their positions
   through the same kind-aware accessor the WFS path uses, so the origin hazard is closed on both
-  paths. An effects solo mask of its own comes with the Effects tab.
+  paths. The Effects tab's Solo Effects sets the mask since Phase 6.
 - **The reverb `handleConfigReloaded` gap is unchanged.** A project load whose reverb count differs
   from the prepared one does not call `setNumNodes`, resize the buffers or re-prepare the return
   processor. The effects path has the guard the reverb path lacks (it stops processing when the
@@ -412,8 +415,8 @@ only one may build.
 - **The OSC per-output mute form exists for `inputMutes` only.**
 - **The output EQ dispatcher ignores its band index entirely**, so a generic `eqGain` write always
   lands on band 1. Shipped.
-- **`effectsMapVisible` is stamped, persisted, routed and read by nothing** — its twin has live
-  readers.
+- **`effectsMapVisible` is read by the Map and the Effects tab header since Phase 6** (it used to
+  be stamped, persisted and routed with no reader).
 - **Snapshot/MIDI/QLab scope has zero effects coverage** (`getScopeItems()` has no effect entries),
   so an operator who builds a chain has no cue coverage for any of its 174 parameters. Phase 7.
 - **MCP session-info reports per-family channel counts without effects**, so a session with 8
@@ -424,3 +427,42 @@ only one may build.
 - **A deliberate trade-off, not a bug:** "never cut a per-output row" means a mute on an output the
   rig does not currently have survives UNMUTE ALL and the other grid macros, because the grid
   speaks only for the outputs it shows. The mute reappears with the outputs.
+
+---
+
+## 9. Phase 6 — the Effects tab: DONE
+
+Fourteen commits on `effects/phase-6` (2026-09-22), each gated on a Release build, the
+`WFS_TEST_CHANNEL_LIST` self-test, the seven control replays with no golden regenerated, the
+offline-render CPU canary, the kernel hashes, the dependency lint and the bounds audit. Every new
+assertion was mutation-tested (phases A, L, O7, G1/G2 and the OSC replay's verb needles). One
+spatcore commit (PR #14, tagged v0.3.3) added the schema-free `ui/sends/SendMatrixComponent` and
+`EffectsEngineCore::getSlotMeterDb`.
+
+| Commit | What it did |
+|---|---|
+| schema (G0) | `effectLinkMode` on the channel (the output-array model) and `effectArrayAtten1..10` on the return, read by the calc engine; the CSV registered in the bounds audit's own list (R5-7). |
+| link funnel (G1) | `EffectParamEdit.h`, the effects twin of `ArrayParamEdit`: propagation reads the RECEIVER's mode, mutes never propagate (R5-1), a group mute is an ACTION on every member's `effectMute` (R5-2). Self-test phase L. |
+| tab shell (G2) | `Source/gui/TabIndex.h` names every main-tab index; the Effects tab sits between Reverb and Inputs (Q14); the System Config count editor with its reduction dialog. |
+| Channel Parameters (G3) | `EffectsChannelPanel.h` in the Reverb tab's three-column geometry, the link row at the top; the Map draws the returns (teal rounded square, otomo dot). |
+| sends (G5) | `EffectsSendsPanel.h` + `EffectsSendMatrixShim.cpp`: the WHOLE matrix (inputs then effects as rows, effects as columns), the diagonal refused, entry and cycle badges; the header reworded to the Reverb tab's. |
+| LFO (user request) | Fifteen `effectLFO*` on a new `<LFO>` node (the input set minus gyrophone), `LFOFamily` on `LFOProcessor`, a second engine offset slot that ADDS to the AutomOtion's, self-test O7; the Movements sub-tab in the Inputs tab's geometry. |
+| Chain (G6) | `EffectsChainPanel.h` (link badge, chain bypass, latency, draggable tile strip with engine meters) + `EffectsModulePanel.h` driven by `EffectsModuleDescriptors.h`, GENERATED from the CSV by `tools/gen_effects_module_ui.py` with the strings; EQ display, GR meter, tap rows and reverb presets special-cased. Self-test G1/G2. |
+| Settings (G7) | `EffectsSettingsPanel.h`: the nine globals through `setConfigParam`, Re-layout clears the effects latch; an `<EffectsGlobal>` write refreshes every reader of the group names. |
+| Stream Deck (G9) | `EffectsTabPages.h`: five pages, every per-channel write through the funnel, the Chain page driven by the same descriptors. |
+| OSC verbs (G10) | selected / editOnMap / clear / clearAll received; each accepted verb and every refusal writes a session-log line the OSC replay asserts. Snapshot verbs still refused, naming phase 7. |
+| meters (G11) | The level-meter window shows a feed / return pair per effect and the engine's duty. |
+| help + docs (G12) | Five help cards, this section, the plan's §12.8, CLAUDE.md, the change log. |
+
+**What the interface forced back** is the plan's §12.8. The ones a reader of THIS document needs:
+
+- The reverb module applies NO preset from `effectReverbType`; the GUI writes the preset's eight
+  values through the funnel on selection and turns the type back to Custom on an edit. The CSV's
+  default type (Room, 0) does not match its default values - still open.
+- `getSlotMeterDb (fx, slot)` indexes the DECLARED slot (`kSlots` order), not the chain position;
+  Dynamics report gain reduction, everything else its output peak; -120 dB is the "no engine"
+  sentinel and the GUI treats anything below -60 dB as silence / no reduction.
+- Nine of the eleven modules need no code per control: the CSV row is the contract, the generator
+  emits the descriptor and the strings, and the GUI panel and the Stream Deck page both read them.
+- The Effects tab was not screenshot-verified for the Settings sub-tab (the dev box locked) and the
+  Stream Deck pages were not exercised on hardware (none attached); everything else was captured.
