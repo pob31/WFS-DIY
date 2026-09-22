@@ -71,6 +71,8 @@
                 file="Source/gui/effects/EffectsTab.h"/>
           <FILE id="guiFxChan" name="EffectsChannelPanel.h" compile="0" resource="0"
                 file="Source/gui/effects/EffectsChannelPanel.h"/>
+          <FILE id="guiFxMove" name="EffectsMovementsPanel.h" compile="0" resource="0"
+                file="Source/gui/effects/EffectsMovementsPanel.h"/>
         </GROUP>
         <FILE id="guiMapTab" name="MapTab.h" compile="0" resource="0" file="Source/gui/MapTab.h"/>
         <FILE id="guiMapTabWin" name="MapTabWindow.h" compile="0" resource="0"

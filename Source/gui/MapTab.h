@@ -431,6 +431,7 @@ public:
         drawOriginMarker(g);
         drawOutputs(g);
         drawReverbs(g);
+        drawEffects(g);
         drawBinauralListener(g);
         drawClusters(g);
         drawInputs(g);
@@ -833,6 +834,8 @@ public:
             {
                 selectedReverbNode = -1;
                 isDraggingReverb = false;
+                selectedEffectNode = -1;
+                isDraggingEffect = false;
                 if (e.mods.isShiftDown())
                 {
                     // Shift+click: toggle input in/out of multi-selection, no drag
@@ -988,6 +991,31 @@ public:
                 return;
             }
 
+            // Check for effect return marker hit
+            int hitEffect = getEffectAtPosition(e.position);
+            if (hitEffect >= 0)
+            {
+                if (effectEditMode)
+                {
+                    clearSelection();
+                    selectedEffectNode = hitEffect;
+                    isDraggingEffect = true;
+                    isDraggingInput = false;
+                    isDraggingReverb = false;
+                    isDraggingBarycenter = false;
+                    isInViewGesture = false;
+                    parameters.getValueTreeState().beginUndoTransaction ("Map Drag Effect " + juce::String (hitEffect + 1));
+                    if (onMapSelectionChanged) onMapSelectionChanged();
+                    grabKeyboardFocus();
+                }
+                else
+                {
+                    armLongPress(LongPressState::TargetType::Effect, hitEffect, e);
+                }
+                repaint();
+                return;
+            }
+
             // Left-click in empty area: start rubber-band selection
             if (!e.mods.isShiftDown())
                 clearSelection();
@@ -1131,6 +1159,14 @@ public:
                 }
             }
             repaint();
+            return;
+        }
+
+        // Handle effect return dragging. No mirror pair: effects are not laid
+        // out as left/right couples the way reverb nodes are.
+        if (isDraggingEffect && selectedEffectNode >= 0)
+        {
+            moveEffectTo (selectedEffectNode, screenToStage (e.position));
             return;
         }
 
@@ -1399,6 +1435,10 @@ public:
 
         isDraggingInput = false;
         isDraggingBarycenter = false;
+
+        // An effect return has no orientation to re-aim on release: its feed
+        // cone bearing is the operator's, not derived from where it sits.
+        isDraggingEffect = false;
 
         if (isDraggingReverb)
         {
@@ -2486,6 +2526,14 @@ public:
     /** Set callback to get LFO offsets for input visualization.
         The callback takes inputIndex and returns x, y, z offset values.
         If not set, LFO offsets are treated as zero. */
+    /** The AutomOtion offset of one effect return. Same shape as the LFO
+        callback: the offset lives in the calculation engine, never the tree,
+        so the Map has to ask for it rather than read it. */
+    void setEffectOtomoOffsetCallback(std::function<void(int, float&, float&, float&)> callback)
+    {
+        effectOtomoOffsetCallback = std::move(callback);
+    }
+
     void setLFOOffsetCallback(std::function<void(int, float&, float&, float&)> callback)
     {
         lfoOffsetCallback = std::move(callback);
@@ -2621,6 +2669,7 @@ private:
 
     // LFO offset callback for visualization
     std::function<void(int, float&, float&, float&)> lfoOffsetCallback;
+    std::function<void(int, float&, float&, float&)> effectOtomoOffsetCallback;
 
     // Sampler-playing state + pad XY offset (meters) for compound marker
     std::function<bool(int, float&, float&)> samplerStateCallback;
@@ -2644,7 +2693,7 @@ private:
     struct LongPressState
     {
         bool active = false;
-        enum class TargetType { None, Input, Cluster, Output, Reverb };
+        enum class TargetType { None, Input, Cluster, Output, Reverb, Effect };
         TargetType targetType = TargetType::None;
         int targetIndex = -1;
         int sourceKey = -1;      // pointerKey() of the press that armed it: only its release navigates
@@ -2752,6 +2801,7 @@ private:
             case LongPressState::TargetType::Cluster: tabType = 1; break;
             case LongPressState::TargetType::Output:  tabType = 2; break;
             case LongPressState::TargetType::Reverb:  tabType = 3; break;
+            case LongPressState::TargetType::Effect:  tabType = 4; break;
             default: break;
         }
         if (tabType >= 0)
@@ -2910,9 +2960,11 @@ private:
         selectedInput = -1;
         selectedBarycenter = -1;
         selectedReverbNode = -1;
+        selectedEffectNode = -1;
         isDraggingInput = false;
         isDraggingBarycenter = false;
         isDraggingReverb = false;
+        isDraggingEffect = false;
         reverbTouchMirrorActive = false;
     }
 
@@ -3859,6 +3911,142 @@ private:
                            tw, th, juce::Justification::centred);
             }
         }
+    }
+
+
+    void drawEffects(juce::Graphics& g)
+    {
+        // The first reader of effectsMapVisible. The property has been stamped,
+        // persisted, bounded and OSC-routed since the data model landed and
+        // nothing looked at it until now.
+        auto visibleVar = parameters.getConfigParam("effectsMapVisible");
+        bool effectsVisible = visibleVar.isVoid() || static_cast<int>(visibleVar) != 0;
+        if (!effectsVisible)
+            return;
+
+        const int numEffects = parameters.getNumEffectChannels();
+        if (numEffects <= 0)
+            return;
+
+        auto& vts = parameters.getValueTreeState();
+        const float us = WfsLookAndFeel::uiScale;
+        const float size = juce::jmax(7.0f, 10.0f * us);
+
+        for (int i = 0; i < numEffects; ++i)
+        {
+            // THE RETURN POSITION, not the feed's. An effect has two: the feed
+            // listens where the channel sits, and the return is heard at base +
+            // return offset. The marker is what the operator localises, so it
+            // follows the return.
+            const float baseX = static_cast<float>(vts.getEffectParameter(i, WFSParameterIDs::effectPositionX));
+            const float baseY = static_cast<float>(vts.getEffectParameter(i, WFSParameterIDs::effectPositionY));
+            const float offX  = static_cast<float>(vts.getEffectParameter(i, WFSParameterIDs::effectReturnOffsetX));
+            const float offY  = static_cast<float>(vts.getEffectParameter(i, WFSParameterIDs::effectReturnOffsetY));
+
+            const auto authored = stageToScreen({ baseX + offX, baseY + offY });
+
+            // AutomOtion travels as an offset the calculation engine adds and
+            // the tree never carries, so the moving dot comes through the same
+            // callback shape the input LFO offsets already use.
+            juce::Point<float> moved = authored;
+            bool hasMotion = false;
+            if (effectOtomoOffsetCallback)
+            {
+                float ox = 0.0f, oy = 0.0f, oz = 0.0f;
+                effectOtomoOffsetCallback(i, ox, oy, oz);
+                if (std::abs(ox) > 0.001f || std::abs(oy) > 0.001f)
+                {
+                    moved = stageToScreen({ baseX + offX + ox, baseY + offY + oy });
+                    hasMotion = true;
+                }
+            }
+
+            // A rounded square: a diamond is the reverb node's, and the two
+            // must not read as the same kind of thing on one map.
+            juce::Rectangle<float> box(authored.x - size, authored.y - size, size * 2.0f, size * 2.0f);
+            g.setColour(juce::Colour(0xFF26A69A).withAlpha(0.55f));
+            g.fillRoundedRectangle(box, size * 0.35f);
+            g.setColour(juce::Colour(0xFF26A69A));
+            g.drawRoundedRectangle(box, size * 0.35f, 1.5f);
+
+            if (effectEditMode && i == selectedEffectNode)
+            {
+                const float r = size + juce::jmax(4.0f, 6.0f * us);
+                g.setColour(juce::Colours::yellow.withAlpha(0.8f));
+                g.drawEllipse(authored.x - r, authored.y - r, r * 2.0f, r * 2.0f, 2.0f);
+            }
+
+            if (hasMotion)
+            {
+                g.setColour(juce::Colours::grey.withAlpha(0.6f));
+                g.drawLine(authored.x, authored.y, moved.x, moved.y, 1.0f);
+                g.setColour(juce::Colours::grey.withAlpha(0.8f));
+                g.fillEllipse(moved.x - size * 0.5f, moved.y - size * 0.5f, size, size);
+            }
+
+            {
+                g.setFont(juce::jmax(7.0f, 9.0f * us));
+                g.setColour(ColorScheme::get().textPrimary);
+                const int tw = static_cast<int>(juce::jmax(14.0f, 20.0f * us));
+                const int th = static_cast<int>(juce::jmax(7.0f, 10.0f * us));
+                g.drawText(LOC("map.labels.effectPrefix") + juce::String(i + 1),
+                           static_cast<int>(authored.x) - tw / 2, static_cast<int>(authored.y) - th / 2,
+                           tw, th, juce::Justification::centred);
+            }
+        }
+    }
+
+    /** 0-based effect index under a point, or -1. Same generous touch radius as
+        the reverb hit test, and the same visibility gate: a marker that is not
+        drawn cannot be grabbed. */
+    int getEffectAtPosition(juce::Point<float> position)
+    {
+        auto visibleVar = parameters.getConfigParam("effectsMapVisible");
+        bool effectsVisible = visibleVar.isVoid() || static_cast<int>(visibleVar) != 0;
+        if (!effectsVisible)
+            return -1;
+
+        auto& vts = parameters.getValueTreeState();
+        const int numEffects = parameters.getNumEffectChannels();
+        const float pickup = markerRadius * 2.0f;
+
+        int best = -1;
+        float bestDist = pickup;
+
+        for (int i = 0; i < numEffects; ++i)
+        {
+            const float x = static_cast<float>(vts.getEffectParameter(i, WFSParameterIDs::effectPositionX))
+                          + static_cast<float>(vts.getEffectParameter(i, WFSParameterIDs::effectReturnOffsetX));
+            const float y = static_cast<float>(vts.getEffectParameter(i, WFSParameterIDs::effectPositionY))
+                          + static_cast<float>(vts.getEffectParameter(i, WFSParameterIDs::effectReturnOffsetY));
+
+            const auto screenPos = stageToScreen({ x, y });
+            const float d = position.getDistanceFrom(screenPos);
+            if (d < bestDist)
+            {
+                bestDist = d;
+                best = i;
+            }
+        }
+
+        return best;
+    }
+
+    /** Drag on the map writes the BASE position, so the return keeps whatever
+        offset the operator gave it and the marker still lands under the finger. */
+    void moveEffectTo(int effectIndex, juce::Point<float> stagePos)
+    {
+        if (effectIndex < 0 || effectIndex >= parameters.getNumEffectChannels())
+            return;
+
+        auto& vts = parameters.getValueTreeState();
+        const float offX = static_cast<float>(vts.getEffectParameter(effectIndex, WFSParameterIDs::effectReturnOffsetX));
+        const float offY = static_cast<float>(vts.getEffectParameter(effectIndex, WFSParameterIDs::effectReturnOffsetY));
+
+        vts.setEffectParameter(effectIndex, WFSParameterIDs::effectPositionX, stagePos.x - offX);
+        vts.setEffectParameter(effectIndex, WFSParameterIDs::effectPositionY, stagePos.y - offY);
+        noteMarkerEdited();
+        repaint();
     }
 
     void drawClusters(juce::Graphics& g)

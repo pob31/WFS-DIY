@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "EffectsTabContext.h"
 #include "EffectsChannelPanel.h"
+#include "EffectsMovementsPanel.h"
 #include "../ChannelSelector.h"
 #include "../ColorScheme.h"
 #include "../WfsLookAndFeel.h"
@@ -38,6 +39,16 @@ class EffectsTab : public juce::Component,
                    public HelpCardProvider
 {
 public:
+    /** Sub-tab order, which several sites test against. */
+    struct SubTab
+    {
+        static constexpr int Channel   = 0;
+        static constexpr int Chain     = 1;
+        static constexpr int Sends     = 2;   // shown as "Post-Processing": where the output goes
+        static constexpr int Movements = 3;
+        static constexpr int Settings  = 4;
+    };
+
     //==========================================================================
     /** A small round indicator the engine drives. Off by default, and it draws
         nothing at all when off - an LED that is always visible reads as a
@@ -142,14 +153,14 @@ public:
 
     void setStatusBar (StatusBar* bar) { ctx.statusBar = bar; }
 
-    void setOtomoProcessor (AutomOtionProcessor* p) { channelPanel.setOtomoProcessor (p); }
+    void setOtomoProcessor (AutomOtionProcessor* p) { movementsPanel.setOtomoProcessor (p); }
 
     /** The output count moved: the mute grid and the array trims follow it. */
     void refreshOutputDependentControls() { channelPanel.refreshOutputDependentControls(); }
 
     void updateOtomoLevelIndicators (float shortPeakDb, float rmsDb)
     {
-        channelPanel.updateOtomoLevelIndicators (shortPeakDb, rmsDb);
+        movementsPanel.updateLevelIndicators (shortPeakDb, rmsDb);
     }
 
     int getCurrentChannel() const { return ctx.currentChannel; }
@@ -430,7 +441,7 @@ private:
 
         linkGroupCombo.setBounds (area.removeFromLeft (scaled (110)));
         area.removeFromLeft (spacing);
-        linkModeCombo.setBounds (area.removeFromLeft (scaled (100)));
+        linkModeCombo.setBounds (area.removeFromLeft (scaled (130)));
         area.removeFromLeft (spacing);
         groupMuteButton.setBounds (area.removeFromLeft (scaled (95)));
 
@@ -456,13 +467,18 @@ private:
     {
         addAndMakeVisible (subTabBar);
         const auto tabColour = juce::Colour (0xFF2A2A2A);
-        subTabBar.addTab (LOC ("effects.tabs.channel"),  tabColour, -1);
-        subTabBar.addTab (LOC ("effects.tabs.sends"),    tabColour, -1);
-        subTabBar.addTab (LOC ("effects.tabs.chain"),    tabColour, -1);
-        subTabBar.addTab (LOC ("effects.tabs.settings"), tabColour, -1);
+        // THE ORDER IS THE SIGNAL PATH, not the order these were written
+        // (user, 2026-09-22): where the channel sits, then what it does to the
+        // sound, then who feeds it, then how it travels, then the globals.
+        subTabBar.addTab (LOC ("effects.tabs.channelParams"),  tabColour, -1);   // SubTab::Channel
+        subTabBar.addTab (LOC ("effects.tabs.chain"),          tabColour, -1);   // SubTab::Chain
+        subTabBar.addTab (LOC ("effects.tabs.postProcessing"), tabColour, -1);   // SubTab::Sends - the matrix
+        subTabBar.addTab (LOC ("effects.tabs.movements"), tabColour, -1);   // SubTab::Movements
+        subTabBar.addTab (LOC ("effects.tabs.settings"),  tabColour, -1);   // SubTab::Settings
         subTabBar.addChangeListener (static_cast<juce::ChangeListener*> (this));
 
         addChildComponent (channelPanel);
+        addChildComponent (movementsPanel);
 
         // The remaining panels land in the commits that follow; until then the
         // content area names what will occupy it rather than sitting empty.
@@ -476,10 +492,14 @@ private:
         const int index = subTabBar.getCurrentTabIndex();
         const bool has = ctx.hasChannels();
 
-        channelPanel.setVisible (has && index == 0);
+        channelPanel.setVisible (has && index == SubTab::Channel);
         channelPanel.setBounds (subTabContentArea);
 
-        placeholderLabel.setVisible (has && index != 0);
+        movementsPanel.setVisible (has && index == SubTab::Movements);
+        movementsPanel.setBounds (subTabContentArea);
+
+        const bool built = index == SubTab::Channel || index == SubTab::Movements;
+        placeholderLabel.setVisible (has && ! built);
         placeholderLabel.setBounds (subTabContentArea);
         placeholderLabel.setText (subTabBar.getCurrentTabName(), juce::dontSendNotification);
     }
@@ -666,6 +686,7 @@ private:
         refreshSoloButton();
 
         channelPanel.loadParameters();
+        movementsPanel.loadParameters();
     }
 
     void updateVisibility()
@@ -989,6 +1010,7 @@ private:
     // Sub-tabs
     juce::TabbedButtonBar subTabBar { juce::TabbedButtonBar::TabsAtTop };
     EffectsChannelPanel channelPanel { ctx };
+    EffectsMovementsPanel movementsPanel { ctx };
     juce::Label placeholderLabel;
     juce::Label noChannelsLabel;
 

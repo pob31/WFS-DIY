@@ -2088,6 +2088,19 @@ MainComponent::MainComponent()
             }
         });
 
+        // The effects twin. An effect return's AutomOtion travels as an offset
+        // the engine adds and the tree never carries, so the Map's grey dot can
+        // only come from here.
+        mapTab->setEffectOtomoOffsetCallback([this](int effectIndex, float& x, float& y, float& z) {
+            if (calculationEngine != nullptr)
+            {
+                auto offset = calculationEngine->getEffectOtomoOffset(effectIndex);
+                x = offset.x;
+                y = offset.y;
+                z = offset.z;
+            }
+        });
+
         // Set up speed-limited position callback for MapTab visualization
         mapTab->setSpeedLimitedPositionCallback([this](int inputIndex, float& x, float& y, float& z) {
             if (speedLimiter != nullptr)

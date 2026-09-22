@@ -4,39 +4,37 @@
 #include "EffectsTabContext.h"
 #include "../ColorScheme.h"
 #include "../ColorUtilities.h"
-#include "../TriangleIndicator.h"
 #include "../dials/WfsBasicDial.h"
 #include "../dials/WfsDirectionalDial.h"
 #include "../sliders/WfsStandardSlider.h"
 #include "../sliders/WfsBidirectionalSlider.h"
 #include "../sliders/WfsWidthExpansionSlider.h"
-#include "../../Automation/AutomOtionProcessor.h"
 #include "../../Parameters/WFSParameterIDs.h"
 #include "../../Parameters/WFSParameterDefaults.h"
 #include "../../Localization/LocalizationManager.h"
 
 /**
-    The Channel sub-tab: everything about one effects channel that is not its
-    sends and not its chain. Four blocks, laid out in three columns plus a row:
+    The Channel Parameters sub-tab: what the return costs, where it sits and
+    how it is heard. Three columns, laid out to the Reverb tab's geometry
+    (ReverbTab::layoutChannelParametersTab) so the two families read alike:
 
-      Channel   what the return costs and when it arrives
-      Position  where the feed listens and where the return is heard
-      Feed      the cone every source is fed through
-      Return    the distance law, the per-output mutes and the per-ARRAY trims
+      column 1   attenuation, delay/latency, coordinates, position + return offset
+      column 2   "Effect Feed": the cone dial with its three sliders, HF damping,
+                 distance attenuation %, the feed's minimal-latency switch
+      column 3   "Effect Return": the two attenuation dials, the HF shelf, the
+                 mute macro and the per-output mute grid, the per-ARRAY trims
 
     TWO POSITIONS, ONE CHANNEL. The feed listens at the base position and the
-    return is heard at base + offset, which is why the offset has its own three
-    boxes and is not folded into the position. AutomOtion then moves the RETURN
-    by a further offset the engine adds and this panel never writes: an effect
-    return always comes home, because the authored position is where the
-    operator put that room in the show.
+    return is heard at base + offset, which is why the offset has its own
+    boxes. AutomOtion moves the RETURN by a further offset the engine adds and
+    this panel never writes; it lives on the Movements tab.
 
-    LEVEL 3 IS DELIBERATELY SMALLER THAN LEVELS 1 AND 2. The sends grid is a
-    true mixer; this is not. A return is a WFS render source, so its per-output
-    gains are solved from geometry - the operator gets a per-output MUTE and a
-    per-ARRAY trim on top of that solution, and nothing else, because an
-    arbitrary per-output level would overwrite the spatialisation that makes
-    the return localise where its marker sits.
+    LEVEL 3 IS DELIBERATELY SMALLER THAN LEVELS 1 AND 2. A return is a WFS
+    render source, so its per-output gains are solved from geometry. The
+    operator gets a per-output MUTE and a per-ARRAY trim on top of that
+    solution and nothing else, because an arbitrary per-output level would
+    overwrite the spatialisation that makes the return localise where its
+    marker sits.
 */
 class EffectsChannelPanel : public juce::Component,
                             private juce::TextEditor::Listener
@@ -44,14 +42,10 @@ class EffectsChannelPanel : public juce::Component,
 public:
     explicit EffectsChannelPanel (EffectsTabContext& context) : ctx (context)
     {
-        setupChannelBlock();
-        setupPositionBlock();
-        setupFeedBlock();
-        setupReturnBlock();
-        setupAutomOtionBlock();
+        setupColumn1();
+        setupFeedColumn();
+        setupReturnColumn();
     }
-
-    void setOtomoProcessor (AutomOtionProcessor* processor) { otomo = processor; }
 
     /** Called from the tab's loadChannelParameters, inside its loading scope. */
     void loadParameters()
@@ -65,10 +59,10 @@ public:
 
         const float latency = ctx.readFloat (effectDelayLatency, D::effectDelayLatencyDefault);
         delayLatencySlider.setValue (latency / D::effectDelayLatencyMax);
-        delayLatencyValue.setText (juce::String (latency, 1) + " ms", juce::dontSendNotification);
+        delayLatencyValue.setText (latencyText (latency), juce::dontSendNotification);
 
-        setToggle (minimalLatencyButton, ctx.readInt (effectMinimalLatency, D::effectMinimalLatencyDefault) != 0,
-                   "effects.toggles.acousticPrecedence", "effects.toggles.minimalLatency");
+        setLatencyButton (minimalLatencyButton,
+                          ctx.readInt (effectMinimalLatency, D::effectMinimalLatencyDefault) != 0);
 
         coordModeCombo.setSelectedId (ctx.readInt (effectCoordinateMode, 0) + 1, juce::dontSendNotification);
         loadPositionEditors();
@@ -80,7 +74,7 @@ public:
         directionalDial.setOrientation (static_cast<float> (orientation));
         directionalDial.setAngleOn (angleOn);
         directionalDial.setAngleOff (angleOff);
-        orientationValue.setText (juce::String (orientation), juce::dontSendNotification);
+        orientationValue.setText (juce::String (orientation) + " " + degreeSign(), juce::dontSendNotification);
 
         angleOnSlider.setValue (normalise (static_cast<float> (angleOn),
                                            static_cast<float> (D::effectAngleOnMin),
@@ -94,30 +88,38 @@ public:
 
         setSliderLinear (hfDampingSlider, hfDampingValue,
                          ctx.readFloat (effectHFdamping, D::effectHFdampingDefault),
-                         D::effectHFdampingMin, D::effectHFdampingMax, " dB/m");
-        setToggle (feedMiniLatencyButton, ctx.readInt (effectFeedMiniLatency, D::effectFeedMiniLatencyDefault) != 0,
-                   "effects.toggles.disabled", "effects.toggles.enabled");
+                         D::effectHFdampingMin, D::effectHFdampingMax, " dB/m", 1);
         setSliderLinear (distanceAttenPercentSlider, distanceAttenPercentValue,
                          static_cast<float> (ctx.readInt (effectDistanceAttenPercent, D::effectDistanceAttenPercentDefault)),
                          static_cast<float> (D::effectDistanceAttenPercentMin),
-                         static_cast<float> (D::effectDistanceAttenPercentMax), " %");
+                         static_cast<float> (D::effectDistanceAttenPercentMax), "%", 0);
+        setLatencyButton (feedMiniLatencyButton,
+                          ctx.readInt (effectFeedMiniLatency, D::effectFeedMiniLatencyDefault) != 0);
 
         const bool inverseLaw = ctx.readInt (effectAttenuationLaw, D::effectAttenuationLawDefault) != 0;
         setToggle (attenuationLawButton, inverseLaw, "effects.toggles.lawLog", "effects.toggles.lawInverse");
-        distanceAttenDial.setValue (ctx.readFloat (effectDistanceAttenuation, D::effectDistanceAttenuationDefault));
-        distanceRatioDial.setValue (ctx.readFloat (effectDistanceRatio, D::effectDistanceRatioDefault));
+        // Labels set explicitly, not only from the dial callbacks: a dial
+        // whose loaded value equals its current one fires no callback.
+        const float distAtten = ctx.readFloat (effectDistanceAttenuation, D::effectDistanceAttenuationDefault);
+        distanceAttenDial.setValue (distAtten);
+        distanceAttenValue.setText (juce::String (distAtten, 1) + " dB/m", juce::dontSendNotification);
+
+        const float distRatio = ctx.readFloat (effectDistanceRatio, D::effectDistanceRatioDefault);
+        distanceRatioDial.setValue (distRatio);
+        distanceRatioValue.setText (juce::String (distRatio, 2) + " x", juce::dontSendNotification);
         updateAttenuationLawVisibility();
 
-        commonAttenDial.setValue (static_cast<float> (ctx.readInt (effectCommonAtten, D::effectCommonAttenDefault)));
+        const int common = ctx.readInt (effectCommonAtten, D::effectCommonAttenDefault);
+        commonAttenDial.setValue (static_cast<float> (common));
+        commonAttenValue.setText (juce::String (common) + " %", juce::dontSendNotification);
         setSliderLinear (hfShelfSlider, hfShelfValue,
                          ctx.readFloat (effectHFshelf, D::effectHFshelfDefault),
-                         D::effectHFshelfMin, D::effectHFshelfMax, " dB");
+                         D::effectHFshelfMin, D::effectHFshelfMax, " dB", 1);
         setToggle (muteReverbSendsButton, ctx.readInt (effectMuteReverbSends, D::effectMuteReverbSendsDefault) != 0,
-                   "effects.toggles.off", "effects.toggles.on");
+                   "effects.toggles.reverbSendsUnmuted", "effects.toggles.reverbSendsMuted");
 
         loadMuteStates();
         loadArrayAttens();
-        loadAutomOtion();
     }
 
     /** The output count moved: the mute grid is one toggle per LIVE output and
@@ -129,70 +131,220 @@ public:
         resized();
     }
 
-    void updateOtomoLevelIndicators (float shortPeakDb, float rmsDb)
-    {
-        using namespace WFSParameterIDs;
-
-        if (ctx.readInt (effectOtomoTrigger, 0) == 0)
-            return;                        // manual: the indicators mean nothing
-
-        if (shortPeakDb > ctx.readFloat (effectOtomoThreshold, -40.0f))
-            otomoTriggerIndicator.setActive (true);
-
-        if (rmsDb < ctx.readFloat (effectOtomoReset, -60.0f))
-            otomoResetIndicator.setActive (true);
-    }
-
     void paint (juce::Graphics& g) override
     {
-        g.setColour (ColorScheme::get().surfaceCard);
-        for (const auto& r : blockBounds)
-            g.fillRoundedRectangle (r.toFloat(), 4.0f);
+        // The Reverb tab's column dividers, not cards: two thin lines and
+        // otherwise the tab background.
+        g.setColour (ColorScheme::get().chromeDivider);
+        const float topY = static_cast<float> (contentTop);
+        const float botY = static_cast<float> (getHeight());
+        g.drawVerticalLine (columnDividerX1, topY, botY);
+        g.drawVerticalLine (columnDividerX2, topY, botY);
     }
 
     void resized() override
     {
-        layoutScale = static_cast<float> (getHeight()) / 640.0f;
-        auto area = getLocalBounds().reduced (scaled (4));
-        blockBounds.clear();
+        layoutScale = static_cast<float> (getHeight()) / 780.0f;
 
-        auto top = area.removeFromTop (area.getHeight() * 3 / 5);
-        area.removeFromTop (scaled (6));
+        auto area = getLocalBounds().reduced (scaled (10), scaled (10));
+        contentTop = area.getY();
 
-        const int colWidth = (top.getWidth() - scaled (12)) / 3;
-        auto col1 = top.removeFromLeft (colWidth);
-        top.removeFromLeft (scaled (6));
-        auto col2 = top.removeFromLeft (colWidth);
-        top.removeFromLeft (scaled (6));
-        auto col3 = top;
+        const int rowHeight    = scaled (30);
+        const int sliderHeight = scaled (40);
+        const int spacing      = scaled (10);
+        const int labelWidth   = scaled (115);
+        const int valueWidth   = scaled (60);
+        const int editorWidth  = scaled (70);
+        const int unitWidth    = scaled (25);
+        const int dialSize     = juce::jmax (60, static_cast<int> (100.0f * layoutScale));
+        const int titleHeight  = scaled (25);
 
-        blockBounds.push_back (col1);
-        blockBounds.push_back (col2);
-        blockBounds.push_back (col3);
-        blockBounds.push_back (area);
+        const int colWidth = area.getWidth() / 3;
+        auto col1 = area.removeFromLeft (colWidth).reduced (scaled (5), 0);
+        columnDividerX1 = area.getX();
+        auto col2 = area.removeFromLeft (colWidth).reduced (scaled (5), 0);
+        columnDividerX2 = area.getX();
+        auto col3 = area.reduced (scaled (5), 0);
 
-        layoutChannelAndPosition (col1.reduced (scaled (6)));
-        layoutFeed (col2.reduced (scaled (6)));
-        layoutReturn (col3.reduced (scaled (6)));
-        layoutAutomOtion (area.reduced (scaled (6)));
+        // =====================================================================
+        // Column 1: channel + position
+        // =====================================================================
+        auto row = col1.removeFromTop (rowHeight);
+        attenuationLabel.setBounds (row.removeFromLeft (labelWidth));
+        attenuationValue.setBounds (row.removeFromRight (valueWidth));
+        col1.removeFromTop (scaled (3));
+        attenuationSlider.setBounds (col1.removeFromTop (sliderHeight));
+        col1.removeFromTop (spacing);
+
+        row = col1.removeFromTop (rowHeight);
+        delayLatencyLabel.setBounds (row.removeFromLeft (labelWidth));
+        delayLatencyValue.setBounds (row.removeFromRight (scaled (130)));
+        col1.removeFromTop (scaled (3));
+        delayLatencySlider.setBounds (col1.removeFromTop (sliderHeight));
+        col1.removeFromTop (spacing);
+
+        minimalLatencyButton.setBounds (col1.removeFromTop (rowHeight));
+        col1.removeFromTop (spacing);
+
+        auto coordRow = col1.removeFromTop (rowHeight);
+        coordModeLabel.setBounds (coordRow.removeFromLeft (scaled (50)));
+        coordModeCombo.setBounds (coordRow.removeFromLeft (scaled (80)));
+        col1.removeFromTop (spacing);
+
+        for (int i = 0; i < 3; ++i)
+        {
+            row = col1.removeFromTop (rowHeight);
+            positionLabels[i].setBounds (row.removeFromLeft (labelWidth));
+            positionEditors[i].setBounds (row.removeFromLeft (editorWidth));
+            row.removeFromLeft (scaled (3));
+            positionUnits[i].setBounds (row.removeFromLeft (unitWidth));
+            row.removeFromLeft (scaled (25));
+            offsetLabels[i].setBounds (row.removeFromLeft (labelWidth));
+            offsetEditors[i].setBounds (row.removeFromLeft (editorWidth));
+            row.removeFromLeft (scaled (3));
+            offsetUnits[i].setBounds (row.removeFromLeft (unitWidth));
+            col1.removeFromTop (scaled (5));
+        }
+
+        // =====================================================================
+        // Column 2: Effect Feed
+        // =====================================================================
+        feedTitle.setBounds (col2.removeFromTop (titleHeight));
+        col2.removeFromTop (spacing);
+
+        {
+            const int ddDialSize = scaled (90);
+            const int ddDialMargin = scaled (20);
+            const int sliderGroupHeight = 3 * (rowHeight + scaled (3) + sliderHeight) + 2 * spacing;
+            const int dialGroupHeight = rowHeight + ddDialSize + rowHeight;
+            const int dialTopOffset = (sliderGroupHeight - dialGroupHeight) / 2;
+
+            auto col2Full = col2;
+
+            auto dialColumn = col2.removeFromRight (ddDialSize + ddDialMargin);
+            dialColumn.removeFromTop (juce::jmax (0, dialTopOffset));
+            orientationLabel.setBounds (dialColumn.removeFromTop (rowHeight));
+            directionalDial.setBounds (dialColumn.removeFromTop (ddDialSize).withSizeKeepingCentre (ddDialSize, ddDialSize));
+            orientationValue.setBounds (dialColumn.removeFromTop (rowHeight));
+
+            row = col2.removeFromTop (rowHeight);
+            angleOnLabel.setBounds (row.removeFromLeft (labelWidth));
+            angleOnValue.setBounds (row.removeFromRight (valueWidth));
+            col2.removeFromTop (scaled (3));
+            angleOnSlider.setBounds (col2.removeFromTop (sliderHeight));
+            col2.removeFromTop (spacing);
+
+            row = col2.removeFromTop (rowHeight);
+            angleOffLabel.setBounds (row.removeFromLeft (labelWidth));
+            angleOffValue.setBounds (row.removeFromRight (valueWidth));
+            col2.removeFromTop (scaled (3));
+            angleOffSlider.setBounds (col2.removeFromTop (sliderHeight));
+            col2.removeFromTop (spacing);
+
+            row = col2.removeFromTop (rowHeight);
+            pitchLabel.setBounds (row.removeFromLeft (labelWidth));
+            pitchValue.setBounds (row.removeFromRight (valueWidth));
+            col2.removeFromTop (scaled (3));
+            pitchSlider.setBounds (col2.removeFromTop (sliderHeight));
+            col2.removeFromTop (spacing);
+
+            col2 = col2Full;
+            col2.removeFromTop (titleHeight + spacing + sliderGroupHeight + spacing);
+        }
+
+        row = col2.removeFromTop (rowHeight);
+        hfDampingLabel.setBounds (row.removeFromLeft (labelWidth));
+        hfDampingValue.setBounds (row.removeFromRight (valueWidth));
+        col2.removeFromTop (scaled (3));
+        hfDampingSlider.setBounds (col2.removeFromTop (sliderHeight));
+        col2.removeFromTop (spacing);
+
+        row = col2.removeFromTop (rowHeight);
+        distanceAttenPercentLabel.setBounds (row.removeFromLeft (labelWidth));
+        distanceAttenPercentValue.setBounds (row.removeFromRight (valueWidth));
+        col2.removeFromTop (scaled (3));
+        distanceAttenPercentSlider.setBounds (col2.removeFromTop (sliderHeight));
+        col2.removeFromTop (spacing);
+
+        feedMiniLatencyButton.setBounds (col2.removeFromTop (rowHeight));
+
+        // =====================================================================
+        // Column 3: Effect Return
+        // =====================================================================
+        returnTitle.setBounds (col3.removeFromTop (titleHeight));
+        col3.removeFromTop (spacing);
+
+        attenuationLawButton.setBounds (col3.removeFromTop (rowHeight).removeFromLeft (scaled (200)));
+        col3.removeFromTop (spacing);
+
+        {
+            const int halfColWidth = col3.getWidth() / 2;
+            auto dialsRow = col3.removeFromTop (dialSize + rowHeight * 2 + spacing);
+
+            auto leftArea = dialsRow.removeFromLeft (halfColWidth);
+            distanceAttenLabel.setBounds (leftArea.removeFromTop (rowHeight));
+            distanceAttenDial.setBounds (leftArea.removeFromTop (dialSize).withSizeKeepingCentre (dialSize, dialSize));
+            distanceAttenValue.setBounds (leftArea.removeFromTop (rowHeight));
+            // The ratio dial shares the slot: only one of the two is visible,
+            // so the column does not reflow when the law changes.
+            distanceRatioLabel.setBounds (distanceAttenLabel.getBounds());
+            distanceRatioDial.setBounds (distanceAttenDial.getBounds());
+            distanceRatioValue.setBounds (distanceAttenValue.getBounds());
+
+            auto rightArea = dialsRow;
+            commonAttenLabel.setBounds (rightArea.removeFromTop (rowHeight));
+            commonAttenDial.setBounds (rightArea.removeFromTop (dialSize).withSizeKeepingCentre (dialSize, dialSize));
+            commonAttenValue.setBounds (rightArea.removeFromTop (rowHeight));
+        }
+        col3.removeFromTop (spacing);
+
+        row = col3.removeFromTop (rowHeight);
+        hfShelfLabel.setBounds (row.removeFromLeft (labelWidth));
+        hfShelfValue.setBounds (row.removeFromRight (valueWidth));
+        col3.removeFromTop (scaled (3));
+        hfShelfSlider.setBounds (col3.removeFromTop (sliderHeight));
+        col3.removeFromTop (spacing);
+
+        muteMacroLabel.setBounds (col3.removeFromTop (rowHeight));
+        muteMacroCombo.setBounds (col3.removeFromTop (rowHeight));
+        col3.removeFromTop (spacing);
+
+        outputMutesLabel.setBounds (col3.removeFromTop (rowHeight));
+        layoutMuteGrid (col3);
+        col3.removeFromTop (spacing);
+
+        muteReverbSendsButton.setBounds (col3.removeFromTop (rowHeight));
+        col3.removeFromTop (spacing);
+
+        arrayAttenLabel.setBounds (col3.removeFromTop (rowHeight));
+        {
+            auto attenRow = col3.removeFromTop (scaled (14) + scaled (40) + scaled (14));
+            const int slot = juce::jmax (scaled (28), attenRow.getWidth() / 10);
+            // Not `small`: <windows.h> defines it as a macro for `char`.
+            const int dialPx = juce::jmin (slot - 2, scaled (40));
+            for (int i = 0; i < 10; ++i)
+            {
+                auto cell = attenRow.removeFromLeft (slot);
+                arrayAttenLabels[i].setBounds (cell.removeFromTop (scaled (14)));
+                arrayAttenDials[i].setBounds (cell.removeFromTop (dialPx).withSizeKeepingCentre (dialPx, dialPx));
+                arrayAttenValues[i].setBounds (cell.removeFromTop (scaled (14)));
+            }
+        }
     }
 
 private:
     //==========================================================================
-    // Channel
+    // Column 1
     //==========================================================================
 
-    void setupChannelBlock()
+    void setupColumn1()
     {
-        addHeader (channelHeader, "effects.sections.channel");
-
-        addRow (attenuationLabel, "effects.labels.attenuation", attenuationValue);
+        addLabel (attenuationLabel, "effects.labels.attenuation");
+        addValue (attenuationValue, "0.0 dB");
         attenuationSlider.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFF4A90D9));
         attenuationSlider.onGestureStart = [this] { ctx.beginGesture ("Effect Attenuation"); };
         attenuationSlider.onValueChanged = [this] (float v)
         {
-            // The square law every dB fader in this app uses, so the bottom of
-            // the travel is -92 dB rather than -inf.
             const float minLin = std::pow (10.0f, WFSParameterDefaults::effectAttenuationMin / 20.0f);
             const float dB = 20.0f * std::log10 (minLin + (1.0f - minLin) * v * v);
             attenuationValue.setText (juce::String (dB, 1) + " dB", juce::dontSendNotification);
@@ -200,86 +352,74 @@ private:
         };
         addAndMakeVisible (attenuationSlider);
 
-        addRow (delayLatencyLabel, "effects.labels.delayLatency", delayLatencyValue);
+        addLabel (delayLatencyLabel, "effects.labels.delayLatency");
+        addValue (delayLatencyValue, latencyText (0.0f));
         delayLatencySlider.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFFD4A017));
         delayLatencySlider.onGestureStart = [this] { ctx.beginGesture ("Effect Delay/Latency"); };
         delayLatencySlider.onValueChanged = [this] (float v)
         {
             const float ms = v * WFSParameterDefaults::effectDelayLatencyMax;
-            delayLatencyValue.setText (juce::String (ms, 1) + " ms", juce::dontSendNotification);
+            delayLatencyValue.setText (latencyText (ms), juce::dontSendNotification);
             ctx.write (WFSParameterIDs::effectDelayLatency, ms);
         };
         addAndMakeVisible (delayLatencySlider);
 
         addAndMakeVisible (minimalLatencyButton);
+        minimalLatencyButton.setColour (juce::TextButton::textColourOnId, juce::Colours::black);
         minimalLatencyButton.onClick = [this]
         {
             const bool next = ! (ctx.readInt (WFSParameterIDs::effectMinimalLatency, 1) != 0);
             ctx.write (WFSParameterIDs::effectMinimalLatency, next ? 1 : 0);
-            setToggle (minimalLatencyButton, next, "effects.toggles.acousticPrecedence", "effects.toggles.minimalLatency");
+            setLatencyButton (minimalLatencyButton, next);
         };
-    }
 
-    //==========================================================================
-    // Position
-    //==========================================================================
-
-    void setupPositionBlock()
-    {
-        addHeader (positionHeader, "effects.sections.position");
-
+        addLabel (coordModeLabel, "effects.labels.coordinates");
         addAndMakeVisible (coordModeCombo);
-        coordModeCombo.addItem (LOC ("effects.coordModes.cartesian"), 1);
-        coordModeCombo.addItem (LOC ("effects.coordModes.cylindrical"), 2);
-        coordModeCombo.addItem (LOC ("effects.coordModes.spherical"), 3);
+        coordModeCombo.addItem (LOC ("effects.coordModes.xyz"), 1);
+        coordModeCombo.addItem (juce::String (juce::CharPointer_UTF8 ("r \xce\xb8 Z")), 2);
+        coordModeCombo.addItem (juce::String (juce::CharPointer_UTF8 ("r \xce\xb8 \xcf\x86")), 3);
         coordModeCombo.onChange = [this]
         {
             ctx.write (WFSParameterIDs::effectCoordinateMode, coordModeCombo.getSelectedId() - 1);
             loadPositionEditors();
         };
 
+        static const char* posKeys[3] = { "effects.labels.positionX", "effects.labels.positionY", "effects.labels.positionZ" };
+        static const char* offKeys[3] = { "effects.labels.returnOffsetX", "effects.labels.returnOffsetY", "effects.labels.returnOffsetZ" };
+
         for (int axis = 0; axis < 3; ++axis)
         {
-            addAndMakeVisible (positionLabels[axis]);
-            positionLabels[axis].setJustificationType (juce::Justification::centredRight);
+            addLabel (positionLabels[axis], posKeys[axis]);
+            setupNumberBox (positionEditors[axis]);
+            addUnit (positionUnits[axis], "m");
 
-            auto& ed = positionEditors[axis];
-            ed.setMultiLine (false);
-            ed.setInputRestrictions (10, "-0123456789.");
-            ed.addListener (this);
-            addAndMakeVisible (ed);
-
-            addAndMakeVisible (offsetLabels[axis]);
-            offsetLabels[axis].setJustificationType (juce::Justification::centredRight);
-            offsetLabels[axis].setText (LOC ("effects.labels.returnOffset") + " "
-                                        + juce::String ("XYZ").substring (axis, axis + 1),
-                                        juce::dontSendNotification);
-
-            auto& oe = offsetEditors[axis];
-            oe.setMultiLine (false);
-            oe.setInputRestrictions (10, "-0123456789.");
-            oe.addListener (this);
-            addAndMakeVisible (oe);
+            addLabel (offsetLabels[axis], offKeys[axis]);
+            setupNumberBox (offsetEditors[axis]);
+            addUnit (offsetUnits[axis], "m");
         }
     }
 
-    /** Cartesian writes XYZ; the other two modes write the polar triple, which
-        the state converts, exactly as the input family does. */
+    /** Cartesian shows X/Y/Z; the polar modes relabel the boxes the way the
+        input and reverb tabs do. The stored triple is always Cartesian. */
     void loadPositionEditors()
     {
         using namespace WFSParameterIDs;
 
         const int mode = ctx.readInt (effectCoordinateMode, 0);
-        static const char* cartesian[3] = { "X", "Y", "Z" };
-        static const char* cylindrical[3] = { "r", "theta", "Z" };
-        static const char* spherical[3] = { "r", "theta", "phi" };
-        const char** names = mode == 1 ? cylindrical : (mode == 2 ? spherical : cartesian);
+        static const char* cartesian[3] = { "effects.labels.positionX", "effects.labels.positionY", "effects.labels.positionZ" };
+        static const char* cylindrical[3] = { "effects.labels.positionR", "effects.labels.positionTheta", "effects.labels.positionZ" };
+        static const char* spherical[3] = { "effects.labels.positionR", "effects.labels.positionTheta", "effects.labels.positionPhi" };
+        const char** keys = mode == 1 ? cylindrical : (mode == 2 ? spherical : cartesian);
+        static const char* unitsCyl[3] = { "m", "\xc2\xb0", "m" };
+        static const char* unitsSph[3] = { "m", "\xc2\xb0", "\xc2\xb0" };
+        static const char* unitsCart[3] = { "m", "m", "m" };
+        const char** units = mode == 1 ? unitsCyl : (mode == 2 ? unitsSph : unitsCart);
 
         const juce::Identifier* ids[3] = { &effectPositionX, &effectPositionY, &effectPositionZ };
-
         for (int axis = 0; axis < 3; ++axis)
         {
-            positionLabels[axis].setText (juce::String (names[axis]), juce::dontSendNotification);
+            positionLabels[axis].setText (LOC (keys[axis]), juce::dontSendNotification);
+            positionUnits[axis].setText (juce::String::fromUTF8 (units[axis]), juce::dontSendNotification);
             positionEditors[axis].setText (juce::String (ctx.readFloat (*ids[axis], 0.0f), 2), false);
         }
 
@@ -289,36 +429,35 @@ private:
     }
 
     //==========================================================================
-    // Feed
+    // Column 2: Effect Feed
     //==========================================================================
 
-    void setupFeedBlock()
+    void setupFeedColumn()
     {
-        addHeader (feedHeader, "effects.sections.feed");
+        addTitle (feedTitle, "effects.sections.effectFeed");
 
         // ONE DIAL FOR THE CONE, exactly as the reverb tab does it: the feed
         // cone of an effect is the same three parameters as a reverb node's,
-        // so it gets the same control and the same colours rather than a
-        // rotation dial with two unrelated sliders beside it. The sliders stay
+        // so it gets the same control and the same colours. The sliders stay
         // as a numeric way in, and dial and slider write through each other.
-        addAndMakeVisible (orientationLabel);
-        orientationLabel.setText (LOC ("effects.labels.orientation"), juce::dontSendNotification);
+        addLabel (orientationLabel, "effects.labels.orientation");
         orientationLabel.setJustificationType (juce::Justification::centred);
 
         directionalDial.onGestureStart = [this] { ctx.beginGesture ("Effect Directional"); };
         directionalDial.onOrientationChanged = [this] (float angle)
         {
-            orientationValue.setText (juce::String (static_cast<int> (angle)), juce::dontSendNotification);
+            orientationValue.setText (juce::String (static_cast<int> (angle)) + " " + degreeSign(), juce::dontSendNotification);
             ctx.write (WFSParameterIDs::effectOrientation, juce::roundToInt (angle));
         };
         directionalDial.onAngleOnChanged = [this] (int degrees) { applyAngleOn (degrees, true); };
         directionalDial.onAngleOffChanged = [this] (int degrees) { applyAngleOff (degrees, true); };
         addAndMakeVisible (directionalDial);
 
+        addValue (orientationValue, "0 " + degreeSign());
         orientationValue.setJustificationType (juce::Justification::centred);
-        addAndMakeVisible (orientationValue);
 
-        addRow (angleOnLabel, "effects.labels.angleOn", angleOnValue);
+        addLabel (angleOnLabel, "effects.labels.angleOn");
+        addValue (angleOnValue, "86" + degreeSign());
         angleOnSlider.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFF4CAF50));  // Green to match dial
         angleOnSlider.onGestureStart = [this] { ctx.beginGesture ("Effect Angle On"); };
         angleOnSlider.onValueChanged = [this] (float v)
@@ -328,7 +467,8 @@ private:
         };
         addAndMakeVisible (angleOnSlider);
 
-        addRow (angleOffLabel, "effects.labels.angleOff", angleOffValue);
+        addLabel (angleOffLabel, "effects.labels.angleOff");
+        addValue (angleOffValue, "90" + degreeSign());
         angleOffSlider.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFFE53935));  // Red to match dial
         angleOffSlider.onGestureStart = [this] { ctx.beginGesture ("Effect Angle Off"); };
         angleOffSlider.onValueChanged = [this] (float v)
@@ -338,48 +478,52 @@ private:
         };
         addAndMakeVisible (angleOffSlider);
 
-        addRow (pitchLabel, "effects.labels.pitch", pitchValue);
+        addLabel (pitchLabel, "effects.labels.pitch");
+        addValue (pitchValue, "0" + degreeSign());
         pitchSlider.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFF26A69A));
         pitchSlider.onGestureStart = [this] { ctx.beginGesture ("Effect Pitch"); };
         pitchSlider.onValueChanged = [this] (float v)
         {
             const int deg = juce::roundToInt (v * WFSParameterDefaults::effectPitchMax);
-            pitchValue.setText (juce::String (deg) + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
+            pitchValue.setText (juce::String (deg) + degreeSign(), juce::dontSendNotification);
             ctx.write (WFSParameterIDs::effectPitch, deg);
         };
         addAndMakeVisible (pitchSlider);
 
-        addRow (hfDampingLabel, "effects.labels.hfDamping", hfDampingValue);
+        addLabel (hfDampingLabel, "effects.labels.hfDamping");
+        addValue (hfDampingValue, "0.0 dB/m");
         hfDampingSlider.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFFE07878));
         hfDampingSlider.onGestureStart = [this] { ctx.beginGesture ("Effect HF Damping"); };
         hfDampingSlider.onValueChanged = [this] (float v)
         {
             const float db = denormalise (v, WFSParameterDefaults::effectHFdampingMin,
                                              WFSParameterDefaults::effectHFdampingMax);
-            hfDampingValue.setText (juce::String (db, 2) + " dB/m", juce::dontSendNotification);
+            hfDampingValue.setText (juce::String (db, 1) + " dB/m", juce::dontSendNotification);
             ctx.write (WFSParameterIDs::effectHFdamping, db);
         };
         addAndMakeVisible (hfDampingSlider);
 
-        addAndMakeVisible (feedMiniLatencyButton);
-        feedMiniLatencyButton.onClick = [this]
-        {
-            const bool next = ! (ctx.readInt (WFSParameterIDs::effectFeedMiniLatency, 1) != 0);
-            ctx.write (WFSParameterIDs::effectFeedMiniLatency, next ? 1 : 0);
-            setToggle (feedMiniLatencyButton, next, "effects.toggles.disabled", "effects.toggles.enabled");
-        };
-
-        addRow (distanceAttenPercentLabel, "effects.labels.distanceAttenPercent", distanceAttenPercentValue);
+        addLabel (distanceAttenPercentLabel, "effects.labels.distanceAttenPercent");
+        addValue (distanceAttenPercentValue, "100%");
         distanceAttenPercentSlider.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFF4A90D9));
         distanceAttenPercentSlider.onGestureStart = [this] { ctx.beginGesture ("Effect Distance Atten %"); };
         distanceAttenPercentSlider.onValueChanged = [this] (float v)
         {
             const int pct = juce::roundToInt (denormalise (v, WFSParameterDefaults::effectDistanceAttenPercentMin,
                                                               WFSParameterDefaults::effectDistanceAttenPercentMax));
-            distanceAttenPercentValue.setText (juce::String (pct) + " %", juce::dontSendNotification);
+            distanceAttenPercentValue.setText (juce::String (pct) + "%", juce::dontSendNotification);
             ctx.write (WFSParameterIDs::effectDistanceAttenPercent, pct);
         };
         addAndMakeVisible (distanceAttenPercentSlider);
+
+        addAndMakeVisible (feedMiniLatencyButton);
+        feedMiniLatencyButton.setColour (juce::TextButton::textColourOnId, juce::Colours::black);
+        feedMiniLatencyButton.onClick = [this]
+        {
+            const bool next = ! (ctx.readInt (WFSParameterIDs::effectFeedMiniLatency, 1) != 0);
+            ctx.write (WFSParameterIDs::effectFeedMiniLatency, next ? 1 : 0);
+            setLatencyButton (feedMiniLatencyButton, next);
+        };
     }
 
     /** angleOn and angleOff share one cone, so the pair is constrained to
@@ -423,8 +567,6 @@ private:
             applyAngleOn (180 - degrees, false);
     }
 
-    static juce::String degreeSign() { return juce::String::fromUTF8 ("\xc2\xb0"); }
-
     void updateAngleLabels()
     {
         angleOnValue.setText (juce::String (ctx.readInt (WFSParameterIDs::effectAngleOn, 86)) + degreeSign(),
@@ -436,12 +578,12 @@ private:
     }
 
     //==========================================================================
-    // Return
+    // Column 3: Effect Return
     //==========================================================================
 
-    void setupReturnBlock()
+    void setupReturnColumn()
     {
-        addHeader (returnHeader, "effects.sections.returnSection");
+        addTitle (returnTitle, "effects.sections.effectReturn");
 
         addAndMakeVisible (attenuationLawButton);
         attenuationLawButton.onClick = [this]
@@ -453,12 +595,12 @@ private:
         };
 
         setupDial (distanceAttenDial, distanceAttenLabel, distanceAttenValue,
-                   "effects.labels.distanceAttenuation",
+                   "effects.labels.distanceAtten",
                    WFSParameterDefaults::effectDistanceAttenuationMin,
                    WFSParameterDefaults::effectDistanceAttenuationMax,
                    [this] (float v)
                    {
-                       distanceAttenValue.setText (juce::String (v, 2) + " dB/m", juce::dontSendNotification);
+                       distanceAttenValue.setText (juce::String (v, 1) + " dB/m", juce::dontSendNotification);
                        ctx.write (WFSParameterIDs::effectDistanceAttenuation, v);
                    }, "Effect Distance Attenuation");
 
@@ -483,7 +625,8 @@ private:
                        ctx.write (WFSParameterIDs::effectCommonAtten, pct);
                    }, "Effect Common Attenuation");
 
-        addRow (hfShelfLabel, "effects.labels.hfShelf", hfShelfValue);
+        addLabel (hfShelfLabel, "effects.labels.hfShelf");
+        addValue (hfShelfValue, "-6.0 dB");
         hfShelfSlider.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFFE07878));
         hfShelfSlider.onGestureStart = [this] { ctx.beginGesture ("Effect HF Shelf"); };
         hfShelfSlider.onValueChanged = [this] (float v)
@@ -495,16 +638,30 @@ private:
         };
         addAndMakeVisible (hfShelfSlider);
 
-        addAndMakeVisible (muteReverbSendsButton);
-        muteReverbSendsButton.onClick = [this]
+        // The macro combo and the grid, the reverb tab's way: a label, a
+        // full-width selector that snaps back to its placeholder, and square
+        // toggles in a viewport for rigs wider than one row.
+        addLabel (muteMacroLabel, "effects.labels.muteMacro");
+        addAndMakeVisible (muteMacroCombo);
+        muteMacroCombo.addItem (LOC ("effects.muteMacros.select"),    1);
+        muteMacroCombo.addItem (LOC ("effects.muteMacros.muteAll"),   2);
+        muteMacroCombo.addItem (LOC ("effects.muteMacros.unmuteAll"), 3);
+        muteMacroCombo.addItem (LOC ("effects.muteMacros.invert"),    4);
+        muteMacroCombo.addItem (LOC ("effects.muteMacros.muteOdd"),   5);
+        muteMacroCombo.addItem (LOC ("effects.muteMacros.muteEven"),  6);
+        muteMacroCombo.onChange = [this]
         {
-            const bool next = ! (ctx.readInt (WFSParameterIDs::effectMuteReverbSends, 0) != 0);
-            ctx.write (WFSParameterIDs::effectMuteReverbSends, next ? 1 : 0);
-            setToggle (muteReverbSendsButton, next, "effects.toggles.off", "effects.toggles.on");
+            const int macro = muteMacroCombo.getSelectedId() - 1;
+            if (macro > 0)
+            {
+                applyMuteMacro (macro);
+                saveMuteStates();
+            }
+            muteMacroCombo.setSelectedId (1, juce::dontSendNotification);
         };
+        muteMacroCombo.setSelectedId (1, juce::dontSendNotification);
 
-        // The per-output mute grid, in a viewport for the same reason the input
-        // one is: 128 outputs do not fit a column.
+        addLabel (outputMutesLabel, "effects.labels.outputMutes");
         muteViewport.setViewedComponent (&muteHolder, false);
         muteViewport.setScrollBarsShown (true, false);
         addAndMakeVisible (muteViewport);
@@ -519,24 +676,15 @@ private:
             muteHolder.addAndMakeVisible (b);
         }
 
-        addAndMakeVisible (muteMacroCombo);
-        muteMacroCombo.addItem (LOC ("effects.muteMacros.select"), 1);
-        muteMacroCombo.addItem (LOC ("effects.muteMacros.muteAll"), 2);
-        muteMacroCombo.addItem (LOC ("effects.muteMacros.unmuteAll"), 3);
-        muteMacroCombo.addItem (LOC ("effects.muteMacros.invert"), 4);
-        muteMacroCombo.addItem (LOC ("effects.muteMacros.muteOdd"), 5);
-        muteMacroCombo.onChange = [this]
+        addAndMakeVisible (muteReverbSendsButton);
+        muteReverbSendsButton.onClick = [this]
         {
-            const int macro = muteMacroCombo.getSelectedId() - 1;
-            if (macro > 0)
-            {
-                applyMuteMacro (macro);
-                saveMuteStates();
-            }
-            muteMacroCombo.setSelectedId (1, juce::dontSendNotification);
+            const bool next = ! (ctx.readInt (WFSParameterIDs::effectMuteReverbSends, 0) != 0);
+            ctx.write (WFSParameterIDs::effectMuteReverbSends, next ? 1 : 0);
+            setToggle (muteReverbSendsButton, next, "effects.toggles.reverbSendsUnmuted", "effects.toggles.reverbSendsMuted");
         };
 
-        addHeader (arrayAttenHeader, "effects.sections.arrayAttenuation");
+        addLabel (arrayAttenLabel, "effects.labels.arrayAttenuation");
 
         for (int i = 0; i < 10; ++i)
         {
@@ -583,6 +731,51 @@ private:
         distanceRatioValue.setVisible (inverse);
     }
 
+    void layoutMuteGrid (juce::Rectangle<int>& col3)
+    {
+        const int numOutputs = juce::jlimit (1, maxMuteButtons, ctx.parameters.getNumOutputChannels());
+        const int perRow = juce::jmin (numOutputs, 16);
+        const int rows = (numOutputs + perRow - 1) / perRow;
+        const int muteSpacing = scaled (4);
+        const int btnInset = scaled (2);
+
+        // Reserve what the controls below the grid need, then let the grid
+        // take the rest of the column, scrolling when the rig is taller.
+        const int reservedBelow = scaled (30) * 3 + scaled (10) * 3 + scaled (68);
+        const int availH = juce::jmax (scaled (40), col3.getHeight() - reservedBelow);
+        const int sbThick = muteViewport.getScrollBarThickness();
+
+        auto gridMetrics = [&] (int holderW, int& btnSize, int& btnH, int& gridH)
+        {
+            btnSize = (holderW - muteSpacing * (perRow - 1)) / perRow;
+            const int squareH = juce::jmax (1, btnSize - btnInset * 2);
+            const int maxH    = juce::jmax (squareH, static_cast<int> (btnSize * 1.8f));
+            const int fillH   = juce::jmax (1, availH / rows - muteSpacing);
+            btnH  = juce::jlimit (squareH, maxH, fillH);
+            gridH = rows * (btnH + muteSpacing);
+        };
+
+        int btnSize = 0, btnH = 0, gridH = 0;
+        gridMetrics (col3.getWidth(), btnSize, btnH, gridH);
+        const bool needsScroll = gridH > availH;
+        const int holderW = col3.getWidth() - (needsScroll ? sbThick : 0);
+        if (needsScroll)
+            gridMetrics (holderW, btnSize, btnH, gridH);
+
+        muteViewport.setBounds (col3.removeFromTop (juce::jmin (gridH, availH)));
+        muteHolder.setSize (holderW, gridH);
+
+        for (int i = 0; i < maxMuteButtons; ++i)
+        {
+            const bool live = i < numOutputs;
+            muteButtons[i].setVisible (live);
+            if (live)
+                muteButtons[i].setBounds ((i % perRow) * (btnSize + muteSpacing),
+                                          (i / perRow) * (btnH + muteSpacing),
+                                          btnSize, btnH);
+        }
+    }
+
     void loadMuteStates()
     {
         const int numOutputs = juce::jlimit (0, maxMuteButtons, ctx.parameters.getNumOutputChannels());
@@ -624,10 +817,11 @@ private:
             bool state = muteButtons[i].getToggleState();
             switch (macro)
             {
-                case 1: state = true;                    break;   // mute all
-                case 2: state = false;                   break;   // unmute all
-                case 3: state = ! state;                 break;   // invert
-                case 4: state = (i % 2) == 0;            break;   // mute odd (1-based)
+                case 1: state = true;           break;   // mute all
+                case 2: state = false;          break;   // unmute all
+                case 3: state = ! state;        break;   // invert
+                case 4: state = (i % 2) == 0;   break;   // mute odd (1-based)
+                case 5: state = (i % 2) == 1;   break;   // mute even (1-based)
                 default: break;
             }
             muteButtons[i].setToggleState (state, juce::dontSendNotification);
@@ -672,155 +866,6 @@ private:
     }
 
     //==========================================================================
-    // AutomOtion
-    //==========================================================================
-
-    void setupAutomOtionBlock()
-    {
-        addHeader (otomoHeader, "effects.sections.automOtion");
-
-        addAndMakeVisible (otomoCoordModeCombo);
-        otomoCoordModeCombo.addItem (LOC ("effects.coordModes.cartesian"), 1);
-        otomoCoordModeCombo.addItem (LOC ("effects.coordModes.cylindrical"), 2);
-        otomoCoordModeCombo.addItem (LOC ("effects.coordModes.spherical"), 3);
-        otomoCoordModeCombo.onChange = [this]
-        {
-            ctx.write (WFSParameterIDs::effectOtomoCoordinateMode, otomoCoordModeCombo.getSelectedId() - 1);
-        };
-
-        for (int axis = 0; axis < 3; ++axis)
-        {
-            addAndMakeVisible (otomoDestLabels[axis]);
-            otomoDestLabels[axis].setJustificationType (juce::Justification::centredRight);
-            otomoDestLabels[axis].setText (juce::String ("XYZ").substring (axis, axis + 1),
-                                           juce::dontSendNotification);
-
-            auto& ed = otomoDestEditors[axis];
-            ed.setMultiLine (false);
-            ed.setInputRestrictions (10, "-0123456789.");
-            ed.addListener (this);
-            addAndMakeVisible (ed);
-        }
-
-        addAndMakeVisible (otomoAbsRelButton);
-        otomoAbsRelButton.onClick = [this]
-        {
-            const bool next = ! (ctx.readInt (WFSParameterIDs::effectOtomoAbsoluteRelative, 0) != 0);
-            ctx.write (WFSParameterIDs::effectOtomoAbsoluteRelative, next ? 1 : 0);
-            setToggle (otomoAbsRelButton, next, "effects.toggles.absolute", "effects.toggles.relative");
-        };
-
-        setupDial (otomoDurationDial, otomoDurationLabel, otomoDurationValue, "effects.labels.duration",
-                   WFSParameterDefaults::effectOtomoDurationMin, WFSParameterDefaults::effectOtomoDurationMax,
-                   [this] (float v)
-                   {
-                       otomoDurationValue.setText (juce::String (v, 1) + " s", juce::dontSendNotification);
-                       ctx.write (WFSParameterIDs::effectOtomoDuration, v);
-                   }, "Effect AutomOtion Duration");
-
-        setupDial (otomoSpeedProfileDial, otomoSpeedProfileLabel, otomoSpeedProfileValue,
-                   "effects.labels.speedProfile",
-                   static_cast<float> (WFSParameterDefaults::effectOtomoSpeedProfileMin),
-                   static_cast<float> (WFSParameterDefaults::effectOtomoSpeedProfileMax),
-                   [this] (float v)
-                   {
-                       const int pct = juce::roundToInt (v);
-                       otomoSpeedProfileValue.setText (juce::String (pct) + " %", juce::dontSendNotification);
-                       ctx.write (WFSParameterIDs::effectOtomoSpeedProfile, pct);
-                   }, "Effect AutomOtion Speed Profile");
-
-        setupDial (otomoCurveDial, otomoCurveLabel, otomoCurveValue, "effects.labels.curve",
-                   static_cast<float> (WFSParameterDefaults::effectOtomoCurveMin),
-                   static_cast<float> (WFSParameterDefaults::effectOtomoCurveMax),
-                   [this] (float v)
-                   {
-                       const int amount = juce::roundToInt (v);
-                       otomoCurveValue.setText (juce::String (amount), juce::dontSendNotification);
-                       ctx.write (WFSParameterIDs::effectOtomoCurve, amount);
-                   }, "Effect AutomOtion Curve");
-        otomoCurveDial.setBipolar (true);
-
-        addAndMakeVisible (otomoTriggerButton);
-        otomoTriggerButton.onClick = [this]
-        {
-            const bool next = ! (ctx.readInt (WFSParameterIDs::effectOtomoTrigger, 0) != 0);
-            ctx.write (WFSParameterIDs::effectOtomoTrigger, next ? 1 : 0);
-            setToggle (otomoTriggerButton, next, "effects.toggles.manual", "effects.toggles.audioTrigger");
-        };
-
-        setupDial (otomoThresholdDial, otomoThresholdLabel, otomoThresholdValue, "effects.labels.threshold",
-                   WFSParameterDefaults::effectOtomoThresholdMin, WFSParameterDefaults::effectOtomoThresholdMax,
-                   [this] (float v)
-                   {
-                       otomoThresholdValue.setText (juce::String (v, 1) + " dB", juce::dontSendNotification);
-                       ctx.write (WFSParameterIDs::effectOtomoThreshold, v);
-                   }, "Effect AutomOtion Threshold");
-
-        setupDial (otomoResetDial, otomoResetLabel, otomoResetValue, "effects.labels.reset",
-                   WFSParameterDefaults::effectOtomoResetMin, WFSParameterDefaults::effectOtomoResetMax,
-                   [this] (float v)
-                   {
-                       otomoResetValue.setText (juce::String (v, 1) + " dB", juce::dontSendNotification);
-                       ctx.write (WFSParameterIDs::effectOtomoReset, v);
-                   }, "Effect AutomOtion Reset");
-
-        addAndMakeVisible (otomoTriggerIndicator);
-        addAndMakeVisible (otomoResetIndicator);
-
-        // Start/Stop is the processor's, not the tree's: a movement is an act,
-        // and the only tree property behind it is the pause latch.
-        addAndMakeVisible (otomoStartButton);
-        otomoStartButton.setButtonText (LOC ("effects.buttons.otomoStart"));
-        otomoStartButton.onClick = [this]
-        {
-            if (otomo != nullptr)
-                otomo->startMotion (ctx.slot());
-        };
-
-        addAndMakeVisible (otomoStopButton);
-        otomoStopButton.setButtonText (LOC ("effects.buttons.otomoStop"));
-        otomoStopButton.onClick = [this]
-        {
-            if (otomo != nullptr)
-                otomo->stopMotion (ctx.slot());
-        };
-
-        addAndMakeVisible (otomoPauseButton);
-        otomoPauseButton.onClick = [this]
-        {
-            const bool paused = ctx.readInt (WFSParameterIDs::effectOtomoPauseResume, 1) == 0;
-            ctx.write (WFSParameterIDs::effectOtomoPauseResume, paused ? 1 : 0);
-            setToggle (otomoPauseButton, ! paused, "effects.toggles.resume", "effects.toggles.paused");
-        };
-    }
-
-    void loadAutomOtion()
-    {
-        using namespace WFSParameterIDs;
-        namespace D = WFSParameterDefaults;
-
-        otomoCoordModeCombo.setSelectedId (ctx.readInt (effectOtomoCoordinateMode, 0) + 1,
-                                           juce::dontSendNotification);
-
-        const juce::Identifier* dest[3] = { &effectOtomoX, &effectOtomoY, &effectOtomoZ };
-        for (int axis = 0; axis < 3; ++axis)
-            otomoDestEditors[axis].setText (juce::String (ctx.readFloat (*dest[axis], 0.0f), 2), false);
-
-        setToggle (otomoAbsRelButton, ctx.readInt (effectOtomoAbsoluteRelative, 0) != 0,
-                   "effects.toggles.absolute", "effects.toggles.relative");
-        otomoDurationDial.setValue (ctx.readFloat (effectOtomoDuration, D::effectOtomoDurationDefault));
-        otomoSpeedProfileDial.setValue (static_cast<float> (ctx.readInt (effectOtomoSpeedProfile,
-                                                                         D::effectOtomoSpeedProfileDefault)));
-        otomoCurveDial.setValue (static_cast<float> (ctx.readInt (effectOtomoCurve, D::effectOtomoCurveDefault)));
-        setToggle (otomoTriggerButton, ctx.readInt (effectOtomoTrigger, 0) != 0,
-                   "effects.toggles.manual", "effects.toggles.audioTrigger");
-        otomoThresholdDial.setValue (ctx.readFloat (effectOtomoThreshold, D::effectOtomoThresholdDefault));
-        otomoResetDial.setValue (ctx.readFloat (effectOtomoReset, D::effectOtomoResetDefault));
-        setToggle (otomoPauseButton, ctx.readInt (effectOtomoPauseResume, 1) != 0,
-                   "effects.toggles.resume", "effects.toggles.paused");
-    }
-
-    //==========================================================================
     // Text editors
     //==========================================================================
 
@@ -833,228 +878,54 @@ private:
             return;
 
         using namespace WFSParameterIDs;
-
         const juce::Identifier* pos[3] = { &effectPositionX, &effectPositionY, &effectPositionZ };
         const juce::Identifier* off[3] = { &effectReturnOffsetX, &effectReturnOffsetY, &effectReturnOffsetZ };
-        const juce::Identifier* dest[3] = { &effectOtomoX, &effectOtomoY, &effectOtomoZ };
 
         for (int axis = 0; axis < 3; ++axis)
         {
-            if (&editor == &positionEditors[axis])   { ctx.write (*pos[axis],  editor.getText().getFloatValue()); return; }
-            if (&editor == &offsetEditors[axis])     { ctx.write (*off[axis],  editor.getText().getFloatValue()); return; }
-            if (&editor == &otomoDestEditors[axis])  { ctx.write (*dest[axis], editor.getText().getFloatValue()); return; }
+            if (&editor == &positionEditors[axis]) { ctx.write (*pos[axis], editor.getText().getFloatValue()); return; }
+            if (&editor == &offsetEditors[axis])   { ctx.write (*off[axis], editor.getText().getFloatValue()); return; }
         }
-    }
-
-    //==========================================================================
-    // Layout
-    //==========================================================================
-
-    void layoutChannelAndPosition (juce::Rectangle<int> area)
-    {
-        const int row = scaled (20);
-        const int gap = scaled (4);
-
-        channelHeader.setBounds (area.removeFromTop (row));
-        area.removeFromTop (gap);
-
-        layoutSliderRow (area, attenuationLabel, attenuationSlider, attenuationValue);
-        layoutSliderRow (area, delayLatencyLabel, delayLatencySlider, delayLatencyValue);
-        minimalLatencyButton.setBounds (area.removeFromTop (row));
-        area.removeFromTop (gap * 2);
-
-        positionHeader.setBounds (area.removeFromTop (row));
-        area.removeFromTop (gap);
-        coordModeCombo.setBounds (area.removeFromTop (row));
-        area.removeFromTop (gap);
-
-        for (int axis = 0; axis < 3; ++axis)
-        {
-            auto r = area.removeFromTop (row);
-            positionLabels[axis].setBounds (r.removeFromLeft (scaled (60)));
-            r.removeFromLeft (gap);
-            positionEditors[axis].setBounds (r.removeFromLeft (scaled (70)));
-            area.removeFromTop (gap / 2);
-        }
-
-        area.removeFromTop (gap);
-        for (int axis = 0; axis < 3; ++axis)
-        {
-            auto r = area.removeFromTop (row);
-            offsetLabels[axis].setBounds (r.removeFromLeft (scaled (90)));
-            r.removeFromLeft (gap);
-            offsetEditors[axis].setBounds (r.removeFromLeft (scaled (70)));
-            area.removeFromTop (gap / 2);
-        }
-    }
-
-    void layoutFeed (juce::Rectangle<int> area)
-    {
-        const int row = scaled (20);
-        const int gap = scaled (4);
-
-        feedHeader.setBounds (area.removeFromTop (row));
-        area.removeFromTop (gap);
-
-        const int dialSize = scaled (86);
-        orientationLabel.setBounds (area.removeFromTop (scaled (14)));
-        auto dialArea = area.removeFromTop (dialSize);
-        directionalDial.setBounds (dialArea.withSizeKeepingCentre (dialSize, dialSize));
-        orientationValue.setBounds (area.removeFromTop (scaled (14)));
-        area.removeFromTop (gap);
-
-        layoutSliderRow (area, angleOnLabel, angleOnSlider, angleOnValue);
-        layoutSliderRow (area, angleOffLabel, angleOffSlider, angleOffValue);
-        layoutSliderRow (area, pitchLabel, pitchSlider, pitchValue);
-        layoutSliderRow (area, hfDampingLabel, hfDampingSlider, hfDampingValue);
-        feedMiniLatencyButton.setBounds (area.removeFromTop (row));
-        area.removeFromTop (gap);
-        layoutSliderRow (area, distanceAttenPercentLabel, distanceAttenPercentSlider, distanceAttenPercentValue);
-    }
-
-    void layoutReturn (juce::Rectangle<int> area)
-    {
-        const int row = scaled (20);
-        const int gap = scaled (4);
-
-        returnHeader.setBounds (area.removeFromTop (row));
-        area.removeFromTop (gap);
-        attenuationLawButton.setBounds (area.removeFromTop (row));
-        area.removeFromTop (gap);
-
-        const int dialSize = scaled (46);
-        auto dialRow = area.removeFromTop (dialSize + row * 2);
-        const int third = dialRow.getWidth() / 3;
-        layoutDial (dialRow.removeFromLeft (third), distanceAttenLabel, distanceAttenDial, distanceAttenValue, dialSize);
-        layoutDial (dialRow.removeFromLeft (third), distanceRatioLabel, distanceRatioDial, distanceRatioValue, dialSize);
-        // Only one of the two distance controls is visible at a time; they
-        // share a slot so the block does not reflow when the law changes.
-        distanceRatioLabel.setBounds (distanceAttenLabel.getBounds());
-        distanceRatioDial.setBounds (distanceAttenDial.getBounds());
-        distanceRatioValue.setBounds (distanceAttenValue.getBounds());
-        layoutDial (dialRow, commonAttenLabel, commonAttenDial, commonAttenValue, dialSize);
-        area.removeFromTop (gap);
-
-        layoutSliderRow (area, hfShelfLabel, hfShelfSlider, hfShelfValue);
-        muteReverbSendsButton.setBounds (area.removeFromTop (row));
-        area.removeFromTop (gap);
-
-        muteMacroCombo.setBounds (area.removeFromTop (row));
-        area.removeFromTop (gap);
-
-        // The grid: as many columns as fit, scrolled when they do not.
-        const int numOutputs = juce::jlimit (1, maxMuteButtons, ctx.parameters.getNumOutputChannels());
-        const int cell = scaled (20);
-        const int perRow = juce::jmax (1, juce::jmin (numOutputs, area.getWidth() / cell));
-        const int rows = (numOutputs + perRow - 1) / perRow;
-
-        auto gridArea = area.removeFromTop (juce::jmin (area.getHeight() - scaled (60), rows * cell + scaled (4)));
-        muteViewport.setBounds (gridArea);
-        muteHolder.setSize (gridArea.getWidth() - scaled (14), rows * cell);
-
-        for (int i = 0; i < numOutputs; ++i)
-            muteButtons[i].setBounds ((i % perRow) * cell, (i / perRow) * cell, cell - 2, cell - 2);
-
-        area.removeFromTop (gap);
-        arrayAttenHeader.setBounds (area.removeFromTop (row));
-
-        auto attenRow = area;
-        const int dialW = juce::jmax (scaled (24), attenRow.getWidth() / 10);
-        const int smallDial = juce::jmin (dialW - 2, scaled (34));
-        for (int i = 0; i < 10; ++i)
-        {
-            auto cellArea = attenRow.removeFromLeft (dialW);
-            arrayAttenLabels[i].setBounds (cellArea.removeFromTop (scaled (12)));
-            arrayAttenDials[i].setBounds (cellArea.removeFromTop (smallDial)
-                                                  .withSizeKeepingCentre (smallDial, smallDial));
-            arrayAttenValues[i].setBounds (cellArea.removeFromTop (scaled (12)));
-        }
-    }
-
-    void layoutAutomOtion (juce::Rectangle<int> area)
-    {
-        const int row = scaled (20);
-        const int gap = scaled (4);
-
-        otomoHeader.setBounds (area.removeFromTop (row));
-        area.removeFromTop (gap);
-
-        auto top = area.removeFromTop (row);
-        otomoCoordModeCombo.setBounds (top.removeFromLeft (scaled (110)));
-        top.removeFromLeft (gap);
-        for (int axis = 0; axis < 3; ++axis)
-        {
-            otomoDestLabels[axis].setBounds (top.removeFromLeft (scaled (16)));
-            top.removeFromLeft (gap / 2);
-            otomoDestEditors[axis].setBounds (top.removeFromLeft (scaled (60)));
-            top.removeFromLeft (gap);
-        }
-        otomoAbsRelButton.setBounds (top.removeFromLeft (scaled (90)));
-        top.removeFromLeft (gap);
-        otomoStartButton.setBounds (top.removeFromLeft (scaled (70)));
-        top.removeFromLeft (gap);
-        otomoStopButton.setBounds (top.removeFromLeft (scaled (70)));
-        top.removeFromLeft (gap);
-        otomoPauseButton.setBounds (top.removeFromLeft (scaled (90)));
-
-        area.removeFromTop (gap);
-
-        const int dialSize = scaled (46);
-        auto dialRow = area.removeFromTop (dialSize + row * 2);
-        const int slot = juce::jmax (scaled (60), dialRow.getWidth() / 6);
-        layoutDial (dialRow.removeFromLeft (slot), otomoDurationLabel, otomoDurationDial, otomoDurationValue, dialSize);
-        layoutDial (dialRow.removeFromLeft (slot), otomoSpeedProfileLabel, otomoSpeedProfileDial, otomoSpeedProfileValue, dialSize);
-        layoutDial (dialRow.removeFromLeft (slot), otomoCurveLabel, otomoCurveDial, otomoCurveValue, dialSize);
-        layoutDial (dialRow.removeFromLeft (slot), otomoThresholdLabel, otomoThresholdDial, otomoThresholdValue, dialSize);
-        layoutDial (dialRow.removeFromLeft (slot), otomoResetLabel, otomoResetDial, otomoResetValue, dialSize);
-
-        auto indicators = dialRow.removeFromLeft (slot);
-        otomoTriggerButton.setBounds (indicators.removeFromTop (row));
-        indicators.removeFromTop (gap);
-        const int tri = scaled (14);
-        auto triRow = indicators.removeFromTop (tri);
-        otomoTriggerIndicator.setBounds (triRow.removeFromLeft (tri));
-        triRow.removeFromLeft (gap);
-        otomoResetIndicator.setBounds (triRow.removeFromLeft (tri));
-    }
-
-    void layoutSliderRow (juce::Rectangle<int>& area, juce::Label& label,
-                          juce::Component& slider, juce::Label& value)
-    {
-        const int row = scaled (18);
-        auto r = area.removeFromTop (row);
-        label.setBounds (r.removeFromLeft (scaled (86)));
-        value.setBounds (r.removeFromRight (scaled (60)));
-        slider.setBounds (r.reduced (scaled (2), 0));
-        area.removeFromTop (scaled (4));
-    }
-
-    void layoutDial (juce::Rectangle<int> area, juce::Label& label,
-                     juce::Component& dial, juce::Label& value, int dialSize)
-    {
-        label.setBounds (area.removeFromTop (scaled (14)));
-        dial.setBounds (area.removeFromTop (dialSize).withSizeKeepingCentre (dialSize, dialSize));
-        value.setBounds (area.removeFromTop (scaled (14)));
     }
 
     //==========================================================================
     // Small helpers
     //==========================================================================
 
-    void addHeader (juce::Label& label, const char* key)
+    void addTitle (juce::Label& label, const char* key)
     {
         label.setText (LOC (key), juce::dontSendNotification);
-        label.setFont (juce::Font (juce::FontOptions (14.0f).withStyle ("Bold")));
-        label.setColour (juce::Label::textColourId, ColorScheme::get().textSecondary);
+        label.setFont (juce::FontOptions().withHeight (18.0f).withStyle ("Bold"));
         addAndMakeVisible (label);
     }
 
-    void addRow (juce::Label& label, const char* key, juce::Label& value)
+    void addLabel (juce::Label& label, const char* key)
     {
         label.setText (LOC (key), juce::dontSendNotification);
         addAndMakeVisible (label);
+    }
+
+    void addValue (juce::Label& value, const juce::String& initial)
+    {
+        value.setText (initial, juce::dontSendNotification);
         value.setJustificationType (juce::Justification::right);
         addAndMakeVisible (value);
+    }
+
+    void addUnit (juce::Label& unit, const char* text)
+    {
+        unit.setText (juce::String::fromUTF8 (text), juce::dontSendNotification);
+        unit.setJustificationType (juce::Justification::left);
+        unit.setColour (juce::Label::textColourId, ColorScheme::get().textSecondary);
+        addAndMakeVisible (unit);
+    }
+
+    void setupNumberBox (juce::TextEditor& editor)
+    {
+        editor.setMultiLine (false);
+        editor.setInputRestrictions (10, "-0123456789.");
+        editor.addListener (this);
+        addAndMakeVisible (editor);
     }
 
     void setupDial (WfsBasicDial& dial, juce::Label& label, juce::Label& value,
@@ -1066,6 +937,7 @@ private:
         addAndMakeVisible (label);
 
         dial.setRange (min, max);
+        dial.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFF4A90D9));
         dial.onGestureStart = [this, gestureName] { ctx.beginGesture (gestureName); };
         dial.onValueChanged = std::move (onChanged);
         addAndMakeVisible (dial);
@@ -1081,6 +953,26 @@ private:
                           state ? juce::Colour (0xFF3A6EA5) : ColorScheme::get().buttonNormal);
     }
 
+    /** The reverb tab's minimal-latency switch: gold with black text when
+        allowed, track-grey when excluded. */
+    void setLatencyButton (juce::TextButton& button, bool allowed)
+    {
+        button.setToggleState (allowed, juce::dontSendNotification);
+        button.setButtonText (allowed ? LOC ("effects.toggles.minLatencyOn")
+                                      : LOC ("effects.toggles.minLatencyOff"));
+        const auto colour = allowed ? juce::Colour (0xFFD4A017) : ColorScheme::get().sliderTrackBg;
+        button.setColour (juce::TextButton::buttonColourId, colour);
+        button.setColour (juce::TextButton::buttonOnColourId, colour);
+    }
+
+    static juce::String latencyText (float ms)
+    {
+        // The reverb tab names which of the two it is: a negative trim is
+        // latency taken away, a positive one is delay added.
+        return (ms < 0.0f ? LOC ("effects.labels.latencyPrefix") : LOC ("effects.labels.delayPrefix"))
+             + " " + juce::String (std::abs (ms), 1) + " ms";
+    }
+
     void setSliderFromDb (WfsStandardSlider& slider, juce::Label& value, float db, float minDb)
     {
         const float minLin = std::pow (10.0f, minDb / 20.0f);
@@ -1092,11 +984,13 @@ private:
 
     template <typename SliderType>
     void setSliderLinear (SliderType& slider, juce::Label& value, float v, float min, float max,
-                          const juce::String& unit)
+                          const juce::String& unit, int decimals)
     {
         slider.setValue (normalise (v, min, max));
-        value.setText (juce::String (v, unit == " %" ? 0 : 2) + unit, juce::dontSendNotification);
+        value.setText (juce::String (v, decimals) + unit, juce::dontSendNotification);
     }
+
+    static juce::String degreeSign() { return juce::String::fromUTF8 ("\xc2\xb0"); }
 
     static float normalise (float v, float min, float max)
     {
@@ -1117,36 +1011,35 @@ private:
     static constexpr int maxMuteButtons = WFSParameterDefaults::maxOutputChannels;
 
     EffectsTabContext& ctx;
-    AutomOtionProcessor* otomo = nullptr;
     float layoutScale = 1.0f;
-    std::vector<juce::Rectangle<int>> blockBounds;
+    int contentTop = 0;
+    int columnDividerX1 = 0;
+    int columnDividerX2 = 0;
 
-    // Channel
-    juce::Label channelHeader, attenuationLabel, attenuationValue, delayLatencyLabel, delayLatencyValue;
+    // Column 1
+    juce::Label attenuationLabel, attenuationValue, delayLatencyLabel, delayLatencyValue;
     WfsStandardSlider attenuationSlider;
     WfsBidirectionalSlider delayLatencySlider;
     juce::TextButton minimalLatencyButton;
-
-    // Position
-    juce::Label positionHeader;
+    juce::Label coordModeLabel;
     juce::ComboBox coordModeCombo;
-    juce::Label positionLabels[3], offsetLabels[3];
+    juce::Label positionLabels[3], positionUnits[3], offsetLabels[3], offsetUnits[3];
     juce::TextEditor positionEditors[3], offsetEditors[3];
 
-    // Feed
-    juce::Label feedHeader, orientationLabel, orientationValue;
+    // Column 2: Effect Feed
+    juce::Label feedTitle, orientationLabel, orientationValue;
     WfsDirectionalDial directionalDial;
     juce::Label angleOnLabel, angleOnValue, angleOffLabel, angleOffValue, pitchLabel, pitchValue;
     WfsWidthExpansionSlider angleOnSlider, angleOffSlider;
     WfsBidirectionalSlider pitchSlider;
     juce::Label hfDampingLabel, hfDampingValue;
     WfsStandardSlider hfDampingSlider;
-    juce::TextButton feedMiniLatencyButton;
     juce::Label distanceAttenPercentLabel, distanceAttenPercentValue;
     WfsStandardSlider distanceAttenPercentSlider;
+    juce::TextButton feedMiniLatencyButton;
 
-    // Return
-    juce::Label returnHeader;
+    // Column 3: Effect Return
+    juce::Label returnTitle;
     juce::TextButton attenuationLawButton;
     juce::Label distanceAttenLabel, distanceAttenValue, distanceRatioLabel, distanceRatioValue;
     WfsBasicDial distanceAttenDial, distanceRatioDial;
@@ -1154,28 +1047,15 @@ private:
     WfsBasicDial commonAttenDial;
     juce::Label hfShelfLabel, hfShelfValue;
     WfsStandardSlider hfShelfSlider;
-    juce::TextButton muteReverbSendsButton;
+    juce::Label muteMacroLabel, outputMutesLabel;
+    juce::ComboBox muteMacroCombo;
     juce::Viewport muteViewport;
     juce::Component muteHolder;
     juce::TextButton muteButtons[maxMuteButtons];
-    juce::ComboBox muteMacroCombo;
-    juce::Label arrayAttenHeader;
+    juce::TextButton muteReverbSendsButton;
+    juce::Label arrayAttenLabel;
     juce::Label arrayAttenLabels[10], arrayAttenValues[10];
     WfsBasicDial arrayAttenDials[10];
-
-    // AutomOtion
-    juce::Label otomoHeader;
-    juce::ComboBox otomoCoordModeCombo;
-    juce::Label otomoDestLabels[3];
-    juce::TextEditor otomoDestEditors[3];
-    juce::TextButton otomoAbsRelButton, otomoTriggerButton, otomoPauseButton;
-    juce::TextButton otomoStartButton, otomoStopButton;
-    juce::Label otomoDurationLabel, otomoDurationValue, otomoSpeedProfileLabel, otomoSpeedProfileValue;
-    juce::Label otomoCurveLabel, otomoCurveValue, otomoThresholdLabel, otomoThresholdValue;
-    juce::Label otomoResetLabel, otomoResetValue;
-    WfsBasicDial otomoDurationDial, otomoSpeedProfileDial, otomoCurveDial, otomoThresholdDial, otomoResetDial;
-    TriangleIndicator otomoTriggerIndicator { TriangleIndicator::Up,   juce::Colour (0xFF4CAF50) };
-    TriangleIndicator otomoResetIndicator   { TriangleIndicator::Down, juce::Colour (0xFF42A5F5) };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EffectsChannelPanel)
 };

@@ -1545,8 +1545,10 @@ public:
         g.setFont(juce::FontOptions().withHeight(juce::jmax(10.0f, 14.0f * layoutScale)).withStyle("Bold"));
         g.drawText(LOC("systemConfig.sections.show"), layout.col1X, scaled(10), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.io"), layout.col1X, scaled(130), layout.colWidth, headerH, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.ui"), layout.col1X, scaled(328), layout.colWidth, headerH, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.controllers"), layout.col1X, scaled(503), layout.colWidth, headerH, juce::Justification::left);
+        // 363 and 538, not 328 and 503: the I/O block grew an effects row
+        // (rowHeight 30 + spacing 5), and every y in this column is absolute.
+        g.drawText(LOC("systemConfig.sections.ui"), layout.col1X, scaled(363), layout.colWidth, headerH, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.controllers"), layout.col1X, scaled(538), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.stage"), layout.col2X, scaled(10), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.master"), layout.col2X, scaled(400), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.wfsProcessor"), layout.col3X, scaled(10), layout.colWidth, headerH, juce::Justification::left);
@@ -1629,7 +1631,7 @@ public:
         }
 
         // UI Section
-        y = scaled(358); // Start after "UI" header (I/O grew a stereo row)
+        y = scaled(393); // Start after the "UI" header (I/O grew a stereo row, then an effects row)
         colorSchemeLabel.setBounds(x, y, labelWidth, rowHeight);
         colorSchemeSelector.setBounds(x + labelWidth, y, editorWidth * 2, rowHeight);  // Wider for dropdown text
         y += rowHeight + spacing;
@@ -1653,7 +1655,7 @@ public:
         }
 
         // Controllers Section
-        y = scaled(533); // Start after "Controllers" header (shifted down for extra UI rows)
+        y = scaled(568); // Start after the "Controllers" header (shifted down for the extra UI and I/O rows)
         dialsAndButtonsLabel.setBounds (x, y, labelWidth, rowHeight);
         dialsAndButtonsSelector.setBounds (x + labelWidth, y, editorWidth * 2, rowHeight);
         y += rowHeight + spacing;
@@ -2071,9 +2073,9 @@ public:
 
             // Keyboard Shortcuts help button — same right-aligned column as the
             // overview "?", but up on the "UI" section header line (painted at
-            // scaled(328) with a scaled(20) row, see paint()).
+            // scaled(363) with a scaled(20) row, see paint()).
             shortcutsHelpButton.setBounds (layout.col1X + layout.colWidth - btnSize,
-                                           scaled(328) + (scaled(20) - btnSize) / 2,
+                                           scaled(363) + (scaled(20) - btnSize) / 2,
                                            btnSize, btnSize);
 
             // Keyboard Shortcuts card — large, centered; scrolls if it overflows
@@ -2447,7 +2449,8 @@ public:
             // Column 1: Show
             { &showNameEditor, &showLocationEditor },
             // Column 2: I/O
-            { &inputChannelsEditor, &stereoChannelsEditor, &outputChannelsEditor, &reverbChannelsEditor },
+            { &inputChannelsEditor, &stereoChannelsEditor, &outputChannelsEditor, &reverbChannelsEditor,
+              &effectChannelsEditor },
             // Column 3: Stage (invisible fields skipped automatically per shape)
             { &stageWidthEditor, &stageDepthEditor,
               &stageDiameterEditor, &domeElevationEditor, &stageHeightEditor,
@@ -3279,14 +3282,20 @@ private:
                                  WFSParameterDefaults::binauralListenerRollMax, value);
         else if (&editor == &reverbChannelsEditor)
             value = juce::jlimit(0.0f, (float)WFSParameterDefaults::maxReverbChannels, std::abs(value));
+        else if (&editor == &effectChannelsEditor)
+            value = juce::jlimit(0.0f, (float)WFSParameterDefaults::maxEffectChannels, std::abs(value));
         else if (&editor == &stereoChannelsEditor)
             value = juce::jlimit(0.0f, (float)WFSParameterDefaults::maxStereoChannels, std::abs(value));
 
         // Update display with clamped value
         if (&editor == &inputChannelsEditor || &editor == &stereoChannelsEditor ||
             &editor == &outputChannelsEditor ||
-            &editor == &reverbChannelsEditor || &editor == &binauralOrbitEditor)
+            &editor == &reverbChannelsEditor || &editor == &effectChannelsEditor ||
+            &editor == &binauralOrbitEditor)
         {
+            // A channel count is a whole number of channels. Left out of this
+            // list an editor falls through to the two-decimal branch below and
+            // reads "3.00", which is not a count of anything.
             editor.setText(juce::String((int)value), false);
         }
         else if (&editor == &binauralDistanceEditor || &editor == &binauralAttenEditor ||
