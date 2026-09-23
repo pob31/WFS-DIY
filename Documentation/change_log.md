@@ -17,6 +17,7 @@ All notable changes to WFS DIY are documented in this file, organized by release
 - **Write to QLab exports the effects**: one cue per in-scope effect parameter, in the address form the app's OSC receiver expects (instance, band or tap indices where needed, whole rows as one quoted string).
 
 ### Changed
+- **Translations**: the snapshot row, the Snapshot Scope window and its help card follow the one-snapshot wording in all eight languages, and the Effects tab's Channel Parameters sub-tab (with its header, sub-tab names, footer and help card) is translated like the Reverb tab's. The chain's module controls and the other Effects sub-tabs are still English.
 - **The Snapshot Scope window is titled "Snapshot Scope"** and names the Gradient Maps, Sampler and ADM-OSC sections instead of showing their internal ids.
 - **`/wfs/effect/snapshot/load` and `/store` are retired**: still recognised, and refused with a session-log reason pointing at `/wfs/input/snapshot/load|store`, which now cover the effects.
 - **Inputs, Clusters and Map moved up one main-tab index** to make room for Effects. Nothing persists a main-tab index, so nothing migrates; the Stream Deck, Space Mouse and Map navigation are written against the named indices in `Source/gui/TabIndex.h`.

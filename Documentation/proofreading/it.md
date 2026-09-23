@@ -1,6 +1,6 @@
 # Proofreading checklist — Italian (Italiano)
 
-Locale: `it`  |  Total keys: 770  |  Source: `Resources/lang/en.json` vs `Resources/lang/it.json`
+Locale: `it`  |  Total keys: 803  |  Source: `Resources/lang/en.json` vs `Resources/lang/it.json`
 
 ## How to use this file
 
@@ -59,8 +59,8 @@ Walk through each section. For every entry:
 ## `audioPatch.deviceSettings`
 
 - **`midiTooltip`**
-  - EN: Snapshot recall only. This port is opened for input alone and is used for nothing else: WFS-DIY sends it no MIDI, and the only messages it acts on are note-ons that recall an input snapshot. Bind a channel and note to a snapshot in the Inputs tab's Edit Scope window; a note-on above velocity 64 recalls it.
-  - IT: Solo per il richiamo degli snapshot. Questa porta viene aperta soltanto in ingresso e non viene usata per nient'altro: WFS-DIY non le invia alcun dato MIDI e gli unici messaggi a cui reagisce sono i note-on che richiamano uno snapshot di ingresso. Assegnare un canale e una nota a uno snapshot nella finestra Edit Scope della scheda Inputs; un note-on con velocity superiore a 64 lo richiama.
+  - EN: Snapshot recall only. This port is opened for input alone and is used for nothing else: WFS-DIY sends it no MIDI, and the only messages it acts on are note-ons that recall a snapshot (inputs and effects). Bind a channel and note to a snapshot in the Edit Scope window of the Inputs or Effects tab; a note-on above velocity 64 recalls it.
+  - IT: Solo per il richiamo degli snapshot. Questa porta viene aperta soltanto in ingresso e non viene usata per nient'altro: WFS-DIY non le invia alcun dato MIDI e gli unici messaggi a cui reagisce sono i note-on che richiamano uno snapshot (ingressi ed effetti). Assegnare un canale e una nota a uno snapshot nella finestra Edit Scope della scheda Inputs o Effects; un note-on con velocity superiore a 64 lo richiama.
   - [ ] OK    Fix: 
 
 ## `audioPatch.dialogs`
@@ -433,6 +433,159 @@ Walk through each section. For every entry:
   - IT: Sì
   - [ ] OK    Fix: 
 
+## `effects`
+
+- **`noChannels`**
+  - EN: No effects channels. Set the count in System Config, or import an effects configuration.
+  - IT: Nessun canale effetto. Impostare il numero in System Config oppure importare una configurazione effetti.
+  - [ ] OK    Fix: 
+
+## `effects.dialogs`
+
+- **`exportTitle`**
+  - EN: Export Effects Configuration
+  - IT: Esporta Configurazione Effetti
+  - [ ] OK    Fix: 
+
+- **`importTitle`**
+  - EN: Import Effects Configuration
+  - IT: Importa Configurazione Effetti
+  - [ ] OK    Fix: 
+
+## `effects.help`
+
+- **`channelSelector`**
+  - EN: Select the effects channel to edit.
+  - IT: Selezionare il canale effetto da modificare.
+  - [ ] OK    Fix: 
+
+- **`clear`**
+  - EN: Long-press to flush this effect chain; hold Ctrl to clear every effect.
+  - IT: Pressione lunga per svuotare questa catena di effetti; tenere premuto Ctrl per svuotare tutti gli effetti.
+  - [ ] OK    Fix: 
+
+- **`cycle`**
+  - EN: This effect is part of a feedback loop in the sends grid.
+  - IT: Questo effetto fa parte di un anello di retroazione nella griglia delle mandate.
+  - [ ] OK    Fix: 
+
+- **`editOnMap`**
+  - EN: Enable editing effect positions from the Map tab.
+  - IT: Abilitare la modifica delle posizioni degli effetti dalla scheda Map.
+  - [ ] OK    Fix: 
+
+- **`entry`**
+  - EN: This effect is fed by an input, so it is an entry point of its bunch.
+  - IT: Questo effetto è alimentato da un ingresso, quindi è un punto di ingresso del suo gruppo.
+  - [ ] OK    Fix: 
+
+- **`export`**
+  - EN: Export Effects Configuration to file (with file explorer window).
+  - IT: Esportare la configurazione degli effetti su file (con esplora file).
+  - [ ] OK    Fix: 
+
+- **`groupMute`**
+  - EN: Long-press to mute or unmute every member of this link group at once.
+  - IT: Pressione lunga per mettere o togliere il mute a tutti i membri di questo gruppo di collegamento in una volta.
+  - [ ] OK    Fix: 
+
+- **`import`**
+  - EN: Import Effects Configuration from file (with file explorer window).
+  - IT: Importare la configurazione degli effetti da file (con esplora file).
+  - [ ] OK    Fix: 
+
+- **`linkGroup`**
+  - EN: Link this effect to a group so module edits propagate to the other members.
+  - IT: Collegare questo effetto a un gruppo perché le modifiche ai moduli si propaghino agli altri membri.
+  - [ ] OK    Fix: 
+
+- **`linkMode`**
+  - EN: How this channel takes group edits: off, absolute, or relative.
+  - IT: Come questo canale riceve le modifiche del gruppo: disattivato, assoluto o relativo.
+  - [ ] OK    Fix: 
+
+- **`loopGuard`**
+  - EN: The loop guard has muted this channel's effect-to-effect feed.
+  - IT: La protezione anello ha silenziato l'alimentazione da effetto a effetto di questo canale.
+  - [ ] OK    Fix: 
+
+- **`mapVisible`**
+  - EN: Show or hide effect return markers on the Map tab.
+  - IT: Mostrare o nascondere i marcatori dei ritorni effetto nella scheda Map.
+  - [ ] OK    Fix: 
+
+- **`mute`**
+  - EN: Mute this effect return.
+  - IT: Mettere in mute questo ritorno effetto.
+  - [ ] OK    Fix: 
+
+- **`name`**
+  - EN: Displayed name of this effects channel.
+  - IT: Nome visualizzato di questo canale effetto.
+  - [ ] OK    Fix: 
+
+- **`reloadBackup`**
+  - EN: Reload Effects Configuration from backup file (with confirmation).
+  - IT: Ricaricare la configurazione degli effetti dal file di backup (con conferma).
+  - [ ] OK    Fix: 
+
+- **`reloadConfig`**
+  - EN: Reload Effects Configuration from file (with confirmation).
+  - IT: Ricaricare la configurazione degli effetti da file (con conferma).
+  - [ ] OK    Fix: 
+
+- **`solo`**
+  - EN: Long-press to solo this effect return.
+  - IT: Pressione lunga per mettere in solo questo ritorno effetto.
+  - [ ] OK    Fix: 
+
+- **`soloEffects`**
+  - EN: Long-press to solo the effect returns: the direct signal is muted.
+  - IT: Pressione lunga per mettere in solo i ritorni effetto: il segnale diretto viene silenziato.
+  - [ ] OK    Fix: 
+
+- **`storeConfig`**
+  - EN: Store Effects Configuration to file (overwrite with confirmation).
+  - IT: Memorizzare la configurazione degli effetti su file (sovrascrittura con conferma).
+  - [ ] OK    Fix: 
+
+## `effects.messages`
+
+- **`cleared`**
+  - EN: Effect chain cleared.
+  - IT: Catena di effetti svuotata.
+  - [ ] OK    Fix: 
+
+- **`clearedAll`**
+  - EN: Every effect chain cleared.
+  - IT: Tutte le catene di effetti svuotate.
+  - [ ] OK    Fix: 
+
+- **`configLoaded`**
+  - EN: Effects configuration loaded.
+  - IT: Configurazione effetti caricata.
+  - [ ] OK    Fix: 
+
+- **`configSaved`**
+  - EN: Effects configuration saved.
+  - IT: Configurazione effetti salvata.
+  - [ ] OK    Fix: 
+
+- **`error`**
+  - EN: Error: {error}
+  - IT: Errore: {error}
+  - [ ] OK    Fix: 
+
+- **`groupMuteNeedsGroup`**
+  - EN: This effect is not in a link group, so there is no group to mute.
+  - IT: Questo effetto non è in un gruppo di collegamento, quindi non c'è alcun gruppo da mettere in mute.
+  - [ ] OK    Fix: 
+
+- **`selectFolderFirst`**
+  - EN: Select a project folder first.
+  - IT: Selezionare prima una cartella progetto.
+  - [ ] OK    Fix: 
+
 ## `eq.status`
 
 - **`off`**
@@ -510,6 +663,18 @@ Walk through each section. For every entry:
 - **`title`**
   - EN: Diagnostics & Feedback
   - IT: Diagnostica e feedback
+  - [ ] OK    Fix: 
+
+## `help.effects`
+
+- **`body`**
+  - EN: An effects channel is a chain of eleven modules (distortion, two EQs, two dynamics, chorus/flanger, phaser, tremolo, reverb, multitap delay, bitcrusher) fed by inputs and by other effects through the sends matrix. Its output is a RETURN placed on the stage like an input: it renders through the WFS arrays from its own position, with the same feed orientation, attenuation law and mutes an input has.\nThe header mirrors the Reverb tab: channel selector, name, map visibility, Edit on Map, Solo Effects, Mute, Solo and the emergency Clear (long-press; hold Ctrl to clear every chain). The three dots are the engine's word on this channel: loop guard tripped, part of a feedback cycle, fed by an input (the entry point of its bunch).\nLink groups are not like reverbs, which are one system: a channel in a group shares its chain (order, bypasses, module parameters) with the other members by each member's link mode - Absolute copies, Relative keeps the offset, Off receives nothing - while its movements, sends, mutes and position never propagate. Ctrl-drag any control to edit this channel alone. Mute Group mutes every member once and leaves each independently editable.
+  - IT: Un canale effetto è una catena di undici moduli (distorsione, due EQ, due dinamiche, chorus/flanger, phaser, tremolo, riverbero, delay multitap, bitcrusher) alimentata dagli ingressi e da altri effetti tramite la matrice delle mandate. La sua uscita è un RITORNO posizionato sul palco come un ingresso: viene riprodotto dagli array WFS dalla propria posizione, con lo stesso orientamento, la stessa legge di attenuazione e gli stessi mute di un ingresso.\nL'intestazione riprende quella della scheda Reverb: selettore del canale, nome, visibilità sulla mappa, Edit on Map, Solo Effects, Mute, Solo e Clear di emergenza (pressione lunga; tenere premuto Ctrl per svuotare tutte le catene). I tre indicatori riportano lo stato del motore per questo canale: protezione anello scattata, parte di un anello di retroazione, alimentato da un ingresso (punto di ingresso del suo gruppo).\nI gruppi di collegamento non sono come i riverberi, che formano un unico sistema: un canale in un gruppo condivide la sua catena (ordine, bypass, parametri dei moduli) con gli altri membri secondo la modalità di collegamento di ciascuno — Absolute copia, Relative mantiene lo scarto, Off non riceve nulla — mentre movimenti, mandate, mute e posizione non si propagano mai. Trascinare un controllo con Ctrl per modificare solo questo canale. Mute Group mette in mute ogni membro una volta e lascia ciascuno modificabile separatamente.
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Effects
+  - IT: Effetti
   - [ ] OK    Fix: 
 
 ## `help.floorReflections`
@@ -875,13 +1040,13 @@ Walk through each section. For every entry:
 ## `help.snapshotScope`
 
 - **`body`**
-  - EN: Snapshots store input parameters, but can have a scope to be recalled during a performance. They can have between all parameters for all inputs and only one parameter for a single channel. They can be updated and renamed for convenience.\nThe Scope tells the system what data to store or recall. It's the opposite of 'safe' parameters.\nThere are several ways to do this in this application:\n- Record only the needed data in local files. The scope filter is applied when storing the data. A recall cue can be created in QLab to trigger the reading of the local file.\n- Record all data and a filter in local files. The scope filter is applied when recalling the data. This allows to eventually recall all data not taking into account the scope filter. This may come in handy when a complete configuration should be recalled during rehearsal for example. A recall cue can be created in QLab to trigger the reading of the local file.\n- Record all data in scope in QLab cues. This should not be used to recall all parameters for large configurations since QLab may stall when recalling so much data.\nThe scope can show and automatically pre-select the parameters that have been manually changed (local UI, hardware controllers, remote Android application). Changed parameters are marked with a yellow mark.
-  - IT: Gli snapshot memorizzano i parametri di ingresso, ma possono avere un ambito per essere richiamati durante uno spettacolo.\nL'Ambito indica al sistema quali dati memorizzare o richiamare.\nSono disponibili diversi metodi:\n- Registrare solo i dati necessari in file locali. Il filtro viene applicato al salvataggio.\n- Registrare tutti i dati e un filtro in file locali. Il filtro viene applicato al richiamo.\n- Registrare tutti i dati nelle cue di QLab. Non raccomandato per configurazioni grandi.\nL'ambito può mostrare e preselezionare automaticamente i parametri modificati manualmente. Le modifiche sono contrassegnate in giallo.
+  - EN: Snapshots store input and effect parameters, but can have a scope to be recalled during a performance. They can have between all parameters for all inputs and effects and only one parameter for a single channel. They can be updated and renamed for convenience.\nThe Scope tells the system what data to store or recall. It's the opposite of 'safe' parameters.\nThere are several ways to do this in this application:\n- Record only the needed data in local files. The scope filter is applied when storing the data. A recall cue can be created in QLab to trigger the reading of the local file.\n- Record all data and a filter in local files. The scope filter is applied when recalling the data. This allows to eventually recall all data not taking into account the scope filter. This may come in handy when a complete configuration should be recalled during rehearsal for example. A recall cue can be created in QLab to trigger the reading of the local file.\n- Record all data in scope in QLab cues. This should not be used to recall all parameters for large configurations since QLab may stall when recalling so much data.\nThe scope can show and automatically pre-select the parameters that have been manually changed (local UI, hardware controllers, remote Android application). Changed parameters are marked with a yellow mark.\nOne snapshot carries the inputs and the effects channels. The Scope window has an Inputs tab and an Effects tab, one grid per family; on the Effects grid each module of the chain is one row, its bands and taps included. The Inputs tab and the Effects tab show the same snapshot row, so a snapshot stored or recalled from either covers both, and one MIDI note or OSC cue recalls both.
+  - IT: Gli snapshot memorizzano i parametri di ingresso e degli effetti, ma possono avere un ambito per essere richiamati durante uno spettacolo.\nL'Ambito indica al sistema quali dati memorizzare o richiamare.\nSono disponibili diversi metodi:\n- Registrare solo i dati necessari in file locali. Il filtro viene applicato al salvataggio.\n- Registrare tutti i dati e un filtro in file locali. Il filtro viene applicato al richiamo.\n- Registrare tutti i dati nelle cue di QLab. Non raccomandato per configurazioni grandi.\nL'ambito può mostrare e preselezionare automaticamente i parametri modificati manualmente. Le modifiche sono contrassegnate in giallo.\nUno snapshot contiene gli ingressi e i canali effetto. La finestra dell'ambito ha una scheda per gli ingressi e una per gli effetti, una griglia per famiglia; nella griglia degli effetti ogni modulo della catena è una riga, bande e tap inclusi. Le schede Ingressi ed Effetti mostrano la stessa riga degli snapshot: uno snapshot salvato o richiamato da una delle due copre entrambe le famiglie, e una nota MIDI o una cue OSC le richiama entrambe.
   - [ ] OK    Fix: 
 
 - **`title`**
-  - EN: Input Snapshots and Scope
-  - IT: Snapshot di Ingresso e Ambito
+  - EN: Snapshots and Scope
+  - IT: Snapshot e Ambito
   - [ ] OK    Fix: 
 
 ## `help.tracking`
@@ -1165,8 +1330,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`deleteSnapshot`**
-  - EN: Delete Selected Input Snapshot With Confirmation.
-  - IT: Elimina lo snapshot di ingresso selezionato con conferma.
+  - EN: Delete the selected snapshot, with confirmation.
+  - IT: Elimina lo snapshot selezionato con conferma.
   - [ ] OK    Fix: 
 
 - **`directivitySlider`**
@@ -1200,8 +1365,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`editScope`**
-  - EN: Open Selected Input Snapshot Scope Window.
-  - IT: Apri la finestra del filtro dello snapshot di ingresso selezionato.
+  - EN: Open the Snapshot Scope window for the selected snapshot.
+  - IT: Apri la finestra del filtro dello snapshot selezionato.
   - [ ] OK    Fix: 
 
 - **`exportConfig`**
@@ -1625,13 +1790,13 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`reloadSnapshot`**
-  - EN: Reload Selected Input Snapshot for All Objects Taking the Scope into Account.
-  - IT: Ricarica lo snapshot di ingresso selezionato per tutti gli oggetti tenendo conto del filtro.
+  - EN: Reload the selected snapshot (inputs and effects), taking the scope into account.
+  - IT: Ricarica lo snapshot selezionato (ingressi ed effetti) tenendo conto del filtro.
   - [ ] OK    Fix: 
 
 - **`reloadWithoutScope`**
-  - EN: Reload Selected Input Snapshot for All Objects Without the Scope.
-  - IT: Ricarica lo snapshot di ingresso selezionato per tutti gli oggetti senza il filtro.
+  - EN: Reload the selected snapshot (inputs and effects) without the scope.
+  - IT: Ricarica lo snapshot selezionato (ingressi ed effetti) senza il filtro.
   - [ ] OK    Fix: 
 
 - **`sidelinesActiveButton`**
@@ -1645,8 +1810,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`snapshotSelector`**
-  - EN: Select Input Snapshot Without Loading.
-  - IT: Seleziona lo snapshot di ingresso senza caricarlo.
+  - EN: Select a snapshot without loading it.
+  - IT: Seleziona uno snapshot senza caricarlo.
   - [ ] OK    Fix: 
 
 - **`solo`**
@@ -1680,8 +1845,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`storeSnapshot`**
-  - EN: Store new Input Snapshot for All Objects.
-  - IT: Salva un nuovo snapshot di ingresso per tutti gli oggetti.
+  - EN: Store a new snapshot of all the inputs and effects.
+  - IT: Salva un nuovo snapshot di tutti gli ingressi e gli effetti.
   - [ ] OK    Fix: 
 
 - **`tiltSlider`**
@@ -1705,8 +1870,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`updateSnapshot`**
-  - EN: Update Selected Input Snapshot (with backup).
-  - IT: Aggiorna lo snapshot di ingresso selezionato (con backup).
+  - EN: Update the selected snapshot, inputs and effects (with backup).
+  - IT: Aggiorna lo snapshot selezionato, ingressi ed effetti (con backup).
   - [ ] OK    Fix: 
 
 ## `inputs.messages`
@@ -1814,6 +1979,11 @@ Walk through each section. For every entry:
 - **`snapshotDeleted`**
   - EN: Snapshot '{name}' deleted.
   - IT: Snapshot '{name}' eliminato.
+  - [ ] OK    Fix: 
+
+- **`snapshotEffectsSkipped`**
+  - EN: Snapshot '{name}': {n} effect entries skipped, no effect channel {ids}
+  - IT: Snapshot “{name}”: {n} voci di effetto saltate, nessun canale effetto {ids}
   - [ ] OK    Fix: 
 
 - **`snapshotEntriesSkipped`**
@@ -3242,6 +3412,13 @@ Walk through each section. For every entry:
 - **`setPos`**
   - EN: Set base position in meters (X, Y, Z)
   - IT: Imposta la posizione di base in metri (X, Y, Z)
+  - [ ] OK    Fix: 
+
+## `snapshotScope`
+
+- **`noEffectChannels`**
+  - EN: This session has no effect channels.
+  - IT: Questa sessione non ha canali effetto.
   - [ ] OK    Fix: 
 
 ## `snapshotScope.midi`

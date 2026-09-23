@@ -293,7 +293,7 @@
   },
   "audioPatch": {
     "deviceSettings": {
-      "midiTooltip": "Nur für den Snapshot-Abruf. Dieser Port wird ausschließlich als Eingang geöffnet und für nichts anderes verwendet: WFS-DIY sendet kein MIDI an ihn und reagiert nur auf Note-Ons, die einen Eingangs-Snapshot abrufen. Weisen Sie einem Snapshot im Fenster „Edit Scope“ des Inputs-Tabs einen Kanal und eine Note zu; ein Note-On mit Velocity über 64 ruft den Snapshot ab."
+      "midiTooltip": "Nur für den Snapshot-Abruf. Dieser Port wird ausschließlich als Eingang geöffnet und für nichts anderes verwendet: WFS-DIY sendet kein MIDI an ihn und reagiert nur auf Note-Ons, die einen Snapshot (Eingänge und Effekte) abrufen. Weisen Sie einem Snapshot im Fenster „Edit Scope“ des Inputs- oder Effects-Tabs einen Kanal und eine Note zu; ein Note-On mit Velocity über 64 ruft den Snapshot ab."
     },
     "dialogs": {
       "unpatchInputsTitle": "Alle Eingänge trennen",
@@ -552,6 +552,43 @@
       "returnOffset3": "Reverb-Rückgabe-Versatz {name} ({unit})."
     }
   },
+  "effects": {
+    "dialogs": {
+      "importTitle": "Effektkonfiguration importieren",
+      "exportTitle": "Effektkonfiguration exportieren"
+    },
+    "messages": {
+      "configSaved": "Effektkonfiguration gespeichert.",
+      "cleared": "Effektkette geleert.",
+      "clearedAll": "Alle Effektketten geleert.",
+      "groupMuteNeedsGroup": "Dieser Effekt ist in keiner Verknüpfungsgruppe, es gibt also keine Gruppe stummzuschalten.",
+      "configLoaded": "Effektkonfiguration geladen.",
+      "selectFolderFirst": "Wählen Sie zuerst einen Projektordner.",
+      "error": "Fehler: {error}"
+    },
+    "help": {
+      "channelSelector": "Den zu bearbeitenden Effektkanal auswählen.",
+      "name": "Angezeigter Name dieses Effektkanals.",
+      "linkGroup": "Diesen Effekt einer Gruppe zuordnen, damit Moduländerungen an die anderen Mitglieder weitergegeben werden.",
+      "linkMode": "Wie dieser Kanal Gruppenänderungen übernimmt: aus, absolut oder relativ.",
+      "groupMute": "Lange drücken, um alle Mitglieder dieser Verknüpfungsgruppe auf einmal stumm- oder wieder einzuschalten.",
+      "mute": "Diesen Effekt-Return stummschalten.",
+      "solo": "Lange drücken, um diesen Effekt-Return solo zu schalten.",
+      "mapVisible": "Effekt-Return-Markierungen im Tab Map ein- oder ausblenden.",
+      "editOnMap": "Bearbeiten der Effektpositionen im Tab Map aktivieren.",
+      "soloEffects": "Lange drücken, um die Effekt-Returns solo zu schalten: das Direktsignal wird stummgeschaltet.",
+      "clear": "Lange drücken, um diese Effektkette zu leeren; Strg gedrückt halten, um alle Effekte zu leeren.",
+      "loopGuard": "Der Schleifenschutz hat die Effekt-zu-Effekt-Einspeisung dieses Kanals stummgeschaltet.",
+      "cycle": "Dieser Effekt ist Teil einer Rückkopplungsschleife im Send-Raster.",
+      "entry": "Dieser Effekt wird von einem Eingang gespeist und ist daher ein Einstiegspunkt seines Verbunds.",
+      "storeConfig": "Effektkonfiguration in Datei speichern (Überschreiben mit Bestätigung).",
+      "reloadConfig": "Effektkonfiguration aus Datei neu laden (mit Bestätigung).",
+      "reloadBackup": "Effektkonfiguration aus Backup-Datei neu laden (mit Bestätigung).",
+      "import": "Effektkonfiguration aus Datei importieren (mit Datei-Explorer).",
+      "export": "Effektkonfiguration in Datei exportieren (mit Datei-Explorer)."
+    },
+    "noChannels": "Keine Effektkanäle. Legen Sie die Anzahl in der System Config fest oder importieren Sie eine Effektkonfiguration."
+  },
   "inputs": {
     "gradientMap": {
       "help": {
@@ -612,6 +649,7 @@
       "snapshotStored": "Snapshot '{name}' gespeichert.",
       "snapshotLoaded": "Snapshot '{name}' geladen.",
       "snapshotEntriesSkipped": "Snapshot „{name}“ geladen; {n} Einträge übersprungen, kein Kanal {numbers}",
+      "snapshotEffectsSkipped": "Snapshot „{name}“: {n} Effekt-Einträge übersprungen, kein Effektkanal {ids}",
       "snapshotPatchMismatchApplied": "Snapshot „{name}“ angewendet, aber er wurde unter einem anderen Patch gespeichert ({n} Kanäle weichen ab) — Kanalliste prüfen",
       "snapshotLoadedWithoutScope": "Snapshot '{name}' geladen (ohne Umfang).",
       "snapshotUpdated": "Snapshot '{name}' aktualisiert.",
@@ -641,13 +679,13 @@
       "reloadBackup": "Eingangskonfiguration aus Sicherungsdatei neu laden.",
       "importConfig": "Eingangskonfiguration aus Datei importieren (mit Datei-Explorer).",
       "exportConfig": "Eingangskonfiguration in Datei exportieren (mit Datei-Explorer).",
-      "storeSnapshot": "Neuen Eingangs-Snapshot für alle Objekte speichern.",
-      "snapshotSelector": "Eingangs-Snapshot auswählen ohne zu laden.",
-      "reloadSnapshot": "Ausgewählten Eingangs-Snapshot für alle Objekte unter Berücksichtigung des Filters neu laden.",
-      "reloadWithoutScope": "Ausgewählten Eingangs-Snapshot für alle Objekte ohne Filter neu laden.",
-      "updateSnapshot": "Ausgewählten Eingangs-Snapshot aktualisieren (mit Sicherung).",
-      "editScope": "Filter-Fenster des ausgewählten Eingangs-Snapshots öffnen.",
-      "deleteSnapshot": "Ausgewählten Eingangs-Snapshot mit Bestätigung löschen.",
+      "storeSnapshot": "Neuen Snapshot aller Eingänge und Effekte speichern.",
+      "snapshotSelector": "Snapshot auswählen, ohne ihn zu laden.",
+      "reloadSnapshot": "Ausgewählten Snapshot (Eingänge und Effekte) unter Berücksichtigung des Filters neu laden.",
+      "reloadWithoutScope": "Ausgewählten Snapshot (Eingänge und Effekte) ohne Filter neu laden.",
+      "updateSnapshot": "Ausgewählten Snapshot aktualisieren, Eingänge und Effekte (mit Sicherung).",
+      "editScope": "Filter-Fenster des ausgewählten Snapshots öffnen.",
+      "deleteSnapshot": "Ausgewählten Snapshot mit Bestätigung löschen.",
       "channelSelector": "Nummer und Auswahl des Eingangskanals.",
       "nameEditor": "Angezeigter Eingangskanal-Name (bearbeitbar).",
       "clusterSelector": "Objekt ist Teil eines Clusters.",
@@ -762,7 +800,8 @@
     "midi": {
       "tooltip": "Ein Note-On mit Velocity über 64 auf diesem Kanal und dieser Note ruft diesen Snapshot ab. Note-Offs und leisere Noten werden ignoriert. Wählen Sie den MIDI-Eingang unter Audio Interface ▸ Device Settings.",
       "conflict": "Belegt von „{name}“ (Kanal {ch}, Note {note}) — zum Speichern eine andere Note wählen."
-    }
+    },
+    "noEffectChannels": "Diese Sitzung hat keine Effektkanäle."
   },
   "fileManager": {
     "dialogs": {
@@ -883,8 +922,8 @@
       "body": "Beim Start einer Sitzung wählen Sie den Arbeitsordner, in dem das System die Dateien und eventuellen Audiodateien ablegen wird. Für neue Projekte erstellen Sie einen neuen Ordner. Beim Laden einer vorherigen Sitzung navigieren Sie zum entsprechenden Ordner.\nJeder Abschnitt hat eine separate XML-Datei (Systemkonfiguration, Netzwerk, Ausgänge, Halleffekte, Eingänge) und Backups. Faltungshall-Impulsantworten und Audiosamples werden in Unterverzeichnissen gespeichert.\nJeder Abschnitt kann einzeln oder als Ganzes gespeichert und abgerufen werden.\nJeder Abschnitt kann auch Dateien aus anderen Projekten exportieren und importieren."
     },
     "snapshotScope": {
-      "title": "Eingangs-Snapshots und Bereich",
-      "body": "Snapshots speichern Eingangsparameter, können aber einen Bereich haben, der während einer Aufführung abgerufen wird.\nDer Bereich teilt dem System mit, welche Daten gespeichert oder abgerufen werden sollen.\nMehrere Methoden sind verfügbar:\n- Nur benötigte Daten in lokalen Dateien speichern. Der Filter wird beim Speichern angewandt.\n- Alle Daten und einen Filter in lokalen Dateien speichern. Der Filter wird beim Abrufen angewandt.\n- Alle Daten im Bereich in QLab-Cues speichern. Nicht für große Konfigurationen empfohlen.\nDer Bereich kann manuell geänderte Parameter anzeigen und automatisch vorauswählen. Geänderte Parameter sind gelb markiert."
+      "title": "Snapshots und Bereich",
+      "body": "Snapshots speichern Eingangs- und Effektparameter, können aber einen Bereich haben, der während einer Aufführung abgerufen wird.\nDer Bereich teilt dem System mit, welche Daten gespeichert oder abgerufen werden sollen.\nMehrere Methoden sind verfügbar:\n- Nur benötigte Daten in lokalen Dateien speichern. Der Filter wird beim Speichern angewandt.\n- Alle Daten und einen Filter in lokalen Dateien speichern. Der Filter wird beim Abrufen angewandt.\n- Alle Daten im Bereich in QLab-Cues speichern. Nicht für große Konfigurationen empfohlen.\nDer Bereich kann manuell geänderte Parameter anzeigen und automatisch vorauswählen. Geänderte Parameter sind gelb markiert.\nEin Snapshot enthält die Eingänge und die Effektkanäle. Das Bereichsfenster hat einen Tab für die Eingänge und einen für die Effekte, ein Raster pro Familie; im Raster der Effekte ist jedes Modul der Kette eine Zeile, samt seinen Bändern und Taps. Die Tabs Eingänge und Effekte zeigen dieselbe Snapshot-Zeile: Ein Snapshot, der von einem der beiden gespeichert oder abgerufen wird, umfasst beide, und eine MIDI-Note oder ein OSC-Cue ruft beide ab."
     },
     "network": {
       "title": "Netzwerk",
@@ -944,6 +983,10 @@
       "body": "KI / MCP-Server\n\nDer MCP Server ermöglicht es einem KI-Assistenten (Claude Desktop, Claude Code, ChatGPT mit benutzerdefinierten Konnektoren), die Parameter dieser WFS-DIY-Sitzung über eine lokale Netzwerkverbindung zu lesen und zu schreiben.\n\nWas die KI tun kann:\n• Live-Status lesen: Kanalanzahl, Namen, Positionen, Dämpfungen, EQs, Snapshots, Cluster, die gesamte Parameteroberfläche.\n• Quellen verschieben, Kanäle umbenennen, Cluster-Zuweisungen festlegen, Array-Layout anpassen, Ausgänge und Hall platzieren.\n• Geführte Workflows ausführen (Systemabstimmung, Lokalisations-Fehlersuche, Snapshot-Verwaltung) über vorbereitete Prompt-Vorlagen.\n\nBedienelemente in dieser Zeile:\n• KI: EIN / AUS — Hauptschalter. Im AUS-Zustand wird jeder KI-Tool-Aufruf abgelehnt; im EIN-Zustand arbeitet die KI nach den unten stehenden Regeln.\n• Kritische KI-Aktionen: gesperrt / ERLAUBT — destruktive Aktionen (Snapshots löschen, DSP zurücksetzen, Kanalanzahl ändern) sind standardmässig gesperrt. Klicken, um sie 10 Minuten lang zu erlauben; die rote Füllung läuft mit dem Ablauf des Fensters ab und wird dann automatisch wieder gesperrt.\n• KI-Verlauf öffnen — scrollbare Chronik aller jüngsten KI-Änderungen mit Rückgängig/Wiederherstellen pro Zeile.\n• Die MCP-URL-Schaltfläche kopiert die Server-URL in die Zwischenablage für KI-Clients, die eine URL direkt akzeptieren.\n\nBetreiber-Aufmerksamkeit:\n• Jede KI-Aktion wird mit Herkunfts-Tags aufgezeichnet. Das KI-Verlaufsfenster zeigt die vollständige Chronik; das × pro Zeile macht eine Aktion mit ihren Abhängigkeiten rückgängig.\n• Wenn Sie einen Parameter manuell anpassen, den die KI gerade verschoben hat, wird die KI benachrichtigt und versucht es nicht blindlings erneut. Sie haben immer das letzte Wort.\n• Die Tastenkombinationen Cmd/Strg+Alt+Z und Cmd/Strg+Alt+Y machen die letzte KI-Änderung rückgängig bzw. stellen sie wieder her, ohne Ihre manuellen Änderungen zu beeinflussen (die wie üblich Strg+Z verwenden).\n\nUm diesen Server zu Claude Desktop hinzuzufügen:\n  1. Einstellungen → Entwickler → Konfiguration bearbeiten öffnen.\n  2. Den JSON-Ausschnitt unten in claude_desktop_config.json einfügen (in den vorhandenen mcpServers-Block einfügen, falls bereits vorhanden).\n  3. Claude Desktop neu starten. Der Server erscheint als 'wfs-diy' im Tools-Menü.\n\nFür Claude Code ausführen:\n  claude mcp add wfs-diy <url> -t http\n\nDie URL ändert sich, wenn Sie die Netzwerkschnittstelle wechseln oder der Server auf einen anderen Port ausweicht. Die URL-Schaltfläche in dieser Zeile zeigt immer die aktuelle Live-URL.",
       "copyButton": "Konfiguration kopieren",
       "copyConfirm": "MCP-Konfigurations-JSON in die Zwischenablage kopiert"
+    },
+    "effects": {
+      "title": "Effekte",
+      "body": "Ein Effektkanal ist eine Kette aus elf Modulen (Verzerrung, zwei EQs, zwei Dynamikmodule, Chorus/Flanger, Phaser, Tremolo, Hall, Multitap-Delay, Bitcrusher), gespeist von den Eingängen und von anderen Effekten über die Send-Matrix. Sein Ausgang ist ein RETURN, der wie ein Eingang auf der Bühne platziert wird: Er wird von seiner eigenen Position aus über die WFS-Arrays wiedergegeben, mit derselben Ausrichtung, Dämpfungskurve und denselben Mutes wie ein Eingang.\nDie Kopfzeile entspricht dem Tab Reverb: Kanalauswahl, Name, Sichtbarkeit auf der Karte, Edit on Map, Solo Effects, Mute, Solo und Clear für den Notfall (lange drücken; Strg halten, um alle Ketten zu leeren). Die drei Punkte zeigen den Zustand der Engine für diesen Kanal: Schleifenschutz ausgelöst, Teil einer Rückkopplungsschleife, von einem Eingang gespeist (Einstiegspunkt seines Verbunds).\nVerknüpfungsgruppen sind nicht wie die Hallkanäle, die ein einziges System bilden: Ein Kanal in einer Gruppe teilt seine Kette (Reihenfolge, Bypässe, Modulparameter) mit den anderen Mitgliedern gemäß dem Verknüpfungsmodus jedes Mitglieds – Absolute kopiert, Relative behält den Abstand, Off empfängt nichts –, während seine Bewegungen, Sends, Mutes und Position nie übertragen werden. Mit Strg-Ziehen bearbeitet man nur diesen Kanal. Mute Group schaltet jedes Mitglied einmal stumm und lässt jedes einzeln bearbeitbar."
     }
   },
   "ai": {

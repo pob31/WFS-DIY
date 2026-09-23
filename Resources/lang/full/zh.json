@@ -48,6 +48,7 @@
     "inputs": "输入",
     "outputs": "输出",
     "reverb": "混响",
+    "effects": "效果",
     "network": "网络",
     "clusters": "集群",
     "map": "地图"
@@ -533,7 +534,7 @@
       "midiOff": "关闭 — 不使用 MIDI 调用",
       "midiNotConnected": "(未连接)",
       "midiUnavailable": "(不可用 — 被占用？)",
-      "midiTooltip": "仅用于快照调用。此端口只作为输入打开，不作其他任何用途：WFS-DIY 不会向其发送任何 MIDI，且只响应用于调用输入快照的 Note On 消息。请在输入标签页的“编辑范围”窗口中为快照绑定通道和音符；力度高于 64 的 Note On 即会调用该快照。"
+      "midiTooltip": "仅用于快照调用。此端口只作为输入打开，不作其他任何用途：WFS-DIY 不会向其发送任何 MIDI，且只响应用于调用快照（输入和效果）的 Note On 消息。请在输入或效果标签页的“编辑范围”窗口中为快照绑定通道和音符；力度高于 64 的 Note On 即会调用该快照。"
     },
     "modes": {
       "scrolling": "滚动",
@@ -1247,6 +1248,130 @@
       "returnOffset3": "混响返回偏移{name}（{unit}）。"
     }
   },
+  "effects": {
+    "sections": {
+      "effectFeed": "效果发送",
+      "effectReturn": "效果返回"
+    },
+    "buttons": {
+      "visibleOnMap": "效果在地图上可见",
+      "clear": "清除",
+      "groupMute": "静音组",
+      "storeConfig": "保存配置",
+      "reloadConfig": "重新加载配置",
+      "reloadBackup": "加载备份",
+      "import": "导入",
+      "export": "导出",
+      "editOnMap": "在地图上编辑",
+      "editOnMapOn": "在地图上编辑 ON",
+      "soloEffects": "独听效果",
+      "soloEffectsOn": "独听效果 开",
+      "mute": "静音",
+      "muteOn": "静音 开",
+      "solo": "独听",
+      "soloOn": "独听 开",
+      "hiddenOnMap": "效果在地图上隐藏"
+    },
+    "dialogs": {
+      "importTitle": "导入效果配置",
+      "exportTitle": "导出效果配置"
+    },
+    "messages": {
+      "configSaved": "效果配置已保存。",
+      "cleared": "效果链已清空。",
+      "clearedAll": "所有效果链已清空。",
+      "groupMuteNeedsGroup": "此效果不在任何链接组中，因此没有可静音的组。",
+      "configLoaded": "效果配置已加载。",
+      "selectFolderFirst": "请先选择项目文件夹。",
+      "error": "错误: {error}"
+    },
+    "help": {
+      "channelSelector": "选择要编辑的效果通道。",
+      "name": "此效果通道的显示名称。",
+      "linkGroup": "将此效果链接到一个组，使模块编辑传播到其他成员。",
+      "linkMode": "此通道接收组编辑的方式：关、绝对或相对。",
+      "groupMute": "长按以一次性静音或取消静音此链接组的所有成员。",
+      "mute": "静音此效果返回。",
+      "solo": "长按以独听此效果返回。",
+      "mapVisible": "在地图标签页上显示或隐藏效果返回标记。",
+      "editOnMap": "允许在地图标签页中编辑效果位置。",
+      "soloEffects": "长按以独听效果返回：直达信号被静音。",
+      "clear": "长按以清空此效果链；按住 Ctrl 可清空所有效果。",
+      "loopGuard": "环路保护已将此通道的效果间馈送静音。",
+      "cycle": "此效果属于发送网格中的一个反馈环路。",
+      "entry": "此效果由某个输入馈送，因此是其所在组的入口点。",
+      "storeConfig": "将效果配置存储到文件（覆盖前确认）。",
+      "reloadConfig": "从文件重新加载效果配置（需确认）。",
+      "reloadBackup": "从备份文件重新加载效果配置（需确认）。",
+      "import": "从文件导入效果配置（使用文件浏览器）。",
+      "export": "将效果配置导出到文件（使用文件浏览器）。"
+    },
+    "coordModes": {
+      "xyz": "XYZ"
+    },
+    "muteMacros": {
+      "select": "选择静音宏",
+      "invert": "反转静音",
+      "muteOdd": "静音奇数",
+      "muteEven": "静音偶数",
+      "muteAll": "全部静音",
+      "unmuteAll": "全部解除静音"
+    },
+    "noChannels": "没有效果通道。请在系统配置中设置数量，或导入效果配置。",
+    "tabs": {
+      "channelParams": "通道参数",
+      "chain": "效果链",
+      "postProcessing": "后处理",
+      "movements": "运动",
+      "settings": "设置"
+    },
+    "link": {
+      "unlinked": "未链接",
+      "group": "组",
+      "modeOff": "链接：关",
+      "modeAbsolute": "链接：绝对",
+      "modeRelative": "链接：相对"
+    },
+    "labels": {
+      "attenuation": "衰减:",
+      "delayLatency": "延迟/延时:",
+      "delayPrefix": "延迟:",
+      "latencyPrefix": "延时:",
+      "coordinates": "坐标:",
+      "positionX": "位置X:",
+      "positionY": "位置Y:",
+      "positionZ": "位置Z:",
+      "positionR": "半径:",
+      "positionTheta": "方位角:",
+      "positionPhi": "仰角:",
+      "returnOffsetX": "返回偏移X:",
+      "returnOffsetY": "返回偏移Y:",
+      "returnOffsetZ": "返回偏移Z:",
+      "orientation": "朝向:",
+      "angleOff": "关闭角度:",
+      "pitch": "俯仰:",
+      "hfDamping": "高频衰减:",
+      "distanceAttenPercent": "距离衰减%:",
+      "distanceAtten": "距离衰减:",
+      "distanceRatio": "距离比:",
+      "commonAtten": "公共衰减:",
+      "hfShelf": "高频搁架:",
+      "muteMacro": "静音宏:",
+      "outputMutes": "输出静音:",
+      "arrayAttenuation": "阵列衰减:",
+      "arrayPrefix": "阵列",
+      "name": "名称:",
+      "angleOn": "开启角度:"
+    },
+    "toggles": {
+      "minLatencyOn": "最小延时 允许",
+      "lawInverse": "衰减曲线: 1/d",
+      "reverbSendsUnmuted": "混响发送: 已启用",
+      "reverbSendsMuted": "混响发送: 已静音",
+      "lawLog": "衰减曲线: Log",
+      "minLatencyOff": "最小延时 排除"
+    }
+  },
   "inputs": {
     "sections": {
       "channel": "通道",
@@ -1584,7 +1709,8 @@
       "trackingDisabled": "输入 {channel} 的追踪已禁用",
       "trackingSwitched": "追踪已从输入 {from} 切换到输入 {to}",
       "clusterEditRelative": "Shift 编辑：相对更改已应用到集群 {cluster} 的其他 {count} 个输入",
-      "clusterEditAbsolute": "Ctrl+Shift 编辑：值已复制到集群 {cluster} 的其他 {count} 个输入"
+      "clusterEditAbsolute": "Ctrl+Shift 编辑：值已复制到集群 {cluster} 的其他 {count} 个输入",
+      "snapshotEffectsSkipped": "快照“{name}”：跳过 {n} 个效果项，没有效果通道 {ids}"
     },
     "help": {
       "solo": "收听此通道的双耳渲染。",
@@ -1594,13 +1720,13 @@
       "reloadBackup": "从备份文件重新加载输入配置。",
       "importConfig": "从文件导入输入配置（打开文件浏览器窗口）。",
       "exportConfig": "将输入配置导出到文件（打开文件浏览器窗口）。",
-      "storeSnapshot": "将当前输入参数保存为快照。",
-      "snapshotSelector": "选择要加载的快照。",
-      "reloadSnapshot": "重新加载当前选定的快照。",
-      "reloadWithoutScope": "重新加载快照，忽略范围过滤器。",
-      "updateSnapshot": "使用当前参数更新选定的快照。",
-      "editScope": "编辑快照的范围过滤器。",
-      "deleteSnapshot": "删除选定的快照。",
+      "storeSnapshot": "将所有输入和效果的当前参数保存为新快照。",
+      "snapshotSelector": "选择快照但不加载。",
+      "reloadSnapshot": "按范围过滤器重新加载选定的快照（输入和效果）。",
+      "reloadWithoutScope": "重新加载选定的快照（输入和效果），忽略范围过滤器。",
+      "updateSnapshot": "使用当前的输入和效果参数更新选定的快照（带备份）。",
+      "editScope": "编辑选定快照的范围过滤器。",
+      "deleteSnapshot": "删除选定的快照（需确认）。",
       "channelSelector": "输入通道编号与选择。",
       "nameEditor": "显示的输入通道名称（可编辑）。",
       "clusterSelector": "对象所属集群。",
@@ -1722,7 +1848,7 @@
     }
   },
   "snapshotScope": {
-    "windowTitle": "输入快照范围",
+    "windowTitle": "快照范围",
     "title": "快照范围: {name}",
     "applyScope": "应用范围:",
     "whenSaving": "保存时",
@@ -1738,7 +1864,15 @@
       "lfo": "LFO",
       "automOtion": "AutomOtion (自动移动)",
       "mutes": "静音",
-      "admMapping": "ADM-OSC"
+      "admMapping": "ADM-OSC",
+      "effect": "效果",
+      "feed": "馈送",
+      "return": "返回",
+      "chain": "效果链",
+      "modules": "模块",
+      "sends": "发送",
+      "gradientMaps": "渐变图",
+      "sampler": "Sampler"
     },
     "buttons": {
       "ok": "OK",
@@ -1758,6 +1892,11 @@
       "enable": "通过 MIDI 音符调用",
       "tooltip": "在此通道和音符上收到力度高于 64 的 Note On 时，将调用此快照。Note Off 及力度较低的音符将被忽略。请在“音频接口 ▸ 设备设置”中选择 MIDI 输入。",
       "conflict": "已被“{name}”占用（通道 {ch}，音符 {note}）— 请另选音符以便保存。"
+    },
+    "noEffectChannels": "此会话没有效果通道。",
+    "families": {
+      "inputs": "输入",
+      "effects": "效果"
     }
   },
   "snapshot": {
@@ -2306,8 +2445,8 @@
       "body": "启动会话时，选择系统将放置文件和音频文件的工作文件夹。对于新项目，创建新文件夹。重新加载之前的会话时，导航到相应的文件夹。\n每个部分都有单独的xml文件（系统配置、网络、输出、混响、输入）和备份。卷积混响脉冲响应和音频样本将存储在子目录中。\n每个部分可以单独或整体存储和调用。\n每个部分也可以从其他项目导出和导入文件。"
     },
     "snapshotScope": {
-      "title": "输入快照和范围",
-      "body": "快照存储输入参数，但可以有一个范围，在演出期间调用。\n范围告诉系统存储或调用哪些数据。\n有几种方法：\n- 仅在本地文件中记录所需数据。过滤器在存储时应用。\n- 在本地文件中记录所有数据和过滤器。过滤器在调用时应用。\n- 在QLab cue中记录所有范围内的数据。不建议用于大型配置。\n范围可以显示并自动预选手动更改的参数。更改的参数用黄色标记。"
+      "title": "快照和范围",
+      "body": "快照存储输入和效果参数，但可以有一个范围，在演出期间调用。\n范围告诉系统存储或调用哪些数据。\n有几种方法：\n- 仅在本地文件中记录所需数据。过滤器在存储时应用。\n- 在本地文件中记录所有数据和过滤器。过滤器在调用时应用。\n- 在QLab cue中记录所有范围内的数据。不建议用于大型配置。\n范围可以显示并自动预选手动更改的参数。更改的参数用黄色标记。\n一个快照同时包含输入和效果通道。范围窗口有输入和效果两个标签页，每个类别一个网格；在效果网格中，效果链的每个模块占一行，包括其频段和抽头。输入标签页和效果标签页显示同一个快照行，因此从任一处存储或调用的快照都涵盖两者，一个MIDI音符或OSC cue即可同时调用两者。"
     },
     "network": {
       "title": "网络",
@@ -2367,6 +2506,10 @@
       "body": "MCP 服务器允许 AI 助手 (Claude Desktop、Claude Code、带有自定义连接器的 ChatGPT) 通过本地网络连接读取和写入此 WFS-DIY 会话的参数。\n\nAI 可以做的事情:\n• 读取实时状态: 通道数、名称、位置、衰减、EQ、快照、集群、整个参数表面。\n• 移动声源、重命名通道、设置集群分配、调整阵列布局、放置输出和混响。\n• 通过预先准备的提示模板运行引导工作流 (系统调音、定位故障排查、快照管理)。\n\n此行的操作员控制:\n• AI: ON / OFF — 主开关。OFF 时拒绝每个 AI 工具调用; ON 时 AI 按照下面的规则工作。\n• AI 关键操作: 已阻止 / 已允许 — 破坏性操作 (删除快照、重置 DSP、更改通道数) 默认被阻止。点击允许 10 分钟; 红色填充随窗口到期消失，然后自动重新阻止。\n• 打开 AI 历史 — 每个最近 AI 更改的可滚动时间线。\n• MCP URL 按钮将服务器 URL 复制到剪贴板，供直接接受 URL 的 AI 客户端使用。\n\n操作员意识:\n• 每个 AI 操作都带有来源标签记录。AI 历史窗口显示完整时间线; 每行的 × 撤销操作及其依赖项。\n• 如果您手动调整了 AI 刚刚移动的参数，AI 会被通知，不会盲目重试。您始终拥有最终决定权。\n• Cmd/Ctrl+Alt+Z 和 Cmd/Ctrl+Alt+Y 快捷键撤销和重做最后的 AI 更改，不影响您的手动编辑 (使用普通 Ctrl+Z)。\n\n要将此服务器添加到 Claude Desktop:\n  1. 打开设置 → 开发者 → 编辑配置。\n  2. 将下面的 JSON 片段粘贴到 claude_desktop_config.json (如果已经有 mcpServers 块，请合并)。\n  3. 重新启动 Claude Desktop。服务器在工具菜单中显示为 'wfs-diy'。\n\n要添加到 Claude Code，运行:\n  claude mcp add wfs-diy <url> -t http\n\n如果切换网络接口或服务器回退到不同端口，URL 会更改。此行的 URL 按钮始终反映实时 URL。",
       "copyButton": "复制配置",
       "copyConfirm": "MCP 配置 JSON 已复制到剪贴板"
+    },
+    "effects": {
+      "title": "效果",
+      "body": "效果通道是由十一个模块（失真、两个均衡器、两个动态处理器、合唱/镶边、移相器、颤音、混响、多抽头延迟、比特粉碎器）组成的效果链，通过发送矩阵由输入和其他效果馈送。其输出是一个返回，像输入一样放置在舞台上：从自身位置经 WFS 阵列渲染，具有与输入相同的朝向、衰减曲线和静音。\n标题栏与混响标签页相同：通道选择、名称、地图显示、在地图上编辑、独听效果、静音、独听以及紧急清除（长按；按住 Ctrl 清空所有效果链）。三个指示点显示引擎对此通道的状态：环路保护已触发、属于反馈环路、由输入馈送（其所在组的入口点）。\n链接组不同于构成单一系统的混响：组内通道按各成员的链接模式与其他成员共享其效果链（顺序、旁通、模块参数）——绝对为复制，相对为保持差值，关为不接收——而其运动、发送、静音和位置从不传播。按住 Ctrl 拖动任一控件可只编辑此通道。静音组会将每个成员静音一次，并让每个成员仍可单独编辑。"
     }
   },
   "wizard": {

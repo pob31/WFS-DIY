@@ -1,6 +1,6 @@
 # Proofreading checklist — Japanese (日本語)
 
-Locale: `ja`  |  Total keys: 770  |  Source: `Resources/lang/en.json` vs `Resources/lang/ja.json`
+Locale: `ja`  |  Total keys: 803  |  Source: `Resources/lang/en.json` vs `Resources/lang/ja.json`
 
 ## How to use this file
 
@@ -59,8 +59,8 @@ Walk through each section. For every entry:
 ## `audioPatch.deviceSettings`
 
 - **`midiTooltip`**
-  - EN: Snapshot recall only. This port is opened for input alone and is used for nothing else: WFS-DIY sends it no MIDI, and the only messages it acts on are note-ons that recall an input snapshot. Bind a channel and note to a snapshot in the Inputs tab's Edit Scope window; a note-on above velocity 64 recalls it.
-  - JA: スナップショット呼び出し専用です。このポートは入力専用で開かれ、他の用途には使われません — WFS-DIYがこのポートへMIDIを送ることはなく、反応するメッセージは入力スナップショットを呼び出すノートオンのみです。Inputs タブの Edit Scope ウィンドウでスナップショットにチャンネルとノートを割り当てると、ベロシティが64を超えるノートオンでそのスナップショットが呼び出されます。
+  - EN: Snapshot recall only. This port is opened for input alone and is used for nothing else: WFS-DIY sends it no MIDI, and the only messages it acts on are note-ons that recall a snapshot (inputs and effects). Bind a channel and note to a snapshot in the Edit Scope window of the Inputs or Effects tab; a note-on above velocity 64 recalls it.
+  - JA: スナップショット呼び出し専用です。このポートは入力専用で開かれ、他の用途には使われません — WFS-DIYがこのポートへMIDIを送ることはなく、反応するメッセージはスナップショット（入力とエフェクト）を呼び出すノートオンのみです。Inputs タブまたは Effects タブの Edit Scope ウィンドウでスナップショットにチャンネルとノートを割り当てると、ベロシティが64を超えるノートオンでそのスナップショットが呼び出されます。
   - [ ] OK    Fix: 
 
 ## `audioPatch.dialogs`
@@ -433,6 +433,159 @@ Walk through each section. For every entry:
   - JA: はい
   - [ ] OK    Fix: 
 
+## `effects`
+
+- **`noChannels`**
+  - EN: No effects channels. Set the count in System Config, or import an effects configuration.
+  - JA: エフェクトチャンネルがありません。System Config で数を設定するか、エフェクト設定をインポートしてください。
+  - [ ] OK    Fix: 
+
+## `effects.dialogs`
+
+- **`exportTitle`**
+  - EN: Export Effects Configuration
+  - JA: エフェクト設定をエクスポート
+  - [ ] OK    Fix: 
+
+- **`importTitle`**
+  - EN: Import Effects Configuration
+  - JA: エフェクト設定をインポート
+  - [ ] OK    Fix: 
+
+## `effects.help`
+
+- **`channelSelector`**
+  - EN: Select the effects channel to edit.
+  - JA: 編集するエフェクトチャンネルを選択します。
+  - [ ] OK    Fix: 
+
+- **`clear`**
+  - EN: Long-press to flush this effect chain; hold Ctrl to clear every effect.
+  - JA: 長押しでこのエフェクトチェーンをクリアします。Ctrlを押しながらですべてのエフェクトをクリアします。
+  - [ ] OK    Fix: 
+
+- **`cycle`**
+  - EN: This effect is part of a feedback loop in the sends grid.
+  - JA: このエフェクトはセンドグリッド内のフィードバックループの一部です。
+  - [ ] OK    Fix: 
+
+- **`editOnMap`**
+  - EN: Enable editing effect positions from the Map tab.
+  - JA: Map タブからエフェクトの位置を編集できるようにします。
+  - [ ] OK    Fix: 
+
+- **`entry`**
+  - EN: This effect is fed by an input, so it is an entry point of its bunch.
+  - JA: このエフェクトは入力から供給されているため、そのまとまりの入口です。
+  - [ ] OK    Fix: 
+
+- **`export`**
+  - EN: Export Effects Configuration to file (with file explorer window).
+  - JA: ファイルにエフェクト設定をエクスポート（ファイルエクスプローラー使用）。
+  - [ ] OK    Fix: 
+
+- **`groupMute`**
+  - EN: Long-press to mute or unmute every member of this link group at once.
+  - JA: 長押しで、このリンクグループの全メンバーをまとめてミュートまたはミュート解除します。
+  - [ ] OK    Fix: 
+
+- **`import`**
+  - EN: Import Effects Configuration from file (with file explorer window).
+  - JA: ファイルからエフェクト設定をインポート（ファイルエクスプローラー使用）。
+  - [ ] OK    Fix: 
+
+- **`linkGroup`**
+  - EN: Link this effect to a group so module edits propagate to the other members.
+  - JA: このエフェクトをグループにリンクし、モジュールの編集を他のメンバーに伝播させます。
+  - [ ] OK    Fix: 
+
+- **`linkMode`**
+  - EN: How this channel takes group edits: off, absolute, or relative.
+  - JA: このチャンネルがグループの編集をどう受け取るか：オフ、絶対、相対。
+  - [ ] OK    Fix: 
+
+- **`loopGuard`**
+  - EN: The loop guard has muted this channel's effect-to-effect feed.
+  - JA: ループガードがこのチャンネルのエフェクト間フィードをミュートしました。
+  - [ ] OK    Fix: 
+
+- **`mapVisible`**
+  - EN: Show or hide effect return markers on the Map tab.
+  - JA: Map タブのエフェクトリターンのマーカーを表示または非表示にします。
+  - [ ] OK    Fix: 
+
+- **`mute`**
+  - EN: Mute this effect return.
+  - JA: このエフェクトリターンをミュートします。
+  - [ ] OK    Fix: 
+
+- **`name`**
+  - EN: Displayed name of this effects channel.
+  - JA: このエフェクトチャンネルの表示名。
+  - [ ] OK    Fix: 
+
+- **`reloadBackup`**
+  - EN: Reload Effects Configuration from backup file (with confirmation).
+  - JA: バックアップファイルからエフェクト設定を再読み込み（確認付き）。
+  - [ ] OK    Fix: 
+
+- **`reloadConfig`**
+  - EN: Reload Effects Configuration from file (with confirmation).
+  - JA: ファイルからエフェクト設定を再読み込み（確認付き）。
+  - [ ] OK    Fix: 
+
+- **`solo`**
+  - EN: Long-press to solo this effect return.
+  - JA: 長押しでこのエフェクトリターンをソロにします。
+  - [ ] OK    Fix: 
+
+- **`soloEffects`**
+  - EN: Long-press to solo the effect returns: the direct signal is muted.
+  - JA: 長押しでエフェクトリターンをソロにします。直接音はミュートされます。
+  - [ ] OK    Fix: 
+
+- **`storeConfig`**
+  - EN: Store Effects Configuration to file (overwrite with confirmation).
+  - JA: エフェクト設定をファイルに保存（上書きは確認付き）。
+  - [ ] OK    Fix: 
+
+## `effects.messages`
+
+- **`cleared`**
+  - EN: Effect chain cleared.
+  - JA: エフェクトチェーンをクリアしました。
+  - [ ] OK    Fix: 
+
+- **`clearedAll`**
+  - EN: Every effect chain cleared.
+  - JA: すべてのエフェクトチェーンをクリアしました。
+  - [ ] OK    Fix: 
+
+- **`configLoaded`**
+  - EN: Effects configuration loaded.
+  - JA: エフェクト設定を読み込みました。
+  - [ ] OK    Fix: 
+
+- **`configSaved`**
+  - EN: Effects configuration saved.
+  - JA: エフェクト設定を保存しました。
+  - [ ] OK    Fix: 
+
+- **`error`**
+  - EN: Error: {error}
+  - JA: エラー: {error}
+  - [ ] OK    Fix: 
+
+- **`groupMuteNeedsGroup`**
+  - EN: This effect is not in a link group, so there is no group to mute.
+  - JA: このエフェクトはリンクグループに属していないため、ミュートするグループがありません。
+  - [ ] OK    Fix: 
+
+- **`selectFolderFirst`**
+  - EN: Select a project folder first.
+  - JA: まずプロジェクトフォルダを選択してください。
+  - [ ] OK    Fix: 
+
 ## `eq.status`
 
 - **`off`**
@@ -510,6 +663,18 @@ Walk through each section. For every entry:
 - **`title`**
   - EN: Diagnostics & Feedback
   - JA: 診断とフィードバック
+  - [ ] OK    Fix: 
+
+## `help.effects`
+
+- **`body`**
+  - EN: An effects channel is a chain of eleven modules (distortion, two EQs, two dynamics, chorus/flanger, phaser, tremolo, reverb, multitap delay, bitcrusher) fed by inputs and by other effects through the sends matrix. Its output is a RETURN placed on the stage like an input: it renders through the WFS arrays from its own position, with the same feed orientation, attenuation law and mutes an input has.\nThe header mirrors the Reverb tab: channel selector, name, map visibility, Edit on Map, Solo Effects, Mute, Solo and the emergency Clear (long-press; hold Ctrl to clear every chain). The three dots are the engine's word on this channel: loop guard tripped, part of a feedback cycle, fed by an input (the entry point of its bunch).\nLink groups are not like reverbs, which are one system: a channel in a group shares its chain (order, bypasses, module parameters) with the other members by each member's link mode - Absolute copies, Relative keeps the offset, Off receives nothing - while its movements, sends, mutes and position never propagate. Ctrl-drag any control to edit this channel alone. Mute Group mutes every member once and leaves each independently editable.
+  - JA: エフェクトチャンネルは11個のモジュール（ディストーション、EQ×2、ダイナミクス×2、コーラス/フランジャー、フェイザー、トレモロ、リバーブ、マルチタップディレイ、ビットクラッシャー）のチェーンで、センドマトリクスを通じて入力と他のエフェクトから供給されます。その出力はリターンで、入力と同じようにステージ上に配置され、自身の位置からWFSアレイで再生されます。向き、減衰法則、ミュートも入力と同じです。\nヘッダーは Reverb タブと同じ構成です：チャンネル選択、名前、マップ表示、Edit on Map、Solo Effects、Mute、Solo、緊急用の Clear（長押し。Ctrlを押しながらですべてのチェーンをクリア）。3つのドットはこのチャンネルに関するエンジンの状態を示します：ループガード作動、フィードバックループの一部、入力から供給（そのまとまりの入口）。\nリンクグループは、1つのシステムであるリバーブとは異なります。グループ内のチャンネルは、各メンバーのリンクモードに従ってチェーン（順序、バイパス、モジュールパラメータ）を他のメンバーと共有します — Absolute：コピー、Relative：差分を保持、Off：何も受け取らない。一方、動き、センド、ミュート、位置は伝播しません。Ctrlを押しながらコントロールをドラッグすると、このチャンネルだけを編集できます。Mute Group は各メンバーを一度ずつミュートし、それぞれを個別に編集できる状態に保ちます。
+  - [ ] OK    Fix: 
+
+- **`title`**
+  - EN: Effects
+  - JA: エフェクト
   - [ ] OK    Fix: 
 
 ## `help.floorReflections`
@@ -875,13 +1040,13 @@ Walk through each section. For every entry:
 ## `help.snapshotScope`
 
 - **`body`**
-  - EN: Snapshots store input parameters, but can have a scope to be recalled during a performance. They can have between all parameters for all inputs and only one parameter for a single channel. They can be updated and renamed for convenience.\nThe Scope tells the system what data to store or recall. It's the opposite of 'safe' parameters.\nThere are several ways to do this in this application:\n- Record only the needed data in local files. The scope filter is applied when storing the data. A recall cue can be created in QLab to trigger the reading of the local file.\n- Record all data and a filter in local files. The scope filter is applied when recalling the data. This allows to eventually recall all data not taking into account the scope filter. This may come in handy when a complete configuration should be recalled during rehearsal for example. A recall cue can be created in QLab to trigger the reading of the local file.\n- Record all data in scope in QLab cues. This should not be used to recall all parameters for large configurations since QLab may stall when recalling so much data.\nThe scope can show and automatically pre-select the parameters that have been manually changed (local UI, hardware controllers, remote Android application). Changed parameters are marked with a yellow mark.
-  - JA: スナップショットは入力パラメータを保存しますが、パフォーマンス中に呼び出すスコープを持つことができます。\nスコープはシステムにどのデータを保存または呼び出すかを指示します。\n複数の方法があります：\n- 必要なデータのみをローカルファイルに記録。フィルターは保存時に適用されます。\n- すべてのデータとフィルターをローカルファイルに記録。フィルターは呼び出し時に適用されます。\n- すべてのデータをQLab cueに記録。大規模な設定には推奨されません。\nスコープは手動で変更されたパラメータを表示し自動的に事前選択できます。変更されたパラメータは黄色でマークされます。
+  - EN: Snapshots store input and effect parameters, but can have a scope to be recalled during a performance. They can have between all parameters for all inputs and effects and only one parameter for a single channel. They can be updated and renamed for convenience.\nThe Scope tells the system what data to store or recall. It's the opposite of 'safe' parameters.\nThere are several ways to do this in this application:\n- Record only the needed data in local files. The scope filter is applied when storing the data. A recall cue can be created in QLab to trigger the reading of the local file.\n- Record all data and a filter in local files. The scope filter is applied when recalling the data. This allows to eventually recall all data not taking into account the scope filter. This may come in handy when a complete configuration should be recalled during rehearsal for example. A recall cue can be created in QLab to trigger the reading of the local file.\n- Record all data in scope in QLab cues. This should not be used to recall all parameters for large configurations since QLab may stall when recalling so much data.\nThe scope can show and automatically pre-select the parameters that have been manually changed (local UI, hardware controllers, remote Android application). Changed parameters are marked with a yellow mark.\nOne snapshot carries the inputs and the effects channels. The Scope window has an Inputs tab and an Effects tab, one grid per family; on the Effects grid each module of the chain is one row, its bands and taps included. The Inputs tab and the Effects tab show the same snapshot row, so a snapshot stored or recalled from either covers both, and one MIDI note or OSC cue recalls both.
+  - JA: スナップショットは入力とエフェクトのパラメータを保存しますが、パフォーマンス中に呼び出すスコープを持つことができます。\nスコープはシステムにどのデータを保存または呼び出すかを指示します。\n複数の方法があります：\n- 必要なデータのみをローカルファイルに記録。フィルターは保存時に適用されます。\n- すべてのデータとフィルターをローカルファイルに記録。フィルターは呼び出し時に適用されます。\n- すべてのデータをQLab cueに記録。大規模な設定には推奨されません。\nスコープは手動で変更されたパラメータを表示し自動的に事前選択できます。変更されたパラメータは黄色でマークされます。\n1つのスナップショットに入力とエフェクトチャンネルの両方が含まれます。スコープウィンドウには入力とエフェクトのタブがあり、ファミリーごとに1つのグリッドがあります。エフェクトのグリッドでは、チェーンの各モジュールが1行で、そのバンドとタップも含まれます。入力タブとエフェクトタブは同じスナップショット行を表示するため、どちらから保存または呼び出したスナップショットも両方を対象とし、1つのMIDIノートまたはOSC cueで両方が呼び出されます。
   - [ ] OK    Fix: 
 
 - **`title`**
-  - EN: Input Snapshots and Scope
-  - JA: 入力スナップショットとスコープ
+  - EN: Snapshots and Scope
+  - JA: スナップショットとスコープ
   - [ ] OK    Fix: 
 
 ## `help.tracking`
@@ -1165,8 +1330,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`deleteSnapshot`**
-  - EN: Delete Selected Input Snapshot With Confirmation.
-  - JA: 確認付きで選択した入力スナップショットを削除します。
+  - EN: Delete the selected snapshot, with confirmation.
+  - JA: 確認付きで選択したスナップショットを削除します。
   - [ ] OK    Fix: 
 
 - **`directivitySlider`**
@@ -1200,8 +1365,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`editScope`**
-  - EN: Open Selected Input Snapshot Scope Window.
-  - JA: 選択した入力スナップショットのフィルターウィンドウを開きます。
+  - EN: Open the Snapshot Scope window for the selected snapshot.
+  - JA: 選択したスナップショットのフィルターウィンドウを開きます。
   - [ ] OK    Fix: 
 
 - **`exportConfig`**
@@ -1625,13 +1790,13 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`reloadSnapshot`**
-  - EN: Reload Selected Input Snapshot for All Objects Taking the Scope into Account.
-  - JA: フィルターを考慮して、選択した入力スナップショットを全オブジェクトに再読み込みします。
+  - EN: Reload the selected snapshot (inputs and effects), taking the scope into account.
+  - JA: フィルターを考慮して、選択したスナップショット（入力とエフェクト）を再読み込みします。
   - [ ] OK    Fix: 
 
 - **`reloadWithoutScope`**
-  - EN: Reload Selected Input Snapshot for All Objects Without the Scope.
-  - JA: フィルターなしで、選択した入力スナップショットを全オブジェクトに再読み込みします。
+  - EN: Reload the selected snapshot (inputs and effects) without the scope.
+  - JA: フィルターなしで、選択したスナップショット（入力とエフェクト）を再読み込みします。
   - [ ] OK    Fix: 
 
 - **`sidelinesActiveButton`**
@@ -1645,8 +1810,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`snapshotSelector`**
-  - EN: Select Input Snapshot Without Loading.
-  - JA: 入力スナップショットを読み込まずに選択します。
+  - EN: Select a snapshot without loading it.
+  - JA: スナップショットを読み込まずに選択します。
   - [ ] OK    Fix: 
 
 - **`solo`**
@@ -1680,8 +1845,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`storeSnapshot`**
-  - EN: Store new Input Snapshot for All Objects.
-  - JA: 全オブジェクトの新しい入力スナップショットを保存します。
+  - EN: Store a new snapshot of all the inputs and effects.
+  - JA: すべての入力とエフェクトの新しいスナップショットを保存します。
   - [ ] OK    Fix: 
 
 - **`tiltSlider`**
@@ -1705,8 +1870,8 @@ Walk through each section. For every entry:
   - [ ] OK    Fix: 
 
 - **`updateSnapshot`**
-  - EN: Update Selected Input Snapshot (with backup).
-  - JA: 選択した入力スナップショットを更新します（バックアップ付き）。
+  - EN: Update the selected snapshot, inputs and effects (with backup).
+  - JA: 選択したスナップショットを入力とエフェクトごと更新します（バックアップ付き）。
   - [ ] OK    Fix: 
 
 ## `inputs.messages`
@@ -1814,6 +1979,11 @@ Walk through each section. For every entry:
 - **`snapshotDeleted`**
   - EN: Snapshot '{name}' deleted.
   - JA: スナップショット '{name}' を削除しました。
+  - [ ] OK    Fix: 
+
+- **`snapshotEffectsSkipped`**
+  - EN: Snapshot '{name}': {n} effect entries skipped, no effect channel {ids}
+  - JA: スナップショット「{name}」: エフェクト {n} 件をスキップ、エフェクトチャンネル {ids} はありません
   - [ ] OK    Fix: 
 
 - **`snapshotEntriesSkipped`**
@@ -3242,6 +3412,13 @@ Walk through each section. For every entry:
 - **`setPos`**
   - EN: Set base position in meters (X, Y, Z)
   - JA: ベース位置をメートル単位で設定（X、Y、Z）
+  - [ ] OK    Fix: 
+
+## `snapshotScope`
+
+- **`noEffectChannels`**
+  - EN: This session has no effect channels.
+  - JA: このセッションにはエフェクトチャンネルがありません。
   - [ ] OK    Fix: 
 
 ## `snapshotScope.midi`

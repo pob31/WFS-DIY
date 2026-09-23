@@ -293,7 +293,7 @@
   },
   "audioPatch": {
     "deviceSettings": {
-      "midiTooltip": "Apenas recuperação de snapshots. Esta porta é aberta só como entrada e não serve para mais nada: o WFS-DIY não lhe envia MIDI, e as únicas mensagens a que reage são as note-on que recuperam um snapshot de entrada. Atribua um canal e uma nota a um snapshot na janela Edit Scope do separador Inputs; uma mensagem note-on com velocidade superior a 64 recupera-o."
+      "midiTooltip": "Apenas recuperação de snapshots. Esta porta é aberta só como entrada e não serve para mais nada: o WFS-DIY não lhe envia MIDI, e as únicas mensagens a que reage são as note-on que recuperam um snapshot (entradas e efeitos). Atribua um canal e uma nota a um snapshot na janela Edit Scope do separador Inputs ou Effects; uma mensagem note-on com velocidade superior a 64 recupera-o."
     },
     "dialogs": {
       "unpatchInputsTitle": "Desligar Todas as Entradas",
@@ -552,6 +552,43 @@
       "returnOffset3": "Deslocamento de retorno de reverberação {name} ({unit})."
     }
   },
+  "effects": {
+    "dialogs": {
+      "importTitle": "Importar Configuração de Efeitos",
+      "exportTitle": "Exportar Configuração de Efeitos"
+    },
+    "messages": {
+      "configSaved": "Configuração de efeitos guardada.",
+      "cleared": "Cadeia de efeitos esvaziada.",
+      "clearedAll": "Todas as cadeias de efeitos esvaziadas.",
+      "groupMuteNeedsGroup": "Este efeito não está num grupo de ligação, por isso não há grupo para silenciar.",
+      "configLoaded": "Configuração de efeitos carregada.",
+      "selectFolderFirst": "Selecione primeiro uma pasta de projeto.",
+      "error": "Erro: {error}"
+    },
+    "help": {
+      "channelSelector": "Selecionar o canal de efeitos a editar.",
+      "name": "Nome apresentado deste canal de efeitos.",
+      "linkGroup": "Ligar este efeito a um grupo para que as edições de módulos se propaguem aos outros membros.",
+      "linkMode": "Como este canal recebe as edições do grupo: desligado, absoluto ou relativo.",
+      "groupMute": "Premir longamente para silenciar ou reativar de uma vez todos os membros deste grupo de ligação.",
+      "mute": "Silenciar este retorno de efeito.",
+      "solo": "Premir longamente para pôr este retorno de efeito em solo.",
+      "mapVisible": "Mostrar ou ocultar os marcadores dos retornos de efeitos no separador Map.",
+      "editOnMap": "Ativar a edição das posições dos efeitos a partir do separador Map.",
+      "soloEffects": "Premir longamente para pôr os retornos de efeitos em solo: o sinal direto é silenciado.",
+      "clear": "Premir longamente para esvaziar esta cadeia de efeitos; mantenha Ctrl para esvaziar todos os efeitos.",
+      "loopGuard": "A proteção de ciclo silenciou a alimentação de efeito para efeito deste canal.",
+      "cycle": "Este efeito faz parte de um ciclo de realimentação na grelha de envios.",
+      "entry": "Este efeito é alimentado por uma entrada, por isso é um ponto de entrada do seu conjunto.",
+      "storeConfig": "Guardar a configuração de efeitos em ficheiro (substituição com confirmação).",
+      "reloadConfig": "Recarregar a configuração de efeitos a partir de ficheiro (com confirmação).",
+      "reloadBackup": "Recarregar a configuração de efeitos a partir do ficheiro de backup (com confirmação).",
+      "import": "Importar a configuração de efeitos a partir de ficheiro (com explorador de ficheiros).",
+      "export": "Exportar a configuração de efeitos para ficheiro (com explorador de ficheiros)."
+    },
+    "noChannels": "Não há canais de efeitos. Defina o número em System Config ou importe uma configuração de efeitos."
+  },
   "inputs": {
     "gradientMap": {
       "help": {
@@ -612,6 +649,7 @@
       "snapshotStored": "Snapshot '{name}' guardado.",
       "snapshotLoaded": "Snapshot '{name}' carregado.",
       "snapshotEntriesSkipped": "Snapshot “{name}” carregado; {n} entradas ignoradas, sem canal {numbers}",
+      "snapshotEffectsSkipped": "Snapshot “{name}”: {n} entradas de efeito ignoradas, sem canal de efeito {ids}",
       "snapshotPatchMismatchApplied": "Snapshot “{name}” aplicado, mas foi guardado com outro patch ({n} canal(is) diferem) — verifique a lista de canais",
       "snapshotLoadedWithoutScope": "Snapshot '{name}' carregado (sem âmbito).",
       "snapshotUpdated": "Snapshot '{name}' atualizado.",
@@ -641,13 +679,13 @@
       "reloadBackup": "Recarregar a configuração de entrada a partir do ficheiro de cópia de segurança.",
       "importConfig": "Importar a configuração de entrada a partir de ficheiro (com explorador de ficheiros).",
       "exportConfig": "Exportar a configuração de entrada para ficheiro (com explorador de ficheiros).",
-      "storeSnapshot": "Guardar novo snapshot de entrada para todos os objetos.",
-      "snapshotSelector": "Selecionar snapshot de entrada sem carregar.",
-      "reloadSnapshot": "Recarregar o snapshot de entrada selecionado para todos os objetos tendo em conta o filtro.",
-      "reloadWithoutScope": "Recarregar o snapshot de entrada selecionado para todos os objetos sem o filtro.",
-      "updateSnapshot": "Atualizar o snapshot de entrada selecionado (com cópia de segurança).",
-      "editScope": "Abrir a janela de filtro do snapshot de entrada selecionado.",
-      "deleteSnapshot": "Eliminar o snapshot de entrada selecionado com confirmação.",
+      "storeSnapshot": "Guardar um novo snapshot de todas as entradas e efeitos.",
+      "snapshotSelector": "Selecionar um snapshot sem carregar.",
+      "reloadSnapshot": "Recarregar o snapshot selecionado (entradas e efeitos) tendo em conta o filtro.",
+      "reloadWithoutScope": "Recarregar o snapshot selecionado (entradas e efeitos) sem o filtro.",
+      "updateSnapshot": "Atualizar o snapshot selecionado, entradas e efeitos (com cópia de segurança).",
+      "editScope": "Abrir a janela de filtro do snapshot selecionado.",
+      "deleteSnapshot": "Eliminar o snapshot selecionado com confirmação.",
       "channelSelector": "Número e seleção do canal de entrada.",
       "nameEditor": "Nome apresentado do canal de entrada (editável).",
       "clusterSelector": "O objeto faz parte de um cluster.",
@@ -762,7 +800,8 @@
     "midi": {
       "tooltip": "Uma mensagem note-on com velocidade superior a 64 neste canal e nesta nota recupera este snapshot. As mensagens note-off e as notas mais suaves são ignoradas. Escolha a entrada MIDI em Audio Interface ▸ Device Settings.",
       "conflict": "Em uso por '{name}' (can. {ch}, nota {note}) — escolha outra nota para guardar."
-    }
+    },
+    "noEffectChannels": "Esta sessão não tem canais de efeitos."
   },
   "fileManager": {
     "dialogs": {
@@ -924,8 +963,8 @@
       "body": "Ao iniciar uma sessão, selecione a pasta de trabalho onde o sistema colocará os arquivos e eventuais arquivos de áudio. Para novos projetos, crie uma nova pasta. Para recarregar uma sessão anterior, navegue até a pasta correspondente.\nCada seção tem um arquivo xml separado (Configuração do sistema, Rede, Saídas, Reverberação, Entradas) e backups. Respostas ao impulso de reverberação por convolução e amostras de áudio serão armazenadas em subdiretórios.\nCada seção pode ser armazenada e recuperada individualmente ou como um todo.\nCada seção também pode exportar e importar arquivos de outros projetos."
     },
     "snapshotScope": {
-      "title": "Snapshots de Entrada e Escopo",
-      "body": "Snapshots armazenam parâmetros de entrada, mas podem ter um escopo para serem recuperados durante uma apresentação.\nO Escopo indica ao sistema quais dados armazenar ou recuperar.\nVários métodos estão disponíveis:\n- Gravar apenas os dados necessários em arquivos locais. O filtro é aplicado ao salvar.\n- Gravar todos os dados e um filtro em arquivos locais. O filtro é aplicado ao recuperar.\n- Gravar todos os dados em cues do QLab. Não recomendado para configurações grandes.\nO escopo pode mostrar e pré-selecionar automaticamente os parâmetros modificados manualmente. Alterações são marcadas em amarelo."
+      "title": "Snapshots e Escopo",
+      "body": "Snapshots armazenam parâmetros de entrada e de efeitos, mas podem ter um escopo para serem recuperados durante uma apresentação.\nO Escopo indica ao sistema quais dados armazenar ou recuperar.\nVários métodos estão disponíveis:\n- Gravar apenas os dados necessários em arquivos locais. O filtro é aplicado ao salvar.\n- Gravar todos os dados e um filtro em arquivos locais. O filtro é aplicado ao recuperar.\n- Gravar todos os dados em cues do QLab. Não recomendado para configurações grandes.\nO escopo pode mostrar e pré-selecionar automaticamente os parâmetros modificados manualmente. Alterações são marcadas em amarelo.\nUm snapshot contém as entradas e os canais de efeitos. A janela de escopo tem uma aba para as entradas e outra para os efeitos, uma grade por família; na grade dos efeitos, cada módulo da cadeia é uma linha, incluindo suas bandas e taps. As abas Entradas e Efeitos mostram a mesma linha de snapshots: um snapshot salvo ou recuperado em qualquer uma delas abrange ambos, e uma nota MIDI ou uma cue OSC recupera ambos."
     },
     "network": {
       "title": "Rede",
@@ -944,6 +983,10 @@
       "body": "Servidor IA / MCP\n\nO MCP Server permite a um assistente de IA (Claude Desktop, Claude Code, ChatGPT com conetores personalizados) ler e escrever os parâmetros desta sessão WFS-DIY através de uma ligação de rede local.\n\nO que a IA pode fazer:\n• Ler o estado em direto: número de canais, nomes, posições, atenuações, EQ, snapshots, clusters, toda a superfície de parâmetros.\n• Mover fontes, renomear canais, definir atribuições de clusters, ajustar a disposição de arrays, posicionar saídas e reverberações.\n• Executar fluxos guiados (assistentes de afinação do sistema, resolução de problemas de localização, gestão de snapshots) através de modelos de prompt preparados.\n\nControlos do operador nesta linha:\n• IA: ON / OFF — interruptor principal. Quando OFF, cada chamada IA é recusada; quando ON, a IA opera segundo as regras abaixo.\n• Ações IA críticas: bloqueadas / PERMITIDAS — as ações destrutivas (eliminar snapshots, repor DSP, alterar o número de canais) estão bloqueadas por defeito. Clicar para as permitir durante 10 minutos; o preenchimento vermelho esvazia ao expirar a janela, depois bloqueia automaticamente.\n• Abrir Histórico IA — cronologia rolável de cada alteração recente da IA com anular/refazer por linha.\n• O botão URL MCP copia o URL do servidor para a área de transferência para clientes IA que aceitem um URL diretamente.\n\nVigilância do operador:\n• Cada ação IA é registada com etiquetas de origem. A janela Histórico IA mostra a cronologia completa; o × por linha reverte uma ação com as suas dependências.\n• Se ajustar manualmente um parâmetro que a IA acabou de mover, a IA é notificada e não retentará às cegas. Tem sempre a última palavra.\n• Os atalhos Cmd/Ctrl+Alt+Z e Cmd/Ctrl+Alt+Y anulam e refazem a última alteração da IA sem afetar as suas edições manuais (que usam Ctrl+Z normal).\n\nPara adicionar este servidor ao Claude Desktop:\n  1. Abrir Definições → Programador → Editar configuração.\n  2. Colar o trecho JSON abaixo em claude_desktop_config.json (fundir no bloco mcpServers existente, se já tiver um).\n  3. Reiniciar o Claude Desktop. O servidor aparece como 'wfs-diy' no menu de ferramentas.\n\nPara adicionar ao Claude Code, executar:\n  claude mcp add wfs-diy <url> -t http\n\nO URL muda se mudar de Network Interface ou se o servidor recorrer a uma porta diferente. O botão URL nesta linha reflete sempre o URL em direto.",
       "copyButton": "Copiar configuração",
       "copyConfirm": "Configuração MCP JSON copiada para a área de transferência"
+    },
+    "effects": {
+      "title": "Efeitos",
+      "body": "Um canal de efeitos é uma cadeia de onze módulos (distorção, dois EQ, duas dinâmicas, chorus/flanger, phaser, tremolo, reverberação, delay multitap, bitcrusher) alimentada pelas entradas e por outros efeitos através da matriz de envios. A sua saída é um RETORNO colocado no palco como uma entrada: é reproduzido pelos arrays WFS a partir da sua própria posição, com a mesma orientação, lei de atenuação e silenciamentos de uma entrada.\nO cabeçalho reproduz o do separador Reverb: seletor de canal, nome, visibilidade no mapa, Edit on Map, Solo Effects, Mute, Solo e Clear de emergência (premir longamente; mantenha Ctrl para esvaziar todas as cadeias). Os três indicadores dão o estado do motor para este canal: proteção de ciclo ativada, parte de um ciclo de realimentação, alimentado por uma entrada (ponto de entrada do seu conjunto).\nOs grupos de ligação não são como as reverberações, que formam um único sistema: um canal num grupo partilha a sua cadeia (ordem, bypass, parâmetros dos módulos) com os outros membros segundo o modo de ligação de cada um — Absolute copia, Relative mantém a diferença, Off não recebe nada —, enquanto os seus movimentos, envios, silenciamentos e posição nunca se propagam. Arraste qualquer controlo com Ctrl para editar só este canal. Mute Group silencia cada membro uma vez e deixa cada um editável separadamente."
     }
   },
   "ai": {

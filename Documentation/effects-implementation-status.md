@@ -517,8 +517,15 @@ hashes, dependency lint, bounds-audit counts identical to the pre-phase commit, 
 - **`WFS_TEST_RENDER_UI=<folder>`** renders the tabs and the Scope window offscreen - use it when
   the dev box is locked; `createComponentSnapshot` does not need the screen.
 - **Known, not fixed:** `WFS_TEST_MUTES_PERSIST=1` fails the same 8 checks (M2-M5, mute-list width
-  and one-output mutes) on the pre-phase exe as after it - pre-existing, outside this phase. The
-  full-tier locales still say "Input Snapshot" in the row's hover text (en was reworded).
+  and one-output mutes) on the pre-phase exe as after it - pre-existing, outside this phase.
+- **Translations (2026-09-23, the user's scope):** Phase 7's strings (the row's reworded hover text,
+  the Scope window's tabs, sections and title, the help card, the skipped-effects message, the MIDI
+  port tooltip) AND the Effects tab's Channel Parameters sub-tab with the frame it shares (header,
+  sub-tab names, footer, status messages, its help card) are in all eight languages - labels in
+  the full tier, prose in both, the minimal tier keeping English UI names. Still English by the
+  user's choice: the chain's module controls; not yet done: the Chain, Post-Processing, Movements
+  and Settings sub-tabs, the Stream Deck pages. The Channel Parameters controls have no hover help
+  in ANY language (the Reverb tab's twin has) - content to write, not a translation gap.
 - **Verified on screen (2026-09-23, two effects, driven by mouse):** from the Effects tab's row,
   Store (the file carries both `<Effect>`s, EQ 2 band 3 included), Reload (attenuation and a band
   gain restored), Update (file rewritten, backup kept), Reload w/o Scope, Delete (both rows back to

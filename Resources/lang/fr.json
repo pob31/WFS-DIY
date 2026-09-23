@@ -295,7 +295,7 @@
   },
   "audioPatch": {
     "deviceSettings": {
-      "midiTooltip": "Rappel de snapshots uniquement. Ce port est ouvert en entrée seule et ne sert à rien d'autre : WFS-DIY ne lui envoie aucune donnée MIDI, et les seuls messages pris en compte sont les note-on qui rappellent un snapshot d'entrée. Affectez un canal et une note à un snapshot dans la fenêtre Edit Scope de l'onglet Inputs ; un note-on de vélocité supérieure à 64 le rappelle."
+      "midiTooltip": "Rappel de snapshots uniquement. Ce port est ouvert en entrée seule et ne sert à rien d'autre : WFS-DIY ne lui envoie aucune donnée MIDI, et les seuls messages pris en compte sont les note-on qui rappellent un snapshot (entrées et effets). Affectez un canal et une note à un snapshot dans la fenêtre Edit Scope de l'onglet Inputs ou Effects ; un note-on de vélocité supérieure à 64 le rappelle."
     },
     "dialogs": {
       "unpatchInputsTitle": "Déconnecter toutes les entrées",
@@ -554,6 +554,43 @@
       "returnOffset3": "Décalage de retour de réverbération {name} ({unit})."
     }
   },
+  "effects": {
+    "dialogs": {
+      "importTitle": "Importer configuration effets",
+      "exportTitle": "Exporter configuration effets"
+    },
+    "messages": {
+      "configSaved": "Configuration des effets enregistrée.",
+      "cleared": "Chaîne d'effets vidée.",
+      "clearedAll": "Toutes les chaînes d'effets vidées.",
+      "groupMuteNeedsGroup": "Cet effet n'est dans aucun groupe de liaison : il n'y a pas de groupe à couper.",
+      "configLoaded": "Configuration des effets chargée.",
+      "selectFolderFirst": "Sélectionnez d'abord un dossier projet.",
+      "error": "Erreur : {error}"
+    },
+    "help": {
+      "channelSelector": "Sélectionner le canal d'effet à modifier.",
+      "name": "Nom affiché de ce canal d'effet.",
+      "linkGroup": "Lier cet effet à un groupe pour que les modifications des modules se propagent aux autres membres.",
+      "linkMode": "Comment ce canal reçoit les modifications du groupe : désactivé, absolu ou relatif.",
+      "groupMute": "Appui long pour couper ou rétablir d'un coup le son de tous les membres de ce groupe de liaison.",
+      "mute": "Couper ce retour d'effet.",
+      "solo": "Appui long pour mettre ce retour d'effet en solo.",
+      "mapVisible": "Afficher ou masquer les marqueurs des retours d'effets dans l'onglet Map.",
+      "editOnMap": "Activer la modification des positions des effets depuis l'onglet Map.",
+      "soloEffects": "Appui long pour mettre les retours d'effets en solo : le signal direct est coupé.",
+      "clear": "Appui long pour vider cette chaîne d'effets ; maintenir Ctrl pour vider tous les effets.",
+      "loopGuard": "La garde de boucle a coupé l'alimentation d'effet à effet de ce canal.",
+      "cycle": "Cet effet fait partie d'une boucle de réinjection dans la grille des envois.",
+      "entry": "Cet effet est alimenté par une entrée : c'est un point d'entrée de son groupe d'effets.",
+      "storeConfig": "Enregistrer la configuration des effets dans un fichier (écrasement avec confirmation).",
+      "reloadConfig": "Recharger la configuration des effets depuis un fichier (avec confirmation).",
+      "reloadBackup": "Recharger la configuration des effets depuis le fichier de sauvegarde (avec confirmation).",
+      "import": "Importer la configuration des effets depuis un fichier (avec explorateur de fichiers).",
+      "export": "Exporter la configuration des effets vers un fichier (avec explorateur de fichiers)."
+    },
+    "noChannels": "Aucun canal d'effet. Réglez leur nombre dans System Config, ou importez une configuration d'effets."
+  },
   "inputs": {
     "gradientMap": {
       "help": {
@@ -614,6 +651,7 @@
       "snapshotStored": "Snapshot '{name}' enregistré.",
       "snapshotLoaded": "Snapshot '{name}' chargé.",
       "snapshotEntriesSkipped": "Snapshot « {name} » chargé ; {n} entrées ignorées, pas de canal {numbers}",
+      "snapshotEffectsSkipped": "Snapshot « {name} » : {n} entrées d'effet ignorées, pas de canal d'effet {ids}",
       "snapshotPatchMismatchApplied": "Snapshot « {name} » appliqué, mais il a été enregistré avec un autre patch ({n} canal(aux) diffèrent) — vérifiez la liste des canaux",
       "snapshotLoadedWithoutScope": "Snapshot '{name}' chargé (sans portée).",
       "snapshotUpdated": "Snapshot '{name}' mis à jour.",
@@ -643,13 +681,13 @@
       "reloadBackup": "Recharger la configuration d'entrée depuis le fichier de sauvegarde.",
       "importConfig": "Importer la configuration d'entrée depuis un fichier (avec explorateur de fichiers).",
       "exportConfig": "Exporter la configuration d'entrée vers un fichier (avec explorateur de fichiers).",
-      "storeSnapshot": "Enregistrer un nouveau snapshot d'entrée pour tous les objets.",
-      "snapshotSelector": "Sélectionner un snapshot d'entrée sans le charger.",
-      "reloadSnapshot": "Recharger le snapshot d'entrée sélectionné pour tous les objets en tenant compte du filtre.",
-      "reloadWithoutScope": "Recharger le snapshot d'entrée sélectionné pour tous les objets sans le filtre.",
-      "updateSnapshot": "Mettre à jour le snapshot d'entrée sélectionné (avec sauvegarde).",
-      "editScope": "Ouvrir la fenêtre de filtre du snapshot d'entrée sélectionné.",
-      "deleteSnapshot": "Supprimer le snapshot d'entrée sélectionné avec confirmation.",
+      "storeSnapshot": "Enregistrer un nouveau snapshot de toutes les entrées et de tous les effets.",
+      "snapshotSelector": "Sélectionner un snapshot sans le charger.",
+      "reloadSnapshot": "Recharger le snapshot sélectionné (entrées et effets) en tenant compte du filtre.",
+      "reloadWithoutScope": "Recharger le snapshot sélectionné (entrées et effets) sans le filtre.",
+      "updateSnapshot": "Mettre à jour le snapshot sélectionné, entrées et effets (avec sauvegarde).",
+      "editScope": "Ouvrir la fenêtre de filtre du snapshot sélectionné.",
+      "deleteSnapshot": "Supprimer le snapshot sélectionné avec confirmation.",
       "channelSelector": "Numéro et sélection du canal d'entrée.",
       "nameEditor": "Nom affiché du canal d'entrée (modifiable).",
       "clusterSelector": "L'objet fait partie d'un cluster.",
@@ -764,7 +802,8 @@
     "midi": {
       "tooltip": "Un note-on sur ce canal et cette note, de vélocité supérieure à 64, rappelle ce snapshot. Les note-off et les notes plus faibles sont ignorés. Choisissez l'entrée MIDI dans Audio Interface ▸ Device Settings.",
       "conflict": "Utilisée par « {name} » (canal {ch}, note {note}) — choisissez une autre note pour enregistrer."
-    }
+    },
+    "noEffectChannels": "Cette session n'a aucun canal d'effet."
   },
   "fileManager": {
     "dialogs": {
@@ -885,8 +924,8 @@
       "body": "Au démarrage d'une session, sélectionnez le dossier de travail où le système placera les fichiers et les éventuels fichiers audio. Pour les nouveaux projets, créez un nouveau dossier. Pour recharger une session précédente, naviguez vers le dossier correspondant.\nChaque section a un fichier xml séparé (Configuration système, Réseau, Sorties, Réverbérations, Entrées) et des sauvegardes. Les réponses impulsionnelles de réverbération par convolution et les échantillons audio seront stockés dans des sous-répertoires.\nChaque section peut être stockée et rappelée individuellement ou dans son ensemble.\nChaque section peut aussi exporter et importer des fichiers d'autres projets."
     },
     "snapshotScope": {
-      "title": "Snapshots d'Entrée et Portée",
-      "body": "Les snapshots stockent les paramètres d'entrée, mais peuvent avoir une portée pour être rappelés pendant un spectacle. Ils peuvent contenir de tous les paramètres pour toutes les entrées à un seul paramètre pour un seul canal.\nLa Portée indique au système quelles données stocker ou rappeler. C'est l'opposé des paramètres 'sûrs'.\nPlusieurs méthodes sont disponibles :\n- Enregistrer uniquement les données nécessaires dans des fichiers locaux. Le filtre de portée est appliqué lors du stockage.\n- Enregistrer toutes les données et un filtre dans des fichiers locaux. Le filtre est appliqué au rappel, permettant éventuellement de tout rappeler.\n- Enregistrer toutes les données dans des cues QLab. Non recommandé pour les grandes configurations.\nLa portée peut afficher et présélectionner automatiquement les paramètres modifiés manuellement. Les paramètres modifiés sont marqués en jaune."
+      "title": "Snapshots et Portée",
+      "body": "Les snapshots stockent les paramètres d'entrée et d'effet, mais peuvent avoir une portée pour être rappelés pendant un spectacle. Ils peuvent contenir de tous les paramètres pour toutes les entrées et tous les effets à un seul paramètre pour un seul canal.\nLa Portée indique au système quelles données stocker ou rappeler. C'est l'opposé des paramètres 'sûrs'.\nPlusieurs méthodes sont disponibles :\n- Enregistrer uniquement les données nécessaires dans des fichiers locaux. Le filtre de portée est appliqué lors du stockage.\n- Enregistrer toutes les données et un filtre dans des fichiers locaux. Le filtre est appliqué au rappel, permettant éventuellement de tout rappeler.\n- Enregistrer toutes les données dans des cues QLab. Non recommandé pour les grandes configurations.\nLa portée peut afficher et présélectionner automatiquement les paramètres modifiés manuellement. Les paramètres modifiés sont marqués en jaune.\nUn snapshot contient les entrées et les canaux d'effet. La fenêtre de portée a un onglet pour les entrées et un pour les effets, une grille par famille ; dans la grille des effets, chaque module de la chaîne est une ligne, bandes et taps compris. Les onglets Entrées et Effets affichent la même rangée de snapshots : un snapshot enregistré ou rappelé depuis l'un ou l'autre couvre les deux, et une note MIDI ou un cue OSC rappelle les deux."
     },
     "network": {
       "title": "Réseau",
@@ -946,6 +985,10 @@
       "body": "Serveur IA / MCP\n\nLe MCP Server permet à un assistant IA (Claude Desktop, Claude Code, ChatGPT avec connecteurs personnalisés) de lire et d'écrire les paramètres de cette session WFS-DIY via une connexion réseau locale.\n\nCe que l'IA peut faire :\n• Lire l'état en direct : nombres de canaux, noms, positions, atténuations, EQ, snapshots, clusters, l'ensemble des paramètres.\n• Déplacer des sources, renommer des canaux, définir des assignations de clusters, ajuster la disposition des arrays, placer sorties et réverbérations.\n• Exécuter des workflows guidés (assistants d'accord système, dépannage de localisation, gestion des snapshots) via des modèles de prompts préparés.\n\nContrôles opérateur sur cette ligne :\n• IA : ON / OFF — interrupteur principal. Sur OFF, tout appel d'outil IA est refusé ; sur ON, l'IA fonctionne selon les règles ci-dessous.\n• Actions IA critiques : bloquées / AUTORISÉES — les actions destructrices (suppression de snapshots, réinitialisation DSP, changement du nombre de canaux) sont bloquées par défaut. Cliquer pour les autoriser pendant 10 minutes ; le remplissage rouge s'écoule à l'expiration, puis se bloque à nouveau automatiquement.\n• Ouvrir Historique IA — chronologie déroulante de chaque modification IA récente avec annulation/rétablissement par ligne et curseur pas à pas.\n• Le bouton URL MCP copie l'URL du serveur dans le presse-papiers pour les clients IA qui acceptent une URL directement.\n\nVigilance opérateur :\n• Chaque action IA est enregistrée avec des tags d'origine. La fenêtre Historique IA affiche la chronologie complète ; le × par ligne annule une action avec ses dépendances.\n• Si vous ajustez manuellement un paramètre que l'IA vient de modifier, l'IA est notifiée et ne réessayera pas aveuglément. Vous avez toujours le dernier mot.\n• Les raccourcis Cmd/Ctrl+Alt+Z et Cmd/Ctrl+Alt+Y annulent et rétablissent la dernière modification IA sans affecter vos modifications manuelles (qui utilisent Ctrl+Z classique).\n\nPour ajouter ce serveur à Claude Desktop :\n  1. Ouvrir Réglages → Développeur → Modifier la configuration.\n  2. Coller l'extrait JSON ci-dessous dans claude_desktop_config.json (fusionner dans le bloc mcpServers existant si vous en avez déjà un).\n  3. Redémarrer Claude Desktop. Le serveur apparaît sous le nom 'wfs-diy' dans le menu outils.\n\nPour l'ajouter à Claude Code, exécuter :\n  claude mcp add wfs-diy <url> -t http\n\nL'URL change si vous changez de Network Interface ou si le serveur bascule sur un port différent. Le bouton URL sur cette ligne reflète toujours l'URL en direct.",
       "copyButton": "Copier la config",
       "copyConfirm": "Config MCP JSON copiée dans le presse-papiers"
+    },
+    "effects": {
+      "title": "Effets",
+      "body": "Un canal d'effet est une chaîne de onze modules (distorsion, deux EQ, deux dynamiques, chorus/flanger, phaser, trémolo, réverbération, délai multi-taps, bitcrusher) alimentée par les entrées et par d'autres effets via la matrice d'envois. Sa sortie est un RETOUR placé sur scène comme une entrée : il est rendu par les réseaux WFS depuis sa propre position, avec la même orientation, la même loi d'atténuation et les mêmes mutes qu'une entrée.\nL'en-tête reprend celui de l'onglet Reverb : sélecteur de canal, nom, visibilité sur la carte, Edit on Map, Solo Effects, Mute, Solo et Clear d'urgence (appui long ; maintenir Ctrl pour vider toutes les chaînes). Les trois voyants donnent l'état du moteur pour ce canal : garde de boucle déclenchée, membre d'une boucle de réinjection, alimenté par une entrée (point d'entrée de son groupe d'effets).\nLes groupes de liaison ne sont pas comme les réverbs, qui forment un seul système : un canal d'un groupe partage sa chaîne (ordre, bypass, paramètres des modules) avec les autres membres selon le mode de liaison de chacun — Absolute copie, Relative conserve l'écart, Off ne reçoit rien — tandis que ses mouvements, envois, mutes et position ne se propagent jamais. Ctrl-glisser un contrôle pour ne modifier que ce canal. Mute Group coupe chaque membre une fois et laisse chacun modifiable séparément."
     }
   },
   "ai": {

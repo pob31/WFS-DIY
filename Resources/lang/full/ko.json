@@ -48,6 +48,7 @@
     "inputs": "입력",
     "outputs": "출력",
     "reverb": "리버브",
+    "effects": "이펙트",
     "network": "네트워크",
     "clusters": "클러스터",
     "map": "맵"
@@ -500,7 +501,7 @@
       "midiOff": "끄기 — MIDI 호출 없음",
       "midiNotConnected": "(연결되지 않음)",
       "midiUnavailable": "(사용 불가 — 사용 중?)",
-      "midiTooltip": "스냅샷 호출 전용입니다. 이 포트는 입력으로만 열리며 다른 용도로는 전혀 쓰이지 않습니다: WFS-DIY는 이 포트로 MIDI를 보내지 않고, 반응하는 메시지는 입력 스냅샷을 호출하는 노트 온뿐입니다. 입력 탭의 범위 편집 창에서 스냅샷에 채널과 노트를 할당하면, 벨로시티가 64를 넘는 노트 온이 그 스냅샷을 호출합니다."
+      "midiTooltip": "스냅샷 호출 전용입니다. 이 포트는 입력으로만 열리며 다른 용도로는 전혀 쓰이지 않습니다: WFS-DIY는 이 포트로 MIDI를 보내지 않고, 반응하는 메시지는 스냅샷(입력 및 이펙트)을 호출하는 노트 온뿐입니다. 입력 또는 이펙트 탭의 범위 편집 창에서 스냅샷에 채널과 노트를 할당하면, 벨로시티가 64를 넘는 노트 온이 그 스냅샷을 호출합니다."
     },
     "modes": {
       "scrolling": "스크롤",
@@ -1214,6 +1215,130 @@
       "returnOffset3": "리버브 리턴 오프셋 {name} ({unit})."
     }
   },
+  "effects": {
+    "sections": {
+      "effectFeed": "이펙트 센드",
+      "effectReturn": "이펙트 리턴"
+    },
+    "buttons": {
+      "visibleOnMap": "맵에 이펙트 표시",
+      "clear": "지우기",
+      "groupMute": "그룹 음소거",
+      "storeConfig": "설정 저장",
+      "reloadConfig": "설정 다시 불러오기",
+      "reloadBackup": "백업 불러오기",
+      "import": "가져오기",
+      "export": "내보내기",
+      "editOnMap": "맵에서 편집",
+      "editOnMapOn": "맵에서 편집 ON",
+      "soloEffects": "솔로 이펙트",
+      "soloEffectsOn": "솔로 이펙트 ON",
+      "mute": "음소거",
+      "muteOn": "음소거 ON",
+      "solo": "Solo",
+      "soloOn": "Solo ON",
+      "hiddenOnMap": "맵에서 이펙트 숨김"
+    },
+    "dialogs": {
+      "importTitle": "이펙트 설정 가져오기",
+      "exportTitle": "이펙트 설정 내보내기"
+    },
+    "messages": {
+      "configSaved": "이펙트 설정이 저장되었습니다.",
+      "cleared": "이펙트 체인을 비웠습니다.",
+      "clearedAll": "모든 이펙트 체인을 비웠습니다.",
+      "groupMuteNeedsGroup": "이 이펙트는 링크 그룹에 속하지 않으므로 음소거할 그룹이 없습니다.",
+      "configLoaded": "이펙트 설정이 로드되었습니다.",
+      "selectFolderFirst": "먼저 프로젝트 폴더를 선택하세요.",
+      "error": "오류: {error}"
+    },
+    "help": {
+      "channelSelector": "편집할 이펙트 채널을 선택합니다.",
+      "name": "이 이펙트 채널의 표시 이름.",
+      "linkGroup": "이 이펙트를 그룹에 링크하여 모듈 편집이 다른 멤버에게 전파되게 합니다.",
+      "linkMode": "이 채널이 그룹 편집을 받는 방식: 끔, 절대, 상대.",
+      "groupMute": "길게 누르면 이 링크 그룹의 모든 멤버를 한 번에 음소거하거나 해제합니다.",
+      "mute": "이 이펙트 리턴을 음소거합니다.",
+      "solo": "길게 누르면 이 이펙트 리턴을 솔로로 합니다.",
+      "mapVisible": "맵 탭에서 이펙트 리턴 마커를 표시하거나 숨깁니다.",
+      "editOnMap": "맵 탭에서 이펙트 위치 편집을 활성화합니다.",
+      "soloEffects": "길게 누르면 이펙트 리턴을 솔로로 합니다. 직접 신호는 음소거됩니다.",
+      "clear": "길게 누르면 이 이펙트 체인을 비웁니다. Ctrl을 누른 채로 누르면 모든 이펙트를 비웁니다.",
+      "loopGuard": "루프 가드가 이 채널의 이펙트 간 피드를 음소거했습니다.",
+      "cycle": "이 이펙트는 센드 그리드의 피드백 루프에 속합니다.",
+      "entry": "이 이펙트는 입력에서 신호를 받으므로 해당 묶음의 진입점입니다.",
+      "storeConfig": "이펙트 설정을 파일에 저장 (덮어쓰기 전 확인).",
+      "reloadConfig": "파일에서 이펙트 설정 다시 불러오기 (확인 포함).",
+      "reloadBackup": "백업 파일에서 이펙트 설정 다시 불러오기 (확인 포함).",
+      "import": "파일에서 이펙트 설정 가져오기 (파일 탐색기 사용).",
+      "export": "파일로 이펙트 설정 내보내기 (파일 탐색기 사용)."
+    },
+    "coordModes": {
+      "xyz": "XYZ"
+    },
+    "muteMacros": {
+      "select": "음소거 매크로 선택",
+      "invert": "음소거 반전",
+      "muteOdd": "홀수 음소거",
+      "muteEven": "짝수 음소거",
+      "muteAll": "전체 음소거",
+      "unmuteAll": "전체 음소거 해제"
+    },
+    "noChannels": "이펙트 채널이 없습니다. 시스템 설정에서 개수를 설정하거나 이펙트 설정을 가져오세요.",
+    "tabs": {
+      "channelParams": "채널 매개변수",
+      "chain": "체인",
+      "postProcessing": "후처리",
+      "movements": "움직임",
+      "settings": "설정"
+    },
+    "link": {
+      "unlinked": "링크 없음",
+      "group": "그룹",
+      "modeOff": "링크: 끔",
+      "modeAbsolute": "링크: 절대",
+      "modeRelative": "링크: 상대"
+    },
+    "labels": {
+      "attenuation": "감쇠:",
+      "delayLatency": "지연/레이턴시:",
+      "delayPrefix": "지연:",
+      "latencyPrefix": "레이턴시:",
+      "coordinates": "좌표:",
+      "positionX": "위치 X:",
+      "positionY": "위치 Y:",
+      "positionZ": "위치 Z:",
+      "positionR": "반지름:",
+      "positionTheta": "방위각:",
+      "positionPhi": "고도각:",
+      "returnOffsetX": "리턴 오프셋 X:",
+      "returnOffsetY": "리턴 오프셋 Y:",
+      "returnOffsetZ": "리턴 오프셋 Z:",
+      "orientation": "방향:",
+      "angleOff": "끄기 각도:",
+      "pitch": "피치:",
+      "hfDamping": "고주파 감쇠:",
+      "distanceAttenPercent": "거리 감쇠 %:",
+      "distanceAtten": "거리 감쇠:",
+      "distanceRatio": "거리 비율:",
+      "commonAtten": "공통 감쇠:",
+      "hfShelf": "고주파 쉘프:",
+      "muteMacro": "음소거 매크로:",
+      "outputMutes": "출력 음소거:",
+      "arrayAttenuation": "어레이 감쇠:",
+      "arrayPrefix": "어레이",
+      "name": "이름:",
+      "angleOn": "켜기 각도:"
+    },
+    "toggles": {
+      "minLatencyOn": "최소 레이턴시 허용",
+      "lawInverse": "감쇠 법칙: 1/d",
+      "reverbSendsUnmuted": "리버브 센드: 활성화",
+      "reverbSendsMuted": "리버브 센드: 음소거",
+      "lawLog": "감쇠 법칙: Log",
+      "minLatencyOff": "최소 레이턴시 제외"
+    }
+  },
   "inputs": {
     "sections": {
       "channel": "채널",
@@ -1551,7 +1676,8 @@
       "trackingDisabled": "입력 {channel}의 트래킹이 비활성화됨",
       "trackingSwitched": "트래킹이 입력 {from}에서 입력 {to}(으)로 전환됨",
       "clusterEditRelative": "Shift 편집: 클러스터 {cluster}의 다른 입력 {count}개에 상대 변경 적용",
-      "clusterEditAbsolute": "Ctrl+Shift 편집: 클러스터 {cluster}의 다른 입력 {count}개에 값 복사"
+      "clusterEditAbsolute": "Ctrl+Shift 편집: 클러스터 {cluster}의 다른 입력 {count}개에 값 복사",
+      "snapshotEffectsSkipped": "스냅샷 '{name}': 이펙트 항목 {n}개 건너뜀, 이펙트 채널 {ids} 없음"
     },
     "help": {
       "solo": "이 채널의 바이노럴 렌더링을 청취합니다.",
@@ -1561,13 +1687,13 @@
       "reloadBackup": "백업 파일에서 입력 구성을 다시 불러옵니다.",
       "importConfig": "파일에서 입력 구성을 가져옵니다 (파일 탐색기 사용).",
       "exportConfig": "입력 구성을 파일로 내보냅니다 (파일 탐색기 사용).",
-      "storeSnapshot": "모든 오브젝트에 대한 새 입력 스냅샷을 저장합니다.",
-      "snapshotSelector": "입력 스냅샷을 불러오지 않고 선택합니다.",
-      "reloadSnapshot": "필터를 고려하여 선택한 입력 스냅샷을 모든 오브젝트에 다시 불러옵니다.",
-      "reloadWithoutScope": "필터 없이 선택한 입력 스냅샷을 모든 오브젝트에 다시 불러옵니다.",
-      "updateSnapshot": "선택한 입력 스냅샷을 업데이트합니다 (백업 포함).",
-      "editScope": "선택한 입력 스냅샷의 필터 창을 엽니다.",
-      "deleteSnapshot": "확인 후 선택한 입력 스냅샷을 삭제합니다.",
+      "storeSnapshot": "모든 입력과 이펙트의 새 스냅샷을 저장합니다.",
+      "snapshotSelector": "스냅샷을 불러오지 않고 선택합니다.",
+      "reloadSnapshot": "필터를 고려하여 선택한 스냅샷(입력 및 이펙트)을 다시 불러옵니다.",
+      "reloadWithoutScope": "필터 없이 선택한 스냅샷(입력 및 이펙트)을 다시 불러옵니다.",
+      "updateSnapshot": "선택한 스냅샷의 입력과 이펙트를 업데이트합니다 (백업 포함).",
+      "editScope": "선택한 스냅샷의 필터 창을 엽니다.",
+      "deleteSnapshot": "확인 후 선택한 스냅샷을 삭제합니다.",
       "channelSelector": "입력 채널 번호 및 선택.",
       "nameEditor": "표시되는 입력 채널 이름 (편집 가능).",
       "clusterSelector": "객체가 클러스터의 일부입니다.",
@@ -1689,7 +1815,7 @@
     }
   },
   "snapshotScope": {
-    "windowTitle": "입력 스냅샷 범위",
+    "windowTitle": "스냅샷 범위",
     "title": "스냅샷 범위: {name}",
     "applyScope": "범위 적용:",
     "whenSaving": "저장 시",
@@ -1705,7 +1831,15 @@
       "lfo": "LFO",
       "automOtion": "AutomOtion (자동이동)",
       "mutes": "음소거",
-      "admMapping": "ADM-OSC"
+      "admMapping": "ADM-OSC",
+      "effect": "이펙트",
+      "feed": "피드",
+      "return": "리턴",
+      "chain": "체인",
+      "modules": "모듈",
+      "sends": "센드",
+      "gradientMaps": "그라디언트 맵",
+      "sampler": "Sampler"
     },
     "buttons": {
       "ok": "OK",
@@ -1725,6 +1859,11 @@
       "enable": "MIDI 노트로 호출",
       "tooltip": "이 채널과 노트에서 벨로시티가 64를 넘는 노트 온을 받으면 이 스냅샷을 호출합니다. 노트 오프와 그보다 약한 노트는 무시됩니다. MIDI 입력은 오디오 인터페이스 ▸ 장치 설정에서 선택하세요.",
       "conflict": "'{name}'에서 사용 중(채널 {ch}, 노트 {note}) — 저장하려면 다른 노트를 선택하세요."
+    },
+    "noEffectChannels": "이 세션에는 이펙트 채널이 없습니다.",
+    "families": {
+      "inputs": "입력",
+      "effects": "이펙트"
     }
   },
   "snapshot": {
@@ -2273,8 +2412,8 @@
       "body": "세션 시작 시 시스템이 파일과 오디오 파일을 저장할 작업 폴더를 선택합니다. 새 프로젝트의 경우 새 폴더를 만듭니다. 이전 세션을 다시 로드하려면 해당 폴더로 이동합니다.\n각 섹션에는 별도의 xml 파일(시스템 구성, 네트워크, 출력, 리버브, 입력)과 백업이 있습니다. 컨볼루션 리버브 임펄스 응답과 오디오 샘플은 하위 디렉토리에 저장됩니다.\n각 섹션은 개별적으로 또는 전체로 저장하고 불러올 수 있습니다.\n각 섹션은 다른 프로젝트에서 파일을 내보내고 가져올 수도 있습니다."
     },
     "snapshotScope": {
-      "title": "입력 스냅샷 및 범위",
-      "body": "스냅샷은 입력 매개변수를 저장하며, 공연 중 불러올 범위를 가질 수 있습니다.\n범위는 시스템에 어떤 데이터를 저장하거나 불러올지 지시합니다.\n여러 방법이 있습니다:\n- 필요한 데이터만 로컬 파일에 기록. 필터는 저장 시 적용됩니다.\n- 모든 데이터와 필터를 로컬 파일에 기록. 필터는 불러올 때 적용됩니다.\n- 모든 데이터를 QLab 큐에 기록. 대규모 설정에는 권장하지 않습니다.\n범위는 수동으로 변경된 매개변수를 표시하고 자동으로 사전 선택할 수 있습니다. 변경된 매개변수는 노란색으로 표시됩니다."
+      "title": "스냅샷 및 범위",
+      "body": "스냅샷은 입력 및 이펙트 매개변수를 저장하며, 공연 중 불러올 범위를 가질 수 있습니다.\n범위는 시스템에 어떤 데이터를 저장하거나 불러올지 지시합니다.\n여러 방법이 있습니다:\n- 필요한 데이터만 로컬 파일에 기록. 필터는 저장 시 적용됩니다.\n- 모든 데이터와 필터를 로컬 파일에 기록. 필터는 불러올 때 적용됩니다.\n- 모든 데이터를 QLab 큐에 기록. 대규모 설정에는 권장하지 않습니다.\n범위는 수동으로 변경된 매개변수를 표시하고 자동으로 사전 선택할 수 있습니다. 변경된 매개변수는 노란색으로 표시됩니다.\n하나의 스냅샷에 입력과 이펙트 채널이 모두 담깁니다. 범위 창에는 입력 탭과 이펙트 탭이 있으며 패밀리마다 그리드가 하나씩 있습니다. 이펙트 그리드에서는 체인의 각 모듈이 한 행이며, 밴드와 탭도 포함됩니다. 입력 탭과 이펙트 탭은 같은 스냅샷 행을 표시하므로, 어느 쪽에서 저장하거나 불러온 스냅샷도 둘 다를 포함하며, MIDI 노트나 OSC 큐 하나로 둘 다 불러옵니다."
     },
     "network": {
       "title": "네트워크",
@@ -2334,6 +2473,10 @@
       "body": "MCP 서버는 AI 어시스턴트(Claude Desktop, Claude Code, 사용자 정의 커넥터가 있는 ChatGPT)가 로컬 네트워크 연결을 통해 이 WFS-DIY 세션의 매개변수를 읽고 쓸 수 있게 해줍니다.\n\nAI가 할 수 있는 일:\n• 라이브 상태 읽기: 채널 수, 이름, 위치, 감쇠, EQ, 스냅샷, 클러스터, 전체 매개변수.\n• 소스 이동, 채널 이름 변경, 클러스터 할당 설정, 어레이 레이아웃 조정, 출력 및 리버브 배치.\n• 준비된 프롬프트 템플릿을 통해 가이드 워크플로 실행 (시스템 튜닝, 위치 문제 해결, 스냅샷 관리).\n\n이 행의 운영자 컨트롤:\n• AI: ON / OFF — 메인 스위치. OFF일 때 모든 AI 도구 호출이 거부됩니다. ON일 때 AI는 아래 규칙에 따라 작동합니다.\n• 중요 AI 동작: 차단됨 / 허용됨 — 파괴적인 동작(스냅샷 삭제, DSP 재설정, 채널 수 변경)은 기본적으로 차단됩니다. 클릭하여 10분 동안 허용. 빨간색 채우기는 윈도우 만료에 따라 줄어들고 자동으로 다시 차단됩니다.\n• AI 기록 열기 — 최근 모든 AI 변경의 스크롤 가능한 타임라인.\n• MCP URL 버튼은 URL을 직접 받는 AI 클라이언트용으로 서버 URL을 클립보드에 복사합니다.\n\n운영자 인지:\n• 모든 AI 동작은 출처 태그와 함께 기록됩니다. AI 기록 창은 전체 타임라인을 보여줍니다. 행별 ×는 종속성을 포함하여 동작을 되돌립니다.\n• AI가 방금 이동한 매개변수를 수동으로 조정하면 AI에 알림이 가고 무작정 재시도하지 않습니다. 항상 마지막 결정은 당신이 합니다.\n• Cmd/Ctrl+Alt+Z 및 Cmd/Ctrl+Alt+Y 단축키는 수동 편집(일반 Ctrl+Z 사용)에 영향을 주지 않고 마지막 AI 변경을 실행 취소/다시 실행합니다.\n\n이 서버를 Claude Desktop에 추가하려면:\n  1. 설정 → 개발자 → 구성 편집을 엽니다.\n  2. 아래 JSON 스니펫을 claude_desktop_config.json에 붙여넣습니다 (이미 있는 mcpServers 블록에 병합).\n  3. Claude Desktop을 다시 시작합니다. 서버가 도구 메뉴에 'wfs-diy'로 표시됩니다.\n\nClaude Code에 추가하려면 실행:\n  claude mcp add wfs-diy <url> -t http\n\n네트워크 인터페이스를 전환하거나 서버가 다른 포트로 폴백하면 URL이 변경됩니다. 이 행의 URL 버튼은 항상 라이브 URL을 반영합니다.",
       "copyButton": "구성 복사",
       "copyConfirm": "MCP 구성 JSON이 클립보드에 복사됨"
+    },
+    "effects": {
+      "title": "이펙트",
+      "body": "이펙트 채널은 11개 모듈(디스토션, EQ 2개, 다이내믹스 2개, 코러스/플랜저, 페이저, 트레몰로, 리버브, 멀티탭 딜레이, 비트크러셔)의 체인으로, 센드 매트릭스를 통해 입력과 다른 이펙트로부터 신호를 받습니다. 출력은 입력처럼 무대에 배치되는 리턴이며, 자신의 위치에서 WFS 어레이로 재생되고 방향, 감쇠 법칙, 뮤트도 입력과 같습니다.\n헤더는 리버브 탭과 같습니다: 채널 선택, 이름, 맵 표시, 맵에서 편집, 솔로 이펙트, 음소거, Solo, 비상용 지우기(길게 누름; Ctrl을 누른 채로 모든 체인 비우기). 세 개의 점은 이 채널에 대한 엔진 상태를 나타냅니다: 루프 가드 작동, 피드백 루프의 일부, 입력에서 신호를 받음(해당 묶음의 진입점).\n링크 그룹은 하나의 시스템인 리버브와 다릅니다. 그룹에 속한 채널은 각 멤버의 링크 모드에 따라 체인(순서, 바이패스, 모듈 매개변수)을 다른 멤버와 공유합니다 — 절대: 복사, 상대: 차이 유지, 끔: 수신 안 함. 반면 움직임, 센드, 뮤트, 위치는 전파되지 않습니다. Ctrl을 누른 채 컨트롤을 드래그하면 이 채널만 편집합니다. 그룹 음소거 버튼은 각 멤버를 한 번씩 음소거하고 각각을 따로 편집할 수 있게 둡니다."
     }
   },
   "wizard": {

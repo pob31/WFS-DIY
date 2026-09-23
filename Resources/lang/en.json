@@ -667,7 +667,7 @@
       "midiOff": "Off — no MIDI recall",
       "midiNotConnected": "(not connected)",
       "midiUnavailable": "(unavailable — in use?)",
-      "midiTooltip": "Snapshot recall only. This port is opened for input alone and is used for nothing else: WFS-DIY sends it no MIDI, and the only messages it acts on are note-ons that recall an input snapshot. Bind a channel and note to a snapshot in the Inputs tab's Edit Scope window; a note-on above velocity 64 recalls it."
+      "midiTooltip": "Snapshot recall only. This port is opened for input alone and is used for nothing else: WFS-DIY sends it no MIDI, and the only messages it acts on are note-ons that recall a snapshot (inputs and effects). Bind a channel and note to a snapshot in the Edit Scope window of the Inputs or Effects tab; a note-on above velocity 64 recalls it."
     },
 
     "modes": {
