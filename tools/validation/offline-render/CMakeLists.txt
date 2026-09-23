@@ -72,7 +72,8 @@ juce_add_console_app(offline-render PRODUCT_NAME "offline-render")
 juce_generate_juce_header(offline-render)
 
 target_sources(offline-render PRIVATE
-    main.cpp)
+    main.cpp
+    reverb_audition.cpp)    # --audition: listening reels for the effects reverb, not a gate
 
 target_include_directories(offline-render PRIVATE
     ${REPO_ROOT}/Source)

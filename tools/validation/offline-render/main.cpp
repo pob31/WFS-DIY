@@ -18,6 +18,10 @@
 //                  [--wav out.wav] [--raw out.f32]
 //                  [--check baselines/<machine>.json] [--update]
 //                  [--bench] [--warmup 16] [--bench-json <file>]
+//   offline-render --audition <out-dir> [--audition-input <file.wav>] [--sr 48000]
+//
+// --audition is not a gate: it writes listening reels and a measured sheet for
+// the effects reverb's presets (reverb_audition.cpp) and hashes nothing.
 //
 // --check compares each rendered hash against the committed JSON baseline and
 // exits 1 on any mismatch (same contract as tools/validation/kernel_hashes.py);
@@ -1828,6 +1832,7 @@ void usage()
         "                      [--wav out.wav] [--raw out.f32]\n"
         "                      [--check baselines/<machine>.json] [--update]\n"
         "                      [--bench] [--warmup 16] [--bench-json <file>]\n"
+        "       offline-render --audition <out-dir> [--audition-input <file.wav>] [--sr 48000]\n"
         "\n"
         "GPU baselines are per device+driver: keep them in a separate file and check\n"
         "them in a separate invocation, e.g.\n"
@@ -1872,6 +1877,8 @@ void usage()
 
 } // namespace
 
+int runReverbAudition (const std::string& outDir, const std::string& inputWav, double sr);   // reverb_audition.cpp
+
 //==============================================================================
 int main (int argc, char* argv[])
 {
@@ -1889,6 +1896,7 @@ int main (int argc, char* argv[])
     Config cfg;
     std::string pathArg = "all", scenarioArg = "all";
     std::string wavArg, rawArg, checkArg, deviceArg, pluginDirArg, benchJsonArg;
+    std::string auditionArg, auditionInputArg;
     bool update = false;
     bool stereoNull = false;
 
@@ -1924,6 +1932,8 @@ int main (int argc, char* argv[])
         else if (a == "--bench")    gBench.enabled = true;
         else if (a == "--warmup")   gBench.warmup = std::atoi (next().c_str());
         else if (a == "--bench-json") { benchJsonArg = next(); gBench.enabled = true; }
+        else if (a == "--audition") auditionArg = next();
+        else if (a == "--audition-input") auditionInputArg = next();
         else if (a == "--help" || a == "-h") { usage(); return 0; }
         else
         {
@@ -1939,6 +1949,11 @@ int main (int argc, char* argv[])
         std::fprintf (stderr, "error: invalid size/rate arguments\n");
         return 2;
     }
+
+    // Listening material, not a render path: nothing below applies to it.
+    if (! auditionArg.empty())
+        return runReverbAudition (auditionArg, auditionInputArg, cfg.sr);
+
     if (gBench.warmup < 0)
     {
         std::fprintf (stderr, "error: --warmup must be >= 0\n");
