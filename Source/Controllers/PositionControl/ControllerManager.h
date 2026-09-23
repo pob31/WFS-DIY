@@ -7,6 +7,10 @@
  * applies axis mappings (dead zone, sensitivity, exponent curve), and performs
  * velocity integration at 50 Hz to produce smooth position deltas.
  *
+ * One push of the puck is one undo step, as one map drag is: the owner is told
+ * (onEditGestureStart) when the puck starts moving after resting, and opens the
+ * step before the push's first write.
+ *
  * Owned by MainComponent, wired to MapTab via callbacks.
  */
 
@@ -84,7 +88,18 @@ public:
         std::function<void (float dx, float dy, float dz)> moveClusterDelta;
         std::function<void (float deltaDeg)> rotateCluster;
         std::function<void (float scaleFactor)> scaleCluster;  // multiplicative, 1.0 = no change
+
+        /** A push starts: the first tick that moves after the puck has rested
+            (every axis inside its dead zone) for kGestureRestTicks, or after
+            the tab it drives has changed. Called on the tick, before the
+            push's writes are queued; the owner opens one undo step. */
+        std::function<void()> onEditGestureStart;
     };
+
+    /** How long the puck must rest before the next push is a new undo step:
+        300 ms at 50 Hz. A shorter return to rest - the edge of a dead zone
+        flickering under a light hand - stays in the same step. */
+    static constexpr int kGestureRestTicks = 15;
 
     Callbacks callbacks;
 
@@ -169,6 +184,22 @@ public:
     {
         enabled = true;
         startTimer (20);  // 50 Hz
+    }
+
+    /** The self-test drives the manager without a device or a message loop:
+        an event as a device would deliver it, one 50 Hz tick, and forgetting
+        everything a test device left behind. */
+    void injectEventForTest (const ControllerEvent& e) { handleEvent (e); }
+    void tickForTest() { timerCallback(); }
+    void forgetDeviceForTest (int deviceId)
+    {
+        for (auto it = latestAxisValues.begin(); it != latestAxisValues.end(); )
+            it = it->first.first == deviceId ? latestAxisValues.erase (it) : std::next (it);
+        for (auto it = buttonStates.begin(); it != buttonStates.end(); )
+            it = it->first.first == deviceId ? buttonStates.erase (it) : std::next (it);
+        profiles.erase (deviceId);
+        restTicks = kGestureRestTicks;
+        gestureTab = -1;
     }
 
 private:
@@ -337,6 +368,27 @@ private:
                 totalDz += delta;
             else if (mapping->targetAction == ControllerActions::rotate)
                 totalRotation += delta;
+        }
+
+        // One undo step per push: a push starts on the first tick that moves
+        // after the puck has rested for kGestureRestTicks, or after the tab it
+        // drives has changed - announced here, before this tick queues its
+        // writes, so the step is open when they land.
+        const bool moving = std::abs (totalDx) > 0.0001f || std::abs (totalDy) > 0.0001f
+                         || std::abs (totalDz) > 0.0001f || std::abs (totalRotation) > 0.01f;
+        if (moving)
+        {
+            if (restTicks >= kGestureRestTicks || activeTab != gestureTab)
+            {
+                gestureTab = activeTab;
+                if (callbacks.onEditGestureStart)
+                    callbacks.onEditGestureStart();
+            }
+            restTicks = 0;
+        }
+        else if (restTicks < kGestureRestTicks)
+        {
+            ++restTicks;
         }
 
         // Fire visual deflection feedback (raw -1..+1 axis values for joystick display)
@@ -542,6 +594,8 @@ private:
     }
 
     bool enabled = false;
+    int restTicks = kGestureRestTicks; // ticks the puck has rested, capped: at the cap the next push is a new step
+    int gestureTab = -1;               // the tab the current push drives
     bool twistFitFired = false;       // One-shot guard for twist fit actions
     uint32_t twistDebounceEnd = 0;   // Suppress pan/zoom for 300ms after twist fit
 

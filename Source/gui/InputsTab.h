@@ -587,6 +587,10 @@ public:
         positionZSlider.setThumbDeflection (z);
     }
 
+    /** The self-test checks that a drag of either opens an undo step. */
+    WfsJoystickComponent& getPositionJoystickForTest() { return positionJoystick; }
+    WfsAutoCenterSlider& getPositionZSliderForTest() { return positionZSlider; }
+
     /** Cycle to next/previous channel. delta=1 for next, delta=-1 for previous. Wraps around.
         Walks the LIVE-number list (numbers may have gaps). */
     void cycleChannel(int delta)
@@ -1430,6 +1434,11 @@ private:
         positionJoystick.setOuterColour(juce::Colour(0xFF3A3A3A));
         positionJoystick.setThumbColour(juce::Colour(0xFFFF9800));
         positionJoystick.setReportingIntervalHz(50.0);  // 50Hz = 20ms updates
+        // One undo step per drag, as a map drag is one (the joystick and the
+        // Z slider write the position at 50 Hz while they are held).
+        positionJoystick.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input Position");
+        };
         positionJoystick.setOnPositionChanged([this](float x, float y) {
             // Skip if joystick is centered - don't interfere with manual text editing
             if (x == 0.0f && y == 0.0f)
@@ -1576,6 +1585,9 @@ private:
         positionZSlider.setTrackColours(juce::Colour(0xFF3A3A3A), juce::Colour(0xFF4CAF50));
         positionZSlider.setThumbColour(juce::Colours::white);
         positionZSlider.setReportingIntervalHz(50.0);  // 50Hz = 20ms updates (same as joystick)
+        positionZSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input Position");
+        };
         positionZSlider.onPositionPolled = [this](float v) {
             // Skip if slider is centered - don't interfere with manual text editing
             if (v == 0.0f)

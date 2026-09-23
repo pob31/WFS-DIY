@@ -35,6 +35,7 @@ All notable changes to WFS DIY are documented in this file, organized by release
 - **The three AutomOtion transport buttons** now live in `Source/gui/buttons/TransportButtons.h`, drawn identically on the Inputs and Effects tabs.
 
 ### Fixed
+- **One Ctrl+Z takes back one push of the Space Mouse, or one drag of a joystick.** The Space Mouse, the position joysticks on the Inputs and Clusters tabs and the self-centring sliders (the Inputs tab's Z, the Clusters tab's Z, attenuation and scale) opened no undo step of their own, so their movements merged into whatever step was open. Now each push of the puck is one step, ending when the puck has rested for 0.3 s or when you change tab, and each drag is one step, as on the map.
 - **One Ctrl+Z takes back one Stream Deck gesture.** Edits from the Stream Deck opened no undo step of their own, so turns and presses piled into whatever step the tab had open, and one Ctrl+Z could take back several of them at once. Now a run of turns of one dial is one step (a pause of more than 0.8 s, another dial or a change of page ends it), and each press is one step, on every tab's Stream Deck pages.
 - **Dismissing the Snapshot Scope window no longer switches Write to QLab off.** Cancel or the close box saved both QLab toggles (Write to QLab, the snapshot load cue) as off, whatever they showed.
 - **Opening a project from a `.wfs` file no longer marks everything it loads as modified** in the Snapshot Scope window (auto-preselect, Select modified); System Config's Reload Complete Config, the same load, never did.

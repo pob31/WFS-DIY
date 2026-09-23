@@ -1956,6 +1956,14 @@ MainComponent::MainComponent()
             });
         };
 
+        // One undo step per push of the puck, as a map drag is one: the step
+        // opens on the tick the push starts, before its writes are queued, in
+        // the active tab's history - the tab the manager drives.
+        controllerManager->callbacks.onEditGestureStart = [this]()
+        {
+            parameters.getValueTreeState().beginUndoTransaction ("Space Mouse");
+        };
+
         // Add SpaceMouse device
         controllerManager->addDevice (std::make_unique<SpaceMouseDevice>());
 
@@ -5303,6 +5311,166 @@ void MainComponent::runChannelListSelfTest()
     else
     {
         check(false, "SD: the Stream Deck manager exists");
+    }
+
+    // ---- SM: one push of the Space Mouse is one undo step --------------------
+    // The map's rule - one drag, one step - for the puck, the joysticks and the
+    // auto-centering sliders. The manager runs without a device or a message
+    // loop: events as a device delivers them, 50 Hz ticks by hand, and the move
+    // callbacks swapped for synchronous ones while the test runs (the real ones
+    // post their writes to the message loop). The gesture announcement stays
+    // MainComponent's own.
+    if (controllerManager != nullptr && inputsTab != nullptr && clustersTab != nullptr && mapTab != nullptr
+        && parameters.getNumInputChannels() > 0)
+    {
+        auto& cm = *controllerManager;
+        constexpr int testDevice = 9901;
+        const int ch = 0;
+
+        const auto savedCallbacks = cm.callbacks;
+        const int savedTab = cm.activeTab;
+        const bool savedEnabled = cm.isEnabled();
+
+        {
+            WFSValueTreeState::ScopedUndoDomain undoScope (vts, UndoDomain::Input);
+            auto* inputUndo = vts.getUndoManagerForDomain(UndoDomain::Input);
+            inputUndo->clearUndoHistory();
+
+            auto approx = [](float a, float b) { return std::abs(a - b) < 1.0e-4f; };
+            auto posX = [&] { return static_cast<float>(parameters.getInputParam(ch, "inputPositionX")); };
+
+            cm.callbacks.moveCurrentChannel = [this, ch](float dx, float dy, float dz) { mapTab->moveInputByDelta(ch, dx, dy, dz); };
+            cm.callbacks.moveSelectedDelta = [this, ch](float dx, float dy, float dz) { mapTab->moveInputByDelta(ch, dx, dy, dz); };
+            cm.callbacks.getSelectedInputs = [ch] { return std::set<int> { ch }; };
+            cm.callbacks.getSelectedClusterRef = [] { return 0; };
+            cm.callbacks.rotateSelected = nullptr;
+            cm.callbacks.axisDeflection = nullptr;
+            cm.callbacks.panMap = nullptr;
+            cm.callbacks.zoomMap = nullptr;
+            cm.callbacks.fitAllInputs = nullptr;
+            cm.callbacks.fitStage = nullptr;
+            cm.setEnabled(true);
+            cm.activeTab = TabIndex::Inputs;
+
+            ControllerEvent connect;
+            connect.type = ControllerEvent::Connected;
+            connect.deviceId = testDevice;
+            connect.deviceName = "SpaceMouse (self-test)";
+            cm.injectEventForTest(connect);
+
+            // Push along X towards the stage centre, so no constraint stops it.
+            const float dir = posX() > 0.0f ? -0.5f : 0.5f;
+            auto axisX = [&](float v)
+            {
+                ControllerEvent e;
+                e.type = ControllerEvent::AxisMoved;
+                e.deviceId = testDevice;
+                e.axisOrButton = 0;
+                e.value = v;
+                cm.injectEventForTest(e);
+            };
+            auto push = [&](int ticks) { axisX(dir); for (int i = 0; i < ticks; ++i) cm.tickForTest(); };
+            auto rest = [&](int ticks) { axisX(0.0f); for (int i = 0; i < ticks; ++i) cm.tickForTest(); };
+
+            rest(ControllerManager::kGestureRestTicks);
+            const float x0 = posX();
+            push(5);
+            const float x1 = posX();
+            rest(ControllerManager::kGestureRestTicks);
+            push(3);
+            const float x2 = posX();
+            check(! approx(x1, x0) && ! approx(x2, x1), "SM: a push of the puck moves the input");
+            vts.undo();
+            const bool secondOnly = approx(posX(), x1);
+            vts.undo();
+            check(secondOnly && approx(posX(), x0), "SM: one undo takes back one push - the second, then the first");
+
+            // A return to rest shorter than the rest time is the same push.
+            rest(ControllerManager::kGestureRestTicks);
+            push(4);
+            rest(3);
+            push(4);
+            const float flickered = posX();
+            vts.undo();
+            check(! approx(flickered, x0) && approx(posX(), x0), "SM: a return to rest shorter than the rest time stays in one step");
+
+            // The same push driving another tab is another step.
+            rest(ControllerManager::kGestureRestTicks);
+            push(4);
+            const float onInputs = posX();
+            cm.activeTab = TabIndex::Map;
+            push(4);
+            vts.undo();
+            const bool mapPushOnly = approx(posX(), onInputs);
+            vts.undo();
+            check(mapPushOnly && approx(posX(), x0), "SM: a change of tab starts a new step");
+
+            rest(1);
+            cm.forgetDeviceForTest(testDevice);
+
+            // The joystick and the auto-centering slider fire their gesture
+            // hook when pressed...
+            {
+                WfsJoystickComponent joystick;
+                WfsAutoCenterSlider slider { WfsAutoCenterSlider::Orientation::vertical };
+                joystick.setSize(100, 100);
+                slider.setSize(30, 100);
+                int joystickGestures = 0, sliderGestures = 0;
+                joystick.onGestureStart = [&] { ++joystickGestures; };
+                slider.onGestureStart = [&] { ++sliderGestures; };
+
+                auto press = [](juce::Component& c, juce::Point<float> at)
+                {
+                    const auto now = juce::Time::getCurrentTime();
+                    const juce::MouseEvent e (juce::Desktop::getInstance().getMainMouseSource(), at, juce::ModifierKeys(),
+                                              juce::MouseInputSource::defaultPressure, juce::MouseInputSource::defaultOrientation,
+                                              juce::MouseInputSource::defaultRotation, juce::MouseInputSource::defaultTiltX,
+                                              juce::MouseInputSource::defaultTiltY, &c, &c, now, at, now, 1, false);
+                    c.mouseDown(e);
+                    c.mouseUp(e);
+                };
+                press(joystick, { 70.0f, 50.0f });
+                press(slider, { 15.0f, 20.0f });
+                check(joystickGestures == 1 && sliderGestures == 1,
+                      "SM: a press of a joystick or of an auto-centering slider starts a gesture");
+            }
+
+            // ...and the tabs open a step with it: a write made before the
+            // press survives the undo of the drag.
+            {
+                auto stepOpenedBy = [&](const std::function<void()>& hook)
+                {
+                    if (hook == nullptr)
+                        return false;
+                    const float att0 = static_cast<float>(parameters.getInputParam(ch, "inputAttenuation"));
+                    const float att1 = approx(att0, -7.0f) ? -8.0f : -7.0f;
+                    vts.beginUndoTransaction("self-test: before the drag");
+                    parameters.setInputParam(ch, "inputAttenuation", att1);
+                    hook();
+                    const float before = posX();
+                    parameters.setInputParam(ch, "inputPositionX", before + dir * 0.5f);
+                    vts.undo();
+                    const bool dragOnly = approx(posX(), before)
+                                       && approx(static_cast<float>(parameters.getInputParam(ch, "inputAttenuation")), att1);
+                    vts.undo();
+                    return dragOnly && approx(static_cast<float>(parameters.getInputParam(ch, "inputAttenuation")), att0);
+                };
+                check(stepOpenedBy(inputsTab->getPositionJoystickForTest().onGestureStart)
+                          && stepOpenedBy(inputsTab->getPositionZSliderForTest().onGestureStart)
+                          && stepOpenedBy(clustersTab->getPositionJoystickForTest().onGestureStart),
+                      "SM: the Inputs tab's joystick and Z slider and the Clusters tab's joystick each open a step");
+            }
+
+            inputUndo->clearUndoHistory();
+        }
+
+        cm.callbacks = savedCallbacks;
+        cm.activeTab = savedTab;
+        cm.setEnabled(savedEnabled);
+    }
+    else
+    {
+        check(false, "SM: the controller manager, the Inputs, Clusters and Map tabs and an input exist");
     }
 
     // ---- N: one snapshot carries the inputs AND the effects ------------------

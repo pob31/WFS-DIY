@@ -312,6 +312,9 @@ public:
         positionJoystick.setOuterColour(juce::Colour(0xFF3A3A3A));
         positionJoystick.setThumbColour(juce::Colour(0xFF4CAF50));
         positionJoystick.setReportingIntervalHz(50.0);
+        positionJoystick.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction("Cluster Param");
+        };
 
         // Z slider label
         addAndMakeVisible(zSliderLabel);
@@ -777,6 +780,9 @@ public:
     {
         positionJoystick.setThumbPosition (x, y);
     }
+
+    /** The self-test checks that a drag opens an undo step. */
+    WfsJoystickComponent& getPositionJoystickForTest() { return positionJoystick; }
 
     std::function<void (int)> onClusterSelected;
     std::function<bool()> isQLabAvailable;

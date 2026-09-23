@@ -669,8 +669,10 @@ all caught, the undo mutant among them.
   so one Ctrl+Z could take back several turns and presses. The manager now announces each gesture
   - a run of turns of one dial ended by an 800 ms pause, another dial or any navigation; each
   press; a dial press that acts; a confirmed choice - and the app opens one step for it (spatcore
-  `18f937e`; self-test SD drives the manager through its device callbacks). The Space Mouse and
-  the other controllers still open none.
+  `18f937e`; self-test SD drives the manager through its device callbacks). The Space Mouse,
+  the position joysticks and the self-centring sliders had the same gap and were fixed right
+  after, at the user's request: one step per push of the puck or drag of a control, as on the
+  map (self-test SM).
 - **A reverb preset's undo step was untested.** Removing it failed nothing, because the self-test
   never had an edit in the open step; RP4 now does.
 
