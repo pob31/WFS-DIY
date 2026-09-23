@@ -1038,6 +1038,15 @@ MainComponent::MainComponent()
     // persisted app settings (spatcore's manager no longer reads AppSettings).
     streamDeckManager->getConnectBrightness = [] { return AppSettings::getStreamDeckBrightness(); };
 
+    // One undo step per deck gesture - the GUI's rule for a drag. The manager
+    // announces a run of turns of one dial, a press or a confirmed choice
+    // before its first write; the step opens in the active tab's history,
+    // which is where the deck's page writes (the deck follows the tab).
+    streamDeckManager->onEditGestureStart = [this] (const juce::String& what)
+    {
+        parameters.getValueTreeState().beginUndoTransaction ("Stream Deck: " + what);
+    };
+
     // Apply initial Dials & Buttons device selection (default Off)
     {
         int dbDevice = static_cast<int> (parameters.getConfigParam ("DialsAndButtonsDevice"));
@@ -5170,6 +5179,130 @@ void MainComponent::runChannelListSelfTest()
 
         reverb.setProperty(P::effectReverbModel, modelBefore, nullptr);
         vts.setNumEffectChannels(effectsBefore);
+    }
+
+    // ---- SD: a Stream Deck gesture is one undo step ----------------------------
+    // The GUI's rule for a drag, on the deck: the manager announces each
+    // gesture - a run of turns of one dial, a press - and MainComponent opens a
+    // step in the active tab's history before its first write. Driven through
+    // the manager's own device callbacks on the Effects tab's Channel
+    // Parameters page, whose first section has four dials and two toggles; no
+    // device is needed (nothing is sent to one).
+    if (streamDeckManager != nullptr)
+    {
+        namespace P = WFSParameterIDs;
+
+        const int effectsBefore = vts.getNumEffectChannels();
+        const int mainBefore = streamDeckManager->getCurrentMainTab();
+        const int subBefore = streamDeckManager->getCurrentSubTab();
+        const int channelBefore = streamDeckManager->getChannel();
+        vts.setNumEffectChannels(1);
+
+        {
+            WFSValueTreeState::ScopedUndoDomain undoScope (vts, UndoDomain::Effects);
+            auto* effectsUndo = vts.getUndoManagerForDomain(UndoDomain::Effects);
+            effectsUndo->clearUndoHistory();
+
+            streamDeckManager->syncNavigation(EffectsTabPages::EFFECTS_MAIN_TAB_INDEX, 0, 1);
+            streamDeckManager->refreshCurrentPage();
+            streamDeckManager->setActiveSection(0);
+            auto& dev = streamDeckManager->getDevice();
+
+            auto dial = [this](int d) -> const DialBinding*
+            {
+                auto* page = streamDeckManager->getCurrentPage();
+                return page != nullptr && page->sections[0].dials[d].isValid() ? &page->sections[0].dials[d] : nullptr;
+            };
+            auto value = [&](int d) { const auto* b = dial(d); return b != nullptr ? b->getValue() : -1.0e9f; };
+            auto away = [&](int d) { const auto* b = dial(d); return b != nullptr && b->getValue() + b->step > b->maxValue ? -1 : +1; };
+            auto latency = [&] { return static_cast<int>(vts.getEffectParameter(0, P::effectMinimalLatency)); };
+
+            const int dirA = away(0), dirB = away(1);
+            const float a0 = value(0), b0 = value(1);
+            const int latency0 = latency();
+
+            // Three turns of one dial are one run; another dial is another.
+            dev.onDialRotated(0, dirA);
+            dev.onDialRotated(0, dirA);
+            dev.onDialRotated(0, dirA);
+            dev.onDialRotated(1, dirB);
+            const float a3 = value(0);
+            check(dial(0) != nullptr && dial(1) != nullptr && a3 != a0 && value(1) != b0,
+                  "SD: the deck's turns reach their parameters");
+            vts.undo();
+            const bool lastRunOnly = value(1) == b0 && value(0) == a3;
+            vts.undo();
+            check(lastRunOnly && value(0) == a0,
+                  "SD: one undo takes back one run of turns - the other dial's, then all three of the first");
+
+            // A pause longer than the idle time starts a new step.
+            streamDeckManager->setGestureIdleMs(40);
+            dev.onDialRotated(0, dirA);
+            const float afterFirst = value(0);
+            juce::Thread::sleep(120);
+            dev.onDialRotated(0, dirA);
+            vts.undo();
+            const bool pauseSplits = value(0) == afterFirst;
+            vts.undo();
+            streamDeckManager->setGestureIdleMs(800);
+            check(pauseSplits && value(0) == a0, "SD: a pause longer than the idle time starts a new step");
+
+            // Navigation ends a run: the app re-selecting the section splits
+            // it, and so does the deck's own section button (device button 0,
+            // this page's first section).
+            dev.onDialRotated(0, dirA);
+            const float beforeSync = value(0);
+            streamDeckManager->setActiveSection(0);
+            dev.onDialRotated(0, dirA);
+            vts.undo();
+            const bool syncSplits = value(0) == beforeSync;
+            vts.undo();
+            check(syncSplits && value(0) == a0, "SD: the app selecting a section ends a run of turns");
+
+            dev.onDialRotated(0, dirA);
+            const float beforeButton = value(0);
+            dev.onButtonPressed(0);
+            dev.onButtonReleased(0);
+            dev.onDialRotated(0, dirA);
+            vts.undo();
+            const bool buttonSplits = value(0) == beforeButton;
+            vts.undo();
+            check(buttonSplits && value(0) == a0, "SD: the deck's section button ends a run of turns");
+
+            // Each press of a toggle (Minimal Latency, the second button of
+            // the section: device button 5) is a step of its own...
+            dev.onButtonPressed(5);
+            dev.onButtonReleased(5);
+            dev.onButtonPressed(5);
+            dev.onButtonReleased(5);
+            vts.undo();
+            const bool pressAlone = latency() != latency0;
+            vts.undo();
+            check(pressAlone && latency() == latency0, "SD: each press is its own step");
+
+            // ...and a turn right after a press is another, even with nothing
+            // between them: the press ended the run.
+            dev.onDialRotated(0, dirA);
+            const float beforePress = value(0);
+            dev.onButtonPressed(5);
+            dev.onButtonReleased(5);
+            dev.onDialRotated(0, dirA);
+            vts.undo();
+            const bool turnAlone = value(0) == beforePress && latency() != latency0;
+            vts.undo();
+            const bool pressNext = value(0) == beforePress && latency() == latency0;
+            vts.undo();
+            check(turnAlone && pressNext && value(0) == a0, "SD: a turn after a press is a step of its own");
+
+            effectsUndo->clearUndoHistory();
+        }
+
+        streamDeckManager->syncNavigation(mainBefore, subBefore, channelBefore);
+        vts.setNumEffectChannels(effectsBefore);
+    }
+    else
+    {
+        check(false, "SD: the Stream Deck manager exists");
     }
 
     // ---- N: one snapshot carries the inputs AND the effects ------------------
