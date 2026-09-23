@@ -3000,6 +3000,27 @@ void MainComponent::renderUiSnapshots (const juce::File& dir)
         if (auto* content = tabbedComponent.getTabContentComponent (i))
             save (*content, "tab-" + juce::String (i) + "-" + tabbedComponent.getTabNames()[i]);
 
+    // Every sub-tab of the Effects tab, switched as a click on its bar would.
+    if (effectsTab != nullptr)
+    {
+        for (auto* child : effectsTab->getChildren())
+        {
+            if (auto* bar = dynamic_cast<juce::TabbedButtonBar*> (child))
+            {
+                const int original = bar->getCurrentTabIndex();
+                for (int s = 0; s < bar->getNumTabs(); ++s)
+                {
+                    bar->setCurrentTabIndex (s, false);
+                    bar->sendSynchronousChangeMessage();
+                    save (*effectsTab, "effects-subtab-" + juce::String (s) + "-" + bar->getTabNames()[s]);
+                }
+                bar->setCurrentTabIndex (original, false);
+                bar->sendSynchronousChangeMessage();
+                break;
+            }
+        }
+    }
+
     // The Scope window, opened as the Effects tab's row opens it, then switched
     // to the inputs grid as the Inputs tab's row would switch it.
     if (snapshotSession != nullptr)
