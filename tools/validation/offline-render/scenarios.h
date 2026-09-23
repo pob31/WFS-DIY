@@ -82,6 +82,14 @@ enum class Id
                     // fixed feed matrix with an fx -> fx loop, the block
                     // ledger, a reorder, a bypass window, two mute windows,
                     // and a loop guard that trips and releases
+
+    // The reverb's models (spatcore 0.4), appended under the same rule. Each
+    // runs slot 8 like FxReverb; the last hops between them.
+    FxReverbEr,     // FDN + early reflections: Room -> Hall -> Cathedral at Size 1.4
+    FxReverbPlate,  // Dattorro plate: modulation and decay sweeps, two size spillovers
+    FxReverbHall,   // modulated hall: Chamber reflections, a size spillover, reflections off
+    FxReverbShimmer,// shimmer: an octave, then a fifth, then an octave down and up
+    FxReverbModels, // every model in turn, then a burst of changes one tick apart
 };
 
 inline const char* name (Id id)
@@ -106,6 +114,11 @@ inline const char* name (Id id)
         case Id::FxCrush:        return "crush";
         case Id::FxChain:        return "chain";
         case Id::FxEngine:       return "engine";
+        case Id::FxReverbEr:     return "reverb-er";
+        case Id::FxReverbPlate:  return "reverb-plate";
+        case Id::FxReverbHall:   return "reverb-hall";
+        case Id::FxReverbShimmer: return "reverb-shimmer";
+        case Id::FxReverbModels: return "reverb-models";
     }
     return "?";
 }
@@ -128,6 +141,11 @@ inline bool fromName (const std::string& s, Id& out)
     if (s == "crush")     { out = Id::FxCrush;  return true; }
     if (s == "chain")     { out = Id::FxChain;  return true; }
     if (s == "engine")    { out = Id::FxEngine; return true; }
+    if (s == "reverb-er")      { out = Id::FxReverbEr;      return true; }
+    if (s == "reverb-plate")   { out = Id::FxReverbPlate;   return true; }
+    if (s == "reverb-hall")    { out = Id::FxReverbHall;    return true; }
+    if (s == "reverb-shimmer") { out = Id::FxReverbShimmer; return true; }
+    if (s == "reverb-models")  { out = Id::FxReverbModels;  return true; }
     return false;
 }
 
@@ -152,7 +170,8 @@ inline const std::vector<Id>& allEffectsScenarios()
     static const std::vector<Id> all {
         Id::FxDist, Id::FxEq, Id::FxDyn, Id::FxMod, Id::FxPhaser,
         Id::FxTrem, Id::FxReverb, Id::FxDelay, Id::FxCrush, Id::FxChain,
-        Id::FxEngine };
+        Id::FxEngine,
+        Id::FxReverbEr, Id::FxReverbPlate, Id::FxReverbHall, Id::FxReverbShimmer, Id::FxReverbModels };
     return all;
 }
 
@@ -554,6 +573,11 @@ inline int effectsSlotIndex (Id id) noexcept
         case Id::FxPhaser: return 6;    // "phaser"
         case Id::FxTrem:   return 7;    // "trem"
         case Id::FxReverb: return 8;    // "reverb"
+        case Id::FxReverbEr:
+        case Id::FxReverbPlate:
+        case Id::FxReverbHall:
+        case Id::FxReverbShimmer:
+        case Id::FxReverbModels: return 8;
         case Id::FxDelay:  return 9;    // "delay"
         case Id::FxCrush:  return 10;   // "crush"
 
@@ -851,6 +875,86 @@ inline spatcore::effects::EffectChannelParams effectsParams (Id id, int tick)
 
             p.chainBypass = (tick >= 55 && tick < 65) ? 1 : 0;
             p.mute        = (tick >= 90 && tick < 96) ? 1 : 0;
+            break;
+        }
+
+        case Id::FxReverbEr:
+        {
+            // The FDN with reflections in front: the profile and the size are
+            // build-time, so each change starts a new world and the old room's
+            // reflections play out of the ring behind the new one.
+            p.reverb.bypass = off ? 1 : 0;
+            p.reverb.rt60 = 1.8f;
+            p.reverb.predelayMs = fx::sweep (tick, 0.05, 0.4, 0.0f, 20.0f);
+            p.reverb.erLevelDb = fx::sweep (tick, 0.13, 1.0, -12.0f, 0.0f);
+            p.reverb.mix = 60.0f;
+            p.reverb.erProfile = vB ? 4 : (vA ? 3 : 1);            // Room -> Hall -> Cathedral
+            p.reverb.size = vB ? 1.4f : 1.0f;
+            break;
+        }
+
+        case Id::FxReverbPlate:
+        {
+            p.reverb.bypass = off ? 1 : 0;
+            p.reverb.model = 1;
+            p.reverb.rt60 = fx::sweep (tick, 0.09, 0.3, 1.0f, 3.5f);
+            p.reverb.diffusion = fx::sweep (tick, 0.15, 1.7, 0.4f, 1.0f);
+            p.reverb.modDepth = fx::sweep (tick, 0.21, 0.9, 0.0f, 100.0f);
+            p.reverb.modRateHz = fx::sweep (tick, 0.07, 2.2, 0.2f, 3.0f);
+            p.reverb.toneHz = fx::sweep (tick, 0.11, 0.6, 4000.0f, 16000.0f);
+            p.reverb.mix = 70.0f;
+            p.reverb.size = vB ? 0.7f : (vA ? 1.6f : 1.0f);
+            break;
+        }
+
+        case Id::FxReverbHall:
+        {
+            p.reverb.bypass = off ? 1 : 0;
+            p.reverb.model = 4;
+            p.reverb.rt60 = 2.6f;
+            p.reverb.rt60LowMult = 1.4f;
+            p.reverb.rt60HighMult = 0.45f;
+            p.reverb.diffusion = 0.7f;
+            p.reverb.modDepth = fx::sweep (tick, 0.17, 0.2, 20.0f, 90.0f);
+            p.reverb.modRateHz = 0.6f;
+            p.reverb.mix = 65.0f;
+            p.reverb.erProfile = vB ? 0 : 2;                        // Chamber, then off
+            p.reverb.size = vA ? 1.5f : 1.0f;
+            break;
+        }
+
+        case Id::FxReverbShimmer:
+        {
+            p.reverb.bypass = off ? 1 : 0;
+            p.reverb.model = 5;
+            p.reverb.rt60 = 4.0f;
+            p.reverb.rt60HighMult = 0.5f;
+            p.reverb.diffusion = 0.75f;
+            p.reverb.size = 1.6f;
+            p.reverb.shimmerAmount = fx::sweep (tick, 0.19, 0.5, 20.0f, 80.0f);
+            p.reverb.shimmerPitch = vB ? 7 : (vA ? 1 : 0);         // +12 -> +7 -> -12 & +12
+            p.reverb.mix = 70.0f;
+            break;
+        }
+
+        case Id::FxReverbModels:
+        {
+            // Every class of tail in turn, each change a spillover - then from
+            // tick 84 a new model every tick, faster than a crossfade and a
+            // dying fade can clear, so the pool has to wait, steal the oldest
+            // tail and land on the last request.
+            p.reverb.bypass = 0;
+            p.reverb.rt60 = 2.0f;
+            p.reverb.mix = 60.0f;
+            p.reverb.toneHz = 14000.0f;
+            static const std::uint8_t burst[] = { 1, 4, 0, 5, 1, 0, 4 };
+            if (tick >= 84 && tick < 91)
+                p.reverb.model = burst[tick - 84];
+            else if (tick >= 91)
+                p.reverb.model = 4;
+            else
+                p.reverb.model = tick >= 66 ? 5 : (tick >= 48 ? 4 : (tick >= 30 ? 1 : 0));
+            p.reverb.erProfile = (tick >= 48 && tick < 66) ? 3 : 0;
             break;
         }
 
