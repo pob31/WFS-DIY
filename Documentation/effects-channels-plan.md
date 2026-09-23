@@ -1403,7 +1403,12 @@ match.
   `/wfs/effect/snapshot/load|store` are retired: recognised and refused with a reason naming the
   input address (user answer: retire, rather than alias or effects-only recall). A show with no
   effects writes exactly the file it always wrote (checked byte for byte against the pre-phase
-  exe); one that has effects is marked `version="2.1"` (read nowhere).
+  exe); one that has effects is marked `version="2.1"` (read nowhere). A ghost `<Effect>` (an id
+  beyond the live count, carried over on re-store) keeps its column of the effects grid too: the
+  grid is read up to `maxEffectChannels` and written up to its highest keyed column, and a Store
+  over an existing name carries the previous file's ghost columns wherever the new scope is silent,
+  so an excluded effect stays excluded across a count shrink and regrow. A scope template without
+  `<EffectsScope>` leaves the effects grid alone.
 
 - **R8-2 - the effects scope is node-driven where it must be.** The input rule - `hasProperty`
   finds a parameter's node because no input property lives on two `<Input>` children - holds for
@@ -1439,8 +1444,10 @@ match.
   refuses as a row, so it is skipped and the export logs it. Volume: about 275 cues per effect
   channel, all in scope; the self-test sends every one back through the router.
 
-**Verification.** Self-test phases Q (every effect property covered or excluded, 278 walked),
-N (N0-N10: the round trip of every node kind, partial scopes, old files, skipped ids, the row
-guard, transients, scope serialisation, OnSave trim, undo domains), N11 (dirty keys), N12 / N13
-(QLab shapes, parse-back, grid, address map) - every assertion mutation-tested. The seven control
+**Verification.** Self-test phases Q (every effect property covered or excluded, 278 walked;
+every module property one of its module's CSV controls), N (N0-N10: the round trip of every node
+kind, partial scopes, old files, skipped ids, the row guard, transients, scope serialisation,
+OnSave trim, undo domains; N14 a ghost's scope, N15 an inputs-only template), N11 (dirty keys),
+N12 / N13 (QLab shapes, parse-back, every stored value exported, grid, address map), N16 (a
+dismissed Scope window keeps the QLab toggles) - every assertion mutation-tested. The seven control
 replays unchanged; the OSC replay gained the refusal's pointer as a needle.

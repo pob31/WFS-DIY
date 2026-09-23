@@ -472,7 +472,7 @@ spatcore commit (PR #14, tagged v0.3.3) added the schema-free `ui/sends/SendMatr
 
 ## 10. Phase 7 — snapshots carry the effects: DONE
 
-Ten commits on `effects/phase-7` (2026-09-22/23), off the Phase 6 tip. The design changed before a
+Fourteen commits on `effects/phase-7` (2026-09-22/23), off the Phase 6 tip. The design changed before a
 line was written (the user, 2026-09-22): the effects REUSE the input snapshots - one file, one scope
 with a grid per family, one Scope window with a tab per family, reachable from both tabs - instead
 of the plan's second snapshot family. The plan's §12.9 (revision 8) records it and the body was
@@ -491,11 +491,15 @@ QLab exports PER-PARAMETER effect cues.
 | `e766009` Effects footer | The shared row on the Effects tab (second footer row) + `WFS_TEST_RENDER_UI`. |
 | `4952972` QLab | Per-parameter effect cues in each parser shape, `getEffectMappings`. N12 / N13. |
 | `6a73bc2` retired verbs | The refusal names `/wfs/input/snapshot/*`; the OSC replay asserts it; CSV rows; MCP description. |
-| docs | Plan §12.9 and amendments, this section, CLAUDE.md, help card, hover strings, change log. |
+| `da9acf6` docs | Plan §12.9 and amendments, this section, CLAUDE.md, help card, hover strings, change log. |
+| `f9e1f57` help cards | Drive-by: the help-card key cycled the pre-Effects tab order; it now uses the `TabIndex` constants and covers the Effects tab. |
+| `4c91ffc` render sub-tabs | `WFS_TEST_RENDER_UI` also renders each Effects sub-tab (the taller footer checked against all five). |
+| `655120a` review fixes | The adversarial review's findings 1, 2, 3, 5 and 6 (below). Self-test N14, N15, N16, Q's module-controls check, N12's count. |
 
-**Gates on every code commit:** Release build; `WFS_TEST_CHANNEL_LIST=1` ALL PASS (750 -> 811);
-the seven control replays PASS with no golden moved; every new assertion mutation-tested (17
-mutants across Q, N, N11, N12, N13 and the OSC replay's new needle, every one caught). At the end:
+**Gates on every code commit:** Release build; `WFS_TEST_CHANNEL_LIST=1` ALL PASS (750 -> 811,
+830 after the review fixes); the seven control replays PASS with no golden moved; every new
+assertion mutation-tested (17 mutants across Q, N, N11, N12, N13 and the OSC replay's new needle,
+then 7 more for the review fixes - every one caught). At the end:
 offline-render CPU check zero MISMATCH (the five MISSING stereo combos are pre-existing), kernel
 hashes, dependency lint, bounds-audit counts identical to the pre-phase commit, `pytest tools/mcp`
 25 passed.
@@ -518,3 +522,42 @@ hashes, dependency lint, bounds-audit counts identical to the pre-phase commit, 
 - **Not verified on screen:** the long-press actions from the Effects tab's row (the workstation
   locked mid-session); the rows, the window's tabs and Edit Scope were verified by offscreen renders
   and, before the lock, a live capture of the Inputs tab's row and window.
+
+**The adversarial review (2026-09-23)** read the whole phase against the plan and raised six
+findings. What was done with each:
+
+1. **Config loads marked effect values "modified".** The Effects tab's Reload, Reload Backup and
+   Import ran without the dirty tracker's suppression, so everything the file set read as an
+   operator edit in the Scope window; a project opened from a `.wfs` file had the same gap for
+   BOTH families (`MainComponent::openProjectFromFile` - System Config's Reload Complete Config,
+   the same load, always suppressed). FIXED, the pattern every other config load uses. NOT changed,
+   on purpose: a count change that rewrites existing channels - the effects ring re-lay, a dropped
+   fx send column, `effectMutes` refitted to a new output count - marks what it rewrote, as the
+   input side's re-layout and `inputMutes` refit always have. Those values did change; the effect
+   of the mark is only that auto-preselect offers them.
+2. **A ghost effect lost its scope and kept its data.** The effects grid was read and written over
+   the LIVE count while `<Effect>` entries beyond it were carried over whole, so shrinking the
+   count, touching the scope and growing it back recalled an effect the operator had excluded.
+   FIXED: the grid is read up to `maxEffectChannels` and written up to its highest keyed column
+   (`serializeExtendedScope`), and a Store over an existing name carries the previous file's ghost
+   columns wherever the new scope is silent (`saveInputSnapshotWithExtendedScope`). N14. The input
+   grid has the same gap for a deleted input number (slot-keyed in memory, so a number with no slot
+   has nowhere to live) - not changed. One corner stays: the grid's "include all" corner clears the
+   whole map, a ghost's column with it.
+3. **A template without `<EffectsScope>` reset the effects grid** to "all included". FIXED: such a
+   template (saved before the effects, or in a show without them) leaves the effects grid alone.
+   N15.
+4. **Latent, not reachable today: a middle effect delete would re-point stored effects.** Snapshot
+   `<Effect id>` entries and `<EffectsScope>` columns are dense ids. `removeEffectChannel` closes
+   the hole, so every stored effect above a deleted one would land one channel down. Nothing but
+   the self-test calls it; count changes add and remove at the END only. Whoever wires a middle
+   delete must renumber (or refuse over) the snapshots too.
+5. **Cancel / X on the Scope window switched Write to QLab off** (and the load cue): the window
+   hands back its defaults on a dismiss, and the session adopted and persisted them. Pre-existing,
+   moved verbatim from the Inputs tab in `5d8beae`. FIXED: only OK and Update adopt the toggles.
+   N16, through the real session and window.
+6. **Two self-test blind spots.** Q took a module's word for its properties (any name on a module
+   node counts as covered, since a module is carried whole) and N12 only saw the cues that were
+   built. Q now requires every module property to be one of that module's CSV controls (bands and
+   taps included); N12 requires every stored value to get a cue (550 today). Neither found a live
+   defect; each mutant they were written against went green under the old checks.

@@ -2115,7 +2115,13 @@ auto state = scope.getChannelState(channelIndex);  // AllIncluded/AllExcluded/Pa
 
 The effects grid is a child of `<ExtendedScope>`: `<EffectsScope fullChannels excludedChannels>` with
 `<PartialChannel index excludedItems>` children, keyed by dense effect id, written only while the
-session has effects. Absent = every effect item included, which is how every earlier file reads.
+grid has a column to write. Absent = every effect item included, which is how every earlier file
+reads. The columns are the live effects PLUS any ghost id the grid holds keys for: `<Effect>`
+entries beyond the live count are carried over on re-store, so their exclusions are read up to
+`maxEffectChannels` and written back with them, and a Store over an existing name carries the
+previous file's ghost columns wherever the new scope is silent (an excluded effect stays excluded
+across a count shrink and regrow). A scope TEMPLATE without `<EffectsScope>` leaves the effects
+grid alone on load.
 
 > `version` is written but read nowhere in `Source/`, so it cannot be used as a format switch.
 > `fullChannels` is **write-only** — the deserializer relies on "absent = included" and never reads
