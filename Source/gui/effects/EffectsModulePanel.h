@@ -478,8 +478,9 @@ private:
         ctx.beginGesture ("Effect Reverb Preset");
         ctx.writeModule (node, effectReverbType, type);
 
-        if (const auto* p = fx::findReverbPreset (ctx.readInt (effectReverbModel, 0), type))
+        if (const auto* p = fx::findReverbPreset (type))
         {
+            ctx.writeModule (node, effectReverbModel, static_cast<int> (p->model));
             ctx.writeModule (node, effectReverbRT60, p->rt60);
             ctx.writeModule (node, effectReverbRT60LowMult, p->rt60LowMult);
             ctx.writeModule (node, effectReverbRT60HighMult, p->rt60HighMult);

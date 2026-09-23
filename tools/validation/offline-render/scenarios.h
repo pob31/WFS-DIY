@@ -70,7 +70,7 @@ enum class Id
     FxMod,          // chorus/flanger: voices and through-zero variants
     FxPhaser,       // phaser:      stage-count variant
     FxTrem,         // tremolo:     no variant — sweeps and the bypass toggle
-    FxReverb,       // FDN reverb:  size variant (rebuilds the network at silence)
+    FxReverb,       // FDN reverb:  size changes spill over (the old network rings out)
     FxDelay,        // multitap:    tap count / pattern / manual / feedback tap
     FxCrush,        // bitcrusher:  decimation-filter variant + dither floor
     FxChain,        // all eleven slots: reorder x3, chain bypass, mute
@@ -726,8 +726,9 @@ inline spatcore::effects::EffectChannelParams effectsParams (Id id, int tick)
             p.reverb.crossoverLow  = 180.0f;
             p.reverb.crossoverHigh = 3500.0f;
 
-            // Variant: the size rebuilds the FDN network, which is why it is
-            // committed at silence rather than glided.
+            // Size is another network: the module builds it on its idle twin
+            // and the old tail spills over underneath (until spatcore 0.4 it
+            // faded the slot out and rebuilt at silence).
             p.reverb.size = vB ? 0.75f : (vA ? 1.75f : 1.0f);
             break;
         }
