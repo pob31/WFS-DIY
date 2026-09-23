@@ -32,10 +32,12 @@
     FOUR MODULES HAVE SOMETHING THE CSV CANNOT DESCRIBE, and only those are
     special-cased: the two EQ instances (the interactive display, the six
     band strips), the two Dynamics instances (the gain-reduction meter), the
-    delay (its eight tap rows) and the reverb (its presets: selecting a type
-    other than Custom WRITES the preset's eight values through the funnel,
-    because the engine applies no preset itself, and editing one of those
-    eight afterwards flips the type back to Custom).
+    delay (its eight tap rows) and the reverb (its presets). A preset is not
+    the panel's to apply: the type goes through the funnel like any other
+    write, and WFSValueTreeState expands it - the same action the Stream Deck
+    and OSC reach - and flips the type to Custom when a value it owns is
+    really edited. The panel only has to show what that did: every row after
+    a preset, the preset combo after an owned edit.
 
     EVERY WRITE GOES THROUGH THE CONTEXT, so a linked group receives it
     according to each member's mode and Ctrl-drag edits this channel alone.
@@ -133,7 +135,7 @@ private:
         juce::ComboBox*   combo    = nullptr;
         juce::TextButton* button   = nullptr;
         WfsRotationDial*  rotation = nullptr;
-        bool presetOwned = false;      // reverb: one of the eight a preset writes
+        bool presetOwned = false;      // reverb: one of the fifteen a preset writes
     };
 
     void addRow (const EffectsUi::ControlDesc& d)
@@ -175,9 +177,9 @@ private:
                     const auto& items = r->desc->items;
                     const int current = readInt (*r->desc);
                     const int next = items.size() >= 2 && current == items[0].value ? items[1].value : items[0].value;
-                    presetGuard (*r);
                     ctx.writeModule (node, r->desc->id, next);
                     loadRow (*r);
+                    afterReverbEdit (*r);
                 };
                 break;
             }
@@ -194,11 +196,11 @@ private:
                     const int value = r->combo->getSelectedId() - 1;
                     if (isReverb() && r->desc->id == WFSParameterIDs::effectReverbType)
                     {
-                        applyReverbPreset (value);
+                        selectReverbPreset (value);
                         return;
                     }
-                    presetGuard (*r);
                     ctx.writeModule (node, r->desc->id, value);
+                    afterReverbEdit (*r);
                     TTSManager::getInstance().announceValueChange (r->label.getText(), r->combo->getText());
                 };
                 break;
@@ -260,7 +262,7 @@ private:
         ctx.helpTextMap[row->control.get()] = LOC ("effects.help." + key);
 
         if (isReverb())
-            row->presetOwned = isPresetOwned (d.id);
+            row->presetOwned = WFSValueTreeState::isEffectReverbPresetOwned (d.id);
 
         rows.push_back (std::move (row));
     }
@@ -312,8 +314,8 @@ private:
         r.value.setText (formatValue (real, r.desc->unit), juce::dontSendNotification);
         if (ctx.isLoadingParameters)
             return;
-        presetGuard (r);
         ctx.writeModule (node, r.desc->id, real);
+        afterReverbEdit (r);
     }
 
     juce::var readVar (const EffectsUi::ControlDesc& d) const
@@ -444,57 +446,32 @@ private:
     // Reverb presets
     //==========================================================================
 
-    static bool isPresetOwned (const juce::Identifier& id)
+    /** A preset: one write of the type, which the state expands (and runs on
+        every linked member). Then the panel shows the result - all of it. */
+    void selectReverbPreset (int type)
     {
-        using namespace WFSParameterIDs;
-        return id == effectReverbRT60 || id == effectReverbRT60LowMult || id == effectReverbRT60HighMult
-            || id == effectReverbCrossoverLow || id == effectReverbCrossoverHigh || id == effectReverbDiffusion
-            || id == effectReverbSize || id == effectReverbPredelay;
-    }
+        ctx.writeModule (node, WFSParameterIDs::effectReverbType, type);
 
-    /** An edit to a preset-owned value makes the reverb Custom first, so the
-        combo never claims a preset the values no longer match. */
-    void presetGuard (Row& r)
-    {
-        if (! isReverb() || ! r.presetOwned)
-            return;
-
-        const int custom = static_cast<int> (spatcore::effects::ReverbType::Custom);
-        if (ctx.readInt (WFSParameterIDs::effectReverbType, 0) != custom)
-        {
-            ctx.writeModule (node, WFSParameterIDs::effectReverbType, custom);
-            for (auto& row : rows)
-                if (row->desc->id == WFSParameterIDs::effectReverbType)
-                    loadRow (*row);
-            refreshPresetDimming();
-        }
-    }
-
-    void applyReverbPreset (int type)
-    {
-        using namespace WFSParameterIDs;
-        namespace fx = spatcore::effects;
-
-        ctx.beginGesture ("Effect Reverb Preset");
-        ctx.writeModule (node, effectReverbType, type);
-
-        if (const auto* p = fx::findReverbPreset (type))
-        {
-            ctx.writeModule (node, effectReverbModel, static_cast<int> (p->model));
-            ctx.writeModule (node, effectReverbRT60, p->rt60);
-            ctx.writeModule (node, effectReverbRT60LowMult, p->rt60LowMult);
-            ctx.writeModule (node, effectReverbRT60HighMult, p->rt60HighMult);
-            ctx.writeModule (node, effectReverbCrossoverLow, p->crossoverLow);
-            ctx.writeModule (node, effectReverbCrossoverHigh, p->crossoverHigh);
-            ctx.writeModule (node, effectReverbDiffusion, p->diffusion);
-            ctx.writeModule (node, effectReverbSize, p->size);
-            ctx.writeModule (node, effectReverbPredelay, p->predelayMs);
+        if (const auto* p = spatcore::effects::findReverbPreset (type))
             ctx.showStatusMessage (LOC ("effects.chain.presetApplied").replace ("{name}", p->name));
-        }
 
         const juce::ScopedValueSetter<bool> loadingScope (ctx.isLoadingParameters, true);
         for (auto& row : rows)
             loadRow (*row);
+        refreshPresetDimming();
+    }
+
+    /** After an edit to a value a preset owns, the state may have made the
+        reverb Custom: show the preset combo as it now is. */
+    void afterReverbEdit (Row& r)
+    {
+        if (! isReverb() || ! r.presetOwned)
+            return;
+
+        const juce::ScopedValueSetter<bool> loadingScope (ctx.isLoadingParameters, true);
+        for (auto& row : rows)
+            if (row->desc->id == WFSParameterIDs::effectReverbType)
+                loadRow (*row);
         refreshPresetDimming();
     }
 

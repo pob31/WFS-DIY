@@ -2153,11 +2153,18 @@ void OSCManager::applyEffectUpdate (const PendingParamUpdate& upd)
     switch (upd.effectKind)
     {
         case Kind::Scalar:
+            // applyExternalEffectEdit: setEffectParameter (the resolution walk
+            // plus the position-ownership latch), except that a reverb TYPE
+            // expands into its preset and a real edit to a value a preset owns
+            // makes the reverb Custom first - the same as the GUI, without the
+            // link-group propagation OSC never does.
+            state.applyExternalEffectEdit (upd.channelId, upd.paramId, upd.value);
+            break;
+
         case Kind::Row:
-            // setEffectParameter, not setParameter: it is the same resolution
-            // walk plus the position-ownership latch, and a packed row reaches
-            // the write interceptor through it (which is where a row that is
-            // not a row is refused and the stored one kept).
+            // setEffectParameter, not setParameter: a packed row reaches the
+            // write interceptor through it (which is where a row that is not a
+            // row is refused and the stored one kept).
             state.setEffectParameter (upd.channelId, upd.paramId, upd.value);
             break;
 
@@ -2242,6 +2249,14 @@ void OSCManager::applyEffectUpdate (const PendingParamUpdate& upd)
     }
 }
 
+void OSCManager::receiveBurstForSelfTest (const std::vector<juce::OSCMessage>& burst)
+{
+    for (const auto& message : burst)
+        handleIncomingMessage (message, "127.0.0.1", 0, ConnectionMode::UDP);
+
+    drainPendingParamUpdates();
+}
+
 void OSCManager::drainPendingParamUpdates()
 {
     std::map<juce::String, PendingParamUpdate> updates;
@@ -2260,7 +2275,15 @@ void OSCManager::drainPendingParamUpdates()
     // Suppression must be per-update: coalesced updates can come from different
     // senders, and each write must record its own origin so the OSCQuery push
     // skips exactly the client that sent it.
-    for (const auto& [key, upd] : updates)
+    //
+    // TWO PASSES, reverb presets first. A reverb type is an ACTION that
+    // rewrites fifteen values (applyExternalEffectEdit), and the map is
+    // ordered by key, not by arrival - so a burst holding a preset and a tweak
+    // (a QLab cue replaying a state, a controller sending both at once) would
+    // otherwise land in whatever order the keys sort, and the tweak could be
+    // erased by the preset it was meant to follow. Preset, then tweaks: the
+    // result reads as the operator meant it in either arrival order.
+    auto apply = [this] (const PendingParamUpdate& upd)
     {
         if (oscQueryServer) oscQueryServer->beginIncomingOSC(upd.senderIP);
         if (upd.effectKind != OSCMessageRouter::ParsedEffectMessage::Kind::Unknown)
@@ -2268,7 +2291,15 @@ void OSCManager::drainPendingParamUpdates()
         else
             state.setParameter(upd.paramId, upd.value, upd.channelId);
         if (oscQueryServer) oscQueryServer->endIncomingOSC();
-    }
+    };
+
+    for (const auto& [key, upd] : updates)
+        if (upd.paramId == WFSParameterIDs::effectReverbType)
+            apply (upd);
+
+    for (const auto& [key, upd] : updates)
+        if (upd.paramId != WFSParameterIDs::effectReverbType)
+            apply (upd);
 
     incomingGuard.release();
 }

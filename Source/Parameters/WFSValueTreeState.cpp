@@ -3,6 +3,7 @@
 #include "../WFSLogger.h"
 #include "../Sampler/SamplerData.h"
 #include "VarCoercion.h"
+#include "../../spatcore/effects/EffectPresets.h"
 
 #include <algorithm>
 #include <cmath>
@@ -2045,8 +2046,14 @@ void WFSValueTreeState::applyEffectLinkPropagation (int channelIndex,
         if (! section.isValid() || ! section.hasProperty (paramId))
             continue;
 
+        // A member's reverb goes Custom exactly when its own value really
+        // moves, whatever the origin's did.
+        const bool reverbSection = section.hasType (FxReverb);
+
         if (absoluteOnly || (originMode == 1 && memberMode == 1))
         {
+            if (reverbSection)
+                flipEffectReverbToCustomIfEdited (section, paramId, newValue);
             writeProperty (section, paramId, newValue, getActiveUndoManager());
             continue;
         }
@@ -2061,12 +2068,16 @@ void WFSValueTreeState::applyEffectLinkPropagation (int channelIndex,
 
             if (bounds->isInt)
             {
-                writeProperty (section, paramId, static_cast<int> (std::round (memberNew)),
-                               getActiveUndoManager());
+                const int memberInt = static_cast<int> (std::round (memberNew));
+                if (reverbSection)
+                    flipEffectReverbToCustomIfEdited (section, paramId, memberInt);
+                writeProperty (section, paramId, memberInt, getActiveUndoManager());
                 continue;
             }
         }
 
+        if (reverbSection)
+            flipEffectReverbToCustomIfEdited (section, paramId, memberNew);
         writeProperty (section, paramId, memberNew, getActiveUndoManager());
     }
 }
@@ -2101,6 +2112,21 @@ void WFSValueTreeState::setEffectParameterWithLinkPropagation (int channelIndex,
                                                                const juce::var& value,
                                                                bool propagateToGroup)
 {
+    // The reverb's presets ride on this funnel too: a type is the expansion,
+    // and a real edit to a value a preset owns makes the source Custom first
+    // (applyEffectLinkPropagation does the same for each member).
+    if (paramId == effectReverbType)
+    {
+        applyEffectReverbPreset (channelIndex, WFSVar::toInt (value, 0), propagateToGroup);
+        return;
+    }
+
+    if (isEffectReverbPresetOwned (paramId))
+    {
+        auto reverb = getEffectModuleSection (channelIndex, FxReverb);
+        flipEffectReverbToCustomIfEdited (reverb, paramId, value);
+    }
+
     if (! propagateToGroup || isEffectLinkExcluded (paramId))
     {
         setEffectParameter (channelIndex, paramId, value);
@@ -2123,11 +2149,21 @@ void WFSValueTreeState::setEffectModuleParameterWithLinkPropagation (int channel
                                                                      const juce::var& value,
                                                                      bool propagateToGroup)
 {
+    if (moduleType == FxReverb && paramId == effectReverbType)
+    {
+        applyEffectReverbPreset (channelIndex, WFSVar::toInt (value, 0), propagateToGroup);
+        return;
+    }
+
     auto section = getEffectModuleSection (channelIndex, moduleType);
     if (! section.isValid())
         return;
 
     const auto oldValue = section.getProperty (paramId);
+
+    if (moduleType == FxReverb)
+        flipEffectReverbToCustomIfEdited (section, paramId, value);
+
     writeProperty (section, paramId, value, getActiveUndoManager());
 
     if (! propagateToGroup)
@@ -2212,6 +2248,121 @@ void WFSValueTreeState::setEffectGroupMute (int group, bool muted)
     for (int member = 0; member < numEffects; ++member)
         if (getEffectLinkGroup (member) == group)
             setEffectParameter (member, effectMute, muted ? 1 : 0);
+}
+
+//==============================================================================
+// The reverb module's presets
+//==============================================================================
+
+bool WFSValueTreeState::isEffectReverbPresetOwned (const juce::Identifier& paramId)
+{
+    // Exactly what spatcore::effects::applyReverbPreset writes; the self-test
+    // pins the two against each other.
+    static const std::set<juce::Identifier> owned = {
+        effectReverbModel, effectReverbERProfile, effectReverbERLevel, effectReverbPredelay,
+        effectReverbRT60, effectReverbRT60LowMult, effectReverbRT60HighMult,
+        effectReverbCrossoverLow, effectReverbCrossoverHigh, effectReverbDiffusion, effectReverbSize,
+        effectReverbModRate, effectReverbModDepth, effectReverbShimmerPitch, effectReverbShimmerAmount,
+    };
+
+    return owned.count (paramId) != 0;
+}
+
+void WFSValueTreeState::flipEffectReverbToCustomIfEdited (juce::ValueTree& reverb,
+                                                          const juce::Identifier& paramId,
+                                                          const juce::var& newValue)
+{
+    if (! reverb.isValid() || ! isEffectReverbPresetOwned (paramId))
+        return;
+
+    const int custom = static_cast<int> (spatcore::effects::ReverbType::Custom);
+    if (WFSVar::toInt (reverb.getProperty (effectReverbType), custom) == custom)
+        return;
+
+    // A REAL change only. A surface that re-sends the value it already shows -
+    // a fader's echo, a QLab replay of a preset's own numbers - must not
+    // unname the preset.
+    const double before = static_cast<double> (WFSVar::toFloat (reverb.getProperty (paramId), 0.0f));
+    const double after  = static_cast<double> (WFSVar::toFloat (newValue, static_cast<float> (before)));
+    if (std::abs (after - before) <= 1.0e-6 * juce::jmax (1.0, std::abs (before)))
+        return;
+
+    writeProperty (reverb, effectReverbType, custom, getActiveUndoManager());
+}
+
+void WFSValueTreeState::expandEffectReverbPreset (int channelIndex, int type)
+{
+    auto reverb = getEffectModuleSection (channelIndex, FxReverb);
+    if (! reverb.isValid())
+        return;
+
+    auto* um = getActiveUndoManager();
+
+    if (const auto* row = spatcore::effects::findReverbPreset (type))
+    {
+        writeProperty (reverb, effectReverbModel,         static_cast<int> (row->model), um);
+        writeProperty (reverb, effectReverbERProfile,     static_cast<int> (row->erProfile), um);
+        writeProperty (reverb, effectReverbERLevel,       row->erLevelDb, um);
+        writeProperty (reverb, effectReverbPredelay,      row->predelayMs, um);
+        writeProperty (reverb, effectReverbRT60,          row->rt60, um);
+        writeProperty (reverb, effectReverbRT60LowMult,   row->rt60LowMult, um);
+        writeProperty (reverb, effectReverbRT60HighMult,  row->rt60HighMult, um);
+        writeProperty (reverb, effectReverbCrossoverLow,  row->crossoverLow, um);
+        writeProperty (reverb, effectReverbCrossoverHigh, row->crossoverHigh, um);
+        writeProperty (reverb, effectReverbDiffusion,     row->diffusion, um);
+        writeProperty (reverb, effectReverbSize,          row->size, um);
+        writeProperty (reverb, effectReverbModRate,       row->modRateHz, um);
+        writeProperty (reverb, effectReverbModDepth,      row->modDepth, um);
+        writeProperty (reverb, effectReverbShimmerPitch,  static_cast<int> (row->shimmerPitch), um);
+        writeProperty (reverb, effectReverbShimmerAmount, row->shimmerAmount, um);
+    }
+
+    // The type LAST and raw: written after its values, it is never mistaken
+    // for an edit that should flip it.
+    writeProperty (reverb, effectReverbType, type, um);
+}
+
+void WFSValueTreeState::applyEffectReverbPreset (int channelIndex, int type, bool propagateToGroup)
+{
+    if (! getEffectModuleSection (channelIndex, FxReverb).isValid())
+        return;
+
+    beginUndoTransaction ("Effect Reverb Preset");
+    expandEffectReverbPreset (channelIndex, type);
+
+    if (! propagateToGroup)
+        return;
+
+    // applyEffectLinkPropagation's rules - the group, the origin's mode, each
+    // member's own mode - with the expansion run on every member rather than
+    // a value copied or a delta added. setEffectGroupMute is the precedent:
+    // an action every member performs.
+    const int group = getEffectLinkGroup (channelIndex);
+    if (group == 0 || getEffectLinkMode (channelIndex) == 0)
+        return;
+
+    const int numEffects = getNumEffectChannels();
+    for (int member = 0; member < numEffects; ++member)
+        if (member != channelIndex && getEffectLinkGroup (member) == group && getEffectLinkMode (member) != 0)
+            expandEffectReverbPreset (member, type);
+}
+
+void WFSValueTreeState::applyExternalEffectEdit (int channelIndex, const juce::Identifier& paramId,
+                                                 const juce::var& value)
+{
+    if (paramId == effectReverbType)
+    {
+        applyEffectReverbPreset (channelIndex, WFSVar::toInt (value, 0), false);
+        return;
+    }
+
+    if (isEffectReverbPresetOwned (paramId))
+    {
+        auto reverb = getEffectModuleSection (channelIndex, FxReverb);
+        flipEffectReverbToCustomIfEdited (reverb, paramId, value);
+    }
+
+    setEffectParameter (channelIndex, paramId, value);
 }
 
 //==============================================================================

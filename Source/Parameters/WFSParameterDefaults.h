@@ -1657,9 +1657,13 @@ namespace WFSParameterDefaults
     constexpr int effectReverbModelMin            = 0;
     constexpr int effectReverbModelMax            = 5;
 
-    constexpr int effectReverbTypeDefault         = 0;       // preset within the model
+    // spatcore::effects::ReverbType, append-only: 0-4 the shipped FDN rooms
+    // (frozen), 5 Custom (no row), 6 Medium Hall - exactly the defaults above
+    // and below, so a fresh channel is a preset it really holds - and 7-22
+    // the model presets. The label says Preset; the identifier stays.
+    constexpr int effectReverbTypeDefault         = 6;
     constexpr int effectReverbTypeMin             = 0;
-    constexpr int effectReverbTypeMax             = 5;       // Room, Chamber, Hall, Cathedral, Plate, Custom
+    constexpr int effectReverbTypeMax             = 22;
 
     constexpr float effectReverbPredelayDefault   = 10.0f;   // ms
     constexpr float effectReverbPredelayMin       = 0.0f;

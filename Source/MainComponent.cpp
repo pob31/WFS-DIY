@@ -1,5 +1,6 @@
 #include "MainComponent.h"
 #include "../spatcore/wfs/RenderSourceMap.h"
+#include "../spatcore/effects/EffectPresets.h"
 #include "WFSLogger.h"
 #include "Parameters/VarCoercion.h"
 #include "gui/ChannelIdentityGate.h"
@@ -4656,6 +4657,251 @@ void MainComponent::runChannelListSelfTest()
 
         if (effectsBefore == 0)
             vts.setNumEffectChannels(0);
+    }
+
+    // ---- RP: the reverb's presets are an action, and Custom means edited -----
+    // Plan revision 9, section 9. A preset writes its fifteen values and then
+    // its type, from every surface; a real edit to one of those fifteen makes
+    // the reverb Custom first, on the source and on each linked member; OSC
+    // expands without propagating, and a burst reads "preset, then tweaks";
+    // snapshot recall writes raw.
+    {
+        namespace P = WFSParameterIDs;
+        namespace FX = spatcore::effects;
+        WFSValueTreeState::ScopedUndoDomain undoScope (vts, UndoDomain::Effects);
+
+        const int effectsBefore = vts.getNumEffectChannels();
+        vts.setNumEffectChannels(3);
+
+        auto reverbOf = [&](int ch) { return vts.getEffectModuleSection(ch, P::FxReverb); };
+        auto num = [](const juce::var& v) { return static_cast<double> (v); };
+        auto approxEq = [](double a, double b) { return std::abs(a - b) <= 1.0e-4 * juce::jmax(1.0, std::abs(b)); };
+        const int custom = static_cast<int>(FX::ReverbType::Custom);
+
+        // What a row owns, as the tree must hold it after an expansion.
+        auto holdsRow = [&](int ch, int type, juce::String& why)
+        {
+            const auto* row = FX::findReverbPreset(type);
+            auto r = reverbOf(ch);
+            if (row == nullptr || ! r.isValid()) { why = "no row / no node"; return false; }
+
+            const std::pair<juce::Identifier, double> want[] = {
+                { P::effectReverbModel, row->model }, { P::effectReverbERProfile, row->erProfile },
+                { P::effectReverbERLevel, row->erLevelDb }, { P::effectReverbPredelay, row->predelayMs },
+                { P::effectReverbRT60, row->rt60 }, { P::effectReverbRT60LowMult, row->rt60LowMult },
+                { P::effectReverbRT60HighMult, row->rt60HighMult }, { P::effectReverbCrossoverLow, row->crossoverLow },
+                { P::effectReverbCrossoverHigh, row->crossoverHigh }, { P::effectReverbDiffusion, row->diffusion },
+                { P::effectReverbSize, row->size }, { P::effectReverbModRate, row->modRateHz },
+                { P::effectReverbModDepth, row->modDepth }, { P::effectReverbShimmerPitch, row->shimmerPitch },
+                { P::effectReverbShimmerAmount, row->shimmerAmount } };
+
+            for (const auto& [id, v] : want)
+                if (! approxEq(num(r.getProperty(id)), v))
+                {
+                    why = id.toString() + " is " + r.getProperty(id).toString() + ", the row says " + juce::String(v);
+                    return false;
+                }
+            if (static_cast<int>(r.getProperty(P::effectReverbType)) != type)
+            {
+                why = "type is " + r.getProperty(P::effectReverbType).toString();
+                return false;
+            }
+            return true;
+        };
+
+        auto typeOf = [&](int ch) { return static_cast<int>(reverbOf(ch).getProperty(P::effectReverbType)); };
+        auto gui = [&](int ch, const juce::Identifier& id, const juce::var& v, bool propagate = false)
+        {
+            vts.setEffectModuleParameterWithLinkPropagation(ch, P::FxReverb, id, v, propagate);
+        };
+
+        // RP1: the owned set is the reverb's CSV controls minus bypass, type,
+        // tone and mix - and exactly what spatcore's expansion writes (15).
+        {
+            const auto controls = EffectsUi::controlsForSlot(8);
+            int owned = 0, wrong = 0;
+            for (int k = 0; k < controls.count; ++k)
+            {
+                const auto& id = controls.controls[k].id;
+                const bool taste = id == P::effectReverbBypass || id == P::effectReverbType
+                                || id == P::effectReverbTone || id == P::effectReverbMix;
+                const bool isOwned = WFSValueTreeState::isEffectReverbPresetOwned(id);
+                owned += isOwned ? 1 : 0;
+                if (isOwned == taste)
+                {
+                    ++wrong;
+                    logLine("SELF-TEST FAIL RP1: '" + id.toString() + "' is " + (isOwned ? "" : "not ")
+                            + "preset-owned");
+                }
+            }
+            check(wrong == 0 && owned == 15, "RP1: a preset owns the reverb's controls but bypass, type, tone and mix (15)");
+        }
+
+        // RP2: the Preset combo is spatcore's table: 23 ids, 5 alone without a row.
+        {
+            const auto& d = EffectsUi::controlsForReverb().controls[2];
+            bool table = d.id == P::effectReverbType && static_cast<int>(d.items.size()) == static_cast<int>(FX::ReverbType::Count);
+            for (int k = 0; table && k < static_cast<int>(d.items.size()); ++k)
+                table = d.items[static_cast<size_t>(k)].value == k
+                     && ((k == custom) == (FX::findReverbPreset(k) == nullptr));
+            check(table, "RP2: the Preset combo lists spatcore's 23 ids, Custom the only one without a row");
+        }
+
+        // RP3: a fresh channel is Medium Hall, and holds it.
+        {
+            juce::String why;
+            check(holdsRow(0, static_cast<int>(FX::ReverbType::MediumHall), why) && typeOf(1) == 6,
+                  "RP3: a fresh channel is Medium Hall and holds its row (" + why + ")");
+        }
+
+        // RP4: the GUI funnel expands a preset, and one undo takes all of it back.
+        {
+            gui(0, P::effectReverbType, static_cast<int>(FX::ReverbType::VocalPlate));
+            juce::String why;
+            check(holdsRow(0, static_cast<int>(FX::ReverbType::VocalPlate), why), "RP4: Vocal Plate lands whole (" + why + ")");
+
+            vts.undo();
+            check(holdsRow(0, static_cast<int>(FX::ReverbType::MediumHall), why),
+                  "RP4: ...and one undo restores Medium Hall, all fifteen (" + why + ")");
+        }
+
+        // RP5: only a REAL edit to an owned value flips; taste never does.
+        {
+            gui(0, P::effectReverbType, static_cast<int>(FX::ReverbType::VocalPlate));
+            gui(0, P::effectReverbRT60, FX::findReverbPreset(static_cast<int>(FX::ReverbType::VocalPlate))->rt60);
+            check(typeOf(0) == 15, "RP5: re-sending a preset's own value keeps the preset");
+            gui(0, P::effectReverbMix, 44.0);
+            gui(0, P::effectReverbTone, 7000.0);
+            check(typeOf(0) == 15, "RP5: tone and mix are taste - editing them keeps the preset");
+            gui(0, P::effectReverbRT60, 2.3);
+            check(typeOf(0) == custom && approxEq(num(reverbOf(0).getProperty(P::effectReverbRT60)), 2.3),
+                  "RP5: a real RT60 edit makes it Custom and lands");
+            gui(0, P::effectReverbType, 15);
+            gui(0, P::effectReverbModel, static_cast<int>(FX::ReverbModel::ModulatedHall));
+            check(typeOf(0) == custom, "RP5: so does changing the model by hand");
+        }
+
+        // RP6: the Stream Deck's write (EffectParamEdit, the object its dials
+        // hold) expands and flips the same way.
+        {
+            auto& edit = parameters.getEffectEdit();
+            edit.writeModule(1, P::FxReverb, P::effectReverbType, static_cast<int>(FX::ReverbType::DarkPlate));
+            juce::String why;
+            check(holdsRow(1, static_cast<int>(FX::ReverbType::DarkPlate), why), "RP6: a deck preset expands (" + why + ")");
+            edit.writeModule(1, P::FxReverb, P::effectReverbSize, 1.55);
+            check(typeOf(1) == custom, "RP6: a deck edit to an owned value flips");
+        }
+
+        // RP7: a link group - an ABSOLUTE and a RELATIVE member take the exact
+        // row (never a delta), a member set OFF takes nothing; then an owned
+        // edit flips every member whose own value moved.
+        {
+            for (int ch = 0; ch < 3; ++ch)
+            {
+                vts.setEffectParameter(ch, P::effectLinkGroup, 1);
+                gui(ch, P::effectReverbType, static_cast<int>(FX::ReverbType::SmallRoom));
+            }
+            vts.setEffectParameter(0, P::effectLinkMode, 1);    // ABSOLUTE
+            vts.setEffectParameter(1, P::effectLinkMode, 2);    // RELATIVE
+            vts.setEffectParameter(2, P::effectLinkMode, 0);    // OFF
+
+            gui(1, P::effectReverbRT60, 0.9);                   // member 1 off its row: relative offset
+            gui(0, P::effectReverbType, static_cast<int>(FX::ReverbType::StoneCathedral), true);
+            juce::String why0, why1, why2;
+            check(holdsRow(0, static_cast<int>(FX::ReverbType::StoneCathedral), why0)
+                      && holdsRow(1, static_cast<int>(FX::ReverbType::StoneCathedral), why1),
+                  "RP7: the ABSOLUTE and the RELATIVE member both hold Stone Cathedral exactly (" + why0 + why1 + ")");
+            check(holdsRow(2, static_cast<int>(FX::ReverbType::SmallRoom), why2),
+                  "RP7: the member set OFF keeps its own preset (" + why2 + ")");
+
+            gui(0, P::effectReverbDiffusion, 0.66, true);
+            check(typeOf(0) == custom && typeOf(1) == custom && typeOf(2) == 7,
+                  "RP7: a propagated owned edit flips the members it moved, not the one set OFF");
+
+            for (int ch = 0; ch < 3; ++ch)
+                vts.setEffectParameter(ch, P::effectLinkGroup, 0);
+        }
+
+        // RP8: OSC - a type expands on its channel alone, and a burst of a
+        // preset and a tweak ends Custom in either order (presets drain first).
+        if (oscManager != nullptr)
+        {
+            auto msg = [](const juce::String& address, int effectId, const juce::var& v)
+            {
+                juce::OSCMessage m { juce::OSCAddressPattern { address } };
+                m.addInt32 (effectId);
+                if (v.isInt()) m.addInt32 (static_cast<int> (v));
+                else           m.addFloat32 (static_cast<float> (static_cast<double> (v)));
+                return m;
+            };
+
+            vts.setEffectParameter(0, P::effectLinkGroup, 1);
+            vts.setEffectParameter(1, P::effectLinkGroup, 1);
+            vts.setEffectParameter(0, P::effectLinkMode, 1);
+            vts.setEffectParameter(1, P::effectLinkMode, 1);
+            gui(1, P::effectReverbType, static_cast<int>(FX::ReverbType::LiveChamber));
+
+            oscManager->receiveBurstForSelfTest({ msg("/wfs/effect/reverbType", 1, static_cast<int>(FX::ReverbType::ShimmerOctave)) });
+            juce::String why0, why1;
+            check(holdsRow(0, static_cast<int>(FX::ReverbType::ShimmerOctave), why0)
+                      && holdsRow(1, static_cast<int>(FX::ReverbType::LiveChamber), why1),
+                  "RP8: an OSC preset expands on its channel and reaches no linked member (" + why0 + why1 + ")");
+
+            oscManager->receiveBurstForSelfTest({ msg("/wfs/effect/reverbRT60", 1, 2.5),
+                                                  msg("/wfs/effect/reverbType", 1, static_cast<int>(FX::ReverbType::ConcertHall)) });
+            const bool tweakFirst = typeOf(0) == custom && approxEq(num(reverbOf(0).getProperty(P::effectReverbRT60)), 2.5)
+                                 && static_cast<int>(reverbOf(0).getProperty(P::effectReverbModel)) == 4;
+            oscManager->receiveBurstForSelfTest({ msg("/wfs/effect/reverbType", 1, static_cast<int>(FX::ReverbType::ConcertHall)),
+                                                  msg("/wfs/effect/reverbRT60", 1, 2.7) });
+            const bool presetFirst = typeOf(0) == custom && approxEq(num(reverbOf(0).getProperty(P::effectReverbRT60)), 2.7);
+            check(tweakFirst && presetFirst, "RP8: a {tweak, preset} burst ends Custom with the tweak, in either order");
+
+            // A QLab-style replay of a preset's own state lands exactly and
+            // stays that preset: the values it re-sends are the row's.
+            const auto* lush = FX::findReverbPreset(static_cast<int>(FX::ReverbType::LushHall));
+            oscManager->receiveBurstForSelfTest({ msg("/wfs/effect/reverbModel", 1, static_cast<int>(lush->model)),
+                                                  msg("/wfs/effect/reverbRT60", 1, lush->rt60),
+                                                  msg("/wfs/effect/reverbSize", 1, lush->size),
+                                                  msg("/wfs/effect/reverbType", 1, static_cast<int>(FX::ReverbType::LushHall)) });
+            check(holdsRow(0, static_cast<int>(FX::ReverbType::LushHall), why0),
+                  "RP8: replaying a preset's own values over OSC leaves that preset, unflipped (" + why0 + ")");
+
+            vts.setEffectParameter(0, P::effectLinkGroup, 0);
+            vts.setEffectParameter(1, P::effectLinkGroup, 0);
+        }
+        else
+        {
+            check(false, "RP8: the OSC manager exists");
+        }
+
+        // RP9: a snapshot recall writes raw - no expansion, no flip - even a
+        // state the funnels could never have produced (a preset label over a
+        // value that is not its row's).
+        {
+            auto& fm = parameters.getFileManager();
+            const auto previousProject = fm.getProjectFolder();
+            auto tempProject = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                                   .getChildFile("wfs-selftest-reverb-presets");
+            tempProject.deleteRecursively();
+            fm.setProjectFolder(tempProject);
+            fm.createProjectFolderStructure();
+
+            gui(0, P::effectReverbType, static_cast<int>(FX::ReverbType::VocalPlate));
+            reverbOf(0).setProperty(P::effectReverbRT60, 3.3, nullptr);        // raw: under the funnels
+            const bool stored = fm.saveInputSnapshotWithExtendedScope("rp-raw", WFSFileManager::ExtendedSnapshotScope());
+
+            gui(0, P::effectReverbType, static_cast<int>(FX::ReverbType::ConcertHall));
+            const bool recalled = fm.loadInputSnapshotWithExtendedScope("rp-raw", fm.getExtendedSnapshotScope("rp-raw"));
+            check(stored && recalled && typeOf(0) == 15
+                      && approxEq(num(reverbOf(0).getProperty(P::effectReverbRT60)), 3.3)
+                      && static_cast<int>(reverbOf(0).getProperty(P::effectReverbModel)) == 1,
+                  "RP9: a recall restores the reverb raw - the preset label, the odd value, the model");
+
+            fm.setProjectFolder(previousProject);
+            tempProject.deleteRecursively();
+        }
+
+        vts.setNumEffectChannels(effectsBefore);
     }
 
     // ---- N: one snapshot carries the inputs AND the effects ------------------

@@ -647,6 +647,14 @@ public:
      */
     void sendInputSamplerPlayingState(int channelId, bool playing);
 
+    /** SELF-TEST ONLY. Feeds a burst of messages through the real receive
+        path, as if from one UDP client, then drains the coalesce map at once
+        instead of on the next message-loop turn - so what a burst leaves
+        behind (the order its writes landed in) can be asserted synchronously.
+        The drain the receive path schedules still runs later, on an empty
+        map. Message thread only. */
+    void receiveBurstForSelfTest (const std::vector<juce::OSCMessage>& burst);
+
 private:
     /** Send an OSC message directly to a target, bypassing the rate limiter.
      *  Used for QLab command sequences that must not be coalesced. */

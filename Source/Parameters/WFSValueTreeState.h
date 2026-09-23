@@ -700,6 +700,39 @@ public:
         spatial routing rather than a mute shortcut. */
     void setEffectGroupMute (int group, bool muted);
 
+    //==========================================================================
+    // The reverb module's presets
+    //
+    // A preset is an ACTION, not a stored reference: selecting one writes the
+    // row's fifteen values and then the type, and a later REAL edit to any of
+    // those fifteen makes the reverb Custom first - so the type never names a
+    // row the values no longer match, whichever surface made the edit (the
+    // panel and the Stream Deck through the funnels above, OSC through
+    // applyExternalEffectEdit). Snapshot recall, file loads and the expansion
+    // itself write raw: they never flip and never expand.
+    //==========================================================================
+
+    /** The fifteen <FxReverb> properties a preset row owns - the model, the
+        reflections, the room and the modulation (spatcore's
+        applyReverbPreset). Not bypass, type, tone or mix: those are taste
+        rather than room, and a mix dialled for a song survives auditioning
+        rooms. */
+    static bool isEffectReverbPresetOwned (const juce::Identifier& paramId);
+
+    /** Select a reverb preset: the row's values, then the type, as one undo
+        transaction. Custom, or an id with no row, writes the type alone. With
+        propagation every linked member runs the same expansion itself - never
+        a delta, so a RELATIVE member holds exactly the row it is labelled
+        with. */
+    void applyEffectReverbPreset (int channelIndex, int type, bool propagateToGroup);
+
+    /** A write from outside the GUI funnel - OSC today, and the effect MCP
+        tools must come through here when they exist. Never propagated; but a
+        reverb type expands and a real edit to a preset-owned value flips the
+        reverb to Custom, exactly as a GUI edit would. Anything else is
+        setEffectParameter. */
+    void applyExternalEffectEdit (int channelIndex, const juce::Identifier& paramId, const juce::var& value);
+
     /** One chain slot's module node, by slot index 0..10 in the declared order
         (dist, eq1, eq2, dyn1, dyn2, mod, phaser, trem, reverb, delay, crush) or
         by node type. This is the only way to address FxEq1 vs FxEq2 and FxDyn1
@@ -1357,6 +1390,16 @@ private:
     /** The child of one <Effect> carrying paramId, skipping the instanced
         module types for the reason getEffectParameter documents. */
     juce::ValueTree findEffectSectionCarrying (int channelIndex, const juce::Identifier& paramId);
+
+    /** One channel's reverb, expanded to a preset: the row's values, then the
+        type, raw. No transaction and no propagation - the callers own both. */
+    void expandEffectReverbPreset (int channelIndex, int type);
+
+    /** Before a write of newValue to paramId on a <FxReverb> node: when the
+        value is preset-owned and really moves, the type becomes Custom. */
+    void flipEffectReverbToCustomIfEdited (juce::ValueTree& reverbSection,
+                                           const juce::Identifier& paramId,
+                                           const juce::var& newValue);
 
     /** Set one channel's permanent number, dragging its tracking id along only
         while that still matched the old number. Raw setProperty: a renumber is
