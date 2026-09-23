@@ -17,7 +17,12 @@
     the GUI panel is built from, so a control added to the CSV reaches the
     deck without touching this file. The module is chosen with the Prev /
     Next buttons (a shared slot index, rebuild on change) and the choice is
-    mirrored to the GUI's tile strip.
+    mirrored to the GUI's tile strip. Twelve dials is not every module's
+    count, so the controls come in BANKS of twelve with a Page button on
+    every module section; the bank goes back to the first on a module change.
+    The reverb's controls are the ones its model uses (the CSV's Models
+    column), so a deck edit that changes the model - itself, or through a
+    preset - asks for the page to be laid out again.
 */
 
 #include "../../../../spatcore/controllers/streamdeck/StreamDeckPage.h"
@@ -45,6 +50,7 @@ struct EffectsCallbacks
     std::function<void (int)>   onClear;               // fx, -1 = all
     std::function<void (int)>   onChainSlotSelected;   // mirror to the GUI strip
     std::function<void()>       onRelayout;
+    std::function<void()>       onModuleLayoutChanged; // a deck edit moved the reverb's model: rebuild, deferred
 
     std::function<void (int)>   startMotion;
     std::function<void (int)>   stopMotion;
@@ -350,8 +356,27 @@ inline StreamDeckPage createChannelParametersPage (WFSValueTreeState& state, Eff
 // Sub-tab 1: Chain
 //==============================================================================
 
+/** The controls a Chain page shows for a slot, after the bypass: all of
+    them, or for the reverb the ones its stored model uses. */
+inline std::vector<const EffectsUi::ControlDesc*> chainPageControls (WFSValueTreeState& state, int ch, int slot)
+{
+    const auto controls = EffectsUi::controlsForSlot (slot);
+    const bool reverb = slot == 8;
+    const int model = reverb ? spatcore::effects::resolveReverbModel (static_cast<int> (
+                                   state.getEffectModuleSection (ch, WFSParameterIDs::FxReverb)
+                                        .getProperty (WFSParameterIDs::effectReverbModel, 0)))
+                             : -1;
+
+    std::vector<const EffectsUi::ControlDesc*> shown;
+    for (int k = 1; k < controls.count; ++k)
+        if (! reverb || EffectsUi::isVisibleForModel (controls.controls[k], model))
+            shown.push_back (&controls.controls[k]);
+    return shown;
+}
+
 inline StreamDeckPage createChainPage (WFSValueTreeState& state, EffectParamEdit& edit, int ch,
-                                       std::shared_ptr<int> chainSlot, const EffectsCallbacks& cb)
+                                       std::shared_ptr<int> chainSlot, std::shared_ptr<int> chainBank,
+                                       const EffectsCallbacks& cb)
 {
     using namespace WFSParameterIDs;
 
@@ -361,6 +386,13 @@ inline StreamDeckPage createChainPage (WFSValueTreeState& state, EffectParamEdit
     const auto& moduleType = WFSValueTreeState::getEffectModuleType (slot);
     const auto moduleName = LOC ("effects.modules." + juce::String (spatcore::effects::kSlots[static_cast<size_t> (slot)].token));
     const auto controls = EffectsUi::controlsForSlot (slot);
+    const auto shown = chainPageControls (state, ch, slot);
+
+    constexpr int perBank = 12;
+    const int numBanks = juce::jmax (1, (static_cast<int> (shown.size()) + perBank - 1) / perBank);
+    const int bank = juce::jlimit (0, numBanks - 1, chainBank ? *chainBank : 0);
+    if (chainBank)
+        *chainBank = bank;
 
     // Section 0: the chain - which module, the chain bypass, Clear
     {
@@ -368,10 +400,11 @@ inline StreamDeckPage createChainPage (WFSValueTreeState& state, EffectParamEdit
         sec.sectionName = LOC ("streamDeck.effects.sections.chain");
         sec.sectionColour = juce::Colour (0xFF9B59B6);
 
-        auto selectSlot = [chainSlot, cb] (int next)
+        auto selectSlot = [chainSlot, chainBank, cb] (int next)
         {
             if (! chainSlot) return;
             *chainSlot = juce::jlimit (0, kNumSlots - 1, next);
+            if (chainBank) *chainBank = 0;
             if (cb.onChainSlotSelected) cb.onChainSlotSelected (*chainSlot);
         };
 
@@ -412,8 +445,12 @@ inline StreamDeckPage createChainPage (WFSValueTreeState& state, EffectParamEdit
     }
 
     // Sections 1-3: the module's ordinary controls, four per section, in CSV
-    // order after the bypass
-    int next = 1;
+    // order after the bypass - this bank's twelve of them.
+    const int resolvedModel = slot == 8
+        ? spatcore::effects::resolveReverbModel (static_cast<int> (state.getEffectModuleSection (ch, FxReverb)
+                                                                       .getProperty (effectReverbModel, 0)))
+        : -1;
+    int next = bank * perBank;
     for (int s = 1; s < 4; ++s)
     {
         auto& sec = page.sections[s];
@@ -422,10 +459,39 @@ inline StreamDeckPage createChainPage (WFSValueTreeState& state, EffectParamEdit
                                                          : "streamDeck.effects.sections.moduleCont2");
         sec.sectionColour = juce::Colour (0xFF9B59B6);
 
-        for (int d = 0; d < 4 && next < controls.count; ++d, ++next)
+        for (int d = 0; d < 4 && next < static_cast<int> (shown.size()); ++d, ++next)
         {
-            sec.dials[d] = makeModuleDial (controls.controls[next], moduleType, state, edit, ch);
+            const auto& desc = *shown[static_cast<size_t> (next)];
+            sec.dials[d] = makeModuleDial (desc, moduleType, state, edit, ch);
             sec.dials[d].barColour = juce::Colour (0xFF9B59B6);
+
+            // The reverb's model, directly or through a preset, decides which
+            // controls this page shows: when a deck turn moves it, the page is
+            // laid out again - deferred, never from inside the dial's callback.
+            if (slot == 8 && (desc.id == effectReverbModel || desc.id == effectReverbType))
+            {
+                auto write = sec.dials[d].setValue;
+                sec.dials[d].setValue = [write, &state, ch, resolvedModel, cb] (float v)
+                {
+                    write (v);
+                    const int now = spatcore::effects::resolveReverbModel (static_cast<int> (
+                        state.getEffectModuleSection (ch, FxReverb).getProperty (effectReverbModel, 0)));
+                    if (now != resolvedModel && cb.onModuleLayoutChanged)
+                        cb.onModuleLayoutChanged();
+                };
+            }
+        }
+
+        if (numBanks > 1)
+        {
+            auto& btn = sec.buttons[3];
+            btn.label = LOC ("streamDeck.effects.buttons.bank")
+                            .replace ("{n}", juce::String (bank + 1))
+                            .replace ("{count}", juce::String (numBanks));
+            btn.colour = juce::Colour (0xFF9B59B6);
+            btn.type = ButtonBinding::Action;
+            btn.requestsPageRebuild = true;
+            btn.onPress = [chainBank, bank, numBanks]() { if (chainBank) *chainBank = (bank + 1) % numBanks; };
         }
     }
 
@@ -871,6 +937,7 @@ inline StreamDeckPage createPage (int subTabIndex,
                                   std::shared_ptr<bool> editOnMap,
                                   std::shared_ptr<int> lfoSubMode,
                                   std::shared_ptr<int> chainSlot,
+                                  std::shared_ptr<int> chainBank,
                                   const EffectsCallbacks& cb = {})
 {
     if (state.getNumEffectChannels() == 0)
@@ -886,7 +953,7 @@ inline StreamDeckPage createPage (int subTabIndex,
     switch (subTabIndex)
     {
         case 0:  return createChannelParametersPage (state, edit, ch, soloEffects, editOnMap, cb);
-        case 1:  return createChainPage (state, edit, ch, chainSlot, cb);
+        case 1:  return createChainPage (state, edit, ch, chainSlot, chainBank, cb);
         case 2:  return createSendsPage (cb);
         case 3:  return createMovementsPage (state, edit, ch, lfoSubMode, cb);
         case 4:  return createSettingsPage (state, cb);

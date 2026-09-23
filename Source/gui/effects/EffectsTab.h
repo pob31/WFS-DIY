@@ -185,6 +185,13 @@ public:
     int  getChainSlot() const noexcept       { return chainPanel.getSelectedSlot(); }
     void selectChainSlot (int slot)          { chainPanel.selectSlot (slot); }
 
+    /** The reverb's rows now follow another model: a view that shows them
+        (the deck's Chain page) must be laid out again. */
+    std::function<void()> onModuleLayoutChanged;
+
+    /** One module panel of the Chain sub-tab, for the offscreen render. */
+    EffectsModulePanel& getModulePanel (int slot) { return chainPanel.getModulePanel (slot); }
+
     void sendsMove (int dx, int dy)          { sendsPanel.moveSelection (dx, dy); }
     void sendsToggle()                       { sendsPanel.toggleSelected(); }
     float sendsLevelDb()                     { return sendsPanel.selectedLevelDb(); }
@@ -502,6 +509,7 @@ private:
         addChildComponent (channelPanel);
         addChildComponent (chainPanel);
         chainPanel.onSlotSelected = [this] (int slot) { if (onChainSlotSelected) onChainSlotSelected (slot); };
+        chainPanel.onReverbModelShown = [this] (int) { if (onModuleLayoutChanged) onModuleLayoutChanged(); };
         addChildComponent (settingsPanel);
         addChildComponent (movementsPanel);
         addChildComponent (sendsPanel);

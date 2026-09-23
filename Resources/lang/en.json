@@ -3187,6 +3187,7 @@
         "editOnMap": "Edit on\nMap",
         "prevModule": "\u25c0 Module",
         "nextModule": "Module \u25b6",
+        "bank": "Page\n{n}/{count}",
         "chainBypass": "Chain\nBypass",
         "clear": "Clear",
         "sendToggle": "Send\nOn/Off",

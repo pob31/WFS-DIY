@@ -37,7 +37,9 @@
     write, and WFSValueTreeState expands it - the same action the Stream Deck
     and OSC reach - and flips the type to Custom when a value it owns is
     really edited. The panel only has to show what that did: every row after
-    a preset, the preset combo after an owned edit.
+    a preset, the preset combo after an owned edit. The reverb also shows only
+    the rows its MODEL uses (the CSV's Models column), resolved the way the
+    engine resolves it, so a reserved id shows the FDN it runs.
 
     EVERY WRITE GOES THROUGH THE CONTEXT, so a linked group receives it
     according to each member's mode and Ctrl-drag edits this channel alone.
@@ -77,7 +79,36 @@ public:
 
         if (isEq())    loadEq();
         if (isDelay()) refreshTapDimming();
-        if (isReverb()) refreshPresetDimming();
+        if (isReverb())
+        {
+            refreshReverbState();
+            refreshPresetDimming();
+        }
+    }
+
+    /** Fired when the reverb's rows follow a different model - the Stream
+        Deck lays its page out again on it. Argument: the resolved model. */
+    std::function<void (int resolvedModel)> onReverbModelShown;
+
+    /** The rows on show, in order - the self-test holds the Models column to it. */
+    std::vector<juce::Identifier> getShownRowIds() const
+    {
+        std::vector<juce::Identifier> ids;
+        for (const auto& row : rows)
+            if (row->shown)
+                ids.push_back (row->desc->id);
+        return ids;
+    }
+
+    /** Every shown row's bounds, label to value, for the no-overlap check. */
+    std::vector<juce::Rectangle<int>> getShownRowBounds() const
+    {
+        std::vector<juce::Rectangle<int>> bounds;
+        for (const auto& row : rows)
+            if (row->shown)
+                bounds.push_back (row->label.getBounds().getUnion (row->control->getBounds())
+                                                        .getUnion (row->value.getBounds()));
+        return bounds;
     }
 
     /** The engine's per-slot meter (gain reduction for Dynamics, output peak otherwise). */
@@ -136,6 +167,7 @@ private:
         juce::TextButton* button   = nullptr;
         WfsRotationDial*  rotation = nullptr;
         bool presetOwned = false;      // reverb: one of the fifteen a preset writes
+        bool shown = true;             // reverb: used by the model on show
     };
 
     void addRow (const EffectsUi::ControlDesc& d)
@@ -188,8 +220,11 @@ private:
                 auto* c = new juce::ComboBox();
                 row->control.reset (c);
                 row->combo = c;
-                for (const auto& item : d.items)
-                    c->addItem (LOC (juce::String (d.enumPrefix) + item.slug), item.value + 1);
+                if (isReverb() && d.id == WFSParameterIDs::effectReverbType)
+                    addReverbPresetItems (*c, d);
+                else
+                    for (const auto& item : d.items)
+                        c->addItem (LOC (juce::String (d.enumPrefix) + item.slug), item.value + 1);
                 c->onChange = [this, r]
                 {
                     if (ctx.isLoadingParameters) return;
@@ -365,8 +400,13 @@ private:
                 break;
             }
             case Kind::Combo:
-                r.combo->setSelectedId (readInt (d) + 1, juce::dontSendNotification);
+            {
+                int v = readInt (d);
+                if (isReverb() && d.id == WFSParameterIDs::effectReverbModel)
+                    v = spatcore::effects::resolveReverbModel (v);      // 2 and 3 run the FDN: say so
+                r.combo->setSelectedId (v + 1, juce::dontSendNotification);
                 break;
+            }
             case Kind::Rotation:
             {
                 const float deg = readFloat (d);
@@ -401,8 +441,14 @@ private:
         const int labelW = scaled (170);
         const int valueW = scaled (78);
 
-        // Two columns, the rows split by count
-        const int n = static_cast<int> (rows.size());
+        // Two columns, the rows on show split by count; a hidden row takes no
+        // room, so the reverb's columns close up round the model's own.
+        std::vector<Row*> shownRows;
+        for (auto& row : rows)
+            if (row->shown)
+                shownRows.push_back (row.get());
+
+        const int n = static_cast<int> (shownRows.size());
         const int firstColumn = (n + 1) / 2;
         auto left = area.removeFromLeft (area.getWidth() / 2).reduced (scaled (6), 0);
         auto right = area.reduced (scaled (6), 0);
@@ -410,7 +456,7 @@ private:
         for (int i = 0; i < n; ++i)
         {
             auto& col = i < firstColumn ? left : right;
-            auto& r = *rows[static_cast<size_t> (i)];
+            auto& r = *shownRows[static_cast<size_t> (i)];
             const bool dialRow = r.dial != nullptr || r.rotation != nullptr;
             auto line = col.removeFromTop (dialRow ? dialRowH : rowH);
             col.removeFromTop (gap);
@@ -458,11 +504,13 @@ private:
         const juce::ScopedValueSetter<bool> loadingScope (ctx.isLoadingParameters, true);
         for (auto& row : rows)
             loadRow (*row);
+        refreshReverbState();
         refreshPresetDimming();
     }
 
     /** After an edit to a value a preset owns, the state may have made the
-        reverb Custom: show the preset combo as it now is. */
+        reverb Custom: show the preset combo as it now is - and, for the
+        model itself, the rows the new model uses. */
     void afterReverbEdit (Row& r)
     {
         if (! isReverb() || ! r.presetOwned)
@@ -472,7 +520,74 @@ private:
         for (auto& row : rows)
             if (row->desc->id == WFSParameterIDs::effectReverbType)
                 loadRow (*row);
+        if (r.desc->id == WFSParameterIDs::effectReverbModel)
+            refreshReverbState();
         refreshPresetDimming();
+    }
+
+    /** The rows the stored model uses, resolved the way the engine resolves
+        it; a relayout when that set changes, and word to the deck when the
+        model on show does. */
+    void refreshReverbState()
+    {
+        if (! isReverb())
+            return;
+
+        const int model = spatcore::effects::resolveReverbModel (ctx.readInt (WFSParameterIDs::effectReverbModel, 0));
+        bool changed = false;
+
+        for (auto& row : rows)
+        {
+            const bool show = EffectsUi::isVisibleForModel (*row->desc, model);
+            if (row->shown != show)
+            {
+                row->shown = show;
+                changed = true;
+            }
+            row->label.setVisible (show);
+            row->control->setVisible (show);
+            row->value.setVisible (show);
+        }
+
+        if (changed)
+            resized();
+
+        if (model != shownModel)
+        {
+            shownModel = model;
+            if (onReverbModelShown != nullptr)
+                onReverbModelShown (model);
+        }
+    }
+
+    /** The Preset combo in the menu's own order: each model's presets under
+        its name, then Custom - the one id with no row - last. */
+    static void addReverbPresetItems (juce::ComboBox& c, const EffectsUi::ControlDesc& d)
+    {
+        namespace fx = spatcore::effects;
+        const auto& models = EffectsUi::controlsForReverb().controls[1];    // the Model row: its names
+
+        for (const auto& model : models.items)
+        {
+            bool heading = false;
+            for (const auto& item : d.items)
+            {
+                const auto* row = fx::findReverbPreset (item.value);
+                if (row == nullptr || static_cast<int> (row->model) != model.value)
+                    continue;
+                if (! heading)
+                {
+                    c.addSectionHeading (LOC (juce::String (models.enumPrefix) + model.slug));
+                    heading = true;
+                }
+                c.addItem (LOC (juce::String (d.enumPrefix) + item.slug), item.value + 1);
+            }
+        }
+
+        c.addSeparator();
+        for (const auto& item : d.items)
+            if (fx::findReverbPreset (item.value) == nullptr)
+                c.addItem (LOC (juce::String (d.enumPrefix) + item.slug), item.value + 1);
     }
 
     void refreshPresetDimming()
@@ -961,6 +1076,7 @@ private:
     float layoutScale = 1.0f;
 
     std::vector<std::unique_ptr<Row>> rows;
+    int shownModel = -1;                // reverb: the resolved model the rows follow
 
     // Dynamics
     std::unique_ptr<GainReductionMeter> grMeter;

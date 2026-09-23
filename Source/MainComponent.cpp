@@ -1177,6 +1177,7 @@ MainComponent::MainComponent()
         auto effectsEditOnMapState = std::make_shared<bool> (false);
         auto effectsLfoSubMode    = std::make_shared<int> (0);
         auto effectsChainSlot     = std::make_shared<int> (0);
+        auto effectsChainBank     = std::make_shared<int> (0);    // which twelve of the module's controls
 
         EffectsTabPages::EffectsCallbacks fxCB;
         fxCB.onSoloEffectsChanged = [this] (bool active)
@@ -1217,12 +1218,27 @@ MainComponent::MainComponent()
         fxCB.sendsSetLevelDb = [this] (float db)       { juce::MessageManager::callAsync ([this, db] { if (effectsTab) effectsTab->sendsSetLevelDb (db); }); };
         fxCB.sendsSetAll     = [this] (bool on)        { juce::MessageManager::callAsync ([this, on] { if (effectsTab) effectsTab->sendsSetAll (on); }); };
 
+        // The reverb's model decides which of its controls the Chain page
+        // shows: when it moves - from the deck or from anywhere the GUI sees -
+        // the page is laid out again, on the next message-loop turn rather
+        // than from inside the dial or the panel that moved it.
+        auto relayoutEffectsDeck = [this]
+        {
+            juce::MessageManager::callAsync ([this]
+            {
+                if (streamDeckManager && streamDeckManager->getCurrentMainTab() == EffectsTabPages::EFFECTS_MAIN_TAB_INDEX)
+                    streamDeckManager->refreshCurrentPage();
+            });
+        };
+        fxCB.onModuleLayoutChanged = relayoutEffectsDeck;
+        effectsTab->onModuleLayoutChanged = relayoutEffectsDeck;
+
         for (int subTab : { 0, 1, 2, 3, 4 })
         {
             streamDeckManager->registerPage (
                 EffectsTabPages::EFFECTS_MAIN_TAB_INDEX, subTab,
                 EffectsTabPages::createPage (subTab, vts, parameters.getEffectEdit(), 0,
-                    effectsSoloState, effectsEditOnMapState, effectsLfoSubMode, effectsChainSlot, fxCB));
+                    effectsSoloState, effectsEditOnMapState, effectsLfoSubMode, effectsChainSlot, effectsChainBank, fxCB));
         }
 
         // Wire EffectsTab GUI callbacks to the engine and the calculation mask.
@@ -1246,11 +1262,12 @@ MainComponent::MainComponent()
                 mapTab->setEffectEditMode (enabled);
             *effectsEditOnMapState = enabled;
         };
-        effectsTab->onChainSlotSelected = [this, effectsChainSlot] (int slot)
+        effectsTab->onChainSlotSelected = [this, effectsChainSlot, effectsChainBank] (int slot)
         {
             if (*effectsChainSlot == slot)
                 return;
             *effectsChainSlot = slot;
+            *effectsChainBank = 0;          // another module: its first twelve
             if (streamDeckManager && streamDeckManager->getCurrentMainTab() == EffectsTabPages::EFFECTS_MAIN_TAB_INDEX)
                 streamDeckManager->refreshCurrentPage();
         };
@@ -1503,7 +1520,7 @@ MainComponent::MainComponent()
         };
 
         // Set page rebuild callback for channel changes and binding swaps
-        streamDeckManager->onPageNeedsRebuild = [this, flipModeState, stereoParamsState, lfoSubModeState, movCB, outputEqBandState, onEqBandSelectedGui, netCB, sysCB, mapCB, mapQ, mapPosOffsetMode, reverbPreEqBandState, reverbPreDynMode, reverbPostEqBandState, reverbPostDynMode, reverbSoloState, reverbMutePreState, reverbMutePostState, reverbEditOnMapState, reverbAlgoSubMode, reverbIRDuration, onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD, clusterLfoSubMode, presetCol, presetRow, clusterCB, effectsSoloState, effectsEditOnMapState, effectsLfoSubMode, effectsChainSlot, fxCB](int mainTab, int subTab, int channel)
+        streamDeckManager->onPageNeedsRebuild = [this, flipModeState, stereoParamsState, lfoSubModeState, movCB, outputEqBandState, onEqBandSelectedGui, netCB, sysCB, mapCB, mapQ, mapPosOffsetMode, reverbPreEqBandState, reverbPreDynMode, reverbPostEqBandState, reverbPostDynMode, reverbSoloState, reverbMutePreState, reverbMutePostState, reverbEditOnMapState, reverbAlgoSubMode, reverbIRDuration, onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD, clusterLfoSubMode, presetCol, presetRow, clusterCB, effectsSoloState, effectsEditOnMapState, effectsLfoSubMode, effectsChainSlot, effectsChainBank, fxCB](int mainTab, int subTab, int channel)
         {
             if (mainTab == InputsTabPages::INPUTS_MAIN_TAB_INDEX)
             {
@@ -1574,7 +1591,7 @@ MainComponent::MainComponent()
                 auto& vts = parameters.getValueTreeState();
                 streamDeckManager->registerPage (mainTab, subTab,
                     EffectsTabPages::createPage (subTab, vts, parameters.getEffectEdit(), channel - 1,
-                        effectsSoloState, effectsEditOnMapState, effectsLfoSubMode, effectsChainSlot, fxCB));
+                        effectsSoloState, effectsEditOnMapState, effectsLfoSubMode, effectsChainSlot, effectsChainBank, fxCB));
             }
             else if (mainTab == ClustersTabPages::CLUSTERS_MAIN_TAB_INDEX)
             {
@@ -3020,6 +3037,33 @@ void MainComponent::renderUiSnapshots (const juce::File& dir)
                 break;
             }
         }
+
+        // The reverb module's panel once per model, on the first effect: the
+        // rows each model shows. The model is put back as it was, and a
+        // session with no effect channel gets one for the render only.
+        auto& vts = parameters.getValueTreeState();
+        const int effectsBefore = vts.getNumEffectChannels();
+        if (effectsBefore == 0)
+            vts.setNumEffectChannels (1);
+        {
+            auto reverb = vts.getEffectModuleSection (0, WFSParameterIDs::FxReverb);
+            const juce::var storedModel = reverb.getProperty (WFSParameterIDs::effectReverbModel);
+            auto& panel = effectsTab->getModulePanel (8);
+            if (panel.getWidth() <= 0 || panel.getHeight() <= 0)
+                panel.setSize (juce::jmax (800, effectsTab->getWidth()), juce::jmax (640, effectsTab->getHeight() - 120));
+
+            for (const auto& model : EffectsUi::controlsForReverb().controls[1].items)
+            {
+                reverb.setProperty (WFSParameterIDs::effectReverbModel, model.value, nullptr);
+                panel.loadParameters();
+                save (panel, "effects-reverb-model-" + juce::String (model.value) + "-" + juce::String (model.slug));
+            }
+
+            reverb.setProperty (WFSParameterIDs::effectReverbModel, storedModel, nullptr);
+            panel.loadParameters();
+        }
+        if (effectsBefore == 0)
+            vts.setNumEffectChannels (0);
     }
 
     // The Scope window, opened as the Effects tab's row opens it, then switched
@@ -4901,6 +4945,201 @@ void MainComponent::runChannelListSelfTest()
             tempProject.deleteRecursively();
         }
 
+        vts.setNumEffectChannels(effectsBefore);
+    }
+
+    // ---- RD: the reverb shows what its model uses, on screen and on the deck --
+    // Plan revision 9, section 8. The panel's rows follow the model (the CSV's
+    // Models column, the model resolved as the engine resolves it) and never
+    // overlap; the deck's Chain page reaches every control of every module
+    // exactly once across its banks - Distortion, Delay and Dynamics included,
+    // which a twelve-dial page used to cut short - and a deck turn that moves
+    // the reverb's model asks for the page to be laid out again.
+    {
+        namespace P = WFSParameterIDs;
+        namespace FX = spatcore::effects;
+
+        const int effectsBefore = vts.getNumEffectChannels();
+        vts.setNumEffectChannels(1);
+        auto reverb = vts.getEffectModuleSection(0, P::FxReverb);
+        const juce::var modelBefore = reverb.getProperty(P::effectReverbModel);
+
+        const auto all = EffectsUi::controlsForReverb();
+        auto expectedFor = [&](int storedModel)
+        {
+            std::vector<juce::Identifier> ids;
+            const int m = FX::resolveReverbModel(storedModel);
+            for (int k = 0; k < all.count; ++k)
+                if (EffectsUi::isVisibleForModel(all.controls[k], m))
+                    ids.push_back(all.controls[k].id);
+            return ids;
+        };
+
+        // RD1 / RD2: the panel, for every stored model id 0..5.
+        {
+            EffectsTabContext rdCtx (parameters);
+            rdCtx.currentChannel = 1;
+            EffectsModulePanel panel (rdCtx, 8);
+            panel.setSize(1100, 640);
+
+            const int expectedCount[] = { 15, 17, 15, 15, 17, 19 };     // bypass included
+            bool rows = true, noOverlap = true;
+            for (int model = 0; model <= 5; ++model)
+            {
+                reverb.setProperty(P::effectReverbModel, model, nullptr);
+                panel.loadParameters();
+                const auto shown = panel.getShownRowIds();
+                if (shown != expectedFor(model) || static_cast<int>(shown.size()) != expectedCount[model])
+                {
+                    rows = false;
+                    logLine("SELF-TEST FAIL RD1: model " + juce::String(model) + " shows "
+                            + juce::String(static_cast<int>(shown.size())) + " rows");
+                }
+
+                const auto bounds = panel.getShownRowBounds();
+                for (size_t a = 0; a < bounds.size(); ++a)
+                {
+                    noOverlap = noOverlap && ! bounds[a].isEmpty();
+                    for (size_t b = a + 1; b < bounds.size(); ++b)
+                        if (bounds[a].intersects(bounds[b]))
+                        {
+                            noOverlap = false;
+                            logLine("SELF-TEST FAIL RD2: model " + juce::String(model) + ": rows "
+                                    + juce::String(static_cast<int>(a)) + " and " + juce::String(static_cast<int>(b)) + " overlap");
+                        }
+                }
+            }
+            check(rows, "RD1: the reverb shows its model's rows - 15 FDN, 17 Plate and Hall, 19 Shimmer; 2 and 3 the FDN's");
+            check(noOverlap, "RD2: no two rows overlap, for any model");
+        }
+
+        // RD3: the deck's banks reach every control of every module exactly
+        // once, in CSV order; for the reverb, every model's own set.
+        {
+            auto& edit = parameters.getEffectEdit();
+            auto chainSlot = std::make_shared<int>(0);
+            auto chainBank = std::make_shared<int>(0);
+            EffectsTabPages::EffectsCallbacks noCallbacks;
+
+            auto dialNames = [&](int slot)
+            {
+                // Every bank, in order, collected until the page wraps.
+                std::vector<juce::String> names;
+                *chainSlot = slot;
+                *chainBank = 0;
+                for (int guard = 0; guard < 8; ++guard)
+                {
+                    auto page = EffectsTabPages::createPage(1, vts, edit, 0, nullptr, nullptr, nullptr, chainSlot, chainBank, noCallbacks);
+                    for (int s = 1; s < 4; ++s)
+                        for (int d = 0; d < 4; ++d)
+                            if (page.sections[s].dials[d].setValue != nullptr)
+                                names.push_back(page.sections[s].dials[d].paramName);
+
+                    auto& pageButton = page.sections[1].buttons[3];
+                    if (pageButton.onPress == nullptr)
+                        break;                                  // one bank
+                    pageButton.onPress();
+                    if (*chainBank == 0)
+                        break;                                  // wrapped: every bank seen
+                }
+                return names;
+            };
+
+            auto wanted = [&](int slot)
+            {
+                std::vector<juce::String> names;
+                for (const auto* d : EffectsTabPages::chainPageControls(vts, 0, slot))
+                    names.push_back(LOC("effects.labels." + juce::String(d->key)).trimCharactersAtEnd(":"));
+                return names;
+            };
+
+            bool every = true, banked = true;
+            for (int slot = 0; slot < WFSParameterDefaults::numEffectModuleSlots; ++slot)
+            {
+                const auto got = dialNames(slot);
+                if (got != wanted(slot))
+                {
+                    every = false;
+                    logLine("SELF-TEST FAIL RD3: slot " + juce::String(slot) + " reached "
+                            + juce::String(static_cast<int>(got.size())) + " of "
+                            + juce::String(static_cast<int>(wanted(slot).size())) + " controls");
+                }
+                if (slot == 0 || slot == 3 || slot == 9)
+                    banked = banked && got.size() > 12;         // the three a single page used to cut short
+            }
+            for (int model : { 0, 1, 4, 5 })
+            {
+                reverb.setProperty(P::effectReverbModel, model, nullptr);
+                every = every && dialNames(8) == wanted(8);
+            }
+            check(every, "RD3: across its banks the deck reaches every control of every module once, and the reverb's per model");
+            check(banked, "RD3: ...Distortion, Dynamics and Delay included, past twelve dials");
+
+            // A module change starts at the first bank.
+            *chainSlot = 3;
+            *chainBank = 1;
+            auto page = EffectsTabPages::createPage(1, vts, edit, 0, nullptr, nullptr, nullptr, chainSlot, chainBank, noCallbacks);
+            if (page.sections[0].buttons[1].onPress != nullptr)
+                page.sections[0].buttons[1].onPress();          // Next module
+            check(*chainSlot == 4 && *chainBank == 0, "RD3: the next module opens at its first bank");
+        }
+
+        // RD4: a deck turn that moves the reverb's model - the Model dial, or a
+        // preset of another model - asks for a relayout; one that does not
+        // move it asks for nothing.
+        {
+            auto& edit = parameters.getEffectEdit();
+            auto chainSlot = std::make_shared<int>(8);
+            auto chainBank = std::make_shared<int>(0);
+            int relayouts = 0;
+            EffectsTabPages::EffectsCallbacks cb;
+            cb.onModuleLayoutChanged = [&relayouts] { ++relayouts; };
+
+            vts.setEffectModuleParameterWithLinkPropagation(0, P::FxReverb, P::effectReverbType,
+                                                            static_cast<int>(FX::ReverbType::MediumHall), false);
+
+            auto findDial = [&](StreamDeckPage& page, const juce::Identifier& id) -> DialBinding*
+            {
+                juce::String key;
+                for (int k = 0; k < all.count; ++k)
+                    if (all.controls[k].id == id)
+                        key = all.controls[k].key;
+                const auto name = LOC("effects.labels." + key).trimCharactersAtEnd(":");
+                for (int s = 1; s < 4; ++s)
+                    for (int d = 0; d < 4; ++d)
+                        if (page.sections[s].dials[d].paramName == name && page.sections[s].dials[d].setValue != nullptr)
+                            return &page.sections[s].dials[d];
+                return nullptr;
+            };
+
+            auto page = EffectsTabPages::createPage(1, vts, edit, 0, nullptr, nullptr, nullptr, chainSlot, chainBank, cb);
+            auto* modelDial = findDial(page, P::effectReverbModel);
+            bool ok = modelDial != nullptr;
+            if (ok)
+            {
+                modelDial->setValue(1.0f);                      // the Plate: index 1 of FDN, Plate, Hall, Shimmer
+                ok = relayouts == 1 && static_cast<int>(reverb.getProperty(P::effectReverbModel)) == 1;
+            }
+            check(ok, "RD4: turning the deck's Model dial relays the page out");
+
+            page = EffectsTabPages::createPage(1, vts, edit, 0, nullptr, nullptr, nullptr, chainSlot, chainBank, cb);
+            relayouts = 0;
+            if (auto* presetDial = findDial(page, P::effectReverbType))
+            {
+                // Index 16 of the combo is id 16, Bright Plate: still a plate.
+                presetDial->setValue(static_cast<float>(FX::ReverbType::BrightPlate));
+                const bool samePlate = relayouts == 0 && static_cast<int>(reverb.getProperty(P::effectReverbType)) == 16;
+                presetDial->setValue(static_cast<float>(FX::ReverbType::ConcertHall));
+                check(samePlate && relayouts == 1 && static_cast<int>(reverb.getProperty(P::effectReverbModel)) == 4,
+                      "RD4: a deck preset relays out only when its model differs (Bright Plate no, Concert Hall yes)");
+            }
+            else
+            {
+                check(false, "RD4: the deck shows the reverb's Preset dial");
+            }
+        }
+
+        reverb.setProperty(P::effectReverbModel, modelBefore, nullptr);
         vts.setNumEffectChannels(effectsBefore);
     }
 

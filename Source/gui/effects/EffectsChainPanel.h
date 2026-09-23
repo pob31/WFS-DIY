@@ -71,6 +71,10 @@ public:
             addChildComponent (*panels[static_cast<size_t> (s)]);
         }
 
+        // The reverb panel's rows follow its model; whoever lays out a view of
+        // those rows elsewhere (the Stream Deck) hears when they change.
+        panels[8]->onReverbModelShown = [this] (int model) { if (onReverbModelShown) onReverbModelShown (model); };
+
         order = spatcore::effects::kDefaultOrder;
         showSelected();
     }
@@ -116,6 +120,12 @@ public:
     }
 
     int getSelectedSlot() const noexcept { return selectedSlot; }
+
+    /** Fired when the reverb panel starts following another model. */
+    std::function<void (int resolvedModel)> onReverbModelShown;
+
+    /** One slot's panel, for the offscreen render. */
+    EffectsModulePanel& getModulePanel (int slot) { return *panels[static_cast<size_t> (juce::jlimit (0, numSlots - 1, slot))]; }
 
     /** Fired when the selection changes, from a click, a drop or selectSlot. */
     std::function<void (int slot)> onSlotSelected;
