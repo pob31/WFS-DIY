@@ -1,9 +1,13 @@
 # Effects channels — implementation status and handoff
 
-**As of 2026-09-23, after Phase 7.** Branch `effects/phase-7` (off `effects/phase-6`), submodules
-clean at their pins (`spatcore` v0.3.3 = `4523d1b`). Phase 7 added ten app commits and no spatcore
-commit (§10). Phase 6 added fourteen app commits and one spatcore commit (the schema-free
-send-matrix widget and the per-slot meter read, PR #14).
+**As of 2026-09-23, after Phase 7 and the reverb models.** Branch `effects/reverb-models` (off
+`effects/phase-7`, pushed), the `spatcore` gitlink at `18f937e`, the tip of spatcore's
+`feature/effects-reverb-models`: its first eight commits are merged (PR #15, `39b55d8`), the last
+two - the plate's per-channel signs and the Stream Deck's gesture hook - wait for a follow-up PR,
+and v0.4.0 is tagged after it. The reverb models added ten spatcore commits and eleven app commits
+(§11). Phase 7 added ten app commits and no spatcore commit (§10). Phase 6 added fourteen app
+commits and one spatcore commit (the schema-free send-matrix widget and the per-slot meter read,
+PR #14).
 
 An effect channel is now a render source of the show: its chain runs on the engine's own realtime
 thread, its return is popped into a render-source row of every block, the calculation engine
@@ -11,8 +15,10 @@ computes the source-by-effect feed matrix and the return rows of the output and 
 AutomOtion can move a return by an offset, and the engine's meters are readable from the
 application, and since Phase 6 an operator can see and edit all of it from the Effects tab, the
 Stream Deck and the four tab-level OSC verbs (§9), and since Phase 7 every snapshot, MIDI cue and
-QLab export carries the effects too (§10). What is still missing is the OUTBOUND half of the control
-surface (Phase 4's C8 echo and OSCQuery node, the C9/C10 tool entries).
+QLab export carries the effects too (§10), and since the reverb models the chain's reverb runs a
+real FDN, plate, modulated hall or shimmer behind early reflections, with presets every surface
+applies (§11). What is still missing is the OUTBOUND half of the control surface (Phase 4's C8
+echo and OSCQuery node, the C9/C10 tool entries).
 
 The design is `Documentation/effects-channels-plan.md`. Read its **§12.4 through §12.7** first —
 those are the correction logs, and essentially every line reference in §6 and §7 of the body is
@@ -457,9 +463,11 @@ spatcore commit (PR #14, tagged v0.3.3) added the schema-free `ui/sends/SendMatr
 
 **What the interface forced back** is the plan's §12.8. The ones a reader of THIS document needs:
 
-- The reverb module applies NO preset from `effectReverbType`; the GUI writes the preset's eight
+- ~~The reverb module applies NO preset from `effectReverbType`; the GUI writes the preset's eight
   values through the funnel on selection and turns the type back to Custom on an edit. The CSV's
-  default type (Room, 0) does not match its default values - still open.
+  default type (Room, 0) does not match its default values - still open.~~ Closed by the reverb
+  models (§11): the preset is an action of the state from every surface, and the default type is
+  Medium Hall, whose row is the defaults.
 - `getSlotMeterDb (fx, slot)` indexes the DECLARED slot (`kSlots` order), not the chain position;
   Dynamics report gain reduction, everything else its output peak; -120 dB is the "no engine"
   sentinel and the GUI treats anything below -60 dB as silence / no reduction.
@@ -573,3 +581,126 @@ findings. What was done with each:
    built. Q now requires every module property to be one of that module's CSV controls (bands and
    taps included); N12 requires every stored value to get a cue (550 today). Neither found a live
    defect; each mutant they were written against went green under the old checks.
+
+---
+
+## 11. Reverb models, presets, spillover: DONE (pushed; spatcore follow-up PR pending)
+
+The user's request of 2026-09-23 - plate, room, hall, chamber, cathedral and shimmer reverbs, with
+typical presets and early-reflection profiles - and their five answers are the plan's §12.10
+(revision 9), which is the design reference. Built the same day on spatcore's
+`feature/effects-reverb-models` (off main `4523d1b`, v0.3.3) and the app branch
+`effects/reverb-models` (off `effects/phase-7`), both pushed. The first eight spatcore commits are
+merged (PR #15); the last two ride a follow-up PR from the same branch, **v0.4.0** is tagged after
+it, and the app's gitlink then moves to the tag (`tools/bump-spatcore.ps1`) - it points at the
+branch tip `18f937e` today.
+
+| Commit | What it did |
+|---|---|
+| spatcore `fda3446` | `ReverbDelayLine` (explicit length, Catmull-Rom reads) and `ReverbLfo` (a libm-free sine) |
+| spatcore `11c0af6` | the six new `ReverbParams` fields, `resolveReverbModel`, the 23-row preset table; the engine still FDN-only |
+| spatcore `aeea38c` | the pool of tails and the spillover; `effects/reverb` moves on purpose |
+| spatcore `4ee3147` | early reflections, and the input partitioned by write time (worlds) |
+| spatcore `9b167a3` | model 1, the Dattorro plate |
+| spatcore `b93570e` | model 4, the modulated hall |
+| spatcore `1927c14` | model 5, the shimmer |
+| spatcore `ab6ffbc` | `docs/audio-engine-map.md`: models, reflections, spillover, memory and CPU |
+| spatcore `c93c001` | the plate's fourteen output taps take a sign per channel (below: found by the audition) |
+| spatcore `18f937e` | `StreamDeckGestureTracker` and the manager's `onEditGestureStart` (below) |
+| `ea702a4` | the gitlink to `ab6ffbc`; the panel on the new preset API |
+| `537153d` | offline-render: five reverb scenarios, the deliberate `effects/reverb` move |
+| `d86ffa1` | the six parameters end to end; the CSV's `Models` column |
+| `6b58054` | presets as an action of the state, Custom on a real edit, the OSC two-pass drain; self-test RP |
+| `2470858` | the panel and the Stream Deck follow the model; the deck's banks; self-test RD |
+| `17ba225` | four checks added where planned mutants would have survived |
+| `4ab1be9` | `offline-render --audition`: listening reels and a measured sheet |
+| `9fe0e29` | the gitlink to `18f937e`; `reverb-plate` and `reverb-models` move with the plate's signs |
+| `14520d1` | self-test C8 (the six fields reach the engine) and RP4's own-undo-step check |
+| `484c8ee` | the app opens one undo step per Stream Deck gesture; self-test SD |
+| (docs) | this section, the plan's §12.10, CLAUDE.md, the change log, the Chain help card |
+
+**Gates.** spatcore: the standalone tests pass, and every new assertion was mutation-tested - 73
+mutants across the seven code commits, all caught; `spatcore_dep_lint.py` and `kernel_hashes.py`
+clean - and 8 more for the two follow-ups (the plate's signs, the gesture tracker), all caught.
+App, on every code commit: Release build; `WFS_TEST_CHANNEL_LIST=1` ALL PASS (830 -> 870);
+the seven control replays PASS with no golden moved; offline-render `--path effects` 16 combos
+match (the 11 existing ones with `effects/reverb` moved once, deliberately, plus five new keys);
+`audit_param_bounds.py` +6 variables / +6 bindings and no new drift; the generator idempotent.
+Every new app assertion was mutation-tested. Against RP and RD, 31 mutants, 30 caught; the one
+that survived - the preset's own undo step removed - showed RP4 could not tell, because nothing
+else was in the open step, and RP4 now makes an edit in that step first. Three of the 31 (hidden
+rows taking room, a deck no longer filtering by model, the reserved ids' menu) were caught only
+by the checks `17ba225` added before the batch ran. Against RP4, C8 and SD, 12 more mutants in
+seven builds - batched only where their failing checks were disjoint, so each is attributable -
+all caught, the undo mutant among them.
+
+**What a reader of THIS document needs:**
+
+- **A preset is an ACTION, and Custom means edited.** `WFSValueTreeState::applyEffectReverbPreset`
+  writes a row's fifteen values and then the type, in one undo transaction, on every linked member
+  not set OFF; a real edit to one of the fifteen (beyond 1e-6 relative) makes the reverb Custom
+  first. The GUI funnels and the Stream Deck reach it through `EffectParamEdit`, OSC through
+  `applyExternalEffectEdit`. **The effect MCP tools (C9 / C10) must write through
+  `applyExternalEffectEdit` too**, or a tool edit leaves a preset's name over values that are no
+  longer its own. Snapshot recall and file loads write raw, on purpose.
+- **Ask `spatcore::effects::resolveReverbModel`, never the stored id.** 2, 3 and anything unknown
+  run the FDN; the engine, the panel and the deck agree because they all ask the one function.
+- **Visibility is the CSV's `Models` column.** A new model-specific control needs its Models cell
+  and a generator run; the panel and the Stream Deck follow without code.
+- **The Stream Deck's Chain page pages by twelve** for every module now (`chainPageControls` is the
+  list); the three modules that used to lose controls past twelve show them all.
+- **Memory:** about 1.7 MiB per effects channel at 48 kHz for the reverb alone (two tails of
+  every class, the predelay and reflection rings), 54 MiB for 32 channels, doubling with the rate;
+  allocated in `prepare()`, only for channels that exist.
+- **offline-render:** `effects/reverb` moved once (its timeline changes Size, which now spills
+  over; the old fade emulated inside the pool reproduces the old hash) and gained `reverb-er`,
+  `reverb-plate`, `reverb-hall`, `reverb-shimmer` and `reverb-models`.
+
+**Found along the way, and fixed:**
+
+- **The plate did not spread.** The audition showed eight channels' plates on one pink burst
+  correlating at 0.39-0.47 where every other tail sat at 0.04-0.13: the per-channel line lengths
+  (3 %) move a tap by a fraction of a millisecond, which parts the highs and leaves the lows alike.
+  Each of the plate's fourteen output taps now takes a sign per channel (spatcore `c93c001`, the
+  hall's method): 0.08-0.10, decay unchanged, the average level unchanged (-4.91 dB against the
+  FDN's -4.94). `reverb-plate` and `reverb-models` moved.
+- **The Stream Deck opened no undo steps, on any tab.** Deck edits piled into whatever step the
+  active tab had open (the input-cluster funnel alone opened one, and only for a clustered input),
+  so one Ctrl+Z could take back several turns and presses. The manager now announces each gesture
+  - a run of turns of one dial ended by an 800 ms pause, another dial or any navigation; each
+  press; a dial press that acts; a confirmed choice - and the app opens one step for it (spatcore
+  `18f937e`; self-test SD drives the manager through its device callbacks). The Space Mouse and
+  the other controllers still open none.
+- **A reverb preset's undo step was untested.** Removing it failed nothing, because the self-test
+  never had an edit in the open step; RP4 now does.
+
+**Not verified, and open:**
+
+- **Nobody has listened.** The preset values are starting points to be tuned by ear, and the
+  models were judged by measurement only. `offline-render --audition <dir>`
+  (`tools/validation/offline-render/reverb_audition.cpp`) renders the material: five reels -
+  pink bursts, a snare, a plucked arpeggio, a sung vowel, a sweep; `--audition-input <file.wav>`
+  adds a real recording - with every preset in turn, the preset changing at each segment so the
+  spillover is heard too, and `presets.csv`, the measured sheet. What it says today: the decay at
+  1 kHz lands within about 10 % of the nominal on the FDN, the hall and the plate, the shimmers at
+  about 70 % (their energy climbs out of the band, plan §12.10 R9-5); the wet sits between -2.0
+  and +4.1 dB of Medium Hall, the long presets and the rooms with reflections the loudest; eight
+  returns of one burst correlate at 0.04-0.13 on every tail, and 0.17-0.40 on the rooms with
+  reflections, whose first-order reflections are only time-jittered (by design: a wall reflects
+  in phase). A sweep builds up to about +12 dB over its dry peak at the modes of the longest
+  presets, so the reels keep the dry at -18 dBFS. The listening checklist, on a source sent to
+  one effect channel: every preset on percussive, vocal, piano and noise material; a clean
+  reflection onset; no metallic ring and no pitch wobble except where meant (Lush Hall, the
+  shimmers); each shimmer at its interval and dying away rather than building; nothing running
+  away at the maximum settings; preset changes click-free with the old tail audibly ringing out
+  under the new one; eight or more returns of one source spreading without combing.
+- **The Stream Deck banks and undo steps were not exercised on hardware** (none attached): phase
+  RD drives the page objects, phase SD the manager's own device callbacks. The panel per model was
+  checked from `WFS_TEST_RENDER_UI` PNGs, not with the mouse.
+- **CPU was measured at 48 kHz on the laptop only** (FDN 0.52 %, plate 0.27 %, hall 0.64 %,
+  shimmer 0.84 % of a core per channel; up to twice that while a tail spills over).
+- **The six new addresses are inbound only**, like every effect address: the C8 echo and the
+  OSCQuery node still do not exist.
+- **English only:** the six new labels, the model names and the preset names, like the rest of
+  the module controls (the user's choice).
+- SDN-style (2) and IR (3) are reserved ids, not models.

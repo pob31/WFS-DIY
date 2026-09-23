@@ -35,7 +35,7 @@ Development hold: nothing is built until the user gives the go (urgent fixes are
 | 9 | AutomOtion on an effects channel is return-only (no Stay) and moves an OFFSET on top of the base position, never the stored position; feed geometry follows the base position, the return follows base + offset (§6.7). |
 | 10 | Superseded by revision 8 (§12.9): one MIDI note recalls one snapshot file, which carries inputs AND effects; there is no per-family binding, folder or scan. |
 | 11 | Return cushion: 2 blocks at device blocks ≤ 128 samples, 1 block above (auto); user override 1..3 (§3.3). |
-| 12 | Reverb module: selectable models (FDN in v1, more later) with named presets per model (§5.7). No floor reflections on effect returns. |
+| 12 | Reverb module: selectable models - the FDN, a Dattorro plate, a modulated hall and a shimmer, with early-reflection profiles in front of any of them (revision 9, §12.10) - and ONE preset list whose rows set the model too (§5.7). No floor reflections on effect returns. |
 | 13 | The Effects tab sits between Reverb and Inputs (main-tab index 4). |
 | 14 | Denormals: the effects threads run under FTZ/DAZ from day one; the app-wide guard for the existing gather/scatter/reverb threads is its own baseline-changing PR, scheduled right after Phase 3 (9c). |
 | 15 | Effects positions have their own ownership latch (`effectPositionsUserOwned`) plus a "Re-layout effects" action; they never share the input/reverb latch. |
@@ -55,7 +55,7 @@ Development hold: nothing is built until the user gives the go (urgent fixes are
 | Latency | Report-only (`EffectChain::getLatencySamples()` telemetry); user trim `effectDelayLatency` mirrors `reverbDelayLatency`. No pre-subtraction on the feed leg. | C1-10. |
 | Return path | Per-effect SPSC `LockFreeRingBuffer` popped at the top of the callback into `patchedInputBuffer[firstEffectSlot+fx]`, gated by a `ready` flag + `SpinLock` try-lock. | C1-3, pattern `spatcore/wfs/NativeGpuWfsAlgorithm.h:115-128`. |
 | Source rings | Reuse `SharedInputRingBuffer` (SPMC) with an additive monotonic `totalWritten` counter for wrap detection; depth `blockSize * 8` when effects exist (today `* 4`, `Source/MainComponent.cpp:6932`). | C1-2. |
-| Reverb module | `effectReverbModel` selects the algorithm behind an `IEffectReverbModel` seam; model 0 (v1) = `spatcore::reverb::FDNAlgorithm` with `numNodes = 1` at **native** device rate, `MAX_DELAY_SAMPLES` becoming a constructor argument defaulting to 16384 (bit-identical for existing users). Presets (`effectReverbType`) are per model. | C1-18; user round 2 (Q15); `spatcore/reverb/ReverbFDNAlgorithm.h:28, :273-276`. |
+| Reverb module | `effectReverbModel` selects the algorithm behind an `IEffectReverbModel` seam; model 0 (v1) = `spatcore::reverb::FDNAlgorithm` with `numNodes = 1` at **native** device rate, `MAX_DELAY_SAMPLES` becoming a constructor argument defaulting to 16384 (bit-identical for existing users). Presets (`effectReverbType`) are per model. **Revision 9 (§12.10):** four models (0 FDN, 1 Plate, 4 Modulated Hall, 5 Shimmer; 2 and 3 reserved, running the FDN), one flat preset list whose rows set the model, and a change of room spills over instead of fading the slot. | C1-18; user round 2 (Q15); user 2026-09-23 (§12.10); `spatcore/reverb/ReverbFDNAlgorithm.h:28, :273-276`. |
 | Link mode | Explicit state `effectsGlobalLinkMode` (0 off / 1 absolute / 2 relative), default 1; relative applies to continuous values only — discrete values (enums, bypasses, chain order) are always copied absolutely; mutes are excluded entirely (R5-1, §12.6); `effectLinkGroup = 0` = unlinked; keyboard modifiers override on GUI only; hardware follows the state. | C2-13; user round 2 (Q4). |
 | Loop guard | Per channel, on the engine thread (`effects/LoopGuard.h`): if the summed fx→fx feed OR the return exceeds `effectsGlobalLoopGuardCeiling` (default +6 dBFS peak) for more than 20 consecutive blocks, that channel's fx→fx feed bus is ramped to −∞ over 5 ms, `loopGuardTripped(fx)` is raised for the GUI/OSCQuery/MCP, and it auto-releases once the return has stayed 12 dB under the ceiling for 500 ms. `effectsGlobalLoopGuard` 0/1, default 1. Input→effect feeds are never touched. | user round 2 (Q11). |
 | Emergency Clear | `EffectsEngine::requestClear(fx / all)`: at the next batch boundary every chain, the feed delay lines and the return ring(s) of the target are silenced and reset (tails, feedback, reverb and delay memory, loop-guard trips). Exposed as a header long-press button, a Stream Deck key, `/wfs/effect/clear <fx>` / `/wfs/effect/clearAll` and MCP `effect_clear`. | user round 2 (Q11). |
@@ -89,7 +89,7 @@ Development hold: nothing is built until the user gives the go (urgent fixes are
 | Q12 | Send cell range? | **Decided: −92..0 dB** (no gain in the matrix; gain, if wanted, comes from the modules). |
 | Q13 | Floor reflections for returns? | **Decided: none** (return rows carry FR = 0; no `effectFR*` parameters). |
 | Q14 | Tab position? | **Decided**: between Reverb and Inputs → main-tab index 4; Inputs→5, Clusters→6, Map→7 through one `TabIndex` header (`Source/MainComponent.cpp:744-750`, `:754-764`; the seven `*_MAIN_TAB_INDEX` constants under `Source/Controllers/DialsAndButtons/pages/`). |
-| Q15 | Reverb models | **Decided**: `effectReverbModel` selects an algorithm (0 = FDN in v1; Dattorro plate, SDN-style and IR are later candidates), `effectReverbType` selects a named preset within the model. |
+| Q15 | Reverb models | **Decided**: `effectReverbModel` selects an algorithm (0 = FDN in v1; Dattorro plate, SDN-style and IR are later candidates), `effectReverbType` selects a named preset within the model. **Amended 2026-09-23 (revision 9, §12.10):** the Dattorro plate (1), a modulated hall (4) and a shimmer (5) are built; SDN-style (2) and IR (3) stay reserved ids that run the FDN. The presets are ONE list, not one per model: a row sets the model too, so "Vocal Plate" picks the plate from any surface. |
 | Q16 | Module details | **Partly received**: the distortion, tremolo, delay, compressor+expander, chorus/flanger and bitcrusher gen~ prototypes were decoded and folded into §5 (their shared sub-patches were read on 2026-08-28 from `Documentation/effects/` — laws in §5.12); phaser and reverb are designed from scratch (the user's Max models "were not great"); EQ reuses the output EQ, the user's existing model. §5 stays a range table to confirm in Phase 0. |
 | Q17 | Duplicate modules | **Decided**: EQ and dynamics ship doubled (`<FxEQ id="1|2">`, `<FxDyn id="1|2">`, `instance` sub-index on the wire); other types single; the registry is append-only for future types and further instances. |
 
@@ -517,13 +517,23 @@ Derived from the user's Max gen~ prototype (received 2026-08-28): the LFO is a c
 
 ### 5.7 Reverb (`FxReverb`)
 
+> **Revision 9 (2026-09-23, §12.10) rebuilt this module.** The model selects a real tail - 0 FDN,
+> 1 Dattorro plate, 4 modulated hall, 5 shimmer (2 and 3 reserved, running the FDN) - with four
+> early-reflection profiles in front of any of them; the type is a PRESET from one list whose
+> rows set the model and fifteen values, applied by the state from every surface; and a change
+> of model, size or reflection profile spills over instead of fading the slot. The table below
+> carries the revision-9 rows. The preset table and the size paragraph under it are the v1
+> design, kept for the record; §12.10 is the reference.
+
 `effectReverbModel` selects the algorithm behind an `IEffectReverbModel` seam (prepare/reset/process/setParams + a preset table); model 0, the only one in v1, wraps `spatcore::reverb::FDNAlgorithm` with `numNodes = 1` (`ReverbFDNAlgorithm.h:33-77`, standalone use proven in `SpatcoreTests.cpp` reverb tests) at **native** device rate; `MAX_DELAY_SAMPLES` becomes a constructor argument (default 16384 keeps every existing instance byte-identical, incl. the GPU mirror `spatcore/gpu/FdnHostConfig.h:9-19`); the module passes `16384 · ceil(sr/48000)`. Predelay: `FractionalDelayLine` 250 ms; tone: one-pole LP on the wet (the FDN already has an 8 kHz LP and +12 dB, `:417-426` — calibrate `mix`).
 
 | Identifier | Type | Range | Default | Unit | Ramp | Tier |
 |---|---|---|---|---|---|---|
 | effectReverbBypass | I | 0..1 | 1 | — | no | 1 |
-| effectReverbModel | I | 0 FDN (v1); later 1 Plate (Dattorro), 2 SDN-style, 3 IR | 0 | enum | no | 1 |
-| effectReverbType | I | preset within the model: 0 Room / 1 Chamber / 2 Hall / 3 Cathedral / 4 Plate / 5 Custom | 0 | enum | no | 1 |
+| effectReverbModel | I | 0..5: 0 FDN, 1 Plate (Dattorro), 4 Modulated Hall, 5 Shimmer; 2 SDN-style and 3 IR reserved (run the FDN) | 0 | enum | no | 1 |
+| effectReverbType | I | the PRESET (label "Preset"), 0..22 from one list (§12.10 R9-7): 0-4 the v1 rooms "(FDN)", 5 Custom, 6 Medium Hall, 7-22 rooms, halls, plates, shimmers | 6 | enum | no | 1 |
+| effectReverbERProfile | I | 0 Off / 1 Room / 2 Chamber / 3 Hall / 4 Cathedral (revision 9) | 0 | enum | no | 1 |
+| effectReverbERLevel | F | -30..+6 (revision 9) | -6 | dB | yes | 1 |
 | effectReverbPredelay | F | 0..250 | 10 | ms | yes | 1 |
 | effectReverbRT60 | F | 0.2..8 | 1.5 | s | yes | 1 |
 | effectReverbRT60LowMult | F | 0.1..9 | 1.3 | × | yes | 1 |
@@ -532,10 +542,14 @@ Derived from the user's Max gen~ prototype (received 2026-08-28): the LFO is a c
 | effectReverbCrossoverHigh | F | 1000..10000 | 4000 | Hz | yes | 1 |
 | effectReverbDiffusion | F | 0..1 | 0.5 | — | yes | 1 |
 | effectReverbSize | F | 0.5..2 | 1.0 | × | no | 1 |
+| effectReverbModRate | F | 0.05..5, log (revision 9; models 1, 4, 5) | 0.8 | Hz | yes | 1 |
+| effectReverbModDepth | F | 0..100 (revision 9; models 1, 4, 5) | 50 | % | yes | 1 |
+| effectReverbShimmerPitch | I | 0 +12 / 1 +7 / 2 +7 & +12 / 3 +19 / 4 +24 / 5 +5 / 6 -12 / 7 -12 & +12 (revision 9; model 5) | 0 | enum | no | 1 |
+| effectReverbShimmerAmount | F | 0..100 (revision 9; model 5) | 50 | % | yes | 1 |
 | effectReverbTone | F | 1000..20000 | 12000 | Hz | yes | 1 |
 | effectReverbMix | F | 0..100 | 30 | % | yes | 1 |
 
-Type presets for model 0 (`EffectPresets.h`; each model owns its own table; selecting a type writes the expanded values into the tree so state stays explicit; editing any of them flips the type to Custom). Designed from scratch — the user's Max reverb model is not used:
+**v1, superseded by §12.10 R9-7 (one list of 23 ids; these five rows are ids 0-4, frozen).** Type presets for model 0 (`EffectPresets.h`; each model owns its own table; selecting a type writes the expanded values into the tree so state stays explicit; editing any of them flips the type to Custom). Designed from scratch — the user's Max reverb model is not used:
 
 | Type | rt60 | lowMult | highMult | xLow | xHigh | diffusion | size | predelay |
 |---|---|---|---|---|---|---|---|---|
@@ -545,7 +559,7 @@ Type presets for model 0 (`EffectPresets.h`; each model owns its own table; sele
 | Cathedral | 5.0 | 1.5 | 0.3 | 150 | 3000 | 0.4 | 1.8 | 40 |
 | Plate | 1.8 | 0.8 | 0.9 | 300 | 8000 | 0.95 | 0.7 | 0 |
 
-`size` is prepare-time in the FDN (`FdnHostConfig.h:17-19`): a size change prepares a **shadow** `FDNAlgorithm` on the message thread, publishes its pointer, and the slot retriggers and swaps at a block boundary (engine precedent: fade swap `ReverbEngine.h:851+`). Memory ≤ ~0.8 MB per instance at 96 k; ×2 shadow ×32 ≈ 50 MB worst case. Cost ≈ 300 flops/sample.
+**v1, superseded by §12.10 R9-2 (two tails of every class, and a size change spills over).** `size` is prepare-time in the FDN (`FdnHostConfig.h:17-19`): a size change prepares a **shadow** `FDNAlgorithm` on the message thread, publishes its pointer, and the slot retriggers and swaps at a block boundary (engine precedent: fade swap `ReverbEngine.h:851+`). Memory ≤ ~0.8 MB per instance at 96 k; ×2 shadow ×32 ≈ 50 MB worst case. Cost ≈ 300 flops/sample.
 
 ### 5.8 Multitap delay (`FxDelay`, taps as `<Tap id="1..8">` children)
 
@@ -952,7 +966,7 @@ Branch/PR strategy: spatcore PRs first on `github.com/pob31/spatcore` (branch `f
 | **6. GUI** | EffectsTab + panels (Clear button, loop-guard LED, cycle badges, grouped/collapsible sends grid), `SendMatrixComponent` (spatcore-ui, own small spatcore PR + tag) + shim, Map, SystemConfig, Stream Deck pages, `TabIndex` header (Effects = 4), localisation, help cards, jucer. | `Source/gui/effects/*`, `Source/gui/{MapTab,SystemConfigTab,LevelMeterWindow}.h`, `Source/Controllers/DialsAndButtons/pages/*`, `Resources/lang/en.json`, `Documentation/helpCards.md`, `WFS-DIY.jucer` | g, manual | XL |
 | **7. Snapshots + QLab** (DONE 2026-09-23, revision 8) | `ScopeMatrix` refactor (inputs only, byte-identical files), node-driven effects item table, `<Effects>` / `<EffectsScope>` in the same file, effects undo domain, dirty-tracker effects keys, `SnapshotSession` / `SnapshotRow` shared by both tabs, two-tab Scope window, per-parameter effect QLab cues (`getEffectMappings`), refusal reason for `/wfs/effect/snapshot/*`, self-test phases N and Q. (Link-mode UI landed in phase 6, R7-4.) | `WFSFileManager.*`, `EffectsSnapshotScope.h`, `ParameterDirtyTracker.h`, `SnapshotScopeWindow.h`, `gui/snapshots/*`, `InputsTab.h`, `EffectsTab.h`, `MainComponent.cpp`, `QLabCueBuilder.h`, `OSCMessageBuilder.*`, `OSCMessageRouter.cpp` | e, f, g, manual | L |
 | **8. Verification + docs** | Control-replay fixtures/goldens with effects, offline-render baselines on every device file, `audio-engine-map.md` + `control-plane-map.md` updates, `WFS_DIY_EFFECTS_SPEC.md` (user-facing, from this plan), change log. | docs, `tools/validation/**` | all | M |
-| **9. Optional follow-ups** | 9a GPU feed (option iii); 9b full loop-gain limiter on the effect→effect path (beyond the v1 loop guard); 9c app-wide FTZ/DAZ (own baseline-changing PR — decided, scheduled right after Phase 3); 9d dynamic-EQ bands, transient designer; 9e further module duplicates / new module types (append-only registry, `instance` arg); 9f tempo sync for delay/LFOs; 9g selectable otomo detection point (`effectOtomoDetect` = feed sum / after slot k / return — the engine already keeps a level atomic per slot); 9h additional reverb models (Dattorro plate, SDN-style, IR) behind `effectReverbModel`; 9i per-parameter QLab cues - DONE in Phase 7 (R8-5). | — | per item | M each |
+| **9. Optional follow-ups** | 9a GPU feed (option iii); 9b full loop-gain limiter on the effect→effect path (beyond the v1 loop guard); 9c app-wide FTZ/DAZ (own baseline-changing PR — decided, scheduled right after Phase 3); 9d dynamic-EQ bands, transient designer; 9e further module duplicates / new module types (append-only registry, `instance` arg); 9f tempo sync for delay/LFOs; 9g selectable otomo detection point (`effectOtomoDetect` = feed sum / after slot k / return — the engine already keeps a level atomic per slot); 9h additional reverb models behind `effectReverbModel` - the Dattorro plate, a modulated hall and a shimmer DONE with early reflections (revision 9, §12.10), SDN-style and IR still candidates (ids 2 and 3 reserved); 9i per-parameter QLab cues - DONE in Phase 7 (R8-5). | — | per item | M each |
 
 ---
 
@@ -1006,7 +1020,7 @@ Branch/PR strategy: spatcore PRs first on `github.com/pob31/spatcore` (branch `f
 | Snapshot generalisation regressions on inputs | The `ScopeMatrix` refactor and the `SnapshotSession` extraction each landed alone: byte-identical snapshot files (diffed against the pre-phase exe), `midi_snapshot_check.py`, `remote_tablet_mock.py` and self-test phase T unchanged; the effects family followed in separate commits. |
 | Old projects and missing `effects.xml` | absent = zero effects, success; schema backfill; fixture regenerated. |
 | `maxRenderSources` 104 → 136 changing allocations | only `WFSCalculationEngine.cpp:63-80`, `LevelMeteringManager.h:826-827`, `MainComponent.cpp:1996-2000` are size-dependent; offline-render never includes `RenderSourceMap`; `--check` before/after. |
-| Reverb module memory (shadow instances) and multitap buffers at 192 k | allocated only for existing channels; shadow freed after swap; documented per-channel footprint. |
+| Reverb module memory and multitap buffers at 192 k | allocated in `prepare()`, only for existing channels; since revision 9 the reverb holds two tails of every class for the spillover - about 1.7 MiB per module at 48 kHz (54 MiB for 32 channels), doubling with the rate (§12.10 R9-8); documented per-channel footprint. |
 | GPU renderer scratch growth (136 sources) | 68 pair groups, ~18 MB scratch — verified fine; no kernel change. |
 
 ---
@@ -1351,7 +1365,9 @@ before the first commit (D1-D4) open the list.
 - **R7-6 — the reverb module applies no preset.** Nothing in the engine reads `effectReverbType`
   beyond copying it into the params POD, so the GUI applies the preset: choosing a type writes the
   preset's eight values through the funnel, and an edit to one of them turns the type back to
-  Custom. The CSV default (Room) does not match the default values; open.
+  Custom. The CSV default (Room) does not match the default values; open. **Closed by revision 9
+  (§12.10 R9-7):** the preset is an action of `WFSValueTreeState`, reached from the panel, the
+  Stream Deck and OSC alike, and the default type is 6, Medium Hall, whose row IS the defaults.
 
 - **R7-7 — the module controls are generated.** `tools/gen_effects_module_ui.py` reads the
   116 module rows of the CSV and emits `EffectsModuleDescriptors.h` (kind, range, default, unit,
@@ -1451,3 +1467,171 @@ OnSave trim, undo domains; N14 a ghost's scope, N15 an inputs-only template), N1
 N12 / N13 (QLab shapes, parse-back, every stored value exported, grid, address map), N16 (a
 dismissed Scope window keeps the QLab toggles) - every assertion mutation-tested. The seven control
 replays unchanged; the OSC replay gained the refusal's pointer as a needle.
+
+### 12.10 Revision-9: reverb models, presets as an action, spillover (user, 2026-09-23)
+
+The user asked for real reverb models - plate, room, hall, chamber, cathedral, shimmer - with
+typical presets and early-reflection profiles, and offered generic `rev_param1..N` slots in case
+named parameters made snapshots tricky. They do not: a snapshot carries a module node whole
+(R8-2), so every `<FxReverb>` carries the union of the models' parameters under their own names.
+The user's answers, the same day: the effects-chain reverb only (the Reverb tab's `<Reverbs>`
+family is untouched); named parameters shared across models, the panel showing what the selected
+model uses; the Dattorro plate, the shimmer, early-reflection profiles and a modulated hall this
+round; a preset sets the model and its values from every surface; a change of room spills over.
+Built on spatcore `feature/effects-reverb-models` (`fda3446..ab6ffbc`, eight commits, to be tagged
+v0.4.0 once merged) and app `effects/reverb-models` (`ea702a4..`). Where this section and the body
+disagree, this section is right; §2.1 row 12, §2.2, Q15, §5.7, §9 (9h), §11 and R7-6 were
+amended to match.
+
+- **R9-1 - model ids, append-only.** `effectReverbModel`: 0 FDN, **1 Plate** (the id the enum had
+  always declared), 2 SDN-style and 3 IR stay RESERVED (accepted by the bounds, not offered in the
+  menu, and running the FDN so an old file still sounds), **4 Modulated Hall**, **5 Shimmer**. One
+  function, `spatcore::effects::resolveReverbModel`, says what a stored id runs (1, 4 and 5
+  themselves, anything else 0); the engine, the panel and the Stream Deck all ask it, so they
+  cannot disagree - a stored 2 shows "FDN" in the menu and the FDN's controls.
+
+- **R9-2 - a change of room spills over.** The module keeps each tail class TWICE (the FDN node,
+  the plate, and the hall that runs models 4 and 5), all built in `prepare()`, the only
+  allocation. A WORLD is one tail instance plus the reflection pattern it runs with. A change of
+  tail class, size, reflection profile or shimmer build (on / off, interval) starts a new world:
+  the idle twin is rebuilt on the audio thread inside the capacity `prepare()` gave it, and the
+  input is partitioned between the worlds by the time each sample was WRITTEN (a 5 ms raised
+  cosine), so sound that arrived before a cue plays out entirely in the old room and sound after
+  it entirely in the new one - exact, since every world is linear. At most three worlds run
+  (active, ringing, dying: a ringing world the next change needs is faded over 5 ms); a ringing
+  world is released after 50 ms under -96 dBFS, or faded at 30 s. With nothing to spill (the
+  first apply after `prepare()`, a bypassed slot) a change is immediate. Settled with reflections
+  off, the per-sample path is the pre-revision FDN's to the bit. The module no longer reports
+  `variantPending`, so the slot never fades the reverb; §5.7's shadow `FDNAlgorithm` is gone.
+
+- **R9-3 - early reflections, in front of any model.** `effectReverbERProfile` Off / Room /
+  Chamber / Hall / Cathedral: 16 / 18 / 20 / 24 taps from an image-source model of a shoebox
+  (`spatcore/tools/reverb/gen_er_profiles.py` generates `EarlyReflections.h`), first-order taps
+  as they are, higher orders through a one-pole "dark" low pass (6 / 8 / 5 / 4 kHz); times scaled
+  by Size and jittered up to 4 % per channel, higher-order signs drawn from the channel's noise
+  key, so 32 returns of one room spread instead of combing. The tail's input comes a profile's
+  tail delay later (7 / 11 / 29 / 68 ms at Size 1). `effectReverbERLevel` -30..+6 dB; at 0 dB the
+  reflections carry the dry's energy. Off skips the stage.
+
+- **R9-4 - the models.** All decay by one law - three bands, gains
+  `exp2(-9.9658 L / (sr RT60 mult))` per stretch of loop - so RT60, both multipliers and both
+  crossovers mean the same on every model, and each is levelled to the FDN's wet (about -5 dB
+  against the dry at 1.5 s, fully wet). All libm-free, so renders hash the same across builds.
+  - *Plate (1)*: Dattorro's 1997 figure-of-eight tank at 29761 Hz, rescaled to the device rate.
+    Departures from the paper: the FDN's three-band filter at every decay point; Diffusion drives
+    all four diffusion coefficients; ModDepth 50 % is the paper's 16-sample excursion; each tank
+    line up to 3 % longer or shorter per channel, and each of the fourteen output taps taking the
+    paper's sign or its opposite per channel - the lengths alone left eight channels' plates
+    correlated at 0.4-0.5 on low material, the signs bring them to 0.1 like every other tail
+    (spatcore `c93c001`, found by the audition below); the output calibrated (the paper's gain
+    sits 1.6 dB hot).
+  - *Modulated Hall (4)*: sixteen lines, primes 997..3407 samples at 48 kHz scaled by rate and
+    Size and jittered up to 6.25 % per channel, an orthonormal Hadamard mix, four input diffusers
+    at 0.75 x Diffusion, every read point moving by up to 1 ms (ModDepth 100 %) on four sine /
+    cosine LFO pairs at ModRate x 1, 1.13, 0.87 and 1.27 through 4-point Catmull-Rom reads, so the
+    modes drift and nothing rings metallic. No fixed 8 kHz low pass inside: Tone owns brightness.
+  - *Shimmer (5)*: the hall with its four longest lines read through `ShimmerTap` - two heads
+    sweeping a sawtooth of delay around the line's own length (so the loop length, and with it
+    the decay law, hold), half a period apart, crossfaded by triangles - at the interval
+    `effectReverbShimmerPitch` names (+12, +7, +7 & +12, +19, +24, +5, -12, -12 & +12; the
+    two-voice entries split the four lines two and two), in the proportion
+    `effectReverbShimmerAmount` sets. The amount glides; shimmer on / off and the interval are
+    build-time and spill over. Off, the lines run the model-4 arithmetic to the bit.
+
+- **R9-5 - two departures from the approved design, both in the shimmer.** (a) The design's convex
+  crossfade `(1 - a) normal + a shifted` drained the tail: the two reads sit at different pitches,
+  so their POWERS add, and the crossfade threw away half a line's power a pass (a 5 s shimmer
+  rang 1.7 s). The lines mix at equal power, `sqrt(1 - a)` and `sqrt(a) x trim`, with the
+  shifter's 2/3 average power made up (`sqrt(3/2)`); at 50 % a shimmer keeps about two thirds of
+  its RT60 on music, and 0 % is the hall. The loop is held by power rather than by amplitude:
+  the reads correlate only at DC, which the 80 Hz high pass on the shifted read removes, and the
+  trims (-2 dB an octave up, -4.5 two octaves up, -2.2 an octave down, -0.5 otherwise, re-measured
+  by a unit test) keep even an in-phase octave chain under unity; the soft clip past |8| stays the
+  last resort. (b) The guard low passes on the shimmer writes sit at `min (12 kHz, 0.25 sr /
+  ratio)`, not `0.45 sr / ratio`: at the design's corner a 9 kHz tone two octaves up aliased at
+  -10 dB (-16.7 dB now).
+
+- **R9-6 - named parameters; the panel and the deck show the model's.** Six properties on
+  `<FxReverb>`, stamped by the builder so a load backfills them:
+
+  | Identifier (OSC `/wfs/effect/…`) | UI | Range | Default | Models | Ramp | Link |
+  |---|---|---|---|---|---|---|
+  | `effectReverbERProfile` (`reverbERProfile`) | combo | 0..4 | 0 Off | all | no | absolute |
+  | `effectReverbERLevel` (`reverbERLevel`) | slider dB | -30..+6 | -6 | all | yes | abs / rel |
+  | `effectReverbModRate` (`reverbModRate`) | log slider Hz | 0.05..5 | 0.8 | 1, 4, 5 | yes | abs / rel |
+  | `effectReverbModDepth` (`reverbModDepth`) | slider % | 0..100 | 50 | 1, 4, 5 | yes | abs / rel |
+  | `effectReverbShimmerPitch` (`reverbShimmerPitch`) | combo | 0..7 | 0 (+12) | 5 | no | absolute |
+  | `effectReverbShimmerAmount` (`reverbShimmerAmount`) | slider % | 0..100 | 50 | 5 | yes | abs / rel |
+
+  The CSV gained a `Models` column (empty = every model, else the ids that use the control),
+  which `tools/gen_effects_module_ui.py` turns into `ControlDesc::modelMask` and
+  `EffectsUi::isVisibleForModel` (and refuses outside the reverb). The panel shows the resolved
+  model's rows - 15 with the bypass for the FDN, 17 for the plate and the hall, 19 for the shimmer
+  - and hidden rows take no room; the Preset menu lists each model's presets under its name,
+  Custom last. The Stream Deck's Chain page gained BANKS of twelve (a "Page n/N" button on every
+  module section, back to the first bank on a module change), which also gives back what a
+  single page used to drop - two Distortion, ten Dynamics and four Delay controls; its reverb
+  dials are the model's (14 / 16 / 16 / 18), and a deck turn that changes the model asks for a
+  deferred rebuild.
+
+- **R9-7 - a preset is an ACTION of the state, from every surface.** One flat, append-only list
+  of 23 ids (`spatcore/effects/EffectPresets.h`): 0-4 the v1 FDN rooms, frozen and relabelled
+  "(FDN)"; 5 Custom, with no row; **6 Medium Hall, exactly the defaults and the default type** -
+  a fresh channel no longer claims Room over values that match no row, and not a sample moved;
+  7-10 Small, Medium and Large Room and Live Chamber (the FDN behind reflections); 11-14 Concert
+  Hall, Large Hall, Stone Cathedral, Lush Hall (the modulated hall); 15-18 Vocal, Bright, Drum and
+  Dark Plate; 19-22 Shimmer Octave, Fifth + Octave, Octave Down, Ethereal. The values are
+  starting points to be tuned by ear. A row owns fifteen values - model, reflection profile and
+  level, predelay, RT60, both multipliers, both crossovers, diffusion, size, modulation rate and
+  depth, shimmer interval and amount; Bypass, Tone and Mix stay outside (taste, not room: a mix
+  dialled for a song survives auditioning rooms). `WFSValueTreeState::applyEffectReverbPreset
+  (fx, type, propagate)` writes the row, then the type, as one undo transaction; a type written
+  through either GUI funnel IS that call, and each linked member not set OFF runs the same
+  expansion itself - never a delta, so a RELATIVE member holds exactly the row it is labelled
+  with. A REAL edit (beyond 1e-6 relative) to an owned value makes the reverb Custom first, on
+  the source and on every member whose own value moved; re-sending the value already there (a
+  fader echo, a replayed cue) keeps the preset. OSC effect scalars go through
+  `applyExternalEffectEdit` - the same rules, never propagated - and the OSC drain applies reverb
+  types in a first pass, so a burst of a preset and a tweak ends Custom with the tweak whatever
+  the arrival order. Snapshot recall and file loads write raw: never an expansion, never a flip.
+  **The effect MCP tools (C9 / C10) must write through `applyExternalEffectEdit`**, or a tool edit
+  would leave a preset's name over values that are no longer its own.
+
+- **R9-8 - cost.** Measured on the dev laptop (Core Ultra 7 255H, one core, Release, 48 kHz):
+
+  | Tail | Memory (the pair) | CPU per channel |
+  |---|---|---|
+  | FDN (0) | ~430 KiB | 109 ns/sample, 0.52 % of a core |
+  | Plate (1) | ~576 KiB | 56 ns/sample, 0.27 % |
+  | Modulated Hall (4) | ~580 KiB, shared with 5 | 134 ns/sample, 0.64 % |
+  | Shimmer (5) | (the hall pair) | 174 ns/sample, 0.84 % |
+  | + early reflections | 77 KiB ring | +15-20 ns/sample |
+
+  Every module holds all three pairs, the predelay ring and the reflection ring: about 1.7 MiB at
+  48 kHz, 54 MiB for 32 effects channels, doubling with the rate. A spillover runs two tails for
+  as long as the old one rings. The hall's fallback (modulating only its eight longest lines)
+  was not needed.
+
+**Verification.** spatcore, per model: wet level, the decay law by interrupted noise at 48 and
+96 kHz and Size 2, band decay against the FDN's, block-size invariance, key determinism, DC,
+reset, NaN, the maximum corner bounded over 20 s; spillover partitions exact against isolated
+renders, click-free and deterministic under a storm of changes, and zero heap allocations across
+`applyParams`, `process` and every transition (a global `operator new` counter in the test TU);
+the reflections' tap placement, energy and partitions; the shimmer's intervals, alias, rumble,
+sustain and trims. 73 spatcore mutants across S1-S7 and one for the plate's signs, all caught.
+App: self-test phase RP (20 checks - the owned set against the CSV, the combo against the table,
+a fresh channel, one undo for a whole preset and nothing before it, a flip only on a real edit
+and never for taste, the Stream Deck, the generic funnel, a link group with ABSOLUTE / RELATIVE /
+OFF members, OSC without propagation, both burst orders, a replayed preset, a raw recall), phase
+RD (10 - the rows and the menu for every stored id 0..5, no overlap, hidden rows taking no room,
+the deck's banks reaching every control once with each model's count, a module change opening at
+the first bank, a relayout only when the model changes) and C8 (the six fields and the model and
+preset reach the engine's parameters); 870 PASS with the Stream Deck's SD, every assertion
+mutation-tested. offline-render gained five reverb scenarios (reflections, plate, hall, shimmer, a
+model storm faster than the pool can clear) and moved `effects/reverb` deliberately: its timeline
+changes Size, which now spills over, and with the old fade emulated inside the pool it reproduces
+the old hash, so the move is the spillover alone;
+`reverb-plate` and `reverb-models` moved again with the plate's signs. The seven control replays
+are unchanged. `offline-render --audition <dir>` renders listening reels of every preset and a
+measured sheet (decay per band, wet level, how alike eight returns are). **Not verified: the
+ears** - the listening checklist and what the sheet says are in the status document (§11).

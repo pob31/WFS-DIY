@@ -81,6 +81,9 @@ The application has established a solid foundation with infrastructure and core 
 - **EffectsTab** (`Source/gui/effects/`, main tab 4 = `TabIndex::Effects`, between Reverb and Inputs) - Header mirrors the Reverb tab: channel selector, name, Effects Visible on Map, Edit on Map, three engine LEDs (loop guard, cycle, entry point), Solo Effects (long-press), Mute, Solo (long-press), Clear (long-press; Ctrl = every chain). Every GUI write goes through `EffectParamEdit` (the link funnel). Five sub-tabs:
   - "Channel Parameters" (link row: group, mode, Mute Group; then the Reverb tab's 3 columns: attenuation/latency/position + return offset, Effect Feed orientation, Effect Return law/mutes/array attenuation)
   - "Chain" (link badge, chain bypass, latency, the draggable 11-tile strip with engine meters; module panels generated from `WFS-UI_effects.csv` by `tools/gen_effects_module_ui.py`, plus EQ display, GR meter, delay tap rows, reverb presets)
+    - The reverb module runs a real model - 0 FDN, 1 Dattorro plate, 4 modulated hall, 5 shimmer; 2 and 3 are reserved ids that run the FDN - behind optional early reflections, and shows only its model's rows: the CSV's `Models` column through `EffectsUi::isVisibleForModel`, the model resolved by `spatcore::effects::resolveReverbModel` (never compare stored ids). Plan §12.10.
+    - A reverb PRESET is an action of the state, not of the panel: `WFSValueTreeState::applyEffectReverbPreset` writes the row's fifteen values and then the type (one undo transaction, each linked member runs it itself), and a real edit (beyond 1e-6 relative) to one of those values makes the type Custom first. The funnels and the Stream Deck reach it through `EffectParamEdit`, OSC through `applyExternalEffectEdit` (reverb types drained first); **the effect MCP tools must use `applyExternalEffectEdit` too**. Snapshot recall and loads write raw.
+    - The Stream Deck's Chain page shows a module's controls in banks of twelve (`chainPageControls`, a "Page n/N" button, bank reset on a module change); a deck turn that changes the reverb's model asks for a deferred rebuild.
   - "Post-Processing" (the whole sends matrix: spatcore's `SendMatrixComponent` bound by `EffectsSendMatrixShim.cpp`)
   - "Movements" (LFO left, AutomOtion right, the Inputs tab's geometry; both are offsets the engine adds)
   - "Settings" (the nine `effectsGlobal*` + long-press Re-layout)
@@ -94,6 +97,11 @@ The application has established a solid foundation with infrastructure and core 
 - **SetAllInputsWindow** - Bulk parameter changes across all inputs (long-press access)
 - **SnapshotScopeWindow** - Extended scope editing for snapshots (parameter-level, per-channel), an Inputs tab and an Effects tab over one snapshot's two grids; opened from either tab's snapshot row
 - **LevelMeterWindow** - Real-time level metering with input/output meters, solo buttons, and thread performance
+
+### Undo: one history per tab, one step per gesture
+- Each main tab has its own history (`UndoDomain` in `WFSValueTreeState.h`; `MainComponent`'s `onTabChanged` sets the active domain; Ctrl+Z / Ctrl+Y act on the active tab only). OSC writes pick their family's domain with `ScopedUndoDomain`; the effects half of a snapshot Reload is undone on the Effects tab.
+- A step is a GESTURE: GUI widgets open one in `onGestureStart` (a drag, not a delta), and the Stream Deck's manager announces each hardware gesture through `StreamDeckManager::onEditGestureStart` - a run of turns of one dial (800 ms pause, another dial or any navigation ends it), a button press, a dial press that acts, a confirmed choice; `spatcore/controllers/streamdeck/StreamDeckGestureTracker.h` defines it, `MainComponent` opens the step. Self-test phase SD. A new hardware surface needs the same announcement, or its edits pile into whatever step is open.
+- Actions that write many values open their own step (`applyEffectReverbPreset`, `setEffectGroupMute`), so an edit made just before never goes with them.
 
 ### Core Systems Status
 
@@ -2716,7 +2724,7 @@ These files are the canonical reference for every user-facing parameter, control
 - `Documentation/WFS-UI_input.csv` — InputsTab (191 rows, includes Sampler subsystem)
 - `Documentation/WFS-UI_output.csv` — OutputsTab
 - `Documentation/WFS-UI_reverb.csv` — ReverbTab
-- `Documentation/WFS-UI_effects.csv` — EffectsTab (221 rows; the 116 module rows also GENERATE `Source/gui/effects/EffectsModuleDescriptors.h` and the `effects.*` strings through `tools/gen_effects_module_ui.py`; registered in the bounds audit, NOT yet in codegen - C9)
+- `Documentation/WFS-UI_effects.csv` — EffectsTab (232 rows; the module rows also GENERATE `Source/gui/effects/EffectsModuleDescriptors.h` and the `effects.*` strings through `tools/gen_effects_module_ui.py`; the last column, `Models`, lists the reverb models that use a control - empty = every model - and becomes `ControlDesc::modelMask`; registered in the bounds audit, NOT yet in codegen - C9)
 - `Documentation/WFS-UI_clusters.csv` — ClustersTab
 - `Documentation/WFS-UI_audioPatch.csv` — AudioInterfaceWindow (AudioPatchTab + PatchMatrixComponent + TestSignalGenerator)
 
