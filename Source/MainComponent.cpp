@@ -4807,6 +4807,15 @@ void MainComponent::runChannelListSelfTest()
             vts.undo();
             check(holdsRow(0, static_cast<int>(FX::ReverbType::MediumHall), why),
                   "RP4: ...and one undo restores Medium Hall, all fifteen (" + why + ")");
+
+            // The generic funnel - a plain per-channel write, which a single-
+            // instance module's property may also take - expands and flips
+            // the same way.
+            vts.setEffectParameterWithLinkPropagation(0, P::effectReverbType, static_cast<int>(FX::ReverbType::DrumPlate), false);
+            const bool expands = holdsRow(0, static_cast<int>(FX::ReverbType::DrumPlate), why);
+            vts.setEffectParameterWithLinkPropagation(0, P::effectReverbPredelay, 37.0, false);
+            check(expands && typeOf(0) == custom && approxEq(num(reverbOf(0).getProperty(P::effectReverbPredelay)), 37.0),
+                  "RP4: the generic funnel expands a preset, and an owned edit through it makes Custom (" + why + ")");
         }
 
         // RP5: only a REAL edit to an owned value flips; taste never does.
@@ -4983,12 +4992,19 @@ void MainComponent::runChannelListSelfTest()
             panel.setSize(1100, 640);
 
             const int expectedCount[] = { 15, 17, 15, 15, 17, 19 };     // bypass included
-            bool rows = true, noOverlap = true;
+            bool rows = true, noOverlap = true, menu = true;
+            int lowestRow[6] = {};
             for (int model = 0; model <= 5; ++model)
             {
                 reverb.setProperty(P::effectReverbModel, model, nullptr);
                 panel.loadParameters();
                 const auto shown = panel.getShownRowIds();
+                const int menuId = panel.getComboSelectedId(P::effectReverbModel);
+                if (menuId != FX::resolveReverbModel(model) + 1)
+                {
+                    menu = false;
+                    logLine("SELF-TEST FAIL RD1: stored model " + juce::String(model) + " shows menu id " + juce::String(menuId));
+                }
                 if (shown != expectedFor(model) || static_cast<int>(shown.size()) != expectedCount[model])
                 {
                     rows = false;
@@ -4999,6 +5015,7 @@ void MainComponent::runChannelListSelfTest()
                 const auto bounds = panel.getShownRowBounds();
                 for (size_t a = 0; a < bounds.size(); ++a)
                 {
+                    lowestRow[model] = juce::jmax (lowestRow[model], bounds[a].getBottom());
                     noOverlap = noOverlap && ! bounds[a].isEmpty();
                     for (size_t b = a + 1; b < bounds.size(); ++b)
                         if (bounds[a].intersects(bounds[b]))
@@ -5010,7 +5027,10 @@ void MainComponent::runChannelListSelfTest()
                 }
             }
             check(rows, "RD1: the reverb shows its model's rows - 15 FDN, 17 Plate and Hall, 19 Shimmer; 2 and 3 the FDN's");
+            check(menu, "RD1: the Model menu names what runs - the FDN for the reserved 2 and 3");
             check(noOverlap, "RD2: no two rows overlap, for any model");
+            check(lowestRow[0] < lowestRow[5] && lowestRow[1] == lowestRow[4],
+                  "RD2: hidden rows take no room - the FDN's columns end above the shimmer's");
         }
 
         // RD3: the deck's banks reach every control of every module exactly
@@ -5067,12 +5087,14 @@ void MainComponent::runChannelListSelfTest()
                 if (slot == 0 || slot == 3 || slot == 9)
                     banked = banked && got.size() > 12;         // the three a single page used to cut short
             }
-            for (int model : { 0, 1, 4, 5 })
+            const std::pair<int, size_t> reverbDials[] = { { 0, 14 }, { 1, 16 }, { 4, 16 }, { 5, 18 } };
+            for (const auto& [model, count] : reverbDials)
             {
                 reverb.setProperty(P::effectReverbModel, model, nullptr);
-                every = every && dialNames(8) == wanted(8);
+                const auto got = dialNames(8);
+                every = every && got == wanted(8) && got.size() == count;
             }
-            check(every, "RD3: across its banks the deck reaches every control of every module once, and the reverb's per model");
+            check(every, "RD3: across its banks the deck reaches every control of every module once, and the reverb's per model (14 / 16 / 16 / 18)");
             check(banked, "RD3: ...Distortion, Dynamics and Delay included, past twelve dials");
 
             // A module change starts at the first bank.

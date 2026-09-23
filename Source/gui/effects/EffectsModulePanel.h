@@ -111,6 +111,16 @@ public:
         return bounds;
     }
 
+    /** A combo row's selected id (its item value + 1; 0 for none) - the
+        self-test reads the reverb's model as the menu shows it. */
+    int getComboSelectedId (const juce::Identifier& id) const
+    {
+        for (const auto& row : rows)
+            if (row->desc->id == id && row->combo != nullptr)
+                return row->combo->getSelectedId();
+        return 0;
+    }
+
     /** The engine's per-slot meter (gain reduction for Dynamics, output peak otherwise). */
     void setMeterDb (float db)
     {
