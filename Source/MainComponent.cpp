@@ -4798,8 +4798,13 @@ void MainComponent::runChannelListSelfTest()
                   "RP3: a fresh channel is Medium Hall and holds its row (" + why + ")");
         }
 
-        // RP4: the GUI funnel expands a preset, and one undo takes all of it back.
+        // RP4: the GUI funnel expands a preset, and one undo takes all of it
+        // back - and nothing else: an edit made just before, in the step that
+        // was open (a deck turn, an OSC value), must not go with it, so the
+        // preset opens a step of its own.
         {
+            vts.beginUndoTransaction("self-test: the mix before a preset");
+            gui(0, P::effectReverbMix, 41.0);
             gui(0, P::effectReverbType, static_cast<int>(FX::ReverbType::VocalPlate));
             juce::String why;
             check(holdsRow(0, static_cast<int>(FX::ReverbType::VocalPlate), why), "RP4: Vocal Plate lands whole (" + why + ")");
@@ -4807,6 +4812,8 @@ void MainComponent::runChannelListSelfTest()
             vts.undo();
             check(holdsRow(0, static_cast<int>(FX::ReverbType::MediumHall), why),
                   "RP4: ...and one undo restores Medium Hall, all fifteen (" + why + ")");
+            check(approxEq(num(reverbOf(0).getProperty(P::effectReverbMix)), 41.0),
+                  "RP4: ...and only the preset: the edit made just before it stays");
 
             // The generic funnel - a plain per-channel write, which a single-
             // instance module's property may also take - expands and flips
@@ -8823,6 +8830,29 @@ void MainComponent::runChannelListSelfTest()
             probe.publishDirty();
             check(probe.getRevision(1) == rev1 + 1, "C7: nothing dirty, nothing published");
             probe.release();
+        }
+
+        // C8: the reverb's model, preset and the six fields its models added
+        // land in their own fields - written raw, so no preset expansion moves
+        // them, each to a value no default and no neighbour shares
+        {
+            auto reverb = vts.getEffectModuleSection(0, P::FxReverb);
+            reverb.setProperty(P::effectReverbModel, 4, nullptr);
+            reverb.setProperty(P::effectReverbType, 11, nullptr);
+            reverb.setProperty(P::effectReverbERProfile, 3, nullptr);
+            reverb.setProperty(P::effectReverbERLevel, -12.5f, nullptr);
+            reverb.setProperty(P::effectReverbModRate, 1.7f, nullptr);
+            reverb.setProperty(P::effectReverbModDepth, 63.0f, nullptr);
+            reverb.setProperty(P::effectReverbShimmerPitch, 6, nullptr);
+            reverb.setProperty(P::effectReverbShimmerAmount, 71.0f, nullptr);
+            const EffectChannelParams p = EffectsHost::cookChannel(vts, 0, order, orderOk);
+            check(p.reverb.model == 4 && p.reverb.type == 11, "C8: the reverb's model and preset land in reverb.model and reverb.type");
+            check(p.reverb.erProfile == 3 && p.reverb.erLevelDb == -12.5f,
+                  "C8: the reflection profile and level land in reverb.erProfile and reverb.erLevelDb, still in dB");
+            check(p.reverb.modRateHz == 1.7f && p.reverb.modDepth == 63.0f,
+                  "C8: the modulation rate and depth land in reverb.modRateHz and reverb.modDepth");
+            check(p.reverb.shimmerPitch == 6 && p.reverb.shimmerAmount == 71.0f,
+                  "C8: the shimmer interval and amount land in reverb.shimmerPitch and reverb.shimmerAmount");
         }
 
         vts.setNumEffectChannels(0);
