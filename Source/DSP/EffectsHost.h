@@ -8,6 +8,7 @@
 #include "WFSCalculationEngine.h"
 #include "../../spatcore/effects/EffectsEngine.h"
 #include "../../spatcore/effects/EffectParams.h"
+#include "../../spatcore/effects/EffectPresets.h"
 #include "../../spatcore/effects/EffectsTypes.h"
 #include "../../spatcore/rt/SharedInputRingBuffer.h"
 #include "../../spatcore/rt/AudioWorkgroupCoordinator.h"
@@ -544,6 +545,21 @@ public:
             f (n, effectReverbSize, p.reverb.size);
             f (n, effectReverbTone, p.reverb.toneHz);
             f (n, effectReverbMix, p.reverb.mix);
+            u8 (n, effectReverbERProfile, p.reverb.erProfile);
+            f (n, effectReverbERLevel, p.reverb.erLevelDb);
+            f (n, effectReverbModRate, p.reverb.modRateHz);
+            f (n, effectReverbModDepth, p.reverb.modDepth);
+            u8 (n, effectReverbShimmerPitch, p.reverb.shimmerPitch);
+            f (n, effectReverbShimmerAmount, p.reverb.shimmerAmount);
+
+            // The app's ranges are spatcore's enums; a new profile or interval
+            // there has to be offered here too.
+            static_assert (WFSParameterDefaults::effectReverbERProfileMax + 1
+                           == static_cast<int> (spatcore::effects::ErProfile::Count));
+            static_assert (WFSParameterDefaults::effectReverbShimmerPitchMax + 1
+                           == static_cast<int> (spatcore::effects::ShimmerInterval::Count));
+            static_assert (WFSParameterDefaults::effectReverbModelMax + 1
+                           == static_cast<int> (spatcore::effects::ReverbModel::Count));
         }
 
         // Multitap delay: the module node plus its eight <Tap> children

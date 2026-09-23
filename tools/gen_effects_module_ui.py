@@ -3,7 +3,9 @@
 from Documentation/WFS-UI_effects.csv.
 
 The CSV is the contract for every chain-module control: kind (UI column),
-range, default, unit and enum. This script emits
+range, default, unit, enum, and - for the reverb - which of its models use
+the control (the Models column: empty for all of them, else the model ids,
+"1,4,5"). This script emits
 
   Source/gui/effects/EffectsModuleDescriptors.h   (C++ descriptor tables)
   Resources/lang/en.json                           (effects.labels / help /
@@ -166,9 +168,13 @@ def read_rows():
                 enum_prefix = 'effects.enums.%s.' % key
                 enums[key] = collections.OrderedDict((slug_of(n), n) for _, n in items)
 
+        models = [int(m) for m in col(r, 'Models').replace(' ', '').split(',') if m]
+        if models and sec != 'FxReverb':
+            raise SystemExit('a Models cell outside the reverb: ' + var)
         ctrl = dict(var=var, key=key, kind=kind, min=num(col(r, 'Min')), max=num(col(r, 'Max')),
                     default=num(col(r, 'Default')), unit=col(r, 'Unit'), enum_prefix=enum_prefix,
-                    items=[(v, slug_of(n)) for v, n in items])
+                    items=[(v, slug_of(n)) for v, n in items],
+                    mask=sum(1 << m for m in models))
         if sec == 'FxEQ':
             eq_rows[var] = ctrl
         elif var in ('effectDelayTapTime', 'effectDelayTapLevel'):
@@ -181,9 +187,9 @@ def read_rows():
 
 def emit_ctrl(c):
     items = ', '.join('{ %d, "%s" }' % (v, s) for v, s in c['items'])
-    return ('        { WFSParameterIDs::%s, "%s", Kind::%s, %s, %s, %s, "%s", "%s", { %s } },'
+    return ('        { WFSParameterIDs::%s, "%s", Kind::%s, %s, %s, %s, "%s", "%s", { %s }, 0x%xu },'
             % (c['var'], c['key'], c['kind'], flit(c['min']), flit(c['max']), flit(c['default']),
-               c['unit'], c['enum_prefix'], items))
+               c['unit'], c['enum_prefix'], items, c['mask']))
 
 
 HEADER_TOP = '''#pragma once
@@ -224,9 +230,20 @@ struct ControlDesc
     const char* unit;
     const char* enumPrefix;     // LOC prefix for the items' slugs ("" when none)
     std::vector<EnumItem> items;
+    unsigned modelMask;         // reverb: bit m set = used by model m; 0 = by every model
 };
 
 struct ModuleControls { const ControlDesc* controls; int count; };
+
+/** Whether a reverb control is used by `resolvedModel` - the model
+    spatcore::effects::resolveReverbModel says a stored id runs. The CSV's
+    Models column; every other module's controls answer true. */
+inline bool isVisibleForModel (const ControlDesc& d, int resolvedModel)
+{
+    if (d.modelMask == 0)
+        return true;
+    return resolvedModel >= 0 && resolvedModel < 32 && ((d.modelMask >> resolvedModel) & 1u) != 0;
+}
 '''
 
 HEADER_TAIL = '''/** The controls of a declared slot (spatcore::effects::kSlots order). The

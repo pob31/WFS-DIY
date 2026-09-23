@@ -1967,6 +1967,7 @@ bool WFSValueTreeState::isEffectLinkAbsoluteOnly (const juce::Identifier& paramI
         effectPhaserBypass, effectPhaserStages, effectPhaserShape,
         effectTremBypass,
         effectReverbBypass, effectReverbModel, effectReverbType,
+        effectReverbERProfile, effectReverbShimmerPitch,
         effectDelayBypass, effectDelayTaps, effectDelayTapMode, effectDelayPattern,
         effectDelayFeedbackTap,
         effectCrushBypass, effectCrushFilter,
@@ -6993,6 +6994,12 @@ juce::ValueTree WFSValueTreeState::createEffectReverbSection()
     reverb.setProperty (effectReverbSize, effectReverbSizeDefault, nullptr);
     reverb.setProperty (effectReverbTone, effectReverbToneDefault, nullptr);
     reverb.setProperty (effectReverbMix, effectReverbMixDefault, nullptr);
+    reverb.setProperty (effectReverbERProfile, effectReverbERProfileDefault, nullptr);
+    reverb.setProperty (effectReverbERLevel, effectReverbERLevelDefault, nullptr);
+    reverb.setProperty (effectReverbModRate, effectReverbModRateDefault, nullptr);
+    reverb.setProperty (effectReverbModDepth, effectReverbModDepthDefault, nullptr);
+    reverb.setProperty (effectReverbShimmerPitch, effectReverbShimmerPitchDefault, nullptr);
+    reverb.setProperty (effectReverbShimmerAmount, effectReverbShimmerAmountDefault, nullptr);
     return reverb;
 }
 

@@ -1626,7 +1626,13 @@
       "eqGain": "EQ Gain:",
       "eqQ": "EQ Q:",
       "eqSlope": "EQ Slope:",
-      "eqBypass": "EQ:"
+      "eqBypass": "EQ:",
+      "reverbERProfile": "Early Reflections:",
+      "reverbERLevel": "ER Level:",
+      "reverbModRate": "Modulation Rate:",
+      "reverbModDepth": "Modulation Depth:",
+      "reverbShimmerPitch": "Shimmer Interval:",
+      "reverbShimmerAmount": "Shimmer Amount:"
     },
     "toggles": {
       "minLatencyOn": "Minimal Latency Allowed",
@@ -1823,7 +1829,7 @@
       "tremShape": "Blend the tremolo LFO from sine (0) to triangle (1).",
       "tremMix": "Dry/wet mix of the tremolo (wet %).",
       "reverbBypass": "Bypass the in-chain reverb module.",
-      "reverbModel": "Select the reverb algorithm behind this module.",
+      "reverbModel": "Select the reverb algorithm behind this module: FDN, Plate, Modulated Hall or Shimmer.",
       "reverbType": "Named preset within the selected reverb model.",
       "reverbPredelay": "Predelay before the reverb module's tail (0 - 250 ms).",
       "reverbRT60": "Reverb decay time RT60 (0.2 - 8.0 seconds).",
@@ -1886,7 +1892,13 @@
       "settingsLoopGuard": "Automatically mute an effect-to-effect feed that is running away. The one setting here that applies live.",
       "settingsLoopGuardCeiling": "Peak level at which the loop guard trips (dBFS). Applies at the next Processing start.",
       "settingsMaxDelay": "Longest delay any effects channel may buffer, in seconds; sizes every delay module. Applies at the next Processing start.",
-      "settingsFeedDevice": "Compute device used for the effects feed stage. Applies at the next Processing start."
+      "settingsFeedDevice": "Compute device used for the effects feed stage. Applies at the next Processing start.",
+      "reverbERProfile": "Early reflections in front of the reverb: Off, Room, Chamber, Hall or Cathedral.",
+      "reverbERLevel": "Level of the early reflections (-30 to +6 dB against the dry).",
+      "reverbModRate": "Speed of the modulation inside the reverb tank (0.05 - 5 Hz).",
+      "reverbModDepth": "Depth of the modulation inside the reverb tank (0 - 100 %).",
+      "reverbShimmerPitch": "The interval the shimmer climbs by on every pass through the tank.",
+      "reverbShimmerAmount": "How much of the tail is pitch-shifted (0 - 100 %)."
     },
     "sends": {
       "corner": "Sources \u2192 Effects",
@@ -1976,8 +1988,8 @@
       "reverbModel": {
         "fdn": "FDN",
         "plate": "Plate",
-        "sdn": "SDN",
-        "ir": "IR"
+        "modulatedHall": "Modulated Hall",
+        "shimmer": "Shimmer"
       },
       "reverbType": {
         "room": "Room",
@@ -1986,6 +1998,23 @@
         "cathedral": "Cathedral",
         "plate": "Plate",
         "custom": "Custom"
+      },
+      "reverbERProfile": {
+        "off": "Off",
+        "room": "Room",
+        "chamber": "Chamber",
+        "hall": "Hall",
+        "cathedral": "Cathedral"
+      },
+      "reverbShimmerPitch": {
+        "octaveUp12": "Octave up (+12)",
+        "fifthUp7": "Fifth up (+7)",
+        "fifthOctave712": "Fifth + octave (+7 & +12)",
+        "twelfth19": "Twelfth (+19)",
+        "twoOctaves24": "Two octaves (+24)",
+        "fourthUp5": "Fourth up (+5)",
+        "octaveDown12": "Octave down (-12)",
+        "octaveDownUp1212": "Octave down + up (-12 & +12)"
       },
       "delayTaps": {
         "n1": "1",

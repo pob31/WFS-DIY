@@ -36,28 +36,39 @@ struct ControlDesc
     const char* unit;
     const char* enumPrefix;     // LOC prefix for the items' slugs ("" when none)
     std::vector<EnumItem> items;
+    unsigned modelMask;         // reverb: bit m set = used by model m; 0 = by every model
 };
 
 struct ModuleControls { const ControlDesc* controls; int count; };
 
+/** Whether a reverb control is used by `resolvedModel` - the model
+    spatcore::effects::resolveReverbModel says a stored id runs. The CSV's
+    Models column; every other module's controls answer true. */
+inline bool isVisibleForModel (const ControlDesc& d, int resolvedModel)
+{
+    if (d.modelMask == 0)
+        return true;
+    return resolvedModel >= 0 && resolvedModel < 32 && ((d.modelMask >> resolvedModel) & 1u) != 0;
+}
+
 inline ModuleControls controlsForDist()
 {
     static const ControlDesc list[] = {
-        { WFSParameterIDs::effectDistBypass, "distBypass", Kind::Bypass, 0.0f, 1.0f, 1.0f, "", "", { { 0, "off" }, { 1, "on" } } },
-        { WFSParameterIDs::effectDistDrive, "distDrive", Kind::Slider, 0.0f, 40.0f, 12.0f, "dB", "", {  } },
-        { WFSParameterIDs::effectDistShape, "distShape", Kind::Slider, 0.0f, 1.0f, 0.5f, "", "", {  } },
-        { WFSParameterIDs::effectDistBias, "distBias", Kind::Dial, -0.5f, 0.5f, 0.0f, "", "", {  } },
-        { WFSParameterIDs::effectDistPreLoShelfFreq, "distPreLoShelfFreq", Kind::LogSlider, 20.0f, 2000.0f, 20.0f, "Hz", "", {  } },
-        { WFSParameterIDs::effectDistPreLoShelfGain, "distPreLoShelfGain", Kind::Dial, -24.0f, 24.0f, 0.0f, "dB", "", {  } },
-        { WFSParameterIDs::effectDistPreHiShelfFreq, "distPreHiShelfFreq", Kind::LogSlider, 1000.0f, 20000.0f, 20000.0f, "Hz", "", {  } },
-        { WFSParameterIDs::effectDistPreHiShelfGain, "distPreHiShelfGain", Kind::Dial, -24.0f, 24.0f, 0.0f, "dB", "", {  } },
-        { WFSParameterIDs::effectDistPostLoShelfFreq, "distPostLoShelfFreq", Kind::LogSlider, 20.0f, 2000.0f, 20.0f, "Hz", "", {  } },
-        { WFSParameterIDs::effectDistPostLoShelfGain, "distPostLoShelfGain", Kind::Dial, -24.0f, 24.0f, 0.0f, "dB", "", {  } },
-        { WFSParameterIDs::effectDistPostHiShelfFreq, "distPostHiShelfFreq", Kind::LogSlider, 1000.0f, 20000.0f, 20000.0f, "Hz", "", {  } },
-        { WFSParameterIDs::effectDistPostHiShelfGain, "distPostHiShelfGain", Kind::Dial, -24.0f, 24.0f, 0.0f, "dB", "", {  } },
-        { WFSParameterIDs::effectDistOutput, "distOutput", Kind::Slider, -24.0f, 12.0f, -6.0f, "dB", "", {  } },
-        { WFSParameterIDs::effectDistMix, "distMix", Kind::Slider, 0.0f, 100.0f, 100.0f, "%", "", {  } },
-        { WFSParameterIDs::effectDistOversample, "distOversample", Kind::Combo, 0.0f, 3.0f, 0.0f, "", "effects.enums.distOversample.", { { 0, "auto" }, { 1, "off" }, { 2, "n2x" }, { 3, "n4x" } } },
+        { WFSParameterIDs::effectDistBypass, "distBypass", Kind::Bypass, 0.0f, 1.0f, 1.0f, "", "", { { 0, "off" }, { 1, "on" } }, 0x0u },
+        { WFSParameterIDs::effectDistDrive, "distDrive", Kind::Slider, 0.0f, 40.0f, 12.0f, "dB", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDistShape, "distShape", Kind::Slider, 0.0f, 1.0f, 0.5f, "", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDistBias, "distBias", Kind::Dial, -0.5f, 0.5f, 0.0f, "", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDistPreLoShelfFreq, "distPreLoShelfFreq", Kind::LogSlider, 20.0f, 2000.0f, 20.0f, "Hz", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDistPreLoShelfGain, "distPreLoShelfGain", Kind::Dial, -24.0f, 24.0f, 0.0f, "dB", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDistPreHiShelfFreq, "distPreHiShelfFreq", Kind::LogSlider, 1000.0f, 20000.0f, 20000.0f, "Hz", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDistPreHiShelfGain, "distPreHiShelfGain", Kind::Dial, -24.0f, 24.0f, 0.0f, "dB", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDistPostLoShelfFreq, "distPostLoShelfFreq", Kind::LogSlider, 20.0f, 2000.0f, 20.0f, "Hz", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDistPostLoShelfGain, "distPostLoShelfGain", Kind::Dial, -24.0f, 24.0f, 0.0f, "dB", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDistPostHiShelfFreq, "distPostHiShelfFreq", Kind::LogSlider, 1000.0f, 20000.0f, 20000.0f, "Hz", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDistPostHiShelfGain, "distPostHiShelfGain", Kind::Dial, -24.0f, 24.0f, 0.0f, "dB", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDistOutput, "distOutput", Kind::Slider, -24.0f, 12.0f, -6.0f, "dB", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDistMix, "distMix", Kind::Slider, 0.0f, 100.0f, 100.0f, "%", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDistOversample, "distOversample", Kind::Combo, 0.0f, 3.0f, 0.0f, "", "effects.enums.distOversample.", { { 0, "auto" }, { 1, "off" }, { 2, "n2x" }, { 3, "n4x" } }, 0x0u },
     };
     return { list, static_cast<int> (std::size (list)) };
 }
@@ -65,29 +76,29 @@ inline ModuleControls controlsForDist()
 inline ModuleControls controlsForDyn()
 {
     static const ControlDesc list[] = {
-        { WFSParameterIDs::effectDynBypass, "dynBypass", Kind::Bypass, 0.0f, 1.0f, 1.0f, "", "", { { 0, "off" }, { 1, "on" } } },
-        { WFSParameterIDs::effectDynDetector, "dynDetector", Kind::Toggle, 0.0f, 1.0f, 0.0f, "", "effects.enums.dynDetector.", { { 0, "peak" }, { 1, "rms" } } },
-        { WFSParameterIDs::effectDynLookahead, "dynLookahead", Kind::Slider, 0.0f, 5.0f, 1.0f, "ms", "", {  } },
-        { WFSParameterIDs::effectDynMakeup, "dynMakeup", Kind::Dial, -24.0f, 24.0f, 0.0f, "dB", "", {  } },
-        { WFSParameterIDs::effectDynAutoMakeup, "dynAutoMakeup", Kind::Toggle, 0.0f, 1.0f, 0.0f, "", "effects.enums.onOff.", { { 0, "off" }, { 1, "on" } } },
-        { WFSParameterIDs::effectDynCompOn, "dynCompOn", Kind::Toggle, 0.0f, 1.0f, 1.0f, "", "effects.enums.onOff.", { { 0, "off" }, { 1, "on" } } },
-        { WFSParameterIDs::effectDynCompThreshold, "dynCompThreshold", Kind::Slider, -60.0f, 0.0f, -20.0f, "dB", "", {  } },
-        { WFSParameterIDs::effectDynCompRatio, "dynCompRatio", Kind::LogSlider, 1.0f, 100.0f, 4.0f, ":1", "", {  } },
-        { WFSParameterIDs::effectDynCompKnee, "dynCompKnee", Kind::Dial, 0.0f, 24.0f, 0.0f, "dB", "", {  } },
-        { WFSParameterIDs::effectDynCompAttack, "dynCompAttack", Kind::LogSlider, 0.05f, 200.0f, 10.0f, "ms", "", {  } },
-        { WFSParameterIDs::effectDynCompRelease, "dynCompRelease", Kind::LogSlider, 5.0f, 2000.0f, 100.0f, "ms", "", {  } },
-        { WFSParameterIDs::effectDynCompDetectorDelay, "dynCompDetectorDelay", Kind::Slider, 0.0f, 50.0f, 0.0f, "ms", "", {  } },
-        { WFSParameterIDs::effectDynCompScLoCut, "dynCompScLoCut", Kind::LogSlider, 20.0f, 2000.0f, 20.0f, "Hz", "", {  } },
-        { WFSParameterIDs::effectDynCompScHiCut, "dynCompScHiCut", Kind::LogSlider, 1000.0f, 20000.0f, 20000.0f, "Hz", "", {  } },
-        { WFSParameterIDs::effectDynExpOn, "dynExpOn", Kind::Toggle, 0.0f, 1.0f, 0.0f, "", "effects.enums.onOff.", { { 0, "off" }, { 1, "on" } } },
-        { WFSParameterIDs::effectDynExpThreshold, "dynExpThreshold", Kind::Slider, -90.0f, 0.0f, -50.0f, "dB", "", {  } },
-        { WFSParameterIDs::effectDynExpRatio, "dynExpRatio", Kind::LogSlider, 1.0f, 100.0f, 2.0f, ":1", "", {  } },
-        { WFSParameterIDs::effectDynExpAttack, "dynExpAttack", Kind::LogSlider, 0.05f, 200.0f, 10.0f, "ms", "", {  } },
-        { WFSParameterIDs::effectDynExpRelease, "dynExpRelease", Kind::LogSlider, 5.0f, 2000.0f, 100.0f, "ms", "", {  } },
-        { WFSParameterIDs::effectDynExpRange, "dynExpRange", Kind::Slider, -80.0f, 0.0f, -60.0f, "dB", "", {  } },
-        { WFSParameterIDs::effectDynExpHold, "dynExpHold", Kind::Slider, 0.0f, 500.0f, 20.0f, "ms", "", {  } },
-        { WFSParameterIDs::effectDynExpScLoCut, "dynExpScLoCut", Kind::LogSlider, 20.0f, 2000.0f, 20.0f, "Hz", "", {  } },
-        { WFSParameterIDs::effectDynExpScHiCut, "dynExpScHiCut", Kind::LogSlider, 1000.0f, 20000.0f, 20000.0f, "Hz", "", {  } },
+        { WFSParameterIDs::effectDynBypass, "dynBypass", Kind::Bypass, 0.0f, 1.0f, 1.0f, "", "", { { 0, "off" }, { 1, "on" } }, 0x0u },
+        { WFSParameterIDs::effectDynDetector, "dynDetector", Kind::Toggle, 0.0f, 1.0f, 0.0f, "", "effects.enums.dynDetector.", { { 0, "peak" }, { 1, "rms" } }, 0x0u },
+        { WFSParameterIDs::effectDynLookahead, "dynLookahead", Kind::Slider, 0.0f, 5.0f, 1.0f, "ms", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDynMakeup, "dynMakeup", Kind::Dial, -24.0f, 24.0f, 0.0f, "dB", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDynAutoMakeup, "dynAutoMakeup", Kind::Toggle, 0.0f, 1.0f, 0.0f, "", "effects.enums.onOff.", { { 0, "off" }, { 1, "on" } }, 0x0u },
+        { WFSParameterIDs::effectDynCompOn, "dynCompOn", Kind::Toggle, 0.0f, 1.0f, 1.0f, "", "effects.enums.onOff.", { { 0, "off" }, { 1, "on" } }, 0x0u },
+        { WFSParameterIDs::effectDynCompThreshold, "dynCompThreshold", Kind::Slider, -60.0f, 0.0f, -20.0f, "dB", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDynCompRatio, "dynCompRatio", Kind::LogSlider, 1.0f, 100.0f, 4.0f, ":1", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDynCompKnee, "dynCompKnee", Kind::Dial, 0.0f, 24.0f, 0.0f, "dB", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDynCompAttack, "dynCompAttack", Kind::LogSlider, 0.05f, 200.0f, 10.0f, "ms", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDynCompRelease, "dynCompRelease", Kind::LogSlider, 5.0f, 2000.0f, 100.0f, "ms", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDynCompDetectorDelay, "dynCompDetectorDelay", Kind::Slider, 0.0f, 50.0f, 0.0f, "ms", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDynCompScLoCut, "dynCompScLoCut", Kind::LogSlider, 20.0f, 2000.0f, 20.0f, "Hz", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDynCompScHiCut, "dynCompScHiCut", Kind::LogSlider, 1000.0f, 20000.0f, 20000.0f, "Hz", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDynExpOn, "dynExpOn", Kind::Toggle, 0.0f, 1.0f, 0.0f, "", "effects.enums.onOff.", { { 0, "off" }, { 1, "on" } }, 0x0u },
+        { WFSParameterIDs::effectDynExpThreshold, "dynExpThreshold", Kind::Slider, -90.0f, 0.0f, -50.0f, "dB", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDynExpRatio, "dynExpRatio", Kind::LogSlider, 1.0f, 100.0f, 2.0f, ":1", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDynExpAttack, "dynExpAttack", Kind::LogSlider, 0.05f, 200.0f, 10.0f, "ms", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDynExpRelease, "dynExpRelease", Kind::LogSlider, 5.0f, 2000.0f, 100.0f, "ms", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDynExpRange, "dynExpRange", Kind::Slider, -80.0f, 0.0f, -60.0f, "dB", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDynExpHold, "dynExpHold", Kind::Slider, 0.0f, 500.0f, 20.0f, "ms", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDynExpScLoCut, "dynExpScLoCut", Kind::LogSlider, 20.0f, 2000.0f, 20.0f, "Hz", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDynExpScHiCut, "dynExpScHiCut", Kind::LogSlider, 1000.0f, 20000.0f, 20000.0f, "Hz", "", {  }, 0x0u },
     };
     return { list, static_cast<int> (std::size (list)) };
 }
@@ -95,18 +106,18 @@ inline ModuleControls controlsForDyn()
 inline ModuleControls controlsForMod()
 {
     static const ControlDesc list[] = {
-        { WFSParameterIDs::effectModBypass, "modBypass", Kind::Bypass, 0.0f, 1.0f, 1.0f, "", "", { { 0, "off" }, { 1, "on" } } },
-        { WFSParameterIDs::effectModMode, "modMode", Kind::Toggle, 0.0f, 1.0f, 0.0f, "", "effects.enums.modMode.", { { 0, "chorus" }, { 1, "flanger" } } },
-        { WFSParameterIDs::effectModRate, "modRate", Kind::LogSlider, 0.05f, 10.0f, 0.8f, "Hz", "", {  } },
-        { WFSParameterIDs::effectModDepth, "modDepth", Kind::Slider, 0.0f, 100.0f, 50.0f, "%", "", {  } },
-        { WFSParameterIDs::effectModDelay, "modDelay", Kind::LogSlider, 0.1f, 30.0f, 15.0f, "ms", "", {  } },
-        { WFSParameterIDs::effectModFeedback, "modFeedback", Kind::BiSlider, -95.0f, 95.0f, 0.0f, "%", "", {  } },
-        { WFSParameterIDs::effectModVoices, "modVoices", Kind::Combo, 1.0f, 3.0f, 2.0f, "", "effects.enums.modVoices.", { { 1, "n1" }, { 2, "n2" }, { 3, "n3" } } },
-        { WFSParameterIDs::effectModShape, "modShape", Kind::Combo, 1.0f, 8.0f, 1.0f, "", "effects.lfo.shapes.", { { 1, "sine" }, { 2, "square" }, { 3, "sawtooth" }, { 4, "triangle" }, { 5, "keystone" }, { 6, "log" }, { 7, "exp" }, { 8, "random" } } },
-        { WFSParameterIDs::effectModPhase, "modPhase", Kind::Rotation, 0.0f, 360.0f, 0.0f, "°", "", {  } },
-        { WFSParameterIDs::effectModLoCut, "modLoCut", Kind::LogSlider, 20.0f, 2000.0f, 20.0f, "Hz", "", {  } },
-        { WFSParameterIDs::effectModThroughZero, "modThroughZero", Kind::Toggle, 0.0f, 1.0f, 0.0f, "", "effects.enums.onOff.", { { 0, "off" }, { 1, "on" } } },
-        { WFSParameterIDs::effectModMix, "modMix", Kind::Slider, 0.0f, 100.0f, 50.0f, "%", "", {  } },
+        { WFSParameterIDs::effectModBypass, "modBypass", Kind::Bypass, 0.0f, 1.0f, 1.0f, "", "", { { 0, "off" }, { 1, "on" } }, 0x0u },
+        { WFSParameterIDs::effectModMode, "modMode", Kind::Toggle, 0.0f, 1.0f, 0.0f, "", "effects.enums.modMode.", { { 0, "chorus" }, { 1, "flanger" } }, 0x0u },
+        { WFSParameterIDs::effectModRate, "modRate", Kind::LogSlider, 0.05f, 10.0f, 0.8f, "Hz", "", {  }, 0x0u },
+        { WFSParameterIDs::effectModDepth, "modDepth", Kind::Slider, 0.0f, 100.0f, 50.0f, "%", "", {  }, 0x0u },
+        { WFSParameterIDs::effectModDelay, "modDelay", Kind::LogSlider, 0.1f, 30.0f, 15.0f, "ms", "", {  }, 0x0u },
+        { WFSParameterIDs::effectModFeedback, "modFeedback", Kind::BiSlider, -95.0f, 95.0f, 0.0f, "%", "", {  }, 0x0u },
+        { WFSParameterIDs::effectModVoices, "modVoices", Kind::Combo, 1.0f, 3.0f, 2.0f, "", "effects.enums.modVoices.", { { 1, "n1" }, { 2, "n2" }, { 3, "n3" } }, 0x0u },
+        { WFSParameterIDs::effectModShape, "modShape", Kind::Combo, 1.0f, 8.0f, 1.0f, "", "effects.lfo.shapes.", { { 1, "sine" }, { 2, "square" }, { 3, "sawtooth" }, { 4, "triangle" }, { 5, "keystone" }, { 6, "log" }, { 7, "exp" }, { 8, "random" } }, 0x0u },
+        { WFSParameterIDs::effectModPhase, "modPhase", Kind::Rotation, 0.0f, 360.0f, 0.0f, "°", "", {  }, 0x0u },
+        { WFSParameterIDs::effectModLoCut, "modLoCut", Kind::LogSlider, 20.0f, 2000.0f, 20.0f, "Hz", "", {  }, 0x0u },
+        { WFSParameterIDs::effectModThroughZero, "modThroughZero", Kind::Toggle, 0.0f, 1.0f, 0.0f, "", "effects.enums.onOff.", { { 0, "off" }, { 1, "on" } }, 0x0u },
+        { WFSParameterIDs::effectModMix, "modMix", Kind::Slider, 0.0f, 100.0f, 50.0f, "%", "", {  }, 0x0u },
     };
     return { list, static_cast<int> (std::size (list)) };
 }
@@ -114,15 +125,15 @@ inline ModuleControls controlsForMod()
 inline ModuleControls controlsForPhaser()
 {
     static const ControlDesc list[] = {
-        { WFSParameterIDs::effectPhaserBypass, "phaserBypass", Kind::Bypass, 0.0f, 1.0f, 1.0f, "", "", { { 0, "off" }, { 1, "on" } } },
-        { WFSParameterIDs::effectPhaserStages, "phaserStages", Kind::Combo, 4.0f, 12.0f, 6.0f, "", "effects.enums.phaserStages.", { { 4, "n4" }, { 6, "n6" }, { 8, "n8" }, { 12, "n12" } } },
-        { WFSParameterIDs::effectPhaserCentre, "phaserCentre", Kind::LogSlider, 100.0f, 5000.0f, 800.0f, "Hz", "", {  } },
-        { WFSParameterIDs::effectPhaserSpread, "phaserSpread", Kind::Slider, 0.0f, 3.0f, 1.0f, "oct", "", {  } },
-        { WFSParameterIDs::effectPhaserRate, "phaserRate", Kind::LogSlider, 0.02f, 10.0f, 0.3f, "Hz", "", {  } },
-        { WFSParameterIDs::effectPhaserDepth, "phaserDepth", Kind::Slider, 0.0f, 4.0f, 2.0f, "oct", "", {  } },
-        { WFSParameterIDs::effectPhaserShape, "phaserShape", Kind::Combo, 1.0f, 8.0f, 1.0f, "", "effects.lfo.shapes.", { { 1, "sine" }, { 2, "square" }, { 3, "sawtooth" }, { 4, "triangle" }, { 5, "keystone" }, { 6, "log" }, { 7, "exp" }, { 8, "random" } } },
-        { WFSParameterIDs::effectPhaserFeedback, "phaserFeedback", Kind::BiSlider, -95.0f, 95.0f, 30.0f, "%", "", {  } },
-        { WFSParameterIDs::effectPhaserMix, "phaserMix", Kind::Slider, 0.0f, 100.0f, 50.0f, "%", "", {  } },
+        { WFSParameterIDs::effectPhaserBypass, "phaserBypass", Kind::Bypass, 0.0f, 1.0f, 1.0f, "", "", { { 0, "off" }, { 1, "on" } }, 0x0u },
+        { WFSParameterIDs::effectPhaserStages, "phaserStages", Kind::Combo, 4.0f, 12.0f, 6.0f, "", "effects.enums.phaserStages.", { { 4, "n4" }, { 6, "n6" }, { 8, "n8" }, { 12, "n12" } }, 0x0u },
+        { WFSParameterIDs::effectPhaserCentre, "phaserCentre", Kind::LogSlider, 100.0f, 5000.0f, 800.0f, "Hz", "", {  }, 0x0u },
+        { WFSParameterIDs::effectPhaserSpread, "phaserSpread", Kind::Slider, 0.0f, 3.0f, 1.0f, "oct", "", {  }, 0x0u },
+        { WFSParameterIDs::effectPhaserRate, "phaserRate", Kind::LogSlider, 0.02f, 10.0f, 0.3f, "Hz", "", {  }, 0x0u },
+        { WFSParameterIDs::effectPhaserDepth, "phaserDepth", Kind::Slider, 0.0f, 4.0f, 2.0f, "oct", "", {  }, 0x0u },
+        { WFSParameterIDs::effectPhaserShape, "phaserShape", Kind::Combo, 1.0f, 8.0f, 1.0f, "", "effects.lfo.shapes.", { { 1, "sine" }, { 2, "square" }, { 3, "sawtooth" }, { 4, "triangle" }, { 5, "keystone" }, { 6, "log" }, { 7, "exp" }, { 8, "random" } }, 0x0u },
+        { WFSParameterIDs::effectPhaserFeedback, "phaserFeedback", Kind::BiSlider, -95.0f, 95.0f, 30.0f, "%", "", {  }, 0x0u },
+        { WFSParameterIDs::effectPhaserMix, "phaserMix", Kind::Slider, 0.0f, 100.0f, 50.0f, "%", "", {  }, 0x0u },
     };
     return { list, static_cast<int> (std::size (list)) };
 }
@@ -130,11 +141,11 @@ inline ModuleControls controlsForPhaser()
 inline ModuleControls controlsForTrem()
 {
     static const ControlDesc list[] = {
-        { WFSParameterIDs::effectTremBypass, "tremBypass", Kind::Bypass, 0.0f, 1.0f, 1.0f, "", "", { { 0, "off" }, { 1, "on" } } },
-        { WFSParameterIDs::effectTremRate, "tremRate", Kind::LogSlider, 0.05f, 20.0f, 4.0f, "Hz", "", {  } },
-        { WFSParameterIDs::effectTremDepth, "tremDepth", Kind::Slider, 0.0f, 60.0f, 12.0f, "dB", "", {  } },
-        { WFSParameterIDs::effectTremShape, "tremShape", Kind::Slider, 0.0f, 1.0f, 0.0f, "", "", {  } },
-        { WFSParameterIDs::effectTremMix, "tremMix", Kind::Slider, 0.0f, 100.0f, 100.0f, "%", "", {  } },
+        { WFSParameterIDs::effectTremBypass, "tremBypass", Kind::Bypass, 0.0f, 1.0f, 1.0f, "", "", { { 0, "off" }, { 1, "on" } }, 0x0u },
+        { WFSParameterIDs::effectTremRate, "tremRate", Kind::LogSlider, 0.05f, 20.0f, 4.0f, "Hz", "", {  }, 0x0u },
+        { WFSParameterIDs::effectTremDepth, "tremDepth", Kind::Slider, 0.0f, 60.0f, 12.0f, "dB", "", {  }, 0x0u },
+        { WFSParameterIDs::effectTremShape, "tremShape", Kind::Slider, 0.0f, 1.0f, 0.0f, "", "", {  }, 0x0u },
+        { WFSParameterIDs::effectTremMix, "tremMix", Kind::Slider, 0.0f, 100.0f, 100.0f, "%", "", {  }, 0x0u },
     };
     return { list, static_cast<int> (std::size (list)) };
 }
@@ -142,19 +153,25 @@ inline ModuleControls controlsForTrem()
 inline ModuleControls controlsForReverb()
 {
     static const ControlDesc list[] = {
-        { WFSParameterIDs::effectReverbBypass, "reverbBypass", Kind::Bypass, 0.0f, 1.0f, 1.0f, "", "", { { 0, "off" }, { 1, "on" } } },
-        { WFSParameterIDs::effectReverbModel, "reverbModel", Kind::Combo, 0.0f, 3.0f, 0.0f, "", "effects.enums.reverbModel.", { { 0, "fdn" }, { 1, "plate" }, { 2, "sdn" }, { 3, "ir" } } },
-        { WFSParameterIDs::effectReverbType, "reverbType", Kind::Combo, 0.0f, 5.0f, 0.0f, "", "effects.enums.reverbType.", { { 0, "room" }, { 1, "chamber" }, { 2, "hall" }, { 3, "cathedral" }, { 4, "plate" }, { 5, "custom" } } },
-        { WFSParameterIDs::effectReverbPredelay, "reverbPredelay", Kind::Slider, 0.0f, 250.0f, 10.0f, "ms", "", {  } },
-        { WFSParameterIDs::effectReverbRT60, "reverbRT60", Kind::LogSlider, 0.2f, 8.0f, 1.5f, "s", "", {  } },
-        { WFSParameterIDs::effectReverbRT60LowMult, "reverbRT60LowMult", Kind::LogSlider, 0.1f, 9.0f, 1.3f, "x", "", {  } },
-        { WFSParameterIDs::effectReverbRT60HighMult, "reverbRT60HighMult", Kind::LogSlider, 0.1f, 9.0f, 0.4f, "x", "", {  } },
-        { WFSParameterIDs::effectReverbCrossoverLow, "reverbCrossoverLow", Kind::LogSlider, 50.0f, 500.0f, 200.0f, "Hz", "", {  } },
-        { WFSParameterIDs::effectReverbCrossoverHigh, "reverbCrossoverHigh", Kind::LogSlider, 1000.0f, 10000.0f, 4000.0f, "Hz", "", {  } },
-        { WFSParameterIDs::effectReverbDiffusion, "reverbDiffusion", Kind::Slider, 0.0f, 1.0f, 0.5f, "", "", {  } },
-        { WFSParameterIDs::effectReverbSize, "reverbSize", Kind::Slider, 0.5f, 2.0f, 1.0f, "x", "", {  } },
-        { WFSParameterIDs::effectReverbTone, "reverbTone", Kind::LogSlider, 1000.0f, 20000.0f, 12000.0f, "Hz", "", {  } },
-        { WFSParameterIDs::effectReverbMix, "reverbMix", Kind::Slider, 0.0f, 100.0f, 30.0f, "%", "", {  } },
+        { WFSParameterIDs::effectReverbBypass, "reverbBypass", Kind::Bypass, 0.0f, 1.0f, 1.0f, "", "", { { 0, "off" }, { 1, "on" } }, 0x0u },
+        { WFSParameterIDs::effectReverbModel, "reverbModel", Kind::Combo, 0.0f, 5.0f, 0.0f, "", "effects.enums.reverbModel.", { { 0, "fdn" }, { 1, "plate" }, { 4, "modulatedHall" }, { 5, "shimmer" } }, 0x0u },
+        { WFSParameterIDs::effectReverbType, "reverbType", Kind::Combo, 0.0f, 5.0f, 0.0f, "", "effects.enums.reverbType.", { { 0, "room" }, { 1, "chamber" }, { 2, "hall" }, { 3, "cathedral" }, { 4, "plate" }, { 5, "custom" } }, 0x0u },
+        { WFSParameterIDs::effectReverbERProfile, "reverbERProfile", Kind::Combo, 0.0f, 4.0f, 0.0f, "", "effects.enums.reverbERProfile.", { { 0, "off" }, { 1, "room" }, { 2, "chamber" }, { 3, "hall" }, { 4, "cathedral" } }, 0x0u },
+        { WFSParameterIDs::effectReverbERLevel, "reverbERLevel", Kind::Slider, -30.0f, 6.0f, -6.0f, "dB", "", {  }, 0x0u },
+        { WFSParameterIDs::effectReverbPredelay, "reverbPredelay", Kind::Slider, 0.0f, 250.0f, 10.0f, "ms", "", {  }, 0x0u },
+        { WFSParameterIDs::effectReverbRT60, "reverbRT60", Kind::LogSlider, 0.2f, 8.0f, 1.5f, "s", "", {  }, 0x0u },
+        { WFSParameterIDs::effectReverbRT60LowMult, "reverbRT60LowMult", Kind::LogSlider, 0.1f, 9.0f, 1.3f, "x", "", {  }, 0x0u },
+        { WFSParameterIDs::effectReverbRT60HighMult, "reverbRT60HighMult", Kind::LogSlider, 0.1f, 9.0f, 0.4f, "x", "", {  }, 0x0u },
+        { WFSParameterIDs::effectReverbCrossoverLow, "reverbCrossoverLow", Kind::LogSlider, 50.0f, 500.0f, 200.0f, "Hz", "", {  }, 0x0u },
+        { WFSParameterIDs::effectReverbCrossoverHigh, "reverbCrossoverHigh", Kind::LogSlider, 1000.0f, 10000.0f, 4000.0f, "Hz", "", {  }, 0x0u },
+        { WFSParameterIDs::effectReverbDiffusion, "reverbDiffusion", Kind::Slider, 0.0f, 1.0f, 0.5f, "", "", {  }, 0x0u },
+        { WFSParameterIDs::effectReverbSize, "reverbSize", Kind::Slider, 0.5f, 2.0f, 1.0f, "x", "", {  }, 0x0u },
+        { WFSParameterIDs::effectReverbModRate, "reverbModRate", Kind::LogSlider, 0.05f, 5.0f, 0.8f, "Hz", "", {  }, 0x32u },
+        { WFSParameterIDs::effectReverbModDepth, "reverbModDepth", Kind::Slider, 0.0f, 100.0f, 50.0f, "%", "", {  }, 0x32u },
+        { WFSParameterIDs::effectReverbShimmerPitch, "reverbShimmerPitch", Kind::Combo, 0.0f, 7.0f, 0.0f, "", "effects.enums.reverbShimmerPitch.", { { 0, "octaveUp12" }, { 1, "fifthUp7" }, { 2, "fifthOctave712" }, { 3, "twelfth19" }, { 4, "twoOctaves24" }, { 5, "fourthUp5" }, { 6, "octaveDown12" }, { 7, "octaveDownUp1212" } }, 0x20u },
+        { WFSParameterIDs::effectReverbShimmerAmount, "reverbShimmerAmount", Kind::Slider, 0.0f, 100.0f, 50.0f, "%", "", {  }, 0x20u },
+        { WFSParameterIDs::effectReverbTone, "reverbTone", Kind::LogSlider, 1000.0f, 20000.0f, 12000.0f, "Hz", "", {  }, 0x0u },
+        { WFSParameterIDs::effectReverbMix, "reverbMix", Kind::Slider, 0.0f, 100.0f, 30.0f, "%", "", {  }, 0x0u },
     };
     return { list, static_cast<int> (std::size (list)) };
 }
@@ -162,23 +179,23 @@ inline ModuleControls controlsForReverb()
 inline ModuleControls controlsForDelay()
 {
     static const ControlDesc list[] = {
-        { WFSParameterIDs::effectDelayBypass, "delayBypass", Kind::Bypass, 0.0f, 1.0f, 1.0f, "", "", { { 0, "off" }, { 1, "on" } } },
-        { WFSParameterIDs::effectDelayTime, "delayTime", Kind::LogSlider, 1.0f, 20000.0f, 375.0f, "ms", "", {  } },
-        { WFSParameterIDs::effectDelayTaps, "delayTaps", Kind::Combo, 1.0f, 8.0f, 3.0f, "", "effects.enums.delayTaps.", { { 1, "n1" }, { 2, "n2" }, { 3, "n3" }, { 4, "n4" }, { 5, "n5" }, { 6, "n6" }, { 7, "n7" }, { 8, "n8" } } },
-        { WFSParameterIDs::effectDelayTapMode, "delayTapMode", Kind::Toggle, 0.0f, 1.0f, 1.0f, "", "effects.enums.delayTapMode.", { { 0, "manual" }, { 1, "pattern" } } },
-        { WFSParameterIDs::effectDelayPattern, "delayPattern", Kind::Combo, 0.0f, 3.0f, 0.0f, "", "effects.enums.delayPattern.", { { 0, "equal" }, { 1, "dotted" }, { 2, "triplet" }, { 3, "golden" } } },
-        { WFSParameterIDs::effectDelayFeedback, "delayFeedback", Kind::Slider, 0.0f, 95.0f, 30.0f, "%", "", {  } },
-        { WFSParameterIDs::effectDelayFeedbackTap, "delayFeedbackTap", Kind::Combo, 0.0f, 8.0f, 0.0f, "", "effects.enums.delayFeedbackTap.", { { 0, "last" }, { 1, "tap1" }, { 2, "tap2" }, { 3, "tap3" }, { 4, "tap4" }, { 5, "tap5" }, { 6, "tap6" }, { 7, "tap7" }, { 8, "tap8" } } },
-        { WFSParameterIDs::effectDelayInLoCut, "delayInLoCut", Kind::LogSlider, 20.0f, 2000.0f, 20.0f, "Hz", "", {  } },
-        { WFSParameterIDs::effectDelayFbLoShelfFreq, "delayFbLoShelfFreq", Kind::LogSlider, 20.0f, 2000.0f, 200.0f, "Hz", "", {  } },
-        { WFSParameterIDs::effectDelayFbLoShelfGain, "delayFbLoShelfGain", Kind::Dial, -24.0f, 24.0f, 0.0f, "dB", "", {  } },
-        { WFSParameterIDs::effectDelayFbHiShelfFreq, "delayFbHiShelfFreq", Kind::LogSlider, 1000.0f, 20000.0f, 4000.0f, "Hz", "", {  } },
-        { WFSParameterIDs::effectDelayFbHiShelfGain, "delayFbHiShelfGain", Kind::Dial, -24.0f, 24.0f, -3.0f, "dB", "", {  } },
-        { WFSParameterIDs::effectDelayModRate, "delayModRate", Kind::LogSlider, 0.02f, 10.0f, 0.1f, "Hz", "", {  } },
-        { WFSParameterIDs::effectDelayModDepth, "delayModDepth", Kind::Slider, 0.0f, 50.0f, 0.0f, "%", "", {  } },
-        { WFSParameterIDs::effectDelayDiffusion, "delayDiffusion", Kind::Slider, 0.0f, 1.0f, 0.0f, "", "", {  } },
-        { WFSParameterIDs::effectDelayGlide, "delayGlide", Kind::Slider, 0.0f, 2000.0f, 200.0f, "ms", "", {  } },
-        { WFSParameterIDs::effectDelayMix, "delayMix", Kind::Slider, 0.0f, 100.0f, 35.0f, "%", "", {  } },
+        { WFSParameterIDs::effectDelayBypass, "delayBypass", Kind::Bypass, 0.0f, 1.0f, 1.0f, "", "", { { 0, "off" }, { 1, "on" } }, 0x0u },
+        { WFSParameterIDs::effectDelayTime, "delayTime", Kind::LogSlider, 1.0f, 20000.0f, 375.0f, "ms", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDelayTaps, "delayTaps", Kind::Combo, 1.0f, 8.0f, 3.0f, "", "effects.enums.delayTaps.", { { 1, "n1" }, { 2, "n2" }, { 3, "n3" }, { 4, "n4" }, { 5, "n5" }, { 6, "n6" }, { 7, "n7" }, { 8, "n8" } }, 0x0u },
+        { WFSParameterIDs::effectDelayTapMode, "delayTapMode", Kind::Toggle, 0.0f, 1.0f, 1.0f, "", "effects.enums.delayTapMode.", { { 0, "manual" }, { 1, "pattern" } }, 0x0u },
+        { WFSParameterIDs::effectDelayPattern, "delayPattern", Kind::Combo, 0.0f, 3.0f, 0.0f, "", "effects.enums.delayPattern.", { { 0, "equal" }, { 1, "dotted" }, { 2, "triplet" }, { 3, "golden" } }, 0x0u },
+        { WFSParameterIDs::effectDelayFeedback, "delayFeedback", Kind::Slider, 0.0f, 95.0f, 30.0f, "%", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDelayFeedbackTap, "delayFeedbackTap", Kind::Combo, 0.0f, 8.0f, 0.0f, "", "effects.enums.delayFeedbackTap.", { { 0, "last" }, { 1, "tap1" }, { 2, "tap2" }, { 3, "tap3" }, { 4, "tap4" }, { 5, "tap5" }, { 6, "tap6" }, { 7, "tap7" }, { 8, "tap8" } }, 0x0u },
+        { WFSParameterIDs::effectDelayInLoCut, "delayInLoCut", Kind::LogSlider, 20.0f, 2000.0f, 20.0f, "Hz", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDelayFbLoShelfFreq, "delayFbLoShelfFreq", Kind::LogSlider, 20.0f, 2000.0f, 200.0f, "Hz", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDelayFbLoShelfGain, "delayFbLoShelfGain", Kind::Dial, -24.0f, 24.0f, 0.0f, "dB", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDelayFbHiShelfFreq, "delayFbHiShelfFreq", Kind::LogSlider, 1000.0f, 20000.0f, 4000.0f, "Hz", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDelayFbHiShelfGain, "delayFbHiShelfGain", Kind::Dial, -24.0f, 24.0f, -3.0f, "dB", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDelayModRate, "delayModRate", Kind::LogSlider, 0.02f, 10.0f, 0.1f, "Hz", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDelayModDepth, "delayModDepth", Kind::Slider, 0.0f, 50.0f, 0.0f, "%", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDelayDiffusion, "delayDiffusion", Kind::Slider, 0.0f, 1.0f, 0.0f, "", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDelayGlide, "delayGlide", Kind::Slider, 0.0f, 2000.0f, 200.0f, "ms", "", {  }, 0x0u },
+        { WFSParameterIDs::effectDelayMix, "delayMix", Kind::Slider, 0.0f, 100.0f, 35.0f, "%", "", {  }, 0x0u },
     };
     return { list, static_cast<int> (std::size (list)) };
 }
@@ -186,12 +203,12 @@ inline ModuleControls controlsForDelay()
 inline ModuleControls controlsForCrush()
 {
     static const ControlDesc list[] = {
-        { WFSParameterIDs::effectCrushBypass, "crushBypass", Kind::Bypass, 0.0f, 1.0f, 1.0f, "", "", { { 0, "off" }, { 1, "on" } } },
-        { WFSParameterIDs::effectCrushBits, "crushBits", Kind::Slider, 1.0f, 24.0f, 8.0f, "bits", "", {  } },
-        { WFSParameterIDs::effectCrushRate, "crushRate", Kind::LogSlider, 100.0f, 96000.0f, 12000.0f, "Hz", "", {  } },
-        { WFSParameterIDs::effectCrushFilter, "crushFilter", Kind::Toggle, 0.0f, 1.0f, 0.0f, "", "effects.enums.crushFilter.", { { 0, "hold" }, { 1, "antiAliased" } } },
-        { WFSParameterIDs::effectCrushDither, "crushDither", Kind::Slider, -96.0f, 0.0f, -96.0f, "dB", "", {  } },
-        { WFSParameterIDs::effectCrushMix, "crushMix", Kind::Slider, 0.0f, 100.0f, 100.0f, "%", "", {  } },
+        { WFSParameterIDs::effectCrushBypass, "crushBypass", Kind::Bypass, 0.0f, 1.0f, 1.0f, "", "", { { 0, "off" }, { 1, "on" } }, 0x0u },
+        { WFSParameterIDs::effectCrushBits, "crushBits", Kind::Slider, 1.0f, 24.0f, 8.0f, "bits", "", {  }, 0x0u },
+        { WFSParameterIDs::effectCrushRate, "crushRate", Kind::LogSlider, 100.0f, 96000.0f, 12000.0f, "Hz", "", {  }, 0x0u },
+        { WFSParameterIDs::effectCrushFilter, "crushFilter", Kind::Toggle, 0.0f, 1.0f, 0.0f, "", "effects.enums.crushFilter.", { { 0, "hold" }, { 1, "antiAliased" } }, 0x0u },
+        { WFSParameterIDs::effectCrushDither, "crushDither", Kind::Slider, -96.0f, 0.0f, -96.0f, "dB", "", {  }, 0x0u },
+        { WFSParameterIDs::effectCrushMix, "crushMix", Kind::Slider, 0.0f, 100.0f, 100.0f, "%", "", {  }, 0x0u },
     };
     return { list, static_cast<int> (std::size (list)) };
 }
@@ -199,56 +216,56 @@ inline ModuleControls controlsForCrush()
 inline const ControlDesc& eqBypass()
 {
     static const ControlDesc d = 
-{ WFSParameterIDs::effectEQBypass, "eqBypass", Kind::Bypass, 0.0f, 1.0f, 1.0f, "", "", { { 0, "off" }, { 1, "on" } } };
+{ WFSParameterIDs::effectEQBypass, "eqBypass", Kind::Bypass, 0.0f, 1.0f, 1.0f, "", "", { { 0, "off" }, { 1, "on" } }, 0x0u };
     return d;
 }
 
 inline const ControlDesc& descEQshape()
 {
     static const ControlDesc d = 
-{ WFSParameterIDs::effectEQshape, "eqShape", Kind::Combo, 0.0f, 7.0f, 1.0f, "", "effects.enums.eqShape.", { { 0, "off" }, { 1, "lowCut" }, { 2, "lowShelf" }, { 3, "peakNotch" }, { 4, "bandPass" }, { 5, "highShelf" }, { 6, "highCut" }, { 7, "allPass" } } };
+{ WFSParameterIDs::effectEQshape, "eqShape", Kind::Combo, 0.0f, 7.0f, 1.0f, "", "effects.enums.eqShape.", { { 0, "off" }, { 1, "lowCut" }, { 2, "lowShelf" }, { 3, "peakNotch" }, { 4, "bandPass" }, { 5, "highShelf" }, { 6, "highCut" }, { 7, "allPass" } }, 0x0u };
     return d;
 }
 
 inline const ControlDesc& descEQfreq()
 {
     static const ControlDesc d = 
-{ WFSParameterIDs::effectEQfreq, "eqFreq", Kind::Slider, 20.0f, 20000.0f, 80.0f, "Hz", "", {  } };
+{ WFSParameterIDs::effectEQfreq, "eqFreq", Kind::Slider, 20.0f, 20000.0f, 80.0f, "Hz", "", {  }, 0x0u };
     return d;
 }
 
 inline const ControlDesc& descEQgain()
 {
     static const ControlDesc d = 
-{ WFSParameterIDs::effectEQgain, "eqGain", Kind::Dial, -24.0f, 24.0f, 0.0f, "dB", "", {  } };
+{ WFSParameterIDs::effectEQgain, "eqGain", Kind::Dial, -24.0f, 24.0f, 0.0f, "dB", "", {  }, 0x0u };
     return d;
 }
 
 inline const ControlDesc& descEQq()
 {
     static const ControlDesc d = 
-{ WFSParameterIDs::effectEQq, "eqQ", Kind::Dial, 0.1f, 10.0f, 0.7f, "", "", {  } };
+{ WFSParameterIDs::effectEQq, "eqQ", Kind::Dial, 0.1f, 10.0f, 0.7f, "", "", {  }, 0x0u };
     return d;
 }
 
 inline const ControlDesc& descEQslope()
 {
     static const ControlDesc d = 
-{ WFSParameterIDs::effectEQslope, "eqSlope", Kind::Dial, 0.1f, 1.0f, 0.7f, "", "", {  } };
+{ WFSParameterIDs::effectEQslope, "eqSlope", Kind::Dial, 0.1f, 1.0f, 0.7f, "", "", {  }, 0x0u };
     return d;
 }
 
 inline const ControlDesc& descDelayTapTime()
 {
     static const ControlDesc d = 
-{ WFSParameterIDs::effectDelayTapTime, "delayTapTime", Kind::LogSlider, 1.0f, 20000.0f, 375.0f, "ms", "", {  } };
+{ WFSParameterIDs::effectDelayTapTime, "delayTapTime", Kind::LogSlider, 1.0f, 20000.0f, 375.0f, "ms", "", {  }, 0x0u };
     return d;
 }
 
 inline const ControlDesc& descDelayTapLevel()
 {
     static const ControlDesc d = 
-{ WFSParameterIDs::effectDelayTapLevel, "delayTapLevel", Kind::Slider, -60.0f, 0.0f, 0.0f, "dB", "", {  } };
+{ WFSParameterIDs::effectDelayTapLevel, "delayTapLevel", Kind::Slider, -60.0f, 0.0f, 0.0f, "dB", "", {  }, 0x0u };
     return d;
 }
 

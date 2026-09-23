@@ -614,6 +614,12 @@ namespace
             BIND_F (effectReverbSize);
             BIND_F (effectReverbTone);
             BIND_F (effectReverbMix);
+            BIND_I (effectReverbERProfile);
+            BIND_F (effectReverbERLevel);
+            BIND_F (effectReverbModRate);
+            BIND_F (effectReverbModDepth);
+            BIND_I (effectReverbShimmerPitch);
+            BIND_F (effectReverbShimmerAmount);
 
             // FxDelay
             BIND_BOOL (effectDelayBypass);

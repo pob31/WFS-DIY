@@ -462,6 +462,12 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getEffectAddre
         { "reverbSize",             WFSParameterIDs::effectReverbSize },
         { "reverbTone",             WFSParameterIDs::effectReverbTone },
         { "reverbMix",              WFSParameterIDs::effectReverbMix },
+        { "reverbERProfile",        WFSParameterIDs::effectReverbERProfile },
+        { "reverbERLevel",          WFSParameterIDs::effectReverbERLevel },
+        { "reverbModRate",          WFSParameterIDs::effectReverbModRate },
+        { "reverbModDepth",         WFSParameterIDs::effectReverbModDepth },
+        { "reverbShimmerPitch",     WFSParameterIDs::effectReverbShimmerPitch },
+        { "reverbShimmerAmount",    WFSParameterIDs::effectReverbShimmerAmount },
 
         // FxDelay
         { "delayBypass",            WFSParameterIDs::effectDelayBypass },
@@ -728,6 +734,10 @@ bool OSCMessageRouter::isEffectParamRampCapable (const juce::Identifier& paramId
         WFSParameterIDs::effectReverbDiffusion,
         WFSParameterIDs::effectReverbTone,
         WFSParameterIDs::effectReverbMix,
+        WFSParameterIDs::effectReverbERLevel,
+        WFSParameterIDs::effectReverbModRate,
+        WFSParameterIDs::effectReverbModDepth,
+        WFSParameterIDs::effectReverbShimmerAmount,
         WFSParameterIDs::effectDelayTime,
         WFSParameterIDs::effectDelayFeedback,
         WFSParameterIDs::effectDelayInLoCut,

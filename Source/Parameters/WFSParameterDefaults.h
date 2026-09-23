@@ -1649,9 +1649,13 @@ namespace WFSParameterDefaults
 
     constexpr int effectReverbBypassDefault       = 1;
 
-    constexpr int effectReverbModelDefault        = 0;       // 0=FDN, the only model in v1
+    // spatcore::effects::ReverbModel: 0 FDN, 1 Plate, 4 Modulated Hall, 5
+    // Shimmer. 2 (SDN-style) and 3 (IR) are RESERVED ids: the bounds accept
+    // them so a project that stored one still loads, and the engine runs the
+    // FDN for them (resolveReverbModel) - the menu does not offer them.
+    constexpr int effectReverbModelDefault        = 0;
     constexpr int effectReverbModelMin            = 0;
-    constexpr int effectReverbModelMax            = 3;       // 1=Plate, 2=SDN-style, 3=IR, all later
+    constexpr int effectReverbModelMax            = 5;
 
     constexpr int effectReverbTypeDefault         = 0;       // preset within the model
     constexpr int effectReverbTypeMin             = 0;
@@ -1696,6 +1700,34 @@ namespace WFSParameterDefaults
     constexpr float effectReverbMixDefault        = 30.0f;   // wet %
     constexpr float effectReverbMixMin            = 0.0f;
     constexpr float effectReverbMixMax            = 100.0f;
+
+    // Early reflections, in front of any model (spatcore ErProfile).
+    constexpr int effectReverbERProfileDefault    = 0;       // Off
+    constexpr int effectReverbERProfileMin        = 0;
+    constexpr int effectReverbERProfileMax        = 4;       // Room, Chamber, Hall, Cathedral
+
+    constexpr float effectReverbERLevelDefault    = -6.0f;   // dB against the dry
+    constexpr float effectReverbERLevelMin        = -30.0f;
+    constexpr float effectReverbERLevelMax        = 6.0f;
+
+    // The tank's modulation: Plate, Modulated Hall and Shimmer (the FDN has none).
+    constexpr float effectReverbModRateDefault    = 0.8f;    // Hz
+    constexpr float effectReverbModRateMin        = 0.05f;
+    constexpr float effectReverbModRateMax        = 5.0f;
+
+    constexpr float effectReverbModDepthDefault   = 50.0f;   // %; 50 is the plate paper's excursion
+    constexpr float effectReverbModDepthMin       = 0.0f;
+    constexpr float effectReverbModDepthMax       = 100.0f;
+
+    // Shimmer only (spatcore ShimmerInterval): 0 +12, 1 +7, 2 +7 & +12, 3 +19,
+    // 4 +24, 5 +5, 6 -12, 7 -12 & +12.
+    constexpr int effectReverbShimmerPitchDefault = 0;
+    constexpr int effectReverbShimmerPitchMin     = 0;
+    constexpr int effectReverbShimmerPitchMax     = 7;
+
+    constexpr float effectReverbShimmerAmountDefault = 50.0f; // %
+    constexpr float effectReverbShimmerAmountMin  = 0.0f;
+    constexpr float effectReverbShimmerAmountMax  = 100.0f;
 
     //--------------------------------------------------------------------------
     // Effect > FxDelay, multitap (spatcore::effects::MultitapParams)

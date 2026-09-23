@@ -1036,7 +1036,7 @@ namespace WFSParameterIDs
 
     // Effect > FxReverb (the per-chain reverb module; unrelated to the <Reverbs> family)
     const juce::Identifier effectReverbBypass    ("effectReverbBypass");
-    const juce::Identifier effectReverbModel     ("effectReverbModel");        // 0=FDN (v1); 1=Plate, 2=SDN, 3=IR later
+    const juce::Identifier effectReverbModel     ("effectReverbModel");        // spatcore ReverbModel: 0 FDN, 1 Plate, 4 Modulated Hall, 5 Shimmer; 2/3 reserved
     const juce::Identifier effectReverbType      ("effectReverbType");         // preset within the model
     const juce::Identifier effectReverbPredelay  ("effectReverbPredelay");     // ms
     const juce::Identifier effectReverbRT60      ("effectReverbRT60");         // seconds
@@ -1048,6 +1048,12 @@ namespace WFSParameterIDs
     const juce::Identifier effectReverbSize      ("effectReverbSize");
     const juce::Identifier effectReverbTone      ("effectReverbTone");         // Hz
     const juce::Identifier effectReverbMix       ("effectReverbMix");          // wet %
+    const juce::Identifier effectReverbERProfile ("effectReverbERProfile");    // spatcore ErProfile: 0 Off, 1 Room, 2 Chamber, 3 Hall, 4 Cathedral
+    const juce::Identifier effectReverbERLevel   ("effectReverbERLevel");      // dB against the dry
+    const juce::Identifier effectReverbModRate   ("effectReverbModRate");      // Hz, the tank's modulation (Plate, Hall, Shimmer)
+    const juce::Identifier effectReverbModDepth  ("effectReverbModDepth");     // %
+    const juce::Identifier effectReverbShimmerPitch ("effectReverbShimmerPitch");   // spatcore ShimmerInterval, 0 = an octave up
+    const juce::Identifier effectReverbShimmerAmount ("effectReverbShimmerAmount"); // % of the shimmer lines that is pitch-shifted
 
     // Effect > FxDelay (multitap) - the two per-tap properties live on its
     // eight <Tap id="1".."8"> children, everything else on the module node.
