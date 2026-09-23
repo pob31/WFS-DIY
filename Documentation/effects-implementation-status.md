@@ -519,9 +519,14 @@ hashes, dependency lint, bounds-audit counts identical to the pre-phase commit, 
 - **Known, not fixed:** `WFS_TEST_MUTES_PERSIST=1` fails the same 8 checks (M2-M5, mute-list width
   and one-output mutes) on the pre-phase exe as after it - pre-existing, outside this phase. The
   full-tier locales still say "Input Snapshot" in the row's hover text (en was reworded).
-- **Not verified on screen:** the long-press actions from the Effects tab's row (the workstation
-  locked mid-session); the rows, the window's tabs and Edit Scope were verified by offscreen renders
-  and, before the lock, a live capture of the Inputs tab's row and window.
+- **Verified on screen (2026-09-23, two effects, driven by mouse):** from the Effects tab's row,
+  Store (the file carries both `<Effect>`s, EQ 2 band 3 included), Reload (attenuation and a band
+  gain restored), Update (file rewritten, backup kept), Reload w/o Scope, Delete (both rows back to
+  "Select Snapshot..."); the Inputs tab's row shows the same selection throughout; Edit Scope opens
+  on the Effects grid, and Edit Scope from the Inputs tab switches the open window to the Inputs
+  grid; a GUI effect edit shows as "modified" on the Effects grid. NOT exercised: Ctrl+Z after a
+  Reload - injected keystrokes (SendKeys and raw `keybd_event`) never reach the app from the test
+  shell (not even `H`), so the per-tab undo of each half rests on self-test N10.
 
 **The adversarial review (2026-09-23)** read the whole phase against the plan and raised six
 findings. What was done with each:
