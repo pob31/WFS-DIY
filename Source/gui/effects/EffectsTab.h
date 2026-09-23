@@ -677,6 +677,13 @@ private:
             return;
         }
 
+        // Suppressed like every other config load (the Inputs tab's, System
+        // Config's): what the file brings back is not an operator edit, so it
+        // must not read as "modified" in the Scope window, and a reload resets
+        // those marks.
+        auto& tracker = ctx.parameters.getDirtyTracker();
+        tracker.beginSuppression();
+
         const bool ok = fromBackup ? fileManager.loadEffectsConfigBackup()
                                    : fileManager.loadEffectsConfig();
         if (ok)
@@ -692,6 +699,8 @@ private:
             ctx.showStatusMessage (LOC ("effects.messages.error")
                                        .replace ("{error}", fileManager.getLastError()));
         }
+
+        tracker.endSuppressionAndClear();
     }
 
     void importConfiguration()
@@ -707,6 +716,10 @@ private:
                 if (file == juce::File())
                     return;
 
+                // Suppressed as reloadConfiguration explains.
+                auto& tracker = ctx.parameters.getDirtyTracker();
+                tracker.beginSuppression();
+
                 if (ctx.parameters.getFileManager().importEffectsConfig (file))
                 {
                     refreshFromValueTree();
@@ -720,6 +733,8 @@ private:
                     ctx.showStatusMessage (LOC ("effects.messages.error")
                         .replace ("{error}", ctx.parameters.getFileManager().getLastError()));
                 }
+
+                tracker.endSuppressionAndClear();
             });
     }
 

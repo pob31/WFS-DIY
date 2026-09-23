@@ -451,16 +451,23 @@ public:
         {
             using CloseResult = SnapshotScopeWindow::CloseResult;
 
-            writeToQLabEnabled = writeToQLab;
-            writeSnapshotLoadCueEnabled = writeLoadCue;
-
-            // Persist toggle states to config
-            auto showSection = parameters.getValueTreeState().getConfigState()
-                                   .getChildWithName (WFSParameterIDs::Show);
-            if (showSection.isValid())
+            // The QLab toggles are adopted and persisted by OK and by Update
+            // only. Cancel / X hands back the window's defaults (both false),
+            // not what the toggles showed, so adopting them turned Write to
+            // QLab off behind the operator's back every time the window was
+            // dismissed.
+            if (result != CloseResult::Cancelled)
             {
-                showSection.setProperty (WFSParameterIDs::writeToQLab, writeToQLab, nullptr);
-                showSection.setProperty (WFSParameterIDs::writeSnapshotLoadCue, writeLoadCue, nullptr);
+                writeToQLabEnabled = writeToQLab;
+                writeSnapshotLoadCueEnabled = writeLoadCue;
+
+                auto showSection = parameters.getValueTreeState().getConfigState()
+                                       .getChildWithName (WFSParameterIDs::Show);
+                if (showSection.isValid())
+                {
+                    showSection.setProperty (WFSParameterIDs::writeToQLab, writeToQLab, nullptr);
+                    showSection.setProperty (WFSParameterIDs::writeSnapshotLoadCue, writeLoadCue, nullptr);
+                }
             }
 
             if (result == CloseResult::Saved)

@@ -1942,8 +1942,27 @@ bool WFSFileManager::saveInputSnapshotWithExtendedScope (const juce::String& sna
 
     int numInputs = valueTreeState.getNumInputChannels();
 
+    // A ghost effect's scope travels with its data. The <Effect> entries past
+    // the live count are carried over from the previous file below, so their
+    // columns of its effects grid are carried too - wherever the scope being
+    // stored is silent about them, which a scope built with fewer effects
+    // always is. Without this, a Store over an existing name turned a ghost
+    // the operator had excluded into one the next recall applies.
+    auto scopeToWrite = scope;
+    if (existing.isValid())
+    {
+        if (auto oldScopeTree = existing.getChildWithName ("ExtendedScope"); oldScopeTree.isValid())
+        {
+            const int numEffects = valueTreeState.getNumEffectChannels();
+            const auto oldScope = deserializeExtendedScope (oldScopeTree);
+            for (const auto& [key, included] : oldScope.effects.itemChannelStates)
+                if (key.fromLastOccurrenceOf ("_", false, false).getIntValue() >= numEffects)
+                    scopeToWrite.effects.itemChannelStates.emplace (key, included);   // never over the new scope's own cell
+        }
+    }
+
     // Serialize extended scope
-    snapshot.appendChild (serializeExtendedScope (scope, numInputs), nullptr);
+    snapshot.appendChild (serializeExtendedScope (scopeToWrite, numInputs), nullptr);
 
     // Store input data (filtered by scope if ApplyMode is OnSave)
     juce::ValueTree inputsData (Inputs);
@@ -2251,8 +2270,14 @@ bool WFSFileManager::loadScopeTemplateGrid (const juce::String& templateName, Ex
     }
 
     auto loaded = deserializeExtendedScope (scopeTree);
-    target.inputs.itemChannelStates  = std::move (loaded.inputs.itemChannelStates);
-    target.effects.itemChannelStates = std::move (loaded.effects.itemChannelStates);
+    target.inputs.itemChannelStates = std::move (loaded.inputs.itemChannelStates);
+
+    // A template saved before the effects existed, or in a show without any,
+    // has no <EffectsScope> and so no opinion about the effects grid: loading
+    // it leaves that grid as it is. (On a SNAPSHOT an absent <EffectsScope>
+    // means "every effect item included"; a template is a partial preset.)
+    if (scopeTree.getChildWithName ("EffectsScope").isValid())
+        target.effects.itemChannelStates = std::move (loaded.effects.itemChannelStates);
     return true;
 }
 
@@ -2588,6 +2613,17 @@ namespace
             }
         }
     }
+
+    /** The highest channel index any key of `matrix` names, or -1. An effects
+        grid read from a file keeps the keys of ids the session lacks today, so
+        this can be past the live count. */
+    int highestKeyedChannel (const WFSFileManager::ScopeMatrix& matrix)
+    {
+        int highest = -1;
+        for (const auto& [key, included] : matrix.itemChannelStates)
+            highest = juce::jmax (highest, key.fromLastOccurrenceOf ("_", false, false).getIntValue());
+        return highest;
+    }
 }
 
 juce::ValueTree WFSFileManager::serializeExtendedScope (const ExtendedSnapshotScope& scope, int numChannels) const
@@ -2602,14 +2638,25 @@ juce::ValueTree WFSFileManager::serializeExtendedScope (const ExtendedSnapshotSc
                       [this] (int slot) { return valueTreeState.getInputChannelNumber (slot); });
 
     // The effects grid, as a child: effect ids are dense, so the key is the
-    // index + 1. Written only while the session HAS effects, so a snapshot of
-    // an effect-less show is the file it always was - and an absent
-    // <EffectsScope> reads back as "every effect item included".
-    const int numEffects = valueTreeState.getNumEffectChannels();
-    if (numEffects > 0)
+    // index + 1. Written only while the grid has a column to write, so a
+    // snapshot of an effect-less show is the file it always was - and an
+    // absent <EffectsScope> reads back as "every effect item included".
+    //
+    // The columns run past the live count when the grid holds keys for ids the
+    // session lacks today. Those are a GHOST's scope: the file carries the
+    // ghost's <Effect> data over (saveInputSnapshotWithExtendedScope), so its
+    // exclusions have to travel with it, or shrinking the effect count, touching
+    // the scope and growing the count back would recall what the operator had
+    // excluded. (The input grid has the same gap for a deleted input number,
+    // whose data is carried over too; it is keyed by slot in memory, and a
+    // number with no live slot has nowhere to be kept. Not handled here.)
+    const int effectColumns = juce::jlimit (0, WFSParameterDefaults::maxEffectChannels,
+                                            juce::jmax (valueTreeState.getNumEffectChannels(),
+                                                        highestKeyedChannel (scope.effects) + 1));
+    if (effectColumns > 0)
     {
         juce::ValueTree effectsTree ("EffectsScope");
-        writeScopeMatrix (effectsTree, scope.effects, numEffects, [] (int fx) { return fx + 1; });
+        writeScopeMatrix (effectsTree, scope.effects, effectColumns, [] (int fx) { return fx + 1; });
         scopeTree.appendChild (effectsTree, nullptr);
     }
 
@@ -2631,11 +2678,13 @@ WFSFileManager::ExtendedSnapshotScope WFSFileManager::deserializeExtendedScope (
     readScopeMatrix (scopeTree, scope.inputs, valueTreeState.getNumInputChannels(),
                      [this] (int number) { return valueTreeState.getSlotForChannelNumber (number); });
 
-    // Effect channels are stored as dense ids; ids beyond the live count are
-    // dropped the same way.
+    // Effect channels are stored as dense ids, and read up to the largest id a
+    // session can have, NOT the live count: the entries past it are a ghost's
+    // scope, kept in memory so the next write carries them back out (see
+    // serializeExtendedScope). The grid shows the live columns only.
     auto effectsTree = scopeTree.getChildWithName ("EffectsScope");
     if (effectsTree.isValid())
-        readScopeMatrix (effectsTree, scope.effects, valueTreeState.getNumEffectChannels(),
+        readScopeMatrix (effectsTree, scope.effects, WFSParameterDefaults::maxEffectChannels,
                          [] (int effectId) { return effectId - 1; });
 
     return scope;

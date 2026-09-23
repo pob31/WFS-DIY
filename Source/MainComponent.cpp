@@ -4601,6 +4601,59 @@ void MainComponent::runChannelListSelfTest()
         }
         check(ghosts == 0, "Q: every effects scope item names a node or property the channel has");
 
+        // The walk above takes a module's word for its properties: a module is
+        // carried whole, so the predicate answers "covered" for any name on it.
+        // That hides the one mistake a flat node cannot make - a property that
+        // is not a setting (a meter, a run-state flag) stamped onto a module
+        // node would be stored and recalled like one. So every module property
+        // must be one of that module's CSV controls, bands and taps included.
+        {
+            std::set<juce::String> bandControls, tapControls;
+            for (const auto* d : { &EffectsUi::descEQshape(), &EffectsUi::descEQfreq(), &EffectsUi::descEQgain(),
+                                   &EffectsUi::descEQq(), &EffectsUi::descEQslope() })
+                bandControls.insert(d->id.toString());
+            for (const auto* d : { &EffectsUi::descDelayTapTime(), &EffectsUi::descDelayTapLevel() })
+                tapControls.insert(d->id.toString());
+            const std::set<juce::String> noControls;
+
+            int strays = 0;
+            auto vet = [&](const juce::ValueTree& node, const std::set<juce::String>& controls, const juce::String& where)
+            {
+                for (int i = 0; i < node.getNumProperties(); ++i)
+                {
+                    const auto prop = node.getPropertyName(i);
+                    if (prop == WFSParameterIDs::id || controls.count(prop.toString()) > 0)
+                        continue;
+
+                    ++strays;
+                    logLine("SELF-TEST FAIL Q: <" + where + "> carries '" + prop.toString() + "', which is not one "
+                            "of its module's CSV controls - every snapshot would store and recall it as a setting");
+                }
+            };
+
+            for (int slot = 0; slot < WFSParameterDefaults::numEffectModuleSlots; ++slot)
+            {
+                const auto& type = WFSValueTreeState::getEffectModuleType(slot);
+                const auto module = effect.getChildWithName(type);
+                const auto own = EffectsUi::controlsForSlot(slot);
+
+                std::set<juce::String> ownControls;
+                for (int k = 0; k < own.count; ++k)
+                    ownControls.insert(own.controls[k].id.toString());
+
+                vet(module, ownControls, type.toString());
+                for (int c = 0; c < module.getNumChildren(); ++c)
+                {
+                    const auto child = module.getChild(c);
+                    vet(child,
+                        child.hasType(WFSParameterIDs::Band) ? bandControls
+                            : child.hasType(WFSParameterIDs::Tap) ? tapControls : noControls,
+                        type.toString() + "><" + child.getType().toString());
+                }
+            }
+            check(strays == 0, "Q: every module property is one of its module's CSV controls, bands and taps included");
+        }
+
         if (effectsBefore == 0)
             vts.setNumEffectChannels(0);
     }
@@ -4929,6 +4982,92 @@ void MainComponent::runChannelListSelfTest()
             vts.clearAllUndoHistories();
         }
 
+        // ---- N14: a ghost's scope travels with its data ----------------------
+        // The file keeps an <Effect> the session lacks today (N5), so it has to
+        // keep that effect's column of the grid too. Shrink the count, write the
+        // scope back while the effects are absent, grow the count again: what the
+        // operator excluded must still be excluded, and the recall must say so.
+        {
+            vts.setNumEffectChannels(4);
+            vts.setEffectParameter(2, P::effectAttenuation, -6.0);
+            vts.setEffectParameter(3, P::effectAttenuation, -6.0);
+
+            Scope g;
+            g.effects.setAllItemsForChannel(3, false);
+            g.effects.setIncluded("fxEq2", 2, false);
+            check(fm.saveInputSnapshotWithExtendedScope("nn-ghost", g),
+                  "N14: a four-effect snapshot with effect 4 excluded and effect 3 partial");
+
+            vts.setNumEffectChannels(2);
+            const auto shrunk = fm.getExtendedSnapshotScope("nn-ghost");
+            check(! shrunk.effects.isIncluded("fxLevel", 3) && ! shrunk.effects.isIncluded("fxEq2", 2)
+                      && shrunk.effects.isIncluded("fxEq1", 2),
+                  "N14: read into a two-effect session, the scope still holds effects 3 and 4's cells");
+            check(fm.updateInputSnapshotScope("nn-ghost", shrunk), "N14: the scope is written back while they are absent");
+
+            vts.setNumEffectChannels(4);
+            const auto regrown = fm.getExtendedSnapshotScope("nn-ghost");
+            check(regrown.effects.getChannelState(3) == Scope::InclusionState::AllExcluded
+                      && ! regrown.effects.isIncluded("fxEq2", 2) && regrown.effects.isIncluded("fxEq1", 2),
+                  "N14: grown back to four, effect 4 is still out and effect 3 still partial");
+
+            vts.setEffectParameter(2, P::effectAttenuation, -1.0);
+            vts.setEffectParameter(3, P::effectAttenuation, -1.0);
+            check(recall("nn-ghost"), "N14: it recalls");
+            check(approx(num(vts.getEffectParameter(2, P::effectAttenuation)), -6.0)
+                      && approx(num(vts.getEffectParameter(3, P::effectAttenuation)), -1.0),
+                  "N14: ...recalling effect 3 and leaving the excluded effect 4 alone");
+
+            // A Store over the same name, with a scope built for two effects,
+            // says nothing about effects 3 and 4: their columns come over with
+            // the data the store carries for them.
+            vts.setNumEffectChannels(2);
+            check(fm.saveInputSnapshotWithExtendedScope("nn-ghost", Scope()),
+                  "N14: stored over with a fresh scope while effects 3 and 4 are absent");
+            vts.setNumEffectChannels(4);
+            const auto overwritten = fm.getExtendedSnapshotScope("nn-ghost");
+            check(overwritten.effects.getChannelState(3) == Scope::InclusionState::AllExcluded
+                      && ! overwritten.effects.isIncluded("fxEq2", 2) && overwritten.effects.isIncluded("fxEq1", 2)
+                      && overwritten.effects.getChannelState(0) == Scope::InclusionState::AllIncluded,
+                  "N14: ...effect 4 is still out and effect 3 still partial, the live effects as the new scope says");
+            vts.setNumEffectChannels(2);
+        }
+
+        // ---- N15: a template with no effects grid leaves the effects grid ----
+        // A template saved before the effects existed has no <EffectsScope>; it
+        // has no opinion about them, so loading it must not include them all.
+        {
+            Scope both;
+            both.setIncluded("position", 0, false);
+            both.effects.setIncluded("fxDist", 1, false);
+            check(fm.saveScopeTemplate("nn-tpl-both", both), "N15: a template with both grids is saved");
+
+            auto templateFile = [&](const juce::String& name)
+            {
+                return fm.getScopeTemplatesFolder().getChildFile(name + WFSFileManager::snapshotExtension);
+            };
+            juce::ValueTree tpl;
+            if (auto xml = juce::XmlDocument::parse(templateFile("nn-tpl-both")))
+                tpl = juce::ValueTree::fromXml(*xml);
+            auto scopeTree = tpl.getChildWithName("ExtendedScope");
+            check(scopeTree.getChildWithName("EffectsScope").isValid(), "N15: ...and it carries <EffectsScope>");
+            scopeTree.removeChild(scopeTree.getChildWithName("EffectsScope"), nullptr);
+            auto oldXml = tpl.createXml();
+            check(oldXml != nullptr && oldXml->writeTo(templateFile("nn-tpl-inputs")),
+                  "N15: the same template as a build without effects wrote it");
+
+            Scope target;
+            target.effects.setIncluded("fxChain", 0, false);
+            check(fm.loadScopeTemplateGrid("nn-tpl-inputs", target), "N15: the inputs-only template loads");
+            check(! target.isIncluded("position", 0) && ! target.effects.isIncluded("fxChain", 0)
+                      && target.effects.isIncluded("fxDist", 1),
+                  "N15: it sets the input grid and leaves the effects grid as it was");
+
+            check(fm.loadScopeTemplateGrid("nn-tpl-both", target), "N15: the template with both grids loads");
+            check(target.effects.isIncluded("fxChain", 0) && ! target.effects.isIncluded("fxDist", 1),
+                  "N15: ...and that one replaces the effects grid");
+        }
+
         // Leave nothing behind.
         vts.setNumEffectChannels(effectsBefore);
         if (latchHadProperty)
@@ -5102,6 +5241,36 @@ void MainComponent::runChannelListSelfTest()
               "N12: every one of the " + juce::String(strings.size()) + " effect cues parses back through the router"
               + (refused.isEmpty() ? juce::String() : ": " + refused.joinIntoString(" | ")));
 
+        // The other direction: every value the file stores gets its cue. The
+        // builder skips a parameter the address map lacks in silence, so the
+        // check above - which only sees the cues that were built - cannot miss
+        // one; a count can.
+        {
+            int stored = 0;
+            juce::StringArray unaddressed;
+            std::function<void (const juce::ValueTree&)> tally = [&](const juce::ValueTree& node)
+            {
+                for (int p = 0; p < node.getNumProperties(); ++p)
+                {
+                    const auto prop = node.getPropertyName(p);
+                    if (prop == P::id || prop == P::effectName)
+                        continue;
+                    ++stored;
+                    if (mappings.find(prop) == mappings.end())
+                        unaddressed.addIfNotAlreadyThere(prop.toString());
+                }
+                for (int c = 0; c < node.getNumChildren(); ++c)
+                    tally(node.getChild(c));
+            };
+            tally(effectsData);
+
+            int oneTokenRows = 0;
+            const auto built = WFSNetwork::QLabCueBuilder::collectEffectCues(effectsData, all.effects, 2, numOutputs, &oneTokenRows);
+            check(stored > 400 && stored == static_cast<int>(built.size()) + oneTokenRows && unaddressed.isEmpty(),
+                  "N12: every one of the " + juce::String(stored) + " stored effect values gets a cue"
+                  + (unaddressed.isEmpty() ? juce::String() : " - no address for " + unaddressed.joinIntoString(", ")));
+        }
+
         // The grid decides what is exported, per item and per channel.
         Scope partial;
         partial.effects.setIncluded("fxEq2", 1, false);
@@ -5128,6 +5297,39 @@ void MainComponent::runChannelListSelfTest()
             ioLatch.removeProperty(P::channelNumbersUserOwned, nullptr);
         fm.setProjectFolder(previousProject);
         tempProject.deleteRecursively();
+    }
+
+    // ---- N16: dismissing the Scope window keeps the QLab toggles -------------
+    // Cancel and the close box hand the session the window's DEFAULTS (both
+    // off), not what its toggles showed; adopting them switched Write to QLab
+    // off every time the window was dismissed. Driven through the real session
+    // and window, as the Effects tab's Edit Scope opens it.
+    if (snapshotSession != nullptr)
+    {
+        namespace P = WFSParameterIDs;
+        auto show = vts.getConfigState().getChildWithName(P::Show);
+        const bool hadQLab = show.hasProperty(P::writeToQLab);
+        const bool hadLoadCue = show.hasProperty(P::writeSnapshotLoadCue);
+        const juce::var qlabBefore = show.getProperty(P::writeToQLab);
+        const juce::var loadCueBefore = show.getProperty(P::writeSnapshotLoadCue);
+        show.setProperty(P::writeToQLab, true, nullptr);
+        show.setProperty(P::writeSnapshotLoadCue, true, nullptr);
+
+        snapshotSession->editScope(WFSFileManager::SnapshotFamily::Effects);
+        SnapshotScopeWindow* window = nullptr;
+        for (int i = juce::Desktop::getInstance().getNumComponents(); --i >= 0 && window == nullptr;)
+            window = dynamic_cast<SnapshotScopeWindow*>(juce::Desktop::getInstance().getComponent(i));
+        check(window != nullptr && window->isVisible(), "N16: Edit Scope opens the Scope window");
+        if (window != nullptr)
+            window->closeButtonPressed();
+
+        check(show.isValid() && (bool) show.getProperty(P::writeToQLab) && (bool) show.getProperty(P::writeSnapshotLoadCue),
+              "N16: closing it with X leaves Write to QLab and the load cue as they were (on)");
+
+        if (hadQLab) show.setProperty(P::writeToQLab, qlabBefore, nullptr);
+        else         show.removeProperty(P::writeToQLab, nullptr);
+        if (hadLoadCue) show.setProperty(P::writeSnapshotLoadCue, loadCueBefore, nullptr);
+        else            show.removeProperty(P::writeSnapshotLoadCue, nullptr);
     }
 
     // ---- I: channel identity gate --------------------------------------------
@@ -10704,10 +10906,19 @@ void MainComponent::openProjectFromFile (const juce::File& folder)
             fm.createProjectFolderStructure();
             AppSettings::setLastFolder ("lastProjectFolder", folder);
 
-            if (fm.loadCompleteConfig())
-            {
+            // Suppressed as System Config's Reload Complete Config suppresses the
+            // very same load: a project that opens is not an operator edit, and
+            // without this every input and effect item it set read as
+            // "modified" in the Scope window.
+            auto& tracker = parameters.getDirtyTracker();
+            tracker.beginSuppression();
+            const bool loaded = fm.loadCompleteConfig();
+            if (loaded)
                 handleConfigReloaded();
+            tracker.endSuppressionAndClear();
 
+            if (loaded)
+            {
                 // Update window title with project name
                 if (auto* window = findParentComponentOfClass<juce::DocumentWindow>())
                     window->setName (ProjectInfo::projectName + juce::String (" - ") + folder.getFileName());
