@@ -154,8 +154,8 @@ inline ModuleControls controlsForReverb()
 {
     static const ControlDesc list[] = {
         { WFSParameterIDs::effectReverbBypass, "reverbBypass", Kind::Bypass, 0.0f, 1.0f, 1.0f, "", "", { { 0, "off" }, { 1, "on" } }, 0x0u },
-        { WFSParameterIDs::effectReverbModel, "reverbModel", Kind::Combo, 0.0f, 5.0f, 0.0f, "", "effects.enums.reverbModel.", { { 0, "fdn" }, { 1, "plate" }, { 4, "modulatedHall" }, { 5, "shimmer" } }, 0x0u },
         { WFSParameterIDs::effectReverbType, "reverbType", Kind::Combo, 0.0f, 22.0f, 6.0f, "", "effects.enums.reverbType.", { { 0, "roomFDN" }, { 1, "chamberFDN" }, { 2, "hallFDN" }, { 3, "cathedralFDN" }, { 4, "plateFDN" }, { 5, "custom" }, { 6, "mediumHall" }, { 7, "smallRoom" }, { 8, "mediumRoom" }, { 9, "largeRoom" }, { 10, "liveChamber" }, { 11, "concertHall" }, { 12, "largeHall" }, { 13, "stoneCathedral" }, { 14, "lushHall" }, { 15, "vocalPlate" }, { 16, "brightPlate" }, { 17, "drumPlate" }, { 18, "darkPlate" }, { 19, "shimmerOctave" }, { 20, "shimmerFifthOctave" }, { 21, "shimmerOctaveDown" }, { 22, "shimmerEthereal" } }, 0x0u },
+        { WFSParameterIDs::effectReverbModel, "reverbModel", Kind::Combo, 0.0f, 5.0f, 0.0f, "", "effects.enums.reverbModel.", { { 0, "fdn" }, { 1, "plate" }, { 4, "modulatedHall" }, { 5, "shimmer" } }, 0x0u },
         { WFSParameterIDs::effectReverbERProfile, "reverbERProfile", Kind::Combo, 0.0f, 4.0f, 0.0f, "", "effects.enums.reverbERProfile.", { { 0, "off" }, { 1, "room" }, { 2, "chamber" }, { 3, "hall" }, { 4, "cathedral" } }, 0x0u },
         { WFSParameterIDs::effectReverbERLevel, "reverbERLevel", Kind::Slider, -30.0f, 6.0f, -6.0f, "dB", "", {  }, 0x0u },
         { WFSParameterIDs::effectReverbPredelay, "reverbPredelay", Kind::Slider, 0.0f, 250.0f, 10.0f, "ms", "", {  }, 0x0u },

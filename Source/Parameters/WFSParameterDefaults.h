@@ -1337,9 +1337,12 @@ namespace WFSParameterDefaults
     constexpr float effectLFOamplitudeMax         = 50.0f;
 
     // Effect > Chain. The order string is a permutation of the eleven slot
-    // tokens of spatcore::effects::kSlots, in their declared order - the
-    // string form of spatcore::effects::kDefaultOrder.
-    inline const juce::String effectChainOrderDefault = "dist,eq1,eq2,dyn1,dyn2,mod,phaser,trem,reverb,delay,crush";
+    // tokens of spatcore::effects::kSlots. A new channel starts in the
+    // original chain's order (user, 2026-09-24): EQ 1, the two dynamics,
+    // distortion, bitcrusher, EQ 2, the modulations, then delay and reverb.
+    // It is NOT spatcore::effects::kDefaultOrder, which stays the declared
+    // slot order - the engine's own neutral value, never a session's.
+    inline const juce::String effectChainOrderDefault = "eq1,dyn1,dyn2,dist,crush,eq2,mod,trem,phaser,delay,reverb";
     constexpr int effectChainBypassDefault        = 0;
 
     //--------------------------------------------------------------------------

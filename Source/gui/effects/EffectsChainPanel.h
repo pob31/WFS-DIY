@@ -69,13 +69,18 @@ public:
 
             panels[static_cast<size_t> (s)] = std::make_unique<EffectsModulePanel> (ctx, s);
             addChildComponent (*panels[static_cast<size_t> (s)]);
+
+            // The panel's ON button is the one place a module is switched
+            // here, and the tab does not reload for its own writes
+            panels[static_cast<size_t> (s)]->onModuleOnChanged = [this, s] { tiles[static_cast<size_t> (s)]->refresh(); };
         }
 
         // The reverb panel's rows follow its model; whoever lays out a view of
         // those rows elsewhere (the Stream Deck) hears when they change.
         panels[8]->onReverbModelShown = [this] (int model) { if (onReverbModelShown) onReverbModelShown (model); };
 
-        order = spatcore::effects::kDefaultOrder;
+        order = defaultOrder();
+        selectedSlot = order[0];
         showSelected();
     }
 
@@ -164,6 +169,15 @@ public:
         return orderToString (o);
     }
 
+    /** The order a new channel is given (WFSParameterDefaults), which is not
+        the engine's declared slot order. */
+    static spatcore::effects::ChainOrder defaultOrder()
+    {
+        auto o = spatcore::effects::kDefaultOrder;
+        spatcore::effects::parseChainOrder (WFSParameterDefaults::effectChainOrderDefault.toRawUTF8(), o);
+        return o;
+    }
+
     static juce::String orderToString (const spatcore::effects::ChainOrder& o)
     {
         juce::StringArray tokens;
@@ -228,24 +242,34 @@ private:
         void paint (juce::Graphics& g) override
         {
             const bool selected = owner.selectedSlot == slot;
+            const auto& cs = ColorScheme::get();
+            const auto hue = EffectsModulePanel::slotColour (slot);
             auto r = getLocalBounds().toFloat().reduced (2.0f);
 
-            g.setColour (dragging ? ColorScheme::get().buttonPressed
-                                  : selected ? ColorScheme::get().buttonHover : ColorScheme::get().buttonNormal);
+            // Tinted in the module's hue - the panel below wears the same -
+            // stronger when on or selected, nearly grey when off
+            const float tint = on ? (selected ? 0.45f : 0.26f) : (selected ? 0.2f : 0.08f);
+            auto fill = cs.buttonNormal.interpolatedWith (hue, tint);
+            g.setColour (dragging ? fill.brighter (0.2f) : fill);
             g.fillRoundedRectangle (r, 4.0f);
-            g.setColour (selected ? juce::Colour (0xFFFFC107) : ColorScheme::get().buttonBorder);
+
+            // The hue band across the top names the module before the text does
+            g.setColour (on ? hue : hue.withAlpha (0.35f));
+            g.fillRoundedRectangle (r.reduced (4.0f, 0.0f).withHeight (4.0f).translated (0.0f, 2.0f), 2.0f);
+
+            g.setColour (selected ? cs.textPrimary : hue.withAlpha (on ? 0.6f : 0.25f));
             g.drawRoundedRectangle (r, 4.0f, selected ? 2.0f : 1.0f);
 
             // The ON dot
             const float d = 8.0f;
-            auto dot = juce::Rectangle<float> (r.getX() + 5.0f, r.getY() + 5.0f, d, d);
+            auto dot = juce::Rectangle<float> (r.getX() + 5.0f, r.getY() + 9.0f, d, d);
             g.setColour (on ? juce::Colour (0xFF4CAF50) : ColorScheme::get().textDisabled.withAlpha (0.35f));
             g.fillEllipse (dot);
 
             // The meter: a thin bar down the right edge. Dynamics report gain
             // reduction (0 dB = none, drawn downwards); everything else its
             // output peak (drawn upwards from -60 dB).
-            auto bar = juce::Rectangle<float> (r.getRight() - 7.0f, r.getY() + 5.0f, 3.0f, r.getHeight() - 10.0f);
+            auto bar = juce::Rectangle<float> (r.getRight() - 7.0f, r.getY() + 9.0f, 3.0f, r.getHeight() - 14.0f);
             g.setColour (ColorScheme::get().sliderTrackBg);
             g.fillRect (bar);
             const bool isDyn = slot == 3 || slot == 4;
@@ -338,7 +362,7 @@ private:
         if (fx::parseChainOrder (csv.toRawUTF8(), o))
             order = o;
         else
-            order = fx::kDefaultOrder;
+            order = defaultOrder();
     }
 
     int positionOf (int slot) const

@@ -1217,7 +1217,7 @@ MainComponent::MainComponent()
         auto effectsSoloState     = std::make_shared<bool> (false);
         auto effectsEditOnMapState = std::make_shared<bool> (false);
         auto effectsLfoSubMode    = std::make_shared<int> (0);
-        auto effectsChainSlot     = std::make_shared<int> (0);
+        auto effectsChainSlot     = std::make_shared<int> (effectsTab != nullptr ? effectsTab->getChainSlot() : 0);   // the tab's first tile
         auto effectsChainBank     = std::make_shared<int> (0);    // which twelve of the module's controls
 
         EffectsTabPages::EffectsCallbacks fxCB;
@@ -3101,7 +3101,7 @@ void MainComponent::renderUiSnapshots (const juce::File& dir)
             if (panel.getWidth() <= 0 || panel.getHeight() <= 0)
                 panel.setSize (juce::jmax (800, effectsTab->getWidth()), juce::jmax (640, effectsTab->getHeight() - 120));
 
-            for (const auto& model : EffectsUi::controlsForReverb().controls[1].items)
+            for (const auto& model : EffectsModulePanel::reverbControl (WFSParameterIDs::effectReverbModel).items)
             {
                 reverb.setProperty (WFSParameterIDs::effectReverbModel, model.value, nullptr);
                 panel.loadParameters();
@@ -3111,6 +3111,59 @@ void MainComponent::renderUiSnapshots (const juce::File& dir)
             reverb.setProperty (WFSParameterIDs::effectReverbModel, storedModel, nullptr);
             panel.loadParameters();
         }
+
+        // Every module's panel as stored and switched on, then the Chain
+        // sub-tab with every module on: the greying, the header line and the
+        // colours. Each bypass is put back as it was.
+        {
+            std::vector<std::pair<juce::ValueTree, std::pair<juce::Identifier, juce::var>>> bypasses;
+            for (int slot = 0; slot < WFSParameterDefaults::numEffectModuleSlots; ++slot)
+            {
+                auto& panel = effectsTab->getModulePanel (slot);
+                if (panel.getWidth() <= 0 || panel.getHeight() <= 0)
+                    panel.setSize (juce::jmax (800, effectsTab->getWidth()), juce::jmax (640, effectsTab->getHeight() - 120));
+
+                const auto controls = EffectsUi::controlsForSlot (slot);
+                auto module = vts.getEffectModuleSection (0, WFSValueTreeState::getEffectModuleType (slot));
+                const juce::String name = "effects-module-" + juce::String (slot) + "-"
+                                          + spatcore::effects::kSlots[static_cast<size_t> (slot)].token;
+                panel.loadParameters();
+                save (panel, name + "-stored");
+
+                for (int k = 0; k < controls.count; ++k)
+                    if (controls.controls[k].kind == EffectsUi::Kind::Bypass && module.isValid())
+                    {
+                        const auto& id = controls.controls[k].id;
+                        bypasses.push_back ({ module, { id, module.getProperty (id) } });
+                        module.setProperty (id, 0, nullptr);
+                    }
+                panel.loadParameters();
+                save (panel, name + "-on");
+            }
+
+            for (auto* child : effectsTab->getChildren())
+                if (auto* bar = dynamic_cast<juce::TabbedButtonBar*> (child))
+                {
+                    const int original = bar->getCurrentTabIndex();
+                    bar->setCurrentTabIndex (1, false);                 // Chain
+                    bar->sendSynchronousChangeMessage();
+                    save (*effectsTab, "effects-chain-all-on");
+                    bar->setCurrentTabIndex (original, false);
+                    bar->sendSynchronousChangeMessage();
+                    break;
+                }
+
+            for (auto& [module, prop] : bypasses)
+            {
+                if (prop.second.isVoid())
+                    module.removeProperty (prop.first, nullptr);
+                else
+                    module.setProperty (prop.first, prop.second, nullptr);
+            }
+            for (int slot = 0; slot < WFSParameterDefaults::numEffectModuleSlots; ++slot)
+                effectsTab->getModulePanel (slot).loadParameters();
+        }
+
         if (effectsBefore == 0)
             vts.setNumEffectChannels (0);
     }
@@ -4875,7 +4928,7 @@ void MainComponent::runChannelListSelfTest()
 
         // RP2: the Preset combo is spatcore's table: 23 ids, 5 alone without a row.
         {
-            const auto& d = EffectsUi::controlsForReverb().controls[2];
+            const auto& d = EffectsModulePanel::reverbControl (P::effectReverbType);
             bool table = d.id == P::effectReverbType && static_cast<int>(d.items.size()) == static_cast<int>(FX::ReverbType::Count);
             for (int k = 0; table && k < static_cast<int>(d.items.size()); ++k)
                 table = d.items[static_cast<size_t>(k)].value == k
@@ -5091,13 +5144,19 @@ void MainComponent::runChannelListSelfTest()
             panel.setSize(1100, 640);
 
             const int expectedCount[] = { 15, 17, 15, 15, 17, 19 };     // bypass included
-            bool rows = true, noOverlap = true, menu = true;
+            bool rows = true, noOverlap = true, menu = true, presetFirst = true;
             int lowestRow[6] = {};
             for (int model = 0; model <= 5; ++model)
             {
                 reverb.setProperty(P::effectReverbModel, model, nullptr);
                 panel.loadParameters();
                 const auto shown = panel.getShownRowIds();
+                const auto preset = std::find(shown.begin(), shown.end(), P::effectReverbType);
+                if (preset == shown.end() || std::find(shown.begin(), preset, P::effectReverbModel) != preset)
+                {
+                    presetFirst = false;
+                    logLine("SELF-TEST FAIL RD1: model " + juce::String(model) + " does not show Preset above Model");
+                }
                 const int menuId = panel.getComboSelectedId(P::effectReverbModel);
                 if (menuId != FX::resolveReverbModel(model) + 1)
                 {
@@ -5127,6 +5186,7 @@ void MainComponent::runChannelListSelfTest()
             }
             check(rows, "RD1: the reverb shows its model's rows - 15 FDN, 17 Plate and Hall, 19 Shimmer; 2 and 3 the FDN's");
             check(menu, "RD1: the Model menu names what runs - the FDN for the reserved 2 and 3");
+            check(presetFirst, "RD1: Preset sits above Model - a preset sets the model");
             check(noOverlap, "RD2: no two rows overlap, for any model");
             check(lowestRow[0] < lowestRow[5] && lowestRow[1] == lowestRow[4],
                   "RD2: hidden rows take no room - the FDN's columns end above the shimmer's");
@@ -9327,13 +9387,15 @@ void MainComponent::runChannelListSelfTest()
         bool orderOk = false;
 
         // C1: a fresh channel cooks to the engine's defaults (which the app's
-        // defaults equal): every module bypassed, the declared order, and a
-        // spread of fields from the deepest nodes
+        // defaults equal, but for the order): every module bypassed, the
+        // app's default order, and a spread of fields from the deepest nodes
         {
             const EffectChannelParams fresh {};
             const EffectChannelParams p = EffectsHost::cookChannel(vts, 0, order, orderOk);
+            // The original chain, spelled out, so the string cannot drift alone
+            const ChainOrder original { 1, 3, 4, 0, 10, 2, 5, 7, 6, 9, 8 };  // eq1 dyn1 dyn2 dist crush eq2 mod trem phaser delay reverb
             check(orderOk, "C1: the default chain order parses");
-            check(p.order == fresh.order && p.mute == 0 && p.chainBypass == 0, "C1: a fresh channel keeps the declared order, unmuted, chain live");
+            check(p.order == original && p.mute == 0 && p.chainBypass == 0, "C1: a fresh channel runs the original chain order, unmuted, chain live");
             check(p.dist.bypass == 1 && p.eq[0].bypass == 1 && p.eq[1].bypass == 1 && p.dyn[0].bypass == 1
                       && p.dyn[1].bypass == 1 && p.mod.bypass == 1 && p.phaser.bypass == 1 && p.trem.bypass == 1
                       && p.reverb.bypass == 1 && p.delay.bypass == 1 && p.crush.bypass == 1,

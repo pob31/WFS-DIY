@@ -69,7 +69,10 @@ public:
     explicit EffectsHost (WFSValueTreeState& state)
         : valueTreeState (state)
     {
-        lastGoodOrder.fill (spatcore::effects::kDefaultOrder);
+        // A chain with no order yet runs the order a new channel is given
+        auto defaultOrder = spatcore::effects::kDefaultOrder;
+        spatcore::effects::parseChainOrder (WFSParameterDefaults::effectChainOrderDefault.toRawUTF8(), defaultOrder);
+        lastGoodOrder.fill (defaultOrder);
         valueTreeState.addListener (this);
     }
 

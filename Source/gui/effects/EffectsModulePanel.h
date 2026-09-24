@@ -43,6 +43,13 @@
 
     EVERY WRITE GOES THROUGH THE CONTEXT, so a linked group receives it
     according to each member's mode and Ctrl-drag edits this channel alone.
+
+    A MODULE THAT IS OFF STILL TAKES EDITS. Its controls grey out (alpha
+    only, never setEnabled) so a sound can be prepared before it is switched
+    in; the same holds for the Dynamics compressor and expander sections.
+    Every other dimming here (preset-owned rows, dormant taps, off EQ bands)
+    records its own alpha through setOwnAlpha, and the module's state
+    multiplies it, so the two never overwrite each other.
 */
 class EffectsModulePanel : public juce::Component
 {
@@ -71,6 +78,38 @@ public:
     bool isReverb() const noexcept { return slot == 8; }
     int eqInstance() const noexcept { return slot == 2 ? 1 : 0; }
 
+    /** One hue per module, in declared slot order (spatcore::effects::kSlots),
+        shared by the chain tiles and the panel so the tile picked and the
+        panel it opens read as the same thing. The doubled modules differ by
+        shade: EQ 2 and Dynamics 2 are the lighter ones. */
+    static juce::Colour slotColour (int slotIndex)
+    {
+        static const juce::Colour hues[] = {
+            juce::Colour (0xFFE57373),     // dist    red
+            juce::Colour (0xFF4A90D9),     // eq1     blue
+            juce::Colour (0xFF90CAF9),     // eq2     light blue
+            juce::Colour (0xFF43A047),     // dyn1    green
+            juce::Colour (0xFF81C784),     // dyn2    light green
+            juce::Colour (0xFF9B59B6),     // mod     purple
+            juce::Colour (0xFF00ACC1),     // phaser  cyan
+            juce::Colour (0xFFD4A017),     // trem    gold
+            juce::Colour (0xFF26A69A),     // reverb  teal
+            juce::Colour (0xFFFF8F00),     // delay   orange
+            juce::Colour (0xFFEC407A) };   // crush   pink
+        return hues[static_cast<size_t> (juce::jlimit (0, 10, slotIndex))];
+    }
+
+    /** A reverb control by identifier, whatever its row in the CSV. */
+    static const EffectsUi::ControlDesc& reverbControl (const juce::Identifier& id)
+    {
+        const auto list = EffectsUi::controlsForReverb();
+        for (int i = 0; i < list.count; ++i)
+            if (list.controls[i].id == id)
+                return list.controls[i];
+        jassertfalse;
+        return list.controls[0];
+    }
+
     /** Re-read every control for the context's channel. */
     void loadParameters()
     {
@@ -84,6 +123,26 @@ public:
             refreshReverbState();
             refreshPresetDimming();
         }
+        refreshSectionDimming();
+        refreshModuleOn();
+    }
+
+    /** Fired when this panel's ON button switches the module - the chain
+        strip's tile shows the new state. */
+    std::function<void()> onModuleOnChanged;
+
+    bool isModuleOn() const noexcept { return moduleOn; }
+
+    void paint (juce::Graphics& g) override
+    {
+        // A faint card in the module's hue, edged in it: the panel belongs
+        // to the tile of the same colour above it
+        const auto hue = slotColour (slot);
+        auto r = getLocalBounds().toFloat().reduced (1.0f);
+        g.setColour (ColorScheme::get().surfaceCard.interpolatedWith (hue, moduleOn ? 0.07f : 0.03f));
+        g.fillRoundedRectangle (r, 6.0f);
+        g.setColour (hue.withAlpha (moduleOn ? 0.75f : 0.3f));
+        g.drawRoundedRectangle (r, 6.0f, 1.5f);
     }
 
     /** Fired when the reverb's rows follow a different model - the Stream
@@ -132,13 +191,19 @@ public:
     void resized() override
     {
         layoutScale = static_cast<float> (getHeight()) / 640.0f;
-        auto area = getLocalBounds().reduced (scaled (8), scaled (6));
+        auto area = getLocalBounds().reduced (scaled (14), scaled (12));
 
         if (isEq())
         {
             layoutEq (area);
             return;
         }
+
+        // The header line, the same in every module: the ON button left,
+        // Mix (dry/wet) where the right column starts. It spans the whole
+        // panel, so neither the delay's taps nor the GR meter move it.
+        layoutHeader (area.removeFromTop (scaled (40)));
+        area.removeFromTop (scaled (16));
 
         if (isDyn())
         {
@@ -151,11 +216,11 @@ public:
 
         if (isDelay())
         {
-            // The tap table takes the lower part; the module rows the upper.
-            const int tapRow = scaled (24);
-            auto tapArea = area.removeFromBottom (tapRow * (numTaps + 1) + scaled (8));
+            // At the standard slider height the eight taps no longer fit
+            // under the module rows: they take a column of their own, right.
+            auto tapArea = area.removeFromRight (area.getWidth() * 2 / 5);
+            area.removeFromRight (scaled (16));
             layoutTaps (tapArea);
-            area.removeFromBottom (scaled (8));
         }
 
         layoutRows (area);
@@ -178,6 +243,7 @@ private:
         WfsRotationDial*  rotation = nullptr;
         bool presetOwned = false;      // reverb: one of the fifteen a preset writes
         bool shown = true;             // reverb: used by the model on show
+        bool inHeader = false;         // the ON button and Mix: the header line, not a column
     };
 
     void addRow (const EffectsUi::ControlDesc& d)
@@ -206,7 +272,12 @@ private:
                     const bool currentlyOn = readInt (*r->desc) == 0;
                     ctx.writeModule (node, r->desc->id, currentlyOn ? 1 : 0);
                     loadRow (*r);
+                    // The tab does not reload for its own writes, so every
+                    // view of this state follows here: the EQ display's
+                    // overlay, the greyed controls, the chain tile
+                    refreshModuleOn();
                 };
+                bypassControl = b;
                 break;
             }
             case Kind::Toggle:
@@ -222,6 +293,7 @@ private:
                     ctx.writeModule (node, r->desc->id, next);
                     loadRow (*r);
                     afterReverbEdit (*r);
+                    refreshSectionDimming();
                 };
                 break;
             }
@@ -270,8 +342,8 @@ private:
                 auto* dial = new WfsBasicDial();
                 row->control.reset (dial);
                 row->dial = dial;
-                dial->setColours (juce::Colours::black, moduleColour(), juce::Colours::grey);
-                dial->setTrackColours (ColorScheme::get().sliderTrackBg, moduleColour());
+                dial->setColours (juce::Colours::black, slotColour (slot), juce::Colours::grey);
+                dial->setTrackColours (ColorScheme::get().sliderTrackBg, slotColour (slot));
                 if (d.min < 0.0f && d.max > 0.0f)
                     dial->setBipolar (true);
                 dial->onGestureStart = [this, r] { ctx.beginGesture ("Effect " + r->label.getText()); };
@@ -283,7 +355,7 @@ private:
                 auto* s = new WfsBidirectionalSlider();
                 row->control.reset (s);
                 row->slider = s;
-                s->setTrackColours (juce::Colour (0xFF1E1E1E), moduleColour());
+                s->setTrackColours (juce::Colour (0xFF1E1E1E), slotColour (slot));
                 s->onGestureStart = [this, r] { ctx.beginGesture ("Effect " + r->label.getText()); };
                 s->onValueChanged = [this, r] (float v) { commitNormalised (*r, v); };
                 break;
@@ -294,7 +366,7 @@ private:
                 auto* s = new WfsStandardSlider();
                 row->control.reset (s);
                 row->slider = s;
-                s->setTrackColours (juce::Colour (0xFF1E1E1E), moduleColour());
+                s->setTrackColours (juce::Colour (0xFF1E1E1E), slotColour (slot));
                 s->onGestureStart = [this, r] { ctx.beginGesture ("Effect " + r->label.getText()); };
                 s->onValueChanged = [this, r] (float v) { commitNormalised (*r, v); };
                 break;
@@ -308,6 +380,9 @@ private:
 
         if (isReverb())
             row->presetOwned = WFSValueTreeState::isEffectReverbPresetOwned (d.id);
+
+        // Every module's dry/wet row is its "<module>Mix"
+        row->inHeader = d.kind == Kind::Bypass || key.endsWith ("Mix");
 
         rows.push_back (std::move (row));
     }
@@ -390,9 +465,14 @@ private:
             case Kind::Bypass:
             {
                 const bool on = readInt (d) == 0;
+                const auto hue = slotColour (slot);
                 r.button->setButtonText (moduleName() + ": " + LOC (on ? "effects.chain.moduleOn" : "effects.chain.moduleOff"));
-                r.button->setColour (juce::TextButton::buttonColourId,
-                                     on ? juce::Colour (0xFF26A69A) : ColorScheme::get().buttonNormal);
+                r.button->setColour (juce::TextButton::buttonColourId, on ? hue : ColorScheme::get().buttonNormal);
+                if (on)
+                    r.button->setColour (juce::TextButton::textColourOffId,
+                                         hue.getPerceivedBrightness() > 0.6f ? juce::Colours::black : juce::Colours::white);
+                else
+                    r.button->removeColour (juce::TextButton::textColourOffId);
                 r.label.setText (juce::String(), juce::dontSendNotification);
                 break;
             }
@@ -443,58 +523,114 @@ private:
         }
     }
 
-    void layoutRows (juce::Rectangle<int> area)
+    int columnGap() const { return scaled (28); }
+
+    /** The ON button at the panel's left edge, Mix where a full-width right
+        column starts - the same two places in every module. */
+    void layoutHeader (juce::Rectangle<int> line)
     {
-        const int rowH = scaled (30);
-        const int dialRowH = scaled (54);
-        const int gap = scaled (4);
+        auto left = line.removeFromLeft ((line.getWidth() - columnGap()) / 2);
+        line.removeFromLeft (columnGap());
+
+        for (auto& row : rows)
+        {
+            if (! row->inHeader)
+                continue;
+
+            if (row->desc->kind == EffectsUi::Kind::Bypass)
+            {
+                row->label.setBounds ({});
+                row->control->setBounds (left.withWidth (juce::jmin (left.getWidth(), scaled (220)))
+                                             .reduced (0, juce::jmax (1, left.getHeight() / 14)));
+                row->value.setBounds ({});
+            }
+            else
+            {
+                placeRow (*row, line);
+            }
+        }
+    }
+
+    /** One row on one line: label, then the control, then its value. */
+    void placeRow (Row& r, juce::Rectangle<int> line)
+    {
         const int labelW = scaled (170);
         const int valueW = scaled (78);
 
+        r.label.setBounds (line.removeFromLeft (labelW));
+
+        if (r.button != nullptr || r.combo != nullptr)
+        {
+            r.control->setBounds (line.removeFromLeft (juce::jmin (line.getWidth(), scaled (220)))
+                                      .reduced (0, juce::jmax (1, line.getHeight() / 14)));
+            r.value.setBounds ({});
+        }
+        else if (r.dial != nullptr || r.rotation != nullptr)
+        {
+            const int d = line.getHeight() - scaled (2);
+            r.control->setBounds (line.removeFromLeft (d).withSizeKeepingCentre (d, d));
+            line.removeFromLeft (scaled (8));
+            r.value.setBounds (line.removeFromLeft (valueW));
+        }
+        else
+        {
+            r.value.setBounds (line.removeFromRight (valueW));
+            line.removeFromRight (scaled (6));
+            r.control->setBounds (line);
+        }
+    }
+
+    void layoutRows (juce::Rectangle<int> area)
+    {
+        // Touch sizes: every line is the app's standard slider height (the
+        // Inputs, Outputs and Reverb tabs' 40), with room between lines.
         // Two columns, the rows on show split by count; a hidden row takes no
         // room, so the reverb's columns close up round the model's own.
         std::vector<Row*> shownRows;
         for (auto& row : rows)
-            if (row->shown)
+            if (row->shown && ! row->inHeader)
                 shownRows.push_back (row.get());
 
         const int n = static_cast<int> (shownRows.size());
         const int firstColumn = (n + 1) / 2;
-        auto left = area.removeFromLeft (area.getWidth() / 2).reduced (scaled (6), 0);
-        auto right = area.reduced (scaled (6), 0);
+        const auto isDialRow = [] (const Row& r) { return r.dial != nullptr || r.rotation != nullptr; };
+
+        // The padding gives way first when a module is too tall for the
+        // panel, then the lines themselves - never an overlap or a clip
+        float lineH = static_cast<float> (scaled (40));
+        float dialH = static_cast<float> (scaled (58));
+        int gap = scaled (12);
+        const int minGap = scaled (4);
+        for (int c = 0; c < 2; ++c)
+        {
+            const int from = c == 0 ? 0 : firstColumn, to = c == 0 ? firstColumn : n;
+            if (to - from < 1)
+                continue;
+            int lines = 0, dials = 0;
+            for (int i = from; i < to; ++i)
+                (isDialRow (*shownRows[static_cast<size_t> (i)]) ? dials : lines)++;
+            const float content = lines * lineH + dials * dialH;
+            const int gaps = to - from - 1;
+            if (gaps > 0 && content + gap * gaps > area.getHeight())
+                gap = juce::jmax (minGap, static_cast<int> ((area.getHeight() - content) / gaps));
+            if (content + gap * gaps > area.getHeight())
+            {
+                const float shrink = juce::jmax (0.5f, (area.getHeight() - gap * gaps) / content);
+                lineH *= shrink;
+                dialH *= shrink;
+            }
+        }
+
+        auto left = area.removeFromLeft ((area.getWidth() - columnGap()) / 2);
+        area.removeFromLeft (columnGap());
+        auto right = area;
 
         for (int i = 0; i < n; ++i)
         {
             auto& col = i < firstColumn ? left : right;
             auto& r = *shownRows[static_cast<size_t> (i)];
-            const bool dialRow = r.dial != nullptr || r.rotation != nullptr;
-            auto line = col.removeFromTop (dialRow ? dialRowH : rowH);
+            placeRow (r, col.removeFromTop (juce::roundToInt (isDialRow (r) ? dialH : lineH)));
             col.removeFromTop (gap);
-
-            r.label.setBounds (line.removeFromLeft (labelW));
-
-            if (r.button != nullptr)
-            {
-                r.button->setBounds (line.removeFromLeft (juce::jmin (line.getWidth(), scaled (200))));
-                r.value.setBounds ({});
-            }
-            else if (r.combo != nullptr)
-            {
-                r.combo->setBounds (line.removeFromLeft (juce::jmin (line.getWidth(), scaled (200))));
-                r.value.setBounds ({});
-            }
-            else if (dialRow)
-            {
-                const int d = dialRowH - scaled (4);
-                r.control->setBounds (line.removeFromLeft (d).withSizeKeepingCentre (d, d));
-                line.removeFromLeft (gap);
-                r.value.setBounds (line.removeFromLeft (valueW));
-            }
-            else
-            {
-                r.value.setBounds (line.removeFromRight (valueW));
-                r.control->setBounds (line.reduced (0, scaled (4)));
-            }
         }
     }
 
@@ -609,12 +745,94 @@ private:
                             == static_cast<int> (spatcore::effects::ReverbType::Custom);
         for (auto& row : rows)
             if (row->presetOwned)
-            {
-                const float alpha = custom ? 1.0f : 0.55f;
-                row->label.setAlpha (alpha);
-                row->control->setAlpha (alpha);
-                row->value.setAlpha (alpha);
-            }
+                setRowAlpha (*row, custom ? 1.0f : 0.55f);
+    }
+
+    //==========================================================================
+    // Greying out: the module's state times each control's own alpha
+    //==========================================================================
+
+    static constexpr float offModuleAlpha = 0.4f;
+
+    static const juce::Identifier& ownAlphaKey()
+    {
+        static const juce::Identifier id ("fxOwnAlpha");
+        return id;
+    }
+
+    /** The alpha a control would have with the module on; the module's
+        state is applied on top, here and in refreshModuleOn. */
+    void setOwnAlpha (juce::Component& c, float alpha)
+    {
+        c.getProperties().set (ownAlphaKey(), alpha);
+        c.setAlpha (alpha * moduleFactorFor (c));
+    }
+
+    void setRowAlpha (Row& r, float alpha)
+    {
+        setOwnAlpha (r.label, alpha);
+        setOwnAlpha (*r.control, alpha);
+        setOwnAlpha (r.value, alpha);
+    }
+
+    float moduleFactorFor (const juce::Component& c) const
+    {
+        // The ON button stays readable, and the EQ display says EQ OFF itself
+        const bool exempt = &c == bypassControl || &c == eqDisplay.get();
+        return moduleOn || exempt ? 1.0f : offModuleAlpha;
+    }
+
+    bool readModuleOn()
+    {
+        for (const auto& row : rows)
+            if (row->desc->kind == EffectsUi::Kind::Bypass)
+                return readInt (*row->desc) == 0;
+        return true;
+    }
+
+    /** The module's ON state, everywhere this panel shows it. */
+    void refreshModuleOn()
+    {
+        moduleOn = readModuleOn();
+
+        for (auto* c : getChildren())
+            c->setAlpha (static_cast<float> (c->getProperties().getWithDefault (ownAlphaKey(), 1.0f))
+                         * moduleFactorFor (*c));
+
+        if (eqDisplay != nullptr)
+            eqDisplay->setEQEnabled (moduleOn);
+
+        repaint();
+
+        if (onModuleOnChanged != nullptr)
+            onModuleOnChanged();
+    }
+
+    /** Dynamics: the compressor's rows grey out while it is off, and the
+        expander's likewise. Their On toggles stay bright. */
+    void refreshSectionDimming()
+    {
+        if (! isDyn())
+            return;
+
+        const auto sectionOn = [this] (const juce::Identifier& id, int fallback)
+        {
+            const auto v = ctx.readModule (node, id);
+            return (v.isVoid() ? fallback : static_cast<int> (v)) != 0;
+        };
+        const bool compOn = sectionOn (WFSParameterIDs::effectDynCompOn, WFSParameterDefaults::effectDynCompOnDefault);
+        const bool expOn  = sectionOn (WFSParameterIDs::effectDynExpOn,  WFSParameterDefaults::effectDynExpOnDefault);
+
+        for (auto& row : rows)
+        {
+            const juce::String key (row->desc->key);
+            if (row->desc->id == WFSParameterIDs::effectDynCompOn || row->desc->id == WFSParameterIDs::effectDynExpOn)
+                continue;
+            if (key.startsWith ("dynComp"))
+                setRowAlpha (*row, compOn ? 1.0f : 0.45f);
+            else if (key.startsWith ("dynExp"))
+                setRowAlpha (*row, expOn ? 1.0f : 0.45f);
+        }
     }
 
     //==========================================================================
@@ -660,7 +878,7 @@ private:
             addAndMakeVisible (row.name);
             row.name.setText (LOC ("effects.chain.tap").replace ("{n}", juce::String (t + 1)), juce::dontSendNotification);
 
-            row.time.setTrackColours (juce::Colour (0xFF1E1E1E), moduleColour());
+            row.time.setTrackColours (juce::Colour (0xFF1E1E1E), slotColour (slot));
             row.time.onGestureStart = [this, t] { ctx.beginGesture ("Effect Delay Tap " + juce::String (t + 1) + " Time"); };
             row.time.onValueChanged = [this, t] (float v)
             {
@@ -728,39 +946,45 @@ private:
         {
             auto& row = taps[static_cast<size_t> (t)];
             const float rowAlpha = t < active ? 1.0f : 0.35f;
-            row.name.setAlpha (rowAlpha);
-            row.level.setAlpha (rowAlpha);
-            row.levelValue.setAlpha (rowAlpha);
+            setOwnAlpha (row.name, rowAlpha);
+            setOwnAlpha (row.level, rowAlpha);
+            setOwnAlpha (row.levelValue, rowAlpha);
             const float timeAlpha = t < active && ! pattern ? 1.0f : 0.35f;
-            row.time.setAlpha (timeAlpha);
-            row.timeValue.setAlpha (timeAlpha);
+            setOwnAlpha (row.time, timeAlpha);
+            setOwnAlpha (row.timeValue, timeAlpha);
         }
     }
 
     void layoutTaps (juce::Rectangle<int> area)
     {
-        const int rowH = scaled (24);
+        const int headerH = scaled (30);
         const int nameW = scaled (60);
-        const int valueW = scaled (78);
-        const int gap = scaled (10);
+        const int valueW = scaled (70);
+        const int gap = scaled (12);
 
-        auto header = area.removeFromTop (rowH);
+        auto header = area.removeFromTop (headerH);
         tapsHeader.setBounds (header.removeFromLeft (nameW));
         auto half = header.getWidth() / 2;
         tapTimeHeader.setBounds (header.removeFromLeft (half));
         tapLevelHeader.setBounds (header);
+        area.removeFromTop (scaled (4));
+
+        // The standard slider height when the column allows it; the padding
+        // between taps is what gives way first
+        const int pitch = area.getHeight() / numTaps;
+        const int rowH = juce::jmin (scaled (40), pitch - scaled (4));
 
         for (int t = 0; t < numTaps; ++t)
         {
             auto& row = taps[static_cast<size_t> (t)];
-            auto line = area.removeFromTop (rowH);
+            auto line = area.removeFromTop (pitch).withSizeKeepingCentre (area.getWidth(), rowH);
             row.name.setBounds (line.removeFromLeft (nameW));
             auto timeArea = line.removeFromLeft (line.getWidth() / 2);
             timeArea.removeFromRight (gap);
             row.timeValue.setBounds (timeArea.removeFromRight (valueW));
-            row.time.setBounds (timeArea.reduced (0, scaled (3)));
+            row.time.setBounds (timeArea);
             row.levelValue.setBounds (line.removeFromRight (valueW));
-            row.level.setBounds (line.reduced (0, scaled (3)));
+            row.level.setBounds (line);
         }
     }
 
@@ -976,16 +1200,16 @@ private:
         const bool shelf = shape == 2 || shape == 5;
         const float alpha = on ? 1.0f : 0.4f;
 
-        band.shape.setAlpha (alpha);
-        band.freqLabel.setAlpha (alpha);
-        band.freq.setAlpha (alpha);
-        band.freqValue.setAlpha (alpha);
+        setOwnAlpha (band.shape, alpha);
+        setOwnAlpha (band.freqLabel, alpha);
+        setOwnAlpha (band.freq, alpha);
+        setOwnAlpha (band.freqValue, alpha);
         for (auto* c : { static_cast<juce::Component*> (&band.gainLabel), static_cast<juce::Component*> (&band.gain), static_cast<juce::Component*> (&band.gainValue) })
-            c->setAlpha (on && ! cutOrPass ? 1.0f : 0.4f);
+            setOwnAlpha (*c, on && ! cutOrPass ? 1.0f : 0.4f);
         for (auto* c : { static_cast<juce::Component*> (&band.qLabel), static_cast<juce::Component*> (&band.q), static_cast<juce::Component*> (&band.qValue) })
-            c->setAlpha (on && ! shelf ? 1.0f : 0.4f);
+            setOwnAlpha (*c, on && ! shelf ? 1.0f : 0.4f);
         for (auto* c : { static_cast<juce::Component*> (&band.slopeLabel), static_cast<juce::Component*> (&band.slope), static_cast<juce::Component*> (&band.slopeValue) })
-            c->setAlpha (on && shelf ? 1.0f : 0.4f);
+            setOwnAlpha (*c, on && shelf ? 1.0f : 0.4f);
     }
 
     void resetBand (int b)
@@ -1002,28 +1226,32 @@ private:
 
     void layoutEq (juce::Rectangle<int> area)
     {
-        const int rowH = scaled (30);
+        const int rowH = scaled (34);
         const int labelH = scaled (18);
-        const int sliderH = scaled (32);
-        const int gap = scaled (5);
-        const int toggleSize = scaled (18);
+        const int sliderH = scaled (40);        // the app's standard slider height
+        const int gap = scaled (8);
+        const int toggleSize = scaled (22);
         const int dialSize = juce::jmax (36, static_cast<int> (52.0f * layoutScale));
 
-        // Top row: the bypass (the one descriptor row) left, Flatten right
-        auto top = area.removeFromTop (rowH);
+        // The header line as in every other module: the ON button (the one
+        // descriptor row) at the left edge; Flatten right, as EQ has no Mix
+        auto top = area.removeFromTop (scaled (40));
+        const int inset = juce::jmax (1, top.getHeight() / 14);
         if (! rows.empty())
         {
             rows[0]->label.setBounds ({});
-            rows[0]->control->setBounds (top.removeFromLeft (scaled (160)));
+            rows[0]->control->setBounds (top.withWidth (juce::jmin (top.getWidth(), scaled (220))).reduced (0, inset));
             rows[0]->value.setBounds ({});
         }
-        eqFlattenButton.setBounds (top.removeFromRight (scaled (120)));
-        area.removeFromTop (gap * 2);
+        eqFlattenButton.setBounds (top.removeFromRight (scaled (140)).reduced (0, inset));
+        area.removeFromTop (scaled (16));
 
+        // The band strips take what they need; the display takes the rest
+        const int bandsH = labelH + rowH + gap + labelH + sliderH + labelH + gap + dialSize + labelH * 2;
         if (eqDisplay != nullptr)
         {
-            eqDisplay->setBounds (area.removeFromTop (juce::jmax (140, area.getHeight() * 38 / 100)));
-            area.removeFromTop (gap);
+            eqDisplay->setBounds (area.removeFromTop (juce::jmax (140, area.getHeight() - bandsH - gap * 2)));
+            area.removeFromTop (gap * 2);
         }
 
         const int bandW = area.getWidth() / numEqBands;
@@ -1063,17 +1291,6 @@ private:
     //==========================================================================
     juce::String moduleName() const { return LOC ("effects.modules." + juce::String (token)); }
 
-    juce::Colour moduleColour() const
-    {
-        // One hue per module family, so a row reads as its module's at a glance
-        static const juce::Colour hues[] = {
-            juce::Colour (0xFFE57373), juce::Colour (0xFF4A90D9), juce::Colour (0xFF4A90D9),
-            juce::Colour (0xFF2E7D32), juce::Colour (0xFF2E7D32), juce::Colour (0xFF9B59B6),
-            juce::Colour (0xFF00ACC1), juce::Colour (0xFFD4A017), juce::Colour (0xFF26A69A),
-            juce::Colour (0xFFFF8F00), juce::Colour (0xFFCDDC39) };
-        return hues[static_cast<size_t> (juce::jlimit (0, 10, slot))];
-    }
-
     int scaled (int ref) const
     {
         return juce::jmax (static_cast<int> (ref * 0.65f), static_cast<int> (ref * layoutScale));
@@ -1087,6 +1304,8 @@ private:
 
     std::vector<std::unique_ptr<Row>> rows;
     int shownModel = -1;                // reverb: the resolved model the rows follow
+    bool moduleOn = true;               // the stored bypass, as last shown
+    juce::Component* bypassControl = nullptr;
 
     // Dynamics
     std::unique_ptr<GainReductionMeter> grMeter;

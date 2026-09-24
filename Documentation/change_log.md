@@ -11,7 +11,16 @@ All notable changes to WFS DIY are documented in this file, organized by release
 - **MCP reaches an input's effect sends.** `input_set_effect_send_level` (tier 2, like every level write) sets one input x effect cell in dB, `input_set_effect_send_on` (tier 1) switches it and keeps the level, and `input_get_effect_sends` reads an input's row. An effect or level out of range, a missing switch value and a dead input are refused; undo puts the row back on the effect.
 - **Stream Deck dials speed up when turned fast.** A slow turn still moves one step per click, and press + turn is still the fine step, but a quick turn now takes bigger steps: on a wide range such as a delay or a position, two fast flicks cross the whole range. Dials with a small range do not speed up. Dials that pick an item keep one item per click: the Patch window's rows and columns and the Clusters preset navigator. So does the Patch window's test signal level, so a fast turn never jumps a test signal up. On the Map, a multi-selection's Move X/Y/Z and a cluster's scale and rotation go up to five steps per click.
 
+### Changed
+- **A new effect channel starts in the original chain order**: EQ 1, Dynamics 1, Dynamics 2, Distortion, Bitcrusher, EQ 2, Chorus/Flanger, Tremolo, Phaser, Multitap Delay, Reverb. Channels already in a session keep their saved order.
+- **The Effects tab's Chain sub-tab is colour-coded.** Each module has its own colour on its tile and around its parameters, so the tile you pick and the panel it opens match. EQ 2 and Dynamics 2 are lighter shades of EQ 1 and Dynamics 1. A module that is off shows a nearly grey tile.
+- **A module that is off greys out its parameters, which stay editable**, so a sound can be set up before the module is switched in. The Dynamics compressor and expander controls also grey out while their section is off.
+- **Module parameters are sized for touch screens**: sliders at the app's standard height, larger buttons and menus, and more space between rows. The Multitap Delay's taps now sit in their own column on the right.
+- **The ON button and the Mix (dry/wet) slider are in the same place in every module**, on the first line of the panel.
+- **The reverb module shows Preset above Model**, because picking a preset also sets the model.
+
 ### Fixed
+- **Switching an EQ module on or off in the Chain sub-tab updates its curve display** (the EQ OFF overlay) and the module's tile at once. Before, they changed only when the channel was reloaded.
 - **Fast turns of a Stream Deck dial no longer drop clicks or come out the wrong way.** The deck sends the clicks of a quick turn together, up to 16 at a time, and only one of them counted. A flick moved a couple of steps, and a flick followed by a small correction could end up on the wrong side of where it started. Every click now counts.
 - **A cluster's scale dial on the Map (Stream Deck) comes back to the same size when turned back and forth.** Each click scaled by 1.05 one way and 0.95 the other, so the cluster slowly shrank; it now scales by 1.05 and 1/1.05.
 - **The binaural Orbit dial works while binaural is off**, like the other binaural parameters: it dims but still turns, so the seat can be placed before the rendering is switched on.
