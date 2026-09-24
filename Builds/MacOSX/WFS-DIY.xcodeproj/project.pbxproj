@@ -182,6 +182,7 @@
 		08134ACD67020F7944801D62 /* WfsParameters.h */ /* WfsParameters.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WfsParameters.h; path = ../../Source/WfsParameters.h; sourceTree = SOURCE_ROOT; };
 		0916E9BE1E7416AD883F94DF /* PatchMatrixComponent.cpp */ /* PatchMatrixComponent.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = PatchMatrixComponent.cpp; path = ../../spatcore/ui/patch/PatchMatrixComponent.cpp; sourceTree = SOURCE_ROOT; };
 		0965060F26497EE431A8A356 /* WFS-DIY_logo.png */ /* WFS-DIY_logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "WFS-DIY_logo.png"; path = "../../Resources/WFS-DIY_logo.png"; sourceTree = SOURCE_ROOT; };
+		0A64B21B0D05102161F82378 /* EffectsSnapshotScope.h */ /* EffectsSnapshotScope.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = EffectsSnapshotScope.h; path = ../../Source/Parameters/EffectsSnapshotScope.h; sourceTree = SOURCE_ROOT; };
 		0A70ECA961F1EBE9EBDA802F /* mysofa.h */ /* mysofa.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = mysofa.h; path = ../../ThirdParty/libmysofa/src/hrtf/mysofa.h; sourceTree = SOURCE_ROOT; };
 		0B2BF8F0DACE9F3F4C4E3556 /* EffectsSendsPanel.h */ /* EffectsSendsPanel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = EffectsSendsPanel.h; path = ../../Source/gui/effects/EffectsSendsPanel.h; sourceTree = SOURCE_ROOT; };
 		0B4FB2F751D0655CA15CE639 /* EffectsChainPanel.h */ /* EffectsChainPanel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = EffectsChainPanel.h; path = ../../Source/gui/effects/EffectsChainPanel.h; sourceTree = SOURCE_ROOT; };
@@ -193,6 +194,7 @@
 		115C92726FC6EAC82D859DF6 /* GradientMapEvaluator.h */ /* GradientMapEvaluator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GradientMapEvaluator.h; path = ../../Source/GradientMap/GradientMapEvaluator.h; sourceTree = SOURCE_ROOT; };
 		11DA25FE53363679529C4A42 /* ArrayGeometryCalculator.h */ /* ArrayGeometryCalculator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ArrayGeometryCalculator.h; path = ../../Source/Helpers/ArrayGeometryCalculator.h; sourceTree = SOURCE_ROOT; };
 		121398B0860404537150E40A /* MCPUndoEngine.cpp */ /* MCPUndoEngine.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPUndoEngine.cpp; path = ../../Source/Network/MCP/MCPUndoEngine.cpp; sourceTree = SOURCE_ROOT; };
+		12936EC03FEA90DA9AB6EE9B /* SnapshotSession.h */ /* SnapshotSession.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SnapshotSession.h; path = ../../Source/gui/snapshots/SnapshotSession.h; sourceTree = SOURCE_ROOT; };
 		12E15F6ACBDA94EC636A4A31 /* orientation.cpp */ /* orientation.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = orientation.cpp; path = ../../ThirdParty/headtracker/host/libheadtracker/src/orientation.cpp; sourceTree = SOURCE_ROOT; };
 		13A51E5E12E1ECE3173CA577 /* parser.cpp */ /* parser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = parser.cpp; path = ../../ThirdParty/headtracker/host/libheadtracker/src/parser.cpp; sourceTree = SOURCE_ROOT; };
 		141DFB14179D8C4EA0A6FF2D /* MapTabWindow.h */ /* MapTabWindow.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MapTabWindow.h; path = ../../Source/gui/MapTabWindow.h; sourceTree = SOURCE_ROOT; };
@@ -247,6 +249,7 @@
 		3193B4D9D805D393D760AE17 /* juce_gui_basics */ /* juce_gui_basics */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_gui_basics; path = ../../ThirdParty/JUCE/modules/juce_gui_basics; sourceTree = SOURCE_ROOT; };
 		31BBA84DB2EB7F91EF69ED4D /* MetalWfsBackend.h */ /* MetalWfsBackend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MetalWfsBackend.h; path = ../../spatcore/gpu/MetalWfsBackend.h; sourceTree = SOURCE_ROOT; };
 		330B07F4056294A91381C726 /* MCPTransport.h */ /* MCPTransport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPTransport.h; path = ../../spatcore/control/mcp/MCPTransport.h; sourceTree = SOURCE_ROOT; };
+		3368E01879592D2507FF8567 /* SnapshotRow.h */ /* SnapshotRow.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SnapshotRow.h; path = ../../Source/gui/snapshots/SnapshotRow.h; sourceTree = SOURCE_ROOT; };
 		3376D9E78846859775CC0715 /* include_juce_gui_basics_3.cpp */ /* include_juce_gui_basics_3.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_gui_basics_3.cpp; path = ../../JuceLibraryCode/include_juce_gui_basics_3.cpp; sourceTree = SOURCE_ROOT; };
 		339C2DC4E32B5FBFC1C2B2B2 /* include_juce_core_zlib.c */ /* include_juce_core_zlib.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = include_juce_core_zlib.c; path = ../../JuceLibraryCode/include_juce_core_zlib.c; sourceTree = SOURCE_ROOT; };
 		344E94DE75CE8AD15E5DF4F7 /* SystemConfigTab.h */ /* SystemConfigTab.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SystemConfigTab.h; path = ../../Source/gui/SystemConfigTab.h; sourceTree = SOURCE_ROOT; };
@@ -677,6 +680,15 @@
 			name = effects;
 			sourceTree = "<group>";
 		};
+		31AF4F4C52C1F983366D51A8 /* snapshots */ = {
+			isa = PBXGroup;
+			children = (
+				12936EC03FEA90DA9AB6EE9B,
+				3368E01879592D2507FF8567,
+			);
+			name = snapshots;
+			sourceTree = "<group>";
+		};
 		39582B30061C39A6ED7B2849 /* tools */ = {
 			isa = PBXGroup;
 			children = (
@@ -888,6 +900,7 @@
 				EC9A59D40083106D8E8E3F3D,
 				23EC5C0EFA931E9866518795,
 				0724D2EC3F7252162C616AE8,
+				31AF4F4C52C1F983366D51A8,
 				A39360C75305D0F857DC9FEE,
 				AA3D6463B920C9F5617110A3,
 				077B2948E10BFDDEDA298758,
@@ -1167,6 +1180,7 @@
 				7574FA77B1174E11D00A732D,
 				4281F4E644C9DE689365F064,
 				1BC1111BA3C08E3C338E43BE,
+				0A64B21B0D05102161F82378,
 			);
 			name = Parameters;
 			sourceTree = "<group>";
@@ -1527,7 +1541,7 @@
 					"SIMPLEWEB_SECURE_SUPPORTED=0",
 					"WFS_GPU_NATIVE=1",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
-					"JUCE_APP_VERSION=1.0.0beta51",
+					"JUCE_APP_VERSION=1.0.0beta52",
 					"JUCE_APP_VERSION_HEX=0x10000",
 					"JucePlugin_Build_VST=0",
 					"JucePlugin_Build_VST3=0",
@@ -1620,7 +1634,7 @@
 					"SIMPLEWEB_SECURE_SUPPORTED=0",
 					"WFS_GPU_NATIVE=1",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
-					"JUCE_APP_VERSION=1.0.0beta51",
+					"JUCE_APP_VERSION=1.0.0beta52",
 					"JUCE_APP_VERSION_HEX=0x10000",
 					"JucePlugin_Build_VST=0",
 					"JucePlugin_Build_VST3=0",

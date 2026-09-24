@@ -8,11 +8,11 @@
     <Filter Include="WFS-DIY\Source\Parameters">
       <UniqueIdentifier>{C58F2054-E3F5-AD0A-420D-2C2375F6AFD0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="WFS-DIY\Source\gui\snapshots">
+      <UniqueIdentifier>{708DC84B-1751-C61F-F8A3-20D37AE32268}</UniqueIdentifier>
+    </Filter>
     <Filter Include="WFS-DIY\Source\gui\effects">
       <UniqueIdentifier>{C3B40B98-E017-39DF-9559-AF8F28DB58A7}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="WFS-DIY\Source\gui\snapshots">
-      <UniqueIdentifier>{5D1E7A42-8C3B-4F0E-9A6D-2B7C9E4F1A83}</UniqueIdentifier>
     </Filter>
     <Filter Include="WFS-DIY\Source\gui">
       <UniqueIdentifier>{779C7693-77C1-9EF7-9439-EE6915457295}</UniqueIdentifier>
