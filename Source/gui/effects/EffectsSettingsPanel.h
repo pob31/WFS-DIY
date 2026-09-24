@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "EffectsTabContext.h"
+#include "EffectsFieldEditing.h"
 #include "../ColorScheme.h"
 #include "../buttons/LongPressButton.h"
 #include "../sliders/WfsStandardSlider.h"
@@ -158,7 +159,20 @@ public:
         noteLabel.setText (LOC ("effects.settings.note"), juce::dontSendNotification);
         noteLabel.setColour (juce::Label::textColourId, ColorScheme::get().textDisabled);
         noteLabel.setJustificationType (juce::Justification::topLeft);
+
+        setupFieldEditing();
+
+        // A click on an empty patch of the panel closes an open field
+        // (EffectsFieldEditing says why the panel has to take the focus)
+        setWantsKeyboardFocus (true);
     }
+
+    std::unique_ptr<juce::ComponentTraverser> createKeyboardFocusTraverser() override
+    {
+        return fields.createTraverser();
+    }
+
+    EffectsFieldEditing& getFieldsForTest() { return fields; }
 
     void loadParameters()
     {
@@ -318,12 +332,46 @@ private:
         addAndMakeVisible (ed);
     }
 
-    void textEditorReturnKeyPressed (juce::TextEditor& editor) override { commit (editor); }
+    // Enter closes the box and losing the focus applies it; Esc puts the
+    // stored value back first. Only a box whose text was changed is written.
+    void textEditorReturnKeyPressed (juce::TextEditor& editor) override { EffectsFieldEditing::closeField (editor); }
     void textEditorFocusLost (juce::TextEditor& editor) override        { commit (editor); }
+
+    void textEditorEscapeKeyPressed (juce::TextEditor& editor) override
+    {
+        fields.forgetEdit (editor);
+        loadParameters();
+        EffectsFieldEditing::closeField (editor);
+    }
+
+    /** The loop-guard ceiling takes a typed number; Tab keeps to the link
+        group names or to the engine's numbers. */
+    void setupFieldEditing()
+    {
+        fields.makeEditable (ceilingValue, "Effects Loop Guard Ceiling", [this] (float typed)
+        {
+            namespace D = WFSParameterDefaults;
+            const float dB = juce::jlimit (D::effectsGlobalLoopGuardCeilingMin, D::effectsGlobalLoopGuardCeilingMax, typed);
+            ceilingSlider.setValue ((dB - D::effectsGlobalLoopGuardCeilingMin)
+                                    / (D::effectsGlobalLoopGuardCeilingMax - D::effectsGlobalLoopGuardCeilingMin));
+            ceilingValue.setText (juce::String (dB, 1) + " dBFS", juce::dontSendNotification);
+        });
+
+        std::vector<juce::Component*> names;
+        for (auto& ed : groupEditors)
+        {
+            fields.watch (ed);
+            names.push_back (&ed);
+        }
+        fields.watch (workerThreadsEditor);
+        fields.watch (maxDelayEditor);
+
+        fields.setCircuits ({ names, { &workerThreadsEditor, &ceilingValue, &maxDelayEditor } });
+    }
 
     void commit (juce::TextEditor& editor)
     {
-        if (ctx.isLoadingParameters)
+        if (ctx.isLoadingParameters || ! fields.takeEdited (editor))
             return;
         namespace D = WFSParameterDefaults;
 
@@ -375,6 +423,7 @@ private:
     }
 
     EffectsTabContext& ctx;
+    EffectsFieldEditing fields { ctx, *this };
     float layoutScale = 1.0f;
     std::vector<std::pair<juce::String, juce::String>> devices;   // id, name
 

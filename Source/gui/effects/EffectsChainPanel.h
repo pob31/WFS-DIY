@@ -61,6 +61,10 @@ public:
         hintLabel.setColour (juce::Label::textColourId, ColorScheme::get().textDisabled);
         hintLabel.setJustificationType (juce::Justification::centredLeft);
 
+        // A click on the strip or around the module closes a field open in
+        // the module panel (EffectsFieldEditing says why this takes the focus)
+        setWantsKeyboardFocus (true);
+
         for (int s = 0; s < numSlots; ++s)
         {
             tiles[static_cast<size_t> (s)] = std::make_unique<Tile> (*this, s);

@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "EffectsTabContext.h"
+#include "EffectsFieldEditing.h"
 #include "../ColorScheme.h"
 #include "../TriangleIndicator.h"
 #include "../buttons/TransportButtons.h"
@@ -40,7 +41,19 @@ public:
     {
         setupLfo();
         setupOtomo();
+        setupFieldEditing();
+
+        // A click on an empty patch of the panel closes an open field
+        // (EffectsFieldEditing says why the panel has to take the focus)
+        setWantsKeyboardFocus (true);
     }
+
+    std::unique_ptr<juce::ComponentTraverser> createKeyboardFocusTraverser() override
+    {
+        return fields.createTraverser();
+    }
+
+    EffectsFieldEditing& getFieldsForTest() { return fields; }
 
     void setOtomoProcessor (AutomOtionProcessor* processor) { otomo = processor; }
 
@@ -913,12 +926,21 @@ private:
         curveUnit.setVisible (cartesian);
     }
 
-    void textEditorReturnKeyPressed (juce::TextEditor& editor) override { commitEditor (editor); }
+    // Enter closes the box and losing the focus applies it; Esc puts the
+    // stored value back first. Only a box whose text was changed is written.
+    void textEditorReturnKeyPressed (juce::TextEditor& editor) override { EffectsFieldEditing::closeField (editor); }
     void textEditorFocusLost (juce::TextEditor& editor) override        { commitEditor (editor); }
+
+    void textEditorEscapeKeyPressed (juce::TextEditor& editor) override
+    {
+        fields.forgetEdit (editor);
+        updateOtomoDestinationEditors();
+        EffectsFieldEditing::closeField (editor);
+    }
 
     void commitEditor (juce::TextEditor& editor)
     {
-        if (ctx.isLoadingParameters)
+        if (ctx.isLoadingParameters || ! fields.takeEdited (editor))
             return;
 
         const juce::Identifier* ids[3];
@@ -928,10 +950,115 @@ private:
         for (int axis = 0; axis < 3; ++axis)
             if (&editor == &destEditors[axis])
             {
-                ctx.beginGesture ("Effect AutomOtion Destination");
-                ctx.write (*ids[axis], editor.getText().getFloatValue());
+                if (const auto typed = EffectsFieldEditing::parseNumber (editor.getText()))
+                {
+                    ctx.beginGesture ("Effect AutomOtion Destination");
+                    ctx.write (*ids[axis], *typed);
+                }
+                updateOtomoDestinationEditors();
                 return;
             }
+    }
+
+    //==========================================================================
+    // Typed values and Tab sections
+    //==========================================================================
+
+    /** Every value label takes a typed number, the way the inputs tab's
+        movement labels do, and Tab keeps to the section it is in. */
+    void setupFieldEditing()
+    {
+        namespace D = WFSParameterDefaults;
+        const auto degree = juce::String::charToString (0x00B0);
+
+        fields.makeEditable (lfoPeriodValue, "Effect LFO Period", [this] (float typed)
+        {
+            const float period = juce::jlimit (D::effectLFOperiodMin, D::effectLFOperiodMax, typed);
+            lfoPeriodDial.setValue (juce::jlimit (0.0f, 1.0f, std::pow ((std::log10 (period) + 2.0f) / 4.0f, 2.0f)));
+            lfoPeriodValue.setText (formatLfoPeriod (period), juce::dontSendNotification);
+        });
+
+        fields.makeEditable (lfoPhaseValue, "Effect LFO Phase", [this] (float typed)
+        {
+            const int phase = D::wrapPhaseDegrees (juce::roundToInt (typed));
+            lfoPhaseDial.setAngle (static_cast<float> (phase));
+            lfoPhaseValue.setText (juce::String (phase), juce::dontSendNotification);
+        });
+
+        static const char* const axisNames[] = { "X", "Y", "Z" };
+        for (int axis = 0; axis < 3; ++axis)
+        {
+            auto& a = axes[axis];
+            const juce::String ax (axisNames[axis]);
+
+            fields.makeEditable (a.ampValue, "Effect LFO Amplitude " + ax, [this, axis] (float typed)
+            {
+                const float amp = juce::jlimit (D::effectLFOamplitudeMin, D::effectLFOamplitudeMax, typed);
+                axes[axis].ampSlider.setValue (amp / 50.0f);
+                axes[axis].ampValue.setText (juce::String (amp, 1) + " m", juce::dontSendNotification);
+            });
+
+            fields.makeEditable (a.rateValue, "Effect LFO Rate " + ax, [this, axis] (float typed)
+            {
+                const float rate = juce::jlimit (D::effectLFOrateMin, D::effectLFOrateMax, typed);
+                axes[axis].rateSlider.setValue (juce::jlimit (-1.0f, 1.0f, std::log10 (rate) / 2.0f));
+                axes[axis].rateValue.setText (juce::String (rate, 2) + "x", juce::dontSendNotification);
+            });
+
+            fields.makeEditable (a.phaseValue, "Effect LFO Phase " + ax, [this, axis, degree] (float typed)
+            {
+                const int phase = D::wrapPhaseDegrees (juce::roundToInt (typed));
+                axes[axis].phaseDial.setAngle (static_cast<float> (phase));
+                axes[axis].phaseValue.setText (juce::String (phase) + degree, juce::dontSendNotification);
+            });
+        }
+
+        fields.makeEditable (durationValue, "Effect AutomOtion Duration", [this] (float typed)
+        {
+            const float duration = juce::jlimit (0.1f, 3600.0f, typed);
+            durationDial.setValue (juce::jlimit (0.0f, 1.0f, std::pow ((std::log10 (duration) + 1.0f) / 3.556f, 2.0f)));
+            durationValue.setText (formatDuration (duration), juce::dontSendNotification);
+        }, EffectsFieldEditing::parseDuration);
+
+        fields.makeEditable (curveValue, "Effect AutomOtion Curve", [this] (float typed)
+        {
+            const int curve = juce::jlimit (-100, 100, juce::roundToInt (typed));
+            curveDial.setValue ((curve + 100) / 200.0f);
+            curveValue.setText (juce::String (curve), juce::dontSendNotification);
+        });
+
+        fields.makeEditable (speedProfileValue, "Effect AutomOtion Speed Profile", [this] (float typed)
+        {
+            const int percent = juce::jlimit (0, 100, juce::roundToInt (typed));
+            speedProfileDial.setValue (percent / 100.0f);
+            speedProfileValue.setText (juce::String (percent), juce::dontSendNotification);
+        });
+
+        fields.makeEditable (thresholdValue, "Effect AutomOtion Threshold", [this] (float typed)
+        {
+            const float dB = juce::jlimit (-92.0f, 0.0f, typed);
+            thresholdDial.setValue (dialFromLevel (dB));
+            thresholdValue.setText (juce::String (dB, 1), juce::dontSendNotification);
+        });
+
+        fields.makeEditable (resetValue, "Effect AutomOtion Reset", [this] (float typed)
+        {
+            const float dB = juce::jlimit (-92.0f, 0.0f, typed);
+            resetDial.setValue (dialFromLevel (dB));
+            resetValue.setText (juce::String (dB, 1), juce::dontSendNotification);
+        });
+
+        for (auto& ed : destEditors)
+            fields.watch (ed);
+
+        // The inputs tab's sections (InputsTab::inputCircuits, LFO and AutomOtion)
+        fields.setCircuits ({
+            { &lfoPeriodValue, &lfoPhaseValue },
+            { &axes[0].ampValue, &axes[0].rateValue, &axes[0].phaseValue },
+            { &axes[1].ampValue, &axes[1].rateValue, &axes[1].phaseValue },
+            { &axes[2].ampValue, &axes[2].rateValue, &axes[2].phaseValue },
+            { &destEditors[0], &destEditors[1], &destEditors[2],
+              &durationValue, &curveValue, &speedProfileValue, &thresholdValue, &resetValue } });
     }
 
     static juce::String formatDuration (float duration)
@@ -987,6 +1114,7 @@ private:
 
     //==========================================================================
     EffectsTabContext& ctx;
+    EffectsFieldEditing fields { ctx, *this };
     AutomOtionProcessor* otomo = nullptr;
     float layoutScale = 1.0f;
     int columnDividerX = 0;

@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "EffectsTabContext.h"
 #include "EffectsModuleDescriptors.h"
+#include "EffectsFieldEditing.h"
 #include "../ColorScheme.h"
 #include "../EQDisplayComponent.h"
 #include "../GainReductionMeter.h"
@@ -69,7 +70,20 @@ public:
         if (isEq())    setupEq();
         if (isDyn())   setupDyn();
         if (isDelay()) setupDelay();
+
+        setupFieldEditing();
+
+        // A click on an empty patch of the module closes an open field
+        // (EffectsFieldEditing says why the panel has to take the focus)
+        setWantsKeyboardFocus (true);
     }
+
+    std::unique_ptr<juce::ComponentTraverser> createKeyboardFocusTraverser() override
+    {
+        return fields.createTraverser();
+    }
+
+    EffectsFieldEditing& getFieldsForTest() { return fields; }
 
     int getSlot() const noexcept { return slot; }
     bool isEq()    const noexcept { return slot == 1 || slot == 2; }
@@ -196,6 +210,7 @@ public:
         if (isEq())
         {
             layoutEq (area);
+            updateCircuits();
             return;
         }
 
@@ -224,6 +239,7 @@ public:
         }
 
         layoutRows (area);
+        updateCircuits();
     }
 
 private:
@@ -632,6 +648,164 @@ private:
             placeRow (r, col.removeFromTop (juce::roundToInt (isDialRow (r) ? dialH : lineH)));
             col.removeFromTop (gap);
         }
+    }
+
+    //==========================================================================
+    // Typed values and Tab sections
+    //==========================================================================
+
+    static bool isNumericRow (const Row& r)
+    {
+        return r.slider != nullptr || r.dial != nullptr || r.rotation != nullptr;
+    }
+
+    /** Every value a row, tap or band shows takes a typed number, clamped to
+        the CSV's range and written through the control, as a drag would. */
+    void setupFieldEditing()
+    {
+        for (auto& row : rows)
+        {
+            if (! isNumericRow (*row))
+                continue;
+
+            auto* r = row.get();
+            fields.makeEditable (r->value, "Effect " + r->label.getText(), [this, r] (float typed)
+            {
+                const auto& d = *r->desc;
+                if (r->rotation != nullptr)
+                {
+                    float deg = std::fmod (typed, 360.0f);          // stored 0..360
+                    if (deg < 0.0f)
+                        deg += 360.0f;
+                    r->rotation->setAngle (deg > 180.0f ? deg - 360.0f : deg);
+                    r->value.setText (formatValue (deg, d.unit), juce::dontSendNotification);
+                    return;
+                }
+
+                const float real = juce::jlimit (d.min, d.max, typed);
+                if (r->dial != nullptr)
+                    r->dial->setValue (normalisedFromReal (d, real));
+                else
+                    r->slider->setValue (normalisedFromReal (d, real));
+                r->value.setText (formatValue (real, d.unit), juce::dontSendNotification);
+            });
+        }
+
+        if (isDelay())
+        {
+            for (int t = 0; t < numTaps; ++t)
+            {
+                const auto tapName = "Effect Delay Tap " + juce::String (t + 1);
+                fields.makeEditable (taps[static_cast<size_t> (t)].timeValue, tapName + " Time", [this, t] (float typed)
+                {
+                    const auto& d = EffectsUi::descDelayTapTime();
+                    const float real = juce::jlimit (d.min, d.max, typed);
+                    auto& row = taps[static_cast<size_t> (t)];
+                    row.time.setValue (normalisedFromReal (d, real));
+                    row.timeValue.setText (formatValue (real, d.unit), juce::dontSendNotification);
+                });
+                fields.makeEditable (taps[static_cast<size_t> (t)].levelValue, tapName + " Level", [this, t] (float typed)
+                {
+                    const auto& d = EffectsUi::descDelayTapLevel();
+                    const float real = juce::jlimit (d.min, d.max, typed);
+                    auto& row = taps[static_cast<size_t> (t)];
+                    row.level.setValue (normalisedFromReal (d, real));
+                    row.levelValue.setText (formatValue (real, d.unit), juce::dontSendNotification);
+                });
+            }
+        }
+
+        if (isEq())
+        {
+            for (int b = 0; b < numEqBands; ++b)
+            {
+                auto& band = bands[static_cast<size_t> (b)];
+                const auto bandName = "Effect EQ Band " + juce::String (b + 1);
+
+                fields.makeEditable (band.freqValue, bandName + " Freq", [this, b] (float typed)
+                {
+                    auto& bd = bands[static_cast<size_t> (b)];
+                    const int freq = juce::jlimit (20, 20000, juce::roundToInt (typed));
+                    bd.freq.setValue (juce::jlimit (0.0f, 1.0f, std::log10 (freq / 20.0f) / 3.0f));
+                    // The slider's own law truncates (1000 Hz comes back as
+                    // 999), so the typed frequency is written as typed
+                    ctx.writeBand (eqInstance(), b, WFSParameterIDs::effectEQfreq, freq);
+                    bd.freqValue.setText (formatValue (static_cast<float> (freq), "Hz"), juce::dontSendNotification);
+                });
+
+                fields.makeEditable (band.gainValue, bandName + " Gain", [this, b] (float typed)
+                {
+                    auto& bd = bands[static_cast<size_t> (b)];
+                    const float gain = juce::jlimit (-24.0f, 24.0f, typed);
+                    bd.gain.setValue ((gain + 24.0f) / 48.0f);
+                    bd.gainValue.setText (formatValue (gain, "dB"), juce::dontSendNotification);
+                });
+
+                fields.makeEditable (band.qValue, bandName + " Q", [this, b] (float typed)
+                {
+                    auto& bd = bands[static_cast<size_t> (b)];
+                    const auto& dq = EffectsUi::descEQq();
+                    const float q = juce::jlimit (dq.min, dq.max, typed);
+                    bd.q.setValue (juce::jlimit (0.0f, 1.0f, std::log (q / dq.min) / std::log (dq.max / dq.min)));
+                    bd.qValue.setText (juce::String (q, 2), juce::dontSendNotification);
+                });
+
+                fields.makeEditable (band.slopeValue, bandName + " Slope", [this, b] (float typed)
+                {
+                    auto& bd = bands[static_cast<size_t> (b)];
+                    const auto& ds = EffectsUi::descEQslope();
+                    const float slope = juce::jlimit (ds.min, ds.max, typed);
+                    bd.slope.setValue (juce::jlimit (0.0f, 1.0f, (slope - ds.min) / (ds.max - ds.min)));
+                    bd.slopeValue.setText (juce::String (slope, 2), juce::dontSendNotification);
+                });
+            }
+        }
+    }
+
+    /** Tab keeps to one column on screen: the two row columns as layoutRows
+        splits them (Mix heads the right one), the tap times, the tap levels,
+        and each EQ band. Rebuilt on every layout, because the reverb's model
+        decides which rows are on show. */
+    void updateCircuits()
+    {
+        std::vector<std::vector<juce::Component*>> circuits;
+        std::vector<juce::Component*> left, right;
+
+        for (auto& row : rows)
+            if (row->inHeader && isNumericRow (*row))
+                right.push_back (&row->value);
+
+        std::vector<Row*> shownRows;
+        for (auto& row : rows)
+            if (row->shown && ! row->inHeader)
+                shownRows.push_back (row.get());
+
+        const int firstColumn = (static_cast<int> (shownRows.size()) + 1) / 2;
+        for (int i = 0; i < static_cast<int> (shownRows.size()); ++i)
+            if (isNumericRow (*shownRows[static_cast<size_t> (i)]))
+                (i < firstColumn ? left : right).push_back (&shownRows[static_cast<size_t> (i)]->value);
+
+        for (auto* column : { &left, &right })
+            if (! column->empty())
+                circuits.push_back (*column);
+
+        if (isDelay())
+        {
+            std::vector<juce::Component*> times, levels;
+            for (auto& tap : taps)
+            {
+                times.push_back (&tap.timeValue);
+                levels.push_back (&tap.levelValue);
+            }
+            circuits.push_back (times);
+            circuits.push_back (levels);
+        }
+
+        if (isEq())
+            for (auto& band : bands)
+                circuits.push_back ({ &band.freqValue, &band.gainValue, &band.qValue, &band.slopeValue });
+
+        fields.setCircuits (std::move (circuits));
     }
 
     //==========================================================================
@@ -1297,6 +1471,7 @@ private:
     }
 
     EffectsTabContext& ctx;
+    EffectsFieldEditing fields { ctx, *this };
     const int slot;
     const juce::Identifier node;
     const char* const token;

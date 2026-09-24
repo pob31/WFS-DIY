@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "EffectsTabContext.h"
+#include "EffectsFieldEditing.h"
 #include "../ColorScheme.h"
 #include "../ColorUtilities.h"
 #include "../buttons/LongPressButton.h"
@@ -13,6 +14,7 @@
 #include "../../Parameters/WFSParameterIDs.h"
 #include "../../Parameters/WFSParameterDefaults.h"
 #include "../../Localization/LocalizationManager.h"
+#include "../../Helpers/CoordinateConverter.h"
 
 /**
     The Channel Parameters sub-tab: what the return costs, where it sits and
@@ -47,7 +49,23 @@ public:
         setupColumn1();
         setupFeedColumn();
         setupReturnColumn();
+        setupFieldEditing();
+
+        // A click on an empty patch of the panel closes an open field
+        // (EffectsFieldEditing says why the panel has to take the focus)
+        setWantsKeyboardFocus (true);
     }
+
+    std::unique_ptr<juce::ComponentTraverser> createKeyboardFocusTraverser() override
+    {
+        return fields.createTraverser();
+    }
+
+    EffectsFieldEditing& getFieldsForTest() { return fields; }
+    juce::TextEditor& getPositionEditorForTest (int axis) { return positionEditors[juce::jlimit (0, 2, axis)]; }
+    juce::TextEditor& getOffsetEditorForTest (int axis)   { return offsetEditors[juce::jlimit (0, 2, axis)]; }
+    void closeBoxForTest (juce::TextEditor& editor)       { commitEditor (editor); }
+    void escapeBoxForTest (juce::TextEditor& editor)      { textEditorEscapeKeyPressed (editor); }
 
     /** Called from the tab's loadChannelParameters, inside its loading scope. */
     /** The group names changed on the Settings tab: rebuild the combo's
@@ -521,17 +539,38 @@ private:
         static const char* unitsCart[3] = { "m", "m", "m" };
         const char** units = mode == 1 ? unitsCyl : (mode == 2 ? unitsSph : unitsCart);
 
-        const juce::Identifier* ids[3] = { &effectPositionX, &effectPositionY, &effectPositionZ };
+        // The boxes show the mode's own values (r, theta, ...), converted from
+        // the stored Cartesian triple as the reverb tab does; angles 1 decimal
+        const auto shown = displayPosition();
         for (int axis = 0; axis < 3; ++axis)
         {
             positionLabels[axis].setText (LOC (keys[axis]), juce::dontSendNotification);
             positionUnits[axis].setText (juce::String::fromUTF8 (units[axis]), juce::dontSendNotification);
-            positionEditors[axis].setText (juce::String (ctx.readFloat (*ids[axis], 0.0f), 2), false);
+            const bool angle = units[axis][0] != 'm';
+            positionEditors[axis].setText (juce::String (shown[static_cast<size_t> (axis)], angle ? 1 : 2), false);
         }
 
         const juce::Identifier* offs[3] = { &effectReturnOffsetX, &effectReturnOffsetY, &effectReturnOffsetZ };
         for (int axis = 0; axis < 3; ++axis)
             offsetEditors[axis].setText (juce::String (ctx.readFloat (*offs[axis], 0.0f), 2), false);
+    }
+
+    WFSCoordinates::Mode coordinateMode() const
+    {
+        return static_cast<WFSCoordinates::Mode> (juce::jlimit (0, 2, ctx.readInt (WFSParameterIDs::effectCoordinateMode, 0)));
+    }
+
+    /** The stored position in the coordinate mode's terms. */
+    std::array<float, 3> displayPosition() const
+    {
+        using namespace WFSParameterIDs;
+        std::array<float, 3> v {};
+        WFSCoordinates::cartesianToDisplay (coordinateMode(),
+                                            ctx.readFloat (effectPositionX, 0.0f),
+                                            ctx.readFloat (effectPositionY, 0.0f),
+                                            ctx.readFloat (effectPositionZ, 0.0f),
+                                            v[0], v[1], v[2]);
+        return v;
     }
 
     //==========================================================================
@@ -975,23 +1014,181 @@ private:
     // Text editors
     //==========================================================================
 
-    void textEditorReturnKeyPressed (juce::TextEditor& editor) override { commitEditor (editor); }
+    // Enter closes the box and losing the focus applies it; Esc puts the
+    // stored value back first. Only a box whose text was changed is written.
+    void textEditorReturnKeyPressed (juce::TextEditor& editor) override { EffectsFieldEditing::closeField (editor); }
     void textEditorFocusLost (juce::TextEditor& editor) override        { commitEditor (editor); }
+
+    void textEditorEscapeKeyPressed (juce::TextEditor& editor) override
+    {
+        fields.forgetEdit (editor);
+        loadPositionEditors();
+        EffectsFieldEditing::closeField (editor);
+    }
 
     void commitEditor (juce::TextEditor& editor)
     {
-        if (ctx.isLoadingParameters)
+        if (ctx.isLoadingParameters || ! fields.takeEdited (editor))
             return;
 
         using namespace WFSParameterIDs;
-        const juce::Identifier* pos[3] = { &effectPositionX, &effectPositionY, &effectPositionZ };
         const juce::Identifier* off[3] = { &effectReturnOffsetX, &effectReturnOffsetY, &effectReturnOffsetZ };
+        const auto typed = EffectsFieldEditing::parseNumber (editor.getText());
 
         for (int axis = 0; axis < 3; ++axis)
         {
-            if (&editor == &positionEditors[axis]) { ctx.write (*pos[axis], editor.getText().getFloatValue()); return; }
-            if (&editor == &offsetEditors[axis])   { ctx.write (*off[axis], editor.getText().getFloatValue()); return; }
+            if (&editor == &positionEditors[axis])
+            {
+                if (typed.has_value())
+                {
+                    // Only the typed coordinate changes: the other two come
+                    // from the stored position, not from their rounded display
+                    auto v = displayPosition();
+                    v[static_cast<size_t> (axis)] = *typed;
+                    const auto cart = WFSCoordinates::displayToCartesian (coordinateMode(), v[0], v[1], v[2]);
+                    ctx.beginGesture ("Effect Position");
+                    ctx.write (effectPositionX, cart.x);
+                    ctx.write (effectPositionY, cart.y);
+                    ctx.write (effectPositionZ, cart.z);
+                }
+                loadPositionEditors();
+                return;
+            }
+
+            if (&editor == &offsetEditors[axis])
+            {
+                if (typed.has_value())
+                {
+                    ctx.beginGesture ("Effect Return Offset");
+                    ctx.write (*off[axis], *typed);
+                }
+                loadPositionEditors();
+                return;
+            }
         }
+    }
+
+    //==========================================================================
+    // Typed values and Tab sections
+    //==========================================================================
+
+    /** Every value label takes a typed number, the way the reverb tab's do,
+        and Tab keeps to the column the field sits in. */
+    void setupFieldEditing()
+    {
+        namespace D = WFSParameterDefaults;
+        using namespace WFSParameterIDs;
+
+        fields.makeEditable (attenuationValue, "Effect Attenuation", [this] (float dB)
+        {
+            setSliderFromDb (attenuationSlider, attenuationValue,
+                             juce::jlimit (D::effectAttenuationMin, D::effectAttenuationMax, dB), D::effectAttenuationMin);
+        });
+
+        // The label names the sign with a word; the field opens on the signed
+        // number, negative for latency
+        fields.makeEditable (delayLatencyValue, "Effect Delay/Latency", [this] (float ms)
+        {
+            ms = juce::jlimit (D::effectDelayLatencyMin, D::effectDelayLatencyMax, ms);
+            delayLatencySlider.setValue (ms / D::effectDelayLatencyMax);
+            delayLatencyValue.setText (latencyText (ms), juce::dontSendNotification);
+        }, EffectsFieldEditing::parseNumber,
+        [this] { return juce::String (ctx.readFloat (effectDelayLatency, 0.0f), 1); });
+
+        fields.makeEditable (orientationValue, "Effect Orientation", [this] (float deg)
+        {
+            const int wrapped = ((juce::roundToInt (deg) + 180) % 360 + 360) % 360 - 180;
+            directionalDial.setOrientation (static_cast<float> (wrapped));
+            orientationValue.setText (juce::String (wrapped) + " " + degreeSign(), juce::dontSendNotification);
+        });
+
+        fields.makeEditable (angleOnValue,  "Effect Angle On",  [this] (float deg) { applyAngleOn  (juce::roundToInt (deg), false); });
+        fields.makeEditable (angleOffValue, "Effect Angle Off", [this] (float deg) { applyAngleOff (juce::roundToInt (deg), false); });
+
+        fields.makeEditable (pitchValue, "Effect Pitch", [this] (float deg)
+        {
+            const int d = juce::jlimit (D::effectPitchMin, D::effectPitchMax, juce::roundToInt (deg));
+            pitchSlider.setValue (static_cast<float> (d) / static_cast<float> (D::effectPitchMax));
+            pitchValue.setText (juce::String (d) + degreeSign(), juce::dontSendNotification);
+        });
+
+        fields.makeEditable (hfDampingValue, "Effect HF Damping", [this] (float db)
+        {
+            setSliderLinear (hfDampingSlider, hfDampingValue,
+                             juce::jlimit (D::effectHFdampingMin, D::effectHFdampingMax, db),
+                             D::effectHFdampingMin, D::effectHFdampingMax, " dB/m", 1);
+        });
+
+        fields.makeEditable (distanceAttenPercentValue, "Effect Distance Atten %", [this] (float pct)
+        {
+            const int p = juce::jlimit (D::effectDistanceAttenPercentMin, D::effectDistanceAttenPercentMax, juce::roundToInt (pct));
+            setSliderLinear (distanceAttenPercentSlider, distanceAttenPercentValue, static_cast<float> (p),
+                             static_cast<float> (D::effectDistanceAttenPercentMin),
+                             static_cast<float> (D::effectDistanceAttenPercentMax), "%", 0);
+        });
+
+        // The return dials hold real values (setRange), so the typed number
+        // goes straight in
+        fields.makeEditable (distanceAttenValue, "Effect Distance Attenuation", [this] (float v)
+        {
+            v = juce::jlimit (D::effectDistanceAttenuationMin, D::effectDistanceAttenuationMax, v);
+            distanceAttenDial.setValue (v);
+            distanceAttenValue.setText (juce::String (v, 1) + " dB/m", juce::dontSendNotification);
+        });
+
+        fields.makeEditable (distanceRatioValue, "Effect Distance Ratio", [this] (float v)
+        {
+            v = juce::jlimit (D::effectDistanceRatioMin, D::effectDistanceRatioMax, v);
+            distanceRatioDial.setValue (v);
+            distanceRatioValue.setText (juce::String (v, 2) + " x", juce::dontSendNotification);
+        });
+
+        fields.makeEditable (commonAttenValue, "Effect Common Attenuation", [this] (float v)
+        {
+            const int pct = juce::jlimit (D::effectCommonAttenMin, D::effectCommonAttenMax, juce::roundToInt (v));
+            commonAttenDial.setValue (static_cast<float> (pct));
+            commonAttenValue.setText (juce::String (pct) + " %", juce::dontSendNotification);
+        });
+
+        fields.makeEditable (hfShelfValue, "Effect HF Shelf", [this] (float db)
+        {
+            setSliderLinear (hfShelfSlider, hfShelfValue, juce::jlimit (D::effectHFshelfMin, D::effectHFshelfMax, db),
+                             D::effectHFshelfMin, D::effectHFshelfMax, " dB", 1);
+        });
+
+        for (int i = 0; i < 10; ++i)
+        {
+            fields.makeEditable (arrayAttenValues[i], "Effect Array " + juce::String (i + 1) + " Attenuation", [this, i] (float db)
+            {
+                // The dial's square law, inverted (loadArrayAttens)
+                db = juce::jlimit (-60.0f, 0.0f, db);
+                constexpr float minLinear = 0.001f;
+                const float linear = std::pow (10.0f, db / 20.0f);
+                arrayAttenDials[i].setValue (juce::jlimit (0.0f, 1.0f, std::sqrt (juce::jmax (0.0f, (linear - minLinear) / (1.0f - minLinear)))));
+                arrayAttenValues[i].setText (juce::String (db, 1) + " dB", juce::dontSendNotification);
+            });
+        }
+
+        for (int axis = 0; axis < 3; ++axis)
+        {
+            fields.watch (positionEditors[axis]);
+            fields.watch (offsetEditors[axis]);
+        }
+
+        // The reverb tab's sections (ReverbTab::reverbCircuits), plus the
+        // per-array trims the inputs tab has
+        std::vector<juce::Component*> arrays;
+        for (auto& v : arrayAttenValues)
+            arrays.push_back (&v);
+
+        fields.setCircuits ({
+            { &attenuationValue, &delayLatencyValue },
+            { &positionEditors[0], &positionEditors[1], &positionEditors[2],
+              &offsetEditors[0], &offsetEditors[1], &offsetEditors[2] },
+            { &angleOnValue, &angleOffValue, &orientationValue, &pitchValue,
+              &hfDampingValue, &distanceAttenPercentValue },
+            { &distanceAttenValue, &distanceRatioValue, &commonAttenValue, &hfShelfValue },
+            arrays });
     }
 
     //==========================================================================
@@ -1117,6 +1314,7 @@ private:
     static constexpr int maxMuteButtons = WFSParameterDefaults::maxOutputChannels;
 
     EffectsTabContext& ctx;
+    EffectsFieldEditing fields { ctx, *this };
     float layoutScale = 1.0f;
     int contentTop = 0;
     int columnDividerX1 = 0;

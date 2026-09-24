@@ -9969,6 +9969,234 @@ void MainComponent::runChannelListSelfTest()
         check(false, "KB: the tabs the keyboard drives exist");
     }
 
+    // ---- FE: typed values and Tab sections on the Effects tab ----------------
+    // Every value label of the five panels takes a typed number, as the Inputs
+    // and Reverb tabs' do. Keys and focus cannot be injected from a test shell,
+    // so the label editors are opened, filled and closed directly - the same
+    // Label path a click, a typed value and Enter / Esc take.
+    if (effectsTab != nullptr)
+    {
+        namespace P = WFSParameterIDs;
+        using Fields = EffectsFieldEditing;
+        const int effectsBefore = vts.getNumEffectChannels();
+        const int tabBefore = tabbedComponent.getCurrentTabIndex();
+        const auto ceilingBefore = parameters.getConfigParam("effectsGlobalLoopGuardCeiling");
+        vts.setNumEffectChannels(2);
+        tabbedComponent.setCurrentTabIndex(TabIndex::Effects);
+        effectsTab->selectChannel(1);
+
+        struct Counter : juce::ValueTree::Listener
+        {
+            int count = 0;
+            void valueTreePropertyChanged(juce::ValueTree&, const juce::Identifier&) override { ++count; }
+        } counter;
+        auto effectsState = vts.getEffectsState();
+        auto configState = vts.getConfigState();
+        effectsState.addListener(&counter);
+        configState.addListener(&counter);
+
+        auto type = [](juce::Label& label, const juce::String& text, bool keep)
+        {
+            label.showEditor();
+            if (auto* ed = label.getCurrentTextEditor())
+                ed->setText(text, false);
+            label.hideEditor(! keep);
+        };
+        auto isNear = [](const juce::var& v, float expected, float tol)
+        {
+            return ! v.isVoid() && std::abs(static_cast<float>(static_cast<double>(v)) - expected) <= tol;
+        };
+
+        auto& channel = effectsTab->getChannelPanelForTest();
+        auto& movements = effectsTab->getMovementsPanelForTest();
+        auto& settings = effectsTab->getSettingsPanelForTest();
+
+        // FE1: every field of every panel, typed at both ends of any range
+        auto sweep = [&](Fields& fields, const juce::String& panel)
+        {
+            juce::StringArray failed;
+            int total = 0;
+            for (auto* label : fields.getLabelsForTest())
+            {
+                ++total;
+                bool ok = false;
+                for (auto* text : { "-100000000", "100000000" })
+                {
+                    counter.count = 0;
+                    type(*label, text, true);
+                    if (counter.count > 0 && label->getText() != text)
+                    {
+                        ok = true;
+                        break;
+                    }
+                }
+                if (! ok)
+                    failed.add(label->getText());
+            }
+            check(total > 0 && failed.isEmpty(),
+                  "FE1: every value on " + panel + " takes a typed number, writes it and shows it formatted ("
+                      + juce::String(total - failed.size()) + "/" + juce::String(total)
+                      + (failed.isEmpty() ? juce::String(")") : "; failed: " + failed.joinIntoString(" | ") + ")"));
+        };
+        sweep(channel.getFieldsForTest(), "Channel Parameters");
+        for (int s = 0; s < spatcore::effects::kNumModuleSlots; ++s)
+            sweep(effectsTab->getModulePanel(s).getFieldsForTest(), "Chain module " + juce::String(s));
+        sweep(movements.getFieldsForTest(), "Movements");
+        sweep(settings.getFieldsForTest(), "Settings");
+
+        // FE2: the lenient reading
+        auto is = [](std::optional<float> v, float expected) { return v.has_value() && std::abs(*v - expected) < 1.0e-3f; };
+        check(is(Fields::parseNumber("1.20 kHz"), 1200.0f) && is(Fields::parseNumber("Latency 12,5 ms"), 12.5f)
+                  && is(Fields::parseNumber("-6.0 dB/m"), -6.0f) && is(Fields::parseNumber("4.0:1"), 4.0f)
+                  && is(Fields::parseNumber("-.5"), -0.5f) && ! Fields::parseNumber("abc").has_value(),
+              "FE2: numbers are read past units and prefixes, a comma is a decimal point, k means thousands");
+        check(is(Fields::parseDuration("1m 30s"), 90.0f) && is(Fields::parseDuration("5.00 s"), 5.0f)
+                  && is(Fields::parseDuration("1h"), 3600.0f) && is(Fields::parseDuration("500 ms"), 0.5f)
+                  && is(Fields::parseDuration("2 min"), 120.0f) && ! Fields::parseDuration("s").has_value(),
+              "FE2: durations are read as the panel shows them (1m 30s, 5.00 s, 1h)");
+
+        auto* atten = channel.getFieldsForTest().findLabelForTest("Effect Attenuation");
+        auto* latency = channel.getFieldsForTest().findLabelForTest("Effect Delay/Latency");
+        if (atten != nullptr && latency != nullptr)
+        {
+            // FE3: Esc and a text with no number change nothing
+            const auto shown = atten->getText();
+            counter.count = 0;
+            type(*atten, "-30", false);
+            check(counter.count == 0 && atten->getText() == shown, "FE3: Esc leaves the value and its text as they were");
+            type(*atten, "loud", true);
+            check(counter.count == 0 && atten->getText() == shown, "FE3: a text with no number in it changes nothing");
+
+            // FE4: the latency field opens on the signed number and takes one
+            type(*latency, "-12", true);
+            check(isNear(vts.getEffectParameter(0, P::effectDelayLatency), -12.0f, 0.05f),
+                  "FE4: a negative delay typed is stored as that latency (-12 ms)");
+            latency->showEditor();
+            const bool signedText = latency->getCurrentTextEditor() != nullptr
+                                    && latency->getCurrentTextEditor()->getText() == "-12.0";
+            latency->hideEditor(true);
+            check(signedText, "FE4: and the field opens on the signed number, not the worded label");
+
+            // FE7: Tab keeps to the section, wraps, and skips a hidden member
+            auto& cf = channel.getFieldsForTest();
+            auto* angleOn = cf.findLabelForTest("Effect Angle On");
+            auto* angleOff = cf.findLabelForTest("Effect Angle Off");
+            atten->showEditor();
+            cf.pressTabForTest(*atten, true);
+            const bool wrapped = atten->getCurrentTextEditor() == nullptr && latency->getCurrentTextEditor() != nullptr;
+            latency->hideEditor(true);
+            check(wrapped, "FE7: Shift+Tab on the first field of a section wraps to its last");
+
+            angleOn->showEditor();
+            cf.pressTabForTest(*angleOn, false);
+            const bool next = angleOn->getCurrentTextEditor() == nullptr && angleOff->getCurrentTextEditor() != nullptr;
+            angleOff->hideEditor(true);
+            check(next, "FE7: Tab moves to the next field of the same section");
+
+            vts.setEffectParameter(0, P::effectAttenuationLaw, 0);     // log law: the ratio dial is hidden
+            effectsTab->selectChannel(1);
+            auto* distAtten = cf.findLabelForTest("Effect Distance Attenuation");
+            auto* common = cf.findLabelForTest("Effect Common Attenuation");
+            auto* shelf = cf.findLabelForTest("Effect HF Shelf");
+            distAtten->showEditor();
+            cf.pressTabForTest(*distAtten, false);
+            const bool skipped = common->getCurrentTextEditor() != nullptr;
+            common->hideEditor(true);
+            shelf->showEditor();
+            cf.pressTabForTest(*shelf, false);
+            const bool stayed = distAtten->getCurrentTextEditor() != nullptr;
+            distAtten->hideEditor(true);
+            check(skipped && stayed, "FE7: Tab skips the hidden dial and wraps inside the column, never into the array trims");
+
+            // A text box takes Tab through JUCE's own traverser, which asks
+            // the box's parents: the panel's sections must answer
+            auto& lastPos = channel.getPositionEditorForTest(2);
+            auto& lastOff = channel.getOffsetEditorForTest(2);
+            auto boxTraverser = lastPos.createKeyboardFocusTraverser();
+            check(boxTraverser != nullptr
+                      && boxTraverser->getNextComponent(&lastPos) == &channel.getOffsetEditorForTest(0)
+                      && boxTraverser->getNextComponent(&lastOff) == &channel.getPositionEditorForTest(0)
+                      && boxTraverser->getPreviousComponent(&channel.getPositionEditorForTest(0)) == &lastOff,
+                  "FE7: Tab from a position box walks position then offset and wraps, as on the reverb tab");
+        }
+        else
+        {
+            check(false, "FE3: the channel panel's attenuation and latency fields exist");
+        }
+
+        // FE5: a typed EQ frequency is stored exactly (the slider's own law truncates)
+        if (auto* freq = effectsTab->getModulePanel(1).getFieldsForTest().findLabelForTest("Effect EQ Band 1 Freq"))
+        {
+            type(*freq, "1000", true);
+            const int f1 = static_cast<int>(vts.getEffectEQBand(0, 0, 0).getProperty(P::effectEQfreq));
+            type(*freq, "1.5 kHz", true);
+            const int f2 = static_cast<int>(vts.getEffectEQBand(0, 0, 0).getProperty(P::effectEQfreq));
+            check(f1 == 1000 && f2 == 1500, "FE5: a typed EQ frequency is stored as typed (1000, 1.5 kHz = 1500; got "
+                                                + juce::String(f1) + ", " + juce::String(f2) + ")");
+        }
+        else
+        {
+            check(false, "FE5: the EQ 1 band 1 frequency field exists");
+        }
+
+        // FE6: the AutomOtion duration reads minutes and seconds
+        if (auto* duration = movements.getFieldsForTest().findLabelForTest("Effect AutomOtion Duration"))
+        {
+            type(*duration, "1m 30s", true);
+            check(isNear(vts.getEffectParameter(0, P::effectOtomoDuration), 90.0f, 0.2f) && duration->getText() == "1m 30s",
+                  "FE6: a duration typed as 1m 30s is stored as 90 s and shown as typed");
+        }
+        else
+        {
+            check(false, "FE6: the AutomOtion duration field exists");
+        }
+
+        // FE8: the position boxes follow the coordinate mode both ways, and a
+        // box the operator did not type into is never written
+        {
+            vts.setEffectParameter(0, P::effectCoordinateMode, 1);
+            vts.setEffectParameter(0, P::effectPositionX, 3.0f);
+            vts.setEffectParameter(0, P::effectPositionY, 4.0f);
+            effectsTab->selectChannel(1);
+            auto& radius = channel.getPositionEditorForTest(0);
+            check(radius.getText() == "5.00", "FE8: in r theta Z the first box shows the radius (5.00 for 3, 4; got "
+                                                  + radius.getText() + ")");
+
+            counter.count = 0;
+            channel.closeBoxForTest(radius);
+            check(counter.count == 0, "FE8: closing a box nobody typed into writes nothing");
+
+            radius.setText("10", false);
+            channel.getFieldsForTest().markEditedForTest(radius);
+            channel.closeBoxForTest(radius);
+            check(isNear(vts.getEffectParameter(0, P::effectPositionX), 6.0f, 1.0e-3f)
+                      && isNear(vts.getEffectParameter(0, P::effectPositionY), 8.0f, 1.0e-3f),
+                  "FE8: a typed radius moves the effect along its bearing (10 -> 6, 8)");
+
+            radius.setText("99", false);
+            channel.getFieldsForTest().markEditedForTest(radius);
+            channel.escapeBoxForTest(radius);
+            counter.count = 0;
+            channel.closeBoxForTest(radius);
+            check(radius.getText() == "10.00" && counter.count == 0, "FE8: Esc puts the stored value back and writes nothing");
+
+            vts.setEffectParameter(0, P::effectCoordinateMode, 0);
+        }
+
+        // FE9: a click on an empty patch of a panel closes an open field only
+        // if the panel takes the focus (JUCE stops at the field's parents)
+        check(channel.getWantsKeyboardFocus() && effectsTab->getChainPanelForTest().getWantsKeyboardFocus()
+                  && effectsTab->getModulePanel(0).getWantsKeyboardFocus() && movements.getWantsKeyboardFocus()
+                  && settings.getWantsKeyboardFocus(),
+              "FE9: every panel that holds fields takes the focus, so a click on it closes an open field");
+
+        effectsState.removeListener(&counter);
+        configState.removeListener(&counter);
+        parameters.setConfigParam("effectsGlobalLoopGuardCeiling", ceilingBefore);
+        vts.setNumEffectChannels(effectsBefore);
+        tabbedComponent.setCurrentTabIndex(tabBefore);
+    }
+
     // ---- P: the engine's meters, and the freshness that keeps them honest --
     // A probe host prepared on synthetic rings and driven one batch at a time,
     // so the whole tap - the engine's per-channel peaks, the max-hold, the

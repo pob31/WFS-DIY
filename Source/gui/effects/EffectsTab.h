@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "EffectsTabContext.h"
+#include "EffectsFieldEditing.h"
 #include "EffectsChannelPanel.h"
 #include "EffectsMovementsPanel.h"
 #include "EffectsSendsPanel.h"
@@ -188,6 +189,12 @@ public:
     /** The reverb's rows now follow another model: a view that shows them
         (the deck's Chain page) must be laid out again. */
     std::function<void()> onModuleLayoutChanged;
+
+    /** The panels, for the self-test's typed-value checks. */
+    EffectsChannelPanel&   getChannelPanelForTest()   { return channelPanel; }
+    EffectsChainPanel&     getChainPanelForTest()     { return chainPanel; }
+    EffectsMovementsPanel& getMovementsPanelForTest() { return movementsPanel; }
+    EffectsSettingsPanel&  getSettingsPanelForTest()  { return settingsPanel; }
 
     /** One module panel of the Chain sub-tab, for the offscreen render. */
     EffectsModulePanel& getModulePanel (int slot) { return chainPanel.getModulePanel (slot); }
@@ -941,10 +948,15 @@ private:
     // Listeners
     //==========================================================================
 
+    // Enter keeps the name and closes the field; the tab takes the focus
+    // back, so the keyboard shortcuts work straight away
     void textEditorReturnKeyPressed (juce::TextEditor& editor) override
     {
         if (&editor == &nameEditor)
+        {
             commitName();
+            EffectsFieldEditing::closeField (nameEditor);
+        }
     }
 
     void textEditorFocusLost (juce::TextEditor& editor) override
@@ -966,7 +978,7 @@ private:
         if (origin == &nameEditor && key == juce::KeyPress::escapeKey)
         {
             nameEditor.setText (ctx.read (WFSParameterIDs::effectName).toString(), false);
-            unfocusAllComponents();
+            EffectsFieldEditing::closeField (nameEditor);
             return true;
         }
 
