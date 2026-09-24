@@ -596,6 +596,8 @@
         "shapeDelete": "選択したシェイプを削除",
         "shapeToBack": "選択したシェイプを最背面へ移動（上のシェイプが下を覆います）（End、Page Down で1つ後ろへ）",
         "shapeToFront": "選択したシェイプを最前面へ移動（上のシェイプが下を覆います）（Home、Page Up で1つ前へ）",
+        "shapeBackward": "選択したシェイプを1つ背面へ移動（Page Down）",
+        "shapeForward": "選択したシェイプを1つ前面へ移動（Page Up）",
         "selectTool": "シェイプの選択と移動",
         "rectTool": "矩形を描画",
         "ellipseTool": "楕円を描画",

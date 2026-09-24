@@ -610,6 +610,8 @@
         "shapeDelete": "Ausgewählte Form(en) löschen",
         "shapeToBack": "Ausgewählte Form(en) nach hinten stellen: die obere Form verdeckt die darunter (Ende; Bild ab = ein Schritt)",
         "shapeToFront": "Ausgewählte Form(en) nach vorne bringen: die obere Form verdeckt die darunter (Pos1; Bild auf = ein Schritt)",
+        "shapeBackward": "Ausgewählte Form(en) eine Ebene nach hinten, unter die nächste Form (Bild ab)",
+        "shapeForward": "Ausgewählte Form(en) eine Ebene nach vorne, über die nächste Form (Bild auf)",
         "selectTool": "Formen auswählen und verschieben",
         "rectTool": "Rechteck zeichnen",
         "ellipseTool": "Ellipse zeichnen",

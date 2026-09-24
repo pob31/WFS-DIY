@@ -361,6 +361,12 @@ public:
         shapeDeleteBtn.setButtonText (LOC ("inputs.gradientMap.buttons.delete"));
         shapeDeleteBtn.onLongPress = [this] { deleteSelectedShapes(); };
 
+        shapeBackwardBtn.setButtonText (LOC ("inputs.gradientMap.buttons.backward"));
+        shapeBackwardBtn.onClick = [this] { reorderSelectedShapes (Reorder::Backward); };
+
+        shapeForwardBtn.setButtonText (LOC ("inputs.gradientMap.buttons.forward"));
+        shapeForwardBtn.onClick = [this] { reorderSelectedShapes (Reorder::Forward); };
+
         shapeToBackBtn.setButtonText (LOC ("inputs.gradientMap.buttons.toBack"));
         shapeToBackBtn.onClick = [this] { reorderSelectedShapes (Reorder::ToBack); };
 
@@ -378,6 +384,8 @@ public:
         addAndMakeVisible (shapeEnableBtn);
         addAndMakeVisible (shapeLockBtn);
         addAndMakeVisible (shapeDeleteBtn);
+        addAndMakeVisible (shapeBackwardBtn);
+        addAndMakeVisible (shapeForwardBtn);
         addAndMakeVisible (shapeToBackBtn);
         addAndMakeVisible (shapeToFrontBtn);
 
@@ -1010,14 +1018,16 @@ public:
             shapeDeleteBtn.setBounds (bx + (col3W + pad) * 2, row.getY() + 2, col3W, row.getHeight() - 4);
         }
 
-        // Stacking order
-        row = panelBounds.removeFromTop (rowH);
+        // Stacking order: one step, then all the way (back on the left, front on the right)
+        for (auto [backBtn, frontBtn] : { std::pair { &shapeBackwardBtn, &shapeForwardBtn },
+                                          std::pair { &shapeToBackBtn,   &shapeToFrontBtn } })
         {
+            row = panelBounds.removeFromTop (rowH);
             auto orderArea = row.reduced (pad, 2);
             int halfW = orderArea.getWidth() / 2 - pad / 2;
-            shapeToBackBtn.setBounds (orderArea.removeFromLeft (halfW));
+            backBtn->setBounds (orderArea.removeFromLeft (halfW));
             orderArea.removeFromLeft (pad);
-            shapeToFrontBtn.setBounds (orderArea);
+            frontBtn->setBounds (orderArea);
         }
 
         // Tool buttons at bottom of panel (4 rows: copy/paste, select, shapes, fills)
@@ -1981,7 +1991,7 @@ private:
     juce::TextEditor shapeBlurEditor;
     juce::TextButton shapeEnableBtn, shapeLockBtn;
     LongPressButton shapeDeleteBtn;
-    juce::TextButton shapeToBackBtn, shapeToFrontBtn;
+    juce::TextButton shapeBackwardBtn, shapeForwardBtn, shapeToBackBtn, shapeToFrontBtn;
 
     // Gradient value sliders
     juce::Label gradValue1Label, gradValue2Label;
@@ -3070,6 +3080,8 @@ private:
         shapeEnableBtn.setVisible (v);
         shapeLockBtn.setVisible (v);
         shapeDeleteBtn.setVisible (v);
+        shapeBackwardBtn.setVisible (v);
+        shapeForwardBtn.setVisible (v);
         shapeToBackBtn.setVisible (v);
         shapeToFrontBtn.setVisible (v);
 
@@ -3332,6 +3344,8 @@ private:
         helpTextMap[&shapeEnableBtn]       = LOC ("inputs.gradientMap.help.shapeEnable");
         helpTextMap[&shapeLockBtn]         = LOC ("inputs.gradientMap.help.shapeLock");
         helpTextMap[&shapeDeleteBtn]       = LOC ("inputs.gradientMap.help.shapeDelete");
+        helpTextMap[&shapeBackwardBtn]     = LOC ("inputs.gradientMap.help.shapeBackward");
+        helpTextMap[&shapeForwardBtn]      = LOC ("inputs.gradientMap.help.shapeForward");
         helpTextMap[&shapeToBackBtn]       = LOC ("inputs.gradientMap.help.shapeToBack");
         helpTextMap[&shapeToFrontBtn]      = LOC ("inputs.gradientMap.help.shapeToFront");
         helpTextMap[&selectToolBtn]        = LOC ("inputs.gradientMap.help.selectTool");

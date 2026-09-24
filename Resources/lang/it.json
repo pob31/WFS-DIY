@@ -610,6 +610,8 @@
         "shapeDelete": "Elimina forma/e selezionata/e",
         "shapeToBack": "Porta sullo sfondo la/e forma/e selezionata/e: la forma sopra copre quelle sotto (Fine; Pag Giù = un passo)",
         "shapeToFront": "Porta in primo piano la/e forma/e selezionata/e: la forma sopra copre quelle sotto (Home; Pag Su = un passo)",
+        "shapeBackward": "Porta la/e forma/e selezionata/e indietro di un passo, sotto la forma successiva (Pag Giù)",
+        "shapeForward": "Porta la/e forma/e selezionata/e avanti di un passo, sopra la forma successiva (Pag Su)",
         "selectTool": "Seleziona e sposta forme",
         "rectTool": "Disegna rettangolo",
         "ellipseTool": "Disegna ellisse",
