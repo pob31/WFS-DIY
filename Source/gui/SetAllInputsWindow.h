@@ -7,6 +7,7 @@
 #include "../Localization/LocalizationManager.h"
 #include "ColorScheme.h"
 #include "WindowUtils.h"
+#include "ScreenShareRendering.h"
 #include "dials/WfsBasicDial.h"
 
 /**
@@ -899,6 +900,7 @@ public:
         float ds = (disp && !disp->userBounds.isEmpty()) ? disp->userBounds.getHeight() / 1080.0f : 1.0f;
         auto dsc = [ds](int ref) { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * ds)); };
         centreWithSize(dsc(370), dsc(880));
+        ScreenShareRendering::apply(*this);
         setVisible(true);
         WindowUtils::enableDarkTitleBar(this);
         WindowUtils::enableRawMultiTouch(this);

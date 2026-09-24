@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "MapTab.h"
 #include "WindowUtils.h"
+#include "ScreenShareRendering.h"
 #include "ColorScheme.h"
 #include "../Localization/LocalizationManager.h"
 
@@ -49,6 +50,7 @@ public:
         setResizeLimits(dsc(600), dsc(400), userArea.getWidth(), userArea.getHeight());
 
         centreWithSize(windowWidth, windowHeight);
+        ScreenShareRendering::apply(*this);
         setVisible(true);
         WindowUtils::enableDarkTitleBar(this);
         WindowUtils::enableRawMultiTouch(this);

@@ -6,6 +6,7 @@
 #include "ColorScheme.h"
 #include "WfsLookAndFeel.h"
 #include "WindowUtils.h"
+#include "ScreenShareRendering.h"
 #include "../Localization/LocalizationManager.h"
 
 namespace WFSNetwork { class OSCLogger; class OSCManager; }
@@ -188,6 +189,7 @@ public:
         setResizeLimits(dsc(600), dsc(400), userArea.getWidth(), userArea.getHeight());
 
         centreWithSize(windowWidth, windowHeight);
+        ScreenShareRendering::apply(*this);
         setVisible(true);
         WindowUtils::enableDarkTitleBar(this);
         WindowUtils::enableRawMultiTouch(this);

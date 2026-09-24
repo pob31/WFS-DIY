@@ -6,6 +6,7 @@
 #include "../Parameters/WFSValueTreeState.h"
 #include "ColorScheme.h"
 #include "WindowUtils.h"
+#include "ScreenShareRendering.h"
 #include "../Localization/LocalizationManager.h"
 
 /**
@@ -1037,6 +1038,7 @@ public:
         setResizeLimits(dsc(400), dsc(300), userArea.getWidth(), userArea.getHeight());
 
         centreWithSize(windowWidth, windowHeight);
+        ScreenShareRendering::apply(*this);
         setVisible(true);
         WindowUtils::enableDarkTitleBar(this);
         WindowUtils::enableRawMultiTouch(this);

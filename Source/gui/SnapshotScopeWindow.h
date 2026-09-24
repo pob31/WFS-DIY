@@ -10,6 +10,7 @@
 #include "ColorScheme.h"
 #include "WfsLookAndFeel.h"
 #include "WindowUtils.h"
+#include "ScreenShareRendering.h"
 #include "HelpCard.h"
 #include "buttons/LongPressButton.h"
 #include "DuplicateNameWarning.h"
@@ -1322,6 +1323,7 @@ private:
                            parameters.getFileManager().getScopeTemplateNames(),
                            LOC("snapshotScope.templates.overwriteWarning"));
 
+        ScreenShareRendering::apply (*dialog);
         dialog->enterModalState (true, juce::ModalCallbackFunction::create (
             [this, dialog, warning](int result)
             {
@@ -1490,6 +1492,7 @@ public:
         int width = juce::jmax (dsc(600), juce::jmin (dsc(1200), gridWidth));
         int height = dsc(701);   // 635 + the MIDI trigger row + the family tab bar; keep in step with resized()
         centreWithSize (width, height);
+        ScreenShareRendering::apply (*this);
         setVisible (true);
         WindowUtils::enableDarkTitleBar (this);
         WindowUtils::enableRawMultiTouch (this);

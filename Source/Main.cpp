@@ -10,6 +10,7 @@
 #include "MainComponent.h"
 #include "Parameters/WFSFileManager.h"
 #include "gui/WindowUtils.h"
+#include "gui/ScreenShareRendering.h"
 #include "gui/ColorScheme.h"
 #include "WFSLogger.h"
 #include "UpdateChecker.h"
@@ -78,6 +79,9 @@ public:
 
         // Parse command-line for .wfs project file
         auto pendingProjectFolder = parseWfsCommandLine (commandLine);
+
+        // Idle until System Config's Screen Sharing is switched on
+        screenShareWatcher = std::make_unique<ScreenShareRendering::Watcher>();
 
         mainWindow.reset (new MainWindow (getApplicationName()));
 
@@ -154,6 +158,7 @@ public:
 
         updateChecker.reset();
         mainWindow = nullptr; // (deletes our window)
+        screenShareWatcher.reset();
 
         // Shutdown logger last so all other destructors can still log
         WFSLogger::shutdown();
@@ -221,6 +226,7 @@ public:
             centreWithSize (getWidth(), getHeight());
            #endif
 
+            ScreenShareRendering::apply (*this);
             setVisible (true);
             WindowUtils::enableDarkTitleBar (this);
             WindowUtils::enableRawMultiTouch (this);
@@ -248,6 +254,7 @@ public:
 private:
     std::unique_ptr<MainWindow> mainWindow;
     std::unique_ptr<UpdateChecker> updateChecker;
+    std::unique_ptr<ScreenShareRendering::Watcher> screenShareWatcher;
 
     /** Parse a .wfs file path from command-line arguments and resolve to project folder */
     static juce::File parseWfsCommandLine (const juce::String& commandLine)

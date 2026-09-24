@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "ColorScheme.h"
+#include "ScreenShareRendering.h"
 
 /**
  * WfsLookAndFeel - Custom LookAndFeel for WFS-DIY
@@ -453,6 +454,37 @@ public:
         // Return fixed width so all tabs are equal size
         // Width calculated to fit "Live Source & Hackoustics" with generous padding
         return juce::jmax(140, static_cast<int>(220.0f * uiScale));
+    }
+
+    //==========================================================================
+    // Screen Sharing mode - menus and alerts are windows of their own, switched
+    // before they first show (see ScreenShareRendering.h)
+
+    juce::Component* getParentComponentForMenuOptions(const juce::PopupMenu::Options& options) override
+    {
+        if (auto* window = ScreenShareRendering::menuParentFor(options))
+            return window;
+
+        return LookAndFeel_V4::getParentComponentForMenuOptions(options);
+    }
+
+    void preparePopupMenuWindow(juce::Component& newWindow) override
+    {
+        LookAndFeel_V4::preparePopupMenuWindow(newWindow);
+        ScreenShareRendering::apply(newWindow);
+    }
+
+    juce::AlertWindow* createAlertWindow(const juce::String& title, const juce::String& message,
+                                         const juce::String& button1, const juce::String& button2,
+                                         const juce::String& button3, juce::MessageBoxIconType iconType,
+                                         int numButtons, juce::Component* associatedComponent) override
+    {
+        auto* alert = LookAndFeel_V4::createAlertWindow(title, message, button1, button2, button3,
+                                                        iconType, numButtons, associatedComponent);
+        if (alert != nullptr)
+            ScreenShareRendering::apply(*alert);
+
+        return alert;
     }
 
     /** Global UI scale factor, set by MainComponent in its resized().

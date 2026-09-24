@@ -13,6 +13,7 @@
 #include "ColumnFocusTraverser.h"
 #include "../AppSettings.h"
 #include "../WFSLogger.h"
+#include "ScreenShareRendering.h"
 #include "../../spatcore/controllers/lightpad/LightpadTypes.h"
 #include "HelpCard.h"
 #include "InputChannelListEditor.h"
@@ -800,6 +801,24 @@ public:
                 onQuickLongPressChanged(enabled);
         };
 
+        // Screen Sharing toggle (Windows only, off at every launch)
+        addChildComponent(screenSharingLabel);
+        screenSharingLabel.setText(LOC("systemConfig.labels.screenSharing"), juce::dontSendNotification);
+        addChildComponent(screenSharingToggle);
+        screenSharingToggle.setClickingTogglesState(true);
+        screenSharingToggle.setToggleState(ScreenShareRendering::isOn(), juce::dontSendNotification);
+        updateScreenSharingText();
+        screenSharingLabel.setVisible(ScreenShareRendering::isSupported());
+        screenSharingToggle.setVisible(ScreenShareRendering::isSupported());
+        screenSharingToggle.onClick = [this]() {
+            bool enabled = screenSharingToggle.getToggleState();
+            ScreenShareRendering::setOn(enabled);
+            updateScreenSharingText();
+            WFSLogger::getInstance().logInfo(juce::String("Screen Sharing ")
+                                             + (enabled ? "on: windows use the software renderer"
+                                                        : "off: windows use the GPU renderer"));
+        };
+
         // Language selector
         addAndMakeVisible(languageLabel);
         languageLabel.setText(LOC("systemConfig.labels.language"), juce::dontSendNotification);
@@ -1547,8 +1566,9 @@ public:
         g.drawText(LOC("systemConfig.sections.io"), layout.col1X, scaled(130), layout.colWidth, headerH, juce::Justification::left);
         // 363 and 538, not 328 and 503: the I/O block grew an effects row
         // (rowHeight 30 + spacing 5), and every y in this column is absolute.
+        // Controllers drops one more row where UI has the Screen Sharing row.
         g.drawText(LOC("systemConfig.sections.ui"), layout.col1X, scaled(363), layout.colWidth, headerH, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.controllers"), layout.col1X, scaled(538), layout.colWidth, headerH, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.controllers"), layout.col1X, scaled(538 + screenSharingRowRef()), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.stage"), layout.col2X, scaled(10), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.master"), layout.col2X, scaled(400), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.wfsProcessor"), layout.col3X, scaled(10), layout.colWidth, headerH, juce::Justification::left);
@@ -1640,6 +1660,13 @@ public:
         quickLongPressToggle.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         y += rowHeight + spacing;
 
+        if (ScreenShareRendering::isSupported())
+        {
+            screenSharingLabel.setBounds(x, y, labelWidth, rowHeight);
+            screenSharingToggle.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+            y += rowHeight + spacing;
+        }
+
         languageLabel.setBounds(x, y, labelWidth, rowHeight);
         languageSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         y += rowHeight + spacing;
@@ -1655,7 +1682,7 @@ public:
         }
 
         // Controllers Section
-        y = scaled(568); // Start after the "Controllers" header (shifted down for the extra UI and I/O rows)
+        y = scaled(568 + screenSharingRowRef()); // Start after the "Controllers" header (shifted down for the extra UI and I/O rows)
         dialsAndButtonsLabel.setBounds (x, y, labelWidth, rowHeight);
         dialsAndButtonsSelector.setBounds (x + labelWidth, y, editorWidth * 2, rowHeight);
         y += rowHeight + spacing;
@@ -4848,6 +4875,8 @@ public:
         helpTextMap[&colorSchemeSelector] = LOC("systemConfig.help.colorScheme");
         helpTextMap[&quickLongPressLabel] = LOC("systemConfig.help.quickLongPress");
         helpTextMap[&quickLongPressToggle] = LOC("systemConfig.help.quickLongPress");
+        helpTextMap[&screenSharingLabel] = LOC("systemConfig.help.screenSharing");
+        helpTextMap[&screenSharingToggle] = LOC("systemConfig.help.screenSharing");
         helpTextMap[&languageSelector] = LOC("systemConfig.help.language");
         helpTextMap[&translationTierSelector] = {};  // looked up when shown, see helpTextFor()
         helpTextMap[&dialsAndButtonsSelector] = LOC("systemConfig.help.dialsAndButtons");
@@ -5112,6 +5141,8 @@ public:
     juce::ComboBox colorSchemeSelector;
     juce::Label quickLongPressLabel;
     juce::TextButton quickLongPressToggle;
+    juce::Label screenSharingLabel;
+    juce::TextButton screenSharingToggle;
     juce::Label languageLabel;
     juce::ComboBox languageSelector;
     juce::StringArray availableLanguages;
@@ -5306,6 +5337,17 @@ public:
                                                : LOC("systemConfig.buttons.quickLongPressOff"));
     }
 
+    void updateScreenSharingText()
+    {
+        bool on = screenSharingToggle.getToggleState();
+        screenSharingToggle.setButtonText(on ? LOC("systemConfig.buttons.screenSharingOn")
+                                              : LOC("systemConfig.buttons.screenSharingOff"));
+    }
+
+    /** Reference-pixel height of the Screen Sharing row in the UI section
+        (rowHeight 30 + spacing 5), which only Windows shows. */
+    static constexpr int screenSharingRowRef() { return ScreenShareRendering::isSupported() ? 35 : 0; }
+
     // Channel order dialog (stable-number model): drag to arrange the
     // mono/stereo interleaving, per-row delete (number retires as a gap).
     // Composition is edited through the count fields. Stopped-only via
@@ -5327,7 +5369,10 @@ public:
         options.useNativeTitleBar = false;
         options.resizable = false;
 
-        auto* dialog = options.launchAsync();
+        // launchAsync() without the show, so Screen Sharing applies before it
+        auto* dialog = options.create();
+        ScreenShareRendering::apply(*dialog);
+        dialog->enterModalState(true, nullptr, true);
 
         if (dialog != nullptr)
         {

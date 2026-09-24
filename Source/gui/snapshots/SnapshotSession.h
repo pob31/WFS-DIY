@@ -9,6 +9,7 @@
 #include "../SnapshotScopeWindow.h"
 #include "../ChannelIdentityGate.h"
 #include "../DuplicateNameWarning.h"
+#include "../ScreenShareRendering.h"
 
 //==============================================================================
 /**
@@ -206,6 +207,7 @@ public:
                                                      fileManager.getInputSnapshotNames(),
                                                      LOC ("inputs.dialogs.snapshotOverwriteWarning"));
 
+        ScreenShareRendering::apply (*dialog);
         dialog->enterModalState (true, juce::ModalCallbackFunction::create (
             [weak = juce::WeakReference<SnapshotSession> (this), dialog, warning] (int result)
             {

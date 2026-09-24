@@ -15,6 +15,7 @@
 #include "../AppSettings.h"
 #include "../Network/ADMOSCMapping.h"
 #include "HelpCard.h"
+#include "ScreenShareRendering.h"
 
 #if JUCE_WINDOWS
     #include <winsock2.h>
@@ -498,7 +499,8 @@ private:
         menu.addItem (2, "ADM Y", true, cfg.axes[axis].axisSwap == 1);
         menu.addItem (3, "ADM Z", true, cfg.axes[axis].axisSwap == 2);
 
-        menu.showMenuAsync (juce::PopupMenu::Options(),
+        // A target, so Screen Sharing can open the menu inside the window
+        menu.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (this).withMousePosition(),
             [this, axis] (int result)
             {
                 if (result > 0)
@@ -4372,7 +4374,10 @@ private:
         options.useNativeTitleBar = false;
         options.resizable = false;
 
-        auto* dialog = options.launchAsync();
+        // launchAsync() without the show, so Screen Sharing applies before it
+        auto* dialog = options.create();
+        ScreenShareRendering::apply (*dialog);
+        dialog->enterModalState (true, nullptr, true);
 
         if (dialog != nullptr)
         {
@@ -5396,6 +5401,7 @@ private:
         alertWindow->addButton(LOC("common.ok"), 1, juce::KeyPress(juce::KeyPress::returnKey));
         alertWindow->addButton(LOC("common.cancel"), 0, juce::KeyPress(juce::KeyPress::escapeKey));
 
+        ScreenShareRendering::apply(*alertWindow);
         alertWindow->enterModalState(true, juce::ModalCallbackFunction::create(
             [this, alertWindow](int result)
             {
