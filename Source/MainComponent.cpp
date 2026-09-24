@@ -5550,6 +5550,18 @@ void MainComponent::runChannelListSelfTest()
         const int effectsBefore = vts.getNumEffectChannels();
         vts.setNumEffectChannels(6);
 
+        // The sub-tab itself exists only while the session has effect channels.
+        auto inputsBarHasEffectSends = [this]
+        {
+            if (inputsTab == nullptr)
+                return false;
+            for (auto* child : inputsTab->getChildren())
+                if (auto* bar = dynamic_cast<juce::TabbedButtonBar*>(child))
+                    return bar->getTabNames().contains(LOC("inputs.tabs.effectSends"));
+            return false;
+        };
+        check(inputsBarHasEffectSends(), "ES0: with effect channels the Inputs tab shows its Effect Sends sub-tab, last");
+
         auto window = std::make_shared<int>(0);
         InputsTabPages::EffectSendsCallbacks cb;
         int rebuilds = 0;
@@ -5615,6 +5627,7 @@ void MainComponent::runChannelListSelfTest()
         check(page.lcdMessage.isNotEmpty() && page.sections[0].dials[0].getValue == nullptr
               && page.sections[0].buttons[0].onPress == nullptr,
               "ES5: without effect channels the page says so and binds nothing");
+        check(! inputsBarHasEffectSends(), "ES5: ...and the Inputs tab hides the sub-tab");
 
         vts.setNumEffectChannels(effectsBefore);
     }

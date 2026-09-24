@@ -709,7 +709,7 @@ all caught, the undo mutant among them.
 
 ## 12. The input's view of matrix level 1: DONE (2026-09-24)
 
-The Inputs tab gained an **Effect Sends** sub-tab, always its last tab (`InputSubTab::EffectSends = 6`;
+The Inputs tab gained an **Effect Sends** sub-tab, shown only while the session has effect channels and then always its last tab (`InputSubTab::EffectSends = 6`;
 the Sampler tab, when shown, sits before it). `Source/gui/InputEffectSendsSubTab.h` shows the
 selected input's row of matrix level 1 as a mixer bank - one strip per effect with a send-level
 fader (the `effectSendLevel` law from the CSV) and an ON / OFF switch that keeps the level - written

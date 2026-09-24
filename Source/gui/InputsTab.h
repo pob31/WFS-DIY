@@ -49,7 +49,8 @@
  * Structure:
  * - Header: Channel selector + Name editor (always visible)
  * - Sub-tabs: Input Parameters, Live Source & Hackoustics, Movements, Gradient Maps,
- *   Visualisation, Sampler (when active) and Effect Sends (always last)
+ *   Visualisation, Sampler (when active) and Effect Sends (while the session
+ *   has effect channels; always last)
  * - Footer: Store/Reload buttons (always visible)
  */
 /** Logical identity of an Inputs sub-tab.
@@ -71,7 +72,7 @@ enum class InputSubTab : int
     GradientMaps         = 3,
     Visualisation        = 4,
     Sampler              = 5,
-    EffectSends          = 6    // always the last tab: the Sampler tab, when shown, shifts it
+    EffectSends          = 6    // only while effect channels exist; always the last tab (the Sampler tab, when shown, shifts it)
 };
 
 class InputsTab : public juce::Component,
@@ -91,6 +92,7 @@ public:
           ioTree(params.getConfigTree().getChildWithName(WFSParameterIDs::IO)),
           binauralTree(params.getValueTreeState().getBinauralState()),
           outputsTree(params.getOutputTree()),
+          effectsTree(params.getEffectTree()),
           samplerSubTab(params),
           effectSendsSubTab(params),
           snapshotRow(snapshots, WFSFileManager::SnapshotFamily::Inputs)
@@ -110,6 +112,11 @@ public:
         // warnings react live when speaker capabilities change on the Outputs tab.
         if (outputsTree.isValid())
             outputsTree.addListener(this);
+        // The effects tree: the Effect Sends sub-tab exists only while the
+        // session has effect channels, so a channel added or removed there
+        // re-evaluates the sub-tab set.
+        if (effectsTree.isValid())
+            effectsTree.addListener(this);
         ColorScheme::Manager::getInstance().addListener(this);
 
         // Announce cluster-wide edits (Shift / Ctrl+Shift on any input control)
@@ -281,7 +288,8 @@ public:
         appendSubTab(InputSubTab::Movements,             "inputs.tabs.movements");
         appendSubTab(InputSubTab::GradientMaps,          "inputs.tabs.gradientMaps");
         appendSubTab(InputSubTab::Visualisation,         "inputs.tabs.visualisation");
-        appendSubTab(InputSubTab::EffectSends,           "inputs.tabs.effectSends");
+        if (params.getNumEffectChannels() > 0)
+            appendSubTab(InputSubTab::EffectSends,       "inputs.tabs.effectSends");
         subTabBar.setMinimumTabScaleFactor(1.0);  // Prevent tab shrinking - maintain full text width
         subTabBar.setCurrentTabIndex(0);
         subTabBar.addChangeListener(static_cast<juce::ChangeListener*>(this));
@@ -439,6 +447,8 @@ public:
             ioTree.removeListener(this);
         if (outputsTree.isValid())
             outputsTree.removeListener(this);
+        if (effectsTree.isValid())
+            effectsTree.removeListener(this);
         if (binauralTree.isValid())
             binauralTree.removeListener(this);
     }
@@ -523,6 +533,18 @@ public:
             if (outputsTree.isValid())
                 outputsTree.addListener(this);
         }
+
+        // And the effects tree (gates the Effect Sends sub-tab)
+        auto newEffectsTree = parameters.getEffectTree();
+        if (newEffectsTree != effectsTree)
+        {
+            if (effectsTree.isValid())
+                effectsTree.removeListener(this);
+            effectsTree = newEffectsTree;
+            if (effectsTree.isValid())
+                effectsTree.addListener(this);
+        }
+        updateSubTabSet();
 
         // Update channel selector tiles (live numbers; snaps the selection to
         // the nearest live number if the current one was deleted)
@@ -7578,8 +7600,19 @@ private:
         }
     }
 
-    void valueTreeChildAdded(juce::ValueTree&, juce::ValueTree&) override {}
-    void valueTreeChildRemoved(juce::ValueTree&, juce::ValueTree&, int) override {}
+    void valueTreeChildAdded(juce::ValueTree& parent, juce::ValueTree&) override        { effectCountMayHaveChanged(parent); }
+    void valueTreeChildRemoved(juce::ValueTree& parent, juce::ValueTree&, int) override { effectCountMayHaveChanged(parent); }
+
+    /** An effect channel appeared or went: the Effect Sends sub-tab exists only
+        while the session has some. Synchronous, so a count set from anywhere
+        (System Config, OSC, MCP, a self-test) shows or hides the tab at once;
+        updateSubTabSet compares first, so the other channels of one resize
+        cost a vector compare each. */
+    void effectCountMayHaveChanged(const juce::ValueTree& parent)
+    {
+        if (parent.hasType(WFSParameterIDs::Effects))
+            updateSubTabSet();
+    }
     void valueTreeChildOrderChanged(juce::ValueTree&, int, int) override {}
     void valueTreeParentChanged(juce::ValueTree&) override {}
 
@@ -7755,9 +7788,10 @@ private:
             samplerToggleButton.setBaseColour(juce::Colour());  // Default
     }
 
-    /** The sub-tab set is a function of (channel type, sampler state):
-        stereo-pair channels drop Live Source & Hackoustics, Gradient Maps and
-        Sampler (handoff doc §5 rules those features out for stereo). The bar
+    /** The sub-tab set is a function of (channel type, sampler state, effect
+        count): stereo-pair channels drop Live Source & Hackoustics, Gradient
+        Maps and Sampler (handoff doc §5 rules those features out for stereo),
+        and Effect Sends exists only while the session has effect channels. The bar
         is rebuilt from scratch in canonical order only when the desired set
         actually differs, preserving the current selection when it survives
         (falling back to Params otherwise). */
@@ -7778,7 +7812,8 @@ private:
         desired.push_back({ InputSubTab::Visualisation, "inputs.tabs.visualisation" });
         if (samplerOn)
             desired.push_back({ InputSubTab::Sampler, "inputs.tabs.sampler" });
-        desired.push_back({ InputSubTab::EffectSends, "inputs.tabs.effectSends" });
+        if (parameters.getNumEffectChannels() > 0)
+            desired.push_back({ InputSubTab::EffectSends, "inputs.tabs.effectSends" });
 
         bool same = desired.size() == subTabIds.size();
         for (size_t i = 0; same && i < desired.size(); ++i)
@@ -8087,6 +8122,7 @@ private:
     juce::ValueTree ioTree;
     juce::ValueTree binauralTree;
     juce::ValueTree outputsTree;  // speaker capabilities (drives per-input feature warnings)
+    juce::ValueTree effectsTree;  // gates the Effect Sends sub-tab (exists only with effect channels)
     bool isLoadingParameters = false;
     bool suppressParameterReload = false;  // Prevent feedback loop during joystick/Z slider continuous updates
     bool isSelfWriting = false;            // True while this tab writes the tree itself (controls already up to date, skip reload)
