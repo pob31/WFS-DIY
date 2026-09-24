@@ -516,6 +516,10 @@ inline StreamDeckPage createMapPage (WFSValueTreeState& state,
                 d.fineStep      = 0.01f;
                 d.decimalPlaces = 2;
                 d.type          = DialBinding::Float;
+                // Relative: the step IS the move, so the range cannot size the
+                // acceleration. At most 0.5 m per click on a fast turn; the
+                // range still caps one report at 1 m.
+                d.maxAcceleration = 5;
 
                 d.getValue = []() { return 0.0f; };
                 d.setValue = [callbacks, di] (float v)
@@ -625,10 +629,15 @@ inline StreamDeckPage createMapPage (WFSValueTreeState& state,
                 d.paramUnit     = juce::CharPointer_UTF8 ("\xc3\x97");  // "×"
                 d.minValue      = 0.5f;
                 d.maxValue      = 2.0f;
-                d.step          = 0.05f;
-                d.fineStep      = 0.01f;
+                // Exponential, so each click is a factor - x1.05, x1.01 fine -
+                // and a turn back undoes a turn forward (0.95 after 1.05 left
+                // 0.9975). 0.5..2 spans log(4) in normalised space.
+                d.isExponential = true;
+                d.step          = static_cast<float> (std::log (1.05) / std::log (4.0));
+                d.fineStep      = static_cast<float> (std::log (1.01) / std::log (4.0));
                 d.decimalPlaces = 2;
                 d.type          = DialBinding::Float;
+                d.maxAcceleration = 5;  // relative: at most x1.05^5 per click on a fast turn
 
                 d.getValue = []() { return 1.0f; };
                 d.setValue = [callbacks, cluster] (float v)
@@ -651,6 +660,7 @@ inline StreamDeckPage createMapPage (WFSValueTreeState& state,
                 d.fineStep      = 1.0f;
                 d.decimalPlaces = 0;
                 d.type          = DialBinding::Float;
+                d.maxAcceleration = 5;  // relative: at most 25 degrees per click on a fast turn
 
                 d.getValue = []() { return 0.0f; };
                 d.setValue = [callbacks, cluster] (float v)

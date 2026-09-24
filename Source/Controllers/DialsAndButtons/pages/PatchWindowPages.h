@@ -253,6 +253,7 @@ inline StreamDeckPage createPage (int overrideSubTab,
                 d.maxValue  = static_cast<float> (juce::jmax (1, q.getInputNumHardwareChannels ? q.getInputNumHardwareChannels() : 1));
                 d.step      = 1;
                 d.decimalPlaces = 0;
+                d.maxAcceleration = 1;  // picks a cell: one per click, never accelerated
 
                 d.getValue = [q]()
                 {
@@ -279,6 +280,7 @@ inline StreamDeckPage createPage (int overrideSubTab,
                 d.maxValue  = static_cast<float> (juce::jmax (1, q.getInputNumWFSChannels ? q.getInputNumWFSChannels() : 1));
                 d.step      = 1;
                 d.decimalPlaces = 0;
+                d.maxAcceleration = 1;  // picks a cell: one per click, never accelerated
 
                 d.getValue = [q]()
                 {
@@ -307,6 +309,7 @@ inline StreamDeckPage createPage (int overrideSubTab,
                 d.maxValue  = static_cast<float> (juce::jmax (1, q.getInputNumHardwareChannels ? q.getInputNumHardwareChannels() : 1));
                 d.step      = 1;
                 d.decimalPlaces = 0;
+                d.maxAcceleration = 1;  // picks a cell: one per click, never accelerated
 
                 d.getValue = [q]()
                 {
@@ -333,6 +336,7 @@ inline StreamDeckPage createPage (int overrideSubTab,
                 d.maxValue  = static_cast<float> (juce::jmax (1, q.getInputNumWFSChannels ? q.getInputNumWFSChannels() : 1));
                 d.step      = 1;
                 d.decimalPlaces = 0;
+                d.maxAcceleration = 1;  // picks a cell: one per click, never accelerated
 
                 d.getValue = [q]()
                 {
@@ -443,6 +447,7 @@ inline StreamDeckPage createPage (int overrideSubTab,
                 d.maxValue  = static_cast<float> (juce::jmax (1, q.getOutputNumHardwareChannels ? q.getOutputNumHardwareChannels() : 1));
                 d.step      = 1;
                 d.decimalPlaces = 0;
+                d.maxAcceleration = 1;  // picks a cell: one per click, never accelerated
 
                 d.getValue = [q]()
                 {
@@ -469,6 +474,7 @@ inline StreamDeckPage createPage (int overrideSubTab,
                 d.maxValue  = static_cast<float> (juce::jmax (1, q.getOutputNumWFSChannels ? q.getOutputNumWFSChannels() : 1));
                 d.step      = 1;
                 d.decimalPlaces = 0;
+                d.maxAcceleration = 1;  // picks a cell: one per click, never accelerated
 
                 d.getValue = [q]()
                 {
@@ -497,6 +503,7 @@ inline StreamDeckPage createPage (int overrideSubTab,
                 d.maxValue  = static_cast<float> (juce::jmax (1, q.getOutputNumHardwareChannels ? q.getOutputNumHardwareChannels() : 1));
                 d.step      = 1;
                 d.decimalPlaces = 0;
+                d.maxAcceleration = 1;  // picks a cell: one per click, never accelerated
 
                 d.getValue = [q]()
                 {
@@ -523,6 +530,7 @@ inline StreamDeckPage createPage (int overrideSubTab,
                 d.maxValue  = static_cast<float> (juce::jmax (1, q.getOutputNumWFSChannels ? q.getOutputNumWFSChannels() : 1));
                 d.step      = 1;
                 d.decimalPlaces = 0;
+                d.maxAcceleration = 1;  // picks a cell: one per click, never accelerated
 
                 d.getValue = [q]()
                 {
@@ -579,6 +587,7 @@ inline StreamDeckPage createPage (int overrideSubTab,
                 d.step          = 1.0f;
                 d.fineStep      = 0.1f;
                 d.decimalPlaces = 1;
+                d.maxAcceleration = 1;  // a generator into the speakers: never jumps up by more than a click
 
                 d.getValue = [q]()
                 {

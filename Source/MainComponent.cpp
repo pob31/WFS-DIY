@@ -5388,6 +5388,159 @@ void MainComponent::runChannelListSelfTest()
         check(false, "SD: the Stream Deck manager exists");
     }
 
+    // ---- SA: every click of a turn counts, and a fast turn goes further --------
+    // The deck reports a turning dial every 50 ms with the clicks of that window
+    // - up to 16 on a flick. Each click counts; a report of more than a couple
+    // multiplies the step, up to the dial's ceiling (StreamDeckDialAcceleration);
+    // press + turn stays the exact fine step. Driven through the device
+    // callbacks as SD is, on the same page's widest dial, from the middle of its
+    // range; the expected moves come from the helper itself, so tuning its
+    // constants never breaks the phase.
+    {
+        // A copied binding keeps every field: the pages copy some they build.
+        DialBinding original;
+        original.maxAcceleration = 7;
+        original.invertDirection = true;
+        int presses = 0;
+        original.onPress = [&presses] { ++presses; };
+        original.altBinding = std::make_unique<DialBinding>();
+        original.altBinding->paramName = "alt";
+        original.altBinding->maxAcceleration = 3;
+
+        DialBinding copied (original);
+        DialBinding assigned;
+        assigned = original;
+        bool kept = true;
+        for (auto* c : { &copied, &assigned })
+        {
+            kept = kept && c->maxAcceleration == 7 && c->invertDirection && c->onPress != nullptr
+                        && c->altBinding != nullptr && c->altBinding.get() != original.altBinding.get()
+                        && c->altBinding->paramName == "alt" && c->altBinding->maxAcceleration == 3;
+            if (c->onPress != nullptr)
+                c->onPress();
+        }
+        check(kept && presses == 2, "SA: a copied dial binding keeps its cap, its direction, its press and a copy of its alternate");
+    }
+
+    if (streamDeckManager != nullptr)
+    {
+        using Acceleration = spatcore::controllers::StreamDeckDialAcceleration;
+
+        const int effectsBefore = vts.getNumEffectChannels();
+        const int mainBefore = streamDeckManager->getCurrentMainTab();
+        const int subBefore = streamDeckManager->getCurrentSubTab();
+        const int channelBefore = streamDeckManager->getChannel();
+        vts.setNumEffectChannels(1);
+
+        {
+            WFSValueTreeState::ScopedUndoDomain undoScope (vts, UndoDomain::Effects);
+            auto* effectsUndo = vts.getUndoManagerForDomain(UndoDomain::Effects);
+            effectsUndo->clearUndoHistory();
+
+            streamDeckManager->syncNavigation(EffectsTabPages::EFFECTS_MAIN_TAB_INDEX, 0, 1);
+            streamDeckManager->refreshCurrentPage();
+            streamDeckManager->setActiveSection(0);
+            auto& dev = streamDeckManager->getDevice();
+
+            auto binding = [this](int d) -> DialBinding*
+            {
+                auto* page = streamDeckManager->getCurrentPage();
+                return page != nullptr && page->sections[0].dials[d].isValid() ? &page->sections[0].dials[d] : nullptr;
+            };
+            auto ceilingOf = [](const DialBinding& b)
+            {
+                return Acceleration::ceilingFor (b.maxAcceleration, b.minValue, b.maxValue, b.step, b.isExponential);
+            };
+
+            // The widest dial of the section: the one a fast turn speeds up most.
+            int d = -1;
+            for (int i = 0; i < 4; ++i)
+                if (auto* b = binding(i); b != nullptr && b->type != DialBinding::ComboBox
+                                          && (d < 0 || ceilingOf(*b) > ceilingOf(*binding(d))))
+                    d = i;
+            const int ceiling = d >= 0 ? ceilingOf(*binding(d)) : 0;
+            check(ceiling >= 3, "SA: the page has a dial wide enough to speed up (ceiling " + juce::String(ceiling) + ")");
+
+            if (ceiling >= 3)
+            {
+                const float step = binding(d)->step;
+                const float mid = 0.5f * (binding(d)->minValue + binding(d)->maxValue);
+                auto value = [&] { return binding(d)->getValue(); };
+                auto closeTo = [&](float v, float expected) { return std::abs(v - expected) < 0.1f * step; };
+                auto from = [&](int steps, bool fine) { return binding(d)->applyStep(steps, fine); };
+                auto start = [&]
+                {
+                    binding(d)->setValue(mid);
+                    effectsUndo->clearUndoHistory();
+                };
+
+                start();
+                float expected = from(1, false);
+                dev.onDialRotated(d, 1);
+                check(closeTo(value(), expected), "SA: a report of one click moves one step");
+
+                start();
+                expected = from(2, false);
+                dev.onDialRotated(d, 2);
+                check(closeTo(value(), expected), "SA: a report of two clicks moves two steps - no click is lost");
+
+                start();
+                const int fastSteps = 12 * Acceleration::multiplier(12, ceiling);
+                expected = from(fastSteps, false);
+                dev.onDialRotated(d, 12);
+                check(fastSteps > 12 && closeTo(value(), expected),
+                      "SA: a report of twelve clicks moves " + juce::String(fastSteps) + " steps");
+
+                start();
+                expected = from(12, true);
+                dev.onDialPressed(d);
+                dev.onDialRotated(d, 12);
+                dev.onDialReleased(d);
+                check(closeTo(value(), expected), "SA: pressed, twelve clicks are twelve fine steps - never faster");
+
+                // The wrong-way turn the operator saw: a flick, then two slow
+                // clicks back. Counting reports, not clicks, it came out one
+                // step BELOW where it started.
+                start();
+                dev.onDialRotated(d, 11);
+                dev.onDialRotated(d, -1);
+                dev.onDialRotated(d, -1);
+                check(value() > mid + 8.5f * step, "SA: a flick then two clicks back ends ahead of the start");
+
+                binding(d)->maxAcceleration = 1;
+                start();
+                expected = from(12, false);
+                dev.onDialRotated(d, 12);
+                const bool neverFaster = closeTo(value(), expected);
+                binding(d)->maxAcceleration = 2;
+                start();
+                const int cappedSteps = 12 * Acceleration::multiplier(12, 2);
+                expected = from(cappedSteps, false);
+                dev.onDialRotated(d, 12);
+                const bool capped = cappedSteps > 12 && closeTo(value(), expected);
+                binding(d)->maxAcceleration = 0;
+                check(neverFaster && capped, "SA: a dial's own cap holds - 1 never speeds up, 2 at most doubles");
+
+                start();
+                dev.onDialRotated(d, 5);
+                dev.onDialRotated(d, 12);
+                dev.onDialRotated(d, 3);
+                const bool moved = value() > mid + 20.0f * step;
+                vts.undo();
+                check(moved && closeTo(value(), mid), "SA: one undo takes back a fast run, as it does a slow one");
+            }
+
+            effectsUndo->clearUndoHistory();
+        }
+
+        streamDeckManager->syncNavigation(mainBefore, subBefore, channelBefore);
+        vts.setNumEffectChannels(effectsBefore);
+    }
+    else
+    {
+        check(false, "SA: the Stream Deck manager exists");
+    }
+
     // ---- ES: the deck's Effect Sends page holds four effects of one input --------
     // The Inputs tab's Effect Sends sub-tab on the deck: four dials for four
     // effects' send levels from the shown input, four switches under them that

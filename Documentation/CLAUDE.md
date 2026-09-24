@@ -104,6 +104,11 @@ The application has established a solid foundation with infrastructure and core 
 - The Space Mouse follows the map's rule too: `ControllerManager` announces a PUSH (`callbacks.onEditGestureStart`: the first moving tick after the puck has rested 300 ms, or after the tab it drives changed) and MainComponent opens the step before the push's queued writes; the joysticks (`WfsJoystickComponent::onGestureStart`) and the auto-centering sliders (`WfsAutoCenterSlider`, which must fire the base class's hook in its own `mouseDown`) open theirs on the press. Self-test phase SM.
 - Actions that write many values open their own step (`applyEffectReverbPreset`, `setEffectGroupMute`), so an edit made just before never goes with them.
 
+### Stream Deck dials: every click counts, fast turns go further
+- The deck reports a turning dial every 50 ms with the SIGNED CLICKS of that window (up to 16 on a flick); `StreamDeckDevice` passes the count on and the manager counts every click. Measured with `spatcore/tools/streamdeck/dial_capture.py` (read-only, runs beside the app).
+- An unpressed report of more than two clicks multiplies the step (`spatcore/controllers/streamdeck/StreamDeckDialAcceleration.h`), up to the dial's ceiling: `DialBinding::maxAcceleration` 0 = from its range (two full-speed flicks sweep it; a small range never speeds up), 1 = never, N = at most N. Press + turn (fine step or `altBinding`) and ComboBox browsing stay one step per click. Self-test phase SA.
+- On a new page: `maxAcceleration = 1` on a dial that picks an item (the Patch window's cells, the Clusters preset navigator) or where a jump is unsafe (the test signal level); an explicit cap on a relative dial whose `getValue` is constant (the Map's Move X/Y/Z, cluster scale and rotation: 5). A multiplicative relative dial is exponential, so a turn back undoes a turn forward (the cluster scale).
+
 ### Core Systems Status
 
 | System | Status | Description |

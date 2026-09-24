@@ -424,6 +424,7 @@ inline StreamDeckPage createPage (int /*subTab*/,
             d.step          = 1.0f;
             d.fineStep      = 0.0f;
             d.decimalPlaces = 0;
+            d.maxAcceleration = 1;  // picks a preset: one per click, never accelerated
 
             d.getDynamicName = [presetCol, presetRow]()
             {
