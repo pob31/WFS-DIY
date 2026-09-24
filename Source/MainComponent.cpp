@@ -5263,6 +5263,31 @@ void MainComponent::runChannelListSelfTest()
             if (page.sections[0].buttons[1].onPress != nullptr)
                 page.sections[0].buttons[1].onPress();          // Next module
             check(*chainSlot == 4 && *chainBank == 0, "RD3: the next module opens at its first bank");
+
+            // Prev / Next walk the chain as the strip shows it, not the slot
+            // numbers: Distortion is followed by the Bitcrusher, the ends
+            // wrap, and a reordered chain is followed at the press.
+            {
+                auto press = [&](int from, int button)
+                {
+                    *chainSlot = from;
+                    auto p = EffectsTabPages::createPage(1, vts, edit, 0, nullptr, nullptr, nullptr, chainSlot, chainBank, noCallbacks);
+                    if (p.sections[0].buttons[button].onPress != nullptr)
+                        p.sections[0].buttons[button].onPress();
+                    return *chainSlot;
+                };
+                auto chain = vts.getEffectChainSection(0);
+                const juce::var orderBefore = chain.getProperty(P::effectChainOrder);
+
+                chain.setProperty(P::effectChainOrder, WFSParameterDefaults::effectChainOrderDefault, nullptr);
+                const bool defaultWalk = press(0, 1) == 10 && press(10, 0) == 0     // dist -> crush -> dist
+                                      && press(1, 0) == 8 && press(8, 1) == 1;      // eq1 <- wraps -> reverb
+                chain.setProperty(P::effectChainOrder, "crush,delay,reverb,trem,phaser,mod,dyn2,dyn1,eq2,eq1,dist", nullptr);
+                const bool reorderedWalk = press(9, 1) == 8 && press(10, 0) == 0;  // delay -> reverb; crush <- wraps -> dist
+
+                chain.setProperty(P::effectChainOrder, orderBefore, nullptr);
+                check(defaultWalk && reorderedWalk, "RD3: Prev / Next walk the chain order the strip shows, wrapping at the ends");
+            }
         }
 
         // RD4: a deck turn that moves the reverb's model - the Model dial, or a

@@ -18,6 +18,7 @@ All notable changes to WFS DIY are documented in this file, organized by release
 - **Module parameters are sized for touch screens**: sliders at the app's standard height, larger buttons and menus, and more space between rows. The Multitap Delay's taps now sit in their own column on the right.
 - **The ON button and the Mix (dry/wet) slider are in the same place in every module**, on the first line of the panel.
 - **The reverb module shows Preset above Model**, because picking a preset also sets the model.
+- **The Stream Deck's Chain page steps through the modules in the chain's order**, left to right as the tiles show it, wrapping at the ends, and follows a reorder straight away. Before, Prev / Next went through the modules in a fixed internal order. The page also starts on the same module as the tab.
 
 ### Fixed
 - **Switching an EQ module on or off in the Chain sub-tab updates its curve display** (the EQ OFF overlay) and the module's tile at once. Before, they changed only when the channel was reloaded.

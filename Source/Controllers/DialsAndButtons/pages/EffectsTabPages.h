@@ -16,8 +16,9 @@
     module's ordinary controls, taken from the same CSV-generated descriptors
     the GUI panel is built from, so a control added to the CSV reaches the
     deck without touching this file. The module is chosen with the Prev /
-    Next buttons (a shared slot index, rebuild on change) and the choice is
-    mirrored to the GUI's tile strip. Twelve dials is not every module's
+    Next buttons (a shared slot index, rebuild on change), which walk the
+    channel's chain order as the GUI's tile strip shows it, and the choice
+    is mirrored to that strip. Twelve dials is not every module's
     count, so the controls come in BANKS of twelve with a Page button on
     every module section; the bank goes back to the first on a module change.
     The reverb's controls are the ones its model uses (the CSV's Models
@@ -374,6 +375,30 @@ inline std::vector<const EffectsUi::ControlDesc*> chainPageControls (WFSValueTre
     return shown;
 }
 
+/** A channel's processing order - the GUI's tile strip, left to right. An
+    unreadable order falls back to the order a new channel is given. */
+inline spatcore::effects::ChainOrder chainOrderOf (WFSValueTreeState& state, int ch)
+{
+    namespace fx = spatcore::effects;
+    fx::ChainOrder order = fx::kDefaultOrder;
+    const auto csv = state.getEffectChainSection (ch).getProperty (WFSParameterIDs::effectChainOrder).toString();
+    if (! fx::parseChainOrder (csv.toRawUTF8(), order))
+        fx::parseChainOrder (WFSParameterDefaults::effectChainOrderDefault.toRawUTF8(), order);
+    return order;
+}
+
+/** The module `direction` places along the chain from `slot` (+1 next, -1
+    previous), wrapping at the ends. */
+inline int chainNeighbour (WFSValueTreeState& state, int ch, int slot, int direction)
+{
+    const auto order = chainOrderOf (state, ch);
+    int position = 0;
+    for (int p = 0; p < kNumSlots; ++p)
+        if (order[static_cast<size_t> (p)] == slot)
+            position = p;
+    return order[static_cast<size_t> (((position + direction) % kNumSlots + kNumSlots) % kNumSlots)];
+}
+
 inline StreamDeckPage createChainPage (WFSValueTreeState& state, EffectParamEdit& edit, int ch,
                                        std::shared_ptr<int> chainSlot, std::shared_ptr<int> chainBank,
                                        const EffectsCallbacks& cb)
@@ -414,7 +439,9 @@ inline StreamDeckPage createChainPage (WFSValueTreeState& state, EffectParamEdit
             btn.colour = grey;
             btn.type = ButtonBinding::Action;
             btn.requestsPageRebuild = true;
-            btn.onPress = [selectSlot, slot]() { selectSlot (slot == 0 ? kNumSlots - 1 : slot - 1); };
+            // Along the chain as the strip shows it, read at the press, so a
+            // reorder made while this page is up is already followed
+            btn.onPress = [selectSlot, &state, ch, slot]() { selectSlot (chainNeighbour (state, ch, slot, -1)); };
         }
         {
             auto& btn = sec.buttons[1];
@@ -422,7 +449,7 @@ inline StreamDeckPage createChainPage (WFSValueTreeState& state, EffectParamEdit
             btn.colour = grey;
             btn.type = ButtonBinding::Action;
             btn.requestsPageRebuild = true;
-            btn.onPress = [selectSlot, slot]() { selectSlot (slot == kNumSlots - 1 ? 0 : slot + 1); };
+            btn.onPress = [selectSlot, &state, ch, slot]() { selectSlot (chainNeighbour (state, ch, slot, +1)); };
         }
         sec.buttons[2] = makeToggleButton (LOC ("streamDeck.effects.buttons.chainBypass"), grey, juce::Colour (0xFFCC8800),
                                            state, edit, ch, effectChainBypass);
