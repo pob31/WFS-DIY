@@ -22,9 +22,9 @@ I, O and R open the Input, Output and Reverb tabs respectively; for a few second
 N opens the Network tab.
 C opens the Clusters tab.
 M opens the Map tab.
-Spacebar scrolls to the next channel and Shift+Spacebar to the previous one in the Input, Output and Reverb tabs. On the Clusters tab they cycle through the clusters.
+Spacebar scrolls to the next channel and Shift+Spacebar to the previous one in the Input, Output, Reverb and Effects tabs. On the Clusters tab they cycle through the clusters.
 Ctrl/Cmd while adjusting a parameter of an output channel that is part of an array adjusts the parameter for the selected channel only, temporarily disabling the propagation to the rest of the array.
-F1 to F10 assign inputs to the corresponding cluster in the Input and Map tabs, assign outputs to the corresponding array in the Output tab, and select the corresponding cluster in the Clusters tab. F11 sets the channel back to Single.
+F1 to F10 assign inputs to the corresponding cluster in the Input and Map tabs, assign outputs to the corresponding array in the Output tab, and select the corresponding cluster in the Clusters tab. F11 sets the channel back to Single. On the Effects tab, F1 to F8 put the effect in the corresponding link group and F11 unlinks it; these link groups are separate from the input clusters.
 Shift while adjusting a parameter of an input that is part of a cluster adjusts this parameter for the other inputs of the cluster in relative mode: the variation affects all inputs of the cluster, but relative offsets are kept. Ctrl/Cmd+Shift changes the parameter in absolute mode: the value becomes identical across all inputs of the cluster.
 Ctrl/Cmd+Z undoes the last change; Ctrl/Cmd+Y or Ctrl/Cmd+Shift+Z redoes it.
 

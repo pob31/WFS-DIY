@@ -62,6 +62,15 @@ public:
         linkGroupCombo.setSelectedId (selected, juce::dontSendNotification);
     }
 
+    /** F1-F8 / F11 from the main window: the write the combo itself makes,
+        synchronously so it lands in the undo step the caller opened. */
+    void setLinkGroup (int group)
+    {
+        linkGroupCombo.setSelectedId (group + 1, juce::sendNotificationSync);
+    }
+
+    juce::String getLinkGroupName (int group) const { return groupName (group); }
+
     void loadParameters()
     {
         using namespace WFSParameterIDs;

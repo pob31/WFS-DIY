@@ -9875,6 +9875,100 @@ void MainComponent::runChannelListSelfTest()
               "G2: every (from, to) move yields a valid permutation (" + juce::String(perms) + " of 121)");
     }
 
+    // ---- K: the keyboard acts on the tab that is showing --------------------
+    // Injected keys never reach the app from a test shell, so this calls
+    // keyPressed directly. The tab numbers are the point: the dispatcher kept
+    // its literals when the Effects tab went in at 4, which put F1 on the
+    // Effects tab into an INPUT cluster, made Space on Inputs step clusters,
+    // and made detaching the Map delete the Clusters tab.
+    if (effectsTab != nullptr && inputsTab != nullptr && clustersTab != nullptr && mapTab != nullptr)
+    {
+        using KP = juce::KeyPress;
+        const int effectsBefore = vts.getNumEffectChannels();
+        const int tabBefore = tabbedComponent.getCurrentTabIndex();
+        vts.setNumEffectChannels(3);
+        unfocusAllComponents();
+
+        auto press = [this](int code, bool shift = false)
+        {
+            return keyPressed(KP(code, shift ? juce::ModifierKeys::shiftModifier : 0, 0));
+        };
+        auto shownGroup = [&] { return vts.getEffectLinkGroup(effectsTab->getCurrentChannel() - 1); };
+
+        const int inputSlot = vts.getSlotForChannelNumber(inputsTab->getCurrentChannel());
+        const int inputClusterBefore = vts.getIntParameter(WFSParameterIDs::inputCluster, inputSlot);
+
+        tabbedComponent.setCurrentTabIndex(TabIndex::Effects);
+        effectsTab->selectChannel(2);
+        const int group1Before = vts.getEffectLinkGroup(0);
+        const int group3Before = vts.getEffectLinkGroup(2);
+        press(KP::F3Key);
+        check(shownGroup() == 3, "KB1: F3 on the Effects tab puts the shown effect in link group 3");
+        check(vts.getIntParameter(WFSParameterIDs::inputCluster, inputSlot) == inputClusterBefore,
+              "KB1: and leaves the Inputs tab's input in its cluster");
+        check(vts.getEffectLinkGroup(0) == group1Before && vts.getEffectLinkGroup(2) == group3Before,
+              "KB1: and no other effect's group changes");
+        press(KP::F9Key);
+        check(shownGroup() == 3, "KB2: F9 does nothing on the Effects tab (8 link groups)");
+        press(KP::F11Key);
+        check(shownGroup() == 0, "KB2: F11 takes the effect out of its group");
+
+        effectsTab->selectChannel(3);
+        press(KP::spaceKey);
+        check(effectsTab->getCurrentChannel() == 1, "KB3: Space on the last effect wraps to the first");
+        press(KP::spaceKey, true);
+        check(effectsTab->getCurrentChannel() == 3, "KB3: Shift+Space on the first wraps to the last");
+        press(KP::spaceKey, true);
+        check(effectsTab->getCurrentChannel() == 2, "KB3: Shift+Space steps back one");
+
+        tabbedComponent.setCurrentTabIndex(TabIndex::Inputs);
+        const int inputBefore = inputsTab->getCurrentChannel();
+        const int clusterSelBefore = clustersTab->getSelectedCluster();
+        press(KP::spaceKey);
+        check((vts.getNumInputChannels() < 2 || inputsTab->getCurrentChannel() != inputBefore)
+                  && clustersTab->getSelectedCluster() == clusterSelBefore,
+              "KB4: Space on the Inputs tab steps the input, not the clusters");
+        press(KP::spaceKey, true);
+        check(inputsTab->getCurrentChannel() == inputBefore, "KB4: Shift+Space steps it back");
+
+        tabbedComponent.setCurrentTabIndex(TabIndex::Clusters);
+        press(KP::F2Key);
+        check(clustersTab->getSelectedCluster() == 2, "KB5: F2 on the Clusters tab selects cluster 2");
+        check(vts.getIntParameter(WFSParameterIDs::inputCluster, inputSlot) == inputClusterBefore,
+              "KB5: and assigns no input");
+        clustersTab->setSelectedCluster(clusterSelBefore);
+
+        detachMapTab();
+        check(tabbedComponent.getNumTabs() == TabIndex::Count
+                  && tabbedComponent.getTabContentComponent(TabIndex::Clusters) == clustersTab
+                  && tabbedComponent.getTabContentComponent(TabIndex::Map) != mapTab.get(),
+              "KB6: detaching the Map replaces the Map tab and keeps the Clusters tab");
+        attachMapTab();
+        check(tabbedComponent.getNumTabs() == TabIndex::Count
+                  && tabbedComponent.getTabContentComponent(TabIndex::Map) == mapTab.get(),
+              "KB6: re-attaching puts the Map back in its place");
+
+        tabbedComponent.setCurrentTabIndex(TabIndex::Effects);
+        effectsTab->selectChannel(3);
+        const auto nameBefore = vts.getEffectParameter(2, WFSParameterIDs::effectName);
+        effectsTab->getNameEditorForTest().setText("KB7 name", false);
+        effectsTab->pressNameKeyForTest(KP(KP::tabKey, 0, 0));
+        check(vts.getEffectParameter(2, WFSParameterIDs::effectName).toString() == "KB7 name",
+              "KB7: Tab in the name field keeps the typed name");
+        check(effectsTab->getCurrentChannel() == 1, "KB7: and moves on to the next effect, wrapping");
+        effectsTab->pressNameKeyForTest(KP(KP::tabKey, juce::ModifierKeys::shiftModifier, 0));
+        check(effectsTab->getCurrentChannel() == 3, "KB7: Shift+Tab moves back, wrapping");
+        vts.setEffectParameter(2, WFSParameterIDs::effectName, nameBefore);
+        unfocusAllComponents();
+
+        vts.setNumEffectChannels(effectsBefore);
+        tabbedComponent.setCurrentTabIndex(tabBefore);
+    }
+    else
+    {
+        check(false, "KB: the tabs the keyboard drives exist");
+    }
+
     // ---- P: the engine's meters, and the freshness that keeps them honest --
     // A probe host prepared on synthetic rings and driven one batch at a time,
     // so the whole tap - the engine's per-channel peaks, the max-hold, the
@@ -13024,10 +13118,12 @@ void MainComponent::detachMapTab()
         return;
     }
 
-    // Remove MapTab from TabbedComponent (ownership=false, so it won't be deleted)
-    tabbedComponent.removeTab(6);
+    // Remove MapTab from TabbedComponent (ownership=false, so it won't be deleted).
+    // By name, not number: the tab before it is owned, and removing that one
+    // deletes it.
+    tabbedComponent.removeTab(TabIndex::Map);
 
-    // Insert placeholder at tab 6
+    // The placeholder goes in the Map's place (it is the last tab)
     mapTabPlaceholder = std::make_unique<MapTabPlaceholder>();
     mapTabPlaceholder->onReattachRequested = [this]() { attachMapTab(); };
     juce::String tabMap = LOC("tabs.map");
@@ -13067,11 +13163,11 @@ void MainComponent::attachMapTab()
     mapTabWindow.reset();
     mapTab->setDetached(false);
 
-    // Remove placeholder from tab 6
-    tabbedComponent.removeTab(6);
+    // Remove the placeholder from the Map's place
+    tabbedComponent.removeTab(TabIndex::Map);
     mapTabPlaceholder.reset();
 
-    // Re-add MapTab at tab 6
+    // Re-add MapTab in its place (the last tab)
     juce::String tabMap = LOC("tabs.map");
     tabbedComponent.addTab(tabMap, ColorScheme::get().chromeBackground, mapTab.get(), false);
 
@@ -16338,17 +16434,21 @@ void MainComponent::cycleChannel(int delta)
 {
     int currentTabIndex = tabbedComponent.getCurrentTabIndex();
 
-    if (currentTabIndex == 4 && inputsTab != nullptr)  // Inputs tab
+    if (currentTabIndex == TabIndex::Inputs && inputsTab != nullptr)
     {
         inputsTab->cycleChannel(delta);
     }
-    else if (currentTabIndex == 2 && outputsTab != nullptr)  // Outputs tab
+    else if (currentTabIndex == TabIndex::Outputs && outputsTab != nullptr)
     {
         outputsTab->cycleChannel(delta);
     }
-    else if (currentTabIndex == 3 && reverbTab != nullptr)  // Reverb tab
+    else if (currentTabIndex == TabIndex::Reverb && reverbTab != nullptr)
     {
         reverbTab->cycleChannel(delta);
+    }
+    else if (currentTabIndex == TabIndex::Effects && effectsTab != nullptr)
+    {
+        effectsTab->cycleChannel(delta);
     }
 }
 
@@ -16801,8 +16901,8 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
     // Get current tab index for tab-specific shortcuts
     int currentTabIndex = tabbedComponent.getCurrentTabIndex();
 
-    // Clusters tab (index 5): Space cycles clusters, not channels
-    if (currentTabIndex == 5 && clustersTab != nullptr && key.isKeyCode(juce::KeyPress::spaceKey))
+    // Clusters tab: Space cycles clusters, not channels
+    if (currentTabIndex == TabIndex::Clusters && clustersTab != nullptr && key.isKeyCode(juce::KeyPress::spaceKey))
     {
         if (key.getModifiers().isShiftDown())
             clustersTab->selectPreviousCluster();  // Shift+Space = previous cluster
@@ -16819,8 +16919,8 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
     }
 
     // Cluster/Array assignment: F1-F10 assign to Cluster/Array 1-10, F11 removes (Single)
-    // Inputs tab (index 4): F1-F10 = Cluster 1-10, F11 = Single
-    if (currentTabIndex == 4 && inputsTab != nullptr)
+    // Inputs tab: F1-F10 = Cluster 1-10, F11 = Single
+    if (currentTabIndex == TabIndex::Inputs && inputsTab != nullptr)
     {
         for (int i = 0; i < 10; ++i)
         {
@@ -16837,8 +16937,8 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         }
     }
 
-    // Outputs tab (index 2): F1-F10 = Array 1-10, F11 = Single
-    if (currentTabIndex == 2 && outputsTab != nullptr)
+    // Outputs tab: F1-F10 = Array 1-10, F11 = Single
+    if (currentTabIndex == TabIndex::Outputs && outputsTab != nullptr)
     {
         for (int i = 0; i < 10; ++i)
         {
@@ -16855,8 +16955,27 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         }
     }
 
-    // Clusters tab (index 5): F1-F10 = select Cluster 1-10
-    if (currentTabIndex == 5 && clustersTab != nullptr)
+    // Effects tab: F1-F8 = link group 1-8, F11 = unlinked. The effects' own
+    // groups, not the input clusters.
+    if (currentTabIndex == TabIndex::Effects && effectsTab != nullptr)
+    {
+        for (int i = 0; i < WFSParameterDefaults::effectLinkGroupMax; ++i)
+        {
+            if (key.isKeyCode(juce::KeyPress::F1Key + i))
+            {
+                effectsTab->setLinkGroup(i + 1);
+                return true;
+            }
+        }
+        if (key.isKeyCode(juce::KeyPress::F11Key))
+        {
+            effectsTab->setLinkGroup(0);
+            return true;
+        }
+    }
+
+    // Clusters tab: F1-F10 = select Cluster 1-10
+    if (currentTabIndex == TabIndex::Clusters && clustersTab != nullptr)
     {
         for (int i = 0; i < 10; ++i)
         {
@@ -16868,9 +16987,9 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         }
     }
 
-    // Map tab (index 6): F1-F10 = assign selected inputs to Cluster 1-10
-    //                     F11 = remove from cluster (inputs) or break up cluster (barycenter)
-    if (currentTabIndex == 6 && mapTab != nullptr)
+    // Map tab: F1-F10 = assign selected inputs to Cluster 1-10
+    //          F11 = remove from cluster (inputs) or break up cluster (barycenter)
+    if (currentTabIndex == TabIndex::Map && mapTab != nullptr)
     {
         for (int i = 0; i < 10; ++i)
         {
@@ -16935,8 +17054,8 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
     // Position nudging: Arrow keys, Page Up/Down (Inputs, Outputs, Reverb tabs)
     const float nudgeAmount = 0.1f;
 
-    // Inputs tab (index 4)
-    if (currentTabIndex == 4)
+    // Inputs tab
+    if (currentTabIndex == TabIndex::Inputs)
     {
         if (key.isKeyCode(juce::KeyPress::leftKey))
         {
@@ -16970,8 +17089,8 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         }
     }
 
-    // Outputs tab (index 2)
-    if (currentTabIndex == 2)
+    // Outputs tab
+    if (currentTabIndex == TabIndex::Outputs)
     {
         if (key.isKeyCode(juce::KeyPress::leftKey))
         {
@@ -17005,8 +17124,8 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         }
     }
 
-    // Reverb tab (index 3)
-    if (currentTabIndex == 3)
+    // Reverb tab
+    if (currentTabIndex == TabIndex::Reverb)
     {
         if (key.isKeyCode(juce::KeyPress::leftKey))
         {
@@ -17040,8 +17159,8 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         }
     }
 
-    // Map tab (index 6) - nudge selected input
-    if (currentTabIndex == 6 && mapTab != nullptr)
+    // Map tab - nudge selected input
+    if (currentTabIndex == TabIndex::Map && mapTab != nullptr)
     {
         int selectedInput = mapTab->getSelectedInput();
         if (selectedInput >= 0)

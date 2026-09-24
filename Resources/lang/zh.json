@@ -563,6 +563,8 @@
       "cleared": "效果链已清空。",
       "clearedAll": "所有效果链已清空。",
       "groupMuteNeedsGroup": "此效果不在任何链接组中，因此没有可静音的组。",
+      "assignedGroup": "效果 {channel} 分配到 {group}",
+      "unlinked": "效果 {channel} 已移出链接组",
       "configLoaded": "效果配置已加载。",
       "selectFolderFirst": "请先选择项目文件夹。",
       "error": "错误: {error}"
@@ -863,7 +865,7 @@
     },
     "shortcuts": {
       "title": "键盘快捷键",
-      "body": "*H*：打开离指针最近的帮助卡片。\n*I*、*O*、*R*：分别打开 Inputs（输入）、Outputs（输出）和 Reverb 标签页；随后几秒内可输入通道编号进行选择（按 *Enter* 确认）。\n*N*：打开 Network（网络）标签页。\n*C*：打开 Clusters（集群）标签页。\n*M*：打开 Map（地图）标签页。\n*L*：锁定或解锁在 Map 标签页中选中的声像对的朝向。\n*空格键*：在 Inputs、Outputs 和 Reverb 标签页中切换到下一个通道，*Shift+空格*切换到上一个通道。在 Clusters 标签页中则循环切换集群。\n*Ctrl/Cmd*：调整属于阵列的输出通道参数时按住，仅调整所选通道，暂时禁用向阵列其余通道的传播。\n*F1* 到 *F10*：在 Inputs 和 Map 标签页中将输入分配到对应的集群，在 Outputs 标签页中将输出分配到对应的阵列，在 Clusters 标签页中选择对应的集群。*F11* 将通道恢复为 Single。\n*Shift*：调整属于集群的输入参数时按住，以相对模式调整集群中其他输入的该参数：变化作用于集群的所有输入，但保留相对差值。*Ctrl/Cmd+Shift* 以绝对模式更改参数：集群所有输入的该参数值变为相同。\n*Ctrl/Cmd+Z*：撤销最近的更改；*Ctrl/Cmd+Y* 或 *Ctrl/Cmd+Shift+Z* 重做。"
+      "body": "*H*：打开离指针最近的帮助卡片。\n*I*、*O*、*R*：分别打开 Inputs（输入）、Outputs（输出）和 Reverb 标签页；随后几秒内可输入通道编号进行选择（按 *Enter* 确认）。\n*N*：打开 Network（网络）标签页。\n*C*：打开 Clusters（集群）标签页。\n*M*：打开 Map（地图）标签页。\n*L*：锁定或解锁在 Map 标签页中选中的声像对的朝向。\n*空格键*：在 Inputs、Outputs、Reverb 和 Effects 标签页中切换到下一个通道，*Shift+空格*切换到上一个通道。在 Clusters 标签页中则循环切换集群。\n*Ctrl/Cmd*：调整属于阵列的输出通道参数时按住，仅调整所选通道，暂时禁用向阵列其余通道的传播。\n*F1* 到 *F10*：在 Inputs 和 Map 标签页中将输入分配到对应的集群，在 Outputs 标签页中将输出分配到对应的阵列，在 Clusters 标签页中选择对应的集群。*F11* 将通道恢复为 Single。在 Effects 标签页中，*F1* 到 *F8* 将效果分配到对应的链接组，*F11* 取消链接；这些链接组与输入集群相互独立。\n*Shift*：调整属于集群的输入参数时按住，以相对模式调整集群中其他输入的该参数：变化作用于集群的所有输入，但保留相对差值。*Ctrl/Cmd+Shift* 以绝对模式更改参数：集群所有输入的该参数值变为相同。\n*Ctrl/Cmd+Z*：撤销最近的更改；*Ctrl/Cmd+Y* 或 *Ctrl/Cmd+Shift+Z* 重做。"
     },
     "binaural": {
       "title": "Binaural Renderer",

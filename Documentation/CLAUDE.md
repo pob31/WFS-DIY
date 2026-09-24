@@ -2571,10 +2571,13 @@ Uses Audio EQ Cookbook formulas matching filterCalc.js:
 ---
 
 ## Keyboard Shortcuts
-- **F1-F10** - Assign input/output to cluster/array 1-10
-- **F11** - Assign to Single (no cluster)
-- **Up/Down arrows** - Navigate channels
-- **Tab** - Switch between tabs
+- **F1-F10** - Assign input/output to cluster/array 1-10 (Inputs, Map, Outputs tabs); select cluster 1-10 (Clusters tab)
+- **F1-F8** on the Effects tab - Put the effect in link group 1-8 (link groups are separate from input clusters)
+- **F11** - Assign to Single (no cluster); on the Effects tab, unlink
+- **Space / Shift+Space** - Next/previous channel on the Inputs, Outputs, Reverb and Effects tabs (wraps); next/previous cluster on the Clusters tab
+- **Tab / Shift+Tab** in the Inputs or Effects name field - Keep the name and edit the next/previous channel's name
+- **Arrows, Page Up/Down** - Nudge the shown input/output/reverb (or the Map's selected input) by 0.1 m in X/Y/Z
+- Keyboard dispatch tests the main tab against `TabIndex::` constants (`Source/gui/TabIndex.h`), never literals
 
 ---
 

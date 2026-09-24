@@ -209,6 +209,39 @@ public:
         loadChannelParameters (clamped);
     }
 
+    /** Space / Shift+Space from the main window. Wraps at both ends. */
+    void cycleChannel (int delta)
+    {
+        if (! ctx.hasChannels())
+            return;
+
+        channelSelector.setSelectedChannelProgrammatically (channelSelector.adjacentChannel (delta));
+    }
+
+    /** The self-test types into the name field and presses Tab there: the
+        key listener is private, and injected keys never reach the app. */
+    juce::TextEditor& getNameEditorForTest() { return nameEditor; }
+    bool pressNameKeyForTest (const juce::KeyPress& key) { return keyPressed (key, &nameEditor); }
+
+    /** F1-F8 put the shown effect in link group 1-8 and F11 (0) takes it out:
+        the Inputs tab's cluster keys, on the effects' own groups, which are
+        not the input clusters. */
+    void setLinkGroup (int group)
+    {
+        if (! ctx.hasChannels())
+            return;
+
+        group = juce::jlimit (0, WFSParameterDefaults::effectLinkGroupMax, group);
+        ctx.beginGesture ("Effect Link Group");
+        channelPanel.setLinkGroup (group);
+
+        const auto channel = juce::String (ctx.currentChannel);
+        ctx.showStatusMessage (group == 0
+            ? LOC ("effects.messages.unlinked").replace ("{channel}", channel)
+            : LOC ("effects.messages.assignedGroup").replace ("{channel}", channel)
+                                                   .replace ("{group}", channelPanel.getLinkGroupName (group)));
+    }
+
     /** Stream Deck / OSC drives these. They move the GUI without firing the
         callbacks back out, which would loop. */
     void setSoloEffectsFromExternal (bool active)
@@ -934,6 +967,21 @@ private:
         {
             nameEditor.setText (ctx.read (WFSParameterIDs::effectName).toString(), false);
             unfocusAllComponents();
+            return true;
+        }
+
+        // Tab / Shift+Tab: keep the name, then name the next / previous
+        // effect, as on the Inputs tab.
+        if (origin == &nameEditor && key.getKeyCode() == juce::KeyPress::tabKey)
+        {
+            if (ctx.parameters.getNumEffectChannels() <= 1)
+                return true;
+
+            commitName();
+            channelSelector.setSelectedChannelProgrammatically (
+                channelSelector.adjacentChannel (key.getModifiers().isShiftDown() ? -1 : 1));
+            nameEditor.grabKeyboardFocus();
+            nameEditor.selectAll();
             return true;
         }
 
