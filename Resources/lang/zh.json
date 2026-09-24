@@ -608,6 +608,8 @@
         "shapeEnable": "启用/禁用形状",
         "shapeLock": "锁定形状位置",
         "shapeDelete": "删除选中的形状",
+        "shapeToBack": "将选中的形状置于底层（上层形状覆盖下层）（End；Page Down = 下移一层）",
+        "shapeToFront": "将选中的形状置于顶层（上层形状覆盖下层）（Home；Page Up = 上移一层）",
         "selectTool": "选择和移动形状",
         "rectTool": "绘制矩形",
         "ellipseTool": "绘制椭圆",

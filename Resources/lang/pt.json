@@ -608,6 +608,8 @@
         "shapeEnable": "Ativar/desativar forma",
         "shapeLock": "Bloquear posição da forma",
         "shapeDelete": "Excluir forma(s) selecionada(s)",
+        "shapeToBack": "Enviar forma(s) selecionada(s) para trás: a forma de cima cobre as de baixo (End; Page Down = um passo)",
+        "shapeToFront": "Trazer forma(s) selecionada(s) para a frente: a forma de cima cobre as de baixo (Home; Page Up = um passo)",
         "selectTool": "Selecionar e mover formas",
         "rectTool": "Desenhar retângulo",
         "ellipseTool": "Desenhar elipse",

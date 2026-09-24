@@ -608,6 +608,8 @@
         "shapeEnable": "Attiva/disattiva forma",
         "shapeLock": "Blocca posizione della forma",
         "shapeDelete": "Elimina forma/e selezionata/e",
+        "shapeToBack": "Porta sullo sfondo la/e forma/e selezionata/e: la forma sopra copre quelle sotto (Fine; Pag Giù = un passo)",
+        "shapeToFront": "Porta in primo piano la/e forma/e selezionata/e: la forma sopra copre quelle sotto (Home; Pag Su = un passo)",
         "selectTool": "Seleziona e sposta forme",
         "rectTool": "Disegna rettangolo",
         "ellipseTool": "Disegna ellisse",

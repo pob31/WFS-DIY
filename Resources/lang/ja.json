@@ -594,6 +594,8 @@
         "shapeEnable": "シェイプの有効/無効",
         "shapeLock": "シェイプの位置をロック",
         "shapeDelete": "選択したシェイプを削除",
+        "shapeToBack": "選択したシェイプを最背面へ移動（上のシェイプが下を覆います）（End、Page Down で1つ後ろへ）",
+        "shapeToFront": "選択したシェイプを最前面へ移動（上のシェイプが下を覆います）（Home、Page Up で1つ前へ）",
         "selectTool": "シェイプの選択と移動",
         "rectTool": "矩形を描画",
         "ellipseTool": "楕円を描画",

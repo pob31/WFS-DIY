@@ -608,6 +608,8 @@
         "shapeEnable": "Form aktivieren/deaktivieren",
         "shapeLock": "Formposition sperren",
         "shapeDelete": "Ausgewählte Form(en) löschen",
+        "shapeToBack": "Ausgewählte Form(en) nach hinten stellen: die obere Form verdeckt die darunter (Ende; Bild ab = ein Schritt)",
+        "shapeToFront": "Ausgewählte Form(en) nach vorne bringen: die obere Form verdeckt die darunter (Pos1; Bild auf = ein Schritt)",
         "selectTool": "Formen auswählen und verschieben",
         "rectTool": "Rechteck zeichnen",
         "ellipseTool": "Ellipse zeichnen",

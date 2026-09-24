@@ -361,6 +361,12 @@ public:
         shapeDeleteBtn.setButtonText (LOC ("inputs.gradientMap.buttons.delete"));
         shapeDeleteBtn.onLongPress = [this] { deleteSelectedShapes(); };
 
+        shapeToBackBtn.setButtonText (LOC ("inputs.gradientMap.buttons.toBack"));
+        shapeToBackBtn.onClick = [this] { reorderSelectedShapes (Reorder::ToBack); };
+
+        shapeToFrontBtn.setButtonText (LOC ("inputs.gradientMap.buttons.toFront"));
+        shapeToFrontBtn.onClick = [this] { reorderSelectedShapes (Reorder::ToFront); };
+
         addAndMakeVisible (shapeNameLabel);
         addAndMakeVisible (shapeNameEditor);
         addAndMakeVisible (shapeFillLabel);
@@ -372,6 +378,8 @@ public:
         addAndMakeVisible (shapeEnableBtn);
         addAndMakeVisible (shapeLockBtn);
         addAndMakeVisible (shapeDeleteBtn);
+        addAndMakeVisible (shapeToBackBtn);
+        addAndMakeVisible (shapeToFrontBtn);
 
 
         // Copy/paste buttons
@@ -1000,6 +1008,16 @@ public:
             shapeEnableBtn.setBounds (bx, row.getY() + 2, col3W, row.getHeight() - 4);
             shapeLockBtn.setBounds (bx + col3W + pad, row.getY() + 2, col3W, row.getHeight() - 4);
             shapeDeleteBtn.setBounds (bx + (col3W + pad) * 2, row.getY() + 2, col3W, row.getHeight() - 4);
+        }
+
+        // Stacking order
+        row = panelBounds.removeFromTop (rowH);
+        {
+            auto orderArea = row.reduced (pad, 2);
+            int halfW = orderArea.getWidth() / 2 - pad / 2;
+            shapeToBackBtn.setBounds (orderArea.removeFromLeft (halfW));
+            orderArea.removeFromLeft (pad);
+            shapeToFrontBtn.setBounds (orderArea);
         }
 
         // Tool buttons at bottom of panel (4 rows: copy/paste, select, shapes, fills)
@@ -1768,6 +1786,31 @@ public:
             redo();
             return true;
         }
+
+        // Stacking order: Ctrl+] / Ctrl+[ step, with Shift to the front / back.
+        // ] and [ need AltGr on AZERTY, so Page Up / Page Down step and
+        // Home / End jump as well, on any keyboard layout.
+        const auto ctrlShift = juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier;
+        if (key == juce::KeyPress (']', juce::ModifierKeys::ctrlModifier, 0) || key == juce::KeyPress::pageUpKey)
+        {
+            reorderSelectedShapes (Reorder::Forward);
+            return true;
+        }
+        if (key == juce::KeyPress ('[', juce::ModifierKeys::ctrlModifier, 0) || key == juce::KeyPress::pageDownKey)
+        {
+            reorderSelectedShapes (Reorder::Backward);
+            return true;
+        }
+        if (key == juce::KeyPress (']', ctrlShift, 0) || key == juce::KeyPress::homeKey)
+        {
+            reorderSelectedShapes (Reorder::ToFront);
+            return true;
+        }
+        if (key == juce::KeyPress ('[', ctrlShift, 0) || key == juce::KeyPress::endKey)
+        {
+            reorderSelectedShapes (Reorder::ToBack);
+            return true;
+        }
         return false;
     }
 
@@ -1938,6 +1981,7 @@ private:
     juce::TextEditor shapeBlurEditor;
     juce::TextButton shapeEnableBtn, shapeLockBtn;
     LongPressButton shapeDeleteBtn;
+    juce::TextButton shapeToBackBtn, shapeToFrontBtn;
 
     // Gradient value sliders
     juce::Label gradValue1Label, gradValue2Label;
@@ -2800,6 +2844,13 @@ private:
         layerTree.setProperty (gmLayerCurve,    currentLayerData.curve, nullptr);
         layerTree.setProperty (gmLayerVisible,  currentLayerData.visible ? 1 : 0, nullptr);
 
+        // The list position is the stacking order. Renumber so the evaluator,
+        // which rebuilds from the tree and sorts by gmShapeOrder, stacks the
+        // shapes exactly as the editor draws them (a delete leaves gaps, and the
+        // next new shape could otherwise sort below older ones).
+        for (size_t i = 0; i < currentLayerData.shapes.size(); ++i)
+            currentLayerData.shapes[i].order = static_cast<int> (i);
+
         // Replace all shape children
         while (layerTree.getNumChildren() > 0)
             layerTree.removeChild (0, nullptr);
@@ -2837,6 +2888,82 @@ private:
         setShapePropertiesVisible (false);
         saveCurrentLayerToValueTree();
         repaint();
+    }
+
+    enum class Reorder { ToFront, Forward, Backward, ToBack };
+
+    /** Move the selected shapes in the stacking order. The list position is the
+        stacking order (the last shape paints on top), and the selected shapes
+        move as a group that keeps its own relative order. */
+    void reorderSelectedShapes (Reorder move)
+    {
+        auto& shapes = currentLayerData.shapes;
+        const int n = static_cast<int> (shapes.size());
+
+        std::vector<bool> selected (static_cast<size_t> (n), false);
+        for (int idx : selectedShapeIndices)
+            if (idx >= 0 && idx < n)
+                selected[static_cast<size_t> (idx)] = true;
+
+        auto isSelected = [&selected] (int oldIdx) { return selected[static_cast<size_t> (oldIdx)]; };
+
+        // order[newIdx] = oldIdx
+        std::vector<int> order (static_cast<size_t> (n));
+        for (int i = 0; i < n; ++i)
+            order[static_cast<size_t> (i)] = i;
+
+        switch (move)
+        {
+            case Reorder::ToFront:
+                std::stable_partition (order.begin(), order.end(), [&] (int i) { return ! isSelected (i); });
+                break;
+            case Reorder::ToBack:
+                std::stable_partition (order.begin(), order.end(), isSelected);
+                break;
+            case Reorder::Forward:
+                // Top down, so each selected shape hops over the unselected one above it
+                for (int i = n - 2; i >= 0; --i)
+                    if (isSelected (order[static_cast<size_t> (i)]) && ! isSelected (order[static_cast<size_t> (i + 1)]))
+                        std::swap (order[static_cast<size_t> (i)], order[static_cast<size_t> (i + 1)]);
+                break;
+            case Reorder::Backward:
+                for (int i = 1; i < n; ++i)
+                    if (isSelected (order[static_cast<size_t> (i)]) && ! isSelected (order[static_cast<size_t> (i - 1)]))
+                        std::swap (order[static_cast<size_t> (i)], order[static_cast<size_t> (i - 1)]);
+                break;
+        }
+
+        std::vector<int> newIndexOf (static_cast<size_t> (n));
+        bool changed = false;
+        for (int newIdx = 0; newIdx < n; ++newIdx)
+        {
+            int oldIdx = order[static_cast<size_t> (newIdx)];
+            newIndexOf[static_cast<size_t> (oldIdx)] = newIdx;
+            changed = changed || oldIdx != newIdx;
+        }
+
+        if (! changed)
+            return;  // nothing selected, or already at the front / back
+
+        pushUndo();
+
+        std::vector<GradientMap::Shape> reordered;
+        reordered.reserve (static_cast<size_t> (n));
+        for (int oldIdx : order)
+            reordered.push_back (std::move (shapes[static_cast<size_t> (oldIdx)]));
+        shapes = std::move (reordered);
+
+        // The selection and the gradient handles follow their shapes
+        for (auto& idx : selectedShapeIndices)
+            if (idx >= 0 && idx < n)
+                idx = newIndexOf[static_cast<size_t> (idx)];
+        if (gradientEditShapeIdx >= 0 && gradientEditShapeIdx < n)
+            gradientEditShapeIdx = newIndexOf[static_cast<size_t> (gradientEditShapeIdx)];
+
+        saveCurrentLayerToValueTree();
+        repaint();
+        if (onSelectionChanged)
+            onSelectionChanged();
     }
 
     //==========================================================================
@@ -2943,6 +3070,8 @@ private:
         shapeEnableBtn.setVisible (v);
         shapeLockBtn.setVisible (v);
         shapeDeleteBtn.setVisible (v);
+        shapeToBackBtn.setVisible (v);
+        shapeToFrontBtn.setVisible (v);
 
         // Fill controls are shown/hidden separately by updateShapeFillPanelVisibility
         if (! v)
@@ -3203,6 +3332,8 @@ private:
         helpTextMap[&shapeEnableBtn]       = LOC ("inputs.gradientMap.help.shapeEnable");
         helpTextMap[&shapeLockBtn]         = LOC ("inputs.gradientMap.help.shapeLock");
         helpTextMap[&shapeDeleteBtn]       = LOC ("inputs.gradientMap.help.shapeDelete");
+        helpTextMap[&shapeToBackBtn]       = LOC ("inputs.gradientMap.help.shapeToBack");
+        helpTextMap[&shapeToFrontBtn]      = LOC ("inputs.gradientMap.help.shapeToFront");
         helpTextMap[&selectToolBtn]        = LOC ("inputs.gradientMap.help.selectTool");
         helpTextMap[&rectToolBtn]          = LOC ("inputs.gradientMap.help.rectTool");
         helpTextMap[&ellipseToolBtn]       = LOC ("inputs.gradientMap.help.ellipseTool");
