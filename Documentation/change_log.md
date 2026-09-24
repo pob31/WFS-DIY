@@ -9,6 +9,9 @@ All notable changes to WFS DIY are documented in this file, organized by release
 - **A Stream Deck page for the Effect Sends sub-tab.** The four dials are the send levels of four effects from the shown input, the four buttons under them switch those sends and keep their level (a dial press only makes the turn fine, it never switches), and the top row moves the window: a page of four or one effect, left or right, greyed at the ends. The sub-tab outlines the four strips the deck holds while the Dials & Buttons device is the Stream Deck.
 - **MCP reaches an input's effect sends.** `input_set_effect_send_level` (tier 2, like every level write) sets one input x effect cell in dB, `input_set_effect_send_on` (tier 1) switches it and keeps the level, and `input_get_effect_sends` reads an input's row. An effect or level out of range, a missing switch value and a dead input are refused; undo puts the row back on the effect.
 
+### Fixed
+- **The binaural Orbit dial works while binaural is off**, like the other binaural parameters: it dims but still turns, so the seat can be placed before the rendering is switched on.
+
 ### Chore / Internal
 - `tools/validation/control-replay/mcp_replay.py` covers the three tools (the write, the switch that keeps the level, untouched neighbours, seven refusals, undo twice) on a temp fixture rewritten to two effect channels through `common.set_fixture_effect_channels`, which `osc_replay.py` now shares. The golden's `tools/list` census counts the three new tools.
 - `WFS_TEST_RENDER_UI` also renders every sub-tab of the Inputs tab, adding an effect channel for the render when the session has none.

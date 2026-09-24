@@ -4047,10 +4047,13 @@ public:
         binauralTrackerLabel.setColour(juce::Label::textColourId, enabledColour);
 
         // Sliders - setEnabled drives the isEnabled() check in paintSlider
+        // (dim only: WfsSliderBase stays draggable, so values can be set up
+        // before binaural goes on). The Orbit dial must match - its
+        // setEnabled(false) would refuse input, so it is dimmed instead.
         binauralDistanceSlider.setEnabled(binauralActive);
         binauralAttenSlider.setEnabled(binauralActive);
         binauralDelaySlider.setEnabled(binauralActive);
-        binauralOrbitDial.setEnabled(binauralActive);
+        binauralOrbitDial.setDimmed(! binauralActive);
 
         // Solo mode button - visually dim when binaural inactive
         soloModeButton.setColour(juce::TextButton::textColourOffId, binauralActive ? enabledColour : disabledColour);
