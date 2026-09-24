@@ -11,6 +11,7 @@ All notable changes to WFS DIY are documented in this file, organized by release
 
 ### Fixed
 - **The binaural Orbit dial works while binaural is off**, like the other binaural parameters: it dims but still turns, so the seat can be placed before the rendering is switched on.
+- **Gain-reduction meters are visible in the OLED Black theme.** Their background was a near-black on a black page; it now takes the theme's slider-track grey. The Default and Light themes are unchanged.
 
 ### Chore / Internal
 - `tools/validation/control-replay/mcp_replay.py` covers the three tools (the write, the switch that keeps the level, untouched neighbours, seven refusals, undo twice) on a temp fixture rewritten to two effect channels through `common.set_fixture_effect_channels`, which `osc_replay.py` now shares. The golden's `tools/list` census counts the three new tools.
