@@ -92,7 +92,7 @@
       "haasEffect": "Efecto Haas a aplicar al sistema. Tiene en cuenta las compensaciones de latencia (sistema, entrada y salida).",
       "colorScheme": "Seleccione el esquema de color: Por defecto (gris oscuro), Negro (negro puro para pantallas OLED), o Claro (uso diurno).",
       "quickLongPress": "Duración de la pulsación larga. En lugar de ventanas de confirmación, este software utiliza pulsaciones largas.",
-      "screenSharing": "Para videollamadas. Compatible dibuja cada ventana con la CPU para que las aplicaciones que comparten una sola ventana (como Zoom) la muestren en directo, y abre los menús dentro de la ventana. Usa más CPU que Standard: vuelva a Standard antes de un espectáculo. Siempre empieza en Standard.",
+      "screenRendering": "Accelerated dibuja las ventanas con la tarjeta gráfica. Compatible las dibuja con la CPU, para que una videollamada que comparte una sola ventana (como Zoom) las muestre en directo, y abre los menús dentro de la ventana. Compatible usa más CPU: vuelva a Accelerated para los espectáculos. Siempre Accelerated al iniciar.",
       "screenReader": "Activa o desactiva los anuncios del lector de pantalla. Cuando está activado, los nombres y valores de los parámetros se anuncian al pasar el cursor, y el texto de ayuda se lee después de unos segundos.",
       "selectProjectFolder": "Seleccione la ubicación de la carpeta del proyecto actual para almacenar archivos.",
       "storeComplete": "Guarda la configuración completa en archivos (con respaldo).",

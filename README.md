@@ -124,7 +124,7 @@ NVIDIA GPUs (GTX 9xx/10xx) keep acceleration; developing against newer toolkits
 ### Windows
 - **Required**: [Microsoft Visual C++ Redistributable (x64)](https://aka.ms/vs/18/release/vc_redist.x64.exe) — may already be installed on your system
 - **Recommended**: ASIO drivers for your audio interface (WASAPI is available as fallback)
-- **Video calls**: to show WFS-DIY in Zoom or a similar app, share the whole screen, or set **System Config > UI > Screen Sharing** to **Compatible** before sharing only the WFS-DIY window. Compatible draws on the CPU so that single-window capture sees every change; switch it back to Standard for shows (it always starts on Standard)
+- **Video calls**: to show WFS-DIY in Zoom or a similar app, share the whole screen, or set **System Config > UI > Screen Rendering** to **Compatible** before sharing only the WFS-DIY window. Compatible draws on the CPU so that single-window capture sees every change; switch it back to Accelerated for shows (it always starts on Accelerated)
 
 ### macOS
 - No additional runtime dependencies — all required frameworks ship with macOS 10.13+

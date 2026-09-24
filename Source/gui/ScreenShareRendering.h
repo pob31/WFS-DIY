@@ -3,7 +3,8 @@
 #include <JuceHeader.h>
 
 /**
- * Screen Sharing mode (Windows only, lasts for the session).
+ * Compatible screen rendering: System Config's Screen Rendering, Accelerated or
+ * Compatible (Windows only, lasts for the session).
  *
  * JUCE 9 draws every window with Direct2D, presented through a DirectComposition
  * swap chain that never paints the window's GDI surface. Capture that reads a

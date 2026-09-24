@@ -499,7 +499,7 @@ private:
         menu.addItem (2, "ADM Y", true, cfg.axes[axis].axisSwap == 1);
         menu.addItem (3, "ADM Z", true, cfg.axes[axis].axisSwap == 2);
 
-        // A target, so Screen Sharing can open the menu inside the window
+        // A target, so Compatible rendering can open the menu inside the window
         menu.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (this).withMousePosition(),
             [this, axis] (int result)
             {
@@ -4374,7 +4374,7 @@ private:
         options.useNativeTitleBar = false;
         options.resizable = false;
 
-        // launchAsync() without the show, so Screen Sharing applies before it
+        // launchAsync() without the show, so Compatible rendering applies before it
         auto* dialog = options.create();
         ScreenShareRendering::apply (*dialog);
         dialog->enterModalState (true, nullptr, true);

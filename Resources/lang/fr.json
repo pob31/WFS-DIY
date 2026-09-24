@@ -92,7 +92,7 @@
       "haasEffect": "Effet Haas à appliquer au système. Prend en compte les compensations de latence (système, entrée et sortie).",
       "colorScheme": "Sélectionnez le thème couleur : Défaut (gris foncé), Noir (noir pur pour écrans OLED), ou Clair (utilisation de jour).",
       "quickLongPress": "Durée de l'appui long. Au lieu de fenêtres de confirmation, ce logiciel utilise des appuis longs.",
-      "screenSharing": "Pour les visioconférences. Compatible dessine chaque fenêtre avec le processeur, pour que les applications qui partagent une seule fenêtre (comme Zoom) la montrent en direct, et ouvre les menus dans la fenêtre. Consomme plus de processeur que Standard : revenez à Standard avant un spectacle. Toujours Standard au lancement.",
+      "screenRendering": "Accelerated dessine les fenêtres avec la carte graphique. Compatible les dessine avec le processeur, pour qu'une visioconférence qui partage une seule fenêtre (comme Zoom) les montre en direct, et ouvre les menus dans la fenêtre. Compatible consomme plus de processeur : revenez à Accelerated pour les spectacles. Toujours Accelerated au lancement.",
       "screenReader": "Activer ou désactiver les annonces du lecteur d'écran. Lorsqu'activé, les noms et valeurs des paramètres sont annoncés au survol, et le texte d'aide est lu après quelques secondes.",
       "selectProjectFolder": "Sélectionnez l'emplacement du dossier de projet actuel pour stocker les fichiers.",
       "storeComplete": "Enregistre la configuration complète dans des fichiers (avec sauvegarde).",

@@ -92,7 +92,7 @@
       "haasEffect": "Haas-Effekt für das System anwenden. Berücksichtigt die Latenzkompensationen (System, Eingang und Ausgang).",
       "colorScheme": "Wählen Sie das Farbschema: Standard (Dunkelgrau), Schwarz (für OLED-Displays) oder Hell (für Tageslicht).",
       "quickLongPress": "Langdruck-Dauer. Anstelle von Bestätigungsfenstern verwendet diese Software Langdrücke.",
-      "screenSharing": "Für Videokonferenzen. Compatible zeichnet jedes Fenster mit der CPU, damit Apps, die ein einzelnes Fenster teilen (etwa Zoom), es live zeigen, und öffnet Menüs im Fenster. Braucht mehr CPU als Standard: vor einer Vorstellung zurückschalten. Beim Start immer Standard.",
+      "screenRendering": "Accelerated zeichnet die Fenster mit der Grafikkarte. Compatible zeichnet sie mit der CPU, damit eine Videokonferenz, die nur ein Fenster teilt (etwa Zoom), sie live zeigt, und öffnet Menüs im Fenster. Compatible braucht mehr CPU: für Vorstellungen zurück auf Accelerated. Beim Start immer Accelerated.",
       "screenReader": "Bildschirmleser-Ansagen aktivieren oder deaktivieren. Bei Aktivierung werden Parameternamen und -werte beim Überfahren angesagt, Hilfetexte nach einigen Sekunden vorgelesen.",
       "selectProjectFolder": "Wählen Sie den Speicherort des aktuellen Projektordners.",
       "storeComplete": "Gesamtkonfiguration in Dateien speichern (mit Backup).",

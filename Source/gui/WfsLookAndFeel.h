@@ -457,7 +457,7 @@ public:
     }
 
     //==========================================================================
-    // Screen Sharing mode - menus and alerts are windows of their own, switched
+    // Compatible screen rendering - menus and alerts are windows of their own, switched
     // before they first show (see ScreenShareRendering.h)
 
     juce::Component* getParentComponentForMenuOptions(const juce::PopupMenu::Options& options) override

@@ -92,7 +92,7 @@
       "haasEffect": "Efeito Haas a aplicar ao sistema. Terá em conta as compensações de latência (Sistema, Entrada e Saída).",
       "colorScheme": "Selecione o esquema de cores: Padrão (cinza escuro), Preto (para ecrãs OLED) ou Claro (uso diurno).",
       "quickLongPress": "Duração da pressão longa. Em vez de janelas de confirmação, este software usa pressões longas.",
-      "screenSharing": "Para videochamadas. Compatible desenha cada janela com a CPU, para que as aplicações que partilham uma só janela (como o Zoom) a mostrem ao vivo, e abre os menus dentro da janela. Usa mais CPU do que Standard: volte a Standard antes de um espetáculo. Começa sempre em Standard.",
+      "screenRendering": "Accelerated desenha as janelas com a placa gráfica. Compatible desenha-as com a CPU, para que uma videochamada que partilha uma só janela (como o Zoom) as mostre ao vivo, e abre os menus dentro da janela. Compatible usa mais CPU: volte a Accelerated para os espetáculos. Começa sempre em Accelerated.",
       "screenReader": "Ativar ou desativar anúncios do leitor de ecrã. Quando ativado, nomes e valores de parâmetros são anunciados ao passar o rato, e texto de ajuda é lido após alguns segundos.",
       "selectProjectFolder": "Selecione a localização da pasta do projeto atual para guardar ficheiros.",
       "storeComplete": "Guardar configuração completa em ficheiros (com backup).",

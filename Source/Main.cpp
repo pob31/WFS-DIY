@@ -80,7 +80,7 @@ public:
         // Parse command-line for .wfs project file
         auto pendingProjectFolder = parseWfsCommandLine (commandLine);
 
-        // Idle until System Config's Screen Sharing is switched on
+        // Idle until System Config's Screen Rendering is set to Compatible
         screenShareWatcher = std::make_unique<ScreenShareRendering::Watcher>();
 
         mainWindow.reset (new MainWindow (getApplicationName()));
