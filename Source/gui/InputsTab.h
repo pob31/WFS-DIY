@@ -7405,17 +7405,8 @@ private:
 
     void valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) override
     {
-        // Update gradient map input marker when position changes
-        if ((property == WFSParameterIDs::inputPositionX || property == WFSParameterIDs::inputPositionY)
-            && currentChannel > 0 && gradientMapEditor.isVisible())
-        {
-            juce::MessageManager::callAsync ([this]()
-            {
-                float posX = static_cast<float> (parameters.getInputParam (channelSlot(), "inputPositionX"));
-                float posY = static_cast<float> (parameters.getInputParam (channelSlot(), "inputPositionY"));
-                gradientMapEditor.setInputPosition (posX, posY, channelSlot());
-            });
-        }
+        // The gradient map's input marker is not driven from here: MainComponent
+        // pushes the composite position to it at 50 Hz while it is showing.
 
         // A project-folder change is the snapshot row's business: the
         // SnapshotSession forgets its scopes and re-reads the folder

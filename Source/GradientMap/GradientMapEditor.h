@@ -537,9 +537,14 @@ public:
         updateHeightWarning();
     }
 
-    /** Set the current input's position for marker display on the gradient map */
+    /** Set the current input's position for marker display on the gradient map.
+        Called at 50 Hz while the editor is showing, so a still marker does not repaint. */
     void setInputPosition (float x, float y, int channelIndex = -1)
     {
+        if (x == inputStageX && y == inputStageY && channelIndex == inputChannelIndex
+            && showInputMarker == (channelIndex >= 0))
+            return;
+
         inputStageX = x;
         inputStageY = y;
         inputChannelIndex = channelIndex;

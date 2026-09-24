@@ -15130,6 +15130,21 @@ void MainComponent::timerCallback()
             }
         }
 
+        // The editor's input marker sits where the map is sampled: the
+        // composite position, after flip, offset, LFO and constraints. Pushed
+        // from here so it follows every way of moving the input, including
+        // the Inputs-tab joystick, which lives on another sub-tab and so
+        // writes while the editor is hidden.
+        if (inputsTab != nullptr && inputsTab->getGradientMapEditor().isShowing())
+        {
+            const int slot = parameters.getValueTreeState().getSlotForChannelNumber (inputsTab->getCurrentChannel());
+            if (slot >= 0 && slot < numInputChannels)
+            {
+                auto pos = calculationEngine->getCompositeInputPosition (slot);
+                inputsTab->getGradientMapEditor().setInputPosition (pos.x, pos.y, slot);
+            }
+        }
+
         // Process Live Source Tamer at 50Hz
         if (lsTamerEngine != nullptr)
         {
