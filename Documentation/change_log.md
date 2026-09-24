@@ -2,6 +2,17 @@
 
 All notable changes to WFS DIY are documented in this file, organized by release tag (newest first). Sections marked "also tagged" note commits that carry more than one tag (e.g. a plugin-track tag and an app beta tag landing on the same commit). A leading **Unreleased** section, when present, collects work that has landed but not yet been tagged; it is renamed to the tag at release.
 
+## Unreleased
+
+### Added
+- **An Effect Sends sub-tab on the Inputs tab**, always the last tab (the Sampler tab, when shown, sits before it). One strip per effect channel: a fader for this input's send level into that effect (-92 to 0 dB, the array dials' law) and an ON / OFF button that switches the send without touching the level, so a send can be muted and brought back at the level it had. **All Sends On / Off** switch every send of the input at once. They are the same cells as the Effects tab's Post-Processing matrix, seen from the input, so the two views follow each other, and undo, OSC and the status-bar hints (`/wfs/effect/sendLevel <FX> <ID> <value>`, `/wfs/effect/sendOn <FX> <ID> <0|1>`) work as on the matrix. One undo step per fader drag, per switch and per All Sends button. A help card explains it. Translated in the eight languages.
+- **A Stream Deck page for the Effect Sends sub-tab.** The four dials are the send levels of four effects from the shown input, the four buttons under them switch those sends and keep their level (a dial press only makes the turn fine, it never switches), and the top row moves the window: a page of four or one effect, left or right, greyed at the ends. The sub-tab outlines the four strips the deck holds while the Dials & Buttons device is the Stream Deck.
+- **MCP reaches an input's effect sends.** `input_set_effect_send_level` (tier 2, like every level write) sets one input x effect cell in dB, `input_set_effect_send_on` (tier 1) switches it and keeps the level, and `input_get_effect_sends` reads an input's row. An effect or level out of range, a missing switch value and a dead input are refused; undo puts the row back on the effect.
+
+### Chore / Internal
+- `tools/validation/control-replay/mcp_replay.py` covers the three tools (the write, the switch that keeps the level, untouched neighbours, seven refusals, undo twice) on a temp fixture rewritten to two effect channels through `common.set_fixture_effect_channels`, which `osc_replay.py` now shares. The golden's `tools/list` census counts the three new tools.
+- `WFS_TEST_RENDER_UI` also renders every sub-tab of the Inputs tab, adding an effect channel for the render when the session has none.
+
 ## v1.0.0beta52 — 2026-09-24
 
 ### Added

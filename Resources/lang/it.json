@@ -590,6 +590,10 @@
     "noChannels": "Nessun canale effetto. Impostare il numero in System Config oppure importare una configurazione effetti."
   },
   "inputs": {
+    "effectSends": {
+      "hint": "Una striscia per effetto: il fader imposta il livello di mandata di questo ingresso verso l'effetto, il pulsante attiva o esclude la mandata senza cambiare il livello.",
+      "none": "Nessun canale effetto. Impostate un numero di Effects Channels in System Config."
+    },
     "gradientMap": {
       "help": {
         "layerSelect": "Seleziona questo livello per la modifica",
@@ -672,6 +676,10 @@
       "clusterEditAbsolute": "Modifica con Ctrl+Shift: valore copiato su {count} altri ingressi del Cluster {cluster}"
     },
     "help": {
+      "effectSendLevel": "Livello della mandata di questo ingresso verso l'effetto (-92 a 0 dB). Trascinate il fader; la rotella lo regola finemente.",
+      "effectSendToggle": "Attiva o esclude la mandata di questo ingresso verso l'effetto. Il livello è conservato.",
+      "effectSendsAllOn": "Attiva la mandata di questo ingresso verso tutti gli effetti.",
+      "effectSendsAllOff": "Esclude la mandata di questo ingresso verso tutti gli effetti.",
       "solo": "Ascoltare il rendering binaurale di questo canale.",
       "soloMode": "Singolo: un ingresso alla volta. Multi: più ingressi simultaneamente.",
       "storeConfig": "Salva la configurazione di ingresso su file (con backup).",
@@ -840,6 +848,10 @@
     "guide": "Selezionare una cella sulla griglia per modificarne le proprietà.\nDoppio clic per caricare un campione.\nUsa Ctrl+Clic per assegnare le celle al set attivo."
   },
   "help": {
+    "inputEffectSends": {
+      "title": "Mandate agli effetti",
+      "body": "Le mandate di questo ingresso verso i canali effetto, una striscia per effetto: le stesse celle della matrice Post-Processing della scheda Effects, viste dall'ingresso.\nIl fader imposta il livello di mandata (-92 a 0 dB) e il pulsante attiva o esclude la mandata senza toccare il livello, così una mandata può essere silenziata e ripristinata al livello che aveva. I due pulsanti in alto agiscono su tutte le mandate di questo ingresso in una volta.\nUn effetto alimentato da questo ingresso è un punto d'ingresso del suo gruppo. Ciò che l'effetto fa poi - la sua catena, la sua posizione sul palco e le sue mandate verso altri effetti - si regola nella scheda Effects."
+    },
     "diagnostics": {
       "title": "Diagnostica e feedback",
       "body": "Gli strumenti di diagnostica sono nascosti per impostazione predefinita: una pressione prolungata sul pulsante Diagnostics li mostra o li nasconde. Compaiono automaticamente se la sessione precedente non si è chiusa correttamente.\nPer inviare un feedback o segnalare un problema, fare clic su «Segnala problema» (Report Issue): si apre l'issue tracker GitHub del progetto nel browser. Descrivere cosa è successo, cosa ci si aspettava e i passaggi per riprodurlo, quindi allegare i dati di diagnostica esportati.\n«Esporta log» (Export Logs) copia i dati utili in una cartella WFS-DIY-logs nella posizione scelta: i log della sessione corrente e di fino a cinque sessioni precedenti, più il file delle impostazioni dell'applicazione. Allegare questa cartella (o uno zip) alla segnalazione.\nI log di sessione contengono le informazioni di avvio (versione dell'applicazione, sistema operativo, CPU, numero di canali), il caricamento dei progetti, l'attività di rete e gli errori. L'audio non viene mai registrato.\n«Apri cartella log» (Open Log Folder) mostra i log grezzi su disco (cartella WFS-DIY/logs nei dati applicazione dell'utente), utile per trovare una sessione specifica.\n«Copia info di sistema» (Copy System Info) mette un breve riepilogo negli appunti — versione dell'applicazione, sistema operativo, CPU e dispositivo audio corrente con frequenza di campionamento e dimensione del buffer — pronto da incollare in una segnalazione."

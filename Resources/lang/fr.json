@@ -592,6 +592,10 @@
     "noChannels": "Aucun canal d'effet. Réglez leur nombre dans System Config, ou importez une configuration d'effets."
   },
   "inputs": {
+    "effectSends": {
+      "hint": "Une tranche par effet : le fader règle le niveau d'envoi de cette entrée vers l'effet, le bouton active ou coupe l'envoi sans changer le niveau.",
+      "none": "Aucun canal d'effet. Définissez un nombre de Effects Channels dans System Config."
+    },
     "gradientMap": {
       "help": {
         "layerSelect": "Sélectionner cette couche pour l'édition",
@@ -674,6 +678,10 @@
       "clusterEditAbsolute": "Édition Ctrl+Maj : valeur copiée sur {count} autre(s) entrée(s) du Groupe {cluster}"
     },
     "help": {
+      "effectSendLevel": "Niveau de l'envoi de cette entrée vers l'effet (-92 à 0 dB). Glissez le fader ; la molette l'ajuste finement.",
+      "effectSendToggle": "Active ou coupe l'envoi de cette entrée vers l'effet. Le niveau est conservé.",
+      "effectSendsAllOn": "Active l'envoi de cette entrée vers tous les effets.",
+      "effectSendsAllOff": "Coupe l'envoi de cette entrée vers tous les effets.",
       "solo": "Écouter le Binaural Renderer de ce canal.",
       "soloMode": "Simple : une entrée à la fois. Multi : plusieurs entrées simultanément.",
       "storeConfig": "Enregistrer la configuration d'entrée dans un fichier (avec sauvegarde).",
@@ -842,6 +850,10 @@
     "guide": "Sélectionnez une cellule sur la grille pour modifier ses propriétés.\nDouble-cliquez pour charger un échantillon.\nMaintenez Ctrl et cliquez pour assigner les cellules au set actif."
   },
   "help": {
+    "inputEffectSends": {
+      "title": "Envois vers les effets",
+      "body": "Les envois de cette entrée vers les canaux d'effet, une tranche par effet : les mêmes cellules que la matrice Post-Processing de l'onglet Effects, vues depuis l'entrée.\nLe fader règle le niveau d'envoi (-92 à 0 dB) et le bouton active ou coupe l'envoi sans toucher au niveau : un envoi peut être coupé puis rétabli au niveau qu'il avait. Les deux boutons du haut agissent sur tous les envois de cette entrée à la fois.\nUn effet alimenté par cette entrée est un point d'entrée de son groupe. Ce que l'effet fait ensuite - sa chaîne, sa position sur scène et ses envois vers d'autres effets - se règle dans l'onglet Effects."
+    },
     "diagnostics": {
       "title": "Diagnostic et retours",
       "body": "Les outils de diagnostic sont masqués par défaut : un appui long sur le bouton Diagnostic ci-dessous les affiche ou les masque. Ils apparaissent automatiquement si la session précédente ne s'est pas terminée proprement.\nPour envoyer un retour ou signaler un problème, cliquez sur « Signaler un problème » (Report Issue) : le suivi des tickets GitHub du projet s'ouvre dans votre navigateur. Décrivez ce qui s'est passé, ce que vous attendiez et les étapes pour reproduire le problème, puis joignez les données de diagnostic exportées.\n« Exporter les journaux » (Export Logs) copie les données utiles dans un dossier WFS-DIY-logs à l'emplacement de votre choix : les journaux de la session en cours et jusqu'à cinq sessions précédentes, plus le fichier de réglages de l'application. Joignez ce dossier (ou un zip de celui-ci) à votre rapport.\nLes journaux de session contiennent les informations de démarrage (version de l'application, système d'exploitation, CPU, nombre de canaux), le chargement des projets, l'activité réseau et les erreurs. Aucun audio n'est jamais enregistré.\n« Ouvrir le dossier des journaux » (Open Log Folder) affiche les journaux bruts sur le disque (dossier WFS-DIY/logs des données d'application de l'utilisateur), utile pour retrouver une session précise.\n« Copier les infos système » (Copy System Info) place un court résumé dans le presse-papiers — version de l'application, système d'exploitation, CPU et périphérique audio actuel avec sa fréquence d'échantillonnage et sa taille de tampon — prêt à coller dans un ticket."

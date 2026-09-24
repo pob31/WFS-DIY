@@ -1373,6 +1373,14 @@
     }
   },
   "inputs": {
+    "effectSends": {
+      "allOn": "全部发送 ON（此输入）",
+      "allOff": "全部发送 OFF（此输入）",
+      "on": "ON",
+      "off": "OFF",
+      "hint": "每个效果一条通道条：推子设置此输入到该效果的发送电平，按钮在不改变电平的情况下开关发送。",
+      "none": "没有效果通道。请在系统配置中设置Effects Channels的数量。"
+    },
     "sections": {
       "channel": "通道",
       "position": "位置",
@@ -1390,7 +1398,8 @@
       "movements": "运动",
       "gradientMaps": "渐变图",
       "visualisation": "可视化",
-      "sampler": "Sampler"
+      "sampler": "Sampler",
+      "effectSends": "效果发送"
     },
     "gradientMap": {
       "layers": {
@@ -1713,6 +1722,10 @@
       "snapshotEffectsSkipped": "快照“{name}”：跳过 {n} 个效果项，没有效果通道 {ids}"
     },
     "help": {
+      "effectSendLevel": "此输入到效果的发送电平（-92 至 0 dB）。拖动推子；滚轮微调。",
+      "effectSendToggle": "开启或关闭此输入到效果的发送。电平保持不变。",
+      "effectSendsAllOn": "开启此输入到所有效果的发送。",
+      "effectSendsAllOff": "关闭此输入到所有效果的发送。",
       "solo": "收听此通道的双耳渲染。",
       "soloMode": "单选：一次只听一个输入。多选：可同时听多个输入。",
       "storeConfig": "将输入配置保存到文件（含备份）。",
@@ -2145,7 +2158,8 @@
         "lfo": "LFO",
         "automOtionPosition": "AutomOtion\nPosition",
         "automOtionContinued": "AutomOtion\n(cont.)",
-        "automOtionManual": "AutomOtion\nManual"
+        "automOtionManual": "AutomOtion\nManual",
+        "effectSends": "发送\n{first}-{last}"
       },
       "buttons": {
         "minimalDelay": "Minimal\nDelay",
@@ -2363,6 +2377,10 @@
     }
   },
   "help": {
+    "inputEffectSends": {
+      "title": "效果发送",
+      "body": "此输入到各效果通道的发送，每个效果一条通道条：与效果选项卡的后处理矩阵相同的单元格，从输入的角度查看。\n推子设置发送电平（-92 至 0 dB），按钮在不触碰电平的情况下开关发送，因此可以将发送静音后再以原来的电平恢复。上方的两个按钮一次切换此输入的全部发送。\n此输入所馈送的效果是其组的入口。效果接下来的处理（其链路、在舞台上的位置以及到其他效果的发送）在效果选项卡中设置。"
+    },
     "diagnostics": {
       "title": "诊断与反馈",
       "body": "诊断工具默认隐藏：长按下方的 Diagnostics 按钮可显示或隐藏它们。如果上一个会话未正常退出，它们会自动显示。\n要发送反馈或报告问题，请点击「报告问题」（Report Issue）：浏览器中会打开项目的 GitHub 问题跟踪器。请描述发生了什么、期望的结果以及复现步骤，并附上导出的诊断数据。\n「导出日志」（Export Logs）会将有用的数据复制到所选位置的 WFS-DIY-logs 文件夹中：当前会话及最多五个先前会话的日志，以及应用程序设置文件。请将此文件夹（或其压缩包）附加到报告中。\n会话日志包含启动信息（应用版本、操作系统、CPU、通道数）、项目加载、网络活动和错误。绝不会录制音频。\n「打开日志文件夹」（Open Log Folder）会显示磁盘上的原始会话日志（位于用户应用程序数据目录的 WFS-DIY/logs 文件夹），便于查找特定会话。\n「复制系统信息」（Copy System Info）会将简短摘要复制到剪贴板——应用版本、操作系统、CPU 以及当前音频设备及其采样率和缓冲区大小——可直接粘贴到问题报告中。"

@@ -34,6 +34,7 @@
 #include "../Localization/LocalizationManager.h"
 #include "ColumnFocusTraverser.h"
 #include "SamplerSubTab.h"
+#include "InputEffectSendsSubTab.h"
 #include "HelpCard.h"
 #include "TriangleIndicator.h"
 #include "InlineWarning.h"
@@ -47,7 +48,8 @@
  *
  * Structure:
  * - Header: Channel selector + Name editor (always visible)
- * - Sub-tabs: Input Properties, Position, Sound, Live Source, Effects (more to be added)
+ * - Sub-tabs: Input Parameters, Live Source & Hackoustics, Movements, Gradient Maps,
+ *   Visualisation, Sampler (when active) and Effect Sends (always last)
  * - Footer: Store/Reload buttons (always visible)
  */
 /** Logical identity of an Inputs sub-tab.
@@ -68,7 +70,8 @@ enum class InputSubTab : int
     Movements            = 2,
     GradientMaps         = 3,
     Visualisation        = 4,
-    Sampler              = 5
+    Sampler              = 5,
+    EffectSends          = 6    // always the last tab: the Sampler tab, when shown, shifts it
 };
 
 class InputsTab : public juce::Component,
@@ -89,6 +92,7 @@ public:
           binauralTree(params.getValueTreeState().getBinauralState()),
           outputsTree(params.getOutputTree()),
           samplerSubTab(params),
+          effectSendsSubTab(params),
           snapshotRow(snapshots, WFSFileManager::SnapshotFamily::Inputs)
     {
         // Enable keyboard focus so we can receive focus back after text editing
@@ -233,6 +237,9 @@ public:
         // Sampler subtab (hidden until activated)
         addChildComponent(samplerSubTab);
 
+        // Effect Sends subtab (always present, always last)
+        addChildComponent(effectSendsSubTab);
+
         // Level Meter button
         addAndMakeVisible(levelMeterButton);
         levelMeterButton.setButtonText(LOC("systemConfig.buttons.levelMeter"));
@@ -274,6 +281,7 @@ public:
         appendSubTab(InputSubTab::Movements,             "inputs.tabs.movements");
         appendSubTab(InputSubTab::GradientMaps,          "inputs.tabs.gradientMaps");
         appendSubTab(InputSubTab::Visualisation,         "inputs.tabs.visualisation");
+        appendSubTab(InputSubTab::EffectSends,           "inputs.tabs.effectSends");
         subTabBar.setMinimumTabScaleFactor(1.0);  // Prevent tab shrinking - maintain full text width
         subTabBar.setCurrentTabIndex(0);
         subTabBar.addChangeListener(static_cast<juce::ChangeListener*>(this));
@@ -479,6 +487,7 @@ public:
 
     /** Public access to sampler subtab for MainComponent callback wiring */
     SamplerSubTab& getSamplerSubTab() { return samplerSubTab; }
+    InputEffectSendsSubTab& getEffectSendsSubTab() { return effectSendsSubTab; }
 
     /** Update LST gain reduction meters (called from MainComponent timer).
         Values are linear multipliers (1.0 = no reduction, 0.0 = full mute). */
@@ -723,6 +732,7 @@ public:
         statusBar = bar;
         gradientMapEditor.setStatusBar (bar);
         samplerSubTab.setStatusBar (bar);
+        effectSendsSubTab.setStatusBar (bar);
         snapshotRow.setStatusBar (bar);
         setupHelpText();
         setupOscMethods();
@@ -879,6 +889,7 @@ public:
             case InputSubTab::GradientMaps:          return { &gradientMapEditor.getHelpButton() };
             case InputSubTab::Visualisation:         return {};
             case InputSubTab::Sampler:               return { &samplerSubTab.getHelpButton() };
+            case InputSubTab::EffectSends:           return { &effectSendsSubTab.getHelpButton() };
         }
         return {};
     }
@@ -3335,6 +3346,7 @@ private:
         setMutesVisible(false);
         setGradientMapsVisible(false);
         samplerSubTab.setVisible(false);
+        effectSendsSubTab.setVisible(false);
         inputBasicHelpButton.setVisible(false); inputBasicHelpCard.hide();
         inputAdvancedHelpButton.setVisible(false); inputAdvancedHelpCard.hide();
         inputLevelHelpButton.setVisible(false); inputLevelHelpCard.hide();
@@ -3389,6 +3401,12 @@ private:
             // Sampler
             samplerSubTab.setVisible(true);
             samplerSubTab.setBounds(subTabContentArea);
+        }
+        else if (tabId == InputSubTab::EffectSends)
+        {
+            // Effect Sends: this input's send into every effect
+            effectSendsSubTab.setVisible(true);
+            effectSendsSubTab.setBounds(subTabContentArea);
         }
 
         // Single authority for the feature-warning visibility: gated on the active
@@ -6030,6 +6048,7 @@ private:
         updateStereoControls();
         updateSubTabSet();
         samplerSubTab.setCurrentChannel(channelSlot());
+        effectSendsSubTab.setCurrentChannel(currentChannel);   // keyed by permanent number
         updateFeatureWarnings();  // refresh for the newly selected input (toggle states + off-floor)
     }
 
@@ -7759,6 +7778,7 @@ private:
         desired.push_back({ InputSubTab::Visualisation, "inputs.tabs.visualisation" });
         if (samplerOn)
             desired.push_back({ InputSubTab::Sampler, "inputs.tabs.sampler" });
+        desired.push_back({ InputSubTab::EffectSends, "inputs.tabs.effectSends" });
 
         bool same = desired.size() == subTabIds.size();
         for (size_t i = 0; same && i < desired.size(); ++i)
@@ -8098,6 +8118,7 @@ private:
     juce::TextButton mapVisibilityButton;
     LongPressButton samplerToggleButton { 800 };
     SamplerSubTab samplerSubTab;
+    InputEffectSendsSubTab effectSendsSubTab;
     bool samplerMasterEnabled = false;
     // Logical ids of the sub-tabs currently in the bar, in bar order. This is the
     // single source of truth for "which tab is at which position"; the bar itself

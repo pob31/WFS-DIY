@@ -461,6 +461,23 @@ def fixture_wfs(project_dir: Path) -> Path:
     return project_dir / f"{project_dir.name}.wfs"
 
 
+def set_fixture_effect_channels(project: Path, count: int) -> None:
+    """Rewrite <IO effectChannels="N"> in the TEMP copy's system.xml.
+
+    The committed fixture carries effectChannels="0". applyConfigSection
+    builds the whole effects family from this attribute, so the app comes up
+    with `count` live channels, no UI and no OSC involved. Deliberately not
+    the /wfs/config/effectChannels route: a gate must not depend on the
+    mechanism it tests. Shared by the OSC and MCP drivers."""
+    path = project / "system.xml"
+    text = path.read_text(encoding="utf-8")
+    new_text, n = re.subn(r'effectChannels="\d+"',
+                          f'effectChannels="{count}"', text, count=1)
+    if n != 1:
+        raise SystemExit(f"[common] could not set effectChannels in {path}")
+    path.write_text(new_text, encoding="utf-8")
+
+
 def envelope_result(envelope: dict) -> dict:
     """The `result` member of a JSON-RPC response, or {}."""
     r = envelope.get("result")

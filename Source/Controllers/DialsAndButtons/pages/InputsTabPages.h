@@ -1152,6 +1152,152 @@ inline StreamDeckPage createVisualisationPage (WFSValueTreeState& /*state*/,
 }
 
 //==============================================================================
+// Sub-tab 6: Effect Sends (this input's send into every effect, four at a time)
+//==============================================================================
+
+/** What the Effect Sends page needs from the app beyond the state. */
+struct EffectSendsCallbacks
+{
+    /** A top-row button moved the window. The manager lays a page out again
+        after a bottom-row press that asks for it, but not after a top-row
+        Action, so the press asks the app - which does it on the next
+        message-loop turn, never from inside the press. */
+    std::function<void()> requestRebuild;
+
+    /** The effects the deck holds (first dense index, how many), told when the
+        page is built, so the GUI's strips can mark them. */
+    std::function<void (int firstEffect, int count)> onWindowChanged;
+};
+
+/** How many effects the page holds: one per dial. */
+static constexpr int kEffectSendsPerPage = 4;
+
+/** The first effect of a window that fits: never past the last four, never
+    before the first. */
+inline int clampEffectSendsWindow (int first, int numEffects)
+{
+    return juce::jlimit (0, juce::jmax (0, numEffects - kEffectSendsPerPage), first);
+}
+
+/** THE INPUTS TAB'S EFFECT SENDS STRIPS, FOUR AT A TIME. Each dial is one
+    effect's send level from the shown input (press + turn for the fine step),
+    the switch under it turns that send on or off without moving the level -
+    the only switch: a dial press never toggles - and the top row moves the
+    window: a page (four) or one effect, left or right.
+    Every cell goes through the typed accessors, keyed by the input's
+    PERMANENT number - the same cells the sub-tab and the Effects tab's matrix
+    edit. The window lives in `sendsWindow`, shared across rebuilds like the
+    Chain page's bank; a page built past the end is pulled back. */
+inline StreamDeckPage createEffectSendsPage (WFSValueTreeState& state,
+                                              int channelIndex,
+                                              std::shared_ptr<int> sendsWindow,
+                                              const EffectSendsCallbacks& cb)
+{
+    StreamDeckPage page ("Inputs > Effect Sends");
+    const auto teal = juce::Colour (0xFF26A69A);      // effect returns everywhere
+    const auto grey = juce::Colour (0xFF3A3A3A);
+    const auto dim  = juce::Colour (0xFF242424);      // a move that cannot happen
+
+    const int inputNumber = state.getInputChannelNumber (channelIndex);
+    const int numEffects  = state.getNumEffectChannels();
+    const int first = clampEffectSendsWindow (sendsWindow ? *sendsWindow : 0, numEffects);
+    if (sendsWindow)
+        *sendsWindow = first;
+    const int shown = juce::jlimit (0, kEffectSendsPerPage, numEffects - first);
+    if (cb.onWindowChanged)
+        cb.onWindowChanged (first, shown);
+
+    auto effectLabel = [&state] (int fx)
+    {
+        const auto name = state.getEffectParameter (fx, WFSParameterIDs::effectName).toString();
+        return LOC ("effects.sends.effectPrefix") + " " + juce::String (fx + 1)
+             + (name.isNotEmpty() ? "\n" + name : juce::String());
+    };
+
+    // Top row: the window. Glyphs, not text (the source is compiled under the
+    // ANSI code page, so they are built from code points).
+    const juce::juce_wchar left = 0x25C0, right = 0x25B6;
+    const juce::String glyphs[4] = { juce::String::charToString (left) + juce::String::charToString (left),
+                                     juce::String::charToString (left),
+                                     juce::String::charToString (right),
+                                     juce::String::charToString (right) + juce::String::charToString (right) };
+    const int deltas[4] = { -kEffectSendsPerPage, -1, 1, kEffectSendsPerPage };
+    for (int i = 0; i < 4; ++i)
+    {
+        auto& btn = page.topRowButtons[i];
+        const int delta = deltas[i];
+        const bool canMove = clampEffectSendsWindow (first + delta, numEffects) != first;
+        btn.label = glyphs[i];
+        btn.fontSize = 40.0f;
+        btn.colour = canMove ? grey : dim;
+        btn.type = ButtonBinding::Action;
+        btn.onPress = [sendsWindow, delta, &state, cb]
+        {
+            if (! sendsWindow)
+                return;
+            const int next = clampEffectSendsWindow (*sendsWindow + delta, state.getNumEffectChannels());
+            if (next == *sendsWindow)
+                return;                     // at the edge: nothing to lay out again
+            *sendsWindow = next;
+            if (cb.requestRebuild)
+                cb.requestRebuild();
+        };
+    }
+
+    // The one section: a switch and a dial per effect in the window.
+    auto& sec = page.sections[0];
+    sec.sectionName = LOC ("streamDeck.inputs.sections.effectSends")
+                          .replace ("{first}", juce::String (first + 1))
+                          .replace ("{last}", juce::String (first + shown));
+    sec.sectionColour = teal;
+
+    for (int i = 0; i < kEffectSendsPerPage; ++i)
+    {
+        const int fx = first + i;
+        if (fx >= numEffects)
+            continue;                       // an empty button and a blank dial past the last effect
+
+        auto toggle = [&state, fx, inputNumber]
+        {
+            state.setEffectSendOnFromInput (fx, inputNumber, ! state.getEffectSendOnFromInput (fx, inputNumber));
+        };
+
+        auto& btn = sec.buttons[i];
+        btn.type = ButtonBinding::Toggle;
+        btn.colour = grey;
+        btn.activeColour = teal;
+        btn.label = effectLabel (fx);
+        btn.getDynamicLabel = [effectLabel, fx] { return effectLabel (fx); };
+        btn.getState = [&state, fx, inputNumber] { return state.getEffectSendOnFromInput (fx, inputNumber); };
+        btn.onPress = toggle;
+
+        auto& dial = sec.dials[i];
+        dial.paramName = effectLabel (fx);
+        dial.getDynamicName = [effectLabel, fx] { return effectLabel (fx); };
+        dial.paramUnit = LOC ("units.decibels");
+        dial.minValue = WFSParameterDefaults::effectSendLevelMin;
+        dial.maxValue = WFSParameterDefaults::effectSendLevelMax;
+        dial.step = 1.0f;
+        dial.fineStep = 0.1f;
+        dial.decimalPlaces = 1;
+        dial.type = DialBinding::Float;
+        dial.barColour = teal;
+        dial.getValue = [&state, fx, inputNumber] { return state.getEffectSendLevelFromInput (fx, inputNumber); };
+        dial.setValue = [&state, fx, inputNumber] (float v) { state.setEffectSendLevelFromInput (fx, inputNumber, v); };
+        // No dial press here: press + turn is the manager's fine step, and a
+        // switch on the same press would flip the send while levelling it.
+    }
+
+    page.numSections = 1;
+    page.activeSectionIndex = 0;
+
+    if (numEffects == 0)
+        page.lcdMessage = LOC ("inputs.effectSends.none");
+
+    return page;
+}
+
+//==============================================================================
 // Factory: Create and register all Inputs tab pages
 //==============================================================================
 
@@ -1167,7 +1313,9 @@ static constexpr int INPUTS_MAIN_TAB_INDEX = TabIndex::Inputs;
                             site that forgets it should fail to compile rather than
                             silently pass nullptr and lose the toggle.
     @param lfoSubMode       Shared state for LFO sub-mode selector (subtab 2 only)
-    @param movementCB       Transport callbacks for AutomOtion (subtab 2 only) */
+    @param movementCB       Transport callbacks for AutomOtion (subtab 2 only)
+    @param sendsWindow      Shared state for the Effect Sends window (subtab 6 only)
+    @param sendsCB          Rebuild and window callbacks of that page (subtab 6 only) */
 inline StreamDeckPage createPage (int subTabIndex,
                                    WFSValueTreeState& state,
                                    ClusterParamEdit& clusterEdit,
@@ -1175,7 +1323,9 @@ inline StreamDeckPage createPage (int subTabIndex,
                                    std::shared_ptr<bool> flipMode,
                                    std::shared_ptr<bool> stereoParamsMode,
                                    std::shared_ptr<int> lfoSubMode = nullptr,
-                                   MovementCallbacks movementCB = {})
+                                   MovementCallbacks movementCB = {},
+                                   std::shared_ptr<int> sendsWindow = nullptr,
+                                   EffectSendsCallbacks sendsCB = {})
 {
     switch (subTabIndex)
     {
@@ -1184,6 +1334,7 @@ inline StreamDeckPage createPage (int subTabIndex,
         case 2:  return createMovementsPage (state, clusterEdit, channelIndex, lfoSubMode, movementCB);
         case 3:  return StreamDeckPage ("Gradient Map");  // Handled separately via GradientMapPages
         case 4:  return createVisualisationPage (state, channelIndex);
+        case 6:  return createEffectSendsPage (state, channelIndex, sendsWindow, sendsCB);   // 5 is the Sampler: no page
         default: return StreamDeckPage ("Inputs > Unknown");
     }
 }

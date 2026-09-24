@@ -1373,6 +1373,14 @@
     }
   },
   "inputs": {
+    "effectSends": {
+      "allOn": "Todos los envíos ON (esta entrada)",
+      "allOff": "Todos los envíos OFF (esta entrada)",
+      "on": "ON",
+      "off": "OFF",
+      "hint": "Una tira por efecto: el fader fija el nivel de envío de esta entrada al efecto; el botón activa o corta el envío sin cambiar el nivel.",
+      "none": "No hay canales de efecto. Defina un número de Effects Channels en Configuración."
+    },
     "sections": {
       "channel": "Canal",
       "position": "Posición",
@@ -1390,7 +1398,8 @@
       "movements": "Movimientos",
       "gradientMaps": "Mapas de Gradiente",
       "visualisation": "Visualización",
-      "sampler": "Sampler"
+      "sampler": "Sampler",
+      "effectSends": "Envíos a efectos"
     },
     "gradientMap": {
       "layers": {
@@ -1713,6 +1722,10 @@
       "snapshotEffectsSkipped": "Snapshot «{name}»: {n} entradas de efecto omitidas, no existe el canal de efecto {ids}"
     },
     "help": {
+      "effectSendLevel": "Nivel del envío de esta entrada al efecto (-92 a 0 dB). Arrastre el fader; la rueda lo ajusta con precisión.",
+      "effectSendToggle": "Activa o corta el envío de esta entrada al efecto. El nivel se conserva.",
+      "effectSendsAllOn": "Activa el envío de esta entrada a todos los efectos.",
+      "effectSendsAllOff": "Corta el envío de esta entrada a todos los efectos.",
       "solo": "Escuchar el renderizado binaural de este canal.",
       "soloMode": "Único: una entrada a la vez. Múltiple: varias entradas simultáneamente.",
       "storeConfig": "Guardar la configuración de entrada en archivo (con copia de seguridad).",
@@ -2145,7 +2158,8 @@
         "lfo": "LFO",
         "automOtionPosition": "AutomOtion\nPosition",
         "automOtionContinued": "AutomOtion\n(cont.)",
-        "automOtionManual": "AutomOtion\nManual"
+        "automOtionManual": "AutomOtion\nManual",
+        "effectSends": "Envíos\n{first}-{last}"
       },
       "buttons": {
         "minimalDelay": "Minimal\nDelay",
@@ -2363,6 +2377,10 @@
     }
   },
   "help": {
+    "inputEffectSends": {
+      "title": "Envíos a efectos",
+      "body": "Los envíos de esta entrada a los canales de efecto, una tira por efecto: las mismas celdas que la matriz Post-procesamiento de la pestaña Efectos, vistas desde la entrada.\nEl fader fija el nivel de envío (-92 a 0 dB) y el botón activa o corta el envío sin tocar el nivel, de modo que un envío puede silenciarse y recuperarse al nivel que tenía. Los dos botones de arriba actúan sobre todos los envíos de esta entrada a la vez.\nUn efecto alimentado por esta entrada es un punto de entrada de su grupo. Lo que el efecto hace después - su cadena, su posición en el escenario y sus envíos a otros efectos - se ajusta en la pestaña Efectos."
+    },
     "diagnostics": {
       "title": "Diagnóstico y comentarios",
       "body": "Las herramientas de diagnóstico están ocultas por defecto: una pulsación larga sobre el botón Diagnostics las muestra u oculta. Aparecen automáticamente si la sesión anterior no se cerró correctamente.\nPara enviar comentarios o informar de un problema, haga clic en «Reportar problema» (Report Issue): se abre el gestor de incidencias de GitHub del proyecto en su navegador. Describa qué ocurrió, qué esperaba y los pasos para reproducirlo, y adjunte los datos de diagnóstico exportados.\n«Exportar registros» (Export Logs) copia los datos útiles en una carpeta WFS-DIY-logs en la ubicación que elija: los registros de la sesión actual y de hasta cinco sesiones anteriores, más el archivo de ajustes de la aplicación. Adjunte esta carpeta (o un zip de ella) a su informe.\nLos registros de sesión contienen información de arranque (versión de la aplicación, sistema operativo, CPU, número de canales), la carga de proyectos, la actividad de red y los errores. Nunca se graba audio.\n«Abrir carpeta de registros» (Open Log Folder) muestra los registros en bruto en el disco (carpeta WFS-DIY/logs de los datos de aplicación del usuario), útil para localizar una sesión concreta.\n«Copiar info del sistema» (Copy System Info) coloca un breve resumen en el portapapeles — versión de la aplicación, sistema operativo, CPU y el dispositivo de audio actual con su frecuencia de muestreo y tamaño de búfer — listo para pegar en una incidencia."

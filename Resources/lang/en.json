@@ -2116,6 +2116,18 @@
     }
   },
   "inputs": {
+    "effectSends": {
+      "allOn": "All Sends On (this input)",
+      "allOff": "All Sends Off (this input)",
+      "on": "ON",
+      "off": "OFF",
+      "hint": "One strip per effect: the fader sets this input's send level into the effect, the button switches the send without changing the level.",
+      "none": "No effect channels. Set an Effects Channels count on System Config.",
+      "gesture": {
+        "allOn": "Input Effect Sends All On",
+        "allOff": "Input Effect Sends All Off"
+      }
+    },
     "sections": {
       "channel": "Channel",
       "position": "Position",
@@ -2133,7 +2145,8 @@
       "movements": "Movements",
       "gradientMaps": "Gradient Maps",
       "visualisation": "Visualisation",
-      "sampler": "Sampler"
+      "sampler": "Sampler",
+      "effectSends": "Effect Sends"
     },
     "gradientMap": {
       "layers": {
@@ -2469,6 +2482,10 @@
       "clusterEditAbsolute": "Ctrl+Shift edit: copying value to {count} other input(s) of Cluster {cluster}"
     },
     "help": {
+      "effectSendLevel": "Level of this input's send into the effect (-92 to 0 dB). Drag the fader; the wheel nudges it.",
+      "effectSendToggle": "Switch this input's send into the effect on or off. The level is kept.",
+      "effectSendsAllOn": "Switch this input's send into every effect on.",
+      "effectSendsAllOff": "Switch this input's send into every effect off.",
       "solo": "Listen to Binaural Rendering of this channel.",
       "soloMode": "Single: one input at a time. Multi: multiple inputs simultaneously.",
       "storeConfig": "Store Input Configuration to file (with backup).",
@@ -2942,7 +2959,8 @@
         "lfo": "LFO",
         "automOtionPosition": "AutomOtion\nPosition",
         "automOtionContinued": "AutomOtion\n(cont.)",
-        "automOtionManual": "AutomOtion\nManual"
+        "automOtionManual": "AutomOtion\nManual",
+        "effectSends": "Sends\n{first}-{last}"
       },
       "buttons": {
         "minimalDelay": "Minimal\nDelay",
@@ -3210,6 +3228,10 @@
     }
   },
   "help": {
+    "inputEffectSends": {
+      "title": "Effect Sends",
+      "body": "This input's sends into the effect channels, one strip per effect: the same cells as the Post-Processing matrix of the Effects tab, seen from the input.\nThe fader sets the send level (-92 to 0 dB) and the button switches the send on or off without touching the level, so a send can be muted and brought back at the level it had. The two buttons above switch every send of this input at once.\nAn effect this input feeds is an entry point of its bunch. What the effect does next - its chain, its position on stage and its sends into other effects - is set on the Effects tab."
+    },
     "diagnostics": {
       "title": "Diagnostics & Feedback",
       "body": "The diagnostic tools are hidden by default: long-press the Diagnostics button below to show or hide them. They appear automatically when the previous session did not shut down cleanly.\nTo send feedback or report a problem, click Report Issue: it opens the project's GitHub issue tracker in your browser. Describe what happened, what you expected and the steps to reproduce it, then attach the exported diagnostic data.\nExport Logs copies the useful data to a WFS-DIY-logs folder at the location you choose: the logs of the current and up to five previous sessions, plus the application settings file. Attach this folder (or a zip of it) to your report.\nThe session logs contain start-up information (application version, operating system, CPU, channel counts), project loading, network activity and errors. No audio is ever recorded.\nOpen Log Folder shows the raw session logs on disk (the WFS-DIY/logs folder in the user application data directory), useful to find a specific session.\nCopy System Info puts a short summary on the clipboard \u2014 application version, operating system, CPU and the current audio device with its sample rate and buffer size \u2014 ready to paste into an issue."

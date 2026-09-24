@@ -1075,7 +1075,39 @@ MainComponent::MainComponent()
         movCB.resumeMotion = [this](int ch) { if (automOtionProcessor) automOtionProcessor->resumeClusterMotion (ch); };
         movCB.stopAll      = [this]()       { if (automOtionProcessor) automOtionProcessor->stopAllMotion(); };
 
-        for (int subTab = 0; subTab < 5; ++subTab)
+        // The Effect Sends page: which four effects the deck holds, shared
+        // across rebuilds like the Chain page's bank. A shift lays the page out
+        // again on the next turn (never from inside the press), and the GUI's
+        // strips mark the four - only while the Dials & Buttons device is the
+        // Stream Deck, so a bare GUI shows no phantom deck.
+        auto inputSendsWindow = std::make_shared<int> (0);
+        InputsTabPages::EffectSendsCallbacks sendsCB;
+        sendsCB.requestRebuild = [this]
+        {
+            juce::MessageManager::callAsync ([this]
+            {
+                if (streamDeckManager && streamDeckManager->getCurrentMainTab() == InputsTabPages::INPUTS_MAIN_TAB_INDEX)
+                    streamDeckManager->refreshCurrentPage();
+            });
+        };
+        sendsCB.onWindowChanged = [this] (int first, int count)
+        {
+            const bool deckSelected = static_cast<int> (parameters.getConfigParam ("DialsAndButtonsDevice")) == 1;
+            auto mark = [this, first, count, deckSelected]
+            {
+                if (inputsTab)
+                    inputsTab->getEffectSendsSubTab().setDeckWindow (deckSelected ? first : -1, count);
+            };
+            // The page is built on the message thread (the manager polls its
+            // device from a timer), so the mark lands with the page; anything
+            // else waits for the next turn.
+            if (juce::MessageManager::getInstance()->isThisTheMessageThread())
+                mark();
+            else
+                juce::MessageManager::callAsync (mark);
+        };
+
+        for (int subTab : { 0, 1, 2, 3, 4, 6 })     // 5 is the Sampler, which has no page
         {
             if (subTab == 3)
             {
@@ -1093,7 +1125,7 @@ MainComponent::MainComponent()
             {
                 streamDeckManager->registerPage (
                     InputsTabPages::INPUTS_MAIN_TAB_INDEX, subTab,
-                    InputsTabPages::createPage (subTab, vts, parameters.getClusterEdit(), 0, flipModeState, stereoParamsState, lfoSubModeState, movCB));
+                    InputsTabPages::createPage (subTab, vts, parameters.getClusterEdit(), 0, flipModeState, stereoParamsState, lfoSubModeState, movCB, inputSendsWindow, sendsCB));
             }
         }
 
@@ -1529,7 +1561,7 @@ MainComponent::MainComponent()
         };
 
         // Set page rebuild callback for channel changes and binding swaps
-        streamDeckManager->onPageNeedsRebuild = [this, flipModeState, stereoParamsState, lfoSubModeState, movCB, outputEqBandState, onEqBandSelectedGui, netCB, sysCB, mapCB, mapQ, mapPosOffsetMode, reverbPreEqBandState, reverbPreDynMode, reverbPostEqBandState, reverbPostDynMode, reverbSoloState, reverbMutePreState, reverbMutePostState, reverbEditOnMapState, reverbAlgoSubMode, reverbIRDuration, onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD, clusterLfoSubMode, presetCol, presetRow, clusterCB, effectsSoloState, effectsEditOnMapState, effectsLfoSubMode, effectsChainSlot, effectsChainBank, fxCB](int mainTab, int subTab, int channel)
+        streamDeckManager->onPageNeedsRebuild = [this, flipModeState, stereoParamsState, lfoSubModeState, movCB, inputSendsWindow, sendsCB, outputEqBandState, onEqBandSelectedGui, netCB, sysCB, mapCB, mapQ, mapPosOffsetMode, reverbPreEqBandState, reverbPreDynMode, reverbPostEqBandState, reverbPostDynMode, reverbSoloState, reverbMutePreState, reverbMutePostState, reverbEditOnMapState, reverbAlgoSubMode, reverbIRDuration, onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD, clusterLfoSubMode, presetCol, presetRow, clusterCB, effectsSoloState, effectsEditOnMapState, effectsLfoSubMode, effectsChainSlot, effectsChainBank, fxCB](int mainTab, int subTab, int channel)
         {
             if (mainTab == InputsTabPages::INPUTS_MAIN_TAB_INDEX)
             {
@@ -1555,7 +1587,7 @@ MainComponent::MainComponent()
                     if (inputSlot < 0)
                         return;
                     streamDeckManager->registerPage (mainTab, subTab,
-                        InputsTabPages::createPage (subTab, vts, parameters.getClusterEdit(), inputSlot, flipModeState, stereoParamsState, lfoSubModeState, movCB));
+                        InputsTabPages::createPage (subTab, vts, parameters.getClusterEdit(), inputSlot, flipModeState, stereoParamsState, lfoSubModeState, movCB, inputSendsWindow, sendsCB));
                 }
             }
             else if (mainTab == OutputsTabPages::OUTPUTS_MAIN_TAB_INDEX)
@@ -3079,6 +3111,49 @@ void MainComponent::renderUiSnapshots (const juce::File& dir)
             reverb.setProperty (WFSParameterIDs::effectReverbModel, storedModel, nullptr);
             panel.loadParameters();
         }
+        if (effectsBefore == 0)
+            vts.setNumEffectChannels (0);
+    }
+
+    // Every sub-tab of the Inputs tab the same way. The Effect Sends bank has a
+    // strip per effect, so a session with no effect channel gets one for the
+    // render only, as the reverb-model render above does.
+    if (inputsTab != nullptr)
+    {
+        auto& vts = parameters.getValueTreeState();
+        const int effectsBefore = vts.getNumEffectChannels();
+        if (effectsBefore == 0)
+            vts.setNumEffectChannels (1);
+
+        // The deck follows the bar as it does when the operator is on the
+        // Inputs tab, so a sub-tab whose page marks the GUI (Effect Sends
+        // outlines the four strips its page holds) renders as the operator
+        // sees it; the deck is put back where it was afterwards.
+        const int deckMain = streamDeckManager ? streamDeckManager->getCurrentMainTab() : 0;
+        const int deckSub = streamDeckManager ? streamDeckManager->getCurrentSubTab() : 0;
+        const int deckChannel = streamDeckManager ? streamDeckManager->getChannel() : 0;
+        if (streamDeckManager)
+            streamDeckManager->syncNavigation (InputsTabPages::INPUTS_MAIN_TAB_INDEX, 0, inputsTab->getCurrentChannel());
+
+        for (auto* child : inputsTab->getChildren())
+        {
+            if (auto* bar = dynamic_cast<juce::TabbedButtonBar*> (child))
+            {
+                const int original = bar->getCurrentTabIndex();
+                for (int s = 0; s < bar->getNumTabs(); ++s)
+                {
+                    bar->setCurrentTabIndex (s, false);
+                    bar->sendSynchronousChangeMessage();
+                    save (*inputsTab, "inputs-subtab-" + juce::String (s) + "-" + bar->getTabNames()[s]);
+                }
+                bar->setCurrentTabIndex (original, false);
+                bar->sendSynchronousChangeMessage();
+                break;
+            }
+        }
+
+        if (streamDeckManager)
+            streamDeckManager->syncNavigation (deckMain, deckSub, deckChannel);
         if (effectsBefore == 0)
             vts.setNumEffectChannels (0);
     }
@@ -5311,6 +5386,84 @@ void MainComponent::runChannelListSelfTest()
     else
     {
         check(false, "SD: the Stream Deck manager exists");
+    }
+
+    // ---- ES: the deck's Effect Sends page holds four effects of one input --------
+    // The Inputs tab's Effect Sends sub-tab on the deck: four dials for four
+    // effects' send levels from the shown input, four switches under them that
+    // keep the level, and a top row moving the window by one or by four. Built
+    // and driven without a device, as the RD3 bank checks are.
+    {
+        const int effectsBefore = vts.getNumEffectChannels();
+        vts.setNumEffectChannels(6);
+
+        auto window = std::make_shared<int>(0);
+        InputsTabPages::EffectSendsCallbacks cb;
+        int rebuilds = 0;
+        int seenFirst = -1, seenCount = -1;
+        cb.requestRebuild  = [&rebuilds] { ++rebuilds; };
+        cb.onWindowChanged = [&seenFirst, &seenCount] (int f, int c) { seenFirst = f; seenCount = c; };
+
+        const int slot = 0;
+        const int number = vts.getInputChannelNumber(slot);
+        auto build = [&]
+        {
+            return InputsTabPages::createPage(6, vts, parameters.getClusterEdit(), slot,
+                                              nullptr, nullptr, nullptr, {}, window, cb);
+        };
+
+        auto page = build();
+        check(page.numSections == 1 && seenFirst == 0 && seenCount == 4 && page.lcdMessage.isEmpty()
+              && page.topRowButtons[0].onPress != nullptr && page.topRowButtons[3].onPress != nullptr,
+              "ES1: the Effect Sends page opens on effects 1-4 with its four shift buttons");
+
+        auto& sec = page.sections[0];
+        const bool bound = sec.dials[2].setValue != nullptr && sec.dials[2].getValue != nullptr
+                        && sec.buttons[2].onPress != nullptr && sec.buttons[2].getState != nullptr;
+        check(bound, "ES2: dial 3 and switch 3 are bound");
+        if (bound)
+        {
+            sec.dials[2].setValue(-18.0f);
+            check(juce::approximatelyEqual(vts.getEffectSendLevelFromInput(2, number), -18.0f)
+                  && juce::approximatelyEqual(sec.dials[2].getValue(), -18.0f)
+                  && juce::approximatelyEqual(vts.getEffectSendLevelFromInput(1, number), 0.0f)
+                  && juce::approximatelyEqual(vts.getEffectSendLevelFromInput(3, number), 0.0f),
+                  "ES2: dial 3 sets effect 3's send from this input, and only that cell");
+            sec.buttons[2].onPress();
+            check(vts.getEffectSendOnFromInput(2, number) && sec.buttons[2].getState()
+                  && juce::approximatelyEqual(vts.getEffectSendLevelFromInput(2, number), -18.0f),
+                  "ES2: switch 3 turns the send on and keeps its level");
+            sec.buttons[2].onPress();
+            check(! vts.getEffectSendOnFromInput(2, number) && ! sec.buttons[2].getState(),
+                  "ES2: ...and off again");
+        }
+
+        page.topRowButtons[2].onPress();
+        check(*window == 1 && rebuilds == 1, "ES3: one step right moves the window to effects 2-5 and asks for the page again");
+        page.topRowButtons[3].onPress();
+        check(*window == 2 && rebuilds == 2, "ES3: a page right stops at the last four (3-6)");
+        page.topRowButtons[0].onPress();
+        check(*window == 0 && rebuilds == 3, "ES3: a page left goes back to the first four");
+        page.topRowButtons[1].onPress();
+        check(*window == 0 && rebuilds == 3, "ES3: at the first effect a step left asks for nothing");
+
+        *window = 2;
+        page = build();
+        check(seenFirst == 2 && seenCount == 4 && page.sections[0].dials[0].getValue != nullptr
+              && juce::approximatelyEqual(page.sections[0].dials[0].getValue(), -18.0f),
+              "ES4: after the shift the first dial is effect 3, at the level set above");
+
+        *window = 9;
+        page = build();
+        check(*window == 2 && seenFirst == 2, "ES4: a window past the end is pulled back to the last four");
+
+        vts.setNumEffectChannels(0);
+        page = build();
+        check(page.lcdMessage.isNotEmpty() && page.sections[0].dials[0].getValue == nullptr
+              && page.sections[0].buttons[0].onPress == nullptr,
+              "ES5: without effect channels the page says so and binds nothing");
+
+        vts.setNumEffectChannels(effectsBefore);
     }
 
     // ---- SM: one push of the Space Mouse is one undo step --------------------

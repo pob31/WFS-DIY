@@ -59,8 +59,8 @@
         "wfs_set_parameter_batch": true
       },
       "tier_counts": {
-        "1": 16,
-        "2": 14,
+        "1": 18,
+        "2": 15,
         "3": 9
       },
       "tier_ordering_ok": true
@@ -825,6 +825,246 @@
       }
     },
     "step": "array_atten_undo_set"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "{\"input_id\": 3, \"input_name\": \"Input 3\", \"sends\": [{\"effect_id\": 1, \"effect_name\": \"Effect 1\", \"level_db\": 0.0, \"on\": false}, {\"effect_id\": 2, \"effect_name\": \"Effect 2\", \"level_db\": 0.0, \"on\": false}]}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    "step": "effect_sends_initial"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "Tier 2 action awaiting confirmation. Re-call with `confirm: \"<TOKEN>\"` within 30 seconds.",
+            "type": "text"
+          }
+        ],
+        "isError": false,
+        "tier_enforcement": {
+          "awaiting_confirmation": true,
+          "confirmation_token": "<TOKEN>",
+          "declared_tier": 2,
+          "expires_in_seconds": "<SECONDS>",
+          "tool": "input_set_effect_send_level"
+        }
+      }
+    },
+    "step": "effect_send_level_awaiting_confirmation"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "{\"effect_id\": 2, \"input_id\": 3, \"level_db\": -6.5, \"on\": false}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    "step": "effect_send_level_confirmed"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "{\"effect_id\": 2, \"input_id\": 3, \"level_db\": -6.5, \"on\": true}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    "step": "effect_send_on"
+  },
+  {
+    "step": "effect_sends_readback",
+    "values": {
+      "input2": {
+        "fx1": [
+          false,
+          0.0
+        ],
+        "fx2": [
+          false,
+          0.0
+        ]
+      },
+      "input3": {
+        "fx1": [
+          false,
+          0.0
+        ],
+        "fx2": [
+          true,
+          -6.5
+        ]
+      }
+    }
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "Tool error [out_of_range]: effect_id 3 not in [1, 2] (effects are 1-2)",
+            "type": "text"
+          }
+        ],
+        "isError": true
+      }
+    },
+    "step": "effect_send_refused_effect_3"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "Tool error [out_of_range]: effect_id 0 not in [1, 2] (effects are 1-2)",
+            "type": "text"
+          }
+        ],
+        "isError": true
+      }
+    },
+    "step": "effect_send_refused_effect_0"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "Tool error [invalid_args]: effect_id must be an integer, got \"1.5\" (effects are 1-2)",
+            "type": "text"
+          }
+        ],
+        "isError": true
+      }
+    },
+    "step": "effect_send_refused_effect_1_5"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "Tool error [out_of_range]: level_db -100.00 not in [-92.0, 0.0] dB",
+            "type": "text"
+          }
+        ],
+        "isError": true
+      }
+    },
+    "step": "effect_send_refused_level_minus_100"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "Tool error [out_of_range]: level_db 3.00 not in [-92.0, 0.0] dB",
+            "type": "text"
+          }
+        ],
+        "isError": true
+      }
+    },
+    "step": "effect_send_refused_level_plus_3"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "Tool error [invalid_args]: Missing required arg: on",
+            "type": "text"
+          }
+        ],
+        "isError": true
+      }
+    },
+    "step": "effect_send_refused_on_missing"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "Tool error [out_of_range]: input_id 99 not in [1, 64]",
+            "type": "text"
+          }
+        ],
+        "isError": true
+      }
+    },
+    "step": "effect_send_refused_input_99"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "{\"after_applied\": {\"effectSendOns\": \"0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\"}, \"before_applied\": {\"effectSendOns\": \"0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\"}, \"operator_description\": \"Undid: Switched on the send from input 3 (Input 3) into effect 2 (Effect 2)\", \"records_affected\": 1}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    "step": "effect_send_undo_on"
+  },
+  {
+    "envelope": {
+      "id": "<ID>",
+      "jsonrpc": "2.0",
+      "result": {
+        "content": [
+          {
+            "text": "{\"after_applied\": {\"effectSendLevels\": \"0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\"}, \"before_applied\": {\"effectSendLevels\": \"0,0,-6.5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\"}, \"operator_description\": \"Undid: Set the send from input 3 (Input 3) into effect 2 (Effect 2) to -6.5 dB\", \"records_affected\": 1}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    "step": "effect_send_undo_level"
   },
   {
     "envelope": {

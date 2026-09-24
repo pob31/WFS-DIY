@@ -325,19 +325,8 @@ def _round(v):
 # ---------------------------------------------------------------------------
 
 def set_fixture_effect_channels(project: Path, count: int) -> None:
-    """Rewrite <IO effectChannels="N"> in the TEMP copy's system.xml.
-
-    applyConfigSection builds the whole effects family from this attribute, so
-    the app comes up with `count` live channels, no UI and no OSC involved.
-    Deliberately not the /wfs/config/effectChannels route: the gate must not
-    depend on the mechanism it tests."""
-    path = project / "system.xml"
-    text = path.read_text(encoding="utf-8")
-    new_text, n = re.subn(r'effectChannels="\d+"',
-                          f'effectChannels="{count}"', text, count=1)
-    if n != 1:
-        raise SystemExit(f"[osc-replay] could not set effectChannels in {path}")
-    path.write_text(new_text, encoding="utf-8")
+    """See common.set_fixture_effect_channels; the MCP driver shares it."""
+    common.set_fixture_effect_channels(project, count)
 
 
 def effect_node(root: ET.Element, effect_id: int) -> ET.Element:

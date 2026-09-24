@@ -590,6 +590,10 @@
     "noChannels": "Keine Effektkanäle. Legen Sie die Anzahl in der System Config fest oder importieren Sie eine Effektkonfiguration."
   },
   "inputs": {
+    "effectSends": {
+      "hint": "Ein Kanalzug pro Effekt: Der Fader setzt den Send-Pegel dieses Eingangs in den Effekt, die Taste schaltet den Send, ohne den Pegel zu ändern.",
+      "none": "Keine Effektkanäle. Legen Sie unter System Config eine Anzahl Effects Channels fest."
+    },
     "gradientMap": {
       "help": {
         "layerSelect": "Diese Ebene zur Bearbeitung auswählen",
@@ -672,6 +676,10 @@
       "clusterEditAbsolute": "Strg+Shift-Bearbeitung: Wert auf {count} weitere Eingänge von Cluster {cluster} kopiert"
     },
     "help": {
+      "effectSendLevel": "Pegel des Sends dieses Eingangs in den Effekt (-92 bis 0 dB). Fader ziehen; das Mausrad justiert fein.",
+      "effectSendToggle": "Schaltet den Send dieses Eingangs in den Effekt ein oder aus. Der Pegel bleibt erhalten.",
+      "effectSendsAllOn": "Schaltet den Send dieses Eingangs in jeden Effekt ein.",
+      "effectSendsAllOff": "Schaltet den Send dieses Eingangs in jeden Effekt aus.",
       "solo": "Binaurales Rendering dieses Kanals abhören.",
       "soloMode": "Einzeln: ein Eingang nach dem anderen. Mehrfach: mehrere Eingänge gleichzeitig.",
       "storeConfig": "Eingangskonfiguration in Datei speichern (mit Sicherung).",
@@ -840,6 +848,10 @@
     "guide": "Wählen Sie eine Zelle im Raster aus, um ihre Eigenschaften zu bearbeiten.\nDoppelklicken Sie, um ein Sample zu laden.\nMit Strg+Klick können Sie Zellen dem aktiven Set zuweisen."
   },
   "help": {
+    "inputEffectSends": {
+      "title": "Effekt-Sends",
+      "body": "Die Sends dieses Eingangs in die Effektkanäle, ein Kanalzug pro Effekt: dieselben Zellen wie die Post-Processing-Matrix des Tabs Effects, vom Eingang aus gesehen.\nDer Fader setzt den Send-Pegel (-92 bis 0 dB), die Taste schaltet den Send ein oder aus, ohne den Pegel anzurühren: Ein Send lässt sich stummschalten und mit seinem alten Pegel zurückholen. Die beiden Tasten oben schalten alle Sends dieses Eingangs auf einmal.\nEin Effekt, den dieser Eingang speist, ist ein Einstiegspunkt seiner Gruppe. Was der Effekt danach tut - seine Kette, seine Position auf der Bühne und seine Sends in andere Effekte - wird im Tab Effects eingestellt."
+    },
     "diagnostics": {
       "title": "Diagnose & Feedback",
       "body": "Die Diagnosewerkzeuge sind standardmäßig ausgeblendet: Ein langer Druck auf die Diagnostics-Schaltfläche darunter blendet sie ein oder aus. Sie erscheinen automatisch, wenn die vorherige Sitzung nicht sauber beendet wurde.\nUm Feedback zu senden oder ein Problem zu melden, klicken Sie auf „Problem melden“ (Report Issue): Der GitHub-Issue-Tracker des Projekts öffnet sich im Browser. Beschreiben Sie, was passiert ist, was Sie erwartet haben und die Schritte zur Reproduktion, und hängen Sie die exportierten Diagnosedaten an.\n„Protokolle exportieren“ (Export Logs) kopiert die nützlichen Daten in einen Ordner WFS-DIY-logs am gewählten Ort: die Protokolle der aktuellen und bis zu fünf vorheriger Sitzungen sowie die Einstellungsdatei der Anwendung. Hängen Sie diesen Ordner (oder ein Zip davon) an Ihren Bericht an.\nDie Sitzungsprotokolle enthalten Startinformationen (Programmversion, Betriebssystem, CPU, Kanalzahlen), Projektladevorgänge, Netzwerkaktivität und Fehler. Es wird niemals Audio aufgezeichnet.\n„Protokollordner öffnen“ (Open Log Folder) zeigt die rohen Sitzungsprotokolle auf der Festplatte (Ordner WFS-DIY/logs im Anwendungsdaten-Verzeichnis des Benutzers), nützlich, um eine bestimmte Sitzung zu finden.\n„Systeminfo kopieren“ (Copy System Info) legt eine kurze Zusammenfassung in die Zwischenablage — Programmversion, Betriebssystem, CPU und das aktuelle Audiogerät mit Abtastrate und Puffergröße — bereit zum Einfügen in ein Issue."

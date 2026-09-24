@@ -28,6 +28,19 @@ Segment A (WFS_MCP_AI_ENABLED=1):
                                    value refused; describe lists all ten with
                                    their tool_args; undo reverts the batch,
                                    then the single write)
+ 11. effect sends              (input_set_effect_send_level, tier 2, and
+                                   input_set_effect_send_on, tier 1, address
+                                   ONE input x effect cell of the effect's
+                                   packed send rows, keyed by the input's
+                                   permanent number; input_get_effect_sends
+                                   reads an input's row; the switch keeps the
+                                   level; neighbours stay put; out-of-range
+                                   effect / level / missing switch / dead
+                                   input refused; undo puts the row back on
+                                   the EFFECT. The temp fixture is rewritten
+                                   to carry two effect channels for this, the
+                                   OSC driver's gate - see
+                                   common.set_fixture_effect_channels)
 
 Segment B (env var absent): one tier-1 call -> ai_disabled envelope.
 
@@ -52,6 +65,9 @@ from pathlib import Path
 import common
 
 GOLDEN = common.GOLDENS_DIR / "mcp_replay.json"
+
+# How many effect channels the temp fixture is rewritten to carry (segment A).
+EFFECT_CHANNELS = 2
 
 # 16 writes: X and Y for inputs 1..8, all binary-exact values.
 BATCH_WRITES = (
@@ -100,6 +116,7 @@ def main() -> int:
 
     # ---------------- Segment A: AI enabled --------------------------------
     project = common.copy_fixture_to_temp(work_root)
+    common.set_fixture_effect_channels(project, EFFECT_CHANNELS)
     common.kill_stale_instances()
     app = common.App(exe, common.fixture_wfs(project), ai_enabled=True)
     try:
@@ -374,6 +391,91 @@ def main() -> int:
         record("array_atten_undo_set", app.tool("mcp_undo_last_ai_change", {}))
         if get_level(10, 3) != 0.0:
             hard_failures.append("undo did not revert the inputArrayAtten10 write")
+
+        # ---- effect sends: one cell of an effect's packed send rows --------
+        # No generated tool reaches effectSendLevels / effectSendOns (the
+        # codegen reads no effects CSV, and a row is a string the generic
+        # setter would take whole). The three hand-written tools address one
+        # input x effect cell through the typed accessors, as the Inputs tab's
+        # Effect Sends strips and /wfs/effect/sendLevel do. Placed before the
+        # generic nudge for the same reason the array attenuation is.
+        def get_sends(input_id: int):
+            payload = common.tool_payload(app.tool("input_get_effect_sends",
+                                                   {"input_id": input_id}))
+            if not isinstance(payload, dict):
+                return payload
+            return {f"fx{s['effect_id']}": [bool(s["on"]),
+                                             round(float(s["level_db"]), 6)]
+                    for s in payload.get("sends", [])}
+
+        silent = {"fx1": [False, 0.0], "fx2": [False, 0.0]}
+        record("effect_sends_initial",
+               app.tool("input_get_effect_sends", {"input_id": 3}))
+        if get_sends(3) != silent:
+            hard_failures.append(
+                f"input 3 did not start with two silent, off sends: {get_sends(3)}")
+
+        es_first, es_final = app.tool_confirmed(
+            "input_set_effect_send_level",
+            {"input_id": 3, "effect_id": 2, "level_db": -6.5})
+        record("effect_send_level_awaiting_confirmation", es_first)
+        record("effect_send_level_confirmed", es_final)
+        es_payload = common.tool_payload(es_final)
+        if not (isinstance(es_payload, dict)
+                and es_payload.get("effect_id") == 2
+                and float(es_payload.get("level_db", 0)) == -6.5
+                and es_payload.get("on") is False):
+            hard_failures.append(
+                f"input_set_effect_send_level did not write the cell: {es_payload}")
+
+        es_on = record("effect_send_on",
+                       app.tool("input_set_effect_send_on",
+                                {"input_id": 3, "effect_id": 2, "on": True}))
+        es_on_payload = common.tool_payload(es_on)
+        if not (isinstance(es_on_payload, dict)
+                and es_on_payload.get("on") is True
+                and float(es_on_payload.get("level_db", 0)) == -6.5):
+            hard_failures.append(
+                f"input_set_effect_send_on did not keep the level: {es_on_payload}")
+
+        routed = {"fx1": [False, 0.0], "fx2": [True, -6.5]}
+        sends = {"input3": get_sends(3), "input2": get_sends(2)}
+        transcript.append({"step": "effect_sends_readback", "values": sends})
+        if sends != {"input3": routed, "input2": silent}:
+            hard_failures.append(f"effect send landed on the wrong cell: {sends}")
+
+        for label, tool, call_args in (
+                ("effect_3", "input_set_effect_send_level",
+                 {"input_id": 3, "effect_id": 3, "level_db": -3.0}),
+                ("effect_0", "input_set_effect_send_on",
+                 {"input_id": 3, "effect_id": 0, "on": True}),
+                ("effect_1_5", "input_set_effect_send_on",
+                 {"input_id": 3, "effect_id": 1.5, "on": True}),
+                ("level_minus_100", "input_set_effect_send_level",
+                 {"input_id": 3, "effect_id": 1, "level_db": -100.0}),
+                ("level_plus_3", "input_set_effect_send_level",
+                 {"input_id": 3, "effect_id": 1, "level_db": 3.0}),
+                ("on_missing", "input_set_effect_send_on",
+                 {"input_id": 3, "effect_id": 1}),
+                ("input_99", "input_set_effect_send_on",
+                 {"input_id": 99, "effect_id": 1, "on": True})):
+            _, refused = app.tool_confirmed(tool, call_args)
+            record(f"effect_send_refused_{label}", refused)
+            if not common.envelope_result(refused).get("isError"):
+                hard_failures.append(f"{tool} accepted {call_args}")
+        if get_sends(3) != routed:
+            hard_failures.append("a refused effect-send write changed a cell")
+
+        # Undo resolves the EFFECT from the record's sub-write, not the
+        # input from its input_id: the row goes back where it was read.
+        record("effect_send_undo_on", app.tool("mcp_undo_last_ai_change", {}))
+        if get_sends(3) != {"fx1": [False, 0.0], "fx2": [False, -6.5]}:
+            hard_failures.append(
+                f"undo did not switch the send back off at its level: {get_sends(3)}")
+        record("effect_send_undo_level", app.tool("mcp_undo_last_ai_change", {}))
+        if get_sends(3) != silent:
+            hard_failures.append(
+                f"undo did not revert the send level: {get_sends(3)}")
 
         # ---- generic tools now carry the validation the named tools had ----
         # wfs_set_parameter used to range-check only against the permissive

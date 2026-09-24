@@ -706,3 +706,18 @@ all caught, the undo mutant among them.
 - **English only:** the six new labels, the model names and the preset names, like the rest of
   the module controls (the user's choice).
 - SDN-style (2) and IR (3) are reserved ids, not models.
+
+## 12. The input's view of matrix level 1: DONE (2026-09-24)
+
+The Inputs tab gained an **Effect Sends** sub-tab, always its last tab (`InputSubTab::EffectSends = 6`;
+the Sampler tab, when shown, sits before it). `Source/gui/InputEffectSendsSubTab.h` shows the
+selected input's row of matrix level 1 as a mixer bank - one strip per effect with a send-level
+fader (the `effectSendLevel` law from the CSV) and an ON / OFF switch that keeps the level - written
+through the same typed accessors the matrix uses, so both views follow each other through the tree.
+Levels 2 and 3 stay on the Effects tab: they are the effect's business, not the input's.
+
+MCP got the three tools no generated tool could provide (`Source/Network/MCP/tools/EffectSendTools.h`):
+`input_set_effect_send_level` (tier 2), `input_set_effect_send_on` (tier 1) and `input_get_effect_sends`.
+Their change records carry a sub-write on the EFFECT's dense index with the whole row before and
+after, because the legacy single-channel undo path would resolve `input_id` to an input slot and
+write the row there. `mcp_replay.py` step 11 covers them on a fixture rewritten to two effects.
