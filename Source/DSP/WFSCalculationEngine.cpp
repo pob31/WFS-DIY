@@ -1433,6 +1433,11 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
             localInputPositions[i].z += samplerCellOffsets[i].z;
         }
 
+        // Copy gradient map offsets. Before the height offset below reads
+        // them: copied after it, the vector was still empty there and the
+        // height layer never moved a source.
+        localGradientMapOffsets = gradientMapOffsets;
+
         // Apply gradient map height offset
         for (size_t i = 0; i < localInputPositions.size() && i < localGradientMapOffsets.size(); ++i)
             localInputPositions[i].z += localGradientMapOffsets[i].heightMeters;
@@ -1454,9 +1459,6 @@ void WFSCalculationEngine::recalculateMatrix (const float* lsGains)
         // Copy the render-source map (slot layout + 50 Hz slice geometry)
         localSourceMap = sourceMap;
         localChannelLatencyMs = channelIntrinsicLatencyMs;
-
-        // Copy gradient map offsets
-        localGradientMapOffsets = gradientMapOffsets;
 
         // Copy delay mode ramp state
         localPreviousMode = previousMinimalLatencyMode;
