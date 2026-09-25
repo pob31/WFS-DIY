@@ -18,8 +18,11 @@
     letter never becomes a value of 0 (0 dB - full level - on an attenuation
     field). The caller then puts the label back as it was.
 
-    Header-only and JUCE-core-only on purpose, so it can move to spatcore/ui
-    unchanged.
+    A COPY of spatcore/ui/TypedValue.h (namespace spatcore::ui::typed, spatcore
+    3b11648 on feature/typed-value), where XOA and Go.dot get it. The app keeps
+    its own until its spatcore pin - on the dial-acceleration branch - includes
+    that commit; then include the spatcore header and delete this one. Until
+    then any change here goes to both.
 */
 namespace TypedValue
 {
@@ -128,13 +131,13 @@ namespace TypedValue
 
             float scale;
             if (c == 'h' || (c == 's' && c2 == 't')                            // h, hr, hour; Std
-                || c == 0x6642 || c == 0x65F6 || c == 0xC2DC)                   // 時 时 시
+                || c == 0x6642 || c == 0x65F6 || c == 0xC2DC)                   // U+6642 U+65F6 U+C2DC (hour signs)
                 scale = 3600.0f;
             else if (c == 'm' && c2 == 's')                                     // ms, msec
                 scale = 0.001f;
-            else if (c == 'm' || c == 0x5206 || c == 0xBD84)                    // m, min, mn; 分 분
+            else if (c == 'm' || c == 0x5206 || c == 0xBD84)                    // m, min, mn; U+5206 U+BD84 (minute signs)
                 scale = 60.0f;
-            else if (c == 's' || c == 0x79D2 || c == 0xCD08)                    // s, sec; 秒 초
+            else if (c == 's' || c == 0x79D2 || c == 0xCD08)                    // s, sec; U+79D2 U+CD08 (second signs)
                 scale = 1.0f;
             else
                 scale = lastScale >= 3600.0f ? 60.0f : 1.0f;                    // bare: the next unit down
