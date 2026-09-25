@@ -717,7 +717,16 @@ float OutputPatchTab::frequencyToSliderValue(float freq) const
 void OutputPatchTab::labelTextChanged(juce::Label* label)
 {
     juce::String text = label->getText();
-    float value = text.retainCharacters("-0123456789.").getFloatValue();
+
+    // Read as the label shows it (TypedValue): "1.2 kHz" and "1.2k" are 1200.
+    // Text with no number in it puts the label back.
+    const auto typed = TypedValue::number (text);
+    if (! typed.has_value())
+    {
+        label->setText (labelTextBeforeEdit, juce::dontSendNotification);
+        return;
+    }
+    float value = *typed;
 
     if (label == &levelValueLabel)
     {
@@ -727,9 +736,6 @@ void OutputPatchTab::labelTextChanged(juce::Label* label)
     }
     else if (label == &frequencyValueLabel)
     {
-        // Handle kHz input: if value < 100 and text contains 'k', treat as kHz
-        if (value < 100.0f && text.containsIgnoreCase("k"))
-            value *= 1000.0f;
         int freq = juce::jlimit(20, 20000, static_cast<int>(value));
         frequencySlider.setValue(frequencyToSliderValue(static_cast<float>(freq)));
         if (freq >= 1000)

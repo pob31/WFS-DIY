@@ -16,6 +16,7 @@
 #include "dials/WfsLFOIndicators.h"
 #include "StatusBar.h"
 #include "../Localization/LocalizationManager.h"
+#include "../Helpers/TypedValue.h"
 #include "../DSP/ClusterLFOProcessor.h"
 #include "../AppSettings.h"
 #include "buttons/LongPressButton.h"
@@ -854,6 +855,7 @@ private:
     float previousDialAngle = 0.0f;
     float layoutScale = 1.0f;
     bool isLoadingParameters = false;
+    juce::String labelTextBeforeEdit;      // what a value label showed when its editor opened
 
     /** Scale a reference pixel value by layoutScale with a 65% minimum floor */
     int scaled(int ref) const { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * layoutScale)); }
@@ -1840,6 +1842,8 @@ private:
 
     void editorShown (juce::Label* label, juce::TextEditor& editor) override
     {
+        labelTextBeforeEdit = label->getText();
+
         for (auto& col : lfoCircuits)
             if (std::find (col.begin(), col.end(), static_cast<juce::Component*>(label)) != col.end())
             {
@@ -1852,8 +1856,15 @@ private:
     {
         if (isLoadingParameters) return;
 
-        // Extract numeric value from text (strips units)
-        float val = label->getText().retainCharacters("0123456789.-").getFloatValue();
+        // Read as the label shows it (TypedValue); text with no number in it
+        // puts the label back
+        const auto typed = TypedValue::number (label->getText());
+        if (! typed.has_value())
+        {
+            label->setText (labelTextBeforeEdit, juce::dontSendNotification);
+            return;
+        }
+        float val = *typed;
 
         // Period value label
         if (label == &lfoPeriodValueLabel)

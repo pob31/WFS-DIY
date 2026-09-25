@@ -1033,7 +1033,7 @@ private:
 
         using namespace WFSParameterIDs;
         const juce::Identifier* off[3] = { &effectReturnOffsetX, &effectReturnOffsetY, &effectReturnOffsetZ };
-        const auto typed = EffectsFieldEditing::parseNumber (editor.getText());
+        const auto typed = TypedValue::number (editor.getText());
 
         for (int axis = 0; axis < 3; ++axis)
         {
@@ -1092,7 +1092,7 @@ private:
             ms = juce::jlimit (D::effectDelayLatencyMin, D::effectDelayLatencyMax, ms);
             delayLatencySlider.setValue (ms / D::effectDelayLatencyMax);
             delayLatencyValue.setText (latencyText (ms), juce::dontSendNotification);
-        }, EffectsFieldEditing::parseNumber,
+        }, TypedValue::number,
         [this] { return juce::String (ctx.readFloat (effectDelayLatency, 0.0f), 1); });
 
         fields.makeEditable (orientationValue, "Effect Orientation", [this] (float deg)

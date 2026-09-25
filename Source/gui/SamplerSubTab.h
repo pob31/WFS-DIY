@@ -6,6 +6,7 @@
 #include "../Parameters/WFSParameterDefaults.h"
 #include "../Sampler/SamplerData.h"
 #include "../Localization/LocalizationManager.h"
+#include "../Helpers/TypedValue.h"
 #include "../AppSettings.h"
 #include "ColorScheme.h"
 #include "sliders/WfsStandardSlider.h"
@@ -1414,10 +1415,24 @@ private:
 
     // ==================== LABEL EDITING ====================
 
+    void editorShown (juce::Label* label, juce::TextEditor&) override
+    {
+        labelTextBeforeEdit = label->getText();
+    }
+
     void labelTextChanged (juce::Label* label) override
     {
         if (isLoadingData) return;
-        float value = label->getText().retainCharacters ("-0123456789.").getFloatValue();
+
+        // Read as the label shows it (TypedValue); text with no number in it
+        // puts the label back
+        const auto typed = TypedValue::number (label->getText());
+        if (! typed.has_value())
+        {
+            label->setText (labelTextBeforeEdit, juce::dontSendNotification);
+            return;
+        }
+        float value = *typed;
 
         auto handleCurveLabel = [&] (juce::Label& lbl, WfsBidirectionalSlider& slider,
                                       const juce::Identifier& curveId)
@@ -1760,6 +1775,7 @@ private:
     WfsParameters& parameters;
     int currentChannel = -1;
     bool isLoadingData = false;
+    juce::String labelTextBeforeEdit;      // what a value label showed when its editor opened
 
     // ValueTree reference
     juce::ValueTree samplerTree;

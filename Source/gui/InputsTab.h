@@ -32,6 +32,7 @@
 #include "buttons/WrappingTextButton.h"
 #include "buttons/PadlockTextButton.h"
 #include "../Localization/LocalizationManager.h"
+#include "../Helpers/TypedValue.h"
 #include "ColumnFocusTraverser.h"
 #include "SamplerSubTab.h"
 #include "InputEffectSendsSubTab.h"
@@ -620,6 +621,12 @@ public:
 
     /** The self-test checks that a drag of either opens an undo step. */
     WfsJoystickComponent& getPositionJoystickForTest() { return positionJoystick; }
+
+    /** The self-test types into these (TypedValue: a duration, the signed
+        latency field, a word that must change nothing). */
+    juce::Label& getOtomoDurationLabelForTest() { return otomoDurationValueLabel; }
+    juce::Label& getDelayLatencyLabelForTest()  { return delayLatencyValueLabel; }
+    juce::Label& getAttenuationLabelForTest()   { return attenuationValueLabel; }
     WfsAutoCenterSlider& getPositionZSliderForTest() { return positionZSlider; }
 
     /** Cycle to next/previous channel. delta=1 for next, delta=-1 for previous. Wraps around.
@@ -6220,6 +6227,17 @@ private:
 
     void editorShown (juce::Label* label, juce::TextEditor& editor) override
     {
+        labelTextBeforeEdit = label->getText();
+
+        // The label names the sign with a word ("Latency" / "Delay"); the
+        // field opens on the signed number instead, negative for a latency,
+        // so editing it cannot flip one into the other
+        if (label == &delayLatencyValueLabel)
+        {
+            editor.setText (juce::String (static_cast<float> (parameters.getInputParam (channelSlot(), "inputDelayLatency")), 1), false);
+            editor.selectAll();
+        }
+
         for (auto& col : inputCircuits)
             if (std::find (col.begin(), col.end(), static_cast<juce::Component*>(label)) != col.end())
             {
@@ -6231,7 +6249,17 @@ private:
     void labelTextChanged(juce::Label* label) override
     {
         juce::String text = label->getText();
-        float value = text.retainCharacters("-0123456789.").getFloatValue();
+
+        // Read as the label shows it (TypedValue): "2m 30s" is 150 s, "1.2k"
+        // is 1200. Text with no number in it puts the label back.
+        const auto typed = label == &otomoDurationValueLabel ? TypedValue::duration (text)
+                                                             : TypedValue::number (text);
+        if (! typed.has_value())
+        {
+            label->setText (labelTextBeforeEdit, juce::dontSendNotification);
+            return;
+        }
+        float value = *typed;
 
         // Input Properties tab
         if (label == &attenuationValueLabel)
@@ -8524,6 +8552,7 @@ private:
 
     // Tab navigation circuits (one loop per section, invisible labels auto-skipped)
     std::vector<std::vector<juce::Component*>> inputCircuits;
+    juce::String labelTextBeforeEdit;      // what a value label showed when its editor opened
 
     // KeyListener that intercepts Tab from Label TextEditors to navigate within
     // the correct circuit column. Labels override createKeyboardFocusTraverser()

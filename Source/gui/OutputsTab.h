@@ -15,6 +15,7 @@
 #include "ColouredIndexComboBox.h"
 #include "../Helpers/CoordinateConverter.h"
 #include "../Localization/LocalizationManager.h"
+#include "../Helpers/TypedValue.h"
 #include "buttons/LongPressButton.h"
 #include "buttons/EQBandToggle.h"
 #include "ColumnFocusTraverser.h"
@@ -2219,6 +2220,17 @@ private:
 
     void editorShown (juce::Label* label, juce::TextEditor& editor) override
     {
+        labelTextBeforeEdit = label->getText();
+
+        // The label names the sign with a word ("Latency" / "Delay"); the
+        // field opens on the signed number instead, negative for a latency,
+        // so editing it cannot flip one into the other
+        if (label == &delayLatencyValueLabel)
+        {
+            editor.setText (juce::String (static_cast<float> (parameters.getOutputParam (currentChannel - 1, "outputDelayLatency")), 1), false);
+            editor.selectAll();
+        }
+
         for (auto& col : outputParamCircuits)
             if (std::find (col.begin(), col.end(), label) != col.end())
             {
@@ -2233,8 +2245,15 @@ private:
 
         juce::String text = label->getText();
 
-        // Parse numeric value from text (strips units like "dB", "°", "%", "ms", "dB/m")
-        float value = text.retainCharacters("-0123456789.").getFloatValue();
+        // Read as the label shows it (TypedValue): units ignored, "2.5 kHz" is
+        // 2500. Text with no number in it puts the label back.
+        const auto typed = TypedValue::number (text);
+        if (! typed.has_value())
+        {
+            label->setText (labelTextBeforeEdit, juce::dontSendNotification);
+            return;
+        }
+        float value = *typed;
 
         if (label == &attenuationValueLabel)
         {
@@ -2659,6 +2678,7 @@ private:
     juce::ValueTree ioTree;
     juce::ValueTree binauralTree;
     bool isLoadingParameters = false;
+    juce::String labelTextBeforeEdit;      // what a value label showed when its editor opened
     bool isSelfWriting = false;         // True while this tab writes the tree itself (controls already up to date, skip reload)
     bool channelReloadPending = false;  // At most one queued loadChannelParameters at a time (external writes are coalesced)
     StatusBar* statusBar = nullptr;

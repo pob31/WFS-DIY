@@ -10046,14 +10046,27 @@ void MainComponent::runChannelListSelfTest()
 
         // FE2: the lenient reading
         auto is = [](std::optional<float> v, float expected) { return v.has_value() && std::abs(*v - expected) < 1.0e-3f; };
-        check(is(Fields::parseNumber("1.20 kHz"), 1200.0f) && is(Fields::parseNumber("Latency 12,5 ms"), 12.5f)
-                  && is(Fields::parseNumber("-6.0 dB/m"), -6.0f) && is(Fields::parseNumber("4.0:1"), 4.0f)
-                  && is(Fields::parseNumber("-.5"), -0.5f) && ! Fields::parseNumber("abc").has_value(),
-              "FE2: numbers are read past units and prefixes, a comma is a decimal point, k means thousands");
-        check(is(Fields::parseDuration("1m 30s"), 90.0f) && is(Fields::parseDuration("5.00 s"), 5.0f)
-                  && is(Fields::parseDuration("1h"), 3600.0f) && is(Fields::parseDuration("500 ms"), 0.5f)
-                  && is(Fields::parseDuration("2 min"), 120.0f) && ! Fields::parseDuration("s").has_value(),
+        check(is(TypedValue::number("1.20 kHz"), 1200.0f) && is(TypedValue::number("Latency 12,5 ms"), 12.5f)
+                  && is(TypedValue::number("-6.0 dB/m"), -6.0f) && is(TypedValue::number("4.0:1"), 4.0f)
+                  && is(TypedValue::number("-.5"), -0.5f) && ! TypedValue::number("abc").has_value()
+                  && is(TypedValue::number(juce::String::fromUTF8("\xe2\x88\x92" "6 dB")), -6.0f),
+              "FE2: numbers are read past units and prefixes, a comma is a decimal point, k means thousands, a Unicode minus is a minus");
+        check(is(TypedValue::duration("1m 30s"), 90.0f) && is(TypedValue::duration("5.00 s"), 5.0f)
+                  && is(TypedValue::duration("1h"), 3600.0f) && is(TypedValue::duration("500 ms"), 0.5f)
+                  && is(TypedValue::duration("2 min"), 120.0f) && ! TypedValue::duration("s").has_value(),
               "FE2: durations are read as the panel shows them (1m 30s, 5.00 s, 1h)");
+        check(is(TypedValue::duration("2min"), 120.0f) && is(TypedValue::duration("2mn30"), 150.0f)
+                  && is(TypedValue::duration("2m30"), 150.0f) && is(TypedValue::duration("1.5 min"), 90.0f)
+                  && is(TypedValue::duration("1h30"), 5400.0f) && is(TypedValue::duration("1 h 30 min"), 5400.0f)
+                  && is(TypedValue::duration("2 minutes 5 seconds"), 125.0f) && is(TypedValue::duration("2 Std"), 7200.0f)
+                  && is(TypedValue::duration(juce::String::fromUTF8("2" "\xe5\x88\x86" "30" "\xe7\xa7\x92")), 150.0f),
+              "FE2: minutes in every usual spelling; a bare number after a unit takes the next unit down (1h30, 2m30)");
+        check(is(TypedValue::duration("1:30"), 90.0f) && is(TypedValue::duration("1:02:03"), 3723.0f)
+                  && is(TypedValue::duration("0:45.5"), 45.5f) && ! TypedValue::duration(":").has_value(),
+              "FE2: the clock form reads m:ss and h:mm:ss");
+        check(is(TypedValue::ratio("4.0:1"), 4.0f) && is(TypedValue::ratio("1:2.0"), 2.0f)
+                  && is(TypedValue::ratio("3:2"), 1.5f) && is(TypedValue::ratio("3"), 3.0f),
+              "FE2: a ratio is read either way round (4.0:1 is 4, 1:2.0 is 2)");
 
         auto* atten = channel.getFieldsForTest().findLabelForTest("Effect Attenuation");
         auto* latency = channel.getFieldsForTest().findLabelForTest("Effect Delay/Latency");
@@ -10195,6 +10208,89 @@ void MainComponent::runChannelListSelfTest()
         parameters.setConfigParam("effectsGlobalLoopGuardCeiling", ceilingBefore);
         vts.setNumEffectChannels(effectsBefore);
         tabbedComponent.setCurrentTabIndex(tabBefore);
+    }
+
+    // ---- TV: typed values are read as the other tabs' labels show them -------
+    // Those labels kept only the digits of what was typed: "2m 45s" became
+    // 245 s, "1:3.0" an expander ratio of 13, "3.0 kHz" 3 Hz, a positive
+    // number in the worded latency field a delay, and a word 0 - full level
+    // on an attenuation. TypedValue now reads them, the latency field opens on
+    // the signed number, and a text with no number puts the label back.
+    if (inputsTab != nullptr && reverbTab != nullptr)
+    {
+        namespace P = WFSParameterIDs;
+        const int tabBefore = tabbedComponent.getCurrentTabIndex();
+        auto type = [](juce::Label& label, const juce::String& text)
+        {
+            label.showEditor();
+            if (auto* ed = label.getCurrentTextEditor())
+                ed->setText(text, false);
+            label.hideEditor(false);
+        };
+
+        tabbedComponent.setCurrentTabIndex(TabIndex::Inputs);
+        const int slot = vts.getSlotForChannelNumber(inputsTab->getCurrentChannel());
+
+        auto& duration = inputsTab->getOtomoDurationLabelForTest();
+        const float durationBefore = vts.getFloatParameter(P::inputOtomoDuration, slot);
+        type(duration, "2m 45s");
+        const float d1 = vts.getFloatParameter(P::inputOtomoDuration, slot);
+        type(duration, "1:30");
+        const float d2 = vts.getFloatParameter(P::inputOtomoDuration, slot);
+        check(std::abs(d1 - 165.0f) < 0.5f && std::abs(d2 - 90.0f) < 0.5f && duration.getText() == "1m 30s",
+              "TV1: the Inputs AutomOtion duration reads 2m 45s as 165 s and 1:30 as 90 s (got "
+                  + juce::String(d1, 1) + ", " + juce::String(d2, 1) + ")");
+        vts.setInputParameter(slot, P::inputOtomoDuration, durationBefore);
+
+        auto& latency = inputsTab->getDelayLatencyLabelForTest();
+        const float latencyBefore = vts.getFloatParameter(P::inputDelayLatency, slot);
+        type(latency, "-12");
+        latency.showEditor();
+        const bool signedText = latency.getCurrentTextEditor() != nullptr
+                                && latency.getCurrentTextEditor()->getText() == "-12.0";
+        latency.hideEditor(true);
+        check(std::abs(vts.getFloatParameter(P::inputDelayLatency, slot) + 12.0f) < 0.05f && signedText,
+              "TV2: the Inputs Delay/Latency field takes -12 as a 12 ms latency and opens on the signed number");
+        vts.setInputParameter(slot, P::inputDelayLatency, latencyBefore);
+
+        auto& atten = inputsTab->getAttenuationLabelForTest();
+        const auto attenText = atten.getText();
+        const float attenBefore = vts.getFloatParameter(P::inputAttenuation, slot);
+        type(atten, "loud");
+        check(atten.getText() == attenText
+                  && juce::approximatelyEqual(vts.getFloatParameter(P::inputAttenuation, slot), attenBefore),
+              "TV3: a word typed into an attenuation changes nothing (it used to set 0 dB)");
+
+        const int reverbsBefore = vts.getNumReverbChannels();
+        if (reverbsBefore == 0)
+            vts.setNumReverbChannels(1);    // restored below
+        if (vts.getNumReverbChannels() > 0)
+        {
+            tabbedComponent.setCurrentTabIndex(TabIndex::Reverb);
+            auto& ratio = reverbTab->getPostExpRatioLabelForTest();
+            auto& freq = reverbTab->getEqFreqLabelForTest(0);
+            const auto ratioText = ratio.getText();
+            const auto freqText = freq.getText();
+            type(ratio, "1:3.0");
+            type(freq, "3.0 kHz");
+            check(ratio.getText() == "1:3.0" && freq.getText() == "3.0 kHz",
+                  "TV4: the Reverb expander ratio 1:3.0 is 3 (was 13) and an EQ frequency of 3.0 kHz is 3000 Hz (was 20); shown "
+                      + ratio.getText() + ", " + freq.getText());
+            type(ratio, ratioText);             // the readers read the old texts back right
+            type(freq, freqText);
+        }
+        else
+        {
+            check(false, "TV4: a reverb channel to type into");
+        }
+        if (reverbsBefore == 0)
+            vts.setNumReverbChannels(0);
+
+        tabbedComponent.setCurrentTabIndex(tabBefore);
+    }
+    else
+    {
+        check(false, "TV: the Inputs and Reverb tabs exist");
     }
 
     // ---- P: the engine's meters, and the freshness that keeps them honest --

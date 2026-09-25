@@ -4,6 +4,7 @@
 #include <optional>
 #include "EffectsTabContext.h"
 #include "../ColumnFocusTraverser.h"
+#include "../../Helpers/TypedValue.h"
 
 /**
     Typed values and Tab sections for the Effects panels: the behaviour the
@@ -12,9 +13,8 @@
 
     A VALUE LABEL BECOMES CLICK-TO-TYPE. Enter, Tab or a click anywhere else
     applies the number; Esc puts the old value back; either way the field
-    closes. The text is read leniently - units, prefixes and spaces are
-    ignored, a comma is a decimal point, a "k" right after the number means
-    thousands (the panels show "1.20 kHz") - and the field's own apply
+    closes. The text is read as the label shows it (TypedValue: units and
+    prefixes ignored, comma decimals, "1.20 kHz", "1m 30s") - and the field's own apply
     function clamps it and writes it through the same path a drag takes, as
     one undo step. Text with no number in it changes nothing.
 
@@ -50,7 +50,7 @@ public:
         when given, is what the field opens with instead of the label's text
         (the latency label shows a word for the sign, the field a signed number). */
     void makeEditable (juce::Label& label, const juce::String& undoName, Apply apply,
-                       Parser parser = parseNumber, std::function<juce::String()> editText = {})
+                       Parser parser = TypedValue::number, std::function<juce::String()> editText = {})
     {
         label.setEditable (true, false);
         label.addListener (this);
@@ -118,78 +118,6 @@ public:
     }
 
     void markEditedForTest (juce::TextEditor& editor) { edited.insert (&editor); }
-
-    /** The first number in the text, with a "k" suffix meaning thousands. */
-    static std::optional<float> parseNumber (const juce::String& text)
-    {
-        const auto t = text.replaceCharacter (',', '.');
-        const int n = t.length();
-
-        for (int i = 0; i < n; ++i)
-        {
-            const bool sign = t[i] == '-' && i + 1 < n && (juce::CharacterFunctions::isDigit (t[i + 1]) || t[i + 1] == '.');
-            if (! sign && ! juce::CharacterFunctions::isDigit (t[i]) && ! (t[i] == '.' && i + 1 < n && juce::CharacterFunctions::isDigit (t[i + 1])))
-                continue;
-
-            int end = i + 1;
-            while (end < n && (juce::CharacterFunctions::isDigit (t[end]) || t[end] == '.'))
-                ++end;
-
-            float value = t.substring (i, end).getFloatValue();
-
-            int next = end;
-            while (next < n && t[next] == ' ')
-                ++next;
-            if (next < n && (t[next] == 'k' || t[next] == 'K'))
-                value *= 1000.0f;
-
-            return value;
-        }
-
-        return std::nullopt;
-    }
-
-    /** A duration as the panels show it: "5.00 s", "1m 30s", "1h", or a bare
-        number of seconds. */
-    static std::optional<float> parseDuration (const juce::String& text)
-    {
-        const auto t = text.replaceCharacter (',', '.').toLowerCase();
-        const int n = t.length();
-        float total = 0.0f;
-        bool any = false;
-
-        for (int i = 0; i < n;)
-        {
-            if (! juce::CharacterFunctions::isDigit (t[i]) && t[i] != '.')
-            {
-                ++i;
-                continue;
-            }
-
-            int end = i;
-            while (end < n && (juce::CharacterFunctions::isDigit (t[end]) || t[end] == '.'))
-                ++end;
-            const float value = t.substring (i, end).getFloatValue();
-
-            int unit = end;
-            while (unit < n && t[unit] == ' ')
-                ++unit;
-
-            float scale = 1.0f;
-            if (unit < n && t[unit] == 'h')
-                scale = 3600.0f;
-            else if (unit < n && t[unit] == 'm' && ! (unit + 1 < n && t[unit + 1] == 's'))
-                scale = 60.0f;
-            else if (unit + 1 < n && t[unit] == 'm' && t[unit + 1] == 's')
-                scale = 0.001f;
-
-            total += value * scale;
-            any = true;
-            i = end;
-        }
-
-        return any ? std::optional<float> (total) : std::nullopt;
-    }
 
 private:
     struct Entry

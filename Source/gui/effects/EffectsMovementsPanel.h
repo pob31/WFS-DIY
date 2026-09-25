@@ -950,7 +950,7 @@ private:
         for (int axis = 0; axis < 3; ++axis)
             if (&editor == &destEditors[axis])
             {
-                if (const auto typed = EffectsFieldEditing::parseNumber (editor.getText()))
+                if (const auto typed = TypedValue::number (editor.getText()))
                 {
                     ctx.beginGesture ("Effect AutomOtion Destination");
                     ctx.write (*ids[axis], *typed);
@@ -1018,7 +1018,7 @@ private:
             const float duration = juce::jlimit (0.1f, 3600.0f, typed);
             durationDial.setValue (juce::jlimit (0.0f, 1.0f, std::pow ((std::log10 (duration) + 1.0f) / 3.556f, 2.0f)));
             durationValue.setText (formatDuration (duration), juce::dontSendNotification);
-        }, EffectsFieldEditing::parseDuration);
+        }, TypedValue::duration);
 
         fields.makeEditable (curveValue, "Effect AutomOtion Curve", [this] (float typed)
         {
